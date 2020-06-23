@@ -78,6 +78,7 @@ import bisq.core.btc.wallet.BisqRiskAnalysis;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
+import monero.common.MoneroRpcConnection;
 import monero.daemon.model.MoneroNetworkType;
 import monero.wallet.MoneroWalletJni;
 import monero.wallet.model.MoneroWalletConfig;
@@ -368,15 +369,23 @@ public class WalletConfig extends AbstractIdleService {
             boolean chainFileExists = chainFile.exists();
             
             // XMR wallet
+            MoneroRpcConnection conn = new MoneroRpcConnection("http://localhost:38081", "superuser", "abctesting123");
             File vXmrWalletFile = new File(directory, "xmr_" + btcWalletFileName);
             if (MoneroWalletJni.walletExists(vXmrWalletFile.getPath())) {
-              vXmrWallet = MoneroWalletJni.openWallet(vXmrWalletFile.getPath(), "abctesting123", MoneroNetworkType.STAGENET);
+              vXmrWallet = MoneroWalletJni.openWallet(vXmrWalletFile.getPath(), "abctesting123", MoneroNetworkType.STAGENET, conn);
             } else {
               vXmrWallet = MoneroWalletJni.createWallet(new MoneroWalletConfig()
                       .setPath(vXmrWalletFile.getPath())
                       .setPassword("abctesting123")
-                      .setNetworkType(MoneroNetworkType.STAGENET)); // TODO: set mnemonic from seed
+                      .setNetworkType(MoneroNetworkType.STAGENET)
+                      .setServer(conn)); // TODO: set mnemonic and restore height
+                      
             }
+            System.out.println("Monero wallet path: " + vXmrWallet.getPath());
+            System.out.println("Monero wallet address: " + vXmrWallet.getPrimaryAddress());
+            System.out.println("Monero mnemonic: " + vXmrWallet.getMnemonic());
+            vXmrWallet.setSyncHeight(606137l);
+            vXmrWallet.sync();
             vXmrWallet.save();
             
             // BTC wallet
