@@ -386,6 +386,7 @@ public class WalletConfig extends AbstractIdleService {
             System.out.println("Monero mnemonic: " + vXmrWallet.getMnemonic());
             vXmrWallet.setSyncHeight(606137l);
             vXmrWallet.sync();
+            vXmrWallet.startSyncing();
             vXmrWallet.save();
             
             // BTC wallet
