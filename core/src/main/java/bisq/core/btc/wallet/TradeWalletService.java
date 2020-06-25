@@ -17,19 +17,16 @@
 
 package bisq.core.btc.wallet;
 
-import bisq.core.btc.exceptions.SigningException;
-import bisq.core.btc.exceptions.TransactionVerificationException;
-import bisq.core.btc.exceptions.WalletException;
-import bisq.core.btc.model.AddressEntry;
-import bisq.core.btc.model.InputsAndChangeOutput;
-import bisq.core.btc.model.PreparedDepositTxAndMakerInputs;
-import bisq.core.btc.model.RawTransactionInput;
-import bisq.core.btc.setup.WalletConfig;
-import bisq.core.btc.setup.WalletsSetup;
-import bisq.core.locale.Res;
-import bisq.core.user.Preferences;
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
 
-import bisq.common.config.Config;
+import java.math.BigInteger;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
+
+import javax.annotation.Nullable;
+import javax.inject.Inject;
 
 import org.bitcoinj.core.Address;
 import org.bitcoinj.core.AddressFormatException;
@@ -49,26 +46,29 @@ import org.bitcoinj.script.Script;
 import org.bitcoinj.script.ScriptBuilder;
 import org.bitcoinj.wallet.SendRequest;
 import org.bitcoinj.wallet.Wallet;
-
-import javax.inject.Inject;
+import org.jetbrains.annotations.NotNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.spongycastle.crypto.params.KeyParameter;
 
 import com.google.common.collect.ImmutableList;
 
-import org.spongycastle.crypto.params.KeyParameter;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.stream.Collectors;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import org.jetbrains.annotations.NotNull;
-
-import javax.annotation.Nullable;
-
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
+import bisq.common.config.Config;
+import bisq.core.btc.exceptions.SigningException;
+import bisq.core.btc.exceptions.TransactionVerificationException;
+import bisq.core.btc.exceptions.WalletException;
+import bisq.core.btc.model.AddressEntry;
+import bisq.core.btc.model.InputsAndChangeOutput;
+import bisq.core.btc.model.PreparedDepositTxAndMakerInputs;
+import bisq.core.btc.model.RawTransactionInput;
+import bisq.core.btc.setup.WalletConfig;
+import bisq.core.btc.setup.WalletsSetup;
+import bisq.core.locale.Res;
+import bisq.core.user.Preferences;
+import monero.wallet.MoneroWalletJni;
+import monero.wallet.model.MoneroDestination;
+import monero.wallet.model.MoneroTxConfig;
+import monero.wallet.model.MoneroTxWallet;
 
 public class TradeWalletService {
     private static final Logger log = LoggerFactory.getLogger(TradeWalletService.class);
@@ -79,6 +79,8 @@ public class TradeWalletService {
 
     @Nullable
     private Wallet wallet;
+    @Nullable
+    private MoneroWalletJni xmrWallet;
     @Nullable
     private WalletConfig walletConfig;
     @Nullable
@@ -97,6 +99,7 @@ public class TradeWalletService {
         walletsSetup.addSetupCompletedHandler(() -> {
             walletConfig = walletsSetup.getWalletConfig();
             wallet = walletsSetup.getBtcWallet();
+            xmrWallet = walletsSetup.getXmrWallet();
         });
     }
 
@@ -118,6 +121,23 @@ public class TradeWalletService {
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Trade fee
     ///////////////////////////////////////////////////////////////////////////////////////////
+    
+    public MoneroTxWallet createXmrTradingFeeTx(
+            int fundingAccountIndex,
+            String reservedForTradeAddress,
+            Coin reservedFundsForOffer,
+            boolean isUsingSavingsWallet,
+            Coin makerFee,
+            Coin txFee,
+            String feeReceiver,
+            boolean broadcastTx) {
+      return xmrWallet.createTx(new MoneroTxConfig()
+              .setAccountIndex(isUsingSavingsWallet ? 0 : fundingAccountIndex)
+              .setDestinations(
+                      new MoneroDestination(feeReceiver, BigInteger.valueOf(makerFee.value)),
+                      new MoneroDestination(reservedForTradeAddress, BigInteger.valueOf(reservedFundsForOffer.value)))
+              .setRelay(broadcastTx));
+    }
 
     /**
      * Create a BTC trading fee transaction for the maker or taker of an offer. The first output of the tx is for the

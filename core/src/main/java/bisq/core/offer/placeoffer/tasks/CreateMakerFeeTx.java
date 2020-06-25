@@ -17,30 +17,19 @@
 
 package bisq.core.offer.placeoffer.tasks;
 
-import bisq.core.btc.exceptions.TxBroadcastException;
-import bisq.core.btc.model.AddressEntry;
-import bisq.core.btc.wallet.BsqWalletService;
-import bisq.core.btc.wallet.BtcWalletService;
-import bisq.core.btc.wallet.TradeWalletService;
-import bisq.core.btc.wallet.TxBroadcaster;
-import bisq.core.btc.wallet.WalletService;
-import bisq.core.dao.exceptions.DaoDisabledException;
-import bisq.core.dao.governance.param.Param;
-import bisq.core.dao.state.model.blockchain.TxType;
-import bisq.core.offer.Offer;
-import bisq.core.offer.placeoffer.PlaceOfferModel;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import bisq.common.UserThread;
 import bisq.common.taskrunner.Task;
 import bisq.common.taskrunner.TaskRunner;
-
-import org.bitcoinj.core.Address;
-import org.bitcoinj.core.Transaction;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import javax.annotation.Nullable;
+import bisq.core.btc.model.XmrAddressEntry;
+import bisq.core.btc.wallet.TradeWalletService;
+import bisq.core.btc.wallet.XmrWalletService;
+import bisq.core.dao.exceptions.DaoDisabledException;
+import bisq.core.offer.Offer;
+import bisq.core.offer.placeoffer.PlaceOfferModel;
+import monero.wallet.model.MoneroTxWallet;
 
 public class CreateMakerFeeTx extends Task<PlaceOfferModel> {
     private static final Logger log = LoggerFactory.getLogger(CreateMakerFeeTx.class);
@@ -58,99 +47,90 @@ public class CreateMakerFeeTx extends Task<PlaceOfferModel> {
             runInterceptHook();
 
             String id = offer.getId();
-            BtcWalletService walletService = model.getWalletService();
+            XmrWalletService walletService = model.getXmrWalletService();
 
-            Address fundingAddress = walletService.getOrCreateAddressEntry(id, AddressEntry.Context.OFFER_FUNDING).getAddress();
-            Address reservedForTradeAddress = walletService.getOrCreateAddressEntry(id, AddressEntry.Context.RESERVED_FOR_TRADE).getAddress();
-            Address changeAddress = walletService.getFreshAddressEntry().getAddress();
+            int fundingAccountIndex = walletService.getOrCreateAddressEntry(id, XmrAddressEntry.Context.OFFER_FUNDING).getAccountIndex();
+            String reservedForTradeAddress = walletService.getOrCreateAddressEntry(id, XmrAddressEntry.Context.RESERVED_FOR_TRADE).getAddressString();
 
             TradeWalletService tradeWalletService = model.getTradeWalletService();
-            String feeReceiver = model.getDaoFacade().getParamValue(Param.RECIPIENT_BTC_ADDRESS);
+            String feeReceiver = "52FnB7ABUrKJzVQRpbMNrqDFWbcKLjFUq8Rgek7jZEuB6WE2ZggXaTf4FK6H8gQymvSrruHHrEuKhMN3qTMiBYzREKsmRKM"; // TODO (woodser): don't hardcode
 
             if (offer.isCurrencyForMakerFeeBtc()) {
-                tradeWalletService.createBtcTradingFeeTx(
-                        fundingAddress,
-                        reservedForTradeAddress,
-                        changeAddress,
-                        model.getReservedFundsForOffer(),
-                        model.isUseSavingsWallet(),
-                        offer.getMakerFee(),
-                        offer.getTxFee(),
-                        feeReceiver,
-                        true,
-                        new TxBroadcaster.Callback() {
-                            @Override
-                            public void onSuccess(Transaction transaction) {
-                                // we delay one render frame to be sure we don't get called before the method call has
-                                // returned (tradeFeeTx would be null in that case)
-                                UserThread.execute(() -> {
-                                    if (!completed) {
-                                        offer.setOfferFeePaymentTxId(transaction.getHashAsString());
-                                        model.setTransaction(transaction);
-                                        walletService.swapTradeEntryToAvailableEntry(id, AddressEntry.Context.OFFER_FUNDING);
+                try {
+                  MoneroTxWallet tx = tradeWalletService.createXmrTradingFeeTx(
+                          fundingAccountIndex,
+                          reservedForTradeAddress,
+                          model.getReservedFundsForOffer(),
+                          model.isUseSavingsWallet(),
+                          offer.getMakerFee(),
+                          offer.getTxFee(),
+                          feeReceiver,
+                          true);
+                  System.out.println("SUCCESS CREATING XMR TRADING FEE TX!");
+                  
+                  // we delay one render frame to be sure we don't get called before the method call has
+                  // returned (tradeFeeTx would be null in that case)
+                  UserThread.execute(() -> {
+                      if (!completed) {
+                          offer.setOfferFeePaymentTxId(tx.getHash());
+                          model.setXmrTransaction(tx);
+                          walletService.swapTradeEntryToAvailableEntry(id, XmrAddressEntry.Context.OFFER_FUNDING);
+  
+                          model.getOffer().setState(Offer.State.OFFER_FEE_PAID);
+  
+                          complete();
+                      } else {
+                          log.warn("We got the onSuccess callback called after the timeout has been triggered a complete().");
+                      }
+                  });
+                } catch (Exception e) {
+                  System.out.println("FAILURE CREATING XMR TRADING FEE TX!");
+                  if (!completed) {
+                      failed(e);
+                  } else {
+                      log.warn("We got the onFailure callback called after the timeout has been triggered a complete().");
+                  }
+                }
 
-                                        model.getOffer().setState(Offer.State.OFFER_FEE_PAID);
-
-                                        complete();
-                                    } else {
-                                        log.warn("We got the onSuccess callback called after the timeout has been triggered a complete().");
-                                    }
-                                });
-                            }
-
-                            @Override
-                            public void onFailure(TxBroadcastException exception) {
-                                if (!completed) {
-                                    failed(exception);
-                                } else {
-                                    log.warn("We got the onFailure callback called after the timeout has been triggered a complete().");
-                                }
-                            }
-                        });
-            } else {
-                final BsqWalletService bsqWalletService = model.getBsqWalletService();
-                Transaction preparedBurnFeeTx = model.getBsqWalletService().getPreparedTradeFeeTx(offer.getMakerFee());
-                Transaction txWithBsqFee = tradeWalletService.completeBsqTradingFeeTx(preparedBurnFeeTx,
-                        fundingAddress,
-                        reservedForTradeAddress,
-                        changeAddress,
-                        model.getReservedFundsForOffer(),
-                        model.isUseSavingsWallet(),
-                        offer.getTxFee());
-
-                Transaction signedTx = model.getBsqWalletService().signTx(txWithBsqFee);
-                WalletService.checkAllScriptSignaturesForTx(signedTx);
-                bsqWalletService.commitTx(signedTx, TxType.PAY_TRADE_FEE);
-                // We need to create another instance, otherwise the tx would trigger an invalid state exception
-                // if it gets committed 2 times
-                tradeWalletService.commitTx(tradeWalletService.getClonedTransaction(signedTx));
-
-                bsqWalletService.broadcastTx(signedTx, new TxBroadcaster.Callback() {
-                    @Override
-                    public void onSuccess(@Nullable Transaction transaction) {
-                        if (transaction != null) {
-                            offer.setOfferFeePaymentTxId(transaction.getHashAsString());
-                            model.setTransaction(transaction);
-                            log.debug("onSuccess, offerId={}, OFFER_FUNDING", id);
-                            walletService.swapTradeEntryToAvailableEntry(id, AddressEntry.Context.OFFER_FUNDING);
-
-                            log.debug("Successfully sent tx with id " + transaction.getHashAsString());
-                            model.getOffer().setState(Offer.State.OFFER_FEE_PAID);
-
-                            complete();
-                        }
-                    }
-
-                    @Override
-                    public void onFailure(TxBroadcastException exception) {
-                        log.error(exception.toString());
-                        exception.printStackTrace();
-                        offer.setErrorMessage("An error occurred.\n" +
-                                "Error message:\n"
-                                + exception.getMessage());
-                        failed(exception);
-                    }
-                });
+//                tradeWalletService.createBtcTradingFeeTx(
+//                        fundingAddress,
+//                        reservedForTradeAddress,
+//                        changeAddress,
+//                        model.getReservedFundsForOffer(),
+//                        model.isUseSavingsWallet(),
+//                        offer.getMakerFee(),
+//                        offer.getTxFee(),
+//                        feeReceiver,
+//                        true,
+//                        new TxBroadcaster.Callback() {
+//                            @Override
+//                            public void onSuccess(Transaction transaction) {
+//                                // we delay one render frame to be sure we don't get called before the method call has
+//                                // returned (tradeFeeTx would be null in that case)
+//                                UserThread.execute(() -> {
+//                                    if (!completed) {
+//                                        offer.setOfferFeePaymentTxId(transaction.getHashAsString());
+//                                        model.setTransaction(transaction);
+//                                        walletService.swapTradeEntryToAvailableEntry(id, AddressEntry.Context.OFFER_FUNDING);
+//
+//                                        model.getOffer().setState(Offer.State.OFFER_FEE_PAID);
+//
+//                                        complete();
+//                                    } else {
+//                                        log.warn("We got the onSuccess callback called after the timeout has been triggered a complete().");
+//                                    }
+//                                });
+//                            }
+//
+//                            @Override
+//                            public void onFailure(TxBroadcastException exception) {
+//                                if (!completed) {
+//                                    failed(exception);
+//                                } else {
+//                                    log.warn("We got the onFailure callback called after the timeout has been triggered a complete().");
+//                                }
+//                            }
+//                        });
             }
         } catch (Throwable t) {
             if (t instanceof DaoDisabledException) {
