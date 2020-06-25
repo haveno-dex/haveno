@@ -156,9 +156,6 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
     final ObjectProperty<InputValidator.ValidationResult> volumeValidationResult = new SimpleObjectProperty<>();
     final ObjectProperty<InputValidator.ValidationResult> buyerSecurityDepositValidationResult = new SimpleObjectProperty<>();
 
-    // Those are needed for the addressTextField
-    private final ObjectProperty<Address> address = new SimpleObjectProperty<>();
-
     private ChangeListener<String> amountStringListener;
     private ChangeListener<String> minAmountStringListener;
     private ChangeListener<String> priceStringListener, marketPriceMarginStringListener;
@@ -221,7 +218,6 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
 
         if (dataModel.getAddressEntry() != null) {
             addressAsString = dataModel.getAddressEntry().getAddressString();
-            address.set(dataModel.getAddressEntry().getAddress());
         }
         createListeners();
     }

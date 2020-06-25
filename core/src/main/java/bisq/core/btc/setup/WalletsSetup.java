@@ -67,6 +67,7 @@ import bisq.core.btc.exceptions.InvalidHostException;
 import bisq.core.btc.exceptions.RejectedTxException;
 import bisq.core.btc.model.AddressEntry;
 import bisq.core.btc.model.AddressEntryList;
+import bisq.core.btc.model.XmrAddressEntryList;
 import bisq.core.btc.nodes.BtcNetworkConfig;
 import bisq.core.btc.nodes.BtcNodes;
 import bisq.core.btc.nodes.BtcNodes.BtcNode;
@@ -106,6 +107,7 @@ public class WalletsSetup {
 
     private final RegTestHost regTestHost;
     private final AddressEntryList addressEntryList;
+    private final XmrAddressEntryList xmrAddressEntryList;
     private final Preferences preferences;
     private final Socks5ProxyProvider socks5ProxyProvider;
     private final Config config;
@@ -134,6 +136,7 @@ public class WalletsSetup {
     @Inject
     public WalletsSetup(RegTestHost regTestHost,
                         AddressEntryList addressEntryList,
+                        XmrAddressEntryList xmrAddressEntryList,
                         Preferences preferences,
                         Socks5ProxyProvider socks5ProxyProvider,
                         Config config,
@@ -146,6 +149,7 @@ public class WalletsSetup {
                         @Named(Config.SOCKS5_DISCOVER_MODE) String socks5DiscoverModeString) {
         this.regTestHost = regTestHost;
         this.addressEntryList = addressEntryList;
+        this.xmrAddressEntryList = xmrAddressEntryList;
         this.preferences = preferences;
         this.socks5ProxyProvider = socks5ProxyProvider;
         this.config = config;
@@ -243,6 +247,7 @@ public class WalletsSetup {
                 // Map to user thread
                 UserThread.execute(() -> {
                     addressEntryList.onWalletReady(walletConfig.getBtcWallet());
+                    xmrAddressEntryList.onWalletReady(walletConfig.getXmrWallet());
                     timeoutTimer.stop();
                     setupCompletedHandlers.stream().forEach(Runnable::run);
                 });

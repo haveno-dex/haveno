@@ -17,6 +17,37 @@
 
 package bisq.core.app;
 
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
+import java.util.function.BiConsumer;
+import java.util.function.Consumer;
+
+import javax.annotation.Nullable;
+import javax.inject.Inject;
+import javax.inject.Named;
+import javax.inject.Singleton;
+
+import org.bitcoinj.core.Coin;
+import org.bitcoinj.core.RejectMessage;
+import org.fxmisc.easybind.EasyBind;
+import org.fxmisc.easybind.monadic.MonadicBinding;
+import org.spongycastle.crypto.params.KeyParameter;
+
+import bisq.common.ClockWatcher;
+import bisq.common.Timer;
+import bisq.common.UserThread;
+import bisq.common.app.DevEnv;
+import bisq.common.app.Log;
+import bisq.common.config.Config;
+import bisq.common.crypto.CryptoException;
+import bisq.common.crypto.KeyRing;
+import bisq.common.crypto.SealedAndSigned;
+import bisq.common.proto.ProtobufferException;
+import bisq.common.util.Utilities;
 import bisq.core.account.sign.SignedWitness;
 import bisq.core.account.sign.SignedWitnessService;
 import bisq.core.account.witness.AccountAgeWitnessService;
@@ -30,6 +61,7 @@ import bisq.core.btc.nodes.LocalBitcoinNode;
 import bisq.core.btc.setup.WalletsSetup;
 import bisq.core.btc.wallet.BtcWalletService;
 import bisq.core.btc.wallet.WalletsManager;
+import bisq.core.btc.wallet.XmrWalletService;
 import bisq.core.dao.DaoSetup;
 import bisq.core.dao.governance.asset.AssetService;
 import bisq.core.dao.governance.voteresult.VoteResultException;
@@ -64,63 +96,22 @@ import bisq.core.user.Preferences;
 import bisq.core.user.User;
 import bisq.core.util.FormattingUtils;
 import bisq.core.util.coin.CoinFormatter;
-
 import bisq.network.crypto.DecryptedDataTuple;
 import bisq.network.crypto.EncryptionService;
 import bisq.network.p2p.P2PService;
 import bisq.network.p2p.peers.keepalive.messages.Ping;
 import bisq.network.p2p.storage.payload.PersistableNetworkPayload;
-
-import bisq.common.ClockWatcher;
-import bisq.common.Timer;
-import bisq.common.UserThread;
-import bisq.common.app.DevEnv;
-import bisq.common.app.Log;
-import bisq.common.config.Config;
-import bisq.common.crypto.CryptoException;
-import bisq.common.crypto.KeyRing;
-import bisq.common.crypto.SealedAndSigned;
-import bisq.common.proto.ProtobufferException;
-import bisq.common.util.Utilities;
-
-import org.bitcoinj.core.Coin;
-import org.bitcoinj.core.RejectMessage;
-
-import javax.inject.Inject;
-import javax.inject.Named;
-import javax.inject.Singleton;
-
-import org.fxmisc.easybind.EasyBind;
-import org.fxmisc.easybind.monadic.MonadicBinding;
-
+import ch.qos.logback.classic.Level;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.DoubleProperty;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.StringProperty;
 import javafx.beans.value.ChangeListener;
-
 import javafx.collections.ListChangeListener;
 import javafx.collections.SetChangeListener;
-
-import org.spongycastle.crypto.params.KeyParameter;
-
-import java.io.IOException;
-
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Set;
-import java.util.concurrent.TimeUnit;
-import java.util.function.BiConsumer;
-import java.util.function.Consumer;
-
-import ch.qos.logback.classic.Level;
-
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
-
-import javax.annotation.Nullable;
 
 @Slf4j
 @Singleton
@@ -149,6 +140,7 @@ public class BisqSetup {
     private final WalletsManager walletsManager;
     private final WalletsSetup walletsSetup;
     private final BtcWalletService btcWalletService;
+    private final XmrWalletService xmrWalletService;
     private final Balances balances;
     private final PriceFeedService priceFeedService;
     private final ArbitratorManager arbitratorManager;
@@ -240,6 +232,7 @@ public class BisqSetup {
                      WalletAppSetup walletAppSetup,
                      WalletsManager walletsManager,
                      WalletsSetup walletsSetup,
+                     XmrWalletService xmrWalletService,
                      BtcWalletService btcWalletService,
                      Balances balances,
                      PriceFeedService priceFeedService,
@@ -287,6 +280,7 @@ public class BisqSetup {
 
         this.walletsManager = walletsManager;
         this.walletsSetup = walletsSetup;
+        this.xmrWalletService = xmrWalletService;
         this.btcWalletService = btcWalletService;
         this.balances = balances;
         this.priceFeedService = priceFeedService;

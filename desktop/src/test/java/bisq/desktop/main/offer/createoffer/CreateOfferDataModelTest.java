@@ -1,9 +1,20 @@
 package bisq.desktop.main.offer.createoffer;
 
-import bisq.desktop.main.offer.MakerFeeProvider;
+import static org.junit.Assert.assertEquals;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
-import bisq.core.btc.model.AddressEntry;
-import bisq.core.btc.wallet.BtcWalletService;
+import java.util.HashSet;
+import java.util.UUID;
+
+import org.bitcoinj.core.Coin;
+import org.junit.Before;
+import org.junit.Test;
+
+import bisq.core.btc.model.XmrAddressEntry;
+import bisq.core.btc.wallet.XmrWalletService;
 import bisq.core.locale.CryptoCurrency;
 import bisq.core.locale.FiatCurrency;
 import bisq.core.locale.GlobalSettings;
@@ -17,20 +28,7 @@ import bisq.core.provider.fee.FeeService;
 import bisq.core.provider.price.PriceFeedService;
 import bisq.core.user.Preferences;
 import bisq.core.user.User;
-
-import org.bitcoinj.core.Coin;
-
-import java.util.HashSet;
-import java.util.UUID;
-
-import org.junit.Before;
-import org.junit.Test;
-
-import static org.junit.Assert.assertEquals;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import bisq.desktop.main.offer.MakerFeeProvider;
 
 public class CreateOfferDataModelTest {
 
@@ -45,21 +43,21 @@ public class CreateOfferDataModelTest {
         GlobalSettings.setDefaultTradeCurrency(btc);
         Res.setup();
 
-        AddressEntry addressEntry = mock(AddressEntry.class);
-        BtcWalletService btcWalletService = mock(BtcWalletService.class);
+        XmrAddressEntry addressEntry = mock(XmrAddressEntry.class);
+        XmrWalletService xmrWalletService = mock(XmrWalletService.class);
         PriceFeedService priceFeedService = mock(PriceFeedService.class);
         FeeService feeService = mock(FeeService.class);
         CreateOfferService createOfferService = mock(CreateOfferService.class);
         preferences = mock(Preferences.class);
         user = mock(User.class);
 
-        when(btcWalletService.getOrCreateAddressEntry(anyString(), any())).thenReturn(addressEntry);
+        when(xmrWalletService.getOrCreateAddressEntry(anyString(), any())).thenReturn(addressEntry);
         when(preferences.isUsePercentageBasedPrice()).thenReturn(true);
         when(preferences.getBuyerSecurityDepositAsPercent(null)).thenReturn(0.01);
         when(createOfferService.getRandomOfferId()).thenReturn(UUID.randomUUID().toString());
 
         makerFeeProvider = mock(MakerFeeProvider.class);
-        model = new CreateOfferDataModel(createOfferService, null, btcWalletService,
+        model = new CreateOfferDataModel(createOfferService, null, xmrWalletService,
                 null, preferences, user, null,
                 priceFeedService, null,
                 feeService, null, makerFeeProvider, null);
