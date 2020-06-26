@@ -70,23 +70,22 @@ public final class XmrAddressEntryList implements UserThreadMappedPersistableEnv
         this.list = list;
     }
 
-    public static XmrAddressEntryList fromProto(protobuf.AddressEntryList proto) {
-        return new XmrAddressEntryList(new ArrayList<>(proto.getAddressEntryList().stream().map(XmrAddressEntry::fromProto).collect(Collectors.toList())));
+    public static XmrAddressEntryList fromProto(protobuf.XmrAddressEntryList proto) {
+        return new XmrAddressEntryList(new ArrayList<>(proto.getXmrAddressEntryList().stream().map(XmrAddressEntry::fromProto).collect(Collectors.toList())));
     }
 
     @Override
     public Message toProtoMessage() {
-      throw new RuntimeException("Not implemented");
-//        // We clone list as we got ConcurrentModificationExceptions
-//        List<XmrAddressEntry> clone = new ArrayList<>(list);
-//        List<protobuf.XmrAddressEntry> addressEntries = clone.stream()
-//                .map(XmrAddressEntry::toProtoMessage)
-//                .collect(Collectors.toList());
-//
-//        return protobuf.PersistableEnvelope.newBuilder()
-//                .setAddressEntryList(protobuf.AddressEntryList.newBuilder()
-//                        .addAllAddressEntry(addressEntries))
-//                .build();
+        // We clone list as we got ConcurrentModificationExceptions
+        List<XmrAddressEntry> clone = new ArrayList<>(list);
+        List<protobuf.XmrAddressEntry> addressEntries = clone.stream()
+                .map(XmrAddressEntry::toProtoMessage)
+                .collect(Collectors.toList());
+
+        return protobuf.PersistableEnvelope.newBuilder()
+                .setXmrAddressEntryList(protobuf.XmrAddressEntryList.newBuilder()
+                        .addAllXmrAddressEntry(addressEntries))
+                .build();
     }
 
 

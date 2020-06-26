@@ -1145,6 +1145,8 @@ message PersistableEnvelope {
         SignedWitnessStore signed_witness_store = 28;
         MediationDisputeList mediation_dispute_list = 29;
         RefundDisputeList refund_dispute_list = 30;
+        
+        XmrAddressEntryList xmr_address_entry_list = 31;
     }
 }
 
@@ -1212,6 +1214,28 @@ message AddressEntry {
     Context context = 8;
     bytes pub_key = 9;
     bytes pub_key_hash = 10;
+    int64 coin_locked_in_multi_sig = 11;
+}
+
+message XmrAddressEntryList {
+    repeated XmrAddressEntry xmr_address_entry = 1;
+}
+
+message XmrAddressEntry {
+    enum Context {
+        PB_ERROR = 0;
+        ARBITRATOR = 1;
+        AVAILABLE = 2;
+        OFFER_FUNDING = 3;
+        RESERVED_FOR_TRADE = 4;
+        MULTI_SIG = 5;
+        TRADE_PAYOUT = 6;
+    }
+
+	int32 account_index = 7;
+	string address_string = 8;
+    string offer_id = 9;
+    Context context = 10;
     int64 coin_locked_in_multi_sig = 11;
 }
 

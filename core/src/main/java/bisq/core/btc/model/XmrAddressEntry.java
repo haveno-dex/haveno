@@ -17,13 +17,14 @@
 
 package bisq.core.btc.model;
 
+import java.util.Optional;
+
 import javax.annotation.Nullable;
 
 import org.bitcoinj.core.Coin;
 import org.jetbrains.annotations.NotNull;
 
-import com.google.protobuf.Message;
-
+import bisq.common.proto.ProtoUtil;
 import bisq.common.proto.persistable.PersistablePayload;
 import bisq.common.util.Utilities;
 import lombok.EqualsAndHashCode;
@@ -85,24 +86,23 @@ public final class XmrAddressEntry implements PersistablePayload {
     // PROTO BUFFER
     ///////////////////////////////////////////////////////////////////////////////////////////
 
-    public static XmrAddressEntry fromProto(protobuf.AddressEntry proto) {
-      throw new RuntimeException("Not implemented");
-//        return new XmrAddressEntry(proto.getPubKey().toByteArray(),
-//                proto.getPubKeyHash().toByteArray(),
-//                ProtoUtil.enumFromProto(XmrAddressEntry.Context.class, proto.getContext().name()),
-//                ProtoUtil.stringOrNullFromProto(proto.getOfferId()),
-//                Coin.valueOf(proto.getCoinLockedInMultiSig()));
+    public static XmrAddressEntry fromProto(protobuf.XmrAddressEntry proto) {
+        return new XmrAddressEntry(proto.getAccountIndex(),
+                ProtoUtil.stringOrNullFromProto(proto.getAddressString()),
+                ProtoUtil.enumFromProto(XmrAddressEntry.Context.class, proto.getContext().name()),
+                ProtoUtil.stringOrNullFromProto(proto.getOfferId()),
+                Coin.valueOf(proto.getCoinLockedInMultiSig()));
     }
 
     @Override
-    public Message toProtoMessage() {
-      throw new RuntimeException("Not implemented");
-//        protobuf.XmrAddressEntry.Builder builder = protobuf.XmrAddressEntry.newBuilder()
-//                .setAddressString(addressString)
-//                .setContext(protobuf.XmrAddressEntry.Context.valueOf(context.name()))
-//                .setCoinLockedInMultiSig(coinLockedInMultiSig);
-//        Optional.ofNullable(offerId).ifPresent(builder::setOfferId);
-//        return builder.build();
+    public protobuf.XmrAddressEntry toProtoMessage() {
+        protobuf.XmrAddressEntry.Builder builder = protobuf.XmrAddressEntry.newBuilder()
+                .setAccountIndex(accountIndex)
+                .setAddressString(addressString)
+                .setContext(protobuf.XmrAddressEntry.Context.valueOf(context.name()))
+                .setCoinLockedInMultiSig(coinLockedInMultiSig);
+        Optional.ofNullable(offerId).ifPresent(builder::setOfferId);
+        return builder.build();
     }
 
 
@@ -118,11 +118,6 @@ public final class XmrAddressEntry implements PersistablePayload {
     @Nullable
     public String getShortOfferId() {
         return offerId != null ? Utilities.getShortId(offerId) : null;
-    }
-
-    @Nullable
-    public String getAddressString() {
-        return addressString;
     }
 
     public boolean isOpenOffer() {
@@ -146,6 +141,7 @@ public final class XmrAddressEntry implements PersistablePayload {
         return "XmrAddressEntry{" +
                 "offerId='" + getOfferId() + '\'' +
                 ", context=" + context +
+                ", accountIndex=" + getAccountIndex() +
                 ", address=" + getAddressString() +
                 '}';
     }

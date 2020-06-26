@@ -109,8 +109,8 @@ public class XmrWalletService {
             .filter(e -> context == e.getContext())
             .findAny();
     addressEntryOptional.ifPresent(e -> {
-        log.info("swap addressEntry with address {} and offerId {} from context {} to available",
-                e.getAddressString(), e.getOfferId(), context);
+        log.info("swap addressEntry with account index {} and offerId {} from context {} to available",
+                e.getAccountIndex(), e.getOfferId(), context);
         addressEntryList.swapToAvailable(e);
         saveAddressEntryList();
     });
