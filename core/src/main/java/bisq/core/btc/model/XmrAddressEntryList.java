@@ -121,12 +121,8 @@ public final class XmrAddressEntryList implements UserThreadMappedPersistableEnv
         // funds (e.g. if the user sends funds to an address which has not been provided in the main UI - like from the
         // wallet details window).
         wallet.addListener(new MoneroWalletListener() {
-          @Override public void onOutputReceived(MoneroOutputWallet output) {
-            updateList(output);
-          }
-          @Override public void onOutputSpent(MoneroOutputWallet output) {
-            updateList(output);
-          }
+          @Override public void onOutputReceived(MoneroOutputWallet output) { updateList(output); }
+          @Override public void onOutputSpent(MoneroOutputWallet output) { updateList(output); }
         });
     }
     

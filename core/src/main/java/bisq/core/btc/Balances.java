@@ -80,6 +80,7 @@ public class Balances {
         tradeManager.getTradableList().addListener((ListChangeListener<Trade>) change -> updateBalance());
         refundManager.getDisputesAsObservableList().addListener((ListChangeListener<Dispute>) c -> updateBalance());
         xmrWalletService.getWallet().addListener(new MoneroWalletListener() {
+          @Override public void onBalancesChanged(BigInteger newBalance, BigInteger newUnlockedBalance) { updateBalance(); }
           @Override public void onOutputReceived(MoneroOutputWallet output) { updateBalance(); }
           @Override public void onOutputSpent(MoneroOutputWallet output) { updateBalance(); }
         });
