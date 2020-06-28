@@ -41,7 +41,7 @@ configure(subprojects) {
         grpcVersion = '1.25.0'
         gsonVersion = '2.8.5'
         guavaVersion = '20.0'
-        moneroJavaVersion = '0.3.2'
+        moneroJavaVersion = '0.3.3'
         guiceVersion = '4.2.2'
         hamcrestVersion = '1.3'
         httpclientVersion = '4.5.12'
