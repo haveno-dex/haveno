@@ -628,17 +628,18 @@ public class BisqSetup {
         // We check if we have open offers with no confidence object at the maker fee tx. That can happen if the
         // miner fee was too low and the transaction got removed from mempool and got out from our wallet after a
         // resync.
-        openOfferManager.getObservableList().forEach(e -> {
-            String offerFeePaymentTxId = e.getOffer().getOfferFeePaymentTxId();
-            if (btcWalletService.getConfidenceForTxId(offerFeePaymentTxId) == null) {
-                String message = Res.get("popup.warning.openOfferWithInvalidMakerFeeTx",
-                        e.getOffer().getShortId(), offerFeePaymentTxId);
-                log.warn(message);
-                if (lockedUpFundsHandler != null) {
-                    lockedUpFundsHandler.accept(message);
-                }
-            }
-        });
+        // TODO (woodser): check for invalid maker fee txs with xmr?
+//        openOfferManager.getObservableList().forEach(e -> {
+//            String offerFeePaymentTxId = e.getOffer().getOfferFeePaymentTxId();
+//            if (btcWalletService.getConfidenceForTxId(offerFeePaymentTxId) == null) { // TODO (woodser): needed for xmr base?
+//                String message = Res.get("popup.warning.openOfferWithInvalidMakerFeeTx",
+//                        e.getOffer().getShortId(), offerFeePaymentTxId);
+//                log.warn(message);
+//                if (lockedUpFundsHandler != null) {
+//                    lockedUpFundsHandler.accept(message);
+//                }
+//            }
+//        });
     }
 
     private void checkForCorrectOSArchitecture() {

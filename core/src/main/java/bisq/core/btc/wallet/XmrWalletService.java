@@ -121,7 +121,7 @@ public class XmrWalletService {
   }
   
   public boolean isAccountUnused(int accountIndex) {
-    return getBalanceForAccount(accountIndex).value == 0;
+    return accountIndex != 0 && getBalanceForAccount(accountIndex).value == 0;
     //return !wallet.getSubaddress(accountIndex, 0).isUsed(); // TODO: isUsed() does not include unconfirmed funds
   }
   
@@ -144,26 +144,13 @@ public class XmrWalletService {
     return Coin.valueOf(balance.longValueExact());
   }
   
+  
   public Coin getAvailableConfirmedBalance() {
     return wallet != null ? Coin.valueOf(wallet.getUnlockedBalance(0).longValueExact()) : Coin.ZERO;
   }
   
   public Coin getSavingWalletBalance() {
-    return Coin.valueOf(getFundedAvailableAddressEntries().stream()
-            .mapToLong(addressEntry -> getBalanceForAccount(addressEntry.getAccountIndex()).value)
-            .sum());
-  }
-  
-  public List<XmrAddressEntry> getFundedAvailableAddressEntries() {
-    return getAvailableAddressEntries().stream()
-            .filter(addressEntry -> getBalanceForAccount(addressEntry.getAccountIndex()).value > 0)
-            .collect(Collectors.toList());
-  }
-  
-  public List<XmrAddressEntry> getAvailableAddressEntries() {
-    return getAddressEntryListAsImmutableList().stream()
-            .filter(addressEntry -> XmrAddressEntry.Context.AVAILABLE == addressEntry.getContext())
-            .collect(Collectors.toList());
+    return wallet != null ? Coin.valueOf(wallet.getBalance(0).longValueExact()) : Coin.ZERO;
   }
   
   public void addBalanceListener(XmrBalanceListener listener) {

@@ -20,6 +20,7 @@ package bisq.core.proto.persistable;
 import bisq.core.account.sign.SignedWitnessStore;
 import bisq.core.account.witness.AccountAgeWitnessStore;
 import bisq.core.btc.model.AddressEntryList;
+import bisq.core.btc.model.XmrAddressEntryList;
 import bisq.core.btc.wallet.BtcWalletService;
 import bisq.core.dao.governance.blindvote.MyBlindVoteList;
 import bisq.core.dao.governance.blindvote.storage.BlindVoteStore;
@@ -95,6 +96,8 @@ public class CorePersistenceProtoResolver extends CoreProtoResolver implements P
                     return PeerList.fromProto(proto.getPeerList());
                 case ADDRESS_ENTRY_LIST:
                     return AddressEntryList.fromProto(proto.getAddressEntryList());
+                case XMR_ADDRESS_ENTRY_LIST:
+                  return XmrAddressEntryList.fromProto(proto.getXmrAddressEntryList());
                 case TRADABLE_LIST:
                     return TradableList.fromProto(proto.getTradableList(),
                             this,
