@@ -33,7 +33,6 @@ import javax.inject.Named;
 import org.bitcoinj.core.AddressFormatException;
 import org.bitcoinj.core.Coin;
 import org.bitcoinj.core.InsufficientMoneyException;
-import org.bitcoinj.core.TransactionConfidence;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -68,6 +67,7 @@ import bisq.core.trade.closed.ClosedTradableManager;
 import bisq.core.trade.failed.FailedTradesManager;
 import bisq.core.trade.handlers.TradeResultHandler;
 import bisq.core.trade.messages.InputsForDepositTxRequest;
+import bisq.core.trade.messages.PrepareMultisigRequest;
 import bisq.core.trade.messages.TradeMessage;
 import bisq.core.trade.statistics.ReferralIdService;
 import bisq.core.trade.statistics.TradeStatisticsManager;
@@ -186,6 +186,8 @@ public class TradeManager implements PersistedDataHost {
             // Handler for incoming initial network_messages from taker
             if (networkEnvelope instanceof InputsForDepositTxRequest) {
                 handlePayDepositRequest((InputsForDepositTxRequest) networkEnvelope, peerNodeAddress);
+            } else if (networkEnvelope instanceof PrepareMultisigRequest) {
+                handlePayDepositRequest((PrepareMultisigRequest) networkEnvelope, peerNodeAddress);
             }
         });
 
@@ -349,6 +351,58 @@ public class TradeManager implements PersistedDataHost {
                     xmrWalletService.resetAddressEntriesForPendingTrade(e.getOfferId());
                 });
     }
+    
+    private void handlePayDepositRequest(PrepareMultisigRequest prepareMultisigRequest, NodeAddress peer) {
+      log.info("Received PayDepositRequest from {} with tradeId {} and uid {}",
+              peer, prepareMultisigRequest.getTradeId(), prepareMultisigRequest.getUid());
+
+      try {
+          Validator.nonEmptyStringOf(prepareMultisigRequest.getTradeId());
+      } catch (Throwable t) {
+          log.warn("Invalid requestDepositTxInputsMessage " + prepareMultisigRequest.toString());
+          return;
+      }
+
+      Optional<OpenOffer> openOfferOptional = openOfferManager.getOpenOfferById(prepareMultisigRequest.getTradeId());
+      if (openOfferOptional.isPresent() && openOfferOptional.get().getState() == OpenOffer.State.AVAILABLE) {
+          OpenOffer openOffer = openOfferOptional.get();
+          Offer offer = openOffer.getOffer();
+          openOfferManager.reserveOpenOffer(openOffer);
+          Trade trade;
+          if (offer.isBuyOffer())
+              trade = new BuyerAsMakerTrade(offer,
+                      Coin.valueOf(prepareMultisigRequest.getTxFee()),
+                      Coin.valueOf(prepareMultisigRequest.getTakerFee()),
+                      true,
+                      openOffer.getArbitratorNodeAddress(),
+                      openOffer.getMediatorNodeAddress(),
+                      openOffer.getRefundAgentNodeAddress(),
+                      tradableListStorage,
+                      xmrWalletService);
+          else
+              trade = new SellerAsMakerTrade(offer,
+                      Coin.valueOf(prepareMultisigRequest.getTxFee()),
+                      Coin.valueOf(prepareMultisigRequest.getTakerFee()),
+                      true,
+                      openOffer.getArbitratorNodeAddress(),
+                      openOffer.getMediatorNodeAddress(),
+                      openOffer.getRefundAgentNodeAddress(),
+                      tradableListStorage,
+                      xmrWalletService);
+
+          initTrade(trade, trade.getProcessModel().isUseSavingsWallet(), trade.getProcessModel().getFundsNeededForTradeAsLong());
+          tradableList.add(trade);
+          ((MakerTrade) trade).handleTakeOfferRequest(prepareMultisigRequest, peer, errorMessage -> {
+              if (takeOfferRequestErrorMessageHandler != null)
+                  takeOfferRequestErrorMessageHandler.handleErrorMessage(errorMessage);
+          });
+      } else {
+          // TODO respond
+          //(RequestDepositTxInputsMessage)message.
+          //  messageService.sendEncryptedMessage(peerAddress,messageWithPubKey.getMessage().);
+          log.debug("We received a take offer request but don't have that offer anymore.");
+      }
+  }
 
     private void handlePayDepositRequest(InputsForDepositTxRequest inputsForDepositTxRequest, NodeAddress peer) {
         log.info("Received PayDepositRequest from {} with tradeId {} and uid {}",

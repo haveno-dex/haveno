@@ -77,6 +77,9 @@ message NetworkEnvelope {
         PeerPublishedDelayedPayoutTxMessage peer_published_delayed_payout_tx_message = 49;
 
         RefreshTradeStateRequest refresh_trade_state_request = 50;
+        
+        PrepareMultisigRequest prepare_multisig_request = 1001;
+        //PrepareMultisigResponse prepare_multisig_response = 1002;
     }
 }
 
@@ -248,6 +251,26 @@ message InputsForDepositTxResponse {
     bytes account_age_witness_signature_of_prepared_deposit_tx = 12;
     int64 current_date = 13;
     int64 lock_time = 14;
+}
+
+message PrepareMultisigRequest {
+    string trade_id = 1;
+    NodeAddress sender_node_address = 2;
+    int64 trade_amount = 3;
+    int64 trade_price = 4;
+    int64 tx_fee = 5;
+    int64 taker_fee = 6;
+    string taker_prepared_multisig_hex = 7;
+    string taker_payout_address_string = 8;
+    PubKeyRing taker_pub_key_ring = 9;
+    PaymentAccountPayload taker_payment_account_payload = 10;
+    string taker_account_id = 11;
+    string taker_fee_tx_id = 12;
+    repeated NodeAddress accepted_arbitrator_node_addresses = 13;
+    NodeAddress arbitrator_node_address = 14;
+    string uid = 15;
+    bytes account_age_witness_signature_of_offer_id = 16;
+    int64 current_date = 17;
 }
 
 message DelayedPayoutTxSignatureRequest {

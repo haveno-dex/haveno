@@ -17,23 +17,21 @@
 
 package bisq.core.trade;
 
+import javax.annotation.Nullable;
+
+import org.bitcoinj.core.Coin;
+
+import bisq.common.handlers.ErrorMessageHandler;
+import bisq.common.storage.Storage;
 import bisq.core.btc.wallet.XmrWalletService;
 import bisq.core.offer.Offer;
 import bisq.core.proto.CoreProtoResolver;
 import bisq.core.trade.messages.InputsForDepositTxRequest;
+import bisq.core.trade.messages.PrepareMultisigRequest;
 import bisq.core.trade.protocol.BuyerAsMakerProtocol;
 import bisq.core.trade.protocol.MakerProtocol;
-
 import bisq.network.p2p.NodeAddress;
-
-import bisq.common.handlers.ErrorMessageHandler;
-import bisq.common.storage.Storage;
-
-import org.bitcoinj.core.Coin;
-
 import lombok.extern.slf4j.Slf4j;
-
-import javax.annotation.Nullable;
 
 @Slf4j
 public final class BuyerAsMakerTrade extends BuyerTrade implements MakerTrade {
@@ -107,6 +105,13 @@ public final class BuyerAsMakerTrade extends BuyerTrade implements MakerTrade {
     @Override
     protected void createTradeProtocol() {
         tradeProtocol = new BuyerAsMakerProtocol(this);
+    }
+    
+    @Override
+    public void handleTakeOfferRequest(PrepareMultisigRequest message,
+                                       NodeAddress taker,
+                                       ErrorMessageHandler errorMessageHandler) {
+        ((MakerProtocol) tradeProtocol).handleTakeOfferRequest(message, taker, errorMessageHandler);
     }
 
     @Override

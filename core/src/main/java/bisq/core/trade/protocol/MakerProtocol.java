@@ -18,12 +18,12 @@
 package bisq.core.trade.protocol;
 
 
+import bisq.common.handlers.ErrorMessageHandler;
 import bisq.core.trade.messages.InputsForDepositTxRequest;
-
+import bisq.core.trade.messages.PrepareMultisigRequest;
 import bisq.network.p2p.NodeAddress;
 
-import bisq.common.handlers.ErrorMessageHandler;
-
 public interface MakerProtocol {
+    void handleTakeOfferRequest(PrepareMultisigRequest message, NodeAddress taker, ErrorMessageHandler errorMessageHandler);
     void handleTakeOfferRequest(InputsForDepositTxRequest message, NodeAddress taker, ErrorMessageHandler errorMessageHandler);
 }

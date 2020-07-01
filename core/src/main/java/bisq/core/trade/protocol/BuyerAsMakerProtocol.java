@@ -17,12 +17,15 @@
 
 package bisq.core.trade.protocol;
 
+import bisq.common.handlers.ErrorMessageHandler;
+import bisq.common.handlers.ResultHandler;
 import bisq.core.trade.BuyerAsMakerTrade;
 import bisq.core.trade.Trade;
 import bisq.core.trade.messages.DelayedPayoutTxSignatureRequest;
 import bisq.core.trade.messages.DepositTxAndDelayedPayoutTxMessage;
 import bisq.core.trade.messages.InputsForDepositTxRequest;
 import bisq.core.trade.messages.PayoutTxPublishedMessage;
+import bisq.core.trade.messages.PrepareMultisigRequest;
 import bisq.core.trade.messages.RefreshTradeStateRequest;
 import bisq.core.trade.messages.TradeMessage;
 import bisq.core.trade.protocol.tasks.ApplyFilter;
@@ -43,16 +46,12 @@ import bisq.core.trade.protocol.tasks.buyer_as_maker.BuyerAsMakerCreatesAndSigns
 import bisq.core.trade.protocol.tasks.buyer_as_maker.BuyerAsMakerSendsInputsForDepositTxResponse;
 import bisq.core.trade.protocol.tasks.maker.MakerCreateAndSignContract;
 import bisq.core.trade.protocol.tasks.maker.MakerProcessesInputsForDepositTxRequest;
+import bisq.core.trade.protocol.tasks.maker.MakerProcessesPrepareMultisigRequest;
 import bisq.core.trade.protocol.tasks.maker.MakerSetsLockTime;
 import bisq.core.trade.protocol.tasks.maker.MakerVerifyTakerAccount;
 import bisq.core.trade.protocol.tasks.maker.MakerVerifyTakerFeePayment;
 import bisq.core.util.Validator;
-
 import bisq.network.p2p.NodeAddress;
-
-import bisq.common.handlers.ErrorMessageHandler;
-import bisq.common.handlers.ResultHandler;
-
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -109,6 +108,38 @@ public class BuyerAsMakerProtocol extends TradeProtocol implements BuyerProtocol
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Start trade
     ///////////////////////////////////////////////////////////////////////////////////////////
+    
+    @Override
+    public void handleTakeOfferRequest(PrepareMultisigRequest tradeMessage,
+                                       NodeAddress peerNodeAddress,
+                                       ErrorMessageHandler errorMessageHandler) {
+        Validator.checkTradeId(processModel.getOfferId(), tradeMessage);
+        processModel.setTradeMessage(tradeMessage);
+        processModel.setTempTradingPeerNodeAddress(peerNodeAddress);
+
+        TradeTaskRunner taskRunner = new TradeTaskRunner(buyerAsMakerTrade,
+                () -> handleTaskRunnerSuccess(tradeMessage, "handleTakeOfferRequest"),
+                errorMessage -> {
+                    errorMessageHandler.handleErrorMessage(errorMessage);
+                    handleTaskRunnerFault(errorMessage);
+                });
+        taskRunner.addTasks(
+                MakerProcessesPrepareMultisigRequest.class,
+                MakerProcessesInputsForDepositTxRequest.class,
+                ApplyFilter.class,
+                MakerVerifyTakerAccount.class,
+                VerifyPeersAccountAgeWitness.class,
+                MakerVerifyTakerFeePayment.class,
+                MakerSetsLockTime.class,
+                MakerCreateAndSignContract.class,
+                BuyerAsMakerCreatesAndSignsDepositTx.class,
+                BuyerSetupDepositTxListener.class,
+                BuyerAsMakerSendsInputsForDepositTxResponse.class
+        );
+        // We don't use a timeout here because if the DepositTxPublishedMessage does not arrive we
+        // get the deposit tx set at MakerSetupDepositTxListener once it is seen in the bitcoin network
+        taskRunner.run();
+    }
 
     @Override
     public void handleTakeOfferRequest(InputsForDepositTxRequest tradeMessage,

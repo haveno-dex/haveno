@@ -21,6 +21,7 @@ import bisq.core.btc.wallet.XmrWalletService;
 import bisq.core.offer.Offer;
 import bisq.core.proto.CoreProtoResolver;
 import bisq.core.trade.messages.InputsForDepositTxRequest;
+import bisq.core.trade.messages.PrepareMultisigRequest;
 import bisq.core.trade.protocol.MakerProtocol;
 import bisq.core.trade.protocol.SellerAsMakerProtocol;
 
@@ -108,6 +109,11 @@ public final class SellerAsMakerTrade extends SellerTrade implements MakerTrade 
     @Override
     protected void createTradeProtocol() {
         tradeProtocol = new SellerAsMakerProtocol(this);
+    }
+    
+    @Override
+    public void handleTakeOfferRequest(PrepareMultisigRequest message, NodeAddress taker, ErrorMessageHandler errorMessageHandler) {
+      ((MakerProtocol) tradeProtocol).handleTakeOfferRequest(message, taker, errorMessageHandler);
     }
 
     @Override

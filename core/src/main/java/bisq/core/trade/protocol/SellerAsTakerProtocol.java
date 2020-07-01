@@ -18,6 +18,10 @@
 package bisq.core.trade.protocol;
 
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
+import bisq.common.handlers.ErrorMessageHandler;
+import bisq.common.handlers.ResultHandler;
 import bisq.core.offer.Offer;
 import bisq.core.trade.SellerAsTakerTrade;
 import bisq.core.trade.Trade;
@@ -41,6 +45,7 @@ import bisq.core.trade.protocol.tasks.seller.SellerSignAndFinalizePayoutTx;
 import bisq.core.trade.protocol.tasks.seller.SellerSignsDelayedPayoutTx;
 import bisq.core.trade.protocol.tasks.seller_as_taker.SellerAsTakerCreatesDepositTxInputs;
 import bisq.core.trade.protocol.tasks.seller_as_taker.SellerAsTakerSignsDepositTx;
+import bisq.core.trade.protocol.tasks.taker.TakerSendsPrepareMultisigRequest;
 import bisq.core.trade.protocol.tasks.taker.CreateTakerFeeTx;
 import bisq.core.trade.protocol.tasks.taker.TakerProcessesInputsForDepositTxResponse;
 import bisq.core.trade.protocol.tasks.taker.TakerPublishFeeTx;
@@ -48,15 +53,8 @@ import bisq.core.trade.protocol.tasks.taker.TakerSendInputsForDepositTxRequest;
 import bisq.core.trade.protocol.tasks.taker.TakerVerifyAndSignContract;
 import bisq.core.trade.protocol.tasks.taker.TakerVerifyMakerAccount;
 import bisq.core.trade.protocol.tasks.taker.TakerVerifyMakerFeePayment;
-
 import bisq.network.p2p.NodeAddress;
-
-import bisq.common.handlers.ErrorMessageHandler;
-import bisq.common.handlers.ResultHandler;
-
 import lombok.extern.slf4j.Slf4j;
-
-import static com.google.common.base.Preconditions.checkNotNull;
 
 @Slf4j
 public class SellerAsTakerProtocol extends TradeProtocol implements SellerProtocol, TakerProtocol {
@@ -105,8 +103,7 @@ public class SellerAsTakerProtocol extends TradeProtocol implements SellerProtoc
                 TakerVerifyMakerAccount.class,
                 TakerVerifyMakerFeePayment.class,
                 CreateTakerFeeTx.class,
-                SellerAsTakerCreatesDepositTxInputs.class,
-                TakerSendInputsForDepositTxRequest.class
+                TakerSendsPrepareMultisigRequest.class
         );
 
         startTimeout();

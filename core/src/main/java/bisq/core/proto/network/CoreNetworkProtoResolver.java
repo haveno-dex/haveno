@@ -17,6 +17,16 @@
 
 package bisq.core.proto.network;
 
+import java.time.Clock;
+
+import javax.inject.Inject;
+import javax.inject.Singleton;
+
+import bisq.common.proto.ProtobufferException;
+import bisq.common.proto.ProtobufferRuntimeException;
+import bisq.common.proto.network.NetworkEnvelope;
+import bisq.common.proto.network.NetworkPayload;
+import bisq.common.proto.network.NetworkProtoResolver;
 import bisq.core.alert.Alert;
 import bisq.core.alert.PrivateNotificationMessage;
 import bisq.core.dao.governance.blindvote.network.messages.RepublishGovernanceDataRequest;
@@ -57,9 +67,9 @@ import bisq.core.trade.messages.MediatedPayoutTxPublishedMessage;
 import bisq.core.trade.messages.MediatedPayoutTxSignatureMessage;
 import bisq.core.trade.messages.PayoutTxPublishedMessage;
 import bisq.core.trade.messages.PeerPublishedDelayedPayoutTxMessage;
+import bisq.core.trade.messages.PrepareMultisigRequest;
 import bisq.core.trade.messages.RefreshTradeStateRequest;
 import bisq.core.trade.statistics.TradeStatistics;
-
 import bisq.network.p2p.AckMessage;
 import bisq.network.p2p.BundleOfEnvelopes;
 import bisq.network.p2p.CloseConnectionMessage;
@@ -79,18 +89,6 @@ import bisq.network.p2p.storage.messages.RemoveMailboxDataMessage;
 import bisq.network.p2p.storage.payload.MailboxStoragePayload;
 import bisq.network.p2p.storage.payload.ProtectedMailboxStorageEntry;
 import bisq.network.p2p.storage.payload.ProtectedStorageEntry;
-
-import bisq.common.proto.ProtobufferException;
-import bisq.common.proto.ProtobufferRuntimeException;
-import bisq.common.proto.network.NetworkEnvelope;
-import bisq.common.proto.network.NetworkPayload;
-import bisq.common.proto.network.NetworkProtoResolver;
-
-import javax.inject.Inject;
-import javax.inject.Singleton;
-
-import java.time.Clock;
-
 import lombok.extern.slf4j.Slf4j;
 
 // TODO Use ProtobufferException instead of ProtobufferRuntimeException
@@ -145,6 +143,8 @@ public class CoreNetworkProtoResolver extends CoreProtoResolver implements Netwo
                 // trade protocol messages
                 case REFRESH_TRADE_STATE_REQUEST:
                     return RefreshTradeStateRequest.fromProto(proto.getRefreshTradeStateRequest(), messageVersion);
+                case PREPARE_MULTISIG_REQUEST:
+                  return PrepareMultisigRequest.fromProto(proto.getPrepareMultisigRequest(), this, messageVersion);
                 case INPUTS_FOR_DEPOSIT_TX_REQUEST:
                     return InputsForDepositTxRequest.fromProto(proto.getInputsForDepositTxRequest(), this, messageVersion);
                 case INPUTS_FOR_DEPOSIT_TX_RESPONSE:

@@ -18,12 +18,15 @@
 package bisq.core.trade.protocol;
 
 
+import bisq.common.handlers.ErrorMessageHandler;
+import bisq.common.handlers.ResultHandler;
 import bisq.core.trade.SellerAsMakerTrade;
 import bisq.core.trade.Trade;
 import bisq.core.trade.messages.CounterCurrencyTransferStartedMessage;
 import bisq.core.trade.messages.DelayedPayoutTxSignatureResponse;
 import bisq.core.trade.messages.DepositTxMessage;
 import bisq.core.trade.messages.InputsForDepositTxRequest;
+import bisq.core.trade.messages.PrepareMultisigRequest;
 import bisq.core.trade.messages.TradeMessage;
 import bisq.core.trade.protocol.tasks.ApplyFilter;
 import bisq.core.trade.protocol.tasks.PublishTradeStatistics;
@@ -49,12 +52,7 @@ import bisq.core.trade.protocol.tasks.seller_as_maker.SellerAsMakerFinalizesDepo
 import bisq.core.trade.protocol.tasks.seller_as_maker.SellerAsMakerProcessDepositTxMessage;
 import bisq.core.trade.protocol.tasks.seller_as_maker.SellerAsMakerSendsInputsForDepositTxResponse;
 import bisq.core.util.Validator;
-
 import bisq.network.p2p.NodeAddress;
-
-import bisq.common.handlers.ErrorMessageHandler;
-import bisq.common.handlers.ResultHandler;
-
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -99,6 +97,13 @@ public class SellerAsMakerProtocol extends TradeProtocol implements SellerProtoc
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Start trade
     ///////////////////////////////////////////////////////////////////////////////////////////
+    
+    @Override
+    public void handleTakeOfferRequest(PrepareMultisigRequest tradeMessage,
+                                       NodeAddress sender,
+                                       ErrorMessageHandler errorMessageHandler) {
+      throw new RuntimeException("SellerAsMakerProtocol.handleTakeOfferRequest() not implemented");
+    }
 
     @Override
     public void handleTakeOfferRequest(InputsForDepositTxRequest tradeMessage,

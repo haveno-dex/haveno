@@ -369,36 +369,37 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
         PubKeyRing peersPubKeyRing = dispute.isDisputeOpenerIsBuyer() ? contract.getSellerPubKeyRing() : contract.getBuyerPubKeyRing();
         NodeAddress peersNodeAddress = dispute.isDisputeOpenerIsBuyer() ? contract.getSellerNodeAddress() : contract.getBuyerNodeAddress();
         log.trace("sendPeerPublishedPayoutTxMessage to peerAddress " + peersNodeAddress);
-        PeerPublishedDisputePayoutTxMessage message = new PeerPublishedDisputePayoutTxMessage(transaction.getFullHex().getBytes(),
-                dispute.getTradeId(),
-                p2PService.getAddress(),
-                UUID.randomUUID().toString(),
-                getSupportType());
-        log.info("Send {} to peer {}. tradeId={}, uid={}",
-                message.getClass().getSimpleName(), peersNodeAddress, message.getTradeId(), message.getUid());
-        p2PService.sendEncryptedMailboxMessage(peersNodeAddress,
-                peersPubKeyRing,
-                message,
-                new SendMailboxMessageListener() {
-                    @Override
-                    public void onArrived() {
-                        log.info("{} arrived at peer {}. tradeId={}, uid={}",
-                                message.getClass().getSimpleName(), peersNodeAddress, message.getTradeId(), message.getUid());
-                    }
-
-                    @Override
-                    public void onStoredInMailbox() {
-                        log.info("{} stored in mailbox for peer {}. tradeId={}, uid={}",
-                                message.getClass().getSimpleName(), peersNodeAddress, message.getTradeId(), message.getUid());
-                    }
-
-                    @Override
-                    public void onFault(String errorMessage) {
-                        log.error("{} failed: Peer {}. tradeId={}, uid={}, errorMessage={}",
-                                message.getClass().getSimpleName(), peersNodeAddress, message.getTradeId(), message.getUid(), errorMessage);
-                    }
-                }
-        );
+        throw new RuntimeException("XMR integration does not send serialized tx");  // TODO (woodser)
+//        PeerPublishedDisputePayoutTxMessage message = new PeerPublishedDisputePayoutTxMessage(transaction.getFullHex().getBytes(),
+//                dispute.getTradeId(),
+//                p2PService.getAddress(),
+//                UUID.randomUUID().toString(),
+//                getSupportType());
+//        log.info("Send {} to peer {}. tradeId={}, uid={}",
+//                message.getClass().getSimpleName(), peersNodeAddress, message.getTradeId(), message.getUid());
+//        p2PService.sendEncryptedMailboxMessage(peersNodeAddress,
+//                peersPubKeyRing,
+//                message,
+//                new SendMailboxMessageListener() {
+//                    @Override
+//                    public void onArrived() {
+//                        log.info("{} arrived at peer {}. tradeId={}, uid={}",
+//                                message.getClass().getSimpleName(), peersNodeAddress, message.getTradeId(), message.getUid());
+//                    }
+//
+//                    @Override
+//                    public void onStoredInMailbox() {
+//                        log.info("{} stored in mailbox for peer {}. tradeId={}, uid={}",
+//                                message.getClass().getSimpleName(), peersNodeAddress, message.getTradeId(), message.getUid());
+//                    }
+//
+//                    @Override
+//                    public void onFault(String errorMessage) {
+//                        log.error("{} failed: Peer {}. tradeId={}, uid={}, errorMessage={}",
+//                                message.getClass().getSimpleName(), peersNodeAddress, message.getTradeId(), message.getUid(), errorMessage);
+//                    }
+//                }
+//        );
     }
 
     private void updateTradeOrOpenOfferManager(String tradeId) {
