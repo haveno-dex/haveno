@@ -17,26 +17,30 @@
 
 package bisq.desktop.main.funds.transactions;
 
-import bisq.core.btc.wallet.BtcWalletService;
-
-import org.bitcoinj.core.Transaction;
-
-import com.google.common.collect.Sets;
+import static org.junit.Assert.assertEquals;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.nullable;
+import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import java.util.Collections;
-import java.util.Set;
+import java.util.List;
 
 import org.junit.Test;
 
-import static org.junit.Assert.assertEquals;
-import static org.mockito.Mockito.*;
+import com.google.common.collect.Lists;
+
+import bisq.core.btc.wallet.XmrWalletService;
+import monero.wallet.model.MoneroTxWallet;
 
 public class DisplayedTransactionsTest {
     @Test
     public void testUpdate() {
-        Set<Transaction> transactions = Sets.newHashSet(mock(Transaction.class), mock(Transaction.class));
+        List<MoneroTxWallet> transactions = Lists.newArrayList(mock(MoneroTxWallet.class), mock(MoneroTxWallet.class));
 
-        BtcWalletService walletService = mock(BtcWalletService.class);
+        XmrWalletService walletService = mock(XmrWalletService.class);
         when(walletService.getTransactions(false)).thenReturn(transactions);
 
         TransactionListItemFactory transactionListItemFactory = mock(TransactionListItemFactory.class,
@@ -56,9 +60,9 @@ public class DisplayedTransactionsTest {
 
     @Test
     public void testUpdateWhenRepositoryIsEmpty() {
-        BtcWalletService walletService = mock(BtcWalletService.class);
+        XmrWalletService walletService = mock(XmrWalletService.class);
         when(walletService.getTransactions(false))
-                .thenReturn(Collections.singleton(mock(Transaction.class)));
+                .thenReturn(Collections.singletonList(mock(MoneroTxWallet.class)));
 
         TradableRepository tradableRepository = mock(TradableRepository.class);
         when(tradableRepository.getAll()).thenReturn(Collections.emptySet());

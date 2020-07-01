@@ -1060,6 +1060,16 @@ public class TradeWalletService {
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Misc
     ///////////////////////////////////////////////////////////////////////////////////////////
+    
+    /**
+     * Returns the local existing wallet transaction with the given ID, or {@code null} if missing.
+     *
+     * @param txHash the transaction hash of the transaction we want to lookup
+     */
+    public MoneroTxWallet getWalletTx(String txHash) {
+        checkNotNull(xmrWallet);
+        return xmrWallet.getTx(txHash);
+    }
 
     /**
      * Returns the local existing wallet transaction with the given ID, or {@code null} if missing.

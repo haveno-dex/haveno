@@ -41,22 +41,24 @@ public class ProcessPeerPublishedDelayedPayoutTxMessage extends TradeTask {
     protected void run() {
         try {
             runInterceptHook();
+            
+            if (true) throw new RuntimeException("XMR adaptation does not support delayed payout tx");
 
-            PeerPublishedDelayedPayoutTxMessage message = (PeerPublishedDelayedPayoutTxMessage) processModel.getTradeMessage();
-            Validator.checkTradeId(processModel.getOfferId(), message);
-            checkNotNull(message);
-
-            // update to the latest peer address of our peer if the message is correct
-            trade.setTradingPeerNodeAddress(processModel.getTempTradingPeerNodeAddress());
-            processModel.removeMailboxMessageAfterProcessing(trade);
-
-            // We add the tx to our wallet.
-            Transaction delayedPayoutTx = checkNotNull(trade.getDelayedPayoutTx());
-            WalletService.maybeAddSelfTxToWallet(delayedPayoutTx, processModel.getBtcWalletService().getWallet());
-
-            // todo trade.setState
-
-            complete();
+//            PeerPublishedDelayedPayoutTxMessage message = (PeerPublishedDelayedPayoutTxMessage) processModel.getTradeMessage();
+//            Validator.checkTradeId(processModel.getOfferId(), message);
+//            checkNotNull(message);
+//
+//            // update to the latest peer address of our peer if the message is correct
+//            trade.setTradingPeerNodeAddress(processModel.getTempTradingPeerNodeAddress());
+//            processModel.removeMailboxMessageAfterProcessing(trade);
+//
+//            // We add the tx to our wallet.
+//            Transaction delayedPayoutTx = checkNotNull(trade.getDelayedPayoutTx());
+//            WalletService.maybeAddSelfTxToWallet(delayedPayoutTx, processModel.getBtcWalletService().getWallet());
+//
+//            // todo trade.setState
+//
+//            complete();
         } catch (Throwable t) {
             failed(t);
         }

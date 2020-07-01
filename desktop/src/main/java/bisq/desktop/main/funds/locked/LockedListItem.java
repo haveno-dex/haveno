@@ -52,25 +52,27 @@ class LockedListItem {
         this.addressEntry = addressEntry;
         this.btcWalletService = btcWalletService;
         this.formatter = formatter;
+        
+        throw new RuntimeException("Cannot listen to multisig deposits in xmr without exchanging multisig info");
 
-        if (trade.getDepositTx() != null && !trade.getDepositTx().getOutputs().isEmpty()) {
-            address = WalletService.getAddressFromOutput(trade.getDepositTx().getOutput(0));
-            addressString = address.toBase58();
-        } else {
-            address = null;
-            addressString = "";
-        }
-
-        // balance
-        balanceLabel = new AutoTooltipLabel();
-        balanceListener = new BalanceListener(getAddress()) {
-            @Override
-            public void onBalanceChanged(Coin balance, Transaction tx) {
-                updateBalance();
-            }
-        };
-        btcWalletService.addBalanceListener(balanceListener);
-        updateBalance();
+//        if (trade.getDepositTx() != null && !trade.getDepositTx().getOutputs().isEmpty()) {
+//            address = WalletService.getAddressFromOutput(trade.getDepositTx().getOutput(0));
+//            addressString = address.toBase58();
+//        } else {
+//            address = null;
+//            addressString = "";
+//        }
+//
+//        // balance
+//        balanceLabel = new AutoTooltipLabel();
+//        balanceListener = new BalanceListener(getAddress()) {
+//            @Override
+//            public void onBalanceChanged(Coin balance, Transaction tx) {
+//                updateBalance();
+//            }
+//        };
+//        btcWalletService.addBalanceListener(balanceListener);
+//        updateBalance();
     }
 
     public void cleanup() {

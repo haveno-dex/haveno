@@ -278,10 +278,10 @@ public class TradeDetailsWindow extends Overlay<TradeDetailsWindow> {
 
         if (trade.getDepositTx() != null)
             addLabelTxIdTextField(gridPane, ++rowIndex, Res.get("shared.depositTransactionId"),
-                    trade.getDepositTx().getHashAsString());
+                    trade.getDepositTx().getHash());
         if (trade.getPayoutTx() != null)
             addLabelTxIdTextField(gridPane, ++rowIndex, Res.get("shared.payoutTxId"),
-                    trade.getPayoutTx().getHashAsString());
+                    trade.getPayoutTx().getHash());
         if (showDisputedTx)
             addLabelTxIdTextField(gridPane, ++rowIndex, Res.get("tradeDetailsWindow.disputedPayoutTxId"),
                     arbitrationManager.findOwnDispute(trade.getId()).get().getDisputePayoutTxId());

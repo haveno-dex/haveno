@@ -45,55 +45,56 @@ public class SellerSendsDepositTxAndDelayedPayoutTxMessage extends TradeTask {
     protected void run() {
         try {
             runInterceptHook();
-            if (trade.getDepositTx() != null) {
-                Transaction delayedPayoutTx = checkNotNull(trade.getDelayedPayoutTx());
-                Transaction depositTx = checkNotNull(trade.getDepositTx());
-                DepositTxAndDelayedPayoutTxMessage message = new DepositTxAndDelayedPayoutTxMessage(UUID.randomUUID().toString(),
-                        processModel.getOfferId(),
-                        processModel.getMyNodeAddress(),
-                        depositTx.bitcoinSerialize(),
-                        delayedPayoutTx.bitcoinSerialize());
-                trade.setState(Trade.State.SELLER_SENT_DEPOSIT_TX_PUBLISHED_MSG);
-
-                NodeAddress peersNodeAddress = trade.getTradingPeerNodeAddress();
-                log.info("Send {} to peer {}. tradeId={}, uid={}",
-                        message.getClass().getSimpleName(), peersNodeAddress, message.getTradeId(), message.getUid());
-                processModel.getP2PService().sendEncryptedMailboxMessage(
-                        peersNodeAddress,
-                        processModel.getTradingPeer().getPubKeyRing(),
-                        message,
-                        new SendMailboxMessageListener() {
-                            @Override
-                            public void onArrived() {
-                                log.info("{} arrived at peer {}. tradeId={}, uid={}",
-                                        message.getClass().getSimpleName(), peersNodeAddress, message.getTradeId(), message.getUid());
-                                trade.setState(Trade.State.SELLER_SAW_ARRIVED_DEPOSIT_TX_PUBLISHED_MSG);
-                                complete();
-                            }
-
-                            @Override
-                            public void onStoredInMailbox() {
-                                log.info("{} stored in mailbox for peer {}. tradeId={}, uid={}",
-                                        message.getClass().getSimpleName(), peersNodeAddress, message.getTradeId(), message.getUid());
-
-                                trade.setState(Trade.State.SELLER_STORED_IN_MAILBOX_DEPOSIT_TX_PUBLISHED_MSG);
-                                complete();
-                            }
-
-                            @Override
-                            public void onFault(String errorMessage) {
-                                log.error("{} failed: Peer {}. tradeId={}, uid={}, errorMessage={}",
-                                        message.getClass().getSimpleName(), peersNodeAddress, message.getTradeId(), message.getUid(), errorMessage);
-                                trade.setState(Trade.State.SELLER_SEND_FAILED_DEPOSIT_TX_PUBLISHED_MSG);
-                                appendToErrorMessage("Sending message failed: message=" + message + "\nerrorMessage=" + errorMessage);
-                                failed();
-                            }
-                        }
-                );
-            } else {
-                log.error("trade.getDepositTx() = " + trade.getDepositTx());
-                failed("DepositTx is null");
-            }
+            throw new RuntimeException("SellerSendsDepositTxAndDelayedPayoutTxMessage not implemented for xmr");
+//            if (trade.getDepositTx() != null) {
+//                Transaction delayedPayoutTx = checkNotNull(trade.getDelayedPayoutTx());
+//                Transaction depositTx = checkNotNull(trade.getDepositTx());
+//                DepositTxAndDelayedPayoutTxMessage message = new DepositTxAndDelayedPayoutTxMessage(UUID.randomUUID().toString(),
+//                        processModel.getOfferId(),
+//                        processModel.getMyNodeAddress(),
+//                        depositTx.bitcoinSerialize(),
+//                        delayedPayoutTx.bitcoinSerialize());
+//                trade.setState(Trade.State.SELLER_SENT_DEPOSIT_TX_PUBLISHED_MSG);
+//
+//                NodeAddress peersNodeAddress = trade.getTradingPeerNodeAddress();
+//                log.info("Send {} to peer {}. tradeId={}, uid={}",
+//                        message.getClass().getSimpleName(), peersNodeAddress, message.getTradeId(), message.getUid());
+//                processModel.getP2PService().sendEncryptedMailboxMessage(
+//                        peersNodeAddress,
+//                        processModel.getTradingPeer().getPubKeyRing(),
+//                        message,
+//                        new SendMailboxMessageListener() {
+//                            @Override
+//                            public void onArrived() {
+//                                log.info("{} arrived at peer {}. tradeId={}, uid={}",
+//                                        message.getClass().getSimpleName(), peersNodeAddress, message.getTradeId(), message.getUid());
+//                                trade.setState(Trade.State.SELLER_SAW_ARRIVED_DEPOSIT_TX_PUBLISHED_MSG);
+//                                complete();
+//                            }
+//
+//                            @Override
+//                            public void onStoredInMailbox() {
+//                                log.info("{} stored in mailbox for peer {}. tradeId={}, uid={}",
+//                                        message.getClass().getSimpleName(), peersNodeAddress, message.getTradeId(), message.getUid());
+//
+//                                trade.setState(Trade.State.SELLER_STORED_IN_MAILBOX_DEPOSIT_TX_PUBLISHED_MSG);
+//                                complete();
+//                            }
+//
+//                            @Override
+//                            public void onFault(String errorMessage) {
+//                                log.error("{} failed: Peer {}. tradeId={}, uid={}, errorMessage={}",
+//                                        message.getClass().getSimpleName(), peersNodeAddress, message.getTradeId(), message.getUid(), errorMessage);
+//                                trade.setState(Trade.State.SELLER_SEND_FAILED_DEPOSIT_TX_PUBLISHED_MSG);
+//                                appendToErrorMessage("Sending message failed: message=" + message + "\nerrorMessage=" + errorMessage);
+//                                failed();
+//                            }
+//                        }
+//                );
+//            } else {
+//                log.error("trade.getDepositTx() = " + trade.getDepositTx());
+//                failed("DepositTx is null");
+//            }
         } catch (Throwable t) {
             failed(t);
         }

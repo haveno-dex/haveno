@@ -17,7 +17,7 @@
 
 package bisq.core.trade;
 
-import bisq.core.btc.wallet.BtcWalletService;
+import bisq.core.btc.wallet.XmrWalletService;
 import bisq.core.offer.Offer;
 import bisq.core.trade.protocol.SellerProtocol;
 
@@ -48,7 +48,7 @@ public abstract class SellerTrade extends Trade {
                 @Nullable NodeAddress mediatorNodeAddress,
                 @Nullable NodeAddress refundAgentNodeAddress,
                 Storage<? extends TradableList> storage,
-                BtcWalletService btcWalletService) {
+                XmrWalletService xmrWalletService) {
         super(offer,
                 tradeAmount,
                 txFee,
@@ -60,7 +60,7 @@ public abstract class SellerTrade extends Trade {
                 mediatorNodeAddress,
                 refundAgentNodeAddress,
                 storage,
-                btcWalletService);
+                xmrWalletService);
     }
 
     SellerTrade(Offer offer,
@@ -71,7 +71,7 @@ public abstract class SellerTrade extends Trade {
                 @Nullable NodeAddress mediatorNodeAddress,
                 @Nullable NodeAddress refundAgentNodeAddress,
                 Storage<? extends TradableList> storage,
-                BtcWalletService btcWalletService) {
+                XmrWalletService xmrWalletService) {
         super(offer,
                 txFee,
                 takeOfferFee,
@@ -80,7 +80,7 @@ public abstract class SellerTrade extends Trade {
                 mediatorNodeAddress,
                 refundAgentNodeAddress,
                 storage,
-                btcWalletService);
+                xmrWalletService);
     }
 
     public void onFiatPaymentReceived(ResultHandler resultHandler, ErrorMessageHandler errorMessageHandler) {

@@ -53,59 +53,61 @@ public class BuyerSetupDepositTxListener extends TradeTask {
     protected void run() {
         try {
             runInterceptHook();
+            
+            throw new RuntimeException("BuyerSetupDepositTxListener not implemented for xmr");
 
-            if (trade.getDepositTx() == null && processModel.getPreparedDepositTx() != null) {
-                BtcWalletService walletService = processModel.getBtcWalletService();
-                final NetworkParameters params = walletService.getParams();
-                Transaction preparedDepositTx = new Transaction(params, processModel.getPreparedDepositTx());
-                checkArgument(!preparedDepositTx.getOutputs().isEmpty(), "preparedDepositTx.getOutputs() must not be empty");
-                Address depositTxAddress = preparedDepositTx.getOutput(0).getAddressFromP2SH(params);
-                final TransactionConfidence confidence = walletService.getConfidenceForAddress(depositTxAddress);
-                if (isInNetwork(confidence)) {
-                    applyConfidence(confidence);
-                } else {
-                    confidenceListener = new AddressConfidenceListener(depositTxAddress) {
-                        @Override
-                        public void onTransactionConfidenceChanged(TransactionConfidence confidence) {
-                            if (isInNetwork(confidence))
-                                applyConfidence(confidence);
-                        }
-                    };
-                    walletService.addAddressConfidenceListener(confidenceListener);
-
-                    tradeStateSubscription = EasyBind.subscribe(trade.stateProperty(), newValue -> {
-                        if (trade.isDepositPublished()) {
-                            swapReservedForTradeEntry();
-
-                            // hack to remove tradeStateSubscription at callback
-                            UserThread.execute(this::unSubscribe);
-                        }
-                    });
-                }
-            }
-
-            // we complete immediately, our object stays alive because the balanceListener is stored in the WalletService
-            complete();
+//            if (trade.getDepositTx() == null && processModel.getPreparedDepositTx() != null) {
+//                BtcWalletService walletService = processModel.getBtcWalletService();
+//                final NetworkParameters params = walletService.getParams();
+//                Transaction preparedDepositTx = new Transaction(params, processModel.getPreparedDepositTx());
+//                checkArgument(!preparedDepositTx.getOutputs().isEmpty(), "preparedDepositTx.getOutputs() must not be empty");
+//                Address depositTxAddress = preparedDepositTx.getOutput(0).getAddressFromP2SH(params);
+//                final TransactionConfidence confidence = walletService.getConfidenceForAddress(depositTxAddress);
+//                if (isInNetwork(confidence)) {
+//                    applyConfidence(confidence);
+//                } else {
+//                    confidenceListener = new AddressConfidenceListener(depositTxAddress) {
+//                        @Override
+//                        public void onTransactionConfidenceChanged(TransactionConfidence confidence) {
+//                            if (isInNetwork(confidence))
+//                                applyConfidence(confidence);
+//                        }
+//                    };
+//                    walletService.addAddressConfidenceListener(confidenceListener);
+//
+//                    tradeStateSubscription = EasyBind.subscribe(trade.stateProperty(), newValue -> {
+//                        if (trade.isDepositPublished()) {
+//                            swapReservedForTradeEntry();
+//
+//                            // hack to remove tradeStateSubscription at callback
+//                            UserThread.execute(this::unSubscribe);
+//                        }
+//                    });
+//                }
+//            }
+//
+//            // we complete immediately, our object stays alive because the balanceListener is stored in the WalletService
+//            complete();
         } catch (Throwable t) {
             failed(t);
         }
     }
 
-    private void applyConfidence(TransactionConfidence confidence) {
-        if (trade.getDepositTx() == null) {
-            Transaction walletTx = processModel.getTradeWalletService().getWalletTx(confidence.getTransactionHash());
-            trade.applyDepositTx(walletTx);
-            BtcWalletService.printTx("depositTx received from network", walletTx);
-            trade.setState(Trade.State.BUYER_SAW_DEPOSIT_TX_IN_NETWORK);
-        } else {
-            log.info("We got the deposit tx already set from MakerProcessDepositTxPublishedMessage.  tradeId={}, state={}", trade.getId(), trade.getState());
-        }
-
-        swapReservedForTradeEntry();
-
-        // need delay as it can be called inside the listener handler before listener and tradeStateSubscription are actually set.
-        UserThread.execute(this::unSubscribe);
-    }
+//    private void applyConfidence(TransactionConfidence confidence) {
+//        if (trade.getDepositTx() == null) {
+//            Transaction walletTx = processModel.getTradeWalletService().getWalletTx(confidence.getTransactionHash());
+//            trade.applyDepositTx(walletTx);
+//            BtcWalletService.printTx("depositTx received from network", walletTx);
+//            trade.setState(Trade.State.BUYER_SAW_DEPOSIT_TX_IN_NETWORK);
+//        } else {
+//            log.info("We got the deposit tx already set from MakerProcessDepositTxPublishedMessage.  tradeId={}, state={}", trade.getId(), trade.getState());
+//        }
+//
+//        swapReservedForTradeEntry();
+//
+//        // need delay as it can be called inside the listener handler before listener and tradeStateSubscription are actually set.
+//        UserThread.execute(this::unSubscribe);
+//    }
 
     private boolean isInNetwork(TransactionConfidence confidence) {
         return confidence != null &&

@@ -17,7 +17,7 @@
 
 package bisq.core.trade;
 
-import bisq.core.btc.wallet.BtcWalletService;
+import bisq.core.btc.wallet.XmrWalletService;
 import bisq.core.offer.Offer;
 import bisq.core.proto.CoreProtoResolver;
 import bisq.core.trade.messages.InputsForDepositTxRequest;
@@ -50,7 +50,7 @@ public final class BuyerAsMakerTrade extends BuyerTrade implements MakerTrade {
                              @Nullable NodeAddress mediatorNodeAddress,
                              @Nullable NodeAddress refundAgentNodeAddress,
                              Storage<? extends TradableList> storage,
-                             BtcWalletService btcWalletService) {
+                             XmrWalletService xmrWalletService) {
         super(offer,
                 txFee,
                 takeOfferFee,
@@ -59,7 +59,7 @@ public final class BuyerAsMakerTrade extends BuyerTrade implements MakerTrade {
                 mediatorNodeAddress,
                 refundAgentNodeAddress,
                 storage,
-                btcWalletService);
+                xmrWalletService);
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -76,7 +76,7 @@ public final class BuyerAsMakerTrade extends BuyerTrade implements MakerTrade {
 
     public static Tradable fromProto(protobuf.BuyerAsMakerTrade buyerAsMakerTradeProto,
                                      Storage<? extends TradableList> storage,
-                                     BtcWalletService btcWalletService,
+                                     XmrWalletService xmrWalletService,
                                      CoreProtoResolver coreProtoResolver) {
         protobuf.Trade proto = buyerAsMakerTradeProto.getTrade();
         BuyerAsMakerTrade trade = new BuyerAsMakerTrade(
@@ -88,7 +88,7 @@ public final class BuyerAsMakerTrade extends BuyerTrade implements MakerTrade {
                 proto.hasMediatorNodeAddress() ? NodeAddress.fromProto(proto.getMediatorNodeAddress()) : null,
                 proto.hasRefundAgentNodeAddress() ? NodeAddress.fromProto(proto.getRefundAgentNodeAddress()) : null,
                 storage,
-                btcWalletService);
+                xmrWalletService);
 
         trade.setTradeAmountAsLong(proto.getTradeAmountAsLong());
         trade.setTradePrice(proto.getTradePrice());

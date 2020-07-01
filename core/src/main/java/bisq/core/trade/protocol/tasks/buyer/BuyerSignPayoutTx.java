@@ -17,25 +17,15 @@
 
 package bisq.core.trade.protocol.tasks.buyer;
 
-import bisq.core.btc.model.AddressEntry;
-import bisq.core.btc.wallet.BtcWalletService;
-import bisq.core.offer.Offer;
-import bisq.core.trade.Trade;
-import bisq.core.trade.protocol.tasks.TradeTask;
-
-import bisq.common.taskrunner.TaskRunner;
-
-import org.bitcoinj.core.Coin;
-import org.bitcoinj.crypto.DeterministicKey;
+import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.base.Preconditions;
 
-import java.util.Arrays;
-
+import bisq.common.taskrunner.TaskRunner;
+import bisq.core.offer.Offer;
+import bisq.core.trade.Trade;
+import bisq.core.trade.protocol.tasks.TradeTask;
 import lombok.extern.slf4j.Slf4j;
-
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
 
 @Slf4j
 public class BuyerSignPayoutTx extends TradeTask {
@@ -52,37 +42,39 @@ public class BuyerSignPayoutTx extends TradeTask {
             Preconditions.checkNotNull(trade.getTradeAmount(), "trade.getTradeAmount() must not be null");
             Preconditions.checkNotNull(trade.getDepositTx(), "trade.getDepositTx() must not be null");
             Offer offer = checkNotNull(trade.getOffer(), "offer must not be null");
+            
+            throw new RuntimeException("BuyerSignPayoutTx not implemented");
 
-            BtcWalletService walletService = processModel.getBtcWalletService();
-            String id = processModel.getOffer().getId();
-
-            Coin buyerPayoutAmount = offer.getBuyerSecurityDeposit().add(trade.getTradeAmount());
-            Coin sellerPayoutAmount = offer.getSellerSecurityDeposit();
-
-            String buyerPayoutAddressString = walletService.getOrCreateAddressEntry(id,
-                    AddressEntry.Context.TRADE_PAYOUT).getAddressString();
-            final String sellerPayoutAddressString = processModel.getTradingPeer().getPayoutAddressString();
-
-            DeterministicKey buyerMultiSigKeyPair = walletService.getMultiSigKeyPair(id, processModel.getMyMultiSigPubKey());
-
-            byte[] buyerMultiSigPubKey = processModel.getMyMultiSigPubKey();
-            checkArgument(Arrays.equals(buyerMultiSigPubKey,
-                    walletService.getOrCreateAddressEntry(id, AddressEntry.Context.MULTI_SIG).getPubKey()),
-                    "buyerMultiSigPubKey from AddressEntry must match the one from the trade data. trade id =" + id);
-            byte[] sellerMultiSigPubKey = processModel.getTradingPeer().getMultiSigPubKey();
-
-            byte[] payoutTxSignature = processModel.getTradeWalletService().buyerSignsPayoutTx(
-                    trade.getDepositTx(),
-                    buyerPayoutAmount,
-                    sellerPayoutAmount,
-                    buyerPayoutAddressString,
-                    sellerPayoutAddressString,
-                    buyerMultiSigKeyPair,
-                    buyerMultiSigPubKey,
-                    sellerMultiSigPubKey);
-            processModel.setPayoutTxSignature(payoutTxSignature);
-
-            complete();
+//            BtcWalletService walletService = processModel.getBtcWalletService();
+//            String id = processModel.getOffer().getId();
+//
+//            Coin buyerPayoutAmount = offer.getBuyerSecurityDeposit().add(trade.getTradeAmount());
+//            Coin sellerPayoutAmount = offer.getSellerSecurityDeposit();
+//
+//            String buyerPayoutAddressString = walletService.getOrCreateAddressEntry(id,
+//                    AddressEntry.Context.TRADE_PAYOUT).getAddressString();
+//            final String sellerPayoutAddressString = processModel.getTradingPeer().getPayoutAddressString();
+//
+//            DeterministicKey buyerMultiSigKeyPair = walletService.getMultiSigKeyPair(id, processModel.getMyMultiSigPubKey());
+//
+//            byte[] buyerMultiSigPubKey = processModel.getMyMultiSigPubKey();
+//            checkArgument(Arrays.equals(buyerMultiSigPubKey,
+//                    walletService.getOrCreateAddressEntry(id, AddressEntry.Context.MULTI_SIG).getPubKey()),
+//                    "buyerMultiSigPubKey from AddressEntry must match the one from the trade data. trade id =" + id);
+//            byte[] sellerMultiSigPubKey = processModel.getTradingPeer().getMultiSigPubKey();
+//
+//            byte[] payoutTxSignature = processModel.getTradeWalletService().buyerSignsPayoutTx(
+//                    trade.getDepositTx(),
+//                    buyerPayoutAmount,
+//                    sellerPayoutAmount,
+//                    buyerPayoutAddressString,
+//                    sellerPayoutAddressString,
+//                    buyerMultiSigKeyPair,
+//                    buyerMultiSigPubKey,
+//                    sellerMultiSigPubKey);
+//            processModel.setPayoutTxSignature(payoutTxSignature);
+//
+//            complete();
         } catch (Throwable t) {
             failed(t);
         }

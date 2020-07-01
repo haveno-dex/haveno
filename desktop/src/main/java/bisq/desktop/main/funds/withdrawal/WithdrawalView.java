@@ -164,14 +164,15 @@ public class WithdrawalView extends ActivatableView<VBox, Void> {
                            Preferences preferences,
                            BtcAddressValidator btcAddressValidator,
                            WalletPasswordWindow walletPasswordWindow) {
-        this.walletService = walletService;
-        this.tradeManager = tradeManager;
-        this.p2PService = p2PService;
-        this.walletsSetup = walletsSetup;
-        this.formatter = formatter;
-        this.preferences = preferences;
-        this.btcAddressValidator = btcAddressValidator;
-        this.walletPasswordWindow = walletPasswordWindow;
+        throw new RuntimeException("WithdrawalView needs updated to use XMR wallet");
+//        this.walletService = walletService;
+//        this.tradeManager = tradeManager;
+//        this.p2PService = p2PService;
+//        this.walletsSetup = walletsSetup;
+//        this.formatter = formatter;
+//        this.preferences = preferences;
+//        this.btcAddressValidator = btcAddressValidator;
+//        this.walletPasswordWindow = walletPasswordWindow;
     }
 
     @Override
@@ -479,12 +480,13 @@ public class WithdrawalView extends ActivatableView<VBox, Void> {
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     private void updateList() {
-        observableList.forEach(WithdrawalListItem::cleanup);
-        observableList.setAll(tradeManager.getAddressEntriesForAvailableBalanceStream()
-                .map(addressEntry -> new WithdrawalListItem(addressEntry, walletService, formatter))
-                .collect(Collectors.toList()));
-
-        updateInputSelection();
+        throw new RuntimeException("WithdrawalView.updateList() needs updated to use XMR");
+//        observableList.forEach(WithdrawalListItem::cleanup);
+//        observableList.setAll(tradeManager.getAddressEntriesForAvailableBalanceStream()
+//                .map(addressEntry -> new WithdrawalListItem(addressEntry, walletService, formatter))
+//                .collect(Collectors.toList()));
+//
+//        updateInputSelection();
     }
 
     private void doWithdraw(Coin amount, Coin fee, FutureCallback<Transaction> callback) {

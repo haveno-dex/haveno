@@ -17,11 +17,28 @@
 
 package bisq.core.trade.protocol;
 
+import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
+
+import javax.annotation.Nullable;
+
+import org.bitcoinj.core.Coin;
+import org.bitcoinj.core.Transaction;
+
+import com.google.protobuf.ByteString;
+
+import bisq.common.crypto.KeyRing;
+import bisq.common.crypto.PubKeyRing;
+import bisq.common.proto.ProtoUtil;
+import bisq.common.proto.persistable.PersistablePayload;
+import bisq.common.taskrunner.Model;
 import bisq.core.account.witness.AccountAgeWitnessService;
 import bisq.core.btc.model.RawTransactionInput;
 import bisq.core.btc.wallet.BsqWalletService;
 import bisq.core.btc.wallet.BtcWalletService;
 import bisq.core.btc.wallet.TradeWalletService;
+import bisq.core.btc.wallet.XmrWalletService;
 import bisq.core.dao.DaoFacade;
 import bisq.core.filter.FilterManager;
 import bisq.core.network.MessageState;
@@ -40,36 +57,17 @@ import bisq.core.trade.messages.TradeMessage;
 import bisq.core.trade.statistics.ReferralIdService;
 import bisq.core.trade.statistics.TradeStatisticsManager;
 import bisq.core.user.User;
-
 import bisq.network.p2p.AckMessage;
 import bisq.network.p2p.DecryptedMessageWithPubKey;
 import bisq.network.p2p.MailboxMessage;
 import bisq.network.p2p.NodeAddress;
 import bisq.network.p2p.P2PService;
-
-import bisq.common.crypto.KeyRing;
-import bisq.common.crypto.PubKeyRing;
-import bisq.common.proto.ProtoUtil;
-import bisq.common.proto.persistable.PersistablePayload;
-import bisq.common.taskrunner.Model;
-
-import com.google.protobuf.ByteString;
-
-import org.bitcoinj.core.Coin;
-import org.bitcoinj.core.Transaction;
-
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleObjectProperty;
-
-import java.util.List;
-import java.util.Optional;
-import java.util.stream.Collectors;
-
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
-
-import javax.annotation.Nullable;
+import monero.wallet.model.MoneroTxWallet;
 
 // Fields marked as transient are only used during protocol execution which are based on directMessages so we do not
 // persist them.
@@ -82,6 +80,7 @@ public class ProcessModel implements Model, PersistablePayload {
     transient private TradeManager tradeManager;
     transient private OpenOfferManager openOfferManager;
     transient private BtcWalletService btcWalletService;
+    transient private XmrWalletService xmrWalletService;
     transient private BsqWalletService bsqWalletService;
     transient private TradeWalletService tradeWalletService;
     transient private DaoFacade daoFacade;
@@ -98,7 +97,7 @@ public class ProcessModel implements Model, PersistablePayload {
     transient private ReferralIdService referralIdService;
 
     // Transient/Mutable
-    transient private Transaction takeOfferFeeTx;
+    transient private MoneroTxWallet takeOfferFeeTx;
     @Setter
     transient private TradeMessage tradeMessage;
     @Setter
@@ -238,6 +237,7 @@ public class ProcessModel implements Model, PersistablePayload {
                                          OpenOfferManager openOfferManager,
                                          P2PService p2PService,
                                          BtcWalletService walletService,
+                                         XmrWalletService xmrWalletService,
                                          BsqWalletService bsqWalletService,
                                          TradeWalletService tradeWalletService,
                                          DaoFacade daoFacade,
@@ -256,6 +256,7 @@ public class ProcessModel implements Model, PersistablePayload {
         this.tradeManager = tradeManager;
         this.openOfferManager = openOfferManager;
         this.btcWalletService = walletService;
+        this.xmrWalletService = xmrWalletService;
         this.bsqWalletService = bsqWalletService;
         this.tradeWalletService = tradeWalletService;
         this.daoFacade = daoFacade;
@@ -296,9 +297,9 @@ public class ProcessModel implements Model, PersistablePayload {
     public void onComplete() {
     }
 
-    public void setTakeOfferFeeTx(Transaction takeOfferFeeTx) {
+    public void setTakeOfferFeeTx(MoneroTxWallet takeOfferFeeTx) {
         this.takeOfferFeeTx = takeOfferFeeTx;
-        takeOfferFeeTxId = takeOfferFeeTx.getHashAsString();
+        takeOfferFeeTxId = takeOfferFeeTx.getHash();
     }
 
     @Nullable
@@ -315,12 +316,12 @@ public class ProcessModel implements Model, PersistablePayload {
         return Coin.valueOf(fundsNeededForTradeAsLong);
     }
 
-    public Transaction resolveTakeOfferFeeTx(Trade trade) {
+    public MoneroTxWallet resolveTakeOfferFeeTx(Trade trade) {
         if (takeOfferFeeTx == null) {
             if (!trade.isCurrencyForTakerFeeBtc())
-                takeOfferFeeTx = bsqWalletService.getTransaction(takeOfferFeeTxId);
+                throw new RuntimeException("BSQ wallet not supported in xmr integration");
             else
-                takeOfferFeeTx = btcWalletService.getTransaction(takeOfferFeeTxId);
+                takeOfferFeeTx = xmrWalletService.getWallet().getTx(takeOfferFeeTxId);
         }
         return takeOfferFeeTx;
     }

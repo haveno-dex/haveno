@@ -17,7 +17,7 @@
 
 package bisq.core.trade.closed;
 
-import bisq.core.btc.wallet.BtcWalletService;
+import bisq.core.btc.wallet.XmrWalletService;
 import bisq.core.offer.Offer;
 import bisq.core.provider.price.PriceFeedService;
 import bisq.core.trade.DumpDelayedPayoutTx;
@@ -45,18 +45,18 @@ public class ClosedTradableManager implements PersistedDataHost {
     private TradableList<Tradable> closedTradables;
     private final KeyRing keyRing;
     private final PriceFeedService priceFeedService;
-    private final BtcWalletService btcWalletService;
+    private final XmrWalletService xmrWalletService;
     private final DumpDelayedPayoutTx dumpDelayedPayoutTx;
 
     @Inject
     public ClosedTradableManager(KeyRing keyRing,
                                  PriceFeedService priceFeedService,
-                                 BtcWalletService btcWalletService,
+                                 XmrWalletService xmrWalletService,
                                  Storage<TradableList<Tradable>> storage,
                                  DumpDelayedPayoutTx dumpDelayedPayoutTx) {
         this.keyRing = keyRing;
         this.priceFeedService = priceFeedService;
-        this.btcWalletService = btcWalletService;
+        this.xmrWalletService = xmrWalletService;
         tradableListStorage = storage;
         this.dumpDelayedPayoutTx = dumpDelayedPayoutTx;
         // The ClosedTrades object can become a few MB so we don't keep so many backups
@@ -70,7 +70,7 @@ public class ClosedTradableManager implements PersistedDataHost {
             tradable.getOffer().setPriceFeedService(priceFeedService);
             if (tradable instanceof Trade) {
                 Trade trade = (Trade) tradable;
-                trade.setTransientFields(tradableListStorage, btcWalletService);
+                trade.setTransientFields(tradableListStorage, xmrWalletService);
             }
         });
 

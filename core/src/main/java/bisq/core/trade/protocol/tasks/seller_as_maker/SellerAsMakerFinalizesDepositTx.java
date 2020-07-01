@@ -39,17 +39,18 @@ public class SellerAsMakerFinalizesDepositTx extends TradeTask {
     protected void run() {
         try {
             runInterceptHook();
+            throw new RuntimeException("SellerAsMakerFinalizesDepositTx not implemented for xmr");
 
-            byte[] takersRawPreparedDepositTx = checkNotNull(processModel.getTradingPeer().getPreparedDepositTx());
-            byte[] myRawPreparedDepositTx = checkNotNull(processModel.getPreparedDepositTx());
-            Transaction takersDepositTx = processModel.getBtcWalletService().getTxFromSerializedTx(takersRawPreparedDepositTx);
-            Transaction myDepositTx = processModel.getBtcWalletService().getTxFromSerializedTx(myRawPreparedDepositTx);
-            int numTakersInputs = checkNotNull(processModel.getTradingPeer().getRawTransactionInputs()).size();
-            processModel.getTradeWalletService().sellerAsMakerFinalizesDepositTx(myDepositTx, takersDepositTx, numTakersInputs);
-
-            trade.applyDepositTx(myDepositTx);
-
-            complete();
+//            byte[] takersRawPreparedDepositTx = checkNotNull(processModel.getTradingPeer().getPreparedDepositTx());
+//            byte[] myRawPreparedDepositTx = checkNotNull(processModel.getPreparedDepositTx());
+//            Transaction takersDepositTx = processModel.getBtcWalletService().getTxFromSerializedTx(takersRawPreparedDepositTx);
+//            Transaction myDepositTx = processModel.getBtcWalletService().getTxFromSerializedTx(myRawPreparedDepositTx);
+//            int numTakersInputs = checkNotNull(processModel.getTradingPeer().getRawTransactionInputs()).size();
+//            processModel.getTradeWalletService().sellerAsMakerFinalizesDepositTx(myDepositTx, takersDepositTx, numTakersInputs);
+//
+//            trade.applyDepositTx(myDepositTx);
+//
+//            complete();
         } catch (Throwable t) {
             failed(t);
         }

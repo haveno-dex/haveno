@@ -41,31 +41,32 @@ public class SellerPublishesDepositTx extends TradeTask {
     protected void run() {
         try {
             runInterceptHook();
+            throw new RuntimeException("SellerPublishesDepositTx not implemented for xmr");
 
-            processModel.getTradeWalletService().broadcastTx(trade.getDepositTx(),
-                    new TxBroadcaster.Callback() {
-                        @Override
-                        public void onSuccess(Transaction transaction) {
-                            if (!completed) {
-                                trade.setState(Trade.State.SELLER_PUBLISHED_DEPOSIT_TX);
-
-                                processModel.getBtcWalletService().swapTradeEntryToAvailableEntry(processModel.getOffer().getId(), AddressEntry.Context.RESERVED_FOR_TRADE);
-
-                                complete();
-                            } else {
-                                log.warn("We got the onSuccess callback called after the timeout has been triggered a complete().");
-                            }
-                        }
-
-                        @Override
-                        public void onFailure(TxBroadcastException exception) {
-                            if (!completed) {
-                                failed(exception);
-                            } else {
-                                log.warn("We got the onFailure callback called after the timeout has been triggered a complete().");
-                            }
-                        }
-                    });
+//            processModel.getTradeWalletService().broadcastTx(trade.getDepositTx(),
+//                    new TxBroadcaster.Callback() {
+//                        @Override
+//                        public void onSuccess(Transaction transaction) {
+//                            if (!completed) {
+//                                trade.setState(Trade.State.SELLER_PUBLISHED_DEPOSIT_TX);
+//
+//                                processModel.getBtcWalletService().swapTradeEntryToAvailableEntry(processModel.getOffer().getId(), AddressEntry.Context.RESERVED_FOR_TRADE);
+//
+//                                complete();
+//                            } else {
+//                                log.warn("We got the onSuccess callback called after the timeout has been triggered a complete().");
+//                            }
+//                        }
+//
+//                        @Override
+//                        public void onFailure(TxBroadcastException exception) {
+//                            if (!completed) {
+//                                failed(exception);
+//                            } else {
+//                                log.warn("We got the onFailure callback called after the timeout has been triggered a complete().");
+//                            }
+//                        }
+//                    });
         } catch (Throwable t) {
             Contract contract = trade.getContract();
             if (contract != null)

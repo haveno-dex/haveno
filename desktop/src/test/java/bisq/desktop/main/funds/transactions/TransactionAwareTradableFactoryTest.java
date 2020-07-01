@@ -17,17 +17,16 @@
 
 package bisq.desktop.main.funds.transactions;
 
+import static org.junit.Assert.assertFalse;
+import static org.mockito.Mockito.mock;
+
+import org.junit.Test;
+
 import bisq.core.offer.OpenOffer;
 import bisq.core.support.dispute.arbitration.ArbitrationManager;
 import bisq.core.trade.Tradable;
 import bisq.core.trade.Trade;
-
-import org.bitcoinj.core.Transaction;
-
-import org.junit.Test;
-
-import static org.junit.Assert.assertFalse;
-import static org.mockito.Mockito.mock;
+import monero.wallet.model.MoneroTxWallet;
 
 public class TransactionAwareTradableFactoryTest {
     @Test
@@ -43,6 +42,6 @@ public class TransactionAwareTradableFactoryTest {
 
         TransactionAwareTradable tradable = factory.create(delegate);
 
-        assertFalse(tradable.isRelatedToTransaction(mock(Transaction.class)));
+        assertFalse(tradable.isRelatedToTransaction(mock(MoneroTxWallet.class)));
     }
 }

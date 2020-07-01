@@ -17,17 +17,25 @@
 
 package bisq.desktop.main.portfolio.pendingtrades;
 
-import bisq.desktop.Navigation;
-import bisq.desktop.common.model.ActivatableDataModel;
-import bisq.desktop.main.MainView;
-import bisq.desktop.main.overlays.notifications.NotificationCenter;
-import bisq.desktop.main.overlays.popups.Popup;
-import bisq.desktop.main.overlays.windows.WalletPasswordWindow;
-import bisq.desktop.main.support.SupportView;
-import bisq.desktop.main.support.dispute.client.mediation.MediationClientView;
-import bisq.desktop.main.support.dispute.client.refund.RefundClientView;
-import bisq.desktop.util.GUIUtil;
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
 
+import java.util.UUID;
+import java.util.stream.Collectors;
+
+import javax.annotation.Nullable;
+
+import org.bitcoinj.core.Coin;
+import org.bitcoinj.core.Transaction;
+import org.bitcoinj.core.TransactionConfidence;
+import org.spongycastle.crypto.params.KeyParameter;
+
+import com.google.inject.Inject;
+
+import bisq.common.crypto.PubKeyRing;
+import bisq.common.handlers.ErrorMessageHandler;
+import bisq.common.handlers.FaultHandler;
+import bisq.common.handlers.ResultHandler;
 import bisq.core.account.witness.AccountAgeWitnessService;
 import bisq.core.btc.setup.WalletsSetup;
 import bisq.core.btc.wallet.BtcWalletService;
@@ -53,43 +61,29 @@ import bisq.core.trade.TradeManager;
 import bisq.core.trade.messages.RefreshTradeStateRequest;
 import bisq.core.user.Preferences;
 import bisq.core.util.FormattingUtils;
-
+import bisq.desktop.Navigation;
+import bisq.desktop.common.model.ActivatableDataModel;
+import bisq.desktop.main.MainView;
+import bisq.desktop.main.overlays.notifications.NotificationCenter;
+import bisq.desktop.main.overlays.popups.Popup;
+import bisq.desktop.main.overlays.windows.WalletPasswordWindow;
+import bisq.desktop.main.support.SupportView;
+import bisq.desktop.main.support.dispute.client.mediation.MediationClientView;
+import bisq.desktop.main.support.dispute.client.refund.RefundClientView;
+import bisq.desktop.util.GUIUtil;
 import bisq.network.p2p.NodeAddress;
 import bisq.network.p2p.P2PService;
 import bisq.network.p2p.SendMailboxMessageListener;
-
-import bisq.common.crypto.PubKeyRing;
-import bisq.common.handlers.ErrorMessageHandler;
-import bisq.common.handlers.FaultHandler;
-import bisq.common.handlers.ResultHandler;
-
-import org.bitcoinj.core.Coin;
-import org.bitcoinj.core.Transaction;
-import org.bitcoinj.core.TransactionConfidence;
-
-import com.google.inject.Inject;
-
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
 import javafx.beans.value.ChangeListener;
-
 import javafx.collections.FXCollections;
 import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
-
-import org.spongycastle.crypto.params.KeyParameter;
-
-import java.util.UUID;
-import java.util.stream.Collectors;
-
 import lombok.Getter;
-
-import javax.annotation.Nullable;
-
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
+import monero.wallet.model.MoneroTxWallet;
 
 public class PendingTradesDataModel extends ActivatableDataModel {
     public final TradeManager tradeManager;
@@ -206,13 +200,12 @@ public class PendingTradesDataModel extends ActivatableDataModel {
                                   ResultHandler resultHandler,
                                   FaultHandler faultHandler) {
         checkNotNull(getTrade(), "trade must not be null");
-
+        
         if (toAddress != null && toAddress.length() > 0) {
             tradeManager.onWithdrawRequest(
                     toAddress,
                     amount,
                     fee,
-                    aesKey,
                     getTrade(),
                     () -> {
                         resultHandler.handleResult();
@@ -452,11 +445,11 @@ public class PendingTradesDataModel extends ActivatableDataModel {
                 return;
             }
 
-            Transaction depositTx = selectedTrade.getDepositTx();
+            MoneroTxWallet depositTx = selectedTrade.getDepositTx();
             String tradeId = selectedTrade.getId();
             tradeStateChangeListener = (observable, oldValue, newValue) -> {
                 if (depositTx != null) {
-                    txId.set(depositTx.getHashAsString());
+                    txId.set(depositTx.getHash());
                     notificationCenter.setSelectedTradeId(tradeId);
                     selectedTrade.stateProperty().removeListener(tradeStateChangeListener);
                 } else {
@@ -473,7 +466,7 @@ public class PendingTradesDataModel extends ActivatableDataModel {
 
             isMaker = tradeManager.isMyOffer(offer);
             if (depositTx != null) {
-                txId.set(depositTx.getHashAsString());
+                txId.set(depositTx.getHash());
             } else {
                 txId.set("");
             }
@@ -496,7 +489,7 @@ public class PendingTradesDataModel extends ActivatableDataModel {
         doOpenDispute(isSupportTicket, trade.getDepositTx());
     }
 
-    private void doOpenDispute(boolean isSupportTicket, Transaction depositTx) {
+    private void doOpenDispute(boolean isSupportTicket, MoneroTxWallet depositTx) {
         // We do not support opening a dispute if the deposit tx is null. Traders have to use the support channel at keybase
         // in such cases. The mediators or arbitrators could not help anyway with a payout in such cases.
         if (depositTx == null) {
@@ -504,7 +497,7 @@ public class PendingTradesDataModel extends ActivatableDataModel {
             new Popup().instruction(Res.get("portfolio.pending.error.depositTxNull")).show();
             return;
         }
-        String depositTxId = depositTx.getHashAsString();
+        String depositTxId = depositTx.getHash();
 
         Trade trade = getTrade();
         if (trade == null) {
@@ -524,10 +517,10 @@ public class PendingTradesDataModel extends ActivatableDataModel {
 
         byte[] payoutTxSerialized = null;
         String payoutTxHashAsString = null;
-        Transaction payoutTx = trade.getPayoutTx();
+        MoneroTxWallet payoutTx = trade.getPayoutTx();
         if (payoutTx != null) {
-            payoutTxSerialized = payoutTx.bitcoinSerialize();
-            payoutTxHashAsString = payoutTx.getHashAsString();
+//            payoutTxSerialized = payoutTx.bitcoinSerialize(); // TODO (woodser): no need to pass serialized txs for xmr
+//            payoutTxHashAsString = payoutTx.getHashAsString();
         }
         Trade.DisputeState disputeState = trade.getDisputeState();
         DisputeManager<? extends DisputeList<? extends DisputeList>> disputeManager;
@@ -545,7 +538,7 @@ public class PendingTradesDataModel extends ActivatableDataModel {
             disputeManager = mediationManager;
             PubKeyRing mediatorPubKeyRing = trade.getMediatorPubKeyRing();
             checkNotNull(mediatorPubKeyRing, "mediatorPubKeyRing must not be null");
-            byte[] depositTxSerialized = depositTx.bitcoinSerialize();
+            byte[] depositTxSerialized = null;  // depositTx.bitcoinSerialize();  // TODO (woodser): no serialized txs in xmr adaptation
             Dispute dispute = new Dispute(disputeManager.getStorage(),
                     trade.getId(),
                     pubKeyRing.hashCode(), // traderId
@@ -590,11 +583,6 @@ public class PendingTradesDataModel extends ActivatableDataModel {
         } else if (useRefundAgent) {
             resultHandler = () -> navigation.navigateTo(MainView.class, SupportView.class, RefundClientView.class);
 
-            if (trade.getDelayedPayoutTx() == null) {
-                log.error("Delayed payout tx is missing");
-                return;
-            }
-
             // We only require for refund agent a confirmed deposit tx. For mediation we tolerate a unconfirmed tx as
             // no harm can be done to the mediator (refund agent who would accept a invalid deposit tx might reimburse
             // the traders but the funds never have been spent).
@@ -605,22 +593,11 @@ public class PendingTradesDataModel extends ActivatableDataModel {
                 return;
             }
 
-            long lockTime = trade.getDelayedPayoutTx().getLockTime();
-            int bestChainHeight = btcWalletService.getBestChainHeight();
-            long remaining = lockTime - bestChainHeight;
-            if (remaining > 0) {
-                new Popup()
-                        .instruction(Res.get("portfolio.pending.timeLockNotOver",
-                                FormattingUtils.getDateFromBlockHeight(remaining), remaining))
-                        .show();
-                return;
-            }
-
             disputeManager = refundManager;
             PubKeyRing refundAgentPubKeyRing = trade.getRefundAgentPubKeyRing();
             checkNotNull(refundAgentPubKeyRing, "refundAgentPubKeyRing must not be null");
-            byte[] depositTxSerialized = depositTx.bitcoinSerialize();
-            String depositTxHashAsString = depositTx.getHashAsString();
+            byte[] depositTxSerialized = null; // depositTx.bitcoinSerialize(); // TODO (woodser): no tx serialization for xmr
+            String depositTxHashAsString = depositTx.getHash();
             Dispute dispute = new Dispute(disputeManager.getStorage(),
                     trade.getId(),
                     pubKeyRing.hashCode(), // traderId
@@ -654,38 +631,38 @@ public class PendingTradesDataModel extends ActivatableDataModel {
                         }
                     });
 
-            dispute.setDelayedPayoutTxId(trade.getDelayedPayoutTx().getHashAsString());
+            //dispute.setDelayedPayoutTxId(trade.getDelayedPayoutTx().getHashAsString());
 
             trade.setDisputeState(Trade.DisputeState.REFUND_REQUESTED);
 
-            //todo add UI spinner as it can take a bit if peer is offline
-            tradeManager.publishDelayedPayoutTx(tradeId,
-                    () -> {
-                        log.info("DelayedPayoutTx published and message sent to peer");
-                        disputeManager.sendOpenNewDisputeMessage(dispute,
-                                false,
-                                resultHandler,
-                                (errorMessage, throwable) -> {
-                                    if ((throwable instanceof DisputeAlreadyOpenException)) {
-                                        errorMessage += "\n\n" + Res.get("portfolio.pending.openAgainDispute.msg");
-                                        new Popup().warning(errorMessage)
-                                                .actionButtonText(Res.get("portfolio.pending.openAgainDispute.button"))
-                                                .onAction(() -> disputeManager.sendOpenNewDisputeMessage(dispute,
-                                                        true,
-                                                        resultHandler,
-                                                        (e, t) -> {
-                                                            log.error(e);
-                                                        }))
-                                                .closeButtonText(Res.get("shared.cancel"))
-                                                .show();
-                                    } else {
-                                        new Popup().warning(errorMessage).show();
-                                    }
-                                });
-                    },
-                    errorMessage -> {
-                        new Popup().error(errorMessage).show();
-                    });
+//            //todo add UI spinner as it can take a bit if peer is offline
+//            tradeManager.publishDelayedPayoutTx(tradeId,
+//                    () -> {
+//                        log.info("DelayedPayoutTx published and message sent to peer");
+//                        disputeManager.sendOpenNewDisputeMessage(dispute,
+//                                false,
+//                                resultHandler,
+//                                (errorMessage, throwable) -> {
+//                                    if ((throwable instanceof DisputeAlreadyOpenException)) {
+//                                        errorMessage += "\n\n" + Res.get("portfolio.pending.openAgainDispute.msg");
+//                                        new Popup().warning(errorMessage)
+//                                                .actionButtonText(Res.get("portfolio.pending.openAgainDispute.button"))
+//                                                .onAction(() -> disputeManager.sendOpenNewDisputeMessage(dispute,
+//                                                        true,
+//                                                        resultHandler,
+//                                                        (e, t) -> {
+//                                                            log.error(e);
+//                                                        }))
+//                                                .closeButtonText(Res.get("shared.cancel"))
+//                                                .show();
+//                                    } else {
+//                                        new Popup().warning(errorMessage).show();
+//                                    }
+//                                });
+//                    },
+//                    errorMessage -> {
+//                        new Popup().error(errorMessage).show();
+//                    });
 
         } else {
             log.warn("Invalid dispute state {}", disputeState.name());

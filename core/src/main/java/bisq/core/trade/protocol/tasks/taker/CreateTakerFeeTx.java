@@ -17,21 +17,18 @@
 
 package bisq.core.trade.protocol.tasks.taker;
 
-import bisq.core.btc.model.AddressEntry;
-import bisq.core.btc.wallet.BtcWalletService;
-import bisq.core.btc.wallet.TradeWalletService;
-import bisq.core.btc.wallet.WalletService;
-import bisq.core.dao.exceptions.DaoDisabledException;
-import bisq.core.dao.governance.param.Param;
-import bisq.core.trade.Trade;
-import bisq.core.trade.protocol.tasks.TradeTask;
-
-import bisq.common.taskrunner.TaskRunner;
-
-import org.bitcoinj.core.Address;
 import org.bitcoinj.core.Transaction;
 
+import bisq.common.taskrunner.TaskRunner;
+import bisq.core.btc.model.XmrAddressEntry;
+import bisq.core.btc.wallet.TradeWalletService;
+import bisq.core.btc.wallet.WalletService;
+import bisq.core.btc.wallet.XmrWalletService;
+import bisq.core.dao.exceptions.DaoDisabledException;
+import bisq.core.trade.Trade;
+import bisq.core.trade.protocol.tasks.TradeTask;
 import lombok.extern.slf4j.Slf4j;
+import monero.wallet.model.MoneroTxWallet;
 
 @Slf4j
 public class CreateTakerFeeTx extends TradeTask {
@@ -46,7 +43,7 @@ public class CreateTakerFeeTx extends TradeTask {
         try {
             runInterceptHook();
 
-            BtcWalletService walletService = processModel.getBtcWalletService();
+            XmrWalletService walletService = processModel.getXmrWalletService();
             String id = processModel.getOffer().getId();
 
             // We enforce here to create a MULTI_SIG and TRADE_PAYOUT address entry to avoid that the change output would be used later
@@ -54,49 +51,35 @@ public class CreateTakerFeeTx extends TradeTask {
             // appear as unused and therefor selected for the outputs for the MS tx.
             // That would cause incorrect display of the balance as
             // the change output would be considered as not available balance (part of the locked trade amount).
-            walletService.getNewAddressEntry(id, AddressEntry.Context.MULTI_SIG);
-            walletService.getNewAddressEntry(id, AddressEntry.Context.TRADE_PAYOUT);
+            walletService.getNewAddressEntry(id, XmrAddressEntry.Context.MULTI_SIG);
+            walletService.getNewAddressEntry(id, XmrAddressEntry.Context.TRADE_PAYOUT);
 
-            AddressEntry addressEntry = walletService.getOrCreateAddressEntry(id, AddressEntry.Context.OFFER_FUNDING);
-            AddressEntry reservedForTradeAddressEntry = walletService.getOrCreateAddressEntry(id, AddressEntry.Context.RESERVED_FOR_TRADE);
-            AddressEntry changeAddressEntry = walletService.getFreshAddressEntry();
-            Address fundingAddress = addressEntry.getAddress();
-            Address reservedForTradeAddress = reservedForTradeAddressEntry.getAddress();
-            Address changeAddress = changeAddressEntry.getAddress();
+            XmrAddressEntry addressEntry = walletService.getOrCreateAddressEntry(id, XmrAddressEntry.Context.OFFER_FUNDING);
+            XmrAddressEntry reservedForTradeAddressEntry = walletService.getOrCreateAddressEntry(id, XmrAddressEntry.Context.RESERVED_FOR_TRADE);
             TradeWalletService tradeWalletService = processModel.getTradeWalletService();
-            Transaction transaction;
-            String feeReceiver = processModel.getDaoFacade().getParamValue(Param.RECIPIENT_BTC_ADDRESS);
+            MoneroTxWallet transaction;
+            String feeReceiver = "52FnB7ABUrKJzVQRpbMNrqDFWbcKLjFUq8Rgek7jZEuB6WE2ZggXaTf4FK6H8gQymvSrruHHrEuKhMN3qTMiBYzREKsmRKM"; // TODO (woodser): don't hardcode
             if (trade.isCurrencyForTakerFeeBtc()) {
-                transaction = tradeWalletService.createBtcTradingFeeTx(
-                        fundingAddress,
-                        reservedForTradeAddress,
-                        changeAddress,
+              //fundingAccountIndex, reservedForTradeAddress, reservedFundsForOffer, isUsingSavingsWallet, makerFee, txFee, feeReceiver, broadcastTx)(
+                transaction = tradeWalletService.createXmrTradingFeeTx(
+                        addressEntry.getAccountIndex(),
+                        reservedForTradeAddressEntry.getAddressString(),
                         processModel.getFundsNeededForTradeAsLong(),
                         processModel.isUseSavingsWallet(),
                         trade.getTakerFee(),
                         trade.getTxFee(),
                         feeReceiver,
-                        false,
-                        null);
+                        false);
             } else {
-                Transaction preparedBurnFeeTx = processModel.getBsqWalletService().getPreparedTradeFeeTx(trade.getTakerFee());
-                Transaction txWithBsqFee = tradeWalletService.completeBsqTradingFeeTx(preparedBurnFeeTx,
-                        fundingAddress,
-                        reservedForTradeAddress,
-                        changeAddress,
-                        processModel.getFundsNeededForTradeAsLong(),
-                        processModel.isUseSavingsWallet(),
-                        trade.getTxFee());
-                transaction = processModel.getBsqWalletService().signTx(txWithBsqFee);
-                WalletService.checkAllScriptSignaturesForTx(transaction);
+                throw new RuntimeException("BSQ wallet not supported in xmr integration");
             }
 
             // We did not broadcast and commit the tx yet to avoid issues with lost trade fee in case the
             // take offer attempt failed.
 
-            trade.setTakerFeeTxId(transaction.getHashAsString());
+            trade.setTakerFeeTxId(transaction.getHash());
             processModel.setTakeOfferFeeTx(transaction);
-            walletService.swapTradeEntryToAvailableEntry(id, AddressEntry.Context.OFFER_FUNDING);
+            walletService.swapTradeEntryToAvailableEntry(id, XmrAddressEntry.Context.OFFER_FUNDING);
             complete();
         } catch (Throwable t) {
             if (t instanceof DaoDisabledException) {

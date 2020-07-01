@@ -17,29 +17,19 @@
 
 package bisq.desktop.main.funds.transactions;
 
-import bisq.core.btc.wallet.BtcWalletService;
+import java.util.Optional;
+
+import bisq.common.crypto.PubKeyRing;
+import bisq.core.btc.wallet.XmrWalletService;
 import bisq.core.offer.Offer;
 import bisq.core.support.dispute.Dispute;
 import bisq.core.support.dispute.arbitration.ArbitrationManager;
 import bisq.core.support.dispute.refund.RefundManager;
-import bisq.core.trade.Contract;
 import bisq.core.trade.Tradable;
 import bisq.core.trade.Trade;
-
-import bisq.common.crypto.PubKeyRing;
-
-import org.bitcoinj.core.Address;
-import org.bitcoinj.core.Transaction;
-import org.bitcoinj.core.TransactionOutput;
-
 import javafx.collections.ObservableList;
-
-import java.util.Optional;
-import java.util.concurrent.atomic.AtomicBoolean;
-
 import lombok.extern.slf4j.Slf4j;
-
-import static com.google.common.base.Preconditions.checkNotNull;
+import monero.wallet.model.MoneroTxWallet;
 
 
 @Slf4j
@@ -47,47 +37,45 @@ class TransactionAwareTrade implements TransactionAwareTradable {
     private final Trade trade;
     private final ArbitrationManager arbitrationManager;
     private final RefundManager refundManager;
-    private final BtcWalletService btcWalletService;
+    private final XmrWalletService xmrWalletService;
     private final PubKeyRing pubKeyRing;
 
     TransactionAwareTrade(Trade trade,
                           ArbitrationManager arbitrationManager,
                           RefundManager refundManager,
-                          BtcWalletService btcWalletService,
+                          XmrWalletService xmrWalletService,
                           PubKeyRing pubKeyRing) {
         this.trade = trade;
         this.arbitrationManager = arbitrationManager;
         this.refundManager = refundManager;
-        this.btcWalletService = btcWalletService;
+        this.xmrWalletService = xmrWalletService;
         this.pubKeyRing = pubKeyRing;
     }
 
     @Override
-    public boolean isRelatedToTransaction(Transaction transaction) {
-        String txId = transaction.getHashAsString();
+    public boolean isRelatedToTransaction(MoneroTxWallet transaction) {
+        String txId = transaction.getHash();
 
         boolean isTakerOfferFeeTx = txId.equals(trade.getTakerFeeTxId());
         boolean isOfferFeeTx = isOfferFeeTx(txId);
         boolean isDepositTx = isDepositTx(txId);
         boolean isPayoutTx = isPayoutTx(txId);
         boolean isDisputedPayoutTx = isDisputedPayoutTx(txId);
-        boolean isDelayedPayoutTx = isDelayedPayoutTx(txId);
-        boolean isRefundPayoutTx = isRefundPayoutTx(txId);
 
         return isTakerOfferFeeTx || isOfferFeeTx || isDepositTx || isPayoutTx ||
-                isDisputedPayoutTx || isDelayedPayoutTx || isRefundPayoutTx;
+                isDisputedPayoutTx;
     }
 
     private boolean isPayoutTx(String txId) {
         return Optional.ofNullable(trade.getPayoutTx())
-                .map(Transaction::getHashAsString)
+                .map(MoneroTxWallet::getHash)
                 .map(hash -> hash.equals(txId))
                 .orElse(false);
     }
 
     private boolean isDepositTx(String txId) {
         return Optional.ofNullable(trade.getDepositTx())
-                .map(Transaction::getHashAsString)
+                .map(MoneroTxWallet::getHash)
                 .map(hash -> hash.equals(txId))
                 .orElse(false);
     }
@@ -115,64 +103,64 @@ class TransactionAwareTrade implements TransactionAwareTradable {
                 });
     }
 
-    boolean isDelayedPayoutTx(String txId) {
-        Transaction transaction = btcWalletService.getTransaction(txId);
-        if (transaction == null)
-            return false;
-
-        if (transaction.getLockTime() == 0)
-            return false;
-
-        if (transaction.getInputs() == null)
-            return false;
-
-        return transaction.getInputs().stream()
-                .anyMatch(input -> {
-                    TransactionOutput connectedOutput = input.getConnectedOutput();
-                    if (connectedOutput == null) {
-                        return false;
-                    }
-                    Transaction parentTransaction = connectedOutput.getParentTransaction();
-                    if (parentTransaction == null) {
-                        return false;
-                    }
-                    return isDepositTx(parentTransaction.getHashAsString());
-                });
-    }
-
-    private boolean isRefundPayoutTx(String txId) {
-        String tradeId = trade.getId();
-        ObservableList<Dispute> disputes = refundManager.getDisputesAsObservableList();
-        AtomicBoolean isRefundTx = new AtomicBoolean(false);
-        AtomicBoolean isDisputeRelatedToThis = new AtomicBoolean(false);
-        disputes.forEach(dispute -> {
-            String disputeTradeId = dispute.getTradeId();
-            isDisputeRelatedToThis.set(tradeId.equals(disputeTradeId));
-            if (isDisputeRelatedToThis.get()) {
-                Transaction tx = btcWalletService.getTransaction(txId);
-                if (tx != null) {
-                    tx.getOutputs().forEach(txo -> {
-                        if (btcWalletService.isTransactionOutputMine(txo)) {
-                            try {
-                                Address receiverAddress = txo.getAddressFromP2PKHScript(btcWalletService.getParams());
-                                Contract contract = checkNotNull(trade.getContract());
-                                String myPayoutAddressString = contract.isMyRoleBuyer(pubKeyRing) ?
-                                        contract.getBuyerPayoutAddressString() :
-                                        contract.getSellerPayoutAddressString();
-                                if (receiverAddress != null && myPayoutAddressString.equals(receiverAddress.toString())) {
-                                    isRefundTx.set(true);
-                                }
-                            } catch (Throwable ignore) {
-                            }
-
-                        }
-                    });
-                }
-            }
-        });
-
-        return isRefundTx.get() && isDisputeRelatedToThis.get();
-    }
+//    boolean isDelayedPayoutTx(String txId) {
+//        Transaction transaction = xmrWalletService.getTransaction(txId);
+//        if (transaction == null)
+//            return false;
+//
+//        if (transaction.getLockTime() == 0)
+//            return false;
+//
+//        if (transaction.getInputs() == null)
+//            return false;
+//
+//        return transaction.getInputs().stream()
+//                .anyMatch(input -> {
+//                    TransactionOutput connectedOutput = input.getConnectedOutput();
+//                    if (connectedOutput == null) {
+//                        return false;
+//                    }
+//                    Transaction parentTransaction = connectedOutput.getParentTransaction();
+//                    if (parentTransaction == null) {
+//                        return false;
+//                    }
+//                    return isDepositTx(parentTransaction.getHashAsString());
+//                });
+//    }
+//
+//    private boolean isRefundPayoutTx(String txId) {
+//        String tradeId = trade.getId();
+//        ObservableList<Dispute> disputes = refundManager.getDisputesAsObservableList();
+//        AtomicBoolean isRefundTx = new AtomicBoolean(false);
+//        AtomicBoolean isDisputeRelatedToThis = new AtomicBoolean(false);
+//        disputes.forEach(dispute -> {
+//            String disputeTradeId = dispute.getTradeId();
+//            isDisputeRelatedToThis.set(tradeId.equals(disputeTradeId));
+//            if (isDisputeRelatedToThis.get()) {
+//                Transaction tx = xmrWalletService.getTransaction(txId);
+//                if (tx != null) {
+//                    tx.getOutputs().forEach(txo -> {
+//                        if (xmrWalletService.isTransactionOutputMine(txo)) {
+//                            try {
+//                                Address receiverAddress = txo.getAddressFromP2PKHScript(xmrWalletService.getParams());
+//                                Contract contract = checkNotNull(trade.getContract());
+//                                String myPayoutAddressString = contract.isMyRoleBuyer(pubKeyRing) ?
+//                                        contract.getBuyerPayoutAddressString() :
+//                                        contract.getSellerPayoutAddressString();
+//                                if (receiverAddress != null && myPayoutAddressString.equals(receiverAddress.toString())) {
+//                                    isRefundTx.set(true);
+//                                }
+//                            } catch (Throwable ignore) {
+//                            }
+//
+//                        }
+//                    });
+//                }
+//            }
+//        });
+//
+//        return isRefundTx.get() && isDisputeRelatedToThis.get();
+//    }
 
     @Override
     public Tradable asTradable() {

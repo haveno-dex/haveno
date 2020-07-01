@@ -17,10 +17,35 @@
 
 package bisq.core.trade;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
+import java.time.temporal.ChronoUnit;
+import java.util.Date;
+import java.util.HashSet;
+import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
+
+import javax.annotation.Nullable;
+
+import org.bitcoinj.core.Coin;
+import org.bitcoinj.core.Transaction;
+import org.jetbrains.annotations.NotNull;
+
+import com.google.protobuf.ByteString;
+import com.google.protobuf.Message;
+
+import bisq.common.crypto.KeyRing;
+import bisq.common.crypto.PubKeyRing;
+import bisq.common.proto.ProtoUtil;
+import bisq.common.storage.Storage;
+import bisq.common.taskrunner.Model;
+import bisq.common.util.Utilities;
 import bisq.core.account.witness.AccountAgeWitnessService;
 import bisq.core.btc.wallet.BsqWalletService;
 import bisq.core.btc.wallet.BtcWalletService;
 import bisq.core.btc.wallet.TradeWalletService;
+import bisq.core.btc.wallet.XmrWalletService;
 import bisq.core.dao.DaoFacade;
 import bisq.core.filter.FilterManager;
 import bisq.core.locale.CurrencyUtil;
@@ -43,56 +68,23 @@ import bisq.core.trade.protocol.TradeProtocol;
 import bisq.core.trade.statistics.ReferralIdService;
 import bisq.core.trade.statistics.TradeStatisticsManager;
 import bisq.core.user.User;
-
 import bisq.network.p2p.DecryptedMessageWithPubKey;
 import bisq.network.p2p.NodeAddress;
 import bisq.network.p2p.P2PService;
-
-import bisq.common.crypto.KeyRing;
-import bisq.common.crypto.PubKeyRing;
-import bisq.common.proto.ProtoUtil;
-import bisq.common.storage.Storage;
-import bisq.common.taskrunner.Model;
-import bisq.common.util.Utilities;
-
-import com.google.protobuf.ByteString;
-import com.google.protobuf.Message;
-
-import org.bitcoinj.core.Coin;
-import org.bitcoinj.core.Transaction;
-import org.bitcoinj.core.TransactionConfidence;
-
-import com.google.common.util.concurrent.FutureCallback;
-import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.ListenableFuture;
-
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.ReadOnlyObjectProperty;
 import javafx.beans.property.ReadOnlyStringProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
-
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
-
-import java.time.temporal.ChronoUnit;
-
-import java.util.Date;
-import java.util.HashSet;
-import java.util.Optional;
-import java.util.Set;
-import java.util.stream.Collectors;
-
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
-
-import org.jetbrains.annotations.NotNull;
-
-import javax.annotation.Nullable;
-
-import static com.google.common.base.Preconditions.checkNotNull;
+import monero.daemon.MoneroDaemon;
+import monero.daemon.MoneroDaemonRpc;
+import monero.wallet.model.MoneroTxWallet;
 
 /**
  * Holds all data which are relevant to the trade, but not those which are only needed in the trade process as shared data between tasks. Those data are
@@ -367,6 +359,7 @@ public abstract class Trade implements Tradable, Model {
     transient private Storage<? extends TradableList> storage;
     @Getter // to set in constructor so not final but set at init
     transient private BtcWalletService btcWalletService;
+    transient private XmrWalletService xmrWalletService;
 
     transient final private ObjectProperty<State> stateProperty = new SimpleObjectProperty<>(state);
     transient final private ObjectProperty<Phase> statePhaseProperty = new SimpleObjectProperty<>(state.phase);
@@ -378,14 +371,14 @@ public abstract class Trade implements Tradable, Model {
     @Getter
     transient protected TradeProtocol tradeProtocol;
     @Nullable
-    transient private Transaction depositTx;
+    transient private MoneroTxWallet depositTx;
 
     // Added in v1.2.0
     @Nullable
     transient private Transaction delayedPayoutTx;
 
     @Nullable
-    transient private Transaction payoutTx;
+    transient private MoneroTxWallet payoutTx;
     @Nullable
     transient private Coin tradeAmount;
 
@@ -441,13 +434,13 @@ public abstract class Trade implements Tradable, Model {
                     @Nullable NodeAddress mediatorNodeAddress,
                     @Nullable NodeAddress refundAgentNodeAddress,
                     Storage<? extends TradableList> storage,
-                    BtcWalletService btcWalletService) {
+                    XmrWalletService xmrWalletService) {
         this.offer = offer;
         this.txFee = txFee;
         this.takerFee = takerFee;
         this.isCurrencyForTakerFeeBtc = isCurrencyForTakerFeeBtc;
         this.storage = storage;
-        this.btcWalletService = btcWalletService;
+        this.xmrWalletService = xmrWalletService;
         this.arbitratorNodeAddress = arbitratorNodeAddress;
         this.mediatorNodeAddress = mediatorNodeAddress;
         this.refundAgentNodeAddress = refundAgentNodeAddress;
@@ -474,7 +467,7 @@ public abstract class Trade implements Tradable, Model {
                     @Nullable NodeAddress mediatorNodeAddress,
                     @Nullable NodeAddress refundAgentNodeAddress,
                     Storage<? extends TradableList> storage,
-                    BtcWalletService btcWalletService) {
+                    XmrWalletService xmrWalletService) {
 
         this(offer,
                 txFee,
@@ -484,7 +477,7 @@ public abstract class Trade implements Tradable, Model {
                 mediatorNodeAddress,
                 refundAgentNodeAddress,
                 storage,
-                btcWalletService);
+                xmrWalletService);
         this.tradePrice = tradePrice;
         this.tradingPeerNodeAddress = tradingPeerNodeAddress;
 
@@ -583,13 +576,13 @@ public abstract class Trade implements Tradable, Model {
     // API
     ///////////////////////////////////////////////////////////////////////////////////////////
 
-    public void setTransientFields(Storage<? extends TradableList> storage, BtcWalletService btcWalletService) {
+    public void setTransientFields(Storage<? extends TradableList> storage, XmrWalletService xmrWalletService) {
         this.storage = storage;
-        this.btcWalletService = btcWalletService;
+        this.xmrWalletService = xmrWalletService;
     }
 
     public void init(P2PService p2PService,
-                     BtcWalletService btcWalletService,
+                     XmrWalletService xmrWalletService,
                      BsqWalletService bsqWalletService,
                      TradeWalletService tradeWalletService,
                      DaoFacade daoFacade,
@@ -611,6 +604,7 @@ public abstract class Trade implements Tradable, Model {
                 openOfferManager,
                 p2PService,
                 btcWalletService,
+                xmrWalletService,
                 bsqWalletService,
                 tradeWalletService,
                 daoFacade,
@@ -663,17 +657,17 @@ public abstract class Trade implements Tradable, Model {
             applyDepositTx(processModel.getTradeWalletService().getWalletTx(getDepositTx().getHash()));
     }
 
-    public void applyDepositTx(Transaction tx) {
+    public void applyDepositTx(MoneroTxWallet tx) {
         this.depositTx = tx;
-        depositTxId = depositTx.getHashAsString();
+        depositTxId = depositTx.getHash();
         setupConfidenceListener();
         persist();
     }
 
     @Nullable
-    public Transaction getDepositTx() {
+    public MoneroTxWallet getDepositTx() {
         if (depositTx == null)
-            depositTx = depositTxId != null ? btcWalletService.getTransaction(depositTxId) : null;
+            depositTx = depositTxId != null ? xmrWalletService.getWallet().getTx(depositTxId) : null;
         return depositTx;
     }
 
@@ -688,15 +682,15 @@ public abstract class Trade implements Tradable, Model {
         persist();
     }
 
-    @Nullable
-    public Transaction getDelayedPayoutTx() {
-        if (delayedPayoutTx == null) {
-            delayedPayoutTx = delayedPayoutTxBytes != null && processModel.getBtcWalletService() != null ?
-                    processModel.getBtcWalletService().getTxFromSerializedTx(delayedPayoutTxBytes) :
-                    null;
-        }
-        return delayedPayoutTx;
-    }
+//    @Nullable
+//    public Transaction getDelayedPayoutTx() {
+//        if (delayedPayoutTx == null) {
+//            delayedPayoutTx = delayedPayoutTxBytes != null && processModel.getBtcWalletService() != null ?
+//                    processModel.getBtcWalletService().getTxFromSerializedTx(delayedPayoutTxBytes) :
+//                    null;
+//        }
+//        return delayedPayoutTx;
+//    }
 
     // We don't need to persist the msg as if we don't apply it it will not be removed from the P2P network and we
     // will receive it again on next startup. This might happen in edge cases when the user shuts down after we
@@ -829,9 +823,9 @@ public abstract class Trade implements Tradable, Model {
         getTradeVolumeProperty().set(getTradeVolume());
     }
 
-    public void setPayoutTx(Transaction payoutTx) {
+    public void setPayoutTx(MoneroTxWallet payoutTx) {
         this.payoutTx = payoutTx;
-        payoutTxId = payoutTx.getHashAsString();
+        payoutTxId = payoutTx.getHash();
     }
 
     public void setErrorMessage(String errorMessage) {
@@ -879,12 +873,18 @@ public abstract class Trade implements Tradable, Model {
     private long getTradeStartTime() {
         final long now = System.currentTimeMillis();
         long startTime;
-        final Transaction depositTx = getDepositTx();
+        final MoneroTxWallet depositTx = getDepositTx();
         if (depositTx != null && getTakeOfferDate() != null) {
-            if (depositTx.getConfidence().getDepthInBlocks() > 0) {
+            if (depositTx.getNumConfirmations() > 0) {  // TODO (woodser): use num_suggested_confirmations for confidence?
                 final long tradeTime = getTakeOfferDate().getTime();
-                // Use tx.getIncludedInBestChainAt() when available, otherwise use tx.getUpdateTime()
-                long blockTime = depositTx.getIncludedInBestChainAt() != null ? depositTx.getIncludedInBestChainAt().getTime() : depositTx.getUpdateTime().getTime();
+                long height = depositTx.getHeight();
+                MoneroDaemon daemonRpc = new MoneroDaemonRpc("http://localhost:38083", "superuser", "abctesting123"); // TODO (woodser): move to common config
+                long blockTime = daemonRpc.getBlockByHeight(height).getTimestamp();
+  
+//            if (depositTx.getConfidence().getDepthInBlocks() > 0) {
+//                final long tradeTime = getTakeOfferDate().getTime();
+//                // Use tx.getIncludedInBestChainAt() when available, otherwise use tx.getUpdateTime()
+//                long blockTime = depositTx.getIncludedInBestChainAt() != null ? depositTx.getIncludedInBestChainAt().getTime() : depositTx.getUpdateTime().getTime();
                 // If block date is in future (Date in Bitcoin blocks can be off by +/- 2 hours) we use our current date.
                 // If block date is earlier than our trade date we use our trade date.
                 if (blockTime > now)
@@ -897,7 +897,7 @@ public abstract class Trade implements Tradable, Model {
                 log.debug("We set the start for the trade period to {}. Trade started at: {}. Block got mined at: {}",
                         new Date(startTime), new Date(tradeTime), new Date(blockTime));
             } else {
-                log.debug("depositTx not confirmed yet. We don't start counting remaining trade period yet. txId={}", depositTx.getHashAsString());
+                log.debug("depositTx not confirmed yet. We don't start counting remaining trade period yet. txId={}", depositTx.getHash());
                 startTime = now;
             }
         } else {
@@ -1040,9 +1040,9 @@ public abstract class Trade implements Tradable, Model {
     }
 
     @Nullable
-    public Transaction getPayoutTx() {
+    public MoneroTxWallet getPayoutTx() {
         if (payoutTx == null)
-            payoutTx = payoutTxId != null ? btcWalletService.getTransaction(payoutTxId) : null;
+            payoutTx = payoutTxId != null ? xmrWalletService.getWallet().getTx(payoutTxId) : null;
         return payoutTx;
     }
 
@@ -1098,29 +1098,30 @@ public abstract class Trade implements Tradable, Model {
     }
 
     private void setupConfidenceListener() {
-        if (getDepositTx() != null) {
-            TransactionConfidence transactionConfidence = getDepositTx().getConfidence();
-            if (transactionConfidence.getConfidenceType() == TransactionConfidence.ConfidenceType.BUILDING) {
-                setConfirmedState();
-            } else {
-                ListenableFuture<TransactionConfidence> future = transactionConfidence.getDepthFuture(1);
-                Futures.addCallback(future, new FutureCallback<TransactionConfidence>() {
-                    @Override
-                    public void onSuccess(TransactionConfidence result) {
-                        setConfirmedState();
-                    }
-
-                    @Override
-                    public void onFailure(@NotNull Throwable t) {
-                        t.printStackTrace();
-                        log.error(t.getMessage());
-                        throw new RuntimeException(t);
-                    }
-                });
-            }
-        } else {
-            log.error("depositTx == null. That must not happen.");
-        }
+        log.warn("Confidence listener removed for xmr");  // TODO (woodser): use num_suggested_confirmations?
+//        if (getDepositTx() != null) {
+//            TransactionConfidence transactionConfidence = getDepositTx().getConfidence();
+//            if (transactionConfidence.getConfidenceType() == TransactionConfidence.ConfidenceType.BUILDING) {
+//                setConfirmedState();
+//            } else {
+//                ListenableFuture<TransactionConfidence> future = transactionConfidence.getDepthFuture(1);
+//                Futures.addCallback(future, new FutureCallback<TransactionConfidence>() {
+//                    @Override
+//                    public void onSuccess(TransactionConfidence result) {
+//                        setConfirmedState();
+//                    }
+//
+//                    @Override
+//                    public void onFailure(@NotNull Throwable t) {
+//                        t.printStackTrace();
+//                        log.error(t.getMessage());
+//                        throw new RuntimeException(t);
+//                    }
+//                });
+//            }
+//        } else {
+//            log.error("depositTx == null. That must not happen.");
+//        }
     }
 
     private void setConfirmedState() {
@@ -1164,7 +1165,7 @@ public abstract class Trade implements Tradable, Model {
                 ",\n     txFee=" + txFee +
                 ",\n     takerFee=" + takerFee +
                 ",\n     storage=" + storage +
-                ",\n     btcWalletService=" + btcWalletService +
+                ",\n     xmrWalletService=" + xmrWalletService +
                 ",\n     stateProperty=" + stateProperty +
                 ",\n     statePhaseProperty=" + statePhaseProperty +
                 ",\n     disputeStateProperty=" + disputeStateProperty +

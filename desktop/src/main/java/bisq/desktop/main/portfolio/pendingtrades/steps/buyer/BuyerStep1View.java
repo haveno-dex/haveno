@@ -37,23 +37,24 @@ public class BuyerStep1View extends TradeStepView {
     @Override
     public void activate() {
         super.activate();
-
-        try {
-            DelayedPayoutTxValidation.validatePayoutTx(trade,
-                    trade.getDelayedPayoutTx(),
-                    model.dataModel.daoFacade,
-                    model.dataModel.btcWalletService);
-        } catch (DelayedPayoutTxValidation.DonationAddressException |
-                DelayedPayoutTxValidation.InvalidTxException |
-                DelayedPayoutTxValidation.AmountMismatchException |
-                DelayedPayoutTxValidation.InvalidLockTimeException e) {
-            if (!model.dataModel.tradeManager.isAllowFaultyDelayedTxs()) {
-                new Popup().warning(Res.get("portfolio.pending.invalidDelayedPayoutTx", e.getMessage())).show();
-            }
-        } catch (DelayedPayoutTxValidation.MissingDelayedPayoutTxException ignore) {
-            // We don't react on those errors as a failed trade might get listed initially but getting removed from the
-            // trade manager after initPendingTrades which happens after activate might be called.
-        }
+        
+        // TODO (woodser): no payout tx in xmr integration, do something else?
+//        try {
+//            DelayedPayoutTxValidation.validatePayoutTx(trade,
+//                    trade.getDelayedPayoutTx(),
+//                    model.dataModel.daoFacade,
+//                    model.dataModel.btcWalletService);
+//        } catch (DelayedPayoutTxValidation.DonationAddressException |
+//                DelayedPayoutTxValidation.InvalidTxException |
+//                DelayedPayoutTxValidation.AmountMismatchException |
+//                DelayedPayoutTxValidation.InvalidLockTimeException e) {
+//            if (!model.dataModel.tradeManager.isAllowFaultyDelayedTxs()) {
+//                new Popup().warning(Res.get("portfolio.pending.invalidDelayedPayoutTx", e.getMessage())).show();
+//            }
+//        } catch (DelayedPayoutTxValidation.MissingDelayedPayoutTxException ignore) {
+//            // We don't react on those errors as a failed trade might get listed initially but getting removed from the
+//            // trade manager after initPendingTrades which happens after activate might be called.
+//        }
     }
 
 

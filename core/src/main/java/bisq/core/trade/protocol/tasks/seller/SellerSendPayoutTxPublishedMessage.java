@@ -41,13 +41,14 @@ public class SellerSendPayoutTxPublishedMessage extends SendPayoutTxPublishedMes
 
     @Override
     protected TradeMessage getMessage(String id) {
-        Transaction payoutTx = checkNotNull(trade.getPayoutTx(), "trade.getPayoutTx() must not be null");
-        return new PayoutTxPublishedMessage(
-                id,
-                payoutTx.bitcoinSerialize(),
-                processModel.getMyNodeAddress(),
-                UUID.randomUUID().toString()
-        );
+        throw new RuntimeException("SellerSendPayoutTxPublishedMessage.getMessage(id)");
+//        Transaction payoutTx = checkNotNull(trade.getPayoutTx(), "trade.getPayoutTx() must not be null");
+//        return new PayoutTxPublishedMessage(
+//                id,
+//                payoutTx.bitcoinSerialize(),
+//                processModel.getMyNodeAddress(),
+//                UUID.randomUUID().toString()
+//        );
     }
 
     @Override

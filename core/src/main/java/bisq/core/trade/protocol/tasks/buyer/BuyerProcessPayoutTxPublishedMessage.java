@@ -55,12 +55,13 @@ public class BuyerProcessPayoutTxPublishedMessage extends TradeTask {
             trade.setTradingPeerNodeAddress(processModel.getTempTradingPeerNodeAddress());
 
             if (trade.getPayoutTx() == null) {
-                Transaction committedPayoutTx = WalletService.maybeAddNetworkTxToWallet(message.getPayoutTx(), processModel.getBtcWalletService().getWallet());
-                trade.setPayoutTx(committedPayoutTx);
-                BtcWalletService.printTx("payoutTx received from peer", committedPayoutTx);
-
-                trade.setState(Trade.State.BUYER_RECEIVED_PAYOUT_TX_PUBLISHED_MSG);
-                processModel.getBtcWalletService().swapTradeEntryToAvailableEntry(trade.getId(), AddressEntry.Context.MULTI_SIG);
+                throw new RuntimeException("Need to deserialize tx from message in xmr integration?");  // TODO (woodser)
+//                Transaction committedPayoutTx = WalletService.maybeAddNetworkTxToWallet(message.getPayoutTx(), processModel.getBtcWalletService().getWallet());
+//                trade.setPayoutTx(committedPayoutTx);
+//                BtcWalletService.printTx("payoutTx received from peer", committedPayoutTx);
+//
+//                trade.setState(Trade.State.BUYER_RECEIVED_PAYOUT_TX_PUBLISHED_MSG);
+//                processModel.getBtcWalletService().swapTradeEntryToAvailableEntry(trade.getId(), AddressEntry.Context.MULTI_SIG);
             } else {
                 log.info("We got the payout tx already set from BuyerSetupPayoutTxListener and do nothing here. trade ID={}", trade.getId());
             }

@@ -17,21 +17,11 @@
 
 package bisq.core.trade.protocol.tasks.taker;
 
-import bisq.core.btc.exceptions.TxBroadcastException;
-import bisq.core.btc.wallet.BsqWalletService;
-import bisq.core.btc.wallet.TradeWalletService;
-import bisq.core.btc.wallet.TxBroadcaster;
-import bisq.core.dao.state.model.blockchain.TxType;
+import bisq.common.taskrunner.TaskRunner;
 import bisq.core.trade.Trade;
 import bisq.core.trade.protocol.tasks.TradeTask;
-
-import bisq.common.taskrunner.TaskRunner;
-
-import org.bitcoinj.core.Transaction;
-
 import lombok.extern.slf4j.Slf4j;
-
-import javax.annotation.Nullable;
+import monero.wallet.model.MoneroTxWallet;
 
 @Slf4j
 public class TakerPublishFeeTx extends TradeTask {
@@ -45,66 +35,21 @@ public class TakerPublishFeeTx extends TradeTask {
         try {
             runInterceptHook();
 
-            TradeWalletService tradeWalletService = processModel.getTradeWalletService();
-            Transaction takeOfferFeeTx = processModel.getTakeOfferFeeTx();
+            MoneroTxWallet takeOfferFeeTx = processModel.getTakeOfferFeeTx();
 
             if (trade.isCurrencyForTakerFeeBtc()) {
                 // We committed to be sure the tx gets into the wallet even in the broadcast process it would be
                 // committed as well, but if user would close app before success handler returns the commit would not
                 // be done.
-                tradeWalletService.commitTx(takeOfferFeeTx);
-
-                tradeWalletService.broadcastTx(takeOfferFeeTx,
-                        new TxBroadcaster.Callback() {
-                            @Override
-                            public void onSuccess(Transaction transaction) {
-                                trade.setState(Trade.State.TAKER_PUBLISHED_TAKER_FEE_TX);
-                                complete();
-                            }
-
-                            @Override
-                            public void onFailure(TxBroadcastException exception) {
-                                failed(exception);
-                            }
-                        });
+                try {
+                    processModel.getXmrWalletService().getWallet().relayTx(takeOfferFeeTx);
+                    trade.setState(Trade.State.TAKER_PUBLISHED_TAKER_FEE_TX);
+                    complete();
+                } catch (Exception exception) {
+                  failed(exception);
+                }
             } else {
-                BsqWalletService bsqWalletService = processModel.getBsqWalletService();
-                bsqWalletService.commitTx(takeOfferFeeTx, TxType.PAY_TRADE_FEE);
-                // We need to create another instance, otherwise the tx would trigger an invalid state exception
-                // if it gets committed 2 times
-                tradeWalletService.commitTx(tradeWalletService.getClonedTransaction(takeOfferFeeTx));
-
-                bsqWalletService.broadcastTx(takeOfferFeeTx,
-                        new TxBroadcaster.Callback() {
-                            @Override
-                            public void onSuccess(@Nullable Transaction transaction) {
-                                if (!completed) {
-                                    if (transaction != null) {
-                                        trade.setTakerFeeTxId(transaction.getHashAsString());
-                                        processModel.setTakeOfferFeeTx(transaction);
-                                        trade.setState(Trade.State.TAKER_PUBLISHED_TAKER_FEE_TX);
-
-                                        complete();
-                                    }
-                                } else {
-                                    log.warn("We got the onSuccess callback called after the timeout has been triggered a complete().");
-                                }
-                            }
-
-                            @Override
-                            public void onFailure(TxBroadcastException exception) {
-                                if (!completed) {
-                                    log.error(exception.toString());
-                                    exception.printStackTrace();
-                                    trade.setErrorMessage("An error occurred.\n" +
-                                            "Error message:\n"
-                                            + exception.getMessage());
-                                    failed(exception);
-                                } else {
-                                    log.warn("We got the onFailure callback called after the timeout has been triggered a complete().");
-                                }
-                            }
-                        });
+                throw new RuntimeException("BSQ wallet not supported in xmr integration");
             }
         } catch (Throwable t) {
             failed(t);

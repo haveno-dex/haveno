@@ -17,13 +17,29 @@
 
 package bisq.core.support.dispute.arbitration;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
+import java.util.Arrays;
+import java.util.Optional;
+import java.util.UUID;
+
+import javax.annotation.Nullable;
+
+import org.bitcoinj.core.AddressFormatException;
+import org.bitcoinj.core.Transaction;
+
+import com.google.inject.Inject;
+import com.google.inject.Singleton;
+
+import bisq.common.Timer;
+import bisq.common.UserThread;
+import bisq.common.app.Version;
+import bisq.common.crypto.PubKeyRing;
 import bisq.core.btc.exceptions.TransactionVerificationException;
-import bisq.core.btc.exceptions.TxBroadcastException;
 import bisq.core.btc.exceptions.WalletException;
 import bisq.core.btc.setup.WalletsSetup;
 import bisq.core.btc.wallet.BtcWalletService;
 import bisq.core.btc.wallet.TradeWalletService;
-import bisq.core.btc.wallet.TxBroadcaster;
 import bisq.core.btc.wallet.WalletService;
 import bisq.core.locale.Res;
 import bisq.core.offer.OpenOffer;
@@ -43,33 +59,12 @@ import bisq.core.trade.Tradable;
 import bisq.core.trade.Trade;
 import bisq.core.trade.TradeManager;
 import bisq.core.trade.closed.ClosedTradableManager;
-
 import bisq.network.p2p.AckMessageSourceType;
 import bisq.network.p2p.NodeAddress;
 import bisq.network.p2p.P2PService;
 import bisq.network.p2p.SendMailboxMessageListener;
-
-import bisq.common.Timer;
-import bisq.common.UserThread;
-import bisq.common.app.Version;
-import bisq.common.crypto.PubKeyRing;
-
-import org.bitcoinj.core.AddressFormatException;
-import org.bitcoinj.core.Transaction;
-import org.bitcoinj.crypto.DeterministicKey;
-
-import com.google.inject.Inject;
-import com.google.inject.Singleton;
-
-import java.util.Arrays;
-import java.util.Optional;
-import java.util.UUID;
-
 import lombok.extern.slf4j.Slf4j;
-
-import javax.annotation.Nullable;
-
-import static com.google.common.base.Preconditions.checkNotNull;
+import monero.wallet.model.MoneroTxWallet;
 
 @Slf4j
 @Singleton
@@ -239,7 +234,7 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
             if ((isBuyer && publisher == DisputeResult.Winner.BUYER)
                     || (!isBuyer && publisher == DisputeResult.Winner.SELLER)) {
 
-                Transaction payoutTx = null;
+                MoneroTxWallet payoutTx = null;
                 if (tradeOptional.isPresent()) {
                     payoutTx = tradeOptional.get().getPayoutTx();
                 } else {
@@ -250,47 +245,48 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
                 }
 
                 if (payoutTx == null) {
-                    if (dispute.getDepositTxSerialized() != null) {
-                        byte[] multiSigPubKey = isBuyer ? contract.getBuyerMultiSigPubKey() : contract.getSellerMultiSigPubKey();
-                        DeterministicKey multiSigKeyPair = btcWalletService.getMultiSigKeyPair(tradeId, multiSigPubKey);
-                        Transaction signedDisputedPayoutTx = tradeWalletService.traderSignAndFinalizeDisputedPayoutTx(
-                                dispute.getDepositTxSerialized(),
-                                disputeResult.getArbitratorSignature(),
-                                disputeResult.getBuyerPayoutAmount(),
-                                disputeResult.getSellerPayoutAmount(),
-                                contract.getBuyerPayoutAddressString(),
-                                contract.getSellerPayoutAddressString(),
-                                multiSigKeyPair,
-                                contract.getBuyerMultiSigPubKey(),
-                                contract.getSellerMultiSigPubKey(),
-                                disputeResult.getArbitratorPubKey()
-                        );
-                        Transaction committedDisputedPayoutTx = WalletService.maybeAddSelfTxToWallet(signedDisputedPayoutTx, btcWalletService.getWallet());
-                        tradeWalletService.broadcastTx(committedDisputedPayoutTx, new TxBroadcaster.Callback() {
-                            @Override
-                            public void onSuccess(Transaction transaction) {
-                                // after successful publish we send peer the tx
-                                dispute.setDisputePayoutTxId(transaction.getHashAsString());
-                                sendPeerPublishedPayoutTxMessage(transaction, dispute, contract);
-                                updateTradeOrOpenOfferManager(tradeId);
-                            }
-
-                            @Override
-                            public void onFailure(TxBroadcastException exception) {
-                                log.error(exception.getMessage());
-                            }
-                        }, 15);
-
-                        success = true;
-                    } else {
-                        errorMessage = "DepositTx is null. TradeId = " + tradeId;
-                        log.warn(errorMessage);
-                        success = false;
-                    }
+                    throw new RuntimeException("XMR dispute resolution tx not implemented");  // TODO (woodser)
+//                    if (dispute.getDepositTxSerialized() != null) {
+//                        byte[] multiSigPubKey = isBuyer ? contract.getBuyerMultiSigPubKey() : contract.getSellerMultiSigPubKey();
+//                        DeterministicKey multiSigKeyPair = btcWalletService.getMultiSigKeyPair(tradeId, multiSigPubKey);
+//                        Transaction signedDisputedPayoutTx = tradeWalletService.traderSignAndFinalizeDisputedPayoutTx(
+//                                dispute.getDepositTxSerialized(),
+//                                disputeResult.getArbitratorSignature(),
+//                                disputeResult.getBuyerPayoutAmount(),
+//                                disputeResult.getSellerPayoutAmount(),
+//                                contract.getBuyerPayoutAddressString(),
+//                                contract.getSellerPayoutAddressString(),
+//                                multiSigKeyPair,
+//                                contract.getBuyerMultiSigPubKey(),
+//                                contract.getSellerMultiSigPubKey(),
+//                                disputeResult.getArbitratorPubKey()
+//                        );
+//                        Transaction committedDisputedPayoutTx = WalletService.maybeAddSelfTxToWallet(signedDisputedPayoutTx, btcWalletService.getWallet());
+//                        tradeWalletService.broadcastTx(committedDisputedPayoutTx, new TxBroadcaster.Callback() {
+//                            @Override
+//                            public void onSuccess(Transaction transaction) {
+//                                // after successful publish we send peer the tx
+//                                dispute.setDisputePayoutTxId(transaction.getHashAsString());
+//                                sendPeerPublishedPayoutTxMessage(transaction, dispute, contract);
+//                                updateTradeOrOpenOfferManager(tradeId);
+//                            }
+//
+//                            @Override
+//                            public void onFailure(TxBroadcastException exception) {
+//                                log.error(exception.getMessage());
+//                            }
+//                        }, 15);
+//
+//                        success = true;
+//                    } else {
+//                        errorMessage = "DepositTx is null. TradeId = " + tradeId;
+//                        log.warn(errorMessage);
+//                        success = false;
+//                    }
                 } else {
                     log.warn("We already got a payout tx. That might be the case if the other peer did not get the " +
                             "payout tx and opened a dispute. TradeId = " + tradeId);
-                    dispute.setDisputePayoutTxId(payoutTx.getHashAsString());
+                    dispute.setDisputePayoutTxId(payoutTx.getHash());
                     sendPeerPublishedPayoutTxMessage(payoutTx, dispute, contract);
 
                     success = true;
@@ -304,17 +300,20 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
 
                 success = true;
             }
-        } catch (TransactionVerificationException e) {
-            errorMessage = "Error at traderSignAndFinalizeDisputedPayoutTx " + e.toString();
-            log.error(errorMessage, e);
-            success = false;
-
-            // We prefer to close the dispute in that case. If there was no deposit tx and a random tx was used
-            // we get a TransactionVerificationException. No reason to keep that dispute open...
-            updateTradeOrOpenOfferManager(tradeId);
-
-            throw new RuntimeException(errorMessage);
-        } catch (AddressFormatException | WalletException e) {
+        }
+//        catch (TransactionVerificationException e) {
+//            errorMessage = "Error at traderSignAndFinalizeDisputedPayoutTx " + e.toString();
+//            log.error(errorMessage, e);
+//            success = false;
+//
+//            // We prefer to close the dispute in that case. If there was no deposit tx and a random tx was used
+//            // we get a TransactionVerificationException. No reason to keep that dispute open...
+//            updateTradeOrOpenOfferManager(tradeId);
+//
+//            throw new RuntimeException(errorMessage);
+//        }
+//        catch (AddressFormatException | WalletException e) {
+        catch (AddressFormatException e) {
             errorMessage = "Error at traderSignAndFinalizeDisputedPayoutTx " + e.toString();
             log.error(errorMessage, e);
             success = false;
@@ -366,11 +365,11 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     // winner (or buyer in case of 50/50) sends tx to other peer
-    private void sendPeerPublishedPayoutTxMessage(Transaction transaction, Dispute dispute, Contract contract) {
+    private void sendPeerPublishedPayoutTxMessage(MoneroTxWallet transaction, Dispute dispute, Contract contract) {
         PubKeyRing peersPubKeyRing = dispute.isDisputeOpenerIsBuyer() ? contract.getSellerPubKeyRing() : contract.getBuyerPubKeyRing();
         NodeAddress peersNodeAddress = dispute.isDisputeOpenerIsBuyer() ? contract.getSellerNodeAddress() : contract.getBuyerNodeAddress();
         log.trace("sendPeerPublishedPayoutTxMessage to peerAddress " + peersNodeAddress);
-        PeerPublishedDisputePayoutTxMessage message = new PeerPublishedDisputePayoutTxMessage(transaction.bitcoinSerialize(),
+        PeerPublishedDisputePayoutTxMessage message = new PeerPublishedDisputePayoutTxMessage(transaction.getFullHex().getBytes(),
                 dispute.getTradeId(),
                 p2PService.getAddress(),
                 UUID.randomUUID().toString(),

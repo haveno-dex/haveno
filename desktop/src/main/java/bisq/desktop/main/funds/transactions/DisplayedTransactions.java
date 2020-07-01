@@ -17,25 +17,25 @@
 
 package bisq.desktop.main.funds.transactions;
 
-import bisq.core.btc.wallet.BtcWalletService;
-import bisq.core.trade.Tradable;
-
-import org.bitcoinj.core.Transaction;
-
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import bisq.core.btc.wallet.XmrWalletService;
+import bisq.core.trade.Tradable;
+import monero.wallet.model.MoneroTxQuery;
+import monero.wallet.model.MoneroTxWallet;
+
 class DisplayedTransactions extends ObservableListDecorator<TransactionsListItem> {
-    private final BtcWalletService btcWalletService;
+    private final XmrWalletService xmrWalletService;
     private final TradableRepository tradableRepository;
     private final TransactionListItemFactory transactionListItemFactory;
     private final TransactionAwareTradableFactory transactionAwareTradableFactory;
 
-    DisplayedTransactions(BtcWalletService btcWalletService, TradableRepository tradableRepository,
+    DisplayedTransactions(XmrWalletService xmrWalletService, TradableRepository tradableRepository,
                           TransactionListItemFactory transactionListItemFactory,
                           TransactionAwareTradableFactory transactionAwareTradableFactory) {
-        this.btcWalletService = btcWalletService;
+        this.xmrWalletService = xmrWalletService;
         this.tradableRepository = tradableRepository;
         this.transactionListItemFactory = transactionListItemFactory;
         this.transactionAwareTradableFactory = transactionAwareTradableFactory;
@@ -49,13 +49,13 @@ class DisplayedTransactions extends ObservableListDecorator<TransactionsListItem
     }
 
     private List<TransactionsListItem> getTransactionListItems() {
-        Set<Transaction> transactions = btcWalletService.getTransactions(false);
+        List<MoneroTxWallet> transactions = xmrWalletService.getTransactions(false);
         return transactions.stream()
                 .map(this::convertTransactionToListItem)
                 .collect(Collectors.toList());
     }
 
-    private TransactionsListItem convertTransactionToListItem(Transaction transaction) {
+    private TransactionsListItem convertTransactionToListItem(MoneroTxWallet transaction) {
         Set<Tradable> tradables = tradableRepository.getAll();
 
         TransactionAwareTradable maybeTradable = tradables.stream()

@@ -541,11 +541,6 @@ public abstract class TradeStepView extends AnchorPane {
             model.dataModel.addTradeToFailedTrades();
             new Popup().warning(Res.get("portfolio.pending.mediationResult.error.depositTxNull")).show();
             return;
-        } else if (trade.getDelayedPayoutTx() == null) {
-            log.error("trade.getDelayedPayoutTx() was null at openMediationResultPopup. " +
-                    "We add the trade to failed trades. TradeId={}", trade.getId());
-            new Popup().warning(Res.get("portfolio.pending.mediationResult.error.delayedPayoutTxNull")).show();
-            return;
         }
 
         DisputeResult disputeResult = optionalDispute.get().getDisputeResultProperty().get();
@@ -556,10 +551,6 @@ public abstract class TradeStepView extends AnchorPane {
         String myPayoutAmount = isMyRoleBuyer ? buyerPayoutAmount : sellerPayoutAmount;
         String peersPayoutAmount = isMyRoleBuyer ? sellerPayoutAmount : buyerPayoutAmount;
 
-        long lockTime = trade.getDelayedPayoutTx().getLockTime();
-        int bestChainHeight = model.dataModel.btcWalletService.getBestChainHeight();
-        long remaining = lockTime - bestChainHeight;
-
         String actionButtonText = hasSelfAccepted() ?
                 Res.get("portfolio.pending.mediationResult.popup.alreadyAccepted") : Res.get("shared.accept");
 
@@ -568,8 +559,8 @@ public abstract class TradeStepView extends AnchorPane {
                 .instruction(Res.get("portfolio.pending.mediationResult.popup.info",
                         myPayoutAmount,
                         peersPayoutAmount,
-                        FormattingUtils.getDateFromBlockHeight(remaining),
-                        lockTime))
+                        "N/A",  // TODO (woodser): no timelocked tx in xmr, so part of popup message is n/a
+                        -1))
                 .actionButtonText(actionButtonText)
                 .onAction(() -> {
                     model.dataModel.mediationManager.acceptMediationResult(trade,

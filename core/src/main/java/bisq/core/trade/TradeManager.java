@@ -17,15 +17,41 @@
 
 package bisq.core.trade;
 
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
+import javax.annotation.Nullable;
+import javax.inject.Inject;
+import javax.inject.Named;
+
+import org.bitcoinj.core.AddressFormatException;
+import org.bitcoinj.core.Coin;
+import org.bitcoinj.core.InsufficientMoneyException;
+import org.bitcoinj.core.TransactionConfidence;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import bisq.common.ClockWatcher;
+import bisq.common.config.Config;
+import bisq.common.crypto.KeyRing;
+import bisq.common.handlers.ErrorMessageHandler;
+import bisq.common.handlers.FaultHandler;
+import bisq.common.handlers.ResultHandler;
+import bisq.common.proto.network.NetworkEnvelope;
+import bisq.common.proto.persistable.PersistedDataHost;
+import bisq.common.storage.Storage;
 import bisq.core.account.witness.AccountAgeWitnessService;
 import bisq.core.btc.exceptions.AddressEntryException;
-import bisq.core.btc.exceptions.TxBroadcastException;
-import bisq.core.btc.model.AddressEntry;
+import bisq.core.btc.model.XmrAddressEntry;
 import bisq.core.btc.wallet.BsqWalletService;
-import bisq.core.btc.wallet.BtcWalletService;
 import bisq.core.btc.wallet.TradeWalletService;
-import bisq.core.btc.wallet.TxBroadcaster;
-import bisq.core.btc.wallet.WalletService;
+import bisq.core.btc.wallet.XmrWalletService;
 import bisq.core.dao.DaoFacade;
 import bisq.core.filter.FilterManager;
 import bisq.core.locale.Res;
@@ -42,74 +68,26 @@ import bisq.core.trade.closed.ClosedTradableManager;
 import bisq.core.trade.failed.FailedTradesManager;
 import bisq.core.trade.handlers.TradeResultHandler;
 import bisq.core.trade.messages.InputsForDepositTxRequest;
-import bisq.core.trade.messages.PeerPublishedDelayedPayoutTxMessage;
 import bisq.core.trade.messages.TradeMessage;
 import bisq.core.trade.statistics.ReferralIdService;
 import bisq.core.trade.statistics.TradeStatisticsManager;
 import bisq.core.user.User;
 import bisq.core.util.Validator;
-
 import bisq.network.p2p.AckMessage;
 import bisq.network.p2p.AckMessageSourceType;
 import bisq.network.p2p.BootstrapListener;
 import bisq.network.p2p.NodeAddress;
 import bisq.network.p2p.P2PService;
-import bisq.network.p2p.SendMailboxMessageListener;
-
-import bisq.common.ClockWatcher;
-import bisq.common.config.Config;
-import bisq.common.crypto.KeyRing;
-import bisq.common.handlers.ErrorMessageHandler;
-import bisq.common.handlers.FaultHandler;
-import bisq.common.handlers.ResultHandler;
-import bisq.common.proto.network.NetworkEnvelope;
-import bisq.common.proto.persistable.PersistedDataHost;
-import bisq.common.storage.Storage;
-import bisq.common.util.Tuple2;
-import bisq.common.util.Utilities;
-
-import org.bitcoinj.core.AddressFormatException;
-import org.bitcoinj.core.Coin;
-import org.bitcoinj.core.InsufficientMoneyException;
-import org.bitcoinj.core.Transaction;
-import org.bitcoinj.core.TransactionConfidence;
-
-import javax.inject.Inject;
-import javax.inject.Named;
-
-import com.google.common.util.concurrent.FutureCallback;
-
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.LongProperty;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleLongProperty;
-
 import javafx.collections.FXCollections;
 import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
-
-import org.spongycastle.crypto.params.KeyParameter;
-
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import lombok.Getter;
 import lombok.Setter;
-
-import org.jetbrains.annotations.NotNull;
-
-import javax.annotation.Nullable;
+import monero.wallet.model.MoneroTxWallet;
 
 public class TradeManager implements PersistedDataHost {
     private static final Logger log = LoggerFactory.getLogger(TradeManager.class);
@@ -117,7 +95,7 @@ public class TradeManager implements PersistedDataHost {
     private final User user;
     @Getter
     private final KeyRing keyRing;
-    private final BtcWalletService btcWalletService;
+    private final XmrWalletService xmrWalletService;
     private final BsqWalletService bsqWalletService;
     private final TradeWalletService tradeWalletService;
     private final OpenOfferManager openOfferManager;
@@ -158,7 +136,7 @@ public class TradeManager implements PersistedDataHost {
     @Inject
     public TradeManager(User user,
                         KeyRing keyRing,
-                        BtcWalletService btcWalletService,
+                        XmrWalletService xmrWalletService,
                         BsqWalletService bsqWalletService,
                         TradeWalletService tradeWalletService,
                         OpenOfferManager openOfferManager,
@@ -180,7 +158,7 @@ public class TradeManager implements PersistedDataHost {
                         @Named(Config.ALLOW_FAULTY_DELAYED_TXS) boolean allowFaultyDelayedTxs) {
         this.user = user;
         this.keyRing = keyRing;
-        this.btcWalletService = btcWalletService;
+        this.xmrWalletService = xmrWalletService;
         this.bsqWalletService = bsqWalletService;
         this.tradeWalletService = tradeWalletService;
         this.openOfferManager = openOfferManager;
@@ -241,7 +219,7 @@ public class TradeManager implements PersistedDataHost {
     public void readPersisted() {
         tradableList = new TradableList<>(tradableListStorage, "PendingTrades");
         tradableList.forEach(trade -> {
-            trade.setTransientFields(tradableListStorage, btcWalletService);
+            trade.setTransientFields(tradableListStorage, xmrWalletService);
             Offer offer = trade.getOffer();
             if (offer != null)
                 offer.setPriceFeedService(priceFeedService);
@@ -275,7 +253,7 @@ public class TradeManager implements PersistedDataHost {
                 .filter(addressEntry -> addressEntry.getOfferId() != null)
                 .forEach(addressEntry -> {
                     log.warn("Swapping pending OFFER_FUNDING entries at startup. offerId={}", addressEntry.getOfferId());
-                    btcWalletService.swapTradeEntryToAvailableEntry(addressEntry.getOfferId(), AddressEntry.Context.OFFER_FUNDING);
+                    xmrWalletService.swapTradeEntryToAvailableEntry(addressEntry.getOfferId(), XmrAddressEntry.Context.OFFER_FUNDING);
                 });
     }
 
@@ -305,23 +283,23 @@ public class TradeManager implements PersistedDataHost {
                         tradesWithoutDepositTx.add(trade);
                     }
 
-                    try {
-                        DelayedPayoutTxValidation.validatePayoutTx(trade,
-                                trade.getDelayedPayoutTx(),
-                                daoFacade,
-                                btcWalletService);
-                    } catch (DelayedPayoutTxValidation.DonationAddressException |
-                            DelayedPayoutTxValidation.InvalidTxException |
-                            DelayedPayoutTxValidation.InvalidLockTimeException |
-                            DelayedPayoutTxValidation.MissingDelayedPayoutTxException |
-                            DelayedPayoutTxValidation.AmountMismatchException e) {
-                        log.warn("Delayed payout tx exception, trade {}, exception {}", trade.getId(), e.getMessage());
-                        if (!allowFaultyDelayedTxs) {
-                            // We move it to failed trades so it cannot be continued.
-                            log.warn("We move the trade with ID '{}' to failed trades", trade.getId());
-                            addTradeToFailedTradesList.add(trade);
-                        }
-                    }
+//                    try {
+//                        DelayedPayoutTxValidation.validatePayoutTx(trade,
+//                                trade.getDelayedPayoutTx(),
+//                                daoFacade,
+//                                xmrWalletService);
+//                    } catch (DelayedPayoutTxValidation.DonationAddressException |
+//                            DelayedPayoutTxValidation.InvalidTxException |
+//                            DelayedPayoutTxValidation.InvalidLockTimeException |
+//                            DelayedPayoutTxValidation.MissingDelayedPayoutTxException |
+//                            DelayedPayoutTxValidation.AmountMismatchException e) {
+//                        log.warn("Delayed payout tx exception, trade {}, exception {}", trade.getId(), e.getMessage());
+//                        if (!allowFaultyDelayedTxs) {
+//                            // We move it to failed trades so it cannot be continued.
+//                            log.warn("We move the trade with ID '{}' to failed trades", trade.getId());
+//                            addTradeToFailedTradesList.add(trade);
+//                        }
+//                    }
                 }
         );
 
@@ -364,11 +342,11 @@ public class TradeManager implements PersistedDataHost {
                 .map(Tradable::getId)
                 .collect(Collectors.toSet());
 
-        btcWalletService.getAddressEntriesForTrade().stream()
+        xmrWalletService.getAddressEntriesForTrade().stream()
                 .filter(e -> !activeTrades.contains(e.getOfferId()))
                 .forEach(e -> {
                     log.warn("We found an outdated addressEntry for trade {}: entry={}", e.getOfferId(), e);
-                    btcWalletService.resetAddressEntriesForPendingTrade(e.getOfferId());
+                    xmrWalletService.resetAddressEntriesForPendingTrade(e.getOfferId());
                 });
     }
 
@@ -398,7 +376,7 @@ public class TradeManager implements PersistedDataHost {
                         openOffer.getMediatorNodeAddress(),
                         openOffer.getRefundAgentNodeAddress(),
                         tradableListStorage,
-                        btcWalletService);
+                        xmrWalletService);
             else
                 trade = new SellerAsMakerTrade(offer,
                         Coin.valueOf(inputsForDepositTxRequest.getTxFee()),
@@ -408,7 +386,7 @@ public class TradeManager implements PersistedDataHost {
                         openOffer.getMediatorNodeAddress(),
                         openOffer.getRefundAgentNodeAddress(),
                         tradableListStorage,
-                        btcWalletService);
+                        xmrWalletService);
 
             initTrade(trade, trade.getProcessModel().isUseSavingsWallet(), trade.getProcessModel().getFundsNeededForTradeAsLong());
             tradableList.add(trade);
@@ -426,7 +404,7 @@ public class TradeManager implements PersistedDataHost {
 
     private void initTrade(Trade trade, boolean useSavingsWallet, Coin fundsNeededForTrade) {
         trade.init(p2PService,
-                btcWalletService,
+                xmrWalletService,
                 bsqWalletService,
                 tradeWalletService,
                 daoFacade,
@@ -461,14 +439,6 @@ public class TradeManager implements PersistedDataHost {
     public void checkOfferAvailability(Offer offer,
                                        ResultHandler resultHandler,
                                        ErrorMessageHandler errorMessageHandler) {
-
-        if (btcWalletService.isUnconfirmedTransactionsLimitHit() || bsqWalletService.isUnconfirmedTransactionsLimitHit()) {
-            String errorMessage = Res.get("shared.unconfirmedTransactionsLimitReached");
-            errorMessageHandler.handleErrorMessage(errorMessage);
-            log.warn(errorMessage);
-            return;
-        }
-
         offer.checkOfferAvailability(getOfferAvailabilityModel(offer), resultHandler, errorMessageHandler);
     }
 
@@ -532,7 +502,7 @@ public class TradeManager implements PersistedDataHost {
                     model.getSelectedMediator(),
                     model.getSelectedRefundAgent(),
                     tradableListStorage,
-                    btcWalletService);
+                    xmrWalletService);
         else
             trade = new BuyerAsTakerTrade(offer,
                     amount,
@@ -545,7 +515,7 @@ public class TradeManager implements PersistedDataHost {
                     model.getSelectedMediator(),
                     model.getSelectedRefundAgent(),
                     tradableListStorage,
-                    btcWalletService);
+                    xmrWalletService);
 
         trade.setTakerPaymentAccountId(paymentAccountId);
 
@@ -571,30 +541,17 @@ public class TradeManager implements PersistedDataHost {
     // Trade
     ///////////////////////////////////////////////////////////////////////////////////////////
 
-    public void onWithdrawRequest(String toAddress, Coin amount, Coin fee, KeyParameter aesKey,
+    public void onWithdrawRequest(String toAddress, Coin amount, Coin fee,
                                   Trade trade, ResultHandler resultHandler, FaultHandler faultHandler) {
-        String fromAddress = btcWalletService.getOrCreateAddressEntry(trade.getId(),
-                AddressEntry.Context.TRADE_PAYOUT).getAddressString();
-        FutureCallback<Transaction> callback = new FutureCallback<>() {
-            @Override
-            public void onSuccess(@javax.annotation.Nullable Transaction transaction) {
-                if (transaction != null) {
-                    log.debug("onWithdraw onSuccess tx ID:" + transaction.getHashAsString());
-                    addTradeToClosedTrades(trade);
-                    trade.setState(Trade.State.WITHDRAW_COMPLETED);
-                    resultHandler.handleResult();
-                }
-            }
-
-            @Override
-            public void onFailure(@NotNull Throwable t) {
-                t.printStackTrace();
-                log.error(t.getMessage());
-                faultHandler.handleFault("An exception occurred at requestWithdraw (onFailure).", t);
-            }
-        };
+        int fromAccountIdx = xmrWalletService.getOrCreateAddressEntry(trade.getId(),
+                XmrAddressEntry.Context.TRADE_PAYOUT).getAccountIndex();
         try {
-            btcWalletService.sendFunds(fromAddress, toAddress, amount, fee, aesKey, AddressEntry.Context.TRADE_PAYOUT, callback);
+            String txHash = xmrWalletService.sendFunds(fromAccountIdx, toAddress, amount, XmrAddressEntry.Context.TRADE_PAYOUT);
+            
+            log.debug("onWithdraw onSuccess tx ID:" + txHash);
+            addTradeToClosedTrades(trade);
+            trade.setState(Trade.State.WITHDRAW_COMPLETED);
+            resultHandler.handleResult();
         } catch (AddressFormatException | InsufficientMoneyException | AddressEntryException e) {
             e.printStackTrace();
             log.error(e.getMessage());
@@ -639,14 +596,14 @@ public class TradeManager implements PersistedDataHost {
     // the relevant entries are changed, otherwise it's not added and no address entries are changed
     private boolean recoverAddresses(Trade trade) {
         // Find addresses associated with this trade.
-        var entries = TradeUtils.getAvailableAddresses(trade, btcWalletService, keyRing);
+        var entries = TradeUtils.getAvailableAddresses(trade, xmrWalletService, keyRing);
         if (entries == null)
             return false;
 
-        btcWalletService.recoverAddressEntry(trade.getId(), entries.first,
-                AddressEntry.Context.MULTI_SIG);
-        btcWalletService.recoverAddressEntry(trade.getId(), entries.second,
-                AddressEntry.Context.TRADE_PAYOUT);
+        xmrWalletService.recoverAddressEntry(trade.getId(), entries.first,
+                XmrAddressEntry.Context.MULTI_SIG);
+        xmrWalletService.recoverAddressEntry(trade.getId(), entries.second,
+                XmrAddressEntry.Context.TRADE_PAYOUT);
         return true;
     }
 
@@ -674,72 +631,8 @@ public class TradeManager implements PersistedDataHost {
             Trade trade = tradeOptional.get();
             trade.setDisputeState(disputeState);
             addTradeToClosedTrades(trade);
-            btcWalletService.swapTradeEntryToAvailableEntry(trade.getId(), AddressEntry.Context.TRADE_PAYOUT);
+            xmrWalletService.swapTradeEntryToAvailableEntry(trade.getId(), XmrAddressEntry.Context.TRADE_PAYOUT);
         }
-    }
-
-
-    ///////////////////////////////////////////////////////////////////////////////////////////
-    // Publish delayed payout tx
-    ///////////////////////////////////////////////////////////////////////////////////////////
-
-    public void publishDelayedPayoutTx(String tradeId,
-                                       ResultHandler resultHandler,
-                                       ErrorMessageHandler errorMessageHandler) {
-        getTradeById(tradeId).ifPresent(trade -> {
-            Transaction delayedPayoutTx = trade.getDelayedPayoutTx();
-            if (delayedPayoutTx != null) {
-                // We have spent the funds from the deposit tx with the delayedPayoutTx
-                btcWalletService.swapTradeEntryToAvailableEntry(trade.getId(), AddressEntry.Context.MULTI_SIG);
-                // We might receive funds on AddressEntry.Context.TRADE_PAYOUT so we don't swap that
-
-                Transaction committedDelayedPayoutTx = WalletService.maybeAddSelfTxToWallet(delayedPayoutTx, btcWalletService.getWallet());
-
-                tradeWalletService.broadcastTx(committedDelayedPayoutTx, new TxBroadcaster.Callback() {
-                    @Override
-                    public void onSuccess(Transaction transaction) {
-                        log.info("publishDelayedPayoutTx onSuccess " + transaction);
-                        NodeAddress tradingPeerNodeAddress = trade.getTradingPeerNodeAddress();
-                        PeerPublishedDelayedPayoutTxMessage msg = new PeerPublishedDelayedPayoutTxMessage(UUID.randomUUID().toString(),
-                                tradeId,
-                                tradingPeerNodeAddress);
-                        p2PService.sendEncryptedMailboxMessage(
-                                tradingPeerNodeAddress,
-                                trade.getProcessModel().getTradingPeer().getPubKeyRing(),
-                                msg,
-                                new SendMailboxMessageListener() {
-                                    @Override
-                                    public void onArrived() {
-                                        resultHandler.handleResult();
-                                        log.info("SendMailboxMessageListener onArrived tradeId={} at peer {}",
-                                                tradeId, tradingPeerNodeAddress);
-                                    }
-
-                                    @Override
-                                    public void onStoredInMailbox() {
-                                        resultHandler.handleResult();
-                                        log.info("SendMailboxMessageListener onStoredInMailbox tradeId={} at peer {}",
-                                                tradeId, tradingPeerNodeAddress);
-                                    }
-
-                                    @Override
-                                    public void onFault(String errorMessage) {
-                                        log.error("SendMailboxMessageListener onFault tradeId={} at peer {}",
-                                                tradeId, tradingPeerNodeAddress);
-                                        errorMessageHandler.handleErrorMessage(errorMessage);
-                                    }
-                                }
-                        );
-                    }
-
-                    @Override
-                    public void onFailure(TxBroadcastException exception) {
-                        log.error("publishDelayedPayoutTx onFailure", exception);
-                        errorMessageHandler.handleErrorMessage(exception.toString());
-                    }
-                });
-            }
-        });
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -770,13 +663,13 @@ public class TradeManager implements PersistedDataHost {
         return tradableList.stream().filter(e -> e.getId().equals(tradeId)).findFirst();
     }
 
-    public Stream<AddressEntry> getAddressEntriesForAvailableBalanceStream() {
-        Stream<AddressEntry> availableOrPayout = Stream.concat(btcWalletService.getAddressEntries(AddressEntry.Context.TRADE_PAYOUT)
-                .stream(), btcWalletService.getFundedAvailableAddressEntries().stream());
-        Stream<AddressEntry> available = Stream.concat(availableOrPayout,
-                btcWalletService.getAddressEntries(AddressEntry.Context.ARBITRATOR).stream());
-        available = Stream.concat(available, btcWalletService.getAddressEntries(AddressEntry.Context.OFFER_FUNDING).stream());
-        return available.filter(addressEntry -> btcWalletService.getBalanceForAddress(addressEntry.getAddress()).isPositive());
+    public Stream<XmrAddressEntry> getAddressEntriesForAvailableBalanceStream() {
+        Stream<XmrAddressEntry> availableOrPayout = Stream.concat(xmrWalletService.getAddressEntries(XmrAddressEntry.Context.TRADE_PAYOUT)
+                .stream(), xmrWalletService.getFundedAvailableAddressEntries().stream());
+        Stream<XmrAddressEntry> available = Stream.concat(availableOrPayout,
+                xmrWalletService.getAddressEntries(XmrAddressEntry.Context.ARBITRATOR).stream());
+        available = Stream.concat(available, xmrWalletService.getAddressEntries(XmrAddressEntry.Context.OFFER_FUNDING).stream());
+        return available.filter(addressEntry -> xmrWalletService.getBalanceForAccount(addressEntry.getAccountIndex()).isPositive());
     }
 
     public Stream<Trade> getTradesStreamWithFundsLockedIn() {
@@ -800,14 +693,13 @@ public class TradeManager implements PersistedDataHost {
                 .collect(Collectors.toSet()));
         tradesIdSet.addAll(closedTradableManager.getTradesStreamWithFundsLockedIn()
                 .map(trade -> {
-                    Transaction depositTx = trade.getDepositTx();
+                    MoneroTxWallet depositTx = trade.getDepositTx();
                     if (depositTx != null) {
-                        TransactionConfidence confidence = btcWalletService.getConfidenceForTxId(depositTx.getHashAsString());
-                        if (confidence != null && confidence.getConfidenceType() != TransactionConfidence.ConfidenceType.BUILDING) {
-                            tradeTxException.set(new TradeTxException(Res.get("error.closedTradeWithUnconfirmedDepositTx", trade.getShortId())));
+                        if (!depositTx.isConfirmed()) {
+                          tradeTxException.set(new TradeTxException(Res.get("error.closedTradeWithUnconfirmedDepositTx", trade.getShortId())));
                         } else {
-                            log.warn("We found a closed trade with locked up funds. " +
-                                    "That should never happen. trade ID=" + trade.getId());
+                          log.warn("We found a closed trade with locked up funds. " +
+                                  "That should never happen. trade ID=" + trade.getId());
                         }
                     } else {
                         tradeTxException.set(new TradeTxException(Res.get("error.closedTradeWithNoDepositTx", trade.getShortId())));
