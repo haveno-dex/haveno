@@ -60,6 +60,8 @@ public final class TradingPeer implements PersistablePayload {
     @Nullable
     private PaymentAccountPayload paymentAccountPayload;
     @Nullable
+    private String preparedMultisigHex;
+    @Nullable
     private String payoutAddressString;
     @Nullable
     private String contractAsJson;
@@ -98,6 +100,7 @@ public final class TradingPeer implements PersistablePayload {
                 .setChangeOutputValue(changeOutputValue);
         Optional.ofNullable(accountId).ifPresent(builder::setAccountId);
         Optional.ofNullable(paymentAccountPayload).ifPresent(e -> builder.setPaymentAccountPayload((protobuf.PaymentAccountPayload) e.toProtoMessage()));
+        Optional.ofNullable(preparedMultisigHex).ifPresent(builder::setPreparedMultisigHex);
         Optional.ofNullable(payoutAddressString).ifPresent(builder::setPayoutAddressString);
         Optional.ofNullable(contractAsJson).ifPresent(builder::setContractAsJson);
         Optional.ofNullable(contractSignature).ifPresent(builder::setContractSignature);
@@ -122,6 +125,7 @@ public final class TradingPeer implements PersistablePayload {
             tradingPeer.setChangeOutputValue(proto.getChangeOutputValue());
             tradingPeer.setAccountId(ProtoUtil.stringOrNullFromProto(proto.getAccountId()));
             tradingPeer.setPaymentAccountPayload(proto.hasPaymentAccountPayload() ? coreProtoResolver.fromProto(proto.getPaymentAccountPayload()) : null);
+            tradingPeer.setPreparedMultisigHex(ProtoUtil.stringOrNullFromProto(proto.getPreparedMultisigHex()));
             tradingPeer.setPayoutAddressString(ProtoUtil.stringOrNullFromProto(proto.getPayoutAddressString()));
             tradingPeer.setContractAsJson(ProtoUtil.stringOrNullFromProto(proto.getContractAsJson()));
             tradingPeer.setContractSignature(ProtoUtil.stringOrNullFromProto(proto.getContractSignature()));

@@ -33,6 +33,7 @@ import bisq.core.trade.protocol.tasks.PublishTradeStatistics;
 import bisq.core.trade.protocol.tasks.VerifyPeersAccountAgeWitness;
 import bisq.core.trade.protocol.tasks.maker.MakerCreateAndSignContract;
 import bisq.core.trade.protocol.tasks.maker.MakerProcessesInputsForDepositTxRequest;
+import bisq.core.trade.protocol.tasks.maker.MakerSendsPrepareMultisigRequestToArbitrator;
 import bisq.core.trade.protocol.tasks.maker.MakerSetsLockTime;
 import bisq.core.trade.protocol.tasks.maker.MakerVerifyTakerAccount;
 import bisq.core.trade.protocol.tasks.maker.MakerVerifyTakerFeePayment;
@@ -102,7 +103,30 @@ public class SellerAsMakerProtocol extends TradeProtocol implements SellerProtoc
     public void handleTakeOfferRequest(PrepareMultisigRequest tradeMessage,
                                        NodeAddress sender,
                                        ErrorMessageHandler errorMessageHandler) {
-      throw new RuntimeException("SellerAsMakerProtocol.handleTakeOfferRequest() not implemented");
+      Validator.checkTradeId(processModel.getOfferId(), tradeMessage);
+      processModel.setTradeMessage(tradeMessage);
+      processModel.setTempTradingPeerNodeAddress(sender);
+
+      TradeTaskRunner taskRunner = new TradeTaskRunner(sellerAsMakerTrade,
+              () -> handleTaskRunnerSuccess(tradeMessage, "handleTakeOfferRequest"),
+              errorMessage -> {
+                  errorMessageHandler.handleErrorMessage(errorMessage);
+                  handleTaskRunnerFault(tradeMessage, errorMessage);
+              });
+
+      taskRunner.addTasks(
+              MakerSendsPrepareMultisigRequestToArbitrator.class, // TODO (woodser): wrong order, haven't tested seller as maker flow
+              ApplyFilter.class,
+              MakerVerifyTakerAccount.class,
+              VerifyPeersAccountAgeWitness.class,
+              MakerVerifyTakerFeePayment.class,
+              MakerSetsLockTime.class,
+              MakerCreateAndSignContract.class,
+              SellerAsMakerCreatesUnsignedDepositTx.class,
+              SellerAsMakerSendsInputsForDepositTxResponse.class
+      );
+
+      taskRunner.run();
     }
 
     @Override

@@ -44,10 +44,13 @@ import monero.wallet.MoneroWalletJni;
 import monero.wallet.model.MoneroWalletConfig;
 
 @Slf4j
-public class TakerSendsPrepareMultisigRequest extends TradeTask {
+public class TakerSendsPrepareMultisigRequests extends TradeTask {
+  
+    private boolean peerAck;
+    private boolean arbitratorAck;
 
     @SuppressWarnings({"unused"})
-    public TakerSendsPrepareMultisigRequest(TaskRunner taskHandler, Trade trade) {
+    public TakerSendsPrepareMultisigRequests(TaskRunner taskHandler, Trade trade) {
         super(taskHandler, trade);
     }
 
@@ -65,8 +68,8 @@ public class TakerSendsPrepareMultisigRequest extends TradeTask {
             // prepare multisig
             String preparedHex = multisigWallet.prepareMultisig();
             System.out.println("Prepared multisig hex: " + preparedHex);
-
-            // collect fields for request
+            
+            // collect fields for requests
             XmrWalletService walletService = processModel.getXmrWalletService();
             String offerId = processModel.getOffer().getId();
             String takerPayoutAddress = walletService.getOrCreateAddressEntry(offerId, XmrAddressEntry.Context.TRADE_PAYOUT).getAddressString();
@@ -74,14 +77,17 @@ public class TakerSendsPrepareMultisigRequest extends TradeTask {
             checkNotNull(trade.getTakerFeeTxId(), "TakeOfferFeeTxId must not be null");
             final User user = processModel.getUser();
             checkNotNull(user, "User must not be null");
-            final List<NodeAddress> acceptedArbitratorAddresses = user.getAcceptedArbitratorAddresses();
+            
+            // must have mediator address // TODO (woodser): using mediator instead of arbitrator because it's initially assigned, keep or replace with arbitrator role? 
+            final List<NodeAddress> acceptedMediatorAddresses = user.getAcceptedMediatorAddresses();
+            checkNotNull(acceptedMediatorAddresses, "acceptedMediatorAddresses must not be null");
             
             // Taker has to use offerId as nonce (he cannot manipulate that - so we avoid to have a challenge protocol for passing the nonce we want to get signed)
             // He cannot manipulate the offerId - so we avoid to have a challenge protocol for passing the nonce we want to get signed.
             final PaymentAccountPayload paymentAccountPayload = checkNotNull(processModel.getPaymentAccountPayload(trade), "processModel.getPaymentAccountPayload(trade) must not be null");
             byte[] sig = Sig.sign(processModel.getKeyRing().getSignatureKeyPair().getPrivate(), offerId.getBytes(Charsets.UTF_8));
             
-            // create message which requests peer to create multisig
+            // create message to request preparing multisig
             PrepareMultisigRequest message = new PrepareMultisigRequest(
                     offerId,
                     processModel.getMyNodeAddress(),
@@ -95,8 +101,8 @@ public class TakerSendsPrepareMultisigRequest extends TradeTask {
                     paymentAccountPayload,
                     processModel.getAccountId(),
                     trade.getTakerFeeTxId(),
-                    acceptedArbitratorAddresses == null ? new ArrayList<>() : new ArrayList<>(acceptedArbitratorAddresses),
-                    trade.getArbitratorNodeAddress(),
+                    acceptedMediatorAddresses == null ? new ArrayList<>() : new ArrayList<>(acceptedMediatorAddresses),
+                    trade.getMediatorNodeAddress(),
                     UUID.randomUUID().toString(),
                     Version.getP2PMessageVersion(),
                     sig,
@@ -106,23 +112,42 @@ public class TakerSendsPrepareMultisigRequest extends TradeTask {
                     message.getClass().getSimpleName(), message.getTradeId(),
                     message.getUid(), trade.getTradingPeerNodeAddress());
             
-            // send message to peer
+//            // TODO: send request to arbitrator
+//            processModel.getP2PService().sendEncryptedDirectMessage(
+//                    trade.getArbitratorNodeAddress(),
+//                    trade.getArbitratorPubKeyRing(),
+//                    message,
+//                    new SendDirectMessageListener() {
+//                        @Override
+//                        public void onArrived() {
+//                            log.info("{} arrived at arbitrator: offerId={}; uid={}", message.getClass().getSimpleName(), message.getTradeId(), message.getUid());
+//                            arbitratorAck = true;
+//                            checkComplete();
+//                        }
+//                        @Override
+//                        public void onFault(String errorMessage) {
+//                            log.error("Sending {} failed: uid={}; peer={}; error={}", message.getClass().getSimpleName(), message.getUid(), trade.getTradingPeerNodeAddress(), errorMessage);
+//                            appendToErrorMessage("Sending message failed: message=" + message + "\nerrorMessage=" + errorMessage);
+//                            failed();
+//                        }
+//                    }
+//            );
+            
+            // send request to peer
             processModel.getP2PService().sendEncryptedDirectMessage(
                     trade.getTradingPeerNodeAddress(),
                     processModel.getTradingPeer().getPubKeyRing(),
                     message,
                     new SendDirectMessageListener() {
+                        @Override
                         public void onArrived() {
-                            log.info("{} arrived at peer: offerId={}; uid={}",
-                                    message.getClass().getSimpleName(), message.getTradeId(), message.getUid());
-                            complete();
+                            log.info("{} arrived at peer: offerId={}; uid={}", message.getClass().getSimpleName(), message.getTradeId(), message.getUid());
+                            peerAck = true;
+                            checkComplete();
                         }
-
                         @Override
                         public void onFault(String errorMessage) {
-                            log.error("Sending {} failed: uid={}; peer={}; error={}",
-                                    message.getClass().getSimpleName(), message.getUid(),
-                                    trade.getTradingPeerNodeAddress(), errorMessage);
+                            log.error("Sending {} failed: uid={}; peer={}; error={}", message.getClass().getSimpleName(), message.getUid(), trade.getTradingPeerNodeAddress(), errorMessage);
                             appendToErrorMessage("Sending message failed: message=" + message + "\nerrorMessage=" + errorMessage);
                             failed();
                         }
@@ -131,5 +156,9 @@ public class TakerSendsPrepareMultisigRequest extends TradeTask {
         } catch (Throwable t) {
           failed(t);
         }
+    }
+    
+    private void checkComplete() {
+      if (peerAck && arbitratorAck) complete();
     }
 }

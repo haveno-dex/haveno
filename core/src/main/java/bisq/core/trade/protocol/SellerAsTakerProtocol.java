@@ -45,7 +45,7 @@ import bisq.core.trade.protocol.tasks.seller.SellerSignAndFinalizePayoutTx;
 import bisq.core.trade.protocol.tasks.seller.SellerSignsDelayedPayoutTx;
 import bisq.core.trade.protocol.tasks.seller_as_taker.SellerAsTakerCreatesDepositTxInputs;
 import bisq.core.trade.protocol.tasks.seller_as_taker.SellerAsTakerSignsDepositTx;
-import bisq.core.trade.protocol.tasks.taker.TakerSendsPrepareMultisigRequest;
+import bisq.core.trade.protocol.tasks.taker.TakerSendsPrepareMultisigRequests;
 import bisq.core.trade.protocol.tasks.taker.CreateTakerFeeTx;
 import bisq.core.trade.protocol.tasks.taker.TakerProcessesInputsForDepositTxResponse;
 import bisq.core.trade.protocol.tasks.taker.TakerPublishFeeTx;
@@ -103,7 +103,7 @@ public class SellerAsTakerProtocol extends TradeProtocol implements SellerProtoc
                 TakerVerifyMakerAccount.class,
                 TakerVerifyMakerFeePayment.class,
                 CreateTakerFeeTx.class,
-                TakerSendsPrepareMultisigRequest.class
+                TakerSendsPrepareMultisigRequests.class
         );
 
         startTimeout();

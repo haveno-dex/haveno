@@ -42,13 +42,13 @@ public final class PrepareMultisigRequest extends TradeMessage implements Direct
     private final long tradeAmount;
     private final long tradePrice;
     private final long txFee;
-    private final long takerFee;
-    private final String takerPreparedMultisigHex;
-    private final String takerPayoutAddressString;
-    private final PubKeyRing takerPubKeyRing;
-    private final PaymentAccountPayload takerPaymentAccountPayload;
-    private final String takerAccountId;
-    private final String takerFeeTxId;
+    private final long tradeFee;
+    private final String preparedMultisigHex;
+    private final String payoutAddressString;
+    private final PubKeyRing pubKeyRing;
+    private final PaymentAccountPayload paymentAccountPayload;
+    private final String accountId; // TODO (woodser): accountId needed?
+    private final String tradeFeeTxId;
     private final List<NodeAddress> acceptedArbitratorNodeAddresses;
     @Nullable
     private final NodeAddress arbitratorNodeAddress;
@@ -63,13 +63,13 @@ public final class PrepareMultisigRequest extends TradeMessage implements Direct
                                      long tradeAmount,
                                      long tradePrice,
                                      long txFee,
-                                     long takerFee,
-                                     String takerPreparedMultisigHex,
-                                     String takerPayoutAddressString,
-                                     PubKeyRing takerPubKeyRing,
-                                     PaymentAccountPayload takerPaymentAccountPayload,
-                                     String takerAccountId,
-                                     String takerFeeTxId,
+                                     long tradeFee,
+                                     String preparedMultisigHex,
+                                     String payoutAddressString,
+                                     PubKeyRing pubKeyRing,
+                                     PaymentAccountPayload paymentAccountPayload,
+                                     String accountId,
+                                     String tradeFeeTxId,
                                      List<NodeAddress> acceptedArbitratorNodeAddresses,
                                      NodeAddress arbitratorNodeAddress,
                                      String uid,
@@ -81,13 +81,13 @@ public final class PrepareMultisigRequest extends TradeMessage implements Direct
         this.tradeAmount = tradeAmount;
         this.tradePrice = tradePrice;
         this.txFee = txFee;
-        this.takerFee = takerFee;
-        this.takerPreparedMultisigHex = takerPreparedMultisigHex;
-        this.takerPayoutAddressString = takerPayoutAddressString;
-        this.takerPubKeyRing = takerPubKeyRing;
-        this.takerPaymentAccountPayload = takerPaymentAccountPayload;
-        this.takerAccountId = takerAccountId;
-        this.takerFeeTxId = takerFeeTxId;
+        this.tradeFee = tradeFee;
+        this.preparedMultisigHex = preparedMultisigHex;
+        this.payoutAddressString = payoutAddressString;
+        this.pubKeyRing = pubKeyRing;
+        this.paymentAccountPayload = paymentAccountPayload;
+        this.accountId = accountId;
+        this.tradeFeeTxId = tradeFeeTxId;
         this.acceptedArbitratorNodeAddresses = acceptedArbitratorNodeAddresses;
         this.arbitratorNodeAddress = arbitratorNodeAddress;
         this.accountAgeWitnessSignatureOfOfferId = accountAgeWitnessSignatureOfOfferId;
@@ -107,13 +107,13 @@ public final class PrepareMultisigRequest extends TradeMessage implements Direct
                 .setTradeAmount(tradeAmount)
                 .setTradePrice(tradePrice)
                 .setTxFee(txFee)
-                .setTakerFee(takerFee)
-                .setTakerPreparedMultisigHex(takerPreparedMultisigHex)
-                .setTakerPayoutAddressString(takerPayoutAddressString)
-                .setTakerPubKeyRing(takerPubKeyRing.toProtoMessage())
-                .setTakerPaymentAccountPayload((protobuf.PaymentAccountPayload) takerPaymentAccountPayload.toProtoMessage())
-                .setTakerAccountId(takerAccountId)
-                .setTakerFeeTxId(takerFeeTxId)
+                .setTradeFee(tradeFee)
+                .setPreparedMultisigHex(preparedMultisigHex)
+                .setPayoutAddressString(payoutAddressString)
+                .setPubKeyRing(pubKeyRing.toProtoMessage())
+                .setPaymentAccountPayload((protobuf.PaymentAccountPayload) paymentAccountPayload.toProtoMessage())
+                .setAccountId(accountId)
+                .setTradeFeeTxId(tradeFeeTxId)
                 .addAllAcceptedArbitratorNodeAddresses(acceptedArbitratorNodeAddresses.stream()
                         .map(NodeAddress::toProtoMessage).collect(Collectors.toList()))
                 .setUid(uid);
@@ -135,13 +135,13 @@ public final class PrepareMultisigRequest extends TradeMessage implements Direct
                 proto.getTradeAmount(),
                 proto.getTradePrice(),
                 proto.getTxFee(),
-                proto.getTakerFee(),
-                proto.getTakerPreparedMultisigHex(),
-                proto.getTakerPayoutAddressString(),
-                PubKeyRing.fromProto(proto.getTakerPubKeyRing()),
-                coreProtoResolver.fromProto(proto.getTakerPaymentAccountPayload()),
-                proto.getTakerAccountId(),
-                proto.getTakerFeeTxId(),
+                proto.getTradeFee(),
+                proto.getPreparedMultisigHex(),
+                proto.getPayoutAddressString(),
+                PubKeyRing.fromProto(proto.getPubKeyRing()),
+                coreProtoResolver.fromProto(proto.getPaymentAccountPayload()),
+                proto.getAccountId(),
+                proto.getTradeFeeTxId(),
                 acceptedArbitratorNodeAddresses,
                 NodeAddress.fromProto(proto.getArbitratorNodeAddress()),
                 proto.getUid(),
@@ -157,13 +157,13 @@ public final class PrepareMultisigRequest extends TradeMessage implements Direct
                 ",\n     tradeAmount=" + tradeAmount +
                 ",\n     tradePrice=" + tradePrice +
                 ",\n     txFee=" + txFee +
-                ",\n     takerFee=" + takerFee +
-                ",\n     takerPreparedMultisigHex='" + takerPreparedMultisigHex + '\'' +
-                ",\n     takerPayoutAddressString='" + takerPayoutAddressString + '\'' +
-                ",\n     takerPubKeyRing=" + takerPubKeyRing +
-                ",\n     takerPaymentAccountPayload=" + takerPaymentAccountPayload +
-                ",\n     takerAccountId='" + takerAccountId + '\'' +
-                ",\n     takerFeeTxId='" + takerFeeTxId + '\'' +
+                ",\n     takerFee=" + tradeFee +
+                ",\n     takerPreparedMultisigHex='" + preparedMultisigHex + '\'' +
+                ",\n     takerPayoutAddressString='" + payoutAddressString + '\'' +
+                ",\n     takerPubKeyRing=" + pubKeyRing +
+                ",\n     takerPaymentAccountPayload=" + paymentAccountPayload +
+                ",\n     takerAccountId='" + accountId + '\'' +
+                ",\n     takerFeeTxId='" + tradeFeeTxId + '\'' +
                 ",\n     acceptedArbitratorNodeAddresses=" + acceptedArbitratorNodeAddresses +
                 ",\n     arbitratorNodeAddress=" + arbitratorNodeAddress +
                 ",\n     accountAgeWitnessSignatureOfOfferId=" + Utilities.bytesAsHexString(accountAgeWitnessSignatureOfOfferId) +

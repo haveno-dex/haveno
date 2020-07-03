@@ -17,6 +17,19 @@
 
 package bisq.core.trade.protocol;
 
+import static bisq.core.util.Validator.nonEmptyStringOf;
+import static com.google.common.base.Preconditions.checkNotNull;
+
+import java.security.PublicKey;
+
+import javax.annotation.Nullable;
+
+import bisq.common.Timer;
+import bisq.common.UserThread;
+import bisq.common.crypto.PubKeyRing;
+import bisq.common.handlers.ErrorMessageHandler;
+import bisq.common.handlers.ResultHandler;
+import bisq.common.proto.network.NetworkEnvelope;
 import bisq.core.trade.MakerTrade;
 import bisq.core.trade.Trade;
 import bisq.core.trade.TradeManager;
@@ -25,6 +38,7 @@ import bisq.core.trade.messages.InputsForDepositTxRequest;
 import bisq.core.trade.messages.MediatedPayoutTxPublishedMessage;
 import bisq.core.trade.messages.MediatedPayoutTxSignatureMessage;
 import bisq.core.trade.messages.PeerPublishedDelayedPayoutTxMessage;
+import bisq.core.trade.messages.PrepareMultisigRequest;
 import bisq.core.trade.messages.TradeMessage;
 import bisq.core.trade.protocol.tasks.ApplyFilter;
 import bisq.core.trade.protocol.tasks.ProcessPeerPublishedDelayedPayoutTxMessage;
@@ -32,11 +46,11 @@ import bisq.core.trade.protocol.tasks.mediation.BroadcastMediatedPayoutTx;
 import bisq.core.trade.protocol.tasks.mediation.FinalizeMediatedPayoutTx;
 import bisq.core.trade.protocol.tasks.mediation.ProcessMediatedPayoutSignatureMessage;
 import bisq.core.trade.protocol.tasks.mediation.ProcessMediatedPayoutTxPublishedMessage;
+import bisq.core.trade.protocol.tasks.mediation.ProcessMediatedPrepareMultisigRequest;
 import bisq.core.trade.protocol.tasks.mediation.SendMediatedPayoutSignatureMessage;
 import bisq.core.trade.protocol.tasks.mediation.SendMediatedPayoutTxPublishedMessage;
 import bisq.core.trade.protocol.tasks.mediation.SetupMediatedPayoutTxListener;
 import bisq.core.trade.protocol.tasks.mediation.SignMediatedPayoutTx;
-
 import bisq.network.p2p.AckMessage;
 import bisq.network.p2p.AckMessageSourceType;
 import bisq.network.p2p.DecryptedDirectMessageListener;
@@ -44,24 +58,8 @@ import bisq.network.p2p.DecryptedMessageWithPubKey;
 import bisq.network.p2p.MailboxMessage;
 import bisq.network.p2p.NodeAddress;
 import bisq.network.p2p.SendMailboxMessageListener;
-
-import bisq.common.Timer;
-import bisq.common.UserThread;
-import bisq.common.crypto.PubKeyRing;
-import bisq.common.handlers.ErrorMessageHandler;
-import bisq.common.handlers.ResultHandler;
-import bisq.common.proto.network.NetworkEnvelope;
-
 import javafx.beans.value.ChangeListener;
-
-import java.security.PublicKey;
-
 import lombok.extern.slf4j.Slf4j;
-
-import javax.annotation.Nullable;
-
-import static bisq.core.util.Validator.nonEmptyStringOf;
-import static com.google.common.base.Preconditions.checkNotNull;
 
 @Slf4j
 public abstract class TradeProtocol {
@@ -107,6 +105,8 @@ public abstract class TradeProtocol {
                         }
                     }
                 }
+            } else {
+              System.out.println("MESSAGE FAILED CONDITION: tradingPeerPubKeyRing != null && signaturePubKey.equals(tradingPeerPubKeyRing.getSignaturePubKey()");
             }
         };
         processModel.getP2PService().addDecryptedDirectMessageListener(decryptedDirectMessageListener);
@@ -179,6 +179,22 @@ public abstract class TradeProtocol {
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Mediation: incoming message
     ///////////////////////////////////////////////////////////////////////////////////////////
+    
+    protected void handle(PrepareMultisigRequest tradeMessage, NodeAddress sender) {
+        processModel.setTradeMessage(tradeMessage);
+        processModel.setTempTradingPeerNodeAddress(sender);
+        
+        System.out.println("MEDAITOR RECEIVED PREPARE MULTISIG REQUEST");
+  
+        TradeTaskRunner taskRunner = new TradeTaskRunner(trade,
+                () -> handleTaskRunnerSuccess(tradeMessage, "handle PrepareMultisigRequest"),
+                errorMessage -> handleTaskRunnerFault(tradeMessage, errorMessage));
+  
+        taskRunner.addTasks(
+                ProcessMediatedPrepareMultisigRequest.class
+        );
+        taskRunner.run();
+    }
 
     protected void handle(MediatedPayoutTxSignatureMessage tradeMessage, NodeAddress sender) {
         processModel.setTradeMessage(tradeMessage);
@@ -240,6 +256,8 @@ public abstract class TradeProtocol {
             handle((MediatedPayoutTxPublishedMessage) tradeMessage, sender);
         } else if (tradeMessage instanceof PeerPublishedDelayedPayoutTxMessage) {
             handle((PeerPublishedDelayedPayoutTxMessage) tradeMessage, sender);
+        } else if (tradeMessage instanceof PrepareMultisigRequest) {
+            handle((PrepareMultisigRequest) tradeMessage, sender);
         }
     }
 
@@ -287,6 +305,8 @@ public abstract class TradeProtocol {
             handle((MediatedPayoutTxPublishedMessage) tradeMessage, peerNodeAddress);
         } else if (tradeMessage instanceof PeerPublishedDelayedPayoutTxMessage) {
             handle((PeerPublishedDelayedPayoutTxMessage) tradeMessage, peerNodeAddress);
+        } else if (tradeMessage instanceof PrepareMultisigRequest) {
+            handle((PrepareMultisigRequest) tradeMessage, peerNodeAddress);
         }
     }
 
@@ -337,6 +357,8 @@ public abstract class TradeProtocol {
         // In such cases we have not set any tradeMessage and we ignore the sendAckMessage call.
         if (tradeMessage == null)
             return;
+        
+        System.out.println("SENDING ACK MESSAGE!!!");
 
         String tradeId = tradeMessage.getTradeId();
         String sourceUid = "";

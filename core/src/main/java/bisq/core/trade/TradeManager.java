@@ -187,7 +187,7 @@ public class TradeManager implements PersistedDataHost {
             if (networkEnvelope instanceof InputsForDepositTxRequest) {
                 handlePayDepositRequest((InputsForDepositTxRequest) networkEnvelope, peerNodeAddress);
             } else if (networkEnvelope instanceof PrepareMultisigRequest) {
-                handlePayDepositRequest((PrepareMultisigRequest) networkEnvelope, peerNodeAddress);
+                handlePrepareMultisigRequest((PrepareMultisigRequest) networkEnvelope, peerNodeAddress);
             }
         });
 
@@ -352,14 +352,16 @@ public class TradeManager implements PersistedDataHost {
                 });
     }
     
-    private void handlePayDepositRequest(PrepareMultisigRequest prepareMultisigRequest, NodeAddress peer) {
-      log.info("Received PayDepositRequest from {} with tradeId {} and uid {}",
+    private void handlePrepareMultisigRequest(PrepareMultisigRequest prepareMultisigRequest, NodeAddress peer) {
+      log.info("Received PrepareMultisigRequest from {} with tradeId {} and uid {}",
               peer, prepareMultisigRequest.getTradeId(), prepareMultisigRequest.getUid());
+      
+      // TODO (woodser): handle if arbiter differently
 
       try {
           Validator.nonEmptyStringOf(prepareMultisigRequest.getTradeId());
       } catch (Throwable t) {
-          log.warn("Invalid requestDepositTxInputsMessage " + prepareMultisigRequest.toString());
+          log.warn("Invalid prepareMultisigRequestMessage " + prepareMultisigRequest.toString());
           return;
       }
 
@@ -372,7 +374,7 @@ public class TradeManager implements PersistedDataHost {
           if (offer.isBuyOffer())
               trade = new BuyerAsMakerTrade(offer,
                       Coin.valueOf(prepareMultisigRequest.getTxFee()),
-                      Coin.valueOf(prepareMultisigRequest.getTakerFee()),
+                      Coin.valueOf(prepareMultisigRequest.getTradeFee()),
                       true,
                       openOffer.getArbitratorNodeAddress(),
                       openOffer.getMediatorNodeAddress(),
@@ -382,7 +384,7 @@ public class TradeManager implements PersistedDataHost {
           else
               trade = new SellerAsMakerTrade(offer,
                       Coin.valueOf(prepareMultisigRequest.getTxFee()),
-                      Coin.valueOf(prepareMultisigRequest.getTakerFee()),
+                      Coin.valueOf(prepareMultisigRequest.getTradeFee()),
                       true,
                       openOffer.getArbitratorNodeAddress(),
                       openOffer.getMediatorNodeAddress(),

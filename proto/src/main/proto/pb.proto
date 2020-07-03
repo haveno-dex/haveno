@@ -79,7 +79,7 @@ message NetworkEnvelope {
         RefreshTradeStateRequest refresh_trade_state_request = 50;
         
         PrepareMultisigRequest prepare_multisig_request = 1001;
-        //PrepareMultisigResponse prepare_multisig_response = 1002;
+        PrepareMultisigResponse prepare_multisig_response = 1002;
     }
 }
 
@@ -254,23 +254,39 @@ message InputsForDepositTxResponse {
 }
 
 message PrepareMultisigRequest {
+    enum Source {
+        TAKER = 0;
+        MAKER = 1;
+        ARBITRATOR = 2;
+    }
     string trade_id = 1;
     NodeAddress sender_node_address = 2;
     int64 trade_amount = 3;
     int64 trade_price = 4;
     int64 tx_fee = 5;
-    int64 taker_fee = 6;
-    string taker_prepared_multisig_hex = 7;
-    string taker_payout_address_string = 8;
-    PubKeyRing taker_pub_key_ring = 9;
-    PaymentAccountPayload taker_payment_account_payload = 10;
-    string taker_account_id = 11;
-    string taker_fee_tx_id = 12;
+    int64 trade_fee = 6;
+    string prepared_multisig_hex = 7;
+    string payout_address_string = 8;
+    PubKeyRing pub_key_ring = 9;
+    PaymentAccountPayload payment_account_payload = 10;
+    string account_id = 11;
+    string trade_fee_tx_id = 12;
     repeated NodeAddress accepted_arbitrator_node_addresses = 13;
     NodeAddress arbitrator_node_address = 14;
     string uid = 15;
     bytes account_age_witness_signature_of_offer_id = 16;
     int64 current_date = 17;
+}
+
+message PrepareMultisigResponse {
+    string trade_id = 1;
+    PaymentAccountPayload payment_account_payload = 2;
+    string account_id = 3;
+    string prepared_multisig_hex = 4;
+    string payout_address_string = 5;
+    NodeAddress sender_node_address = 6;
+    string uid = 7;
+    int64 current_date = 8;
 }
 
 message DelayedPayoutTxSignatureRequest {
@@ -1480,6 +1496,8 @@ message TradingPeer {
     bytes account_age_witness_signature = 13;
     int64 current_date = 14;
     bytes mediated_payout_tx_signature = 15;
+    
+    string prepared_multisig_hex = 1001;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////
