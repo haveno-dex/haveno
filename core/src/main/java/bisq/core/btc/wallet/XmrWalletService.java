@@ -23,7 +23,7 @@ import bisq.core.btc.model.XmrAddressEntryList;
 import bisq.core.btc.setup.WalletsSetup;
 import javafx.application.Platform;
 import lombok.Getter;
-import monero.wallet.MoneroWalletJni;
+import monero.wallet.MoneroWalletRpc;
 import monero.wallet.model.MoneroAccount;
 import monero.wallet.model.MoneroOutputWallet;
 import monero.wallet.model.MoneroTransfer;
@@ -39,7 +39,7 @@ public class XmrWalletService {
   protected final CopyOnWriteArraySet<XmrBalanceListener> balanceListeners = new CopyOnWriteArraySet<>();
   
   @Getter
-  private MoneroWalletJni wallet;
+  private MoneroWalletRpc wallet;
   
   @Inject
   XmrWalletService(WalletsSetup walletsSetup,
@@ -49,31 +49,31 @@ public class XmrWalletService {
 
     walletsSetup.addSetupCompletedHandler(() -> {
       wallet = walletsSetup.getXmrWallet();
-      wallet.addListener(new MoneroWalletListener() { // TODO: notify
-        @Override
-        public void onSyncProgress(long height, long startHeight, long endHeight, double percentDone, String message) { }
-
-        @Override
-        public void onNewBlock(long height) { }
-
-        @Override
-        public void onOutputReceived(MoneroOutputWallet output) {
-          Platform.runLater(new Runnable() {  // jni wallet runs on separate thread which cannot update fx
-            @Override public void run() {
-              notifyBalanceListeners(output);
-            }
-          });
-        }
-
-        @Override
-        public void onOutputSpent(MoneroOutputWallet output) {
-          Platform.runLater(new Runnable() {
-            @Override public void run() {
-              notifyBalanceListeners(output);
-            }
-          });
-        }
-      });
+//      wallet.addListener(new MoneroWalletListener() { // TODO: notify
+//        @Override
+//        public void onSyncProgress(long height, long startHeight, long endHeight, double percentDone, String message) { }
+//
+//        @Override
+//        public void onNewBlock(long height) { }
+//
+//        @Override
+//        public void onOutputReceived(MoneroOutputWallet output) {
+//          Platform.runLater(new Runnable() {  // jni wallet runs on separate thread which cannot update fx
+//            @Override public void run() {
+//              notifyBalanceListeners(output);
+//            }
+//          });
+//        }
+//
+//        @Override
+//        public void onOutputSpent(MoneroOutputWallet output) {
+//          Platform.runLater(new Runnable() {
+//            @Override public void run() {
+//              notifyBalanceListeners(output);
+//            }
+//          });
+//        }
+//      });
     });
   }
   

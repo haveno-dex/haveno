@@ -63,13 +63,13 @@ public abstract class SetupPayoutTxListener extends TradeTask {
                 if (walletService.getBalanceForAccount(accountIdx).value > 0) {
                   applyPayoutTx(accountIdx);
                 } else {
-                  walletService.getWallet().addListener(new MoneroWalletListener() {
-                    @Override public void onOutputReceived(MoneroOutputWallet output) {
-                      if (output.getAccountIndex() == accountIdx) {
-                        applyPayoutTx(output.getAccountIndex());
-                      }
-                    }
-                  });
+//                  walletService.getWallet().addListener(new MoneroWalletListener() {
+//                    @Override public void onOutputReceived(MoneroOutputWallet output) {
+//                      if (output.getAccountIndex() == accountIdx) {
+//                        applyPayoutTx(output.getAccountIndex());
+//                      }
+//                    }
+//                  });
                   
                   tradeStateSubscription = EasyBind.subscribe(trade.stateProperty(), newValue -> {
                       if (trade.isPayoutPublished()) {

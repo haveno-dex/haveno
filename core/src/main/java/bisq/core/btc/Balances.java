@@ -39,7 +39,7 @@ import javafx.beans.property.SimpleObjectProperty;
 import javafx.collections.ListChangeListener;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
-import monero.wallet.MoneroWalletJni;
+import monero.wallet.MoneroWalletRpc;
 import monero.wallet.model.MoneroAccount;
 import monero.wallet.model.MoneroOutputWallet;
 import monero.wallet.model.MoneroWalletListener;
@@ -79,11 +79,11 @@ public class Balances {
         openOfferManager.getObservableList().addListener((ListChangeListener<OpenOffer>) c -> updateBalance());
         tradeManager.getTradableList().addListener((ListChangeListener<Trade>) change -> updateBalance());
         refundManager.getDisputesAsObservableList().addListener((ListChangeListener<Dispute>) c -> updateBalance());
-        xmrWalletService.getWallet().addListener(new MoneroWalletListener() {
-          @Override public void onBalancesChanged(BigInteger newBalance, BigInteger newUnlockedBalance) { updateBalance(); }
-          @Override public void onOutputReceived(MoneroOutputWallet output) { updateBalance(); }
-          @Override public void onOutputSpent(MoneroOutputWallet output) { updateBalance(); }
-        });
+//        xmrWalletService.getWallet().addListener(new MoneroWalletListener() {
+//          @Override public void onBalancesChanged(BigInteger newBalance, BigInteger newUnlockedBalance) { updateBalance(); }
+//          @Override public void onOutputReceived(MoneroOutputWallet output) { updateBalance(); }
+//          @Override public void onOutputSpent(MoneroOutputWallet output) { updateBalance(); }
+//        });
         updateBalance();
     }
 

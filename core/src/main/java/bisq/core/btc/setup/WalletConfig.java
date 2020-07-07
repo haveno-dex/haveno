@@ -79,8 +79,9 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import monero.common.MoneroRpcConnection;
+import monero.common.MoneroRpcError;
 import monero.daemon.model.MoneroNetworkType;
-import monero.wallet.MoneroWalletJni;
+import monero.wallet.MoneroWalletRpc;
 import monero.wallet.model.MoneroWalletConfig;
 
 // Derived from WalletAppKit
@@ -118,7 +119,7 @@ public class WalletConfig extends AbstractIdleService {
     private int numConnectionsForBtc;
 
     private volatile Wallet vBtcWallet;
-    private volatile MoneroWalletJni vXmrWallet;
+    private volatile MoneroWalletRpc vXmrWallet;
     @Nullable
     private volatile Wallet vBsqWallet;
     private volatile File vBtcWalletFile;
@@ -368,25 +369,36 @@ public class WalletConfig extends AbstractIdleService {
             File chainFile = new File(directory, spvChainFileName);
             boolean chainFileExists = chainFile.exists();
             
-            // XMR wallet
-            MoneroRpcConnection conn = new MoneroRpcConnection("http://localhost:38081", "superuser", "abctesting123");
+            // xmr wallet
+            MoneroRpcConnection conn = new MoneroRpcConnection("http://localhost:38083", "rpc_user", "abc123");
             File vXmrWalletFile = new File(directory, "xmr_" + btcWalletFileName);
-            if (MoneroWalletJni.walletExists(vXmrWalletFile.getPath())) {
-              vXmrWallet = MoneroWalletJni.openWallet(vXmrWalletFile.getPath(), "abctesting123", MoneroNetworkType.STAGENET, conn);
-            } else {
-              vXmrWallet = MoneroWalletJni.createWallet(new MoneroWalletConfig()
-                      .setPath(vXmrWalletFile.getPath())
-                      .setPassword("abctesting123")
-                      .setNetworkType(MoneroNetworkType.STAGENET)
-                      .setServer(conn)); // TODO: set mnemonic and restore height
-                      
+            vXmrWallet = new MoneroWalletRpc(conn);
+            
+            // open or create wallet
+            // TODO (woodser): replace rpc wallet with jni and move params to config
+            try {
+              vXmrWallet.openWallet("misq_test_wallet", "supersecretpassword123");
+            } catch (MoneroRpcError e) {
+              
+              // -1 returned when wallet does not exist or fails to open e.g. it's already open by another application
+              if (e.getCode() == -1) {
+                
+                // create wallet
+                vXmrWallet.createWallet(new MoneroWalletConfig()
+                        .setPath("misq_test_wallet")
+                        .setPassword("supersecretpassword123")
+                        .setMnemonic("hairy memoir hull oilfield desk algebra inbound innocent unplugs fully okay five inflamed giant factual ritual toyed topic snake unhappy guarded tweezers haunted inundate giant")
+                        .setRestoreHeight(606137l));
+              } else {
+                throw e;
+              }
             }
+            
             System.out.println("Monero wallet path: " + vXmrWallet.getPath());
             System.out.println("Monero wallet address: " + vXmrWallet.getPrimaryAddress());
             System.out.println("Monero mnemonic: " + vXmrWallet.getMnemonic());
-            vXmrWallet.setSyncHeight(606137l);
+            //vXmrWallet.setSyncHeight(606137l);
             vXmrWallet.sync();
-            vXmrWallet.startSyncing();
             vXmrWallet.save();
             
             // BTC wallet
@@ -626,7 +638,7 @@ public class WalletConfig extends AbstractIdleService {
         return vBtcWallet;
     }
     
-    public MoneroWalletJni getXmrWallet() {
+    public MoneroWalletRpc getXmrWallet() {
       checkState(state() == State.STARTING || state() == State.RUNNING, "Cannot call until startup is complete");
       return vXmrWallet;
   }

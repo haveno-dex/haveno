@@ -33,7 +33,7 @@ import bisq.common.storage.Storage;
 import lombok.Getter;
 import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
-import monero.wallet.MoneroWalletJni;
+import monero.wallet.MoneroWalletRpc;
 import monero.wallet.model.MoneroAccount;
 import monero.wallet.model.MoneroOutputWallet;
 import monero.wallet.model.MoneroWalletListener;
@@ -45,7 +45,7 @@ import monero.wallet.model.MoneroWalletListener;
 @Slf4j
 public final class XmrAddressEntryList implements UserThreadMappedPersistableEnvelope, PersistedDataHost {
     transient private Storage<XmrAddressEntryList> storage;
-    transient private MoneroWalletJni wallet;
+    transient private MoneroWalletRpc wallet;
     @Getter
     private List<XmrAddressEntry> list;
 
@@ -93,7 +93,7 @@ public final class XmrAddressEntryList implements UserThreadMappedPersistableEnv
     // API
     ///////////////////////////////////////////////////////////////////////////////////////////
 
-    public void onWalletReady(MoneroWalletJni wallet) {
+    public void onWalletReady(MoneroWalletRpc wallet) {
         this.wallet = wallet;
 
         if (list != null) {
@@ -120,10 +120,10 @@ public final class XmrAddressEntryList implements UserThreadMappedPersistableEnv
         // but can help as well in case the XmrAddressEntry list would miss an address where the wallet was received
         // funds (e.g. if the user sends funds to an address which has not been provided in the main UI - like from the
         // wallet details window).
-        wallet.addListener(new MoneroWalletListener() {
-          @Override public void onOutputReceived(MoneroOutputWallet output) { updateList(output); }
-          @Override public void onOutputSpent(MoneroOutputWallet output) { updateList(output); }
-        });
+//        wallet.addListener(new MoneroWalletListener() {
+//          @Override public void onOutputReceived(MoneroOutputWallet output) { updateList(output); }
+//          @Override public void onOutputSpent(MoneroOutputWallet output) { updateList(output); }
+//        });
     }
     
     private void updateList(MoneroOutputWallet output) {

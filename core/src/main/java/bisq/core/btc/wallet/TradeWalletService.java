@@ -65,7 +65,7 @@ import bisq.core.btc.setup.WalletConfig;
 import bisq.core.btc.setup.WalletsSetup;
 import bisq.core.locale.Res;
 import bisq.core.user.Preferences;
-import monero.wallet.MoneroWalletJni;
+import monero.wallet.MoneroWalletRpc;
 import monero.wallet.model.MoneroDestination;
 import monero.wallet.model.MoneroTxConfig;
 import monero.wallet.model.MoneroTxWallet;
@@ -80,7 +80,7 @@ public class TradeWalletService {
     @Nullable
     private Wallet wallet;
     @Nullable
-    private MoneroWalletJni xmrWallet;
+    private MoneroWalletRpc xmrWallet;
     @Nullable
     private WalletConfig walletConfig;
     @Nullable

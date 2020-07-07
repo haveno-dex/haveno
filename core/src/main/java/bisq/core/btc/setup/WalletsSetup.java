@@ -90,7 +90,7 @@ import javafx.beans.property.SimpleIntegerProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
-import monero.wallet.MoneroWalletJni;
+import monero.wallet.MoneroWalletRpc;
 
 // Setup wallets and use WalletConfig for BitcoinJ wiring.
 // Other like WalletConfig we are here always on the user thread. That is one reason why we do not
@@ -444,7 +444,7 @@ public class WalletsSetup {
         return walletConfig.getBtcWallet();
     }
     
-    public MoneroWalletJni getXmrWallet() {
+    public MoneroWalletRpc getXmrWallet() {
       return walletConfig.getXmrWallet();
     }
 
