@@ -46,8 +46,8 @@ import org.jetbrains.annotations.NotNull;
 public class Res {
     public static void setup() {
         BaseCurrencyNetwork baseCurrencyNetwork = Config.baseCurrencyNetwork();
-        setBaseCurrencyCode(baseCurrencyNetwork.getCurrencyCode());
-        setBaseCurrencyName(baseCurrencyNetwork.getCurrencyName());
+        setBaseCurrencyCode("XMR");
+        setBaseCurrencyName("Monero");
     }
 
     @SuppressWarnings("CanBeFinal")
@@ -78,20 +78,20 @@ public class Res {
     private static String baseCurrencyNameLowerCase;
 
     public static void setBaseCurrencyCode(String baseCurrencyCode) {
-        Res.baseCurrencyCode = baseCurrencyCode;
+        Res.baseCurrencyCode = "XMR";
     }
 
     public static void setBaseCurrencyName(String baseCurrencyName) {
-        Res.baseCurrencyName = baseCurrencyName;
+        Res.baseCurrencyName = "Monero";
         baseCurrencyNameLowerCase = baseCurrencyName.toLowerCase();
     }
 
     public static String getBaseCurrencyCode() {
-        return baseCurrencyCode;
+        return "XMR";
     }
 
     public static String getBaseCurrencyName() {
-        return baseCurrencyName;
+        return "Monero";
     }
 
     // Capitalize first character
@@ -110,9 +110,9 @@ public class Res {
     public static String get(String key) {
         try {
             return resourceBundle.getString(key)
-                    .replace("BTC", baseCurrencyCode)
-                    .replace("Bitcoin", baseCurrencyName)
-                    .replace("bitcoin", baseCurrencyNameLowerCase);
+                    .replace("XMR", baseCurrencyCode)
+                    .replace("Monero", baseCurrencyName)
+                    .replace("monero", baseCurrencyNameLowerCase);
         } catch (MissingResourceException e) {
             log.warn("Missing resource for key: {}", key);
             e.printStackTrace();
