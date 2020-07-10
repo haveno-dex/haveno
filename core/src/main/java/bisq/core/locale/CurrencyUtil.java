@@ -55,12 +55,12 @@ import static com.google.common.base.Preconditions.checkArgument;
 public class CurrencyUtil {
 
     public static void setup() {
-        setBaseCurrencyCode(Config.baseCurrencyNetwork().getCurrencyCode());
+        setBaseCurrencyCode("XMR");
     }
 
     private static final AssetRegistry assetRegistry = new AssetRegistry();
 
-    private static String baseCurrencyCode = "BTC";
+    private static String baseCurrencyCode = "XMR";
 
     private static Supplier<Map<String, FiatCurrency>> fiatCurrencyMapSupplier = Suppliers.memoize(
             CurrencyUtil::createFiatCurrencyMap)::get;
