@@ -184,15 +184,15 @@ public class MainView extends InitializableView<StackPane, MainViewModel>
 
         ToggleButton supportButton = new NavButton(SupportView.class, Res.get("mainView.menu.support"));
         ToggleButton settingsButton = new NavButton(SettingsView.class, Res.get("mainView.menu.settings"));
-//        ToggleButton accountButton = new NavButton(AccountView.class, Res.get("mainView.menu.account"));
+        ToggleButton accountButton = new NavButton(AccountView.class, Res.get("mainView.menu.account"));
 //        ToggleButton daoButton = new NavButton(DaoView.class, Res.get("mainView.menu.dao"));
 
         JFXBadge portfolioButtonWithBadge = new JFXBadge(portfolioButton);
         JFXBadge supportButtonWithBadge = new JFXBadge(supportButton);
 //        JFXBadge daoButtonWithBadge = new JFXBadge(daoButton);
 //        daoButtonWithBadge.getStyleClass().add("new");
-//        JFXBadge accountButtonWithBadge = new JFXBadge(accountButton);
-//        accountButtonWithBadge.getStyleClass().add("new");
+        JFXBadge accountButtonWithBadge = new JFXBadge(accountButton);
+        accountButtonWithBadge.getStyleClass().add("new");
 
         Locale locale = GlobalSettings.getLocale();
         DecimalFormat currencyFormat = (DecimalFormat) NumberFormat.getNumberInstance(locale);
@@ -216,8 +216,8 @@ public class MainView extends InitializableView<StackPane, MainViewModel>
                         supportButton.fire();
                     } else if (Utilities.isAltOrCtrlPressed(KeyCode.DIGIT7, keyEvent)) {
                         settingsButton.fire();
-//                    } else if (Utilities.isAltOrCtrlPressed(KeyCode.DIGIT8, keyEvent)) {
-//                        accountButton.fire();
+                    } else if (Utilities.isAltOrCtrlPressed(KeyCode.DIGIT8, keyEvent)) {
+                        accountButton.fire();
 //                    } else if (Utilities.isAltOrCtrlPressed(KeyCode.DIGIT9, keyEvent)) {
 //                        if (daoButton.isVisible())
 //                            daoButton.fire();
@@ -323,8 +323,8 @@ public class MainView extends InitializableView<StackPane, MainViewModel>
         primaryNav.getStyleClass().add("nav-primary");
         HBox.setHgrow(primaryNav, Priority.SOMETIMES);
 
-        HBox secondaryNav = new HBox(supportButtonWithBadge, getNavigationSpacer(), settingsButton,
-                getNavigationSpacer(), getNavigationSpacer());
+        HBox secondaryNav = new HBox(supportButtonWithBadge, getNavigationSpacer(), accountButtonWithBadge,
+                getNavigationSpacer(), settingsButton, getNavigationSpacer());
         secondaryNav.getStyleClass().add("nav-secondary");
         HBox.setHgrow(secondaryNav, Priority.SOMETIMES);
 
@@ -367,7 +367,7 @@ public class MainView extends InitializableView<StackPane, MainViewModel>
         setupBadge(portfolioButtonWithBadge, model.getNumPendingTrades(), model.getShowPendingTradesNotification());
         setupBadge(supportButtonWithBadge, model.getNumOpenSupportTickets(), model.getShowOpenSupportTicketsNotification());
 //        setupBadge(daoButtonWithBadge, new SimpleStringProperty(Res.get("shared.new")), model.getShowDaoUpdatesNotification());
-//        setupBadge(accountButtonWithBadge, new SimpleStringProperty(Res.get("shared.new")), model.getShowAccountUpdatesNotification());
+        setupBadge(accountButtonWithBadge, new SimpleStringProperty(Res.get("shared.new")), model.getShowAccountUpdatesNotification());
 
         navigation.addListener(viewPath -> {
             if (viewPath.size() != 2 || viewPath.indexOf(MainView.class) != 0)
