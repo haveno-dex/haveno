@@ -237,7 +237,26 @@ public class PriceFeedService {
 
     @Nullable
     public MarketPrice getMarketPrice(String currencyCode) {
-        return cache.getOrDefault(currencyCode, null);
+    	// Convert to market price against XMR rather than BTC by dividing getMarketPrice('XMR')
+    	MarketPrice price = getXmrMarketPrice();
+    	double rate = 1.0;
+    	if(!"XMR".equalsIgnoreCase(currencyCode)) {
+        	MarketPrice btcBasedPrice = cache.getOrDefault(currencyCode, null);
+        	double btcRate = btcBasedPrice != null ? btcBasedPrice.getPrice() : 0.0;
+    		if(!"BSQ".equalsIgnoreCase(currencyCode)) {
+            	rate = btcRate * price.getPrice();    		
+    		} else {
+            	rate = price.getPrice() / btcRate;   		
+    		}
+    	}
+        return new MarketPrice(currencyCode, rate, Instant.now().getEpochSecond(), true);
+
+    }
+    
+
+    @Nullable
+    public MarketPrice getXmrMarketPrice() {
+        return cache.getOrDefault("XMR", null);
     }
 
     private void setBisqMarketPrice(String currencyCode, Price price) {

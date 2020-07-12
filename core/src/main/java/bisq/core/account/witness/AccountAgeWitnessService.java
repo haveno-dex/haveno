@@ -397,9 +397,9 @@ public class AccountAgeWitnessService {
                     Coin.valueOf(limit).toFriendlyString(),
                     factor,
                     Utilities.bytesAsHexString(accountAgeWitness.getHash()));
-            return limit;
+            return limit * 100;//XMRFIX Recalibrated for Monero - bumping by factor of 100.
         } else {
-            return maxTradeLimit.value;
+            return maxTradeLimit.value * 100;//XMRFIX Recalibrated for Monero - bumping by factor of 100.
         }
     }
 

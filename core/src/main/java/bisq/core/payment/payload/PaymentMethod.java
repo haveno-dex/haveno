@@ -310,7 +310,7 @@ public final class PaymentMethod implements PersistablePayload, Comparable<Payme
         TradeLimits tradeLimits = TradeLimits.getINSTANCE();
         checkNotNull(tradeLimits, "tradeLimits must not be null");
         long maxTradeLimit = tradeLimits.getMaxTradeLimit().value;
-        return Coin.valueOf(tradeLimits.getRoundedRiskBasedTradeLimit(maxTradeLimit, riskFactor));
+        return Coin.valueOf(tradeLimits.getRoundedRiskBasedTradeLimit(maxTradeLimit, riskFactor) * 100);//XMRFIX bumping up by factor of 100
     }
 
     public String getShortName() {

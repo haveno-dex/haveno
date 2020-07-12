@@ -225,97 +225,97 @@ public class MainView extends InitializableView<StackPane, MainViewModel>
                 });
             }
         });
-//
-//
-//        Tuple2<ComboBox<PriceFeedComboBoxItem>, VBox> marketPriceBox = getMarketPriceBox();
-//        ComboBox<PriceFeedComboBoxItem> priceComboBox = marketPriceBox.first;
-//
-//        priceComboBox.getSelectionModel().selectedItemProperty().addListener((observable, oldValue, newValue) ->
-//                model.setPriceFeedComboBoxItem(newValue));
-//        ChangeListener<PriceFeedComboBoxItem> selectedPriceFeedItemListener = (observable, oldValue, newValue) -> {
-//            if (newValue != null)
-//                priceComboBox.getSelectionModel().select(newValue);
-//
-//        };
-//        model.getSelectedPriceFeedComboBoxItemProperty().addListener(selectedPriceFeedItemListener);
-//        priceComboBox.setItems(model.getPriceFeedComboBoxItems());
-//
-//        Tuple2<Label, VBox> availableBalanceBox = getBalanceBox(Res.get("mainView.balance.available"));
-//        availableBalanceBox.first.textProperty().bind(model.getAvailableBalance());
-//        availableBalanceBox.first.setPrefWidth(100);
-//        availableBalanceBox.first.tooltipProperty().bind(new ObjectBinding<>() {
-//            {
-//                bind(model.getAvailableBalance());
-//                bind(model.getMarketPrice());
-//            }
-//
-//            @Override
-//            protected Tooltip computeValue() {
-//                String tooltipText = Res.get("mainView.balance.available");
-//                try {
-//                    String preferredTradeCurrency = model.getPreferences().getPreferredTradeCurrency().getCode();
-//                    double availableBalance = Double.parseDouble(
-//                            model.getAvailableBalance().getValue().replace("BTC", ""));
-//                    double marketPrice = Double.parseDouble(model.getMarketPrice(preferredTradeCurrency).getValue());
-//                    tooltipText += "\n" + currencyFormat.format(availableBalance * marketPrice) +
-//                            " " + preferredTradeCurrency;
-//                } catch (NullPointerException | NumberFormatException e) {
-//                    // Either the balance or market price is not available yet
-//                }
-//                return new Tooltip(tooltipText);
-//            }
-//        });
-//
-//        Tuple2<Label, VBox> reservedBalanceBox = getBalanceBox(Res.get("mainView.balance.reserved.short"));
-//        reservedBalanceBox.first.textProperty().bind(model.getReservedBalance());
-//        reservedBalanceBox.first.tooltipProperty().bind(new ObjectBinding<>() {
-//            {
-//                bind(model.getReservedBalance());
-//                bind(model.getMarketPrice());
-//            }
-//
-//            @Override
-//            protected Tooltip computeValue() {
-//                String tooltipText = Res.get("mainView.balance.reserved");
-//                try {
-//                    String preferredTradeCurrency = model.getPreferences().getPreferredTradeCurrency().getCode();
-//                    double reservedBalance = Double.parseDouble(
-//                            model.getReservedBalance().getValue().replace("BTC", ""));
-//                    double marketPrice = Double.parseDouble(model.getMarketPrice(preferredTradeCurrency).getValue());
-//                    tooltipText += "\n" + currencyFormat.format(reservedBalance * marketPrice) +
-//                            " " + preferredTradeCurrency;
-//                } catch (NullPointerException | NumberFormatException e) {
-//                    // Either the balance or market price is not available yet
-//                }
-//                return new Tooltip(tooltipText);
-//            }
-//        });
-//
-//        Tuple2<Label, VBox> lockedBalanceBox = getBalanceBox(Res.get("mainView.balance.locked.short"));
-//        lockedBalanceBox.first.textProperty().bind(model.getLockedBalance());
-//        lockedBalanceBox.first.tooltipProperty().bind(new ObjectBinding<>() {
-//            {
-//                bind(model.getLockedBalance());
-//                bind(model.getMarketPrice());
-//            }
-//
-//            @Override
-//            protected Tooltip computeValue() {
-//                String tooltipText = Res.get("mainView.balance.locked");
-//                try {
-//                    String preferredTradeCurrency = model.getPreferences().getPreferredTradeCurrency().getCode();
-//                    double lockedBalance = Double.parseDouble(
-//                            model.getLockedBalance().getValue().replace("BTC", ""));
-//                    double marketPrice = Double.parseDouble(model.getMarketPrice(preferredTradeCurrency).getValue());
-//                    tooltipText += "\n" + currencyFormat.format(lockedBalance * marketPrice) +
-//                            " " + preferredTradeCurrency;
-//                } catch (NullPointerException | NumberFormatException e) {
-//                    // Either the balance or market price is not available yet
-//                }
-//                return new Tooltip(tooltipText);
-//            }
-//        });
-//
+
+
+        Tuple2<ComboBox<PriceFeedComboBoxItem>, VBox> marketPriceBox = getMarketPriceBox();
+        ComboBox<PriceFeedComboBoxItem> priceComboBox = marketPriceBox.first;
+
+        priceComboBox.getSelectionModel().selectedItemProperty().addListener((observable, oldValue, newValue) ->
+                model.setPriceFeedComboBoxItem(newValue));
+        ChangeListener<PriceFeedComboBoxItem> selectedPriceFeedItemListener = (observable, oldValue, newValue) -> {
+            if (newValue != null)
+                priceComboBox.getSelectionModel().select(newValue);
+
+        };
+        model.getSelectedPriceFeedComboBoxItemProperty().addListener(selectedPriceFeedItemListener);
+        priceComboBox.setItems(model.getPriceFeedComboBoxItems());
+
+        Tuple2<Label, VBox> availableBalanceBox = getBalanceBox(Res.get("mainView.balance.available"));
+        availableBalanceBox.first.textProperty().bind(model.getAvailableBalance());
+        availableBalanceBox.first.setPrefWidth(100);
+        availableBalanceBox.first.tooltipProperty().bind(new ObjectBinding<>() {
+            {
+                bind(model.getAvailableBalance());
+                bind(model.getMarketPrice());
+            }
+
+            @Override
+            protected Tooltip computeValue() {
+                String tooltipText = Res.get("mainView.balance.available");
+                try {
+                    String preferredTradeCurrency = model.getPreferences().getPreferredTradeCurrency().getCode();
+                    double availableBalance = Double.parseDouble(
+                            model.getAvailableBalance().getValue().replace("BTC", ""));
+                    double marketPrice = Double.parseDouble(model.getMarketPrice(preferredTradeCurrency).getValue());
+                    tooltipText += "\n" + currencyFormat.format(availableBalance * marketPrice) +
+                            " " + preferredTradeCurrency;
+                } catch (NullPointerException | NumberFormatException e) {
+                    // Either the balance or market price is not available yet
+                }
+                return new Tooltip(tooltipText);
+            }
+        });
+
+        Tuple2<Label, VBox> reservedBalanceBox = getBalanceBox(Res.get("mainView.balance.reserved.short"));
+        reservedBalanceBox.first.textProperty().bind(model.getReservedBalance());
+        reservedBalanceBox.first.tooltipProperty().bind(new ObjectBinding<>() {
+            {
+                bind(model.getReservedBalance());
+                bind(model.getMarketPrice());
+            }
+
+            @Override
+            protected Tooltip computeValue() {
+                String tooltipText = Res.get("mainView.balance.reserved");
+                try {
+                    String preferredTradeCurrency = model.getPreferences().getPreferredTradeCurrency().getCode();
+                    double reservedBalance = Double.parseDouble(
+                            model.getReservedBalance().getValue().replace("BTC", ""));
+                    double marketPrice = Double.parseDouble(model.getMarketPrice(preferredTradeCurrency).getValue());
+                    tooltipText += "\n" + currencyFormat.format(reservedBalance * marketPrice) +
+                            " " + preferredTradeCurrency;
+                } catch (NullPointerException | NumberFormatException e) {
+                    // Either the balance or market price is not available yet
+                }
+                return new Tooltip(tooltipText);
+            }
+        });
+
+        Tuple2<Label, VBox> lockedBalanceBox = getBalanceBox(Res.get("mainView.balance.locked.short"));
+        lockedBalanceBox.first.textProperty().bind(model.getLockedBalance());
+        lockedBalanceBox.first.tooltipProperty().bind(new ObjectBinding<>() {
+            {
+                bind(model.getLockedBalance());
+                bind(model.getMarketPrice());
+            }
+
+            @Override
+            protected Tooltip computeValue() {
+                String tooltipText = Res.get("mainView.balance.locked");
+                try {
+                    String preferredTradeCurrency = model.getPreferences().getPreferredTradeCurrency().getCode();
+                    double lockedBalance = Double.parseDouble(
+                            model.getLockedBalance().getValue().replace("BTC", ""));
+                    double marketPrice = Double.parseDouble(model.getMarketPrice(preferredTradeCurrency).getValue());
+                    tooltipText += "\n" + currencyFormat.format(lockedBalance * marketPrice) +
+                            " " + preferredTradeCurrency;
+                } catch (NullPointerException | NumberFormatException e) {
+                    // Either the balance or market price is not available yet
+                }
+                return new Tooltip(tooltipText);
+            }
+        });
+
         HBox primaryNav = new HBox(marketButton, getNavigationSeparator(), buyButton, getNavigationSeparator(),
                 sellButton, getNavigationSeparator(), portfolioButtonWithBadge, getNavigationSeparator());
 
@@ -329,16 +329,16 @@ public class MainView extends InitializableView<StackPane, MainViewModel>
         HBox.setHgrow(secondaryNav, Priority.SOMETIMES);
 
         secondaryNav.setAlignment(Pos.CENTER);
-//
-//        HBox priceAndBalance = new HBox(marketPriceBox.second, getNavigationSeparator(), availableBalanceBox.second,
-//                getNavigationSeparator(), reservedBalanceBox.second, getNavigationSeparator(), lockedBalanceBox.second);
-//        priceAndBalance.setMaxHeight(41);
-//
-//        priceAndBalance.setAlignment(Pos.CENTER);
-//        priceAndBalance.setSpacing(9);
-//        priceAndBalance.getStyleClass().add("nav-price-balance");
 
-        HBox navPane = new HBox(primaryNav, secondaryNav) {{
+        HBox priceAndBalance = new HBox(marketPriceBox.second, getNavigationSeparator(), availableBalanceBox.second,
+                getNavigationSeparator(), reservedBalanceBox.second, getNavigationSeparator(), lockedBalanceBox.second);
+        priceAndBalance.setMaxHeight(41);
+
+        priceAndBalance.setAlignment(Pos.CENTER);
+        priceAndBalance.setSpacing(9);
+        priceAndBalance.getStyleClass().add("nav-price-balance");
+
+        HBox navPane = new HBox(primaryNav, secondaryNav, priceAndBalance) {{
             setLeftAnchor(this, 0d);
             setRightAnchor(this, 0d);
             setTopAnchor(this, 0d);

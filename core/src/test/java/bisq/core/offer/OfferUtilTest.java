@@ -29,13 +29,13 @@ public class OfferUtilTest {
     @Test
     public void testGetAdjustedAmount() {
         Coin result = OfferUtil.getAdjustedAmount(
-                Coin.valueOf(100_000),
+                Coin.valueOf(10_000_000),
                 Price.valueOf("USD", 1000_0000),
                 20_000_000,
                 1);
         Assert.assertEquals(
                 "Minimum trade amount allowed should be adjusted to the smallest trade allowed.",
-                "0.001 BTC",
+                "0.10 BTC",
                 result.toFriendlyString()
         );
 
@@ -55,24 +55,24 @@ public class OfferUtilTest {
         }
 
         result = OfferUtil.getAdjustedAmount(
-                Coin.valueOf(1_000_000),
+                Coin.valueOf(100_000_000),
                 Price.valueOf("USD", 1000_0000),
-                20_000_000,
+                200_000_000,
                 1);
         Assert.assertEquals(
                 "Minimum allowed trade amount should not be adjusted.",
-                "0.01 BTC",
+                "1.00 BTC",
                 result.toFriendlyString()
         );
 
         result = OfferUtil.getAdjustedAmount(
-                Coin.valueOf(100_000),
+                Coin.valueOf(10_000_000),
                 Price.valueOf("USD", 1000_0000),
-                1_000_000,
+                20_000_000,
                 1);
         Assert.assertEquals(
                 "Minimum trade amount allowed should respect maxTradeLimit and factor, if possible.",
-                "0.001 BTC",
+                "0.10 BTC",
                 result.toFriendlyString()
         );
 
@@ -82,13 +82,13 @@ public class OfferUtilTest {
         // 0.05 USD worth, which is below the factor of 1 USD, but does respect the maxTradeLimit.
         // Basically the given constraints (maxTradeLimit vs factor) are impossible to both fulfill..
         result = OfferUtil.getAdjustedAmount(
-                Coin.valueOf(100_000),
+                Coin.valueOf(10_000_000),
                 Price.valueOf("USD", 1000_0000),
-                5_000,
+                500_000,
                 1);
         Assert.assertEquals(
                 "Minimum trade amount allowed with low maxTradeLimit should still respect that limit, even if result does not respect the factor specified.",
-                "0.00005 BTC",
+                "0.005 BTC",
                 result.toFriendlyString()
         );
     }

@@ -232,9 +232,9 @@ public class OfferUtil {
     @VisibleForTesting
     static Coin getAdjustedAmount(Coin amount, Price price, long maxTradeLimit, int factor) {
         checkArgument(
-                amount.getValue() >= 10_000,
+                amount.getValue() >= 1_000_000,
                 "amount needs to be above minimum of 10k satoshis"
-        );
+        );//XMRFIX Recalibrated for Monero - bumping by factor of 100.
         checkArgument(
                 factor > 0,
                 "factor needs to be positive"
@@ -250,9 +250,9 @@ public class OfferUtil {
 
         // We use 10 000 satoshi as min allowed amount
         checkArgument(
-                minTradeAmount >= 10_000,
+                minTradeAmount >= 1_000_000,
                 "MinTradeAmount must be at least 10k satoshis"
-        );
+        );//XMRFIX Recalibrated for Monero - bumping by factor of 100.
         smallestUnitForAmount = Coin.valueOf(Math.max(minTradeAmount, smallestUnitForAmount.value));
         // We don't allow smaller amount values than smallestUnitForAmount
         if (amount.compareTo(smallestUnitForAmount) < 0)

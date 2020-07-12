@@ -68,11 +68,11 @@ public class ImmutableCoinFormatter implements CoinFormatter {
 
     @Override
     public String formatCoinWithCode(Coin coin) {
-        return FormattingUtils.formatCoinWithCode(coin, monetaryFormat);
+        return FormattingUtils.formatCoinWithCode(coin, monetaryFormat).replace("BTC", "XMR");//XMRFIX Hack to replace BTC code with XMR
     }
 
     @Override
     public String formatCoinWithCode(long value) {
-        return FormattingUtils.formatCoinWithCode(Coin.valueOf(value), monetaryFormat);
+        return FormattingUtils.formatCoinWithCode(Coin.valueOf(value), monetaryFormat).replace("BTC", "XMR");//XMRFIX Hack to replace BTC code with XMR
     }
 }
