@@ -46,6 +46,7 @@ import javafx.beans.property.SimpleIntegerProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 
 import java.util.ArrayList;
@@ -239,17 +240,17 @@ public class PriceFeedService {
     public MarketPrice getMarketPrice(String currencyCode) {
     	// Convert to market price against XMR rather than BTC by dividing getMarketPrice('XMR')
     	MarketPrice price = getXmrMarketPrice();
-    	double rate = 1.0;
+    	BigDecimal rate = BigDecimal.valueOf(1.0);
     	if(!"XMR".equalsIgnoreCase(currencyCode)) {
         	MarketPrice btcBasedPrice = cache.getOrDefault(currencyCode, null);
-        	double btcRate = btcBasedPrice != null ? btcBasedPrice.getPrice() : 0.0;
+        	BigDecimal btcRate = BigDecimal.valueOf(btcBasedPrice != null ? btcBasedPrice.getPrice() : 1.0);
     		if(!"BSQ".equalsIgnoreCase(currencyCode)) {
-            	rate = btcRate * price.getPrice();    		
+            	rate = BigDecimal.valueOf(btcRate.multiply(BigDecimal.valueOf(price.getPrice())));    		
     		} else {
-            	rate = price.getPrice() / btcRate;   		
+            	rate = BigDecimal.valueOf(price.getPrice()).divide(btcRate);   		
     		}
     	}
-        return new MarketPrice(currencyCode, rate, Instant.now().getEpochSecond(), true);
+        return new MarketPrice(currencyCode, rate.doubleValue(), Instant.now().getEpochSecond(), true);
 
     }
     

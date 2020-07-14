@@ -161,7 +161,6 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
     private ChangeListener<Boolean> amountFocusedListener, minAmountFocusedListener, volumeFocusedListener,
             buyerSecurityDepositFocusedListener, priceFocusedListener, placeOfferCompletedListener,
             priceAsPercentageFocusedListener, getShowWalletFundedNotificationListener,
-            tradeFeeInBtcToggleListener, tradeFeeInBsqToggleListener, tradeFeeVisibleListener,
             isMinBuyerSecurityDepositListener;
     private ChangeListener<Coin> missingCoinListener;
     private ChangeListener<String> tradeCurrencyCodeListener, errorMessageListener,
@@ -175,7 +174,6 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
     private boolean clearXchangeWarningDisplayed, fasterPaymentsWarningDisplayed, isActivated;
     private InfoInputTextField marketBasedPriceInfoInputTextField, volumeInfoInputTextField,
             buyerSecurityDepositInfoInputTextField;
-    private AutoTooltipSlideToggleButton tradeFeeInBtcToggle, tradeFeeInBsqToggle;
     private Text xIcon, fakeXIcon;
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -208,6 +206,7 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
 
         createListeners();
 
+        model.setIsCurrencyForMakerFeeBtc(true);//XMRFIX Fees in XMR only.
         balanceTextField.setFormatter(model.getBtcFormatter());
 
         paymentAccountsComboBox.setConverter(GUIUtil.getPaymentAccountsComboBoxStringConverter());
@@ -228,6 +227,7 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
             doActivate();
     }
 
+//XMRFIX Fees in XMR only.
     protected void doActivate() {
         if (!isActivated) {
             isActivated = true;
@@ -255,16 +255,7 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
             balanceTextField.setTargetAmount(model.getDataModel().totalToPayAsCoinProperty().get());
             updatePriceToggle();
 
-            boolean currencyForMakerFeeBtc = model.getDataModel().isCurrencyForMakerFeeBtc();
-            tradeFeeInBtcToggle.setSelected(currencyForMakerFeeBtc);
-            tradeFeeInBsqToggle.setSelected(!currencyForMakerFeeBtc);
-
-            if (!DevEnv.isDaoActivated()) {
-                tradeFeeInBtcToggle.setVisible(false);
-                tradeFeeInBtcToggle.setManaged(false);
-                tradeFeeInBsqToggle.setVisible(false);
-                tradeFeeInBsqToggle.setManaged(false);
-            }
+            setIsCurrencyForMakerFeeBtc(true);
         }
     }
 
@@ -395,8 +386,9 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
         cancelButton1.setManaged(false);
         cancelButton1.setOnAction(null);
 
-        tradeFeeInBtcToggle.setMouseTransparent(true);
-        tradeFeeInBsqToggle.setMouseTransparent(true);
+      //XMRFIX Fees in XMR only.
+//        tradeFeeInBtcToggle.setMouseTransparent(true);
+//        tradeFeeInBsqToggle.setMouseTransparent(true);
 
         setDepositTitledGroupBg.setVisible(false);
         setDepositTitledGroupBg.setManaged(false);
@@ -569,12 +561,12 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
         addressTextField.amountAsCoinProperty().bind(model.getDataModel().getMissingCoin());
         buyerSecurityDepositInputTextField.textProperty().bindBidirectional(model.buyerSecurityDeposit);
         buyerSecurityDepositLabel.textProperty().bind(model.buyerSecurityDepositLabel);
-        tradeFeeInBtcLabel.textProperty().bind(model.tradeFeeInBtcWithFiat);
-        tradeFeeInBsqLabel.textProperty().bind(model.tradeFeeInBsqWithFiat);
-        tradeFeeDescriptionLabel.textProperty().bind(model.tradeFeeDescription);
-        tradeFeeInBtcLabel.visibleProperty().bind(model.isTradeFeeVisible);
-        tradeFeeInBsqLabel.visibleProperty().bind(model.isTradeFeeVisible);
-        tradeFeeDescriptionLabel.visibleProperty().bind(model.isTradeFeeVisible);
+//        tradeFeeInBtcLabel.textProperty().bind(model.tradeFeeInBtcWithFiat);//XMRFIX Fees in XMR only.
+//        tradeFeeInBsqLabel.textProperty().bind(model.tradeFeeInBsqWithFiat);
+//        tradeFeeDescriptionLabel.textProperty().bind(model.tradeFeeDescription);//XMRFIX Fees in XMR only.
+//        tradeFeeInBtcLabel.visibleProperty().bind(model.isTradeFeeVisible);//XMRFIX Fees in XMR only.
+//        tradeFeeInBsqLabel.visibleProperty().bind(model.isTradeFeeVisible);//XMRFIX Fees in XMR only.
+//        tradeFeeDescriptionLabel.visibleProperty().bind(model.isTradeFeeVisible);//XMRFIX Fees in XMR only.
 
         // Validation
         amountTextField.validationResultProperty().bind(model.amountValidationResult);
@@ -620,12 +612,12 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
         addressTextField.amountAsCoinProperty().unbind();
         buyerSecurityDepositInputTextField.textProperty().unbindBidirectional(model.buyerSecurityDeposit);
         buyerSecurityDepositLabel.textProperty().unbind();
-        tradeFeeInBtcLabel.textProperty().unbind();
-        tradeFeeInBsqLabel.textProperty().unbind();
-        tradeFeeDescriptionLabel.textProperty().unbind();
-        tradeFeeInBtcLabel.visibleProperty().unbind();
-        tradeFeeInBsqLabel.visibleProperty().unbind();
-        tradeFeeDescriptionLabel.visibleProperty().unbind();
+//        tradeFeeInBtcLabel.textProperty().unbind();
+//        tradeFeeInBsqLabel.textProperty().unbind();
+//        tradeFeeDescriptionLabel.textProperty().unbind();
+//        tradeFeeInBtcLabel.visibleProperty().unbind();
+//        tradeFeeInBsqLabel.visibleProperty().unbind();
+//        tradeFeeDescriptionLabel.visibleProperty().unbind();
 
         // Validation
         amountTextField.validationResultProperty().unbind();
@@ -814,33 +806,6 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
             }
         };
 
-
-        tradeFeeInBtcToggleListener = (observable, oldValue, newValue) -> {
-            if (newValue && tradeFeeInBsqToggle.isSelected())
-                tradeFeeInBsqToggle.setSelected(false);
-
-            if (!newValue && !tradeFeeInBsqToggle.isSelected())
-                tradeFeeInBsqToggle.setSelected(true);
-
-            setIsCurrencyForMakerFeeBtc(newValue);
-        };
-        tradeFeeInBsqToggleListener = (observable, oldValue, newValue) -> {
-            if (newValue && tradeFeeInBtcToggle.isSelected())
-                tradeFeeInBtcToggle.setSelected(false);
-
-            if (!newValue && !tradeFeeInBtcToggle.isSelected())
-                tradeFeeInBtcToggle.setSelected(true);
-
-            setIsCurrencyForMakerFeeBtc(!newValue);
-        };
-
-        tradeFeeVisibleListener = (observable, oldValue, newValue) -> {
-            if (DevEnv.isDaoActivated()) {
-                tradeFeeInBtcToggle.setVisible(newValue);
-                tradeFeeInBsqToggle.setVisible(newValue);
-            }
-        };
-
         isMinBuyerSecurityDepositListener = ((observable, oldValue, newValue) -> {
             if (newValue) {
                 // show BTC
@@ -856,10 +821,6 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
 
     private void setIsCurrencyForMakerFeeBtc(boolean isCurrencyForMakerFeeBtc) {
         model.setIsCurrencyForMakerFeeBtc(isCurrencyForMakerFeeBtc);
-        if (DevEnv.isDaoActivated()) {
-            tradeFeeInBtcLabel.setOpacity(isCurrencyForMakerFeeBtc ? 1 : 0.3);
-            tradeFeeInBsqLabel.setOpacity(isCurrencyForMakerFeeBtc ? 0.3 : 1);
-        }
     }
 
     private Label createPopoverLabel(String text) {
@@ -888,12 +849,11 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
         model.marketPriceMargin.addListener(marketPriceMarginListener);
         model.volume.addListener(volumeListener);
         model.getDataModel().missingCoin.addListener(missingCoinListener);
-        model.isTradeFeeVisible.addListener(tradeFeeVisibleListener);
         model.buyerSecurityDepositInBTC.addListener(buyerSecurityDepositInBTCListener);
         model.isMinBuyerSecurityDeposit.addListener(isMinBuyerSecurityDepositListener);
 
-        tradeFeeInBtcToggle.selectedProperty().addListener(tradeFeeInBtcToggleListener);
-        tradeFeeInBsqToggle.selectedProperty().addListener(tradeFeeInBsqToggleListener);
+//        tradeFeeInBtcToggle.selectedProperty().addListener(tradeFeeInBtcToggleListener);//XMRFIX Fees in XMR only.
+//        tradeFeeInBsqToggle.selectedProperty().addListener(tradeFeeInBsqToggleListener);//XMRFIX Fees in XMR only.
 
         // focus out
         amountTextField.focusedProperty().addListener(amountFocusedListener);
@@ -923,10 +883,9 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
         model.marketPriceMargin.removeListener(marketPriceMarginListener);
         model.volume.removeListener(volumeListener);
         model.getDataModel().missingCoin.removeListener(missingCoinListener);
-        model.isTradeFeeVisible.removeListener(tradeFeeVisibleListener);
         model.buyerSecurityDepositInBTC.removeListener(buyerSecurityDepositInBTCListener);
-        tradeFeeInBtcToggle.selectedProperty().removeListener(tradeFeeInBtcToggleListener);
-        tradeFeeInBsqToggle.selectedProperty().removeListener(tradeFeeInBsqToggleListener);
+//        tradeFeeInBtcToggle.selectedProperty().removeListener(tradeFeeInBtcToggleListener);
+//        tradeFeeInBsqToggle.selectedProperty().removeListener(tradeFeeInBsqToggleListener);
         model.isMinBuyerSecurityDeposit.removeListener(isMinBuyerSecurityDepositListener);
 
         // focus out
@@ -1063,7 +1022,7 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
         GridPane.setMargin(advancedOptionsBox, new Insets(Layout.COMPACT_FIRST_ROW_AND_GROUP_DISTANCE, 0, 0, 0));
         gridPane.getChildren().add(advancedOptionsBox);
 
-        advancedOptionsBox.getChildren().addAll(getBuyerSecurityDepositBox(), getTradeFeeFieldsBox());
+        advancedOptionsBox.getChildren().addAll(getBuyerSecurityDepositBox());//XMRFIX Trade fee box not required; fees in XMR only.
 
         Tuple2<Button, Button> tuple = add2ButtonsAfterGroup(gridPane, ++gridRow,
                 Res.get("shared.nextStep"), Res.get("shared.cancel"));
@@ -1102,33 +1061,8 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
     }
 
     private void showFeeOption() {
-        boolean isPreferredFeeCurrencyBtc = model.getDataModel().isPreferredFeeCurrencyBtc();
-        boolean isBsqForFeeAvailable = model.getDataModel().isBsqForFeeAvailable();
-        if (!isPreferredFeeCurrencyBtc && !isBsqForFeeAvailable) {
-            Coin makerFee = model.getDataModel().getMakerFee(false);
-            String missingBsq = null;
-            if (makerFee != null) {
-                missingBsq = Res.get("popup.warning.insufficientBsqFundsForBtcFeePayment",
-                        bsqFormatter.formatCoinWithCode(makerFee.subtract(model.getDataModel().getBsqBalance())));
-
-            } else if (model.getDataModel().getBsqBalance().isZero()) {
-                missingBsq = Res.get("popup.warning.noBsqFundsForBtcFeePayment");
-            }
-
-            if (missingBsq != null) {
-                new Popup().warning(missingBsq)
-                        .actionButtonText(Res.get("feeOptionWindow.useBTC"))
-                        .onAction(() -> {
-                            tradeFeeInBtcToggle.setSelected(true);
-                            onShowPayFundsScreen();
-                        })
-                        .show();
-            } else {
-                onShowPayFundsScreen();
-            }
-        } else {
-            onShowPayFundsScreen();
-        }
+        boolean isPreferredFeeCurrencyBtc = true;
+        onShowPayFundsScreen();
     }
 
     private VBox getBuyerSecurityDepositBox() {
@@ -1274,6 +1208,7 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
     @NotNull
     private String getBitcoinURI() {
         return "TODO";  // TODO (woodser): wallet.createPaymentUri();
+     // TODO (niyid): You may look at getMoneroURI() in XmrMutableOfferView in the defunct incubation.
 //        return GUIUtil.getBitcoinURI(addressTextField.getAddress(), model.getDataModel().getMissingCoin().get(),
 //                model.getPaymentLabel());
     }
@@ -1423,48 +1358,6 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
         GridPane.setColumnIndex(secondRowHBox, 0);
         GridPane.setMargin(secondRowHBox, new Insets(0, 10, 10, 0));
         gridPane.getChildren().add(secondRowHBox);
-    }
-
-    private VBox getTradeFeeFieldsBox() {
-        tradeFeeInBtcLabel = new Label();
-        tradeFeeInBtcLabel.setMouseTransparent(true);
-        tradeFeeInBtcLabel.setId("trade-fee-textfield");
-
-        tradeFeeInBsqLabel = new Label();
-        tradeFeeInBsqLabel.setMouseTransparent(true);
-        tradeFeeInBsqLabel.setId("trade-fee-textfield");
-
-        VBox vBox = new VBox();
-        vBox.setSpacing(6);
-        vBox.setMaxWidth(300);
-        vBox.setAlignment(DevEnv.isDaoActivated() ? Pos.CENTER_RIGHT : Pos.CENTER_LEFT);
-        vBox.getChildren().addAll(tradeFeeInBtcLabel, tradeFeeInBsqLabel);
-
-        tradeFeeInBtcToggle = new AutoTooltipSlideToggleButton();
-        tradeFeeInBtcToggle.setText("BTC");
-        tradeFeeInBtcToggle.setVisible(false);
-        tradeFeeInBtcToggle.setPadding(new Insets(-8, 5, -10, 5));
-
-        tradeFeeInBsqToggle = new AutoTooltipSlideToggleButton();
-        tradeFeeInBsqToggle.setText("BSQ");
-        tradeFeeInBsqToggle.setVisible(false);
-        tradeFeeInBsqToggle.setPadding(new Insets(-9, 5, -9, 5));
-
-        VBox tradeFeeToggleButtonBox = new VBox();
-        tradeFeeToggleButtonBox.getChildren().addAll(tradeFeeInBtcToggle, tradeFeeInBsqToggle);
-
-        HBox hBox = new HBox();
-        hBox.getChildren().addAll(vBox, tradeFeeToggleButtonBox);
-        hBox.setMinHeight(47);
-        hBox.setMaxHeight(hBox.getMinHeight());
-        HBox.setHgrow(vBox, Priority.ALWAYS);
-        HBox.setHgrow(tradeFeeToggleButtonBox, Priority.NEVER);
-
-        final Tuple2<Label, VBox> tradeInputBox = getTradeInputBox(hBox, Res.get("createOffer.tradeFee.descriptionBSQEnabled"));
-
-        tradeFeeDescriptionLabel = tradeInputBox.first;
-
-        return tradeInputBox.second;
     }
 
 

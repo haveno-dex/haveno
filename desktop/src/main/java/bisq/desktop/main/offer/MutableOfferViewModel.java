@@ -502,30 +502,30 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
             } else {
                 tradeFeeInBtcWithFiat.set(btcFormatter.formatCoinWithCode(makerFeeAsCoin));
             }
-
-            Coin makerFeeInBsq = dataModel.getMakerFeeInBsq();
-            Optional<Volume> optionalBsqFeeInFiat = OfferUtil.getFeeInUserFiatCurrency(makerFeeInBsq,
-                    false, preferences, priceFeedService, bsqFormatter);
-            String bsqFeeWithFiatAmount = DisplayUtils.getFeeWithFiatAmount(makerFeeInBsq, optionalBsqFeeInFiat, bsqFormatter);
-            if (DevEnv.isDaoActivated()) {
-                tradeFeeInBsqWithFiat.set(bsqFeeWithFiatAmount);
-            } else {
-                // Before DAO is enabled we show fee as fiat and % in second line
-                String feeInFiatAsString;
-                if (optionalBtcFeeInFiat != null && optionalBtcFeeInFiat.isPresent()) {
-                    feeInFiatAsString = DisplayUtils.formatVolumeWithCode(optionalBtcFeeInFiat.get());
-                } else {
-                    feeInFiatAsString = Res.get("shared.na");
-                }
-
-                double amountAsDouble = (double) dataModel.getAmount().get().value;
-                double makerFeeInBtcAsDouble = (double) makerFeeInBtc.value;
-                double percent = makerFeeInBtcAsDouble / amountAsDouble;
-
-                tradeFeeInBsqWithFiat.set(Res.get("createOffer.tradeFee.fiatAndPercent",
-                        feeInFiatAsString,
-                        FormattingUtils.formatToPercentWithSymbol(percent)));
-            }
+//
+//            Coin makerFeeInBsq = dataModel.getMakerFeeInBsq();
+//            Optional<Volume> optionalBsqFeeInFiat = OfferUtil.getFeeInUserFiatCurrency(makerFeeInBsq,
+//                    false, preferences, priceFeedService, bsqFormatter);
+//            String bsqFeeWithFiatAmount = DisplayUtils.getFeeWithFiatAmount(makerFeeInBsq, optionalBsqFeeInFiat, bsqFormatter);
+//            if (DevEnv.isDaoActivated()) {
+//                tradeFeeInBsqWithFiat.set(bsqFeeWithFiatAmount);
+//            } else {
+//                // Before DAO is enabled we show fee as fiat and % in second line
+//                String feeInFiatAsString;
+//                if (optionalBtcFeeInFiat != null && optionalBtcFeeInFiat.isPresent()) {
+//                    feeInFiatAsString = DisplayUtils.formatVolumeWithCode(optionalBtcFeeInFiat.get());
+//                } else {
+//                    feeInFiatAsString = Res.get("shared.na");
+//                }
+//
+//                double amountAsDouble = (double) dataModel.getAmount().get().value;
+//                double makerFeeInBtcAsDouble = (double) makerFeeInBtc.value;
+//                double percent = makerFeeInBtcAsDouble / amountAsDouble;
+//
+//                tradeFeeInBsqWithFiat.set(Res.get("createOffer.tradeFee.fiatAndPercent",
+//                        feeInFiatAsString,
+//                        FormattingUtils.formatToPercentWithSymbol(percent)));
+//            }
         }
         tradeFeeCurrencyCode.set(dataModel.isCurrencyForMakerFeeBtc() ? Res.getBaseCurrencyCode() : "BSQ");
         tradeFeeDescription.set(DevEnv.isDaoActivated() ? Res.get("createOffer.tradeFee.descriptionBSQEnabled") :

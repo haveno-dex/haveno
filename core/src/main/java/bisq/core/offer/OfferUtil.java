@@ -285,7 +285,7 @@ public class OfferUtil {
         String countryCode = preferences.getUserCountry().code;
         String userCurrencyCode = CurrencyUtil.getCurrencyByCountryCode(countryCode).getCode();
         return getFeeInUserFiatCurrency(makerFee,
-                isCurrencyForMakerFeeBtc,
+                true,
                 userCurrencyCode,
                 priceFeedService,
                 bsqFormatter);

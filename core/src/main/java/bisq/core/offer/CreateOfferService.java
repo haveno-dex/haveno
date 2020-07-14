@@ -128,7 +128,7 @@ public class CreateOfferService {
                                    double marketPriceMargin,
                                    double buyerSecurityDepositAsDouble,
                                    PaymentAccount paymentAccount) {
-
+//TODO Rework for XMR
         log.info("offerId={}, \n" +
                         "currencyCode={}, \n" +
                         "direction={}, \n" +
@@ -203,6 +203,7 @@ public class CreateOfferService {
                 paymentAccount,
                 currencyCode);
 
+      //XMRFIX coin values should be converted to reflect actual XMR atomic units
         OfferUtil.validateOfferData(filterManager,
                 p2PService,
                 buyerSecurityDepositAsDouble,
@@ -210,6 +211,7 @@ public class CreateOfferService {
                 currencyCode,
                 makerFeeAsCoin);
 
+        //XMRFIX coin values should be converted to reflect actual XMR atomic units
         OfferPayload offerPayload = new OfferPayload(offerId,
                 creationTime,
                 makerAddress,
