@@ -57,7 +57,7 @@ public class OfferUtilTest {
         result = OfferUtil.getAdjustedAmount(
                 Coin.valueOf(100_000_000),
                 Price.valueOf("USD", 1000_0000),
-                200_000_000,
+                2000_000_000,
                 1);
         Assert.assertEquals(
                 "Minimum allowed trade amount should not be adjusted.",
@@ -68,7 +68,7 @@ public class OfferUtilTest {
         result = OfferUtil.getAdjustedAmount(
                 Coin.valueOf(10_000_000),
                 Price.valueOf("USD", 1000_0000),
-                20_000_000,
+                100_000_000,
                 1);
         Assert.assertEquals(
                 "Minimum trade amount allowed should respect maxTradeLimit and factor, if possible.",

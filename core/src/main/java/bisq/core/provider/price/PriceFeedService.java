@@ -245,7 +245,11 @@ public class PriceFeedService {
         	MarketPrice btcBasedPrice = cache.getOrDefault(currencyCode, null);
         	BigDecimal btcRate = BigDecimal.valueOf(btcBasedPrice != null ? btcBasedPrice.getPrice() : 1.0);
     		if(!"BSQ".equalsIgnoreCase(currencyCode)) {
+<<<<<<< Upstream, based on 7721b9b2ee3f71b2c3a196d206028d78fbadb8c5
             	rate = BigDecimal.valueOf(btcRate.multiply(BigDecimal.valueOf(price.getPrice())));    		
+=======
+            	rate = btcRate.multiply(BigDecimal.valueOf(price.getPrice()));    		
+>>>>>>> 96ab1b3 Just to be safe, use BigDecimal and not long. Removing unnecessary code.
     		} else {
             	rate = BigDecimal.valueOf(price.getPrice()).divide(btcRate);   		
     		}
