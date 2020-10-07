@@ -17,12 +17,12 @@
 
 package bisq.core.trade;
 
+import bisq.common.handlers.ErrorMessageHandler;
+import bisq.core.trade.messages.InitTradeRequest;
 import bisq.core.trade.messages.InputsForDepositTxRequest;
-
 import bisq.network.p2p.NodeAddress;
 
-import bisq.common.handlers.ErrorMessageHandler;
-
 public interface MakerTrade {
+    void handleInitTradeRequest(InitTradeRequest message, NodeAddress taker, ErrorMessageHandler errorMessageHandler);
     void handleTakeOfferRequest(InputsForDepositTxRequest message, NodeAddress peerNodeAddress, ErrorMessageHandler errorMessageHandler);
 }

@@ -17,18 +17,30 @@
 
 package bisq.desktop.main.offer;
 
-import bisq.desktop.Navigation;
-import bisq.desktop.util.DisplayUtils;
-import bisq.desktop.util.GUIUtil;
+import static com.google.common.base.Preconditions.checkNotNull;
 
+import java.math.BigInteger;
+import java.util.HashSet;
+import java.util.Optional;
+
+import javax.annotation.Nullable;
+import javax.inject.Named;
+
+import org.bitcoinj.core.Coin;
+
+import com.google.inject.Inject;
+
+import bisq.common.util.MathUtils;
+import bisq.common.util.Tuple2;
+import bisq.common.util.Utilities;
 import bisq.core.account.witness.AccountAgeWitnessService;
 import bisq.core.btc.TxFeeEstimationService;
-import bisq.core.btc.listeners.BalanceListener;
 import bisq.core.btc.listeners.BsqBalanceListener;
-import bisq.core.btc.model.AddressEntry;
+import bisq.core.btc.listeners.XmrBalanceListener;
+import bisq.core.btc.model.XmrAddressEntry;
 import bisq.core.btc.wallet.BsqWalletService;
-import bisq.core.btc.wallet.BtcWalletService;
 import bisq.core.btc.wallet.Restrictions;
+import bisq.core.btc.wallet.XmrWalletService;
 import bisq.core.locale.CurrencyUtil;
 import bisq.core.locale.TradeCurrency;
 import bisq.core.monetary.Price;
@@ -48,20 +60,10 @@ import bisq.core.user.User;
 import bisq.core.util.FormattingUtils;
 import bisq.core.util.coin.CoinFormatter;
 import bisq.core.util.coin.CoinUtil;
-
+import bisq.desktop.Navigation;
+import bisq.desktop.util.DisplayUtils;
+import bisq.desktop.util.GUIUtil;
 import bisq.network.p2p.P2PService;
-
-import bisq.common.util.MathUtils;
-import bisq.common.util.Tuple2;
-import bisq.common.util.Utilities;
-
-import org.bitcoinj.core.Coin;
-import org.bitcoinj.core.Transaction;
-
-import com.google.inject.Inject;
-
-import javax.inject.Named;
-
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.DoubleProperty;
 import javafx.beans.property.ObjectProperty;
@@ -74,21 +76,15 @@ import javafx.beans.property.SimpleDoubleProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
-
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.collections.SetChangeListener;
-
-import java.util.HashSet;
-import java.util.Optional;
-
-import javax.annotation.Nullable;
-
-import static com.google.common.base.Preconditions.checkNotNull;
+import monero.wallet.model.MoneroOutputWallet;
 
 public abstract class MutableOfferDataModel extends OfferDataModel implements BsqBalanceListener {
     private final CreateOfferService createOfferService;
     protected final OpenOfferManager openOfferManager;
+    private final XmrWalletService xmrWalletService;
     private final BsqWalletService bsqWalletService;
     private final Preferences preferences;
     protected final User user;
@@ -101,7 +97,7 @@ public abstract class MutableOfferDataModel extends OfferDataModel implements Bs
     private final MakerFeeProvider makerFeeProvider;
     private final Navigation navigation;
     private final String offerId;
-    private final BalanceListener btcBalanceListener;
+    private final XmrBalanceListener xmrBalanceListener;
     private final SetChangeListener<PaymentAccount> paymentAccountsChangeListener;
 
     protected OfferPayload.Direction direction;
@@ -135,7 +131,7 @@ public abstract class MutableOfferDataModel extends OfferDataModel implements Bs
     @Inject
     public MutableOfferDataModel(CreateOfferService createOfferService,
                                  OpenOfferManager openOfferManager,
-                                 BtcWalletService btcWalletService,
+                                 XmrWalletService xmrWalletService,
                                  BsqWalletService bsqWalletService,
                                  Preferences preferences,
                                  User user,
@@ -146,8 +142,9 @@ public abstract class MutableOfferDataModel extends OfferDataModel implements Bs
                                  @Named(FormattingUtils.BTC_FORMATTER_KEY) CoinFormatter btcFormatter,
                                  MakerFeeProvider makerFeeProvider,
                                  Navigation navigation) {
-        super(btcWalletService);
+        super(xmrWalletService);
 
+        this.xmrWalletService = xmrWalletService;
         this.createOfferService = createOfferService;
         this.openOfferManager = openOfferManager;
         this.bsqWalletService = bsqWalletService;
@@ -163,14 +160,14 @@ public abstract class MutableOfferDataModel extends OfferDataModel implements Bs
 
         offerId = createOfferService.getRandomOfferId();
         shortOfferId = Utilities.getShortId(offerId);
-        addressEntry = btcWalletService.getOrCreateAddressEntry(offerId, AddressEntry.Context.OFFER_FUNDING);
+        addressEntry = xmrWalletService.getOrCreateAddressEntry(offerId, XmrAddressEntry.Context.OFFER_FUNDING);
 
         useMarketBasedPrice.set(preferences.isUsePercentageBasedPrice());
         buyerSecurityDeposit.set(preferences.getBuyerSecurityDepositAsPercent(null));
 
-        btcBalanceListener = new BalanceListener(getAddressEntry().getAddress()) {
+        xmrBalanceListener = new XmrBalanceListener(getAddressEntry().getAccountIndex()) {
             @Override
-            public void onBalanceChanged(Coin balance, Transaction tx) {
+            public void onBalanceChanged(BigInteger balance) {
                 updateBalance();
             }
         };
@@ -194,13 +191,13 @@ public abstract class MutableOfferDataModel extends OfferDataModel implements Bs
     }
 
     private void addListeners() {
-        btcWalletService.addBalanceListener(btcBalanceListener);
+        xmrWalletService.addBalanceListener(xmrBalanceListener);
         bsqWalletService.addBsqBalanceListener(this);
         user.getPaymentAccountsAsObservable().addListener(paymentAccountsChangeListener);
     }
 
     private void removeListeners() {
-        btcWalletService.removeBalanceListener(btcBalanceListener);
+        xmrWalletService.removeBalanceListener(xmrBalanceListener);
         bsqWalletService.removeBsqBalanceListener(this);
         user.getPaymentAccountsAsObservable().removeListener(paymentAccountsChangeListener);
     }
@@ -420,7 +417,7 @@ public abstract class MutableOfferDataModel extends OfferDataModel implements Bs
         return direction;
     }
 
-    AddressEntry getAddressEntry() {
+    XmrAddressEntry getAddressEntry() {
         return addressEntry;
     }
 
@@ -570,7 +567,7 @@ public abstract class MutableOfferDataModel extends OfferDataModel implements Bs
     }
 
     void swapTradeToSavings() {
-        btcWalletService.resetAddressEntriesForOpenOffer(offerId);
+        xmrWalletService.resetAddressEntriesForOpenOffer(offerId);
     }
 
     private void fillPaymentAccounts() {

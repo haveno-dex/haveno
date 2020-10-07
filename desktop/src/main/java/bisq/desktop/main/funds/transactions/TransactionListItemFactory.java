@@ -17,46 +17,44 @@
 
 package bisq.desktop.main.funds.transactions;
 
-import bisq.core.btc.wallet.BsqWalletService;
-import bisq.core.btc.wallet.BtcWalletService;
-import bisq.core.dao.DaoFacade;
-import bisq.core.user.Preferences;
-import bisq.core.util.FormattingUtils;
-import bisq.core.util.coin.CoinFormatter;
-
-import org.bitcoinj.core.Transaction;
-
+import javax.annotation.Nullable;
 import javax.inject.Inject;
 import javax.inject.Named;
 import javax.inject.Singleton;
 
-import javax.annotation.Nullable;
+import bisq.core.btc.wallet.BsqWalletService;
+import bisq.core.btc.wallet.XmrWalletService;
+import bisq.core.dao.DaoFacade;
+import bisq.core.user.Preferences;
+import bisq.core.util.FormattingUtils;
+import bisq.core.util.coin.CoinFormatter;
+import monero.wallet.model.MoneroTxWallet;
 
 
 @Singleton
 public class TransactionListItemFactory {
-    private final BtcWalletService btcWalletService;
+    private final XmrWalletService xmrWalletService;
     private final BsqWalletService bsqWalletService;
     private final DaoFacade daoFacade;
     private final CoinFormatter formatter;
     private final Preferences preferences;
 
     @Inject
-    TransactionListItemFactory(BtcWalletService btcWalletService,
+    TransactionListItemFactory(XmrWalletService xmrWalletService,
                                BsqWalletService bsqWalletService,
                                DaoFacade daoFacade,
                                @Named(FormattingUtils.BTC_FORMATTER_KEY) CoinFormatter formatter,
                                Preferences preferences) {
-        this.btcWalletService = btcWalletService;
+        this.xmrWalletService = xmrWalletService;
         this.bsqWalletService = bsqWalletService;
         this.daoFacade = daoFacade;
         this.formatter = formatter;
         this.preferences = preferences;
     }
 
-    TransactionsListItem create(Transaction transaction, @Nullable TransactionAwareTradable tradable) {
+    TransactionsListItem create(MoneroTxWallet transaction, @Nullable TransactionAwareTradable tradable) {
         return new TransactionsListItem(transaction,
-                btcWalletService,
+                xmrWalletService,
                 bsqWalletService,
                 tradable,
                 daoFacade,

@@ -146,8 +146,8 @@ public class FailedTradesView extends ActivatableViewAndModel<VBox, FailedTrades
     private String checkTxs() {
         Trade trade = sortedList.get(tableView.getSelectionModel().getFocusedIndex()).getTrade();
         log.info("Initiated unfail of trade {}", trade.getId());
-        if (trade.getDepositTx() == null) {
-            log.info("Check unfail found no depositTx for trade {}", trade.getId());
+        if (trade.getMakerDepositTx() == null || trade.getTakerDepositTx() == null) {
+            log.info("Check unfail found no deposit tx(s) for trade {}", trade.getId());
             return Res.get("portfolio.failed.depositTxNull");
         }
         if (trade.getDelayedPayoutTxBytes() == null) {

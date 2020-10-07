@@ -17,6 +17,40 @@
 
 package bisq.core.account.witness;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
+import java.security.PublicKey;
+import java.util.Arrays;
+import java.util.Date;
+import java.util.GregorianCalendar;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Random;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
+import javax.annotation.Nullable;
+import javax.inject.Inject;
+
+import org.bitcoinj.core.Coin;
+import org.bitcoinj.core.ECKey;
+import org.bitcoinj.core.Utils;
+
+import com.google.common.annotations.VisibleForTesting;
+
+import bisq.common.UserThread;
+import bisq.common.crypto.CryptoException;
+import bisq.common.crypto.Hash;
+import bisq.common.crypto.KeyRing;
+import bisq.common.crypto.PubKeyRing;
+import bisq.common.crypto.Sig;
+import bisq.common.handlers.ErrorMessageHandler;
+import bisq.common.util.MathUtils;
+import bisq.common.util.Utilities;
 import bisq.core.account.sign.SignedWitnessService;
 import bisq.core.filter.FilterManager;
 import bisq.core.filter.PaymentAccountFilter;
@@ -33,54 +67,15 @@ import bisq.core.payment.payload.PaymentMethod;
 import bisq.core.support.dispute.Dispute;
 import bisq.core.support.dispute.DisputeResult;
 import bisq.core.support.dispute.arbitration.TraderDataItem;
-import bisq.core.trade.Contract;
+import bisq.core.trade.ArbitratorTrade;
 import bisq.core.trade.Trade;
 import bisq.core.trade.protocol.TradingPeer;
 import bisq.core.user.User;
-
 import bisq.network.p2p.BootstrapListener;
 import bisq.network.p2p.P2PService;
 import bisq.network.p2p.storage.P2PDataStorage;
 import bisq.network.p2p.storage.persistence.AppendOnlyDataStoreService;
-
-import bisq.common.UserThread;
-import bisq.common.crypto.CryptoException;
-import bisq.common.crypto.Hash;
-import bisq.common.crypto.KeyRing;
-import bisq.common.crypto.PubKeyRing;
-import bisq.common.crypto.Sig;
-import bisq.common.handlers.ErrorMessageHandler;
-import bisq.common.util.MathUtils;
-import bisq.common.util.Utilities;
-
-import org.bitcoinj.core.Coin;
-import org.bitcoinj.core.ECKey;
-import org.bitcoinj.core.Utils;
-
-import javax.inject.Inject;
-
-import com.google.common.annotations.VisibleForTesting;
-
-import java.security.PublicKey;
-
-import java.util.Arrays;
-import java.util.Date;
-import java.util.GregorianCalendar;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.Random;
-import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-
 import lombok.extern.slf4j.Slf4j;
-
-import javax.annotation.Nullable;
-
-import static com.google.common.base.Preconditions.checkNotNull;
 
 @Slf4j
 public class AccountAgeWitnessService {
@@ -252,6 +247,7 @@ public class AccountAgeWitnessService {
     }
 
     private Optional<AccountAgeWitness> findTradePeerWitness(Trade trade) {
+        if (trade instanceof ArbitratorTrade) return Optional.empty();  // TODO (woodser): arbitrator trade has two peers
         TradingPeer tradingPeer = trade.getProcessModel().getTradingPeer();
         return (tradingPeer.getPaymentAccountPayload() == null || tradingPeer.getPubKeyRing() == null) ?
                 Optional.empty() : findWitness(tradingPeer.getPaymentAccountPayload(), tradingPeer.getPubKeyRing());
@@ -744,6 +740,7 @@ public class AccountAgeWitnessService {
     }
 
     public SignState getSignState(Trade trade) {
+        if (trade instanceof ArbitratorTrade) return SignState.UNSIGNED;  // TODO (woodser): arbitrator has two peers
         return findTradePeerWitness(trade)
                 .map(this::getSignState)
                 .orElse(SignState.UNSIGNED);

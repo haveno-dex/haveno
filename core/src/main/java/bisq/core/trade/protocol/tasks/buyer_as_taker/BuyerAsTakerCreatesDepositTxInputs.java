@@ -41,25 +41,27 @@ public class BuyerAsTakerCreatesDepositTxInputs extends TradeTask {
     protected void run() {
         try {
             runInterceptHook();
+            
+            throw new RuntimeException("Outputs not communicated in xmr integration");
 
-            // In case we pay the taker fee in bsq we reduce tx fee by that as the burned bsq satoshis goes to miners.
-            Coin bsqTakerFee = trade.isCurrencyForTakerFeeBtc() ? Coin.ZERO : trade.getTakerFee();
-
-            Coin txFee = trade.getTxFee();
-            Coin takerInputAmount = checkNotNull(trade.getOffer()).getBuyerSecurityDeposit()
-                    .add(txFee)
-                    .add(txFee)
-                    .subtract(bsqTakerFee);
-            Coin fee = txFee.subtract(bsqTakerFee);
-            InputsAndChangeOutput result = processModel.getTradeWalletService().takerCreatesDepositTxInputs(
-                    processModel.getTakeOfferFeeTx(),
-                    takerInputAmount,
-                    fee);
-            processModel.setRawTransactionInputs(result.rawTransactionInputs);
-            processModel.setChangeOutputValue(result.changeOutputValue);
-            processModel.setChangeOutputAddress(result.changeOutputAddress);
-
-            complete();
+//            // In case we pay the taker fee in bsq we reduce tx fee by that as the burned bsq satoshis goes to miners.
+//            Coin bsqTakerFee = trade.isCurrencyForTakerFeeBtc() ? Coin.ZERO : trade.getTakerFee();
+//
+//            Coin txFee = trade.getTxFee();
+//            Coin takerInputAmount = checkNotNull(trade.getOffer()).getBuyerSecurityDeposit()
+//                    .add(txFee)
+//                    .add(txFee)
+//                    .subtract(bsqTakerFee);
+//            Coin fee = txFee.subtract(bsqTakerFee);
+//            InputsAndChangeOutput result = processModel.getTradeWalletService().takerCreatesDepositTxInputs(
+//                    processModel.getTakeOfferFeeTx(),
+//                    takerInputAmount,
+//                    fee);
+//            processModel.setRawTransactionInputs(result.rawTransactionInputs);
+//            processModel.setChangeOutputValue(result.changeOutputValue);
+//            processModel.setChangeOutputAddress(result.changeOutputAddress);
+//
+//            complete();
         } catch (Throwable t) {
             failed(t);
         }

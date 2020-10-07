@@ -17,29 +17,26 @@
 
 package bisq.core.trade.protocol.tasks.taker;
 
-import bisq.core.btc.model.AddressEntry;
-import bisq.core.btc.wallet.BtcWalletService;
-import bisq.core.payment.payload.PaymentAccountPayload;
-import bisq.core.trade.Contract;
-import bisq.core.trade.SellerAsTakerTrade;
-import bisq.core.trade.Trade;
-import bisq.core.trade.protocol.TradingPeer;
-import bisq.core.trade.protocol.tasks.TradeTask;
+import static bisq.core.util.Validator.nonEmptyStringOf;
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
 
-import bisq.network.p2p.NodeAddress;
+import org.bitcoinj.core.Coin;
 
 import bisq.common.crypto.Sig;
 import bisq.common.taskrunner.TaskRunner;
 import bisq.common.util.Utilities;
-
-import org.bitcoinj.core.Coin;
-
-import java.util.Arrays;
-
+import bisq.core.btc.model.XmrAddressEntry;
+import bisq.core.btc.wallet.XmrWalletService;
+import bisq.core.payment.payload.PaymentAccountPayload;
+import bisq.core.trade.Contract;
+import bisq.core.trade.SellerAsTakerTrade;
+import bisq.core.trade.Trade;
+import bisq.core.trade.messages.MakerReadyToFundMultisigResponse;
+import bisq.core.trade.protocol.TradingPeer;
+import bisq.core.trade.protocol.tasks.TradeTask;
+import bisq.network.p2p.NodeAddress;
 import lombok.extern.slf4j.Slf4j;
-
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
 
 @Slf4j
 public class TakerVerifyAndSignContract extends TradeTask {
@@ -53,9 +50,28 @@ public class TakerVerifyAndSignContract extends TradeTask {
         try {
             runInterceptHook();
 
-            checkNotNull(trade.getTakerFeeTxId(), "TakeOfferFeeTxId must not be null");
-
+            //checkNotNull(trade.getTakerFeeTxId(), "TakeOfferFeeTxId must not be null"); // TODO (woodser): take offer fee tx id removed from contract
+            
             TradingPeer maker = processModel.getTradingPeer();
+
+            // collect maker info from response
+            // TODO (woodser): this is not right place to collect maker contract info
+            MakerReadyToFundMultisigResponse response = (MakerReadyToFundMultisigResponse) processModel.getTradeMessage();
+            System.out.println("Ready to fund response payout address: " + response.getMakerPayoutAddressString());
+            System.out.println("Ready to fund response account id: " + response.getMakerAccountId());
+            maker.setPaymentAccountPayload(response.getMakerPaymentAccountPayload());
+            System.out.println("MAKER PAYOUT ADDRESS: " + maker.getPayoutAddressString());
+            maker.setPayoutAddressString(response.getMakerPayoutAddressString());
+            System.out.println("MAKER ACCOUNT ID: " + maker.getAccountId());
+            maker.setPayoutAddressString(response.getMakerPayoutAddressString());
+            TradingPeer tradingPeer = processModel.getTradingPeer();
+            tradingPeer.setPaymentAccountPayload(checkNotNull(response.getMakerPaymentAccountPayload()));
+            tradingPeer.setAccountId(nonEmptyStringOf(response.getMakerAccountId()));
+            tradingPeer.setContractAsJson(nonEmptyStringOf(response.getMakerContractAsJson()));
+            tradingPeer.setContractSignature(nonEmptyStringOf(response.getMakerContractSignature()));
+            tradingPeer.setPayoutAddressString(nonEmptyStringOf(response.getMakerPayoutAddressString()));
+            tradingPeer.setCurrentDate(response.getCurrentDate());
+
             PaymentAccountPayload makerPaymentAccountPayload = checkNotNull(maker.getPaymentAccountPayload());
             PaymentAccountPayload takerPaymentAccountPayload = checkNotNull(processModel.getPaymentAccountPayload(trade));
 
@@ -66,15 +82,17 @@ public class TakerVerifyAndSignContract extends TradeTask {
             log.debug("buyerAddress " + buyerNodeAddress);
             log.debug("sellerAddress " + sellerNodeAddress);
 
-            BtcWalletService walletService = processModel.getBtcWalletService();
+            XmrWalletService walletService = processModel.getXmrWalletService();
             String id = processModel.getOffer().getId();
-            AddressEntry takerPayoutAddressEntry = walletService.getOrCreateAddressEntry(id, AddressEntry.Context.TRADE_PAYOUT);
+            XmrAddressEntry takerPayoutAddressEntry = walletService.getOrCreateAddressEntry(id, XmrAddressEntry.Context.TRADE_PAYOUT);
             String takerPayoutAddressString = takerPayoutAddressEntry.getAddressString();
-            AddressEntry takerMultiSigAddressEntry = walletService.getOrCreateAddressEntry(id, AddressEntry.Context.MULTI_SIG);
-            byte[] takerMultiSigPubKey = processModel.getMyMultiSigPubKey();
-            checkArgument(Arrays.equals(takerMultiSigPubKey,
-                    takerMultiSigAddressEntry.getPubKey()),
-                    "takerMultiSigPubKey from AddressEntry must match the one from the trade data. trade id =" + id);
+            
+            // TODO (woodser): xmr not using pub key ring for multisig address verification, needed?
+//            AddressEntry takerMultiSigAddressEntry = walletService.getOrCreateAddressEntry(id, AddressEntry.Context.MULTI_SIG);
+//            byte[] takerMultiSigPubKey = processModel.getMyMultiSigPubKey();
+//            checkArgument(Arrays.equals(takerMultiSigPubKey,
+//                    takerMultiSigAddressEntry.getPubKey()),
+//                    "takerMultiSigPubKey from AddressEntry must match the one from the trade data. trade id =" + id);
 
             final Coin tradeAmount = trade.getTradeAmount();
             checkNotNull(tradeAmount, "tradeAmount must not be null");
@@ -82,10 +100,10 @@ public class TakerVerifyAndSignContract extends TradeTask {
                     processModel.getOffer().getOfferPayload(),
                     tradeAmount.value,
                     trade.getTradePrice().getValue(),
-                    trade.getTakerFeeTxId(),
+                    //trade.getTakerFeeTxId(),
                     buyerNodeAddress,
                     sellerNodeAddress,
-                    trade.getMediatorNodeAddress(),
+                    trade.getArbitratorNodeAddress(), // TODO (woodser): updated from mediator, update and use rest of TakerVerifyAndSignContract
                     isBuyerMakerAndSellerTaker,
                     maker.getAccountId(),
                     processModel.getAccountId(),
@@ -95,10 +113,7 @@ public class TakerVerifyAndSignContract extends TradeTask {
                     processModel.getPubKeyRing(),
                     maker.getPayoutAddressString(),
                     takerPayoutAddressString,
-                    maker.getMultiSigPubKey(),
-                    takerMultiSigPubKey,
-                    trade.getLockTime(),
-                    trade.getRefundAgentNodeAddress()
+                    0
             );
             String contractAsJson = Utilities.objectToJson(contract);
             log.trace("Contract as json:{}", contractAsJson);

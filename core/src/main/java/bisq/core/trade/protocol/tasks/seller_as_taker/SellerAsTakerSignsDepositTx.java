@@ -51,45 +51,46 @@ public class SellerAsTakerSignsDepositTx extends TradeTask {
     protected void run() {
         try {
             runInterceptHook();
-            log.debug("\n\n------------------------------------------------------------\n"
-                    + "Contract as json\n"
-                    + trade.getContractAsJson()
-                    + "\n------------------------------------------------------------\n");
-
-            byte[] contractHash = Hash.getSha256Hash(checkNotNull(trade.getContractAsJson()));
-            trade.setContractHash(contractHash);
-
-            List<RawTransactionInput> sellerInputs = checkNotNull(processModel.getRawTransactionInputs(), "sellerInputs must not be null");
-            BtcWalletService walletService = processModel.getBtcWalletService();
-            String id = processModel.getOffer().getId();
-
-            Optional<AddressEntry> addressEntryOptional = walletService.getAddressEntry(id, AddressEntry.Context.MULTI_SIG);
-            checkArgument(addressEntryOptional.isPresent(), "addressEntryOptional must be present");
-            AddressEntry sellerMultiSigAddressEntry = addressEntryOptional.get();
-            byte[] sellerMultiSigPubKey = processModel.getMyMultiSigPubKey();
-            checkArgument(Arrays.equals(sellerMultiSigPubKey,
-                    sellerMultiSigAddressEntry.getPubKey()),
-                    "sellerMultiSigPubKey from AddressEntry must match the one from the trade data. trade id =" + id);
-
-            Coin sellerInput = Coin.valueOf(sellerInputs.stream().mapToLong(input -> input.value).sum());
-
-            sellerMultiSigAddressEntry.setCoinLockedInMultiSig(sellerInput.subtract(trade.getTxFee().multiply(2)));
-            walletService.saveAddressEntryList();
-
-            TradingPeer tradingPeer = processModel.getTradingPeer();
-
-            Transaction depositTx = processModel.getTradeWalletService().takerSignsDepositTx(
-                    true,
-                    contractHash,
-                    processModel.getPreparedDepositTx(),
-                    checkNotNull(tradingPeer.getRawTransactionInputs()),
-                    sellerInputs,
-                    tradingPeer.getMultiSigPubKey(),
-                    sellerMultiSigPubKey);
-
-            trade.applyDepositTx(depositTx);
-
-            complete();
+            throw new RuntimeException("SellerAsTakerSignsDepositTx not implemented for xmr");
+//            log.debug("\n\n------------------------------------------------------------\n"
+//                    + "Contract as json\n"
+//                    + trade.getContractAsJson()
+//                    + "\n------------------------------------------------------------\n");
+//
+//            byte[] contractHash = Hash.getSha256Hash(checkNotNull(trade.getContractAsJson()));
+//            trade.setContractHash(contractHash);
+//
+//            List<RawTransactionInput> sellerInputs = checkNotNull(processModel.getRawTransactionInputs(), "sellerInputs must not be null");
+//            BtcWalletService walletService = processModel.getBtcWalletService();
+//            String id = processModel.getOffer().getId();
+//
+//            Optional<AddressEntry> addressEntryOptional = walletService.getAddressEntry(id, AddressEntry.Context.MULTI_SIG);
+//            checkArgument(addressEntryOptional.isPresent(), "addressEntryOptional must be present");
+//            AddressEntry sellerMultiSigAddressEntry = addressEntryOptional.get();
+//            byte[] sellerMultiSigPubKey = processModel.getMyMultiSigPubKey();
+//            checkArgument(Arrays.equals(sellerMultiSigPubKey,
+//                    sellerMultiSigAddressEntry.getPubKey()),
+//                    "sellerMultiSigPubKey from AddressEntry must match the one from the trade data. trade id =" + id);
+//
+//            Coin sellerInput = Coin.valueOf(sellerInputs.stream().mapToLong(input -> input.value).sum());
+//
+//            sellerMultiSigAddressEntry.setCoinLockedInMultiSig(sellerInput.subtract(trade.getTxFee().multiply(2)));
+//            walletService.saveAddressEntryList();
+//
+//            TradingPeer tradingPeer = processModel.getTradingPeer();
+//
+//            Transaction depositTx = processModel.getTradeWalletService().takerSignsDepositTx(
+//                    true,
+//                    contractHash,
+//                    processModel.getPreparedDepositTx(),
+//                    checkNotNull(tradingPeer.getRawTransactionInputs()),
+//                    sellerInputs,
+//                    tradingPeer.getMultiSigPubKey(),
+//                    sellerMultiSigPubKey);
+//
+//            trade.applyDepositTx(depositTx);
+//
+//            complete();
         } catch (Throwable t) {
             Contract contract = trade.getContract();
             if (contract != null)

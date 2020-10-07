@@ -17,18 +17,27 @@
 
 package bisq.desktop.main.offer.takeoffer;
 
-import bisq.desktop.Navigation;
-import bisq.desktop.main.offer.OfferDataModel;
-import bisq.desktop.main.overlays.popups.Popup;
-import bisq.desktop.util.GUIUtil;
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
 
+import java.math.BigInteger;
+import java.util.Set;
+
+import javax.annotation.Nullable;
+
+import org.bitcoinj.core.Coin;
+import org.jetbrains.annotations.NotNull;
+
+import com.google.inject.Inject;
+
+import bisq.common.util.Tuple2;
 import bisq.core.account.witness.AccountAgeWitnessService;
 import bisq.core.btc.TxFeeEstimationService;
-import bisq.core.btc.listeners.BalanceListener;
-import bisq.core.btc.model.AddressEntry;
+import bisq.core.btc.listeners.XmrBalanceListener;
+import bisq.core.btc.model.XmrAddressEntry;
 import bisq.core.btc.wallet.BsqWalletService;
-import bisq.core.btc.wallet.BtcWalletService;
 import bisq.core.btc.wallet.Restrictions;
+import bisq.core.btc.wallet.XmrWalletService;
 import bisq.core.filter.FilterManager;
 import bisq.core.locale.CurrencyUtil;
 import bisq.core.locale.Res;
@@ -48,31 +57,16 @@ import bisq.core.trade.handlers.TradeResultHandler;
 import bisq.core.user.Preferences;
 import bisq.core.user.User;
 import bisq.core.util.coin.CoinUtil;
-
+import bisq.desktop.Navigation;
+import bisq.desktop.main.offer.OfferDataModel;
+import bisq.desktop.main.overlays.popups.Popup;
+import bisq.desktop.util.GUIUtil;
 import bisq.network.p2p.P2PService;
-
-import bisq.common.util.Tuple2;
-
-import org.bitcoinj.core.Coin;
-import org.bitcoinj.core.Transaction;
-import org.bitcoinj.wallet.Wallet;
-
-import com.google.inject.Inject;
-
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.ReadOnlyObjectProperty;
 import javafx.beans.property.SimpleObjectProperty;
-
 import javafx.collections.ObservableList;
-
-import java.util.Set;
-
-import org.jetbrains.annotations.NotNull;
-
-import javax.annotation.Nullable;
-
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
+import monero.wallet.model.MoneroOutputWallet;
 
 /**
  * Domain for that UI element.
@@ -103,7 +97,7 @@ class TakeOfferDataModel extends OfferDataModel {
     private final ObjectProperty<Coin> amount = new SimpleObjectProperty<>();
     final ObjectProperty<Volume> volume = new SimpleObjectProperty<>();
 
-    private BalanceListener balanceListener;
+    private XmrBalanceListener balanceListener;
     private PaymentAccount paymentAccount;
     private boolean isTabSelected;
     Price tradePrice;
@@ -120,7 +114,7 @@ class TakeOfferDataModel extends OfferDataModel {
 
     @Inject
     TakeOfferDataModel(TradeManager tradeManager,
-                       BtcWalletService btcWalletService,
+                       XmrWalletService xmrWalletService,
                        BsqWalletService bsqWalletService,
                        User user, FeeService feeService,
                        FilterManager filterManager,
@@ -131,7 +125,7 @@ class TakeOfferDataModel extends OfferDataModel {
                        Navigation navigation,
                        P2PService p2PService
     ) {
-        super(btcWalletService);
+        super(xmrWalletService);
 
         this.tradeManager = tradeManager;
         this.bsqWalletService = bsqWalletService;
@@ -188,7 +182,7 @@ class TakeOfferDataModel extends OfferDataModel {
     void initWithData(Offer offer) {
         this.offer = offer;
         tradePrice = offer.getPrice();
-        addressEntry = btcWalletService.getOrCreateAddressEntry(offer.getId(), AddressEntry.Context.OFFER_FUNDING);
+        addressEntry = xmrWalletService.getOrCreateAddressEntry(offer.getId(), XmrAddressEntry.Context.OFFER_FUNDING);
         checkNotNull(addressEntry, "addressEntry must not be null");
 
         ObservableList<PaymentAccount> possiblePaymentAccounts = getPossiblePaymentAccounts();
@@ -237,36 +231,40 @@ class TakeOfferDataModel extends OfferDataModel {
         calculateVolume();
         calculateTotalToPay();
 
-        balanceListener = new BalanceListener(addressEntry.getAddress()) {
+        balanceListener = new XmrBalanceListener(addressEntry.getAccountIndex()) {
             @Override
-            public void onBalanceChanged(Coin balance, Transaction tx) {
-                updateBalance();
-
-                /*if (isMainNet.get()) {
-                    SettableFuture<Coin> future = blockchainService.requestFee(tx.getHashAsString());
-                    Futures.addCallback(future, new FutureCallback<Coin>() {
-                        public void onSuccess(Coin fee) {
-                            UserThread.execute(() -> setFeeFromFundingTx(fee));
-                        }
-
-                        public void onFailure(@NotNull Throwable throwable) {
-                            UserThread.execute(() -> new Popup<>()
-                                    .warning("We did not get a response for the request of the mining fee used " +
-                                            "in the funding transaction.\n\n" +
-                                            "Are you sure you used a sufficiently high fee of at least " +
-                                            formatter.formatCoinWithCode(FeePolicy.getMinRequiredFeeForFundingTx()) + "?")
-                                    .actionButtonText("Yes, I used a sufficiently high fee.")
-                                    .onAction(() -> setFeeFromFundingTx(FeePolicy.getMinRequiredFeeForFundingTx()))
-                                    .closeButtonText("No. Let's cancel that payment.")
-                                    .onClose(() -> setFeeFromFundingTx(Coin.NEGATIVE_SATOSHI))
-                                    .show());
-                        }
-                    });
-                } else {
-                    setFeeFromFundingTx(FeePolicy.getMinRequiredFeeForFundingTx());
-                    isFeeFromFundingTxSufficient.set(feeFromFundingTx.compareTo(FeePolicy.getMinRequiredFeeForFundingTx()) >= 0);
-                }*/
+            public void onBalanceChanged(BigInteger balance) {
+              updateBalance();
             }
+            
+//            public void onBalanceChanged(Coin balance, Transaction tx) {
+//                updateBalance();
+//
+//                /*if (isMainNet.get()) {
+//                    SettableFuture<Coin> future = blockchainService.requestFee(tx.getHashAsString());
+//                    Futures.addCallback(future, new FutureCallback<Coin>() {
+//                        public void onSuccess(Coin fee) {
+//                            UserThread.execute(() -> setFeeFromFundingTx(fee));
+//                        }
+//
+//                        public void onFailure(@NotNull Throwable throwable) {
+//                            UserThread.execute(() -> new Popup<>()
+//                                    .warning("We did not get a response for the request of the mining fee used " +
+//                                            "in the funding transaction.\n\n" +
+//                                            "Are you sure you used a sufficiently high fee of at least " +
+//                                            formatter.formatCoinWithCode(FeePolicy.getMinRequiredFeeForFundingTx()) + "?")
+//                                    .actionButtonText("Yes, I used a sufficiently high fee.")
+//                                    .onAction(() -> setFeeFromFundingTx(FeePolicy.getMinRequiredFeeForFundingTx()))
+//                                    .closeButtonText("No. Let's cancel that payment.")
+//                                    .onClose(() -> setFeeFromFundingTx(Coin.NEGATIVE_SATOSHI))
+//                                    .show());
+//                        }
+//                    });
+//                } else {
+//                    setFeeFromFundingTx(FeePolicy.getMinRequiredFeeForFundingTx());
+//                    isFeeFromFundingTxSufficient.set(feeFromFundingTx.compareTo(FeePolicy.getMinRequiredFeeForFundingTx()) >= 0);
+//                }*/
+//            }
         };
 
         offer.resetState();
@@ -288,7 +286,7 @@ class TakeOfferDataModel extends OfferDataModel {
     }
 
     public void onClose() {
-        btcWalletService.resetAddressEntriesForOpenOffer(offer.getId());
+        //xmrWalletService.resetAddressEntriesForOpenOffer(offer.getId());  // TODO (woodser): this removes address entries for reserved trades before completion.  how doesn't this delete the multisig address entry in bisq before completion?
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -319,7 +317,6 @@ class TakeOfferDataModel extends OfferDataModel {
             tradeManager.onTakeOffer(amount.get(),
                     txFeeFromFeeService,
                     getTakerFee(),
-                    isCurrencyForTakerFeeBtc(),
                     tradePrice.getValue(),
                     fundsNeededForTrade,
                     offer,
@@ -346,7 +343,7 @@ class TakeOfferDataModel extends OfferDataModel {
     // So that would require more thoughts how to deal with all those cases.
     public void estimateTxSize() {
         int txSize = 0;
-        if (btcWalletService.getBalance(Wallet.BalanceType.AVAILABLE).isPositive()) {
+        if (xmrWalletService.getWallet().getUnlockedBalance(0).compareTo(new BigInteger("0")) > 0) {
             Coin fundsNeededForTrade = getFundsNeededForTrade();
             if (isBuyOffer())
                 fundsNeededForTrade = fundsNeededForTrade.add(amount.get());
@@ -452,11 +449,11 @@ class TakeOfferDataModel extends OfferDataModel {
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     private void addListeners() {
-        btcWalletService.addBalanceListener(balanceListener);
+        xmrWalletService.addBalanceListener(balanceListener);
     }
 
     private void removeListeners() {
-        btcWalletService.removeBalanceListener(balanceListener);
+        xmrWalletService.removeBalanceListener(balanceListener);
     }
 
 
@@ -529,7 +526,7 @@ class TakeOfferDataModel extends OfferDataModel {
 
     public void swapTradeToSavings() {
         log.debug("swapTradeToSavings, offerId={}", offer.getId());
-        btcWalletService.resetAddressEntriesForOpenOffer(offer.getId());
+        xmrWalletService.resetAddressEntriesForOpenOffer(offer.getId());
     }
 
     // We use the sum of the size of the trade fee and the deposit tx to get an average.
@@ -623,7 +620,7 @@ class TakeOfferDataModel extends OfferDataModel {
         return txFeeFromFeeService; //feeService.getTxFee(380);
     }
 
-    public AddressEntry getAddressEntry() {
+    public XmrAddressEntry getAddressEntry() {
         return addressEntry;
     }
 

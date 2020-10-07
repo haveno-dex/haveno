@@ -102,6 +102,9 @@ public final class Dispute implements NetworkPayload {
     @Setter
     @Nullable
     private String delayedPayoutTxId;
+    
+    // Added for XMR integration
+    private boolean isOpener;
 
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -111,6 +114,7 @@ public final class Dispute implements NetworkPayload {
     public Dispute(Storage<? extends DisputeList> storage,
                    String tradeId,
                    int traderId,
+                   boolean isOpener,
                    boolean disputeOpenerIsBuyer,
                    boolean disputeOpenerIsMaker,
                    PubKeyRing traderPubKeyRing,
@@ -129,6 +133,7 @@ public final class Dispute implements NetworkPayload {
                    SupportType supportType) {
         this(tradeId,
                 traderId,
+                isOpener,
                 disputeOpenerIsBuyer,
                 disputeOpenerIsMaker,
                 traderPubKeyRing,
@@ -156,6 +161,7 @@ public final class Dispute implements NetworkPayload {
 
     public Dispute(String tradeId,
                    int traderId,
+                   boolean isOpener,
                    boolean disputeOpenerIsBuyer,
                    boolean disputeOpenerIsMaker,
                    PubKeyRing traderPubKeyRing,
@@ -174,6 +180,7 @@ public final class Dispute implements NetworkPayload {
                    SupportType supportType) {
         this.tradeId = tradeId;
         this.traderId = traderId;
+        this.isOpener = isOpener;
         this.disputeOpenerIsBuyer = disputeOpenerIsBuyer;
         this.disputeOpenerIsMaker = disputeOpenerIsMaker;
         this.traderPubKeyRing = traderPubKeyRing;
@@ -201,6 +208,7 @@ public final class Dispute implements NetworkPayload {
         protobuf.Dispute.Builder builder = protobuf.Dispute.newBuilder()
                 .setTradeId(tradeId)
                 .setTraderId(traderId)
+                .setIsOpener(isOpener)
                 .setDisputeOpenerIsBuyer(disputeOpenerIsBuyer)
                 .setDisputeOpenerIsMaker(disputeOpenerIsMaker)
                 .setTraderPubKeyRing(traderPubKeyRing.toProtoMessage())
@@ -234,6 +242,7 @@ public final class Dispute implements NetworkPayload {
     public static Dispute fromProto(protobuf.Dispute proto, CoreProtoResolver coreProtoResolver) {
         Dispute dispute = new Dispute(proto.getTradeId(),
                 proto.getTraderId(),
+                proto.getIsOpener(),
                 proto.getDisputeOpenerIsBuyer(),
                 proto.getDisputeOpenerIsMaker(),
                 PubKeyRing.fromProto(proto.getTraderPubKeyRing()),
@@ -288,6 +297,9 @@ public final class Dispute implements NetworkPayload {
         }
     }
 
+    public boolean isMediationDispute() {
+        return !chatMessages.isEmpty() && chatMessages.get(0).getSupportType() == SupportType.MEDIATION;
+    }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Setters
@@ -358,6 +370,7 @@ public final class Dispute implements NetworkPayload {
                 "\n     tradeId='" + tradeId + '\'' +
                 ",\n     id='" + id + '\'' +
                 ",\n     traderId=" + traderId +
+                ",\n     isOpener=" + isOpener +
                 ",\n     disputeOpenerIsBuyer=" + disputeOpenerIsBuyer +
                 ",\n     disputeOpenerIsMaker=" + disputeOpenerIsMaker +
                 ",\n     traderPubKeyRing=" + traderPubKeyRing +

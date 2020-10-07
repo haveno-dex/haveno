@@ -45,7 +45,7 @@ public class PublishTradeStatistics extends TradeTask {
     protected void run() {
         try {
             runInterceptHook();
-            if (trade.getDepositTx() != null) {
+            if (trade.getMakerDepositTx() != null && trade.getTakerDepositTx() != null) {
                 Map<String, String> extraDataMap = new HashMap<>();
                 if (processModel.getReferralIdService().getOptionalReferralId().isPresent()) {
                     extraDataMap.put(OfferPayload.REFERRAL_ID, processModel.getReferralIdService().getOptionalReferralId().get());
@@ -70,7 +70,8 @@ public class PublishTradeStatistics extends TradeTask {
                         trade.getTradePrice(),
                         trade.getTradeAmount(),
                         trade.getDate(),
-                        trade.getDepositTxId(),
+                        trade.getMakerDepositTxId(),
+                        trade.getTakerDepositTxId(),
                         extraDataMap);
                 processModel.getP2PService().addPersistableNetworkPayload(tradeStatistics, true);
             }

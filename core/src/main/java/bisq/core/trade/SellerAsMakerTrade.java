@@ -17,23 +17,22 @@
 
 package bisq.core.trade;
 
-import bisq.core.btc.wallet.BtcWalletService;
-import bisq.core.offer.Offer;
-import bisq.core.proto.CoreProtoResolver;
-import bisq.core.trade.messages.InputsForDepositTxRequest;
-import bisq.core.trade.protocol.MakerProtocol;
-import bisq.core.trade.protocol.SellerAsMakerProtocol;
-
-import bisq.network.p2p.NodeAddress;
-
-import bisq.common.handlers.ErrorMessageHandler;
-import bisq.common.storage.Storage;
+import javax.annotation.Nullable;
 
 import org.bitcoinj.core.Coin;
 
+import bisq.common.handlers.ErrorMessageHandler;
+import bisq.common.storage.Storage;
+import bisq.core.btc.wallet.XmrWalletService;
+import bisq.core.offer.Offer;
+import bisq.core.proto.CoreProtoResolver;
+import bisq.core.trade.messages.InitTradeRequest;
+import bisq.core.trade.messages.InputsForDepositTxRequest;
+import bisq.core.trade.messages.MakerReadyToFundMultisigRequest;
+import bisq.core.trade.protocol.MakerProtocol;
+import bisq.core.trade.protocol.SellerAsMakerProtocol;
+import bisq.network.p2p.NodeAddress;
 import lombok.extern.slf4j.Slf4j;
-
-import javax.annotation.Nullable;
 
 @Slf4j
 public final class SellerAsMakerTrade extends SellerTrade implements MakerTrade {
@@ -45,21 +44,19 @@ public final class SellerAsMakerTrade extends SellerTrade implements MakerTrade 
     public SellerAsMakerTrade(Offer offer,
                               Coin txFee,
                               Coin takerFee,
-                              boolean isCurrencyForTakerFeeBtc,
+                              @Nullable NodeAddress makerNodeAddress,
+                              @Nullable NodeAddress takerNodeAddress,
                               @Nullable NodeAddress arbitratorNodeAddress,
-                              @Nullable NodeAddress mediatorNodeAddress,
-                              @Nullable NodeAddress refundAgentNodeAddress,
                               Storage<? extends TradableList> storage,
-                              BtcWalletService btcWalletService) {
+                              XmrWalletService xmrWalletService) {
         super(offer,
                 txFee,
                 takerFee,
-                isCurrencyForTakerFeeBtc,
+                makerNodeAddress,
+                takerNodeAddress,
                 arbitratorNodeAddress,
-                mediatorNodeAddress,
-                refundAgentNodeAddress,
                 storage,
-                btcWalletService);
+                xmrWalletService);
     }
 
 
@@ -77,23 +74,21 @@ public final class SellerAsMakerTrade extends SellerTrade implements MakerTrade 
 
     public static Tradable fromProto(protobuf.SellerAsMakerTrade sellerAsMakerTradeProto,
                                      Storage<? extends TradableList> storage,
-                                     BtcWalletService btcWalletService,
+                                     XmrWalletService xmrWalletService,
                                      CoreProtoResolver coreProtoResolver) {
         protobuf.Trade proto = sellerAsMakerTradeProto.getTrade();
         SellerAsMakerTrade trade = new SellerAsMakerTrade(
                 Offer.fromProto(proto.getOffer()),
                 Coin.valueOf(proto.getTxFeeAsLong()),
                 Coin.valueOf(proto.getTakerFeeAsLong()),
-                proto.getIsCurrencyForTakerFeeBtc(),
+                proto.hasMakerNodeAddress() ? NodeAddress.fromProto(proto.getMakerNodeAddress()) : null,
+                proto.hasTakerNodeAddress() ? NodeAddress.fromProto(proto.getTakerNodeAddress()) : null,
                 proto.hasArbitratorNodeAddress() ? NodeAddress.fromProto(proto.getArbitratorNodeAddress()) : null,
-                proto.hasMediatorNodeAddress() ? NodeAddress.fromProto(proto.getMediatorNodeAddress()) : null,
-                proto.hasRefundAgentNodeAddress() ? NodeAddress.fromProto(proto.getRefundAgentNodeAddress()) : null,
                 storage,
-                btcWalletService);
+                xmrWalletService);
 
         trade.setTradeAmountAsLong(proto.getTradeAmountAsLong());
         trade.setTradePrice(proto.getTradePrice());
-        trade.setTradingPeerNodeAddress(proto.hasTradingPeerNodeAddress() ? NodeAddress.fromProto(proto.getTradingPeerNodeAddress()) : null);
 
         return fromProto(trade,
                 proto,
@@ -108,6 +103,11 @@ public final class SellerAsMakerTrade extends SellerTrade implements MakerTrade 
     @Override
     protected void createTradeProtocol() {
         tradeProtocol = new SellerAsMakerProtocol(this);
+    }
+    
+    @Override
+    public void handleInitTradeRequest(InitTradeRequest message, NodeAddress taker, ErrorMessageHandler errorMessageHandler) {
+      ((MakerProtocol) tradeProtocol).handleInitTradeRequest(message, taker, errorMessageHandler);
     }
 
     @Override

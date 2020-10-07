@@ -1074,9 +1074,10 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
 
     @NotNull
     private String getBitcoinURI() {
-        return GUIUtil.getBitcoinURI(model.dataModel.getAddressEntry().getAddressString(),
-                model.dataModel.getMissingCoin().get(),
-                model.getPaymentLabel());
+        return "TODO";
+//        return GUIUtil.getBitcoinURI(model.dataModel.getAddressEntry().getAddressString(),
+//                model.dataModel.getMissingCoin().get(),
+//                model.getPaymentLabel());
     }
 
     private void addAmountPriceFields() {

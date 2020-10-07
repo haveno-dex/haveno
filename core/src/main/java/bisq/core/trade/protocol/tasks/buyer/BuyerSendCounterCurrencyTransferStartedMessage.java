@@ -17,19 +17,16 @@
 
 package bisq.core.trade.protocol.tasks.buyer;
 
-import bisq.core.btc.model.AddressEntry;
-import bisq.core.btc.wallet.BtcWalletService;
+import java.util.UUID;
+
+import bisq.common.taskrunner.TaskRunner;
+import bisq.core.btc.model.XmrAddressEntry;
+import bisq.core.btc.wallet.XmrWalletService;
 import bisq.core.trade.Trade;
 import bisq.core.trade.messages.CounterCurrencyTransferStartedMessage;
 import bisq.core.trade.protocol.tasks.TradeTask;
-
 import bisq.network.p2p.NodeAddress;
 import bisq.network.p2p.SendMailboxMessageListener;
-
-import bisq.common.taskrunner.TaskRunner;
-
-import java.util.UUID;
-
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -44,15 +41,22 @@ public class BuyerSendCounterCurrencyTransferStartedMessage extends TradeTask {
         try {
             runInterceptHook();
 
-            BtcWalletService walletService = processModel.getBtcWalletService();
+            // gather relevant info
+            XmrWalletService walletService = processModel.getXmrWalletService();
             final String id = processModel.getOfferId();
-            AddressEntry payoutAddressEntry = walletService.getOrCreateAddressEntry(id,
-                    AddressEntry.Context.TRADE_PAYOUT);
+            XmrAddressEntry payoutAddressEntry = walletService.getOrCreateAddressEntry(id, XmrAddressEntry.Context.TRADE_PAYOUT);
+            String payoutTxHex = processModel.getBuyerSignedPayoutTx().getTxSet().getMultisigTxHex();
+            
+            System.out.println("TRADE COUNTER CURRENCY TX ID: " + trade.getCounterCurrencyTxId());
+            System.out.println("PAYOUT TX SIGNATURE: " + processModel.getPayoutTxSignature());
+            System.out.println("BUYER PAYOUT ADDRESS: " + payoutAddressEntry.getAddressString());
+            
+            // send message to peer to indicate payment has been made which includes the buyer-signed payout tx hex
             final CounterCurrencyTransferStartedMessage message = new CounterCurrencyTransferStartedMessage(
                     id,
                     payoutAddressEntry.getAddressString(),
                     processModel.getMyNodeAddress(),
-                    processModel.getPayoutTxSignature(),
+                    payoutTxHex,
                     trade.getCounterCurrencyTxId(),
                     UUID.randomUUID().toString()
             );

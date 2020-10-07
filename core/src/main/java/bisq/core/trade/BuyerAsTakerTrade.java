@@ -17,23 +17,21 @@
 
 package bisq.core.trade;
 
-import bisq.core.btc.wallet.BtcWalletService;
+import static com.google.common.base.Preconditions.checkArgument;
+
+import javax.annotation.Nullable;
+
+import org.bitcoinj.core.Coin;
+
+import bisq.common.handlers.ResultHandler;
+import bisq.common.storage.Storage;
+import bisq.core.btc.wallet.XmrWalletService;
 import bisq.core.offer.Offer;
 import bisq.core.proto.CoreProtoResolver;
 import bisq.core.trade.protocol.BuyerAsTakerProtocol;
 import bisq.core.trade.protocol.TakerProtocol;
-
 import bisq.network.p2p.NodeAddress;
-
-import bisq.common.storage.Storage;
-
-import org.bitcoinj.core.Coin;
-
 import lombok.extern.slf4j.Slf4j;
-
-import javax.annotation.Nullable;
-
-import static com.google.common.base.Preconditions.checkArgument;
 
 @Slf4j
 public final class BuyerAsTakerTrade extends BuyerTrade implements TakerTrade {
@@ -46,26 +44,22 @@ public final class BuyerAsTakerTrade extends BuyerTrade implements TakerTrade {
                              Coin tradeAmount,
                              Coin txFee,
                              Coin takerFee,
-                             boolean isCurrencyForTakerFeeBtc,
                              long tradePrice,
-                             NodeAddress tradingPeerNodeAddress,
+                             @Nullable NodeAddress makerNodeAddress,
+                             @Nullable NodeAddress takerNodeAddress,
                              @Nullable NodeAddress arbitratorNodeAddress,
-                             @Nullable NodeAddress mediatorNodeAddress,
-                             @Nullable NodeAddress refundAgentNodeAddress,
                              Storage<? extends TradableList> storage,
-                             BtcWalletService btcWalletService) {
+                             XmrWalletService xmrWalletService) {
         super(offer,
                 tradeAmount,
                 txFee,
                 takerFee,
-                isCurrencyForTakerFeeBtc,
                 tradePrice,
-                tradingPeerNodeAddress,
+                makerNodeAddress,
+                takerNodeAddress,
                 arbitratorNodeAddress,
-                mediatorNodeAddress,
-                refundAgentNodeAddress,
                 storage,
-                btcWalletService);
+                xmrWalletService);
     }
 
 
@@ -83,7 +77,7 @@ public final class BuyerAsTakerTrade extends BuyerTrade implements TakerTrade {
 
     public static Tradable fromProto(protobuf.BuyerAsTakerTrade buyerAsTakerTradeProto,
                                      Storage<? extends TradableList> storage,
-                                     BtcWalletService btcWalletService,
+                                     XmrWalletService xmrWalletService,
                                      CoreProtoResolver coreProtoResolver) {
         protobuf.Trade proto = buyerAsTakerTradeProto.getTrade();
         return fromProto(new BuyerAsTakerTrade(
@@ -91,14 +85,12 @@ public final class BuyerAsTakerTrade extends BuyerTrade implements TakerTrade {
                         Coin.valueOf(proto.getTradeAmountAsLong()),
                         Coin.valueOf(proto.getTxFeeAsLong()),
                         Coin.valueOf(proto.getTakerFeeAsLong()),
-                        proto.getIsCurrencyForTakerFeeBtc(),
                         proto.getTradePrice(),
-                        proto.hasTradingPeerNodeAddress() ? NodeAddress.fromProto(proto.getTradingPeerNodeAddress()) : null,
+                        proto.hasMakerNodeAddress() ? NodeAddress.fromProto(proto.getMakerNodeAddress()) : null,
+                        proto.hasTakerNodeAddress() ? NodeAddress.fromProto(proto.getTakerNodeAddress()) : null,
                         proto.hasArbitratorNodeAddress() ? NodeAddress.fromProto(proto.getArbitratorNodeAddress()) : null,
-                        proto.hasMediatorNodeAddress() ? NodeAddress.fromProto(proto.getMediatorNodeAddress()) : null,
-                        proto.hasRefundAgentNodeAddress() ? NodeAddress.fromProto(proto.getRefundAgentNodeAddress()) : null,
                         storage,
-                        btcWalletService),
+                        xmrWalletService),
                 proto,
                 coreProtoResolver);
     }
@@ -114,8 +106,8 @@ public final class BuyerAsTakerTrade extends BuyerTrade implements TakerTrade {
     }
 
     @Override
-    public void takeAvailableOffer() {
+    public void takeAvailableOffer(ResultHandler handler) {
         checkArgument(tradeProtocol instanceof TakerProtocol, "tradeProtocol NOT instanceof TakerProtocol");
-        ((TakerProtocol) tradeProtocol).takeAvailableOffer();
+        ((TakerProtocol) tradeProtocol).takeAvailableOffer(handler);
     }
 }

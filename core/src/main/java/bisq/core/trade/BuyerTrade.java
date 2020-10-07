@@ -17,24 +17,21 @@
 
 package bisq.core.trade;
 
-import bisq.core.btc.wallet.BtcWalletService;
-import bisq.core.offer.Offer;
-import bisq.core.trade.protocol.BuyerProtocol;
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
 
-import bisq.network.p2p.NodeAddress;
+import javax.annotation.Nullable;
+
+import org.bitcoinj.core.Coin;
 
 import bisq.common.handlers.ErrorMessageHandler;
 import bisq.common.handlers.ResultHandler;
 import bisq.common.storage.Storage;
-
-import org.bitcoinj.core.Coin;
-
+import bisq.core.btc.wallet.XmrWalletService;
+import bisq.core.offer.Offer;
+import bisq.core.trade.protocol.BuyerProtocol;
+import bisq.network.p2p.NodeAddress;
 import lombok.extern.slf4j.Slf4j;
-
-import javax.annotation.Nullable;
-
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
 
 @Slf4j
 public abstract class BuyerTrade extends Trade {
@@ -42,46 +39,40 @@ public abstract class BuyerTrade extends Trade {
                Coin tradeAmount,
                Coin txFee,
                Coin takerFee,
-               boolean isCurrencyForTakerFeeBtc,
                long tradePrice,
-               NodeAddress tradingPeerNodeAddress,
+               @Nullable NodeAddress takerNodeAddress,
+               @Nullable NodeAddress makerNodeAddress,
                @Nullable NodeAddress arbitratorNodeAddress,
-               @Nullable NodeAddress mediatorNodeAddress,
-               @Nullable NodeAddress refundAgentNodeAddress,
                Storage<? extends TradableList> storage,
-               BtcWalletService btcWalletService) {
+               XmrWalletService xmrWalletService) {
         super(offer,
                 tradeAmount,
                 txFee,
                 takerFee,
-                isCurrencyForTakerFeeBtc,
                 tradePrice,
-                tradingPeerNodeAddress,
+                takerNodeAddress,
+                makerNodeAddress,
                 arbitratorNodeAddress,
-                mediatorNodeAddress,
-                refundAgentNodeAddress,
                 storage,
-                btcWalletService);
+                xmrWalletService);
     }
 
     BuyerTrade(Offer offer,
                Coin txFee,
                Coin takerFee,
-               boolean isCurrencyForTakerFeeBtc,
+               @Nullable NodeAddress takerNodeAddress,
+               @Nullable NodeAddress makerNodeAddress,
                @Nullable NodeAddress arbitratorNodeAddress,
-               @Nullable NodeAddress mediatorNodeAddress,
-               @Nullable NodeAddress refundAgentNodeAddress,
                Storage<? extends TradableList> storage,
-               BtcWalletService btcWalletService) {
+               XmrWalletService xmrWalletService) {
         super(offer,
                 txFee,
                 takerFee,
-                isCurrencyForTakerFeeBtc,
+                takerNodeAddress,
+                makerNodeAddress,
                 arbitratorNodeAddress,
-                mediatorNodeAddress,
-                refundAgentNodeAddress,
                 storage,
-                btcWalletService);
+                xmrWalletService);
     }
 
     public void onFiatPaymentStarted(ResultHandler resultHandler, ErrorMessageHandler errorMessageHandler) {

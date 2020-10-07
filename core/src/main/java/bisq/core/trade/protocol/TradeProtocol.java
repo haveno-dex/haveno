@@ -17,17 +17,38 @@
 
 package bisq.core.trade.protocol;
 
+import static bisq.core.util.Validator.nonEmptyStringOf;
+import static com.google.common.base.Preconditions.checkNotNull;
+
+import java.security.PublicKey;
+
+import javax.annotation.Nullable;
+
+import bisq.common.Timer;
+import bisq.common.UserThread;
+import bisq.common.crypto.PubKeyRing;
+import bisq.common.handlers.ErrorMessageHandler;
+import bisq.common.handlers.ResultHandler;
+import bisq.common.proto.network.NetworkEnvelope;
+import bisq.core.trade.ArbitratorTrade;
 import bisq.core.trade.MakerTrade;
 import bisq.core.trade.Trade;
 import bisq.core.trade.TradeManager;
 import bisq.core.trade.messages.CounterCurrencyTransferStartedMessage;
-import bisq.core.trade.messages.InputsForDepositTxRequest;
+import bisq.core.trade.messages.DepositTxMessage;
+import bisq.core.trade.messages.InitMultisigMessage;
+import bisq.core.trade.messages.InitTradeRequest;
+import bisq.core.trade.messages.MakerReadyToFundMultisigRequest;
 import bisq.core.trade.messages.MediatedPayoutTxPublishedMessage;
 import bisq.core.trade.messages.MediatedPayoutTxSignatureMessage;
+import bisq.core.trade.messages.PayoutTxPublishedMessage;
 import bisq.core.trade.messages.PeerPublishedDelayedPayoutTxMessage;
 import bisq.core.trade.messages.TradeMessage;
+import bisq.core.trade.messages.UpdateMultisigRequest;
 import bisq.core.trade.protocol.tasks.ApplyFilter;
+import bisq.core.trade.protocol.tasks.ProcessInitMultisigMessage;
 import bisq.core.trade.protocol.tasks.ProcessPeerPublishedDelayedPayoutTxMessage;
+import bisq.core.trade.protocol.tasks.ProcessUpdateMultisigRequest;
 import bisq.core.trade.protocol.tasks.mediation.BroadcastMediatedPayoutTx;
 import bisq.core.trade.protocol.tasks.mediation.FinalizeMediatedPayoutTx;
 import bisq.core.trade.protocol.tasks.mediation.ProcessMediatedPayoutSignatureMessage;
@@ -36,7 +57,7 @@ import bisq.core.trade.protocol.tasks.mediation.SendMediatedPayoutSignatureMessa
 import bisq.core.trade.protocol.tasks.mediation.SendMediatedPayoutTxPublishedMessage;
 import bisq.core.trade.protocol.tasks.mediation.SetupMediatedPayoutTxListener;
 import bisq.core.trade.protocol.tasks.mediation.SignMediatedPayoutTx;
-
+import bisq.core.util.Validator;
 import bisq.network.p2p.AckMessage;
 import bisq.network.p2p.AckMessageSourceType;
 import bisq.network.p2p.DecryptedDirectMessageListener;
@@ -44,24 +65,8 @@ import bisq.network.p2p.DecryptedMessageWithPubKey;
 import bisq.network.p2p.MailboxMessage;
 import bisq.network.p2p.NodeAddress;
 import bisq.network.p2p.SendMailboxMessageListener;
-
-import bisq.common.Timer;
-import bisq.common.UserThread;
-import bisq.common.crypto.PubKeyRing;
-import bisq.common.handlers.ErrorMessageHandler;
-import bisq.common.handlers.ResultHandler;
-import bisq.common.proto.network.NetworkEnvelope;
-
 import javafx.beans.value.ChangeListener;
-
-import java.security.PublicKey;
-
 import lombok.extern.slf4j.Slf4j;
-
-import javax.annotation.Nullable;
-
-import static bisq.core.util.Validator.nonEmptyStringOf;
-import static com.google.common.base.Preconditions.checkNotNull;
 
 @Slf4j
 public abstract class TradeProtocol {
@@ -76,12 +81,14 @@ public abstract class TradeProtocol {
     public TradeProtocol(Trade trade) {
         this.trade = trade;
         this.processModel = trade.getProcessModel();
-
+        
         decryptedDirectMessageListener = (decryptedMessageWithPubKey, peersNodeAddress) -> {
             // We check the sig only as soon we have stored the peers pubKeyRing.
-            PubKeyRing tradingPeerPubKeyRing = processModel.getTradingPeer().getPubKeyRing();
+            PubKeyRing tradingPeerPubKeyRing = processModel.getTradingPeer() == null ? null : processModel.getTradingPeer().getPubKeyRing();
+            PubKeyRing arbitratorPubKeyRing = trade.getArbitratorPubKeyRing();
             PublicKey signaturePubKey = decryptedMessageWithPubKey.getSignaturePubKey();
-            if (tradingPeerPubKeyRing != null && signaturePubKey.equals(tradingPeerPubKeyRing.getSignaturePubKey())) {
+            if ((tradingPeerPubKeyRing != null && signaturePubKey.equals(tradingPeerPubKeyRing.getSignaturePubKey())) ||
+                (arbitratorPubKeyRing != null && signaturePubKey.equals(arbitratorPubKeyRing.getSignaturePubKey()))) {
                 NetworkEnvelope networkEnvelope = decryptedMessageWithPubKey.getNetworkEnvelope();
                 if (networkEnvelope instanceof TradeMessage) {
                     TradeMessage tradeMessage = (TradeMessage) networkEnvelope;
@@ -179,7 +186,51 @@ public abstract class TradeProtocol {
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Mediation: incoming message
     ///////////////////////////////////////////////////////////////////////////////////////////
+    
+    public void handleMultisigMessage(InitMultisigMessage message, NodeAddress peer, ErrorMessageHandler errorMessageHandler) {
+      Validator.checkTradeId(processModel.getOfferId(), message);
+      processModel.setTradeMessage(message);
 
+      TradeTaskRunner taskRunner = new TradeTaskRunner(trade,
+              () -> {
+                stopTimeout();
+                handleTaskRunnerSuccess(message, "handleMultisigMessage");
+              },
+              errorMessage -> {
+                  errorMessageHandler.handleErrorMessage(errorMessage);
+                  handleTaskRunnerFault(errorMessage);
+              });
+      taskRunner.addTasks(
+              ProcessInitMultisigMessage.class
+      );
+      startTimeout();
+      taskRunner.run();
+    }
+    
+    public void handleDepositTxMessage(DepositTxMessage message, NodeAddress taker, ErrorMessageHandler errorMessageHandler) {
+      throw new RuntimeException("Subclass must implement TradeProtocol.handleDepositTxMessage()");
+    }
+    
+    public void handleUpdateMultisigRequest(UpdateMultisigRequest message, NodeAddress peer, ErrorMessageHandler errorMessageHandler) {
+      Validator.checkTradeId(processModel.getOfferId(), message);
+      processModel.setTradeMessage(message);
+
+      TradeTaskRunner taskRunner = new TradeTaskRunner(trade,
+              () -> {
+                stopTimeout();
+                handleTaskRunnerSuccess(message, "handleUpdateMultisigRequest");
+              },
+              errorMessage -> {
+                  errorMessageHandler.handleErrorMessage(errorMessage);
+                  handleTaskRunnerFault(errorMessage);
+              });
+      taskRunner.addTasks(
+              ProcessUpdateMultisigRequest.class
+      );
+      startTimeout();
+      taskRunner.run();
+    }
+    
     protected void handle(MediatedPayoutTxSignatureMessage tradeMessage, NodeAddress sender) {
         processModel.setTradeMessage(tradeMessage);
         processModel.setTempTradingPeerNodeAddress(sender);
@@ -232,7 +283,7 @@ public abstract class TradeProtocol {
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Dispatcher
     ///////////////////////////////////////////////////////////////////////////////////////////
-
+    
     protected void doHandleDecryptedMessage(TradeMessage tradeMessage, NodeAddress sender) {
         if (tradeMessage instanceof MediatedPayoutTxSignatureMessage) {
             handle((MediatedPayoutTxSignatureMessage) tradeMessage, sender);
@@ -241,6 +292,9 @@ public abstract class TradeProtocol {
         } else if (tradeMessage instanceof PeerPublishedDelayedPayoutTxMessage) {
             handle((PeerPublishedDelayedPayoutTxMessage) tradeMessage, sender);
         }
+        
+        // notify trade of verified message
+        trade.onVerifiedTradeMessage(tradeMessage, sender);
     }
 
 
@@ -337,17 +391,11 @@ public abstract class TradeProtocol {
         // In such cases we have not set any tradeMessage and we ignore the sendAckMessage call.
         if (tradeMessage == null)
             return;
+        
+        System.out.println("SENDING ACK MESSAGE!!!");
 
         String tradeId = tradeMessage.getTradeId();
-        String sourceUid = "";
-        if (tradeMessage instanceof MailboxMessage) {
-            sourceUid = ((MailboxMessage) tradeMessage).getUid();
-        } else {
-            // For direct msg we don't have a mandatory uid so we need to cast to get it
-            if (tradeMessage instanceof InputsForDepositTxRequest) {
-                sourceUid = tradeMessage.getUid();
-            }
-        }
+        String sourceUid = tradeMessage.getUid();
         AckMessage ackMessage = new AckMessage(processModel.getMyNodeAddress(),
                 AckMessageSourceType.TRADE_MESSAGE,
                 tradeMessage.getClass().getSimpleName(),
@@ -355,33 +403,65 @@ public abstract class TradeProtocol {
                 tradeId,
                 result,
                 errorMessage);
+        
+        // get sender's pub key ring  
+        // TODO (woodser): no MakerReadyToFundMultisigResponse?
+        // TODO (woodser): should not need these instanceof checks for each message type and with same fields
+        final NodeAddress nodeAddress;
+        PubKeyRing pubKeyRing = !(trade instanceof ArbitratorTrade) ? processModel.getTradingPeer().getPubKeyRing() : null; // TODO (woodser): not in processModel.getTradingPeer().getPubKeyRing() when arbitrator
+        if (tradeMessage instanceof InitTradeRequest) {
+          nodeAddress = ((InitTradeRequest) tradeMessage).getSenderNodeAddress();
+          pubKeyRing = ((InitTradeRequest) tradeMessage).getPubKeyRing();
+        } else if (tradeMessage instanceof InitMultisigMessage) {
+          nodeAddress = ((InitMultisigMessage) tradeMessage).getSenderNodeAddress();
+          pubKeyRing = ((InitMultisigMessage) tradeMessage).getPubKeyRing();
+        } else if (tradeMessage instanceof DepositTxMessage) {
+          nodeAddress = ((DepositTxMessage) tradeMessage).getSenderNodeAddress();
+          pubKeyRing = ((DepositTxMessage) tradeMessage).getPubKeyRing();
+        } else if (tradeMessage instanceof MakerReadyToFundMultisigRequest) {
+          nodeAddress = ((MakerReadyToFundMultisigRequest) tradeMessage).getSenderNodeAddress();
+          pubKeyRing = ((MakerReadyToFundMultisigRequest) tradeMessage).getPubKeyRing();
+        } else if (tradeMessage instanceof UpdateMultisigRequest) {
+          nodeAddress = ((UpdateMultisigRequest) tradeMessage).getSenderNodeAddress();
+          pubKeyRing = ((UpdateMultisigRequest) tradeMessage).getPubKeyRing();
+        } else if (tradeMessage instanceof PayoutTxPublishedMessage) {
+	      nodeAddress = ((PayoutTxPublishedMessage) tradeMessage).getSenderNodeAddress();
+	      pubKeyRing = processModel.getTradingPeer().getPubKeyRing();
+	    } else if (tradeMessage instanceof CounterCurrencyTransferStartedMessage) {
+          nodeAddress = ((CounterCurrencyTransferStartedMessage) tradeMessage).getSenderNodeAddress();
+          if (trade instanceof ArbitratorTrade) throw new RuntimeException("pub key ring not in processModel.getTradingPeer().getPubKeyRing() when arbitrator");
+          //pubKeyRing = ((CounterCurrencyTransferStartedMessage) tradeMessage).getPubKeyRing();
+        } else {
+          throw new RuntimeException("Unknown message type to get pub key ring from: " + tradeMessage.getClass().getTypeName());
+        }
+        
         // If there was an error during offer verification, the tradingPeerNodeAddress of the trade might not be set yet.
         // We can find the peer's node address in the processModel's tempTradingPeerNodeAddress in that case.
-        final NodeAddress peersNodeAddress = trade.getTradingPeerNodeAddress() != null ? trade.getTradingPeerNodeAddress() : processModel.getTempTradingPeerNodeAddress();
+//        final NodeAddress peersNodeAddress = trade.getTradingPeerNodeAddress() != null ? trade.getTradingPeerNodeAddress() : processModel.getTempTradingPeerNodeAddress();
         log.info("Send AckMessage for {} to peer {}. tradeId={}, sourceUid={}",
-                ackMessage.getSourceMsgClassName(), peersNodeAddress, tradeId, sourceUid);
+                ackMessage.getSourceMsgClassName(), nodeAddress, tradeId, sourceUid);
         String finalSourceUid = sourceUid;
         processModel.getP2PService().sendEncryptedMailboxMessage(
-                peersNodeAddress,
-                processModel.getTradingPeer().getPubKeyRing(),
+                nodeAddress,
+                pubKeyRing,
                 ackMessage,
                 new SendMailboxMessageListener() {
                     @Override
                     public void onArrived() {
                         log.info("AckMessage for {} arrived at peer {}. tradeId={}, sourceUid={}",
-                                ackMessage.getSourceMsgClassName(), peersNodeAddress, tradeId, finalSourceUid);
+                                ackMessage.getSourceMsgClassName(), nodeAddress, tradeId, finalSourceUid);
                     }
 
                     @Override
                     public void onStoredInMailbox() {
                         log.info("AckMessage for {} stored in mailbox for peer {}. tradeId={}, sourceUid={}",
-                                ackMessage.getSourceMsgClassName(), peersNodeAddress, tradeId, finalSourceUid);
+                                ackMessage.getSourceMsgClassName(), nodeAddress, tradeId, finalSourceUid);
                     }
 
                     @Override
                     public void onFault(String errorMessage) {
                         log.error("AckMessage for {} failed. Peer {}. tradeId={}, sourceUid={}, errorMessage={}",
-                                ackMessage.getSourceMsgClassName(), peersNodeAddress, tradeId, finalSourceUid, errorMessage);
+                                ackMessage.getSourceMsgClassName(), nodeAddress, tradeId, finalSourceUid, errorMessage);
                     }
                 }
         );
@@ -395,15 +475,8 @@ public abstract class TradeProtocol {
             // no funds left. we just clean up the trade list
             tradeManager.removePreparedTrade(trade);
         } else if (!trade.isFundsLockedIn()) {
-            if (processModel.getPreparedDepositTx() == null) {
-                if (trade.isTakerFeePublished())
-                    tradeManager.addTradeToFailedTrades(trade);
-                else
-                    tradeManager.addTradeToClosedTrades(trade);
-            } else {
-                log.error("We have already sent the prepared deposit tx to the peer but we did not received the reply " +
-                        "about the deposit tx nor saw it in the network. tradeId={}, tradeState={}", trade.getId(), trade.getState());
-            }
+          if (trade.isTakerFeePublished()) tradeManager.addTradeToFailedTrades(trade);
+          else tradeManager.addTradeToClosedTrades(trade);
         }
     }
 }

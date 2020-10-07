@@ -37,20 +37,20 @@ import javax.annotation.Nullable;
 public final class CounterCurrencyTransferStartedMessage extends TradeMessage implements MailboxMessage {
     private final String buyerPayoutAddress;
     private final NodeAddress senderNodeAddress;
-    private final byte[] buyerSignature;
+    private final String buyerPayoutTxSigned;
     @Nullable
     private final String counterCurrencyTxId;
 
     public CounterCurrencyTransferStartedMessage(String tradeId,
                                                  String buyerPayoutAddress,
                                                  NodeAddress senderNodeAddress,
-                                                 byte[] buyerSignature,
+                                                 String buyerPayoutTxSigned,
                                                  @Nullable String counterCurrencyTxId,
                                                  String uid) {
         this(tradeId,
                 buyerPayoutAddress,
                 senderNodeAddress,
-                buyerSignature,
+                buyerPayoutTxSigned,
                 counterCurrencyTxId,
                 uid,
                 Version.getP2PMessageVersion());
@@ -64,14 +64,14 @@ public final class CounterCurrencyTransferStartedMessage extends TradeMessage im
     private CounterCurrencyTransferStartedMessage(String tradeId,
                                                   String buyerPayoutAddress,
                                                   NodeAddress senderNodeAddress,
-                                                  byte[] buyerSignature,
+                                                  String buyerPayoutTxSigned,
                                                   @Nullable String counterCurrencyTxId,
                                                   String uid,
                                                   int messageVersion) {
         super(messageVersion, tradeId, uid);
         this.buyerPayoutAddress = buyerPayoutAddress;
         this.senderNodeAddress = senderNodeAddress;
-        this.buyerSignature = buyerSignature;
+        this.buyerPayoutTxSigned = buyerPayoutTxSigned;
         this.counterCurrencyTxId = counterCurrencyTxId;
     }
 
@@ -81,7 +81,7 @@ public final class CounterCurrencyTransferStartedMessage extends TradeMessage im
         builder.setTradeId(tradeId)
                 .setBuyerPayoutAddress(buyerPayoutAddress)
                 .setSenderNodeAddress(senderNodeAddress.toProtoMessage())
-                .setBuyerSignature(ByteString.copyFrom(buyerSignature))
+                .setBuyerPayoutTxSigned(buyerPayoutTxSigned)
                 .setUid(uid);
 
         Optional.ofNullable(counterCurrencyTxId).ifPresent(e -> builder.setCounterCurrencyTxId(counterCurrencyTxId));
@@ -93,7 +93,7 @@ public final class CounterCurrencyTransferStartedMessage extends TradeMessage im
         return new CounterCurrencyTransferStartedMessage(proto.getTradeId(),
                 proto.getBuyerPayoutAddress(),
                 NodeAddress.fromProto(proto.getSenderNodeAddress()),
-                proto.getBuyerSignature().toByteArray(),
+                proto.getBuyerPayoutTxSigned(),
                 proto.getCounterCurrencyTxId().isEmpty() ? null : proto.getCounterCurrencyTxId(),
                 proto.getUid(),
                 messageVersion);
@@ -107,7 +107,7 @@ public final class CounterCurrencyTransferStartedMessage extends TradeMessage im
                 ",\n     senderNodeAddress=" + senderNodeAddress +
                 ",\n     counterCurrencyTxId=" + counterCurrencyTxId +
                 ",\n     uid='" + uid + '\'' +
-                ",\n     buyerSignature=" + Utilities.bytesAsHexString(buyerSignature) +
+                ",\n     buyerPayoutTxSigned=" + buyerPayoutTxSigned +
                 "\n} " + super.toString();
     }
 }

@@ -17,62 +17,56 @@
 
 package bisq.desktop.main.debug;
 
-import bisq.desktop.common.view.FxmlView;
-import bisq.desktop.common.view.InitializableView;
-import bisq.desktop.components.TitledGroupBg;
+import static bisq.desktop.util.FormBuilder.addTopLabelComboBox;
 
+import java.util.Arrays;
+
+import javax.inject.Inject;
+
+import bisq.common.taskrunner.Task;
+import bisq.common.util.Tuple2;
 import bisq.core.offer.availability.tasks.ProcessOfferAvailabilityResponse;
 import bisq.core.offer.availability.tasks.SendOfferAvailabilityRequest;
 import bisq.core.offer.placeoffer.tasks.AddToOfferBook;
-import bisq.core.offer.placeoffer.tasks.CreateMakerFeeTx;
 import bisq.core.offer.placeoffer.tasks.ValidateOffer;
 import bisq.core.trade.protocol.tasks.ApplyFilter;
 import bisq.core.trade.protocol.tasks.PublishTradeStatistics;
+import bisq.core.trade.protocol.tasks.SetupDepositTxsListener;
+import bisq.core.trade.protocol.tasks.buyer.BuyerCreateAndSignPayoutTx;
 import bisq.core.trade.protocol.tasks.buyer.BuyerSendCounterCurrencyTransferStartedMessage;
-import bisq.core.trade.protocol.tasks.buyer.BuyerSetupDepositTxListener;
 import bisq.core.trade.protocol.tasks.buyer.BuyerSetupPayoutTxListener;
-import bisq.core.trade.protocol.tasks.buyer.BuyerSignPayoutTx;
 import bisq.core.trade.protocol.tasks.buyer_as_maker.BuyerAsMakerCreatesAndSignsDepositTx;
 import bisq.core.trade.protocol.tasks.buyer_as_taker.BuyerAsTakerCreatesDepositTxInputs;
 import bisq.core.trade.protocol.tasks.buyer_as_taker.BuyerAsTakerSignsDepositTx;
 import bisq.core.trade.protocol.tasks.maker.MakerCreateAndSignContract;
+import bisq.core.trade.protocol.tasks.maker.MakerCreateFeeTx;
 import bisq.core.trade.protocol.tasks.maker.MakerProcessesInputsForDepositTxRequest;
+import bisq.core.trade.protocol.tasks.maker.MakerSetupDepositTxsListener;
 import bisq.core.trade.protocol.tasks.maker.MakerVerifyTakerAccount;
 import bisq.core.trade.protocol.tasks.maker.MakerVerifyTakerFeePayment;
-import bisq.core.trade.protocol.tasks.seller.SellerBroadcastPayoutTx;
 import bisq.core.trade.protocol.tasks.seller.SellerProcessCounterCurrencyTransferStartedMessage;
 import bisq.core.trade.protocol.tasks.seller.SellerSendPayoutTxPublishedMessage;
 import bisq.core.trade.protocol.tasks.seller.SellerSendsDepositTxAndDelayedPayoutTxMessage;
-import bisq.core.trade.protocol.tasks.seller.SellerSignAndFinalizePayoutTx;
+import bisq.core.trade.protocol.tasks.seller.SellerSignAndPublishPayoutTx;
 import bisq.core.trade.protocol.tasks.seller_as_maker.SellerAsMakerCreatesUnsignedDepositTx;
 import bisq.core.trade.protocol.tasks.seller_as_taker.SellerAsTakerCreatesDepositTxInputs;
 import bisq.core.trade.protocol.tasks.seller_as_taker.SellerAsTakerSignsDepositTx;
-import bisq.core.trade.protocol.tasks.taker.CreateTakerFeeTx;
+import bisq.core.trade.protocol.tasks.taker.TakerCreateReserveTradeTx;
 import bisq.core.trade.protocol.tasks.taker.TakerProcessesInputsForDepositTxResponse;
 import bisq.core.trade.protocol.tasks.taker.TakerSendInputsForDepositTxRequest;
 import bisq.core.trade.protocol.tasks.taker.TakerVerifyAndSignContract;
 import bisq.core.trade.protocol.tasks.taker.TakerVerifyMakerAccount;
 import bisq.core.trade.protocol.tasks.taker.TakerVerifyMakerFeePayment;
-
-import bisq.common.taskrunner.Task;
-import bisq.common.util.Tuple2;
-
-import javax.inject.Inject;
-
+import bisq.desktop.common.view.FxmlView;
+import bisq.desktop.common.view.InitializableView;
+import bisq.desktop.components.TitledGroupBg;
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
-
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
 import javafx.scene.layout.GridPane;
-
-import javafx.collections.FXCollections;
-import javafx.collections.ObservableList;
-
 import javafx.util.StringConverter;
-
-import java.util.Arrays;
-
-import static bisq.desktop.util.FormBuilder.addTopLabelComboBox;
 
 // Not maintained anymore with new trade protocol, but leave it...If used needs to be adopted to current protocol.
 @FxmlView
@@ -98,7 +92,7 @@ public class DebugView extends InitializableView<GridPane, Void> {
         addGroup("PlaceOfferProtocol",
                 FXCollections.observableArrayList(Arrays.asList(
                         ValidateOffer.class,
-                        CreateMakerFeeTx.class,
+                        MakerCreateFeeTx.class,
                         AddToOfferBook.class)
                 ));
 
@@ -110,7 +104,7 @@ public class DebugView extends InitializableView<GridPane, Void> {
                         MakerVerifyTakerFeePayment.class,
                         MakerCreateAndSignContract.class,
                         BuyerAsMakerCreatesAndSignsDepositTx.class,
-                        BuyerSetupDepositTxListener.class,
+                        MakerSetupDepositTxsListener.class,
 
                         MakerVerifyTakerAccount.class,
                         MakerVerifyTakerFeePayment.class,
@@ -119,7 +113,7 @@ public class DebugView extends InitializableView<GridPane, Void> {
                         ApplyFilter.class,
                         MakerVerifyTakerAccount.class,
                         MakerVerifyTakerFeePayment.class,
-                        BuyerSignPayoutTx.class,
+                        BuyerCreateAndSignPayoutTx.class,
                         BuyerSendCounterCurrencyTransferStartedMessage.class,
                         BuyerSetupPayoutTxListener.class)
                 ));
@@ -127,7 +121,7 @@ public class DebugView extends InitializableView<GridPane, Void> {
                 FXCollections.observableArrayList(Arrays.asList(
                         TakerVerifyMakerAccount.class,
                         TakerVerifyMakerFeePayment.class,
-                        CreateTakerFeeTx.class,
+                        TakerCreateReserveTradeTx.class,
                         SellerAsTakerCreatesDepositTxInputs.class,
                         TakerSendInputsForDepositTxRequest.class,
 
@@ -146,15 +140,15 @@ public class DebugView extends InitializableView<GridPane, Void> {
                         ApplyFilter.class,
                         TakerVerifyMakerAccount.class,
                         TakerVerifyMakerFeePayment.class,
-                        SellerSignAndFinalizePayoutTx.class,
-                        SellerBroadcastPayoutTx.class,
+                        SellerSignAndPublishPayoutTx.class,
+                        //SellerBroadcastPayoutTx.class, // TODO (woodser): removed from main pipeline; debug view?
                         SellerSendPayoutTxPublishedMessage.class)
                 ));
         addGroup("BuyerAsTakerProtocol",
                 FXCollections.observableArrayList(Arrays.asList(
                         TakerVerifyMakerAccount.class,
                         TakerVerifyMakerFeePayment.class,
-                        CreateTakerFeeTx.class,
+                        TakerCreateReserveTradeTx.class,
                         BuyerAsTakerCreatesDepositTxInputs.class,
                         TakerSendInputsForDepositTxRequest.class,
 
@@ -169,7 +163,7 @@ public class DebugView extends InitializableView<GridPane, Void> {
                         ApplyFilter.class,
                         TakerVerifyMakerAccount.class,
                         TakerVerifyMakerFeePayment.class,
-                        BuyerSignPayoutTx.class,
+                        BuyerCreateAndSignPayoutTx.class,
                         BuyerSendCounterCurrencyTransferStartedMessage.class,
                         BuyerSetupPayoutTxListener.class)
                 ));
@@ -181,7 +175,7 @@ public class DebugView extends InitializableView<GridPane, Void> {
                         MakerVerifyTakerFeePayment.class,
                         MakerCreateAndSignContract.class,
                         SellerAsMakerCreatesUnsignedDepositTx.class,
-                        BuyerSetupDepositTxListener.class,
+                        SetupDepositTxsListener.class,
 
                         PublishTradeStatistics.class,
                         MakerVerifyTakerAccount.class,
@@ -194,8 +188,8 @@ public class DebugView extends InitializableView<GridPane, Void> {
                         ApplyFilter.class,
                         MakerVerifyTakerAccount.class,
                         MakerVerifyTakerFeePayment.class,
-                        SellerSignAndFinalizePayoutTx.class,
-                        SellerBroadcastPayoutTx.class,
+                        SellerSignAndPublishPayoutTx.class,
+                        //SellerBroadcastPayoutTx.class, // TODO (woodser): removed from main pipeline; debug view?
                         SellerSendPayoutTxPublishedMessage.class)
                 ));
     }

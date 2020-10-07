@@ -17,34 +17,33 @@
 
 package bisq.desktop.main.funds.transactions;
 
-import bisq.core.btc.wallet.BtcWalletService;
+import javax.inject.Inject;
+import javax.inject.Singleton;
+
+import bisq.common.crypto.PubKeyRing;
+import bisq.core.btc.wallet.XmrWalletService;
 import bisq.core.offer.OpenOffer;
 import bisq.core.support.dispute.arbitration.ArbitrationManager;
 import bisq.core.support.dispute.refund.RefundManager;
 import bisq.core.trade.Tradable;
 import bisq.core.trade.Trade;
 
-import bisq.common.crypto.PubKeyRing;
-
-import javax.inject.Inject;
-import javax.inject.Singleton;
-
 
 @Singleton
 public class TransactionAwareTradableFactory {
     private final ArbitrationManager arbitrationManager;
     private final RefundManager refundManager;
-    private final BtcWalletService btcWalletService;
+    private final XmrWalletService xmrWalletService;
     private final PubKeyRing pubKeyRing;
 
     @Inject
     TransactionAwareTradableFactory(ArbitrationManager arbitrationManager,
                                     RefundManager refundManager,
-                                    BtcWalletService btcWalletService,
+                                    XmrWalletService xmrWalletService,
                                     PubKeyRing pubKeyRing) {
         this.arbitrationManager = arbitrationManager;
         this.refundManager = refundManager;
-        this.btcWalletService = btcWalletService;
+        this.xmrWalletService = xmrWalletService;
         this.pubKeyRing = pubKeyRing;
     }
 
@@ -55,7 +54,7 @@ public class TransactionAwareTradableFactory {
             return new TransactionAwareTrade((Trade) delegate,
                     arbitrationManager,
                     refundManager,
-                    btcWalletService,
+                    xmrWalletService,
                     pubKeyRing);
         } else {
             return new DummyTransactionAwareTradable(delegate);

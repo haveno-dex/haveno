@@ -17,30 +17,25 @@
 
 package bisq.core.trade.messages;
 
-import bisq.network.p2p.MailboxMessage;
-import bisq.network.p2p.NodeAddress;
-
 import bisq.common.app.Version;
 import bisq.common.proto.network.NetworkEnvelope;
-import bisq.common.util.Utilities;
-
-import com.google.protobuf.ByteString;
-
+import bisq.network.p2p.MailboxMessage;
+import bisq.network.p2p.NodeAddress;
 import lombok.EqualsAndHashCode;
 import lombok.Value;
 
 @EqualsAndHashCode(callSuper = true)
 @Value
 public final class PayoutTxPublishedMessage extends TradeMessage implements MailboxMessage {
-    private final byte[] payoutTx;
+    private final String signedMultisigTxHex;
     private final NodeAddress senderNodeAddress;
 
     public PayoutTxPublishedMessage(String tradeId,
-                                    byte[] payoutTx,
+                                    String signedMultisigTxHex,
                                     NodeAddress senderNodeAddress,
                                     String uid) {
         this(tradeId,
-                payoutTx,
+                signedMultisigTxHex,
                 senderNodeAddress,
                 uid,
                 Version.getP2PMessageVersion());
@@ -52,12 +47,12 @@ public final class PayoutTxPublishedMessage extends TradeMessage implements Mail
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     private PayoutTxPublishedMessage(String tradeId,
-                                     byte[] payoutTx,
+                                     String signedMultisigTxHex,
                                      NodeAddress senderNodeAddress,
                                      String uid,
                                      int messageVersion) {
         super(messageVersion, tradeId, uid);
-        this.payoutTx = payoutTx;
+        this.signedMultisigTxHex = signedMultisigTxHex;
         this.senderNodeAddress = senderNodeAddress;
     }
 
@@ -66,7 +61,7 @@ public final class PayoutTxPublishedMessage extends TradeMessage implements Mail
         return getNetworkEnvelopeBuilder()
                 .setPayoutTxPublishedMessage(protobuf.PayoutTxPublishedMessage.newBuilder()
                         .setTradeId(tradeId)
-                        .setPayoutTx(ByteString.copyFrom(payoutTx))
+                        .setSignedMultisigTxHex(signedMultisigTxHex)
                         .setSenderNodeAddress(senderNodeAddress.toProtoMessage())
                         .setUid(uid))
                 .build();
@@ -74,7 +69,7 @@ public final class PayoutTxPublishedMessage extends TradeMessage implements Mail
 
     public static NetworkEnvelope fromProto(protobuf.PayoutTxPublishedMessage proto, int messageVersion) {
         return new PayoutTxPublishedMessage(proto.getTradeId(),
-                proto.getPayoutTx().toByteArray(),
+                proto.getSignedMultisigTxHex(),
                 NodeAddress.fromProto(proto.getSenderNodeAddress()),
                 proto.getUid(),
                 messageVersion);
@@ -83,7 +78,7 @@ public final class PayoutTxPublishedMessage extends TradeMessage implements Mail
     @Override
     public String toString() {
         return "PayoutTxPublishedMessage{" +
-                "\n     payoutTx=" + Utilities.bytesAsHexString(payoutTx) +
+                "\n     signedMultisigTxHex=" + signedMultisigTxHex +
                 ",\n     senderNodeAddress=" + senderNodeAddress +
                 ",\n     uid='" + uid + '\'' +
                 "\n} " + super.toString();

@@ -17,24 +17,24 @@
 
 package bisq.core.offer.placeoffer;
 
+import org.bitcoinj.core.Coin;
+import org.bitcoinj.core.Transaction;
+
+import bisq.common.taskrunner.Model;
 import bisq.core.btc.wallet.BsqWalletService;
 import bisq.core.btc.wallet.BtcWalletService;
 import bisq.core.btc.wallet.TradeWalletService;
+import bisq.core.btc.wallet.XmrWalletService;
 import bisq.core.dao.DaoFacade;
 import bisq.core.offer.Offer;
 import bisq.core.offer.OfferBookService;
 import bisq.core.support.dispute.arbitration.arbitrator.ArbitratorManager;
 import bisq.core.trade.statistics.TradeStatisticsManager;
 import bisq.core.user.User;
-
-import bisq.common.taskrunner.Model;
-
-import org.bitcoinj.core.Coin;
-import org.bitcoinj.core.Transaction;
-
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
+import monero.wallet.model.MoneroTxWallet;
 
 @Slf4j
 @Getter
@@ -44,6 +44,7 @@ public class PlaceOfferModel implements Model {
     private final Coin reservedFundsForOffer;
     private final boolean useSavingsWallet;
     private final BtcWalletService walletService;
+    private final XmrWalletService xmrWalletService;
     private final TradeWalletService tradeWalletService;
     private final BsqWalletService bsqWalletService;
     private final OfferBookService offerBookService;
@@ -57,11 +58,14 @@ public class PlaceOfferModel implements Model {
     private boolean offerAddedToOfferBook;
     @Setter
     private Transaction transaction;
+    @Setter
+    private MoneroTxWallet xmrTransaction;
 
     public PlaceOfferModel(Offer offer,
                            Coin reservedFundsForOffer,
                            boolean useSavingsWallet,
                            BtcWalletService walletService,
+                           XmrWalletService xmrWalletService,
                            TradeWalletService tradeWalletService,
                            BsqWalletService bsqWalletService,
                            OfferBookService offerBookService,
@@ -73,6 +77,7 @@ public class PlaceOfferModel implements Model {
         this.reservedFundsForOffer = reservedFundsForOffer;
         this.useSavingsWallet = useSavingsWallet;
         this.walletService = walletService;
+        this.xmrWalletService = xmrWalletService;
         this.tradeWalletService = tradeWalletService;
         this.bsqWalletService = bsqWalletService;
         this.offerBookService = offerBookService;

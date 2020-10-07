@@ -34,7 +34,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import static bisq.core.trade.statistics.TradeStatistics2Maker.dayZeroTrade;
-import static bisq.core.trade.statistics.TradeStatistics2Maker.depositTxId;
+import static bisq.core.trade.statistics.TradeStatistics2Maker.makerDepositTxId;
 import static bisq.core.trade.statistics.TradeStatistics2Maker.tradeAmount;
 import static com.natpryce.makeiteasy.MakeItEasy.make;
 import static com.natpryce.makeiteasy.MakeItEasy.with;
@@ -65,7 +65,7 @@ public class TradeStatisticsManagerTest {
         manager = new TradeStatisticsManager(p2PService, priceFeedService,
                 tradeStatistics2StorageService, appendOnlyDataStoreService, storageDir, false);
 
-        tradeWithNullDepositTxId = make(dayZeroTrade.but(withNull(depositTxId)));
+        tradeWithNullDepositTxId = make(dayZeroTrade.but(withNull(makerDepositTxId)));
 
         manager.onAllServicesInitialized();
         listenerArgumentCaptor = ArgumentCaptor.forClass(AppendOnlyDataStoreListener.class);

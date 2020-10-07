@@ -17,31 +17,28 @@
 
 package bisq.core.support.dispute.arbitration.messages;
 
-import bisq.core.support.SupportType;
-
-import bisq.network.p2p.NodeAddress;
-
 import bisq.common.app.Version;
-import bisq.common.util.Utilities;
-
-import com.google.protobuf.ByteString;
-
+import bisq.core.support.SupportType;
+import bisq.network.p2p.NodeAddress;
 import lombok.EqualsAndHashCode;
 import lombok.Value;
 
 @Value
 @EqualsAndHashCode(callSuper = true)
 public final class PeerPublishedDisputePayoutTxMessage extends ArbitrationMessage {
-    private final byte[] transaction;
+    private final String updatedMultisigHex;
+    private final String payoutTxHex;
     private final String tradeId;
     private final NodeAddress senderNodeAddress;
 
-    public PeerPublishedDisputePayoutTxMessage(byte[] transaction,
+    public PeerPublishedDisputePayoutTxMessage(String updatedMultisigHex,
+    		                                   String payoutTxHex,
                                                String tradeId,
                                                NodeAddress senderNodeAddress,
                                                String uid,
                                                SupportType supportType) {
-        this(transaction,
+        this(updatedMultisigHex,
+                payoutTxHex,
                 tradeId,
                 senderNodeAddress,
                 uid,
@@ -54,14 +51,16 @@ public final class PeerPublishedDisputePayoutTxMessage extends ArbitrationMessag
     // PROTO BUFFER
     ///////////////////////////////////////////////////////////////////////////////////////////
 
-    private PeerPublishedDisputePayoutTxMessage(byte[] transaction,
+    private PeerPublishedDisputePayoutTxMessage(String updatedMultisigHex,
+                                                String payoutTxHex,
                                                 String tradeId,
                                                 NodeAddress senderNodeAddress,
                                                 String uid,
                                                 int messageVersion,
                                                 SupportType supportType) {
         super(messageVersion, uid, supportType);
-        this.transaction = transaction;
+        this.updatedMultisigHex = updatedMultisigHex;
+        this.payoutTxHex = payoutTxHex;
         this.tradeId = tradeId;
         this.senderNodeAddress = senderNodeAddress;
     }
@@ -70,7 +69,8 @@ public final class PeerPublishedDisputePayoutTxMessage extends ArbitrationMessag
     public protobuf.NetworkEnvelope toProtoNetworkEnvelope() {
         return getNetworkEnvelopeBuilder()
                 .setPeerPublishedDisputePayoutTxMessage(protobuf.PeerPublishedDisputePayoutTxMessage.newBuilder()
-                        .setTransaction(ByteString.copyFrom(transaction))
+                        .setUpdatedMultisigHex(updatedMultisigHex)
+                        .setPayoutTxHex(payoutTxHex)
                         .setTradeId(tradeId)
                         .setSenderNodeAddress(senderNodeAddress.toProtoMessage())
                         .setUid(uid)
@@ -80,7 +80,8 @@ public final class PeerPublishedDisputePayoutTxMessage extends ArbitrationMessag
 
     public static PeerPublishedDisputePayoutTxMessage fromProto(protobuf.PeerPublishedDisputePayoutTxMessage proto,
                                                                 int messageVersion) {
-        return new PeerPublishedDisputePayoutTxMessage(proto.getTransaction().toByteArray(),
+        return new PeerPublishedDisputePayoutTxMessage(proto.getUpdatedMultisigHex(),
+        		proto.getPayoutTxHex(),
                 proto.getTradeId(),
                 NodeAddress.fromProto(proto.getSenderNodeAddress()),
                 proto.getUid(),
@@ -96,7 +97,8 @@ public final class PeerPublishedDisputePayoutTxMessage extends ArbitrationMessag
     @Override
     public String toString() {
         return "PeerPublishedDisputePayoutTxMessage{" +
-                "\n     transaction=" + Utilities.bytesAsHexString(transaction) +
+                "\n     updatedMultisigHex=" + updatedMultisigHex +
+                "\n     payoutTxHex=" + payoutTxHex +
                 ",\n     tradeId='" + tradeId + '\'' +
                 ",\n     senderNodeAddress=" + senderNodeAddress +
                 ",\n     PeerPublishedDisputePayoutTxMessage.uid='" + uid + '\'' +

@@ -17,20 +17,16 @@
 
 package bisq.core.trade.protocol.tasks.seller;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
+import java.util.UUID;
+
+import bisq.common.taskrunner.TaskRunner;
 import bisq.core.trade.Trade;
 import bisq.core.trade.messages.PayoutTxPublishedMessage;
 import bisq.core.trade.messages.TradeMessage;
 import bisq.core.trade.protocol.tasks.SendPayoutTxPublishedMessage;
-
-import bisq.common.taskrunner.TaskRunner;
-
-import org.bitcoinj.core.Transaction;
-
-import java.util.UUID;
-
 import lombok.extern.slf4j.Slf4j;
-
-import static com.google.common.base.Preconditions.checkNotNull;
 
 @Slf4j
 public class SellerSendPayoutTxPublishedMessage extends SendPayoutTxPublishedMessage {
@@ -41,10 +37,10 @@ public class SellerSendPayoutTxPublishedMessage extends SendPayoutTxPublishedMes
 
     @Override
     protected TradeMessage getMessage(String id) {
-        Transaction payoutTx = checkNotNull(trade.getPayoutTx(), "trade.getPayoutTx() must not be null");
+        checkNotNull(trade.getPayoutTx(), "trade.getPayoutTx() must not be null");
         return new PayoutTxPublishedMessage(
                 id,
-                payoutTx.bitcoinSerialize(),
+                trade.getPayoutTx().getTxSet().getMultisigTxHex(),
                 processModel.getMyNodeAddress(),
                 UUID.randomUUID().toString()
         );

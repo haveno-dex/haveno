@@ -17,6 +17,58 @@
 
 package bisq.desktop.main.funds.withdrawal;
 
+import static bisq.desktop.util.FormBuilder.addButton;
+import static bisq.desktop.util.FormBuilder.addTitledGroupBg;
+import static bisq.desktop.util.FormBuilder.addTopLabelInputTextField;
+import static bisq.desktop.util.FormBuilder.addTopLabelRadioButtonRadioButton;
+import static bisq.desktop.util.FormBuilder.addTopLabelTextField;
+import static bisq.desktop.util.FormBuilder.addTopLabelTextFieldRadioButtonRadioButton;
+import static com.google.common.base.Preconditions.checkNotNull;
+
+import java.math.BigInteger;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
+
+import javax.inject.Inject;
+import javax.inject.Named;
+
+import org.apache.commons.lang3.StringUtils;
+import org.bitcoinj.core.AddressFormatException;
+import org.bitcoinj.core.Coin;
+import org.bitcoinj.core.InsufficientMoneyException;
+import org.bitcoinj.core.Transaction;
+import org.bitcoinj.core.TransactionOutput;
+import org.bitcoinj.wallet.Wallet;
+import org.jetbrains.annotations.NotNull;
+import org.spongycastle.crypto.params.KeyParameter;
+
+import com.google.common.util.concurrent.FutureCallback;
+
+import bisq.common.UserThread;
+import bisq.common.util.Tuple3;
+import bisq.common.util.Tuple4;
+import bisq.core.btc.exceptions.AddressEntryException;
+import bisq.core.btc.exceptions.InsufficientFundsException;
+import bisq.core.btc.listeners.BalanceListener;
+import bisq.core.btc.listeners.XmrBalanceListener;
+import bisq.core.btc.model.AddressEntry;
+import bisq.core.btc.setup.WalletsSetup;
+import bisq.core.btc.wallet.Restrictions;
+import bisq.core.btc.wallet.XmrWalletService;
+import bisq.core.locale.Res;
+import bisq.core.trade.Trade;
+import bisq.core.trade.TradeManager;
+import bisq.core.user.Preferences;
+import bisq.core.util.FormattingUtils;
+import bisq.core.util.ParsingUtils;
+import bisq.core.util.coin.CoinFormatter;
+import bisq.core.util.coin.CoinUtil;
+import bisq.core.util.validation.BtcAddressValidator;
 import bisq.desktop.common.view.ActivatableView;
 import bisq.desktop.common.view.FxmlView;
 import bisq.desktop.components.AutoTooltipCheckBox;
@@ -28,46 +80,16 @@ import bisq.desktop.main.overlays.popups.Popup;
 import bisq.desktop.main.overlays.windows.WalletPasswordWindow;
 import bisq.desktop.util.GUIUtil;
 import bisq.desktop.util.Layout;
-
-import bisq.core.btc.exceptions.AddressEntryException;
-import bisq.core.btc.exceptions.InsufficientFundsException;
-import bisq.core.btc.listeners.BalanceListener;
-import bisq.core.btc.model.AddressEntry;
-import bisq.core.btc.setup.WalletsSetup;
-import bisq.core.btc.wallet.BtcWalletService;
-import bisq.core.btc.wallet.Restrictions;
-import bisq.core.locale.Res;
-import bisq.core.trade.Trade;
-import bisq.core.trade.TradeManager;
-import bisq.core.user.Preferences;
-import bisq.core.util.FormattingUtils;
-import bisq.core.util.coin.CoinFormatter;
-import bisq.core.util.coin.CoinUtil;
-import bisq.core.util.ParsingUtils;
-import bisq.core.util.validation.BtcAddressValidator;
-
 import bisq.network.p2p.P2PService;
-
-import bisq.common.UserThread;
-import bisq.common.util.Tuple3;
-import bisq.common.util.Tuple4;
-
-import org.bitcoinj.core.AddressFormatException;
-import org.bitcoinj.core.Coin;
-import org.bitcoinj.core.InsufficientMoneyException;
-import org.bitcoinj.core.Transaction;
-import org.bitcoinj.core.TransactionOutput;
-import org.bitcoinj.wallet.Wallet;
-
-import javax.inject.Inject;
-import javax.inject.Named;
-
-import com.google.common.util.concurrent.FutureCallback;
-
-import org.apache.commons.lang3.StringUtils;
-
+import javafx.beans.property.BooleanProperty;
+import javafx.beans.property.ReadOnlyObjectWrapper;
+import javafx.beans.property.SimpleBooleanProperty;
+import javafx.beans.value.ChangeListener;
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
+import javafx.collections.transformation.SortedList;
 import javafx.fxml.FXML;
-
+import javafx.geometry.Pos;
 import javafx.scene.control.Button;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.Label;
@@ -82,35 +104,8 @@ import javafx.scene.control.ToggleGroup;
 import javafx.scene.control.Tooltip;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.VBox;
-
-import javafx.geometry.Pos;
-
-import javafx.beans.property.BooleanProperty;
-import javafx.beans.property.ReadOnlyObjectWrapper;
-import javafx.beans.property.SimpleBooleanProperty;
-import javafx.beans.value.ChangeListener;
-
-import javafx.collections.FXCollections;
-import javafx.collections.ObservableList;
-import javafx.collections.transformation.SortedList;
-
 import javafx.util.Callback;
-
-import org.spongycastle.crypto.params.KeyParameter;
-
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
-
-import org.jetbrains.annotations.NotNull;
-
-import static bisq.desktop.util.FormBuilder.*;
-import static com.google.common.base.Preconditions.checkNotNull;
+import monero.wallet.model.MoneroOutputWallet;
 
 @FxmlView
 public class WithdrawalView extends ActivatableView<VBox, Void> {
@@ -126,7 +121,7 @@ public class WithdrawalView extends ActivatableView<VBox, Void> {
     private Label amountLabel;
     private TextField amountTextField, withdrawFromTextField, withdrawToTextField, withdrawMemoTextField;
 
-    private final BtcWalletService walletService;
+    private final XmrWalletService walletService;
     private final TradeManager tradeManager;
     private final P2PService p2PService;
     private final WalletsSetup walletsSetup;
@@ -137,7 +132,7 @@ public class WithdrawalView extends ActivatableView<VBox, Void> {
     private final ObservableList<WithdrawalListItem> observableList = FXCollections.observableArrayList();
     private final SortedList<WithdrawalListItem> sortedList = new SortedList<>(observableList);
     private Set<WithdrawalListItem> selectedItems = new HashSet<>();
-    private BalanceListener balanceListener;
+    private XmrBalanceListener balanceListener;
     private Set<String> fromAddresses = new HashSet<>();
     private Coin totalAvailableAmountOfSelectedItems = Coin.ZERO;
     private Coin amountAsCoin = Coin.ZERO;
@@ -156,7 +151,7 @@ public class WithdrawalView extends ActivatableView<VBox, Void> {
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     @Inject
-    private WithdrawalView(BtcWalletService walletService,
+    private WithdrawalView(XmrWalletService walletService,
                            TradeManager tradeManager,
                            P2PService p2PService,
                            WalletsSetup walletsSetup,
@@ -164,6 +159,7 @@ public class WithdrawalView extends ActivatableView<VBox, Void> {
                            Preferences preferences,
                            BtcAddressValidator btcAddressValidator,
                            WalletPasswordWindow walletPasswordWindow) {
+//        throw new RuntimeException("WithdrawalView needs updated to use XMR wallet");
         this.walletService = walletService;
         this.tradeManager = tradeManager;
         this.p2PService = p2PService;
@@ -245,9 +241,9 @@ public class WithdrawalView extends ActivatableView<VBox, Void> {
         balanceColumn.setSortType(TableColumn.SortType.DESCENDING);
         tableView.getSortOrder().add(balanceColumn);
 
-        balanceListener = new BalanceListener() {
+        balanceListener = new XmrBalanceListener() {
             @Override
-            public void onBalanceChanged(Coin balance, Transaction tx) {
+            public void onBalanceChanged(BigInteger balance) {
                 updateList();
             }
         };
@@ -327,101 +323,102 @@ public class WithdrawalView extends ActivatableView<VBox, Void> {
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     private void onWithdraw() {
-        if (GUIUtil.isReadyForTxBroadcastOrShowPopup(p2PService, walletsSetup)) {
-            try {
-                // We do not know sendersAmount if senderPaysFee is true. We repeat fee calculation after first attempt if senderPaysFee is true.
-                Transaction feeEstimationTransaction = walletService.getFeeEstimationTransactionForMultipleAddresses(fromAddresses, amountAsCoin);
-                if (feeExcluded && feeEstimationTransaction != null) {
-                    sendersAmount = amountAsCoin.add(feeEstimationTransaction.getFee());
-                    feeEstimationTransaction = walletService.getFeeEstimationTransactionForMultipleAddresses(fromAddresses, sendersAmount);
-                }
-                checkNotNull(feeEstimationTransaction, "feeEstimationTransaction must not be null");
-
-                Coin dust = getDust(feeEstimationTransaction);
-                Coin fee = feeEstimationTransaction.getFee().add(dust);
-                Coin receiverAmount = Coin.ZERO;
-                // amountAsCoin is what the user typed into the withdrawal field.
-                // this can be interpreted as either the senders amount or receivers amount depending
-                // on a radio button "fee excluded / fee included".
-                // therefore we calculate the actual sendersAmount and receiverAmount as follows:
-                if (feeExcluded) {
-                    receiverAmount = amountAsCoin;
-                    sendersAmount = receiverAmount.add(fee);
-                } else {
-                    sendersAmount = amountAsCoin.add(dust); // sendersAmount bumped up to UTXO size when dust is in play
-                    receiverAmount = sendersAmount.subtract(fee);
-                }
-                if (dust.isPositive()) {
-                    log.info("Dust output ({} satoshi) was detected, the dust amount has been added to the fee (was {}, now {})",
-                            dust.value,
-                            feeEstimationTransaction.getFee(),
-                            fee.value);
-                }
-
-                if (areInputsValid()) {
-                    int txSize = feeEstimationTransaction.bitcoinSerialize().length;
-                    log.info("Fee for tx with size {}: {} " + Res.getBaseCurrencyCode() + "", txSize, fee.toPlainString());
-
-                    if (receiverAmount.isPositive()) {
-                        double feePerByte = CoinUtil.getFeePerByte(fee, txSize);
-                        double kb = txSize / 1000d;
-
-                        String messageText = Res.get("shared.sendFundsDetailsWithFee",
-                            formatter.formatCoinWithCode(sendersAmount),
-                            withdrawFromTextField.getText(),
-                            withdrawToTextField.getText(),
-                            formatter.formatCoinWithCode(fee),
-                            feePerByte,
-                            kb,
-                            formatter.formatCoinWithCode(receiverAmount));
-                        if (dust.isPositive()) {
-                            messageText = Res.get("shared.sendFundsDetailsDust",
-                                dust.value, dust.value > 1 ? "s" : "")
-                                + messageText;
-                        }
-
-                        new Popup().headLine(Res.get("funds.withdrawal.confirmWithdrawalRequest"))
-                                .confirmation(messageText)
-                                .actionButtonText(Res.get("shared.yes"))
-                                .onAction(() -> doWithdraw(sendersAmount, fee, new FutureCallback<>() {
-                                    @Override
-                                    public void onSuccess(@javax.annotation.Nullable Transaction transaction) {
-                                        if (transaction != null) {
-                                            transaction.setMemo(withdrawMemoTextField.getText());
-                                            log.debug("onWithdraw onSuccess tx ID:{}", transaction.getHashAsString());
-                                        } else {
-                                            log.error("onWithdraw transaction is null");
-                                        }
-
-                                        List<Trade> trades = new ArrayList<>(tradeManager.getTradableList());
-                                        trades.stream()
-                                                .filter(Trade::isPayoutPublished)
-                                                .forEach(trade -> walletService.getAddressEntry(trade.getId(), AddressEntry.Context.TRADE_PAYOUT)
-                                                        .ifPresent(addressEntry -> {
-                                                            if (walletService.getBalanceForAddress(addressEntry.getAddress()).isZero())
-                                                                tradeManager.addTradeToClosedTrades(trade);
-                                                        }));
-                                    }
-
-                                    @Override
-                                    public void onFailure(@NotNull Throwable t) {
-                                        log.error("onWithdraw onFailure");
-                                    }
-                                }))
-                                .closeButtonText(Res.get("shared.cancel"))
-                                .show();
-                    } else {
-                        new Popup().warning(Res.get("portfolio.pending.step5_buyer.amountTooLow")).show();
-                    }
-                }
-            } catch (InsufficientFundsException e) {
-                new Popup().warning(Res.get("funds.withdrawal.warn.amountExceeds") + "\n\nError message:\n" + e.getMessage()).show();
-            } catch (Throwable e) {
-                e.printStackTrace();
-                log.error(e.toString());
-                new Popup().warning(e.toString()).show();
-            }
-        }
+        throw new RuntimeException("WithdrawalView.onWithdraw() not updated to XMR");
+//        if (GUIUtil.isReadyForTxBroadcastOrShowPopup(p2PService, walletsSetup)) {
+//            try {
+//                // We do not know sendersAmount if senderPaysFee is true. We repeat fee calculation after first attempt if senderPaysFee is true.
+//                Transaction feeEstimationTransaction = walletService.getFeeEstimationTransactionForMultipleAddresses(fromAddresses, amountAsCoin);
+//                if (feeExcluded && feeEstimationTransaction != null) {
+//                    sendersAmount = amountAsCoin.add(feeEstimationTransaction.getFee());
+//                    feeEstimationTransaction = walletService.getFeeEstimationTransactionForMultipleAddresses(fromAddresses, sendersAmount);
+//                }
+//                checkNotNull(feeEstimationTransaction, "feeEstimationTransaction must not be null");
+//
+//                Coin dust = getDust(feeEstimationTransaction);
+//                Coin fee = feeEstimationTransaction.getFee().add(dust);
+//                Coin receiverAmount = Coin.ZERO;
+//                // amountAsCoin is what the user typed into the withdrawal field.
+//                // this can be interpreted as either the senders amount or receivers amount depending
+//                // on a radio button "fee excluded / fee included".
+//                // therefore we calculate the actual sendersAmount and receiverAmount as follows:
+//                if (feeExcluded) {
+//                    receiverAmount = amountAsCoin;
+//                    sendersAmount = receiverAmount.add(fee);
+//                } else {
+//                    sendersAmount = amountAsCoin.add(dust); // sendersAmount bumped up to UTXO size when dust is in play
+//                    receiverAmount = sendersAmount.subtract(fee);
+//                }
+//                if (dust.isPositive()) {
+//                    log.info("Dust output ({} satoshi) was detected, the dust amount has been added to the fee (was {}, now {})",
+//                            dust.value,
+//                            feeEstimationTransaction.getFee(),
+//                            fee.value);
+//                }
+//
+//                if (areInputsValid()) {
+//                    int txSize = feeEstimationTransaction.bitcoinSerialize().length;
+//                    log.info("Fee for tx with size {}: {} " + Res.getBaseCurrencyCode() + "", txSize, fee.toPlainString());
+//
+//                    if (receiverAmount.isPositive()) {
+//                        double feePerByte = CoinUtil.getFeePerByte(fee, txSize);
+//                        double kb = txSize / 1000d;
+//
+//                        String messageText = Res.get("shared.sendFundsDetailsWithFee",
+//                            formatter.formatCoinWithCode(sendersAmount),
+//                            withdrawFromTextField.getText(),
+//                            withdrawToTextField.getText(),
+//                            formatter.formatCoinWithCode(fee),
+//                            feePerByte,
+//                            kb,
+//                            formatter.formatCoinWithCode(receiverAmount));
+//                        if (dust.isPositive()) {
+//                            messageText = Res.get("shared.sendFundsDetailsDust",
+//                                dust.value, dust.value > 1 ? "s" : "")
+//                                + messageText;
+//                        }
+//
+//                        new Popup().headLine(Res.get("funds.withdrawal.confirmWithdrawalRequest"))
+//                                .confirmation(messageText)
+//                                .actionButtonText(Res.get("shared.yes"))
+//                                .onAction(() -> doWithdraw(sendersAmount, fee, new FutureCallback<>() {
+//                                    @Override
+//                                    public void onSuccess(@javax.annotation.Nullable Transaction transaction) {
+//                                        if (transaction != null) {
+//                                            transaction.setMemo(withdrawMemoTextField.getText());
+//                                            log.debug("onWithdraw onSuccess tx ID:{}", transaction.getHashAsString());
+//                                        } else {
+//                                            log.error("onWithdraw transaction is null");
+//                                        }
+//
+//                                        List<Trade> trades = new ArrayList<>(tradeManager.getTradableList());
+//                                        trades.stream()
+//                                                .filter(Trade::isPayoutPublished)
+//                                                .forEach(trade -> walletService.getAddressEntry(trade.getId(), AddressEntry.Context.TRADE_PAYOUT)
+//                                                        .ifPresent(addressEntry -> {
+//                                                            if (walletService.getBalanceForAddress(addressEntry.getAddress()).isZero())
+//                                                                tradeManager.addTradeToClosedTrades(trade);
+//                                                        }));
+//                                    }
+//
+//                                    @Override
+//                                    public void onFailure(@NotNull Throwable t) {
+//                                        log.error("onWithdraw onFailure");
+//                                    }
+//                                }))
+//                                .closeButtonText(Res.get("shared.cancel"))
+//                                .show();
+//                    } else {
+//                        new Popup().warning(Res.get("portfolio.pending.step5_buyer.amountTooLow")).show();
+//                    }
+//                }
+//            } catch (InsufficientFundsException e) {
+//                new Popup().warning(Res.get("funds.withdrawal.warn.amountExceeds") + "\n\nError message:\n" + e.getMessage()).show();
+//            } catch (Throwable e) {
+//                e.printStackTrace();
+//                log.error(e.toString());
+//                new Popup().warning(e.toString()).show();
+//            }
+//        }
     }
 
     private void selectForWithdrawal(WithdrawalListItem item) {
@@ -479,6 +476,7 @@ public class WithdrawalView extends ActivatableView<VBox, Void> {
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     private void updateList() {
+        //throw new RuntimeException("WithdrawalView.updateList() needs updated to use XMR");
         observableList.forEach(WithdrawalListItem::cleanup);
         observableList.setAll(tradeManager.getAddressEntriesForAvailableBalanceStream()
                 .map(addressEntry -> new WithdrawalListItem(addressEntry, walletService, formatter))
@@ -488,34 +486,36 @@ public class WithdrawalView extends ActivatableView<VBox, Void> {
     }
 
     private void doWithdraw(Coin amount, Coin fee, FutureCallback<Transaction> callback) {
-        if (walletService.isEncrypted()) {
-            UserThread.runAfter(() -> walletPasswordWindow.onAesKey(aesKey ->
-                    sendFunds(amount, fee, aesKey, callback))
-                    .show(), 300, TimeUnit.MILLISECONDS);
-        } else {
-            sendFunds(amount, fee, null, callback);
-        }
+        throw new RuntimeException("WithdrawalView.doWithdraw() not updated to XMR");
+//        if (walletService.isEncrypted()) {
+//            UserThread.runAfter(() -> walletPasswordWindow.onAesKey(aesKey ->
+//                    sendFunds(amount, fee, aesKey, callback))
+//                    .show(), 300, TimeUnit.MILLISECONDS);
+//        } else {
+//            sendFunds(amount, fee, null, callback);
+//        }
     }
 
     private void sendFunds(Coin amount, Coin fee, KeyParameter aesKey, FutureCallback<Transaction> callback) {
-        try {
-            walletService.sendFundsForMultipleAddresses(fromAddresses, withdrawToTextField.getText(), amount, fee, null, aesKey, callback);
-            reset();
-            updateList();
-        } catch (AddressFormatException e) {
-            new Popup().warning(Res.get("validation.btc.invalidAddress")).show();
-        } catch (Wallet.DustySendRequested e) {
-            new Popup().warning(Res.get("validation.amountBelowDust",
-                    formatter.formatCoinWithCode(Restrictions.getMinNonDustOutput()))).show();
-        } catch (AddressEntryException e) {
-            new Popup().error(e.getMessage()).show();
-        } catch (InsufficientMoneyException e) {
-            log.warn(e.getMessage());
-            new Popup().warning(Res.get("funds.withdrawal.notEnoughFunds") + "\n\nError message:\n" + e.getMessage()).show();
-        } catch (Throwable e) {
-            log.warn(e.toString());
-            new Popup().warning(e.toString()).show();
-        }
+        throw new RuntimeException("WithdrawalView.sendFunds() not updated to XMR");
+//        try {
+//            walletService.sendFundsForMultipleAddresses(fromAddresses, withdrawToTextField.getText(), amount, fee, null, aesKey, callback);
+//            reset();
+//            updateList();
+//        } catch (AddressFormatException e) {
+//            new Popup().warning(Res.get("validation.btc.invalidAddress")).show();
+//        } catch (Wallet.DustySendRequested e) {
+//            new Popup().warning(Res.get("validation.amountBelowDust",
+//                    formatter.formatCoinWithCode(Restrictions.getMinNonDustOutput()))).show();
+//        } catch (AddressEntryException e) {
+//            new Popup().error(e.getMessage()).show();
+//        } catch (InsufficientMoneyException e) {
+//            log.warn(e.getMessage());
+//            new Popup().warning(Res.get("funds.withdrawal.notEnoughFunds") + "\n\nError message:\n" + e.getMessage()).show();
+//        } catch (Throwable e) {
+//            log.warn(e.toString());
+//            new Popup().warning(e.toString()).show();
+//        }
     }
 
     private void reset() {

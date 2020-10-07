@@ -17,9 +17,27 @@
 
 package bisq.core.support.dispute.mediation;
 
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
+
+import java.util.Optional;
+
+import javax.annotation.Nullable;
+
+import org.bitcoinj.core.Coin;
+
+import com.google.inject.Inject;
+import com.google.inject.Singleton;
+
+import bisq.common.Timer;
+import bisq.common.UserThread;
+import bisq.common.app.Version;
+import bisq.common.crypto.PubKeyRing;
+import bisq.common.handlers.ErrorMessageHandler;
+import bisq.common.handlers.ResultHandler;
 import bisq.core.btc.setup.WalletsSetup;
-import bisq.core.btc.wallet.BtcWalletService;
 import bisq.core.btc.wallet.TradeWalletService;
+import bisq.core.btc.wallet.XmrWalletService;
 import bisq.core.locale.Res;
 import bisq.core.offer.OpenOffer;
 import bisq.core.offer.OpenOfferManager;
@@ -37,31 +55,10 @@ import bisq.core.trade.TradeManager;
 import bisq.core.trade.closed.ClosedTradableManager;
 import bisq.core.trade.protocol.ProcessModel;
 import bisq.core.trade.protocol.TradeProtocol;
-
 import bisq.network.p2p.AckMessageSourceType;
 import bisq.network.p2p.NodeAddress;
 import bisq.network.p2p.P2PService;
-
-import bisq.common.Timer;
-import bisq.common.UserThread;
-import bisq.common.app.Version;
-import bisq.common.crypto.PubKeyRing;
-import bisq.common.handlers.ErrorMessageHandler;
-import bisq.common.handlers.ResultHandler;
-
-import org.bitcoinj.core.Coin;
-
-import com.google.inject.Inject;
-import com.google.inject.Singleton;
-
-import java.util.Optional;
-
 import lombok.extern.slf4j.Slf4j;
-
-import javax.annotation.Nullable;
-
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
 
 @Slf4j
 @Singleton
@@ -74,7 +71,7 @@ public final class MediationManager extends DisputeManager<MediationDisputeList>
     @Inject
     public MediationManager(P2PService p2PService,
                             TradeWalletService tradeWalletService,
-                            BtcWalletService walletService,
+                            XmrWalletService walletService,
                             WalletsSetup walletsSetup,
                             TradeManager tradeManager,
                             ClosedTradableManager closedTradableManager,
@@ -217,7 +214,7 @@ public final class MediationManager extends DisputeManager<MediationDisputeList>
     @Nullable
     @Override
     public NodeAddress getAgentNodeAddress(Dispute dispute) {
-        return dispute.getContract().getMediatorNodeAddress();
+        return dispute.getContract().getArbitratorNodeAddress();  // TODO (woodser): mediator becomes and replaces current arbitrator?
     }
 
     public void acceptMediationResult(Trade trade,

@@ -17,6 +17,8 @@
 
 package bisq.core.trade;
 
+import bisq.common.handlers.ResultHandler;
+
 public interface TakerTrade {
-    void takeAvailableOffer();
+    void takeAvailableOffer(ResultHandler handler);
 }

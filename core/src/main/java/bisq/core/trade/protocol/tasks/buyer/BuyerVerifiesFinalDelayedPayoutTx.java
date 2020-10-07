@@ -38,21 +38,23 @@ public class BuyerVerifiesFinalDelayedPayoutTx extends TradeTask {
     protected void run() {
         try {
             runInterceptHook();
+            
+            throw new RuntimeException("BuyerVerifiesFinalDelayedPayoutTx not applicable for xmr");
 
-            Transaction delayedPayoutTx = trade.getDelayedPayoutTx();
-            // Check again tx
-            DelayedPayoutTxValidation.validatePayoutTx(trade,
-                    delayedPayoutTx,
-                    processModel.getDaoFacade(),
-                    processModel.getBtcWalletService());
-
-            complete();
-        } catch (DelayedPayoutTxValidation.DonationAddressException |
-                DelayedPayoutTxValidation.MissingDelayedPayoutTxException |
-                DelayedPayoutTxValidation.InvalidTxException |
-                DelayedPayoutTxValidation.InvalidLockTimeException |
-                DelayedPayoutTxValidation.AmountMismatchException e) {
-            failed(e.getMessage());
+//            Transaction delayedPayoutTx = trade.getDelayedPayoutTx();
+//            // Check again tx
+//            DelayedPayoutTxValidation.validatePayoutTx(trade,
+//                    delayedPayoutTx,
+//                    processModel.getDaoFacade(),
+//                    processModel.getBtcWalletService());
+//
+//            complete();
+//        } catch (DelayedPayoutTxValidation.DonationAddressException |
+//                DelayedPayoutTxValidation.MissingDelayedPayoutTxException |
+//                DelayedPayoutTxValidation.InvalidTxException |
+//                DelayedPayoutTxValidation.InvalidLockTimeException |
+//                DelayedPayoutTxValidation.AmountMismatchException e) {
+//            failed(e.getMessage());
         } catch (Throwable t) {
             failed(t);
         }

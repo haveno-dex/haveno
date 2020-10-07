@@ -17,16 +17,27 @@
 
 package bisq.desktop.main.offer.createoffer;
 
-import bisq.desktop.main.offer.MakerFeeProvider;
-import bisq.desktop.util.validation.AltcoinValidator;
-import bisq.desktop.util.validation.BtcValidator;
-import bisq.desktop.util.validation.FiatPriceValidator;
-import bisq.desktop.util.validation.SecurityDepositValidator;
+import static bisq.desktop.maker.PreferenceMakers.empty;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
+import java.time.Instant;
+import java.util.UUID;
+
+import org.bitcoinj.core.Coin;
+import org.junit.Before;
+import org.junit.Test;
+
+import bisq.common.config.Config;
 import bisq.core.account.witness.AccountAgeWitnessService;
-import bisq.core.btc.model.AddressEntry;
+import bisq.core.btc.model.XmrAddressEntry;
 import bisq.core.btc.wallet.BsqWalletService;
-import bisq.core.btc.wallet.BtcWalletService;
+import bisq.core.btc.wallet.XmrWalletService;
 import bisq.core.locale.Country;
 import bisq.core.locale.CryptoCurrency;
 import bisq.core.locale.GlobalSettings;
@@ -39,34 +50,17 @@ import bisq.core.provider.price.MarketPrice;
 import bisq.core.provider.price.PriceFeedService;
 import bisq.core.user.Preferences;
 import bisq.core.user.User;
-import bisq.core.util.coin.ImmutableCoinFormatter;
 import bisq.core.util.coin.BsqFormatter;
 import bisq.core.util.coin.CoinFormatter;
+import bisq.core.util.coin.ImmutableCoinFormatter;
 import bisq.core.util.validation.InputValidator;
-
-import bisq.common.config.Config;
-
-import org.bitcoinj.core.Coin;
-
+import bisq.desktop.main.offer.MakerFeeProvider;
+import bisq.desktop.util.validation.AltcoinValidator;
+import bisq.desktop.util.validation.BtcValidator;
+import bisq.desktop.util.validation.FiatPriceValidator;
+import bisq.desktop.util.validation.SecurityDepositValidator;
 import javafx.beans.property.SimpleIntegerProperty;
-
 import javafx.collections.FXCollections;
-
-import java.time.Instant;
-
-import java.util.UUID;
-
-import org.junit.Before;
-import org.junit.Test;
-
-import static bisq.desktop.maker.PreferenceMakers.empty;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 public class CreateOfferViewModelTest {
 
@@ -84,8 +78,8 @@ public class CreateOfferViewModelTest {
         final FiatPriceValidator fiatPriceValidator = new FiatPriceValidator();
 
         FeeService feeService = mock(FeeService.class);
-        AddressEntry addressEntry = mock(AddressEntry.class);
-        BtcWalletService btcWalletService = mock(BtcWalletService.class);
+        XmrAddressEntry addressEntry = mock(XmrAddressEntry.class);
+        XmrWalletService xmrWalletService = mock(XmrWalletService.class);
         PriceFeedService priceFeedService = mock(PriceFeedService.class);
         User user = mock(User.class);
         PaymentAccount paymentAccount = mock(PaymentAccount.class);
@@ -96,8 +90,8 @@ public class CreateOfferViewModelTest {
         AccountAgeWitnessService accountAgeWitnessService = mock(AccountAgeWitnessService.class);
         CreateOfferService createOfferService = mock(CreateOfferService.class);
 
-        when(btcWalletService.getOrCreateAddressEntry(anyString(), any())).thenReturn(addressEntry);
-        when(btcWalletService.getBalanceForAddress(any())).thenReturn(Coin.valueOf(1000L));
+        when(xmrWalletService.getOrCreateAddressEntry(anyString(), any())).thenReturn(addressEntry);
+        when(xmrWalletService.getBalanceForAccount(any(Integer.class))).thenReturn(Coin.valueOf(1000L));
         when(priceFeedService.updateCounterProperty()).thenReturn(new SimpleIntegerProperty());
         when(priceFeedService.getMarketPrice(anyString())).thenReturn(new MarketPrice("USD", 12684.0450, Instant.now().getEpochSecond(), true));
         when(feeService.getTxFee(anyInt())).thenReturn(Coin.valueOf(1000L));
@@ -110,7 +104,7 @@ public class CreateOfferViewModelTest {
         when(bsqWalletService.getAvailableConfirmedBalance()).thenReturn(Coin.ZERO);
         when(createOfferService.getRandomOfferId()).thenReturn(UUID.randomUUID().toString());
 
-        CreateOfferDataModel dataModel = new CreateOfferDataModel(createOfferService, null, btcWalletService,
+        CreateOfferDataModel dataModel = new CreateOfferDataModel(createOfferService, null, xmrWalletService,
                 bsqWalletService, empty, user, null, priceFeedService,
                 accountAgeWitnessService, feeService,
                 coinFormatter, mock(MakerFeeProvider.class), null);

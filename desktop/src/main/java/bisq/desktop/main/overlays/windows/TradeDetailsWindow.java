@@ -189,8 +189,10 @@ public class TradeDetailsWindow extends Overlay<TradeDetailsWindow> {
 
         if (trade.getTakerFeeTxId() != null)
             rows++;
-        if (trade.getDepositTx() != null)
+        if (trade.getMakerDepositTx() != null)
             rows++;
+        if (trade.getTakerDepositTx() != null)
+          rows++;
         if (trade.getPayoutTx() != null)
             rows++;
         boolean showDisputedTx = arbitrationManager.findOwnDispute(trade.getId()).isPresent() &&
@@ -276,12 +278,15 @@ public class TradeDetailsWindow extends Overlay<TradeDetailsWindow> {
         if (trade.getTakerFeeTxId() != null)
             addLabelTxIdTextField(gridPane, ++rowIndex, Res.get("shared.takerFeeTxId"), trade.getTakerFeeTxId());
 
-        if (trade.getDepositTx() != null)
-            addLabelTxIdTextField(gridPane, ++rowIndex, Res.get("shared.depositTransactionId"),
-                    trade.getDepositTx().getHashAsString());
+        if (trade.getMakerDepositTx() != null)
+            addLabelTxIdTextField(gridPane, ++rowIndex, Res.get("shared.depositTransactionId"), // TODO (woodser): separate UI labels for deposit tx ids
+                    trade.getMakerDepositTx().getHash());
+        if (trade.getTakerDepositTx() != null)
+          addLabelTxIdTextField(gridPane, ++rowIndex, Res.get("shared.depositTransactionId"), // TODO (woodser): separate UI labels for deposit tx ids
+                  trade.getTakerDepositTx().getHash());
         if (trade.getPayoutTx() != null)
             addLabelTxIdTextField(gridPane, ++rowIndex, Res.get("shared.payoutTxId"),
-                    trade.getPayoutTx().getHashAsString());
+                    trade.getPayoutTx().getHash());
         if (showDisputedTx)
             addLabelTxIdTextField(gridPane, ++rowIndex, Res.get("tradeDetailsWindow.disputedPayoutTxId"),
                     arbitrationManager.findOwnDispute(trade.getId()).get().getDisputePayoutTxId());
@@ -294,8 +299,6 @@ public class TradeDetailsWindow extends Overlay<TradeDetailsWindow> {
                 TextArea textArea = new BisqTextArea();
                 textArea.setText(trade.getContractAsJson());
                 String contractAsJson = trade.getContractAsJson();
-                contractAsJson += "\n\nBuyerMultiSigPubKeyHex: " + Utils.HEX.encode(contract.getBuyerMultiSigPubKey());
-                contractAsJson += "\nSellerMultiSigPubKeyHex: " + Utils.HEX.encode(contract.getSellerMultiSigPubKey());
                 if (CurrencyUtil.isFiatCurrency(offer.getCurrencyCode())) {
                     contractAsJson += "\nBuyersAccountAge: " + buyersAccountAge;
                     contractAsJson += "\nSellersAccountAge: " + sellersAccountAge;

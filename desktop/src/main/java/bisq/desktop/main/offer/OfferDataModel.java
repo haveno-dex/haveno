@@ -17,18 +17,15 @@
 
 package bisq.desktop.main.offer;
 
-import bisq.desktop.common.model.ActivatableDataModel;
-
-import bisq.core.btc.model.AddressEntry;
-import bisq.core.btc.wallet.BtcWalletService;
-
 import org.bitcoinj.core.Coin;
 
+import bisq.core.btc.model.XmrAddressEntry;
+import bisq.core.btc.wallet.XmrWalletService;
+import bisq.desktop.common.model.ActivatableDataModel;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleObjectProperty;
-
 import lombok.Getter;
 
 /**
@@ -37,7 +34,7 @@ import lombok.Getter;
  * That model is just responsible for the domain specific parts displayed needed in that UI element.
  */
 public abstract class OfferDataModel extends ActivatableDataModel {
-    protected final BtcWalletService btcWalletService;
+    protected final XmrWalletService xmrWalletService;
 
     @Getter
     protected final BooleanProperty isBtcWalletFunded = new SimpleBooleanProperty();
@@ -51,17 +48,17 @@ public abstract class OfferDataModel extends ActivatableDataModel {
     protected final BooleanProperty showWalletFundedNotification = new SimpleBooleanProperty();
     @Getter
     protected Coin totalAvailableBalance;
-    protected AddressEntry addressEntry;
+    protected XmrAddressEntry addressEntry;
     protected boolean useSavingsWallet;
 
-    public OfferDataModel(BtcWalletService btcWalletService) {
-        this.btcWalletService = btcWalletService;
+    public OfferDataModel(XmrWalletService xmrWalletService) {
+        this.xmrWalletService = xmrWalletService;
     }
 
     protected void updateBalance() {
-        Coin tradeWalletBalance = btcWalletService.getBalanceForAddress(addressEntry.getAddress());
+        Coin tradeWalletBalance = xmrWalletService.getBalanceForAccount(addressEntry.getAccountIndex());
         if (useSavingsWallet) {
-            Coin savingWalletBalance = btcWalletService.getSavingWalletBalance();
+            Coin savingWalletBalance = xmrWalletService.getSavingWalletBalance();
             totalAvailableBalance = savingWalletBalance.add(tradeWalletBalance);
             if (totalToPayAsCoin.get() != null) {
                 if (totalAvailableBalance.compareTo(totalToPayAsCoin.get()) > 0)

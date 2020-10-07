@@ -19,7 +19,8 @@ package bisq.core.trade.protocol;
 
 import bisq.common.handlers.ErrorMessageHandler;
 import bisq.common.handlers.ResultHandler;
+import bisq.network.p2p.NodeAddress;
 
 public interface SellerProtocol {
-    void onFiatPaymentReceived(ResultHandler resultHandler, ErrorMessageHandler errorMessageHandler);
+    void onFiatPaymentReceived(ResultHandler resultHandler, ErrorMessageHandler errorMessageHandler); // TODO (woodser): used for fiat and crypto payments?
 }

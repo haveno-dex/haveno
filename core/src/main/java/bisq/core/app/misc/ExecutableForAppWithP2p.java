@@ -17,14 +17,12 @@
 
 package bisq.core.app.misc;
 
-import bisq.core.app.BisqExecutable;
-import bisq.core.btc.setup.WalletsSetup;
-import bisq.core.btc.wallet.BsqWalletService;
-import bisq.core.btc.wallet.BtcWalletService;
-import bisq.core.offer.OpenOfferManager;
-import bisq.core.support.dispute.arbitration.arbitrator.ArbitratorManager;
+import java.io.IOException;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.TimeUnit;
 
-import bisq.network.p2p.P2PService;
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
 import bisq.common.UserThread;
 import bisq.common.config.Config;
@@ -33,15 +31,14 @@ import bisq.common.setup.GracefulShutDownHandler;
 import bisq.common.setup.UncaughtExceptionHandler;
 import bisq.common.util.Profiler;
 import bisq.common.util.RestartUtil;
-
-import com.google.common.util.concurrent.ThreadFactoryBuilder;
-
-import java.io.IOException;
-
-import java.util.concurrent.Executors;
-import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.TimeUnit;
-
+import bisq.core.app.BisqExecutable;
+import bisq.core.btc.setup.WalletsSetup;
+import bisq.core.btc.wallet.BsqWalletService;
+import bisq.core.btc.wallet.BtcWalletService;
+import bisq.core.btc.wallet.XmrWalletService;
+import bisq.core.offer.OpenOfferManager;
+import bisq.core.support.dispute.arbitration.arbitrator.ArbitratorManager;
+import bisq.network.p2p.P2PService;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -85,6 +82,7 @@ public abstract class ExecutableForAppWithP2p extends BisqExecutable implements 
                         System.exit(0);
                     });
                     injector.getInstance(WalletsSetup.class).shutDown();
+                    injector.getInstance(XmrWalletService.class).shutDown();  // TODO (woodser): this is not actually called, perhaps because WalletsSetup.class completes too quick so its listener calls System.exit(0)
                     injector.getInstance(BtcWalletService.class).shutDown();
                     injector.getInstance(BsqWalletService.class).shutDown();
                 }));

@@ -17,22 +17,26 @@
 
 package bisq.core.trade.protocol.tasks;
 
-import bisq.core.btc.listeners.AddressConfidenceListener;
-import bisq.core.btc.model.AddressEntry;
-import bisq.core.btc.wallet.BtcWalletService;
-import bisq.core.trade.Trade;
+import java.util.List;
 
-import bisq.common.UserThread;
-import bisq.common.taskrunner.TaskRunner;
-
-import org.bitcoinj.core.Address;
-import org.bitcoinj.core.Transaction;
 import org.bitcoinj.core.TransactionConfidence;
-
 import org.fxmisc.easybind.EasyBind;
 import org.fxmisc.easybind.Subscription;
 
+import bisq.common.UserThread;
+import bisq.common.taskrunner.TaskRunner;
+import bisq.core.btc.listeners.AddressConfidenceListener;
+import bisq.core.btc.model.AddressEntry;
+import bisq.core.btc.model.XmrAddressEntry;
+import bisq.core.btc.wallet.XmrWalletService;
+import bisq.core.trade.Trade;
 import lombok.extern.slf4j.Slf4j;
+import monero.wallet.MoneroWalletJni;
+import monero.wallet.model.MoneroOutputWallet;
+import monero.wallet.model.MoneroTransferQuery;
+import monero.wallet.model.MoneroTxQuery;
+import monero.wallet.model.MoneroTxWallet;
+import monero.wallet.model.MoneroWalletListener;
 
 @Slf4j
 public abstract class SetupPayoutTxListener extends TradeTask {
@@ -52,34 +56,41 @@ public abstract class SetupPayoutTxListener extends TradeTask {
     protected void run() {
         try {
             runInterceptHook();
-            if (!trade.isPayoutPublished()) {
-                BtcWalletService walletService = processModel.getBtcWalletService();
-                String id = processModel.getOffer().getId();
-                Address address = walletService.getOrCreateAddressEntry(id, AddressEntry.Context.TRADE_PAYOUT).getAddress();
-
-                TransactionConfidence confidence = walletService.getConfidenceForAddress(address);
-                if (isInNetwork(confidence)) {
-                    applyConfidence(confidence);
-                } else {
-                    confidenceListener = new AddressConfidenceListener(address) {
-                        @Override
-                        public void onTransactionConfidenceChanged(TransactionConfidence confidence) {
-                            if (isInNetwork(confidence))
-                                applyConfidence(confidence);
-                        }
-                    };
-                    walletService.addAddressConfidenceListener(confidenceListener);
-
-                    tradeStateSubscription = EasyBind.subscribe(trade.stateProperty(), newValue -> {
-                        if (trade.isPayoutPublished()) {
-                            swapMultiSigEntry();
-
-                            // hack to remove tradeStateSubscription at callback
-                            UserThread.execute(this::unSubscribe);
-                        }
-                    });
-                }
-            }
+            System.out.println("NEED TO IMPLEMENT PAYOUT TX LISTENER!"); // TODO (woodser): implement SetupPayoutTxListener
+//            if (!trade.isPayoutPublished()) {
+//                XmrWalletService walletService = processModel.getXmrWalletService();
+//                MoneroWalletJni wallet = walletService.getWallet();
+//                String payoutTxId = trade.getPayoutTx().getHash();
+//                
+//                
+//                try {
+//                  wallet.getTx(payoutTxId);
+//                } catch (MoneroError) {
+//                	
+//                }
+//                
+//                
+//                if (walletService.getBalanceForAccount(accountIdx).value > 0) {
+//                  applyPayoutTx(accountIdx);
+//                } else {
+//                  walletService.getWallet().addListener(new MoneroWalletListener() {
+//                    @Override public void onOutputReceived(MoneroOutputWallet output) {
+//                      if (output.getAccountIndex() == accountIdx) {
+//                        applyPayoutTx(output.getAccountIndex());
+//                      }
+//                    }
+//                  });
+//                  
+//                  tradeStateSubscription = EasyBind.subscribe(trade.stateProperty(), newValue -> {
+//                      if (trade.isPayoutPublished()) {
+//                          swapMultiSigEntry();
+//
+//                          // hack to remove tradeStateSubscription at callback
+//                          UserThread.execute(this::unSubscribe);
+//                      }
+//                  });
+//                }
+//            }
 
             // we complete immediately, our object stays alive because the balanceListener is stored in the WalletService
             complete();
@@ -88,11 +99,23 @@ public abstract class SetupPayoutTxListener extends TradeTask {
         }
     }
 
-    private void applyConfidence(TransactionConfidence confidence) {
+    private void applyPayoutTx(int accountIdx) {
         if (trade.getPayoutTx() == null) {
-            Transaction walletTx = processModel.getTradeWalletService().getWalletTx(confidence.getTransactionHash());
-            trade.setPayoutTx(walletTx);
-            BtcWalletService.printTx("payoutTx received from network", walletTx);
+          
+            // get txs with transfers to payout subaddress
+            List<MoneroTxWallet> txs = processModel.getXmrWalletService().getWallet().getTxs(new MoneroTxQuery()
+                    .setTransferQuery(new MoneroTransferQuery().setAccountIndex(accountIdx).setSubaddressIndex(0).setIsIncoming(true)));  // TODO (woodser): hardcode account 0 as savings wallet, subaddress 0 trade accounts in config
+          
+            // resolve payout tx if multiple txs sent to payout address
+            MoneroTxWallet payoutTx;
+            if (txs.size() > 1) {
+              throw new RuntimeException("Need to resolve multiple payout txs");  // TODO (woodser)
+            } else {
+              payoutTx = txs.get(0);
+            }
+          
+            trade.setPayoutTx(payoutTx);
+            XmrWalletService.printTxs("payoutTx received from network", payoutTx);
             setState();
         } else {
             log.info("We had the payout tx already set. tradeId={}, state={}", trade.getId(), trade.getState());

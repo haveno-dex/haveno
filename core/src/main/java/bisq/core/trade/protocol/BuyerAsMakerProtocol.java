@@ -17,6 +17,8 @@
 
 package bisq.core.trade.protocol;
 
+import bisq.common.handlers.ErrorMessageHandler;
+import bisq.common.handlers.ResultHandler;
 import bisq.core.trade.BuyerAsMakerTrade;
 import bisq.core.trade.Trade;
 import bisq.core.trade.messages.DelayedPayoutTxSignatureRequest;
@@ -27,15 +29,15 @@ import bisq.core.trade.messages.RefreshTradeStateRequest;
 import bisq.core.trade.messages.TradeMessage;
 import bisq.core.trade.protocol.tasks.ApplyFilter;
 import bisq.core.trade.protocol.tasks.PublishTradeStatistics;
+import bisq.core.trade.protocol.tasks.UpdateMultisigWithTradingPeer;
 import bisq.core.trade.protocol.tasks.VerifyPeersAccountAgeWitness;
+import bisq.core.trade.protocol.tasks.buyer.BuyerCreateAndSignPayoutTx;
 import bisq.core.trade.protocol.tasks.buyer.BuyerProcessDelayedPayoutTxSignatureRequest;
 import bisq.core.trade.protocol.tasks.buyer.BuyerProcessDepositTxAndDelayedPayoutTxMessage;
 import bisq.core.trade.protocol.tasks.buyer.BuyerProcessPayoutTxPublishedMessage;
 import bisq.core.trade.protocol.tasks.buyer.BuyerSendCounterCurrencyTransferStartedMessage;
 import bisq.core.trade.protocol.tasks.buyer.BuyerSendsDelayedPayoutTxSignatureResponse;
-import bisq.core.trade.protocol.tasks.buyer.BuyerSetupDepositTxListener;
 import bisq.core.trade.protocol.tasks.buyer.BuyerSetupPayoutTxListener;
-import bisq.core.trade.protocol.tasks.buyer.BuyerSignPayoutTx;
 import bisq.core.trade.protocol.tasks.buyer.BuyerSignsDelayedPayoutTx;
 import bisq.core.trade.protocol.tasks.buyer.BuyerVerifiesFinalDelayedPayoutTx;
 import bisq.core.trade.protocol.tasks.buyer.BuyerVerifiesPreparedDelayedPayoutTx;
@@ -44,21 +46,15 @@ import bisq.core.trade.protocol.tasks.buyer_as_maker.BuyerAsMakerSendsInputsForD
 import bisq.core.trade.protocol.tasks.maker.MakerCreateAndSignContract;
 import bisq.core.trade.protocol.tasks.maker.MakerProcessesInputsForDepositTxRequest;
 import bisq.core.trade.protocol.tasks.maker.MakerSetsLockTime;
+import bisq.core.trade.protocol.tasks.maker.MakerSetupDepositTxsListener;
 import bisq.core.trade.protocol.tasks.maker.MakerVerifyTakerAccount;
 import bisq.core.trade.protocol.tasks.maker.MakerVerifyTakerFeePayment;
 import bisq.core.util.Validator;
-
 import bisq.network.p2p.NodeAddress;
-
-import bisq.common.handlers.ErrorMessageHandler;
-import bisq.common.handlers.ResultHandler;
-
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public class BuyerAsMakerProtocol extends TradeProtocol implements BuyerProtocol, MakerProtocol {
-    private final BuyerAsMakerTrade buyerAsMakerTrade;
-
+public class BuyerAsMakerProtocol extends MakerProtocolBase implements BuyerProtocol, MakerProtocol {
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Constructor
@@ -67,23 +63,22 @@ public class BuyerAsMakerProtocol extends TradeProtocol implements BuyerProtocol
     public BuyerAsMakerProtocol(BuyerAsMakerTrade trade) {
         super(trade);
 
-        this.buyerAsMakerTrade = trade;
-
         Trade.Phase phase = trade.getState().getPhase();
         if (phase == Trade.Phase.TAKER_FEE_PUBLISHED) {
             TradeTaskRunner taskRunner = new TradeTaskRunner(trade,
                     () -> handleTaskRunnerSuccess("BuyerSetupDepositTxListener"),
                     this::handleTaskRunnerFault);
 
-            taskRunner.addTasks(BuyerSetupDepositTxListener.class);
+            taskRunner.addTasks(MakerSetupDepositTxsListener.class);
             taskRunner.run();
         } else if (trade.isFiatSent() && !trade.isPayoutPublished()) {
-            TradeTaskRunner taskRunner = new TradeTaskRunner(trade,
-                    () -> handleTaskRunnerSuccess("BuyerSetupPayoutTxListener"),
-                    this::handleTaskRunnerFault);
-
-            taskRunner.addTasks(BuyerSetupPayoutTxListener.class);
-            taskRunner.run();
+            System.out.println("Payment sent but payout not published!!!"); // TODO (woodser): re-enable when implemented
+//            TradeTaskRunner taskRunner = new TradeTaskRunner(trade,
+//                    () -> handleTaskRunnerSuccess("BuyerSetupPayoutTxListener"),
+//                    this::handleTaskRunnerFault);
+//
+//            taskRunner.addTasks(BuyerSetupPayoutTxListener.class);
+//            taskRunner.run();
         }
     }
 
@@ -104,12 +99,9 @@ public class BuyerAsMakerProtocol extends TradeProtocol implements BuyerProtocol
             handle();
         }
     }
-
-
-    ///////////////////////////////////////////////////////////////////////////////////////////
-    // Start trade
-    ///////////////////////////////////////////////////////////////////////////////////////////
-
+    
+    // TODO (woodser): delete what isn't used
+    
     @Override
     public void handleTakeOfferRequest(InputsForDepositTxRequest tradeMessage,
                                        NodeAddress peerNodeAddress,
@@ -118,7 +110,7 @@ public class BuyerAsMakerProtocol extends TradeProtocol implements BuyerProtocol
         processModel.setTradeMessage(tradeMessage);
         processModel.setTempTradingPeerNodeAddress(peerNodeAddress);
 
-        TradeTaskRunner taskRunner = new TradeTaskRunner(buyerAsMakerTrade,
+        TradeTaskRunner taskRunner = new TradeTaskRunner(trade,
                 () -> handleTaskRunnerSuccess(tradeMessage, "handleTakeOfferRequest"),
                 errorMessage -> {
                     errorMessageHandler.handleErrorMessage(errorMessage);
@@ -133,15 +125,14 @@ public class BuyerAsMakerProtocol extends TradeProtocol implements BuyerProtocol
                 MakerSetsLockTime.class,
                 MakerCreateAndSignContract.class,
                 BuyerAsMakerCreatesAndSignsDepositTx.class,
-                BuyerSetupDepositTxListener.class,
+                MakerSetupDepositTxsListener.class,
                 BuyerAsMakerSendsInputsForDepositTxResponse.class
         );
         // We don't use a timeout here because if the DepositTxPublishedMessage does not arrive we
         // get the deposit tx set at MakerSetupDepositTxListener once it is seen in the bitcoin network
         taskRunner.run();
     }
-
-
+    
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Incoming message handling
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -150,7 +141,7 @@ public class BuyerAsMakerProtocol extends TradeProtocol implements BuyerProtocol
         processModel.setTradeMessage(tradeMessage);
         processModel.setTempTradingPeerNodeAddress(peerNodeAddress);
 
-        TradeTaskRunner taskRunner = new TradeTaskRunner(buyerAsMakerTrade,
+        TradeTaskRunner taskRunner = new TradeTaskRunner(trade,
                 () -> handleTaskRunnerSuccess(tradeMessage, "handle DelayedPayoutTxSignatureRequest"),
                 errorMessage -> handleTaskRunnerFault(tradeMessage, errorMessage));
         taskRunner.addTasks(
@@ -166,7 +157,7 @@ public class BuyerAsMakerProtocol extends TradeProtocol implements BuyerProtocol
         processModel.setTradeMessage(tradeMessage);
         processModel.setTempTradingPeerNodeAddress(peerNodeAddress);
 
-        TradeTaskRunner taskRunner = new TradeTaskRunner(buyerAsMakerTrade,
+        TradeTaskRunner taskRunner = new TradeTaskRunner(trade,
                 () -> handleTaskRunnerSuccess(tradeMessage, "handle DepositTxAndDelayedPayoutTxMessage"),
                 errorMessage -> handleTaskRunnerFault(tradeMessage, errorMessage));
         taskRunner.addTasks(
@@ -175,14 +166,14 @@ public class BuyerAsMakerProtocol extends TradeProtocol implements BuyerProtocol
                 PublishTradeStatistics.class
         );
         taskRunner.run();
-        processModel.logTrade(buyerAsMakerTrade);
+        processModel.logTrade(trade);
     }
 
     private void handle(PayoutTxPublishedMessage tradeMessage, NodeAddress peerNodeAddress) {
         processModel.setTradeMessage(tradeMessage);
         processModel.setTempTradingPeerNodeAddress(peerNodeAddress);
 
-        TradeTaskRunner taskRunner = new TradeTaskRunner(buyerAsMakerTrade,
+        TradeTaskRunner taskRunner = new TradeTaskRunner(trade,
                 () -> handleTaskRunnerSuccess(tradeMessage, "handle PayoutTxPublishedMessage"),
                 errorMessage -> handleTaskRunnerFault(tradeMessage, errorMessage));
 
@@ -197,7 +188,7 @@ public class BuyerAsMakerProtocol extends TradeProtocol implements BuyerProtocol
         // Resend CounterCurrencyTransferStartedMessage if it hasn't been acked yet and counterparty asked for a refresh
         if (trade.getState().getPhase() == Trade.Phase.FIAT_SENT &&
                 trade.getState().ordinal() >= Trade.State.BUYER_SENT_FIAT_PAYMENT_INITIATED_MSG.ordinal()) {
-            TradeTaskRunner taskRunner = new TradeTaskRunner(buyerAsMakerTrade,
+            TradeTaskRunner taskRunner = new TradeTaskRunner(trade,
                     () -> handleTaskRunnerSuccess("onFiatPaymentStarted"),
                     this::handleTaskRunnerFault);
             taskRunner.addTasks(BuyerSendCounterCurrencyTransferStartedMessage.class);
@@ -213,8 +204,8 @@ public class BuyerAsMakerProtocol extends TradeProtocol implements BuyerProtocol
     @Override
     public void onFiatPaymentStarted(ResultHandler resultHandler, ErrorMessageHandler errorMessageHandler) {
         if (trade.isDepositConfirmed() && !trade.isFiatSent()) {
-            buyerAsMakerTrade.setState(Trade.State.BUYER_CONFIRMED_IN_UI_FIAT_PAYMENT_INITIATED);
-            TradeTaskRunner taskRunner = new TradeTaskRunner(buyerAsMakerTrade,
+            trade.setState(Trade.State.BUYER_CONFIRMED_IN_UI_FIAT_PAYMENT_INITIATED);
+            TradeTaskRunner taskRunner = new TradeTaskRunner(trade,
                     () -> {
                         resultHandler.handleResult();
                         handleTaskRunnerSuccess("onFiatPaymentStarted");
@@ -227,7 +218,9 @@ public class BuyerAsMakerProtocol extends TradeProtocol implements BuyerProtocol
                     ApplyFilter.class,
                     MakerVerifyTakerAccount.class,
                     MakerVerifyTakerFeePayment.class,
-                    BuyerSignPayoutTx.class,
+                    UpdateMultisigWithTradingPeer.class,
+                    BuyerCreateAndSignPayoutTx.class,
+                    //BuyerSendSignAndPublishPayoutTxRequest.class,
                     BuyerSendCounterCurrencyTransferStartedMessage.class,
                     BuyerSetupPayoutTxListener.class
             );

@@ -15,23 +15,21 @@
  * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.core.trade.protocol.tasks.seller_as_maker;
+package bisq.core.trade.protocol.tasks.taker;
 
+import static bisq.core.util.Validator.checkTradeId;
+import static com.google.common.base.Preconditions.checkNotNull;
+
+import bisq.common.taskrunner.TaskRunner;
 import bisq.core.trade.Trade;
 import bisq.core.trade.messages.DepositTxMessage;
 import bisq.core.trade.protocol.tasks.TradeTask;
-import bisq.core.util.Validator;
-
-import bisq.common.taskrunner.TaskRunner;
-
 import lombok.extern.slf4j.Slf4j;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-
 @Slf4j
-public class SellerAsMakerProcessDepositTxMessage extends TradeTask {
+public class TakerProcessesMakerDepositTxMessage extends TradeTask {
     @SuppressWarnings({"unused"})
-    public SellerAsMakerProcessDepositTxMessage(TaskRunner taskHandler, Trade trade) {
+    public TakerProcessesMakerDepositTxMessage(TaskRunner taskHandler, Trade trade) {
         super(taskHandler, trade);
     }
 
@@ -41,13 +39,13 @@ public class SellerAsMakerProcessDepositTxMessage extends TradeTask {
             runInterceptHook();
             log.debug("current trade state " + trade.getState());
             DepositTxMessage message = (DepositTxMessage) processModel.getTradeMessage();
-            Validator.checkTradeId(processModel.getOfferId(), message);
+            checkTradeId(processModel.getOfferId(), message);
             checkNotNull(message);
-            checkNotNull(message.getDepositTx());
+            
+            // TODO (woodser): verify that deposit amount + tx fee = security deposit + trade fee (+ trade amount), or require exact security deposit to multisig?
+            processModel.setMakerPreparedDepositTxId(message.getDepositTxId());
 
-            processModel.getTradingPeer().setPreparedDepositTx(message.getDepositTx());
-            trade.setTradingPeerNodeAddress(processModel.getTempTradingPeerNodeAddress());
-
+            trade.persist();
             complete();
         } catch (Throwable t) {
             failed(t);

@@ -51,7 +51,8 @@ public final class TradeStatisticsForJson {
     public final long offerAmount;
     public final long offerMinAmount;
     public final String offerId;
-    public final String depositTxId;
+    public final String makerDepositTxId;
+    public final String takerDepositTxId;
 
     // primaryMarket fields are based on industry standard where primaryMarket is always in the focus (in the app BTC is always in the focus - will be changed in a larger refactoring once)
     public String currencyPair;
@@ -74,7 +75,8 @@ public final class TradeStatisticsForJson {
         this.tradePrice = tradeStatistics.getTradePrice().getValue();
         this.tradeAmount = tradeStatistics.getTradeAmount().getValue();
         this.tradeDate = tradeStatistics.getTradeDate().getTime();
-        this.depositTxId = tradeStatistics.getDepositTxId();
+        this.makerDepositTxId = tradeStatistics.getMakerDepositTxId();
+        this.takerDepositTxId = tradeStatistics.getTakerDepositTxId();
 
         try {
             final Price tradePrice = getTradePrice();

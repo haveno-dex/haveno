@@ -17,10 +17,28 @@
 
 package bisq.core.proto.persistable;
 
+import java.io.File;
+
+import javax.inject.Inject;
+import javax.inject.Named;
+import javax.inject.Singleton;
+
+import com.google.inject.Provider;
+
+import bisq.common.config.Config;
+import bisq.common.proto.ProtobufferRuntimeException;
+import bisq.common.proto.network.NetworkProtoResolver;
+import bisq.common.proto.persistable.NavigationPath;
+import bisq.common.proto.persistable.PersistableEnvelope;
+import bisq.common.proto.persistable.PersistenceProtoResolver;
+import bisq.common.storage.CorruptedDatabaseFilesHandler;
+import bisq.common.storage.Storage;
 import bisq.core.account.sign.SignedWitnessStore;
 import bisq.core.account.witness.AccountAgeWitnessStore;
 import bisq.core.btc.model.AddressEntryList;
+import bisq.core.btc.model.XmrAddressEntryList;
 import bisq.core.btc.wallet.BtcWalletService;
+import bisq.core.btc.wallet.XmrWalletService;
 import bisq.core.dao.governance.blindvote.MyBlindVoteList;
 import bisq.core.dao.governance.blindvote.storage.BlindVoteStore;
 import bisq.core.dao.governance.bond.reputation.MyReputationList;
@@ -41,27 +59,8 @@ import bisq.core.trade.TradableList;
 import bisq.core.trade.statistics.TradeStatistics2Store;
 import bisq.core.user.PreferencesPayload;
 import bisq.core.user.UserPayload;
-
 import bisq.network.p2p.peers.peerexchange.PeerList;
 import bisq.network.p2p.storage.persistence.SequenceNumberMap;
-
-import bisq.common.config.Config;
-import bisq.common.proto.ProtobufferRuntimeException;
-import bisq.common.proto.network.NetworkProtoResolver;
-import bisq.common.proto.persistable.NavigationPath;
-import bisq.common.proto.persistable.PersistableEnvelope;
-import bisq.common.proto.persistable.PersistenceProtoResolver;
-import bisq.common.storage.CorruptedDatabaseFilesHandler;
-import bisq.common.storage.Storage;
-
-import com.google.inject.Provider;
-
-import javax.inject.Inject;
-import javax.inject.Named;
-import javax.inject.Singleton;
-
-import java.io.File;
-
 import lombok.extern.slf4j.Slf4j;
 
 // TODO Use ProtobufferException instead of ProtobufferRuntimeException
@@ -69,16 +68,19 @@ import lombok.extern.slf4j.Slf4j;
 @Singleton
 public class CorePersistenceProtoResolver extends CoreProtoResolver implements PersistenceProtoResolver {
     private final Provider<BtcWalletService> btcWalletService;
+    private final Provider<XmrWalletService> xmrWalletService;
     private final NetworkProtoResolver networkProtoResolver;
     private final File storageDir;
     private final CorruptedDatabaseFilesHandler corruptedDatabaseFilesHandler;
 
     @Inject
     public CorePersistenceProtoResolver(Provider<BtcWalletService> btcWalletService,
+                                        Provider<XmrWalletService> xmrWalletService,
                                         NetworkProtoResolver networkProtoResolver,
                                         @Named(Config.STORAGE_DIR) File storageDir,
                                         CorruptedDatabaseFilesHandler corruptedDatabaseFilesHandler) {
         this.btcWalletService = btcWalletService;
+        this.xmrWalletService = xmrWalletService;
         this.networkProtoResolver = networkProtoResolver;
         this.storageDir = storageDir;
 
@@ -95,11 +97,13 @@ public class CorePersistenceProtoResolver extends CoreProtoResolver implements P
                     return PeerList.fromProto(proto.getPeerList());
                 case ADDRESS_ENTRY_LIST:
                     return AddressEntryList.fromProto(proto.getAddressEntryList());
+                case XMR_ADDRESS_ENTRY_LIST:
+                  return XmrAddressEntryList.fromProto(proto.getXmrAddressEntryList());
                 case TRADABLE_LIST:
                     return TradableList.fromProto(proto.getTradableList(),
                             this,
                             new Storage<>(storageDir, this, corruptedDatabaseFilesHandler),
-                            btcWalletService.get());
+                            xmrWalletService.get());
                 case ARBITRATION_DISPUTE_LIST:
                     return ArbitrationDisputeList.fromProto(proto.getArbitrationDisputeList(),
                             this,

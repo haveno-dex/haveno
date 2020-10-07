@@ -1,0 +1,29 @@
+rebase
+trading peer is null in history
+remove bitcoin-qt dependency
+use "deposit tx" terminology instead of "fund multisig"
+use rpc instead of jni bindings? requires notifications in monero-java
+resume listeners on startup (BisqSetup.start() - init multisig?)
+finalize protocol (when to remove trade from books, tx ids, no arbitrator till ms?)
+deploy seed
+trade removed from books immediately or when taker pays fee?
+balances: total, locked, reserved?
+verify payout txs in dispute
+user can review/accept/reject arbitrator payout decision
+arbitrator fee?
+proper error handling
+peer verify fee tx
+multisig wallets replaced if exist and trade restarted
+multisig wallets named with trade id + trade peer id for concurrent acceptance?
+use getNewAddressEntry() to register payout destination
+use BigIntegers instead of satoshi conversion?
+remove bitcoinj dependency?
+manage all funds in account 0 with reserved subaddresses or move failed trade account funds to account 0 (incurs miner fee + 10 block wait time)
+refactor State/Phase for CleanupTradeableOnFault
+temp node address vs trusting/persisitng into trade model
+ui designs
+flatten ProcessModel into Trade / other model refactors?
+might occasionally need to reimburse taker fee if maker does not enter into multisig
+
+BEFORE PRODUCTION
+build status like bisq: https://travis-ci.org/bisq-network/bisq

@@ -17,6 +17,12 @@
 
 package bisq.core.trade.protocol;
 
+import bisq.common.handlers.ErrorMessageHandler;
+import bisq.common.handlers.ResultHandler;
+import bisq.core.trade.messages.MakerReadyToFundMultisigResponse;
+import bisq.network.p2p.NodeAddress;
+
 public interface TakerProtocol {
-    void takeAvailableOffer();
+    void takeAvailableOffer(ResultHandler handler);
+    void handleMakerReadyToFundMultisigResponse(MakerReadyToFundMultisigResponse response, NodeAddress peer, ErrorMessageHandler errorMessageHandler);
 }

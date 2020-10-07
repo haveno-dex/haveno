@@ -240,7 +240,7 @@ public class ContractWindow extends Overlay<ContractWindow> {
         }
 
         addLabelTxIdTextField(gridPane, ++rowIndex, Res.get("shared.makerFeeTxId"), offer.getOfferFeePaymentTxId());
-        addLabelTxIdTextField(gridPane, ++rowIndex, Res.get("shared.takerFeeTxId"), contract.getTakerFeeTxID());
+        addLabelTxIdTextField(gridPane, ++rowIndex, Res.get("shared.takerFeeTxId"), "TAKER FEE TX ID NOT PART OF CONTRACT");  // TODO (woodser): should taker fee tx id be part of contract?
 
         if (dispute.getDepositTxSerialized() != null)
             addLabelTxIdTextField(gridPane, ++rowIndex, Res.get("shared.depositTransactionId"), dispute.getDepositTxId());
@@ -261,8 +261,6 @@ public class ContractWindow extends Overlay<ContractWindow> {
         viewContractButton.setOnAction(e -> {
             TextArea textArea = new BisqTextArea();
             String contractAsJson = dispute.getContractAsJson();
-            contractAsJson += "\n\nBuyerMultiSigPubKeyHex: " + Utils.HEX.encode(contract.getBuyerMultiSigPubKey());
-            contractAsJson += "\nSellerMultiSigPubKeyHex: " + Utils.HEX.encode(contract.getSellerMultiSigPubKey());
             textArea.setText(contractAsJson);
             textArea.setPrefHeight(50);
             textArea.setEditable(false);

@@ -39,7 +39,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class BisqAppMain extends BisqExecutable {
 
-    public static final String DEFAULT_APP_NAME = "Bisq";
+    public static final String DEFAULT_APP_NAME = "Misq";
 
     private BisqApp application;
 
