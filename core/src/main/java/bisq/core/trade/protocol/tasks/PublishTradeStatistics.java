@@ -17,23 +17,19 @@
 
 package bisq.core.trade.protocol.tasks;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
+import bisq.common.taskrunner.TaskRunner;
 import bisq.core.offer.Offer;
 import bisq.core.offer.OfferPayload;
 import bisq.core.trade.Trade;
 import bisq.core.trade.statistics.TradeStatistics2;
-
 import bisq.network.p2p.NodeAddress;
 import bisq.network.p2p.network.NetworkNode;
 import bisq.network.p2p.network.TorNetworkNode;
-
-import bisq.common.taskrunner.TaskRunner;
-
 import java.util.HashMap;
 import java.util.Map;
-
 import lombok.extern.slf4j.Slf4j;
-
-import static com.google.common.base.Preconditions.checkNotNull;
 
 @Slf4j
 public class PublishTradeStatistics extends TradeTask {
@@ -46,7 +42,8 @@ public class PublishTradeStatistics extends TradeTask {
         try {
             runInterceptHook();
 
-            checkNotNull(trade.getDepositTx());
+            checkNotNull(trade.getMakerDepositTx());
+            checkNotNull(trade.getTakerDepositTx());
 
             Map<String, String> extraDataMap = new HashMap<>();
             if (processModel.getReferralIdService().getOptionalReferralId().isPresent()) {
@@ -65,11 +62,12 @@ public class PublishTradeStatistics extends TradeTask {
 
             Offer offer = checkNotNull(trade.getOffer());
             TradeStatistics2 tradeStatistics = new TradeStatistics2(offer.getOfferPayload(),
-                    trade.getTradePrice(),
-                    checkNotNull(trade.getTradeAmount()),
-                    trade.getDate(),
-                    trade.getDepositTxId(),
-                    extraDataMap);
+                trade.getTradePrice(),
+                trade.getTradeAmount(),
+                trade.getDate(),
+                trade.getMakerDepositTxId(),
+                trade.getTakerDepositTxId(),
+                extraDataMap);
             processModel.getP2PService().addPersistableNetworkPayload(tradeStatistics, true);
 
             complete();

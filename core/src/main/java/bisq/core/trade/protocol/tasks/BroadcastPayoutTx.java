@@ -17,18 +17,12 @@
 
 package bisq.core.trade.protocol.tasks;
 
-import bisq.core.btc.exceptions.TxBroadcastException;
-import bisq.core.btc.wallet.TxBroadcaster;
-import bisq.core.trade.Trade;
+import static com.google.common.base.Preconditions.checkNotNull;
 
 import bisq.common.taskrunner.TaskRunner;
-
-import org.bitcoinj.core.Transaction;
-import org.bitcoinj.core.TransactionConfidence;
-
+import bisq.core.trade.Trade;
 import lombok.extern.slf4j.Slf4j;
-
-import static com.google.common.base.Preconditions.checkNotNull;
+import monero.wallet.model.MoneroTxWallet;
 
 @Slf4j
 public abstract class BroadcastPayoutTx extends TradeTask {
@@ -42,40 +36,33 @@ public abstract class BroadcastPayoutTx extends TradeTask {
     protected void run() {
         try {
             runInterceptHook();
-            Transaction payoutTx = trade.getPayoutTx();
+            if (true) throw new RuntimeException("BroadcastPayoutTx not implemented for xmr");
+            MoneroTxWallet payoutTx = trade.getPayoutTx();
             checkNotNull(payoutTx, "payoutTx must not be null");
+            
 
-            TransactionConfidence.ConfidenceType confidenceType = payoutTx.getConfidence().getConfidenceType();
-            log.debug("payoutTx confidenceType:" + confidenceType);
-            if (confidenceType.equals(TransactionConfidence.ConfidenceType.BUILDING) ||
-                    confidenceType.equals(TransactionConfidence.ConfidenceType.PENDING)) {
-                log.debug("payoutTx was already published. confidenceType:" + confidenceType);
+            if (payoutTx.isRelayed()) {
+                log.debug("payoutTx was already published");
                 setState();
                 complete();
             } else {
-                processModel.getTradeWalletService().broadcastTx(payoutTx,
-                        new TxBroadcaster.Callback() {
-                            @Override
-                            public void onSuccess(Transaction transaction) {
-                                if (!completed) {
-                                    log.debug("BroadcastTx succeeded. Transaction:" + transaction);
-                                    setState();
-                                    complete();
-                                } else {
-                                    log.warn("We got the onSuccess callback called after the timeout has been triggered a complete().");
-                                }
-                            }
-
-                            @Override
-                            public void onFailure(TxBroadcastException exception) {
-                                if (!completed) {
-                                    log.error("BroadcastTx failed. Error:" + exception.getMessage());
-                                    failed(exception);
-                                } else {
-                                    log.warn("We got the onFailure callback called after the timeout has been triggered a complete().");
-                                }
-                            }
-                        });
+                try {
+                    processModel.getProvider().getXmrWalletService().getWallet().relayTx(payoutTx);
+                    if (!completed) {
+                        log.debug("BroadcastTx succeeded. Transaction:" + payoutTx);
+                        setState();
+                        complete();
+                    } else {
+                        log.warn("We got the onSuccess callback called after the timeout has been triggered a complete().");
+                    }
+                } catch (Exception e) {
+                    if (!completed) {
+                        log.error("BroadcastTx failed. Error:" + e.getMessage());
+                        failed(e);
+                    } else {
+                        log.warn("We got the onFailure callback called after the timeout has been triggered a complete().");
+                    }
+                }
             }
         } catch (Throwable t) {
             failed(t);

@@ -17,18 +17,14 @@
 
 package bisq.core.trade;
 
-import bisq.core.btc.wallet.BtcWalletService;
+import bisq.core.btc.wallet.XmrWalletService;
 import bisq.core.offer.Offer;
 import bisq.core.proto.CoreProtoResolver;
 import bisq.core.trade.protocol.ProcessModel;
-
 import bisq.network.p2p.NodeAddress;
-
-import org.bitcoinj.core.Coin;
-
-import lombok.extern.slf4j.Slf4j;
-
 import javax.annotation.Nullable;
+import lombok.extern.slf4j.Slf4j;
+import org.bitcoinj.core.Coin;
 
 @Slf4j
 public final class BuyerAsTakerTrade extends BuyerTrade implements TakerTrade {
@@ -41,25 +37,21 @@ public final class BuyerAsTakerTrade extends BuyerTrade implements TakerTrade {
                              Coin tradeAmount,
                              Coin txFee,
                              Coin takerFee,
-                             boolean isCurrencyForTakerFeeBtc,
                              long tradePrice,
-                             NodeAddress tradingPeerNodeAddress,
+                             @Nullable NodeAddress makerNodeAddress,
+                             @Nullable NodeAddress takerNodeAddress,
                              @Nullable NodeAddress arbitratorNodeAddress,
-                             @Nullable NodeAddress mediatorNodeAddress,
-                             @Nullable NodeAddress refundAgentNodeAddress,
-                             BtcWalletService btcWalletService,
+                             XmrWalletService xmrWalletService,
                              ProcessModel processModel) {
         super(offer,
                 tradeAmount,
                 txFee,
                 takerFee,
-                isCurrencyForTakerFeeBtc,
                 tradePrice,
-                tradingPeerNodeAddress,
+                makerNodeAddress,
+                takerNodeAddress,
                 arbitratorNodeAddress,
-                mediatorNodeAddress,
-                refundAgentNodeAddress,
-                btcWalletService,
+                xmrWalletService,
                 processModel);
     }
 
@@ -77,7 +69,7 @@ public final class BuyerAsTakerTrade extends BuyerTrade implements TakerTrade {
     }
 
     public static Tradable fromProto(protobuf.BuyerAsTakerTrade buyerAsTakerTradeProto,
-                                     BtcWalletService btcWalletService,
+                                     XmrWalletService xmrWalletService,
                                      CoreProtoResolver coreProtoResolver) {
         protobuf.Trade proto = buyerAsTakerTradeProto.getTrade();
         ProcessModel processModel = ProcessModel.fromProto(proto.getProcessModel(), coreProtoResolver);
@@ -86,13 +78,11 @@ public final class BuyerAsTakerTrade extends BuyerTrade implements TakerTrade {
                         Coin.valueOf(proto.getTradeAmountAsLong()),
                         Coin.valueOf(proto.getTxFeeAsLong()),
                         Coin.valueOf(proto.getTakerFeeAsLong()),
-                        proto.getIsCurrencyForTakerFeeBtc(),
                         proto.getTradePrice(),
-                        proto.hasTradingPeerNodeAddress() ? NodeAddress.fromProto(proto.getTradingPeerNodeAddress()) : null,
+                        proto.hasMakerNodeAddress() ? NodeAddress.fromProto(proto.getMakerNodeAddress()) : null,
+                        proto.hasTakerNodeAddress() ? NodeAddress.fromProto(proto.getTakerNodeAddress()) : null,
                         proto.hasArbitratorNodeAddress() ? NodeAddress.fromProto(proto.getArbitratorNodeAddress()) : null,
-                        proto.hasMediatorNodeAddress() ? NodeAddress.fromProto(proto.getMediatorNodeAddress()) : null,
-                        proto.hasRefundAgentNodeAddress() ? NodeAddress.fromProto(proto.getRefundAgentNodeAddress()) : null,
-                        btcWalletService,
+                        xmrWalletService,
                         processModel),
                 proto,
                 coreProtoResolver);

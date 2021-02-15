@@ -17,9 +17,13 @@
 
 package bisq.monitor.metric;
 
-import bisq.monitor.OnionParser;
-import bisq.monitor.Reporter;
+import static com.google.common.base.Preconditions.checkNotNull;
 
+import bisq.common.app.Version;
+import bisq.common.config.BaseCurrencyNetwork;
+import bisq.common.persistence.PersistenceManager;
+import bisq.common.proto.network.NetworkEnvelope;
+import bisq.common.proto.persistable.PersistableEnvelope;
 import bisq.core.account.witness.AccountAgeWitnessStore;
 import bisq.core.dao.monitoring.model.StateHash;
 import bisq.core.dao.monitoring.network.messages.GetBlindVoteStateHashesRequest;
@@ -28,26 +32,17 @@ import bisq.core.dao.monitoring.network.messages.GetProposalStateHashesRequest;
 import bisq.core.dao.monitoring.network.messages.GetStateHashesResponse;
 import bisq.core.proto.persistable.CorePersistenceProtoResolver;
 import bisq.core.trade.statistics.TradeStatistics2Store;
-
+import bisq.monitor.OnionParser;
+import bisq.monitor.Reporter;
 import bisq.network.p2p.NodeAddress;
 import bisq.network.p2p.network.Connection;
 import bisq.network.p2p.peers.getdata.messages.GetDataResponse;
 import bisq.network.p2p.peers.getdata.messages.PreliminaryGetDataRequest;
 import bisq.network.p2p.storage.payload.ProtectedStorageEntry;
 import bisq.network.p2p.storage.payload.ProtectedStoragePayload;
-
-import bisq.common.app.Version;
-import bisq.common.config.BaseCurrencyNetwork;
-import bisq.common.persistence.PersistenceManager;
-import bisq.common.proto.network.NetworkEnvelope;
-import bisq.common.proto.persistable.PersistableEnvelope;
-
-import java.net.MalformedURLException;
-
-import java.nio.ByteBuffer;
-
 import java.io.File;
-
+import java.net.MalformedURLException;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
@@ -61,11 +56,8 @@ import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
-
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
-
-import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * Contacts a list of hosts and asks them for all the data excluding persisted messages. The
@@ -136,7 +128,7 @@ public class P2PSeedNodeSnapshot extends P2PSeedNodeSnapshotBase {
             File dir = new File(configuration.getProperty(DATABASE_DIR));
             String networkPostfix = "_" + BaseCurrencyNetwork.values()[Version.getBaseCurrencyNetwork()].toString();
             try {
-                PersistenceManager<PersistableEnvelope> persistenceManager = new PersistenceManager<>(dir, new CorePersistenceProtoResolver(null, null), null);
+                PersistenceManager<PersistableEnvelope> persistenceManager = new PersistenceManager<>(dir, new CorePersistenceProtoResolver(null, null, null), null);
                 TradeStatistics2Store tradeStatistics2Store = (TradeStatistics2Store) persistenceManager.getPersisted(TradeStatistics2Store.class.getSimpleName() + networkPostfix);
                 hashes.addAll(tradeStatistics2Store.getMap().keySet().stream().map(byteArray -> byteArray.bytes).collect(Collectors.toList()));
 

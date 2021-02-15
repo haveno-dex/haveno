@@ -17,9 +17,16 @@
 
 package bisq.core.support.dispute.refund;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
+import bisq.common.Timer;
+import bisq.common.UserThread;
+import bisq.common.app.Version;
+import bisq.common.config.Config;
+import bisq.common.crypto.KeyRing;
 import bisq.core.btc.setup.WalletsSetup;
-import bisq.core.btc.wallet.BtcWalletService;
 import bisq.core.btc.wallet.TradeWalletService;
+import bisq.core.btc.wallet.XmrWalletService;
 import bisq.core.dao.DaoFacade;
 import bisq.core.locale.Res;
 import bisq.core.offer.OpenOffer;
@@ -37,27 +44,14 @@ import bisq.core.support.messages.SupportMessage;
 import bisq.core.trade.Trade;
 import bisq.core.trade.TradeManager;
 import bisq.core.trade.closed.ClosedTradableManager;
-
 import bisq.network.p2p.AckMessageSourceType;
 import bisq.network.p2p.NodeAddress;
 import bisq.network.p2p.P2PService;
-
-import bisq.common.Timer;
-import bisq.common.UserThread;
-import bisq.common.app.Version;
-import bisq.common.config.Config;
-import bisq.common.crypto.KeyRing;
-
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
-
 import java.util.Optional;
-
-import lombok.extern.slf4j.Slf4j;
-
 import javax.annotation.Nullable;
-
-import static com.google.common.base.Preconditions.checkNotNull;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Singleton
@@ -71,12 +65,12 @@ public final class RefundManager extends DisputeManager<RefundDisputeList> {
     @Inject
     public RefundManager(P2PService p2PService,
                          TradeWalletService tradeWalletService,
-                         BtcWalletService walletService,
+                         XmrWalletService walletService,
                          WalletsSetup walletsSetup,
                          TradeManager tradeManager,
                          ClosedTradableManager closedTradableManager,
                          OpenOfferManager openOfferManager,
-                         DaoFacade daoFacade,
+                         DaoFacade daoFacade, // TODO (woodser): remove daoFacade, priceFeedService?
                          KeyRing keyRing,
                          RefundDisputeListService refundDisputeListService,
                          Config config,
@@ -231,6 +225,7 @@ public final class RefundManager extends DisputeManager<RefundDisputeList> {
     @Nullable
     @Override
     public NodeAddress getAgentNodeAddress(Dispute dispute) {
-        return dispute.getContract().getRefundAgentNodeAddress();
+      throw new RuntimeException("Refund manager not used in XMR adapation");
+        //return dispute.getContract().getRefundAgentNodeAddress();
     }
 }

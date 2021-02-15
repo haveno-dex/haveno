@@ -42,13 +42,14 @@ public class SendMediatedPayoutTxPublishedMessage extends SendMailboxMessageTask
 
     @Override
     protected TradeMessage getMessage(String id) {
-        Transaction payoutTx = checkNotNull(trade.getPayoutTx(), "trade.getPayoutTx() must not be null");
-        return new MediatedPayoutTxPublishedMessage(
-                id,
-                payoutTx.bitcoinSerialize(),
-                processModel.getMyNodeAddress(),
-                UUID.randomUUID().toString()
-        );
+        throw new RuntimeException("SendMediatedPayoutTxPublishedMessage.getMessage(id) not implemented for xmr");
+//        Transaction payoutTx = checkNotNull(trade.getPayoutTx(), "trade.getPayoutTx() must not be null");
+//        return new MediatedPayoutTxPublishedMessage(
+//                id,
+//                payoutTx.bitcoinSerialize(),
+//                processModel.getMyNodeAddress(),
+//                UUID.randomUUID().toString()
+//        );
     }
 
     @Override

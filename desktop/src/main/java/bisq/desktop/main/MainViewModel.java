@@ -17,27 +17,11 @@
 
 package bisq.desktop.main;
 
-import bisq.desktop.app.BisqApp;
-import bisq.desktop.common.model.ViewModel;
-import bisq.desktop.components.BalanceWithConfirmationTextField;
-import bisq.desktop.components.TxIdTextField;
-import bisq.desktop.main.overlays.Overlay;
-import bisq.desktop.main.overlays.notifications.NotificationCenter;
-import bisq.desktop.main.overlays.popups.Popup;
-import bisq.desktop.main.overlays.windows.DisplayAlertMessageWindow;
-import bisq.desktop.main.overlays.windows.TacWindow;
-import bisq.desktop.main.overlays.windows.TorNetworkSettingsWindow;
-import bisq.desktop.main.overlays.windows.UpdateRevolutAccountWindow;
-import bisq.desktop.main.overlays.windows.WalletPasswordWindow;
-import bisq.desktop.main.overlays.windows.downloadupdate.DisplayUpdateDownloadWindow;
-import bisq.desktop.main.presentation.AccountPresentation;
-import bisq.desktop.main.presentation.DaoPresentation;
-import bisq.desktop.main.presentation.MarketPricePresentation;
-import bisq.desktop.main.presentation.SettingsPresentation;
-import bisq.desktop.main.shared.PriceFeedComboBoxItem;
-import bisq.desktop.util.DisplayUtils;
-import bisq.desktop.util.GUIUtil;
-
+import bisq.common.Timer;
+import bisq.common.UserThread;
+import bisq.common.app.DevEnv;
+import bisq.common.config.Config;
+import bisq.common.file.CorruptedStorageFileHandler;
 import bisq.core.account.sign.SignedWitnessService;
 import bisq.core.account.witness.AccountAgeWitnessService;
 import bisq.core.alert.PrivateNotificationManager;
@@ -60,33 +44,29 @@ import bisq.core.trade.TradeManager;
 import bisq.core.user.DontShowAgainLookup;
 import bisq.core.user.Preferences;
 import bisq.core.user.User;
-
+import bisq.desktop.app.BisqApp;
+import bisq.desktop.common.model.ViewModel;
+import bisq.desktop.components.BalanceWithConfirmationTextField;
+import bisq.desktop.components.TxIdTextField;
+import bisq.desktop.main.overlays.Overlay;
+import bisq.desktop.main.overlays.notifications.NotificationCenter;
+import bisq.desktop.main.overlays.popups.Popup;
+import bisq.desktop.main.overlays.windows.DisplayAlertMessageWindow;
+import bisq.desktop.main.overlays.windows.TacWindow;
+import bisq.desktop.main.overlays.windows.TorNetworkSettingsWindow;
+import bisq.desktop.main.overlays.windows.UpdateRevolutAccountWindow;
+import bisq.desktop.main.overlays.windows.WalletPasswordWindow;
+import bisq.desktop.main.overlays.windows.downloadupdate.DisplayUpdateDownloadWindow;
+import bisq.desktop.main.presentation.AccountPresentation;
+import bisq.desktop.main.presentation.DaoPresentation;
+import bisq.desktop.main.presentation.MarketPricePresentation;
+import bisq.desktop.main.presentation.SettingsPresentation;
+import bisq.desktop.main.shared.PriceFeedComboBoxItem;
+import bisq.desktop.util.DisplayUtils;
+import bisq.desktop.util.GUIUtil;
 import bisq.network.p2p.BootstrapListener;
 import bisq.network.p2p.P2PService;
-
-import bisq.common.Timer;
-import bisq.common.UserThread;
-import bisq.common.app.DevEnv;
-import bisq.common.config.Config;
-import bisq.common.file.CorruptedStorageFileHandler;
-
 import com.google.inject.Inject;
-
-import org.fxmisc.easybind.EasyBind;
-import org.fxmisc.easybind.monadic.MonadicBinding;
-
-import javafx.beans.binding.Bindings;
-import javafx.beans.property.BooleanProperty;
-import javafx.beans.property.DoubleProperty;
-import javafx.beans.property.IntegerProperty;
-import javafx.beans.property.ObjectProperty;
-import javafx.beans.property.SimpleBooleanProperty;
-import javafx.beans.property.SimpleDoubleProperty;
-import javafx.beans.property.SimpleStringProperty;
-import javafx.beans.property.StringProperty;
-
-import javafx.collections.ObservableList;
-
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Date;
@@ -96,9 +76,20 @@ import java.util.PriorityQueue;
 import java.util.Queue;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
-
+import javafx.beans.binding.Bindings;
+import javafx.beans.property.BooleanProperty;
+import javafx.beans.property.DoubleProperty;
+import javafx.beans.property.IntegerProperty;
+import javafx.beans.property.ObjectProperty;
+import javafx.beans.property.SimpleBooleanProperty;
+import javafx.beans.property.SimpleDoubleProperty;
+import javafx.beans.property.SimpleStringProperty;
+import javafx.beans.property.StringProperty;
+import javafx.collections.ObservableList;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
+import org.fxmisc.easybind.EasyBind;
+import org.fxmisc.easybind.monadic.MonadicBinding;
 
 @Slf4j
 public class MainViewModel implements ViewModel, BisqSetup.BisqSetupListener {

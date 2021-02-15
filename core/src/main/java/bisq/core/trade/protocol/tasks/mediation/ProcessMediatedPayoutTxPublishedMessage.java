@@ -17,24 +17,10 @@
 
 package bisq.core.trade.protocol.tasks.mediation;
 
-import bisq.core.btc.model.AddressEntry;
-import bisq.core.btc.wallet.BtcWalletService;
-import bisq.core.btc.wallet.WalletService;
-import bisq.core.support.dispute.mediation.MediationResultState;
-import bisq.core.trade.Trade;
-import bisq.core.trade.messages.MediatedPayoutTxPublishedMessage;
-import bisq.core.trade.protocol.tasks.TradeTask;
-import bisq.core.util.Validator;
-
-import bisq.common.UserThread;
 import bisq.common.taskrunner.TaskRunner;
-
-import org.bitcoinj.core.Transaction;
-
+import bisq.core.trade.Trade;
+import bisq.core.trade.protocol.tasks.TradeTask;
 import lombok.extern.slf4j.Slf4j;
-
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
 
 @Slf4j
 public class ProcessMediatedPayoutTxPublishedMessage extends TradeTask {
@@ -46,35 +32,36 @@ public class ProcessMediatedPayoutTxPublishedMessage extends TradeTask {
     protected void run() {
         try {
             runInterceptHook();
-            MediatedPayoutTxPublishedMessage message = (MediatedPayoutTxPublishedMessage) processModel.getTradeMessage();
-            Validator.checkTradeId(processModel.getOfferId(), message);
-            checkNotNull(message);
-            checkArgument(message.getPayoutTx() != null);
-
-            // update to the latest peer address of our peer if the message is correct
-            trade.setTradingPeerNodeAddress(processModel.getTempTradingPeerNodeAddress());
-
-            if (trade.getPayoutTx() == null) {
-                Transaction committedMediatedPayoutTx = WalletService.maybeAddNetworkTxToWallet(message.getPayoutTx(), processModel.getBtcWalletService().getWallet());
-                trade.setPayoutTx(committedMediatedPayoutTx);
-                BtcWalletService.printTx("MediatedPayoutTx received from peer", committedMediatedPayoutTx);
-
-                trade.setMediationResultState(MediationResultState.RECEIVED_PAYOUT_TX_PUBLISHED_MSG);
-
-                if (trade.getPayoutTx() != null) {
-                    // We need to delay that call as we might get executed at startup after mailbox messages are
-                    // applied where we iterate over out pending trades. The closeDisputedTrade method would remove
-                    // that trade from the list causing a ConcurrentModificationException.
-                    // To avoid that we delay for one render frame.
-                    UserThread.execute(() -> processModel.getTradeManager()
-                            .closeDisputedTrade(trade.getId(), Trade.DisputeState.MEDIATION_CLOSED));
-                }
-
-                processModel.getBtcWalletService().swapTradeEntryToAvailableEntry(trade.getId(), AddressEntry.Context.MULTI_SIG);
-            } else {
-                log.info("We got the payout tx already set from BuyerSetupPayoutTxListener and do nothing here. trade ID={}", trade.getId());
-            }
-            complete();
+            throw new RuntimeException("ProcessMediatedPayoutTxPublishedMessage not implemented for xmr");
+//            MediatedPayoutTxPublishedMessage message = (MediatedPayoutTxPublishedMessage) processModel.getTradeMessage();
+//            Validator.checkTradeId(processModel.getOfferId(), message);
+//            checkNotNull(message);
+//            checkArgument(message.getPayoutTx() != null);
+//
+//            // update to the latest peer address of our peer if the message is correct
+//            trade.setTradingPeerNodeAddress(processModel.getTempTradingPeerNodeAddress());
+//
+//            if (trade.getPayoutTx() == null) {
+//                Transaction committedMediatedPayoutTx = WalletService.maybeAddNetworkTxToWallet(message.getPayoutTx(), processModel.getBtcWalletService().getWallet());
+//                trade.setPayoutTx(committedMediatedPayoutTx);
+//                BtcWalletService.printTx("MediatedPayoutTx received from peer", committedMediatedPayoutTx);
+//
+//                trade.setMediationResultState(MediationResultState.RECEIVED_PAYOUT_TX_PUBLISHED_MSG);
+//
+//                if (trade.getPayoutTx() != null) {
+//                    // We need to delay that call as we might get executed at startup after mailbox messages are
+//                    // applied where we iterate over out pending trades. The closeDisputedTrade method would remove
+//                    // that trade from the list causing a ConcurrentModificationException.
+//                    // To avoid that we delay for one render frame.
+//                    UserThread.execute(() -> processModel.getTradeManager()
+//                            .closeDisputedTrade(trade.getId(), Trade.DisputeState.MEDIATION_CLOSED));
+//                }
+//
+//                processModel.getBtcWalletService().swapTradeEntryToAvailableEntry(trade.getId(), AddressEntry.Context.MULTI_SIG);
+//            } else {
+//                log.info("We got the payout tx already set from BuyerSetupPayoutTxListener and do nothing here. trade ID={}", trade.getId());
+//            }
+//            complete();
         } catch (Throwable t) {
             failed(t);
         }

@@ -17,19 +17,15 @@
 
 package bisq.core.trade;
 
-import bisq.core.btc.wallet.BtcWalletService;
+import static com.google.common.base.Preconditions.checkNotNull;
+
+import bisq.core.btc.wallet.XmrWalletService;
 import bisq.core.offer.Offer;
 import bisq.core.trade.protocol.ProcessModel;
-
 import bisq.network.p2p.NodeAddress;
-
-import org.bitcoinj.core.Coin;
-
-import lombok.extern.slf4j.Slf4j;
-
 import javax.annotation.Nullable;
-
-import static com.google.common.base.Preconditions.checkNotNull;
+import lombok.extern.slf4j.Slf4j;
+import org.bitcoinj.core.Coin;
 
 @Slf4j
 public abstract class BuyerTrade extends Trade {
@@ -37,45 +33,39 @@ public abstract class BuyerTrade extends Trade {
                Coin tradeAmount,
                Coin txFee,
                Coin takerFee,
-               boolean isCurrencyForTakerFeeBtc,
                long tradePrice,
-               NodeAddress tradingPeerNodeAddress,
+               @Nullable NodeAddress takerNodeAddress,
+               @Nullable NodeAddress makerNodeAddress,
                @Nullable NodeAddress arbitratorNodeAddress,
-               @Nullable NodeAddress mediatorNodeAddress,
-               @Nullable NodeAddress refundAgentNodeAddress,
-               BtcWalletService btcWalletService,
+               XmrWalletService xmrWalletService,
                ProcessModel processModel) {
         super(offer,
                 tradeAmount,
                 txFee,
                 takerFee,
-                isCurrencyForTakerFeeBtc,
                 tradePrice,
-                tradingPeerNodeAddress,
+                takerNodeAddress,
+                makerNodeAddress,
                 arbitratorNodeAddress,
-                mediatorNodeAddress,
-                refundAgentNodeAddress,
-                btcWalletService,
+                xmrWalletService,
                 processModel);
     }
 
     BuyerTrade(Offer offer,
                Coin txFee,
                Coin takerFee,
-               boolean isCurrencyForTakerFeeBtc,
+               @Nullable NodeAddress takerNodeAddress,
+               @Nullable NodeAddress makerNodeAddress,
                @Nullable NodeAddress arbitratorNodeAddress,
-               @Nullable NodeAddress mediatorNodeAddress,
-               @Nullable NodeAddress refundAgentNodeAddress,
-               BtcWalletService btcWalletService,
+               XmrWalletService xmrWalletService,
                ProcessModel processModel) {
         super(offer,
                 txFee,
                 takerFee,
-                isCurrencyForTakerFeeBtc,
+                takerNodeAddress,
+                makerNodeAddress,
                 arbitratorNodeAddress,
-                mediatorNodeAddress,
-                refundAgentNodeAddress,
-                btcWalletService,
+                xmrWalletService,
                 processModel);
     }
 

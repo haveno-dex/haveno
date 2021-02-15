@@ -35,7 +35,8 @@ import static com.natpryce.makeiteasy.MakeItEasy.a;
 public class TradeStatistics2Maker {
 
     public static final Property<TradeStatistics2, Date> date = new Property<>();
-    public static final Property<TradeStatistics2, String> depositTxId = new Property<>();
+    public static final Property<TradeStatistics2, String> makerDepositTxId = new Property<>();
+    public static final Property<TradeStatistics2, String> takerDepositTxId = new Property<>();
     public static final Property<TradeStatistics2, Coin> tradeAmount = new Property<>();
 
     public static final Instantiator<TradeStatistics2> TradeStatistic2 = lookup -> {
@@ -84,7 +85,8 @@ public class TradeStatistics2Maker {
                 Price.valueOf("BTC", 100000L),
                 lookup.valueOf(tradeAmount, Coin.SATOSHI),
                 lookup.valueOf(date, new Date(calendar.getTimeInMillis())),
-                lookup.valueOf(depositTxId, "123456"),
+                lookup.valueOf(makerDepositTxId, "123456"),
+                lookup.valueOf(takerDepositTxId, "456789"),
                 Collections.emptyMap());
     };
     public static final Maker<TradeStatistics2> dayZeroTrade = a(TradeStatistic2);

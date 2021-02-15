@@ -17,11 +17,11 @@
 
 package bisq.desktop.main.portfolio.pendingtrades;
 
-import bisq.desktop.common.model.ActivatableWithDataModel;
-import bisq.desktop.common.model.ViewModel;
-import bisq.desktop.util.DisplayUtils;
-import bisq.desktop.util.GUIUtil;
+import static bisq.desktop.main.portfolio.pendingtrades.PendingTradesViewModel.SellerState.UNDEFINED;
+import static com.google.common.base.Preconditions.checkNotNull;
 
+import bisq.common.ClockWatcher;
+import bisq.common.app.DevEnv;
 import bisq.core.account.witness.AccountAgeWitnessService;
 import bisq.core.btc.wallet.Restrictions;
 import bisq.core.locale.CurrencyUtil;
@@ -37,34 +37,23 @@ import bisq.core.util.FormattingUtils;
 import bisq.core.util.coin.BsqFormatter;
 import bisq.core.util.coin.CoinFormatter;
 import bisq.core.util.validation.BtcAddressValidator;
-
+import bisq.desktop.common.model.ActivatableWithDataModel;
+import bisq.desktop.common.model.ViewModel;
+import bisq.desktop.util.DisplayUtils;
+import bisq.desktop.util.GUIUtil;
 import bisq.network.p2p.P2PService;
-
-import bisq.common.ClockWatcher;
-import bisq.common.app.DevEnv;
-
-import org.bitcoinj.core.Coin;
-
 import com.google.inject.Inject;
-
-import javax.inject.Named;
-
-import org.fxmisc.easybind.EasyBind;
-import org.fxmisc.easybind.Subscription;
-
+import java.util.Date;
+import java.util.stream.Collectors;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.ReadOnlyObjectProperty;
 import javafx.beans.property.SimpleObjectProperty;
-
-import java.util.Date;
-import java.util.stream.Collectors;
-
-import lombok.Getter;
-
 import javax.annotation.Nullable;
-
-import static bisq.desktop.main.portfolio.pendingtrades.PendingTradesViewModel.SellerState.UNDEFINED;
-import static com.google.common.base.Preconditions.checkNotNull;
+import javax.inject.Named;
+import lombok.Getter;
+import org.bitcoinj.core.Coin;
+import org.fxmisc.easybind.EasyBind;
+import org.fxmisc.easybind.Subscription;
 
 public class PendingTradesViewModel extends ActivatableWithDataModel<PendingTradesDataModel> implements ViewModel {
 
@@ -304,7 +293,7 @@ public class PendingTradesViewModel extends ActivatableWithDataModel<PendingTrad
         if (trade != null && dataModel.getOffer() != null && trade.getTradeAmount() != null) {
             checkNotNull(dataModel.getTrade());
             if (dataModel.isMaker() && dataModel.getOffer().isCurrencyForMakerFeeBtc() ||
-                    !dataModel.isMaker() && dataModel.getTrade().isCurrencyForTakerFeeBtc()) {
+                    !dataModel.isMaker()) {
                 Coin tradeFeeInBTC = dataModel.getTradeFeeInBTC();
 
                 Coin minTradeFee = dataModel.isMaker() ?
@@ -401,20 +390,21 @@ public class PendingTradesViewModel extends ActivatableWithDataModel<PendingTrad
 
 
             // #################### Phase DEPOSIT_PAID
-            case SELLER_PUBLISHED_DEPOSIT_TX:
+            case TAKER_PUBLISHED_DEPOSIT_TX:
+            case TAKER_SAW_DEPOSIT_TX_IN_NETWORK:
 
                 // DEPOSIT_TX_PUBLISHED_MSG
-                // seller perspective
-            case SELLER_SENT_DEPOSIT_TX_PUBLISHED_MSG:
-            case SELLER_SAW_ARRIVED_DEPOSIT_TX_PUBLISHED_MSG:
-            case SELLER_STORED_IN_MAILBOX_DEPOSIT_TX_PUBLISHED_MSG:
-            case SELLER_SEND_FAILED_DEPOSIT_TX_PUBLISHED_MSG:
+                // taker perspective
+            case TAKER_SENT_DEPOSIT_TX_PUBLISHED_MSG:
+            case TAKER_SAW_ARRIVED_DEPOSIT_TX_PUBLISHED_MSG:
+            case TAKER_STORED_IN_MAILBOX_DEPOSIT_TX_PUBLISHED_MSG:
+            case TAKER_SEND_FAILED_DEPOSIT_TX_PUBLISHED_MSG:
 
-                // buyer perspective
-            case BUYER_RECEIVED_DEPOSIT_TX_PUBLISHED_MSG:
+                // maker perspective
+            case MAKER_RECEIVED_DEPOSIT_TX_PUBLISHED_MSG:
 
                 // Alternatively the maker could have seen the deposit tx earlier before he received the DEPOSIT_TX_PUBLISHED_MSG
-            case BUYER_SAW_DEPOSIT_TX_IN_NETWORK:
+            case MAKER_SAW_DEPOSIT_TX_IN_NETWORK:
                 buyerState.set(BuyerState.STEP1);
                 sellerState.set(SellerState.STEP1);
                 break;

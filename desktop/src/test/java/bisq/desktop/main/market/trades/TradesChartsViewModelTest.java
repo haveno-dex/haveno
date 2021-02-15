@@ -137,10 +137,10 @@ public class TradesChartsViewModelTest {
         Set<TradeStatistics2> set = new HashSet<>();
         final Date now = new Date();
 
-        set.add(new TradeStatistics2(offer, Price.parse("EUR", "520"), Coin.parseCoin("1"), new Date(now.getTime()), null, null));
-        set.add(new TradeStatistics2(offer, Price.parse("EUR", "500"), Coin.parseCoin("1"), new Date(now.getTime() + 100), null, null));
-        set.add(new TradeStatistics2(offer, Price.parse("EUR", "600"), Coin.parseCoin("1"), new Date(now.getTime() + 200), null, null));
-        set.add(new TradeStatistics2(offer, Price.parse("EUR", "580"), Coin.parseCoin("1"), new Date(now.getTime() + 300), null, null));
+        set.add(new TradeStatistics2(offer, Price.parse("EUR", "520"), Coin.parseCoin("1"), new Date(now.getTime()), null, null, null));
+        set.add(new TradeStatistics2(offer, Price.parse("EUR", "500"), Coin.parseCoin("1"), new Date(now.getTime() + 100), null, null, null));
+        set.add(new TradeStatistics2(offer, Price.parse("EUR", "600"), Coin.parseCoin("1"), new Date(now.getTime() + 200), null, null, null));
+        set.add(new TradeStatistics2(offer, Price.parse("EUR", "580"), Coin.parseCoin("1"), new Date(now.getTime() + 300), null, null, null));
 
         CandleData candleData = model.getCandleData(model.roundToTick(now, TradesChartsViewModel.TickUnit.DAY).getTime(), set);
         assertEquals(open, candleData.open);
@@ -196,7 +196,7 @@ public class TradesChartsViewModelTest {
         trades.add(new Trade("2018-01-01T00:00:02", "1", "110", "EUR"));
         Set<TradeStatistics2> set = new HashSet<>();
         trades.forEach(t ->
-                set.add(new TradeStatistics2(offer, Price.parse(t.cc, t.price), Coin.parseCoin(t.size), t.date, null, null))
+                set.add(new TradeStatistics2(offer, Price.parse(t.cc, t.price), Coin.parseCoin(t.size), t.date, null, null, null))
         );
         ObservableSet<TradeStatistics2> tradeStats = FXCollections.observableSet(set);
 

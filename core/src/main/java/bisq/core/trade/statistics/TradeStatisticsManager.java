@@ -107,7 +107,7 @@ public class TradeStatisticsManager {
                 // TODO: Can be removed as soon as everyone uses v1.2.6+
                 // Removes an existing object with a trade id if the new one matches the existing except
                 // for the deposit tx id
-                if (tradeStatistics.getDepositTxId() == null &&
+                if ((tradeStatistics.getMakerDepositTxId() == null || tradeStatistics.getTakerDepositTxId() == null) &&
                         tradeStatistics.isValid() &&
                         duplicate.get().compareTo(tradeStatistics) == 0) {
                     observableTradeStatisticsSet.remove(duplicate.get());

@@ -17,9 +17,8 @@
 
 package bisq.core.btc;
 
-import bisq.core.btc.listeners.BalanceListener;
-import bisq.core.btc.model.AddressEntry;
-import bisq.core.btc.wallet.BtcWalletService;
+import bisq.common.UserThread;
+import bisq.core.btc.wallet.XmrWalletService;
 import bisq.core.offer.OpenOffer;
 import bisq.core.offer.OpenOfferManager;
 import bisq.core.support.dispute.Dispute;
@@ -28,29 +27,23 @@ import bisq.core.trade.Trade;
 import bisq.core.trade.TradeManager;
 import bisq.core.trade.closed.ClosedTradableManager;
 import bisq.core.trade.failed.FailedTradesManager;
-
-import bisq.common.UserThread;
-
-import org.bitcoinj.core.Coin;
-import org.bitcoinj.core.Transaction;
-
-import javax.inject.Inject;
-
+import java.math.BigInteger;
+import java.util.List;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleObjectProperty;
-
 import javafx.collections.ListChangeListener;
-
-import java.util.Objects;
-import java.util.stream.Stream;
-
+import javax.inject.Inject;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
+import monero.wallet.model.MoneroAccount;
+import monero.wallet.model.MoneroOutputWallet;
+import monero.wallet.model.MoneroWalletListener;
+import org.bitcoinj.core.Coin;
 
 @Slf4j
 public class Balances {
     private final TradeManager tradeManager;
-    private final BtcWalletService btcWalletService;
+    private final XmrWalletService xmrWalletService;
     private final OpenOfferManager openOfferManager;
     private final ClosedTradableManager closedTradableManager;
     private final FailedTradesManager failedTradesManager;
@@ -65,13 +58,13 @@ public class Balances {
 
     @Inject
     public Balances(TradeManager tradeManager,
-                    BtcWalletService btcWalletService,
+                    XmrWalletService xmrWalletService,
                     OpenOfferManager openOfferManager,
                     ClosedTradableManager closedTradableManager,
                     FailedTradesManager failedTradesManager,
                     RefundManager refundManager) {
         this.tradeManager = tradeManager;
-        this.btcWalletService = btcWalletService;
+        this.xmrWalletService = xmrWalletService;
         this.openOfferManager = openOfferManager;
         this.closedTradableManager = closedTradableManager;
         this.failedTradesManager = failedTradesManager;
@@ -82,13 +75,11 @@ public class Balances {
         openOfferManager.getObservableList().addListener((ListChangeListener<OpenOffer>) c -> updateBalance());
         tradeManager.getObservableList().addListener((ListChangeListener<Trade>) change -> updateBalance());
         refundManager.getDisputesAsObservableList().addListener((ListChangeListener<Dispute>) c -> updateBalance());
-        btcWalletService.addBalanceListener(new BalanceListener() {
-            @Override
-            public void onBalanceChanged(Coin balance, Transaction tx) {
-                updateBalance();
-            }
+        xmrWalletService.getWallet().addListener(new MoneroWalletListener() {
+          @Override public void onBalancesChanged(BigInteger newBalance, BigInteger newUnlockedBalance) { updateBalance(); }
+          @Override public void onOutputReceived(MoneroOutputWallet output) { updateBalance(); }
+          @Override public void onOutputSpent(MoneroOutputWallet output) { updateBalance(); }
         });
-
         updateBalance();
     }
 
@@ -100,32 +91,25 @@ public class Balances {
             updateLockedBalance();
         });
     }
+    
+    // TODO (woodser): reserved balance = reserved for trade, locked balance = locked in multisig
 
     private void updateAvailableBalance() {
-        long sum = btcWalletService.getAddressEntriesForAvailableBalanceStream()
-                .mapToLong(addressEntry -> btcWalletService.getBalanceForAddress(addressEntry.getAddress()).value)
-                .sum();
-        availableBalance.set(Coin.valueOf(sum));
+      availableBalance.set(Coin.valueOf(xmrWalletService.getWallet().getUnlockedBalance(0).longValue()));
     }
 
     private void updateReservedBalance() {
-        long sum = openOfferManager.getObservableList().stream()
-                .map(openOffer -> btcWalletService.getAddressEntry(openOffer.getId(), AddressEntry.Context.RESERVED_FOR_TRADE)
-                        .orElse(null))
-                .filter(Objects::nonNull)
-                .mapToLong(addressEntry -> btcWalletService.getBalanceForAddress(addressEntry.getAddress()).value)
-                .sum();
-        reservedBalance.set(Coin.valueOf(sum));
+        BigInteger sum = new BigInteger("0");
+        List<MoneroAccount> accounts = xmrWalletService.getWallet().getAccounts();
+        for (MoneroAccount account : accounts) {
+          if (account.getIndex() != 0) sum = sum.add(account.getBalance());
+        }
+        reservedBalance.set(Coin.valueOf(sum.longValue()));
     }
 
     private void updateLockedBalance() {
-        Stream<Trade> lockedTrades = Stream.concat(closedTradableManager.getTradesStreamWithFundsLockedIn(), failedTradesManager.getTradesStreamWithFundsLockedIn());
-        lockedTrades = Stream.concat(lockedTrades, tradeManager.getTradesStreamWithFundsLockedIn());
-        long sum = lockedTrades.map(trade -> btcWalletService.getAddressEntry(trade.getId(), AddressEntry.Context.MULTI_SIG)
-                .orElse(null))
-                .filter(Objects::nonNull)
-                .mapToLong(addressEntry -> addressEntry.getCoinLockedInMultiSig().getValue())
-                .sum();
-        lockedBalance.set(Coin.valueOf(sum));
+      BigInteger balance = xmrWalletService.getWallet().getBalance(0);
+      BigInteger unlockedBalance = xmrWalletService.getWallet().getUnlockedBalance(0);
+      lockedBalance.set(Coin.valueOf(balance.subtract(unlockedBalance).longValue()));
     }
 }

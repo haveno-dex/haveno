@@ -17,6 +17,8 @@
 
 package bisq.core.trade.protocol;
 
+import bisq.common.handlers.ErrorMessageHandler;
+import bisq.common.handlers.ResultHandler;
 import bisq.core.trade.Trade;
 import bisq.core.trade.messages.MediatedPayoutTxPublishedMessage;
 import bisq.core.trade.messages.MediatedPayoutTxSignatureMessage;
@@ -24,8 +26,6 @@ import bisq.core.trade.messages.PeerPublishedDelayedPayoutTxMessage;
 import bisq.core.trade.messages.TradeMessage;
 import bisq.core.trade.protocol.tasks.ApplyFilter;
 import bisq.core.trade.protocol.tasks.ProcessPeerPublishedDelayedPayoutTxMessage;
-import bisq.core.trade.protocol.tasks.arbitration.PublishedDelayedPayoutTx;
-import bisq.core.trade.protocol.tasks.arbitration.SendPeerPublishedDelayedPayoutTxMessage;
 import bisq.core.trade.protocol.tasks.mediation.BroadcastMediatedPayoutTx;
 import bisq.core.trade.protocol.tasks.mediation.FinalizeMediatedPayoutTx;
 import bisq.core.trade.protocol.tasks.mediation.ProcessMediatedPayoutSignatureMessage;
@@ -34,16 +34,11 @@ import bisq.core.trade.protocol.tasks.mediation.SendMediatedPayoutSignatureMessa
 import bisq.core.trade.protocol.tasks.mediation.SendMediatedPayoutTxPublishedMessage;
 import bisq.core.trade.protocol.tasks.mediation.SetupMediatedPayoutTxListener;
 import bisq.core.trade.protocol.tasks.mediation.SignMediatedPayoutTx;
-
 import bisq.network.p2p.NodeAddress;
-
-import bisq.common.handlers.ErrorMessageHandler;
-import bisq.common.handlers.ResultHandler;
-
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public class DisputeProtocol extends TradeProtocol {
+public abstract class DisputeProtocol extends TradeProtocol {
 
     enum DisputeEvent implements FluentProtocol.Event {
         MEDIATION_RESULT_ACCEPTED,
@@ -142,26 +137,26 @@ public class DisputeProtocol extends TradeProtocol {
     // Delayed payout tx
     ///////////////////////////////////////////////////////////////////////////////////////////
 
-    public void onPublishDelayedPayoutTx(ResultHandler resultHandler, ErrorMessageHandler errorMessageHandler) {
-        DisputeEvent event = DisputeEvent.ARBITRATION_REQUESTED;
-        expect(anyPhase(Trade.Phase.DEPOSIT_CONFIRMED,
-                Trade.Phase.FIAT_SENT,
-                Trade.Phase.FIAT_RECEIVED)
-                .with(event)
-                .preCondition(trade.getDelayedPayoutTx() != null))
-                .setup(tasks(PublishedDelayedPayoutTx.class,
-                        SendPeerPublishedDelayedPayoutTxMessage.class)
-                        .using(new TradeTaskRunner(trade,
-                                () -> {
-                                    resultHandler.handleResult();
-                                    handleTaskRunnerSuccess(event);
-                                },
-                                errorMessage -> {
-                                    errorMessageHandler.handleErrorMessage(errorMessage);
-                                    handleTaskRunnerFault(event, errorMessage);
-                                })))
-                .executeTasks();
-    }
+//    public void onPublishDelayedPayoutTx(ResultHandler resultHandler, ErrorMessageHandler errorMessageHandler) {
+//        DisputeEvent event = DisputeEvent.ARBITRATION_REQUESTED;
+//        expect(anyPhase(Trade.Phase.DEPOSIT_CONFIRMED,
+//                Trade.Phase.FIAT_SENT,
+//                Trade.Phase.FIAT_RECEIVED)
+//                .with(event)
+//                .preCondition(trade.getDelayedPayoutTx() != null))
+//                .setup(tasks(PublishedDelayedPayoutTx.class,
+//                        SendPeerPublishedDelayedPayoutTxMessage.class)
+//                        .using(new TradeTaskRunner(trade,
+//                                () -> {
+//                                    resultHandler.handleResult();
+//                                    handleTaskRunnerSuccess(event);
+//                                },
+//                                errorMessage -> {
+//                                    errorMessageHandler.handleErrorMessage(errorMessage);
+//                                    handleTaskRunnerFault(event, errorMessage);
+//                                })))
+//                .executeTasks();
+//    }
 
 
     ///////////////////////////////////////////////////////////////////////////////////////////

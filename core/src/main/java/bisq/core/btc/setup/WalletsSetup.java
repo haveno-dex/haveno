@@ -17,20 +17,7 @@
 
 package bisq.core.btc.setup;
 
-import bisq.core.btc.exceptions.InvalidHostException;
-import bisq.core.btc.exceptions.RejectedTxException;
-import bisq.core.btc.model.AddressEntry;
-import bisq.core.btc.model.AddressEntryList;
-import bisq.core.btc.nodes.BtcNetworkConfig;
-import bisq.core.btc.nodes.BtcNodes;
-import bisq.core.btc.nodes.BtcNodes.BtcNode;
-import bisq.core.btc.nodes.BtcNodesRepository;
-import bisq.core.btc.nodes.BtcNodesSetupPreferences;
-import bisq.core.btc.nodes.LocalBitcoinNode;
-import bisq.core.user.Preferences;
-
-import bisq.network.Socks5MultiDiscovery;
-import bisq.network.Socks5ProxyProvider;
+import static com.google.common.base.Preconditions.checkNotNull;
 
 import bisq.common.Timer;
 import bisq.common.UserThread;
@@ -39,7 +26,53 @@ import bisq.common.config.Config;
 import bisq.common.file.FileUtil;
 import bisq.common.handlers.ExceptionHandler;
 import bisq.common.handlers.ResultHandler;
-
+import bisq.core.btc.exceptions.InvalidHostException;
+import bisq.core.btc.exceptions.RejectedTxException;
+import bisq.core.btc.model.AddressEntry;
+import bisq.core.btc.model.AddressEntryList;
+import bisq.core.btc.model.XmrAddressEntryList;
+import bisq.core.btc.nodes.BtcNetworkConfig;
+import bisq.core.btc.nodes.BtcNodes;
+import bisq.core.btc.nodes.BtcNodes.BtcNode;
+import bisq.core.btc.nodes.BtcNodesRepository;
+import bisq.core.btc.nodes.BtcNodesSetupPreferences;
+import bisq.core.btc.nodes.LocalBitcoinNode;
+import bisq.core.user.Preferences;
+import bisq.network.Socks5MultiDiscovery;
+import bisq.network.Socks5ProxyProvider;
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.util.concurrent.Service;
+import com.google.inject.Inject;
+import com.google.inject.name.Named;
+import com.runjva.sourceforge.jsocks.protocol.Socks5Proxy;
+import java.io.File;
+import java.io.IOException;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
+import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+import java.util.stream.Collectors;
+import javafx.beans.property.BooleanProperty;
+import javafx.beans.property.DoubleProperty;
+import javafx.beans.property.IntegerProperty;
+import javafx.beans.property.ObjectProperty;
+import javafx.beans.property.ReadOnlyDoubleProperty;
+import javafx.beans.property.ReadOnlyIntegerProperty;
+import javafx.beans.property.ReadOnlyObjectProperty;
+import javafx.beans.property.SimpleBooleanProperty;
+import javafx.beans.property.SimpleDoubleProperty;
+import javafx.beans.property.SimpleIntegerProperty;
+import javafx.beans.property.SimpleObjectProperty;
+import javax.annotation.Nullable;
+import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
+import monero.wallet.MoneroWallet;
+import org.apache.commons.lang3.StringUtils;
 import org.bitcoinj.core.Address;
 import org.bitcoinj.core.BlockChain;
 import org.bitcoinj.core.Context;
@@ -55,53 +88,7 @@ import org.bitcoinj.params.TestNet3Params;
 import org.bitcoinj.utils.Threading;
 import org.bitcoinj.wallet.DeterministicSeed;
 import org.bitcoinj.wallet.Wallet;
-
-import com.runjva.sourceforge.jsocks.protocol.Socks5Proxy;
-
-import javax.inject.Inject;
-import javax.inject.Named;
-
-import com.google.common.annotations.VisibleForTesting;
-import com.google.common.util.concurrent.Service;
-
-import org.apache.commons.lang3.StringUtils;
-
-import javafx.beans.property.BooleanProperty;
-import javafx.beans.property.DoubleProperty;
-import javafx.beans.property.IntegerProperty;
-import javafx.beans.property.ObjectProperty;
-import javafx.beans.property.ReadOnlyDoubleProperty;
-import javafx.beans.property.ReadOnlyIntegerProperty;
-import javafx.beans.property.ReadOnlyObjectProperty;
-import javafx.beans.property.SimpleBooleanProperty;
-import javafx.beans.property.SimpleDoubleProperty;
-import javafx.beans.property.SimpleIntegerProperty;
-import javafx.beans.property.SimpleObjectProperty;
-
-import java.net.InetAddress;
-import java.net.UnknownHostException;
-
-import java.nio.file.Paths;
-
-import java.io.File;
-import java.io.IOException;
-
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-import java.util.Set;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
-import java.util.stream.Collectors;
-
-import lombok.Getter;
-import lombok.extern.slf4j.Slf4j;
-
 import org.jetbrains.annotations.NotNull;
-
-import javax.annotation.Nullable;
-
-import static com.google.common.base.Preconditions.checkNotNull;
 
 // Setup wallets and use WalletConfig for BitcoinJ wiring.
 // Other like WalletConfig we are here always on the user thread. That is one reason why we do not
@@ -118,6 +105,7 @@ public class WalletsSetup {
 
     private final RegTestHost regTestHost;
     private final AddressEntryList addressEntryList;
+    private final XmrAddressEntryList xmrAddressEntryList;
     private final Preferences preferences;
     private final Socks5ProxyProvider socks5ProxyProvider;
     private final Config config;
@@ -146,6 +134,7 @@ public class WalletsSetup {
     @Inject
     public WalletsSetup(RegTestHost regTestHost,
                         AddressEntryList addressEntryList,
+                        XmrAddressEntryList xmrAddressEntryList,
                         Preferences preferences,
                         Socks5ProxyProvider socks5ProxyProvider,
                         Config config,
@@ -158,6 +147,7 @@ public class WalletsSetup {
                         @Named(Config.SOCKS5_DISCOVER_MODE) String socks5DiscoverModeString) {
         this.regTestHost = regTestHost;
         this.addressEntryList = addressEntryList;
+        this.xmrAddressEntryList = xmrAddressEntryList;
         this.preferences = preferences;
         this.socks5ProxyProvider = socks5ProxyProvider;
         this.config = config;
@@ -248,6 +238,7 @@ public class WalletsSetup {
                 // Map to user thread
                 UserThread.execute(() -> {
                     addressEntryList.onWalletReady(walletConfig.btcWallet());
+                    xmrAddressEntryList.onWalletReady(walletConfig.getXmrWallet());
                     timeoutTimer.stop();
                     setupCompletedHandlers.forEach(Runnable::run);
                 });
@@ -465,6 +456,10 @@ public class WalletsSetup {
 
     public Wallet getBtcWallet() {
         return walletConfig.btcWallet();
+    }
+    
+    public MoneroWallet getXmrWallet() {
+      return walletConfig.getXmrWallet();
     }
 
     @Nullable

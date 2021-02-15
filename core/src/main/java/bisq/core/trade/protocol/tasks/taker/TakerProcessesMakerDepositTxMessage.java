@@ -15,22 +15,21 @@
  * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.core.trade.protocol.tasks.seller_as_maker;
+package bisq.core.trade.protocol.tasks.taker;
 
+import static bisq.core.util.Validator.checkTradeId;
+import static com.google.common.base.Preconditions.checkNotNull;
+
+import bisq.common.taskrunner.TaskRunner;
 import bisq.core.trade.Trade;
 import bisq.core.trade.messages.DepositTxMessage;
 import bisq.core.trade.protocol.tasks.TradeTask;
-import bisq.core.util.Validator;
-
-import bisq.common.taskrunner.TaskRunner;
-
 import lombok.extern.slf4j.Slf4j;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-
 @Slf4j
-public class SellerAsMakerProcessDepositTxMessage extends TradeTask {
-    public SellerAsMakerProcessDepositTxMessage(TaskRunner<Trade> taskHandler, Trade trade) {
+public class TakerProcessesMakerDepositTxMessage extends TradeTask {
+    @SuppressWarnings({"unused"})
+    public TakerProcessesMakerDepositTxMessage(TaskRunner taskHandler, Trade trade) {
         super(taskHandler, trade);
     }
 
@@ -40,17 +39,11 @@ public class SellerAsMakerProcessDepositTxMessage extends TradeTask {
             runInterceptHook();
             log.debug("current trade state " + trade.getState());
             DepositTxMessage message = (DepositTxMessage) processModel.getTradeMessage();
-            Validator.checkTradeId(processModel.getOfferId(), message);
+            checkTradeId(processModel.getOfferId(), message);
             checkNotNull(message);
-
-            processModel.getTradingPeer().setPreparedDepositTx(checkNotNull(message.getDepositTx()));
-            trade.setTradingPeerNodeAddress(processModel.getTempTradingPeerNodeAddress());
-
-            // When we receive that message the taker has published the taker fee, so we apply it to the trade.
-            // The takerFeeTx was sent in the first message. It should be part of DelayedPayoutTxSignatureRequest
-            // but that cannot be changed due backward compatibility issues. It is a left over from the old trade protocol.
-            trade.setTakerFeeTxId(processModel.getTakeOfferFeeTxId());
-
+            
+            // TODO (woodser): verify that deposit amount + tx fee = security deposit + trade fee (+ trade amount), or require exact security deposit to multisig?
+            processModel.setMakerPreparedDepositTxId(message.getDepositTxId());
             complete();
         } catch (Throwable t) {
             failed(t);

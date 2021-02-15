@@ -17,17 +17,6 @@
 
 package bisq.core.app.misc;
 
-import bisq.core.app.BisqExecutable;
-import bisq.core.btc.setup.WalletsSetup;
-import bisq.core.btc.wallet.BsqWalletService;
-import bisq.core.btc.wallet.BtcWalletService;
-import bisq.core.offer.OpenOfferManager;
-import bisq.core.support.dispute.arbitration.arbitrator.ArbitratorManager;
-
-import bisq.network.p2p.NodeAddress;
-import bisq.network.p2p.P2PService;
-import bisq.network.p2p.seed.SeedNodeRepository;
-
 import bisq.common.UserThread;
 import bisq.common.app.DevEnv;
 import bisq.common.config.Config;
@@ -35,20 +24,26 @@ import bisq.common.handlers.ResultHandler;
 import bisq.common.persistence.PersistenceManager;
 import bisq.common.setup.GracefulShutDownHandler;
 import bisq.common.util.Profiler;
-
+import bisq.core.app.BisqExecutable;
+import bisq.core.btc.setup.WalletsSetup;
+import bisq.core.btc.wallet.BsqWalletService;
+import bisq.core.btc.wallet.BtcWalletService;
+import bisq.core.btc.wallet.XmrWalletService;
+import bisq.core.offer.OpenOfferManager;
+import bisq.core.support.dispute.arbitration.arbitrator.ArbitratorManager;
+import bisq.network.p2p.NodeAddress;
+import bisq.network.p2p.P2PService;
+import bisq.network.p2p.seed.SeedNodeRepository;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
-
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
-
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
-
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -95,6 +90,7 @@ public abstract class ExecutableForAppWithP2p extends BisqExecutable {
                         });
                     });
                     injector.getInstance(WalletsSetup.class).shutDown();
+                    injector.getInstance(XmrWalletService.class).shutDown(); // TODO (woodser): this is not actually called, perhaps because WalletsSetup.class completes too quick so its listener calls System.exit(0)
                     injector.getInstance(BtcWalletService.class).shutDown();
                     injector.getInstance(BsqWalletService.class).shutDown();
                 }));

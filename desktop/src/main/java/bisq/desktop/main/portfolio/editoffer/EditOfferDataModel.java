@@ -18,14 +18,18 @@
 package bisq.desktop.main.portfolio.editoffer;
 
 
-import bisq.desktop.Navigation;
-import bisq.desktop.main.offer.MakerFeeProvider;
-import bisq.desktop.main.offer.MutableOfferDataModel;
+import java.util.Optional;
 
+import javax.inject.Named;
+
+import com.google.inject.Inject;
+
+import bisq.common.handlers.ErrorMessageHandler;
+import bisq.common.handlers.ResultHandler;
 import bisq.core.account.witness.AccountAgeWitnessService;
 import bisq.core.btc.wallet.BsqWalletService;
-import bisq.core.btc.wallet.BtcWalletService;
 import bisq.core.btc.wallet.Restrictions;
+import bisq.core.btc.wallet.XmrWalletService;
 import bisq.core.locale.CurrencyUtil;
 import bisq.core.locale.TradeCurrency;
 import bisq.core.offer.CreateOfferService;
@@ -43,17 +47,10 @@ import bisq.core.user.User;
 import bisq.core.util.FormattingUtils;
 import bisq.core.util.coin.CoinFormatter;
 import bisq.core.util.coin.CoinUtil;
-
+import bisq.desktop.Navigation;
+import bisq.desktop.main.offer.MakerFeeProvider;
+import bisq.desktop.main.offer.MutableOfferDataModel;
 import bisq.network.p2p.P2PService;
-
-import bisq.common.handlers.ErrorMessageHandler;
-import bisq.common.handlers.ResultHandler;
-
-import com.google.inject.Inject;
-
-import javax.inject.Named;
-
-import java.util.Optional;
 
 class EditOfferDataModel extends MutableOfferDataModel {
 
@@ -64,7 +61,7 @@ class EditOfferDataModel extends MutableOfferDataModel {
     @Inject
     EditOfferDataModel(CreateOfferService createOfferService,
                        OpenOfferManager openOfferManager,
-                       BtcWalletService btcWalletService,
+                       XmrWalletService xmrWalletService,
                        BsqWalletService bsqWalletService,
                        Preferences preferences,
                        User user,
@@ -79,7 +76,7 @@ class EditOfferDataModel extends MutableOfferDataModel {
                        Navigation navigation) {
         super(createOfferService,
                 openOfferManager,
-                btcWalletService,
+                xmrWalletService,
                 bsqWalletService,
                 preferences,
                 user,

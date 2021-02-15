@@ -17,23 +17,16 @@
 
 package bisq.desktop.main.funds.locked;
 
-import bisq.desktop.components.AutoTooltipLabel;
-
 import bisq.core.btc.listeners.BalanceListener;
 import bisq.core.btc.model.AddressEntry;
 import bisq.core.btc.wallet.BtcWalletService;
-import bisq.core.btc.wallet.WalletService;
 import bisq.core.trade.Tradable;
 import bisq.core.trade.Trade;
 import bisq.core.util.coin.CoinFormatter;
-
+import javafx.scene.control.Label;
+import javax.annotation.Nullable;
 import org.bitcoinj.core.Address;
 import org.bitcoinj.core.Coin;
-import org.bitcoinj.core.Transaction;
-
-import javafx.scene.control.Label;
-
-import javax.annotation.Nullable;
 
 class LockedListItem {
     private final BalanceListener balanceListener;
@@ -52,25 +45,27 @@ class LockedListItem {
         this.addressEntry = addressEntry;
         this.btcWalletService = btcWalletService;
         this.formatter = formatter;
+        
+        throw new RuntimeException("Cannot listen to multisig deposits in xmr without exchanging multisig info");
 
-        if (trade.getDepositTx() != null && !trade.getDepositTx().getOutputs().isEmpty()) {
-            address = WalletService.getAddressFromOutput(trade.getDepositTx().getOutput(0));
-            addressString = address.toString();
-        } else {
-            address = null;
-            addressString = "";
-        }
-
-        // balance
-        balanceLabel = new AutoTooltipLabel();
-        balanceListener = new BalanceListener(getAddress()) {
-            @Override
-            public void onBalanceChanged(Coin balance, Transaction tx) {
-                updateBalance();
-            }
-        };
-        btcWalletService.addBalanceListener(balanceListener);
-        updateBalance();
+//        if (trade.getDepositTx() != null && !trade.getDepositTx().getOutputs().isEmpty()) {
+//            address = WalletService.getAddressFromOutput(trade.getDepositTx().getOutput(0));
+//            addressString = address.toString();
+//        } else {
+//            address = null;
+//            addressString = "";
+//        }
+//
+//        // balance
+//        balanceLabel = new AutoTooltipLabel();
+//        balanceListener = new BalanceListener(getAddress()) {
+//            @Override
+//            public void onBalanceChanged(Coin balance, Transaction tx) {
+//                updateBalance();
+//            }
+//        };
+//        btcWalletService.addBalanceListener(balanceListener);
+//        updateBalance();
     }
 
     public void cleanup() {

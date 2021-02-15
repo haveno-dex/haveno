@@ -17,23 +17,19 @@
 
 package bisq.core.trade.protocol.tasks.buyer;
 
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
+
+import bisq.common.taskrunner.TaskRunner;
 import bisq.core.account.sign.SignedWitness;
-import bisq.core.btc.model.AddressEntry;
-import bisq.core.btc.wallet.BtcWalletService;
-import bisq.core.btc.wallet.WalletService;
+import bisq.core.btc.wallet.XmrWalletService;
 import bisq.core.trade.Trade;
 import bisq.core.trade.messages.PayoutTxPublishedMessage;
 import bisq.core.trade.protocol.tasks.TradeTask;
 import bisq.core.util.Validator;
-
-import bisq.common.taskrunner.TaskRunner;
-
-import org.bitcoinj.core.Transaction;
-
+import java.util.List;
 import lombok.extern.slf4j.Slf4j;
-
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
+import monero.wallet.MoneroWallet;
 
 @Slf4j
 public class BuyerProcessPayoutTxPublishedMessage extends TradeTask {
@@ -49,18 +45,19 @@ public class BuyerProcessPayoutTxPublishedMessage extends TradeTask {
             PayoutTxPublishedMessage message = (PayoutTxPublishedMessage) processModel.getTradeMessage();
             Validator.checkTradeId(processModel.getOfferId(), message);
             checkNotNull(message);
-            checkArgument(message.getPayoutTx() != null);
+            checkArgument(message.getSignedMultisigTxHex() != null);
 
             // update to the latest peer address of our peer if the message is correct
             trade.setTradingPeerNodeAddress(processModel.getTempTradingPeerNodeAddress());
-
+            
             if (trade.getPayoutTx() == null) {
-                Transaction committedPayoutTx = WalletService.maybeAddNetworkTxToWallet(message.getPayoutTx(), processModel.getBtcWalletService().getWallet());
-                trade.setPayoutTx(committedPayoutTx);
-                BtcWalletService.printTx("payoutTx received from peer", committedPayoutTx);
-
+            	XmrWalletService walletService = processModel.getProvider().getXmrWalletService();
+                MoneroWallet multisigWallet = walletService.getOrCreateMultisigWallet(processModel.getTrade().getId());
+                List<String> txHashes = multisigWallet.submitMultisigTxHex(message.getSignedMultisigTxHex());
+                trade.setPayoutTx(multisigWallet.getTx(txHashes.get(0)));
+                XmrWalletService.printTxs("payoutTx received from peer", trade.getPayoutTx());
                 trade.setState(Trade.State.BUYER_RECEIVED_PAYOUT_TX_PUBLISHED_MSG);
-                processModel.getBtcWalletService().swapTradeEntryToAvailableEntry(trade.getId(), AddressEntry.Context.MULTI_SIG);
+                //processModel.getBtcWalletService().swapTradeEntryToAvailableEntry(trade.getId(), AddressEntry.Context.MULTI_SIG); // TODO (woodser): swap for xmr and test
             } else {
                 log.info("We got the payout tx already set from BuyerSetupPayoutTxListener and do nothing here. trade ID={}", trade.getId());
             }

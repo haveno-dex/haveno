@@ -20,7 +20,7 @@ package bisq.core.trade.statistics;
 import org.junit.Test;
 
 import static bisq.core.trade.statistics.TradeStatistics2Maker.dayZeroTrade;
-import static bisq.core.trade.statistics.TradeStatistics2Maker.depositTxId;
+import static bisq.core.trade.statistics.TradeStatistics2Maker.makerDepositTxId;
 import static com.natpryce.makeiteasy.MakeItEasy.make;
 import static com.natpryce.makeiteasy.MakeItEasy.withNull;
 import static org.junit.Assert.assertTrue;
@@ -38,7 +38,7 @@ public class TradeStatistics2Test {
 
     @Test
     public void isValid_WithEmptyDepositTxId() {
-        TradeStatistics2 tradeStatistic = make(dayZeroTrade.but(withNull(depositTxId)));
+        TradeStatistics2 tradeStatistic = make(dayZeroTrade.but(withNull(makerDepositTxId)));
 
         assertTrue(tradeStatistic.isValid());
     }

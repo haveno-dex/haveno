@@ -8,12 +8,22 @@ import bisq.common.util.MathUtils;
 import org.bitcoinj.core.Coin;
 import org.bitcoinj.utils.MonetaryFormat;
 
+import java.math.BigInteger;
+
 import org.apache.commons.lang3.StringUtils;
 
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class ParsingUtils {
+  
+    /**
+     * Temporary multiplier to convert Coin satoshis to XMR atomic units.
+     * 
+     * TODO (woodser): replace bitcoinj/Coin entirely
+     */
+    public static BigInteger XMR_SATOSHI_MULTIPLIER = BigInteger.valueOf(10000);
+  
     public static Coin parseToCoin(String input, CoinFormatter coinFormatter) {
         return parseToCoin(input, coinFormatter.getMonetaryFormat());
     }

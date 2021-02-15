@@ -17,26 +17,24 @@
 
 package bisq.core.trade.protocol;
 
-import bisq.core.btc.model.RawTransactionInput;
-import bisq.core.payment.payload.PaymentAccountPayload;
-import bisq.core.proto.CoreProtoResolver;
-
-import bisq.common.crypto.PubKeyRing;
-import bisq.common.proto.ProtoUtil;
-import bisq.common.proto.persistable.PersistablePayload;
-
-import com.google.protobuf.ByteString;
-import com.google.protobuf.Message;
-
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+import javax.annotation.Nullable;
+
+import com.google.protobuf.ByteString;
+import com.google.protobuf.Message;
+
+import bisq.common.crypto.PubKeyRing;
+import bisq.common.proto.ProtoUtil;
+import bisq.common.proto.persistable.PersistablePayload;
+import bisq.core.btc.model.RawTransactionInput;
+import bisq.core.payment.payload.PaymentAccountPayload;
+import bisq.core.proto.CoreProtoResolver;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
-
-import javax.annotation.Nullable;
 
 // Fields marked as transient are only used during protocol execution which are based on directMessages so we do not
 // persist them.
@@ -87,7 +85,12 @@ public final class TradingPeer implements PersistablePayload {
     // Added in v.1.1.6
     @Nullable
     private byte[] mediatedPayoutTxSignature;
-
+    
+    // Added for XMR integration
+    @Nullable
+    private String preparedMultisigHex;
+    private String madeMultisigHex;
+    private String signedPayoutTxHex;
 
     public TradingPeer() {
     }
@@ -110,6 +113,10 @@ public final class TradingPeer implements PersistablePayload {
         Optional.ofNullable(accountAgeWitnessNonce).ifPresent(e -> builder.setAccountAgeWitnessNonce(ByteString.copyFrom(e)));
         Optional.ofNullable(accountAgeWitnessSignature).ifPresent(e -> builder.setAccountAgeWitnessSignature(ByteString.copyFrom(e)));
         Optional.ofNullable(mediatedPayoutTxSignature).ifPresent(e -> builder.setMediatedPayoutTxSignature(ByteString.copyFrom(e)));
+        Optional.ofNullable(preparedMultisigHex).ifPresent(e -> builder.setPreparedMultisigHex(preparedMultisigHex));
+        Optional.ofNullable(madeMultisigHex).ifPresent(e -> builder.setMadeMultisigHex(madeMultisigHex));
+        Optional.ofNullable(signedPayoutTxHex).ifPresent(e -> builder.setSignedPayoutTxHex(signedPayoutTxHex));
+        
         builder.setCurrentDate(currentDate);
         return builder.build();
     }
@@ -139,6 +146,9 @@ public final class TradingPeer implements PersistablePayload {
             tradingPeer.setAccountAgeWitnessSignature(ProtoUtil.byteArrayOrNullFromProto(proto.getAccountAgeWitnessSignature()));
             tradingPeer.setCurrentDate(proto.getCurrentDate());
             tradingPeer.setMediatedPayoutTxSignature(ProtoUtil.byteArrayOrNullFromProto(proto.getMediatedPayoutTxSignature()));
+            tradingPeer.setPreparedMultisigHex(ProtoUtil.stringOrNullFromProto(proto.getPreparedMultisigHex()));
+            tradingPeer.setMadeMultisigHex(ProtoUtil.stringOrNullFromProto(proto.getMadeMultisigHex()));
+            tradingPeer.setSignedPayoutTxHex(ProtoUtil.stringOrNullFromProto(proto.getSignedPayoutTxHex()));
             return tradingPeer;
         }
     }

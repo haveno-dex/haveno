@@ -17,6 +17,12 @@
 
 package bisq.core.btc.wallet;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.checkState;
+
+import bisq.common.config.Config;
+import bisq.common.handlers.ErrorMessageHandler;
+import bisq.common.handlers.ResultHandler;
 import bisq.core.btc.exceptions.TransactionVerificationException;
 import bisq.core.btc.exceptions.WalletException;
 import bisq.core.btc.listeners.AddressConfidenceListener;
@@ -25,11 +31,22 @@ import bisq.core.btc.listeners.TxConfidenceListener;
 import bisq.core.btc.setup.WalletsSetup;
 import bisq.core.provider.fee.FeeService;
 import bisq.core.user.Preferences;
-
-import bisq.common.config.Config;
-import bisq.common.handlers.ErrorMessageHandler;
-import bisq.common.handlers.ResultHandler;
-
+import com.google.common.util.concurrent.FutureCallback;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.MoreExecutors;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.CopyOnWriteArraySet;
+import java.util.stream.Collectors;
+import javafx.beans.property.IntegerProperty;
+import javafx.beans.property.SimpleIntegerProperty;
+import javax.annotation.Nullable;
+import javax.inject.Inject;
+import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
+import monero.wallet.MoneroWallet;
+import monero.wallet.model.MoneroTxWallet;
 import org.bitcoinj.core.Address;
 import org.bitcoinj.core.AddressFormatException;
 import org.bitcoinj.core.BlockChain;
@@ -59,43 +76,15 @@ import org.bitcoinj.utils.Threading;
 import org.bitcoinj.wallet.DecryptingKeyBag;
 import org.bitcoinj.wallet.DeterministicSeed;
 import org.bitcoinj.wallet.KeyBag;
-import org.bitcoinj.wallet.KeyChain;
 import org.bitcoinj.wallet.RedeemData;
 import org.bitcoinj.wallet.SendRequest;
 import org.bitcoinj.wallet.Wallet;
-import org.bitcoinj.wallet.listeners.KeyChainEventListener;
-import org.bitcoinj.wallet.listeners.ScriptsChangeEventListener;
 import org.bitcoinj.wallet.listeners.WalletChangeEventListener;
 import org.bitcoinj.wallet.listeners.WalletCoinsReceivedEventListener;
 import org.bitcoinj.wallet.listeners.WalletCoinsSentEventListener;
 import org.bitcoinj.wallet.listeners.WalletReorganizeEventListener;
-
-import javax.inject.Inject;
-
-import com.google.common.util.concurrent.FutureCallback;
-import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.MoreExecutors;
-
-import javafx.beans.property.IntegerProperty;
-import javafx.beans.property.SimpleIntegerProperty;
-
 import org.bouncycastle.crypto.params.KeyParameter;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
-import java.util.concurrent.CopyOnWriteArraySet;
-import java.util.stream.Collectors;
-
-import lombok.Getter;
-import lombok.extern.slf4j.Slf4j;
-
 import org.jetbrains.annotations.NotNull;
-
-import javax.annotation.Nullable;
-
-import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.base.Preconditions.checkState;
 
 /**
  * Abstract base class for BTC and BSQ wallet. Provides all non-trade specific functionality.
@@ -203,7 +192,6 @@ public abstract class WalletService {
     public void removeBalanceListener(BalanceListener listener) {
         balanceListeners.remove(listener);
     }
-
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Checks
@@ -717,7 +705,23 @@ public abstract class WalletService {
             return walletTransaction;
         }
     }
-
+    
+    public static MoneroTxWallet maybeAddNetworkTxToWallet(byte[] serializedTransaction, MoneroWallet wallet) throws VerificationException {
+        throw new RuntimeException("Not implemented");  // TODO (woodser): need to serialize/deserialize tx for xmr integration?
+//        Transaction tx = new Transaction(wallet.getParams(), serializedTransaction);
+//        Transaction walletTransaction = wallet.getTransaction(tx.getHash());
+//  
+//        if (walletTransaction == null) {
+//            // We need to recreate the transaction otherwise we get a null pointer...
+//            tx.getConfidence(Context.get()).setSource(source);
+//            //wallet.maybeCommitTx(tx);
+//            wallet.receivePending(tx, null, true);
+//            return tx;
+//        } else {
+//            return walletTransaction;
+//        }
+    }
+    
     public static Transaction maybeAddNetworkTxToWallet(byte[] serializedTransaction,
                                                         Wallet wallet) throws VerificationException {
         return maybeAddTxToWallet(serializedTransaction, wallet, TransactionConfidence.Source.NETWORK);

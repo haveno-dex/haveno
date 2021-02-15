@@ -17,27 +17,22 @@
 
 package bisq.core.trade.closed;
 
+import bisq.common.crypto.KeyRing;
+import bisq.common.persistence.PersistenceManager;
+import bisq.common.proto.persistable.PersistedDataHost;
 import bisq.core.offer.Offer;
 import bisq.core.provider.price.PriceFeedService;
 import bisq.core.trade.DumpDelayedPayoutTx;
 import bisq.core.trade.Tradable;
 import bisq.core.trade.TradableList;
 import bisq.core.trade.Trade;
-
-import bisq.common.crypto.KeyRing;
-import bisq.common.persistence.PersistenceManager;
-import bisq.common.proto.persistable.PersistedDataHost;
-
-import com.google.inject.Inject;
-
 import com.google.common.collect.ImmutableList;
-
-import javafx.collections.ObservableList;
-
+import com.google.inject.Inject;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import javafx.collections.ObservableList;
 
 public class ClosedTradableManager implements PersistedDataHost {
     private final PersistenceManager<TradableList<Tradable>> persistenceManager;

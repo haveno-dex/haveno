@@ -16,22 +16,18 @@
  */
 
 package bisq.core.trade.protocol.tasks.seller;
+    
+import static com.google.common.base.Preconditions.checkNotNull;
 
+import bisq.common.taskrunner.TaskRunner;
 import bisq.core.account.sign.SignedWitness;
 import bisq.core.account.witness.AccountAgeWitnessService;
 import bisq.core.trade.Trade;
 import bisq.core.trade.messages.PayoutTxPublishedMessage;
 import bisq.core.trade.messages.TradeMessage;
 import bisq.core.trade.protocol.tasks.SendMailboxMessageTask;
-
-import bisq.common.taskrunner.TaskRunner;
-
-import org.bitcoinj.core.Transaction;
-
 import lombok.EqualsAndHashCode;
 import lombok.extern.slf4j.Slf4j;
-
-import static com.google.common.base.Preconditions.checkNotNull;
 
 @EqualsAndHashCode(callSuper = true)
 @Slf4j
@@ -44,17 +40,21 @@ public class SellerSendPayoutTxPublishedMessage extends SendMailboxMessageTask {
 
     @Override
     protected TradeMessage getMessage(String id) {
-        Transaction payoutTx = checkNotNull(trade.getPayoutTx(), "trade.getPayoutTx() must not be null");
-
+        checkNotNull(trade.getPayoutTx(), "trade.getPayoutTx() must not be null");
+  
         AccountAgeWitnessService accountAgeWitnessService = processModel.getAccountAgeWitnessService();
         if (accountAgeWitnessService.isSignWitnessTrade(trade)) {
             // Broadcast is done in accountAgeWitness domain.
             accountAgeWitnessService.traderSignAndPublishPeersAccountAgeWitness(trade).ifPresent(witness -> signedWitness = witness);
         }
-
+        
+        System.out.println("Trade.getPayoutTx(): " + trade.getPayoutTx());
+        System.out.println("trade.getPayoutTx().getTxSet(): " + trade.getPayoutTx().getTxSet());
+        System.out.println("trade.getPayoutTx().getTxSet().getMultisigTxHex(): " + trade.getPayoutTx().getTxSet().getMultisigTxHex());
+        
         return new PayoutTxPublishedMessage(
                 id,
-                payoutTx.bitcoinSerialize(),
+                trade.getPayoutTx().getTxSet().getMultisigTxHex(),
                 processModel.getMyNodeAddress(),
                 signedWitness
         );

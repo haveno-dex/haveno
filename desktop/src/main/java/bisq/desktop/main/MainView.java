@@ -17,6 +17,22 @@
 
 package bisq.desktop.main;
 
+import static javafx.scene.layout.AnchorPane.setBottomAnchor;
+import static javafx.scene.layout.AnchorPane.setLeftAnchor;
+import static javafx.scene.layout.AnchorPane.setRightAnchor;
+import static javafx.scene.layout.AnchorPane.setTopAnchor;
+
+import bisq.common.BisqException;
+import bisq.common.Timer;
+import bisq.common.UserThread;
+import bisq.common.app.Version;
+import bisq.common.util.Tuple2;
+import bisq.common.util.Utilities;
+import bisq.core.dao.monitoring.DaoStateMonitoringService;
+import bisq.core.locale.GlobalSettings;
+import bisq.core.locale.LanguageUtil;
+import bisq.core.locale.Res;
+import bisq.core.provider.price.MarketPrice;
 import bisq.desktop.Navigation;
 import bisq.desktop.common.view.CachingViewLoader;
 import bisq.desktop.common.view.FxmlView;
@@ -28,8 +44,6 @@ import bisq.desktop.components.AutoTooltipLabel;
 import bisq.desktop.components.AutoTooltipToggleButton;
 import bisq.desktop.components.BusyAnimation;
 import bisq.desktop.main.account.AccountView;
-import bisq.desktop.main.dao.DaoView;
-import bisq.desktop.main.funds.FundsView;
 import bisq.desktop.main.market.MarketView;
 import bisq.desktop.main.market.offerbook.OfferBookChartView;
 import bisq.desktop.main.offer.BuyOfferView;
@@ -41,26 +55,22 @@ import bisq.desktop.main.shared.PriceFeedComboBoxItem;
 import bisq.desktop.main.support.SupportView;
 import bisq.desktop.util.DisplayUtils;
 import bisq.desktop.util.Transitions;
-
-import bisq.core.dao.monitoring.DaoStateMonitoringService;
-import bisq.core.locale.GlobalSettings;
-import bisq.core.locale.LanguageUtil;
-import bisq.core.locale.Res;
-import bisq.core.provider.price.MarketPrice;
-
-import bisq.common.BisqException;
-import bisq.common.Timer;
-import bisq.common.UserThread;
-import bisq.common.app.Version;
-import bisq.common.util.Tuple2;
-import bisq.common.util.Utilities;
-
-import javax.inject.Inject;
-
 import com.jfoenix.controls.JFXBadge;
 import com.jfoenix.controls.JFXComboBox;
 import com.jfoenix.controls.JFXProgressBar;
-
+import java.text.DecimalFormat;
+import java.text.NumberFormat;
+import java.util.Date;
+import java.util.Locale;
+import javafx.beans.binding.ObjectBinding;
+import javafx.beans.property.BooleanProperty;
+import javafx.beans.property.SimpleStringProperty;
+import javafx.beans.property.StringProperty;
+import javafx.beans.value.ChangeListener;
+import javafx.geometry.Insets;
+import javafx.geometry.NodeOrientation;
+import javafx.geometry.Orientation;
+import javafx.geometry.Pos;
 import javafx.scene.control.Button;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
@@ -81,33 +91,10 @@ import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.text.TextAlignment;
-
-import javafx.geometry.Insets;
-import javafx.geometry.NodeOrientation;
-import javafx.geometry.Orientation;
-import javafx.geometry.Pos;
-
-import javafx.beans.binding.ObjectBinding;
-import javafx.beans.property.BooleanProperty;
-import javafx.beans.property.SimpleStringProperty;
-import javafx.beans.property.StringProperty;
-import javafx.beans.value.ChangeListener;
-
-import java.text.DecimalFormat;
-import java.text.NumberFormat;
-
-import java.util.Date;
-import java.util.Locale;
-
+import javax.inject.Inject;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
-
 import org.jetbrains.annotations.NotNull;
-
-import static javafx.scene.layout.AnchorPane.setBottomAnchor;
-import static javafx.scene.layout.AnchorPane.setLeftAnchor;
-import static javafx.scene.layout.AnchorPane.setRightAnchor;
-import static javafx.scene.layout.AnchorPane.setTopAnchor;
 
 @FxmlView
 @Slf4j
@@ -182,12 +169,12 @@ public class MainView extends InitializableView<StackPane, MainViewModel>
         ToggleButton buyButton = new NavButton(BuyOfferView.class, Res.get("mainView.menu.buyBtc").toUpperCase());
         ToggleButton sellButton = new NavButton(SellOfferView.class, Res.get("mainView.menu.sellBtc").toUpperCase());
         ToggleButton portfolioButton = new NavButton(PortfolioView.class, Res.get("mainView.menu.portfolio").toUpperCase());
-        ToggleButton fundsButton = new NavButton(FundsView.class, Res.get("mainView.menu.funds").toUpperCase());
+//        ToggleButton fundsButton = new NavButton(FundsView.class, Res.get("mainView.menu.funds").toUpperCase());
 
         ToggleButton supportButton = new NavButton(SupportView.class, Res.get("mainView.menu.support"));
         ToggleButton settingsButton = new NavButton(SettingsView.class, Res.get("mainView.menu.settings"));
         ToggleButton accountButton = new NavButton(AccountView.class, Res.get("mainView.menu.account"));
-        ToggleButton daoButton = new NavButton(DaoView.class, Res.get("mainView.menu.dao"));
+//        ToggleButton daoButton = new NavButton(DaoView.class, Res.get("mainView.menu.dao"));
 
         JFXBadge portfolioButtonWithBadge = new JFXBadge(portfolioButton);
         JFXBadge supportButtonWithBadge = new JFXBadge(supportButton);
@@ -210,17 +197,17 @@ public class MainView extends InitializableView<StackPane, MainViewModel>
                         sellButton.fire();
                     } else if (Utilities.isAltOrCtrlPressed(KeyCode.DIGIT4, keyEvent)) {
                         portfolioButton.fire();
-                    } else if (Utilities.isAltOrCtrlPressed(KeyCode.DIGIT5, keyEvent)) {
-                        fundsButton.fire();
+//                    } else if (Utilities.isAltOrCtrlPressed(KeyCode.DIGIT5, keyEvent)) {
+//                        fundsButton.fire();
                     } else if (Utilities.isAltOrCtrlPressed(KeyCode.DIGIT6, keyEvent)) {
                         supportButton.fire();
                     } else if (Utilities.isAltOrCtrlPressed(KeyCode.DIGIT7, keyEvent)) {
                         settingsButton.fire();
                     } else if (Utilities.isAltOrCtrlPressed(KeyCode.DIGIT8, keyEvent)) {
                         accountButton.fire();
-                    } else if (Utilities.isAltOrCtrlPressed(KeyCode.DIGIT9, keyEvent)) {
-                        if (daoButton.isVisible())
-                            daoButton.fire();
+//                    } else if (Utilities.isAltOrCtrlPressed(KeyCode.DIGIT9, keyEvent)) {
+//                        if (daoButton.isVisible())
+//                            daoButton.fire();
                     }
                 });
             }
@@ -317,14 +304,14 @@ public class MainView extends InitializableView<StackPane, MainViewModel>
         });
 
         HBox primaryNav = new HBox(marketButton, getNavigationSeparator(), buyButton, getNavigationSeparator(),
-                sellButton, getNavigationSeparator(), portfolioButtonWithBadge, getNavigationSeparator(), fundsButton);
+                sellButton, getNavigationSeparator(), portfolioButtonWithBadge, getNavigationSeparator());
 
         primaryNav.setAlignment(Pos.CENTER_LEFT);
         primaryNav.getStyleClass().add("nav-primary");
         HBox.setHgrow(primaryNav, Priority.SOMETIMES);
 
         HBox secondaryNav = new HBox(supportButtonWithBadge, getNavigationSpacer(), settingsButtonWithBadge,
-                getNavigationSpacer(), accountButton, getNavigationSpacer(), daoButton);
+                getNavigationSpacer(), accountButton, getNavigationSpacer());
         secondaryNav.getStyleClass().add("nav-secondary");
         HBox.setHgrow(secondaryNav, Priority.SOMETIMES);
 
@@ -338,8 +325,7 @@ public class MainView extends InitializableView<StackPane, MainViewModel>
         priceAndBalance.setSpacing(9);
         priceAndBalance.getStyleClass().add("nav-price-balance");
 
-        HBox navPane = new HBox(primaryNav, secondaryNav,
-                priceAndBalance) {{
+        HBox navPane = new HBox(primaryNav, secondaryNav, priceAndBalance) {{
             setLeftAnchor(this, 0d);
             setRightAnchor(this, 0d);
             setTopAnchor(this, 0d);
@@ -366,7 +352,7 @@ public class MainView extends InitializableView<StackPane, MainViewModel>
         baseApplicationContainer.setBottom(createFooter());
 
         setupBadge(portfolioButtonWithBadge, model.getNumPendingTrades(), model.getShowPendingTradesNotification());
-        setupBadge(supportButtonWithBadge, model.getNumOpenSupportTickets(), model.getShowOpenSupportTicketsNotification());
+//        setupBadge(supportButtonWithBadge, model.getNumOpenSupportTickets(), model.getShowOpenSupportTicketsNotification());
         setupBadge(settingsButtonWithBadge, new SimpleStringProperty(Res.get("shared.new")), model.getShowSettingsUpdatesNotification());
 
         navigation.addListener(viewPath -> {

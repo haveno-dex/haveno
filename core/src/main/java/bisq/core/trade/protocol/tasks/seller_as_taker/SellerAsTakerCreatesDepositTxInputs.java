@@ -17,18 +17,10 @@
 
 package bisq.core.trade.protocol.tasks.seller_as_taker;
 
-import bisq.core.btc.model.InputsAndChangeOutput;
-import bisq.core.offer.Offer;
+import bisq.common.taskrunner.TaskRunner;
 import bisq.core.trade.Trade;
 import bisq.core.trade.protocol.tasks.TradeTask;
-
-import bisq.common.taskrunner.TaskRunner;
-
-import org.bitcoinj.core.Coin;
-
 import lombok.extern.slf4j.Slf4j;
-
-import static com.google.common.base.Preconditions.checkNotNull;
 
 @Slf4j
 public class SellerAsTakerCreatesDepositTxInputs extends TradeTask {
@@ -40,24 +32,25 @@ public class SellerAsTakerCreatesDepositTxInputs extends TradeTask {
     protected void run() {
         try {
             runInterceptHook();
+            throw new RuntimeException("XMR integration does not communicate outputs");
 
-            Coin tradeAmount = checkNotNull(trade.getTradeAmount());
-            Offer offer = checkNotNull(trade.getOffer());
-            Coin txFee = trade.getTxFee();
-            Coin takerInputAmount = offer.getSellerSecurityDeposit()
-                    .add(txFee)
-                    .add(txFee) // We add 2 times the fee as one is for the payout tx
-                    .add(tradeAmount);
-            InputsAndChangeOutput result = processModel.getTradeWalletService().takerCreatesDepositTxInputs(
-                    processModel.getTakeOfferFeeTx(),
-                    takerInputAmount,
-                    txFee);
-
-            processModel.setRawTransactionInputs(result.rawTransactionInputs);
-            processModel.setChangeOutputValue(result.changeOutputValue);
-            processModel.setChangeOutputAddress(result.changeOutputAddress);
-
-            complete();
+//            Coin tradeAmount = checkNotNull(trade.getTradeAmount());
+//            Offer offer = checkNotNull(trade.getOffer());
+//            Coin txFee = trade.getTxFee();
+//            Coin takerInputAmount = offer.getSellerSecurityDeposit()
+//                    .add(txFee)
+//                    .add(txFee) // We add 2 times the fee as one is for the payout tx
+//                    .add(tradeAmount);
+//            InputsAndChangeOutput result = processModel.getTradeWalletService().takerCreatesDepositTxInputs(
+//                    processModel.getTakeOfferFeeTx(),
+//                    takerInputAmount,
+//                    txFee);
+//
+//            processModel.setRawTransactionInputs(result.rawTransactionInputs);
+//            processModel.setChangeOutputValue(result.changeOutputValue);
+//            processModel.setChangeOutputAddress(result.changeOutputAddress);
+//
+//            complete();
         } catch (Throwable t) {
             failed(t);
         }

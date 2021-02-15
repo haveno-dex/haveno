@@ -17,6 +17,10 @@
 
 package bisq.core.btc.wallet;
 
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
+
+import bisq.common.config.Config;
 import bisq.core.btc.exceptions.SigningException;
 import bisq.core.btc.exceptions.TransactionVerificationException;
 import bisq.core.btc.exceptions.WalletException;
@@ -28,9 +32,18 @@ import bisq.core.btc.setup.WalletConfig;
 import bisq.core.btc.setup.WalletsSetup;
 import bisq.core.locale.Res;
 import bisq.core.user.Preferences;
-
-import bisq.common.config.Config;
-
+import bisq.core.util.ParsingUtils;
+import com.google.common.collect.ImmutableList;
+import java.math.BigInteger;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
+import javax.annotation.Nullable;
+import javax.inject.Inject;
+import monero.wallet.MoneroWallet;
+import monero.wallet.model.MoneroDestination;
+import monero.wallet.model.MoneroTxConfig;
+import monero.wallet.model.MoneroTxWallet;
 import org.bitcoinj.core.Address;
 import org.bitcoinj.core.AddressFormatException;
 import org.bitcoinj.core.Coin;
@@ -52,26 +65,10 @@ import org.bitcoinj.script.ScriptBuilder;
 import org.bitcoinj.script.ScriptPattern;
 import org.bitcoinj.wallet.SendRequest;
 import org.bitcoinj.wallet.Wallet;
-
-import javax.inject.Inject;
-
-import com.google.common.collect.ImmutableList;
-
 import org.bouncycastle.crypto.params.KeyParameter;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.stream.Collectors;
-
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import org.jetbrains.annotations.NotNull;
-
-import javax.annotation.Nullable;
-
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
 
 public class TradeWalletService {
     private static final Logger log = LoggerFactory.getLogger(TradeWalletService.class);
@@ -82,6 +79,8 @@ public class TradeWalletService {
 
     @Nullable
     private Wallet wallet;
+    @Nullable
+    private MoneroWallet xmrWallet;
     @Nullable
     private WalletConfig walletConfig;
     @Nullable
@@ -100,6 +99,7 @@ public class TradeWalletService {
         walletsSetup.addSetupCompletedHandler(() -> {
             walletConfig = walletsSetup.getWalletConfig();
             wallet = walletsSetup.getBtcWallet();
+            xmrWallet = walletsSetup.getXmrWallet();
         });
     }
 
@@ -121,6 +121,21 @@ public class TradeWalletService {
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Trade fee
     ///////////////////////////////////////////////////////////////////////////////////////////
+    
+    public MoneroTxWallet createXmrTradingFeeTx(
+            String reservedForTradeAddress,
+            Coin reservedFundsForOffer,
+            Coin makerFee,
+            Coin txFee,
+            String feeReceiver,
+            boolean broadcastTx) {
+      return xmrWallet.createTx(new MoneroTxConfig()
+              .setAccountIndex(0)
+              .setDestinations(
+                      new MoneroDestination(feeReceiver, BigInteger.valueOf(makerFee.value).multiply(ParsingUtils.XMR_SATOSHI_MULTIPLIER)),
+                      new MoneroDestination(reservedForTradeAddress, BigInteger.valueOf(reservedFundsForOffer.value).multiply(ParsingUtils.XMR_SATOSHI_MULTIPLIER)))
+              .setRelay(broadcastTx));
+    }
 
     /**
      * Create a BTC trading fee transaction for the maker or taker of an offer. The first output of the tx is for the
@@ -1050,6 +1065,16 @@ public class TradeWalletService {
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Misc
     ///////////////////////////////////////////////////////////////////////////////////////////
+    
+    /**
+     * Returns the local existing wallet transaction with the given ID, or {@code null} if missing.
+     *
+     * @param txHash the transaction hash of the transaction we want to lookup
+     */
+    public MoneroTxWallet getWalletTx(String txHash) {
+        checkNotNull(xmrWallet);
+        return xmrWallet.getTx(txHash);
+    }
 
     /**
      * Returns the local existing wallet transaction with the given ID, or {@code null} if missing.

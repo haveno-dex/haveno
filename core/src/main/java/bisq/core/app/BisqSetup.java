@@ -17,6 +17,13 @@
 
 package bisq.core.app;
 
+import bisq.common.Timer;
+import bisq.common.UserThread;
+import bisq.common.app.DevEnv;
+import bisq.common.app.Log;
+import bisq.common.config.Config;
+import bisq.common.util.InvalidVersionException;
+import bisq.common.util.Utilities;
 import bisq.core.account.sign.SignedWitness;
 import bisq.core.account.witness.AccountAgeWitnessService;
 import bisq.core.alert.Alert;
@@ -27,6 +34,7 @@ import bisq.core.btc.nodes.LocalBitcoinNode;
 import bisq.core.btc.setup.WalletsSetup;
 import bisq.core.btc.wallet.BtcWalletService;
 import bisq.core.btc.wallet.WalletsManager;
+import bisq.core.btc.wallet.XmrWalletService;
 import bisq.core.dao.governance.voteresult.VoteResultException;
 import bisq.core.dao.state.unconfirmed.UnconfirmedBsqChangeOutputListService;
 import bisq.core.locale.Res;
@@ -40,39 +48,10 @@ import bisq.core.user.Preferences;
 import bisq.core.user.User;
 import bisq.core.util.FormattingUtils;
 import bisq.core.util.coin.CoinFormatter;
-
 import bisq.network.p2p.P2PService;
 import bisq.network.p2p.storage.payload.PersistableNetworkPayload;
-
-import bisq.common.Timer;
-import bisq.common.UserThread;
-import bisq.common.app.DevEnv;
-import bisq.common.app.Log;
-import bisq.common.config.Config;
-import bisq.common.util.InvalidVersionException;
-import bisq.common.util.Utilities;
-
-import org.bitcoinj.core.Coin;
-
-import javax.inject.Inject;
-import javax.inject.Named;
-import javax.inject.Singleton;
-
-import org.fxmisc.easybind.EasyBind;
-import org.fxmisc.easybind.monadic.MonadicBinding;
-
-import javafx.beans.property.BooleanProperty;
-import javafx.beans.property.DoubleProperty;
-import javafx.beans.property.SimpleBooleanProperty;
-import javafx.beans.property.StringProperty;
-import javafx.beans.value.ChangeListener;
-
-import javafx.collections.SetChangeListener;
-
-import org.bouncycastle.crypto.params.KeyParameter;
-
+import ch.qos.logback.classic.Level;
 import java.io.IOException;
-
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -80,14 +59,23 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
-
-import ch.qos.logback.classic.Level;
-
+import javafx.beans.property.BooleanProperty;
+import javafx.beans.property.DoubleProperty;
+import javafx.beans.property.SimpleBooleanProperty;
+import javafx.beans.property.StringProperty;
+import javafx.beans.value.ChangeListener;
+import javafx.collections.SetChangeListener;
+import javax.annotation.Nullable;
+import javax.inject.Inject;
+import javax.inject.Named;
+import javax.inject.Singleton;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
-
-import javax.annotation.Nullable;
+import org.bitcoinj.core.Coin;
+import org.bouncycastle.crypto.params.KeyParameter;
+import org.fxmisc.easybind.EasyBind;
+import org.fxmisc.easybind.monadic.MonadicBinding;
 
 @Slf4j
 @Singleton
@@ -114,6 +102,7 @@ public class BisqSetup {
     private final WalletsManager walletsManager;
     private final WalletsSetup walletsSetup;
     private final BtcWalletService btcWalletService;
+    private final XmrWalletService xmrWalletService;
     private final P2PService p2PService;
     private final TradeManager tradeManager;
     private final OpenOfferManager openOfferManager;
@@ -188,6 +177,7 @@ public class BisqSetup {
                      WalletAppSetup walletAppSetup,
                      WalletsManager walletsManager,
                      WalletsSetup walletsSetup,
+                     XmrWalletService xmrWalletService,
                      BtcWalletService btcWalletService,
                      P2PService p2PService,
                      TradeManager tradeManager,
@@ -207,6 +197,7 @@ public class BisqSetup {
         this.walletAppSetup = walletAppSetup;
         this.walletsManager = walletsManager;
         this.walletsSetup = walletsSetup;
+        this.xmrWalletService = xmrWalletService;
         this.btcWalletService = btcWalletService;
         this.p2PService = p2PService;
         this.tradeManager = tradeManager;
@@ -475,17 +466,18 @@ public class BisqSetup {
         // We check if we have open offers with no confidence object at the maker fee tx. That can happen if the
         // miner fee was too low and the transaction got removed from mempool and got out from our wallet after a
         // resync.
-        openOfferManager.getObservableList().forEach(e -> {
-            String offerFeePaymentTxId = e.getOffer().getOfferFeePaymentTxId();
-            if (btcWalletService.getConfidenceForTxId(offerFeePaymentTxId) == null) {
-                String message = Res.get("popup.warning.openOfferWithInvalidMakerFeeTx",
-                        e.getOffer().getShortId(), offerFeePaymentTxId);
-                log.warn(message);
-                if (lockedUpFundsHandler != null) {
-                    lockedUpFundsHandler.accept(message);
-                }
-            }
-        });
+        // TODO (woodser): check for invalid maker fee txs with xmr?
+//        openOfferManager.getObservableList().forEach(e -> {
+//            String offerFeePaymentTxId = e.getOffer().getOfferFeePaymentTxId();
+//            if (btcWalletService.getConfidenceForTxId(offerFeePaymentTxId) == null) { // TODO (woodser): needed for xmr base?
+//                String message = Res.get("popup.warning.openOfferWithInvalidMakerFeeTx",
+//                        e.getOffer().getShortId(), offerFeePaymentTxId);
+//                log.warn(message);
+//                if (lockedUpFundsHandler != null) {
+//                    lockedUpFundsHandler.accept(message);
+//                }
+//            }
+//        });
     }
 
     private void checkForCorrectOSArchitecture() {

@@ -17,14 +17,16 @@
 
 package bisq.desktop.main.overlays.windows;
 
-import bisq.desktop.components.BisqTextArea;
-import bisq.desktop.components.TextFieldWithCopyIcon;
-import bisq.desktop.main.MainView;
-import bisq.desktop.main.overlays.Overlay;
-import bisq.desktop.util.DisplayUtils;
-import bisq.desktop.util.GUIUtil;
-import bisq.desktop.util.Layout;
+import static bisq.desktop.util.FormBuilder.add2ButtonsWithBox;
+import static bisq.desktop.util.FormBuilder.addConfirmationLabelLabel;
+import static bisq.desktop.util.FormBuilder.addConfirmationLabelTextArea;
+import static bisq.desktop.util.FormBuilder.addConfirmationLabelTextFieldWithCopyIcon;
+import static bisq.desktop.util.FormBuilder.addLabelTxIdTextField;
+import static bisq.desktop.util.FormBuilder.addTitledGroupBg;
+import static com.google.common.base.Preconditions.checkNotNull;
 
+import bisq.common.UserThread;
+import bisq.common.util.Tuple3;
 import bisq.core.account.witness.AccountAgeWitnessService;
 import bisq.core.btc.wallet.BtcWalletService;
 import bisq.core.locale.CurrencyUtil;
@@ -38,23 +40,18 @@ import bisq.core.trade.TradeManager;
 import bisq.core.trade.txproof.AssetTxProofResult;
 import bisq.core.util.FormattingUtils;
 import bisq.core.util.coin.CoinFormatter;
-
+import bisq.desktop.components.BisqTextArea;
+import bisq.desktop.components.TextFieldWithCopyIcon;
+import bisq.desktop.main.MainView;
+import bisq.desktop.main.overlays.Overlay;
+import bisq.desktop.util.DisplayUtils;
+import bisq.desktop.util.GUIUtil;
+import bisq.desktop.util.Layout;
 import bisq.network.p2p.NodeAddress;
-
-import bisq.common.UserThread;
-import bisq.common.util.Tuple3;
-
-import org.bitcoinj.core.Transaction;
-import org.bitcoinj.core.Utils;
-
-import javax.inject.Inject;
-import javax.inject.Named;
-
-import javafx.stage.Modality;
-import javafx.stage.Stage;
-import javafx.stage.StageStyle;
-import javafx.stage.Window;
-
+import javafx.beans.property.IntegerProperty;
+import javafx.beans.property.SimpleIntegerProperty;
+import javafx.beans.value.ChangeListener;
+import javafx.geometry.Insets;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.TextArea;
@@ -64,18 +61,14 @@ import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
-
-import javafx.geometry.Insets;
-
-import javafx.beans.property.IntegerProperty;
-import javafx.beans.property.SimpleIntegerProperty;
-import javafx.beans.value.ChangeListener;
-
+import javafx.stage.Modality;
+import javafx.stage.Stage;
+import javafx.stage.StageStyle;
+import javafx.stage.Window;
+import javax.inject.Inject;
+import javax.inject.Named;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import static bisq.desktop.util.FormBuilder.*;
-import static com.google.common.base.Preconditions.checkNotNull;
 
 public class TradeDetailsWindow extends Overlay<TradeDetailsWindow> {
     protected static final Logger log = LoggerFactory.getLogger(TradeDetailsWindow.class);
@@ -197,6 +190,12 @@ public class TradeDetailsWindow extends Overlay<TradeDetailsWindow> {
                 trade.getAssetTxProofResult() != null &&
                 trade.getAssetTxProofResult() != AssetTxProofResult.UNDEFINED;
 
+        if (trade.getTakerFeeTxId() != null)
+          rows++;
+        if (trade.getMakerDepositTx() != null)
+          rows++;
+        if (trade.getTakerDepositTx() != null)
+          rows++;
         if (trade.getPayoutTx() != null)
             rows++;
         boolean showDisputedTx = arbitrationManager.findOwnDispute(trade.getId()).isPresent() &&
@@ -285,17 +284,15 @@ public class TradeDetailsWindow extends Overlay<TradeDetailsWindow> {
         addLabelTxIdTextField(gridPane, ++rowIndex, Res.get("shared.makerFeeTxId"), offer.getOfferFeePaymentTxId());
         addLabelTxIdTextField(gridPane, ++rowIndex, Res.get("shared.takerFeeTxId"), trade.getTakerFeeTxId());
 
-        Transaction depositTx = trade.getDepositTx();
-        String depositTxString = depositTx != null ? depositTx.getTxId().toString() : null;
-        addLabelTxIdTextField(gridPane, ++rowIndex, Res.get("shared.depositTransactionId"), depositTxString);
-
-        Transaction delayedPayoutTx = trade.getDelayedPayoutTx(btcWalletService);
-        String delayedPayoutTxString = delayedPayoutTx != null ? delayedPayoutTx.getTxId().toString() : null;
-        addLabelTxIdTextField(gridPane, ++rowIndex, Res.get("shared.delayedPayoutTxId"), delayedPayoutTxString);
-
+        if (trade.getMakerDepositTx() != null)
+          addLabelTxIdTextField(gridPane, ++rowIndex, Res.get("shared.depositTransactionId"), // TODO (woodser): separate UI labels for deposit tx ids
+                  trade.getMakerDepositTx().getHash());
+        if (trade.getTakerDepositTx() != null)
+          addLabelTxIdTextField(gridPane, ++rowIndex, Res.get("shared.depositTransactionId"), // TODO (woodser): separate UI labels for deposit tx ids
+                  trade.getTakerDepositTx().getHash());
         if (trade.getPayoutTx() != null)
             addLabelTxIdTextField(gridPane, ++rowIndex, Res.get("shared.payoutTxId"),
-                    trade.getPayoutTx().getTxId().toString());
+                    trade.getPayoutTx().getHash());
         if (showDisputedTx)
             addLabelTxIdTextField(gridPane, ++rowIndex, Res.get("tradeDetailsWindow.disputedPayoutTxId"),
                     arbitrationManager.findOwnDispute(trade.getId()).get().getDisputePayoutTxId());
@@ -336,8 +333,6 @@ public class TradeDetailsWindow extends Overlay<TradeDetailsWindow> {
                 TextArea textArea = new BisqTextArea();
                 textArea.setText(trade.getContractAsJson());
                 String contractAsJson = trade.getContractAsJson();
-                contractAsJson += "\n\nBuyerMultiSigPubKeyHex: " + Utils.HEX.encode(contract.getBuyerMultiSigPubKey());
-                contractAsJson += "\nSellerMultiSigPubKeyHex: " + Utils.HEX.encode(contract.getSellerMultiSigPubKey());
                 if (CurrencyUtil.isFiatCurrency(offer.getCurrencyCode())) {
                     contractAsJson += "\nBuyersAccountAge: " + buyersAccountAge;
                     contractAsJson += "\nSellersAccountAge: " + sellersAccountAge;

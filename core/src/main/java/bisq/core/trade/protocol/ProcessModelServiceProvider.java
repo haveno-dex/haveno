@@ -17,10 +17,12 @@
 
 package bisq.core.trade.protocol;
 
+import bisq.common.crypto.KeyRing;
 import bisq.core.account.witness.AccountAgeWitnessService;
 import bisq.core.btc.wallet.BsqWalletService;
 import bisq.core.btc.wallet.BtcWalletService;
 import bisq.core.btc.wallet.TradeWalletService;
+import bisq.core.btc.wallet.XmrWalletService;
 import bisq.core.dao.DaoFacade;
 import bisq.core.filter.FilterManager;
 import bisq.core.offer.OpenOfferManager;
@@ -30,13 +32,8 @@ import bisq.core.support.dispute.refund.refundagent.RefundAgentManager;
 import bisq.core.trade.statistics.ReferralIdService;
 import bisq.core.trade.statistics.TradeStatisticsManager;
 import bisq.core.user.User;
-
 import bisq.network.p2p.P2PService;
-
-import bisq.common.crypto.KeyRing;
-
 import javax.inject.Inject;
-
 import lombok.Getter;
 
 @Getter
@@ -44,6 +41,7 @@ public class ProcessModelServiceProvider {
     private final OpenOfferManager openOfferManager;
     private final P2PService p2PService;
     private final BtcWalletService btcWalletService;
+    private final XmrWalletService xmrWalletService;
     private final BsqWalletService bsqWalletService;
     private final TradeWalletService tradeWalletService;
     private final DaoFacade daoFacade;
@@ -61,6 +59,7 @@ public class ProcessModelServiceProvider {
     public ProcessModelServiceProvider(OpenOfferManager openOfferManager,
                                        P2PService p2PService,
                                        BtcWalletService btcWalletService,
+                                       XmrWalletService xmrWalletService,
                                        BsqWalletService bsqWalletService,
                                        TradeWalletService tradeWalletService,
                                        DaoFacade daoFacade,
@@ -73,10 +72,10 @@ public class ProcessModelServiceProvider {
                                        MediatorManager mediatorManager,
                                        RefundAgentManager refundAgentManager,
                                        KeyRing keyRing) {
-
         this.openOfferManager = openOfferManager;
         this.p2PService = p2PService;
         this.btcWalletService = btcWalletService;
+        this.xmrWalletService = xmrWalletService;
         this.bsqWalletService = bsqWalletService;
         this.tradeWalletService = tradeWalletService;
         this.daoFacade = daoFacade;

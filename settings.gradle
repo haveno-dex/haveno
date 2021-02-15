@@ -13,4 +13,4 @@ include 'seednode'
 include 'statsnode'
 include 'apitest'
 
-rootProject.name = 'bisq'
+rootProject.name = 'haveno'

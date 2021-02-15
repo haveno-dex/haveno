@@ -17,7 +17,15 @@
 
 package bisq.core.setup;
 
+import java.util.ArrayList;
+import java.util.List;
+
+import com.google.inject.Injector;
+
+import bisq.common.config.Config;
+import bisq.common.proto.persistable.PersistedDataHost;
 import bisq.core.btc.model.AddressEntryList;
+import bisq.core.btc.model.XmrAddressEntryList;
 import bisq.core.dao.governance.ballot.BallotListService;
 import bisq.core.dao.governance.blindvote.MyBlindVoteListService;
 import bisq.core.dao.governance.bond.reputation.MyReputationListService;
@@ -34,17 +42,7 @@ import bisq.core.trade.closed.ClosedTradableManager;
 import bisq.core.trade.failed.FailedTradesManager;
 import bisq.core.user.Preferences;
 import bisq.core.user.User;
-
 import bisq.network.p2p.P2PService;
-
-import bisq.common.config.Config;
-import bisq.common.proto.persistable.PersistedDataHost;
-
-import com.google.inject.Injector;
-
-import java.util.ArrayList;
-import java.util.List;
-
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -56,6 +54,7 @@ public class CorePersistedDataHost {
         persistedDataHosts.add(injector.getInstance(Preferences.class));
         persistedDataHosts.add(injector.getInstance(User.class));
         persistedDataHosts.add(injector.getInstance(AddressEntryList.class));
+        persistedDataHosts.add(injector.getInstance(XmrAddressEntryList.class));
         persistedDataHosts.add(injector.getInstance(OpenOfferManager.class));
         persistedDataHosts.add(injector.getInstance(TradeManager.class));
         persistedDataHosts.add(injector.getInstance(ClosedTradableManager.class));

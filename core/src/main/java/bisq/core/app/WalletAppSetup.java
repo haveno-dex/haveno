@@ -239,9 +239,12 @@ public class WalletAppSetup {
                                 .filter(trade -> trade.getOffer() != null)
                                 .forEach(trade -> {
                                     String details = null;
-                                    if (txId.equals(trade.getDepositTxId())) {
-                                        details = Res.get("popup.warning.trade.txRejected.deposit");
+                                    if (txId.equals(trade.getMakerDepositTxId())) {
+                                        details = Res.get("popup.warning.trade.txRejected.deposit");  // TODO (woodser): txRejected.maker_deposit, txRejected.taker_deposit
                                     }
+                                    if (txId.equals(trade.getTakerDepositTxId())) {
+                                      details = Res.get("popup.warning.trade.txRejected.deposit");
+                                  }
                                     if (txId.equals(trade.getOffer().getOfferFeePaymentTxId()) || txId.equals(trade.getTakerFeeTxId())) {
                                         details = Res.get("popup.warning.trade.txRejected.tradeFee");
                                     }

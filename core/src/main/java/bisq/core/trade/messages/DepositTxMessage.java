@@ -17,14 +17,14 @@
 
 package bisq.core.trade.messages;
 
+import java.util.Optional;
+
+import javax.annotation.Nullable;
+
+import bisq.common.crypto.PubKeyRing;
+import bisq.common.proto.ProtoUtil;
 import bisq.network.p2p.DirectMessage;
 import bisq.network.p2p.NodeAddress;
-
-import bisq.common.app.Version;
-import bisq.common.util.Utilities;
-
-import com.google.protobuf.ByteString;
-
 import lombok.EqualsAndHashCode;
 import lombok.Value;
 
@@ -34,42 +34,40 @@ import lombok.Value;
 @Value
 public final class DepositTxMessage extends TradeMessage implements DirectMessage {
     private final NodeAddress senderNodeAddress;
-    private final byte[] depositTx;
+    private final PubKeyRing pubKeyRing;
+    @Nullable
+    private final String tradeFeeTxId;
+    @Nullable
+    private final String depositTxId;
 
-    public DepositTxMessage(String uid,
+    public DepositTxMessage(int messageVersion,
+                            String uid,
                             String tradeId,
                             NodeAddress senderNodeAddress,
-                            byte[] depositTx) {
-        this(Version.getP2PMessageVersion(),
-                uid,
-                tradeId,
-                senderNodeAddress,
-                depositTx);
+                            PubKeyRing pubKeyRing,
+                            String tradeFeeTxId,
+                            String depositTxId) {
+      super(messageVersion, tradeId, uid);
+      this.senderNodeAddress = senderNodeAddress;
+      this.pubKeyRing = pubKeyRing;
+      this.tradeFeeTxId = tradeFeeTxId;
+      this.depositTxId = depositTxId;
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // PROTO BUFFER
     ///////////////////////////////////////////////////////////////////////////////////////////
 
-    private DepositTxMessage(int messageVersion,
-                             String uid,
-                             String tradeId,
-                             NodeAddress senderNodeAddress,
-                             byte[] depositTx) {
-        super(messageVersion, tradeId, uid);
-        this.senderNodeAddress = senderNodeAddress;
-        this.depositTx = depositTx;
-    }
-
     @Override
     public protobuf.NetworkEnvelope toProtoNetworkEnvelope() {
-        return getNetworkEnvelopeBuilder()
-                .setDepositTxMessage(protobuf.DepositTxMessage.newBuilder()
-                        .setUid(uid)
-                        .setTradeId(tradeId)
-                        .setSenderNodeAddress(senderNodeAddress.toProtoMessage())
-                        .setDepositTx(ByteString.copyFrom(depositTx)))
-                .build();
+      protobuf.DepositTxMessage.Builder builder = protobuf.DepositTxMessage.newBuilder()
+              .setTradeId(tradeId)
+              .setSenderNodeAddress(senderNodeAddress.toProtoMessage())
+              .setPubKeyRing(pubKeyRing.toProtoMessage())
+              .setUid(uid);
+      Optional.ofNullable(tradeFeeTxId).ifPresent(e -> builder.setTradeFeeTxId(tradeFeeTxId));
+      Optional.ofNullable(depositTxId).ifPresent(e -> builder.setDepositTxId(depositTxId));
+      return getNetworkEnvelopeBuilder().setDepositTxMessage(builder).build();
     }
 
     public static DepositTxMessage fromProto(protobuf.DepositTxMessage proto, int messageVersion) {
@@ -77,14 +75,17 @@ public final class DepositTxMessage extends TradeMessage implements DirectMessag
                 proto.getUid(),
                 proto.getTradeId(),
                 NodeAddress.fromProto(proto.getSenderNodeAddress()),
-                proto.getDepositTx().toByteArray());
+                PubKeyRing.fromProto(proto.getPubKeyRing()),
+                ProtoUtil.stringOrNullFromProto(proto.getTradeFeeTxId()),
+                ProtoUtil.stringOrNullFromProto(proto.getDepositTxId()));
     }
 
     @Override
     public String toString() {
         return "DepositTxMessage{" +
                 "\n     senderNodeAddress=" + senderNodeAddress +
-                ",\n     depositTx=" + Utilities.bytesAsHexString(depositTx) +
+                ",\n     tradeFeeTxId=" + tradeFeeTxId +
+                ",\n     depositTxId=" + depositTxId +
                 "\n} " + super.toString();
     }
 }

@@ -17,42 +17,35 @@
 
 package bisq.core.support.dispute;
 
-import bisq.core.proto.CoreProtoResolver;
-import bisq.core.support.SupportType;
-import bisq.core.support.messages.ChatMessage;
-import bisq.core.trade.Contract;
-
 import bisq.common.crypto.PubKeyRing;
 import bisq.common.proto.ProtoUtil;
 import bisq.common.proto.network.NetworkPayload;
 import bisq.common.proto.persistable.PersistablePayload;
 import bisq.common.util.Utilities;
-
+import bisq.core.proto.CoreProtoResolver;
+import bisq.core.support.SupportType;
+import bisq.core.support.messages.ChatMessage;
+import bisq.core.trade.Contract;
 import com.google.protobuf.ByteString;
-
-import javafx.beans.property.BooleanProperty;
-import javafx.beans.property.ObjectProperty;
-import javafx.beans.property.ReadOnlyBooleanProperty;
-import javafx.beans.property.ReadOnlyObjectProperty;
-import javafx.beans.property.SimpleBooleanProperty;
-import javafx.beans.property.SimpleObjectProperty;
-
-import javafx.collections.FXCollections;
-import javafx.collections.ObservableList;
-
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
-
+import javafx.beans.property.BooleanProperty;
+import javafx.beans.property.ObjectProperty;
+import javafx.beans.property.ReadOnlyBooleanProperty;
+import javafx.beans.property.ReadOnlyObjectProperty;
+import javafx.beans.property.SimpleBooleanProperty;
+import javafx.beans.property.SimpleObjectProperty;
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
+import javax.annotation.Nullable;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
-
-import javax.annotation.Nullable;
 
 @Slf4j
 @EqualsAndHashCode
@@ -102,6 +95,9 @@ public final class Dispute implements NetworkPayload, PersistablePayload {
     @Setter
     @Nullable
     private String delayedPayoutTxId;
+    
+    // Added for XMR integration
+    private boolean isOpener;
 
     // Added at v1.3.9
     @Setter
@@ -120,6 +116,7 @@ public final class Dispute implements NetworkPayload, PersistablePayload {
     public Dispute(long openingDate,
                    String tradeId,
                    int traderId,
+                   boolean isOpener,
                    boolean disputeOpenerIsBuyer,
                    boolean disputeOpenerIsMaker,
                    PubKeyRing traderPubKeyRing,
@@ -139,6 +136,7 @@ public final class Dispute implements NetworkPayload, PersistablePayload {
         this.openingDate = openingDate;
         this.tradeId = tradeId;
         this.traderId = traderId;
+        this.isOpener = isOpener;
         this.disputeOpenerIsBuyer = disputeOpenerIsBuyer;
         this.disputeOpenerIsMaker = disputeOpenerIsMaker;
         this.traderPubKeyRing = traderPubKeyRing;
@@ -172,6 +170,7 @@ public final class Dispute implements NetworkPayload, PersistablePayload {
         protobuf.Dispute.Builder builder = protobuf.Dispute.newBuilder()
                 .setTradeId(tradeId)
                 .setTraderId(traderId)
+                .setIsOpener(isOpener)
                 .setDisputeOpenerIsBuyer(disputeOpenerIsBuyer)
                 .setDisputeOpenerIsMaker(disputeOpenerIsMaker)
                 .setTraderPubKeyRing(traderPubKeyRing.toProtoMessage())
@@ -207,6 +206,7 @@ public final class Dispute implements NetworkPayload, PersistablePayload {
         Dispute dispute = new Dispute(proto.getOpeningDate(),
                 proto.getTradeId(),
                 proto.getTraderId(),
+                proto.getIsOpener(),
                 proto.getDisputeOpenerIsBuyer(),
                 proto.getDisputeOpenerIsMaker(),
                 PubKeyRing.fromProto(proto.getTraderPubKeyRing()),
@@ -264,6 +264,9 @@ public final class Dispute implements NetworkPayload, PersistablePayload {
         }
     }
 
+    public boolean isMediationDispute() {
+        return !chatMessages.isEmpty() && chatMessages.get(0).getSupportType() == SupportType.MEDIATION;
+    }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Setters
@@ -314,6 +317,7 @@ public final class Dispute implements NetworkPayload, PersistablePayload {
                 ",\n     id='" + id + '\'' +
                 ",\n     uid='" + uid + '\'' +
                 ",\n     traderId=" + traderId +
+                ",\n     isOpener=" + isOpener +
                 ",\n     disputeOpenerIsBuyer=" + disputeOpenerIsBuyer +
                 ",\n     disputeOpenerIsMaker=" + disputeOpenerIsMaker +
                 ",\n     traderPubKeyRing=" + traderPubKeyRing +

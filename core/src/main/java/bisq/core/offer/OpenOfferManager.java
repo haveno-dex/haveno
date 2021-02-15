@@ -17,9 +17,24 @@
 
 package bisq.core.offer;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
+import bisq.common.Timer;
+import bisq.common.UserThread;
+import bisq.common.app.Capabilities;
+import bisq.common.app.Capability;
+import bisq.common.app.Version;
+import bisq.common.crypto.KeyRing;
+import bisq.common.crypto.PubKeyRing;
+import bisq.common.handlers.ErrorMessageHandler;
+import bisq.common.handlers.ResultHandler;
+import bisq.common.persistence.PersistenceManager;
+import bisq.common.proto.network.NetworkEnvelope;
+import bisq.common.proto.persistable.PersistedDataHost;
 import bisq.core.btc.wallet.BsqWalletService;
 import bisq.core.btc.wallet.BtcWalletService;
 import bisq.core.btc.wallet.TradeWalletService;
+import bisq.core.btc.wallet.XmrWalletService;
 import bisq.core.dao.DaoFacade;
 import bisq.core.exceptions.TradePriceOutOfToleranceException;
 import bisq.core.filter.FilterManager;
@@ -40,7 +55,6 @@ import bisq.core.trade.statistics.TradeStatisticsManager;
 import bisq.core.user.Preferences;
 import bisq.core.user.User;
 import bisq.core.util.Validator;
-
 import bisq.network.p2p.AckMessage;
 import bisq.network.p2p.AckMessageSourceType;
 import bisq.network.p2p.BootstrapListener;
@@ -50,26 +64,6 @@ import bisq.network.p2p.NodeAddress;
 import bisq.network.p2p.P2PService;
 import bisq.network.p2p.SendDirectMessageListener;
 import bisq.network.p2p.peers.PeerManager;
-
-import bisq.common.Timer;
-import bisq.common.UserThread;
-import bisq.common.app.Capabilities;
-import bisq.common.app.Capability;
-import bisq.common.app.Version;
-import bisq.common.crypto.KeyRing;
-import bisq.common.crypto.PubKeyRing;
-import bisq.common.handlers.ErrorMessageHandler;
-import bisq.common.handlers.ResultHandler;
-import bisq.common.persistence.PersistenceManager;
-import bisq.common.proto.network.NetworkEnvelope;
-import bisq.common.proto.persistable.PersistedDataHost;
-
-import org.bitcoinj.core.Coin;
-
-import javax.inject.Inject;
-
-import javafx.collections.ObservableList;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -78,15 +72,13 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
-
+import javafx.collections.ObservableList;
+import javax.annotation.Nullable;
+import javax.inject.Inject;
+import org.bitcoinj.core.Coin;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import org.jetbrains.annotations.NotNull;
-
-import javax.annotation.Nullable;
-
-import static com.google.common.base.Preconditions.checkNotNull;
 
 public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMessageListener, PersistedDataHost {
     private static final Logger log = LoggerFactory.getLogger(OpenOfferManager.class);
@@ -101,6 +93,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
     private final User user;
     private final P2PService p2PService;
     private final BtcWalletService btcWalletService;
+    private final XmrWalletService xmrWalletService;
     private final TradeWalletService tradeWalletService;
     private final BsqWalletService bsqWalletService;
     private final OfferBookService offerBookService;
@@ -130,6 +123,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                             User user,
                             P2PService p2PService,
                             BtcWalletService btcWalletService,
+                            XmrWalletService xmrWalletService,
                             TradeWalletService tradeWalletService,
                             BsqWalletService bsqWalletService,
                             OfferBookService offerBookService,
@@ -148,6 +142,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
         this.user = user;
         this.p2PService = p2PService;
         this.btcWalletService = btcWalletService;
+        this.xmrWalletService = xmrWalletService;
         this.tradeWalletService = tradeWalletService;
         this.bsqWalletService = bsqWalletService;
         this.offerBookService = offerBookService;
@@ -360,6 +355,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                 reservedFundsForOffer,
                 useSavingsWallet,
                 btcWalletService,
+                xmrWalletService,
                 tradeWalletService,
                 bsqWalletService,
                 offerBookService,

@@ -18,38 +18,22 @@
 package bisq.core.trade.protocol;
 
 
+import bisq.common.handlers.ErrorMessageHandler;
+import bisq.common.handlers.ResultHandler;
 import bisq.core.trade.SellerAsMakerTrade;
 import bisq.core.trade.Trade;
 import bisq.core.trade.messages.CounterCurrencyTransferStartedMessage;
-import bisq.core.trade.messages.DelayedPayoutTxSignatureResponse;
-import bisq.core.trade.messages.DepositTxMessage;
-import bisq.core.trade.messages.InputsForDepositTxRequest;
 import bisq.core.trade.messages.TradeMessage;
 import bisq.core.trade.protocol.tasks.ApplyFilter;
-import bisq.core.trade.protocol.tasks.TradeTask;
-import bisq.core.trade.protocol.tasks.VerifyPeersAccountAgeWitness;
-import bisq.core.trade.protocol.tasks.maker.MakerCreateAndSignContract;
-import bisq.core.trade.protocol.tasks.maker.MakerProcessesInputsForDepositTxRequest;
-import bisq.core.trade.protocol.tasks.maker.MakerRemovesOpenOffer;
-import bisq.core.trade.protocol.tasks.maker.MakerSetsLockTime;
-import bisq.core.trade.protocol.tasks.maker.MakerVerifyTakerFeePayment;
-import bisq.core.trade.protocol.tasks.seller.SellerCreatesDelayedPayoutTx;
-import bisq.core.trade.protocol.tasks.seller.SellerSendDelayedPayoutTxSignatureRequest;
-import bisq.core.trade.protocol.tasks.seller_as_maker.SellerAsMakerCreatesUnsignedDepositTx;
-import bisq.core.trade.protocol.tasks.seller_as_maker.SellerAsMakerFinalizesDepositTx;
-import bisq.core.trade.protocol.tasks.seller_as_maker.SellerAsMakerProcessDepositTxMessage;
-import bisq.core.trade.protocol.tasks.seller_as_maker.SellerAsMakerSendsInputsForDepositTxResponse;
-
+import bisq.core.trade.protocol.tasks.seller.SellerProcessCounterCurrencyTransferStartedMessage;
+import bisq.core.trade.protocol.tasks.seller.SellerSendPayoutTxPublishedMessage;
+import bisq.core.trade.protocol.tasks.seller.SellerSignAndPublishPayoutTx;
 import bisq.network.p2p.NodeAddress;
-
-import bisq.common.handlers.ErrorMessageHandler;
-import bisq.common.handlers.ResultHandler;
-
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public class SellerAsMakerProtocol extends SellerProtocol implements MakerProtocol {
-
+public class SellerAsMakerProtocol extends MakerProtocolBase implements SellerProtocol {
+  
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Constructor
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -57,104 +41,82 @@ public class SellerAsMakerProtocol extends SellerProtocol implements MakerProtoc
     public SellerAsMakerProtocol(SellerAsMakerTrade trade) {
         super(trade);
     }
-
-
+    
     ///////////////////////////////////////////////////////////////////////////////////////////
-    // Handle take offer request
+    // Message dispatcher
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     @Override
-    public void handleTakeOfferRequest(InputsForDepositTxRequest message,
-                                       NodeAddress peer,
-                                       ErrorMessageHandler errorMessageHandler) {
-        expect(phase(Trade.Phase.INIT)
-                .with(message)
-                .from(peer))
-                .setup(tasks(
-                        MakerProcessesInputsForDepositTxRequest.class,
-                        ApplyFilter.class,
-                        VerifyPeersAccountAgeWitness.class,
-                        getVerifyPeersFeePaymentClass(),
-                        MakerSetsLockTime.class,
-                        MakerCreateAndSignContract.class,
-                        SellerAsMakerCreatesUnsignedDepositTx.class,
-                        SellerAsMakerSendsInputsForDepositTxResponse.class)
-                        .using(new TradeTaskRunner(trade,
-                                () -> handleTaskRunnerSuccess(message),
-                                errorMessage -> {
-                                    errorMessageHandler.handleErrorMessage(errorMessage);
-                                    handleTaskRunnerFault(message, errorMessage);
-                                }))
-                        .withTimeout(30))
-                .executeTasks();
+    public void onMailboxMessage(TradeMessage tradeMessage, NodeAddress peerNodeAddress) {
+        super.onMailboxMessage(tradeMessage, peerNodeAddress);
+
+        if (tradeMessage instanceof CounterCurrencyTransferStartedMessage) {
+            handle((CounterCurrencyTransferStartedMessage) tradeMessage, peerNodeAddress);
+        }
     }
-
-
-    ///////////////////////////////////////////////////////////////////////////////////////////
-    // Incoming messages Take offer process
-    ///////////////////////////////////////////////////////////////////////////////////////////
-
-    protected void handle(DepositTxMessage message, NodeAddress peer) {
-        expect(phase(Trade.Phase.TAKER_FEE_PUBLISHED)
-                .with(message)
-                .from(peer))
-                .setup(tasks(
-                        SellerAsMakerProcessDepositTxMessage.class,
-                        MakerRemovesOpenOffer.class,
-                        SellerAsMakerFinalizesDepositTx.class,
-                        SellerCreatesDelayedPayoutTx.class,
-                        SellerSendDelayedPayoutTxSignatureRequest.class)
-                        .withTimeout(30))
-                .executeTasks();
-    }
-
-    // We keep the handler here in as well to make it more transparent which messages we expect
+    
     @Override
-    protected void handle(DelayedPayoutTxSignatureResponse message, NodeAddress peer) {
-        super.handle(message, peer);
+    protected void onTradeMessage(TradeMessage tradeMessage, NodeAddress sender) {
+        super.onTradeMessage(tradeMessage, sender);
+
+        log.info("Received {} from {} with tradeId {} and uid {}",
+                tradeMessage.getClass().getSimpleName(), sender, tradeMessage.getTradeId(), tradeMessage.getUid());
+
+        if (tradeMessage instanceof CounterCurrencyTransferStartedMessage) {
+            handle((CounterCurrencyTransferStartedMessage) tradeMessage, sender);
+        }
     }
-
-
+    
     ///////////////////////////////////////////////////////////////////////////////////////////
-    // Incoming message when buyer has clicked payment started button
+    // After peer has started Fiat tx
     ///////////////////////////////////////////////////////////////////////////////////////////
 
-    // We keep the handler here in as well to make it more transparent which messages we expect
-    @Override
-    protected void handle(CounterCurrencyTransferStartedMessage message, NodeAddress peer) {
-        super.handle(message, peer);
+    private void handle(CounterCurrencyTransferStartedMessage message, NodeAddress sender) {
+      processModel.setTradeMessage(message);
+      processModel.setTempTradingPeerNodeAddress(sender);
+      expect(anyPhase(Trade.Phase.DEPOSIT_CONFIRMED)
+          .with(message)
+          .from(sender))
+          .setup(tasks(
+              SellerProcessCounterCurrencyTransferStartedMessage.class,
+              getVerifyPeersFeePaymentClass())
+              .using(new TradeTaskRunner(trade,
+                  () -> {
+                    handleTaskRunnerSuccess(message);
+                  },
+                  errorMessage -> {
+                      handleTaskRunnerFault(message, errorMessage);
+                  })))
+          .executeTasks();
     }
-
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // User interaction
     ///////////////////////////////////////////////////////////////////////////////////////////
-
-    // We keep the handler here in as well to make it more transparent which events we expect
+    
     @Override
     public void onPaymentReceived(ResultHandler resultHandler, ErrorMessageHandler errorMessageHandler) {
-        super.onPaymentReceived(resultHandler, errorMessageHandler);
-    }
-
-
-    ///////////////////////////////////////////////////////////////////////////////////////////
-    // Massage dispatcher
-    ///////////////////////////////////////////////////////////////////////////////////////////
-
-    @Override
-    protected void onTradeMessage(TradeMessage message, NodeAddress peer) {
-        super.onTradeMessage(message, peer);
-
-        log.info("Received {} from {} with tradeId {} and uid {}",
-                message.getClass().getSimpleName(), peer, message.getTradeId(), message.getUid());
-
-        if (message instanceof DepositTxMessage) {
-            handle((DepositTxMessage) message, peer);
-        }
-    }
-
-    @Override
-    protected Class<? extends TradeTask> getVerifyPeersFeePaymentClass() {
-        return MakerVerifyTakerFeePayment.class;
-    }
+      SellerEvent event = SellerEvent.PAYMENT_RECEIVED;
+      expect(anyPhase(Trade.Phase.FIAT_SENT, Trade.Phase.PAYOUT_PUBLISHED)
+              .with(event)
+              .preCondition(trade.confirmPermitted()))
+              .setup(tasks(
+                      ApplyFilter.class,
+                      getVerifyPeersFeePaymentClass(),
+                      SellerSignAndPublishPayoutTx.class,
+                      //SellerSignAndFinalizePayoutTx.class,
+                      //SellerBroadcastPayoutTx.class,
+                      SellerSendPayoutTxPublishedMessage.class)
+                      .using(new TradeTaskRunner(trade,
+                              () -> {
+                                  resultHandler.handleResult();
+                                  handleTaskRunnerSuccess(event);
+                              },
+                              (errorMessage) -> {
+                                  errorMessageHandler.handleErrorMessage(errorMessage);
+                                  handleTaskRunnerFault(event, errorMessage);
+                              })))
+              .run(() -> trade.setState(Trade.State.SELLER_CONFIRMED_IN_UI_FIAT_PAYMENT_RECEIPT))
+              .executeTasks();
+  }
 }

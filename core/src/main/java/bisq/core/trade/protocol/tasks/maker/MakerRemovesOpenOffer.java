@@ -38,7 +38,7 @@ public class MakerRemovesOpenOffer extends TradeTask {
             runInterceptHook();
 
             // Once the taker fee is published we remove our open offer
-            checkNotNull(trade.getTakerFeeTxId());
+            //checkNotNull(trade.getTakerFeeTxId());  // TODO (woodser): need to get taker fee tx id in reserved and direct flows
             processModel.getOpenOfferManager().closeOpenOffer(checkNotNull(trade.getOffer()));
 
             complete();

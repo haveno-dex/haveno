@@ -17,16 +17,20 @@
 
 package bisq.monitor.metric;
 
+import bisq.common.ClockWatcher;
+import bisq.common.config.Config;
+import bisq.common.file.CorruptedStorageFileHandler;
+import bisq.common.persistence.PersistenceManager;
+import bisq.common.proto.network.NetworkEnvelope;
+import bisq.common.proto.network.NetworkProtoResolver;
+import bisq.core.network.p2p.seed.DefaultSeedNodeRepository;
+import bisq.core.proto.network.CoreNetworkProtoResolver;
+import bisq.core.proto.persistable.CorePersistenceProtoResolver;
 import bisq.monitor.AvailableTor;
 import bisq.monitor.Metric;
 import bisq.monitor.Monitor;
 import bisq.monitor.Reporter;
 import bisq.monitor.ThreadGate;
-
-import bisq.core.network.p2p.seed.DefaultSeedNodeRepository;
-import bisq.core.proto.network.CoreNetworkProtoResolver;
-import bisq.core.proto.persistable.CorePersistenceProtoResolver;
-
 import bisq.network.p2p.network.Connection;
 import bisq.network.p2p.network.MessageListener;
 import bisq.network.p2p.network.NetworkNode;
@@ -36,18 +40,8 @@ import bisq.network.p2p.peers.PeerManager;
 import bisq.network.p2p.peers.keepalive.KeepAliveManager;
 import bisq.network.p2p.peers.peerexchange.PeerExchangeManager;
 import bisq.network.p2p.storage.messages.BroadcastMessage;
-
-import bisq.common.ClockWatcher;
-import bisq.common.config.Config;
-import bisq.common.file.CorruptedStorageFileHandler;
-import bisq.common.persistence.PersistenceManager;
-import bisq.common.proto.network.NetworkEnvelope;
-import bisq.common.proto.network.NetworkProtoResolver;
-
-import java.time.Clock;
-
 import java.io.File;
-
+import java.time.Clock;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -56,7 +50,6 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-
 import lombok.extern.slf4j.Slf4j;
 
 /**
@@ -129,8 +122,7 @@ public class P2PNetworkLoad extends Metric implements MessageListener, SetupList
                 CorruptedStorageFileHandler corruptedStorageFileHandler = new CorruptedStorageFileHandler();
                 int maxConnections = Integer.parseInt(configuration.getProperty(MAX_CONNECTIONS, "12"));
                 NetworkProtoResolver networkProtoResolver = new CoreNetworkProtoResolver(Clock.systemDefaultZone());
-                CorePersistenceProtoResolver persistenceProtoResolver = new CorePersistenceProtoResolver(null,
-                        networkProtoResolver);
+                CorePersistenceProtoResolver persistenceProtoResolver = new CorePersistenceProtoResolver(null, null, networkProtoResolver);
                 DefaultSeedNodeRepository seedNodeRepository = new DefaultSeedNodeRepository(config);
                 PeerManager peerManager = new PeerManager(networkNode, seedNodeRepository, new ClockWatcher(),
                         maxConnections, new PersistenceManager<>(storageDir, persistenceProtoResolver, corruptedStorageFileHandler));

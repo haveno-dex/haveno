@@ -1,12 +1,28 @@
 package bisq.desktop.main.portfolio.editoffer;
 
-import bisq.desktop.main.offer.MakerFeeProvider;
-import bisq.desktop.util.validation.SecurityDepositValidator;
+import static bisq.desktop.maker.OfferMaker.btcBCHCOffer;
+import static bisq.desktop.maker.PreferenceMakers.empty;
+import static com.natpryce.makeiteasy.MakeItEasy.make;
+import static org.junit.Assert.assertNull;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
+import java.time.Instant;
+import java.util.UUID;
+
+import org.bitcoinj.core.Coin;
+import org.junit.Before;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.ExpectedException;
 
 import bisq.core.account.witness.AccountAgeWitnessService;
-import bisq.core.btc.model.AddressEntry;
+import bisq.core.btc.model.XmrAddressEntry;
 import bisq.core.btc.wallet.BsqWalletService;
-import bisq.core.btc.wallet.BtcWalletService;
+import bisq.core.btc.wallet.XmrWalletService;
 import bisq.core.locale.Country;
 import bisq.core.locale.CryptoCurrency;
 import bisq.core.locale.GlobalSettings;
@@ -24,31 +40,10 @@ import bisq.core.user.Preferences;
 import bisq.core.user.User;
 import bisq.core.util.coin.BsqFormatter;
 import bisq.core.util.validation.InputValidator;
-
-import org.bitcoinj.core.Coin;
-
+import bisq.desktop.main.offer.MakerFeeProvider;
+import bisq.desktop.util.validation.SecurityDepositValidator;
 import javafx.beans.property.SimpleIntegerProperty;
-
 import javafx.collections.FXCollections;
-
-import java.time.Instant;
-
-import java.util.UUID;
-
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.ExpectedException;
-
-import static bisq.desktop.maker.OfferMaker.btcBCHCOffer;
-import static bisq.desktop.maker.PreferenceMakers.empty;
-import static com.natpryce.makeiteasy.MakeItEasy.make;
-import static org.junit.Assert.assertNull;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 public class EditOfferDataModelTest {
 
@@ -66,8 +61,8 @@ public class EditOfferDataModelTest {
         Res.setup();
 
         FeeService feeService = mock(FeeService.class);
-        AddressEntry addressEntry = mock(AddressEntry.class);
-        BtcWalletService btcWalletService = mock(BtcWalletService.class);
+        XmrAddressEntry addressEntry = mock(XmrAddressEntry.class);
+        XmrWalletService xmrWalletService = mock(XmrWalletService.class);
         PriceFeedService priceFeedService = mock(PriceFeedService.class);
         user = mock(User.class);
         PaymentAccount paymentAccount = mock(PaymentAccount.class);
@@ -78,8 +73,8 @@ public class EditOfferDataModelTest {
         AccountAgeWitnessService accountAgeWitnessService = mock(AccountAgeWitnessService.class);
         CreateOfferService createOfferService = mock(CreateOfferService.class);
 
-        when(btcWalletService.getOrCreateAddressEntry(anyString(), any())).thenReturn(addressEntry);
-        when(btcWalletService.getBalanceForAddress(any())).thenReturn(Coin.valueOf(1000L));
+        when(xmrWalletService.getOrCreateAddressEntry(anyString(), any())).thenReturn(addressEntry);
+        when(xmrWalletService.getBalanceForAccount(any(Integer.class))).thenReturn(Coin.valueOf(1000L));
         when(priceFeedService.updateCounterProperty()).thenReturn(new SimpleIntegerProperty());
         when(priceFeedService.getMarketPrice(anyString())).thenReturn(new MarketPrice("USD", 12684.0450, Instant.now().getEpochSecond(), true));
         when(feeService.getTxFee(anyInt())).thenReturn(Coin.valueOf(1000L));
@@ -93,7 +88,7 @@ public class EditOfferDataModelTest {
         when(createOfferService.getRandomOfferId()).thenReturn(UUID.randomUUID().toString());
 
         model = new EditOfferDataModel(createOfferService, null,
-                btcWalletService, bsqWalletService, empty, user,
+                xmrWalletService, bsqWalletService, empty, user,
                 null, priceFeedService,
                 accountAgeWitnessService, feeService, null, null,
                 mock(MakerFeeProvider.class), mock(TradeStatisticsManager.class), null);

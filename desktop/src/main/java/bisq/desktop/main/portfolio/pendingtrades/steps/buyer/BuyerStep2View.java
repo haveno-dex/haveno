@@ -190,7 +190,7 @@ public class BuyerStep2View extends TradeStepView {
     @Override
     protected void onPendingTradesInitialized() {
         super.onPendingTradesInitialized();
-        validatePayoutTx();
+        //validatePayoutTx(); // TODO (woodser): no payout tx in xmr integration, do something else?
     }
 
 
@@ -615,19 +615,19 @@ public class BuyerStep2View extends TradeStepView {
         }
     }
 
-    private void validatePayoutTx() {
-        try {
-            TradeDataValidation.validateDelayedPayoutTx(trade,
-                    trade.getDelayedPayoutTx(),
-                    model.dataModel.daoFacade,
-                    model.dataModel.btcWalletService);
-        } catch (TradeDataValidation.MissingTxException ignore) {
-            // We don't react on those errors as a failed trade might get listed initially but getting removed from the
-            // trade manager after initPendingTrades which happens after activate might be called.
-        } catch (TradeDataValidation.ValidationException e) {
-            if (!model.dataModel.tradeManager.isAllowFaultyDelayedTxs()) {
-                new Popup().warning(Res.get("portfolio.pending.invalidDelayedPayoutTx", e.getMessage())).show();
-            }
-        }
-    }
+//    private void validatePayoutTx() {
+//        try {
+//            TradeDataValidation.validateDelayedPayoutTx(trade,
+//                    trade.getDelayedPayoutTx(),
+//                    model.dataModel.daoFacade,
+//                    model.dataModel.btcWalletService);
+//        } catch (TradeDataValidation.MissingTxException ignore) {
+//            // We don't react on those errors as a failed trade might get listed initially but getting removed from the
+//            // trade manager after initPendingTrades which happens after activate might be called.
+//        } catch (TradeDataValidation.ValidationException e) {
+//            if (!model.dataModel.tradeManager.isAllowFaultyDelayedTxs()) {
+//                new Popup().warning(Res.get("portfolio.pending.invalidDelayedPayoutTx", e.getMessage())).show();
+//            }
+//        }
+//    }
 }

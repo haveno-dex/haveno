@@ -38,6 +38,7 @@ public class SellerAsMakerFinalizesDepositTx extends TradeTask {
     protected void run() {
         try {
             runInterceptHook();
+            if (true) throw new RuntimeException("SellerAsMakerFinalizesDepositTx not implemented for xmr");
 
             byte[] takersRawPreparedDepositTx = checkNotNull(processModel.getTradingPeer().getPreparedDepositTx());
             byte[] myRawPreparedDepositTx = checkNotNull(processModel.getPreparedDepositTx());

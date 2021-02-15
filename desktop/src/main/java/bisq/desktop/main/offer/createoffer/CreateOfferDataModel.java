@@ -21,13 +21,13 @@ see <http://www.gnu.org/licenses/>.
 
 package bisq.desktop.main.offer.createoffer;
 
-import bisq.desktop.Navigation;
-import bisq.desktop.main.offer.MakerFeeProvider;
-import bisq.desktop.main.offer.MutableOfferDataModel;
+import javax.inject.Named;
+
+import com.google.inject.Inject;
 
 import bisq.core.account.witness.AccountAgeWitnessService;
 import bisq.core.btc.wallet.BsqWalletService;
-import bisq.core.btc.wallet.BtcWalletService;
+import bisq.core.btc.wallet.XmrWalletService;
 import bisq.core.offer.CreateOfferService;
 import bisq.core.offer.OpenOfferManager;
 import bisq.core.provider.fee.FeeService;
@@ -37,12 +37,10 @@ import bisq.core.user.Preferences;
 import bisq.core.user.User;
 import bisq.core.util.FormattingUtils;
 import bisq.core.util.coin.CoinFormatter;
-
+import bisq.desktop.Navigation;
+import bisq.desktop.main.offer.MakerFeeProvider;
+import bisq.desktop.main.offer.MutableOfferDataModel;
 import bisq.network.p2p.P2PService;
-
-import com.google.inject.Inject;
-
-import javax.inject.Named;
 
 /**
  * Domain for that UI element.
@@ -54,7 +52,7 @@ class CreateOfferDataModel extends MutableOfferDataModel {
     @Inject
     public CreateOfferDataModel(CreateOfferService createOfferService,
                                 OpenOfferManager openOfferManager,
-                                BtcWalletService btcWalletService,
+                                XmrWalletService xmrWalletService,
                                 BsqWalletService bsqWalletService,
                                 Preferences preferences,
                                 User user,
@@ -68,7 +66,7 @@ class CreateOfferDataModel extends MutableOfferDataModel {
                                 Navigation navigation) {
         super(createOfferService,
                 openOfferManager,
-                btcWalletService,
+                xmrWalletService,
                 bsqWalletService,
                 preferences,
                 user,

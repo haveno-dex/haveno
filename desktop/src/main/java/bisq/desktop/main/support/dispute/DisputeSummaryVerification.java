@@ -49,23 +49,24 @@ public class DisputeSummaryVerification {
     public static String signAndApply(DisputeManager<? extends DisputeList<Dispute>> disputeManager,
                                       DisputeResult disputeResult,
                                       String textToSign) {
+        throw new RuntimeException("DisputeSummaryVerification.signAndApply() not implemented");
 
-        byte[] hash = Hash.getSha256Hash(textToSign);
-        KeyPair signatureKeyPair = disputeManager.getSignatureKeyPair();
-        String sigAsHex;
-        try {
-            byte[] signature = Sig.sign(signatureKeyPair.getPrivate(), hash);
-            sigAsHex = Utilities.encodeToHex(signature);
-            disputeResult.setArbitratorSignature(signature);
-        } catch (CryptoException e) {
-            sigAsHex = "Signing failed";
-        }
-
-        return Res.get("disputeSummaryWindow.close.msgWithSig",
-                textToSign,
-                SEPARATOR1,
-                sigAsHex,
-                SEPARATOR2);
+//        byte[] hash = Hash.getSha256Hash(textToSign);
+//        KeyPair signatureKeyPair = disputeManager.getSignatureKeyPair();
+//        String sigAsHex;
+//        try {
+//            byte[] signature = Sig.sign(signatureKeyPair.getPrivate(), hash);
+//            sigAsHex = Utilities.encodeToHex(signature);
+//            disputeResult.setArbitratorSignature(signature);
+//        } catch (CryptoException e) {
+//            sigAsHex = "Signing failed";
+//        }
+//
+//        return Res.get("disputeSummaryWindow.close.msgWithSig",
+//                textToSign,
+//                SEPARATOR1,
+//                sigAsHex,
+//                SEPARATOR2);
     }
 
     public static String verifySignature(String input,

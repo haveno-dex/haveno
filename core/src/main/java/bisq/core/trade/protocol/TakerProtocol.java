@@ -17,10 +17,19 @@
 
 package bisq.core.trade.protocol;
 
+import bisq.common.handlers.ErrorMessageHandler;
+import bisq.core.trade.messages.MakerReadyToFundMultisigResponse;
+import bisq.core.trade.protocol.tasks.TradeTask;
+import bisq.network.p2p.NodeAddress;
+
 public interface TakerProtocol {
     void onTakeOffer();
 
     enum TakerEvent implements FluentProtocol.Event {
         TAKE_OFFER
     }
+    
+    // TODO (woodser): update after rebase
+//    void takeAvailableOffer(ResultHandler handler);
+    void handleMakerReadyToFundMultisigResponse(MakerReadyToFundMultisigResponse response, NodeAddress peer, ErrorMessageHandler errorMessageHandler);
 }
