@@ -50,7 +50,7 @@ public abstract class SetupDepositTxsListener extends TradeTask {
       System.out.println("Taker prepared deposit tx id: " + processModel.getTakerPreparedDepositTxId());
 
       // register listener with multisig wallet
-      depositTxListener = walletService.new MisqWalletListener(new MoneroWalletListener() { // TODO (woodser): separate into own class file
+      depositTxListener = walletService.new HavenoWalletListener(new MoneroWalletListener() { // TODO (woodser): separate into own class file
         @Override
         public void onOutputReceived(MoneroOutputWallet output) {
           

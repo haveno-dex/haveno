@@ -389,13 +389,13 @@ public class XmrWalletService {
   }
   
   /**
-   * Wraps a MoneroWalletListener to notify the Misq application.
+   * Wraps a MoneroWalletListener to notify the Haveno application.
    */
-  public class MisqWalletListener extends MoneroWalletListener {
+  public class HavenoWalletListener extends MoneroWalletListener {
     
     private MoneroWalletListener listener;
     
-    public MisqWalletListener(MoneroWalletListener listener) {
+    public HavenoWalletListener(MoneroWalletListener listener) {
       this.listener = listener;
     }
     
