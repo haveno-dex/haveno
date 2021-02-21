@@ -88,8 +88,8 @@ public class SellerSignAndPublishPayoutTx extends TradeTask {
             if (!buyerPayoutDestination.getAddress().equals(contract.getBuyerPayoutAddressString())) throw new RuntimeException("Buyer payout address does not match contract");
             if (!sellerPayoutDestination.getAddress().equals(contract.getSellerPayoutAddressString())) throw new RuntimeException("Seller payout address does not match contract");
             
-            // verify change address is multisig's primary address
-            if (!buyerSignedPayoutTx.getChangeAddress().equals(multisigWallet.getPrimaryAddress())) throw new RuntimeException("Change address is not multisig wallet's primary address");
+            // verify change address is multisig's primary address // TODO (woodser): ideally change amount is 0, seen with 0 conf payout tx 
+            if (!buyerSignedPayoutTx.getChangeAmount().equals(new BigInteger("0")) && !buyerSignedPayoutTx.getChangeAddress().equals(multisigWallet.getPrimaryAddress())) throw new RuntimeException("Change address is not multisig wallet's primary address");
             
             // verify sum of outputs = destination amounts + change amount
             if (!buyerSignedPayoutTx.getOutputSum().equals(buyerPayoutDestination.getAmount().add(sellerPayoutDestination.getAmount()).add(buyerSignedPayoutTx.getChangeAmount()))) throw new RuntimeException("Sum of outputs != destination amounts + change amount");
