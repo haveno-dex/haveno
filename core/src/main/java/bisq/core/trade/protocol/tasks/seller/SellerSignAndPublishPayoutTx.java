@@ -70,7 +70,7 @@ public class SellerSignAndPublishPayoutTx extends TradeTask {
             System.out.println("Seller payout amount (with multiplier): " + sellerPayoutAmount);
             
             // parse buyer-signed payout tx
-            MoneroTxSet parsedTxSet = multisigWallet.parseTxSet(new MoneroTxSet().setMultisigTxHex(buyerSignedPayoutTxHex));
+            MoneroTxSet parsedTxSet = multisigWallet.describeTxSet(new MoneroTxSet().setMultisigTxHex(buyerSignedPayoutTxHex));
             if (parsedTxSet.getTxs().get(0).getTxSet() != parsedTxSet) System.out.println("LINKS ARE WRONG STRAIGHT FROM PARSING!!!");
             if (parsedTxSet.getTxs() == null || parsedTxSet.getTxs().size() != 1) throw new RuntimeException("Bad buyer-signed payout tx");	// TODO (woodser): nack
             MoneroTxWallet buyerSignedPayoutTx = parsedTxSet.getTxs().get(0);

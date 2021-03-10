@@ -360,14 +360,14 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
         multisigWallet.importMultisigHex(Arrays.asList(peerPublishedDisputePayoutTxMessage.getUpdatedMultisigHex()));
         
         // parse payout tx
-        MoneroTxWallet parsedPayoutTx = multisigWallet.parseTxSet(new MoneroTxSet().setMultisigTxHex(peerPublishedDisputePayoutTxMessage.getPayoutTxHex())).getTxs().get(0);
+        MoneroTxWallet describedPayoutTx = multisigWallet.describeTxSet(new MoneroTxSet().setMultisigTxHex(peerPublishedDisputePayoutTxMessage.getPayoutTxHex())).getTxs().get(0);
         
 //        System.out.println("LOSER'S VIEW OF MULTISIG WALLET (SHOULD INCLUDE PAYOUT TX):\n" + multisigWallet.getTxs());
 //        if (multisigWallet.getTxs().size() != 3) throw new RuntimeException("Loser's multisig wallet does not include record of payout tx");
 //        Transaction committedDisputePayoutTx = WalletService.maybeAddNetworkTxToWallet(peerPublishedDisputePayoutTxMessage.getTransaction(), btcWalletService.getWallet());
         
-        dispute.setDisputePayoutTxId(parsedPayoutTx.getHash());
-        XmrWalletService.printTxs("Disputed payoutTx received from peer", parsedPayoutTx);
+        dispute.setDisputePayoutTxId(describedPayoutTx.getHash());
+        XmrWalletService.printTxs("Disputed payoutTx received from peer", describedPayoutTx);
         
         // We can only send the ack msg if we have the peersPubKeyRing which requires the dispute
         sendAckMessage(peerPublishedDisputePayoutTxMessage, peersPubKeyRing, true, null);
@@ -665,9 +665,9 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
       System.out.println("Seller payout amount (with multiplier): " + sellerPayoutAmount);
       
       // parse arbitrator-signed payout tx
-      MoneroTxSet parsedTxSet = multisigWallet.parseTxSet(new MoneroTxSet().setMultisigTxHex(payoutTxHex));
-      if (parsedTxSet.getTxs() == null || parsedTxSet.getTxs().size() != 1) throw new RuntimeException("Bad arbitrator-signed payout tx");  // TODO (woodser): nack
-      MoneroTxWallet arbitratorSignedPayoutTx = parsedTxSet.getTxs().get(0);
+      MoneroTxSet describedTxSet = multisigWallet.describeTxSet(new MoneroTxSet().setMultisigTxHex(payoutTxHex));
+      if (describedTxSet.getTxs() == null || describedTxSet.getTxs().size() != 1) throw new RuntimeException("Bad arbitrator-signed payout tx");  // TODO (woodser): nack
+      MoneroTxWallet arbitratorSignedPayoutTx = describedTxSet.getTxs().get(0);
       System.out.println("Parsed arbitrator-signed payout tx:\n" + arbitratorSignedPayoutTx);
       
       // verify payout tx has exactly 2 destinations
@@ -719,7 +719,7 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
         
       if (result.getSignedMultisigTxHex() == null) throw new RuntimeException("Error signing arbitrator-signed payout tx");
       String signedMultisigTxHex = result.getSignedMultisigTxHex();
-      parsedTxSet.setMultisigTxHex(signedMultisigTxHex);
-      return parsedTxSet;
+      describedTxSet.setMultisigTxHex(signedMultisigTxHex);
+      return describedTxSet;
     }
 }
