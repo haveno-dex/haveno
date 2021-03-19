@@ -4,45 +4,45 @@
 
 Haveno is a private and decentralized way to exchange Monero for national currencies or other cryptocurrencies. Haveno uses peer-to-peer networking and multi-signature escrow to facilitate trading without a trusted third party custodian. Disputes can be resolved using non-custodial arbitration. Everything is built around Monero and Tor.
 
-Haveno is the Esperanto word for "Harbor".
-
-## Keep in touch and help out!
-
-We have our own Matrix server. Registrations are not open at the moment, but the rooms are public and can be joined from any matrix client (like Element):
-
-- General discussions: **Haveno** (`#haveno:haveno.network`) relayed on Freenode (`#haveno`)
-- Development discussions: **Haveno Development** (`haveno-dev:haveno.network`) relayed on Freenode (`#haveno-dev`)
-
-You can find the rooms by adding the 
-
-## Status of the project
-
-At the moment Haveno is simply a Proof of Concept. It's already possible to initiate a trade, but the project still needs a lot of work before being available for public use.
-
-These are the main priorities for the near future:
-
-- We need a logo. Right now it's a random stock image :)
-- The User Interface is basically still Bisq. The entire interface needs to be completely reworked and adapted for Monero as base currency
-- Create documentation for developers
-- Cleanup the repository from Bisq-specific content
-- Organize what Bisq calls "Arbitrators"
-
-See the issue trackers for more detailed info. 
+Haveno is the Esperanto word for "Harbor". The project is stewarded by a core Team, currently formed by 2 people: ErCiccione and Woodser.
 
 ## Why a new platform?
 
-We believe Bisq is not enough for Monero users, which want a private way to exchange Monero for other (crypto)currencies. Haveno is built on Monero, which means all transactions between users are obfuscated by default. Bisq's system is based on Bitcoin and inherits all its design vulnerabilities, for example:
+Haveno is a fork of Bisq, the Bitcoin based decentralized exchange. We believe Bisq is not enough for Monero users, which badly need a private way to exchange Monero for other (crypto)currencies.
 
-- All Bisq's in-platform transactions are based on Bitcoin, so fully traceable.
+Haveno is built on Monero, which means all transactions between users are obfuscated by default. Bisq's system is based on Bitcoin and inherits all its design vulnerabilities, for example:
+
+- All Bisq's in-platform transactions are based on Bitcoin, which make them slow and fully traceable.
 - Bisq transactions are unique and easily visible on the blockchain. This means it's trivial to check which Bitcoin transactions are the result of a trade on Bisq.
 
-Even if XMR transactions compose the vast majority of Bisq's activity, the team never displayed much interest in improving the Monero integration. The important privacy issues mentioned above will be solved by simply having Monero as a base currency instead of Bitcoin.
+Even if XMR transactions compose the vast majority of Bisq's activity, Bisq's team haven't displayed much interest in improving their Monero support. The important privacy issues mentioned above will be solved by simply having Monero as a base currency instead of Bitcoin.
 
 We acknowledge and thank Bisq for their efforts, but we think the Monero community needs a native, private way to exchange XMR for other currencies without passing through Bitcoin first and Haveno is here to fill that gap! We commit to contribute back to Bisq when possible.
 
+## Status of the project
+
+At the moment Haveno is only a Proof of Concept. It's already possible to initiate a crypto <-> XMR trade, but the platform still needs a lot of work before being available for public use.
+
+There is a lot in progress and a lot to do. To make contributions easier, we use some of github's tools, like labels and projects. We set up a [labelling system](https://github.com/haveno-dex/haveno/wiki/Labelling-system) which should make easier for people to contribute. Problems and requests about the Haveno platform are tracked on this repository. For general discussions and proposals that affect the entire Haveno ecosystem, please open an issue in the [haveno-meta repository](https://github.com/haveno-dex/haveno-meta).
+
+These are the main priorities for the near future:
+
+- We need a logo. Right now it's a random stock image ([#1](https://github.com/haveno-dex/haveno-meta/issues/1))
+- The User Interface is basically still Bisq. Needs to be completely reworked and adapted for Monero as base currency (https://github.com/haveno-dex/haveno/projects/2)
+- Cleanup the repository from Bisq-specific content (https://github.com/haveno-dex/haveno/projects/1)
+
+## Keep in touch and help out!
+
+Haveno is a community-driven project. For it to be succesful it's fundamental to have the support and help of the Monero community. We have our own Matrix server. Registrations are not open at the moment, but the rooms are public and can be joined from any matrix client (like Element). We look forward to hearing from you!
+
+- General discussions: **Haveno** (`#haveno:haveno.network`) relayed on Freenode (`#haveno`)
+- Development discussions: **Haveno Development** (`#haveno-dev:haveno.network`) relayed on Freenode (`#haveno-dev`)
+
 ## FAQ
 
-See the Wiki on this repository (TODO)
+We are building up a wiki for this repository. At the moment there is only one entry:
+
+- [Labelling system](https://github.com/haveno-dex/haveno/wiki/Labelling-system)
 
 ## Running a local Haveno test network
 1. Download [Monero CLI](https://www.getmonero.org/downloads/) for your system and sync Monero stagenet: `./monerod --stagenet --rpc-login superuser:abctesting123`, or alternatively, [set up a local Monero stagenet network](#running-a-local-monero-stagenet-network)
@@ -95,3 +95,7 @@ See the Wiki on this repository (TODO)
     * `./monerod --stagenet --no-igd --hide-my-port --data-dir node1 --p2p-bind-ip 127.0.0.1 --p2p-bind-port 48080 --rpc-bind-port 48081 --zmq-rpc-bind-port 48082 --add-exclusive-node 127.0.0.1:38080 --rpc-login superuser:abctesting123 --rpc-access-control-origins http://localhost:8080`
     * `./monerod --stagenet --no-igd --hide-my-port --data-dir node2 --p2p-bind-ip 127.0.0.1 --rpc-bind-ip 0.0.0.0 --confirm-external-bind --add-exclusive-node 127.0.0.1:48080 --rpc-login superuser:abctesting123 --rpc-access-control-origins http://localhost:8080`
 4. Mine the first 130 blocks to a random address before using so wallets only use the latest output type.  For example, in a daemon: `start_mining 56k9Yra1pxwcTYzqKcnLip8mymSQdEfA6V7476W9XhSiHPp1hAboo1F6na7kxTxwvXU6JjDQtu8VJdGj9FEcjkxGJfsyyah 1`
+
+## Support
+
+Soon
