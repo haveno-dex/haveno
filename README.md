@@ -38,6 +38,8 @@ Haveno is a community-driven project. For it to be succesful it's fundamental to
 - General discussions: **Haveno** (`#haveno:haveno.network`) relayed on Freenode (`#haveno`)
 - Development discussions: **Haveno Development** (`#haveno-dev:haveno.network`) relayed on Freenode (`#haveno-dev`)
 
+Temporary email: havenodex@protonmail.com
+
 ## FAQ
 
 We are building up a wiki for this repository. At the moment there is only one entry:
@@ -45,6 +47,7 @@ We are building up a wiki for this repository. At the moment there is only one e
 - [Labelling system](https://github.com/haveno-dex/haveno/wiki/Labelling-system)
 
 ## Running a local Haveno test network
+
 1. Download [Monero CLI](https://www.getmonero.org/downloads/) for your system and sync Monero stagenet: `./monerod --stagenet --rpc-login superuser:abctesting123`, or alternatively, [set up a local Monero stagenet network](#running-a-local-monero-stagenet-network)
 3. Download and install [Bitcoin-Qt](https://bitcoin.org/en/download)
 4. Run Bitcoin-Qt in regtest mode, e.g.: `/Applications/Bitcoin-Qt.app/Contents/MacOS/Bitcoin-Qt -regtest -peerbloomfilters=1`
@@ -98,4 +101,10 @@ We are building up a wiki for this repository. At the moment there is only one e
 
 ## Support
 
-Soon
+To bring Haveno to life, we need resources. If you have the possibility, please consider donating to the project. At this stage, donations are fundamental:
+
+`42sjokkT9FmiWPqVzrWPFE5NCJXwt96bkBozHf4vgLR9hXyJDqKHEHKVscAARuD7in5wV1meEcSTJTanCTDzidTe2cFXS1F`
+
+![Qr code](https://raw.githubusercontent.com/haveno-dex/haveno/master/media/qrhaveno.png)
+
+If you are using a wallet that supports Openalias (like the 'official' CLI and GUI wallets), you can simply put `donations@haveno.network` as the "receiver" address.
