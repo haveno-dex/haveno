@@ -10,12 +10,14 @@ Haveno is the Esperanto word for "Harbor". The project is stewarded by a core Te
 
 Haveno is a fork of Bisq, the Bitcoin based decentralized exchange. We believe Bisq is not enough for Monero users, which badly need a private way to exchange Monero for other (crypto)currencies.
 
-Haveno is built on Monero, which means all transactions between users are obfuscated by default. Bisq's system is based on Bitcoin and inherits all its design vulnerabilities, for example:
+Haveno is built on Monero, which means all transactions between users are obfuscated by default. Bisq's system is based on Bitcoin and inherits all its design flaws, for example:
 
 - All Bisq's in-platform transactions are based on Bitcoin, which make them slow and fully traceable.
 - Bisq transactions are unique and easily visible on the blockchain. This means it's trivial to check which Bitcoin transactions are the result of a trade on Bisq.
 
-Even if XMR transactions compose the vast majority of Bisq's activity, Bisq's team haven't displayed much interest in improving their Monero support. The important privacy issues mentioned above will be solved by simply having Monero as a base currency instead of Bitcoin.
+Trade fees will also be drastically lower, as Monero has much lower transaction fees compared to bitcoin (average transaction fee: XMR=$0.003 BTC=$9 ).
+
+Even if XMR transactions compose the vast majority of Bisq's activity, Bisq's team haven't displayed much interest in improving their Monero support. The important privacy issues mentioned above will be solved by simply having Monero as a base currency instead of Bitcoin. 
 
 We acknowledge and thank Bisq for their efforts, but we think the Monero community needs a native, private way to exchange XMR for other currencies without passing through Bitcoin first and Haveno is here to fill that gap! We commit to contribute back to Bisq when possible.
 
@@ -98,6 +100,12 @@ We are building up a wiki for this repository. At the moment there is only one e
     * `./monerod --stagenet --no-igd --hide-my-port --data-dir node1 --p2p-bind-ip 127.0.0.1 --p2p-bind-port 48080 --rpc-bind-port 48081 --zmq-rpc-bind-port 48082 --add-exclusive-node 127.0.0.1:38080 --rpc-login superuser:abctesting123 --rpc-access-control-origins http://localhost:8080`
     * `./monerod --stagenet --no-igd --hide-my-port --data-dir node2 --p2p-bind-ip 127.0.0.1 --rpc-bind-ip 0.0.0.0 --confirm-external-bind --add-exclusive-node 127.0.0.1:48080 --rpc-login superuser:abctesting123 --rpc-access-control-origins http://localhost:8080`
 4. Mine the first 130 blocks to a random address before using so wallets only use the latest output type.  For example, in a daemon: `start_mining 56k9Yra1pxwcTYzqKcnLip8mymSQdEfA6V7476W9XhSiHPp1hAboo1F6na7kxTxwvXU6JjDQtu8VJdGj9FEcjkxGJfsyyah 1`
+
+## Sponsors
+
+Would you like to help us build Haveno? Become a sponsor! We will show your logo here. Contact us at havenodex@protonmail.com.
+
+*There are no sponsors yet*
 
 ## Support
 
