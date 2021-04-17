@@ -51,7 +51,7 @@ public final class PaymentMethod implements PersistablePayload, Comparable<Payme
 
     // time in blocks (average 10 min for one block confirmation
     //private static final long DAY = TimeUnit.HOURS.toMillis(24);
-    private static final long DAY = TimeUnit.MINUTES.toMillis(1);	// TODO (woodser): changed to 1 minute for development
+    private static final long DAY = TimeUnit.MINUTES.toMillis(1);	// TODO (woodser): changed to 1 minute for development, move to config?
 
     // Default trade limits.
     // We initialize very early before reading persisted data. We will apply later the limit from

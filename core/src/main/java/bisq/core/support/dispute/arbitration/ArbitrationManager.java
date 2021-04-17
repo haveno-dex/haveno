@@ -622,8 +622,8 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
       //System.out.println("Creating feeEstimateTx!");
       MoneroTxWallet feeEstimateTx = multisigWallet.createTx(new MoneroTxConfig()
               .setAccountIndex(0)
-              .addDestination(new MoneroDestination(buyerPayoutAddress, buyerPayoutAmount.multiply(BigInteger.valueOf(4)).divide(BigInteger.valueOf(5)))) // reduce payment amount to compute fee of similar tx
-              .addDestination(new MoneroDestination(sellerPayoutAddress, sellerPayoutAmount.multiply(BigInteger.valueOf(4)).divide(BigInteger.valueOf(5)))) // TODO (woodser): support addDestination(addr, amt) without new
+              .addDestination(buyerPayoutAddress, buyerPayoutAmount.multiply(BigInteger.valueOf(4)).divide(BigInteger.valueOf(5))) // reduce payment amount to compute fee of similar tx
+              .addDestination(sellerPayoutAddress, sellerPayoutAmount.multiply(BigInteger.valueOf(4)).divide(BigInteger.valueOf(5)))
               .setRelay(false)
       );
 
@@ -640,12 +640,11 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
           numAttempts++;
           payoutTx = multisigWallet.createTx(new MoneroTxConfig()
                   .setAccountIndex(0)
-                  .addDestination(new MoneroDestination(buyerPayoutAddress, buyerPayoutAmount.subtract(feeEstimate.divide(BigInteger.valueOf(2))))) // split fee subtracted from each payout amount
-                  .addDestination(new MoneroDestination(sellerPayoutAddress, sellerPayoutAmount.subtract(feeEstimate.divide(BigInteger.valueOf(2))))) // TODO (woodser): support addDestination(addr, amt) without new
+                  .addDestination(buyerPayoutAddress, buyerPayoutAmount.subtract(feeEstimate.divide(BigInteger.valueOf(2)))) // split fee subtracted from each payout amount
+                  .addDestination(sellerPayoutAddress, sellerPayoutAmount.subtract(feeEstimate.divide(BigInteger.valueOf(2))))
                   .setRelay(false));
         } catch (MoneroError e) {
-          e.printStackTrace();
-          System.out.println("FAILED TO CREATE PAYOUT TX, ITERATING...");
+          // exception expected // TODO: better way of estimating fee?
         }
       }
 
