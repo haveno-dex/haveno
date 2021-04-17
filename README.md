@@ -1,8 +1,10 @@
-# Haveno
+<div align="center"> 
+  <img src="https://raw.githubusercontent.com/haveno-dex/haveno-meta/721e52919b28b44d12b6e1e5dac57265f1c05cda/logo/haveno_logo_landscape.svg" alt="Haveno logo">
+</div>
 
 ## What is Haveno?
 
-Haveno is a private and decentralized way to exchange Monero for national currencies or other cryptocurrencies. Haveno uses peer-to-peer networking and multi-signature escrow to facilitate trading without a trusted third party custodian. Disputes can be resolved using non-custodial arbitration. Everything is built around Monero and Tor.
+Haveno (pronounced ha‧ve‧no) is a private and decentralized way to exchange Monero for national currencies or other cryptocurrencies. Haveno uses peer-to-peer networking and multi-signature escrow to facilitate trading without a trusted third party custodian. Disputes can be resolved using non-custodial arbitration. Everything is built around Monero and Tor.
 
 Haveno is the Esperanto word for "Harbor". The project is stewarded by a core Team, currently formed by 2 people: ErCiccione and Woodser.
 
@@ -29,8 +31,7 @@ There is a lot in progress and a lot to do. To make contributions easier, we use
 
 These are the main priorities for the near future:
 
-- We need a logo. Right now it's a random stock image ([#1](https://github.com/haveno-dex/haveno-meta/issues/1))
-- The User Interface is basically still Bisq. Needs to be completely reworked and adapted for Monero as base currency (https://github.com/haveno-dex/haveno/projects/2)
+- The User Interface is basically still Bisq. Needs to be completely reworked and adapted for Monero as base currency. The new design is discussed and developed in [haveno-design](https://github.com/haveno-dex/haveno-design)
 - Cleanup the repository from Bisq-specific content (https://github.com/haveno-dex/haveno/projects/1)
 
 ## Keep in touch and help out!
