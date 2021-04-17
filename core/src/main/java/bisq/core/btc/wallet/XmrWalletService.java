@@ -79,7 +79,8 @@ public class XmrWalletService {
     });
   }
   
-  // TODO (woodser): move hard-coded values to config
+  // TODO (woodser): wallet has single password which is passed here?
+  // TODO (woodser): test retaking failed trade.  create new multisig wallet or replace?  cannot reuse
   public MoneroWallet getOrCreateMultisigWallet(String tradeId) {
     String path = "xmr_multisig_trade_" + tradeId;
     MoneroWallet multisigWallet = null;
