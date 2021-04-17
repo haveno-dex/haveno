@@ -92,8 +92,8 @@ public class BuyerCreateAndSignPayoutTx extends TradeTask {
             System.out.println("Creating feeEstimateTx!");
             MoneroTxWallet feeEstimateTx = multisigWallet.createTx(new MoneroTxConfig()
                     .setAccountIndex(0)
-                    .addDestination(new MoneroDestination(buyerPayoutAddress, buyerPayoutAmount.multiply(BigInteger.valueOf(4)).divide(BigInteger.valueOf(5)))) // reduce payment amount to compute fee of similar tx
-                    .addDestination(new MoneroDestination(sellerPayoutAddress, sellerPayoutAmount.multiply(BigInteger.valueOf(4)).divide(BigInteger.valueOf(5)))) // TODO (woodser): support addDestination(addr, amt) without new
+                    .addDestination(buyerPayoutAddress, buyerPayoutAmount.multiply(BigInteger.valueOf(4)).divide(BigInteger.valueOf(5))) // reduce payment amount to compute fee of similar tx
+                    .addDestination(sellerPayoutAddress, sellerPayoutAmount.multiply(BigInteger.valueOf(4)).divide(BigInteger.valueOf(5)))
                     .setRelay(false)
             );
             
