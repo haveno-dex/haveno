@@ -62,293 +62,213 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @Singleton
 public class CreateOfferService {
-    private final TxFeeEstimationService txFeeEstimationService;
-    private final MakerFeeProvider makerFeeProvider;
-    private final BsqWalletService bsqWalletService;
-    private final Preferences preferences;
-    private final PriceFeedService priceFeedService;
-    private final AccountAgeWitnessService accountAgeWitnessService;
-    private final ReferralIdService referralIdService;
-    private final FilterManager filterManager;
-    private final P2PService p2PService;
-    private final PubKeyRing pubKeyRing;
-    private final User user;
-    private final BtcWalletService btcWalletService;
+	private final TxFeeEstimationService txFeeEstimationService;
+	private final MakerFeeProvider makerFeeProvider;
+	private final BsqWalletService bsqWalletService;
+	private final Preferences preferences;
+	private final PriceFeedService priceFeedService;
+	private final AccountAgeWitnessService accountAgeWitnessService;
+	private final ReferralIdService referralIdService;
+	private final FilterManager filterManager;
+	private final P2PService p2PService;
+	private final PubKeyRing pubKeyRing;
+	private final User user;
+	private final BtcWalletService btcWalletService;
 
+	///////////////////////////////////////////////////////////////////////////////////////////
+	// Constructor, Initialization
+	///////////////////////////////////////////////////////////////////////////////////////////
 
-    ///////////////////////////////////////////////////////////////////////////////////////////
-    // Constructor, Initialization
-    ///////////////////////////////////////////////////////////////////////////////////////////
+	@Inject
+	public CreateOfferService(TxFeeEstimationService txFeeEstimationService, MakerFeeProvider makerFeeProvider,
+			BsqWalletService bsqWalletService, Preferences preferences, PriceFeedService priceFeedService,
+			AccountAgeWitnessService accountAgeWitnessService, ReferralIdService referralIdService,
+			FilterManager filterManager, P2PService p2PService, PubKeyRing pubKeyRing, User user,
+			BtcWalletService btcWalletService) {
+		this.txFeeEstimationService = txFeeEstimationService;
+		this.makerFeeProvider = makerFeeProvider;
+		this.bsqWalletService = bsqWalletService;
+		this.preferences = preferences;
+		this.priceFeedService = priceFeedService;
+		this.accountAgeWitnessService = accountAgeWitnessService;
+		this.referralIdService = referralIdService;
+		this.filterManager = filterManager;
+		this.p2PService = p2PService;
+		this.pubKeyRing = pubKeyRing;
+		this.user = user;
+		this.btcWalletService = btcWalletService;
+	}
 
-    @Inject
-    public CreateOfferService(TxFeeEstimationService txFeeEstimationService,
-                              MakerFeeProvider makerFeeProvider,
-                              BsqWalletService bsqWalletService,
-                              Preferences preferences,
-                              PriceFeedService priceFeedService,
-                              AccountAgeWitnessService accountAgeWitnessService,
-                              ReferralIdService referralIdService,
-                              FilterManager filterManager,
-                              P2PService p2PService,
-                              PubKeyRing pubKeyRing,
-                              User user,
-                              BtcWalletService btcWalletService) {
-        this.txFeeEstimationService = txFeeEstimationService;
-        this.makerFeeProvider = makerFeeProvider;
-        this.bsqWalletService = bsqWalletService;
-        this.preferences = preferences;
-        this.priceFeedService = priceFeedService;
-        this.accountAgeWitnessService = accountAgeWitnessService;
-        this.referralIdService = referralIdService;
-        this.filterManager = filterManager;
-        this.p2PService = p2PService;
-        this.pubKeyRing = pubKeyRing;
-        this.user = user;
-        this.btcWalletService = btcWalletService;
-    }
+	///////////////////////////////////////////////////////////////////////////////////////////
+	// API
+	///////////////////////////////////////////////////////////////////////////////////////////
 
+	public String getRandomOfferId() {
+		return Utilities.getRandomPrefix(5, 8) + "-" + UUID.randomUUID().toString() + "-"
+				+ Version.VERSION.replace(".", "");
+	}
 
-    ///////////////////////////////////////////////////////////////////////////////////////////
-    // API
-    ///////////////////////////////////////////////////////////////////////////////////////////
+	public Offer createAndGetOffer(String offerId, OfferPayload.Direction direction, String currencyCode, Coin amount,
+			Coin minAmount, Price price, Coin txFee, boolean useMarketBasedPrice, double marketPriceMargin,
+			double buyerSecurityDepositAsDouble, PaymentAccount paymentAccount) {
 
-    public String getRandomOfferId() {
-        return Utilities.getRandomPrefix(5, 8) + "-" +
-                UUID.randomUUID().toString() + "-" +
-                Version.VERSION.replace(".", "");
-    }
+		log.info(
+				"offerId={}, \n" + "currencyCode={}, \n" + "direction={}, \n" + "price={}, \n"
+						+ "useMarketBasedPrice={}, \n" + "marketPriceMargin={}, \n" + "amount={}, \n"
+						+ "minAmount={}, \n" + "buyerSecurityDeposit={}, \n" + "paymentAccount={}, \n",
+				offerId, currencyCode, direction, price.getValue(), useMarketBasedPrice, marketPriceMargin,
+				amount.value, minAmount.value, buyerSecurityDepositAsDouble, paymentAccount);
 
-    public Offer createAndGetOffer(String offerId,
-                                   OfferPayload.Direction direction,
-                                   String currencyCode,
-                                   Coin amount,
-                                   Coin minAmount,
-                                   Price price,
-                                   Coin txFee,
-                                   boolean useMarketBasedPrice,
-                                   double marketPriceMargin,
-                                   double buyerSecurityDepositAsDouble,
-                                   PaymentAccount paymentAccount) {
+		// prints our param list for dev testing api
+		log.info("{} " + "{} " + "{} " + "{} " + "{} " + "{} " + "{} " + "{} " + "{} " + "{}", offerId, currencyCode,
+				direction.name(), price.getValue(), useMarketBasedPrice, marketPriceMargin, amount.value,
+				minAmount.value, buyerSecurityDepositAsDouble, paymentAccount.getId());
 
-        log.info("offerId={}, \n" +
-                        "currencyCode={}, \n" +
-                        "direction={}, \n" +
-                        "price={}, \n" +
-                        "useMarketBasedPrice={}, \n" +
-                        "marketPriceMargin={}, \n" +
-                        "amount={}, \n" +
-                        "minAmount={}, \n" +
-                        "buyerSecurityDeposit={}, \n" +
-                        "paymentAccount={}, \n",
-                offerId, currencyCode, direction, price.getValue(), useMarketBasedPrice, marketPriceMargin,
-                amount.value, minAmount.value, buyerSecurityDepositAsDouble, paymentAccount);
+		long creationTime = new Date().getTime();
+		NodeAddress makerAddress = p2PService.getAddress();
+		boolean useMarketBasedPriceValue = useMarketBasedPrice && isMarketPriceAvailable(currencyCode)
+				&& !isHalCashAccount(paymentAccount);
 
-        // prints our param list for dev testing api
-        log.info("{} " +
-                        "{} " +
-                        "{} " +
-                        "{} " +
-                        "{} " +
-                        "{} " +
-                        "{} " +
-                        "{} " +
-                        "{} " +
-                        "{}",
-                offerId, currencyCode, direction.name(), price.getValue(), useMarketBasedPrice, marketPriceMargin,
-                amount.value, minAmount.value, buyerSecurityDepositAsDouble, paymentAccount.getId());
+		long priceAsLong = price != null && !useMarketBasedPriceValue ? price.getValue() : 0L;
+		double marketPriceMarginParam = useMarketBasedPriceValue ? marketPriceMargin : 0;
+		long amountAsLong = amount != null ? amount.getValue() : 0L;
+		long minAmountAsLong = minAmount != null ? minAmount.getValue() : 0L;
+		boolean isCryptoCurrency = CurrencyUtil.isCryptoCurrency(currencyCode);
+		String baseCurrencyCode = currencyCode;
+		String counterCurrencyCode = isCryptoCurrency ? Res.getBaseCurrencyCode() : currencyCode;
+		List<NodeAddress> acceptedArbitratorAddresses = user.getAcceptedArbitratorAddresses();
+		ArrayList<NodeAddress> arbitratorNodeAddresses = acceptedArbitratorAddresses != null
+				? Lists.newArrayList(acceptedArbitratorAddresses)
+				: new ArrayList<>();
+		List<NodeAddress> acceptedMediatorAddresses = user.getAcceptedMediatorAddresses();
+		ArrayList<NodeAddress> mediatorNodeAddresses = acceptedMediatorAddresses != null
+				? Lists.newArrayList(acceptedMediatorAddresses)
+				: new ArrayList<>();
+		String countryCode = PaymentAccountUtil.getCountryCode(paymentAccount);
+		List<String> acceptedCountryCodes = PaymentAccountUtil.getAcceptedCountryCodes(paymentAccount);
+		String bankId = PaymentAccountUtil.getBankId(paymentAccount);
+		List<String> acceptedBanks = PaymentAccountUtil.getAcceptedBanks(paymentAccount);
+		double sellerSecurityDeposit = getSellerSecurityDepositAsDouble(buyerSecurityDepositAsDouble);
+		Coin txFeeFromFeeService = getEstimatedFeeAndTxSize(amount, direction, buyerSecurityDepositAsDouble,
+				sellerSecurityDeposit).first;
+		Coin txFeeToUse = txFee.isPositive() ? txFee : txFeeFromFeeService;
+		Coin makerFeeAsCoin = getMakerFee(amount);
+		boolean isCurrencyForMakerFeeBtc = OfferUtil.isCurrencyForMakerFeeBtc(preferences, bsqWalletService, amount);
+		Coin buyerSecurityDepositAsCoin = getBuyerSecurityDeposit(amount, buyerSecurityDepositAsDouble);
+		Coin sellerSecurityDepositAsCoin = getSellerSecurityDeposit(amount, sellerSecurityDeposit);
+		long maxTradeLimit = getMaxTradeLimit(paymentAccount, currencyCode, direction);
+		long maxTradePeriod = paymentAccount.getMaxTradePeriod();
 
-        long creationTime = new Date().getTime();
-        NodeAddress makerAddress = p2PService.getAddress();
-        boolean useMarketBasedPriceValue = useMarketBasedPrice &&
-                isMarketPriceAvailable(currencyCode) &&
-                !isHalCashAccount(paymentAccount);
+		// reserved for future use cases
+		// Use null values if not set
+		boolean isPrivateOffer = false;
+		boolean useAutoClose = false;
+		boolean useReOpenAfterAutoClose = false;
+		long lowerClosePrice = 0;
+		long upperClosePrice = 0;
+		String hashOfChallenge = null;
+		Map<String, String> extraDataMap = OfferUtil.getExtraDataMap(accountAgeWitnessService, referralIdService,
+				paymentAccount, currencyCode, preferences, direction);
 
-        long priceAsLong = price != null && !useMarketBasedPriceValue ? price.getValue() : 0L;
-        double marketPriceMarginParam = useMarketBasedPriceValue ? marketPriceMargin : 0;
-        long amountAsLong = amount != null ? amount.getValue() : 0L;
-        long minAmountAsLong = minAmount != null ? minAmount.getValue() : 0L;
-        boolean isCryptoCurrency = CurrencyUtil.isCryptoCurrency(currencyCode);
-        String baseCurrencyCode = isCryptoCurrency ? currencyCode : Res.getBaseCurrencyCode();
-        String counterCurrencyCode = isCryptoCurrency ? Res.getBaseCurrencyCode() : currencyCode;
-        List<NodeAddress> acceptedArbitratorAddresses = user.getAcceptedArbitratorAddresses();
-        ArrayList<NodeAddress> arbitratorNodeAddresses = acceptedArbitratorAddresses != null ?
-                Lists.newArrayList(acceptedArbitratorAddresses) :
-                new ArrayList<>();
-        List<NodeAddress> acceptedMediatorAddresses = user.getAcceptedMediatorAddresses();
-        ArrayList<NodeAddress> mediatorNodeAddresses = acceptedMediatorAddresses != null ?
-                Lists.newArrayList(acceptedMediatorAddresses) :
-                new ArrayList<>();
-        String countryCode = PaymentAccountUtil.getCountryCode(paymentAccount);
-        List<String> acceptedCountryCodes = PaymentAccountUtil.getAcceptedCountryCodes(paymentAccount);
-        String bankId = PaymentAccountUtil.getBankId(paymentAccount);
-        List<String> acceptedBanks = PaymentAccountUtil.getAcceptedBanks(paymentAccount);
-        double sellerSecurityDeposit = getSellerSecurityDepositAsDouble(buyerSecurityDepositAsDouble);
-        Coin txFeeFromFeeService = getEstimatedFeeAndTxSize(amount, direction, buyerSecurityDepositAsDouble, sellerSecurityDeposit).first;
-        Coin txFeeToUse = txFee.isPositive() ? txFee : txFeeFromFeeService;
-        Coin makerFeeAsCoin = getMakerFee(amount);
-        boolean isCurrencyForMakerFeeBtc = OfferUtil.isCurrencyForMakerFeeBtc(preferences, bsqWalletService, amount);
-        Coin buyerSecurityDepositAsCoin = getBuyerSecurityDeposit(amount, buyerSecurityDepositAsDouble);
-        Coin sellerSecurityDepositAsCoin = getSellerSecurityDeposit(amount, sellerSecurityDeposit);
-        long maxTradeLimit = getMaxTradeLimit(paymentAccount, currencyCode, direction);
-        long maxTradePeriod = paymentAccount.getMaxTradePeriod();
+		OfferUtil.validateOfferData(filterManager, p2PService, buyerSecurityDepositAsDouble, paymentAccount,
+				currencyCode, makerFeeAsCoin);
 
-        // reserved for future use cases
-        // Use null values if not set
-        boolean isPrivateOffer = false;
-        boolean useAutoClose = false;
-        boolean useReOpenAfterAutoClose = false;
-        long lowerClosePrice = 0;
-        long upperClosePrice = 0;
-        String hashOfChallenge = null;
-        Map<String, String> extraDataMap = OfferUtil.getExtraDataMap(accountAgeWitnessService,
-                referralIdService,
-                paymentAccount,
-                currencyCode,
-                preferences,
-                direction);
+		OfferPayload offerPayload = new OfferPayload(offerId, creationTime, makerAddress, pubKeyRing,
+				OfferPayload.Direction.valueOf(direction.name()), priceAsLong, marketPriceMarginParam,
+				useMarketBasedPriceValue, amountAsLong, minAmountAsLong, baseCurrencyCode, counterCurrencyCode,
+				arbitratorNodeAddresses, mediatorNodeAddresses, paymentAccount.getPaymentMethod().getId(),
+				paymentAccount.getId(), null, countryCode, acceptedCountryCodes, bankId, acceptedBanks, Version.VERSION,
+				btcWalletService.getLastBlockSeenHeight(), txFeeToUse.value, makerFeeAsCoin.value,
+				isCurrencyForMakerFeeBtc, buyerSecurityDepositAsCoin.value, sellerSecurityDepositAsCoin.value,
+				maxTradeLimit, maxTradePeriod, useAutoClose, useReOpenAfterAutoClose, upperClosePrice, lowerClosePrice,
+				isPrivateOffer, hashOfChallenge, extraDataMap, Version.TRADE_PROTOCOL_VERSION);
+		Offer offer = new Offer(offerPayload);
+		offer.setPriceFeedService(priceFeedService);
+		return offer;
+	}
 
-        OfferUtil.validateOfferData(filterManager,
-                p2PService,
-                buyerSecurityDepositAsDouble,
-                paymentAccount,
-                currencyCode,
-                makerFeeAsCoin);
+	public Tuple2<Coin, Integer> getEstimatedFeeAndTxSize(Coin amount, OfferPayload.Direction direction,
+			double buyerSecurityDeposit, double sellerSecurityDeposit) {
+		Coin reservedFundsForOffer = getReservedFundsForOffer(direction, amount, buyerSecurityDeposit,
+				sellerSecurityDeposit);
+		return txFeeEstimationService.getEstimatedFeeAndTxSizeForMaker(reservedFundsForOffer, getMakerFee(amount));
+	}
 
-        OfferPayload offerPayload = new OfferPayload(offerId,
-                creationTime,
-                makerAddress,
-                pubKeyRing,
-                OfferPayload.Direction.valueOf(direction.name()),
-                priceAsLong,
-                marketPriceMarginParam,
-                useMarketBasedPriceValue,
-                amountAsLong,
-                minAmountAsLong,
-                baseCurrencyCode,
-                counterCurrencyCode,
-                arbitratorNodeAddresses,
-                mediatorNodeAddresses,
-                paymentAccount.getPaymentMethod().getId(),
-                paymentAccount.getId(),
-                null,
-                countryCode,
-                acceptedCountryCodes,
-                bankId,
-                acceptedBanks,
-                Version.VERSION,
-                btcWalletService.getLastBlockSeenHeight(),
-                txFeeToUse.value,
-                makerFeeAsCoin.value,
-                isCurrencyForMakerFeeBtc,
-                buyerSecurityDepositAsCoin.value,
-                sellerSecurityDepositAsCoin.value,
-                maxTradeLimit,
-                maxTradePeriod,
-                useAutoClose,
-                useReOpenAfterAutoClose,
-                upperClosePrice,
-                lowerClosePrice,
-                isPrivateOffer,
-                hashOfChallenge,
-                extraDataMap,
-                Version.TRADE_PROTOCOL_VERSION);
-        Offer offer = new Offer(offerPayload);
-        offer.setPriceFeedService(priceFeedService);
-        return offer;
-    }
+	public Coin getReservedFundsForOffer(OfferPayload.Direction direction, Coin amount, double buyerSecurityDeposit,
+			double sellerSecurityDeposit) {
 
-    public Tuple2<Coin, Integer> getEstimatedFeeAndTxSize(Coin amount,
-                                                          OfferPayload.Direction direction,
-                                                          double buyerSecurityDeposit,
-                                                          double sellerSecurityDeposit) {
-        Coin reservedFundsForOffer = getReservedFundsForOffer(direction, amount, buyerSecurityDeposit, sellerSecurityDeposit);
-        return txFeeEstimationService.getEstimatedFeeAndTxSizeForMaker(reservedFundsForOffer, getMakerFee(amount));
-    }
+		Coin reservedFundsForOffer = getSecurityDeposit(direction, amount, buyerSecurityDeposit, sellerSecurityDeposit);
+		if (!isBuyOffer(direction))
+			reservedFundsForOffer = reservedFundsForOffer.add(amount);
 
-    public Coin getReservedFundsForOffer(OfferPayload.Direction direction,
-                                         Coin amount,
-                                         double buyerSecurityDeposit,
-                                         double sellerSecurityDeposit) {
+		return reservedFundsForOffer;
+	}
 
-        Coin reservedFundsForOffer = getSecurityDeposit(direction,
-                amount,
-                buyerSecurityDeposit,
-                sellerSecurityDeposit);
-        if (!isBuyOffer(direction))
-            reservedFundsForOffer = reservedFundsForOffer.add(amount);
+	public Coin getSecurityDeposit(OfferPayload.Direction direction, Coin amount, double buyerSecurityDeposit,
+			double sellerSecurityDeposit) {
+		return isBuyOffer(direction) ? getBuyerSecurityDeposit(amount, buyerSecurityDeposit)
+				: getSellerSecurityDeposit(amount, sellerSecurityDeposit);
+	}
 
-        return reservedFundsForOffer;
-    }
+	public double getSellerSecurityDepositAsDouble(double buyerSecurityDeposit) {
+		return Preferences.USE_SYMMETRIC_SECURITY_DEPOSIT ? buyerSecurityDeposit
+				: Restrictions.getSellerSecurityDepositAsPercent();
+	}
 
-    public Coin getSecurityDeposit(OfferPayload.Direction direction,
-                                   Coin amount,
-                                   double buyerSecurityDeposit,
-                                   double sellerSecurityDeposit) {
-        return isBuyOffer(direction) ?
-                getBuyerSecurityDeposit(amount, buyerSecurityDeposit) :
-                getSellerSecurityDeposit(amount, sellerSecurityDeposit);
-    }
+	public Coin getMakerFee(Coin amount) {
+		return makerFeeProvider.getMakerFee(bsqWalletService, preferences, amount);
+	}
 
-    public double getSellerSecurityDepositAsDouble(double buyerSecurityDeposit) {
-        return Preferences.USE_SYMMETRIC_SECURITY_DEPOSIT ? buyerSecurityDeposit :
-                Restrictions.getSellerSecurityDepositAsPercent();
-    }
+	public long getMaxTradeLimit(PaymentAccount paymentAccount, String currencyCode, OfferPayload.Direction direction) {
+		if (paymentAccount != null) {
+			return accountAgeWitnessService.getMyTradeLimit(paymentAccount, currencyCode, direction);
+		} else {
+			return 0;
+		}
+	}
 
-    public Coin getMakerFee(Coin amount) {
-        return makerFeeProvider.getMakerFee(bsqWalletService, preferences, amount);
-    }
+	public boolean isBuyOffer(OfferPayload.Direction direction) {
+		return OfferUtil.isBuyOffer(direction);
+	}
 
-    public long getMaxTradeLimit(PaymentAccount paymentAccount,
-                                 String currencyCode,
-                                 OfferPayload.Direction direction) {
-        if (paymentAccount != null) {
-            return accountAgeWitnessService.getMyTradeLimit(paymentAccount, currencyCode, direction);
-        } else {
-            return 0;
-        }
-    }
+	///////////////////////////////////////////////////////////////////////////////////////////
+	// Private
+	///////////////////////////////////////////////////////////////////////////////////////////
 
-    public boolean isBuyOffer(OfferPayload.Direction direction) {
-        return OfferUtil.isBuyOffer(direction);
-    }
+	private boolean isMarketPriceAvailable(String currencyCode) {
+		MarketPrice marketPrice = priceFeedService.getMarketPrice(currencyCode);
+		return marketPrice != null && marketPrice.isExternallyProvidedPrice();
+	}
 
+	private boolean isHalCashAccount(PaymentAccount paymentAccount) {
+		return paymentAccount instanceof HalCashAccount;
+	}
 
-    ///////////////////////////////////////////////////////////////////////////////////////////
-    // Private
-    ///////////////////////////////////////////////////////////////////////////////////////////
+	private Coin getBuyerSecurityDeposit(Coin amount, double buyerSecurityDeposit) {
+		Coin percentOfAmountAsCoin = CoinUtil.getPercentOfAmountAsCoin(buyerSecurityDeposit, amount);
+		return getBoundedBuyerSecurityDeposit(percentOfAmountAsCoin);
+	}
 
-    private boolean isMarketPriceAvailable(String currencyCode) {
-        MarketPrice marketPrice = priceFeedService.getMarketPrice(currencyCode);
-        return marketPrice != null && marketPrice.isExternallyProvidedPrice();
-    }
+	private Coin getSellerSecurityDeposit(Coin amount, double sellerSecurityDeposit) {
+		Coin amountAsCoin = amount;
+		if (amountAsCoin == null)
+			amountAsCoin = Coin.ZERO;
 
-    private boolean isHalCashAccount(PaymentAccount paymentAccount) {
-        return paymentAccount instanceof HalCashAccount;
-    }
+		Coin percentOfAmountAsCoin = CoinUtil.getPercentOfAmountAsCoin(sellerSecurityDeposit, amountAsCoin);
+		return getBoundedSellerSecurityDeposit(percentOfAmountAsCoin);
+	}
 
-    private Coin getBuyerSecurityDeposit(Coin amount, double buyerSecurityDeposit) {
-        Coin percentOfAmountAsCoin = CoinUtil.getPercentOfAmountAsCoin(buyerSecurityDeposit, amount);
-        return getBoundedBuyerSecurityDeposit(percentOfAmountAsCoin);
-    }
+	private Coin getBoundedBuyerSecurityDeposit(Coin value) {
+		// We need to ensure that for small amount values we don't get a too low BTC
+		// amount. We limit it with using the
+		// MinBuyerSecurityDepositAsCoin from Restrictions.
+		return Coin.valueOf(Math.max(Restrictions.getMinBuyerSecurityDepositAsCoin().value, value.value));
+	}
 
-    private Coin getSellerSecurityDeposit(Coin amount, double sellerSecurityDeposit) {
-        Coin amountAsCoin = amount;
-        if (amountAsCoin == null)
-            amountAsCoin = Coin.ZERO;
-
-        Coin percentOfAmountAsCoin = CoinUtil.getPercentOfAmountAsCoin(sellerSecurityDeposit, amountAsCoin);
-        return getBoundedSellerSecurityDeposit(percentOfAmountAsCoin);
-    }
-
-    private Coin getBoundedBuyerSecurityDeposit(Coin value) {
-        // We need to ensure that for small amount values we don't get a too low BTC amount. We limit it with using the
-        // MinBuyerSecurityDepositAsCoin from Restrictions.
-        return Coin.valueOf(Math.max(Restrictions.getMinBuyerSecurityDepositAsCoin().value, value.value));
-    }
-
-    private Coin getBoundedSellerSecurityDeposit(Coin value) {
-        // We need to ensure that for small amount values we don't get a too low BTC amount. We limit it with using the
-        // MinSellerSecurityDepositAsCoin from Restrictions.
-        return Coin.valueOf(Math.max(Restrictions.getMinSellerSecurityDepositAsCoin().value, value.value));
-    }
+	private Coin getBoundedSellerSecurityDeposit(Coin value) {
+		// We need to ensure that for small amount values we don't get a too low BTC
+		// amount. We limit it with using the
+		// MinSellerSecurityDepositAsCoin from Restrictions.
+		return Coin.valueOf(Math.max(Restrictions.getMinSellerSecurityDepositAsCoin().value, value.value));
+	}
 }
