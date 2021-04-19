@@ -34,12 +34,12 @@ public class TradeCurrencyMakers {
     public static final Property<TradeCurrency, String> currencyName = new Property<>();
 
     public static final Instantiator<bisq.core.locale.CryptoCurrency> CryptoCurrency = lookup ->
-            new CryptoCurrency(lookup.valueOf(currencyCode, "BTC"), lookup.valueOf(currencyName, "Bitcoin"));
+            new CryptoCurrency(lookup.valueOf(currencyCode, "XMR"), lookup.valueOf(currencyName, "Monero"));
 
     public static final Instantiator<bisq.core.locale.FiatCurrency> FiatCurrency = lookup ->
             new FiatCurrency(lookup.valueOf(currencyCode, "EUR"));
 
-    public static final CryptoCurrency bitcoin = make(a(CryptoCurrency));
+    public static final CryptoCurrency monero = make(a(CryptoCurrency));
     public static final FiatCurrency euro = make(a(FiatCurrency));
     public static final FiatCurrency usd = make(a(FiatCurrency).but(with(currencyCode, "USD")));
 }

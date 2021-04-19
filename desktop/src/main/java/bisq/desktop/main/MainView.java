@@ -242,7 +242,7 @@ public class MainView extends InitializableView<StackPane, MainViewModel>
                 try {
                     String preferredTradeCurrency = model.getPreferences().getPreferredTradeCurrency().getCode();
                     double availableBalance = Double.parseDouble(
-                            model.getAvailableBalance().getValue().replace("BTC", ""));
+                            model.getAvailableBalance().getValue().replace("XMR", ""));
                     double marketPrice = Double.parseDouble(model.getMarketPrice(preferredTradeCurrency).getValue());
                     tooltipText += "\n" + currencyFormat.format(availableBalance * marketPrice) +
                             " " + preferredTradeCurrency;
@@ -267,7 +267,7 @@ public class MainView extends InitializableView<StackPane, MainViewModel>
                 try {
                     String preferredTradeCurrency = model.getPreferences().getPreferredTradeCurrency().getCode();
                     double reservedBalance = Double.parseDouble(
-                            model.getReservedBalance().getValue().replace("BTC", ""));
+                            model.getReservedBalance().getValue().replace("XMR", ""));
                     double marketPrice = Double.parseDouble(model.getMarketPrice(preferredTradeCurrency).getValue());
                     tooltipText += "\n" + currencyFormat.format(reservedBalance * marketPrice) +
                             " " + preferredTradeCurrency;
@@ -292,7 +292,7 @@ public class MainView extends InitializableView<StackPane, MainViewModel>
                 try {
                     String preferredTradeCurrency = model.getPreferences().getPreferredTradeCurrency().getCode();
                     double lockedBalance = Double.parseDouble(
-                            model.getLockedBalance().getValue().replace("BTC", ""));
+                            model.getLockedBalance().getValue().replace("XMR", ""));
                     double marketPrice = Double.parseDouble(model.getMarketPrice(preferredTradeCurrency).getValue());
                     tooltipText += "\n" + currencyFormat.format(lockedBalance * marketPrice) +
                             " " + preferredTradeCurrency;

@@ -25,7 +25,7 @@ import com.natpryce.makeiteasy.Instantiator;
 import com.natpryce.makeiteasy.Maker;
 import com.natpryce.makeiteasy.Property;
 
-import static bisq.desktop.maker.TradeCurrencyMakers.bitcoin;
+import static bisq.desktop.maker.TradeCurrencyMakers.monero;
 import static bisq.desktop.maker.TradeCurrencyMakers.euro;
 import static com.natpryce.makeiteasy.MakeItEasy.a;
 import static com.natpryce.makeiteasy.MakeItEasy.with;
@@ -36,7 +36,7 @@ public class CurrencyListItemMakers {
     public static final Property<CurrencyListItem, Integer> numberOfTrades = new Property<>();
 
     public static final Instantiator<CurrencyListItem> CurrencyListItem = lookup ->
-            new CurrencyListItem(lookup.valueOf(tradeCurrency, bitcoin), lookup.valueOf(numberOfTrades, 0));
+            new CurrencyListItem(lookup.valueOf(tradeCurrency, monero), lookup.valueOf(numberOfTrades, 0));
 
     public static final Maker<CurrencyListItem> bitcoinItem = a(CurrencyListItem);
     public static final Maker<CurrencyListItem> euroItem = a(CurrencyListItem, with(tradeCurrency, euro));
