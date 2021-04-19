@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -e
 
-echo "[*] Bisq bisq-pricenode installation script"
+echo "[*] Haveno haveno-pricenode installation script"
 
 ##### change as necessary for your system
 
@@ -12,15 +12,15 @@ ROOT_USER=root
 ROOT_GROUP=root
 #ROOT_HOME=/root
 
-BISQ_USER=bisq
-BISQ_GROUP=bisq
-BISQ_HOME=/bisq
+HAVENO_USER=haveno
+HAVENO_GROUP=haveno
+HAVENO_HOME=/haveno
 
-BISQ_REPO_URL=https://github.com/bisq-network/bisq
-BISQ_REPO_NAME=bisq
-BISQ_REPO_TAG=master
-BISQ_LATEST_RELEASE=master
-BISQ_TORHS=pricenode
+HAVENO_REPO_URL=https://github.com/haveno-dex/haveno
+HAVENO_REPO_NAME=haveno
+HAVENO_REPO_TAG=master
+HAVENO_LATEST_RELEASE=master
+HAVENO_TORHS=pricenode
 
 TOR_PKG="tor"
 #TOR_USER=debian-tor
@@ -43,49 +43,49 @@ echo "[*] Installing Tor"
 sudo -H -i -u "${ROOT_USER}" DEBIAN_FRONTEND=noninteractive apt-get install -qq -y "${TOR_PKG}"
 
 echo "[*] Adding Tor configuration"
-if ! grep "${BISQ_TORHS}" /etc/tor/torrc >/dev/null 2>&1;then
-  sudo -H -i -u "${ROOT_USER}" sh -c "echo HiddenServiceDir ${TOR_RESOURCES}/${BISQ_TORHS}/ >> ${TOR_CONF}"
+if ! grep "${HAVENO_TORHS}" /etc/tor/torrc >/dev/null 2>&1;then
+  sudo -H -i -u "${ROOT_USER}" sh -c "echo HiddenServiceDir ${TOR_RESOURCES}/${HAVENO_TORHS}/ >> ${TOR_CONF}"
   sudo -H -i -u "${ROOT_USER}" sh -c "echo HiddenServicePort 80 127.0.0.1:8080 >> ${TOR_CONF}"
   sudo -H -i -u "${ROOT_USER}" sh -c "echo HiddenServiceVersion 3 >> ${TOR_CONF}"
 fi
 
-echo "[*] Creating Bisq user with Tor access"
-sudo -H -i -u "${ROOT_USER}" useradd -d "${BISQ_HOME}" -G "${TOR_GROUP}" "${BISQ_USER}"
+echo "[*] Creating Haveno user with Tor access"
+sudo -H -i -u "${ROOT_USER}" useradd -d "${HAVENO_HOME}" -G "${TOR_GROUP}" "${HAVENO_USER}"
 
-echo "[*] Creating Bisq homedir"
-sudo -H -i -u "${ROOT_USER}" mkdir -p "${BISQ_HOME}"
-sudo -H -i -u "${ROOT_USER}" chown "${BISQ_USER}":"${BISQ_GROUP}" ${BISQ_HOME}
+echo "[*] Creating Haveno homedir"
+sudo -H -i -u "${ROOT_USER}" mkdir -p "${HAVENO_HOME}"
+sudo -H -i -u "${ROOT_USER}" chown "${HAVENO_USER}":"${HAVENO_GROUP}" ${HAVENO_HOME}
 
-echo "[*] Cloning Bisq repo"
-sudo -H -i -u "${BISQ_USER}" git config --global advice.detachedHead false
-sudo -H -i -u "${BISQ_USER}" git clone --branch "${BISQ_REPO_TAG}" "${BISQ_REPO_URL}" "${BISQ_HOME}/${BISQ_REPO_NAME}"
+echo "[*] Cloning Haveno repo"
+sudo -H -i -u "${HAVENO_USER}" git config --global advice.detachedHead false
+sudo -H -i -u "${HAVENO_USER}" git clone --branch "${HAVENO_REPO_TAG}" "${HAVENO_REPO_URL}" "${HAVENO_HOME}/${HAVENO_REPO_NAME}"
 
 echo "[*] Installing OpenJDK 11"
 sudo -H -i -u "${ROOT_USER}" apt-get install -qq -y openjdk-11-jdk
 
-echo "[*] Checking out Bisq ${BISQ_LATEST_RELEASE}"
-sudo -H -i -u "${BISQ_USER}" sh -c "cd ${BISQ_HOME}/${BISQ_REPO_NAME} && git checkout ${BISQ_LATEST_RELEASE}"
+echo "[*] Checking out Haveno ${HAVENO_LATEST_RELEASE}"
+sudo -H -i -u "${HAVENO_USER}" sh -c "cd ${HAVENO_HOME}/${HAVENO_REPO_NAME} && git checkout ${HAVENO_LATEST_RELEASE}"
 
 echo "[*] Performing Git LFS pull"
-sudo -H -i -u "${BISQ_USER}" sh -c "cd ${BISQ_HOME}/${BISQ_REPO_NAME} && git lfs pull"
+sudo -H -i -u "${HAVENO_USER}" sh -c "cd ${HAVENO_HOME}/${HAVENO_REPO_NAME} && git lfs pull"
 
-echo "[*] Building Bisq from source"
-sudo -H -i -u "${BISQ_USER}" sh -c "cd ${BISQ_HOME}/${BISQ_REPO_NAME} && ./gradlew :pricenode:installDist  -x test < /dev/null" # redirect from /dev/null is necessary to workaround gradlew non-interactive shell hanging issue
+echo "[*] Building Haveno from source"
+sudo -H -i -u "${HAVENO_USER}" sh -c "cd ${HAVENO_HOME}/${HAVENO_REPO_NAME} && ./gradlew :pricenode:installDist  -x test < /dev/null" # redirect from /dev/null is necessary to workaround gradlew non-interactive shell hanging issue
 
-echo "[*] Installing bisq-pricenode systemd service"
-sudo -H -i -u "${ROOT_USER}" install -c -o "${ROOT_USER}" -g "${ROOT_GROUP}" -m 644 "${BISQ_HOME}/${BISQ_REPO_NAME}/pricenode/bisq-pricenode.service" "${SYSTEMD_SERVICE_HOME}"
-sudo -H -i -u "${ROOT_USER}" install -c -o "${ROOT_USER}" -g "${ROOT_GROUP}" -m 644 "${BISQ_HOME}/${BISQ_REPO_NAME}/pricenode/bisq-pricenode.env" "${SYSTEMD_ENV_HOME}"
+echo "[*] Installing haveno-pricenode systemd service"
+sudo -H -i -u "${ROOT_USER}" install -c -o "${ROOT_USER}" -g "${ROOT_GROUP}" -m 644 "${HAVENO_HOME}/${HAVENO_REPO_NAME}/pricenode/haveno-pricenode.service" "${SYSTEMD_SERVICE_HOME}"
+sudo -H -i -u "${ROOT_USER}" install -c -o "${ROOT_USER}" -g "${ROOT_GROUP}" -m 644 "${HAVENO_HOME}/${HAVENO_REPO_NAME}/pricenode/haveno-pricenode.env" "${SYSTEMD_ENV_HOME}"
 
 echo "[*] Reloading systemd daemon configuration"
 sudo -H -i -u "${ROOT_USER}" systemctl daemon-reload
 
-echo "[*] Enabling bisq-pricenode service"
-sudo -H -i -u "${ROOT_USER}" systemctl enable bisq-pricenode.service
+echo "[*] Enabling haveno-pricenode service"
+sudo -H -i -u "${ROOT_USER}" systemctl enable haveno-pricenode.service
 
-echo "[*] Starting bisq-pricenode service"
-sudo -H -i -u "${ROOT_USER}" systemctl start bisq-pricenode.service
+echo "[*] Starting haveno-pricenode service"
+sudo -H -i -u "${ROOT_USER}" systemctl start haveno-pricenode.service
 sleep 5
-sudo -H -i -u "${ROOT_USER}" journalctl --no-pager --unit bisq-pricenode
+sudo -H -i -u "${ROOT_USER}" journalctl --no-pager --unit haveno-pricenode
 
 echo "[*] Restarting Tor"
 sudo -H -i -u "${ROOT_USER}" service tor restart
@@ -93,6 +93,6 @@ sleep 5
 
 echo '[*] Done!'
 echo -n '[*] Access your pricenode at http://'
-cat "${TOR_RESOURCES}/${BISQ_TORHS}/hostname"
+cat "${TOR_RESOURCES}/${HAVENO_TORHS}/hostname"
 
 exit 0
