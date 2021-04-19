@@ -420,7 +420,7 @@ public class Offer implements NetworkPayload, PersistablePayload {
     }
 
     public String getCurrencyCode() {
-        return offerPayload.getBaseCurrencyCode().equals("BTC") ?
+        return offerPayload.getBaseCurrencyCode().equals("XMR") ?
                 offerPayload.getCounterCurrencyCode() :
                 offerPayload.getBaseCurrencyCode();
     }

@@ -63,7 +63,7 @@ public class CreateOfferUsingFixedPriceTest extends AbstractCreateOfferTest {
         assertEquals(10000000, newOffer.getMinAmount());
         assertEquals(1500000, newOffer.getBuyerSecurityDeposit());
         assertEquals(paymentAccount.getId(), newOffer.getPaymentAccountId());
-        assertEquals("BTC", newOffer.getBaseCurrencyCode());
+        assertEquals("XMR", newOffer.getBaseCurrencyCode());
         assertEquals("AUD", newOffer.getCounterCurrencyCode());
 
         OfferInfo offer = getMostRecentOffer("buy", "aud");
@@ -75,7 +75,7 @@ public class CreateOfferUsingFixedPriceTest extends AbstractCreateOfferTest {
         assertEquals(10000000, offer.getMinAmount());
         assertEquals(1500000, offer.getBuyerSecurityDeposit());
         assertEquals(paymentAccount.getId(), offer.getPaymentAccountId());
-        assertEquals("BTC", offer.getBaseCurrencyCode());
+        assertEquals("XMR", offer.getBaseCurrencyCode());
         assertEquals("AUD", offer.getCounterCurrencyCode());
     }
 
@@ -104,7 +104,7 @@ public class CreateOfferUsingFixedPriceTest extends AbstractCreateOfferTest {
         assertEquals(10000000, newOffer.getMinAmount());
         assertEquals(1500000, newOffer.getBuyerSecurityDeposit());
         assertEquals(paymentAccount.getId(), newOffer.getPaymentAccountId());
-        assertEquals("BTC", newOffer.getBaseCurrencyCode());
+        assertEquals("XMR", newOffer.getBaseCurrencyCode());
         assertEquals("USD", newOffer.getCounterCurrencyCode());
 
         OfferInfo offer = getMostRecentOffer("buy", "usd");
@@ -116,7 +116,7 @@ public class CreateOfferUsingFixedPriceTest extends AbstractCreateOfferTest {
         assertEquals(10000000, offer.getMinAmount());
         assertEquals(1500000, offer.getBuyerSecurityDeposit());
         assertEquals(paymentAccount.getId(), offer.getPaymentAccountId());
-        assertEquals("BTC", offer.getBaseCurrencyCode());
+        assertEquals("XMR", offer.getBaseCurrencyCode());
         assertEquals("USD", offer.getCounterCurrencyCode());
     }
 
@@ -145,7 +145,7 @@ public class CreateOfferUsingFixedPriceTest extends AbstractCreateOfferTest {
         assertEquals(10000000, newOffer.getMinAmount());
         assertEquals(1500000, newOffer.getBuyerSecurityDeposit());
         assertEquals(paymentAccount.getId(), newOffer.getPaymentAccountId());
-        assertEquals("BTC", newOffer.getBaseCurrencyCode());
+        assertEquals("XMR", newOffer.getBaseCurrencyCode());
         assertEquals("EUR", newOffer.getCounterCurrencyCode());
 
         OfferInfo offer = getMostRecentOffer("sell", "eur");
@@ -157,7 +157,7 @@ public class CreateOfferUsingFixedPriceTest extends AbstractCreateOfferTest {
         assertEquals(10000000, offer.getMinAmount());
         assertEquals(1500000, offer.getBuyerSecurityDeposit());
         assertEquals(paymentAccount.getId(), offer.getPaymentAccountId());
-        assertEquals("BTC", offer.getBaseCurrencyCode());
+        assertEquals("XMR", offer.getBaseCurrencyCode());
         assertEquals("EUR", offer.getCounterCurrencyCode());
     }
 }

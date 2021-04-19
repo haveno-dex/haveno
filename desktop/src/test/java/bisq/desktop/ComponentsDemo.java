@@ -51,8 +51,8 @@ public class ComponentsDemo extends Application {
 
     @Override
     public void start(Stage primaryStage) throws Exception {
-        final CryptoCurrency btc = new CryptoCurrency("BTC", "bitcoin");
-        GlobalSettings.setDefaultTradeCurrency(btc);
+        final CryptoCurrency xmr = new CryptoCurrency("XMR", "monero");
+        GlobalSettings.setDefaultTradeCurrency(xmr);
         GlobalSettings.setLocale(Locale.US);
         Res.setup();
 
@@ -85,9 +85,9 @@ public class ComponentsDemo extends Application {
 
         final Button buttonEnabled = FormBuilder.addButton(gridPane, rowIndex++, "Hello World");
         buttonEnabled.setOnMouseClicked((click) -> {
-            //bar.enqueue(new JFXSnackbar.SnackbarEvent(Res.get("notification.walletUpdate.msg", "0.345 BTC"), "CLOSE", 3000, true, b -> bar.close()));
+            //bar.enqueue(new JFXSnackbar.SnackbarEvent(Res.get("notification.walletUpdate.msg", "0.345 XMR"), "CLOSE", 3000, true, b -> bar.close()));
 //                new Popup<>().headLine(Res.get("popup.roundedFiatValues.headline"))
-//                    .message(Res.get("popup.roundedFiatValues.msg", "BTC"))
+//                    .message(Res.get("popup.roundedFiatValues.msg", "XMR"))
 //                    .show();
 //            new Notification().headLine(Res.get("notification.tradeCompleted.headline"))
 //                    .notification(Res.get("notification.tradeCompleted.msg"))

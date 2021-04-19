@@ -44,6 +44,9 @@ public class AltCoinAddressValidatorTest {
 
         validator.setCurrencyCode("BTC");
         assertTrue(validator.validate("17VZNX1SN5NtKa8UQFxwQbFeFc3iqRYhem").isValid);
+        
+        validator.setCurrencyCode("XMR");
+        assertTrue(validator.validate("4AuUM6PedofLWKfRCX1fP3SoNZUzq6FSAbpevHRR6tVuMpZc3HznVeudmNGkEB75apjE7WKVgZZh1YvPVxZoHFN88NCdmWw").isValid);
 
         validator.setCurrencyCode("LTC");
         assertTrue(validator.validate("Lg3PX8wRWmApFCoCMAsPF5P9dPHYQHEWKW").isValid);

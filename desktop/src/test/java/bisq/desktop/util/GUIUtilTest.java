@@ -39,7 +39,7 @@ import java.util.Map;
 import org.junit.Before;
 import org.junit.Test;
 
-import static bisq.desktop.maker.TradeCurrencyMakers.bitcoin;
+import static bisq.desktop.maker.TradeCurrencyMakers.monero;
 import static bisq.desktop.maker.TradeCurrencyMakers.euro;
 import static com.natpryce.makeiteasy.MakeItEasy.a;
 import static com.natpryce.makeiteasy.MakeItEasy.make;
@@ -57,14 +57,14 @@ public class GUIUtilTest {
     public void setup() {
         Locale.setDefault(new Locale("en", "US"));
         GlobalSettings.setLocale(new Locale("en", "US"));
-        Res.setBaseCurrencyCode("BTC");
-        Res.setBaseCurrencyName("Bitcoin");
+        Res.setBaseCurrencyCode("XMR");
+        Res.setBaseCurrencyName("Monero");
     }
 
     @Test
     public void testTradeCurrencyConverter() {
         Map<String, Integer> offerCounts = new HashMap<>() {{
-            put("BTC", 11);
+            put("XMR", 11);
             put("EUR", 10);
         }};
         StringConverter<TradeCurrency> tradeCurrencyConverter = GUIUtil.getTradeCurrencyConverter(
@@ -73,7 +73,7 @@ public class GUIUtilTest {
                 offerCounts
         );
 
-        assertEquals("✦ Bitcoin (BTC) - 11 offers", tradeCurrencyConverter.toString(bitcoin));
+        assertEquals("✦ Monero (XMR) - 11 offers", tradeCurrencyConverter.toString(monero));
         assertEquals("★ Euro (EUR) - 10 offers", tradeCurrencyConverter.toString(euro));
     }
 

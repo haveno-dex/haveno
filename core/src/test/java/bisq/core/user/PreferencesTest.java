@@ -54,8 +54,8 @@ public class PreferencesTest {
         final Locale en_US = new Locale("en", "US");
         Locale.setDefault(en_US);
         GlobalSettings.setLocale(en_US);
-        Res.setBaseCurrencyCode("BTC");
-        Res.setBaseCurrencyName("Bitcoin");
+        Res.setBaseCurrencyCode("XMR");
+        Res.setBaseCurrencyName("Monero");
 
         persistenceManager = mock(PersistenceManager.class);
         Config config = new Config();

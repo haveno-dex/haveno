@@ -35,8 +35,8 @@ public class DaoStateBlockListItemTest {
     @Before
     public void setup() {
         Locale.setDefault(new Locale("en", "US"));
-        Res.setBaseCurrencyCode("BTC");
-        Res.setBaseCurrencyName("Bitcoin");
+        Res.setBaseCurrencyCode("XMR");
+        Res.setBaseCurrencyName("Monero");
     }
 
     @Test
