@@ -168,7 +168,7 @@ public class CreateOfferService {
         long amountAsLong = amount != null ? amount.getValue() : 0L;
         long minAmountAsLong = minAmount != null ? minAmount.getValue() : 0L;
         boolean isCryptoCurrency = CurrencyUtil.isCryptoCurrency(currencyCode);
-        String baseCurrencyCode = isCryptoCurrency ? currencyCode : Res.getBaseCurrencyCode();
+        String baseCurrencyCode = currencyCode;
         String counterCurrencyCode = isCryptoCurrency ? Res.getBaseCurrencyCode() : currencyCode;
         List<NodeAddress> acceptedArbitratorAddresses = user.getAcceptedArbitratorAddresses();
         ArrayList<NodeAddress> arbitratorNodeAddresses = acceptedArbitratorAddresses != null ?
