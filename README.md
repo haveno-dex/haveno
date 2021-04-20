@@ -25,7 +25,7 @@ We acknowledge and thank Bisq for their efforts, but we think the Monero communi
 
 ## Status of the project
 
-At the moment Haveno is only a Proof of Concept. It's already possible to initiate a crypto <-> XMR trade, but the platform still needs a lot of work before being available for public use.
+At the moment Haveno is only a Proof of Concept. It's already possible to initiate crypto <-> XMR and fiat <-> XMR trades, but the platform still needs a lot of work before being available for public use.
 
 There is a lot in progress and a lot to do. To make contributions easier, we use some of github's tools, like labels and projects. We set up a [labelling system](https://github.com/haveno-dex/haveno/wiki/Labelling-system) which should make easier for people to contribute. Problems and requests about the Haveno platform are tracked on this repository. For general discussions and proposals that affect the entire Haveno ecosystem, please open an issue in the [haveno-meta repository](https://github.com/haveno-dex/haveno-meta).
 
@@ -45,9 +45,7 @@ Temporary email: havenodex@protonmail.com
 
 ## FAQ
 
-We are building up a wiki for this repository. At the moment there is only one entry:
-
-- [Labelling system](https://github.com/haveno-dex/haveno/wiki/Labelling-system)
+See the [FAQ in the wiki](https://github.com/haveno-dex/haveno/wiki/FAQ).
 
 ## Running a local Haveno test network
 
