@@ -17,9 +17,6 @@
 
 package bisq.core.trade.protocol.tasks.buyer;
 
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
-
 import bisq.common.taskrunner.TaskRunner;
 import bisq.core.account.sign.SignedWitness;
 import bisq.core.btc.wallet.XmrWalletService;
@@ -27,9 +24,13 @@ import bisq.core.trade.Trade;
 import bisq.core.trade.messages.PayoutTxPublishedMessage;
 import bisq.core.trade.protocol.tasks.TradeTask;
 import bisq.core.util.Validator;
-import java.util.List;
 import lombok.extern.slf4j.Slf4j;
 import monero.wallet.MoneroWallet;
+
+import java.util.List;
+
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
 
 @Slf4j
 public class BuyerProcessPayoutTxPublishedMessage extends TradeTask {
@@ -49,9 +50,9 @@ public class BuyerProcessPayoutTxPublishedMessage extends TradeTask {
 
             // update to the latest peer address of our peer if the message is correct
             trade.setTradingPeerNodeAddress(processModel.getTempTradingPeerNodeAddress());
-            
+
             if (trade.getPayoutTx() == null) {
-            	XmrWalletService walletService = processModel.getProvider().getXmrWalletService();
+                XmrWalletService walletService = processModel.getProvider().getXmrWalletService();
                 MoneroWallet multisigWallet = walletService.getOrCreateMultisigWallet(processModel.getTrade().getId());
                 List<String> txHashes = multisigWallet.submitMultisigTxHex(message.getSignedMultisigTxHex());
                 trade.setPayoutTx(multisigWallet.getTx(txHashes.get(0)));

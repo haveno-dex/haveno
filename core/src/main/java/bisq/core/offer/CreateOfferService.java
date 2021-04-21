@@ -17,9 +17,12 @@
 
 package bisq.core.offer;
 
+import bisq.common.app.Version;
+import bisq.common.crypto.PubKeyRing;
+import bisq.common.util.Tuple2;
+import bisq.common.util.Utilities;
 import bisq.core.account.witness.AccountAgeWitnessService;
 import bisq.core.btc.TxFeeEstimationService;
-import bisq.core.btc.wallet.BsqWalletService;
 import bisq.core.btc.wallet.BtcWalletService;
 import bisq.core.btc.wallet.Restrictions;
 import bisq.core.filter.FilterManager;
@@ -35,36 +38,21 @@ import bisq.core.trade.statistics.ReferralIdService;
 import bisq.core.user.Preferences;
 import bisq.core.user.User;
 import bisq.core.util.coin.CoinUtil;
-
 import bisq.network.p2p.NodeAddress;
 import bisq.network.p2p.P2PService;
-
-import bisq.common.app.Version;
-import bisq.common.crypto.PubKeyRing;
-import bisq.common.util.Tuple2;
-import bisq.common.util.Utilities;
-
+import com.google.common.collect.Lists;
+import lombok.extern.slf4j.Slf4j;
 import org.bitcoinj.core.Coin;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
-
-import com.google.common.collect.Lists;
-
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-
-import lombok.extern.slf4j.Slf4j;
+import java.util.*;
 
 @Slf4j
 @Singleton
 public class CreateOfferService {
     private final TxFeeEstimationService txFeeEstimationService;
     private final MakerFeeProvider makerFeeProvider;
-    private final BsqWalletService bsqWalletService;
     private final Preferences preferences;
     private final PriceFeedService priceFeedService;
     private final AccountAgeWitnessService accountAgeWitnessService;
@@ -83,7 +71,6 @@ public class CreateOfferService {
     @Inject
     public CreateOfferService(TxFeeEstimationService txFeeEstimationService,
                               MakerFeeProvider makerFeeProvider,
-                              BsqWalletService bsqWalletService,
                               Preferences preferences,
                               PriceFeedService priceFeedService,
                               AccountAgeWitnessService accountAgeWitnessService,
@@ -95,7 +82,6 @@ public class CreateOfferService {
                               BtcWalletService btcWalletService) {
         this.txFeeEstimationService = txFeeEstimationService;
         this.makerFeeProvider = makerFeeProvider;
-        this.bsqWalletService = bsqWalletService;
         this.preferences = preferences;
         this.priceFeedService = priceFeedService;
         this.accountAgeWitnessService = accountAgeWitnessService;
@@ -186,7 +172,7 @@ public class CreateOfferService {
         Coin txFeeFromFeeService = getEstimatedFeeAndTxSize(amount, direction, buyerSecurityDepositAsDouble, sellerSecurityDeposit).first;
         Coin txFeeToUse = txFee.isPositive() ? txFee : txFeeFromFeeService;
         Coin makerFeeAsCoin = getMakerFee(amount);
-        boolean isCurrencyForMakerFeeBtc = OfferUtil.isCurrencyForMakerFeeBtc(preferences, bsqWalletService, amount);
+        boolean isCurrencyForMakerFeeBtc = OfferUtil.isCurrencyForMakerFeeBtc(preferences, amount);
         Coin buyerSecurityDepositAsCoin = getBuyerSecurityDeposit(amount, buyerSecurityDepositAsDouble);
         Coin sellerSecurityDepositAsCoin = getSellerSecurityDeposit(amount, sellerSecurityDeposit);
         long maxTradeLimit = getMaxTradeLimit(paymentAccount, currencyCode, direction);
@@ -295,7 +281,7 @@ public class CreateOfferService {
     }
 
     public Coin getMakerFee(Coin amount) {
-        return makerFeeProvider.getMakerFee(bsqWalletService, preferences, amount);
+        return makerFeeProvider.getMakerFee(preferences, amount);
     }
 
     public long getMaxTradeLimit(PaymentAccount paymentAccount,

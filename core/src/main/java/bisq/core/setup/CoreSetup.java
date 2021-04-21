@@ -17,11 +17,9 @@
 
 package bisq.core.setup;
 
+import bisq.common.config.Config;
 import bisq.core.locale.CurrencyUtil;
 import bisq.core.locale.Res;
-
-import bisq.common.config.Config;
-
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j

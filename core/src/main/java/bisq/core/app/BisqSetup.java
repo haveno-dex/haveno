@@ -35,8 +35,6 @@ import bisq.core.btc.setup.WalletsSetup;
 import bisq.core.btc.wallet.BtcWalletService;
 import bisq.core.btc.wallet.WalletsManager;
 import bisq.core.btc.wallet.XmrWalletService;
-import bisq.core.dao.governance.voteresult.VoteResultException;
-import bisq.core.dao.state.unconfirmed.UnconfirmedBsqChangeOutputListService;
 import bisq.core.locale.Res;
 import bisq.core.offer.OpenOfferManager;
 import bisq.core.payment.PaymentAccount;
@@ -51,6 +49,24 @@ import bisq.core.util.coin.CoinFormatter;
 import bisq.network.p2p.P2PService;
 import bisq.network.p2p.storage.payload.PersistableNetworkPayload;
 import ch.qos.logback.classic.Level;
+import javafx.beans.property.BooleanProperty;
+import javafx.beans.property.DoubleProperty;
+import javafx.beans.property.SimpleBooleanProperty;
+import javafx.beans.property.StringProperty;
+import javafx.beans.value.ChangeListener;
+import javafx.collections.SetChangeListener;
+import lombok.Getter;
+import lombok.Setter;
+import lombok.extern.slf4j.Slf4j;
+import org.bitcoinj.core.Coin;
+import org.bouncycastle.crypto.params.KeyParameter;
+import org.fxmisc.easybind.EasyBind;
+import org.fxmisc.easybind.monadic.MonadicBinding;
+
+import javax.annotation.Nullable;
+import javax.inject.Inject;
+import javax.inject.Named;
+import javax.inject.Singleton;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -59,23 +75,6 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
-import javafx.beans.property.BooleanProperty;
-import javafx.beans.property.DoubleProperty;
-import javafx.beans.property.SimpleBooleanProperty;
-import javafx.beans.property.StringProperty;
-import javafx.beans.value.ChangeListener;
-import javafx.collections.SetChangeListener;
-import javax.annotation.Nullable;
-import javax.inject.Inject;
-import javax.inject.Named;
-import javax.inject.Singleton;
-import lombok.Getter;
-import lombok.Setter;
-import lombok.extern.slf4j.Slf4j;
-import org.bitcoinj.core.Coin;
-import org.bouncycastle.crypto.params.KeyParameter;
-import org.fxmisc.easybind.EasyBind;
-import org.fxmisc.easybind.monadic.MonadicBinding;
 
 @Slf4j
 @Singleton
@@ -109,7 +108,6 @@ public class BisqSetup {
     private final Preferences preferences;
     private final User user;
     private final AlertManager alertManager;
-    private final UnconfirmedBsqChangeOutputListService unconfirmedBsqChangeOutputListService;
     private final Config config;
     private final AccountAgeWitnessService accountAgeWitnessService;
     private final TorSetup torSetup;
@@ -143,9 +141,6 @@ public class BisqSetup {
     @Setter
     @Nullable
     private BiConsumer<Alert, String> displayUpdateHandler;
-    @Setter
-    @Nullable
-    private Consumer<VoteResultException> voteResultExceptionHandler;
     @Setter
     @Nullable
     private Consumer<PrivateNotificationPayload> displayPrivateNotificationHandler;
@@ -185,7 +180,6 @@ public class BisqSetup {
                      Preferences preferences,
                      User user,
                      AlertManager alertManager,
-                     UnconfirmedBsqChangeOutputListService unconfirmedBsqChangeOutputListService,
                      Config config,
                      AccountAgeWitnessService accountAgeWitnessService,
                      TorSetup torSetup,
@@ -205,7 +199,6 @@ public class BisqSetup {
         this.preferences = preferences;
         this.user = user;
         this.alertManager = alertManager;
-        this.unconfirmedBsqChangeOutputListService = unconfirmedBsqChangeOutputListService;
         this.config = config;
         this.accountAgeWitnessService = accountAgeWitnessService;
         this.torSetup = torSetup;
@@ -284,11 +277,6 @@ public class BisqSetup {
         if (preferences.isResyncSpvRequested()) {
             try {
                 walletsSetup.reSyncSPVChain();
-
-                // In case we had an unconfirmed change output we reset the unconfirmedBsqChangeOutputList so that
-                // after a SPV resync we do not have any dangling BSQ utxos in that list which would cause an incorrect
-                // BSQ balance state after the SPV resync.
-                unconfirmedBsqChangeOutputListService.onSpvResync();
             } catch (IOException e) {
                 log.error(e.toString());
                 e.printStackTrace();
@@ -414,7 +402,6 @@ public class BisqSetup {
                 daoErrorMessageHandler,
                 daoWarnMessageHandler,
                 filterWarningHandler,
-                voteResultExceptionHandler,
                 revolutAccountsUpdateHandler);
 
         if (walletsSetup.downloadPercentageProperty().get() == 1) {

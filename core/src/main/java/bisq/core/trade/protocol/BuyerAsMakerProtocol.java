@@ -41,11 +41,11 @@ public class BuyerAsMakerProtocol extends MakerProtocolBase implements BuyerProt
 
     public BuyerAsMakerProtocol(BuyerAsMakerTrade trade) {
         super(trade);
-        
+
         // TODO (woodser): setup deposit listeners on construction for startup like before rebase?
     }
-    
-    
+
+
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Message dispatcher
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -55,10 +55,10 @@ public class BuyerAsMakerProtocol extends MakerProtocolBase implements BuyerProt
         super.onMailboxMessage(tradeMessage, peerNodeAddress);
 
         if (tradeMessage instanceof PayoutTxPublishedMessage) {
-          handle((PayoutTxPublishedMessage) tradeMessage, peerNodeAddress);
+            handle((PayoutTxPublishedMessage) tradeMessage, peerNodeAddress);
         }
     }
-    
+
     @Override
     protected void onTradeMessage(TradeMessage tradeMessage, NodeAddress sender) {
         super.onTradeMessage(tradeMessage, sender);
@@ -67,34 +67,34 @@ public class BuyerAsMakerProtocol extends MakerProtocolBase implements BuyerProt
                 tradeMessage.getClass().getSimpleName(), sender, tradeMessage.getTradeId(), tradeMessage.getUid());
 
         if (tradeMessage instanceof PayoutTxPublishedMessage) {
-          handle((PayoutTxPublishedMessage) tradeMessage, sender);
+            handle((PayoutTxPublishedMessage) tradeMessage, sender);
         }
     }
-    
+
     private void handle(PayoutTxPublishedMessage message, NodeAddress sender) {
-      processModel.setTradeMessage(message);
-      processModel.setTempTradingPeerNodeAddress(sender);
-      expect(anyPhase(Trade.Phase.FIAT_SENT)
-          .with(message)
-          .from(sender))
-          .setup(tasks(
-              getVerifyPeersFeePaymentClass(),
-              BuyerProcessPayoutTxPublishedMessage.class)
-              .using(new TradeTaskRunner(trade,
-                  () -> {
-                    handleTaskRunnerSuccess(message);
-                  },
-                  errorMessage -> {
-                      handleTaskRunnerFault(message, errorMessage);
-                  })))
-          .executeTasks();
+        processModel.setTradeMessage(message);
+        processModel.setTempTradingPeerNodeAddress(sender);
+        expect(anyPhase(Trade.Phase.FIAT_SENT)
+                .with(message)
+                .from(sender))
+                .setup(tasks(
+                        getVerifyPeersFeePaymentClass(),
+                        BuyerProcessPayoutTxPublishedMessage.class)
+                        .using(new TradeTaskRunner(trade,
+                                () -> {
+                                    handleTaskRunnerSuccess(message);
+                                },
+                                errorMessage -> {
+                                    handleTaskRunnerFault(message, errorMessage);
+                                })))
+                .executeTasks();
     }
-    
-    
+
+
     ///////////////////////////////////////////////////////////////////////////////////////////
     // User interaction
     ///////////////////////////////////////////////////////////////////////////////////////////
-    
+
     @Override
     public void onPaymentStarted(ResultHandler resultHandler, ErrorMessageHandler errorMessageHandler) {
         BuyerEvent event = BuyerEvent.PAYMENT_SENT;

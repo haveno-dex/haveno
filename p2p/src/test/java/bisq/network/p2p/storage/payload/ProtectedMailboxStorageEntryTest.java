@@ -17,25 +17,23 @@
 
 package bisq.network.p2p.storage.payload;
 
-import bisq.network.p2p.PrefixedSealedAndSignedMessage;
-import bisq.network.p2p.TestUtils;
-import bisq.network.p2p.storage.P2PDataStorage;
-
 import bisq.common.app.Version;
 import bisq.common.crypto.CryptoException;
 import bisq.common.crypto.Sig;
-
-import java.security.KeyPair;
-import java.security.NoSuchAlgorithmException;
-import java.security.PublicKey;
-
-import java.time.Clock;
-
+import bisq.network.p2p.PrefixedSealedAndSignedMessage;
+import bisq.network.p2p.TestUtils;
+import bisq.network.p2p.storage.P2PDataStorage;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-import static org.mockito.Mockito.*;
+import java.security.KeyPair;
+import java.security.NoSuchAlgorithmException;
+import java.security.PublicKey;
+import java.time.Clock;
+
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class ProtectedMailboxStorageEntryTest {
 
@@ -113,7 +111,7 @@ public class ProtectedMailboxStorageEntryTest {
 
         MailboxStoragePayload mailboxStoragePayload = buildMailboxStoragePayload(senderKeys.getPublic(), receiverKeys.getPublic());
         ProtectedStorageEntry protectedStorageEntry = new ProtectedMailboxStorageEntry(
-                mailboxStoragePayload, senderKeys.getPublic(), 1, new byte[] { 0 }, receiverKeys.getPublic(), Clock.systemDefaultZone());
+                mailboxStoragePayload, senderKeys.getPublic(), 1, new byte[]{0}, receiverKeys.getPublic(), Clock.systemDefaultZone());
 
         Assert.assertFalse(protectedStorageEntry.isValidForAddOperation());
     }
@@ -151,7 +149,7 @@ public class ProtectedMailboxStorageEntryTest {
         MailboxStoragePayload mailboxStoragePayload = buildMailboxStoragePayload(senderKeys.getPublic(), receiverKeys.getPublic());
         ProtectedStorageEntry protectedStorageEntry =
                 new ProtectedMailboxStorageEntry(mailboxStoragePayload, receiverKeys.getPublic(),
-                            1, new byte[] { 0 }, receiverKeys.getPublic(), Clock.systemDefaultZone());
+                        1, new byte[]{0}, receiverKeys.getPublic(), Clock.systemDefaultZone());
 
         Assert.assertFalse(protectedStorageEntry.isValidForRemoveOperation());
     }

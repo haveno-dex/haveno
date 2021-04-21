@@ -17,6 +17,7 @@
 
 package bisq.network.p2p.storage;
 
+import bisq.common.app.Capabilities;
 import bisq.network.p2p.TestUtils;
 import bisq.network.p2p.peers.getdata.messages.GetDataRequest;
 import bisq.network.p2p.peers.getdata.messages.GetDataResponse;
@@ -24,17 +25,13 @@ import bisq.network.p2p.storage.mocks.PersistableExpirableProtectedStoragePayloa
 import bisq.network.p2p.storage.mocks.ProtectedStoragePayloadStub;
 import bisq.network.p2p.storage.payload.ProtectedStorageEntry;
 import bisq.network.p2p.storage.payload.ProtectedStoragePayload;
-
-import bisq.common.app.Capabilities;
+import org.junit.Assert;
+import org.junit.Test;
 
 import java.security.KeyPair;
 import java.security.NoSuchAlgorithmException;
 import java.security.PublicKey;
-
 import java.util.concurrent.atomic.AtomicBoolean;
-
-import org.junit.Assert;
-import org.junit.Test;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;

@@ -17,23 +17,19 @@
 
 package bisq.core.offer;
 
-import bisq.core.trade.Tradable;
-
-import bisq.network.p2p.NodeAddress;
-
 import bisq.common.Timer;
 import bisq.common.UserThread;
 import bisq.common.proto.ProtoUtil;
-
-import java.util.Date;
-import java.util.Optional;
-
+import bisq.core.trade.Tradable;
+import bisq.network.p2p.NodeAddress;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 
 import javax.annotation.Nullable;
+import java.util.Date;
+import java.util.Optional;
 
 @EqualsAndHashCode
 @Slf4j

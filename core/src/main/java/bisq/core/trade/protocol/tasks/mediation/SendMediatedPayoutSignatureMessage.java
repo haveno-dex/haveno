@@ -17,22 +17,19 @@
 
 package bisq.core.trade.protocol.tasks.mediation;
 
+import bisq.common.crypto.PubKeyRing;
+import bisq.common.taskrunner.TaskRunner;
 import bisq.core.support.dispute.mediation.MediationResultState;
 import bisq.core.trade.Contract;
 import bisq.core.trade.Trade;
 import bisq.core.trade.messages.MediatedPayoutTxSignatureMessage;
 import bisq.core.trade.protocol.tasks.TradeTask;
-
 import bisq.network.p2p.NodeAddress;
 import bisq.network.p2p.P2PService;
 import bisq.network.p2p.SendMailboxMessageListener;
-
-import bisq.common.crypto.PubKeyRing;
-import bisq.common.taskrunner.TaskRunner;
+import lombok.extern.slf4j.Slf4j;
 
 import java.util.UUID;
-
-import lombok.extern.slf4j.Slf4j;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 

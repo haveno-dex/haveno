@@ -17,20 +17,16 @@
 
 package bisq.core.trade.protocol.tasks.seller;
 
+import bisq.common.taskrunner.TaskRunner;
 import bisq.core.trade.Trade;
 import bisq.core.trade.messages.DelayedPayoutTxSignatureRequest;
 import bisq.core.trade.protocol.tasks.TradeTask;
-
 import bisq.network.p2p.NodeAddress;
 import bisq.network.p2p.SendDirectMessageListener;
-
-import bisq.common.taskrunner.TaskRunner;
-
+import lombok.extern.slf4j.Slf4j;
 import org.bitcoinj.core.Transaction;
 
 import java.util.UUID;
-
-import lombok.extern.slf4j.Slf4j;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 

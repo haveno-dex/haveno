@@ -22,10 +22,10 @@ import bisq.common.handlers.ResultHandler;
 
 public interface BuyerProtocol {
 
-  enum BuyerEvent implements FluentProtocol.Event {
-    STARTUP,
-    PAYMENT_SENT
-  }
+    enum BuyerEvent implements FluentProtocol.Event {
+        STARTUP,
+        PAYMENT_SENT
+    }
 
-  void onPaymentStarted(ResultHandler resultHandler, ErrorMessageHandler errorMessageHandler);
+    void onPaymentStarted(ResultHandler resultHandler, ErrorMessageHandler errorMessageHandler);
 }

@@ -21,10 +21,10 @@ import bisq.common.handlers.ErrorMessageHandler;
 import bisq.common.handlers.ResultHandler;
 
 public interface SellerProtocol {
-  
+
     enum SellerEvent implements FluentProtocol.Event {
         PAYMENT_RECEIVED
     }
-    
+
     public void onPaymentReceived(ResultHandler resultHandler, ErrorMessageHandler errorMessageHandler);
 }

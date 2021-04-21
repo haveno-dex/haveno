@@ -20,16 +20,13 @@ package bisq.network.p2p.storage.payload;
 import bisq.common.crypto.Sig;
 import bisq.common.proto.network.NetworkProtoResolver;
 import bisq.common.util.Utilities;
-
 import com.google.protobuf.ByteString;
-
-import java.security.PublicKey;
-
-import java.time.Clock;
-
 import lombok.EqualsAndHashCode;
 import lombok.Value;
 import lombok.extern.slf4j.Slf4j;
+
+import java.security.PublicKey;
+import java.time.Clock;
 
 @Slf4j
 @EqualsAndHashCode(callSuper = true)
@@ -56,14 +53,14 @@ public class ProtectedMailboxStorageEntry extends ProtectedStorageEntry {
     }
 
     private ProtectedMailboxStorageEntry(MailboxStoragePayload mailboxStoragePayload,
-                                        byte[] ownerPubKeyBytes,
-                                        PublicKey ownerPubKey,
-                                        int sequenceNumber,
-                                        byte[] signature,
-                                        byte[] receiversPubKeyBytes,
-                                        PublicKey receiversPubKey,
-                                        long creationTimeStamp,
-                                        Clock clock) {
+                                         byte[] ownerPubKeyBytes,
+                                         PublicKey ownerPubKey,
+                                         int sequenceNumber,
+                                         byte[] signature,
+                                         byte[] receiversPubKeyBytes,
+                                         PublicKey receiversPubKey,
+                                         long creationTimeStamp,
+                                         Clock clock) {
         super(mailboxStoragePayload,
                 ownerPubKeyBytes,
                 ownerPubKey,
@@ -107,7 +104,7 @@ public class ProtectedMailboxStorageEntry extends ProtectedStorageEntry {
             String res1 = this.toString();
             String res2 = "null";
             if (mailboxStoragePayload.getOwnerPubKey() != null)
-                res2 = Utilities.encodeToHex(mailboxStoragePayload.getSenderPubKeyForAddOperation().getEncoded(),true);
+                res2 = Utilities.encodeToHex(mailboxStoragePayload.getSenderPubKeyForAddOperation().getEncoded(), true);
 
             log.warn("ProtectedMailboxStorageEntry::isValidForAddOperation() failed. " +
                     "Entry owner does not match sender key in payload:\nProtectedStorageEntry=%{}\n" +

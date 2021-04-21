@@ -17,24 +17,6 @@
 
 package bisq.core.app.misc;
 
-import bisq.core.alert.AlertModule;
-import bisq.core.app.TorSetup;
-import bisq.core.btc.BitcoinModule;
-import bisq.core.dao.DaoModule;
-import bisq.core.filter.FilterModule;
-import bisq.core.network.p2p.seed.DefaultSeedNodeRepository;
-import bisq.core.offer.OfferModule;
-import bisq.core.proto.network.CoreNetworkProtoResolver;
-import bisq.core.proto.persistable.CorePersistenceProtoResolver;
-import bisq.core.trade.TradeModule;
-import bisq.core.user.Preferences;
-import bisq.core.user.User;
-
-import bisq.network.crypto.EncryptionServiceModule;
-import bisq.network.p2p.P2PModule;
-import bisq.network.p2p.network.BridgeAddressProvider;
-import bisq.network.p2p.seed.SeedNodeRepository;
-
 import bisq.common.ClockWatcher;
 import bisq.common.app.AppModule;
 import bisq.common.config.Config;
@@ -44,7 +26,21 @@ import bisq.common.crypto.PubKeyRing;
 import bisq.common.crypto.PubKeyRingProvider;
 import bisq.common.proto.network.NetworkProtoResolver;
 import bisq.common.proto.persistable.PersistenceProtoResolver;
-
+import bisq.core.alert.AlertModule;
+import bisq.core.app.TorSetup;
+import bisq.core.btc.BitcoinModule;
+import bisq.core.filter.FilterModule;
+import bisq.core.network.p2p.seed.DefaultSeedNodeRepository;
+import bisq.core.offer.OfferModule;
+import bisq.core.proto.network.CoreNetworkProtoResolver;
+import bisq.core.proto.persistable.CorePersistenceProtoResolver;
+import bisq.core.trade.TradeModule;
+import bisq.core.user.Preferences;
+import bisq.core.user.User;
+import bisq.network.crypto.EncryptionServiceModule;
+import bisq.network.p2p.P2PModule;
+import bisq.network.p2p.network.BridgeAddressProvider;
+import bisq.network.p2p.seed.SeedNodeRepository;
 import com.google.inject.Singleton;
 
 import java.io.File;
@@ -88,7 +84,6 @@ public class ModuleForAppWithP2p extends AppModule {
         install(new OfferModule(config));
         install(new P2PModule(config));
         install(new BitcoinModule(config));
-        install(new DaoModule(config));
         install(new AlertModule(config));
         install(new FilterModule(config));
         bind(PubKeyRing.class).toProvider(PubKeyRingProvider.class);

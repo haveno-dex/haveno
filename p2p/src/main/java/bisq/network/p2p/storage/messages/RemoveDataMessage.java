@@ -17,11 +17,9 @@
 
 package bisq.network.p2p.storage.messages;
 
-import bisq.network.p2p.storage.payload.ProtectedStorageEntry;
-
 import bisq.common.app.Version;
 import bisq.common.proto.network.NetworkProtoResolver;
-
+import bisq.network.p2p.storage.payload.ProtectedStorageEntry;
 import lombok.EqualsAndHashCode;
 import lombok.Value;
 

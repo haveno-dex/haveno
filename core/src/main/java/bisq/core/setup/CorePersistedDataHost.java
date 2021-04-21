@@ -17,22 +17,9 @@
 
 package bisq.core.setup;
 
-import java.util.ArrayList;
-import java.util.List;
-
-import com.google.inject.Injector;
-
-import bisq.common.config.Config;
 import bisq.common.proto.persistable.PersistedDataHost;
 import bisq.core.btc.model.AddressEntryList;
 import bisq.core.btc.model.XmrAddressEntryList;
-import bisq.core.dao.governance.ballot.BallotListService;
-import bisq.core.dao.governance.blindvote.MyBlindVoteListService;
-import bisq.core.dao.governance.bond.reputation.MyReputationListService;
-import bisq.core.dao.governance.myvote.MyVoteListService;
-import bisq.core.dao.governance.proofofburn.MyProofOfBurnListService;
-import bisq.core.dao.governance.proposal.MyProposalListService;
-import bisq.core.dao.state.unconfirmed.UnconfirmedBsqChangeOutputListService;
 import bisq.core.offer.OpenOfferManager;
 import bisq.core.support.dispute.arbitration.ArbitrationDisputeListService;
 import bisq.core.support.dispute.mediation.MediationDisputeListService;
@@ -43,7 +30,11 @@ import bisq.core.trade.failed.FailedTradesManager;
 import bisq.core.user.Preferences;
 import bisq.core.user.User;
 import bisq.network.p2p.P2PService;
+import com.google.inject.Injector;
 import lombok.extern.slf4j.Slf4j;
+
+import java.util.ArrayList;
+import java.util.List;
 
 @Slf4j
 public class CorePersistedDataHost {
@@ -64,15 +55,6 @@ public class CorePersistedDataHost {
         persistedDataHosts.add(injector.getInstance(RefundDisputeListService.class));
         persistedDataHosts.add(injector.getInstance(P2PService.class));
 
-        if (injector.getInstance(Config.class).daoActivated) {
-            persistedDataHosts.add(injector.getInstance(BallotListService.class));
-            persistedDataHosts.add(injector.getInstance(MyBlindVoteListService.class));
-            persistedDataHosts.add(injector.getInstance(MyVoteListService.class));
-            persistedDataHosts.add(injector.getInstance(MyProposalListService.class));
-            persistedDataHosts.add(injector.getInstance(MyReputationListService.class));
-            persistedDataHosts.add(injector.getInstance(MyProofOfBurnListService.class));
-            persistedDataHosts.add(injector.getInstance(UnconfirmedBsqChangeOutputListService.class));
-        }
         return persistedDataHosts;
     }
 }

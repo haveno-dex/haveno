@@ -17,10 +17,6 @@
 
 package bisq.core.trade.protocol.tasks;
 
-import java.util.Arrays;
-import java.util.Date;
-import java.util.UUID;
-
 import bisq.common.app.Version;
 import bisq.common.taskrunner.TaskRunner;
 import bisq.core.btc.wallet.XmrWalletService;
@@ -34,10 +30,14 @@ import bisq.network.p2p.SendDirectMessageListener;
 import lombok.extern.slf4j.Slf4j;
 import monero.wallet.MoneroWallet;
 
+import java.util.Arrays;
+import java.util.Date;
+import java.util.UUID;
+
 @Slf4j
 public class UpdateMultisigWithTradingPeer extends TradeTask {
 
-  private TradeMessageListener updateMultisigResponseListener;
+    private TradeMessageListener updateMultisigResponseListener;
 
     @SuppressWarnings({"unused"})
     public UpdateMultisigWithTradingPeer(TaskRunner taskHandler, Trade trade) {
@@ -48,43 +48,43 @@ public class UpdateMultisigWithTradingPeer extends TradeTask {
     protected void run() {
         try {
             runInterceptHook();
-                        
+
             // fetch relevant trade info
             XmrWalletService walletService = processModel.getProvider().getXmrWalletService();
             MoneroWallet multisigWallet = walletService.getOrCreateMultisigWallet(processModel.getTrade().getId());
-            
+
             // skip if multisig wallet does not need updated
             if (!multisigWallet.isMultisigImportNeeded()) {
-              log.warn("Multisig wallet does not need updated, this should not happen");
-              failed();
-              return;
+                log.warn("Multisig wallet does not need updated, this should not happen");
+                failed();
+                return;
             }
-            
+
             // register listener to receive updated multisig response
             updateMultisigResponseListener = new TradeMessageListener() {
-              @Override
-              public void onVerifiedTradeMessage(TradeMessage message, NodeAddress sender) {
-                if (!(message instanceof UpdateMultisigResponse)) return;
-                
-                System.out.println("Received UpdateMultisigResponse!!!");
-                System.out.println(message);
-                System.out.println(sender);
-                
-                UpdateMultisigResponse response = (UpdateMultisigResponse) message;
-                int numOutputsSigned = multisigWallet.importMultisigHex(Arrays.asList(response.getUpdatedMultisigHex()));
-                multisigWallet.sync();
-                multisigWallet.save();
-                System.out.println("Num outputs signed with imported multisig hex: " + numOutputsSigned);
-                trade.removeTradeMessageListener(updateMultisigResponseListener);
-                complete();
-              }
+                @Override
+                public void onVerifiedTradeMessage(TradeMessage message, NodeAddress sender) {
+                    if (!(message instanceof UpdateMultisigResponse)) return;
+
+                    System.out.println("Received UpdateMultisigResponse!!!");
+                    System.out.println(message);
+                    System.out.println(sender);
+
+                    UpdateMultisigResponse response = (UpdateMultisigResponse) message;
+                    int numOutputsSigned = multisigWallet.importMultisigHex(Arrays.asList(response.getUpdatedMultisigHex()));
+                    multisigWallet.sync();
+                    multisigWallet.save();
+                    System.out.println("Num outputs signed with imported multisig hex: " + numOutputsSigned);
+                    trade.removeTradeMessageListener(updateMultisigResponseListener);
+                    complete();
+                }
             };
             trade.addTradeMessageListener(updateMultisigResponseListener);
-            
+
             // get updated multisig hex
             multisigWallet.sync();
             String updatedMultisigHex = multisigWallet.getMultisigHex();
-            
+
             // message trading peer with updated multisig hex
             UpdateMultisigRequest message = new UpdateMultisigRequest(
                     processModel.getOffer().getId(),
@@ -94,23 +94,24 @@ public class UpdateMultisigWithTradingPeer extends TradeTask {
                     Version.getP2PMessageVersion(),
                     new Date().getTime(),
                     updatedMultisigHex);
-            
+
             System.out.println("SENDING MESSAGE!!!!!!!");
             System.out.println(message);
-            
+
             // TODO (woodser): trade.getTradingPeerNodeAddress() and/or trade.getTradingPeerPubKeyRing() are null on restart of application, so cannot send payment to complete trade
             log.info("Send {} with offerId {} and uid {} to peer {}", message.getClass().getSimpleName(), message.getTradeId(), message.getUid(), trade.getTradingPeerNodeAddress());
             processModel.getP2PService().sendEncryptedDirectMessage(trade.getTradingPeerNodeAddress(), trade.getTradingPeerPubKeyRing(), message, new SendDirectMessageListener() {
-              @Override
-              public void onArrived() {
-                  log.info("{} arrived at trading peer: offerId={}; uid={}", message.getClass().getSimpleName(), message.getTradeId(), message.getUid());
-              }
-              @Override
-              public void onFault(String errorMessage) {
-                  log.error("Sending {} failed: uid={}; peer={}; error={}", message.getClass().getSimpleName(), message.getUid(), trade.getArbitratorNodeAddress(), errorMessage);
-                  appendToErrorMessage("Sending message failed: message=" + message + "\nerrorMessage=" + errorMessage);
-                  failed();
-              }
+                @Override
+                public void onArrived() {
+                    log.info("{} arrived at trading peer: offerId={}; uid={}", message.getClass().getSimpleName(), message.getTradeId(), message.getUid());
+                }
+
+                @Override
+                public void onFault(String errorMessage) {
+                    log.error("Sending {} failed: uid={}; peer={}; error={}", message.getClass().getSimpleName(), message.getUid(), trade.getArbitratorNodeAddress(), errorMessage);
+                    appendToErrorMessage("Sending message failed: message=" + message + "\nerrorMessage=" + errorMessage);
+                    failed();
+                }
             });
         } catch (Throwable t) {
             failed(t);

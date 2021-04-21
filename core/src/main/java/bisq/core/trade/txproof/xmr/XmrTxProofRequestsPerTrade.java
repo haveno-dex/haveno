@@ -17,6 +17,7 @@
 
 package bisq.core.trade.txproof.xmr;
 
+import bisq.common.handlers.FaultHandler;
 import bisq.core.locale.Res;
 import bisq.core.support.dispute.Dispute;
 import bisq.core.support.dispute.mediation.MediationManager;
@@ -25,25 +26,18 @@ import bisq.core.trade.Trade;
 import bisq.core.trade.txproof.AssetTxProofRequestsPerTrade;
 import bisq.core.trade.txproof.AssetTxProofResult;
 import bisq.core.user.AutoConfirmSettings;
-
 import bisq.network.Socks5ProxyProvider;
-
-import bisq.common.handlers.FaultHandler;
-
-import org.bitcoinj.core.Coin;
-
 import javafx.beans.value.ChangeListener;
-
 import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
+import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
+import org.bitcoinj.core.Coin;
 
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Consumer;
-
-import lombok.Getter;
-import lombok.extern.slf4j.Slf4j;
 
 /**
  * Handles the XMR tx proof requests for multiple services per trade.

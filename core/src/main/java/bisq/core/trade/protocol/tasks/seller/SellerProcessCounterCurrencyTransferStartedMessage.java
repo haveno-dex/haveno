@@ -17,13 +17,11 @@
 
 package bisq.core.trade.protocol.tasks.seller;
 
+import bisq.common.taskrunner.TaskRunner;
 import bisq.core.trade.Trade;
 import bisq.core.trade.messages.CounterCurrencyTransferStartedMessage;
 import bisq.core.trade.protocol.tasks.TradeTask;
 import bisq.core.util.Validator;
-
-import bisq.common.taskrunner.TaskRunner;
-
 import lombok.extern.slf4j.Slf4j;
 
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -43,7 +41,7 @@ public class SellerProcessCounterCurrencyTransferStartedMessage extends TradeTas
             Validator.checkTradeId(processModel.getOfferId(), message);
             checkNotNull(message);
 
-            processModel.getTradingPeer().setPayoutAddressString(Validator.nonEmptyStringOf(message.getBuyerPayoutAddress()));	// TODO (woodser): verify against contract
+            processModel.getTradingPeer().setPayoutAddressString(Validator.nonEmptyStringOf(message.getBuyerPayoutAddress()));    // TODO (woodser): verify against contract
             processModel.getTradingPeer().setSignedPayoutTxHex(message.getBuyerPayoutTxSigned());
 
             // update to the latest peer address of our peer if the message is correct  // TODO (woodser): update to latest peer addresses where needed

@@ -25,7 +25,6 @@ import bisq.core.account.witness.AccountAgeWitnessService;
 import bisq.core.btc.TxFeeEstimationService;
 import bisq.core.btc.listeners.XmrBalanceListener;
 import bisq.core.btc.model.XmrAddressEntry;
-import bisq.core.btc.wallet.BsqWalletService;
 import bisq.core.btc.wallet.Restrictions;
 import bisq.core.btc.wallet.XmrWalletService;
 import bisq.core.filter.FilterManager;
@@ -72,7 +71,6 @@ import org.jetbrains.annotations.NotNull;
 class TakeOfferDataModel extends OfferDataModel {
     private final TradeManager tradeManager;
     private final OfferBook offerBook;
-    private final BsqWalletService bsqWalletService;
     private final User user;
     private final FeeService feeService;
     private final FilterManager filterManager;
@@ -113,7 +111,6 @@ class TakeOfferDataModel extends OfferDataModel {
     TakeOfferDataModel(TradeManager tradeManager,
                        OfferBook offerBook,
                        XmrWalletService xmrWalletService,
-                       BsqWalletService bsqWalletService,
                        User user, FeeService feeService,
                        FilterManager filterManager,
                        Preferences preferences,
@@ -127,7 +124,6 @@ class TakeOfferDataModel extends OfferDataModel {
 
         this.tradeManager = tradeManager;
         this.offerBook = offerBook;
-        this.bsqWalletService = bsqWalletService;
         this.user = user;
         this.feeService = feeService;
         this.filterManager = filterManager;
@@ -236,7 +232,7 @@ class TakeOfferDataModel extends OfferDataModel {
             public void onBalanceChanged(BigInteger balance) {
               updateBalance();
             }
-            
+
 //            public void onBalanceChanged(Coin balance, Transaction tx) {
 //                updateBalance();
 //
@@ -651,10 +647,8 @@ class TakeOfferDataModel extends OfferDataModel {
         // we have to keep a minimum amount of BSQ == bitcoin dust limit
         // otherwise there would be dust violations for change UTXOs
         // essentially means the minimum usable balance of BSQ is 5.46
-        Coin usableBsqBalance = bsqWalletService.getAvailableConfirmedBalance().subtract(Restrictions.getMinNonDustOutput());
-        if (usableBsqBalance.isNegative())
-            usableBsqBalance = Coin.ZERO;
-        return usableBsqBalance;
+        //TODO(niyid) Retain for now to minimize side effects
+        return Coin.ZERO;
     }
 
     public boolean isHalCashAccount() {
@@ -662,7 +656,7 @@ class TakeOfferDataModel extends OfferDataModel {
     }
 
     public boolean isCurrencyForTakerFeeBtc() {
-        return OfferUtil.isCurrencyForTakerFeeBtc(preferences, bsqWalletService, amount.get());
+        return OfferUtil.isCurrencyForTakerFeeBtc(preferences, amount.get());
     }
 
     public void setPreferredCurrencyForTakerFeeBtc(boolean isCurrencyForTakerFeeBtc) {
@@ -682,10 +676,10 @@ class TakeOfferDataModel extends OfferDataModel {
     }
 
     boolean isTakerFeeValid() {
-        return preferences.getPayFeeInBtc() || OfferUtil.isBsqForTakerFeeAvailable(bsqWalletService, amount.get());
+        return true;//TODO(niyid) Always true. Fee only in XMR.
     }
 
     public boolean isBsqForFeeAvailable() {
-        return OfferUtil.isBsqForTakerFeeAvailable(bsqWalletService, amount.get());
+        return false;//TODO(niyid) Always false. No BSQ.
     }
 }

@@ -20,9 +20,7 @@ package bisq.network.p2p;
 import bisq.common.app.Version;
 import bisq.common.crypto.SealedAndSigned;
 import bisq.common.proto.network.NetworkEnvelope;
-
 import com.google.protobuf.ByteString;
-
 import lombok.EqualsAndHashCode;
 import lombok.Value;
 

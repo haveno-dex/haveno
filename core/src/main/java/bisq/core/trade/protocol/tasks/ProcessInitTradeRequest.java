@@ -17,15 +17,6 @@
 
 package bisq.core.trade.protocol.tasks;
 
-import static bisq.core.util.Validator.checkTradeId;
-import static bisq.core.util.Validator.nonEmptyStringOf;
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
-
-import org.bitcoinj.core.Coin;
-
-import com.google.common.base.Charsets;
-
 import bisq.common.taskrunner.TaskRunner;
 import bisq.core.exceptions.TradePriceOutOfToleranceException;
 import bisq.core.offer.Offer;
@@ -37,7 +28,14 @@ import bisq.core.trade.messages.InitTradeRequest;
 import bisq.core.trade.protocol.TradingPeer;
 import bisq.core.user.User;
 import bisq.network.p2p.NodeAddress;
+import com.google.common.base.Charsets;
 import lombok.extern.slf4j.Slf4j;
+import org.bitcoinj.core.Coin;
+
+import static bisq.core.util.Validator.checkTradeId;
+import static bisq.core.util.Validator.nonEmptyStringOf;
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
 
 @Slf4j
 public class ProcessInitTradeRequest extends TradeTask {
@@ -54,46 +52,50 @@ public class ProcessInitTradeRequest extends TradeTask {
             InitTradeRequest request = (InitTradeRequest) processModel.getTradeMessage();
             checkNotNull(request);
             checkTradeId(processModel.getOfferId(), request);
-            
+
             System.out.println("PROCESS INIT TRADE REQUEST");
             System.out.println(request);
-            
+
             User user = checkNotNull(processModel.getUser(), "User must not be null");
 
             // handle maker trade
             TradingPeer multisigParticipant;
             if (trade instanceof MakerTrade) {
-              
-              NodeAddress arbitratorNodeAddress = checkNotNull(request.getArbitratorNodeAddress(), "payDepositRequest.getMediatorNodeAddress() must not be null");
-              Mediator mediator = checkNotNull(user.getAcceptedMediatorByAddress(arbitratorNodeAddress), "user.getAcceptedMediatorByAddress(mediatorNodeAddress) must not be null"); // TODO (woodser): switch to arbitrator?
-              
-              multisigParticipant = processModel.getTaker();
-              trade.setTakerNodeAddress(request.getTakerNodeAddress());
-              trade.setTakerPubKeyRing(request.getPubKeyRing());
-              trade.setArbitratorNodeAddress(request.getArbitratorNodeAddress());
-              trade.setArbitratorPubKeyRing(mediator.getPubKeyRing());
+
+                NodeAddress arbitratorNodeAddress = checkNotNull(request.getArbitratorNodeAddress(), "payDepositRequest.getMediatorNodeAddress() must not be null");
+                Mediator mediator = checkNotNull(user.getAcceptedMediatorByAddress(arbitratorNodeAddress), "user.getAcceptedMediatorByAddress(mediatorNodeAddress) must not be null"); // TODO (woodser): switch to arbitrator?
+
+                multisigParticipant = processModel.getTaker();
+                trade.setTakerNodeAddress(request.getTakerNodeAddress());
+                trade.setTakerPubKeyRing(request.getPubKeyRing());
+                trade.setArbitratorNodeAddress(request.getArbitratorNodeAddress());
+                trade.setArbitratorPubKeyRing(mediator.getPubKeyRing());
             }
-            
+
             // handle arbitrator trade
             else if (trade instanceof ArbitratorTrade) {
-              // TODO (woodser): synchronize access to setting trade state in case of concurrent requests
-              if (request.getSenderNodeAddress().equals(trade.getMakerNodeAddress())) {
-                multisigParticipant = processModel.getMaker();
-                if (!trade.getMakerNodeAddress().equals(request.getMakerNodeAddress())) throw new RuntimeException("Init trade requests from maker and taker do not agree");  // TODO (woodser): test when maker and taker do not agree, use proper handling
-                if (trade.getMakerPubKeyRing() == null) trade.setMakerPubKeyRing(request.getPubKeyRing());
-                else if (!trade.getMakerPubKeyRing().equals(request.getPubKeyRing())) throw new RuntimeException("Init trade requests from maker and taker do not agree");  // TODO (woodser): proper handling
-              } else if (request.getSenderNodeAddress().equals(trade.getTakerNodeAddress())) {
-                multisigParticipant = processModel.getTaker();
-                if (!trade.getTakerNodeAddress().equals(request.getTakerNodeAddress())) throw new RuntimeException("Init trade requests from maker and taker do not agree");  // TODO (woodser): proper handling
-                if (trade.getTakerPubKeyRing() == null) trade.setTakerPubKeyRing(request.getPubKeyRing());
-                else if (!trade.getTakerPubKeyRing().equals(request.getPubKeyRing())) throw new RuntimeException("Init trade requests from maker and taker do not agree");  // TODO (woodser): proper handling
-              } else {
-                throw new RuntimeException("Sender is not trade's maker or taker");
-              }
+                // TODO (woodser): synchronize access to setting trade state in case of concurrent requests
+                if (request.getSenderNodeAddress().equals(trade.getMakerNodeAddress())) {
+                    multisigParticipant = processModel.getMaker();
+                    if (!trade.getMakerNodeAddress().equals(request.getMakerNodeAddress()))
+                        throw new RuntimeException("Init trade requests from maker and taker do not agree");  // TODO (woodser): test when maker and taker do not agree, use proper handling
+                    if (trade.getMakerPubKeyRing() == null) trade.setMakerPubKeyRing(request.getPubKeyRing());
+                    else if (!trade.getMakerPubKeyRing().equals(request.getPubKeyRing()))
+                        throw new RuntimeException("Init trade requests from maker and taker do not agree");  // TODO (woodser): proper handling
+                } else if (request.getSenderNodeAddress().equals(trade.getTakerNodeAddress())) {
+                    multisigParticipant = processModel.getTaker();
+                    if (!trade.getTakerNodeAddress().equals(request.getTakerNodeAddress()))
+                        throw new RuntimeException("Init trade requests from maker and taker do not agree");  // TODO (woodser): proper handling
+                    if (trade.getTakerPubKeyRing() == null) trade.setTakerPubKeyRing(request.getPubKeyRing());
+                    else if (!trade.getTakerPubKeyRing().equals(request.getPubKeyRing()))
+                        throw new RuntimeException("Init trade requests from maker and taker do not agree");  // TODO (woodser): proper handling
+                } else {
+                    throw new RuntimeException("Sender is not trade's maker or taker");
+                }
             } else {
-              throw new RuntimeException("Invalid trade type to process init trade request: " + trade.getClass().getName());
+                throw new RuntimeException("Invalid trade type to process init trade request: " + trade.getClass().getName());
             }
-            
+
             multisigParticipant.setPaymentAccountPayload(checkNotNull(request.getPaymentAccountPayload()));
             multisigParticipant.setPayoutAddressString(nonEmptyStringOf(request.getPayoutAddressString()));
             multisigParticipant.setPubKeyRing(checkNotNull(request.getPubKeyRing()));
@@ -119,7 +121,7 @@ public class ProcessInitTradeRequest extends TradeTask {
 
             checkArgument(request.getTradeAmount() > 0);
             trade.setTradeAmount(Coin.valueOf(request.getTradeAmount()));
-            
+
             processModel.getTradeManager().requestPersistence();
 
             complete();

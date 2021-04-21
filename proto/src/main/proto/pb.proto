@@ -1,7 +1,7 @@
 syntax = "proto3";
 package io.bisq.protobuffer;
 
-//
+//MyBlindVoteList
 // Protobuffer v3 definitions of network messages and persisted objects.
 //
 
@@ -78,7 +78,7 @@ message NetworkEnvelope {
 
         RefreshTradeStateRequest refresh_trade_state_request = 50 [deprecated = true];
         TraderSignedWitnessMessage trader_signed_witness_message = 51 [deprecated = true];
-        
+
         InitTradeRequest init_trade_request = 1001;
         MakerReadyToFundMultisigRequest maker_ready_to_fund_multisig_request = 1002;
         MakerReadyToFundMultisigResponse maker_ready_to_fund_multisig_response = 1003;
@@ -86,7 +86,7 @@ message NetworkEnvelope {
         UpdateMultisigRequest update_multisig_request = 1005;
         UpdateMultisigResponse update_multisig_response = 1006;
         ArbitratorPayoutTxRequest arbitrator_payout_tx_request = 1007;
-        ArbitratorPayoutTxResponse arbitrator_payout_tx_response = 1008; 
+        ArbitratorPayoutTxResponse arbitrator_payout_tx_response = 1008;
     }
 }
 
@@ -1256,22 +1256,22 @@ message PersistableEnvelope {
 
         // PersistableNetworkPayloadList persistable_network_payload_list = 15; // long deprecated & migration away from it is already done
 
-        ProposalStore proposal_store = 16;
-        TempProposalStore temp_proposal_store = 17;
-        BlindVoteStore blind_vote_store = 18;
-        MyProposalList my_proposal_list = 19;
-        BallotList ballot_list = 20;
-        MyVoteList my_vote_list = 21;
-        MyBlindVoteList my_blind_vote_list = 22;
+        ProposalStore proposal_store = 16; //TODO(niyid) Marked for deletion
+        TempProposalStore temp_proposal_store = 17; //TODO(niyid) Marked for deletion
+        BlindVoteStore blind_vote_store = 18; //TODO(niyid) Marked for deletion
+        MyProposalList my_proposal_list = 19; //TODO(niyid) Marked for deletion
+        BallotList ballot_list = 20; //TODO(niyid) Marked for deletion
+        MyVoteList my_vote_list = 21; //TODO(niyid) Marked for deletion
+        MyBlindVoteList my_blind_vote_list = 22; //TODO(niyid) Marked for deletion
         // MeritList merit_list = 23; // was not used here, but its class used to implement PersistableEnvelope via its super
-        DaoStateStore dao_state_store = 24;
-        MyReputationList my_reputation_list = 25;
-        MyProofOfBurnList my_proof_of_burn_list = 26;
-        UnconfirmedBsqChangeOutputList unconfirmed_bsq_change_output_list = 27;
+        DaoStateStore dao_state_store = 24; //TODO(niyid) Marked for deletion
+        MyReputationList my_reputation_list = 25; //TODO(niyid) Marked for deletion
+        MyProofOfBurnList my_proof_of_burn_list = 26; //TODO(niyid) Marked for deletion
+        UnconfirmedBsqChangeOutputList unconfirmed_bsq_change_output_list = 27; //TODO(niyid) Marked for deletion
         SignedWitnessStore signed_witness_store = 28;
         MediationDisputeList mediation_dispute_list = 29;
         RefundDisputeList refund_dispute_list = 30;
-        
+
         XmrAddressEntryList xmr_address_entry_list = 31;
     }
 }
@@ -1529,7 +1529,7 @@ message Trade {
     int64 last_refresh_request_date = 36 [deprecated = true];
     string counter_currency_extra_data = 37;
     string asset_tx_proof_result = 38; // name of AssetTxProofResult enum
-    
+
     NodeAddress taker_node_address = 1000;	// TODO (woodser): re-order? need to reset trades
     PubKeyRing taker_pub_key_ring = 1001;
     string taker_deposit_tx_id = 1002;
@@ -1579,7 +1579,7 @@ message ProcessModel {
     bytes mediated_payout_tx_signature = 18;
     int64 buyer_payout_amount_from_mediation = 19;
     int64 seller_payout_amount_from_mediation = 20;
-    
+
     TradingPeer maker = 1001;
     TradingPeer taker = 1002;
     TradingPeer arbitrator = 1003;
@@ -1609,7 +1609,7 @@ message TradingPeer {
     bytes account_age_witness_signature = 13;
     int64 current_date = 14;
     bytes mediated_payout_tx_signature = 15;
-    
+
     string prepared_multisig_hex = 1001;
     string made_multisig_hex = 1002;
     string signed_payout_tx_hex = 1003;

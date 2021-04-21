@@ -17,25 +17,22 @@
 
 package bisq.network.p2p.storage.payload;
 
+import bisq.common.app.Version;
+import bisq.common.crypto.CryptoException;
+import bisq.common.crypto.Sig;
 import bisq.network.p2p.PrefixedSealedAndSignedMessage;
 import bisq.network.p2p.TestUtils;
 import bisq.network.p2p.storage.P2PDataStorage;
 import bisq.network.p2p.storage.mocks.ProtectedStoragePayloadStub;
-
-import bisq.common.app.Version;
-import bisq.common.crypto.CryptoException;
-import bisq.common.crypto.Sig;
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.Test;
 
 import java.security.KeyPair;
 import java.security.NoSuchAlgorithmException;
 import java.security.PublicKey;
-
 import java.time.Clock;
 import java.time.Duration;
-
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
 
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -132,7 +129,7 @@ public class ProtectedStorageEntryTest {
         ProtectedStoragePayload protectedStoragePayload = new ProtectedStoragePayloadStub(ownerKeys.getPublic());
         ProtectedStorageEntry protectedStorageEntry =
                 new ProtectedStorageEntry(protectedStoragePayload, ownerKeys.getPublic(),
-                        1, new byte[] { 0 }, Clock.systemDefaultZone());
+                        1, new byte[]{0}, Clock.systemDefaultZone());
 
         Assert.assertFalse(protectedStorageEntry.isValidForAddOperation());
     }
@@ -190,7 +187,7 @@ public class ProtectedStorageEntryTest {
         ProtectedStoragePayload protectedStoragePayload = new ProtectedStoragePayloadStub(ownerKeys.getPublic());
         ProtectedStorageEntry protectedStorageEntry =
                 new ProtectedStorageEntry(protectedStoragePayload, ownerKeys.getPublic(),
-                        1, new byte[] { 0 }, Clock.systemDefaultZone());
+                        1, new byte[]{0}, Clock.systemDefaultZone());
 
         Assert.assertFalse(protectedStorageEntry.isValidForRemoveOperation());
     }
@@ -251,8 +248,8 @@ public class ProtectedStorageEntryTest {
 
         KeyPair ownerKeys = TestUtils.generateKeyPair();
         IncompatiblePayload incompatiblePayload = new IncompatiblePayload(ownerKeys.getPublic());
-        new ProtectedStorageEntry(incompatiblePayload,ownerKeys.getPublic(), 1,
-                new byte[] { 0 }, Clock.systemDefaultZone());
+        new ProtectedStorageEntry(incompatiblePayload, ownerKeys.getPublic(), 1,
+                new byte[]{0}, Clock.systemDefaultZone());
     }
 
     // TESTCASE: PSEs received with future-dated timestamps are updated to be min(currentTime, creationTimeStamp)
@@ -266,7 +263,7 @@ public class ProtectedStorageEntryTest {
         ProtectedStoragePayload protectedStoragePayload = new ProtectedStoragePayloadStub(ownerKeys.getPublic());
         ProtectedStorageEntry protectedStorageEntry =
                 new ProtectedStorageEntry(protectedStoragePayload, Sig.getPublicKeyBytes(ownerKeys.getPublic()),
-                        ownerKeys.getPublic(), 1, new byte[] { 0 }, futureClock.millis(), baseClock);
+                        ownerKeys.getPublic(), 1, new byte[]{0}, futureClock.millis(), baseClock);
 
         Assert.assertTrue(protectedStorageEntry.getCreationTimeStamp() <= baseClock.millis());
     }

@@ -19,10 +19,9 @@ package bisq.core.api;
 
 import bisq.core.provider.price.MarketPrice;
 import bisq.core.provider.price.PriceFeedService;
+import lombok.extern.slf4j.Slf4j;
 
 import javax.inject.Inject;
-
-import lombok.extern.slf4j.Slf4j;
 
 import static bisq.common.util.MathUtils.roundDouble;
 import static java.lang.String.format;

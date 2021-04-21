@@ -17,19 +17,14 @@
 
 package bisq.network.p2p.storage.mocks;
 
-import bisq.network.p2p.storage.payload.ProtectedStoragePayload;
-
 import bisq.common.crypto.Sig;
-
+import bisq.network.p2p.storage.payload.ProtectedStoragePayload;
 import com.google.protobuf.Message;
-
-import java.security.PublicKey;
-
-import java.util.Map;
-
 import lombok.Getter;
 
 import javax.annotation.Nullable;
+import java.security.PublicKey;
+import java.util.Map;
 
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;

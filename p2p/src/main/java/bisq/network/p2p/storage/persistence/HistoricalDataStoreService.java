@@ -17,20 +17,16 @@
 
 package bisq.network.p2p.storage.persistence;
 
-import bisq.network.p2p.storage.P2PDataStorage;
-import bisq.network.p2p.storage.payload.PersistableNetworkPayload;
-
 import bisq.common.app.Version;
 import bisq.common.persistence.PersistenceManager;
-
+import bisq.network.p2p.storage.P2PDataStorage;
+import bisq.network.p2p.storage.payload.PersistableNetworkPayload;
 import com.google.common.collect.ImmutableMap;
+import lombok.extern.slf4j.Slf4j;
 
 import java.io.File;
-
 import java.util.HashMap;
 import java.util.Map;
-
-import lombok.extern.slf4j.Slf4j;
 
 /**
  * Manages historical data stores tagged with the release versions.

@@ -17,7 +17,6 @@
 
 package bisq.core.locale;
 
-import bisq.core.dao.governance.asset.AssetService;
 import bisq.core.filter.FilterManager;
 
 import bisq.asset.Asset;
@@ -512,9 +511,8 @@ public class CurrencyUtil {
     }
 
     // Excludes all assets which got removed by DAO voting
-    public static List<CryptoCurrency> getActiveSortedCryptoCurrencies(AssetService assetService, FilterManager filterManager) {
+    public static List<CryptoCurrency> getActiveSortedCryptoCurrencies(FilterManager filterManager) {
         return getAllSortedCryptoCurrencies().stream()
-                .filter(e -> e.getCode().equals("BSQ") || assetService.isActive(e.getCode()))
                 .filter(e -> !filterManager.isCurrencyBanned(e.getCode()))
                 .collect(Collectors.toList());
     }

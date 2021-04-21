@@ -17,11 +17,6 @@
 
 package bisq.core.trade.protocol.tasks.maker;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-
-import java.util.Date;
-import java.util.UUID;
-
 import bisq.common.app.Version;
 import bisq.common.crypto.Sig;
 import bisq.common.taskrunner.TaskRunner;
@@ -41,6 +36,11 @@ import lombok.extern.slf4j.Slf4j;
 import monero.wallet.MoneroWallet;
 import monero.wallet.model.MoneroTxWallet;
 
+import java.util.Date;
+import java.util.UUID;
+
+import static com.google.common.base.Preconditions.checkNotNull;
+
 @Slf4j
 public class MakerSendsReadyToFundMultisigResponse extends TradeTask {
     @SuppressWarnings({"unused"})
@@ -52,78 +52,79 @@ public class MakerSendsReadyToFundMultisigResponse extends TradeTask {
     protected void run() {
         try {
             runInterceptHook();
-            
+
             System.out.println("MAKER SENDING READY TO FUND MULTISIG RESPONSE");
-            
+
             // determine if maker is ready to fund to-be-created multisig
             XmrWalletService walletService = processModel.getProvider().getXmrWalletService();
             MoneroWallet wallet = walletService.getWallet();
             wallet.sync();
             MoneroTxWallet offerFeeTx = wallet.getTx(trade.getOffer().getOfferFeePaymentTxId());
-            if (offerFeeTx.isFailed()) throw new RuntimeException("Offer fee tx has failed"); // TODO (woodser): proper error handling
+            if (offerFeeTx.isFailed())
+                throw new RuntimeException("Offer fee tx has failed"); // TODO (woodser): proper error handling
             System.out.println("Offer fee num confirmations; " + offerFeeTx.getNumConfirmations());
             System.out.println("Offer fee is locked; " + offerFeeTx.isLocked());
-            boolean makerReadyToFundMultisigResponse =  !offerFeeTx.isLocked();
-            
+            boolean makerReadyToFundMultisigResponse = !offerFeeTx.isLocked();
+
             String contractAsJson = null;
             String contractSignature = null;
             String payoutAddress = null;
-            
+
             // TODO (woodser): creating and signing contract here, but should do this in own task handler
             if (makerReadyToFundMultisigResponse) {
-              
-              TradingPeer taker = processModel.getTradingPeer();
-              PaymentAccountPayload makerPaymentAccountPayload = processModel.getPaymentAccountPayload(trade);
-              checkNotNull(makerPaymentAccountPayload, "makerPaymentAccountPayload must not be null");
-              PaymentAccountPayload takerPaymentAccountPayload = checkNotNull(taker.getPaymentAccountPayload());
-              boolean isBuyerMakerAndSellerTaker = trade instanceof BuyerAsMakerTrade;
 
-              NodeAddress buyerNodeAddress = isBuyerMakerAndSellerTaker ? processModel.getMyNodeAddress() : processModel.getTempTradingPeerNodeAddress();
-              NodeAddress sellerNodeAddress = isBuyerMakerAndSellerTaker ? processModel.getTempTradingPeerNodeAddress() : processModel.getMyNodeAddress();
-              String id = processModel.getOffer().getId();
-              
-              // get maker payout address
-              XmrAddressEntry makerPayoutEntry = walletService.getNewAddressEntry(id, XmrAddressEntry.Context.TRADE_PAYOUT);
-              checkNotNull(taker.getPayoutAddressString(), "taker.getPayoutAddressString()");
+                TradingPeer taker = processModel.getTradingPeer();
+                PaymentAccountPayload makerPaymentAccountPayload = processModel.getPaymentAccountPayload(trade);
+                checkNotNull(makerPaymentAccountPayload, "makerPaymentAccountPayload must not be null");
+                PaymentAccountPayload takerPaymentAccountPayload = checkNotNull(taker.getPaymentAccountPayload());
+                boolean isBuyerMakerAndSellerTaker = trade instanceof BuyerAsMakerTrade;
+
+                NodeAddress buyerNodeAddress = isBuyerMakerAndSellerTaker ? processModel.getMyNodeAddress() : processModel.getTempTradingPeerNodeAddress();
+                NodeAddress sellerNodeAddress = isBuyerMakerAndSellerTaker ? processModel.getTempTradingPeerNodeAddress() : processModel.getMyNodeAddress();
+                String id = processModel.getOffer().getId();
+
+                // get maker payout address
+                XmrAddressEntry makerPayoutEntry = walletService.getNewAddressEntry(id, XmrAddressEntry.Context.TRADE_PAYOUT);
+                checkNotNull(taker.getPayoutAddressString(), "taker.getPayoutAddressString()");
 
 //              checkArgument(!walletService.getAddressEntry(id, XmrAddressEntry.Context.MULTI_SIG).isPresent(), "addressEntry must not be set here.");
 //              XmrAddressEntry makerAddressEntry = walletService.getOrCreateAddressEntry(id, XmrAddressEntry.Context.MULTI_SIG);
 //              byte[] makerMultiSigPubKey = makerAddressEntry.getPubKey();
-              
-              checkNotNull(processModel.getAccountId(), "processModel.getAccountId() must not be null");
 
-              checkNotNull(trade.getTradeAmount(), "trade.getTradeAmount() must not be null");
-              Contract contract = new Contract(
-                      processModel.getOffer().getOfferPayload(),
-                      trade.getTradeAmount().value,
-                      trade.getTradePrice().getValue(),
-                      buyerNodeAddress,
-                      sellerNodeAddress,
-                      trade.getArbitratorNodeAddress(),
-                      isBuyerMakerAndSellerTaker,
-                      processModel.getAccountId(),
-                      taker.getAccountId(),
-                      makerPaymentAccountPayload,
-                      takerPaymentAccountPayload,
-                      processModel.getPubKeyRing(),
-                      taker.getPubKeyRing(),
-                      makerPayoutEntry.getAddressString(),
-                      taker.getPayoutAddressString(),
-                      trade.getLockTime()
-              );
-              contractAsJson = Utilities.objectToJson(contract);
-              contractSignature = Sig.sign(processModel.getKeyRing().getSignatureKeyPair().getPrivate(), contractAsJson);
-              payoutAddress = makerPayoutEntry.getAddressString();
+                checkNotNull(processModel.getAccountId(), "processModel.getAccountId() must not be null");
 
-              trade.setContract(contract);
-              trade.setContractAsJson(contractAsJson);
-              trade.setMakerContractSignature(contractSignature);
-              System.out.println("Contract as json:");
-              System.out.println(contractAsJson);
-              
-              processModel.getTradeManager().requestPersistence();
+                checkNotNull(trade.getTradeAmount(), "trade.getTradeAmount() must not be null");
+                Contract contract = new Contract(
+                        processModel.getOffer().getOfferPayload(),
+                        trade.getTradeAmount().value,
+                        trade.getTradePrice().getValue(),
+                        buyerNodeAddress,
+                        sellerNodeAddress,
+                        trade.getArbitratorNodeAddress(),
+                        isBuyerMakerAndSellerTaker,
+                        processModel.getAccountId(),
+                        taker.getAccountId(),
+                        makerPaymentAccountPayload,
+                        takerPaymentAccountPayload,
+                        processModel.getPubKeyRing(),
+                        taker.getPubKeyRing(),
+                        makerPayoutEntry.getAddressString(),
+                        taker.getPayoutAddressString(),
+                        trade.getLockTime()
+                );
+                contractAsJson = Utilities.objectToJson(contract);
+                contractSignature = Sig.sign(processModel.getKeyRing().getSignatureKeyPair().getPrivate(), contractAsJson);
+                payoutAddress = makerPayoutEntry.getAddressString();
+
+                trade.setContract(contract);
+                trade.setContractAsJson(contractAsJson);
+                trade.setMakerContractSignature(contractSignature);
+                System.out.println("Contract as json:");
+                System.out.println(contractAsJson);
+
+                processModel.getTradeManager().requestPersistence();
             }
-            
+
             // create message to indicate if maker is ready to fund to-be-created multisig wallet
             System.out.println("BUILDING READY RESPONSE");
             System.out.println("Payout address: " + payoutAddress);
@@ -139,7 +140,7 @@ public class MakerSendsReadyToFundMultisigResponse extends TradeTask {
                     processModel.getPaymentAccountPayload(trade),
                     processModel.getAccountId(),
                     new Date().getTime());
-            
+
             // send message to taker
             processModel.getP2PService().sendEncryptedDirectMessage(
                     trade.getTakerNodeAddress(),
@@ -151,6 +152,7 @@ public class MakerSendsReadyToFundMultisigResponse extends TradeTask {
                             log.info("{} arrived at taker: offerId={}; uid={}", message.getClass().getSimpleName(), message.getTradeId(), message.getUid());
                             complete();
                         }
+
                         @Override
                         public void onFault(String errorMessage) {
                             log.error("Sending {} failed: uid={}; peer={}; error={}", message.getClass().getSimpleName(), message.getUid(), trade.getTradingPeerNodeAddress(), errorMessage);

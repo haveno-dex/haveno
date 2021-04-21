@@ -17,26 +17,22 @@
 
 package bisq.core.trade.protocol.tasks.maker;
 
+import bisq.common.crypto.Sig;
+import bisq.common.taskrunner.TaskRunner;
 import bisq.core.btc.model.AddressEntry;
 import bisq.core.btc.wallet.BtcWalletService;
 import bisq.core.trade.Trade;
 import bisq.core.trade.messages.InputsForDepositTxResponse;
 import bisq.core.trade.protocol.tasks.TradeTask;
-
 import bisq.network.p2p.NodeAddress;
 import bisq.network.p2p.SendDirectMessageListener;
-
-import bisq.common.crypto.Sig;
-import bisq.common.taskrunner.TaskRunner;
+import lombok.extern.slf4j.Slf4j;
 
 import java.security.PrivateKey;
-
 import java.util.Arrays;
 import java.util.Date;
 import java.util.Optional;
 import java.util.UUID;
-
-import lombok.extern.slf4j.Slf4j;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;

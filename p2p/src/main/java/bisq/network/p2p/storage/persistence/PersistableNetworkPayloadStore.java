@@ -17,17 +17,15 @@
 
 package bisq.network.p2p.storage.persistence;
 
+import bisq.common.proto.persistable.PersistableEnvelope;
 import bisq.network.p2p.storage.P2PDataStorage;
 import bisq.network.p2p.storage.payload.PersistableNetworkPayload;
-
-import bisq.common.proto.persistable.PersistableEnvelope;
+import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
 
 import java.util.Collection;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-
-import lombok.Getter;
-import lombok.extern.slf4j.Slf4j;
 
 
 /**

@@ -24,10 +24,8 @@ import bisq.common.proto.persistable.PersistablePayload;
 import bisq.common.taskrunner.Model;
 import bisq.core.account.witness.AccountAgeWitnessService;
 import bisq.core.btc.model.RawTransactionInput;
-import bisq.core.btc.wallet.BsqWalletService;
 import bisq.core.btc.wallet.BtcWalletService;
 import bisq.core.btc.wallet.TradeWalletService;
-import bisq.core.dao.DaoFacade;
 import bisq.core.filter.FilterManager;
 import bisq.core.network.MessageState;
 import bisq.core.offer.Offer;
@@ -38,11 +36,7 @@ import bisq.core.proto.CoreProtoResolver;
 import bisq.core.support.dispute.arbitration.arbitrator.ArbitratorManager;
 import bisq.core.support.dispute.mediation.mediator.MediatorManager;
 import bisq.core.support.dispute.refund.refundagent.RefundAgentManager;
-import bisq.core.trade.ArbitratorTrade;
-import bisq.core.trade.MakerTrade;
-import bisq.core.trade.TakerTrade;
-import bisq.core.trade.Trade;
-import bisq.core.trade.TradeManager;
+import bisq.core.trade.*;
 import bisq.core.trade.messages.TradeMessage;
 import bisq.core.trade.statistics.ReferralIdService;
 import bisq.core.trade.statistics.TradeStatisticsManager;
@@ -51,18 +45,19 @@ import bisq.network.p2p.AckMessage;
 import bisq.network.p2p.NodeAddress;
 import bisq.network.p2p.P2PService;
 import com.google.protobuf.ByteString;
-import java.util.List;
-import java.util.Optional;
-import java.util.stream.Collectors;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleObjectProperty;
-import javax.annotation.Nullable;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import monero.wallet.model.MoneroTxWallet;
 import org.bitcoinj.core.Coin;
 import org.bitcoinj.core.Transaction;
+
+import javax.annotation.Nullable;
+import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
 
 // Fields marked as transient are only used during protocol execution which are based on directMessages so we do not
 // persist them.
@@ -152,7 +147,7 @@ public class ProcessModel implements Model, PersistablePayload {
     private long buyerPayoutAmountFromMediation;
     @Setter
     private long sellerPayoutAmountFromMediation;
-    
+
     // Added for XMR integration
     @Nullable
     @Getter
@@ -181,7 +176,6 @@ public class ProcessModel implements Model, PersistablePayload {
     private String takerPreparedDepositTxId;
     @Nullable
     transient private MoneroTxWallet buyerSignedPayoutTx;
-
 
 
     // We want to indicate the user the state of the message delivery of the
@@ -315,10 +309,10 @@ public class ProcessModel implements Model, PersistablePayload {
     }
 
     public MoneroTxWallet resolveTakeOfferFeeTx(Trade trade) {
-      if (takeOfferFeeTx == null) {
-        takeOfferFeeTx = provider.getXmrWalletService().getWallet().getTx(takeOfferFeeTxId);
-      }
-      return takeOfferFeeTx;
+        if (takeOfferFeeTx == null) {
+            takeOfferFeeTx = provider.getXmrWalletService().getWallet().getTx(takeOfferFeeTxId);
+        }
+        return takeOfferFeeTx;
     }
 
     public NodeAddress getMyNodeAddress() {
@@ -335,22 +329,22 @@ public class ProcessModel implements Model, PersistablePayload {
     public void setPaymentStartedMessageState(MessageState paymentStartedMessageStateProperty) {
         this.paymentStartedMessageStateProperty.set(paymentStartedMessageStateProperty);
     }
-    
+
     public void setTradingPeer(TradingPeer peer) {
-      if (trade == null) throw new RuntimeException("Cannot set trading peer because trade is null");
-      else if (trade instanceof MakerTrade) taker = peer;
-      else if (trade instanceof TakerTrade) maker = peer;
-      else throw new RuntimeException("Must be maker or taker to set trading peer");
+        if (trade == null) throw new RuntimeException("Cannot set trading peer because trade is null");
+        else if (trade instanceof MakerTrade) taker = peer;
+        else if (trade instanceof TakerTrade) maker = peer;
+        else throw new RuntimeException("Must be maker or taker to set trading peer");
     }
-    
+
     public TradingPeer getTradingPeer() {
-      if (trade == null) throw new RuntimeException("Cannot get trading peer because trade is null");
-      else if (trade instanceof MakerTrade) return taker;
-      else if (trade instanceof TakerTrade) return maker;
-      else if (trade instanceof ArbitratorTrade) return null;
-      else throw new RuntimeException("Unknown trade type: " + trade.getClass().getName());
+        if (trade == null) throw new RuntimeException("Cannot get trading peer because trade is null");
+        else if (trade instanceof MakerTrade) return taker;
+        else if (trade instanceof TakerTrade) return maker;
+        else if (trade instanceof ArbitratorTrade) return null;
+        else throw new RuntimeException("Unknown trade type: " + trade.getClass().getName());
     }
-    
+
     void setDepositTxSentAckMessage(AckMessage ackMessage) {
         MessageState messageState = ackMessage.isSuccess() ?
                 MessageState.ACKNOWLEDGED :
@@ -381,10 +375,6 @@ public class ProcessModel implements Model, PersistablePayload {
 
     public P2PService getP2PService() {
         return provider.getP2PService();
-    }
-
-    public BsqWalletService getBsqWalletService() {
-        return provider.getBsqWalletService();
     }
 
     public TradeWalletService getTradeWalletService() {
@@ -427,16 +417,12 @@ public class ProcessModel implements Model, PersistablePayload {
         return provider.getKeyRing();
     }
 
-    public DaoFacade getDaoFacade() {
-        return provider.getDaoFacade();
-    }
-
     public void setBuyerSignedPayoutTx(MoneroTxWallet buyerSignedPayoutTx) {
         this.buyerSignedPayoutTx = buyerSignedPayoutTx;
     }
-    
+
     @Nullable
     public MoneroTxWallet getBuyerSignedPayoutTx() {
-    	return buyerSignedPayoutTx;
+        return buyerSignedPayoutTx;
     }
 }

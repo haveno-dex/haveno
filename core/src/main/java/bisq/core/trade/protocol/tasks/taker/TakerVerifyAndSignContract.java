@@ -17,9 +17,6 @@
 
 package bisq.core.trade.protocol.tasks.taker;
 
-import static bisq.core.util.Validator.nonEmptyStringOf;
-import static com.google.common.base.Preconditions.checkNotNull;
-
 import bisq.common.crypto.Hash;
 import bisq.common.crypto.Sig;
 import bisq.common.taskrunner.TaskRunner;
@@ -37,6 +34,9 @@ import bisq.network.p2p.NodeAddress;
 import lombok.extern.slf4j.Slf4j;
 import org.bitcoinj.core.Coin;
 
+import static bisq.core.util.Validator.nonEmptyStringOf;
+import static com.google.common.base.Preconditions.checkNotNull;
+
 @Slf4j
 public class TakerVerifyAndSignContract extends TradeTask {
     public TakerVerifyAndSignContract(TaskRunner<Trade> taskHandler, Trade trade) {
@@ -48,9 +48,9 @@ public class TakerVerifyAndSignContract extends TradeTask {
         try {
             runInterceptHook();
 
-            
+
             //String takerFeeTxId = checkNotNull(processModel.getTakeOfferFeeTxId())m; // TODO (woodser): take offer fee tx id removed from contract
-            
+
             // collect maker info from response
             // TODO (woodser): this is not right place to collect maker contract info
             TradingPeer maker = processModel.getTradingPeer();
@@ -82,7 +82,7 @@ public class TakerVerifyAndSignContract extends TradeTask {
             String id = processModel.getOffer().getId();
             XmrAddressEntry takerPayoutAddressEntry = walletService.getOrCreateAddressEntry(id, XmrAddressEntry.Context.TRADE_PAYOUT);
             String takerPayoutAddressString = takerPayoutAddressEntry.getAddressString();
-            
+
             // TODO (woodser): xmr not using pub key ring for multisig address verification, needed?
 //            AddressEntry takerMultiSigAddressEntry = walletService.getOrCreateAddressEntry(id, AddressEntry.Context.MULTI_SIG);
 //            byte[] takerMultiSigPubKey = processModel.getMyMultiSigPubKey();

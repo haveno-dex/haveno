@@ -18,21 +18,17 @@
 package bisq.core.app;
 
 import bisq.core.btc.setup.WalletsSetup;
-
 import bisq.network.p2p.BootstrapListener;
 import bisq.network.p2p.P2PService;
-
-import javax.inject.Inject;
-import javax.inject.Singleton;
-
-import org.fxmisc.easybind.EasyBind;
-import org.fxmisc.easybind.monadic.MonadicBinding;
-
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.ReadOnlyBooleanProperty;
 import javafx.beans.property.SimpleBooleanProperty;
-
 import lombok.extern.slf4j.Slf4j;
+import org.fxmisc.easybind.EasyBind;
+import org.fxmisc.easybind.monadic.MonadicBinding;
+
+import javax.inject.Inject;
+import javax.inject.Singleton;
 
 /**
  * We often need to wait until network and wallet is ready or other combination of startup states.

@@ -20,19 +20,15 @@ package bisq.core.app;
 import bisq.common.config.Config;
 import bisq.common.file.FileUtil;
 import bisq.common.handlers.ErrorMessageHandler;
-
-import javax.inject.Inject;
-import javax.inject.Named;
-import javax.inject.Singleton;
-
-import java.nio.file.Paths;
-
-import java.io.File;
-import java.io.IOException;
-
 import lombok.extern.slf4j.Slf4j;
 
 import javax.annotation.Nullable;
+import javax.inject.Inject;
+import javax.inject.Named;
+import javax.inject.Singleton;
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Paths;
 
 import static bisq.common.util.Preconditions.checkDir;
 

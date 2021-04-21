@@ -22,29 +22,23 @@ import bisq.core.btc.Balances;
 import bisq.core.btc.model.AddressEntry;
 import bisq.core.btc.wallet.BtcWalletService;
 import bisq.core.btc.wallet.WalletsManager;
-
-import org.bitcoinj.core.Address;
-import org.bitcoinj.core.TransactionConfidence;
-import org.bitcoinj.crypto.KeyCrypterScrypt;
-
-import javax.inject.Inject;
-
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
-
+import lombok.extern.slf4j.Slf4j;
+import org.bitcoinj.core.Address;
+import org.bitcoinj.core.TransactionConfidence;
+import org.bitcoinj.crypto.KeyCrypterScrypt;
 import org.bouncycastle.crypto.params.KeyParameter;
 
+import javax.annotation.Nullable;
+import javax.inject.Inject;
 import java.util.List;
 import java.util.Optional;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-
-import lombok.extern.slf4j.Slf4j;
-
-import javax.annotation.Nullable;
 
 import static java.lang.String.format;
 import static java.util.concurrent.TimeUnit.SECONDS;
@@ -266,7 +260,7 @@ class CoreWalletsService {
     /**
      * Memoization stores the results of expensive function calls and returns
      * the cached result when the same input occurs again.
-     *
+     * <p>
      * Resulting LoadingCache is used by calling `.get(input I)` or
      * `.getUnchecked(input I)`, depending on whether or not `f` can return null.
      * That's because CacheLoader throws an exception on null output from `f`.

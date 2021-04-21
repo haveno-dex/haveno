@@ -18,10 +18,8 @@
 package bisq.core.trade.txproof.xmr;
 
 import bisq.core.trade.txproof.AssetTxProofHttpClient;
-
 import bisq.network.Socks5ProxyProvider;
 import bisq.network.http.HttpClientImpl;
-
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j

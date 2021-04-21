@@ -20,7 +20,6 @@ package bisq.core.offer;
 import bisq.common.app.Capabilities;
 import bisq.common.app.Capability;
 import bisq.common.util.Utilities;
-
 import org.bitcoinj.core.Coin;
 
 import java.util.Date;

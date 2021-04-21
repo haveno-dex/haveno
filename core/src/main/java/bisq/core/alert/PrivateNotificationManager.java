@@ -17,37 +17,29 @@
 
 package bisq.core.alert;
 
-import bisq.network.p2p.DecryptedMessageWithPubKey;
-import bisq.network.p2p.NodeAddress;
-import bisq.network.p2p.P2PService;
-import bisq.network.p2p.SendMailboxMessageListener;
-
 import bisq.common.app.DevEnv;
 import bisq.common.config.Config;
 import bisq.common.crypto.KeyRing;
 import bisq.common.crypto.PubKeyRing;
 import bisq.common.proto.network.NetworkEnvelope;
-
-import org.bitcoinj.core.ECKey;
-import org.bitcoinj.core.Utils;
-
-import javax.inject.Inject;
-import javax.inject.Named;
-
+import bisq.network.p2p.DecryptedMessageWithPubKey;
+import bisq.network.p2p.NodeAddress;
+import bisq.network.p2p.P2PService;
+import bisq.network.p2p.SendMailboxMessageListener;
 import com.google.common.base.Charsets;
-
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.ReadOnlyObjectProperty;
 import javafx.beans.property.SimpleObjectProperty;
-
-import java.security.SignatureException;
-
-import java.math.BigInteger;
-
-import java.util.UUID;
-
+import org.bitcoinj.core.ECKey;
+import org.bitcoinj.core.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import javax.inject.Inject;
+import javax.inject.Named;
+import java.math.BigInteger;
+import java.security.SignatureException;
+import java.util.UUID;
 
 import static org.bitcoinj.core.Utils.HEX;
 

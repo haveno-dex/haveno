@@ -17,9 +17,6 @@
 
 package bisq.core.btc.wallet;
 
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
-
 import bisq.common.config.Config;
 import bisq.core.btc.exceptions.SigningException;
 import bisq.core.btc.exceptions.TransactionVerificationException;
@@ -34,30 +31,11 @@ import bisq.core.locale.Res;
 import bisq.core.user.Preferences;
 import bisq.core.util.ParsingUtils;
 import com.google.common.collect.ImmutableList;
-import java.math.BigInteger;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.stream.Collectors;
-import javax.annotation.Nullable;
-import javax.inject.Inject;
 import monero.wallet.MoneroWallet;
 import monero.wallet.model.MoneroDestination;
 import monero.wallet.model.MoneroTxConfig;
 import monero.wallet.model.MoneroTxWallet;
-import org.bitcoinj.core.Address;
-import org.bitcoinj.core.AddressFormatException;
-import org.bitcoinj.core.Coin;
-import org.bitcoinj.core.ECKey;
-import org.bitcoinj.core.InsufficientMoneyException;
-import org.bitcoinj.core.LegacyAddress;
-import org.bitcoinj.core.NetworkParameters;
-import org.bitcoinj.core.Sha256Hash;
-import org.bitcoinj.core.SignatureDecodeException;
-import org.bitcoinj.core.Transaction;
-import org.bitcoinj.core.TransactionInput;
-import org.bitcoinj.core.TransactionOutPoint;
-import org.bitcoinj.core.TransactionOutput;
-import org.bitcoinj.core.Utils;
+import org.bitcoinj.core.*;
 import org.bitcoinj.crypto.DeterministicKey;
 import org.bitcoinj.crypto.TransactionSignature;
 import org.bitcoinj.script.Script;
@@ -69,6 +47,16 @@ import org.bouncycastle.crypto.params.KeyParameter;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import javax.annotation.Nullable;
+import javax.inject.Inject;
+import java.math.BigInteger;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
+
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
 
 public class TradeWalletService {
     private static final Logger log = LoggerFactory.getLogger(TradeWalletService.class);
@@ -121,7 +109,7 @@ public class TradeWalletService {
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Trade fee
     ///////////////////////////////////////////////////////////////////////////////////////////
-    
+
     public MoneroTxWallet createXmrTradingFeeTx(
             String reservedForTradeAddress,
             Coin reservedFundsForOffer,
@@ -129,12 +117,12 @@ public class TradeWalletService {
             Coin txFee,
             String feeReceiver,
             boolean broadcastTx) {
-      return xmrWallet.createTx(new MoneroTxConfig()
-              .setAccountIndex(0)
-              .setDestinations(
-                      new MoneroDestination(feeReceiver, BigInteger.valueOf(makerFee.value).multiply(ParsingUtils.XMR_SATOSHI_MULTIPLIER)),
-                      new MoneroDestination(reservedForTradeAddress, BigInteger.valueOf(reservedFundsForOffer.value).multiply(ParsingUtils.XMR_SATOSHI_MULTIPLIER)))
-              .setRelay(broadcastTx));
+        return xmrWallet.createTx(new MoneroTxConfig()
+                .setAccountIndex(0)
+                .setDestinations(
+                        new MoneroDestination(feeReceiver, BigInteger.valueOf(makerFee.value).multiply(ParsingUtils.XMR_SATOSHI_MULTIPLIER)),
+                        new MoneroDestination(reservedForTradeAddress, BigInteger.valueOf(reservedFundsForOffer.value).multiply(ParsingUtils.XMR_SATOSHI_MULTIPLIER)))
+                .setRelay(broadcastTx));
     }
 
     /**
@@ -153,7 +141,7 @@ public class TradeWalletService {
      * @param callback                an optional callback to use when broadcasting the transaction
      * @return the optionally broadcast transaction
      * @throws InsufficientMoneyException if the request could not be completed due to not enough balance
-     * @throws AddressFormatException if the fee receiver base58 address doesn't parse or its checksum is invalid
+     * @throws AddressFormatException     if the fee receiver base58 address doesn't parse or its checksum is invalid
      */
     public Transaction createBtcTradingFeeTx(Address fundingAddress,
                                              Address reservedForTradeAddress,
@@ -447,10 +435,10 @@ public class TradeWalletService {
      * @param buyerPubKey               the public key of the buyer
      * @param sellerPubKey              the public key of the seller
      * @return a data container holding the serialized transaction and the maker raw inputs
-     * @throws SigningException if there was an unexpected problem signing (one of) the input(s) from the maker's wallet
-     * @throws AddressFormatException if the taker base58 change address doesn't parse or its checksum is invalid
+     * @throws SigningException                 if there was an unexpected problem signing (one of) the input(s) from the maker's wallet
+     * @throws AddressFormatException           if the taker base58 change address doesn't parse or its checksum is invalid
      * @throws TransactionVerificationException if there was an unexpected problem with the deposit tx or its signature(s)
-     * @throws WalletException if the maker's wallet is null or there was an error choosing deposit tx input(s) from it
+     * @throws WalletException                  if the maker's wallet is null or there was an error choosing deposit tx input(s) from it
      */
     private PreparedDepositTxAndMakerInputs makerCreatesDepositTx(boolean makerIsBuyer,
                                                                   byte[] contractHash,
@@ -582,10 +570,10 @@ public class TradeWalletService {
      * @param sellerInputs              the connected outputs for all inputs of the seller
      * @param buyerPubKey               the public key of the buyer
      * @param sellerPubKey              the public key of the seller
-     * @throws SigningException if (one of) the taker input(s) was of an unrecognized type for signing
+     * @throws SigningException                 if (one of) the taker input(s) was of an unrecognized type for signing
      * @throws TransactionVerificationException if a maker input wasn't signed, their MultiSig script or contract hash
-     * doesn't match the taker's, or there was an unexpected problem with the final deposit tx or its signatures
-     * @throws WalletException if the taker's wallet is null or structurally inconsistent
+     *                                          doesn't match the taker's, or there was an unexpected problem with the final deposit tx or its signatures
+     * @throws WalletException                  if the taker's wallet is null or structurally inconsistent
      */
     public Transaction takerSignsDepositTx(boolean takerIsSeller,
                                            byte[] contractHash,
@@ -766,7 +754,7 @@ public class TradeWalletService {
      * @param buyerPubKey               the public key of the buyer
      * @param sellerPubKey              the public key of the seller
      * @return DER encoded canonical signature
-     * @throws AddressFormatException if the buyer or seller base58 address doesn't parse or its checksum is invalid
+     * @throws AddressFormatException           if the buyer or seller base58 address doesn't parse or its checksum is invalid
      * @throws TransactionVerificationException if there was an unexpected problem with the payout tx or its signature
      */
     public byte[] buyerSignsPayoutTx(Transaction depositTx,
@@ -808,9 +796,9 @@ public class TradeWalletService {
      * @param buyerPubKey               the public key of the buyer
      * @param sellerPubKey              the public key of the seller
      * @return the payout transaction
-     * @throws AddressFormatException if the buyer or seller base58 address doesn't parse or its checksum is invalid
+     * @throws AddressFormatException           if the buyer or seller base58 address doesn't parse or its checksum is invalid
      * @throws TransactionVerificationException if there was an unexpected problem with the payout tx or its signatures
-     * @throws WalletException if the seller's wallet is null or structurally inconsistent
+     * @throws WalletException                  if the seller's wallet is null or structurally inconsistent
      */
     public Transaction sellerSignsAndFinalizesPayoutTx(Transaction depositTx,
                                                        byte[] buyerSignature,
@@ -933,9 +921,9 @@ public class TradeWalletService {
      * @param sellerPubKey           the public key of the seller
      * @param arbitratorPubKey       the public key of the arbitrator
      * @return the completed payout tx
-     * @throws AddressFormatException if the buyer or seller base58 address doesn't parse or its checksum is invalid
+     * @throws AddressFormatException           if the buyer or seller base58 address doesn't parse or its checksum is invalid
      * @throws TransactionVerificationException if there was an unexpected problem with the payout tx or its signature
-     * @throws WalletException if the trade wallet is null or structurally inconsistent
+     * @throws WalletException                  if the trade wallet is null or structurally inconsistent
      */
     public Transaction traderSignAndFinalizeDisputedPayoutTx(byte[] depositTxSerialized,
                                                              byte[] arbitratorSignature,
@@ -1065,7 +1053,7 @@ public class TradeWalletService {
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Misc
     ///////////////////////////////////////////////////////////////////////////////////////////
-    
+
     /**
      * Returns the local existing wallet transaction with the given ID, or {@code null} if missing.
      *

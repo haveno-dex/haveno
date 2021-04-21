@@ -17,9 +17,9 @@
 
 package bisq.network.p2p.network;
 
-import java.util.List;
-
 import org.jetbrains.annotations.Nullable;
+
+import java.util.List;
 
 public interface BridgeAddressProvider {
     @Nullable

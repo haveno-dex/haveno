@@ -1,10 +1,9 @@
 package bisq.core.offer.placeoffer.tasks;
 
-import bisq.core.locale.Res;
-import bisq.core.offer.placeoffer.PlaceOfferModel;
-
 import bisq.common.taskrunner.Task;
 import bisq.common.taskrunner.TaskRunner;
+import bisq.core.locale.Res;
+import bisq.core.offer.placeoffer.PlaceOfferModel;
 
 public class CheckNumberOfUnconfirmedTransactions extends Task<PlaceOfferModel> {
     public CheckNumberOfUnconfirmedTransactions(TaskRunner<PlaceOfferModel> taskHandler, PlaceOfferModel model) {
@@ -13,7 +12,7 @@ public class CheckNumberOfUnconfirmedTransactions extends Task<PlaceOfferModel> 
 
     @Override
     protected void run() {
-        if (model.getWalletService().isUnconfirmedTransactionsLimitHit() || model.getBsqWalletService().isUnconfirmedTransactionsLimitHit())
+        if (model.getWalletService().isUnconfirmedTransactionsLimitHit())
             failed(Res.get("shared.unconfirmedTransactionsLimitReached"));
         complete();
     }

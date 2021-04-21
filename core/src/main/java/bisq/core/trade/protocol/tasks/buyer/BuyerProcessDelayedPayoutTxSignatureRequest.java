@@ -17,16 +17,13 @@
 
 package bisq.core.trade.protocol.tasks.buyer;
 
+import bisq.common.taskrunner.TaskRunner;
 import bisq.core.trade.Trade;
 import bisq.core.trade.messages.DelayedPayoutTxSignatureRequest;
 import bisq.core.trade.protocol.tasks.TradeTask;
 import bisq.core.util.Validator;
-
-import bisq.common.taskrunner.TaskRunner;
-
-import org.bitcoinj.core.Transaction;
-
 import lombok.extern.slf4j.Slf4j;
+import org.bitcoinj.core.Transaction;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 

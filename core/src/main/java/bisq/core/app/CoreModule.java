@@ -17,9 +17,14 @@
 
 package bisq.core.app;
 
+import bisq.common.app.AppModule;
+import bisq.common.config.Config;
+import bisq.common.crypto.PubKeyRing;
+import bisq.common.crypto.PubKeyRingProvider;
+import bisq.common.proto.network.NetworkProtoResolver;
+import bisq.common.proto.persistable.PersistenceProtoResolver;
 import bisq.core.alert.AlertModule;
 import bisq.core.btc.BitcoinModule;
-import bisq.core.dao.DaoModule;
 import bisq.core.filter.FilterModule;
 import bisq.core.network.p2p.seed.DefaultSeedNodeRepository;
 import bisq.core.offer.OfferModule;
@@ -31,18 +36,10 @@ import bisq.core.user.Preferences;
 import bisq.core.util.FormattingUtils;
 import bisq.core.util.coin.CoinFormatter;
 import bisq.core.util.coin.ImmutableCoinFormatter;
-
 import bisq.network.crypto.EncryptionServiceModule;
 import bisq.network.p2p.P2PModule;
 import bisq.network.p2p.network.BridgeAddressProvider;
 import bisq.network.p2p.seed.SeedNodeRepository;
-
-import bisq.common.app.AppModule;
-import bisq.common.config.Config;
-import bisq.common.crypto.PubKeyRing;
-import bisq.common.crypto.PubKeyRingProvider;
-import bisq.common.proto.network.NetworkProtoResolver;
-import bisq.common.proto.persistable.PersistenceProtoResolver;
 
 import java.io.File;
 
@@ -84,7 +81,6 @@ public class CoreModule extends AppModule {
         install(new OfferModule(config));
         install(new P2PModule(config));
         install(new BitcoinModule(config));
-        install(new DaoModule(config));
         install(new AlertModule(config));
         install(new FilterModule(config));
         install(new CorePresentationModule(config));

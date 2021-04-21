@@ -19,7 +19,6 @@ package bisq.network.crypto;
 
 import bisq.common.app.AppModule;
 import bisq.common.config.Config;
-
 import com.google.inject.Singleton;
 
 public class EncryptionServiceModule extends AppModule {

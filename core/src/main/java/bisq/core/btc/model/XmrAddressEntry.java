@@ -17,19 +17,17 @@
 
 package bisq.core.btc.model;
 
-import java.util.Optional;
-
-import javax.annotation.Nullable;
-
-import org.bitcoinj.core.Coin;
-import org.jetbrains.annotations.NotNull;
-
 import bisq.common.proto.ProtoUtil;
 import bisq.common.proto.persistable.PersistablePayload;
 import bisq.common.util.Utilities;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
+import org.bitcoinj.core.Coin;
+import org.jetbrains.annotations.NotNull;
+
+import javax.annotation.Nullable;
+import java.util.Optional;
 
 /**
  * Every trade uses a XmrAddressEntry with a dedicated address for all transactions related to the trade.
@@ -68,17 +66,17 @@ public final class XmrAddressEntry implements PersistablePayload {
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Constructor, initialization
     ///////////////////////////////////////////////////////////////////////////////////////////
-    
+
     public XmrAddressEntry(int accountIndex, String address, Context context) {
-      this(accountIndex, address, context, null, null);
+        this(accountIndex, address, context, null, null);
     }
-    
+
     public XmrAddressEntry(int accountIndex, String address, Context context, @Nullable String offerId, Coin coinLockedInMultiSig) {
-      this.accountIndex = accountIndex;
-      this.addressString = address;
-      this.offerId = offerId;
-      this.context = context;
-      if (coinLockedInMultiSig != null) this.coinLockedInMultiSig = coinLockedInMultiSig.value;
+        this.accountIndex = accountIndex;
+        this.addressString = address;
+        this.offerId = offerId;
+        this.context = context;
+        if (coinLockedInMultiSig != null) this.coinLockedInMultiSig = coinLockedInMultiSig.value;
     }
 
 

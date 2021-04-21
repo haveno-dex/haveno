@@ -17,27 +17,22 @@
 
 package bisq.core.trade.messages;
 
-import bisq.core.btc.model.RawTransactionInput;
-import bisq.core.payment.payload.PaymentAccountPayload;
-import bisq.core.proto.CoreProtoResolver;
-
-import bisq.network.p2p.DirectMessage;
-import bisq.network.p2p.NodeAddress;
-
 import bisq.common.crypto.PubKeyRing;
 import bisq.common.proto.ProtoUtil;
 import bisq.common.util.Utilities;
-
+import bisq.core.btc.model.RawTransactionInput;
+import bisq.core.payment.payload.PaymentAccountPayload;
+import bisq.core.proto.CoreProtoResolver;
+import bisq.network.p2p.DirectMessage;
+import bisq.network.p2p.NodeAddress;
 import com.google.protobuf.ByteString;
-
-import java.util.List;
-import java.util.Optional;
-import java.util.stream.Collectors;
-
 import lombok.EqualsAndHashCode;
 import lombok.Value;
 
 import javax.annotation.Nullable;
+import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
 
 @EqualsAndHashCode(callSuper = true)
 @Value

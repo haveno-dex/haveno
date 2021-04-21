@@ -17,30 +17,25 @@
 
 package bisq.core.app.misc;
 
+import bisq.common.config.Config;
+import bisq.common.proto.persistable.PersistedDataHost;
 import bisq.core.account.sign.SignedWitnessService;
 import bisq.core.account.witness.AccountAgeWitnessService;
 import bisq.core.app.SetupUtils;
 import bisq.core.app.TorSetup;
 import bisq.core.filter.FilterManager;
 import bisq.core.trade.statistics.TradeStatisticsManager;
-
 import bisq.network.p2p.P2PService;
 import bisq.network.p2p.P2PServiceListener;
 import bisq.network.p2p.network.CloseConnectionReason;
 import bisq.network.p2p.network.Connection;
 import bisq.network.p2p.network.ConnectionListener;
-
-import bisq.common.config.Config;
-import bisq.common.proto.persistable.PersistedDataHost;
-
-import javax.inject.Inject;
-
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.SimpleBooleanProperty;
-
-import java.util.ArrayList;
-
 import lombok.extern.slf4j.Slf4j;
+
+import javax.inject.Inject;
+import java.util.ArrayList;
 
 @Slf4j
 public class AppSetupWithP2P extends AppSetup {

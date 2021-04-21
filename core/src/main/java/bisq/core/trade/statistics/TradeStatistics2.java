@@ -17,17 +17,6 @@
 
 package bisq.core.trade.statistics;
 
-import bisq.core.monetary.Altcoin;
-import bisq.core.monetary.AltcoinExchangeRate;
-import bisq.core.monetary.Price;
-import bisq.core.monetary.Volume;
-import bisq.core.offer.OfferPayload;
-import bisq.core.offer.OfferUtil;
-
-import bisq.network.p2p.storage.payload.CapabilityRequiringPayload;
-import bisq.network.p2p.storage.payload.PersistableNetworkPayload;
-import bisq.network.p2p.storage.payload.ProcessOncePersistableNetworkPayload;
-
 import bisq.common.app.Capabilities;
 import bisq.common.app.Capability;
 import bisq.common.crypto.Hash;
@@ -36,25 +25,28 @@ import bisq.common.util.CollectionUtils;
 import bisq.common.util.ExtraDataMapValidator;
 import bisq.common.util.JsonExclude;
 import bisq.common.util.Utilities;
-
+import bisq.core.monetary.Altcoin;
+import bisq.core.monetary.AltcoinExchangeRate;
+import bisq.core.monetary.Price;
+import bisq.core.monetary.Volume;
+import bisq.core.offer.OfferPayload;
+import bisq.core.offer.OfferUtil;
+import bisq.network.p2p.storage.payload.CapabilityRequiringPayload;
+import bisq.network.p2p.storage.payload.PersistableNetworkPayload;
+import bisq.network.p2p.storage.payload.ProcessOncePersistableNetworkPayload;
+import com.google.common.base.Charsets;
 import com.google.protobuf.ByteString;
-
+import lombok.Value;
+import lombok.extern.slf4j.Slf4j;
 import org.bitcoinj.core.Coin;
 import org.bitcoinj.utils.ExchangeRate;
 import org.bitcoinj.utils.Fiat;
-
-import com.google.common.base.Charsets;
-
-import java.util.Date;
-import java.util.Map;
-import java.util.Optional;
-
-import lombok.Value;
-import lombok.extern.slf4j.Slf4j;
-
 import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nullable;
+import java.util.Date;
+import java.util.Map;
+import java.util.Optional;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 

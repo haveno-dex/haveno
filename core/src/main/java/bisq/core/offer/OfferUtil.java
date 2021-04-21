@@ -17,8 +17,9 @@
 
 package bisq.core.offer;
 
+import bisq.common.app.Capabilities;
+import bisq.common.util.MathUtils;
 import bisq.core.account.witness.AccountAgeWitnessService;
-import bisq.core.btc.wallet.BsqWalletService;
 import bisq.core.btc.wallet.Restrictions;
 import bisq.core.filter.FilterManager;
 import bisq.core.locale.CurrencyUtil;
@@ -35,24 +36,16 @@ import bisq.core.user.AutoConfirmSettings;
 import bisq.core.user.Preferences;
 import bisq.core.util.coin.CoinFormatter;
 import bisq.core.util.coin.CoinUtil;
-
 import bisq.network.p2p.P2PService;
-
-import bisq.common.app.Capabilities;
-import bisq.common.util.MathUtils;
-
+import com.google.common.annotations.VisibleForTesting;
+import lombok.extern.slf4j.Slf4j;
 import org.bitcoinj.core.Coin;
 import org.bitcoinj.utils.Fiat;
 
-import com.google.common.annotations.VisibleForTesting;
-
+import javax.annotation.Nullable;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
-
-import lombok.extern.slf4j.Slf4j;
-
-import javax.annotation.Nullable;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -80,15 +73,15 @@ public class OfferUtil {
     /**
      * Returns the makerFee as Coin, this can be priced in BTC or BSQ.
      *
-     * @param bsqWalletService wallet service used to check if there is enough BSQ to pay the fee
-     * @param preferences      preferences are used to see if the user indicated a preference for paying fees in BTC
-     * @param amount           the amount of BTC to trade
+     * @param preferences preferences are used to see if the user indicated a preference for paying fees in BTC
+     * @param amount      the amount of BTC to trade
      * @return the maker fee for the given trade amount, or {@code null} if the amount is {@code null}
      */
     @Nullable
-    public static Coin getMakerFee(BsqWalletService bsqWalletService, Preferences preferences, @Nullable Coin amount) {
-        boolean isCurrencyForMakerFeeBtc = isCurrencyForMakerFeeBtc(preferences, bsqWalletService, amount);
-        return getMakerFee(isCurrencyForMakerFeeBtc, amount);
+    public static Coin getMakerFee(Preferences preferences, @Nullable Coin amount) {
+//        boolean isCurrencyForMakerFeeBtc = isCurrencyForMakerFeeBtc(preferences, bsqWalletService, amount);
+        boolean isCurrencyForMakerFeeBtc = true; //TODO(niyid) For XMR and not BTC actually. Rename.
+        return getMakerFee(true, amount);
     }
 
     /**
@@ -112,40 +105,39 @@ public class OfferUtil {
      * Checks if the maker fee should be paid in BTC, this can be the case due to user preference or because the user
      * doesn't have enough BSQ.
      *
-     * @param preferences      preferences are used to see if the user indicated a preference for paying fees in BTC
-     * @param bsqWalletService wallet service used to check if there is enough BSQ to pay the fee
-     * @param amount           the amount of BTC to trade
+     * @param preferences preferences are used to see if the user indicated a preference for paying fees in BTC
+     * @param amount      the amount of BTC to trade
      * @return {@code true} if BTC is preferred or the trade amount is nonnull and there isn't enough BSQ for it
      */
     public static boolean isCurrencyForMakerFeeBtc(Preferences preferences,
-                                                   BsqWalletService bsqWalletService,
                                                    @Nullable Coin amount) {
-        boolean payFeeInBtc = preferences.getPayFeeInBtc();
-        boolean bsqForFeeAvailable = isBsqForMakerFeeAvailable(bsqWalletService, amount);
-        return payFeeInBtc || !bsqForFeeAvailable;
+//        boolean payFeeInBtc = preferences.getPayFeeInBtc();
+//        boolean bsqForFeeAvailable = isBsqForMakerFeeAvailable(amount);
+//        return payFeeInBtc || !bsqForFeeAvailable;
+        return true; //TODO(niyid) This should always return true since no BSQ and only XMR. Just keeping to minimize code changes
     }
 
     /**
      * Checks if the available BSQ balance is sufficient to pay for the offer's maker fee.
      *
-     * @param bsqWalletService wallet service used to check if there is enough BSQ to pay the fee
-     * @param amount           the amount of BTC to trade
+     * @param amount the amount of BTC to trade
      * @return {@code true} if the balance is sufficient, {@code false} otherwise
      */
-    public static boolean isBsqForMakerFeeAvailable(BsqWalletService bsqWalletService, @Nullable Coin amount) {
-        Coin availableBalance = bsqWalletService.getAvailableConfirmedBalance();
-        Coin makerFee = getMakerFee(false, amount);
-
-        // If we don't know yet the maker fee (amount is not set) we return true, otherwise we would disable BSQ
-        // fee each time we open the create offer screen as there the amount is not set.
-        if (makerFee == null)
-            return true;
-
-        Coin surplusFunds = availableBalance.subtract(makerFee);
-        if (Restrictions.isDust(surplusFunds)) {
-            return false; // we can't be left with dust
-        }
-        return !availableBalance.subtract(makerFee).isNegative();
+    public static boolean isBsqForMakerFeeAvailable(@Nullable Coin amount) {
+//        Coin availableBalance = bsqWalletService.getAvailableConfirmedBalance();
+//        Coin makerFee = getMakerFee(false, amount);
+//
+//        // If we don't know yet the maker fee (amount is not set) we return true, otherwise we would disable BSQ
+//        // fee each time we open the create offer screen as there the amount is not set.
+//        if (makerFee == null)
+//            return true;
+//
+//        Coin surplusFunds = availableBalance.subtract(makerFee);
+//        if (Restrictions.isDust(surplusFunds)) {
+//            return false; // we can't be left with dust
+//        }
+//        return !availableBalance.subtract(makerFee).isNegative();
+        return false; //TODO(niyid) This should always return false since no BSQ and only XMR. Just keeping to minimize code changes
     }
 
 
@@ -160,27 +152,27 @@ public class OfferUtil {
     }
 
     public static boolean isCurrencyForTakerFeeBtc(Preferences preferences,
-                                                   BsqWalletService bsqWalletService,
                                                    Coin amount) {
         boolean payFeeInBtc = preferences.getPayFeeInBtc();
-        boolean bsqForFeeAvailable = isBsqForTakerFeeAvailable(bsqWalletService, amount);
+        boolean bsqForFeeAvailable = isBsqForTakerFeeAvailable(amount);
         return payFeeInBtc || !bsqForFeeAvailable;
     }
 
-    public static boolean isBsqForTakerFeeAvailable(BsqWalletService bsqWalletService, @Nullable Coin amount) {
-        Coin availableBalance = bsqWalletService.getAvailableConfirmedBalance();
-        Coin takerFee = getTakerFee(false, amount);
-
-        // If we don't know yet the maker fee (amount is not set) we return true, otherwise we would disable BSQ
-        // fee each time we open the create offer screen as there the amount is not set.
-        if (takerFee == null)
-            return true;
-
-        Coin surplusFunds = availableBalance.subtract(takerFee);
-        if (Restrictions.isDust(surplusFunds)) {
-            return false; // we can't be left with dust
-        }
-        return !availableBalance.subtract(takerFee).isNegative();
+    public static boolean isBsqForTakerFeeAvailable(@Nullable Coin amount) {
+//        Coin availableBalance = bsqWalletService.getAvailableConfirmedBalance();
+//        Coin takerFee = getTakerFee(false, amount);
+//
+//        // If we don't know yet the maker fee (amount is not set) we return true, otherwise we would disable BSQ
+//        // fee each time we open the create offer screen as there the amount is not set.
+//        if (takerFee == null)
+//            return true;
+//
+//        Coin surplusFunds = availableBalance.subtract(takerFee);
+//        if (Restrictions.isDust(surplusFunds)) {
+//            return false; // we can't be left with dust
+//        }
+//        return !availableBalance.subtract(takerFee).isNegative();
+        return false; //TODO(niyid) This should always return false since no BSQ. Just keeping to minimize code changes
     }
 
     public static Volume getRoundedFiatVolume(Volume volumeByAmount) {
@@ -195,9 +187,8 @@ public class OfferUtil {
     }
 
     /**
-     *
-     * @param volumeByAmount      The volume generated from an amount
-     * @param factor              The factor used for rounding. E.g. 1 means rounded to units of 1 EUR, 10 means rounded to 10 EUR...
+     * @param volumeByAmount The volume generated from an amount
+     * @param factor         The factor used for rounding. E.g. 1 means rounded to units of 1 EUR, 10 means rounded to 10 EUR...
      * @return The adjusted Fiat volume
      */
     @VisibleForTesting
@@ -214,9 +205,9 @@ public class OfferUtil {
      * Calculate the possibly adjusted amount for {@code amount}, taking into account the
      * {@code price} and {@code maxTradeLimit} and {@code factor}.
      *
-     * @param amount            Bitcoin amount which is a candidate for getting rounded.
-     * @param price             Price used in relation to that amount.
-     * @param maxTradeLimit     The max. trade limit of the users account, in satoshis.
+     * @param amount        Bitcoin amount which is a candidate for getting rounded.
+     * @param price         Price used in relation to that amount.
+     * @param maxTradeLimit The max. trade limit of the users account, in satoshis.
      * @return The adjusted amount
      */
     public static Coin getRoundedFiatAmount(Coin amount, Price price, long maxTradeLimit) {
@@ -231,11 +222,11 @@ public class OfferUtil {
      * Calculate the possibly adjusted amount for {@code amount}, taking into account the
      * {@code price} and {@code maxTradeLimit} and {@code factor}.
      *
-     * @param amount            Bitcoin amount which is a candidate for getting rounded.
-     * @param price             Price used in relation to that amount.
-     * @param maxTradeLimit     The max. trade limit of the users account, in satoshis.
-     * @param factor            The factor used for rounding. E.g. 1 means rounded to units of
-     *                          1 EUR, 10 means rounded to 10 EUR, etc.
+     * @param amount        Bitcoin amount which is a candidate for getting rounded.
+     * @param price         Price used in relation to that amount.
+     * @param maxTradeLimit The max. trade limit of the users account, in satoshis.
+     * @param factor        The factor used for rounding. E.g. 1 means rounded to units of
+     *                      1 EUR, 10 means rounded to 10 EUR, etc.
      * @return The adjusted amount
      */
     @VisibleForTesting

@@ -17,12 +17,10 @@
 
 package bisq.core.trade.protocol.tasks.mediation;
 
+import bisq.common.taskrunner.TaskRunner;
 import bisq.core.support.dispute.mediation.MediationResultState;
 import bisq.core.trade.Trade;
 import bisq.core.trade.protocol.tasks.BroadcastPayoutTx;
-
-import bisq.common.taskrunner.TaskRunner;
-
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j

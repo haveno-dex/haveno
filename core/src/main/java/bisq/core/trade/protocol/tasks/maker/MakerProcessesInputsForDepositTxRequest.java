@@ -17,6 +17,7 @@
 
 package bisq.core.trade.protocol.tasks.maker;
 
+import bisq.common.taskrunner.TaskRunner;
 import bisq.core.exceptions.TradePriceOutOfToleranceException;
 import bisq.core.offer.Offer;
 import bisq.core.support.dispute.mediation.mediator.Mediator;
@@ -25,16 +26,10 @@ import bisq.core.trade.messages.InputsForDepositTxRequest;
 import bisq.core.trade.protocol.TradingPeer;
 import bisq.core.trade.protocol.tasks.TradeTask;
 import bisq.core.user.User;
-
 import bisq.network.p2p.NodeAddress;
-
-import bisq.common.taskrunner.TaskRunner;
-
-import org.bitcoinj.core.Coin;
-
 import com.google.common.base.Charsets;
-
 import lombok.extern.slf4j.Slf4j;
+import org.bitcoinj.core.Coin;
 
 import static bisq.core.util.Validator.checkTradeId;
 import static bisq.core.util.Validator.nonEmptyStringOf;

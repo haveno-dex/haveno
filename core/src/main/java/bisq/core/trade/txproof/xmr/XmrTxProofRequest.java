@@ -17,36 +17,25 @@
 
 package bisq.core.trade.txproof.xmr;
 
-import bisq.core.trade.txproof.AssetTxProofHttpClient;
-import bisq.core.trade.txproof.AssetTxProofParser;
-import bisq.core.trade.txproof.AssetTxProofRequest;
-
-import bisq.network.Socks5ProxyProvider;
-
 import bisq.common.UserThread;
 import bisq.common.app.Version;
 import bisq.common.handlers.FaultHandler;
 import bisq.common.util.Utilities;
-
+import bisq.core.trade.txproof.AssetTxProofHttpClient;
+import bisq.core.trade.txproof.AssetTxProofParser;
+import bisq.core.trade.txproof.AssetTxProofRequest;
+import bisq.network.Socks5ProxyProvider;
+import com.google.common.util.concurrent.*;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonParser;
-
-import com.google.common.util.concurrent.FutureCallback;
-import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.ListenableFuture;
-import com.google.common.util.concurrent.ListeningExecutorService;
-import com.google.common.util.concurrent.MoreExecutors;
-
-import java.util.concurrent.TimeUnit;
-import java.util.function.Consumer;
-
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
-
 import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nullable;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 
 /**
  * Requests for the XMR tx proof for a particular trade from a particular service.
@@ -169,11 +158,11 @@ class XmrTxProofRequest implements AssetTxProofRequest<XmrTxProofRequest.Result>
         if (model.getServiceAddress().regionMatches(0, "http:", 0, 5)) {
             httpClient.setBaseUrl(model.getServiceAddress());
             httpClient.setIgnoreSocks5Proxy(true);
-        // any non-onion FQDN starts with https://, use Tor
+            // any non-onion FQDN starts with https://, use Tor
         } else if (model.getServiceAddress().regionMatches(0, "https:", 0, 6)) {
             httpClient.setBaseUrl(model.getServiceAddress());
             httpClient.setIgnoreSocks5Proxy(false);
-        // it's a raw onion so add http:// and use Tor proxy
+            // it's a raw onion so add http:// and use Tor proxy
         } else {
             httpClient.setBaseUrl("http://" + model.getServiceAddress());
             httpClient.setIgnoreSocks5Proxy(false);

@@ -17,15 +17,13 @@
 
 package bisq.core.trade.protocol.tasks.taker;
 
+import bisq.common.config.Config;
+import bisq.common.taskrunner.TaskRunner;
 import bisq.core.btc.wallet.Restrictions;
 import bisq.core.trade.Trade;
 import bisq.core.trade.messages.InputsForDepositTxResponse;
 import bisq.core.trade.protocol.TradingPeer;
 import bisq.core.trade.protocol.tasks.TradeTask;
-
-import bisq.common.config.Config;
-import bisq.common.taskrunner.TaskRunner;
-
 import lombok.extern.slf4j.Slf4j;
 
 import static bisq.core.util.Validator.checkTradeId;

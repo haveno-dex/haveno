@@ -17,16 +17,9 @@
 
 package bisq.core.trade.protocol.tasks.seller;
 
-import bisq.core.btc.exceptions.TxBroadcastException;
-import bisq.core.btc.model.AddressEntry;
-import bisq.core.btc.wallet.TxBroadcaster;
+import bisq.common.taskrunner.TaskRunner;
 import bisq.core.trade.Trade;
 import bisq.core.trade.protocol.tasks.TradeTask;
-
-import bisq.common.taskrunner.TaskRunner;
-
-import org.bitcoinj.core.Transaction;
-
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j

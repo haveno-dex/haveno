@@ -18,16 +18,14 @@
 package bisq.network.p2p.peers.peerexchange;
 
 import bisq.common.proto.persistable.PersistableEnvelope;
-
 import com.google.protobuf.Message;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
 
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.stream.Collectors;
-
-import lombok.EqualsAndHashCode;
-import lombok.Getter;
 
 @EqualsAndHashCode
 public class PeerList implements PersistableEnvelope {

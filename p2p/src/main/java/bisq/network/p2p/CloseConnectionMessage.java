@@ -19,7 +19,6 @@ package bisq.network.p2p;
 
 import bisq.common.app.Version;
 import bisq.common.proto.network.NetworkEnvelope;
-
 import lombok.EqualsAndHashCode;
 import lombok.Value;
 

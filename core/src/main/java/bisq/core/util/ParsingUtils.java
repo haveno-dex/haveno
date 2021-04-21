@@ -1,29 +1,25 @@
 package bisq.core.util;
 
+import bisq.common.util.MathUtils;
 import bisq.core.monetary.Price;
 import bisq.core.util.coin.CoinFormatter;
-
-import bisq.common.util.MathUtils;
-
+import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.bitcoinj.core.Coin;
 import org.bitcoinj.utils.MonetaryFormat;
 
 import java.math.BigInteger;
 
-import org.apache.commons.lang3.StringUtils;
-
-import lombok.extern.slf4j.Slf4j;
-
 @Slf4j
 public class ParsingUtils {
-  
+
     /**
      * Temporary multiplier to convert Coin satoshis to XMR atomic units.
-     * 
+     * <p>
      * TODO (woodser): replace bitcoinj/Coin entirely
      */
     public static BigInteger XMR_SATOSHI_MULTIPLIER = BigInteger.valueOf(10000);
-  
+
     public static Coin parseToCoin(String input, CoinFormatter coinFormatter) {
         return parseToCoin(input, coinFormatter.getMonetaryFormat());
     }

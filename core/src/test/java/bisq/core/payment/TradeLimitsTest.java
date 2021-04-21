@@ -17,8 +17,7 @@
 
 package bisq.core.payment;
 
-import bisq.core.dao.governance.period.PeriodService;
-import bisq.core.dao.state.DaoStateService;
+import bisq.core.util.coin.BsqFormatter;
 
 import org.junit.Test;
 
@@ -28,7 +27,7 @@ import static org.mockito.Mockito.mock;
 public class TradeLimitsTest {
     @Test
     public void testGetFirstMonthRiskBasedTradeLimit() {
-        TradeLimits tradeLimits = new TradeLimits(mock(DaoStateService.class), mock(PeriodService.class));
+        TradeLimits tradeLimits = new TradeLimits(mock(BsqFormatter.class));
         long expected, result;
 
         expected = 0;

@@ -17,10 +17,8 @@
 
 package bisq.core.trade.messages;
 
-import bisq.network.p2p.UidMessage;
-
 import bisq.common.proto.network.NetworkEnvelope;
-
+import bisq.network.p2p.UidMessage;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.ToString;

@@ -17,6 +17,8 @@
 
 package bisq.network.p2p;
 
+import bisq.common.app.AppModule;
+import bisq.common.config.Config;
 import bisq.network.Socks5ProxyProvider;
 import bisq.network.http.HttpClient;
 import bisq.network.http.HttpClientImpl;
@@ -32,17 +34,11 @@ import bisq.network.p2p.storage.P2PDataStorage;
 import bisq.network.p2p.storage.persistence.AppendOnlyDataStoreService;
 import bisq.network.p2p.storage.persistence.ProtectedDataStoreService;
 import bisq.network.p2p.storage.persistence.ResourceDataStoreService;
-
-import bisq.common.app.AppModule;
-import bisq.common.config.Config;
-
 import com.google.inject.Singleton;
 import com.google.inject.TypeLiteral;
 
-import java.time.Clock;
-
 import java.io.File;
-
+import java.time.Clock;
 import java.util.List;
 
 import static bisq.common.config.Config.*;
@@ -83,7 +79,8 @@ public class P2PModule extends AppModule {
 
         bindConstant().annotatedWith(named(MAX_CONNECTIONS)).to(config.maxConnections);
 
-        bind(new TypeLiteral<List<String>>(){}).annotatedWith(named(BAN_LIST)).toInstance(config.banList);
+        bind(new TypeLiteral<List<String>>() {
+        }).annotatedWith(named(BAN_LIST)).toInstance(config.banList);
         bindConstant().annotatedWith(named(SOCKS_5_PROXY_BTC_ADDRESS)).to(config.socks5ProxyBtcAddress);
         bindConstant().annotatedWith(named(SOCKS_5_PROXY_HTTP_ADDRESS)).to(config.socks5ProxyHttpAddress);
         bind(File.class).annotatedWith(named(TORRC_FILE)).toProvider(of(config.torrcFile)); // allow null value

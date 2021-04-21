@@ -17,21 +17,34 @@
 
 package bisq.core.btc.setup;
 
-import static bisq.common.util.Preconditions.checkDir;
-import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.base.Preconditions.checkState;
-
 import bisq.common.config.Config;
 import bisq.core.btc.nodes.LocalBitcoinNode;
 import bisq.core.btc.nodes.ProxySocketFactory;
 import bisq.core.btc.wallet.BisqRiskAnalysis;
 import com.google.common.io.Closeables;
-import com.google.common.util.concurrent.AbstractIdleService;
-import com.google.common.util.concurrent.FutureCallback;
-import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.ListenableFuture;
-import com.google.common.util.concurrent.MoreExecutors;
+import com.google.common.util.concurrent.*;
 import com.runjva.sourceforge.jsocks.protocol.Socks5Proxy;
+import lombok.Getter;
+import lombok.Setter;
+import monero.common.MoneroUtils;
+import monero.daemon.model.MoneroNetworkType;
+import monero.wallet.MoneroWallet;
+import monero.wallet.MoneroWalletRpc;
+import monero.wallet.model.MoneroWalletConfig;
+import org.bitcoinj.core.*;
+import org.bitcoinj.core.listeners.DownloadProgressTracker;
+import org.bitcoinj.net.BlockingClientManager;
+import org.bitcoinj.net.discovery.DnsDiscovery;
+import org.bitcoinj.net.discovery.PeerDiscovery;
+import org.bitcoinj.script.Script;
+import org.bitcoinj.store.BlockStore;
+import org.bitcoinj.store.BlockStoreException;
+import org.bitcoinj.store.SPVBlockStore;
+import org.bitcoinj.wallet.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import javax.annotation.Nullable;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -41,37 +54,10 @@ import java.net.InetSocketAddress;
 import java.net.Proxy;
 import java.util.Arrays;
 import java.util.concurrent.TimeUnit;
-import javax.annotation.Nullable;
-import lombok.Getter;
-import lombok.Setter;
-import monero.common.MoneroUtils;
-import monero.daemon.model.MoneroNetworkType;
-import monero.wallet.MoneroWallet;
-import monero.wallet.MoneroWalletRpc;
-import monero.wallet.model.MoneroWalletConfig;
-import org.bitcoinj.core.BlockChain;
-import org.bitcoinj.core.CheckpointManager;
-import org.bitcoinj.core.Context;
-import org.bitcoinj.core.NetworkParameters;
-import org.bitcoinj.core.PeerAddress;
-import org.bitcoinj.core.PeerGroup;
-import org.bitcoinj.core.listeners.DownloadProgressTracker;
-import org.bitcoinj.net.BlockingClientManager;
-import org.bitcoinj.net.discovery.DnsDiscovery;
-import org.bitcoinj.net.discovery.PeerDiscovery;
-import org.bitcoinj.script.Script;
-import org.bitcoinj.store.BlockStore;
-import org.bitcoinj.store.BlockStoreException;
-import org.bitcoinj.store.SPVBlockStore;
-import org.bitcoinj.wallet.DeterministicSeed;
-import org.bitcoinj.wallet.KeyChainGroup;
-import org.bitcoinj.wallet.KeyChainGroupStructure;
-import org.bitcoinj.wallet.Protos;
-import org.bitcoinj.wallet.Wallet;
-import org.bitcoinj.wallet.WalletExtension;
-import org.bitcoinj.wallet.WalletProtobufSerializer;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+
+import static bisq.common.util.Preconditions.checkDir;
+import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.checkState;
 
 /**
  * <p>Utility class that wraps the boilerplate needed to set up a new SPV bitcoinj app. Instantiate it with a directory
@@ -99,7 +85,7 @@ public class WalletConfig extends AbstractIdleService {
     private static final int TOR_VERSION_EXCHANGE_TIMEOUT = 125 * 1000;  // 5 sec used in bitcoinj, but since bisq uses Tor we allow more.
 
     protected static final Logger log = LoggerFactory.getLogger(WalletConfig.class);
-    
+
     // Monero configuration
     // TODO: don't hard code configuration, inject into classes?
     private static final MoneroNetworkType MONERO_NETWORK_TYPE = MoneroNetworkType.STAGENET;
@@ -130,8 +116,10 @@ public class WalletConfig extends AbstractIdleService {
     protected DownloadProgressTracker downloadListener;
     protected InputStream checkpoints;
     protected String userAgent, version;
-    @Nullable protected DeterministicSeed restoreFromSeed;
-    @Nullable protected PeerDiscovery discovery;
+    @Nullable
+    protected DeterministicSeed restoreFromSeed;
+    @Nullable
+    protected PeerDiscovery discovery;
 
     protected volatile Context context;
 
@@ -185,14 +173,18 @@ public class WalletConfig extends AbstractIdleService {
     }
 
 
-    /** Will only connect to the given addresses. Cannot be called after startup. */
+    /**
+     * Will only connect to the given addresses. Cannot be called after startup.
+     */
     public WalletConfig setPeerNodes(PeerAddress... addresses) {
         checkState(state() == State.NEW, "Cannot call after startup");
         this.peerAddresses = addresses;
         return this;
     }
 
-    /** Will only connect to localhost. Cannot be called after startup. */
+    /**
+     * Will only connect to localhost. Cannot be called after startup.
+     */
     public WalletConfig connectToLocalHost() {
         final InetAddress localHost = InetAddress.getLoopbackAddress();
         return setPeerNodes(new PeerAddress(params, localHost, params.getPort()));
@@ -221,8 +213,9 @@ public class WalletConfig extends AbstractIdleService {
 
     /**
      * Sets the string that will appear in the subver field of the version message.
+     *
      * @param userAgent A short string that should be the name of your app, e.g. "My Wallet"
-     * @param version A short string that contains the version number, e.g. "1.0-BETA"
+     * @param version   A short string that contains the version number, e.g. "1.0-BETA"
      */
     public WalletConfig setUserAgent(String userAgent, String version) {
         this.userAgent = checkNotNull(userAgent);
@@ -258,59 +251,60 @@ public class WalletConfig extends AbstractIdleService {
     protected void onSetupCompleted() {
         // Meant to be overridden by subclasses
     }
-    
+
     public MoneroWallet createWallet(MoneroWalletConfig config) {
-      
-      // start monero-wallet-rpc instance
-      MoneroWalletRpc walletRpc = startWalletRpcInstance();
-      
-      // create wallet
-      try {
-        walletRpc.createWallet(config);
-        walletRpc.startSyncing(MONERO_WALLET_SYNC_RATE);
-        return walletRpc;
-      } catch (Exception e) {
-        e.printStackTrace();
-        WalletConfig.MONERO_WALLET_RPC_MANAGER.stopInstance(walletRpc);
-        throw e;
-      }
+
+        // start monero-wallet-rpc instance
+        MoneroWalletRpc walletRpc = startWalletRpcInstance();
+
+        // create wallet
+        try {
+            walletRpc.createWallet(config);
+            walletRpc.startSyncing(MONERO_WALLET_SYNC_RATE);
+            return walletRpc;
+        } catch (Exception e) {
+            e.printStackTrace();
+            WalletConfig.MONERO_WALLET_RPC_MANAGER.stopInstance(walletRpc);
+            throw e;
+        }
     }
-    
+
     public MoneroWallet openWallet(MoneroWalletConfig config) {
-      
-      // start monero-wallet-rpc instance
-      MoneroWalletRpc walletRpc = startWalletRpcInstance();
-      
-      // open wallet
-      try {
-        walletRpc.openWallet(config);
-        walletRpc.startSyncing(MONERO_WALLET_SYNC_RATE);
-        return walletRpc;
-      } catch (Exception e) {
-        e.printStackTrace();
-        WalletConfig.MONERO_WALLET_RPC_MANAGER.stopInstance(walletRpc);
-        throw e;
-      }
+
+        // start monero-wallet-rpc instance
+        MoneroWalletRpc walletRpc = startWalletRpcInstance();
+
+        // open wallet
+        try {
+            walletRpc.openWallet(config);
+            walletRpc.startSyncing(MONERO_WALLET_SYNC_RATE);
+            return walletRpc;
+        } catch (Exception e) {
+            e.printStackTrace();
+            WalletConfig.MONERO_WALLET_RPC_MANAGER.stopInstance(walletRpc);
+            throw e;
+        }
     }
-    
+
     private MoneroWalletRpc startWalletRpcInstance() {
-      
-      // check if monero-wallet-rpc exists
-      if (!new File(MONERO_WALLET_RPC_PATH).exists()) throw new Error("monero-wallet-rpc executable doesn't exist at path " + MONERO_WALLET_RPC_PATH + "; copy monero-wallet-rpc to the project root or set WalletConfig.java MONERO_WALLET_RPC_PATH for your system");
-      
-      // start monero-wallet-rpc instance and return connected client
-      return WalletConfig.MONERO_WALLET_RPC_MANAGER.startInstance(Arrays.asList(
-          MONERO_WALLET_RPC_PATH,
-          "--" + MONERO_NETWORK_TYPE.toString().toLowerCase(),
-          "--daemon-address", MONERO_DAEMON_URI,
-          "--daemon-login", MONERO_DAEMON_USERNAME + ":" + MONERO_DAEMON_PASSWORD,
-          "--rpc-login", MONERO_WALLET_RPC_USERNAME + ":" + MONERO_WALLET_RPC_PASSWORD,
-          "--wallet-dir", directory.toString()
-      ));
+
+        // check if monero-wallet-rpc exists
+        if (!new File(MONERO_WALLET_RPC_PATH).exists())
+            throw new Error("monero-wallet-rpc executable doesn't exist at path " + MONERO_WALLET_RPC_PATH + "; copy monero-wallet-rpc to the project root or set WalletConfig.java MONERO_WALLET_RPC_PATH for your system");
+
+        // start monero-wallet-rpc instance and return connected client
+        return WalletConfig.MONERO_WALLET_RPC_MANAGER.startInstance(Arrays.asList(
+                MONERO_WALLET_RPC_PATH,
+                "--" + MONERO_NETWORK_TYPE.toString().toLowerCase(),
+                "--daemon-address", MONERO_DAEMON_URI,
+                "--daemon-login", MONERO_DAEMON_USERNAME + ":" + MONERO_DAEMON_PASSWORD,
+                "--rpc-login", MONERO_WALLET_RPC_USERNAME + ":" + MONERO_WALLET_RPC_PASSWORD,
+                "--wallet-dir", directory.toString()
+        ));
     }
-    
+
     public void closeWallet(MoneroWallet walletRpc) {
-      WalletConfig.MONERO_WALLET_RPC_MANAGER.stopInstance((MoneroWalletRpc) walletRpc);
+        WalletConfig.MONERO_WALLET_RPC_MANAGER.stopInstance((MoneroWalletRpc) walletRpc);
     }
 
     @Override
@@ -321,14 +315,14 @@ public class WalletConfig extends AbstractIdleService {
         try {
             File chainFile = new File(directory, filePrefix + ".spvchain");
             boolean chainFileExists = chainFile.exists();
-            
+
             // XMR wallet
             String xmrPrefix = "_XMR";
             vXmrWalletFile = new File(directory, filePrefix + xmrPrefix); // TODO: *.wallet?
             if (MoneroUtils.walletExists(vXmrWalletFile.getPath())) {
-              vXmrWallet = openWallet(new MoneroWalletConfig().setPath(filePrefix + xmrPrefix).setPassword("abctesting123"));
+                vXmrWallet = openWallet(new MoneroWalletConfig().setPath(filePrefix + xmrPrefix).setPassword("abctesting123"));
             } else {
-              vXmrWallet = createWallet(new MoneroWalletConfig().setPath(filePrefix + xmrPrefix).setPassword("abctesting123"));
+                vXmrWallet = createWallet(new MoneroWalletConfig().setPath(filePrefix + xmrPrefix).setPassword("abctesting123"));
             }
             System.out.println("Monero wallet path: " + vXmrWallet.getPath());
             System.out.println("Monero wallet address: " + vXmrWallet.getPrimaryAddress());
@@ -338,7 +332,7 @@ public class WalletConfig extends AbstractIdleService {
             vXmrWallet.sync();
             vXmrWallet.save();
             System.out.println("Loaded wallet balance: " + vXmrWallet.getBalance());
-            
+
             String btcPrefix = "_BTC";
             vBtcWalletFile = new File(directory, filePrefix + btcPrefix + ".wallet");
             boolean shouldReplayWallet = (vBtcWalletFile.exists() && !chainFileExists) || restoreFromSeed != null;
@@ -381,7 +375,7 @@ public class WalletConfig extends AbstractIdleService {
             }
             vChain = new BlockChain(params, vStore);
             vPeerGroup = createPeerGroup();
-            if (minBroadcastConnections > 0 )
+            if (minBroadcastConnections > 0)
                 vPeerGroup.setMinBroadcastConnections(minBroadcastConnections);
             if (this.userAgent != null)
                 vPeerGroup.setUserAgent(userAgent, version);
@@ -585,11 +579,11 @@ public class WalletConfig extends AbstractIdleService {
         checkState(state() == State.STARTING || state() == State.RUNNING, "Cannot call until startup is complete");
         return vBtcWallet;
     }
-    
+
     public MoneroWallet getXmrWallet() {
-      checkState(state() == State.STARTING || state() == State.RUNNING, "Cannot call until startup is complete");
-      return vXmrWallet;
-  }
+        checkState(state() == State.STARTING || state() == State.RUNNING, "Cannot call until startup is complete");
+        return vXmrWallet;
+    }
 
     public Wallet bsqWallet() {
         checkState(state() == State.STARTING || state() == State.RUNNING, "Cannot call until startup is complete");

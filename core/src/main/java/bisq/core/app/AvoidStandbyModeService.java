@@ -17,21 +17,19 @@
 
 package bisq.core.app;
 
-import bisq.core.user.Preferences;
-
 import bisq.common.config.Config;
 import bisq.common.file.FileUtil;
 import bisq.common.file.ResourceNotFoundException;
 import bisq.common.util.Utilities;
+import bisq.core.user.Preferences;
+import lombok.extern.slf4j.Slf4j;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
-
-import java.nio.file.Paths;
-
+import javax.sound.sampled.*;
 import java.io.File;
 import java.io.IOException;
-
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -40,17 +38,6 @@ import java.util.concurrent.CountDownLatch;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
-
-import lombok.extern.slf4j.Slf4j;
-
-
-
-import javax.sound.sampled.AudioFormat;
-import javax.sound.sampled.AudioInputStream;
-import javax.sound.sampled.AudioSystem;
-import javax.sound.sampled.DataLine;
-import javax.sound.sampled.LineUnavailableException;
-import javax.sound.sampled.SourceDataLine;
 
 /**
  * Prevents that Bisq gets hibernated from the OS. On OSX there is a tool called caffeinate but it seems it does not

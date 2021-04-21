@@ -17,22 +17,17 @@
 
 package bisq.network.p2p.network;
 
-import bisq.network.p2p.NodeAddress;
-
 import bisq.common.UserThread;
 import bisq.common.proto.network.NetworkProtoResolver;
-
-import java.net.ServerSocket;
-import java.net.Socket;
-
-import java.io.IOException;
-
-import java.util.concurrent.TimeUnit;
-
+import bisq.network.p2p.NodeAddress;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.jetbrains.annotations.Nullable;
+import java.io.IOException;
+import java.net.ServerSocket;
+import java.net.Socket;
+import java.util.concurrent.TimeUnit;
 
 // Run in UserThread
 public class LocalhostNetworkNode extends NetworkNode {

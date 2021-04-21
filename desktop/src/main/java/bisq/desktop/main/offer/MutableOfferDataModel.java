@@ -27,7 +27,6 @@ import bisq.core.btc.TxFeeEstimationService;
 import bisq.core.btc.listeners.BsqBalanceListener;
 import bisq.core.btc.listeners.XmrBalanceListener;
 import bisq.core.btc.model.XmrAddressEntry;
-import bisq.core.btc.wallet.BsqWalletService;
 import bisq.core.btc.wallet.Restrictions;
 import bisq.core.btc.wallet.XmrWalletService;
 import bisq.core.locale.CurrencyUtil;
@@ -85,7 +84,6 @@ public abstract class MutableOfferDataModel extends OfferDataModel implements Bs
     private final CreateOfferService createOfferService;
     protected final OpenOfferManager openOfferManager;
     private final XmrWalletService xmrWalletService;
-    private final BsqWalletService bsqWalletService;
     private final Preferences preferences;
     protected final User user;
     private final P2PService p2PService;
@@ -133,7 +131,6 @@ public abstract class MutableOfferDataModel extends OfferDataModel implements Bs
     public MutableOfferDataModel(CreateOfferService createOfferService,
                                  OpenOfferManager openOfferManager,
                                  XmrWalletService xmrWalletService,
-                                 BsqWalletService bsqWalletService,
                                  Preferences preferences,
                                  User user,
                                  P2PService p2PService,
@@ -149,7 +146,6 @@ public abstract class MutableOfferDataModel extends OfferDataModel implements Bs
         this.xmrWalletService = xmrWalletService;
         this.createOfferService = createOfferService;
         this.openOfferManager = openOfferManager;
-        this.bsqWalletService = bsqWalletService;
         this.preferences = preferences;
         this.user = user;
         this.p2PService = p2PService;
@@ -195,13 +191,11 @@ public abstract class MutableOfferDataModel extends OfferDataModel implements Bs
 
     private void addListeners() {
         xmrWalletService.addBalanceListener(xmrBalanceListener);
-        bsqWalletService.addBsqBalanceListener(this);
         user.getPaymentAccountsAsObservable().addListener(paymentAccountsChangeListener);
     }
 
     private void removeListeners() {
         xmrWalletService.removeBalanceListener(xmrBalanceListener);
-        bsqWalletService.removeBsqBalanceListener(this);
         user.getPaymentAccountsAsObservable().removeListener(paymentAccountsChangeListener);
     }
 
@@ -715,10 +709,7 @@ public abstract class MutableOfferDataModel extends OfferDataModel implements Bs
         // we have to keep a minimum amount of BSQ == bitcoin dust limit
         // otherwise there would be dust violations for change UTXOs
         // essentially means the minimum usable balance of BSQ is 5.46
-        Coin usableBsqBalance = bsqWalletService.getAvailableConfirmedBalance().subtract(Restrictions.getMinNonDustOutput());
-        if (usableBsqBalance.isNegative())
-            usableBsqBalance = Coin.ZERO;
-        return usableBsqBalance;
+        return Coin.ZERO;//TODO(niyid) No BSQ available
     }
 
     public void setMarketPriceAvailable(boolean marketPriceAvailable) {
@@ -730,7 +721,7 @@ public abstract class MutableOfferDataModel extends OfferDataModel implements Bs
     }
 
     public Coin getMakerFee() {
-        return makerFeeProvider.getMakerFee(bsqWalletService, preferences, amount.get());
+        return makerFeeProvider.getMakerFee(preferences, amount.get());
     }
 
     public Coin getMakerFeeInBtc() {
@@ -742,7 +733,7 @@ public abstract class MutableOfferDataModel extends OfferDataModel implements Bs
     }
 
     public boolean isCurrencyForMakerFeeBtc() {
-        return OfferUtil.isCurrencyForMakerFeeBtc(preferences, bsqWalletService, amount.get());
+        return OfferUtil.isCurrencyForMakerFeeBtc(preferences, amount.get());
     }
 
     boolean isPreferredFeeCurrencyBtc() {
@@ -750,7 +741,7 @@ public abstract class MutableOfferDataModel extends OfferDataModel implements Bs
     }
 
     boolean isBsqForFeeAvailable() {
-        return OfferUtil.isBsqForMakerFeeAvailable(bsqWalletService, amount.get());
+        return OfferUtil.isBsqForMakerFeeAvailable(amount.get());
     }
 
     public boolean isHalCashAccount() {

@@ -17,24 +17,21 @@
 
 package bisq.network.p2p.peers.peerexchange.messages;
 
+import bisq.common.app.Capabilities;
+import bisq.common.app.Version;
+import bisq.common.proto.network.NetworkEnvelope;
 import bisq.network.p2p.NodeAddress;
 import bisq.network.p2p.SendersNodeAddressMessage;
 import bisq.network.p2p.SupportedCapabilitiesMessage;
 import bisq.network.p2p.peers.peerexchange.Peer;
-
-import bisq.common.app.Capabilities;
-import bisq.common.app.Version;
-import bisq.common.proto.network.NetworkEnvelope;
-
-import java.util.HashSet;
-import java.util.Optional;
-import java.util.Set;
-import java.util.stream.Collectors;
-
 import lombok.EqualsAndHashCode;
 import lombok.Value;
 
 import javax.annotation.Nullable;
+import java.util.HashSet;
+import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 

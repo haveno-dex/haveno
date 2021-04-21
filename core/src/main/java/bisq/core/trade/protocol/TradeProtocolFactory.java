@@ -17,12 +17,7 @@
 
 package bisq.core.trade.protocol;
 
-import bisq.core.trade.ArbitratorTrade;
-import bisq.core.trade.BuyerAsMakerTrade;
-import bisq.core.trade.BuyerAsTakerTrade;
-import bisq.core.trade.SellerAsMakerTrade;
-import bisq.core.trade.SellerAsTakerTrade;
-import bisq.core.trade.Trade;
+import bisq.core.trade.*;
 
 public class TradeProtocolFactory {
     public static TradeProtocol getNewTradeProtocol(Trade trade) {

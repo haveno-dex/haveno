@@ -17,23 +17,16 @@
 
 package bisq.core.btc.wallet;
 
-import org.bitcoinj.core.Coin;
-import org.bitcoinj.core.InsufficientMoneyException;
-import org.bitcoinj.core.NetworkParameters;
-import org.bitcoinj.core.Transaction;
-import org.bitcoinj.core.TransactionConfidence;
-import org.bitcoinj.core.TransactionOutput;
+import lombok.extern.slf4j.Slf4j;
+import org.bitcoinj.core.*;
 import org.bitcoinj.wallet.CoinSelection;
 import org.bitcoinj.wallet.CoinSelector;
 
 import java.math.BigInteger;
-
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
-
-import lombok.extern.slf4j.Slf4j;
 
 /**
  * Used from org.bitcoinj.wallet.DefaultCoinSelector but added selectOutput method and changed static methods to

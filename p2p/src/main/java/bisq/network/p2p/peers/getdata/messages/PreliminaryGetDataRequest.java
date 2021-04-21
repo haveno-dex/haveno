@@ -17,26 +17,21 @@
 
 package bisq.network.p2p.peers.getdata.messages;
 
-import bisq.network.p2p.AnonymousMessage;
-import bisq.network.p2p.SupportedCapabilitiesMessage;
-
 import bisq.common.app.Capabilities;
 import bisq.common.app.Version;
 import bisq.common.proto.ProtoUtil;
-
-import protobuf.NetworkEnvelope;
-
+import bisq.network.p2p.AnonymousMessage;
+import bisq.network.p2p.SupportedCapabilitiesMessage;
 import com.google.protobuf.ByteString;
-
-import java.util.Optional;
-import java.util.Set;
-import java.util.stream.Collectors;
-
 import lombok.EqualsAndHashCode;
 import lombok.Value;
 import lombok.extern.slf4j.Slf4j;
+import protobuf.NetworkEnvelope;
 
 import javax.annotation.Nullable;
+import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Slf4j
 @EqualsAndHashCode(callSuper = true)

@@ -25,11 +25,6 @@ import bisq.common.persistence.PersistenceManager;
 import bisq.common.proto.network.NetworkEnvelope;
 import bisq.common.proto.persistable.PersistableEnvelope;
 import bisq.core.account.witness.AccountAgeWitnessStore;
-import bisq.core.dao.monitoring.model.StateHash;
-import bisq.core.dao.monitoring.network.messages.GetBlindVoteStateHashesRequest;
-import bisq.core.dao.monitoring.network.messages.GetDaoStateHashesRequest;
-import bisq.core.dao.monitoring.network.messages.GetProposalStateHashesRequest;
-import bisq.core.dao.monitoring.network.messages.GetStateHashesResponse;
 import bisq.core.proto.persistable.CorePersistenceProtoResolver;
 import bisq.core.trade.statistics.TradeStatistics2Store;
 import bisq.monitor.OnionParser;
@@ -146,12 +141,6 @@ public class P2PSeedNodeSnapshot extends P2PSeedNodeSnapshotBase {
 
         Random random = new Random();
         result.add(new PreliminaryGetDataRequest(random.nextInt(), hashes));
-
-        result.add(new GetDaoStateHashesRequest(daostateheight, random.nextInt()));
-
-        result.add(new GetProposalStateHashesRequest(proposalheight, random.nextInt()));
-
-        result.add(new GetBlindVoteStateHashesRequest(blindvoteheight, random.nextInt()));
 
         return result;
     }
@@ -283,12 +272,7 @@ public class P2PSeedNodeSnapshot extends P2PSeedNodeSnapshotBase {
         @Override
         public void log(Object message) {
             // get last entry
-            StateHash last = (StateHash) ((GetStateHashesResponse) message).getStateHashes().get(((GetStateHashesResponse) message).getStateHashes().size() - 1);
-
-            // For logging different data types
-            String className = last.getClass().getSimpleName();
-
-            buckets.putIfAbsent(className, new Tuple(last.getHeight(), last.getHash()));
+            //TODO(niyid) To retain or not...hmm
         }
 
         @Override
@@ -335,12 +319,6 @@ public class P2PSeedNodeSnapshot extends P2PSeedNodeSnapshotBase {
             });
 
             bucketsPerHost.put(connection.getPeersNodeAddressProperty().getValue(), result);
-            return true;
-        } else if (networkEnvelope instanceof GetStateHashesResponse) {
-            daoData.putIfAbsent(connection.getPeersNodeAddressProperty().getValue(), new DaoStatistics());
-
-            daoData.get(connection.getPeersNodeAddressProperty().getValue()).log(networkEnvelope);
-
             return true;
         }
         return false;

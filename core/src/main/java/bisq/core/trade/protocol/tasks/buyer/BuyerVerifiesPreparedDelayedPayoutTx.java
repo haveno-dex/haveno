@@ -17,12 +17,10 @@
 
 package bisq.core.trade.protocol.tasks.buyer;
 
+import bisq.common.taskrunner.TaskRunner;
 import bisq.core.trade.Trade;
 import bisq.core.trade.TradeDataValidation;
 import bisq.core.trade.protocol.tasks.TradeTask;
-
-import bisq.common.taskrunner.TaskRunner;
-
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -38,7 +36,6 @@ public class BuyerVerifiesPreparedDelayedPayoutTx extends TradeTask {
 
             TradeDataValidation.validateDelayedPayoutTx(trade,
                     processModel.getPreparedDelayedPayoutTx(),
-                    processModel.getDaoFacade(),
                     processModel.getBtcWalletService());
 
             complete();

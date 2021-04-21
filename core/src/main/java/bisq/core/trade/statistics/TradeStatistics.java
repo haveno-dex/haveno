@@ -17,40 +17,33 @@
 
 package bisq.core.trade.statistics;
 
-import bisq.core.monetary.Altcoin;
-import bisq.core.monetary.AltcoinExchangeRate;
-import bisq.core.monetary.Price;
-import bisq.core.monetary.Volume;
-import bisq.core.offer.OfferPayload;
-
-import bisq.network.p2p.storage.payload.ExpirablePayload;
-import bisq.network.p2p.storage.payload.ProcessOncePersistableNetworkPayload;
-import bisq.network.p2p.storage.payload.ProtectedStoragePayload;
-
 import bisq.common.crypto.Sig;
 import bisq.common.proto.persistable.PersistablePayload;
 import bisq.common.util.CollectionUtils;
 import bisq.common.util.ExtraDataMapValidator;
 import bisq.common.util.JsonExclude;
-
+import bisq.core.monetary.Altcoin;
+import bisq.core.monetary.AltcoinExchangeRate;
+import bisq.core.monetary.Price;
+import bisq.core.monetary.Volume;
+import bisq.core.offer.OfferPayload;
+import bisq.network.p2p.storage.payload.ExpirablePayload;
+import bisq.network.p2p.storage.payload.ProcessOncePersistableNetworkPayload;
+import bisq.network.p2p.storage.payload.ProtectedStoragePayload;
 import com.google.protobuf.ByteString;
-
+import lombok.EqualsAndHashCode;
+import lombok.Value;
+import lombok.extern.slf4j.Slf4j;
 import org.bitcoinj.core.Coin;
 import org.bitcoinj.utils.ExchangeRate;
 import org.bitcoinj.utils.Fiat;
 
+import javax.annotation.Nullable;
 import java.security.PublicKey;
-
 import java.util.Date;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
-
-import lombok.EqualsAndHashCode;
-import lombok.Value;
-import lombok.extern.slf4j.Slf4j;
-
-import javax.annotation.Nullable;
 
 /**
  * @deprecated Was used in pre v0.6.0 version

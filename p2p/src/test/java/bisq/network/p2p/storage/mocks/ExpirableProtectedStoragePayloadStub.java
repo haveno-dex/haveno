@@ -23,7 +23,6 @@ import bisq.network.p2p.storage.payload.ExpirablePayload;
 import bisq.network.p2p.storage.payload.RequiresOwnerIsOnlinePayload;
 
 import java.security.PublicKey;
-
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -34,7 +33,7 @@ import java.util.concurrent.TimeUnit;
  * @see <a href="https://martinfowler.com/articles/mocksArentStubs.html#TheDifferenceBetweenMocksAndStubs">Reference</a>
  */
 public class ExpirableProtectedStoragePayloadStub extends ProtectedStoragePayloadStub
-                                                  implements ExpirablePayload, RequiresOwnerIsOnlinePayload {
+        implements ExpirablePayload, RequiresOwnerIsOnlinePayload {
     private long ttl;
 
     public ExpirableProtectedStoragePayloadStub(PublicKey ownerPubKey) {

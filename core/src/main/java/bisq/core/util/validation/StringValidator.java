@@ -18,7 +18,6 @@
 package bisq.core.util.validation;
 
 import bisq.core.locale.Res;
-
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 

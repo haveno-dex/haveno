@@ -17,29 +17,23 @@
 
 package bisq.network.p2p.storage.payload;
 
-import bisq.network.p2p.storage.P2PDataStorage;
-
 import bisq.common.crypto.CryptoException;
 import bisq.common.crypto.Sig;
 import bisq.common.proto.network.NetworkPayload;
 import bisq.common.proto.network.NetworkProtoResolver;
 import bisq.common.proto.persistable.PersistablePayload;
 import bisq.common.util.Utilities;
-
+import bisq.network.p2p.storage.P2PDataStorage;
+import com.google.common.base.Preconditions;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.Message;
-
-import com.google.common.base.Preconditions;
-
-import java.security.PublicKey;
-
-import java.time.Clock;
-
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
-
 import org.jetbrains.annotations.NotNull;
+
+import java.security.PublicKey;
+import java.time.Clock;
 
 @Getter
 @EqualsAndHashCode

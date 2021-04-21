@@ -18,7 +18,6 @@
 package bisq.core.util.coin;
 
 import bisq.common.util.MathUtils;
-
 import org.bitcoinj.core.Coin;
 
 public class CoinUtil {
@@ -54,10 +53,9 @@ public class CoinUtil {
     }
 
     /**
-     * @param part Btc amount to be converted to percent value, based on total value passed.
+     * @param part  Btc amount to be converted to percent value, based on total value passed.
      *              E.g. 0.1 BTC is 25% (of 0.4 BTC)
      * @param total Total Btc amount the percentage part is calculated from
-     *
      * @return The percentage value as double (e.g. 1% is 0.01)
      */
     public static double getAsPercentPerBtc(Coin part, Coin total) {
@@ -67,8 +65,8 @@ public class CoinUtil {
     }
 
     /**
-     * @param percent       The percentage value as double (e.g. 1% is 0.01)
-     * @param amount        The amount as Coin for the percentage calculation
+     * @param percent The percentage value as double (e.g. 1% is 0.01)
+     * @param amount  The amount as Coin for the percentage calculation
      * @return The percentage as Coin (e.g. 1% of 1 BTC is 0.01 BTC)
      */
     public static Coin getPercentOfAmountAsCoin(double percent, Coin amount) {

@@ -17,12 +17,6 @@
 
 package bisq.core.trade.messages;
 
-import java.util.Optional;
-
-import javax.annotation.Nullable;
-
-import com.google.protobuf.ByteString;
-
 import bisq.common.crypto.PubKeyRing;
 import bisq.common.proto.ProtoUtil;
 import bisq.common.util.Utilities;
@@ -30,8 +24,12 @@ import bisq.core.payment.payload.PaymentAccountPayload;
 import bisq.core.proto.CoreProtoResolver;
 import bisq.network.p2p.DirectMessage;
 import bisq.network.p2p.NodeAddress;
+import com.google.protobuf.ByteString;
 import lombok.EqualsAndHashCode;
 import lombok.Value;
+
+import javax.annotation.Nullable;
+import java.util.Optional;
 
 @EqualsAndHashCode(callSuper = true)
 @Value
@@ -48,34 +46,34 @@ public final class InitTradeRequest extends TradeMessage implements DirectMessag
     @Nullable
     private final String tradeFeeTxId;
     private final NodeAddress arbitratorNodeAddress;
-    
+
     // added in v 0.6. can be null if we trade with an older peer
     @Nullable
     private final byte[] accountAgeWitnessSignatureOfOfferId;
     private final long currentDate;
-    
+
     // added for XMR integration
     private final NodeAddress takerNodeAddress;
     private final NodeAddress makerNodeAddress;
 
     public InitTradeRequest(String tradeId,
-                                     NodeAddress senderNodeAddress,
-                                     PubKeyRing pubKeyRing,
-                                     long tradeAmount,
-                                     long tradePrice,
-                                     long txFee,
-                                     long tradeFee,
-                                     String payoutAddressString,
-                                     PaymentAccountPayload paymentAccountPayload,
-                                     String accountId,
-                                     String tradeFeeTxId,
-                                     String uid,
-                                     int messageVersion,
-                                     @Nullable byte[] accountAgeWitnessSignatureOfOfferId,
-                                     long currentDate,
-                                     NodeAddress takerNodeAddress,
-                                     NodeAddress makerNodeAddress,
-                                     NodeAddress arbitratorNodeAddress) {
+                            NodeAddress senderNodeAddress,
+                            PubKeyRing pubKeyRing,
+                            long tradeAmount,
+                            long tradePrice,
+                            long txFee,
+                            long tradeFee,
+                            String payoutAddressString,
+                            PaymentAccountPayload paymentAccountPayload,
+                            String accountId,
+                            String tradeFeeTxId,
+                            String uid,
+                            int messageVersion,
+                            @Nullable byte[] accountAgeWitnessSignatureOfOfferId,
+                            long currentDate,
+                            NodeAddress takerNodeAddress,
+                            NodeAddress makerNodeAddress,
+                            NodeAddress arbitratorNodeAddress) {
         super(messageVersion, tradeId, uid);
         this.senderNodeAddress = senderNodeAddress;
         this.pubKeyRing = pubKeyRing;
@@ -123,10 +121,10 @@ public final class InitTradeRequest extends TradeMessage implements DirectMessag
 
         return getNetworkEnvelopeBuilder().setInitTradeRequest(builder).build();
     }
-    
+
     public static InitTradeRequest fromProto(protobuf.InitTradeRequest proto,
-                                                      CoreProtoResolver coreProtoResolver,
-                                                      int messageVersion) {
+                                             CoreProtoResolver coreProtoResolver,
+                                             int messageVersion) {
         return new InitTradeRequest(proto.getTradeId(),
                 NodeAddress.fromProto(proto.getSenderNodeAddress()),
                 PubKeyRing.fromProto(proto.getPubKeyRing()),

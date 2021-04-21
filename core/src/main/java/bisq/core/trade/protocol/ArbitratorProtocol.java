@@ -11,19 +11,19 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class ArbitratorProtocol extends DisputeProtocol {
-  
-  private final ArbitratorTrade arbitratorTrade;
-  
-  public ArbitratorProtocol(ArbitratorTrade trade) {
-    super(trade);
-    this.arbitratorTrade = trade;
-  }
-  
-  ///////////////////////////////////////////////////////////////////////////////////////////
-  // Incoming messages
-  ///////////////////////////////////////////////////////////////////////////////////////////
-  
-  // TODO: new implementation for MakerProtocol
+
+    private final ArbitratorTrade arbitratorTrade;
+
+    public ArbitratorProtocol(ArbitratorTrade trade) {
+        super(trade);
+        this.arbitratorTrade = trade;
+    }
+
+    ///////////////////////////////////////////////////////////////////////////////////////////
+    // Incoming messages
+    ///////////////////////////////////////////////////////////////////////////////////////////
+
+    // TODO: new implementation for MakerProtocol
 //  private void handle(InitTradeRequest message, NodeAddress peer) {
 //      expect(phase(Trade.Phase.INIT)
 //              .with(message)
@@ -37,22 +37,22 @@ public class ArbitratorProtocol extends DisputeProtocol {
 //                  .withTimeout(30))
 //              .executeTasks();
 //  }
-  
-  public void handleInitTradeRequest(InitTradeRequest message, NodeAddress peer, ErrorMessageHandler errorMessageHandler) { // TODO (woodser): update impl to use errorMessageHandler
-    expect(phase(Trade.Phase.INIT)
-            .with(message)
-            .from(peer))
-            .setup(tasks(
-                //ApplyFilter.class,
-                ProcessInitTradeRequest.class))
-            .executeTasks();
-  }
-  
-  @Override
-  public void handleDepositTxMessage(DepositTxMessage message, NodeAddress taker, ErrorMessageHandler errorMessageHandler) {
-    throw new RuntimeException("Not implemented");
-  }
-  
+
+    public void handleInitTradeRequest(InitTradeRequest message, NodeAddress peer, ErrorMessageHandler errorMessageHandler) { // TODO (woodser): update impl to use errorMessageHandler
+        expect(phase(Trade.Phase.INIT)
+                .with(message)
+                .from(peer))
+                .setup(tasks(
+                        //ApplyFilter.class,
+                        ProcessInitTradeRequest.class))
+                .executeTasks();
+    }
+
+    @Override
+    public void handleDepositTxMessage(DepositTxMessage message, NodeAddress taker, ErrorMessageHandler errorMessageHandler) {
+        throw new RuntimeException("Not implemented");
+    }
+
 //  @Override
 //  public void handleTakeOfferRequest(InputsForDepositTxRequest message,
 //                                     NodeAddress peer,
@@ -79,10 +79,10 @@ public class ArbitratorProtocol extends DisputeProtocol {
 //                      .withTimeout(30))
 //              .executeTasks();
 //  }
-  
-  ///////////////////////////////////////////////////////////////////////////////////////////
-  // Message dispatcher
-  ///////////////////////////////////////////////////////////////////////////////////////////
+
+    ///////////////////////////////////////////////////////////////////////////////////////////
+    // Message dispatcher
+    ///////////////////////////////////////////////////////////////////////////////////////////
 
 //  @Override
 //  protected void onTradeMessage(TradeMessage message, NodeAddress peer) {

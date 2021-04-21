@@ -17,6 +17,8 @@
 
 package bisq.network.p2p.storage;
 
+import bisq.common.app.Version;
+import bisq.common.crypto.CryptoException;
 import bisq.network.p2p.TestUtils;
 import bisq.network.p2p.storage.mocks.ExpirableProtectedStoragePayloadStub;
 import bisq.network.p2p.storage.mocks.PersistableExpirableProtectedStoragePayloadStub;
@@ -25,19 +27,14 @@ import bisq.network.p2p.storage.mocks.ProtectedStoragePayloadStub;
 import bisq.network.p2p.storage.payload.PersistableNetworkPayload;
 import bisq.network.p2p.storage.payload.ProtectedStorageEntry;
 import bisq.network.p2p.storage.payload.ProtectedStoragePayload;
-
-import bisq.common.app.Version;
-import bisq.common.crypto.CryptoException;
-
-import java.security.KeyPair;
-import java.security.NoSuchAlgorithmException;
-
-import java.util.ArrayList;
-import java.util.concurrent.TimeUnit;
-
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+
+import java.security.KeyPair;
+import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
+import java.util.concurrent.TimeUnit;
 
 import static bisq.network.p2p.storage.TestState.*;
 
@@ -75,7 +72,7 @@ public class P2PDataStorageRemoveExpiredTest {
     public void removeExpiredEntries_skipsPersistableNetworkPayload() {
         PersistableNetworkPayload persistableNetworkPayload = new PersistableNetworkPayloadStub(true);
 
-        Assert.assertTrue(this.testState.mockedStorage.addPersistableNetworkPayload(persistableNetworkPayload,getTestNodeAddress(), false));
+        Assert.assertTrue(this.testState.mockedStorage.addPersistableNetworkPayload(persistableNetworkPayload, getTestNodeAddress(), false));
 
         this.testState.mockedStorage.removeExpiredEntries();
 

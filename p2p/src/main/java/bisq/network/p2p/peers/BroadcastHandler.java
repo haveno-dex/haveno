@@ -17,19 +17,19 @@
 
 package bisq.network.p2p.peers;
 
+import bisq.common.Timer;
+import bisq.common.UserThread;
 import bisq.network.p2p.BundleOfEnvelopes;
 import bisq.network.p2p.NodeAddress;
 import bisq.network.p2p.network.Connection;
 import bisq.network.p2p.network.NetworkNode;
 import bisq.network.p2p.storage.messages.BroadcastMessage;
-
-import bisq.common.Timer;
-import bisq.common.UserThread;
-
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.SettableFuture;
+import lombok.extern.slf4j.Slf4j;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -37,10 +37,6 @@ import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
-
-import lombok.extern.slf4j.Slf4j;
-
-import org.jetbrains.annotations.NotNull;
 
 @Slf4j
 public class BroadcastHandler implements PeerManager.Listener {

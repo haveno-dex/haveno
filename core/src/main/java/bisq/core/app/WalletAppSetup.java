@@ -17,6 +17,8 @@
 
 package bisq.core.app;
 
+import bisq.common.UserThread;
+import bisq.common.config.Config;
 import bisq.core.btc.exceptions.InvalidHostException;
 import bisq.core.btc.exceptions.RejectedTxException;
 import bisq.core.btc.setup.WalletsSetup;
@@ -26,37 +28,21 @@ import bisq.core.offer.OpenOfferManager;
 import bisq.core.trade.TradeManager;
 import bisq.core.user.Preferences;
 import bisq.core.util.FormattingUtils;
-
-import bisq.common.UserThread;
-import bisq.common.config.Config;
-
+import javafx.beans.property.*;
+import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
 import org.bitcoinj.core.RejectMessage;
 import org.bitcoinj.core.VersionMessage;
 import org.bitcoinj.store.BlockStoreException;
 import org.bitcoinj.store.ChainFileLockedException;
-
-import javax.inject.Inject;
-import javax.inject.Singleton;
-
 import org.fxmisc.easybind.EasyBind;
 import org.fxmisc.easybind.monadic.MonadicBinding;
 
-import javafx.beans.property.BooleanProperty;
-import javafx.beans.property.DoubleProperty;
-import javafx.beans.property.ObjectProperty;
-import javafx.beans.property.SimpleBooleanProperty;
-import javafx.beans.property.SimpleDoubleProperty;
-import javafx.beans.property.SimpleObjectProperty;
-import javafx.beans.property.SimpleStringProperty;
-import javafx.beans.property.StringProperty;
-
+import javax.annotation.Nullable;
+import javax.inject.Inject;
+import javax.inject.Singleton;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Consumer;
-
-import lombok.Getter;
-import lombok.extern.slf4j.Slf4j;
-
-import javax.annotation.Nullable;
 
 @Slf4j
 @Singleton
@@ -243,8 +229,8 @@ public class WalletAppSetup {
                                         details = Res.get("popup.warning.trade.txRejected.deposit");  // TODO (woodser): txRejected.maker_deposit, txRejected.taker_deposit
                                     }
                                     if (txId.equals(trade.getTakerDepositTxId())) {
-                                      details = Res.get("popup.warning.trade.txRejected.deposit");
-                                  }
+                                        details = Res.get("popup.warning.trade.txRejected.deposit");
+                                    }
                                     if (txId.equals(trade.getOffer().getOfferFeePaymentTxId()) || txId.equals(trade.getTakerFeeTxId())) {
                                         details = Res.get("popup.warning.trade.txRejected.tradeFee");
                                     }
@@ -265,6 +251,7 @@ public class WalletAppSetup {
             }
         });
     }
+
     private String getBtcNetworkAsString() {
         String postFix;
         if (config.ignoreLocalBtcNode)

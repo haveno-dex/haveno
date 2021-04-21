@@ -17,9 +17,8 @@
 
 package bisq.network.p2p.network;
 
-import bisq.network.p2p.NodeAddress;
-
 import bisq.common.proto.network.NetworkProtoResolver;
+import bisq.network.p2p.NodeAddress;
 
 import java.net.Socket;
 

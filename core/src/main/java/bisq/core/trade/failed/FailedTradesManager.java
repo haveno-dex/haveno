@@ -29,13 +29,14 @@ import bisq.core.trade.TradableList;
 import bisq.core.trade.Trade;
 import bisq.core.trade.TradeUtils;
 import com.google.inject.Inject;
-import java.util.Optional;
-import java.util.function.Function;
-import java.util.stream.Stream;
 import javafx.collections.ObservableList;
 import lombok.Setter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.Optional;
+import java.util.function.Function;
+import java.util.stream.Stream;
 
 public class FailedTradesManager implements PersistedDataHost {
     private static final Logger log = LoggerFactory.getLogger(FailedTradesManager.class);

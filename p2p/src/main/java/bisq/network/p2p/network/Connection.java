@@ -17,23 +17,6 @@
 
 package bisq.network.p2p.network;
 
-import bisq.network.p2p.BundleOfEnvelopes;
-import bisq.network.p2p.CloseConnectionMessage;
-import bisq.network.p2p.ExtendedDataSizePermission;
-import bisq.network.p2p.NodeAddress;
-import bisq.network.p2p.PrefixedSealedAndSignedMessage;
-import bisq.network.p2p.SendersNodeAddressMessage;
-import bisq.network.p2p.SupportedCapabilitiesMessage;
-import bisq.network.p2p.peers.BanList;
-import bisq.network.p2p.peers.getdata.messages.GetDataRequest;
-import bisq.network.p2p.peers.getdata.messages.GetDataResponse;
-import bisq.network.p2p.peers.keepalive.messages.KeepAliveMessage;
-import bisq.network.p2p.storage.messages.AddDataMessage;
-import bisq.network.p2p.storage.messages.AddPersistableNetworkPayloadMessage;
-import bisq.network.p2p.storage.payload.CapabilityRequiringPayload;
-import bisq.network.p2p.storage.payload.PersistableNetworkPayload;
-import bisq.network.p2p.storage.payload.ProtectedStoragePayload;
-
 import bisq.common.Proto;
 import bisq.common.UserThread;
 import bisq.common.app.Capabilities;
@@ -45,48 +28,33 @@ import bisq.common.proto.ProtobufferException;
 import bisq.common.proto.network.NetworkEnvelope;
 import bisq.common.proto.network.NetworkProtoResolver;
 import bisq.common.util.Utilities;
-
-import com.google.protobuf.InvalidProtocolBufferException;
-
-import javax.inject.Inject;
-
+import bisq.network.p2p.*;
+import bisq.network.p2p.peers.BanList;
+import bisq.network.p2p.peers.getdata.messages.GetDataRequest;
+import bisq.network.p2p.peers.getdata.messages.GetDataResponse;
+import bisq.network.p2p.peers.keepalive.messages.KeepAliveMessage;
+import bisq.network.p2p.storage.messages.AddDataMessage;
+import bisq.network.p2p.storage.messages.AddPersistableNetworkPayloadMessage;
+import bisq.network.p2p.storage.payload.CapabilityRequiringPayload;
+import bisq.network.p2p.storage.payload.PersistableNetworkPayload;
+import bisq.network.p2p.storage.payload.ProtectedStoragePayload;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.Uninterruptibles;
-
+import com.google.protobuf.InvalidProtocolBufferException;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleObjectProperty;
+import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
+import org.jetbrains.annotations.Nullable;
 
+import javax.inject.Inject;
+import java.io.*;
+import java.lang.ref.WeakReference;
 import java.net.Socket;
 import java.net.SocketException;
 import java.net.SocketTimeoutException;
-
-import java.io.EOFException;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InvalidClassException;
-import java.io.OptionalDataException;
-import java.io.StreamCorruptedException;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
-import java.util.Queue;
-import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.CopyOnWriteArraySet;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
-
-import java.lang.ref.WeakReference;
-
-import lombok.Getter;
-import lombok.extern.slf4j.Slf4j;
-
-import org.jetbrains.annotations.Nullable;
+import java.util.*;
+import java.util.concurrent.*;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;

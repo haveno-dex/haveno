@@ -17,13 +17,6 @@
 
 package bisq.core.trade.protocol.tasks;
 
-import static bisq.core.util.Validator.checkTradeId;
-import static com.google.common.base.Preconditions.checkNotNull;
-
-import java.util.Arrays;
-import java.util.Date;
-import java.util.UUID;
-
 import bisq.common.app.Version;
 import bisq.common.taskrunner.TaskRunner;
 import bisq.core.trade.Trade;
@@ -33,9 +26,16 @@ import bisq.network.p2p.SendDirectMessageListener;
 import lombok.extern.slf4j.Slf4j;
 import monero.wallet.MoneroWallet;
 
+import java.util.Arrays;
+import java.util.Date;
+import java.util.UUID;
+
+import static bisq.core.util.Validator.checkTradeId;
+import static com.google.common.base.Preconditions.checkNotNull;
+
 @Slf4j
 public class ProcessUpdateMultisigRequest extends TradeTask {
-  
+
     @SuppressWarnings({"unused"})
     public ProcessUpdateMultisigRequest(TaskRunner taskHandler, Trade trade) {
         super(taskHandler, trade);
@@ -44,64 +44,65 @@ public class ProcessUpdateMultisigRequest extends TradeTask {
     @Override
     protected void run() {
         try {
-          runInterceptHook();
-          log.debug("current trade state " + trade.getState());
-          UpdateMultisigRequest request = (UpdateMultisigRequest) processModel.getTradeMessage();
-          checkNotNull(request);
-          checkTradeId(processModel.getOfferId(), request);
-          MoneroWallet multisigWallet = processModel.getProvider().getXmrWalletService().getOrCreateMultisigWallet(processModel.getTrade().getId());
-          
-          System.out.println("PROCESS UPDATE MULTISIG REQUEST");
-          System.out.println(request);
-          
-          // check if multisig wallet needs updated
-          if (!multisigWallet.isMultisigImportNeeded()) {
-            log.warn("Multisig wallet does not need updated, so request is unexpected");
-            failed(); // TODO (woodser): ignore instead fail
-            return;
-          }
-          
-          // get updated multisig hex
-          multisigWallet.sync();
-          String updatedMultisigHex = multisigWallet.getMultisigHex();
-          
-          // import the multisig hex
-          int numOutputsSigned = multisigWallet.importMultisigHex(Arrays.asList(request.getUpdatedMultisigHex()));
-          System.out.println("Num outputs signed by imported multisig hex: " + numOutputsSigned);
-          
-          // respond with updated multisig hex
-          UpdateMultisigResponse response = new UpdateMultisigResponse(
-                  processModel.getOffer().getId(),
-                  processModel.getMyNodeAddress(),
-                  processModel.getPubKeyRing(),
-                  UUID.randomUUID().toString(),
-                  Version.getP2PMessageVersion(),
-                  new Date().getTime(),
-                  updatedMultisigHex);
-          
-          System.out.println("SENDING MESSAGE!!!!!!!");
-          System.out.println(response);
-          
-          log.info("Send {} with offerId {} and uid {} to peer {}", response.getClass().getSimpleName(), response.getTradeId(), response.getUid(), trade.getTradingPeerNodeAddress());
-          System.out.println("GONNA BE BAD IF EITHER OF THESE ARE NULL");
-          System.out.println(trade.getTradingPeerNodeAddress());
-          System.out.println(trade.getTradingPeerPubKeyRing());
-          processModel.getP2PService().sendEncryptedDirectMessage(trade.getTradingPeerNodeAddress(), trade.getTradingPeerPubKeyRing(), response, new SendDirectMessageListener() {
-            @Override
-            public void onArrived() {
-                log.info("{} arrived at trading peer: offerId={}; uid={}", response.getClass().getSimpleName(), response.getTradeId(), response.getUid());
-                
-                // save multisig wallet
-                multisigWallet.save();  // TODO (woodser): save on each step or after multisig wallets created?
-                complete();
+            runInterceptHook();
+            log.debug("current trade state " + trade.getState());
+            UpdateMultisigRequest request = (UpdateMultisigRequest) processModel.getTradeMessage();
+            checkNotNull(request);
+            checkTradeId(processModel.getOfferId(), request);
+            MoneroWallet multisigWallet = processModel.getProvider().getXmrWalletService().getOrCreateMultisigWallet(processModel.getTrade().getId());
+
+            System.out.println("PROCESS UPDATE MULTISIG REQUEST");
+            System.out.println(request);
+
+            // check if multisig wallet needs updated
+            if (!multisigWallet.isMultisigImportNeeded()) {
+                log.warn("Multisig wallet does not need updated, so request is unexpected");
+                failed(); // TODO (woodser): ignore instead fail
+                return;
             }
-            @Override
-            public void onFault(String errorMessage) {
-                log.error("Sending {} failed: uid={}; peer={}; error={}", response.getClass().getSimpleName(), response.getUid(), trade.getArbitratorNodeAddress(), errorMessage);
-                appendToErrorMessage("Sending response failed: response=" + response + "\nerrorMessage=" + errorMessage);
-                failed();
-            }
-          });
+
+            // get updated multisig hex
+            multisigWallet.sync();
+            String updatedMultisigHex = multisigWallet.getMultisigHex();
+
+            // import the multisig hex
+            int numOutputsSigned = multisigWallet.importMultisigHex(Arrays.asList(request.getUpdatedMultisigHex()));
+            System.out.println("Num outputs signed by imported multisig hex: " + numOutputsSigned);
+
+            // respond with updated multisig hex
+            UpdateMultisigResponse response = new UpdateMultisigResponse(
+                    processModel.getOffer().getId(),
+                    processModel.getMyNodeAddress(),
+                    processModel.getPubKeyRing(),
+                    UUID.randomUUID().toString(),
+                    Version.getP2PMessageVersion(),
+                    new Date().getTime(),
+                    updatedMultisigHex);
+
+            System.out.println("SENDING MESSAGE!!!!!!!");
+            System.out.println(response);
+
+            log.info("Send {} with offerId {} and uid {} to peer {}", response.getClass().getSimpleName(), response.getTradeId(), response.getUid(), trade.getTradingPeerNodeAddress());
+            System.out.println("GONNA BE BAD IF EITHER OF THESE ARE NULL");
+            System.out.println(trade.getTradingPeerNodeAddress());
+            System.out.println(trade.getTradingPeerPubKeyRing());
+            processModel.getP2PService().sendEncryptedDirectMessage(trade.getTradingPeerNodeAddress(), trade.getTradingPeerPubKeyRing(), response, new SendDirectMessageListener() {
+                @Override
+                public void onArrived() {
+                    log.info("{} arrived at trading peer: offerId={}; uid={}", response.getClass().getSimpleName(), response.getTradeId(), response.getUid());
+
+                    // save multisig wallet
+                    multisigWallet.save();  // TODO (woodser): save on each step or after multisig wallets created?
+                    complete();
+                }
+
+                @Override
+                public void onFault(String errorMessage) {
+                    log.error("Sending {} failed: uid={}; peer={}; error={}", response.getClass().getSimpleName(), response.getUid(), trade.getArbitratorNodeAddress(), errorMessage);
+                    appendToErrorMessage("Sending response failed: response=" + response + "\nerrorMessage=" + errorMessage);
+                    failed();
+                }
+            });
         } catch (Throwable t) {
             failed(t);
         }

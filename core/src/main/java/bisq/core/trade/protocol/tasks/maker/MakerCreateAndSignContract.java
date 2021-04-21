@@ -17,11 +17,7 @@
 
 package bisq.core.trade.protocol.tasks.maker;
 
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
-
-import com.google.common.base.Preconditions;
-
+import bisq.common.crypto.Hash;
 import bisq.common.crypto.Sig;
 import bisq.common.taskrunner.TaskRunner;
 import bisq.common.util.Utilities;
@@ -34,12 +30,6 @@ import bisq.core.trade.messages.DepositTxMessage;
 import bisq.core.trade.protocol.TradingPeer;
 import bisq.core.trade.protocol.tasks.TradeTask;
 import bisq.network.p2p.NodeAddress;
-
-import bisq.common.crypto.Hash;
-import bisq.common.crypto.Sig;
-import bisq.common.taskrunner.TaskRunner;
-import bisq.common.util.Utilities;
-
 import lombok.extern.slf4j.Slf4j;
 
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -54,18 +44,18 @@ public class MakerCreateAndSignContract extends TradeTask {
     protected void run() {
         try {
             runInterceptHook();
-            
+
             DepositTxMessage message = (DepositTxMessage) processModel.getTradeMessage();
             trade.setTakerFeeTxId(message.getTradeFeeTxId()); // TODO (woodser): must verify trade fee tx
             //String takerFeeTxId = checkNotNull(processModel.getTakeOfferFeeTxId());
-            
+
             TradingPeer taker = processModel.getTradingPeer();
             boolean isBuyerMakerAndSellerTaker = trade instanceof BuyerAsMakerTrade;
             NodeAddress buyerNodeAddress = isBuyerMakerAndSellerTaker ? processModel.getMyNodeAddress() : processModel.getTempTradingPeerNodeAddress();
             NodeAddress sellerNodeAddress = isBuyerMakerAndSellerTaker ? processModel.getTempTradingPeerNodeAddress() : processModel.getMyNodeAddress();
             XmrWalletService walletService = processModel.getProvider().getXmrWalletService();
             String id = processModel.getOffer().getId();
-            
+
             // get maker payout address
             XmrAddressEntry makerPayoutEntry = walletService.getOrCreateAddressEntry(id, XmrAddressEntry.Context.TRADE_PAYOUT);
             checkNotNull(taker.getPayoutAddressString(), "taker.getPayoutAddressString()");

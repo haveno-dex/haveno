@@ -17,10 +17,8 @@
 
 package bisq.core.util.validation;
 
-import bisq.core.locale.Res;
-
 import bisq.common.util.Utilities;
-
+import bisq.core.locale.Res;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.Setter;

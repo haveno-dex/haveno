@@ -17,9 +17,6 @@
 
 package bisq.core.trade.protocol.tasks.maker;
 
-import static bisq.core.util.Validator.checkTradeId;
-import static com.google.common.base.Preconditions.checkNotNull;
-
 import bisq.common.app.Version;
 import bisq.common.crypto.Sig;
 import bisq.common.taskrunner.TaskRunner;
@@ -32,10 +29,14 @@ import bisq.core.user.User;
 import bisq.network.p2p.NodeAddress;
 import bisq.network.p2p.SendDirectMessageListener;
 import com.google.common.base.Charsets;
+import lombok.extern.slf4j.Slf4j;
+
 import java.util.Date;
 import java.util.List;
 import java.util.UUID;
-import lombok.extern.slf4j.Slf4j;
+
+import static bisq.core.util.Validator.checkTradeId;
+import static com.google.common.base.Preconditions.checkNotNull;
 
 @Slf4j
 public class MakerSendsInitTradeRequest extends TradeTask {
@@ -48,20 +49,20 @@ public class MakerSendsInitTradeRequest extends TradeTask {
     protected void run() {
         try {
             runInterceptHook();
-            
+
             System.out.println("MAKER SENDING INIT TRADE REQ TO ARBITRATOR");
-            
+
             // verify trade
             InitTradeRequest request = (InitTradeRequest) processModel.getTradeMessage();
             checkNotNull(request);
             checkTradeId(processModel.getOfferId(), request);
-            
+
 //            // create wallet for multisig
 //            // TODO (woodser): manage in common util, set path, server
 //            MoneroWallet multisigWallet = MoneroWallet.createWallet(new MoneroWalletConfig()
 //                    .setPassword("abctesting123")
 //                    .setNetworkType(MoneroNetworkType.STAGENET));
-//            
+//
 //            // prepare multisig
 //            String preparedHex = multisigWallet.prepareMultisig();
 //            System.out.println("Prepared multisig hex: " + preparedHex);
@@ -77,15 +78,15 @@ public class MakerSendsInitTradeRequest extends TradeTask {
             checkNotNull(user, "User must not be null");
             final List<NodeAddress> acceptedMediatorAddresses = user.getAcceptedMediatorAddresses();
             checkNotNull(acceptedMediatorAddresses, "acceptedMediatorAddresses must not be null");
-            
+
             // Taker has to use offerId as nonce (he cannot manipulate that - so we avoid to have a challenge protocol for passing the nonce we want to get signed)
             // He cannot manipulate the offerId - so we avoid to have a challenge protocol for passing the nonce we want to get signed.
             final PaymentAccountPayload paymentAccountPayload = checkNotNull(processModel.getPaymentAccountPayload(trade), "processModel.getPaymentAccountPayload(trade) must not be null");
             byte[] sig = Sig.sign(processModel.getKeyRing().getSignatureKeyPair().getPrivate(), offerId.getBytes(Charsets.UTF_8));
-            
+
             System.out.println("MAKER SENDING ARBITRTATOR SENDER NODE ADDRESS");
             System.out.println(processModel.getMyNodeAddress());
-            
+
             // create message to initialize trade
             InitTradeRequest message = new InitTradeRequest(
                     offerId,
@@ -106,19 +107,19 @@ public class MakerSendsInitTradeRequest extends TradeTask {
                     trade.getTakerNodeAddress(),
                     trade.getMakerNodeAddress(),
                     trade.getArbitratorNodeAddress());
-            
+
             log.info("Send {} with offerId {} and uid {} to peer {}",
                     message.getClass().getSimpleName(), message.getTradeId(),
                     message.getUid(), trade.getMediatorNodeAddress());
-            
-            
+
+
             System.out.println("MAKER TRADE INFO");
             System.out.println("Trading peer node address: " + trade.getTradingPeerNodeAddress());
             System.out.println("Maker node address: " + trade.getMakerNodeAddress());
             System.out.println("Taker node adddress: " + trade.getTakerNodeAddress());
             System.out.println("Mediator node address: " + trade.getMediatorNodeAddress());
             System.out.println("Arbitrator node address: " + trade.getArbitratorNodeAddress());
-            
+
             // send request to arbitrator
             processModel.getP2PService().sendEncryptedDirectMessage(
                     trade.getArbitratorNodeAddress(),
@@ -130,6 +131,7 @@ public class MakerSendsInitTradeRequest extends TradeTask {
                             log.info("{} arrived at arbitrator: offerId={}; uid={}", message.getClass().getSimpleName(), message.getTradeId(), message.getUid());
                             complete();
                         }
+
                         @Override
                         public void onFault(String errorMessage) {
                             log.error("Sending {} failed: uid={}; peer={}; error={}", message.getClass().getSimpleName(), message.getUid(), trade.getTradingPeerNodeAddress(), errorMessage);

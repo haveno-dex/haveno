@@ -15,10 +15,13 @@
  * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.core.dao.state.model;
+package bisq.core.util;
 
-/**
- * Marker interface for objects which are stored in the daoState and therefore they need to be immutable.
- */
-public interface ImmutableDaoStateModel {
+public enum ParamType {
+    UNDEFINED,
+    BSQ,
+    BTC,
+    PERCENT,
+    BLOCK,
+    ADDRESS
 }

@@ -34,3 +34,4 @@ deploy
 /monitor/monitor-tor/*
 .java-version
 .localnet
+/monero-wallet-rpc

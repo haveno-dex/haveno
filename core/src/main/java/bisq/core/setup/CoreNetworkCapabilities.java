@@ -20,7 +20,6 @@ package bisq.core.setup;
 import bisq.common.app.Capabilities;
 import bisq.common.app.Capability;
 import bisq.common.config.Config;
-
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j

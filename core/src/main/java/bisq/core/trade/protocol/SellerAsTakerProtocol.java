@@ -18,8 +18,6 @@
 package bisq.core.trade.protocol;
 
 
-import static com.google.common.base.Preconditions.checkNotNull;
-
 import bisq.common.handlers.ErrorMessageHandler;
 import bisq.common.handlers.ResultHandler;
 import bisq.core.offer.Offer;
@@ -34,10 +32,12 @@ import bisq.core.trade.protocol.tasks.seller.SellerSignAndPublishPayoutTx;
 import bisq.network.p2p.NodeAddress;
 import lombok.extern.slf4j.Slf4j;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 // TODO (woodser): most of this file is duplicated with SellerAsMakerProtocol due to lack of multiple inheritance
 @Slf4j
 public class SellerAsTakerProtocol extends TakerProtocolBase implements SellerProtocol {
-    
+
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Constructor
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -47,7 +47,7 @@ public class SellerAsTakerProtocol extends TakerProtocolBase implements SellerPr
         Offer offer = checkNotNull(trade.getOffer());
         processModel.getTradingPeer().setPubKeyRing(offer.getPubKeyRing());
     }
-    
+
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Message dispatcher
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -60,7 +60,7 @@ public class SellerAsTakerProtocol extends TakerProtocolBase implements SellerPr
             handle((CounterCurrencyTransferStartedMessage) tradeMessage, peerNodeAddress);
         }
     }
-    
+
     @Override
     protected void onTradeMessage(TradeMessage tradeMessage, NodeAddress sender) {
         super.onTradeMessage(tradeMessage, sender);
@@ -72,57 +72,57 @@ public class SellerAsTakerProtocol extends TakerProtocolBase implements SellerPr
             handle((CounterCurrencyTransferStartedMessage) tradeMessage, sender);
         }
     }
-    
+
     ///////////////////////////////////////////////////////////////////////////////////////////
     // After peer has started Fiat tx
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     private void handle(CounterCurrencyTransferStartedMessage message, NodeAddress sender) {
-      processModel.setTradeMessage(message);
-      processModel.setTempTradingPeerNodeAddress(sender);
-      expect(anyPhase(Trade.Phase.DEPOSIT_CONFIRMED)
-          .with(message)
-          .from(sender))
-          .setup(tasks(
-              SellerProcessCounterCurrencyTransferStartedMessage.class,
-              getVerifyPeersFeePaymentClass())
-              .using(new TradeTaskRunner(trade,
-                  () -> {
-                    handleTaskRunnerSuccess(message);
-                  },
-                  errorMessage -> {
-                      handleTaskRunnerFault(message, errorMessage);
-                  })))
-          .executeTasks();
+        processModel.setTradeMessage(message);
+        processModel.setTempTradingPeerNodeAddress(sender);
+        expect(anyPhase(Trade.Phase.DEPOSIT_CONFIRMED)
+                .with(message)
+                .from(sender))
+                .setup(tasks(
+                        SellerProcessCounterCurrencyTransferStartedMessage.class,
+                        getVerifyPeersFeePaymentClass())
+                        .using(new TradeTaskRunner(trade,
+                                () -> {
+                                    handleTaskRunnerSuccess(message);
+                                },
+                                errorMessage -> {
+                                    handleTaskRunnerFault(message, errorMessage);
+                                })))
+                .executeTasks();
     }
-    
+
     ///////////////////////////////////////////////////////////////////////////////////////////
     // User interaction
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     @Override
     public void onPaymentReceived(ResultHandler resultHandler, ErrorMessageHandler errorMessageHandler) {
-      SellerEvent event = SellerEvent.PAYMENT_RECEIVED;
-      expect(anyPhase(Trade.Phase.FIAT_SENT, Trade.Phase.PAYOUT_PUBLISHED)
-              .with(event)
-              .preCondition(trade.confirmPermitted()))
-              .setup(tasks(
-                      ApplyFilter.class,
-                      getVerifyPeersFeePaymentClass(),
-                      SellerSignAndPublishPayoutTx.class,
-                      //SellerSignAndFinalizePayoutTx.class,
-                      //SellerBroadcastPayoutTx.class,
-                      SellerSendPayoutTxPublishedMessage.class)
-                      .using(new TradeTaskRunner(trade,
-                              () -> {
-                                  resultHandler.handleResult();
-                                  handleTaskRunnerSuccess(event);
-                              },
-                              (errorMessage) -> {
-                                  errorMessageHandler.handleErrorMessage(errorMessage);
-                                  handleTaskRunnerFault(event, errorMessage);
-                              })))
-              .run(() -> trade.setState(Trade.State.SELLER_CONFIRMED_IN_UI_FIAT_PAYMENT_RECEIPT))
-              .executeTasks();
-  }
+        SellerEvent event = SellerEvent.PAYMENT_RECEIVED;
+        expect(anyPhase(Trade.Phase.FIAT_SENT, Trade.Phase.PAYOUT_PUBLISHED)
+                .with(event)
+                .preCondition(trade.confirmPermitted()))
+                .setup(tasks(
+                        ApplyFilter.class,
+                        getVerifyPeersFeePaymentClass(),
+                        SellerSignAndPublishPayoutTx.class,
+                        //SellerSignAndFinalizePayoutTx.class,
+                        //SellerBroadcastPayoutTx.class,
+                        SellerSendPayoutTxPublishedMessage.class)
+                        .using(new TradeTaskRunner(trade,
+                                () -> {
+                                    resultHandler.handleResult();
+                                    handleTaskRunnerSuccess(event);
+                                },
+                                (errorMessage) -> {
+                                    errorMessageHandler.handleErrorMessage(errorMessage);
+                                    handleTaskRunnerFault(event, errorMessage);
+                                })))
+                .run(() -> trade.setState(Trade.State.SELLER_CONFIRMED_IN_UI_FIAT_PAYMENT_RECEIPT))
+                .executeTasks();
+    }
 }

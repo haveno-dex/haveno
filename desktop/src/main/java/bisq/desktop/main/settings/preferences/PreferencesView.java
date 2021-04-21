@@ -32,8 +32,6 @@ import bisq.desktop.util.Layout;
 import bisq.desktop.util.validation.BtcValidator;
 
 import bisq.core.btc.wallet.Restrictions;
-import bisq.core.dao.DaoFacade;
-import bisq.core.dao.governance.asset.AssetService;
 import bisq.core.filter.Filter;
 import bisq.core.filter.FilterManager;
 import bisq.core.locale.Country;
@@ -129,15 +127,14 @@ public class PreferencesView extends ActivatableViewAndModel<GridPane, Preferenc
     private final Preferences preferences;
     private final FeeService feeService;
     //private final ReferralIdService referralIdService;
-    private final AssetService assetService;
     private final FilterManager filterManager;
-    private final DaoFacade daoFacade;
     private final File storageDir;
 
     private ListView<FiatCurrency> fiatCurrenciesListView;
     private ComboBox<FiatCurrency> fiatCurrenciesComboBox;
     private ListView<CryptoCurrency> cryptoCurrenciesListView;
     private ComboBox<CryptoCurrency> cryptoCurrenciesComboBox;
+    //TODO(niyid) DAO related buttons no longer needed
     private Button resetDontShowAgainButton, resyncDaoFromGenesisButton, resyncDaoFromResourcesButton;
     private ObservableList<BlockChainExplorer> blockExplorers;
     private ObservableList<BlockChainExplorer> bsqBlockChainExplorers;
@@ -168,9 +165,7 @@ public class PreferencesView extends ActivatableViewAndModel<GridPane, Preferenc
     public PreferencesView(PreferencesViewModel model,
                            Preferences preferences,
                            FeeService feeService,
-                           AssetService assetService,
                            FilterManager filterManager,
-                           DaoFacade daoFacade,
                            Config config,
                            @Named(FormattingUtils.BTC_FORMATTER_KEY) CoinFormatter formatter,
                            @Named(Config.RPC_USER) String rpcUser,
@@ -181,9 +176,7 @@ public class PreferencesView extends ActivatableViewAndModel<GridPane, Preferenc
         this.formatter = formatter;
         this.preferences = preferences;
         this.feeService = feeService;
-        this.assetService = assetService;
         this.filterManager = filterManager;
-        this.daoFacade = daoFacade;
         this.storageDir = storageDir;
         daoOptionsSet = config.fullDaoNodeOptionSetExplicitly &&
                 !rpcUser.isEmpty() &&
@@ -218,7 +211,7 @@ public class PreferencesView extends ActivatableViewAndModel<GridPane, Preferenc
     @Override
     protected void activate() {
         // We want to have it updated in case an asset got removed
-        allCryptoCurrencies = FXCollections.observableArrayList(CurrencyUtil.getActiveSortedCryptoCurrencies(assetService, filterManager));
+        allCryptoCurrencies = FXCollections.observableArrayList(CurrencyUtil.getActiveSortedCryptoCurrencies(filterManager));
         allCryptoCurrencies.removeAll(cryptoCurrencies);
 
         activateGeneralOptions();
@@ -964,27 +957,6 @@ public class PreferencesView extends ActivatableViewAndModel<GridPane, Preferenc
         rpcPwTextField.setText(rpcPw);
         blockNotifyPortTextField.setText(blockNotifyPort > 0 ? String.valueOf(blockNotifyPort) : "");
         updateDaoFields();
-
-        resyncDaoFromResourcesButton.setOnAction(e -> {
-            try {
-                daoFacade.resyncDaoStateFromResources(storageDir);
-                new Popup().attention(Res.get("setting.preferences.dao.resyncFromResources.popup"))
-                        .useShutDownButton()
-                        .hideCloseButton()
-                        .show();
-            } catch (Throwable t) {
-                t.printStackTrace();
-                log.error(t.toString());
-                new Popup().error(t.toString()).show();
-            }
-        });
-
-        resyncDaoFromGenesisButton.setOnAction(e ->
-                new Popup().attention(Res.get("setting.preferences.dao.resyncFromGenesis.popup"))
-                        .actionButtonText(Res.get("setting.preferences.dao.resyncFromGenesis.resync"))
-                        .onAction(() -> daoFacade.resyncDaoStateFromGenesis(() -> BisqApp.getShutDownHandler().run()))
-                        .closeButtonText(Res.get("shared.cancel"))
-                        .show());
 
         isDaoFullNodeToggleButton.setOnAction(e -> {
             String key = "daoFullModeInfoShown";

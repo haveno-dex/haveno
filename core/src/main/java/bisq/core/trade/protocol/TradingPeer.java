@@ -17,24 +17,22 @@
 
 package bisq.core.trade.protocol;
 
-import java.util.List;
-import java.util.Optional;
-import java.util.stream.Collectors;
-
-import javax.annotation.Nullable;
-
-import com.google.protobuf.ByteString;
-import com.google.protobuf.Message;
-
 import bisq.common.crypto.PubKeyRing;
 import bisq.common.proto.ProtoUtil;
 import bisq.common.proto.persistable.PersistablePayload;
 import bisq.core.btc.model.RawTransactionInput;
 import bisq.core.payment.payload.PaymentAccountPayload;
 import bisq.core.proto.CoreProtoResolver;
+import com.google.protobuf.ByteString;
+import com.google.protobuf.Message;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
+
+import javax.annotation.Nullable;
+import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
 
 // Fields marked as transient are only used during protocol execution which are based on directMessages so we do not
 // persist them.
@@ -85,7 +83,7 @@ public final class TradingPeer implements PersistablePayload {
     // Added in v.1.1.6
     @Nullable
     private byte[] mediatedPayoutTxSignature;
-    
+
     // Added for XMR integration
     @Nullable
     private String preparedMultisigHex;
@@ -116,7 +114,7 @@ public final class TradingPeer implements PersistablePayload {
         Optional.ofNullable(preparedMultisigHex).ifPresent(e -> builder.setPreparedMultisigHex(preparedMultisigHex));
         Optional.ofNullable(madeMultisigHex).ifPresent(e -> builder.setMadeMultisigHex(madeMultisigHex));
         Optional.ofNullable(signedPayoutTxHex).ifPresent(e -> builder.setSignedPayoutTxHex(signedPayoutTxHex));
-        
+
         builder.setCurrentDate(currentDate);
         return builder.build();
     }

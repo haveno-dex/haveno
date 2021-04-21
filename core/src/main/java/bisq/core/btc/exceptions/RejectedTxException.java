@@ -17,9 +17,8 @@
 
 package bisq.core.btc.exceptions;
 
-import org.bitcoinj.core.RejectMessage;
-
 import lombok.Getter;
+import org.bitcoinj.core.RejectMessage;
 
 import javax.annotation.Nullable;
 

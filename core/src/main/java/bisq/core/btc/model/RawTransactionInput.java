@@ -20,9 +20,7 @@ package bisq.core.btc.model;
 import bisq.common.proto.network.NetworkPayload;
 import bisq.common.proto.persistable.PersistablePayload;
 import bisq.common.util.Utilities;
-
 import com.google.protobuf.ByteString;
-
 import lombok.EqualsAndHashCode;
 
 import javax.annotation.concurrent.Immutable;

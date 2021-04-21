@@ -17,18 +17,15 @@
 
 package bisq.core.app;
 
-import bisq.network.p2p.storage.P2PDataStorage;
-
 import bisq.common.UserThread;
 import bisq.common.config.BaseCurrencyNetwork;
 import bisq.common.config.Config;
-
+import bisq.network.p2p.storage.P2PDataStorage;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.SimpleBooleanProperty;
+import lombok.extern.slf4j.Slf4j;
 
 import java.util.Date;
-
-import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class SetupUtils {

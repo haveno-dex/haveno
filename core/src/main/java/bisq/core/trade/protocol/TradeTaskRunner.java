@@ -17,11 +17,10 @@
 
 package bisq.core.trade.protocol;
 
-import bisq.core.trade.Trade;
-
 import bisq.common.handlers.ErrorMessageHandler;
 import bisq.common.handlers.ResultHandler;
 import bisq.common.taskrunner.TaskRunner;
+import bisq.core.trade.Trade;
 
 public class TradeTaskRunner extends TaskRunner<Trade> {
 

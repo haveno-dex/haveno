@@ -17,17 +17,15 @@
 
 package bisq.core.btc.nodes;
 
-import bisq.core.user.Preferences;
-
 import bisq.common.config.Config;
 import bisq.common.util.Utilities;
+import bisq.core.user.Preferences;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 
 public class BtcNodesSetupPreferences {

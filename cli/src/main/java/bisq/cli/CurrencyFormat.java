@@ -17,12 +17,10 @@
 
 package bisq.cli;
 
-import java.text.DecimalFormat;
-import java.text.NumberFormat;
-
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-
+import java.text.DecimalFormat;
+import java.text.NumberFormat;
 import java.util.Locale;
 
 import static java.lang.String.format;

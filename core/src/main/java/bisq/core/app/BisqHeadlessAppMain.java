@@ -20,13 +20,11 @@ package bisq.core.app;
 import bisq.common.UserThread;
 import bisq.common.app.AppModule;
 import bisq.common.app.Version;
-
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
+import lombok.extern.slf4j.Slf4j;
 
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
-
-import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class BisqHeadlessAppMain extends BisqExecutable {

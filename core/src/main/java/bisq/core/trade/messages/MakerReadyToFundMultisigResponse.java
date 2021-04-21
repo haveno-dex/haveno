@@ -17,16 +17,15 @@
 
 package bisq.core.trade.messages;
 
-import java.util.Optional;
-
-import javax.annotation.Nullable;
-
 import bisq.core.payment.payload.PaymentAccountPayload;
 import bisq.core.proto.CoreProtoResolver;
 import bisq.network.p2p.DirectMessage;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Value;
+
+import javax.annotation.Nullable;
+import java.util.Optional;
 
 @EqualsAndHashCode(callSuper = true)
 @Value
@@ -50,17 +49,17 @@ public class MakerReadyToFundMultisigResponse extends TradeMessage implements Di
     private final String makerAccountId;
     @Getter
     private final long currentDate;
-    
+
     public MakerReadyToFundMultisigResponse(String tradeId,
-                                     boolean isMakerReadyToFundMultisig,
-                                     String uid,
-                                     int messageVersion,
-                                     String makerContractAsJson,
-                                     String makerContractSignature,
-                                     String makerPayoutAddressString,
-                                     PaymentAccountPayload makerPaymentAccountPayload,
-                                     String makerAccountId,
-                                     long currentDate) {
+                                            boolean isMakerReadyToFundMultisig,
+                                            String uid,
+                                            int messageVersion,
+                                            String makerContractAsJson,
+                                            String makerContractSignature,
+                                            String makerPayoutAddressString,
+                                            PaymentAccountPayload makerPaymentAccountPayload,
+                                            String makerAccountId,
+                                            long currentDate) {
         super(messageVersion, tradeId, uid);
         this.isMakerReadyToFundMultisig = isMakerReadyToFundMultisig;
         this.makerContractAsJson = makerContractAsJson;
@@ -82,19 +81,19 @@ public class MakerReadyToFundMultisigResponse extends TradeMessage implements Di
                 .setTradeId(tradeId)
                 .setIsMakerReadyToFundMultisig(isMakerReadyToFundMultisig)
                 .setCurrentDate(currentDate);
-        
+
         Optional.ofNullable(makerContractAsJson).ifPresent(e -> builder.setMakerContractAsJson(makerContractAsJson));
         Optional.ofNullable(makerContractSignature).ifPresent(e -> builder.setMakerContractSignature(makerContractSignature));
         Optional.ofNullable(makerPayoutAddressString).ifPresent(e -> builder.setMakerPayoutAddressString(makerPayoutAddressString));
         Optional.ofNullable(makerPaymentAccountPayload).ifPresent(e -> builder.setMakerPaymentAccountPayload((protobuf.PaymentAccountPayload) makerPaymentAccountPayload.toProtoMessage()));
         Optional.ofNullable(makerAccountId).ifPresent(e -> builder.setMakerAccountId(makerAccountId));
-        
+
         return getNetworkEnvelopeBuilder().setMakerReadyToFundMultisigResponse(builder).build();
     }
-    
+
     public static MakerReadyToFundMultisigResponse fromProto(protobuf.MakerReadyToFundMultisigResponse proto,
-                                                      CoreProtoResolver coreProtoResolver,
-                                                      int messageVersion) {
+                                                             CoreProtoResolver coreProtoResolver,
+                                                             int messageVersion) {
         return new MakerReadyToFundMultisigResponse(proto.getTradeId(),
                 proto.getIsMakerReadyToFundMultisig(),
                 proto.getUid(),

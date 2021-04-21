@@ -17,10 +17,6 @@
 
 package bisq.core.trade.messages;
 
-import java.util.Optional;
-
-import javax.annotation.Nullable;
-
 import bisq.common.crypto.PubKeyRing;
 import bisq.common.proto.ProtoUtil;
 import bisq.core.proto.CoreProtoResolver;
@@ -28,6 +24,9 @@ import bisq.network.p2p.DirectMessage;
 import bisq.network.p2p.NodeAddress;
 import lombok.EqualsAndHashCode;
 import lombok.Value;
+
+import javax.annotation.Nullable;
+import java.util.Optional;
 
 @EqualsAndHashCode(callSuper = true)
 @Value
@@ -41,13 +40,13 @@ public final class InitMultisigMessage extends TradeMessage implements DirectMes
     private final String madeMultisigHex;
 
     public InitMultisigMessage(String tradeId,
-                                     NodeAddress senderNodeAddress,
-                                     PubKeyRing pubKeyRing,
-                                     String uid,
-                                     int messageVersion,
-                                     long currentDate,
-                                     String preparedMultisigHex,
-                                     String madeMultisigHex) {
+                               NodeAddress senderNodeAddress,
+                               PubKeyRing pubKeyRing,
+                               String uid,
+                               int messageVersion,
+                               long currentDate,
+                               String preparedMultisigHex,
+                               String madeMultisigHex) {
         super(messageVersion, tradeId, uid);
         this.senderNodeAddress = senderNodeAddress;
         this.pubKeyRing = pubKeyRing;
@@ -68,7 +67,7 @@ public final class InitMultisigMessage extends TradeMessage implements DirectMes
                 .setSenderNodeAddress(senderNodeAddress.toProtoMessage())
                 .setPubKeyRing(pubKeyRing.toProtoMessage())
                 .setUid(uid);
-        
+
         Optional.ofNullable(preparedMultisigHex).ifPresent(e -> builder.setPreparedMultisigHex(preparedMultisigHex));
         Optional.ofNullable(madeMultisigHex).ifPresent(e -> builder.setMadeMultisigHex(madeMultisigHex));
 
@@ -78,8 +77,8 @@ public final class InitMultisigMessage extends TradeMessage implements DirectMes
     }
 
     public static InitMultisigMessage fromProto(protobuf.InitMultisigMessage proto,
-                                                      CoreProtoResolver coreProtoResolver,
-                                                      int messageVersion) {
+                                                CoreProtoResolver coreProtoResolver,
+                                                int messageVersion) {
         return new InitMultisigMessage(proto.getTradeId(),
                 NodeAddress.fromProto(proto.getSenderNodeAddress()),
                 PubKeyRing.fromProto(proto.getPubKeyRing()),

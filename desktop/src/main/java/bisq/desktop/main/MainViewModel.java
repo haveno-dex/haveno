@@ -58,7 +58,6 @@ import bisq.desktop.main.overlays.windows.UpdateRevolutAccountWindow;
 import bisq.desktop.main.overlays.windows.WalletPasswordWindow;
 import bisq.desktop.main.overlays.windows.downloadupdate.DisplayUpdateDownloadWindow;
 import bisq.desktop.main.presentation.AccountPresentation;
-import bisq.desktop.main.presentation.DaoPresentation;
 import bisq.desktop.main.presentation.MarketPricePresentation;
 import bisq.desktop.main.presentation.SettingsPresentation;
 import bisq.desktop.main.shared.PriceFeedComboBoxItem;
@@ -100,7 +99,6 @@ public class MainViewModel implements ViewModel, BisqSetup.BisqSetupListener {
     private final TradePresentation tradePresentation;
     private final SupportTicketsPresentation supportTicketsPresentation;
     private final MarketPricePresentation marketPricePresentation;
-    private final DaoPresentation daoPresentation;
     private final AccountPresentation accountPresentation;
     private final SettingsPresentation settingsPresentation;
     private final P2PService p2PService;
@@ -144,7 +142,6 @@ public class MainViewModel implements ViewModel, BisqSetup.BisqSetupListener {
                          TradePresentation tradePresentation,
                          SupportTicketsPresentation supportTicketsPresentation,
                          MarketPricePresentation marketPricePresentation,
-                         DaoPresentation daoPresentation,
                          AccountPresentation accountPresentation,
                          SettingsPresentation settingsPresentation,
                          P2PService p2PService,
@@ -168,7 +165,6 @@ public class MainViewModel implements ViewModel, BisqSetup.BisqSetupListener {
         this.tradePresentation = tradePresentation;
         this.supportTicketsPresentation = supportTicketsPresentation;
         this.marketPricePresentation = marketPricePresentation;
-        this.daoPresentation = daoPresentation;
         this.accountPresentation = accountPresentation;
         this.settingsPresentation = settingsPresentation;
         this.p2PService = p2PService;
@@ -246,7 +242,6 @@ public class MainViewModel implements ViewModel, BisqSetup.BisqSetupListener {
         setupBtcNumPeersWatcher();
 
         marketPricePresentation.setup();
-        daoPresentation.setup();
         accountPresentation.setup();
         settingsPresentation.setup();
 
@@ -304,7 +299,6 @@ public class MainViewModel implements ViewModel, BisqSetup.BisqSetupListener {
                 .actionButtonText(Res.get("settings.net.reSyncSPVChainButton"))
                 .onAction(() -> GUIUtil.reSyncSPVChain(preferences))
                 .show());
-        bisqSetup.setVoteResultExceptionHandler(voteResultException -> log.warn(voteResultException.toString()));
 
         bisqSetup.setChainFileLockedExceptionHandler(msg -> new Popup().warning(msg)
                 .useShutDownButton()
@@ -402,7 +396,6 @@ public class MainViewModel implements ViewModel, BisqSetup.BisqSetupListener {
                 .show());
 
         bisqSetup.getBtcSyncProgress().addListener((observable, oldValue, newValue) -> updateBtcSyncProgress());
-        daoPresentation.getBsqSyncProgress().addListener((observable, oldValue, newValue) -> updateBtcSyncProgress());
 
         bisqSetup.setFilterWarningHandler(warning -> new Popup().warning(warning).show());
     }
@@ -541,8 +534,6 @@ public class MainViewModel implements ViewModel, BisqSetup.BisqSetupListener {
 
         if (btcSyncProgress.doubleValue() < 1) {
             combinedSyncProgress.set(btcSyncProgress.doubleValue());
-        } else {
-            combinedSyncProgress.set(daoPresentation.getBsqSyncProgress().doubleValue());
         }
     }
 
@@ -587,7 +578,7 @@ public class MainViewModel implements ViewModel, BisqSetup.BisqSetupListener {
     // Wallet
     StringProperty getBtcInfo() {
         final StringProperty combinedInfo = new SimpleStringProperty();
-        combinedInfo.bind(Bindings.concat(bisqSetup.getBtcInfo(), " ", daoPresentation.getBsqInfo()));
+        combinedInfo.bind(Bindings.concat(bisqSetup.getBtcInfo(), " ", ""));
         return combinedInfo;
     }
 
@@ -663,13 +654,6 @@ public class MainViewModel implements ViewModel, BisqSetup.BisqSetupListener {
 
     public ObservableList<PriceFeedComboBoxItem> getPriceFeedComboBoxItems() {
         return marketPricePresentation.getPriceFeedComboBoxItems();
-    }
-
-    // We keep daoPresentation and accountPresentation support even it is not used atm. But if we add a new feature and
-    // add a badge again it will be needed.
-    @SuppressWarnings({"unused"})
-    public BooleanProperty getShowDaoUpdatesNotification() {
-        return daoPresentation.getShowDaoUpdatesNotification();
     }
 
     // We keep daoPresentation and accountPresentation support even it is not used atm. But if we add a new feature and

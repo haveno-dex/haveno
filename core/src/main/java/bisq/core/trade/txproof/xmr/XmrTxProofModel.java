@@ -17,23 +17,18 @@
 
 package bisq.core.trade.txproof.xmr;
 
+import bisq.common.app.DevEnv;
 import bisq.core.monetary.Volume;
 import bisq.core.payment.payload.AssetsAccountPayload;
 import bisq.core.payment.payload.PaymentAccountPayload;
 import bisq.core.trade.Trade;
 import bisq.core.trade.txproof.AssetTxProofModel;
 import bisq.core.user.AutoConfirmSettings;
-
-import bisq.common.app.DevEnv;
-
-import org.bitcoinj.core.Coin;
-
 import com.google.common.annotations.VisibleForTesting;
-
-import java.util.Date;
-
 import lombok.Value;
 import lombok.extern.slf4j.Slf4j;
+
+import java.util.Date;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 

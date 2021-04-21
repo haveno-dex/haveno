@@ -28,7 +28,6 @@ import bisq.common.UserThread;
 import bisq.common.app.Version;
 import bisq.common.util.Tuple2;
 import bisq.common.util.Utilities;
-import bisq.core.dao.monitoring.DaoStateMonitoringService;
 import bisq.core.locale.GlobalSettings;
 import bisq.core.locale.LanguageUtil;
 import bisq.core.locale.Res;
@@ -98,8 +97,7 @@ import org.jetbrains.annotations.NotNull;
 
 @FxmlView
 @Slf4j
-public class MainView extends InitializableView<StackPane, MainViewModel>
-        implements DaoStateMonitoringService.Listener {
+public class MainView extends InitializableView<StackPane, MainViewModel> {
     // If after 30 sec we have not got connected we show "open network settings" button
     private final static int SHOW_TOR_SETTINGS_DELAY_SEC = 90;
     private Label versionLabel;
@@ -144,19 +142,16 @@ public class MainView extends InitializableView<StackPane, MainViewModel>
     private ProgressBar btcSyncIndicator, p2pNetworkProgressBar;
     private Label btcSplashInfo;
     private Popup p2PNetworkWarnMsgPopup, btcNetworkWarnMsgPopup;
-    private final DaoStateMonitoringService daoStateMonitoringService;
 
     @Inject
     public MainView(MainViewModel model,
                     CachingViewLoader viewLoader,
                     Navigation navigation,
-                    Transitions transitions,
-                    DaoStateMonitoringService daoStateMonitoringService) {
+                    Transitions transitions) {
         super(model);
         this.viewLoader = viewLoader;
         this.navigation = navigation;
         MainView.transitions = transitions;
-        this.daoStateMonitoringService = daoStateMonitoringService;
     }
 
     @Override
@@ -388,27 +383,9 @@ public class MainView extends InitializableView<StackPane, MainViewModel>
             }
         });
 
-        daoStateMonitoringService.addListener(this);
-
         // Delay a bit to give time for rendering the splash screen
         UserThread.execute(() -> onApplicationStartedHandler.run());
     }
-
-    ///////////////////////////////////////////////////////////////////////////////////////////
-    // DaoStateMonitoringService.Listener
-    ///////////////////////////////////////////////////////////////////////////////////////////
-
-    @Override
-    public void onChangeAfterBatchProcessing() {
-    }
-
-    @Override
-    public void onCheckpointFail() {
-        new Popup().attention(Res.get("dao.monitor.daoState.checkpoint.popup"))
-                .useShutDownButton()
-                .show();
-    }
-
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Helpers

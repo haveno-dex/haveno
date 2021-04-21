@@ -17,36 +17,29 @@
 
 package bisq.network.p2p.storage.messages;
 
+import bisq.common.crypto.CryptoException;
+import bisq.common.crypto.KeyRing;
+import bisq.common.crypto.KeyStorage;
+import bisq.common.crypto.SealedAndSigned;
 import bisq.network.p2p.NodeAddress;
 import bisq.network.p2p.PrefixedSealedAndSignedMessage;
 import bisq.network.p2p.storage.payload.MailboxStoragePayload;
 import bisq.network.p2p.storage.payload.ProtectedMailboxStorageEntry;
 import bisq.network.p2p.storage.payload.ProtectedStorageEntry;
-
-import bisq.common.crypto.CryptoException;
-import bisq.common.crypto.KeyRing;
-import bisq.common.crypto.KeyStorage;
-import bisq.common.crypto.SealedAndSigned;
-
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.RandomUtils;
+import org.junit.Before;
+import org.junit.Test;
 
+import java.io.File;
+import java.io.IOException;
 import java.security.InvalidKeyException;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.SignatureException;
 import java.security.cert.CertificateException;
-
 import java.time.Clock;
-
-import java.io.File;
-import java.io.IOException;
-
 import java.util.UUID;
-
-import lombok.extern.slf4j.Slf4j;
-
-import org.junit.Before;
-import org.junit.Test;
 
 @SuppressWarnings("UnusedAssignment")
 @Slf4j

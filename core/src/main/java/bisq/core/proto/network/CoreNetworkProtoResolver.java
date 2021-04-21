@@ -25,20 +25,6 @@ import bisq.common.proto.network.NetworkPayload;
 import bisq.common.proto.network.NetworkProtoResolver;
 import bisq.core.alert.Alert;
 import bisq.core.alert.PrivateNotificationMessage;
-import bisq.core.dao.governance.blindvote.network.messages.RepublishGovernanceDataRequest;
-import bisq.core.dao.governance.proposal.storage.temp.TempProposalPayload;
-import bisq.core.dao.monitoring.network.messages.GetBlindVoteStateHashesRequest;
-import bisq.core.dao.monitoring.network.messages.GetBlindVoteStateHashesResponse;
-import bisq.core.dao.monitoring.network.messages.GetDaoStateHashesRequest;
-import bisq.core.dao.monitoring.network.messages.GetDaoStateHashesResponse;
-import bisq.core.dao.monitoring.network.messages.GetProposalStateHashesRequest;
-import bisq.core.dao.monitoring.network.messages.GetProposalStateHashesResponse;
-import bisq.core.dao.monitoring.network.messages.NewBlindVoteStateHashMessage;
-import bisq.core.dao.monitoring.network.messages.NewDaoStateHashMessage;
-import bisq.core.dao.monitoring.network.messages.NewProposalStateHashMessage;
-import bisq.core.dao.node.messages.GetBlocksRequest;
-import bisq.core.dao.node.messages.GetBlocksResponse;
-import bisq.core.dao.node.messages.NewBlockBroadcastMessage;
 import bisq.core.filter.Filter;
 import bisq.core.offer.OfferPayload;
 import bisq.core.offer.messages.OfferAvailabilityRequest;
@@ -47,34 +33,11 @@ import bisq.core.proto.CoreProtoResolver;
 import bisq.core.support.dispute.arbitration.arbitrator.Arbitrator;
 import bisq.core.support.dispute.arbitration.messages.PeerPublishedDisputePayoutTxMessage;
 import bisq.core.support.dispute.mediation.mediator.Mediator;
-import bisq.core.support.dispute.messages.ArbitratorPayoutTxRequest;
-import bisq.core.support.dispute.messages.ArbitratorPayoutTxResponse;
-import bisq.core.support.dispute.messages.DisputeResultMessage;
-import bisq.core.support.dispute.messages.OpenNewDisputeMessage;
-import bisq.core.support.dispute.messages.PeerOpenedDisputeMessage;
+import bisq.core.support.dispute.messages.*;
 import bisq.core.support.dispute.refund.refundagent.RefundAgent;
 import bisq.core.support.messages.ChatMessage;
-import bisq.core.trade.messages.CounterCurrencyTransferStartedMessage;
-import bisq.core.trade.messages.DelayedPayoutTxSignatureRequest;
-import bisq.core.trade.messages.DelayedPayoutTxSignatureResponse;
-import bisq.core.trade.messages.DepositTxAndDelayedPayoutTxMessage;
-import bisq.core.trade.messages.DepositTxMessage;
-import bisq.core.trade.messages.InitMultisigMessage;
-import bisq.core.trade.messages.InitTradeRequest;
-import bisq.core.trade.messages.InputsForDepositTxRequest;
-import bisq.core.trade.messages.InputsForDepositTxResponse;
-import bisq.core.trade.messages.MakerReadyToFundMultisigRequest;
-import bisq.core.trade.messages.MakerReadyToFundMultisigResponse;
-import bisq.core.trade.messages.MediatedPayoutTxPublishedMessage;
-import bisq.core.trade.messages.MediatedPayoutTxSignatureMessage;
-import bisq.core.trade.messages.PayoutTxPublishedMessage;
-import bisq.core.trade.messages.PeerPublishedDelayedPayoutTxMessage;
-import bisq.core.trade.messages.RefreshTradeStateRequest;
-import bisq.core.trade.messages.TraderSignedWitnessMessage;
-import bisq.core.trade.messages.UpdateMultisigRequest;
-import bisq.core.trade.messages.UpdateMultisigResponse;
+import bisq.core.trade.messages.*;
 import bisq.core.trade.statistics.TradeStatistics;
-import bisq.network.p2p.AckMessage;
 import bisq.network.p2p.BundleOfEnvelopes;
 import bisq.network.p2p.CloseConnectionMessage;
 import bisq.network.p2p.PrefixedSealedAndSignedMessage;
@@ -86,17 +49,17 @@ import bisq.network.p2p.peers.keepalive.messages.Pong;
 import bisq.network.p2p.peers.peerexchange.messages.GetPeersRequest;
 import bisq.network.p2p.peers.peerexchange.messages.GetPeersResponse;
 import bisq.network.p2p.storage.messages.AddDataMessage;
-import bisq.network.p2p.storage.messages.AddPersistableNetworkPayloadMessage;
 import bisq.network.p2p.storage.messages.RefreshOfferMessage;
 import bisq.network.p2p.storage.messages.RemoveDataMessage;
 import bisq.network.p2p.storage.messages.RemoveMailboxDataMessage;
 import bisq.network.p2p.storage.payload.MailboxStoragePayload;
 import bisq.network.p2p.storage.payload.ProtectedMailboxStorageEntry;
 import bisq.network.p2p.storage.payload.ProtectedStorageEntry;
-import java.time.Clock;
+import lombok.extern.slf4j.Slf4j;
+
 import javax.inject.Inject;
 import javax.inject.Singleton;
-import lombok.extern.slf4j.Slf4j;
+import java.time.Clock;
 
 // TODO Use ProtobufferException instead of ProtobufferRuntimeException
 @Slf4j
@@ -151,17 +114,17 @@ public class CoreNetworkProtoResolver extends CoreProtoResolver implements Netwo
                 case REFRESH_TRADE_STATE_REQUEST:
                     return RefreshTradeStateRequest.fromProto(proto.getRefreshTradeStateRequest(), messageVersion);
                 case INIT_TRADE_REQUEST:
-                  return InitTradeRequest.fromProto(proto.getInitTradeRequest(), this, messageVersion);
+                    return InitTradeRequest.fromProto(proto.getInitTradeRequest(), this, messageVersion);
                 case INIT_MULTISIG_MESSAGE:
-                  return InitMultisigMessage.fromProto(proto.getInitMultisigMessage(), this, messageVersion);
+                    return InitMultisigMessage.fromProto(proto.getInitMultisigMessage(), this, messageVersion);
                 case UPDATE_MULTISIG_REQUEST:
-                  return UpdateMultisigRequest.fromProto(proto.getUpdateMultisigRequest(), this, messageVersion);
+                    return UpdateMultisigRequest.fromProto(proto.getUpdateMultisigRequest(), this, messageVersion);
                 case UPDATE_MULTISIG_RESPONSE:
-                  return UpdateMultisigResponse.fromProto(proto.getUpdateMultisigResponse(), this, messageVersion);
+                    return UpdateMultisigResponse.fromProto(proto.getUpdateMultisigResponse(), this, messageVersion);
                 case MAKER_READY_TO_FUND_MULTISIG_REQUEST:
-                  return MakerReadyToFundMultisigRequest.fromProto(proto.getMakerReadyToFundMultisigRequest(), this, messageVersion);
+                    return MakerReadyToFundMultisigRequest.fromProto(proto.getMakerReadyToFundMultisigRequest(), this, messageVersion);
                 case MAKER_READY_TO_FUND_MULTISIG_RESPONSE:
-                  return MakerReadyToFundMultisigResponse.fromProto(proto.getMakerReadyToFundMultisigResponse(), this, messageVersion);
+                    return MakerReadyToFundMultisigResponse.fromProto(proto.getMakerReadyToFundMultisigResponse(), this, messageVersion);
                 case INPUTS_FOR_DEPOSIT_TX_REQUEST:
                     return InputsForDepositTxRequest.fromProto(proto.getInputsForDepositTxRequest(), this, messageVersion);
                 case INPUTS_FOR_DEPOSIT_TX_RESPONSE:
@@ -203,44 +166,10 @@ public class CoreNetworkProtoResolver extends CoreProtoResolver implements Netwo
                 case ARBITRATOR_PAYOUT_TX_REQUEST:
                     return ArbitratorPayoutTxRequest.fromProto(proto.getArbitratorPayoutTxRequest(), this, messageVersion);
                 case ARBITRATOR_PAYOUT_TX_RESPONSE:
-                  return ArbitratorPayoutTxResponse.fromProto(proto.getArbitratorPayoutTxResponse(), this, messageVersion);
+                    return ArbitratorPayoutTxResponse.fromProto(proto.getArbitratorPayoutTxResponse(), this, messageVersion);
 
                 case PRIVATE_NOTIFICATION_MESSAGE:
                     return PrivateNotificationMessage.fromProto(proto.getPrivateNotificationMessage(), messageVersion);
-
-                case GET_BLOCKS_REQUEST:
-                    return GetBlocksRequest.fromProto(proto.getGetBlocksRequest(), messageVersion);
-                case GET_BLOCKS_RESPONSE:
-                    return GetBlocksResponse.fromProto(proto.getGetBlocksResponse(), messageVersion);
-                case NEW_BLOCK_BROADCAST_MESSAGE:
-                    return NewBlockBroadcastMessage.fromProto(proto.getNewBlockBroadcastMessage(), messageVersion);
-                case ADD_PERSISTABLE_NETWORK_PAYLOAD_MESSAGE:
-                    return AddPersistableNetworkPayloadMessage.fromProto(proto.getAddPersistableNetworkPayloadMessage(), this, messageVersion);
-                case ACK_MESSAGE:
-                    return AckMessage.fromProto(proto.getAckMessage(), messageVersion);
-                case REPUBLISH_GOVERNANCE_DATA_REQUEST:
-                    return RepublishGovernanceDataRequest.fromProto(proto.getRepublishGovernanceDataRequest(), messageVersion);
-
-                case NEW_DAO_STATE_HASH_MESSAGE:
-                    return NewDaoStateHashMessage.fromProto(proto.getNewDaoStateHashMessage(), messageVersion);
-                case GET_DAO_STATE_HASHES_REQUEST:
-                    return GetDaoStateHashesRequest.fromProto(proto.getGetDaoStateHashesRequest(), messageVersion);
-                case GET_DAO_STATE_HASHES_RESPONSE:
-                    return GetDaoStateHashesResponse.fromProto(proto.getGetDaoStateHashesResponse(), messageVersion);
-
-                case NEW_PROPOSAL_STATE_HASH_MESSAGE:
-                    return NewProposalStateHashMessage.fromProto(proto.getNewProposalStateHashMessage(), messageVersion);
-                case GET_PROPOSAL_STATE_HASHES_REQUEST:
-                    return GetProposalStateHashesRequest.fromProto(proto.getGetProposalStateHashesRequest(), messageVersion);
-                case GET_PROPOSAL_STATE_HASHES_RESPONSE:
-                    return GetProposalStateHashesResponse.fromProto(proto.getGetProposalStateHashesResponse(), messageVersion);
-
-                case NEW_BLIND_VOTE_STATE_HASH_MESSAGE:
-                    return NewBlindVoteStateHashMessage.fromProto(proto.getNewBlindVoteStateHashMessage(), messageVersion);
-                case GET_BLIND_VOTE_STATE_HASHES_REQUEST:
-                    return GetBlindVoteStateHashesRequest.fromProto(proto.getGetBlindVoteStateHashesRequest(), messageVersion);
-                case GET_BLIND_VOTE_STATE_HASHES_RESPONSE:
-                    return GetBlindVoteStateHashesResponse.fromProto(proto.getGetBlindVoteStateHashesResponse(), messageVersion);
 
                 case BUNDLE_OF_ENVELOPES:
                     return BundleOfEnvelopes.fromProto(proto.getBundleOfEnvelopes(), this, messageVersion);
@@ -292,8 +221,6 @@ public class CoreNetworkProtoResolver extends CoreProtoResolver implements Netwo
                     return MailboxStoragePayload.fromProto(proto.getMailboxStoragePayload());
                 case OFFER_PAYLOAD:
                     return OfferPayload.fromProto(proto.getOfferPayload());
-                case TEMP_PROPOSAL_PAYLOAD:
-                    return TempProposalPayload.fromProto(proto.getTempProposalPayload());
                 default:
                     throw new ProtobufferRuntimeException("Unknown proto message case (PB.StoragePayload). messageCase="
                             + proto.getMessageCase() + "; proto raw data=" + proto.toString());

@@ -17,20 +17,17 @@
 
 package bisq.network.p2p.storage.mocks;
 
-import bisq.network.p2p.storage.P2PDataStorage;
-import bisq.network.p2p.storage.payload.ProtectedStorageEntry;
-import bisq.network.p2p.storage.persistence.MapStoreService;
-
 import bisq.common.persistence.PersistenceManager;
 import bisq.common.proto.persistable.PersistableEnvelope;
 import bisq.common.proto.persistable.PersistablePayload;
+import bisq.network.p2p.storage.P2PDataStorage;
+import bisq.network.p2p.storage.payload.ProtectedStorageEntry;
+import bisq.network.p2p.storage.persistence.MapStoreService;
+import lombok.Getter;
 
 import java.io.File;
-
 import java.util.HashMap;
 import java.util.Map;
-
-import lombok.Getter;
 
 import static org.mockito.Mockito.mock;
 

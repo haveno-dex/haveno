@@ -17,33 +17,23 @@
 
 package bisq.network.p2p;
 
-import bisq.network.p2p.network.Connection;
-import bisq.network.p2p.network.InboundConnection;
-import bisq.network.p2p.network.NetworkNode;
-import bisq.network.p2p.network.OutboundConnection;
-import bisq.network.p2p.network.Statistic;
-import bisq.network.p2p.peers.PeerManager;
-import bisq.network.p2p.peers.peerexchange.PeerList;
-import bisq.network.p2p.seed.SeedNodeRepository;
-
 import bisq.common.ClockWatcher;
 import bisq.common.file.CorruptedStorageFileHandler;
 import bisq.common.persistence.PersistenceManager;
 import bisq.common.proto.persistable.PersistenceProtoResolver;
-
-import java.nio.file.Files;
+import bisq.network.p2p.network.*;
+import bisq.network.p2p.peers.PeerManager;
+import bisq.network.p2p.peers.peerexchange.PeerList;
+import bisq.network.p2p.seed.SeedNodeRepository;
+import lombok.Getter;
 
 import java.io.File;
 import java.io.IOException;
-
+import java.nio.file.Files;
 import java.util.HashSet;
 import java.util.Set;
 
-import lombok.Getter;
-
-import static org.mockito.Mockito.doNothing;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 public class MockNode {
     @Getter

@@ -17,6 +17,9 @@
 
 package bisq.network.p2p.storage;
 
+import bisq.common.app.Capabilities;
+import bisq.common.app.Capability;
+import bisq.common.crypto.Sig;
 import bisq.network.p2p.NodeAddress;
 import bisq.network.p2p.TestUtils;
 import bisq.network.p2p.network.NetworkNode;
@@ -29,32 +32,22 @@ import bisq.network.p2p.storage.payload.CapabilityRequiringPayload;
 import bisq.network.p2p.storage.payload.PersistableNetworkPayload;
 import bisq.network.p2p.storage.payload.ProtectedStorageEntry;
 import bisq.network.p2p.storage.payload.ProtectedStoragePayload;
-
-import bisq.common.app.Capabilities;
-import bisq.common.app.Capability;
-import bisq.common.crypto.Sig;
-
 import com.google.protobuf.Message;
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.Test;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
 
 import java.security.KeyPair;
 import java.security.NoSuchAlgorithmException;
-
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
-
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
-
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
-import static org.mockito.Mockito.withSettings;
+import static org.mockito.Mockito.*;
 
 public class P2PDataStorageBuildGetDataResponseTest {
     abstract static class P2PDataStorageBuildGetDataResponseTestBase {

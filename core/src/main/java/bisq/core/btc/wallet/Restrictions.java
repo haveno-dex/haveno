@@ -18,7 +18,6 @@
 package bisq.core.btc.wallet;
 
 import bisq.common.config.Config;
-
 import org.bitcoinj.core.Coin;
 
 public class Restrictions {

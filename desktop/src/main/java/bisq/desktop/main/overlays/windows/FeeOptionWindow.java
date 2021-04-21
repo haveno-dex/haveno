@@ -19,9 +19,6 @@ package bisq.desktop.main.overlays.windows;
 
 import bisq.desktop.Navigation;
 import bisq.desktop.main.MainView;
-import bisq.desktop.main.dao.DaoView;
-import bisq.desktop.main.dao.wallet.BsqWalletView;
-import bisq.desktop.main.dao.wallet.receive.BsqReceiveView;
 import bisq.desktop.main.overlays.Overlay;
 import bisq.desktop.main.overlays.popups.Popup;
 import bisq.desktop.util.FormBuilder;
@@ -170,7 +167,7 @@ public class FeeOptionWindow extends Overlay<FeeOptionWindow> {
                             .onAction(() -> {
                                 UserThread.runAfter(() -> {
                                     hide();
-                                    navigation.navigateTo(MainView.class, DaoView.class, BsqWalletView.class, BsqReceiveView.class);
+                                    navigation.navigateTo(MainView.class);//TODO(niyid) Navigate to wallet receive view
                                 }, 100, TimeUnit.MILLISECONDS);
                             })
                             .closeButtonText(Res.get("feeOptionWindow.useBTC"))

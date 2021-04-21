@@ -17,28 +17,23 @@
 
 package bisq.core.alert;
 
-import bisq.network.p2p.storage.payload.ExpirablePayload;
-import bisq.network.p2p.storage.payload.ProtectedStoragePayload;
-
 import bisq.common.app.Version;
 import bisq.common.crypto.Sig;
 import bisq.common.util.CollectionUtils;
 import bisq.common.util.ExtraDataMapValidator;
-
+import bisq.network.p2p.storage.payload.ExpirablePayload;
+import bisq.network.p2p.storage.payload.ProtectedStoragePayload;
 import com.google.protobuf.ByteString;
-
-import java.security.PublicKey;
-
-import java.util.Map;
-import java.util.Optional;
-import java.util.concurrent.TimeUnit;
-
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
 
 import javax.annotation.Nullable;
+import java.security.PublicKey;
+import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 

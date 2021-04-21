@@ -17,8 +17,6 @@
 
 package bisq.core.trade.protocol.tasks.taker;
 
-import java.util.UUID;
-
 import bisq.common.app.Version;
 import bisq.common.taskrunner.TaskRunner;
 import bisq.core.trade.Trade;
@@ -26,6 +24,8 @@ import bisq.core.trade.messages.MakerReadyToFundMultisigRequest;
 import bisq.core.trade.protocol.tasks.TradeTask;
 import bisq.network.p2p.SendDirectMessageListener;
 import lombok.extern.slf4j.Slf4j;
+
+import java.util.UUID;
 
 @Slf4j
 public class TakerSendReadyToFundMultisigRequest extends TradeTask {
@@ -38,7 +38,7 @@ public class TakerSendReadyToFundMultisigRequest extends TradeTask {
     protected void run() {
         try {
             runInterceptHook();
-            
+
             // create message ask maker if ready
             MakerReadyToFundMultisigRequest request = new MakerReadyToFundMultisigRequest(
                     processModel.getOffer().getId(),
@@ -46,7 +46,7 @@ public class TakerSendReadyToFundMultisigRequest extends TradeTask {
                     processModel.getPubKeyRing(),
                     UUID.randomUUID().toString(),
                     Version.getP2PMessageVersion());
-            
+
             // send request to maker
             log.info("Send {} with offerId {} and uid {} to maker {} with pub key ring", request.getClass().getSimpleName(), request.getTradeId(), request.getUid(), trade.getMakerNodeAddress(), trade.getMakerPubKeyRing());
             processModel.getP2PService().sendEncryptedDirectMessage(
@@ -59,6 +59,7 @@ public class TakerSendReadyToFundMultisigRequest extends TradeTask {
                             log.info("{} arrived at maker: offerId={}; uid={}", request.getClass().getSimpleName(), request.getTradeId(), request.getUid());
                             complete();
                         }
+
                         @Override
                         public void onFault(String errorMessage) {
                             log.error("Sending {} failed: uid={}; peer={}; error={}", request.getClass().getSimpleName(), request.getUid(), trade.getMakerNodeAddress(), errorMessage);

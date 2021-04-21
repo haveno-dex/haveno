@@ -17,37 +17,31 @@
 
 package bisq.core.offer;
 
-import bisq.core.filter.FilterManager;
-import bisq.core.locale.Res;
-import bisq.core.provider.price.PriceFeedService;
-
-import bisq.network.p2p.BootstrapListener;
-import bisq.network.p2p.P2PService;
-import bisq.network.p2p.storage.HashMapChangedListener;
-import bisq.network.p2p.storage.payload.ProtectedStorageEntry;
-
 import bisq.common.UserThread;
 import bisq.common.config.Config;
 import bisq.common.file.JsonFileManager;
 import bisq.common.handlers.ErrorMessageHandler;
 import bisq.common.handlers.ResultHandler;
 import bisq.common.util.Utilities;
+import bisq.core.filter.FilterManager;
+import bisq.core.locale.Res;
+import bisq.core.provider.price.PriceFeedService;
+import bisq.network.p2p.BootstrapListener;
+import bisq.network.p2p.P2PService;
+import bisq.network.p2p.storage.HashMapChangedListener;
+import bisq.network.p2p.storage.payload.ProtectedStorageEntry;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import javax.annotation.Nullable;
 import javax.inject.Inject;
 import javax.inject.Named;
-
 import java.io.File;
-
 import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import javax.annotation.Nullable;
 
 /**
  * Handles storage and retrieval of offers.

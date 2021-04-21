@@ -27,7 +27,6 @@ import com.google.inject.Inject;
 import bisq.common.handlers.ErrorMessageHandler;
 import bisq.common.handlers.ResultHandler;
 import bisq.core.account.witness.AccountAgeWitnessService;
-import bisq.core.btc.wallet.BsqWalletService;
 import bisq.core.btc.wallet.Restrictions;
 import bisq.core.btc.wallet.XmrWalletService;
 import bisq.core.locale.CurrencyUtil;
@@ -62,7 +61,6 @@ class EditOfferDataModel extends MutableOfferDataModel {
     EditOfferDataModel(CreateOfferService createOfferService,
                        OpenOfferManager openOfferManager,
                        XmrWalletService xmrWalletService,
-                       BsqWalletService bsqWalletService,
                        Preferences preferences,
                        User user,
                        P2PService p2PService,
@@ -77,7 +75,6 @@ class EditOfferDataModel extends MutableOfferDataModel {
         super(createOfferService,
                 openOfferManager,
                 xmrWalletService,
-                bsqWalletService,
                 preferences,
                 user,
                 p2PService,

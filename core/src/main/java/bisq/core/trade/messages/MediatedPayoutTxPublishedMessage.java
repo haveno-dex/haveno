@@ -17,15 +17,12 @@
 
 package bisq.core.trade.messages;
 
-import bisq.network.p2p.MailboxMessage;
-import bisq.network.p2p.NodeAddress;
-
 import bisq.common.app.Version;
 import bisq.common.proto.network.NetworkEnvelope;
 import bisq.common.util.Utilities;
-
+import bisq.network.p2p.MailboxMessage;
+import bisq.network.p2p.NodeAddress;
 import com.google.protobuf.ByteString;
-
 import lombok.EqualsAndHashCode;
 import lombok.Value;
 

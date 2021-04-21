@@ -19,7 +19,6 @@ package bisq.core.app;
 
 import bisq.common.setup.GracefulShutDownHandler;
 import bisq.common.setup.UncaughtExceptionHandler;
-
 import com.google.inject.Injector;
 
 public interface HeadlessApp extends UncaughtExceptionHandler, BisqSetup.BisqSetupListener {

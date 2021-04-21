@@ -17,20 +17,17 @@
 
 package bisq.network.p2p.storage.persistence;
 
+import bisq.common.proto.persistable.PersistableEnvelope;
 import bisq.network.p2p.storage.P2PDataStorage;
 import bisq.network.p2p.storage.payload.ProtectedStorageEntry;
-
-import bisq.common.proto.persistable.PersistableEnvelope;
+import lombok.extern.slf4j.Slf4j;
 
 import javax.inject.Inject;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
-
-import lombok.extern.slf4j.Slf4j;
 
 /**
  * Used for data which can be added and removed. ProtectedStorageEntry is used for verifying ownership.

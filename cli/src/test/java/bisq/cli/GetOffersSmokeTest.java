@@ -3,13 +3,13 @@ package bisq.cli;
 import static java.lang.System.out;
 
 /**
- Smoke tests for getoffers method.  Useful for examining the format of the console output.
-
- Prerequisites:
-
- - Run `./bisq-daemon --apiPassword=xyz --appDataDir=$TESTDIR`
-
- This can be run on mainnet.
+ * Smoke tests for getoffers method.  Useful for examining the format of the console output.
+ * <p>
+ * Prerequisites:
+ * <p>
+ * - Run `./bisq-daemon --apiPassword=xyz --appDataDir=$TESTDIR`
+ * <p>
+ * This can be run on mainnet.
  */
 public class GetOffersSmokeTest {
 
