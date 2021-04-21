@@ -250,8 +250,8 @@ public final class Preferences implements PersistedDataHost, BridgeAddressProvid
             setFiatCurrencies(CurrencyUtil.getMainFiatCurrencies());
             setCryptoCurrencies(CurrencyUtil.getMainCryptoCurrencies());
 
-            if ("BTC".equals(baseCurrencyNetwork.getCurrencyCode())) {
-                setBlockChainExplorerMainNet(BTC_MAIN_NET_EXPLORERS.get(0));
+            if ("XMR".equals(baseCurrencyNetwork.getCurrencyCode())) {
+                setBlockChainExplorerMainNet(BTC_MAIN_NET_EXPLORERS.get(0)); // TODO (woodser): update with XMR block explorers
                 setBlockChainExplorerTestNet(BTC_TEST_NET_EXPLORERS.get(0));
             } else {
                 throw new RuntimeException("BaseCurrencyNetwork not defined. BaseCurrencyNetwork=" + baseCurrencyNetwork);

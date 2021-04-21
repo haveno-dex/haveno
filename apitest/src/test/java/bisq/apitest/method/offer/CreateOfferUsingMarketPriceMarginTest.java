@@ -74,7 +74,7 @@ public class CreateOfferUsingMarketPriceMarginTest extends AbstractCreateOfferTe
         assertEquals(10000000, newOffer.getMinAmount());
         assertEquals(1500000, newOffer.getBuyerSecurityDeposit());
         assertEquals(paymentAccount.getId(), newOffer.getPaymentAccountId());
-        assertEquals("BTC", newOffer.getBaseCurrencyCode());
+        assertEquals("XMR", newOffer.getBaseCurrencyCode());
         assertEquals("USD", newOffer.getCounterCurrencyCode());
 
         OfferInfo offer = getMostRecentOffer("buy", "usd");
@@ -85,7 +85,7 @@ public class CreateOfferUsingMarketPriceMarginTest extends AbstractCreateOfferTe
         assertEquals(10000000, offer.getMinAmount());
         assertEquals(1500000, offer.getBuyerSecurityDeposit());
         assertEquals(paymentAccount.getId(), offer.getPaymentAccountId());
-        assertEquals("BTC", offer.getBaseCurrencyCode());
+        assertEquals("XMR", offer.getBaseCurrencyCode());
         assertEquals("USD", offer.getCounterCurrencyCode());
 
         assertCalculatedPriceIsCorrect(offer, priceMarginPctInput);
@@ -116,7 +116,7 @@ public class CreateOfferUsingMarketPriceMarginTest extends AbstractCreateOfferTe
         assertEquals(10000000, newOffer.getMinAmount());
         assertEquals(1500000, newOffer.getBuyerSecurityDeposit());
         assertEquals(paymentAccount.getId(), newOffer.getPaymentAccountId());
-        assertEquals("BTC", newOffer.getBaseCurrencyCode());
+        assertEquals("XMR", newOffer.getBaseCurrencyCode());
         assertEquals("NZD", newOffer.getCounterCurrencyCode());
 
         OfferInfo offer = getMostRecentOffer("buy", "nzd");
@@ -127,7 +127,7 @@ public class CreateOfferUsingMarketPriceMarginTest extends AbstractCreateOfferTe
         assertEquals(10000000, offer.getMinAmount());
         assertEquals(1500000, offer.getBuyerSecurityDeposit());
         assertEquals(paymentAccount.getId(), offer.getPaymentAccountId());
-        assertEquals("BTC", offer.getBaseCurrencyCode());
+        assertEquals("XMR", offer.getBaseCurrencyCode());
         assertEquals("NZD", offer.getCounterCurrencyCode());
 
         assertCalculatedPriceIsCorrect(offer, priceMarginPctInput);
@@ -159,7 +159,7 @@ public class CreateOfferUsingMarketPriceMarginTest extends AbstractCreateOfferTe
         assertEquals(10000000, newOffer.getMinAmount());
         assertEquals(1500000, newOffer.getBuyerSecurityDeposit());
         assertEquals(paymentAccount.getId(), newOffer.getPaymentAccountId());
-        assertEquals("BTC", newOffer.getBaseCurrencyCode());
+        assertEquals("XMR", newOffer.getBaseCurrencyCode());
         assertEquals("GBP", newOffer.getCounterCurrencyCode());
 
         OfferInfo offer = getMostRecentOffer("sell", "gbp");
@@ -170,7 +170,7 @@ public class CreateOfferUsingMarketPriceMarginTest extends AbstractCreateOfferTe
         assertEquals(10000000, offer.getMinAmount());
         assertEquals(1500000, offer.getBuyerSecurityDeposit());
         assertEquals(paymentAccount.getId(), offer.getPaymentAccountId());
-        assertEquals("BTC", offer.getBaseCurrencyCode());
+        assertEquals("XMR", offer.getBaseCurrencyCode());
         assertEquals("GBP", offer.getCounterCurrencyCode());
 
         assertCalculatedPriceIsCorrect(offer, priceMarginPctInput);
@@ -202,7 +202,7 @@ public class CreateOfferUsingMarketPriceMarginTest extends AbstractCreateOfferTe
         assertEquals(10000000, newOffer.getMinAmount());
         assertEquals(1500000, newOffer.getBuyerSecurityDeposit());
         assertEquals(paymentAccount.getId(), newOffer.getPaymentAccountId());
-        assertEquals("BTC", newOffer.getBaseCurrencyCode());
+        assertEquals("XMR", newOffer.getBaseCurrencyCode());
         assertEquals("BRL", newOffer.getCounterCurrencyCode());
 
         OfferInfo offer = getMostRecentOffer("sell", "brl");
@@ -213,7 +213,7 @@ public class CreateOfferUsingMarketPriceMarginTest extends AbstractCreateOfferTe
         assertEquals(10000000, offer.getMinAmount());
         assertEquals(1500000, offer.getBuyerSecurityDeposit());
         assertEquals(paymentAccount.getId(), offer.getPaymentAccountId());
-        assertEquals("BTC", offer.getBaseCurrencyCode());
+        assertEquals("XMR", offer.getBaseCurrencyCode());
         assertEquals("BRL", offer.getCounterCurrencyCode());
 
         assertCalculatedPriceIsCorrect(offer, priceMarginPctInput);

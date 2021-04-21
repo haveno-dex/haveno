@@ -72,15 +72,15 @@ public class AboutView extends ActivatableView<GridPane, Void> {
         hyperlinkWithIcon = addHyperlinkWithIcon(root, ++gridRow, Res.get("setting.about.contribute"), "https://bisq.network/contribute");
         GridPane.setColumnSpan(hyperlinkWithIcon, 2);
 
-        boolean isBtc = Res.getBaseCurrencyCode().equals("BTC");
-        addTitledGroupBg(root, ++gridRow, isBtc ? 3 : 2, Res.get("setting.about.providers"), Layout.GROUP_DISTANCE);
+        boolean isXmr = Res.getBaseCurrencyCode().equals("XMR");
+        addTitledGroupBg(root, ++gridRow, isXmr ? 3 : 2, Res.get("setting.about.providers"), Layout.GROUP_DISTANCE);
 
-        label = addLabel(root, gridRow, Res.get(isBtc ? "setting.about.apisWithFee" : "setting.about.apis"), Layout.TWICE_FIRST_ROW_AND_GROUP_DISTANCE);
+        label = addLabel(root, gridRow, Res.get(isXmr ? "setting.about.apisWithFee" : "setting.about.apis"), Layout.TWICE_FIRST_ROW_AND_GROUP_DISTANCE);
         label.setWrapText(true);
         GridPane.setHalignment(label, HPos.LEFT);
         addCompactTopLabelTextField(root, ++gridRow, Res.get("setting.about.pricesProvided"),
                 "Bisq Price Index (https://bisq.wiki/Bisq_Price_Index)");
-        if (isBtc)
+        if (isXmr)
             addCompactTopLabelTextField(root, ++gridRow, Res.get("setting.about.feeEstimation.label"), "mempool.space (https://mempool.space)");
 
         addTitledGroupBg(root, ++gridRow, 2, Res.get("setting.about.versionDetails"), Layout.GROUP_DISTANCE);

@@ -31,8 +31,8 @@ public class FormattingUtilsTest {
     @Before
     public void setUp() {
         Locale.setDefault(new Locale("en", "US"));
-        Res.setBaseCurrencyCode("BTC");
-        Res.setBaseCurrencyName("Bitcoin");
+        Res.setBaseCurrencyCode("XMR");
+        Res.setBaseCurrencyName("Monero");
     }
 
     @Test

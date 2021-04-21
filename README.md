@@ -1,8 +1,10 @@
-# Haveno
+<div align="center"> 
+  <img src="https://raw.githubusercontent.com/haveno-dex/haveno-meta/721e52919b28b44d12b6e1e5dac57265f1c05cda/logo/haveno_logo_landscape.svg" alt="Haveno logo">
+</div>
 
 ## What is Haveno?
 
-Haveno is a private and decentralized way to exchange Monero for national currencies or other cryptocurrencies. Haveno uses peer-to-peer networking and multi-signature escrow to facilitate trading without a trusted third party custodian. Disputes can be resolved using non-custodial arbitration. Everything is built around Monero and Tor.
+Haveno (pronounced ha‧ve‧no) is a private and decentralized way to exchange Monero for national currencies or other cryptocurrencies. Haveno uses peer-to-peer networking and multi-signature escrow to facilitate trading without a trusted third party custodian. Disputes can be resolved using non-custodial arbitration. Everything is built around Monero and Tor.
 
 Haveno is the Esperanto word for "Harbor". The project is stewarded by a core Team, currently formed by 2 people: ErCiccione and Woodser.
 
@@ -23,14 +25,13 @@ We acknowledge and thank Bisq for their efforts, but we think the Monero communi
 
 ## Status of the project
 
-At the moment Haveno is only a Proof of Concept. It's already possible to initiate a crypto <-> XMR trade, but the platform still needs a lot of work before being available for public use.
+At the moment Haveno is only a Proof of Concept. It's already possible to initiate crypto <-> XMR and fiat <-> XMR trades, but the platform still needs a lot of work before being available for public use.
 
 There is a lot in progress and a lot to do. To make contributions easier, we use some of github's tools, like labels and projects. We set up a [labelling system](https://github.com/haveno-dex/haveno/wiki/Labelling-system) which should make easier for people to contribute. Problems and requests about the Haveno platform are tracked on this repository. For general discussions and proposals that affect the entire Haveno ecosystem, please open an issue in the [haveno-meta repository](https://github.com/haveno-dex/haveno-meta).
 
 These are the main priorities for the near future:
 
-- We need a logo. Right now it's a random stock image ([#1](https://github.com/haveno-dex/haveno-meta/issues/1))
-- The User Interface is basically still Bisq. Needs to be completely reworked and adapted for Monero as base currency (https://github.com/haveno-dex/haveno/projects/2)
+- The User Interface is basically still Bisq. Needs to be completely reworked and adapted for Monero as base currency. The new design is discussed and developed in [haveno-design](https://github.com/haveno-dex/haveno-design)
 - Cleanup the repository from Bisq-specific content (https://github.com/haveno-dex/haveno/projects/1)
 
 ## Keep in touch and help out!
@@ -44,9 +45,7 @@ Temporary email: havenodex@protonmail.com
 
 ## FAQ
 
-We are building up a wiki for this repository. At the moment there is only one entry:
-
-- [Labelling system](https://github.com/haveno-dex/haveno/wiki/Labelling-system)
+See the [FAQ in the wiki](https://github.com/haveno-dex/haveno/wiki/FAQ).
 
 ## Running a local Haveno test network
 

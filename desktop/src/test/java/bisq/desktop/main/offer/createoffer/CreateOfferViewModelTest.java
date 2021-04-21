@@ -70,8 +70,8 @@ public class CreateOfferViewModelTest {
 
     @Before
     public void setUp() {
-        final CryptoCurrency btc = new CryptoCurrency("BTC", "bitcoin");
-        GlobalSettings.setDefaultTradeCurrency(btc);
+        final CryptoCurrency xmr = new CryptoCurrency("XMR", "monero");
+        GlobalSettings.setDefaultTradeCurrency(xmr);
         Res.setup();
 
         final BtcValidator btcValidator = new BtcValidator(coinFormatter);
@@ -110,7 +110,7 @@ public class CreateOfferViewModelTest {
                 empty, user, null, priceFeedService,
                 accountAgeWitnessService, feeService,
                 coinFormatter, mock(MakerFeeProvider.class), tradeStats, null);
-        dataModel.initWithData(OfferPayload.Direction.BUY, new CryptoCurrency("BTC", "bitcoin"));
+        dataModel.initWithData(OfferPayload.Direction.BUY, new CryptoCurrency("XMR", "monero"));
         dataModel.activate();
 
         model = new CreateOfferViewModel(dataModel, null, fiatPriceValidator, altcoinValidator,

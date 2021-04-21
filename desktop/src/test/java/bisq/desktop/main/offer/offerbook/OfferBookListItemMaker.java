@@ -51,7 +51,7 @@ public class OfferBookListItemMaker {
                     with(OfferMaker.direction, lookup.valueOf(direction, OfferPayload.Direction.BUY)),
                     with(OfferMaker.useMarketBasedPrice, lookup.valueOf(useMarketBasedPrice, false)),
                     with(OfferMaker.marketPriceMargin, lookup.valueOf(marketPriceMargin, 0.0)),
-                    with(OfferMaker.baseCurrencyCode, lookup.valueOf(baseCurrencyCode, "BTC")),
+                    with(OfferMaker.baseCurrencyCode, lookup.valueOf(baseCurrencyCode, "XMR")),
                     with(OfferMaker.counterCurrencyCode, lookup.valueOf(counterCurrencyCode, "USD")),
                     with(OfferMaker.id, lookup.valueOf(id, "1234"))
             )));

@@ -455,7 +455,7 @@ public class BisqSetup {
         // TODO (woodser): check for invalid maker fee txs with xmr?
 //        openOfferManager.getObservableList().forEach(e -> {
 //            String offerFeePaymentTxId = e.getOffer().getOfferFeePaymentTxId();
-//            if (btcWalletService.getConfidenceForTxId(offerFeePaymentTxId) == null) { // TODO (woodser): needed for xmr base?
+//            if (btcWalletService.getConfidenceForTxId(offerFeePaymentTxId) == null) { // TODO (woodser): verify xmr maker fee tx
 //                String message = Res.get("popup.warning.openOfferWithInvalidMakerFeeTx",
 //                        e.getOffer().getShortId(), offerFeePaymentTxId);
 //                log.warn(message);

@@ -382,12 +382,12 @@ public final class OfferPayload implements ProtectedStoragePayload, ExpirablePay
     }
 
     // In the offer we support base and counter currency
-    // Fiat offers have base currency BTC and counterCurrency Fiat
-    // Altcoins have base currency Altcoin and counterCurrency BTC
+    // Fiat offers have base currency XMR and counterCurrency Fiat
+    // Altcoins have base currency Altcoin and counterCurrency XMR
     // The rest of the app does not support yet that concept of base currency and counter currencies
     // so we map here for convenience
     public String getCurrencyCode() {
-        return getBaseCurrencyCode().equals("BTC") ? getCounterCurrencyCode() : getBaseCurrencyCode();
+        return getBaseCurrencyCode().equals("XMR") ? getCounterCurrencyCode() : getBaseCurrencyCode();
     }
 
     @Override

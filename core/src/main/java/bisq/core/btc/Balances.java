@@ -92,7 +92,7 @@ public class Balances {
         });
     }
     
-    // TODO (woodser): reserved balance = reserved for trade, locked balance = locked in multisig
+    // TODO (woodser): currently reserved balance = reserved for trade (excluding multisig) and locked balance = txs with < 10 confirmations
 
     private void updateAvailableBalance() {
       availableBalance.set(Coin.valueOf(xmrWalletService.getWallet().getUnlockedBalance(0).longValue()));

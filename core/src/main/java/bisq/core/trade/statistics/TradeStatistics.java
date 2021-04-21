@@ -220,7 +220,7 @@ public final class TradeStatistics implements ProcessOncePersistableNetworkPaylo
     }
 
     public String getCurrencyCode() {
-        return baseCurrency.equals("BTC") ? counterCurrency : baseCurrency;
+        return baseCurrency.equals("XMR") ? counterCurrency : baseCurrency;
     }
 
     public Coin getTradeAmount() {
