@@ -17,16 +17,16 @@
 
 package bisq.core.util.coin;
 
-import bisq.core.dao.governance.param.Param;
-import bisq.core.dao.governance.proposal.ProposalValidationException;
 import bisq.core.locale.GlobalSettings;
 import bisq.core.locale.Res;
 import bisq.core.provider.price.MarketPrice;
 import bisq.core.util.FormattingUtils;
+import bisq.core.util.Param;
 import bisq.core.util.ParsingUtils;
 import bisq.core.util.validation.BtcAddressValidator;
 import bisq.core.util.validation.InputValidator;
 
+import bisq.common.BisqException;
 import bisq.common.app.DevEnv;
 import bisq.common.config.Config;
 import bisq.common.util.MathUtils;
@@ -50,6 +50,7 @@ import lombok.extern.slf4j.Slf4j;
 
 import org.jetbrains.annotations.NotNull;
 
+//TODO(niyid) Retain class BsqFormatter for now as it is no longer required
 @Slf4j
 @Singleton
 public class BsqFormatter implements CoinFormatter {
@@ -200,7 +201,7 @@ public class BsqFormatter implements CoinFormatter {
         }
     }
 
-    public String parseParamValueToString(Param param, String inputValue) throws ProposalValidationException {
+    public String parseParamValueToString(Param param, String inputValue) throws BisqException {
         switch (param.getParamType()) {
             case UNDEFINED:
                 return Res.get("shared.na");
@@ -216,8 +217,6 @@ public class BsqFormatter implements CoinFormatter {
                 InputValidator.ValidationResult validationResult = new BtcAddressValidator().validate(inputValue);
                 if (validationResult.isValid)
                     return inputValue;
-                else
-                    throw new ProposalValidationException(validationResult.errorMessage);
             default:
                 log.warn("Param type {} not handled in switch case at parseParamValueToString", param.getParamType());
                 return Res.get("shared.na");

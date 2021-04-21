@@ -24,10 +24,8 @@ import bisq.common.proto.persistable.PersistablePayload;
 import bisq.common.taskrunner.Model;
 import bisq.core.account.witness.AccountAgeWitnessService;
 import bisq.core.btc.model.RawTransactionInput;
-import bisq.core.btc.wallet.BsqWalletService;
 import bisq.core.btc.wallet.BtcWalletService;
 import bisq.core.btc.wallet.TradeWalletService;
-import bisq.core.dao.DaoFacade;
 import bisq.core.filter.FilterManager;
 import bisq.core.network.MessageState;
 import bisq.core.offer.Offer;
@@ -152,7 +150,7 @@ public class ProcessModel implements Model, PersistablePayload {
     private long buyerPayoutAmountFromMediation;
     @Setter
     private long sellerPayoutAmountFromMediation;
-    
+
     // Added for XMR integration
     @Nullable
     @Getter
@@ -335,14 +333,14 @@ public class ProcessModel implements Model, PersistablePayload {
     public void setPaymentStartedMessageState(MessageState paymentStartedMessageStateProperty) {
         this.paymentStartedMessageStateProperty.set(paymentStartedMessageStateProperty);
     }
-    
+
     public void setTradingPeer(TradingPeer peer) {
       if (trade == null) throw new RuntimeException("Cannot set trading peer because trade is null");
       else if (trade instanceof MakerTrade) taker = peer;
       else if (trade instanceof TakerTrade) maker = peer;
       else throw new RuntimeException("Must be maker or taker to set trading peer");
     }
-    
+
     public TradingPeer getTradingPeer() {
       if (trade == null) throw new RuntimeException("Cannot get trading peer because trade is null");
       else if (trade instanceof MakerTrade) return taker;
@@ -350,7 +348,7 @@ public class ProcessModel implements Model, PersistablePayload {
       else if (trade instanceof ArbitratorTrade) return null;
       else throw new RuntimeException("Unknown trade type: " + trade.getClass().getName());
     }
-    
+
     void setDepositTxSentAckMessage(AckMessage ackMessage) {
         MessageState messageState = ackMessage.isSuccess() ?
                 MessageState.ACKNOWLEDGED :
@@ -381,10 +379,6 @@ public class ProcessModel implements Model, PersistablePayload {
 
     public P2PService getP2PService() {
         return provider.getP2PService();
-    }
-
-    public BsqWalletService getBsqWalletService() {
-        return provider.getBsqWalletService();
     }
 
     public TradeWalletService getTradeWalletService() {
@@ -427,14 +421,10 @@ public class ProcessModel implements Model, PersistablePayload {
         return provider.getKeyRing();
     }
 
-    public DaoFacade getDaoFacade() {
-        return provider.getDaoFacade();
-    }
-
     public void setBuyerSignedPayoutTx(MoneroTxWallet buyerSignedPayoutTx) {
         this.buyerSignedPayoutTx = buyerSignedPayoutTx;
     }
-    
+
     @Nullable
     public MoneroTxWallet getBuyerSignedPayoutTx() {
     	return buyerSignedPayoutTx;

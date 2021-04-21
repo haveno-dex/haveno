@@ -17,9 +17,8 @@
 
 package bisq.core.payment;
 
-import bisq.core.dao.governance.param.Param;
-import bisq.core.dao.governance.period.PeriodService;
-import bisq.core.dao.state.DaoStateService;
+import bisq.core.util.Param;
+import bisq.core.util.coin.BsqFormatter;
 
 import bisq.common.util.MathUtils;
 
@@ -42,14 +41,13 @@ public class TradeLimits {
     @Getter
     private static TradeLimits INSTANCE;
 
-    private final DaoStateService daoStateService;
-    private final PeriodService periodService;
+    @Getter
+    private BsqFormatter bsqFormatter;
 
     @Inject
-    public TradeLimits(DaoStateService daoStateService, PeriodService periodService) {
-        this.daoStateService = daoStateService;
-        this.periodService = periodService;
+    public TradeLimits(BsqFormatter bsqFormatter) {
         INSTANCE = this;
+        this.bsqFormatter = bsqFormatter;
     }
 
     public void onAllServicesInitialized() {
@@ -67,7 +65,8 @@ public class TradeLimits {
      * @return the maximum trade limit set by the DAO.
      */
     public Coin getMaxTradeLimit() {
-        return daoStateService.getParamValueAsCoin(Param.MAX_TRADE_LIMIT, periodService.getChainHeight());
+        // TODO(niyid) Move Param to core and implement method to return Param value as Coin
+        return bsqFormatter.parseParamValueToCoin(Param.MAX_TRADE_LIMIT, "0");
     }
 
     // We possibly rounded value for the first month gets multiplied by 4 to get the trade limit after the account

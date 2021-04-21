@@ -60,7 +60,7 @@ public class CreateOfferDataModelTest {
 
         makerFeeProvider = mock(MakerFeeProvider.class);
         model = new CreateOfferDataModel(createOfferService, null, xmrWalletService,
-                null, preferences, user, null,
+                preferences, user, null,
                 priceFeedService, null,
                 feeService, null, makerFeeProvider, tradeStats, null);
     }
@@ -79,7 +79,7 @@ public class CreateOfferDataModelTest {
 
         when(user.getPaymentAccounts()).thenReturn(paymentAccounts);
         when(preferences.getSelectedPaymentAccountForCreateOffer()).thenReturn(revolutAccount);
-        when(makerFeeProvider.getMakerFee(any(), any(), any())).thenReturn(Coin.ZERO);
+        when(makerFeeProvider.getMakerFee(any(), any())).thenReturn(Coin.ZERO);
 
         model.initWithData(OfferPayload.Direction.BUY, new FiatCurrency("USD"));
         assertEquals("USD", model.getTradeCurrencyCode().get());
@@ -99,7 +99,7 @@ public class CreateOfferDataModelTest {
         when(user.getPaymentAccounts()).thenReturn(paymentAccounts);
         when(user.findFirstPaymentAccountWithCurrency(new FiatCurrency("USD"))).thenReturn(zelleAccount);
         when(preferences.getSelectedPaymentAccountForCreateOffer()).thenReturn(revolutAccount);
-        when(makerFeeProvider.getMakerFee(any(), any(), any())).thenReturn(Coin.ZERO);
+        when(makerFeeProvider.getMakerFee(any(), any())).thenReturn(Coin.ZERO);
 
         model.initWithData(OfferPayload.Direction.BUY, new FiatCurrency("USD"));
         assertEquals("USD", model.getTradeCurrencyCode().get());

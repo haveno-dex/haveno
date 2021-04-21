@@ -15,7 +15,7 @@
  * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.core.dao.governance.param;
+package bisq.core.util;
 
 import bisq.core.locale.Res;
 

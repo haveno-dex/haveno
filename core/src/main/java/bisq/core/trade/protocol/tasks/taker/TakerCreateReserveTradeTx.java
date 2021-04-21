@@ -21,7 +21,6 @@ import bisq.common.taskrunner.TaskRunner;
 import bisq.core.btc.model.XmrAddressEntry;
 import bisq.core.btc.wallet.TradeWalletService;
 import bisq.core.btc.wallet.XmrWalletService;
-import bisq.core.dao.exceptions.DaoDisabledException;
 import bisq.core.trade.Trade;
 import bisq.core.trade.protocol.tasks.TradeTask;
 import lombok.extern.slf4j.Slf4j;
@@ -46,7 +45,7 @@ public class TakerCreateReserveTradeTx extends TradeTask {
       XmrAddressEntry reservedForTradeAddressEntry = walletService.getOrCreateAddressEntry(id, XmrAddressEntry.Context.RESERVED_FOR_TRADE);
       TradeWalletService tradeWalletService = processModel.getTradeWalletService();
       String feeReceiver = "52FnB7ABUrKJzVQRpbMNrqDFWbcKLjFUq8Rgek7jZEuB6WE2ZggXaTf4FK6H8gQymvSrruHHrEuKhMN3qTMiBYzREKsmRKM"; // TODO (woodser): don't hardcode
-      
+
       // pay trade fee to reserve trade
       MoneroTxWallet tx = tradeWalletService.createXmrTradingFeeTx(
               reservedForTradeAddressEntry.getAddressString(),
@@ -60,11 +59,7 @@ public class TakerCreateReserveTradeTx extends TradeTask {
       processModel.setTakeOfferFeeTx(tx);
       complete();
     } catch (Throwable t) {
-      if (t instanceof DaoDisabledException) {
-        failed("You cannot pay the trade fee in BSQ at the moment because the DAO features have been " + "disabled due technical problems. Please use the BTC fee option until the issues are resolved. " + "For more information please visit the Bisq Forum.");
-      } else {
         failed(t);
-      }
     }
   }
 }

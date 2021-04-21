@@ -36,7 +36,6 @@ import org.junit.Test;
 import bisq.common.config.Config;
 import bisq.core.account.witness.AccountAgeWitnessService;
 import bisq.core.btc.model.XmrAddressEntry;
-import bisq.core.btc.wallet.BsqWalletService;
 import bisq.core.btc.wallet.XmrWalletService;
 import bisq.core.locale.Country;
 import bisq.core.locale.CryptoCurrency;
@@ -87,7 +86,6 @@ public class CreateOfferViewModelTest {
         PaymentAccount paymentAccount = mock(PaymentAccount.class);
         Preferences preferences = mock(Preferences.class);
         BsqFormatter bsqFormatter = mock(BsqFormatter.class);
-        BsqWalletService bsqWalletService = mock(BsqWalletService.class);
         SecurityDepositValidator securityDepositValidator = mock(SecurityDepositValidator.class);
         AccountAgeWitnessService accountAgeWitnessService = mock(AccountAgeWitnessService.class);
         CreateOfferService createOfferService = mock(CreateOfferService.class);
@@ -105,12 +103,11 @@ public class CreateOfferViewModelTest {
         when(accountAgeWitnessService.getMyTradeLimit(any(), any(), any())).thenReturn(100000000L);
         when(preferences.getUserCountry()).thenReturn(new Country("ES", "Spain", null));
         when(bsqFormatter.formatCoin(any())).thenReturn("0");
-        when(bsqWalletService.getAvailableConfirmedBalance()).thenReturn(Coin.ZERO);
         when(createOfferService.getRandomOfferId()).thenReturn(UUID.randomUUID().toString());
         when(tradeStats.getObservableTradeStatisticsSet()).thenReturn(FXCollections.observableSet());
 
         CreateOfferDataModel dataModel = new CreateOfferDataModel(createOfferService, null, xmrWalletService,
-                bsqWalletService, empty, user, null, priceFeedService,
+                empty, user, null, priceFeedService,
                 accountAgeWitnessService, feeService,
                 coinFormatter, mock(MakerFeeProvider.class), tradeStats, null);
         dataModel.initWithData(OfferPayload.Direction.BUY, new CryptoCurrency("BTC", "bitcoin"));

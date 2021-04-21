@@ -27,7 +27,6 @@ import bisq.desktop.main.support.dispute.DisputeView;
 
 import bisq.core.account.witness.AccountAgeWitnessService;
 import bisq.core.alert.PrivateNotificationManager;
-import bisq.core.dao.DaoFacade;
 import bisq.core.locale.Res;
 import bisq.core.support.dispute.Dispute;
 import bisq.core.support.dispute.DisputeList;
@@ -79,7 +78,6 @@ public abstract class DisputeAgentView extends DisputeView implements MultipleHo
                             ContractWindow contractWindow,
                             TradeDetailsWindow tradeDetailsWindow,
                             AccountAgeWitnessService accountAgeWitnessService,
-                            DaoFacade daoFacade,
                             MediatorManager mediatorManager,
                             RefundAgentManager refundAgentManager,
                             boolean useDevPrivilegeKeys) {
@@ -94,7 +92,6 @@ public abstract class DisputeAgentView extends DisputeView implements MultipleHo
                 accountAgeWitnessService,
                 mediatorManager,
                 refundAgentManager,
-                daoFacade,
                 useDevPrivilegeKeys);
 
         multipleHolderNameDetection = new MultipleHolderNameDetection(disputeManager);
@@ -139,7 +136,7 @@ public abstract class DisputeAgentView extends DisputeView implements MultipleHo
                     if (ex instanceof TradeDataValidation.AddressException) {
                         new Popup().width(900).warning(Res.get("support.warning.disputesWithInvalidDonationAddress",
                                 dispute.getDonationAddressOfDelayedPayoutTx(),
-                                daoFacade.getAllDonationAddresses(),
+                                "",//TODO(niyid) How are donation addresses handled if at all ==> daoFacade.getAllDonationAddresses()
                                 dispute.getTradeId(),
                                 ""))
                                 .show();

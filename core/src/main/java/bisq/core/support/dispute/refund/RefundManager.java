@@ -27,7 +27,6 @@ import bisq.common.crypto.KeyRing;
 import bisq.core.btc.setup.WalletsSetup;
 import bisq.core.btc.wallet.TradeWalletService;
 import bisq.core.btc.wallet.XmrWalletService;
-import bisq.core.dao.DaoFacade;
 import bisq.core.locale.Res;
 import bisq.core.offer.OpenOffer;
 import bisq.core.offer.OpenOfferManager;
@@ -70,13 +69,13 @@ public final class RefundManager extends DisputeManager<RefundDisputeList> {
                          TradeManager tradeManager,
                          ClosedTradableManager closedTradableManager,
                          OpenOfferManager openOfferManager,
-                         DaoFacade daoFacade, // TODO (woodser): remove daoFacade, priceFeedService?
+                         // TODO (woodser): remove daoFacade, priceFeedService?
                          KeyRing keyRing,
                          RefundDisputeListService refundDisputeListService,
                          Config config,
                          PriceFeedService priceFeedService) {
         super(p2PService, tradeWalletService, walletService, walletsSetup, tradeManager, closedTradableManager,
-                openOfferManager, daoFacade, keyRing, refundDisputeListService, config, priceFeedService);
+                openOfferManager, keyRing, refundDisputeListService, config, priceFeedService);
     }
 
 

@@ -22,9 +22,6 @@ import bisq.core.account.witness.AccountAgeWitnessService;
 import bisq.core.alert.PrivateNotificationManager;
 import bisq.core.alert.PrivateNotificationPayload;
 import bisq.core.btc.Balances;
-import bisq.core.dao.DaoSetup;
-import bisq.core.dao.governance.voteresult.VoteResultException;
-import bisq.core.dao.governance.voteresult.VoteResultService;
 import bisq.core.filter.FilterManager;
 import bisq.core.notifications.MobileNotificationService;
 import bisq.core.notifications.alerts.DisputeMsgEvents;
@@ -86,13 +83,11 @@ public class DomainInitialisation {
     private final PrivateNotificationManager privateNotificationManager;
     private final P2PService p2PService;
     private final FeeService feeService;
-    private final DaoSetup daoSetup;
     private final TradeStatisticsManager tradeStatisticsManager;
     private final AccountAgeWitnessService accountAgeWitnessService;
     private final SignedWitnessService signedWitnessService;
     private final PriceFeedService priceFeedService;
     private final FilterManager filterManager;
-    private final VoteResultService voteResultService;
     private final MobileNotificationService mobileNotificationService;
     private final MyOfferTakenEvents myOfferTakenEvents;
     private final TradeEvents tradeEvents;
@@ -119,13 +114,11 @@ public class DomainInitialisation {
                                 PrivateNotificationManager privateNotificationManager,
                                 P2PService p2PService,
                                 FeeService feeService,
-                                DaoSetup daoSetup,
                                 TradeStatisticsManager tradeStatisticsManager,
                                 AccountAgeWitnessService accountAgeWitnessService,
                                 SignedWitnessService signedWitnessService,
                                 PriceFeedService priceFeedService,
                                 FilterManager filterManager,
-                                VoteResultService voteResultService,
                                 MobileNotificationService mobileNotificationService,
                                 MyOfferTakenEvents myOfferTakenEvents,
                                 TradeEvents tradeEvents,
@@ -150,13 +143,11 @@ public class DomainInitialisation {
         this.privateNotificationManager = privateNotificationManager;
         this.p2PService = p2PService;
         this.feeService = feeService;
-        this.daoSetup = daoSetup;
         this.tradeStatisticsManager = tradeStatisticsManager;
         this.accountAgeWitnessService = accountAgeWitnessService;
         this.signedWitnessService = signedWitnessService;
         this.priceFeedService = priceFeedService;
         this.filterManager = filterManager;
-        this.voteResultService = voteResultService;
         this.mobileNotificationService = mobileNotificationService;
         this.myOfferTakenEvents = myOfferTakenEvents;
         this.tradeEvents = tradeEvents;
@@ -171,7 +162,6 @@ public class DomainInitialisation {
                                    Consumer<String> daoErrorMessageHandler,
                                    Consumer<String> daoWarnMessageHandler,
                                    Consumer<String> filterWarningHandler,
-                                   Consumer<VoteResultException> voteResultExceptionHandler,
                                    Consumer<List<RevolutAccount>> revolutAccountsUpdateHandler) {
         clockWatcher.start();
 
@@ -204,16 +194,6 @@ public class DomainInitialisation {
 
         feeService.onAllServicesInitialized();
 
-        if (DevEnv.isDaoActivated()) {
-            daoSetup.onAllServicesInitialized(errorMessage -> {
-                if (daoErrorMessageHandler != null)
-                    daoErrorMessageHandler.accept(errorMessage);
-            }, warningMessage -> {
-                if (daoWarnMessageHandler != null)
-                    daoWarnMessageHandler.accept(warningMessage);
-            });
-        }
-
         tradeStatisticsManager.onAllServicesInitialized();
 
         accountAgeWitnessService.onAllServicesInitialized();
@@ -223,13 +203,6 @@ public class DomainInitialisation {
 
         filterManager.onAllServicesInitialized();
         filterManager.setFilterWarningHandler(filterWarningHandler);
-
-        voteResultService.getVoteResultExceptions().addListener((ListChangeListener<VoteResultException>) c -> {
-            c.next();
-            if (c.wasAdded() && voteResultExceptionHandler != null) {
-                c.getAddedSubList().forEach(voteResultExceptionHandler);
-            }
-        });
 
         mobileNotificationService.onAllServicesInitialized();
         myOfferTakenEvents.onAllServicesInitialized();

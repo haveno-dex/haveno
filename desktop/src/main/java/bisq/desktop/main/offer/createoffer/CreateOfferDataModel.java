@@ -26,7 +26,6 @@ import javax.inject.Named;
 import com.google.inject.Inject;
 
 import bisq.core.account.witness.AccountAgeWitnessService;
-import bisq.core.btc.wallet.BsqWalletService;
 import bisq.core.btc.wallet.XmrWalletService;
 import bisq.core.offer.CreateOfferService;
 import bisq.core.offer.OpenOfferManager;
@@ -53,7 +52,6 @@ class CreateOfferDataModel extends MutableOfferDataModel {
     public CreateOfferDataModel(CreateOfferService createOfferService,
                                 OpenOfferManager openOfferManager,
                                 XmrWalletService xmrWalletService,
-                                BsqWalletService bsqWalletService,
                                 Preferences preferences,
                                 User user,
                                 P2PService p2PService,
@@ -67,7 +65,6 @@ class CreateOfferDataModel extends MutableOfferDataModel {
         super(createOfferService,
                 openOfferManager,
                 xmrWalletService,
-                bsqWalletService,
                 preferences,
                 user,
                 p2PService,

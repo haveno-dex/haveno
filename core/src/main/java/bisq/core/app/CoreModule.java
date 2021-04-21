@@ -19,7 +19,6 @@ package bisq.core.app;
 
 import bisq.core.alert.AlertModule;
 import bisq.core.btc.BitcoinModule;
-import bisq.core.dao.DaoModule;
 import bisq.core.filter.FilterModule;
 import bisq.core.network.p2p.seed.DefaultSeedNodeRepository;
 import bisq.core.offer.OfferModule;
@@ -84,7 +83,6 @@ public class CoreModule extends AppModule {
         install(new OfferModule(config));
         install(new P2PModule(config));
         install(new BitcoinModule(config));
-        install(new DaoModule(config));
         install(new AlertModule(config));
         install(new FilterModule(config));
         install(new CorePresentationModule(config));

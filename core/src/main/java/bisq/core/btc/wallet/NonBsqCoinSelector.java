@@ -17,9 +17,6 @@
 
 package bisq.core.btc.wallet;
 
-import bisq.core.dao.state.DaoStateService;
-import bisq.core.dao.state.model.blockchain.TxOutputKey;
-
 import org.bitcoinj.core.Transaction;
 import org.bitcoinj.core.TransactionConfidence;
 import org.bitcoinj.core.TransactionOutput;
@@ -34,12 +31,9 @@ import lombok.extern.slf4j.Slf4j;
  */
 @Slf4j
 public class NonBsqCoinSelector extends BisqDefaultCoinSelector {
-    private DaoStateService daoStateService;
-
     @Inject
-    public NonBsqCoinSelector(DaoStateService daoStateService) {
+    public NonBsqCoinSelector() {
         super(false);
-        this.daoStateService = daoStateService;
     }
 
     @Override
@@ -54,10 +48,10 @@ public class NonBsqCoinSelector extends BisqDefaultCoinSelector {
         if (parentTransaction.getConfidence().getConfidenceType() != TransactionConfidence.ConfidenceType.BUILDING)
             return false;
 
-        TxOutputKey key = new TxOutputKey(parentTransaction.getTxId().toString(), output.getIndex());
+//        TxOutputKey key = new TxOutputKey(parentTransaction.getTxId().toString(), output.getIndex());
         // It might be that we received BTC in a non-BSQ tx so that will not be stored in out state and not found.
         // So we consider any txOutput which is not in the state as BTC output.
-        return !daoStateService.existsTxOutput(key) || daoStateService.isRejectedIssuanceOutput(key);
+        return false;// Return false anyway since BSQ is not used and to maintain system design
     }
 
     // BTC utxo in the BSQ wallet are usually from rejected comp request so we don't expect dust attack utxos here.

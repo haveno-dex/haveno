@@ -32,9 +32,6 @@ import bisq.desktop.components.TitledGroupBg;
 import bisq.desktop.main.MainView;
 import bisq.desktop.main.account.AccountView;
 import bisq.desktop.main.account.content.fiataccounts.FiatAccountsView;
-import bisq.desktop.main.dao.DaoView;
-import bisq.desktop.main.dao.wallet.BsqWalletView;
-import bisq.desktop.main.dao.wallet.receive.BsqReceiveView;
 import bisq.desktop.main.funds.FundsView;
 import bisq.desktop.main.funds.withdrawal.WithdrawalView;
 import bisq.desktop.main.overlays.notifications.Notification;
@@ -381,7 +378,7 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
         if (message != null)
             new Popup().warning(message)
                     .actionButtonTextWithGoTo("navigation.dao.wallet.receive")
-                    .onAction(() -> navigation.navigateTo(MainView.class, DaoView.class, BsqWalletView.class, BsqReceiveView.class))
+                    .onAction(() -> navigation.navigateTo(MainView.class)) //TODO(niyid) Navigate to XMR receive view
                     .show();
     }
 

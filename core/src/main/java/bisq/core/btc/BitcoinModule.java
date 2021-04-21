@@ -36,7 +36,6 @@ import bisq.core.btc.nodes.BtcNodes;
 import bisq.core.btc.setup.RegTestHost;
 import bisq.core.btc.setup.WalletsSetup;
 import bisq.core.btc.wallet.BsqCoinSelector;
-import bisq.core.btc.wallet.BsqWalletService;
 import bisq.core.btc.wallet.BtcWalletService;
 import bisq.core.btc.wallet.NonBsqCoinSelector;
 import bisq.core.btc.wallet.TradeWalletService;
@@ -90,7 +89,6 @@ public class BitcoinModule extends AppModule {
         bind(WalletsSetup.class).in(Singleton.class);
         bind(XmrWalletService.class).in(Singleton.class);
         bind(BtcWalletService.class).in(Singleton.class);
-        bind(BsqWalletService.class).in(Singleton.class);
         bind(TradeWalletService.class).in(Singleton.class);
         bind(BsqCoinSelector.class).in(Singleton.class);
         bind(NonBsqCoinSelector.class).in(Singleton.class);

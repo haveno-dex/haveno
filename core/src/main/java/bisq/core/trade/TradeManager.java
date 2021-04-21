@@ -31,7 +31,6 @@ import bisq.common.proto.network.NetworkEnvelope;
 import bisq.common.proto.persistable.PersistedDataHost;
 import bisq.core.btc.exceptions.AddressEntryException;
 import bisq.core.btc.model.XmrAddressEntry;
-import bisq.core.btc.wallet.BsqWalletService;
 import bisq.core.btc.wallet.XmrWalletService;
 import bisq.core.locale.Res;
 import bisq.core.offer.Offer;
@@ -103,7 +102,6 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
     @Getter
     private final KeyRing keyRing;
     private final XmrWalletService xmrWalletService;
-    private final BsqWalletService bsqWalletService;
     private final OfferBookService offerBookService;
     private final OpenOfferManager openOfferManager;
     private final ClosedTradableManager closedTradableManager;
@@ -140,7 +138,6 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
     public TradeManager(User user,
                         KeyRing keyRing,
                         XmrWalletService xmrWalletService,
-                        BsqWalletService bsqWalletService,
                         OfferBookService offerBookService,
                         OpenOfferManager openOfferManager,
                         ClosedTradableManager closedTradableManager,
@@ -158,7 +155,6 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
         this.user = user;
         this.keyRing = keyRing;
         this.xmrWalletService = xmrWalletService;
-        this.bsqWalletService = bsqWalletService;
         this.offerBookService = offerBookService;
         this.openOfferManager = openOfferManager;
         this.closedTradableManager = closedTradableManager;
@@ -326,7 +322,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Init pending trade
     ///////////////////////////////////////////////////////////////////////////////////////////
-    
+
     private void initPersistedTrades() {
         tradableList.forEach(this::initPersistedTrade);
         persistedTradesInitialized.set(true);
@@ -345,27 +341,27 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
     public void requestPersistence() {
         persistenceManager.requestPersistence();
     }
-    
+
     private void handleInitTradeRequest(InitTradeRequest initTradeRequest, NodeAddress peer) {
       log.info("Received InitTradeRequest from {} with tradeId {} and uid {}", peer, initTradeRequest.getTradeId(), initTradeRequest.getUid());
-      
+
       try {
           Validator.nonEmptyStringOf(initTradeRequest.getTradeId());
       } catch (Throwable t) {
           log.warn("Invalid InitTradeRequest message " + initTradeRequest.toString());
           return;
       }
-      
+
       System.out.println("RECEIVED INIT REQUEST INFO");
       System.out.println("Sender peer node address: " + initTradeRequest.getSenderNodeAddress());
       System.out.println("Maker node address: " + initTradeRequest.getMakerNodeAddress());
       System.out.println("Taker node adddress: " + initTradeRequest.getTakerNodeAddress());
       System.out.println("Arbitrator node address: " + initTradeRequest.getArbitratorNodeAddress());
-      
+
       // handle request as arbitrator
       boolean isArbitrator = initTradeRequest.getArbitratorNodeAddress().equals(p2PService.getNetworkNode().getNodeAddress());
       if (isArbitrator) {
-        
+
         // get offer associated with trade
         Offer offer = null;
         for (Offer anOffer : offerBookService.getOffers()) {
@@ -374,7 +370,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
           }
         }
         if (offer == null) throw new RuntimeException("No offer on the books with trade id: " + initTradeRequest.getTradeId()); // TODO (woodser): proper error handling
-        
+
         Trade trade;
         Optional<Trade> tradeOptional = getTradeById(offer.getId());
         if (!tradeOptional.isPresent()) {
@@ -398,7 +394,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
             if (takeOfferRequestErrorMessageHandler != null)
                 takeOfferRequestErrorMessageHandler.handleErrorMessage(errorMessage);  // TODO (woodser): separate handler?
         });
-        
+
         return;
       }
 
@@ -427,7 +423,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
                       openOffer.getArbitratorNodeAddress(),
                       xmrWalletService,
                       getNewProcessModel(offer));
-          
+
           TradeProtocol tradeProtocol = TradeProtocolFactory.getNewTradeProtocol(trade);
           tradeProtocolByTradeId.put(trade.getId(), tradeProtocol);
           tradableList.add(trade);
@@ -444,17 +440,17 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
         log.debug("We received a prepare multisig request but don't have that offer anymore.");
       }
     }
-    
+
     private void handleMakerReadyToFundMultisigRequest(MakerReadyToFundMultisigRequest request, NodeAddress peer) {
       log.info("Received MakerReadyToFundMultisigResponse from {} with tradeId {} and uid {}", peer, request.getTradeId(), request.getUid());
-      
+
       try {
           Validator.nonEmptyStringOf(request.getTradeId());
       } catch (Throwable t) {
           log.warn("Invalid InitTradeRequest message " + request.toString());
           return;
       }
-      
+
       Optional<Trade> tradeOptional = getTradeById(request.getTradeId());
       if (!tradeOptional.isPresent()) throw new RuntimeException("No trade with id " + request.getTradeId()); // TODO (woodser): error handling
       Trade trade = tradeOptional.get();
@@ -463,17 +459,17 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
             takeOfferRequestErrorMessageHandler.handleErrorMessage(errorMessage);
       });
     }
-    
+
     private void handleMakerReadyToFundMultisigResponse(MakerReadyToFundMultisigResponse response, NodeAddress peer) {
       log.info("Received MakerReadyToFundMultisigResponse from {} with tradeId {} and uid {}", peer, response.getTradeId(), response.getUid());
-      
+
       try {
           Validator.nonEmptyStringOf(response.getTradeId());
       } catch (Throwable t) {
           log.warn("Invalid InitTradeRequest message " + response.toString());
           return;
       }
-      
+
       Optional<Trade> tradeOptional = getTradeById(response.getTradeId());
       if (!tradeOptional.isPresent()) throw new RuntimeException("No trade with id " + response.getTradeId()); // TODO (woodser): error handling
       Trade trade = tradeOptional.get();
@@ -482,17 +478,17 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
             takeOfferRequestErrorMessageHandler.handleErrorMessage(errorMessage);
       });
     }
-    
+
     private void handleMultisigMessage(InitMultisigMessage multisigMessage, NodeAddress peer) {
       log.info("Received InitMultisigMessage from {} with tradeId {} and uid {}", peer, multisigMessage.getTradeId(), multisigMessage.getUid());
-      
+
       try {
           Validator.nonEmptyStringOf(multisigMessage.getTradeId());
       } catch (Throwable t) {
           log.warn("Invalid InitMultisigMessage message " + multisigMessage.toString());
           return;
       }
-      
+
       Optional<Trade> tradeOptional = getTradeById(multisigMessage.getTradeId());
       if (!tradeOptional.isPresent()) throw new RuntimeException("No trade with id " + multisigMessage.getTradeId()); // TODO (woodser): error handling
       Trade trade = tradeOptional.get();
@@ -501,17 +497,17 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
             takeOfferRequestErrorMessageHandler.handleErrorMessage(errorMessage);
       });
     }
-    
+
     private void handleUpdateMultisigRequest(UpdateMultisigRequest request, NodeAddress peer) {
       log.info("Received UpdateMultisigRequest from {} with tradeId {} and uid {}", peer, request.getTradeId(), request.getUid());
-      
+
       try {
           Validator.nonEmptyStringOf(request.getTradeId());
       } catch (Throwable t) {
           log.warn("Invalid UpdateMultisigRequest message " + request.toString());
           return;
       }
-      
+
       Optional<Trade> tradeOptional = getTradeById(request.getTradeId());
       if (!tradeOptional.isPresent()) throw new RuntimeException("No trade with id " + request.getTradeId()); // TODO (woodser): error handling
       Trade trade = tradeOptional.get();
@@ -520,17 +516,17 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
             takeOfferRequestErrorMessageHandler.handleErrorMessage(errorMessage);
       });
     }
-    
+
     private void handleDepositTxMessage(DepositTxMessage request, NodeAddress peer) {
       log.info("Received DepositTxMessage from {} with tradeId {} and uid {}", peer, request.getTradeId(), request.getUid());
-      
+
       try {
           Validator.nonEmptyStringOf(request.getTradeId());
       } catch (Throwable t) {
           log.warn("Invalid InitTradeRequest message " + request.toString());
           return;
       }
-      
+
       Optional<Trade> tradeOptional = getTradeById(request.getTradeId());
       if (!tradeOptional.isPresent()) throw new RuntimeException("No trade with id " + request.getTradeId()); // TODO (woodser): error handling
       Trade trade = tradeOptional.get();
@@ -631,7 +627,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Complete trade
     ///////////////////////////////////////////////////////////////////////////////////////////
-    
+
     public void onWithdrawRequest(String toAddress, Coin amount, Coin fee, Trade trade, ResultHandler resultHandler, FaultHandler faultHandler) {
       int fromAccountIdx = xmrWalletService.getOrCreateAddressEntry(trade.getId(),
           XmrAddressEntry.Context.TRADE_PAYOUT).getAccountIndex();
@@ -663,7 +659,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
         faultHandler.handleFault("An exception occurred at requestWithdraw.", e);
       }
     }
-    
+
     // If trade was completed (closed without fault but might be closed by a dispute) we move it to the closed trades
     public void onTradeCompleted(Trade trade) {
         removeTrade(trade);
@@ -774,7 +770,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
                   } else {
                       tradeTxException.set(new TradeTxException(Res.get("error.closedTradeWithNoDepositTx", trade.getShortId())));
                   }
-                  
+
                   MoneroTxWallet takerDepositTx = trade.getTakerDepositTx();
                   if (takerDepositTx != null) {
                       if (!takerDepositTx.isConfirmed()) {

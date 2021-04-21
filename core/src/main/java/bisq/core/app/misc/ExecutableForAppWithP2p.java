@@ -26,7 +26,6 @@ import bisq.common.setup.GracefulShutDownHandler;
 import bisq.common.util.Profiler;
 import bisq.core.app.BisqExecutable;
 import bisq.core.btc.setup.WalletsSetup;
-import bisq.core.btc.wallet.BsqWalletService;
 import bisq.core.btc.wallet.BtcWalletService;
 import bisq.core.btc.wallet.XmrWalletService;
 import bisq.core.offer.OpenOfferManager;
@@ -92,7 +91,6 @@ public abstract class ExecutableForAppWithP2p extends BisqExecutable {
                     injector.getInstance(WalletsSetup.class).shutDown();
                     injector.getInstance(XmrWalletService.class).shutDown(); // TODO (woodser): this is not actually called, perhaps because WalletsSetup.class completes too quick so its listener calls System.exit(0)
                     injector.getInstance(BtcWalletService.class).shutDown();
-                    injector.getInstance(BsqWalletService.class).shutDown();
                 }));
                 // we wait max 5 sec.
                 UserThread.runAfter(() -> {

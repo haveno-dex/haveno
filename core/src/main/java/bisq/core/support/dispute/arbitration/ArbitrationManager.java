@@ -28,7 +28,6 @@ import bisq.common.crypto.PubKeyRing;
 import bisq.core.btc.setup.WalletsSetup;
 import bisq.core.btc.wallet.TradeWalletService;
 import bisq.core.btc.wallet.XmrWalletService;
-import bisq.core.dao.DaoFacade;
 import bisq.core.locale.Res;
 import bisq.core.offer.OpenOffer;
 import bisq.core.offer.OpenOfferManager;
@@ -89,13 +88,12 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
                               TradeManager tradeManager,
                               ClosedTradableManager closedTradableManager,
                               OpenOfferManager openOfferManager,
-                              DaoFacade daoFacade,
                               KeyRing keyRing,
                               ArbitrationDisputeListService arbitrationDisputeListService,
                               Config config,
                               PriceFeedService priceFeedService) {
         super(p2PService, tradeWalletService, walletService, walletsSetup, tradeManager, closedTradableManager,
-                openOfferManager, daoFacade, keyRing, arbitrationDisputeListService, config, priceFeedService);
+                openOfferManager, keyRing, arbitrationDisputeListService, config, priceFeedService);
     }
 
 
@@ -187,7 +185,7 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
         ChatMessage chatMessage = disputeResult.getChatMessage();
         checkNotNull(chatMessage, "chatMessage must not be null");
         Optional<Trade> tradeOptional = tradeManager.getTradeById(disputeResult.getTradeId());
-        
+
         String tradeId = disputeResult.getTradeId();
         Optional<Dispute> disputeOptional = findDispute(disputeResult);
         String uid = disputeResultMessage.getUid();
@@ -206,13 +204,13 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
             return;
         }
         Dispute dispute = disputeOptional.get();
-        
+
         // verify that arbitrator does not get DisputeResultMessage
         if (pubKeyRing.equals(dispute.getAgentPubKeyRing())) {
           log.error("Arbitrator received disputeResultMessage. That must never happen.");
           return;
         }
-        
+
         cleanupRetryMap(uid);
         if (!dispute.getChatMessages().contains(chatMessage)) {
             dispute.addAndPersistChatMessage(chatMessage);
@@ -250,7 +248,7 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
                 else if (publisher == DisputeResult.Winner.SELLER)
                     publisher = DisputeResult.Winner.BUYER;
             }
-            
+
             if ((isBuyer && publisher == DisputeResult.Winner.BUYER)
                     || (!isBuyer && publisher == DisputeResult.Winner.SELLER)) {
 
@@ -263,16 +261,16 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
                         payoutTx = ((Trade) tradableOptional.get()).getPayoutTx();
                     }
                 }
-                
+
 
                 if (payoutTx == null) {
-                  
+
                   // gather relevant info
                   String arbitratorSignedPayoutTxHex = disputeResult.getArbitratorSignedPayoutTxHex();
-                  
+
                   if (arbitratorSignedPayoutTxHex != null) {
                       if (!tradeOptional.isPresent()) throw new RuntimeException("Trade must not be null when trader signs arbitrator's payout tx");
-                      
+
                       try {
                         MoneroTxSet txSet = traderSignsDisputePayoutTx(tradeId, arbitratorSignedPayoutTxHex);
                         onTraderSignedDisputePayoutTx(tradeId, txSet);
@@ -312,17 +310,17 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
             errorMessage = "Error at traderSignAndFinalizeDisputedPayoutTx " + e.toString();
             log.error(errorMessage, e);
             success = false;
-            
+
             // We prefer to close the dispute in that case. If there was no deposit tx and a random tx was used
             // we get a TransactionVerificationException. No reason to keep that dispute open...
             updateTradeOrOpenOfferManager(tradeId); // TODO (woodser): only close in case of verification exception?
-            
+
             throw new RuntimeException(errorMessage);
         } finally {
             // We use the chatMessage as we only persist those not the disputeResultMessage.
             // If we would use the disputeResultMessage we could not lookup for the msg when we receive the AckMessage.
             sendAckMessage(chatMessage, dispute.getAgentPubKeyRing(), success, errorMessage);
-            
+
             // If dispute opener's peer is co-signer, send updated multisig hex to arbitrator to receive updated payout tx
             if (requestUpdatedPayoutTx) sendArbitratorPayoutTxRequest(multisigWallet.getMultisigHex(), dispute, contract);
         }
@@ -354,33 +352,33 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
         PubKeyRing peersPubKeyRing = isBuyer ? contract.getSellerPubKeyRing() : contract.getBuyerPubKeyRing();
 
         cleanupRetryMap(uid);
-        
+
         // update multisig wallet
         MoneroWallet multisigWallet = xmrWalletService.getOrCreateMultisigWallet(dispute.getTradeId());
         multisigWallet.importMultisigHex(Arrays.asList(peerPublishedDisputePayoutTxMessage.getUpdatedMultisigHex()));
-        
+
         // parse payout tx
         MoneroTxWallet describedPayoutTx = multisigWallet.describeTxSet(new MoneroTxSet().setMultisigTxHex(peerPublishedDisputePayoutTxMessage.getPayoutTxHex())).getTxs().get(0);
-        
+
 //        System.out.println("LOSER'S VIEW OF MULTISIG WALLET (SHOULD INCLUDE PAYOUT TX):\n" + multisigWallet.getTxs());
 //        if (multisigWallet.getTxs().size() != 3) throw new RuntimeException("Loser's multisig wallet does not include record of payout tx");
 //        Transaction committedDisputePayoutTx = WalletService.maybeAddNetworkTxToWallet(peerPublishedDisputePayoutTxMessage.getTransaction(), btcWalletService.getWallet());
-        
+
         dispute.setDisputePayoutTxId(describedPayoutTx.getHash());
         XmrWalletService.printTxs("Disputed payoutTx received from peer", describedPayoutTx);
-        
+
         // We can only send the ack msg if we have the peersPubKeyRing which requires the dispute
         sendAckMessage(peerPublishedDisputePayoutTxMessage, peersPubKeyRing, true, null);
         requestPersistence();
     }
-    
+
     // Arbitrator receives updated multisig hex from dispute opener's peer (if co-signer) and returns updated payout tx to be signed and published
     private void onArbitratorPayoutTxRequest(ArbitratorPayoutTxRequest request) {
       String tradeId = request.getTradeId();
       Dispute dispute = findDispute(request.getDispute().getTradeId(), request.getDispute().getTraderId()).get();
       DisputeResult disputeResult = dispute.getDisputeResultProperty().get();
       Contract contract = dispute.getContract();
-      
+
       // verify sender is co-signer and receiver is arbitrator
       System.out.println("Any of these null???"); // TODO (woodser): NPE if dispute opener's peer-as-cosigner's ticket is closed first
       System.out.println(disputeResult);
@@ -390,12 +388,12 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
       boolean senderIsWinner = (disputeResult.getWinner() == Winner.BUYER && contract.getBuyerNodeAddress().equals(request.getSenderNodeAddress())) || (disputeResult.getWinner() == Winner.SELLER && contract.getSellerNodeAddress().equals(request.getSenderNodeAddress()));
       boolean senderIsCosigner = senderIsWinner || disputeResult.isLoserPublisher();
       boolean receiverIsArbitrator = pubKeyRing.equals(dispute.getAgentPubKeyRing());
-      
+
       System.out.println("TESTING PUB KEY RINGS");
       System.out.println(pubKeyRing);
       System.out.println(dispute.getAgentPubKeyRing());
       System.out.println("Receiver is arbitrator: " + receiverIsArbitrator);
-      
+
       if (!senderIsCosigner) {
         log.warn("Received ArbitratorPayoutTxRequest but sender is not co-signer for trade id " + tradeId);
         return;
@@ -404,7 +402,7 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
         log.warn("Received ArbitratorPayoutTxRequest but receiver is not arbitrator for trade id " + tradeId);
         return;
       }
-      
+
       // update arbitrator's multisig wallet with co-signer's multisig hex
       MoneroWallet multisigWallet = xmrWalletService.getOrCreateMultisigWallet(dispute.getTradeId());
       try {
@@ -413,12 +411,12 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
         log.warn("Failed to import multisig hex from payout co-signer for trade id " + tradeId);
         return;
       }
-      
+
       // create updated payout tx
       MoneroTxWallet payoutTx = arbitratorCreatesDisputedPayoutTx(contract, dispute, disputeResult, multisigWallet);
       System.out.println("Arbitrator created updated payout tx for co-signer!!!");
       System.out.println(payoutTx);
-      
+
       // send updated payout tx to sender
       PubKeyRing senderPubKeyRing = contract.getBuyerNodeAddress().equals(request.getSenderNodeAddress()) ? contract.getBuyerPubKeyRing() : contract.getSellerPubKeyRing();
       ArbitratorPayoutTxResponse response = new ArbitratorPayoutTxResponse(
@@ -446,22 +444,22 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
           }
       );
     }
-    
+
     // Dispute opener's peer receives updated payout tx after providing updated multisig hex (if co-signer)
     private void onArbitratorPayoutTxResponse(ArbitratorPayoutTxResponse response) {
-      
+
       // gather and verify trade info // TODO (woodser): verify response is from arbitrator, etc
       String tradeId = response.getTradeId();
-      
+
       // verify and sign dispute payout tx
       MoneroTxSet signedPayoutTx = traderSignsDisputePayoutTx(tradeId, response.getArbitratorSignedPayoutTxHex());
-      
+
       // process fully signed payout tx (publish, notify peer, etc)
       onTraderSignedDisputePayoutTx(tradeId, signedPayoutTx);
     }
-    
+
     private void onTraderSignedDisputePayoutTx(String tradeId, MoneroTxSet txSet) {
-      
+
       // gather trade info
       MoneroWallet multisigWallet = xmrWalletService.getOrCreateMultisigWallet(tradeId);
       Optional<Dispute> disputeOptional = findOwnDispute(tradeId);
@@ -472,19 +470,19 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
       Dispute dispute = disputeOptional.get();
       Contract contract = dispute.getContract();
       Trade trade = tradeManager.getTradeById(tradeId).get();
-      
+
       // submit fully signed payout tx to the network
       multisigWallet.submitMultisigTxHex(txSet.getMultisigTxHex());
-      
+
       // update state
       trade.setPayoutTx(txSet.getTxs().get(0));   // TODO (woodser): is trade.payoutTx() mutually exclusive from dispute payout tx?
-      trade.setPayoutTxId(txSet.getTxs().get(0).getHash()); 
+      trade.setPayoutTxId(txSet.getTxs().get(0).getHash());
       trade.setState(Trade.State.SELLER_PUBLISHED_PAYOUT_TX);
       dispute.setDisputePayoutTxId(txSet.getTxs().get(0).getHash());
       sendPeerPublishedPayoutTxMessage(multisigWallet.getMultisigHex(), txSet.getMultisigTxHex(), dispute, contract);
       updateTradeOrOpenOfferManager(tradeId);
     }
-    
+
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Send messages
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -536,7 +534,7 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
             openOfferOptional.ifPresent(openOffer -> openOfferManager.closeOpenOffer(openOffer.getOffer()));
         }
     }
-    
+
     // dispute opener's peer signs payout tx by sending updated multisig hex to arbitrator who returns updated payout tx
     private void sendArbitratorPayoutTxRequest(String updatedMultisigHex, Dispute dispute, Contract contract) {
         ArbitratorPayoutTxRequest request = new ArbitratorPayoutTxRequest(
@@ -565,14 +563,14 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
                 }
         );
     }
-    
+
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Disputed payout tx signing
     ///////////////////////////////////////////////////////////////////////////////////////////
-    
+
     // TODO (woodser): where to move this common logic?
     public static MoneroTxWallet arbitratorCreatesDisputedPayoutTx(Contract contract, Dispute dispute, DisputeResult disputeResult, MoneroWallet multisigWallet) {
-      
+
       //System.out.println("DisputeSummaryWindow.arbitratorSignsDisputedPayoutTx()");
       //System.out.println("=== DISPUTE ===");
       //System.out.println(dispute);
@@ -580,7 +578,7 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
       //System.out.println(contract); // TODO (woodser): contract should include deposit tx hashes (pre-created then hash shared then contract signed)
       //System.out.println("=== DISPUTE RESULT ===");
       //System.out.println(disputeResult);
-      
+
       // gather relevant trade info
       String buyerPayoutAddress = contract.isBuyerMakerAndSellerTaker() ? contract.getMakerPayoutAddressString() : contract.getTakerPayoutAddressString();
       String sellerPayoutAddress = contract.isBuyerMakerAndSellerTaker() ? contract.getTakerPayoutAddressString() : contract.getMakerPayoutAddressString();
@@ -588,26 +586,26 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
       Preconditions.checkNotNull(sellerPayoutAddress, "sellerPayoutAddress must not be null");
       BigInteger buyerPayoutAmount = BigInteger.valueOf(disputeResult.getBuyerPayoutAmount().value).multiply(ParsingUtils.XMR_SATOSHI_MULTIPLIER);
       BigInteger sellerPayoutAmount = BigInteger.valueOf(disputeResult.getSellerPayoutAmount().value).multiply(ParsingUtils.XMR_SATOSHI_MULTIPLIER);
-      
+
       //System.out.println("buyerPayoutAddress: " + buyerPayoutAddress);
       //System.out.println("buyerPayoutAmount: " + buyerPayoutAmount);
-      
+
 //        Offer offer = new Offer(contract.getOfferPayload());
-//        System.out.println("Buyer deposit tx fee: " + 
-      
+//        System.out.println("Buyer deposit tx fee: " +
+
       //System.out.println("sellerPayoutAddress: " + sellerPayoutAddress);
       //System.out.println("sellerPayoutAmount: " + sellerPayoutAmount);
       //System.out.println("Multisig balance: " + multisigWallet.getBalance());
       //System.out.println("Multisig unlocked balance: " + multisigWallet.getUnlockedBalance());
       //System.out.println("Multisig txs");
       //System.out.println(multisigWallet.getTxs(new MoneroTxQuery().setIncludeOutputs(true)));
-      
+
       // create transaction to get fee estimate
       if (multisigWallet.isMultisigImportNeeded()) {
         log.info("Arbitrator's wallet needs updated multisig hex to create payout tx which means a trader must have already broadcast the payout tx");
         return null;
       }
-      
+
       // TODO (woodser): include arbitration fee
       //System.out.println("Creating feeEstimateTx!");
       MoneroTxWallet feeEstimateTx = multisigWallet.createTx(new MoneroTxConfig()
@@ -616,11 +614,11 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
               .addDestination(new MoneroDestination(sellerPayoutAddress, sellerPayoutAmount.multiply(BigInteger.valueOf(4)).divide(BigInteger.valueOf(5)))) // TODO (woodser): support addDestination(addr, amt) without new
               .setRelay(false)
       );
-      
+
       System.out.println("Created fee estimate tx!");
       System.out.println(feeEstimateTx);
       //BigInteger estimatedFee = feeEstimateTx.getFee();
-      
+
       // attempt to create payout tx by increasing estimated fee until successful
       MoneroTxWallet payoutTx = null;
       int numAttempts = 0;
@@ -638,15 +636,15 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
           System.out.println("FAILED TO CREATE PAYOUT TX, ITERATING...");
         }
       }
-      
+
       if (payoutTx == null) throw new RuntimeException("Failed to generate dispute payout tx");
       System.out.println("DISPUTE PAYOUT TX GENERATED ON ATTEMPT " + numAttempts);
       System.out.println(payoutTx);
       return payoutTx;
     }
-    
+
     private MoneroTxSet traderSignsDisputePayoutTx(String tradeId, String payoutTxHex) {
-      
+
       // gather trade info
       MoneroWallet multisigWallet = xmrWalletService.getOrCreateMultisigWallet(tradeId);
       Optional<Dispute> disputeOptional = findOwnDispute(tradeId);
@@ -654,7 +652,7 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
       Dispute dispute = disputeOptional.get();
       Contract contract = dispute.getContract();
       DisputeResult disputeResult = dispute.getDisputeResultProperty().get();
-      
+
 //    Offer offer = checkNotNull(trade.getOffer(), "offer must not be null");
 //    BigInteger sellerDepositAmount = multisigWallet.getTx(trade instanceof MakerTrade ? trade.getMakerDepositTxId() : trade.getTakerDepositTxId()).getIncomingAmount();   // TODO (woodser): use contract instead of trade to get deposit tx ids when contract has deposit tx ids
 //    BigInteger buyerDepositAmount = multisigWallet.getTx(trade instanceof MakerTrade ? trade.getTakerDepositTxId() : trade.getMakerDepositTxId()).getIncomingAmount();
@@ -663,60 +661,60 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
       BigInteger sellerPayoutAmount = BigInteger.valueOf(disputeResult.getSellerPayoutAmount().value).multiply(ParsingUtils.XMR_SATOSHI_MULTIPLIER);
       System.out.println("Buyer payout amount (with multiplier): " + buyerPayoutAmount);
       System.out.println("Seller payout amount (with multiplier): " + sellerPayoutAmount);
-      
+
       // parse arbitrator-signed payout tx
       MoneroTxSet describedTxSet = multisigWallet.describeTxSet(new MoneroTxSet().setMultisigTxHex(payoutTxHex));
       if (describedTxSet.getTxs() == null || describedTxSet.getTxs().size() != 1) throw new RuntimeException("Bad arbitrator-signed payout tx");  // TODO (woodser): nack
       MoneroTxWallet arbitratorSignedPayoutTx = describedTxSet.getTxs().get(0);
       System.out.println("Parsed arbitrator-signed payout tx:\n" + arbitratorSignedPayoutTx);
-      
+
       // verify payout tx has exactly 2 destinations
       if (arbitratorSignedPayoutTx.getOutgoingTransfer() == null || arbitratorSignedPayoutTx.getOutgoingTransfer().getDestinations() == null || arbitratorSignedPayoutTx.getOutgoingTransfer().getDestinations().size() != 2) throw new RuntimeException("Buyer-signed payout tx does not have exactly two destinations");
-      
+
       // get buyer and seller destinations (order not preserved)
       boolean buyerFirst = arbitratorSignedPayoutTx.getOutgoingTransfer().getDestinations().get(0).getAddress().equals(contract.getBuyerPayoutAddressString());
       MoneroDestination buyerPayoutDestination = arbitratorSignedPayoutTx.getOutgoingTransfer().getDestinations().get(buyerFirst ? 0 : 1);
       MoneroDestination sellerPayoutDestination = arbitratorSignedPayoutTx.getOutgoingTransfer().getDestinations().get(buyerFirst ? 1 : 0);
-      
+
       // verify payout addresses
       if (!buyerPayoutDestination.getAddress().equals(contract.getBuyerPayoutAddressString())) throw new RuntimeException("Buyer payout address does not match contract");
       if (!sellerPayoutDestination.getAddress().equals(contract.getSellerPayoutAddressString())) throw new RuntimeException("Seller payout address does not match contract");
-      
+
       // verify change address is multisig's primary address
       if (!arbitratorSignedPayoutTx.getChangeAddress().equals(multisigWallet.getPrimaryAddress())) throw new RuntimeException("Change address is not multisig wallet's primary address");
-      
+
       // verify sum of outputs = destination amounts + change amount
       if (!arbitratorSignedPayoutTx.getOutputSum().equals(buyerPayoutDestination.getAmount().add(sellerPayoutDestination.getAmount()).add(arbitratorSignedPayoutTx.getChangeAmount()))) throw new RuntimeException("Sum of outputs != destination amounts + change amount");
-      
+
       // verify buyer destination amount is payout amount - 1/2 tx costs
       BigInteger txCost = arbitratorSignedPayoutTx.getFee().add(arbitratorSignedPayoutTx.getChangeAmount());
       BigInteger expectedBuyerPayout = buyerPayoutAmount.subtract(txCost.divide(BigInteger.valueOf(2)));
-      
+
       System.out.println("Dispute buyer payout amount: " + buyerPayoutAmount);
       System.out.println("Tx cost: " + txCost);
       System.out.println("Buyer destination payout amount: " + buyerPayoutDestination.getAmount());
-      
-      
+
+
       // payout amount is dispute payout amount - 1/2 tx cost - deposit tx fee
-      
+
       // TODO (woodser): VERIFY PAYOUT TX AMOUNTS WHICH CONSIDERS FEE IF LONG TRADE, EXACT AMOUNT IF SHORT TRADE
-      
-      
+
+
   //    if (!buyerPayoutDestination.getAmount().equals(expectedBuyerPayout)) throw new RuntimeException("Buyer destination amount is not payout amount - 1/2 tx costs, " + buyerPayoutDestination.getAmount() + " vs " + expectedBuyerPayout);
-  
+
       // verify seller destination amount is payout amount - 1/2 tx costs
   //    BigInteger expectedSellerPayout = sellerPayoutAmount.subtract(txCost.divide(BigInteger.valueOf(2)));
   //    if (!sellerPayoutDestination.getAmount().equals(expectedSellerPayout)) throw new RuntimeException("Seller destination amount is not payout amount - 1/2 tx costs, " + sellerPayoutDestination.getAmount() + " vs " + expectedSellerPayout);
-  
+
       // TODO (woodser): verify fee is reasonable (e.g. within 2x of fee estimate tx)
-      
+
       // update multisig wallet from arbitrator
       System.out.println("Updating multisig hex from arbitrator: " + disputeResult.getArbitratorUpdatedMultisigHex());
       multisigWallet.importMultisigHex(Arrays.asList(disputeResult.getArbitratorUpdatedMultisigHex()));
-      
+
       // sign arbitrator-signed payout tx
       MoneroMultisigSignResult result = multisigWallet.signMultisigTxHex(payoutTxHex);
-        
+
       if (result.getSignedMultisigTxHex() == null) throw new RuntimeException("Error signing arbitrator-signed payout tx");
       String signedMultisigTxHex = result.getSignedMultisigTxHex();
       describedTxSet.setMultisigTxHex(signedMultisigTxHex);

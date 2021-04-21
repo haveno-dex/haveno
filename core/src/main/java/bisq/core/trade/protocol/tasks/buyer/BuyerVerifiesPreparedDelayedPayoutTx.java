@@ -38,7 +38,6 @@ public class BuyerVerifiesPreparedDelayedPayoutTx extends TradeTask {
 
             TradeDataValidation.validateDelayedPayoutTx(trade,
                     processModel.getPreparedDelayedPayoutTx(),
-                    processModel.getDaoFacade(),
                     processModel.getBtcWalletService());
 
             complete();

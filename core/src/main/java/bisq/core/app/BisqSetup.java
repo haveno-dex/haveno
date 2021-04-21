@@ -35,8 +35,6 @@ import bisq.core.btc.setup.WalletsSetup;
 import bisq.core.btc.wallet.BtcWalletService;
 import bisq.core.btc.wallet.WalletsManager;
 import bisq.core.btc.wallet.XmrWalletService;
-import bisq.core.dao.governance.voteresult.VoteResultException;
-import bisq.core.dao.state.unconfirmed.UnconfirmedBsqChangeOutputListService;
 import bisq.core.locale.Res;
 import bisq.core.offer.OpenOfferManager;
 import bisq.core.payment.PaymentAccount;
@@ -109,7 +107,6 @@ public class BisqSetup {
     private final Preferences preferences;
     private final User user;
     private final AlertManager alertManager;
-    private final UnconfirmedBsqChangeOutputListService unconfirmedBsqChangeOutputListService;
     private final Config config;
     private final AccountAgeWitnessService accountAgeWitnessService;
     private final TorSetup torSetup;
@@ -143,9 +140,6 @@ public class BisqSetup {
     @Setter
     @Nullable
     private BiConsumer<Alert, String> displayUpdateHandler;
-    @Setter
-    @Nullable
-    private Consumer<VoteResultException> voteResultExceptionHandler;
     @Setter
     @Nullable
     private Consumer<PrivateNotificationPayload> displayPrivateNotificationHandler;
@@ -185,7 +179,6 @@ public class BisqSetup {
                      Preferences preferences,
                      User user,
                      AlertManager alertManager,
-                     UnconfirmedBsqChangeOutputListService unconfirmedBsqChangeOutputListService,
                      Config config,
                      AccountAgeWitnessService accountAgeWitnessService,
                      TorSetup torSetup,
@@ -205,7 +198,6 @@ public class BisqSetup {
         this.preferences = preferences;
         this.user = user;
         this.alertManager = alertManager;
-        this.unconfirmedBsqChangeOutputListService = unconfirmedBsqChangeOutputListService;
         this.config = config;
         this.accountAgeWitnessService = accountAgeWitnessService;
         this.torSetup = torSetup;
@@ -284,11 +276,6 @@ public class BisqSetup {
         if (preferences.isResyncSpvRequested()) {
             try {
                 walletsSetup.reSyncSPVChain();
-
-                // In case we had an unconfirmed change output we reset the unconfirmedBsqChangeOutputList so that
-                // after a SPV resync we do not have any dangling BSQ utxos in that list which would cause an incorrect
-                // BSQ balance state after the SPV resync.
-                unconfirmedBsqChangeOutputListService.onSpvResync();
             } catch (IOException e) {
                 log.error(e.toString());
                 e.printStackTrace();
@@ -414,7 +401,6 @@ public class BisqSetup {
                 daoErrorMessageHandler,
                 daoWarnMessageHandler,
                 filterWarningHandler,
-                voteResultExceptionHandler,
                 revolutAccountsUpdateHandler);
 
         if (walletsSetup.downloadPercentageProperty().get() == 1) {
