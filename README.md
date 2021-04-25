@@ -34,6 +34,10 @@ These are the main priorities for the near future:
 - The User Interface is basically still Bisq. Needs to be completely reworked and adapted for Monero as base currency. The new design is discussed and developed in [haveno-design](https://github.com/haveno-dex/haveno-design)
 - Cleanup the repository from Bisq-specific content (https://github.com/haveno-dex/haveno/projects/1)
 
+### Bounties
+
+To incentivize development we adopt a simple bounty system. Contributors may be awarded bounties after completing a task (resolving an issue). [More details in the docs](https://github.com/erciccione/haveno/blob/master/docs/bounties.md).
+
 ## Keep in touch and help out!
 
 Haveno is a community-driven project. For it to be succesful it's fundamental to have the support and help of the Monero community. We have our own Matrix server. Registrations are not open at the moment, but the rooms are public and can be joined from any matrix client (like Element). We look forward to hearing from you!
