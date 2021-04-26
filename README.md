@@ -51,10 +51,10 @@ See the [FAQ in the wiki](https://github.com/haveno-dex/haveno/wiki/FAQ).
 
 1. Download [Monero CLI](https://www.getmonero.org/downloads/) for your system and sync Monero stagenet: `./monerod --stagenet --rpc-login superuser:abctesting123`, or alternatively, [set up a local Monero stagenet network](#running-a-local-monero-stagenet-network) (recommended)
 3. Download and install [Bitcoin-Qt](https://bitcoin.org/en/download)
-4. Run Bitcoin-Qt in regtest mode, e.g.: `/Applications/Bitcoin-Qt.app/Contents/MacOS/Bitcoin-Qt -regtest -peerbloomfilters=1`
+4. Run Bitcoin-Qt in regtest mode, e.g.: `./Bitcoin-Qt -regtest -peerbloomfilters=1`
 5. In Bitcoin-Qt console, mine BTC regtest blocks: `generatetoaddress 101 bcrt1q6j90vywv8x7eyevcnn2tn2wrlg3vsjlsvt46qz`
 6. Install [git lfs](https://git-lfs.github.com) for your system<br>
- Ubuntu: `sudo apt install git-lfs`
+  Ubuntu: `sudo apt install git-lfs`
 7. `git clone https://github.com/Haveno-Dex/haveno`
 8. Copy monero-wallet-rpc from step 1 to the haveno project root
 9. Apply permission to run monero-wallet-rpc, e.g. `chmod 777 monero-wallet-rpc`
@@ -63,9 +63,9 @@ See the [FAQ in the wiki](https://github.com/haveno-dex/haveno/wiki/FAQ).
 12. `./gradlew build`
 13. Start seed node, arbitrator, Alice, and Bob:
     1. `./bisq-seednode --baseCurrencyNetwork=BTC_REGTEST --useLocalhostForP2P=true --useDevPrivilegeKeys=true --nodePort=2002 --appName=bisq-BTC_REGTEST_Seed_2002 --daoActivated=false`
-    2. `./bisq-desktop --baseCurrencyNetwork=BTC_REGTEST --useLocalhostForP2P=true --useDevPrivilegeKeys=true --nodePort=4444 --appName=bisq-BTC_REGTEST_arbitrator --daoActivated=false`
-    3. `./bisq-desktop --baseCurrencyNetwork=BTC_REGTEST --useLocalhostForP2P=true --useDevPrivilegeKeys=true --nodePort=5555 --appName=bisq-BTC_REGTEST_Alice --daoActivated=false`
-    4. `./bisq-desktop --baseCurrencyNetwork=BTC_REGTEST --useLocalhostForP2P=true --useDevPrivilegeKeys=true --nodePort=6666 --appName=bisq-BTC_REGTEST_Bob  --daoActivated=false`
+    2. `./bisq-desktop --baseCurrencyNetwork=BTC_REGTEST --useLocalhostForP2P=true --useDevPrivilegeKeys=true --nodePort=4444 --appName=bisq-BTC_REGTEST_arbitrator --daoActivated=false --apiPassword=apitest --apiPort=9998`
+    3. `./bisq-desktop --baseCurrencyNetwork=BTC_REGTEST --useLocalhostForP2P=true --useDevPrivilegeKeys=true --nodePort=5555 --appName=bisq-BTC_REGTEST_Alice --daoActivated=false --apiPassword=apitest --apiPort=9999`
+    4. `./bisq-desktop --baseCurrencyNetwork=BTC_REGTEST --useLocalhostForP2P=true --useDevPrivilegeKeys=true --nodePort=6666 --appName=bisq-BTC_REGTEST_Bob  --daoActivated=false --apiPassword=apitest --apiPort=10000`
 14. Arbitrator window > Account > cmd+n to register a new arbitrator
 15. Arbitrator window > Account > cmd+d to register a new mediator
 16. Deposit stagenet XMR to Alice and Bob's Haveno wallets (wallet address printed to terminal)
