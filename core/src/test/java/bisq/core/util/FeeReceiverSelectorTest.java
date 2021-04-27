@@ -38,6 +38,7 @@ import org.junit.runner.RunWith;
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.lenient;
 
 @RunWith(MockitoJUnitRunner.class)
 public class FeeReceiverSelectorTest {
@@ -47,7 +48,7 @@ public class FeeReceiverSelectorTest {
     @Test
     public void testGetAddress() {
         Random rnd = new Random(123);
-        when(filterManager.getFilter()).thenReturn(filterWithReceivers(
+        lenient().when(filterManager.getFilter()).thenReturn(filterWithReceivers(
                 List.of("", "foo#0.001", "ill-formed", "bar#0.002", "baz#0.001", "partial#bad")));
 
         Map<String, Integer> selectionCounts = new HashMap<>();
@@ -67,7 +68,7 @@ public class FeeReceiverSelectorTest {
     @Test
     public void testGetAddress_noValidReceivers() {
         BsqFormatter bsqFormatter = mock(BsqFormatter.class);
-        when(bsqFormatter.parseParamValueToString(Param.RECIPIENT_BTC_ADDRESS, null)).thenReturn("default");
+        lenient().when(bsqFormatter.parseParamValueToString(Param.RECIPIENT_BTC_ADDRESS, null)).thenReturn("default");
 
         //TODO(niyid) Come back to these later
 //        when(filterManager.getFilter()).thenReturn(null);
