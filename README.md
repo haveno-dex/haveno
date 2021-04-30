@@ -108,7 +108,7 @@ See the [FAQ in the wiki](https://github.com/haveno-dex/haveno/wiki/FAQ).
 
 Would you like to help us build Haveno? Become a sponsor! We will show your logo here. Contact us at havenodex@protonmail.com.
 
-<img src="/media/sponsors/samurai.png" title="Samurai wallet" alt="Samurai wallet logo" width="100px">
+<a href="https://samouraiwallet.com/"><img src="/media/sponsors/samourai.png" title="Samourai wallet" alt="Samourai wallet logo" width="100px"></a>
 
 ## Support
 
