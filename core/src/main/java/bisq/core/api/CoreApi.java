@@ -17,6 +17,7 @@
 
 package bisq.core.api;
 
+import bisq.common.app.Version;
 import bisq.core.api.model.AddressBalanceInfo;
 import bisq.core.monetary.Price;
 import bisq.core.offer.Offer;
@@ -24,20 +25,15 @@ import bisq.core.offer.OfferPayload;
 import bisq.core.payment.PaymentAccount;
 import bisq.core.trade.statistics.TradeStatistics2;
 import bisq.core.trade.statistics.TradeStatisticsManager;
-
-import bisq.common.app.Version;
-
+import lombok.extern.slf4j.Slf4j;
 import org.bitcoinj.core.Coin;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Consumer;
-
-import lombok.extern.slf4j.Slf4j;
 
 /**
  * Provides high level interface to functionality of core Bisq features.

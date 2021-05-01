@@ -17,9 +17,8 @@
 
 package bisq.network.http;
 
-import java.io.IOException;
-
 import javax.annotation.Nullable;
+import java.io.IOException;
 
 public interface HttpClient {
     void setBaseUrl(String baseUrl);

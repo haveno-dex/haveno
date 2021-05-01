@@ -17,34 +17,26 @@
 
 package bisq.core.api;
 
+import bisq.common.config.Config;
+import bisq.common.crypto.KeyRing;
 import bisq.core.support.SupportType;
 import bisq.core.support.dispute.mediation.mediator.Mediator;
 import bisq.core.support.dispute.mediation.mediator.MediatorManager;
 import bisq.core.support.dispute.refund.refundagent.RefundAgent;
 import bisq.core.support.dispute.refund.refundagent.RefundAgentManager;
-
 import bisq.network.p2p.NodeAddress;
 import bisq.network.p2p.P2PService;
-
-import bisq.common.config.Config;
-import bisq.common.crypto.KeyRing;
-
+import lombok.extern.slf4j.Slf4j;
 import org.bitcoinj.core.ECKey;
 
 import javax.inject.Inject;
-
 import java.util.Date;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 
-import lombok.extern.slf4j.Slf4j;
-
 import static bisq.common.app.DevEnv.DEV_PRIVILEGE_PRIV_KEY;
-import static bisq.core.support.SupportType.ARBITRATION;
-import static bisq.core.support.SupportType.MEDIATION;
-import static bisq.core.support.SupportType.REFUND;
-import static bisq.core.support.SupportType.TRADE;
+import static bisq.core.support.SupportType.*;
 import static java.lang.String.format;
 import static java.net.InetAddress.getLoopbackAddress;
 import static java.util.Arrays.asList;

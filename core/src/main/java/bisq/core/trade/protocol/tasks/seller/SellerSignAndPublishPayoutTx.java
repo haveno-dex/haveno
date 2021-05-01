@@ -17,10 +17,6 @@
 
 package bisq.core.trade.protocol.tasks.seller;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-
-import java.math.BigInteger;
-
 import bisq.common.taskrunner.TaskRunner;
 import bisq.core.btc.wallet.XmrWalletService;
 import bisq.core.offer.Offer;
@@ -36,6 +32,10 @@ import monero.wallet.model.MoneroMultisigSignResult;
 import monero.wallet.model.MoneroTxSet;
 import monero.wallet.model.MoneroTxWallet;
 
+import java.math.BigInteger;
+
+import static com.google.common.base.Preconditions.checkNotNull;
+
 @Slf4j
 public class SellerSignAndPublishPayoutTx extends TradeTask {
 
@@ -48,79 +48,89 @@ public class SellerSignAndPublishPayoutTx extends TradeTask {
     protected void run() {
         try {
             runInterceptHook();
-            
+
             // gather relevant trade info
             XmrWalletService walletService = processModel.getProvider().getXmrWalletService();
             MoneroWallet multisigWallet = walletService.getOrCreateMultisigWallet(processModel.getTrade().getId());
             String buyerSignedPayoutTxHex = processModel.getTradingPeer().getSignedPayoutTxHex();
             Contract contract = trade.getContract();
             Offer offer = checkNotNull(trade.getOffer(), "offer must not be null");
-            BigInteger sellerDepositAmount = multisigWallet.getTx(trade instanceof MakerTrade ? processModel.getMakerPreparedDepositTxId() : processModel.getTakerPreparedDepositTxId()).getIncomingAmount(); 	// TODO (woodser): redundancy of processModel.getPreparedDepositTxId() vs trade.getDepositTxId() necessary or avoidable?
+            BigInteger sellerDepositAmount = multisigWallet.getTx(trade instanceof MakerTrade ? processModel.getMakerPreparedDepositTxId() : processModel.getTakerPreparedDepositTxId()).getIncomingAmount();    // TODO (woodser): redundancy of processModel.getPreparedDepositTxId() vs trade.getDepositTxId() necessary or avoidable?
             BigInteger buyerDepositAmount = multisigWallet.getTx(trade instanceof MakerTrade ? processModel.getTakerPreparedDepositTxId() : processModel.getMakerPreparedDepositTxId()).getIncomingAmount();
             BigInteger tradeAmount = BigInteger.valueOf(trade.getTradeAmount().value).multiply(ParsingUtils.XMR_SATOSHI_MULTIPLIER);
-            
+
             System.out.println("SELLER VERIFYING PAYOUT TX");
             System.out.println("Trade amount: " + trade.getTradeAmount());
             System.out.println("Buyer deposit amount: " + buyerDepositAmount);
             System.out.println("Seller deposit amount: " + sellerDepositAmount);
-            
+
             BigInteger buyerPayoutAmount = BigInteger.valueOf(offer.getBuyerSecurityDeposit().add(trade.getTradeAmount()).value).multiply(ParsingUtils.XMR_SATOSHI_MULTIPLIER);
             System.out.println("Buyer payout amount (with multiplier): " + buyerPayoutAmount);
             BigInteger sellerPayoutAmount = BigInteger.valueOf(offer.getSellerSecurityDeposit().value).multiply(ParsingUtils.XMR_SATOSHI_MULTIPLIER);
             System.out.println("Seller payout amount (with multiplier): " + sellerPayoutAmount);
-            
+
             // parse buyer-signed payout tx
             MoneroTxSet parsedTxSet = multisigWallet.describeTxSet(new MoneroTxSet().setMultisigTxHex(buyerSignedPayoutTxHex));
-            if (parsedTxSet.getTxs().get(0).getTxSet() != parsedTxSet) System.out.println("LINKS ARE WRONG STRAIGHT FROM PARSING!!!");
-            if (parsedTxSet.getTxs() == null || parsedTxSet.getTxs().size() != 1) throw new RuntimeException("Bad buyer-signed payout tx");	// TODO (woodser): nack
+            if (parsedTxSet.getTxs().get(0).getTxSet() != parsedTxSet)
+                System.out.println("LINKS ARE WRONG STRAIGHT FROM PARSING!!!");
+            if (parsedTxSet.getTxs() == null || parsedTxSet.getTxs().size() != 1)
+                throw new RuntimeException("Bad buyer-signed payout tx");    // TODO (woodser): nack
             MoneroTxWallet buyerSignedPayoutTx = parsedTxSet.getTxs().get(0);
             System.out.println("Parsed buyer signed tx hex:\n" + buyerSignedPayoutTx);
-            
+
             // verify payout tx has exactly 2 destinations
-            if (buyerSignedPayoutTx.getOutgoingTransfer() == null || buyerSignedPayoutTx.getOutgoingTransfer().getDestinations() == null || buyerSignedPayoutTx.getOutgoingTransfer().getDestinations().size() != 2) throw new RuntimeException("Buyer-signed payout tx does not have exactly two destinations");
-            
+            if (buyerSignedPayoutTx.getOutgoingTransfer() == null || buyerSignedPayoutTx.getOutgoingTransfer().getDestinations() == null || buyerSignedPayoutTx.getOutgoingTransfer().getDestinations().size() != 2)
+                throw new RuntimeException("Buyer-signed payout tx does not have exactly two destinations");
+
             // get buyer and seller destinations (order not preserved)
             boolean buyerFirst = buyerSignedPayoutTx.getOutgoingTransfer().getDestinations().get(0).getAddress().equals(contract.getBuyerPayoutAddressString());
             MoneroDestination buyerPayoutDestination = buyerSignedPayoutTx.getOutgoingTransfer().getDestinations().get(buyerFirst ? 0 : 1);
             MoneroDestination sellerPayoutDestination = buyerSignedPayoutTx.getOutgoingTransfer().getDestinations().get(buyerFirst ? 1 : 0);
-            
+
             // verify payout addresses
-            if (!buyerPayoutDestination.getAddress().equals(contract.getBuyerPayoutAddressString())) throw new RuntimeException("Buyer payout address does not match contract");
-            if (!sellerPayoutDestination.getAddress().equals(contract.getSellerPayoutAddressString())) throw new RuntimeException("Seller payout address does not match contract");
-            
-            // verify change address is multisig's primary address // TODO (woodser): ideally change amount is 0, seen with 0 conf payout tx 
-            if (!buyerSignedPayoutTx.getChangeAmount().equals(new BigInteger("0")) && !buyerSignedPayoutTx.getChangeAddress().equals(multisigWallet.getPrimaryAddress())) throw new RuntimeException("Change address is not multisig wallet's primary address");
-            
+            if (!buyerPayoutDestination.getAddress().equals(contract.getBuyerPayoutAddressString()))
+                throw new RuntimeException("Buyer payout address does not match contract");
+            if (!sellerPayoutDestination.getAddress().equals(contract.getSellerPayoutAddressString()))
+                throw new RuntimeException("Seller payout address does not match contract");
+
+            // verify change address is multisig's primary address // TODO (woodser): ideally change amount is 0, seen with 0 conf payout tx
+            if (!buyerSignedPayoutTx.getChangeAmount().equals(new BigInteger("0")) && !buyerSignedPayoutTx.getChangeAddress().equals(multisigWallet.getPrimaryAddress()))
+                throw new RuntimeException("Change address is not multisig wallet's primary address");
+
             // verify sum of outputs = destination amounts + change amount
-            if (!buyerSignedPayoutTx.getOutputSum().equals(buyerPayoutDestination.getAmount().add(sellerPayoutDestination.getAmount()).add(buyerSignedPayoutTx.getChangeAmount()))) throw new RuntimeException("Sum of outputs != destination amounts + change amount");
-            
+            if (!buyerSignedPayoutTx.getOutputSum().equals(buyerPayoutDestination.getAmount().add(sellerPayoutDestination.getAmount()).add(buyerSignedPayoutTx.getChangeAmount())))
+                throw new RuntimeException("Sum of outputs != destination amounts + change amount");
+
             // verify buyer destination amount is deposit amount + trade amount - 1/2 tx costs
             BigInteger txCost = buyerSignedPayoutTx.getFee().add(buyerSignedPayoutTx.getChangeAmount());
             BigInteger expectedBuyerPayout = buyerDepositAmount.add(tradeAmount).subtract(txCost.divide(BigInteger.valueOf(2)));
-            if (!buyerPayoutDestination.getAmount().equals(expectedBuyerPayout)) throw new RuntimeException("Buyer destination amount is not deposit amount + trade amount - 1/2 tx costs, " + buyerPayoutDestination.getAmount() + " vs " + expectedBuyerPayout);
+            if (!buyerPayoutDestination.getAmount().equals(expectedBuyerPayout))
+                throw new RuntimeException("Buyer destination amount is not deposit amount + trade amount - 1/2 tx costs, " + buyerPayoutDestination.getAmount() + " vs " + expectedBuyerPayout);
 
             // verify seller destination amount is deposit amount - trade amount - 1/2 tx costs
             BigInteger expectedSellerPayout = sellerDepositAmount.subtract(tradeAmount).subtract(txCost.divide(BigInteger.valueOf(2)));
-            if (!sellerPayoutDestination.getAmount().equals(expectedSellerPayout)) throw new RuntimeException("Seller destination amount is not deposit amount - trade amount - 1/2 tx costs, " + sellerPayoutDestination.getAmount() + " vs " + expectedSellerPayout);
+            if (!sellerPayoutDestination.getAmount().equals(expectedSellerPayout))
+                throw new RuntimeException("Seller destination amount is not deposit amount - trade amount - 1/2 tx costs, " + sellerPayoutDestination.getAmount() + " vs " + expectedSellerPayout);
 
             // TODO (woodser): verify fee is reasonable (e.g. within 2x of fee estimate tx)
-            
+
             // sign buyer-signed payout tx
             MoneroMultisigSignResult result = multisigWallet.signMultisigTxHex(buyerSignedPayoutTxHex);
-            if (result.getSignedMultisigTxHex() == null) throw new RuntimeException("Error signing buyer-signed payout tx");
+            if (result.getSignedMultisigTxHex() == null)
+                throw new RuntimeException("Error signing buyer-signed payout tx");
             String signedMultisigTxHex = result.getSignedMultisigTxHex();
-            
+
             // submit fully signed payout tx to the network
             multisigWallet.submitMultisigTxHex(signedMultisigTxHex);
-            
+
             // update state
             parsedTxSet.setMultisigTxHex(signedMultisigTxHex);
             if (parsedTxSet.getTxs().get(0).getTxSet() != parsedTxSet) System.out.println("LINKS ARE WRONG!!!");
-	          trade.setPayoutTx(parsedTxSet.getTxs().get(0));
-	          trade.setPayoutTxId(parsedTxSet.getTxs().get(0).getHash());
-	          trade.setState(Trade.State.SELLER_PUBLISHED_PAYOUT_TX);
-	          complete();
-            
+            trade.setPayoutTx(parsedTxSet.getTxs().get(0));
+            trade.setPayoutTxId(parsedTxSet.getTxs().get(0).getHash());
+            trade.setState(Trade.State.SELLER_PUBLISHED_PAYOUT_TX);
+            complete();
+
 //            checkNotNull(trade.getTradeAmount(), "trade.getTradeAmount() must not be null");
 //
 //            Offer offer = trade.getOffer();

@@ -17,12 +17,12 @@
 
 package bisq.core.trade.protocol.tasks;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-
 import bisq.common.taskrunner.TaskRunner;
 import bisq.core.trade.Trade;
 import lombok.extern.slf4j.Slf4j;
 import monero.wallet.model.MoneroTxWallet;
+
+import static com.google.common.base.Preconditions.checkNotNull;
 
 @Slf4j
 public abstract class BroadcastPayoutTx extends TradeTask {
@@ -39,7 +39,7 @@ public abstract class BroadcastPayoutTx extends TradeTask {
             if (true) throw new RuntimeException("BroadcastPayoutTx not implemented for xmr");
             MoneroTxWallet payoutTx = trade.getPayoutTx();
             checkNotNull(payoutTx, "payoutTx must not be null");
-            
+
 
             if (payoutTx.isRelayed()) {
                 log.debug("payoutTx was already published");

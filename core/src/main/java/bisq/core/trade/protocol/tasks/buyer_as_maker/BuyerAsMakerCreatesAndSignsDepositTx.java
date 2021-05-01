@@ -17,6 +17,7 @@
 
 package bisq.core.trade.protocol.tasks.buyer_as_maker;
 
+import bisq.common.taskrunner.TaskRunner;
 import bisq.core.btc.model.AddressEntry;
 import bisq.core.btc.model.PreparedDepositTxAndMakerInputs;
 import bisq.core.btc.model.RawTransactionInput;
@@ -25,19 +26,14 @@ import bisq.core.offer.Offer;
 import bisq.core.trade.Trade;
 import bisq.core.trade.protocol.TradingPeer;
 import bisq.core.trade.protocol.tasks.TradeTask;
-
-import bisq.common.taskrunner.TaskRunner;
-
+import lombok.extern.slf4j.Slf4j;
 import org.bitcoinj.core.Address;
 import org.bitcoinj.core.Coin;
 
+import javax.annotation.Nullable;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
-
-import lombok.extern.slf4j.Slf4j;
-
-import javax.annotation.Nullable;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;

@@ -17,12 +17,6 @@
 
 package bisq.core.setup;
 
-import java.util.ArrayList;
-import java.util.List;
-
-import com.google.inject.Injector;
-
-import bisq.common.config.Config;
 import bisq.common.proto.persistable.PersistedDataHost;
 import bisq.core.btc.model.AddressEntryList;
 import bisq.core.btc.model.XmrAddressEntryList;
@@ -36,7 +30,11 @@ import bisq.core.trade.failed.FailedTradesManager;
 import bisq.core.user.Preferences;
 import bisq.core.user.User;
 import bisq.network.p2p.P2PService;
+import com.google.inject.Injector;
 import lombok.extern.slf4j.Slf4j;
+
+import java.util.ArrayList;
+import java.util.List;
 
 @Slf4j
 public class CorePersistedDataHost {

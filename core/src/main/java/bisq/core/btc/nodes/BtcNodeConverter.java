@@ -18,25 +18,19 @@
 package bisq.core.btc.nodes;
 
 import bisq.core.btc.nodes.BtcNodes.BtcNode;
-
 import bisq.network.DnsLookupException;
 import bisq.network.DnsLookupTor;
-
+import com.runjva.sourceforge.jsocks.protocol.Socks5Proxy;
 import org.bitcoinj.core.PeerAddress;
 import org.bitcoinj.net.OnionCatConverter;
-
-import com.runjva.sourceforge.jsocks.protocol.Socks5Proxy;
-
-import java.net.InetAddress;
-import java.net.InetSocketAddress;
-import java.net.UnknownHostException;
-
-import java.util.Objects;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
+import java.net.UnknownHostException;
+import java.util.Objects;
 
 class BtcNodeConverter {
     private static final Logger log = LoggerFactory.getLogger(BtcNodeConverter.class);

@@ -17,19 +17,16 @@
 
 package bisq.core.app.misc;
 
+import bisq.common.config.Config;
 import bisq.core.account.sign.SignedWitnessService;
 import bisq.core.account.witness.AccountAgeWitnessService;
 import bisq.core.app.TorSetup;
 import bisq.core.filter.FilterManager;
 import bisq.core.trade.statistics.TradeStatisticsManager;
-
 import bisq.network.p2p.P2PService;
-
-import bisq.common.config.Config;
+import lombok.extern.slf4j.Slf4j;
 
 import javax.inject.Inject;
-
-import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class AppSetupWithP2PAndDAO extends AppSetupWithP2P {

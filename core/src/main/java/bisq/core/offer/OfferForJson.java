@@ -17,25 +17,20 @@
 
 package bisq.core.offer;
 
+import bisq.common.util.MathUtils;
 import bisq.core.locale.CurrencyUtil;
 import bisq.core.locale.Res;
 import bisq.core.monetary.Price;
 import bisq.core.monetary.Volume;
 import bisq.core.payment.payload.PaymentMethod;
-
-import bisq.common.util.MathUtils;
-
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import org.bitcoinj.core.Coin;
 import org.bitcoinj.utils.MonetaryFormat;
-
-import com.fasterxml.jackson.annotation.JsonIgnore;
-
-import java.util.Date;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
+import java.util.Date;
 
 public class OfferForJson {
     private static final Logger log = LoggerFactory.getLogger(OfferForJson.class);

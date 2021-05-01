@@ -17,42 +17,6 @@
 
 package bisq.network.p2p.storage;
 
-import bisq.network.p2p.NodeAddress;
-import bisq.network.p2p.network.CloseConnectionReason;
-import bisq.network.p2p.network.Connection;
-import bisq.network.p2p.network.ConnectionListener;
-import bisq.network.p2p.network.MessageListener;
-import bisq.network.p2p.network.NetworkNode;
-import bisq.network.p2p.peers.BroadcastHandler;
-import bisq.network.p2p.peers.Broadcaster;
-import bisq.network.p2p.peers.getdata.messages.GetDataRequest;
-import bisq.network.p2p.peers.getdata.messages.GetDataResponse;
-import bisq.network.p2p.peers.getdata.messages.GetUpdatedDataRequest;
-import bisq.network.p2p.peers.getdata.messages.PreliminaryGetDataRequest;
-import bisq.network.p2p.storage.messages.AddDataMessage;
-import bisq.network.p2p.storage.messages.AddOncePayload;
-import bisq.network.p2p.storage.messages.AddPersistableNetworkPayloadMessage;
-import bisq.network.p2p.storage.messages.BroadcastMessage;
-import bisq.network.p2p.storage.messages.RefreshOfferMessage;
-import bisq.network.p2p.storage.messages.RemoveDataMessage;
-import bisq.network.p2p.storage.messages.RemoveMailboxDataMessage;
-import bisq.network.p2p.storage.payload.CapabilityRequiringPayload;
-import bisq.network.p2p.storage.payload.DateTolerantPayload;
-import bisq.network.p2p.storage.payload.MailboxStoragePayload;
-import bisq.network.p2p.storage.payload.PersistableNetworkPayload;
-import bisq.network.p2p.storage.payload.ProcessOncePersistableNetworkPayload;
-import bisq.network.p2p.storage.payload.ProtectedMailboxStorageEntry;
-import bisq.network.p2p.storage.payload.ProtectedStorageEntry;
-import bisq.network.p2p.storage.payload.ProtectedStoragePayload;
-import bisq.network.p2p.storage.payload.RequiresOwnerIsOnlinePayload;
-import bisq.network.p2p.storage.persistence.AppendOnlyDataStoreListener;
-import bisq.network.p2p.storage.persistence.AppendOnlyDataStoreService;
-import bisq.network.p2p.storage.persistence.HistoricalDataStoreService;
-import bisq.network.p2p.storage.persistence.PersistableNetworkPayloadStore;
-import bisq.network.p2p.storage.persistence.ProtectedDataStoreService;
-import bisq.network.p2p.storage.persistence.ResourceDataStoreService;
-import bisq.network.p2p.storage.persistence.SequenceNumberMap;
-
 import bisq.common.Timer;
 import bisq.common.UserThread;
 import bisq.common.app.Capabilities;
@@ -67,31 +31,32 @@ import bisq.common.proto.persistable.PersistedDataHost;
 import bisq.common.util.Hex;
 import bisq.common.util.Tuple2;
 import bisq.common.util.Utilities;
-
-import com.google.protobuf.ByteString;
-
-import com.google.inject.name.Named;
-
-import javax.inject.Inject;
-
+import bisq.network.p2p.NodeAddress;
+import bisq.network.p2p.network.*;
+import bisq.network.p2p.peers.BroadcastHandler;
+import bisq.network.p2p.peers.Broadcaster;
+import bisq.network.p2p.peers.getdata.messages.GetDataRequest;
+import bisq.network.p2p.peers.getdata.messages.GetDataResponse;
+import bisq.network.p2p.peers.getdata.messages.GetUpdatedDataRequest;
+import bisq.network.p2p.peers.getdata.messages.PreliminaryGetDataRequest;
+import bisq.network.p2p.storage.messages.*;
+import bisq.network.p2p.storage.payload.*;
+import bisq.network.p2p.storage.persistence.*;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Maps;
+import com.google.inject.name.Named;
+import com.google.protobuf.ByteString;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.ToString;
+import lombok.extern.slf4j.Slf4j;
 
+import javax.annotation.Nullable;
+import javax.inject.Inject;
 import java.security.KeyPair;
 import java.security.PublicKey;
-
 import java.time.Clock;
-
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.TimeUnit;
@@ -99,13 +64,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-
-import lombok.EqualsAndHashCode;
-import lombok.Getter;
-import lombok.ToString;
-import lombok.extern.slf4j.Slf4j;
-
-import javax.annotation.Nullable;
 
 @Slf4j
 public class P2PDataStorage implements MessageListener, ConnectionListener, PersistedDataHost {
@@ -534,12 +492,13 @@ public class P2PDataStorage implements MessageListener, ConnectionListener, Pers
     /**
      * Adds a PersistableNetworkPayload to the local P2P data storage. If it does not already exist locally, it will
      * be broadcast to the P2P network.
-     * @param payload PersistableNetworkPayload to add to the network
-     * @param sender local NodeAddress, if available
+     *
+     * @param payload          PersistableNetworkPayload to add to the network
+     * @param sender           local NodeAddress, if available
      * @param allowReBroadcast <code>true</code> if the PersistableNetworkPayload should be rebroadcast even if it
      *                         already exists locally
      * @return <code>true</code> if the PersistableNetworkPayload passes all validation and exists in the P2PDataStore
-     *         on completion
+     * on completion
      */
     public boolean addPersistableNetworkPayload(PersistableNetworkPayload payload,
                                                 @Nullable NodeAddress sender,
@@ -611,8 +570,8 @@ public class P2PDataStorage implements MessageListener, ConnectionListener, Pers
      * broadcast to the P2P network.
      *
      * @param protectedStorageEntry ProtectedStorageEntry to add to the network
-     * @param sender local NodeAddress, if available
-     * @param listener optional listener that can be used to receive events on broadcast
+     * @param sender                local NodeAddress, if available
+     * @param listener              optional listener that can be used to receive events on broadcast
      * @return <code>true</code> if the ProtectedStorageEntry was added to the local P2P data storage and broadcast
      */
     public boolean addProtectedStorageEntry(ProtectedStorageEntry protectedStorageEntry, @Nullable NodeAddress sender,
@@ -693,7 +652,7 @@ public class P2PDataStorage implements MessageListener, ConnectionListener, Pers
      * Updates a local RefreshOffer with TTL changes and broadcasts those changes to the network
      *
      * @param refreshTTLMessage refreshTTLMessage containing the update
-     * @param sender local NodeAddress, if available
+     * @param sender            local NodeAddress, if available
      * @return <code>true</code> if the RefreshOffer was successfully updated and changes broadcast
      */
     public boolean refreshTTL(RefreshOfferMessage refreshTTLMessage,
@@ -743,7 +702,7 @@ public class P2PDataStorage implements MessageListener, ConnectionListener, Pers
      * change to the P2P network.
      *
      * @param protectedStorageEntry ProtectedStorageEntry to add to the network
-     * @param sender local NodeAddress, if available
+     * @param sender                local NodeAddress, if available
      * @return <code>true</code> if the ProtectedStorageEntry was removed from the local P2P data storage and broadcast
      */
     public boolean remove(ProtectedStorageEntry protectedStorageEntry,

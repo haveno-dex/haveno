@@ -23,13 +23,14 @@ import bisq.core.btc.listeners.AddressConfidenceListener;
 import bisq.core.btc.model.AddressEntry;
 import bisq.core.btc.wallet.XmrWalletService;
 import bisq.core.trade.Trade;
-import java.util.List;
 import lombok.extern.slf4j.Slf4j;
 import monero.wallet.model.MoneroTransferQuery;
 import monero.wallet.model.MoneroTxQuery;
 import monero.wallet.model.MoneroTxWallet;
 import org.bitcoinj.core.TransactionConfidence;
 import org.fxmisc.easybind.Subscription;
+
+import java.util.List;
 
 @Slf4j
 public abstract class SetupPayoutTxListener extends TradeTask {
@@ -53,15 +54,15 @@ public abstract class SetupPayoutTxListener extends TradeTask {
 //                XmrWalletService walletService = processModel.getXmrWalletService();
 //                MoneroWallet wallet = walletService.getWallet();
 //                String payoutTxId = trade.getPayoutTx().getHash();
-//                
-//                
+//
+//
 //                try {
 //                  wallet.getTx(payoutTxId);
 //                } catch (MoneroError) {
-//                	
+//
 //                }
-//                
-//                
+//
+//
 //                if (walletService.getBalanceForAccount(accountIdx).value > 0) {
 //                  applyPayoutTx(accountIdx);
 //                } else {
@@ -72,7 +73,7 @@ public abstract class SetupPayoutTxListener extends TradeTask {
 //                      }
 //                    }
 //                  });
-//                  
+//
 //                  tradeStateSubscription = EasyBind.subscribe(trade.stateProperty(), newValue -> {
 //                      if (trade.isPayoutPublished()) {
 //                          swapMultiSigEntry();
@@ -93,19 +94,19 @@ public abstract class SetupPayoutTxListener extends TradeTask {
 
     private void applyPayoutTx(int accountIdx) {
         if (trade.getPayoutTx() == null) {
-          
+
             // get txs with transfers to payout subaddress
             List<MoneroTxWallet> txs = processModel.getProvider().getXmrWalletService().getWallet().getTxs(new MoneroTxQuery()
                     .setTransferQuery(new MoneroTransferQuery().setAccountIndex(accountIdx).setSubaddressIndex(0).setIsIncoming(true)));  // TODO (woodser): hardcode account 0 as savings wallet, subaddress 0 trade accounts in config
-          
+
             // resolve payout tx if multiple txs sent to payout address
             MoneroTxWallet payoutTx;
             if (txs.size() > 1) {
-              throw new RuntimeException("Need to resolve multiple payout txs");  // TODO (woodser)
+                throw new RuntimeException("Need to resolve multiple payout txs");  // TODO (woodser)
             } else {
-              payoutTx = txs.get(0);
+                payoutTx = txs.get(0);
             }
-          
+
             trade.setPayoutTx(payoutTx);
             XmrWalletService.printTxs("payoutTx received from network", payoutTx);
             setState();

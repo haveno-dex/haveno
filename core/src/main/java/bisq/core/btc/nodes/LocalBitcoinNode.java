@@ -2,22 +2,20 @@ package bisq.core.btc.nodes;
 
 import bisq.common.config.BaseCurrencyNetwork;
 import bisq.common.config.Config;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
-
+import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 
-import java.io.IOException;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 /**
  * Detects whether a Bitcoin node is running on localhost and contains logic for when to
  * ignore it. The query methods lazily trigger the needed checks and cache the results.
+ *
  * @see bisq.common.config.Config#ignoreLocalBtcNode
  */
 @Singleton

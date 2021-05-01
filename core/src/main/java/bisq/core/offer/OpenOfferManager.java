@@ -17,8 +17,6 @@
 
 package bisq.core.offer;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-
 import bisq.common.Timer;
 import bisq.common.UserThread;
 import bisq.common.app.Capabilities;
@@ -31,7 +29,6 @@ import bisq.common.handlers.ResultHandler;
 import bisq.common.persistence.PersistenceManager;
 import bisq.common.proto.network.NetworkEnvelope;
 import bisq.common.proto.persistable.PersistedDataHost;
-
 import bisq.core.btc.wallet.BtcWalletService;
 import bisq.core.btc.wallet.TradeWalletService;
 import bisq.core.btc.wallet.XmrWalletService;
@@ -54,30 +51,21 @@ import bisq.core.trade.statistics.TradeStatisticsManager;
 import bisq.core.user.Preferences;
 import bisq.core.user.User;
 import bisq.core.util.Validator;
-import bisq.network.p2p.AckMessage;
-import bisq.network.p2p.AckMessageSourceType;
-import bisq.network.p2p.BootstrapListener;
-import bisq.network.p2p.DecryptedDirectMessageListener;
-import bisq.network.p2p.DecryptedMessageWithPubKey;
-import bisq.network.p2p.NodeAddress;
-import bisq.network.p2p.P2PService;
-import bisq.network.p2p.SendDirectMessageListener;
+import bisq.network.p2p.*;
 import bisq.network.p2p.peers.PeerManager;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 import javafx.collections.ObservableList;
-import javax.annotation.Nullable;
-import javax.inject.Inject;
 import org.bitcoinj.core.Coin;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import javax.annotation.Nullable;
+import javax.inject.Inject;
+import java.util.*;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
+
+import static com.google.common.base.Preconditions.checkNotNull;
 
 public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMessageListener, PersistedDataHost {
     private static final Logger log = LoggerFactory.getLogger(OpenOfferManager.class);

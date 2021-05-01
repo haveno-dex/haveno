@@ -33,34 +33,11 @@ import bisq.core.proto.CoreProtoResolver;
 import bisq.core.support.dispute.arbitration.arbitrator.Arbitrator;
 import bisq.core.support.dispute.arbitration.messages.PeerPublishedDisputePayoutTxMessage;
 import bisq.core.support.dispute.mediation.mediator.Mediator;
-import bisq.core.support.dispute.messages.ArbitratorPayoutTxRequest;
-import bisq.core.support.dispute.messages.ArbitratorPayoutTxResponse;
-import bisq.core.support.dispute.messages.DisputeResultMessage;
-import bisq.core.support.dispute.messages.OpenNewDisputeMessage;
-import bisq.core.support.dispute.messages.PeerOpenedDisputeMessage;
+import bisq.core.support.dispute.messages.*;
 import bisq.core.support.dispute.refund.refundagent.RefundAgent;
 import bisq.core.support.messages.ChatMessage;
-import bisq.core.trade.messages.CounterCurrencyTransferStartedMessage;
-import bisq.core.trade.messages.DelayedPayoutTxSignatureRequest;
-import bisq.core.trade.messages.DelayedPayoutTxSignatureResponse;
-import bisq.core.trade.messages.DepositTxAndDelayedPayoutTxMessage;
-import bisq.core.trade.messages.DepositTxMessage;
-import bisq.core.trade.messages.InitMultisigMessage;
-import bisq.core.trade.messages.InitTradeRequest;
-import bisq.core.trade.messages.InputsForDepositTxRequest;
-import bisq.core.trade.messages.InputsForDepositTxResponse;
-import bisq.core.trade.messages.MakerReadyToFundMultisigRequest;
-import bisq.core.trade.messages.MakerReadyToFundMultisigResponse;
-import bisq.core.trade.messages.MediatedPayoutTxPublishedMessage;
-import bisq.core.trade.messages.MediatedPayoutTxSignatureMessage;
-import bisq.core.trade.messages.PayoutTxPublishedMessage;
-import bisq.core.trade.messages.PeerPublishedDelayedPayoutTxMessage;
-import bisq.core.trade.messages.RefreshTradeStateRequest;
-import bisq.core.trade.messages.TraderSignedWitnessMessage;
-import bisq.core.trade.messages.UpdateMultisigRequest;
-import bisq.core.trade.messages.UpdateMultisigResponse;
+import bisq.core.trade.messages.*;
 import bisq.core.trade.statistics.TradeStatistics;
-import bisq.network.p2p.AckMessage;
 import bisq.network.p2p.BundleOfEnvelopes;
 import bisq.network.p2p.CloseConnectionMessage;
 import bisq.network.p2p.PrefixedSealedAndSignedMessage;
@@ -72,17 +49,17 @@ import bisq.network.p2p.peers.keepalive.messages.Pong;
 import bisq.network.p2p.peers.peerexchange.messages.GetPeersRequest;
 import bisq.network.p2p.peers.peerexchange.messages.GetPeersResponse;
 import bisq.network.p2p.storage.messages.AddDataMessage;
-import bisq.network.p2p.storage.messages.AddPersistableNetworkPayloadMessage;
 import bisq.network.p2p.storage.messages.RefreshOfferMessage;
 import bisq.network.p2p.storage.messages.RemoveDataMessage;
 import bisq.network.p2p.storage.messages.RemoveMailboxDataMessage;
 import bisq.network.p2p.storage.payload.MailboxStoragePayload;
 import bisq.network.p2p.storage.payload.ProtectedMailboxStorageEntry;
 import bisq.network.p2p.storage.payload.ProtectedStorageEntry;
-import java.time.Clock;
+import lombok.extern.slf4j.Slf4j;
+
 import javax.inject.Inject;
 import javax.inject.Singleton;
-import lombok.extern.slf4j.Slf4j;
+import java.time.Clock;
 
 // TODO Use ProtobufferException instead of ProtobufferRuntimeException
 @Slf4j
@@ -137,17 +114,17 @@ public class CoreNetworkProtoResolver extends CoreProtoResolver implements Netwo
                 case REFRESH_TRADE_STATE_REQUEST:
                     return RefreshTradeStateRequest.fromProto(proto.getRefreshTradeStateRequest(), messageVersion);
                 case INIT_TRADE_REQUEST:
-                  return InitTradeRequest.fromProto(proto.getInitTradeRequest(), this, messageVersion);
+                    return InitTradeRequest.fromProto(proto.getInitTradeRequest(), this, messageVersion);
                 case INIT_MULTISIG_MESSAGE:
-                  return InitMultisigMessage.fromProto(proto.getInitMultisigMessage(), this, messageVersion);
+                    return InitMultisigMessage.fromProto(proto.getInitMultisigMessage(), this, messageVersion);
                 case UPDATE_MULTISIG_REQUEST:
-                  return UpdateMultisigRequest.fromProto(proto.getUpdateMultisigRequest(), this, messageVersion);
+                    return UpdateMultisigRequest.fromProto(proto.getUpdateMultisigRequest(), this, messageVersion);
                 case UPDATE_MULTISIG_RESPONSE:
-                  return UpdateMultisigResponse.fromProto(proto.getUpdateMultisigResponse(), this, messageVersion);
+                    return UpdateMultisigResponse.fromProto(proto.getUpdateMultisigResponse(), this, messageVersion);
                 case MAKER_READY_TO_FUND_MULTISIG_REQUEST:
-                  return MakerReadyToFundMultisigRequest.fromProto(proto.getMakerReadyToFundMultisigRequest(), this, messageVersion);
+                    return MakerReadyToFundMultisigRequest.fromProto(proto.getMakerReadyToFundMultisigRequest(), this, messageVersion);
                 case MAKER_READY_TO_FUND_MULTISIG_RESPONSE:
-                  return MakerReadyToFundMultisigResponse.fromProto(proto.getMakerReadyToFundMultisigResponse(), this, messageVersion);
+                    return MakerReadyToFundMultisigResponse.fromProto(proto.getMakerReadyToFundMultisigResponse(), this, messageVersion);
                 case INPUTS_FOR_DEPOSIT_TX_REQUEST:
                     return InputsForDepositTxRequest.fromProto(proto.getInputsForDepositTxRequest(), this, messageVersion);
                 case INPUTS_FOR_DEPOSIT_TX_RESPONSE:
@@ -189,7 +166,7 @@ public class CoreNetworkProtoResolver extends CoreProtoResolver implements Netwo
                 case ARBITRATOR_PAYOUT_TX_REQUEST:
                     return ArbitratorPayoutTxRequest.fromProto(proto.getArbitratorPayoutTxRequest(), this, messageVersion);
                 case ARBITRATOR_PAYOUT_TX_RESPONSE:
-                  return ArbitratorPayoutTxResponse.fromProto(proto.getArbitratorPayoutTxResponse(), this, messageVersion);
+                    return ArbitratorPayoutTxResponse.fromProto(proto.getArbitratorPayoutTxResponse(), this, messageVersion);
 
                 case PRIVATE_NOTIFICATION_MESSAGE:
                     return PrivateNotificationMessage.fromProto(proto.getPrivateNotificationMessage(), messageVersion);

@@ -21,23 +21,18 @@ import bisq.common.config.Config;
 import bisq.common.proto.ProtoUtil;
 import bisq.common.proto.persistable.PersistablePayload;
 import bisq.common.util.Utilities;
-
 import com.google.protobuf.ByteString;
-
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
 import org.bitcoinj.core.Address;
 import org.bitcoinj.core.Coin;
 import org.bitcoinj.core.LegacyAddress;
 import org.bitcoinj.crypto.DeterministicKey;
-
-import java.util.Optional;
-
-import lombok.EqualsAndHashCode;
-import lombok.Getter;
-import lombok.extern.slf4j.Slf4j;
-
 import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nullable;
+import java.util.Optional;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 

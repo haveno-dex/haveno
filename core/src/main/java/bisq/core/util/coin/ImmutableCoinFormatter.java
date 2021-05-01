@@ -18,16 +18,13 @@
 package bisq.core.util.coin;
 
 import bisq.core.util.FormattingUtils;
-
-import org.bitcoinj.core.Coin;
-import org.bitcoinj.utils.MonetaryFormat;
-
-import javax.inject.Inject;
-
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
-
+import org.bitcoinj.core.Coin;
+import org.bitcoinj.utils.MonetaryFormat;
 import org.jetbrains.annotations.NotNull;
+
+import javax.inject.Inject;
 
 @Slf4j
 public class ImmutableCoinFormatter implements CoinFormatter {

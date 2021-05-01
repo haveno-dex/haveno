@@ -17,6 +17,8 @@
 
 package bisq.network.p2p.storage;
 
+import bisq.common.app.Capabilities;
+import bisq.common.app.Capability;
 import bisq.network.p2p.NodeAddress;
 import bisq.network.p2p.TestUtils;
 import bisq.network.p2p.peers.getdata.messages.GetUpdatedDataRequest;
@@ -26,24 +28,16 @@ import bisq.network.p2p.storage.mocks.ProtectedStoragePayloadStub;
 import bisq.network.p2p.storage.payload.PersistableNetworkPayload;
 import bisq.network.p2p.storage.payload.ProtectedStorageEntry;
 import bisq.network.p2p.storage.payload.ProtectedStoragePayload;
-
-import bisq.common.app.Capabilities;
-import bisq.common.app.Capability;
-
-import java.security.KeyPair;
-import java.security.NoSuchAlgorithmException;
-
-import java.util.Set;
-
-import org.mockito.MockitoAnnotations;
-
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.MockitoAnnotations;
 
-import static org.mockito.Mockito.any;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import java.security.KeyPair;
+import java.security.NoSuchAlgorithmException;
+import java.util.Set;
+
+import static org.mockito.Mockito.*;
 
 public class P2PDataStorageRequestDataTest {
     private TestState testState;
@@ -118,8 +112,8 @@ public class P2PDataStorageRequestDataTest {
     // correct GetDataRequestMessage with both sets of keys.
     @Test
     public void buildPreliminaryGetDataRequest_FilledP2PDataStore() throws NoSuchAlgorithmException {
-        PersistableNetworkPayload toAdd1 = new PersistableNetworkPayloadStub(new byte[] { 1 });
-        PersistableNetworkPayload toAdd2 = new PersistableNetworkPayloadStub(new byte[] { 2 });
+        PersistableNetworkPayload toAdd1 = new PersistableNetworkPayloadStub(new byte[]{1});
+        PersistableNetworkPayload toAdd2 = new PersistableNetworkPayloadStub(new byte[]{2});
         ProtectedStorageEntry toAdd3 = getProtectedStorageEntryForAdd();
         ProtectedStorageEntry toAdd4 = getProtectedStorageEntryForAdd();
 
@@ -146,8 +140,8 @@ public class P2PDataStorageRequestDataTest {
     // correct GetDataRequestMessage with both sets of keys.
     @Test
     public void requestData_FilledP2PDataStore_GetUpdatedDataRequest() throws NoSuchAlgorithmException {
-        PersistableNetworkPayload toAdd1 = new PersistableNetworkPayloadStub(new byte[] { 1 });
-        PersistableNetworkPayload toAdd2 = new PersistableNetworkPayloadStub(new byte[] { 2 });
+        PersistableNetworkPayload toAdd1 = new PersistableNetworkPayloadStub(new byte[]{1});
+        PersistableNetworkPayload toAdd2 = new PersistableNetworkPayloadStub(new byte[]{2});
         ProtectedStorageEntry toAdd3 = getProtectedStorageEntryForAdd();
         ProtectedStorageEntry toAdd4 = getProtectedStorageEntryForAdd();
 

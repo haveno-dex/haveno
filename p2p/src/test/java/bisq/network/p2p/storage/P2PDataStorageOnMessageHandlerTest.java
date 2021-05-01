@@ -17,6 +17,7 @@
 
 package bisq.network.p2p.storage;
 
+import bisq.common.proto.network.NetworkEnvelope;
 import bisq.network.p2p.NodeAddress;
 import bisq.network.p2p.mocks.MockPayload;
 import bisq.network.p2p.network.Connection;
@@ -24,19 +25,13 @@ import bisq.network.p2p.storage.messages.AddPersistableNetworkPayloadMessage;
 import bisq.network.p2p.storage.messages.BroadcastMessage;
 import bisq.network.p2p.storage.mocks.PersistableNetworkPayloadStub;
 import bisq.network.p2p.storage.payload.PersistableNetworkPayload;
-
-import bisq.common.proto.network.NetworkEnvelope;
-
-import java.util.Optional;
-
 import org.junit.Before;
 import org.junit.Test;
 
+import java.util.Optional;
+
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 /**
  * Tests of the P2PDataStore MessageListener interface failure cases. The success cases are covered in the

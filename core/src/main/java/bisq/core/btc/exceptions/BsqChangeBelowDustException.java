@@ -17,9 +17,8 @@
 
 package bisq.core.btc.exceptions;
 
-import org.bitcoinj.core.Coin;
-
 import lombok.Getter;
+import org.bitcoinj.core.Coin;
 
 public class BsqChangeBelowDustException extends Exception {
     @Getter

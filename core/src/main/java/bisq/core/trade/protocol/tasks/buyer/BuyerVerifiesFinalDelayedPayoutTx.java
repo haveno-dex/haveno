@@ -17,17 +17,10 @@
 
 package bisq.core.trade.protocol.tasks.buyer;
 
-import bisq.core.trade.Trade;
-import bisq.core.trade.TradeDataValidation;
-import bisq.core.trade.protocol.tasks.TradeTask;
-
 import bisq.common.taskrunner.TaskRunner;
-
-import org.bitcoinj.core.Transaction;
-
+import bisq.core.trade.Trade;
+import bisq.core.trade.protocol.tasks.TradeTask;
 import lombok.extern.slf4j.Slf4j;
-
-import static com.google.common.base.Preconditions.checkNotNull;
 
 @Slf4j
 public class BuyerVerifiesFinalDelayedPayoutTx extends TradeTask {
@@ -39,7 +32,7 @@ public class BuyerVerifiesFinalDelayedPayoutTx extends TradeTask {
     protected void run() {
         try {
             runInterceptHook();
-            
+
             throw new RuntimeException("BuyerVerifiesFinalDelayedPayoutTx not applicable for xmr");
 
 //            Transaction delayedPayoutTx = trade.getDelayedPayoutTx();

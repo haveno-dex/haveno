@@ -17,22 +17,19 @@
 
 package bisq.network.p2p.peers.peerexchange;
 
-import bisq.network.p2p.NodeAddress;
-import bisq.network.p2p.network.SupportedCapabilitiesListener;
-
 import bisq.common.app.Capabilities;
 import bisq.common.app.HasCapabilities;
 import bisq.common.proto.network.NetworkPayload;
 import bisq.common.proto.persistable.PersistablePayload;
-
-import java.util.Date;
-
+import bisq.network.p2p.NodeAddress;
+import bisq.network.p2p.network.SupportedCapabilitiesListener;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 
 import javax.annotation.Nullable;
+import java.util.Date;
 
 @Getter
 @EqualsAndHashCode(exclude = {"date"}) // failedConnectionAttempts is transient and therefore excluded anyway

@@ -19,20 +19,15 @@ package bisq.cli;
 
 import bisq.proto.grpc.AddressBalanceInfo;
 import bisq.proto.grpc.OfferInfo;
-
 import protobuf.PaymentAccount;
 
 import java.text.SimpleDateFormat;
-
 import java.util.Date;
 import java.util.List;
 import java.util.TimeZone;
 import java.util.stream.Collectors;
 
-import static bisq.cli.CurrencyFormat.formatAmountRange;
-import static bisq.cli.CurrencyFormat.formatOfferPrice;
-import static bisq.cli.CurrencyFormat.formatSatoshis;
-import static bisq.cli.CurrencyFormat.formatVolumeRange;
+import static bisq.cli.CurrencyFormat.*;
 import static com.google.common.base.Strings.padEnd;
 import static com.google.common.base.Strings.padStart;
 import static java.lang.String.format;

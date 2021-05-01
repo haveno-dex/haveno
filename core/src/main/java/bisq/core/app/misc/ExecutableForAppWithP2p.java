@@ -34,6 +34,8 @@ import bisq.network.p2p.NodeAddress;
 import bisq.network.p2p.P2PService;
 import bisq.network.p2p.seed.SeedNodeRepository;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
+import lombok.extern.slf4j.Slf4j;
+
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
@@ -43,7 +45,6 @@ import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
-import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public abstract class ExecutableForAppWithP2p extends BisqExecutable {

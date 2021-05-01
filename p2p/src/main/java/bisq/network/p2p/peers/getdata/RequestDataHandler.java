@@ -17,6 +17,10 @@
 
 package bisq.network.p2p.peers.getdata;
 
+import bisq.common.Timer;
+import bisq.common.UserThread;
+import bisq.common.proto.network.NetworkEnvelope;
+import bisq.common.proto.network.NetworkPayload;
 import bisq.network.p2p.NodeAddress;
 import bisq.network.p2p.network.CloseConnectionReason;
 import bisq.network.p2p.network.Connection;
@@ -29,27 +33,15 @@ import bisq.network.p2p.storage.P2PDataStorage;
 import bisq.network.p2p.storage.payload.PersistableNetworkPayload;
 import bisq.network.p2p.storage.payload.ProtectedStorageEntry;
 import bisq.network.p2p.storage.payload.ProtectedStoragePayload;
-
-import bisq.common.Timer;
-import bisq.common.UserThread;
-import bisq.common.proto.network.NetworkEnvelope;
-import bisq.common.proto.network.NetworkPayload;
-
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.SettableFuture;
-
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Random;
-import java.util.Set;
-
 import lombok.extern.slf4j.Slf4j;
-
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+
+import java.util.*;
 
 @Slf4j
 class RequestDataHandler implements MessageListener {

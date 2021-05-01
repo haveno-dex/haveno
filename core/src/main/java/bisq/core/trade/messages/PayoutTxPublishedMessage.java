@@ -22,12 +22,13 @@ import bisq.common.proto.network.NetworkEnvelope;
 import bisq.core.account.sign.SignedWitness;
 import bisq.network.p2p.MailboxMessage;
 import bisq.network.p2p.NodeAddress;
-import java.util.Optional;
-import java.util.UUID;
-import javax.annotation.Nullable;
 import lombok.EqualsAndHashCode;
 import lombok.Value;
 import lombok.extern.slf4j.Slf4j;
+
+import javax.annotation.Nullable;
+import java.util.Optional;
+import java.util.UUID;
 
 @Slf4j
 @EqualsAndHashCode(callSuper = true)

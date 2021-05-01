@@ -17,6 +17,7 @@
 
 package bisq.core.app;
 
+import bisq.common.ClockWatcher;
 import bisq.core.account.sign.SignedWitnessService;
 import bisq.core.account.witness.AccountAgeWitnessService;
 import bisq.core.alert.PrivateNotificationManager;
@@ -45,16 +46,9 @@ import bisq.core.trade.TradeManager;
 import bisq.core.trade.statistics.TradeStatisticsManager;
 import bisq.core.trade.txproof.xmr.XmrTxProofService;
 import bisq.core.user.User;
-
 import bisq.network.p2p.P2PService;
 
-import bisq.common.ClockWatcher;
-import bisq.common.app.DevEnv;
-
 import javax.inject.Inject;
-
-import javafx.collections.ListChangeListener;
-
 import java.util.List;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;

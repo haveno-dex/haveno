@@ -17,27 +17,21 @@
 
 package bisq.core.offer.placeoffer.tasks;
 
+import bisq.common.UserThread;
+import bisq.common.taskrunner.Task;
+import bisq.common.taskrunner.TaskRunner;
 import bisq.core.btc.exceptions.TxBroadcastException;
 import bisq.core.btc.model.AddressEntry;
 import bisq.core.btc.wallet.BtcWalletService;
 import bisq.core.btc.wallet.TradeWalletService;
 import bisq.core.btc.wallet.TxBroadcaster;
-import bisq.core.btc.wallet.WalletService;
 import bisq.core.offer.Offer;
 import bisq.core.offer.placeoffer.PlaceOfferModel;
 import bisq.core.util.FeeReceiverSelector;
-
-import bisq.common.UserThread;
-import bisq.common.taskrunner.Task;
-import bisq.common.taskrunner.TaskRunner;
-
 import org.bitcoinj.core.Address;
 import org.bitcoinj.core.Transaction;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import javax.annotation.Nullable;
 
 public class CreateMakerFeeTx extends Task<PlaceOfferModel> {
     private static final Logger log = LoggerFactory.getLogger(CreateMakerFeeTx.class);

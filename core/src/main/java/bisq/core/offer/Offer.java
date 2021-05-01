@@ -17,6 +17,15 @@
 
 package bisq.core.offer;
 
+import bisq.common.crypto.KeyRing;
+import bisq.common.crypto.PubKeyRing;
+import bisq.common.handlers.ErrorMessageHandler;
+import bisq.common.handlers.ResultHandler;
+import bisq.common.proto.network.NetworkPayload;
+import bisq.common.proto.persistable.PersistablePayload;
+import bisq.common.util.JsonExclude;
+import bisq.common.util.MathUtils;
+import bisq.common.util.Utilities;
 import bisq.core.exceptions.TradePriceOutOfToleranceException;
 import bisq.core.locale.CurrencyUtil;
 import bisq.core.monetary.Altcoin;
@@ -27,40 +36,20 @@ import bisq.core.offer.availability.OfferAvailabilityProtocol;
 import bisq.core.payment.payload.PaymentMethod;
 import bisq.core.provider.price.MarketPrice;
 import bisq.core.provider.price.PriceFeedService;
-
 import bisq.network.p2p.NodeAddress;
-
-import bisq.common.crypto.KeyRing;
-import bisq.common.crypto.PubKeyRing;
-import bisq.common.handlers.ErrorMessageHandler;
-import bisq.common.handlers.ResultHandler;
-import bisq.common.proto.network.NetworkPayload;
-import bisq.common.proto.persistable.PersistablePayload;
-import bisq.common.util.JsonExclude;
-import bisq.common.util.MathUtils;
-import bisq.common.util.Utilities;
-
+import javafx.beans.property.*;
+import lombok.Getter;
+import lombok.Setter;
+import lombok.extern.slf4j.Slf4j;
 import org.bitcoinj.core.Coin;
 import org.bitcoinj.utils.Fiat;
 
-import javafx.beans.property.ObjectProperty;
-import javafx.beans.property.ReadOnlyStringProperty;
-import javafx.beans.property.SimpleObjectProperty;
-import javafx.beans.property.SimpleStringProperty;
-import javafx.beans.property.StringProperty;
-
+import javax.annotation.Nullable;
 import java.security.PublicKey;
-
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-
-import lombok.Getter;
-import lombok.Setter;
-import lombok.extern.slf4j.Slf4j;
-
-import javax.annotation.Nullable;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;

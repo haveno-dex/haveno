@@ -23,15 +23,16 @@ import bisq.common.proto.persistable.PersistedDataHost;
 import com.google.common.collect.ImmutableList;
 import com.google.inject.Inject;
 import com.google.protobuf.Message;
-import java.math.BigInteger;
-import java.util.Set;
-import java.util.concurrent.CopyOnWriteArraySet;
-import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 import monero.wallet.MoneroWallet;
 import monero.wallet.model.MoneroAccount;
 import monero.wallet.model.MoneroOutputWallet;
 import monero.wallet.model.MoneroWalletListener;
+
+import java.math.BigInteger;
+import java.util.Set;
+import java.util.concurrent.CopyOnWriteArraySet;
+import java.util.stream.Collectors;
 
 /**
  * The AddressEntries was previously stored as list, now as hashSet. We still keep the old name to reflect the
@@ -131,11 +132,12 @@ public final class XmrAddressEntryList implements PersistableEnvelope, Persisted
         // IssuedReceiveAddresses does not contain all addresses where we expect balance so we need to listen to
         // incoming txs at blockchain sync to add the rest.
         if (wallet.getBalance().compareTo(new BigInteger("0")) > 0) {
-          wallet.getAccounts().forEach(acct -> {
-            log.info("Create XmrAddressEntry for IssuedReceiveAddress. address={}", acct.getPrimaryAddress());
-            if (acct.getIndex() != 0) entrySet.add(new XmrAddressEntry(acct.getIndex(), acct.getPrimaryAddress(), XmrAddressEntry.Context.AVAILABLE));
-        });
-       }
+            wallet.getAccounts().forEach(acct -> {
+                log.info("Create XmrAddressEntry for IssuedReceiveAddress. address={}", acct.getPrimaryAddress());
+                if (acct.getIndex() != 0)
+                    entrySet.add(new XmrAddressEntry(acct.getIndex(), acct.getPrimaryAddress(), XmrAddressEntry.Context.AVAILABLE));
+            });
+        }
 
         // We add those listeners to get notified about potential new transactions and
         // add an address entry list in case it does not exist yet. This is mainly needed for restore from seed words
@@ -143,8 +145,15 @@ public final class XmrAddressEntryList implements PersistableEnvelope, Persisted
         // funds (e.g. if the user sends funds to an address which has not been provided in the main UI - like from the
         // wallet details window).
         wallet.addListener(new MoneroWalletListener() {
-          @Override public void onOutputReceived(MoneroOutputWallet output) { maybeAddNewAddressEntry(output); }
-          @Override public void onOutputSpent(MoneroOutputWallet output) { maybeAddNewAddressEntry(output); }
+            @Override
+            public void onOutputReceived(MoneroOutputWallet output) {
+                maybeAddNewAddressEntry(output);
+            }
+
+            @Override
+            public void onOutputSpent(MoneroOutputWallet output) {
+                maybeAddNewAddressEntry(output);
+            }
         });
 
         requestPersistence();
@@ -171,7 +180,7 @@ public final class XmrAddressEntryList implements PersistableEnvelope, Persisted
         if (setChangedByAdd)
             requestPersistence();
     }
-    
+
     public void swapToAvailable(XmrAddressEntry addressEntry) {
         boolean setChangedByRemove = entrySet.remove(addressEntry);
         boolean setChangedByAdd = entrySet.add(new XmrAddressEntry(addressEntry.getAccountIndex(), addressEntry.getAddressString(),
@@ -182,8 +191,8 @@ public final class XmrAddressEntryList implements PersistableEnvelope, Persisted
     }
 
     public XmrAddressEntry swapAvailableToAddressEntryWithOfferId(XmrAddressEntry addressEntry,
-                                                               XmrAddressEntry.Context context,
-                                                               String offerId) {
+                                                                  XmrAddressEntry.Context context,
+                                                                  String offerId) {
         boolean setChangedByRemove = entrySet.remove(addressEntry);
         final XmrAddressEntry newAddressEntry = new XmrAddressEntry(addressEntry.getAccountIndex(), addressEntry.getAddressString(), context, offerId, null);
         boolean setChangedByAdd = entrySet.add(newAddressEntry);
@@ -203,16 +212,17 @@ public final class XmrAddressEntryList implements PersistableEnvelope, Persisted
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     private void maybeAddNewAddressEntry(MoneroOutputWallet output) {
-      if (output.getAccountIndex() == 0) return;
-      String address = wallet.getAddress(output.getAccountIndex(), output.getSubaddressIndex());
-      if (!isAddressInEntries(address)) addAddressEntry(new XmrAddressEntry(output.getAccountIndex(), address, XmrAddressEntry.Context.AVAILABLE));
+        if (output.getAccountIndex() == 0) return;
+        String address = wallet.getAddress(output.getAccountIndex(), output.getSubaddressIndex());
+        if (!isAddressInEntries(address))
+            addAddressEntry(new XmrAddressEntry(output.getAccountIndex(), address, XmrAddressEntry.Context.AVAILABLE));
     }
 
     private boolean isAddressInEntries(String address) {
-      for (XmrAddressEntry entry : entrySet) {
-        if (entry.getAddressString().equals(address)) return true;
-      }
-      return false;
+        for (XmrAddressEntry entry : entrySet) {
+            if (entry.getAddressString().equals(address)) return true;
+        }
+        return false;
     }
 
     @Override

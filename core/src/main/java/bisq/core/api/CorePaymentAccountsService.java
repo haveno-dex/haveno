@@ -17,6 +17,7 @@
 
 package bisq.core.api;
 
+import bisq.common.config.Config;
 import bisq.core.account.witness.AccountAgeWitnessService;
 import bisq.core.locale.FiatCurrency;
 import bisq.core.payment.PaymentAccount;
@@ -24,14 +25,10 @@ import bisq.core.payment.PaymentAccountFactory;
 import bisq.core.payment.PerfectMoneyAccount;
 import bisq.core.payment.payload.PaymentMethod;
 import bisq.core.user.User;
-
-import bisq.common.config.Config;
+import lombok.extern.slf4j.Slf4j;
 
 import javax.inject.Inject;
-
 import java.util.Set;
-
-import lombok.extern.slf4j.Slf4j;
 
 import static bisq.core.payment.payload.PaymentMethod.*;
 import static com.google.common.base.Preconditions.checkNotNull;

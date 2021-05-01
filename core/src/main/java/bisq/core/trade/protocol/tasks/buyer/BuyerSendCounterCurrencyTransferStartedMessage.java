@@ -27,9 +27,10 @@ import bisq.core.trade.Trade;
 import bisq.core.trade.messages.CounterCurrencyTransferStartedMessage;
 import bisq.core.trade.messages.TradeMessage;
 import bisq.core.trade.protocol.tasks.SendMailboxMessageTask;
-import java.util.concurrent.TimeUnit;
 import javafx.beans.value.ChangeListener;
 import lombok.extern.slf4j.Slf4j;
+
+import java.util.concurrent.TimeUnit;
 
 /**
  * We send the seller the BuyerSendCounterCurrencyTransferStartedMessage.
@@ -56,7 +57,7 @@ public class BuyerSendCounterCurrencyTransferStartedMessage extends SendMailboxM
     @Override
     protected TradeMessage getMessage(String tradeId) {
         if (message == null) {
-            
+
             // gather relevant info
             XmrWalletService walletService = processModel.getProvider().getXmrWalletService();
             final String id = processModel.getOfferId();

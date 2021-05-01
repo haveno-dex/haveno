@@ -17,6 +17,15 @@
 
 package bisq.core.app.misc;
 
+import bisq.common.ClockWatcher;
+import bisq.common.app.AppModule;
+import bisq.common.config.Config;
+import bisq.common.crypto.KeyRing;
+import bisq.common.crypto.KeyStorage;
+import bisq.common.crypto.PubKeyRing;
+import bisq.common.crypto.PubKeyRingProvider;
+import bisq.common.proto.network.NetworkProtoResolver;
+import bisq.common.proto.persistable.PersistenceProtoResolver;
 import bisq.core.alert.AlertModule;
 import bisq.core.app.TorSetup;
 import bisq.core.btc.BitcoinModule;
@@ -28,22 +37,10 @@ import bisq.core.proto.persistable.CorePersistenceProtoResolver;
 import bisq.core.trade.TradeModule;
 import bisq.core.user.Preferences;
 import bisq.core.user.User;
-
 import bisq.network.crypto.EncryptionServiceModule;
 import bisq.network.p2p.P2PModule;
 import bisq.network.p2p.network.BridgeAddressProvider;
 import bisq.network.p2p.seed.SeedNodeRepository;
-
-import bisq.common.ClockWatcher;
-import bisq.common.app.AppModule;
-import bisq.common.config.Config;
-import bisq.common.crypto.KeyRing;
-import bisq.common.crypto.KeyStorage;
-import bisq.common.crypto.PubKeyRing;
-import bisq.common.crypto.PubKeyRingProvider;
-import bisq.common.proto.network.NetworkProtoResolver;
-import bisq.common.proto.persistable.PersistenceProtoResolver;
-
 import com.google.inject.Singleton;
 
 import java.io.File;

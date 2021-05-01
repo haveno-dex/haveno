@@ -28,11 +28,12 @@ import bisq.core.trade.TradableList;
 import bisq.core.trade.Trade;
 import com.google.common.collect.ImmutableList;
 import com.google.inject.Inject;
+import javafx.collections.ObservableList;
+
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import javafx.collections.ObservableList;
 
 public class ClosedTradableManager implements PersistedDataHost {
     private final PersistenceManager<TradableList<Tradable>> persistenceManager;

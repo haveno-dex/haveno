@@ -19,12 +19,10 @@ package bisq.core.trade.statistics;
 
 import bisq.core.user.Preferences;
 
+import javax.annotation.Nullable;
 import javax.inject.Inject;
-
 import java.util.Arrays;
 import java.util.Optional;
-
-import javax.annotation.Nullable;
 
 public class ReferralIdService {
     private final Preferences preferences;

@@ -17,18 +17,15 @@
 
 package bisq.network.p2p.mocks;
 
+import bisq.common.app.Version;
+import bisq.common.proto.network.NetworkEnvelope;
 import bisq.network.p2p.MailboxMessage;
 import bisq.network.p2p.NodeAddress;
 import bisq.network.p2p.storage.payload.ExpirablePayload;
-
-import bisq.common.app.Version;
-import bisq.common.proto.network.NetworkEnvelope;
-
+import lombok.Getter;
 import org.apache.commons.lang3.NotImplementedException;
 
 import java.util.UUID;
-
-import lombok.Getter;
 
 @Getter
 public final class MockMailboxPayload extends NetworkEnvelope implements MailboxMessage, ExpirablePayload {

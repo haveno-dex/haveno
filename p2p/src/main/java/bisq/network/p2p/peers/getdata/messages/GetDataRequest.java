@@ -17,17 +17,14 @@
 
 package bisq.network.p2p.peers.getdata.messages;
 
-import bisq.network.p2p.ExtendedDataSizePermission;
-
 import bisq.common.proto.network.NetworkEnvelope;
-
-import java.util.Set;
-
+import bisq.network.p2p.ExtendedDataSizePermission;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.ToString;
 
 import javax.annotation.Nullable;
+import java.util.Set;
 
 @EqualsAndHashCode(callSuper = true)
 @Getter

@@ -17,6 +17,12 @@
 
 package bisq.core.app;
 
+import bisq.common.app.AppModule;
+import bisq.common.config.Config;
+import bisq.common.crypto.PubKeyRing;
+import bisq.common.crypto.PubKeyRingProvider;
+import bisq.common.proto.network.NetworkProtoResolver;
+import bisq.common.proto.persistable.PersistenceProtoResolver;
 import bisq.core.alert.AlertModule;
 import bisq.core.btc.BitcoinModule;
 import bisq.core.filter.FilterModule;
@@ -30,18 +36,10 @@ import bisq.core.user.Preferences;
 import bisq.core.util.FormattingUtils;
 import bisq.core.util.coin.CoinFormatter;
 import bisq.core.util.coin.ImmutableCoinFormatter;
-
 import bisq.network.crypto.EncryptionServiceModule;
 import bisq.network.p2p.P2PModule;
 import bisq.network.p2p.network.BridgeAddressProvider;
 import bisq.network.p2p.seed.SeedNodeRepository;
-
-import bisq.common.app.AppModule;
-import bisq.common.config.Config;
-import bisq.common.crypto.PubKeyRing;
-import bisq.common.crypto.PubKeyRingProvider;
-import bisq.common.proto.network.NetworkProtoResolver;
-import bisq.common.proto.persistable.PersistenceProtoResolver;
 
 import java.io.File;
 

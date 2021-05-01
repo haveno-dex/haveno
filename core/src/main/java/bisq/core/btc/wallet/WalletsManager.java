@@ -17,23 +17,17 @@
 
 package bisq.core.btc.wallet;
 
+import bisq.common.handlers.ExceptionHandler;
+import bisq.common.handlers.ResultHandler;
 import bisq.core.btc.setup.WalletsSetup;
 import bisq.core.crypto.ScryptUtil;
 import bisq.core.locale.Res;
-
-import bisq.common.handlers.ExceptionHandler;
-import bisq.common.handlers.ResultHandler;
-
+import com.google.inject.Inject;
 import org.bitcoinj.core.Transaction;
 import org.bitcoinj.crypto.KeyCrypter;
 import org.bitcoinj.crypto.KeyCrypterScrypt;
 import org.bitcoinj.wallet.DeterministicSeed;
-import org.bitcoinj.wallet.Wallet;
-
-import com.google.inject.Inject;
-
 import org.bouncycastle.crypto.params.KeyParameter;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

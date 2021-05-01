@@ -18,13 +18,11 @@
 package bisq.network.p2p.storage.persistence;
 
 import bisq.common.proto.persistable.PersistableEnvelope;
+import lombok.extern.slf4j.Slf4j;
 
 import javax.inject.Inject;
-
 import java.util.ArrayList;
 import java.util.List;
-
-import lombok.extern.slf4j.Slf4j;
 
 /**
  * Used for handling data from resource files.

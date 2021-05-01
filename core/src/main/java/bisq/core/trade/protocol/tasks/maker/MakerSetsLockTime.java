@@ -17,13 +17,11 @@
 
 package bisq.core.trade.protocol.tasks.maker;
 
+import bisq.common.config.Config;
+import bisq.common.taskrunner.TaskRunner;
 import bisq.core.btc.wallet.Restrictions;
 import bisq.core.trade.Trade;
 import bisq.core.trade.protocol.tasks.TradeTask;
-
-import bisq.common.config.Config;
-import bisq.common.taskrunner.TaskRunner;
-
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j

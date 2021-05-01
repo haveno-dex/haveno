@@ -47,7 +47,7 @@ public class DateTolerantPayloadStub implements DateTolerantPayload {
 
     @Override
     public byte[] getHash() {
-        return new byte[] { 1 };
+        return new byte[]{1};
     }
 
     @Override

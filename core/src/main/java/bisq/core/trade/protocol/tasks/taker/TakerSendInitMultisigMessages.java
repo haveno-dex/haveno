@@ -23,14 +23,15 @@ import bisq.core.trade.Trade;
 import bisq.core.trade.messages.InitMultisigMessage;
 import bisq.core.trade.protocol.tasks.TradeTask;
 import bisq.network.p2p.SendDirectMessageListener;
-import java.util.Date;
-import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
 import monero.wallet.MoneroWallet;
 
+import java.util.Date;
+import java.util.UUID;
+
 @Slf4j
 public class TakerSendInitMultisigMessages extends TradeTask {
-  
+
     private boolean makerAck;
     private boolean arbitratorAck;
 
@@ -43,16 +44,16 @@ public class TakerSendInitMultisigMessages extends TradeTask {
     protected void run() {
         try {
             runInterceptHook();
-            
+
             // create wallet for multisig
             // TODO (woodser): assert that wallet does not already exist
             MoneroWallet multisigWallet = processModel.getProvider().getXmrWalletService().getOrCreateMultisigWallet(processModel.getTrade().getId());
-            
+
             // prepare multisig
             String preparedHex = multisigWallet.prepareMultisig();
             processModel.setPreparedMultisigHex(preparedHex);
             System.out.println("Prepared multisig hex: " + preparedHex);
-            
+
             // create message to initialize trade
             InitMultisigMessage message = new InitMultisigMessage(
                     processModel.getOffer().getId(),
@@ -63,7 +64,7 @@ public class TakerSendInitMultisigMessages extends TradeTask {
                     new Date().getTime(),
                     preparedHex,
                     null);
-            
+
             // send request to arbitrator
             log.info("Send {} with offerId {} and uid {} to arbitrator {} with pub key ring", message.getClass().getSimpleName(), message.getTradeId(), message.getUid(), trade.getArbitratorNodeAddress(), trade.getArbitratorPubKeyRing());
             processModel.getP2PService().sendEncryptedDirectMessage(
@@ -77,6 +78,7 @@ public class TakerSendInitMultisigMessages extends TradeTask {
                             arbitratorAck = true;
                             checkComplete();
                         }
+
                         @Override
                         public void onFault(String errorMessage) {
                             log.error("Sending {} failed: uid={}; peer={}; error={}", message.getClass().getSimpleName(), message.getUid(), trade.getArbitratorNodeAddress(), errorMessage);
@@ -85,7 +87,7 @@ public class TakerSendInitMultisigMessages extends TradeTask {
                         }
                     }
             );
-            
+
             // send request to maker
             log.info("Send {} with offerId {} and uid {} to peer {}", message.getClass().getSimpleName(), message.getTradeId(), message.getUid(), trade.getMakerNodeAddress());
             processModel.getP2PService().sendEncryptedDirectMessage(
@@ -99,6 +101,7 @@ public class TakerSendInitMultisigMessages extends TradeTask {
                             makerAck = true;
                             checkComplete();
                         }
+
                         @Override
                         public void onFault(String errorMessage) {
                             log.error("Sending {} failed: uid={}; peer={}; error={}", message.getClass().getSimpleName(), message.getUid(), trade.getMakerNodeAddress(), errorMessage);
@@ -108,11 +111,11 @@ public class TakerSendInitMultisigMessages extends TradeTask {
                     }
             );
         } catch (Throwable t) {
-          failed(t);
+            failed(t);
         }
     }
-    
+
     private void checkComplete() {
-      if (makerAck && arbitratorAck) complete();
+        if (makerAck && arbitratorAck) complete();
     }
 }

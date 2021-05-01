@@ -17,16 +17,14 @@
 
 package bisq.core.trade.protocol.tasks.arbitration;
 
+import bisq.common.taskrunner.TaskRunner;
 import bisq.core.trade.Trade;
 import bisq.core.trade.messages.PeerPublishedDelayedPayoutTxMessage;
 import bisq.core.trade.messages.TradeMessage;
 import bisq.core.trade.protocol.tasks.SendMailboxMessageTask;
-
-import bisq.common.taskrunner.TaskRunner;
+import lombok.extern.slf4j.Slf4j;
 
 import java.util.UUID;
-
-import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class SendPeerPublishedDelayedPayoutTxMessage extends SendMailboxMessageTask {

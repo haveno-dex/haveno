@@ -17,44 +17,23 @@
 
 package bisq.cli;
 
-import bisq.proto.grpc.CreateOfferRequest;
-import bisq.proto.grpc.CreatePaymentAccountRequest;
-import bisq.proto.grpc.GetAddressBalanceRequest;
-import bisq.proto.grpc.GetBalanceRequest;
-import bisq.proto.grpc.GetFundingAddressesRequest;
-import bisq.proto.grpc.GetOffersRequest;
-import bisq.proto.grpc.GetPaymentAccountsRequest;
-import bisq.proto.grpc.GetVersionRequest;
-import bisq.proto.grpc.LockWalletRequest;
-import bisq.proto.grpc.RegisterDisputeAgentRequest;
-import bisq.proto.grpc.RemoveWalletPasswordRequest;
-import bisq.proto.grpc.SetWalletPasswordRequest;
-import bisq.proto.grpc.UnlockWalletRequest;
-
+import bisq.proto.grpc.*;
 import io.grpc.StatusRuntimeException;
-
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
+import lombok.extern.slf4j.Slf4j;
 
 import java.io.IOException;
 import java.io.PrintStream;
-
 import java.math.BigDecimal;
-
 import java.util.List;
-
-import lombok.extern.slf4j.Slf4j;
 
 import static bisq.cli.CurrencyFormat.formatSatoshis;
 import static bisq.cli.CurrencyFormat.toSatoshis;
 import static bisq.cli.NegativeNumberOptions.hasNegativeNumberOptions;
-import static bisq.cli.TableFormat.formatAddressBalanceTbl;
-import static bisq.cli.TableFormat.formatOfferTable;
-import static bisq.cli.TableFormat.formatPaymentAcctTbl;
+import static bisq.cli.TableFormat.*;
 import static java.lang.String.format;
-import static java.lang.System.err;
-import static java.lang.System.exit;
-import static java.lang.System.out;
+import static java.lang.System.*;
 import static java.math.BigDecimal.ZERO;
 import static java.util.Collections.singletonList;
 

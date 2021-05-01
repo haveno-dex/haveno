@@ -18,7 +18,8 @@
 package bisq.network;
 
 import bisq.common.util.Utilities;
-
+import com.runjva.sourceforge.jsocks.protocol.Socks5Proxy;
+import lombok.extern.slf4j.Slf4j;
 import org.bitcoinj.core.NetworkParameters;
 import org.bitcoinj.net.discovery.DnsDiscovery;
 import org.bitcoinj.net.discovery.MultiplexingDiscovery;
@@ -27,17 +28,12 @@ import org.bitcoinj.net.discovery.PeerDiscoveryException;
 import org.bitcoinj.utils.ContextPropagatingThreadFactory;
 import org.bitcoinj.utils.DaemonThreadFactory;
 
-import com.runjva.sourceforge.jsocks.protocol.Socks5Proxy;
-
 import java.net.InetSocketAddress;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
-
-import lombok.extern.slf4j.Slf4j;
 
 /**
  * <p>Supports peer discovery through DNS over Socks5 proxy with RESOLVE DNS extension.</p>

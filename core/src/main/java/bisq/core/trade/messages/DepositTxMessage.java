@@ -17,16 +17,15 @@
 
 package bisq.core.trade.messages;
 
-import java.util.Optional;
-
-import javax.annotation.Nullable;
-
 import bisq.common.crypto.PubKeyRing;
 import bisq.common.proto.ProtoUtil;
 import bisq.network.p2p.DirectMessage;
 import bisq.network.p2p.NodeAddress;
 import lombok.EqualsAndHashCode;
 import lombok.Value;
+
+import javax.annotation.Nullable;
+import java.util.Optional;
 
 // It is the last message in the take offer phase. We use MailboxMessage instead of DirectMessage to add more tolerance
 // in case of network issues and as the message does not trigger further protocol execution.
@@ -47,11 +46,11 @@ public final class DepositTxMessage extends TradeMessage implements DirectMessag
                             PubKeyRing pubKeyRing,
                             String tradeFeeTxId,
                             String depositTxId) {
-      super(messageVersion, tradeId, uid);
-      this.senderNodeAddress = senderNodeAddress;
-      this.pubKeyRing = pubKeyRing;
-      this.tradeFeeTxId = tradeFeeTxId;
-      this.depositTxId = depositTxId;
+        super(messageVersion, tradeId, uid);
+        this.senderNodeAddress = senderNodeAddress;
+        this.pubKeyRing = pubKeyRing;
+        this.tradeFeeTxId = tradeFeeTxId;
+        this.depositTxId = depositTxId;
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -60,14 +59,14 @@ public final class DepositTxMessage extends TradeMessage implements DirectMessag
 
     @Override
     public protobuf.NetworkEnvelope toProtoNetworkEnvelope() {
-      protobuf.DepositTxMessage.Builder builder = protobuf.DepositTxMessage.newBuilder()
-              .setTradeId(tradeId)
-              .setSenderNodeAddress(senderNodeAddress.toProtoMessage())
-              .setPubKeyRing(pubKeyRing.toProtoMessage())
-              .setUid(uid);
-      Optional.ofNullable(tradeFeeTxId).ifPresent(e -> builder.setTradeFeeTxId(tradeFeeTxId));
-      Optional.ofNullable(depositTxId).ifPresent(e -> builder.setDepositTxId(depositTxId));
-      return getNetworkEnvelopeBuilder().setDepositTxMessage(builder).build();
+        protobuf.DepositTxMessage.Builder builder = protobuf.DepositTxMessage.newBuilder()
+                .setTradeId(tradeId)
+                .setSenderNodeAddress(senderNodeAddress.toProtoMessage())
+                .setPubKeyRing(pubKeyRing.toProtoMessage())
+                .setUid(uid);
+        Optional.ofNullable(tradeFeeTxId).ifPresent(e -> builder.setTradeFeeTxId(tradeFeeTxId));
+        Optional.ofNullable(depositTxId).ifPresent(e -> builder.setDepositTxId(depositTxId));
+        return getNetworkEnvelopeBuilder().setDepositTxMessage(builder).build();
     }
 
     public static DepositTxMessage fromProto(protobuf.DepositTxMessage proto, int messageVersion) {

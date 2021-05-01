@@ -17,6 +17,10 @@
 
 package bisq.core.offer;
 
+import bisq.common.app.Version;
+import bisq.common.crypto.PubKeyRing;
+import bisq.common.util.Tuple2;
+import bisq.common.util.Utilities;
 import bisq.core.account.witness.AccountAgeWitnessService;
 import bisq.core.btc.TxFeeEstimationService;
 import bisq.core.btc.wallet.BtcWalletService;
@@ -34,29 +38,15 @@ import bisq.core.trade.statistics.ReferralIdService;
 import bisq.core.user.Preferences;
 import bisq.core.user.User;
 import bisq.core.util.coin.CoinUtil;
-
 import bisq.network.p2p.NodeAddress;
 import bisq.network.p2p.P2PService;
-
-import bisq.common.app.Version;
-import bisq.common.crypto.PubKeyRing;
-import bisq.common.util.Tuple2;
-import bisq.common.util.Utilities;
-
+import com.google.common.collect.Lists;
+import lombok.extern.slf4j.Slf4j;
 import org.bitcoinj.core.Coin;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
-
-import com.google.common.collect.Lists;
-
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-
-import lombok.extern.slf4j.Slf4j;
+import java.util.*;
 
 @Slf4j
 @Singleton

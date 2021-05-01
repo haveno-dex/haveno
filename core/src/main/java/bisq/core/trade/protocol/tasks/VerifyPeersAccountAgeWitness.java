@@ -17,20 +17,18 @@
 
 package bisq.core.trade.protocol.tasks;
 
+import bisq.common.crypto.PubKeyRing;
+import bisq.common.taskrunner.TaskRunner;
 import bisq.core.account.witness.AccountAgeWitnessService;
 import bisq.core.locale.CurrencyUtil;
 import bisq.core.offer.Offer;
 import bisq.core.payment.payload.PaymentAccountPayload;
 import bisq.core.trade.Trade;
 import bisq.core.trade.protocol.TradingPeer;
-
-import bisq.common.crypto.PubKeyRing;
-import bisq.common.taskrunner.TaskRunner;
+import lombok.extern.slf4j.Slf4j;
 
 import java.util.Date;
 import java.util.concurrent.atomic.AtomicReference;
-
-import lombok.extern.slf4j.Slf4j;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 

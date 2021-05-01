@@ -17,6 +17,13 @@
 
 package bisq.network.p2p.network;
 
+import lombok.extern.slf4j.Slf4j;
+import org.berndpruenster.netlayer.tor.NativeTor;
+import org.berndpruenster.netlayer.tor.Tor;
+import org.berndpruenster.netlayer.tor.TorCtlException;
+import org.berndpruenster.netlayer.tor.Torrc;
+
+import javax.annotation.Nullable;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -26,25 +33,15 @@ import java.util.Date;
 import java.util.LinkedHashMap;
 import java.util.stream.Collectors;
 
-import org.berndpruenster.netlayer.tor.NativeTor;
-import org.berndpruenster.netlayer.tor.Tor;
-import org.berndpruenster.netlayer.tor.TorCtlException;
-import org.berndpruenster.netlayer.tor.Torrc;
-
-import lombok.extern.slf4j.Slf4j;
-
-import javax.annotation.Nullable;
-
 /**
  * This class creates a brand new instance of the Tor onion router.
- *
+ * <p>
  * When asked, the class checks, whether command line parameters such as
  * --torrcFile and --torrcOptions are set and if so, takes these settings into
  * account. Then, a fresh set of Tor binaries is installed and Tor is launched.
  * Finally, a {@link Tor} instance is returned for further use.
  *
  * @author Florian Reimair
- *
  */
 @Slf4j
 public class NewTor extends TorMode {

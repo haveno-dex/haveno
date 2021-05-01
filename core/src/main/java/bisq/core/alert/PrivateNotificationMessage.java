@@ -17,12 +17,10 @@
 
 package bisq.core.alert;
 
-import bisq.network.p2p.MailboxMessage;
-import bisq.network.p2p.NodeAddress;
-
 import bisq.common.app.Version;
 import bisq.common.proto.network.NetworkEnvelope;
-
+import bisq.network.p2p.MailboxMessage;
+import bisq.network.p2p.NodeAddress;
 import lombok.EqualsAndHashCode;
 import lombok.Value;
 

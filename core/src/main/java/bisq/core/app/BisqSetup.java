@@ -49,6 +49,24 @@ import bisq.core.util.coin.CoinFormatter;
 import bisq.network.p2p.P2PService;
 import bisq.network.p2p.storage.payload.PersistableNetworkPayload;
 import ch.qos.logback.classic.Level;
+import javafx.beans.property.BooleanProperty;
+import javafx.beans.property.DoubleProperty;
+import javafx.beans.property.SimpleBooleanProperty;
+import javafx.beans.property.StringProperty;
+import javafx.beans.value.ChangeListener;
+import javafx.collections.SetChangeListener;
+import lombok.Getter;
+import lombok.Setter;
+import lombok.extern.slf4j.Slf4j;
+import org.bitcoinj.core.Coin;
+import org.bouncycastle.crypto.params.KeyParameter;
+import org.fxmisc.easybind.EasyBind;
+import org.fxmisc.easybind.monadic.MonadicBinding;
+
+import javax.annotation.Nullable;
+import javax.inject.Inject;
+import javax.inject.Named;
+import javax.inject.Singleton;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -57,23 +75,6 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
-import javafx.beans.property.BooleanProperty;
-import javafx.beans.property.DoubleProperty;
-import javafx.beans.property.SimpleBooleanProperty;
-import javafx.beans.property.StringProperty;
-import javafx.beans.value.ChangeListener;
-import javafx.collections.SetChangeListener;
-import javax.annotation.Nullable;
-import javax.inject.Inject;
-import javax.inject.Named;
-import javax.inject.Singleton;
-import lombok.Getter;
-import lombok.Setter;
-import lombok.extern.slf4j.Slf4j;
-import org.bitcoinj.core.Coin;
-import org.bouncycastle.crypto.params.KeyParameter;
-import org.fxmisc.easybind.EasyBind;
-import org.fxmisc.easybind.monadic.MonadicBinding;
 
 @Slf4j
 @Singleton

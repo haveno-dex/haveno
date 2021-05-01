@@ -17,14 +17,12 @@
 
 package bisq.network;
 
+import com.runjva.sourceforge.jsocks.protocol.Socks5Proxy;
 import org.bitcoinj.core.NetworkParameters;
 import org.bitcoinj.net.discovery.PeerDiscovery;
 import org.bitcoinj.net.discovery.PeerDiscoveryException;
 
-import com.runjva.sourceforge.jsocks.protocol.Socks5Proxy;
-
 import java.net.InetSocketAddress;
-
 import java.util.concurrent.TimeUnit;
 
 /**

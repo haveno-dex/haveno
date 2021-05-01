@@ -30,36 +30,36 @@ import org.bitcoinj.core.Coin;
 // TODO (woodser): rename this to TakerCreateFeeTx or rename TakerPublishFeeTx to TakerPublishReserveTradeTx for consistency
 @Slf4j
 public class TakerCreateReserveTradeTx extends TradeTask {
-  @SuppressWarnings({ "unused" })
-  public TakerCreateReserveTradeTx(TaskRunner taskHandler, Trade trade) {
-    super(taskHandler, trade);
-  }
-
-  @Override
-  protected void run() {
-    try {
-      runInterceptHook();
-
-      XmrWalletService walletService = processModel.getProvider().getXmrWalletService();
-      String id = processModel.getOffer().getId();
-      XmrAddressEntry reservedForTradeAddressEntry = walletService.getOrCreateAddressEntry(id, XmrAddressEntry.Context.RESERVED_FOR_TRADE);
-      TradeWalletService tradeWalletService = processModel.getTradeWalletService();
-      String feeReceiver = "52FnB7ABUrKJzVQRpbMNrqDFWbcKLjFUq8Rgek7jZEuB6WE2ZggXaTf4FK6H8gQymvSrruHHrEuKhMN3qTMiBYzREKsmRKM"; // TODO (woodser): don't hardcode
-
-      // pay trade fee to reserve trade
-      MoneroTxWallet tx = tradeWalletService.createXmrTradingFeeTx(
-              reservedForTradeAddressEntry.getAddressString(),
-              Coin.valueOf(processModel.getFundsNeededForTradeAsLong()),
-              trade.getTakerFee(),
-              trade.getTxFee(),
-              feeReceiver,
-              false);
-
-      trade.setTakerFeeTxId(tx.getHash());
-      processModel.setTakeOfferFeeTx(tx);
-      complete();
-    } catch (Throwable t) {
-        failed(t);
+    @SuppressWarnings({"unused"})
+    public TakerCreateReserveTradeTx(TaskRunner taskHandler, Trade trade) {
+        super(taskHandler, trade);
     }
-  }
+
+    @Override
+    protected void run() {
+        try {
+            runInterceptHook();
+
+            XmrWalletService walletService = processModel.getProvider().getXmrWalletService();
+            String id = processModel.getOffer().getId();
+            XmrAddressEntry reservedForTradeAddressEntry = walletService.getOrCreateAddressEntry(id, XmrAddressEntry.Context.RESERVED_FOR_TRADE);
+            TradeWalletService tradeWalletService = processModel.getTradeWalletService();
+            String feeReceiver = "52FnB7ABUrKJzVQRpbMNrqDFWbcKLjFUq8Rgek7jZEuB6WE2ZggXaTf4FK6H8gQymvSrruHHrEuKhMN3qTMiBYzREKsmRKM"; // TODO (woodser): don't hardcode
+
+            // pay trade fee to reserve trade
+            MoneroTxWallet tx = tradeWalletService.createXmrTradingFeeTx(
+                    reservedForTradeAddressEntry.getAddressString(),
+                    Coin.valueOf(processModel.getFundsNeededForTradeAsLong()),
+                    trade.getTakerFee(),
+                    trade.getTxFee(),
+                    feeReceiver,
+                    false);
+
+            trade.setTakerFeeTxId(tx.getHash());
+            processModel.setTakeOfferFeeTx(tx);
+            complete();
+        } catch (Throwable t) {
+            failed(t);
+        }
+    }
 }

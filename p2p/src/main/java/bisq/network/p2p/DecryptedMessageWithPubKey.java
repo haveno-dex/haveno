@@ -18,10 +18,9 @@
 package bisq.network.p2p;
 
 import bisq.common.proto.network.NetworkEnvelope;
+import lombok.Value;
 
 import java.security.PublicKey;
-
-import lombok.Value;
 
 @Value
 public final class DecryptedMessageWithPubKey {

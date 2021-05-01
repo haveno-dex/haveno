@@ -17,22 +17,17 @@
 
 package bisq.core.btc;
 
+import bisq.common.util.Tuple2;
 import bisq.core.btc.wallet.BtcWalletService;
 import bisq.core.provider.fee.FeeService;
 import bisq.core.user.Preferences;
-
-import bisq.common.util.Tuple2;
-
+import com.google.common.annotations.VisibleForTesting;
+import lombok.extern.slf4j.Slf4j;
 import org.bitcoinj.core.Coin;
 import org.bitcoinj.core.InsufficientMoneyException;
 
 import javax.inject.Inject;
-
-import com.google.common.annotations.VisibleForTesting;
-
 import java.util.List;
-
-import lombok.extern.slf4j.Slf4j;
 
 import static com.google.common.base.Preconditions.checkArgument;
 

@@ -19,7 +19,6 @@ package bisq.core.trade.messages;
 
 import bisq.network.p2p.MailboxMessage;
 import bisq.network.p2p.NodeAddress;
-
 import lombok.EqualsAndHashCode;
 import lombok.Value;
 

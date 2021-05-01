@@ -17,21 +17,13 @@
 
 package bisq.core.trade.txproof.xmr;
 
-import bisq.core.trade.txproof.AssetTxProofParser;
-
 import bisq.asset.CryptoNoteUtils;
-
 import bisq.common.app.DevEnv;
-
-import com.google.gson.Gson;
-import com.google.gson.JsonArray;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParseException;
+import bisq.core.trade.txproof.AssetTxProofParser;
+import com.google.gson.*;
+import lombok.extern.slf4j.Slf4j;
 
 import java.util.concurrent.TimeUnit;
-
-import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class XmrTxProofParser implements AssetTxProofParser<XmrTxProofRequest.Result, XmrTxProofModel> {

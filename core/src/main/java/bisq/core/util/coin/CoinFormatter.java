@@ -1,7 +1,6 @@
 package bisq.core.util.coin;
 
 import org.bitcoinj.core.Coin;
-
 import org.jetbrains.annotations.NotNull;
 
 public interface CoinFormatter {

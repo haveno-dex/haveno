@@ -17,9 +17,6 @@
 
 package bisq.core.trade.protocol.tasks.maker;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import bisq.common.UserThread;
 import bisq.common.taskrunner.Task;
 import bisq.common.taskrunner.TaskRunner;
@@ -29,6 +26,8 @@ import bisq.core.btc.wallet.XmrWalletService;
 import bisq.core.offer.Offer;
 import bisq.core.offer.placeoffer.PlaceOfferModel;
 import monero.wallet.model.MoneroTxWallet;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class MakerCreateFeeTx extends Task<PlaceOfferModel> {
     private static final Logger log = LoggerFactory.getLogger(MakerCreateFeeTx.class);
@@ -55,38 +54,38 @@ public class MakerCreateFeeTx extends Task<PlaceOfferModel> {
 
             if (offer.isCurrencyForMakerFeeBtc()) {
                 try {
-                  MoneroTxWallet tx = tradeWalletService.createXmrTradingFeeTx(
-                          reservedForTradeAddress,
-                          model.getReservedFundsForOffer(),
-                          offer.getMakerFee(),
-                          offer.getTxFee(),
-                          feeReceiver,
-                          true);
-                  System.out.println("SUCCESS CREATING XMR TRADING FEE TX!");
-                  System.out.println(tx);
+                    MoneroTxWallet tx = tradeWalletService.createXmrTradingFeeTx(
+                            reservedForTradeAddress,
+                            model.getReservedFundsForOffer(),
+                            offer.getMakerFee(),
+                            offer.getTxFee(),
+                            feeReceiver,
+                            true);
+                    System.out.println("SUCCESS CREATING XMR TRADING FEE TX!");
+                    System.out.println(tx);
 
-                  // we delay one render frame to be sure we don't get called before the method call has
-                  // returned (tradeFeeTx would be null in that case)
-                  UserThread.execute(() -> {
-                      if (!completed) {
-                          offer.setOfferFeePaymentTxId(tx.getHash());
-                          model.setXmrTransaction(tx);
-                          walletService.swapTradeEntryToAvailableEntry(id, XmrAddressEntry.Context.OFFER_FUNDING);
+                    // we delay one render frame to be sure we don't get called before the method call has
+                    // returned (tradeFeeTx would be null in that case)
+                    UserThread.execute(() -> {
+                        if (!completed) {
+                            offer.setOfferFeePaymentTxId(tx.getHash());
+                            model.setXmrTransaction(tx);
+                            walletService.swapTradeEntryToAvailableEntry(id, XmrAddressEntry.Context.OFFER_FUNDING);
 
-                          model.getOffer().setState(Offer.State.OFFER_FEE_PAID);
+                            model.getOffer().setState(Offer.State.OFFER_FEE_PAID);
 
-                          complete();
-                      } else {
-                          log.warn("We got the onSuccess callback called after the timeout has been triggered a complete().");
-                      }
-                  });
+                            complete();
+                        } else {
+                            log.warn("We got the onSuccess callback called after the timeout has been triggered a complete().");
+                        }
+                    });
                 } catch (Exception e) {
-                  System.out.println("FAILURE CREATING XMR TRADING FEE TX!");
-                  if (!completed) {
-                      failed(e);
-                  } else {
-                      log.warn("We got the onFailure callback called after the timeout has been triggered a complete().");
-                  }
+                    System.out.println("FAILURE CREATING XMR TRADING FEE TX!");
+                    if (!completed) {
+                        failed(e);
+                    } else {
+                        log.warn("We got the onFailure callback called after the timeout has been triggered a complete().");
+                    }
                 }
 
 //                tradeWalletService.createBtcTradingFeeTx(

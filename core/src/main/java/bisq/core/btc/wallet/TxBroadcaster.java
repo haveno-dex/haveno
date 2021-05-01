@@ -17,28 +17,22 @@
 
 package bisq.core.btc.wallet;
 
-import bisq.core.btc.exceptions.TxBroadcastException;
-import bisq.core.btc.exceptions.TxBroadcastTimeoutException;
-
 import bisq.common.Timer;
 import bisq.common.UserThread;
-
-import org.bitcoinj.core.PeerGroup;
-import org.bitcoinj.core.Transaction;
-import org.bitcoinj.wallet.Wallet;
-
+import bisq.core.btc.exceptions.TxBroadcastException;
+import bisq.core.btc.exceptions.TxBroadcastTimeoutException;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.MoreExecutors;
-
-import java.util.HashMap;
-import java.util.Map;
-
 import lombok.extern.slf4j.Slf4j;
-
+import org.bitcoinj.core.PeerGroup;
+import org.bitcoinj.core.Transaction;
+import org.bitcoinj.wallet.Wallet;
 import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nullable;
+import java.util.HashMap;
+import java.util.Map;
 
 @Slf4j
 public class TxBroadcaster {

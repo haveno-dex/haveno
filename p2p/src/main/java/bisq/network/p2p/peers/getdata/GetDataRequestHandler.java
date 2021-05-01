@@ -17,27 +17,23 @@
 
 package bisq.network.p2p.peers.getdata;
 
+import bisq.common.Timer;
+import bisq.common.UserThread;
 import bisq.network.p2p.network.CloseConnectionReason;
 import bisq.network.p2p.network.Connection;
 import bisq.network.p2p.network.NetworkNode;
 import bisq.network.p2p.peers.getdata.messages.GetDataRequest;
 import bisq.network.p2p.peers.getdata.messages.GetDataResponse;
 import bisq.network.p2p.storage.P2PDataStorage;
-
-import bisq.common.Timer;
-import bisq.common.UserThread;
-
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.SettableFuture;
+import lombok.extern.slf4j.Slf4j;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
-
-import lombok.extern.slf4j.Slf4j;
-
-import org.jetbrains.annotations.NotNull;
 
 @Slf4j
 public class GetDataRequestHandler {

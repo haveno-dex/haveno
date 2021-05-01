@@ -18,7 +18,6 @@
 package bisq.core.offer;
 
 import bisq.core.user.Preferences;
-
 import org.bitcoinj.core.Coin;
 
 public class MakerFeeProvider {

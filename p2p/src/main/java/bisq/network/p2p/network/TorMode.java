@@ -18,7 +18,6 @@
 package bisq.network.p2p.network;
 
 import bisq.common.file.FileUtil;
-
 import org.berndpruenster.netlayer.tor.Tor;
 import org.berndpruenster.netlayer.tor.TorCtlException;
 
@@ -30,7 +29,6 @@ import java.io.IOException;
  * {@link Tor} object when asked.
  *
  * @author Florian Reimair
- *
  */
 public abstract class TorMode {
 
@@ -43,8 +41,8 @@ public abstract class TorMode {
     protected final File torDir;
 
     /**
-     * @param torDir           points to the place, where we will persist private
-     *                         key and address data
+     * @param torDir points to the place, where we will persist private
+     *               key and address data
      */
     public TorMode(File torDir) {
         this.torDir = torDir;
@@ -69,8 +67,8 @@ public abstract class TorMode {
      * <code>private_key</code> file as in {@link NewTor} mode.
      *
      * @return <code>""</code> in {@link NewTor} Mode,
-     *         <code>"torDir/externalTorHiddenService"</code> in {@link RunningTor}
-     *         mode
+     * <code>"torDir/externalTorHiddenService"</code> in {@link RunningTor}
+     * mode
      */
     public abstract String getHiddenServiceDirectory();
 

@@ -19,16 +19,14 @@ package bisq.network.p2p.storage.persistence;
 
 import bisq.network.p2p.storage.P2PDataStorage;
 import bisq.network.p2p.storage.payload.PersistableNetworkPayload;
+import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
 
 import javax.inject.Inject;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
-
-import lombok.Getter;
-import lombok.extern.slf4j.Slf4j;
 
 /**
  * Used for PersistableNetworkPayload data which gets appended to a map storage.

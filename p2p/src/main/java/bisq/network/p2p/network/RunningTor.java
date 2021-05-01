@@ -17,25 +17,23 @@
 
 package bisq.network.p2p.network;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.Date;
-
+import lombok.extern.slf4j.Slf4j;
 import org.berndpruenster.netlayer.tor.ExternalTor;
 import org.berndpruenster.netlayer.tor.Tor;
 import org.berndpruenster.netlayer.tor.TorCtlException;
 
-import lombok.extern.slf4j.Slf4j;
+import java.io.File;
+import java.io.IOException;
+import java.util.Date;
 
 /**
  * This class creates a brand new instance of the Tor onion router.
- *
+ * <p>
  * When asked, the class checks for the authentication method selected and
  * connects to the given control port. Finally, a {@link Tor} instance is
  * returned for further use.
  *
  * @author Florian Reimair
- *
  */
 @Slf4j
 public class RunningTor extends TorMode {
@@ -47,7 +45,7 @@ public class RunningTor extends TorMode {
 
 
     public RunningTor(final File torDir, final int controlPort, final String password, final File cookieFile,
-            final boolean useSafeCookieAuthentication) {
+                      final boolean useSafeCookieAuthentication) {
         super(torDir);
         this.controlPort = controlPort;
         this.password = password;

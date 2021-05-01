@@ -17,6 +17,8 @@
 
 package bisq.core.user;
 
+import bisq.common.proto.ProtoUtil;
+import bisq.common.proto.persistable.PersistableEnvelope;
 import bisq.core.alert.Alert;
 import bisq.core.filter.Filter;
 import bisq.core.notifications.alerts.market.MarketAlertFilter;
@@ -26,22 +28,13 @@ import bisq.core.proto.CoreProtoResolver;
 import bisq.core.support.dispute.arbitration.arbitrator.Arbitrator;
 import bisq.core.support.dispute.mediation.mediator.Mediator;
 import bisq.core.support.dispute.refund.refundagent.RefundAgent;
-
-import bisq.common.proto.ProtoUtil;
-import bisq.common.proto.persistable.PersistableEnvelope;
-
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
-import java.util.stream.Collectors;
-
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 
 import javax.annotation.Nullable;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Data

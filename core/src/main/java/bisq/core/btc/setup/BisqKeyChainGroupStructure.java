@@ -17,11 +17,10 @@
 
 package bisq.core.btc.setup;
 
+import com.google.common.collect.ImmutableList;
 import org.bitcoinj.crypto.ChildNumber;
 import org.bitcoinj.script.Script;
 import org.bitcoinj.wallet.KeyChainGroupStructure;
-
-import com.google.common.collect.ImmutableList;
 
 public class BisqKeyChainGroupStructure implements KeyChainGroupStructure {
 
@@ -54,7 +53,7 @@ public class BisqKeyChainGroupStructure implements KeyChainGroupStructure {
 
     private boolean isBsqWallet;
 
-    public BisqKeyChainGroupStructure (boolean isBsqWallet) {
+    public BisqKeyChainGroupStructure(boolean isBsqWallet) {
         this.isBsqWallet = isBsqWallet;
     }
 

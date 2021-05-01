@@ -26,26 +26,16 @@ import bisq.common.taskrunner.Task;
 import bisq.core.offer.Offer;
 import bisq.core.trade.Trade;
 import bisq.core.trade.TradeManager;
-import bisq.core.trade.messages.CounterCurrencyTransferStartedMessage;
-import bisq.core.trade.messages.DepositTxAndDelayedPayoutTxMessage;
-import bisq.core.trade.messages.DepositTxMessage;
-import bisq.core.trade.messages.InitMultisigMessage;
-import bisq.core.trade.messages.TradeMessage;
-import bisq.core.trade.messages.UpdateMultisigRequest;
+import bisq.core.trade.messages.*;
 import bisq.core.trade.protocol.tasks.ProcessInitMultisigMessage;
 import bisq.core.trade.protocol.tasks.ProcessUpdateMultisigRequest;
 import bisq.core.util.Validator;
-import bisq.network.p2p.AckMessage;
-import bisq.network.p2p.AckMessageSourceType;
-import bisq.network.p2p.DecryptedDirectMessageListener;
-import bisq.network.p2p.DecryptedMessageWithPubKey;
-import bisq.network.p2p.MailboxMessage;
-import bisq.network.p2p.NodeAddress;
-import bisq.network.p2p.SendMailboxMessageListener;
+import bisq.network.p2p.*;
 import bisq.network.p2p.messaging.DecryptedMailboxListener;
-import java.security.PublicKey;
-import javax.annotation.Nullable;
 import lombok.extern.slf4j.Slf4j;
+
+import javax.annotation.Nullable;
+import java.security.PublicKey;
 
 @Slf4j
 public abstract class TradeProtocol implements DecryptedDirectMessageListener, DecryptedMailboxListener {
@@ -106,10 +96,10 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
                 isMyMessage((TradeMessage) networkEnvelope) &&
                 isPubKeyValid(message, peer)) {
             onTradeMessage((TradeMessage) networkEnvelope, peer);
-            
+
             // TODO (woodser): better way to register message notifications for trade?
             if (((TradeMessage) networkEnvelope).getTradeId().equals(processModel.getOfferId())) {
-              trade.onVerifiedTradeMessage((TradeMessage) networkEnvelope, peer);
+                trade.onVerifiedTradeMessage((TradeMessage) networkEnvelope, peer);
             }
         } else if (networkEnvelope instanceof AckMessage &&
                 isMyMessage((AckMessage) networkEnvelope) &&
@@ -183,51 +173,51 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     protected abstract void onTradeMessage(TradeMessage message, NodeAddress peer);
-    
-    public void handleMultisigMessage(InitMultisigMessage message, NodeAddress peer, ErrorMessageHandler errorMessageHandler) {
-      Validator.checkTradeId(processModel.getOfferId(), message);
-      processModel.setTradeMessage(message);
 
-      TradeTaskRunner taskRunner = new TradeTaskRunner(trade,
-              () -> {
-                stopTimeout();
-                handleTaskRunnerSuccess(message, "handleMultisigMessage");
-              },
-              errorMessage -> {
-                  errorMessageHandler.handleErrorMessage(errorMessage);
-                  handleTaskRunnerFault(message, errorMessage);
-              });
-      taskRunner.addTasks(
-              ProcessInitMultisigMessage.class
-      );
-      startTimeout(60); // TODO (woodser): what timeout to use?  don't hardcode
-      taskRunner.run();
+    public void handleMultisigMessage(InitMultisigMessage message, NodeAddress peer, ErrorMessageHandler errorMessageHandler) {
+        Validator.checkTradeId(processModel.getOfferId(), message);
+        processModel.setTradeMessage(message);
+
+        TradeTaskRunner taskRunner = new TradeTaskRunner(trade,
+                () -> {
+                    stopTimeout();
+                    handleTaskRunnerSuccess(message, "handleMultisigMessage");
+                },
+                errorMessage -> {
+                    errorMessageHandler.handleErrorMessage(errorMessage);
+                    handleTaskRunnerFault(message, errorMessage);
+                });
+        taskRunner.addTasks(
+                ProcessInitMultisigMessage.class
+        );
+        startTimeout(60); // TODO (woodser): what timeout to use?  don't hardcode
+        taskRunner.run();
     }
-    
+
     public abstract void handleDepositTxMessage(DepositTxMessage message, NodeAddress taker, ErrorMessageHandler errorMessageHandler);
-    
+
     // TODO (woodser): update to use fluent for consistency
     public void handleUpdateMultisigRequest(UpdateMultisigRequest message, NodeAddress peer, ErrorMessageHandler errorMessageHandler) {
-      Validator.checkTradeId(processModel.getOfferId(), message);
-      processModel.setTradeMessage(message);
+        Validator.checkTradeId(processModel.getOfferId(), message);
+        processModel.setTradeMessage(message);
 
-      TradeTaskRunner taskRunner = new TradeTaskRunner(trade,
-              () -> {
-                stopTimeout();
-                handleTaskRunnerSuccess(message, "handleUpdateMultisigRequest");
-              },
-              errorMessage -> {
-                  errorMessageHandler.handleErrorMessage(errorMessage);
-                  handleTaskRunnerFault(message, errorMessage);
-              });
-      taskRunner.addTasks(
-              ProcessUpdateMultisigRequest.class
-      );
-      startTimeout(60);  // TODO (woodser): what timeout to use?  don't hardcode
-      taskRunner.run();
+        TradeTaskRunner taskRunner = new TradeTaskRunner(trade,
+                () -> {
+                    stopTimeout();
+                    handleTaskRunnerSuccess(message, "handleUpdateMultisigRequest");
+                },
+                errorMessage -> {
+                    errorMessageHandler.handleErrorMessage(errorMessage);
+                    handleTaskRunnerFault(message, errorMessage);
+                });
+        taskRunner.addTasks(
+                ProcessUpdateMultisigRequest.class
+        );
+        startTimeout(60);  // TODO (woodser): what timeout to use?  don't hardcode
+        taskRunner.run();
     }
 
-    
+
     ///////////////////////////////////////////////////////////////////////////////////////////
     // FluentProtocol
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -303,14 +293,14 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
         NodeAddress peer = trade.getTradingPeerNodeAddress() != null ?
                 trade.getTradingPeerNodeAddress() :
                 processModel.getTempTradingPeerNodeAddress();
-                
+
         // get destination pub key ring
         PubKeyRing peersPubKeyRing = getPeersPubKeyRing(peer);
         if (peersPubKeyRing == null) {
-          log.error("We cannot send the ACK message as peersPubKeyRing is null");
-          return;
+            log.error("We cannot send the ACK message as peersPubKeyRing is null");
+            return;
         }
-        
+
         log.info("Send AckMessage for {} to peer {}. tradeId={}, sourceUid={}",
                 ackMessage.getSourceMsgClassName(), peer, tradeId, sourceUid);
         processModel.getP2PService().sendEncryptedMailboxMessage(
@@ -323,13 +313,13 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
                         log.info("AckMessage for {} arrived at peer {}. tradeId={}, sourceUid={}",
                                 ackMessage.getSourceMsgClassName(), peer, tradeId, sourceUid);
                     }
-  
+
                     @Override
                     public void onStoredInMailbox() {
                         log.info("AckMessage for {} stored in mailbox for peer {}. tradeId={}, sourceUid={}",
                                 ackMessage.getSourceMsgClassName(), peer, tradeId, sourceUid);
                     }
-  
+
                     @Override
                     public void onFault(String errorMessage) {
                         log.error("AckMessage for {} failed. Peer {}. tradeId={}, sourceUid={}, errorMessage={}",
@@ -386,15 +376,15 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Validation
     ///////////////////////////////////////////////////////////////////////////////////////////
-    
+
     private PubKeyRing getPeersPubKeyRing(NodeAddress peer) {
-      if (peer.equals(trade.getArbitratorNodeAddress())) return trade.getArbitratorPubKeyRing();
-      else if (peer.equals(trade.getMakerNodeAddress())) return trade.getMakerPubKeyRing();
-      else if (peer.equals(trade.getTakerNodeAddress())) return trade.getTakerPubKeyRing();
-      else {
-        log.error("Cannot get peer's pub key ring because peer is not maker, taker, or arbitrator");
-        return null;
-      }
+        if (peer.equals(trade.getArbitratorNodeAddress())) return trade.getArbitratorPubKeyRing();
+        else if (peer.equals(trade.getMakerNodeAddress())) return trade.getMakerPubKeyRing();
+        else if (peer.equals(trade.getTakerNodeAddress())) return trade.getTakerPubKeyRing();
+        else {
+            log.error("Cannot get peer's pub key ring because peer is not maker, taker, or arbitrator");
+            return null;
+        }
     }
 
     private boolean isPubKeyValid(DecryptedMessageWithPubKey message, NodeAddress sender) {

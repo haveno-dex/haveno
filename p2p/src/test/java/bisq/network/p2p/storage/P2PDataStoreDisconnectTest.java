@@ -17,6 +17,7 @@
 
 package bisq.network.p2p.storage;
 
+import bisq.common.crypto.CryptoException;
 import bisq.network.p2p.NodeAddress;
 import bisq.network.p2p.TestUtils;
 import bisq.network.p2p.network.CloseConnectionReason;
@@ -24,23 +25,19 @@ import bisq.network.p2p.network.Connection;
 import bisq.network.p2p.storage.mocks.ExpirableProtectedStoragePayloadStub;
 import bisq.network.p2p.storage.payload.ProtectedStorageEntry;
 import bisq.network.p2p.storage.payload.ProtectedStoragePayload;
-
-import bisq.common.crypto.CryptoException;
-
-import java.security.KeyPair;
-import java.security.NoSuchAlgorithmException;
-
-import java.util.Optional;
-import java.util.concurrent.TimeUnit;
-
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.security.KeyPair;
+import java.security.NoSuchAlgorithmException;
+import java.util.Optional;
+import java.util.concurrent.TimeUnit;
+
+import static bisq.network.p2p.storage.TestState.SavedTestState;
+import static bisq.network.p2p.storage.TestState.getTestNodeAddress;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
-
-import static bisq.network.p2p.storage.TestState.*;
 
 /**
  * Tests of the P2PDataStore ConnectionListener interface.

@@ -17,28 +17,22 @@
 
 package bisq.network.p2p.storage.payload;
 
-import bisq.network.p2p.PrefixedSealedAndSignedMessage;
-import bisq.network.p2p.storage.messages.AddOncePayload;
-
 import bisq.common.crypto.Sig;
 import bisq.common.util.CollectionUtils;
 import bisq.common.util.ExtraDataMapValidator;
-
+import bisq.network.p2p.PrefixedSealedAndSignedMessage;
+import bisq.network.p2p.storage.messages.AddOncePayload;
 import com.google.protobuf.ByteString;
-
-import java.security.PublicKey;
-
-import java.util.Map;
-import java.util.Optional;
-import java.util.concurrent.TimeUnit;
-
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
-
 import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nullable;
+import java.security.PublicKey;
+import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Payload which supports a time to live and sender and receiver's pub keys for storage operations.

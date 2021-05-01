@@ -18,16 +18,13 @@
 package bisq.network.p2p.network;
 
 import bisq.network.p2p.TestUtils;
-
-import java.io.IOException;
-
-import java.util.concurrent.CountDownLatch;
-
+import org.junit.Ignore;
+import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.junit.Ignore;
-import org.junit.Test;
+import java.io.IOException;
+import java.util.concurrent.CountDownLatch;
 
 // TorNode created. Took 6 sec.
 // Hidden service created. Took 40-50 sec.
@@ -37,8 +34,6 @@ import org.junit.Test;
 @Ignore
 public class LocalhostNetworkNodeTest {
     private static final Logger log = LoggerFactory.getLogger(LocalhostNetworkNodeTest.class);
-
-
 
 
     @Test

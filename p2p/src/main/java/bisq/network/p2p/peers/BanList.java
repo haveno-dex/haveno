@@ -17,18 +17,12 @@
 
 package bisq.network.p2p.peers;
 
+import bisq.common.config.Config;
 import bisq.network.p2p.NodeAddress;
 
-import bisq.common.config.Config;
-
-import javax.inject.Named;
-
 import javax.inject.Inject;
-
-import org.apache.commons.lang3.StringUtils;
-
+import javax.inject.Named;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 

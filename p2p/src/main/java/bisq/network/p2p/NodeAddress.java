@@ -22,12 +22,11 @@ import bisq.common.crypto.Hash;
 import bisq.common.proto.network.NetworkPayload;
 import bisq.common.proto.persistable.PersistablePayload;
 import bisq.common.util.JsonExclude;
-
-import java.util.regex.Pattern;
-
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
+
+import java.util.regex.Pattern;
 
 import static com.google.common.base.Preconditions.checkArgument;
 

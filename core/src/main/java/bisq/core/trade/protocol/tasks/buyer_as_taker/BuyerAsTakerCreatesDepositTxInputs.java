@@ -33,7 +33,7 @@ public class BuyerAsTakerCreatesDepositTxInputs extends TradeTask {
     protected void run() {
         try {
             runInterceptHook();
-            
+
             throw new RuntimeException("Outputs not communicated in xmr integration");
 
 //            Coin txFee = trade.getTxFee();

@@ -31,8 +31,9 @@ import bisq.core.trade.statistics.ReferralIdService;
 import bisq.core.trade.statistics.TradeStatisticsManager;
 import bisq.core.user.User;
 import bisq.network.p2p.P2PService;
-import javax.inject.Inject;
 import lombok.Getter;
+
+import javax.inject.Inject;
 
 @Getter
 public class ProcessModelServiceProvider {

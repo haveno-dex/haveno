@@ -17,50 +17,17 @@
 
 package bisq.core.proto;
 
-import bisq.core.account.sign.SignedWitness;
-import bisq.core.account.witness.AccountAgeWitness;
-import bisq.core.payment.payload.AdvancedCashAccountPayload;
-import bisq.core.payment.payload.AliPayAccountPayload;
-import bisq.core.payment.payload.CashAppAccountPayload;
-import bisq.core.payment.payload.CashDepositAccountPayload;
-import bisq.core.payment.payload.ChaseQuickPayAccountPayload;
-import bisq.core.payment.payload.ClearXchangeAccountPayload;
-import bisq.core.payment.payload.CryptoCurrencyAccountPayload;
-import bisq.core.payment.payload.F2FAccountPayload;
-import bisq.core.payment.payload.FasterPaymentsAccountPayload;
-import bisq.core.payment.payload.HalCashAccountPayload;
-import bisq.core.payment.payload.InstantCryptoCurrencyPayload;
-import bisq.core.payment.payload.InteracETransferAccountPayload;
-import bisq.core.payment.payload.JapanBankAccountPayload;
-import bisq.core.payment.payload.MoneyBeamAccountPayload;
-import bisq.core.payment.payload.MoneyGramAccountPayload;
-import bisq.core.payment.payload.NationalBankAccountPayload;
-import bisq.core.payment.payload.OKPayAccountPayload;
-import bisq.core.payment.payload.PaymentAccountPayload;
-import bisq.core.payment.payload.PerfectMoneyAccountPayload;
-import bisq.core.payment.payload.PopmoneyAccountPayload;
-import bisq.core.payment.payload.PromptPayAccountPayload;
-import bisq.core.payment.payload.RevolutAccountPayload;
-import bisq.core.payment.payload.SameBankAccountPayload;
-import bisq.core.payment.payload.SepaAccountPayload;
-import bisq.core.payment.payload.SepaInstantAccountPayload;
-import bisq.core.payment.payload.SpecificBanksAccountPayload;
-import bisq.core.payment.payload.SwishAccountPayload;
-import bisq.core.payment.payload.USPostalMoneyOrderAccountPayload;
-import bisq.core.payment.payload.UpholdAccountPayload;
-import bisq.core.payment.payload.VenmoAccountPayload;
-import bisq.core.payment.payload.WeChatPayAccountPayload;
-import bisq.core.payment.payload.WesternUnionAccountPayload;
-import bisq.core.trade.statistics.TradeStatistics2;
-
 import bisq.common.proto.ProtoResolver;
 import bisq.common.proto.ProtobufferRuntimeException;
 import bisq.common.proto.persistable.PersistablePayload;
-
-import java.time.Clock;
-
+import bisq.core.account.sign.SignedWitness;
+import bisq.core.account.witness.AccountAgeWitness;
+import bisq.core.payment.payload.*;
+import bisq.core.trade.statistics.TradeStatistics2;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
+
+import java.time.Clock;
 
 @Slf4j
 public class CoreProtoResolver implements ProtoResolver {

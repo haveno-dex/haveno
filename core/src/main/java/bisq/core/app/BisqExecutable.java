@@ -17,17 +17,6 @@
 
 package bisq.core.app;
 
-import bisq.core.btc.setup.WalletsSetup;
-import bisq.core.btc.wallet.BtcWalletService;
-import bisq.core.btc.wallet.XmrWalletService;
-import bisq.core.offer.OpenOfferManager;
-import bisq.core.setup.CorePersistedDataHost;
-import bisq.core.setup.CoreSetup;
-import bisq.core.support.dispute.arbitration.arbitrator.ArbitratorManager;
-import bisq.core.trade.txproof.xmr.XmrTxProofService;
-
-import bisq.network.p2p.P2PService;
-
 import bisq.common.UserThread;
 import bisq.common.app.AppModule;
 import bisq.common.config.BisqHelpFormatter;
@@ -40,16 +29,22 @@ import bisq.common.setup.CommonSetup;
 import bisq.common.setup.GracefulShutDownHandler;
 import bisq.common.setup.UncaughtExceptionHandler;
 import bisq.common.util.Utilities;
-
+import bisq.core.btc.setup.WalletsSetup;
+import bisq.core.btc.wallet.BtcWalletService;
+import bisq.core.btc.wallet.XmrWalletService;
+import bisq.core.offer.OpenOfferManager;
+import bisq.core.setup.CorePersistedDataHost;
+import bisq.core.setup.CoreSetup;
+import bisq.core.support.dispute.arbitration.arbitrator.ArbitratorManager;
+import bisq.core.trade.txproof.xmr.XmrTxProofService;
+import bisq.network.p2p.P2PService;
 import com.google.inject.Guice;
 import com.google.inject.Injector;
-
-import java.util.List;
-import java.util.concurrent.atomic.AtomicInteger;
-
 import lombok.extern.slf4j.Slf4j;
 
 import javax.annotation.Nullable;
+import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 
 @Slf4j
 public abstract class BisqExecutable implements GracefulShutDownHandler, BisqSetup.BisqSetupListener, UncaughtExceptionHandler {

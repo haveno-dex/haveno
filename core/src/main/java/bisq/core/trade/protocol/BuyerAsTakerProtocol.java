@@ -18,8 +18,6 @@
 package bisq.core.trade.protocol;
 
 
-import static com.google.common.base.Preconditions.checkNotNull;
-
 import bisq.common.handlers.ErrorMessageHandler;
 import bisq.common.handlers.ResultHandler;
 import bisq.core.offer.Offer;
@@ -36,6 +34,8 @@ import bisq.core.trade.protocol.tasks.buyer.BuyerSetupPayoutTxListener;
 import bisq.network.p2p.NodeAddress;
 import lombok.extern.slf4j.Slf4j;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 @Slf4j
 public class BuyerAsTakerProtocol extends TakerProtocolBase implements BuyerProtocol {
 
@@ -48,10 +48,10 @@ public class BuyerAsTakerProtocol extends TakerProtocolBase implements BuyerProt
 
         Offer offer = checkNotNull(trade.getOffer());
         processModel.getTradingPeer().setPubKeyRing(offer.getPubKeyRing());
-        
+
         // TODO (woodser): setup deposit and payout listeners on construction for startup like before rebase?
     }
-    
+
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Message dispatcher
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -61,10 +61,10 @@ public class BuyerAsTakerProtocol extends TakerProtocolBase implements BuyerProt
         super.onMailboxMessage(tradeMessage, peerNodeAddress);
 
         if (tradeMessage instanceof PayoutTxPublishedMessage) {
-          handle((PayoutTxPublishedMessage) tradeMessage, peerNodeAddress);
+            handle((PayoutTxPublishedMessage) tradeMessage, peerNodeAddress);
         }
     }
-    
+
     @Override
     protected void onTradeMessage(TradeMessage tradeMessage, NodeAddress sender) {
         super.onTradeMessage(tradeMessage, sender);
@@ -73,27 +73,27 @@ public class BuyerAsTakerProtocol extends TakerProtocolBase implements BuyerProt
                 tradeMessage.getClass().getSimpleName(), sender, tradeMessage.getTradeId(), tradeMessage.getUid());
 
         if (tradeMessage instanceof PayoutTxPublishedMessage) {
-          handle((PayoutTxPublishedMessage) tradeMessage, sender);
+            handle((PayoutTxPublishedMessage) tradeMessage, sender);
         }
     }
-    
+
     private void handle(PayoutTxPublishedMessage message, NodeAddress sender) {
-      processModel.setTradeMessage(message);
-      processModel.setTempTradingPeerNodeAddress(sender);
-      expect(anyPhase(Trade.Phase.FIAT_SENT)
-          .with(message)
-          .from(sender))
-          .setup(tasks(
-              getVerifyPeersFeePaymentClass(),
-              BuyerProcessPayoutTxPublishedMessage.class)
-              .using(new TradeTaskRunner(trade,
-                  () -> {
-                    handleTaskRunnerSuccess(message);
-                  },
-                  errorMessage -> {
-                      handleTaskRunnerFault(message, errorMessage);
-                  })))
-          .executeTasks();
+        processModel.setTradeMessage(message);
+        processModel.setTempTradingPeerNodeAddress(sender);
+        expect(anyPhase(Trade.Phase.FIAT_SENT)
+                .with(message)
+                .from(sender))
+                .setup(tasks(
+                        getVerifyPeersFeePaymentClass(),
+                        BuyerProcessPayoutTxPublishedMessage.class)
+                        .using(new TradeTaskRunner(trade,
+                                () -> {
+                                    handleTaskRunnerSuccess(message);
+                                },
+                                errorMessage -> {
+                                    handleTaskRunnerFault(message, errorMessage);
+                                })))
+                .executeTasks();
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////

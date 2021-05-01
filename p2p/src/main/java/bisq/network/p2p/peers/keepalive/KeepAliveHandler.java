@@ -17,31 +17,26 @@
 
 package bisq.network.p2p.peers.keepalive;
 
+import bisq.common.Timer;
+import bisq.common.UserThread;
+import bisq.common.proto.network.NetworkEnvelope;
 import bisq.network.p2p.network.Connection;
 import bisq.network.p2p.network.MessageListener;
 import bisq.network.p2p.network.NetworkNode;
 import bisq.network.p2p.peers.PeerManager;
 import bisq.network.p2p.peers.keepalive.messages.Ping;
 import bisq.network.p2p.peers.keepalive.messages.Pong;
-
-import bisq.common.Timer;
-import bisq.common.UserThread;
-import bisq.common.proto.network.NetworkEnvelope;
-
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.SettableFuture;
-
-import java.util.Random;
-import java.util.concurrent.TimeUnit;
-
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.jetbrains.annotations.NotNull;
-
 import javax.annotation.Nullable;
+import java.util.Random;
+import java.util.concurrent.TimeUnit;
 
 class KeepAliveHandler implements MessageListener {
     private static final Logger log = LoggerFactory.getLogger(KeepAliveHandler.class);

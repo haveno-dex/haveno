@@ -27,18 +27,19 @@ import bisq.core.trade.Trade;
 import bisq.core.trade.TradeManager;
 import bisq.core.trade.closed.ClosedTradableManager;
 import bisq.core.trade.failed.FailedTradesManager;
-import java.math.BigInteger;
-import java.util.List;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.collections.ListChangeListener;
-import javax.inject.Inject;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import monero.wallet.model.MoneroAccount;
 import monero.wallet.model.MoneroOutputWallet;
 import monero.wallet.model.MoneroWalletListener;
 import org.bitcoinj.core.Coin;
+
+import javax.inject.Inject;
+import java.math.BigInteger;
+import java.util.List;
 
 @Slf4j
 public class Balances {
@@ -76,9 +77,20 @@ public class Balances {
         tradeManager.getObservableList().addListener((ListChangeListener<Trade>) change -> updateBalance());
         refundManager.getDisputesAsObservableList().addListener((ListChangeListener<Dispute>) c -> updateBalance());
         xmrWalletService.getWallet().addListener(new MoneroWalletListener() {
-          @Override public void onBalancesChanged(BigInteger newBalance, BigInteger newUnlockedBalance) { updateBalance(); }
-          @Override public void onOutputReceived(MoneroOutputWallet output) { updateBalance(); }
-          @Override public void onOutputSpent(MoneroOutputWallet output) { updateBalance(); }
+            @Override
+            public void onBalancesChanged(BigInteger newBalance, BigInteger newUnlockedBalance) {
+                updateBalance();
+            }
+
+            @Override
+            public void onOutputReceived(MoneroOutputWallet output) {
+                updateBalance();
+            }
+
+            @Override
+            public void onOutputSpent(MoneroOutputWallet output) {
+                updateBalance();
+            }
         });
         updateBalance();
     }
@@ -91,25 +103,25 @@ public class Balances {
             updateLockedBalance();
         });
     }
-    
+
     // TODO (woodser): currently reserved balance = reserved for trade (excluding multisig) and locked balance = txs with < 10 confirmations
 
     private void updateAvailableBalance() {
-      availableBalance.set(Coin.valueOf(xmrWalletService.getWallet().getUnlockedBalance(0).longValue()));
+        availableBalance.set(Coin.valueOf(xmrWalletService.getWallet().getUnlockedBalance(0).longValue()));
     }
 
     private void updateReservedBalance() {
         BigInteger sum = new BigInteger("0");
         List<MoneroAccount> accounts = xmrWalletService.getWallet().getAccounts();
         for (MoneroAccount account : accounts) {
-          if (account.getIndex() != 0) sum = sum.add(account.getBalance());
+            if (account.getIndex() != 0) sum = sum.add(account.getBalance());
         }
         reservedBalance.set(Coin.valueOf(sum.longValue()));
     }
 
     private void updateLockedBalance() {
-      BigInteger balance = xmrWalletService.getWallet().getBalance(0);
-      BigInteger unlockedBalance = xmrWalletService.getWallet().getUnlockedBalance(0);
-      lockedBalance.set(Coin.valueOf(balance.subtract(unlockedBalance).longValue()));
+        BigInteger balance = xmrWalletService.getWallet().getBalance(0);
+        BigInteger unlockedBalance = xmrWalletService.getWallet().getUnlockedBalance(0);
+        lockedBalance.set(Coin.valueOf(balance.subtract(unlockedBalance).longValue()));
     }
 }

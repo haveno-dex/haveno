@@ -17,6 +17,8 @@
 
 package bisq.core.offer;
 
+import bisq.common.app.Capabilities;
+import bisq.common.util.MathUtils;
 import bisq.core.account.witness.AccountAgeWitnessService;
 import bisq.core.btc.wallet.Restrictions;
 import bisq.core.filter.FilterManager;
@@ -34,24 +36,16 @@ import bisq.core.user.AutoConfirmSettings;
 import bisq.core.user.Preferences;
 import bisq.core.util.coin.CoinFormatter;
 import bisq.core.util.coin.CoinUtil;
-
 import bisq.network.p2p.P2PService;
-
-import bisq.common.app.Capabilities;
-import bisq.common.util.MathUtils;
-
+import com.google.common.annotations.VisibleForTesting;
+import lombok.extern.slf4j.Slf4j;
 import org.bitcoinj.core.Coin;
 import org.bitcoinj.utils.Fiat;
 
-import com.google.common.annotations.VisibleForTesting;
-
+import javax.annotation.Nullable;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
-
-import lombok.extern.slf4j.Slf4j;
-
-import javax.annotation.Nullable;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -79,8 +73,8 @@ public class OfferUtil {
     /**
      * Returns the makerFee as Coin, this can be priced in BTC or BSQ.
      *
-     * @param preferences      preferences are used to see if the user indicated a preference for paying fees in BTC
-     * @param amount           the amount of BTC to trade
+     * @param preferences preferences are used to see if the user indicated a preference for paying fees in BTC
+     * @param amount      the amount of BTC to trade
      * @return the maker fee for the given trade amount, or {@code null} if the amount is {@code null}
      */
     @Nullable
@@ -111,8 +105,8 @@ public class OfferUtil {
      * Checks if the maker fee should be paid in BTC, this can be the case due to user preference or because the user
      * doesn't have enough BSQ.
      *
-     * @param preferences      preferences are used to see if the user indicated a preference for paying fees in BTC
-     * @param amount           the amount of BTC to trade
+     * @param preferences preferences are used to see if the user indicated a preference for paying fees in BTC
+     * @param amount      the amount of BTC to trade
      * @return {@code true} if BTC is preferred or the trade amount is nonnull and there isn't enough BSQ for it
      */
     public static boolean isCurrencyForMakerFeeBtc(Preferences preferences,
@@ -126,7 +120,7 @@ public class OfferUtil {
     /**
      * Checks if the available BSQ balance is sufficient to pay for the offer's maker fee.
      *
-     * @param amount           the amount of BTC to trade
+     * @param amount the amount of BTC to trade
      * @return {@code true} if the balance is sufficient, {@code false} otherwise
      */
     public static boolean isBsqForMakerFeeAvailable(@Nullable Coin amount) {
@@ -193,9 +187,8 @@ public class OfferUtil {
     }
 
     /**
-     *
-     * @param volumeByAmount      The volume generated from an amount
-     * @param factor              The factor used for rounding. E.g. 1 means rounded to units of 1 EUR, 10 means rounded to 10 EUR...
+     * @param volumeByAmount The volume generated from an amount
+     * @param factor         The factor used for rounding. E.g. 1 means rounded to units of 1 EUR, 10 means rounded to 10 EUR...
      * @return The adjusted Fiat volume
      */
     @VisibleForTesting
@@ -212,9 +205,9 @@ public class OfferUtil {
      * Calculate the possibly adjusted amount for {@code amount}, taking into account the
      * {@code price} and {@code maxTradeLimit} and {@code factor}.
      *
-     * @param amount            Bitcoin amount which is a candidate for getting rounded.
-     * @param price             Price used in relation to that amount.
-     * @param maxTradeLimit     The max. trade limit of the users account, in satoshis.
+     * @param amount        Bitcoin amount which is a candidate for getting rounded.
+     * @param price         Price used in relation to that amount.
+     * @param maxTradeLimit The max. trade limit of the users account, in satoshis.
      * @return The adjusted amount
      */
     public static Coin getRoundedFiatAmount(Coin amount, Price price, long maxTradeLimit) {
@@ -229,11 +222,11 @@ public class OfferUtil {
      * Calculate the possibly adjusted amount for {@code amount}, taking into account the
      * {@code price} and {@code maxTradeLimit} and {@code factor}.
      *
-     * @param amount            Bitcoin amount which is a candidate for getting rounded.
-     * @param price             Price used in relation to that amount.
-     * @param maxTradeLimit     The max. trade limit of the users account, in satoshis.
-     * @param factor            The factor used for rounding. E.g. 1 means rounded to units of
-     *                          1 EUR, 10 means rounded to 10 EUR, etc.
+     * @param amount        Bitcoin amount which is a candidate for getting rounded.
+     * @param price         Price used in relation to that amount.
+     * @param maxTradeLimit The max. trade limit of the users account, in satoshis.
+     * @param factor        The factor used for rounding. E.g. 1 means rounded to units of
+     *                      1 EUR, 10 means rounded to 10 EUR, etc.
      * @return The adjusted amount
      */
     @VisibleForTesting

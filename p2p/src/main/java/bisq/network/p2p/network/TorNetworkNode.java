@@ -17,47 +17,36 @@
 
 package bisq.network.p2p.network;
 
-import bisq.network.p2p.NodeAddress;
-import bisq.network.p2p.Utils;
-
 import bisq.common.Timer;
 import bisq.common.UserThread;
 import bisq.common.proto.network.NetworkProtoResolver;
 import bisq.common.util.Utilities;
-
-import org.berndpruenster.netlayer.tor.HiddenServiceSocket;
-import org.berndpruenster.netlayer.tor.Tor;
-import org.berndpruenster.netlayer.tor.TorCtlException;
-import org.berndpruenster.netlayer.tor.TorSocket;
-
-import com.runjva.sourceforge.jsocks.protocol.Socks5Proxy;
-
+import bisq.network.p2p.NodeAddress;
+import bisq.network.p2p.Utils;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.MoreExecutors;
-
-import org.fxmisc.easybind.EasyBind;
-import org.fxmisc.easybind.monadic.MonadicBinding;
-
+import com.runjva.sourceforge.jsocks.protocol.Socks5Proxy;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.SimpleBooleanProperty;
-
-import java.security.SecureRandom;
-
-import java.net.Socket;
-
-import java.io.IOException;
-
-import java.util.Base64;
-import java.util.Date;
-import java.util.concurrent.TimeUnit;
-
+import org.berndpruenster.netlayer.tor.HiddenServiceSocket;
+import org.berndpruenster.netlayer.tor.Tor;
+import org.berndpruenster.netlayer.tor.TorCtlException;
+import org.berndpruenster.netlayer.tor.TorSocket;
+import org.fxmisc.easybind.EasyBind;
+import org.fxmisc.easybind.monadic.MonadicBinding;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import java.io.IOException;
+import java.net.Socket;
+import java.security.SecureRandom;
+import java.util.Base64;
+import java.util.Date;
+import java.util.concurrent.TimeUnit;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
@@ -88,7 +77,7 @@ public class TorNetworkNode extends NetworkNode {
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     public TorNetworkNode(int servicePort, NetworkProtoResolver networkProtoResolver, boolean useStreamIsolation,
-            TorMode torMode) {
+                          TorMode torMode) {
         super(servicePort, networkProtoResolver);
         this.torMode = torMode;
         this.streamIsolation = useStreamIsolation;

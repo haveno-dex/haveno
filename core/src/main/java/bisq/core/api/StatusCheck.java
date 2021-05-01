@@ -1,17 +1,14 @@
 package bisq.core.api;
 
+import bisq.common.config.Config;
 import bisq.core.btc.Balances;
 import bisq.core.btc.setup.WalletsSetup;
 import bisq.core.btc.wallet.WalletsManager;
-
 import bisq.network.p2p.P2PService;
-
-import bisq.common.config.Config;
+import lombok.extern.slf4j.Slf4j;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
-
-import lombok.extern.slf4j.Slf4j;
 
 @Singleton
 @Slf4j

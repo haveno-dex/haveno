@@ -21,9 +21,10 @@ import bisq.common.config.Config;
 import bisq.common.persistence.PersistenceManager;
 import bisq.common.proto.persistable.PersistableEnvelope;
 import bisq.common.proto.persistable.PersistedDataHost;
-
+import com.google.common.collect.ImmutableList;
+import com.google.inject.Inject;
 import com.google.protobuf.Message;
-
+import lombok.extern.slf4j.Slf4j;
 import org.bitcoinj.core.Address;
 import org.bitcoinj.core.LegacyAddress;
 import org.bitcoinj.core.Transaction;
@@ -31,17 +32,11 @@ import org.bitcoinj.crypto.DeterministicKey;
 import org.bitcoinj.script.Script;
 import org.bitcoinj.wallet.Wallet;
 
-import com.google.inject.Inject;
-
-import com.google.common.collect.ImmutableList;
-
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.stream.Collectors;
-
-import lombok.extern.slf4j.Slf4j;
 
 /**
  * The AddressEntries was previously stored as list, now as hashSet. We still keep the old name to reflect the

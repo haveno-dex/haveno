@@ -17,32 +17,23 @@
 
 package bisq.core.user;
 
+import bisq.common.proto.ProtoUtil;
+import bisq.common.proto.persistable.PersistableEnvelope;
 import bisq.core.locale.Country;
 import bisq.core.locale.CryptoCurrency;
 import bisq.core.locale.FiatCurrency;
 import bisq.core.locale.TradeCurrency;
 import bisq.core.payment.PaymentAccount;
 import bisq.core.proto.CoreProtoResolver;
-
-import bisq.common.proto.ProtoUtil;
-import bisq.common.proto.persistable.PersistableEnvelope;
-
-import com.google.protobuf.Message;
-
 import com.google.common.collect.Maps;
-
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.stream.Collectors;
-
+import com.google.protobuf.Message;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 
 import javax.annotation.Nullable;
+import java.util.*;
+import java.util.stream.Collectors;
 
 import static bisq.core.btc.wallet.Restrictions.getDefaultBuyerSecurityDepositAsPercent;
 
@@ -189,8 +180,8 @@ public final class PreferencesPayload implements PersistableEnvelope {
                 .setBlockNotifyPort(blockNotifyPort)
                 .setTacAcceptedV120(tacAcceptedV120)
                 .addAllAutoConfirmSettings(autoConfirmSettingsList.stream()
-                    .map(autoConfirmSettings -> ((protobuf.AutoConfirmSettings) autoConfirmSettings.toProtoMessage()))
-                    .collect(Collectors.toList()));
+                        .map(autoConfirmSettings -> ((protobuf.AutoConfirmSettings) autoConfirmSettings.toProtoMessage()))
+                        .collect(Collectors.toList()));
 
         Optional.ofNullable(backupDirectory).ifPresent(builder::setBackupDirectory);
         Optional.ofNullable(preferredTradeCurrency).ifPresent(e -> builder.setPreferredTradeCurrency((protobuf.TradeCurrency) e.toProtoMessage()));

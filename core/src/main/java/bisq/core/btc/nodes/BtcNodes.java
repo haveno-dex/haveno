@@ -18,18 +18,16 @@
 package bisq.core.btc.nodes;
 
 import bisq.common.config.Config;
-
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.List;
-import java.util.stream.Collectors;
-
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
 import javax.annotation.Nullable;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.List;
+import java.util.stream.Collectors;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
@@ -127,12 +125,10 @@ public class BtcNodes {
                 host = parts[0].replace("[", "").replace("]", "");
                 if (parts.length == 2)
                     port = Integer.parseInt(parts[1].replace(":", ""));
-            }
-            else if (parts[0].contains(":") && !parts[0].contains(".")) {
+            } else if (parts[0].contains(":") && !parts[0].contains(".")) {
                 // IPv6 address only; not delimited by square brackets
                 host = parts[0];
-            }
-            else if (parts[0].contains(".")) {
+            } else if (parts[0].contains(".")) {
                 // address and an optional port number
                 // e.g. 127.0.0.1:8333 or abcdef123xyz.onion:9999
                 parts = fullAddress.split(":");
@@ -142,7 +138,7 @@ public class BtcNodes {
                     port = Integer.parseInt(parts[1]);
             }
 
-            checkArgument(host.length()>0, "BtcNode address format not recognised");
+            checkArgument(host.length() > 0, "BtcNode address format not recognised");
             return host.contains(".onion") ? new BtcNode(null, host, null, port, null) : new BtcNode(null, null, host, port, null);
         }
 

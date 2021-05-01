@@ -17,22 +17,19 @@
 
 package bisq.network.p2p;
 
-import bisq.network.p2p.storage.payload.ExpirablePayload;
-
 import bisq.common.app.Version;
 import bisq.common.proto.ProtoUtil;
 import bisq.common.proto.network.NetworkEnvelope;
 import bisq.common.proto.persistable.PersistablePayload;
-
-import java.util.Optional;
-import java.util.UUID;
-import java.util.concurrent.TimeUnit;
-
+import bisq.network.p2p.storage.payload.ExpirablePayload;
 import lombok.EqualsAndHashCode;
 import lombok.Value;
 import lombok.extern.slf4j.Slf4j;
 
 import javax.annotation.Nullable;
+import java.util.Optional;
+import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 // We exclude uid from hashcode and equals to detect duplicate entries of the same AckMessage
 @EqualsAndHashCode(callSuper = true, exclude = {"uid"})
@@ -53,14 +50,13 @@ public final class AckMessage extends NetworkEnvelope implements MailboxMessage,
     private final String errorMessage;
 
     /**
-     *
-     * @param senderNodeAddress       Address of sender
-     * @param sourceType            Type of source e.g. TradeMessage, DisputeMessage,...
-     * @param sourceMsgClassName    Class name of source msg
-     * @param sourceUid             Optional Uid of source (TradeMessage). Can be null if we receive trades/offers from old clients
-     * @param sourceId              Id of source (tradeId, disputeId)
-     * @param success               True if source message was processed successfully
-     * @param errorMessage          Optional error message if source message processing failed
+     * @param senderNodeAddress  Address of sender
+     * @param sourceType         Type of source e.g. TradeMessage, DisputeMessage,...
+     * @param sourceMsgClassName Class name of source msg
+     * @param sourceUid          Optional Uid of source (TradeMessage). Can be null if we receive trades/offers from old clients
+     * @param sourceId           Id of source (tradeId, disputeId)
+     * @param success            True if source message was processed successfully
+     * @param errorMessage       Optional error message if source message processing failed
      */
     public AckMessage(NodeAddress senderNodeAddress,
                       AckMessageSourceType sourceType,

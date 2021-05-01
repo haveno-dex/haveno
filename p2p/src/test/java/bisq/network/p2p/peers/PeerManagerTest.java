@@ -21,19 +21,15 @@ import bisq.network.p2p.MockNode;
 import bisq.network.p2p.network.CloseConnectionReason;
 import bisq.network.p2p.network.Connection;
 import bisq.network.p2p.network.InboundConnection;
+import org.junit.Before;
+import org.junit.Test;
 
 import java.io.IOException;
-
 import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import org.junit.Before;
-import org.junit.Test;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 import static org.mockito.ArgumentMatchers.isA;
 import static org.mockito.Mockito.*;
 

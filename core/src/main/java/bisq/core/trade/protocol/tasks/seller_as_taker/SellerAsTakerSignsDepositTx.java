@@ -17,9 +17,6 @@
 
 package bisq.core.trade.protocol.tasks.seller_as_taker;
 
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
-
 import bisq.common.taskrunner.TaskRunner;
 import bisq.core.btc.model.AddressEntry;
 import bisq.core.btc.model.RawTransactionInput;
@@ -28,12 +25,16 @@ import bisq.core.trade.Contract;
 import bisq.core.trade.Trade;
 import bisq.core.trade.protocol.TradingPeer;
 import bisq.core.trade.protocol.tasks.TradeTask;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
 import org.bitcoinj.core.Coin;
 import org.bitcoinj.core.Transaction;
+
+import java.util.Arrays;
+import java.util.List;
+import java.util.Optional;
+
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
 
 @Slf4j
 public class SellerAsTakerSignsDepositTx extends TradeTask {

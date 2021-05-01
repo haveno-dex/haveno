@@ -18,17 +18,14 @@
 package bisq.core.util;
 
 import bisq.core.filter.FilterManager;
-
-import org.bitcoinj.core.Coin;
-
 import com.google.common.annotations.VisibleForTesting;
+import lombok.extern.slf4j.Slf4j;
+import org.bitcoinj.core.Coin;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.Random;
-
-import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class FeeReceiverSelector {

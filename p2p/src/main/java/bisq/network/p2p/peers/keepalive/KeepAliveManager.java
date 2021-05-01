@@ -17,35 +17,25 @@
 
 package bisq.network.p2p.peers.keepalive;
 
-import bisq.network.p2p.network.CloseConnectionReason;
-import bisq.network.p2p.network.Connection;
-import bisq.network.p2p.network.ConnectionListener;
-import bisq.network.p2p.network.MessageListener;
-import bisq.network.p2p.network.NetworkNode;
-import bisq.network.p2p.network.OutboundConnection;
-import bisq.network.p2p.peers.PeerManager;
-import bisq.network.p2p.peers.keepalive.messages.Ping;
-import bisq.network.p2p.peers.keepalive.messages.Pong;
-
 import bisq.common.Timer;
 import bisq.common.UserThread;
 import bisq.common.proto.network.NetworkEnvelope;
-
-import javax.inject.Inject;
-
+import bisq.network.p2p.network.*;
+import bisq.network.p2p.peers.PeerManager;
+import bisq.network.p2p.peers.keepalive.messages.Ping;
+import bisq.network.p2p.peers.keepalive.messages.Pong;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.SettableFuture;
-
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Random;
-
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.jetbrains.annotations.NotNull;
+import javax.inject.Inject;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Random;
 
 public class KeepAliveManager implements MessageListener, ConnectionListener, PeerManager.Listener {
     private static final Logger log = LoggerFactory.getLogger(KeepAliveManager.class);

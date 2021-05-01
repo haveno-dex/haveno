@@ -18,18 +18,15 @@
 package bisq.network.p2p.network;
 
 import bisq.common.proto.network.NetworkProtoResolver;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketException;
-
-import java.io.IOException;
-
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArraySet;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 // Runs in UserThread
 class Server implements Runnable {

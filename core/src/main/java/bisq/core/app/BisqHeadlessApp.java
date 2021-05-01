@@ -17,19 +17,16 @@
 
 package bisq.core.app;
 
-import bisq.core.trade.TradeManager;
-
 import bisq.common.UserThread;
 import bisq.common.file.CorruptedStorageFileHandler;
 import bisq.common.setup.GracefulShutDownHandler;
-
+import bisq.core.trade.TradeManager;
 import com.google.inject.Injector;
-
-import java.util.concurrent.TimeUnit;
-
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
+
+import java.util.concurrent.TimeUnit;
 
 @Slf4j
 public class BisqHeadlessApp implements HeadlessApp {

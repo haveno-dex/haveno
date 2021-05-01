@@ -17,10 +17,6 @@
 
 package bisq.core.trade.messages;
 
-import java.util.Optional;
-
-import javax.annotation.Nullable;
-
 import bisq.common.crypto.PubKeyRing;
 import bisq.common.proto.ProtoUtil;
 import bisq.core.proto.CoreProtoResolver;
@@ -28,6 +24,9 @@ import bisq.network.p2p.DirectMessage;
 import bisq.network.p2p.NodeAddress;
 import lombok.EqualsAndHashCode;
 import lombok.Value;
+
+import javax.annotation.Nullable;
+import java.util.Optional;
 
 @EqualsAndHashCode(callSuper = true)
 @Value
@@ -39,12 +38,12 @@ public final class UpdateMultisigResponse extends TradeMessage implements Direct
     private final String updatedMultisigHex;
 
     public UpdateMultisigResponse(String tradeId,
-                                     NodeAddress senderNodeAddress,
-                                     PubKeyRing pubKeyRing,
-                                     String uid,
-                                     int messageVersion,
-                                     long currentDate,
-                                     String updatedMultisigHex) {
+                                  NodeAddress senderNodeAddress,
+                                  PubKeyRing pubKeyRing,
+                                  String uid,
+                                  int messageVersion,
+                                  long currentDate,
+                                  String updatedMultisigHex) {
         super(messageVersion, tradeId, uid);
         this.senderNodeAddress = senderNodeAddress;
         this.pubKeyRing = pubKeyRing;
@@ -64,7 +63,7 @@ public final class UpdateMultisigResponse extends TradeMessage implements Direct
                 .setSenderNodeAddress(senderNodeAddress.toProtoMessage())
                 .setPubKeyRing(pubKeyRing.toProtoMessage())
                 .setUid(uid);
-        
+
         Optional.ofNullable(updatedMultisigHex).ifPresent(e -> builder.setUpdatedMultisigHex(updatedMultisigHex));
 
         builder.setCurrentDate(currentDate);
@@ -73,8 +72,8 @@ public final class UpdateMultisigResponse extends TradeMessage implements Direct
     }
 
     public static UpdateMultisigResponse fromProto(protobuf.UpdateMultisigResponse proto,
-                                                      CoreProtoResolver coreProtoResolver,
-                                                      int messageVersion) {
+                                                   CoreProtoResolver coreProtoResolver,
+                                                   int messageVersion) {
         return new UpdateMultisigResponse(proto.getTradeId(),
                 NodeAddress.fromProto(proto.getSenderNodeAddress()),
                 PubKeyRing.fromProto(proto.getPubKeyRing()),

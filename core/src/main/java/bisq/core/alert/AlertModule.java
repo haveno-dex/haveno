@@ -19,7 +19,6 @@ package bisq.core.alert;
 
 import bisq.common.app.AppModule;
 import bisq.common.config.Config;
-
 import com.google.inject.Singleton;
 
 import static bisq.common.config.Config.IGNORE_DEV_MSG;

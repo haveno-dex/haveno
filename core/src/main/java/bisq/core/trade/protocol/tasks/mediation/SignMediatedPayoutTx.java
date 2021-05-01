@@ -17,26 +17,10 @@
 
 package bisq.core.trade.protocol.tasks.mediation;
 
-import bisq.core.btc.model.AddressEntry;
-import bisq.core.btc.wallet.BtcWalletService;
-import bisq.core.offer.Offer;
-import bisq.core.trade.Contract;
-import bisq.core.trade.Trade;
-import bisq.core.trade.protocol.TradingPeer;
-import bisq.core.trade.protocol.tasks.TradeTask;
-
 import bisq.common.taskrunner.TaskRunner;
-
-import org.bitcoinj.core.Coin;
-import org.bitcoinj.core.Transaction;
-import org.bitcoinj.crypto.DeterministicKey;
-
-import java.util.Arrays;
-
+import bisq.core.trade.Trade;
+import bisq.core.trade.protocol.tasks.TradeTask;
 import lombok.extern.slf4j.Slf4j;
-
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
 
 @Slf4j
 public class SignMediatedPayoutTx extends TradeTask {

@@ -17,10 +17,6 @@
 
 package bisq.core.trade.protocol.tasks.taker;
 
-import java.math.BigInteger;
-import java.util.List;
-import java.util.UUID;
-
 import bisq.common.app.Version;
 import bisq.common.taskrunner.TaskRunner;
 import bisq.core.btc.model.XmrAddressEntry;
@@ -36,6 +32,10 @@ import monero.wallet.model.MoneroDestination;
 import monero.wallet.model.MoneroTxConfig;
 import monero.wallet.model.MoneroTxWallet;
 
+import java.math.BigInteger;
+import java.util.List;
+import java.util.UUID;
+
 @Slf4j
 public class FundMultisig extends TradeTask {
     @SuppressWarnings({"unused"})
@@ -47,12 +47,13 @@ public class FundMultisig extends TradeTask {
     protected void run() {
         try {
             runInterceptHook();
-            if (trade.getMakerDepositTxId() != null) throw new RuntimeException("Maker deposit tx already set");  // TODO (woodser): proper error handling
+            if (trade.getMakerDepositTxId() != null)
+                throw new RuntimeException("Maker deposit tx already set");  // TODO (woodser): proper error handling
             if (trade.getTakerDepositTxId() != null) throw new RuntimeException("Taker deposit tx already set");
-            
+
             // decide who goes first
             boolean takerGoesFirst = true;  // TODO (woodser): decide who goes first based on rep?
-            
+
             // taker and maker fund multisig
             String takerDepositTxId = null;
             if (takerGoesFirst) takerDepositTxId = takerFundMultisig();
@@ -61,88 +62,90 @@ public class FundMultisig extends TradeTask {
             failed(t);
         }
     }
-    
+
     private String takerFundMultisig() {
-      
-      // collect parameters for transfer to multisig
-      XmrWalletService walletService = processModel.getProvider().getXmrWalletService();
-      MoneroWallet wallet = walletService.getWallet();
-      MoneroWallet multisigWallet = walletService.getOrCreateMultisigWallet(processModel.getTrade().getId());
-      String multisigAddress = multisigWallet.getPrimaryAddress();
-      boolean tradeReserved = trade.getTakerFeeTxId() != null && trade.getState() == Trade.State.TAKER_PUBLISHED_TAKER_FEE_TX;
-      
-      // if trade is reserved, fund multisig from reserved account
-      if (tradeReserved) {
-        XmrAddressEntry addressEntry = walletService.getAddressEntry(trade.getOffer().getId(), XmrAddressEntry.Context.RESERVED_FOR_TRADE).get();
-        int accountIndex = addressEntry.getAccountIndex();
-        if (!wallet.getBalance(accountIndex).equals(wallet.getUnlockedBalance(accountIndex)) || wallet.getBalance(accountIndex).equals(BigInteger.valueOf(0))) {
-          throw new RuntimeException("Reserved trade account " + accountIndex + " balance expected to be fully available.  Balance: " + wallet.getBalance(accountIndex) + ", Unlocked Balance: " + wallet.getUnlockedBalance(accountIndex));
+
+        // collect parameters for transfer to multisig
+        XmrWalletService walletService = processModel.getProvider().getXmrWalletService();
+        MoneroWallet wallet = walletService.getWallet();
+        MoneroWallet multisigWallet = walletService.getOrCreateMultisigWallet(processModel.getTrade().getId());
+        String multisigAddress = multisigWallet.getPrimaryAddress();
+        boolean tradeReserved = trade.getTakerFeeTxId() != null && trade.getState() == Trade.State.TAKER_PUBLISHED_TAKER_FEE_TX;
+
+        // if trade is reserved, fund multisig from reserved account
+        if (tradeReserved) {
+            XmrAddressEntry addressEntry = walletService.getAddressEntry(trade.getOffer().getId(), XmrAddressEntry.Context.RESERVED_FOR_TRADE).get();
+            int accountIndex = addressEntry.getAccountIndex();
+            if (!wallet.getBalance(accountIndex).equals(wallet.getUnlockedBalance(accountIndex)) || wallet.getBalance(accountIndex).equals(BigInteger.valueOf(0))) {
+                throw new RuntimeException("Reserved trade account " + accountIndex + " balance expected to be fully available.  Balance: " + wallet.getBalance(accountIndex) + ", Unlocked Balance: " + wallet.getUnlockedBalance(accountIndex));
+            }
+            List<MoneroTxWallet> txs = wallet.sweepUnlocked(new MoneroTxConfig()
+                    .setAccountIndex(accountIndex)
+                    .setAddress(multisigAddress)
+                    .setCanSplit(false)
+                    .setRelay(true));
+            if (txs.size() != 1)
+                throw new RuntimeException("Sweeping reserved trade account to multisig expected to create exactly 1 transaction");
+            processModel.setTakerPreparedDepositTxId(txs.get(0).getHash());
+            trade.setState(Trade.State.TAKER_PUBLISHED_DEPOSIT_TX);
+            System.out.println("SUCCESSFULLY SWEPT RESERVED TRADE ACCOUNT TO MULTISIG");
+            System.out.println(txs.get(0));
+            return txs.get(0).getHash();
         }
-        List<MoneroTxWallet> txs = wallet.sweepUnlocked(new MoneroTxConfig()
-                .setAccountIndex(accountIndex)
-                .setAddress(multisigAddress)
-                .setCanSplit(false)
-                .setRelay(true));
-        if (txs.size() != 1) throw new RuntimeException("Sweeping reserved trade account to multisig expected to create exactly 1 transaction");
-        processModel.setTakerPreparedDepositTxId(txs.get(0).getHash());
-        trade.setState(Trade.State.TAKER_PUBLISHED_DEPOSIT_TX);
-        System.out.println("SUCCESSFULLY SWEPT RESERVED TRADE ACCOUNT TO MULTISIG");
-        System.out.println(txs.get(0));
-        return txs.get(0).getHash();
-      }
-      
-      // otherwise fund multisig from account 0 and pay taker fee in one transaction
-      else {
-          String tradeFeeAddress = "52FnB7ABUrKJzVQRpbMNrqDFWbcKLjFUq8Rgek7jZEuB6WE2ZggXaTf4FK6H8gQymvSrruHHrEuKhMN3qTMiBYzREKsmRKM"; // TODO (woodser): don't hardcode
-          MoneroTxWallet tx = wallet.createTx(new MoneroTxConfig()
-                  .setAccountIndex(0)
-                  .setDestinations(
-                          new MoneroDestination(tradeFeeAddress, BigInteger.valueOf(trade.getTakerFee().value).multiply(ParsingUtils.XMR_SATOSHI_MULTIPLIER)),
-                          new MoneroDestination(multisigAddress, BigInteger.valueOf(processModel.getFundsNeededForTradeAsLong()).multiply(ParsingUtils.XMR_SATOSHI_MULTIPLIER)))
-                  .setRelay(true));
-          System.out.println("SUCCESSFULLY TRANSFERRED FROM ACCOUNT 0 TO MULTISIG AND PAID FEE");
-          System.out.println(tx);
-          trade.setTakerFeeTxId(tx.getHash());
-          processModel.setTakerPreparedDepositTxId(tx.getHash());
-          trade.setState(Trade.State.TAKER_PUBLISHED_DEPOSIT_TX);
-          return tx.getHash();
-      }
+
+        // otherwise fund multisig from account 0 and pay taker fee in one transaction
+        else {
+            String tradeFeeAddress = "52FnB7ABUrKJzVQRpbMNrqDFWbcKLjFUq8Rgek7jZEuB6WE2ZggXaTf4FK6H8gQymvSrruHHrEuKhMN3qTMiBYzREKsmRKM"; // TODO (woodser): don't hardcode
+            MoneroTxWallet tx = wallet.createTx(new MoneroTxConfig()
+                    .setAccountIndex(0)
+                    .setDestinations(
+                            new MoneroDestination(tradeFeeAddress, BigInteger.valueOf(trade.getTakerFee().value).multiply(ParsingUtils.XMR_SATOSHI_MULTIPLIER)),
+                            new MoneroDestination(multisigAddress, BigInteger.valueOf(processModel.getFundsNeededForTradeAsLong()).multiply(ParsingUtils.XMR_SATOSHI_MULTIPLIER)))
+                    .setRelay(true));
+            System.out.println("SUCCESSFULLY TRANSFERRED FROM ACCOUNT 0 TO MULTISIG AND PAID FEE");
+            System.out.println(tx);
+            trade.setTakerFeeTxId(tx.getHash());
+            processModel.setTakerPreparedDepositTxId(tx.getHash());
+            trade.setState(Trade.State.TAKER_PUBLISHED_DEPOSIT_TX);
+            return tx.getHash();
+        }
     }
-    
+
     private void makerFundMultisig(String takerDepositTxId) {
-      
-      // create message to initialize trade
-      DepositTxMessage request = new DepositTxMessage(
-              Version.getP2PMessageVersion(),
-              UUID.randomUUID().toString(),
-              processModel.getOffer().getId(),
-              processModel.getMyNodeAddress(),
-              processModel.getPubKeyRing(),
-              trade.getTakerFeeTxId(),
-              takerDepositTxId);
-      
-      // send request to maker
-      // TODO (woodser): get maker deposit tx id by processing DepositTxMessage or DepositTxRequest/DepositTxResponse
-      log.info("Send {} with offerId {} and uid {} to maker {} with pub key ring", request.getClass().getSimpleName(), request.getTradeId(), request.getUid(), trade.getMakerNodeAddress(), trade.getMakerPubKeyRing());
-      processModel.getP2PService().sendEncryptedDirectMessage(
-              trade.getMakerNodeAddress(),
-              trade.getMakerPubKeyRing(),
-              request,
-              new SendDirectMessageListener() {
-                  @Override
-                  public void onArrived() {
-                      log.info("{} arrived at arbitrator: offerId={}; uid={}", request.getClass().getSimpleName(), request.getTradeId(), request.getUid());
-                      //trade.setState(Trade.State.SELLER_PUBLISHED_DEPOSIT_TX);  // TODO (woodser): Trade.State.MAKER_PUBLISHED_DEPOSIT_TX
-                      if (takerDepositTxId == null) takerFundMultisig(); // send taker funds if not already
-                      complete();
-                  }
-                  @Override
-                  public void onFault(String errorMessage) {
-                      log.error("Sending {} failed: uid={}; peer={}; error={}", request.getClass().getSimpleName(), request.getUid(), trade.getArbitratorNodeAddress(), errorMessage);
-                      appendToErrorMessage("Sending request failed: request=" + request + "\nerrorMessage=" + errorMessage);
-                      failed();
-                  }
-              }
-      );
+
+        // create message to initialize trade
+        DepositTxMessage request = new DepositTxMessage(
+                Version.getP2PMessageVersion(),
+                UUID.randomUUID().toString(),
+                processModel.getOffer().getId(),
+                processModel.getMyNodeAddress(),
+                processModel.getPubKeyRing(),
+                trade.getTakerFeeTxId(),
+                takerDepositTxId);
+
+        // send request to maker
+        // TODO (woodser): get maker deposit tx id by processing DepositTxMessage or DepositTxRequest/DepositTxResponse
+        log.info("Send {} with offerId {} and uid {} to maker {} with pub key ring", request.getClass().getSimpleName(), request.getTradeId(), request.getUid(), trade.getMakerNodeAddress(), trade.getMakerPubKeyRing());
+        processModel.getP2PService().sendEncryptedDirectMessage(
+                trade.getMakerNodeAddress(),
+                trade.getMakerPubKeyRing(),
+                request,
+                new SendDirectMessageListener() {
+                    @Override
+                    public void onArrived() {
+                        log.info("{} arrived at arbitrator: offerId={}; uid={}", request.getClass().getSimpleName(), request.getTradeId(), request.getUid());
+                        //trade.setState(Trade.State.SELLER_PUBLISHED_DEPOSIT_TX);  // TODO (woodser): Trade.State.MAKER_PUBLISHED_DEPOSIT_TX
+                        if (takerDepositTxId == null) takerFundMultisig(); // send taker funds if not already
+                        complete();
+                    }
+
+                    @Override
+                    public void onFault(String errorMessage) {
+                        log.error("Sending {} failed: uid={}; peer={}; error={}", request.getClass().getSimpleName(), request.getUid(), trade.getArbitratorNodeAddress(), errorMessage);
+                        appendToErrorMessage("Sending request failed: request=" + request + "\nerrorMessage=" + errorMessage);
+                        failed();
+                    }
+                }
+        );
     }
 }

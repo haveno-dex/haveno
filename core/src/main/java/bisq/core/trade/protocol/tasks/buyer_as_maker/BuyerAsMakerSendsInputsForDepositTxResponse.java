@@ -17,11 +17,9 @@
 
 package bisq.core.trade.protocol.tasks.buyer_as_maker;
 
+import bisq.common.taskrunner.TaskRunner;
 import bisq.core.trade.Trade;
 import bisq.core.trade.protocol.tasks.maker.MakerSendsInputsForDepositTxResponse;
-
-import bisq.common.taskrunner.TaskRunner;
-
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j

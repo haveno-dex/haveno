@@ -17,26 +17,23 @@
 
 package bisq.network.p2p.peers.getdata.messages;
 
+import bisq.common.app.Capabilities;
+import bisq.common.app.Version;
+import bisq.common.proto.network.NetworkEnvelope;
+import bisq.common.proto.network.NetworkProtoResolver;
 import bisq.network.p2p.ExtendedDataSizePermission;
 import bisq.network.p2p.SupportedCapabilitiesMessage;
 import bisq.network.p2p.storage.payload.PersistableNetworkPayload;
 import bisq.network.p2p.storage.payload.ProtectedMailboxStorageEntry;
 import bisq.network.p2p.storage.payload.ProtectedStorageEntry;
-
-import bisq.common.app.Capabilities;
-import bisq.common.app.Version;
-import bisq.common.proto.network.NetworkEnvelope;
-import bisq.common.proto.network.NetworkProtoResolver;
+import lombok.EqualsAndHashCode;
+import lombok.Value;
+import lombok.extern.slf4j.Slf4j;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.HashSet;
 import java.util.Set;
 import java.util.stream.Collectors;
-
-import lombok.EqualsAndHashCode;
-import lombok.Value;
-import lombok.extern.slf4j.Slf4j;
-
-import org.jetbrains.annotations.NotNull;
 
 @Slf4j
 @EqualsAndHashCode(callSuper = true)
@@ -122,8 +119,8 @@ public final class GetDataResponse extends NetworkEnvelope implements SupportedC
 
         Set<PersistableNetworkPayload> persistableNetworkPayloadSet = new HashSet<>(
                 proto.getPersistableNetworkPayloadItemsList().stream()
-                                .map(e -> (PersistableNetworkPayload) resolver.fromProto(e))
-                                .collect(Collectors.toSet()));
+                        .map(e -> (PersistableNetworkPayload) resolver.fromProto(e))
+                        .collect(Collectors.toSet()));
 
         return new GetDataResponse(dataSet,
                 persistableNetworkPayloadSet,

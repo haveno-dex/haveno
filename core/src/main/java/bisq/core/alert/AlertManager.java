@@ -17,37 +17,28 @@
 
 package bisq.core.alert;
 
+import bisq.common.app.DevEnv;
+import bisq.common.config.Config;
+import bisq.common.crypto.KeyRing;
 import bisq.core.user.User;
-
 import bisq.network.p2p.P2PService;
 import bisq.network.p2p.storage.HashMapChangedListener;
 import bisq.network.p2p.storage.payload.ProtectedStorageEntry;
 import bisq.network.p2p.storage.payload.ProtectedStoragePayload;
-
-import bisq.common.app.DevEnv;
-import bisq.common.config.Config;
-import bisq.common.crypto.KeyRing;
-
-import org.bitcoinj.core.ECKey;
-import org.bitcoinj.core.Utils;
-
-import javax.inject.Inject;
-import javax.inject.Named;
-
 import com.google.common.base.Charsets;
-
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.ReadOnlyObjectProperty;
 import javafx.beans.property.SimpleObjectProperty;
-
-import java.security.SignatureException;
-
-import java.math.BigInteger;
-
-import java.util.Collection;
-
+import org.bitcoinj.core.ECKey;
+import org.bitcoinj.core.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import javax.inject.Inject;
+import javax.inject.Named;
+import java.math.BigInteger;
+import java.security.SignatureException;
+import java.util.Collection;
 
 import static org.bitcoinj.core.Utils.HEX;
 

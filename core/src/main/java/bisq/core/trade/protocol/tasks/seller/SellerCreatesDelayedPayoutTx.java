@@ -17,8 +17,6 @@
 
 package bisq.core.trade.protocol.tasks.seller;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-
 import bisq.common.taskrunner.TaskRunner;
 import bisq.core.btc.wallet.TradeWalletService;
 import bisq.core.trade.Trade;
@@ -26,6 +24,8 @@ import bisq.core.trade.protocol.tasks.TradeTask;
 import lombok.extern.slf4j.Slf4j;
 import org.bitcoinj.core.Coin;
 import org.bitcoinj.core.Transaction;
+
+import static com.google.common.base.Preconditions.checkNotNull;
 
 @Slf4j
 public class SellerCreatesDelayedPayoutTx extends TradeTask {

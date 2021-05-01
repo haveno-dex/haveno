@@ -19,7 +19,7 @@ package bisq.core.trade.statistics;
 
 /**
  * Those are random ids which can be assigned to a market maker or API provider who generates trade volume for Bisq.
- *
+ * <p>
  * The assignment process is that a partner requests a referralId from the core developers and if accepted they get
  * assigned an ID. With the ID we can quantify the generated trades from that partner from analysing the trade
  * statistics. Compensation requests will be based on that data.

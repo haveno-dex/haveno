@@ -17,13 +17,7 @@
 
 package bisq.cli;
 
-import bisq.proto.grpc.DisputeAgentsGrpc;
-import bisq.proto.grpc.GetVersionGrpc;
-import bisq.proto.grpc.OffersGrpc;
-import bisq.proto.grpc.PaymentAccountsGrpc;
-import bisq.proto.grpc.PriceGrpc;
-import bisq.proto.grpc.WalletsGrpc;
-
+import bisq.proto.grpc.*;
 import io.grpc.CallCredentials;
 import io.grpc.ManagedChannelBuilder;
 

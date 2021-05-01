@@ -17,40 +17,22 @@
 
 package bisq.network.p2p.peers.peerexchange;
 
-import bisq.network.p2p.NodeAddress;
-import bisq.network.p2p.network.CloseConnectionReason;
-import bisq.network.p2p.network.Connection;
-import bisq.network.p2p.network.ConnectionListener;
-import bisq.network.p2p.network.MessageListener;
-import bisq.network.p2p.network.NetworkNode;
-import bisq.network.p2p.peers.PeerManager;
-import bisq.network.p2p.peers.peerexchange.messages.GetPeersRequest;
-import bisq.network.p2p.seed.SeedNodeRepository;
-
 import bisq.common.Timer;
 import bisq.common.UserThread;
 import bisq.common.proto.network.NetworkEnvelope;
-
-import javax.inject.Inject;
-
+import bisq.network.p2p.NodeAddress;
+import bisq.network.p2p.network.*;
+import bisq.network.p2p.peers.PeerManager;
+import bisq.network.p2p.peers.peerexchange.messages.GetPeersRequest;
+import bisq.network.p2p.seed.SeedNodeRepository;
 import com.google.common.base.Preconditions;
-
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Random;
-import java.util.Set;
-import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
-
 import lombok.extern.slf4j.Slf4j;
 
 import javax.annotation.Nullable;
+import javax.inject.Inject;
+import java.util.*;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 @Slf4j
 public class PeerExchangeManager implements MessageListener, ConnectionListener, PeerManager.Listener {

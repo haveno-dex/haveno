@@ -17,23 +17,21 @@
 
 package bisq.network.p2p;
 
-import bisq.network.p2p.storage.messages.BroadcastMessage;
-import bisq.network.p2p.storage.payload.CapabilityRequiringPayload;
-
 import bisq.common.app.Capabilities;
 import bisq.common.app.Capability;
 import bisq.common.app.Version;
 import bisq.common.proto.ProtobufferException;
 import bisq.common.proto.network.NetworkEnvelope;
 import bisq.common.proto.network.NetworkProtoResolver;
+import bisq.network.p2p.storage.messages.BroadcastMessage;
+import bisq.network.p2p.storage.payload.CapabilityRequiringPayload;
+import lombok.EqualsAndHashCode;
+import lombok.Value;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
-
-import lombok.EqualsAndHashCode;
-import lombok.Value;
 
 @EqualsAndHashCode(callSuper = true)
 @Value

@@ -17,51 +17,44 @@
 
 package bisq.network.p2p.storage;
 
+import bisq.common.app.Version;
+import bisq.common.crypto.CryptoException;
+import bisq.common.crypto.Sig;
 import bisq.network.p2p.TestUtils;
 import bisq.network.p2p.network.Connection;
 import bisq.network.p2p.storage.messages.AddDataMessage;
 import bisq.network.p2p.storage.messages.RefreshOfferMessage;
 import bisq.network.p2p.storage.messages.RemoveDataMessage;
 import bisq.network.p2p.storage.messages.RemoveMailboxDataMessage;
-import bisq.network.p2p.storage.mocks.*;
+import bisq.network.p2p.storage.mocks.PersistableExpirableProtectedStoragePayloadStub;
+import bisq.network.p2p.storage.mocks.ProtectedStoragePayloadStub;
 import bisq.network.p2p.storage.payload.ProtectedMailboxStorageEntry;
 import bisq.network.p2p.storage.payload.ProtectedStorageEntry;
 import bisq.network.p2p.storage.payload.ProtectedStoragePayload;
-
-import bisq.common.app.Version;
-import bisq.common.crypto.CryptoException;
-import bisq.common.crypto.Sig;
-
-import java.security.KeyPair;
-import java.security.NoSuchAlgorithmException;
-
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
-import static org.mockito.Mockito.*;
+import java.security.KeyPair;
+import java.security.NoSuchAlgorithmException;
+import java.util.*;
 
-import static bisq.network.p2p.storage.TestState.*;
+import static bisq.network.p2p.storage.TestState.SavedTestState;
+import static org.mockito.Mockito.*;
 
 
 /**
  * Tests of the P2PDataStore entry points that use the ProtectedStorageEntry type
- *
+ * <p>
  * The abstract base class ProtectedStorageEntryTestBase defines the common test cases and each Entry and Payload type
  * that needs to be tested is set up through extending the base class and overriding the createInstance() and
  * getEntryClass() methods to give the common tests a different combination to test.
- *
+ * <p>
  * Each subclass (Entry & Payload combination) can optionally add additional tests that verify functionality only relevant
  * to that combination.
- *
+ * <p>
  * Each test case is run through 2 entry points to validate the correct behavior
  * 1. Client API [addProtectedStorageEntry(), refreshTTL(), remove()]
  * 2. onMessage() [AddDataMessage, RefreshOfferMessage, RemoveDataMessage]
@@ -74,6 +67,7 @@ public class P2PDataStorageProtectedStorageEntryTest {
         Class<? extends ProtectedStorageEntry> entryClass;
 
         protected abstract ProtectedStoragePayload createInstance(KeyPair payloadOwnerKeys);
+
         protected abstract Class<? extends ProtectedStorageEntry> getEntryClass();
 
         // Used for tests of ProtectedStorageEntry and subclasses
@@ -190,7 +184,7 @@ public class P2PDataStorageProtectedStorageEntryTest {
             if (expectedStateChange) {
                 this.testState.verifyProtectedStorageAdd(
                         beforeState, protectedStorageEntry, true, true, true, true);
-            } else{
+            } else {
                 this.testState.verifyProtectedStorageAdd(
                         beforeState, protectedStorageEntry, false, false, false, false);
             }
@@ -494,7 +488,7 @@ public class P2PDataStorageProtectedStorageEntryTest {
         public void refreshTTL_noExist() throws CryptoException {
             ProtectedStorageEntry entry = this.getProtectedStorageEntryForAdd(1);
 
-            doRefreshTTLAndVerify(buildRefreshOfferMessage(entry, this.payloadOwnerKeys,1), false, false);
+            doRefreshTTLAndVerify(buildRefreshOfferMessage(entry, this.payloadOwnerKeys, 1), false, false);
         }
 
         // TESTCASE: Refresh an entry where seq # is equal to last seq # seen
@@ -503,7 +497,7 @@ public class P2PDataStorageProtectedStorageEntryTest {
             ProtectedStorageEntry entry = this.getProtectedStorageEntryForAdd(1);
             doProtectedStorageAddAndVerify(entry, true, true);
 
-            doRefreshTTLAndVerify(buildRefreshOfferMessage(entry, this.payloadOwnerKeys,1), false, false);
+            doRefreshTTLAndVerify(buildRefreshOfferMessage(entry, this.payloadOwnerKeys, 1), false, false);
         }
 
         // TESTCASE: Duplicate refresh message (same seq #)
@@ -529,11 +523,11 @@ public class P2PDataStorageProtectedStorageEntryTest {
 
             this.testState.incrementClock();
 
-            doRefreshTTLAndVerify(buildRefreshOfferMessage(entry, this.payloadOwnerKeys,2), true, true);
+            doRefreshTTLAndVerify(buildRefreshOfferMessage(entry, this.payloadOwnerKeys, 2), true, true);
 
             this.testState.incrementClock();
 
-            doRefreshTTLAndVerify(buildRefreshOfferMessage(entry, this.payloadOwnerKeys,3), true, true);
+            doRefreshTTLAndVerify(buildRefreshOfferMessage(entry, this.payloadOwnerKeys, 3), true, true);
         }
 
         // TESTCASE: Duplicate refresh message (lower seq #)
@@ -544,11 +538,11 @@ public class P2PDataStorageProtectedStorageEntryTest {
 
             this.testState.incrementClock();
 
-            doRefreshTTLAndVerify(buildRefreshOfferMessage(entry, this.payloadOwnerKeys,3), true, true);
+            doRefreshTTLAndVerify(buildRefreshOfferMessage(entry, this.payloadOwnerKeys, 3), true, true);
 
             this.testState.incrementClock();
 
-            doRefreshTTLAndVerify(buildRefreshOfferMessage(entry, this.payloadOwnerKeys,2), false, false);
+            doRefreshTTLAndVerify(buildRefreshOfferMessage(entry, this.payloadOwnerKeys, 2), false, false);
         }
 
         // TESTCASE: Refresh previously removed entry
@@ -560,7 +554,7 @@ public class P2PDataStorageProtectedStorageEntryTest {
             doProtectedStorageAddAndVerify(entryForAdd, true, true);
             doProtectedStorageRemoveAndVerify(entryForRemove, true, true, true, true, true);
 
-            doRefreshTTLAndVerify(buildRefreshOfferMessage(entryForAdd, this.payloadOwnerKeys,3), false, false);
+            doRefreshTTLAndVerify(buildRefreshOfferMessage(entryForAdd, this.payloadOwnerKeys, 3), false, false);
         }
 
         // TESTCASE: Refresh an entry, but owner doesn't match PubKey of original add owner

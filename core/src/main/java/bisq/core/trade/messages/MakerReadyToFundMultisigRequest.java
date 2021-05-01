@@ -31,10 +31,10 @@ public final class MakerReadyToFundMultisigRequest extends TradeMessage implemen
     private final PubKeyRing pubKeyRing;
 
     public MakerReadyToFundMultisigRequest(String tradeId,
-                                     NodeAddress senderNodeAddress,
-                                     PubKeyRing pubKeyRing,
-                                     String uid,
-                                     int messageVersion) {
+                                           NodeAddress senderNodeAddress,
+                                           PubKeyRing pubKeyRing,
+                                           String uid,
+                                           int messageVersion) {
         super(messageVersion, tradeId, uid);
         this.senderNodeAddress = senderNodeAddress;
         this.pubKeyRing = pubKeyRing;
@@ -55,10 +55,10 @@ public final class MakerReadyToFundMultisigRequest extends TradeMessage implemen
 
         return getNetworkEnvelopeBuilder().setMakerReadyToFundMultisigRequest(builder).build();
     }
-    
+
     public static MakerReadyToFundMultisigRequest fromProto(protobuf.MakerReadyToFundMultisigRequest proto,
-                                                      CoreProtoResolver coreProtoResolver,
-                                                      int messageVersion) {
+                                                            CoreProtoResolver coreProtoResolver,
+                                                            int messageVersion) {
         return new MakerReadyToFundMultisigRequest(proto.getTradeId(),
                 NodeAddress.fromProto(proto.getSenderNodeAddress()),
                 PubKeyRing.fromProto(proto.getPubKeyRing()),

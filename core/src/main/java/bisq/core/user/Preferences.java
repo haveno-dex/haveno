@@ -17,60 +17,39 @@
 
 package bisq.core.user;
 
-import bisq.core.btc.nodes.BtcNodes;
-import bisq.core.btc.nodes.LocalBitcoinNode;
-import bisq.core.btc.wallet.Restrictions;
-import bisq.core.locale.Country;
-import bisq.core.locale.CountryUtil;
-import bisq.core.locale.CryptoCurrency;
-import bisq.core.locale.CurrencyUtil;
-import bisq.core.locale.FiatCurrency;
-import bisq.core.locale.GlobalSettings;
-import bisq.core.locale.TradeCurrency;
-import bisq.core.payment.PaymentAccount;
-import bisq.core.payment.PaymentAccountUtil;
-import bisq.core.setup.CoreNetworkCapabilities;
-
-import bisq.network.p2p.network.BridgeAddressProvider;
-
 import bisq.common.config.BaseCurrencyNetwork;
 import bisq.common.config.Config;
 import bisq.common.persistence.PersistenceManager;
 import bisq.common.proto.persistable.PersistedDataHost;
 import bisq.common.util.Utilities;
-
-import javax.inject.Inject;
-import javax.inject.Named;
-import javax.inject.Singleton;
-
+import bisq.core.btc.nodes.BtcNodes;
+import bisq.core.btc.nodes.LocalBitcoinNode;
+import bisq.core.btc.wallet.Restrictions;
+import bisq.core.locale.*;
+import bisq.core.payment.PaymentAccount;
+import bisq.core.payment.PaymentAccountUtil;
+import bisq.core.setup.CoreNetworkCapabilities;
+import bisq.network.p2p.network.BridgeAddressProvider;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.IntegerProperty;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleIntegerProperty;
-
 import javafx.collections.FXCollections;
 import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
 import javafx.collections.ObservableMap;
-
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Random;
-import java.util.stream.Collectors;
-
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Delegate;
 import lombok.extern.slf4j.Slf4j;
-
 import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nullable;
+import javax.inject.Inject;
+import javax.inject.Named;
+import javax.inject.Singleton;
+import java.util.*;
+import java.util.stream.Collectors;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 

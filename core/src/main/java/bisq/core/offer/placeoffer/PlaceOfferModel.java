@@ -17,11 +17,7 @@
 
 package bisq.core.offer.placeoffer;
 
-import org.bitcoinj.core.Coin;
-import org.bitcoinj.core.Transaction;
-
 import bisq.common.taskrunner.Model;
-
 import bisq.core.btc.wallet.BtcWalletService;
 import bisq.core.btc.wallet.TradeWalletService;
 import bisq.core.btc.wallet.XmrWalletService;
@@ -35,6 +31,8 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import monero.wallet.model.MoneroTxWallet;
+import org.bitcoinj.core.Coin;
+import org.bitcoinj.core.Transaction;
 
 @Slf4j
 @Getter

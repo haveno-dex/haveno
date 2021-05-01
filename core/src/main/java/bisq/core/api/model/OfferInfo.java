@@ -18,7 +18,6 @@
 package bisq.core.api.model;
 
 import bisq.common.Payload;
-
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.ToString;

@@ -25,25 +25,19 @@ import bisq.core.offer.OfferBookService;
 import bisq.core.offer.OpenOfferManager;
 import bisq.core.payment.PaymentAccount;
 import bisq.core.user.User;
-
+import lombok.extern.slf4j.Slf4j;
 import org.bitcoinj.core.Coin;
 import org.bitcoinj.core.Transaction;
 import org.bitcoinj.utils.Fiat;
 
 import javax.inject.Inject;
-
 import java.math.BigDecimal;
-
 import java.util.Comparator;
 import java.util.List;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
-import lombok.extern.slf4j.Slf4j;
-
-import static bisq.common.util.MathUtils.exactMultiply;
-import static bisq.common.util.MathUtils.roundDoubleToLong;
-import static bisq.common.util.MathUtils.scaleUpByPowerOf10;
+import static bisq.common.util.MathUtils.*;
 import static bisq.core.locale.CurrencyUtil.isCryptoCurrency;
 import static bisq.core.offer.OfferPayload.Direction;
 import static bisq.core.offer.OfferPayload.Direction.BUY;

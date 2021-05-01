@@ -20,7 +20,6 @@ package bisq.core.util.validation;
 import bisq.core.locale.Res;
 
 import java.math.BigInteger;
-
 import java.util.function.Function;
 
 public class InputValidator {

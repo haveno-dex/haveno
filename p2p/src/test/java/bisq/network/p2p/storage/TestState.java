@@ -17,15 +17,13 @@
 
 package bisq.network.p2p.storage;
 
+import bisq.common.crypto.Sig;
+import bisq.common.persistence.PersistenceManager;
+import bisq.common.proto.persistable.PersistablePayload;
 import bisq.network.p2p.NodeAddress;
 import bisq.network.p2p.network.NetworkNode;
 import bisq.network.p2p.peers.Broadcaster;
-import bisq.network.p2p.storage.messages.AddDataMessage;
-import bisq.network.p2p.storage.messages.AddPersistableNetworkPayloadMessage;
-import bisq.network.p2p.storage.messages.BroadcastMessage;
-import bisq.network.p2p.storage.messages.RefreshOfferMessage;
-import bisq.network.p2p.storage.messages.RemoveDataMessage;
-import bisq.network.p2p.storage.messages.RemoveMailboxDataMessage;
+import bisq.network.p2p.storage.messages.*;
 import bisq.network.p2p.storage.mocks.AppendOnlyDataStoreServiceFake;
 import bisq.network.p2p.storage.mocks.ClockFake;
 import bisq.network.p2p.storage.mocks.MapStoreServiceFake;
@@ -37,28 +35,21 @@ import bisq.network.p2p.storage.persistence.AppendOnlyDataStoreListener;
 import bisq.network.p2p.storage.persistence.ProtectedDataStoreService;
 import bisq.network.p2p.storage.persistence.ResourceDataStoreService;
 import bisq.network.p2p.storage.persistence.SequenceNumberMap;
-
-import bisq.common.crypto.Sig;
-import bisq.common.persistence.PersistenceManager;
-import bisq.common.proto.persistable.PersistablePayload;
+import org.junit.Assert;
+import org.mockito.ArgumentCaptor;
 
 import java.security.PublicKey;
-
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
-import org.mockito.ArgumentCaptor;
-
-import org.junit.Assert;
-
 import static org.mockito.Mockito.*;
 
 /**
  * Test object that stores a P2PDataStore instance as well as the mock objects necessary for state validation.
- *
+ * <p>
  * Used in the P2PDataStorage*Test(s) in order to leverage common test set up and validation.
  */
 public class TestState {

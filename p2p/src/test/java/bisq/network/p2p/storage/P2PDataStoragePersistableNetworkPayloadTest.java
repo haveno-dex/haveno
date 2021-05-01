@@ -22,35 +22,33 @@ import bisq.network.p2p.storage.messages.AddPersistableNetworkPayloadMessage;
 import bisq.network.p2p.storage.mocks.DateTolerantPayloadStub;
 import bisq.network.p2p.storage.mocks.PersistableNetworkPayloadStub;
 import bisq.network.p2p.storage.payload.PersistableNetworkPayload;
-
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.Optional;
-
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.Optional;
+
+import static bisq.network.p2p.storage.TestState.SavedTestState;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import static bisq.network.p2p.storage.TestState.*;
-
 /**
  * Tests of the P2PDataStore entry points that use the PersistableNetworkPayload type
- *
+ * <p>
  * The abstract base class AddPersistableNetworkPayloadTest defines the common test cases and Payload type
  * that needs to be tested is set up through extending the base class and overriding the createInstance() methods to
  * give the common tests a different payload to test.
- *
+ * <p>
  * Each subclass (Payload type) can optionally add additional tests that verify functionality only relevant
  * to that payload.
- *
+ * <p>
  * Each test case is run through 3 entry points to verify the correct behavior:
- *
+ * <p>
  * 1 & 2 Client API [addPersistableNetworkPayload(reBroadcast=(true && false))]
  * 3.    onMessage() [onMessage(AddPersistableNetworkPayloadMessage)]
  */
@@ -108,14 +106,14 @@ public class P2PDataStoragePersistableNetworkPayloadTest {
             List<Object[]> data = new ArrayList<>();
 
             // onMessage doesn't use other parameters
-            data.add(new Object[] { TestCase.ON_MESSAGE, false });
+            data.add(new Object[]{TestCase.ON_MESSAGE, false});
 
             // Client API uses two permutations
             // Normal path
-            data.add(new Object[] { TestCase.PUBLIC_API, true });
+            data.add(new Object[]{TestCase.PUBLIC_API, true});
 
             // Refresh path
-            data.add(new Object[] { TestCase.PUBLIC_API, false });
+            data.add(new Object[]{TestCase.PUBLIC_API, false});
 
             return data;
         }

@@ -40,9 +40,10 @@ import bisq.core.user.UserPayload;
 import bisq.network.p2p.peers.peerexchange.PeerList;
 import bisq.network.p2p.storage.persistence.SequenceNumberMap;
 import com.google.inject.Provider;
+import lombok.extern.slf4j.Slf4j;
+
 import javax.inject.Inject;
 import javax.inject.Singleton;
-import lombok.extern.slf4j.Slf4j;
 
 // TODO Use ProtobufferException instead of ProtobufferRuntimeException
 @Slf4j
@@ -72,7 +73,7 @@ public class CorePersistenceProtoResolver extends CoreProtoResolver implements P
                 case ADDRESS_ENTRY_LIST:
                     return AddressEntryList.fromProto(proto.getAddressEntryList());
                 case XMR_ADDRESS_ENTRY_LIST:
-                  return XmrAddressEntryList.fromProto(proto.getXmrAddressEntryList());
+                    return XmrAddressEntryList.fromProto(proto.getXmrAddressEntryList());
                 case TRADABLE_LIST:
                     return TradableList.fromProto(proto.getTradableList(), this, xmrWalletService.get());
                 case ARBITRATION_DISPUTE_LIST:

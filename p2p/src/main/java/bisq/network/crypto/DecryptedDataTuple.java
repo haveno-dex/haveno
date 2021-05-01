@@ -18,11 +18,10 @@
 package bisq.network.crypto;
 
 import bisq.common.proto.network.NetworkEnvelope;
-
-import java.security.PublicKey;
-
 import lombok.EqualsAndHashCode;
 import lombok.Value;
+
+import java.security.PublicKey;
 
 @EqualsAndHashCode
 @Value

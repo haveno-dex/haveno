@@ -17,6 +17,8 @@
 
 package bisq.network.p2p.storage;
 
+import bisq.common.app.Version;
+import bisq.common.crypto.CryptoException;
 import bisq.network.p2p.TestUtils;
 import bisq.network.p2p.network.Connection;
 import bisq.network.p2p.storage.messages.AddDataMessage;
@@ -26,27 +28,21 @@ import bisq.network.p2p.storage.payload.MailboxStoragePayload;
 import bisq.network.p2p.storage.payload.ProtectedMailboxStorageEntry;
 import bisq.network.p2p.storage.payload.ProtectedStorageEntry;
 import bisq.network.p2p.storage.payload.ProtectedStoragePayload;
-
-import bisq.common.app.Version;
-import bisq.common.crypto.CryptoException;
-
-import java.security.KeyPair;
-import java.security.NoSuchAlgorithmException;
-
-import java.util.Optional;
-
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.security.KeyPair;
+import java.security.NoSuchAlgorithmException;
+import java.util.Optional;
+
+import static bisq.network.p2p.storage.TestState.SavedTestState;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import static bisq.network.p2p.storage.TestState.*;
-
 /**
  * Tests of the P2PDataStore Client API entry points.
- *
+ * <p>
  * These tests validate the client code path that uses the pattern addProtectedStorageEntry(getProtectedStorageEntry())
  * as opposed to the onMessage() handler or DataRequest paths.
  */

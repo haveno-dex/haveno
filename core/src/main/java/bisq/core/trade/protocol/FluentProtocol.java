@@ -17,23 +17,18 @@
 
 package bisq.core.trade.protocol;
 
+import bisq.common.taskrunner.Task;
 import bisq.core.trade.Trade;
 import bisq.core.trade.messages.TradeMessage;
-
 import bisq.network.p2p.NodeAddress;
-
-import bisq.common.taskrunner.Task;
-
-import java.text.MessageFormat;
-
-import java.util.HashSet;
-import java.util.Set;
-import java.util.function.Consumer;
-
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
 import javax.annotation.Nullable;
+import java.text.MessageFormat;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.function.Consumer;
 
 import static bisq.core.util.Validator.isTradeIdValid;
 import static com.google.common.base.Preconditions.checkArgument;

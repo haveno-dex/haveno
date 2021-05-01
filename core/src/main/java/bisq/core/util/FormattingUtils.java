@@ -1,33 +1,27 @@
 package bisq.core.util;
 
+import bisq.common.util.MathUtils;
 import bisq.core.locale.CurrencyUtil;
 import bisq.core.locale.GlobalSettings;
 import bisq.core.locale.Res;
 import bisq.core.monetary.Altcoin;
 import bisq.core.monetary.Price;
-
-import bisq.common.util.MathUtils;
-
+import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.time.DateUtils;
+import org.apache.commons.lang3.time.DurationFormatUtils;
 import org.bitcoinj.core.Coin;
 import org.bitcoinj.core.Monetary;
 import org.bitcoinj.utils.Fiat;
 import org.bitcoinj.utils.MonetaryFormat;
-
-import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.lang3.time.DateUtils;
-import org.apache.commons.lang3.time.DurationFormatUtils;
+import org.jetbrains.annotations.NotNull;
 
 import java.text.DateFormat;
 import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
-
 import java.util.Date;
 import java.util.Locale;
 import java.util.TimeZone;
-
-import lombok.extern.slf4j.Slf4j;
-
-import org.jetbrains.annotations.NotNull;
 
 @Slf4j
 public class FormattingUtils {

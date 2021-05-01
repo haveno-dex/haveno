@@ -17,15 +17,9 @@
 
 package bisq.core.trade.protocol.tasks;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-
 import bisq.common.taskrunner.TaskRunner;
-import bisq.core.btc.wallet.WalletService;
 import bisq.core.trade.Trade;
-import bisq.core.trade.messages.PeerPublishedDelayedPayoutTxMessage;
-import bisq.core.util.Validator;
 import lombok.extern.slf4j.Slf4j;
-import org.bitcoinj.core.Transaction;
 
 @Slf4j
 public class ProcessPeerPublishedDelayedPayoutTxMessage extends TradeTask {

@@ -17,19 +17,6 @@
 
 package bisq.core.offer.availability;
 
-import bisq.core.offer.Offer;
-import bisq.core.offer.availability.tasks.ProcessOfferAvailabilityResponse;
-import bisq.core.offer.availability.tasks.SendOfferAvailabilityRequest;
-import bisq.core.offer.messages.OfferAvailabilityResponse;
-import bisq.core.offer.messages.OfferMessage;
-import bisq.core.util.Validator;
-
-import bisq.network.p2p.AckMessage;
-import bisq.network.p2p.AckMessageSourceType;
-import bisq.network.p2p.DecryptedDirectMessageListener;
-import bisq.network.p2p.NodeAddress;
-import bisq.network.p2p.SendDirectMessageListener;
-
 import bisq.common.Timer;
 import bisq.common.UserThread;
 import bisq.common.crypto.PubKeyRing;
@@ -37,7 +24,13 @@ import bisq.common.handlers.ErrorMessageHandler;
 import bisq.common.handlers.ResultHandler;
 import bisq.common.proto.network.NetworkEnvelope;
 import bisq.common.taskrunner.TaskRunner;
-
+import bisq.core.offer.Offer;
+import bisq.core.offer.availability.tasks.ProcessOfferAvailabilityResponse;
+import bisq.core.offer.availability.tasks.SendOfferAvailabilityRequest;
+import bisq.core.offer.messages.OfferAvailabilityResponse;
+import bisq.core.offer.messages.OfferMessage;
+import bisq.core.util.Validator;
+import bisq.network.p2p.*;
 import lombok.extern.slf4j.Slf4j;
 
 import javax.annotation.Nullable;

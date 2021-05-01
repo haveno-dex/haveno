@@ -17,11 +17,9 @@
 
 package bisq.core.util;
 
-import bisq.core.locale.Res;
-
 import bisq.common.config.Config;
 import bisq.common.proto.ProtoUtil;
-
+import bisq.core.locale.Res;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
@@ -36,7 +34,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
  * Parameters which are only used in proposals and voting are less strict limited as we can require that those users are
  * using the latest software version.
  * The UNDEFINED entry is used as fallback for error cases and will get ignored.
- *
+ * <p>
  * Name of the params must not change as that is used for serialisation in Protobuffer. The data fields are not part of
  * the PB serialisation so changes for those would not change the hash for the dao state hash chain.
  * Though changing the values might break consensus as the validations might return a different result (e.g. a param
@@ -223,10 +221,10 @@ public enum Param {
     }
 
     /**
-     * @param defaultValue  Value at the start of the DAO
-     * @param paramType     Type of parameter
-     * @param maxDecrease   Decrease of param value limited to current value / maxDecrease. If 0 we don't apply the check and any change is possible
-     * @param maxIncrease   Increase of param value limited to current value * maxIncrease. If 0 we don't apply the check and any change is possible
+     * @param defaultValue Value at the start of the DAO
+     * @param paramType    Type of parameter
+     * @param maxDecrease  Decrease of param value limited to current value / maxDecrease. If 0 we don't apply the check and any change is possible
+     * @param maxIncrease  Increase of param value limited to current value * maxIncrease. If 0 we don't apply the check and any change is possible
      */
     Param(String defaultValue, ParamType paramType, double maxDecrease, double maxIncrease) {
         this.defaultValue = defaultValue;

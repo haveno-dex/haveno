@@ -17,24 +17,15 @@
 
 package bisq.network.p2p;
 
-import bisq.network.p2p.network.BridgeAddressProvider;
-import bisq.network.p2p.network.LocalhostNetworkNode;
-import bisq.network.p2p.network.NetworkNode;
-import bisq.network.p2p.network.NewTor;
-import bisq.network.p2p.network.RunningTor;
-import bisq.network.p2p.network.TorNetworkNode;
-
 import bisq.common.config.Config;
 import bisq.common.proto.network.NetworkProtoResolver;
-
-import javax.inject.Provider;
-import javax.inject.Named;
-
-import javax.inject.Inject;
-
-import java.io.File;
+import bisq.network.p2p.network.*;
 
 import javax.annotation.Nullable;
+import javax.inject.Inject;
+import javax.inject.Named;
+import javax.inject.Provider;
+import java.io.File;
 
 public class NetworkNodeProvider implements Provider<NetworkNode> {
 
@@ -52,7 +43,7 @@ public class NetworkNodeProvider implements Provider<NetworkNode> {
                                @Named(Config.TOR_CONTROL_PASSWORD) String password,
                                @Nullable @Named(Config.TOR_CONTROL_COOKIE_FILE) File cookieFile,
                                @Named(Config.TOR_STREAM_ISOLATION) boolean streamIsolation,
-                               @Named(Config.TOR_CONTROL_USE_SAFE_COOKIE_AUTH) boolean useSafeCookieAuthentication ) {
+                               @Named(Config.TOR_CONTROL_USE_SAFE_COOKIE_AUTH) boolean useSafeCookieAuthentication) {
         networkNode = useLocalhostForP2P ?
                 new LocalhostNetworkNode(port, networkProtoResolver) :
                 new TorNetworkNode(port, networkProtoResolver, streamIsolation,

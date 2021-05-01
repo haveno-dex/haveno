@@ -17,8 +17,6 @@
 
 package bisq.core.trade;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-
 import bisq.common.crypto.PubKeyRing;
 import bisq.common.proto.ProtoUtil;
 import bisq.common.taskrunner.Model;
@@ -43,22 +41,9 @@ import bisq.core.trade.txproof.AssetTxProofResult;
 import bisq.network.p2p.NodeAddress;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.Message;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-import java.util.Optional;
-import java.util.stream.Collectors;
-import javafx.beans.property.IntegerProperty;
-import javafx.beans.property.ObjectProperty;
-import javafx.beans.property.ReadOnlyObjectProperty;
-import javafx.beans.property.ReadOnlyStringProperty;
-import javafx.beans.property.SimpleIntegerProperty;
-import javafx.beans.property.SimpleObjectProperty;
-import javafx.beans.property.SimpleStringProperty;
-import javafx.beans.property.StringProperty;
+import javafx.beans.property.*;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
-import javax.annotation.Nullable;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
@@ -70,6 +55,15 @@ import monero.wallet.model.MoneroTxWallet;
 import org.bitcoinj.core.Coin;
 import org.bitcoinj.core.Transaction;
 import org.jetbrains.annotations.NotNull;
+
+import javax.annotation.Nullable;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
+
+import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * Holds all data which are relevant to the trade, but not those which are only needed in the trade process as shared data between tasks. Those data are
@@ -101,7 +95,7 @@ public abstract class Trade implements Tradable, Model {
 
         // taker perspective
         TAKER_RECEIVED_PUBLISH_DEPOSIT_TX_REQUEST(Phase.TAKER_FEE_PUBLISHED), // Not used anymore
-        
+
         // Alternatively the taker could have seen the deposit tx earlier before he received the DEPOSIT_TX_PUBLISHED_MSG
         TAKER_SAW_DEPOSIT_TX_IN_NETWORK(Phase.DEPOSIT_PUBLISHED),
 
@@ -440,7 +434,7 @@ public abstract class Trade implements Tradable, Model {
     @Getter
     transient final private IntegerProperty assetTxProofResultUpdateProperty = new SimpleIntegerProperty();
 
-    
+
     // Added in XMR integration
     private transient List<TradeMessageListener> tradeMessageListeners; // notified on fully validated trade messages
     @Getter
@@ -467,7 +461,7 @@ public abstract class Trade implements Tradable, Model {
     @Getter
     @Setter
     private String takerDepositTxId;
-    
+
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Constructor, initialization
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -525,7 +519,7 @@ public abstract class Trade implements Tradable, Model {
         this.tradePrice = tradePrice;
         setTradeAmount(tradeAmount);
     }
-    
+
     // arbitrator
     @SuppressWarnings("NullableProblems")
     protected Trade(Offer offer,
@@ -538,15 +532,15 @@ public abstract class Trade implements Tradable, Model {
                     NodeAddress arbitratorNodeAddress,
                     XmrWalletService xmrWalletService,
                     ProcessModel processModel) {
-      
-      this(offer,
-              txFee,
-              takerFee,
-              makerNodeAddress,
-              takerNodeAddress,
-              arbitratorNodeAddress,
-              xmrWalletService,
-              processModel);
+
+        this(offer,
+                txFee,
+                takerFee,
+                makerNodeAddress,
+                takerNodeAddress,
+                arbitratorNodeAddress,
+                xmrWalletService,
+                processModel);
 
         this.tradePrice = tradePrice;
         setTradeAmount(tradeAmount);
@@ -679,31 +673,31 @@ public abstract class Trade implements Tradable, Model {
     ///////////////////////////////////////////////////////////////////////////////////////////
     // API
     ///////////////////////////////////////////////////////////////////////////////////////////
-    
+
     public void setTradingPeerNodeAddress(NodeAddress peerAddress) {
-      if (this instanceof MakerTrade) takerNodeAddress = peerAddress;
-      else if (this instanceof TakerTrade) makerNodeAddress = peerAddress;
-      else throw new RuntimeException("Must be maker or taker to set peer address");
+        if (this instanceof MakerTrade) takerNodeAddress = peerAddress;
+        else if (this instanceof TakerTrade) makerNodeAddress = peerAddress;
+        else throw new RuntimeException("Must be maker or taker to set peer address");
     }
-    
+
     public NodeAddress getTradingPeerNodeAddress() {
-      if (this instanceof MakerTrade) return takerNodeAddress;
-      else if (this instanceof TakerTrade) return makerNodeAddress;
-      else if (this instanceof ArbitratorTrade) return null;
-      else throw new RuntimeException("Unknown trade type: " + this.getClass().getName());
+        if (this instanceof MakerTrade) return takerNodeAddress;
+        else if (this instanceof TakerTrade) return makerNodeAddress;
+        else if (this instanceof ArbitratorTrade) return null;
+        else throw new RuntimeException("Unknown trade type: " + this.getClass().getName());
     }
-    
+
     public void setTradingPeerPubKeyRing(PubKeyRing peerPubKeyRing) {
-      if (this instanceof MakerTrade) takerPubKeyRing = peerPubKeyRing;
-      else if (this instanceof TakerTrade) makerPubKeyRing = peerPubKeyRing;
-      else throw new RuntimeException("Must be maker or taker to set peer address");
+        if (this instanceof MakerTrade) takerPubKeyRing = peerPubKeyRing;
+        else if (this instanceof TakerTrade) makerPubKeyRing = peerPubKeyRing;
+        else throw new RuntimeException("Must be maker or taker to set peer address");
     }
-    
+
     public PubKeyRing getTradingPeerPubKeyRing() {
-      if (this instanceof MakerTrade) return takerPubKeyRing;
-      else if (this instanceof TakerTrade) return makerPubKeyRing;
-      else if (this instanceof ArbitratorTrade) return null;
-      else throw new RuntimeException("Unknown trade type: " + this.getClass().getName());
+        if (this instanceof MakerTrade) return takerPubKeyRing;
+        else if (this instanceof TakerTrade) return makerPubKeyRing;
+        else if (this instanceof ArbitratorTrade) return null;
+        else throw new RuntimeException("Unknown trade type: " + this.getClass().getName());
     }
 
     // The deserialized tx has not actual confidence data, so we need to get the fresh one from the wallet.
@@ -711,7 +705,7 @@ public abstract class Trade implements Tradable, Model {
         if (getMakerDepositTx() != null && getTakerDepositTx() != null) {
             System.out.println(processModel.getProvider().getXmrWalletService());
             MoneroWallet multisigWallet = processModel.getProvider().getXmrWalletService().getOrCreateMultisigWallet(getId());
-          applyDepositTxs(multisigWallet.getTx(getMakerDepositTxId()), multisigWallet.getTx(getTakerDepositTxId()));
+            applyDepositTxs(multisigWallet.getTx(getMakerDepositTxId()), multisigWallet.getTx(getTakerDepositTxId()));
         }
     }
 
@@ -722,30 +716,32 @@ public abstract class Trade implements Tradable, Model {
         takerDepositTxId = takerDepositTx.getHash();
         //setupConfirmationListener();  // TODO (woodser): listening disabled here, using SetupDepositTxsListener in buyer and seller
         if (!makerDepositTx.isLocked() && !takerDepositTx.isLocked()) {
-          setConfirmedState();  // TODO (woodser): bisq "confirmed" = xmr unlocked after 10 confirmations
+            setConfirmedState();  // TODO (woodser): bisq "confirmed" = xmr unlocked after 10 confirmations
         }
     }
 
     @Nullable
     public MoneroTxWallet getTakerDepositTx() {
-      try {
-        if (takerDepositTx == null) takerDepositTx = takerDepositTxId != null ? xmrWalletService.getOrCreateMultisigWallet(getId()).getTx(takerDepositTxId) : null;
-        return takerDepositTx;
-      } catch (MoneroError e) {
-        log.error("Wallet is missing taker deposit tx " + takerDepositTxId);
-        return null;
-      }
+        try {
+            if (takerDepositTx == null)
+                takerDepositTx = takerDepositTxId != null ? xmrWalletService.getOrCreateMultisigWallet(getId()).getTx(takerDepositTxId) : null;
+            return takerDepositTx;
+        } catch (MoneroError e) {
+            log.error("Wallet is missing taker deposit tx " + takerDepositTxId);
+            return null;
+        }
     }
-    
+
     @Nullable
     public MoneroTxWallet getMakerDepositTx() {
-      try {
-        if (makerDepositTx == null) makerDepositTx = makerDepositTxId != null ? xmrWalletService.getOrCreateMultisigWallet(getId()).getTx(makerDepositTxId) : null;
-        return makerDepositTx;
-      } catch (MoneroError e) {
-        log.error("Wallet is missing maker deposit tx " + makerDepositTxId);
-        return null;
-      }
+        try {
+            if (makerDepositTx == null)
+                makerDepositTx = makerDepositTxId != null ? xmrWalletService.getOrCreateMultisigWallet(getId()).getTx(makerDepositTxId) : null;
+            return makerDepositTx;
+        } catch (MoneroError e) {
+            log.error("Wallet is missing maker deposit tx " + makerDepositTxId);
+            return null;
+        }
     }
 
     public void applyDelayedPayoutTx(Transaction delayedPayoutTx) {
@@ -821,25 +817,26 @@ public abstract class Trade implements Tradable, Model {
     public abstract Coin getPayoutAmount();
 
     public abstract boolean confirmPermitted();
-    
-    
+
+
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Listeners
     ///////////////////////////////////////////////////////////////////////////////////////////
-    
+
     public void addTradeMessageListener(TradeMessageListener listener) {
-      tradeMessageListeners.add(listener);
+        tradeMessageListeners.add(listener);
     }
-    
+
     public void removeTradeMessageListener(TradeMessageListener listener) {
-      if (!tradeMessageListeners.remove(listener)) throw new RuntimeException("TradeMessageListener is not registered");
+        if (!tradeMessageListeners.remove(listener))
+            throw new RuntimeException("TradeMessageListener is not registered");
     }
-    
+
     // notified from TradeProtocol of verified messages
     public void onVerifiedTradeMessage(TradeMessage message, NodeAddress sender) {
-      for (TradeMessageListener listener : new ArrayList<TradeMessageListener>(tradeMessageListeners)) {  // copy array to allow listener invocation to unregister listener without concurrent modification exception
-        listener.onVerifiedTradeMessage(message, sender);
-      }
+        for (TradeMessageListener listener : new ArrayList<TradeMessageListener>(tradeMessageListeners)) {  // copy array to allow listener invocation to unregister listener without concurrent modification exception
+            listener.onVerifiedTradeMessage(message, sender);
+        }
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -969,7 +966,7 @@ public abstract class Trade implements Tradable, Model {
                 long maxHeight = Math.max(makerDepositTx.getHeight(), takerDepositTx.getHeight());
                 MoneroDaemon daemonRpc = new MoneroDaemonRpc("http://localhost:38081", "superuser", "abctesting123"); // TODO (woodser): move to common config
                 long blockTime = daemonRpc.getBlockByHeight(maxHeight).getTimestamp();
-  
+
 //            if (depositTx.getConfidence().getDepthInBlocks() > 0) {
 //                final long tradeTime = getTakeOfferDate().getTime();
 //                // Use tx.getIncludedInBestChainAt() when available, otherwise use tx.getUpdateTime()
@@ -1214,7 +1211,7 @@ public abstract class Trade implements Tradable, Model {
     private void setConfirmedState() {
         // we only apply the state if we are not already further in the process
         if (!isDepositConfirmed()) {
-            setState(State.DEPOSIT_CONFIRMED_IN_BLOCK_CHAIN);	// TODO (woodser): for xmr this means deposit txs have unlocked after 10 confirmations
+            setState(State.DEPOSIT_CONFIRMED_IN_BLOCK_CHAIN);    // TODO (woodser): for xmr this means deposit txs have unlocked after 10 confirmations
         }
     }
 

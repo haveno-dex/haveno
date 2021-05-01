@@ -17,12 +17,11 @@
 
 package bisq.core.btc.wallet;
 
+import lombok.extern.slf4j.Slf4j;
 import org.bitcoinj.core.Transaction;
 import org.bitcoinj.core.TransactionOutput;
 
 import javax.inject.Inject;
-
-import lombok.extern.slf4j.Slf4j;
 
 /**
  * We use a specialized version of the CoinSelector based on the DefaultCoinSelector implementation.
