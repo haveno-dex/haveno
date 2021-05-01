@@ -26,4 +26,4 @@ jobs:
       - name: Pull lfs
         run: git lfs pull
       - name: Build with Gradle
-        run: ./gradlew build
+        run: ./gradlew build --stacktrace
