@@ -1,5 +1,6 @@
 package bisq.common.config;
 
+import lombok.extern.slf4j.Slf4j;
 import org.bitcoinj.core.NetworkParameters;
 
 import joptsimple.AbstractOptionSpec;
@@ -52,6 +53,7 @@ import static java.util.stream.Collectors.toList;
  * @see #Config(String...)
  * @see #Config(String, File, String...)
  */
+@Slf4j
 public class Config {
 
     // Option name constants
@@ -825,8 +827,10 @@ public class Config {
 
     private static File tempUserDataDir() {
         try {
+            log.info("Creating temp user directory...");
             return Files.createTempDirectory("BisqTempUserData").toFile();
         } catch (IOException ex) {
+            log.info("Cannot create temp user directory; {}", ex);
             throw new UncheckedIOException(ex);
         }
     }
