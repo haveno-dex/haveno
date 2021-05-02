@@ -78,6 +78,7 @@ public class GuiceSetupTest {
         Res.setup();
         CurrencyUtil.setup();
 
+        //TODO(niyid) Find out why this does not build on Github
         injector = Guice.createInjector(new BisqAppModule(new Config()));
     }
 
