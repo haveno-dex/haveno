@@ -16,10 +16,12 @@
  */
 
 syntax = "proto3";
-package io.bisq.protobuffer;
+// package io.bisq.protobuffer;
+package io.haveno.protobuffer;
 
 import "pb.proto";
 
+//option java_package = "bisq.proto.grpc";
 option java_package = "bisq.proto.grpc";
 option java_multiple_files = true;
 
