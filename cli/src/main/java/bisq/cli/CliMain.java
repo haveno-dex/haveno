@@ -18,20 +18,32 @@
 // package bisq.cli;
 package haveno.cli;
 
-// have been unable to access proto.grpc need further guidance on these file types
-import bisq.proto.grpc.CreateOfferRequest;
-import bisq.proto.grpc.CreatePaymentAccountRequest;
-import bisq.proto.grpc.GetAddressBalanceRequest;
-import bisq.proto.grpc.GetBalanceRequest;
-import bisq.proto.grpc.GetFundingAddressesRequest;
-import bisq.proto.grpc.GetOffersRequest;
-import bisq.proto.grpc.GetPaymentAccountsRequest;
-import bisq.proto.grpc.GetVersionRequest;
-import bisq.proto.grpc.LockWalletRequest;
-import bisq.proto.grpc.RegisterDisputeAgentRequest;
-import bisq.proto.grpc.RemoveWalletPasswordRequest;
-import bisq.proto.grpc.SetWalletPasswordRequest;
-import bisq.proto.grpc.UnlockWalletRequest;
+// import bisq.proto.grpc.CreateOfferRequest;
+// import bisq.proto.grpc.CreatePaymentAccountRequest;
+// import bisq.proto.grpc.GetAddressBalanceRequest;
+// import bisq.proto.grpc.GetBalanceRequest;
+// import bisq.proto.grpc.GetFundingAddressesRequest;
+// import bisq.proto.grpc.GetOffersRequest;
+// import bisq.proto.grpc.GetPaymentAccountsRequest;
+// import bisq.proto.grpc.GetVersionRequest;
+// import bisq.proto.grpc.LockWalletRequest;
+// import bisq.proto.grpc.RegisterDisputeAgentRequest;
+// import bisq.proto.grpc.RemoveWalletPasswordRequest;
+// import bisq.proto.grpc.SetWalletPasswordRequest;
+// import bisq.proto.grpc.UnlockWalletRequest;
+import haveno.proto.grpc.CreateOfferRequest;
+import haveno.proto.grpc.CreatePaymentAccountRequest;
+import haveno.proto.grpc.GetAddressBalanceRequest;
+import haveno.proto.grpc.GetBalanceRequest;
+import haveno.proto.grpc.GetFundingAddressesRequest;
+import haveno.proto.grpc.GetOffersRequest;
+import haveno.proto.grpc.GetPaymentAccountsRequest;
+import haveno.proto.grpc.GetVersionRequest;
+import haveno.proto.grpc.LockWalletRequest;
+import haveno.proto.grpc.RegisterDisputeAgentRequest;
+import haveno.proto.grpc.RemoveWalletPasswordRequest;
+import haveno.proto.grpc.SetWalletPasswordRequest;
+import haveno.proto.grpc.UnlockWalletRequest;
 
 import io.grpc.StatusRuntimeException;
 
