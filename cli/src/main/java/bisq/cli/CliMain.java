@@ -15,8 +15,10 @@
  * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.cli;
+// package bisq.cli;
+package haveno.cli;
 
+// have been unable to access proto.grpc need further guidance on these file types
 import bisq.proto.grpc.CreateOfferRequest;
 import bisq.proto.grpc.CreatePaymentAccountRequest;
 import bisq.proto.grpc.GetAddressBalanceRequest;
@@ -45,12 +47,12 @@ import java.util.List;
 
 import lombok.extern.slf4j.Slf4j;
 
-import static bisq.cli.CurrencyFormat.formatSatoshis;
-import static bisq.cli.CurrencyFormat.toSatoshis;
-import static bisq.cli.NegativeNumberOptions.hasNegativeNumberOptions;
-import static bisq.cli.TableFormat.formatAddressBalanceTbl;
-import static bisq.cli.TableFormat.formatOfferTable;
-import static bisq.cli.TableFormat.formatPaymentAcctTbl;
+import static haveno.cli.CurrencyFormat.formatSatoshis;
+import static haveno.cli.CurrencyFormat.toSatoshis;
+import static haveno.cli.NegativeNumberOptions.hasNegativeNumberOptions;
+import static haveno.cli.TableFormat.formatAddressBalanceTbl;
+import static haveno.cli.TableFormat.formatOfferTable;
+import static haveno.cli.TableFormat.formatPaymentAcctTbl;
 import static java.lang.String.format;
 import static java.lang.System.err;
 import static java.lang.System.exit;
