@@ -15,8 +15,10 @@
  * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.cli;
+// package bisq.cli;
+package haveno.cli;
 
+// have been unable to access proto.grpc need further guidance on these file types
 import bisq.proto.grpc.AddressBalanceInfo;
 import bisq.proto.grpc.OfferInfo;
 
@@ -29,10 +31,10 @@ import java.util.List;
 import java.util.TimeZone;
 import java.util.stream.Collectors;
 
-import static bisq.cli.CurrencyFormat.formatAmountRange;
-import static bisq.cli.CurrencyFormat.formatOfferPrice;
-import static bisq.cli.CurrencyFormat.formatSatoshis;
-import static bisq.cli.CurrencyFormat.formatVolumeRange;
+import static haveno.cli.CurrencyFormat.formatAmountRange;
+import static haveno.cli.CurrencyFormat.formatOfferPrice;
+import static hvaeno.cli.CurrencyFormat.formatSatoshis;
+import static haveno.cli.CurrencyFormat.formatVolumeRange;
 import static com.google.common.base.Strings.padEnd;
 import static com.google.common.base.Strings.padStart;
 import static java.lang.String.format;
