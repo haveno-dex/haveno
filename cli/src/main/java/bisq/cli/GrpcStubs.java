@@ -15,8 +15,10 @@
  * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.cli;
+// package bisq.cli;
+package haveno.cli;
 
+// have been unable to access proto.grpc need further guidance on these file types
 import bisq.proto.grpc.DisputeAgentsGrpc;
 import bisq.proto.grpc.GetVersionGrpc;
 import bisq.proto.grpc.OffersGrpc;
