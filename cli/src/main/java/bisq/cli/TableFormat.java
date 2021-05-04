@@ -19,8 +19,10 @@
 package haveno.cli;
 
 // have been unable to access proto.grpc need further guidance on these file types
-import bisq.proto.grpc.AddressBalanceInfo;
-import bisq.proto.grpc.OfferInfo;
+// import bisq.proto.grpc.AddressBalanceInfo;
+// import bisq.proto.grpc.OfferInfo;
+import haveno.proto.grpc.AddressBalanceInfo;
+import haveno.proto.grpc.OfferInfo;
 
 import protobuf.PaymentAccount;
 
