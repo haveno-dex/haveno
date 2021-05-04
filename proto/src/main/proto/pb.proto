@@ -1,5 +1,6 @@
 syntax = "proto3";
-package io.bisq.protobuffer;
+//package io.bisq.protobuffer;
+package io.haveno.protobuffer;
 
 //
 // Protobuffer v3 definitions of network messages and persisted objects.
