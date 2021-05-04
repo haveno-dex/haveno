@@ -1,7 +1,7 @@
 /*
  * This file is part of Bisq.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
@@ -18,13 +18,19 @@
 // package bisq.cli;
 package haveno.cli;
 
-// have been unable to access proto.grpc need further guidance on these file types
-import bisq.proto.grpc.DisputeAgentsGrpc;
-import bisq.proto.grpc.GetVersionGrpc;
-import bisq.proto.grpc.OffersGrpc;
-import bisq.proto.grpc.PaymentAccountsGrpc;
-import bisq.proto.grpc.PriceGrpc;
-import bisq.proto.grpc.WalletsGrpc;
+
+// import bisq.proto.grpc.DisputeAgentsGrpc;
+// import bisq.proto.grpc.GetVersionGrpc;
+// import bisq.proto.grpc.OffersGrpc;
+// import bisq.proto.grpc.PaymentAccountsGrpc;
+// import bisq.proto.grpc.PriceGrpc;
+// import bisq.proto.grpc.WalletsGrpc;
+import haveno.proto.grpc.DisputeAgentsGrpc;
+import haveno.proto.grpc.GetVersionGrpc;
+import haveno.proto.grpc.OffersGrpc;
+import haveno.proto.grpc.PaymentAccountsGrpc;
+import haveno.proto.grpc.PriceGrpc;
+import haveno.proto.grpc.WalletsGrpc;
 
 import io.grpc.CallCredentials;
 import io.grpc.ManagedChannelBuilder;
