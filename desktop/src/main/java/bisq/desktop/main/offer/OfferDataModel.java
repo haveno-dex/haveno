@@ -19,8 +19,8 @@ package bisq.desktop.main.offer;
 
 import bisq.desktop.common.model.ActivatableDataModel;
 
-import bisq.core.btc.model.AddressEntry;
-import bisq.core.btc.wallet.BtcWalletService;
+import bisq.core.btc.model.XmrAddressEntry;
+import bisq.core.btc.wallet.XmrWalletService;
 import bisq.core.offer.OfferUtil;
 
 import org.bitcoinj.core.Coin;
@@ -41,7 +41,7 @@ import static bisq.core.util.coin.CoinUtil.minCoin;
  * needed in that UI element.
  */
 public abstract class OfferDataModel extends ActivatableDataModel {
-    protected final BtcWalletService btcWalletService;
+    protected final XmrWalletService xmrWalletService;
     protected final OfferUtil offerUtil;
 
     @Getter
@@ -56,18 +56,18 @@ public abstract class OfferDataModel extends ActivatableDataModel {
     protected final BooleanProperty showWalletFundedNotification = new SimpleBooleanProperty();
     @Getter
     protected Coin totalAvailableBalance;
-    protected AddressEntry addressEntry;
+    protected XmrAddressEntry addressEntry;
     protected boolean useSavingsWallet;
 
-    public OfferDataModel(BtcWalletService btcWalletService, OfferUtil offerUtil) {
-        this.btcWalletService = btcWalletService;
+    public OfferDataModel(XmrWalletService xmrWalletService, OfferUtil offerUtil) {
+        this.xmrWalletService = xmrWalletService;
         this.offerUtil = offerUtil;
     }
 
     protected void updateBalance() {
-        Coin tradeWalletBalance = btcWalletService.getBalanceForAddress(addressEntry.getAddress());
+        Coin tradeWalletBalance = xmrWalletService.getBalanceForAccount(addressEntry.getAccountIndex());
         if (useSavingsWallet) {
-            Coin savingWalletBalance = btcWalletService.getSavingWalletBalance();
+            Coin savingWalletBalance = xmrWalletService.getSavingWalletBalance();
             totalAvailableBalance = savingWalletBalance.add(tradeWalletBalance);
             if (totalToPayAsCoin.get() != null) {
                 balance.set(minCoin(totalToPayAsCoin.get(), totalAvailableBalance));

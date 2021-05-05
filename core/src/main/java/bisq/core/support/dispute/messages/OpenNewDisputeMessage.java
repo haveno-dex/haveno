@@ -33,16 +33,19 @@ import lombok.Value;
 public final class OpenNewDisputeMessage extends DisputeMessage {
     private final Dispute dispute;
     private final NodeAddress senderNodeAddress;
+    private final String updatedMultisigHex;
 
     public OpenNewDisputeMessage(Dispute dispute,
                                  NodeAddress senderNodeAddress,
                                  String uid,
-                                 SupportType supportType) {
+                                 SupportType supportType,
+                                 String updatedMultisigHex) {
         this(dispute,
                 senderNodeAddress,
                 uid,
                 Version.getP2PMessageVersion(),
-                supportType);
+                supportType,
+                updatedMultisigHex);
     }
 
 
@@ -54,10 +57,12 @@ public final class OpenNewDisputeMessage extends DisputeMessage {
                                   NodeAddress senderNodeAddress,
                                   String uid,
                                   int messageVersion,
-                                  SupportType supportType) {
+                                  SupportType supportType,
+                                  String updatedMultisigHex) {
         super(messageVersion, uid, supportType);
         this.dispute = dispute;
         this.senderNodeAddress = senderNodeAddress;
+        this.updatedMultisigHex = updatedMultisigHex;
     }
 
     @Override
@@ -67,7 +72,8 @@ public final class OpenNewDisputeMessage extends DisputeMessage {
                         .setUid(uid)
                         .setDispute(dispute.toProtoMessage())
                         .setSenderNodeAddress(senderNodeAddress.toProtoMessage())
-                        .setType(SupportType.toProtoMessage(supportType)))
+                        .setType(SupportType.toProtoMessage(supportType))
+                        .setUpdatedMultisigHex(updatedMultisigHex))
                 .build();
     }
 
@@ -78,7 +84,8 @@ public final class OpenNewDisputeMessage extends DisputeMessage {
                 NodeAddress.fromProto(proto.getSenderNodeAddress()),
                 proto.getUid(),
                 messageVersion,
-                SupportType.fromProto(proto.getType()));
+                SupportType.fromProto(proto.getType()),
+                proto.getUpdatedMultisigHex());
     }
 
     @Override
@@ -94,6 +101,7 @@ public final class OpenNewDisputeMessage extends DisputeMessage {
                 ",\n     OpenNewDisputeMessage.uid='" + uid + '\'' +
                 ",\n     messageVersion=" + messageVersion +
                 ",\n     supportType=" + supportType +
+                ",\n     updatedMultisigHex=" + updatedMultisigHex +
                 "\n} " + super.toString();
     }
 }

@@ -84,32 +84,23 @@ public final class TradeStatistics3 implements ProcessOncePersistableNetworkPayl
         if (referralId != null) {
             extraDataMap.put(OfferPayload.REFERRAL_ID, referralId);
         }
-
-        NodeAddress mediatorNodeAddress = checkNotNull(trade.getMediatorNodeAddress());
-        // The first 4 chars are sufficient to identify a mediator.
+        
+        NodeAddress arbitratorNodeAddress = checkNotNull(trade.getArbitratorNodeAddress());
+        
+        // The first 4 chars are sufficient to identify an arbitrator.
         // For testing with regtest/localhost we use the full address as its localhost and would result in
-        // same values for multiple mediators.
-        String truncatedMediatorNodeAddress = isTorNetworkNode ?
-                mediatorNodeAddress.getFullAddress().substring(0, 4) :
-                mediatorNodeAddress.getFullAddress();
-
-        // RefundAgentNodeAddress can be null if converted from old version.
-        String truncatedRefundAgentNodeAddress = null;
-        NodeAddress refundAgentNodeAddress = trade.getRefundAgentNodeAddress();
-        if (refundAgentNodeAddress != null) {
-            truncatedRefundAgentNodeAddress = isTorNetworkNode ?
-                    refundAgentNodeAddress.getFullAddress().substring(0, 4) :
-                    refundAgentNodeAddress.getFullAddress();
-        }
-
+        // same values for multiple arbitrators.
+        String truncatedArbitratorNodeAddress = isTorNetworkNode ?
+                arbitratorNodeAddress.getFullAddress().substring(0, 4) :
+                    arbitratorNodeAddress.getFullAddress();
+        
         Offer offer = checkNotNull(trade.getOffer());
         return new TradeStatistics3(offer.getCurrencyCode(),
                 trade.getTradePrice().getValue(),
                 trade.getTradeAmountAsLong(),
                 offer.getPaymentMethod().getId(),
                 trade.getTakeOfferDate().getTime(),
-                truncatedMediatorNodeAddress,
-                truncatedRefundAgentNodeAddress,
+                truncatedArbitratorNodeAddress,
                 extraDataMap);
     }
 
@@ -169,11 +160,7 @@ public final class TradeStatistics3 implements ProcessOncePersistableNetworkPayl
     @Nullable
     @JsonExclude
     @Getter
-    private String mediator;
-    @Nullable
-    @JsonExclude
-    @Getter
-    private String refundAgent;
+    private String arbitrator;
 
     // todo should we add referrerId as well? get added to extra map atm but not used so far
 
@@ -202,16 +189,14 @@ public final class TradeStatistics3 implements ProcessOncePersistableNetworkPayl
                             long amount,
                             String paymentMethod,
                             long date,
-                            String mediator,
-                            String refundAgent,
+                            String arbitrator,
                             @Nullable Map<String, String> extraDataMap) {
         this(currency,
                 price,
                 amount,
                 paymentMethod,
                 date,
-                mediator,
-                refundAgent,
+                arbitrator,
                 extraDataMap,
                 null);
     }
@@ -222,16 +207,14 @@ public final class TradeStatistics3 implements ProcessOncePersistableNetworkPayl
                             long amount,
                             String paymentMethod,
                             long date,
-                            String mediator,
-                            String refundAgent,
+                            String arbitrator,
                             @Nullable byte[] hash) {
         this(currency,
                 price,
                 amount,
                 paymentMethod,
                 date,
-                mediator,
-                refundAgent,
+                arbitrator,
                 null,
                 hash);
     }
@@ -246,8 +229,7 @@ public final class TradeStatistics3 implements ProcessOncePersistableNetworkPayl
                             long amount,
                             String paymentMethod,
                             long date,
-                            @Nullable String mediator,
-                            @Nullable String refundAgent,
+                            @Nullable String arbitrator,
                             @Nullable Map<String, String> extraDataMap,
                             @Nullable byte[] hash) {
         this.currency = currency;
@@ -261,8 +243,7 @@ public final class TradeStatistics3 implements ProcessOncePersistableNetworkPayl
         }
         this.paymentMethod = tempPaymentMethod;
         this.date = date;
-        this.mediator = mediator;
-        this.refundAgent = refundAgent;
+        this.arbitrator = arbitrator;
         this.extraDataMap = ExtraDataMapValidator.getValidatedExtraDataMap(extraDataMap);
 
         this.hash = hash == null ? createHash() : hash;
@@ -285,8 +266,7 @@ public final class TradeStatistics3 implements ProcessOncePersistableNetworkPayl
                 .setPaymentMethod(paymentMethod)
                 .setDate(date)
                 .setHash(ByteString.copyFrom(hash));
-        Optional.ofNullable(mediator).ifPresent(builder::setMediator);
-        Optional.ofNullable(refundAgent).ifPresent(builder::setRefundAgent);
+        Optional.ofNullable(arbitrator).ifPresent(builder::setArbitrator);
         Optional.ofNullable(extraDataMap).ifPresent(builder::putAllExtraData);
         return builder;
     }
@@ -307,8 +287,7 @@ public final class TradeStatistics3 implements ProcessOncePersistableNetworkPayl
                 proto.getAmount(),
                 proto.getPaymentMethod(),
                 proto.getDate(),
-                ProtoUtil.stringOrNullFromProto(proto.getMediator()),
-                ProtoUtil.stringOrNullFromProto(proto.getRefundAgent()),
+                ProtoUtil.stringOrNullFromProto(proto.getArbitrator()),
                 CollectionUtils.isEmpty(proto.getExtraDataMap()) ? null : proto.getExtraDataMap(),
                 proto.getHash().toByteArray());
     }
@@ -356,8 +335,7 @@ public final class TradeStatistics3 implements ProcessOncePersistableNetworkPayl
     }
 
     public void pruneOptionalData() {
-        mediator = null;
-        refundAgent = null;
+        arbitrator = null;
     }
 
     public String getPaymentMethod() {
@@ -438,8 +416,7 @@ public final class TradeStatistics3 implements ProcessOncePersistableNetworkPayl
                 ",\n     amount=" + amount +
                 ",\n     paymentMethod='" + paymentMethod + '\'' +
                 ",\n     date=" + date +
-                ",\n     mediator='" + mediator + '\'' +
-                ",\n     refundAgent='" + refundAgent + '\'' +
+                ",\n     arbitrator='" + arbitrator + '\'' +
                 ",\n     hash=" + Utilities.bytesAsHexString(hash) +
                 ",\n     extraDataMap=" + extraDataMap +
                 "\n}";

@@ -128,6 +128,9 @@ public final class Dispute implements NetworkPayload, PersistablePayload {
     @Nullable
     private String delayedPayoutTxId;
 
+    // Added for XMR integration
+    private boolean isOpener;
+
     // Added at v1.4.0
     @Setter
     @Nullable
@@ -160,6 +163,7 @@ public final class Dispute implements NetworkPayload, PersistablePayload {
     public Dispute(long openingDate,
                    String tradeId,
                    int traderId,
+                   boolean isOpener,
                    boolean disputeOpenerIsBuyer,
                    boolean disputeOpenerIsMaker,
                    PubKeyRing traderPubKeyRing,
@@ -180,6 +184,7 @@ public final class Dispute implements NetworkPayload, PersistablePayload {
         this.openingDate = openingDate;
         this.tradeId = tradeId;
         this.traderId = traderId;
+        this.isOpener = isOpener;
         this.disputeOpenerIsBuyer = disputeOpenerIsBuyer;
         this.disputeOpenerIsMaker = disputeOpenerIsMaker;
         this.traderPubKeyRing = traderPubKeyRing;
@@ -215,6 +220,7 @@ public final class Dispute implements NetworkPayload, PersistablePayload {
         protobuf.Dispute.Builder builder = protobuf.Dispute.newBuilder()
                 .setTradeId(tradeId)
                 .setTraderId(traderId)
+                .setIsOpener(isOpener)
                 .setDisputeOpenerIsBuyer(disputeOpenerIsBuyer)
                 .setDisputeOpenerIsMaker(disputeOpenerIsMaker)
                 .setTraderPubKeyRing(traderPubKeyRing.toProtoMessage())
@@ -253,6 +259,7 @@ public final class Dispute implements NetworkPayload, PersistablePayload {
         Dispute dispute = new Dispute(proto.getOpeningDate(),
                 proto.getTradeId(),
                 proto.getTraderId(),
+                proto.getIsOpener(),
                 proto.getDisputeOpenerIsBuyer(),
                 proto.getDisputeOpenerIsMaker(),
                 PubKeyRing.fromProto(proto.getTraderPubKeyRing()),
@@ -327,6 +334,9 @@ public final class Dispute implements NetworkPayload, PersistablePayload {
         }
     }
 
+    public boolean isMediationDispute() {
+        return !chatMessages.isEmpty() && chatMessages.get(0).getSupportType() == SupportType.MEDIATION;
+    }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Setters
@@ -447,6 +457,7 @@ public final class Dispute implements NetworkPayload, PersistablePayload {
                 ",\n     uid='" + uid + '\'' +
                 ",\n     state=" + disputeState +
                 ",\n     traderId=" + traderId +
+                ",\n     isOpener=" + isOpener +
                 ",\n     disputeOpenerIsBuyer=" + disputeOpenerIsBuyer +
                 ",\n     disputeOpenerIsMaker=" + disputeOpenerIsMaker +
                 ",\n     traderPubKeyRing=" + traderPubKeyRing +

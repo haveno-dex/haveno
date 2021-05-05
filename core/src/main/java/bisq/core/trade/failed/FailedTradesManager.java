@@ -17,8 +17,8 @@
 
 package bisq.core.trade.failed;
 
-import bisq.core.btc.model.AddressEntry;
-import bisq.core.btc.wallet.BtcWalletService;
+import bisq.core.btc.model.XmrAddressEntry;
+import bisq.core.btc.wallet.XmrWalletService;
 import bisq.core.offer.Offer;
 import bisq.core.provider.price.PriceFeedService;
 import bisq.core.trade.DumpDelayedPayoutTx;
@@ -49,7 +49,7 @@ public class FailedTradesManager implements PersistedDataHost {
     private final TradableList<Trade> failedTrades = new TradableList<>();
     private final KeyRing keyRing;
     private final PriceFeedService priceFeedService;
-    private final BtcWalletService btcWalletService;
+    private final XmrWalletService xmrWalletService;
     private final CleanupMailboxMessages cleanupMailboxMessages;
     private final PersistenceManager<TradableList<Trade>> persistenceManager;
     private final TradeUtil tradeUtil;
@@ -60,14 +60,14 @@ public class FailedTradesManager implements PersistedDataHost {
     @Inject
     public FailedTradesManager(KeyRing keyRing,
                                PriceFeedService priceFeedService,
-                               BtcWalletService btcWalletService,
+                               XmrWalletService xmrWalletService,
                                PersistenceManager<TradableList<Trade>> persistenceManager,
                                TradeUtil tradeUtil,
                                CleanupMailboxMessages cleanupMailboxMessages,
                                DumpDelayedPayoutTx dumpDelayedPayoutTx) {
         this.keyRing = keyRing;
         this.priceFeedService = priceFeedService;
-        this.btcWalletService = btcWalletService;
+        this.xmrWalletService = xmrWalletService;
         this.cleanupMailboxMessages = cleanupMailboxMessages;
         this.dumpDelayedPayoutTx = dumpDelayedPayoutTx;
         this.persistenceManager = persistenceManager;
@@ -140,8 +140,8 @@ public class FailedTradesManager implements PersistedDataHost {
             return "Addresses not found";
         }
         StringBuilder blockingTrades = new StringBuilder();
-        for (var entry : btcWalletService.getAddressEntryListAsImmutableList()) {
-            if (entry.getContext() == AddressEntry.Context.AVAILABLE)
+        for (var entry : xmrWalletService.getAddressEntryListAsImmutableList()) {
+            if (entry.getContext() == XmrAddressEntry.Context.AVAILABLE)
                 continue;
             if (entry.getAddressString() != null &&
                     (entry.getAddressString().equals(addresses.first) ||

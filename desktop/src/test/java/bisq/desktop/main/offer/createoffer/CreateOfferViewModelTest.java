@@ -23,14 +23,15 @@ import bisq.desktop.util.validation.FiatPriceValidator;
 import bisq.desktop.util.validation.SecurityDepositValidator;
 
 import bisq.core.account.witness.AccountAgeWitnessService;
-import bisq.core.btc.model.AddressEntry;
+import bisq.core.btc.model.XmrAddressEntry;
 import bisq.core.btc.wallet.BsqWalletService;
-import bisq.core.btc.wallet.BtcWalletService;
+import bisq.core.btc.wallet.XmrWalletService;
 import bisq.core.locale.Country;
 import bisq.core.locale.CryptoCurrency;
 import bisq.core.locale.GlobalSettings;
 import bisq.core.locale.Res;
 import bisq.core.offer.CreateOfferService;
+import bisq.core.offer.OfferPayload;
 import bisq.core.offer.OfferUtil;
 import bisq.core.payment.PaymentAccount;
 import bisq.core.payment.payload.PaymentMethod;
@@ -60,7 +61,6 @@ import java.util.UUID;
 import org.junit.Before;
 import org.junit.Test;
 
-import static bisq.core.offer.OfferPayload.Direction;
 import static bisq.desktop.maker.PreferenceMakers.empty;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
@@ -87,8 +87,8 @@ public class CreateOfferViewModelTest {
         final FiatPriceValidator fiatPriceValidator = new FiatPriceValidator();
 
         FeeService feeService = mock(FeeService.class);
-        AddressEntry addressEntry = mock(AddressEntry.class);
-        BtcWalletService btcWalletService = mock(BtcWalletService.class);
+        XmrAddressEntry addressEntry = mock(XmrAddressEntry.class);
+        XmrWalletService xmrWalletService = mock(XmrWalletService.class);
         PriceFeedService priceFeedService = mock(PriceFeedService.class);
         User user = mock(User.class);
         PaymentAccount paymentAccount = mock(PaymentAccount.class);
@@ -101,8 +101,8 @@ public class CreateOfferViewModelTest {
         OfferUtil offerUtil = mock(OfferUtil.class);
         var tradeStats = mock(TradeStatisticsManager.class);
 
-        when(btcWalletService.getOrCreateAddressEntry(anyString(), any())).thenReturn(addressEntry);
-        when(btcWalletService.getBalanceForAddress(any())).thenReturn(Coin.valueOf(1000L));
+        when(xmrWalletService.getOrCreateAddressEntry(anyString(), any())).thenReturn(addressEntry);
+        when(xmrWalletService.getBalanceForAccount(any(Integer.class))).thenReturn(Coin.valueOf(1000L));
         when(priceFeedService.updateCounterProperty()).thenReturn(new SimpleIntegerProperty());
         when(priceFeedService.getMarketPrice(anyString())).thenReturn(
                 new MarketPrice("USD",
@@ -122,20 +122,20 @@ public class CreateOfferViewModelTest {
         when(tradeStats.getObservableTradeStatisticsSet()).thenReturn(FXCollections.observableSet());
 
         CreateOfferDataModel dataModel = new CreateOfferDataModel(createOfferService,
-                null,
-                offerUtil,
-                btcWalletService,
-                bsqWalletService,
-                empty,
-                user,
-                null,
-                priceFeedService,
-                accountAgeWitnessService,
-                feeService,
-                coinFormatter,
-                tradeStats,
-                null);
-        dataModel.initWithData(Direction.BUY, new CryptoCurrency("BTC", "bitcoin"));
+            null,
+            offerUtil,
+            xmrWalletService,
+            bsqWalletService,
+            empty,
+            user,
+            null,
+            priceFeedService,
+            accountAgeWitnessService,
+            feeService,
+            coinFormatter,
+            tradeStats,
+            null);
+        dataModel.initWithData(OfferPayload.Direction.BUY, new CryptoCurrency("BTC", "bitcoin"));
         dataModel.activate();
 
         model = new CreateOfferViewModel(dataModel,

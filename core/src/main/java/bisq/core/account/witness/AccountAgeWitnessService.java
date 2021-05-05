@@ -33,6 +33,7 @@ import bisq.core.payment.payload.PaymentMethod;
 import bisq.core.support.dispute.Dispute;
 import bisq.core.support.dispute.DisputeResult;
 import bisq.core.support.dispute.arbitration.TraderDataItem;
+import bisq.core.trade.ArbitratorTrade;
 import bisq.core.trade.Contract;
 import bisq.core.trade.Trade;
 import bisq.core.trade.protocol.TradingPeer;
@@ -300,6 +301,7 @@ public class AccountAgeWitnessService {
     }
 
     private Optional<AccountAgeWitness> findTradePeerWitness(Trade trade) {
+        if (trade instanceof ArbitratorTrade) return Optional.empty();  // TODO (woodser): arbitrator trade has two peers
         TradingPeer tradingPeer = trade.getProcessModel().getTradingPeer();
         return (tradingPeer == null ||
                 tradingPeer.getPaymentAccountPayload() == null ||
@@ -842,6 +844,7 @@ public class AccountAgeWitnessService {
     }
 
     public SignState getSignState(Trade trade) {
+        if (trade instanceof ArbitratorTrade) return SignState.UNSIGNED;  // TODO (woodser): arbitrator has two peers
         return findTradePeerWitness(trade)
                 .map(this::getSignState)
                 .orElse(SignState.UNSIGNED);

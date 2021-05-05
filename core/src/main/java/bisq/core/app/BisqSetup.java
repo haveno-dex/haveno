@@ -28,6 +28,7 @@ import bisq.core.btc.nodes.LocalBitcoinNode;
 import bisq.core.btc.setup.WalletsSetup;
 import bisq.core.btc.wallet.BtcWalletService;
 import bisq.core.btc.wallet.WalletsManager;
+import bisq.core.btc.wallet.XmrWalletService;
 import bisq.core.btc.wallet.http.MemPoolSpaceTxBroadcaster;
 import bisq.core.dao.governance.voteresult.VoteResultException;
 import bisq.core.dao.state.unconfirmed.UnconfirmedBsqChangeOutputListService;
@@ -126,6 +127,7 @@ public class BisqSetup {
     private final WalletsManager walletsManager;
     private final WalletsSetup walletsSetup;
     private final BtcWalletService btcWalletService;
+    private final XmrWalletService xmrWalletService;
     private final P2PService p2PService;
     private final SignedWitnessStorageService signedWitnessStorageService;
     private final TradeManager tradeManager;
@@ -210,6 +212,7 @@ public class BisqSetup {
                      WalletAppSetup walletAppSetup,
                      WalletsManager walletsManager,
                      WalletsSetup walletsSetup,
+                     XmrWalletService xmrWalletService,
                      BtcWalletService btcWalletService,
                      P2PService p2PService,
                      SignedWitnessStorageService signedWitnessStorageService,
@@ -231,6 +234,7 @@ public class BisqSetup {
         this.walletAppSetup = walletAppSetup;
         this.walletsManager = walletsManager;
         this.walletsSetup = walletsSetup;
+        this.xmrWalletService = xmrWalletService;
         this.btcWalletService = btcWalletService;
         this.p2PService = p2PService;
         this.signedWitnessStorageService = signedWitnessStorageService;
@@ -514,17 +518,18 @@ public class BisqSetup {
         // We check if we have open offers with no confidence object at the maker fee tx. That can happen if the
         // miner fee was too low and the transaction got removed from mempool and got out from our wallet after a
         // resync.
-        openOfferManager.getObservableList().forEach(e -> {
-            String offerFeePaymentTxId = e.getOffer().getOfferFeePaymentTxId();
-            if (btcWalletService.getConfidenceForTxId(offerFeePaymentTxId) == null) {
-                String message = Res.get("popup.warning.openOfferWithInvalidMakerFeeTx",
-                        e.getOffer().getShortId(), offerFeePaymentTxId);
-                log.warn(message);
-                if (lockedUpFundsHandler != null) {
-                    lockedUpFundsHandler.accept(message);
-                }
-            }
-        });
+        // TODO (woodser): check for invalid maker fee txs with xmr?
+//        openOfferManager.getObservableList().forEach(e -> {
+//            String offerFeePaymentTxId = e.getOffer().getOfferFeePaymentTxId();
+//            if (btcWalletService.getConfidenceForTxId(offerFeePaymentTxId) == null) { // TODO (woodser): needed for xmr base?
+//                String message = Res.get("popup.warning.openOfferWithInvalidMakerFeeTx",
+//                        e.getOffer().getShortId(), offerFeePaymentTxId);
+//                log.warn(message);
+//                if (lockedUpFundsHandler != null) {
+//                    lockedUpFundsHandler.accept(message);
+//                }
+//            }
+//        });
     }
 
     @Nullable

@@ -18,8 +18,8 @@
 package bisq.core.support.dispute.mediation;
 
 import bisq.core.btc.setup.WalletsSetup;
-import bisq.core.btc.wallet.BtcWalletService;
 import bisq.core.btc.wallet.TradeWalletService;
+import bisq.core.btc.wallet.XmrWalletService;
 import bisq.core.dao.DaoFacade;
 import bisq.core.locale.Res;
 import bisq.core.offer.OpenOffer;
@@ -77,7 +77,7 @@ public final class MediationManager extends DisputeManager<MediationDisputeList>
     @Inject
     public MediationManager(P2PService p2PService,
                             TradeWalletService tradeWalletService,
-                            BtcWalletService walletService,
+                            XmrWalletService walletService,
                             WalletsSetup walletsSetup,
                             TradeManager tradeManager,
                             ClosedTradableManager closedTradableManager,
@@ -226,7 +226,7 @@ public final class MediationManager extends DisputeManager<MediationDisputeList>
     @Nullable
     @Override
     public NodeAddress getAgentNodeAddress(Dispute dispute) {
-        return dispute.getContract().getMediatorNodeAddress();
+        return dispute.getContract().getArbitratorNodeAddress();  // TODO (woodser): mediator becomes and replaces current arbitrator?
     }
 
     public void onAcceptMediationResult(Trade trade,

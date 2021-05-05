@@ -17,31 +17,31 @@
 
 package bisq.desktop.main.funds.transactions;
 
-import bisq.core.btc.wallet.BtcWalletService;
+import bisq.core.btc.wallet.XmrWalletService;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
 @Singleton
 public class DisplayedTransactionsFactory {
-    private final BtcWalletService btcWalletService;
+    private final XmrWalletService xmrWalletService;
     private final TradableRepository tradableRepository;
     private final TransactionListItemFactory transactionListItemFactory;
     private final TransactionAwareTradableFactory transactionAwareTradableFactory;
 
     @Inject
-    DisplayedTransactionsFactory(BtcWalletService btcWalletService,
+    DisplayedTransactionsFactory(XmrWalletService xmrWalletService,
                                  TradableRepository tradableRepository,
                                  TransactionListItemFactory transactionListItemFactory,
                                  TransactionAwareTradableFactory transactionAwareTradableFactory) {
-        this.btcWalletService = btcWalletService;
+        this.xmrWalletService = xmrWalletService;
         this.tradableRepository = tradableRepository;
         this.transactionListItemFactory = transactionListItemFactory;
         this.transactionAwareTradableFactory = transactionAwareTradableFactory;
     }
 
     DisplayedTransactions create() {
-        return new DisplayedTransactions(btcWalletService, tradableRepository, transactionListItemFactory,
+        return new DisplayedTransactions(xmrWalletService, tradableRepository, transactionListItemFactory,
                 transactionAwareTradableFactory);
     }
 }

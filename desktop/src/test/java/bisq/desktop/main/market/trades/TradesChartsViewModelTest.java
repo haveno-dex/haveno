@@ -137,14 +137,12 @@ public class TradesChartsViewModelTest {
                 now.getTime(),
                 null,
                 null,
-                null,
                 null));
         set.add(new TradeStatistics3(offer.getCurrencyCode(),
                 Price.parse("EUR", "500").getValue(),
                 Coin.parseCoin("1").getValue(),
                 PaymentMethod.BLOCK_CHAINS_ID,
                 now.getTime() + 100,
-                null,
                 null,
                 null,
                 null));
@@ -155,14 +153,12 @@ public class TradesChartsViewModelTest {
                 now.getTime() + 200,
                 null,
                 null,
-                null,
                 null));
         set.add(new TradeStatistics3(offer.getCurrencyCode(),
                 Price.parse("EUR", "580").getValue(),
                 Coin.parseCoin("1").getValue(),
                 PaymentMethod.BLOCK_CHAINS_ID,
                 now.getTime() + 300,
-                null,
                 null,
                 null,
                 null));
@@ -225,7 +221,6 @@ public class TradesChartsViewModelTest {
                         Coin.parseCoin(t.size).getValue(),
                         PaymentMethod.BLOCK_CHAINS_ID,
                         t.date.getTime(),
-                        null,
                         null,
                         null,
                         null))

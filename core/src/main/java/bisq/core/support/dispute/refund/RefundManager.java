@@ -18,8 +18,8 @@
 package bisq.core.support.dispute.refund;
 
 import bisq.core.btc.setup.WalletsSetup;
-import bisq.core.btc.wallet.BtcWalletService;
 import bisq.core.btc.wallet.TradeWalletService;
+import bisq.core.btc.wallet.XmrWalletService;
 import bisq.core.dao.DaoFacade;
 import bisq.core.locale.Res;
 import bisq.core.offer.OpenOffer;
@@ -71,12 +71,12 @@ public final class RefundManager extends DisputeManager<RefundDisputeList> {
     @Inject
     public RefundManager(P2PService p2PService,
                          TradeWalletService tradeWalletService,
-                         BtcWalletService walletService,
+                         XmrWalletService walletService,
                          WalletsSetup walletsSetup,
                          TradeManager tradeManager,
                          ClosedTradableManager closedTradableManager,
                          OpenOfferManager openOfferManager,
-                         DaoFacade daoFacade,
+                         DaoFacade daoFacade, // TODO (woodser): remove daoFacade, priceFeedService?
                          KeyRing keyRing,
                          RefundDisputeListService refundDisputeListService,
                          Config config,
@@ -232,6 +232,7 @@ public final class RefundManager extends DisputeManager<RefundDisputeList> {
     @Nullable
     @Override
     public NodeAddress getAgentNodeAddress(Dispute dispute) {
-        return dispute.getContract().getRefundAgentNodeAddress();
+      throw new RuntimeException("Refund manager not used in XMR adapation");
+        //return dispute.getContract().getRefundAgentNodeAddress();
     }
 }

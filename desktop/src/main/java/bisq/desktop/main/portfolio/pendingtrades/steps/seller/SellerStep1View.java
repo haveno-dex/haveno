@@ -17,13 +17,14 @@
 
 package bisq.desktop.main.portfolio.pendingtrades.steps.seller;
 
-import bisq.desktop.main.overlays.popups.Popup;
 import bisq.desktop.main.portfolio.pendingtrades.PendingTradesViewModel;
 import bisq.desktop.main.portfolio.pendingtrades.steps.TradeStepView;
 
 import bisq.core.locale.Res;
-import bisq.core.trade.TradeDataValidation;
 
+import lombok.extern.slf4j.Slf4j;
+
+@Slf4j
 public class SellerStep1View extends TradeStepView {
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -37,7 +38,8 @@ public class SellerStep1View extends TradeStepView {
     @Override
     protected void onPendingTradesInitialized() {
         super.onPendingTradesInitialized();
-        validateDepositInputs();
+        //validateDepositInputs();
+        log.warn("Need to validate fee and/or deposit txs in SellerStep1View for XMR?"); // TODO (woodser): need to validate fee and/or deposit txs in SellerStep1View?
         checkForTimeout();
     }
 
@@ -77,16 +79,16 @@ public class SellerStep1View extends TradeStepView {
     // Private
     ///////////////////////////////////////////////////////////////////////////////////////////
 
-    // Verify that deposit tx inputs are matching the trade fee txs outputs.
-    private void validateDepositInputs() {
-        try {
-            TradeDataValidation.validateDepositInputs(trade);
-        } catch (TradeDataValidation.ValidationException e) {
-            if (!model.dataModel.tradeManager.isAllowFaultyDelayedTxs()) {
-                new Popup().warning(Res.get("portfolio.pending.invalidTx", e.getMessage())).show();
-            }
-        }
-    }
+//    // Verify that deposit tx inputs are matching the trade fee txs outputs.
+//    private void validateDepositInputs() {
+//        try {
+//            TradeDataValidation.validateDepositInputs(trade);
+//        } catch (TradeDataValidation.ValidationException e) {
+//            if (!model.dataModel.tradeManager.isAllowFaultyDelayedTxs()) {
+//                new Popup().warning(Res.get("portfolio.pending.invalidTx", e.getMessage())).show();
+//            }
+//        }
+//    }
 }
 
 

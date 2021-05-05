@@ -19,16 +19,10 @@ package bisq.core.trade.protocol.tasks.seller;
 
 import bisq.core.trade.Trade;
 import bisq.core.trade.protocol.tasks.TradeTask;
-import bisq.core.trade.statistics.TradeStatistics3;
 
-import bisq.network.p2p.network.TorNetworkNode;
-
-import bisq.common.app.Capability;
 import bisq.common.taskrunner.TaskRunner;
 
 import lombok.extern.slf4j.Slf4j;
-
-import static com.google.common.base.Preconditions.checkNotNull;
 
 @Slf4j
 public class SellerPublishesTradeStatistics extends TradeTask {
@@ -38,36 +32,37 @@ public class SellerPublishesTradeStatistics extends TradeTask {
 
     @Override
     protected void run() {
-        try {
-            runInterceptHook();
-
-            checkNotNull(trade.getDepositTx());
-
-            processModel.getP2PService().findPeersCapabilities(trade.getTradingPeerNodeAddress())
-                    .filter(capabilities -> capabilities.containsAll(Capability.TRADE_STATISTICS_3))
-                    .ifPresentOrElse(capabilities -> {
-                                // Our peer has updated, so as we are the seller we will publish the trade statistics.
-                                // The peer as buyer does not publish anymore with v.1.4.0 (where Capability.TRADE_STATISTICS_3 was added)
-
-                                String referralId = processModel.getReferralIdService().getOptionalReferralId().orElse(null);
-                                boolean isTorNetworkNode = model.getProcessModel().getP2PService().getNetworkNode() instanceof TorNetworkNode;
-                                TradeStatistics3 tradeStatistics = TradeStatistics3.from(trade, referralId, isTorNetworkNode);
-                                if (tradeStatistics.isValid()) {
-                                    log.info("Publishing trade statistics");
-                                    processModel.getP2PService().addPersistableNetworkPayload(tradeStatistics, true);
-                                } else {
-                                    log.warn("Trade statistics are invalid. We do not publish. {}", tradeStatistics);
-                                }
-
-                                complete();
-                            },
-                            () -> {
-                                log.info("Our peer does not has updated yet, so they will publish the trade statistics. " +
-                                        "To avoid duplicates we do not publish from our side.");
-                                complete();
-                            });
-        } catch (Throwable t) {
-            failed(t);
-        }
+        throw new RuntimeException("SellerPublishesTradeStatistics needs updated for XMR");
+//        try {
+//            runInterceptHook();
+//
+//            checkNotNull(trade.getDepositTx());
+//
+//            processModel.getP2PService().findPeersCapabilities(trade.getTradingPeerNodeAddress())
+//                    .filter(capabilities -> capabilities.containsAll(Capability.TRADE_STATISTICS_3))
+//                    .ifPresentOrElse(capabilities -> {
+//                                // Our peer has updated, so as we are the seller we will publish the trade statistics.
+//                                // The peer as buyer does not publish anymore with v.1.4.0 (where Capability.TRADE_STATISTICS_3 was added)
+//
+//                                String referralId = processModel.getReferralIdService().getOptionalReferralId().orElse(null);
+//                                boolean isTorNetworkNode = model.getProcessModel().getP2PService().getNetworkNode() instanceof TorNetworkNode;
+//                                TradeStatistics3 tradeStatistics = TradeStatistics3.from(trade, referralId, isTorNetworkNode);
+//                                if (tradeStatistics.isValid()) {
+//                                    log.info("Publishing trade statistics");
+//                                    processModel.getP2PService().addPersistableNetworkPayload(tradeStatistics, true);
+//                                } else {
+//                                    log.warn("Trade statistics are invalid. We do not publish. {}", tradeStatistics);
+//                                }
+//
+//                                complete();
+//                            },
+//                            () -> {
+//                                log.info("Our peer does not has updated yet, so they will publish the trade statistics. " +
+//                                        "To avoid duplicates we do not publish from our side.");
+//                                complete();
+//                            });
+//        } catch (Throwable t) {
+//            failed(t);
+//        }
     }
 }

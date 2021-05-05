@@ -17,7 +17,7 @@
 
 package bisq.core.trade;
 
-import bisq.core.btc.wallet.BtcWalletService;
+import bisq.core.btc.wallet.XmrWalletService;
 import bisq.core.offer.Offer;
 import bisq.core.trade.protocol.ProcessModel;
 
@@ -37,26 +37,22 @@ public abstract class BuyerTrade extends Trade {
                Coin tradeAmount,
                Coin txFee,
                Coin takerFee,
-               boolean isCurrencyForTakerFeeBtc,
                long tradePrice,
-               NodeAddress tradingPeerNodeAddress,
+               @Nullable NodeAddress takerNodeAddress,
+               @Nullable NodeAddress makerNodeAddress,
                @Nullable NodeAddress arbitratorNodeAddress,
-               @Nullable NodeAddress mediatorNodeAddress,
-               @Nullable NodeAddress refundAgentNodeAddress,
-               BtcWalletService btcWalletService,
+               XmrWalletService xmrWalletService,
                ProcessModel processModel,
                String uid) {
         super(offer,
                 tradeAmount,
                 txFee,
                 takerFee,
-                isCurrencyForTakerFeeBtc,
                 tradePrice,
-                tradingPeerNodeAddress,
+                takerNodeAddress,
+                makerNodeAddress,
                 arbitratorNodeAddress,
-                mediatorNodeAddress,
-                refundAgentNodeAddress,
-                btcWalletService,
+                xmrWalletService,
                 processModel,
                 uid);
     }
@@ -64,21 +60,19 @@ public abstract class BuyerTrade extends Trade {
     BuyerTrade(Offer offer,
                Coin txFee,
                Coin takerFee,
-               boolean isCurrencyForTakerFeeBtc,
+               @Nullable NodeAddress takerNodeAddress,
+               @Nullable NodeAddress makerNodeAddress,
                @Nullable NodeAddress arbitratorNodeAddress,
-               @Nullable NodeAddress mediatorNodeAddress,
-               @Nullable NodeAddress refundAgentNodeAddress,
-               BtcWalletService btcWalletService,
+               XmrWalletService xmrWalletService,
                ProcessModel processModel,
                String uid) {
         super(offer,
                 txFee,
                 takerFee,
-                isCurrencyForTakerFeeBtc,
+                takerNodeAddress,
+                makerNodeAddress,
                 arbitratorNodeAddress,
-                mediatorNodeAddress,
-                refundAgentNodeAddress,
-                btcWalletService,
+                xmrWalletService,
                 processModel,
                 uid);
     }

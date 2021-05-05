@@ -17,26 +17,12 @@
 
 package bisq.core.trade.protocol.tasks.buyer;
 
-import bisq.core.btc.model.AddressEntry;
-import bisq.core.btc.wallet.BtcWalletService;
-import bisq.core.btc.wallet.WalletService;
 import bisq.core.trade.Trade;
-import bisq.core.trade.messages.DepositTxAndDelayedPayoutTxMessage;
 import bisq.core.trade.protocol.tasks.TradeTask;
-import bisq.core.util.Validator;
 
 import bisq.common.taskrunner.TaskRunner;
-import bisq.common.util.Utilities;
-
-import org.bitcoinj.core.Transaction;
-import org.bitcoinj.wallet.Wallet;
-
-import java.util.Arrays;
 
 import lombok.extern.slf4j.Slf4j;
-
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
 
 @Slf4j
 public class BuyerProcessDepositTxAndDelayedPayoutTxMessage extends TradeTask {
@@ -48,40 +34,37 @@ public class BuyerProcessDepositTxAndDelayedPayoutTxMessage extends TradeTask {
     protected void run() {
         try {
             runInterceptHook();
-            var message = checkNotNull((DepositTxAndDelayedPayoutTxMessage) processModel.getTradeMessage());
-            checkNotNull(message);
-            Validator.checkTradeId(processModel.getOfferId(), message);
-
-            // To access tx confidence we need to add that tx into our wallet.
-            byte[] depositTxBytes = checkNotNull(message.getDepositTx());
-            Transaction depositTx = processModel.getBtcWalletService().getTxFromSerializedTx(depositTxBytes);
-            // update with full tx
-            Wallet wallet = processModel.getBtcWalletService().getWallet();
-            Transaction committedDepositTx = WalletService.maybeAddSelfTxToWallet(depositTx, wallet);
-            trade.applyDepositTx(committedDepositTx);
-            BtcWalletService.printTx("depositTx received from peer", committedDepositTx);
-
-            // To access tx confidence we need to add that tx into our wallet.
-            byte[] delayedPayoutTxBytes = checkNotNull(message.getDelayedPayoutTx());
-            checkArgument(Arrays.equals(delayedPayoutTxBytes, trade.getDelayedPayoutTxBytes()),
-                    "mismatch between delayedPayoutTx received from peer and our one." +
-                            "\n Expected: " + Utilities.bytesAsHexString(trade.getDelayedPayoutTxBytes()) +
-                            "\n Received: " + Utilities.bytesAsHexString(delayedPayoutTxBytes));
-            trade.applyDelayedPayoutTxBytes(delayedPayoutTxBytes);
-
-            trade.setTradingPeerNodeAddress(processModel.getTempTradingPeerNodeAddress());
-
-            // If we got already the confirmation we don't want to apply an earlier state
-            if (trade.getState().ordinal() < Trade.State.BUYER_SAW_DEPOSIT_TX_IN_NETWORK.ordinal()) {
-                trade.setState(Trade.State.BUYER_RECEIVED_DEPOSIT_TX_PUBLISHED_MSG);
-            }
-
-            processModel.getBtcWalletService().swapTradeEntryToAvailableEntry(trade.getId(),
-                    AddressEntry.Context.RESERVED_FOR_TRADE);
-
-            processModel.getTradeManager().requestPersistence();
-
-            complete();
+            throw new RuntimeException("BuyerProcessDepositTxAndDelayedPayoutTxMessage invalid in xmr base pair");
+//            var message = checkNotNull((DepositTxAndDelayedPayoutTxMessage) processModel.getTradeMessage());
+//            checkNotNull(message);
+//            Validator.checkTradeId(processModel.getOfferId(), message);
+//
+//            // To access tx confidence we need to add that tx into our wallet.
+//            byte[] depositTxBytes = checkNotNull(message.getDepositTx());
+//            Transaction depositTx = processModel.getBtcWalletService().getTxFromSerializedTx(depositTxBytes);
+//            // update with full tx
+//            Wallet wallet = processModel.getBtcWalletService().getWallet();
+//            Transaction committedDepositTx = WalletService.maybeAddSelfTxToWallet(depositTx, wallet);
+//            trade.applyDepositTx(committedDepositTx);
+//            BtcWalletService.printTx("depositTx received from peer", committedDepositTx);
+//
+//            // To access tx confidence we need to add that tx into our wallet.
+//            byte[] delayedPayoutTxBytes = checkNotNull(message.getDelayedPayoutTx());
+//            trade.applyDelayedPayoutTxBytes(delayedPayoutTxBytes);
+//            BtcWalletService.printTx("delayedPayoutTx received from peer",
+//                    checkNotNull(trade.getDelayedPayoutTx()));
+//
+//            trade.setTradingPeerNodeAddress(processModel.getTempTradingPeerNodeAddress());
+//
+//            // If we got already the confirmation we don't want to apply an earlier state
+//            if (trade.getState().ordinal() < Trade.State.BUYER_SAW_DEPOSIT_TX_IN_NETWORK.ordinal()) {
+//                trade.setState(Trade.State.BUYER_RECEIVED_DEPOSIT_TX_PUBLISHED_MSG);
+//            }
+//
+//            processModel.getBtcWalletService().swapTradeEntryToAvailableEntry(trade.getId(),
+//                    AddressEntry.Context.RESERVED_FOR_TRADE);
+//
+//            complete();
         } catch (Throwable t) {
             failed(t);
         }

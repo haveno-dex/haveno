@@ -34,8 +34,7 @@ public class ContractInfo implements Payload {
 
     private final String buyerNodeAddress;
     private final String sellerNodeAddress;
-    private final String mediatorNodeAddress;
-    private final String refundAgentNodeAddress;
+    private final String arbitratorNodeAddress;
     private final boolean isBuyerMakerAndSellerTaker;
     private final String makerAccountId;
     private final String takerAccountId;
@@ -47,8 +46,7 @@ public class ContractInfo implements Payload {
 
     public ContractInfo(String buyerNodeAddress,
                         String sellerNodeAddress,
-                        String mediatorNodeAddress,
-                        String refundAgentNodeAddress,
+                        String arbitratorNodeAddress,
                         boolean isBuyerMakerAndSellerTaker,
                         String makerAccountId,
                         String takerAccountId,
@@ -59,8 +57,7 @@ public class ContractInfo implements Payload {
                         long lockTime) {
         this.buyerNodeAddress = buyerNodeAddress;
         this.sellerNodeAddress = sellerNodeAddress;
-        this.mediatorNodeAddress = mediatorNodeAddress;
-        this.refundAgentNodeAddress = refundAgentNodeAddress;
+        this.arbitratorNodeAddress = arbitratorNodeAddress;
         this.isBuyerMakerAndSellerTaker = isBuyerMakerAndSellerTaker;
         this.makerAccountId = makerAccountId;
         this.takerAccountId = takerAccountId;
@@ -75,7 +72,6 @@ public class ContractInfo implements Payload {
     // For transmitting TradeInfo messages when no contract is available.
     public static Supplier<ContractInfo> emptyContract = () ->
             new ContractInfo("",
-                    "",
                     "",
                     "",
                     false,
@@ -94,8 +90,7 @@ public class ContractInfo implements Payload {
     public static ContractInfo fromProto(bisq.proto.grpc.ContractInfo proto) {
         return new ContractInfo(proto.getBuyerNodeAddress(),
                 proto.getSellerNodeAddress(),
-                proto.getMediatorNodeAddress(),
-                proto.getRefundAgentNodeAddress(),
+                proto.getArbitratorNodeAddress(),
                 proto.getIsBuyerMakerAndSellerTaker(),
                 proto.getMakerAccountId(),
                 proto.getTakerAccountId(),
@@ -111,8 +106,7 @@ public class ContractInfo implements Payload {
         return bisq.proto.grpc.ContractInfo.newBuilder()
                 .setBuyerNodeAddress(buyerNodeAddress)
                 .setSellerNodeAddress(sellerNodeAddress)
-                .setMediatorNodeAddress(mediatorNodeAddress)
-                .setRefundAgentNodeAddress(refundAgentNodeAddress)
+                .setArbitratorNodeAddress(arbitratorNodeAddress)
                 .setIsBuyerMakerAndSellerTaker(isBuyerMakerAndSellerTaker)
                 .setMakerAccountId(makerAccountId)
                 .setTakerAccountId(takerAccountId)

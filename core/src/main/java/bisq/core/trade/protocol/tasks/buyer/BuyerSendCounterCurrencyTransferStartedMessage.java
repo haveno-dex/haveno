@@ -17,7 +17,8 @@
 
 package bisq.core.trade.protocol.tasks.buyer;
 
-import bisq.core.btc.model.AddressEntry;
+import bisq.core.btc.model.XmrAddressEntry;
+import bisq.core.btc.wallet.XmrWalletService;
 import bisq.core.network.MessageState;
 import bisq.core.trade.Trade;
 import bisq.core.trade.messages.CounterCurrencyTransferStartedMessage;
@@ -60,8 +61,12 @@ public class BuyerSendCounterCurrencyTransferStartedMessage extends SendMailboxM
     @Override
     protected TradeMailboxMessage getTradeMailboxMessage(String tradeId) {
         if (message == null) {
-            AddressEntry payoutAddressEntry = processModel.getBtcWalletService().getOrCreateAddressEntry(tradeId,
-                    AddressEntry.Context.TRADE_PAYOUT);
+
+            // gather relevant info
+            XmrWalletService walletService = processModel.getProvider().getXmrWalletService();
+            final String id = processModel.getOfferId();
+            XmrAddressEntry payoutAddressEntry = walletService.getOrCreateAddressEntry(id, XmrAddressEntry.Context.TRADE_PAYOUT);
+            String payoutTxHex = processModel.getBuyerSignedPayoutTx().getTxSet().getMultisigTxHex();
 
             // We do not use a real unique ID here as we want to be able to re-send the exact same message in case the
             // peer does not respond with an ACK msg in a certain time interval. To avoid that we get dangling mailbox
@@ -72,7 +77,7 @@ public class BuyerSendCounterCurrencyTransferStartedMessage extends SendMailboxM
                     tradeId,
                     payoutAddressEntry.getAddressString(),
                     processModel.getMyNodeAddress(),
-                    processModel.getPayoutTxSignature(),
+                    payoutTxHex,
                     trade.getCounterCurrencyTxId(),
                     trade.getCounterCurrencyExtraData(),
                     deterministicId

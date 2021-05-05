@@ -19,19 +19,12 @@ package bisq.core.trade.protocol.tasks.mediation;
 
 import bisq.core.support.dispute.mediation.MediationResultState;
 import bisq.core.trade.Trade;
-import bisq.core.trade.messages.MediatedPayoutTxPublishedMessage;
 import bisq.core.trade.messages.TradeMailboxMessage;
 import bisq.core.trade.protocol.tasks.SendMailboxMessageTask;
 
 import bisq.common.taskrunner.TaskRunner;
 
-import org.bitcoinj.core.Transaction;
-
-import java.util.UUID;
-
 import lombok.extern.slf4j.Slf4j;
-
-import static com.google.common.base.Preconditions.checkNotNull;
 
 
 @Slf4j
@@ -42,13 +35,14 @@ public class SendMediatedPayoutTxPublishedMessage extends SendMailboxMessageTask
 
     @Override
     protected TradeMailboxMessage getTradeMailboxMessage(String id) {
-        Transaction payoutTx = checkNotNull(trade.getPayoutTx(), "trade.getPayoutTx() must not be null");
-        return new MediatedPayoutTxPublishedMessage(
-                id,
-                payoutTx.bitcoinSerialize(),
-                processModel.getMyNodeAddress(),
-                UUID.randomUUID().toString()
-        );
+        throw new RuntimeException("SendMediatedPayoutTxPublishedMessage.getMessage(id) not implemented for xmr");
+//        Transaction payoutTx = checkNotNull(trade.getPayoutTx(), "trade.getPayoutTx() must not be null");
+//        return new MediatedPayoutTxPublishedMessage(
+//                id,
+//                payoutTx.bitcoinSerialize(),
+//                processModel.getMyNodeAddress(),
+//                UUID.randomUUID().toString()
+//        );
     }
 
     @Override

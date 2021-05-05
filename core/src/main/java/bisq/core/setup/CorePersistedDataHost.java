@@ -18,6 +18,7 @@
 package bisq.core.setup;
 
 import bisq.core.btc.model.AddressEntryList;
+import bisq.core.btc.model.XmrAddressEntryList;
 import bisq.core.dao.governance.ballot.BallotListService;
 import bisq.core.dao.governance.blindvote.MyBlindVoteListService;
 import bisq.core.dao.governance.bond.reputation.MyReputationListService;
@@ -60,6 +61,7 @@ public class CorePersistedDataHost {
         persistedDataHosts.add(injector.getInstance(Preferences.class));
         persistedDataHosts.add(injector.getInstance(User.class));
         persistedDataHosts.add(injector.getInstance(AddressEntryList.class));
+        persistedDataHosts.add(injector.getInstance(XmrAddressEntryList.class));
         persistedDataHosts.add(injector.getInstance(OpenOfferManager.class));
         persistedDataHosts.add(injector.getInstance(TradeManager.class));
         persistedDataHosts.add(injector.getInstance(ClosedTradableManager.class));

@@ -97,7 +97,8 @@ public final class TradeStatistics2 implements ProcessOncePersistableNetworkPayl
                 trade.getTradePrice(),
                 trade.getTradeAmount(),
                 trade.getDate(),
-                trade.getDepositTxId(),
+                trade.getMakerDepositTxId(),
+                trade.getTakerDepositTxId(),
                 extraDataMap);
     }
 
@@ -123,7 +124,9 @@ public final class TradeStatistics2 implements ProcessOncePersistableNetworkPayl
     private final long tradeDate;
     @JsonExclude
     @Nullable
-    private final String depositTxId;
+    private final String makerDepositTxId;
+    @Nullable
+    private final String takerDepositTxId;
 
     // Hash get set in constructor from json of all the other data fields (with hash = null).
     @JsonExclude
@@ -141,7 +144,8 @@ public final class TradeStatistics2 implements ProcessOncePersistableNetworkPayl
                             Price tradePrice,
                             Coin tradeAmount,
                             Date tradeDate,
-                            String depositTxId,
+                            String makerDepositTxId,
+                            String takerDepositTxId,
                             Map<String, String> extraDataMap) {
         this(offerPayload.getDirection(),
                 offerPayload.getBaseCurrencyCode(),
@@ -156,7 +160,8 @@ public final class TradeStatistics2 implements ProcessOncePersistableNetworkPayl
                 tradePrice.getValue(),
                 tradeAmount.value,
                 tradeDate.getTime(),
-                depositTxId,
+                makerDepositTxId,
+                takerDepositTxId,
                 null,
                 extraDataMap);
     }
@@ -178,7 +183,8 @@ public final class TradeStatistics2 implements ProcessOncePersistableNetworkPayl
                             long tradePrice,
                             long tradeAmount,
                             long tradeDate,
-                            @Nullable String depositTxId,
+                            @Nullable String makerDepositTxId,
+                            @Nullable String takerDepositTxId,
                             @Nullable byte[] hash,
                             @Nullable Map<String, String> extraDataMap) {
         this.direction = direction;
@@ -194,7 +200,8 @@ public final class TradeStatistics2 implements ProcessOncePersistableNetworkPayl
         this.tradePrice = tradePrice;
         this.tradeAmount = tradeAmount;
         this.tradeDate = tradeDate;
-        this.depositTxId = depositTxId;
+        this.makerDepositTxId = makerDepositTxId;
+        this.takerDepositTxId = takerDepositTxId;
         this.extraDataMap = ExtraDataMapValidator.getValidatedExtraDataMap(extraDataMap);
 
         this.hash = hash == null ? createHash() : hash;
@@ -224,7 +231,8 @@ public final class TradeStatistics2 implements ProcessOncePersistableNetworkPayl
                 .setTradeDate(tradeDate)
                 .setHash(ByteString.copyFrom(hash));
         Optional.ofNullable(extraDataMap).ifPresent(builder::putAllExtraData);
-        Optional.ofNullable(depositTxId).ifPresent(builder::setDepositTxId);
+        Optional.ofNullable(makerDepositTxId).ifPresent(builder::setMakerDepositTxId);
+        Optional.ofNullable(takerDepositTxId).ifPresent(builder::setTakerDepositTxId);
         return builder;
     }
 
@@ -252,7 +260,8 @@ public final class TradeStatistics2 implements ProcessOncePersistableNetworkPayl
                 proto.getTradePrice(),
                 proto.getTradeAmount(),
                 proto.getTradeDate(),
-                ProtoUtil.stringOrNullFromProto(proto.getDepositTxId()),
+                ProtoUtil.stringOrNullFromProto(proto.getMakerDepositTxId()),
+                ProtoUtil.stringOrNullFromProto(proto.getTakerDepositTxId()),
                 null,   // We want to clean up the hashes with the changed hash method in v.1.2.0 so we don't use the value from the proto
                 CollectionUtils.isEmpty(proto.getExtraDataMap()) ? null : proto.getExtraDataMap());
     }
@@ -319,8 +328,9 @@ public final class TradeStatistics2 implements ProcessOncePersistableNetworkPayl
         // Since the trade wasn't executed it's better to filter it out to avoid it having an undue influence on the
         // BSQ trade stats.
         boolean excludedFailedTrade = offerId.equals("6E5KOI6O-3a06a037-6f03-4bfa-98c2-59f49f73466a-112");
-        boolean depositTxIdValid = depositTxId == null || !depositTxId.isEmpty();
-        return tradeAmount > 0 && tradePrice > 0 && !excludedFailedTrade && depositTxIdValid;
+        boolean makerDepositTxIdValid = makerDepositTxId == null || !makerDepositTxId.isEmpty();
+        boolean takerDepositTxIdValid = takerDepositTxId == null || !takerDepositTxId.isEmpty();
+        return tradeAmount > 0 && tradePrice > 0 && !excludedFailedTrade && makerDepositTxIdValid && takerDepositTxIdValid;
     }
 
     // TODO: Can be removed as soon as everyone uses v1.2.6+
@@ -359,7 +369,8 @@ public final class TradeStatistics2 implements ProcessOncePersistableNetworkPayl
                 ",\n     tradePrice=" + tradePrice +
                 ",\n     tradeAmount=" + tradeAmount +
                 ",\n     tradeDate=" + tradeDate +
-                ",\n     depositTxId='" + depositTxId + '\'' +
+                ",\n     makerDepositTxId='" + makerDepositTxId + '\'' +
+                ",\n     takerDepositTxId='" + takerDepositTxId + '\'' +
                 ",\n     hash=" + Utilities.bytesAsHexString(hash) +
                 ",\n     extraDataMap=" + extraDataMap +
                 "\n}";

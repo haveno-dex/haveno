@@ -46,9 +46,6 @@ import bisq.network.p2p.NodeAddress;
 import bisq.common.UserThread;
 import bisq.common.util.Tuple3;
 
-import org.bitcoinj.core.Transaction;
-import org.bitcoinj.core.Utils;
-
 import javax.inject.Inject;
 import javax.inject.Named;
 
@@ -199,6 +196,12 @@ public class TradeDetailsWindow extends Overlay<TradeDetailsWindow> {
                 trade.getAssetTxProofResult() != null &&
                 trade.getAssetTxProofResult() != AssetTxProofResult.UNDEFINED;
 
+        if (trade.getTakerFeeTxId() != null)
+          rows++;
+        if (trade.getMakerDepositTx() != null)
+          rows++;
+        if (trade.getTakerDepositTx() != null)
+          rows++;
         if (trade.getPayoutTx() != null)
             rows++;
         boolean showDisputedTx = arbitrationManager.findOwnDispute(trade.getId()).isPresent() &&
@@ -287,25 +290,16 @@ public class TradeDetailsWindow extends Overlay<TradeDetailsWindow> {
         addLabelTxIdTextField(gridPane, ++rowIndex, Res.get("shared.makerFeeTxId"), offer.getOfferFeePaymentTxId());
         addLabelTxIdTextField(gridPane, ++rowIndex, Res.get("shared.takerFeeTxId"), trade.getTakerFeeTxId());
 
-        String depositTxId = trade.getDepositTxId();
-        Transaction depositTx = trade.getDepositTx();
-        String depositTxIdFromTx = depositTx != null ? depositTx.getTxId().toString() : null;
-        TxIdTextField depositTxIdTextField = addLabelTxIdTextField(gridPane, ++rowIndex,
-                Res.get("shared.depositTransactionId"), depositTxId).second;
-        if (depositTxId == null || !depositTxId.equals(depositTxIdFromTx)) {
-            depositTxIdTextField.getTextField().setId("address-text-field-error");
-            log.error("trade.getDepositTxId() and trade.getDepositTx().getTxId().toString() are not the same. " +
-                            "trade.getDepositTxId()={}, trade.getDepositTx().getTxId().toString()={}, depositTx={}",
-                    depositTxId, depositTxIdFromTx, depositTx);
-        }
-
-        Transaction delayedPayoutTx = trade.getDelayedPayoutTx(btcWalletService);
-        String delayedPayoutTxString = delayedPayoutTx != null ? delayedPayoutTx.getTxId().toString() : null;
-        addLabelTxIdTextField(gridPane, ++rowIndex, Res.get("shared.delayedPayoutTxId"), delayedPayoutTxString);
+        if (trade.getMakerDepositTx() != null)
+          addLabelTxIdTextField(gridPane, ++rowIndex, Res.get("shared.depositTransactionId"), // TODO (woodser): separate UI labels for deposit tx ids
+                  trade.getMakerDepositTx().getHash());
+        if (trade.getTakerDepositTx() != null)
+          addLabelTxIdTextField(gridPane, ++rowIndex, Res.get("shared.depositTransactionId"), // TODO (woodser): separate UI labels for deposit tx ids
+                  trade.getTakerDepositTx().getHash());
 
         if (trade.getPayoutTx() != null)
             addLabelTxIdTextField(gridPane, ++rowIndex, Res.get("shared.payoutTxId"),
-                    trade.getPayoutTx().getTxId().toString());
+                    trade.getPayoutTx().getHash());
         if (showDisputedTx)
             addLabelTxIdTextField(gridPane, ++rowIndex, Res.get("tradeDetailsWindow.disputedPayoutTxId"),
                     arbitrationManager.findOwnDispute(trade.getId()).get().getDisputePayoutTxId());
@@ -347,21 +341,18 @@ public class TradeDetailsWindow extends Overlay<TradeDetailsWindow> {
                 textArea.setText(trade.getContractAsJson());
                 String data = "Contract as json:\n";
                 data += trade.getContractAsJson();
-                data += "\n\nOther detail data:";
-                data += "\n\nBuyerMultiSigPubKeyHex: " + Utils.HEX.encode(contract.getBuyerMultiSigPubKey());
-                data += "\nSellerMultiSigPubKeyHex: " + Utils.HEX.encode(contract.getSellerMultiSigPubKey());
                 if (CurrencyUtil.isFiatCurrency(offer.getCurrencyCode())) {
                     data += "\n\nBuyersAccountAge: " + buyersAccountAge;
                     data += "\nSellersAccountAge: " + sellersAccountAge;
                 }
 
-                if (depositTx != null) {
-                    String depositTxAsHex = Utils.HEX.encode(depositTx.bitcoinSerialize(true));
-                    data += "\n\nRaw deposit transaction as hex:\n" + depositTxAsHex;
-                }
+                // TODO (woodser): include maker and taker deposit tx hex in contract?
+//                if (depositTx != null) {
+//                    String depositTxAsHex = Utils.HEX.encode(depositTx.bitcoinSerialize(true));
+//                    data += "\n\nRaw deposit transaction as hex:\n" + depositTxAsHex;
+//                }
 
-                data += "\n\nSelected mediator: " + DisputeAgentLookupMap.getKeyBaseUserName(contract.getMediatorNodeAddress().getFullAddress());
-                data += "\nSelected arbitrator (refund agent): " + DisputeAgentLookupMap.getKeyBaseUserName(contract.getRefundAgentNodeAddress().getFullAddress());
+                data += "\n\nSelected arbitrator: " + DisputeAgentLookupMap.getKeyBaseUserName(contract.getArbitratorNodeAddress().getFullAddress());
 
                 textArea.setText(data);
                 textArea.setPrefHeight(50);

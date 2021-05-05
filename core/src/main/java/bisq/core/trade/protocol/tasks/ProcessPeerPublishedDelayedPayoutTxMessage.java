@@ -17,18 +17,11 @@
 
 package bisq.core.trade.protocol.tasks;
 
-import bisq.core.btc.wallet.WalletService;
 import bisq.core.trade.Trade;
-import bisq.core.trade.messages.PeerPublishedDelayedPayoutTxMessage;
-import bisq.core.util.Validator;
 
 import bisq.common.taskrunner.TaskRunner;
 
-import org.bitcoinj.core.Transaction;
-
 import lombok.extern.slf4j.Slf4j;
-
-import static com.google.common.base.Preconditions.checkNotNull;
 
 @Slf4j
 public class ProcessPeerPublishedDelayedPayoutTxMessage extends TradeTask {
@@ -40,21 +33,22 @@ public class ProcessPeerPublishedDelayedPayoutTxMessage extends TradeTask {
     protected void run() {
         try {
             runInterceptHook();
+            throw new RuntimeException("XMR adaptation does not support delayed payout tx");
 
-            PeerPublishedDelayedPayoutTxMessage message = (PeerPublishedDelayedPayoutTxMessage) processModel.getTradeMessage();
-            Validator.checkTradeId(processModel.getOfferId(), message);
-            checkNotNull(message);
-
-            // update to the latest peer address of our peer if the message is correct
-            trade.setTradingPeerNodeAddress(processModel.getTempTradingPeerNodeAddress());
-
-            // We add the tx to our wallet.
-            Transaction delayedPayoutTx = checkNotNull(trade.getDelayedPayoutTx());
-            WalletService.maybeAddSelfTxToWallet(delayedPayoutTx, processModel.getBtcWalletService().getWallet());
-
-            processModel.getTradeManager().requestPersistence();
-
-            complete();
+//            PeerPublishedDelayedPayoutTxMessage message = (PeerPublishedDelayedPayoutTxMessage) processModel.getTradeMessage();
+//            Validator.checkTradeId(processModel.getOfferId(), message);
+//            checkNotNull(message);
+//
+//            // update to the latest peer address of our peer if the message is correct
+//            trade.setTradingPeerNodeAddress(processModel.getTempTradingPeerNodeAddress());
+//
+//            // We add the tx to our wallet.
+//            Transaction delayedPayoutTx = checkNotNull(trade.getDelayedPayoutTx());
+//            WalletService.maybeAddSelfTxToWallet(delayedPayoutTx, processModel.getBtcWalletService().getWallet());
+//
+//            processModel.getTradeManager().requestPersistence();
+//
+//            complete();
         } catch (Throwable t) {
             failed(t);
         }

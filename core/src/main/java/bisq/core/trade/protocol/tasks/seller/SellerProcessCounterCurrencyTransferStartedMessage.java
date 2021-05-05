@@ -43,10 +43,10 @@ public class SellerProcessCounterCurrencyTransferStartedMessage extends TradeTas
             Validator.checkTradeId(processModel.getOfferId(), message);
             checkNotNull(message);
 
-            processModel.getTradingPeer().setPayoutAddressString(Validator.nonEmptyStringOf(message.getBuyerPayoutAddress()));
-            processModel.getTradingPeer().setSignature(checkNotNull(message.getBuyerSignature()));
+            processModel.getTradingPeer().setPayoutAddressString(Validator.nonEmptyStringOf(message.getBuyerPayoutAddress()));	// TODO (woodser): verify against contract
+            processModel.getTradingPeer().setSignedPayoutTxHex(message.getBuyerPayoutTxSigned());
 
-            // update to the latest peer address of our peer if the message is correct
+            // update to the latest peer address of our peer if the message is correct  // TODO (woodser): update to latest peer addresses where needed
             trade.setTradingPeerNodeAddress(processModel.getTempTradingPeerNodeAddress());
 
             String counterCurrencyTxId = message.getCounterCurrencyTxId();

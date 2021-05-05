@@ -17,16 +17,10 @@
 
 package bisq.core.trade.protocol.tasks.arbitration;
 
-import bisq.core.btc.exceptions.TxBroadcastException;
-import bisq.core.btc.wallet.BtcWalletService;
-import bisq.core.btc.wallet.TxBroadcaster;
-import bisq.core.btc.wallet.WalletService;
 import bisq.core.trade.Trade;
 import bisq.core.trade.protocol.tasks.TradeTask;
 
 import bisq.common.taskrunner.TaskRunner;
-
-import org.bitcoinj.core.Transaction;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -38,33 +32,34 @@ public class PublishedDelayedPayoutTx extends TradeTask {
 
     @Override
     protected void run() {
-        try {
-            runInterceptHook();
-
-            Transaction delayedPayoutTx = trade.getDelayedPayoutTx();
-            BtcWalletService btcWalletService = processModel.getBtcWalletService();
-
-            // We have spent the funds from the deposit tx with the delayedPayoutTx
-            btcWalletService.resetCoinLockedInMultiSigAddressEntry(trade.getId());
-            // We might receive funds on AddressEntry.Context.TRADE_PAYOUT so we don't swap that
-
-            Transaction committedDelayedPayoutTx = WalletService.maybeAddSelfTxToWallet(delayedPayoutTx, btcWalletService.getWallet());
-
-            processModel.getTradeWalletService().broadcastTx(committedDelayedPayoutTx, new TxBroadcaster.Callback() {
-                @Override
-                public void onSuccess(Transaction transaction) {
-                    log.info("publishDelayedPayoutTx onSuccess " + transaction);
-                    complete();
-                }
-
-                @Override
-                public void onFailure(TxBroadcastException exception) {
-                    log.error("publishDelayedPayoutTx onFailure", exception);
-                    failed(exception.toString());
-                }
-            });
-        } catch (Throwable t) {
-            failed(t);
-        }
+        throw new RuntimeException("PublishedDelayedPayoutTx not implemented for XMR");
+//        try {
+//            runInterceptHook();
+//
+//            Transaction delayedPayoutTx = trade.getDelayedPayoutTx();
+//            BtcWalletService btcWalletService = processModel.getBtcWalletService();
+//
+//            // We have spent the funds from the deposit tx with the delayedPayoutTx
+//            btcWalletService.resetCoinLockedInMultiSigAddressEntry(trade.getId());
+//            // We might receive funds on AddressEntry.Context.TRADE_PAYOUT so we don't swap that
+//
+//            Transaction committedDelayedPayoutTx = WalletService.maybeAddSelfTxToWallet(delayedPayoutTx, btcWalletService.getWallet());
+//
+//            processModel.getTradeWalletService().broadcastTx(committedDelayedPayoutTx, new TxBroadcaster.Callback() {
+//                @Override
+//                public void onSuccess(Transaction transaction) {
+//                    log.info("publishDelayedPayoutTx onSuccess " + transaction);
+//                    complete();
+//                }
+//
+//                @Override
+//                public void onFailure(TxBroadcastException exception) {
+//                    log.error("publishDelayedPayoutTx onFailure", exception);
+//                    failed(exception.toString());
+//                }
+//            });
+//        } catch (Throwable t) {
+//            failed(t);
+//        }
     }
 }

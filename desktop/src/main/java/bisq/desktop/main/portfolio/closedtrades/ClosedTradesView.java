@@ -433,7 +433,10 @@ public class ClosedTradesView extends ActivatableViewAndModel<VBox, ClosedTrades
                 if (trade.getTakerFeeTxId() != null && trade.getTakerFeeTxId().contains(filterString)) {
                     return true;
                 }
-                if (trade.getDepositTxId() != null && trade.getDepositTxId().contains(filterString)) {
+                if (trade.getMakerDepositTxId() != null && trade.getMakerDepositTxId().contains(filterString)) {
+                    return true;
+                }
+                if (trade.getTakerDepositTxId() != null && trade.getTakerDepositTxId().contains(filterString)) {
                     return true;
                 }
                 if (trade.getPayoutTxId() != null && trade.getPayoutTxId().contains(filterString)) {

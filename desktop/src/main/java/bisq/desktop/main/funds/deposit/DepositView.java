@@ -136,7 +136,7 @@ public class DepositView extends ActivatableView<VBox, Void> {
     @Override
     public void initialize() {
 
-        paymentLabelString = Res.get("funds.deposit.fundBisqWallet");
+        paymentLabelString = Res.get("funds.deposit.fundHavenoWallet");
         addressColumn.setGraphic(new AutoTooltipLabel(Res.get("shared.address")));
         balanceColumn.setGraphic(new AutoTooltipLabel(Res.get("shared.balanceWithCur", Res.getBaseCurrencyCode())));
         confirmationsColumn.setGraphic(new AutoTooltipLabel(Res.get("shared.confirmations")));

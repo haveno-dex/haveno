@@ -40,6 +40,8 @@ configure(subprojects) {
         grpcVersion = '1.25.0'
         gsonVersion = '2.8.5'
         guavaVersion = '28.2-jre'
+        moneroJavaVersion = '0.5.3'
+        httpclient5Version = '5.0'
         guiceVersion = '4.2.2'
         hamcrestVersion = '1.3'
         httpclientVersion = '4.5.12'
@@ -77,7 +79,9 @@ configure(subprojects) {
 
     repositories {
         mavenCentral()
+        //mavenLocal()
         maven { url 'https://jitpack.io' }
+        maven { url 'https://mvnrepository.com' }
     }
 
     dependencies {
@@ -293,7 +297,7 @@ configure(project(':p2p')) {
         // If they have not, e.g. because Git LFS is not installed, they will be text files
         // containing a sha256 hash of the remote object, indicating we should stop the
         // build and inform the user how to fix the problem.
-        if (file('src/main/resources/ProposalStore_BTC_MAINNET').text.contains("oid sha256:"))
+        if (file('src/main/resources/AccountAgeWitnessStore_XMR_MAINNET_placeholder').text.contains("oid sha256:"))
             throw new GradleException("p2p data store files have not been synchronized. " +
                 "To fix this, ensure you have Git LFS installed and run `git lfs pull`. " +
                 "See docs/build.md for more information.")
@@ -317,6 +321,13 @@ configure(project(':core')) {
             exclude(module: 'base64')
             exclude(module: 'httpcore-nio')
         }
+        compile("io.github.monero-ecosystem:monero-java:$moneroJavaVersion") {
+            exclude(module: 'jackson-core')
+            exclude(module: 'jackson-annotations')
+            exclude(module: 'jackson-databind')
+            exclude(module: 'bcprov-jdk15on')
+        }
+        implementation("org.apache.httpcomponents.client5:httpclient5:$httpclient5Version")
         compile "com.fasterxml.jackson.core:jackson-core:$jacksonVersion"
         compile "com.fasterxml.jackson.core:jackson-annotations:$jacksonVersion"
         compile("com.fasterxml.jackson.core:jackson-databind:$jacksonVersion") {
@@ -343,6 +354,7 @@ configure(project(':cli')) {
 
     dependencies {
         compile project(':proto')
+        compile project(':core')
         implementation "net.sf.jopt-simple:jopt-simple:$joptVersion"
         implementation "com.google.guava:guava:$guavaVersion"
         implementation "com.google.protobuf:protobuf-java:$protobufVersion"

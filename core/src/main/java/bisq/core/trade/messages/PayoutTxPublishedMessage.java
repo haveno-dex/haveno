@@ -23,9 +23,6 @@ import bisq.network.p2p.NodeAddress;
 
 import bisq.common.app.Version;
 import bisq.common.proto.network.NetworkEnvelope;
-import bisq.common.util.Utilities;
-
-import com.google.protobuf.ByteString;
 
 import java.util.Optional;
 import java.util.UUID;
@@ -40,7 +37,7 @@ import javax.annotation.Nullable;
 @EqualsAndHashCode(callSuper = true)
 @Value
 public final class PayoutTxPublishedMessage extends TradeMailboxMessage {
-    private final byte[] payoutTx;
+    private final String signedMultisigTxHex;
     private final NodeAddress senderNodeAddress;
 
     // Added in v1.4.0
@@ -48,11 +45,11 @@ public final class PayoutTxPublishedMessage extends TradeMailboxMessage {
     private final SignedWitness signedWitness;
 
     public PayoutTxPublishedMessage(String tradeId,
-                                    byte[] payoutTx,
+                                    String signedMultisigTxHex,
                                     NodeAddress senderNodeAddress,
                                     @Nullable SignedWitness signedWitness) {
         this(tradeId,
-                payoutTx,
+                signedMultisigTxHex,
                 senderNodeAddress,
                 signedWitness,
                 UUID.randomUUID().toString(),
@@ -65,13 +62,13 @@ public final class PayoutTxPublishedMessage extends TradeMailboxMessage {
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     private PayoutTxPublishedMessage(String tradeId,
-                                     byte[] payoutTx,
+                                     String signedMultisigTxHex,
                                      NodeAddress senderNodeAddress,
                                      @Nullable SignedWitness signedWitness,
                                      String uid,
                                      int messageVersion) {
         super(messageVersion, tradeId, uid);
-        this.payoutTx = payoutTx;
+        this.signedMultisigTxHex = signedMultisigTxHex;
         this.senderNodeAddress = senderNodeAddress;
         this.signedWitness = signedWitness;
     }
@@ -80,7 +77,7 @@ public final class PayoutTxPublishedMessage extends TradeMailboxMessage {
     public protobuf.NetworkEnvelope toProtoNetworkEnvelope() {
         protobuf.PayoutTxPublishedMessage.Builder builder = protobuf.PayoutTxPublishedMessage.newBuilder()
                 .setTradeId(tradeId)
-                .setPayoutTx(ByteString.copyFrom(payoutTx))
+                .setSignedMultisigTxHex(signedMultisigTxHex)
                 .setSenderNodeAddress(senderNodeAddress.toProtoMessage())
                 .setUid(uid);
         Optional.ofNullable(signedWitness).ifPresent(signedWitness -> builder.setSignedWitness(signedWitness.toProtoSignedWitness()));
@@ -95,7 +92,7 @@ public final class PayoutTxPublishedMessage extends TradeMailboxMessage {
                 SignedWitness.fromProto(protoSignedWitness) :
                 null;
         return new PayoutTxPublishedMessage(proto.getTradeId(),
-                proto.getPayoutTx().toByteArray(),
+                proto.getSignedMultisigTxHex(),
                 NodeAddress.fromProto(proto.getSenderNodeAddress()),
                 signedWitness,
                 proto.getUid(),
@@ -105,7 +102,7 @@ public final class PayoutTxPublishedMessage extends TradeMailboxMessage {
     @Override
     public String toString() {
         return "PayoutTxPublishedMessage{" +
-                "\n     payoutTx=" + Utilities.bytesAsHexString(payoutTx) +
+                "\n     signedMultisigTxHex=" + signedMultisigTxHex +
                 ",\n     senderNodeAddress=" + senderNodeAddress +
                 ",\n     signedWitness=" + signedWitness +
                 "\n} " + super.toString();

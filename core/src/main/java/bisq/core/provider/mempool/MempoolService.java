@@ -106,8 +106,9 @@ public class MempoolService {
     }
 
     public void validateOfferTakerTx(Trade trade, Consumer<TxValidator> resultHandler) {
-        validateOfferTakerTx(new TxValidator(daoStateService, trade.getTakerFeeTxId(), trade.getTradeAmount(),
-                trade.isCurrencyForTakerFeeBtc()), resultHandler);
+        throw new RuntimeException("MempoolService.validateOfferTakerTx needs updated for XMR");
+//        validateOfferTakerTx(new TxValidator(daoStateService, trade.getTakerFeeTxId(), trade.getTradeAmount(),
+//                trade.isCurrencyForTakerFeeBtc()), resultHandler);
     }
 
     public void validateOfferTakerTx(TxValidator txValidator, Consumer<TxValidator> resultHandler) {

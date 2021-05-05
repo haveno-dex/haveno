@@ -17,6 +17,7 @@
 
 package bisq.core.trade.protocol;
 
+import bisq.core.trade.ArbitratorTrade;
 import bisq.core.trade.BuyerAsMakerTrade;
 import bisq.core.trade.BuyerAsTakerTrade;
 import bisq.core.trade.SellerAsMakerTrade;
@@ -33,6 +34,8 @@ public class TradeProtocolFactory {
             return new SellerAsMakerProtocol((SellerAsMakerTrade) trade);
         } else if (trade instanceof SellerAsTakerTrade) {
             return new SellerAsTakerProtocol((SellerAsTakerTrade) trade);
+        } else if (trade instanceof ArbitratorTrade) {
+            return new ArbitratorProtocol((ArbitratorTrade) trade);
         } else {
             throw new IllegalStateException("Trade not of expected type. Trade=" + trade);
         }

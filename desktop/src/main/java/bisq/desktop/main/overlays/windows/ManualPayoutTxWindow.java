@@ -711,24 +711,25 @@ public class ManualPayoutTxWindow extends Overlay<ManualPayoutTxWindow> {
     }
 
     private void importFromMediationTicket(String tradeId) {
-        clearInputFields();
-        Optional<Dispute> optionalDispute = mediationManager.findDispute(tradeId);
-        if (optionalDispute.isPresent()) {
-            Dispute dispute = optionalDispute.get();
-            depositTxHex.setText(dispute.getDepositTxId());
-            if (dispute.disputeResultProperty().get() != null) {
-                buyerPayoutAmount.setText(dispute.disputeResultProperty().get().getBuyerPayoutAmount().toPlainString());
-                sellerPayoutAmount.setText(dispute.disputeResultProperty().get().getSellerPayoutAmount().toPlainString());
-            }
-            buyerAddressString.setText(dispute.getContract().getBuyerPayoutAddressString());
-            sellerAddressString.setText(dispute.getContract().getSellerPayoutAddressString());
-            buyerPubKeyAsHex.setText(Utils.HEX.encode(dispute.getContract().getBuyerMultiSigPubKey()));
-            sellerPubKeyAsHex.setText(Utils.HEX.encode(dispute.getContract().getSellerMultiSigPubKey()));
-            // switch back to the inputs pane
-            hideAllPanes();
-            inputsGridPane.setVisible(true);
-            UserThread.execute(() -> new Popup().warning("Ticket imported.  You still need to enter the multisig amount and specify if it is a legacy Tx").show());
-        }
+        throw new RuntimeException("ManualPayoutTxWindow.importFromMediationTicket() not adapted to XMR");
+//        clearInputFields();
+//        Optional<Dispute> optionalDispute = mediationManager.findDispute(tradeId);
+//        if (optionalDispute.isPresent()) {
+//            Dispute dispute = optionalDispute.get();
+//            depositTxHex.setText(dispute.getDepositTxId());
+//            if (dispute.disputeResultProperty().get() != null) {
+//                buyerPayoutAmount.setText(dispute.disputeResultProperty().get().getBuyerPayoutAmount().toPlainString());
+//                sellerPayoutAmount.setText(dispute.disputeResultProperty().get().getSellerPayoutAmount().toPlainString());
+//            }
+//            buyerAddressString.setText(dispute.getContract().getBuyerPayoutAddressString());
+//            sellerAddressString.setText(dispute.getContract().getSellerPayoutAddressString());
+//            buyerPubKeyAsHex.setText(Utils.HEX.encode(dispute.getContract().getBuyerMultiSigPubKey()));
+//            sellerPubKeyAsHex.setText(Utils.HEX.encode(dispute.getContract().getSellerMultiSigPubKey()));
+//            // switch back to the inputs pane
+//            hideAllPanes();
+//            inputsGridPane.setVisible(true);
+//            UserThread.execute(() -> new Popup().warning("Ticket imported.  You still need to enter the multisig amount and specify if it is a legacy Tx").show());
+//        }
     }
 
     private String generateSignature() {

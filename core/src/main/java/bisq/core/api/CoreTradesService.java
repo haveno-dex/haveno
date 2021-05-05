@@ -109,7 +109,6 @@ class CoreTradesService {
         tradeManager.onTakeOffer(offer.getAmount(),
                 takeOfferModel.getTxFeeFromFeeService(),
                 takeOfferModel.getTakerFee(),
-                takeOfferModel.isCurrencyForTakerFeeBtc(),
                 offer.getPrice().getValue(),
                 takeOfferModel.getFundsNeededForTrade(),
                 offer,

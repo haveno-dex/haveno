@@ -105,6 +105,11 @@ import javax.annotation.Nullable;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 
+
+
+import monero.wallet.MoneroWallet;
+import monero.wallet.model.MoneroTxWallet;
+
 /**
  * Abstract base class for BTC and BSQ wallet. Provides all non-trade specific functionality.
  */
@@ -227,7 +232,6 @@ public abstract class WalletService {
     public void removeBalanceListener(BalanceListener listener) {
         balanceListeners.remove(listener);
     }
-
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Checks
@@ -800,6 +804,22 @@ public abstract class WalletService {
         } else {
             return walletTransaction;
         }
+    }
+
+    public static MoneroTxWallet maybeAddNetworkTxToWallet(byte[] serializedTransaction, MoneroWallet wallet) throws VerificationException {
+        throw new RuntimeException("Not implemented");  // TODO (woodser): need to serialize/deserialize tx for xmr integration?
+//        Transaction tx = new Transaction(wallet.getParams(), serializedTransaction);
+//        Transaction walletTransaction = wallet.getTransaction(tx.getHash());
+//
+//        if (walletTransaction == null) {
+//            // We need to recreate the transaction otherwise we get a null pointer...
+//            tx.getConfidence(Context.get()).setSource(source);
+//            //wallet.maybeCommitTx(tx);
+//            wallet.receivePending(tx, null, true);
+//            return tx;
+//        } else {
+//            return walletTransaction;
+//        }
     }
 
     public static Transaction maybeAddNetworkTxToWallet(byte[] serializedTransaction,

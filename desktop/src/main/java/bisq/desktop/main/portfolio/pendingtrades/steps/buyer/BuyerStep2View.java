@@ -81,7 +81,6 @@ import bisq.core.payment.payload.PaymentMethod;
 import bisq.core.payment.payload.USPostalMoneyOrderAccountPayload;
 import bisq.core.payment.payload.WesternUnionAccountPayload;
 import bisq.core.trade.Trade;
-import bisq.core.trade.TradeDataValidation;
 import bisq.core.user.DontShowAgainLookup;
 
 import bisq.common.Timer;
@@ -202,7 +201,7 @@ public class BuyerStep2View extends TradeStepView {
     @Override
     protected void onPendingTradesInitialized() {
         super.onPendingTradesInitialized();
-        validatePayoutTx();
+        //validatePayoutTx(); // TODO (woodser): no payout tx in xmr integration, do something else?
         model.checkTakerFeeTx(trade);
     }
 
@@ -608,19 +607,19 @@ public class BuyerStep2View extends TradeStepView {
         }
     }
 
-    private void validatePayoutTx() {
-        try {
-            TradeDataValidation.validateDelayedPayoutTx(trade,
-                    trade.getDelayedPayoutTx(),
-                    model.dataModel.daoFacade,
-                    model.dataModel.btcWalletService);
-        } catch (TradeDataValidation.MissingTxException ignore) {
-            // We don't react on those errors as a failed trade might get listed initially but getting removed from the
-            // trade manager after initPendingTrades which happens after activate might be called.
-        } catch (TradeDataValidation.ValidationException e) {
-            if (!model.dataModel.tradeManager.isAllowFaultyDelayedTxs()) {
-                new Popup().warning(Res.get("portfolio.pending.invalidTx", e.getMessage())).show();
-            }
-        }
-    }
+//    private void validatePayoutTx() {
+//        try {
+//            TradeDataValidation.validateDelayedPayoutTx(trade,
+//                    trade.getDelayedPayoutTx(),
+//                    model.dataModel.daoFacade,
+//                    model.dataModel.btcWalletService);
+//        } catch (TradeDataValidation.MissingTxException ignore) {
+//            // We don't react on those errors as a failed trade might get listed initially but getting removed from the
+//            // trade manager after initPendingTrades which happens after activate might be called.
+//        } catch (TradeDataValidation.ValidationException e) {
+//            if (!model.dataModel.tradeManager.isAllowFaultyDelayedTxs()) {
+//                new Popup().warning(Res.get("portfolio.pending.invalidTx", e.getMessage())).show();
+//            }
+//        }
+//    }
 }

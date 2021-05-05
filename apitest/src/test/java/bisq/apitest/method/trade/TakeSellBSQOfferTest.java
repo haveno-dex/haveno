@@ -104,7 +104,6 @@ public class TakeSellBSQOfferTest extends AbstractTradeTest {
             var trade = takeAlicesOffer(offerId, bobsBsqAcct.getId(), TRADE_FEE_CURRENCY_CODE);
             assertNotNull(trade);
             assertEquals(offerId, trade.getTradeId());
-            assertTrue(trade.getIsCurrencyForTakerFeeBtc());
             // Cache the trade id for the other tests.
             tradeId = trade.getTradeId();
 
@@ -116,9 +115,10 @@ public class TakeSellBSQOfferTest extends AbstractTradeTest {
                 trade = bobClient.getTrade(trade.getTradeId());
 
                 if (!trade.getIsDepositConfirmed()) {
-                    log.warn("Bob still waiting on trade {} tx {}: DEPOSIT_CONFIRMED_IN_BLOCK_CHAIN, attempt # {}",
+                    log.warn("Bob still waiting on trade {} maker tx {} taker tx {}: DEPOSIT_CONFIRMED_IN_BLOCK_CHAIN, attempt # {}",
                             trade.getShortId(),
-                            trade.getDepositTxId(),
+                            trade.getMakerDepositTxId(),
+                            trade.getTakerDepositTxId(),
                             i);
                     genBtcBlocksThenWait(1, 4000);
                     continue;

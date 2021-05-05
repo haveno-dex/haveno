@@ -57,12 +57,12 @@ import static java.lang.String.format;
 @Slf4j
 public class CurrencyUtil {
     public static void setup() {
-        setBaseCurrencyCode(Config.baseCurrencyNetwork().getCurrencyCode());
+        setBaseCurrencyCode("XMR");
     }
 
     private static final AssetRegistry assetRegistry = new AssetRegistry();
 
-    private static String baseCurrencyCode = "BTC";
+    private static String baseCurrencyCode = "XMR";
 
     // Calls to isFiatCurrency and isCryptoCurrency are very frequent so we use a cache of the results.
     // The main improvement was already achieved with using memoize for the source maps, but

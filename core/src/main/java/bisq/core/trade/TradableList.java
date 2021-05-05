@@ -17,7 +17,7 @@
 
 package bisq.core.trade;
 
-import bisq.core.btc.wallet.BtcWalletService;
+import bisq.core.btc.wallet.XmrWalletService;
 import bisq.core.offer.OpenOffer;
 import bisq.core.proto.CoreProtoResolver;
 
@@ -62,20 +62,20 @@ public final class TradableList<T extends Tradable> extends PersistableListAsObs
 
     public static TradableList<Tradable> fromProto(protobuf.TradableList proto,
                                                    CoreProtoResolver coreProtoResolver,
-                                                   BtcWalletService btcWalletService) {
+                                                   XmrWalletService xmrWalletService) {
         List<Tradable> list = proto.getTradableList().stream()
                 .map(tradable -> {
                     switch (tradable.getMessageCase()) {
                         case OPEN_OFFER:
                             return OpenOffer.fromProto(tradable.getOpenOffer());
                         case BUYER_AS_MAKER_TRADE:
-                            return BuyerAsMakerTrade.fromProto(tradable.getBuyerAsMakerTrade(), btcWalletService, coreProtoResolver);
+                            return BuyerAsMakerTrade.fromProto(tradable.getBuyerAsMakerTrade(), xmrWalletService, coreProtoResolver);
                         case BUYER_AS_TAKER_TRADE:
-                            return BuyerAsTakerTrade.fromProto(tradable.getBuyerAsTakerTrade(), btcWalletService, coreProtoResolver);
+                            return BuyerAsTakerTrade.fromProto(tradable.getBuyerAsTakerTrade(), xmrWalletService, coreProtoResolver);
                         case SELLER_AS_MAKER_TRADE:
-                            return SellerAsMakerTrade.fromProto(tradable.getSellerAsMakerTrade(), btcWalletService, coreProtoResolver);
+                            return SellerAsMakerTrade.fromProto(tradable.getSellerAsMakerTrade(), xmrWalletService, coreProtoResolver);
                         case SELLER_AS_TAKER_TRADE:
-                            return SellerAsTakerTrade.fromProto(tradable.getSellerAsTakerTrade(), btcWalletService, coreProtoResolver);
+                            return SellerAsTakerTrade.fromProto(tradable.getSellerAsTakerTrade(), xmrWalletService, coreProtoResolver);
                         default:
                             log.error("Unknown messageCase. tradable.getMessageCase() = " + tradable.getMessageCase());
                             throw new ProtobufferRuntimeException("Unknown messageCase. tradable.getMessageCase() = " +

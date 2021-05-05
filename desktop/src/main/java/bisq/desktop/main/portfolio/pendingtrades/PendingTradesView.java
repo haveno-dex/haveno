@@ -408,14 +408,12 @@ public class PendingTradesView extends ActivatableViewAndModel<VBox, PendingTrad
                     Res.get("portfolio.pending.failedTrade.taker.missingTakerFeeTx");
         }
 
-        if (trade.getDepositTx() == null) {
+        if (trade.getMakerDepositTx() == null) {
             return Res.get("portfolio.pending.failedTrade.missingDepositTx");
         }
-
-        if (trade.getDelayedPayoutTx() == null) {
-            return isMyRoleBuyer ?
-                    Res.get("portfolio.pending.failedTrade.buyer.existingDepositTxButMissingDelayedPayoutTx") :
-                    Res.get("portfolio.pending.failedTrade.seller.existingDepositTxButMissingDelayedPayoutTx");
+        
+        if (trade.getTakerDepositTx() == null) {
+          return Res.get("portfolio.pending.failedTrade.missingDepositTx"); // TODO (woodser): use .missingTakerDepositTx, .missingMakerDepositTx
         }
 
         if (trade.hasErrorMessage()) {

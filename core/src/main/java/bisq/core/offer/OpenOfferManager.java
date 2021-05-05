@@ -21,6 +21,7 @@ import bisq.core.api.CoreContext;
 import bisq.core.btc.wallet.BsqWalletService;
 import bisq.core.btc.wallet.BtcWalletService;
 import bisq.core.btc.wallet.TradeWalletService;
+import bisq.core.btc.wallet.XmrWalletService;
 import bisq.core.dao.DaoFacade;
 import bisq.core.exceptions.TradePriceOutOfToleranceException;
 import bisq.core.filter.FilterManager;
@@ -108,6 +109,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
     private final User user;
     private final P2PService p2PService;
     private final BtcWalletService btcWalletService;
+    private final XmrWalletService xmrWalletService;
     private final TradeWalletService tradeWalletService;
     private final BsqWalletService bsqWalletService;
     private final OfferBookService offerBookService;
@@ -141,6 +143,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                             User user,
                             P2PService p2PService,
                             BtcWalletService btcWalletService,
+                            XmrWalletService xmrWalletService,
                             TradeWalletService tradeWalletService,
                             BsqWalletService bsqWalletService,
                             OfferBookService offerBookService,
@@ -161,6 +164,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
         this.user = user;
         this.p2PService = p2PService;
         this.btcWalletService = btcWalletService;
+        this.xmrWalletService = xmrWalletService;
         this.tradeWalletService = tradeWalletService;
         this.bsqWalletService = bsqWalletService;
         this.offerBookService = offerBookService;
@@ -381,6 +385,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                 reservedFundsForOffer,
                 useSavingsWallet,
                 btcWalletService,
+                xmrWalletService,
                 tradeWalletService,
                 bsqWalletService,
                 offerBookService,
@@ -642,11 +647,8 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                     if (openOffer.getState() == OpenOffer.State.AVAILABLE) {
                         Offer offer = openOffer.getOffer();
                         if (preferences.getIgnoreTradersList().stream().noneMatch(fullAddress -> fullAddress.equals(peer.getFullAddress()))) {
-                            mediatorNodeAddress = DisputeAgentSelection.getLeastUsedMediator(tradeStatisticsManager, mediatorManager).getNodeAddress();
-                            openOffer.setMediatorNodeAddress(mediatorNodeAddress);
-
-                            refundAgentNodeAddress = DisputeAgentSelection.getLeastUsedRefundAgent(tradeStatisticsManager, refundAgentManager).getNodeAddress();
-                            openOffer.setRefundAgentNodeAddress(refundAgentNodeAddress);
+                            arbitratorNodeAddress = DisputeAgentSelection.getLeastUsedArbitrator(tradeStatisticsManager, mediatorManager).getNodeAddress();
+                            openOffer.setArbitratorNodeAddress(arbitratorNodeAddress);
 
                             try {
                                 // Check also tradePrice to avoid failures after taker fee is paid caused by a too big difference

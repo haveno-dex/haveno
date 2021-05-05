@@ -47,7 +47,8 @@ public class TradeInfo implements Payload {
     private final long txFeeAsLong;
     private final long takerFeeAsLong;
     private final String takerFeeTxId;
-    private final String depositTxId;
+    private final String makerDepositTxId;
+    private final String takerDepositTxId;
     private final String payoutTxId;
     private final long tradeAmountAsLong;
     private final long tradePrice;
@@ -74,7 +75,8 @@ public class TradeInfo implements Payload {
         this.txFeeAsLong = builder.txFeeAsLong;
         this.takerFeeAsLong = builder.takerFeeAsLong;
         this.takerFeeTxId = builder.takerFeeTxId;
-        this.depositTxId = builder.depositTxId;
+        this.makerDepositTxId = builder.makerDepositTxId;
+        this.takerDepositTxId = builder.takerDepositTxId;
         this.payoutTxId = builder.payoutTxId;
         this.tradeAmountAsLong = builder.tradeAmountAsLong;
         this.tradePrice = builder.tradePrice;
@@ -102,8 +104,7 @@ public class TradeInfo implements Payload {
             Contract contract = trade.getContract();
             contractInfo = new ContractInfo(contract.getBuyerPayoutAddressString(),
                     contract.getSellerPayoutAddressString(),
-                    contract.getMediatorNodeAddress().getFullAddress(),
-                    contract.getRefundAgentNodeAddress().getFullAddress(),
+                    contract.getArbitratorNodeAddress().getFullAddress(),
                     contract.isBuyerMakerAndSellerTaker(),
                     contract.getMakerAccountId(),
                     contract.getTakerAccountId(),
@@ -122,12 +123,12 @@ public class TradeInfo implements Payload {
                 .withShortId(trade.getShortId())
                 .withDate(trade.getDate().getTime())
                 .withRole(role == null ? "" : role)
-                .withIsCurrencyForTakerFeeBtc(trade.isCurrencyForTakerFeeBtc())
                 .withTxFeeAsLong(trade.getTxFeeAsLong())
                 .withTakerFeeAsLong(trade.getTakerFeeAsLong())
                 .withTakerFeeAsLong(trade.getTakerFeeAsLong())
                 .withTakerFeeTxId(trade.getTakerFeeTxId())
-                .withDepositTxId(trade.getDepositTxId())
+                .withMakerDepositTxId(trade.getMakerDepositTxId())
+                .withTakerDepositTxId(trade.getTakerDepositTxId())
                 .withPayoutTxId(trade.getPayoutTxId())
                 .withTradeAmountAsLong(trade.getTradeAmountAsLong())
                 .withTradePrice(trade.getTradePrice().getValue())
@@ -159,11 +160,11 @@ public class TradeInfo implements Payload {
                 .setShortId(shortId)
                 .setDate(date)
                 .setRole(role)
-                .setIsCurrencyForTakerFeeBtc(isCurrencyForTakerFeeBtc)
                 .setTxFeeAsLong(txFeeAsLong)
                 .setTakerFeeAsLong(takerFeeAsLong)
                 .setTakerFeeTxId(takerFeeTxId == null ? "" : takerFeeTxId)
-                .setDepositTxId(depositTxId == null ? "" : depositTxId)
+                .setMakerDepositTxId(makerDepositTxId == null ? "" : makerDepositTxId)
+                .setTakerDepositTxId(takerDepositTxId == null ? "" : takerDepositTxId)
                 .setPayoutTxId(payoutTxId == null ? "" : payoutTxId)
                 .setTradeAmountAsLong(tradeAmountAsLong)
                 .setTradePrice(tradePrice)
@@ -189,11 +190,11 @@ public class TradeInfo implements Payload {
                 .withShortId(proto.getShortId())
                 .withDate(proto.getDate())
                 .withRole(proto.getRole())
-                .withIsCurrencyForTakerFeeBtc(proto.getIsCurrencyForTakerFeeBtc())
                 .withTxFeeAsLong(proto.getTxFeeAsLong())
                 .withTakerFeeAsLong(proto.getTakerFeeAsLong())
                 .withTakerFeeTxId(proto.getTakerFeeTxId())
-                .withDepositTxId(proto.getDepositTxId())
+                .withMakerDepositTxId(proto.getMakerDepositTxId())
+                .withTakerDepositTxId(proto.getTakerDepositTxId())
                 .withPayoutTxId(proto.getPayoutTxId())
                 .withTradeAmountAsLong(proto.getTradeAmountAsLong())
                 .withTradePrice(proto.getTradePrice())
@@ -228,7 +229,8 @@ public class TradeInfo implements Payload {
         private long txFeeAsLong;
         private long takerFeeAsLong;
         private String takerFeeTxId;
-        private String depositTxId;
+        private String makerDepositTxId;
+        private String takerDepositTxId;
         private String payoutTxId;
         private long tradeAmountAsLong;
         private long tradePrice;
@@ -290,8 +292,13 @@ public class TradeInfo implements Payload {
             return this;
         }
 
-        public TradeInfoBuilder withDepositTxId(String depositTxId) {
-            this.depositTxId = depositTxId;
+        public TradeInfoBuilder withMakerDepositTxId(String makerDepositTxId) {
+            this.makerDepositTxId = makerDepositTxId;
+            return this;
+        }
+        
+        public TradeInfoBuilder withTakerDepositTxId(String takerDepositTxId) {
+            this.takerDepositTxId = takerDepositTxId;
             return this;
         }
 
@@ -386,7 +393,8 @@ public class TradeInfo implements Payload {
                 ", txFeeAsLong='" + txFeeAsLong + '\'' + "\n" +
                 ", takerFeeAsLong='" + takerFeeAsLong + '\'' + "\n" +
                 ", takerFeeTxId='" + takerFeeTxId + '\'' + "\n" +
-                ", depositTxId='" + depositTxId + '\'' + "\n" +
+                ", makerDepositTxId='" + makerDepositTxId + '\'' + "\n" +
+                ", takerDepositTxId='" + takerDepositTxId + '\'' + "\n" +
                 ", payoutTxId='" + payoutTxId + '\'' + "\n" +
                 ", tradeAmountAsLong='" + tradeAmountAsLong + '\'' + "\n" +
                 ", tradePrice='" + tradePrice + '\'' + "\n" +

@@ -3,9 +3,9 @@ package bisq.desktop.main.portfolio.editoffer;
 import bisq.desktop.util.validation.SecurityDepositValidator;
 
 import bisq.core.account.witness.AccountAgeWitnessService;
-import bisq.core.btc.model.AddressEntry;
+import bisq.core.btc.model.XmrAddressEntry;
 import bisq.core.btc.wallet.BsqWalletService;
-import bisq.core.btc.wallet.BtcWalletService;
+import bisq.core.btc.wallet.XmrWalletService;
 import bisq.core.locale.Country;
 import bisq.core.locale.CryptoCurrency;
 import bisq.core.locale.GlobalSettings;
@@ -66,8 +66,8 @@ public class EditOfferDataModelTest {
         Res.setup();
 
         FeeService feeService = mock(FeeService.class);
-        AddressEntry addressEntry = mock(AddressEntry.class);
-        BtcWalletService btcWalletService = mock(BtcWalletService.class);
+        XmrAddressEntry addressEntry = mock(XmrAddressEntry.class);
+        XmrWalletService xmrWalletService = mock(XmrWalletService.class);
         PriceFeedService priceFeedService = mock(PriceFeedService.class);
         user = mock(User.class);
         PaymentAccount paymentAccount = mock(PaymentAccount.class);
@@ -79,8 +79,8 @@ public class EditOfferDataModelTest {
         CreateOfferService createOfferService = mock(CreateOfferService.class);
         OfferUtil offerUtil = mock(OfferUtil.class);
 
-        when(btcWalletService.getOrCreateAddressEntry(anyString(), any())).thenReturn(addressEntry);
-        when(btcWalletService.getBalanceForAddress(any())).thenReturn(Coin.valueOf(1000L));
+        when(xmrWalletService.getOrCreateAddressEntry(anyString(), any())).thenReturn(addressEntry);
+        when(xmrWalletService.getBalanceForAccount(any(Integer.class))).thenReturn(Coin.valueOf(1000L));
         when(priceFeedService.updateCounterProperty()).thenReturn(new SimpleIntegerProperty());
         when(priceFeedService.getMarketPrice(anyString())).thenReturn(
                 new MarketPrice("USD",
@@ -98,20 +98,20 @@ public class EditOfferDataModelTest {
         when(createOfferService.getRandomOfferId()).thenReturn(UUID.randomUUID().toString());
 
         model = new EditOfferDataModel(createOfferService,
-                null,
-                offerUtil,
-                btcWalletService,
-                bsqWalletService,
-                empty,
-                user,
-                null,
-                priceFeedService,
-                accountAgeWitnessService,
-                feeService,
-                null,
-                null,
-                mock(TradeStatisticsManager.class),
-                null);
+            null,
+            offerUtil,
+            xmrWalletService,
+            bsqWalletService,
+            empty,
+            user,
+            null,
+            priceFeedService,
+            accountAgeWitnessService,
+            feeService,
+            null,
+            null,
+            mock(TradeStatisticsManager.class),
+            null);
     }
 
     @Test

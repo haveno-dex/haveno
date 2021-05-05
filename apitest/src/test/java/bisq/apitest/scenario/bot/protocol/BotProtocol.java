@@ -304,7 +304,7 @@ public abstract class BotProtocol {
                         throw new IllegalStateException(this.getBotClient().toCleanGrpcExceptionMessage(ex));
                 }
             }  // end while
-            throw new IllegalStateException(stoppedWaitingForDepositFeeTxMsg(this.getBotClient().getTrade(tradeId).getDepositTxId()));
+            throw new IllegalStateException(stoppedWaitingForDepositFeeTxMsg(this.getBotClient().getTrade(tradeId).getTakerDepositTxId()));
         } catch (ManualBotShutdownException ex) {
             throw ex; // not an error, tells bot to shutdown
         } catch (Exception ex) {
@@ -314,10 +314,10 @@ public abstract class BotProtocol {
 
     private final Predicate<TradeInfo> isDepositFeeTxStepComplete = (trade) -> {
         if (currentProtocolStep.equals(WAIT_FOR_TAKER_DEPOSIT_TX_PUBLISHED) && trade.getIsDepositPublished()) {
-            log.info("Taker deposit fee tx {} has been published.", trade.getDepositTxId());
+            log.info("Taker deposit fee tx {} has been published.", trade.getTakerDepositTxId());
             return true;
         } else if (currentProtocolStep.equals(WAIT_FOR_TAKER_DEPOSIT_TX_CONFIRMED) && trade.getIsDepositConfirmed()) {
-            log.info("Taker deposit fee tx {} has been confirmed.", trade.getDepositTxId());
+            log.info("Taker deposit fee tx {} has been confirmed.", trade.getTakerDepositTxId());
             return true;
         } else {
             return false;

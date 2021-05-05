@@ -19,10 +19,12 @@ package bisq.desktop.main.funds.transactions;
 
 import bisq.core.trade.Tradable;
 
-import org.bitcoinj.core.Transaction;
+
+
+import monero.wallet.model.MoneroTxWallet;
 
 interface TransactionAwareTradable {
-    boolean isRelatedToTransaction(Transaction transaction);
+    boolean isRelatedToTransaction(MoneroTxWallet transaction);
 
     Tradable asTradable();
 }

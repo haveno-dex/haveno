@@ -18,15 +18,11 @@
 package bisq.core.trade.protocol.tasks.seller_as_maker;
 
 import bisq.core.trade.Trade;
-import bisq.core.trade.messages.DepositTxMessage;
 import bisq.core.trade.protocol.tasks.TradeTask;
-import bisq.core.util.Validator;
 
 import bisq.common.taskrunner.TaskRunner;
 
 import lombok.extern.slf4j.Slf4j;
-
-import static com.google.common.base.Preconditions.checkNotNull;
 
 @Slf4j
 public class SellerAsMakerProcessDepositTxMessage extends TradeTask {
@@ -36,26 +32,27 @@ public class SellerAsMakerProcessDepositTxMessage extends TradeTask {
 
     @Override
     protected void run() {
-        try {
-            runInterceptHook();
-            log.debug("current trade state " + trade.getState());
-            DepositTxMessage message = (DepositTxMessage) processModel.getTradeMessage();
-            Validator.checkTradeId(processModel.getOfferId(), message);
-            checkNotNull(message);
-
-            processModel.getTradingPeer().setPreparedDepositTx(checkNotNull(message.getDepositTxWithoutWitnesses()));
-            trade.setTradingPeerNodeAddress(processModel.getTempTradingPeerNodeAddress());
-
-            // When we receive that message the taker has published the taker fee, so we apply it to the trade.
-            // The takerFeeTx was sent in the first message. It should be part of DelayedPayoutTxSignatureRequest
-            // but that cannot be changed due backward compatibility issues. It is a left over from the old trade protocol.
-            trade.setTakerFeeTxId(processModel.getTakeOfferFeeTxId());
-
-            processModel.getTradeManager().requestPersistence();
-
-            complete();
-        } catch (Throwable t) {
-            failed(t);
-        }
+        throw new RuntimeException("SellerAsMakerProcessDepositTxMessage needs updated for XMR");
+//        try {
+//            runInterceptHook();
+//            log.debug("current trade state " + trade.getState());
+//            DepositTxMessage message = (DepositTxMessage) processModel.getTradeMessage();
+//            Validator.checkTradeId(processModel.getOfferId(), message);
+//            checkNotNull(message);
+//
+//            processModel.getTradingPeer().setPreparedDepositTx(checkNotNull(message.getDepositTxWithoutWitnesses()));
+//            trade.setTradingPeerNodeAddress(processModel.getTempTradingPeerNodeAddress());
+//
+//            // When we receive that message the taker has published the taker fee, so we apply it to the trade.
+//            // The takerFeeTx was sent in the first message. It should be part of DelayedPayoutTxSignatureRequest
+//            // but that cannot be changed due backward compatibility issues. It is a left over from the old trade protocol.
+//            trade.setTakerFeeTxId(processModel.getTakeOfferFeeTxId());
+//
+//            processModel.getTradeManager().requestPersistence();
+//
+//            complete();
+//        } catch (Throwable t) {
+//            failed(t);
+//        }
     }
 }

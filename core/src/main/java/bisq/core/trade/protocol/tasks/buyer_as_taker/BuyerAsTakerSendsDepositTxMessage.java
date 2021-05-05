@@ -18,15 +18,9 @@
 package bisq.core.trade.protocol.tasks.buyer_as_taker;
 
 import bisq.core.trade.Trade;
-import bisq.core.trade.messages.DepositTxMessage;
 import bisq.core.trade.protocol.tasks.TradeTask;
 
-import bisq.network.p2p.NodeAddress;
-import bisq.network.p2p.SendDirectMessageListener;
-
 import bisq.common.taskrunner.TaskRunner;
-
-import java.util.UUID;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -40,43 +34,42 @@ public class BuyerAsTakerSendsDepositTxMessage extends TradeTask {
     protected void run() {
         try {
             runInterceptHook();
-            if (processModel.getDepositTx() != null) {
-                // Remove witnesses from the sent depositTx, so that the seller can still compute the final
-                // tx id, but cannot publish it before providing the buyer with a signed delayed payout tx.
-                DepositTxMessage message = new DepositTxMessage(UUID.randomUUID().toString(),
-                        processModel.getOfferId(),
-                        processModel.getMyNodeAddress(),
-                        processModel.getDepositTx().bitcoinSerialize(false));
-
-                NodeAddress peersNodeAddress = trade.getTradingPeerNodeAddress();
-                log.info("Send {} to peer {}. tradeId={}, uid={}",
-                        message.getClass().getSimpleName(), peersNodeAddress, message.getTradeId(), message.getUid());
-                processModel.getP2PService().sendEncryptedDirectMessage(
-                        peersNodeAddress,
-                        processModel.getTradingPeer().getPubKeyRing(),
-                        message,
-                        new SendDirectMessageListener() {
-                            @Override
-                            public void onArrived() {
-                                log.info("{} arrived at peer {}. tradeId={}, uid={}",
-                                        message.getClass().getSimpleName(), peersNodeAddress, message.getTradeId(), message.getUid());
-                                complete();
-                            }
-
-                            @Override
-                            public void onFault(String errorMessage) {
-                                log.error("{} failed: Peer {}. tradeId={}, uid={}, errorMessage={}",
-                                        message.getClass().getSimpleName(), peersNodeAddress, message.getTradeId(), message.getUid(), errorMessage);
-
-                                appendToErrorMessage("Sending message failed: message=" + message + "\nerrorMessage=" + errorMessage);
-                                failed();
-                            }
-                        }
-                );
-            } else {
-                log.error("processModel.getDepositTx() = {}", processModel.getDepositTx());
-                failed("DepositTx is null");
-            }
+            throw new RuntimeException("BuyerAsTakerSendsDepositTxMessage not implemented for xmr");
+//            if (processModel.getDepositTx() != null) {
+//                DepositTxMessage message = new DepositTxMessage(UUID.randomUUID().toString(),
+//                        processModel.getOfferId(),
+//                        processModel.getMyNodeAddress(),
+//                        processModel.getDepositTx().bitcoinSerialize());
+//
+//                NodeAddress peersNodeAddress = trade.getTradingPeerNodeAddress();
+//                log.info("Send {} to peer {}. tradeId={}, uid={}",
+//                        message.getClass().getSimpleName(), peersNodeAddress, message.getTradeId(), message.getUid());
+//                processModel.getP2PService().sendEncryptedDirectMessage(
+//                        peersNodeAddress,
+//                        processModel.getTradingPeer().getPubKeyRing(),
+//                        message,
+//                        new SendDirectMessageListener() {
+//                            @Override
+//                            public void onArrived() {
+//                                log.info("{} arrived at peer {}. tradeId={}, uid={}",
+//                                        message.getClass().getSimpleName(), peersNodeAddress, message.getTradeId(), message.getUid());
+//                                complete();
+//                            }
+//
+//                            @Override
+//                            public void onFault(String errorMessage) {
+//                                log.error("{} failed: Peer {}. tradeId={}, uid={}, errorMessage={}",
+//                                        message.getClass().getSimpleName(), peersNodeAddress, message.getTradeId(), message.getUid(), errorMessage);
+//
+//                                appendToErrorMessage("Sending message failed: message=" + message + "\nerrorMessage=" + errorMessage);
+//                                failed();
+//                            }
+//                        }
+//                );
+//            } else {
+//                log.error("processModel.getDepositTx() = " + processModel.getDepositTx());
+//                failed("DepositTx is null");
+//            }
         } catch (Throwable t) {
             failed(t);
         }

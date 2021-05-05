@@ -50,6 +50,7 @@ public class SellerAsTakerSignsDepositTx extends TradeTask {
     protected void run() {
         try {
             runInterceptHook();
+            if (true) throw new RuntimeException("SellerAsTakerSignsDepositTx not implemented for xmr");
 
             List<RawTransactionInput> sellerInputs = checkNotNull(processModel.getRawTransactionInputs(),
                     "sellerInputs must not be null");

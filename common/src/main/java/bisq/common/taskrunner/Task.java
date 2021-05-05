@@ -25,7 +25,7 @@ public abstract class Task<T extends Model> {
 
     public static Class<? extends Task> taskToIntercept;
 
-    private final TaskRunner taskHandler;
+    protected final TaskRunner taskHandler;
     protected final T model;
     protected String errorMessage = "An error occurred at task: " + getClass().getSimpleName();
     protected boolean completed;

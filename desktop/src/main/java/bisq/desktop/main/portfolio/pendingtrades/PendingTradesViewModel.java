@@ -20,13 +20,11 @@ package bisq.desktop.main.portfolio.pendingtrades;
 import bisq.desktop.Navigation;
 import bisq.desktop.common.model.ActivatableWithDataModel;
 import bisq.desktop.common.model.ViewModel;
-import bisq.desktop.main.overlays.popups.Popup;
 import bisq.desktop.util.DisplayUtils;
 import bisq.desktop.util.GUIUtil;
 
 import bisq.core.account.witness.AccountAgeWitnessService;
 import bisq.core.btc.wallet.Restrictions;
-import bisq.core.locale.Res;
 import bisq.core.network.MessageState;
 import bisq.core.offer.Offer;
 import bisq.core.offer.OfferUtil;
@@ -45,7 +43,6 @@ import bisq.core.util.validation.BtcAddressValidator;
 import bisq.network.p2p.P2PService;
 
 import bisq.common.ClockWatcher;
-import bisq.common.UserThread;
 import bisq.common.app.DevEnv;
 
 import org.bitcoinj.core.Coin;
@@ -64,7 +61,6 @@ import javafx.beans.property.SimpleIntegerProperty;
 import javafx.beans.property.SimpleObjectProperty;
 
 import java.util.Date;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import lombok.Getter;
@@ -209,27 +205,29 @@ public class PendingTradesViewModel extends ActivatableWithDataModel<PendingTrad
     }
 
     public void checkTakerFeeTx(Trade trade) {
-        mempoolStatus.setValue(-1);
-        mempoolService.validateOfferTakerTx(trade, (txValidator -> {
-            mempoolStatus.setValue(txValidator.isFail() ? 0 : 1);
-            if (txValidator.isFail()) {
-                String errorMessage = "Validation of Taker Tx returned: " + txValidator.toString();
-                log.warn(errorMessage);
-                // prompt user to open mediation
-                if (trade.getDisputeState() == Trade.DisputeState.NO_DISPUTE) {
-                    UserThread.runAfter(() -> {
-                        Popup popup = new Popup();
-                        popup.headLine(Res.get("portfolio.pending.openSupportTicket.headline"))
-                                .message(Res.get("portfolio.pending.invalidTx", errorMessage))
-                                .actionButtonText(Res.get("portfolio.pending.openSupportTicket.headline"))
-                                .onAction(dataModel::onOpenSupportTicket)
-                                .closeButtonText(Res.get("shared.cancel"))
-                                .onClose(popup::hide)
-                                .show();
-                    }, 100, TimeUnit.MILLISECONDS);
-                }
-            }
-        }));
+        log.warn("PendingTradesViewModel.checkTakerFeeTx() needs adapted to XMR");
+        return; // TODO (woodser): PendingTradesViewModel.checkTakerFeeTx() needs adapted to XMR, use common TradeDataValidation utility
+//        mempoolStatus.setValue(-1);
+//        mempoolService.validateOfferTakerTx(trade, (txValidator -> {
+//            mempoolStatus.setValue(txValidator.isFail() ? 0 : 1);
+//            if (txValidator.isFail()) {
+//                String errorMessage = "Validation of Taker Tx returned: " + txValidator.toString();
+//                log.warn(errorMessage);
+//                // prompt user to open mediation
+//                if (trade.getDisputeState() == Trade.DisputeState.NO_DISPUTE) {
+//                    UserThread.runAfter(() -> {
+//                        Popup popup = new Popup();
+//                        popup.headLine(Res.get("portfolio.pending.openSupportTicket.headline"))
+//                                .message(Res.get("portfolio.pending.invalidTx", errorMessage))
+//                                .actionButtonText(Res.get("portfolio.pending.openSupportTicket.headline"))
+//                                .onAction(dataModel::onOpenSupportTicket)
+//                                .closeButtonText(Res.get("shared.cancel"))
+//                                .onClose(popup::hide)
+//                                .show();
+//                    }, 100, TimeUnit.MILLISECONDS);
+//                }
+//            }
+//        }));
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -329,7 +327,7 @@ public class PendingTradesViewModel extends ActivatableWithDataModel<PendingTrad
         if (trade != null && dataModel.getOffer() != null && trade.getTradeAmount() != null) {
             checkNotNull(dataModel.getTrade());
             if (dataModel.isMaker() && dataModel.getOffer().isCurrencyForMakerFeeBtc() ||
-                    !dataModel.isMaker() && dataModel.getTrade().isCurrencyForTakerFeeBtc()) {
+                    !dataModel.isMaker()) {
                 Coin tradeFeeInBTC = dataModel.getTradeFeeInBTC();
 
                 Coin minTradeFee = dataModel.isMaker() ?
@@ -432,20 +430,21 @@ public class PendingTradesViewModel extends ActivatableWithDataModel<PendingTrad
 
 
             // #################### Phase DEPOSIT_PAID
-            case SELLER_PUBLISHED_DEPOSIT_TX:
+            case TAKER_PUBLISHED_DEPOSIT_TX:
+            case TAKER_SAW_DEPOSIT_TX_IN_NETWORK:
 
                 // DEPOSIT_TX_PUBLISHED_MSG
-                // seller perspective
-            case SELLER_SENT_DEPOSIT_TX_PUBLISHED_MSG:
-            case SELLER_SAW_ARRIVED_DEPOSIT_TX_PUBLISHED_MSG:
-            case SELLER_STORED_IN_MAILBOX_DEPOSIT_TX_PUBLISHED_MSG:
-            case SELLER_SEND_FAILED_DEPOSIT_TX_PUBLISHED_MSG:
+                // taker perspective
+            case TAKER_SENT_DEPOSIT_TX_PUBLISHED_MSG:
+            case TAKER_SAW_ARRIVED_DEPOSIT_TX_PUBLISHED_MSG:
+            case TAKER_STORED_IN_MAILBOX_DEPOSIT_TX_PUBLISHED_MSG:
+            case TAKER_SEND_FAILED_DEPOSIT_TX_PUBLISHED_MSG:
 
-                // buyer perspective
-            case BUYER_RECEIVED_DEPOSIT_TX_PUBLISHED_MSG:
+                // maker perspective
+            case MAKER_RECEIVED_DEPOSIT_TX_PUBLISHED_MSG:
 
                 // Alternatively the maker could have seen the deposit tx earlier before he received the DEPOSIT_TX_PUBLISHED_MSG
-            case BUYER_SAW_DEPOSIT_TX_IN_NETWORK:
+            case MAKER_SAW_DEPOSIT_TX_IN_NETWORK:
                 buyerState.set(BuyerState.STEP1);
                 sellerState.set(SellerState.STEP1);
                 break;

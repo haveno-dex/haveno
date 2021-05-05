@@ -25,13 +25,12 @@ import bisq.core.trade.messages.PayoutTxPublishedMessage;
 import bisq.core.trade.messages.TradeMessage;
 import bisq.core.trade.protocol.tasks.ApplyFilter;
 import bisq.core.trade.protocol.tasks.TradeTask;
-import bisq.core.trade.protocol.tasks.buyer.BuyerProcessDepositTxAndDelayedPayoutTxMessage;
+import bisq.core.trade.protocol.tasks.UpdateMultisigWithTradingPeer;
+import bisq.core.trade.protocol.tasks.buyer.BuyerCreateAndSignPayoutTx;
 import bisq.core.trade.protocol.tasks.buyer.BuyerProcessPayoutTxPublishedMessage;
 import bisq.core.trade.protocol.tasks.buyer.BuyerSendCounterCurrencyTransferStartedMessage;
 import bisq.core.trade.protocol.tasks.buyer.BuyerSetupDepositTxListener;
 import bisq.core.trade.protocol.tasks.buyer.BuyerSetupPayoutTxListener;
-import bisq.core.trade.protocol.tasks.buyer.BuyerSignPayoutTx;
-import bisq.core.trade.protocol.tasks.buyer.BuyerVerifiesFinalDelayedPayoutTx;
 
 import bisq.network.p2p.NodeAddress;
 
@@ -100,28 +99,28 @@ public abstract class BuyerProtocol extends DisputeProtocol {
     // mailbox message but the stored in mailbox case is not expected and the seller would try to send the message again
     // in the hope to reach the buyer directly.
     protected void handle(DepositTxAndDelayedPayoutTxMessage message, NodeAddress peer) {
-        expect(anyPhase(Trade.Phase.TAKER_FEE_PUBLISHED, Trade.Phase.DEPOSIT_PUBLISHED)
-                .with(message)
-                .from(peer)
-                .preCondition(trade.getDepositTx() == null || trade.getDelayedPayoutTx() == null,
-                        () -> {
-                            log.warn("We with a DepositTxAndDelayedPayoutTxMessage but we have already processed the deposit and " +
-                                    "delayed payout tx so we ignore the message. This can happen if the ACK message to the peer did not " +
-                                    "arrive and the peer repeats sending us the message. We send another ACK msg.");
-                            stopTimeout();
-                            sendAckMessage(message, true, null);
-                            removeMailboxMessageAfterProcessing(message);
-                        }))
-                .setup(tasks(BuyerProcessDepositTxAndDelayedPayoutTxMessage.class,
-                        BuyerVerifiesFinalDelayedPayoutTx.class)
-                        .using(new TradeTaskRunner(trade,
-                                () -> {
-                                    stopTimeout();
-                                    handleTaskRunnerSuccess(message);
-                                },
-                                errorMessage -> handleTaskRunnerFault(message, errorMessage))))
-                .run(() -> processModel.witnessDebugLog(trade))
-                .executeTasks();
+//        expect(anyPhase(Trade.Phase.TAKER_FEE_PUBLISHED, Trade.Phase.DEPOSIT_PUBLISHED)
+//                .with(message)
+//                .from(peer)
+//                .preCondition(trade.getDepositTx() == null || trade.getDelayedPayoutTx() == null,
+//                        () -> {
+//                            log.warn("We with a DepositTxAndDelayedPayoutTxMessage but we have already processed the deposit and " +
+//                                    "delayed payout tx so we ignore the message. This can happen if the ACK message to the peer did not " +
+//                                    "arrive and the peer repeats sending us the message. We send another ACK msg.");
+//                            stopTimeout();
+//                            sendAckMessage(message, true, null);
+//                            removeMailboxMessageAfterProcessing(message);
+//                        }))
+//                .setup(tasks(BuyerProcessDepositTxAndDelayedPayoutTxMessage.class,
+//                        BuyerVerifiesFinalDelayedPayoutTx.class)
+//                        .using(new TradeTaskRunner(trade,
+//                                () -> {
+//                                    stopTimeout();
+//                                    handleTaskRunnerSuccess(message);
+//                                },
+//                                errorMessage -> handleTaskRunnerFault(message, errorMessage))))
+//                .run(() -> processModel.witnessDebugLog(trade))
+//                .executeTasks();
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -135,7 +134,8 @@ public abstract class BuyerProtocol extends DisputeProtocol {
                 .preCondition(trade.confirmPermitted()))
                 .setup(tasks(ApplyFilter.class,
                         getVerifyPeersFeePaymentClass(),
-                        BuyerSignPayoutTx.class,
+                        UpdateMultisigWithTradingPeer.class,
+                        BuyerCreateAndSignPayoutTx.class,
                         BuyerSetupPayoutTxListener.class,
                         BuyerSendCounterCurrencyTransferStartedMessage.class)
                         .using(new TradeTaskRunner(trade,
@@ -147,10 +147,7 @@ public abstract class BuyerProtocol extends DisputeProtocol {
                                     errorMessageHandler.handleErrorMessage(errorMessage);
                                     handleTaskRunnerFault(event, errorMessage);
                                 })))
-                .run(() -> {
-                    trade.setState(Trade.State.BUYER_CONFIRMED_IN_UI_FIAT_PAYMENT_INITIATED);
-                    processModel.getTradeManager().requestPersistence();
-                })
+                .run(() -> trade.setState(Trade.State.BUYER_CONFIRMED_IN_UI_FIAT_PAYMENT_INITIATED))
                 .executeTasks();
     }
 
@@ -159,12 +156,22 @@ public abstract class BuyerProtocol extends DisputeProtocol {
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     protected void handle(PayoutTxPublishedMessage message, NodeAddress peer) {
+        processModel.setTradeMessage(message);
+        processModel.setTempTradingPeerNodeAddress(peer);
         expect(anyPhase(Trade.Phase.FIAT_SENT, Trade.Phase.PAYOUT_PUBLISHED)
-                .with(message)
-                .from(peer))
-                .setup(tasks(BuyerProcessPayoutTxPublishedMessage.class))
-                .executeTasks();
-
+            .with(message)
+            .from(peer))
+            .setup(tasks(
+                getVerifyPeersFeePaymentClass(),
+                BuyerProcessPayoutTxPublishedMessage.class)
+                .using(new TradeTaskRunner(trade,
+                    () -> {
+                      handleTaskRunnerSuccess(message);
+                    },
+                    errorMessage -> {
+                        handleTaskRunnerFault(message, errorMessage);
+                    })))
+            .executeTasks();
     }
 
 

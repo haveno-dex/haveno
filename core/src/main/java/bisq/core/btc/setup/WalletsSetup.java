@@ -21,6 +21,7 @@ import bisq.core.btc.exceptions.InvalidHostException;
 import bisq.core.btc.exceptions.RejectedTxException;
 import bisq.core.btc.model.AddressEntry;
 import bisq.core.btc.model.AddressEntryList;
+import bisq.core.btc.model.XmrAddressEntryList;
 import bisq.core.btc.nodes.BtcNetworkConfig;
 import bisq.core.btc.nodes.BtcNodes;
 import bisq.core.btc.nodes.BtcNodes.BtcNode;
@@ -58,8 +59,8 @@ import org.bitcoinj.wallet.Wallet;
 
 import com.runjva.sourceforge.jsocks.protocol.Socks5Proxy;
 
-import javax.inject.Inject;
-import javax.inject.Named;
+import com.google.inject.Inject;
+import com.google.inject.name.Named;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.util.concurrent.Service;
@@ -103,6 +104,10 @@ import javax.annotation.Nullable;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+
+
+import monero.wallet.MoneroWallet;
+
 // Setup wallets and use WalletConfig for BitcoinJ wiring.
 // Other like WalletConfig we are here always on the user thread. That is one reason why we do not
 // merge WalletsSetup with WalletConfig to one class.
@@ -120,6 +125,7 @@ public class WalletsSetup {
 
     private final RegTestHost regTestHost;
     private final AddressEntryList addressEntryList;
+    private final XmrAddressEntryList xmrAddressEntryList;
     private final Preferences preferences;
     private final Socks5ProxyProvider socks5ProxyProvider;
     private final Config config;
@@ -148,6 +154,7 @@ public class WalletsSetup {
     @Inject
     public WalletsSetup(RegTestHost regTestHost,
                         AddressEntryList addressEntryList,
+                        XmrAddressEntryList xmrAddressEntryList,
                         Preferences preferences,
                         Socks5ProxyProvider socks5ProxyProvider,
                         Config config,
@@ -160,6 +167,7 @@ public class WalletsSetup {
                         @Named(Config.SOCKS5_DISCOVER_MODE) String socks5DiscoverModeString) {
         this.regTestHost = regTestHost;
         this.addressEntryList = addressEntryList;
+        this.xmrAddressEntryList = xmrAddressEntryList;
         this.preferences = preferences;
         this.socks5ProxyProvider = socks5ProxyProvider;
         this.config = config;
@@ -253,6 +261,7 @@ public class WalletsSetup {
                 UserThread.execute(() -> {
                     chainHeight.set(chain.getBestChainHeight());
                     addressEntryList.onWalletReady(walletConfig.btcWallet());
+                    xmrAddressEntryList.onWalletReady(walletConfig.getXmrWallet());
                     timeoutTimer.stop();
                     setupCompletedHandlers.forEach(Runnable::run);
                 });
@@ -477,6 +486,10 @@ public class WalletsSetup {
 
     public Wallet getBtcWallet() {
         return walletConfig.btcWallet();
+    }
+
+    public MoneroWallet getXmrWallet() {
+      return walletConfig.getXmrWallet();
     }
 
     @Nullable

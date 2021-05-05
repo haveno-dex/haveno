@@ -115,7 +115,7 @@ public abstract class P2PSeedNodeSnapshotBase extends Metric implements MessageL
             File dir = new File(configuration.getProperty(DATABASE_DIR));
             String networkPostfix = "_" + BaseCurrencyNetwork.values()[Version.getBaseCurrencyNetwork()].toString();
             try {
-                CorePersistenceProtoResolver persistenceProtoResolver = new CorePersistenceProtoResolver(null, null);
+                CorePersistenceProtoResolver persistenceProtoResolver = new CorePersistenceProtoResolver(null, null, null);
 
                 //TODO will not work with historical data... should be refactored to re-use code for reading resource files
                 TradeStatistics3Store tradeStatistics3Store = new TradeStatistics3Store();

@@ -43,6 +43,8 @@ import bisq.core.proto.CoreProtoResolver;
 import bisq.core.support.dispute.arbitration.arbitrator.Arbitrator;
 import bisq.core.support.dispute.arbitration.messages.PeerPublishedDisputePayoutTxMessage;
 import bisq.core.support.dispute.mediation.mediator.Mediator;
+import bisq.core.support.dispute.messages.ArbitratorPayoutTxRequest;
+import bisq.core.support.dispute.messages.ArbitratorPayoutTxResponse;
 import bisq.core.support.dispute.messages.DisputeResultMessage;
 import bisq.core.support.dispute.messages.OpenNewDisputeMessage;
 import bisq.core.support.dispute.messages.PeerOpenedDisputeMessage;
@@ -53,14 +55,20 @@ import bisq.core.trade.messages.DelayedPayoutTxSignatureRequest;
 import bisq.core.trade.messages.DelayedPayoutTxSignatureResponse;
 import bisq.core.trade.messages.DepositTxAndDelayedPayoutTxMessage;
 import bisq.core.trade.messages.DepositTxMessage;
+import bisq.core.trade.messages.InitMultisigMessage;
+import bisq.core.trade.messages.InitTradeRequest;
 import bisq.core.trade.messages.InputsForDepositTxRequest;
 import bisq.core.trade.messages.InputsForDepositTxResponse;
+import bisq.core.trade.messages.MakerReadyToFundMultisigRequest;
+import bisq.core.trade.messages.MakerReadyToFundMultisigResponse;
 import bisq.core.trade.messages.MediatedPayoutTxPublishedMessage;
 import bisq.core.trade.messages.MediatedPayoutTxSignatureMessage;
 import bisq.core.trade.messages.PayoutTxPublishedMessage;
 import bisq.core.trade.messages.PeerPublishedDelayedPayoutTxMessage;
 import bisq.core.trade.messages.RefreshTradeStateRequest;
 import bisq.core.trade.messages.TraderSignedWitnessMessage;
+import bisq.core.trade.messages.UpdateMultisigRequest;
+import bisq.core.trade.messages.UpdateMultisigResponse;
 
 import bisq.network.p2p.AckMessage;
 import bisq.network.p2p.BundleOfEnvelopes;
@@ -147,6 +155,18 @@ public class CoreNetworkProtoResolver extends CoreProtoResolver implements Netwo
                 // trade protocol messages
                 case REFRESH_TRADE_STATE_REQUEST:
                     return RefreshTradeStateRequest.fromProto(proto.getRefreshTradeStateRequest(), messageVersion);
+                case INIT_TRADE_REQUEST:
+                  return InitTradeRequest.fromProto(proto.getInitTradeRequest(), this, messageVersion);
+                case INIT_MULTISIG_MESSAGE:
+                  return InitMultisigMessage.fromProto(proto.getInitMultisigMessage(), this, messageVersion);
+                case UPDATE_MULTISIG_REQUEST:
+                  return UpdateMultisigRequest.fromProto(proto.getUpdateMultisigRequest(), this, messageVersion);
+                case UPDATE_MULTISIG_RESPONSE:
+                  return UpdateMultisigResponse.fromProto(proto.getUpdateMultisigResponse(), this, messageVersion);
+                case MAKER_READY_TO_FUND_MULTISIG_REQUEST:
+                  return MakerReadyToFundMultisigRequest.fromProto(proto.getMakerReadyToFundMultisigRequest(), this, messageVersion);
+                case MAKER_READY_TO_FUND_MULTISIG_RESPONSE:
+                  return MakerReadyToFundMultisigResponse.fromProto(proto.getMakerReadyToFundMultisigResponse(), this, messageVersion);
                 case INPUTS_FOR_DEPOSIT_TX_REQUEST:
                     return InputsForDepositTxRequest.fromProto(proto.getInputsForDepositTxRequest(), this, messageVersion);
                 case INPUTS_FOR_DEPOSIT_TX_RESPONSE:
@@ -185,6 +205,10 @@ public class CoreNetworkProtoResolver extends CoreProtoResolver implements Netwo
                     return DisputeResultMessage.fromProto(proto.getDisputeResultMessage(), messageVersion);
                 case PEER_PUBLISHED_DISPUTE_PAYOUT_TX_MESSAGE:
                     return PeerPublishedDisputePayoutTxMessage.fromProto(proto.getPeerPublishedDisputePayoutTxMessage(), messageVersion);
+                case ARBITRATOR_PAYOUT_TX_REQUEST:
+                    return ArbitratorPayoutTxRequest.fromProto(proto.getArbitratorPayoutTxRequest(), this, messageVersion);
+                case ARBITRATOR_PAYOUT_TX_RESPONSE:
+                  return ArbitratorPayoutTxResponse.fromProto(proto.getArbitratorPayoutTxResponse(), this, messageVersion);
 
                 case PRIVATE_NOTIFICATION_MESSAGE:
                     return PrivateNotificationMessage.fromProto(proto.getPrivateNotificationMessage(), messageVersion);

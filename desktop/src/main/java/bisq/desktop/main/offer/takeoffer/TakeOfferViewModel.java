@@ -233,11 +233,11 @@ class TakeOfferViewModel extends ActivatableWithDataModel<TakeOfferDataModel> im
         showTransactionPublishedScreen.set(false);
         dataModel.onTakeOffer(trade -> {
             this.trade = trade;
+            takeOfferCompleted.set(true);
             trade.stateProperty().addListener(tradeStateListener);
             applyTradeState();
             trade.errorMessageProperty().addListener(tradeErrorListener);
             applyTradeErrorMessage(trade.getErrorMessage());
-            takeOfferCompleted.set(true);
         });
 
         updateButtonDisableState();
@@ -448,13 +448,16 @@ class TakeOfferViewModel extends ActivatableWithDataModel<TakeOfferDataModel> im
     }
 
     private void applyTradeState() {
-        if (trade.isDepositPublished()) {
-            if (trade.getDepositTx() != null) {
+        if (trade.isTakerFeePublished()) {
+            if (trade.getTakerFeeTxId() != null) {
                 if (takeOfferSucceededHandler != null)
                     takeOfferSucceededHandler.run();
 
                 showTransactionPublishedScreen.set(true);
                 updateSpinnerInfo();
+            } else {
+                final String msg = "trade.getTakerFeeTxId() must not be null.";
+                DevEnv.logErrorAndThrowIfDevMode(msg);
             }
         }
     }

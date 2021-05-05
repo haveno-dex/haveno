@@ -23,8 +23,8 @@ import bisq.desktop.main.offer.MutableOfferDataModel;
 
 import bisq.core.account.witness.AccountAgeWitnessService;
 import bisq.core.btc.wallet.BsqWalletService;
-import bisq.core.btc.wallet.BtcWalletService;
 import bisq.core.btc.wallet.Restrictions;
+import bisq.core.btc.wallet.XmrWalletService;
 import bisq.core.locale.CurrencyUtil;
 import bisq.core.locale.TradeCurrency;
 import bisq.core.offer.CreateOfferService;
@@ -65,7 +65,7 @@ class EditOfferDataModel extends MutableOfferDataModel {
     EditOfferDataModel(CreateOfferService createOfferService,
                        OpenOfferManager openOfferManager,
                        OfferUtil offerUtil,
-                       BtcWalletService btcWalletService,
+                       XmrWalletService xmrWalletService,
                        BsqWalletService bsqWalletService,
                        Preferences preferences,
                        User user,
@@ -81,7 +81,7 @@ class EditOfferDataModel extends MutableOfferDataModel {
         super(createOfferService,
                 openOfferManager,
                 offerUtil,
-                btcWalletService,
+                xmrWalletService,
                 bsqWalletService,
                 preferences,
                 user,

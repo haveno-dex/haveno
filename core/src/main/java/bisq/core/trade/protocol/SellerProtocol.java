@@ -20,19 +20,12 @@ package bisq.core.trade.protocol;
 import bisq.core.trade.SellerTrade;
 import bisq.core.trade.Trade;
 import bisq.core.trade.messages.CounterCurrencyTransferStartedMessage;
-import bisq.core.trade.messages.DelayedPayoutTxSignatureResponse;
 import bisq.core.trade.messages.TradeMessage;
 import bisq.core.trade.protocol.tasks.ApplyFilter;
 import bisq.core.trade.protocol.tasks.TradeTask;
-import bisq.core.trade.protocol.tasks.seller.SellerBroadcastPayoutTx;
-import bisq.core.trade.protocol.tasks.seller.SellerFinalizesDelayedPayoutTx;
 import bisq.core.trade.protocol.tasks.seller.SellerProcessCounterCurrencyTransferStartedMessage;
-import bisq.core.trade.protocol.tasks.seller.SellerProcessDelayedPayoutTxSignatureResponse;
-import bisq.core.trade.protocol.tasks.seller.SellerPublishesDepositTx;
-import bisq.core.trade.protocol.tasks.seller.SellerPublishesTradeStatistics;
 import bisq.core.trade.protocol.tasks.seller.SellerSendPayoutTxPublishedMessage;
-import bisq.core.trade.protocol.tasks.seller.SellerSendsDepositTxAndDelayedPayoutTxMessage;
-import bisq.core.trade.protocol.tasks.seller.SellerSignAndFinalizePayoutTx;
+import bisq.core.trade.protocol.tasks.seller.SellerSignAndPublishPayoutTx;
 
 import bisq.network.p2p.NodeAddress;
 
@@ -66,31 +59,6 @@ public abstract class SellerProtocol extends DisputeProtocol {
         }
     }
 
-
-    ///////////////////////////////////////////////////////////////////////////////////////////
-    // Incoming messages
-    ///////////////////////////////////////////////////////////////////////////////////////////
-
-    protected void handle(DelayedPayoutTxSignatureResponse message, NodeAddress peer) {
-        expect(phase(Trade.Phase.TAKER_FEE_PUBLISHED)
-                .with(message)
-                .from(peer))
-                .setup(tasks(SellerProcessDelayedPayoutTxSignatureResponse.class,
-                        SellerFinalizesDelayedPayoutTx.class,
-                        SellerSendsDepositTxAndDelayedPayoutTxMessage.class,
-                        SellerPublishesDepositTx.class,
-                        SellerPublishesTradeStatistics.class))
-                .run(() -> {
-                    // We stop timeout here and don't start a new one as the
-                    // SellerSendsDepositTxAndDelayedPayoutTxMessage repeats the send the message and has it's own
-                    // timeout if it never succeeds.
-                    stopTimeout();
-
-                    //TODO still needed? If so move to witness domain
-                    processModel.witnessDebugLog(trade);
-                })
-                .executeTasks();
-    }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Incoming message when buyer has clicked payment started button
@@ -132,22 +100,18 @@ public abstract class SellerProtocol extends DisputeProtocol {
                 .setup(tasks(
                         ApplyFilter.class,
                         getVerifyPeersFeePaymentClass(),
-                        SellerSignAndFinalizePayoutTx.class,
-                        SellerBroadcastPayoutTx.class,
+                        SellerSignAndPublishPayoutTx.class,
+                        // SellerSignAndFinalizePayoutTx.class,
+                        // SellerBroadcastPayoutTx.class,
                         SellerSendPayoutTxPublishedMessage.class)
-                        .using(new TradeTaskRunner(trade,
-                                () -> {
-                                    resultHandler.handleResult();
-                                    handleTaskRunnerSuccess(event);
-                                },
-                                (errorMessage) -> {
-                                    errorMessageHandler.handleErrorMessage(errorMessage);
-                                    handleTaskRunnerFault(event, errorMessage);
-                                })))
-                .run(() -> {
-                    trade.setState(Trade.State.SELLER_CONFIRMED_IN_UI_FIAT_PAYMENT_RECEIPT);
-                    processModel.getTradeManager().requestPersistence();
-                })
+                        .using(new TradeTaskRunner(trade, () -> {
+                            resultHandler.handleResult();
+                            handleTaskRunnerSuccess(event);
+                        }, (errorMessage) -> {
+                            errorMessageHandler.handleErrorMessage(errorMessage);
+                            handleTaskRunnerFault(event, errorMessage);
+                        })))
+                .run(() -> trade.setState(Trade.State.SELLER_CONFIRMED_IN_UI_FIAT_PAYMENT_RECEIPT))
                 .executeTasks();
     }
 
@@ -156,12 +120,7 @@ public abstract class SellerProtocol extends DisputeProtocol {
     protected void onTradeMessage(TradeMessage message, NodeAddress peer) {
         super.onTradeMessage(message, peer);
 
-        log.info("Received {} from {} with tradeId {} and uid {}",
-                message.getClass().getSimpleName(), peer, message.getTradeId(), message.getUid());
-
-        if (message instanceof DelayedPayoutTxSignatureResponse) {
-            handle((DelayedPayoutTxSignatureResponse) message, peer);
-        } else if (message instanceof CounterCurrencyTransferStartedMessage) {
+        if (message instanceof CounterCurrencyTransferStartedMessage) {
             handle((CounterCurrencyTransferStartedMessage) message, peer);
         }
     }

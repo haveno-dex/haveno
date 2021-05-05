@@ -81,6 +81,15 @@ message NetworkEnvelope {
 
         GetInventoryRequest get_inventory_request = 52;
         GetInventoryResponse get_inventory_response = 53;
+        
+        InitTradeRequest init_trade_request = 1001;
+        MakerReadyToFundMultisigRequest maker_ready_to_fund_multisig_request = 1002;
+        MakerReadyToFundMultisigResponse maker_ready_to_fund_multisig_response = 1003;
+        InitMultisigMessage init_multisig_message = 1004;
+        UpdateMultisigRequest update_multisig_request = 1005;
+        UpdateMultisigResponse update_multisig_response = 1006;
+        ArbitratorPayoutTxRequest arbitrator_payout_tx_request = 1007;
+        ArbitratorPayoutTxResponse arbitrator_payout_tx_response = 1008; 
     }
 }
 
@@ -267,6 +276,73 @@ message InputsForDepositTxResponse {
     int64 lock_time = 14;
 }
 
+message InitTradeRequest {
+    string trade_id = 1;
+    NodeAddress sender_node_address = 2;
+    PubKeyRing pub_key_ring = 3;
+    int64 trade_amount = 4;
+    int64 trade_price = 5;
+    int64 tx_fee = 6;
+    int64 trade_fee = 7;
+    string payout_address_string = 8;
+    PaymentAccountPayload payment_account_payload = 9;
+    string account_id = 10;
+    string trade_fee_tx_id = 11;
+    string uid = 12;
+    bytes account_age_witness_signature_of_offer_id = 13;
+    int64 current_date = 14;
+    NodeAddress maker_node_address = 15;
+    NodeAddress taker_node_address = 16;
+    NodeAddress arbitrator_node_address = 17;
+}
+
+message MakerReadyToFundMultisigRequest {
+    string trade_id = 1;
+    NodeAddress sender_node_address = 2;
+    PubKeyRing pub_key_ring = 3;
+    string uid = 4;
+}
+
+message MakerReadyToFundMultisigResponse {
+	string trade_id = 1;
+	string uid = 2;
+	bool is_maker_ready_to_fund_multisig = 3;
+	string maker_contract_as_json = 4;
+    string maker_contract_signature = 5;
+    string maker_payout_address_string = 6;
+    PaymentAccountPayload maker_payment_account_payload = 7;
+    string maker_account_id = 8;
+    int64 current_date = 9;
+}
+
+message InitMultisigMessage {
+    string trade_id = 1;
+    NodeAddress sender_node_address = 2;
+    PubKeyRing pub_key_ring = 3;
+    string uid = 4;
+    int64 current_date = 5;
+    string prepared_multisig_hex = 6;
+    string made_multisig_hex = 7;
+}
+
+message UpdateMultisigRequest {
+    string trade_id = 1;
+    NodeAddress sender_node_address = 2;
+    PubKeyRing pub_key_ring = 3;
+    string uid = 4;
+    int64 current_date = 5;
+    string updated_multisig_hex = 6;
+}
+
+message UpdateMultisigResponse {
+    string trade_id = 1;
+    NodeAddress sender_node_address = 2;
+    PubKeyRing pub_key_ring = 3;
+    string uid = 4;
+    int64 current_date = 5;
+    string updated_multisig_hex = 6;
+}
+
 message DelayedPayoutTxSignatureRequest {
     string uid = 1;
     string trade_id = 2;
@@ -296,6 +372,10 @@ message DepositTxMessage {
     string trade_id = 2;
     NodeAddress sender_node_address = 3;
     bytes deposit_tx_without_witnesses = 4;
+    PubKeyRing pub_key_ring = 100;
+    reserved 5; // WAS: bytes deposit_tx = 101;
+    string trade_fee_tx_id = 102;
+    string deposit_tx_id = 103;
 }
 
 message PeerPublishedDelayedPayoutTxMessage {
@@ -308,7 +388,7 @@ message CounterCurrencyTransferStartedMessage {
     string trade_id = 1;
     string buyer_payout_address = 2;
     NodeAddress sender_node_address = 3;
-    bytes buyer_signature = 4;
+    string buyer_payout_tx_signed = 4;
     string counter_currency_tx_id = 5;
     string uid = 6;
     string counter_currency_extra_data = 7;
@@ -322,9 +402,25 @@ message FinalizePayoutTxRequest {
     string uid = 5;
 }
 
+message ArbitratorPayoutTxRequest {
+    Dispute dispute = 1;    // TODO (woodser): replace with trade id
+    NodeAddress sender_node_address = 2;
+    string uid = 3;
+    SupportType type = 4;
+    string updated_multisig_hex = 5;
+}
+
+message ArbitratorPayoutTxResponse {
+    string trade_id = 1;
+    NodeAddress sender_node_address = 2;
+    string uid = 3;
+    SupportType type = 4;
+    string arbitrator_signed_payout_tx_hex = 5;
+}
+
 message PayoutTxPublishedMessage {
     string trade_id = 1;
-    bytes payout_tx = 2;
+    string signed_multisig_tx_hex = 2;
     NodeAddress sender_node_address = 3;
     string uid = 4;
     SignedWitness signed_witness = 5; // Added in v1.4.0
@@ -373,6 +469,7 @@ message OpenNewDisputeMessage {
     NodeAddress sender_node_address = 2;
     string uid = 3;
     SupportType type = 4;
+    string updated_multisig_hex = 5;
 }
 
 message PeerOpenedDisputeMessage {
@@ -410,10 +507,12 @@ message DisputeResultMessage {
 
 message PeerPublishedDisputePayoutTxMessage {
     string uid = 1;
-    bytes transaction = 2;
+    reserved 2; // was bytes transaction = 2;
     string trade_id = 3;
     NodeAddress sender_node_address = 4;
     SupportType type = 5;
+    string updated_multisig_hex = 6;
+    string payout_tx_hex = 7;
 }
 
 message PrivateNotificationMessage {
@@ -710,6 +809,8 @@ message TradeStatistics2 {
     string deposit_tx_id = 14 [deprecated = true];
     bytes hash = 15 [deprecated = true];
     map<string, string> extra_data = 16 [deprecated = true];
+    string maker_deposit_tx_id = 100;
+    string taker_deposit_tx_id = 101;
 }
 
 message TradeStatistics3 {
@@ -718,10 +819,14 @@ message TradeStatistics3 {
     int64 amount = 3;
     string payment_method = 4;
     int64 date = 5;
-    string mediator = 6;
-    string refund_agent = 7;
+    reserved 6; // was string mediator = 6;
+    reserved 7; // was string refund_agent = 7;
     bytes hash = 8;
     map<string, string> extra_data = 9;
+    
+    string arbitrator = 100;
+    string maker_deposit_tx_id = 101;
+    string taker_deposit_tx_id = 102;
 }
 
 message MailboxStoragePayload {
@@ -842,6 +947,7 @@ message Dispute {
     State state = 28;
     int64 trade_period_end = 29;
     map<string, string> extra_data = 30;
+    bool is_opener = 100;
 }
 
 message Attachment {
@@ -881,12 +987,14 @@ message DisputeResult {
     bool screen_cast = 7;
     string summary_notes = 8;
     ChatMessage chat_message = 9;
-    bytes arbitrator_signature = 10;
+    reserved 10; // was bytes arbitrator_signature = 10;
     int64 buyer_payout_amount = 11;
     int64 seller_payout_amount = 12;
     bytes arbitrator_pub_key = 13;
     int64 close_date = 14;
     bool is_loser_publisher = 15;
+    string arbitrator_signed_payout_tx_hex = 16;
+    string arbitrator_updated_multisig_hex = 17;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////
@@ -897,7 +1005,7 @@ message Contract {
     OfferPayload offer_payload = 1;
     int64 trade_amount = 2;
     int64 trade_price = 3;
-    string taker_fee_tx_id = 4;
+    reserved 4;	// WAS: taker_fee_tx_id
     reserved 5; // WAS: arbitrator_node_address
     bool is_buyer_maker_and_seller_taker = 6;
     string maker_account_id = 7;
@@ -910,11 +1018,8 @@ message Contract {
     NodeAddress seller_node_address = 14;
     string maker_payout_address_string = 15;
     string taker_payout_address_string = 16;
-    bytes maker_multi_sig_pub_key = 17;
-    bytes taker_multi_sig_pub_key = 18;
-    NodeAddress mediator_node_address = 19;
-    int64 lock_time = 20;
-    NodeAddress refund_agent_node_address = 21;
+    NodeAddress arbitrator_node_address = 17;
+    int64 lock_time = 18;
 }
 
 message RawTransactionInput {
@@ -1246,6 +1351,8 @@ message PersistableEnvelope {
         MailboxMessageList mailbox_message_list = 32;
         IgnoredMailboxMap ignored_mailbox_map = 33;
         RemovedPayloadsMap removed_payloads_map = 34;
+        
+        XmrAddressEntryList xmr_address_entry_list = 100;
     }
 }
 
@@ -1322,6 +1429,28 @@ message AddressEntry {
     bool segwit = 12;
 }
 
+message XmrAddressEntryList {
+    repeated XmrAddressEntry xmr_address_entry = 1;
+}
+
+message XmrAddressEntry {
+    enum Context {
+        PB_ERROR = 0;
+        ARBITRATOR = 1;
+        AVAILABLE = 2;
+        OFFER_FUNDING = 3;
+        RESERVED_FOR_TRADE = 4;
+        MULTI_SIG = 5;
+        TRADE_PAYOUT = 6;
+    }
+
+	int32 account_index = 7;
+	string address_string = 8;
+    string offer_id = 9;
+    Context context = 10;
+    int64 coin_locked_in_multi_sig = 11;
+}
+
 message NavigationPath {
     repeated string path = 1;
 }
@@ -1377,6 +1506,7 @@ message Tradable {
         BuyerAsTakerTrade buyer_as_taker_trade = 3;
         SellerAsMakerTrade seller_as_maker_trade = 4;
         SellerAsTakerTrade seller_as_taker_trade = 5;
+        ArbitratorTrade arbitrator_trade = 6;
     }
 }
 
@@ -1390,29 +1520,30 @@ message Trade {
         MAKER_STORED_IN_MAILBOX_PUBLISH_DEPOSIT_TX_REQUEST = 5;
         MAKER_SEND_FAILED_PUBLISH_DEPOSIT_TX_REQUEST = 6;
         TAKER_RECEIVED_PUBLISH_DEPOSIT_TX_REQUEST = 7;
-        SELLER_PUBLISHED_DEPOSIT_TX = 8;
-        SELLER_SENT_DEPOSIT_TX_PUBLISHED_MSG = 9;
-        SELLER_SAW_ARRIVED_DEPOSIT_TX_PUBLISHED_MSG = 10;
-        SELLER_STORED_IN_MAILBOX_DEPOSIT_TX_PUBLISHED_MSG = 11;
-        SELLER_SEND_FAILED_DEPOSIT_TX_PUBLISHED_MSG = 12;
-        BUYER_RECEIVED_DEPOSIT_TX_PUBLISHED_MSG = 13;
-        BUYER_SAW_DEPOSIT_TX_IN_NETWORK = 14;
-        DEPOSIT_CONFIRMED_IN_BLOCK_CHAIN = 15;
-        BUYER_CONFIRMED_IN_UI_FIAT_PAYMENT_INITIATED = 16;
-        BUYER_SENT_FIAT_PAYMENT_INITIATED_MSG = 17;
-        BUYER_SAW_ARRIVED_FIAT_PAYMENT_INITIATED_MSG = 18;
-        BUYER_STORED_IN_MAILBOX_FIAT_PAYMENT_INITIATED_MSG = 19;
-        BUYER_SEND_FAILED_FIAT_PAYMENT_INITIATED_MSG = 20;
-        SELLER_RECEIVED_FIAT_PAYMENT_INITIATED_MSG = 21;
-        SELLER_CONFIRMED_IN_UI_FIAT_PAYMENT_RECEIPT = 22;
-        SELLER_PUBLISHED_PAYOUT_TX = 23;
-        SELLER_SENT_PAYOUT_TX_PUBLISHED_MSG = 24;
-        SELLER_SAW_ARRIVED_PAYOUT_TX_PUBLISHED_MSG = 25;
-        SELLER_STORED_IN_MAILBOX_PAYOUT_TX_PUBLISHED_MSG = 26;
-        SELLER_SEND_FAILED_PAYOUT_TX_PUBLISHED_MSG = 27;
-        BUYER_RECEIVED_PAYOUT_TX_PUBLISHED_MSG = 28;
-        BUYER_SAW_PAYOUT_TX_IN_NETWORK = 29;
-        WITHDRAW_COMPLETED = 30;
+        TAKER_PUBLISHED_DEPOSIT_TX = 8;
+        TAKER_SAW_DEPOSIT_TX_IN_NETWORK = 9;
+        TAKER_SENT_DEPOSIT_TX_PUBLISHED_MSG = 10;
+        TAKER_SAW_ARRIVED_DEPOSIT_TX_PUBLISHED_MSG = 11;
+        TAKER_STORED_IN_MAILBOX_DEPOSIT_TX_PUBLISHED_MSG = 12;
+        TAKER_SEND_FAILED_DEPOSIT_TX_PUBLISHED_MSG = 13;
+        MAKER_RECEIVED_DEPOSIT_TX_PUBLISHED_MSG = 14;
+        MAKER_SAW_DEPOSIT_TX_IN_NETWORK = 15;
+        DEPOSIT_CONFIRMED_IN_BLOCK_CHAIN = 16;
+        BUYER_CONFIRMED_IN_UI_FIAT_PAYMENT_INITIATED = 17;
+        BUYER_SENT_FIAT_PAYMENT_INITIATED_MSG = 18;
+        BUYER_SAW_ARRIVED_FIAT_PAYMENT_INITIATED_MSG = 19;
+        BUYER_STORED_IN_MAILBOX_FIAT_PAYMENT_INITIATED_MSG = 20;
+        BUYER_SEND_FAILED_FIAT_PAYMENT_INITIATED_MSG = 21;
+        SELLER_RECEIVED_FIAT_PAYMENT_INITIATED_MSG = 22;
+        SELLER_CONFIRMED_IN_UI_FIAT_PAYMENT_RECEIPT = 23;
+        SELLER_PUBLISHED_PAYOUT_TX = 24;
+        SELLER_SENT_PAYOUT_TX_PUBLISHED_MSG = 25;
+        SELLER_SAW_ARRIVED_PAYOUT_TX_PUBLISHED_MSG = 26;
+        SELLER_STORED_IN_MAILBOX_PAYOUT_TX_PUBLISHED_MSG = 27;
+        SELLER_SEND_FAILED_PAYOUT_TX_PUBLISHED_MSG = 28;
+        BUYER_RECEIVED_PAYOUT_TX_PUBLISHED_MSG = 29;
+        BUYER_SAW_PAYOUT_TX_IN_NETWORK = 30;
+        WITHDRAW_COMPLETED = 31;
     }
 
     enum Phase {
@@ -1451,7 +1582,7 @@ message Trade {
     Offer offer = 1;
     ProcessModel process_model = 2;
     string taker_fee_tx_id = 3;
-    string deposit_tx_id = 4;
+    reserved 4;
     string payout_tx_id = 5;
     int64 trade_amount_as_long = 6;
     int64 tx_fee_as_long = 7;
@@ -1459,7 +1590,6 @@ message Trade {
     int64 take_offer_date = 9;
     bool is_currency_for_taker_fee_btc = 10;
     int64 trade_price = 11;
-    NodeAddress trading_peer_node_address = 12;
     State state = 13;
     DisputeState dispute_state = 14;
     TradePeriodState trade_period_state = 15;
@@ -1487,6 +1617,13 @@ message Trade {
     string counter_currency_extra_data = 37;
     string asset_tx_proof_result = 38; // name of AssetTxProofResult enum
     string uid = 39;
+    
+    NodeAddress taker_node_address = 100;
+    PubKeyRing taker_pub_key_ring = 101;
+    string taker_deposit_tx_id = 102;
+    NodeAddress maker_node_address = 103;
+    PubKeyRing maker_pub_key_ring = 104;
+    string maker_deposit_tx_id = 105;
 }
 
 message BuyerAsMakerTrade {
@@ -1505,8 +1642,12 @@ message SellerAsTakerTrade {
     Trade trade = 1;
 }
 
+message ArbitratorTrade {
+	Trade trade = 1;
+}
+
 message ProcessModel {
-    TradingPeer trading_peer = 1;
+    reserved 1;	 // Not used anymore
     string offer_id = 2;
     string account_id = 3;
     PubKeyRing pub_key_ring = 4;
@@ -1514,18 +1655,30 @@ message ProcessModel {
     bytes payout_tx_signature = 6;
     reserved 7; // Not used anymore
     reserved 8; // Not used anymore
-    bytes prepared_deposit_tx = 9;
+    reserved 9;	// Not used anymore
     repeated RawTransactionInput raw_transaction_inputs = 10;
     int64 change_output_value = 11;
     string change_output_address = 12;
     bool use_savings_wallet = 13;
     int64 funds_needed_for_trade_as_long = 14;
     bytes my_multi_sig_pub_key = 15;
-    NodeAddress temp_trading_peer_node_address = 16;
+    reserved 16;	 // Not used anymore
     string payment_started_message_state = 17;
     bytes mediated_payout_tx_signature = 18;
     int64 buyer_payout_amount_from_mediation = 19;
     int64 seller_payout_amount_from_mediation = 20;
+    
+    TradingPeer maker = 1001;
+    TradingPeer taker = 1002;
+    TradingPeer arbitrator = 1003;
+    NodeAddress temp_trading_peer_node_address = 1004;
+    string prepared_multisig_hex = 1005;
+    string made_multisig_hex = 1006;
+    bool multisig_setup_complete = 1007;
+    bool maker_ready_to_fund_multisig = 1008;
+    bool multisig_deposit_initiated = 1009;
+    string taker_prepared_deposit_tx_id = 1010;
+    string maker_prepared_deposit_tx_id = 1011;
 }
 
 message TradingPeer {
@@ -1534,7 +1687,7 @@ message TradingPeer {
     string payout_address_string = 3;
     string contract_as_json = 4;
     string contract_signature = 5;
-    bytes signature = 6;
+    bytes signature = 6;	// TODO (woodser): remove unused fields? this was buyer-signed payout tx as bytes
     PubKeyRing pub_key_ring = 7;
     bytes multi_sig_pub_key = 8;
     repeated RawTransactionInput raw_transaction_inputs = 9;
@@ -1544,6 +1697,10 @@ message TradingPeer {
     bytes account_age_witness_signature = 13;
     int64 current_date = 14;
     bytes mediated_payout_tx_signature = 15;
+    
+    string prepared_multisig_hex = 1001;
+    string made_multisig_hex = 1002;
+    string signed_payout_tx_hex = 1003;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////

@@ -21,12 +21,14 @@ import bisq.network.p2p.DirectMessage;
 import bisq.network.p2p.NodeAddress;
 
 import bisq.common.app.Version;
-import bisq.common.util.Utilities;
+import bisq.common.proto.ProtoUtil;
 
-import com.google.protobuf.ByteString;
+import java.util.Optional;
 
 import lombok.EqualsAndHashCode;
 import lombok.Value;
+
+import javax.annotation.Nullable;
 
 // It is the last message in the take offer phase. We use MailboxMessage instead of DirectMessage to add more tolerance
 // in case of network issues and as the message does not trigger further protocol execution.
@@ -34,57 +36,51 @@ import lombok.Value;
 @Value
 public final class DepositTxMessage extends TradeMessage implements DirectMessage {
     private final NodeAddress senderNodeAddress;
-    private final byte[] depositTxWithoutWitnesses;
+    @Nullable
+    private final String tradeFeeTxId;
+    @Nullable
+    private final String depositTxId;
 
     public DepositTxMessage(String uid,
                             String tradeId,
                             NodeAddress senderNodeAddress,
-                            byte[] depositTxWithoutWitnesses) {
-        this(Version.getP2PMessageVersion(),
-                uid,
-                tradeId,
-                senderNodeAddress,
-                depositTxWithoutWitnesses);
+                            String tradeFeeTxId,
+                            String depositTxId) {
+      super(Version.getP2PMessageVersion(), tradeId, uid);
+      this.senderNodeAddress = senderNodeAddress;
+      this.tradeFeeTxId = tradeFeeTxId;
+      this.depositTxId = depositTxId;
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // PROTO BUFFER
     ///////////////////////////////////////////////////////////////////////////////////////////
 
-    private DepositTxMessage(int messageVersion,
-                             String uid,
-                             String tradeId,
-                             NodeAddress senderNodeAddress,
-                             byte[] depositTxWithoutWitnesses) {
-        super(messageVersion, tradeId, uid);
-        this.senderNodeAddress = senderNodeAddress;
-        this.depositTxWithoutWitnesses = depositTxWithoutWitnesses;
-    }
-
     @Override
     public protobuf.NetworkEnvelope toProtoNetworkEnvelope() {
-        return getNetworkEnvelopeBuilder()
-                .setDepositTxMessage(protobuf.DepositTxMessage.newBuilder()
-                        .setUid(uid)
-                        .setTradeId(tradeId)
-                        .setSenderNodeAddress(senderNodeAddress.toProtoMessage())
-                        .setDepositTxWithoutWitnesses(ByteString.copyFrom(depositTxWithoutWitnesses)))
-                .build();
+      protobuf.DepositTxMessage.Builder builder = protobuf.DepositTxMessage.newBuilder()
+              .setTradeId(tradeId)
+              .setSenderNodeAddress(senderNodeAddress.toProtoMessage())
+              .setUid(uid);
+      Optional.ofNullable(tradeFeeTxId).ifPresent(e -> builder.setTradeFeeTxId(tradeFeeTxId));
+      Optional.ofNullable(depositTxId).ifPresent(e -> builder.setDepositTxId(depositTxId));
+      return getNetworkEnvelopeBuilder().setDepositTxMessage(builder).build();
     }
 
     public static DepositTxMessage fromProto(protobuf.DepositTxMessage proto, int messageVersion) {
-        return new DepositTxMessage(messageVersion,
-                proto.getUid(),
+        return new DepositTxMessage(proto.getUid(),
                 proto.getTradeId(),
                 NodeAddress.fromProto(proto.getSenderNodeAddress()),
-                proto.getDepositTxWithoutWitnesses().toByteArray());
+                ProtoUtil.stringOrNullFromProto(proto.getTradeFeeTxId()),
+                ProtoUtil.stringOrNullFromProto(proto.getDepositTxId()));
     }
 
     @Override
     public String toString() {
         return "DepositTxMessage{" +
                 "\n     senderNodeAddress=" + senderNodeAddress +
-                ",\n     depositTxWithoutWitnesses=" + Utilities.bytesAsHexString(depositTxWithoutWitnesses) +
+                ",\n     tradeFeeTxId=" + tradeFeeTxId +
+                ",\n     depositTxId=" + depositTxId +
                 "\n} " + super.toString();
     }
 }

@@ -19,7 +19,9 @@ package bisq.desktop.main.funds.transactions;
 
 import bisq.core.trade.Tradable;
 
-import org.bitcoinj.core.Transaction;
+
+
+import monero.wallet.model.MoneroTxWallet;
 
 class DummyTransactionAwareTradable implements TransactionAwareTradable {
     private final Tradable delegate;
@@ -29,7 +31,7 @@ class DummyTransactionAwareTradable implements TransactionAwareTradable {
     }
 
     @Override
-    public boolean isRelatedToTransaction(Transaction transaction) {
+    public boolean isRelatedToTransaction(MoneroTxWallet transaction) {
         return false;
     }
 

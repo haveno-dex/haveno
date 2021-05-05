@@ -19,26 +19,26 @@ package bisq.desktop.main.funds.withdrawal;
 
 import bisq.desktop.components.AutoTooltipLabel;
 
-import bisq.core.btc.listeners.BalanceListener;
-import bisq.core.btc.model.AddressEntry;
-import bisq.core.btc.wallet.BtcWalletService;
+import bisq.core.btc.listeners.XmrBalanceListener;
+import bisq.core.btc.model.XmrAddressEntry;
+import bisq.core.btc.wallet.XmrWalletService;
 import bisq.core.locale.Res;
 import bisq.core.util.coin.CoinFormatter;
 
-import org.bitcoinj.core.Address;
 import org.bitcoinj.core.Coin;
-import org.bitcoinj.core.Transaction;
 
 import javafx.scene.control.Label;
+
+import java.math.BigInteger;
 
 import lombok.Getter;
 import lombok.Setter;
 
 class WithdrawalListItem {
-    private final BalanceListener balanceListener;
+    private final XmrBalanceListener balanceListener;
     private final Label balanceLabel;
-    private final AddressEntry addressEntry;
-    private final BtcWalletService walletService;
+    private final XmrAddressEntry addressEntry;
+    private final XmrWalletService walletService;
     private final CoinFormatter formatter;
     private Coin balance;
     private final String addressString;
@@ -46,7 +46,7 @@ class WithdrawalListItem {
     @Getter
     private boolean isSelected;
 
-    public WithdrawalListItem(AddressEntry addressEntry, BtcWalletService walletService,
+    public WithdrawalListItem(XmrAddressEntry addressEntry, XmrWalletService walletService,
                               CoinFormatter formatter) {
         this.addressEntry = addressEntry;
         this.walletService = walletService;
@@ -55,9 +55,9 @@ class WithdrawalListItem {
 
         // balance
         balanceLabel = new AutoTooltipLabel();
-        balanceListener = new BalanceListener(getAddress()) {
+        balanceListener = new XmrBalanceListener(addressEntry.getAccountIndex()) {
             @Override
-            public void onBalanceChanged(Coin balance, Transaction tx) {
+            public void onBalanceChanged(BigInteger balance) {
                 updateBalance();
             }
         };
@@ -71,7 +71,7 @@ class WithdrawalListItem {
     }
 
     private void updateBalance() {
-        balance = walletService.getBalanceForAddress(addressEntry.getAddress());
+        balance = walletService.getBalanceForAccount(addressEntry.getAccountIndex());
         if (balance != null)
             balanceLabel.setText(formatter.formatCoin(this.balance));
     }
@@ -81,7 +81,7 @@ class WithdrawalListItem {
             return Res.getWithCol("shared.offerId") + " " + addressEntry.getShortOfferId();
         else if (addressEntry.isTrade())
             return Res.getWithCol("shared.tradeId") + " " + addressEntry.getShortOfferId();
-        else if (addressEntry.getContext() == AddressEntry.Context.ARBITRATOR)
+        else if (addressEntry.getContext() == XmrAddressEntry.Context.ARBITRATOR)
             return Res.get("funds.withdrawal.arbitrationFee");
         else
             return "-";
@@ -102,11 +102,7 @@ class WithdrawalListItem {
         return addressEntry.hashCode();
     }
 
-    private Address getAddress() {
-        return addressEntry.getAddress();
-    }
-
-    public AddressEntry getAddressEntry() {
+    public XmrAddressEntry getAddressEntry() {
         return addressEntry;
     }
 

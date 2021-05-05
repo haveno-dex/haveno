@@ -355,11 +355,10 @@ message TradeInfo {
     string shortId = 3;
     uint64 date = 4;
     string role = 5;
-    bool isCurrencyForTakerFeeBtc = 6;
     uint64 txFeeAsLong = 7;
     uint64 takerFeeAsLong = 8;
     string takerFeeTxId = 9;
-    string depositTxId = 10;
+    reserved 10; // was depositTxId
     string payoutTxId = 11;
     uint64 tradeAmountAsLong = 12;
     uint64 tradePrice = 13;
@@ -375,13 +374,16 @@ message TradeInfo {
     bool isWithdrawn = 23;
     string contractAsJson = 24;
     ContractInfo contract = 25;
+    
+    string makerDepositTxId = 100;
+    string takerDepositTxId = 101;
 }
 
 message ContractInfo {
     string buyerNodeAddress = 1;
     string sellerNodeAddress = 2;
-    string mediatorNodeAddress = 3;
-    string refundAgentNodeAddress = 4;
+    reserved 3; // was mediatorNodeAddress
+    reserved 4; // was refundAgendNodeAddress
     bool isBuyerMakerAndSellerTaker = 5;
     string makerAccountId = 6;
     string takerAccountId = 7;
@@ -390,6 +392,8 @@ message ContractInfo {
     string makerPayoutAddressString = 10;
     string takerPayoutAddressString = 11;
     uint64 lockTime = 12;
+    
+    string arbitratorNodeAddress = 100;
 }
 
 message PaymentAccountPayloadInfo {

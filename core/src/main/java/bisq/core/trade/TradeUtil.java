@@ -86,38 +86,39 @@ public class TradeUtil {
      * @return Tuple2 tuple containing MULTI_SIG, TRADE_PAYOUT addresses for trade
      */
     public Tuple2<String, String> getTradeAddresses(Trade trade) {
-        var contract = trade.getContract();
-        if (contract == null)
-            return null;
-
-        // Get multisig address
-        var isMyRoleBuyer = contract.isMyRoleBuyer(keyRing.getPubKeyRing());
-        var multiSigPubKey = isMyRoleBuyer
-                ? contract.getBuyerMultiSigPubKey()
-                : contract.getSellerMultiSigPubKey();
-        if (multiSigPubKey == null)
-            return null;
-
-        var multiSigPubKeyString = Utilities.bytesAsHexString(multiSigPubKey);
-        var multiSigAddress = btcWalletService.getAddressEntryListAsImmutableList().stream()
-                .filter(e -> e.getKeyPair().getPublicKeyAsHex().equals(multiSigPubKeyString))
-                .findAny()
-                .orElse(null);
-        if (multiSigAddress == null)
-            return null;
-
-        // Get payout address
-        var payoutAddress = isMyRoleBuyer
-                ? contract.getBuyerPayoutAddressString()
-                : contract.getSellerPayoutAddressString();
-        var payoutAddressEntry = btcWalletService.getAddressEntryListAsImmutableList().stream()
-                .filter(e -> Objects.equals(e.getAddressString(), payoutAddress))
-                .findAny()
-                .orElse(null);
-        if (payoutAddressEntry == null)
-            return null;
-
-        return new Tuple2<>(multiSigAddress.getAddressString(), payoutAddress);
+        throw new RuntimeException("TradeUtil.getTradeAddresses() not implemented for XMR");
+//        var contract = trade.getContract();
+//        if (contract == null)
+//            return null;
+//
+//        // Get multisig address
+//        var isMyRoleBuyer = contract.isMyRoleBuyer(keyRing.getPubKeyRing());
+//        var multiSigPubKey = isMyRoleBuyer
+//                ? contract.getBuyerMultiSigPubKey()
+//                : contract.getSellerMultiSigPubKey();
+//        if (multiSigPubKey == null)
+//            return null;
+//
+//        var multiSigPubKeyString = Utilities.bytesAsHexString(multiSigPubKey);
+//        var multiSigAddress = btcWalletService.getAddressEntryListAsImmutableList().stream()
+//                .filter(e -> e.getKeyPair().getPublicKeyAsHex().equals(multiSigPubKeyString))
+//                .findAny()
+//                .orElse(null);
+//        if (multiSigAddress == null)
+//            return null;
+//
+//        // Get payout address
+//        var payoutAddress = isMyRoleBuyer
+//                ? contract.getBuyerPayoutAddressString()
+//                : contract.getSellerPayoutAddressString();
+//        var payoutAddressEntry = btcWalletService.getAddressEntryListAsImmutableList().stream()
+//                .filter(e -> Objects.equals(e.getAddressString(), payoutAddress))
+//                .findAny()
+//                .orElse(null);
+//        if (payoutAddressEntry == null)
+//            return null;
+//
+//        return new Tuple2<>(multiSigAddress.getAddressString(), payoutAddress);
     }
 
     public long getRemainingTradeDuration(Trade trade) {

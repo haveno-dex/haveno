@@ -25,12 +25,17 @@ import java.text.DecimalFormat;
 import java.text.NumberFormat;
 
 import java.math.BigDecimal;
+import java.math.BigInteger;
 
 import java.util.Locale;
 
 import static java.lang.String.format;
 import static java.math.RoundingMode.HALF_UP;
 import static java.math.RoundingMode.UNNECESSARY;
+
+
+
+import monero.common.MoneroUtils;
 
 @VisibleForTesting
 public class CurrencyFormat {
@@ -55,6 +60,10 @@ public class CurrencyFormat {
     @SuppressWarnings("BigDecimalMethodWithoutRoundingCalled")
     public static String formatBsq(long sats) {
         return BSQ_FORMAT.format(BigDecimal.valueOf(sats).divide(BSQ_SATOSHI_DIVISOR));
+    }
+
+    public static String formatXmr(BigInteger amount) {
+        return "" + MoneroUtils.atomicUnitsToXmr(amount);
     }
 
     public static String formatBsqAmount(long bsqSats) {

@@ -17,6 +17,8 @@
 
 package bisq.cli;
 
+import bisq.core.util.ParsingUtils;
+
 import bisq.proto.grpc.ContractInfo;
 import bisq.proto.grpc.TradeInfo;
 
@@ -133,7 +135,7 @@ public class TradeFormat {
                 bsqReceiveAddress.apply(tradeInfo, showBsqBuyerAddress));
     }
 
-    private static final Function<TradeInfo, String> priceHeader = (t) ->
+    private static final Function<TradeInfo, String> priceHeader = (t) -> // TODO (woodser): update these to XMR
             t.getOffer().getBaseCurrencyCode().equals("BTC")
                     ? COL_HEADER_PRICE
                     : COL_HEADER_PRICE_OF_ALTCOIN;
@@ -144,11 +146,7 @@ public class TradeFormat {
                     : t.getOffer().getBaseCurrencyCode();
 
     private static final BiFunction<TradeInfo, Boolean, String> makerTakerFeeHeaderCurrencyCode = (t, isTaker) -> {
-        if (isTaker) {
-            return t.getIsCurrencyForTakerFeeBtc() ? "BTC" : "BSQ";
-        } else {
-            return t.getOffer().getIsCurrencyForMakerFeeBtc() ? "BTC" : "BSQ";
-        }
+        return "XMR";
     };
 
     private static final Function<TradeInfo, String> paymentStatusHeaderCurrencyCode = (t) ->
@@ -163,7 +161,7 @@ public class TradeFormat {
 
     private static final Function<TradeInfo, String> amountFormat = (t) ->
             t.getOffer().getBaseCurrencyCode().equals("BTC")
-                    ? formatSatoshis(t.getTradeAmountAsLong())
+                    ? formatSatoshis(t.getTradeAmountAsLong()) // TODO (woodser): delete formatSatoshis(), formatBsq() and change base currency code to XMR
                     : formatCryptoCurrencyOfferVolume(t.getOffer().getVolume());
 
     private static final BiFunction<TradeInfo, Boolean, String> makerTakerMinerTxFeeFormat = (t, isTaker) -> {
@@ -175,15 +173,7 @@ public class TradeFormat {
     };
 
     private static final BiFunction<TradeInfo, Boolean, String> makerTakerFeeFormat = (t, isTaker) -> {
-        if (isTaker) {
-            return t.getIsCurrencyForTakerFeeBtc()
-                    ? formatSatoshis(t.getTakerFeeAsLong())
-                    : formatBsq(t.getTakerFeeAsLong());
-        } else {
-            return t.getOffer().getIsCurrencyForMakerFeeBtc()
-                    ? formatSatoshis(t.getOffer().getMakerFee())
-                    : formatBsq(t.getOffer().getMakerFee());
-        }
+        return formatXmr(ParsingUtils.satoshisToXmrAtomicUnits(t.getTakerFeeAsLong()));
     };
 
     private static final Function<TradeInfo, String> tradeCostFormat = (t) ->

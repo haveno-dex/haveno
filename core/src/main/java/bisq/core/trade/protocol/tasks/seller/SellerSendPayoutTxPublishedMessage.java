@@ -26,8 +26,6 @@ import bisq.core.trade.protocol.tasks.SendMailboxMessageTask;
 
 import bisq.common.taskrunner.TaskRunner;
 
-import org.bitcoinj.core.Transaction;
-
 import lombok.EqualsAndHashCode;
 import lombok.extern.slf4j.Slf4j;
 
@@ -44,7 +42,7 @@ public class SellerSendPayoutTxPublishedMessage extends SendMailboxMessageTask {
 
     @Override
     protected TradeMailboxMessage getTradeMailboxMessage(String id) {
-        Transaction payoutTx = checkNotNull(trade.getPayoutTx(), "trade.getPayoutTx() must not be null");
+        checkNotNull(trade.getPayoutTx(), "trade.getPayoutTx() must not be null");
 
         AccountAgeWitnessService accountAgeWitnessService = processModel.getAccountAgeWitnessService();
         if (accountAgeWitnessService.isSignWitnessTrade(trade)) {
@@ -52,9 +50,13 @@ public class SellerSendPayoutTxPublishedMessage extends SendMailboxMessageTask {
             accountAgeWitnessService.traderSignAndPublishPeersAccountAgeWitness(trade).ifPresent(witness -> signedWitness = witness);
         }
 
+        System.out.println("Trade.getPayoutTx(): " + trade.getPayoutTx());
+        System.out.println("trade.getPayoutTx().getTxSet(): " + trade.getPayoutTx().getTxSet());
+        System.out.println("trade.getPayoutTx().getTxSet().getMultisigTxHex(): " + trade.getPayoutTx().getTxSet().getMultisigTxHex());
+
         return new PayoutTxPublishedMessage(
                 id,
-                payoutTx.bitcoinSerialize(),
+                trade.getPayoutTx().getTxSet().getMultisigTxHex(),
                 processModel.getMyNodeAddress(),
                 signedWitness
         );

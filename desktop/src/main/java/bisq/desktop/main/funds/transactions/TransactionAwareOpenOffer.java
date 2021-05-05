@@ -21,7 +21,9 @@ import bisq.core.offer.Offer;
 import bisq.core.offer.OpenOffer;
 import bisq.core.trade.Tradable;
 
-import org.bitcoinj.core.Transaction;
+
+
+import monero.wallet.model.MoneroTxWallet;
 
 class TransactionAwareOpenOffer implements TransactionAwareTradable {
     private final OpenOffer delegate;
@@ -30,11 +32,11 @@ class TransactionAwareOpenOffer implements TransactionAwareTradable {
         this.delegate = delegate;
     }
 
-    public boolean isRelatedToTransaction(Transaction transaction) {
+    public boolean isRelatedToTransaction(MoneroTxWallet transaction) {
         Offer offer = delegate.getOffer();
         String paymentTxId = offer.getOfferFeePaymentTxId();
 
-        String txId = transaction.getTxId().toString();
+        String txId = transaction.getHash();
 
         return paymentTxId.equals(txId);
     }

@@ -80,9 +80,6 @@ public final class DisputeResult implements NetworkPayload {
     @Setter
     @Nullable
     private ChatMessage chatMessage;
-    @Setter
-    @Nullable
-    private byte[] arbitratorSignature;
     private long buyerPayoutAmount;
     private long sellerPayoutAmount;
     @Setter
@@ -91,6 +88,14 @@ public final class DisputeResult implements NetworkPayload {
     private long closeDate;
     @Setter
     private boolean isLoserPublisher;
+
+    // added for XMR integration
+    @Nullable
+    @Setter
+    String arbitratorSignedPayoutTxHex;
+    @Nullable
+    @Setter
+    String arbitratorUpdatedMultisigHex;
 
     public DisputeResult(String tradeId, int traderId) {
         this.tradeId = tradeId;
@@ -106,7 +111,8 @@ public final class DisputeResult implements NetworkPayload {
                          boolean screenCast,
                          String summaryNotes,
                          @Nullable ChatMessage chatMessage,
-                         @Nullable byte[] arbitratorSignature,
+                         @Nullable String arbitratorPayoutTxSigned,
+                         @Nullable String arbitratorUpdatedMultisigHex,
                          long buyerPayoutAmount,
                          long sellerPayoutAmount,
                          @Nullable byte[] arbitratorPubKey,
@@ -121,7 +127,8 @@ public final class DisputeResult implements NetworkPayload {
         this.screenCastProperty.set(screenCast);
         this.summaryNotesProperty.set(summaryNotes);
         this.chatMessage = chatMessage;
-        this.arbitratorSignature = arbitratorSignature;
+        this.arbitratorSignedPayoutTxHex = arbitratorPayoutTxSigned;
+        this.arbitratorUpdatedMultisigHex = arbitratorUpdatedMultisigHex;
         this.buyerPayoutAmount = buyerPayoutAmount;
         this.sellerPayoutAmount = sellerPayoutAmount;
         this.arbitratorPubKey = arbitratorPubKey;
@@ -144,7 +151,8 @@ public final class DisputeResult implements NetworkPayload {
                 proto.getScreenCast(),
                 proto.getSummaryNotes(),
                 proto.getChatMessage() == null ? null : ChatMessage.fromPayloadProto(proto.getChatMessage()),
-                proto.getArbitratorSignature().toByteArray(),
+                ProtoUtil.stringOrNullFromProto(proto.getArbitratorSignedPayoutTxHex()),
+                ProtoUtil.stringOrNullFromProto(proto.getArbitratorUpdatedMultisigHex()),
                 proto.getBuyerPayoutAmount(),
                 proto.getSellerPayoutAmount(),
                 proto.getArbitratorPubKey().toByteArray(),
@@ -167,7 +175,8 @@ public final class DisputeResult implements NetworkPayload {
                 .setCloseDate(closeDate)
                 .setIsLoserPublisher(isLoserPublisher);
 
-        Optional.ofNullable(arbitratorSignature).ifPresent(arbitratorSignature -> builder.setArbitratorSignature(ByteString.copyFrom(arbitratorSignature)));
+        Optional.ofNullable(arbitratorSignedPayoutTxHex).ifPresent(arbitratorPayoutTxSigned -> builder.setArbitratorSignedPayoutTxHex(arbitratorPayoutTxSigned));
+        Optional.ofNullable(arbitratorUpdatedMultisigHex).ifPresent(arbitratorUpdatedMultisigHex -> builder.setArbitratorUpdatedMultisigHex(arbitratorUpdatedMultisigHex));
         Optional.ofNullable(arbitratorPubKey).ifPresent(arbitratorPubKey -> builder.setArbitratorPubKey(ByteString.copyFrom(arbitratorPubKey)));
         Optional.ofNullable(winner).ifPresent(result -> builder.setWinner(protobuf.DisputeResult.Winner.valueOf(winner.name())));
         Optional.ofNullable(chatMessage).ifPresent(chatMessage ->
@@ -248,7 +257,8 @@ public final class DisputeResult implements NetworkPayload {
                 ",\n     screenCastProperty=" + screenCastProperty +
                 ",\n     summaryNotesProperty=" + summaryNotesProperty +
                 ",\n     chatMessage=" + chatMessage +
-                ",\n     arbitratorSignature=" + Utilities.bytesAsHexString(arbitratorSignature) +
+                ",\n     arbitratorPayoutTxSigned=" + arbitratorSignedPayoutTxHex +
+                ",\n     arbitratorUpdatedMultisigHex=" + arbitratorUpdatedMultisigHex +
                 ",\n     buyerPayoutAmount=" + buyerPayoutAmount +
                 ",\n     sellerPayoutAmount=" + sellerPayoutAmount +
                 ",\n     arbitratorPubKey=" + Utilities.bytesAsHexString(arbitratorPubKey) +

@@ -28,6 +28,7 @@ import bisq.core.btc.setup.WalletConfig;
 import bisq.core.btc.setup.WalletsSetup;
 import bisq.core.locale.Res;
 import bisq.core.user.Preferences;
+import bisq.core.util.ParsingUtils;
 
 import bisq.common.config.Config;
 import bisq.common.util.Tuple2;
@@ -75,6 +76,13 @@ import javax.annotation.Nullable;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
+
+
+import monero.wallet.MoneroWallet;
+import monero.wallet.model.MoneroDestination;
+import monero.wallet.model.MoneroTxConfig;
+import monero.wallet.model.MoneroTxWallet;
+
 public class TradeWalletService {
     private static final Logger log = LoggerFactory.getLogger(TradeWalletService.class);
     private static final Coin MIN_DELAYED_PAYOUT_TX_FEE = Coin.valueOf(1000);
@@ -85,6 +93,8 @@ public class TradeWalletService {
 
     @Nullable
     private Wallet wallet;
+    @Nullable
+    private MoneroWallet xmrWallet;
     @Nullable
     private WalletConfig walletConfig;
     @Nullable
@@ -103,6 +113,7 @@ public class TradeWalletService {
         walletsSetup.addSetupCompletedHandler(() -> {
             walletConfig = walletsSetup.getWalletConfig();
             wallet = walletsSetup.getBtcWallet();
+            xmrWallet = walletsSetup.getXmrWallet();
         });
     }
 
@@ -124,6 +135,21 @@ public class TradeWalletService {
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Trade fee
     ///////////////////////////////////////////////////////////////////////////////////////////
+
+    public MoneroTxWallet createXmrTradingFeeTx(
+            String reservedForTradeAddress,
+            Coin reservedFundsForOffer,
+            Coin makerFee,
+            Coin txFee,
+            String feeReceiver,
+            boolean broadcastTx) {
+      return xmrWallet.createTx(new MoneroTxConfig()
+              .setAccountIndex(0)
+              .setDestinations(
+                      new MoneroDestination(feeReceiver, ParsingUtils.satoshisToXmrAtomicUnits(makerFee.value)),
+                      new MoneroDestination(reservedForTradeAddress, ParsingUtils.satoshisToXmrAtomicUnits(reservedFundsForOffer.value)))
+              .setRelay(broadcastTx));
+    }
 
     /**
      * Create a BTC trading fee transaction for the maker or taker of an offer. The first output of the tx is for the
@@ -1205,6 +1231,16 @@ public class TradeWalletService {
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Misc
     ///////////////////////////////////////////////////////////////////////////////////////////
+
+    /**
+     * Returns the local existing wallet transaction with the given ID, or {@code null} if missing.
+     *
+     * @param txHash the transaction hash of the transaction we want to lookup
+     */
+    public MoneroTxWallet getWalletTx(String txHash) {
+        checkNotNull(xmrWallet);
+        return xmrWallet.getTx(txHash);
+    }
 
     /**
      * Returns the local existing wallet transaction with the given ID, or {@code null} if missing.

@@ -31,26 +31,17 @@ import bisq.desktop.main.portfolio.pendingtrades.PendingTradesViewModel;
 import bisq.desktop.main.portfolio.pendingtrades.steps.TradeStepView;
 import bisq.desktop.util.Layout;
 
-import bisq.core.btc.exceptions.AddressEntryException;
-import bisq.core.btc.exceptions.InsufficientFundsException;
-import bisq.core.btc.model.AddressEntry;
-import bisq.core.btc.wallet.BtcWalletService;
-import bisq.core.btc.wallet.Restrictions;
+import bisq.core.btc.model.XmrAddressEntry;
 import bisq.core.locale.Res;
 import bisq.core.trade.txproof.AssetTxProofResult;
 import bisq.core.user.DontShowAgainLookup;
-import bisq.core.util.coin.CoinFormatter;
-import bisq.core.util.coin.CoinUtil;
-import bisq.core.util.validation.BtcAddressValidator;
 
 import bisq.common.UserThread;
 import bisq.common.app.DevEnv;
 import bisq.common.handlers.FaultHandler;
 import bisq.common.handlers.ResultHandler;
 
-import org.bitcoinj.core.AddressFormatException;
 import org.bitcoinj.core.Coin;
-import org.bitcoinj.core.Transaction;
 
 import com.jfoenix.controls.JFXBadge;
 
@@ -144,7 +135,7 @@ public class BuyerStep4View extends TradeStepView {
 
         HBox hBox = new HBox();
         hBox.setSpacing(10);
-        useSavingsWalletButton = new AutoTooltipButton(Res.get("portfolio.pending.step5_buyer.moveToBisqWallet"));
+        useSavingsWalletButton = new AutoTooltipButton(Res.get("portfolio.pending.step5_buyer.moveToHavenoWallet"));
         useSavingsWalletButton.setDefaultButton(true);
         useSavingsWalletButton.getStyleClass().add("action-button");
         Label label = new AutoTooltipLabel(Res.get("shared.OR"));
@@ -194,63 +185,64 @@ public class BuyerStep4View extends TradeStepView {
     }
 
     private void reviewWithdrawal() {
-        Coin amount = trade.getPayoutAmount();
-        BtcWalletService walletService = model.dataModel.btcWalletService;
-
-        AddressEntry fromAddressesEntry = walletService.getOrCreateAddressEntry(trade.getId(), AddressEntry.Context.TRADE_PAYOUT);
-        String fromAddresses = fromAddressesEntry.getAddressString();
-        String toAddresses = withdrawAddressTextField.getText();
-        if (new BtcAddressValidator().validate(toAddresses).isValid) {
-            Coin balance = walletService.getBalanceForAddress(fromAddressesEntry.getAddress());
-            try {
-                Transaction feeEstimationTransaction = walletService.getFeeEstimationTransaction(fromAddresses, toAddresses, amount, AddressEntry.Context.TRADE_PAYOUT);
-                Coin fee = feeEstimationTransaction.getFee();
-                Coin receiverAmount = amount.subtract(fee);
-                if (balance.isZero()) {
-                    new Popup().warning(Res.get("portfolio.pending.step5_buyer.alreadyWithdrawn")).show();
-                    model.dataModel.tradeManager.onTradeCompleted(trade);
-                } else {
-                    if (toAddresses.isEmpty()) {
-                        validateWithdrawAddress();
-                    } else if (Restrictions.isAboveDust(receiverAmount)) {
-                        CoinFormatter formatter = model.btcFormatter;
-                        int txVsize = feeEstimationTransaction.getVsize();
-                        double feePerVbyte = CoinUtil.getFeePerVbyte(fee, txVsize);
-                        double vkb = txVsize / 1000d;
-                        String recAmount = formatter.formatCoinWithCode(receiverAmount);
-                        new Popup().headLine(Res.get("portfolio.pending.step5_buyer.confirmWithdrawal"))
-                                .confirmation(Res.get("shared.sendFundsDetailsWithFee",
-                                        formatter.formatCoinWithCode(amount),
-                                        fromAddresses,
-                                        toAddresses,
-                                        formatter.formatCoinWithCode(fee),
-                                        feePerVbyte,
-                                        vkb,
-                                        recAmount))
-                                .actionButtonText(Res.get("shared.yes"))
-                                .onAction(() -> doWithdrawal(amount, fee))
-                                .closeButtonText(Res.get("shared.cancel"))
-                                .onClose(() -> {
-                                    useSavingsWalletButton.setDisable(false);
-                                    withdrawToExternalWalletButton.setDisable(false);
-                                })
-                                .show();
-                    } else {
-                        new Popup().warning(Res.get("portfolio.pending.step5_buyer.amountTooLow")).show();
-                    }
-                }
-            } catch (AddressFormatException e) {
-                validateWithdrawAddress();
-            } catch (AddressEntryException e) {
-                log.error(e.getMessage());
-            } catch (InsufficientFundsException e) {
-                log.error(e.getMessage());
-                e.printStackTrace();
-                new Popup().warning(e.getMessage()).show();
-            }
-        } else {
-            new Popup().warning(Res.get("validation.btc.invalidAddress")).show();
-        }
+      throw new RuntimeException("BuyerStep4View.reviewWithdrawal() not yet updated for XMR");
+//        Coin amount = trade.getPayoutAmount();
+//        BtcWalletService walletService = model.dataModel.btcWalletService;
+//
+//        AddressEntry fromAddressesEntry = walletService.getOrCreateAddressEntry(trade.getId(), AddressEntry.Context.TRADE_PAYOUT);
+//        String fromAddresses = fromAddressesEntry.getAddressString();
+//        String toAddresses = withdrawAddressTextField.getText();
+//        if (new BtcAddressValidator().validate(toAddresses).isValid) {
+//            Coin balance = walletService.getBalanceForAddress(fromAddressesEntry.getAddress());
+//            try {
+//                Transaction feeEstimationTransaction = walletService.getFeeEstimationTransaction(fromAddresses, toAddresses, amount, AddressEntry.Context.TRADE_PAYOUT);
+//                Coin fee = feeEstimationTransaction.getFee();
+//                Coin receiverAmount = amount.subtract(fee);
+//                if (balance.isZero()) {
+//                    new Popup().warning(Res.get("portfolio.pending.step5_buyer.alreadyWithdrawn")).show();
+//                    model.dataModel.tradeManager.onTradeCompleted(trade);
+//                } else {
+//                    if (toAddresses.isEmpty()) {
+//                        validateWithdrawAddress();
+//                    } else if (Restrictions.isAboveDust(receiverAmount)) {
+//                        CoinFormatter formatter = model.btcFormatter;
+//                        int txVsize = feeEstimationTransaction.getVsize();
+//                        double feePerVbyte = CoinUtil.getFeePerVbyte(fee, txVsize);
+//                        double vkb = txVsize / 1000d;
+//                        String recAmount = formatter.formatCoinWithCode(receiverAmount);
+//                        new Popup().headLine(Res.get("portfolio.pending.step5_buyer.confirmWithdrawal"))
+//                                .confirmation(Res.get("shared.sendFundsDetailsWithFee",
+//                                        formatter.formatCoinWithCode(amount),
+//                                        fromAddresses,
+//                                        toAddresses,
+//                                        formatter.formatCoinWithCode(fee),
+//                                        feePerVbyte,
+//                                        vkb,
+//                                        recAmount))
+//                                .actionButtonText(Res.get("shared.yes"))
+//                                .onAction(() -> doWithdrawal(amount, fee))
+//                                .closeButtonText(Res.get("shared.cancel"))
+//                                .onClose(() -> {
+//                                    useSavingsWalletButton.setDisable(false);
+//                                    withdrawToExternalWalletButton.setDisable(false);
+//                                })
+//                                .show();
+//                    } else {
+//                        new Popup().warning(Res.get("portfolio.pending.step5_buyer.amountTooLow")).show();
+//                    }
+//                }
+//            } catch (AddressFormatException e) {
+//                validateWithdrawAddress();
+//            } catch (AddressEntryException e) {
+//                log.error(e.getMessage());
+//            } catch (InsufficientFundsException e) {
+//                log.error(e.getMessage());
+//                e.printStackTrace();
+//                new Popup().warning(e.getMessage()).show();
+//            }
+//        } else {
+//            new Popup().warning(Res.get("validation.btc.invalidAddress")).show();
+//        }
     }
 
     private void doWithdrawal(Coin amount, Coin fee) {
@@ -264,12 +256,13 @@ public class BuyerStep4View extends TradeStepView {
             else
                 new Popup().error(errorMessage).show();
         };
-        if (model.dataModel.btcWalletService.isEncrypted()) {
-            UserThread.runAfter(() -> model.dataModel.walletPasswordWindow.onAesKey(aesKey ->
-                    doWithdrawRequest(toAddress, amount, fee, aesKey, resultHandler, faultHandler))
-                    .show(), 300, TimeUnit.MILLISECONDS);
-        } else
-            doWithdrawRequest(toAddress, amount, fee, null, resultHandler, faultHandler);
+        if (true) throw new RuntimeException("BuyerStep4View.doWithdrawal() not yet updated for XMR");
+//        if (model.dataModel.btcWalletService.isEncrypted()) {
+//            UserThread.runAfter(() -> model.dataModel.walletPasswordWindow.onAesKey(aesKey ->
+//                    doWithdrawRequest(toAddress, amount, fee, aesKey, resultHandler, faultHandler))
+//                    .show(), 300, TimeUnit.MILLISECONDS);
+//        } else
+//            doWithdrawRequest(toAddress, amount, fee, null, resultHandler, faultHandler);
     }
 
     private void doWithdrawRequest(String toAddress,
@@ -296,7 +289,7 @@ public class BuyerStep4View extends TradeStepView {
     private void handleTradeCompleted() {
         useSavingsWalletButton.setDisable(true);
         withdrawToExternalWalletButton.setDisable(true);
-        model.dataModel.btcWalletService.swapTradeEntryToAvailableEntry(trade.getId(), AddressEntry.Context.TRADE_PAYOUT);
+        model.dataModel.xmrWalletService.swapTradeEntryToAvailableEntry(trade.getId(), XmrAddressEntry.Context.TRADE_PAYOUT);
 
         openTradeFeedbackWindow();
     }
