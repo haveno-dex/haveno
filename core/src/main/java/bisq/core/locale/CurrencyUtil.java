@@ -532,9 +532,9 @@ public class CurrencyUtil {
                     .filter(cryptoCurrency -> cryptoCurrency.getCode().equals(currencyCode))
                     .findAny();
 
-            String btcOrRemovedAsset = "BTC".equals(currencyCode) ? "Bitcoin" :
+            String xmrOrRemovedAsset = "XMR".equals(currencyCode) ? "Monero" :
                     removedCryptoCurrency.isPresent() ? removedCryptoCurrency.get().getName() : Res.get("shared.na");
-            return getCryptoCurrency(currencyCode).map(TradeCurrency::getName).orElse(btcOrRemovedAsset);
+            return getCryptoCurrency(currencyCode).map(TradeCurrency::getName).orElse(xmrOrRemovedAsset);
         }
         try {
             return Currency.getInstance(currencyCode).getDisplayName();

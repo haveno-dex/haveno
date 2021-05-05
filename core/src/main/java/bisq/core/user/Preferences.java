@@ -284,7 +284,7 @@ public final class Preferences implements PersistedDataHost, BridgeAddressProvid
         setCryptoCurrencies(CurrencyUtil.getMainCryptoCurrencies());
 
         BaseCurrencyNetwork baseCurrencyNetwork = Config.baseCurrencyNetwork();
-        if ("BTC".equals(baseCurrencyNetwork.getCurrencyCode())) {
+        if ("BTC".equals(baseCurrencyNetwork.getCurrencyCode())) { // TODO (woodser): change to XMR when --baseCurrencyNetwork=XMR_REGTEST supported 
             setBlockChainExplorerMainNet(BTC_MAIN_NET_EXPLORERS.get(0));
             setBlockChainExplorerTestNet(BTC_TEST_NET_EXPLORERS.get(0));
         } else {

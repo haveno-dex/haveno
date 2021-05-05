@@ -78,7 +78,7 @@ public class CreateOfferViewModelTest {
 
     @Before
     public void setUp() {
-        final CryptoCurrency btc = new CryptoCurrency("BTC", "bitcoin");
+        final CryptoCurrency btc = new CryptoCurrency("XMR", "monero");
         GlobalSettings.setDefaultTradeCurrency(btc);
         Res.setup();
 
@@ -135,7 +135,7 @@ public class CreateOfferViewModelTest {
             coinFormatter,
             tradeStats,
             null);
-        dataModel.initWithData(OfferPayload.Direction.BUY, new CryptoCurrency("BTC", "bitcoin"));
+        dataModel.initWithData(OfferPayload.Direction.BUY, new CryptoCurrency("XMR", "monero"));
         dataModel.activate();
 
         model = new CreateOfferViewModel(dataModel,

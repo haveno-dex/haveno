@@ -50,7 +50,7 @@ public class OfferMaker {
                     lookup.valueOf(useMarketBasedPrice, false),
                     lookup.valueOf(amount, 100000L),
                     lookup.valueOf(minAmount, 100000L),
-                    lookup.valueOf(baseCurrencyCode, "BTC"),
+                    lookup.valueOf(baseCurrencyCode, "XMR"),
                     lookup.valueOf(counterCurrencyCode, "USD"),
                     null,
                     null,

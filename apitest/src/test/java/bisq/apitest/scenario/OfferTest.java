@@ -58,19 +58,19 @@ public class OfferTest extends AbstractOfferTest {
     @Order(3)
     public void testCreateOfferUsingFixedPrice() {
         CreateOfferUsingFixedPriceTest test = new CreateOfferUsingFixedPriceTest();
-        test.testCreateAUDBTCBuyOfferUsingFixedPrice16000();
-        test.testCreateUSDBTCBuyOfferUsingFixedPrice100001234();
-        test.testCreateEURBTCSellOfferUsingFixedPrice95001234();
+        test.testCreateAUDXMRBuyOfferUsingFixedPrice16000();
+        test.testCreateUSDXMRBuyOfferUsingFixedPrice100001234();
+        test.testCreateEURXMRSellOfferUsingFixedPrice95001234();
     }
 
     @Test
     @Order(4)
     public void testCreateOfferUsingMarketPriceMargin() {
         CreateOfferUsingMarketPriceMarginTest test = new CreateOfferUsingMarketPriceMarginTest();
-        test.testCreateUSDBTCBuyOffer5PctPriceMargin();
-        test.testCreateNZDBTCBuyOfferMinus2PctPriceMargin();
-        test.testCreateGBPBTCSellOfferMinus1Point5PctPriceMargin();
-        test.testCreateBRLBTCSellOffer6Point55PctPriceMargin();
+        test.testCreateUSDXMRBuyOffer5PctPriceMargin();
+        test.testCreateNZDXMRBuyOfferMinus2PctPriceMargin();
+        test.testCreateGBPXMRSellOfferMinus1Point5PctPriceMargin();
+        test.testCreateBRLXMRSellOffer6Point55PctPriceMargin();
     }
 
     @Test

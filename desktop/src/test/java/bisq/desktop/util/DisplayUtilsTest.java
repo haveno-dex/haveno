@@ -32,8 +32,8 @@ public class DisplayUtilsTest {
     @Before
     public void setUp() {
         Locale.setDefault(new Locale("en", "US"));
-        Res.setBaseCurrencyCode("BTC");
-        Res.setBaseCurrencyName("Bitcoin");
+        Res.setBaseCurrencyCode("XMR");
+        Res.setBaseCurrencyName("Monero");
     }
 
     @Test
@@ -57,9 +57,9 @@ public class DisplayUtilsTest {
     @Test
     public void testFormatSameVolume() {
         Offer offer = mock(Offer.class);
-        Volume btc = Volume.parse("0.10", "BTC");
-        when(offer.getMinVolume()).thenReturn(btc);
-        when(offer.getVolume()).thenReturn(btc);
+        Volume xmr = Volume.parse("0.10", "XMR");
+        when(offer.getMinVolume()).thenReturn(xmr);
+        when(offer.getVolume()).thenReturn(xmr);
 
         assertEquals("0.10000000", DisplayUtils.formatVolume(offer.getVolume()));
     }
@@ -67,11 +67,11 @@ public class DisplayUtilsTest {
     @Test
     public void testFormatDifferentVolume() {
         Offer offer = mock(Offer.class);
-        Volume btcMin = Volume.parse("0.10", "BTC");
-        Volume btcMax = Volume.parse("0.25", "BTC");
+        Volume xmrMin = Volume.parse("0.10", "XMR");
+        Volume xmrMax = Volume.parse("0.25", "XMR");
         when(offer.isRange()).thenReturn(true);
-        when(offer.getMinVolume()).thenReturn(btcMin);
-        when(offer.getVolume()).thenReturn(btcMax);
+        when(offer.getMinVolume()).thenReturn(xmrMin);
+        when(offer.getVolume()).thenReturn(xmrMax);
 
         assertEquals("0.10000000 - 0.25000000", DisplayUtils.formatVolume(offer, false, 0));
     }

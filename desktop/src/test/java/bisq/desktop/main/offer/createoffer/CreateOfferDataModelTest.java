@@ -43,8 +43,8 @@ public class CreateOfferDataModelTest {
 
     @Before
     public void setUp() {
-        final CryptoCurrency btc = new CryptoCurrency("BTC", "bitcoin");
-        GlobalSettings.setDefaultTradeCurrency(btc);
+        final CryptoCurrency xmr = new CryptoCurrency("XMR", "monero");
+        GlobalSettings.setDefaultTradeCurrency(xmr);
         Res.setup();
 
         XmrAddressEntry addressEntry = mock(XmrAddressEntry.class);
