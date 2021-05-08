@@ -34,7 +34,7 @@ A sample configuration file looks like follows:
 # true overwrites the reporters picked by the developers (for debugging for example) (defaults to false)
 System.useConsoleReporter=true
 
-# 0 -> BTC_MAINNET, 1 -> BTC_TESTNET (default)
+# 0 -> XMR_MAINNET, 1 -> XMR_TESTNET (default)
 System.baseCurrencyNetwork=0
 
 ## Each Metric is configured via a set of properties.

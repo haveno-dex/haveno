@@ -226,7 +226,7 @@ public class MyProposalListService implements PersistedDataHost, DaoStateListene
         // of that cycle so it is 1 blind vote getting rebroadcast at each startup to my neighbors.
         int minPeers = Config.baseCurrencyNetwork().isMainnet() ? 4 : 1;
         if ((p2PService.getNumConnectedPeers().get() >= minPeers && p2PService.isBootstrapped()) ||
-                Config.baseCurrencyNetwork().isRegtest()) {
+                Config.baseCurrencyNetwork().isStagenet()) {
             myProposalList.stream()
                     .filter(proposal -> periodService.isTxInPhaseAndCycle(proposal.getTxId(),
                             DaoPhase.Phase.PROPOSAL,

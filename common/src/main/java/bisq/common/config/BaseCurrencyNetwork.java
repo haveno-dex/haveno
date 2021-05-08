@@ -25,12 +25,12 @@ import org.bitcoinj.params.TestNet3Params;
 import lombok.Getter;
 
 public enum BaseCurrencyNetwork {
-    BTC_MAINNET(MainNetParams.get(), "BTC", "MAINNET", "Bitcoin"),
-    BTC_TESTNET(TestNet3Params.get(), "BTC", "TESTNET", "Bitcoin"),
-    BTC_REGTEST(RegTestParams.get(), "BTC", "REGTEST", "Bitcoin"),
-    BTC_DAO_TESTNET(RegTestParams.get(), "BTC", "REGTEST", "Bitcoin"), // server side regtest until v0.9.5
-    BTC_DAO_BETANET(MainNetParams.get(), "BTC", "MAINNET", "Bitcoin"), // mainnet test genesis
-    BTC_DAO_REGTEST(RegTestParams.get(), "BTC", "REGTEST", "Bitcoin"); // server side regtest after v0.9.5, had breaking code changes so we started over again
+    XMR_MAINNET(MainNetParams.get(), "XMR", "MAINNET", "Monero"),
+    XMR_TESTNET(TestNet3Params.get(), "XMR", "TESTNET", "Monero"),
+    XMR_STAGENET(RegTestParams.get(), "XMR", "STAGENET", "Monero"),
+    BTC_DAO_TESTNET(RegTestParams.get(), "XMR", "STAGENET", "Monero"),
+    BTC_DAO_BETANET(MainNetParams.get(), "XMR", "MAINNET", "Monero"), // mainnet test genesis
+    BTC_DAO_REGTEST(RegTestParams.get(), "XMR", "STAGENET", "Monero");
 
     @Getter
     private final NetworkParameters parameters;
@@ -49,11 +49,11 @@ public enum BaseCurrencyNetwork {
     }
 
     public boolean isMainnet() {
-        return "BTC_MAINNET".equals(name());
+        return "XMR_MAINNET".equals(name());
     }
 
     public boolean isTestnet() {
-        return "BTC_TESTNET".equals(name());
+        return "XMR_TESTNET".equals(name());
     }
 
     public boolean isDaoTestNet() {
@@ -68,8 +68,8 @@ public enum BaseCurrencyNetwork {
         return "BTC_DAO_BETANET".equals(name());
     }
 
-    public boolean isRegtest() {
-        return "BTC_REGTEST".equals(name());
+    public boolean isStagenet() {
+        return "XMR_STAGENET".equals(name());
     }
 
     public long getDefaultMinFeePerVbyte() {

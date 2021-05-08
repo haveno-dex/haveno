@@ -176,9 +176,9 @@ public class SeedNodeMain extends ExecutableForAppWithP2p {
     }
 
     private void setupConnectionLossCheck() {
-        // For dev testing (usually on BTC_REGTEST) we don't want to get the seed shut
+        // For dev testing (usually on XMR_STAGENET) we don't want to get the seed shut
         // down as it is normal that the seed is the only actively running node.
-        if (Config.baseCurrencyNetwork() == BaseCurrencyNetwork.BTC_REGTEST) {
+        if (Config.baseCurrencyNetwork() == BaseCurrencyNetwork.XMR_STAGENET) {
             return;
         }
 

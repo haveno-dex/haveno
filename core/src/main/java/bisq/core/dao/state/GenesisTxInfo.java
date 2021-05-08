@@ -112,7 +112,7 @@ public class GenesisTxInfo {
         boolean isDaoTestNet = baseCurrencyNetwork.isDaoTestNet();
         boolean isDaoBetaNet = baseCurrencyNetwork.isDaoBetaNet();
         boolean isDaoRegTest = baseCurrencyNetwork.isDaoRegTest();
-        boolean isRegtest = baseCurrencyNetwork.isRegtest();
+        boolean isRegtest = baseCurrencyNetwork.isStagenet();
         if (!genesisTxId.isEmpty()) {
             this.genesisTxId = genesisTxId;
         } else if (isMainnet) {

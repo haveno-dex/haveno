@@ -135,13 +135,13 @@ public class TradeFormat {
                 bsqReceiveAddress.apply(tradeInfo, showBsqBuyerAddress));
     }
 
-    private static final Function<TradeInfo, String> priceHeader = (t) -> // TODO (woodser): update these to XMR
-            t.getOffer().getBaseCurrencyCode().equals("BTC")
+    private static final Function<TradeInfo, String> priceHeader = (t) ->
+            t.getOffer().getBaseCurrencyCode().equals("XMR")
                     ? COL_HEADER_PRICE
                     : COL_HEADER_PRICE_OF_ALTCOIN;
 
     private static final Function<TradeInfo, String> priceHeaderCurrencyCode = (t) ->
-            t.getOffer().getBaseCurrencyCode().equals("BTC")
+            t.getOffer().getBaseCurrencyCode().equals("XMR")
                     ? t.getOffer().getCounterCurrencyCode()
                     : t.getOffer().getBaseCurrencyCode();
 
@@ -150,18 +150,18 @@ public class TradeFormat {
     };
 
     private static final Function<TradeInfo, String> paymentStatusHeaderCurrencyCode = (t) ->
-            t.getOffer().getBaseCurrencyCode().equals("BTC")
+            t.getOffer().getBaseCurrencyCode().equals("XMR")
                     ? t.getOffer().getCounterCurrencyCode()
                     : t.getOffer().getBaseCurrencyCode();
 
     private static final Function<TradeInfo, String> priceFormat = (t) ->
-            t.getOffer().getBaseCurrencyCode().equals("BTC")
+            t.getOffer().getBaseCurrencyCode().equals("XMR")
                     ? formatPrice(t.getTradePrice())
                     : formatCryptoCurrencyPrice(t.getOffer().getPrice());
 
     private static final Function<TradeInfo, String> amountFormat = (t) ->
-            t.getOffer().getBaseCurrencyCode().equals("BTC")
-                    ? formatSatoshis(t.getTradeAmountAsLong()) // TODO (woodser): delete formatSatoshis(), formatBsq() and change base currency code to XMR
+            t.getOffer().getBaseCurrencyCode().equals("XMR")
+                    ? formatXmr(ParsingUtils.satoshisToXmrAtomicUnits(t.getTradeAmountAsLong()))
                     : formatCryptoCurrencyOfferVolume(t.getOffer().getVolume());
 
     private static final BiFunction<TradeInfo, Boolean, String> makerTakerMinerTxFeeFormat = (t, isTaker) -> {
@@ -177,15 +177,15 @@ public class TradeFormat {
     };
 
     private static final Function<TradeInfo, String> tradeCostFormat = (t) ->
-            t.getOffer().getBaseCurrencyCode().equals("BTC")
+            t.getOffer().getBaseCurrencyCode().equals("XMR")
                     ? formatOfferVolume(t.getOffer().getVolume())
-                    : formatSatoshis(t.getTradeAmountAsLong());
+                    : formatXmr(ParsingUtils.satoshisToXmrAtomicUnits(t.getTradeAmountAsLong()));
 
     private static final BiFunction<TradeInfo, Boolean, String> bsqReceiveAddress = (t, showBsqBuyerAddress) -> {
         if (showBsqBuyerAddress) {
             ContractInfo contract = t.getContract();
             boolean isBuyerMakerAndSellerTaker = contract.getIsBuyerMakerAndSellerTaker();
-            return isBuyerMakerAndSellerTaker  // (is BTC buyer / maker)
+            return isBuyerMakerAndSellerTaker  // (is XMR buyer / maker)
                     ? contract.getTakerPaymentAccountPayload().getAddress()
                     : contract.getMakerPaymentAccountPayload().getAddress();
         } else {
@@ -194,12 +194,12 @@ public class TradeFormat {
     };
 
     private static boolean shouldShowBsqBuyerAddress(TradeInfo tradeInfo, boolean isTaker) {
-        if (tradeInfo.getOffer().getBaseCurrencyCode().equals("BTC")) {
+        if (tradeInfo.getOffer().getBaseCurrencyCode().equals("XMR")) {
             return false;
         } else {
             ContractInfo contract = tradeInfo.getContract();
-            // Do not forget buyer and seller refer to BTC buyer and seller, not BSQ
-            // buyer and seller.  If you are buying BSQ, you are the (BTC) seller.
+            // Do not forget buyer and seller refer to XMR buyer and seller, not BSQ
+            // buyer and seller.  If you are buying BSQ, you are the XMR seller.
             boolean isBuyerMakerAndSellerTaker = contract.getIsBuyerMakerAndSellerTaker();
             if (isTaker) {
                 return !isBuyerMakerAndSellerTaker;

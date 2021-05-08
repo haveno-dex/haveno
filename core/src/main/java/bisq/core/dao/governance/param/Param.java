@@ -138,7 +138,7 @@ public enum Param {
     PHASE_UNDEFINED("0", ParamType.BLOCK),
     PHASE_PROPOSAL(Config.baseCurrencyNetwork().isMainnet() ?
             "3601" :    // mainnet; 24 days
-            Config.baseCurrencyNetwork().isRegtest() ?
+            Config.baseCurrencyNetwork().isStagenet() ?
                     "4" :       // regtest
                     Config.baseCurrencyNetwork().isDaoBetaNet() ?
                             "144" :       // daoBetaNet; 1 day
@@ -148,7 +148,7 @@ public enum Param {
             ParamType.BLOCK, 2, 2),
     PHASE_BREAK1(Config.baseCurrencyNetwork().isMainnet() ?
             "149" :     // mainnet; 1 day
-            Config.baseCurrencyNetwork().isRegtest() ?
+            Config.baseCurrencyNetwork().isStagenet() ?
                     "1" :       // regtest
                     Config.baseCurrencyNetwork().isDaoBetaNet() ?
                             "10" :       // daoBetaNet
@@ -158,7 +158,7 @@ public enum Param {
             ParamType.BLOCK, 2, 2),
     PHASE_BLIND_VOTE(Config.baseCurrencyNetwork().isMainnet() ?
             "451" :     // mainnet; 3 days
-            Config.baseCurrencyNetwork().isRegtest() ?
+            Config.baseCurrencyNetwork().isStagenet() ?
                     "2" :       // regtest
                     Config.baseCurrencyNetwork().isDaoBetaNet() ?
                             "144" :       // daoBetaNet; 1 day
@@ -168,7 +168,7 @@ public enum Param {
             ParamType.BLOCK, 2, 2),
     PHASE_BREAK2(Config.baseCurrencyNetwork().isMainnet() ?
             "9" :       // mainnet
-            Config.baseCurrencyNetwork().isRegtest() ?
+            Config.baseCurrencyNetwork().isStagenet() ?
                     "1" :       // regtest
                     Config.baseCurrencyNetwork().isDaoBetaNet() ?
                             "10" :       // daoBetaNet
@@ -178,7 +178,7 @@ public enum Param {
             ParamType.BLOCK, 2, 2),
     PHASE_VOTE_REVEAL(Config.baseCurrencyNetwork().isMainnet() ?
             "451" :     // mainnet; 3 days
-            Config.baseCurrencyNetwork().isRegtest() ?
+            Config.baseCurrencyNetwork().isStagenet() ?
                     "2" :       // regtest
                     Config.baseCurrencyNetwork().isDaoBetaNet() ?
                             "144" :       // daoBetaNet; 1 day
@@ -188,7 +188,7 @@ public enum Param {
             ParamType.BLOCK, 2, 2),
     PHASE_BREAK3(Config.baseCurrencyNetwork().isMainnet() ?
             "9" :       // mainnet
-            Config.baseCurrencyNetwork().isRegtest() ?
+            Config.baseCurrencyNetwork().isStagenet() ?
                     "1" :       // regtest
                     Config.baseCurrencyNetwork().isDaoBetaNet() ?
                             "10" :       // daoBetaNet
@@ -198,7 +198,7 @@ public enum Param {
             ParamType.BLOCK, 2, 2),
     PHASE_RESULT(Config.baseCurrencyNetwork().isMainnet() ?
             "10" :      // mainnet
-            Config.baseCurrencyNetwork().isRegtest() ?
+            Config.baseCurrencyNetwork().isStagenet() ?
                     "2" :       // regtest
                     Config.baseCurrencyNetwork().isDaoBetaNet() ?
                             "10" :       // daoBetaNet

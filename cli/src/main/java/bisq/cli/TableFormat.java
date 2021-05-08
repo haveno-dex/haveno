@@ -22,6 +22,7 @@ import bisq.proto.grpc.BalancesInfo;
 import bisq.proto.grpc.BsqBalanceInfo;
 import bisq.proto.grpc.BtcBalanceInfo;
 import bisq.proto.grpc.OfferInfo;
+import bisq.proto.grpc.XmrBalanceInfo;
 
 import protobuf.PaymentAccount;
 
@@ -56,7 +57,7 @@ public class TableFormat {
                 + COL_HEADER_AVAILABLE_BALANCE + COL_HEADER_DELIMITER
                 + COL_HEADER_CONFIRMATIONS + COL_HEADER_DELIMITER
                 + COL_HEADER_IS_USED_ADDRESS + COL_HEADER_DELIMITER + "\n";
-        String headerLine = format(headerFormatString, "BTC");
+        String headerLine = format(headerFormatString, "XMR");
 
         String colDataFormat = "%-" + COL_HEADER_ADDRESS.length() + "s" // lt justify
                 + "  %" + (COL_HEADER_AVAILABLE_BALANCE.length() - 1) + "s" // rt justify
@@ -73,7 +74,7 @@ public class TableFormat {
     }
 
     public static String formatBalancesTbls(BalancesInfo balancesInfo) {
-        return "BTC" + "\n"
+        return "XMR" + "\n"
                 + formatBtcBalanceInfoTbl(balancesInfo.getBtc()) + "\n"
                 + "BSQ" + "\n"
                 + formatBsqBalanceInfoTbl(balancesInfo.getBsq());
@@ -117,6 +118,24 @@ public class TableFormat {
                 formatSatoshis(btcBalanceInfo.getLockedBalance()));
     }
 
+    public static String formatXmrBalanceInfoTbl(XmrBalanceInfo xmrBalanceInfo) {
+        String headerLine = COL_HEADER_BALANCE + COL_HEADER_DELIMITER
+                + COL_HEADER_AVAILABLE_BALANCE + COL_HEADER_DELIMITER
+                + COL_HEADER_RESERVED_BALANCE + COL_HEADER_DELIMITER
+                + COL_HEADER_TOTAL_AVAILABLE_BALANCE + COL_HEADER_DELIMITER // TODO (woodser): column names are not quite right for XMR (balance, available balance, locked balance, reserved balance, total balance)
+                + COL_HEADER_LOCKED_BALANCE + COL_HEADER_DELIMITER + "\n";
+        String colDataFormat = "%" + COL_HEADER_BALANCE.length() + "s" // rt justify
+                + " %" + (COL_HEADER_AVAILABLE_BALANCE.length() + 1) + "s" // rt justify
+                + " %" + (COL_HEADER_RESERVED_BALANCE.length() + 1) + "s" // rt justify
+                + " %" + (COL_HEADER_TOTAL_AVAILABLE_BALANCE.length() + 1) + "s" // rt justify
+                + " %" + (COL_HEADER_LOCKED_BALANCE.length() + 1) + "s"; // rt justify
+        return headerLine + format(colDataFormat,
+                formatSatoshis(xmrBalanceInfo.getAvailableBalance()),
+                formatSatoshis(xmrBalanceInfo.getReservedBalance()),
+                formatSatoshis(xmrBalanceInfo.getTotalBalance()),
+                formatSatoshis(xmrBalanceInfo.getLockedBalance()));
+    }
+
     public static String formatPaymentAcctTbl(List<PaymentAccount> paymentAccounts) {
         // Some column values might be longer than header, so we need to calculate them.
         int nameColWidth = getLongestColumnSize(
@@ -150,7 +169,7 @@ public class TableFormat {
             throw new IllegalArgumentException(format("%s offers argument is empty", currencyCode.toLowerCase()));
 
         String baseCurrencyCode = offers.get(0).getBaseCurrencyCode();
-        return baseCurrencyCode.equalsIgnoreCase("BTC")
+        return baseCurrencyCode.equalsIgnoreCase("XMR")
                 ? formatFiatOfferTable(offers, currencyCode)
                 : formatCryptoCurrencyOfferTable(offers, baseCurrencyCode);
     }

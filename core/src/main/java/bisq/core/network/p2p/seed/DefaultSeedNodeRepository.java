@@ -112,6 +112,7 @@ public class DefaultSeedNodeRepository implements SeedNodeRepository {
         return list;
     }
 
+    @Override
     public Collection<NodeAddress> getSeedNodeAddresses() {
         if (cache.isEmpty())
             reload();
@@ -119,6 +120,7 @@ public class DefaultSeedNodeRepository implements SeedNodeRepository {
         return cache;
     }
 
+    @Override
     public boolean isSeedNode(NodeAddress nodeAddress) {
         if (cache.isEmpty())
             reload();

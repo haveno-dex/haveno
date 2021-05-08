@@ -10,7 +10,7 @@ services:
             - 8000:8000
         environment:
             - NODE_PORT=8000
-            - BASE_CURRENCY_NETWORK=BTC_REGTEST
+            - BASE_CURRENCY_NETWORK=XMR_STAGENET
             - SEED_NODES=seednode:8000
             - MY_ADDRESS=seednode:8000
             - USE_LOCALHOST_FOR_P2P=true

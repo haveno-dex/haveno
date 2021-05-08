@@ -58,7 +58,7 @@ public class BisqProcess extends AbstractLinuxProcess implements LinuxProcess {
     public BisqProcess(BisqAppConfig bisqAppConfig, ApiTestConfig config) {
         super(bisqAppConfig.appName, config);
         this.bisqAppConfig = bisqAppConfig;
-        this.baseCurrencyNetwork = "BTC_REGTEST";
+        this.baseCurrencyNetwork = "XMR_STAGENET";
         this.genesisTxId = "30af0050040befd8af25068cc697e418e09c2d8ebd8d411d2240591b9ec203cf";
         this.genesisBlockHeight = 111;
         this.seedNodes = "localhost:2002";

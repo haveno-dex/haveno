@@ -22,6 +22,7 @@ import bisq.core.api.model.BalancesInfo;
 import bisq.core.api.model.BsqBalanceInfo;
 import bisq.core.api.model.BtcBalanceInfo;
 import bisq.core.api.model.TxFeeRateInfo;
+import bisq.core.api.model.XmrBalanceInfo;
 import bisq.core.app.AppStartupState;
 import bisq.core.btc.Balances;
 import bisq.core.btc.exceptions.AddressEntryException;
@@ -160,11 +161,13 @@ class CoreWalletsService {
 
         switch (currencyCode.trim().toUpperCase()) {
             case "BSQ":
-                return new BalancesInfo(getBsqBalances(), BtcBalanceInfo.EMPTY);
+                return new BalancesInfo(getBsqBalances(), BtcBalanceInfo.EMPTY, XmrBalanceInfo.EMPTY);
             case "BTC":
-                return new BalancesInfo(BsqBalanceInfo.EMPTY, getBtcBalances());
+                return new BalancesInfo(BsqBalanceInfo.EMPTY, getBtcBalances(), XmrBalanceInfo.EMPTY);
+            case "XMR":
+                return new BalancesInfo(BsqBalanceInfo.EMPTY, BtcBalanceInfo.EMPTY, getXmrBalances());
             default:
-                return new BalancesInfo(getBsqBalances(), getBtcBalances());
+                return new BalancesInfo(getBsqBalances(), getBtcBalances(), getXmrBalances());
         }
     }
 
@@ -602,6 +605,7 @@ class CoreWalletsService {
                 unlockingBondsBalance.value);
     }
 
+    // TODO (woodser): delete this since it's serving XMR balances
     private BtcBalanceInfo getBtcBalances() {
         verifyWalletsAreAvailable();
         verifyEncryptedWalletIsUnlocked();
@@ -622,6 +626,29 @@ class CoreWalletsService {
                 reservedBalance.value,
                 availableBalance.add(reservedBalance).value,
                 lockedBalance.value);
+    }
+
+    private XmrBalanceInfo getXmrBalances() {
+        verifyWalletsAreAvailable();
+        verifyEncryptedWalletIsUnlocked();
+
+        var availableBalance = balances.getAvailableBalance().get();
+        if (availableBalance == null)
+            throw new IllegalStateException("available balance is not yet available");
+
+        var reservedBalance = balances.getReservedBalance().get();
+        if (reservedBalance == null)
+            throw new IllegalStateException("reserved balance is not yet available");
+
+        var lockedBalance = balances.getLockedBalance().get();
+        if (lockedBalance == null)
+            throw new IllegalStateException("locked balance is not yet available");
+
+        return new XmrBalanceInfo(availableBalance.add(lockedBalance).value,
+                availableBalance.value,
+                lockedBalance.value,
+                reservedBalance.value,
+                availableBalance.add(lockedBalance).add(reservedBalance).value);
     }
 
     // Returns a Coin for the transfer amount string, or a RuntimeException if invalid.

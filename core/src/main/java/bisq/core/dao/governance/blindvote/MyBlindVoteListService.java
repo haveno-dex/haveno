@@ -374,7 +374,7 @@ public class MyBlindVoteListService implements PersistedDataHost, DaoStateListen
             // Only payloads received from seed nodes would ignore that date check.
             int minPeers = Config.baseCurrencyNetwork().isMainnet() ? 4 : 1;
             if ((p2PService.getNumConnectedPeers().get() >= minPeers && p2PService.isBootstrapped()) ||
-                    Config.baseCurrencyNetwork().isRegtest()) {
+                    Config.baseCurrencyNetwork().isStagenet()) {
                 myBlindVoteList.stream()
                         .filter(blindVote -> periodService.isTxInPhaseAndCycle(blindVote.getTxId(),
                                 DaoPhase.Phase.BLIND_VOTE,

@@ -51,6 +51,8 @@ public class CurrencyFormat {
     static final DecimalFormat SEND_BSQ_FORMAT = new DecimalFormat("###########0.00");
 
     static final BigDecimal SECURITY_DEPOSIT_MULTIPLICAND = new BigDecimal("0.01");
+    
+    // TODO: (woodser): replace formatSatoshis(), formatBsq() with formatXmr()
 
     @SuppressWarnings("BigDecimalMethodWithoutRoundingCalled")
     public static String formatSatoshis(long sats) {

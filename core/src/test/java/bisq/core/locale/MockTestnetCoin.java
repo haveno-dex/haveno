@@ -51,7 +51,7 @@ public class MockTestnetCoin extends Coin {
     public static class Regtest extends MockTestnetCoin {
 
         public Regtest() {
-            super(Network.REGTEST, RegTestParams.get());
+            super(Network.STAGENET, RegTestParams.get());
         }
     }
 
