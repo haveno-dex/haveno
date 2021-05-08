@@ -132,8 +132,8 @@ desktop/build:
 	unzip docs/dao-setup.zip
 	mv dao-setup .localnet
 	mv .localnet/Bitcoin-regtest .localnet/bitcoind
-	mv .localnet/bisq-BTC_REGTEST_Alice_dao .localnet/alice
-	mv .localnet/bisq-BTC_REGTEST_Bob_dao .localnet/bob
+	mv .localnet/bisq-XMR_STAGENET_Alice_dao .localnet/alice
+	mv .localnet/bisq-XMR_STAGENET_Bob_dao .localnet/bob
 	# Remove the preconfigured bitcoin.conf in favor of explicitly
 	# parameterizing the invocation of bitcoind in the target below
 	rm -v .localnet/bitcoind/bitcoin.conf
@@ -190,7 +190,7 @@ bitcoind: .localnet
 
 seednode: seednode/build
 	./bisq-seednode \
-		--baseCurrencyNetwork=BTC_REGTEST \
+		--baseCurrencyNetwork=XMR_STAGENET \
 		--useLocalhostForP2P=true \
 		--useDevPrivilegeKeys=true \
 		--fullDaoNode=true \
@@ -203,7 +203,7 @@ seednode: seednode/build
 
 seednode2: seednode/build
 	./bisq-seednode \
-		--baseCurrencyNetwork=BTC_REGTEST \
+		--baseCurrencyNetwork=XMR_STAGENET \
 		--useLocalhostForP2P=true \
 		--useDevPrivilegeKeys=true \
 		--fullDaoNode=true \
@@ -216,7 +216,7 @@ seednode2: seednode/build
 
 mediator: desktop/build
 	./bisq-desktop \
-		--baseCurrencyNetwork=BTC_REGTEST \
+		--baseCurrencyNetwork=XMR_STAGENET \
 		--useLocalhostForP2P=true \
 		--useDevPrivilegeKeys=true \
 		--nodePort=4444 \
@@ -225,7 +225,7 @@ mediator: desktop/build
 
 alice: setup
 	./bisq-desktop \
-		--baseCurrencyNetwork=BTC_REGTEST \
+		--baseCurrencyNetwork=XMR_STAGENET \
 		--useLocalhostForP2P=true \
 		--useDevPrivilegeKeys=true \
 		--nodePort=5555 \
@@ -240,7 +240,7 @@ alice: setup
 
 bob: setup
 	./bisq-desktop \
-		--baseCurrencyNetwork=BTC_REGTEST \
+		--baseCurrencyNetwork=XMR_STAGENET \
 		--useLocalhostForP2P=true \
 		--useDevPrivilegeKeys=true \
 		--nodePort=6666 \

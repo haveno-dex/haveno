@@ -120,6 +120,12 @@ public final class Preferences implements PersistedDataHost, BridgeAddressProvid
             new BlockChainExplorer("mempool.emzy.de (@emzy)", "https://mempool.emzy.de/bisq/tx/", "https://mempool.emzy.de/bisq/address/"),
             new BlockChainExplorer("mempool.bisq.services (@devinbileck)", "https://mempool.bisq.services/bisq/tx/", "https://mempool.bisq.services/bisq/address/")
     ));
+    private static final ArrayList<BlockChainExplorer> XMR_MAIN_NET_EXPLORERS = new ArrayList<>(Arrays.asList(
+            new BlockChainExplorer("xmrchain.net", "https://xmrchain.net/tx/", "")
+    ));
+    private static final ArrayList<BlockChainExplorer> XMR_TEST_NET_EXPLORERS = new ArrayList<>(Arrays.asList(
+            new BlockChainExplorer("testnet.xmrchain.net", "https://testnet.xmrchain.net/tx/", "")
+    ));
 
     private static final ArrayList<String> XMR_TX_PROOF_SERVICES_CLEAR_NET = new ArrayList<>(Arrays.asList(
             "xmrblocks.monero.emzy.de", // @emzy
@@ -284,9 +290,12 @@ public final class Preferences implements PersistedDataHost, BridgeAddressProvid
         setCryptoCurrencies(CurrencyUtil.getMainCryptoCurrencies());
 
         BaseCurrencyNetwork baseCurrencyNetwork = Config.baseCurrencyNetwork();
-        if ("BTC".equals(baseCurrencyNetwork.getCurrencyCode())) { // TODO (woodser): change to XMR when --baseCurrencyNetwork=XMR_REGTEST supported 
+        if ("BTC".equals(baseCurrencyNetwork.getCurrencyCode())) {
             setBlockChainExplorerMainNet(BTC_MAIN_NET_EXPLORERS.get(0));
             setBlockChainExplorerTestNet(BTC_TEST_NET_EXPLORERS.get(0));
+        } else if ("XMR".equals(baseCurrencyNetwork.getCurrencyCode())) {
+            setBlockChainExplorerMainNet(XMR_MAIN_NET_EXPLORERS.get(0));
+            setBlockChainExplorerTestNet(XMR_TEST_NET_EXPLORERS.get(0));
         } else {
             throw new RuntimeException("BaseCurrencyNetwork not defined. BaseCurrencyNetwork=" + baseCurrencyNetwork);
         }
@@ -829,10 +838,10 @@ public final class Preferences implements PersistedDataHost, BridgeAddressProvid
     public BlockChainExplorer getBlockChainExplorer() {
         BaseCurrencyNetwork baseCurrencyNetwork = Config.baseCurrencyNetwork();
         switch (baseCurrencyNetwork) {
-            case BTC_MAINNET:
+            case XMR_MAINNET:
                 return prefPayload.getBlockChainExplorerMainNet();
-            case BTC_TESTNET:
-            case BTC_REGTEST:
+            case XMR_TESTNET:
+            case XMR_STAGENET:
                 return prefPayload.getBlockChainExplorerTestNet();
             case BTC_DAO_TESTNET:
                 return BTC_DAO_TEST_NET_EXPLORERS.get(0);
@@ -848,10 +857,10 @@ public final class Preferences implements PersistedDataHost, BridgeAddressProvid
     public ArrayList<BlockChainExplorer> getBlockChainExplorers() {
         BaseCurrencyNetwork baseCurrencyNetwork = Config.baseCurrencyNetwork();
         switch (baseCurrencyNetwork) {
-            case BTC_MAINNET:
+            case XMR_MAINNET:
                 return BTC_MAIN_NET_EXPLORERS;
-            case BTC_TESTNET:
-            case BTC_REGTEST:
+            case XMR_TESTNET:
+            case XMR_STAGENET:
                 return BTC_TEST_NET_EXPLORERS;
             case BTC_DAO_TESTNET:
                 return BTC_DAO_TEST_NET_EXPLORERS;

@@ -31,6 +31,7 @@ class ColumnHeaderConstants {
     // lengths are expected to be greater than any column value length.
     static final String COL_HEADER_ADDRESS = padEnd("%-3s Address", 52, ' ');
     static final String COL_HEADER_AMOUNT = "BTC(min - max)";
+    static final String COL_HEADER_BALANCE = "Balance";
     static final String COL_HEADER_AVAILABLE_BALANCE = "Available Balance";
     static final String COL_HEADER_AVAILABLE_CONFIRMED_BALANCE = "Available Confirmed Balance";
     static final String COL_HEADER_UNCONFIRMED_CHANGE_BALANCE = "Unconfirmed Change Balance";

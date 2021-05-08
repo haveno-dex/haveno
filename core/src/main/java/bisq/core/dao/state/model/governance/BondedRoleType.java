@@ -95,7 +95,7 @@ public enum BondedRoleType {
         this.requiredBondUnit = requiredBondUnit;
         this.unlockTimeInBlocks = Config.baseCurrencyNetwork().isMainnet() ?
                 unlockTimeInDays * 144 :    // mainnet (144 blocks per day)
-                Config.baseCurrencyNetwork().isRegtest() ?
+                Config.baseCurrencyNetwork().isStagenet() ?
                         5 :                 // regtest (arbitrarily low value for dev testing)
                         144;                // testnet (relatively short time for testing purposes)
         this.link = link;

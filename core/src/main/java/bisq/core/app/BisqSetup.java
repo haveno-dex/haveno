@@ -290,7 +290,7 @@ public class BisqSetup {
 
     public void start() {
         // If user tried to downgrade we require a shutdown
-        if (Config.baseCurrencyNetwork() == BaseCurrencyNetwork.BTC_MAINNET &&
+        if (Config.baseCurrencyNetwork() == BaseCurrencyNetwork.XMR_MAINNET &&
                 hasDowngraded(downGradePreventionHandler)) {
             return;
         }

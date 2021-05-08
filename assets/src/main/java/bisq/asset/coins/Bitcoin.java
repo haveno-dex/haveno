@@ -51,7 +51,7 @@ public abstract class Bitcoin extends Coin {
     public static class Regtest extends Bitcoin {
 
         public Regtest() {
-            super(Network.REGTEST, RegTestParams.get());
+            super(Network.STAGENET, RegTestParams.get());
         }
     }
 }

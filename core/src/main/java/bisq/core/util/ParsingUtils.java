@@ -18,22 +18,22 @@ import lombok.extern.slf4j.Slf4j;
 public class ParsingUtils {
 
     /**
-     * Temporary multiplier to convert Coin satoshis to XMR atomic units.
+     * Temporary multiplier to convert Coin satoshis (denominating XMR centineros) to XMR atomic units.
      *
      * TODO (woodser): replace bitcoinj/Coin entirely?
      */
     private static BigInteger XMR_SATOSHI_MULTIPLIER = BigInteger.valueOf(10000); // TODO (woodser): make this private and expose satoshisToXmrAtomicUnits()
-    
+
     /**
      * Converts Coin satoshis (the base unit throughout Bisq) to XMR atomic units.
-     * 
+     *
      * @param satoshis represents an amount in XMR atomic units scaled to a long
      * @return BigInteger is the equivalent amount in XMR atomic units
      */
     public static BigInteger satoshisToXmrAtomicUnits(long satoshis) {
         return BigInteger.valueOf(satoshis).multiply(ParsingUtils.XMR_SATOSHI_MULTIPLIER);
     }
-    
+
     public static Coin parseToCoin(String input, CoinFormatter coinFormatter) {
         return parseToCoin(input, coinFormatter.getMonetaryFormat());
     }

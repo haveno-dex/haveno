@@ -46,8 +46,8 @@ import org.jetbrains.annotations.NotNull;
 public class Res {
     public static void setup() {
         BaseCurrencyNetwork baseCurrencyNetwork = Config.baseCurrencyNetwork();
-        setBaseCurrencyCode("XMR");
-        setBaseCurrencyName("Monero");
+        setBaseCurrencyCode(baseCurrencyNetwork.getCurrencyCode());
+        setBaseCurrencyName(baseCurrencyNetwork.getCurrencyName());
     }
 
     @SuppressWarnings("CanBeFinal")
@@ -78,20 +78,20 @@ public class Res {
     private static String baseCurrencyNameLowerCase;
 
     public static void setBaseCurrencyCode(String baseCurrencyCode) {
-        Res.baseCurrencyCode = "XMR";
+        Res.baseCurrencyCode = baseCurrencyCode;
     }
 
     public static void setBaseCurrencyName(String baseCurrencyName) {
-        Res.baseCurrencyName = "Monero";
+        Res.baseCurrencyName = baseCurrencyName;
         baseCurrencyNameLowerCase = baseCurrencyName.toLowerCase();
     }
 
     public static String getBaseCurrencyCode() {
-        return "XMR";
+        return baseCurrencyCode;
     }
 
     public static String getBaseCurrencyName() {
-        return "Monero";
+        return baseCurrencyName;
     }
 
     // Capitalize first character

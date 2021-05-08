@@ -88,6 +88,7 @@ public abstract class BisqExecutable implements GracefulShutDownHandler, BisqSet
                 System.exit(EXIT_SUCCESS);
             }
         } catch (ConfigException ex) {
+            ex.printStackTrace();
             System.err.println("error: " + ex.getMessage());
             System.exit(EXIT_FAILURE);
         } catch (Throwable ex) {
@@ -205,6 +206,7 @@ public abstract class BisqExecutable implements GracefulShutDownHandler, BisqSet
         bisqSetup.start();
     }
 
+    @Override
     public abstract void onSetupComplete();
 
 

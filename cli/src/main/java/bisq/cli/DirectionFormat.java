@@ -30,19 +30,19 @@ import static protobuf.OfferPayload.Direction.SELL;
 class DirectionFormat {
 
     static int getLongestDirectionColWidth(List<OfferInfo> offers) {
-        if (offers.isEmpty() || offers.get(0).getBaseCurrencyCode().equals("BTC"))
+        if (offers.isEmpty() || offers.get(0).getBaseCurrencyCode().equals("XMR"))
             return COL_HEADER_DIRECTION.length();
         else
-            return 18;  // .e.g., "Sell BSQ (Buy BTC)".length()
+            return 18;  // .e.g., "Sell BSQ (Buy XMR)".length()
     }
 
     static final Function<OfferInfo, String> directionFormat = (offer) -> {
         String baseCurrencyCode = offer.getBaseCurrencyCode();
-        boolean isCryptoCurrencyOffer = !baseCurrencyCode.equals("BTC");
+        boolean isCryptoCurrencyOffer = !baseCurrencyCode.equals("XMR");
         if (!isCryptoCurrencyOffer) {
             return baseCurrencyCode;
         } else {
-            // Return "Sell BSQ (Buy BTC)", or "Buy BSQ (Sell BTC)".
+            // Return "Sell BSQ (Buy XMR)", or "Buy BSQ (Sell XMR)".
             String direction = offer.getDirection();
             String mirroredDirection = getMirroredDirection(direction);
             Function<String, String> mixedCase = (word) -> word.charAt(0) + word.substring(1).toLowerCase();

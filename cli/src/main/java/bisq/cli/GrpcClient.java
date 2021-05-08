@@ -64,6 +64,7 @@ import bisq.proto.grpc.UnlockWalletRequest;
 import bisq.proto.grpc.UnsetTxFeeRatePreferenceRequest;
 import bisq.proto.grpc.VerifyBsqSentToAddressRequest;
 import bisq.proto.grpc.WithdrawFundsRequest;
+import bisq.proto.grpc.XmrBalanceInfo;
 
 import protobuf.PaymentAccount;
 import protobuf.PaymentMethod;
@@ -105,6 +106,10 @@ public final class GrpcClient {
 
     public BtcBalanceInfo getBtcBalances() {
         return getBalances("BTC").getBtc();
+    }
+
+    public XmrBalanceInfo getXmrBalances() {
+        return getBalances("XMR").getXmr();
     }
 
     public BalancesInfo getBalances(String currencyCode) {
@@ -299,7 +304,7 @@ public final class GrpcClient {
     }
 
     public List<OfferInfo> getCryptoCurrencyOffers(String direction, String currencyCode) {
-        return getOffers(direction, "BTC").stream()
+        return getOffers(direction, "XMR").stream()
                 .filter(o -> o.getBaseCurrencyCode().equalsIgnoreCase(currencyCode))
                 .collect(toList());
     }

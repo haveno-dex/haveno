@@ -586,6 +586,7 @@ message BalancesInfo {
     // balancesInfo.getBtcBalanceInfo().getAvailableBalance().
     BsqBalanceInfo bsq = 1;
     BtcBalanceInfo btc = 2;
+    XmrBalanceInfo xmr = 3;
 }
 
 message BsqBalanceInfo {
@@ -602,6 +603,14 @@ message BtcBalanceInfo {
     uint64 reservedBalance = 2;
     uint64 totalAvailableBalance = 3;
     uint64 lockedBalance = 4;
+}
+
+message XmrBalanceInfo {
+    uint64 balance = 1;
+    uint64 availableBalance = 2;
+    uint64 lockedBalance = 3;
+    uint64 reservedBalance = 4;
+    uint64 totalBalance = 5; // balance + reserved
 }
 
 message AddressBalanceInfo {

@@ -52,7 +52,7 @@ public class BSQ extends Coin {
     public static class Regtest extends BSQ {
 
         public Regtest() {
-            super(Network.REGTEST, RegTestParams.get());
+            super(Network.STAGENET, RegTestParams.get());
         }
     }
 

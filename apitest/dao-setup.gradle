@@ -59,10 +59,10 @@ task installDaoSetup(dependsOn: 'cleanDaoSetup') {
         // Move dao-setup files from build/resources/main/dao-setup to build/resources/main
         file(buildResourcesDir + '/dao-setup/Bitcoin-regtest')
                 .renameTo(file(buildResourcesDir + '/Bitcoin-regtest'))
-        file(buildResourcesDir + '/dao-setup/bisq-BTC_REGTEST_Alice_dao')
-                .renameTo(file(buildResourcesDir + '/bisq-BTC_REGTEST_Alice_dao'))
-        file(buildResourcesDir + '/dao-setup/bisq-BTC_REGTEST_Bob_dao')
-                .renameTo(file(buildResourcesDir + '/bisq-BTC_REGTEST_Bob_dao'))
+        file(buildResourcesDir + '/dao-setup/bisq-XMR_STAGENET_Alice_dao')
+                .renameTo(file(buildResourcesDir + '/bisq-XMR_STAGENET_Alice_dao'))
+        file(buildResourcesDir + '/dao-setup/bisq-XMR_STAGENET_Bob_dao')
+                .renameTo(file(buildResourcesDir + '/bisq-XMR_STAGENET_Bob_dao'))
         delete file(buildResourcesDir + '/dao-setup')
     }
 }
@@ -75,9 +75,9 @@ task cleanDaoSetup {
         // re-compile any code.
         println "Deleting dao-setup directories in build dir $buildResourcesDir ..."
         delete file(buildResourcesDir + '/Bitcoin-regtest')
-        delete file(buildResourcesDir + '/bisq-BTC_REGTEST_Seed_2002')
-        delete file(buildResourcesDir + '/bisq-BTC_REGTEST_Arb_dao')
-        delete file(buildResourcesDir + '/bisq-BTC_REGTEST_Alice_dao')
-        delete file(buildResourcesDir + '/bisq-BTC_REGTEST_Bob_dao')
+        delete file(buildResourcesDir + '/bisq-XMR_STAGENET_Seed_2002')
+        delete file(buildResourcesDir + '/bisq-XMR_STAGENET_Arb_dao')
+        delete file(buildResourcesDir + '/bisq-XMR_STAGENET_Alice_dao')
+        delete file(buildResourcesDir + '/bisq-XMR_STAGENET_Bob_dao')
     }
 }

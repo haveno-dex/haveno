@@ -68,28 +68,28 @@ public class CurrencyUtilTest {
         boolean daoTradingActivated = false;
         // Test if BSQ on mainnet is failing
         Assert.assertFalse(CurrencyUtil.findAsset(assetRegistry, "BSQ",
-                BaseCurrencyNetwork.BTC_MAINNET, daoTradingActivated).isPresent());
+                BaseCurrencyNetwork.XMR_MAINNET, daoTradingActivated).isPresent());
 
         // on testnet/regtest it is allowed
         assertEquals(CurrencyUtil.findAsset(assetRegistry, "BSQ",
-                BaseCurrencyNetwork.BTC_TESTNET, daoTradingActivated).get().getTickerSymbol(), "BSQ");
+                BaseCurrencyNetwork.XMR_TESTNET, daoTradingActivated).get().getTickerSymbol(), "BSQ");
 
 
         daoTradingActivated = true;
         // With daoTradingActivated we can request BSQ
         assertEquals(CurrencyUtil.findAsset(assetRegistry, "BSQ",
-                BaseCurrencyNetwork.BTC_MAINNET, daoTradingActivated).get().getTickerSymbol(), "BSQ");
+                BaseCurrencyNetwork.XMR_MAINNET, daoTradingActivated).get().getTickerSymbol(), "BSQ");
 
         // Test if not matching ticker is failing
         Assert.assertFalse(CurrencyUtil.findAsset(assetRegistry, "BSQ1",
-                BaseCurrencyNetwork.BTC_MAINNET, daoTradingActivated).isPresent());
+                BaseCurrencyNetwork.XMR_MAINNET, daoTradingActivated).isPresent());
 
         // Add a mock coin which has no mainnet version, needs to fail if we are on mainnet
         MockTestnetCoin.Testnet mockTestnetCoin = new MockTestnetCoin.Testnet();
         try {
             assetRegistry.addAsset(mockTestnetCoin);
             CurrencyUtil.findAsset(assetRegistry, "MOCK_COIN",
-                    BaseCurrencyNetwork.BTC_MAINNET, daoTradingActivated);
+                    BaseCurrencyNetwork.XMR_MAINNET, daoTradingActivated);
             Assert.fail("Expected an IllegalArgumentException");
         } catch (IllegalArgumentException e) {
             String wantMessage = "We are on mainnet and we could not find an asset with network type mainnet";
@@ -99,34 +99,34 @@ public class CurrencyUtilTest {
 
         // For testnet its ok
         assertEquals(CurrencyUtil.findAsset(assetRegistry, "MOCK_COIN",
-                BaseCurrencyNetwork.BTC_TESTNET, daoTradingActivated).get().getTickerSymbol(), "MOCK_COIN");
+                BaseCurrencyNetwork.XMR_TESTNET, daoTradingActivated).get().getTickerSymbol(), "MOCK_COIN");
         assertEquals(Coin.Network.TESTNET, mockTestnetCoin.getNetwork());
 
         // For regtest its still found
         assertEquals(CurrencyUtil.findAsset(assetRegistry, "MOCK_COIN",
-                BaseCurrencyNetwork.BTC_REGTEST, daoTradingActivated).get().getTickerSymbol(), "MOCK_COIN");
+                BaseCurrencyNetwork.XMR_STAGENET, daoTradingActivated).get().getTickerSymbol(), "MOCK_COIN");
 
 
         // We test if we are not on mainnet to get the mainnet coin
         Coin ether = new Ether();
         assertEquals(CurrencyUtil.findAsset(assetRegistry, "ETH",
-                BaseCurrencyNetwork.BTC_TESTNET, daoTradingActivated).get().getTickerSymbol(), "ETH");
+                BaseCurrencyNetwork.XMR_TESTNET, daoTradingActivated).get().getTickerSymbol(), "ETH");
         assertEquals(CurrencyUtil.findAsset(assetRegistry, "ETH",
-                BaseCurrencyNetwork.BTC_REGTEST, daoTradingActivated).get().getTickerSymbol(), "ETH");
+                BaseCurrencyNetwork.XMR_STAGENET, daoTradingActivated).get().getTickerSymbol(), "ETH");
         assertEquals(Coin.Network.MAINNET, ether.getNetwork());
 
         // We test if network matches exactly if there are distinct network types defined like with BSQ
-        Coin bsq = (Coin) CurrencyUtil.findAsset(assetRegistry, "BSQ", BaseCurrencyNetwork.BTC_MAINNET, daoTradingActivated).get();
+        Coin bsq = (Coin) CurrencyUtil.findAsset(assetRegistry, "BSQ", BaseCurrencyNetwork.XMR_MAINNET, daoTradingActivated).get();
         assertEquals("BSQ", bsq.getTickerSymbol());
         assertEquals(Coin.Network.MAINNET, bsq.getNetwork());
 
-        bsq = (Coin) CurrencyUtil.findAsset(assetRegistry, "BSQ", BaseCurrencyNetwork.BTC_TESTNET, daoTradingActivated).get();
+        bsq = (Coin) CurrencyUtil.findAsset(assetRegistry, "BSQ", BaseCurrencyNetwork.XMR_TESTNET, daoTradingActivated).get();
         assertEquals("BSQ", bsq.getTickerSymbol());
         assertEquals(Coin.Network.TESTNET, bsq.getNetwork());
 
-        bsq = (Coin) CurrencyUtil.findAsset(assetRegistry, "BSQ", BaseCurrencyNetwork.BTC_REGTEST, daoTradingActivated).get();
+        bsq = (Coin) CurrencyUtil.findAsset(assetRegistry, "BSQ", BaseCurrencyNetwork.XMR_STAGENET, daoTradingActivated).get();
         assertEquals("BSQ", bsq.getTickerSymbol());
-        assertEquals(Coin.Network.REGTEST, bsq.getNetwork());
+        assertEquals(Coin.Network.STAGENET, bsq.getNetwork());
     }
 
     @Test

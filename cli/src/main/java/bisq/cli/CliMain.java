@@ -174,6 +174,9 @@ public class CliMain {
                         case "BTC":
                             out.println(formatBtcBalanceInfoTbl(balances.getBtc()));
                             break;
+                        case "XMR":
+                          out.println(formatXmrBalanceInfoTbl(balances.getXmr()));
+                          break;
                         case "":
                         default:
                             out.println(formatBalancesTbls(balances));
