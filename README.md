@@ -10,29 +10,21 @@ Haveno is the Esperanto word for "Harbor". The project is stewarded by a core Te
 
 ## Why a new platform?
 
-Haveno is a fork of Bisq, the Bitcoin based decentralized exchange. We believe Bisq is not enough for Monero users, which badly need a private way to exchange Monero for other (crypto)currencies.
-
-Haveno is built on Monero, which means all transactions between users are obfuscated by default. Bisq's system is based on Bitcoin and inherits all its design flaws, for example:
-
-- All Bisq's in-platform transactions are based on Bitcoin, which make them slow and fully traceable.
-- Bisq transactions are unique and easily visible on the blockchain. This means it's trivial to check which Bitcoin transactions are the result of a trade on Bisq.
-
-Trade fees will also be drastically lower, as Monero has much lower transaction fees compared to bitcoin (average transaction fee: XMR=$0.003 BTC=$9 ).
-
-Even if XMR transactions compose the vast majority of Bisq's activity, Bisq's team haven't displayed much interest in improving their Monero support. The important privacy issues mentioned above will be solved by simply having Monero as a base currency instead of Bitcoin. 
-
-We acknowledge and thank Bisq for their efforts, but we think the Monero community needs a native, private way to exchange XMR for other currencies without passing through Bitcoin first and Haveno is here to fill that gap! We commit to contribute back to Bisq when possible.
+See the FAQ: [Why a new platform? What are the key differences compared to Bisq](https://github.com/haveno-dex/haveno/wiki/FAQ#why-a-new-platform-what-are-the-key-differences-compared-to-bisq)
 
 ## Status of the project
 
 At the moment Haveno is only a Proof of Concept. It's already possible to initiate crypto <-> XMR and fiat <-> XMR trades, but the platform still needs a lot of work before being available for public use.
 
-There is a lot in progress and a lot to do. To make contributions easier, we use some of github's tools, like labels and projects. We set up a [labelling system](https://github.com/haveno-dex/haveno/wiki/Labelling-system) which should make easier for people to contribute. Problems and requests about the Haveno platform are tracked on this repository. For general discussions and proposals that affect the entire Haveno ecosystem, please open an issue in the [haveno-meta repository](https://github.com/haveno-dex/haveno-meta).
+The project is divided between multiple repositories:
 
-These are the main priorities for the near future:
+- **[haveno](https://github.com/haveno-dex/haveno)** - This repository. Contains the Proof of Concept of what will be the heart of Haveno.
+- **[haveno-ui-poc](https://github.com/haveno-dex/haveno-ui-poc)** - The PoC of the future user interface. Uses gRPC APIs to serve the UI in React.
+- **[haveno-design](https://github.com/haveno-dex/haveno-design)** - Temporary (for now empty) repository for design discussions.
+- **[haveno-meta](https://github.com/haveno-dex/haveno-meta)** - For project-wide discussions and proposals.
+- **[haveno-website](https://github.com/haveno-dex/haveno-website)** - The repository of the future website.
 
-- The User Interface is basically still Bisq. Needs to be completely reworked and adapted for Monero as base currency. The new design is discussed and developed in [haveno-design](https://github.com/haveno-dex/haveno-design)
-- Cleanup the repository from Bisq-specific content (https://github.com/haveno-dex/haveno/projects/1)
+Currently, efforts are focused in developing the core repository ('haveno'). If you wish to help, take a look at the [issue tracker](https://github.com/haveno-dex/haveno/issues) and the [Kanban boards (projects)](https://github.com/haveno-dex/haveno/projects). We run a bounty program to incentivize development, the issues elegible for a reward in XMR [are labelled '💰bounty'](https://github.com/haveno-dex/haveno/labels/%F0%9F%92%B0bounty).
 
 ### Bounties
 
