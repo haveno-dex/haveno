@@ -15,8 +15,6 @@ import javax.inject.Inject;
 
 import com.google.common.util.concurrent.FutureCallback;
 
-import javafx.application.Platform;
-
 import java.io.File;
 
 import java.math.BigInteger;
@@ -81,11 +79,7 @@ public class XmrWalletService {
 
         @Override
         public void onBalancesChanged(BigInteger newBalance, BigInteger newUnlockedBalance) {
-          Platform.runLater(new Runnable() {  // jni wallet runs on separate thread which cannot update fx
-            @Override public void run() {
-              notifyBalanceListeners();
-            }
-          });
+          notifyBalanceListeners();
         }
       });
     });
@@ -324,10 +318,10 @@ public class XmrWalletService {
       threads.add(new Thread(new Runnable() {
         @Override
         public void run() {
-          System.out.println("XmrWalletServie.shutDown() closing wallet within thread!!!");
-          System.out.println("Wallet balance: " + wallet.getBalance());
           try { walletsSetup.getWalletConfig().closeWallet(openWallet); }
-          catch (Exception e) { e.printStackTrace(); }
+          catch (Exception e) {
+            e.printStackTrace(); // exception expected on shutdown when run as daemon TODO (woodser): detect if running as daemon
+          }
         }
       }));
     }
@@ -415,47 +409,27 @@ public class XmrWalletService {
 
     @Override
     public void onSyncProgress(long height, long startHeight, long endHeight, double percentDone, String message) {
-      Platform.runLater(new Runnable() {  // jni wallet runs on separate thread which cannot update fx
-        @Override public void run() {
-          listener.onSyncProgress(height, startHeight, endHeight, percentDone, message);
-        }
-      });
+        listener.onSyncProgress(height, startHeight, endHeight, percentDone, message);
     }
 
     @Override
     public void onNewBlock(long height) {
-      Platform.runLater(new Runnable() {  // jni wallet runs on separate thread which cannot update fx
-        @Override public void run() {
-          listener.onNewBlock(height);
-        }
-      });
+        listener.onNewBlock(height);
     }
 
     @Override
     public void onBalancesChanged(BigInteger newBalance, BigInteger newUnlockedBalance) {
-      Platform.runLater(new Runnable() {  // jni wallet runs on separate thread which cannot update fx
-        @Override public void run() {
-          listener.onBalancesChanged(newBalance, newUnlockedBalance);
-        }
-      });
+        listener.onBalancesChanged(newBalance, newUnlockedBalance);
     }
 
     @Override
     public void onOutputReceived(MoneroOutputWallet output) {
-      Platform.runLater(new Runnable() {  // jni wallet runs on separate thread which cannot update fx
-        @Override public void run() {
-          listener.onOutputReceived(output);
-        }
-      });
+        listener.onOutputReceived(output);
     }
 
     @Override
     public void onOutputSpent(MoneroOutputWallet output) {
-      Platform.runLater(new Runnable() {  // jni wallet runs on separate thread which cannot update fx
-        @Override public void run() {
-          listener.onOutputSpent(output);
-        }
-      });
+        listener.onOutputSpent(output);
     }
   }
 }
