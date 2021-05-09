@@ -76,6 +76,8 @@ public final class TradableList<T extends Tradable> extends PersistableListAsObs
                             return SellerAsMakerTrade.fromProto(tradable.getSellerAsMakerTrade(), xmrWalletService, coreProtoResolver);
                         case SELLER_AS_TAKER_TRADE:
                             return SellerAsTakerTrade.fromProto(tradable.getSellerAsTakerTrade(), xmrWalletService, coreProtoResolver);
+                        case ARBITRATOR_TRADE:
+                            return ArbitratorTrade.fromProto(tradable.getArbitratorTrade(), xmrWalletService, coreProtoResolver);
                         default:
                             log.error("Unknown messageCase. tradable.getMessageCase() = " + tradable.getMessageCase());
                             throw new ProtobufferRuntimeException("Unknown messageCase. tradable.getMessageCase() = " +
