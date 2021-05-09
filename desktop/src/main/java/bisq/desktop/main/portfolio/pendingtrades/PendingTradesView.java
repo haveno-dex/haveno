@@ -93,7 +93,7 @@ import javafx.geometry.Pos;
 
 import org.fxmisc.easybind.EasyBind;
 import org.fxmisc.easybind.Subscription;
-
+import javafx.application.Platform;
 import javafx.beans.binding.Bindings;
 import javafx.beans.property.ReadOnlyObjectWrapper;
 import javafx.beans.value.ChangeListener;
@@ -618,7 +618,11 @@ public class PendingTradesView extends ActivatableViewAndModel<VBox, PendingTrad
 
                                 if (item != null && !empty) {
                                     trade = item.getTrade();
-                                    listener = (observable, oldValue, newValue) -> update();
+                                    listener = (observable, oldValue, newValue) -> Platform.runLater(new Runnable() {
+                                        @Override public void run() {
+                                            update();
+                                        }
+                                    });
                                     trade.stateProperty().addListener(listener);
                                     update();
                                 } else {
@@ -932,7 +936,11 @@ public class PendingTradesView extends ActivatableViewAndModel<VBox, PendingTrad
                                 super.updateItem(newItem, empty);
                                 if (!empty && newItem != null) {
                                     trade = newItem.getTrade();
-                                    listener = (observable, oldValue, newValue) -> update();
+                                    listener = (observable, oldValue, newValue) -> Platform.runLater(new Runnable() {
+                                       @Override public void run() {
+                                           update();
+                                       }
+                                    });
                                     trade.stateProperty().addListener(listener);
                                     update();
                                 } else {

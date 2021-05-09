@@ -29,6 +29,8 @@ import org.fxmisc.easybind.EasyBind;
 
 import lombok.extern.slf4j.Slf4j;
 
+import javafx.application.Platform;
+
 @Slf4j
 public class SellerSubView extends TradeSubView {
     private TradeWizardItem step1;
@@ -74,40 +76,44 @@ public class SellerSubView extends TradeSubView {
     protected void onViewStateChanged(PendingTradesViewModel.State viewState) {
         super.onViewStateChanged(viewState);
 
-        if (viewState != null) {
-            PendingTradesViewModel.SellerState sellerState = (PendingTradesViewModel.SellerState) viewState;
+        Platform.runLater(new Runnable() {
+            @Override public void run() {
+                if (viewState != null) {
+                    PendingTradesViewModel.SellerState sellerState = (PendingTradesViewModel.SellerState) viewState;
 
-            step1.setDisabled();
-            step2.setDisabled();
-            step3.setDisabled();
-            step4.setDisabled();
+                    step1.setDisabled();
+                    step2.setDisabled();
+                    step3.setDisabled();
+                    step4.setDisabled();
 
-            switch (sellerState) {
-                case UNDEFINED:
-                    break;
-                case STEP1:
-                    showItem(step1);
-                    break;
-                case STEP2:
-                    step1.setCompleted();
-                    showItem(step2);
-                    break;
-                case STEP3:
-                    step1.setCompleted();
-                    step2.setCompleted();
-                    showItem(step3);
-                    break;
-                case STEP4:
-                    step1.setCompleted();
-                    step2.setCompleted();
-                    step3.setCompleted();
-                    showItem(step4);
-                    break;
-                default:
-                    log.warn("unhandled viewState " + sellerState);
-                    break;
+                    switch (sellerState) {
+                        case UNDEFINED:
+                            break;
+                        case STEP1:
+                            showItem(step1);
+                            break;
+                        case STEP2:
+                            step1.setCompleted();
+                            showItem(step2);
+                            break;
+                        case STEP3:
+                            step1.setCompleted();
+                            step2.setCompleted();
+                            showItem(step3);
+                            break;
+                        case STEP4:
+                            step1.setCompleted();
+                            step2.setCompleted();
+                            step3.setCompleted();
+                            showItem(step4);
+                            break;
+                        default:
+                            log.warn("unhandled viewState " + sellerState);
+                            break;
+                    }
+                }
             }
-        }
+        });
     }
 }
 
