@@ -24,24 +24,51 @@ public class AsciiLogo {
     public static void showAsciiLogo() {
         String ls = System.lineSeparator();
         log.info(ls + ls +
-                "                    ........                  ......                                                                         " + ls +
-                "                ..............                ......                                                                         " + ls +
-                "              .................               ......                                                                         " + ls +
-                "            ......   ..........   ..          ......                                                                         " + ls +
-                "           ......      ......   ......        ...............        .....     .........         ..........                  " + ls +
-                "          .......              ........       ..................     .....   .............     ...............               " + ls +
-                "          ......               ........       ..........  .......    .....  ......   ...     ........   .......              " + ls +
-                "         ......                   .....       .......        .....   .....  .....            .....        ......             " + ls +
-                "         ......    ...        ...             ......         ......  .....   ...........    ......         ......            " + ls +
-                "         ......   .....      ....             ......         ......  .....    ............  .....          ......            " + ls +
-                "          ......                               .....         ......  .....         ........ ......         ......            " + ls +
-                "           ......       ....        ...        ......       ......   .....    ..     ......  ......      ........            " + ls +
-                "            ........     ..      .......        .................    .....  ..............    ...................            " + ls +
-                "             ..........       .........           .............      .....   ............       .................            " + ls +
-                "               ......................                 .....                      ....               ....   ......            " + ls +
-                "                  ................                                                                         ......            " + ls +
-                "                        ....                                                                               ......            " + ls +
-                "                                                                                                           ......            " + ls +
+                "                                                                                                              " + ls +
+                "                                                                                                              " + ls +
+                "                                                                                                              " + ls +
+                "                                                   0X                                                         " + ls +
+                "                                              OOdolcck                                                        " + ls +
+                "                                       KXKNN0occcccccck:   :Kxxk0d                                            " + ls +
+                "                                     klccccccccccccccccck0xcccccccxK'                                         " + ls +
+                "                                    xccccccccccccccclOKKOocccccccccclxK                                       " + ls +
+                "                                  .xccccccccccccccclWMMMMMd:::::::::ccco                                      " + ls +
+                "                                 'dccccccc:::cccccclWMMMMMo:::::::::::cc;                                     " + ls +
+                "                                ,occccc:::::::::::::cxO0kl:::::::::::::cd                                     " + ls +
+                "                               ;occccc:::::cddddddc;;;;;;;;:ddddddl:::::coldOK                                " + ls +
+                "                              :occccc::::::xMMMMMMo,,,,,,,,cMMMMMMk::::::cccccoOc                             " + ls +
+                "                             llccccc:::::;;dMMMMMMo,,,,,,,,cMMMMMMk:::::::cccccc,                             " + ls +
+                "                             'cccccc::::;,,dMMMMMMl'''''',,cMMMMMMk::::::::ccccc.                             " + ls +
+                "                             .cccccc::::,,,dMMMMMMo'''''',,cMMMMMMk::::::::ccccc                              " + ls +
+                "                              :ccccc:::::;;dMMMMMM0xxxxxxxxOMMMMMMk::::::::ccc'                               " + ls +
+                "                              ;ccccc:::::::xMMMMMMMMMMMMMMMMMMMMMMk::::::ccccco                               " + ls +
+                "                              'ccccc:::::::xMMMMMMMMMMMMMMMMMMMMMMk:::::ccccccco                              " + ls +
+                "                              .ccccccc:::::xMMMMMMd::::::::oMMMMMMk:::::ccccccc                               " + ls +
+                "                               :cccccccc:::xMMMMMMo,,,,,,,,cMMMMMMk:::::cccccc                                " + ls +
+                "                                cccccccccc:xMMMMMMo,,,,,,,,cMMMMMMk::::cccccc                                 " + ls +
+                "                                :ccccccccccxMMMMMMo,,,,,,,,cMMMMMMO:cccccccc                                  " + ls +
+                "                                 ccccccccccxMMMMMMd;;;;;;;:lMMMMMMOcccccccc                                   " + ls +
+                "                                    ccccccclooooooc::::::::cddddddlcccccc:                                    " + ls +
+                "                                      .ccccc::::::::::::::ccccccccccccccc                                     " + ls +
+                "                                         :cccc:::::::::::ccccccccccccc                                        " + ls +
+                "                                           .cccc:::::::ccccccccccc,                                           " + ls +
+                "                                              'ccccccccccccc.                                                 " + ls +
+                "                                                  ;ccccc:                                                     " + ls +
+                "                                                                                                              " + ls +
+                "                                                                                                              " + ls +
+                "                                                                                                              " + ls +
+                "                                                                                                              " + ls +
+                "                 .XXX.   .XXX.    .XXXk  dXX0     ;XXX.KXXXXXX, xXX0     :XX0    ,XK000KK                     " + ls +
+                "                 .ccc.   .ccc.    xccccc  ;cco   .occ. ccccccc. :cccdo   ;cc:  oxlccccccco0.                  " + ls +
+                "                 .ccc.   .ccc.   dcc'ccl.  :ccl  dcc.  ccc'     :cccccO. ;cc: lccc      'ccd                  " + ls +
+                "                 .ccclllllccc.  ccc: .ccx  .ccl,dcc'   cccllll. :cc, ccox;cc: :cc:      .ccc.                 " + ls +
+                "                 .ccc     ccc. 'lccl0kcccd  .cclcc,    ccc.     :cc;  .ccocc: .ccco     kcc:                  " + ls +
+                "                 .ccc.   .ccc. dcc.    :ccl  .ccc;     cccd000' :cc;    cccc:   cccxO0kocc,                   " + ls +
+                "                                                                                   :ccc.                      " + ls +
+                "                                                                                                              " + ls +
+                "                                                                                                              " + ls +
+                "                                                                                                              " + ls +
+                "                                                                                                              " + ls +
                 ls + ls);
     }
 }
