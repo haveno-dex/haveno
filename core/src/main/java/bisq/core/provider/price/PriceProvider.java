@@ -17,6 +17,7 @@
 
 package bisq.core.provider.price;
 
+import bisq.core.locale.CurrencyUtil;
 import bisq.core.provider.HttpClientProvider;
 
 import bisq.network.http.HttpClient;
@@ -68,7 +69,20 @@ public class PriceProvider extends HttpClientProvider {
         tsMap.put("poloniexTs", ((Double) map.get("poloniexTs")).longValue());
         tsMap.put("coinmarketcapTs", ((Double) map.get("coinmarketcapTs")).longValue());
 
+        // get btc per xmr price to convert all prices to xmr
+        // TODO (woodser): currently using bisq price feed, switch?
+        Double btcPerXmr = null;
         List<?> list = (ArrayList<?>) map.get("data");
+        for (Object obj : list) {
+            LinkedTreeMap<?, ?> treeMap = (LinkedTreeMap<?, ?>) obj;
+            String currencyCode = (String) treeMap.get("currencyCode");
+            if ("XMR".equalsIgnoreCase(currencyCode)) {
+                btcPerXmr = (Double) treeMap.get("price");
+                break;
+            }
+        }
+
+        final double btcPerXmrFinal = btcPerXmr;
         list.forEach(obj -> {
             try {
                 LinkedTreeMap<?, ?> treeMap = (LinkedTreeMap<?, ?>) obj;
@@ -76,6 +90,14 @@ public class PriceProvider extends HttpClientProvider {
                 double price = (Double) treeMap.get("price");
                 // json uses double for our timestampSec long value...
                 long timestampSec = MathUtils.doubleToLong((Double) treeMap.get("timestampSec"));
+
+                // convert price from btc to xmr
+                boolean isFiat = CurrencyUtil.isFiatCurrency(currencyCode);
+                if (isFiat) price = price * btcPerXmrFinal;
+                else price = price / btcPerXmrFinal;
+
+                // TODO (woodser): remove xmr from list since base currency and add btc, test by doing btc/xmr trade
+
                 marketPriceMap.put(currencyCode, new MarketPrice(currencyCode, price, timestampSec, true));
             } catch (Throwable t) {
                 log.error(t.toString());
