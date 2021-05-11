@@ -35,13 +35,13 @@
 #  the various Bisq seed and desktop nodes that will make up your
 #  localnet:
 #
-#     $ ls -1 bisq-*
-#     bisq-desktop
-#     bisq-monitor
-#     bisq-pricenode
-#     bisq-relay
-#     bisq-seednode
-#     bisq-statsnode
+#     $ ls -1 haveno-*
+#     haveno-desktop
+#     haveno-monitor
+#     haveno-pricenode
+#     haveno-relay
+#     haveno-seednode
+#     haveno-statsnode
 #
 #  - You will see a new '.localnet' directory containing the data dirs
 #  for your regtest Bitcoin and Bisq nodes. Once you've deployed them in
@@ -189,7 +189,7 @@ bitcoind: .localnet
 		-blocknotify='.localnet/bitcoind/blocknotify %s'
 
 seednode: seednode/build
-	./bisq-seednode \
+	./haveno-seednode \
 		--baseCurrencyNetwork=XMR_STAGENET \
 		--useLocalhostForP2P=true \
 		--useDevPrivilegeKeys=true \
@@ -202,7 +202,7 @@ seednode: seednode/build
 		--appName=seednode
 
 seednode2: seednode/build
-	./bisq-seednode \
+	./haveno-seednode \
 		--baseCurrencyNetwork=XMR_STAGENET \
 		--useLocalhostForP2P=true \
 		--useDevPrivilegeKeys=true \
@@ -215,7 +215,7 @@ seednode2: seednode/build
 		--appName=seednode2
 
 mediator: desktop/build
-	./bisq-desktop \
+	./haveno-desktop \
 		--baseCurrencyNetwork=XMR_STAGENET \
 		--useLocalhostForP2P=true \
 		--useDevPrivilegeKeys=true \
@@ -224,7 +224,7 @@ mediator: desktop/build
 		--appName=Mediator
 
 alice: setup
-	./bisq-desktop \
+	./haveno-desktop \
 		--baseCurrencyNetwork=XMR_STAGENET \
 		--useLocalhostForP2P=true \
 		--useDevPrivilegeKeys=true \
@@ -239,7 +239,7 @@ alice: setup
 		--appName=Alice
 
 bob: setup
-	./bisq-desktop \
+	./haveno-desktop \
 		--baseCurrencyNetwork=XMR_STAGENET \
 		--useLocalhostForP2P=true \
 		--useDevPrivilegeKeys=true \

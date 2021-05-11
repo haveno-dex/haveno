@@ -22,7 +22,7 @@ build
 *.java.hsw
 *.~ava
 /bundles
-/bisq-*
+/haveno-*
 /lib
 /xchange
 desktop.ini
