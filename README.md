@@ -58,10 +58,10 @@ See the [FAQ in the wiki](https://github.com/haveno-dex/haveno/wiki/FAQ).
 11. `cd haveno`
 12. `./gradlew build`
 13. Start seed node, arbitrator, Alice, and Bob:
-    1. `./haveno-seednode --baseCurrencyNetwork=XMR_STAGENET --useLocalhostForP2P=true --useDevPrivilegeKeys=true --nodePort=2002 --appName=bisq-XMR_STAGENET_Seed_2002 --daoActivated=false`
-    2. `./haveno-desktop --baseCurrencyNetwork=XMR_STAGENET --useLocalhostForP2P=true --useDevPrivilegeKeys=true --nodePort=4444 --appName=bisq-XMR_STAGENET_arbitrator --daoActivated=false --apiPassword=apitest --apiPort=9998`
-    3. `./haveno-desktop --baseCurrencyNetwork=XMR_STAGENET --useLocalhostForP2P=true --useDevPrivilegeKeys=true --nodePort=5555 --appName=bisq-XMR_STAGENET_Alice --daoActivated=false --apiPassword=apitest --apiPort=9999`
-    4. `./haveno-desktop --baseCurrencyNetwork=XMR_STAGENET --useLocalhostForP2P=true --useDevPrivilegeKeys=true --nodePort=6666 --appName=bisq-XMR_STAGENET_Bob  --daoActivated=false --apiPassword=apitest --apiPort=10000`
+    1. `./haveno-seednode --baseCurrencyNetwork=XMR_STAGENET --useLocalhostForP2P=true --useDevPrivilegeKeys=true --nodePort=2002 --appName=haveno-XMR_STAGENET_Seed_2002 --daoActivated=false`
+    2. `./haveno-desktop --baseCurrencyNetwork=XMR_STAGENET --useLocalhostForP2P=true --useDevPrivilegeKeys=true --nodePort=4444 --appName=haveno-XMR_STAGENET_arbitrator --daoActivated=false --apiPassword=apitest --apiPort=9998`
+    3. `./haveno-desktop --baseCurrencyNetwork=XMR_STAGENET --useLocalhostForP2P=true --useDevPrivilegeKeys=true --nodePort=5555 --appName=haveno-XMR_STAGENET_Alice --daoActivated=false --apiPassword=apitest --apiPort=9999`
+    4. `./haveno-desktop --baseCurrencyNetwork=XMR_STAGENET --useLocalhostForP2P=true --useDevPrivilegeKeys=true --nodePort=6666 --appName=haveno-XMR_STAGENET_Bob  --daoActivated=false --apiPassword=apitest --apiPort=10000`
 14. Arbitrator window > Account > cmd+n to register a new arbitrator
 15. Arbitrator window > Account > cmd+d to register a new mediator
 16. Deposit stagenet XMR to Alice and Bob's Haveno wallets (wallet address printed to terminal)
