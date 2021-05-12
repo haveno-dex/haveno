@@ -26,7 +26,7 @@ import org.bitcoinj.utils.MonetaryFormat;
 import lombok.Getter;
 
 public enum BaseCurrencyNetwork {
-    XMR_MAINNET(new XmrMainNetParams(), "XMR", "MAINNET", "Monero"),
+    XMR_MAINNET(new XmrMainNetParams(), "XMR", "MAINNET", "Monero"), // TODO (woodser): network params are part of bitcoinj and shouldn't be needed. only used to get MonetaryFormat? replace with MonetaryFormat if so
     XMR_TESTNET(new XmrTestNet3Params(), "XMR", "TESTNET", "Monero"),
     XMR_STAGENET(new XmrRegTestParams(), "XMR", "STAGENET", "Monero"),
     BTC_DAO_TESTNET(RegTestParams.get(), "XMR", "STAGENET", "Monero"),
