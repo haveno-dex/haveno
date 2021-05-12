@@ -21,13 +21,14 @@ import org.bitcoinj.core.NetworkParameters;
 import org.bitcoinj.params.MainNetParams;
 import org.bitcoinj.params.RegTestParams;
 import org.bitcoinj.params.TestNet3Params;
+import org.bitcoinj.utils.MonetaryFormat;
 
 import lombok.Getter;
 
 public enum BaseCurrencyNetwork {
-    XMR_MAINNET(MainNetParams.get(), "XMR", "MAINNET", "Monero"),
-    XMR_TESTNET(TestNet3Params.get(), "XMR", "TESTNET", "Monero"),
-    XMR_STAGENET(RegTestParams.get(), "XMR", "STAGENET", "Monero"),
+    XMR_MAINNET(new XmrMainNetParams(), "XMR", "MAINNET", "Monero"),
+    XMR_TESTNET(new XmrTestNet3Params(), "XMR", "TESTNET", "Monero"),
+    XMR_STAGENET(new XmrRegTestParams(), "XMR", "STAGENET", "Monero"),
     BTC_DAO_TESTNET(RegTestParams.get(), "XMR", "STAGENET", "Monero"),
     BTC_DAO_BETANET(MainNetParams.get(), "XMR", "MAINNET", "Monero"), // mainnet test genesis
     BTC_DAO_REGTEST(RegTestParams.get(), "XMR", "STAGENET", "Monero");
@@ -74,5 +75,28 @@ public enum BaseCurrencyNetwork {
 
     public long getDefaultMinFeePerVbyte() {
         return 15;  // 2021-02-22 due to mempool congestion, increased from 2
+    }
+
+    private static final MonetaryFormat XMR_MONETARY_FORMAT = new MonetaryFormat().minDecimals(2).repeatOptionalDecimals(2, 3).noCode().code(0, "XMR");
+
+    private static class XmrMainNetParams extends MainNetParams {
+        @Override
+        public MonetaryFormat getMonetaryFormat() {
+            return XMR_MONETARY_FORMAT;
+        }
+    }
+
+    private static class XmrTestNet3Params extends TestNet3Params {
+        @Override
+        public MonetaryFormat getMonetaryFormat() {
+            return XMR_MONETARY_FORMAT;
+        }
+    }
+
+    private static class XmrRegTestParams extends RegTestParams {
+        @Override
+        public MonetaryFormat getMonetaryFormat() {
+            return XMR_MONETARY_FORMAT;
+        }
     }
 }
