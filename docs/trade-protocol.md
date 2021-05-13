@@ -8,7 +8,7 @@
 - **Taker** - person taking offer
 - **Arbitrator** - person resolving possible disputes
 
-A trader is a both a buyer or seller and a maker or taker for each trade.
+For each trade, a trader is a buyer or seller and a maker or taker.
 
 ## Protocol
 
