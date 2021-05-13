@@ -41,6 +41,8 @@ Temporary email: havenodex@protonmail.com
 
 ## FAQ
 
+[Trade protocol](docs/trade-protocol.md)
+
 See the [FAQ in the wiki](https://github.com/haveno-dex/haveno/wiki/FAQ).
 
 ## Running a local Haveno test network
