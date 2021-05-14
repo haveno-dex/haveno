@@ -1,5 +1,7 @@
 # Haveno Trade Protocol
 
+Described here is the desired protocol for Haveno. Note that the discussion is still ongoing, so this protocol could be changed/updated in the future.
+
 ## Roles
 
 - **Buyer** - person buying XMR
