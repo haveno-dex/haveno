@@ -26,6 +26,10 @@ The project is divided between multiple repositories:
 
 Currently, efforts are focused in developing the core repository ('haveno'). If you wish to help, take a look at the [issue tracker](https://github.com/haveno-dex/haveno/issues) and the [Kanban boards (projects)](https://github.com/haveno-dex/haveno/projects). We run a bounty program to incentivize development, the issues elegible for a reward in XMR [are labelled '💰bounty'](https://github.com/haveno-dex/haveno/labels/%F0%9F%92%B0bounty).
 
+## Trade protocol
+
+See [docs/trade-protocol.md](docs/trade-protocol.md)
+
 ### Bounties
 
 To incentivize development we adopt a simple bounty system. Contributors may be awarded bounties after completing a task (resolving an issue). [More details in the docs](https://github.com/erciccione/haveno/blob/master/docs/bounties.md).
@@ -40,8 +44,6 @@ Haveno is a community-driven project. For it to be succesful it's fundamental to
 Temporary email: havenodex@protonmail.com
 
 ## FAQ
-
-[Trade protocol](docs/trade-protocol.md)
 
 See the [FAQ in the wiki](https://github.com/haveno-dex/haveno/wiki/FAQ).
 
