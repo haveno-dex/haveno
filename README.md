@@ -22,7 +22,7 @@ The project is divided between multiple repositories:
 - **[haveno-ui-poc](https://github.com/haveno-dex/haveno-ui-poc)** - The PoC of the future user interface. Uses gRPC APIs to serve the UI in React.
 - **[haveno-design](https://github.com/haveno-dex/haveno-design)** - Temporary (for now empty) repository for design discussions.
 - **[haveno-meta](https://github.com/haveno-dex/haveno-meta)** - For project-wide discussions and proposals.
-- **[haveno-website](https://github.com/haveno-dex/haveno-website)** - The repository of the future website.
+- **[haveno-site](https://github.com/haveno-dex/haveno-site)** - The repository of the future website.
 
 Currently, efforts are focused in developing the core repository ('haveno'). If you wish to help, take a look at the [issue tracker](https://github.com/haveno-dex/haveno/issues) and the [Kanban boards (projects)](https://github.com/haveno-dex/haveno/projects). We run a bounty program to incentivize development, the issues elegible for a reward in XMR [are labelled '💰bounty'](https://github.com/haveno-dex/haveno/labels/%F0%9F%92%B0bounty).
 
