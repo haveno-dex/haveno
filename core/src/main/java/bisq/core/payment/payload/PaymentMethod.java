@@ -60,10 +60,10 @@ public final class PaymentMethod implements PersistablePayload, Comparable<Payme
     // risk factor so the relation between the risk categories stays the same as with the default values.
     // We must not change those values as it could lead to invalid offers if amount becomes lower then new trade limit.
     // Increasing might be ok, but needs more thought as well...
-    private static final Coin DEFAULT_TRADE_LIMIT_VERY_LOW_RISK = Coin.parseCoin("1");
-    private static final Coin DEFAULT_TRADE_LIMIT_LOW_RISK = Coin.parseCoin("0.5");
-    private static final Coin DEFAULT_TRADE_LIMIT_MID_RISK = Coin.parseCoin("0.25");
-    private static final Coin DEFAULT_TRADE_LIMIT_HIGH_RISK = Coin.parseCoin("0.125");
+    private static final Coin DEFAULT_TRADE_LIMIT_VERY_LOW_RISK = Coin.parseCoin("10");
+    private static final Coin DEFAULT_TRADE_LIMIT_LOW_RISK = Coin.parseCoin("5");
+    private static final Coin DEFAULT_TRADE_LIMIT_MID_RISK = Coin.parseCoin("2.5");
+    private static final Coin DEFAULT_TRADE_LIMIT_HIGH_RISK = Coin.parseCoin("1.25");
 
     public static final String UPHOLD_ID = "UPHOLD";
     public static final String MONEY_BEAM_ID = "MONEY_BEAM";
