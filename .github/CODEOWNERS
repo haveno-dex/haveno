@@ -4,5 +4,6 @@
 # Default 
 *       @woodser
 
-# /docs
-/docs/  @erciccione
+# Documentation
+/docs/  @haveno-dex/core-team
+*.md    @haveno-dex/core-team
