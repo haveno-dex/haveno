@@ -277,13 +277,13 @@ public class WalletsSetup {
         walletConfig.setNumConnectionsForBtc(numConnectionsForBtc);
 
         String checkpointsPath = null;
-        if (params.equals(MainNetParams.get())) {
+        if (params.getId().equals(NetworkParameters.ID_MAINNET)) {
             // Checkpoints are block headers that ship inside our app: for a new user, we pick the last header
             // in the checkpoints file and then download the rest from the network. It makes things much faster.
             // Checkpoint files are made using the BuildCheckpoints tool and usually we have to download the
             // last months worth or more (takes a few seconds).
             checkpointsPath = "/wallet/checkpoints.txt";
-        } else if (params.equals(TestNet3Params.get())) {
+        } else if (params.getId().equals(NetworkParameters.ID_TESTNET)) {
             checkpointsPath = "/wallet/checkpoints.testnet.txt";
         }
         if (checkpointsPath != null) {
@@ -291,7 +291,7 @@ public class WalletsSetup {
         }
 
 
-        if (params == RegTestParams.get()) {
+        if (params.getId().equals(NetworkParameters.ID_REGTEST)) {
             walletConfig.setMinBroadcastConnections(1);
             if (regTestHost == RegTestHost.LOCALHOST) {
                 walletConfig.connectToLocalHost();
