@@ -1227,7 +1227,7 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
                 PaymentMethod.hasChargebackRisk(dataModel.getPaymentAccount().getPaymentMethod(), dataModel.getTradeCurrency().getCode())) {
             Coin checkAmount = dataModel.getMinAmount().get() == null ? dataModel.getAmount().get() : dataModel.getMinAmount().get();
             if (checkAmount != null && !checkAmount.isGreaterThan(OfferRestrictions.TOLERATED_SMALL_TRADE_AMOUNT)) {
-                GUIUtil.showMakeOfferToUnsignedAccountWarning();
+                GUIUtil.showMakeOfferToUnsignedAccountWarning(btcFormatter);
             }
         }
     }

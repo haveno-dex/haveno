@@ -39,6 +39,7 @@ import bisq.core.locale.Res;
 import bisq.core.locale.TradeCurrency;
 import bisq.core.monetary.Price;
 import bisq.core.monetary.Volume;
+import bisq.core.offer.OfferRestrictions;
 import bisq.core.payment.PaymentAccount;
 import bisq.core.payment.PaymentAccountList;
 import bisq.core.payment.payload.PaymentMethod;
@@ -699,18 +700,18 @@ public class GUIUtil {
         return t.cast(parent);
     }
 
-    public static void showTakeOfferFromUnsignedAccountWarning() {
+    public static void showTakeOfferFromUnsignedAccountWarning(CoinFormatter coinFormatter) {
         String key = "confirmTakeOfferFromUnsignedAccount";
-        new Popup().warning(Res.get("payment.takeOfferFromUnsignedAccount.warning"))
+        new Popup().warning(Res.get("payment.takeOfferFromUnsignedAccount.warning", coinFormatter.formatCoinWithCode(OfferRestrictions.TOLERATED_SMALL_TRADE_AMOUNT)))
                 .width(900)
                 .closeButtonText(Res.get("shared.iConfirm"))
                 .dontShowAgainId(key)
                 .show();
     }
 
-    public static void showMakeOfferToUnsignedAccountWarning() {
+    public static void showMakeOfferToUnsignedAccountWarning(CoinFormatter coinFormatter) {
         String key = "confirmMakeOfferToUnsignedAccount";
-        new Popup().warning(Res.get("payment.makeOfferToUnsignedAccount.warning"))
+        new Popup().warning(Res.get("payment.makeOfferToUnsignedAccount.warning", coinFormatter.formatCoinWithCode(OfferRestrictions.TOLERATED_SMALL_TRADE_AMOUNT)))
                 .width(900)
                 .closeButtonText(Res.get("shared.iConfirm"))
                 .dontShowAgainId(key)
