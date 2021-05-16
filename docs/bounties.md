@@ -4,7 +4,7 @@ We use bounties to incentivize development and reward contributors. All issues a
 
 To receive a bounty, you agree to these conditions:
 
-- Your changes must follow the [styling guidelines](contributing.md).
+- Your changes must follow the [styling guidelines](CONTRIBUTING.md).
 - Bounties will be set and awarded at discretion of the Haveno core team.
 - The issues eligible for a bounty are labelled '💰bounty' and have the amount of the bounty specified in the title in this form: `[$200]` if in dollars or `[ɱ20]` if in Monero.
 - The first person who resolves an issue in its entirety will receive the entire amount of the bounty.
