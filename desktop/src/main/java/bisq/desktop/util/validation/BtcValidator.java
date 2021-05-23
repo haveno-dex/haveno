@@ -44,6 +44,7 @@ public class BtcValidator extends NumberValidator {
 
     @Nullable
     @Setter
+    @Getter
     protected Coin maxValue;
 
     @Nullable
