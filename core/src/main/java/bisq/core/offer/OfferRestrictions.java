@@ -36,7 +36,7 @@ public class OfferRestrictions {
         return new Date().after(REQUIRE_UPDATE_DATE);
     }
 
-    public static Coin TOLERATED_SMALL_TRADE_AMOUNT = Coin.parseCoin("0.1");
+    public static Coin TOLERATED_SMALL_TRADE_AMOUNT = Coin.parseCoin("1.0");
 
     static boolean hasOfferMandatoryCapability(Offer offer, Capability mandatoryCapability) {
         Map<String, String> extraDataMap = offer.getOfferPayload().getExtraDataMap();
