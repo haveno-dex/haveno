@@ -14,6 +14,8 @@ Haveno (pronounced ha‧ve‧no) is a private and decentralized way to exchange 
 
 Haveno is the Esperanto word for "Harbor". The project is stewarded by a core Team, currently formed by 2 people: ErCiccione and Woodser. See the [FAQ in the wiki](https://github.com/haveno-dex/haveno/wiki/FAQ) for more information about the project.
 
+Haveno is still work in progress. There are no binaries available at this stage. If you want to test Haveno you have to compile it first (see [Running a local Haveno test network](#running-a-local-haveno-test-network)).
+
 ## Status of the project
 
 At the moment Haveno is only a Proof of Concept. It's already possible to initiate crypto <-> XMR and fiat <-> XMR trades, but the platform still needs a lot of work before being available for public use.
