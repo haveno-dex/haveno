@@ -348,7 +348,7 @@ public class WalletConfig extends AbstractIdleService {
 
             // XMR wallet
             String xmrPrefix = "_XMR";
-            vXmrWalletFile = new File(directory, filePrefix + xmrPrefix); // TODO: *.wallet?
+            vXmrWalletFile = new File(directory, filePrefix + xmrPrefix);
             if (MoneroUtils.walletExists(vXmrWalletFile.getPath())) {
               vXmrWallet = openWallet(new MoneroWalletConfig().setPath(filePrefix + xmrPrefix).setPassword("abctesting123"));
             } else {
