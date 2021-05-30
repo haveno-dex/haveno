@@ -131,7 +131,7 @@ public class WalletsSetup {
     private final Config config;
     private final LocalBitcoinNode localBitcoinNode;
     private final BtcNodes btcNodes;
-    private final String btcWalletFileName;
+    private final String xmrWalletFileName;
     private final int numConnectionsForBtc;
     private final String userAgent;
     private final NetworkParameters params;
@@ -179,7 +179,7 @@ public class WalletsSetup {
         this.socks5DiscoverMode = evaluateMode(socks5DiscoverModeString);
         this.walletDir = walletDir;
 
-        btcWalletFileName = "bisq_" + config.baseCurrencyNetwork.getCurrencyCode() + ".wallet";
+        xmrWalletFileName = "bisq_" + config.baseCurrencyNetwork.getCurrencyCode();
         params = Config.baseCurrencyNetworkParameters();
         PeerGroup.setIgnoreHttpSeeds(true);
     }
@@ -424,7 +424,9 @@ public class WalletsSetup {
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     public void backupWallets() {
-        FileUtil.rollingBackup(walletDir, btcWalletFileName, 20);
+        FileUtil.rollingBackup(walletDir, xmrWalletFileName, 20);
+        FileUtil.rollingBackup(walletDir, xmrWalletFileName + ".keys", 20);
+        FileUtil.rollingBackup(walletDir, xmrWalletFileName + ".address.txt", 20);
         FileUtil.rollingBackup(walletDir, BSQ_WALLET_FILE_NAME, 20);
     }
 
