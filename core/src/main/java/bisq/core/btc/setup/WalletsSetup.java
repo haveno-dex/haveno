@@ -114,14 +114,14 @@ import monero.wallet.MoneroWallet;
 @Slf4j
 public class WalletsSetup {
 
-    public static final String PRE_SEGWIT_WALLET_BACKUP = "pre_segwit_bisq_BTC.wallet.backup";
+    public static final String PRE_SEGWIT_WALLET_BACKUP = "pre_segwit_haveno_BTC.wallet.backup";
 
     @Getter
     public final BooleanProperty walletsSetupFailed = new SimpleBooleanProperty();
 
     private static final long STARTUP_TIMEOUT = 180;
-    private static final String BSQ_WALLET_FILE_NAME = "bisq_BSQ.wallet";
-    private static final String SPV_CHAIN_FILE_NAME = "bisq.spvchain";
+    private static final String BSQ_WALLET_FILE_NAME = "haveno_BSQ.wallet";
+    private static final String SPV_CHAIN_FILE_NAME = "haveno.spvchain";
 
     private final RegTestHost regTestHost;
     private final AddressEntryList addressEntryList;
@@ -179,7 +179,7 @@ public class WalletsSetup {
         this.socks5DiscoverMode = evaluateMode(socks5DiscoverModeString);
         this.walletDir = walletDir;
 
-        xmrWalletFileName = "bisq_" + config.baseCurrencyNetwork.getCurrencyCode();
+        xmrWalletFileName = "haveno_" + config.baseCurrencyNetwork.getCurrencyCode();
         params = Config.baseCurrencyNetworkParameters();
         PeerGroup.setIgnoreHttpSeeds(true);
     }
@@ -210,7 +210,7 @@ public class WalletsSetup {
 
         walletConfig = new WalletConfig(params,
                 walletDir,
-                "bisq") {
+                "haveno") {
             @Override
             protected void onSetupCompleted() {
                 //We are here in the btcj thread Thread[ STARTING,5,main]

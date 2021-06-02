@@ -654,7 +654,7 @@ public class WalletConfig extends AbstractIdleService {
             // Do a backup of the wallet
             File backup = new File(directory, WalletsSetup.PRE_SEGWIT_WALLET_BACKUP);
             try {
-                FileUtil.copyFile(new File(directory, "bisq_BTC.wallet"), backup);
+                FileUtil.copyFile(new File(directory, "haveno_BTC.wallet"), backup);
             } catch (IOException e) {
                 log.error(e.toString(), e);
             }
