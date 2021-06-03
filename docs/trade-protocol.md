@@ -8,26 +8,26 @@ Described here is the desired protocol for Haveno. Note that the discussion is s
 - **Seller** - person selling XMR
 - **Maker** - person making offer
 - **Taker** - person taking offer
-- **Arbitrator** - person resolving possible disputes
+- **Arbitrator** - person resolving potential disputes
 
 For each trade, a trader is a buyer or seller and a maker or taker.
 
 ## Protocol
 
-Haveno will use 2 accounts for trading: a "main account" to cover deposits to multisig and a "trade fee account" to cover trade fees.  To make or take an offer, outputs must be available in each account to cover deposit amount and the trade fee.
-
-1. Maker deposits to main account and trade fee account and waits ~20 minutes for each output to become available.
-2. Maker creates offer which pays the trade fee from the trade fee account and reserves needed outputs in the main account to deposit to multisig.  The offer is available to take immediately.
-3. Taker deposits to main account and trade fee account and waits ~20 minutes for each output to become available.
-4. Taker takes offer which pays trade fee from the trade fee account.
-5. Maker, taker, and arbitrator create 2/3 multisig.
-6. Both traders fund multisig.  Seller sends trade amount + security deposit whereas buyer only sends security deposit.
-7. When both multisig deposits are available, buyer pays seller (e.g. sends ETH) outside of Haveno.
-8. When payment is received, both parties sign to release funds from multisig to complete the trade, or one opens a dispute with the arbitrator to resolve
-
-## What is needed (help wanted)
-
-In order to accomplish the above protocol, functionality needs to be added to monero-wallet-rpc:
-
-- [Ability to freeze and thaw outputs](https://github.com/monero-project/monero/issues/7720)
-- [Ability to get key images or output indices from non-relayed transactions](https://github.com/monero-project/monero/issues/7721)
+1. Maker deposits funds to Haveno wallet and waits ~20 minutes. (optional)
+2. Maker initiates offer. If maker does not have available or pending outputs to cover trade funds, prompt to first deposit to Haveno wallet and wait ~20 minutes.
+3. Maker creates but does not relay "reserve transaction" which pays trade fee and returns multisig deposit amount to maker. Maker freezes input funds and submits offer to arbitrator to sign.
+4. Arbitrator verifies maker reserve transaction and signs offer. If maker breaks protocol, arbitrator can punish maker by relaying reserve transaction to pay trade fee (unless maker spends reserved inputs which incurs mining fee).
+5. Offer is posted and available to be taken immediately.
+6. Taker deposits funds to Haveno wallet and waits ~20 minutes. (optional)
+7. Taker verifies offer's arbitrator signature and initiates taking offer. If taker does not have available or pending outputs to cover trade funds, prompt to first deposit to Haveno wallet and wait ~20 minutes.
+8. Taker creates but does not relay "reserve transaction" which pays trade fee and returns multisig deposit amount to taker. Taker freezes input funds and submits request to take offer to arbitrator.
+9. Arbitrator verifies taker reserve transaction. If taker breaks protocol, arbitrator can punish taker by relaying reserve transaction to pay trade fee (unless taker spends reserved inputs which incurs mining fee).
+10. Maker, taker, and arbitrator create 2/3 multisig wallet.
+11. Maker and taker create but do not relay "deposit transactions" to pay trade fees and send deposit amounts to multisig. Buyer deposits trade amount + security deposit whereas seller only deposits security deposit.
+12. Maker and taker sign contract with trade terms and ids of deposit trasactions.
+13. Maker and taker submit signed contract and deposit transactions to arbitrator.
+14. Arbitrator verifies contract and deposit transactions then relays deposit transactions to commit funds to multisig.
+15. Buyer pays seller (e.g. sends ETH) outside of Haveno after at least a few confirmations.
+16. When the multisig deposits are available (after ~20 minutes) and payment is acknowledged, maker and taker sign to release funds from multisig to payout addresses, or one trader opens a dispute with the arbitrator.
+17. Arbitrator resolves dispute if applicable.
