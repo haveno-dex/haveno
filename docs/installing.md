@@ -56,7 +56,7 @@ Haveno still relies on Bitcoin for its infrastructure. We will remove it soon. I
 
 Now that you have both Bitcoin and Monero running, it's time to spin up your testing instances. You'll need to open 4 terminal windows: 1 for the seed node, 1 for the arbitrator, 1 for Alice (trader 1) and 1 for Bob (trader 2).
 
-It could be useful to rename the terminal to have a better overview of what terminal belongs to whom (on Ubuntu: echo -en "\033]0;NEW_TITLE\a").
+It could be useful to rename the terminal to have a better overview of what terminal belongs to whom (on Ubuntu: `echo -en "\033]0;NEW_TITLE\a"`).
 
 1. Run the seed node in one terminal:
 
@@ -93,7 +93,7 @@ Make sure to register arbitrator and mediator. Without them it's not possible to
 
 Alice and Bob's receiving address is printed to their terminal on startup.
 
-Mining is the recommended method to receive new stagenet coins. The difficulty is locked to 10, so mining would be very fast. Go to your monerod instance and run `start_mining ADDRESS 1`. Monerod will start mining stagenet coins on your device using one thread. Replace `ADDRESS` with the address of Alice first, and then Bob's.
+Mining is the recommended method to receive new stagenet coins. The difficulty is locked to 10 so mining will be very fast. Go to your monerod instance and run `start_mining ADDRESS 1`. Monerod will start mining stagenet coins on your device using one thread. Replace `ADDRESS` with the address of Alice first, and then Bob's.
 
 Alternatively, you can contact ErCiccione on Matrix (`@ErCiccione:haveno.network`) and give him a stagenet address.
 
