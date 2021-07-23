@@ -321,6 +321,11 @@ configure(project(':core')) {
             exclude(module: 'base64')
             exclude(module: 'httpcore-nio')
         }
+        compile "com.fasterxml.jackson.core:jackson-core:$jacksonVersion"
+        compile "com.fasterxml.jackson.core:jackson-annotations:$jacksonVersion"
+        compile("com.fasterxml.jackson.core:jackson-databind:$jacksonVersion") {
+            exclude(module: 'jackson-annotations')
+        }
         compile("io.github.monero-ecosystem:monero-java:$moneroJavaVersion") {
             exclude(module: 'jackson-core')
             exclude(module: 'jackson-annotations')
