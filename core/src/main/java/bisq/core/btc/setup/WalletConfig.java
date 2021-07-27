@@ -130,7 +130,7 @@ public class WalletConfig extends AbstractIdleService {
     private static final String MONERO_DAEMON_USERNAME = "superuser";
     private static final String MONERO_DAEMON_PASSWORD = "abctesting123";
     private static final MoneroWalletRpcManager MONERO_WALLET_RPC_MANAGER = new MoneroWalletRpcManager();
-    private static final String MONERO_WALLET_RPC_PATH = System.getProperty("user.dir") + "/monero-wallet-rpc"; // current working directory
+    private static final String MONERO_WALLET_RPC_PATH = System.getProperty("user.dir") + File.separator + ".localnet" + File.separator + "monero-wallet-rpc"; // use wallet rpc in .localnet
     private static final String MONERO_WALLET_RPC_USERNAME = "rpc_user";
     private static final String MONERO_WALLET_RPC_PASSWORD = "abc123";
     private static final long MONERO_WALLET_SYNC_RATE = 5000l;
