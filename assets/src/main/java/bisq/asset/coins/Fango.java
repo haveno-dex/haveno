@@ -19,12 +19,12 @@ package bisq.asset.coins;
 
 import bisq.asset.AltCoinAccountDisclaimer;
 import bisq.asset.Coin;
-import bisq.asset.RegexAddressValidator;
+import bisq.asset.CryptoNoteAddressValidator;
 
-@AltCoinAccountDisclaimer("account.altcoin.popup.drgl.msg")
-public class Dragonglass extends Coin {
+@AltCoinAccountDisclaimer("account.altcoin.popup.xfg.msg")
+public class Fango extends Coin {
 
-    public Dragonglass() {
-        super("Dragonglass", "DRGL", new RegexAddressValidator("^(dRGL)[1-9A-HJ-NP-Za-km-z]{94}$"));
+    public Fango() {
+        super("Fango", "XFG", new CryptoNoteAddressValidator(false, 0xc20d5e6));
     }
 }
