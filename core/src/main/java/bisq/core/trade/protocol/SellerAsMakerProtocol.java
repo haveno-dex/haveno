@@ -21,21 +21,23 @@ package bisq.core.trade.protocol;
 import bisq.core.trade.SellerAsMakerTrade;
 import bisq.core.trade.Trade;
 import bisq.core.trade.messages.CounterCurrencyTransferStartedMessage;
+import bisq.core.trade.messages.DepositResponse;
 import bisq.core.trade.messages.DepositTxMessage;
+import bisq.core.trade.messages.InitMultisigRequest;
 import bisq.core.trade.messages.InitTradeRequest;
-import bisq.core.trade.messages.MakerReadyToFundMultisigRequest;
+import bisq.core.trade.messages.PaymentAccountPayloadRequest;
+import bisq.core.trade.messages.SignContractRequest;
+import bisq.core.trade.messages.SignContractResponse;
 import bisq.core.trade.messages.TradeMessage;
-import bisq.core.trade.protocol.tasks.ApplyFilter;
+import bisq.core.trade.protocol.tasks.ProcessDepositResponse;
+import bisq.core.trade.protocol.tasks.ProcessInitMultisigRequest;
 import bisq.core.trade.protocol.tasks.ProcessInitTradeRequest;
+import bisq.core.trade.protocol.tasks.ProcessPaymentAccountPayloadRequest;
+import bisq.core.trade.protocol.tasks.ProcessSignContractRequest;
+import bisq.core.trade.protocol.tasks.ProcessSignContractResponse;
+import bisq.core.trade.protocol.tasks.SendSignContractRequestAfterMultisig;
 import bisq.core.trade.protocol.tasks.TradeTask;
-import bisq.core.trade.protocol.tasks.VerifyPeersAccountAgeWitness;
-import bisq.core.trade.protocol.tasks.maker.MakerCreateAndPublishDepositTx;
-import bisq.core.trade.protocol.tasks.maker.MakerCreateAndSignContract;
 import bisq.core.trade.protocol.tasks.maker.MakerRemovesOpenOffer;
-import bisq.core.trade.protocol.tasks.maker.MakerSendsInitTradeRequest;
-import bisq.core.trade.protocol.tasks.maker.MakerSendsReadyToFundMultisigResponse;
-import bisq.core.trade.protocol.tasks.maker.MakerSetupDepositTxsListener;
-import bisq.core.trade.protocol.tasks.maker.MakerVerifyTakerDepositTx;
 import bisq.core.trade.protocol.tasks.maker.MakerVerifyTakerFeePayment;
 import bisq.core.trade.protocol.tasks.seller.SellerCreatesDelayedPayoutTx;
 import bisq.core.trade.protocol.tasks.seller.SellerSendDelayedPayoutTxSignatureRequest;
@@ -43,7 +45,6 @@ import bisq.core.trade.protocol.tasks.seller.SellerSignsDelayedPayoutTx;
 import bisq.core.trade.protocol.tasks.seller_as_maker.SellerAsMakerFinalizesDepositTx;
 import bisq.core.trade.protocol.tasks.seller_as_maker.SellerAsMakerProcessDepositTxMessage;
 import bisq.core.util.Validator;
-
 import bisq.network.p2p.NodeAddress;
 
 import bisq.common.handlers.ErrorMessageHandler;
@@ -127,8 +128,10 @@ public class SellerAsMakerProtocol extends SellerProtocol implements MakerProtoc
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
-    // MakerProtocol  TODO (woodser): these methods are duplicated with SellerAsMakerProtocol due to single inheritance
+    // MakerProtocol
     ///////////////////////////////////////////////////////////////////////////////////////////
+    
+    // TODO (woodser): these methods are duplicated with BuyerAsMakerProtocol due to single inheritance
 
     @Override
     public void handleInitTradeRequest(InitTradeRequest message,
@@ -139,74 +142,130 @@ public class SellerAsMakerProtocol extends SellerProtocol implements MakerProtoc
             .from(peer))
             .setup(tasks(
                     ProcessInitTradeRequest.class,
-                    ApplyFilter.class,
-                    VerifyPeersAccountAgeWitness.class,
-                    MakerVerifyTakerFeePayment.class,
-                    MakerSendsInitTradeRequest.class, // TODO (woodser): contact arbitrator here?  probably later when ready to create multisig
-                    MakerRemovesOpenOffer.class,      // TODO (woodser): remove offer after taker pays trade fee or it needs to be reserved until deposit tx
-                    MakerSendsReadyToFundMultisigResponse.class).
+                    //ApplyFilter.class, // TODO (woodser): these checks apply when maker signs availability request, but not here
+                    //VerifyPeersAccountAgeWitness.class, // TODO (woodser): these checks apply after in multisig, means if rejected need to reimburse other's fee
+                    //MakerSendsInitTradeRequestIfUnreserved.class, // TODO (woodser): implement this
+                    MakerRemovesOpenOffer.class).
                     using(new TradeTaskRunner(trade,
                             () -> {
-                              stopTimeout();
-                              handleTaskRunnerSuccess(message);
+                              handleTaskRunnerSuccess(peer, message);
                             },
                             errorMessage -> {
                                 errorMessageHandler.handleErrorMessage(errorMessage);
-                                handleTaskRunnerFault(message, errorMessage);
+                                handleTaskRunnerFault(peer, message, errorMessage);
                             }))
                     .withTimeout(30))
             .executeTasks();
     }
-
+    
     @Override
-    public void handleMakerReadyToFundMultisigRequest(MakerReadyToFundMultisigRequest message,
-                                       NodeAddress sender,
-                                       ErrorMessageHandler errorMessageHandler) {
-      Validator.checkTradeId(processModel.getOfferId(), message);
-      processModel.setTradeMessage(message);
-      processModel.setTempTradingPeerNodeAddress(sender);
-
-      expect(anyPhase(Trade.Phase.INIT, Trade.Phase.TAKER_FEE_PUBLISHED)
+    public void handleInitMultisigRequest(InitMultisigRequest request, NodeAddress sender, ErrorMessageHandler errorMessageHandler) {
+      System.out.println("BuyerAsMakerProtocol.handleInitMultisigRequest()");
+      Validator.checkTradeId(processModel.getOfferId(), request);
+      processModel.setTradeMessage(request); // TODO (woodser): synchronize access since concurrent requests processed
+      expect(anyPhase(Trade.Phase.INIT)
+          .with(request)
+          .from(sender))
+          .setup(tasks(
+                  ProcessInitMultisigRequest.class,
+                  SendSignContractRequestAfterMultisig.class)
+              .using(new TradeTaskRunner(trade,
+                  () -> {
+                    handleTaskRunnerSuccess(sender, request);
+                  },
+                  errorMessage -> {
+                      errorMessageHandler.handleErrorMessage(errorMessage);
+                      handleTaskRunnerFault(sender, request, errorMessage);
+                  })))
+          .executeTasks();
+    }
+    
+    @Override
+    public void handleSignContractRequest(SignContractRequest message, NodeAddress sender, ErrorMessageHandler errorMessageHandler) {
+        System.out.println("BuyerAsMakerProtocol.handleSignContractRequest()");
+        Validator.checkTradeId(processModel.getOfferId(), message);
+        processModel.setTradeMessage(message);
+        expect(anyPhase(Trade.Phase.INIT)
             .with(message)
             .from(sender))
             .setup(tasks(
-                    MakerSendsReadyToFundMultisigResponse.class).
-                    using(new TradeTaskRunner(trade,
-                            () -> {
-                              stopTimeout();
-                              handleTaskRunnerSuccess(message);
-                            },
-                            errorMessage -> {
-                                errorMessageHandler.handleErrorMessage(errorMessage);
-                                handleTaskRunnerFault(message, errorMessage);
-                            }))
-                    .withTimeout(30))
+                    // TODO (woodser): validate request
+                    ProcessSignContractRequest.class)
+                .using(new TradeTaskRunner(trade,
+                    () -> {
+                      handleTaskRunnerSuccess(sender, message);
+                    },
+                    errorMessage -> {
+                        errorMessageHandler.handleErrorMessage(errorMessage);
+                        handleTaskRunnerFault(sender, message, errorMessage);
+                    })))
             .executeTasks();
     }
 
     @Override
-    public void handleDepositTxMessage(DepositTxMessage message,
-                                      NodeAddress sender,
-                                      ErrorMessageHandler errorMessageHandler) {
-      Validator.checkTradeId(processModel.getOfferId(), message);
-      processModel.setTradeMessage(message);
-      processModel.setTempTradingPeerNodeAddress(sender);
-
-      // TODO (woodser): MakerProcessesTakerDepositTxMessage.java which verifies deposit amount = fee + security deposit (+ trade amount), or that deposit is exact amount
-      expect(anyPhase(Trade.Phase.INIT, Trade.Phase.TAKER_FEE_PUBLISHED)
+    public void handleSignContractResponse(SignContractResponse message, NodeAddress sender, ErrorMessageHandler errorMessageHandler) {
+        System.out.println("BuyerAsMakerProtocol.handleSignContractResponse()");
+        Validator.checkTradeId(processModel.getOfferId(), message);
+        processModel.setTradeMessage(message); // TODO (woodser): synchronize access since concurrent requests processed
+        expect(anyPhase(Trade.Phase.INIT)
             .with(message)
             .from(sender))
             .setup(tasks(
-                    MakerVerifyTakerDepositTx.class,
-                    MakerCreateAndSignContract.class,
-                    MakerCreateAndPublishDepositTx.class,
-                    MakerSetupDepositTxsListener.class).
-                    using(new TradeTaskRunner(trade,
-                            () -> handleTaskRunnerSuccess(message),
-                            errorMessage -> {
-                                errorMessageHandler.handleErrorMessage(errorMessage);
-                                handleTaskRunnerFault(message, errorMessage);
-                            })))
+                    // TODO (woodser): validate request
+                    ProcessSignContractResponse.class)
+                .using(new TradeTaskRunner(trade,
+                    () -> {
+                      handleTaskRunnerSuccess(sender, message);
+                    },
+                    errorMessage -> {
+                        errorMessageHandler.handleErrorMessage(errorMessage);
+                        handleTaskRunnerFault(sender, message, errorMessage);
+                    })))
+            .executeTasks();
+    }
+    
+    @Override
+    public void handleDepositResponse(DepositResponse response, NodeAddress sender, ErrorMessageHandler errorMessageHandler) {
+        System.out.println("BuyerAsMakerProtocol.handleDepositResponse()");
+        Validator.checkTradeId(processModel.getOfferId(), response);
+        processModel.setTradeMessage(response);
+        expect(anyPhase(Trade.Phase.INIT, Trade.Phase.DEPOSIT_PUBLISHED)
+            .with(response)
+            .from(sender)) // TODO (woodser): ensure this asserts sender == response.getSenderNodeAddress()
+            .setup(tasks(
+                    // TODO (woodser): validate request
+                    ProcessDepositResponse.class)
+                .using(new TradeTaskRunner(trade,
+                    () -> {
+                      handleTaskRunnerSuccess(sender, response);
+                    },
+                    errorMessage -> {
+                        errorMessageHandler.handleErrorMessage(errorMessage);
+                        handleTaskRunnerFault(sender, response, errorMessage);
+                    })))
+            .executeTasks();
+    }
+    
+    @Override
+    public void handlePaymentAccountPayloadRequest(PaymentAccountPayloadRequest request, NodeAddress sender, ErrorMessageHandler errorMessageHandler) {
+        System.out.println("BuyerAsMakerProtocol.handlePaymentAccountPayloadRequest()");
+        Validator.checkTradeId(processModel.getOfferId(), request);
+        processModel.setTradeMessage(request);
+        expect(anyPhase(Trade.Phase.INIT, Trade.Phase.DEPOSIT_PUBLISHED)
+            .with(request)
+            .from(sender)) // TODO (woodser): ensure this asserts sender == response.getSenderNodeAddress()
+            .setup(tasks(
+                    // TODO (woodser): validate request
+                    ProcessPaymentAccountPayloadRequest.class)
+                .using(new TradeTaskRunner(trade,
+                    () -> {
+                        stopTimeout();
+                        handleTaskRunnerSuccess(sender, request);
+                    },
+                    errorMessage -> {
+                        errorMessageHandler.handleErrorMessage(errorMessage);
+                        handleTaskRunnerFault(sender, request, errorMessage);
+                    })))
             .executeTasks();
     }
 }

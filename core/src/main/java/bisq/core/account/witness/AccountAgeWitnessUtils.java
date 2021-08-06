@@ -131,14 +131,14 @@ public class AccountAgeWitnessUtils {
         // Log to find why accounts sometimes don't get signed as expected
         // TODO: Demote to debug or remove once account signing is working ok
         checkNotNull(trade.getContract());
-        checkNotNull(trade.getContract().getBuyerPaymentAccountPayload());
+        checkNotNull(trade.getBuyer().getPaymentAccountPayload());
         boolean checkingSignTrade = true;
         boolean isBuyer = trade.getContract().isMyRoleBuyer(keyRing.getPubKeyRing());
         AccountAgeWitness witness = myWitness;
         if (witness == null) {
             witness = isBuyer ?
-                    accountAgeWitnessService.getMyWitness(trade.getContract().getBuyerPaymentAccountPayload()) :
-                    accountAgeWitnessService.getMyWitness(trade.getContract().getSellerPaymentAccountPayload());
+                    accountAgeWitnessService.getMyWitness(trade.getBuyer().getPaymentAccountPayload()) :
+                    accountAgeWitnessService.getMyWitness(trade.getSeller().getPaymentAccountPayload());
             checkingSignTrade = false;
         }
         boolean isSignWitnessTrade = accountAgeWitnessService.accountIsSigner(witness) &&
@@ -157,9 +157,9 @@ public class AccountAgeWitnessUtils {
                         "\nisSignWitnessTrade: {}",
                 trade.getId(),
                 isBuyer,
-                getWitnessDebugLog(trade.getContract().getBuyerPaymentAccountPayload(),
+                getWitnessDebugLog(trade.getBuyer().getPaymentAccountPayload(),
                         trade.getContract().getBuyerPubKeyRing()),
-                getWitnessDebugLog(trade.getContract().getSellerPaymentAccountPayload(),
+                getWitnessDebugLog(trade.getSeller().getPaymentAccountPayload(),
                         trade.getContract().getSellerPubKeyRing()),
                 checkingSignTrade, // Following cases added to use same logic as in seller signing check
                 accountAgeWitnessService.accountIsSigner(witness),

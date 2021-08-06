@@ -180,8 +180,8 @@ public class TradeDetailsWindow extends Overlay<TradeDetailsWindow> {
         if (contract != null) {
             rows++;
 
-            buyerPaymentAccountPayload = contract.getBuyerPaymentAccountPayload();
-            sellerPaymentAccountPayload = contract.getSellerPaymentAccountPayload();
+            buyerPaymentAccountPayload = trade.getBuyer().getPaymentAccountPayload();
+            sellerPaymentAccountPayload = trade.getSeller().getPaymentAccountPayload();
             if (buyerPaymentAccountPayload != null)
                 rows++;
 
@@ -235,11 +235,10 @@ public class TradeDetailsWindow extends Overlay<TradeDetailsWindow> {
         addConfirmationLabelLabel(gridPane, ++rowIndex, Res.get("tradeDetailsWindow.txFee"), txFee);
 
         NodeAddress arbitratorNodeAddress = trade.getArbitratorNodeAddress();
-        NodeAddress mediatorNodeAddress = trade.getMediatorNodeAddress();
-        if (arbitratorNodeAddress != null && mediatorNodeAddress != null) {
+        if (arbitratorNodeAddress != null) {
             addConfirmationLabelTextFieldWithCopyIcon(gridPane, ++rowIndex,
                     Res.get("tradeDetailsWindow.agentAddresses"),
-                    arbitratorNodeAddress.getFullAddress() + " / " + mediatorNodeAddress.getFullAddress());
+                    arbitratorNodeAddress.getFullAddress());
         }
 
         if (trade.getTradingPeerNodeAddress() != null)

@@ -21,13 +21,12 @@ import bisq.core.locale.CurrencyUtil;
 import bisq.core.monetary.Price;
 import bisq.core.monetary.Volume;
 import bisq.core.offer.OfferPayload;
-import bisq.core.payment.payload.PaymentAccountPayload;
 import bisq.core.payment.payload.PaymentMethod;
 import bisq.core.proto.CoreProtoResolver;
 import bisq.core.util.VolumeUtil;
 
 import bisq.network.p2p.NodeAddress;
-
+import com.google.protobuf.ByteString;
 import bisq.common.crypto.PubKeyRing;
 import bisq.common.proto.network.NetworkPayload;
 import bisq.common.util.JsonExclude;
@@ -56,14 +55,18 @@ public final class Contract implements NetworkPayload {
     private final boolean isBuyerMakerAndSellerTaker;
     private final String makerAccountId;
     private final String takerAccountId;
-    private final PaymentAccountPayload makerPaymentAccountPayload;
-    private final PaymentAccountPayload takerPaymentAccountPayload;
+    private final String makerPaymentMethodId;
+    private final String takerPaymentMethodId;
+    private final byte[] makerPaymentAccountPayloadHash;
+    private final byte[] takerPaymentAccountPayloadHash;
     @JsonExclude
     private final PubKeyRing makerPubKeyRing;
     @JsonExclude
     private final PubKeyRing takerPubKeyRing;
     private final String makerPayoutAddressString;
     private final String takerPayoutAddressString;
+    private final String makerDepositTxHash;
+    private final String takerDepositTxHash;
 
     // Added in v1.2.0
     private long lockTime;
@@ -77,13 +80,17 @@ public final class Contract implements NetworkPayload {
                     boolean isBuyerMakerAndSellerTaker,
                     String makerAccountId,
                     String takerAccountId,
-                    PaymentAccountPayload makerPaymentAccountPayload,
-                    PaymentAccountPayload takerPaymentAccountPayload,
+                    String makerPaymentMethodId,
+                    String takerPaymentMethodId,
+                    byte[] makerPaymentAccountPayloadHash,
+                    byte[] takerPaymentAccountPayloadHash,
                     PubKeyRing makerPubKeyRing,
                     PubKeyRing takerPubKeyRing,
                     String makerPayoutAddressString,
                     String takerPayoutAddressString,
-                    long lockTime) {
+                    long lockTime,
+                    String makerDepositTxHash,
+                    String takerDepositTxHash) {
         this.offerPayload = offerPayload;
         this.tradeAmount = tradeAmount;
         this.tradePrice = tradePrice;
@@ -93,16 +100,18 @@ public final class Contract implements NetworkPayload {
         this.isBuyerMakerAndSellerTaker = isBuyerMakerAndSellerTaker;
         this.makerAccountId = makerAccountId;
         this.takerAccountId = takerAccountId;
-        this.makerPaymentAccountPayload = makerPaymentAccountPayload;
-        this.takerPaymentAccountPayload = takerPaymentAccountPayload;
+        this.makerPaymentMethodId = makerPaymentMethodId;
+        this.takerPaymentMethodId = takerPaymentMethodId;
+        this.makerPaymentAccountPayloadHash = makerPaymentAccountPayloadHash;
+        this.takerPaymentAccountPayloadHash = takerPaymentAccountPayloadHash;
         this.makerPubKeyRing = makerPubKeyRing;
         this.takerPubKeyRing = takerPubKeyRing;
         this.makerPayoutAddressString = makerPayoutAddressString;
         this.takerPayoutAddressString = takerPayoutAddressString;
         this.lockTime = lockTime;
+        this.makerDepositTxHash = makerDepositTxHash;
+        this.takerDepositTxHash = takerDepositTxHash;
 
-        String makerPaymentMethodId = makerPaymentAccountPayload.getPaymentMethodId();
-        String takerPaymentMethodId = takerPaymentAccountPayload.getPaymentMethodId();
         // For SEPA offers we accept also SEPA_INSTANT takers
         // Otherwise both ids need to be the same
         boolean result = (makerPaymentMethodId.equals(PaymentMethod.SEPA_ID) && takerPaymentMethodId.equals(PaymentMethod.SEPA_INSTANT_ID)) ||
@@ -127,13 +136,17 @@ public final class Contract implements NetworkPayload {
                 proto.getIsBuyerMakerAndSellerTaker(),
                 proto.getMakerAccountId(),
                 proto.getTakerAccountId(),
-                coreProtoResolver.fromProto(proto.getMakerPaymentAccountPayload()),
-                coreProtoResolver.fromProto(proto.getTakerPaymentAccountPayload()),
+                proto.getMakerPaymentMethodId(),
+                proto.getTakerPaymentMethodId(),
+                proto.getMakerPaymentAccountPayloadHash().toByteArray(),
+                proto.getTakerPaymentAccountPayloadHash().toByteArray(),
                 PubKeyRing.fromProto(proto.getMakerPubKeyRing()),
                 PubKeyRing.fromProto(proto.getTakerPubKeyRing()),
                 proto.getMakerPayoutAddressString(),
                 proto.getTakerPayoutAddressString(),
-                proto.getLockTime());
+                proto.getLockTime(),
+                proto.getMakerDepositTxHash(),
+                proto.getTakerDepositTxHash());
     }
 
     @Override
@@ -148,13 +161,17 @@ public final class Contract implements NetworkPayload {
                 .setIsBuyerMakerAndSellerTaker(isBuyerMakerAndSellerTaker)
                 .setMakerAccountId(makerAccountId)
                 .setTakerAccountId(takerAccountId)
-                .setMakerPaymentAccountPayload((protobuf.PaymentAccountPayload) makerPaymentAccountPayload.toProtoMessage())
-                .setTakerPaymentAccountPayload((protobuf.PaymentAccountPayload) takerPaymentAccountPayload.toProtoMessage())
+                .setMakerPaymentMethodId(makerPaymentMethodId)
+                .setTakerPaymentMethodId(takerPaymentMethodId)
+                .setMakerPaymentAccountPayloadHash(ByteString.copyFrom(makerPaymentAccountPayloadHash))
+                .setTakerPaymentAccountPayloadHash(ByteString.copyFrom(takerPaymentAccountPayloadHash))
                 .setMakerPubKeyRing(makerPubKeyRing.toProtoMessage())
                 .setTakerPubKeyRing(takerPubKeyRing.toProtoMessage())
                 .setMakerPayoutAddressString(makerPayoutAddressString)
                 .setTakerPayoutAddressString(takerPayoutAddressString)
                 .setLockTime(lockTime)
+                .setMakerDepositTxHash(makerDepositTxHash)
+                .setTakerDepositTxHash(takerDepositTxHash)
                 .build();
     }
 
@@ -179,16 +196,16 @@ public final class Contract implements NetworkPayload {
         return isBuyerMakerAndSellerTaker ? takerPubKeyRing : makerPubKeyRing;
     }
 
-    public PaymentAccountPayload getBuyerPaymentAccountPayload() {
-        return isBuyerMakerAndSellerTaker ? makerPaymentAccountPayload : takerPaymentAccountPayload;
+    public byte[] getBuyerPaymentAccountPayloadHash() {
+        return isBuyerMakerAndSellerTaker ? makerPaymentAccountPayloadHash : takerPaymentAccountPayloadHash;
     }
 
-    public PaymentAccountPayload getSellerPaymentAccountPayload() {
-        return isBuyerMakerAndSellerTaker ? takerPaymentAccountPayload : makerPaymentAccountPayload;
+    public byte[] getSellerPaymentAccountPayloadHash() {
+        return isBuyerMakerAndSellerTaker ? takerPaymentAccountPayloadHash : makerPaymentAccountPayloadHash;
     }
-
+    
     public String getPaymentMethodId() {
-        return makerPaymentAccountPayload.getPaymentMethodId();
+        return makerPaymentMethodId;
     }
 
     public Coin getTradeAmount() {
@@ -270,13 +287,17 @@ public final class Contract implements NetworkPayload {
                 ",\n     isBuyerMakerAndSellerTaker=" + isBuyerMakerAndSellerTaker +
                 ",\n     makerAccountId='" + makerAccountId + '\'' +
                 ",\n     takerAccountId='" + takerAccountId + '\'' +
-                ",\n     makerPaymentAccountPayload=" + makerPaymentAccountPayload +
-                ",\n     takerPaymentAccountPayload=" + takerPaymentAccountPayload +
+                ",\n     makerPaymentMethodId='" + makerPaymentMethodId + '\'' +
+                ",\n     takerPaymentMethodId='" + takerPaymentMethodId + '\'' +
+                ",\n     makerPaymentAccountPayloadHash=" + makerPaymentAccountPayloadHash +
+                ",\n     takerPaymentAccountPayloadHash=" + takerPaymentAccountPayloadHash +
                 ",\n     makerPubKeyRing=" + makerPubKeyRing +
                 ",\n     takerPubKeyRing=" + takerPubKeyRing +
                 ",\n     makerPayoutAddressString='" + makerPayoutAddressString + '\'' +
                 ",\n     takerPayoutAddressString='" + takerPayoutAddressString + '\'' +
                 ",\n     lockTime=" + lockTime +
+                ",\n     makerDepositTxHash='" + makerDepositTxHash + '\'' +
+                ",\n     takerDepositTxHash='" + takerDepositTxHash + '\'' +
                 "\n}";
     }
 }

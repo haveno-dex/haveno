@@ -22,11 +22,10 @@ import bisq.core.trade.Trade;
 import bisq.core.trade.TradeManager;
 import bisq.core.trade.messages.CounterCurrencyTransferStartedMessage;
 import bisq.core.trade.messages.DepositTxAndDelayedPayoutTxMessage;
-import bisq.core.trade.messages.DepositTxMessage;
-import bisq.core.trade.messages.InitMultisigMessage;
+import bisq.core.trade.messages.InitMultisigRequest;
+import bisq.core.trade.messages.SignContractRequest;
 import bisq.core.trade.messages.TradeMessage;
 import bisq.core.trade.messages.UpdateMultisigRequest;
-import bisq.core.trade.protocol.tasks.ProcessInitMultisigMessage;
 import bisq.core.trade.protocol.tasks.ProcessUpdateMultisigRequest;
 import bisq.core.util.Validator;
 
@@ -70,7 +69,6 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
     public TradeProtocol(Trade trade) {
         this.trade = trade;
         this.processModel = trade.getProcessModel();
-        this.processModel.setTrade(trade);  // TODO (woodser): added to explicitly set trade circular loop, keep?
     }
 
 
@@ -128,12 +126,14 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
         if (networkEnvelope instanceof TradeMessage) {
             onTradeMessage((TradeMessage) networkEnvelope, peer);
 
+            // notify trade listeners
             // TODO (woodser): better way to register message notifications for trade?
             if (((TradeMessage) networkEnvelope).getTradeId().equals(processModel.getOfferId())) {
               trade.onVerifiedTradeMessage((TradeMessage) networkEnvelope, peer);
             }
         } else if (networkEnvelope instanceof AckMessage) {
             onAckMessage((AckMessage) networkEnvelope, peer);
+            trade.onAckMessage((AckMessage) networkEnvelope, peer); // notify trade listeners
         }
     }
 
@@ -205,28 +205,8 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     protected abstract void onTradeMessage(TradeMessage message, NodeAddress peer);
-
-    public void handleMultisigMessage(InitMultisigMessage message, NodeAddress peer, ErrorMessageHandler errorMessageHandler) {
-      Validator.checkTradeId(processModel.getOfferId(), message);
-      processModel.setTradeMessage(message);
-
-      TradeTaskRunner taskRunner = new TradeTaskRunner(trade,
-              () -> {
-                stopTimeout();
-                handleTaskRunnerSuccess(message, "handleMultisigMessage");
-              },
-              errorMessage -> {
-                  errorMessageHandler.handleErrorMessage(errorMessage);
-                  handleTaskRunnerFault(message, errorMessage);
-              });
-      taskRunner.addTasks(
-              ProcessInitMultisigMessage.class
-      );
-      startTimeout(60); // TODO (woodser): what timeout to use?  don't hardcode
-      taskRunner.run();
-    }
-
-    public abstract void handleDepositTxMessage(DepositTxMessage message, NodeAddress taker, ErrorMessageHandler errorMessageHandler);
+    public abstract void handleInitMultisigRequest(InitMultisigRequest request, NodeAddress peer, ErrorMessageHandler errorMessageHandler);
+    public abstract void handleSignContractRequest(SignContractRequest request, NodeAddress peer, ErrorMessageHandler errorMessageHandler);
 
     // TODO (woodser): update to use fluent for consistency
     public void handleUpdateMultisigRequest(UpdateMultisigRequest message, NodeAddress peer, ErrorMessageHandler errorMessageHandler) {
@@ -236,11 +216,11 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
       TradeTaskRunner taskRunner = new TradeTaskRunner(trade,
               () -> {
                 stopTimeout();
-                handleTaskRunnerSuccess(message, "handleUpdateMultisigRequest");
+                handleTaskRunnerSuccess(peer, message, "handleUpdateMultisigRequest");
               },
               errorMessage -> {
                   errorMessageHandler.handleErrorMessage(errorMessage);
-                  handleTaskRunnerFault(message, errorMessage);
+                  handleTaskRunnerFault(peer, message, errorMessage);
               });
       taskRunner.addTasks(
               ProcessUpdateMultisigRequest.class
@@ -262,6 +242,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
                     if (!result.isValid()) {
                         log.warn(result.getInfo());
                         handleTaskRunnerFault(null,
+                                null,
                                 result.name(),
                                 result.getInfo());
                     }
@@ -292,9 +273,11 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
     // ACK msg
     ///////////////////////////////////////////////////////////////////////////////////////////
 
+    // TODO (woodser): support notifications of ack messages
     private void onAckMessage(AckMessage ackMessage, NodeAddress peer) {
         // We handle the ack for CounterCurrencyTransferStartedMessage and DepositTxAndDelayedPayoutTxMessage
         // as we support automatic re-send of the msg in case it was not ACKed after a certain time
+        // TODO (woodser): add AckMessage for InitTradeRequest and support automatic re-send ?
         if (ackMessage.getSourceMsgClassName().equals(CounterCurrencyTransferStartedMessage.class.getSimpleName())) {
             processModel.setPaymentStartedAckMessage(ackMessage);
         } else if (ackMessage.getSourceMsgClassName().equals(DepositTxAndDelayedPayoutTxMessage.class.getSimpleName())) {
@@ -310,15 +293,11 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
         }
     }
 
-    protected void sendAckMessage(TradeMessage message, boolean result, @Nullable String errorMessage) {
+    protected void sendAckMessage(NodeAddress peer, TradeMessage message, boolean result, @Nullable String errorMessage) {
+        
+        // TODO (woodser): remove trade.getTradingPeerNodeAddress() and processModel.getTempTradingPeerNodeAddress() if everything should be maker, taker, or arbitrator
 
-        // If there was an error during offer verification, the tradingPeerNodeAddress of the trade might not be set yet.
-        // We can find the peer's node address in the processModel's tempTradingPeerNodeAddress in that case.
-        NodeAddress peer = trade.getTradingPeerNodeAddress() != null ?
-                trade.getTradingPeerNodeAddress() :
-                processModel.getTempTradingPeerNodeAddress();
-
-        // get destination pub key ring
+        // get peer's pub key ring
         PubKeyRing peersPubKeyRing = getPeersPubKeyRing(peer);
         if (peersPubKeyRing == null) {
             log.error("We cannot send the ACK message as peersPubKeyRing is null");
@@ -392,20 +371,20 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
     // Task runner
     ///////////////////////////////////////////////////////////////////////////////////////////
 
-    protected void handleTaskRunnerSuccess(TradeMessage message) {
-        handleTaskRunnerSuccess(message, message.getClass().getSimpleName());
+    protected void handleTaskRunnerSuccess(NodeAddress sender, TradeMessage message) {
+        handleTaskRunnerSuccess(sender, message, message.getClass().getSimpleName());
     }
 
     protected void handleTaskRunnerSuccess(FluentProtocol.Event event) {
-        handleTaskRunnerSuccess(null, event.name());
+        handleTaskRunnerSuccess(null, null, event.name());
     }
 
-    protected void handleTaskRunnerFault(TradeMessage message, String errorMessage) {
-        handleTaskRunnerFault(message, message.getClass().getSimpleName(), errorMessage);
+    protected void handleTaskRunnerFault(NodeAddress sender, TradeMessage message, String errorMessage) {
+        handleTaskRunnerFault(sender, message, message.getClass().getSimpleName(), errorMessage);
     }
 
     protected void handleTaskRunnerFault(FluentProtocol.Event event, String errorMessage) {
-        handleTaskRunnerFault(null, event.name(), errorMessage);
+        handleTaskRunnerFault(null, null, event.name(), errorMessage);
     }
 
 
@@ -446,10 +425,10 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
     // Private
     ///////////////////////////////////////////////////////////////////////////////////////////
 
-    private void handleTaskRunnerSuccess(@Nullable TradeMessage message, String source) {
+    private void handleTaskRunnerSuccess(NodeAddress sender, @Nullable TradeMessage message, String source) {
         log.info("TaskRunner successfully completed. Triggered from {}, tradeId={}", source, trade.getId());
         if (message != null) {
-            sendAckMessage(message, true, null);
+            sendAckMessage(sender, message, true, null);
 
             // Once a taskRunner is completed we remove the mailbox message. To not remove it directly at the task
             // adds some resilience in case of minor errors, so after a restart the mailbox message can be applied
@@ -458,11 +437,11 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
         }
     }
 
-    void handleTaskRunnerFault(@Nullable TradeMessage message, String source, String errorMessage) {
+    void handleTaskRunnerFault(NodeAddress ackReceiver, @Nullable TradeMessage message, String source, String errorMessage) {
         log.error("Task runner failed with error {}. Triggered from {}", errorMessage, source);
 
         if (message != null) {
-            sendAckMessage(message, false, errorMessage);
+            sendAckMessage(ackReceiver, message, false, errorMessage);
         }
         cleanup();
     }

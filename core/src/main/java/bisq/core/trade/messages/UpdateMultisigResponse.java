@@ -89,7 +89,7 @@ public final class UpdateMultisigResponse extends TradeMessage implements Direct
 
     @Override
     public String toString() {
-        return "MultisigMessage {" +
+        return "UpdateMultisigResponse {" +
                 "\n     senderNodeAddress=" + senderNodeAddress +
                 ",\n     pubKeyRing=" + pubKeyRing +
                 ",\n     currentDate=" + currentDate +

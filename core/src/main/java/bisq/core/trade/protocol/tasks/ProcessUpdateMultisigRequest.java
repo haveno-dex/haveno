@@ -55,7 +55,7 @@ public class ProcessUpdateMultisigRequest extends TradeTask {
           UpdateMultisigRequest request = (UpdateMultisigRequest) processModel.getTradeMessage();
           checkNotNull(request);
           checkTradeId(processModel.getOfferId(), request);
-          MoneroWallet multisigWallet = processModel.getProvider().getXmrWalletService().getOrCreateMultisigWallet(processModel.getTrade().getId());
+          MoneroWallet multisigWallet = processModel.getProvider().getXmrWalletService().getMultisigWallet(trade.getId());
 
           System.out.println("PROCESS UPDATE MULTISIG REQUEST");
           System.out.println(request);
@@ -85,13 +85,7 @@ public class ProcessUpdateMultisigRequest extends TradeTask {
                   new Date().getTime(),
                   updatedMultisigHex);
 
-          System.out.println("SENDING MESSAGE!!!!!!!");
-          System.out.println(response);
-
           log.info("Send {} with offerId {} and uid {} to peer {}", response.getClass().getSimpleName(), response.getTradeId(), response.getUid(), trade.getTradingPeerNodeAddress());
-          System.out.println("GONNA BE BAD IF EITHER OF THESE ARE NULL");
-          System.out.println(trade.getTradingPeerNodeAddress());
-          System.out.println(trade.getTradingPeerPubKeyRing());
           processModel.getP2PService().sendEncryptedDirectMessage(trade.getTradingPeerNodeAddress(), trade.getTradingPeerPubKeyRing(), response, new SendDirectMessageListener() {
             @Override
             public void onArrived() {

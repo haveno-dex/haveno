@@ -57,7 +57,7 @@ public class BuyerAsTakerSignsDepositTx extends TradeTask {
 //            buyerMultiSigAddressEntry.setCoinLockedInMultiSig(buyerInput.subtract(trade.getTxFee().multiply(2)));
 //            walletService.saveAddressEntryList();
 //
-//            TradingPeer tradingPeer = processModel.getTradingPeer();
+//            TradingPeer tradingPeer = trade.getTradingPeer();
 //            byte[] buyerMultiSigPubKey = processModel.getMyMultiSigPubKey();
 //            checkArgument(Arrays.equals(buyerMultiSigPubKey, buyerMultiSigAddressEntry.getPubKey()),
 //                    "buyerMultiSigPubKey from AddressEntry must match the one from the trade data. trade id =" + id);

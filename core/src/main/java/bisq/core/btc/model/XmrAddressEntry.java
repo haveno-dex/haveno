@@ -60,7 +60,7 @@ public final class XmrAddressEntry implements PersistablePayload {
     @Getter
     private final Context context;
     @Getter
-    private final int accountIndex;
+    private final int subaddressIndex;
     @Getter
     private final String addressString;
 
@@ -71,12 +71,12 @@ public final class XmrAddressEntry implements PersistablePayload {
     // Constructor, initialization
     ///////////////////////////////////////////////////////////////////////////////////////////
 
-    public XmrAddressEntry(int accountIndex, String address, Context context) {
-      this(accountIndex, address, context, null, null);
+    public XmrAddressEntry(int subaddressIndex, String address, Context context) {
+      this(subaddressIndex, address, context, null, null);
     }
 
-    public XmrAddressEntry(int accountIndex, String address, Context context, @Nullable String offerId, Coin coinLockedInMultiSig) {
-      this.accountIndex = accountIndex;
+    public XmrAddressEntry(int subaddressIndex, String address, Context context, @Nullable String offerId, Coin coinLockedInMultiSig) {
+      this.subaddressIndex = subaddressIndex;
       this.addressString = address;
       this.offerId = offerId;
       this.context = context;
@@ -89,7 +89,7 @@ public final class XmrAddressEntry implements PersistablePayload {
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     public static XmrAddressEntry fromProto(protobuf.XmrAddressEntry proto) {
-        return new XmrAddressEntry(proto.getAccountIndex(),
+        return new XmrAddressEntry(proto.getSubaddressIndex(),
                 ProtoUtil.stringOrNullFromProto(proto.getAddressString()),
                 ProtoUtil.enumFromProto(XmrAddressEntry.Context.class, proto.getContext().name()),
                 ProtoUtil.stringOrNullFromProto(proto.getOfferId()),
@@ -99,7 +99,7 @@ public final class XmrAddressEntry implements PersistablePayload {
     @Override
     public protobuf.XmrAddressEntry toProtoMessage() {
         protobuf.XmrAddressEntry.Builder builder = protobuf.XmrAddressEntry.newBuilder()
-                .setAccountIndex(accountIndex)
+                .setSubaddressIndex(subaddressIndex)
                 .setAddressString(addressString)
                 .setContext(protobuf.XmrAddressEntry.Context.valueOf(context.name()))
                 .setCoinLockedInMultiSig(coinLockedInMultiSig);
@@ -143,7 +143,7 @@ public final class XmrAddressEntry implements PersistablePayload {
         return "XmrAddressEntry{" +
                 "offerId='" + getOfferId() + '\'' +
                 ", context=" + context +
-                ", accountIndex=" + getAccountIndex() +
+                ", subaddressIndex=" + getSubaddressIndex() +
                 ", address=" + getAddressString() +
                 '}';
     }

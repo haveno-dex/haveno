@@ -108,8 +108,8 @@ public class TradeInfo implements Payload {
                     contract.isBuyerMakerAndSellerTaker(),
                     contract.getMakerAccountId(),
                     contract.getTakerAccountId(),
-                    toPaymentAccountPayloadInfo(contract.getMakerPaymentAccountPayload()),
-                    toPaymentAccountPayloadInfo(contract.getTakerPaymentAccountPayload()),
+                    toPaymentAccountPayloadInfo(trade.getMaker().getPaymentAccountPayload()),
+                    toPaymentAccountPayloadInfo(trade.getTaker().getPaymentAccountPayload()),
                     contract.getMakerPayoutAddressString(),
                     contract.getTakerPayoutAddressString(),
                     contract.getLockTime());
@@ -127,8 +127,8 @@ public class TradeInfo implements Payload {
                 .withTakerFeeAsLong(trade.getTakerFeeAsLong())
                 .withTakerFeeAsLong(trade.getTakerFeeAsLong())
                 .withTakerFeeTxId(trade.getTakerFeeTxId())
-                .withMakerDepositTxId(trade.getMakerDepositTxId())
-                .withTakerDepositTxId(trade.getTakerDepositTxId())
+                .withMakerDepositTxId(trade.getMaker().getDepositTxHash())
+                .withTakerDepositTxId(trade.getTaker().getDepositTxHash())
                 .withPayoutTxId(trade.getPayoutTxId())
                 .withTradeAmountAsLong(trade.getTradeAmountAsLong())
                 .withTradePrice(trade.getTradePrice().getValue())

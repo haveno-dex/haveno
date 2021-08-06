@@ -65,7 +65,7 @@ public abstract class DisputeProtocol extends TradeProtocol {
                 Trade.Phase.FIAT_SENT,
                 Trade.Phase.FIAT_RECEIVED)
                 .with(event)
-                .preCondition(trade.getProcessModel().getTradingPeer().getMediatedPayoutTxSignature() == null,
+                .preCondition(trade.getTradingPeer().getMediatedPayoutTxSignature() == null,
                         () -> errorMessageHandler.handleErrorMessage("We have received already the signature from the peer."))
                 .preCondition(trade.getPayoutTx() == null,
                         () -> errorMessageHandler.handleErrorMessage("Payout tx is already published.")))

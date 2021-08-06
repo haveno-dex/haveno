@@ -24,9 +24,9 @@ import bisq.desktop.components.TitledGroupBg;
 import bisq.core.offer.availability.tasks.ProcessOfferAvailabilityResponse;
 import bisq.core.offer.availability.tasks.SendOfferAvailabilityRequest;
 import bisq.core.offer.placeoffer.tasks.AddToOfferBook;
+import bisq.core.offer.placeoffer.tasks.MakerReservesTradeFunds;
 import bisq.core.offer.placeoffer.tasks.ValidateOffer;
 import bisq.core.trade.protocol.tasks.ApplyFilter;
-import bisq.core.trade.protocol.tasks.SetupDepositTxsListener;
 import bisq.core.trade.protocol.tasks.VerifyPeersAccountAgeWitness;
 import bisq.core.trade.protocol.tasks.buyer.BuyerCreateAndSignPayoutTx;
 import bisq.core.trade.protocol.tasks.buyer.BuyerProcessDelayedPayoutTxSignatureRequest;
@@ -43,12 +43,8 @@ import bisq.core.trade.protocol.tasks.buyer_as_maker.BuyerAsMakerSendsInputsForD
 import bisq.core.trade.protocol.tasks.buyer_as_taker.BuyerAsTakerCreatesDepositTxInputs;
 import bisq.core.trade.protocol.tasks.buyer_as_taker.BuyerAsTakerSendsDepositTxMessage;
 import bisq.core.trade.protocol.tasks.buyer_as_taker.BuyerAsTakerSignsDepositTx;
-import bisq.core.trade.protocol.tasks.maker.MakerCreateAndSignContract;
-import bisq.core.trade.protocol.tasks.maker.MakerCreateFeeTx;
-import bisq.core.trade.protocol.tasks.maker.MakerProcessesInputsForDepositTxRequest;
 import bisq.core.trade.protocol.tasks.maker.MakerRemovesOpenOffer;
 import bisq.core.trade.protocol.tasks.maker.MakerSetsLockTime;
-import bisq.core.trade.protocol.tasks.maker.MakerSetupDepositTxsListener;
 import bisq.core.trade.protocol.tasks.maker.MakerVerifyTakerFeePayment;
 import bisq.core.trade.protocol.tasks.seller.SellerCreatesDelayedPayoutTx;
 import bisq.core.trade.protocol.tasks.seller.SellerFinalizesDelayedPayoutTx;
@@ -67,11 +63,7 @@ import bisq.core.trade.protocol.tasks.seller_as_taker.SellerAsTakerCreatesDeposi
 import bisq.core.trade.protocol.tasks.seller_as_taker.SellerAsTakerSignsDepositTx;
 import bisq.core.trade.protocol.tasks.taker.TakerCreateFeeTx;
 import bisq.core.trade.protocol.tasks.taker.TakerProcessesInputsForDepositTxResponse;
-import bisq.core.trade.protocol.tasks.taker.TakerProcessesMakerDepositTxMessage;
 import bisq.core.trade.protocol.tasks.taker.TakerPublishFeeTx;
-import bisq.core.trade.protocol.tasks.taker.TakerSendInputsForDepositTxRequest;
-import bisq.core.trade.protocol.tasks.taker.TakerSetupDepositTxsListener;
-import bisq.core.trade.protocol.tasks.taker.TakerVerifyAndSignContract;
 import bisq.core.trade.protocol.tasks.taker.TakerVerifyMakerFeePayment;
 
 import bisq.common.taskrunner.Task;
@@ -118,7 +110,7 @@ public class DebugView extends InitializableView<GridPane, Void> {
         addGroup("PlaceOfferProtocol",
                 FXCollections.observableArrayList(Arrays.asList(
                         ValidateOffer.class,
-                        MakerCreateFeeTx.class,
+                        MakerReservesTradeFunds.class,
                         AddToOfferBook.class)
                 ));
 
@@ -129,12 +121,10 @@ public class DebugView extends InitializableView<GridPane, Void> {
                         TakerVerifyMakerFeePayment.class,
                         TakerCreateFeeTx.class, // TODO (woodser): rename to TakerCreateFeeTx
                         SellerAsTakerCreatesDepositTxInputs.class,
-                        TakerSendInputsForDepositTxRequest.class,
 
                         TakerProcessesInputsForDepositTxResponse.class,
                         ApplyFilter.class,
                         VerifyPeersAccountAgeWitness.class,
-                        TakerVerifyAndSignContract.class,
                         TakerPublishFeeTx.class,
                         SellerAsTakerSignsDepositTx.class,
                         SellerCreatesDelayedPayoutTx.class,
@@ -144,7 +134,6 @@ public class DebugView extends InitializableView<GridPane, Void> {
                         SellerSignsDelayedPayoutTx.class,
                         SellerFinalizesDelayedPayoutTx.class,
                         //SellerSendsDepositTxAndDelayedPayoutTxMessage.class,
-                        TakerProcessesMakerDepositTxMessage.class,
                         SellerPublishesDepositTx.class,
                         SellerPublishesTradeStatistics.class,
 
@@ -162,14 +151,11 @@ public class DebugView extends InitializableView<GridPane, Void> {
                 ));
         addGroup("BuyerAsMakerProtocol",
                 FXCollections.observableArrayList(Arrays.asList(
-                        MakerProcessesInputsForDepositTxRequest.class,
                         ApplyFilter.class,
                         VerifyPeersAccountAgeWitness.class,
                         MakerVerifyTakerFeePayment.class,
                         MakerSetsLockTime.class,
-                        MakerCreateAndSignContract.class,
                         BuyerAsMakerCreatesAndSignsDepositTx.class,
-                        MakerSetupDepositTxsListener.class,
                         BuyerAsMakerSendsInputsForDepositTxResponse.class,
 
                         BuyerProcessDelayedPayoutTxSignatureRequest.class,
@@ -198,15 +184,12 @@ public class DebugView extends InitializableView<GridPane, Void> {
                         TakerVerifyMakerFeePayment.class,
                         TakerCreateFeeTx.class,
                         BuyerAsTakerCreatesDepositTxInputs.class,
-                        TakerSendInputsForDepositTxRequest.class,
 
                         TakerProcessesInputsForDepositTxResponse.class,
                         ApplyFilter.class,
                         VerifyPeersAccountAgeWitness.class,
-                        TakerVerifyAndSignContract.class,
                         TakerPublishFeeTx.class,
                         BuyerAsTakerSignsDepositTx.class,
-                        TakerSetupDepositTxsListener.class,
                         BuyerAsTakerSendsDepositTxMessage.class,
 
                         BuyerProcessDelayedPayoutTxSignatureRequest.class,
@@ -227,15 +210,12 @@ public class DebugView extends InitializableView<GridPane, Void> {
                 ));
         addGroup("SellerAsMakerProtocol",
                 FXCollections.observableArrayList(Arrays.asList(
-                        MakerProcessesInputsForDepositTxRequest.class,
                         ApplyFilter.class,
                         VerifyPeersAccountAgeWitness.class,
                         MakerVerifyTakerFeePayment.class,
                         MakerSetsLockTime.class,
-                        MakerCreateAndSignContract.class,
                         SellerAsMakerCreatesUnsignedDepositTx.class,
                         SellerAsMakerSendsInputsForDepositTxResponse.class,
-                        SetupDepositTxsListener.class,
 
                         //SellerAsMakerProcessDepositTxMessage.class,
                         MakerRemovesOpenOffer.class,

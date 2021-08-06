@@ -109,7 +109,6 @@ class CoreTradesService {
         tradeManager.onTakeOffer(offer.getAmount(),
                 takeOfferModel.getTxFeeFromFeeService(),
                 takeOfferModel.getTakerFee(),
-                offer.getPrice().getValue(),
                 takeOfferModel.getFundsNeededForTrade(),
                 offer,
                 paymentAccountId,

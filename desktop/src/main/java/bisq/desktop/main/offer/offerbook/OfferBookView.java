@@ -668,6 +668,9 @@ public class OfferBookView extends ActivatableViewAndModel<GridPane, OfferBookVi
                             "isInsufficientTradeLimit case.");
                 }
                 break;
+            case SIGNATURE_NOT_VALIDATED:
+                new Popup().warning(Res.get("offerbook.warning.signatureNotValidated")).show();
+                break;
             default:
                 break;
         }

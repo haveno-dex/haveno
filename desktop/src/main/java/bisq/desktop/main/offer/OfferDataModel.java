@@ -65,7 +65,7 @@ public abstract class OfferDataModel extends ActivatableDataModel {
     }
 
     protected void updateBalance() {
-        Coin tradeWalletBalance = xmrWalletService.getBalanceForAccount(addressEntry.getAccountIndex());
+        Coin tradeWalletBalance = xmrWalletService.getBalanceForSubaddress(addressEntry.getSubaddressIndex());
         if (useSavingsWallet) {
             Coin savingWalletBalance = xmrWalletService.getSavingWalletBalance();
             totalAvailableBalance = savingWalletBalance.add(tradeWalletBalance);

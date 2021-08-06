@@ -40,11 +40,11 @@ public class SellerAsMakerFinalizesDepositTx extends TradeTask {
             runInterceptHook();
             if (true) throw new RuntimeException("SellerAsMakerFinalizesDepositTx not implemented for xmr");
 
-            byte[] takersRawPreparedDepositTx = checkNotNull(processModel.getTradingPeer().getPreparedDepositTx());
+            byte[] takersRawPreparedDepositTx = checkNotNull(trade.getTradingPeer().getPreparedDepositTx());
             byte[] myRawPreparedDepositTx = checkNotNull(processModel.getPreparedDepositTx());
             Transaction takersDepositTx = processModel.getBtcWalletService().getTxFromSerializedTx(takersRawPreparedDepositTx);
             Transaction myDepositTx = processModel.getBtcWalletService().getTxFromSerializedTx(myRawPreparedDepositTx);
-            int numTakersInputs = checkNotNull(processModel.getTradingPeer().getRawTransactionInputs()).size();
+            int numTakersInputs = checkNotNull(trade.getTradingPeer().getRawTransactionInputs()).size();
             processModel.getTradeWalletService().sellerAsMakerFinalizesDepositTx(myDepositTx, takersDepositTx, numTakersInputs);
 
             processModel.setDepositTx(myDepositTx);

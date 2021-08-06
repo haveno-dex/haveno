@@ -42,23 +42,25 @@ public final class SellerAsMakerTrade extends SellerTrade implements MakerTrade 
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     public SellerAsMakerTrade(Offer offer,
-                              Coin txFee,
+                              Coin tradeAmount,
                               Coin takerFee,
-                              @Nullable NodeAddress makerNodeAddress,
-                              @Nullable NodeAddress takerNodeAddress,
-                              @Nullable NodeAddress arbitratorNodeAddress,
+                              long tradePrice,
                               XmrWalletService xmrWalletService,
                               ProcessModel processModel,
-                              String uid) {
+                              String uid,
+                              @Nullable NodeAddress makerNodeAddress,
+                              @Nullable NodeAddress takerNodeAddress,
+                              @Nullable NodeAddress arbitratorNodeAddress) {
         super(offer,
-                txFee,
+                tradeAmount,
                 takerFee,
-                makerNodeAddress,
-                takerNodeAddress,
-                arbitratorNodeAddress,
+                tradePrice,
                 xmrWalletService,
                 processModel,
-                uid);
+                uid,
+                makerNodeAddress,
+                takerNodeAddress,
+                arbitratorNodeAddress);
     }
 
 
@@ -85,14 +87,15 @@ public final class SellerAsMakerTrade extends SellerTrade implements MakerTrade 
         }
         SellerAsMakerTrade trade = new SellerAsMakerTrade(
                 Offer.fromProto(proto.getOffer()),
-                Coin.valueOf(proto.getTxFeeAsLong()),
+                Coin.valueOf(proto.getTradeAmountAsLong()),
                 Coin.valueOf(proto.getTakerFeeAsLong()),
-                proto.hasMakerNodeAddress() ? NodeAddress.fromProto(proto.getMakerNodeAddress()) : null,
-                proto.hasTakerNodeAddress() ? NodeAddress.fromProto(proto.getTakerNodeAddress()) : null,
-                proto.hasArbitratorNodeAddress() ? NodeAddress.fromProto(proto.getArbitratorNodeAddress()) : null,
+                proto.getTradePrice(),
                 xmrWalletService,
                 processModel,
-                uid);
+                uid,
+                proto.hasMakerNodeAddress() ? NodeAddress.fromProto(proto.getMakerNodeAddress()) : null,
+                proto.hasTakerNodeAddress() ? NodeAddress.fromProto(proto.getTakerNodeAddress()) : null,
+                proto.hasArbitratorNodeAddress() ? NodeAddress.fromProto(proto.getArbitratorNodeAddress()) : null);
 
         trade.setTradeAmountAsLong(proto.getTradeAmountAsLong());
         trade.setTradePrice(proto.getTradePrice());

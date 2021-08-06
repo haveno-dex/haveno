@@ -156,7 +156,7 @@ public class TradeStatisticsConverter {
 
     private static TradeStatistics3 convertToTradeStatistics3(TradeStatistics2 tradeStatistics2) {
         Map<String, String> extraDataMap = tradeStatistics2.getExtraDataMap();
-        String mediator = extraDataMap != null ? extraDataMap.get(TradeStatistics2.MEDIATOR_ADDRESS) : null; // TODO (woodser): using mediator as arbitrator
+        String mediator = extraDataMap != null ? extraDataMap.get(TradeStatistics2.ARBITRATOR_ADDRESS) : null; // TODO (woodser): using mediator as arbitrator
         long time = tradeStatistics2.getTradeDate().getTime();
         // We need to avoid that we duplicate tradeStatistics2 objects in case both traders have not updated yet.
         // Before v1.4.0 both traders published the trade statistics. If one trader has updated he will check

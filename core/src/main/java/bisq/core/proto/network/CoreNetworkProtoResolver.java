@@ -39,6 +39,8 @@ import bisq.core.network.p2p.inventory.messages.GetInventoryResponse;
 import bisq.core.offer.OfferPayload;
 import bisq.core.offer.messages.OfferAvailabilityRequest;
 import bisq.core.offer.messages.OfferAvailabilityResponse;
+import bisq.core.offer.messages.SignOfferRequest;
+import bisq.core.offer.messages.SignOfferResponse;
 import bisq.core.proto.CoreProtoResolver;
 import bisq.core.support.dispute.arbitration.arbitrator.Arbitrator;
 import bisq.core.support.dispute.arbitration.messages.PeerPublishedDisputePayoutTxMessage;
@@ -53,19 +55,22 @@ import bisq.core.support.messages.ChatMessage;
 import bisq.core.trade.messages.CounterCurrencyTransferStartedMessage;
 import bisq.core.trade.messages.DelayedPayoutTxSignatureRequest;
 import bisq.core.trade.messages.DelayedPayoutTxSignatureResponse;
+import bisq.core.trade.messages.DepositRequest;
+import bisq.core.trade.messages.DepositResponse;
 import bisq.core.trade.messages.DepositTxAndDelayedPayoutTxMessage;
 import bisq.core.trade.messages.DepositTxMessage;
-import bisq.core.trade.messages.InitMultisigMessage;
+import bisq.core.trade.messages.InitMultisigRequest;
 import bisq.core.trade.messages.InitTradeRequest;
 import bisq.core.trade.messages.InputsForDepositTxRequest;
 import bisq.core.trade.messages.InputsForDepositTxResponse;
-import bisq.core.trade.messages.MakerReadyToFundMultisigRequest;
-import bisq.core.trade.messages.MakerReadyToFundMultisigResponse;
 import bisq.core.trade.messages.MediatedPayoutTxPublishedMessage;
 import bisq.core.trade.messages.MediatedPayoutTxSignatureMessage;
+import bisq.core.trade.messages.PaymentAccountPayloadRequest;
 import bisq.core.trade.messages.PayoutTxPublishedMessage;
 import bisq.core.trade.messages.PeerPublishedDelayedPayoutTxMessage;
 import bisq.core.trade.messages.RefreshTradeStateRequest;
+import bisq.core.trade.messages.SignContractRequest;
+import bisq.core.trade.messages.SignContractResponse;
 import bisq.core.trade.messages.TraderSignedWitnessMessage;
 import bisq.core.trade.messages.UpdateMultisigRequest;
 import bisq.core.trade.messages.UpdateMultisigResponse;
@@ -133,8 +138,13 @@ public class CoreNetworkProtoResolver extends CoreProtoResolver implements Netwo
                 case PONG:
                     return Pong.fromProto(proto.getPong(), messageVersion);
 
+                case SIGN_OFFER_REQUEST:
+                    return SignOfferRequest.fromProto(proto.getSignOfferRequest(), messageVersion);
+                case SIGN_OFFER_RESPONSE:
+                    return SignOfferResponse.fromProto(proto.getSignOfferResponse(), messageVersion);
+
                 case OFFER_AVAILABILITY_REQUEST:
-                    return OfferAvailabilityRequest.fromProto(proto.getOfferAvailabilityRequest(), messageVersion);
+                    return OfferAvailabilityRequest.fromProto(proto.getOfferAvailabilityRequest(), this, messageVersion);
                 case OFFER_AVAILABILITY_RESPONSE:
                     return OfferAvailabilityResponse.fromProto(proto.getOfferAvailabilityResponse(), messageVersion);
                 case REFRESH_OFFER_MESSAGE:
@@ -157,16 +167,22 @@ public class CoreNetworkProtoResolver extends CoreProtoResolver implements Netwo
                     return RefreshTradeStateRequest.fromProto(proto.getRefreshTradeStateRequest(), messageVersion);
                 case INIT_TRADE_REQUEST:
                   return InitTradeRequest.fromProto(proto.getInitTradeRequest(), this, messageVersion);
-                case INIT_MULTISIG_MESSAGE:
-                  return InitMultisigMessage.fromProto(proto.getInitMultisigMessage(), this, messageVersion);
+                case INIT_MULTISIG_REQUEST:
+                  return InitMultisigRequest.fromProto(proto.getInitMultisigRequest(), this, messageVersion);
+                case SIGN_CONTRACT_REQUEST:
+                    return SignContractRequest.fromProto(proto.getSignContractRequest(), this, messageVersion);
+                case SIGN_CONTRACT_RESPONSE:
+                    return SignContractResponse.fromProto(proto.getSignContractResponse(), this, messageVersion);
+                case DEPOSIT_REQUEST:
+                    return DepositRequest.fromProto(proto.getDepositRequest(), this, messageVersion);
+                case DEPOSIT_RESPONSE:
+                    return DepositResponse.fromProto(proto.getDepositResponse(), this, messageVersion);
+                case PAYMENT_ACCOUNT_PAYLOAD_REQUEST:
+                    return PaymentAccountPayloadRequest.fromProto(proto.getPaymentAccountPayloadRequest(), this, messageVersion);
                 case UPDATE_MULTISIG_REQUEST:
                   return UpdateMultisigRequest.fromProto(proto.getUpdateMultisigRequest(), this, messageVersion);
                 case UPDATE_MULTISIG_RESPONSE:
                   return UpdateMultisigResponse.fromProto(proto.getUpdateMultisigResponse(), this, messageVersion);
-                case MAKER_READY_TO_FUND_MULTISIG_REQUEST:
-                  return MakerReadyToFundMultisigRequest.fromProto(proto.getMakerReadyToFundMultisigRequest(), this, messageVersion);
-                case MAKER_READY_TO_FUND_MULTISIG_RESPONSE:
-                  return MakerReadyToFundMultisigResponse.fromProto(proto.getMakerReadyToFundMultisigResponse(), this, messageVersion);
                 case INPUTS_FOR_DEPOSIT_TX_REQUEST:
                     return InputsForDepositTxRequest.fromProto(proto.getInputsForDepositTxRequest(), this, messageVersion);
                 case INPUTS_FOR_DEPOSIT_TX_RESPONSE:
@@ -265,6 +281,7 @@ public class CoreNetworkProtoResolver extends CoreProtoResolver implements Netwo
         }
     }
 
+    @Override
     public NetworkPayload fromProto(protobuf.StorageEntryWrapper proto) {
         if (proto != null) {
             switch (proto.getMessageCase()) {
@@ -282,6 +299,7 @@ public class CoreNetworkProtoResolver extends CoreProtoResolver implements Netwo
         }
     }
 
+    @Override
     public NetworkPayload fromProto(protobuf.StoragePayload proto) {
         if (proto != null) {
             switch (proto.getMessageCase()) {

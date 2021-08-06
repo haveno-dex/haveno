@@ -40,7 +40,7 @@ configure(subprojects) {
         grpcVersion = '1.25.0'
         gsonVersion = '2.8.5'
         guavaVersion = '28.2-jre'
-        moneroJavaVersion = '0.5.3'
+        moneroJavaVersion = '0.5.4'
         httpclient5Version = '5.0'
         guiceVersion = '4.2.2'
         hamcrestVersion = '1.3'
@@ -79,7 +79,7 @@ configure(subprojects) {
 
     repositories {
         mavenCentral()
-        //mavenLocal()
+        mavenLocal()
         maven { url 'https://jitpack.io' }
         maven { url 'https://mvnrepository.com' }
     }

@@ -69,42 +69,25 @@ public class BuyerCreateAndSignPayoutTx extends TradeTask {
 
             // gather relevant trade info
             XmrWalletService walletService = processModel.getProvider().getXmrWalletService();
-            MoneroWallet multisigWallet = walletService.getOrCreateMultisigWallet(processModel.getTrade().getId());
-            String sellerPayoutAddress = processModel.getTradingPeer().getPayoutAddressString();
+            MoneroWallet multisigWallet = walletService.getMultisigWallet(trade.getId());
+            String sellerPayoutAddress = trade.getTradingPeer().getPayoutAddressString();
             String buyerPayoutAddress = trade instanceof MakerTrade ? trade.getContract().getMakerPayoutAddressString() : trade.getContract().getTakerPayoutAddressString();
             Preconditions.checkNotNull(sellerPayoutAddress, "sellerPayoutAddress must not be null");
             Preconditions.checkNotNull(buyerPayoutAddress, "buyerPayoutAddress must not be null");
-            BigInteger sellerDepositAmount = multisigWallet.getTx(trade instanceof MakerTrade ? processModel.getTakerPreparedDepositTxId() : processModel.getMakerPreparedDepositTxId()).getIncomingAmount(); 	// TODO (woodser): redundancy of processModel.getPreparedDepositTxId() vs trade.getDepositTxId() necessary or avoidable?
-            BigInteger buyerDepositAmount = multisigWallet.getTx(trade instanceof MakerTrade ? processModel.getMakerPreparedDepositTxId() : processModel.getTakerPreparedDepositTxId()).getIncomingAmount();
-            BigInteger tradeAmount = ParsingUtils.satoshisToXmrAtomicUnits(trade.getTradeAmount().value);
+            BigInteger sellerDepositAmount = multisigWallet.getTx(trade instanceof MakerTrade ? processModel.getTaker().getDepositTxHash() : processModel.getMaker().getDepositTxHash()).getIncomingAmount();
+            BigInteger buyerDepositAmount = multisigWallet.getTx(trade instanceof MakerTrade ? processModel.getMaker().getDepositTxHash() : processModel.getTaker().getDepositTxHash()).getIncomingAmount();
+            BigInteger tradeAmount = ParsingUtils.coinToAtomicUnits(trade.getTradeAmount());
             BigInteger buyerPayoutAmount = buyerDepositAmount.add(tradeAmount);
             BigInteger sellerPayoutAmount = sellerDepositAmount.subtract(tradeAmount);
 
-            System.out.println("sellerPayoutAddress: " + sellerPayoutAddress);
-            System.out.println("buyerPayoutAddress: " + buyerPayoutAddress);
-            System.out.println("Multisig balance: " + multisigWallet.getBalance());
-            System.out.println("Multisig unlocked balance: " + multisigWallet.getUnlockedBalance());
-            System.out.println("Multisig txs");
-            System.out.println(multisigWallet.getTxs(new MoneroTxQuery().setIncludeOutputs(true)));
-
-            //System.out.println("Testing buyer payout amount: " + buyerPayoutAmount.multiply(BigInteger.valueOf(3)).divide(BigInteger.valueOf(5)));
-            //System.out.println("Testing seller payout amount: " + sellerPayoutAmount.multiply(BigInteger.valueOf(3)).divide(BigInteger.valueOf(5)));
-            //System.out.println("Testing payout amount: " + (buyerPayoutAmount.multiply(BigInteger.valueOf(3)).divide(BigInteger.valueOf(5))).add(sellerPayoutAmount.multiply(BigInteger.valueOf(3)).divide(BigInteger.valueOf(5))));
-
             // create transaction to get fee estimate
             if (multisigWallet.isMultisigImportNeeded()) throw new RuntimeException("Multisig import is still needed!!!");
-
-            System.out.println("Creating feeEstimateTx!");
             MoneroTxWallet feeEstimateTx = multisigWallet.createTx(new MoneroTxConfig()
                     .setAccountIndex(0)
                     .addDestination(buyerPayoutAddress, buyerPayoutAmount.multiply(BigInteger.valueOf(4)).divide(BigInteger.valueOf(5))) // reduce payment amount to compute fee of similar tx
                     .addDestination(sellerPayoutAddress, sellerPayoutAmount.multiply(BigInteger.valueOf(4)).divide(BigInteger.valueOf(5)))
                     .setRelay(false)
             );
-
-            System.out.println("Created fee estimate tx!");
-            System.out.println(feeEstimateTx);
-            //BigInteger estimatedFee = feeEstimateTx.getFee();
 
             // attempt to create payout tx by increasing estimated fee until successful
             MoneroTxWallet payoutTx = null;
@@ -119,15 +102,14 @@ public class BuyerCreateAndSignPayoutTx extends TradeTask {
                         .addDestination(new MoneroDestination(sellerPayoutAddress, sellerPayoutAmount.subtract(feeEstimate.divide(BigInteger.valueOf(2))))) // TODO (woodser): support addDestination(addr, amt) without new
                         .setRelay(false));
               } catch (MoneroError e) {
-                e.printStackTrace();
-                System.out.println("FAILED TO CREATE PAYOUT TX, ITERATING...");
+                //e.printStackTrace();
+                //System.out.println("FAILED TO CREATE PAYOUT TX, ITERATING...");
               }
             }
 
             if (payoutTx == null) throw new RuntimeException("Failed to generate payout tx");
             System.out.println("PAYOUT TX GENERATED ON ATTEMPT " + numAttempts);
             System.out.println(payoutTx);
-
             processModel.setBuyerSignedPayoutTx(payoutTx);
             complete();
         } catch (Throwable t) {

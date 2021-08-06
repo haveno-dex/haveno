@@ -89,6 +89,8 @@ import static com.google.common.base.Preconditions.checkState;
 
 
 import monero.common.MoneroUtils;
+import monero.daemon.MoneroDaemon;
+import monero.daemon.MoneroDaemonRpc;
 import monero.daemon.model.MoneroNetworkType;
 import monero.wallet.MoneroWallet;
 import monero.wallet.MoneroWalletRpc;
@@ -124,7 +126,7 @@ public class WalletConfig extends AbstractIdleService {
     // Monero configuration
     // TODO: don't hard code configuration, inject into classes?
     private static final MoneroNetworkType MONERO_NETWORK_TYPE = MoneroNetworkType.STAGENET;
-    private static final String MONERO_DAEMON_URI = "http://localhost:38081";
+    private static final String MONERO_DAEMON_URI = "http://localhost:48081";
     private static final String MONERO_DAEMON_USERNAME = "superuser";
     private static final String MONERO_DAEMON_PASSWORD = "abctesting123";
     private static final MoneroWalletRpcManager MONERO_WALLET_RPC_MANAGER = new MoneroWalletRpcManager();
@@ -137,6 +139,7 @@ public class WalletConfig extends AbstractIdleService {
     protected final String filePrefix;
     protected volatile BlockChain vChain;
     protected volatile SPVBlockStore vStore;
+    protected volatile MoneroDaemon vXmrDaemon;
     protected volatile MoneroWallet vXmrWallet;
     protected volatile Wallet vBtcWallet;
     protected volatile Wallet vBsqWallet;
@@ -345,6 +348,9 @@ public class WalletConfig extends AbstractIdleService {
         try {
             File chainFile = new File(directory, filePrefix + ".spvchain");
             boolean chainFileExists = chainFile.exists();
+            
+            // XMR daemon
+            vXmrDaemon = new MoneroDaemonRpc(MONERO_DAEMON_URI, MONERO_DAEMON_USERNAME, MONERO_DAEMON_PASSWORD);
 
             // XMR wallet
             String xmrPrefix = "_XMR";
@@ -361,7 +367,8 @@ public class WalletConfig extends AbstractIdleService {
 //            vXmrWallet.rescanBlockchain();
             vXmrWallet.sync();
             vXmrWallet.save();
-            System.out.println("Loaded wallet balance: " + vXmrWallet.getBalance());
+            System.out.println("Loaded wallet balance: " + vXmrWallet.getBalance(0));
+            System.out.println("Loaded wallet unlocked balance: " + vXmrWallet.getUnlockedBalance(0));
 
             String btcPrefix = "_BTC";
             vBtcWalletFile = new File(directory, filePrefix + btcPrefix + ".wallet");
@@ -626,10 +633,16 @@ public class WalletConfig extends AbstractIdleService {
         return vBtcWallet;
     }
 
+    
+    public MoneroDaemon getXmrDaemon() {
+        checkState(state() == State.STARTING || state() == State.RUNNING, "Cannot call until startup is complete");
+        return vXmrDaemon;
+    }
+    
     public MoneroWallet getXmrWallet() {
-      checkState(state() == State.STARTING || state() == State.RUNNING, "Cannot call until startup is complete");
-      return vXmrWallet;
-  }
+        checkState(state() == State.STARTING || state() == State.RUNNING, "Cannot call until startup is complete");
+        return vXmrWallet;
+    }
 
     public Wallet bsqWallet() {
         checkState(state() == State.STARTING || state() == State.RUNNING, "Cannot call until startup is complete");

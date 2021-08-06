@@ -199,8 +199,6 @@ class EditOfferDataModel extends MutableOfferDataModel {
                 offerPayload.getMinAmount(),
                 newOfferPayload.getBaseCurrencyCode(),
                 newOfferPayload.getCounterCurrencyCode(),
-                offerPayload.getArbitratorNodeAddresses(),
-                offerPayload.getMediatorNodeAddresses(),
                 newOfferPayload.getPaymentMethodId(),
                 newOfferPayload.getMakerPaymentAccountId(),
                 offerPayload.getOfferFeePaymentTxId(),
@@ -224,7 +222,9 @@ class EditOfferDataModel extends MutableOfferDataModel {
                 offerPayload.isPrivateOffer(),
                 offerPayload.getHashOfChallenge(),
                 offerPayload.getExtraDataMap(),
-                offerPayload.getProtocolVersion());
+                offerPayload.getProtocolVersion(),
+                offerPayload.getArbitratorNodeAddress(),
+                offerPayload.getArbitratorSignature());
 
         final Offer editedOffer = new Offer(editedPayload);
         editedOffer.setPriceFeedService(priceFeedService);

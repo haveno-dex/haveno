@@ -48,8 +48,6 @@ public class OfferMaker {
                     lookup.valueOf(minAmount, 100000L),
                     lookup.valueOf(baseCurrencyCode, "XMR"),
                     lookup.valueOf(counterCurrencyCode, "USD"),
-                    null,
-                    null,
                     "SEPA",
                     "",
                     null,
@@ -73,7 +71,9 @@ public class OfferMaker {
                     false,
                     null,
                     null,
-                    0));
+                    0,
+                    null,
+                    null));
 
     public static final Maker<Offer> btcUsdOffer = a(Offer);
 }

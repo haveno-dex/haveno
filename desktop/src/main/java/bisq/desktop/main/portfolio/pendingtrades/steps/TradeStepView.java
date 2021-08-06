@@ -64,7 +64,7 @@ import javafx.geometry.Insets;
 
 import org.fxmisc.easybind.EasyBind;
 import org.fxmisc.easybind.Subscription;
-
+import javafx.application.Platform;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.value.ChangeListener;
 
@@ -409,6 +409,21 @@ public abstract class TradeStepView extends AnchorPane {
 
     private void updateTimeLeft() {
         if (timeLeftTextField != null) {
+            
+            // TODO (woodser): extra TradeStepView created but not deactivated on trade.setState(), so deactivate when model's trade is null
+            if (model.dataModel.getTrade() == null) {
+                log.warn("deactivating TradeStepView because model's trade is null");
+                
+                // schedule deactivation to avoid concurrent modification of clock listeners
+                Platform.runLater(new Runnable() {
+                    @Override
+                    public void run() {
+                        deactivate();
+                    }
+                });
+                return;
+            }
+            
             String remainingTime = model.getRemainingTradeDurationAsWords();
             timeLeftProgressBar.setProgress(model.getRemainingTradeDurationAsPercentage());
             if (!remainingTime.isEmpty()) {
@@ -625,7 +640,7 @@ public abstract class TradeStepView extends AnchorPane {
     }
 
     private boolean peerAccepted() {
-        return trade.getProcessModel().getTradingPeer().getMediatedPayoutTxSignature() != null;
+        return trade.getTradingPeer().getMediatedPayoutTxSignature() != null;
     }
 
     private void openMediationResultPopup(String headLine) {

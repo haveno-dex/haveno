@@ -17,82 +17,26 @@
 
 package bisq.core.trade.protocol.tasks;
 
-import bisq.core.btc.wallet.XmrWalletService;
-import bisq.core.trade.Trade;
-import bisq.core.trade.Trade.State;
-
 import bisq.common.taskrunner.TaskRunner;
-
+import bisq.core.trade.Trade;
 import lombok.extern.slf4j.Slf4j;
 
-
-
-import monero.wallet.MoneroWallet;
-import monero.wallet.model.MoneroOutputWallet;
-import monero.wallet.model.MoneroWalletListener;
-
 @Slf4j
-public abstract class SetupDepositTxsListener extends TradeTask {
-  // Use instance fields to not get eaten up by the GC
-  private MoneroWalletListener depositTxListener;
-  private Boolean makerDepositLocked; // null when unknown, true while locked, false when unlocked
-  private Boolean takerDepositLocked;
+public class SetupDepositTxsListener extends TradeTask {
 
-  @SuppressWarnings({ "unused" })
-  public SetupDepositTxsListener(TaskRunner taskHandler, Trade trade) {
-    super(taskHandler, trade);
-  }
-
-  @Override
-  protected void run() {
-    try {
-      runInterceptHook();
-
-      // fetch relevant trade info
-      XmrWalletService walletService = processModel.getProvider().getXmrWalletService();
-      MoneroWallet multisigWallet = walletService.getOrCreateMultisigWallet(processModel.getTrade().getId());
-      System.out.println("Maker prepared deposit tx id: " + processModel.getMakerPreparedDepositTxId());
-      System.out.println("Taker prepared deposit tx id: " + processModel.getTakerPreparedDepositTxId());
-
-      // register listener with multisig wallet
-      depositTxListener = walletService.new HavenoWalletListener(new MoneroWalletListener() { // TODO (woodser): separate into own class file
-        @Override
-        public void onOutputReceived(MoneroOutputWallet output) {
-
-          // ignore if no longer listening
-          if (depositTxListener == null) return;
-
-          // TODO (woodser): remove this
-          if (output.getTx().isConfirmed() && (processModel.getMakerPreparedDepositTxId().equals(output.getTx().getHash()) || processModel.getTakerPreparedDepositTxId().equals(output.getTx().getHash()))) {
-            System.out.println("Deposit output for tx " + output.getTx().getHash() + " is confirmed at height " + output.getTx().getHeight());
-          }
-
-          // update locked state
-          if (output.getTx().getHash().equals(processModel.getMakerPreparedDepositTxId())) makerDepositLocked = output.getTx().isLocked();
-          else if (output.getTx().getHash().equals(processModel.getTakerPreparedDepositTxId())) takerDepositLocked = output.getTx().isLocked();
-
-          // deposit txs seen when both locked states seen
-          if (makerDepositLocked != null && takerDepositLocked != null) {
-            trade.setState(getSeenState());
-          }
-
-          // confirm trade and update ui when both deposits unlock
-          if (Boolean.FALSE.equals(makerDepositLocked) && Boolean.FALSE.equals(takerDepositLocked)) {
-            System.out.println("MULTISIG DEPOSIT TXS UNLOCKED!!!");
-            trade.applyDepositTxs(multisigWallet.getTx(processModel.getMakerPreparedDepositTxId()), multisigWallet.getTx(processModel.getTakerPreparedDepositTxId()));
-            multisigWallet.removeListener(depositTxListener); // remove listener when notified
-            depositTxListener = null; // prevent re-applying trade state in subsequent requests
-          }
-        }
-      });
-      multisigWallet.addListener(depositTxListener);
-
-      // complete immediately
-      complete();
-    } catch (Throwable t) {
-      failed(t);
+    @SuppressWarnings({ "unused" })
+    public SetupDepositTxsListener(TaskRunner taskHandler, Trade trade) {
+        super(taskHandler, trade);
     }
-  }
 
-  protected abstract State getSeenState();
+    @Override
+    protected void run() {
+        try {
+            runInterceptHook();
+            trade.setupDepositTxsListener();
+            complete();
+        } catch (Throwable t) {
+            failed(t);
+        }
+    }
 }

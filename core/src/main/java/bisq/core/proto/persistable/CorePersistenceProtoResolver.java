@@ -34,6 +34,7 @@ import bisq.core.dao.governance.proposal.storage.temp.TempProposalStore;
 import bisq.core.dao.state.model.governance.BallotList;
 import bisq.core.dao.state.storage.DaoStateStore;
 import bisq.core.dao.state.unconfirmed.UnconfirmedBsqChangeOutputList;
+import bisq.core.offer.SignedOfferList;
 import bisq.core.payment.PaymentAccountList;
 import bisq.core.proto.CoreProtoResolver;
 import bisq.core.support.dispute.arbitration.ArbitrationDisputeList;
@@ -85,6 +86,8 @@ public class CorePersistenceProtoResolver extends CoreProtoResolver implements P
     public PersistableEnvelope fromProto(protobuf.PersistableEnvelope proto) {
         if (proto != null) {
             switch (proto.getMessageCase()) {
+                case SIGNED_OFFER_LIST:
+                    return SignedOfferList.fromProto(proto.getSignedOfferList());
                 case SEQUENCE_NUMBER_MAP:
                     return SequenceNumberMap.fromProto(proto.getSequenceNumberMap());
                 case PEER_LIST:

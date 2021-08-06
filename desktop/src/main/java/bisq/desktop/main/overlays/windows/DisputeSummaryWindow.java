@@ -603,9 +603,7 @@ public class DisputeSummaryWindow extends Overlay<DisputeSummaryWindow> {
           if (!dispute.isMediationDispute()) {
             try {
                 System.out.println(disputeResult);
-                XmrAddressEntry arbitratorAddressEntry = walletService.getArbitratorAddressEntry();
-                MoneroWallet multisigWallet = walletService.getOrCreateMultisigWallet(dispute.getTradeId());
-                System.out.println("Arbitrator payout address entry: " + arbitratorAddressEntry.getAddressString());
+                MoneroWallet multisigWallet = walletService.getMultisigWallet(dispute.getTradeId());
                 //dispute.getContract().getArbitratorPubKeyRing();  // TODO: support arbitrator pub key ring in contract?
                 //disputeResult.setArbitratorPubKey(arbitratorAddressEntry.getPubKey());
 

@@ -90,7 +90,7 @@ public class CreateMakerFeeTx extends Task<PlaceOfferModel> {
                                         model.setTransaction(transaction);
                                         walletService.swapTradeEntryToAvailableEntry(id, AddressEntry.Context.OFFER_FUNDING);
 
-                                        model.getOffer().setState(Offer.State.OFFER_FEE_PAID);
+                                        model.getOffer().setState(Offer.State.OFFER_FEE_RESERVED);
 
                                         complete();
                                     } else {
@@ -137,7 +137,7 @@ public class CreateMakerFeeTx extends Task<PlaceOfferModel> {
                                     walletService.swapTradeEntryToAvailableEntry(id, AddressEntry.Context.OFFER_FUNDING);
 
                                     log.debug("Successfully sent tx with id " + transaction.getTxId().toString());
-                                    model.getOffer().setState(Offer.State.OFFER_FEE_PAID);
+                                    model.getOffer().setState(Offer.State.OFFER_FEE_RESERVED);
 
                                     complete();
                                 }

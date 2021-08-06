@@ -82,7 +82,7 @@ public class Offer implements NetworkPayload, PersistablePayload {
 
     public enum State {
         UNKNOWN,
-        OFFER_FEE_PAID,
+        OFFER_FEE_RESERVED,
         AVAILABLE,
         NOT_AVAILABLE,
         REMOVED,

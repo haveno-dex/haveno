@@ -148,7 +148,6 @@ public class ContractWindow extends Overlay<ContractWindow> {
         if (showAcceptedBanks)
             rows++;
 
-        PaymentAccountPayload sellerPaymentAccountPayload = contract.getSellerPaymentAccountPayload();
         addTitledGroupBg(gridPane, ++rowIndex, rows, Res.get("contractWindow.title"));
         addConfirmationLabelTextFieldWithCopyIcon(gridPane, rowIndex, Res.get("shared.offerId"), offer.getId(),
                 Layout.TWICE_FIRST_ROW_DISTANCE).second.setMouseTransparent(false);
@@ -178,8 +177,8 @@ public class ContractWindow extends Overlay<ContractWindow> {
                 contract.getBuyerNodeAddress().getFullAddress() + " / " + contract.getSellerNodeAddress().getFullAddress());
 
         addConfirmationLabelTextFieldWithCopyIcon(gridPane, ++rowIndex, Res.get("contractWindow.accountAge"),
-                getAccountAge(contract.getBuyerPaymentAccountPayload(), contract.getBuyerPubKeyRing(), offer.getCurrencyCode()) + " / " +
-                        getAccountAge(contract.getSellerPaymentAccountPayload(), contract.getSellerPubKeyRing(), offer.getCurrencyCode()));
+                getAccountAge(dispute.getBuyerPaymentAccountPayload(), contract.getBuyerPubKeyRing(), offer.getCurrencyCode()) + " / " +
+                        getAccountAge(dispute.getSellerPaymentAccountPayload(), contract.getSellerPubKeyRing(), offer.getCurrencyCode()));
 
         DisputeManager<? extends DisputeList<Dispute>> disputeManager = getDisputeManager(dispute);
         String nrOfDisputesAsBuyer = disputeManager != null ? disputeManager.getNrOfDisputes(true, contract) : "";
@@ -188,9 +187,9 @@ public class ContractWindow extends Overlay<ContractWindow> {
                 nrOfDisputesAsBuyer + " / " + nrOfDisputesAsSeller);
 
         addConfirmationLabelTextFieldWithCopyIcon(gridPane, ++rowIndex, Res.get("shared.paymentDetails", Res.get("shared.buyer")),
-                contract.getBuyerPaymentAccountPayload().getPaymentDetails()).second.setMouseTransparent(false);
+                dispute.getBuyerPaymentAccountPayload().getPaymentDetails()).second.setMouseTransparent(false);
         addConfirmationLabelTextFieldWithCopyIcon(gridPane, ++rowIndex, Res.get("shared.paymentDetails", Res.get("shared.seller")),
-                sellerPaymentAccountPayload.getPaymentDetails()).second.setMouseTransparent(false);
+                dispute.getSellerPaymentAccountPayload().getPaymentDetails()).second.setMouseTransparent(false);
 
         String title = "";
         String agentKeyBaseUserName = "";

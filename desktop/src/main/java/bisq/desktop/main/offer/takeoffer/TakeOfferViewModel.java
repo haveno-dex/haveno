@@ -379,7 +379,7 @@ class TakeOfferViewModel extends ActivatableWithDataModel<TakeOfferDataModel> im
         switch (state) {
             case UNKNOWN:
                 break;
-            case OFFER_FEE_PAID:
+            case OFFER_FEE_RESERVED:
                 // irrelevant for taker
                 break;
             case AVAILABLE:

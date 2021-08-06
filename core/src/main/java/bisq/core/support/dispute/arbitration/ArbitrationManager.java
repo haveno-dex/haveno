@@ -240,7 +240,7 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
         String errorMessage = null;
         boolean success = true;
         boolean requestUpdatedPayoutTx = false;
-        MoneroWallet multisigWallet = xmrWalletService.getOrCreateMultisigWallet(dispute.getTradeId());
+        MoneroWallet multisigWallet = xmrWalletService.getMultisigWallet(dispute.getTradeId());
         Contract contract = dispute.getContract();
         try {
             // We need to avoid publishing the tx from both traders as it would create problems with zero confirmation withdrawals
@@ -366,7 +366,7 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
         cleanupRetryMap(uid);
 
         // update multisig wallet
-        MoneroWallet multisigWallet = xmrWalletService.getOrCreateMultisigWallet(dispute.getTradeId());
+        MoneroWallet multisigWallet = xmrWalletService.getMultisigWallet(dispute.getTradeId());
         multisigWallet.importMultisigHex(Arrays.asList(peerPublishedDisputePayoutTxMessage.getUpdatedMultisigHex()));
 
         // parse payout tx
@@ -416,7 +416,7 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
       }
 
       // update arbitrator's multisig wallet with co-signer's multisig hex
-      MoneroWallet multisigWallet = xmrWalletService.getOrCreateMultisigWallet(dispute.getTradeId());
+      MoneroWallet multisigWallet = xmrWalletService.getMultisigWallet(dispute.getTradeId());
       try {
         multisigWallet.importMultisigHex(Arrays.asList(request.getUpdatedMultisigHex()));
       } catch (Exception e) {
@@ -473,7 +473,7 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
     private void onTraderSignedDisputePayoutTx(String tradeId, MoneroTxSet txSet) {
 
       // gather trade info
-      MoneroWallet multisigWallet = xmrWalletService.getOrCreateMultisigWallet(tradeId);
+      MoneroWallet multisigWallet = xmrWalletService.getMultisigWallet(tradeId);
       Optional<Dispute> disputeOptional = findOwnDispute(tradeId);
       if (!disputeOptional.isPresent()) {
           log.warn("Trader has no dispute when signing dispute payout tx. This should never happen. TradeId = " + tradeId);
@@ -596,8 +596,8 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
       String sellerPayoutAddress = contract.isBuyerMakerAndSellerTaker() ? contract.getTakerPayoutAddressString() : contract.getMakerPayoutAddressString();
       Preconditions.checkNotNull(buyerPayoutAddress, "buyerPayoutAddress must not be null");
       Preconditions.checkNotNull(sellerPayoutAddress, "sellerPayoutAddress must not be null");
-      BigInteger buyerPayoutAmount = ParsingUtils.satoshisToXmrAtomicUnits(disputeResult.getBuyerPayoutAmount().value);
-      BigInteger sellerPayoutAmount = ParsingUtils.satoshisToXmrAtomicUnits(disputeResult.getSellerPayoutAmount().value);
+      BigInteger buyerPayoutAmount = ParsingUtils.coinToAtomicUnits(disputeResult.getBuyerPayoutAmount());
+      BigInteger sellerPayoutAmount = ParsingUtils.coinToAtomicUnits(disputeResult.getSellerPayoutAmount());
 
       //System.out.println("buyerPayoutAddress: " + buyerPayoutAddress);
       //System.out.println("buyerPayoutAmount: " + buyerPayoutAmount);
@@ -657,7 +657,7 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
     private MoneroTxSet traderSignsDisputePayoutTx(String tradeId, String payoutTxHex) {
 
       // gather trade info
-      MoneroWallet multisigWallet = xmrWalletService.getOrCreateMultisigWallet(tradeId);
+      MoneroWallet multisigWallet = xmrWalletService.getMultisigWallet(tradeId);
       Optional<Dispute> disputeOptional = findOwnDispute(tradeId);
       if (!disputeOptional.isPresent()) throw new RuntimeException("Trader has no dispute when signing dispute payout tx. This should never happen. TradeId = " + tradeId);
       Dispute dispute = disputeOptional.get();
@@ -665,11 +665,11 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
       DisputeResult disputeResult = dispute.getDisputeResultProperty().get();
 
 //    Offer offer = checkNotNull(trade.getOffer(), "offer must not be null");
-//    BigInteger sellerDepositAmount = multisigWallet.getTx(trade instanceof MakerTrade ? trade.getMakerDepositTxId() : trade.getTakerDepositTxId()).getIncomingAmount();   // TODO (woodser): use contract instead of trade to get deposit tx ids when contract has deposit tx ids
-//    BigInteger buyerDepositAmount = multisigWallet.getTx(trade instanceof MakerTrade ? trade.getTakerDepositTxId() : trade.getMakerDepositTxId()).getIncomingAmount();
+//    BigInteger sellerDepositAmount = multisigWallet.getTx(trade instanceof MakerTrade ? trade.getMaker().getDepositTxHash() : trade.getTaker().getDepositTxHash()).getIncomingAmount();   // TODO (woodser): use contract instead of trade to get deposit tx ids when contract has deposit tx ids
+//    BigInteger buyerDepositAmount = multisigWallet.getTx(trade instanceof MakerTrade ? trade.getTaker().getDepositTxHash() : trade.getMaker().getDepositTxHash()).getIncomingAmount();
 //    BigInteger tradeAmount = BigInteger.valueOf(contract.getTradeAmount().value).multiply(ParsingUtils.XMR_SATOSHI_MULTIPLIER);
-      BigInteger buyerPayoutAmount = ParsingUtils.satoshisToXmrAtomicUnits(disputeResult.getBuyerPayoutAmount().value);
-      BigInteger sellerPayoutAmount = ParsingUtils.satoshisToXmrAtomicUnits(disputeResult.getSellerPayoutAmount().value);
+      BigInteger buyerPayoutAmount = ParsingUtils.coinToAtomicUnits(disputeResult.getBuyerPayoutAmount());
+      BigInteger sellerPayoutAmount = ParsingUtils.coinToAtomicUnits(disputeResult.getSellerPayoutAmount());
       System.out.println("Buyer payout amount (with multiplier): " + buyerPayoutAmount);
       System.out.println("Seller payout amount (with multiplier): " + sellerPayoutAmount);
 

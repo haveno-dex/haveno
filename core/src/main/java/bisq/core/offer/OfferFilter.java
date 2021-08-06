@@ -22,6 +22,8 @@ import bisq.core.filter.FilterManager;
 import bisq.core.locale.CurrencyUtil;
 import bisq.core.payment.PaymentAccount;
 import bisq.core.payment.PaymentAccountUtil;
+import bisq.core.support.dispute.mediation.mediator.Mediator;
+import bisq.core.trade.TradeUtils;
 import bisq.core.user.Preferences;
 import bisq.core.user.User;
 
@@ -80,7 +82,8 @@ public class OfferFilter {
         IS_NODE_ADDRESS_BANNED,
         REQUIRE_UPDATE_TO_NEW_VERSION,
         IS_INSUFFICIENT_COUNTERPARTY_TRADE_LIMIT,
-        IS_MY_INSUFFICIENT_TRADE_LIMIT;
+        IS_MY_INSUFFICIENT_TRADE_LIMIT,
+        SIGNATURE_NOT_VALIDATED;
 
         @Getter
         private final boolean isValid;
@@ -127,6 +130,9 @@ public class OfferFilter {
         }
         if (isMyInsufficientTradeLimit(offer)) {
             return Result.IS_MY_INSUFFICIENT_TRADE_LIMIT;
+        }
+        if (!hasValidSignature(offer)) {
+            return Result.SIGNATURE_NOT_VALIDATED; // TODO (woodser): handle this wherever IS_MY_INSUFFICIENT_TRADE_LIMIT is handled
         }
 
         return Result.VALID;
@@ -205,5 +211,15 @@ public class OfferFilter {
                 myTradeLimit < offerMinAmount;
         myInsufficientTradeLimitCache.put(offerId, result);
         return result;
+    }
+    
+    public boolean hasValidSignature(Offer offer) {
+        
+        // get arbitrator
+        Mediator arbitrator = user.getAcceptedMediatorByAddress(offer.getOfferPayload().getArbitratorNodeAddress()); // TODO (woodser): does this return null if arbitrator goes offline?
+        if (arbitrator == null) return false; // TODO (woodser): if arbitrator is null, get arbirator's pub key ring from store, otherwise cannot validate and offer is not seen by takers when arbitrator goes offline
+        
+        // validate arbitrator signature
+        return TradeUtils.isArbitratorSignatureValid(offer.getOfferPayload(), arbitrator);
     }
 }
