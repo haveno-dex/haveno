@@ -11,7 +11,7 @@ These are the steps needed to set up a local Haveno test network.
 ## 2. Build Haveno
 
 1. Download this repository. Run `git clone https://github.com/haveno-dex/haveno.git`
-2. Navigate inside the repository (`cd haveno`) and start the build: `./gradlew build`. It will take some minutes. If you know what you are doing you can modify [WalletConfig.java](core/src/main/java/bisq/core/btc/setup/WalletConfig.java) with custom settings before building.
+2. Navigate inside the repository (`cd haveno`) and start the build: `./gradlew build`. It will take some minutes. If you know what you are doing you can modify [WalletConfig.java](/core/src/main/java/bisq/core/btc/setup/WalletConfig.java) with custom settings before building.
 
 ## 3. Run Monero
 
