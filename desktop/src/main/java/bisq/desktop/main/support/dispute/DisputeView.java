@@ -453,11 +453,11 @@ public abstract class DisputeView extends ActivatableView<VBox, Void> {
             return FilterResult.SELLER_NODE_ADDRESS;
         }
 
-        if (dispute.getContract().getBuyerPaymentAccountPayload().getPaymentDetails().toLowerCase().contains(filter)) {
+        if (dispute.getBuyerPaymentAccountPayload().getPaymentDetails().toLowerCase().contains(filter)) {
             return FilterResult.BUYER_ACCOUNT_DETAILS;
         }
 
-        if (dispute.getContract().getSellerPaymentAccountPayload().getPaymentDetails().toLowerCase().contains(filter)) {
+        if (dispute.getSellerPaymentAccountPayload().getPaymentDetails().toLowerCase().contains(filter)) {
             return FilterResult.SELLER_ACCOUNT_DETAILS;
         }
 
@@ -750,10 +750,10 @@ public abstract class DisputeView extends ActivatableView<VBox, Void> {
                         .append(")\n");
 
                 String buyerPaymentAccountPayload = Utilities.toTruncatedString(
-                        contract.getBuyerPaymentAccountPayload().getPaymentDetails().
+                        firstDispute.getBuyerPaymentAccountPayload().getPaymentDetails().
                                 replace("\n", " ").replace(";", "."), 100);
                 String sellerPaymentAccountPayload = Utilities.toTruncatedString(
-                        contract.getSellerPaymentAccountPayload().getPaymentDetails()
+                        firstDispute.getSellerPaymentAccountPayload().getPaymentDetails()
                                 .replace("\n", " ").replace(";", "."), 100);
                 String buyerNodeAddress = contract.getBuyerNodeAddress().getFullAddress();
                 String sellerNodeAddress = contract.getSellerNodeAddress().getFullAddress();
@@ -1226,7 +1226,7 @@ public abstract class DisputeView extends ActivatableView<VBox, Void> {
             NodeAddress buyerNodeAddress = contract.getBuyerNodeAddress();
             if (buyerNodeAddress != null) {
                 String nrOfDisputes = disputeManager.getNrOfDisputes(true, contract);
-                long accountAge = accountAgeWitnessService.getAccountAge(contract.getBuyerPaymentAccountPayload(), contract.getBuyerPubKeyRing());
+                long accountAge = accountAgeWitnessService.getAccountAge(item.getBuyerPaymentAccountPayload(), contract.getBuyerPubKeyRing());
                 String age = DisplayUtils.formatAccountAge(accountAge);
                 String postFix = CurrencyUtil.isFiatCurrency(item.getContract().getOfferPayload().getCurrencyCode()) ? " / " + age : "";
                 return buyerNodeAddress.getHostNameWithoutPostFix() + " (" + nrOfDisputes + postFix + ")";
@@ -1243,7 +1243,7 @@ public abstract class DisputeView extends ActivatableView<VBox, Void> {
             NodeAddress sellerNodeAddress = contract.getSellerNodeAddress();
             if (sellerNodeAddress != null) {
                 String nrOfDisputes = disputeManager.getNrOfDisputes(false, contract);
-                long accountAge = accountAgeWitnessService.getAccountAge(contract.getSellerPaymentAccountPayload(), contract.getSellerPubKeyRing());
+                long accountAge = accountAgeWitnessService.getAccountAge(item.getSellerPaymentAccountPayload(), contract.getSellerPubKeyRing());
                 String age = DisplayUtils.formatAccountAge(accountAge);
                 String postFix = CurrencyUtil.isFiatCurrency(item.getContract().getOfferPayload().getCurrencyCode()) ? " / " + age : "";
                 return sellerNodeAddress.getHostNameWithoutPostFix() + " (" + nrOfDisputes + postFix + ")";

@@ -17,7 +17,9 @@
 
 package bisq.core.btc;
 
+import bisq.common.UserThread;
 import bisq.core.btc.wallet.XmrWalletService;
+import bisq.core.offer.OfferPayload;
 import bisq.core.offer.OpenOffer;
 import bisq.core.offer.OpenOfferManager;
 import bisq.core.support.dispute.Dispute;
@@ -26,30 +28,21 @@ import bisq.core.trade.Trade;
 import bisq.core.trade.TradeManager;
 import bisq.core.trade.closed.ClosedTradableManager;
 import bisq.core.trade.failed.FailedTradesManager;
-
-import bisq.common.UserThread;
-
-import org.bitcoinj.core.Coin;
-
-import javax.inject.Inject;
-
+import bisq.core.util.ParsingUtils;
+import bisq.network.p2p.P2PService;
+import java.math.BigInteger;
+import java.util.List;
+import java.util.stream.Collectors;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleObjectProperty;
-
 import javafx.collections.ListChangeListener;
-
-import java.math.BigInteger;
-
-import java.util.List;
-
+import javax.inject.Inject;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
-
-
-
-import monero.wallet.model.MoneroAccount;
+import monero.wallet.model.MoneroOutputQuery;
 import monero.wallet.model.MoneroOutputWallet;
 import monero.wallet.model.MoneroWalletListener;
+import org.bitcoinj.core.Coin;
 
 @Slf4j
 public class Balances {
@@ -98,29 +91,45 @@ public class Balances {
         // Need to delay a bit to get the balances correct
         UserThread.execute(() -> {
             updateAvailableBalance();
-            updateReservedBalance();
             updateLockedBalance();
+            updateReservedBalance();
         });
     }
 
-    // TODO (woodser): currently reserved balance = reserved for trade (excluding multisig) and locked balance = txs with < 10 confirmations
+    // TODO (woodser): balances being set as Coin from BigInteger.longValue(), which can lose precision. should be in centineros for consistency with the rest of the application
 
     private void updateAvailableBalance() {
-        availableBalance.set(Coin.valueOf(xmrWalletService.getWallet().getUnlockedBalance(0).longValue()));
+        availableBalance.set(Coin.valueOf(xmrWalletService.getWallet().getUnlockedBalance(0).longValueExact()));
     }
-
-    private void updateReservedBalance() {
-        BigInteger sum = new BigInteger("0");
-        List<MoneroAccount> accounts = xmrWalletService.getWallet().getAccounts();
-        for (MoneroAccount account : accounts) {
-          if (account.getIndex() != 0) sum = sum.add(account.getBalance());
-        }
-        reservedBalance.set(Coin.valueOf(sum.longValue()));
-    }
-
+    
     private void updateLockedBalance() {
         BigInteger balance = xmrWalletService.getWallet().getBalance(0);
         BigInteger unlockedBalance = xmrWalletService.getWallet().getUnlockedBalance(0);
-        lockedBalance.set(Coin.valueOf(balance.subtract(unlockedBalance).longValue()));
+        lockedBalance.set(Coin.valueOf(balance.subtract(unlockedBalance).longValueExact()));
+    }
+
+    private void updateReservedBalance() {
+        
+        // add frozen input amounts
+        Coin sum = Coin.valueOf(0);
+        List<MoneroOutputWallet> frozenOutputs = xmrWalletService.getWallet().getOutputs(new MoneroOutputQuery().setIsFrozen(true).setIsSpent(false));
+        for (MoneroOutputWallet frozenOutput : frozenOutputs) sum = sum.add(Coin.valueOf(frozenOutput.getAmount().longValueExact()));
+        
+        // add multisig deposit amounts
+        List<Trade> openTrades = tradeManager.getTradesStreamWithFundsLockedIn().collect(Collectors.toList());
+        for (Trade trade : openTrades) {
+            if (trade.getContract() == null) continue;
+            Long reservedAmt;
+            OfferPayload offerPayload = trade.getContract().getOfferPayload();
+            if (trade.getArbitratorNodeAddress().equals(P2PService.getMyNodeAddress())) { // TODO (woodser): this only works if node address does not change
+                reservedAmt = offerPayload.getAmount() + offerPayload.getBuyerSecurityDeposit() + offerPayload.getSellerSecurityDeposit(); // arbitrator reserved balance is sum of amounts sent to multisig
+            } else {
+                reservedAmt = trade.getContract().isMyRoleBuyer(tradeManager.getKeyRing().getPubKeyRing()) ? offerPayload.getBuyerSecurityDeposit() : offerPayload.getAmount() + offerPayload.getSellerSecurityDeposit();
+            }
+            sum = sum.add(Coin.valueOf(ParsingUtils.centinerosToAtomicUnits(reservedAmt).longValueExact()));
+        }
+        
+        // set reserved balance
+        reservedBalance.set(sum);
     }
 }

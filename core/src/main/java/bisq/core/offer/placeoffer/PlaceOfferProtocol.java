@@ -17,12 +17,14 @@
 
 package bisq.core.offer.placeoffer;
 
+import bisq.core.offer.messages.SignOfferResponse;
 import bisq.core.offer.placeoffer.tasks.AddToOfferBook;
-import bisq.core.offer.placeoffer.tasks.CheckNumberOfUnconfirmedTransactions;
+import bisq.core.offer.placeoffer.tasks.MakerReservesTradeFunds;
+import bisq.core.offer.placeoffer.tasks.MakerSendsSignOfferRequest;
+import bisq.core.offer.placeoffer.tasks.MakerProcessesSignOfferResponse;
 import bisq.core.offer.placeoffer.tasks.ValidateOffer;
 import bisq.core.trade.handlers.TransactionResultHandler;
-import bisq.core.trade.protocol.tasks.maker.MakerCreateFeeTx;
-
+import bisq.network.p2p.NodeAddress;
 import bisq.common.handlers.ErrorMessageHandler;
 import bisq.common.taskrunner.TaskRunner;
 
@@ -55,34 +57,60 @@ public class PlaceOfferProtocol {
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     public void placeOffer() {
-        log.debug("model.offer.id" + model.getOffer().getId());
+        log.debug("placeOffer() " + model.getOffer().getId());
         TaskRunner<PlaceOfferModel> taskRunner = new TaskRunner<>(model,
                 () -> {
-                    log.debug("sequence at handleRequestTakeOfferMessage completed");
-                    resultHandler.handleResult(model.getTransaction());
+                    log.debug("sequence at placeOffer completed");
                 },
                 (errorMessage) -> {
                     log.error(errorMessage);
-
-                    if (model.isOfferAddedToOfferBook()) {
-                        model.getOfferBookService().removeOffer(model.getOffer().getOfferPayload(),
-                                () -> {
-                                    model.setOfferAddedToOfferBook(false);
-                                    log.debug("OfferPayload removed from offer book.");
-                                },
-                                log::error);
-                    }
                     model.getOffer().setErrorMessage(errorMessage);
                     errorMessageHandler.handleErrorMessage(errorMessage);
                 }
         );
         taskRunner.addTasks(
                 ValidateOffer.class,
-                CheckNumberOfUnconfirmedTransactions.class,
-                MakerCreateFeeTx.class,
-                AddToOfferBook.class
+                MakerReservesTradeFunds.class,
+                MakerSendsSignOfferRequest.class
         );
 
         taskRunner.run();
+    }
+    
+    // TODO (woodser): switch to fluent
+    public void handleSignOfferResponse(SignOfferResponse response, NodeAddress sender) {
+      log.debug("handleSignOfferResponse() " + model.getOffer().getId());
+      model.setSignOfferResponse(response);
+      
+      if (!model.getOffer().getOfferPayload().getArbitratorNodeAddress().equals(sender)) {
+          log.warn("Ignoring sign offer response from different sender");
+          return;
+      }
+      
+      TaskRunner<PlaceOfferModel> taskRunner = new TaskRunner<>(model,
+              () -> {
+                  log.debug("sequence at handleSignOfferResponse completed");
+                  resultHandler.handleResult(model.getTransaction()); // TODO (woodser): XMR transaction instead
+              },
+              (errorMessage) -> {
+                  log.error(errorMessage);
+                  if (model.isOfferAddedToOfferBook()) {
+                      model.getOfferBookService().removeOffer(model.getOffer().getOfferPayload(),
+                              () -> {
+                                  model.setOfferAddedToOfferBook(false);
+                                  log.debug("OfferPayload removed from offer book.");
+                              },
+                              log::error);
+                  }
+                  model.getOffer().setErrorMessage(errorMessage);
+                  errorMessageHandler.handleErrorMessage(errorMessage);
+              }
+      );
+      taskRunner.addTasks(
+              MakerProcessesSignOfferResponse.class,
+              AddToOfferBook.class
+      );
+
+      taskRunner.run();
     }
 }

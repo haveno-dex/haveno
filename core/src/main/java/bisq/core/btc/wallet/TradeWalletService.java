@@ -146,8 +146,8 @@ public class TradeWalletService {
       return xmrWallet.createTx(new MoneroTxConfig()
               .setAccountIndex(0)
               .setDestinations(
-                      new MoneroDestination(feeReceiver, ParsingUtils.satoshisToXmrAtomicUnits(makerFee.value)),
-                      new MoneroDestination(reservedForTradeAddress, ParsingUtils.satoshisToXmrAtomicUnits(reservedFundsForOffer.value)))
+                      new MoneroDestination(feeReceiver, ParsingUtils.coinToAtomicUnits(makerFee)),
+                      new MoneroDestination(reservedForTradeAddress, ParsingUtils.coinToAtomicUnits(reservedFundsForOffer)))
               .setRelay(broadcastTx));
     }
 

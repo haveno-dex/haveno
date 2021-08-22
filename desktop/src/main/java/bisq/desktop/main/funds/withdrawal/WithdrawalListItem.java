@@ -55,7 +55,7 @@ class WithdrawalListItem {
 
         // balance
         balanceLabel = new AutoTooltipLabel();
-        balanceListener = new XmrBalanceListener(addressEntry.getAccountIndex()) {
+        balanceListener = new XmrBalanceListener(addressEntry.getSubaddressIndex()) {
             @Override
             public void onBalanceChanged(BigInteger balance) {
                 updateBalance();
@@ -71,7 +71,7 @@ class WithdrawalListItem {
     }
 
     private void updateBalance() {
-        balance = walletService.getBalanceForAccount(addressEntry.getAccountIndex());
+        balance = walletService.getBalanceForSubaddress(addressEntry.getSubaddressIndex());
         if (balance != null)
             balanceLabel.setText(formatter.formatCoin(this.balance));
     }

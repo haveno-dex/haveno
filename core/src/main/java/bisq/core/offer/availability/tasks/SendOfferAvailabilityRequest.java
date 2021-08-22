@@ -17,12 +17,21 @@
 
 package bisq.core.offer.availability.tasks;
 
+import bisq.core.btc.model.XmrAddressEntry;
+import bisq.core.btc.wallet.XmrWalletService;
 import bisq.core.offer.Offer;
+import bisq.core.offer.OfferUtil;
 import bisq.core.offer.availability.OfferAvailabilityModel;
 import bisq.core.offer.messages.OfferAvailabilityRequest;
-
+import bisq.core.trade.messages.InitTradeRequest;
+import bisq.core.user.User;
+import bisq.network.p2p.P2PService;
 import bisq.network.p2p.SendDirectMessageListener;
-
+import com.google.common.base.Charsets;
+import java.util.Date;
+import java.util.UUID;
+import bisq.common.app.Version;
+import bisq.common.crypto.Sig;
 import bisq.common.taskrunner.Task;
 import bisq.common.taskrunner.TaskRunner;
 
@@ -38,9 +47,49 @@ public class SendOfferAvailabilityRequest extends Task<OfferAvailabilityModel> {
     protected void run() {
         try {
             runInterceptHook();
-
+            
+            // collect fields
+            Offer offer = model.getOffer();
+            User user = model.getUser();
+            P2PService p2PService = model.getP2PService();
+            XmrWalletService walletService = model.getXmrWalletService();
+            OfferUtil offerUtil = model.getOfferUtil();
+            String paymentAccountId = model.getPaymentAccountId();
+            String paymentMethodId = user.getPaymentAccount(paymentAccountId).getPaymentAccountPayload().getPaymentMethodId();
+            String payoutAddress = walletService.getOrCreateAddressEntry(offer.getId(), XmrAddressEntry.Context.TRADE_PAYOUT).getAddressString(); // reserve new payout address
+            
+            // taker signs offer using offer id as nonce to avoid challenge protocol
+            byte[] sig = Sig.sign(model.getP2PService().getKeyRing().getSignatureKeyPair().getPrivate(), offer.getId().getBytes(Charsets.UTF_8));
+            
+            // send InitTradeRequest to maker to sign
+            InitTradeRequest tradeRequest = new InitTradeRequest(
+                    offer.getId(),
+                    P2PService.getMyNodeAddress(),
+                    p2PService.getKeyRing().getPubKeyRing(),
+                    offer.getAmount().value,
+                    offer.getPrice().getValue(),
+                    offerUtil.getTakerFee(true, offer.getAmount()).value,
+                    user.getAccountId(),
+                    paymentAccountId,
+                    paymentMethodId,
+                    UUID.randomUUID().toString(),
+                    Version.getP2PMessageVersion(),
+                    sig,
+                    new Date().getTime(),
+                    offer.getMakerNodeAddress(),
+                    P2PService.getMyNodeAddress(),
+                    null, // maker provides node address of arbitrator on response
+                    null, // reserve tx not sent from taker to maker
+                    null,
+                    null,
+                    payoutAddress,
+                    null);
+            
+            // save trade request to later send to arbitrator
+            model.setTradeRequest(tradeRequest);
+            
             OfferAvailabilityRequest message = new OfferAvailabilityRequest(model.getOffer().getId(),
-                    model.getPubKeyRing(), model.getTakersTradePrice(), model.isTakerApiUser());
+                    model.getPubKeyRing(), model.getTakersTradePrice(), model.isTakerApiUser(), tradeRequest);
             log.info("Send {} with offerId {} and uid {} to peer {}",
                     message.getClass().getSimpleName(), message.getOfferId(),
                     message.getUid(), model.getPeerNodeAddress());

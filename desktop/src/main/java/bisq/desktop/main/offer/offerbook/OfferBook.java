@@ -85,8 +85,8 @@ public class OfferBook {
                             .filter(item -> item.getOffer().getId().equals(offer.getId()))
                             .findAny();
                     if (candidateWithSameId.isPresent()) {
-                        log.warn("We had an old offer in the list with the same Offer ID. We remove the old one. " +
-                                "old offerBookListItem={}, new offerBookListItem={}", candidateWithSameId.get(), offerBookListItem);
+                        log.warn("We had an old offer in the list with the same Offer ID {}. We remove the old one. " +
+                                "old offerBookListItem={}, new offerBookListItem={}", offer.getId(), candidateWithSameId.get(), offerBookListItem);
                         offerBookListItems.remove(candidateWithSameId.get());
                     }
 

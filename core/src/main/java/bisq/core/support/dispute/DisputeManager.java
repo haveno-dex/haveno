@@ -244,6 +244,7 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
     // API
     ///////////////////////////////////////////////////////////////////////////////////////////
 
+    @Override
     public void onAllServicesInitialized() {
         super.onAllServicesInitialized();
         disputeListService.onAllServicesInitialized();
@@ -329,7 +330,7 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
         if (isAgent(dispute)) {
 
             // update arbitrator's multisig wallet
-            MoneroWallet multisigWallet = xmrWalletService.getOrCreateMultisigWallet(dispute.getTradeId());
+            MoneroWallet multisigWallet = xmrWalletService.getMultisigWallet(dispute.getTradeId());
             multisigWallet.importMultisigHex(Arrays.asList(openNewDisputeMessage.getUpdatedMultisigHex()));
             System.out.println("Arbitrator multisig wallet updated on new dispute message, current txs:");
             System.out.println(multisigWallet.getTxs());
@@ -364,12 +365,14 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
         addMediationResultMessage(dispute);
 
         try {
+            TradeDataValidation.validatePaymentAccountPayloads(dispute);
             TradeDataValidation.validateDonationAddress(dispute.getDonationAddressOfDelayedPayoutTx(), daoFacade);
             //TradeDataValidation.testIfDisputeTriesReplay(dispute, disputeList.getList()); // TODO (woodser): disabled for xmr, needed?
             TradeDataValidation.validateNodeAddress(dispute, dispute.getContract().getBuyerNodeAddress(), config);
             TradeDataValidation.validateNodeAddress(dispute, dispute.getContract().getSellerNodeAddress(), config);
         } catch (TradeDataValidation.AddressException |
-                TradeDataValidation.NodeAddressException e) {
+                TradeDataValidation.NodeAddressException |
+                TradeDataValidation.InvalidPaymentAccountPayloadException e) {
             log.error(e.toString());
             validationExceptions.add(e);
         }
@@ -581,6 +584,8 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
                 disputeFromOpener.getContractAsJson(),
                 disputeFromOpener.getMakerContractSignature(),
                 disputeFromOpener.getTakerContractSignature(),
+                disputeFromOpener.getMakerPaymentAccountPayload(),
+                disputeFromOpener.getTakerPaymentAccountPayload(),
                 disputeFromOpener.getAgentPubKeyRing(),
                 disputeFromOpener.isSupportTicket(),
                 disputeFromOpener.getSupportType());

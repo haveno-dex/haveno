@@ -327,7 +327,7 @@ public class MainView extends InitializableView<StackPane, MainViewModel>
         secondaryNav.setAlignment(Pos.CENTER);
 
         HBox priceAndBalance = new HBox(marketPriceBox.second, getNavigationSeparator(), availableBalanceBox.second,
-                getNavigationSeparator(), reservedBalanceBox.second, getNavigationSeparator(), lockedBalanceBox.second);
+                getNavigationSeparator(), lockedBalanceBox.second, getNavigationSeparator(), reservedBalanceBox.second);
         priceAndBalance.setMaxHeight(41);
 
         priceAndBalance.setAlignment(Pos.CENTER);

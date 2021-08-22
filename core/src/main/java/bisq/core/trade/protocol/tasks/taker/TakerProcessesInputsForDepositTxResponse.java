@@ -47,7 +47,7 @@ public class TakerProcessesInputsForDepositTxResponse extends TradeTask {
             checkTradeId(processModel.getOfferId(), response);
             checkNotNull(response);
 
-            TradingPeer tradingPeer = processModel.getTradingPeer();
+            TradingPeer tradingPeer = trade.getTradingPeer();
             tradingPeer.setPaymentAccountPayload(checkNotNull(response.getMakerPaymentAccountPayload()));
             tradingPeer.setAccountId(nonEmptyStringOf(response.getMakerAccountId()));
             tradingPeer.setMultiSigPubKey(checkNotNull(response.getMakerMultiSigPubKey()));

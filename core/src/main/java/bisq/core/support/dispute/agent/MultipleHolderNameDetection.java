@@ -24,7 +24,6 @@ import bisq.core.support.dispute.Dispute;
 import bisq.core.support.dispute.DisputeList;
 import bisq.core.support.dispute.DisputeManager;
 import bisq.core.support.dispute.DisputeResult;
-import bisq.core.trade.Contract;
 import bisq.core.user.DontShowAgainLookup;
 
 import bisq.common.crypto.Hash;
@@ -90,8 +89,8 @@ public class MultipleHolderNameDetection {
 
     public static PaymentAccountPayload getPaymentAccountPayload(Dispute dispute) {
         return isBuyer(dispute) ?
-                dispute.getContract().getBuyerPaymentAccountPayload() :
-                dispute.getContract().getSellerPaymentAccountPayload();
+                dispute.getBuyerPaymentAccountPayload() :
+                dispute.getSellerPaymentAccountPayload();
     }
 
     public static String getAddress(Dispute dispute) {
@@ -202,10 +201,9 @@ public class MultipleHolderNameDetection {
         Map<String, List<Dispute>> allDisputesByTraderMap = new HashMap<>();
         disputeManager.getDisputesAsObservableList().stream()
                 .filter(dispute -> {
-                    Contract contract = dispute.getContract();
                     PaymentAccountPayload paymentAccountPayload = isBuyer(dispute) ?
-                            contract.getBuyerPaymentAccountPayload() :
-                            contract.getSellerPaymentAccountPayload();
+                            dispute.getBuyerPaymentAccountPayload() :
+                            dispute.getSellerPaymentAccountPayload();
                     return paymentAccountPayload instanceof PayloadWithHolderName;
                 })
                 .forEach(dispute -> {

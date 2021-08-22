@@ -341,18 +341,14 @@ public class PendingTradesDataModel extends ActivatableDataModel {
 
     @Nullable
     public PaymentAccountPayload getSellersPaymentAccountPayload() {
-        if (getTrade() != null && getTrade().getContract() != null)
-            return getTrade().getContract().getSellerPaymentAccountPayload();
-        else
-            return null;
+        if (getTrade() == null) return null;
+        return getTrade().getSeller().getPaymentAccountPayload();
     }
 
     @Nullable
     public PaymentAccountPayload getBuyersPaymentAccountPayload() {
-        if (getTrade() != null && getTrade().getContract() != null)
-            return getTrade().getContract().getBuyerPaymentAccountPayload();
-        else
-            return null;
+        if (getTrade() == null) return null;
+        return getTrade().getBuyer().getPaymentAccountPayload();
     }
 
     public String getReference() {
@@ -459,19 +455,19 @@ public class PendingTradesDataModel extends ActivatableDataModel {
       // in such cases. The mediators or arbitrators could not help anyway with a payout in such cases.
       String depositTxId = null;
       if (isMaker) {
-        if (trade.getMakerDepositTxId() == null) {
+        if (trade.getMaker().getDepositTxHash() == null) {
           log.error("Deposit tx must not be null");
           new Popup().instruction(Res.get("portfolio.pending.error.depositTxNull")).show();
           return;
         }
-        depositTxId = trade.getMakerDepositTxId();
+        depositTxId = trade.getMaker().getDepositTxHash();
       } else {
-        if (trade.getTakerDepositTxId() == null) {
+        if (trade.getTaker().getDepositTxHash() == null) {
           log.error("Deposit tx must not be null");
           new Popup().instruction(Res.get("portfolio.pending.error.depositTxNull")).show();
           return;
         }
-        depositTxId = trade.getTakerDepositTxId();
+        depositTxId = trade.getTaker().getDepositTxHash();
       }
 
       Offer offer = trade.getOffer();
@@ -487,7 +483,7 @@ public class PendingTradesDataModel extends ActivatableDataModel {
       byte[] payoutTxSerialized = null;
       String payoutTxHashAsString = null;
       MoneroTxWallet payoutTx = trade.getPayoutTx();
-      MoneroWallet  multisigWallet = xmrWalletService.getOrCreateMultisigWallet(trade.getId());
+      MoneroWallet  multisigWallet = xmrWalletService.getMultisigWallet(trade.getId());
       String updatedMultisigHex = multisigWallet.getMultisigHex();
       if (payoutTx != null) {
 //          payoutTxSerialized = payoutTx.bitcoinSerialize(); // TODO (woodser): no need to pass serialized txs for xmr
@@ -542,8 +538,8 @@ public class PendingTradesDataModel extends ActivatableDataModel {
             // If no dispute state set we start with mediation
             resultHandler = () -> navigation.navigateTo(MainView.class, SupportView.class, MediationClientView.class);
             disputeManager = mediationManager;
-            PubKeyRing mediatorPubKeyRing = trade.getMediatorPubKeyRing();
-            checkNotNull(mediatorPubKeyRing, "mediatorPubKeyRing must not be null");
+            PubKeyRing arbitratorPubKeyRing = trade.getArbitratorPubKeyRing();
+            checkNotNull(arbitratorPubKeyRing, "arbitratorPubKeyRing must not be null");
             byte[] depositTxSerialized = null;  // depositTx.bitcoinSerialize();  // TODO (woodser): no serialized txs in xmr
             Dispute dispute = new Dispute(new Date().getTime(),
                     trade.getId(),
@@ -561,9 +557,11 @@ public class PendingTradesDataModel extends ActivatableDataModel {
                     depositTxId,
                     payoutTxHashAsString,
                     trade.getContractAsJson(),
-                    trade.getMakerContractSignature(),
-                    trade.getTakerContractSignature(),
-                    mediatorPubKeyRing,
+                    trade.getMaker().getContractSignature(),
+                    trade.getTaker().getContractSignature(),
+                    trade.getMaker().getPaymentAccountPayload(),
+                    trade.getTaker().getPaymentAccountPayload(),
+                    arbitratorPubKeyRing,
                     isSupportTicket,
                     SupportType.MEDIATION);
             dispute.setExtraData("counterCurrencyTxId", trade.getCounterCurrencyTxId());
@@ -595,8 +593,10 @@ public class PendingTradesDataModel extends ActivatableDataModel {
                   depositTxHashAsString,
                   payoutTxHashAsString,
                   trade.getContractAsJson(),
-                  trade.getMakerContractSignature(),
-                  trade.getTakerContractSignature(),
+                  trade.getMaker().getContractSignature(),
+                  trade.getTaker().getContractSignature(),
+                  trade.getMaker().getPaymentAccountPayload(),
+                  trade.getTaker().getPaymentAccountPayload(),
                   arbitratorPubKeyRing,
                   isSupportTicket,
                   SupportType.ARBITRATION);

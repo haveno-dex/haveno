@@ -188,7 +188,7 @@ public abstract class MutableOfferDataModel extends OfferDataModel implements Bs
         useMarketBasedPrice.set(preferences.isUsePercentageBasedPrice());
         buyerSecurityDeposit.set(Restrictions.getMinBuyerSecurityDepositAsPercent());
 
-        xmrBalanceListener = new XmrBalanceListener(getAddressEntry().getAccountIndex()) {
+        xmrBalanceListener = new XmrBalanceListener(getAddressEntry().getSubaddressIndex()) {
             @Override
             public void onBalanceChanged(BigInteger balance) {
                 updateBalance();

@@ -17,9 +17,12 @@
 
 package bisq.core.offer.availability;
 
+import bisq.core.btc.wallet.XmrWalletService;
 import bisq.core.offer.Offer;
+import bisq.core.offer.OfferUtil;
 import bisq.core.offer.messages.OfferAvailabilityResponse;
 import bisq.core.support.dispute.mediation.mediator.MediatorManager;
+import bisq.core.trade.messages.InitTradeRequest;
 import bisq.core.trade.statistics.TradeStatisticsManager;
 import bisq.core.user.User;
 
@@ -40,6 +43,8 @@ public class OfferAvailabilityModel implements Model {
     @Getter
     private final PubKeyRing pubKeyRing; // takers PubKey (my pubkey)
     @Getter
+    private final XmrWalletService xmrWalletService;
+    @Getter
     private final P2PService p2PService;
     @Getter
     final private User user;
@@ -49,22 +54,20 @@ public class OfferAvailabilityModel implements Model {
     private final TradeStatisticsManager tradeStatisticsManager;
     private NodeAddress peerNodeAddress;  // maker
     private OfferAvailabilityResponse message;
+    @Getter
+    private String paymentAccountId;
+    @Getter
+    private OfferUtil offerUtil;
+    @Getter
+    @Setter
+    private InitTradeRequest tradeRequest;
     @Nullable
     @Setter
     @Getter
-    private NodeAddress selectedArbitrator;
-
-    // Added in v1.1.6
-    @Nullable
+    private String makerSignature;
     @Setter
     @Getter
-    private NodeAddress selectedMediator;
-
-    // Added in v1.2.0
-    @Nullable
-    @Setter
-    @Getter
-    private NodeAddress selectedRefundAgent;
+    private NodeAddress arbitratorNodeAddress;
 
     // Added in v1.5.5
     @Getter
@@ -72,18 +75,24 @@ public class OfferAvailabilityModel implements Model {
 
     public OfferAvailabilityModel(Offer offer,
                                   PubKeyRing pubKeyRing,
+                                  XmrWalletService xmrWalletService,
                                   P2PService p2PService,
                                   User user,
                                   MediatorManager mediatorManager,
                                   TradeStatisticsManager tradeStatisticsManager,
-                                  boolean isTakerApiUser) {
+                                  boolean isTakerApiUser,
+                                  String paymentAccountId,
+                                  OfferUtil offerUtil) {
         this.offer = offer;
         this.pubKeyRing = pubKeyRing;
+        this.xmrWalletService = xmrWalletService;
         this.p2PService = p2PService;
         this.user = user;
         this.mediatorManager = mediatorManager;
         this.tradeStatisticsManager = tradeStatisticsManager;
         this.isTakerApiUser = isTakerApiUser;
+        this.paymentAccountId = paymentAccountId;
+        this.offerUtil = offerUtil;
     }
 
     public NodeAddress getPeerNodeAddress() {

@@ -20,17 +20,17 @@ package bisq.core.btc.listeners;
 import java.math.BigInteger;
 
 public class XmrBalanceListener {
-    private Integer accountIndex;
+    private Integer subaddressIndex;
 
     public XmrBalanceListener() {
     }
 
     public XmrBalanceListener(Integer accountIndex) {
-        this.accountIndex = accountIndex;
+        this.subaddressIndex = accountIndex;
     }
 
-    public Integer getAccountIndex() {
-        return accountIndex;
+    public Integer getSubaddressIndex() {
+        return subaddressIndex;
     }
 
     public void onBalanceChanged(BigInteger balance) {

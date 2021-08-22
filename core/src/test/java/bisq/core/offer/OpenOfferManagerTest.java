@@ -27,6 +27,7 @@ import static org.mockito.Mockito.*;
 
 public class OpenOfferManagerTest {
     private PersistenceManager<TradableList<OpenOffer>> persistenceManager;
+    private PersistenceManager<SignedOfferList> signedOfferPersistenceManager;
     private CoreContext coreContext;
 
     @Before
@@ -34,12 +35,14 @@ public class OpenOfferManagerTest {
         var corruptedStorageFileHandler = mock(CorruptedStorageFileHandler.class);
         var storageDir = Files.createTempDirectory("storage").toFile();
         persistenceManager = new PersistenceManager<>(storageDir, null, corruptedStorageFileHandler);
+        signedOfferPersistenceManager = new PersistenceManager<>(storageDir, null, corruptedStorageFileHandler);
         coreContext = new CoreContext();
     }
 
     @After
     public void tearDown() {
         persistenceManager.shutdown();
+        signedOfferPersistenceManager.shutdown();
     }
 
     @Test
@@ -69,7 +72,8 @@ public class OpenOfferManagerTest {
                 null,
                 null,
                 null,
-                persistenceManager);
+                persistenceManager,
+                signedOfferPersistenceManager);
 
         AtomicBoolean startEditOfferSuccessful = new AtomicBoolean(false);
 
@@ -117,7 +121,8 @@ public class OpenOfferManagerTest {
                 null,
                 null,
                 null,
-                persistenceManager);
+                persistenceManager,
+                signedOfferPersistenceManager);
 
         AtomicBoolean startEditOfferSuccessful = new AtomicBoolean(false);
 
@@ -158,7 +163,8 @@ public class OpenOfferManagerTest {
                 null,
                 null,
                 null,
-                persistenceManager);
+                persistenceManager,
+                signedOfferPersistenceManager);
 
         AtomicBoolean startEditOfferSuccessful = new AtomicBoolean(false);
 

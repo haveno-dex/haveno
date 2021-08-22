@@ -18,22 +18,30 @@ import lombok.extern.slf4j.Slf4j;
 public class ParsingUtils {
 
     /**
-     * Temporary multiplier to convert Coin satoshis (denominating XMR centineros) to XMR atomic units.
-     *
-     * TODO (woodser): replace bitcoinj/Coin entirely?
+     * Multiplier to convert centineros (the base XMR unit of Coin) to atomic units.
      */
-    private static BigInteger XMR_SATOSHI_MULTIPLIER = BigInteger.valueOf(10000); // TODO (woodser): make this private and expose satoshisToXmrAtomicUnits()
-
+    private static BigInteger CENTINEROS_AU_MULTIPLIER = BigInteger.valueOf(10000);
+    
     /**
-     * Converts Coin satoshis (the base unit throughout Bisq) to XMR atomic units.
+     * Convert Coin (denominated in centineros) to atomic units.
      *
-     * @param satoshis represents an amount in XMR atomic units scaled to a long
-     * @return BigInteger is the equivalent amount in XMR atomic units
+     * @param coin has an amount denominated in centineros
+     * @return BigInteger the coin amount denominated in atomic units
      */
-    public static BigInteger satoshisToXmrAtomicUnits(long satoshis) {
-        return BigInteger.valueOf(satoshis).multiply(ParsingUtils.XMR_SATOSHI_MULTIPLIER);
+    public static BigInteger coinToAtomicUnits(Coin coin) {
+        return centinerosToAtomicUnits(coin.value);
     }
 
+    /**
+     * Convert centineros (the base unit of Coin) to atomic units.
+     *
+     * @param centineros denominates an amount of XMR in centineros
+     * @return BigInteger the amount denominated in atomic units
+     */
+    public static BigInteger centinerosToAtomicUnits(long centineros) {
+        return BigInteger.valueOf(centineros).multiply(ParsingUtils.CENTINEROS_AU_MULTIPLIER);
+    }
+    
     public static Coin parseToCoin(String input, CoinFormatter coinFormatter) {
         return parseToCoin(input, coinFormatter.getMonetaryFormat());
     }

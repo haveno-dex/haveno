@@ -39,7 +39,7 @@ public class FinalizeMediatedPayoutTx extends TradeTask {
 
 //            Transaction depositTx = checkNotNull(trade.getDepositTx());
 //            String tradeId = trade.getId();
-//            TradingPeer tradingPeer = processModel.getTradingPeer();
+//            TradingPeer tradingPeer = trade.getTradingPeer();
 //            BtcWalletService walletService = processModel.getBtcWalletService();
 //            Offer offer = checkNotNull(trade.getOffer(), "offer must not be null");
 //            Coin tradeAmount = checkNotNull(trade.getTradeAmount(), "tradeAmount must not be null");

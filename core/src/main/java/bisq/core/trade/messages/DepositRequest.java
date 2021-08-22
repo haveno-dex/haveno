@@ -21,42 +21,38 @@ import bisq.core.proto.CoreProtoResolver;
 
 import bisq.network.p2p.DirectMessage;
 import bisq.network.p2p.NodeAddress;
-
+import com.google.protobuf.ByteString;
 import bisq.common.crypto.PubKeyRing;
-import bisq.common.proto.ProtoUtil;
-
-import java.util.Optional;
 
 import lombok.EqualsAndHashCode;
 import lombok.Value;
 
-import javax.annotation.Nullable;
-
 @EqualsAndHashCode(callSuper = true)
 @Value
-public final class InitMultisigMessage extends TradeMessage implements DirectMessage {
+public final class DepositRequest extends TradeMessage implements DirectMessage {
     private final NodeAddress senderNodeAddress;
     private final PubKeyRing pubKeyRing;
     private final long currentDate;
-    @Nullable
-    private final String preparedMultisigHex;
-    @Nullable
-    private final String madeMultisigHex;
+    private final String contractSignature;
+    private final String depositTxHex;
+    private final String depositTxKey;
 
-    public InitMultisigMessage(String tradeId,
+    public DepositRequest(String tradeId,
                                      NodeAddress senderNodeAddress,
                                      PubKeyRing pubKeyRing,
                                      String uid,
                                      int messageVersion,
                                      long currentDate,
-                                     String preparedMultisigHex,
-                                     String madeMultisigHex) {
+                                     String contractSignature,
+                                     String depositTxHex,
+                                     String depositTxKey) {
         super(messageVersion, tradeId, uid);
         this.senderNodeAddress = senderNodeAddress;
         this.pubKeyRing = pubKeyRing;
         this.currentDate = currentDate;
-        this.preparedMultisigHex = preparedMultisigHex;
-        this.madeMultisigHex = madeMultisigHex;
+        this.contractSignature = contractSignature;
+        this.depositTxHex = depositTxHex;
+        this.depositTxKey = depositTxKey;
     }
 
 
@@ -66,41 +62,42 @@ public final class InitMultisigMessage extends TradeMessage implements DirectMes
 
     @Override
     public protobuf.NetworkEnvelope toProtoNetworkEnvelope() {
-        protobuf.InitMultisigMessage.Builder builder = protobuf.InitMultisigMessage.newBuilder()
+        protobuf.DepositRequest.Builder builder = protobuf.DepositRequest.newBuilder()
                 .setTradeId(tradeId)
                 .setSenderNodeAddress(senderNodeAddress.toProtoMessage())
                 .setPubKeyRing(pubKeyRing.toProtoMessage())
-                .setUid(uid);
-
-        Optional.ofNullable(preparedMultisigHex).ifPresent(e -> builder.setPreparedMultisigHex(preparedMultisigHex));
-        Optional.ofNullable(madeMultisigHex).ifPresent(e -> builder.setMadeMultisigHex(madeMultisigHex));
-
+                .setUid(uid)
+                .setContractSignature(contractSignature)
+                .setDepositTxHex(depositTxHex)
+                .setDepositTxKey(depositTxKey);
         builder.setCurrentDate(currentDate);
 
-        return getNetworkEnvelopeBuilder().setInitMultisigMessage(builder).build();
+        return getNetworkEnvelopeBuilder().setDepositRequest(builder).build();
     }
 
-    public static InitMultisigMessage fromProto(protobuf.InitMultisigMessage proto,
+    public static DepositRequest fromProto(protobuf.DepositRequest proto,
                                                       CoreProtoResolver coreProtoResolver,
                                                       int messageVersion) {
-        return new InitMultisigMessage(proto.getTradeId(),
+        return new DepositRequest(proto.getTradeId(),
                 NodeAddress.fromProto(proto.getSenderNodeAddress()),
                 PubKeyRing.fromProto(proto.getPubKeyRing()),
                 proto.getUid(),
                 messageVersion,
                 proto.getCurrentDate(),
-                ProtoUtil.stringOrNullFromProto(proto.getPreparedMultisigHex()),
-                ProtoUtil.stringOrNullFromProto(proto.getMadeMultisigHex()));
+                proto.getContractSignature(),
+                proto.getDepositTxHex(),
+                proto.getDepositTxKey());
     }
 
     @Override
     public String toString() {
-        return "MultisigMessage {" +
+        return "DepositRequest {" +
                 "\n     senderNodeAddress=" + senderNodeAddress +
                 ",\n     pubKeyRing=" + pubKeyRing +
                 ",\n     currentDate=" + currentDate +
-                ",\n     preparedMultisigHex='" + preparedMultisigHex +
-                ",\n     madeMultisigHex='" + madeMultisigHex +
+                ",\n     contractSignature=" + contractSignature +
+                ",\n     depositTxHex='" + depositTxHex +
+                ",\n     depositTxKey='" + depositTxKey +
                 "\n} " + super.toString();
     }
 }

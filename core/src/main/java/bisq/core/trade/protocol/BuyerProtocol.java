@@ -24,12 +24,12 @@ import bisq.core.trade.messages.DepositTxAndDelayedPayoutTxMessage;
 import bisq.core.trade.messages.PayoutTxPublishedMessage;
 import bisq.core.trade.messages.TradeMessage;
 import bisq.core.trade.protocol.tasks.ApplyFilter;
+import bisq.core.trade.protocol.tasks.SetupDepositTxsListener;
 import bisq.core.trade.protocol.tasks.TradeTask;
 import bisq.core.trade.protocol.tasks.UpdateMultisigWithTradingPeer;
 import bisq.core.trade.protocol.tasks.buyer.BuyerCreateAndSignPayoutTx;
 import bisq.core.trade.protocol.tasks.buyer.BuyerProcessPayoutTxPublishedMessage;
 import bisq.core.trade.protocol.tasks.buyer.BuyerSendCounterCurrencyTransferStartedMessage;
-import bisq.core.trade.protocol.tasks.buyer.BuyerSetupDepositTxListener;
 import bisq.core.trade.protocol.tasks.buyer.BuyerSetupPayoutTxListener;
 
 import bisq.network.p2p.NodeAddress;
@@ -57,16 +57,15 @@ public abstract class BuyerProtocol extends DisputeProtocol {
     @Override
     protected void onInitialized() {
         super.onInitialized();
-        // We get called the constructor with any possible state and phase. As we don't want to log an error for such
-        // cases we use the alternative 'given' method instead of 'expect'.
-        given(phase(Trade.Phase.TAKER_FEE_PUBLISHED)
+        
+        given(phase(Trade.Phase.DEPOSIT_PUBLISHED)
                 .with(BuyerEvent.STARTUP))
-                .setup(tasks(BuyerSetupDepositTxListener.class))
+                .setup(tasks(SetupDepositTxsListener.class))
                 .executeTasks();
 
         given(anyPhase(Trade.Phase.FIAT_SENT, Trade.Phase.FIAT_RECEIVED)
                 .with(BuyerEvent.STARTUP))
-                .setup(tasks(BuyerSetupPayoutTxListener.class))
+                .setup(tasks(BuyerSetupPayoutTxListener.class)) // TODO (woodser): mirror deposit listener setup?
                 .executeTasks();
 
         given(anyPhase(Trade.Phase.FIAT_SENT, Trade.Phase.FIAT_RECEIVED)
@@ -166,10 +165,10 @@ public abstract class BuyerProtocol extends DisputeProtocol {
                 BuyerProcessPayoutTxPublishedMessage.class)
                 .using(new TradeTaskRunner(trade,
                     () -> {
-                      handleTaskRunnerSuccess(message);
+                      handleTaskRunnerSuccess(peer, message);
                     },
                     errorMessage -> {
-                        handleTaskRunnerFault(message, errorMessage);
+                        handleTaskRunnerFault(peer, message, errorMessage);
                     })))
             .executeTasks();
     }

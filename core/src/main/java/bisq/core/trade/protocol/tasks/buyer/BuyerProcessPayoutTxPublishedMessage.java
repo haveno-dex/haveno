@@ -58,7 +58,7 @@ public class BuyerProcessPayoutTxPublishedMessage extends TradeTask {
 
             if (trade.getPayoutTx() == null) {
             	XmrWalletService walletService = processModel.getProvider().getXmrWalletService();
-                MoneroWallet multisigWallet = walletService.getOrCreateMultisigWallet(processModel.getTrade().getId());
+                MoneroWallet multisigWallet = walletService.getMultisigWallet(trade.getId());
                 List<String> txHashes = multisigWallet.submitMultisigTxHex(message.getSignedMultisigTxHex());
                 trade.setPayoutTx(multisigWallet.getTx(txHashes.get(0)));
                 XmrWalletService.printTxs("payoutTx received from peer", trade.getPayoutTx());

@@ -302,7 +302,7 @@ public class AccountAgeWitnessService {
 
     private Optional<AccountAgeWitness> findTradePeerWitness(Trade trade) {
         if (trade instanceof ArbitratorTrade) return Optional.empty();  // TODO (woodser): arbitrator trade has two peers
-        TradingPeer tradingPeer = trade.getProcessModel().getTradingPeer();
+        TradingPeer tradingPeer = trade.getTradingPeer();
         return (tradingPeer == null ||
                 tradingPeer.getPaymentAccountPayload() == null ||
                 tradingPeer.getPubKeyRing() == null) ?
@@ -426,7 +426,7 @@ public class AccountAgeWitnessService {
         long limit = OfferRestrictions.TOLERATED_SMALL_TRADE_AMOUNT.value;
         var factor = signedBuyFactor(accountAgeCategory);
         if (factor > 0) {
-            limit = MathUtils.roundDoubleToLong((double) maxTradeLimit.value * factor);
+            limit = MathUtils.roundDoubleToLong(maxTradeLimit.value * factor);
         }
 
         log.debug("limit={}, factor={}, accountAgeWitnessHash={}",
@@ -726,8 +726,8 @@ public class AccountAgeWitnessService {
     public Optional<SignedWitness> traderSignAndPublishPeersAccountAgeWitness(Trade trade) {
         AccountAgeWitness peersWitness = findTradePeerWitness(trade).orElse(null);
         Coin tradeAmount = trade.getTradeAmount();
-        checkNotNull(trade.getProcessModel().getTradingPeer().getPubKeyRing(), "Peer must have a keyring");
-        PublicKey peersPubKey = trade.getProcessModel().getTradingPeer().getPubKeyRing().getSignaturePubKey();
+        checkNotNull(trade.getTradingPeer().getPubKeyRing(), "Peer must have a keyring");
+        PublicKey peersPubKey = trade.getTradingPeer().getPubKeyRing().getSignaturePubKey();
         checkNotNull(peersWitness, "Not able to find peers witness, unable to sign for trade {}",
                 trade.toString());
         checkNotNull(tradeAmount, "Trade amount must not be null");
@@ -767,15 +767,11 @@ public class AccountAgeWitnessService {
         boolean isFiltered = filterManager.isNodeAddressBanned(dispute.getContract().getBuyerNodeAddress()) ||
                 filterManager.isNodeAddressBanned(dispute.getContract().getSellerNodeAddress()) ||
                 filterManager.isCurrencyBanned(dispute.getContract().getOfferPayload().getCurrencyCode()) ||
-                filterManager.isPaymentMethodBanned(
-                        PaymentMethod.getPaymentMethodById(dispute.getContract().getPaymentMethodId())) ||
-                filterManager.arePeersPaymentAccountDataBanned(dispute.getContract().getBuyerPaymentAccountPayload()) ||
-                filterManager.arePeersPaymentAccountDataBanned(
-                        dispute.getContract().getSellerPaymentAccountPayload()) ||
-                filterManager.isWitnessSignerPubKeyBanned(
-                        Utils.HEX.encode(dispute.getContract().getBuyerPubKeyRing().getSignaturePubKeyBytes())) ||
-                filterManager.isWitnessSignerPubKeyBanned(
-                        Utils.HEX.encode(dispute.getContract().getSellerPubKeyRing().getSignaturePubKeyBytes()));
+                filterManager.isPaymentMethodBanned(PaymentMethod.getPaymentMethodById(dispute.getContract().getPaymentMethodId())) ||
+                filterManager.arePeersPaymentAccountDataBanned(dispute.getBuyerPaymentAccountPayload()) ||
+                filterManager.arePeersPaymentAccountDataBanned(dispute.getSellerPaymentAccountPayload()) ||
+                filterManager.isWitnessSignerPubKeyBanned(Utils.HEX.encode(dispute.getContract().getBuyerPubKeyRing().getSignaturePubKeyBytes())) ||
+                filterManager.isWitnessSignerPubKeyBanned(Utils.HEX.encode(dispute.getContract().getSellerPubKeyRing().getSignaturePubKeyBytes()));
         return !isFiltered;
     }
 
@@ -797,8 +793,8 @@ public class AccountAgeWitnessService {
         PubKeyRing buyerPubKeyRing = dispute.getContract().getBuyerPubKeyRing();
         PubKeyRing sellerPubKeyRing = dispute.getContract().getSellerPubKeyRing();
 
-        PaymentAccountPayload buyerPaymentAccountPaload = dispute.getContract().getBuyerPaymentAccountPayload();
-        PaymentAccountPayload sellerPaymentAccountPaload = dispute.getContract().getSellerPaymentAccountPayload();
+        PaymentAccountPayload buyerPaymentAccountPaload = dispute.getBuyerPaymentAccountPayload();
+        PaymentAccountPayload sellerPaymentAccountPaload = dispute.getSellerPaymentAccountPayload();
 
         TraderDataItem buyerData = findWitness(buyerPaymentAccountPaload, buyerPubKeyRing)
                 .map(witness -> new TraderDataItem(
@@ -913,8 +909,7 @@ public class AccountAgeWitnessService {
     public boolean isSignWitnessTrade(Trade trade) {
         checkNotNull(trade, "trade must not be null");
         checkNotNull(trade.getOffer(), "offer must not be null");
-        Contract contract = checkNotNull(trade.getContract());
-        PaymentAccountPayload sellerPaymentAccountPayload = contract.getSellerPaymentAccountPayload();
+        PaymentAccountPayload sellerPaymentAccountPayload = trade.getSeller().getPaymentAccountPayload();
         AccountAgeWitness myWitness = getMyWitness(sellerPaymentAccountPayload);
 
         getAccountAgeWitnessUtils().witnessDebugLog(trade, myWitness);

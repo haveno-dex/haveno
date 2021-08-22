@@ -629,7 +629,7 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
             if (newValue != null) {
                 stopTimeoutTimer();
                 createOfferRequested = false;
-                if (offer.getState() == Offer.State.OFFER_FEE_PAID)
+                if (offer.getState() == Offer.State.OFFER_FEE_RESERVED)
                     errorMessage.set(newValue + Res.get("createOffer.errorInfo"));
                 else
                     errorMessage.set(newValue);

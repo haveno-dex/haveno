@@ -64,7 +64,7 @@ public class XmrTxProofModel implements AssetTxProofModel {
         amount = DevEnv.isDevMode() ?
                 XmrTxProofModel.DEV_AMOUNT : // For dev testing we need to add the matching address to the dev tx key and dev view key
                 volume != null ? volume.getValue() * 10000L : 0L; // XMR satoshis have 12 decimal places vs. bitcoin's 8
-        PaymentAccountPayload sellersPaymentAccountPayload = checkNotNull(trade.getContract()).getSellerPaymentAccountPayload();
+        PaymentAccountPayload sellersPaymentAccountPayload = checkNotNull(trade.getSeller().getPaymentAccountPayload());
         recipientAddress = DevEnv.isDevMode() ?
                 XmrTxProofModel.DEV_ADDRESS : // For dev testing we need to add the matching address to the dev tx key and dev view key
                 ((AssetsAccountPayload) sellersPaymentAccountPayload).getAddress();

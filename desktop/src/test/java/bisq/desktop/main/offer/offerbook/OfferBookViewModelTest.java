@@ -596,8 +596,6 @@ public class OfferBookViewModelTest {
                 0,
                 "XMR",
                 tradeCurrencyCode,
-                null,
-                null,
                 paymentMethodId,
                 null,
                 null,
@@ -621,6 +619,8 @@ public class OfferBookViewModelTest {
                 false,
                 null,
                 null,
-                1));
+                1,
+                null,
+                null));
     }
 }

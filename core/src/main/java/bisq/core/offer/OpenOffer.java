@@ -24,8 +24,9 @@ import bisq.network.p2p.NodeAddress;
 import bisq.common.Timer;
 import bisq.common.UserThread;
 import bisq.common.proto.ProtoUtil;
-
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 import java.util.Optional;
 
 import lombok.EqualsAndHashCode;
@@ -58,16 +59,9 @@ public final class OpenOffer implements Tradable {
     @Setter
     @Nullable
     private NodeAddress arbitratorNodeAddress;
-    @Getter
     @Setter
-    @Nullable
-    private NodeAddress mediatorNodeAddress;
-
-    // Added v1.2.0
     @Getter
-    @Setter
-    @Nullable
-    private NodeAddress refundAgentNodeAddress;
+    private List<String> frozenKeyImages = new ArrayList<>();
 
     // Added in v1.5.3.
     // If market price reaches that trigger price the offer gets deactivated
@@ -86,6 +80,13 @@ public final class OpenOffer implements Tradable {
         this.triggerPrice = triggerPrice;
         state = State.AVAILABLE;
     }
+    
+    public OpenOffer(Offer offer, long triggerPrice, List<String> frozenKeyImages) {
+        this.offer = offer;
+        this.triggerPrice = triggerPrice;
+        state = State.AVAILABLE;
+        this.frozenKeyImages = frozenKeyImages;
+    }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // PROTO BUFFER
@@ -94,14 +95,10 @@ public final class OpenOffer implements Tradable {
     private OpenOffer(Offer offer,
                       State state,
                       @Nullable NodeAddress arbitratorNodeAddress,
-                      @Nullable NodeAddress mediatorNodeAddress,
-                      @Nullable NodeAddress refundAgentNodeAddress,
                       long triggerPrice) {
         this.offer = offer;
         this.state = state;
         this.arbitratorNodeAddress = arbitratorNodeAddress;
-        this.mediatorNodeAddress = mediatorNodeAddress;
-        this.refundAgentNodeAddress = refundAgentNodeAddress;
         this.triggerPrice = triggerPrice;
 
         if (this.state == State.RESERVED)
@@ -113,22 +110,21 @@ public final class OpenOffer implements Tradable {
         protobuf.OpenOffer.Builder builder = protobuf.OpenOffer.newBuilder()
                 .setOffer(offer.toProtoMessage())
                 .setTriggerPrice(triggerPrice)
-                .setState(protobuf.OpenOffer.State.valueOf(state.name()));
+                .setState(protobuf.OpenOffer.State.valueOf(state.name()))
+                .addAllFrozenKeyImages(frozenKeyImages);
 
         Optional.ofNullable(arbitratorNodeAddress).ifPresent(nodeAddress -> builder.setArbitratorNodeAddress(nodeAddress.toProtoMessage()));
-        Optional.ofNullable(mediatorNodeAddress).ifPresent(nodeAddress -> builder.setMediatorNodeAddress(nodeAddress.toProtoMessage()));
-        Optional.ofNullable(refundAgentNodeAddress).ifPresent(nodeAddress -> builder.setRefundAgentNodeAddress(nodeAddress.toProtoMessage()));
 
         return protobuf.Tradable.newBuilder().setOpenOffer(builder).build();
     }
 
     public static Tradable fromProto(protobuf.OpenOffer proto) {
-        return new OpenOffer(Offer.fromProto(proto.getOffer()),
+        OpenOffer openOffer = new OpenOffer(Offer.fromProto(proto.getOffer()),
                 ProtoUtil.enumFromProto(OpenOffer.State.class, proto.getState().name()),
                 proto.hasArbitratorNodeAddress() ? NodeAddress.fromProto(proto.getArbitratorNodeAddress()) : null,
-                proto.hasMediatorNodeAddress() ? NodeAddress.fromProto(proto.getMediatorNodeAddress()) : null,
-                proto.hasRefundAgentNodeAddress() ? NodeAddress.fromProto(proto.getRefundAgentNodeAddress()) : null,
                 proto.getTriggerPrice());
+        openOffer.setFrozenKeyImages(proto.getFrozenKeyImagesList());
+        return openOffer;
     }
 
 
@@ -192,8 +188,6 @@ public final class OpenOffer implements Tradable {
                 ",\n     offer=" + offer +
                 ",\n     state=" + state +
                 ",\n     arbitratorNodeAddress=" + arbitratorNodeAddress +
-                ",\n     mediatorNodeAddress=" + mediatorNodeAddress +
-                ",\n     refundAgentNodeAddress=" + refundAgentNodeAddress +
                 ",\n     triggerPrice=" + triggerPrice +
                 "\n}";
     }

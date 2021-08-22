@@ -58,6 +58,12 @@ public final class TradingPeer implements PersistablePayload {
     @Nullable
     private String accountId;
     @Nullable
+    private String paymentAccountId;
+    @Nullable
+    private String paymentMethodId;
+    @Nullable
+    private byte[] paymentAccountPayloadHash;
+    @Nullable
     private PaymentAccountPayload paymentAccountPayload;
     @Nullable
     private String payoutAddressString;
@@ -90,10 +96,24 @@ public final class TradingPeer implements PersistablePayload {
 
     // Added for XMR integration
     @Nullable
+    private String reserveTxHash;
+    @Nullable
+    private String reserveTxHex;
+    @Nullable
+    private String reserveTxKey;
+    @Nullable
     private String preparedMultisigHex;
+    @Nullable
     private String madeMultisigHex;
+    @Nullable
     private String signedPayoutTxHex;
-
+    @Nullable
+    private String depositTxHash;
+    @Nullable
+    private String depositTxHex;
+    @Nullable
+    private String depositTxKey;
+    
     public TradingPeer() {
     }
 
@@ -102,6 +122,9 @@ public final class TradingPeer implements PersistablePayload {
         final protobuf.TradingPeer.Builder builder = protobuf.TradingPeer.newBuilder()
                 .setChangeOutputValue(changeOutputValue);
         Optional.ofNullable(accountId).ifPresent(builder::setAccountId);
+        Optional.ofNullable(paymentAccountId).ifPresent(builder::setPaymentAccountId);
+        Optional.ofNullable(paymentMethodId).ifPresent(builder::setPaymentMethodId);
+        Optional.ofNullable(paymentAccountPayloadHash).ifPresent(e -> builder.setPaymentAccountPayloadHash(ByteString.copyFrom(paymentAccountPayloadHash)));
         Optional.ofNullable(paymentAccountPayload).ifPresent(e -> builder.setPaymentAccountPayload((protobuf.PaymentAccountPayload) e.toProtoMessage()));
         Optional.ofNullable(payoutAddressString).ifPresent(builder::setPayoutAddressString);
         Optional.ofNullable(contractAsJson).ifPresent(builder::setContractAsJson);
@@ -115,9 +138,15 @@ public final class TradingPeer implements PersistablePayload {
         Optional.ofNullable(accountAgeWitnessNonce).ifPresent(e -> builder.setAccountAgeWitnessNonce(ByteString.copyFrom(e)));
         Optional.ofNullable(accountAgeWitnessSignature).ifPresent(e -> builder.setAccountAgeWitnessSignature(ByteString.copyFrom(e)));
         Optional.ofNullable(mediatedPayoutTxSignature).ifPresent(e -> builder.setMediatedPayoutTxSignature(ByteString.copyFrom(e)));
+        Optional.ofNullable(reserveTxHash).ifPresent(e -> builder.setReserveTxHash(reserveTxHash));
+        Optional.ofNullable(reserveTxHex).ifPresent(e -> builder.setReserveTxHex(reserveTxHex));
+        Optional.ofNullable(reserveTxKey).ifPresent(e -> builder.setReserveTxKey(reserveTxKey));
         Optional.ofNullable(preparedMultisigHex).ifPresent(e -> builder.setPreparedMultisigHex(preparedMultisigHex));
         Optional.ofNullable(madeMultisigHex).ifPresent(e -> builder.setMadeMultisigHex(madeMultisigHex));
         Optional.ofNullable(signedPayoutTxHex).ifPresent(e -> builder.setSignedPayoutTxHex(signedPayoutTxHex));
+        Optional.ofNullable(depositTxHash).ifPresent(e -> builder.setDepositTxHash(depositTxHash));
+        Optional.ofNullable(depositTxHex).ifPresent(e -> builder.setDepositTxHex(depositTxHex));
+        Optional.ofNullable(depositTxKey).ifPresent(e -> builder.setDepositTxKey(depositTxKey));
 
         builder.setCurrentDate(currentDate);
         return builder.build();
@@ -130,6 +159,9 @@ public final class TradingPeer implements PersistablePayload {
             TradingPeer tradingPeer = new TradingPeer();
             tradingPeer.setChangeOutputValue(proto.getChangeOutputValue());
             tradingPeer.setAccountId(ProtoUtil.stringOrNullFromProto(proto.getAccountId()));
+            tradingPeer.setPaymentAccountId(ProtoUtil.stringOrNullFromProto(proto.getPaymentAccountId()));
+            tradingPeer.setPaymentMethodId(ProtoUtil.stringOrNullFromProto(proto.getPaymentMethodId()));
+            tradingPeer.setPaymentAccountPayloadHash(proto.getPaymentAccountPayloadHash().toByteArray());
             tradingPeer.setPaymentAccountPayload(proto.hasPaymentAccountPayload() ? coreProtoResolver.fromProto(proto.getPaymentAccountPayload()) : null);
             tradingPeer.setPayoutAddressString(ProtoUtil.stringOrNullFromProto(proto.getPayoutAddressString()));
             tradingPeer.setContractAsJson(ProtoUtil.stringOrNullFromProto(proto.getContractAsJson()));
@@ -148,9 +180,15 @@ public final class TradingPeer implements PersistablePayload {
             tradingPeer.setAccountAgeWitnessSignature(ProtoUtil.byteArrayOrNullFromProto(proto.getAccountAgeWitnessSignature()));
             tradingPeer.setCurrentDate(proto.getCurrentDate());
             tradingPeer.setMediatedPayoutTxSignature(ProtoUtil.byteArrayOrNullFromProto(proto.getMediatedPayoutTxSignature()));
+            tradingPeer.setReserveTxHash(ProtoUtil.stringOrNullFromProto(proto.getReserveTxHash()));
+            tradingPeer.setReserveTxHex(ProtoUtil.stringOrNullFromProto(proto.getReserveTxHex()));
+            tradingPeer.setReserveTxKey(ProtoUtil.stringOrNullFromProto(proto.getReserveTxKey()));
             tradingPeer.setPreparedMultisigHex(ProtoUtil.stringOrNullFromProto(proto.getPreparedMultisigHex()));
             tradingPeer.setMadeMultisigHex(ProtoUtil.stringOrNullFromProto(proto.getMadeMultisigHex()));
             tradingPeer.setSignedPayoutTxHex(ProtoUtil.stringOrNullFromProto(proto.getSignedPayoutTxHex()));
+            tradingPeer.setDepositTxHash(ProtoUtil.stringOrNullFromProto(proto.getDepositTxHash()));
+            tradingPeer.setDepositTxHex(ProtoUtil.stringOrNullFromProto(proto.getDepositTxHex()));
+            tradingPeer.setDepositTxKey(ProtoUtil.stringOrNullFromProto(proto.getDepositTxKey()));
             return tradingPeer;
         }
     }

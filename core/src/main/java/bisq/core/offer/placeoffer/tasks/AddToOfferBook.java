@@ -17,6 +17,7 @@
 
 package bisq.core.offer.placeoffer.tasks;
 
+import bisq.core.offer.Offer;
 import bisq.core.offer.placeoffer.PlaceOfferModel;
 
 import bisq.common.taskrunner.Task;
@@ -32,7 +33,7 @@ public class AddToOfferBook extends Task<PlaceOfferModel> {
     protected void run() {
         try {
             runInterceptHook();
-            model.getOfferBookService().addOffer(model.getOffer(),
+            model.getOfferBookService().addOffer(new Offer(model.getSignOfferResponse().getSignedOfferPayload()),
                     () -> {
                         model.setOfferAddedToOfferBook(true);
                         complete();
