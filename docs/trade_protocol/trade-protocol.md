@@ -8,7 +8,7 @@ Described here is the desired protocol for Haveno. Note that the discussion is s
 - **Seller** - person selling XMR
 - **Maker** - person making offer
 - **Taker** - person taking offer
-- **Arbitrator** - person resolving potential disputes
+- **Arbitrator** - entity resolving possible disputes
 
 For each trade, a trader is a buyer or seller and a maker or taker.
 
@@ -31,3 +31,9 @@ For each trade, a trader is a buyer or seller and a maker or taker.
 15. Buyer pays seller (e.g. sends ETH) outside of Haveno after at least a few confirmations.
 16. When the multisig deposits are available (after ~20 minutes) and payment is acknowledged, maker and taker sign to release funds from multisig to payout addresses, or one trader opens a dispute with the arbitrator.
 17. Arbitrator resolves dispute if applicable.
+
+Note: all steps involving the arbitrator are automatic except resolving disputes.
+
+## Protocol Messaging
+
+See [trade-protocol.pdf](trade-protocol.pdf) for documentation of network messages used by the trade protocol.
