@@ -32,7 +32,7 @@ Currently, efforts are focused in developing the core repository ('haveno'). If 
 
 ## Trade protocol
 
-See [docs/trade-protocol.md](docs/trade-protocol.md)
+See [trade-protocol.md](docs/trade_protocol/trade-protocol.md)
 
 ## Keep in touch and help out!
 

@@ -7,7 +7,7 @@ Here are stored most of the docs of the Haveno project:
 - [idea-import.md](idea-import.md) - Instructions for importing Haveno as an IntelliJ IDEA project (from Bisq))
 - [README.md](README.md) - This file
 - [tor-upgrade.md](tor-upgrade.md) - Instructions for upgrading the Tor dependencies used by Haveno (from Bisq)
-- [trade-protocol.md](trade-protocol.md) - The description of Haveno's trade protocol
+- [trade-protocol.md](trade_protocol/trade-protocol.md) - The description of Haveno's trade protocol
 
 Documents outside of this folder:
 
