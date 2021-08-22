@@ -102,7 +102,7 @@ public class CreateOfferViewModelTest {
         var tradeStats = mock(TradeStatisticsManager.class);
 
         when(xmrWalletService.getOrCreateAddressEntry(anyString(), any())).thenReturn(addressEntry);
-        when(xmrWalletService.getBalanceForAccount(any(Integer.class))).thenReturn(Coin.valueOf(1000L));
+        when(xmrWalletService.getBalanceForSubaddress(any(Integer.class))).thenReturn(Coin.valueOf(1000L));
         when(priceFeedService.updateCounterProperty()).thenReturn(new SimpleIntegerProperty());
         when(priceFeedService.getMarketPrice(anyString())).thenReturn(
                 new MarketPrice("USD",

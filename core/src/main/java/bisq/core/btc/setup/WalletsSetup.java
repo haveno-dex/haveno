@@ -105,7 +105,7 @@ import javax.annotation.Nullable;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 
-
+import monero.daemon.MoneroDaemon;
 import monero.wallet.MoneroWallet;
 
 // Setup wallets and use WalletConfig for BitcoinJ wiring.
@@ -488,6 +488,10 @@ public class WalletsSetup {
 
     public Wallet getBtcWallet() {
         return walletConfig.btcWallet();
+    }
+
+    public MoneroDaemon getXmrDaemon() {
+        return walletConfig.getXmrDaemon();
     }
 
     public MoneroWallet getXmrWallet() {

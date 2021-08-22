@@ -15,12 +15,11 @@
  * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.core.trade.protocol.tasks.taker;
+package bisq.core.trade.protocol.tasks.maker;
 
 import bisq.core.btc.model.XmrAddressEntry;
 import bisq.core.btc.wallet.XmrWalletService;
 import bisq.core.payment.payload.PaymentAccountPayload;
-import bisq.core.support.dispute.mediation.mediator.Mediator;
 import bisq.core.trade.Trade;
 import bisq.core.trade.messages.InitTradeRequest;
 import bisq.core.trade.protocol.tasks.TradeTask;
@@ -41,16 +40,13 @@ import java.util.UUID;
 
 import lombok.extern.slf4j.Slf4j;
 
+import static bisq.core.util.Validator.checkTradeId;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 @Slf4j
-public class TakerSendInitTradeRequests extends TradeTask {
-
-    private boolean makerAck = false;
-    private boolean arbitratorAck = false;
-
+public class MakerSendsInitTradeRequestIfUnreserved extends TradeTask {
     @SuppressWarnings({"unused"})
-    public TakerSendInitTradeRequests(TaskRunner taskHandler, Trade trade) {
+    public MakerSendsInitTradeRequestIfUnreserved(TaskRunner taskHandler, Trade trade) {
         super(taskHandler, trade);
     }
 
@@ -59,29 +55,34 @@ public class TakerSendInitTradeRequests extends TradeTask {
         try {
             runInterceptHook();
 
-            // collect fields for requests
+            System.out.println("MAKER SENDING INIT TRADE REQ TO ARBITRATOR");
+
+            // verify trade
+            InitTradeRequest request = (InitTradeRequest) processModel.getTradeMessage();
+            checkNotNull(request);
+            checkTradeId(processModel.getOfferId(), request);
+
+            // collect fields to send taker prepared multisig response  // TODO (woodser): this should happen on response from arbitrator
             XmrWalletService walletService = processModel.getProvider().getXmrWalletService();
             String offerId = processModel.getOffer().getId();
-            String takerPayoutAddress = walletService.getNewAddressEntry(offerId, XmrAddressEntry.Context.TRADE_PAYOUT).getAddressString();
+            String payoutAddress = walletService.getWallet().createSubaddress(0).getAddress();  // TODO (woodser): register TRADE_PAYOUT?
             walletService.getWallet().save();
             checkNotNull(trade.getTradeAmount(), "TradeAmount must not be null");
-            //checkNotNull(trade.getTakerFeeTxId(), "TakeOfferFeeTxId must not be null");
+//            checkNotNull(trade.getTakerFeeTxId(), "TakeOfferFeeTxId must not be null"); // TODO (woodser): no taker fee tx yet if creating multisig first
             final User user = processModel.getUser();
             checkNotNull(user, "User must not be null");
-
-            // must have mediator address // TODO (woodser): using mediator instead of arbitrator because it's initially assigned, keep or replace with arbitrator role?
             final List<NodeAddress> acceptedMediatorAddresses = user.getAcceptedMediatorAddresses();
             checkNotNull(acceptedMediatorAddresses, "acceptedMediatorAddresses must not be null");
-            Mediator mediator = checkNotNull(user.getAcceptedMediatorByAddress(trade.getArbitratorNodeAddress()), "user.getAcceptedMediatorByAddress(mediatorNodeAddress) must not be null"); // TODO (woodser): switch to arbitrator?
-            processModel.getArbitrator().setPubKeyRing(mediator.getPubKeyRing());
-            trade.setArbitratorPubKeyRing(processModel.getArbitrator().getPubKeyRing());
-            trade.setMakerPubKeyRing(processModel.getTradingPeer().getPubKeyRing());
-
-            // Taker has to use offerId as nonce (he cannot manipulate that - so we avoid to have a challenge protocol for passing the nonce we want to get signed)
-            // He cannot manipulate the offerId - so we avoid to have a challenge protocol for passing the nonce we want to get signed.
+            
+            // maker signs offer id as nonce to avoid challenge protocol
             final PaymentAccountPayload paymentAccountPayload = checkNotNull(processModel.getPaymentAccountPayload(trade), "processModel.getPaymentAccountPayload(trade) must not be null");
             byte[] sig = Sig.sign(processModel.getKeyRing().getSignatureKeyPair().getPrivate(), offerId.getBytes(Charsets.UTF_8));
 
+            System.out.println("MAKER SENDING ARBITRTATOR SENDER NODE ADDRESS");
+            System.out.println(processModel.getMyNodeAddress());
+            
+            if (true) throw new RuntimeException("Not yet implemented");
+            
             // create message to initialize trade
             InitTradeRequest message = new InitTradeRequest(
                     offerId,
@@ -89,25 +90,35 @@ public class TakerSendInitTradeRequests extends TradeTask {
                     processModel.getPubKeyRing(),
                     trade.getTradeAmount().value,
                     trade.getTradePrice().getValue(),
-                    trade.getTxFee().getValue(),
                     trade.getTakerFee().getValue(),
-                    takerPayoutAddress,
-                    paymentAccountPayload,
                     processModel.getAccountId(),
-                    trade.getTakerFeeTxId(),
+                    paymentAccountPayload.getId(),
+                    paymentAccountPayload.getPaymentMethodId(),
                     UUID.randomUUID().toString(),
                     Version.getP2PMessageVersion(),
                     sig,
                     new Date().getTime(),
-                    trade.getTakerNodeAddress(),
                     trade.getMakerNodeAddress(),
-                    trade.getArbitratorNodeAddress());
+                    trade.getTakerNodeAddress(),
+                    trade.getArbitratorNodeAddress(),
+                    processModel.getReserveTx().getHash(), // TODO (woodser): need to first create and save reserve tx
+                    processModel.getReserveTx().getFullHex(),
+                    processModel.getReserveTx().getKey(),
+                    processModel.getXmrWalletService().getAddressEntry(offerId, XmrAddressEntry.Context.TRADE_PAYOUT).get().getAddressString(),
+                    null);
 
-            System.out.println("TakerSendsInitTradeRequest sending message:");
-            System.out.println(message);
+            log.info("Send {} with offerId {} and uid {} to peer {}",
+                    message.getClass().getSimpleName(), message.getTradeId(),
+                    message.getUid(), trade.getArbitratorNodeAddress());
+
+
+            System.out.println("MAKER TRADE INFO");
+            System.out.println("Trading peer node address: " + trade.getTradingPeerNodeAddress());
+            System.out.println("Maker node address: " + trade.getMakerNodeAddress());
+            System.out.println("Taker node adddress: " + trade.getTakerNodeAddress());
+            System.out.println("Arbitrator node address: " + trade.getArbitratorNodeAddress());
 
             // send request to arbitrator
-            log.info("Send {} with offerId {} and uid {} to arbitrator {} with pub key ring", message.getClass().getSimpleName(), message.getTradeId(), message.getUid(), trade.getArbitratorNodeAddress(), trade.getArbitratorPubKeyRing());
             processModel.getP2PService().sendEncryptedDirectMessage(
                     trade.getArbitratorNodeAddress(),
                     trade.getArbitratorPubKeyRing(),
@@ -116,46 +127,18 @@ public class TakerSendInitTradeRequests extends TradeTask {
                         @Override
                         public void onArrived() {
                             log.info("{} arrived at arbitrator: offerId={}; uid={}", message.getClass().getSimpleName(), message.getTradeId(), message.getUid());
-                            arbitratorAck = true;
-                            checkComplete();
+                            complete();
                         }
                         @Override
                         public void onFault(String errorMessage) {
-                            log.error("Sending {} failed: uid={}; peer={}; error={}", message.getClass().getSimpleName(), message.getUid(), trade.getArbitratorNodeAddress(), errorMessage);
+                            log.error("Sending {} failed: uid={}; peer={}; error={}", message.getClass().getSimpleName(), message.getUid(), trade.getTradingPeerNodeAddress(), errorMessage);
                             appendToErrorMessage("Sending message failed: message=" + message + "\nerrorMessage=" + errorMessage);
                             failed();
                         }
                     }
             );
-
-            // send request to maker
-            log.info("Send {} with offerId {} and uid {} to peer {}", message.getClass().getSimpleName(), message.getTradeId(), message.getUid(), trade.getMakerNodeAddress());
-            processModel.getP2PService().sendEncryptedDirectMessage(
-                    trade.getMakerNodeAddress(),
-                    trade.getMakerPubKeyRing(),
-                    message,
-                    new SendDirectMessageListener() {
-                        @Override
-                        public void onArrived() {
-                            log.info("{} arrived at peer: offerId={}; uid={}", message.getClass().getSimpleName(), message.getTradeId(), message.getUid());
-                            makerAck = true;
-                            checkComplete();
-                        }
-                        @Override
-                        public void onFault(String errorMessage) {
-                            log.error("Sending {} failed: uid={}; peer={}; error={}", message.getClass().getSimpleName(), message.getUid(), trade.getMakerNodeAddress(), errorMessage);
-                            appendToErrorMessage("Sending message failed: message=" + message + "\nerrorMessage=" + errorMessage);
-                            failed();
-                        }
-                    }
-            );
-
         } catch (Throwable t) {
-          failed(t);
+            failed(t);
         }
-    }
-
-    private void checkComplete() {
-      if (makerAck && arbitratorAck) complete();
     }
 }

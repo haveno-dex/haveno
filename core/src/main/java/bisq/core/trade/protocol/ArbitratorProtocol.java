@@ -2,10 +2,19 @@ package bisq.core.trade.protocol;
 
 import bisq.core.trade.ArbitratorTrade;
 import bisq.core.trade.Trade;
-import bisq.core.trade.messages.DepositTxMessage;
+import bisq.core.trade.messages.DepositRequest;
+import bisq.core.trade.messages.InitMultisigRequest;
 import bisq.core.trade.messages.InitTradeRequest;
+import bisq.core.trade.messages.SignContractRequest;
+import bisq.core.trade.protocol.tasks.ApplyFilter;
+import bisq.core.trade.protocol.tasks.ArbitratorSendsInitTradeRequestToMakerIfFromTaker;
+import bisq.core.trade.protocol.tasks.ProcessDepositRequest;
+import bisq.core.trade.protocol.tasks.ProcessInitMultisigRequest;
+import bisq.core.trade.protocol.tasks.ArbitratorProcessesReserveTx;
+import bisq.core.trade.protocol.tasks.ArbitratorSendsInitMultisigRequestsIfFundsReserved;
 import bisq.core.trade.protocol.tasks.ProcessInitTradeRequest;
-
+import bisq.core.trade.protocol.tasks.ProcessSignContractRequest;
+import bisq.core.util.Validator;
 import bisq.network.p2p.NodeAddress;
 
 import bisq.common.handlers.ErrorMessageHandler;
@@ -15,73 +24,91 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class ArbitratorProtocol extends DisputeProtocol {
 
-  private final ArbitratorTrade arbitratorTrade;
-
   public ArbitratorProtocol(ArbitratorTrade trade) {
     super(trade);
-    this.arbitratorTrade = trade;
   }
 
   ///////////////////////////////////////////////////////////////////////////////////////////
   // Incoming messages
   ///////////////////////////////////////////////////////////////////////////////////////////
 
-  // TODO: new implementation for MakerProtocol
-//  private void handle(InitTradeRequest message, NodeAddress peer) {
-//      expect(phase(Trade.Phase.INIT)
-//              .with(message)
-//              .from(peer))
-//              .setup(tasks(ProcessInitTradeRequest.class,
-//                  ApplyFilter.class,
-//                  VerifyPeersAccountAgeWitness.class,
-//                  MakerVerifyTakerFeePayment.class,
-//                  MakerSendsInitTradeRequest.class, // TODO (woodser): contact arbitrator here?  probably later when ready to create multisig
-//                  MakerSendsReadyToFundMultisigResponse.class)
-//                  .withTimeout(30))
-//              .executeTasks();
-//  }
-
   public void handleInitTradeRequest(InitTradeRequest message, NodeAddress peer, ErrorMessageHandler errorMessageHandler) { // TODO (woodser): update impl to use errorMessageHandler
-    expect(phase(Trade.Phase.INIT)
-            .with(message)
-            .from(peer))
-            .setup(tasks(
-                //ApplyFilter.class,
-                ProcessInitTradeRequest.class))
-            .executeTasks();
+      processModel.setTradeMessage(message); // TODO (woodser): confirm these are null without being set
+      //processModel.setTempTradingPeerNodeAddress(peer);
+      expect(phase(Trade.Phase.INIT)
+              .with(message)
+              .from(peer))
+              .setup(tasks(
+                  ApplyFilter.class,
+                  ProcessInitTradeRequest.class,
+                  ArbitratorProcessesReserveTx.class,
+                  ArbitratorSendsInitTradeRequestToMakerIfFromTaker.class,
+                  ArbitratorSendsInitMultisigRequestsIfFundsReserved.class))
+              .executeTasks();
   }
-
+  
   @Override
-  public void handleDepositTxMessage(DepositTxMessage message, NodeAddress taker, ErrorMessageHandler errorMessageHandler) {
-    throw new RuntimeException("Not implemented");
+  public void handleInitMultisigRequest(InitMultisigRequest request, NodeAddress sender, ErrorMessageHandler errorMessageHandler) {
+    System.out.println("ArbitratorProtocol.handleInitMultisigRequest()");
+    Validator.checkTradeId(processModel.getOfferId(), request);
+    processModel.setTradeMessage(request);
+    expect(anyPhase(Trade.Phase.INIT)
+        .with(request)
+        .from(sender))
+        .setup(tasks(
+            ProcessInitMultisigRequest.class)
+            .using(new TradeTaskRunner(trade,
+                () -> {
+                  handleTaskRunnerSuccess(sender, request);
+                },
+                errorMessage -> {
+                    errorMessageHandler.handleErrorMessage(errorMessage);
+                    handleTaskRunnerFault(sender, request, errorMessage);
+                })))
+        .executeTasks();
   }
-
-//  @Override
-//  public void handleTakeOfferRequest(InputsForDepositTxRequest message,
-//                                     NodeAddress peer,
-//                                     ErrorMessageHandler errorMessageHandler) {
-//      expect(phase(Trade.Phase.INIT)
-//              .with(message)
-//              .from(peer))
-//              .setup(tasks(
-//                      MakerProcessesInputsForDepositTxRequest.class,
-//                      ApplyFilter.class,
-//                      VerifyPeersAccountAgeWitness.class,
-//                      getVerifyPeersFeePaymentClass(),
-//                      MakerSetsLockTime.class,
-//                      MakerCreateAndSignContract.class,
-//                      BuyerAsMakerCreatesAndSignsDepositTx.class,
-//                      BuyerSetupDepositTxListener.class,
-//                      BuyerAsMakerSendsInputsForDepositTxResponse.class).
-//                      using(new TradeTaskRunner(trade,
-//                              () -> handleTaskRunnerSuccess(message),
-//                              errorMessage -> {
-//                                  errorMessageHandler.handleErrorMessage(errorMessage);
-//                                  handleTaskRunnerFault(message, errorMessage);
-//                              }))
-//                      .withTimeout(30))
-//              .executeTasks();
-//  }
+  
+  @Override
+  public void handleSignContractRequest(SignContractRequest message, NodeAddress sender, ErrorMessageHandler errorMessageHandler) {
+      System.out.println("ArbitratorProtocol.handleSignContractRequest()");
+      Validator.checkTradeId(processModel.getOfferId(), message);
+      processModel.setTradeMessage(message); // TODO (woodser): synchronize access since concurrent requests processed
+      expect(anyPhase(Trade.Phase.INIT)
+          .with(message)
+          .from(sender))
+          .setup(tasks(
+                  // TODO (woodser): validate request
+                  ProcessSignContractRequest.class)
+              .using(new TradeTaskRunner(trade,
+                  () -> {
+                    handleTaskRunnerSuccess(sender, message);
+                  },
+                  errorMessage -> {
+                      errorMessageHandler.handleErrorMessage(errorMessage);
+                      handleTaskRunnerFault(sender, message, errorMessage);
+                  })))
+          .executeTasks();
+  }
+  
+  public void handleDepositRequest(DepositRequest request, NodeAddress sender, ErrorMessageHandler errorMessageHandler) {
+    System.out.println("ArbitratorProtocol.handleDepositRequest()");
+    Validator.checkTradeId(processModel.getOfferId(), request);
+    processModel.setTradeMessage(request);
+    expect(anyPhase(Trade.Phase.INIT)
+        .with(request)
+        .from(sender))
+        .setup(tasks(
+            ProcessDepositRequest.class)
+            .using(new TradeTaskRunner(trade,
+                () -> {
+                  handleTaskRunnerSuccess(sender, request);
+                },
+                errorMessage -> {
+                    errorMessageHandler.handleErrorMessage(errorMessage);
+                    handleTaskRunnerFault(sender, request, errorMessage);
+                })))
+        .executeTasks();
+  }
 
   ///////////////////////////////////////////////////////////////////////////////////////////
   // Message dispatcher

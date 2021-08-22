@@ -23,24 +23,40 @@ import bisq.network.p2p.DirectMessage;
 import bisq.network.p2p.NodeAddress;
 
 import bisq.common.crypto.PubKeyRing;
+import bisq.common.proto.ProtoUtil;
+
+import java.util.Optional;
 
 import lombok.EqualsAndHashCode;
 import lombok.Value;
 
+import javax.annotation.Nullable;
+
 @EqualsAndHashCode(callSuper = true)
 @Value
-public final class MakerReadyToFundMultisigRequest extends TradeMessage implements DirectMessage {
+public final class InitMultisigRequest extends TradeMessage implements DirectMessage {
     private final NodeAddress senderNodeAddress;
     private final PubKeyRing pubKeyRing;
+    private final long currentDate;
+    @Nullable
+    private final String preparedMultisigHex;
+    @Nullable
+    private final String madeMultisigHex;
 
-    public MakerReadyToFundMultisigRequest(String tradeId,
+    public InitMultisigRequest(String tradeId,
                                      NodeAddress senderNodeAddress,
                                      PubKeyRing pubKeyRing,
                                      String uid,
-                                     int messageVersion) {
+                                     int messageVersion,
+                                     long currentDate,
+                                     String preparedMultisigHex,
+                                     String madeMultisigHex) {
         super(messageVersion, tradeId, uid);
         this.senderNodeAddress = senderNodeAddress;
         this.pubKeyRing = pubKeyRing;
+        this.currentDate = currentDate;
+        this.preparedMultisigHex = preparedMultisigHex;
+        this.madeMultisigHex = madeMultisigHex;
     }
 
 
@@ -50,30 +66,41 @@ public final class MakerReadyToFundMultisigRequest extends TradeMessage implemen
 
     @Override
     public protobuf.NetworkEnvelope toProtoNetworkEnvelope() {
-        protobuf.MakerReadyToFundMultisigRequest.Builder builder = protobuf.MakerReadyToFundMultisigRequest.newBuilder()
+        protobuf.InitMultisigRequest.Builder builder = protobuf.InitMultisigRequest.newBuilder()
                 .setTradeId(tradeId)
                 .setSenderNodeAddress(senderNodeAddress.toProtoMessage())
                 .setPubKeyRing(pubKeyRing.toProtoMessage())
                 .setUid(uid);
 
-        return getNetworkEnvelopeBuilder().setMakerReadyToFundMultisigRequest(builder).build();
+        Optional.ofNullable(preparedMultisigHex).ifPresent(e -> builder.setPreparedMultisigHex(preparedMultisigHex));
+        Optional.ofNullable(madeMultisigHex).ifPresent(e -> builder.setMadeMultisigHex(madeMultisigHex));
+
+        builder.setCurrentDate(currentDate);
+
+        return getNetworkEnvelopeBuilder().setInitMultisigRequest(builder).build();
     }
 
-    public static MakerReadyToFundMultisigRequest fromProto(protobuf.MakerReadyToFundMultisigRequest proto,
+    public static InitMultisigRequest fromProto(protobuf.InitMultisigRequest proto,
                                                       CoreProtoResolver coreProtoResolver,
                                                       int messageVersion) {
-        return new MakerReadyToFundMultisigRequest(proto.getTradeId(),
+        return new InitMultisigRequest(proto.getTradeId(),
                 NodeAddress.fromProto(proto.getSenderNodeAddress()),
                 PubKeyRing.fromProto(proto.getPubKeyRing()),
                 proto.getUid(),
-                messageVersion);
+                messageVersion,
+                proto.getCurrentDate(),
+                ProtoUtil.stringOrNullFromProto(proto.getPreparedMultisigHex()),
+                ProtoUtil.stringOrNullFromProto(proto.getMadeMultisigHex()));
     }
 
     @Override
     public String toString() {
-        return "MakerReadyToFundMultisigRequest{" +
+        return "InitMultisigRequest {" +
                 "\n     senderNodeAddress=" + senderNodeAddress +
                 ",\n     pubKeyRing=" + pubKeyRing +
+                ",\n     currentDate=" + currentDate +
+                ",\n     preparedMultisigHex='" + preparedMultisigHex +
+                ",\n     madeMultisigHex='" + madeMultisigHex +
                 "\n} " + super.toString();
     }
 }

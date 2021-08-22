@@ -22,7 +22,7 @@ import bisq.core.trade.Trade;
 import bisq.core.trade.messages.TradeMessage;
 import bisq.core.trade.messages.UpdateMultisigRequest;
 import bisq.core.trade.messages.UpdateMultisigResponse;
-import bisq.core.trade.protocol.TradeMessageListener;
+import bisq.core.trade.protocol.TradeListener;
 
 import bisq.network.p2p.NodeAddress;
 import bisq.network.p2p.SendDirectMessageListener;
@@ -43,7 +43,7 @@ import monero.wallet.MoneroWallet;
 @Slf4j
 public class UpdateMultisigWithTradingPeer extends TradeTask {
 
-  private TradeMessageListener updateMultisigResponseListener;
+  private TradeListener updateMultisigResponseListener;
 
     @SuppressWarnings({"unused"})
     public UpdateMultisigWithTradingPeer(TaskRunner taskHandler, Trade trade) {
@@ -57,7 +57,7 @@ public class UpdateMultisigWithTradingPeer extends TradeTask {
 
             // fetch relevant trade info
             XmrWalletService walletService = processModel.getProvider().getXmrWalletService();
-            MoneroWallet multisigWallet = walletService.getOrCreateMultisigWallet(processModel.getTrade().getId());
+            MoneroWallet multisigWallet = walletService.getMultisigWallet(trade.getId());
 
             // skip if multisig wallet does not need updated
             if (!multisigWallet.isMultisigImportNeeded()) {
@@ -67,7 +67,7 @@ public class UpdateMultisigWithTradingPeer extends TradeTask {
             }
 
             // register listener to receive updated multisig response
-            updateMultisigResponseListener = new TradeMessageListener() {
+            updateMultisigResponseListener = new TradeListener() {
               @Override
               public void onVerifiedTradeMessage(TradeMessage message, NodeAddress sender) {
                 if (!(message instanceof UpdateMultisigResponse)) return;
@@ -81,11 +81,11 @@ public class UpdateMultisigWithTradingPeer extends TradeTask {
                 multisigWallet.sync();
                 multisigWallet.save();
                 System.out.println("Num outputs signed with imported multisig hex: " + numOutputsSigned);
-                trade.removeTradeMessageListener(updateMultisigResponseListener);
+                trade.removeListener(updateMultisigResponseListener);
                 complete();
               }
             };
-            trade.addTradeMessageListener(updateMultisigResponseListener);
+            trade.addListener(updateMultisigResponseListener);
 
             // get updated multisig hex
             multisigWallet.sync();

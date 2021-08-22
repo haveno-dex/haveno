@@ -20,19 +20,18 @@ import lombok.extern.slf4j.Slf4j;
  */
 @Slf4j
 public class ArbitratorTrade extends Trade {
-
+    
   public ArbitratorTrade(Offer offer,
           Coin tradeAmount,
-          Coin txFee,
           Coin takerFee,
           long tradePrice,
-          NodeAddress makerNodeAddress,
-          NodeAddress takerNodeAddress,
-          NodeAddress arbitratorNodeAddress,
           XmrWalletService xmrWalletService,
           ProcessModel processModel,
-          String uid) {
-    super(offer, tradeAmount, txFee, takerFee, tradePrice, makerNodeAddress, takerNodeAddress, arbitratorNodeAddress, xmrWalletService, processModel, uid);
+          String uid,
+          NodeAddress makerNodeAddress,
+          NodeAddress takerNodeAddress,
+          NodeAddress arbitratorNodeAddress) {
+    super(offer, tradeAmount, takerFee, tradePrice, xmrWalletService, processModel, uid, makerNodeAddress, takerNodeAddress, arbitratorNodeAddress);
   }
 
   @Override
@@ -64,15 +63,14 @@ public class ArbitratorTrade extends Trade {
       return fromProto(new ArbitratorTrade(
                       Offer.fromProto(proto.getOffer()),
                       Coin.valueOf(proto.getTradeAmountAsLong()),
-                      Coin.valueOf(proto.getTxFeeAsLong()),
                       Coin.valueOf(proto.getTakerFeeAsLong()),
                       proto.getTradePrice(),
-                      proto.hasMakerNodeAddress() ? NodeAddress.fromProto(proto.getMakerNodeAddress()) : null,
-                      proto.hasTakerNodeAddress() ? NodeAddress.fromProto(proto.getTakerNodeAddress()) : null,
-                      proto.hasArbitratorNodeAddress() ? NodeAddress.fromProto(proto.getArbitratorNodeAddress()) : null,
                       xmrWalletService,
                       processModel,
-                      uid),
+                      uid,
+                      proto.hasMakerNodeAddress() ? NodeAddress.fromProto(proto.getMakerNodeAddress()) : null,
+                      proto.hasTakerNodeAddress() ? NodeAddress.fromProto(proto.getTakerNodeAddress()) : null,
+                      proto.hasArbitratorNodeAddress() ? NodeAddress.fromProto(proto.getArbitratorNodeAddress()) : null),
               proto,
               coreProtoResolver);
   }

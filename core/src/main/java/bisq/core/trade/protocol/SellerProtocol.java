@@ -21,7 +21,9 @@ import bisq.core.trade.SellerTrade;
 import bisq.core.trade.Trade;
 import bisq.core.trade.messages.CounterCurrencyTransferStartedMessage;
 import bisq.core.trade.messages.TradeMessage;
+import bisq.core.trade.protocol.BuyerProtocol.BuyerEvent;
 import bisq.core.trade.protocol.tasks.ApplyFilter;
+import bisq.core.trade.protocol.tasks.SetupDepositTxsListener;
 import bisq.core.trade.protocol.tasks.TradeTask;
 import bisq.core.trade.protocol.tasks.seller.SellerProcessCounterCurrencyTransferStartedMessage;
 import bisq.core.trade.protocol.tasks.seller.SellerSendPayoutTxPublishedMessage;
@@ -43,6 +45,16 @@ public abstract class SellerProtocol extends DisputeProtocol {
 
     public SellerProtocol(SellerTrade trade) {
         super(trade);
+    }
+    
+    @Override
+    protected void onInitialized() {
+        super.onInitialized();
+        
+        given(phase(Trade.Phase.DEPOSIT_PUBLISHED)
+                .with(BuyerEvent.STARTUP))
+                .setup(tasks(SetupDepositTxsListener.class))
+                .executeTasks();
     }
 
 
@@ -78,7 +90,7 @@ public abstract class SellerProtocol extends DisputeProtocol {
                             log.warn("We received a CounterCurrencyTransferStartedMessage but we have already created the payout tx " +
                                     "so we ignore the message. This can happen if the ACK message to the peer did not " +
                                     "arrive and the peer repeats sending us the message. We send another ACK msg.");
-                            sendAckMessage(message, true, null);
+                            sendAckMessage(peer, message, true, null);
                             removeMailboxMessageAfterProcessing(message);
                         }))
                 .setup(tasks(

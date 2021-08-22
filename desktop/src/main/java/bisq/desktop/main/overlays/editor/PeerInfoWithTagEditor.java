@@ -251,7 +251,7 @@ public class PeerInfoWithTagEditor extends Overlay<PeerInfoWithTagEditor> {
                 UserThread.runAfter(() -> {
                     PubKeyRing peersPubKeyRing = null;
                     if (trade != null) {
-                        peersPubKeyRing = trade.getProcessModel().getTradingPeer().getPubKeyRing();
+                        peersPubKeyRing = trade.getTradingPeer().getPubKeyRing();
                     } else if (offer != null) {
                         peersPubKeyRing = offer.getPubKeyRing();
                     }

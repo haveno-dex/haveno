@@ -18,6 +18,7 @@
 package bisq.core.support.dispute;
 
 import bisq.core.locale.Res;
+import bisq.core.payment.payload.PaymentAccountPayload;
 import bisq.core.proto.CoreProtoResolver;
 import bisq.core.support.SupportType;
 import bisq.core.support.messages.ChatMessage;
@@ -128,9 +129,6 @@ public final class Dispute implements NetworkPayload, PersistablePayload {
     @Nullable
     private String delayedPayoutTxId;
 
-    // Added for XMR integration
-    private boolean isOpener;
-
     // Added at v1.4.0
     @Setter
     @Nullable
@@ -144,6 +142,13 @@ public final class Dispute implements NetworkPayload, PersistablePayload {
     @Nullable
     @Setter
     private Map<String, String> extraDataMap;
+    
+    // Added for XMR integration
+    private boolean isOpener;
+    @Nullable
+    private PaymentAccountPayload makerPaymentAccountPayload;
+    @Nullable
+    private PaymentAccountPayload takerPaymentAccountPayload;
 
     // We do not persist uid, it is only used by dispute agents to guarantee an uid.
     @Setter
@@ -178,6 +183,8 @@ public final class Dispute implements NetworkPayload, PersistablePayload {
                    String contractAsJson,
                    @Nullable String makerContractSignature,
                    @Nullable String takerContractSignature,
+                   @Nullable PaymentAccountPayload makerPaymentAccountPayload,
+                   @Nullable PaymentAccountPayload takerPaymentAccountPayload,
                    PubKeyRing agentPubKeyRing,
                    boolean isSupportTicket,
                    SupportType supportType) {
@@ -199,6 +206,8 @@ public final class Dispute implements NetworkPayload, PersistablePayload {
         this.contractAsJson = contractAsJson;
         this.makerContractSignature = makerContractSignature;
         this.takerContractSignature = takerContractSignature;
+        this.makerPaymentAccountPayload = makerPaymentAccountPayload;
+        this.takerPaymentAccountPayload = takerPaymentAccountPayload;
         this.agentPubKeyRing = agentPubKeyRing;
         this.isSupportTicket = isSupportTicket;
         this.supportType = supportType;
@@ -246,6 +255,8 @@ public final class Dispute implements NetworkPayload, PersistablePayload {
         Optional.ofNullable(disputePayoutTxId).ifPresent(builder::setDisputePayoutTxId);
         Optional.ofNullable(makerContractSignature).ifPresent(builder::setMakerContractSignature);
         Optional.ofNullable(takerContractSignature).ifPresent(builder::setTakerContractSignature);
+        Optional.ofNullable(makerPaymentAccountPayload).ifPresent(e -> builder.setMakerPaymentAccountPayload((protobuf.PaymentAccountPayload) makerPaymentAccountPayload.toProtoMessage()));
+        Optional.ofNullable(takerPaymentAccountPayload).ifPresent(e -> builder.setTakerPaymentAccountPayload((protobuf.PaymentAccountPayload) takerPaymentAccountPayload.toProtoMessage()));
         Optional.ofNullable(disputeResultProperty.get()).ifPresent(result -> builder.setDisputeResult(disputeResultProperty.get().toProtoMessage()));
         Optional.ofNullable(supportType).ifPresent(result -> builder.setSupportType(SupportType.toProtoMessage(supportType)));
         Optional.ofNullable(mediatorsDisputeResult).ifPresent(result -> builder.setMediatorsDisputeResult(mediatorsDisputeResult));
@@ -274,6 +285,8 @@ public final class Dispute implements NetworkPayload, PersistablePayload {
                 proto.getContractAsJson(),
                 ProtoUtil.stringOrNullFromProto(proto.getMakerContractSignature()),
                 ProtoUtil.stringOrNullFromProto(proto.getTakerContractSignature()),
+                proto.hasMakerPaymentAccountPayload() ? coreProtoResolver.fromProto(proto.getMakerPaymentAccountPayload()) : null,
+                proto.hasTakerPaymentAccountPayload() ? coreProtoResolver.fromProto(proto.getTakerPaymentAccountPayload()) : null,
                 PubKeyRing.fromProto(proto.getAgentPubKeyRing()),
                 proto.getIsSupportTicket(),
                 SupportType.fromProto(proto.getSupportType()));
@@ -447,6 +460,16 @@ public final class Dispute implements NetworkPayload, PersistablePayload {
             else
                 return Res.get("support.sellerTaker");
         }
+    }
+    
+    @Nullable
+    public PaymentAccountPayload getBuyerPaymentAccountPayload() {
+        return contract.isBuyerMakerAndSellerTaker() ? makerPaymentAccountPayload : takerPaymentAccountPayload;
+    }
+
+    @Nullable
+    public PaymentAccountPayload getSellerPaymentAccountPayload() {
+        return contract.isBuyerMakerAndSellerTaker() ? takerPaymentAccountPayload : makerPaymentAccountPayload;
     }
 
     @Override

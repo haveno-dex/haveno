@@ -55,7 +55,7 @@ public class SellerAsMakerCreatesUnsignedDepositTx extends TradeTask {
 
             BtcWalletService walletService = processModel.getBtcWalletService();
             String id = processModel.getOffer().getId();
-            TradingPeer tradingPeer = processModel.getTradingPeer();
+            TradingPeer tradingPeer = trade.getTradingPeer();
             Offer offer = checkNotNull(trade.getOffer());
 
             // params

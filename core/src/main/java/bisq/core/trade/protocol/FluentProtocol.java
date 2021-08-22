@@ -98,7 +98,7 @@ public class FluentProtocol {
 
         NodeAddress peer = condition.getPeer();
         if (peer != null) {
-            tradeProtocol.processModel.setTempTradingPeerNodeAddress(peer);
+            tradeProtocol.processModel.setTempTradingPeerNodeAddress(peer); // TODO (woodser): node has multiple peers (arbitrator and maker or taker), but fluent protocol assumes only one
             tradeProtocol.processModel.getTradeManager().requestPersistence();
         }
 
@@ -108,7 +108,7 @@ public class FluentProtocol {
             tradeProtocol.processModel.getTradeManager().requestPersistence();
         }
 
-        TradeTaskRunner taskRunner = setup.getTaskRunner(message, condition.getEvent());
+        TradeTaskRunner taskRunner = setup.getTaskRunner(peer, message, condition.getEvent());
         taskRunner.addTasks(setup.getTasks());
         taskRunner.run();
         return this;
@@ -366,12 +366,12 @@ public class FluentProtocol {
             return this;
         }
 
-        public TradeTaskRunner getTaskRunner(@Nullable TradeMessage message, @Nullable Event event) {
+        public TradeTaskRunner getTaskRunner(NodeAddress sender, @Nullable TradeMessage message, @Nullable Event event) {
             if (taskRunner == null) {
                 if (message != null) {
                     taskRunner = new TradeTaskRunner(trade,
-                            () -> tradeProtocol.handleTaskRunnerSuccess(message),
-                            errorMessage -> tradeProtocol.handleTaskRunnerFault(message, errorMessage));
+                            () -> tradeProtocol.handleTaskRunnerSuccess(sender, message),
+                            errorMessage -> tradeProtocol.handleTaskRunnerFault(sender, message, errorMessage));
                 } else if (event != null) {
                     taskRunner = new TradeTaskRunner(trade,
                             () -> tradeProtocol.handleTaskRunnerSuccess(event),

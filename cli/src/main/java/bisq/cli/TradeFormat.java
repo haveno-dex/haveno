@@ -161,7 +161,7 @@ public class TradeFormat {
 
     private static final Function<TradeInfo, String> amountFormat = (t) ->
             t.getOffer().getBaseCurrencyCode().equals("XMR")
-                    ? formatXmr(ParsingUtils.satoshisToXmrAtomicUnits(t.getTradeAmountAsLong()))
+                    ? formatXmr(ParsingUtils.centinerosToAtomicUnits(t.getTradeAmountAsLong()))
                     : formatCryptoCurrencyOfferVolume(t.getOffer().getVolume());
 
     private static final BiFunction<TradeInfo, Boolean, String> makerTakerMinerTxFeeFormat = (t, isTaker) -> {
@@ -173,13 +173,13 @@ public class TradeFormat {
     };
 
     private static final BiFunction<TradeInfo, Boolean, String> makerTakerFeeFormat = (t, isTaker) -> {
-        return formatXmr(ParsingUtils.satoshisToXmrAtomicUnits(t.getTakerFeeAsLong()));
+        return formatXmr(ParsingUtils.centinerosToAtomicUnits(t.getTakerFeeAsLong()));
     };
 
     private static final Function<TradeInfo, String> tradeCostFormat = (t) ->
             t.getOffer().getBaseCurrencyCode().equals("XMR")
                     ? formatOfferVolume(t.getOffer().getVolume())
-                    : formatXmr(ParsingUtils.satoshisToXmrAtomicUnits(t.getTradeAmountAsLong()));
+                    : formatXmr(ParsingUtils.centinerosToAtomicUnits(t.getTradeAmountAsLong()));
 
     private static final BiFunction<TradeInfo, Boolean, String> bsqReceiveAddress = (t, showBsqBuyerAddress) -> {
         if (showBsqBuyerAddress) {

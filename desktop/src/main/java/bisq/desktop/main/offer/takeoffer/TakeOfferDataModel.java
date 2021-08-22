@@ -52,7 +52,6 @@ import bisq.core.util.VolumeUtil;
 import bisq.core.util.coin.CoinUtil;
 
 import bisq.network.p2p.P2PService;
-
 import bisq.common.util.Tuple2;
 
 import org.bitcoinj.core.Coin;
@@ -184,6 +183,7 @@ class TakeOfferDataModel extends OfferDataModel {
         if (canTakeOffer()) {
             tradeManager.checkOfferAvailability(offer,
                     false,
+                    paymentAccount.getId(),
                     () -> {
                     },
                     errorMessage -> new Popup().warning(errorMessage).show());
@@ -265,40 +265,11 @@ class TakeOfferDataModel extends OfferDataModel {
         calculateVolume();
         calculateTotalToPay();
 
-        balanceListener = new XmrBalanceListener(addressEntry.getAccountIndex()) {
+        balanceListener = new XmrBalanceListener(addressEntry.getSubaddressIndex()) {
             @Override
             public void onBalanceChanged(BigInteger balance) {
-              updateBalance();
+                updateBalance();
             }
-
-//            public void onBalanceChanged(Coin balance, Transaction tx) {
-//                updateBalance();
-//
-//                /*if (isMainNet.get()) {
-//                    SettableFuture<Coin> future = blockchainService.requestFee(tx.getHashAsString());
-//                    Futures.addCallback(future, new FutureCallback<Coin>() {
-//                        public void onSuccess(Coin fee) {
-//                            UserThread.execute(() -> setFeeFromFundingTx(fee));
-//                        }
-//
-//                        public void onFailure(@NotNull Throwable throwable) {
-//                            UserThread.execute(() -> new Popup<>()
-//                                    .warning("We did not get a response for the request of the mining fee used " +
-//                                            "in the funding transaction.\n\n" +
-//                                            "Are you sure you used a sufficiently high fee of at least " +
-//                                            formatter.formatCoinWithCode(FeePolicy.getMinRequiredFeeForFundingTx()) + "?")
-//                                    .actionButtonText("Yes, I used a sufficiently high fee.")
-//                                    .onAction(() -> setFeeFromFundingTx(FeePolicy.getMinRequiredFeeForFundingTx()))
-//                                    .closeButtonText("No. Let's cancel that payment.")
-//                                    .onClose(() -> setFeeFromFundingTx(Coin.NEGATIVE_SATOSHI))
-//                                    .show());
-//                        }
-//                    });
-//                } else {
-//                    setFeeFromFundingTx(FeePolicy.getMinRequiredFeeForFundingTx());
-//                    isFeeFromFundingTxSufficient.set(feeFromFundingTx.compareTo(FeePolicy.getMinRequiredFeeForFundingTx()) >= 0);
-//                }*/
-//            }
         };
 
         offer.resetState();
@@ -364,7 +335,6 @@ class TakeOfferDataModel extends OfferDataModel {
             tradeManager.onTakeOffer(amount.get(),
                     txFeeFromFeeService,
                     getTakerFee(),
-                    tradePrice.getValue(),
                     fundsNeededForTrade,
                     offer,
                     paymentAccount.getId(),

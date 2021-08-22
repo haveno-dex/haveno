@@ -30,7 +30,8 @@ public enum AvailabilityResult {
     @SuppressWarnings("unused") NO_REFUND_AGENTS("cannot take offer because no refund agents are available"),
     UNCONF_TX_LIMIT_HIT("cannot take offer because you have too many unconfirmed transactions at this moment"),
     MAKER_DENIED_API_USER("cannot take offer because maker is api user"),
-    PRICE_CHECK_FAILED("cannot take offer because trade price check failed");
+    PRICE_CHECK_FAILED("cannot take offer because trade price check failed"),
+    MAKER_DENIED_TAKER("cannot take offer because maker denied taker");
 
     private final String description;
 

@@ -22,7 +22,8 @@ import bisq.network.p2p.SupportedCapabilitiesMessage;
 import bisq.common.app.Capabilities;
 import bisq.common.app.Version;
 import bisq.common.crypto.PubKeyRing;
-
+import bisq.core.proto.CoreProtoResolver;
+import bisq.core.trade.messages.InitTradeRequest;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -43,18 +44,21 @@ public final class OfferAvailabilityRequest extends OfferMessage implements Supp
     @Nullable
     private final Capabilities supportedCapabilities;
     private final boolean isTakerApiUser;
+    private final InitTradeRequest tradeRequest;
 
     public OfferAvailabilityRequest(String offerId,
                                     PubKeyRing pubKeyRing,
                                     long takersTradePrice,
-                                    boolean isTakerApiUser) {
+                                    boolean isTakerApiUser,
+                                    InitTradeRequest tradeRequest) {
         this(offerId,
                 pubKeyRing,
                 takersTradePrice,
                 isTakerApiUser,
                 Capabilities.app,
                 Version.getP2PMessageVersion(),
-                UUID.randomUUID().toString());
+                UUID.randomUUID().toString(),
+                tradeRequest);
     }
 
 
@@ -68,13 +72,24 @@ public final class OfferAvailabilityRequest extends OfferMessage implements Supp
                                      boolean isTakerApiUser,
                                      @Nullable Capabilities supportedCapabilities,
                                      int messageVersion,
-                                     @Nullable String uid) {
+                                     @Nullable String uid,
+                                     InitTradeRequest tradeRequest) {
         super(messageVersion, offerId, uid);
         this.pubKeyRing = pubKeyRing;
         this.takersTradePrice = takersTradePrice;
         this.isTakerApiUser = isTakerApiUser;
         this.supportedCapabilities = supportedCapabilities;
+        this.tradeRequest = tradeRequest;
     }
+    
+//    @Override
+//    public protobuf.Offer toProtoMessage() {
+//        return protobuf.Offer.newBuilder().setOfferPayload(offerPayload.toProtoMessage().getOfferPayload()).build();
+//    }
+//
+//    public static Offer fromProto(protobuf.Offer proto) {
+//        return new Offer(OfferPayload.fromProto(proto.getOfferPayload()));
+//    }
 
     @Override
     public protobuf.NetworkEnvelope toProtoNetworkEnvelope() {
@@ -82,7 +97,8 @@ public final class OfferAvailabilityRequest extends OfferMessage implements Supp
                 .setOfferId(offerId)
                 .setPubKeyRing(pubKeyRing.toProtoMessage())
                 .setTakersTradePrice(takersTradePrice)
-                .setIsTakerApiUser(isTakerApiUser);
+                .setIsTakerApiUser(isTakerApiUser)
+                .setTradeRequest(tradeRequest.toProtoNetworkEnvelope().getInitTradeRequest());
 
         Optional.ofNullable(supportedCapabilities).ifPresent(e -> builder.addAllSupportedCapabilities(Capabilities.toIntList(supportedCapabilities)));
         Optional.ofNullable(uid).ifPresent(e -> builder.setUid(uid));
@@ -92,13 +108,14 @@ public final class OfferAvailabilityRequest extends OfferMessage implements Supp
                 .build();
     }
 
-    public static OfferAvailabilityRequest fromProto(protobuf.OfferAvailabilityRequest proto, int messageVersion) {
+    public static OfferAvailabilityRequest fromProto(protobuf.OfferAvailabilityRequest proto, CoreProtoResolver coreProtoResolver, int messageVersion) {
         return new OfferAvailabilityRequest(proto.getOfferId(),
                 PubKeyRing.fromProto(proto.getPubKeyRing()),
                 proto.getTakersTradePrice(),
                 proto.getIsTakerApiUser(),
                 Capabilities.fromIntList(proto.getSupportedCapabilitiesList()),
                 messageVersion,
-                proto.getUid().isEmpty() ? null : proto.getUid());
+                proto.getUid().isEmpty() ? null : proto.getUid(),
+                InitTradeRequest.fromProto(proto.getTradeRequest(), coreProtoResolver, messageVersion));
     }
 }

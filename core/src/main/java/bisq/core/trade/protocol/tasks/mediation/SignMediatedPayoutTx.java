@@ -37,7 +37,7 @@ public class SignMediatedPayoutTx extends TradeTask {
             runInterceptHook();
             throw new RuntimeException("SignMediatedPayoutTx not implemented for xmr");
 
-//            TradingPeer tradingPeer = processModel.getTradingPeer();
+//            TradingPeer tradingPeer = trade.getTradingPeer();
 //            if (processModel.getMediatedPayoutTxSignature() != null) {
 //                log.warn("processModel.getTxSignatureFromMediation is already set");
 //            }

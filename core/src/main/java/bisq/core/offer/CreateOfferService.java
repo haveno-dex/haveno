@@ -23,10 +23,14 @@ import bisq.core.btc.wallet.Restrictions;
 import bisq.core.locale.CurrencyUtil;
 import bisq.core.locale.Res;
 import bisq.core.monetary.Price;
+import bisq.core.offer.availability.DisputeAgentSelection;
 import bisq.core.payment.PaymentAccount;
 import bisq.core.payment.PaymentAccountUtil;
 import bisq.core.provider.price.MarketPrice;
 import bisq.core.provider.price.PriceFeedService;
+import bisq.core.support.dispute.mediation.mediator.Mediator;
+import bisq.core.support.dispute.mediation.mediator.MediatorManager;
+import bisq.core.trade.statistics.TradeStatisticsManager;
 import bisq.core.user.Preferences;
 import bisq.core.user.User;
 import bisq.core.util.coin.CoinUtil;
@@ -64,6 +68,8 @@ public class CreateOfferService {
     private final PubKeyRing pubKeyRing;
     private final User user;
     private final BtcWalletService btcWalletService;
+    private final TradeStatisticsManager tradeStatisticsManager;
+    private final MediatorManager mediatorManager;
 
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -77,7 +83,9 @@ public class CreateOfferService {
                               P2PService p2PService,
                               PubKeyRing pubKeyRing,
                               User user,
-                              BtcWalletService btcWalletService) {
+                              BtcWalletService btcWalletService,
+                              TradeStatisticsManager tradeStatisticsManager,
+                              MediatorManager mediatorManager) {
         this.offerUtil = offerUtil;
         this.txFeeEstimationService = txFeeEstimationService;
         this.priceFeedService = priceFeedService;
@@ -85,6 +93,8 @@ public class CreateOfferService {
         this.pubKeyRing = pubKeyRing;
         this.user = user;
         this.btcWalletService = btcWalletService;
+        this.tradeStatisticsManager = tradeStatisticsManager;
+        this.mediatorManager = mediatorManager;
     }
 
 
@@ -181,6 +191,9 @@ public class CreateOfferService {
                 paymentAccount,
                 currencyCode,
                 makerFeeAsCoin);
+        
+        // select signing arbitrator
+        Mediator arbitrator = DisputeAgentSelection.getLeastUsedArbitrator(tradeStatisticsManager, mediatorManager); // TODO (woodser): using mediator manager for arbitrators
 
         OfferPayload offerPayload = new OfferPayload(offerId,
                 creationTime,
@@ -194,8 +207,6 @@ public class CreateOfferService {
                 minAmountAsLong,
                 baseCurrencyCode,
                 counterCurrencyCode,
-                arbitratorNodeAddresses,
-                mediatorNodeAddresses,
                 paymentAccount.getPaymentMethod().getId(),
                 paymentAccount.getId(),
                 null,
@@ -219,7 +230,9 @@ public class CreateOfferService {
                 isPrivateOffer,
                 hashOfChallenge,
                 extraDataMap,
-                Version.TRADE_PROTOCOL_VERSION);
+                Version.TRADE_PROTOCOL_VERSION,
+                arbitrator.getNodeAddress(),
+                null);
         Offer offer = new Offer(offerPayload);
         offer.setPriceFeedService(priceFeedService);
         return offer;

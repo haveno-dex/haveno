@@ -195,6 +195,8 @@ public class AccountAgeWitnessServiceTest {
                 "contractAsJson",
                 null,
                 null,
+                sellerPaymentAccountPayload,
+                buyerPaymentAccountPayload,
                 null,
                 true,
                 SupportType.ARBITRATION));
@@ -230,9 +232,10 @@ public class AccountAgeWitnessServiceTest {
         when(contract.getTradeAmount()).thenReturn(Coin.parseCoin("0.01"));
         when(contract.getBuyerPubKeyRing()).thenReturn(buyerPubKeyRing);
         when(contract.getSellerPubKeyRing()).thenReturn(sellerPubKeyRing);
-        when(contract.getBuyerPaymentAccountPayload()).thenReturn(buyerPaymentAccountPayload);
-        when(contract.getSellerPaymentAccountPayload()).thenReturn(sellerPaymentAccountPayload);
         when(contract.getOfferPayload()).thenReturn(mock(OfferPayload.class));
+        when(contract.isBuyerMakerAndSellerTaker()).thenReturn(false);
+        assertEquals(disputes.get(0).getBuyerPaymentAccountPayload(), buyerPaymentAccountPayload);
+        assertEquals(disputes.get(0).getSellerPaymentAccountPayload(), sellerPaymentAccountPayload);
         List<TraderDataItem> items = service.getTraderPaymentAccounts(now, getPaymentMethodById(PaymentMethod.SEPA_ID), disputes);
         assertEquals(2, items.size());
 

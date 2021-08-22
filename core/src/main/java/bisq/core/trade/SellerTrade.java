@@ -36,46 +36,24 @@ import static com.google.common.base.Preconditions.checkNotNull;
 public abstract class SellerTrade extends Trade {
     SellerTrade(Offer offer,
                 Coin tradeAmount,
-                Coin txFee,
                 Coin takerFee,
                 long tradePrice,
-                @Nullable NodeAddress makerNodeAddress,
-                @Nullable NodeAddress takerNodeAddress,
-                @Nullable NodeAddress arbitratorNodeAddress,
                 XmrWalletService xmrWalletService,
                 ProcessModel processModel,
-                String uid) {
+                String uid,
+                @Nullable NodeAddress makerNodeAddress,
+                @Nullable NodeAddress takerNodeAddress,
+                @Nullable NodeAddress arbitratorNodeAddress) {
         super(offer,
                 tradeAmount,
-                txFee,
                 takerFee,
                 tradePrice,
-                makerNodeAddress,
-                takerNodeAddress,
-                arbitratorNodeAddress,
                 xmrWalletService,
                 processModel,
-                uid);
-    }
-
-    SellerTrade(Offer offer,
-                Coin txFee,
-                Coin takeOfferFee,
-                @Nullable NodeAddress makerNodeAddress,
-                @Nullable NodeAddress takerNodeAddress,
-                @Nullable NodeAddress arbitratorNodeAddress,
-                XmrWalletService xmrWalletService,
-                ProcessModel processModel,
-                String uid) {
-        super(offer,
-                txFee,
-                takeOfferFee,
+                uid,
                 makerNodeAddress,
                 takerNodeAddress,
-                arbitratorNodeAddress,
-                xmrWalletService,
-                processModel,
-                uid);
+                arbitratorNodeAddress);
     }
 
     @Override

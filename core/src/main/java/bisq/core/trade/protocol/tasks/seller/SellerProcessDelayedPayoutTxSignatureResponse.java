@@ -42,7 +42,7 @@ public class SellerProcessDelayedPayoutTxSignatureResponse extends TradeTask {
             checkNotNull(response);
             checkTradeId(processModel.getOfferId(), response);
 
-            processModel.getTradingPeer().setDelayedPayoutTxSignature(checkNotNull(response.getDelayedPayoutTxBuyerSignature()));
+            trade.getTradingPeer().setDelayedPayoutTxSignature(checkNotNull(response.getDelayedPayoutTxBuyerSignature()));
 
             processModel.getTradeWalletService().sellerAddsBuyerWitnessesToDepositTx(
                     processModel.getDepositTx(),

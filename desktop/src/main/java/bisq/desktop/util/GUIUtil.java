@@ -582,7 +582,7 @@ public class GUIUtil {
                     break;
                 case BUILDING:
                     tooltip.setText(Res.get("confidence.confirmed", confidence.getDepthInBlocks()));
-                    txConfidenceIndicator.setProgress(Math.min(1, (double) confidence.getDepthInBlocks() / 6.0));
+                    txConfidenceIndicator.setProgress(Math.min(1, confidence.getDepthInBlocks() / 6.0));
                     break;
                 case DEAD:
                     tooltip.setText(Res.get("confidence.invalid"));
@@ -786,9 +786,12 @@ public class GUIUtil {
     }
 
     public static boolean canCreateOrTakeOfferOrShowPopup(User user, Navigation navigation) {
+        
+        // TODO (woodser): use refund agents to dispute arbitration?
         if (!user.hasAcceptedRefundAgents()) {
-            new Popup().warning(Res.get("popup.warning.noArbitratorsAvailable")).show();
-            return false;
+            log.warn("There are no refund agents available"); // TODO (woodser): refund agents changing from [4444] to [] causing this error
+            //new Popup().warning(Res.get("popup.warning.noArbitratorsAvailable")).show();
+            //return false;
         }
 
         if (!user.hasAcceptedMediators()) {

@@ -19,6 +19,7 @@ package bisq.core.payment.payload;
 
 import bisq.common.consensus.UsedForTradeContractJson;
 import bisq.common.crypto.CryptoUtils;
+import bisq.common.crypto.Hash;
 import bisq.common.proto.network.NetworkPayload;
 import bisq.common.util.JsonExclude;
 import bisq.common.util.Utilities;
@@ -46,7 +47,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 @ToString
 @Slf4j
 public abstract class PaymentAccountPayload implements NetworkPayload, UsedForTradeContractJson {
-
+    
     // Keys for excludeFromJsonDataMap
     public static final String SALT = "salt";
     public static final String HOLDER_NAME = "holderName";
@@ -117,6 +118,10 @@ public abstract class PaymentAccountPayload implements NetworkPayload, UsedForTr
     public abstract String getPaymentDetails();
 
     public abstract String getPaymentDetailsForTradePopup();
+    
+    public byte[] getHash() {
+        return Hash.getRipemd160hash(this.toProtoMessage().toByteArray());
+    }
 
     public byte[] getSalt() {
         checkArgument(excludeFromJsonDataMap.containsKey(SALT), "Salt must have been set in excludeFromJsonDataMap.");

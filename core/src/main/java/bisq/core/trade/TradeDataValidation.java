@@ -36,7 +36,7 @@ import org.bitcoinj.core.Transaction;
 import org.bitcoinj.core.TransactionInput;
 import org.bitcoinj.core.TransactionOutPoint;
 import org.bitcoinj.core.TransactionOutput;
-
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -54,6 +54,11 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 @Slf4j
 public class TradeDataValidation {
+    
+    public static void validatePaymentAccountPayloads(Dispute dispute) throws InvalidPaymentAccountPayloadException {
+        if (!Arrays.equals(dispute.getMakerPaymentAccountPayload().getHash(), dispute.getContract().getMakerPaymentAccountPayloadHash())) throw new InvalidPaymentAccountPayloadException(dispute, "Hash of maker's payment account payload does not match contract");
+        if (!Arrays.equals(dispute.getTakerPaymentAccountPayload().getHash(), dispute.getContract().getTakerPaymentAccountPayloadHash())) throw new InvalidPaymentAccountPayloadException(dispute, "Hash of taker's payment account payload does not match contract");
+    }
 
     public static void validateDonationAddress(String addressAsString, DaoFacade daoFacade)
             throws AddressException {
@@ -394,6 +399,12 @@ public class TradeDataValidation {
         ValidationException(@Nullable Dispute dispute, String msg) {
             super(msg);
             this.dispute = dispute;
+        }
+    }
+    
+    public static class InvalidPaymentAccountPayloadException extends ValidationException {
+        InvalidPaymentAccountPayloadException(@Nullable Dispute dispute, String msg) {
+            super(dispute, msg);
         }
     }
 
