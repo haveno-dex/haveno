@@ -1,11 +1,11 @@
 <div align="center"> 
   <img src="https://raw.githubusercontent.com/haveno-dex/haveno-meta/721e52919b28b44d12b6e1e5dac57265f1c05cda/logo/haveno_logo_landscape.svg" alt="Haveno logo">
 
-  [![Codacy Badge](https://app.codacy.com/project/badge/Grade/1a4ddf140d634f2ca1fd120a7cff4574)](https://www.codacy.com/gh/haveno-dex/haveno/dashboard?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=haveno-dex/haveno&amp;utm_campaign=Badge_Grade)
+  [![Codacy Badge](https://app.codacy.com/project/badge/Grade/1a4ddf140d634f2ca1fd120a7cff4574)](https://app.codacy.com/gh/haveno-dex/haveno/dashboard?utm_source=github.com)
   ![GitHub Workflow Status](https://img.shields.io/github/workflow/status/haveno-dex/haveno/CI)
-  ![GitHub issues with bounty](https://img.shields.io/github/issues-search/haveno-dex/haveno?color=%23fef2c0&label=Issues%20with%20bounties&query=project%3Ahaveno-dex%2F2) | 
-  ![Twitter Follow](https://img.shields.io/twitter/follow/HavenoDEX?style=social)
-  ![Matrix Room](https://img.shields.io/badge/Matrix%20room-%23haveno-blue)
+  [![GitHub issues with bounty](https://img.shields.io/github/issues-search/haveno-dex/haveno?color=%23fef2c0&label=Issues%20with%20bounties&query=project%3Ahaveno-dex%2F2)](https://github.com/orgs/haveno-dex/projects/2) | 
+  [![Twitter Follow](https://img.shields.io/twitter/follow/HavenoDEX?style=social)](https://twitter.com/havenodex)
+  [![Matrix Room](https://img.shields.io/badge/Matrix%20room-%23haveno-blue)](https://matrix.to/#/!cSwJDzxRuWndmFUZTd:haveno.network?via=libera.chat&via=matrix.org&via=monero.social)
 </div>
 
 ## What is Haveno?
@@ -24,7 +24,7 @@ The project is divided between multiple repositories:
 
 - **[haveno](https://github.com/haveno-dex/haveno)** - This repository. Contains the Proof of Concept of what will be the heart of Haveno.
 - **[haveno-ui-poc](https://github.com/haveno-dex/haveno-ui-poc)** - The PoC of the future user interface. Uses gRPC APIs to serve the UI in React.
-- **[haveno-design](https://github.com/haveno-dex/haveno-design)** - Temporary (for now empty) repository for design discussions.
+- **[haveno-design](https://github.com/haveno-dex/haveno-design)** - Repository for design discussions and development.
 - **[haveno-meta](https://github.com/haveno-dex/haveno-meta)** - For project-wide discussions and proposals.
 - **[haveno-site](https://github.com/haveno-dex/haveno-site)** - The repository of the future website.
 
@@ -38,10 +38,11 @@ See [docs/trade-protocol.md](docs/trade-protocol.md)
 
 Haveno is a community-driven project. For it to be succesful it's fundamental to have the support and help of the Monero community. We have our own Matrix server. Registrations are not open at the moment, but the rooms are public and can be joined from any matrix client (like Element). We look forward to hearing from you!
 
-- General discussions: **Haveno** (`#haveno:haveno.network`) relayed on Freenode (`#haveno`)
-- Development discussions: **Haveno Development** (`#haveno-dev:haveno.network`) relayed on Freenode (`#haveno-dev`)
+- General discussions: **Haveno** (`#haveno:haveno.network`) relayed on Libera (IRC) (`#haveno`)
+- Development discussions: **Haveno Development** (`#haveno-dev:haveno.network`) relayed on Libera (IRC) (`#haveno-dev`)
+- Design discussions: **Haveno Design** (`#haveno-design:haveno.network`) relayed on Libera (IRC) (`#haveno-design`)
 
-Temporary email: havenodex@protonmail.com
+Email: contact@haveno.exchange
 
 ### Styling guidelines
 
