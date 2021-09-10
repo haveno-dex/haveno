@@ -635,20 +635,23 @@ class CoreWalletsService {
         var availableBalance = balances.getAvailableBalance().get();
         if (availableBalance == null)
             throw new IllegalStateException("available balance is not yet available");
-
-        var reservedBalance = balances.getReservedBalance().get();
-        if (reservedBalance == null)
-            throw new IllegalStateException("reserved balance is not yet available");
-
+        
         var lockedBalance = balances.getLockedBalance().get();
         if (lockedBalance == null)
             throw new IllegalStateException("locked balance is not yet available");
+        
+        var reservedOfferBalance = balances.getReservedOfferBalance().get();
+        if (reservedOfferBalance == null)
+            throw new IllegalStateException("reserved offer balance is not yet available");
+        
+        var reservedTradeBalance = balances.getReservedTradeBalance().get();
+        if (reservedTradeBalance == null)
+            throw new IllegalStateException("reserved trade balance is not yet available");
 
-        return new XmrBalanceInfo(availableBalance.add(lockedBalance).value,
-                availableBalance.value,
-                lockedBalance.value,
-                reservedBalance.value,
-                availableBalance.add(lockedBalance).add(reservedBalance).value);
+        return new XmrBalanceInfo(availableBalance.longValue(),
+                lockedBalance.longValue(),
+                reservedOfferBalance.longValue(),
+                reservedTradeBalance.longValue());
     }
 
     // Returns a Coin for the transfer amount string, or a RuntimeException if invalid.

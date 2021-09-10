@@ -121,19 +121,19 @@ public class TableFormat {
     public static String formatXmrBalanceInfoTbl(XmrBalanceInfo xmrBalanceInfo) {
         String headerLine = COL_HEADER_BALANCE + COL_HEADER_DELIMITER
                 + COL_HEADER_AVAILABLE_BALANCE + COL_HEADER_DELIMITER
-                + COL_HEADER_RESERVED_BALANCE + COL_HEADER_DELIMITER
-                + COL_HEADER_TOTAL_AVAILABLE_BALANCE + COL_HEADER_DELIMITER // TODO (woodser): column names are not quite right for XMR (balance, available balance, locked balance, reserved balance, total balance)
-                + COL_HEADER_LOCKED_BALANCE + COL_HEADER_DELIMITER + "\n";
+                + COL_HEADER_LOCKED_BALANCE + COL_HEADER_DELIMITER
+                + COL_HEADER_RESERVED_OFFER_BALANCE + COL_HEADER_DELIMITER
+                + COL_HEADER_RESERVED_TRADE_BALANCE + COL_HEADER_DELIMITER + "\n";
         String colDataFormat = "%" + COL_HEADER_BALANCE.length() + "s" // rt justify
                 + " %" + (COL_HEADER_AVAILABLE_BALANCE.length() + 1) + "s" // rt justify
+                + " %" + (COL_HEADER_LOCKED_BALANCE.length() + 1) + "s" // rt justify
                 + " %" + (COL_HEADER_RESERVED_BALANCE.length() + 1) + "s" // rt justify
-                + " %" + (COL_HEADER_TOTAL_AVAILABLE_BALANCE.length() + 1) + "s" // rt justify
-                + " %" + (COL_HEADER_LOCKED_BALANCE.length() + 1) + "s"; // rt justify
+                + " %" + (COL_HEADER_TOTAL_AVAILABLE_BALANCE.length() + 1) + "s"; // rt justify
         return headerLine + format(colDataFormat,
-                formatSatoshis(xmrBalanceInfo.getAvailableBalance()),
-                formatSatoshis(xmrBalanceInfo.getReservedBalance()),
-                formatSatoshis(xmrBalanceInfo.getTotalBalance()),
-                formatSatoshis(xmrBalanceInfo.getLockedBalance()));
+                formatSatoshis(xmrBalanceInfo.getUnlockedBalance() + xmrBalanceInfo.getLockedBalance()), // total balance
+                formatSatoshis(xmrBalanceInfo.getUnlockedBalance()),
+                formatSatoshis(xmrBalanceInfo.getReservedOfferBalance()),
+                formatSatoshis(xmrBalanceInfo.getReservedTradeBalance()));
     }
 
     public static String formatPaymentAcctTbl(List<PaymentAccount> paymentAccounts) {

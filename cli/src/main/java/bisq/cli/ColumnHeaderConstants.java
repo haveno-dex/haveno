@@ -38,6 +38,8 @@ class ColumnHeaderConstants {
     static final String COL_HEADER_RESERVED_BALANCE = "Reserved Balance";
     static final String COL_HEADER_TOTAL_AVAILABLE_BALANCE = "Total Available Balance";
     static final String COL_HEADER_LOCKED_BALANCE = "Locked Balance";
+    static final String COL_HEADER_RESERVED_OFFER_BALANCE = "Reserved Offer Balance";
+    static final String COL_HEADER_RESERVED_TRADE_BALANCE = "Reserved Trade Balance";
     static final String COL_HEADER_LOCKED_FOR_VOTING_BALANCE = "Locked For Voting Balance";
     static final String COL_HEADER_LOCKUP_BONDS_BALANCE = "Lockup Bonds Balance";
     static final String COL_HEADER_UNLOCKING_BONDS_BALANCE = "Unlocking Bonds Balance";

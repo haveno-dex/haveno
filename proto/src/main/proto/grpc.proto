@@ -606,11 +606,10 @@ message BtcBalanceInfo {
 }
 
 message XmrBalanceInfo {
-    uint64 balance = 1;
-    uint64 availableBalance = 2;
-    uint64 lockedBalance = 3;
-    uint64 reservedBalance = 4;
-    uint64 totalBalance = 5; // balance + reserved
+    uint64 unlockedBalance = 1;
+    uint64 lockedBalance = 2;
+    uint64 reservedOfferBalance = 3;
+    uint64 reservedTradeBalance = 4;
 }
 
 message AddressBalanceInfo {
