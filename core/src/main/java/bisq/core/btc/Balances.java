@@ -56,9 +56,13 @@ public class Balances {
     @Getter
     private final ObjectProperty<Coin> availableBalance = new SimpleObjectProperty<>();
     @Getter
-    private final ObjectProperty<Coin> reservedBalance = new SimpleObjectProperty<>();
-    @Getter
     private final ObjectProperty<Coin> lockedBalance = new SimpleObjectProperty<>();
+    @Getter
+    private final ObjectProperty<Coin> reservedOfferBalance = new SimpleObjectProperty<>();
+    @Getter
+    private final ObjectProperty<Coin> reservedTradeBalance = new SimpleObjectProperty<>();
+    @Getter
+    private final ObjectProperty<Coin> reservedBalance = new SimpleObjectProperty<>(); // TODO (woodser): this balance is sum of reserved funds for offers and trade multisigs; remove?
 
     @Inject
     public Balances(TradeManager tradeManager,
@@ -92,6 +96,8 @@ public class Balances {
         UserThread.execute(() -> {
             updateAvailableBalance();
             updateLockedBalance();
+            updateReservedOfferBalance();
+            updateReservedTradeBalance();
             updateReservedBalance();
         });
     }
@@ -107,15 +113,16 @@ public class Balances {
         BigInteger unlockedBalance = xmrWalletService.getWallet().getUnlockedBalance(0);
         lockedBalance.set(Coin.valueOf(balance.subtract(unlockedBalance).longValueExact()));
     }
-
-    private void updateReservedBalance() {
-        
-        // add frozen input amounts
+    
+    private void updateReservedOfferBalance() {
         Coin sum = Coin.valueOf(0);
         List<MoneroOutputWallet> frozenOutputs = xmrWalletService.getWallet().getOutputs(new MoneroOutputQuery().setIsFrozen(true).setIsSpent(false));
         for (MoneroOutputWallet frozenOutput : frozenOutputs) sum = sum.add(Coin.valueOf(frozenOutput.getAmount().longValueExact()));
-        
-        // add multisig deposit amounts
+        reservedOfferBalance.set(sum);
+    }
+    
+    private void updateReservedTradeBalance() {
+        Coin sum = Coin.valueOf(0);
         List<Trade> openTrades = tradeManager.getTradesStreamWithFundsLockedIn().collect(Collectors.toList());
         for (Trade trade : openTrades) {
             if (trade.getContract() == null) continue;
@@ -128,8 +135,10 @@ public class Balances {
             }
             sum = sum.add(Coin.valueOf(ParsingUtils.centinerosToAtomicUnits(reservedAmt).longValueExact()));
         }
-        
-        // set reserved balance
-        reservedBalance.set(sum);
+        reservedTradeBalance.set(sum);
+    }
+
+    private void updateReservedBalance() {
+        reservedBalance.set(reservedOfferBalance.get().add(reservedTradeBalance.get()));
     }
 }

@@ -12,40 +12,33 @@ public class XmrBalanceInfo implements Payload {
     public static final XmrBalanceInfo EMPTY = new XmrBalanceInfo(-1,
             -1,
             -1,
-            -1,
             -1);
 
-    // All balances are in XMR centineros: https://www.getmonero.org/resources/moneropedia/denominations.html
-    private final long balance;
-    private final long availableBalance;
+    // all balances are in atomic units
+    private final long unlockedBalance;
     private final long lockedBalance;
-    private final long reservedBalance;
-    private final long totalBalance; // balance + reserved
+    private final long reservedOfferBalance;
+    private final long reservedTradeBalance;
 
-    public XmrBalanceInfo(long balance,
-                          long availableBalance,
+    public XmrBalanceInfo(long unlockedBalance,
                           long lockedBalance,
-                          long reservedBalance,
-                          long totalBalance) {
-        this.balance = balance;
-        this.availableBalance = availableBalance;
+                          long reservedOfferBalance,
+                          long reservedTradeBalance) {
+        this.unlockedBalance = unlockedBalance;
         this.lockedBalance = lockedBalance;
-        this.reservedBalance = reservedBalance;
-        this.totalBalance = totalBalance;
+        this.reservedOfferBalance = reservedOfferBalance;
+        this.reservedTradeBalance = reservedTradeBalance;
     }
 
     @VisibleForTesting
-    public static XmrBalanceInfo valueOf(long balance,
-                                         long availableBalance,
+    public static XmrBalanceInfo valueOf(long unlockedBalance,
                                          long lockedBalance,
-                                         long reservedBalance,
-                                         long totalBalance) {
-        // Convenience for creating a model instance instead of a proto.
-        return new XmrBalanceInfo(balance,
-                availableBalance,
+                                         long reservedOfferBalance,
+                                         long reservedTradeBalance) {
+        return new XmrBalanceInfo(unlockedBalance,
                 lockedBalance,
-                reservedBalance,
-                totalBalance);
+                reservedOfferBalance,
+                reservedTradeBalance);
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -55,30 +48,27 @@ public class XmrBalanceInfo implements Payload {
     @Override
     public bisq.proto.grpc.XmrBalanceInfo toProtoMessage() {
         return bisq.proto.grpc.XmrBalanceInfo.newBuilder()
-                .setBalance(balance)
-                .setAvailableBalance(availableBalance)
+                .setUnlockedBalance(unlockedBalance)
                 .setLockedBalance(lockedBalance)
-                .setReservedBalance(reservedBalance)
-                .setTotalBalance(totalBalance)
+                .setReservedOfferBalance(reservedOfferBalance)
+                .setReservedTradeBalance(reservedTradeBalance)
                 .build();
     }
 
     public static XmrBalanceInfo fromProto(bisq.proto.grpc.XmrBalanceInfo proto) {
-        return new XmrBalanceInfo(proto.getBalance(),
-                proto.getAvailableBalance(),
+        return new XmrBalanceInfo(proto.getUnlockedBalance(),
                 proto.getLockedBalance(),
-                proto.getReservedBalance(),
-                proto.getTotalBalance());
+                proto.getReservedOfferBalance(),
+                proto.getReservedTradeBalance());
     }
 
     @Override
     public String toString() {
         return "BtcBalanceInfo{" +
-                "balance=" + balance +
-                ", availableBalance=" + availableBalance +
+                "unlockedBalance=" + unlockedBalance +
                 ", lockedBalance=" + lockedBalance +
-                ", reservedBalance=" + reservedBalance +
-                ", totalBalance=" + totalBalance +
+                ", reservedOfferBalance=" + reservedOfferBalance +
+                ", reservedTradeBalance=" + reservedTradeBalance +
                 '}';
     }
 }
