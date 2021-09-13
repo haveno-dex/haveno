@@ -19,6 +19,8 @@ public class ParsingUtils {
 
     /**
      * Multiplier to convert centineros (the base XMR unit of Coin) to atomic units.
+     * 
+     * TODO: change base unit to atomic units and long
      */
     private static BigInteger CENTINEROS_AU_MULTIPLIER = BigInteger.valueOf(10000);
     
@@ -40,6 +42,16 @@ public class ParsingUtils {
      */
     public static BigInteger centinerosToAtomicUnits(long centineros) {
         return BigInteger.valueOf(centineros).multiply(ParsingUtils.CENTINEROS_AU_MULTIPLIER);
+    }
+    
+    /**
+     * Convert atomic units to centineros.
+     * 
+     * @param atomicUnits is an amount in atomic units
+     * @return the amount in centineros
+     */
+    public static long atomicUnitsToCentineros(long atomicUnits) {
+      return atomicUnits / CENTINEROS_AU_MULTIPLIER.longValue();
     }
     
     public static Coin parseToCoin(String input, CoinFormatter coinFormatter) {
