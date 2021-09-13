@@ -2361,7 +2361,7 @@ message BlockChainExplorer {
 
 message PaymentAccount {
     string id = 1;
-    int64 creation_date = 2;
+    int64 creation_date = 2 [jstype = JS_STRING];
     PaymentMethod payment_method = 3;
     string account_name = 4;
     repeated TradeCurrency trade_currencies = 5;
@@ -2371,8 +2371,8 @@ message PaymentAccount {
 
 message PaymentMethod {
     string id = 1;
-    int64 max_trade_period = 2;
-    int64 max_trade_limit = 3;
+    int64 max_trade_period = 2 [jstype = JS_STRING];
+    int64 max_trade_limit = 3 [jstype = JS_STRING];
 }
 
 // Currency

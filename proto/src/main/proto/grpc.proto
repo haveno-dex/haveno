@@ -116,10 +116,10 @@ message CreateOfferRequest {
     string price = 3;
     bool useMarketBasedPrice = 4;
     double marketPriceMargin = 5;
-    uint64 amount = 6;
-    uint64 minAmount = 7;
+    uint64 amount = 6 [jstype = JS_STRING];
+    uint64 minAmount = 7 [jstype = JS_STRING];
     double buyerSecurityDeposit = 8;
-    uint64 triggerPrice = 9;
+    uint64 triggerPrice = 9 [jstype = JS_STRING];
     string paymentAccountId = 10;
     string makerFeeCurrencyCode = 11;
 }
@@ -606,10 +606,10 @@ message BtcBalanceInfo {
 }
 
 message XmrBalanceInfo {
-    uint64 unlockedBalance = 1;
-    uint64 lockedBalance = 2;
-    uint64 reservedOfferBalance = 3;
-    uint64 reservedTradeBalance = 4;
+    uint64 unlockedBalance = 1 [jstype = JS_STRING];
+    uint64 lockedBalance = 2 [jstype = JS_STRING];
+    uint64 reservedOfferBalance = 3 [jstype = JS_STRING];
+    uint64 reservedTradeBalance = 4 [jstype = JS_STRING];
 }
 
 message AddressBalanceInfo {
