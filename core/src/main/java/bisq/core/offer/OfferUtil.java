@@ -91,7 +91,7 @@ public class OfferUtil {
     private final TradeStatisticsManager tradeStatisticsManager;
 
     private final Predicate<String> isValidFeePaymentCurrencyCode = (c) ->
-            c.equalsIgnoreCase("BSQ") || c.equalsIgnoreCase("BTC");
+            c.equalsIgnoreCase("XMR");
 
     @Inject
     public OfferUtil(AccountAgeWitnessService accountAgeWitnessService,
