@@ -589,6 +589,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
         closedTradableManager.add(openOffer);
         log.info("onRemoved offerId={}", offer.getId());
         btcWalletService.resetAddressEntriesForOpenOffer(offer.getId());
+        for (String frozenKeyImage : openOffer.getFrozenKeyImages()) xmrWalletService.getWallet().thawOutput(frozenKeyImage);
         requestPersistence();
         resultHandler.handleResult();
     }
