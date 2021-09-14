@@ -50,7 +50,6 @@ import lombok.extern.slf4j.Slf4j;
 import static bisq.core.api.model.OfferInfo.toOfferInfo;
 import static bisq.daemon.grpc.interceptor.GrpcServiceRateMeteringConfig.getCustomRateMeteringInterceptor;
 import static bisq.proto.grpc.OffersGrpc.*;
-import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
 
@@ -193,12 +192,12 @@ class GrpcOffersService extends OffersImplBase {
         return getCustomRateMeteringInterceptor(coreApi.getConfig().appDataDir, this.getClass())
                 .or(() -> Optional.of(CallRateMeteringInterceptor.valueOf(
                         new HashMap<>() {{
-                            put(getGetOfferMethod().getFullMethodName(), new GrpcCallRateMeter(1, SECONDS));
-                            put(getGetMyOfferMethod().getFullMethodName(), new GrpcCallRateMeter(1, SECONDS));
-                            put(getGetOffersMethod().getFullMethodName(), new GrpcCallRateMeter(1, SECONDS));
-                            put(getGetMyOffersMethod().getFullMethodName(), new GrpcCallRateMeter(1, SECONDS));
-                            put(getCreateOfferMethod().getFullMethodName(), new GrpcCallRateMeter(1, MINUTES));
-                            put(getCancelOfferMethod().getFullMethodName(), new GrpcCallRateMeter(1, MINUTES));
+                            put(getGetOfferMethod().getFullMethodName(), new GrpcCallRateMeter(10, SECONDS));
+                            put(getGetMyOfferMethod().getFullMethodName(), new GrpcCallRateMeter(10, SECONDS));
+                            put(getGetOffersMethod().getFullMethodName(), new GrpcCallRateMeter(10, SECONDS));
+                            put(getGetMyOffersMethod().getFullMethodName(), new GrpcCallRateMeter(10, SECONDS));
+                            put(getCreateOfferMethod().getFullMethodName(), new GrpcCallRateMeter(1, SECONDS));
+                            put(getCancelOfferMethod().getFullMethodName(), new GrpcCallRateMeter(10, SECONDS));
                         }}
                 )));
     }
