@@ -33,8 +33,8 @@ service DisputeAgents {
 }
 
 message RegisterDisputeAgentRequest {
-    string disputeAgentType = 1;
-    string registrationKey = 2;
+    string dispute_agent_type = 1;
+    string registration_key = 2;
 }
 
 message RegisterDisputeAgentReply {
@@ -50,11 +50,11 @@ service Help {
 }
 
 message GetMethodHelpRequest {
-    string methodName = 1;
+    string method_name = 1;
 }
 
 message GetMethodHelpReply {
-    string methodHelp = 1;
+    string method_help = 1;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////
@@ -94,7 +94,7 @@ message GetMyOfferReply {
 
 message GetOffersRequest {
     string direction = 1;
-    string currencyCode = 2;
+    string currency_code = 2;
 }
 
 message GetOffersReply {
@@ -103,7 +103,7 @@ message GetOffersReply {
 
 message GetMyOffersRequest {
     string direction = 1;
-    string currencyCode = 2;
+    string currency_code = 2;
 }
 
 message GetMyOffersReply {
@@ -111,17 +111,17 @@ message GetMyOffersReply {
 }
 
 message CreateOfferRequest {
-    string currencyCode = 1;
+    string currency_code = 1;
     string direction = 2;
     string price = 3;
-    bool useMarketBasedPrice = 4;
-    double marketPriceMargin = 5;
+    bool use_market_based_price = 4;
+    double market_price_margin = 5;
     uint64 amount = 6 [jstype = JS_STRING];
-    uint64 minAmount = 7 [jstype = JS_STRING];
-    double buyerSecurityDeposit = 8;
-    uint64 triggerPrice = 9 [jstype = JS_STRING];
-    string paymentAccountId = 10;
-    string makerFeeCurrencyCode = 11;
+    uint64 min_amount = 7 [jstype = JS_STRING];
+    double buyer_security_deposit = 8;
+    uint64 trigger_price = 9 [jstype = JS_STRING];
+    string payment_account_id = 10;
+    string maker_fee_currency_code = 11;
 }
 
 message CreateOfferReply {
@@ -139,30 +139,30 @@ message OfferInfo {
     string id = 1;
     string direction = 2;
     uint64 price = 3;
-    bool useMarketBasedPrice = 4;
-    double marketPriceMargin = 5;
+    bool use_market_based_price = 4;
+    double market_price_margin = 5;
     uint64 amount = 6;
-    uint64 minAmount = 7;
+    uint64 min_amount = 7;
     uint64 volume = 8;
-    uint64 minVolume = 9;
-    uint64 buyerSecurityDeposit = 10;
-    uint64 triggerPrice = 11;
-    bool isCurrencyForMakerFeeBtc = 12;
-    string paymentAccountId = 13;
-    string paymentMethodId = 14;
-    string paymentMethodShortName = 15;
-    string baseCurrencyCode = 16;
-    string counterCurrencyCode = 17;
+    uint64 min_volume = 9;
+    uint64 buyer_security_deposit = 10;
+    uint64 trigger_price = 11;
+    bool is_currency_for_maker_fee_btc = 12;
+    string payment_account_id = 13;
+    string payment_method_id = 14;
+    string payment_method_short_name = 15;
+    string base_currency_code = 16;
+    string counter_currency_code = 17;
     uint64 date = 18;
     string state = 19;
-    uint64 sellerSecurityDeposit = 20;
-    string offerFeePaymentTxId = 21;
-    uint64 txFee = 22;
-    uint64 makerFee = 23;
+    uint64 seller_security_deposit = 20;
+    string offer_fee_payment_tx_id = 21;
+    uint64 tx_fee = 22;
+    uint64 maker_fee = 23;
 }
 
 message AvailabilityResultWithDescription {
-    AvailabilityResult availabilityResult = 1;
+    AvailabilityResult availability_result = 1;
     string description = 2;
 }
 
@@ -186,51 +186,51 @@ service PaymentAccounts {
 }
 
 message CreatePaymentAccountRequest {
-    string paymentAccountForm = 1;
+    string payment_account_form = 1;
 }
 
 message CreatePaymentAccountReply {
-    PaymentAccount paymentAccount = 1;
+    PaymentAccount payment_account = 1;
 }
 
 message GetPaymentAccountsRequest {
 }
 
 message GetPaymentAccountsReply {
-    repeated PaymentAccount paymentAccounts = 1;
+    repeated PaymentAccount payment_accounts = 1;
 }
 
 message GetPaymentMethodsRequest {
 }
 
 message GetPaymentMethodsReply {
-    repeated PaymentMethod paymentMethods = 1;
+    repeated PaymentMethod payment_methods = 1;
 }
 
 message GetPaymentAccountFormRequest {
-    string paymentMethodId = 1;
+    string payment_method_id = 1;
 }
 
 message GetPaymentAccountFormReply {
-    string paymentAccountFormJson = 1;
+    string payment_account_form_json = 1;
 }
 
 message CreateCryptoCurrencyPaymentAccountRequest {
-    string accountName = 1;
-    string currencyCode = 2;
+    string account_name = 1;
+    string currency_code = 2;
     string address = 3;
-    bool tradeInstant = 4;
+    bool trade_instant = 4;
 }
 
 message CreateCryptoCurrencyPaymentAccountReply {
-    PaymentAccount paymentAccount = 1;
+    PaymentAccount payment_account = 1;
 }
 
 message GetCryptoCurrencyPaymentMethodsRequest {
 }
 
 message GetCryptoCurrencyPaymentMethodsReply {
-    repeated PaymentMethod paymentMethods = 1;
+    repeated PaymentMethod payment_methods = 1;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////
@@ -243,7 +243,7 @@ service Price {
 }
 
 message MarketPriceRequest {
-    string currencyCode = 1;
+    string currency_code = 1;
 }
 
 message MarketPriceReply {
@@ -263,7 +263,7 @@ message GetTradeStatisticsRequest {
 }
 
 message GetTradeStatisticsReply {
-    repeated TradeStatistics3 TradeStatistics = 1;
+    repeated TradeStatistics3 trade_statistics = 1;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////
@@ -301,32 +301,32 @@ service Trades {
 }
 
 message TakeOfferRequest {
-    string offerId = 1;
-    string paymentAccountId = 2;
-    string takerFeeCurrencyCode = 3;
+    string offer_id = 1;
+    string payment_account_id = 2;
+    string taker_fee_currency_code = 3;
 }
 
 message TakeOfferReply {
     TradeInfo trade = 1;
-    AvailabilityResultWithDescription failureReason = 2;
+    AvailabilityResultWithDescription failure_reason = 2;
 }
 
 message ConfirmPaymentStartedRequest {
-    string tradeId = 1;
+    string trade_id = 1;
 }
 
 message ConfirmPaymentStartedReply {
 }
 
 message ConfirmPaymentReceivedRequest {
-    string tradeId = 1;
+    string trade_id = 1;
 }
 
 message ConfirmPaymentReceivedReply {
 }
 
 message GetTradeRequest {
-    string tradeId = 1;
+    string trade_id = 1;
 }
 
 message GetTradeReply {
@@ -334,14 +334,14 @@ message GetTradeReply {
 }
 
 message KeepFundsRequest {
-    string tradeId = 1;
+    string trade_id = 1;
 }
 
 message KeepFundsReply {
 }
 
 message WithdrawFundsRequest {
-    string tradeId = 1;
+    string trade_id = 1;
     string address = 2;
     string memo = 3;
 }
@@ -351,54 +351,54 @@ message WithdrawFundsReply {
 
 message TradeInfo {
     OfferInfo offer = 1;
-    string tradeId = 2;
-    string shortId = 3;
+    string trade_id = 2;
+    string short_id = 3;
     uint64 date = 4;
     string role = 5;
-    uint64 txFeeAsLong = 7;
-    uint64 takerFeeAsLong = 8;
-    string takerFeeTxId = 9;
+    uint64 tx_fee_as_long = 7;
+    uint64 taker_fee_as_long = 8;
+    string taker_fee_tx_id = 9;
     reserved 10; // was depositTxId
-    string payoutTxId = 11;
-    uint64 tradeAmountAsLong = 12;
-    uint64 tradePrice = 13;
-    string tradingPeerNodeAddress = 14;
+    string payout_tx_id = 11;
+    uint64 trade_amount_as_long = 12;
+    uint64 trade_price = 13;
+    string trading_peer_node_address = 14;
     string state = 15;
     string phase = 16;
-    string tradePeriodState = 17;
-    bool isDepositPublished = 18;
-    bool isDepositConfirmed = 19;
-    bool isFiatSent = 20;
-    bool isFiatReceived = 21;
-    bool isPayoutPublished = 22;
-    bool isWithdrawn = 23;
-    string contractAsJson = 24;
+    string trade_period_state = 17;
+    bool is_deposit_published = 18;
+    bool is_deposit_confirmed = 19;
+    bool is_fiat_sent = 20;
+    bool is_fiat_received = 21;
+    bool is_payout_published = 22;
+    bool is_withdrawn = 23;
+    string contract_as_json = 24;
     ContractInfo contract = 25;
     
-    string makerDepositTxId = 100;
-    string takerDepositTxId = 101;
+    string maker_deposit_tx_id = 100;
+    string taker_deposit_tx_id = 101;
 }
 
 message ContractInfo {
-    string buyerNodeAddress = 1;
-    string sellerNodeAddress = 2;
-    reserved 3; // was mediatorNodeAddress
-    reserved 4; // was refundAgendNodeAddress
-    bool isBuyerMakerAndSellerTaker = 5;
-    string makerAccountId = 6;
-    string takerAccountId = 7;
-    PaymentAccountPayloadInfo makerPaymentAccountPayload = 8;
-    PaymentAccountPayloadInfo takerPaymentAccountPayload = 9;
-    string makerPayoutAddressString = 10;
-    string takerPayoutAddressString = 11;
-    uint64 lockTime = 12;
+    string buyer_node_address = 1;
+    string seller_node_address = 2;
+    reserved 3; // was mediator_node_address
+    reserved 4; // was refund_agent_node_address
+    bool is_buyer_maker_and_seller_taker = 5;
+    string maker_account_id = 6;
+    string taker_account_id = 7;
+    PaymentAccountPayloadInfo maker_payment_account_payload = 8;
+    PaymentAccountPayloadInfo taker_payment_account_payload = 9;
+    string maker_payout_address_string = 10;
+    string taker_payout_address_string = 11;
+    uint64 lock_time = 12;
     
-    string arbitratorNodeAddress = 100;
+    string arbitrator_node_address = 100;
 }
 
 message PaymentAccountPayloadInfo {
     string id = 1;
-    string paymentMethodId = 2;
+    string payment_method_id = 2;
     string address = 3;
 }
 
@@ -407,20 +407,20 @@ message PaymentAccountPayloadInfo {
 ///////////////////////////////////////////////////////////////////////////////////////////
 
 message TxFeeRateInfo {
-    bool useCustomTxFeeRate = 1;
-    uint64 customTxFeeRate = 2;
-    uint64 feeServiceRate = 3;
-    uint64 lastFeeServiceRequestTs = 4;
-    uint64 minFeeServiceRate = 5;
+    bool use_custom_tx_fee_rate = 1;
+    uint64 custom_tx_fee_rate = 2;
+    uint64 fee_service_rate = 3;
+    uint64 last_fee_service_request_ts = 4;
+    uint64 min_fee_service_rate = 5;
 }
 
 message TxInfo {
-    string txId = 1;
-    uint64 inputSum = 2;
-    uint64 outputSum = 3;
+    string tx_id = 1;
+    uint64 input_sum = 2;
+    uint64 output_sum = 3;
     uint64 fee = 4;
     int32 size = 5;
-    bool isPending = 6;
+    bool is_pending = 6;
     string memo = 7;
 }
 
@@ -462,7 +462,7 @@ service Wallets {
 }
 
 message GetBalancesRequest {
-    string currencyCode = 1;
+    string currency_code = 1;
 }
 
 message GetBalancesReply {
@@ -474,7 +474,7 @@ message GetAddressBalanceRequest {
 }
 
 message GetAddressBalanceReply {
-    AddressBalanceInfo addressBalanceInfo = 1;
+    AddressBalanceInfo address_balance_info = 1;
 }
 
 message GetUnusedBsqAddressRequest {
@@ -487,22 +487,22 @@ message GetUnusedBsqAddressReply {
 message SendBsqRequest {
     string address = 1;
     string amount = 2;
-    string txFeeRate = 3;
+    string tx_fee_rate = 3;
 }
 
 message SendBsqReply {
-    TxInfo txInfo = 1;
+    TxInfo tx_info = 1;
 }
 
 message SendBtcRequest {
     string address = 1;
     string amount = 2;
-    string txFeeRate = 3;
+    string tx_fee_rate = 3;
     string memo = 4;
 }
 
 message SendBtcReply {
-    TxInfo txInfo = 1;
+    TxInfo tx_info = 1;
 }
 
 message VerifyBsqSentToAddressRequest {
@@ -511,49 +511,49 @@ message VerifyBsqSentToAddressRequest {
 }
 
 message VerifyBsqSentToAddressReply {
-    bool isAmountReceived = 1;
+    bool is_amount_received = 1;
 }
 
 message GetTxFeeRateRequest {
 }
 
 message GetTxFeeRateReply {
-    TxFeeRateInfo txFeeRateInfo = 1;
+    TxFeeRateInfo tx_fee_rate_info = 1;
 }
 
 message SetTxFeeRatePreferenceRequest {
-    uint64 txFeeRatePreference = 1;
+    uint64 tx_fee_rate_preference = 1;
 }
 
 message SetTxFeeRatePreferenceReply {
-    TxFeeRateInfo txFeeRateInfo = 1;
+    TxFeeRateInfo tx_fee_rate_info = 1;
 }
 
 message UnsetTxFeeRatePreferenceRequest {
 }
 
 message UnsetTxFeeRatePreferenceReply {
-    TxFeeRateInfo txFeeRateInfo = 1;
+    TxFeeRateInfo tx_fee_rate_info = 1;
 }
 
 message GetTransactionRequest {
-    string txId = 1;
+    string tx_id = 1;
 }
 
 message GetTransactionReply {
-    TxInfo txInfo = 1;
+    TxInfo tx_info = 1;
 }
 
 message GetFundingAddressesRequest {
 }
 
 message GetFundingAddressesReply {
-    repeated AddressBalanceInfo addressBalanceInfo = 1;
+    repeated AddressBalanceInfo address_balance_info = 1;
 }
 
 message SetWalletPasswordRequest {
     string password = 1;
-    string newPassword = 2;
+    string new_password = 2;
 }
 
 message SetWalletPasswordReply {
@@ -590,33 +590,33 @@ message BalancesInfo {
 }
 
 message BsqBalanceInfo {
-    uint64 availableConfirmedBalance = 1;
-    uint64 unverifiedBalance = 2;
-    uint64 unconfirmedChangeBalance = 3;
-    uint64 lockedForVotingBalance = 4;
-    uint64 lockupBondsBalance = 5;
-    uint64 unlockingBondsBalance = 6;
+    uint64 available_confirmed_balance = 1;
+    uint64 unverified_balance = 2;
+    uint64 unconfirmed_change_balance = 3;
+    uint64 locked_for_voting_balance = 4;
+    uint64 lockup_bonds_balance = 5;
+    uint64 unlocking_bonds_balance = 6;
 }
 
 message BtcBalanceInfo {
-    uint64 availableBalance = 1;
-    uint64 reservedBalance = 2;
-    uint64 totalAvailableBalance = 3;
-    uint64 lockedBalance = 4;
+    uint64 available_balance = 1;
+    uint64 reserved_balance = 2;
+    uint64 total_available_balance = 3;
+    uint64 locked_balance = 4;
 }
 
 message XmrBalanceInfo {
-    uint64 unlockedBalance = 1 [jstype = JS_STRING];
-    uint64 lockedBalance = 2 [jstype = JS_STRING];
-    uint64 reservedOfferBalance = 3 [jstype = JS_STRING];
-    uint64 reservedTradeBalance = 4 [jstype = JS_STRING];
+    uint64 unlocked_balance = 1 [jstype = JS_STRING];
+    uint64 locked_balance = 2 [jstype = JS_STRING];
+    uint64 reserved_offer_balance = 3 [jstype = JS_STRING];
+    uint64 reserved_trade_balance = 4 [jstype = JS_STRING];
 }
 
 message AddressBalanceInfo {
     string address = 1;
     int64 balance = 2;
-    int64 numConfirmations = 3;
-    bool isAddressUnused = 4;
+    int64 num_confirmations = 3;
+    bool is_address_unused = 4;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////
