@@ -64,6 +64,7 @@ public class ArbitratorProcessesReserveTx extends TradeTask {
                     request.getReserveTxHash(),
                     request.getReserveTxHex(),
                     request.getReserveTxKey(),
+                    null,
                     true);
             
             // save reserve tx to model

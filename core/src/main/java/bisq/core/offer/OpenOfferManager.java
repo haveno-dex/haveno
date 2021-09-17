@@ -282,7 +282,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
         removeOpenOffers(getObservableList(), completeHandler);
     }
 
-    private void removeOpenOffers(List<OpenOffer> openOffers, @Nullable Runnable completeHandler) {
+    public void removeOpenOffers(List<OpenOffer> openOffers, @Nullable Runnable completeHandler) {
         int size = openOffers.size();
         // Copy list as we remove in the loop
         List<OpenOffer> openOffersList = new ArrayList<>(openOffers);
@@ -670,8 +670,6 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                 return;
             }
             
-            // verify reserve tx not signed before
-            
             // verify maker's reserve tx (double spend, trade fee, trade amount, mining fee)
             Offer offer = new Offer(request.getOfferPayload());
             BigInteger tradeFee = ParsingUtils.coinToAtomicUnits(offer.getMakerFee());
@@ -685,6 +683,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                     request.getReserveTxHash(),
                     request.getReserveTxHex(),
                     request.getReserveTxKey(),
+                    request.getReserveTxKeyImages(),
                     true);
 
             // arbitrator signs offer to certify they have valid reserve tx
@@ -1034,7 +1033,8 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                         updatedExtraDataMap,
                         protocolVersion,
                         originalOfferPayload.getArbitratorNodeAddress(),
-                        originalOfferPayload.getArbitratorSignature());
+                        originalOfferPayload.getArbitratorSignature(),
+                        originalOfferPayload.getReserveTxKeyImages());
 
                 // Save states from original data to use for the updated
                 Offer.State originalOfferState = originalOffer.getState();

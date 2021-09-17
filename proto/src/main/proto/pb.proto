@@ -177,7 +177,8 @@ message SignOfferRequest {
     string reserve_tx_hash = 8;
     string reserve_tx_hex = 9;
     string reserve_tx_key = 10;
-    string payout_address = 11;
+    repeated string reserve_tx_key_images = 11;
+    string payout_address = 12;
 }
 
 message SignOfferResponse {
@@ -940,6 +941,7 @@ message OfferPayload {
     
     NodeAddress arbitrator_node_address = 1001;
     string arbitrator_signature = 1002;
+    repeated string reserve_tx_key_images = 1003;
 }
 
 message AccountAgeWitness {

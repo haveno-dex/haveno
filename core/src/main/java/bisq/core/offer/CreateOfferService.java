@@ -232,6 +232,7 @@ public class CreateOfferService {
                 extraDataMap,
                 Version.TRADE_PROTOCOL_VERSION,
                 arbitrator.getNodeAddress(),
+                null,
                 null);
         Offer offer = new Offer(offerPayload);
         offer.setPriceFeedService(priceFeedService);

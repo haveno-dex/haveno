@@ -140,7 +140,7 @@ public class WalletConfig extends AbstractIdleService {
     protected volatile BlockChain vChain;
     protected volatile SPVBlockStore vStore;
     protected volatile MoneroDaemon vXmrDaemon;
-    protected volatile MoneroWallet vXmrWallet;
+    protected volatile MoneroWalletRpc vXmrWallet;
     protected volatile Wallet vBtcWallet;
     protected volatile Wallet vBsqWallet;
     protected volatile PeerGroup vPeerGroup;
@@ -287,7 +287,7 @@ public class WalletConfig extends AbstractIdleService {
         // Meant to be overridden by subclasses
     }
 
-    public MoneroWallet createWallet(MoneroWalletConfig config) {
+    public MoneroWalletRpc createWallet(MoneroWalletConfig config) {
 
       // start monero-wallet-rpc instance
       MoneroWalletRpc walletRpc = startWalletRpcInstance();
@@ -304,7 +304,7 @@ public class WalletConfig extends AbstractIdleService {
       }
     }
 
-    public MoneroWallet openWallet(MoneroWalletConfig config) {
+    public MoneroWalletRpc openWallet(MoneroWalletConfig config) {
 
       // start monero-wallet-rpc instance
       MoneroWalletRpc walletRpc = startWalletRpcInstance();
@@ -362,7 +362,7 @@ public class WalletConfig extends AbstractIdleService {
             }
             System.out.println("Monero wallet path: " + vXmrWallet.getPath());
             System.out.println("Monero wallet address: " + vXmrWallet.getPrimaryAddress());
-            System.out.println("Monero mnemonic: " + vXmrWallet.getMnemonic());
+            System.out.println("Monero wallet uri: " + vXmrWallet.getRpcConnection().getUri());
 //            vXmrWallet.rescanSpent();
 //            vXmrWallet.rescanBlockchain();
             vXmrWallet.sync();

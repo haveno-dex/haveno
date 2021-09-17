@@ -21,6 +21,8 @@ import bisq.common.crypto.PubKeyRing;
 import bisq.core.offer.OfferPayload;
 import bisq.network.p2p.DirectMessage;
 import bisq.network.p2p.NodeAddress;
+import java.util.ArrayList;
+import java.util.List;
 import lombok.EqualsAndHashCode;
 import lombok.Value;
 
@@ -35,6 +37,7 @@ public final class SignOfferRequest extends OfferMessage implements DirectMessag
     private final String reserveTxHash;
     private final String reserveTxHex;
     private final String reserveTxKey;
+    private final List<String> reserveTxKeyImages;
     private final String payoutAddress;
 
     public SignOfferRequest(String offerId,
@@ -48,6 +51,7 @@ public final class SignOfferRequest extends OfferMessage implements DirectMessag
                                      String reserveTxHash,
                                      String reserveTxHex,
                                      String reserveTxKey,
+                                     List<String> reserveTxKeyImages,
                                      String payoutAddress) {
         super(messageVersion, offerId, uid);
         this.senderNodeAddress = senderNodeAddress;
@@ -58,6 +62,7 @@ public final class SignOfferRequest extends OfferMessage implements DirectMessag
         this.reserveTxHash = reserveTxHash;
         this.reserveTxHex = reserveTxHex;
         this.reserveTxKey = reserveTxKey;
+        this.reserveTxKeyImages = reserveTxKeyImages;
         this.payoutAddress = payoutAddress;
     }
 
@@ -79,6 +84,7 @@ public final class SignOfferRequest extends OfferMessage implements DirectMessag
                 .setReserveTxHash(reserveTxHash)
                 .setReserveTxHex(reserveTxHex)
                 .setReserveTxKey(reserveTxKey)
+                .addAllReserveTxKeyImages(reserveTxKeyImages)
                 .setPayoutAddress(payoutAddress);
 
         return getNetworkEnvelopeBuilder().setSignOfferRequest(builder).build();
@@ -97,6 +103,7 @@ public final class SignOfferRequest extends OfferMessage implements DirectMessag
                 proto.getReserveTxHash(),
                 proto.getReserveTxHex(),
                 proto.getReserveTxKey(),
+                new ArrayList<String>(proto.getReserveTxKeyImagesList()),
                 proto.getPayoutAddress());
     }
 
@@ -109,6 +116,7 @@ public final class SignOfferRequest extends OfferMessage implements DirectMessag
                 ",\n     reserveTxHash='" + reserveTxHash +
                 ",\n     reserveTxHex='" + reserveTxHex +
                 ",\n     reserveTxKey='" + reserveTxKey +
+                ",\n     reserveTxKeyImages='" + reserveTxKeyImages +
                 ",\n     payoutAddress='" + payoutAddress +
                 "\n} " + super.toString();
     }

@@ -53,16 +53,17 @@ public class MakerReservesTradeFunds extends Task<PlaceOfferModel> {
             
             // freeze reserved outputs
             // TODO (woodser): synchronize to handle potential race condition where concurrent trades freeze each other's outputs
-            List<String> frozenKeyImages = new ArrayList<String>();
+            List<String> reservedKeyImages = new ArrayList<String>();
             MoneroWallet wallet = model.getXmrWalletService().getWallet();
             for (MoneroOutput input : reserveTx.getInputs()) {
-                frozenKeyImages.add(input.getKeyImage().getHex());
+                reservedKeyImages.add(input.getKeyImage().getHex());
                 wallet.freezeOutput(input.getKeyImage().getHex());
             }
             
             // save offer state
             // TODO (woodser): persist
             model.setReserveTx(reserveTx);
+            offer.getOfferPayload().setReserveTxKeyImages(reservedKeyImages);
             offer.setOfferFeePaymentTxId(reserveTx.getHash()); // TODO (woodser): rename this to reserve tx id
             offer.setState(Offer.State.OFFER_FEE_RESERVED);
             complete();
