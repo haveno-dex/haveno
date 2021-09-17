@@ -224,7 +224,8 @@ class EditOfferDataModel extends MutableOfferDataModel {
                 offerPayload.getExtraDataMap(),
                 offerPayload.getProtocolVersion(),
                 offerPayload.getArbitratorNodeAddress(),
-                offerPayload.getArbitratorSignature());
+                offerPayload.getArbitratorSignature(),
+                offerPayload.getReserveTxKeyImages());
 
         final Offer editedOffer = new Offer(editedPayload);
         editedOffer.setPriceFeedService(priceFeedService);

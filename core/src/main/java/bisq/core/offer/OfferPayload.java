@@ -171,9 +171,12 @@ public final class OfferPayload implements ProtectedStoragePayload, ExpirablePay
     // address and signature of signing arbitrator
     @Setter
     private NodeAddress arbitratorNodeAddress;
-    @Nullable
     @Setter
+    @Nullable
     private String arbitratorSignature;
+    @Setter
+    @Nullable
+    private List<String> reserveTxKeyImages;
 
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -217,7 +220,8 @@ public final class OfferPayload implements ProtectedStoragePayload, ExpirablePay
                         @Nullable Map<String, String> extraDataMap,
                         int protocolVersion,
                         NodeAddress arbitratorSigner,
-                        @Nullable String arbitratorSignature) {
+                        @Nullable String arbitratorSignature,
+                        @Nullable List<String> reserveTxKeyImages) {
         this.id = id;
         this.date = date;
         this.ownerNodeAddress = ownerNodeAddress;
@@ -256,6 +260,7 @@ public final class OfferPayload implements ProtectedStoragePayload, ExpirablePay
         this.protocolVersion = protocolVersion;
         this.arbitratorNodeAddress = arbitratorSigner;
         this.arbitratorSignature = arbitratorSignature;
+        this.reserveTxKeyImages = reserveTxKeyImages;
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -293,7 +298,8 @@ public final class OfferPayload implements ProtectedStoragePayload, ExpirablePay
                 .setLowerClosePrice(lowerClosePrice)
                 .setUpperClosePrice(upperClosePrice)
                 .setIsPrivateOffer(isPrivateOffer)
-                .setProtocolVersion(protocolVersion);
+                .setProtocolVersion(protocolVersion)
+                .setArbitratorNodeAddress(arbitratorNodeAddress.toProtoMessage());
 
         builder.setOfferFeePaymentTxId(checkNotNull(offerFeePaymentTxId,
                 "OfferPayload is in invalid state: offerFeePaymentTxID is not set when adding to P2P network."));
@@ -304,9 +310,8 @@ public final class OfferPayload implements ProtectedStoragePayload, ExpirablePay
         Optional.ofNullable(acceptedCountryCodes).ifPresent(builder::addAllAcceptedCountryCodes);
         Optional.ofNullable(hashOfChallenge).ifPresent(builder::setHashOfChallenge);
         Optional.ofNullable(extraDataMap).ifPresent(builder::putAllExtraData);
-        
-        builder.setArbitratorNodeAddress(arbitratorNodeAddress.toProtoMessage());
         Optional.ofNullable(arbitratorSignature).ifPresent(builder::setArbitratorSignature);
+        Optional.ofNullable(reserveTxKeyImages).ifPresent(builder::addAllReserveTxKeyImages);
 
         return protobuf.StoragePayload.newBuilder().setOfferPayload(builder).build();
     }
@@ -358,7 +363,8 @@ public final class OfferPayload implements ProtectedStoragePayload, ExpirablePay
                 extraDataMapMap,
                 proto.getProtocolVersion(),
                 NodeAddress.fromProto(proto.getArbitratorNodeAddress()),
-                ProtoUtil.stringOrNullFromProto(proto.getArbitratorSignature()));
+                ProtoUtil.stringOrNullFromProto(proto.getArbitratorSignature()),
+                proto.getReserveTxKeyImagesList() == null ? null : new ArrayList<String>(proto.getReserveTxKeyImagesList()));
     }
 
 

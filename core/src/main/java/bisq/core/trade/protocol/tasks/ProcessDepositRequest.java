@@ -90,7 +90,7 @@ public class ProcessDepositRequest extends TradeTask {
           MoneroDaemon daemon = trade.getXmrWalletService().getDaemon();
           daemon.flushTxPool(trader.getReserveTxHash());
           
-          // process and verify deposit tx which submits to the pool
+          // process and verify deposit tx
           TradeUtils.processTradeTx(
                   daemon,
                   trade.getXmrWalletService().getWallet(),
@@ -100,6 +100,7 @@ public class ProcessDepositRequest extends TradeTask {
                   trader.getDepositTxHash(),
                   request.getDepositTxHex(),
                   request.getDepositTxKey(),
+                  null,
                   false);
           
           // sychronize to send only one response
@@ -114,8 +115,8 @@ public class ProcessDepositRequest extends TradeTask {
               if (processModel.getMaker().getDepositTxHex() != null && processModel.getTaker().getDepositTxHex() != null) {
                   
                   // relay txs
-                  daemon.relayTxByHash(processModel.getMaker().getDepositTxHash());
-                  daemon.relayTxByHash(processModel.getTaker().getDepositTxHash());
+                  daemon.submitTxHex(processModel.getMaker().getDepositTxHex());
+                  daemon.submitTxHex(processModel.getTaker().getDepositTxHex());
                   
                   // create deposit response
                   DepositResponse response = new DepositResponse(

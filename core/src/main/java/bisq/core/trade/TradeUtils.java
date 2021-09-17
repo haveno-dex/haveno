@@ -17,14 +17,6 @@
 
 package bisq.core.trade;
 
-import bisq.core.btc.model.XmrAddressEntry;
-import bisq.core.btc.wallet.XmrWalletService;
-import bisq.core.offer.OfferPayload;
-import bisq.core.offer.OfferPayload.Direction;
-import bisq.core.support.dispute.mediation.mediator.Mediator;
-import bisq.core.trade.messages.InitTradeRequest;
-import common.utils.JsonUtils;
-
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import bisq.common.crypto.KeyRing;
@@ -32,9 +24,20 @@ import bisq.common.crypto.PubKeyRing;
 import bisq.common.crypto.Sig;
 import bisq.common.util.Tuple2;
 import bisq.common.util.Utilities;
+import bisq.core.btc.model.XmrAddressEntry;
+import bisq.core.btc.wallet.XmrWalletService;
+import bisq.core.offer.OfferPayload;
+import bisq.core.offer.OfferPayload.Direction;
+import bisq.core.support.dispute.mediation.mediator.Mediator;
+import bisq.core.trade.messages.InitTradeRequest;
+import common.utils.JsonUtils;
 import java.math.BigInteger;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 import monero.daemon.MoneroDaemon;
+import monero.daemon.model.MoneroOutput;
 import monero.daemon.model.MoneroSubmitTxResult;
 import monero.daemon.model.MoneroTx;
 import monero.wallet.MoneroWallet;
@@ -182,7 +185,7 @@ public class TradeUtils {
     /**
      * Process a reserve or deposit transaction used during trading.
      * Checks double spends, deposit amount and destination, trade fee, and mining fee.
-     * The transaction is submitted but not relayed to the pool.
+     * The transaction is submitted but not relayed to the pool then flushed.
      * 
      * @param daemon is the Monero daemon to check for double spends
      * @param wallet is the Monero wallet to verify the tx
@@ -192,41 +195,58 @@ public class TradeUtils {
      * @param txHash is the transaction hash
      * @param txHex is the transaction hex
      * @param txKey is the transaction key
-     * @param isReserveTx indicates if the tx is a reserve tx, which requires fee padding
+     * @param keyImages are expected key images of inputs, ignored if null
+     * @param miningFeePadding verifies depositAmount has additional funds to cover mining fee increase
      */
-    public static void processTradeTx(MoneroDaemon daemon, MoneroWallet wallet, String depositAddress, BigInteger depositAmount, BigInteger tradeFee, String txHash, String txHex, String txKey, boolean isReserveTx) {
-        
-        // get tx from daemon
-        MoneroTx tx = daemon.getTx(txHash);
-        
-        // if tx is not submitted, submit but do not relay
-        if (tx == null) {
-            MoneroSubmitTxResult result = daemon.submitTxHex(txHex, true); // TODO (woodser): invert doNotRelay flag to relay for library consistency?
-            if (!result.isGood()) throw new RuntimeException("Failed to submit tx to daemon: " + JsonUtils.serialize(result));
-        } else if (tx.isRelayed()) {
-            throw new RuntimeException("Reserve tx must not be relayed");
-        }
-        
-        // verify trade fee
-        String feeAddress = TradeUtils.FEE_ADDRESS;
-        MoneroCheckTx check = wallet.checkTxKey(txHash, txKey, feeAddress);
-        if (!check.isGood()) throw new RuntimeException("Invalid proof of trade fee");
-        if (!check.getReceivedAmount().equals(tradeFee)) throw new RuntimeException("Trade fee is incorrect amount, expected " + tradeFee + " but was " + check.getReceivedAmount());
+    public static void processTradeTx(MoneroDaemon daemon, MoneroWallet wallet, String depositAddress, BigInteger depositAmount, BigInteger tradeFee, String txHash, String txHex, String txKey, List<String> keyImages, boolean miningFeePadding) {
+        boolean submittedToPool = false;
+        try {
+            
+            // get tx from daemon
+            MoneroTx tx = daemon.getTx(txHash);
+            
+            // if tx is not submitted, submit but do not relay
+            if (tx == null) {
+                MoneroSubmitTxResult result = daemon.submitTxHex(txHex, true); // TODO (woodser): invert doNotRelay flag to relay for library consistency?
+                if (!result.isGood()) throw new RuntimeException("Failed to submit tx to daemon: " + JsonUtils.serialize(result));
+                submittedToPool = true;
+                tx = daemon.getTx(txHash);
+            } else if (tx.isRelayed()) {
+                throw new RuntimeException("Trade tx must not be relayed");
+            }
+            
+            // verify reserved key images
+            if (keyImages != null) {
+                Set<String> txKeyImages = new HashSet<String>();
+                for (MoneroOutput input : tx.getInputs()) txKeyImages.add(input.getKeyImage().getHex());
+                if (!txKeyImages.equals(new HashSet<String>(keyImages))) throw new Error("Reserve tx's inputs do not match claimed key images");
+            }
+            
+            // verify trade fee
+            String feeAddress = TradeUtils.FEE_ADDRESS;
+            MoneroCheckTx check = wallet.checkTxKey(txHash, txKey, feeAddress);
+            if (!check.isGood()) throw new RuntimeException("Invalid proof of trade fee");
+            if (!check.getReceivedAmount().equals(tradeFee)) throw new RuntimeException("Trade fee is incorrect amount, expected " + tradeFee + " but was " + check.getReceivedAmount());
 
-        // verify mining fee
-        BigInteger feeEstimate = daemon.getFeeEstimate().multiply(BigInteger.valueOf(txHex.length())); // TODO (woodser): fee estimates are too high, use more accurate estimate
-        BigInteger feeThreshold = feeEstimate.multiply(BigInteger.valueOf(1l)).divide(BigInteger.valueOf(2l)); // must be at least 50% of estimated fee
-        tx = daemon.getTx(txHash);
-        if (tx.getFee().compareTo(feeThreshold) < 0) {
-            throw new RuntimeException("Mining fee is not enough, needed " + feeThreshold + " but was " + tx.getFee());
-        }
+            // verify mining fee
+            BigInteger feeEstimate = daemon.getFeeEstimate().multiply(BigInteger.valueOf(txHex.length())); // TODO (woodser): fee estimates are too high, use more accurate estimate
+            BigInteger feeThreshold = feeEstimate.multiply(BigInteger.valueOf(1l)).divide(BigInteger.valueOf(2l)); // must be at least 50% of estimated fee
+            tx = daemon.getTx(txHash);
+            if (tx.getFee().compareTo(feeThreshold) < 0) {
+                throw new RuntimeException("Mining fee is not enough, needed " + feeThreshold + " but was " + tx.getFee());
+            }
 
-        // verify deposit amount
-        check = wallet.checkTxKey(txHash, txKey, depositAddress);
-        if (!check.isGood()) throw new RuntimeException("Invalid proof of deposit amount");
-        BigInteger depositThreshold = depositAmount;
-        if (isReserveTx) depositThreshold  = depositThreshold.add(feeThreshold.multiply(BigInteger.valueOf(3l))); // prove reserve of at least deposit amount + (3 * min mining fee)
-        if (check.getReceivedAmount().compareTo(depositThreshold) < 0) throw new RuntimeException("Deposit amount is not enough, needed " + depositThreshold + " but was " + check.getReceivedAmount());
+            // verify deposit amount
+            check = wallet.checkTxKey(txHash, txKey, depositAddress);
+            if (!check.isGood()) throw new RuntimeException("Invalid proof of deposit amount");
+            BigInteger depositThreshold = depositAmount;
+            if (miningFeePadding) depositThreshold  = depositThreshold.add(feeThreshold.multiply(BigInteger.valueOf(3l))); // prove reserve of at least deposit amount + (3 * min mining fee)
+            if (check.getReceivedAmount().compareTo(depositThreshold) < 0) throw new RuntimeException("Deposit amount is not enough, needed " + depositThreshold + " but was " + check.getReceivedAmount());
+        } finally {
+            
+            // flush tx from pool if we added it
+            if (submittedToPool) daemon.flushTxPool(txHash);
+        }
     }
     
     /**

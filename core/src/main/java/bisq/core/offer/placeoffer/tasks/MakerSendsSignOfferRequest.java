@@ -17,6 +17,8 @@
 
 package bisq.core.offer.placeoffer.tasks;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import bisq.common.app.Version;
 import bisq.common.taskrunner.Task;
 import bisq.common.taskrunner.TaskRunner;
@@ -31,8 +33,6 @@ import java.util.Date;
 import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import static com.google.common.base.Preconditions.checkNotNull;
 
 public class MakerSendsSignOfferRequest extends Task<PlaceOfferModel> {
     private static final Logger log = LoggerFactory.getLogger(MakerSendsSignOfferRequest.class);
@@ -64,6 +64,7 @@ public class MakerSendsSignOfferRequest extends Task<PlaceOfferModel> {
                     model.getReserveTx().getHash(),
                     model.getReserveTx().getFullHex(),
                     model.getReserveTx().getKey(),
+                    offer.getOfferPayload().getReserveTxKeyImages(),
                     returnAddress);
             
             // get signing arbitrator

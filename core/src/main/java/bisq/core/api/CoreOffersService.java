@@ -17,6 +17,7 @@
 
 package bisq.core.api;
 
+import bisq.core.btc.wallet.XmrWalletService;
 import bisq.core.monetary.Altcoin;
 import bisq.core.monetary.Price;
 import bisq.core.offer.CreateOfferService;
@@ -39,14 +40,17 @@ import javax.inject.Inject;
 import javax.inject.Singleton;
 
 import java.math.BigDecimal;
-
+import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import lombok.extern.slf4j.Slf4j;
+import monero.daemon.model.MoneroKeyImageSpentStatus;
 
 import static bisq.common.util.MathUtils.exactMultiply;
 import static bisq.common.util.MathUtils.roundDoubleToLong;
@@ -77,6 +81,7 @@ class CoreOffersService {
     private final OpenOfferManager openOfferManager;
     private final OfferUtil offerUtil;
     private final User user;
+    private final XmrWalletService xmrWalletService;
 
     @Inject
     public CoreOffersService(CoreContext coreContext,
@@ -87,7 +92,8 @@ class CoreOffersService {
                              OfferFilter offerFilter,
                              OpenOfferManager openOfferManager,
                              OfferUtil offerUtil,
-                             User user) {
+                             User user,
+                             XmrWalletService xmrWalletService) {
         this.coreContext = coreContext;
         this.keyRing = keyRing;
         this.coreWalletsService = coreWalletsService;
@@ -97,6 +103,7 @@ class CoreOffersService {
         this.openOfferManager = openOfferManager;
         this.offerUtil = offerUtil;
         this.user = user;
+        this.xmrWalletService = xmrWalletService;
     }
 
     Offer getOffer(String id) {
@@ -117,20 +124,62 @@ class CoreOffersService {
     }
 
     List<Offer> getOffers(String direction, String currencyCode) {
-        return offerBookService.getOffers().stream()
+        List<Offer> offers = offerBookService.getOffers().stream()
                 .filter(o -> !o.isMyOffer(keyRing))
                 .filter(o -> offerMatchesDirectionAndCurrency(o, direction, currencyCode))
                 .filter(o -> offerFilter.canTakeOffer(o, coreContext.isApiUser()).isValid())
                 .sorted(priceComparator(direction))
                 .collect(Collectors.toList());
+        offers.removeAll(getUnreservedOffers(offers));
+        return offers;
     }
 
     List<Offer> getMyOffers(String direction, String currencyCode) {
-        return offerBookService.getOffers().stream()
+        List<Offer> offers = offerBookService.getOffers().stream()
                 .filter(o -> o.isMyOffer(keyRing))
                 .filter(o -> offerMatchesDirectionAndCurrency(o, direction, currencyCode))
                 .sorted(priceComparator(direction))
                 .collect(Collectors.toList());
+        Set<Offer> unreservedOffers = getUnreservedOffers(offers);
+        offers.removeAll(unreservedOffers);
+        
+        // remove my unreserved offers from offer manager
+        List<OpenOffer> unreservedOpenOffers = new ArrayList<OpenOffer>();
+        for (Offer unreservedOffer : unreservedOffers) {
+          unreservedOpenOffers.add(openOfferManager.getOpenOfferById(unreservedOffer.getId()).get());
+        }
+        openOfferManager.removeOpenOffers(unreservedOpenOffers, null);
+        return offers;
+    }
+    
+    private Set<Offer> getUnreservedOffers(List<Offer> offers) {
+        Set<Offer> unreservedOffers = new HashSet<Offer>();
+        
+        // collect reserved key images and check for duplicate funds
+        List<String> allKeyImages = new ArrayList<String>();
+        for (Offer offer : offers) {
+          for (String keyImage : offer.getOfferPayload().getReserveTxKeyImages()) {
+            if (!allKeyImages.add(keyImage)) unreservedOffers.add(offer);
+          }
+        }
+        
+        // get spent key images
+        // TODO (woodser): paginate offers and only check key images of current page
+        List<String> spentKeyImages = new ArrayList<String>();
+        List<MoneroKeyImageSpentStatus> spentStatuses = allKeyImages.isEmpty() ? new ArrayList<MoneroKeyImageSpentStatus>() : xmrWalletService.getDaemon().getKeyImageSpentStatuses(allKeyImages);
+        for (int i = 0; i < spentStatuses.size(); i++) {
+          if (spentStatuses.get(i) != MoneroKeyImageSpentStatus.NOT_SPENT) spentKeyImages.add(allKeyImages.get(i));
+        }
+        
+        // check for offers with spent key images
+        for (Offer offer : offers) {
+          if (unreservedOffers.contains(offer)) continue;
+          for (String keyImage : offer.getOfferPayload().getReserveTxKeyImages()) {
+            if (spentKeyImages.contains(keyImage)) unreservedOffers.add(offer);
+          }
+        }
+        
+        return unreservedOffers;
     }
 
     OpenOffer getMyOpenOffer(String id) {
