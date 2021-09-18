@@ -280,6 +280,10 @@ public class CoreApi {
     public BalancesInfo getBalances(String currencyCode) {
         return walletsService.getBalances(currencyCode);
     }
+    
+    public String getNewDepositSubaddress() {
+        return walletsService.getNewDepositSubaddress();
+    }
 
     public long getAddressBalance(String addressString) {
         return walletsService.getAddressBalance(addressString);

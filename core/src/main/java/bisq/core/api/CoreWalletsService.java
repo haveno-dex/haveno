@@ -38,6 +38,7 @@ import bisq.core.btc.wallet.BsqWalletService;
 import bisq.core.btc.wallet.BtcWalletService;
 import bisq.core.btc.wallet.TxBroadcaster;
 import bisq.core.btc.wallet.WalletsManager;
+import bisq.core.btc.wallet.XmrWalletService;
 import bisq.core.provider.fee.FeeService;
 import bisq.core.user.Preferences;
 import bisq.core.util.FormattingUtils;
@@ -103,6 +104,7 @@ class CoreWalletsService {
     private final BsqTransferService bsqTransferService;
     private final BsqFormatter bsqFormatter;
     private final BtcWalletService btcWalletService;
+    private final XmrWalletService xmrWalletService;
     private final CoinFormatter btcFormatter;
     private final FeeService feeService;
     private final Preferences preferences;
@@ -125,6 +127,7 @@ class CoreWalletsService {
                               BsqTransferService bsqTransferService,
                               BsqFormatter bsqFormatter,
                               BtcWalletService btcWalletService,
+                              XmrWalletService xmrWalletService,
                               @Named(FormattingUtils.BTC_FORMATTER_KEY) CoinFormatter btcFormatter,
                               FeeService feeService,
                               Preferences preferences) {
@@ -137,6 +140,7 @@ class CoreWalletsService {
         this.bsqTransferService = bsqTransferService;
         this.bsqFormatter = bsqFormatter;
         this.btcWalletService = btcWalletService;
+        this.xmrWalletService = xmrWalletService;
         this.btcFormatter = btcFormatter;
         this.feeService = feeService;
         this.preferences = preferences;
@@ -169,6 +173,10 @@ class CoreWalletsService {
             default:
                 return new BalancesInfo(getBsqBalances(), getBtcBalances(), getXmrBalances());
         }
+    }
+    
+    String getNewDepositSubaddress() {
+        return xmrWalletService.getWallet().createSubaddress(0).getAddress();
     }
 
     long getAddressBalance(String addressString) {
