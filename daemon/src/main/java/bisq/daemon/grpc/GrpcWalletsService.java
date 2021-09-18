@@ -29,6 +29,8 @@ import bisq.proto.grpc.GetBalancesReply;
 import bisq.proto.grpc.GetBalancesRequest;
 import bisq.proto.grpc.GetFundingAddressesReply;
 import bisq.proto.grpc.GetFundingAddressesRequest;
+import bisq.proto.grpc.GetNewDepositSubaddressRequest;
+import bisq.proto.grpc.GetNewDepositSubaddressReply;
 import bisq.proto.grpc.GetTransactionReply;
 import bisq.proto.grpc.GetTransactionRequest;
 import bisq.proto.grpc.GetTxFeeRateReply;
@@ -101,6 +103,21 @@ class GrpcWalletsService extends WalletsImplBase {
             var balances = coreApi.getBalances(req.getCurrencyCode());
             var reply = GetBalancesReply.newBuilder()
                     .setBalances(balances.toProtoMessage())
+                    .build();
+            responseObserver.onNext(reply);
+            responseObserver.onCompleted();
+        } catch (Throwable cause) {
+            exceptionHandler.handleException(log, cause, responseObserver);
+        }
+    }
+    
+    @Override
+    public void getNewDepositSubaddress(GetNewDepositSubaddressRequest req,
+                                    StreamObserver<GetNewDepositSubaddressReply> responseObserver) {
+        try {
+            String subaddress = coreApi.getNewDepositSubaddress();
+            var reply = GetNewDepositSubaddressReply.newBuilder()
+                    .setSubaddress(subaddress)
                     .build();
             responseObserver.onNext(reply);
             responseObserver.onCompleted();

@@ -431,6 +431,8 @@ message TxInfo {
 service Wallets {
     rpc GetBalances (GetBalancesRequest) returns (GetBalancesReply) {
     }
+    rpc GetNewDepositSubaddress (GetNewDepositSubaddressRequest) returns (GetNewDepositSubaddressReply) {
+    }
     rpc GetAddressBalance (GetAddressBalanceRequest) returns (GetAddressBalanceReply) {
     }
     rpc GetUnusedBsqAddress (GetUnusedBsqAddressRequest) returns (GetUnusedBsqAddressReply) {
@@ -467,6 +469,13 @@ message GetBalancesRequest {
 
 message GetBalancesReply {
     BalancesInfo balances = 1;
+}
+
+message GetNewDepositSubaddressRequest {
+}
+
+message GetNewDepositSubaddressReply {
+     string subaddress = 1;
 }
 
 message GetAddressBalanceRequest {
