@@ -94,10 +94,14 @@ import org.bouncycastle.crypto.params.KeyParameter;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -307,7 +311,28 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     private void initPersistedTrades() {
-        tradableList.forEach(this::initPersistedTrade);
+        
+        // open trades in parallel since each may open a multisig wallet
+        List<Trade> trades = tradableList.getList();
+        if (!trades.isEmpty()) {
+            ExecutorService pool = Executors.newFixedThreadPool(Math.min(10, trades.size()));
+            for (Trade trade : trades) {
+                pool.submit(new Runnable() {
+                    @Override
+                    public void run() {
+                        initPersistedTrade(trade);
+                    }
+                });
+            }
+            pool.shutdown();
+            try {
+                if (!pool.awaitTermination(60000, TimeUnit.SECONDS)) pool.shutdownNow();
+            } catch (InterruptedException e) {
+                pool.shutdownNow();
+                throw new RuntimeException(e);
+            }
+        }
+        
         persistedTradesInitialized.set(true);
 
         // We do not include failed trades as they should not be counted anyway in the trade statistics
@@ -320,14 +345,14 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
 
     private void initPersistedTrade(Trade trade) {
         initTradeAndProtocol(trade, getTradeProtocol(trade));
-        trade.updateDepositTxFromWallet();
+        trade.updateDepositTxFromWallet(); // TODO (woodser): this re-opens all multisig wallets. only open active wallets
         requestPersistence();
     }
 
     private void initTradeAndProtocol(Trade trade, TradeProtocol tradeProtocol) {
         tradeProtocol.initialize(processModelServiceProvider, this, trade.getOffer());
         trade.initialize(processModelServiceProvider);
-        requestPersistence();
+        requestPersistence(); // TODO requesting persistence twice with initPersistedTrade()
     }
 
     public void requestPersistence() {
