@@ -17,9 +17,10 @@
 
 package bisq.core.trade.protocol;
 
+import bisq.core.trade.handlers.TradeResultHandler;
 
 public interface TakerProtocol extends TraderProtocol {
-    void onTakeOffer();
+    void onTakeOffer(TradeResultHandler tradeResultHandler);
 
     enum TakerEvent implements FluentProtocol.Event {
         TAKE_OFFER

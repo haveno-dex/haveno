@@ -21,6 +21,7 @@ package bisq.core.trade.protocol;
 import bisq.core.offer.Offer;
 import bisq.core.trade.SellerAsTakerTrade;
 import bisq.core.trade.Trade;
+import bisq.core.trade.handlers.TradeResultHandler;
 import bisq.core.trade.messages.CounterCurrencyTransferStartedMessage;
 import bisq.core.trade.messages.DepositResponse;
 import bisq.core.trade.messages.InitMultisigRequest;
@@ -61,6 +62,8 @@ import static com.google.common.base.Preconditions.checkNotNull;
 // TODO (woodser): remove unused request handling
 @Slf4j
 public class SellerAsTakerProtocol extends SellerProtocol implements TakerProtocol {
+    
+    private TradeResultHandler tradeResultHandler;
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Constructor
@@ -78,8 +81,9 @@ public class SellerAsTakerProtocol extends SellerProtocol implements TakerProtoc
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     @Override
-    public void onTakeOffer() {
+    public void onTakeOffer(TradeResultHandler tradeResultHandler) {
       System.out.println("onTakeOffer()");
+      this.tradeResultHandler = tradeResultHandler;
 
       expect(phase(Trade.Phase.INIT)
           .with(TakerEvent.TAKE_OFFER)
@@ -262,7 +266,7 @@ public class SellerAsTakerProtocol extends SellerProtocol implements TakerProtoc
         System.out.println("SellerAsTakerProtocol.handlePaymentAccountPayloadRequest()");
         Validator.checkTradeId(processModel.getOfferId(), request);
         processModel.setTradeMessage(request);
-        expect(anyPhase(Trade.Phase.INIT, Trade.Phase.DEPOSIT_PUBLISHED)
+        expect(anyPhase(Trade.Phase.INIT, Trade.Phase.DEPOSIT_PUBLISHED) // TODO: only deposit_published should be expected
             .with(request)
             .from(sender)) // TODO (woodser): ensure this asserts sender == response.getSenderNodeAddress()
             .setup(tasks(
@@ -272,6 +276,7 @@ public class SellerAsTakerProtocol extends SellerProtocol implements TakerProtoc
                     () -> {
                         stopTimeout();
                         handleTaskRunnerSuccess(sender, request);
+                        tradeResultHandler.handleResult(trade); // trade is initialized
                     },
                     errorMessage -> {
                         errorMessageHandler.handleErrorMessage(errorMessage);
