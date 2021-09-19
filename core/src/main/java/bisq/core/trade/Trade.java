@@ -699,8 +699,7 @@ public abstract class Trade implements Tradable, Model {
     // The deserialized tx has not actual confidence data, so we need to get the fresh one from the wallet.
     void updateDepositTxFromWallet() {
         if (getMakerDepositTx() != null && getTakerDepositTx() != null) {
-            System.out.println(processModel.getProvider().getXmrWalletService());
-            MoneroWallet multisigWallet = processModel.getProvider().getXmrWalletService().getMultisigWallet(getId());
+          MoneroWallet multisigWallet = processModel.getProvider().getXmrWalletService().getMultisigWallet(getId());
           applyDepositTxs(multisigWallet.getTx(getMakerDepositTx().getHash()), multisigWallet.getTx(getTakerDepositTx().getHash()));
         }
     }

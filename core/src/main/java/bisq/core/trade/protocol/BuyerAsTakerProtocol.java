@@ -21,6 +21,7 @@ package bisq.core.trade.protocol;
 import bisq.core.offer.Offer;
 import bisq.core.trade.BuyerAsTakerTrade;
 import bisq.core.trade.Trade;
+import bisq.core.trade.handlers.TradeResultHandler;
 import bisq.core.trade.messages.DelayedPayoutTxSignatureRequest;
 import bisq.core.trade.messages.DepositResponse;
 import bisq.core.trade.messages.DepositTxAndDelayedPayoutTxMessage;
@@ -66,6 +67,8 @@ import static com.google.common.base.Preconditions.checkNotNull;
 // TODO (woodser): remove unused request handling
 @Slf4j
 public class BuyerAsTakerProtocol extends BuyerProtocol implements TakerProtocol {
+    
+    private TradeResultHandler tradeResultHandler;
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Constructor
@@ -87,8 +90,9 @@ public class BuyerAsTakerProtocol extends BuyerProtocol implements TakerProtocol
 
     // TODO (woodser): this implementation is duplicated with SellerAsTakerProtocol
     @Override
-    public void onTakeOffer() {
+    public void onTakeOffer(TradeResultHandler tradeResultHandler) {
       System.out.println("onTakeOffer()");
+      this.tradeResultHandler = tradeResultHandler;
 
       expect(phase(Trade.Phase.INIT)
           .with(TakerEvent.TAKE_OFFER)
@@ -297,6 +301,7 @@ public class BuyerAsTakerProtocol extends BuyerProtocol implements TakerProtocol
                     () -> {
                         stopTimeout();
                         handleTaskRunnerSuccess(sender, request);
+                        tradeResultHandler.handleResult(trade); // trade is initialized
                     },
                     errorMessage -> {
                         errorMessageHandler.handleErrorMessage(errorMessage);
