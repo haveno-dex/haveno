@@ -111,7 +111,7 @@ public class XmrWalletService {
               .setPath(path)
               .setPassword("abctesting123"));
       multisigWallets.put(tradeId, multisigWallet);
-      multisigWallet.startSyncing(5000l);
+      multisigWallet.startSyncing(5000l); // TODO (woodser): apps stall if too many multisig wallets and too short sync period
       return multisigWallet;
   }
 
