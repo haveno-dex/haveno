@@ -28,7 +28,6 @@ class CryptoCurrencyUtil {
 
     public static List<String> getSupportedCryptoCurrencies() {
         final List<String> result = new ArrayList<>();
-        result.add("BSQ");
         result.sort(String::compareTo);
         return result;
     }

@@ -17,10 +17,11 @@
 
 package bisq.core.payment.payload;
 
+import bisq.core.payment.TradeLimits;
+
 import bisq.core.locale.CurrencyUtil;
 import bisq.core.locale.Res;
 import bisq.core.locale.TradeCurrency;
-import bisq.core.payment.TradeLimits;
 
 import bisq.common.proto.persistable.PersistablePayload;
 
@@ -37,8 +38,6 @@ import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
 
 import org.jetbrains.annotations.NotNull;
-
-import static com.google.common.base.Preconditions.checkNotNull;
 
 @EqualsAndHashCode(exclude = {"maxTradePeriod", "maxTradeLimit"})
 @ToString
@@ -240,7 +239,7 @@ public final class PaymentMethod implements PersistablePayload, Comparable<Payme
     private final long maxTradePeriod;
 
     // With v0.9.4 we changed context of that field. Before it was the hard coded trade limit. Now it is the default
-    // limit which will be used just in time to adjust the real trade limit based on the DAO param value and risk factor.
+    // limit based on the risk factor.
     // The risk factor is derived from the maxTradeLimit.
     // As that field is used in protobuffer definitions we cannot change it to reflect better the new context. We prefer
     // to keep the convention that PB fields has the same name as the Java class field (as we could rename it in
@@ -322,8 +321,7 @@ public final class PaymentMethod implements PersistablePayload, Comparable<Payme
             log.error("maxTradeLimit is not matching one of our default values. maxTradeLimit=" + Coin.valueOf(maxTradeLimit).toFriendlyString());
         }
 
-        TradeLimits tradeLimits = TradeLimits.getINSTANCE();
-        checkNotNull(tradeLimits, "tradeLimits must not be null");
+        TradeLimits tradeLimits = new TradeLimits();
         long maxTradeLimit = tradeLimits.getMaxTradeLimit().value;
         return Coin.valueOf(tradeLimits.getRoundedRiskBasedTradeLimit(maxTradeLimit, riskFactor));
     }

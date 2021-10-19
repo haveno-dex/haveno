@@ -748,7 +748,7 @@ public class DisputeSummaryWindow extends Overlay<DisputeSummaryWindow> {
         throw new RuntimeException("DisputeSummaryWindow.doCloseIfValid() needs updated for XMR");
 //        var disputeManager = checkNotNull(getDisputeManager(dispute));
 //        try {
-//            TradeDataValidation.validateDonationAddress(dispute.getDonationAddressOfDelayedPayoutTx(), daoFacade);
+//            TradeDataValidation.validateDonationAddress(dispute.getDonationAddressOfDelayedPayoutTx());
 //            TradeDataValidation.testIfDisputeTriesReplay(dispute, disputeManager.getDisputesAsObservableList());
 //            doClose(closeTicketButton);
 //        } catch (TradeDataValidation.AddressException exception) {
@@ -761,7 +761,6 @@ public class DisputeSummaryWindow extends Overlay<DisputeSummaryWindow> {
 //                new Popup().width(900)
 //                        .warning(Res.get("support.warning.disputesWithInvalidDonationAddress",
 //                                addressAsString,
-//                                daoFacade.getAllDonationAddresses(),
 //                                tradeId,
 //                                Res.get("support.warning.disputesWithInvalidDonationAddress.mediator")))
 //                        .onAction(() -> {
@@ -774,7 +773,6 @@ public class DisputeSummaryWindow extends Overlay<DisputeSummaryWindow> {
 //                new Popup().width(900)
 //                        .warning(Res.get("support.warning.disputesWithInvalidDonationAddress",
 //                                addressAsString,
-//                                daoFacade.getAllDonationAddresses(),
 //                                tradeId,
 //                                Res.get("support.warning.disputesWithInvalidDonationAddress.refundAgent")))
 //                        .show();

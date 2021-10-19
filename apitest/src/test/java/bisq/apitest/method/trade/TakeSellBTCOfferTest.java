@@ -58,9 +58,6 @@ public class TakeSellBTCOfferTest extends AbstractTradeTest {
 
     // Alice is maker/seller, Bob is taker/buyer.
 
-    // Maker and Taker fees are in BTC.
-    private static final String TRADE_FEE_CURRENCY_CODE = BTC;
-
     private static final String WITHDRAWAL_TX_MEMO = "Bob's trade withdrawal";
 
     @Test
@@ -74,10 +71,8 @@ public class TakeSellBTCOfferTest extends AbstractTradeTest {
                     12_500_000L, // min-amount = amount
                     0.00,
                     getDefaultBuyerSecurityDepositAsPercent(),
-                    alicesUsdAccount.getId(),
-                    TRADE_FEE_CURRENCY_CODE);
+                    alicesUsdAccount.getId());
             var offerId = alicesOffer.getId();
-            assertTrue(alicesOffer.getIsCurrencyForMakerFeeBtc());
 
             // Wait for Alice's AddToOfferBook task.
             // Wait times vary;  my logs show >= 2 second delay, but taking sell offers
@@ -87,7 +82,7 @@ public class TakeSellBTCOfferTest extends AbstractTradeTest {
             assertEquals(1, alicesUsdOffers.size());
 
             PaymentAccount bobsUsdAccount = createDummyF2FAccount(bobClient, "US");
-            var trade = takeAlicesOffer(offerId, bobsUsdAccount.getId(), TRADE_FEE_CURRENCY_CODE);
+            var trade = takeAlicesOffer(offerId, bobsUsdAccount.getId());
             assertNotNull(trade);
             assertEquals(offerId, trade.getTradeId());
             // Cache the trade id for the other tests.

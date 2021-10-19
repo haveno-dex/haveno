@@ -47,8 +47,7 @@ public class Capabilities {
 
     // Defines which most recent capability any node need to support.
     // This helps to clean network from very old inactive but still running nodes.
-    @SuppressWarnings("deprecation")
-    private static final Capability MANDATORY_CAPABILITY = Capability.DAO_STATE;
+    private static final Capability MANDATORY_CAPABILITY = Capability.TRADE_STATISTICS_3;
 
     protected final Set<Capability> capabilities = new HashSet<>();
 

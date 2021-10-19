@@ -154,11 +154,6 @@
   [ "$status" -eq 0 ]
 }
 
-@test "test getunusedbsqaddress" {
-  run ./bisq-cli --password=xyz getunusedbsqaddress
-  [ "$status" -eq 0 ]
-}
-
 @test "test getaddressbalance missing address argument" {
   run ./bisq-cli --password=xyz getaddressbalance
   [ "$status" -eq 1 ]

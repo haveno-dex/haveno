@@ -69,8 +69,6 @@ public class TakeOfferModel implements Model {
     private AddressEntry addressEntry;
     @Getter
     private Coin amount;
-    @Getter
-    private boolean isCurrencyForTakerFeeBtc;
     private Offer offer;
     private PaymentAccount paymentAccount;
     @Getter
@@ -124,8 +122,7 @@ public class TakeOfferModel implements Model {
         this.securityDeposit = offer.getDirection() == SELL
                 ? offer.getBuyerSecurityDeposit()
                 : offer.getSellerSecurityDeposit();
-        this.isCurrencyForTakerFeeBtc = offerUtil.isCurrencyForTakerFeeBtc(amount);
-        this.takerFee = offerUtil.getTakerFee(isCurrencyForTakerFeeBtc, amount);
+        this.takerFee = offerUtil.getTakerFee(amount);
 
         calculateTxFees();
         calculateVolume();
@@ -179,9 +176,7 @@ public class TakeOfferModel implements Model {
         // maker created the offer and reserved his funds, so that would not work well
         // with dynamic fees.  The mining fee for the takeOfferFee tx is deducted from
         // the createOfferFee and not visible to the trader.
-        Coin feeAndSecDeposit = getTotalTxFee().add(securityDeposit);
-        if (isCurrencyForTakerFeeBtc)
-            feeAndSecDeposit = feeAndSecDeposit.add(takerFee);
+        Coin feeAndSecDeposit = getTotalTxFee().add(securityDeposit).add(takerFee);
 
         totalToPayAsCoin = offer.isBuyOffer()
                 ? feeAndSecDeposit.add(amount)
@@ -226,11 +221,7 @@ public class TakeOfferModel implements Model {
     }
 
     public Coin getTotalTxFee() {
-        Coin totalTxFees = txFeeFromFeeService.add(getTxFeeForDepositTx()).add(getTxFeeForPayoutTx());
-        if (isCurrencyForTakerFeeBtc)
-            return totalTxFees;
-        else
-            return totalTxFees.subtract(takerFee);
+        return txFeeFromFeeService.add(getTxFeeForDepositTx()).add(getTxFeeForPayoutTx());
     }
 
     @NotNull
@@ -274,7 +265,6 @@ public class TakeOfferModel implements Model {
         this.amount = null;
         this.balance = null;
         this.isBtcWalletFunded = false;
-        this.isCurrencyForTakerFeeBtc = false;
         this.missingCoin = ZERO;
         this.offer = null;
         this.paymentAccount = null;
@@ -309,7 +299,6 @@ public class TakeOfferModel implements Model {
                 ", balance=" + balance + "\n" +
                 ", volume=" + volume + "\n" +
                 ", fundsNeededForTrade=" + getFundsNeededForTrade() + "\n" +
-                ", isCurrencyForTakerFeeBtc=" + isCurrencyForTakerFeeBtc + "\n" +
                 ", isBtcWalletFunded=" + isBtcWalletFunded + "\n" +
                 '}';
     }

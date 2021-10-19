@@ -20,7 +20,6 @@ package bisq.core.app.misc;
 import bisq.core.alert.AlertModule;
 import bisq.core.app.TorSetup;
 import bisq.core.btc.BitcoinModule;
-import bisq.core.dao.DaoModule;
 import bisq.core.filter.FilterModule;
 import bisq.core.network.CoreNetworkFilter;
 import bisq.core.network.p2p.seed.DefaultSeedNodeRepository;
@@ -92,7 +91,6 @@ public class ModuleForAppWithP2p extends AppModule {
         install(new OfferModule(config));
         install(new P2PModule(config));
         install(new BitcoinModule(config));
-        install(new DaoModule(config));
         install(new AlertModule(config));
         install(new FilterModule(config));
         bind(PubKeyRing.class).toProvider(PubKeyRingProvider.class);

@@ -27,7 +27,6 @@ import bisq.desktop.util.FormBuilder;
 import bisq.desktop.util.Layout;
 
 import bisq.core.account.witness.AccountAgeWitnessService;
-import bisq.core.dao.governance.asset.AssetService;
 import bisq.core.filter.FilterManager;
 import bisq.core.locale.CryptoCurrency;
 import bisq.core.locale.CurrencyUtil;
@@ -75,7 +74,6 @@ public class AltCoinAccountsView extends PaymentAccountsView<GridPane, AltCoinAc
 
     private final InputValidator inputValidator;
     private final AltCoinAddressValidator altCoinAddressValidator;
-    private final AssetService assetService;
     private final FilterManager filterManager;
     private final CoinFormatter formatter;
     private final Preferences preferences;
@@ -90,7 +88,6 @@ public class AltCoinAccountsView extends PaymentAccountsView<GridPane, AltCoinAc
                                InputValidator inputValidator,
                                AltCoinAddressValidator altCoinAddressValidator,
                                AccountAgeWitnessService accountAgeWitnessService,
-                               AssetService assetService,
                                FilterManager filterManager,
                                @Named(FormattingUtils.BTC_FORMATTER_KEY) CoinFormatter formatter,
                                Preferences preferences) {
@@ -98,7 +95,6 @@ public class AltCoinAccountsView extends PaymentAccountsView<GridPane, AltCoinAc
 
         this.inputValidator = inputValidator;
         this.altCoinAddressValidator = altCoinAddressValidator;
-        this.assetService = assetService;
         this.filterManager = filterManager;
         this.formatter = formatter;
         this.preferences = preferences;
@@ -242,7 +238,7 @@ public class AltCoinAccountsView extends PaymentAccountsView<GridPane, AltCoinAc
 
     private PaymentMethodForm getPaymentMethodForm(PaymentAccount paymentAccount) {
         return new AssetsForm(paymentAccount, accountAgeWitnessService, altCoinAddressValidator,
-                inputValidator, root, gridRow, formatter, assetService, filterManager);
+                inputValidator, root, gridRow, formatter, filterManager);
     }
 
     private void removeNewAccountForm() {

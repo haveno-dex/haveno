@@ -20,7 +20,6 @@ package bisq.desktop.main.portfolio.closedtrades;
 import bisq.desktop.common.model.ActivatableDataModel;
 import bisq.desktop.main.PriceUtil;
 
-import bisq.core.btc.wallet.BsqWalletService;
 import bisq.core.monetary.Price;
 import bisq.core.monetary.Volume;
 import bisq.core.offer.Offer;
@@ -33,7 +32,6 @@ import bisq.core.trade.Trade;
 import bisq.core.trade.closed.ClosedTradableManager;
 import bisq.core.trade.statistics.TradeStatisticsManager;
 import bisq.core.user.Preferences;
-import bisq.core.util.AveragePriceUtil;
 import bisq.core.util.VolumeUtil;
 
 import bisq.common.util.Tuple2;
@@ -56,7 +54,6 @@ import java.util.stream.Collectors;
 class ClosedTradesDataModel extends ActivatableDataModel {
 
     final ClosedTradableManager closedTradableManager;
-    private final BsqWalletService bsqWalletService;
     private final Preferences preferences;
     private final TradeStatisticsManager tradeStatisticsManager;
     private final PriceFeedService priceFeedService;
@@ -65,12 +62,10 @@ class ClosedTradesDataModel extends ActivatableDataModel {
 
     @Inject
     public ClosedTradesDataModel(ClosedTradableManager closedTradableManager,
-                                 BsqWalletService bsqWalletService,
                                  Preferences preferences,
                                  TradeStatisticsManager tradeStatisticsManager,
                                  PriceFeedService priceFeedService) {
         this.closedTradableManager = closedTradableManager;
-        this.bsqWalletService = bsqWalletService;
         this.preferences = preferences;
         this.tradeStatisticsManager = tradeStatisticsManager;
         this.priceFeedService = priceFeedService;
@@ -149,13 +144,6 @@ class ClosedTradesDataModel extends ActivatableDataModel {
         return Optional.of(VolumeUtil.getVolume(amount, price));
     }
 
-    public Volume getBsqVolumeInUsdWithAveragePrice(Coin amount) {
-        Tuple2<Price, Price> tuple = AveragePriceUtil.getAveragePriceTuple(preferences, tradeStatisticsManager, 30);
-        Price usdPrice = tuple.first;
-        long value = Math.round(amount.value * usdPrice.getValue() / 100d);
-        return new Volume(Fiat.valueOf("USD", value));
-    }
-
     public Coin getTotalTxFee() {
         return Coin.valueOf(getList().stream()
                 .map(ClosedTradableListItem::getTradable)
@@ -181,36 +169,18 @@ class ClosedTradesDataModel extends ActivatableDataModel {
         Offer offer = tradable.getOffer();
         if (wasMyOffer(tradable) || tradable instanceof OpenOffer) {
             String makerFeeTxId = offer.getOfferFeePaymentTxId();
-            boolean notInBsqWallet = bsqWalletService.getTransaction(makerFeeTxId) == null;
             if (expectBtcFee) {
-                if (notInBsqWallet) {
-                    return offer.getMakerFee().value;
-                } else {
-                    return 0;
-                }
+                return offer.getMakerFee().value;
             } else {
-                if (notInBsqWallet) {
-                    return 0;
-                } else {
-                    return offer.getMakerFee().value;
-                }
+                return 0;
             }
         } else {
             Trade trade = (Trade) tradable;
             String takerFeeTxId = trade.getTakerFeeTxId();
-            boolean notInBsqWallet = bsqWalletService.getTransaction(takerFeeTxId) == null;
             if (expectBtcFee) {
-                if (notInBsqWallet) {
-                    return trade.getTakerFee().value;
-                } else {
-                    return 0;
-                }
+                return trade.getTakerFee().value;
             } else {
-                if (notInBsqWallet) {
-                    return 0;
-                } else {
-                    return trade.getTakerFee().value;
-                }
+                return 0;
             }
         }
     }

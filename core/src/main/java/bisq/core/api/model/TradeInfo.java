@@ -43,7 +43,6 @@ public class TradeInfo implements Payload {
     private final String shortId;
     private final long date;
     private final String role;
-    private final boolean isCurrencyForTakerFeeBtc;
     private final long txFeeAsLong;
     private final long takerFeeAsLong;
     private final String takerFeeTxId;
@@ -71,7 +70,6 @@ public class TradeInfo implements Payload {
         this.shortId = builder.shortId;
         this.date = builder.date;
         this.role = builder.role;
-        this.isCurrencyForTakerFeeBtc = builder.isCurrencyForTakerFeeBtc;
         this.txFeeAsLong = builder.txFeeAsLong;
         this.takerFeeAsLong = builder.takerFeeAsLong;
         this.takerFeeTxId = builder.takerFeeTxId;
@@ -225,7 +223,6 @@ public class TradeInfo implements Payload {
         private String shortId;
         private long date;
         private String role;
-        private boolean isCurrencyForTakerFeeBtc;
         private long txFeeAsLong;
         private long takerFeeAsLong;
         private String takerFeeTxId;
@@ -272,11 +269,6 @@ public class TradeInfo implements Payload {
             return this;
         }
 
-        public TradeInfoBuilder withIsCurrencyForTakerFeeBtc(boolean isCurrencyForTakerFeeBtc) {
-            this.isCurrencyForTakerFeeBtc = isCurrencyForTakerFeeBtc;
-            return this;
-        }
-
         public TradeInfoBuilder withTxFeeAsLong(long txFeeAsLong) {
             this.txFeeAsLong = txFeeAsLong;
             return this;
@@ -296,7 +288,7 @@ public class TradeInfo implements Payload {
             this.makerDepositTxId = makerDepositTxId;
             return this;
         }
-        
+
         public TradeInfoBuilder withTakerDepositTxId(String takerDepositTxId) {
             this.takerDepositTxId = takerDepositTxId;
             return this;
@@ -389,7 +381,6 @@ public class TradeInfo implements Payload {
                 ", shortId='" + shortId + '\'' + "\n" +
                 ", date='" + date + '\'' + "\n" +
                 ", role='" + role + '\'' + "\n" +
-                ", isCurrencyForTakerFeeBtc='" + isCurrencyForTakerFeeBtc + '\'' + "\n" +
                 ", txFeeAsLong='" + txFeeAsLong + '\'' + "\n" +
                 ", takerFeeAsLong='" + takerFeeAsLong + '\'' + "\n" +
                 ", takerFeeTxId='" + takerFeeTxId + '\'' + "\n" +

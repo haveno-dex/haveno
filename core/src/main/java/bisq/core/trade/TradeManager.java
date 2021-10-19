@@ -18,7 +18,6 @@
 package bisq.core.trade;
 
 import bisq.core.btc.model.XmrAddressEntry;
-import bisq.core.btc.wallet.BsqWalletService;
 import bisq.core.btc.wallet.XmrWalletService;
 import bisq.core.locale.Res;
 import bisq.core.offer.Offer;
@@ -128,7 +127,6 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
     @Getter
     private final KeyRing keyRing;
     private final XmrWalletService xmrWalletService;
-    private final BsqWalletService bsqWalletService;
     private final OfferBookService offerBookService;
     private final OpenOfferManager openOfferManager;
     private final ClosedTradableManager closedTradableManager;
@@ -168,7 +166,6 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
     public TradeManager(User user,
                         KeyRing keyRing,
                         XmrWalletService xmrWalletService,
-                        BsqWalletService bsqWalletService,
                         OfferBookService offerBookService,
                         OpenOfferManager openOfferManager,
                         ClosedTradableManager closedTradableManager,
@@ -189,7 +186,6 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
         this.user = user;
         this.keyRing = keyRing;
         this.xmrWalletService = xmrWalletService;
-        this.bsqWalletService = bsqWalletService;
         this.offerBookService = offerBookService;
         this.openOfferManager = openOfferManager;
         this.closedTradableManager = closedTradableManager;
@@ -372,7 +368,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
       // handle request as arbitrator
       boolean isArbitrator = request.getArbitratorNodeAddress().equals(p2PService.getNetworkNode().getNodeAddress());
       if (isArbitrator) {
-          
+
           // verify this node is registered arbitrator
           Mediator thisArbitrator = user.getRegisteredMediator();
           NodeAddress thisAddress = p2PService.getNetworkNode().getNodeAddress();
@@ -392,10 +388,10 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
               log.warn("Ignoring InitTradeRequest from {} with tradeId {} because no offer is on the books", sender, request.getTradeId());
               return;
           }
-          
+
           // verify arbitrator is payload signer unless they are offline
           // TODO (woodser): handle if payload signer differs from current arbitrator (verify signer is offline)
-          
+
           // verify maker is offer owner
           // TODO (woodser): maker address might change if they disconnect and reconnect, should allow maker address to differ if pubKeyRing is same ?
           if (!offer.getOwnerNodeAddress().equals(request.getMakerNodeAddress())) {
@@ -407,24 +403,24 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
           Optional<Trade> tradeOptional = getTradeById(offer.getId());
           if (tradeOptional.isPresent()) {
               trade = tradeOptional.get();
-              
+
               // verify request is from maker
               if (!sender.equals(request.getMakerNodeAddress())) {
                   log.warn("Trade is already taken"); // TODO (woodser): need to respond with bad ack
                   return;
               }
           } else {
-              
+
               // verify request is from taker
               if (!sender.equals(request.getTakerNodeAddress())) {
                   log.warn("Ignoring InitTradeRequest from {} with tradeId {} because request must be from taker when trade is not initialized", sender, request.getTradeId());
                   return;
               }
-              
+
               // compute expected taker fee
-              Coin feePerBtc = CoinUtil.getFeePerBtc(FeeService.getTakerFeePerBtc(true), Coin.valueOf(offer.getOfferPayload().getAmount()));
-              Coin takerFee = CoinUtil.maxCoin(feePerBtc, FeeService.getMinTakerFee(true));
-              
+              Coin feePerBtc = CoinUtil.getFeePerBtc(FeeService.getTakerFeePerBtc(), Coin.valueOf(offer.getOfferPayload().getAmount()));
+              Coin takerFee = CoinUtil.maxCoin(feePerBtc, FeeService.getMinTakerFee());
+
               // create arbitrator trade
               trade = new ArbitratorTrade(offer,
                       Coin.valueOf(offer.getOfferPayload().getAmount()),
@@ -436,7 +432,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
                       request.getMakerNodeAddress(),
                       request.getTakerNodeAddress(),
                       request.getArbitratorNodeAddress());
-              
+
               // set reserve tx hash
               Optional<SignedOffer> signedOfferOptional = openOfferManager.getSignedOfferById(request.getTradeId());
               if (!signedOfferOptional.isPresent()) return;
@@ -469,7 +465,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
 
           Offer offer = openOffer.getOffer();
           openOfferManager.reserveOpenOffer(openOffer); // TODO (woodser): reserve offer if arbitrator?
-          
+
           // verify request is from signing arbitrator when they're online, else from selected arbitrator
           if (!sender.equals(offer.getOfferPayload().getArbitratorNodeAddress())) {
               boolean isSignerOnline = true; // TODO (woodser): determine if signer is online and test
@@ -545,7 +541,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
             }
       });
     }
-    
+
     private void handleSignContractRequest(SignContractRequest request, NodeAddress peer) {
         log.info("Received SignContractRequest from {} with tradeId {} and uid {}", peer, request.getTradeId(), request.getUid());
 
@@ -565,7 +561,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
               }
         });
     }
-    
+
     private void handleSignContractResponse(SignContractResponse request, NodeAddress peer) {
         log.info("Received SignContractResponse from {} with tradeId {} and uid {}", peer, request.getTradeId(), request.getUid());
 
@@ -585,7 +581,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
               }
         });
     }
-    
+
     private void handleDepositRequest(DepositRequest request, NodeAddress peer) {
         log.info("Received DepositRequest from {} with tradeId {} and uid {}", peer, request.getTradeId(), request.getUid());
 
@@ -605,7 +601,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
               }
         });
     }
-    
+
     private void handleDepositResponse(DepositResponse response, NodeAddress peer) {
         log.info("Received DepositResponse from {} with tradeId {} and uid {}", peer, response.getTradeId(), response.getUid());
 
@@ -625,7 +621,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
               }
         });
     }
-    
+
     private void handlePaymentAccountPayloadRequest(PaymentAccountPayloadRequest request, NodeAddress peer) {
         log.info("Received PaymentAccountPayloadRequest from {} with tradeId {} and uid {}", peer, request.getTradeId(), request.getUid());
 
@@ -690,7 +686,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
                             ErrorMessageHandler errorMessageHandler) {
 
         checkArgument(!wasOfferAlreadyUsedInTrade(offer.getId()));
-        
+
         OfferAvailabilityModel model = getOfferAvailabilityModel(offer, isTakerApiUser, paymentAccountId);
         offer.checkOfferAvailability(model,
                 () -> {
@@ -719,7 +715,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
                                     P2PService.getMyNodeAddress(),
                                     offer.getOfferPayload().getArbitratorNodeAddress());
                         }
-                        
+
                         trade.getProcessModel().setTradeMessage(model.getTradeRequest());
                         trade.getProcessModel().setMakerSignature(model.getMakerSignature());
                         trade.getProcessModel().setArbitratorNodeAddress(model.getArbitratorNodeAddress());

@@ -67,7 +67,6 @@ public class CreateOfferDataModelTest {
                 null,
                 offerUtil,
                 btcWalletService,
-                null,
                 preferences,
                 user,
                 null,

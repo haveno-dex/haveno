@@ -17,13 +17,6 @@
 
 package bisq.core.network.p2p.inventory;
 
-import bisq.core.dao.monitoring.BlindVoteStateMonitoringService;
-import bisq.core.dao.monitoring.DaoStateMonitoringService;
-import bisq.core.dao.monitoring.ProposalStateMonitoringService;
-import bisq.core.dao.monitoring.model.BlindVoteStateBlock;
-import bisq.core.dao.monitoring.model.DaoStateBlock;
-import bisq.core.dao.monitoring.model.ProposalStateBlock;
-import bisq.core.dao.state.DaoStateService;
 import bisq.core.filter.Filter;
 import bisq.core.filter.FilterManager;
 import bisq.core.network.p2p.inventory.messages.GetInventoryRequest;
@@ -65,10 +58,6 @@ public class GetInventoryRequestHandler implements MessageListener {
     private final NetworkNode networkNode;
     private final PeerManager peerManager;
     private final P2PDataStorage p2PDataStorage;
-    private final DaoStateService daoStateService;
-    private final DaoStateMonitoringService daoStateMonitoringService;
-    private final ProposalStateMonitoringService proposalStateMonitoringService;
-    private final BlindVoteStateMonitoringService blindVoteStateMonitoringService;
     private final FilterManager filterManager;
     private final int maxConnections;
 
@@ -76,19 +65,11 @@ public class GetInventoryRequestHandler implements MessageListener {
     public GetInventoryRequestHandler(NetworkNode networkNode,
                                       PeerManager peerManager,
                                       P2PDataStorage p2PDataStorage,
-                                      DaoStateService daoStateService,
-                                      DaoStateMonitoringService daoStateMonitoringService,
-                                      ProposalStateMonitoringService proposalStateMonitoringService,
-                                      BlindVoteStateMonitoringService blindVoteStateMonitoringService,
                                       FilterManager filterManager,
                                       @Named(Config.MAX_CONNECTIONS) int maxConnections) {
         this.networkNode = networkNode;
         this.peerManager = peerManager;
         this.p2PDataStorage = p2PDataStorage;
-        this.daoStateService = daoStateService;
-        this.daoStateMonitoringService = daoStateMonitoringService;
-        this.proposalStateMonitoringService = proposalStateMonitoringService;
-        this.blindVoteStateMonitoringService = blindVoteStateMonitoringService;
         this.filterManager = filterManager;
         this.maxConnections = maxConnections;
 
@@ -111,30 +92,7 @@ public class GetInventoryRequestHandler implements MessageListener {
             Map<InventoryItem, String> inventory = new HashMap<>();
             dataObjects.forEach((key, value) -> inventory.put(key, String.valueOf(value)));
 
-            // DAO
-            int numBsqBlocks = daoStateService.getBlocks().size();
-            inventory.put(InventoryItem.numBsqBlocks, String.valueOf(numBsqBlocks));
 
-            int daoStateChainHeight = daoStateService.getChainHeight();
-            inventory.put(InventoryItem.daoStateChainHeight, String.valueOf(daoStateChainHeight));
-
-            LinkedList<DaoStateBlock> daoStateBlockChain = daoStateMonitoringService.getDaoStateBlockChain();
-            if (!daoStateBlockChain.isEmpty()) {
-                String daoStateHash = Utilities.bytesAsHexString(daoStateBlockChain.getLast().getMyStateHash().getHash());
-                inventory.put(InventoryItem.daoStateHash, daoStateHash);
-            }
-
-            LinkedList<ProposalStateBlock> proposalStateBlockChain = proposalStateMonitoringService.getProposalStateBlockChain();
-            if (!proposalStateBlockChain.isEmpty()) {
-                String proposalHash = Utilities.bytesAsHexString(proposalStateBlockChain.getLast().getMyStateHash().getHash());
-                inventory.put(InventoryItem.proposalHash, proposalHash);
-            }
-
-            LinkedList<BlindVoteStateBlock> blindVoteStateBlockChain = blindVoteStateMonitoringService.getBlindVoteStateBlockChain();
-            if (!blindVoteStateBlockChain.isEmpty()) {
-                String blindVoteHash = Utilities.bytesAsHexString(blindVoteStateBlockChain.getLast().getMyStateHash().getHash());
-                inventory.put(InventoryItem.blindVoteHash, blindVoteHash);
-            }
 
             // network
             inventory.put(InventoryItem.maxConnections, String.valueOf(maxConnections));

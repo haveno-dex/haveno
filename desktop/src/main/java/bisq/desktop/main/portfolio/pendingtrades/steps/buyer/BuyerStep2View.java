@@ -52,9 +52,6 @@ import bisq.desktop.components.paymentmethods.UpholdForm;
 import bisq.desktop.components.paymentmethods.WeChatPayForm;
 import bisq.desktop.components.paymentmethods.WesternUnionForm;
 import bisq.desktop.main.MainView;
-import bisq.desktop.main.dao.DaoView;
-import bisq.desktop.main.dao.wallet.BsqWalletView;
-import bisq.desktop.main.dao.wallet.send.BsqSendView;
 import bisq.desktop.main.overlays.popups.Popup;
 import bisq.desktop.main.overlays.windows.SetXmrTxKeyWindow;
 import bisq.desktop.main.portfolio.pendingtrades.PendingTradesViewModel;
@@ -114,7 +111,6 @@ public class BuyerStep2View extends TradeStepView {
     private BusyAnimation busyAnimation;
     private Subscription tradeStatePropertySubscription;
     private Timer timeoutTimer;
-    private AutoTooltipButton fillBsqButton;
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Constructor, Initialisation
@@ -356,17 +352,6 @@ public class BuyerStep2View extends TradeStepView {
         confirmButton.setOnAction(e -> onPaymentStarted());
         busyAnimation = tuple3.second;
         statusLabel = tuple3.third;
-
-        if (trade.getOffer().getCurrencyCode().equals("BSQ")) {
-            fillBsqButton = new AutoTooltipButton(Res.get("portfolio.pending.step2_buyer.fillInBsqWallet"));
-            hBox.getChildren().add(1, fillBsqButton);
-            fillBsqButton.setOnAction(e -> {
-                AssetsAccountPayload assetsAccountPayload = (AssetsAccountPayload) paymentAccountPayload;
-                Tuple2<Volume, String> data = new Tuple2<>(trade.getTradeVolume(), assetsAccountPayload.getAddress());
-                model.getNavigation().navigateToWithData(data, MainView.class, DaoView.class, BsqWalletView.class,
-                        BsqSendView.class);
-            });
-        }
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -606,20 +591,4 @@ public class BuyerStep2View extends TradeStepView {
             }
         }
     }
-
-//    private void validatePayoutTx() {
-//        try {
-//            TradeDataValidation.validateDelayedPayoutTx(trade,
-//                    trade.getDelayedPayoutTx(),
-//                    model.dataModel.daoFacade,
-//                    model.dataModel.btcWalletService);
-//        } catch (TradeDataValidation.MissingTxException ignore) {
-//            // We don't react on those errors as a failed trade might get listed initially but getting removed from the
-//            // trade manager after initPendingTrades which happens after activate might be called.
-//        } catch (TradeDataValidation.ValidationException e) {
-//            if (!model.dataModel.tradeManager.isAllowFaultyDelayedTxs()) {
-//                new Popup().warning(Res.get("portfolio.pending.invalidTx", e.getMessage())).show();
-//            }
-//        }
-//    }
 }

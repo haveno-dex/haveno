@@ -130,7 +130,7 @@ public class BashScriptGenerator {
                 cliBase,
                 offer.getDirection(),
                 offer.getCounterCurrencyCode());
-        String takeOfferCmd = format("%s takeoffer --offer-id=%s --payment-account=%s --fee-currency=BSQ",
+        String takeOfferCmd = format("%s takeoffer --offer-id=%s --payment-account=%s",
                 cliBase,
                 offer.getId(),
                 this.getPaymentAccountId());

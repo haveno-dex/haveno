@@ -17,10 +17,6 @@
 
 package bisq.core.payment;
 
-import bisq.core.dao.governance.param.Param;
-import bisq.core.dao.governance.period.PeriodService;
-import bisq.core.dao.state.DaoStateService;
-
 import bisq.common.util.MathUtils;
 
 import org.bitcoinj.core.Coin;
@@ -38,17 +34,14 @@ import javax.annotation.Nullable;
 @Slf4j
 @Singleton
 public class TradeLimits {
+    private static final Coin MAX_TRADE_LIMIT = Coin.parseCoin("2"); // max trade limit for lowest risk payment method. Others will get derived from that.
     @Nullable
     @Getter
     private static TradeLimits INSTANCE;
 
-    private final DaoStateService daoStateService;
-    private final PeriodService periodService;
 
     @Inject
-    public TradeLimits(DaoStateService daoStateService, PeriodService periodService) {
-        this.daoStateService = daoStateService;
-        this.periodService = periodService;
+    public TradeLimits() {
         INSTANCE = this;
     }
 
@@ -60,14 +53,13 @@ public class TradeLimits {
 
 
     /**
-     * The default trade limits defined as statics in PaymentMethod are only used until the DAO
-     * is fully synchronized.
+     * The default trade limits.
      *
      * @see bisq.core.payment.payload.PaymentMethod
-     * @return the maximum trade limit set by the DAO.
+     * @return the maximum trade limit
      */
     public Coin getMaxTradeLimit() {
-        return daoStateService.getParamValueAsCoin(Param.MAX_TRADE_LIMIT, periodService.getChainHeight());
+       return MAX_TRADE_LIMIT;
     }
 
     // We possibly rounded value for the first month gets multiplied by 4 to get the trade limit after the account

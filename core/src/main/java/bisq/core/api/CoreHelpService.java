@@ -72,7 +72,6 @@ class CoreHelpService {
         out.println(coreHelpService.getMethodHelp("getversion"));
         // out.println(coreHelpService.getMethodHelp("getfundingaddresses"));
         // out.println(coreHelpService.getMethodHelp("getfundingaddresses"));
-        // out.println(coreHelpService.getMethodHelp("getunusedbsqaddress"));
         // out.println(coreHelpService.getMethodHelp("unsettxfeerate"));
         // out.println(coreHelpService.getMethodHelp("getpaymentmethods"));
         // out.println(coreHelpService.getMethodHelp("getpaymentaccts"));

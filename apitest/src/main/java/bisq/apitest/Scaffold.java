@@ -139,7 +139,6 @@ public class Scaffold {
 
 
     public Scaffold setUp() throws IOException, InterruptedException, ExecutionException {
-        installDaoSetupDirectories();
 
         // Start each background process from an executor, then add a shutdown hook.
         CountDownLatch countdownLatch = new CountDownLatch(config.supportingApps.size());
@@ -161,7 +160,6 @@ public class Scaffold {
             try {
                 log.info("Shutting down executor service ...");
                 executor.shutdownNow();
-                //noinspection ResultOfMethodCallIgnored
                 executor.awaitTermination(config.supportingApps.size() * 2000L, MILLISECONDS);
 
                 SetupTask[] orderedTasks = new SetupTask[]{
@@ -206,84 +204,6 @@ public class Scaffold {
             }
         }
         return firstException;
-    }
-
-    public void installDaoSetupDirectories() {
-        cleanDaoSetupDirectories();
-
-        String daoSetupDir = Paths.get(config.baseSrcResourcesDir, "dao-setup").toFile().getAbsolutePath();
-        String buildDataDir = config.rootAppDataDir.getAbsolutePath();
-        try {
-            if (!new File(daoSetupDir).exists())
-                throw new FileNotFoundException(
-                        format("Dao setup dir '%s' not found.  Run gradle :apitest:installDaoSetup"
-                                        + " to download dao-setup.zip and extract contents to resources folder",
-                                daoSetupDir));
-
-            BashCommand copyBitcoinRegtestDir = new BashCommand(
-                    "cp -rf " + daoSetupDir + "/Bitcoin-regtest/regtest"
-                            + " " + config.bitcoinDatadir);
-            if (copyBitcoinRegtestDir.run().getExitStatus() != 0)
-                throw new IllegalStateException("Could not install bitcoin regtest dir");
-
-            String aliceDataDir = daoSetupDir + "/" + alicedaemon.appName;
-            BashCommand copyAliceDataDir = new BashCommand(
-                    "cp -rf " + aliceDataDir + " " + config.rootAppDataDir);
-            if (copyAliceDataDir.run().getExitStatus() != 0)
-                throw new IllegalStateException("Could not install alice data dir");
-
-            String bobDataDir = daoSetupDir + "/" + bobdaemon.appName;
-            BashCommand copyBobDataDir = new BashCommand(
-                    "cp -rf " + bobDataDir + " " + config.rootAppDataDir);
-            if (copyBobDataDir.run().getExitStatus() != 0)
-                throw new IllegalStateException("Could not install bob data dir");
-
-            log.info("Installed dao-setup files into {}", buildDataDir);
-
-            if (!config.callRateMeteringConfigPath.isEmpty()) {
-                installCallRateMeteringConfiguration(aliceDataDir);
-                installCallRateMeteringConfiguration(bobDataDir);
-            }
-
-            // Copy the blocknotify script from the src resources dir to the build
-            // resources dir.  Users may want to edit comment out some lines when all
-            // of the default block notifcation ports being will not be used (to avoid
-            // seeing rpc notifcation warnings in log files).
-            installBitcoinBlocknotify();
-
-        } catch (IOException | InterruptedException ex) {
-            throw new IllegalStateException("Could not install dao-setup files from " + daoSetupDir, ex);
-        }
-    }
-
-    private void cleanDaoSetupDirectories() {
-        String buildDataDir = config.rootAppDataDir.getAbsolutePath();
-        log.info("Cleaning dao-setup data in {}", buildDataDir);
-
-        try {
-            BashCommand rmBobDataDir = new BashCommand("rm -rf " + config.rootAppDataDir + "/" + bobdaemon.appName);
-            if (rmBobDataDir.run().getExitStatus() != 0)
-                throw new IllegalStateException("Could not delete bob data dir");
-
-            BashCommand rmAliceDataDir = new BashCommand("rm -rf " + config.rootAppDataDir + "/" + alicedaemon.appName);
-            if (rmAliceDataDir.run().getExitStatus() != 0)
-                throw new IllegalStateException("Could not delete alice data dir");
-
-            BashCommand rmArbNodeDataDir = new BashCommand("rm -rf " + config.rootAppDataDir + "/" + arbdaemon.appName);
-            if (rmArbNodeDataDir.run().getExitStatus() != 0)
-                throw new IllegalStateException("Could not delete arbitrator data dir");
-
-            BashCommand rmSeedNodeDataDir = new BashCommand("rm -rf " + config.rootAppDataDir + "/" + seednode.appName);
-            if (rmSeedNodeDataDir.run().getExitStatus() != 0)
-                throw new IllegalStateException("Could not delete seednode data dir");
-
-            BashCommand rmBitcoinRegtestDir = new BashCommand("rm -rf " + config.bitcoinDatadir + "/regtest");
-            if (rmBitcoinRegtestDir.run().getExitStatus() != 0)
-                throw new IllegalStateException("Could not clean bitcoind regtest dir");
-
-        } catch (IOException | InterruptedException ex) {
-            throw new IllegalStateException("Could not clean dao-setup files from " + buildDataDir, ex);
-        }
     }
 
     private void installBitcoinBlocknotify() {

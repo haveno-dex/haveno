@@ -325,16 +325,6 @@ public class PriceFeedService {
                 });
     }
 
-    public Optional<Price> getBsqPrice() {
-        MarketPrice bsqMarketPrice = getMarketPrice("BSQ");
-        if (bsqMarketPrice != null) {
-            long bsqPriceAsLong = MathUtils.roundDoubleToLong(MathUtils.scaleUpByPowerOf10(bsqMarketPrice.getPrice(), Altcoin.SMALLEST_UNIT_EXPONENT));
-            return Optional.of(Price.valueOf("BSQ", bsqPriceAsLong));
-        } else {
-            return Optional.empty();
-        }
-    }
-
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Private
     ///////////////////////////////////////////////////////////////////////////////////////////

@@ -87,13 +87,10 @@ class CoreTradesService {
 
     void takeOffer(Offer offer,
                    String paymentAccountId,
-                   String takerFeeCurrencyCode,
                    Consumer<Trade> resultHandler,
                    ErrorMessageHandler errorMessageHandler) {
         coreWalletsService.verifyWalletsAreAvailable();
         coreWalletsService.verifyEncryptedWalletIsUnlocked();
-
-        offerUtil.maybeSetFeePaymentCurrencyPreference(takerFeeCurrencyCode);
 
         var paymentAccount = user.getPaymentAccount(paymentAccountId);
         if (paymentAccount == null)

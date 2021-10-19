@@ -21,7 +21,6 @@ import bisq.core.btc.setup.WalletsSetup;
 import bisq.core.btc.wallet.Restrictions;
 import bisq.core.btc.wallet.TradeWalletService;
 import bisq.core.btc.wallet.XmrWalletService;
-import bisq.core.dao.DaoFacade;
 import bisq.core.locale.CurrencyUtil;
 import bisq.core.locale.Res;
 import bisq.core.monetary.Altcoin;
@@ -97,7 +96,6 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
     protected final DisputeListService<T> disputeListService;
     private final Config config;
     private final PriceFeedService priceFeedService;
-    protected final DaoFacade daoFacade;
 
     @Getter
     protected final ObservableList<TradeDataValidation.ValidationException> validationExceptions =
@@ -117,7 +115,6 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
                           TradeManager tradeManager,
                           ClosedTradableManager closedTradableManager,
                           OpenOfferManager openOfferManager,
-                          DaoFacade daoFacade,
                           KeyRing keyRing,
                           DisputeListService<T> disputeListService,
                           Config config,
@@ -129,7 +126,6 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
         this.tradeManager = tradeManager;
         this.closedTradableManager = closedTradableManager;
         this.openOfferManager = openOfferManager;
-        this.daoFacade = daoFacade;
         this.pubKeyRing = keyRing.getPubKeyRing();
         signatureKeyPair = keyRing.getSignatureKeyPair();
         this.disputeListService = disputeListService;
@@ -272,7 +268,7 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
         List<Dispute> disputes = getDisputeList().getList();
         disputes.forEach(dispute -> {
             try {
-                TradeDataValidation.validateDonationAddress(dispute, dispute.getDonationAddressOfDelayedPayoutTx(), daoFacade);
+                TradeDataValidation.validateDonationAddress(dispute, dispute.getDonationAddressOfDelayedPayoutTx());
                 TradeDataValidation.validateNodeAddress(dispute, dispute.getContract().getBuyerNodeAddress(), config);
                 TradeDataValidation.validateNodeAddress(dispute, dispute.getContract().getSellerNodeAddress(), config);
             } catch (TradeDataValidation.AddressException | TradeDataValidation.NodeAddressException e) {
@@ -366,7 +362,7 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
 
         try {
             TradeDataValidation.validatePaymentAccountPayloads(dispute);
-            TradeDataValidation.validateDonationAddress(dispute.getDonationAddressOfDelayedPayoutTx(), daoFacade);
+            TradeDataValidation.validateDonationAddress(dispute.getDonationAddressOfDelayedPayoutTx());
             //TradeDataValidation.testIfDisputeTriesReplay(dispute, disputeList.getList()); // TODO (woodser): disabled for xmr, needed?
             TradeDataValidation.validateNodeAddress(dispute, dispute.getContract().getBuyerNodeAddress(), config);
             TradeDataValidation.validateNodeAddress(dispute, dispute.getContract().getSellerNodeAddress(), config);

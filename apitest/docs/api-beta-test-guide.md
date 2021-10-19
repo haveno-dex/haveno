@@ -33,14 +33,6 @@ called `api-beta-test`.
 $ git clone https://github.com/bisq-network/bisq.git api-beta-test
 ```
 
-Change your current working directory to `api-beta-test`, build the source, and download / install Bisq’s
-pre-configured DAO / dev / regtest setup files.
-```
-$ cd api-beta-test
-$ ./gradlew clean build :apitest:installDaoSetup -x test    # if you want to skip Bisq tests
-$ ./gradlew clean build :apitest:installDaoSetup            # if you want to run Bisq tests
-```
-
 ## Running Api Test Harness
 
 If your bitcoin-core binaries are in your system `PATH`, start bitcoind in regtest-mode, Bisq seednode and arbitration
@@ -131,7 +123,7 @@ The script takes four options:
 This simulation creates US / USD face-to-face payment accounts for Bob and Alice.  Alice (always the trade maker)
 creates a SELL / USD offer for the amount of 0.1 BTC, at a price 2% below the current market price.
 Bob (always the taker), will use his face-to-face account to take the offer, then the two sides will complete
-the trade, checking their trade status along the way, and their BSQ / BTC balances when the trade is closed.
+the trade, checking their trade status along the way, and their BTC balances when the trade is closed.
 ```
 $ apitest/scripts/trade-simulation.sh    -d sell -c us -m 2.00 -a 0.1
 ```
@@ -175,7 +167,7 @@ method help will be returned from the server.  Also note an api password is requ
 There is no need to secure your regtest Bisq wallet with an encryption password when running these examples,
 but you should encrypt your mainnet wallet as you probably already do when using the Bisq UI to transact in
 real BTC.  This section explains how to encrypt your Bisq wallet with the CLI, and unlock it before performing wallet
-related operations such as creating and taking offers, checking balances, and sending BSQ and BTC to external wallets.
+related operations such as creating and taking offers, checking balances, and sending BTC to external wallets.
 
 Encrypt your wallet with a password:
 ```
@@ -201,17 +193,6 @@ $ ./bisq-cli --password=xyz lockwallet
 
 ### Checking Balances
 
-Show full BSQ and BTC wallet balance information:
-```
-$ ./bisq-cli --password=xyz --port=9998  getbalance
-```
-
-Show full BSQ wallet balance information:
-```
-$ ./bisq-cli --password=xyz --port=9999 getbalance --currency-code=bsq
-```
-_Note:  The example above is asking for Bob’s balance (using port `9999`), not Alice’s balance._
-
 Show Bob’s full BTC wallet balance information:
 ```
 $ ./bisq-cli --password=xyz --port=9999 getbalance --currency-code=btc
@@ -230,33 +211,9 @@ You can check a block explorer for the status of a transaction, or you can check
 $ ./bisq-cli --password=xyz --port=9998 getaddressbalance --address=<btc-address>
 ```
 
-#### Receiving BSQ
-To receive BSQ from an external wallet, find an unused BSQ address:
-```
-$ ./bisq-cli --password=xyz --port=9998 getunusedbsqaddress
-```
+### Sending BTC to External Wallets
 
-Give the public address to the sender.  After the BSQ is sent, you can check block explorers for the status of
-the transaction.  There is no support (yet) to check the balance of an individual BSQ address in your wallet,
-but you can check your BSQ wallet’s balance to determine if the new funds have arrived:
-```
-$ ./bisq-cli --password=xyz --port=9999 getbalance --currency-code=bsq
-```
-
-### Sending BSQ and BTC to External Wallets
-
-Below are commands for sending BSQ and BTC to external wallets.
-
-Send BSQ:
-```
-$ ./bisq-cli --password=xyz --port=9998 sendbsq --address=<bsq-address> --amount=<bsq-amount>
-```
-_Note:  Sending BSQ to non-Bisq wallets is not supported and highly discouraged._
-
-Send BSQ with a withdrawal transaction fee of 10 sats/byte:
-```
-$ ./bisq-cli --password=xyz --port=9998 sendbsq --address=<bsq-address> --amount=<bsq-amount>  --tx-fee-rate=10
-```
+Below are commands for sending BTC to external wallets.
 
 Send BTC:
 ```
@@ -272,7 +229,7 @@ $ ./bisq-cli --password=xyz --port=9998 sendbtc --address=<btc-address> --amount
 If you have traded using the Bisq UI, you are probably aware of the default network bitcoin withdrawal transaction
 fee and custom withdrawal transaction fee user preference in the UI’s setting view.  The Api uses these same
 withdrawal transaction fee rates, and affords a third – as mentioned in the previous section -- withdrawal
-transaction fee option in the `sendbsq` and `sendbtc` commands.  The `sendbsq` and `sendbtc` commands'
+transaction fee option in the `sendbtc` commands.  The `sendbtc` commands'
 `--tx-fee-rate=<sats/byte>` options override both the default network fee rate, and your custom transaction fee
 setting for the execution of those commands.
 
@@ -341,7 +298,7 @@ $ ./bisq-cli --password=xyz --port=9998 createoffer --help
 
 The `trade-simulation.sh` script described above is an easy way to figure out how to use this command.
 In a previous example, Alice created a BUY/ EUR offer to buy 0.125 BTC at a fixed price of  30,800 EUR,
-and pay the Bisq maker fee in BSQ.  Alice had already created an EUR face-to-face payment account with id
+and pay the Bisq maker fee in BTC.  Alice had already created an EUR face-to-face payment account with id
 `f3c1ec8b-9761-458d-b13d-9039c6892413`, and used this `createoffer` command:
 ```
 $ ./bisq-cli --password=xyz --port=9998 createoffer \
@@ -351,7 +308,7 @@ $ ./bisq-cli --password=xyz --port=9998 createoffer \
     --amount=0.125 \
     --fixed-price=30800 \
     --security-deposit=15.0 \
-    --fee-currency=BSQ
+    --fee-currency=BTC
 ```
 
 If Alice was in Japan, and wanted to create an offer to sell 0.125 BTC at 0.5% above the current market JPY price,
@@ -364,7 +321,7 @@ $ ./bisq-cli --password=xyz --port=9998 createoffer \
     --amount=0.125 \
     --market-price-margin=0.5 \
     --security-deposit=15.0 \
-    --fee-currency=BSQ
+    --fee-currency=BTC
 ```
 
 The `trade-simulation.sh` script options that would generate the previous `createoffer` example is:

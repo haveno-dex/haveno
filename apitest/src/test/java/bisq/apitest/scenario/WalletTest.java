@@ -36,7 +36,6 @@ import static bisq.apitest.config.BisqAppConfig.seednode;
 
 
 import bisq.apitest.method.MethodTest;
-import bisq.apitest.method.wallet.BsqWalletTest;
 import bisq.apitest.method.wallet.BtcTxFeeRateTest;
 import bisq.apitest.method.wallet.BtcWalletTest;
 import bisq.apitest.method.wallet.WalletProtectionTest;
@@ -68,17 +67,6 @@ public class WalletTest extends MethodTest {
         btcWalletTest.testInitialBtcBalances(testInfo);
         btcWalletTest.testFundAlicesBtcWallet(testInfo);
         btcWalletTest.testAliceSendBTCToBob(testInfo);
-    }
-
-    @Test
-    @Order(2)
-    public void testBsqWalletFunding(final TestInfo testInfo) {
-        BsqWalletTest bsqWalletTest = new BsqWalletTest();
-
-        bsqWalletTest.testGetUnusedBsqAddress();
-        bsqWalletTest.testInitialBsqBalances(testInfo);
-        bsqWalletTest.testSendBsqAndCheckBalancesBeforeGeneratingBtcBlock(testInfo);
-        bsqWalletTest.testBalancesAfterSendingBsqAndGeneratingBtcBlock(testInfo);
     }
 
     @Test

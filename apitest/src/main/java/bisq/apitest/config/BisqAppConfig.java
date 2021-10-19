@@ -28,7 +28,6 @@ import bisq.daemon.app.BisqDaemonMain;
 /**
  Some non user configurable Bisq seednode, arb node, bob and alice daemon option values.
  @see <a href="https://github.com/bisq-network/bisq/blob/master/docs/dev-setup.md">dev-setup.md</a>
- @see <a href="https://github.com/bisq-network/bisq/blob/master/docs/dao-setup.md">dao-setup.md</a>
  */
 public enum BisqAppConfig {
 
@@ -40,7 +39,7 @@ public enum BisqAppConfig {
             5120,
             -1,
             49996),
-    arbdaemon("bisq-XMR_STAGENET_Arb_dao",
+    arbdaemon("bisq-XMR_STAGENET_Arb",
             "bisq-daemon",
             "-XX:MaxRAM=2g -Dlogback.configurationFile=apitest/build/resources/main/logback.xml",
             BisqDaemonMain.class.getName(),
@@ -48,7 +47,7 @@ public enum BisqAppConfig {
             5121,
             9997,
             49997),
-    arbdesktop("bisq-XMR_STAGENET_Arb_dao",
+    arbdesktop("bisq-XMR_STAGENET_Arb",
             "bisq-desktop",
             "-XX:MaxRAM=3g -Dlogback.configurationFile=apitest/build/resources/main/logback.xml",
             BisqAppMain.class.getName(),
@@ -56,7 +55,7 @@ public enum BisqAppConfig {
             5121,
             -1,
             49997),
-    alicedaemon("bisq-XMR_STAGENET_Alice_dao",
+    alicedaemon("bisq-XMR_STAGENET_Alice",
             "bisq-daemon",
             "-XX:MaxRAM=2g -Dlogback.configurationFile=apitest/build/resources/main/logback.xml",
             BisqDaemonMain.class.getName(),
@@ -64,7 +63,7 @@ public enum BisqAppConfig {
             5122,
             9998,
             49998),
-    alicedesktop("bisq-XMR_STAGENET_Alice_dao",
+    alicedesktop("bisq-XMR_STAGENET_Alice",
             "bisq-desktop",
             "-XX:MaxRAM=4g -Dlogback.configurationFile=apitest/build/resources/main/logback.xml",
             BisqAppMain.class.getName(),
@@ -72,7 +71,7 @@ public enum BisqAppConfig {
             5122,
             -1,
             49998),
-    bobdaemon("bisq-XMR_STAGENET_Bob_dao",
+    bobdaemon("bisq-XMR_STAGENET_Bob",
             "bisq-daemon",
             "-XX:MaxRAM=2g -Dlogback.configurationFile=apitest/build/resources/main/logback.xml",
             BisqDaemonMain.class.getName(),
@@ -80,7 +79,7 @@ public enum BisqAppConfig {
             5123,
             9999,
             49999),
-    bobdesktop("bisq-XMR_STAGENET_Bob_dao",
+    bobdesktop("bisq-XMR_STAGENET_Bob",
             "bisq-desktop",
             "-XX:MaxRAM=4g -Dlogback.configurationFile=apitest/build/resources/main/logback.xml",
             BisqAppMain.class.getName(),

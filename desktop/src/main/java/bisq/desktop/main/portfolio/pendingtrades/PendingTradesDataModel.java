@@ -275,10 +275,7 @@ public class PendingTradesDataModel extends ActivatableDataModel {
             Offer offer = trade.getOffer();
             if (isMaker()) {
                 if (offer != null) {
-                    if (offer.isCurrencyForMakerFeeBtc())
-                        return offer.getMakerFee();
-                    else
-                        return Coin.ZERO;// getTradeFeeAsBsq is used for BSQ
+                    return offer.getMakerFee();
                 } else {
                     log.error("offer is null");
                     return Coin.ZERO;
@@ -298,40 +295,13 @@ public class PendingTradesDataModel extends ActivatableDataModel {
             if (isMaker()) {
                 Offer offer = trade.getOffer();
                 if (offer != null) {
-                    if (offer.isCurrencyForMakerFeeBtc())
-                        return offer.getTxFee();
-                    else
-                        return offer.getTxFee().subtract(offer.getMakerFee()); // BSQ will be used as part of the miner fee
+                    return offer.getTxFee();
                 } else {
                     log.error("offer is null");
                     return Coin.ZERO;
                 }
             } else {
                 return trade.getTxFee().multiply(3);
-            }
-        } else {
-            log.error("Trade is null at getTotalFees");
-            return Coin.ZERO;
-        }
-    }
-
-    Coin getTradeFeeAsBsq() {
-        Trade trade = getTrade();
-        if (trade != null) {
-            if (isMaker()) {
-                Offer offer = trade.getOffer();
-                if (offer != null) {
-                    if (offer.isCurrencyForMakerFeeBtc()) {
-                        return Coin.ZERO; // getTradeFeeInBTC is used for BTC
-                    } else {
-                        return offer.getMakerFee();
-                    }
-                } else {
-                    log.error("offer is null");
-                    return Coin.ZERO;
-                }
-            } else {
-              return Coin.ZERO; // getTradeFeeInBTC is used for BTC
             }
         } else {
             log.error("Trade is null at getTotalFees");

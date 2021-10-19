@@ -19,20 +19,6 @@ package bisq.core.proto.network;
 
 import bisq.core.alert.Alert;
 import bisq.core.alert.PrivateNotificationMessage;
-import bisq.core.dao.governance.blindvote.network.messages.RepublishGovernanceDataRequest;
-import bisq.core.dao.governance.proposal.storage.temp.TempProposalPayload;
-import bisq.core.dao.monitoring.network.messages.GetBlindVoteStateHashesRequest;
-import bisq.core.dao.monitoring.network.messages.GetBlindVoteStateHashesResponse;
-import bisq.core.dao.monitoring.network.messages.GetDaoStateHashesRequest;
-import bisq.core.dao.monitoring.network.messages.GetDaoStateHashesResponse;
-import bisq.core.dao.monitoring.network.messages.GetProposalStateHashesRequest;
-import bisq.core.dao.monitoring.network.messages.GetProposalStateHashesResponse;
-import bisq.core.dao.monitoring.network.messages.NewBlindVoteStateHashMessage;
-import bisq.core.dao.monitoring.network.messages.NewDaoStateHashMessage;
-import bisq.core.dao.monitoring.network.messages.NewProposalStateHashMessage;
-import bisq.core.dao.node.messages.GetBlocksRequest;
-import bisq.core.dao.node.messages.GetBlocksResponse;
-import bisq.core.dao.node.messages.NewBlockBroadcastMessage;
 import bisq.core.filter.Filter;
 import bisq.core.network.p2p.inventory.messages.GetInventoryRequest;
 import bisq.core.network.p2p.inventory.messages.GetInventoryResponse;
@@ -229,39 +215,12 @@ public class CoreNetworkProtoResolver extends CoreProtoResolver implements Netwo
                 case PRIVATE_NOTIFICATION_MESSAGE:
                     return PrivateNotificationMessage.fromProto(proto.getPrivateNotificationMessage(), messageVersion);
 
-                case GET_BLOCKS_REQUEST:
-                    return GetBlocksRequest.fromProto(proto.getGetBlocksRequest(), messageVersion);
-                case GET_BLOCKS_RESPONSE:
-                    return GetBlocksResponse.fromProto(proto.getGetBlocksResponse(), messageVersion);
-                case NEW_BLOCK_BROADCAST_MESSAGE:
-                    return NewBlockBroadcastMessage.fromProto(proto.getNewBlockBroadcastMessage(), messageVersion);
                 case ADD_PERSISTABLE_NETWORK_PAYLOAD_MESSAGE:
                     return AddPersistableNetworkPayloadMessage.fromProto(proto.getAddPersistableNetworkPayloadMessage(), this, messageVersion);
                 case ACK_MESSAGE:
                     return AckMessage.fromProto(proto.getAckMessage(), messageVersion);
-                case REPUBLISH_GOVERNANCE_DATA_REQUEST:
-                    return RepublishGovernanceDataRequest.fromProto(proto.getRepublishGovernanceDataRequest(), messageVersion);
 
-                case NEW_DAO_STATE_HASH_MESSAGE:
-                    return NewDaoStateHashMessage.fromProto(proto.getNewDaoStateHashMessage(), messageVersion);
-                case GET_DAO_STATE_HASHES_REQUEST:
-                    return GetDaoStateHashesRequest.fromProto(proto.getGetDaoStateHashesRequest(), messageVersion);
-                case GET_DAO_STATE_HASHES_RESPONSE:
-                    return GetDaoStateHashesResponse.fromProto(proto.getGetDaoStateHashesResponse(), messageVersion);
 
-                case NEW_PROPOSAL_STATE_HASH_MESSAGE:
-                    return NewProposalStateHashMessage.fromProto(proto.getNewProposalStateHashMessage(), messageVersion);
-                case GET_PROPOSAL_STATE_HASHES_REQUEST:
-                    return GetProposalStateHashesRequest.fromProto(proto.getGetProposalStateHashesRequest(), messageVersion);
-                case GET_PROPOSAL_STATE_HASHES_RESPONSE:
-                    return GetProposalStateHashesResponse.fromProto(proto.getGetProposalStateHashesResponse(), messageVersion);
-
-                case NEW_BLIND_VOTE_STATE_HASH_MESSAGE:
-                    return NewBlindVoteStateHashMessage.fromProto(proto.getNewBlindVoteStateHashMessage(), messageVersion);
-                case GET_BLIND_VOTE_STATE_HASHES_REQUEST:
-                    return GetBlindVoteStateHashesRequest.fromProto(proto.getGetBlindVoteStateHashesRequest(), messageVersion);
-                case GET_BLIND_VOTE_STATE_HASHES_RESPONSE:
-                    return GetBlindVoteStateHashesResponse.fromProto(proto.getGetBlindVoteStateHashesResponse(), messageVersion);
 
                 case BUNDLE_OF_ENVELOPES:
                     return BundleOfEnvelopes.fromProto(proto.getBundleOfEnvelopes(), this, messageVersion);
@@ -317,8 +276,6 @@ public class CoreNetworkProtoResolver extends CoreProtoResolver implements Netwo
                     return MailboxStoragePayload.fromProto(proto.getMailboxStoragePayload());
                 case OFFER_PAYLOAD:
                     return OfferPayload.fromProto(proto.getOfferPayload());
-                case TEMP_PROPOSAL_PAYLOAD:
-                    return TempProposalPayload.fromProto(proto.getTempProposalPayload());
                 default:
                     throw new ProtobufferRuntimeException("Unknown proto message case (PB.StoragePayload). messageCase="
                             + proto.getMessageCase() + "; proto raw data=" + proto.toString());

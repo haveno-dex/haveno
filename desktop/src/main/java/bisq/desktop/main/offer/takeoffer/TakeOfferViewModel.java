@@ -43,7 +43,6 @@ import bisq.core.payment.payload.PaymentMethod;
 import bisq.core.provider.fee.FeeService;
 import bisq.core.trade.Trade;
 import bisq.core.util.FormattingUtils;
-import bisq.core.util.coin.BsqFormatter;
 import bisq.core.util.coin.CoinFormatter;
 import bisq.core.util.coin.CoinUtil;
 import bisq.core.util.validation.InputValidator;
@@ -89,7 +88,6 @@ class TakeOfferViewModel extends ActivatableWithDataModel<TakeOfferDataModel> im
     private final AccountAgeWitnessService accountAgeWitnessService;
     private final Navigation navigation;
     private final CoinFormatter btcFormatter;
-    private final BsqFormatter bsqFormatter;
 
     private String amountRange;
     private String paymentLabel;
@@ -108,7 +106,6 @@ class TakeOfferViewModel extends ActivatableWithDataModel<TakeOfferDataModel> im
     final StringProperty spinnerInfoText = new SimpleStringProperty("");
     final StringProperty tradeFee = new SimpleStringProperty();
     final StringProperty tradeFeeInBtcWithFiat = new SimpleStringProperty();
-    final StringProperty tradeFeeInBsqWithFiat = new SimpleStringProperty();
     final StringProperty tradeFeeDescription = new SimpleStringProperty();
     final BooleanProperty isTradeFeeVisible = new SimpleBooleanProperty(false);
 
@@ -147,8 +144,7 @@ class TakeOfferViewModel extends ActivatableWithDataModel<TakeOfferDataModel> im
                               P2PService p2PService,
                               AccountAgeWitnessService accountAgeWitnessService,
                               Navigation navigation,
-                              @Named(FormattingUtils.BTC_FORMATTER_KEY) CoinFormatter btcFormatter,
-                              BsqFormatter bsqFormatter) {
+                              @Named(FormattingUtils.BTC_FORMATTER_KEY) CoinFormatter btcFormatter) {
         super(dataModel);
         this.dataModel = dataModel;
         this.offerUtil = offerUtil;
@@ -157,7 +153,6 @@ class TakeOfferViewModel extends ActivatableWithDataModel<TakeOfferDataModel> im
         this.accountAgeWitnessService = accountAgeWitnessService;
         this.navigation = navigation;
         this.btcFormatter = btcFormatter;
-        this.bsqFormatter = bsqFormatter;
         createListeners();
     }
 
@@ -180,9 +175,7 @@ class TakeOfferViewModel extends ActivatableWithDataModel<TakeOfferDataModel> im
 
         updateSpinnerInfo();
 
-        if (!DevEnv.isDaoActivated()) {
-            isTradeFeeVisible.setValue(false);
-        }
+        isTradeFeeVisible.setValue(false);
     }
 
     @Override
@@ -272,14 +265,8 @@ class TakeOfferViewModel extends ActivatableWithDataModel<TakeOfferDataModel> im
         }
     }
 
-    public void setIsCurrencyForTakerFeeBtc(boolean isCurrencyForTakerFeeBtc) {
-        dataModel.setPreferredCurrencyForTakerFeeBtc(isCurrencyForTakerFeeBtc);
-        applyTakerFee();
-    }
-
     private void applyTakerFee() {
-        tradeFeeDescription.set(DevEnv.isDaoActivated() ? Res.get("createOffer.tradeFee.descriptionBSQEnabled") :
-                Res.get("createOffer.tradeFee.descriptionBTCOnly"));
+        tradeFeeDescription.set(Res.get("createOffer.tradeFee.descriptionBTCOnly"));
         Coin takerFeeAsCoin = dataModel.getTakerFee();
         if (takerFeeAsCoin == null) {
             return;
@@ -289,12 +276,7 @@ class TakeOfferViewModel extends ActivatableWithDataModel<TakeOfferDataModel> im
         tradeFee.set(getFormatterForTakerFee().formatCoin(takerFeeAsCoin));
         tradeFeeInBtcWithFiat.set(FeeUtil.getTradeFeeWithFiatEquivalent(offerUtil,
                 dataModel.getTakerFeeInBtc(),
-                true,
                 btcFormatter));
-        tradeFeeInBsqWithFiat.set(FeeUtil.getTradeFeeWithFiatEquivalent(offerUtil,
-                dataModel.getTakerFeeInBsq(),
-                false,
-                bsqFormatter));
     }
 
 
@@ -702,44 +684,27 @@ class TakeOfferViewModel extends ActivatableWithDataModel<TakeOfferDataModel> im
     }
 
     public String getTradeFee() {
-        if (dataModel.isCurrencyForTakerFeeBtc()) {
             return FeeUtil.getTradeFeeWithFiatEquivalentAndPercentage(offerUtil,
                     dataModel.getTakerFeeInBtc(),
                     dataModel.getAmount().get(),
-                    true,
                     btcFormatter,
-                    FeeService.getMinMakerFee(dataModel.isCurrencyForTakerFeeBtc()));
-        } else {
-            // For BSQ we use the fiat equivalent only. Calculating the % value would require to
-            // calculate the BTC value of the BSQ fee and use that...
-            return FeeUtil.getTradeFeeWithFiatEquivalent(offerUtil,
-                    dataModel.getTakerFeeInBsq(),
-                    false,
-                    bsqFormatter);
-        }
+                    FeeService.getMinMakerFee());
     }
 
     public String getTakerFeePercentage() {
         final Coin takerFeeAsCoin = dataModel.getTakerFee();
-        if (dataModel.isCurrencyForTakerFeeBtc())
-            return takerFeeAsCoin != null ? GUIUtil.getPercentage(takerFeeAsCoin, dataModel.getAmount().get()) : Res.get("shared.na");
-        else
-            return Res.get("dao.paidWithBsq");
+        return takerFeeAsCoin != null ? GUIUtil.getPercentage(takerFeeAsCoin, dataModel.getAmount().get()) : Res.get("shared.na");
     }
 
     public String getTotalToPayInfo() {
         final String totalToPay = this.totalToPay.get();
-        if (dataModel.isCurrencyForTakerFeeBtc())
-            return totalToPay;
-        else
-            return totalToPay + " + " + bsqFormatter.formatCoinWithCode(dataModel.getTakerFee());
+        return totalToPay;
     }
 
     public String getTxFee() {
         return FeeUtil.getTradeFeeWithFiatEquivalentAndPercentage(offerUtil,
                 dataModel.getTotalTxFee(),
                 dataModel.getAmount().get(),
-                true,
                 btcFormatter,
                 Coin.ZERO
         );
@@ -771,7 +736,7 @@ class TakeOfferViewModel extends ActivatableWithDataModel<TakeOfferDataModel> im
     }
 
     private CoinFormatter getFormatterForTakerFee() {
-        return dataModel.isCurrencyForTakerFeeBtc() ? btcFormatter : bsqFormatter;
+        return btcFormatter;
     }
 
     public Callback<ListView<PaymentAccount>, ListCell<PaymentAccount>> getPaymentAccountListCellFactory(

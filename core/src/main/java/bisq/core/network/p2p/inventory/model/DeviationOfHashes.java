@@ -33,8 +33,7 @@ import org.jetbrains.annotations.Nullable;
 public class DeviationOfHashes implements DeviationType {
     public DeviationSeverity getDeviationSeverity(Collection<List<RequestInfo>> collection,
                                                   @Nullable String value,
-                                                  InventoryItem inventoryItem,
-                                                  String currentBlockHeight) {
+                                                  InventoryItem inventoryItem) {
         DeviationSeverity deviationSeverity = DeviationSeverity.OK;
         if (value == null) {
             return deviationSeverity;
@@ -45,7 +44,6 @@ public class DeviationOfHashes implements DeviationType {
                 .filter(list -> !list.isEmpty())
                 .map(list -> list.get(list.size() - 1)) // We use last item only
                 .map(RequestInfo::getDataMap)
-                .filter(map -> currentBlockHeight.equals(map.get(InventoryItem.daoStateChainHeight).getValue()))
                 .map(map -> map.get(inventoryItem).getValue())
                 .filter(Objects::nonNull)
                 .forEach(v -> {

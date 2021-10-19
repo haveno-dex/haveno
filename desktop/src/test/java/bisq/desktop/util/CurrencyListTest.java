@@ -43,7 +43,6 @@ public class CurrencyListTest {
     private static final TradeCurrency RUR = new FiatCurrency(Currency.getInstance("RUR"), locale);
     private static final TradeCurrency BTC = new CryptoCurrency("BTC", "Bitcoin");
     private static final TradeCurrency ETH = new CryptoCurrency("ETH", "Ether");
-    private static final TradeCurrency BSQ = new CryptoCurrency("BSQ", "Bisq Token");
 
     private Preferences preferences;
     private List<CurrencyListItem> delegate;
@@ -106,7 +105,7 @@ public class CurrencyListTest {
         when(preferences.isSortMarketCurrenciesNumerically()).thenReturn(true);
 
         List<TradeCurrency> currencies = Lists.newArrayList(USD, RUR, USD, ETH, ETH, BTC);
-        CurrencyListItem first = new CurrencyListItem(BSQ, 5);
+        CurrencyListItem first = new CurrencyListItem(BTC, 5);
         testedEntity.updateWithCurrencies(currencies, first);
 
         List<CurrencyListItem> expected = Lists.newArrayList(

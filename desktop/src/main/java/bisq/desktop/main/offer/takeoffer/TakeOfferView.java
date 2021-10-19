@@ -31,9 +31,6 @@ import bisq.desktop.components.InfoInputTextField;
 import bisq.desktop.components.InputTextField;
 import bisq.desktop.components.TitledGroupBg;
 import bisq.desktop.main.MainView;
-import bisq.desktop.main.dao.DaoView;
-import bisq.desktop.main.dao.wallet.BsqWalletView;
-import bisq.desktop.main.dao.wallet.receive.BsqReceiveView;
 import bisq.desktop.main.funds.FundsView;
 import bisq.desktop.main.funds.withdrawal.WithdrawalView;
 import bisq.desktop.main.offer.OfferView;
@@ -58,7 +55,6 @@ import bisq.core.payment.PaymentAccount;
 import bisq.core.payment.payload.PaymentMethod;
 import bisq.core.user.DontShowAgainLookup;
 import bisq.core.util.FormattingUtils;
-import bisq.core.util.coin.BsqFormatter;
 import bisq.core.util.coin.CoinFormatter;
 
 import bisq.common.UserThread;
@@ -124,7 +120,6 @@ import static javafx.beans.binding.Bindings.createStringBinding;
 public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOfferViewModel> {
     private final Navigation navigation;
     private final CoinFormatter formatter;
-    private final BsqFormatter bsqFormatter;
     private final OfferDetailsWindow offerDetailsWindow;
     private final Transitions transitions;
 
@@ -141,7 +136,7 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
             priceCurrencyLabel, priceAsPercentageLabel,
             volumeCurrencyLabel, priceDescriptionLabel, volumeDescriptionLabel,
             waitingForFundsLabel, offerAvailabilityLabel, priceAsPercentageDescription,
-            tradeFeeDescriptionLabel, resultLabel, tradeFeeInBtcLabel, tradeFeeInBsqLabel, xLabel,
+            tradeFeeDescriptionLabel, resultLabel, tradeFeeInBtcLabel, xLabel,
             fakeXLabel;
     private InputTextField amountTextField;
     private TextField paymentMethodTextField, currencyTextField, priceTextField, priceAsPercentageTextField,
@@ -168,9 +163,6 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
     private ChangeListener<Boolean> amountFocusedListener, getShowWalletFundedNotificationListener;
 
     private InfoInputTextField volumeInfoTextField;
-    private AutoTooltipSlideToggleButton tradeFeeInBtcToggle, tradeFeeInBsqToggle;
-    private ChangeListener<Boolean> tradeFeeInBtcToggleListener, tradeFeeInBsqToggleListener,
-            tradeFeeVisibleListener;
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Constructor, lifecycle
@@ -180,14 +172,12 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
     private TakeOfferView(TakeOfferViewModel model,
                           Navigation navigation,
                           @Named(FormattingUtils.BTC_FORMATTER_KEY) CoinFormatter formatter,
-                          BsqFormatter bsqFormatter,
                           OfferDetailsWindow offerDetailsWindow,
                           Transitions transitions) {
         super(model);
 
         this.navigation = navigation;
         this.formatter = formatter;
-        this.bsqFormatter = bsqFormatter;
         this.offerDetailsWindow = offerDetailsWindow;
         this.transitions = transitions;
     }
@@ -222,41 +212,7 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
             }
         };
 
-        tradeFeeInBtcToggleListener = (observable, oldValue, newValue) -> {
-            if (newValue && tradeFeeInBsqToggle.isSelected())
-                tradeFeeInBsqToggle.setSelected(false);
-
-            if (!newValue && !tradeFeeInBsqToggle.isSelected())
-                tradeFeeInBsqToggle.setSelected(true);
-
-            setIsCurrencyForMakerFeeBtc(newValue);
-        };
-        tradeFeeInBsqToggleListener = (observable, oldValue, newValue) -> {
-            if (newValue && tradeFeeInBtcToggle.isSelected())
-                tradeFeeInBtcToggle.setSelected(false);
-
-            if (!newValue && !tradeFeeInBtcToggle.isSelected())
-                tradeFeeInBtcToggle.setSelected(true);
-
-            setIsCurrencyForMakerFeeBtc(!newValue);
-        };
-
-        tradeFeeVisibleListener = (observable, oldValue, newValue) -> {
-            if (DevEnv.isDaoActivated()) {
-                tradeFeeInBtcToggle.setVisible(newValue);
-                tradeFeeInBsqToggle.setVisible(newValue);
-            }
-        };
-
         GUIUtil.focusWhenAddedToScene(amountTextField);
-    }
-
-    private void setIsCurrencyForMakerFeeBtc(boolean isCurrencyForMakerFeeBtc) {
-        model.setIsCurrencyForTakerFeeBtc(isCurrencyForMakerFeeBtc);
-        if (DevEnv.isDaoActivated()) {
-            tradeFeeInBtcLabel.setOpacity(isCurrencyForMakerFeeBtc ? 1 : 0.3);
-            tradeFeeInBsqLabel.setOpacity(isCurrencyForMakerFeeBtc ? 0.3 : 1);
-        }
     }
 
     @Override
@@ -311,22 +267,11 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
         maybeShowFasterPaymentsWarning(lastPaymentAccount);
         maybeShowCashByMailWarning(lastPaymentAccount, model.dataModel.getOffer());
 
-        if (!DevEnv.isDaoActivated() && !model.isRange()) {
+        if (!model.isRange()) {
             nextButton.setVisible(false);
             cancelButton1.setVisible(false);
             if (model.isOfferAvailable.get())
                 showNextStepAfterAmountIsSet();
-        }
-
-        boolean currencyForMakerFeeBtc = model.dataModel.isCurrencyForTakerFeeBtc();
-        tradeFeeInBtcToggle.setSelected(currencyForMakerFeeBtc);
-        tradeFeeInBsqToggle.setSelected(!currencyForMakerFeeBtc);
-
-        if (!DevEnv.isDaoActivated()) {
-            tradeFeeInBtcToggle.setVisible(false);
-            tradeFeeInBtcToggle.setManaged(false);
-            tradeFeeInBsqToggle.setVisible(false);
-            tradeFeeInBsqToggle.setManaged(false);
         }
     }
 
@@ -426,11 +371,6 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
             return;
         }
 
-        if (!model.dataModel.isTakerFeeValid()) {
-            showInsufficientBsqFundsForBtcFeePaymentPopup();
-            return;
-        }
-
         if (DevEnv.isDevMode()) {
             balanceSubscription.unsubscribe();
             model.onTakeOffer(() -> {
@@ -465,9 +405,6 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
         offerAvailabilityLabel.setVisible(false);
         offerAvailabilityLabel.setManaged(false);
 
-        tradeFeeInBtcToggle.setMouseTransparent(true);
-        tradeFeeInBsqToggle.setMouseTransparent(true);
-
         int delay = 500;
         int diff = 100;
 
@@ -477,12 +414,6 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
         transitions.fadeOutAndRemove(advancedOptionsBox, delay);
 
         model.onShowPayFundsScreen();
-
-        if (DevEnv.isDaoActivated()) {
-            paymentAccountsComboBox.setMouseTransparent(true);
-            paymentAccountsComboBox.setDisable(true);
-            paymentAccountsComboBox.setFocusTraversable(false);
-        }
 
         amountTextField.setMouseTransparent(true);
         amountTextField.setDisable(false);
@@ -619,10 +550,8 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
         priceAsPercentageLabel.prefWidthProperty().bind(priceCurrencyLabel.widthProperty());
         nextButton.disableProperty().bind(model.isNextButtonDisabled);
         tradeFeeInBtcLabel.textProperty().bind(model.tradeFeeInBtcWithFiat);
-        tradeFeeInBsqLabel.textProperty().bind(model.tradeFeeInBsqWithFiat);
         tradeFeeDescriptionLabel.textProperty().bind(model.tradeFeeDescription);
         tradeFeeInBtcLabel.visibleProperty().bind(model.isTradeFeeVisible);
-        tradeFeeInBsqLabel.visibleProperty().bind(model.isTradeFeeVisible);
         tradeFeeDescriptionLabel.visibleProperty().bind(model.isTradeFeeVisible);
         tradeFeeDescriptionLabel.managedProperty().bind(tradeFeeDescriptionLabel.visibleProperty());
 
@@ -645,10 +574,8 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
         priceAsPercentageLabel.prefWidthProperty().unbind();
         nextButton.disableProperty().unbind();
         tradeFeeInBtcLabel.textProperty().unbind();
-        tradeFeeInBsqLabel.textProperty().unbind();
         tradeFeeDescriptionLabel.textProperty().unbind();
         tradeFeeInBtcLabel.visibleProperty().unbind();
-        tradeFeeInBsqLabel.visibleProperty().unbind();
         tradeFeeDescriptionLabel.visibleProperty().unbind();
         tradeFeeDescriptionLabel.managedProperty().unbind();
 
@@ -703,7 +630,7 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
             if (isOfferAvailable) {
                 offerAvailabilityBusyAnimation.stop();
                 offerAvailabilityBusyAnimation.setVisible(false);
-                if (!DevEnv.isDaoActivated() && !model.isRange() && !model.showPayFundsScreenDisplayed.get())
+                if (!model.isRange() && !model.showPayFundsScreenDisplayed.get())
                     showNextStepAfterAmountIsSet();
             }
 
@@ -766,17 +693,11 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
     private void addListeners() {
         amountTextField.focusedProperty().addListener(amountFocusedListener);
         model.dataModel.getShowWalletFundedNotification().addListener(getShowWalletFundedNotificationListener);
-        model.isTradeFeeVisible.addListener(tradeFeeVisibleListener);
-        tradeFeeInBtcToggle.selectedProperty().addListener(tradeFeeInBtcToggleListener);
-        tradeFeeInBsqToggle.selectedProperty().addListener(tradeFeeInBsqToggleListener);
     }
 
     private void removeListeners() {
         amountTextField.focusedProperty().removeListener(amountFocusedListener);
         model.dataModel.getShowWalletFundedNotification().removeListener(getShowWalletFundedNotificationListener);
-        model.isTradeFeeVisible.removeListener(tradeFeeVisibleListener);
-        tradeFeeInBtcToggle.selectedProperty().removeListener(tradeFeeInBtcToggleListener);
-        tradeFeeInBsqToggle.selectedProperty().removeListener(tradeFeeInBsqToggleListener);
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -923,40 +844,7 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
     }
 
     private void showNextStepAfterAmountIsSet() {
-        if (DevEnv.isDaoTradingActivated())
-            showFeeOption();
-        else
             onShowPayFundsScreen();
-    }
-
-    private void showFeeOption() {
-        boolean isPreferredFeeCurrencyBtc = model.dataModel.isPreferredFeeCurrencyBtc();
-        boolean isBsqForFeeAvailable = model.dataModel.isBsqForFeeAvailable();
-        if (!isPreferredFeeCurrencyBtc && !isBsqForFeeAvailable) {
-            Coin takerFee = model.dataModel.getTakerFee(false);
-            String missingBsq = null;
-            if (takerFee != null) {
-                missingBsq = Res.get("popup.warning.insufficientBsqFundsForBtcFeePayment",
-                        bsqFormatter.formatCoinWithCode(takerFee.subtract(model.dataModel.getUsableBsqBalance())));
-
-            } else if (model.dataModel.getUsableBsqBalance().isZero()) {
-                missingBsq = Res.get("popup.warning.noBsqFundsForBtcFeePayment");
-            }
-
-            if (missingBsq != null) {
-                new Popup().warning(missingBsq)
-                        .actionButtonText(Res.get("feeOptionWindow.useBTC"))
-                        .onAction(() -> {
-                            tradeFeeInBtcToggle.setSelected(true);
-                            onShowPayFundsScreen();
-                        })
-                        .show();
-            } else {
-                onShowPayFundsScreen();
-            }
-        } else {
-            onShowPayFundsScreen();
-        }
     }
 
     private void addOfferAvailabilityLabel() {
@@ -1190,35 +1078,13 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
         tradeFeeInBtcLabel.setMouseTransparent(true);
         tradeFeeInBtcLabel.setId("trade-fee-textfield");
 
-        tradeFeeInBsqLabel = new Label();
-        tradeFeeInBsqLabel.setMouseTransparent(true);
-        tradeFeeInBsqLabel.setId("trade-fee-textfield");
-
         VBox vBox = new VBox();
         vBox.setSpacing(6);
         vBox.setMaxWidth(300);
-        vBox.setAlignment(DevEnv.isDaoActivated() ? Pos.CENTER_RIGHT : Pos.CENTER_LEFT);
-        vBox.getChildren().addAll(tradeFeeInBtcLabel, tradeFeeInBsqLabel);
+        vBox.setAlignment(Pos.CENTER_LEFT);
+        vBox.getChildren().addAll(tradeFeeInBtcLabel);
 
-        tradeFeeInBtcToggle = new AutoTooltipSlideToggleButton();
-        tradeFeeInBtcToggle.setText("BTC"); // TODO (woodser): update to XMR
-        tradeFeeInBtcToggle.setPadding(new Insets(-8, 5, -10, 5));
-
-        tradeFeeInBsqToggle = new AutoTooltipSlideToggleButton();
-        tradeFeeInBsqToggle.setText("BSQ");
-        tradeFeeInBsqToggle.setPadding(new Insets(-9, 5, -9, 5));
-
-        VBox tradeFeeToggleButtonBox = new VBox();
-        tradeFeeToggleButtonBox.getChildren().addAll(tradeFeeInBtcToggle, tradeFeeInBsqToggle);
-
-        HBox hBox = new HBox();
-        hBox.getChildren().addAll(vBox, tradeFeeToggleButtonBox);
-        hBox.setMinHeight(47);
-        hBox.setMaxHeight(hBox.getMinHeight());
-        HBox.setHgrow(vBox, Priority.ALWAYS);
-        HBox.setHgrow(tradeFeeToggleButtonBox, Priority.NEVER);
-
-        final Tuple2<Label, VBox> tradeInputBox = getTradeInputBox(hBox, Res.get("createOffer.tradeFee.descriptionBSQEnabled"));
+        final Tuple2<Label, VBox> tradeInputBox = getTradeInputBox(vBox, Res.get("createOffer.tradeFee.description"));
 
         tradeFeeDescriptionLabel = tradeInputBox.first;
 
@@ -1230,23 +1096,6 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
     // Utils
     ///////////////////////////////////////////////////////////////////////////////////////////
 
-
-    private void showInsufficientBsqFundsForBtcFeePaymentPopup() {
-        Coin takerFee = model.dataModel.getTakerFee(false);
-        String message = null;
-        if (takerFee != null)
-            message = Res.get("popup.warning.insufficientBsqFundsForBtcFeePayment",
-                    bsqFormatter.formatCoinWithCode(takerFee.subtract(model.dataModel.getUsableBsqBalance())));
-
-        else if (model.dataModel.getUsableBsqBalance().isZero())
-            message = Res.get("popup.warning.noBsqFundsForBtcFeePayment");
-
-        if (message != null)
-            new Popup().warning(message)
-                    .actionButtonTextWithGoTo("navigation.dao.wallet.receive")
-                    .onAction(() -> navigation.navigateTo(MainView.class, DaoView.class, BsqWalletView.class, BsqReceiveView.class))
-                    .show();
-    }
 
     private void maybeShowTakeOfferFromUnsignedAccountWarning(Offer offer) {
         // warn if you are selling BTC to unsigned account (#5343)
@@ -1288,18 +1137,6 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
                         .show();
             }, 500, TimeUnit.MILLISECONDS);
         }
-    }
-
-    private Tuple2<Label, VBox> getTradeInputBox(HBox amountValueBox, String promptText) {
-        Label descriptionLabel = new AutoTooltipLabel(promptText);
-        descriptionLabel.setId("input-description-label");
-        descriptionLabel.setPrefWidth(170);
-
-        VBox box = new VBox();
-        box.setPadding(new Insets(10, 0, 0, 0));
-        box.setSpacing(2);
-        box.getChildren().addAll(descriptionLabel, amountValueBox);
-        return new Tuple2<>(descriptionLabel, box);
     }
 
     // As we don't use binding here we need to recreate it on mouse over to reflect the current state

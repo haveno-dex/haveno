@@ -529,7 +529,6 @@ public class FailedTradesView extends ActivatableViewAndModel<VBox, FailedTrades
                                 super.updateItem(newItem, empty);
                                 if (!empty && newItem != null) {
                                     Label icon = FormBuilder.getIcon(AwesomeIcon.UNDO);
-                                    icon.getStyleClass().addAll("icon", "dao-remove-proposal-icon");
                                     JFXButton iconButton = new JFXButton("", icon);
                                     iconButton.setStyle("-fx-cursor: hand;");
                                     iconButton.getStyleClass().add("hidden-icon-button");

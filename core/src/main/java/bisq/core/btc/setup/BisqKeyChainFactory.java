@@ -32,29 +32,23 @@ import com.google.common.collect.ImmutableList;
 /**
  * Hack to convert bitcoinj 0.14 wallets to bitcoinj 0.15 format.
  *
- * This code is required to be executed only once per user (actually twice, for btc and bsq wallets).
+ * This code is required to be executed only once per user (actually twice, for btc wallets).
  * Once all users using bitcoinj 0.14 wallets have executed this code, this class will be no longer needed.
  *
  * Since that is almost impossible to guarantee, this hack will stay until we decide to don't be
  * backwards compatible with pre bitcoinj 0.15 wallets.
  * In that scenario, users will have to migrate using this procedure:
- * 1) Run pre bitcoinj 0.15 bisq and copy their seed words on a piece of paper.
- * 2) Run post bitcoinj 0.15 bisq and use recover from seed.
+ * 1) Run pre bitcoinj 0.15 btc and copy their seed words on a piece of paper.
+ * 2) Run post bitcoinj 0.15 btc and use recover from seed.
  * */
 public class BisqKeyChainFactory extends DefaultKeyChainFactory {
-
-    private boolean isBsqWallet;
-
-    public BisqKeyChainFactory(boolean isBsqWallet) {
-        this.isBsqWallet = isBsqWallet;
-    }
 
     @Override
     public DeterministicKeyChain makeKeyChain(Protos.Key key, Protos.Key firstSubKey, DeterministicSeed seed, KeyCrypter crypter, boolean isMarried, Script.ScriptType outputScriptType, ImmutableList<ChildNumber> accountPath) {
         ImmutableList<ChildNumber> maybeUpdatedAccountPath = accountPath;
         if (DeterministicKeyChain.ACCOUNT_ZERO_PATH.equals(accountPath)) {
             // This is a bitcoinj 0.14 wallet that has no account path in the serialized mnemonic
-            KeyChainGroupStructure structure = new BisqKeyChainGroupStructure(isBsqWallet);
+            KeyChainGroupStructure structure = new BisqKeyChainGroupStructure();
             maybeUpdatedAccountPath = structure.accountPathFor(outputScriptType);
         }
 

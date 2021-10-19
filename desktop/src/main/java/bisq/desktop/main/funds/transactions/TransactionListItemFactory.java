@@ -17,9 +17,7 @@
 
 package bisq.desktop.main.funds.transactions;
 
-import bisq.core.btc.wallet.BsqWalletService;
 import bisq.core.btc.wallet.XmrWalletService;
-import bisq.core.dao.DaoFacade;
 import bisq.core.user.Preferences;
 import bisq.core.util.FormattingUtils;
 import bisq.core.util.coin.CoinFormatter;
@@ -38,20 +36,14 @@ import monero.wallet.model.MoneroTxWallet;
 @Singleton
 public class TransactionListItemFactory {
     private final XmrWalletService xmrWalletService;
-    private final BsqWalletService bsqWalletService;
-    private final DaoFacade daoFacade;
     private final CoinFormatter formatter;
     private final Preferences preferences;
 
     @Inject
     TransactionListItemFactory(XmrWalletService xmrWalletService,
-                               BsqWalletService bsqWalletService,
-                               DaoFacade daoFacade,
                                @Named(FormattingUtils.BTC_FORMATTER_KEY) CoinFormatter formatter,
                                Preferences preferences) {
         this.xmrWalletService = xmrWalletService;
-        this.bsqWalletService = bsqWalletService;
-        this.daoFacade = daoFacade;
         this.formatter = formatter;
         this.preferences = preferences;
     }
@@ -59,9 +51,7 @@ public class TransactionListItemFactory {
     TransactionsListItem create(MoneroTxWallet transaction, @Nullable TransactionAwareTradable tradable) {
         return new TransactionsListItem(transaction,
                 xmrWalletService,
-                bsqWalletService,
                 tradable,
-                daoFacade,
                 formatter,
                 preferences.getIgnoreDustThreshold());
     }

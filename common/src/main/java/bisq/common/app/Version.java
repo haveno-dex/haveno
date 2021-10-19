@@ -102,8 +102,6 @@ public class Version {
     public static final int TRADE_PROTOCOL_VERSION = 3;
     private static int p2pMessageVersion;
 
-    public static final String BSQ_TX_VERSION = "1";
-
     public static int getP2PMessageVersion() {
         return p2pMessageVersion;
     }

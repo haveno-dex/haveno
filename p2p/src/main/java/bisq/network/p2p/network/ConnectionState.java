@@ -46,7 +46,6 @@ public class ConnectionState implements MessageListener {
     private static final long COMPLETED_TIMER_DELAY_SEC = 10;
 
     // Number of expected requests in standard case. Can be different according to network conditions.
-    // Is different for LiteDaoNodes and FullDaoNodes
     @Setter
     private static int expectedRequests = 6;
 

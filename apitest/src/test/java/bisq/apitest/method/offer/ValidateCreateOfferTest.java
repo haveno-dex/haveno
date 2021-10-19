@@ -29,7 +29,6 @@ import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 
-import static bisq.apitest.config.ApiTestConfig.BSQ;
 import static bisq.apitest.config.ApiTestConfig.BTC;
 import static bisq.core.btc.wallet.Restrictions.getDefaultBuyerSecurityDepositAsPercent;
 import static java.lang.String.format;
@@ -54,8 +53,7 @@ public class ValidateCreateOfferTest extends AbstractOfferTest {
                         100000000000L,
                         "10000.0000",
                         getDefaultBuyerSecurityDepositAsPercent(),
-                        usdAccount.getId(),
-                        BSQ));
+                        usdAccount.getId()));
         assertEquals("UNKNOWN: An error occurred at task: ValidateOffer", exception.getMessage());
     }
 
@@ -71,8 +69,7 @@ public class ValidateCreateOfferTest extends AbstractOfferTest {
                         10000000L,
                         "40000.0000",
                         getDefaultBuyerSecurityDepositAsPercent(),
-                        chfAccount.getId(),
-                        BTC));
+                        chfAccount.getId()));
         String expectedError = format("UNKNOWN: cannot create EUR offer with payment account %s", chfAccount.getId());
         assertEquals(expectedError, exception.getMessage());
     }
@@ -89,8 +86,7 @@ public class ValidateCreateOfferTest extends AbstractOfferTest {
                         10000000L,
                         "63000.0000",
                         getDefaultBuyerSecurityDepositAsPercent(),
-                        audAccount.getId(),
-                        BTC));
+                        audAccount.getId()));
         String expectedError = format("UNKNOWN: cannot create CAD offer with payment account %s", audAccount.getId());
         assertEquals(expectedError, exception.getMessage());
     }

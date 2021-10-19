@@ -22,7 +22,6 @@ import bisq.desktop.Navigation;
 import bisq.desktop.main.offer.MutableOfferDataModel;
 
 import bisq.core.account.witness.AccountAgeWitnessService;
-import bisq.core.btc.wallet.BsqWalletService;
 import bisq.core.btc.wallet.Restrictions;
 import bisq.core.btc.wallet.XmrWalletService;
 import bisq.core.locale.CurrencyUtil;
@@ -66,7 +65,6 @@ class EditOfferDataModel extends MutableOfferDataModel {
                        OpenOfferManager openOfferManager,
                        OfferUtil offerUtil,
                        XmrWalletService xmrWalletService,
-                       BsqWalletService bsqWalletService,
                        Preferences preferences,
                        User user,
                        P2PService p2PService,
@@ -82,7 +80,6 @@ class EditOfferDataModel extends MutableOfferDataModel {
                 openOfferManager,
                 offerUtil,
                 xmrWalletService,
-                bsqWalletService,
                 preferences,
                 user,
                 p2PService,
@@ -210,7 +207,6 @@ class EditOfferDataModel extends MutableOfferDataModel {
                 offerPayload.getBlockHeightAtOfferCreation(),
                 offerPayload.getTxFee(),
                 offerPayload.getMakerFee(),
-                offerPayload.isCurrencyForMakerFeeBtc(),
                 offerPayload.getBuyerSecurityDeposit(),
                 offerPayload.getSellerSecurityDeposit(),
                 offerPayload.getMaxTradeLimit(),

@@ -226,14 +226,14 @@ checkseednoderunning() {
 
 checkarbnoderunning() {
     if [[ "$LINUX" == "TRUE" ]]; then
-        if pgrep -f "bisq.daemon.app.BisqDaemonMain --appName=bisq-XMR_STAGENET_Arb_dao" > /dev/null ; then
+        if pgrep -f "bisq.daemon.app.BisqDaemonMain --appName=bisq-XMR_STAGENET_Arb" > /dev/null ; then
             printdate "The arbitration node is running on host."
         else
             printdate "Error:  arbitration node is not running on host, exiting."
             apitestusage
         fi
     elif [[ "$DARWIN" == "TRUE" ]]; then
-        if ps -A | awk '/[b]isq.daemon.app.BisqDaemonMain --appName=bisq-XMR_STAGENET_Arb_dao/ {print $1}' > /dev/null ; then
+        if ps -A | awk '/[b]isq.daemon.app.BisqDaemonMain --appName=bisq-XMR_STAGENET_Arb/ {print $1}' > /dev/null ; then
             printdate "The arbitration node is running on host."
         else
             printdate "Error:  arbitration node is not running on host, exiting."
@@ -247,14 +247,14 @@ checkarbnoderunning() {
 
 checkalicenoderunning() {
     if [[ "$LINUX" == "TRUE" ]]; then
-        if pgrep -f "bisq.daemon.app.BisqDaemonMain --appName=bisq-XMR_STAGENET_Alice_dao" > /dev/null ; then
+        if pgrep -f "bisq.daemon.app.BisqDaemonMain --appName=bisq-XMR_STAGENET_Alice" > /dev/null ; then
             printdate "Alice's node is running on host."
         else
             printdate "Error:  Alice's node is not running on host, exiting."
             apitestusage
         fi
     elif [[ "$DARWIN" == "TRUE" ]]; then
-        if ps -A | awk '/[b]isq.daemon.app.BisqDaemonMain --appName=bisq-XMR_STAGENET_Alice_dao/ {print $1}' > /dev/null ; then
+        if ps -A | awk '/[b]isq.daemon.app.BisqDaemonMain --appName=bisq-XMR_STAGENET_Alice/ {print $1}' > /dev/null ; then
             printdate "Alice's node node is running on host."
         else
             printdate "Error:  Alice's node is not running on host, exiting."
@@ -268,14 +268,14 @@ checkalicenoderunning() {
 
 checkbobnoderunning() {
     if [[ "$LINUX" == "TRUE" ]]; then
-        if pgrep -f "bisq.daemon.app.BisqDaemonMain --appName=bisq-XMR_STAGENET_Alice_dao" > /dev/null ; then
+        if pgrep -f "bisq.daemon.app.BisqDaemonMain --appName=bisq-XMR_STAGENET_Alice" > /dev/null ; then
             printdate "Bob's node is running on host."
         else
             printdate "Error:  Bob's node is not running on host, exiting."
             apitestusage
         fi
     elif [[ "$DARWIN" == "TRUE" ]]; then
-        if ps -A | awk '/[b]isq.daemon.app.BisqDaemonMain --appName=bisq-XMR_STAGENET_Alice_dao/ {print $1}' > /dev/null ; then
+        if ps -A | awk '/[b]isq.daemon.app.BisqDaemonMain --appName=bisq-XMR_STAGENET_Alice/ {print $1}' > /dev/null ; then
             printdate "Bob's node node is running on host."
         else
             printdate "Error:  Bob's node is not running on host, exiting."

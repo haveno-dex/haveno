@@ -22,10 +22,6 @@ import bisq.core.account.witness.AccountAgeWitnessService;
 import bisq.core.alert.PrivateNotificationManager;
 import bisq.core.alert.PrivateNotificationPayload;
 import bisq.core.btc.Balances;
-import bisq.core.dao.DaoSetup;
-import bisq.core.dao.governance.voteresult.VoteResultException;
-import bisq.core.dao.governance.voteresult.VoteResultService;
-import bisq.core.dao.state.DaoStateSnapshotService;
 import bisq.core.filter.FilterManager;
 import bisq.core.notifications.MobileNotificationService;
 import bisq.core.notifications.alerts.DisputeMsgEvents;
@@ -37,7 +33,6 @@ import bisq.core.offer.OpenOfferManager;
 import bisq.core.offer.TriggerPriceService;
 import bisq.core.payment.AmazonGiftCardAccount;
 import bisq.core.payment.RevolutAccount;
-import bisq.core.payment.TradeLimits;
 import bisq.core.provider.fee.FeeService;
 import bisq.core.provider.mempool.MempoolService;
 import bisq.core.provider.price.PriceFeedService;
@@ -77,7 +72,6 @@ import java.util.stream.Collectors;
  */
 public class DomainInitialisation {
     private final ClockWatcher clockWatcher;
-    private final TradeLimits tradeLimits;
     private final ArbitrationManager arbitrationManager;
     private final MediationManager mediationManager;
     private final RefundManager refundManager;
@@ -95,13 +89,11 @@ public class DomainInitialisation {
     private final PrivateNotificationManager privateNotificationManager;
     private final P2PService p2PService;
     private final FeeService feeService;
-    private final DaoSetup daoSetup;
     private final TradeStatisticsManager tradeStatisticsManager;
     private final AccountAgeWitnessService accountAgeWitnessService;
     private final SignedWitnessService signedWitnessService;
     private final PriceFeedService priceFeedService;
     private final FilterManager filterManager;
-    private final VoteResultService voteResultService;
     private final MobileNotificationService mobileNotificationService;
     private final MyOfferTakenEvents myOfferTakenEvents;
     private final TradeEvents tradeEvents;
@@ -109,13 +101,11 @@ public class DomainInitialisation {
     private final PriceAlert priceAlert;
     private final MarketAlerts marketAlerts;
     private final User user;
-    private final DaoStateSnapshotService daoStateSnapshotService;
     private final TriggerPriceService triggerPriceService;
     private final MempoolService mempoolService;
 
     @Inject
     public DomainInitialisation(ClockWatcher clockWatcher,
-                                TradeLimits tradeLimits,
                                 ArbitrationManager arbitrationManager,
                                 MediationManager mediationManager,
                                 RefundManager refundManager,
@@ -133,13 +123,11 @@ public class DomainInitialisation {
                                 PrivateNotificationManager privateNotificationManager,
                                 P2PService p2PService,
                                 FeeService feeService,
-                                DaoSetup daoSetup,
                                 TradeStatisticsManager tradeStatisticsManager,
                                 AccountAgeWitnessService accountAgeWitnessService,
                                 SignedWitnessService signedWitnessService,
                                 PriceFeedService priceFeedService,
                                 FilterManager filterManager,
-                                VoteResultService voteResultService,
                                 MobileNotificationService mobileNotificationService,
                                 MyOfferTakenEvents myOfferTakenEvents,
                                 TradeEvents tradeEvents,
@@ -147,11 +135,9 @@ public class DomainInitialisation {
                                 PriceAlert priceAlert,
                                 MarketAlerts marketAlerts,
                                 User user,
-                                DaoStateSnapshotService daoStateSnapshotService,
                                 TriggerPriceService triggerPriceService,
                                 MempoolService mempoolService) {
         this.clockWatcher = clockWatcher;
-        this.tradeLimits = tradeLimits;
         this.arbitrationManager = arbitrationManager;
         this.mediationManager = mediationManager;
         this.refundManager = refundManager;
@@ -169,13 +155,11 @@ public class DomainInitialisation {
         this.privateNotificationManager = privateNotificationManager;
         this.p2PService = p2PService;
         this.feeService = feeService;
-        this.daoSetup = daoSetup;
         this.tradeStatisticsManager = tradeStatisticsManager;
         this.accountAgeWitnessService = accountAgeWitnessService;
         this.signedWitnessService = signedWitnessService;
         this.priceFeedService = priceFeedService;
         this.filterManager = filterManager;
-        this.voteResultService = voteResultService;
         this.mobileNotificationService = mobileNotificationService;
         this.myOfferTakenEvents = myOfferTakenEvents;
         this.tradeEvents = tradeEvents;
@@ -183,25 +167,18 @@ public class DomainInitialisation {
         this.priceAlert = priceAlert;
         this.marketAlerts = marketAlerts;
         this.user = user;
-        this.daoStateSnapshotService = daoStateSnapshotService;
         this.triggerPriceService = triggerPriceService;
         this.mempoolService = mempoolService;
     }
 
     public void initDomainServices(Consumer<String> rejectedTxErrorMessageHandler,
                                    Consumer<PrivateNotificationPayload> displayPrivateNotificationHandler,
-                                   Consumer<String> daoErrorMessageHandler,
-                                   Consumer<String> daoWarnMessageHandler,
                                    Consumer<String> filterWarningHandler,
-                                   Consumer<VoteResultException> voteResultExceptionHandler,
                                    Consumer<List<RevolutAccount>> revolutAccountsUpdateHandler,
-                                   Consumer<List<AmazonGiftCardAccount>> amazonGiftCardAccountsUpdateHandler,
-                                   Runnable daoRequiresRestartHandler) {
+                                   Consumer<List<AmazonGiftCardAccount>> amazonGiftCardAccountsUpdateHandler) {
         clockWatcher.start();
 
         PersistenceManager.onAllServicesInitialized();
-
-        tradeLimits.onAllServicesInitialized();
 
         tradeManager.onAllServicesInitialized();
         arbitrationManager.onAllServicesInitialized();
@@ -232,17 +209,6 @@ public class DomainInitialisation {
 
         feeService.onAllServicesInitialized();
 
-        if (DevEnv.isDaoActivated()) {
-            daoSetup.onAllServicesInitialized(errorMessage -> {
-                if (daoErrorMessageHandler != null)
-                    daoErrorMessageHandler.accept(errorMessage);
-            }, warningMessage -> {
-                if (daoWarnMessageHandler != null)
-                    daoWarnMessageHandler.accept(warningMessage);
-            });
-
-            daoStateSnapshotService.setDaoRequiresRestartHandler(daoRequiresRestartHandler);
-        }
 
         tradeStatisticsManager.onAllServicesInitialized();
 
@@ -254,12 +220,6 @@ public class DomainInitialisation {
         filterManager.setFilterWarningHandler(filterWarningHandler);
         filterManager.onAllServicesInitialized();
 
-        voteResultService.getVoteResultExceptions().addListener((ListChangeListener<VoteResultException>) c -> {
-            c.next();
-            if (c.wasAdded() && voteResultExceptionHandler != null) {
-                c.getAddedSubList().forEach(voteResultExceptionHandler);
-            }
-        });
 
         mobileNotificationService.onAllServicesInitialized();
         myOfferTakenEvents.onAllServicesInitialized();

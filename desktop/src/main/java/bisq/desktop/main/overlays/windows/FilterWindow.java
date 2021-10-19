@@ -157,12 +157,8 @@ public class FilterWindow extends Overlay<FilterWindow> {
                 Res.get("filterWindow.btcNode"));
         CheckBox preventPublicBtcNetworkCheckBox = addLabelCheckBox(gridPane, ++rowIndex,
                 Res.get("filterWindow.preventPublicBtcNetwork"));
-        CheckBox disableDaoCheckBox = addLabelCheckBox(gridPane, ++rowIndex,
-                Res.get("filterWindow.disableDao"));
         CheckBox disableAutoConfCheckBox = addLabelCheckBox(gridPane, ++rowIndex,
                 Res.get("filterWindow.disableAutoConf"));
-        InputTextField disableDaoBelowVersionTF = addInputTextField(gridPane, ++rowIndex,
-                Res.get("filterWindow.disableDaoBelowVersion"));
         InputTextField disableTradeBelowVersionTF = addInputTextField(gridPane, ++rowIndex,
                 Res.get("filterWindow.disableTradeBelowVersion"));
         InputTextField bannedPrivilegedDevPubKeysTF = addTopLabelInputTextField(gridPane, ++rowIndex,
@@ -194,9 +190,7 @@ public class FilterWindow extends Overlay<FilterWindow> {
             setupFieldFromList(autoConfExplorersTF, filter.getBannedAutoConfExplorers());
 
             preventPublicBtcNetworkCheckBox.setSelected(filter.isPreventPublicBtcNetwork());
-            disableDaoCheckBox.setSelected(filter.isDisableDao());
             disableAutoConfCheckBox.setSelected(filter.isDisableAutoConf());
-            disableDaoBelowVersionTF.setText(filter.getDisableDaoBelowVersion());
             disableTradeBelowVersionTF.setText(filter.getDisableTradeBelowVersion());
             disableMempoolValidationCheckBox.setSelected(filter.isDisableMempoolValidation());
             disableApiCheckBox.setSelected(filter.isDisableApi());
@@ -221,8 +215,6 @@ public class FilterWindow extends Overlay<FilterWindow> {
                         readAsList(priceRelayNodesTF),
                         preventPublicBtcNetworkCheckBox.isSelected(),
                         readAsList(btcNodesTF),
-                        disableDaoCheckBox.isSelected(),
-                        disableDaoBelowVersionTF.getText(),
                         disableTradeBelowVersionTF.getText(),
                         readAsList(mediatorsTF),
                         readAsList(refundAgentsTF),

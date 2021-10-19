@@ -32,10 +32,6 @@ public class TakeOfferOptionParser extends AbstractMethodOptionParser implements
     final OptionSpec<String> paymentAccountIdOpt = parser.accepts(OPT_PAYMENT_ACCOUNT, "id of payment account used for trade")
             .withRequiredArg();
 
-    final OptionSpec<String> takerFeeCurrencyCodeOpt = parser.accepts(OPT_FEE_CURRENCY, "taker fee currency code (bsq|btc)")
-            .withOptionalArg()
-            .defaultsTo("btc");
-
     public TakeOfferOptionParser(String[] args) {
         super(args);
     }
@@ -62,9 +58,5 @@ public class TakeOfferOptionParser extends AbstractMethodOptionParser implements
 
     public String getPaymentAccountId() {
         return options.valueOf(paymentAccountIdOpt);
-    }
-
-    public String getTakerFeeCurrencyCode() {
-        return options.has(takerFeeCurrencyCodeOpt) ? options.valueOf(takerFeeCurrencyCodeOpt) : "btc";
     }
 }

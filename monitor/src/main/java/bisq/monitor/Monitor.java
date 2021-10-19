@@ -88,7 +88,6 @@ public class Monitor {
                 Capability.ACK_MSG,
                 Capability.PROPOSAL,
                 Capability.BLIND_VOTE,
-                Capability.DAO_STATE,
                 Capability.BUNDLE_OF_ENVELOPES,
                 Capability.REFUND_AGENT,
                 Capability.MEDIATION,

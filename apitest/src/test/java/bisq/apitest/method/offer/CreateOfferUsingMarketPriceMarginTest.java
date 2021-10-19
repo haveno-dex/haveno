@@ -54,8 +54,6 @@ public class CreateOfferUsingMarketPriceMarginTest extends AbstractOfferTest {
     private static final double MKT_PRICE_MARGIN_ERROR_TOLERANCE = 0.0050;      // 0.50%
     private static final double MKT_PRICE_MARGIN_WARNING_TOLERANCE = 0.0001;    // 0.01%
 
-    private static final String MAKER_FEE_CURRENCY_CODE = XMR;
-
     @Test
     @Order(1)
     public void testCreateUSDXMRBuyOffer5PctPriceMargin() {
@@ -67,8 +65,7 @@ public class CreateOfferUsingMarketPriceMarginTest extends AbstractOfferTest {
                 10_000_000L,
                 priceMarginPctInput,
                 getDefaultBuyerSecurityDepositAsPercent(),
-                usdAccount.getId(),
-                MAKER_FEE_CURRENCY_CODE);
+                usdAccount.getId());
         log.info("OFFER #1:\n{}", formatOfferTable(singletonList(newOffer), "usd"));
         String newOfferId = newOffer.getId();
         assertNotEquals("", newOfferId);
@@ -80,7 +77,6 @@ public class CreateOfferUsingMarketPriceMarginTest extends AbstractOfferTest {
         assertEquals(usdAccount.getId(), newOffer.getPaymentAccountId());
         assertEquals(XMR, newOffer.getBaseCurrencyCode());
         assertEquals("USD", newOffer.getCounterCurrencyCode());
-        assertTrue(newOffer.getIsCurrencyForMakerFeeBtc());
 
         newOffer = aliceClient.getMyOffer(newOfferId);
         assertEquals(newOfferId, newOffer.getId());
@@ -92,7 +88,6 @@ public class CreateOfferUsingMarketPriceMarginTest extends AbstractOfferTest {
         assertEquals(usdAccount.getId(), newOffer.getPaymentAccountId());
         assertEquals(XMR, newOffer.getBaseCurrencyCode());
         assertEquals("USD", newOffer.getCounterCurrencyCode());
-        assertTrue(newOffer.getIsCurrencyForMakerFeeBtc());
 
         assertCalculatedPriceIsCorrect(newOffer, priceMarginPctInput);
     }
@@ -108,8 +103,7 @@ public class CreateOfferUsingMarketPriceMarginTest extends AbstractOfferTest {
                 10_000_000L,
                 priceMarginPctInput,
                 getDefaultBuyerSecurityDepositAsPercent(),
-                nzdAccount.getId(),
-                MAKER_FEE_CURRENCY_CODE);
+                nzdAccount.getId());
         log.info("OFFER #2:\n{}", formatOfferTable(singletonList(newOffer), "nzd"));
         String newOfferId = newOffer.getId();
         assertNotEquals("", newOfferId);
@@ -121,7 +115,6 @@ public class CreateOfferUsingMarketPriceMarginTest extends AbstractOfferTest {
         assertEquals(nzdAccount.getId(), newOffer.getPaymentAccountId());
         assertEquals(XMR, newOffer.getBaseCurrencyCode());
         assertEquals("NZD", newOffer.getCounterCurrencyCode());
-        assertTrue(newOffer.getIsCurrencyForMakerFeeBtc());
 
         newOffer = aliceClient.getMyOffer(newOfferId);
         assertEquals(newOfferId, newOffer.getId());
@@ -133,7 +126,6 @@ public class CreateOfferUsingMarketPriceMarginTest extends AbstractOfferTest {
         assertEquals(nzdAccount.getId(), newOffer.getPaymentAccountId());
         assertEquals(XMR, newOffer.getBaseCurrencyCode());
         assertEquals("NZD", newOffer.getCounterCurrencyCode());
-        assertTrue(newOffer.getIsCurrencyForMakerFeeBtc());
 
         assertCalculatedPriceIsCorrect(newOffer, priceMarginPctInput);
     }
@@ -149,8 +141,7 @@ public class CreateOfferUsingMarketPriceMarginTest extends AbstractOfferTest {
                 5_000_000L,
                 priceMarginPctInput,
                 getDefaultBuyerSecurityDepositAsPercent(),
-                gbpAccount.getId(),
-                MAKER_FEE_CURRENCY_CODE);
+                gbpAccount.getId());
         log.info("OFFER #3:\n{}", formatOfferTable(singletonList(newOffer), "gbp"));
         String newOfferId = newOffer.getId();
         assertNotEquals("", newOfferId);
@@ -162,7 +153,6 @@ public class CreateOfferUsingMarketPriceMarginTest extends AbstractOfferTest {
         assertEquals(gbpAccount.getId(), newOffer.getPaymentAccountId());
         assertEquals(XMR, newOffer.getBaseCurrencyCode());
         assertEquals("GBP", newOffer.getCounterCurrencyCode());
-        assertTrue(newOffer.getIsCurrencyForMakerFeeBtc());
 
         newOffer = aliceClient.getMyOffer(newOfferId);
         assertEquals(newOfferId, newOffer.getId());
@@ -174,7 +164,6 @@ public class CreateOfferUsingMarketPriceMarginTest extends AbstractOfferTest {
         assertEquals(gbpAccount.getId(), newOffer.getPaymentAccountId());
         assertEquals(XMR, newOffer.getBaseCurrencyCode());
         assertEquals("GBP", newOffer.getCounterCurrencyCode());
-        assertTrue(newOffer.getIsCurrencyForMakerFeeBtc());
 
         assertCalculatedPriceIsCorrect(newOffer, priceMarginPctInput);
     }
@@ -190,8 +179,7 @@ public class CreateOfferUsingMarketPriceMarginTest extends AbstractOfferTest {
                 5_000_000L,
                 priceMarginPctInput,
                 getDefaultBuyerSecurityDepositAsPercent(),
-                brlAccount.getId(),
-                MAKER_FEE_CURRENCY_CODE);
+                brlAccount.getId());
         log.info("OFFER #4:\n{}", formatOfferTable(singletonList(newOffer), "brl"));
         String newOfferId = newOffer.getId();
         assertNotEquals("", newOfferId);
@@ -203,7 +191,6 @@ public class CreateOfferUsingMarketPriceMarginTest extends AbstractOfferTest {
         assertEquals(brlAccount.getId(), newOffer.getPaymentAccountId());
         assertEquals(XMR, newOffer.getBaseCurrencyCode());
         assertEquals("BRL", newOffer.getCounterCurrencyCode());
-        assertTrue(newOffer.getIsCurrencyForMakerFeeBtc());
 
         newOffer = aliceClient.getMyOffer(newOfferId);
         assertEquals(newOfferId, newOffer.getId());
@@ -215,7 +202,6 @@ public class CreateOfferUsingMarketPriceMarginTest extends AbstractOfferTest {
         assertEquals(brlAccount.getId(), newOffer.getPaymentAccountId());
         assertEquals(XMR, newOffer.getBaseCurrencyCode());
         assertEquals("BRL", newOffer.getCounterCurrencyCode());
-        assertTrue(newOffer.getIsCurrencyForMakerFeeBtc());
 
         assertCalculatedPriceIsCorrect(newOffer, priceMarginPctInput);
     }

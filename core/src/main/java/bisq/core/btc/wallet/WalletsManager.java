@@ -19,7 +19,6 @@ package bisq.core.btc.wallet;
 
 import bisq.core.btc.setup.WalletsSetup;
 import bisq.core.crypto.ScryptUtil;
-import bisq.core.dao.state.model.blockchain.TxType;
 import bisq.core.locale.Res;
 
 import bisq.common.handlers.ExceptionHandler;
@@ -47,7 +46,6 @@ public class WalletsManager {
 
     private final BtcWalletService btcWalletService;
     private final TradeWalletService tradeWalletService;
-    private final BsqWalletService bsqWalletService;
     private final WalletsSetup walletsSetup;
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -57,24 +55,20 @@ public class WalletsManager {
     @Inject
     public WalletsManager(BtcWalletService btcWalletService,
                           TradeWalletService tradeWalletService,
-                          BsqWalletService bsqWalletService,
                           WalletsSetup walletsSetup) {
         this.btcWalletService = btcWalletService;
         this.tradeWalletService = tradeWalletService;
-        this.bsqWalletService = bsqWalletService;
         this.walletsSetup = walletsSetup;
     }
 
     public void decryptWallets(KeyParameter aesKey) {
         btcWalletService.decryptWallet(aesKey);
-        bsqWalletService.decryptWallet(aesKey);
         tradeWalletService.setAesKey(null);
     }
 
     public void encryptWallets(KeyCrypterScrypt keyCrypterScrypt, KeyParameter aesKey) {
         try {
             btcWalletService.encryptWallet(keyCrypterScrypt, aesKey);
-            bsqWalletService.encryptWallet(keyCrypterScrypt, aesKey);
 
             // we save the key for the trade wallet as we don't require passwords here
             tradeWalletService.setAesKey(aesKey);
@@ -87,8 +81,7 @@ public class WalletsManager {
     public String getWalletsAsString(boolean includePrivKeys) {
         final String baseCurrencyWalletDetails = Res.getBaseCurrencyCode() + " Wallet:\n" +
                 btcWalletService.getWalletAsString(includePrivKeys);
-        final String bsqWalletDetails = "\n\nBSQ Wallet:\n" + bsqWalletService.getWalletAsString(includePrivKeys);
-        return baseCurrencyWalletDetails + bsqWalletDetails;
+        return baseCurrencyWalletDetails;
     }
 
     public void restoreSeedWords(@Nullable DeterministicSeed seed, ResultHandler resultHandler, ExceptionHandler exceptionHandler) {
@@ -105,11 +98,11 @@ public class WalletsManager {
 
     public boolean areWalletsEncrypted() {
         return areWalletsAvailable() &&
-                btcWalletService.isEncrypted() && bsqWalletService.isEncrypted();
+                btcWalletService.isEncrypted();
     }
 
     public boolean areWalletsAvailable() {
-        return btcWalletService.isWalletReady() && bsqWalletService.isWalletReady();
+        return btcWalletService.isWalletReady();
     }
 
     public KeyCrypterScrypt getKeyCrypterScrypt() {
@@ -128,15 +121,12 @@ public class WalletsManager {
     }
 
     public boolean hasPositiveBalance() {
-        final Coin bsqWalletServiceBalance = bsqWalletService.getBalance(Wallet.BalanceType.AVAILABLE);
         return btcWalletService.getBalance(Wallet.BalanceType.AVAILABLE)
-                .add(bsqWalletServiceBalance)
                 .isPositive();
     }
 
     public void setAesKey(KeyParameter aesKey) {
         btcWalletService.setAesKey(aesKey);
-        bsqWalletService.setAesKey(aesKey);
         tradeWalletService.setAesKey(aesKey);
     }
 
@@ -147,18 +137,5 @@ public class WalletsManager {
             log.warn("keyCrypter is null");
             return null;
         }
-    }
-
-    // A bsq tx has miner fees in btc included. Thus we need to handle it on both wallets.
-    public void publishAndCommitBsqTx(Transaction tx, TxType txType, TxBroadcaster.Callback callback) {
-        // We need to create another instance, otherwise the tx would trigger an invalid state exception
-        // if it gets committed 2 times
-        // We clone before commit to avoid unwanted side effects
-        Transaction clonedTx = btcWalletService.getClonedTransaction(tx);
-        btcWalletService.commitTx(clonedTx);
-        bsqWalletService.commitTx(tx, txType);
-
-        // We use a short timeout as there are issues with BSQ txs. See comment in TxBroadcaster
-        bsqWalletService.broadcastTx(tx, callback, 1);
     }
 }

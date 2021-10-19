@@ -286,10 +286,6 @@ public class Offer implements NetworkPayload, PersistablePayload {
         return Coin.valueOf(offerPayload.getMakerFee());
     }
 
-    public boolean isCurrencyForMakerFeeBtc() {
-        return offerPayload.isCurrencyForMakerFeeBtc();
-    }
-
     public Coin getBuyerSecurityDeposit() {
         return Coin.valueOf(offerPayload.getBuyerSecurityDeposit());
     }

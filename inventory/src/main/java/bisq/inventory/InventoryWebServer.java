@@ -120,7 +120,6 @@ public class InventoryWebServer {
                 .append("<th align=\"left\">Seed node info</th>")
                 .append("<th align=\"left\">Request info</th>")
                 .append("<th align=\"left\">Data inventory</th>")
-                .append("<th align=\"left\">DAO data</th>")
                 .append("<th align=\"left\">Network info</th>").append("</tr>");
 
         seedNodes.forEach(seedNode -> {
@@ -131,8 +130,6 @@ public class InventoryWebServer {
                 RequestInfo requestInfo = list.get(numRequests - 1);
                 html.append("<td>").append(getSeedNodeInfo(seedNode, requestInfo)).append("</td>")
                         .append("<td>").append(getRequestInfo(seedNode, requestInfo, numRequests, map)).append("</td>")
-                        .append("<td>").append(getDataInfo(seedNode, requestInfo, map)).append("</td>")
-                        .append("<td>").append(getDaoInfo(seedNode, requestInfo, map)).append("</td>")
                         .append("<td>").append(getNetworkInfo(seedNode, requestInfo, map)).append("</td>");
             } else {
                 html.append("<td>").append(getSeedNodeInfo(seedNode, null)).append("</td>")
@@ -260,28 +257,6 @@ public class InventoryWebServer {
         sb.append(getLine(InventoryItem.Filter, seedNode, requestInfo, map));
         sb.append(getLine(InventoryItem.Mediator, seedNode, requestInfo, map));
         sb.append(getLine(InventoryItem.RefundAgent, seedNode, requestInfo, map));
-
-        return sb.toString();
-    }
-
-    private String getDaoInfo(NodeAddress seedNode,
-                              RequestInfo requestInfo,
-                              Map<NodeAddress, List<RequestInfo>> map) {
-        StringBuilder sb = new StringBuilder();
-
-        sb.append(getLine("Number of BSQ blocks: ", InventoryItem.numBsqBlocks, seedNode, requestInfo, map));
-        sb.append(getLine(InventoryItem.TempProposalPayload, seedNode, requestInfo, map));
-        sb.append(getLine(InventoryItem.ProposalPayload, seedNode, requestInfo, map));
-        sb.append(getLine(InventoryItem.BlindVotePayload, seedNode, requestInfo, map));
-        sb.append(getLine("DAO state block height: ", InventoryItem.daoStateChainHeight, seedNode, requestInfo, map));
-
-        sb.append(getLine("DAO state hash: ", InventoryItem.daoStateHash, seedNode, requestInfo, map));
-
-        // The hash for proposal changes only at first block of blind vote phase but as we do not want to initialize the
-        // dao domain we cannot check that. But we also don't need that as we can just compare that all hashes at all
-        // blocks from all seeds are the same. Same for blindVoteHash.
-        sb.append(getLine("Proposal state hash: ", InventoryItem.proposalHash, seedNode, requestInfo, map));
-        sb.append(getLine("Blind vote state hash: ", InventoryItem.blindVoteHash, seedNode, requestInfo, map));
 
         return sb.toString();
     }

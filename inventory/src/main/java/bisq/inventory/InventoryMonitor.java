@@ -175,7 +175,7 @@ public class InventoryMonitor implements SetupListener {
             log.info("nodeAddress={}, result={}", nodeAddress, result.toString());
 
             // If seed just started up we ignore the deviation as it can be expected that seed is still syncing
-            // DAO state/blocks. P2P data should be ready but as we received it from other seeds it is not that
+            // blocks. P2P data should be ready but as we received it from other seeds it is not that
             // valuable information either, so we apply the ignore to all data.
             if (result.containsKey(InventoryItem.jvmStartTime)) {
                 String jvmStartTimeString = result.get(InventoryItem.jvmStartTime);
@@ -204,10 +204,6 @@ public class InventoryMonitor implements SetupListener {
                 .collect(Collectors.toSet());
         Map<InventoryItem, Double> averageValues = Average.of(requestInfoSet);
 
-        String daoStateChainHeight = result != null &&
-                result.containsKey(InventoryItem.daoStateChainHeight) ?
-                result.get(InventoryItem.daoStateChainHeight) :
-                null;
         List.of(InventoryItem.values()).forEach(inventoryItem -> {
             String value = result != null ? result.get(inventoryItem) : null;
             Tuple2<Double, Double> tuple = inventoryItem.getDeviationAndAverage(averageValues, value);
@@ -216,8 +212,7 @@ public class InventoryMonitor implements SetupListener {
             DeviationSeverity deviationSeverity = ignoreDeviationAtStartup ? DeviationSeverity.IGNORED :
                     inventoryItem.getDeviationSeverity(deviation,
                             requestInfoListByNodeValues,
-                            value,
-                            daoStateChainHeight);
+                            value);
             int endIndex = Math.max(0, requestInfoList.size() - 1);
             int deviationTolerance = inventoryItem.getDeviationTolerance();
             int fromIndex = Math.max(0, endIndex - deviationTolerance);

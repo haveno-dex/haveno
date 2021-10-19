@@ -23,17 +23,6 @@ import bisq.core.btc.model.AddressEntryList;
 import bisq.core.btc.model.XmrAddressEntryList;
 import bisq.core.btc.wallet.BtcWalletService;
 import bisq.core.btc.wallet.XmrWalletService;
-import bisq.core.dao.governance.blindvote.MyBlindVoteList;
-import bisq.core.dao.governance.blindvote.storage.BlindVoteStore;
-import bisq.core.dao.governance.bond.reputation.MyReputationList;
-import bisq.core.dao.governance.myvote.MyVoteList;
-import bisq.core.dao.governance.proofofburn.MyProofOfBurnList;
-import bisq.core.dao.governance.proposal.MyProposalList;
-import bisq.core.dao.governance.proposal.storage.appendonly.ProposalStore;
-import bisq.core.dao.governance.proposal.storage.temp.TempProposalStore;
-import bisq.core.dao.state.model.governance.BallotList;
-import bisq.core.dao.state.storage.DaoStateStore;
-import bisq.core.dao.state.unconfirmed.UnconfirmedBsqChangeOutputList;
 import bisq.core.offer.SignedOfferList;
 import bisq.core.payment.PaymentAccountList;
 import bisq.core.proto.CoreProtoResolver;
@@ -116,28 +105,6 @@ public class CorePersistenceProtoResolver extends CoreProtoResolver implements P
                     return AccountAgeWitnessStore.fromProto(proto.getAccountAgeWitnessStore());
                 case TRADE_STATISTICS2_STORE:
                     return TradeStatistics2Store.fromProto(proto.getTradeStatistics2Store());
-                case BLIND_VOTE_STORE:
-                    return BlindVoteStore.fromProto(proto.getBlindVoteStore());
-                case PROPOSAL_STORE:
-                    return ProposalStore.fromProto(proto.getProposalStore());
-                case TEMP_PROPOSAL_STORE:
-                    return TempProposalStore.fromProto(proto.getTempProposalStore(), networkProtoResolver);
-                case MY_PROPOSAL_LIST:
-                    return MyProposalList.fromProto(proto.getMyProposalList());
-                case BALLOT_LIST:
-                    return BallotList.fromProto(proto.getBallotList());
-                case MY_VOTE_LIST:
-                    return MyVoteList.fromProto(proto.getMyVoteList());
-                case MY_BLIND_VOTE_LIST:
-                    return MyBlindVoteList.fromProto(proto.getMyBlindVoteList());
-                case DAO_STATE_STORE:
-                    return DaoStateStore.fromProto(proto.getDaoStateStore());
-                case MY_REPUTATION_LIST:
-                    return MyReputationList.fromProto(proto.getMyReputationList());
-                case MY_PROOF_OF_BURN_LIST:
-                    return MyProofOfBurnList.fromProto(proto.getMyProofOfBurnList());
-                case UNCONFIRMED_BSQ_CHANGE_OUTPUT_LIST:
-                    return UnconfirmedBsqChangeOutputList.fromProto(proto.getUnconfirmedBsqChangeOutputList());
                 case SIGNED_WITNESS_STORE:
                     return SignedWitnessStore.fromProto(proto.getSignedWitnessStore());
                 case TRADE_STATISTICS3_STORE:

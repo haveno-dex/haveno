@@ -50,37 +50,23 @@ message NetworkEnvelope {
 
         PrivateNotificationMessage private_notification_message = 27;
 
-        GetBlocksRequest get_blocks_request = 28;
-        GetBlocksResponse get_blocks_response = 29;
-        NewBlockBroadcastMessage new_block_broadcast_message = 30;
+        AddPersistableNetworkPayloadMessage add_persistable_network_payload_message = 28;
+        AckMessage ack_message = 29;
 
-        AddPersistableNetworkPayloadMessage add_persistable_network_payload_message = 31;
-        AckMessage ack_message = 32;
-        RepublishGovernanceDataRequest republish_governance_data_request = 33;
-        NewDaoStateHashMessage new_dao_state_hash_message = 34;
-        GetDaoStateHashesRequest get_dao_state_hashes_request = 35;
-        GetDaoStateHashesResponse get_dao_state_hashes_response = 36;
-        NewProposalStateHashMessage new_proposal_state_hash_message = 37;
-        GetProposalStateHashesRequest get_proposal_state_hashes_request = 38;
-        GetProposalStateHashesResponse get_proposal_state_hashes_response = 39;
-        NewBlindVoteStateHashMessage new_blind_vote_state_hash_message = 40;
-        GetBlindVoteStateHashesRequest get_blind_vote_state_hashes_request = 41;
-        GetBlindVoteStateHashesResponse get_blind_vote_state_hashes_response = 42;
+        BundleOfEnvelopes bundle_of_envelopes = 30;
+        MediatedPayoutTxSignatureMessage mediated_payout_tx_signature_message = 31;
+        MediatedPayoutTxPublishedMessage mediated_payout_tx_published_message = 32;
 
-        BundleOfEnvelopes bundle_of_envelopes = 43;
-        MediatedPayoutTxSignatureMessage mediated_payout_tx_signature_message = 44;
-        MediatedPayoutTxPublishedMessage mediated_payout_tx_published_message = 45;
+        DelayedPayoutTxSignatureRequest delayed_payout_tx_signature_request = 33;
+        DelayedPayoutTxSignatureResponse delayed_payout_tx_signature_response = 34;
+        DepositTxAndDelayedPayoutTxMessage deposit_tx_and_delayed_payout_tx_message = 35;
+        PeerPublishedDelayedPayoutTxMessage peer_published_delayed_payout_tx_message = 36;
 
-        DelayedPayoutTxSignatureRequest delayed_payout_tx_signature_request = 46;
-        DelayedPayoutTxSignatureResponse delayed_payout_tx_signature_response = 47;
-        DepositTxAndDelayedPayoutTxMessage deposit_tx_and_delayed_payout_tx_message = 48;
-        PeerPublishedDelayedPayoutTxMessage peer_published_delayed_payout_tx_message = 49;
+        RefreshTradeStateRequest refresh_trade_state_request = 37 [deprecated = true];
+        TraderSignedWitnessMessage trader_signed_witness_message = 38 [deprecated = true];
 
-        RefreshTradeStateRequest refresh_trade_state_request = 50 [deprecated = true];
-        TraderSignedWitnessMessage trader_signed_witness_message = 51 [deprecated = true];
-
-        GetInventoryRequest get_inventory_request = 52;
-        GetInventoryResponse get_inventory_response = 53;
+        GetInventoryRequest get_inventory_request = 39;
+        GetInventoryResponse get_inventory_response = 40;
 
         SignOfferRequest sign_offer_request = 1001;
         SignOfferResponse sign_offer_response = 1002;
@@ -264,25 +250,24 @@ message InputsForDepositTxRequest {
     int64 trade_price = 4;
     int64 tx_fee = 5;
     int64 taker_fee = 6;
-    bool is_currency_for_taker_fee_btc = 7;
-    repeated RawTransactionInput raw_transaction_inputs = 8;
-    int64 change_output_value = 9;
-    string change_output_address = 10;
-    bytes taker_multi_sig_pub_key = 11;
-    string taker_payout_address_string = 12;
-    PubKeyRing taker_pub_key_ring = 13;
-    PaymentAccountPayload taker_payment_account_payload = 14;
-    string taker_account_id = 15;
-    string taker_fee_tx_id = 16;
-    repeated NodeAddress accepted_arbitrator_node_addresses = 17;
-    repeated NodeAddress accepted_mediator_node_addresses = 18;
-    NodeAddress arbitrator_node_address = 19;
-    NodeAddress mediator_node_address = 20;
-    string uid = 21;
-    bytes account_age_witness_signature_of_offer_id = 22;
-    int64 current_date = 23;
-    repeated NodeAddress accepted_refund_agent_node_addresses = 24;
-    NodeAddress refund_agent_node_address = 25;
+    repeated RawTransactionInput raw_transaction_inputs = 7;
+    int64 change_output_value = 8;
+    string change_output_address = 9;
+    bytes taker_multi_sig_pub_key = 10;
+    string taker_payout_address_string = 11;
+    PubKeyRing taker_pub_key_ring = 12;
+    PaymentAccountPayload taker_payment_account_payload = 13;
+    string taker_account_id = 14;
+    string taker_fee_tx_id = 15;
+    repeated NodeAddress accepted_arbitrator_node_addresses = 16;
+    repeated NodeAddress accepted_mediator_node_addresses = 17;
+    NodeAddress arbitrator_node_address = 18;
+    NodeAddress mediator_node_address = 29;
+    string uid = 20;
+    bytes account_age_witness_signature_of_offer_id = 21;
+    int64 current_date = 22;
+    repeated NodeAddress accepted_refund_agent_node_addresses = 23;
+    NodeAddress refund_agent_node_address = 24;
 }
 
 message InputsForDepositTxResponse {
@@ -580,71 +565,6 @@ message PrivateNotificationMessage {
     PrivateNotificationPayload private_notification_payload = 3;
 }
 
-// DAO
-
-message GetBlocksRequest {
-    int32 from_block_height = 1;
-    int32 nonce = 2;
-    NodeAddress sender_node_address = 3;
-    repeated int32 supported_capabilities = 4;
-}
-
-message GetBlocksResponse {
-    // Because of the way how PB implements inheritance we need to use the super class as type
-    repeated BaseBlock raw_blocks = 1;
-    int32 request_nonce = 2;
-}
-
-message NewBlockBroadcastMessage {
-    // Because of the way how PB implements inheritance we need to use the super class as type
-    BaseBlock raw_block = 1;
-}
-
-message RepublishGovernanceDataRequest {
-}
-
-message NewDaoStateHashMessage {
-    DaoStateHash state_hash = 1;
-}
-
-message NewProposalStateHashMessage {
-    ProposalStateHash state_hash = 1;
-}
-
-message NewBlindVoteStateHashMessage {
-    BlindVoteStateHash state_hash = 1;
-}
-
-message GetDaoStateHashesRequest {
-    int32 height = 1;
-    int32 nonce = 2;
-}
-
-message GetProposalStateHashesRequest {
-    int32 height = 1;
-    int32 nonce = 2;
-}
-
-message GetBlindVoteStateHashesRequest {
-    int32 height = 1;
-    int32 nonce = 2;
-}
-
-message GetDaoStateHashesResponse {
-    repeated DaoStateHash state_hashes = 1;
-    int32 request_nonce = 2;
-}
-
-message GetProposalStateHashesResponse {
-    repeated ProposalStateHash state_hashes = 1;
-    int32 request_nonce = 2;
-}
-
-message GetBlindVoteStateHashesResponse {
-    repeated BlindVoteStateHash state_hashes = 1;
-    int32 request_nonce = 2;
-}
-
 ///////////////////////////////////////////////////////////////////////////////////////////
 // Payload
 ///////////////////////////////////////////////////////////////////////////////////////////
@@ -688,8 +608,7 @@ message StoragePayload {
 
         MailboxStoragePayload mailbox_storage_payload = 6;
         OfferPayload offer_payload = 7;
-        TempProposalPayload temp_proposal_payload = 8;
-        RefundAgent refund_agent = 9;
+        RefundAgent refund_agent = 8;
     }
 }
 
@@ -697,10 +616,8 @@ message PersistableNetworkPayload {
     oneof message {
         AccountAgeWitness account_age_witness = 1;
         TradeStatistics2 trade_statistics2 = 2 [deprecated = true];
-        ProposalPayload proposal_payload = 3;
-        BlindVotePayload blind_vote_payload = 4;
-        SignedWitness signed_witness = 5;
-        TradeStatistics3 trade_statistics3 = 6;
+        SignedWitness signed_witness = 3;
+        TradeStatistics3 trade_statistics3 = 4;
     }
 }
 
@@ -833,21 +750,19 @@ message Filter {
     repeated string price_relay_nodes = 11;
     bool prevent_public_btc_network = 12;
     repeated string btc_nodes = 13;
-    bool disable_dao = 14;
-    string disable_dao_below_version = 15;
-    string disable_trade_below_version = 16;
-    repeated string mediators = 17;
-    repeated string refundAgents = 18;
-    repeated string bannedSignerPubKeys = 19;
-    repeated string btc_fee_receiver_addresses = 20;
-    int64 creation_date = 21;
-    string signer_pub_key_as_hex = 22;
-    repeated string bannedPrivilegedDevPubKeys = 23;
-    bool disable_auto_conf = 24;
-    repeated string banned_auto_conf_explorers = 25;
-    repeated string node_addresses_banned_from_network = 26;
-    bool disable_api = 27;
-    bool disable_mempool_validation = 28;
+    string disable_trade_below_version = 14;
+    repeated string mediators = 15;
+    repeated string refundAgents = 16;
+    repeated string bannedSignerPubKeys = 17;
+    repeated string btc_fee_receiver_addresses = 18;
+    int64 creation_date = 19;
+    string signer_pub_key_as_hex = 20;
+    repeated string bannedPrivilegedDevPubKeys = 21;
+    bool disable_auto_conf = 22;
+    repeated string banned_auto_conf_explorers = 23;
+    repeated string node_addresses_banned_from_network = 24;
+    bool disable_api = 25;
+    bool disable_mempool_validation = 26;
 }
 
 // Deprecated
@@ -882,7 +797,7 @@ message TradeStatistics3 {
     reserved 7; // was string refund_agent = 7;
     bytes hash = 8;
     map<string, string> extra_data = 9;
-    
+
     string arbitrator = 100;
     string maker_deposit_tx_id = 101;
     string taker_deposit_tx_id = 102;
@@ -925,20 +840,19 @@ message OfferPayload {
     int64 block_height_at_offer_creation = 21;
     int64 tx_fee = 22;
     int64 maker_fee = 23;
-    bool is_currency_for_maker_fee_btc = 24;
-    int64 buyer_security_deposit = 25;
-    int64 seller_security_deposit = 26;
-    int64 max_trade_limit = 27;
-    int64 max_trade_period = 28;
-    bool use_auto_close = 29;
-    bool use_re_open_after_auto_close = 30;
-    int64 lower_close_price = 31;
-    int64 upper_close_price = 32;
-    bool is_private_offer = 33;
-    string hash_of_challenge = 34;
-    map<string, string> extra_data = 35;
-    int32 protocol_version = 36;
-    
+    int64 buyer_security_deposit = 24;
+    int64 seller_security_deposit = 25;
+    int64 max_trade_limit = 26;
+    int64 max_trade_period = 27;
+    bool use_auto_close = 28;
+    bool use_re_open_after_auto_close = 29;
+    int64 lower_close_price = 30;
+    int64 upper_close_price = 31;
+    bool is_private_offer = 32;
+    string hash_of_challenge = 33;
+    map<string, string> extra_data = 34;
+    int32 protocol_version = 35;
+
     NodeAddress arbitrator_node_address = 1001;
     string arbitrator_signature = 1002;
     repeated string reserve_tx_key_images = 1003;
@@ -1392,34 +1306,19 @@ message PersistableEnvelope {
         UserPayload user_payload = 10;
         PaymentAccountList payment_account_list = 11;
 
-        // deprecated
-        // BsqState bsq_state = 12; // not used but as other non-dao data have a higher index number we leave it to make clear that we cannot change following indexes
+        AccountAgeWitnessStore account_age_witness_store = 12;
+        TradeStatistics2Store trade_statistics2_store = 13 [deprecated = true];
 
-        AccountAgeWitnessStore account_age_witness_store = 13;
-        TradeStatistics2Store trade_statistics2_store = 14 [deprecated = true];
+        // PersistableNetworkPayloadList persistable_network_payload_list = 14; // long deprecated & migration away from it is already done
 
-        // PersistableNetworkPayloadList persistable_network_payload_list = 15; // long deprecated & migration away from it is already done
+        SignedWitnessStore signed_witness_store = 15;
+        MediationDisputeList mediation_dispute_list = 16;
+        RefundDisputeList refund_dispute_list = 17;
+        TradeStatistics3Store trade_statistics3_store = 18;
+        MailboxMessageList mailbox_message_list = 19;
+        IgnoredMailboxMap ignored_mailbox_map = 20;
+        RemovedPayloadsMap removed_payloads_map = 21;
 
-        ProposalStore proposal_store = 16;
-        TempProposalStore temp_proposal_store = 17;
-        BlindVoteStore blind_vote_store = 18;
-        MyProposalList my_proposal_list = 19;
-        BallotList ballot_list = 20;
-        MyVoteList my_vote_list = 21;
-        MyBlindVoteList my_blind_vote_list = 22;
-        // MeritList merit_list = 23; // was not used here, but its class used to implement PersistableEnvelope via its super
-        DaoStateStore dao_state_store = 24;
-        MyReputationList my_reputation_list = 25;
-        MyProofOfBurnList my_proof_of_burn_list = 26;
-        UnconfirmedBsqChangeOutputList unconfirmed_bsq_change_output_list = 27;
-        SignedWitnessStore signed_witness_store = 28;
-        MediationDisputeList mediation_dispute_list = 29;
-        RefundDisputeList refund_dispute_list = 30;
-        TradeStatistics3Store trade_statistics3_store = 31;
-        MailboxMessageList mailbox_message_list = 32;
-        IgnoredMailboxMap ignored_mailbox_map = 33;
-        RemovedPayloadsMap removed_payloads_map = 34;
-        
         XmrAddressEntryList xmr_address_entry_list = 1001;
         SignedOfferList signed_offer_list = 1002;
     }
@@ -1586,7 +1485,7 @@ message Tradable {
         SellerAsMakerTrade seller_as_maker_trade = 4;
         SellerAsTakerTrade seller_as_taker_trade = 5;
         ArbitratorTrade arbitrator_trade = 6;
-        
+
         SignedOffer signed_offer = 1001;
     }
 }
@@ -1669,34 +1568,33 @@ message Trade {
     int64 tx_fee_as_long = 7;
     int64 taker_fee_as_long = 8;
     int64 take_offer_date = 9;
-    bool is_currency_for_taker_fee_btc = 10;
-    int64 trade_price = 11;
-    State state = 13;
-    DisputeState dispute_state = 14;
-    TradePeriodState trade_period_state = 15;
-    Contract contract = 16;
-    string contract_as_json = 17;
-    bytes contract_hash = 18;
-    NodeAddress arbitrator_node_address = 19;
-    NodeAddress mediator_node_address = 20;
-    bytes arbitrator_btc_pub_key = 21;
-    string taker_payment_account_id = 22;
-    string error_message = 23;
-    PubKeyRing arbitrator_pub_key_ring = 24;
-    PubKeyRing mediator_pub_key_ring = 25;
-    string counter_currency_tx_id = 26;
-    repeated ChatMessage chat_message = 27;
-    MediationResultState mediation_result_state = 28;
-    int64 lock_time = 29;
-    bytes delayed_payout_tx_bytes = 30;
-    NodeAddress refund_agent_node_address = 31;
-    PubKeyRing refund_agent_pub_key_ring = 32;
-    RefundResultState refund_result_state = 33;
-    int64 last_refresh_request_date = 34 [deprecated = true];
-    string counter_currency_extra_data = 35;
-    string asset_tx_proof_result = 36; // name of AssetTxProofResult enum
-    string uid = 37;
-    
+    int64 trade_price = 10;
+    State state = 11;
+    DisputeState dispute_state = 12;
+    TradePeriodState trade_period_state = 13;
+    Contract contract = 14;
+    string contract_as_json = 15;
+    bytes contract_hash = 16;
+    NodeAddress arbitrator_node_address = 17;
+    NodeAddress mediator_node_address = 18;
+    bytes arbitrator_btc_pub_key = 19;
+    string taker_payment_account_id = 20;
+    string error_message = 21;
+    PubKeyRing arbitrator_pub_key_ring = 22;
+    PubKeyRing mediator_pub_key_ring = 23;
+    string counter_currency_tx_id = 24;
+    repeated ChatMessage chat_message = 25;
+    MediationResultState mediation_result_state = 26;
+    int64 lock_time = 27;
+    bytes delayed_payout_tx_bytes = 28;
+    NodeAddress refund_agent_node_address = 29;
+    PubKeyRing refund_agent_pub_key_ring = 30;
+    RefundResultState refund_result_state = 31;
+    int64 last_refresh_request_date = 32 [deprecated = true];
+    string counter_currency_extra_data = 33;
+    string asset_tx_proof_result = 34; // name of AssetTxProofResult enum
+    string uid = 35;
+
     NodeAddress maker_node_address = 100; // TODO (woodser): move these into TradingPeer
     NodeAddress taker_node_address = 101;
     PubKeyRing taker_pub_key_ring = 102;
@@ -1744,7 +1642,7 @@ message ProcessModel {
     bytes mediated_payout_tx_signature = 18;
     int64 buyer_payout_amount_from_mediation = 19;
     int64 seller_payout_amount_from_mediation = 20;
-    
+
     string maker_signature = 1001;
     NodeAddress arbitrator_node_address = 1002;
     TradingPeer maker = 1003;
@@ -1779,7 +1677,7 @@ message TradingPeer {
     bytes account_age_witness_signature = 16;
     int64 current_date = 17;
     bytes mediated_payout_tx_signature = 18;
-    
+
     string reserve_tx_hash = 1001;
     string reserve_tx_hex = 1002;
     string reserve_tx_key = 1003;
@@ -1843,61 +1741,57 @@ message PreferencesPayload {
     repeated TradeCurrency crypto_currencies = 4;
     BlockChainExplorer block_chain_explorer_main_net = 5;
     BlockChainExplorer block_chain_explorer_test_net = 6;
-    BlockChainExplorer bsq_block_chain_explorer = 7;
-    string backup_directory = 8;
-    bool auto_select_arbitrators = 9;
-    map<string, bool> dont_show_again_map = 10;
-    bool tac_accepted = 11;
-    bool use_tor_for_bitcoin_j = 12;
-    bool show_own_offers_in_offer_book = 13;
-    TradeCurrency preferred_trade_currency = 14;
-    int64 withdrawal_tx_fee_in_vbytes = 15;
-    bool use_custom_withdrawal_tx_fee = 16;
-    double max_price_distance_in_percent = 17;
-    string offer_book_chart_screen_currency_code = 18;
-    string trade_charts_screen_currency_code = 19;
-    string buy_screen_currency_code = 20;
-    string sell_screen_currency_code = 21;
-    int32 trade_statistics_tick_unit_index = 22;
-    bool resync_Spv_requested = 23;
-    bool sort_market_currencies_numerically = 24;
-    bool use_percentage_based_price = 25;
-    map<string, string> peer_tag_map = 26;
-    string bitcoin_nodes = 27;
-    repeated string ignore_traders_list = 28;
-    string directory_chooser_path = 29;
-    int64 buyer_security_deposit_as_long = 30 [deprecated = true]; // Superseded by buyerSecurityDepositAsPercent
-    bool use_animations = 31;
-    PaymentAccount selectedPayment_account_for_createOffer = 32;
-    bool pay_fee_in_Btc = 33;
-    repeated string bridge_addresses = 34;
-    int32 bridge_option_ordinal = 35;
-    int32 tor_transport_ordinal = 36;
-    string custom_bridges = 37;
-    int32 bitcoin_nodes_option_ordinal = 38;
-    string referral_id = 39;
-    string phone_key_and_token = 40;
-    bool use_sound_for_mobile_notifications = 41;
-    bool use_trade_notifications = 42;
-    bool use_market_notifications = 43;
-    bool use_price_notifications = 44;
-    bool use_standby_mode = 45;
-    bool is_dao_full_node = 46;
-    string rpc_user = 47;
-    string rpc_pw = 48;
-    string take_offer_selected_payment_account_id = 49;
-    double buyer_security_deposit_as_percent = 50;
-    int32 ignore_dust_threshold = 51;
-    double buyer_security_deposit_as_percent_for_crypto = 52;
-    int32 block_notify_port = 53;
-    int32 css_theme = 54;
-    bool tac_accepted_v120 = 55;
-    repeated AutoConfirmSettings auto_confirm_settings = 56;
-    double bsq_average_trim_threshold = 57;
-    bool hide_non_account_payment_methods = 58;
-    bool show_offers_matching_my_accounts = 59;
-    bool deny_api_taker = 60;
-    bool notify_on_pre_release = 61;
+    string backup_directory = 7;
+    bool auto_select_arbitrators = 8;
+    map<string, bool> dont_show_again_map = 9;
+    bool tac_accepted = 10;
+    bool use_tor_for_bitcoin_j = 11;
+    bool show_own_offers_in_offer_book = 12;
+    TradeCurrency preferred_trade_currency = 13;
+    int64 withdrawal_tx_fee_in_vbytes = 14;
+    bool use_custom_withdrawal_tx_fee = 15;
+    double max_price_distance_in_percent = 16;
+    string offer_book_chart_screen_currency_code = 17;
+    string trade_charts_screen_currency_code = 18;
+    string buy_screen_currency_code = 19;
+    string sell_screen_currency_code = 20;
+    int32 trade_statistics_tick_unit_index = 21;
+    bool resync_Spv_requested = 22;
+    bool sort_market_currencies_numerically = 23;
+    bool use_percentage_based_price = 24;
+    map<string, string> peer_tag_map = 25;
+    string bitcoin_nodes = 26;
+    repeated string ignore_traders_list = 27;
+    string directory_chooser_path = 28;
+    int64 buyer_security_deposit_as_long = 29 [deprecated = true]; // Superseded by buyerSecurityDepositAsPercent
+    bool use_animations = 30;
+    PaymentAccount selectedPayment_account_for_createOffer = 31;
+    repeated string bridge_addresses = 32;
+    int32 bridge_option_ordinal = 33;
+    int32 tor_transport_ordinal = 34;
+    string custom_bridges = 35;
+    int32 bitcoin_nodes_option_ordinal = 36;
+    string referral_id = 37;
+    string phone_key_and_token = 38;
+    bool use_sound_for_mobile_notifications = 39;
+    bool use_trade_notifications = 40;
+    bool use_market_notifications = 41;
+    bool use_price_notifications = 42;
+    bool use_standby_mode = 43;
+    string rpc_user = 44;
+    string rpc_pw = 45;
+    string take_offer_selected_payment_account_id = 46;
+    double buyer_security_deposit_as_percent = 47;
+    int32 ignore_dust_threshold = 48;
+    double buyer_security_deposit_as_percent_for_crypto = 49;
+    int32 block_notify_port = 50;
+    int32 css_theme = 51;
+    bool tac_accepted_v120 = 52;
+    repeated AutoConfirmSettings auto_confirm_settings = 53;
+    bool hide_non_account_payment_methods = 54;
+    bool show_offers_matching_my_accounts = 55;
+    bool deny_api_taker = 56;
+    bool notify_on_pre_release = 57;
 }
 
 message AutoConfirmSettings {
@@ -1929,426 +1823,6 @@ message UserPayload {
     repeated RefundAgent accepted_refund_agents = 14;
     RefundAgent registered_refund_agent = 15;
     map<string, string> cookie = 16;
-}
-
-///////////////////////////////////////////////////////////////////////////////////////////
-// DAO
-///////////////////////////////////////////////////////////////////////////////////////////
-
-// blockchain
-
-message BaseBlock {
-    int32 height = 1;
-    int64 time = 2;
-    string hash = 3;
-    string previous_block_hash = 4;
-    oneof message {
-        RawBlock raw_block = 5;
-        Block block = 6;
-    }
-}
-
-message RawBlock {
-    // Because of the way how PB implements inheritance we need to use the super class as type
-    repeated BaseTx raw_txs = 1;
-}
-
-message Block {
-    // Because of the way how PB implements inheritance we need to use the super class as type
-    repeated BaseTx txs = 1;
-}
-
-message BaseTx {
-    string tx_version = 1;
-    string id = 2;
-    int32 block_height = 3;
-    string block_hash = 4;
-    int64 time = 5;
-    repeated TxInput tx_inputs = 6;
-    oneof message {
-        RawTx raw_tx = 7;
-        Tx tx = 8;
-    }
-}
-
-message RawTx {
-    // Because of the way how PB implements inheritance we need to use the super class as type
-    repeated BaseTxOutput raw_tx_outputs = 1;
-}
-
-message Tx {
-    // Because of the way how PB implements inheritance we need to use the super class as type
-    repeated BaseTxOutput tx_outputs = 1;
-    TxType txType = 2;
-    int64 burnt_bsq = 3;
-}
-
-enum TxType {
-    PB_ERROR_TX_TYPE = 0;
-    UNDEFINED_TX_TYPE = 1;
-    UNVERIFIED = 2;
-    INVALID = 3;
-    GENESIS = 4;
-    TRANSFER_BSQ = 5;
-    PAY_TRADE_FEE = 6;
-    PROPOSAL = 7;
-    COMPENSATION_REQUEST = 8;
-    REIMBURSEMENT_REQUEST = 9;
-    BLIND_VOTE = 10;
-    VOTE_REVEAL = 11;
-    LOCKUP = 12;
-    UNLOCK = 13;
-    ASSET_LISTING_FEE = 14;
-    PROOF_OF_BURN = 15;
-    IRREGULAR = 16;
-}
-
-message TxInput {
-    string connected_tx_output_tx_id = 1;
-    int32 connected_tx_output_index = 2;
-    string pub_key = 3;
-}
-
-message BaseTxOutput {
-    int32 index = 1;
-    int64 value = 2;
-    string tx_id = 3;
-    PubKeyScript pub_key_script = 4;
-    string address = 5;
-    bytes op_return_data = 6;
-    int32 block_height = 7;
-    oneof message {
-        RawTxOutput raw_tx_output = 8;
-        TxOutput tx_output = 9;
-    }
-}
-
-message UnconfirmedTxOutput {
-    int32 index = 1;
-    int64 value = 2;
-    string tx_id = 3;
-}
-
-message RawTxOutput {
-}
-
-message TxOutput {
-    TxOutputType tx_output_type = 1;
-    int32 lock_time = 2;
-    int32 unlock_block_height = 3;
-}
-
-enum TxOutputType {
-    PB_ERROR_TX_OUTPUT_TYPE = 0;
-    UNDEFINED_OUTPUT = 1;
-    GENESIS_OUTPUT = 2;
-    BSQ_OUTPUT = 3;
-    BTC_OUTPUT = 4;
-    PROPOSAL_OP_RETURN_OUTPUT = 5;
-    COMP_REQ_OP_RETURN_OUTPUT = 6;
-    REIMBURSEMENT_OP_RETURN_OUTPUT = 7;
-    CONFISCATE_BOND_OP_RETURN_OUTPUT = 8;
-    ISSUANCE_CANDIDATE_OUTPUT = 9;
-    BLIND_VOTE_LOCK_STAKE_OUTPUT = 10;
-    BLIND_VOTE_OP_RETURN_OUTPUT = 11;
-    VOTE_REVEAL_UNLOCK_STAKE_OUTPUT = 12;
-    VOTE_REVEAL_OP_RETURN_OUTPUT = 13;
-    ASSET_LISTING_FEE_OP_RETURN_OUTPUT = 14;
-    PROOF_OF_BURN_OP_RETURN_OUTPUT = 15;
-    LOCKUP_OUTPUT = 16;
-    LOCKUP_OP_RETURN_OUTPUT = 17;
-    UNLOCK_OUTPUT = 18;
-    INVALID_OUTPUT = 19;
-}
-
-message SpentInfo {
-    int64 block_height = 1;
-    string tx_id = 2;
-    int32 input_index = 3;
-}
-
-enum ScriptType {
-    PB_ERROR_SCRIPT_TYPES = 0;
-    PUB_KEY = 1;
-    PUB_KEY_HASH = 2;
-    SCRIPT_HASH = 3;
-    MULTISIG = 4;
-    NULL_DATA = 5;
-    WITNESS_V0_KEYHASH = 6;
-    WITNESS_V0_SCRIPTHASH = 7;
-    NONSTANDARD = 8;
-    WITNESS_UNKNOWN = 9;
-    WITNESS_V1_TAPROOT = 10;
-}
-
-message PubKeyScript {
-    int32 req_sigs = 1;
-    ScriptType script_type = 2;
-    repeated string addresses = 3;
-    string asm = 4;
-    string hex = 5;
-}
-
-// dao data
-
-message DaoPhase {
-    int32 phase_ordinal = 1;
-    int32 duration = 2;
-}
-
-message Cycle {
-    int32 height_of_first_lock = 1;
-    repeated DaoPhase dao_phase = 2;
-}
-
-message DaoState {
-    int32 chain_height = 1;
-    // Because of the way how PB implements inheritance we need to use the super class as type
-    repeated BaseBlock blocks = 2;
-    repeated Cycle cycles = 3;
-    // Because of the way how PB implements inheritance we need to use the super class as type
-    map<string, BaseTxOutput> unspent_tx_output_map = 4;
-    map<string, Issuance> issuance_map = 5;
-    repeated string confiscated_lockup_tx_list = 6;
-    map<string, SpentInfo> spent_info_map = 7;
-    repeated ParamChange param_change_list = 8;
-    repeated EvaluatedProposal evaluated_proposal_list = 9;
-    repeated DecryptedBallotsWithMerits decrypted_ballots_with_merits_list = 10;
-}
-
-message Issuance {
-    string tx_id = 1;
-    int32 chain_height = 2;
-    int64 amount = 3;
-    string pub_key = 4;
-    string issuance_type = 5;
-}
-
-message Proposal {
-    string name = 1;
-    string link = 2;
-    uint32 version = 3;
-    int64 creation_date = 4;
-    string tx_id = 5;
-    oneof message {
-        CompensationProposal compensation_proposal = 6;
-        ReimbursementProposal reimbursement_proposal = 7;
-        ChangeParamProposal change_param_proposal = 8;
-        RoleProposal role_proposal = 9;
-        ConfiscateBondProposal confiscate_bond_proposal = 10;
-        GenericProposal generic_proposal = 11;
-        RemoveAssetProposal remove_asset_proposal = 12;
-    }
-    // We leave some index space here in case we add more subclasses
-    map<string, string> extra_data = 20;
-}
-
-message CompensationProposal {
-    int64 requested_bsq = 1;
-    string bsq_address = 2;
-}
-
-message ReimbursementProposal {
-    int64 requested_bsq = 1;
-    string bsq_address = 2;
-}
-
-message ChangeParamProposal {
-    string param = 1; // name of enum
-    string param_value = 2;
-}
-
-message RoleProposal {
-    Role role = 1;
-    int64 required_bond_unit = 2;
-    int32 unlock_time = 3;
-}
-
-message ConfiscateBondProposal {
-    string lockup_tx_id = 1;
-}
-
-message GenericProposal {
-}
-
-message RemoveAssetProposal {
-    string ticker_symbol = 1;
-}
-
-message Role {
-    string uid = 1;
-    string name = 2;
-    string link = 3;
-    string bonded_role_type = 4; // name of BondedRoleType enum
-}
-
-message MyReputation {
-    string uid = 1;
-    bytes salt = 2;
-}
-
-message MyReputationList {
-    repeated MyReputation my_reputation = 1;
-}
-
-message MyProofOfBurn {
-    string tx_id = 1;
-    string pre_image = 2;
-}
-
-message MyProofOfBurnList {
-    repeated MyProofOfBurn my_proof_of_burn = 1;
-}
-
-message UnconfirmedBsqChangeOutputList {
-    repeated UnconfirmedTxOutput unconfirmed_tx_output = 1;
-}
-
-message TempProposalPayload {
-    Proposal proposal = 1;
-    bytes owner_pub_key_encoded = 2;
-    map<string, string> extra_data = 3;
-}
-
-message ProposalPayload {
-    Proposal proposal = 1;
-    bytes hash = 2;
-}
-
-message ProposalStore {
-    repeated ProposalPayload items = 1;
-}
-
-message TempProposalStore {
-    repeated ProtectedStorageEntry items = 1;
-}
-
-message Ballot {
-    Proposal proposal = 1;
-    Vote vote = 2;
-}
-
-message MyProposalList {
-    repeated Proposal proposal = 1;
-}
-
-message BallotList {
-    repeated Ballot ballot = 1;
-}
-
-message ParamChange {
-    string param_name = 1;
-    string param_value = 2;
-    int32 activation_height = 3;
-}
-
-message ConfiscateBond {
-    string lockup_tx_id = 1;
-}
-
-message MyVote {
-    int32 height = 1;
-    BallotList ballot_list = 2;
-    bytes secret_key_encoded = 3;
-    BlindVote blind_vote = 4;
-    int64 date = 5;
-    string reveal_tx_id = 6;
-}
-
-message MyVoteList {
-    repeated MyVote my_vote = 1;
-}
-
-message VoteWithProposalTxId {
-    string proposal_tx_id = 1;
-    Vote vote = 2;
-}
-
-message VoteWithProposalTxIdList {
-    repeated VoteWithProposalTxId item = 1;
-}
-
-message BlindVote {
-    bytes encrypted_votes = 1;
-    string tx_id = 2;
-    int64 stake = 3;
-    bytes encrypted_merit_list = 4;
-    int64 date = 5;
-    map<string, string> extra_data = 6;
-}
-
-message MyBlindVoteList {
-    repeated BlindVote blind_vote = 1;
-}
-
-message BlindVoteStore {
-    repeated BlindVotePayload items = 1;
-}
-
-message BlindVotePayload {
-    BlindVote blind_vote = 1;
-    bytes hash = 2;
-}
-
-message Vote {
-    bool accepted = 1;
-}
-
-message Merit {
-    Issuance issuance = 1;
-    bytes signature = 2;
-}
-
-message MeritList {
-    repeated Merit merit = 1;
-}
-
-message ProposalVoteResult {
-    Proposal proposal = 1;
-    int64 stake_of_Accepted_votes = 2;
-    int64 stake_of_Rejected_votes = 3;
-    int32 num_accepted_votes = 4;
-    int32 num_rejected_votes = 5;
-    int32 num_ignored_votes = 6;
-}
-
-message EvaluatedProposal {
-    bool is_accepted = 1;
-    ProposalVoteResult proposal_vote_result = 2;
-}
-
-message DecryptedBallotsWithMerits {
-    bytes hash_of_blind_vote_list = 1;
-    string blind_vote_tx_id = 2;
-    string vote_reveal_tx_id = 3;
-    int64 stake = 4;
-    BallotList ballot_list = 5;
-    MeritList merit_list = 6;
-}
-
-message DaoStateStore {
-    DaoState dao_state = 1;
-    repeated DaoStateHash dao_state_hash = 2;
-}
-
-message DaoStateHash {
-    int32 height = 1;
-    bytes hash = 2;
-    bytes prev_hash = 3;
-}
-
-message ProposalStateHash {
-    int32 height = 1;
-    bytes hash = 2;
-    bytes prev_hash = 3;
-    int32 num_proposals = 4;
-}
-
-message BlindVoteStateHash {
-    int32 height = 1;
-    bytes hash = 2;
-    bytes prev_hash = 3;
-    int32 num_blind_votes = 4;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////

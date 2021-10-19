@@ -19,13 +19,6 @@ package bisq.core.setup;
 
 import bisq.core.btc.model.AddressEntryList;
 import bisq.core.btc.model.XmrAddressEntryList;
-import bisq.core.dao.governance.ballot.BallotListService;
-import bisq.core.dao.governance.blindvote.MyBlindVoteListService;
-import bisq.core.dao.governance.bond.reputation.MyReputationListService;
-import bisq.core.dao.governance.myvote.MyVoteListService;
-import bisq.core.dao.governance.proofofburn.MyProofOfBurnListService;
-import bisq.core.dao.governance.proposal.MyProposalListService;
-import bisq.core.dao.state.unconfirmed.UnconfirmedBsqChangeOutputListService;
 import bisq.core.offer.OpenOfferManager;
 import bisq.core.support.dispute.arbitration.ArbitrationDisputeListService;
 import bisq.core.support.dispute.mediation.MediationDisputeListService;
@@ -75,15 +68,6 @@ public class CorePersistedDataHost {
         persistedDataHosts.add(injector.getInstance(IgnoredMailboxService.class));
         persistedDataHosts.add(injector.getInstance(RemovedPayloadsService.class));
 
-        if (injector.getInstance(Config.class).daoActivated) {
-            persistedDataHosts.add(injector.getInstance(BallotListService.class));
-            persistedDataHosts.add(injector.getInstance(MyBlindVoteListService.class));
-            persistedDataHosts.add(injector.getInstance(MyVoteListService.class));
-            persistedDataHosts.add(injector.getInstance(MyProposalListService.class));
-            persistedDataHosts.add(injector.getInstance(MyReputationListService.class));
-            persistedDataHosts.add(injector.getInstance(MyProofOfBurnListService.class));
-            persistedDataHosts.add(injector.getInstance(UnconfirmedBsqChangeOutputListService.class));
-        }
         return persistedDataHosts;
     }
 }
