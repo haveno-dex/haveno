@@ -631,33 +631,11 @@ configure(project(':inventory')) {
 configure(project(':apitest')) {
     mainClassName = 'bisq.apitest.ApiTestMain'
 
-    // The external dao-setup.gradle file contains tasks to install and clean dao-setup
-    // files downloaded from
-    //          https://github.com/bisq-network/bisq/raw/master/docs/dao-setup.zip
-    // These tasks are not run by the default build, but they can can be run during
-    // full or partial builds, or by themselves.
-    // To run the regular clean + build + test (non api), and install dao-setup files:
-    //      ./gradlew clean build :apitest:installDaoSetup
-    // To install or re-install dao-setup file only:
-    //      ./gradlew :apitest:installDaoSetup -x test
-    // To clean installed dao-setup files:
-    //      ./gradlew :apitest:cleanDaoSetup -x test
-    apply from: 'dao-setup.gradle'
-
     // We have to disable the :apitest 'test' task by default because we do not want
     // to interfere with normal builds.  To run JUnit tests in this subproject:
     // Run a normal build and install dao-setup files first, then run:
     //              'gradle  :apitest:test -DrunApiTests=true'
     test.enabled = System.getProperty("runApiTests") == "true"
-
-    sourceSets {
-        main {
-            resources {
-                exclude 'dao-setup'
-                exclude 'dao-setup.zip'
-            }
-        }
-    }
 
     test {
         useJUnitPlatform()

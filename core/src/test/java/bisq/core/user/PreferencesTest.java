@@ -61,8 +61,7 @@ public class PreferencesTest {
         Config config = new Config();
         LocalBitcoinNode localBitcoinNode = new LocalBitcoinNode(config);
         preferences = new Preferences(
-                persistenceManager, config, null, localBitcoinNode, null, null, Config.DEFAULT_FULL_DAO_NODE,
-                null, null, Config.UNSPECIFIED_PORT);
+                persistenceManager, config, null, localBitcoinNode, null);
     }
 
     @Test

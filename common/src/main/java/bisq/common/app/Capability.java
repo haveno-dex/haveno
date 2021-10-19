@@ -28,11 +28,11 @@ public enum Capability {
     @Deprecated TRADE_STATISTICS_2,     // Not required anymore as no old clients out there not having that support
     @Deprecated ACCOUNT_AGE_WITNESS,    // Not required anymore as no old clients out there not having that support
     SEED_NODE,                          // Node is a seed node
-    DAO_FULL_NODE,                      // DAO full node can deliver BSQ blocks
+    @Deprecated DAO_FULL_NODE,          // DAO full node can deliver BSQ blocks
     @Deprecated PROPOSAL,               // Not required anymore as no old clients out there not having that support
     @Deprecated BLIND_VOTE,             // Not required anymore as no old clients out there not having that support
     @Deprecated ACK_MSG,                // Not required anymore as no old clients out there not having that support
-    RECEIVE_BSQ_BLOCK,                  // Signaling that node which wants to receive BSQ blocks (DAO lite node)
+    @Deprecated RECEIVE_BSQ_BLOCK,      // Signaling that node which wants to receive BSQ blocks (DAO lite node)
     @Deprecated DAO_STATE,              // Not required anymore as no old clients out there not having that support
 
     @Deprecated BUNDLE_OF_ENVELOPES,    // Supports bundling of messages if many messages are sent in short interval

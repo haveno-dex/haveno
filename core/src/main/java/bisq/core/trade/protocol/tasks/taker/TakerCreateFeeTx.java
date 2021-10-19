@@ -20,7 +20,6 @@ package bisq.core.trade.protocol.tasks.taker;
 import bisq.core.btc.model.XmrAddressEntry;
 import bisq.core.btc.wallet.TradeWalletService;
 import bisq.core.btc.wallet.XmrWalletService;
-import bisq.core.dao.exceptions.DaoDisabledException;
 import bisq.core.trade.Trade;
 import bisq.core.trade.protocol.tasks.TradeTask;
 
@@ -66,11 +65,7 @@ public class TakerCreateFeeTx extends TradeTask {
       processModel.setTakeOfferFeeTx(tx);
       complete();
     } catch (Throwable t) {
-      if (t instanceof DaoDisabledException) {
-        failed("You cannot pay the trade fee in BSQ at the moment because the DAO features have been " + "disabled due technical problems. Please use the BTC fee option until the issues are resolved. " + "For more information please visit the Bisq Forum.");
-      } else {
         failed(t);
-      }
     }
   }
 }

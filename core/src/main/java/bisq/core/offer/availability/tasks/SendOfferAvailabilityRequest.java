@@ -47,7 +47,7 @@ public class SendOfferAvailabilityRequest extends Task<OfferAvailabilityModel> {
     protected void run() {
         try {
             runInterceptHook();
-            
+
             // collect fields
             Offer offer = model.getOffer();
             User user = model.getUser();
@@ -57,10 +57,10 @@ public class SendOfferAvailabilityRequest extends Task<OfferAvailabilityModel> {
             String paymentAccountId = model.getPaymentAccountId();
             String paymentMethodId = user.getPaymentAccount(paymentAccountId).getPaymentAccountPayload().getPaymentMethodId();
             String payoutAddress = walletService.getOrCreateAddressEntry(offer.getId(), XmrAddressEntry.Context.TRADE_PAYOUT).getAddressString(); // reserve new payout address
-            
+
             // taker signs offer using offer id as nonce to avoid challenge protocol
             byte[] sig = Sig.sign(model.getP2PService().getKeyRing().getSignatureKeyPair().getPrivate(), offer.getId().getBytes(Charsets.UTF_8));
-            
+
             // send InitTradeRequest to maker to sign
             InitTradeRequest tradeRequest = new InitTradeRequest(
                     offer.getId(),
@@ -68,7 +68,7 @@ public class SendOfferAvailabilityRequest extends Task<OfferAvailabilityModel> {
                     p2PService.getKeyRing().getPubKeyRing(),
                     offer.getAmount().value,
                     offer.getPrice().getValue(),
-                    offerUtil.getTakerFee(true, offer.getAmount()).value,
+                    offerUtil.getTakerFee(offer.getAmount()).value,
                     user.getAccountId(),
                     paymentAccountId,
                     paymentMethodId,
@@ -84,10 +84,10 @@ public class SendOfferAvailabilityRequest extends Task<OfferAvailabilityModel> {
                     null,
                     payoutAddress,
                     null);
-            
+
             // save trade request to later send to arbitrator
             model.setTradeRequest(tradeRequest);
-            
+
             OfferAvailabilityRequest message = new OfferAvailabilityRequest(model.getOffer().getId(),
                     model.getPubKeyRing(), model.getTakersTradePrice(), model.isTakerApiUser(), tradeRequest);
             log.info("Send {} with offerId {} and uid {} to peer {}",

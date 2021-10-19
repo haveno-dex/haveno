@@ -23,7 +23,6 @@ import bisq.desktop.common.view.ViewLoader;
 import bisq.desktop.main.MainView;
 import bisq.desktop.main.debug.DebugView;
 import bisq.desktop.main.overlays.popups.Popup;
-import bisq.desktop.main.overlays.windows.BsqEmptyWalletWindow;
 import bisq.desktop.main.overlays.windows.BtcEmptyWalletWindow;
 import bisq.desktop.main.overlays.windows.FilterWindow;
 import bisq.desktop.main.overlays.windows.ManualPayoutTxWindow;
@@ -34,7 +33,6 @@ import bisq.desktop.util.ImageUtil;
 
 import bisq.core.btc.wallet.BtcWalletService;
 import bisq.core.btc.wallet.WalletsManager;
-import bisq.core.dao.governance.voteresult.MissingDataRequestService;
 import bisq.core.locale.Res;
 import bisq.core.offer.OpenOffer;
 import bisq.core.offer.OpenOfferManager;
@@ -313,16 +311,12 @@ public class BisqApp extends Application implements UncaughtExceptionHandler {
             } else {
                 if (Utilities.isAltOrCtrlPressed(KeyCode.E, keyEvent)) {
                     injector.getInstance(BtcEmptyWalletWindow.class).show();
-                } else if (Utilities.isAltOrCtrlPressed(KeyCode.B, keyEvent)) {
-                    injector.getInstance(BsqEmptyWalletWindow.class).show();
                 } else if (Utilities.isAltOrCtrlPressed(KeyCode.M, keyEvent)) {
                     injector.getInstance(SendAlertMessageWindow.class).show();
                 } else if (Utilities.isAltOrCtrlPressed(KeyCode.F, keyEvent)) {
                     injector.getInstance(FilterWindow.class).show();
-                } else if (Utilities.isAltOrCtrlPressed(KeyCode.H, keyEvent)) {
-                    log.warn("We re-published all proposalPayloads and blindVotePayloads to the P2P network.");
-                    injector.getInstance(MissingDataRequestService.class).reRepublishAllGovernanceData();
-                } else if (Utilities.isAltOrCtrlPressed(KeyCode.T, keyEvent)) {
+                }
+		else if (Utilities.isAltOrCtrlPressed(KeyCode.T, keyEvent)) {
                     // Toggle between show tor logs and only show warnings. Helpful in case of connection problems
                     String pattern = "org.berndpruenster.netlayer";
                     Level logLevel = ((Logger) LoggerFactory.getLogger(pattern)).getLevel();

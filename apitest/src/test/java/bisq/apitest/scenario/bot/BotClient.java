@@ -58,7 +58,7 @@ public class BotClient {
     }
 
     /**
-     * Returns current BSQ and BTC balance information.
+     * Returns current balance information.
      * @return BalancesInfo
      */
     public BalancesInfo getBalance() {
@@ -124,7 +124,6 @@ public class BotClient {
      * @param minAmountInSatoshis
      * @param priceMarginAsPercent
      * @param securityDepositAsPercent
-     * @param feeCurrency
      * @return OfferInfo
      */
     public OfferInfo createOfferAtMarketBasedPrice(PaymentAccount paymentAccount,
@@ -133,16 +132,14 @@ public class BotClient {
                                                    long amountInSatoshis,
                                                    long minAmountInSatoshis,
                                                    double priceMarginAsPercent,
-                                                   double securityDepositAsPercent,
-                                                   String feeCurrency) {
+                                                   double securityDepositAsPercent) {
         return grpcClient.createMarketBasedPricedOffer(direction,
                 currencyCode,
                 amountInSatoshis,
                 minAmountInSatoshis,
                 priceMarginAsPercent,
                 securityDepositAsPercent,
-                paymentAccount.getId(),
-                feeCurrency);
+                paymentAccount.getId());
     }
 
     /**
@@ -154,7 +151,6 @@ public class BotClient {
      * @param minAmountInSatoshis
      * @param fixedOfferPriceAsString
      * @param securityDepositAsPercent
-     * @param feeCurrency
      * @return OfferInfo
      */
     public OfferInfo createOfferAtFixedPrice(PaymentAccount paymentAccount,
@@ -163,20 +159,18 @@ public class BotClient {
                                              long amountInSatoshis,
                                              long minAmountInSatoshis,
                                              String fixedOfferPriceAsString,
-                                             double securityDepositAsPercent,
-                                             String feeCurrency) {
+                                             double securityDepositAsPercent) {
         return grpcClient.createFixedPricedOffer(direction,
                 currencyCode,
                 amountInSatoshis,
                 minAmountInSatoshis,
                 fixedOfferPriceAsString,
                 securityDepositAsPercent,
-                paymentAccount.getId(),
-                feeCurrency);
+                paymentAccount.getId());
     }
 
-    public TradeInfo takeOffer(String offerId, PaymentAccount paymentAccount, String feeCurrency) {
-        return grpcClient.takeOffer(offerId, paymentAccount.getId(), feeCurrency);
+    public TradeInfo takeOffer(String offerId, PaymentAccount paymentAccount) {
+        return grpcClient.takeOffer(offerId, paymentAccount.getId());
     }
 
     /**

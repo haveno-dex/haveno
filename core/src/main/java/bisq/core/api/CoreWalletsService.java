@@ -19,22 +19,17 @@ package bisq.core.api;
 
 import bisq.core.api.model.AddressBalanceInfo;
 import bisq.core.api.model.BalancesInfo;
-import bisq.core.api.model.BsqBalanceInfo;
 import bisq.core.api.model.BtcBalanceInfo;
 import bisq.core.api.model.TxFeeRateInfo;
 import bisq.core.api.model.XmrBalanceInfo;
 import bisq.core.app.AppStartupState;
 import bisq.core.btc.Balances;
 import bisq.core.btc.exceptions.AddressEntryException;
-import bisq.core.btc.exceptions.BsqChangeBelowDustException;
 import bisq.core.btc.exceptions.InsufficientFundsException;
 import bisq.core.btc.exceptions.TransactionVerificationException;
 import bisq.core.btc.exceptions.WalletException;
 import bisq.core.btc.model.AddressEntry;
-import bisq.core.btc.model.BsqTransferModel;
 import bisq.core.btc.setup.WalletsSetup;
-import bisq.core.btc.wallet.BsqTransferService;
-import bisq.core.btc.wallet.BsqWalletService;
 import bisq.core.btc.wallet.BtcWalletService;
 import bisq.core.btc.wallet.TxBroadcaster;
 import bisq.core.btc.wallet.WalletsManager;
@@ -42,7 +37,6 @@ import bisq.core.btc.wallet.XmrWalletService;
 import bisq.core.provider.fee.FeeService;
 import bisq.core.user.Preferences;
 import bisq.core.util.FormattingUtils;
-import bisq.core.util.coin.BsqFormatter;
 import bisq.core.util.coin.CoinFormatter;
 
 import bisq.common.Timer;
@@ -100,9 +94,6 @@ class CoreWalletsService {
     private final Balances balances;
     private final WalletsManager walletsManager;
     private final WalletsSetup walletsSetup;
-    private final BsqWalletService bsqWalletService;
-    private final BsqTransferService bsqTransferService;
-    private final BsqFormatter bsqFormatter;
     private final BtcWalletService btcWalletService;
     private final XmrWalletService xmrWalletService;
     private final CoinFormatter btcFormatter;
@@ -123,9 +114,6 @@ class CoreWalletsService {
                               Balances balances,
                               WalletsManager walletsManager,
                               WalletsSetup walletsSetup,
-                              BsqWalletService bsqWalletService,
-                              BsqTransferService bsqTransferService,
-                              BsqFormatter bsqFormatter,
                               BtcWalletService btcWalletService,
                               XmrWalletService xmrWalletService,
                               @Named(FormattingUtils.BTC_FORMATTER_KEY) CoinFormatter btcFormatter,
@@ -136,9 +124,6 @@ class CoreWalletsService {
         this.balances = balances;
         this.walletsManager = walletsManager;
         this.walletsSetup = walletsSetup;
-        this.bsqWalletService = bsqWalletService;
-        this.bsqTransferService = bsqTransferService;
-        this.bsqFormatter = bsqFormatter;
         this.btcWalletService = btcWalletService;
         this.xmrWalletService = xmrWalletService;
         this.btcFormatter = btcFormatter;
@@ -164,14 +149,12 @@ class CoreWalletsService {
             throw new IllegalStateException("balance is not yet available");
 
         switch (currencyCode.trim().toUpperCase()) {
-            case "BSQ":
-                return new BalancesInfo(getBsqBalances(), BtcBalanceInfo.EMPTY, XmrBalanceInfo.EMPTY);
             case "BTC":
-                return new BalancesInfo(BsqBalanceInfo.EMPTY, getBtcBalances(), XmrBalanceInfo.EMPTY);
+                return new BalancesInfo(getBtcBalances(), XmrBalanceInfo.EMPTY);
             case "XMR":
-                return new BalancesInfo(BsqBalanceInfo.EMPTY, BtcBalanceInfo.EMPTY, getXmrBalances());
+                return new BalancesInfo(BtcBalanceInfo.EMPTY, getXmrBalances());
             default:
-                return new BalancesInfo(getBsqBalances(), getBtcBalances(), getXmrBalances());
+                return new BalancesInfo(getBtcBalances(), getXmrBalances());
         }
     }
     
@@ -232,40 +215,6 @@ class CoreWalletsService {
                 .collect(Collectors.toList());
     }
 
-    String getUnusedBsqAddress() {
-        return bsqWalletService.getUnusedBsqAddressAsString();
-    }
-
-    void sendBsq(String address,
-                 String amount,
-                 String txFeeRate,
-                 TxBroadcaster.Callback callback) {
-        verifyWalletsAreAvailable();
-        verifyEncryptedWalletIsUnlocked();
-
-        try {
-            LegacyAddress legacyAddress = getValidBsqLegacyAddress(address);
-            Coin receiverAmount = getValidTransferAmount(amount, bsqFormatter);
-            Coin txFeePerVbyte = getTxFeeRateFromParamOrPreferenceOrFeeService(txFeeRate);
-            BsqTransferModel model = bsqTransferService.getBsqTransferModel(legacyAddress,
-                    receiverAmount,
-                    txFeePerVbyte);
-            log.info("Sending {} BSQ to {} with tx fee rate {} sats/byte.",
-                    amount,
-                    address,
-                    txFeePerVbyte.value);
-            bsqTransferService.sendFunds(model, callback);
-        } catch (InsufficientMoneyException ex) {
-            log.error("", ex);
-            throw new IllegalStateException("cannot send bsq due to insufficient funds", ex);
-        } catch (NumberFormatException
-                | BsqChangeBelowDustException
-                | TransactionVerificationException
-                | WalletException ex) {
-            log.error("", ex);
-            throw new IllegalStateException(ex);
-        }
-    }
 
     void sendBtc(String address,
                  String amount,
@@ -322,40 +271,6 @@ class CoreWalletsService {
         }
     }
 
-    boolean verifyBsqSentToAddress(String address, String amount) {
-        Address receiverAddress = getValidBsqLegacyAddress(address);
-        NetworkParameters networkParameters = getNetworkParameters();
-        Predicate<TransactionOutput> isTxOutputAddressMatch = (txOut) ->
-                txOut.getScriptPubKey().getToAddress(networkParameters).equals(receiverAddress);
-        Coin coinValue = parseToCoin(amount, bsqFormatter);
-        Predicate<TransactionOutput> isTxOutputValueMatch = (txOut) ->
-                txOut.getValue().longValue() == coinValue.longValue();
-        List<TransactionOutput> spendableBsqTxOutputs = bsqWalletService.getSpendableBsqTransactionOutputs();
-
-        log.info("Searching {} spendable tx outputs for matching address {} and value {}:",
-                spendableBsqTxOutputs.size(),
-                address,
-                coinValue.toPlainString());
-        long numMatches = 0;
-        for (TransactionOutput txOut : spendableBsqTxOutputs) {
-            if (isTxOutputAddressMatch.test(txOut) && isTxOutputValueMatch.test(txOut)) {
-                log.info("\t\tTx {} output has matching address {} and value {}.",
-                        txOut.getParentTransaction().getTxId(),
-                        address,
-                        txOut.getValue().toPlainString());
-                numMatches++;
-            }
-        }
-        if (numMatches > 1) {
-            log.warn("{} tx outputs matched address {} and value {}, could be a"
-                            + " false positive BSQ payment verification result.",
-                    numMatches,
-                    address,
-                    coinValue.toPlainString());
-
-        }
-        return numMatches > 0;
-    }
 
     void getTxFeeRate(ResultHandler resultHandler) {
         try {
@@ -561,23 +476,13 @@ class CoreWalletsService {
             throw new IllegalStateException("server is not fully initialized");
     }
 
-    // Returns a LegacyAddress for the string, or a RuntimeException if invalid.
-    LegacyAddress getValidBsqLegacyAddress(String address) {
-        try {
-            return bsqFormatter.getAddressFromBsqAddress(address);
-        } catch (Throwable t) {
-            log.error("", t);
-            throw new IllegalStateException(format("%s is not a valid bsq address", address));
-        }
-    }
 
-    // Throws a RuntimeException if wallet currency code is not BSQ or BTC.
+    // Throws a RuntimeException if wallet currency code is not BTC.
     private void verifyWalletCurrencyCodeIsValid(String currencyCode) {
         if (currencyCode == null || currencyCode.isEmpty())
             return;
 
-        if (!currencyCode.equalsIgnoreCase("BSQ")
-                && !currencyCode.equalsIgnoreCase("BTC"))
+        if (!currencyCode.equalsIgnoreCase("BTC"))
             throw new IllegalStateException(format("wallet does not support %s", currencyCode));
     }
 
@@ -587,31 +492,13 @@ class CoreWalletsService {
         if (tempAesKey == null)
             throw new IllegalStateException("cannot use null key, unlockwallet timeout may have expired");
 
-        if (btcWalletService.getAesKey() == null || bsqWalletService.getAesKey() == null) {
+        if (btcWalletService.getAesKey() == null) {
             KeyParameter aesKey = new KeyParameter(tempAesKey.getKey());
             walletsManager.setAesKey(aesKey);
             walletsSetup.getWalletConfig().maybeAddSegwitKeychain(walletsSetup.getWalletConfig().btcWallet(), aesKey);
         }
     }
 
-    private BsqBalanceInfo getBsqBalances() {
-        verifyWalletsAreAvailable();
-        verifyEncryptedWalletIsUnlocked();
-
-        var availableConfirmedBalance = bsqWalletService.getAvailableConfirmedBalance();
-        var unverifiedBalance = bsqWalletService.getUnverifiedBalance();
-        var unconfirmedChangeBalance = bsqWalletService.getUnconfirmedChangeBalance();
-        var lockedForVotingBalance = bsqWalletService.getLockedForVotingBalance();
-        var lockupBondsBalance = bsqWalletService.getLockupBondsBalance();
-        var unlockingBondsBalance = bsqWalletService.getUnlockingBondsBalance();
-
-        return new BsqBalanceInfo(availableConfirmedBalance.value,
-                unverifiedBalance.value,
-                unconfirmedChangeBalance.value,
-                lockedForVotingBalance.value,
-                lockupBondsBalance.value,
-                unlockingBondsBalance.value);
-    }
 
     // TODO (woodser): delete this since it's serving XMR balances
     private BtcBalanceInfo getBtcBalances() {

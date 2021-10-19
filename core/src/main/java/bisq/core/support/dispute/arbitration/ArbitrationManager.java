@@ -20,7 +20,6 @@ package bisq.core.support.dispute.arbitration;
 import bisq.core.btc.setup.WalletsSetup;
 import bisq.core.btc.wallet.TradeWalletService;
 import bisq.core.btc.wallet.XmrWalletService;
-import bisq.core.dao.DaoFacade;
 import bisq.core.locale.Res;
 import bisq.core.offer.OpenOffer;
 import bisq.core.offer.OpenOfferManager;
@@ -99,13 +98,12 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
                               TradeManager tradeManager,
                               ClosedTradableManager closedTradableManager,
                               OpenOfferManager openOfferManager,
-                              DaoFacade daoFacade,
                               KeyRing keyRing,
                               ArbitrationDisputeListService arbitrationDisputeListService,
                               Config config,
                               PriceFeedService priceFeedService) {
         super(p2PService, tradeWalletService, walletService, walletsSetup, tradeManager, closedTradableManager,
-                openOfferManager, daoFacade, keyRing, arbitrationDisputeListService, config, priceFeedService);
+                openOfferManager, keyRing, arbitrationDisputeListService, config, priceFeedService);
     }
 
 

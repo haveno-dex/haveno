@@ -20,9 +20,7 @@ package bisq.desktop.main.funds.transactions;
 import bisq.desktop.components.indicator.TxConfidenceIndicator;
 
 import bisq.core.btc.listeners.TxConfidenceListener;
-import bisq.core.btc.wallet.BsqWalletService;
 import bisq.core.btc.wallet.XmrWalletService;
-import bisq.core.dao.DaoFacade;
 import bisq.core.trade.Tradable;
 import bisq.core.util.coin.CoinFormatter;
 
@@ -88,9 +86,7 @@ class TransactionsListItem {
 
     TransactionsListItem(MoneroTxWallet transaction,
                          XmrWalletService xmrWalletService,
-                         BsqWalletService bsqWalletService,
                          TransactionAwareTradable transactionAwareTradable,
-                         DaoFacade daoFacade,
                          CoinFormatter formatter,
                          long ignoreDustThreshold) {
         throw new RuntimeException("TransactionsListItem needs updated to use XMR wallet");
@@ -107,8 +103,6 @@ class TransactionsListItem {
 //        Coin valueSentFromMe = btcWalletService.getValueSentFromMeForTransaction(transaction);
 //
 //        // TODO check and refactor
-//        boolean txFeeForBsqPayment = false;
-//        boolean withdrawalFromBSQWallet = false;
 //        if (valueSentToMe.isZero()) {
 //            amountAsCoin = valueSentFromMe.multiply(-1);
 //            for (TransactionOutput output : transaction.getOutputs()) {
@@ -116,11 +110,7 @@ class TransactionsListItem {
 //                    received = false;
 //                    if (WalletService.isOutputScriptConvertibleToAddress(output)) {
 //                        addressString = WalletService.getAddressStringFromOutput(output);
-//                        if (bsqWalletService.isTransactionOutputMine(output)) {
-//                            txFeeForBsqPayment = true;
-//                        } else {
-//                            direction = Res.get("funds.tx.direction.sentTo");
-//                        }
+//                        direction = Res.get("funds.tx.direction.sentTo");
 //                        break;
 //                    }
 //                }
@@ -143,22 +133,7 @@ class TransactionsListItem {
 //                if (!btcWalletService.isTransactionOutputMine(output)) {
 //                    if (WalletService.isOutputScriptConvertibleToAddress(output)) {
 //                        addressString = WalletService.getAddressStringFromOutput(output);
-//                        if (bsqWalletService.isTransactionOutputMine(output)) {
-//                            outgoing = false;
-//                            txFeeForBsqPayment = true;
-//
-//                            Optional<TxType> txTypeOptional = daoFacade.getOptionalTxType(txId);
-//                            if (txTypeOptional.isPresent()) {
-//                                if (txTypeOptional.get().equals(TxType.COMPENSATION_REQUEST))
-//                                    details = Res.get("funds.tx.compensationRequestTxFee");
-//                                else if (txTypeOptional.get().equals(TxType.REIMBURSEMENT_REQUEST))
-//                                    details = Res.get("funds.tx.reimbursementRequestTxFee");
-//                                else
-//                                    details = Res.get("funds.tx.daoTxFee");
-//                            }
-//                        } else {
-//                            outgoing = true;
-//                        }
+//                        outgoing = true;
 //                        break;
 //                    }
 //                } else {
@@ -167,7 +142,6 @@ class TransactionsListItem {
 //                    if (!outgoing) {
 //                        direction = Res.get("funds.tx.direction.receivedWith");
 //                        received = true;
-//                        withdrawalFromBSQWallet = true;
 //                    }
 //                }
 //            }
@@ -178,11 +152,6 @@ class TransactionsListItem {
 //            }
 //        }
 //
-//        if (txFeeForBsqPayment) {
-//            // direction = Res.get("funds.tx.txFeePaymentForBsqTx");
-//            direction = Res.get("funds.tx.direction.sentTo");
-//            //addressString = "";
-//        }
 //
 //        if (optionalTradable.isPresent()) {
 //            tradable = optionalTradable.get();
@@ -249,13 +218,6 @@ class TransactionsListItem {
 //            if (amountAsCoin.isZero()) {
 //                details = Res.get("funds.tx.noFundsFromDispute");
 //                initialTxConfidenceVisibility = false;
-//            } else if (withdrawalFromBSQWallet) {
-//                details = Res.get("funds.tx.withdrawnFromBSQWallet");
-//            } else if (!txFeeForBsqPayment) {
-//                details = received ? Res.get("funds.tx.receivedFunds") : Res.get("funds.tx.withdrawnFromWallet");
-//            } else if (details.isEmpty()) {
-//                details = Res.get("funds.tx.txFeePaymentForBsqTx");
-//            }
 //        }
 //        // Use tx.getIncludedInBestChainAt() when available, otherwise use tx.getUpdateTime()
 //        date = transaction.getIncludedInBestChainAt() != null ? transaction.getIncludedInBestChainAt() : transaction.getUpdateTime();

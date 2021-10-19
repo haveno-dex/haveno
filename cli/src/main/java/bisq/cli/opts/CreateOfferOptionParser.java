@@ -55,10 +55,6 @@ public class CreateOfferOptionParser extends AbstractMethodOptionParser implemen
     final OptionSpec<String> securityDepositOpt = parser.accepts(OPT_SECURITY_DEPOSIT, "maker security deposit (%)")
             .withRequiredArg();
 
-    final OptionSpec<String> makerFeeCurrencyCodeOpt = parser.accepts(OPT_FEE_CURRENCY, "maker fee currency code (bsq|btc)")
-            .withOptionalArg()
-            .defaultsTo("btc");
-
     public CreateOfferOptionParser(String[] args) {
         super(args);
     }
@@ -136,9 +132,5 @@ public class CreateOfferOptionParser extends AbstractMethodOptionParser implemen
 
     public String getSecurityDeposit() {
         return options.valueOf(securityDepositOpt);
-    }
-
-    public String getMakerFeeCurrencyCode() {
-        return options.has(makerFeeCurrencyCodeOpt) ? options.valueOf(makerFeeCurrencyCodeOpt) : "btc";
     }
 }

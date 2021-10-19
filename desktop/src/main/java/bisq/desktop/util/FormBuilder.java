@@ -27,7 +27,6 @@ import bisq.desktop.components.AutocompleteComboBox;
 import bisq.desktop.components.BalanceTextField;
 import bisq.desktop.components.BisqTextArea;
 import bisq.desktop.components.BisqTextField;
-import bisq.desktop.components.BsqAddressTextField;
 import bisq.desktop.components.BusyAnimation;
 import bisq.desktop.components.ExternalHyperlink;
 import bisq.desktop.components.FundsTextField;
@@ -1694,29 +1693,6 @@ public class FormBuilder {
 
         return new Tuple3<>(labelVBoxTuple2.first, infoTextField, labelVBoxTuple2.second);
     }
-
-    ///////////////////////////////////////////////////////////////////////////////////////////
-    // Label  + BsqAddressTextField
-    ///////////////////////////////////////////////////////////////////////////////////////////
-
-    public static Tuple3<Label, BsqAddressTextField, VBox> addLabelBsqAddressTextField(GridPane gridPane,
-                                                                                       int rowIndex,
-                                                                                       String title) {
-        return addLabelBsqAddressTextField(gridPane, rowIndex, title, 0);
-    }
-
-    public static Tuple3<Label, BsqAddressTextField, VBox> addLabelBsqAddressTextField(GridPane gridPane,
-                                                                                       int rowIndex,
-                                                                                       String title,
-                                                                                       double top) {
-        BsqAddressTextField addressTextField = new BsqAddressTextField();
-        addressTextField.setFocusTraversable(false);
-
-        Tuple2<Label, VBox> topLabelWithVBox = addTopLabelWithVBox(gridPane, rowIndex, title, addressTextField, top - 15);
-
-        return new Tuple3<>(topLabelWithVBox.first, addressTextField, topLabelWithVBox.second);
-    }
-
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Label  + BalanceTextField

@@ -64,8 +64,6 @@ public class TxIdTextField extends AnchorPane {
     private final TxConfidenceIndicator txConfidenceIndicator;
     private final Label copyIcon, blockExplorerIcon, missingTxWarningIcon;
     private TxConfidenceListener txConfidenceListener;
-    @Setter
-    private boolean isBsq;
 
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -170,9 +168,7 @@ public class TxIdTextField extends AnchorPane {
 
     private void openBlockExplorer(String txId) {
         if (preferences != null) {
-            BlockChainExplorer blockChainExplorer = isBsq ?
-                    preferences.getBsqBlockChainExplorer() :
-                    preferences.getBlockChainExplorer();
+            BlockChainExplorer blockChainExplorer = preferences.getBlockChainExplorer();
             GUIUtil.openWebPage(blockChainExplorer.txUrl + txId, false);
         }
     }

@@ -50,7 +50,6 @@ import bisq.core.trade.closed.ClosedTradableManager;
 import bisq.core.user.Preferences;
 import bisq.core.user.User;
 import bisq.core.util.FormattingUtils;
-import bisq.core.util.coin.BsqFormatter;
 import bisq.core.util.coin.CoinFormatter;
 
 import bisq.network.p2p.NodeAddress;
@@ -107,7 +106,6 @@ class OfferBookViewModel extends ActivatableViewModel {
     private final PriceUtil priceUtil;
     final OfferFilter offerFilter;
     private final CoinFormatter btcFormatter;
-    private final BsqFormatter bsqFormatter;
 
     private final FilteredList<OfferBookListItem> filteredItems;
     private final SortedList<OfferBookListItem> sortedItems;
@@ -152,8 +150,7 @@ class OfferBookViewModel extends ActivatableViewModel {
                               Navigation navigation,
                               PriceUtil priceUtil,
                               OfferFilter offerFilter,
-                              @Named(FormattingUtils.BTC_FORMATTER_KEY) CoinFormatter btcFormatter,
-                              BsqFormatter bsqFormatter) {
+                              @Named(FormattingUtils.BTC_FORMATTER_KEY) CoinFormatter btcFormatter) {
         super();
 
         this.openOfferManager = openOfferManager;
@@ -169,7 +166,6 @@ class OfferBookViewModel extends ActivatableViewModel {
         this.priceUtil = priceUtil;
         this.offerFilter = offerFilter;
         this.btcFormatter = btcFormatter;
-        this.bsqFormatter = bsqFormatter;
 
         this.filteredItems = new FilteredList<>(offerBook.getOfferBookListItems());
         this.sortedItems = new SortedList<>(filteredItems);
@@ -236,7 +232,6 @@ class OfferBookViewModel extends ActivatableViewModel {
         filterOffers();
         setMarketPriceFeedCurrency();
 
-        priceUtil.recalculateBsq30DayAveragePrice();
     }
 
     @Override
@@ -641,9 +636,7 @@ class OfferBookViewModel extends ActivatableViewModel {
     }
 
     public String getMakerFeeAsString(Offer offer) {
-        return offer.isCurrencyForMakerFeeBtc() ?
-                btcFormatter.formatCoinWithCode(offer.getMakerFee()) :
-                bsqFormatter.formatCoinWithCode(offer.getMakerFee());
+        return btcFormatter.formatCoinWithCode(offer.getMakerFee());
     }
 
     private static String getDirectionWithCodeDetailed(OfferPayload.Direction direction, String currencyCode) {

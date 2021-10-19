@@ -46,12 +46,8 @@ public class CurrencyFormat {
     static final DecimalFormat BTC_FORMAT = new DecimalFormat("###,##0.00000000");
     static final DecimalFormat BTC_TX_FEE_FORMAT = new DecimalFormat("###,###,##0");
 
-    static final BigDecimal BSQ_SATOSHI_DIVISOR = new BigDecimal(100);
-    static final DecimalFormat BSQ_FORMAT = new DecimalFormat("###,###,###,##0.00");
-    static final DecimalFormat SEND_BSQ_FORMAT = new DecimalFormat("###########0.00");
-
     static final BigDecimal SECURITY_DEPOSIT_MULTIPLICAND = new BigDecimal("0.01");
-    
+
     // TODO: (woodser): replace formatSatoshis(), formatBsq() with formatXmr()
 
     @SuppressWarnings("BigDecimalMethodWithoutRoundingCalled")
@@ -59,22 +55,10 @@ public class CurrencyFormat {
         return BTC_FORMAT.format(BigDecimal.valueOf(sats).divide(SATOSHI_DIVISOR));
     }
 
-    @SuppressWarnings("BigDecimalMethodWithoutRoundingCalled")
-    public static String formatBsq(long sats) {
-        return BSQ_FORMAT.format(BigDecimal.valueOf(sats).divide(BSQ_SATOSHI_DIVISOR));
-    }
-
     public static String formatXmr(BigInteger amount) {
         return "" + MoneroUtils.atomicUnitsToXmr(amount);
     }
 
-    public static String formatBsqAmount(long bsqSats) {
-        // BSQ sats = trade.getOffer().getVolume()
-        NUMBER_FORMAT.setMinimumFractionDigits(2);
-        NUMBER_FORMAT.setMaximumFractionDigits(2);
-        NUMBER_FORMAT.setRoundingMode(HALF_UP);
-        return SEND_BSQ_FORMAT.format((double) bsqSats / SATOSHI_DIVISOR.doubleValue());
-    }
 
     public static String formatTxFeeRateInfo(TxFeeRateInfo txFeeRateInfo) {
         if (txFeeRateInfo.getUseCustomTxFeeRate())

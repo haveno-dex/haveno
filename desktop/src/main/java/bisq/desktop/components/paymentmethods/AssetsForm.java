@@ -24,7 +24,6 @@ import bisq.desktop.util.FormBuilder;
 import bisq.desktop.util.Layout;
 
 import bisq.core.account.witness.AccountAgeWitnessService;
-import bisq.core.dao.governance.asset.AssetService;
 import bisq.core.filter.FilterManager;
 import bisq.core.locale.CurrencyUtil;
 import bisq.core.locale.Res;
@@ -63,7 +62,6 @@ public class AssetsForm extends PaymentMethodForm {
     public static final String INSTANT_TRADE_NEWS = "instantTradeNews0.9.5";
     private final AssetAccount assetAccount;
     private final AltCoinAddressValidator altCoinAddressValidator;
-    private final AssetService assetService;
     private final FilterManager filterManager;
 
     private InputTextField addressInputTextField;
@@ -86,12 +84,10 @@ public class AssetsForm extends PaymentMethodForm {
                       GridPane gridPane,
                       int gridRow,
                       CoinFormatter formatter,
-                      AssetService assetService,
                       FilterManager filterManager) {
         super(paymentAccount, accountAgeWitnessService, inputValidator, gridPane, gridRow, formatter);
         this.assetAccount = (AssetAccount) paymentAccount;
         this.altCoinAddressValidator = altCoinAddressValidator;
-        this.assetService = assetService;
         this.filterManager = filterManager;
 
         tradeInstant = paymentAccount instanceof InstantCryptoCurrencyAccount;
@@ -216,7 +212,7 @@ public class AssetsForm extends PaymentMethodForm {
                 currencyComboBox.setPromptText(""));
 
         ((AutocompleteComboBox<TradeCurrency>) currencyComboBox).setAutocompleteItems(
-                CurrencyUtil.getActiveSortedCryptoCurrencies(assetService, filterManager));
+                CurrencyUtil.getActiveSortedCryptoCurrencies(filterManager));
         currencyComboBox.setVisibleRowCount(Math.min(currencyComboBox.getItems().size(), 10));
 
         currencyComboBox.setConverter(new StringConverter<>() {

@@ -26,7 +26,6 @@ import bisq.desktop.main.support.dispute.agent.DisputeAgentView;
 
 import bisq.core.account.witness.AccountAgeWitnessService;
 import bisq.core.alert.PrivateNotificationManager;
-import bisq.core.dao.DaoFacade;
 import bisq.core.locale.Res;
 import bisq.core.support.SupportType;
 import bisq.core.support.dispute.Dispute;
@@ -60,7 +59,6 @@ public class RefundAgentView extends DisputeAgentView {
                            ContractWindow contractWindow,
                            TradeDetailsWindow tradeDetailsWindow,
                            AccountAgeWitnessService accountAgeWitnessService,
-                           DaoFacade daoFacade,
                            MediatorManager mediatorManager,
                            RefundAgentManager refundAgentManager,
                            @Named(Config.USE_DEV_PRIVILEGE_KEYS) boolean useDevPrivilegeKeys) {
@@ -74,7 +72,6 @@ public class RefundAgentView extends DisputeAgentView {
                 contractWindow,
                 tradeDetailsWindow,
                 accountAgeWitnessService,
-                daoFacade,
                 mediatorManager,
                 refundAgentManager,
                 useDevPrivilegeKeys);

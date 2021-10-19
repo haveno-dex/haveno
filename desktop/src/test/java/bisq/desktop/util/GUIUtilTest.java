@@ -25,7 +25,6 @@ import bisq.core.provider.price.MarketPrice;
 import bisq.core.provider.price.PriceFeedService;
 import bisq.core.user.DontShowAgainLookup;
 import bisq.core.user.Preferences;
-import bisq.core.util.coin.BsqFormatter;
 
 import org.bitcoinj.core.Coin;
 import org.bitcoinj.core.CoinMaker;
@@ -112,18 +111,6 @@ public class GUIUtilTest {
 
         assertEquals("https://www.github.com", captor.getValue().toString());
 */
-    }
-
-    @Test
-    public void testGetBsqInUsd() {
-        PriceFeedService priceFeedService = mock(PriceFeedService.class);
-        when(priceFeedService.getMarketPrice("USD"))
-                .thenReturn(new MarketPrice("USD", 12345.6789, 0, true));
-
-        Coin oneBsq = Coin.valueOf(100);
-        Price avgPrice = Price.valueOf("BSQ", 10000);
-
-        assertEquals("1.23 USD", GUIUtil.getBsqInUsd(avgPrice, oneBsq, priceFeedService, new BsqFormatter()));
     }
 
     @Test

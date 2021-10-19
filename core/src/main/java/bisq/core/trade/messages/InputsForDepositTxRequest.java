@@ -47,7 +47,6 @@ public final class InputsForDepositTxRequest extends TradeMessage implements Dir
     private final long tradePrice;
     private final long txFee;
     private final long takerFee;
-    private final boolean isCurrencyForTakerFeeBtc;
     private final List<RawTransactionInput> rawTransactionInputs;
     private final long changeOutputValue;
     @Nullable
@@ -75,7 +74,6 @@ public final class InputsForDepositTxRequest extends TradeMessage implements Dir
                                      long tradePrice,
                                      long txFee,
                                      long takerFee,
-                                     boolean isCurrencyForTakerFeeBtc,
                                      List<RawTransactionInput> rawTransactionInputs,
                                      long changeOutputValue,
                                      @Nullable String changeOutputAddress,
@@ -101,7 +99,6 @@ public final class InputsForDepositTxRequest extends TradeMessage implements Dir
         this.tradePrice = tradePrice;
         this.txFee = txFee;
         this.takerFee = takerFee;
-        this.isCurrencyForTakerFeeBtc = isCurrencyForTakerFeeBtc;
         this.rawTransactionInputs = rawTransactionInputs;
         this.changeOutputValue = changeOutputValue;
         this.changeOutputAddress = changeOutputAddress;
@@ -135,7 +132,6 @@ public final class InputsForDepositTxRequest extends TradeMessage implements Dir
                 .setTradePrice(tradePrice)
                 .setTxFee(txFee)
                 .setTakerFee(takerFee)
-                .setIsCurrencyForTakerFeeBtc(isCurrencyForTakerFeeBtc)
                 .addAllRawTransactionInputs(rawTransactionInputs.stream()
                         .map(RawTransactionInput::toProtoMessage).collect(Collectors.toList()))
                 .setChangeOutputValue(changeOutputValue)
@@ -182,7 +178,6 @@ public final class InputsForDepositTxRequest extends TradeMessage implements Dir
                 proto.getTradePrice(),
                 proto.getTxFee(),
                 proto.getTakerFee(),
-                proto.getIsCurrencyForTakerFeeBtc(),
                 rawTransactionInputs,
                 proto.getChangeOutputValue(),
                 ProtoUtil.stringOrNullFromProto(proto.getChangeOutputAddress()),
@@ -212,7 +207,6 @@ public final class InputsForDepositTxRequest extends TradeMessage implements Dir
                 ",\n     tradePrice=" + tradePrice +
                 ",\n     txFee=" + txFee +
                 ",\n     takerFee=" + takerFee +
-                ",\n     isCurrencyForTakerFeeBtc=" + isCurrencyForTakerFeeBtc +
                 ",\n     rawTransactionInputs=" + rawTransactionInputs +
                 ",\n     changeOutputValue=" + changeOutputValue +
                 ",\n     changeOutputAddress='" + changeOutputAddress + '\'' +

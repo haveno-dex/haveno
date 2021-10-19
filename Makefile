@@ -1,6 +1,6 @@
 # See docs/installing.md
 
-build: nodes localnet build-haveno  
+build: nodes localnet build-haveno
 
 clean:
 	./gradlew clean
@@ -9,7 +9,7 @@ clean-localnet:
 	rm -rf .localnet
 
 localnet:
-	mkdir -p .localnet 
+	mkdir -p .localnet
 
 nodes: localnet
 	./scripts/xmr_btc_deps.sh
@@ -39,7 +39,6 @@ seednode:
 		--useDevPrivilegeKeys=true \
 		--nodePort=2002 \
 		--appName=haveno-XMR_STAGENET_Seed_2002 \
-		--daoActivated=false
 
 arbitrator-desktop:
 	# Arbitrator and mediator need to be registerd in the UI after launching it.
@@ -49,7 +48,6 @@ arbitrator-desktop:
 		--useDevPrivilegeKeys=true \
 		--nodePort=4444 \
 		--appName=haveno-XMR_STAGENET_arbitrator \
-		--daoActivated=false \
 		--apiPassword=apitest \
 		--apiPort=9998
 
@@ -60,7 +58,6 @@ alice-desktop:
 		--useDevPrivilegeKeys=true \
 		--nodePort=5555 \
 		--appName=haveno-XMR_STAGENET_Alice \
-		--daoActivated=false \
 		--apiPassword=apitest \
 		--apiPort=9999
 
@@ -71,7 +68,6 @@ alice-daemon:
 		--useDevPrivilegeKeys=true \
 		--nodePort=5555 \
 		--appName=haveno-XMR_STAGENET_Alice \
-		--daoActivated=false \
 		--apiPassword=apitest \
 		--apiPort=9999
 
@@ -82,7 +78,6 @@ bob-desktop:
 		--useDevPrivilegeKeys=true \
 		--nodePort=6666 \
 		--appName=haveno-XMR_STAGENET_Bob \
-		--daoActivated=false \
 		--apiPassword=apitest \
 		--apiPort=10000
 
@@ -93,7 +88,6 @@ bob-daemon:
 		--useDevPrivilegeKeys=true \
 		--nodePort=6666 \
 		--appName=haveno-XMR_STAGENET_Bob \
-		--daoActivated=false \
 		--apiPassword=apitest \
 		--apiPort=10000
 

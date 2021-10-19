@@ -19,7 +19,6 @@ package bisq.cli;
 
 import bisq.proto.grpc.AddressBalanceInfo;
 import bisq.proto.grpc.BalancesInfo;
-import bisq.proto.grpc.BsqBalanceInfo;
 import bisq.proto.grpc.BtcBalanceInfo;
 import bisq.proto.grpc.CancelOfferRequest;
 import bisq.proto.grpc.ConfirmPaymentReceivedRequest;
@@ -42,7 +41,6 @@ import bisq.proto.grpc.GetPaymentMethodsRequest;
 import bisq.proto.grpc.GetTradeRequest;
 import bisq.proto.grpc.GetTransactionRequest;
 import bisq.proto.grpc.GetTxFeeRateRequest;
-import bisq.proto.grpc.GetUnusedBsqAddressRequest;
 import bisq.proto.grpc.GetVersionRequest;
 import bisq.proto.grpc.KeepFundsRequest;
 import bisq.proto.grpc.LockWalletRequest;
@@ -50,7 +48,6 @@ import bisq.proto.grpc.MarketPriceRequest;
 import bisq.proto.grpc.OfferInfo;
 import bisq.proto.grpc.RegisterDisputeAgentRequest;
 import bisq.proto.grpc.RemoveWalletPasswordRequest;
-import bisq.proto.grpc.SendBsqRequest;
 import bisq.proto.grpc.SendBtcRequest;
 import bisq.proto.grpc.SetTxFeeRatePreferenceRequest;
 import bisq.proto.grpc.SetWalletPasswordRequest;
@@ -62,7 +59,6 @@ import bisq.proto.grpc.TxFeeRateInfo;
 import bisq.proto.grpc.TxInfo;
 import bisq.proto.grpc.UnlockWalletRequest;
 import bisq.proto.grpc.UnsetTxFeeRatePreferenceRequest;
-import bisq.proto.grpc.VerifyBsqSentToAddressRequest;
 import bisq.proto.grpc.WithdrawFundsRequest;
 import bisq.proto.grpc.XmrBalanceInfo;
 
@@ -100,10 +96,6 @@ public final class GrpcClient {
         return getBalances("");
     }
 
-    public BsqBalanceInfo getBsqBalances() {
-        return getBalances("BSQ").getBsq();
-    }
-
     public BtcBalanceInfo getBtcBalances() {
         return getBalances("BTC").getBtc();
     }
@@ -137,11 +129,6 @@ public final class GrpcClient {
         return grpcStubs.walletsService.getFundingAddresses(request).getAddressBalanceInfoList();
     }
 
-    public String getUnusedBsqAddress() {
-        var request = GetUnusedBsqAddressRequest.newBuilder().build();
-        return grpcStubs.walletsService.getUnusedBsqAddress(request).getAddress();
-    }
-
     public String getUnusedBtcAddress() {
         var request = GetFundingAddressesRequest.newBuilder().build();
         var addressBalances = grpcStubs.walletsService.getFundingAddresses(request)
@@ -154,15 +141,6 @@ public final class GrpcClient {
                 .getAddress();
     }
 
-    public TxInfo sendBsq(String address, String amount, String txFeeRate) {
-        var request = SendBsqRequest.newBuilder()
-                .setAddress(address)
-                .setAmount(amount)
-                .setTxFeeRate(txFeeRate)
-                .build();
-        return grpcStubs.walletsService.sendBsq(request).getTxInfo();
-    }
-
     public TxInfo sendBtc(String address, String amount, String txFeeRate, String memo) {
         var request = SendBtcRequest.newBuilder()
                 .setAddress(address)
@@ -171,14 +149,6 @@ public final class GrpcClient {
                 .setMemo(memo)
                 .build();
         return grpcStubs.walletsService.sendBtc(request).getTxInfo();
-    }
-
-    public boolean verifyBsqSentToAddress(String address, String amount) {
-        var request = VerifyBsqSentToAddressRequest.newBuilder()
-                .setAddress(address)
-                .setAmount(amount)
-                .build();
-        return grpcStubs.walletsService.verifyBsqSentToAddress(request).getIsAmountReceived();
     }
 
     public TxFeeRateInfo getTxFeeRate() {
@@ -211,8 +181,7 @@ public final class GrpcClient {
                                             long minAmount,
                                             String fixedPrice,
                                             double securityDeposit,
-                                            String paymentAcctId,
-                                            String makerFeeCurrencyCode) {
+                                            String paymentAcctId) {
         return createOffer(direction,
                 currencyCode,
                 amount,
@@ -221,8 +190,7 @@ public final class GrpcClient {
                 fixedPrice,
                 0.00,
                 securityDeposit,
-                paymentAcctId,
-                makerFeeCurrencyCode);
+                paymentAcctId);
     }
 
     public OfferInfo createMarketBasedPricedOffer(String direction,
@@ -231,8 +199,7 @@ public final class GrpcClient {
                                                   long minAmount,
                                                   double marketPriceMargin,
                                                   double securityDeposit,
-                                                  String paymentAcctId,
-                                                  String makerFeeCurrencyCode) {
+                                                  String paymentAcctId) {
         return createOffer(direction,
                 currencyCode,
                 amount,
@@ -241,8 +208,7 @@ public final class GrpcClient {
                 "0",
                 marketPriceMargin,
                 securityDeposit,
-                paymentAcctId,
-                makerFeeCurrencyCode);
+                paymentAcctId);
     }
 
     public OfferInfo createOffer(String direction,
@@ -253,8 +219,7 @@ public final class GrpcClient {
                                  String fixedPrice,
                                  double marketPriceMargin,
                                  double securityDeposit,
-                                 String paymentAcctId,
-                                 String makerFeeCurrencyCode) {
+                                 String paymentAcctId) {
         var request = CreateOfferRequest.newBuilder()
                 .setDirection(direction)
                 .setCurrencyCode(currencyCode)
@@ -265,7 +230,6 @@ public final class GrpcClient {
                 .setMarketPriceMargin(marketPriceMargin)
                 .setBuyerSecurityDeposit(securityDeposit)
                 .setPaymentAccountId(paymentAcctId)
-                .setMakerFeeCurrencyCode(makerFeeCurrencyCode)
                 .build();
         return grpcStubs.offersService.createOffer(request).getOffer();
     }
@@ -321,13 +285,6 @@ public final class GrpcClient {
         return offers.isEmpty() ? offers : sortOffersByDate(offers);
     }
 
-    public List<OfferInfo> getBsqOffersSortedByDate() {
-        ArrayList<OfferInfo> offers = new ArrayList<>();
-        offers.addAll(getCryptoCurrencyOffers(BUY.name(), "BSQ"));
-        offers.addAll(getCryptoCurrencyOffers(SELL.name(), "BSQ"));
-        return sortOffersByDate(offers);
-    }
-
     public List<OfferInfo> getMyOffers(String direction, String currencyCode) {
         if (isSupportedCryptoCurrency(currencyCode)) {
             return getMyCryptoCurrencyOffers(direction, currencyCode);
@@ -358,13 +315,6 @@ public final class GrpcClient {
         return sortOffersByDate(offers);
     }
 
-    public List<OfferInfo> getMyBsqOffersSortedByDate() {
-        ArrayList<OfferInfo> offers = new ArrayList<>();
-        offers.addAll(getMyCryptoCurrencyOffers(BUY.name(), "BSQ"));
-        offers.addAll(getMyCryptoCurrencyOffers(SELL.name(), "BSQ"));
-        return sortOffersByDate(offers);
-    }
-
     public OfferInfo getMostRecentOffer(String direction, String currencyCode) {
         List<OfferInfo> offers = getOffersSortedByDate(direction, currencyCode);
         return offers.isEmpty() ? null : offers.get(offers.size() - 1);
@@ -376,17 +326,16 @@ public final class GrpcClient {
                 .collect(toList());
     }
 
-    public TakeOfferReply getTakeOfferReply(String offerId, String paymentAccountId, String takerFeeCurrencyCode) {
+    public TakeOfferReply getTakeOfferReply(String offerId, String paymentAccountId) {
         var request = TakeOfferRequest.newBuilder()
                 .setOfferId(offerId)
                 .setPaymentAccountId(paymentAccountId)
-                .setTakerFeeCurrencyCode(takerFeeCurrencyCode)
                 .build();
         return grpcStubs.tradesService.takeOffer(request);
     }
 
-    public TradeInfo takeOffer(String offerId, String paymentAccountId, String takerFeeCurrencyCode) {
-        var reply = getTakeOfferReply(offerId, paymentAccountId, takerFeeCurrencyCode);
+    public TradeInfo takeOffer(String offerId, String paymentAccountId) {
+        var reply = getTakeOfferReply(offerId, paymentAccountId);
         if (reply.hasTrade())
             return reply.getTrade();
         else

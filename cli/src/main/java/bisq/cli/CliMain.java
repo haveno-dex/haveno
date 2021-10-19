@@ -69,14 +69,12 @@ import bisq.cli.opts.GetTradeOptionParser;
 import bisq.cli.opts.GetTransactionOptionParser;
 import bisq.cli.opts.RegisterDisputeAgentOptionParser;
 import bisq.cli.opts.RemoveWalletPasswordOptionParser;
-import bisq.cli.opts.SendBsqOptionParser;
 import bisq.cli.opts.SendBtcOptionParser;
 import bisq.cli.opts.SetTxFeeRateOptionParser;
 import bisq.cli.opts.SetWalletPasswordOptionParser;
 import bisq.cli.opts.SimpleMethodOptionParser;
 import bisq.cli.opts.TakeOfferOptionParser;
 import bisq.cli.opts.UnlockWalletOptionParser;
-import bisq.cli.opts.VerifyBsqSentToAddressOptionParser;
 import bisq.cli.opts.WithdrawFundsOptionParser;
 
 /**
@@ -168,9 +166,6 @@ public class CliMain {
                     var currencyCode = opts.getCurrencyCode();
                     var balances = client.getBalances(currencyCode);
                     switch (currencyCode.toUpperCase()) {
-                        case "BSQ":
-                            out.println(formatBsqBalanceInfoTbl(balances.getBsq()));
-                            break;
                         case "BTC":
                             out.println(formatBtcBalanceInfoTbl(balances.getBtc()));
                             break;
@@ -215,36 +210,6 @@ public class CliMain {
                     out.println(formatAddressBalanceTbl(fundingAddresses));
                     return;
                 }
-                case getunusedbsqaddress: {
-                    if (new SimpleMethodOptionParser(args).parse().isForHelp()) {
-                        out.println(client.getMethodHelp(method));
-                        return;
-                    }
-                    var address = client.getUnusedBsqAddress();
-                    out.println(address);
-                    return;
-                }
-                case sendbsq: {
-                    var opts = new SendBsqOptionParser(args).parse();
-                    if (opts.isForHelp()) {
-                        out.println(client.getMethodHelp(method));
-                        return;
-                    }
-                    var address = opts.getAddress();
-                    var amount = opts.getAmount();
-                    verifyStringIsValidDecimal(OPT_AMOUNT, amount);
-
-                    var txFeeRate = opts.getFeeRate();
-                    if (!txFeeRate.isEmpty())
-                        verifyStringIsValidLong(OPT_TX_FEE_RATE, txFeeRate);
-
-                    var txInfo = client.sendBsq(address, amount, txFeeRate);
-                    out.printf("%s bsq sent to %s in tx %s%n",
-                            amount,
-                            address,
-                            txInfo.getTxId());
-                    return;
-                }
                 case sendbtc: {
                     var opts = new SendBtcOptionParser(args).parse();
                     if (opts.isForHelp()) {
@@ -266,23 +231,6 @@ public class CliMain {
                             amount,
                             address,
                             txInfo.getTxId());
-                    return;
-                }
-                case verifybsqsenttoaddress: {
-                    var opts = new VerifyBsqSentToAddressOptionParser(args).parse();
-                    if (opts.isForHelp()) {
-                        out.println(client.getMethodHelp(method));
-                        return;
-                    }
-                    var address = opts.getAddress();
-                    var amount = opts.getAmount();
-                    verifyStringIsValidDecimal(OPT_AMOUNT, amount);
-
-                    var bsqWasSent = client.verifyBsqSentToAddress(address, amount);
-                    out.printf("%s bsq %s sent to address %s%n",
-                            amount,
-                            bsqWasSent ? "has been" : "has not been",
-                            address);
                     return;
                 }
                 case gettxfeerate: {
@@ -339,7 +287,6 @@ public class CliMain {
                     var fixedPrice = opts.getFixedPrice();
                     var marketPriceMargin = opts.getMktPriceMarginAsBigDecimal();
                     var securityDeposit = toSecurityDepositAsPct(opts.getSecurityDeposit());
-                    var makerFeeCurrencyCode = opts.getMakerFeeCurrencyCode();
                     var offer = client.createOffer(direction,
                             currencyCode,
                             amount,
@@ -348,8 +295,7 @@ public class CliMain {
                             fixedPrice,
                             marketPriceMargin.doubleValue(),
                             securityDeposit,
-                            paymentAcctId,
-                            makerFeeCurrencyCode);
+                            paymentAcctId);
                     out.println(formatOfferTable(singletonList(offer), currencyCode));
                     return;
                 }
@@ -426,8 +372,7 @@ public class CliMain {
                     }
                     var offerId = opts.getOfferId();
                     var paymentAccountId = opts.getPaymentAccountId();
-                    var takerFeeCurrencyCode = opts.getTakerFeeCurrencyCode();
-                    var trade = client.takeOffer(offerId, paymentAccountId, takerFeeCurrencyCode);
+                    var trade = client.takeOffer(offerId, paymentAccountId);
                     out.printf("trade %s successfully taken%n", trade.getTradeId());
                     return;
                 }
@@ -721,7 +666,7 @@ public class CliMain {
             stream.format(rowFormat, "------", "------", "------------");
             stream.format(rowFormat, getversion.name(), "", "Get server version");
             stream.println();
-            stream.format(rowFormat, getbalance.name(), "[--currency-code=<bsq|btc>]", "Get server wallet balances");
+            stream.format(rowFormat, getbalance.name(), "[--currency-code=<btc>]", "Get server wallet balances");
             stream.println();
             stream.format(rowFormat, getaddressbalance.name(), "--address=<btc-address>", "Get server wallet address balance");
             stream.println();
@@ -729,17 +674,10 @@ public class CliMain {
             stream.println();
             stream.format(rowFormat, getfundingaddresses.name(), "", "Get BTC funding addresses");
             stream.println();
-            stream.format(rowFormat, getunusedbsqaddress.name(), "", "Get unused BSQ address");
-            stream.println();
-            stream.format(rowFormat, sendbsq.name(), "--address=<bsq-address> --amount=<bsq-amount>  \\", "Send BSQ");
-            stream.format(rowFormat, "", "[--tx-fee-rate=<sats/byte>]", "");
-            stream.println();
             stream.format(rowFormat, sendbtc.name(), "--address=<btc-address> --amount=<btc-amount> \\", "Send BTC");
             stream.format(rowFormat, "", "[--tx-fee-rate=<sats/byte>]", "");
             stream.format(rowFormat, "", "[--memo=<\"memo\">]", "");
             stream.println();
-            stream.format(rowFormat, verifybsqsenttoaddress.name(), "--address=<bsq-address> --amount=<bsq-amount>",
-                    "Verify amount was sent to BSQ wallet address");
             stream.println();
             stream.format(rowFormat, gettxfeerate.name(), "", "Get current tx fee rate in sats/byte");
             stream.println();
@@ -756,7 +694,7 @@ public class CliMain {
             stream.format(rowFormat, "", "[--min-amount=<min-btc-amount>] \\", "");
             stream.format(rowFormat, "", "--fixed-price=<price> | --market-price=margin=<percent> \\", "");
             stream.format(rowFormat, "", "--security-deposit=<percent> \\", "");
-            stream.format(rowFormat, "", "[--fee-currency=<bsq|btc>]", "");
+            stream.format(rowFormat, "", "[--fee-currency=<btc>]", "");
             stream.println();
             stream.format(rowFormat, canceloffer.name(), "--offer-id=<offer-id>", "Cancel offer with id");
             stream.println();
@@ -772,7 +710,7 @@ public class CliMain {
             stream.println();
             stream.format(rowFormat, takeoffer.name(), "--offer-id=<offer-id> \\", "Take offer with id");
             stream.format(rowFormat, "", "--payment-account=<payment-account-id>", "");
-            stream.format(rowFormat, "", "[--fee-currency=<btc|bsq>]", "");
+            stream.format(rowFormat, "", "[--fee-currency=<btc>]", "");
             stream.println();
             stream.format(rowFormat, gettrade.name(), "--trade-id=<trade-id> \\", "Get trade summary or full contract");
             stream.format(rowFormat, "", "[--show-contract=<true|false>]", "");
@@ -794,8 +732,8 @@ public class CliMain {
             stream.format(rowFormat, createpaymentacct.name(), "--payment-account-form=<path>", "Create a new payment account");
             stream.println();
             stream.format(rowFormat, createcryptopaymentacct.name(), "--account-name=<name> \\", "Create a new cryptocurrency payment account");
-            stream.format(rowFormat, "", "--currency-code=<bsq> \\", "");
-            stream.format(rowFormat, "", "--address=<bsq-address>", "");
+            stream.format(rowFormat, "", "--currency-code=<btc> \\", "");
+            stream.format(rowFormat, "", "--address=<address>", "");
             stream.format(rowFormat, "", "--trade-instant=<true|false>", "");
             stream.println();
             stream.format(rowFormat, getpaymentaccts.name(), "", "Get user payment accounts");

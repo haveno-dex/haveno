@@ -29,7 +29,6 @@ import bisq.core.monetary.Price;
 import bisq.core.offer.Offer;
 import bisq.core.offer.OpenOffer;
 import bisq.core.util.FormattingUtils;
-import bisq.core.util.coin.BsqFormatter;
 import bisq.core.util.coin.CoinFormatter;
 
 import bisq.network.p2p.P2PService;
@@ -49,26 +48,22 @@ class OpenOffersViewModel extends ActivatableWithDataModel<OpenOffersDataModel> 
     private final P2PService p2PService;
     private final PriceUtil priceUtil;
     private final CoinFormatter btcFormatter;
-    private final BsqFormatter bsqFormatter;
 
 
     @Inject
     public OpenOffersViewModel(OpenOffersDataModel dataModel,
                                P2PService p2PService,
                                PriceUtil priceUtil,
-                               @Named(FormattingUtils.BTC_FORMATTER_KEY) CoinFormatter btcFormatter,
-                               BsqFormatter bsqFormatter) {
+                               @Named(FormattingUtils.BTC_FORMATTER_KEY) CoinFormatter btcFormatter) {
         super(dataModel);
 
         this.p2PService = p2PService;
         this.priceUtil = priceUtil;
         this.btcFormatter = btcFormatter;
-        this.bsqFormatter = bsqFormatter;
     }
 
     @Override
     protected void activate() {
-        priceUtil.recalculateBsq30DayAveragePrice();
     }
 
     void onActivateOpenOffer(OpenOffer openOffer,
@@ -167,9 +162,7 @@ class OpenOffersViewModel extends ActivatableWithDataModel<OpenOffersDataModel> 
 
     public String getMakerFeeAsString(OpenOffer openOffer) {
         Offer offer = openOffer.getOffer();
-        return offer.isCurrencyForMakerFeeBtc() ?
-                btcFormatter.formatCoinWithCode(offer.getMakerFee()) :
-                bsqFormatter.formatCoinWithCode(offer.getMakerFee());
+        return btcFormatter.formatCoinWithCode(offer.getMakerFee());
     }
 
     String getTriggerPrice(OpenOfferListItem item) {

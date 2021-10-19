@@ -168,7 +168,6 @@ public class CreateOfferService {
         Coin txFeeFromFeeService = getEstimatedFeeAndTxVsize(amount, direction, buyerSecurityDepositAsDouble, sellerSecurityDeposit).first;
         Coin txFeeToUse = txFee.isPositive() ? txFee : txFeeFromFeeService;
         Coin makerFeeAsCoin = offerUtil.getMakerFee(amount);
-        boolean isCurrencyForMakerFeeBtc = offerUtil.isCurrencyForMakerFeeBtc(amount);
         Coin buyerSecurityDepositAsCoin = getBuyerSecurityDeposit(amount, buyerSecurityDepositAsDouble);
         Coin sellerSecurityDepositAsCoin = getSellerSecurityDeposit(amount, sellerSecurityDeposit);
         long maxTradeLimit = offerUtil.getMaxTradeLimit(paymentAccount, currencyCode, direction);
@@ -218,7 +217,6 @@ public class CreateOfferService {
                 btcWalletService.getLastBlockSeenHeight(),
                 txFeeToUse.value,
                 makerFeeAsCoin.value,
-                isCurrencyForMakerFeeBtc,
                 buyerSecurityDepositAsCoin.value,
                 sellerSecurityDepositAsCoin.value,
                 maxTradeLimit,

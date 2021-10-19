@@ -294,7 +294,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
     }
 
     protected void sendAckMessage(NodeAddress peer, TradeMessage message, boolean result, @Nullable String errorMessage) {
-        
+
         // TODO (woodser): remove trade.getTradingPeerNodeAddress() and processModel.getTempTradingPeerNodeAddress() if everything should be maker, taker, or arbitrator
 
         // get peer's pub key ring

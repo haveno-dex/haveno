@@ -17,14 +17,12 @@
 
 package bisq.core.locale;
 
-import bisq.core.dao.governance.asset.AssetService;
 import bisq.core.filter.FilterManager;
 
 import bisq.asset.Asset;
 import bisq.asset.AssetRegistry;
 import bisq.asset.Coin;
 import bisq.asset.Token;
-import bisq.asset.coins.BSQ;
 
 import bisq.common.app.DevEnv;
 import bisq.common.config.BaseCurrencyNetwork;
@@ -130,7 +128,6 @@ public class CurrencyUtil {
     public static Stream<Asset> getSortedAssetStream() {
         return assetRegistry.stream()
                 .filter(CurrencyUtil::assetIsNotBaseCurrency)
-                .filter(asset -> isNotBsqOrBsqTradingActivated(asset, Config.baseCurrencyNetwork(), DevEnv.isDaoTradingActivated()))
                 .filter(asset -> assetMatchesNetworkIfMainnet(asset, Config.baseCurrencyNetwork()))
                 .sorted(Comparator.comparing(Asset::getName));
     }
@@ -138,10 +135,6 @@ public class CurrencyUtil {
     public static List<CryptoCurrency> getMainCryptoCurrencies() {
         final List<CryptoCurrency> result = new ArrayList<>();
         result.add(new CryptoCurrency("XRC", "Bitcoin Rhodium"));
-
-        if (DevEnv.isDaoTradingActivated())
-            result.add(new CryptoCurrency("BSQ", "BSQ"));
-
         result.add(new CryptoCurrency("BEAM", "Beam"));
         result.add(new CryptoCurrency("DASH", "Dash"));
         result.add(new CryptoCurrency("DCR", "Decred"));
@@ -585,19 +578,14 @@ public class CurrencyUtil {
         return new CryptoCurrency(asset.getTickerSymbol(), asset.getName(), asset instanceof Token);
     }
 
-    private static boolean isNotBsqOrBsqTradingActivated(Asset asset,
-                                                         BaseCurrencyNetwork baseCurrencyNetwork,
-                                                         boolean daoTradingActivated) {
-        return !(asset instanceof BSQ) ||
-                daoTradingActivated && assetMatchesNetwork(asset, baseCurrencyNetwork);
-    }
+
 
     public static boolean assetMatchesCurrencyCode(Asset asset, String currencyCode) {
         return currencyCode.equals(asset.getTickerSymbol());
     }
 
     public static Optional<Asset> findAsset(AssetRegistry assetRegistry, String currencyCode,
-                                            BaseCurrencyNetwork baseCurrencyNetwork, boolean daoTradingActivated) {
+                                            BaseCurrencyNetwork baseCurrencyNetwork) {
         List<Asset> assets = assetRegistry.stream()
                 .filter(asset -> assetMatchesCurrencyCode(asset, currencyCode)).collect(Collectors.toList());
 
@@ -605,8 +593,6 @@ public class CurrencyUtil {
         if (!assets.stream().findFirst().isPresent())
             return Optional.empty();
 
-        if (currencyCode.equals("BSQ") && baseCurrencyNetwork.isMainnet() && !daoTradingActivated)
-            return Optional.empty();
 
         // We check for exact match with network, e.g. BTC$TESTNET
         Optional<Asset> optionalAssetMatchesNetwork = assets.stream()
@@ -641,11 +627,9 @@ public class CurrencyUtil {
                 .findAny();
     }
 
-    // Excludes all assets which got removed by DAO voting
-    public static List<CryptoCurrency> getActiveSortedCryptoCurrencies(AssetService assetService,
-                                                                       FilterManager filterManager) {
+    // Excludes all assets which got removed by voting
+    public static List<CryptoCurrency> getActiveSortedCryptoCurrencies(FilterManager filterManager) {
         return getAllSortedCryptoCurrencies().stream()
-                .filter(e -> e.getCode().equals("BSQ") || assetService.isActive(e.getCode()))
                 .filter(e -> !filterManager.isCurrencyBanned(e.getCode()))
                 .collect(Collectors.toList());
     }

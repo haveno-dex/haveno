@@ -27,7 +27,6 @@ import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 
-import static bisq.apitest.config.ApiTestConfig.BSQ;
 import static bisq.apitest.config.ApiTestConfig.XMR;
 import static bisq.cli.TableFormat.formatOfferTable;
 import static bisq.core.btc.wallet.Restrictions.getDefaultBuyerSecurityDepositAsPercent;
@@ -43,8 +42,6 @@ import static protobuf.OfferPayload.Direction.SELL;
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class CreateOfferUsingFixedPriceTest extends AbstractOfferTest {
 
-    private static final String MAKER_FEE_CURRENCY_CODE = BSQ;
-
     @Test
     @Order(1)
     public void testCreateAUDXMRBuyOfferUsingFixedPrice16000() {
@@ -55,8 +52,7 @@ public class CreateOfferUsingFixedPriceTest extends AbstractOfferTest {
                 10_000_000L,
                 "36000",
                 getDefaultBuyerSecurityDepositAsPercent(),
-                audAccount.getId(),
-                MAKER_FEE_CURRENCY_CODE);
+                audAccount.getId());
         log.info("OFFER #1:\n{}", formatOfferTable(singletonList(newOffer), "AUD"));
         String newOfferId = newOffer.getId();
         assertNotEquals("", newOfferId);
@@ -69,7 +65,6 @@ public class CreateOfferUsingFixedPriceTest extends AbstractOfferTest {
         assertEquals(audAccount.getId(), newOffer.getPaymentAccountId());
         assertEquals(XMR, newOffer.getBaseCurrencyCode());
         assertEquals("AUD", newOffer.getCounterCurrencyCode());
-        assertFalse(newOffer.getIsCurrencyForMakerFeeBtc());
 
         newOffer = aliceClient.getMyOffer(newOfferId);
         assertEquals(newOfferId, newOffer.getId());
@@ -82,7 +77,6 @@ public class CreateOfferUsingFixedPriceTest extends AbstractOfferTest {
         assertEquals(audAccount.getId(), newOffer.getPaymentAccountId());
         assertEquals(XMR, newOffer.getBaseCurrencyCode());
         assertEquals("AUD", newOffer.getCounterCurrencyCode());
-        assertFalse(newOffer.getIsCurrencyForMakerFeeBtc());
     }
 
     @Test
@@ -95,8 +89,7 @@ public class CreateOfferUsingFixedPriceTest extends AbstractOfferTest {
                 10_000_000L,
                 "30000.1234",
                 getDefaultBuyerSecurityDepositAsPercent(),
-                usdAccount.getId(),
-                MAKER_FEE_CURRENCY_CODE);
+                usdAccount.getId());
         log.info("OFFER #2:\n{}", formatOfferTable(singletonList(newOffer), "USD"));
         String newOfferId = newOffer.getId();
         assertNotEquals("", newOfferId);
@@ -109,7 +102,6 @@ public class CreateOfferUsingFixedPriceTest extends AbstractOfferTest {
         assertEquals(usdAccount.getId(), newOffer.getPaymentAccountId());
         assertEquals(XMR, newOffer.getBaseCurrencyCode());
         assertEquals("USD", newOffer.getCounterCurrencyCode());
-        assertFalse(newOffer.getIsCurrencyForMakerFeeBtc());
 
         newOffer = aliceClient.getMyOffer(newOfferId);
         assertEquals(newOfferId, newOffer.getId());
@@ -122,7 +114,6 @@ public class CreateOfferUsingFixedPriceTest extends AbstractOfferTest {
         assertEquals(usdAccount.getId(), newOffer.getPaymentAccountId());
         assertEquals(XMR, newOffer.getBaseCurrencyCode());
         assertEquals("USD", newOffer.getCounterCurrencyCode());
-        assertFalse(newOffer.getIsCurrencyForMakerFeeBtc());
     }
 
     @Test
@@ -135,8 +126,7 @@ public class CreateOfferUsingFixedPriceTest extends AbstractOfferTest {
                 5_000_000L,
                 "29500.1234",
                 getDefaultBuyerSecurityDepositAsPercent(),
-                eurAccount.getId(),
-                MAKER_FEE_CURRENCY_CODE);
+                eurAccount.getId());
         log.info("OFFER #3:\n{}", formatOfferTable(singletonList(newOffer), "EUR"));
         String newOfferId = newOffer.getId();
         assertNotEquals("", newOfferId);
@@ -149,7 +139,6 @@ public class CreateOfferUsingFixedPriceTest extends AbstractOfferTest {
         assertEquals(eurAccount.getId(), newOffer.getPaymentAccountId());
         assertEquals(XMR, newOffer.getBaseCurrencyCode());
         assertEquals("EUR", newOffer.getCounterCurrencyCode());
-        assertFalse(newOffer.getIsCurrencyForMakerFeeBtc());
 
         newOffer = aliceClient.getMyOffer(newOfferId);
         assertEquals(newOfferId, newOffer.getId());
@@ -162,6 +151,5 @@ public class CreateOfferUsingFixedPriceTest extends AbstractOfferTest {
         assertEquals(eurAccount.getId(), newOffer.getPaymentAccountId());
         assertEquals(XMR, newOffer.getBaseCurrencyCode());
         assertEquals("EUR", newOffer.getCounterCurrencyCode());
-        assertFalse(newOffer.getIsCurrencyForMakerFeeBtc());
     }
 }

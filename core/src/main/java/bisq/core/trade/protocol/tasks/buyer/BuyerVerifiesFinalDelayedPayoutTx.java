@@ -36,23 +36,6 @@ public class BuyerVerifiesFinalDelayedPayoutTx extends TradeTask {
             runInterceptHook();
 
             throw new RuntimeException("BuyerVerifiesFinalDelayedPayoutTx not applicable for xmr");
-
-//            Transaction delayedPayoutTx = trade.getDelayedPayoutTx();
-//            checkNotNull(delayedPayoutTx, "trade.getDelayedPayoutTx() must not be null");
-//            // Check again tx
-//            TradeDataValidation.validateDelayedPayoutTx(trade,
-//                    delayedPayoutTx,
-//                    processModel.getDaoFacade(),
-//                    processModel.getBtcWalletService());
-//
-//            // Now as we know the deposit tx we can also verify the input
-//            Transaction depositTx = trade.getDepositTx();
-//            checkNotNull(depositTx, "trade.getDepositTx() must not be null");
-//            TradeDataValidation.validatePayoutTxInput(depositTx, delayedPayoutTx);
-//
-//            complete();
-//        } catch (TradeDataValidation.ValidationException e) {
-//            failed(e.getMessage());
         } catch (Throwable t) {
             failed(t);
         }

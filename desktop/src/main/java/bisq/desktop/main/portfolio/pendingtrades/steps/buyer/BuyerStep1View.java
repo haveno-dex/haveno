@@ -72,39 +72,6 @@ public class BuyerStep1View extends TradeStepView {
     protected String getPeriodOverWarnText() {
         return Res.get("portfolio.pending.step1.openForDispute");
     }
-
-
-    ///////////////////////////////////////////////////////////////////////////////////////////
-    // Private
-    ///////////////////////////////////////////////////////////////////////////////////////////
-
-//    private void validatePayoutTx() {
-//        try {
-//            TradeDataValidation.validateDelayedPayoutTx(trade,
-//                    trade.getDelayedPayoutTx(),
-//                    model.dataModel.daoFacade,
-//                    model.dataModel.btcWalletService);
-//        } catch (TradeDataValidation.MissingTxException ignore) {
-//            // We don't react on those errors as a failed trade might get listed initially but getting removed from the
-//            // trade manager after initPendingTrades which happens after activate might be called.
-//        } catch (TradeDataValidation.ValidationException e) {
-//            if (!model.dataModel.tradeManager.isAllowFaultyDelayedTxs()) {
-//                new Popup().warning(Res.get("portfolio.pending.invalidTx", e.getMessage())).show();
-//            }
-//        }
-//    }
-//
-//    // Verify that deposit tx inputs are matching the trade fee txs outputs.
-//    private void validateDepositInputs() {
-//        try {
-//            TradeDataValidation.validateDepositInputs(trade);
-//        } catch (TradeDataValidation.ValidationException e) {
-//            if (!model.dataModel.tradeManager.isAllowFaultyDelayedTxs()) {
-//                new Popup().warning(Res.get("portfolio.pending.invalidTx", e.getMessage())).show();
-//            }
-//        }
-//    }
-
 }
 
 

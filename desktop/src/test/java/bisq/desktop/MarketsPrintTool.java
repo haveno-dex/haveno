@@ -39,7 +39,6 @@ public class MarketsPrintTool {
 
         final Collection<FiatCurrency> allSortedFiatCurrencies = CurrencyUtil.getAllSortedFiatCurrencies();
         final Stream<MarketCurrency> fiatStream = allSortedFiatCurrencies.stream()
-                .filter(e -> !e.getCurrency().getCurrencyCode().equals("BSQ"))
                 .filter(e -> !e.getCurrency().getCurrencyCode().equals("BTC")) // TODO (woodser): update to XMR
                 .map(e -> new MarketCurrency("btc_" + e.getCode().toLowerCase(), e.getName(), e.getCode()))
                 .distinct();

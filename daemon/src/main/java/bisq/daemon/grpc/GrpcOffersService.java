@@ -153,7 +153,6 @@ class GrpcOffersService extends OffersImplBase {
                     req.getBuyerSecurityDeposit(),
                     req.getTriggerPrice(),
                     req.getPaymentAccountId(),
-                    req.getMakerFeeCurrencyCode(),
                     offer -> {
                         // This result handling consumer's accept operation will return
                         // the new offer to the gRPC client after async placement is done.

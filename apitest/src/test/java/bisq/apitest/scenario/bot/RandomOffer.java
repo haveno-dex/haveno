@@ -95,8 +95,6 @@ public class RandomOffer {
     private final boolean useMarketBasedPrice;
     @Getter
     private final double priceMargin;
-    @Getter
-    private final String feeCurrency;
 
     @Getter
     private String fixedOfferPrice = "0";
@@ -114,7 +112,6 @@ public class RandomOffer {
         this.minAmount = nextMinAmount.get();
         this.useMarketBasedPrice = RANDOM.nextBoolean();
         this.priceMargin = nextPriceMargin.get();
-        this.feeCurrency = RANDOM.nextBoolean() ? "BSQ" : "BTC";
     }
 
     public RandomOffer create() throws InvalidRandomOfferException {
@@ -127,8 +124,7 @@ public class RandomOffer {
                         amount,
                         minAmount,
                         priceMargin,
-                        getDefaultBuyerSecurityDepositAsPercent(),
-                        feeCurrency);
+                        getDefaultBuyerSecurityDepositAsPercent());
             } else {
                 this.offer = botClient.createOfferAtFixedPrice(paymentAccount,
                         direction,
@@ -136,8 +132,7 @@ public class RandomOffer {
                         amount,
                         minAmount,
                         fixedOfferPrice,
-                        getDefaultBuyerSecurityDepositAsPercent(),
-                        feeCurrency);
+                        getDefaultBuyerSecurityDepositAsPercent());
             }
             this.id = offer.getId();
             return this;

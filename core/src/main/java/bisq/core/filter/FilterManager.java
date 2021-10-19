@@ -242,13 +242,6 @@ public class FilterManager {
                 if (requireUpdateToNewVersionForTrading()) {
                     filterWarningHandler.accept(Res.get("popup.warning.mandatoryUpdate.trading"));
                 }
-
-                if (requireUpdateToNewVersionForDAO()) {
-                    filterWarningHandler.accept(Res.get("popup.warning.mandatoryUpdate.dao"));
-                }
-                if (filter.isDisableDao()) {
-                    filterWarningHandler.accept(Res.get("popup.warning.disable.dao"));
-                }
             }
         });
     }
@@ -431,20 +424,6 @@ public class FilterManager {
         String getDisableTradeBelowVersion = getFilter().getDisableTradeBelowVersion();
         if (getDisableTradeBelowVersion != null && !getDisableTradeBelowVersion.isEmpty()) {
             requireUpdateToNewVersion = Version.isNewVersion(getDisableTradeBelowVersion);
-        }
-
-        return requireUpdateToNewVersion;
-    }
-
-    public boolean requireUpdateToNewVersionForDAO() {
-        if (getFilter() == null) {
-            return false;
-        }
-
-        boolean requireUpdateToNewVersion = false;
-        String disableDaoBelowVersion = getFilter().getDisableDaoBelowVersion();
-        if (disableDaoBelowVersion != null && !disableDaoBelowVersion.isEmpty()) {
-            requireUpdateToNewVersion = Version.isNewVersion(disableDaoBelowVersion);
         }
 
         return requireUpdateToNewVersion;

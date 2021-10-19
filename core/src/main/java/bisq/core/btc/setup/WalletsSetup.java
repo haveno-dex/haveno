@@ -120,7 +120,6 @@ public class WalletsSetup {
     public final BooleanProperty walletsSetupFailed = new SimpleBooleanProperty();
 
     private static final long STARTUP_TIMEOUT = 180;
-    private static final String BSQ_WALLET_FILE_NAME = "haveno_BSQ.wallet";
     private static final String SPV_CHAIN_FILE_NAME = "haveno.spvchain";
 
     private final RegTestHost regTestHost;
@@ -427,7 +426,6 @@ public class WalletsSetup {
         FileUtil.rollingBackup(walletDir, xmrWalletFileName, 20);
         FileUtil.rollingBackup(walletDir, xmrWalletFileName + ".keys", 20);
         FileUtil.rollingBackup(walletDir, xmrWalletFileName + ".address.txt", 20);
-        FileUtil.rollingBackup(walletDir, BSQ_WALLET_FILE_NAME, 20);
     }
 
     public void clearBackups() {
@@ -496,11 +494,6 @@ public class WalletsSetup {
 
     public MoneroWallet getXmrWallet() {
       return walletConfig.getXmrWallet();
-    }
-
-    @Nullable
-    public Wallet getBsqWallet() {
-        return walletConfig.bsqWallet();
     }
 
     public NetworkParameters getParams() {

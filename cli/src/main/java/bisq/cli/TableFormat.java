@@ -19,7 +19,6 @@ package bisq.cli;
 
 import bisq.proto.grpc.AddressBalanceInfo;
 import bisq.proto.grpc.BalancesInfo;
-import bisq.proto.grpc.BsqBalanceInfo;
 import bisq.proto.grpc.BtcBalanceInfo;
 import bisq.proto.grpc.OfferInfo;
 import bisq.proto.grpc.XmrBalanceInfo;
@@ -75,31 +74,7 @@ public class TableFormat {
 
     public static String formatBalancesTbls(BalancesInfo balancesInfo) {
         return "XMR" + "\n"
-                + formatBtcBalanceInfoTbl(balancesInfo.getBtc()) + "\n"
-                + "BSQ" + "\n"
-                + formatBsqBalanceInfoTbl(balancesInfo.getBsq());
-    }
-
-    public static String formatBsqBalanceInfoTbl(BsqBalanceInfo bsqBalanceInfo) {
-        String headerLine = COL_HEADER_AVAILABLE_CONFIRMED_BALANCE + COL_HEADER_DELIMITER
-                + COL_HEADER_UNVERIFIED_BALANCE + COL_HEADER_DELIMITER
-                + COL_HEADER_UNCONFIRMED_CHANGE_BALANCE + COL_HEADER_DELIMITER
-                + COL_HEADER_LOCKED_FOR_VOTING_BALANCE + COL_HEADER_DELIMITER
-                + COL_HEADER_LOCKUP_BONDS_BALANCE + COL_HEADER_DELIMITER
-                + COL_HEADER_UNLOCKING_BONDS_BALANCE + COL_HEADER_DELIMITER + "\n";
-        String colDataFormat = "%" + COL_HEADER_AVAILABLE_CONFIRMED_BALANCE.length() + "s" // rt justify
-                + " %" + (COL_HEADER_UNVERIFIED_BALANCE.length() + 1) + "s" // rt justify
-                + " %" + (COL_HEADER_UNCONFIRMED_CHANGE_BALANCE.length() + 1) + "s" // rt justify
-                + " %" + (COL_HEADER_LOCKED_FOR_VOTING_BALANCE.length() + 1) + "s" // rt justify
-                + " %" + (COL_HEADER_LOCKUP_BONDS_BALANCE.length() + 1) + "s" // rt justify
-                + " %" + (COL_HEADER_UNLOCKING_BONDS_BALANCE.length() + 1) + "s"; // rt justify
-        return headerLine + format(colDataFormat,
-                formatBsq(bsqBalanceInfo.getAvailableConfirmedBalance()),
-                formatBsq(bsqBalanceInfo.getUnverifiedBalance()),
-                formatBsq(bsqBalanceInfo.getUnconfirmedChangeBalance()),
-                formatBsq(bsqBalanceInfo.getLockedForVotingBalance()),
-                formatBsq(bsqBalanceInfo.getLockupBondsBalance()),
-                formatBsq(bsqBalanceInfo.getUnlockingBondsBalance()));
+                + formatBtcBalanceInfoTbl(balancesInfo.getBtc());
     }
 
     public static String formatBtcBalanceInfoTbl(BtcBalanceInfo btcBalanceInfo) {

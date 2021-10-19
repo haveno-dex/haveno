@@ -125,7 +125,6 @@ else
     CMD+=" --market-price-margin=$MKT_PRICE_MARGIN"
 fi
 CMD+=" --security-deposit=50.0"
-CMD+=" --fee-currency=BSQ"
 printdate "ALICE CLI: $CMD"
 OFFER_ID=$(createoffer "$CMD")
 exitoncommandalert $?

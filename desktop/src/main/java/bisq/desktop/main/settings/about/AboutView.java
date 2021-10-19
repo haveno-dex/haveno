@@ -119,9 +119,6 @@ public class AboutView extends ActivatableView<GridPane, Void> {
         addCompactTopLabelTextField(root, ++gridRow, Res.get("setting.about.shortcuts.openEmergencyBtcWalletTool"),
                 Res.get("setting.about.shortcuts.ctrlOrAltOrCmd", "e"));
 
-        addCompactTopLabelTextField(root, ++gridRow, Res.get("setting.about.shortcuts.openEmergencyBsqWalletTool"),
-                Res.get("setting.about.shortcuts.ctrlOrAltOrCmd", "b"));
-
         addCompactTopLabelTextField(root, ++gridRow, Res.get("setting.about.shortcuts.showTorLogs"),
                 Res.get("setting.about.shortcuts.ctrlOrAltOrCmd", "t"));
 
@@ -132,9 +129,6 @@ public class AboutView extends ActivatableView<GridPane, Void> {
 
         addCompactTopLabelTextField(root, ++gridRow, Res.get("setting.about.shortcuts.manualPayoutTxWindow"),
                 Res.get("setting.about.shortcuts.ctrlOrAltOrCmd", "g"));
-
-        addCompactTopLabelTextField(root, ++gridRow, Res.get("setting.about.shortcuts.reRepublishAllGovernanceData"),
-                Res.get("setting.about.shortcuts.ctrlOrAltOrCmd", "h"));
 
         // for arbitrators
         addCompactTopLabelTextField(root, ++gridRow, Res.get("setting.about.shortcuts.registerArbitrator"),

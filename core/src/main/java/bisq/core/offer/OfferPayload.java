@@ -137,7 +137,6 @@ public final class OfferPayload implements ProtectedStoragePayload, ExpirablePay
     private final long blockHeightAtOfferCreation;
     private final long txFee;
     private final long makerFee;
-    private final boolean isCurrencyForMakerFeeBtc;
     private final long buyerSecurityDeposit;
     private final long sellerSecurityDeposit;
     private final long maxTradeLimit;
@@ -206,7 +205,6 @@ public final class OfferPayload implements ProtectedStoragePayload, ExpirablePay
                         long blockHeightAtOfferCreation,
                         long txFee,
                         long makerFee,
-                        boolean isCurrencyForMakerFeeBtc,
                         long buyerSecurityDeposit,
                         long sellerSecurityDeposit,
                         long maxTradeLimit,
@@ -245,7 +243,6 @@ public final class OfferPayload implements ProtectedStoragePayload, ExpirablePay
         this.blockHeightAtOfferCreation = blockHeightAtOfferCreation;
         this.txFee = txFee;
         this.makerFee = makerFee;
-        this.isCurrencyForMakerFeeBtc = isCurrencyForMakerFeeBtc;
         this.buyerSecurityDeposit = buyerSecurityDeposit;
         this.sellerSecurityDeposit = sellerSecurityDeposit;
         this.maxTradeLimit = maxTradeLimit;
@@ -288,7 +285,6 @@ public final class OfferPayload implements ProtectedStoragePayload, ExpirablePay
                 .setBlockHeightAtOfferCreation(blockHeightAtOfferCreation)
                 .setTxFee(txFee)
                 .setMakerFee(makerFee)
-                .setIsCurrencyForMakerFeeBtc(isCurrencyForMakerFeeBtc)
                 .setBuyerSecurityDeposit(buyerSecurityDeposit)
                 .setSellerSecurityDeposit(sellerSecurityDeposit)
                 .setMaxTradeLimit(maxTradeLimit)
@@ -349,7 +345,6 @@ public final class OfferPayload implements ProtectedStoragePayload, ExpirablePay
                 proto.getBlockHeightAtOfferCreation(),
                 proto.getTxFee(),
                 proto.getMakerFee(),
-                proto.getIsCurrencyForMakerFeeBtc(),
                 proto.getBuyerSecurityDeposit(),
                 proto.getSellerSecurityDeposit(),
                 proto.getMaxTradeLimit(),
@@ -417,7 +412,6 @@ public final class OfferPayload implements ProtectedStoragePayload, ExpirablePay
                 ",\n     blockHeightAtOfferCreation=" + blockHeightAtOfferCreation +
                 ",\n     txFee=" + txFee +
                 ",\n     makerFee=" + makerFee +
-                ",\n     isCurrencyForMakerFeeBtc=" + isCurrencyForMakerFeeBtc +
                 ",\n     buyerSecurityDeposit=" + buyerSecurityDeposit +
                 ",\n     sellerSecurityDeposit=" + sellerSecurityDeposit +
                 ",\n     maxTradeLimit=" + maxTradeLimit +

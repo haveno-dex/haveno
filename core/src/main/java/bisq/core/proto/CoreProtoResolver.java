@@ -19,8 +19,6 @@ package bisq.core.proto;
 
 import bisq.core.account.sign.SignedWitness;
 import bisq.core.account.witness.AccountAgeWitness;
-import bisq.core.dao.governance.blindvote.storage.BlindVotePayload;
-import bisq.core.dao.governance.proposal.storage.appendonly.ProposalPayload;
 import bisq.core.payment.payload.AdvancedCashAccountPayload;
 import bisq.core.payment.payload.AliPayAccountPayload;
 import bisq.core.payment.payload.AmazonGiftCardAccountPayload;
@@ -185,10 +183,6 @@ public class CoreProtoResolver implements ProtoResolver {
                     return AccountAgeWitness.fromProto(proto.getAccountAgeWitness());
                 case TRADE_STATISTICS2:
                     return TradeStatistics2.fromProto(proto.getTradeStatistics2());
-                case PROPOSAL_PAYLOAD:
-                    return ProposalPayload.fromProto(proto.getProposalPayload());
-                case BLIND_VOTE_PAYLOAD:
-                    return BlindVotePayload.fromProto(proto.getBlindVotePayload());
                 case SIGNED_WITNESS:
                     return SignedWitness.fromProto(proto.getSignedWitness());
                 case TRADE_STATISTICS3:

@@ -26,31 +26,6 @@ with specific command line options, i.e., unique appDatadir and ports, but this 
 
 The API test harness uses the GNU Bourne-Again SHell `bash`, and is not supported on Windows.
 
-### Predefined DAO / Regtest Setup
-
-The API test harness depends on the contents of https://github.com/bisq-network/bisq/raw/master/docs/dao-setup.zip.
-The files contained in dao-setup.zip include a bitcoin-core wallet, a regtest genesis tx and chain of 111 blocks, plus
-data directories for Bob and Alice Bisq instances.  Bob & Alice wallets are pre-configured with 10 BTC each, and the
-equivalent of 2.5 BTC in BSQ distributed among Bob & Alice's BSQ wallets.
-
-See https://github.com/bisq-network/bisq/blob/master/docs/dao-setup.md for details.
-
-### Install DAO / Regtest Setup Files
-
-Bisq's gradle build file defines a task for downloading dao-setup.zip and extracting its contents to the
-`apitest/src/main/resources` folder, and the test harness will install a fresh set of data files to the
-`apitest/build/resources/main` folder during a test case's scaffold setup phase -- normally a static `@BeforeAll` method.
-
-The dao-setup files can be downloaded during a normal build:
-
-    $ ./gradlew clean build :apitest:installDaoSetup
-
-Or by running a single task:
-
-    $ ./gradlew :apitest:installDaoSetup
-
-The `:apitest:installDaoSetup` task does not need to be run again until after the next time you run the gradle `clean` task.
-
 ### Run API Tests
 
 The API test harness supports narrow & broad functional and full end to end test cases requiring

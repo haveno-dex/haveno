@@ -92,15 +92,14 @@ public class CoinUtil {
     /**
      * Calculates the maker fee for the given amount, marketPrice and marketPriceMargin.
      *
-     * @param isCurrencyForMakerFeeBtc {@code true} to pay fee in BTC, {@code false} to pay fee in BSQ
      * @param amount                   the amount of BTC to trade
      * @return the maker fee for the given trade amount, or {@code null} if the amount is {@code null}
      */
     @Nullable
-    public static Coin getMakerFee(boolean isCurrencyForMakerFeeBtc, @Nullable Coin amount) {
+    public static Coin getMakerFee(@Nullable Coin amount) {
         if (amount != null) {
-            Coin feePerBtc = getFeePerBtc(FeeService.getMakerFeePerBtc(isCurrencyForMakerFeeBtc), amount);
-            return maxCoin(feePerBtc, FeeService.getMinMakerFee(isCurrencyForMakerFeeBtc));
+            Coin feePerBtc = getFeePerBtc(FeeService.getMakerFeePerBtc(), amount);
+            return maxCoin(feePerBtc, FeeService.getMinMakerFee());
         } else {
             return null;
         }

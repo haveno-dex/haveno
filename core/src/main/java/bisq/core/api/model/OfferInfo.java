@@ -51,7 +51,6 @@ public class OfferInfo implements Payload {
     private final long buyerSecurityDeposit;
     private final long sellerSecurityDeposit;
     private final long triggerPrice;
-    private final boolean isCurrencyForMakerFeeBtc;
     private final String paymentAccountId;
     private final String paymentMethodId;
     private final String paymentMethodShortName;
@@ -79,7 +78,6 @@ public class OfferInfo implements Payload {
         this.buyerSecurityDeposit = builder.buyerSecurityDeposit;
         this.sellerSecurityDeposit = builder.sellerSecurityDeposit;
         this.triggerPrice = builder.triggerPrice;
-        this.isCurrencyForMakerFeeBtc = builder.isCurrencyForMakerFeeBtc;
         this.paymentAccountId = builder.paymentAccountId;
         this.paymentMethodId = builder.paymentMethodId;
         this.paymentMethodShortName = builder.paymentMethodShortName;
@@ -116,7 +114,6 @@ public class OfferInfo implements Payload {
                 .withOfferFeePaymentTxId(offer.getOfferFeePaymentTxId())
                 .withBuyerSecurityDeposit(offer.getBuyerSecurityDeposit().value)
                 .withSellerSecurityDeposit(offer.getSellerSecurityDeposit().value)
-                .withIsCurrencyForMakerFeeBtc(offer.isCurrencyForMakerFeeBtc())
                 .withPaymentAccountId(offer.getMakerPaymentAccountId())
                 .withPaymentMethodId(offer.getPaymentMethod().getId())
                 .withPaymentMethodShortName(offer.getPaymentMethod().getShortName())
@@ -148,7 +145,6 @@ public class OfferInfo implements Payload {
                 .setBuyerSecurityDeposit(buyerSecurityDeposit)
                 .setSellerSecurityDeposit(sellerSecurityDeposit)
                 .setTriggerPrice(triggerPrice)
-                .setIsCurrencyForMakerFeeBtc(isCurrencyForMakerFeeBtc)
                 .setPaymentAccountId(paymentAccountId)
                 .setPaymentMethodId(paymentMethodId)
                 .setPaymentMethodShortName(paymentMethodShortName)
@@ -177,7 +173,6 @@ public class OfferInfo implements Payload {
                 .withBuyerSecurityDeposit(proto.getBuyerSecurityDeposit())
                 .withSellerSecurityDeposit(proto.getSellerSecurityDeposit())
                 .withTriggerPrice(proto.getTriggerPrice())
-                .withIsCurrencyForMakerFeeBtc(proto.getIsCurrencyForMakerFeeBtc())
                 .withPaymentAccountId(proto.getPaymentAccountId())
                 .withPaymentMethodId(proto.getPaymentMethodId())
                 .withPaymentMethodShortName(proto.getPaymentMethodShortName())
@@ -210,7 +205,6 @@ public class OfferInfo implements Payload {
         private long buyerSecurityDeposit;
         private long sellerSecurityDeposit;
         private long triggerPrice;
-        private boolean isCurrencyForMakerFeeBtc;
         private String paymentAccountId;
         private String paymentMethodId;
         private String paymentMethodShortName;
@@ -294,10 +288,6 @@ public class OfferInfo implements Payload {
             return this;
         }
 
-        public OfferInfoBuilder withIsCurrencyForMakerFeeBtc(boolean isCurrencyForMakerFeeBtc) {
-            this.isCurrencyForMakerFeeBtc = isCurrencyForMakerFeeBtc;
-            return this;
-        }
 
         public OfferInfoBuilder withPaymentAccountId(String paymentAccountId) {
             this.paymentAccountId = paymentAccountId;

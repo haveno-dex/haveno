@@ -94,7 +94,6 @@ public class P2PNetworkSetup {
                 walletsSetup.numPeersProperty(), hiddenServicePublished, initialP2PNetworkDataReceived,
                 (state, warning, numP2pPeers, numBtcPeers, hiddenService, dataReceived) -> {
                     String result;
-                    String daoFullNode = preferences.isDaoFullNode() ? Res.get("mainView.footer.daoFullNode") + " / " : "";
                     int p2pPeers = (int) numP2pPeers;
                     if (warning != null && p2pPeers == 0) {
                         result = warning;
@@ -107,7 +106,7 @@ public class P2PNetworkSetup {
                         else
                             result = state + " / " + p2pInfo;
                     }
-                    return daoFullNode + result;
+                    return result;
                 });
         p2PNetworkInfoBinding.subscribe((observable, oldValue, newValue) -> {
             p2PNetworkInfo.set(newValue);

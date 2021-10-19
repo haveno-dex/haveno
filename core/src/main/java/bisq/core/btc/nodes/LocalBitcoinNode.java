@@ -52,13 +52,7 @@ public class LocalBitcoinNode {
      */
     public boolean shouldBeIgnored() {
         BaseCurrencyNetwork baseCurrencyNetwork = config.baseCurrencyNetwork;
-
-        // For dao testnet (server side regtest) we disable the use of local bitcoin node
-        // to avoid confusion if local btc node is not synced with our dao testnet master
-        // node. Note: above comment was previously in WalletConfig::createPeerGroup.
-        return config.ignoreLocalBtcNode ||
-                baseCurrencyNetwork.isDaoRegTest() ||
-                baseCurrencyNetwork.isDaoTestNet();
+        return config.ignoreLocalBtcNode;
     }
 
     /**

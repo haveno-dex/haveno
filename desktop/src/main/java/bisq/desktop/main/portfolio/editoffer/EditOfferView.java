@@ -31,7 +31,6 @@ import bisq.core.offer.OpenOffer;
 import bisq.core.user.DontShowAgainLookup;
 import bisq.core.user.Preferences;
 import bisq.core.util.FormattingUtils;
-import bisq.core.util.coin.BsqFormatter;
 import bisq.core.util.coin.CoinFormatter;
 
 import bisq.common.util.Tuple4;
@@ -68,9 +67,8 @@ public class EditOfferView extends MutableOfferView<EditOfferViewModel> {
                           Navigation navigation,
                           Preferences preferences,
                           OfferDetailsWindow offerDetailsWindow,
-                          @Named(FormattingUtils.BTC_FORMATTER_KEY) CoinFormatter btcFormatter,
-                          BsqFormatter bsqFormatter) {
-        super(model, navigation, preferences, offerDetailsWindow, btcFormatter, bsqFormatter);
+                          @Named(FormattingUtils.BTC_FORMATTER_KEY) CoinFormatter btcFormatter) {
+        super(model, navigation, preferences, offerDetailsWindow, btcFormatter);
     }
 
     @Override

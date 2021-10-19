@@ -69,8 +69,6 @@ public final class Filter implements ProtectedStoragePayload, ExpirablePayload {
 
     // The pub key used for the data protection in the p2p storage
     private final byte[] ownerPubKeyBytes;
-    private final boolean disableDao;
-    private final String disableDaoBelowVersion;
     private final String disableTradeBelowVersion;
     private final List<String> mediators;
     private final List<String> refundAgents;
@@ -113,8 +111,6 @@ public final class Filter implements ProtectedStoragePayload, ExpirablePayload {
                 filter.getPriceRelayNodes(),
                 filter.isPreventPublicBtcNetwork(),
                 filter.getBtcNodes(),
-                filter.isDisableDao(),
-                filter.getDisableDaoBelowVersion(),
                 filter.getDisableTradeBelowVersion(),
                 filter.getMediators(),
                 filter.getRefundAgents(),
@@ -145,8 +141,6 @@ public final class Filter implements ProtectedStoragePayload, ExpirablePayload {
                 filter.getPriceRelayNodes(),
                 filter.isPreventPublicBtcNetwork(),
                 filter.getBtcNodes(),
-                filter.isDisableDao(),
-                filter.getDisableDaoBelowVersion(),
                 filter.getDisableTradeBelowVersion(),
                 filter.getMediators(),
                 filter.getRefundAgents(),
@@ -175,8 +169,6 @@ public final class Filter implements ProtectedStoragePayload, ExpirablePayload {
                   List<String> priceRelayNodes,
                   boolean preventPublicBtcNetwork,
                   List<String> btcNodes,
-                  boolean disableDao,
-                  String disableDaoBelowVersion,
                   String disableTradeBelowVersion,
                   List<String> mediators,
                   List<String> refundAgents,
@@ -200,8 +192,6 @@ public final class Filter implements ProtectedStoragePayload, ExpirablePayload {
                 priceRelayNodes,
                 preventPublicBtcNetwork,
                 btcNodes,
-                disableDao,
-                disableDaoBelowVersion,
                 disableTradeBelowVersion,
                 mediators,
                 refundAgents,
@@ -236,8 +226,6 @@ public final class Filter implements ProtectedStoragePayload, ExpirablePayload {
                   List<String> priceRelayNodes,
                   boolean preventPublicBtcNetwork,
                   List<String> btcNodes,
-                  boolean disableDao,
-                  String disableDaoBelowVersion,
                   String disableTradeBelowVersion,
                   List<String> mediators,
                   List<String> refundAgents,
@@ -264,8 +252,6 @@ public final class Filter implements ProtectedStoragePayload, ExpirablePayload {
         this.priceRelayNodes = priceRelayNodes;
         this.preventPublicBtcNetwork = preventPublicBtcNetwork;
         this.btcNodes = btcNodes;
-        this.disableDao = disableDao;
-        this.disableDaoBelowVersion = disableDaoBelowVersion;
         this.disableTradeBelowVersion = disableTradeBelowVersion;
         this.mediators = mediators;
         this.refundAgents = refundAgents;
@@ -307,8 +293,6 @@ public final class Filter implements ProtectedStoragePayload, ExpirablePayload {
                 .addAllPriceRelayNodes(priceRelayNodes)
                 .setPreventPublicBtcNetwork(preventPublicBtcNetwork)
                 .addAllBtcNodes(btcNodes)
-                .setDisableDao(disableDao)
-                .setDisableDaoBelowVersion(disableDaoBelowVersion)
                 .setDisableTradeBelowVersion(disableTradeBelowVersion)
                 .addAllMediators(mediators)
                 .addAllRefundAgents(refundAgents)
@@ -346,8 +330,6 @@ public final class Filter implements ProtectedStoragePayload, ExpirablePayload {
                 ProtoUtil.protocolStringListToList(proto.getPriceRelayNodesList()),
                 proto.getPreventPublicBtcNetwork(),
                 ProtoUtil.protocolStringListToList(proto.getBtcNodesList()),
-                proto.getDisableDao(),
-                proto.getDisableDaoBelowVersion(),
                 proto.getDisableTradeBelowVersion(),
                 ProtoUtil.protocolStringListToList(proto.getMediatorsList()),
                 ProtoUtil.protocolStringListToList(proto.getRefundAgentsList()),
@@ -394,8 +376,6 @@ public final class Filter implements ProtectedStoragePayload, ExpirablePayload {
                 ",\n     signatureAsBase64='" + signatureAsBase64 + '\'' +
                 ",\n     signerPubKeyAsHex='" + signerPubKeyAsHex + '\'' +
                 ",\n     ownerPubKeyBytes=" + Utilities.bytesAsHexString(ownerPubKeyBytes) +
-                ",\n     disableDao=" + disableDao +
-                ",\n     disableDaoBelowVersion='" + disableDaoBelowVersion + '\'' +
                 ",\n     disableTradeBelowVersion='" + disableTradeBelowVersion + '\'' +
                 ",\n     mediators=" + mediators +
                 ",\n     refundAgents=" + refundAgents +

@@ -84,12 +84,8 @@ public class BisqHeadlessApp implements HeadlessApp {
         bisqSetup.setDisplayUpdateHandler((alert, key) -> log.info("onDisplayUpdateHandler"));
         bisqSetup.setDisplayAlertHandler(alert -> log.info("onDisplayAlertHandler. alert={}", alert));
         bisqSetup.setDisplayPrivateNotificationHandler(privateNotification -> log.info("onDisplayPrivateNotificationHandler. privateNotification={}", privateNotification));
-        bisqSetup.setDaoErrorMessageHandler(errorMessage -> log.error("onDaoErrorMessageHandler. errorMessage={}", errorMessage));
-        bisqSetup.setDaoWarnMessageHandler(warnMessage -> log.warn("onDaoWarnMessageHandler. warnMessage={}", warnMessage));
         bisqSetup.setDisplaySecurityRecommendationHandler(key -> log.info("onDisplaySecurityRecommendationHandler"));
-        bisqSetup.setDisplayLocalhostHandler(key -> log.info("onDisplayLocalhostHandler"));
         bisqSetup.setWrongOSArchitectureHandler(msg -> log.error("onWrongOSArchitectureHandler. msg={}", msg));
-        bisqSetup.setVoteResultExceptionHandler(voteResultException -> log.warn("voteResultException={}", voteResultException.toString()));
         bisqSetup.setRejectedTxErrorMessageHandler(errorMessage -> log.warn("setRejectedTxErrorMessageHandler. errorMessage={}", errorMessage));
         bisqSetup.setShowPopupIfInvalidBtcConfigHandler(() -> log.error("onShowPopupIfInvalidBtcConfigHandler"));
         bisqSetup.setRevolutAccountsUpdateHandler(revolutAccountList -> log.info("setRevolutAccountsUpdateHandler: revolutAccountList={}", revolutAccountList));
@@ -97,12 +93,6 @@ public class BisqHeadlessApp implements HeadlessApp {
         bisqSetup.setQubesOSInfoHandler(() -> log.info("setQubesOSInfoHandler"));
         bisqSetup.setDownGradePreventionHandler(lastVersion -> log.info("Downgrade from version {} to version {} is not supported",
                 lastVersion, Version.VERSION));
-        bisqSetup.setDaoRequiresRestartHandler(() -> {
-            log.info("There was a problem with synchronizing the DAO state. " +
-                    "A restart of the application is required to fix the issue.");
-            gracefulShutDownHandler.gracefulShutDown(() -> {
-            });
-        });
 
         corruptedStorageFileHandler.getFiles().ifPresent(files -> log.warn("getCorruptedDatabaseFiles. files={}", files));
         tradeManager.setTakeOfferRequestErrorMessageHandler(errorMessage -> log.error("onTakeOfferRequestErrorMessageHandler"));

@@ -111,7 +111,7 @@ import monero.wallet.MoneroWallet;
 import monero.wallet.model.MoneroTxWallet;
 
 /**
- * Abstract base class for BTC and BSQ wallet. Provides all non-trade specific functionality.
+ * Abstract base class for BTC wallet. Provides all non-trade specific functionality.
  */
 @Slf4j
 public abstract class WalletService {

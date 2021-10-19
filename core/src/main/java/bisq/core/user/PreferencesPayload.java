@@ -57,8 +57,6 @@ public final class PreferencesPayload implements PersistableEnvelope {
     private BlockChainExplorer blockChainExplorerMainNet;
     private BlockChainExplorer blockChainExplorerTestNet;
     @Nullable
-    private BlockChainExplorer bsqBlockChainExplorer;
-    @Nullable
     private String backupDirectory;
     private boolean autoSelectArbitrators = true;
     private Map<String, Boolean> dontShowAgainMap = new HashMap<>();
@@ -95,7 +93,6 @@ public final class PreferencesPayload implements PersistableEnvelope {
     private int cssTheme;
     @Nullable
     private PaymentAccount selectedPaymentAccountForCreateOffer;
-    private boolean payFeeInBtc = true;
     @Nullable
     private List<String> bridgeAddresses;
     private int bridgeOptionOrdinal;
@@ -112,7 +109,6 @@ public final class PreferencesPayload implements PersistableEnvelope {
     private boolean useMarketNotifications = true;
     private boolean usePriceNotifications = true;
     private boolean useStandbyMode = false;
-    private boolean isDaoFullNode = false;
     @Nullable
     private String rpcUser;
     @Nullable
@@ -124,7 +120,6 @@ public final class PreferencesPayload implements PersistableEnvelope {
     private double buyerSecurityDepositAsPercentForCrypto = getDefaultBuyerSecurityDepositAsPercent();
     private int blockNotifyPort;
     private boolean tacAcceptedV120;
-    private double bsqAverageTrimThreshold = 0.05;
 
     // Added at 1.3.8
     private List<AutoConfirmSettings> autoConfirmSettingsList = new ArrayList<>();
@@ -179,7 +174,6 @@ public final class PreferencesPayload implements PersistableEnvelope {
                 .setBuyerSecurityDepositAsLong(buyerSecurityDepositAsLong)
                 .setUseAnimations(useAnimations)
                 .setCssTheme(cssTheme)
-                .setPayFeeInBtc(payFeeInBtc)
                 .setBridgeOptionOrdinal(bridgeOptionOrdinal)
                 .setTorTransportOrdinal(torTransportOrdinal)
                 .setBitcoinNodesOptionOrdinal(bitcoinNodesOptionOrdinal)
@@ -188,13 +182,11 @@ public final class PreferencesPayload implements PersistableEnvelope {
                 .setUseMarketNotifications(useMarketNotifications)
                 .setUsePriceNotifications(usePriceNotifications)
                 .setUseStandbyMode(useStandbyMode)
-                .setIsDaoFullNode(isDaoFullNode)
                 .setBuyerSecurityDepositAsPercent(buyerSecurityDepositAsPercent)
                 .setIgnoreDustThreshold(ignoreDustThreshold)
                 .setBuyerSecurityDepositAsPercentForCrypto(buyerSecurityDepositAsPercentForCrypto)
                 .setBlockNotifyPort(blockNotifyPort)
                 .setTacAcceptedV120(tacAcceptedV120)
-                .setBsqAverageTrimThreshold(bsqAverageTrimThreshold)
                 .addAllAutoConfirmSettings(autoConfirmSettingsList.stream()
                         .map(autoConfirmSettings -> ((protobuf.AutoConfirmSettings) autoConfirmSettings.toProtoMessage()))
                         .collect(Collectors.toList()))
@@ -218,7 +210,6 @@ public final class PreferencesPayload implements PersistableEnvelope {
         Optional.ofNullable(rpcUser).ifPresent(builder::setRpcUser);
         Optional.ofNullable(rpcPw).ifPresent(builder::setRpcPw);
         Optional.ofNullable(takeOfferSelectedPaymentAccountId).ifPresent(builder::setTakeOfferSelectedPaymentAccountId);
-        Optional.ofNullable(bsqBlockChainExplorer).ifPresent(e -> builder.setBsqBlockChainExplorer((protobuf.BlockChainExplorer) e.toProtoMessage()));
 
         return protobuf.PersistableEnvelope.newBuilder().setPreferencesPayload(builder).build();
     }
@@ -242,7 +233,6 @@ public final class PreferencesPayload implements PersistableEnvelope {
                                 .collect(Collectors.toList())),
                 BlockChainExplorer.fromProto(proto.getBlockChainExplorerMainNet()),
                 BlockChainExplorer.fromProto(proto.getBlockChainExplorerTestNet()),
-                proto.hasBsqBlockChainExplorer() ? BlockChainExplorer.fromProto(proto.getBsqBlockChainExplorer()) : null,
                 ProtoUtil.stringOrNullFromProto(proto.getBackupDirectory()),
                 proto.getAutoSelectArbitrators(),
                 Maps.newHashMap(proto.getDontShowAgainMapMap()),
@@ -269,7 +259,6 @@ public final class PreferencesPayload implements PersistableEnvelope {
                 proto.getUseAnimations(),
                 proto.getCssTheme(),
                 paymentAccount,
-                proto.getPayFeeInBtc(),
                 proto.getBridgeAddressesList().isEmpty() ? null : new ArrayList<>(proto.getBridgeAddressesList()),
                 proto.getBridgeOptionOrdinal(),
                 proto.getTorTransportOrdinal(),
@@ -282,7 +271,6 @@ public final class PreferencesPayload implements PersistableEnvelope {
                 proto.getUseMarketNotifications(),
                 proto.getUsePriceNotifications(),
                 proto.getUseStandbyMode(),
-                proto.getIsDaoFullNode(),
                 proto.getRpcUser().isEmpty() ? null : proto.getRpcUser(),
                 proto.getRpcPw().isEmpty() ? null : proto.getRpcPw(),
                 proto.getTakeOfferSelectedPaymentAccountId().isEmpty() ? null : proto.getTakeOfferSelectedPaymentAccountId(),
@@ -291,7 +279,6 @@ public final class PreferencesPayload implements PersistableEnvelope {
                 proto.getBuyerSecurityDepositAsPercentForCrypto(),
                 proto.getBlockNotifyPort(),
                 proto.getTacAcceptedV120(),
-                proto.getBsqAverageTrimThreshold(),
                 proto.getAutoConfirmSettingsList().isEmpty() ? new ArrayList<>() :
                         new ArrayList<>(proto.getAutoConfirmSettingsList().stream()
                                 .map(AutoConfirmSettings::fromProto)

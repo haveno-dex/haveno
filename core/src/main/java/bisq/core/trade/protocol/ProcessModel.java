@@ -19,11 +19,9 @@ package bisq.core.trade.protocol;
 
 import bisq.core.account.witness.AccountAgeWitnessService;
 import bisq.core.btc.model.RawTransactionInput;
-import bisq.core.btc.wallet.BsqWalletService;
 import bisq.core.btc.wallet.BtcWalletService;
 import bisq.core.btc.wallet.TradeWalletService;
 import bisq.core.btc.wallet.XmrWalletService;
-import bisq.core.dao.DaoFacade;
 import bisq.core.filter.FilterManager;
 import bisq.core.network.MessageState;
 import bisq.core.offer.Offer;
@@ -403,10 +401,6 @@ public class ProcessModel implements Model, PersistablePayload {
         return provider.getP2PService();
     }
 
-    public BsqWalletService getBsqWalletService() {
-        return provider.getBsqWalletService();
-    }
-
     public TradeWalletService getTradeWalletService() {
         return provider.getTradeWalletService();
     }
@@ -445,10 +439,6 @@ public class ProcessModel implements Model, PersistablePayload {
 
     public KeyRing getKeyRing() {
         return provider.getKeyRing();
-    }
-
-    public DaoFacade getDaoFacade() {
-        return provider.getDaoFacade();
     }
 
     public void setBuyerSignedPayoutTx(MoneroTxWallet buyerSignedPayoutTx) {

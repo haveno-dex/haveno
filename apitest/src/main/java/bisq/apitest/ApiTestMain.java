@@ -38,7 +38,7 @@ import bisq.apitest.config.ApiTestConfig;
  *
  * It can be used to smoke test your bitcoind environment:  bisq-apitest.
  *
- * It can be used to run the regtest/dao environment for release testing:
+ * It can be used to run the regtest environment for release testing:
  * bisq-test --shutdownAfterTests=false
  *
  * All method, scenario and end to end tests are found in the test sources folder.

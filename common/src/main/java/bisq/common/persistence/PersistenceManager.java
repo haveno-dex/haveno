@@ -67,8 +67,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
  * with the modified model that data is written at shut down we eliminate frequent and expensive disk I/O. Risks of
  * deadlock or data inconsistency and a more complex model have been a further argument for that model. In fact
  * previously we wasted a lot of resources as way too many threads have been created without doing actual work as well
- * the write operations got triggered way too often specially for the very frequent changes at SequenceNumberMap and
- * the very large DaoState (at dao blockchain sync that slowed down sync).
+ * the write operations got triggered way too often specially for the very frequent changes at SequenceNumberMap
  *
  *
  * @param <T>   The type of the {@link PersistableEnvelope} to be written or read from disk

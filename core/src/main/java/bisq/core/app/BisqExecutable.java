@@ -18,11 +18,8 @@
 package bisq.core.app;
 
 import bisq.core.btc.setup.WalletsSetup;
-import bisq.core.btc.wallet.BsqWalletService;
 import bisq.core.btc.wallet.BtcWalletService;
 import bisq.core.btc.wallet.XmrWalletService;
-import bisq.core.dao.DaoSetup;
-import bisq.core.dao.node.full.RpcService;
 import bisq.core.offer.OpenOfferManager;
 import bisq.core.provider.price.PriceFeedService;
 import bisq.core.setup.CorePersistedDataHost;
@@ -235,8 +232,6 @@ public abstract class BisqExecutable implements GracefulShutDownHandler, BisqSet
             injector.getInstance(ArbitratorManager.class).shutDown();
             injector.getInstance(TradeStatisticsManager.class).shutDown();
             injector.getInstance(XmrTxProofService.class).shutDown();
-            injector.getInstance(RpcService.class).shutDown();
-            injector.getInstance(DaoSetup.class).shutDown();
             injector.getInstance(AvoidStandbyModeService.class).shutDown();
             injector.getInstance(XmrWalletService.class).shutDown(); // TODO: why not shut down BtcWalletService, etc?
             log.info("OpenOfferManager shutdown started");
@@ -244,7 +239,6 @@ public abstract class BisqExecutable implements GracefulShutDownHandler, BisqSet
                 log.info("OpenOfferManager shutdown completed");
 
                 injector.getInstance(BtcWalletService.class).shutDown();
-                injector.getInstance(BsqWalletService.class).shutDown();
 
                 // We need to shutdown BitcoinJ before the P2PService as it uses Tor.
                 WalletsSetup walletsSetup = injector.getInstance(WalletsSetup.class);

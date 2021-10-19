@@ -21,7 +21,6 @@ import bisq.desktop.components.indicator.TxConfidenceIndicator;
 import bisq.desktop.util.GUIUtil;
 
 import bisq.core.btc.listeners.TxConfidenceListener;
-import bisq.core.btc.wallet.BsqWalletService;
 
 import org.bitcoinj.core.Transaction;
 import org.bitcoinj.core.TransactionConfidence;
@@ -33,15 +32,12 @@ import lombok.Data;
 
 @Data
 public class TxConfidenceListItem {
-    protected final BsqWalletService bsqWalletService;
     protected final String txId;
     protected int confirmations = 0;
     protected TxConfidenceIndicator txConfidenceIndicator;
     protected TxConfidenceListener txConfidenceListener;
 
-    protected TxConfidenceListItem(Transaction transaction,
-                                   BsqWalletService bsqWalletService) {
-        this.bsqWalletService = bsqWalletService;
+    protected TxConfidenceListItem(Transaction transaction) {
 
         txId = transaction.getTxId().toString();
         txConfidenceIndicator = new TxConfidenceIndicator();
@@ -57,12 +53,9 @@ public class TxConfidenceListItem {
                 updateConfidence(confidence, tooltip);
             }
         };
-        bsqWalletService.addTxConfidenceListener(txConfidenceListener);
-        updateConfidence(bsqWalletService.getConfidenceForTxId(txId), tooltip);
     }
 
     protected TxConfidenceListItem() {
-        this.bsqWalletService = null;
         this.txId = null;
     }
 
@@ -74,7 +67,6 @@ public class TxConfidenceListItem {
     }
 
     public void cleanup() {
-        bsqWalletService.removeTxConfidenceListener(txConfidenceListener);
     }
 }
 

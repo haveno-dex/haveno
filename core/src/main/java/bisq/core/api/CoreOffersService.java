@@ -200,11 +200,9 @@ class CoreOffersService {
                              double buyerSecurityDeposit,
                              long triggerPrice,
                              String paymentAccountId,
-                             String makerFeeCurrencyCode,
                              Consumer<Offer> resultHandler) {
         coreWalletsService.verifyWalletsAreAvailable();
         coreWalletsService.verifyEncryptedWalletIsUnlocked();
-        offerUtil.maybeSetFeePaymentCurrencyPreference(makerFeeCurrencyCode);
 
         PaymentAccount paymentAccount = user.getPaymentAccount(paymentAccountId);
         if (paymentAccount == null)

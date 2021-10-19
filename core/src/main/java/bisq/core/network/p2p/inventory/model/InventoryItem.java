@@ -60,36 +60,6 @@ public enum InventoryItem {
             true,
             new DeviationByIntegerDiff(1, 1), 2),
 
-    // Should be very close values
-    TempProposalPayload("TempProposalPayload",
-            true,
-            new DeviationByIntegerDiff(3, 5), 2),
-    ProposalPayload("ProposalPayload",
-            true,
-            new DeviationByIntegerDiff(1, 2), 2),
-    BlindVotePayload("BlindVotePayload",
-            true,
-            new DeviationByIntegerDiff(1, 2), 2),
-
-    // Should be very close values
-    daoStateChainHeight("daoStateChainHeight",
-            true,
-            new DeviationByIntegerDiff(2, 4), 3),
-    numBsqBlocks("numBsqBlocks",
-            true,
-            new DeviationByIntegerDiff(2, 4), 3),
-
-    // Has to be same values at same block
-    daoStateHash("daoStateHash",
-            false,
-            new DeviationOfHashes(), 1),
-    proposalHash("proposalHash",
-            false,
-            new DeviationOfHashes(), 1),
-    blindVoteHash("blindVoteHash",
-            false,
-            new DeviationOfHashes(), 1),
-
     // Percentage deviation
     maxConnections("maxConnections",
             true,
@@ -172,8 +142,7 @@ public enum InventoryItem {
 
     public DeviationSeverity getDeviationSeverity(Double deviation,
                                                   Collection<List<RequestInfo>> collection,
-                                                  @Nullable String value,
-                                                  String currentBlockHeight) {
+                                                  @Nullable String value) {
         if (deviationType == null || deviation == null || value == null) {
             return DeviationSeverity.OK;
         }
@@ -183,7 +152,7 @@ public enum InventoryItem {
         } else if (deviationType instanceof DeviationByIntegerDiff) {
             return ((DeviationByIntegerDiff) deviationType).getDeviationSeverity(collection, value, this);
         } else if (deviationType instanceof DeviationOfHashes) {
-            return ((DeviationOfHashes) deviationType).getDeviationSeverity(collection, value, this, currentBlockHeight);
+            return ((DeviationOfHashes) deviationType).getDeviationSeverity(collection, value, this);
         } else {
             return DeviationSeverity.OK;
         }

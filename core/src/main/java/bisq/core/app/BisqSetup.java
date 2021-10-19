@@ -30,8 +30,6 @@ import bisq.core.btc.wallet.BtcWalletService;
 import bisq.core.btc.wallet.WalletsManager;
 import bisq.core.btc.wallet.XmrWalletService;
 import bisq.core.btc.wallet.http.MemPoolSpaceTxBroadcaster;
-import bisq.core.dao.governance.voteresult.VoteResultException;
-import bisq.core.dao.state.unconfirmed.UnconfirmedBsqChangeOutputListService;
 import bisq.core.locale.Res;
 import bisq.core.offer.OpenOfferManager;
 import bisq.core.payment.AmazonGiftCardAccount;
@@ -135,7 +133,6 @@ public class BisqSetup {
     private final Preferences preferences;
     private final User user;
     private final AlertManager alertManager;
-    private final UnconfirmedBsqChangeOutputListService unconfirmedBsqChangeOutputListService;
     private final Config config;
     private final AccountAgeWitnessService accountAgeWitnessService;
     private final TorSetup torSetup;
@@ -149,7 +146,7 @@ public class BisqSetup {
     @Setter
     @Nullable
     private Consumer<String> chainFileLockedExceptionHandler,
-            spvFileCorruptedHandler, lockedUpFundsHandler, daoErrorMessageHandler, daoWarnMessageHandler,
+            spvFileCorruptedHandler, lockedUpFundsHandler,
             filterWarningHandler, displaySecurityRecommendationHandler, displayLocalhostHandler,
             wrongOSArchitectureHandler, displaySignedByArbitratorHandler,
             displaySignedByPeerHandler, displayPeerLimitLiftedHandler, displayPeerSignerHandler,
@@ -171,9 +168,6 @@ public class BisqSetup {
     private BiConsumer<Alert, String> displayUpdateHandler;
     @Setter
     @Nullable
-    private Consumer<VoteResultException> voteResultExceptionHandler;
-    @Setter
-    @Nullable
     private Consumer<PrivateNotificationPayload> displayPrivateNotificationHandler;
     @Setter
     @Nullable
@@ -190,9 +184,6 @@ public class BisqSetup {
     @Setter
     @Nullable
     private Runnable qubesOSInfoHandler;
-    @Setter
-    @Nullable
-    private Runnable daoRequiresRestartHandler;
     @Setter
     @Nullable
     private Consumer<String> downGradePreventionHandler;
@@ -221,7 +212,6 @@ public class BisqSetup {
                      Preferences preferences,
                      User user,
                      AlertManager alertManager,
-                     UnconfirmedBsqChangeOutputListService unconfirmedBsqChangeOutputListService,
                      Config config,
                      AccountAgeWitnessService accountAgeWitnessService,
                      TorSetup torSetup,
@@ -243,7 +233,6 @@ public class BisqSetup {
         this.preferences = preferences;
         this.user = user;
         this.alertManager = alertManager;
-        this.unconfirmedBsqChangeOutputListService = unconfirmedBsqChangeOutputListService;
         this.config = config;
         this.accountAgeWitnessService = accountAgeWitnessService;
         this.torSetup = torSetup;
@@ -334,10 +323,6 @@ public class BisqSetup {
             try {
                 walletsSetup.reSyncSPVChain();
 
-                // In case we had an unconfirmed change output we reset the unconfirmedBsqChangeOutputList so that
-                // after a SPV resync we do not have any dangling BSQ utxos in that list which would cause an incorrect
-                // BSQ balance state after the SPV resync.
-                unconfirmedBsqChangeOutputListService.onSpvResync();
             } catch (IOException e) {
                 log.error(e.toString());
                 e.printStackTrace();
@@ -461,13 +446,9 @@ public class BisqSetup {
 
         domainInitialisation.initDomainServices(rejectedTxErrorMessageHandler,
                 displayPrivateNotificationHandler,
-                daoErrorMessageHandler,
-                daoWarnMessageHandler,
                 filterWarningHandler,
-                voteResultExceptionHandler,
                 revolutAccountsUpdateHandler,
-                amazonGiftCardAccountsUpdateHandler,
-                daoRequiresRestartHandler);
+                amazonGiftCardAccountsUpdateHandler);
 
         if (walletsSetup.downloadPercentageProperty().get() == 1) {
             checkForLockedUpFunds();

@@ -55,7 +55,6 @@ import static joptsimple.internal.Strings.EMPTY;
 public class ApiTestConfig {
 
     // Global constants
-    public static final String BSQ = "BSQ";
     public static final String BTC = "BTC";
     public static final String XMR = "XMR";
     public static final String ARBITRATOR = "arbitrator";

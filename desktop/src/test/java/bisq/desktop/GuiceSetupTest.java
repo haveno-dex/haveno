@@ -4,7 +4,6 @@ import bisq.desktop.app.BisqAppModule;
 import bisq.desktop.common.view.CachingViewLoader;
 import bisq.desktop.common.view.ViewLoader;
 import bisq.desktop.common.view.guice.InjectorViewFactory;
-import bisq.desktop.main.dao.bonding.BondingViewUtils;
 import bisq.desktop.main.funds.transactions.DisplayedTransactionsFactory;
 import bisq.desktop.main.funds.transactions.TradableRepository;
 import bisq.desktop.main.funds.transactions.TransactionAwareTradableFactory;
@@ -12,7 +11,6 @@ import bisq.desktop.main.funds.transactions.TransactionListItemFactory;
 import bisq.desktop.main.offer.offerbook.OfferBook;
 import bisq.desktop.main.overlays.notifications.NotificationCenter;
 import bisq.desktop.main.overlays.windows.TorNetworkSettingsWindow;
-import bisq.desktop.main.presentation.DaoPresentation;
 import bisq.desktop.main.presentation.MarketPricePresentation;
 import bisq.desktop.util.Transitions;
 
@@ -46,7 +44,6 @@ import bisq.core.support.dispute.mediation.mediator.MediatorService;
 import bisq.core.support.traderchat.TraderChatManager;
 import bisq.core.user.Preferences;
 import bisq.core.user.User;
-import bisq.core.util.coin.BsqFormatter;
 
 import bisq.network.p2p.network.BridgeAddressProvider;
 import bisq.network.p2p.seed.SeedNodeRepository;
@@ -92,17 +89,14 @@ public class GuiceSetupTest {
         assertSingleton(Navigation.class);
         assertSingleton(InjectorViewFactory.class);
         assertSingleton(NotificationCenter.class);
-        assertSingleton(BsqFormatter.class);
         assertSingleton(TorNetworkSettingsWindow.class);
         assertSingleton(MarketPricePresentation.class);
         assertSingleton(ViewLoader.class);
-        assertSingleton(DaoPresentation.class);
         assertSingleton(Transitions.class);
         assertSingleton(TradableRepository.class);
         assertSingleton(TransactionListItemFactory.class);
         assertSingleton(TransactionAwareTradableFactory.class);
         assertSingleton(DisplayedTransactionsFactory.class);
-        assertSingleton(BondingViewUtils.class);
 
         // core module
 //        assertSingleton(BisqSetup.class); // this is a can of worms

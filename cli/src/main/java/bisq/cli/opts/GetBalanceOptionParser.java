@@ -25,7 +25,7 @@ import static joptsimple.internal.Strings.EMPTY;
 
 public class GetBalanceOptionParser extends AbstractMethodOptionParser implements MethodOpts {
 
-    final OptionSpec<String> currencyCodeOpt = parser.accepts(OPT_CURRENCY_CODE, "wallet currency code (bsq|btc)")
+    final OptionSpec<String> currencyCodeOpt = parser.accepts(OPT_CURRENCY_CODE, "wallet currency code (btc)")
             .withOptionalArg()
             .defaultsTo(EMPTY);
 

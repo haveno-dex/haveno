@@ -21,7 +21,6 @@ import bisq.desktop.Navigation;
 import bisq.desktop.common.model.ViewModel;
 import bisq.desktop.main.offer.MutableOfferViewModel;
 import bisq.desktop.util.validation.AltcoinValidator;
-import bisq.desktop.util.validation.BsqValidator;
 import bisq.desktop.util.validation.BtcValidator;
 import bisq.desktop.util.validation.FiatPriceValidator;
 import bisq.desktop.util.validation.FiatVolumeValidator;
@@ -32,7 +31,6 @@ import bisq.core.offer.OfferUtil;
 import bisq.core.provider.price.PriceFeedService;
 import bisq.core.user.Preferences;
 import bisq.core.util.FormattingUtils;
-import bisq.core.util.coin.BsqFormatter;
 import bisq.core.util.coin.CoinFormatter;
 
 import com.google.inject.Inject;
@@ -47,28 +45,24 @@ class CreateOfferViewModel extends MutableOfferViewModel<CreateOfferDataModel> i
                                 FiatPriceValidator fiatPriceValidator,
                                 AltcoinValidator altcoinValidator,
                                 BtcValidator btcValidator,
-                                BsqValidator bsqValidator,
                                 SecurityDepositValidator securityDepositValidator,
                                 PriceFeedService priceFeedService,
                                 AccountAgeWitnessService accountAgeWitnessService,
                                 Navigation navigation,
                                 Preferences preferences,
                                 @Named(FormattingUtils.BTC_FORMATTER_KEY) CoinFormatter btcFormatter,
-                                BsqFormatter bsqFormatter,
                                 OfferUtil offerUtil) {
         super(dataModel,
                 fiatVolumeValidator,
                 fiatPriceValidator,
                 altcoinValidator,
                 btcValidator,
-                bsqValidator,
                 securityDepositValidator,
                 priceFeedService,
                 accountAgeWitnessService,
                 navigation,
                 preferences,
                 btcFormatter,
-                bsqFormatter,
                 offerUtil);
     }
 }

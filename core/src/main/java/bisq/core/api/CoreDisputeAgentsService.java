@@ -82,7 +82,6 @@ class CoreDisputeAgentsService {
             throw new IllegalStateException("p2p service is not bootstrapped yet");
 
         if (config.baseCurrencyNetwork.isMainnet()
-                || config.baseCurrencyNetwork.isDaoBetaNet()
                 || !config.useLocalhostForP2P)
             throw new IllegalStateException("dispute agents must be registered in a Bisq UI");
 

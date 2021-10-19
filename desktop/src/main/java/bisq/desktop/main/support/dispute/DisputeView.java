@@ -35,7 +35,6 @@ import bisq.desktop.util.GUIUtil;
 
 import bisq.core.account.witness.AccountAgeWitnessService;
 import bisq.core.alert.PrivateNotificationManager;
-import bisq.core.dao.DaoFacade;
 import bisq.core.locale.CurrencyUtil;
 import bisq.core.locale.Res;
 import bisq.core.support.SupportType;
@@ -160,7 +159,6 @@ public abstract class DisputeView extends ActivatableView<VBox, Void> {
     private final AccountAgeWitnessService accountAgeWitnessService;
     private final MediatorManager mediatorManager;
     private final RefundAgentManager refundAgentManager;
-    protected final DaoFacade daoFacade;
     private final boolean useDevPrivilegeKeys;
 
     protected TableView<Dispute> tableView;
@@ -202,7 +200,6 @@ public abstract class DisputeView extends ActivatableView<VBox, Void> {
                        AccountAgeWitnessService accountAgeWitnessService,
                        MediatorManager mediatorManager,
                        RefundAgentManager refundAgentManager,
-                       DaoFacade daoFacade,
                        boolean useDevPrivilegeKeys) {
         this.disputeManager = disputeManager;
         this.keyRing = keyRing;
@@ -216,7 +213,6 @@ public abstract class DisputeView extends ActivatableView<VBox, Void> {
         this.accountAgeWitnessService = accountAgeWitnessService;
         this.mediatorManager = mediatorManager;
         this.refundAgentManager = refundAgentManager;
-        this.daoFacade = daoFacade;
         this.useDevPrivilegeKeys = useDevPrivilegeKeys;
         DisputeChatPopup.ChatCallback chatCallback = this::handleOnProcessDispute;
         chatPopup = new DisputeChatPopup(disputeManager, formatter, preferences, chatCallback);
@@ -652,7 +648,6 @@ public abstract class DisputeView extends ActivatableView<VBox, Void> {
                 .append("Summary notes").append(";")
                 .append("Summary notes (other trader)");
 
-        Map<Integer, Date> blockStartDateByCycleIndex = daoFacade.getBlockStartDateByCycleIndex();
 
         SimpleDateFormat dateFormatter = new SimpleDateFormat("yyyy MM dd HH:mm:ss");
         AtomicInteger disputeIndex = new AtomicInteger();
@@ -676,14 +671,6 @@ public abstract class DisputeView extends ActivatableView<VBox, Void> {
 
                 // Index we display starts with 1 not with 0
                 int cycleIndex = 0;
-                if (disputeResult != null) {
-                    Date closeDate = disputeResult.getCloseDate();
-                    cycleIndex = blockStartDateByCycleIndex.entrySet().stream()
-                            .filter(e -> e.getValue().after(closeDate))
-                            .findFirst()
-                            .map(Map.Entry::getKey)
-                            .orElse(0);
-                }
                 stringBuilder.append("\n").append("Dispute nr.: ").append(index).append("\n");
 
                 if (cycleIndex > 0) {

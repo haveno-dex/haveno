@@ -27,7 +27,6 @@ import bisq.core.account.witness.AccountAgeWitnessService;
 import bisq.core.btc.TxFeeEstimationService;
 import bisq.core.btc.listeners.XmrBalanceListener;
 import bisq.core.btc.model.XmrAddressEntry;
-import bisq.core.btc.wallet.BsqWalletService;
 import bisq.core.btc.wallet.Restrictions;
 import bisq.core.btc.wallet.XmrWalletService;
 import bisq.core.filter.FilterManager;
@@ -87,7 +86,6 @@ import static com.google.common.base.Preconditions.checkNotNull;
 class TakeOfferDataModel extends OfferDataModel {
     private final TradeManager tradeManager;
     private final OfferBook offerBook;
-    private final BsqWalletService bsqWalletService;
     private final User user;
     private final FeeService feeService;
     private final MempoolService mempoolService;
@@ -134,7 +132,6 @@ class TakeOfferDataModel extends OfferDataModel {
                        OfferBook offerBook,
                        OfferUtil offerUtil,
                        XmrWalletService xmrWalletService,
-                       BsqWalletService bsqWalletService,
                        User user, FeeService feeService,
                        MempoolService mempoolService,
                        FilterManager filterManager,
@@ -149,7 +146,6 @@ class TakeOfferDataModel extends OfferDataModel {
 
         this.tradeManager = tradeManager;
         this.offerBook = offerBook;
-        this.bsqWalletService = bsqWalletService;
         this.user = user;
         this.feeService = feeService;
         this.mempoolService = mempoolService;
@@ -507,10 +503,7 @@ class TakeOfferDataModel extends OfferDataModel {
         // The mining fee for the takeOfferFee tx is deducted from the createOfferFee and not visible to the trader
         final Coin takerFee = getTakerFee();
         if (offer != null && amount.get() != null && takerFee != null) {
-            Coin feeAndSecDeposit = getTotalTxFee().add(securityDeposit);
-            if (isCurrencyForTakerFeeBtc()) {
-                feeAndSecDeposit = feeAndSecDeposit.add(takerFee);
-            }
+            Coin feeAndSecDeposit = getTotalTxFee().add(securityDeposit).add(takerFee);
             if (isBuyOffer())
                 totalToPayAsCoin.set(feeAndSecDeposit.add(amount.get()));
             else
@@ -534,20 +527,15 @@ class TakeOfferDataModel extends OfferDataModel {
     }
 
     @Nullable
-    Coin getTakerFee(boolean isCurrencyForTakerFeeBtc) {
+    Coin getTakerFee() {
         Coin amount = this.amount.get();
         if (amount != null) {
             // TODO write unit test for that
-            Coin feePerBtc = CoinUtil.getFeePerBtc(FeeService.getTakerFeePerBtc(isCurrencyForTakerFeeBtc), amount);
-            return CoinUtil.maxCoin(feePerBtc, FeeService.getMinTakerFee(isCurrencyForTakerFeeBtc));
+            Coin feePerBtc = CoinUtil.getFeePerBtc(FeeService.getTakerFeePerBtc(), amount);
+            return CoinUtil.maxCoin(feePerBtc, FeeService.getMinTakerFee());
         } else {
             return null;
         }
-    }
-
-    @Nullable
-    public Coin getTakerFee() {
-        return getTakerFee(isCurrencyForTakerFeeBtc());
     }
 
     public void swapTradeToSavings() {
@@ -618,11 +606,7 @@ class TakeOfferDataModel extends OfferDataModel {
     }
 
     public Coin getTotalTxFee() {
-        Coin totalTxFees = txFeeFromFeeService.add(getTxFeeForDepositTx()).add(getTxFeeForPayoutTx());
-        if (isCurrencyForTakerFeeBtc())
-            return totalTxFees;
-        else
-            return totalTxFees.subtract(getTakerFee() != null ? getTakerFee() : Coin.ZERO);
+        return txFeeFromFeeService.add(getTxFeeForDepositTx()).add(getTxFeeForPayoutTx());
     }
 
     @NotNull
@@ -662,45 +646,11 @@ class TakeOfferDataModel extends OfferDataModel {
         return offer.getSellerSecurityDeposit();
     }
 
-    public Coin getUsableBsqBalance() {
-        // we have to keep a minimum amount of BSQ == bitcoin dust limit
-        // otherwise there would be dust violations for change UTXOs
-        // essentially means the minimum usable balance of BSQ is 5.46
-        Coin usableBsqBalance = bsqWalletService.getAvailableConfirmedBalance().subtract(Restrictions.getMinNonDustOutput());
-        if (usableBsqBalance.isNegative())
-            usableBsqBalance = Coin.ZERO;
-        return usableBsqBalance;
-    }
-
     public boolean isHalCashAccount() {
         return paymentAccount.isHalCashAccount();
     }
 
-    public boolean isCurrencyForTakerFeeBtc() {
-        return offerUtil.isCurrencyForTakerFeeBtc(amount.get());
-    }
-
-    public void setPreferredCurrencyForTakerFeeBtc(boolean isCurrencyForTakerFeeBtc) {
-        preferences.setPayFeeInBtc(isCurrencyForTakerFeeBtc);
-    }
-
-    public boolean isPreferredFeeCurrencyBtc() {
-        return preferences.isPayFeeInBtc();
-    }
-
     public Coin getTakerFeeInBtc() {
-        return offerUtil.getTakerFee(true, amount.get());
-    }
-
-    public Coin getTakerFeeInBsq() {
-        return offerUtil.getTakerFee(false, amount.get());
-    }
-
-    boolean isTakerFeeValid() {
-        return preferences.getPayFeeInBtc() || offerUtil.isBsqForTakerFeeAvailable(amount.get());
-    }
-
-    public boolean isBsqForFeeAvailable() {
-        return offerUtil.isBsqForTakerFeeAvailable(amount.get());
+        return offerUtil.getTakerFee(amount.get());
     }
 }

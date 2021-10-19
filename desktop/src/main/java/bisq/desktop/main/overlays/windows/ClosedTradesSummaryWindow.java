@@ -82,8 +82,5 @@ public class ClosedTradesSummaryWindow extends Overlay<ClosedTradesSummaryWindow
         addConfirmationLabelLabel(gridPane, ++rowIndex,
                 Res.get("closedTradesSummaryWindow.totalTradeFeeInBtc.title"),
                 model.getTotalTradeFeeInBtc(totalTradeAmount));
-        addConfirmationLabelLabel(gridPane, ++rowIndex,
-                Res.get("closedTradesSummaryWindow.totalTradeFeeInBsq.title") + "       ", // lets give some extra space
-                model.getTotalTradeFeeInBsq(totalTradeAmount));
     }
 }

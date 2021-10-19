@@ -14,7 +14,7 @@ createoffer
 		--amount=<btc-amount>
 		--min-amount=<btc-amount>
 		--security-deposit=<percent>
-		[--fee-currency=<bsq|btc>]
+		[--fee-currency=<btc>]
 
 DESCRIPTION
 -----------
@@ -50,7 +50,7 @@ OPTIONS
 		The percentage of the BTC amount being traded for the security deposit, e.g., 60.0 (60%).
 
 --fee-currency
-		The wallet currency used to pay the Bisq trade maker fee (BSQ|BTC).  Default is BTC
+		The wallet currency used to pay the Bisq trade maker fee (BTC).  Default is BTC
 
 EXAMPLES
 --------
@@ -59,14 +59,14 @@ To create a BUY 0.125 BTC with EUR offer
 	at the current market price,
 	using a payment account with ID 7413d263-225a-4f1b-837a-1e3094dc0d77,
 	putting up a 30 percent security deposit,
-	and paying the Bisq maker trading fee in BSQ:
+	and paying the Bisq maker trading fee in BTC:
 $ ./bisq-cli --password=xyz --port=9998 createoffer --payment-account=7413d263-225a-4f1b-837a-1e3094dc0d77 \
     --direction=buy \
     --currency-code=eur \
     --amount=0.125 \
     --market-price-margin=0.00 \
     --security-deposit=30.0 \
-    --fee-currency=bsq
+    --fee-currency=btc
 
 To create a SELL 0.006 BTC for USD offer
 	at a fixed price of 40,000 USD,

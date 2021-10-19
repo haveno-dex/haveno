@@ -30,10 +30,10 @@ public class CreateCryptoCurrencyPaymentAcctOptionParser extends AbstractMethodO
     final OptionSpec<String> accountNameOpt = parser.accepts(OPT_ACCOUNT_NAME, "crypto currency account name")
             .withRequiredArg();
 
-    final OptionSpec<String> currencyCodeOpt = parser.accepts(OPT_CURRENCY_CODE, "crypto currency code (bsq only)")
+    final OptionSpec<String> currencyCodeOpt = parser.accepts(OPT_CURRENCY_CODE, "crypto currency code")
             .withRequiredArg();
 
-    final OptionSpec<String> addressOpt = parser.accepts(OPT_ADDRESS, "bsq address")
+    final OptionSpec<String> addressOpt = parser.accepts(OPT_ADDRESS, "address")
             .withRequiredArg();
 
     final OptionSpec<Boolean> tradeInstantOpt = parser.accepts(OPT_TRADE_INSTANT, "create trade instant account")
@@ -54,16 +54,9 @@ public class CreateCryptoCurrencyPaymentAcctOptionParser extends AbstractMethodO
 
         if (!options.has(accountNameOpt) || options.valueOf(accountNameOpt).isEmpty())
             throw new IllegalArgumentException("no payment account name specified");
-
+        
         if (!options.has(currencyCodeOpt) || options.valueOf(currencyCodeOpt).isEmpty())
             throw new IllegalArgumentException("no currency code specified");
-
-        if (!options.valueOf(currencyCodeOpt).equalsIgnoreCase("bsq"))
-            throw new IllegalArgumentException("api only supports bsq crypto currency payment accounts");
-
-        if (!options.has(addressOpt) || options.valueOf(addressOpt).isEmpty())
-            throw new IllegalArgumentException("no bsq address specified");
-
         return this;
     }
 
