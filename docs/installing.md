@@ -36,14 +36,17 @@ Run `make monero-shared`
 
 ## 5. Deploy
 
-If you are a *screen* user, simply run `make deploy`. This command will open all needed Haveno instances (seednode, Alice, Bob, arbitrator) using *screen*. If you don't use *screen*, open 4 terminal windows and run in each one of them:
+If you are a *screen* user, simply run `make deploy`. This command will open all needed Haveno instances (seednode, Alice, Bob, arbitrator) using *screen*. If this is the first time launching the arbitrator desktop application, register the arbitrator and mediator as explained in steps `5.3.1` and `5.3.2`.
+
+If you don't use *screen*, open 4 terminal windows and run in each one of them:
 
   1. `make seednode`
-  2. `make arbitrator-desktop`
-    1. After the user interface opens, go to the *Account* tab and press `cmd+n`. Confirm the registration of the arbitrator.
-    2. From the *Account* tab press `cmd+d` and confirm the registration of the mediator.
-  3. `make alice-desktop` or if you want to run Alice as a daemon: `make alice-daemon`
-  4. `make bob-desktop` or if you want to run Bob as a daemon: `make bob-daemon`
+  2. `make arbitrator-desktop`  
+  3. If this is the first time launching the arbitrator desktop application, register the arbitrator and mediator after the interface opens:
+      1. Go to the *Account* tab and press `cmd+n`. Confirm the registration of the arbitrator.
+      2. From the *Account* tab press `cmd+d` and confirm the registration of the mediator.
+  4. `make alice-desktop` or if you want to run Alice as a daemon: `make alice-daemon`
+  5. `make bob-desktop` or if you want to run Bob as a daemon: `make bob-daemon`
 
 ## 6. Fund your wallets
 
