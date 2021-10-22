@@ -19,6 +19,8 @@ package bisq.core.api;
 
 import bisq.core.account.witness.AccountAgeWitnessService;
 import bisq.core.api.model.PaymentAccountForm;
+import bisq.core.locale.CryptoCurrency;
+import bisq.core.payment.AssetAccount;
 import bisq.core.payment.CryptoCurrencyAccount;
 import bisq.core.payment.InstantCryptoCurrencyAccount;
 import bisq.core.payment.PaymentAccount;
@@ -33,11 +35,13 @@ import java.io.File;
 
 import java.util.Comparator;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
 import lombok.extern.slf4j.Slf4j;
 
+import static bisq.core.locale.CurrencyUtil.getCryptoCurrency;
 import static java.lang.String.format;
 
 @Singleton
@@ -100,14 +104,18 @@ class CorePaymentAccountsService {
                                                       String currencyCode,
                                                       String address,
                                                       boolean tradeInstant) {
+        if (currencyCode == null) throw new RuntimeException("Cryptocurrency code is null");
         var cryptoCurrencyAccount = tradeInstant
                 ? (InstantCryptoCurrencyAccount) PaymentAccountFactory.getPaymentAccount(PaymentMethod.BLOCK_CHAINS_INSTANT)
                 : (CryptoCurrencyAccount) PaymentAccountFactory.getPaymentAccount(PaymentMethod.BLOCK_CHAINS);
         cryptoCurrencyAccount.init();
         cryptoCurrencyAccount.setAccountName(accountName);
         cryptoCurrencyAccount.setAddress(address);
+        Optional<CryptoCurrency> cryptoCurrency = getCryptoCurrency(currencyCode.toUpperCase());
+        if (!cryptoCurrency.isPresent()) throw new RuntimeException("Unsupported cryptocurrency code: " + currencyCode.toUpperCase());
+        cryptoCurrencyAccount.setSingleTradeCurrency(cryptoCurrency.get());
         user.addPaymentAccount(cryptoCurrencyAccount);
-        accountAgeWitnessService.publishMyAccountAgeWitness(cryptoCurrencyAccount.getPaymentAccountPayload());
+        if (!(cryptoCurrencyAccount instanceof AssetAccount)) accountAgeWitnessService.publishMyAccountAgeWitness(cryptoCurrencyAccount.getPaymentAccountPayload()); // TODO (woodser): applies to Haveno?
         log.info("Saved crypto payment account with id {} and payment method {}.",
                 cryptoCurrencyAccount.getId(),
                 cryptoCurrencyAccount.getPaymentAccountPayload().getPaymentMethodId());
