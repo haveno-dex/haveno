@@ -62,7 +62,6 @@ public class PriceProvider extends HttpClientProvider {
         String json = httpClient.get("getAllMarketPrices", "User-Agent", "bisq/"
                 + Version.VERSION + hsVersion);
 
-
         LinkedTreeMap<?, ?> map = new Gson().fromJson(json, LinkedTreeMap.class);
         Map<String, Long> tsMap = new HashMap<>();
         tsMap.put("btcAverageTs", ((Double) map.get("btcAverageTs")).longValue());
@@ -96,15 +95,17 @@ public class PriceProvider extends HttpClientProvider {
                 if (isFiat) price = price * btcPerXmrFinal;
                 else price = price / btcPerXmrFinal;
 
-                // TODO (woodser): remove xmr from list since base currency and add btc, test by doing btc/xmr trade
-
+                // add currency price to map
                 marketPriceMap.put(currencyCode, new MarketPrice(currencyCode, price, timestampSec, true));
             } catch (Throwable t) {
                 log.error(t.toString());
                 t.printStackTrace();
             }
-
         });
+
+        // add btc to price map, remove xmr since base currency
+        marketPriceMap.put("BTC", new MarketPrice("BTC", 1 / btcPerXmrFinal, marketPriceMap.get("XMR").getTimestampSec(), true));
+        marketPriceMap.remove("XMR");
         return new Tuple2<>(tsMap, marketPriceMap);
     }
 
