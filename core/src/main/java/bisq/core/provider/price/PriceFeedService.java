@@ -19,7 +19,6 @@ package bisq.core.provider.price;
 
 import bisq.core.locale.CurrencyUtil;
 import bisq.core.locale.TradeCurrency;
-import bisq.core.monetary.Altcoin;
 import bisq.core.monetary.Price;
 import bisq.core.provider.PriceHttpClient;
 import bisq.core.provider.ProvidersRepository;
@@ -55,7 +54,6 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Random;
 import java.util.Set;
 import java.util.function.Consumer;
@@ -272,14 +270,18 @@ public class PriceFeedService {
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     public void setCurrencyCode(String currencyCode) {
+        setCurrencyCode(currencyCode, true);
+    }
+    
+    // TODO (woodser): necessary to skip applying to consumer to avoid console warning spam when getting market prices over the api
+    public void setCurrencyCode(String currencyCode, boolean applyPriceToConsumer) {
         if (this.currencyCode == null || !this.currencyCode.equals(currencyCode)) {
             this.currencyCode = currencyCode;
             currencyCodeProperty.set(currencyCode);
-            if (priceConsumer != null)
+            if (applyPriceToConsumer && priceConsumer != null)
                 applyPriceToConsumer();
         }
     }
-
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Getter

@@ -27,7 +27,6 @@ import java.util.function.Consumer;
 import lombok.extern.slf4j.Slf4j;
 
 import static bisq.common.util.MathUtils.roundDouble;
-import static bisq.core.locale.CurrencyUtil.isFiatCurrency;
 import static java.lang.String.format;
 
 @Singleton
@@ -44,14 +43,11 @@ class CorePriceService {
     public void getMarketPrice(String currencyCode, Consumer<Double> resultHandler) {
         String upperCaseCurrencyCode = currencyCode.toUpperCase();
 
-        if (!isFiatCurrency(upperCaseCurrencyCode))
-            throw new IllegalStateException(format("%s is not a valid currency code", upperCaseCurrencyCode));
-
         if (!priceFeedService.hasPrices())
             throw new IllegalStateException("price feed service has no prices");
 
         try {
-            priceFeedService.setCurrencyCode(upperCaseCurrencyCode);
+            priceFeedService.setCurrencyCode(upperCaseCurrencyCode, false); // TODO (woodser): skipping applying to consumer to avoid console warning spam when getting market prices over the api
         } catch (Throwable throwable) {
             log.warn("Could not set currency code in PriceFeedService", throwable);
         }
