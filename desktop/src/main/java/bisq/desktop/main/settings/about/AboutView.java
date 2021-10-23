@@ -50,7 +50,7 @@ public class AboutView extends ActivatableView<GridPane, Void> {
 
     @Override
     public void initialize() {
-        addTitledGroupBg(root, gridRow, 4, Res.get("setting.about.aboutBisq"));
+        addTitledGroupBg(root, gridRow, 4, Res.get("setting.about.aboutHaveno"));
 
         Label label = addLabel(root, gridRow, Res.get("setting.about.about"), Layout.TWICE_FIRST_ROW_DISTANCE);
         label.setWrapText(true);
