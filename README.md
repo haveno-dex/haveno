@@ -30,6 +30,8 @@ The project is divided between multiple repositories:
 
 Currently, efforts are focused in developing the core repository ('haveno'). If you wish to help, take a look at the [issue tracker](https://github.com/haveno-dex/haveno/issues) and the [Kanban boards (projects)](https://github.com/haveno-dex/haveno/projects). We run a bounty program to incentivize development, the issues eligible for a reward in XMR [are labelled '💰bounty'](https://github.com/haveno-dex/haveno/labels/%F0%9F%92%B0bounty).
 
+The PGP keys of the core team members are in `gpg_keys/`.
+
 ## Trade protocol
 
 See [trade-protocol.md](docs/trade_protocol/trade-protocol.md)
