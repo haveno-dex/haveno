@@ -270,18 +270,14 @@ public class PriceFeedService {
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     public void setCurrencyCode(String currencyCode) {
-        setCurrencyCode(currencyCode, true);
-    }
-    
-    // TODO (woodser): necessary to skip applying to consumer to avoid console warning spam when getting market prices over the api
-    public void setCurrencyCode(String currencyCode, boolean applyPriceToConsumer) {
         if (this.currencyCode == null || !this.currencyCode.equals(currencyCode)) {
             this.currencyCode = currencyCode;
             currencyCodeProperty.set(currencyCode);
-            if (applyPriceToConsumer && priceConsumer != null)
+            if (priceConsumer != null)
                 applyPriceToConsumer();
         }
     }
+
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Getter
