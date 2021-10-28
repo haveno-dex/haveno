@@ -730,7 +730,7 @@ public abstract class Trade implements Tradable, Model {
                 if (depositTxListener == null) return;
 
                 // TODO (woodser): remove this
-                if (output.getTx().isConfirmed() && (processModel.getMaker().getDepositTxHash().equals(output.getTx().getHash()) || processModel.getTaker().getDepositTxHash().equals(output.getTx().getHash()))) {
+                if (output.getTx().isConfirmed() && output.getTx().isLocked() && (processModel.getMaker().getDepositTxHash().equals(output.getTx().getHash()) || processModel.getTaker().getDepositTxHash().equals(output.getTx().getHash()))) {
                     System.out.println("Deposit output for tx " + output.getTx().getHash() + " is confirmed at height " + output.getTx().getHeight());
                 }
 
