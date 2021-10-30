@@ -32,10 +32,6 @@ Currently, efforts are focused in developing the core repository ('haveno'). If 
 
 The PGP keys of the core team members are in `gpg_keys/`.
 
-## Trade protocol
-
-See [trade-protocol.md](docs/trade_protocol/trade-protocol.md)
-
 ## Keep in touch and help out!
 
 Haveno is a community-driven project. For it to be succesful it's fundamental to have the support and help of the Monero community. We have our own Matrix server. Registrations are not open at the moment, but the rooms are public and can be joined from any matrix client (like Element). We look forward to hearing from you!
@@ -46,17 +42,23 @@ Haveno is a community-driven project. For it to be succesful it's fundamental to
 
 Email: contact@haveno.exchange
 
-### Styling guidelines
+## Running a local Haveno test network
 
-See [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md)
+See [docs/installing.md](docs/installing.md)
+
+## Contributing to Haveno
+
+We are looking for help building Haveno. There are many [tasks](https://github.com/haveno-dex/haveno/issues) to complete, and many tasks have bounties.
+
+See the [developer guide](docs/developer-guide.md) to get started developing for Haveno. At this stage, we're mostly looking for help building the backend and APIs.
+
+See [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md) for our styling guides.
+
+If you are not able to contribute code and want to contribute development resources, [donations](#support) fund development bounties.
 
 ## Bounties
 
 To incentivize development and reward contributors we adopt a simple bounty system. Contributors may be awarded bounties after completing a task (resolving an issue). Take a look at the issues eligible for a bounty on the [dedicated Kanban board](https://github.com/orgs/haveno-dex/projects/2) or look for [issues labelled '💰bounty'](https://github.com/haveno-dex/haveno/issues?q=is%3Aissue+is%3Aopen+label%3A%F0%9F%92%B0bounty) in the main `haveno` repository. [Details and conditions for receiving a bounty](docs/bounties.md).
-
-## Running a local Haveno test network
-
-See [docs/installing.md](docs/installing.md)
 
 ## Sponsors
 
