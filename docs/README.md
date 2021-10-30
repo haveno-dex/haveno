@@ -1,13 +1,14 @@
-Here are stored most of the docs of the Haveno project:
+# Haveno Documentation
 
 - [installing.md](installing.md ) - Instructions for running a local test network
-- [bounties.md](bounties.md) - Rules and description of the bounty program
 - [CONTRIBUTING.md](CONTRIBUTING.md) - Guidelines for contributors
+- [developer-guide.md](developer-guide.md) - Guide for developers
+- [bounties.md](bounties.md) - Rules and description of the bounty program
+- [haveno-import.md](idea-import.md) - Instructions for importing Haveno into Eclipse IDE or IntelliJ IDEA (from Bisq)
+- [trade-protocol.md](trade_protocol/trade-protocol.md) - Documents Haveno's core trade protocol
 - [data-stores.md](data-stores.md) - Instructions for updating data stores (from Bisq)
-- [idea-import.md](idea-import.md) - Instructions for importing Haveno as an IntelliJ IDEA project (from Bisq))
-- [README.md](README.md) - This file
 - [tor-upgrade.md](tor-upgrade.md) - Instructions for upgrading the Tor dependencies used by Haveno (from Bisq)
-- [trade-protocol.md](trade_protocol/trade-protocol.md) - The description of Haveno's trade protocol
+- [README.md](README.md) - This file
 
 Documents outside of this folder:
 

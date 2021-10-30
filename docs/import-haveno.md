@@ -1,4 +1,32 @@
-# Importing Bisq into IntelliJ IDEA
+## Importing Haveno into development environment
+
+This document describes how to import Haveno into an integrated development environment (IDE).
+
+## Importing Haveno into Eclipse IDE
+
+The following steps describe how to import Haveno into Eclipse IDE for development. You can also develop using [IntelliJ IDEA](#importing-haveno-into-intellij-idea) or VSCode if you prefer.
+
+> Note: Use default values unless specified otherwise.
+
+1. Download and run the [Eclipse](https://www.eclipse.org/downloads/) installer.
+2. Select "Eclipse IDE for Enterprise Java and Web Developers" to install.
+3. Launch an eclipse workspace and close out of the welcome screen.
+4. [Download](https://search.maven.org/search?q=g:org.projectlombok%20AND%20a:lombok&core=gav) the latest version of the lombok jar.
+5. Run lombok jar, e.g.: `java -jar ~/Downloads/lombok-1.18.22.jar`.
+6. Follow prompts to install lombok to your Eclipse installation.
+7. Restart Eclipse.
+8. File > Import... > Existing Gradle Project.
+9. Select the location of "haveno" project, e.g. ~/git/haveno.
+10. Advance to finish importing haveno project.
+11. File > Import... > Existing Projects into Workspace.
+12. Select the location of "haveno-ui-poc" project, e.g. ~git/haveno-ui-poc.
+13. Advance to finish importing haveno-ui-poc project.
+
+You are now ready to make, run, and test changes to the Haveno project!
+
+## Importing Haveno into IntelliJ IDEA
+
+> Note: These instructions are outdated and for Bisq.
 
 Most Bisq contributors use IDEA for development. The following instructions have been tested on IDEA 2021.1.
 
