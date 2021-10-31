@@ -1,25 +1,25 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.price.mining.providers;
+package haveno.price.mining.providers;
 
-import bisq.price.PriceController;
-import bisq.price.mining.FeeRate;
-import bisq.price.mining.FeeRateProvider;
+import haveno.price.PriceController;
+import haveno.price.mining.FeeRate;
+import haveno.price.mining.FeeRateProvider;
 
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Primary;
@@ -52,11 +52,11 @@ abstract class MempoolFeeRateProvider extends FeeRateProvider {
 
     // Keys of properties defining the available Mempool API endpoints. To enable them,
     // simply uncomment and adjust the corresponding lines in application.properties
-    private static final String MEMPOOL_HOSTNAME_KEY_1 = "bisq.price.mining.providers.mempoolHostname.1";
-    private static final String MEMPOOL_HOSTNAME_KEY_2 = "bisq.price.mining.providers.mempoolHostname.2";
-    private static final String MEMPOOL_HOSTNAME_KEY_3 = "bisq.price.mining.providers.mempoolHostname.3";
-    private static final String MEMPOOL_HOSTNAME_KEY_4 = "bisq.price.mining.providers.mempoolHostname.4";
-    private static final String MEMPOOL_HOSTNAME_KEY_5 = "bisq.price.mining.providers.mempoolHostname.5";
+    private static final String MEMPOOL_HOSTNAME_KEY_1 = "haveno.price.mining.providers.mempoolHostname.1";
+    private static final String MEMPOOL_HOSTNAME_KEY_2 = "haveno.price.mining.providers.mempoolHostname.2";
+    private static final String MEMPOOL_HOSTNAME_KEY_3 = "haveno.price.mining.providers.mempoolHostname.3";
+    private static final String MEMPOOL_HOSTNAME_KEY_4 = "haveno.price.mining.providers.mempoolHostname.4";
+    private static final String MEMPOOL_HOSTNAME_KEY_5 = "haveno.price.mining.providers.mempoolHostname.5";
 
     private static final RestTemplate restTemplate = new RestTemplate();
 
@@ -111,7 +111,7 @@ abstract class MempoolFeeRateProvider extends FeeRateProvider {
         return restTemplate.exchange(
             RequestEntity
                 .get(UriComponentsBuilder
-                    // See https://github.com/bisq-network/projects/issues/27
+                    // See https://github.com/haveno-network/projects/issues/27
                     .fromUriString("https://" + getMempoolApiHostname() + "/api/v1/fees/recommended")
                     .build().toUri())
                 .build(),

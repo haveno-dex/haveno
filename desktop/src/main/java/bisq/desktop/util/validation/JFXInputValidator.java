@@ -1,6 +1,6 @@
-package bisq.desktop.util.validation;
+package haveno.desktop.util.validation;
 
-import bisq.core.util.validation.InputValidator;
+import haveno.core.util.validation.InputValidator;
 
 import com.jfoenix.validation.base.ValidatorBase;
 

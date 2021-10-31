@@ -1,6 +1,6 @@
-package bisq.core.util.validation;
+package haveno.core.util.validation;
 
-import bisq.core.locale.Res;
+import haveno.core.locale.Res;
 
 public class RegexValidator extends InputValidator {
     private String pattern;

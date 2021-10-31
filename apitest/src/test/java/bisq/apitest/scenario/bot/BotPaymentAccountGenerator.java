@@ -1,7 +1,7 @@
-package bisq.apitest.scenario.bot;
+package haveno.apitest.scenario.bot;
 
-import bisq.core.api.model.PaymentAccountForm;
-import bisq.core.locale.Country;
+import haveno.core.api.model.PaymentAccountForm;
+import haveno.core.locale.Country;
 
 import protobuf.PaymentAccount;
 
@@ -14,8 +14,8 @@ import java.util.Map;
 
 import lombok.extern.slf4j.Slf4j;
 
-import static bisq.core.payment.payload.PaymentMethod.CLEAR_X_CHANGE_ID;
-import static bisq.core.payment.payload.PaymentMethod.F2F_ID;
+import static haveno.core.payment.payload.PaymentMethod.CLEAR_X_CHANGE_ID;
+import static haveno.core.payment.payload.PaymentMethod.F2F_ID;
 
 @Slf4j
 public class BotPaymentAccountGenerator {

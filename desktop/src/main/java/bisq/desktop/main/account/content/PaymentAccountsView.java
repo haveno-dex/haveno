@@ -1,21 +1,21 @@
-package bisq.desktop.main.account.content;
+package haveno.desktop.main.account.content;
 
-import bisq.desktop.common.model.ActivatableWithDataModel;
-import bisq.desktop.common.view.ActivatableViewAndModel;
-import bisq.desktop.components.AutoTooltipButton;
-import bisq.desktop.components.AutoTooltipLabel;
-import bisq.desktop.components.InfoAutoTooltipLabel;
-import bisq.desktop.main.overlays.popups.Popup;
-import bisq.desktop.util.GUIUtil;
-import bisq.desktop.util.ImageUtil;
+import haveno.desktop.common.model.ActivatableWithDataModel;
+import haveno.desktop.common.view.ActivatableViewAndModel;
+import haveno.desktop.components.AutoTooltipButton;
+import haveno.desktop.components.AutoTooltipLabel;
+import haveno.desktop.components.InfoAutoTooltipLabel;
+import haveno.desktop.main.overlays.popups.Popup;
+import haveno.desktop.util.GUIUtil;
+import haveno.desktop.util.ImageUtil;
 
-import bisq.core.account.witness.AccountAgeWitnessService;
-import bisq.core.locale.Res;
-import bisq.core.payment.PaymentAccount;
-import bisq.core.payment.payload.PaymentMethod;
+import haveno.core.account.witness.AccountAgeWitnessService;
+import haveno.core.locale.Res;
+import haveno.core.payment.PaymentAccount;
+import haveno.core.payment.payload.PaymentMethod;
 
-import bisq.common.UserThread;
-import bisq.common.util.Utilities;
+import haveno.common.UserThread;
+import haveno.common.util.Utilities;
 
 import org.apache.commons.lang3.StringUtils;
 

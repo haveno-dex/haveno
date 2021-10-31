@@ -1,47 +1,47 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.desktop.components.paymentmethods;
+package haveno.desktop.components.paymentmethods;
 
-import bisq.desktop.components.AutocompleteComboBox;
-import bisq.desktop.components.InputTextField;
-import bisq.desktop.components.paymentmethods.data.JapanBankData;
-import bisq.desktop.util.Layout;
-import bisq.desktop.util.validation.JapanBankAccountNameValidator;
-import bisq.desktop.util.validation.JapanBankAccountNumberValidator;
-import bisq.desktop.util.validation.JapanBankBranchCodeValidator;
-import bisq.desktop.util.validation.JapanBankBranchNameValidator;
-import bisq.desktop.util.validation.JapanBankTransferValidator;
-import bisq.desktop.util.validation.LengthValidator;
+import haveno.desktop.components.AutocompleteComboBox;
+import haveno.desktop.components.InputTextField;
+import haveno.desktop.components.paymentmethods.data.JapanBankData;
+import haveno.desktop.util.Layout;
+import haveno.desktop.util.validation.JapanBankAccountNameValidator;
+import haveno.desktop.util.validation.JapanBankAccountNumberValidator;
+import haveno.desktop.util.validation.JapanBankBranchCodeValidator;
+import haveno.desktop.util.validation.JapanBankBranchNameValidator;
+import haveno.desktop.util.validation.JapanBankTransferValidator;
+import haveno.desktop.util.validation.LengthValidator;
 
-import bisq.core.account.witness.AccountAgeWitnessService;
-import bisq.core.locale.Res;
-import bisq.core.locale.TradeCurrency;
-import bisq.core.payment.JapanBankAccount;
-import bisq.core.payment.PaymentAccount;
-import bisq.core.payment.payload.JapanBankAccountPayload;
-import bisq.core.payment.payload.PaymentAccountPayload;
-import bisq.core.util.coin.CoinFormatter;
-import bisq.core.util.validation.InputValidator;
-import bisq.core.util.validation.RegexValidator;
+import haveno.core.account.witness.AccountAgeWitnessService;
+import haveno.core.locale.Res;
+import haveno.core.locale.TradeCurrency;
+import haveno.core.payment.JapanBankAccount;
+import haveno.core.payment.PaymentAccount;
+import haveno.core.payment.payload.JapanBankAccountPayload;
+import haveno.core.payment.payload.PaymentAccountPayload;
+import haveno.core.util.coin.CoinFormatter;
+import haveno.core.util.validation.InputValidator;
+import haveno.core.util.validation.RegexValidator;
 
-import bisq.common.util.Tuple2;
-import bisq.common.util.Tuple3;
-import bisq.common.util.Tuple4;
+import haveno.common.util.Tuple2;
+import haveno.common.util.Tuple3;
+import haveno.common.util.Tuple4;
 
 import org.apache.commons.lang3.StringUtils;
 
@@ -54,8 +54,8 @@ import javafx.scene.layout.GridPane;
 
 import javafx.util.StringConverter;
 
-import static bisq.desktop.util.FormBuilder.*;
-import static bisq.desktop.util.GUIUtil.getComboBoxButtonCell;
+import static haveno.desktop.util.FormBuilder.*;
+import static haveno.desktop.util.GUIUtil.getComboBoxButtonCell;
 
 public class JapanBankTransferForm extends PaymentMethodForm
 {

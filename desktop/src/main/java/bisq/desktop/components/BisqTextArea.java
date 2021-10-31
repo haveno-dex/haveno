@@ -1,12 +1,12 @@
-package bisq.desktop.components;
+package haveno.desktop.components;
 
 import com.jfoenix.controls.JFXTextArea;
 
 import javafx.scene.control.Skin;
 
-public class BisqTextArea extends JFXTextArea {
+public class HavenoTextArea extends JFXTextArea {
     @Override
     protected Skin<?> createDefaultSkin() {
-        return new JFXTextAreaSkinBisqStyle(this);
+        return new JFXTextAreaSkinHavenoStyle(this);
     }
 }

@@ -1,39 +1,39 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.desktop.main.portfolio.editoffer;
+package haveno.desktop.main.portfolio.editoffer;
 
-import bisq.desktop.Navigation;
-import bisq.desktop.common.view.FxmlView;
-import bisq.desktop.components.AutoTooltipButton;
-import bisq.desktop.components.BusyAnimation;
-import bisq.desktop.main.offer.MutableOfferView;
-import bisq.desktop.main.overlays.popups.Popup;
-import bisq.desktop.main.overlays.windows.OfferDetailsWindow;
+import haveno.desktop.Navigation;
+import haveno.desktop.common.view.FxmlView;
+import haveno.desktop.components.AutoTooltipButton;
+import haveno.desktop.components.BusyAnimation;
+import haveno.desktop.main.offer.MutableOfferView;
+import haveno.desktop.main.overlays.popups.Popup;
+import haveno.desktop.main.overlays.windows.OfferDetailsWindow;
 
-import bisq.core.locale.CurrencyUtil;
-import bisq.core.locale.Res;
-import bisq.core.offer.OpenOffer;
-import bisq.core.user.DontShowAgainLookup;
-import bisq.core.user.Preferences;
-import bisq.core.util.FormattingUtils;
-import bisq.core.util.coin.CoinFormatter;
+import haveno.core.locale.CurrencyUtil;
+import haveno.core.locale.Res;
+import haveno.core.offer.OpenOffer;
+import haveno.core.user.DontShowAgainLookup;
+import haveno.core.user.Preferences;
+import haveno.core.util.FormattingUtils;
+import haveno.core.util.coin.CoinFormatter;
 
-import bisq.common.util.Tuple4;
+import haveno.common.util.Tuple4;
 
 import com.google.inject.Inject;
 
@@ -49,7 +49,7 @@ import javafx.geometry.HPos;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 
-import static bisq.desktop.util.FormBuilder.addButtonBusyAnimationLabelAfterGroup;
+import static haveno.desktop.util.FormBuilder.addButtonBusyAnimationLabelAfterGroup;
 
 @FxmlView
 public class EditOfferView extends MutableOfferView<EditOfferViewModel> {

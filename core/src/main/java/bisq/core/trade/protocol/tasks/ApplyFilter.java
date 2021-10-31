@@ -1,30 +1,30 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.core.trade.protocol.tasks;
+package haveno.core.trade.protocol.tasks;
 
-import bisq.core.filter.FilterManager;
-import bisq.core.payment.payload.PaymentAccountPayload;
-import bisq.core.trade.ArbitratorTrade;
-import bisq.core.trade.Trade;
-import bisq.core.trade.messages.InitTradeRequest;
-import bisq.network.p2p.NodeAddress;
+import haveno.core.filter.FilterManager;
+import haveno.core.payment.payload.PaymentAccountPayload;
+import haveno.core.trade.ArbitratorTrade;
+import haveno.core.trade.Trade;
+import haveno.core.trade.messages.InitTradeRequest;
+import haveno.network.p2p.NodeAddress;
 
-import bisq.common.taskrunner.TaskRunner;
+import haveno.common.taskrunner.TaskRunner;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -59,8 +59,8 @@ public class ApplyFilter extends TradeTask {
                 failed("Payment method is banned.\n" +
                         "Payment method=" + trade.getOffer().getPaymentMethod().getId());
             } else if (filterManager.requireUpdateToNewVersionForTrading()) {
-                failed("Your version of Bisq is not compatible for trading anymore. " +
-                        "Please update to the latest Bisq version at https://bisq.network/downloads.");
+                failed("Your version of Haveno is not compatible for trading anymore. " +
+                        "Please update to the latest Haveno version at https://haveno.network/downloads.");
             } else {
                 complete();
             }

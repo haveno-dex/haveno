@@ -13,7 +13,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     sudo \
     openjfx && rm -rf /var/lib/apt/lists/*
 
-RUN git clone https://github.com/bisq-network/pricenode.git
+RUN git clone https://github.com/haveno-network/pricenode.git
 WORKDIR /pricenode/
 RUN ./gradlew assemble
 

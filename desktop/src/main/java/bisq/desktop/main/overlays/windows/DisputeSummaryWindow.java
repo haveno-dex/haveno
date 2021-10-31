@@ -1,53 +1,53 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.desktop.main.overlays.windows;
+package haveno.desktop.main.overlays.windows;
 
-import bisq.desktop.components.AutoTooltipCheckBox;
-import bisq.desktop.components.AutoTooltipRadioButton;
-import bisq.desktop.components.BisqTextArea;
-import bisq.desktop.components.InputTextField;
-import bisq.desktop.main.overlays.Overlay;
-import bisq.desktop.main.overlays.popups.Popup;
-import bisq.desktop.util.DisplayUtils;
-import bisq.desktop.util.Layout;
+import haveno.desktop.components.AutoTooltipCheckBox;
+import haveno.desktop.components.AutoTooltipRadioButton;
+import haveno.desktop.components.HavenoTextArea;
+import haveno.desktop.components.InputTextField;
+import haveno.desktop.main.overlays.Overlay;
+import haveno.desktop.main.overlays.popups.Popup;
+import haveno.desktop.util.DisplayUtils;
+import haveno.desktop.util.Layout;
 
-import bisq.core.btc.model.XmrAddressEntry;
-import bisq.core.btc.wallet.TradeWalletService;
-import bisq.core.btc.wallet.XmrWalletService;
-import bisq.core.locale.Res;
-import bisq.core.offer.Offer;
-import bisq.core.support.dispute.Dispute;
-import bisq.core.support.dispute.DisputeList;
-import bisq.core.support.dispute.DisputeManager;
-import bisq.core.support.dispute.DisputeResult;
-import bisq.core.support.dispute.arbitration.ArbitrationManager;
-import bisq.core.support.dispute.mediation.MediationManager;
-import bisq.core.support.dispute.refund.RefundManager;
-import bisq.core.trade.Contract;
-import bisq.core.util.FormattingUtils;
-import bisq.core.util.ParsingUtils;
-import bisq.core.util.coin.CoinFormatter;
+import haveno.core.btc.model.XmrAddressEntry;
+import haveno.core.btc.wallet.TradeWalletService;
+import haveno.core.btc.wallet.XmrWalletService;
+import haveno.core.locale.Res;
+import haveno.core.offer.Offer;
+import haveno.core.support.dispute.Dispute;
+import haveno.core.support.dispute.DisputeList;
+import haveno.core.support.dispute.DisputeManager;
+import haveno.core.support.dispute.DisputeResult;
+import haveno.core.support.dispute.arbitration.ArbitrationManager;
+import haveno.core.support.dispute.mediation.MediationManager;
+import haveno.core.support.dispute.refund.RefundManager;
+import haveno.core.trade.Contract;
+import haveno.core.util.FormattingUtils;
+import haveno.core.util.ParsingUtils;
+import haveno.core.util.coin.CoinFormatter;
 
-import bisq.common.UserThread;
-import bisq.common.app.DevEnv;
-import bisq.common.handlers.ResultHandler;
-import bisq.common.util.Tuple2;
-import bisq.common.util.Tuple3;
+import haveno.common.UserThread;
+import haveno.common.app.DevEnv;
+import haveno.common.handlers.ResultHandler;
+import haveno.common.util.Tuple2;
+import haveno.common.util.Tuple3;
 
 import org.bitcoinj.core.AddressFormatException;
 import org.bitcoinj.core.Coin;
@@ -80,10 +80,10 @@ import java.util.concurrent.TimeUnit;
 
 import lombok.extern.slf4j.Slf4j;
 
-import static bisq.desktop.util.FormBuilder.add2ButtonsWithBox;
-import static bisq.desktop.util.FormBuilder.addConfirmationLabelLabel;
-import static bisq.desktop.util.FormBuilder.addTitledGroupBg;
-import static bisq.desktop.util.FormBuilder.addTopLabelWithVBox;
+import static haveno.desktop.util.FormBuilder.add2ButtonsWithBox;
+import static haveno.desktop.util.FormBuilder.addConfirmationLabelLabel;
+import static haveno.desktop.util.FormBuilder.addTitledGroupBg;
+import static haveno.desktop.util.FormBuilder.addTopLabelWithVBox;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 
@@ -568,7 +568,7 @@ public class DisputeSummaryWindow extends Overlay<DisputeSummaryWindow> {
     }
 
     private void addSummaryNotes() {
-        summaryNotesTextArea = new BisqTextArea();
+        summaryNotesTextArea = new HavenoTextArea();
         summaryNotesTextArea.setPromptText(Res.get("disputeSummaryWindow.addSummaryNotes"));
         summaryNotesTextArea.setWrapText(true);
 

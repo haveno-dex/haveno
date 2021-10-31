@@ -1,69 +1,69 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.desktop.main.offer;
+package haveno.desktop.main.offer;
 
-import bisq.desktop.Navigation;
-import bisq.desktop.common.model.ActivatableWithDataModel;
-import bisq.desktop.main.MainView;
-import bisq.desktop.main.PriceUtil;
-import bisq.desktop.main.funds.FundsView;
-import bisq.desktop.main.funds.deposit.DepositView;
-import bisq.desktop.main.overlays.popups.Popup;
-import bisq.desktop.main.settings.SettingsView;
-import bisq.desktop.main.settings.preferences.PreferencesView;
-import bisq.desktop.util.DisplayUtils;
-import bisq.desktop.util.GUIUtil;
-import bisq.desktop.util.validation.AltcoinValidator;
-import bisq.desktop.util.validation.BtcValidator;
-import bisq.desktop.util.validation.FiatPriceValidator;
-import bisq.desktop.util.validation.FiatVolumeValidator;
-import bisq.desktop.util.validation.MonetaryValidator;
-import bisq.desktop.util.validation.SecurityDepositValidator;
+import haveno.desktop.Navigation;
+import haveno.desktop.common.model.ActivatableWithDataModel;
+import haveno.desktop.main.MainView;
+import haveno.desktop.main.PriceUtil;
+import haveno.desktop.main.funds.FundsView;
+import haveno.desktop.main.funds.deposit.DepositView;
+import haveno.desktop.main.overlays.popups.Popup;
+import haveno.desktop.main.settings.SettingsView;
+import haveno.desktop.main.settings.preferences.PreferencesView;
+import haveno.desktop.util.DisplayUtils;
+import haveno.desktop.util.GUIUtil;
+import haveno.desktop.util.validation.AltcoinValidator;
+import haveno.desktop.util.validation.BtcValidator;
+import haveno.desktop.util.validation.FiatPriceValidator;
+import haveno.desktop.util.validation.FiatVolumeValidator;
+import haveno.desktop.util.validation.MonetaryValidator;
+import haveno.desktop.util.validation.SecurityDepositValidator;
 
-import bisq.core.account.witness.AccountAgeWitnessService;
-import bisq.core.btc.wallet.Restrictions;
-import bisq.core.locale.CurrencyUtil;
-import bisq.core.locale.Res;
-import bisq.core.locale.TradeCurrency;
-import bisq.core.monetary.Altcoin;
-import bisq.core.monetary.Price;
-import bisq.core.monetary.Volume;
-import bisq.core.offer.Offer;
-import bisq.core.offer.OfferPayload;
-import bisq.core.offer.OfferRestrictions;
-import bisq.core.offer.OfferUtil;
-import bisq.core.payment.PaymentAccount;
-import bisq.core.payment.payload.PaymentMethod;
-import bisq.core.provider.fee.FeeService;
-import bisq.core.provider.price.MarketPrice;
-import bisq.core.provider.price.PriceFeedService;
-import bisq.core.user.Preferences;
-import bisq.core.util.FormattingUtils;
-import bisq.core.util.ParsingUtils;
-import bisq.core.util.VolumeUtil;
-import bisq.core.util.coin.CoinFormatter;
-import bisq.core.util.coin.CoinUtil;
-import bisq.core.util.validation.InputValidator;
+import haveno.core.account.witness.AccountAgeWitnessService;
+import haveno.core.btc.wallet.Restrictions;
+import haveno.core.locale.CurrencyUtil;
+import haveno.core.locale.Res;
+import haveno.core.locale.TradeCurrency;
+import haveno.core.monetary.Altcoin;
+import haveno.core.monetary.Price;
+import haveno.core.monetary.Volume;
+import haveno.core.offer.Offer;
+import haveno.core.offer.OfferPayload;
+import haveno.core.offer.OfferRestrictions;
+import haveno.core.offer.OfferUtil;
+import haveno.core.payment.PaymentAccount;
+import haveno.core.payment.payload.PaymentMethod;
+import haveno.core.provider.fee.FeeService;
+import haveno.core.provider.price.MarketPrice;
+import haveno.core.provider.price.PriceFeedService;
+import haveno.core.user.Preferences;
+import haveno.core.util.FormattingUtils;
+import haveno.core.util.ParsingUtils;
+import haveno.core.util.VolumeUtil;
+import haveno.core.util.coin.CoinFormatter;
+import haveno.core.util.coin.CoinUtil;
+import haveno.core.util.validation.InputValidator;
 
-import bisq.common.Timer;
-import bisq.common.UserThread;
-import bisq.common.app.DevEnv;
-import bisq.common.util.MathUtils;
+import haveno.common.Timer;
+import haveno.common.UserThread;
+import haveno.common.app.DevEnv;
+import haveno.common.util.MathUtils;
 
 import org.bitcoinj.core.Coin;
 import org.bitcoinj.utils.Fiat;
@@ -778,7 +778,7 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
         // if not reset here. Not clear why...
         triggerPriceValidationResult.set(new InputValidator.ValidationResult(true));
 
-        if (dataModel.getPrice().get() == null) // fix NPE @ bisq/issues/5166
+        if (dataModel.getPrice().get() == null) // fix NPE @ haveno/issues/5166
             return;
         InputValidator.ValidationResult result = PriceUtil.isTriggerPriceValid(triggerPriceAsString,
                 dataModel.getPrice().get(),

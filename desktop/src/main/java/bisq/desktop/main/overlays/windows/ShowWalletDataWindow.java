@@ -1,29 +1,29 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.desktop.main.overlays.windows;
+package haveno.desktop.main.overlays.windows;
 
-import bisq.desktop.main.overlays.Overlay;
+import haveno.desktop.main.overlays.Overlay;
 
-import bisq.core.btc.wallet.WalletsManager;
-import bisq.core.locale.Res;
+import haveno.core.btc.wallet.WalletsManager;
+import haveno.core.locale.Res;
 
-import bisq.common.util.Tuple2;
-import bisq.common.util.Utilities;
+import haveno.common.util.Tuple2;
+import haveno.common.util.Utilities;
 
 import javafx.scene.Scene;
 import javafx.scene.control.CheckBox;
@@ -34,8 +34,8 @@ import javafx.scene.layout.Priority;
 
 import javafx.geometry.HPos;
 
-import static bisq.desktop.util.FormBuilder.addLabelCheckBox;
-import static bisq.desktop.util.FormBuilder.addTopLabelTextArea;
+import static haveno.desktop.util.FormBuilder.addLabelCheckBox;
+import static haveno.desktop.util.FormBuilder.addTopLabelTextArea;
 
 public class ShowWalletDataWindow extends Overlay<ShowWalletDataWindow> {
     private final WalletsManager walletsManager;

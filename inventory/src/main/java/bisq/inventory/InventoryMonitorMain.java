@@ -1,31 +1,31 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.inventory;
+package haveno.inventory;
 
 
-import bisq.core.locale.Res;
+import haveno.core.locale.Res;
 
-import bisq.common.UserThread;
-import bisq.common.app.AsciiLogo;
-import bisq.common.app.Log;
-import bisq.common.app.Version;
-import bisq.common.config.BaseCurrencyNetwork;
-import bisq.common.util.Utilities;
+import haveno.common.UserThread;
+import haveno.common.app.AsciiLogo;
+import haveno.common.app.Log;
+import haveno.common.app.Version;
+import haveno.common.config.BaseCurrencyNetwork;
+import haveno.common.util.Utilities;
 
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
@@ -72,7 +72,7 @@ public class InventoryMonitorMain {
             port = Integer.parseInt(args[3]);
         }
 
-        String appName = "bisq-inventory-monitor-" + network;
+        String appName = "haveno-inventory-monitor-" + network;
         File appDir = new File(Utilities.getUserDataDir(), appName);
         if (!appDir.exists() && !appDir.mkdir()) {
             log.warn("make appDir failed");
@@ -87,7 +87,7 @@ public class InventoryMonitorMain {
     }
 
     private static void setup(BaseCurrencyNetwork network, File appDir) {
-        String logPath = Paths.get(appDir.getPath(), "bisq").toString();
+        String logPath = Paths.get(appDir.getPath(), "haveno").toString();
         Log.setup(logPath);
         Log.setLevel(Level.INFO);
         AsciiLogo.showAsciiLogo();

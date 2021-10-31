@@ -1,42 +1,42 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.seednode;
+package haveno.seednode;
 
-import bisq.core.app.TorSetup;
-import bisq.core.app.misc.ExecutableForAppWithP2p;
-import bisq.core.app.misc.ModuleForAppWithP2p;
-import bisq.core.user.Cookie;
-import bisq.core.user.CookieKey;
-import bisq.core.user.User;
+import haveno.core.app.TorSetup;
+import haveno.core.app.misc.ExecutableForAppWithP2p;
+import haveno.core.app.misc.ModuleForAppWithP2p;
+import haveno.core.user.Cookie;
+import haveno.core.user.CookieKey;
+import haveno.core.user.User;
 
-import bisq.network.p2p.P2PService;
-import bisq.network.p2p.P2PServiceListener;
-import bisq.network.p2p.peers.PeerManager;
+import haveno.network.p2p.P2PService;
+import haveno.network.p2p.P2PServiceListener;
+import haveno.network.p2p.peers.PeerManager;
 
-import bisq.common.Timer;
-import bisq.common.UserThread;
-import bisq.common.app.AppModule;
-import bisq.common.app.Capabilities;
-import bisq.common.app.Capability;
-import bisq.common.app.DevEnv;
-import bisq.common.config.BaseCurrencyNetwork;
-import bisq.common.config.Config;
-import bisq.common.handlers.ResultHandler;
+import haveno.common.Timer;
+import haveno.common.UserThread;
+import haveno.common.app.AppModule;
+import haveno.common.app.Capabilities;
+import haveno.common.app.Capability;
+import haveno.common.app.DevEnv;
+import haveno.common.config.BaseCurrencyNetwork;
+import haveno.common.config.Config;
+import haveno.common.handlers.ResultHandler;
 
 import com.google.inject.Key;
 import com.google.inject.name.Names;
@@ -51,7 +51,7 @@ public class SeedNodeMain extends ExecutableForAppWithP2p {
     private Timer checkConnectionLossTime;
 
     public SeedNodeMain() {
-        super("Bisq Seednode", "bisq-seednode", "bisq_seednode", VERSION);
+        super("Haveno Seednode", "haveno-seednode", "haveno_seednode", VERSION);
     }
 
     public static void main(String[] args) {

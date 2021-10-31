@@ -1,35 +1,35 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.desktop.main.overlays.windows;
+package haveno.desktop.main.overlays.windows;
 
-import bisq.core.alert.AlertManager;
-import bisq.desktop.components.AutoTooltipButton;
-import bisq.desktop.components.InputTextField;
-import bisq.desktop.main.overlays.Overlay;
-import bisq.desktop.main.overlays.popups.Popup;
-import bisq.desktop.util.FormBuilder;
+import haveno.core.alert.AlertManager;
+import haveno.desktop.components.AutoTooltipButton;
+import haveno.desktop.components.InputTextField;
+import haveno.desktop.main.overlays.Overlay;
+import haveno.desktop.main.overlays.popups.Popup;
+import haveno.desktop.util.FormBuilder;
 
-import bisq.core.alert.Alert;
-import bisq.core.locale.Res;
+import haveno.core.alert.Alert;
+import haveno.core.locale.Res;
 
-import bisq.common.app.DevEnv;
-import bisq.common.config.Config;
-import bisq.common.util.Tuple2;
+import haveno.common.app.DevEnv;
+import haveno.common.config.Config;
+import haveno.common.util.Tuple2;
 
 import com.google.inject.Inject;
 
@@ -49,10 +49,10 @@ import javafx.scene.layout.HBox;
 import javafx.geometry.HPos;
 import javafx.geometry.Insets;
 
-import static bisq.desktop.util.FormBuilder.addInputTextField;
-import static bisq.desktop.util.FormBuilder.addLabelCheckBox;
-import static bisq.desktop.util.FormBuilder.addRadioButton;
-import static bisq.desktop.util.FormBuilder.addTopLabelTextArea;
+import static haveno.desktop.util.FormBuilder.addInputTextField;
+import static haveno.desktop.util.FormBuilder.addLabelCheckBox;
+import static haveno.desktop.util.FormBuilder.addRadioButton;
+import static haveno.desktop.util.FormBuilder.addTopLabelTextArea;
 
 public class SendAlertMessageWindow extends Overlay<SendAlertMessageWindow> {
     private final AlertManager alertManager;

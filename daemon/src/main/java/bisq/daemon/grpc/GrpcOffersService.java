@@ -1,39 +1,39 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.daemon.grpc;
+package haveno.daemon.grpc;
 
-import bisq.core.api.CoreApi;
-import bisq.core.api.model.OfferInfo;
-import bisq.core.offer.Offer;
-import bisq.core.offer.OpenOffer;
-import bisq.core.util.ParsingUtils;
-import bisq.proto.grpc.CancelOfferReply;
-import bisq.proto.grpc.CancelOfferRequest;
-import bisq.proto.grpc.CreateOfferReply;
-import bisq.proto.grpc.CreateOfferRequest;
-import bisq.proto.grpc.GetMyOfferReply;
-import bisq.proto.grpc.GetMyOfferRequest;
-import bisq.proto.grpc.GetMyOffersReply;
-import bisq.proto.grpc.GetMyOffersRequest;
-import bisq.proto.grpc.GetOfferReply;
-import bisq.proto.grpc.GetOfferRequest;
-import bisq.proto.grpc.GetOffersReply;
-import bisq.proto.grpc.GetOffersRequest;
+import haveno.core.api.CoreApi;
+import haveno.core.api.model.OfferInfo;
+import haveno.core.offer.Offer;
+import haveno.core.offer.OpenOffer;
+import haveno.core.util.ParsingUtils;
+import haveno.proto.grpc.CancelOfferReply;
+import haveno.proto.grpc.CancelOfferRequest;
+import haveno.proto.grpc.CreateOfferReply;
+import haveno.proto.grpc.CreateOfferRequest;
+import haveno.proto.grpc.GetMyOfferReply;
+import haveno.proto.grpc.GetMyOfferRequest;
+import haveno.proto.grpc.GetMyOffersReply;
+import haveno.proto.grpc.GetMyOffersRequest;
+import haveno.proto.grpc.GetOfferReply;
+import haveno.proto.grpc.GetOfferRequest;
+import haveno.proto.grpc.GetOffersReply;
+import haveno.proto.grpc.GetOffersRequest;
 
 import io.grpc.ServerInterceptor;
 import io.grpc.stub.StreamObserver;
@@ -47,15 +47,15 @@ import java.util.stream.Collectors;
 
 import lombok.extern.slf4j.Slf4j;
 
-import static bisq.core.api.model.OfferInfo.toOfferInfo;
-import static bisq.daemon.grpc.interceptor.GrpcServiceRateMeteringConfig.getCustomRateMeteringInterceptor;
-import static bisq.proto.grpc.OffersGrpc.*;
+import static haveno.core.api.model.OfferInfo.toOfferInfo;
+import static haveno.daemon.grpc.interceptor.GrpcServiceRateMeteringConfig.getCustomRateMeteringInterceptor;
+import static haveno.proto.grpc.OffersGrpc.*;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
 
 
-import bisq.daemon.grpc.interceptor.CallRateMeteringInterceptor;
-import bisq.daemon.grpc.interceptor.GrpcCallRateMeter;
+import haveno.daemon.grpc.interceptor.CallRateMeteringInterceptor;
+import haveno.daemon.grpc.interceptor.GrpcCallRateMeter;
 
 @Slf4j
 class GrpcOffersService extends OffersImplBase {

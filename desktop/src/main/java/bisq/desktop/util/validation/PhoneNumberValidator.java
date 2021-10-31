@@ -1,7 +1,7 @@
-package bisq.desktop.util.validation;
+package haveno.desktop.util.validation;
 
-import bisq.core.locale.Res;
-import bisq.core.util.validation.InputValidator;
+import haveno.core.locale.Res;
+import haveno.core.util.validation.InputValidator;
 
 import lombok.Getter;
 
@@ -17,7 +17,7 @@ import javax.annotation.Nullable;
  * Area codes and mobile provider codes are not validated, but all numbers following
  * calling codes are included in the normalized number.
  * <p>
- * @see  bisq.desktop.util.validation.CountryCallingCodes
+ * @see  haveno.desktop.util.validation.CountryCallingCodes
  */
 public class PhoneNumberValidator extends InputValidator {
     /**

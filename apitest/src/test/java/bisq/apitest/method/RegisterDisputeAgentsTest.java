@@ -1,21 +1,21 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.apitest.method;
+package haveno.apitest.method;
 
 import io.grpc.StatusRuntimeException;
 
@@ -28,13 +28,13 @@ import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 
-import static bisq.apitest.Scaffold.BitcoinCoreApp.bitcoind;
-import static bisq.apitest.config.ApiTestConfig.ARBITRATOR;
-import static bisq.apitest.config.ApiTestConfig.MEDIATOR;
-import static bisq.apitest.config.ApiTestConfig.REFUND_AGENT;
-import static bisq.apitest.config.BisqAppConfig.arbdaemon;
-import static bisq.apitest.config.BisqAppConfig.seednode;
-import static bisq.common.app.DevEnv.DEV_PRIVILEGE_PRIV_KEY;
+import static haveno.apitest.Scaffold.BitcoinCoreApp.bitcoind;
+import static haveno.apitest.config.ApiTestConfig.ARBITRATOR;
+import static haveno.apitest.config.ApiTestConfig.MEDIATOR;
+import static haveno.apitest.config.ApiTestConfig.REFUND_AGENT;
+import static haveno.apitest.config.HavenoAppConfig.arbdaemon;
+import static haveno.apitest.config.HavenoAppConfig.seednode;
+import static haveno.common.app.DevEnv.DEV_PRIVILEGE_PRIV_KEY;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.fail;
@@ -61,7 +61,7 @@ public class RegisterDisputeAgentsTest extends MethodTest {
     public void testRegisterArbitratorShouldThrowException() {
         Throwable exception = assertThrows(StatusRuntimeException.class, () ->
                 arbClient.registerDisputeAgent(ARBITRATOR, DEV_PRIVILEGE_PRIV_KEY));
-        assertEquals("INVALID_ARGUMENT: arbitrators must be registered in a Bisq UI",
+        assertEquals("INVALID_ARGUMENT: arbitrators must be registered in a Haveno UI",
                 exception.getMessage());
     }
 

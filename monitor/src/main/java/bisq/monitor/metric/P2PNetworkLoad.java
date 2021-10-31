@@ -1,48 +1,48 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.monitor.metric;
+package haveno.monitor.metric;
 
-import bisq.monitor.AvailableTor;
-import bisq.monitor.Metric;
-import bisq.monitor.Monitor;
-import bisq.monitor.Reporter;
-import bisq.monitor.ThreadGate;
+import haveno.monitor.AvailableTor;
+import haveno.monitor.Metric;
+import haveno.monitor.Monitor;
+import haveno.monitor.Reporter;
+import haveno.monitor.ThreadGate;
 
-import bisq.core.network.p2p.seed.DefaultSeedNodeRepository;
-import bisq.core.proto.network.CoreNetworkProtoResolver;
-import bisq.core.proto.persistable.CorePersistenceProtoResolver;
+import haveno.core.network.p2p.seed.DefaultSeedNodeRepository;
+import haveno.core.proto.network.CoreNetworkProtoResolver;
+import haveno.core.proto.persistable.CorePersistenceProtoResolver;
 
-import bisq.network.p2p.network.Connection;
-import bisq.network.p2p.network.MessageListener;
-import bisq.network.p2p.network.NetworkNode;
-import bisq.network.p2p.network.SetupListener;
-import bisq.network.p2p.network.TorNetworkNode;
-import bisq.network.p2p.peers.PeerManager;
-import bisq.network.p2p.peers.keepalive.KeepAliveManager;
-import bisq.network.p2p.peers.peerexchange.PeerExchangeManager;
-import bisq.network.p2p.storage.messages.BroadcastMessage;
+import haveno.network.p2p.network.Connection;
+import haveno.network.p2p.network.MessageListener;
+import haveno.network.p2p.network.NetworkNode;
+import haveno.network.p2p.network.SetupListener;
+import haveno.network.p2p.network.TorNetworkNode;
+import haveno.network.p2p.peers.PeerManager;
+import haveno.network.p2p.peers.keepalive.KeepAliveManager;
+import haveno.network.p2p.peers.peerexchange.PeerExchangeManager;
+import haveno.network.p2p.storage.messages.BroadcastMessage;
 
-import bisq.common.ClockWatcher;
-import bisq.common.config.Config;
-import bisq.common.file.CorruptedStorageFileHandler;
-import bisq.common.persistence.PersistenceManager;
-import bisq.common.proto.network.NetworkEnvelope;
-import bisq.common.proto.network.NetworkProtoResolver;
+import haveno.common.ClockWatcher;
+import haveno.common.config.Config;
+import haveno.common.file.CorruptedStorageFileHandler;
+import haveno.common.persistence.PersistenceManager;
+import haveno.common.proto.network.NetworkEnvelope;
+import haveno.common.proto.network.NetworkProtoResolver;
 
 import java.time.Clock;
 

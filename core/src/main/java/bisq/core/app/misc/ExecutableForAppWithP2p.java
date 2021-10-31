@@ -1,41 +1,41 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.core.app.misc;
+package haveno.core.app.misc;
 
-import bisq.core.app.BisqExecutable;
-import bisq.core.btc.setup.WalletsSetup;
-import bisq.core.btc.wallet.BtcWalletService;
-import bisq.core.btc.wallet.XmrWalletService;
-import bisq.core.offer.OpenOfferManager;
-import bisq.core.support.dispute.arbitration.arbitrator.ArbitratorManager;
+import haveno.core.app.HavenoExecutable;
+import haveno.core.btc.setup.WalletsSetup;
+import haveno.core.btc.wallet.BtcWalletService;
+import haveno.core.btc.wallet.XmrWalletService;
+import haveno.core.offer.OpenOfferManager;
+import haveno.core.support.dispute.arbitration.arbitrator.ArbitratorManager;
 
-import bisq.network.p2p.NodeAddress;
-import bisq.network.p2p.P2PService;
-import bisq.network.p2p.seed.SeedNodeRepository;
+import haveno.network.p2p.NodeAddress;
+import haveno.network.p2p.P2PService;
+import haveno.network.p2p.seed.SeedNodeRepository;
 
-import bisq.common.UserThread;
-import bisq.common.app.DevEnv;
-import bisq.common.config.Config;
-import bisq.common.file.JsonFileManager;
-import bisq.common.handlers.ResultHandler;
-import bisq.common.persistence.PersistenceManager;
-import bisq.common.setup.GracefulShutDownHandler;
-import bisq.common.util.Profiler;
+import haveno.common.UserThread;
+import haveno.common.app.DevEnv;
+import haveno.common.config.Config;
+import haveno.common.file.JsonFileManager;
+import haveno.common.handlers.ResultHandler;
+import haveno.common.persistence.PersistenceManager;
+import haveno.common.setup.GracefulShutDownHandler;
+import haveno.common.util.Profiler;
 
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
@@ -53,7 +53,7 @@ import java.util.concurrent.TimeUnit;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public abstract class ExecutableForAppWithP2p extends BisqExecutable {
+public abstract class ExecutableForAppWithP2p extends HavenoExecutable {
     private static final long CHECK_MEMORY_PERIOD_SEC = 300;
     private static final long CHECK_SHUTDOWN_SEC = TimeUnit.HOURS.toSeconds(1);
     private static final long SHUTDOWN_INTERVAL = TimeUnit.HOURS.toMillis(24);
@@ -93,7 +93,7 @@ public abstract class ExecutableForAppWithP2p extends BisqExecutable {
                         PersistenceManager.flushAllDataToDiskAtShutdown(() -> {
                             resultHandler.handleResult();
                             log.info("Graceful shutdown completed. Exiting now.");
-                            UserThread.runAfter(() -> System.exit(BisqExecutable.EXIT_SUCCESS), 1);
+                            UserThread.runAfter(() -> System.exit(HavenoExecutable.EXIT_SUCCESS), 1);
                         });
                     });
                     injector.getInstance(WalletsSetup.class).shutDown();
@@ -105,13 +105,13 @@ public abstract class ExecutableForAppWithP2p extends BisqExecutable {
                     PersistenceManager.flushAllDataToDiskAtShutdown(() -> {
                         resultHandler.handleResult();
                         log.info("Graceful shutdown caused a timeout. Exiting now.");
-                        UserThread.runAfter(() -> System.exit(BisqExecutable.EXIT_SUCCESS), 1);
+                        UserThread.runAfter(() -> System.exit(HavenoExecutable.EXIT_SUCCESS), 1);
                     });
                 }, 5);
             } else {
                 UserThread.runAfter(() -> {
                     resultHandler.handleResult();
-                    System.exit(BisqExecutable.EXIT_SUCCESS);
+                    System.exit(HavenoExecutable.EXIT_SUCCESS);
                 }, 1);
             }
         } catch (Throwable t) {
@@ -120,7 +120,7 @@ public abstract class ExecutableForAppWithP2p extends BisqExecutable {
             PersistenceManager.flushAllDataToDiskAtShutdown(() -> {
                 resultHandler.handleResult();
                 log.info("Graceful shutdown resulted in an error. Exiting now.");
-                UserThread.runAfter(() -> System.exit(BisqExecutable.EXIT_FAILURE), 1);
+                UserThread.runAfter(() -> System.exit(HavenoExecutable.EXIT_FAILURE), 1);
             });
 
         }

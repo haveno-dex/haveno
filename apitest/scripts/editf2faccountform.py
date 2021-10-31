@@ -1,6 +1,6 @@
 import sys, os, json
 
-# Writes a Bisq json F2F payment account form for the given country_code to the current working directory.
+# Writes a Haveno json F2F payment account form for the given country_code to the current working directory.
 
 if len(sys.argv) < 2:
     print("usage: editf2faccountform.py country_code")

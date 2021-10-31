@@ -1,7 +1,7 @@
-package bisq.desktop.components;
+package haveno.desktop.components;
 
-import bisq.core.locale.Res;
-import bisq.core.user.Preferences;
+import haveno.core.locale.Res;
+import haveno.core.user.Preferences;
 
 import com.jfoenix.controls.JFXBadge;
 

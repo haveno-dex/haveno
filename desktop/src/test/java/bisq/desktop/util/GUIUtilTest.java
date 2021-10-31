@@ -1,30 +1,30 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.desktop.util;
+package haveno.desktop.util;
 
-import bisq.core.locale.GlobalSettings;
-import bisq.core.locale.Res;
-import bisq.core.locale.TradeCurrency;
-import bisq.core.monetary.Price;
-import bisq.core.provider.price.MarketPrice;
-import bisq.core.provider.price.PriceFeedService;
-import bisq.core.user.DontShowAgainLookup;
-import bisq.core.user.Preferences;
+import haveno.core.locale.GlobalSettings;
+import haveno.core.locale.Res;
+import haveno.core.locale.TradeCurrency;
+import haveno.core.monetary.Price;
+import haveno.core.provider.price.MarketPrice;
+import haveno.core.provider.price.PriceFeedService;
+import haveno.core.user.DontShowAgainLookup;
+import haveno.core.user.Preferences;
 
 import org.bitcoinj.core.Coin;
 import org.bitcoinj.core.CoinMaker;
@@ -38,8 +38,8 @@ import java.util.Map;
 import org.junit.Before;
 import org.junit.Test;
 
-import static bisq.desktop.maker.TradeCurrencyMakers.monero;
-import static bisq.desktop.maker.TradeCurrencyMakers.euro;
+import static haveno.desktop.maker.TradeCurrencyMakers.monero;
+import static haveno.desktop.maker.TradeCurrencyMakers.euro;
 import static com.natpryce.makeiteasy.MakeItEasy.a;
 import static com.natpryce.makeiteasy.MakeItEasy.make;
 import static com.natpryce.makeiteasy.MakeItEasy.with;
@@ -87,13 +87,13 @@ public class GUIUtilTest {
 /*        PowerMockito.mockStatic(Utilities.class);
         ArgumentCaptor<URI> captor = ArgumentCaptor.forClass(URI.class);
         PowerMockito.doNothing().when(Utilities.class, "openURI", captor.capture());
-        GUIUtil.openWebPage("https://bisq.network");
+        GUIUtil.openWebPage("https://haveno.network");
 
-        assertEquals("https://bisq.network?utm_source=desktop-client&utm_medium=in-app-link&utm_campaign=language_en", captor.getValue().toString());
+        assertEquals("https://haveno.network?utm_source=desktop-client&utm_medium=in-app-link&utm_campaign=language_en", captor.getValue().toString());
 
-        GUIUtil.openWebPage("https://docs.bisq.network/trading-rules.html#f2f-trading");
+        GUIUtil.openWebPage("https://docs.haveno.network/trading-rules.html#f2f-trading");
 
-        assertEquals("https://docs.bisq.network/trading-rules.html?utm_source=desktop-client&utm_medium=in-app-link&utm_campaign=language_en#f2f-trading", captor.getValue().toString());
+        assertEquals("https://docs.haveno.network/trading-rules.html?utm_source=desktop-client&utm_medium=in-app-link&utm_campaign=language_en#f2f-trading", captor.getValue().toString());
 */
     }
 

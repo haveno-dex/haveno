@@ -1,35 +1,35 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.core.btc.wallet;
+package haveno.core.btc.wallet;
 
-import bisq.core.btc.exceptions.AddressEntryException;
-import bisq.core.btc.exceptions.InsufficientFundsException;
-import bisq.core.btc.exceptions.TransactionVerificationException;
-import bisq.core.btc.exceptions.WalletException;
-import bisq.core.btc.model.AddressEntry;
-import bisq.core.btc.model.AddressEntryList;
-import bisq.core.btc.setup.WalletsSetup;
-import bisq.core.btc.wallet.http.MemPoolSpaceTxBroadcaster;
-import bisq.core.provider.fee.FeeService;
-import bisq.core.user.Preferences;
+import haveno.core.btc.exceptions.AddressEntryException;
+import haveno.core.btc.exceptions.InsufficientFundsException;
+import haveno.core.btc.exceptions.TransactionVerificationException;
+import haveno.core.btc.exceptions.WalletException;
+import haveno.core.btc.model.AddressEntry;
+import haveno.core.btc.model.AddressEntryList;
+import haveno.core.btc.setup.WalletsSetup;
+import haveno.core.btc.wallet.http.MemPoolSpaceTxBroadcaster;
+import haveno.core.provider.fee.FeeService;
+import haveno.core.user.Preferences;
 
-import bisq.common.handlers.ErrorMessageHandler;
-import bisq.common.util.Tuple2;
+import haveno.common.handlers.ErrorMessageHandler;
+import haveno.common.util.Tuple2;
 
 import org.bitcoinj.core.Address;
 import org.bitcoinj.core.AddressFormatException;
@@ -356,7 +356,7 @@ public class BtcWalletService extends WalletService {
         // address if same peers trade again.
 
         // We swap TRADE_PAYOUT to be sure all is cleaned up. There might be cases where a user cannot send the funds
-        // to an external wallet directly in the last step of the trade, but the funds are in the Bisq wallet anyway and
+        // to an external wallet directly in the last step of the trade, but the funds are in the Haveno wallet anyway and
         // the dealing with the external wallet is pure UI thing. The user can move the funds to the wallet and then
         // send out the funds to the external wallet. As this cleanup is a rare situation and most users do not use
         // the feature to send out the funds we prefer that strategy (if we keep the address entry it might cause

@@ -1,58 +1,58 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.desktop.main.account.content.notifications;
+package haveno.desktop.main.account.content.notifications;
 
-import bisq.desktop.common.view.ActivatableView;
-import bisq.desktop.common.view.FxmlView;
-import bisq.desktop.components.InfoInputTextField;
-import bisq.desktop.components.InputTextField;
-import bisq.desktop.main.PriceUtil;
-import bisq.desktop.main.overlays.popups.Popup;
-import bisq.desktop.util.FormBuilder;
-import bisq.desktop.util.GUIUtil;
-import bisq.desktop.util.Layout;
-import bisq.desktop.util.validation.AltcoinValidator;
-import bisq.desktop.util.validation.FiatPriceValidator;
-import bisq.desktop.util.validation.PercentageNumberValidator;
+import haveno.desktop.common.view.ActivatableView;
+import haveno.desktop.common.view.FxmlView;
+import haveno.desktop.components.InfoInputTextField;
+import haveno.desktop.components.InputTextField;
+import haveno.desktop.main.PriceUtil;
+import haveno.desktop.main.overlays.popups.Popup;
+import haveno.desktop.util.FormBuilder;
+import haveno.desktop.util.GUIUtil;
+import haveno.desktop.util.Layout;
+import haveno.desktop.util.validation.AltcoinValidator;
+import haveno.desktop.util.validation.FiatPriceValidator;
+import haveno.desktop.util.validation.PercentageNumberValidator;
 
-import bisq.core.locale.CurrencyUtil;
-import bisq.core.locale.Res;
-import bisq.core.locale.TradeCurrency;
-import bisq.core.notifications.MobileMessage;
-import bisq.core.notifications.MobileNotificationService;
-import bisq.core.notifications.alerts.DisputeMsgEvents;
-import bisq.core.notifications.alerts.MyOfferTakenEvents;
-import bisq.core.notifications.alerts.TradeEvents;
-import bisq.core.notifications.alerts.market.MarketAlertFilter;
-import bisq.core.notifications.alerts.market.MarketAlerts;
-import bisq.core.notifications.alerts.price.PriceAlert;
-import bisq.core.notifications.alerts.price.PriceAlertFilter;
-import bisq.core.payment.PaymentAccount;
-import bisq.core.provider.price.PriceFeedService;
-import bisq.core.user.Preferences;
-import bisq.core.user.User;
-import bisq.core.util.FormattingUtils;
-import bisq.core.util.ParsingUtils;
-import bisq.core.util.validation.InputValidator;
+import haveno.core.locale.CurrencyUtil;
+import haveno.core.locale.Res;
+import haveno.core.locale.TradeCurrency;
+import haveno.core.notifications.MobileMessage;
+import haveno.core.notifications.MobileNotificationService;
+import haveno.core.notifications.alerts.DisputeMsgEvents;
+import haveno.core.notifications.alerts.MyOfferTakenEvents;
+import haveno.core.notifications.alerts.TradeEvents;
+import haveno.core.notifications.alerts.market.MarketAlertFilter;
+import haveno.core.notifications.alerts.market.MarketAlerts;
+import haveno.core.notifications.alerts.price.PriceAlert;
+import haveno.core.notifications.alerts.price.PriceAlertFilter;
+import haveno.core.payment.PaymentAccount;
+import haveno.core.provider.price.PriceFeedService;
+import haveno.core.user.Preferences;
+import haveno.core.user.User;
+import haveno.core.util.FormattingUtils;
+import haveno.core.util.ParsingUtils;
+import haveno.core.util.validation.InputValidator;
 
-import bisq.common.UserThread;
-import bisq.common.util.Tuple2;
-import bisq.common.util.Tuple3;
+import haveno.common.UserThread;
+import haveno.common.util.Tuple2;
+import haveno.common.util.Tuple3;
 
 import javax.inject.Inject;
 
@@ -79,7 +79,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
-import static bisq.desktop.util.FormBuilder.*;
+import static haveno.desktop.util.FormBuilder.*;
 
 @FxmlView
 public class MobileNotificationsView extends ActivatableView<GridPane, Void> {
@@ -232,7 +232,7 @@ public class MobileNotificationsView extends ActivatableView<GridPane, Void> {
 
     // Setup
     private void onDownload() {
-        GUIUtil.openWebPage("https://bisq.network/downloads");
+        GUIUtil.openWebPage("https://haveno.network/downloads");
     }
 
     private void onErase() {

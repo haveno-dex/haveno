@@ -1,43 +1,43 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation,
 either version 3 of the License,
 or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful,
+ * Haveno is distributed in the hope that it will be useful,
 but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not,
+ * along with Haveno. If not,
 see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.desktop.main.offer.createoffer;
+package haveno.desktop.main.offer.createoffer;
 
-import bisq.desktop.Navigation;
-import bisq.desktop.main.offer.MutableOfferDataModel;
+import haveno.desktop.Navigation;
+import haveno.desktop.main.offer.MutableOfferDataModel;
 
-import bisq.core.account.witness.AccountAgeWitnessService;
-import bisq.core.btc.wallet.XmrWalletService;
-import bisq.core.offer.CreateOfferService;
-import bisq.core.offer.OfferUtil;
-import bisq.core.offer.OpenOfferManager;
-import bisq.core.provider.fee.FeeService;
-import bisq.core.provider.price.PriceFeedService;
-import bisq.core.trade.statistics.TradeStatisticsManager;
-import bisq.core.user.Preferences;
-import bisq.core.user.User;
-import bisq.core.util.FormattingUtils;
-import bisq.core.util.coin.CoinFormatter;
+import haveno.core.account.witness.AccountAgeWitnessService;
+import haveno.core.btc.wallet.XmrWalletService;
+import haveno.core.offer.CreateOfferService;
+import haveno.core.offer.OfferUtil;
+import haveno.core.offer.OpenOfferManager;
+import haveno.core.provider.fee.FeeService;
+import haveno.core.provider.price.PriceFeedService;
+import haveno.core.trade.statistics.TradeStatisticsManager;
+import haveno.core.user.Preferences;
+import haveno.core.user.User;
+import haveno.core.util.FormattingUtils;
+import haveno.core.util.coin.CoinFormatter;
 
-import bisq.network.p2p.P2PService;
+import haveno.network.p2p.P2PService;
 
 import com.google.inject.Inject;
 

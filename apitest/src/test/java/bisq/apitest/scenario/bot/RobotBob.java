@@ -1,39 +1,39 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.apitest.scenario.bot;
+package haveno.apitest.scenario.bot;
 
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
-import static bisq.apitest.scenario.bot.protocol.ProtocolStep.DONE;
-import static bisq.apitest.scenario.bot.shutdown.ManualShutdown.isShutdownCalled;
-import static bisq.cli.TableFormat.formatBalancesTbls;
+import static haveno.apitest.scenario.bot.protocol.ProtocolStep.DONE;
+import static haveno.apitest.scenario.bot.shutdown.ManualShutdown.isShutdownCalled;
+import static haveno.cli.TableFormat.formatBalancesTbls;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
 
 
-import bisq.apitest.method.BitcoinCliHelper;
-import bisq.apitest.scenario.bot.protocol.BotProtocol;
-import bisq.apitest.scenario.bot.protocol.MakerBotProtocol;
-import bisq.apitest.scenario.bot.protocol.TakerBotProtocol;
-import bisq.apitest.scenario.bot.script.BashScriptGenerator;
-import bisq.apitest.scenario.bot.script.BotScript;
-import bisq.apitest.scenario.bot.shutdown.ManualBotShutdownException;
+import haveno.apitest.method.BitcoinCliHelper;
+import haveno.apitest.scenario.bot.protocol.BotProtocol;
+import haveno.apitest.scenario.bot.protocol.MakerBotProtocol;
+import haveno.apitest.scenario.bot.protocol.TakerBotProtocol;
+import haveno.apitest.scenario.bot.script.BashScriptGenerator;
+import haveno.apitest.scenario.bot.script.BotScript;
+import haveno.apitest.scenario.bot.shutdown.ManualBotShutdownException;
 
 @Slf4j
 public
@@ -108,7 +108,7 @@ class RobotBob extends Bot {
         log.info("When ready to shutdown the test {}, run '$ touch /tmp/bottest-shutdown'.",
                 harnessOrCase);
         if (!isUsingTestHarness) {
-            log.warn("You will have to manually shutdown the bitcoind and Bisq nodes"
+            log.warn("You will have to manually shutdown the bitcoind and Haveno nodes"
                     + " running outside of the test harness.");
         }
         try {

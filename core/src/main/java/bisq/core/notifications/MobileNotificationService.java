@@ -1,30 +1,30 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.core.notifications;
+package haveno.core.notifications;
 
-import bisq.core.user.Preferences;
+import haveno.core.user.Preferences;
 
-import bisq.network.http.HttpClient;
+import haveno.network.http.HttpClient;
 
-import bisq.common.UserThread;
-import bisq.common.app.Version;
-import bisq.common.config.Config;
-import bisq.common.util.Utilities;
+import haveno.common.UserThread;
+import haveno.common.app.Version;
+import haveno.common.config.Config;
+import haveno.common.util.Utilities;
 
 import com.google.gson.Gson;
 
@@ -64,8 +64,8 @@ public class MobileNotificationService {
     private static final String DEV_URL_LOCALHOST = "http://localhost:8080/";
     private static final String DEV_URL = "http://165.227.40.124:8080/";
     private static final String URL = "http://jtboonrvwmq7frkj.onion/";
-    private static final String BISQ_MESSAGE_IOS_MAGIC = "BisqMessageiOS";
-    private static final String BISQ_MESSAGE_ANDROID_MAGIC = "BisqMessageAndroid";
+    private static final String BISQ_MESSAGE_IOS_MAGIC = "HavenoMessageiOS";
+    private static final String BISQ_MESSAGE_ANDROID_MAGIC = "HavenoMessageAndroid";
 
     private final Preferences preferences;
     private final MobileMessageEncryption mobileMessageEncryption;
@@ -303,7 +303,7 @@ public class MobileNotificationService {
         ListenableFuture<String> future = executorService.submit(() -> {
             Thread.currentThread().setName(threadName);
             String result = httpClient.get(param, "User-Agent",
-                    "bisq/" + Version.VERSION + ", uid:" + httpClient.getUid());
+                    "haveno/" + Version.VERSION + ", uid:" + httpClient.getUid());
             log.info("sendMobileNotification result: " + result);
             checkArgument(result.equals(SUCCESS), "Result was not 'success'. result=" + result);
             return result;

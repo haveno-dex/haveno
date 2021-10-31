@@ -1,44 +1,44 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.desktop.main.market.trades;
+package haveno.desktop.main.market.trades;
 
-import bisq.desktop.Navigation;
-import bisq.desktop.common.model.ActivatableViewModel;
-import bisq.desktop.main.MainView;
-import bisq.desktop.main.market.trades.charts.CandleData;
-import bisq.desktop.main.settings.SettingsView;
-import bisq.desktop.main.settings.preferences.PreferencesView;
-import bisq.desktop.util.CurrencyList;
-import bisq.desktop.util.CurrencyListItem;
-import bisq.desktop.util.DisplayUtils;
-import bisq.desktop.util.GUIUtil;
+import haveno.desktop.Navigation;
+import haveno.desktop.common.model.ActivatableViewModel;
+import haveno.desktop.main.MainView;
+import haveno.desktop.main.market.trades.charts.CandleData;
+import haveno.desktop.main.settings.SettingsView;
+import haveno.desktop.main.settings.preferences.PreferencesView;
+import haveno.desktop.util.CurrencyList;
+import haveno.desktop.util.CurrencyListItem;
+import haveno.desktop.util.DisplayUtils;
+import haveno.desktop.util.GUIUtil;
 
-import bisq.core.locale.CryptoCurrency;
-import bisq.core.locale.CurrencyUtil;
-import bisq.core.locale.GlobalSettings;
-import bisq.core.locale.TradeCurrency;
-import bisq.core.monetary.Altcoin;
-import bisq.core.provider.price.PriceFeedService;
-import bisq.core.trade.statistics.TradeStatistics3;
-import bisq.core.trade.statistics.TradeStatisticsManager;
-import bisq.core.user.Preferences;
+import haveno.core.locale.CryptoCurrency;
+import haveno.core.locale.CurrencyUtil;
+import haveno.core.locale.GlobalSettings;
+import haveno.core.locale.TradeCurrency;
+import haveno.core.monetary.Altcoin;
+import haveno.core.provider.price.PriceFeedService;
+import haveno.core.trade.statistics.TradeStatistics3;
+import haveno.core.trade.statistics.TradeStatisticsManager;
+import haveno.core.user.Preferences;
 
-import bisq.common.util.MathUtils;
+import haveno.common.util.MathUtils;
 
 import org.bitcoinj.core.Coin;
 

@@ -1,8 +1,8 @@
-package bisq.common.config;
+package haveno.common.config;
 
-import bisq.common.BisqException;
+import haveno.common.HavenoException;
 
-public class ConfigException extends BisqException {
+public class ConfigException extends HavenoException {
 
     public ConfigException(String format, Object... args) {
         super(format, args);

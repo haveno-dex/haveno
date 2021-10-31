@@ -1,40 +1,40 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.desktop.main.portfolio.closedtrades;
+package haveno.desktop.main.portfolio.closedtrades;
 
-import bisq.desktop.common.model.ActivatableDataModel;
-import bisq.desktop.main.PriceUtil;
+import haveno.desktop.common.model.ActivatableDataModel;
+import haveno.desktop.main.PriceUtil;
 
-import bisq.core.monetary.Price;
-import bisq.core.monetary.Volume;
-import bisq.core.offer.Offer;
-import bisq.core.offer.OfferPayload;
-import bisq.core.offer.OpenOffer;
-import bisq.core.provider.price.MarketPrice;
-import bisq.core.provider.price.PriceFeedService;
-import bisq.core.trade.Tradable;
-import bisq.core.trade.Trade;
-import bisq.core.trade.closed.ClosedTradableManager;
-import bisq.core.trade.statistics.TradeStatisticsManager;
-import bisq.core.user.Preferences;
-import bisq.core.util.VolumeUtil;
+import haveno.core.monetary.Price;
+import haveno.core.monetary.Volume;
+import haveno.core.offer.Offer;
+import haveno.core.offer.OfferPayload;
+import haveno.core.offer.OpenOffer;
+import haveno.core.provider.price.MarketPrice;
+import haveno.core.provider.price.PriceFeedService;
+import haveno.core.trade.Tradable;
+import haveno.core.trade.Trade;
+import haveno.core.trade.closed.ClosedTradableManager;
+import haveno.core.trade.statistics.TradeStatisticsManager;
+import haveno.core.user.Preferences;
+import haveno.core.util.VolumeUtil;
 
-import bisq.common.util.Tuple2;
+import haveno.common.util.Tuple2;
 
 import org.bitcoinj.core.Coin;
 import org.bitcoinj.utils.Fiat;

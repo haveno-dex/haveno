@@ -1,8 +1,8 @@
-package bisq.core.trade.protocol;
+package haveno.core.trade.protocol;
 
-import bisq.core.trade.messages.TradeMessage;
-import bisq.network.p2p.AckMessage;
-import bisq.network.p2p.NodeAddress;
+import haveno.core.trade.messages.TradeMessage;
+import haveno.network.p2p.AckMessage;
+import haveno.network.p2p.NodeAddress;
 
 /**
  * Receives notifications of decrypted, verified trade and ack messages.

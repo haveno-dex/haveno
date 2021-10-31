@@ -1,16 +1,16 @@
 [Unit]
-Description=Bisq Price Node
+Description=Haveno Price Node
 After=network.target
 
 [Service]
-SyslogIdentifier=bisq-pricenode
-EnvironmentFile=/etc/default/bisq-pricenode.env
-ExecStart=/bisq/bisq/bisq-pricenode 2
+SyslogIdentifier=haveno-pricenode
+EnvironmentFile=/etc/default/haveno-pricenode.env
+ExecStart=/haveno/haveno/haveno-pricenode 2
 ExecStop=/bin/kill -TERM ${MAINPID}
 Restart=on-failure
 
-User=bisq
-Group=bisq
+User=haveno
+Group=haveno
 
 PrivateTmp=true
 ProtectSystem=full

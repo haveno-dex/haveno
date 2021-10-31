@@ -1,9 +1,9 @@
-package bisq.apitest.method.payment;
+package haveno.apitest.method.payment;
 
-import bisq.core.api.model.PaymentAccountForm;
-import bisq.core.locale.Res;
-import bisq.core.locale.TradeCurrency;
-import bisq.core.payment.PaymentAccount;
+import haveno.core.api.model.PaymentAccountForm;
+import haveno.core.locale.Res;
+import haveno.core.locale.TradeCurrency;
+import haveno.core.payment.PaymentAccount;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -34,8 +34,8 @@ import static org.junit.jupiter.api.Assertions.*;
 
 
 
-import bisq.apitest.method.MethodTest;
-import bisq.cli.GrpcClient;
+import haveno.apitest.method.MethodTest;
+import haveno.cli.GrpcClient;
 
 @Slf4j
 public class AbstractPaymentAccountTest extends MethodTest {

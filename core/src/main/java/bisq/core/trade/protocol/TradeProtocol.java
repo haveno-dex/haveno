@@ -1,50 +1,50 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.core.trade.protocol;
+package haveno.core.trade.protocol;
 
-import bisq.core.offer.Offer;
-import bisq.core.trade.Trade;
-import bisq.core.trade.TradeManager;
-import bisq.core.trade.messages.CounterCurrencyTransferStartedMessage;
-import bisq.core.trade.messages.DepositTxAndDelayedPayoutTxMessage;
-import bisq.core.trade.messages.InitMultisigRequest;
-import bisq.core.trade.messages.SignContractRequest;
-import bisq.core.trade.messages.TradeMessage;
-import bisq.core.trade.messages.UpdateMultisigRequest;
-import bisq.core.trade.protocol.tasks.ProcessUpdateMultisigRequest;
-import bisq.core.util.Validator;
+import haveno.core.offer.Offer;
+import haveno.core.trade.Trade;
+import haveno.core.trade.TradeManager;
+import haveno.core.trade.messages.CounterCurrencyTransferStartedMessage;
+import haveno.core.trade.messages.DepositTxAndDelayedPayoutTxMessage;
+import haveno.core.trade.messages.InitMultisigRequest;
+import haveno.core.trade.messages.SignContractRequest;
+import haveno.core.trade.messages.TradeMessage;
+import haveno.core.trade.messages.UpdateMultisigRequest;
+import haveno.core.trade.protocol.tasks.ProcessUpdateMultisigRequest;
+import haveno.core.util.Validator;
 
-import bisq.network.p2p.AckMessage;
-import bisq.network.p2p.AckMessageSourceType;
-import bisq.network.p2p.DecryptedDirectMessageListener;
-import bisq.network.p2p.DecryptedMessageWithPubKey;
-import bisq.network.p2p.NodeAddress;
-import bisq.network.p2p.SendMailboxMessageListener;
-import bisq.network.p2p.mailbox.MailboxMessage;
-import bisq.network.p2p.mailbox.MailboxMessageService;
-import bisq.network.p2p.messaging.DecryptedMailboxListener;
+import haveno.network.p2p.AckMessage;
+import haveno.network.p2p.AckMessageSourceType;
+import haveno.network.p2p.DecryptedDirectMessageListener;
+import haveno.network.p2p.DecryptedMessageWithPubKey;
+import haveno.network.p2p.NodeAddress;
+import haveno.network.p2p.SendMailboxMessageListener;
+import haveno.network.p2p.mailbox.MailboxMessage;
+import haveno.network.p2p.mailbox.MailboxMessageService;
+import haveno.network.p2p.messaging.DecryptedMailboxListener;
 
-import bisq.common.Timer;
-import bisq.common.UserThread;
-import bisq.common.crypto.PubKeyRing;
-import bisq.common.handlers.ErrorMessageHandler;
-import bisq.common.proto.network.NetworkEnvelope;
-import bisq.common.taskrunner.Task;
+import haveno.common.Timer;
+import haveno.common.UserThread;
+import haveno.common.crypto.PubKeyRing;
+import haveno.common.handlers.ErrorMessageHandler;
+import haveno.common.proto.network.NetworkEnvelope;
+import haveno.common.taskrunner.Task;
 
 import java.util.Collection;
 import java.util.Collections;

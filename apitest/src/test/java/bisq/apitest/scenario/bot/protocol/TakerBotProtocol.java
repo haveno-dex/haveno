@@ -1,7 +1,7 @@
-package bisq.apitest.scenario.bot.protocol;
+package haveno.apitest.scenario.bot.protocol;
 
-import bisq.proto.grpc.OfferInfo;
-import bisq.proto.grpc.TradeInfo;
+import haveno.proto.grpc.OfferInfo;
+import haveno.proto.grpc.TradeInfo;
 
 import protobuf.PaymentAccount;
 
@@ -13,19 +13,19 @@ import java.util.function.Supplier;
 
 import lombok.extern.slf4j.Slf4j;
 
-import static bisq.apitest.scenario.bot.protocol.ProtocolStep.DONE;
-import static bisq.apitest.scenario.bot.protocol.ProtocolStep.FIND_OFFER;
-import static bisq.apitest.scenario.bot.protocol.ProtocolStep.TAKE_OFFER;
-import static bisq.apitest.scenario.bot.shutdown.ManualShutdown.checkIfShutdownCalled;
-import static bisq.cli.TableFormat.formatOfferTable;
-import static bisq.core.payment.payload.PaymentMethod.F2F_ID;
+import static haveno.apitest.scenario.bot.protocol.ProtocolStep.DONE;
+import static haveno.apitest.scenario.bot.protocol.ProtocolStep.FIND_OFFER;
+import static haveno.apitest.scenario.bot.protocol.ProtocolStep.TAKE_OFFER;
+import static haveno.apitest.scenario.bot.shutdown.ManualShutdown.checkIfShutdownCalled;
+import static haveno.cli.TableFormat.formatOfferTable;
+import static haveno.core.payment.payload.PaymentMethod.F2F_ID;
 
 
 
-import bisq.apitest.method.BitcoinCliHelper;
-import bisq.apitest.scenario.bot.BotClient;
-import bisq.apitest.scenario.bot.script.BashScriptGenerator;
-import bisq.apitest.scenario.bot.shutdown.ManualBotShutdownException;
+import haveno.apitest.method.BitcoinCliHelper;
+import haveno.apitest.scenario.bot.BotClient;
+import haveno.apitest.scenario.bot.script.BashScriptGenerator;
+import haveno.apitest.scenario.bot.shutdown.ManualBotShutdownException;
 
 @Slf4j
 public class TakerBotProtocol extends BotProtocol {

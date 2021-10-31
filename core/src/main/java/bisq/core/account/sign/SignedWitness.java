@@ -1,33 +1,33 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * bisq is free software: you can redistribute it and/or modify it
+ * haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * bisq is distributed in the hope that it will be useful, but WITHOUT
+ * haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.core.account.sign;
+package haveno.core.account.sign;
 
-import bisq.network.p2p.storage.P2PDataStorage;
-import bisq.network.p2p.storage.payload.CapabilityRequiringPayload;
-import bisq.network.p2p.storage.payload.DateTolerantPayload;
-import bisq.network.p2p.storage.payload.PersistableNetworkPayload;
-import bisq.network.p2p.storage.payload.ProcessOncePersistableNetworkPayload;
+import haveno.network.p2p.storage.P2PDataStorage;
+import haveno.network.p2p.storage.payload.CapabilityRequiringPayload;
+import haveno.network.p2p.storage.payload.DateTolerantPayload;
+import haveno.network.p2p.storage.payload.PersistableNetworkPayload;
+import haveno.network.p2p.storage.payload.ProcessOncePersistableNetworkPayload;
 
-import bisq.common.app.Capabilities;
-import bisq.common.app.Capability;
-import bisq.common.crypto.Hash;
-import bisq.common.proto.ProtoUtil;
-import bisq.common.util.Utilities;
+import haveno.common.app.Capabilities;
+import haveno.common.app.Capability;
+import haveno.common.crypto.Hash;
+import haveno.common.proto.ProtoUtil;
+import haveno.common.util.Utilities;
 
 import com.google.protobuf.ByteString;
 

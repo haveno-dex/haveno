@@ -1,43 +1,43 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.core.user;
+package haveno.core.user;
 
-import bisq.core.btc.nodes.BtcNodes;
-import bisq.core.btc.nodes.LocalBitcoinNode;
-import bisq.core.btc.wallet.Restrictions;
-import bisq.core.locale.Country;
-import bisq.core.locale.CountryUtil;
-import bisq.core.locale.CryptoCurrency;
-import bisq.core.locale.CurrencyUtil;
-import bisq.core.locale.FiatCurrency;
-import bisq.core.locale.GlobalSettings;
-import bisq.core.locale.TradeCurrency;
-import bisq.core.payment.PaymentAccount;
-import bisq.core.payment.PaymentAccountUtil;
-import bisq.core.provider.fee.FeeService;
+import haveno.core.btc.nodes.BtcNodes;
+import haveno.core.btc.nodes.LocalBitcoinNode;
+import haveno.core.btc.wallet.Restrictions;
+import haveno.core.locale.Country;
+import haveno.core.locale.CountryUtil;
+import haveno.core.locale.CryptoCurrency;
+import haveno.core.locale.CurrencyUtil;
+import haveno.core.locale.FiatCurrency;
+import haveno.core.locale.GlobalSettings;
+import haveno.core.locale.TradeCurrency;
+import haveno.core.payment.PaymentAccount;
+import haveno.core.payment.PaymentAccountUtil;
+import haveno.core.provider.fee.FeeService;
 
-import bisq.network.p2p.network.BridgeAddressProvider;
+import haveno.network.p2p.network.BridgeAddressProvider;
 
-import bisq.common.config.BaseCurrencyNetwork;
-import bisq.common.config.Config;
-import bisq.common.persistence.PersistenceManager;
-import bisq.common.proto.persistable.PersistedDataHost;
-import bisq.common.util.Utilities;
+import haveno.common.config.BaseCurrencyNetwork;
+import haveno.common.config.Config;
+import haveno.common.persistence.PersistenceManager;
+import haveno.common.proto.persistable.PersistedDataHost;
+import haveno.common.util.Utilities;
 
 import javax.inject.Inject;
 import javax.inject.Named;
@@ -81,8 +81,8 @@ public final class Preferences implements PersistedDataHost, BridgeAddressProvid
             new BlockChainExplorer("mempool.space Tor V3", "http://mempoolhqx4isw62xs7abwphsq7ldayuidyx2v2oethdhhj6mlo2r6ad.onion/tx/", "http://mempoolhqx4isw62xs7abwphsq7ldayuidyx2v2oethdhhj6mlo2r6ad.onion/address/"),
             new BlockChainExplorer("mempool.emzy.de (@emzy)", "https://mempool.emzy.de/tx/", "https://mempool.emzy.de/address/"),
             new BlockChainExplorer("mempool.emzy.de Tor V3", "http://mempool4t6mypeemozyterviq3i5de4kpoua65r3qkn5i3kknu5l2cad.onion/tx/", "http://mempool4t6mypeemozyterviq3i5de4kpoua65r3qkn5i3kknu5l2cad.onion/address/"),
-            new BlockChainExplorer("mempool.bisq.services (@devinbileck)", "https://mempool.bisq.services/tx/", "https://mempool.bisq.services/address/"),
-            new BlockChainExplorer("mempool.bisq.services Tor V3", "http://mempoolusb2f67qi7mz2it7n5e77a6komdzx6wftobcduxszkdfun2yd.onion/tx/", "http://mempoolusb2f67qi7mz2it7n5e77a6komdzx6wftobcduxszkdfun2yd.onion/address/"),
+            new BlockChainExplorer("mempool.haveno.services (@devinbileck)", "https://mempool.haveno.services/tx/", "https://mempool.haveno.services/address/"),
+            new BlockChainExplorer("mempool.haveno.services Tor V3", "http://mempoolusb2f67qi7mz2it7n5e77a6komdzx6wftobcduxszkdfun2yd.onion/tx/", "http://mempoolusb2f67qi7mz2it7n5e77a6komdzx6wftobcduxszkdfun2yd.onion/address/"),
             new BlockChainExplorer("Blockstream.info", "https://blockstream.info/tx/", "https://blockstream.info/address/"),
             new BlockChainExplorer("Blockstream.info Tor V3", "http://explorerzydxu5ecjrkwceayqybizmpjjznk5izmitf2modhcusuqlid.onion/tx/", "http://explorerzydxu5ecjrkwceayqybizmpjjznk5izmitf2modhcusuqlid.onion/address/"),
             new BlockChainExplorer("OXT", "https://oxt.me/transaction/", "https://oxt.me/address/"),
@@ -118,7 +118,7 @@ public final class Preferences implements PersistedDataHost, BridgeAddressProvid
     private static final ArrayList<String> XMR_TX_PROOF_SERVICES_CLEAR_NET = new ArrayList<>(Arrays.asList(
             "xmrblocks.monero.emzy.de", // @emzy
             //"explorer.monero.wiz.biz", // @wiz
-            "xmrblocks.bisq.services" // @devinbileck
+            "xmrblocks.haveno.services" // @devinbileck
     ));
     private static final ArrayList<String> XMR_TX_PROOF_SERVICES = new ArrayList<>(Arrays.asList(
             "monero3bec7m26vx6si6qo7q7imlaoz45ot5m2b5z2ppgoooo6jx2rqd.onion", // @emzy
@@ -130,7 +130,7 @@ public final class Preferences implements PersistedDataHost, BridgeAddressProvid
     private static final ArrayList<String> TX_BROADCAST_SERVICES_CLEAR_NET = new ArrayList<>(Arrays.asList(
             "https://mempool.space/api/tx",         // @wiz
             "https://mempool.emzy.de/api/tx",       // @emzy
-            "https://mempool.bisq.services/api/tx"  // @devinbileck
+            "https://mempool.haveno.services/api/tx"  // @devinbileck
     ));
 
     private static final ArrayList<String> TX_BROADCAST_SERVICES = new ArrayList<>(Arrays.asList(

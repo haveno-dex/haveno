@@ -1,30 +1,30 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.desktop.main.settings.about;
+package haveno.desktop.main.settings.about;
 
-import bisq.desktop.common.view.ActivatableView;
-import bisq.desktop.common.view.FxmlView;
-import bisq.desktop.components.HyperlinkWithIcon;
-import bisq.desktop.util.Layout;
+import haveno.desktop.common.view.ActivatableView;
+import haveno.desktop.common.view.FxmlView;
+import haveno.desktop.components.HyperlinkWithIcon;
+import haveno.desktop.util.Layout;
 
-import bisq.core.locale.Res;
+import haveno.core.locale.Res;
 
-import bisq.common.app.Version;
+import haveno.common.app.Version;
 
 import javax.inject.Inject;
 
@@ -33,10 +33,10 @@ import javafx.scene.layout.GridPane;
 
 import javafx.geometry.HPos;
 
-import static bisq.desktop.util.FormBuilder.addCompactTopLabelTextField;
-import static bisq.desktop.util.FormBuilder.addHyperlinkWithIcon;
-import static bisq.desktop.util.FormBuilder.addLabel;
-import static bisq.desktop.util.FormBuilder.addTitledGroupBg;
+import static haveno.desktop.util.FormBuilder.addCompactTopLabelTextField;
+import static haveno.desktop.util.FormBuilder.addHyperlinkWithIcon;
+import static haveno.desktop.util.FormBuilder.addLabel;
+import static haveno.desktop.util.FormBuilder.addTitledGroupBg;
 
 @FxmlView
 public class AboutView extends ActivatableView<GridPane, Void> {
@@ -56,11 +56,11 @@ public class AboutView extends ActivatableView<GridPane, Void> {
         label.setWrapText(true);
         GridPane.setColumnSpan(label, 2);
         GridPane.setHalignment(label, HPos.LEFT);
-        HyperlinkWithIcon hyperlinkWithIcon = addHyperlinkWithIcon(root, ++gridRow, Res.get("setting.about.web"), "https://bisq.network");
+        HyperlinkWithIcon hyperlinkWithIcon = addHyperlinkWithIcon(root, ++gridRow, Res.get("setting.about.web"), "https://haveno.network");
         GridPane.setColumnSpan(hyperlinkWithIcon, 2);
-        hyperlinkWithIcon = addHyperlinkWithIcon(root, ++gridRow, Res.get("setting.about.code"), "https://bisq.network/source/bisq");
+        hyperlinkWithIcon = addHyperlinkWithIcon(root, ++gridRow, Res.get("setting.about.code"), "https://haveno.network/source/haveno");
         GridPane.setColumnSpan(hyperlinkWithIcon, 2);
-        hyperlinkWithIcon = addHyperlinkWithIcon(root, ++gridRow, Res.get("setting.about.agpl"), "https://bisq.network/source/bisq/blob/master/LICENSE");
+        hyperlinkWithIcon = addHyperlinkWithIcon(root, ++gridRow, Res.get("setting.about.agpl"), "https://haveno.network/source/haveno/blob/master/LICENSE");
         GridPane.setColumnSpan(hyperlinkWithIcon, 2);
 
         addTitledGroupBg(root, ++gridRow, 2, Res.get("setting.about.support"), Layout.GROUP_DISTANCE);
@@ -69,7 +69,7 @@ public class AboutView extends ActivatableView<GridPane, Void> {
         label.setWrapText(true);
         GridPane.setColumnSpan(label, 2);
         GridPane.setHalignment(label, HPos.LEFT);
-        hyperlinkWithIcon = addHyperlinkWithIcon(root, ++gridRow, Res.get("setting.about.contribute"), "https://bisq.network/contribute");
+        hyperlinkWithIcon = addHyperlinkWithIcon(root, ++gridRow, Res.get("setting.about.contribute"), "https://haveno.network/contribute");
         GridPane.setColumnSpan(hyperlinkWithIcon, 2);
 
         boolean isXmr = Res.getBaseCurrencyCode().equals("XMR");
@@ -79,7 +79,7 @@ public class AboutView extends ActivatableView<GridPane, Void> {
         label.setWrapText(true);
         GridPane.setHalignment(label, HPos.LEFT);
         addCompactTopLabelTextField(root, ++gridRow, Res.get("setting.about.pricesProvided"),
-                "Bisq Price Index (https://bisq.wiki/Bisq_Price_Index)");
+                "Haveno Price Index (https://haveno.wiki/Haveno_Price_Index)");
         if (isXmr)
             addCompactTopLabelTextField(root, ++gridRow, Res.get("setting.about.feeEstimation.label"), "mempool.space (https://mempool.space)");
 

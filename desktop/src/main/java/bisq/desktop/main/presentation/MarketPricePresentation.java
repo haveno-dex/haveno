@@ -1,37 +1,37 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.desktop.main.presentation;
+package haveno.desktop.main.presentation;
 
-import bisq.desktop.components.TxIdTextField;
-import bisq.desktop.main.shared.PriceFeedComboBoxItem;
-import bisq.desktop.util.GUIUtil;
+import haveno.desktop.components.TxIdTextField;
+import haveno.desktop.main.shared.PriceFeedComboBoxItem;
+import haveno.desktop.util.GUIUtil;
 
-import bisq.core.btc.wallet.BtcWalletService;
-import bisq.core.locale.CurrencyUtil;
-import bisq.core.locale.Res;
-import bisq.core.locale.TradeCurrency;
-import bisq.core.provider.fee.FeeService;
-import bisq.core.provider.price.MarketPrice;
-import bisq.core.provider.price.PriceFeedService;
-import bisq.core.user.Preferences;
-import bisq.core.util.FormattingUtils;
+import haveno.core.btc.wallet.BtcWalletService;
+import haveno.core.locale.CurrencyUtil;
+import haveno.core.locale.Res;
+import haveno.core.locale.TradeCurrency;
+import haveno.core.provider.fee.FeeService;
+import haveno.core.provider.price.MarketPrice;
+import haveno.core.provider.price.PriceFeedService;
+import haveno.core.user.Preferences;
+import haveno.core.util.FormattingUtils;
 
-import bisq.common.UserThread;
+import haveno.common.UserThread;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;

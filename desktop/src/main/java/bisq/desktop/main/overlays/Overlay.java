@@ -1,41 +1,41 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.desktop.main.overlays;
+package haveno.desktop.main.overlays;
 
-import bisq.desktop.app.BisqApp;
-import bisq.desktop.components.AutoTooltipButton;
-import bisq.desktop.components.AutoTooltipCheckBox;
-import bisq.desktop.components.AutoTooltipLabel;
-import bisq.desktop.components.BusyAnimation;
-import bisq.desktop.main.MainView;
-import bisq.desktop.util.FormBuilder;
-import bisq.desktop.util.GUIUtil;
-import bisq.desktop.util.Transitions;
+import haveno.desktop.app.HavenoApp;
+import haveno.desktop.components.AutoTooltipButton;
+import haveno.desktop.components.AutoTooltipCheckBox;
+import haveno.desktop.components.AutoTooltipLabel;
+import haveno.desktop.components.BusyAnimation;
+import haveno.desktop.main.MainView;
+import haveno.desktop.util.FormBuilder;
+import haveno.desktop.util.GUIUtil;
+import haveno.desktop.util.Transitions;
 
-import bisq.core.locale.GlobalSettings;
-import bisq.core.locale.LanguageUtil;
-import bisq.core.locale.Res;
-import bisq.core.user.DontShowAgainLookup;
+import haveno.core.locale.GlobalSettings;
+import haveno.core.locale.LanguageUtil;
+import haveno.core.locale.Res;
+import haveno.core.user.DontShowAgainLookup;
 
-import bisq.common.Timer;
-import bisq.common.UserThread;
-import bisq.common.config.Config;
-import bisq.common.util.Utilities;
+import haveno.common.Timer;
+import haveno.common.UserThread;
+import haveno.common.config.Config;
+import haveno.common.util.Utilities;
 
 import com.google.common.reflect.TypeToken;
 
@@ -394,7 +394,7 @@ public abstract class Overlay<T extends Overlay<T>> {
 
     public T useReportBugButton() {
         this.closeButtonText = Res.get("shared.reportBug");
-        this.closeHandlerOptional = Optional.of(() -> GUIUtil.openWebPage("https://bisq.network/source/bisq/issues"));
+        this.closeHandlerOptional = Optional.of(() -> GUIUtil.openWebPage("https://haveno.network/source/haveno/issues"));
         return cast();
     }
 
@@ -430,7 +430,7 @@ public abstract class Overlay<T extends Overlay<T>> {
 
     public T useShutDownButton() {
         this.actionButtonText = Res.get("shared.shutDown");
-        this.actionHandlerOptional = Optional.ofNullable(BisqApp.getShutDownHandler());
+        this.actionHandlerOptional = Optional.ofNullable(HavenoApp.getShutDownHandler());
         return cast();
     }
 
@@ -858,7 +858,7 @@ public abstract class Overlay<T extends Overlay<T>> {
         logButton.setOnAction(event -> {
             try {
                 File dataDir = Config.appDataDir();
-                File logFile = new File(dataDir, "bisq.log");
+                File logFile = new File(dataDir, "haveno.log");
                 Utilities.openFile(logFile);
             } catch (IOException e) {
                 e.printStackTrace();
@@ -873,7 +873,7 @@ public abstract class Overlay<T extends Overlay<T>> {
         gitHubButton.setOnAction(event -> {
             if (message != null)
                 Utilities.copyToClipboard(message);
-            GUIUtil.openWebPage("https://bisq.network/source/bisq/issues");
+            GUIUtil.openWebPage("https://haveno.network/source/haveno/issues");
             hide();
         });
     }
@@ -989,10 +989,10 @@ public abstract class Overlay<T extends Overlay<T>> {
         else truncatedMessage = Objects.requireNonNullElse(message, "");
     }
 
-    // separate a popup message from optional hyperlinks.  [bisq-network/bisq/pull/4637]
+    // separate a popup message from optional hyperlinks.  [haveno-network/haveno/pull/4637]
     // hyperlinks are distinguished by [HYPERLINK:] tag
     // referenced in order from within the message via [1], [2] etc.
-    // e.g. [HYPERLINK:https://bisq.wiki]
+    // e.g. [HYPERLINK:https://haveno.wiki]
     private void preProcessMessage(String message) {
         Pattern pattern = Pattern.compile("\\[HYPERLINK:(.*?)\\]");
         Matcher matcher = pattern.matcher(message);

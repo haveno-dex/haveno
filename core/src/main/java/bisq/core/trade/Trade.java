@@ -1,48 +1,48 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.core.trade;
+package haveno.core.trade;
 
-import bisq.core.btc.wallet.XmrWalletService;
-import bisq.core.locale.CurrencyUtil;
-import bisq.core.monetary.Price;
-import bisq.core.monetary.Volume;
-import bisq.core.offer.Offer;
-import bisq.core.offer.OfferPayload.Direction;
-import bisq.core.payment.payload.PaymentMethod;
-import bisq.core.proto.CoreProtoResolver;
-import bisq.core.support.dispute.arbitration.arbitrator.Arbitrator;
-import bisq.core.support.dispute.mediation.MediationResultState;
-import bisq.core.support.dispute.refund.RefundResultState;
-import bisq.core.support.messages.ChatMessage;
-import bisq.core.trade.messages.TradeMessage;
-import bisq.core.trade.protocol.ProcessModel;
-import bisq.core.trade.protocol.ProcessModelServiceProvider;
-import bisq.core.trade.protocol.TradeListener;
-import bisq.core.trade.protocol.TradingPeer;
-import bisq.core.trade.txproof.AssetTxProofResult;
-import bisq.core.util.VolumeUtil;
-import bisq.network.p2p.AckMessage;
-import bisq.network.p2p.NodeAddress;
+import haveno.core.btc.wallet.XmrWalletService;
+import haveno.core.locale.CurrencyUtil;
+import haveno.core.monetary.Price;
+import haveno.core.monetary.Volume;
+import haveno.core.offer.Offer;
+import haveno.core.offer.OfferPayload.Direction;
+import haveno.core.payment.payload.PaymentMethod;
+import haveno.core.proto.CoreProtoResolver;
+import haveno.core.support.dispute.arbitration.arbitrator.Arbitrator;
+import haveno.core.support.dispute.mediation.MediationResultState;
+import haveno.core.support.dispute.refund.RefundResultState;
+import haveno.core.support.messages.ChatMessage;
+import haveno.core.trade.messages.TradeMessage;
+import haveno.core.trade.protocol.ProcessModel;
+import haveno.core.trade.protocol.ProcessModelServiceProvider;
+import haveno.core.trade.protocol.TradeListener;
+import haveno.core.trade.protocol.TradingPeer;
+import haveno.core.trade.txproof.AssetTxProofResult;
+import haveno.core.util.VolumeUtil;
+import haveno.network.p2p.AckMessage;
+import haveno.network.p2p.NodeAddress;
 
-import bisq.common.crypto.PubKeyRing;
-import bisq.common.proto.ProtoUtil;
-import bisq.common.taskrunner.Model;
-import bisq.common.util.Utilities;
+import haveno.common.crypto.PubKeyRing;
+import haveno.common.proto.ProtoUtil;
+import haveno.common.taskrunner.Model;
+import haveno.common.util.Utilities;
 
 import com.google.protobuf.ByteString;
 import com.google.protobuf.Message;
@@ -708,7 +708,7 @@ public abstract class Trade implements Tradable, Model {
         this.makerDepositTx = makerDepositTx;
         this.takerDepositTx = takerDepositTx;
         if (!makerDepositTx.isLocked() && !takerDepositTx.isLocked()) {
-          setConfirmedState();  // TODO (woodser): bisq "confirmed" = xmr unlocked after 10 confirmations
+          setConfirmedState();  // TODO (woodser): haveno "confirmed" = xmr unlocked after 10 confirmations
         }
     }
     

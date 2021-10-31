@@ -1,47 +1,47 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.core.app;
+package haveno.core.app;
 
-import bisq.core.btc.setup.WalletsSetup;
-import bisq.core.btc.wallet.BtcWalletService;
-import bisq.core.btc.wallet.XmrWalletService;
-import bisq.core.offer.OpenOfferManager;
-import bisq.core.provider.price.PriceFeedService;
-import bisq.core.setup.CorePersistedDataHost;
-import bisq.core.setup.CoreSetup;
-import bisq.core.support.dispute.arbitration.arbitrator.ArbitratorManager;
-import bisq.core.trade.statistics.TradeStatisticsManager;
-import bisq.core.trade.txproof.xmr.XmrTxProofService;
+import haveno.core.btc.setup.WalletsSetup;
+import haveno.core.btc.wallet.BtcWalletService;
+import haveno.core.btc.wallet.XmrWalletService;
+import haveno.core.offer.OpenOfferManager;
+import haveno.core.provider.price.PriceFeedService;
+import haveno.core.setup.CorePersistedDataHost;
+import haveno.core.setup.CoreSetup;
+import haveno.core.support.dispute.arbitration.arbitrator.ArbitratorManager;
+import haveno.core.trade.statistics.TradeStatisticsManager;
+import haveno.core.trade.txproof.xmr.XmrTxProofService;
 
-import bisq.network.p2p.P2PService;
+import haveno.network.p2p.P2PService;
 
-import bisq.common.UserThread;
-import bisq.common.app.AppModule;
-import bisq.common.config.BisqHelpFormatter;
-import bisq.common.config.Config;
-import bisq.common.config.ConfigException;
-import bisq.common.handlers.ResultHandler;
-import bisq.common.persistence.PersistenceManager;
-import bisq.common.proto.persistable.PersistedDataHost;
-import bisq.common.setup.CommonSetup;
-import bisq.common.setup.GracefulShutDownHandler;
-import bisq.common.setup.UncaughtExceptionHandler;
-import bisq.common.util.Utilities;
+import haveno.common.UserThread;
+import haveno.common.app.AppModule;
+import haveno.common.config.HavenoHelpFormatter;
+import haveno.common.config.Config;
+import haveno.common.config.ConfigException;
+import haveno.common.handlers.ResultHandler;
+import haveno.common.persistence.PersistenceManager;
+import haveno.common.proto.persistable.PersistedDataHost;
+import haveno.common.setup.CommonSetup;
+import haveno.common.setup.GracefulShutDownHandler;
+import haveno.common.setup.UncaughtExceptionHandler;
+import haveno.common.util.Utilities;
 
 import com.google.inject.Guice;
 import com.google.inject.Injector;
@@ -54,7 +54,7 @@ import lombok.extern.slf4j.Slf4j;
 import javax.annotation.Nullable;
 
 @Slf4j
-public abstract class BisqExecutable implements GracefulShutDownHandler, BisqSetup.BisqSetupListener, UncaughtExceptionHandler {
+public abstract class HavenoExecutable implements GracefulShutDownHandler, HavenoSetup.HavenoSetupListener, UncaughtExceptionHandler {
 
     public static final int EXIT_SUCCESS = 0;
     public static final int EXIT_FAILURE = 1;
@@ -70,7 +70,7 @@ public abstract class BisqExecutable implements GracefulShutDownHandler, BisqSet
     private boolean isShutdownInProgress;
     private boolean hasDowngraded;
 
-    public BisqExecutable(String fullName, String scriptName, String appName, String version) {
+    public HavenoExecutable(String fullName, String scriptName, String appName, String version) {
         this.fullName = fullName;
         this.scriptName = scriptName;
         this.appName = appName;
@@ -81,7 +81,7 @@ public abstract class BisqExecutable implements GracefulShutDownHandler, BisqSet
         try {
             config = new Config(appName, Utilities.getUserDataDir(), args);
             if (config.helpRequested) {
-                config.printHelp(System.out, new BisqHelpFormatter(fullName, scriptName, version));
+                config.printHelp(System.out, new HavenoHelpFormatter(fullName, scriptName, version));
                 System.exit(EXIT_SUCCESS);
             }
         } catch (ConfigException ex) {
@@ -90,7 +90,7 @@ public abstract class BisqExecutable implements GracefulShutDownHandler, BisqSet
             System.exit(EXIT_FAILURE);
         } catch (Throwable ex) {
             System.err.println("fault: An unexpected error occurred. " +
-                    "Please file a report at https://bisq.network/issues");
+                    "Please file a report at https://haveno.network/issues");
             ex.printStackTrace(System.err);
             System.exit(EXIT_FAILURE);
         }
@@ -136,10 +136,10 @@ public abstract class BisqExecutable implements GracefulShutDownHandler, BisqSet
         setupGuice();
         setupAvoidStandbyMode();
 
-        hasDowngraded = BisqSetup.hasDowngraded();
+        hasDowngraded = HavenoSetup.hasDowngraded();
         if (hasDowngraded) {
             // If user tried to downgrade we do not read the persisted data to avoid data corruption
-            // We call startApplication to enable UI to show popup. We prevent in BisqSetup to go further
+            // We call startApplication to enable UI to show popup. We prevent in HavenoSetup to go further
             // in the process and require a shut down.
             startApplication();
         } else {
@@ -194,13 +194,13 @@ public abstract class BisqExecutable implements GracefulShutDownHandler, BisqSet
 
     // Once the application is ready we get that callback and we start the setup
     protected void onApplicationStarted() {
-        runBisqSetup();
+        runHavenoSetup();
     }
 
-    protected void runBisqSetup() {
-        BisqSetup bisqSetup = injector.getInstance(BisqSetup.class);
-        bisqSetup.addBisqSetupListener(this);
-        bisqSetup.start();
+    protected void runHavenoSetup() {
+        HavenoSetup havenoSetup = injector.getInstance(HavenoSetup.class);
+        havenoSetup.addHavenoSetupListener(this);
+        havenoSetup.start();
     }
 
     @Override

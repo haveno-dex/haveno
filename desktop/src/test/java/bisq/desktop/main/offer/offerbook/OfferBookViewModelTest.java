@@ -1,53 +1,53 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.desktop.main.offer.offerbook;
+package haveno.desktop.main.offer.offerbook;
 
-import bisq.desktop.main.PriceUtil;
+import haveno.desktop.main.PriceUtil;
 
-import bisq.core.locale.Country;
-import bisq.core.locale.CryptoCurrency;
-import bisq.core.locale.FiatCurrency;
-import bisq.core.locale.GlobalSettings;
-import bisq.core.locale.Res;
-import bisq.core.offer.Offer;
-import bisq.core.offer.OfferPayload;
-import bisq.core.offer.OpenOfferManager;
-import bisq.core.payment.AliPayAccount;
-import bisq.core.payment.CountryBasedPaymentAccount;
-import bisq.core.payment.CryptoCurrencyAccount;
-import bisq.core.payment.NationalBankAccount;
-import bisq.core.payment.PaymentAccount;
-import bisq.core.payment.PaymentAccountUtil;
-import bisq.core.payment.SameBankAccount;
-import bisq.core.payment.SepaAccount;
-import bisq.core.payment.SpecificBanksAccount;
-import bisq.core.payment.payload.NationalBankAccountPayload;
-import bisq.core.payment.payload.PaymentMethod;
-import bisq.core.payment.payload.SameBankAccountPayload;
-import bisq.core.payment.payload.SepaAccountPayload;
-import bisq.core.payment.payload.SpecificBanksAccountPayload;
-import bisq.core.provider.price.MarketPrice;
-import bisq.core.provider.price.PriceFeedService;
-import bisq.core.trade.statistics.TradeStatisticsManager;
-import bisq.core.util.coin.CoinFormatter;
-import bisq.core.util.coin.ImmutableCoinFormatter;
+import haveno.core.locale.Country;
+import haveno.core.locale.CryptoCurrency;
+import haveno.core.locale.FiatCurrency;
+import haveno.core.locale.GlobalSettings;
+import haveno.core.locale.Res;
+import haveno.core.offer.Offer;
+import haveno.core.offer.OfferPayload;
+import haveno.core.offer.OpenOfferManager;
+import haveno.core.payment.AliPayAccount;
+import haveno.core.payment.CountryBasedPaymentAccount;
+import haveno.core.payment.CryptoCurrencyAccount;
+import haveno.core.payment.NationalBankAccount;
+import haveno.core.payment.PaymentAccount;
+import haveno.core.payment.PaymentAccountUtil;
+import haveno.core.payment.SameBankAccount;
+import haveno.core.payment.SepaAccount;
+import haveno.core.payment.SpecificBanksAccount;
+import haveno.core.payment.payload.NationalBankAccountPayload;
+import haveno.core.payment.payload.PaymentMethod;
+import haveno.core.payment.payload.SameBankAccountPayload;
+import haveno.core.payment.payload.SepaAccountPayload;
+import haveno.core.payment.payload.SpecificBanksAccountPayload;
+import haveno.core.provider.price.MarketPrice;
+import haveno.core.provider.price.PriceFeedService;
+import haveno.core.trade.statistics.TradeStatisticsManager;
+import haveno.core.util.coin.CoinFormatter;
+import haveno.core.util.coin.ImmutableCoinFormatter;
 
-import bisq.common.config.Config;
+import haveno.common.config.Config;
 
 import javafx.beans.property.SimpleIntegerProperty;
 
@@ -69,9 +69,9 @@ import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
 
-import static bisq.desktop.main.offer.offerbook.OfferBookListItemMaker.*;
-import static bisq.desktop.maker.PreferenceMakers.empty;
-import static bisq.desktop.maker.TradeCurrencyMakers.usd;
+import static haveno.desktop.main.offer.offerbook.OfferBookListItemMaker.*;
+import static haveno.desktop.maker.PreferenceMakers.empty;
+import static haveno.desktop.maker.TradeCurrencyMakers.usd;
 import static com.natpryce.makeiteasy.MakeItEasy.make;
 import static com.natpryce.makeiteasy.MakeItEasy.with;
 import static org.junit.Assert.assertEquals;

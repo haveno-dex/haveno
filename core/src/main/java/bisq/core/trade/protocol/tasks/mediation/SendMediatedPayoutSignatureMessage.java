@@ -1,34 +1,34 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.core.trade.protocol.tasks.mediation;
+package haveno.core.trade.protocol.tasks.mediation;
 
-import bisq.core.support.dispute.mediation.MediationResultState;
-import bisq.core.trade.Contract;
-import bisq.core.trade.Trade;
-import bisq.core.trade.messages.MediatedPayoutTxSignatureMessage;
-import bisq.core.trade.protocol.tasks.TradeTask;
+import haveno.core.support.dispute.mediation.MediationResultState;
+import haveno.core.trade.Contract;
+import haveno.core.trade.Trade;
+import haveno.core.trade.messages.MediatedPayoutTxSignatureMessage;
+import haveno.core.trade.protocol.tasks.TradeTask;
 
-import bisq.network.p2p.NodeAddress;
-import bisq.network.p2p.P2PService;
-import bisq.network.p2p.SendMailboxMessageListener;
+import haveno.network.p2p.NodeAddress;
+import haveno.network.p2p.P2PService;
+import haveno.network.p2p.SendMailboxMessageListener;
 
-import bisq.common.crypto.PubKeyRing;
-import bisq.common.taskrunner.TaskRunner;
+import haveno.common.crypto.PubKeyRing;
+import haveno.common.taskrunner.TaskRunner;
 
 import java.util.UUID;
 

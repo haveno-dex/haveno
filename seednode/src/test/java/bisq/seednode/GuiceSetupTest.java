@@ -1,11 +1,11 @@
-package bisq.seednode;
+package haveno.seednode;
 
-import bisq.core.app.misc.AppSetupWithP2PAndDAO;
-import bisq.core.app.misc.ModuleForAppWithP2p;
-import bisq.core.locale.CurrencyUtil;
-import bisq.core.locale.Res;
+import haveno.core.app.misc.AppSetupWithP2PAndDAO;
+import haveno.core.app.misc.ModuleForAppWithP2p;
+import haveno.core.locale.CurrencyUtil;
+import haveno.core.locale.Res;
 
-import bisq.common.config.Config;
+import haveno.common.config.Config;
 
 import com.google.inject.Guice;
 

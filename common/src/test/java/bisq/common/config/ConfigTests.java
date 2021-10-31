@@ -1,4 +1,4 @@
-package bisq.common.config;
+package haveno.common.config;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -14,7 +14,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
-import static bisq.common.config.Config.*;
+import static haveno.common.config.Config.*;
 import static java.lang.String.format;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
@@ -31,22 +31,22 @@ public class ConfigTests {
     public ExpectedException exceptionRule = ExpectedException.none();
 
     // Note: "DataDirProperties" in the test method names below represent the group of
-    // configuration options that influence the location of a Bisq node's data directory.
+    // configuration options that influence the location of a Haveno node's data directory.
     // These options include appName, userDataDir, appDataDir and configFile
 
     @Test
     public void whenNoArgCtorIsCalled_thenDefaultAppNameIsSetToTempValue() {
         Config config = new Config();
         String defaultAppName = config.defaultAppName;
-        String regex = "Bisq\\d{2,}Temp";
+        String regex = "Haveno\\d{2,}Temp";
         assertTrue(format("Temp app name '%s' failed to match '%s'", defaultAppName, regex),
                 defaultAppName.matches(regex));
     }
 
     @Test
     public void whenAppNameOptionIsSet_thenAppNamePropertyDiffersFromDefaultAppNameProperty() {
-        Config config = configWithOpts(opt(APP_NAME, "My-Bisq"));
-        assertThat(config.appName, equalTo("My-Bisq"));
+        Config config = configWithOpts(opt(APP_NAME, "My-Haveno"));
+        assertThat(config.appName, equalTo("My-Haveno"));
         assertThat(config.appName, not(equalTo(config.defaultAppName)));
     }
 
@@ -61,10 +61,10 @@ public class ConfigTests {
 
     @Test
     public void whenAppNameOptionIsSet_thenDataDirPropertiesReflectItsValue() {
-        Config config = configWithOpts(opt(APP_NAME, "My-Bisq"));
-        assertThat(config.appName, equalTo("My-Bisq"));
+        Config config = configWithOpts(opt(APP_NAME, "My-Haveno"));
+        assertThat(config.appName, equalTo("My-Haveno"));
         assertThat(config.userDataDir, equalTo(config.defaultUserDataDir));
-        assertThat(config.appDataDir, equalTo(new File(config.userDataDir, "My-Bisq")));
+        assertThat(config.appDataDir, equalTo(new File(config.userDataDir, "My-Haveno")));
         assertThat(config.configFile, equalTo(new File(config.appDataDir, DEFAULT_CONFIG_FILE_NAME)));
     }
 
@@ -91,8 +91,8 @@ public class ConfigTests {
     @Test
     public void whenAppNameAndAppDataDirOptionsAreSet_thenDataDirPropertiesReflectTheirValues() throws IOException {
         File appDataDir = Files.createTempDirectory("myapp").toFile();
-        Config config = configWithOpts(opt(APP_NAME, "My-Bisq"), opt(APP_DATA_DIR, appDataDir));
-        assertThat(config.appName, equalTo("My-Bisq"));
+        Config config = configWithOpts(opt(APP_NAME, "My-Haveno"), opt(APP_DATA_DIR, appDataDir));
+        assertThat(config.appName, equalTo("My-Haveno"));
         assertThat(config.userDataDir, equalTo(config.defaultUserDataDir));
         assertThat(config.appDataDir, equalTo(appDataDir));
         assertThat(config.configFile, equalTo(new File(config.appDataDir, DEFAULT_CONFIG_FILE_NAME)));
@@ -100,12 +100,12 @@ public class ConfigTests {
 
     @Test
     public void whenOptionIsSetAtCommandLineAndInConfigFile_thenCommandLineValueTakesPrecedence() throws IOException {
-        File configFile = File.createTempFile("bisq", "properties");
+        File configFile = File.createTempFile("haveno", "properties");
         try (PrintWriter writer = new PrintWriter(configFile)) {
-            writer.println(new ConfigFileOption(APP_NAME, "Bisq-configFileValue"));
+            writer.println(new ConfigFileOption(APP_NAME, "Haveno-configFileValue"));
         }
-        Config config = configWithOpts(opt(APP_NAME, "Bisq-commandLineValue"));
-        assertThat(config.appName, equalTo("Bisq-commandLineValue"));
+        Config config = configWithOpts(opt(APP_NAME, "Haveno-commandLineValue"));
+        assertThat(config.appName, equalTo("Haveno-commandLineValue"));
     }
 
     @Test
@@ -117,13 +117,13 @@ public class ConfigTests {
 
     @Test
     public void whenUnrecognizedOptionIsSetInConfigFile_thenNoExceptionIsThrown() throws IOException {
-        File configFile = File.createTempFile("bisq", "properties");
+        File configFile = File.createTempFile("haveno", "properties");
         try (PrintWriter writer = new PrintWriter(configFile)) {
             writer.println(new ConfigFileOption("bogusOption", "bogusValue"));
-            writer.println(new ConfigFileOption(APP_NAME, "BisqTest"));
+            writer.println(new ConfigFileOption(APP_NAME, "HavenoTest"));
         }
         Config config = configWithOpts(opt(CONFIG_FILE, configFile.getAbsolutePath()));
-        assertThat(config.appName, equalTo("BisqTest"));
+        assertThat(config.appName, equalTo("HavenoTest"));
     }
 
     @Test
@@ -139,9 +139,9 @@ public class ConfigTests {
 
     @Test
     public void whenConfigFileOptionIsSetToNonExistentFile_thenConfigExceptionIsThrown() {
-        String filepath = "/no/such/bisq.properties";
+        String filepath = "/no/such/haveno.properties";
         if (System.getProperty("os.name").startsWith("Windows")) {
-            filepath = "C:\\no\\such\\bisq.properties";
+            filepath = "C:\\no\\such\\haveno.properties";
         }
         exceptionRule.expect(ConfigException.class);
         exceptionRule.expectMessage(format("The specified config file '%s' does not exist", filepath));
@@ -150,9 +150,9 @@ public class ConfigTests {
 
     @Test
     public void whenConfigFileOptionIsSetInConfigFile_thenConfigExceptionIsThrown() throws IOException {
-        File configFile = File.createTempFile("bisq", "properties");
+        File configFile = File.createTempFile("haveno", "properties");
         try (PrintWriter writer = new PrintWriter(configFile)) {
-            writer.println(new ConfigFileOption(CONFIG_FILE, "/tmp/other.bisq.properties"));
+            writer.println(new ConfigFileOption(CONFIG_FILE, "/tmp/other.haveno.properties"));
         }
         exceptionRule.expect(ConfigException.class);
         exceptionRule.expectMessage(format("The '%s' option is disallowed in config files", CONFIG_FILE));
@@ -161,14 +161,14 @@ public class ConfigTests {
 
     @Test
     public void whenConfigFileOptionIsSetToExistingFile_thenConfigFilePropertyReflectsItsValue() throws IOException {
-        File configFile = File.createTempFile("bisq", "properties");
+        File configFile = File.createTempFile("haveno", "properties");
         Config config = configWithOpts(opt(CONFIG_FILE, configFile.getAbsolutePath()));
         assertThat(config.configFile, equalTo(configFile));
     }
 
     @Test
     public void whenConfigFileOptionIsSetToRelativePath_thenThePathIsPrefixedByAppDataDir() throws IOException {
-        File configFile = Files.createTempFile("my-bisq", ".properties").toFile();
+        File configFile = Files.createTempFile("my-haveno", ".properties").toFile();
         File appDataDir = configFile.getParentFile();
         String relativeConfigFilePath = configFile.getName();
         Config config = configWithOpts(opt(APP_DATA_DIR, appDataDir), opt(CONFIG_FILE, relativeConfigFilePath));
@@ -177,12 +177,12 @@ public class ConfigTests {
 
     @Test
     public void whenAppNameIsSetInConfigFile_thenDataDirPropertiesReflectItsValue() throws IOException {
-        File configFile = File.createTempFile("bisq", "properties");
+        File configFile = File.createTempFile("haveno", "properties");
         try (PrintWriter writer = new PrintWriter(configFile)) {
-            writer.println(new ConfigFileOption(APP_NAME, "My-Bisq"));
+            writer.println(new ConfigFileOption(APP_NAME, "My-Haveno"));
         }
         Config config = configWithOpts(opt(CONFIG_FILE, configFile.getAbsolutePath()));
-        assertThat(config.appName, equalTo("My-Bisq"));
+        assertThat(config.appName, equalTo("My-Haveno"));
         assertThat(config.userDataDir, equalTo(config.defaultUserDataDir));
         assertThat(config.appDataDir, equalTo(new File(config.userDataDir, config.appName)));
         assertThat(config.configFile, equalTo(configFile));

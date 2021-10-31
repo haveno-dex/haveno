@@ -25,11 +25,11 @@ if ! grep -q "journalreader" /etc/passwd; then
 fi
 
 echo "[*] Installing journal parser script"
-curl -s https://raw.githubusercontent.com/bisq-network/bisq/master/pricenode/journalscraper_hsversion.sh > /tmp/journalscraper_hsversion.sh
+curl -s https://raw.githubusercontent.com/haveno-network/haveno/master/pricenode/journalscraper_hsversion.sh > /tmp/journalscraper_hsversion.sh
 sudo -H -i -u "${ROOT_USER}" install -c -o "${SCRAPER_USER}" -g "${SCRAPER_GROUP}" -m 744 /tmp/journalscraper_hsversion.sh "${SCRAPER_HOME}/scraperscript_hsversion.sh"
 
 echo "[*] Installing collectd config"
-curl -s https://raw.githubusercontent.com/bisq-network/bisq/master/pricenode/collectd.conf.snippet > /tmp/collectd.conf.snippet
+curl -s https://raw.githubusercontent.com/haveno-network/haveno/master/pricenode/collectd.conf.snippet > /tmp/collectd.conf.snippet
 sudo -H -i -u "${ROOT_USER}" sed -i -e "s/LoadPlugin exec//" /tmp/collectd.conf.snippet
 sudo -H -i -u "${ROOT_USER}" /bin/sh -c "cat /tmp/collectd.conf.snippet >> /etc/collectd/collectd.conf"
 sudo -H -i -u "${ROOT_USER}" sed -i -e "s/__USER_GROUP__/${SCRAPER_USER}:${SCRAPER_GROUP}/" /etc/collectd/collectd.conf

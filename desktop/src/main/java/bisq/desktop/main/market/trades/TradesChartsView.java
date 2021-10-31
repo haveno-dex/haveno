@@ -1,49 +1,49 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.desktop.main.market.trades;
+package haveno.desktop.main.market.trades;
 
-import bisq.desktop.common.view.ActivatableViewAndModel;
-import bisq.desktop.common.view.FxmlView;
-import bisq.desktop.components.AutoTooltipLabel;
-import bisq.desktop.components.AutoTooltipSlideToggleButton;
-import bisq.desktop.components.AutoTooltipTableColumn;
-import bisq.desktop.components.AutoTooltipToggleButton;
-import bisq.desktop.components.AutocompleteComboBox;
-import bisq.desktop.components.ColoredDecimalPlacesWithZerosText;
-import bisq.desktop.main.market.trades.charts.price.CandleStickChart;
-import bisq.desktop.main.market.trades.charts.volume.VolumeChart;
-import bisq.desktop.util.CurrencyListItem;
-import bisq.desktop.util.DisplayUtils;
-import bisq.desktop.util.GUIUtil;
+import haveno.desktop.common.view.ActivatableViewAndModel;
+import haveno.desktop.common.view.FxmlView;
+import haveno.desktop.components.AutoTooltipLabel;
+import haveno.desktop.components.AutoTooltipSlideToggleButton;
+import haveno.desktop.components.AutoTooltipTableColumn;
+import haveno.desktop.components.AutoTooltipToggleButton;
+import haveno.desktop.components.AutocompleteComboBox;
+import haveno.desktop.components.ColoredDecimalPlacesWithZerosText;
+import haveno.desktop.main.market.trades.charts.price.CandleStickChart;
+import haveno.desktop.main.market.trades.charts.volume.VolumeChart;
+import haveno.desktop.util.CurrencyListItem;
+import haveno.desktop.util.DisplayUtils;
+import haveno.desktop.util.GUIUtil;
 
-import bisq.core.locale.CurrencyUtil;
-import bisq.core.locale.Res;
-import bisq.core.monetary.Price;
-import bisq.core.trade.statistics.TradeStatistics3;
-import bisq.core.user.CookieKey;
-import bisq.core.user.User;
-import bisq.core.util.FormattingUtils;
-import bisq.core.util.coin.CoinFormatter;
+import haveno.core.locale.CurrencyUtil;
+import haveno.core.locale.Res;
+import haveno.core.monetary.Price;
+import haveno.core.trade.statistics.TradeStatistics3;
+import haveno.core.user.CookieKey;
+import haveno.core.user.User;
+import haveno.core.util.FormattingUtils;
+import haveno.core.util.coin.CoinFormatter;
 
-import bisq.common.UserThread;
-import bisq.common.util.MathUtils;
-import bisq.common.util.Tuple2;
-import bisq.common.util.Tuple3;
+import haveno.common.UserThread;
+import haveno.common.util.MathUtils;
+import haveno.common.util.Tuple2;
+import haveno.common.util.Tuple3;
 
 import org.bitcoinj.core.Coin;
 
@@ -107,8 +107,8 @@ import java.util.stream.Collectors;
 
 import org.jetbrains.annotations.NotNull;
 
-import static bisq.desktop.util.FormBuilder.addTopLabelAutocompleteComboBox;
-import static bisq.desktop.util.FormBuilder.getTopLabelWithVBox;
+import static haveno.desktop.util.FormBuilder.addTopLabelAutocompleteComboBox;
+import static haveno.desktop.util.FormBuilder.getTopLabelWithVBox;
 
 @FxmlView
 public class TradesChartsView extends ActivatableViewAndModel<VBox, TradesChartsViewModel> {

@@ -1,23 +1,23 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.apitest.scenario.bot;
+package haveno.apitest.scenario.bot;
 
-import bisq.core.locale.Country;
+import haveno.core.locale.Country;
 
 import protobuf.PaymentAccount;
 
@@ -30,18 +30,18 @@ import java.io.IOException;
 
 import lombok.extern.slf4j.Slf4j;
 
-import static bisq.core.locale.CountryUtil.findCountryByCode;
-import static bisq.core.payment.payload.PaymentMethod.CLEAR_X_CHANGE_ID;
-import static bisq.core.payment.payload.PaymentMethod.getPaymentMethodById;
+import static haveno.core.locale.CountryUtil.findCountryByCode;
+import static haveno.core.payment.payload.PaymentMethod.CLEAR_X_CHANGE_ID;
+import static haveno.core.payment.payload.PaymentMethod.getPaymentMethodById;
 import static java.lang.String.format;
 import static java.lang.System.getProperty;
 import static java.nio.file.Files.readAllBytes;
 
 
 
-import bisq.apitest.method.MethodTest;
-import bisq.apitest.scenario.bot.script.BashScriptGenerator;
-import bisq.apitest.scenario.bot.script.BotScript;
+import haveno.apitest.method.MethodTest;
+import haveno.apitest.scenario.bot.script.BashScriptGenerator;
+import haveno.apitest.scenario.bot.script.BotScript;
 
 @Slf4j
 public abstract class AbstractBotTest extends MethodTest {

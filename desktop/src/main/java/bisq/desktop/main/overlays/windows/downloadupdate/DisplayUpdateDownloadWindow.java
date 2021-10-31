@@ -1,33 +1,33 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.desktop.main.overlays.windows.downloadupdate;
+package haveno.desktop.main.overlays.windows.downloadupdate;
 
-import bisq.desktop.components.AutoTooltipButton;
-import bisq.desktop.components.AutoTooltipLabel;
-import bisq.desktop.components.BusyAnimation;
-import bisq.desktop.main.overlays.Overlay;
-import bisq.desktop.main.overlays.popups.Popup;
+import haveno.desktop.components.AutoTooltipButton;
+import haveno.desktop.components.AutoTooltipLabel;
+import haveno.desktop.components.BusyAnimation;
+import haveno.desktop.main.overlays.Overlay;
+import haveno.desktop.main.overlays.popups.Popup;
 
-import bisq.core.alert.Alert;
-import bisq.core.locale.Res;
+import haveno.core.alert.Alert;
+import haveno.core.locale.Res;
 
-import bisq.common.config.Config;
-import bisq.common.util.Utilities;
+import haveno.common.config.Config;
+import haveno.common.util.Utilities;
 
 import com.google.common.base.Joiner;
 
@@ -64,8 +64,8 @@ import java.util.Scanner;
 
 import lombok.extern.slf4j.Slf4j;
 
-import static bisq.desktop.util.FormBuilder.addLabel;
-import static bisq.desktop.util.FormBuilder.addMultilineLabel;
+import static haveno.desktop.util.FormBuilder.addLabel;
+import static haveno.desktop.util.FormBuilder.addMultilineLabel;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 @Slf4j
@@ -180,7 +180,7 @@ public class DisplayUpdateDownloadWindow extends Overlay<DisplayUpdateDownloadWi
         GridPane.setMargin(separator2, new Insets(20, 0, 20, 0));
         gridPane.getChildren().add(separator2);
 
-        BisqInstaller installer = new BisqInstaller();
+        HavenoInstaller installer = new HavenoInstaller();
         String downloadFailedString = Res.get("displayUpdateDownloadWindow.download.failed");
         downloadButton.setOnAction(e -> {
             if (installer.isSupportedOS()) {
@@ -216,9 +216,9 @@ public class DisplayUpdateDownloadWindow extends Overlay<DisplayUpdateDownloadWi
                         downloadingFileLabel.setOpacity(0.2);
                         statusLabel.setText(Res.get("displayUpdateDownloadWindow.status.verifying"));
 
-                        List<BisqInstaller.FileDescriptor> downloadResults = downloadTask.getValue();
-                        Optional<BisqInstaller.FileDescriptor> downloadFailed = downloadResults.stream()
-                                .filter(fileDescriptor -> !BisqInstaller.DownloadStatusEnum.OK.equals(fileDescriptor.getDownloadStatus()))
+                        List<HavenoInstaller.FileDescriptor> downloadResults = downloadTask.getValue();
+                        Optional<HavenoInstaller.FileDescriptor> downloadFailed = downloadResults.stream()
+                                .filter(fileDescriptor -> !HavenoInstaller.DownloadStatusEnum.OK.equals(fileDescriptor.getDownloadStatus()))
                                 .findFirst();
                         downloadedFilesLabel.getStyleClass().removeAll("error-text", "success-text");
                         if (downloadResults == null || downloadResults.isEmpty() || downloadFailed.isPresent()) {
@@ -229,7 +229,7 @@ public class DisplayUpdateDownloadWindow extends Overlay<DisplayUpdateDownloadWi
                             downloadedFilesLabel.getStyleClass().add("success-text");
 
                             downloadTask.getFileDescriptors().stream()
-                                    .filter(fileDescriptor -> fileDescriptor.getType() == BisqInstaller.DownloadType.JAR_HASH)
+                                    .filter(fileDescriptor -> fileDescriptor.getType() == HavenoInstaller.DownloadType.JAR_HASH)
                                     .findFirst()
                                     .ifPresent(this::copyJarHashToDataDir);
 
@@ -247,10 +247,10 @@ public class DisplayUpdateDownloadWindow extends Overlay<DisplayUpdateDownloadWi
                                 statusLabel.setText("");
                                 stopAnimations();
 
-                                List<BisqInstaller.VerifyDescriptor> verifyResults = verifyTask.getValue();
+                                List<HavenoInstaller.VerifyDescriptor> verifyResults = verifyTask.getValue();
                                 // check that there are no failed verifications
-                                Optional<BisqInstaller.VerifyDescriptor> verifyFailed = verifyResults.stream()
-                                        .filter(verifyDescriptor -> !BisqInstaller.VerifyStatusEnum.OK.equals(verifyDescriptor.getVerifyStatusEnum())).findFirst();
+                                Optional<HavenoInstaller.VerifyDescriptor> verifyFailed = verifyResults.stream()
+                                        .filter(verifyDescriptor -> !HavenoInstaller.VerifyStatusEnum.OK.equals(verifyDescriptor.getVerifyStatusEnum())).findFirst();
                                 if (verifyResults == null || verifyResults.isEmpty() || verifyFailed.isPresent()) {
                                     showErrorMessage(downloadButton, statusLabel, Res.get("displayUpdateDownloadWindow.verify.failed"));
                                 } else {
@@ -282,7 +282,7 @@ public class DisplayUpdateDownloadWindow extends Overlay<DisplayUpdateDownloadWi
         });
     }
 
-    private void copyJarHashToDataDir(BisqInstaller.FileDescriptor fileDescriptor) {
+    private void copyJarHashToDataDir(HavenoInstaller.FileDescriptor fileDescriptor) {
         StringBuilder sb = new StringBuilder();
         final File sourceFile = fileDescriptor.getSaveFile();
         try (Scanner scanner = new Scanner(new FileReader(sourceFile))) {

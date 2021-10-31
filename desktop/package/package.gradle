@@ -28,7 +28,7 @@ task jpackageSanityChecks {
 
         // TODO Evtl check programmatically in gradle (i.e. fail if below v11)
         executeCmd("java --version")
-        ant.input(message: "Above you see the installed java version, which will be used to compile and build Bisq.\n" +
+        ant.input(message: "Above you see the installed java version, which will be used to compile and build Haveno.\n" +
                 "Is this java version ok for that? (y=continue, n=abort)",
                 addproperty: "sanity-check-3",
                 validargs: "y,n")
@@ -216,7 +216,7 @@ task packageInstallers {
         // Remove the -SNAPSHOT suffix from the version string (originally defined in build.gradle)
         // Having it in would have resulted in an invalid version property for several platforms (mac, linux/rpm)
         String appVersion = version.replaceAll("-SNAPSHOT", "")
-        println "Packaging Bisq version ${appVersion}"
+        println "Packaging Haveno version ${appVersion}"
 
         // zip jar lib for Raspberry Pi only on macOS as there are path issues on Windows and it is only needed once
         // for the release
@@ -227,8 +227,8 @@ task packageInstallers {
         }
 
         String appDescription = 'A decentralized bitcoin exchange network.'
-        String appCopyright = '© 2021 Bisq'
-        String appNameAndVendor = 'Bisq'
+        String appCopyright = '© 2021 Haveno'
+        String appNameAndVendor = 'Haveno'
 
         String commonOpts = new String(
                 // Generic options
@@ -245,7 +245,7 @@ task packageInstallers {
 
                         // Options for creating the application launcher
                         " --main-jar ${mainJarName}" +
-                        " --main-class bisq.desktop.app.BisqAppMain" +
+                        " --main-class haveno.desktop.app.HavenoAppMain" +
                         " --java-options -Xss1280k" +
                         " --java-options -XX:MaxRAM=4g" +
                         " --java-options -Djava.net.preferIPv4Stack=true"
@@ -257,7 +257,7 @@ task packageInstallers {
         if (Os.isFamily(Os.FAMILY_WINDOWS)) {
             // TODO Found no benefit in using --resource-dir "..package/windows", it has the same outcome as opts below
             String windowsOpts = new String(
-                    " --icon \"${project(':desktop').projectDir}/package/windows/Bisq.ico\"" +
+                    " --icon \"${project(':desktop').projectDir}/package/windows/Haveno.ico\"" +
                             " --resource-dir \"${project(':desktop').projectDir}/package/windows\"" +
                             " --win-dir-chooser" +
                             " --win-per-user-install" +
@@ -268,13 +268,13 @@ task packageInstallers {
             executeCmd(jPackageFilePath + commonOpts + windowsOpts + " --type exe")
 
             // Set the necessary permissions before calling signtool
-            executeCmd("\"attrib -R \"${binariesFolderPath}/Bisq-${appVersion}.exe\"\"")
+            executeCmd("\"attrib -R \"${binariesFolderPath}/Haveno-${appVersion}.exe\"\"")
 
             // In addition to the groovy quotes around the string, the entire Windows command must also be surrounded
             // by quotes, plus each path inside the command has to be quoted as well
             // Reason for this is that the path to the called executable contains spaces
             // See https://stackoverflow.com/questions/6376113/how-do-i-use-spaces-in-the-command-prompt/6378038#6378038
-            executeCmd("\"\"C:\\Program Files (x86)\\Windows Kits\\10\\App Certification Kit\\signtool.exe\" sign /v /fd SHA256 /a \"${binariesFolderPath}/Bisq-${appVersion}.exe\"\"")
+            executeCmd("\"\"C:\\Program Files (x86)\\Windows Kits\\10\\App Certification Kit\\signtool.exe\" sign /v /fd SHA256 /a \"${binariesFolderPath}/Haveno-${appVersion}.exe\"\"")
         } else if (Os.isFamily(Os.FAMILY_MAC)) {
             // See https://docs.oracle.com/en/java/javase/14/jpackage/override-jpackage-resources.html
             // for details of "--resource-dir"
@@ -334,28 +334,28 @@ task packageInstallers {
                         " --type app-image")
 
                 // macOS step 3: Sign app (hardended runtime)
-                File bisqAppImageFullPath = new File(binariesFolderPath, "Bisq.app")
+                File havenoAppImageFullPath = new File(binariesFolderPath, "Haveno.app")
                 executeCmd("codesign" +
                         " --sign \"${envVariableSigningID}\"" +
                         " --options runtime" +
                         " --entitlements '${project(':desktop').projectDir}/package/macosx/macos.entitlements'" +
                         " --force" +
                         " --verbose" +
-                        " ${bisqAppImageFullPath}/Contents/runtime/Contents/MacOS/libjli.dylib")
+                        " ${havenoAppImageFullPath}/Contents/runtime/Contents/MacOS/libjli.dylib")
                 executeCmd("codesign" +
                         " --sign \"${envVariableSigningID}\"" +
                         " --options runtime" +
                         " --entitlements '${project(':desktop').projectDir}/package/macosx/macos.entitlements'" +
                         " --force" +
                         " --verbose" +
-                        " ${bisqAppImageFullPath}/Contents/MacOS/Bisq")
+                        " ${havenoAppImageFullPath}/Contents/MacOS/Haveno")
                 executeCmd("codesign" +
                         " --sign \"${envVariableSigningID}\"" +
                         " --options runtime" +
                         " --entitlements '${project(':desktop').projectDir}/package/macosx/macos.entitlements'" +
                         " --force" +
                         " --verbose" +
-                        " ${bisqAppImageFullPath}")
+                        " ${havenoAppImageFullPath}")
 
                 // macOS step 4: Package the app-image into a dmg bundle
                 executeCmd(jPackageFilePath +
@@ -366,13 +366,13 @@ task packageInstallers {
                         " --copyright \"${appCopyright}\"" +
                         " --vendor ${appNameAndVendor}" +
                         " --temp \"${jpackageTempDir}\"" +
-                        " --app-image ${bisqAppImageFullPath}" +
+                        " --app-image ${havenoAppImageFullPath}" +
                         " --mac-sign" +
                         macOpts +
                         " --type dmg")
 
                 // macOS step 5: Delete unused app image
-                delete(bisqAppImageFullPath)
+                delete(havenoAppImageFullPath)
 
                 // macOS step 6: Sign dmg bundle
                 executeCmd("codesign" +
@@ -381,22 +381,22 @@ task packageInstallers {
                         " --entitlements '${project(':desktop').projectDir}/package/macosx/macos.entitlements'" +
                         " -vvvv" +
                         " --deep" +
-                        " '${binariesFolderPath}/Bisq-${appVersion}.dmg'")
+                        " '${binariesFolderPath}/Haveno-${appVersion}.dmg'")
 
                 // macOS step 7: Upload for notarization
                 // See https://developer.apple.com/documentation/xcode/notarizing_macos_software_before_distribution/customizing_the_notarization_workflow#3087734
                 String envVariableAcUsername = "$System.env.BISQ_PACKAGE_NOTARIZATION_AC_USERNAME"
                 String envVariableAscProvider = "$System.env.BISQ_PACKAGE_NOTARIZATION_ASC_PROVIDER"
-                // e.g. network.bisq.CAT is used when binaries are built by @ripcurlx
+                // e.g. network.haveno.CAT is used when binaries are built by @ripcurlx
                 String envVariablePrimaryBundleId = "$System.env.BISQ_PRIMARY_BUNDLE_ID"
                 def uploadForNotarizationOutput = executeCmd("xcrun altool --notarize-app" +
                         " --primary-bundle-id '${envVariablePrimaryBundleId}'" +
                         " --username '${envVariableAcUsername}'" +
                         " --password '@keychain:AC_PASSWORD'" +
                         " --asc-provider '${envVariableAscProvider}'" +
-                        " --file '${binariesFolderPath}/Bisq-${appVersion}.dmg'")
+                        " --file '${binariesFolderPath}/Haveno-${appVersion}.dmg'")
                 // Response:
-                //  No errors uploading '[PATH_TO_BISQ_REPO]/bisq/desktop/build/temp-620637000/binaries/Bisq-1.1.1.dmg'.
+                //  No errors uploading '[PATH_TO_BISQ_REPO]/haveno/desktop/build/temp-620637000/binaries/Haveno-1.1.1.dmg'.
                 //  RequestUUID = ea8bba77-97b7-4c15-a53f-8bbccf627190
                 def requestUUID = uploadForNotarizationOutput.split('RequestUUID = ')[1].trim()
                 println "Extracted RequestUUID: " + requestUUID
@@ -430,7 +430,7 @@ task packageInstallers {
 
                     // macOS step 8: Staple ticket on dmg
                     executeCmd("xcrun stapler staple" +
-                            " '${binariesFolderPath}/Bisq-${appVersion}.dmg'")
+                            " '${binariesFolderPath}/Haveno-${appVersion}.dmg'")
                 }
 
             } else {
@@ -443,7 +443,7 @@ task packageInstallers {
 
                             // This defines the first part of the resulting packages (the application name)
                             // deb requires lowercase letters, therefore the application name is written in lowercase
-                            " --linux-package-name bisq" +
+                            " --linux-package-name haveno" +
 
                             // This represents the linux package version (revision)
                             // By convention, this is part of the deb/rpm package names, in addition to the software version
@@ -455,7 +455,7 @@ task packageInstallers {
 
             // Package deb
             executeCmd(jPackageFilePath + commonOpts + linuxOpts +
-                    " --linux-deb-maintainer noreply@bisq.network" +
+                    " --linux-deb-maintainer noreply@haveno.network" +
                     " --type deb")
 
             // Clean jpackage temp folder, needs to be empty for the next packaging step (rpm)

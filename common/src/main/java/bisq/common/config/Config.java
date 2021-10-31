@@ -1,4 +1,4 @@
-package bisq.common.config;
+package haveno.common.config;
 
 import org.bitcoinj.core.NetworkParameters;
 
@@ -32,12 +32,12 @@ import static java.lang.String.format;
 import static java.util.stream.Collectors.toList;
 
 /**
- * Parses and provides access to all Bisq configuration options specified at the command
+ * Parses and provides access to all Haveno configuration options specified at the command
  * line and/or via the {@value DEFAULT_CONFIG_FILE_NAME} config file, including any
  * default values. Constructing a {@link Config} instance is generally side-effect free,
  * with one key exception being that {@value APP_DATA_DIR} and its subdirectories will
  * be created if they do not already exist. Care is taken to avoid inadvertent creation or
- * modification of the actual system user data directory and/or the production Bisq
+ * modification of the actual system user data directory and/or the production Haveno
  * application data directory. Calling code must explicitly specify these values; they are
  * never assumed.
  * <p/>
@@ -118,7 +118,7 @@ public class Config {
     public static final int UNSPECIFIED_PORT = -1;
     public static final String DEFAULT_REGTEST_HOST = "localhost";
     public static final int DEFAULT_NUM_CONNECTIONS_FOR_BTC = 9; // down from BitcoinJ default of 12
-    static final String DEFAULT_CONFIG_FILE_NAME = "bisq.properties";
+    static final String DEFAULT_CONFIG_FILE_NAME = "haveno.properties";
 
     // Static fields that provide access to Config properties in locations where injecting
     // a Config instance is not feasible. See Javadoc for corresponding static accessors.
@@ -126,7 +126,7 @@ public class Config {
     private static BaseCurrencyNetwork BASE_CURRENCY_NETWORK_VALUE = BaseCurrencyNetwork.XMR_MAINNET;
 
     // Default "data dir properties", i.e. properties that can determine the location of
-    // Bisq's application data directory (appDataDir)
+    // Haveno's application data directory (appDataDir)
     public final String defaultAppName;
     public final File defaultUserDataDir;
     public final File defaultAppDataDir;
@@ -203,7 +203,7 @@ public class Config {
      * {@value APP_NAME} and a newly-created temporary directory as the default
      * {@value USER_DATA_DIR} along with any command line arguments. This constructor is
      * primarily useful in test code, where no references or modifications should be made
-     * to the actual system user data directory and/or real Bisq application data
+     * to the actual system user data directory and/or real Haveno application data
      * directory. Most production use cases will favor calling the
      * {@link #Config(String, File, String...)} constructor directly.
      * @param args zero or more command line arguments in the form "--optName=optValue"
@@ -217,7 +217,7 @@ public class Config {
     /**
      * Create a new {@link Config} instance with the given default {@value APP_NAME} and
      * {@value USER_DATA_DIR} values along with any command line arguments, typically
-     * those supplied via a Bisq application's main() method.
+     * those supplied via a Haveno application's main() method.
      * <p/>
      * This constructor performs all parsing of command line options and config file
      * options, assuming the default config file exists or a custom config file has been
@@ -226,7 +226,7 @@ public class Config {
      * will take precedence. Note that the {@value HELP} and {@value CONFIG_FILE} options
      * are supported only at the command line and are disallowed within the config file
      * itself.
-     * @param defaultAppName typically "Bisq" or similar
+     * @param defaultAppName typically "Haveno" or similar
      * @param defaultUserDataDir typically the OS-specific user data directory location
      * @param args zero or more command line arguments in the form "--optName=optValue"
      * @throws ConfigException if any problems are encountered during option parsing
@@ -293,14 +293,14 @@ public class Config {
                         .describedAs("host:port[,...]");
 
         ArgumentAcceptingOptionSpec<String> bannedPriceRelayNodesOpt =
-                parser.accepts(BANNED_PRICE_RELAY_NODES, "List Bisq price nodes to ban")
+                parser.accepts(BANNED_PRICE_RELAY_NODES, "List Haveno price nodes to ban")
                         .withRequiredArg()
                         .ofType(String.class)
                         .withValuesSeparatedBy(',')
                         .describedAs("host:port[,...]");
 
         ArgumentAcceptingOptionSpec<String> bannedSeedNodesOpt =
-                parser.accepts(BANNED_SEED_NODES, "List Bisq seed nodes to ban")
+                parser.accepts(BANNED_SEED_NODES, "List Haveno seed nodes to ban")
                         .withRequiredArg()
                         .ofType(String.class)
                         .withValuesSeparatedBy(',')
@@ -363,7 +363,7 @@ public class Config {
 
         ArgumentAcceptingOptionSpec<Boolean> ignoreDevMsgOpt =
                 parser.accepts(IGNORE_DEV_MSG, "If set to true all signed " +
-                        "network_messages from bisq developers are ignored (Global " +
+                        "network_messages from haveno developers are ignored (Global " +
                         "alert, Version update alert, Filters for offers, nodes or " +
                         "trading account data)")
                         .withRequiredArg()
@@ -417,14 +417,14 @@ public class Config {
 
         ArgumentAcceptingOptionSpec<Path> torrcFileOpt =
                 parser.accepts(TORRC_FILE, "An existing torrc-file to be sourced for Tor. Note that torrc-entries, " +
-                        "which are critical to Bisq's correct operation, cannot be overwritten.")
+                        "which are critical to Haveno's correct operation, cannot be overwritten.")
                         .withRequiredArg()
                         .describedAs("File")
                         .withValuesConvertedBy(new PathConverter(PathProperties.FILE_EXISTING, PathProperties.READABLE));
 
         ArgumentAcceptingOptionSpec<String> torrcOptionsOpt =
-                parser.accepts(TORRC_OPTIONS, "A list of torrc-entries to amend to Bisq's torrc. Note that " +
-                        "torrc-entries, which are critical to Bisq's flawless operation, cannot be overwritten. " +
+                parser.accepts(TORRC_OPTIONS, "A list of torrc-entries to amend to Haveno's torrc. Note that " +
+                        "torrc-entries, which are critical to Haveno's flawless operation, cannot be overwritten. " +
                         "[torrc options line, torrc option, ...]")
                         .withRequiredArg()
                         .withValuesConvertedBy(RegexMatcher.regex("^([^\\s,]+\\s[^,]+,?\\s*)+$"))
@@ -432,7 +432,7 @@ public class Config {
 
         ArgumentAcceptingOptionSpec<Integer> torControlPortOpt =
                 parser.accepts(TOR_CONTROL_PORT,
-                        "The control port of an already running Tor service to be used by Bisq.")
+                        "The control port of an already running Tor service to be used by Haveno.")
                         .availableUnless(TORRC_FILE, TORRC_OPTIONS)
                         .withRequiredArg()
                         .ofType(int.class)
@@ -518,7 +518,7 @@ public class Config {
                 parser.accepts(USER_AGENT,
                         "User agent at btc node connections")
                         .withRequiredArg()
-                        .defaultsTo("Bisq");
+                        .defaultsTo("Haveno");
 
         ArgumentAcceptingOptionSpec<Integer> numConnectionsForBtcOpt =
                 parser.accepts(NUM_CONNECTIONS_FOR_BTC, "Number of connections to the Bitcoin network")
@@ -580,7 +580,7 @@ public class Config {
 
             // Option parsing is strict at the command line, but we relax it now for any
             // subsequent config file processing. This is for compatibility with pre-1.2.6
-            // versions that allowed unrecognized options in the bisq.properties config
+            // versions that allowed unrecognized options in the haveno.properties config
             // file and because it follows suit with Bitcoin Core's config file behavior.
             parser.allowsUnrecognizedOptions();
 
@@ -737,7 +737,7 @@ public class Config {
 
     private static String randomAppName() {
         try {
-            File file = Files.createTempFile("Bisq", "Temp").toFile();
+            File file = Files.createTempFile("Haveno", "Temp").toFile();
             //noinspection ResultOfMethodCallIgnored
             file.delete();
             return file.toPath().getFileName().toString();
@@ -748,7 +748,7 @@ public class Config {
 
     private static File tempUserDataDir() {
         try {
-            return Files.createTempDirectory("BisqTempUserData").toFile();
+            return Files.createTempDirectory("HavenoTempUserData").toFile();
         } catch (IOException ex) {
             throw new UncheckedIOException(ex);
         }

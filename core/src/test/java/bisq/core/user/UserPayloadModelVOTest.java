@@ -1,27 +1,27 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.core.user;
+package haveno.core.user;
 
-import bisq.core.alert.Alert;
-import bisq.core.arbitration.ArbitratorTest;
-import bisq.core.arbitration.MediatorTest;
-import bisq.core.filter.Filter;
-import bisq.core.proto.CoreProtoResolver;
+import haveno.core.alert.Alert;
+import haveno.core.arbitration.ArbitratorTest;
+import haveno.core.arbitration.MediatorTest;
+import haveno.core.filter.Filter;
+import haveno.core.proto.CoreProtoResolver;
 
 import com.google.common.collect.Lists;
 
@@ -30,14 +30,14 @@ import java.util.HashSet;
 import org.junit.Ignore;
 
 public class UserPayloadModelVOTest {
-    @Ignore("TODO InvalidKeySpecException at bisq.common.crypto.Sig.getPublicKeyFromBytes(Sig.java:135)")
+    @Ignore("TODO InvalidKeySpecException at haveno.common.crypto.Sig.getPublicKeyFromBytes(Sig.java:135)")
     public void testRoundtrip() {
         UserPayload vo = new UserPayload();
         vo.setAccountId("accountId");
         UserPayload newVo = UserPayload.fromProto(vo.toProtoMessage().getUserPayload(), new CoreProtoResolver());
     }
 
-    @Ignore("TODO InvalidKeySpecException at bisq.common.crypto.Sig.getPublicKeyFromBytes(Sig.java:135)")
+    @Ignore("TODO InvalidKeySpecException at haveno.common.crypto.Sig.getPublicKeyFromBytes(Sig.java:135)")
     public void testRoundtripFull() {
         UserPayload vo = new UserPayload();
         vo.setAccountId("accountId");

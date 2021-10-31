@@ -1,43 +1,43 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.core.trade.txproof.xmr;
+package haveno.core.trade.txproof.xmr;
 
-import bisq.core.btc.setup.WalletsSetup;
-import bisq.core.filter.FilterManager;
-import bisq.core.locale.Res;
-import bisq.core.support.dispute.mediation.MediationManager;
-import bisq.core.support.dispute.refund.RefundManager;
-import bisq.core.trade.SellerTrade;
-import bisq.core.trade.Trade;
-import bisq.core.trade.TradeManager;
-import bisq.core.trade.closed.ClosedTradableManager;
-import bisq.core.trade.failed.FailedTradesManager;
-import bisq.core.trade.protocol.SellerProtocol;
-import bisq.core.trade.txproof.AssetTxProofResult;
-import bisq.core.trade.txproof.AssetTxProofService;
-import bisq.core.user.AutoConfirmSettings;
-import bisq.core.user.Preferences;
+import haveno.core.btc.setup.WalletsSetup;
+import haveno.core.filter.FilterManager;
+import haveno.core.locale.Res;
+import haveno.core.support.dispute.mediation.MediationManager;
+import haveno.core.support.dispute.refund.RefundManager;
+import haveno.core.trade.SellerTrade;
+import haveno.core.trade.Trade;
+import haveno.core.trade.TradeManager;
+import haveno.core.trade.closed.ClosedTradableManager;
+import haveno.core.trade.failed.FailedTradesManager;
+import haveno.core.trade.protocol.SellerProtocol;
+import haveno.core.trade.txproof.AssetTxProofResult;
+import haveno.core.trade.txproof.AssetTxProofService;
+import haveno.core.user.AutoConfirmSettings;
+import haveno.core.user.Preferences;
 
-import bisq.network.Socks5ProxyProvider;
-import bisq.network.p2p.BootstrapListener;
-import bisq.network.p2p.P2PService;
+import haveno.network.Socks5ProxyProvider;
+import haveno.network.p2p.BootstrapListener;
+import haveno.network.p2p.P2PService;
 
-import bisq.common.app.DevEnv;
+import haveno.common.app.DevEnv;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;

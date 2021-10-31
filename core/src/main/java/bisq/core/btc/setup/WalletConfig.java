@@ -1,28 +1,28 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.core.btc.setup;
+package haveno.core.btc.setup;
 
-import bisq.core.btc.nodes.LocalBitcoinNode;
-import bisq.core.btc.nodes.ProxySocketFactory;
-import bisq.core.btc.wallet.BisqRiskAnalysis;
+import haveno.core.btc.nodes.LocalBitcoinNode;
+import haveno.core.btc.nodes.ProxySocketFactory;
+import haveno.core.btc.wallet.HavenoRiskAnalysis;
 
-import bisq.common.config.Config;
-import bisq.common.file.FileUtil;
+import haveno.common.config.Config;
+import haveno.common.file.FileUtil;
 
 import org.bitcoinj.core.BlockChain;
 import org.bitcoinj.core.CheckpointManager;
@@ -82,7 +82,7 @@ import lombok.Setter;
 
 import javax.annotation.Nullable;
 
-import static bisq.common.util.Preconditions.checkDir;
+import static haveno.common.util.Preconditions.checkDir;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 
@@ -118,8 +118,8 @@ import monero.wallet.model.MoneroWalletConfig;
  */
 public class WalletConfig extends AbstractIdleService {
 
-    private static final int TOR_SOCKET_TIMEOUT = 120 * 1000;  // 1 sec used in bitcoinj, but since bisq uses Tor we allow more.
-    private static final int TOR_VERSION_EXCHANGE_TIMEOUT = 125 * 1000;  // 5 sec used in bitcoinj, but since bisq uses Tor we allow more.
+    private static final int TOR_SOCKET_TIMEOUT = 120 * 1000;  // 1 sec used in bitcoinj, but since haveno uses Tor we allow more.
+    private static final int TOR_VERSION_EXCHANGE_TIMEOUT = 125 * 1000;  // 5 sec used in bitcoinj, but since haveno uses Tor we allow more.
 
     protected static final Logger log = LoggerFactory.getLogger(WalletConfig.class);
 
@@ -373,7 +373,7 @@ public class WalletConfig extends AbstractIdleService {
             boolean shouldReplayWallet = (vBtcWalletFile.exists() && !chainFileExists) || restoreFromSeed != null;
             vBtcWallet = createOrLoadWallet(shouldReplayWallet, vBtcWalletFile);
             vBtcWallet.allowSpendingUnconfirmedTransactions();
-            vBtcWallet.setRiskAnalyzer(new BisqRiskAnalysis.Analyzer());
+            vBtcWallet.setRiskAnalyzer(new HavenoRiskAnalysis.Analyzer());
 
             // Initiate Bitcoin network objects (block store, blockchain and peer group)
             vStore = new SPVBlockStore(params, chainFile);
@@ -494,7 +494,7 @@ public class WalletConfig extends AbstractIdleService {
             final WalletProtobufSerializer serializer;
             serializer = new WalletProtobufSerializer();
             // Hack to convert bitcoinj 0.14 wallets to bitcoinj 0.15 format
-            serializer.setKeyChainFactory(new BisqKeyChainFactory());
+            serializer.setKeyChainFactory(new HavenoKeyChainFactory());
             wallet = serializer.readWallet(params, extArray, proto);
             if (shouldReplayWallet)
                 wallet.reset();
@@ -505,7 +505,7 @@ public class WalletConfig extends AbstractIdleService {
 
     protected Wallet createWallet() {
         Script.ScriptType preferredOutputScriptType = Script.ScriptType.P2WPKH;
-        KeyChainGroupStructure structure = new BisqKeyChainGroupStructure();
+        KeyChainGroupStructure structure = new HavenoKeyChainGroupStructure();
         KeyChainGroup.Builder kcgBuilder = KeyChainGroup.builder(params, structure);
         if (restoreFromSeed != null) {
             kcgBuilder.fromSeed(restoreFromSeed, preferredOutputScriptType);
@@ -631,7 +631,7 @@ public class WalletConfig extends AbstractIdleService {
     }
 
     public void maybeAddSegwitKeychain(Wallet wallet, KeyParameter aesKey) {
-        if (BisqKeyChainGroupStructure.BIP44_BTC_NON_SEGWIT_ACCOUNT_PATH.equals(wallet.getActiveKeyChain().getAccountPath())) {
+        if (HavenoKeyChainGroupStructure.BIP44_BTC_NON_SEGWIT_ACCOUNT_PATH.equals(wallet.getActiveKeyChain().getAccountPath())) {
             if (wallet.isEncrypted() && aesKey == null) {
                 // wait for the aesKey to be set and this method to be invoked again.
                 return;
@@ -653,7 +653,7 @@ public class WalletConfig extends AbstractIdleService {
             }
             DeterministicKeyChain nativeSegwitKeyChain = DeterministicKeyChain.builder().seed(seed)
                     .outputScriptType(Script.ScriptType.P2WPKH)
-                    .accountPath(new BisqKeyChainGroupStructure().accountPathFor(Script.ScriptType.P2WPKH)).build();
+                    .accountPath(new HavenoKeyChainGroupStructure().accountPathFor(Script.ScriptType.P2WPKH)).build();
             if (aesKey != null) {
                 // If wallet is encrypted, encrypt the new keychain.
                 KeyCrypter keyCrypter = wallet.getKeyCrypter();

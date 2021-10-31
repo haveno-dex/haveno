@@ -1,35 +1,35 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.core.offer.placeoffer.tasks;
+package haveno.core.offer.placeoffer.tasks;
 
-import bisq.core.btc.exceptions.TxBroadcastException;
-import bisq.core.btc.model.AddressEntry;
-import bisq.core.btc.wallet.BtcWalletService;
-import bisq.core.btc.wallet.TradeWalletService;
-import bisq.core.btc.wallet.TxBroadcaster;
-import bisq.core.btc.wallet.WalletService;
-import bisq.core.offer.Offer;
-import bisq.core.offer.placeoffer.PlaceOfferModel;
-//import bisq.core.util.FeeReceiverSelector;
+import haveno.core.btc.exceptions.TxBroadcastException;
+import haveno.core.btc.model.AddressEntry;
+import haveno.core.btc.wallet.BtcWalletService;
+import haveno.core.btc.wallet.TradeWalletService;
+import haveno.core.btc.wallet.TxBroadcaster;
+import haveno.core.btc.wallet.WalletService;
+import haveno.core.offer.Offer;
+import haveno.core.offer.placeoffer.PlaceOfferModel;
+//import haveno.core.util.FeeReceiverSelector;
 
-import bisq.common.UserThread;
-import bisq.common.taskrunner.Task;
-import bisq.common.taskrunner.TaskRunner;
+import haveno.common.UserThread;
+import haveno.common.taskrunner.Task;
+import haveno.common.taskrunner.TaskRunner;
 
 import org.bitcoinj.core.Address;
 import org.bitcoinj.core.Transaction;

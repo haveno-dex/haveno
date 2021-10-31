@@ -1,6 +1,6 @@
-package bisq.core.trade.txproof.xmr;
+package haveno.core.trade.txproof.xmr;
 
-import bisq.core.user.AutoConfirmSettings;
+import haveno.core.user.AutoConfirmSettings;
 
 import java.time.Instant;
 
@@ -10,7 +10,7 @@ import java.util.Date;
 import org.junit.Before;
 import org.junit.Test;
 
-import static bisq.core.trade.txproof.xmr.XmrTxProofParser.MAX_DATE_TOLERANCE;
+import static haveno.core.trade.txproof.xmr.XmrTxProofParser.MAX_DATE_TOLERANCE;
 import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertSame;
 

@@ -1,59 +1,59 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * bisq is free software: you can redistribute it and/or modify it
+ * haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * bisq is distributed in the hope that it will be useful, but WITHOUT
+ * haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.core.account.witness;
+package haveno.core.account.witness;
 
-import bisq.core.account.sign.SignedWitness;
-import bisq.core.account.sign.SignedWitnessService;
-import bisq.core.filter.FilterManager;
-import bisq.core.locale.CurrencyUtil;
-import bisq.core.locale.Res;
-import bisq.core.offer.Offer;
-import bisq.core.offer.OfferPayload;
-import bisq.core.offer.OfferRestrictions;
-import bisq.core.payment.AssetAccount;
-import bisq.core.payment.ChargeBackRisk;
-import bisq.core.payment.PaymentAccount;
-import bisq.core.payment.payload.PaymentAccountPayload;
-import bisq.core.payment.payload.PaymentMethod;
-import bisq.core.support.dispute.Dispute;
-import bisq.core.support.dispute.DisputeResult;
-import bisq.core.support.dispute.arbitration.TraderDataItem;
-import bisq.core.trade.ArbitratorTrade;
-import bisq.core.trade.Contract;
-import bisq.core.trade.Trade;
-import bisq.core.trade.protocol.TradingPeer;
-import bisq.core.user.User;
+import haveno.core.account.sign.SignedWitness;
+import haveno.core.account.sign.SignedWitnessService;
+import haveno.core.filter.FilterManager;
+import haveno.core.locale.CurrencyUtil;
+import haveno.core.locale.Res;
+import haveno.core.offer.Offer;
+import haveno.core.offer.OfferPayload;
+import haveno.core.offer.OfferRestrictions;
+import haveno.core.payment.AssetAccount;
+import haveno.core.payment.ChargeBackRisk;
+import haveno.core.payment.PaymentAccount;
+import haveno.core.payment.payload.PaymentAccountPayload;
+import haveno.core.payment.payload.PaymentMethod;
+import haveno.core.support.dispute.Dispute;
+import haveno.core.support.dispute.DisputeResult;
+import haveno.core.support.dispute.arbitration.TraderDataItem;
+import haveno.core.trade.ArbitratorTrade;
+import haveno.core.trade.Contract;
+import haveno.core.trade.Trade;
+import haveno.core.trade.protocol.TradingPeer;
+import haveno.core.user.User;
 
-import bisq.network.p2p.BootstrapListener;
-import bisq.network.p2p.P2PService;
-import bisq.network.p2p.storage.P2PDataStorage;
-import bisq.network.p2p.storage.persistence.AppendOnlyDataStoreService;
+import haveno.network.p2p.BootstrapListener;
+import haveno.network.p2p.P2PService;
+import haveno.network.p2p.storage.P2PDataStorage;
+import haveno.network.p2p.storage.persistence.AppendOnlyDataStoreService;
 
-import bisq.common.UserThread;
-import bisq.common.crypto.CryptoException;
-import bisq.common.crypto.Hash;
-import bisq.common.crypto.KeyRing;
-import bisq.common.crypto.PubKeyRing;
-import bisq.common.crypto.Sig;
-import bisq.common.handlers.ErrorMessageHandler;
-import bisq.common.util.MathUtils;
-import bisq.common.util.Tuple2;
-import bisq.common.util.Utilities;
+import haveno.common.UserThread;
+import haveno.common.crypto.CryptoException;
+import haveno.common.crypto.Hash;
+import haveno.common.crypto.KeyRing;
+import haveno.common.crypto.PubKeyRing;
+import haveno.common.crypto.Sig;
+import haveno.common.handlers.ErrorMessageHandler;
+import haveno.common.util.MathUtils;
+import haveno.common.util.Tuple2;
+import haveno.common.util.Utilities;
 
 import org.bitcoinj.core.Coin;
 import org.bitcoinj.core.ECKey;

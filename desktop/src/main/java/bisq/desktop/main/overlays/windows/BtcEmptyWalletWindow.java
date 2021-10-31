@@ -1,23 +1,23 @@
-package bisq.desktop.main.overlays.windows;
+package haveno.desktop.main.overlays.windows;
 
-import bisq.desktop.components.AutoTooltipButton;
-import bisq.desktop.components.InputTextField;
-import bisq.desktop.main.overlays.Overlay;
-import bisq.desktop.main.overlays.popups.Popup;
-import bisq.desktop.util.GUIUtil;
-import bisq.desktop.util.Transitions;
+import haveno.desktop.components.AutoTooltipButton;
+import haveno.desktop.components.InputTextField;
+import haveno.desktop.main.overlays.Overlay;
+import haveno.desktop.main.overlays.popups.Popup;
+import haveno.desktop.util.GUIUtil;
+import haveno.desktop.util.Transitions;
 
-import bisq.core.btc.setup.WalletsSetup;
-import bisq.core.btc.wallet.BtcWalletService;
-import bisq.core.btc.wallet.Restrictions;
-import bisq.core.locale.Res;
-import bisq.core.offer.OpenOfferManager;
-import bisq.core.util.FormattingUtils;
-import bisq.core.util.coin.CoinFormatter;
+import haveno.core.btc.setup.WalletsSetup;
+import haveno.core.btc.wallet.BtcWalletService;
+import haveno.core.btc.wallet.Restrictions;
+import haveno.core.locale.Res;
+import haveno.core.offer.OpenOfferManager;
+import haveno.core.util.FormattingUtils;
+import haveno.core.util.coin.CoinFormatter;
 
-import bisq.network.p2p.P2PService;
+import haveno.network.p2p.P2PService;
 
-import bisq.common.UserThread;
+import haveno.common.UserThread;
 
 import org.bitcoinj.core.AddressFormatException;
 import org.bitcoinj.core.Coin;
@@ -43,9 +43,9 @@ import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static bisq.desktop.util.FormBuilder.addInputTextField;
-import static bisq.desktop.util.FormBuilder.addMultilineLabel;
-import static bisq.desktop.util.FormBuilder.addTopLabelTextField;
+import static haveno.desktop.util.FormBuilder.addInputTextField;
+import static haveno.desktop.util.FormBuilder.addMultilineLabel;
+import static haveno.desktop.util.FormBuilder.addTopLabelTextField;
 
 public final class BtcEmptyWalletWindow extends Overlay<BtcEmptyWalletWindow> {
     protected static final Logger log = LoggerFactory.getLogger(BtcEmptyWalletWindow.class);

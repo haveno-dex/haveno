@@ -1,21 +1,21 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.apitest.scenario;
+package haveno.apitest.scenario;
 
 import java.io.File;
 import java.io.IOException;
@@ -29,20 +29,20 @@ import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 
-import static bisq.apitest.Scaffold.BitcoinCoreApp.bitcoind;
-import static bisq.apitest.config.BisqAppConfig.alicedaemon;
-import static bisq.apitest.config.BisqAppConfig.arbdaemon;
-import static bisq.apitest.config.BisqAppConfig.seednode;
-import static bisq.common.file.FileUtil.deleteFileIfExists;
+import static haveno.apitest.Scaffold.BitcoinCoreApp.bitcoind;
+import static haveno.apitest.config.HavenoAppConfig.alicedaemon;
+import static haveno.apitest.config.HavenoAppConfig.arbdaemon;
+import static haveno.apitest.config.HavenoAppConfig.seednode;
+import static haveno.common.file.FileUtil.deleteFileIfExists;
 import static org.junit.jupiter.api.Assertions.fail;
 
 
 
-import bisq.apitest.method.CallRateMeteringInterceptorTest;
-import bisq.apitest.method.GetMethodHelpTest;
-import bisq.apitest.method.GetVersionTest;
-import bisq.apitest.method.MethodTest;
-import bisq.apitest.method.RegisterDisputeAgentsTest;
+import haveno.apitest.method.CallRateMeteringInterceptorTest;
+import haveno.apitest.method.GetMethodHelpTest;
+import haveno.apitest.method.GetVersionTest;
+import haveno.apitest.method.MethodTest;
+import haveno.apitest.method.RegisterDisputeAgentsTest;
 
 
 @Slf4j

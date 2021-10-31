@@ -1,38 +1,38 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * bisq is free software: you can redistribute it and/or modify it
+ * haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * bisq is distributed in the hope that it will be useful, but WITHOUT
+ * haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.core.account.sign;
+package haveno.core.account.sign;
 
-import bisq.core.account.witness.AccountAgeWitness;
-import bisq.core.filter.FilterManager;
-import bisq.core.support.dispute.arbitration.arbitrator.ArbitratorManager;
-import bisq.core.user.User;
+import haveno.core.account.witness.AccountAgeWitness;
+import haveno.core.filter.FilterManager;
+import haveno.core.support.dispute.arbitration.arbitrator.ArbitratorManager;
+import haveno.core.user.User;
 
-import bisq.network.p2p.BootstrapListener;
-import bisq.network.p2p.P2PService;
-import bisq.network.p2p.storage.P2PDataStorage;
-import bisq.network.p2p.storage.persistence.AppendOnlyDataStoreService;
+import haveno.network.p2p.BootstrapListener;
+import haveno.network.p2p.P2PService;
+import haveno.network.p2p.storage.P2PDataStorage;
+import haveno.network.p2p.storage.persistence.AppendOnlyDataStoreService;
 
-import bisq.common.UserThread;
-import bisq.common.crypto.CryptoException;
-import bisq.common.crypto.Hash;
-import bisq.common.crypto.KeyRing;
-import bisq.common.crypto.Sig;
-import bisq.common.util.Utilities;
+import haveno.common.UserThread;
+import haveno.common.crypto.CryptoException;
+import haveno.common.crypto.Hash;
+import haveno.common.crypto.KeyRing;
+import haveno.common.crypto.Sig;
+import haveno.common.util.Utilities;
 
 import org.bitcoinj.core.Coin;
 import org.bitcoinj.core.ECKey;

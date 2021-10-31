@@ -1,45 +1,45 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.desktop.main.portfolio.pendingtrades.steps.buyer;
+package haveno.desktop.main.portfolio.pendingtrades.steps.buyer;
 
-import bisq.desktop.components.AutoTooltipButton;
-import bisq.desktop.components.AutoTooltipLabel;
-import bisq.desktop.components.InputTextField;
-import bisq.desktop.components.TitledGroupBg;
-import bisq.desktop.main.MainView;
-import bisq.desktop.main.overlays.notifications.Notification;
-import bisq.desktop.main.overlays.popups.Popup;
-import bisq.desktop.main.overlays.windows.TradeFeedbackWindow;
-import bisq.desktop.main.portfolio.PortfolioView;
-import bisq.desktop.main.portfolio.closedtrades.ClosedTradesView;
-import bisq.desktop.main.portfolio.pendingtrades.PendingTradesViewModel;
-import bisq.desktop.main.portfolio.pendingtrades.steps.TradeStepView;
-import bisq.desktop.util.Layout;
+import haveno.desktop.components.AutoTooltipButton;
+import haveno.desktop.components.AutoTooltipLabel;
+import haveno.desktop.components.InputTextField;
+import haveno.desktop.components.TitledGroupBg;
+import haveno.desktop.main.MainView;
+import haveno.desktop.main.overlays.notifications.Notification;
+import haveno.desktop.main.overlays.popups.Popup;
+import haveno.desktop.main.overlays.windows.TradeFeedbackWindow;
+import haveno.desktop.main.portfolio.PortfolioView;
+import haveno.desktop.main.portfolio.closedtrades.ClosedTradesView;
+import haveno.desktop.main.portfolio.pendingtrades.PendingTradesViewModel;
+import haveno.desktop.main.portfolio.pendingtrades.steps.TradeStepView;
+import haveno.desktop.util.Layout;
 
-import bisq.core.btc.model.XmrAddressEntry;
-import bisq.core.locale.Res;
-import bisq.core.trade.txproof.AssetTxProofResult;
-import bisq.core.user.DontShowAgainLookup;
+import haveno.core.btc.model.XmrAddressEntry;
+import haveno.core.locale.Res;
+import haveno.core.trade.txproof.AssetTxProofResult;
+import haveno.core.user.DontShowAgainLookup;
 
-import bisq.common.UserThread;
-import bisq.common.app.DevEnv;
-import bisq.common.handlers.FaultHandler;
-import bisq.common.handlers.ResultHandler;
+import haveno.common.UserThread;
+import haveno.common.app.DevEnv;
+import haveno.common.handlers.FaultHandler;
+import haveno.common.handlers.ResultHandler;
 
 import org.bitcoinj.core.Coin;
 
@@ -58,9 +58,9 @@ import org.bouncycastle.crypto.params.KeyParameter;
 
 import java.util.concurrent.TimeUnit;
 
-import static bisq.desktop.util.FormBuilder.addCompactTopLabelTextField;
-import static bisq.desktop.util.FormBuilder.addInputTextField;
-import static bisq.desktop.util.FormBuilder.addTitledGroupBg;
+import static haveno.desktop.util.FormBuilder.addCompactTopLabelTextField;
+import static haveno.desktop.util.FormBuilder.addInputTextField;
+import static haveno.desktop.util.FormBuilder.addTitledGroupBg;
 
 public class BuyerStep4View extends TradeStepView {
     // private final ChangeListener<Boolean> focusedPropertyListener;

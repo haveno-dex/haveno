@@ -1,66 +1,66 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.desktop.main.settings.preferences;
+package haveno.desktop.main.settings.preferences;
 
-import bisq.desktop.app.BisqApp;
-import bisq.desktop.common.view.ActivatableViewAndModel;
-import bisq.desktop.common.view.FxmlView;
-import bisq.desktop.components.AutoTooltipButton;
-import bisq.desktop.components.AutoTooltipLabel;
-import bisq.desktop.components.InputTextField;
-import bisq.desktop.components.PasswordTextField;
-import bisq.desktop.components.TitledGroupBg;
-import bisq.desktop.main.overlays.popups.Popup;
-import bisq.desktop.main.overlays.windows.EditCustomExplorerWindow;
-import bisq.desktop.util.GUIUtil;
-import bisq.desktop.util.ImageUtil;
-import bisq.desktop.util.Layout;
-import bisq.desktop.util.validation.BtcValidator;
+import haveno.desktop.app.HavenoApp;
+import haveno.desktop.common.view.ActivatableViewAndModel;
+import haveno.desktop.common.view.FxmlView;
+import haveno.desktop.components.AutoTooltipButton;
+import haveno.desktop.components.AutoTooltipLabel;
+import haveno.desktop.components.InputTextField;
+import haveno.desktop.components.PasswordTextField;
+import haveno.desktop.components.TitledGroupBg;
+import haveno.desktop.main.overlays.popups.Popup;
+import haveno.desktop.main.overlays.windows.EditCustomExplorerWindow;
+import haveno.desktop.util.GUIUtil;
+import haveno.desktop.util.ImageUtil;
+import haveno.desktop.util.Layout;
+import haveno.desktop.util.validation.BtcValidator;
 
-import bisq.core.btc.wallet.Restrictions;
-import bisq.core.filter.Filter;
-import bisq.core.filter.FilterManager;
-import bisq.core.locale.Country;
-import bisq.core.locale.CountryUtil;
-import bisq.core.locale.CryptoCurrency;
-import bisq.core.locale.CurrencyUtil;
-import bisq.core.locale.FiatCurrency;
-import bisq.core.locale.LanguageUtil;
-import bisq.core.locale.Res;
-import bisq.core.locale.TradeCurrency;
-import bisq.core.payment.PaymentAccount;
-import bisq.core.payment.payload.PaymentMethod;
-import bisq.core.provider.fee.FeeService;
-import bisq.core.user.Preferences;
-import bisq.core.user.User;
-import bisq.core.util.FormattingUtils;
-import bisq.core.util.ParsingUtils;
-import bisq.core.util.coin.CoinFormatter;
-import bisq.core.util.validation.IntegerValidator;
-import bisq.core.util.validation.RegexValidator;
-import bisq.core.util.validation.RegexValidatorFactory;
+import haveno.core.btc.wallet.Restrictions;
+import haveno.core.filter.Filter;
+import haveno.core.filter.FilterManager;
+import haveno.core.locale.Country;
+import haveno.core.locale.CountryUtil;
+import haveno.core.locale.CryptoCurrency;
+import haveno.core.locale.CurrencyUtil;
+import haveno.core.locale.FiatCurrency;
+import haveno.core.locale.LanguageUtil;
+import haveno.core.locale.Res;
+import haveno.core.locale.TradeCurrency;
+import haveno.core.payment.PaymentAccount;
+import haveno.core.payment.payload.PaymentMethod;
+import haveno.core.provider.fee.FeeService;
+import haveno.core.user.Preferences;
+import haveno.core.user.User;
+import haveno.core.util.FormattingUtils;
+import haveno.core.util.ParsingUtils;
+import haveno.core.util.coin.CoinFormatter;
+import haveno.core.util.validation.IntegerValidator;
+import haveno.core.util.validation.RegexValidator;
+import haveno.core.util.validation.RegexValidatorFactory;
 
-import bisq.common.UserThread;
-import bisq.common.app.DevEnv;
-import bisq.common.config.Config;
-import bisq.common.util.Tuple2;
-import bisq.common.util.Tuple3;
-import bisq.common.util.Utilities;
+import haveno.common.UserThread;
+import haveno.common.app.DevEnv;
+import haveno.common.config.Config;
+import haveno.common.util.Tuple2;
+import haveno.common.util.Tuple3;
+import haveno.common.util.Utilities;
 
 import org.bitcoinj.core.Coin;
 
@@ -105,7 +105,7 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
-import static bisq.desktop.util.FormBuilder.*;
+import static haveno.desktop.util.FormBuilder.*;
 import static com.google.common.base.Preconditions.checkArgument;
 
 @FxmlView

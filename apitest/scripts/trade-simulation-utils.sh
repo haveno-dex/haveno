@@ -539,11 +539,11 @@ executetrade() {
     # Complete the trade on the seller side.
     if [ "$DIRECTION" = "BUY" ]
     then
-        printdate "BOB $BOB_ROLE:  Closing trade by keeping funds in Bisq wallet."
+        printdate "BOB $BOB_ROLE:  Closing trade by keeping funds in Haveno wallet."
         CMD="$CLI_BASE --port=$BOB_PORT keepfunds --trade-id=$OFFER_ID"
         printdate "BOB CLI: $CMD"
     else
-        printdate "ALICE (taker):  Closing trade by keeping funds in Bisq wallet."
+        printdate "ALICE (taker):  Closing trade by keeping funds in Haveno wallet."
         CMD="$CLI_BASE --port=$ALICE_PORT keepfunds --trade-id=$OFFER_ID"
         printdate "ALICE CLI: $CMD"
     fi

@@ -1,39 +1,39 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.core.offer.availability.tasks;
+package haveno.core.offer.availability.tasks;
 
-import bisq.core.btc.model.XmrAddressEntry;
-import bisq.core.btc.wallet.XmrWalletService;
-import bisq.core.offer.Offer;
-import bisq.core.offer.OfferUtil;
-import bisq.core.offer.availability.OfferAvailabilityModel;
-import bisq.core.offer.messages.OfferAvailabilityRequest;
-import bisq.core.trade.messages.InitTradeRequest;
-import bisq.core.user.User;
-import bisq.network.p2p.P2PService;
-import bisq.network.p2p.SendDirectMessageListener;
+import haveno.core.btc.model.XmrAddressEntry;
+import haveno.core.btc.wallet.XmrWalletService;
+import haveno.core.offer.Offer;
+import haveno.core.offer.OfferUtil;
+import haveno.core.offer.availability.OfferAvailabilityModel;
+import haveno.core.offer.messages.OfferAvailabilityRequest;
+import haveno.core.trade.messages.InitTradeRequest;
+import haveno.core.user.User;
+import haveno.network.p2p.P2PService;
+import haveno.network.p2p.SendDirectMessageListener;
 import com.google.common.base.Charsets;
 import java.util.Date;
 import java.util.UUID;
-import bisq.common.app.Version;
-import bisq.common.crypto.Sig;
-import bisq.common.taskrunner.Task;
-import bisq.common.taskrunner.TaskRunner;
+import haveno.common.app.Version;
+import haveno.common.crypto.Sig;
+import haveno.common.taskrunner.Task;
+import haveno.common.taskrunner.TaskRunner;
 
 import lombok.extern.slf4j.Slf4j;
 

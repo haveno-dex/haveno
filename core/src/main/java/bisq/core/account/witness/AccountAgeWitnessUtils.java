@@ -1,33 +1,33 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.core.account.witness;
+package haveno.core.account.witness;
 
-import bisq.core.account.sign.SignedWitness;
-import bisq.core.account.sign.SignedWitnessService;
-import bisq.core.payment.payload.PaymentAccountPayload;
-import bisq.core.trade.Trade;
+import haveno.core.account.sign.SignedWitness;
+import haveno.core.account.sign.SignedWitnessService;
+import haveno.core.payment.payload.PaymentAccountPayload;
+import haveno.core.trade.Trade;
 
-import bisq.network.p2p.storage.P2PDataStorage;
+import haveno.network.p2p.storage.P2PDataStorage;
 
-import bisq.common.crypto.Hash;
-import bisq.common.crypto.KeyRing;
-import bisq.common.crypto.PubKeyRing;
-import bisq.common.util.Utilities;
+import haveno.common.crypto.Hash;
+import haveno.common.crypto.KeyRing;
+import haveno.common.crypto.PubKeyRing;
+import haveno.common.util.Utilities;
 
 import java.util.Arrays;
 import java.util.Collection;

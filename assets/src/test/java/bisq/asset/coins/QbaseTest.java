@@ -1,6 +1,6 @@
-package bisq.asset.coins;
+package haveno.asset.coins;
 
-import bisq.asset.AbstractAssetTest;
+import haveno.asset.AbstractAssetTest;
 
 import org.junit.Test;
 

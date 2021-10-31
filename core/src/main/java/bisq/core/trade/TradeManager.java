@@ -1,79 +1,79 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.core.trade;
+package haveno.core.trade;
 
-import bisq.core.btc.model.XmrAddressEntry;
-import bisq.core.btc.wallet.XmrWalletService;
-import bisq.core.locale.Res;
-import bisq.core.offer.Offer;
-import bisq.core.offer.OfferBookService;
-import bisq.core.offer.OfferPayload;
-import bisq.core.offer.OfferUtil;
-import bisq.core.offer.OpenOffer;
-import bisq.core.offer.OpenOfferManager;
-import bisq.core.offer.SignedOffer;
-import bisq.core.offer.availability.OfferAvailabilityModel;
-import bisq.core.provider.fee.FeeService;
-import bisq.core.provider.price.PriceFeedService;
-import bisq.core.support.dispute.arbitration.arbitrator.ArbitratorManager;
-import bisq.core.support.dispute.mediation.mediator.Mediator;
-import bisq.core.support.dispute.mediation.mediator.MediatorManager;
-import bisq.core.trade.closed.ClosedTradableManager;
-import bisq.core.trade.failed.FailedTradesManager;
-import bisq.core.trade.handlers.TradeResultHandler;
-import bisq.core.trade.messages.DepositRequest;
-import bisq.core.trade.messages.DepositResponse;
-import bisq.core.trade.messages.InitMultisigRequest;
-import bisq.core.trade.messages.InitTradeRequest;
-import bisq.core.trade.messages.InputsForDepositTxRequest;
-import bisq.core.trade.messages.PaymentAccountPayloadRequest;
-import bisq.core.trade.messages.SignContractRequest;
-import bisq.core.trade.messages.SignContractResponse;
-import bisq.core.trade.messages.UpdateMultisigRequest;
-import bisq.core.trade.protocol.ArbitratorProtocol;
-import bisq.core.trade.protocol.MakerProtocol;
-import bisq.core.trade.protocol.ProcessModel;
-import bisq.core.trade.protocol.ProcessModelServiceProvider;
-import bisq.core.trade.protocol.TakerProtocol;
-import bisq.core.trade.protocol.TradeProtocol;
-import bisq.core.trade.protocol.TradeProtocolFactory;
-import bisq.core.trade.protocol.TraderProtocol;
-import bisq.core.trade.statistics.ReferralIdService;
-import bisq.core.trade.statistics.TradeStatisticsManager;
-import bisq.core.user.User;
-import bisq.core.util.Validator;
-import bisq.core.util.coin.CoinUtil;
-import bisq.network.p2p.BootstrapListener;
-import bisq.network.p2p.DecryptedDirectMessageListener;
-import bisq.network.p2p.DecryptedMessageWithPubKey;
-import bisq.network.p2p.NodeAddress;
-import bisq.network.p2p.P2PService;
-import bisq.network.p2p.network.TorNetworkNode;
+import haveno.core.btc.model.XmrAddressEntry;
+import haveno.core.btc.wallet.XmrWalletService;
+import haveno.core.locale.Res;
+import haveno.core.offer.Offer;
+import haveno.core.offer.OfferBookService;
+import haveno.core.offer.OfferPayload;
+import haveno.core.offer.OfferUtil;
+import haveno.core.offer.OpenOffer;
+import haveno.core.offer.OpenOfferManager;
+import haveno.core.offer.SignedOffer;
+import haveno.core.offer.availability.OfferAvailabilityModel;
+import haveno.core.provider.fee.FeeService;
+import haveno.core.provider.price.PriceFeedService;
+import haveno.core.support.dispute.arbitration.arbitrator.ArbitratorManager;
+import haveno.core.support.dispute.mediation.mediator.Mediator;
+import haveno.core.support.dispute.mediation.mediator.MediatorManager;
+import haveno.core.trade.closed.ClosedTradableManager;
+import haveno.core.trade.failed.FailedTradesManager;
+import haveno.core.trade.handlers.TradeResultHandler;
+import haveno.core.trade.messages.DepositRequest;
+import haveno.core.trade.messages.DepositResponse;
+import haveno.core.trade.messages.InitMultisigRequest;
+import haveno.core.trade.messages.InitTradeRequest;
+import haveno.core.trade.messages.InputsForDepositTxRequest;
+import haveno.core.trade.messages.PaymentAccountPayloadRequest;
+import haveno.core.trade.messages.SignContractRequest;
+import haveno.core.trade.messages.SignContractResponse;
+import haveno.core.trade.messages.UpdateMultisigRequest;
+import haveno.core.trade.protocol.ArbitratorProtocol;
+import haveno.core.trade.protocol.MakerProtocol;
+import haveno.core.trade.protocol.ProcessModel;
+import haveno.core.trade.protocol.ProcessModelServiceProvider;
+import haveno.core.trade.protocol.TakerProtocol;
+import haveno.core.trade.protocol.TradeProtocol;
+import haveno.core.trade.protocol.TradeProtocolFactory;
+import haveno.core.trade.protocol.TraderProtocol;
+import haveno.core.trade.statistics.ReferralIdService;
+import haveno.core.trade.statistics.TradeStatisticsManager;
+import haveno.core.user.User;
+import haveno.core.util.Validator;
+import haveno.core.util.coin.CoinUtil;
+import haveno.network.p2p.BootstrapListener;
+import haveno.network.p2p.DecryptedDirectMessageListener;
+import haveno.network.p2p.DecryptedMessageWithPubKey;
+import haveno.network.p2p.NodeAddress;
+import haveno.network.p2p.P2PService;
+import haveno.network.p2p.network.TorNetworkNode;
 
-import bisq.common.ClockWatcher;
-import bisq.common.config.Config;
-import bisq.common.crypto.KeyRing;
-import bisq.common.handlers.ErrorMessageHandler;
-import bisq.common.handlers.FaultHandler;
-import bisq.common.handlers.ResultHandler;
-import bisq.common.persistence.PersistenceManager;
-import bisq.common.proto.network.NetworkEnvelope;
-import bisq.common.proto.persistable.PersistedDataHost;
+import haveno.common.ClockWatcher;
+import haveno.common.config.Config;
+import haveno.common.crypto.KeyRing;
+import haveno.common.handlers.ErrorMessageHandler;
+import haveno.common.handlers.FaultHandler;
+import haveno.common.handlers.ResultHandler;
+import haveno.common.persistence.PersistenceManager;
+import haveno.common.proto.network.NetworkEnvelope;
+import haveno.common.proto.persistable.PersistedDataHost;
 
 import org.bitcoinj.core.Coin;
 
@@ -238,7 +238,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
     public void onDirectMessage(DecryptedMessageWithPubKey message, NodeAddress peer) {
         NetworkEnvelope networkEnvelope = message.getNetworkEnvelope();
         if (networkEnvelope instanceof InputsForDepositTxRequest) {
-          //handleTakeOfferRequest(peer, (InputsForDepositTxRequest) networkEnvelope);  // ignore bisq requests
+          //handleTakeOfferRequest(peer, (InputsForDepositTxRequest) networkEnvelope);  // ignore haveno requests
         } else if (networkEnvelope instanceof InitTradeRequest) {
             handleInitTradeRequest((InitTradeRequest) networkEnvelope, peer);
         } else if (networkEnvelope instanceof InitMultisigRequest) {

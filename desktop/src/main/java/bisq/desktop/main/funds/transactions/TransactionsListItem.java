@@ -1,28 +1,28 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.desktop.main.funds.transactions;
+package haveno.desktop.main.funds.transactions;
 
-import bisq.desktop.components.indicator.TxConfidenceIndicator;
+import haveno.desktop.components.indicator.TxConfidenceIndicator;
 
-import bisq.core.btc.listeners.TxConfidenceListener;
-import bisq.core.btc.wallet.XmrWalletService;
-import bisq.core.trade.Tradable;
-import bisq.core.util.coin.CoinFormatter;
+import haveno.core.btc.listeners.TxConfidenceListener;
+import haveno.core.btc.wallet.XmrWalletService;
+import haveno.core.trade.Tradable;
+import haveno.core.util.coin.CoinFormatter;
 
 import org.bitcoinj.core.Coin;
 
@@ -194,7 +194,7 @@ class TransactionsListItem {
 //                            if (valueSentToMe.isPositive()) {
 //                                details = Res.get("funds.tx.refund", tradeId);
 //                            } else {
-//                                // We have spent the deposit tx outputs to the Bisq donation address to enable
+//                                // We have spent the deposit tx outputs to the Haveno donation address to enable
 //                                // the refund process (refund agent -> reimbursement). As the funds have left our wallet
 //                                // already when funding the deposit tx we show 0 BTC as amount.
 //                                // Confirmation is not known from the BitcoinJ side (not 100% clear why) as no funds

@@ -1,7 +1,7 @@
-package bisq.core.account.sign;
+package haveno.core.account.sign;
 
-import bisq.common.crypto.Sig;
-import bisq.common.util.Utilities;
+import haveno.common.crypto.Sig;
+import haveno.common.util.Utilities;
 
 import org.bitcoinj.core.ECKey;
 import org.bitcoinj.core.Utils;
@@ -13,8 +13,8 @@ import java.time.Instant;
 import org.junit.Before;
 import org.junit.Test;
 
-import static bisq.core.account.sign.SignedWitness.VerificationMethod.ARBITRATOR;
-import static bisq.core.account.sign.SignedWitness.VerificationMethod.TRADE;
+import static haveno.core.account.sign.SignedWitness.VerificationMethod.ARBITRATOR;
+import static haveno.core.account.sign.SignedWitness.VerificationMethod.TRADE;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 

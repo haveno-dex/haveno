@@ -1,38 +1,38 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.core.trade;
+package haveno.core.trade;
 
-import bisq.core.account.sign.SignedWitnessService;
-import bisq.core.account.sign.SignedWitnessStorageService;
-import bisq.core.account.witness.AccountAgeWitnessService;
-import bisq.core.account.witness.AccountAgeWitnessStorageService;
-import bisq.core.trade.closed.ClosedTradableManager;
-import bisq.core.trade.failed.FailedTradesManager;
-import bisq.core.trade.statistics.ReferralIdService;
+import haveno.core.account.sign.SignedWitnessService;
+import haveno.core.account.sign.SignedWitnessStorageService;
+import haveno.core.account.witness.AccountAgeWitnessService;
+import haveno.core.account.witness.AccountAgeWitnessStorageService;
+import haveno.core.trade.closed.ClosedTradableManager;
+import haveno.core.trade.failed.FailedTradesManager;
+import haveno.core.trade.statistics.ReferralIdService;
 
-import bisq.common.app.AppModule;
-import bisq.common.config.Config;
+import haveno.common.app.AppModule;
+import haveno.common.config.Config;
 
 import com.google.inject.Singleton;
 
-import static bisq.common.config.Config.ALLOW_FAULTY_DELAYED_TXS;
-import static bisq.common.config.Config.DUMP_DELAYED_PAYOUT_TXS;
-import static bisq.common.config.Config.DUMP_STATISTICS;
+import static haveno.common.config.Config.ALLOW_FAULTY_DELAYED_TXS;
+import static haveno.common.config.Config.DUMP_DELAYED_PAYOUT_TXS;
+import static haveno.common.config.Config.DUMP_STATISTICS;
 import static com.google.inject.name.Names.named;
 
 public class TradeModule extends AppModule {

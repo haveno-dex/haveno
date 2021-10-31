@@ -1,91 +1,91 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.core.proto.network;
+package haveno.core.proto.network;
 
-import bisq.core.alert.Alert;
-import bisq.core.alert.PrivateNotificationMessage;
-import bisq.core.filter.Filter;
-import bisq.core.network.p2p.inventory.messages.GetInventoryRequest;
-import bisq.core.network.p2p.inventory.messages.GetInventoryResponse;
-import bisq.core.offer.OfferPayload;
-import bisq.core.offer.messages.OfferAvailabilityRequest;
-import bisq.core.offer.messages.OfferAvailabilityResponse;
-import bisq.core.offer.messages.SignOfferRequest;
-import bisq.core.offer.messages.SignOfferResponse;
-import bisq.core.proto.CoreProtoResolver;
-import bisq.core.support.dispute.arbitration.arbitrator.Arbitrator;
-import bisq.core.support.dispute.arbitration.messages.PeerPublishedDisputePayoutTxMessage;
-import bisq.core.support.dispute.mediation.mediator.Mediator;
-import bisq.core.support.dispute.messages.ArbitratorPayoutTxRequest;
-import bisq.core.support.dispute.messages.ArbitratorPayoutTxResponse;
-import bisq.core.support.dispute.messages.DisputeResultMessage;
-import bisq.core.support.dispute.messages.OpenNewDisputeMessage;
-import bisq.core.support.dispute.messages.PeerOpenedDisputeMessage;
-import bisq.core.support.dispute.refund.refundagent.RefundAgent;
-import bisq.core.support.messages.ChatMessage;
-import bisq.core.trade.messages.CounterCurrencyTransferStartedMessage;
-import bisq.core.trade.messages.DelayedPayoutTxSignatureRequest;
-import bisq.core.trade.messages.DelayedPayoutTxSignatureResponse;
-import bisq.core.trade.messages.DepositRequest;
-import bisq.core.trade.messages.DepositResponse;
-import bisq.core.trade.messages.DepositTxAndDelayedPayoutTxMessage;
-import bisq.core.trade.messages.DepositTxMessage;
-import bisq.core.trade.messages.InitMultisigRequest;
-import bisq.core.trade.messages.InitTradeRequest;
-import bisq.core.trade.messages.InputsForDepositTxRequest;
-import bisq.core.trade.messages.InputsForDepositTxResponse;
-import bisq.core.trade.messages.MediatedPayoutTxPublishedMessage;
-import bisq.core.trade.messages.MediatedPayoutTxSignatureMessage;
-import bisq.core.trade.messages.PaymentAccountPayloadRequest;
-import bisq.core.trade.messages.PayoutTxPublishedMessage;
-import bisq.core.trade.messages.PeerPublishedDelayedPayoutTxMessage;
-import bisq.core.trade.messages.RefreshTradeStateRequest;
-import bisq.core.trade.messages.SignContractRequest;
-import bisq.core.trade.messages.SignContractResponse;
-import bisq.core.trade.messages.TraderSignedWitnessMessage;
-import bisq.core.trade.messages.UpdateMultisigRequest;
-import bisq.core.trade.messages.UpdateMultisigResponse;
+import haveno.core.alert.Alert;
+import haveno.core.alert.PrivateNotificationMessage;
+import haveno.core.filter.Filter;
+import haveno.core.network.p2p.inventory.messages.GetInventoryRequest;
+import haveno.core.network.p2p.inventory.messages.GetInventoryResponse;
+import haveno.core.offer.OfferPayload;
+import haveno.core.offer.messages.OfferAvailabilityRequest;
+import haveno.core.offer.messages.OfferAvailabilityResponse;
+import haveno.core.offer.messages.SignOfferRequest;
+import haveno.core.offer.messages.SignOfferResponse;
+import haveno.core.proto.CoreProtoResolver;
+import haveno.core.support.dispute.arbitration.arbitrator.Arbitrator;
+import haveno.core.support.dispute.arbitration.messages.PeerPublishedDisputePayoutTxMessage;
+import haveno.core.support.dispute.mediation.mediator.Mediator;
+import haveno.core.support.dispute.messages.ArbitratorPayoutTxRequest;
+import haveno.core.support.dispute.messages.ArbitratorPayoutTxResponse;
+import haveno.core.support.dispute.messages.DisputeResultMessage;
+import haveno.core.support.dispute.messages.OpenNewDisputeMessage;
+import haveno.core.support.dispute.messages.PeerOpenedDisputeMessage;
+import haveno.core.support.dispute.refund.refundagent.RefundAgent;
+import haveno.core.support.messages.ChatMessage;
+import haveno.core.trade.messages.CounterCurrencyTransferStartedMessage;
+import haveno.core.trade.messages.DelayedPayoutTxSignatureRequest;
+import haveno.core.trade.messages.DelayedPayoutTxSignatureResponse;
+import haveno.core.trade.messages.DepositRequest;
+import haveno.core.trade.messages.DepositResponse;
+import haveno.core.trade.messages.DepositTxAndDelayedPayoutTxMessage;
+import haveno.core.trade.messages.DepositTxMessage;
+import haveno.core.trade.messages.InitMultisigRequest;
+import haveno.core.trade.messages.InitTradeRequest;
+import haveno.core.trade.messages.InputsForDepositTxRequest;
+import haveno.core.trade.messages.InputsForDepositTxResponse;
+import haveno.core.trade.messages.MediatedPayoutTxPublishedMessage;
+import haveno.core.trade.messages.MediatedPayoutTxSignatureMessage;
+import haveno.core.trade.messages.PaymentAccountPayloadRequest;
+import haveno.core.trade.messages.PayoutTxPublishedMessage;
+import haveno.core.trade.messages.PeerPublishedDelayedPayoutTxMessage;
+import haveno.core.trade.messages.RefreshTradeStateRequest;
+import haveno.core.trade.messages.SignContractRequest;
+import haveno.core.trade.messages.SignContractResponse;
+import haveno.core.trade.messages.TraderSignedWitnessMessage;
+import haveno.core.trade.messages.UpdateMultisigRequest;
+import haveno.core.trade.messages.UpdateMultisigResponse;
 
-import bisq.network.p2p.AckMessage;
-import bisq.network.p2p.BundleOfEnvelopes;
-import bisq.network.p2p.CloseConnectionMessage;
-import bisq.network.p2p.PrefixedSealedAndSignedMessage;
-import bisq.network.p2p.peers.getdata.messages.GetDataResponse;
-import bisq.network.p2p.peers.getdata.messages.GetUpdatedDataRequest;
-import bisq.network.p2p.peers.getdata.messages.PreliminaryGetDataRequest;
-import bisq.network.p2p.peers.keepalive.messages.Ping;
-import bisq.network.p2p.peers.keepalive.messages.Pong;
-import bisq.network.p2p.peers.peerexchange.messages.GetPeersRequest;
-import bisq.network.p2p.peers.peerexchange.messages.GetPeersResponse;
-import bisq.network.p2p.storage.messages.AddDataMessage;
-import bisq.network.p2p.storage.messages.AddPersistableNetworkPayloadMessage;
-import bisq.network.p2p.storage.messages.RefreshOfferMessage;
-import bisq.network.p2p.storage.messages.RemoveDataMessage;
-import bisq.network.p2p.storage.messages.RemoveMailboxDataMessage;
-import bisq.network.p2p.storage.payload.MailboxStoragePayload;
-import bisq.network.p2p.storage.payload.ProtectedMailboxStorageEntry;
-import bisq.network.p2p.storage.payload.ProtectedStorageEntry;
+import haveno.network.p2p.AckMessage;
+import haveno.network.p2p.BundleOfEnvelopes;
+import haveno.network.p2p.CloseConnectionMessage;
+import haveno.network.p2p.PrefixedSealedAndSignedMessage;
+import haveno.network.p2p.peers.getdata.messages.GetDataResponse;
+import haveno.network.p2p.peers.getdata.messages.GetUpdatedDataRequest;
+import haveno.network.p2p.peers.getdata.messages.PreliminaryGetDataRequest;
+import haveno.network.p2p.peers.keepalive.messages.Ping;
+import haveno.network.p2p.peers.keepalive.messages.Pong;
+import haveno.network.p2p.peers.peerexchange.messages.GetPeersRequest;
+import haveno.network.p2p.peers.peerexchange.messages.GetPeersResponse;
+import haveno.network.p2p.storage.messages.AddDataMessage;
+import haveno.network.p2p.storage.messages.AddPersistableNetworkPayloadMessage;
+import haveno.network.p2p.storage.messages.RefreshOfferMessage;
+import haveno.network.p2p.storage.messages.RemoveDataMessage;
+import haveno.network.p2p.storage.messages.RemoveMailboxDataMessage;
+import haveno.network.p2p.storage.payload.MailboxStoragePayload;
+import haveno.network.p2p.storage.payload.ProtectedMailboxStorageEntry;
+import haveno.network.p2p.storage.payload.ProtectedStorageEntry;
 
-import bisq.common.proto.ProtobufferException;
-import bisq.common.proto.ProtobufferRuntimeException;
-import bisq.common.proto.network.NetworkEnvelope;
-import bisq.common.proto.network.NetworkPayload;
-import bisq.common.proto.network.NetworkProtoResolver;
+import haveno.common.proto.ProtobufferException;
+import haveno.common.proto.ProtobufferRuntimeException;
+import haveno.common.proto.network.NetworkEnvelope;
+import haveno.common.proto.network.NetworkPayload;
+import haveno.common.proto.network.NetworkProtoResolver;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;

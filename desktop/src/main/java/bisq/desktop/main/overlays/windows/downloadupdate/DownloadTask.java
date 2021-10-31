@@ -1,23 +1,23 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.desktop.main.overlays.windows.downloadupdate;
+package haveno.desktop.main.overlays.windows.downloadupdate;
 
-import bisq.common.file.FileUtil;
+import haveno.common.file.FileUtil;
 
 import com.google.common.collect.Lists;
 
@@ -44,25 +44,25 @@ import javafx.concurrent.Task;
 
 @Slf4j
 @Getter
-public class DownloadTask extends Task<List<BisqInstaller.FileDescriptor>> {
+public class DownloadTask extends Task<List<HavenoInstaller.FileDescriptor>> {
     private static final int EOF = -1;
     private static final int DEFAULT_BUFFER_SIZE = 1024 * 4;
     private String fileName = null;
-    private final List<BisqInstaller.FileDescriptor> fileDescriptors;
+    private final List<HavenoInstaller.FileDescriptor> fileDescriptors;
     private final String saveDir;
 
     /**
      * Prepares a task to download a file from {@code fileDescriptors} to the system's download dir.
      */
-    public DownloadTask(final BisqInstaller.FileDescriptor fileDescriptor) {
+    public DownloadTask(final HavenoInstaller.FileDescriptor fileDescriptor) {
         this(Lists.newArrayList(fileDescriptor));
     }
 
-    public DownloadTask(final BisqInstaller.FileDescriptor fileDescriptor, final String saveDir) {
+    public DownloadTask(final HavenoInstaller.FileDescriptor fileDescriptor, final String saveDir) {
         this(Lists.newArrayList(fileDescriptor), saveDir);
     }
 
-    public DownloadTask(final List<BisqInstaller.FileDescriptor> fileDescriptors) {
+    public DownloadTask(final List<HavenoInstaller.FileDescriptor> fileDescriptors) {
         this(Lists.newArrayList(fileDescriptors), System.getProperty("java.io.tmpdir"));
     }
 
@@ -72,7 +72,7 @@ public class DownloadTask extends Task<List<BisqInstaller.FileDescriptor>> {
      * @param fileDescriptors HTTP URL of the file to be downloaded
      * @param saveDir         path of the directory to save the file
      */
-    public DownloadTask(final List<BisqInstaller.FileDescriptor> fileDescriptors, final String saveDir) {
+    public DownloadTask(final List<HavenoInstaller.FileDescriptor> fileDescriptors, final String saveDir) {
         super();
         this.fileDescriptors = fileDescriptors;
         this.saveDir = saveDir;
@@ -86,7 +86,7 @@ public class DownloadTask extends Task<List<BisqInstaller.FileDescriptor>> {
      * @throws IOException Forwarded exceotions from HttpURLConnection and file handling methods
      */
     @Override
-    protected List<BisqInstaller.FileDescriptor> call() throws IOException {
+    protected List<HavenoInstaller.FileDescriptor> call() throws IOException {
         log.debug("DownloadTask started...");
 
         String partialSaveFilePath = saveDir + (saveDir.endsWith(File.separator) ? "" : File.separator);
@@ -101,9 +101,9 @@ public class DownloadTask extends Task<List<BisqInstaller.FileDescriptor>> {
                         updateMessage(fileDescriptor.getFileName());
                         download(new URL(fileDescriptor.getLoadUrl()), fileDescriptor.getSaveFile());
                         log.info("Download for {} done", fileDescriptor.getLoadUrl());
-                        fileDescriptor.setDownloadStatus(BisqInstaller.DownloadStatusEnum.OK);
+                        fileDescriptor.setDownloadStatus(HavenoInstaller.DownloadStatusEnum.OK);
                     } catch (Exception e) {
-                        fileDescriptor.setDownloadStatus(BisqInstaller.DownloadStatusEnum.FAIL);
+                        fileDescriptor.setDownloadStatus(HavenoInstaller.DownloadStatusEnum.FAIL);
                         log.error("Error downloading file:" + fileDescriptor.toString(), e);
                         e.printStackTrace();
                     }

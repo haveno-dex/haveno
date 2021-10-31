@@ -1,59 +1,59 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.core.support.dispute;
+package haveno.core.support.dispute;
 
-import bisq.core.btc.setup.WalletsSetup;
-import bisq.core.btc.wallet.Restrictions;
-import bisq.core.btc.wallet.TradeWalletService;
-import bisq.core.btc.wallet.XmrWalletService;
-import bisq.core.locale.CurrencyUtil;
-import bisq.core.locale.Res;
-import bisq.core.monetary.Altcoin;
-import bisq.core.monetary.Price;
-import bisq.core.offer.OfferPayload;
-import bisq.core.offer.OpenOfferManager;
-import bisq.core.provider.price.MarketPrice;
-import bisq.core.provider.price.PriceFeedService;
-import bisq.core.support.SupportManager;
-import bisq.core.support.dispute.messages.DisputeResultMessage;
-import bisq.core.support.dispute.messages.OpenNewDisputeMessage;
-import bisq.core.support.dispute.messages.PeerOpenedDisputeMessage;
-import bisq.core.support.messages.ChatMessage;
-import bisq.core.trade.Contract;
-import bisq.core.trade.Trade;
-import bisq.core.trade.TradeDataValidation;
-import bisq.core.trade.TradeManager;
-import bisq.core.trade.closed.ClosedTradableManager;
+import haveno.core.btc.setup.WalletsSetup;
+import haveno.core.btc.wallet.Restrictions;
+import haveno.core.btc.wallet.TradeWalletService;
+import haveno.core.btc.wallet.XmrWalletService;
+import haveno.core.locale.CurrencyUtil;
+import haveno.core.locale.Res;
+import haveno.core.monetary.Altcoin;
+import haveno.core.monetary.Price;
+import haveno.core.offer.OfferPayload;
+import haveno.core.offer.OpenOfferManager;
+import haveno.core.provider.price.MarketPrice;
+import haveno.core.provider.price.PriceFeedService;
+import haveno.core.support.SupportManager;
+import haveno.core.support.dispute.messages.DisputeResultMessage;
+import haveno.core.support.dispute.messages.OpenNewDisputeMessage;
+import haveno.core.support.dispute.messages.PeerOpenedDisputeMessage;
+import haveno.core.support.messages.ChatMessage;
+import haveno.core.trade.Contract;
+import haveno.core.trade.Trade;
+import haveno.core.trade.TradeDataValidation;
+import haveno.core.trade.TradeManager;
+import haveno.core.trade.closed.ClosedTradableManager;
 
-import bisq.network.p2p.BootstrapListener;
-import bisq.network.p2p.NodeAddress;
-import bisq.network.p2p.P2PService;
-import bisq.network.p2p.SendMailboxMessageListener;
+import haveno.network.p2p.BootstrapListener;
+import haveno.network.p2p.NodeAddress;
+import haveno.network.p2p.P2PService;
+import haveno.network.p2p.SendMailboxMessageListener;
 
-import bisq.common.UserThread;
-import bisq.common.app.Version;
-import bisq.common.config.Config;
-import bisq.common.crypto.KeyRing;
-import bisq.common.crypto.PubKeyRing;
-import bisq.common.handlers.FaultHandler;
-import bisq.common.handlers.ResultHandler;
-import bisq.common.util.MathUtils;
-import bisq.common.util.Tuple2;
+import haveno.common.UserThread;
+import haveno.common.app.Version;
+import haveno.common.config.Config;
+import haveno.common.crypto.KeyRing;
+import haveno.common.crypto.PubKeyRing;
+import haveno.common.handlers.FaultHandler;
+import haveno.common.handlers.ResultHandler;
+import haveno.common.util.MathUtils;
+import haveno.common.util.Tuple2;
 
 import org.bitcoinj.core.Coin;
 import org.bitcoinj.utils.Fiat;

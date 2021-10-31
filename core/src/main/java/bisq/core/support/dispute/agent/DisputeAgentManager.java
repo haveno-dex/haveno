@@ -1,38 +1,38 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.core.support.dispute.agent;
+package haveno.core.support.dispute.agent;
 
-import bisq.core.filter.FilterManager;
-import bisq.core.user.User;
+import haveno.core.filter.FilterManager;
+import haveno.core.user.User;
 
-import bisq.network.p2p.BootstrapListener;
-import bisq.network.p2p.NodeAddress;
-import bisq.network.p2p.P2PService;
-import bisq.network.p2p.storage.HashMapChangedListener;
-import bisq.network.p2p.storage.payload.ProtectedStorageEntry;
+import haveno.network.p2p.BootstrapListener;
+import haveno.network.p2p.NodeAddress;
+import haveno.network.p2p.P2PService;
+import haveno.network.p2p.storage.HashMapChangedListener;
+import haveno.network.p2p.storage.payload.ProtectedStorageEntry;
 
-import bisq.common.Timer;
-import bisq.common.UserThread;
-import bisq.common.app.DevEnv;
-import bisq.common.crypto.KeyRing;
-import bisq.common.handlers.ErrorMessageHandler;
-import bisq.common.handlers.ResultHandler;
-import bisq.common.util.Utilities;
+import haveno.common.Timer;
+import haveno.common.UserThread;
+import haveno.common.app.DevEnv;
+import haveno.common.crypto.KeyRing;
+import haveno.common.handlers.ErrorMessageHandler;
+import haveno.common.handlers.ResultHandler;
+import haveno.common.util.Utilities;
 
 import org.bitcoinj.core.ECKey;
 import org.bitcoinj.core.Utils;

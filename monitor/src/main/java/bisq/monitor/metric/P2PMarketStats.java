@@ -1,34 +1,34 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * bisq is free software: you can redistribute it and/or modify it
+ * haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * bisq is distributed in the hope that it will be useful, but WITHOUT
+ * haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.monitor.metric;
+package haveno.monitor.metric;
 
-import bisq.monitor.Reporter;
+import haveno.monitor.Reporter;
 
-import bisq.core.offer.OfferPayload;
+import haveno.core.offer.OfferPayload;
 
-import bisq.network.p2p.NodeAddress;
-import bisq.network.p2p.network.Connection;
-import bisq.network.p2p.peers.getdata.messages.GetDataResponse;
-import bisq.network.p2p.peers.getdata.messages.PreliminaryGetDataRequest;
-import bisq.network.p2p.storage.payload.ProtectedStorageEntry;
-import bisq.network.p2p.storage.payload.ProtectedStoragePayload;
+import haveno.network.p2p.NodeAddress;
+import haveno.network.p2p.network.Connection;
+import haveno.network.p2p.peers.getdata.messages.GetDataResponse;
+import haveno.network.p2p.peers.getdata.messages.PreliminaryGetDataRequest;
+import haveno.network.p2p.storage.payload.ProtectedStorageEntry;
+import haveno.network.p2p.storage.payload.ProtectedStoragePayload;
 
-import bisq.common.proto.network.NetworkEnvelope;
+import haveno.common.proto.network.NetworkEnvelope;
 
 import java.util.ArrayList;
 import java.util.HashMap;

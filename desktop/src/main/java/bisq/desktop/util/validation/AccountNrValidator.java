@@ -1,24 +1,24 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.desktop.util.validation;
+package haveno.desktop.util.validation;
 
-import bisq.core.locale.BankUtil;
-import bisq.core.locale.Res;
+import haveno.core.locale.BankUtil;
+import haveno.core.locale.Res;
 
 import org.apache.commons.lang3.StringUtils;
 
@@ -80,7 +80,7 @@ public final class AccountNrValidator extends BankValidator {
                 if (input != null) {
                     length = 11;
                     // Provided by sturles:
-                    // https://github.com/bisq-network/exchange/pull/707
+                    // https://github.com/haveno-network/exchange/pull/707
 
                     // https://no.wikipedia.org/wiki/MOD11#Implementasjoner_i_forskjellige_programmeringspr.C3.A5k
                     // https://en.wikipedia.org/wiki/International_Bank_Account_Number#Generating_IBAN_check_digits6

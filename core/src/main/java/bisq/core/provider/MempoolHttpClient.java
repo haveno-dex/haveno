@@ -1,26 +1,26 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.core.provider;
+package haveno.core.provider;
 
-import bisq.network.Socks5ProxyProvider;
-import bisq.network.http.HttpClientImpl;
+import haveno.network.Socks5ProxyProvider;
+import haveno.network.http.HttpClientImpl;
 
-import bisq.common.app.Version;
+import haveno.common.app.Version;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -40,6 +40,6 @@ public class MempoolHttpClient extends HttpClientImpl {
     public String getTxDetails(String txId) throws IOException {
         super.shutDown(); // close any prior incomplete request
         String api = "/" + txId;
-        return get(api, "User-Agent", "bisq/" + Version.VERSION);
+        return get(api, "User-Agent", "haveno/" + Version.VERSION);
     }
 }

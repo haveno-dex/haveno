@@ -1,6 +1,6 @@
-package bisq.desktop.util.validation;
+package haveno.desktop.util.validation;
 
-import bisq.core.locale.Res;
+import haveno.core.locale.Res;
 
 import java.util.Locale;
 

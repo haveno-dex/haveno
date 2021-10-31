@@ -1,30 +1,30 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.statistics;
+package haveno.statistics;
 
-import bisq.core.app.misc.AppSetup;
-import bisq.core.app.misc.AppSetupWithP2PAndDAO;
-import bisq.core.offer.OfferBookService;
-import bisq.core.provider.price.PriceFeedService;
-import bisq.core.trade.statistics.TradeStatisticsManager;
+import haveno.core.app.misc.AppSetup;
+import haveno.core.app.misc.AppSetupWithP2PAndDAO;
+import haveno.core.offer.OfferBookService;
+import haveno.core.provider.price.PriceFeedService;
+import haveno.core.trade.statistics.TradeStatisticsManager;
 
-import bisq.network.p2p.BootstrapListener;
-import bisq.network.p2p.P2PService;
+import haveno.network.p2p.BootstrapListener;
+import haveno.network.p2p.P2PService;
 
 import com.google.inject.Injector;
 

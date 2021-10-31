@@ -1,31 +1,31 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.desktop.main.funds.reserved;
+package haveno.desktop.main.funds.reserved;
 
-import bisq.desktop.components.AutoTooltipLabel;
-import bisq.desktop.util.DisplayUtils;
+import haveno.desktop.components.AutoTooltipLabel;
+import haveno.desktop.util.DisplayUtils;
 
-import bisq.core.btc.listeners.BalanceListener;
-import bisq.core.btc.model.AddressEntry;
-import bisq.core.btc.wallet.BtcWalletService;
-import bisq.core.locale.Res;
-import bisq.core.offer.OpenOffer;
-import bisq.core.util.coin.CoinFormatter;
+import haveno.core.btc.listeners.BalanceListener;
+import haveno.core.btc.model.AddressEntry;
+import haveno.core.btc.wallet.BtcWalletService;
+import haveno.core.locale.Res;
+import haveno.core.offer.OpenOffer;
+import haveno.core.util.coin.CoinFormatter;
 
 import org.bitcoinj.core.Address;
 import org.bitcoinj.core.Coin;

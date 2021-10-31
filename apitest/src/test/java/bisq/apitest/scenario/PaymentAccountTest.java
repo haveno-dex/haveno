@@ -1,4 +1,4 @@
-package bisq.apitest.scenario;
+package haveno.apitest.scenario;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -10,16 +10,16 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInfo;
 import org.junit.jupiter.api.TestMethodOrder;
 
-import static bisq.apitest.Scaffold.BitcoinCoreApp.bitcoind;
-import static bisq.apitest.config.BisqAppConfig.alicedaemon;
-import static bisq.apitest.config.BisqAppConfig.seednode;
+import static haveno.apitest.Scaffold.BitcoinCoreApp.bitcoind;
+import static haveno.apitest.config.HavenoAppConfig.alicedaemon;
+import static haveno.apitest.config.HavenoAppConfig.seednode;
 import static org.junit.jupiter.api.Assertions.fail;
 
 
 
-import bisq.apitest.method.payment.AbstractPaymentAccountTest;
-import bisq.apitest.method.payment.CreatePaymentAccountTest;
-import bisq.apitest.method.payment.GetPaymentMethodsTest;
+import haveno.apitest.method.payment.AbstractPaymentAccountTest;
+import haveno.apitest.method.payment.CreatePaymentAccountTest;
+import haveno.apitest.method.payment.GetPaymentMethodsTest;
 
 @Slf4j
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)

@@ -1,32 +1,32 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.desktop.app;
+package haveno.desktop.app;
 
-import bisq.desktop.common.UITimer;
-import bisq.desktop.common.view.guice.InjectorViewFactory;
-import bisq.desktop.setup.DesktopPersistedDataHost;
+import haveno.desktop.common.UITimer;
+import haveno.desktop.common.view.guice.InjectorViewFactory;
+import haveno.desktop.setup.DesktopPersistedDataHost;
 
-import bisq.core.app.AvoidStandbyModeService;
-import bisq.core.app.BisqExecutable;
+import haveno.core.app.AvoidStandbyModeService;
+import haveno.core.app.HavenoExecutable;
 
-import bisq.common.UserThread;
-import bisq.common.app.AppModule;
-import bisq.common.app.Version;
+import haveno.common.UserThread;
+import haveno.common.app.AppModule;
+import haveno.common.app.Version;
 
 import javafx.application.Application;
 import javafx.application.Platform;
@@ -34,14 +34,14 @@ import javafx.application.Platform;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public class BisqAppMain extends BisqExecutable {
+public class HavenoAppMain extends HavenoExecutable {
 
     public static final String DEFAULT_APP_NAME = "Haveno";
 
-    private BisqApp application;
+    private HavenoApp application;
 
-    public BisqAppMain() {
-        super("Bisq Desktop", "bisq-desktop", DEFAULT_APP_NAME, Version.VERSION);
+    public HavenoAppMain() {
+        super("Haveno Desktop", "haveno-desktop", DEFAULT_APP_NAME, Version.VERSION);
     }
 
     public static void main(String[] args) {
@@ -49,9 +49,9 @@ public class BisqAppMain extends BisqExecutable {
         // context class loader: reset it. In order to work around a bug in JavaFX 8u25
         // and below, you must include the following code as the first line of your
         // realMain method:
-        Thread.currentThread().setContextClassLoader(BisqAppMain.class.getClassLoader());
+        Thread.currentThread().setContextClassLoader(HavenoAppMain.class.getClassLoader());
 
-        new BisqAppMain().execute(args);
+        new HavenoAppMain().execute(args);
     }
 
     @Override
@@ -71,13 +71,13 @@ public class BisqAppMain extends BisqExecutable {
 
     @Override
     protected void launchApplication() {
-        BisqApp.setAppLaunchedHandler(application -> {
-            BisqAppMain.this.application = (BisqApp) application;
+        HavenoApp.setAppLaunchedHandler(application -> {
+            HavenoAppMain.this.application = (HavenoApp) application;
             // Map to user thread!
             UserThread.execute(this::onApplicationLaunched);
         });
 
-        Application.launch(BisqApp.class);
+        Application.launch(HavenoApp.class);
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -102,7 +102,7 @@ public class BisqAppMain extends BisqExecutable {
 
     @Override
     protected AppModule getModule() {
-        return new BisqAppModule(config);
+        return new HavenoAppModule(config);
     }
 
     @Override

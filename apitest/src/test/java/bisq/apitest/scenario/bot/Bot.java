@@ -1,22 +1,22 @@
-package bisq.apitest.scenario.bot;
+package haveno.apitest.scenario.bot;
 
-import bisq.core.locale.Country;
+import haveno.core.locale.Country;
 
 import protobuf.PaymentAccount;
 
 import lombok.extern.slf4j.Slf4j;
 
-import static bisq.core.locale.CountryUtil.findCountryByCode;
-import static bisq.core.payment.payload.PaymentMethod.CLEAR_X_CHANGE_ID;
-import static bisq.core.payment.payload.PaymentMethod.getPaymentMethodById;
+import static haveno.core.locale.CountryUtil.findCountryByCode;
+import static haveno.core.payment.payload.PaymentMethod.CLEAR_X_CHANGE_ID;
+import static haveno.core.payment.payload.PaymentMethod.getPaymentMethodById;
 import static java.lang.String.format;
 import static java.util.concurrent.TimeUnit.MINUTES;
 
 
 
-import bisq.apitest.method.BitcoinCliHelper;
-import bisq.apitest.scenario.bot.script.BashScriptGenerator;
-import bisq.apitest.scenario.bot.script.BotScript;
+import haveno.apitest.method.BitcoinCliHelper;
+import haveno.apitest.scenario.bot.script.BashScriptGenerator;
+import haveno.apitest.scenario.bot.script.BotScript;
 
 @Slf4j
 public

@@ -1,10 +1,10 @@
 #!/bin/bash
 set -e
 
-echo "[*] Bisq Server Monitoring installation script"
+echo "[*] Haveno Server Monitoring installation script"
 
 ##### change paths if necessary for your system
-BISQ_REPO_URL=https://raw.githubusercontent.com/bisq-network/bisq
+BISQ_REPO_URL=https://raw.githubusercontent.com/haveno-network/haveno
 BISQ_REPO_TAG=master
 ROOT_USER=root
 ROOT_GROUP=root
@@ -27,9 +27,9 @@ sudo -H -i -u "${ROOT_USER}" DEBIAN_FRONTEND=noninteractive apt-get upgrade -qq 
 echo "[*] Installing base packages"
 sudo -H -i -u "${ROOT_USER}" DEBIAN_FRONTEND=noninteractive apt-get install -qq -y ${ROOT_PKG[@]}
 
-echo "[*] Preparing Bisq init script for monitoring"
+echo "[*] Preparing Haveno init script for monitoring"
 # remove stuff it it is there already
-for file in "${SYSTEMD_ENV_HOME}/bisq.env" "${SYSTEMD_ENV_HOME}/bisq-pricenode.env"
+for file in "${SYSTEMD_ENV_HOME}/haveno.env" "${SYSTEMD_ENV_HOME}/haveno-pricenode.env"
 do
     if [ -f "$file" ];then
         sudo -H -i -u "${ROOT_USER}" sed -i -e 's/-Dcom.sun.management.jmxremote //g' -e 's/-Dcom.sun.management.jmxremote.local.only=true//g' -e 's/ -Dcom.sun.management.jmxremote.host=127.0.0.1//g' -e 's/ -Dcom.sun.management.jmxremote.port=6969//g' -e 's/ -Dcom.sun.management.jmxremote.rmi.port=6969//g' -e 's/ -Dcom.sun.management.jmxremote.ssl=false//g' -e 's/ -Dcom.sun.management.jmxremote.authenticate=false//g' "${file}"
@@ -40,7 +40,7 @@ done
 echo "[*] Seeding entropy from /dev/urandom"
 sudo -H -i -u "${ROOT_USER}" /bin/sh -c "head -1500 /dev/urandom > ${ROOT_HOME}/.rnd"
 echo "[*] Installing Nginx config"
-sudo -H -i -u "${ROOT_USER}" openssl req -x509 -nodes -newkey rsa:2048 -days 3000 -keyout /etc/nginx/cert.key -out /etc/nginx/cert.crt -subj="/O=Bisq/OU=Bisq Infrastructure/CN=$onionaddress"
+sudo -H -i -u "${ROOT_USER}" openssl req -x509 -nodes -newkey rsa:2048 -days 3000 -keyout /etc/nginx/cert.key -out /etc/nginx/cert.crt -subj="/O=Haveno/OU=Haveno Infrastructure/CN=$onionaddress"
 curl -s "${BISQ_REPO_URL}/${BISQ_REPO_TAG}/monitor/nginx.conf" > /tmp/nginx.conf
 sudo -H -i -u "${ROOT_USER}" install -c -o "${ROOT_USER}" -g "${ROOT_GROUP}" -m 644 /tmp/nginx.conf /etc/nginx/nginx.conf
 
@@ -56,10 +56,10 @@ sudo -H -i -u "${ROOT_USER}" systemctl enable collectd.service
 
 echo "[*] Restarting services"
 set +e
-service bisq status >/dev/null 2>&1
-[ $? != 4 ] && sudo -H -i -u "${ROOT_USER}" systemctl restart bisq.service
-service bisq-pricenode status >/dev/null 2>&1
-[ $? != 4 ] && sudo -H -i -u "${ROOT_USER}" systemctl restart bisq-pricenode.service
+service haveno status >/dev/null 2>&1
+[ $? != 4 ] && sudo -H -i -u "${ROOT_USER}" systemctl restart haveno.service
+service haveno-pricenode status >/dev/null 2>&1
+[ $? != 4 ] && sudo -H -i -u "${ROOT_USER}" systemctl restart haveno-pricenode.service
 sudo -H -i -u "${ROOT_USER}" systemctl restart nginx.service
 sudo -H -i -u "${ROOT_USER}" systemctl restart collectd.service
 

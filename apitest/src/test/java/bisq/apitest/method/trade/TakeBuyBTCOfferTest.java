@@ -1,25 +1,25 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.apitest.method.trade;
+package haveno.apitest.method.trade;
 
-import bisq.core.payment.PaymentAccount;
+import haveno.core.payment.PaymentAccount;
 
-import bisq.proto.grpc.TradeInfo;
+import haveno.proto.grpc.TradeInfo;
 
 import io.grpc.StatusRuntimeException;
 
@@ -34,12 +34,12 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInfo;
 import org.junit.jupiter.api.TestMethodOrder;
 
-import static bisq.cli.TableFormat.formatBalancesTbls;
-import static bisq.core.btc.wallet.Restrictions.getDefaultBuyerSecurityDepositAsPercent;
-import static bisq.core.trade.Trade.Phase.DEPOSIT_CONFIRMED;
-import static bisq.core.trade.Trade.Phase.FIAT_SENT;
-import static bisq.core.trade.Trade.Phase.PAYOUT_PUBLISHED;
-import static bisq.core.trade.Trade.State.*;
+import static haveno.cli.TableFormat.formatBalancesTbls;
+import static haveno.core.btc.wallet.Restrictions.getDefaultBuyerSecurityDepositAsPercent;
+import static haveno.core.trade.Trade.Phase.DEPOSIT_CONFIRMED;
+import static haveno.core.trade.Trade.Phase.FIAT_SENT;
+import static haveno.core.trade.Trade.Phase.PAYOUT_PUBLISHED;
+import static haveno.core.trade.Trade.State.*;
 import static java.lang.String.format;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;

@@ -1,12 +1,12 @@
-package bisq.core.btc.wallet;
+package haveno.core.btc.wallet;
 
-import bisq.common.UserThread;
-import bisq.core.btc.exceptions.AddressEntryException;
-import bisq.core.btc.listeners.XmrBalanceListener;
-import bisq.core.btc.model.XmrAddressEntry;
-import bisq.core.btc.model.XmrAddressEntryList;
-import bisq.core.btc.setup.WalletsSetup;
-import bisq.core.util.ParsingUtils;
+import haveno.common.UserThread;
+import haveno.core.btc.exceptions.AddressEntryException;
+import haveno.core.btc.listeners.XmrBalanceListener;
+import haveno.core.btc.model.XmrAddressEntry;
+import haveno.core.btc.model.XmrAddressEntryList;
+import haveno.core.btc.setup.WalletsSetup;
+import haveno.core.util.ParsingUtils;
 
 import org.bitcoinj.core.AddressFormatException;
 import org.bitcoinj.core.Coin;
@@ -179,7 +179,7 @@ public class XmrWalletService {
   public void resetAddressEntriesForPendingTrade(String offerId) {
       swapTradeEntryToAvailableEntry(offerId, XmrAddressEntry.Context.MULTI_SIG);
       // We swap also TRADE_PAYOUT to be sure all is cleaned up. There might be cases where a user cannot send the funds
-      // to an external wallet directly in the last step of the trade, but the funds are in the Bisq wallet anyway and
+      // to an external wallet directly in the last step of the trade, but the funds are in the Haveno wallet anyway and
       // the dealing with the external wallet is pure UI thing. The user can move the funds to the wallet and then
       // send out the funds to the external wallet. As this cleanup is a rare situation and most users do not use
       // the feature to send out the funds we prefer that strategy (if we keep the address entry it might cause

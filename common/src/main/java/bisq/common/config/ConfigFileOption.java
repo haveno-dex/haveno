@@ -1,4 +1,4 @@
-package bisq.common.config;
+package haveno.common.config;
 
 class ConfigFileOption {
 

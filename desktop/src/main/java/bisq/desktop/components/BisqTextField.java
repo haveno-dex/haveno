@@ -1,21 +1,21 @@
-package bisq.desktop.components;
+package haveno.desktop.components;
 
 import com.jfoenix.controls.JFXTextField;
 
 import javafx.scene.control.Skin;
 
-public class BisqTextField extends JFXTextField {
+public class HavenoTextField extends JFXTextField {
 
-    public BisqTextField(String value) {
+    public HavenoTextField(String value) {
         super(value);
     }
 
-    public BisqTextField() {
+    public HavenoTextField() {
         super();
     }
 
     @Override
     protected Skin<?> createDefaultSkin() {
-        return new JFXTextFieldSkinBisqStyle<>(this, 0);
+        return new JFXTextFieldSkinHavenoStyle<>(this, 0);
     }
 }

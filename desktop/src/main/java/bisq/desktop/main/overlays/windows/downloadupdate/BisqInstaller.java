@@ -1,23 +1,23 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.desktop.main.overlays.windows.downloadupdate;
+package haveno.desktop.main.overlays.windows.downloadupdate;
 
-import bisq.common.util.Utilities;
+import haveno.common.util.Utilities;
 
 import com.google.common.collect.Lists;
 
@@ -55,12 +55,12 @@ import org.jetbrains.annotations.NotNull;
 import static com.google.common.base.Preconditions.checkArgument;
 
 @Slf4j
-public class BisqInstaller {
+public class HavenoInstaller {
     private static final String FINGER_PRINT_MANFRED_KARRER = "F379A1C6";
     private static final String FINGER_PRINT_CHRIS_BEAMS = "5BC5ED73";
     private static final String FINGER_PRINT_CHRISTOPH_ATTENEDER = "29CDFD3B";
-    private static final String PUB_KEY_HOSTING_URL = "https://bisq.network/pubkey/";
-    private static final String DOWNLOAD_HOST_URL = "https://bisq.network/downloads/";
+    private static final String PUB_KEY_HOSTING_URL = "https://haveno.network/pubkey/";
+    private static final String DOWNLOAD_HOST_URL = "https://haveno.network/downloads/";
 
     public boolean isSupportedOS() {
         return Utilities.isOSX() || Utilities.isWindows() || Utilities.isDebianLinux() || Utilities.isRedHatLinux();
@@ -94,7 +94,7 @@ public class BisqInstaller {
 
     public VerifyTask verify(List<FileDescriptor> fileDescriptors) {
         VerifyTask verifyTask = new VerifyTask(fileDescriptors);
-        new Thread(verifyTask, "BisqInstaller VerifyTask").start();
+        new Thread(verifyTask, "HavenoInstaller VerifyTask").start();
         // TODO: check for problems when creating task
         return verifyTask;
     }
@@ -119,7 +119,7 @@ public class BisqInstaller {
         if (saveDir == null)
             saveDir = Utilities.getDownloadOfHomeDir();
         DownloadTask task = new DownloadTask(fileDescriptors, saveDir);
-        new Thread(task, "BisqInstaller DownloadTask").start();
+        new Thread(task, "HavenoInstaller DownloadTask").start();
         // TODO: check for problems when creating task
         return task;
     }
@@ -203,8 +203,8 @@ public class BisqInstaller {
     @NotNull
     private FileDescriptor getInstallerDescriptor(String version, String partialUrl) {
         String fileName;
-        String prefix = "Bisq-";
-        // https://github.com/bisq-network/exchange/releases/download/v0.5.1/Bisq-0.5.1.dmg
+        String prefix = "Haveno-";
+        // https://github.com/haveno-network/exchange/releases/download/v0.5.1/Haveno-0.5.1.dmg
         if (Utilities.isOSX())
             fileName = prefix + version + ".dmg";
         else if (Utilities.isWindows())
@@ -237,7 +237,7 @@ public class BisqInstaller {
 
     @NotNull
     private FileDescriptor getJarHashDescriptor(String version, String partialUrl) {
-        String fileName = "Bisq-" + version + ".jar.txt";
+        String fileName = "Haveno-" + version + ".jar.txt";
         return FileDescriptor.builder()
                 .type(DownloadType.JAR_HASH)
                 .fileName(fileName)
@@ -247,8 +247,8 @@ public class BisqInstaller {
     }
 
     /**
-     * The files containing the gpg keys of the bisq signers.
-     * Currently these are 2 hard-coded keys, one included with bisq and the same key online for maximum security.
+     * The files containing the gpg keys of the haveno signers.
+     * Currently these are 2 hard-coded keys, one included with haveno and the same key online for maximum security.
      *
      * @return list of keys to check agains corresponding sigs.
      */

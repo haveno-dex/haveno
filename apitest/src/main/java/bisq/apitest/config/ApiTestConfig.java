@@ -1,23 +1,23 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.apitest.config;
+package haveno.apitest.config;
 
-import bisq.common.config.CompositeOptionSet;
+import haveno.common.config.CompositeOptionSet;
 
 import joptsimple.AbstractOptionSpec;
 import joptsimple.ArgumentAcceptingOptionSpec;
@@ -74,12 +74,12 @@ public class ApiTestConfig {
     static final String ROOT_APP_DATA_DIR = "rootAppDataDir";
     static final String API_PASSWORD = "apiPassword";
     static final String RUN_SUBPROJECT_JARS = "runSubprojectJars";
-    static final String BISQ_APP_INIT_TIME = "bisqAppInitTime";
+    static final String BISQ_APP_INIT_TIME = "havenoAppInitTime";
     static final String SKIP_TESTS = "skipTests";
     static final String SHUTDOWN_AFTER_TESTS = "shutdownAfterTests";
     static final String SUPPORTING_APPS = "supportingApps";
     static final String CALL_RATE_METERING_CONFIG_PATH = "callRateMeteringConfigPath";
-    static final String ENABLE_BISQ_DEBUGGING = "enableBisqDebugging";
+    static final String ENABLE_BISQ_DEBUGGING = "enableHavenoDebugging";
     static final String REGISTER_DISPUTE_AGENTS = "registerDisputeAgents";
 
     // Default values for certain options
@@ -107,12 +107,12 @@ public class ApiTestConfig {
     // Daemon instances can use same gRPC password, but each needs a different apiPort.
     public final String apiPassword;
     public final boolean runSubprojectJars;
-    public final long bisqAppInitTime;
+    public final long havenoAppInitTime;
     public final boolean skipTests;
     public final boolean shutdownAfterTests;
     public final List<String> supportingApps;
     public final String callRateMeteringConfigPath;
-    public final boolean enableBisqDebugging;
+    public final boolean enableHavenoDebugging;
     public final boolean registerDisputeAgents;
 
     // Immutable system configurations set in the constructor.
@@ -130,7 +130,7 @@ public class ApiTestConfig {
         this.userDir = getProperty("user.dir");
         // If running a @Test, the current working directory is the :apitest subproject
         // folder.  If running ApiTestMain, the current working directory is the
-        // bisq root project folder.
+        // haveno root project folder.
         this.isRunningTest = Paths.get(userDir).getFileName().toString().equals("apitest");
         this.rootProjectDir = isRunningTest
                 ? Paths.get(userDir).getParent().toFile().getAbsolutePath()
@@ -211,9 +211,9 @@ public class ApiTestConfig {
                         .ofType(Boolean.class)
                         .defaultsTo(false);
 
-        ArgumentAcceptingOptionSpec<Long> bisqAppInitTimeOpt =
+        ArgumentAcceptingOptionSpec<Long> havenoAppInitTimeOpt =
                 parser.accepts(BISQ_APP_INIT_TIME,
-                        "Amount of time (ms) to wait on a Bisq instance's initialization")
+                        "Amount of time (ms) to wait on a Haveno instance's initialization")
                         .withRequiredArg()
                         .ofType(Long.class)
                         .defaultsTo(5000L);
@@ -245,9 +245,9 @@ public class ApiTestConfig {
                         .withRequiredArg()
                         .defaultsTo(EMPTY);
 
-        ArgumentAcceptingOptionSpec<Boolean> enableBisqDebuggingOpt =
+        ArgumentAcceptingOptionSpec<Boolean> enableHavenoDebuggingOpt =
                 parser.accepts(ENABLE_BISQ_DEBUGGING,
-                        "Start Bisq apps with remote debug options")
+                        "Start Haveno apps with remote debug options")
                         .withRequiredArg()
                         .ofType(Boolean.class)
                         .defaultsTo(false);
@@ -309,12 +309,12 @@ public class ApiTestConfig {
             this.bitcoinRpcPassword = options.valueOf(bitcoinRpcPasswordOpt);
             this.apiPassword = options.valueOf(apiPasswordOpt);
             this.runSubprojectJars = options.valueOf(runSubprojectJarsOpt);
-            this.bisqAppInitTime = options.valueOf(bisqAppInitTimeOpt);
+            this.havenoAppInitTime = options.valueOf(havenoAppInitTimeOpt);
             this.skipTests = options.valueOf(skipTestsOpt);
             this.shutdownAfterTests = options.valueOf(shutdownAfterTestsOpt);
             this.supportingApps = asList(options.valueOf(supportingAppsOpt).split(","));
             this.callRateMeteringConfigPath = options.valueOf(callRateMeteringConfigPathOpt);
-            this.enableBisqDebugging = options.valueOf(enableBisqDebuggingOpt);
+            this.enableHavenoDebugging = options.valueOf(enableHavenoDebuggingOpt);
             this.registerDisputeAgents = options.valueOf(registerDisputeAgentsOpt);
 
             // Assign values to special-case static fields.

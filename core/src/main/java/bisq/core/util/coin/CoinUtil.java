@@ -1,28 +1,28 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.core.util.coin;
+package haveno.core.util.coin;
 
-import bisq.core.btc.wallet.Restrictions;
-import bisq.core.monetary.Price;
-import bisq.core.monetary.Volume;
-import bisq.core.provider.fee.FeeService;
+import haveno.core.btc.wallet.Restrictions;
+import haveno.core.monetary.Price;
+import haveno.core.monetary.Volume;
+import haveno.core.provider.fee.FeeService;
 
-import bisq.common.util.MathUtils;
+import haveno.common.util.MathUtils;
 
 import org.bitcoinj.core.Coin;
 
@@ -30,7 +30,7 @@ import com.google.common.annotations.VisibleForTesting;
 
 import javax.annotation.Nullable;
 
-import static bisq.core.util.VolumeUtil.getAdjustedFiatVolume;
+import static haveno.core.util.VolumeUtil.getAdjustedFiatVolume;
 import static com.google.common.base.Preconditions.checkArgument;
 
 public class CoinUtil {

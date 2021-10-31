@@ -1,29 +1,29 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <!--
-  ~ This file is part of Bisq.
+  ~ This file is part of Haveno.
   ~
-  ~ Bisq is free software: you can redistribute it and/or modify it
+  ~ Haveno is free software: you can redistribute it and/or modify it
   ~ under the terms of the GNU Affero General Public License as published by
   ~ the Free Software Foundation, either version 3 of the License, or (at
   ~ your option) any later version.
   ~
-  ~ Bisq is distributed in the hope that it will be useful, but WITHOUT
+  ~ Haveno is distributed in the hope that it will be useful, but WITHOUT
   ~ ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
   ~ FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
   ~ License for more details.
   ~
   ~ You should have received a copy of the GNU Affero General Public License
-  ~ along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+  ~ along with Haveno. If not, see <http://www.gnu.org/licenses/>.
   -->
 
-<?import bisq.desktop.components.AutoTooltipButton?>
-<?import bisq.desktop.components.AutoTooltipCheckBox?>
-<?import bisq.desktop.components.AutoTooltipLabel?>
-<?import bisq.desktop.components.AutoTooltipRadioButton?>
-<?import bisq.desktop.components.BisqTextField?>
-<?import bisq.desktop.components.InputTextField?>
-<?import bisq.desktop.components.TitledGroupBg?>
+<?import haveno.desktop.components.AutoTooltipButton?>
+<?import haveno.desktop.components.AutoTooltipCheckBox?>
+<?import haveno.desktop.components.AutoTooltipLabel?>
+<?import haveno.desktop.components.AutoTooltipRadioButton?>
+<?import haveno.desktop.components.HavenoTextField?>
+<?import haveno.desktop.components.InputTextField?>
+<?import haveno.desktop.components.TitledGroupBg?>
 <?import javafx.scene.control.cell.PropertyValueFactory?>
 <?import javafx.scene.control.TableColumn?>
 <?import javafx.scene.control.TableView?>
@@ -33,7 +33,7 @@
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.VBox?>
 <?import javafx.geometry.Insets?>
-<GridPane fx:id="root" fx:controller="bisq.desktop.main.settings.network.NetworkSettingsView"
+<GridPane fx:id="root" fx:controller="haveno.desktop.main.settings.network.NetworkSettingsView"
           hgap="5.0" vgap="20.0"
           AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0"
           AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0"
@@ -103,12 +103,12 @@
         </GridPane.margin>
     </TitledGroupBg>
 
-    <BisqTextField fx:id="onionAddress" GridPane.rowIndex="5"
+    <HavenoTextField fx:id="onionAddress" GridPane.rowIndex="5"
                    editable="false" focusTraversable="false" labelFloat="true">
         <GridPane.margin>
             <Insets top="60.0"/>
         </GridPane.margin>
-    </BisqTextField>
+    </HavenoTextField>
 
     <VBox GridPane.rowIndex="6" GridPane.hgrow="ALWAYS" GridPane.vgrow="SOMETIMES">
         <AutoTooltipLabel fx:id="p2PPeersLabel" styleClass="small-text"/>
@@ -153,13 +153,13 @@
         </TableView>
     </VBox>
 
-    <BisqTextField fx:id="sentDataTextField" GridPane.rowIndex="7" editable="false"
+    <HavenoTextField fx:id="sentDataTextField" GridPane.rowIndex="7" editable="false"
                    focusTraversable="false" labelFloat="true"/>
 
-    <BisqTextField fx:id="receivedDataTextField" GridPane.rowIndex="8" editable="false"
+    <HavenoTextField fx:id="receivedDataTextField" GridPane.rowIndex="8" editable="false"
                    focusTraversable="false" labelFloat="true"/>
 
-    <BisqTextField fx:id="chainHeightTextField" GridPane.rowIndex="9" editable="false"
+    <HavenoTextField fx:id="chainHeightTextField" GridPane.rowIndex="9" editable="false"
                    focusTraversable="false" labelFloat="true"/>
 
     <AutoTooltipButton fx:id="openTorSettingsButton" GridPane.rowIndex="10" GridPane.columnIndex="0"/>

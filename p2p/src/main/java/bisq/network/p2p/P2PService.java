@@ -1,51 +1,51 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.network.p2p;
+package haveno.network.p2p;
 
-import bisq.network.Socks5ProxyProvider;
-import bisq.network.crypto.EncryptionService;
-import bisq.network.p2p.mailbox.MailboxMessageService;
-import bisq.network.p2p.network.CloseConnectionReason;
-import bisq.network.p2p.network.Connection;
-import bisq.network.p2p.network.ConnectionListener;
-import bisq.network.p2p.network.MessageListener;
-import bisq.network.p2p.network.NetworkNode;
-import bisq.network.p2p.network.SetupListener;
-import bisq.network.p2p.peers.Broadcaster;
-import bisq.network.p2p.peers.PeerManager;
-import bisq.network.p2p.peers.getdata.RequestDataManager;
-import bisq.network.p2p.peers.keepalive.KeepAliveManager;
-import bisq.network.p2p.peers.peerexchange.PeerExchangeManager;
-import bisq.network.p2p.storage.HashMapChangedListener;
-import bisq.network.p2p.storage.P2PDataStorage;
-import bisq.network.p2p.storage.messages.RefreshOfferMessage;
-import bisq.network.p2p.storage.payload.PersistableNetworkPayload;
-import bisq.network.p2p.storage.payload.ProtectedStorageEntry;
-import bisq.network.p2p.storage.payload.ProtectedStoragePayload;
-import bisq.network.utils.CapabilityUtils;
+import haveno.network.Socks5ProxyProvider;
+import haveno.network.crypto.EncryptionService;
+import haveno.network.p2p.mailbox.MailboxMessageService;
+import haveno.network.p2p.network.CloseConnectionReason;
+import haveno.network.p2p.network.Connection;
+import haveno.network.p2p.network.ConnectionListener;
+import haveno.network.p2p.network.MessageListener;
+import haveno.network.p2p.network.NetworkNode;
+import haveno.network.p2p.network.SetupListener;
+import haveno.network.p2p.peers.Broadcaster;
+import haveno.network.p2p.peers.PeerManager;
+import haveno.network.p2p.peers.getdata.RequestDataManager;
+import haveno.network.p2p.peers.keepalive.KeepAliveManager;
+import haveno.network.p2p.peers.peerexchange.PeerExchangeManager;
+import haveno.network.p2p.storage.HashMapChangedListener;
+import haveno.network.p2p.storage.P2PDataStorage;
+import haveno.network.p2p.storage.messages.RefreshOfferMessage;
+import haveno.network.p2p.storage.payload.PersistableNetworkPayload;
+import haveno.network.p2p.storage.payload.ProtectedStorageEntry;
+import haveno.network.p2p.storage.payload.ProtectedStoragePayload;
+import haveno.network.utils.CapabilityUtils;
 
-import bisq.common.UserThread;
-import bisq.common.app.Capabilities;
-import bisq.common.crypto.CryptoException;
-import bisq.common.crypto.KeyRing;
-import bisq.common.crypto.PubKeyRing;
-import bisq.common.proto.ProtobufferException;
-import bisq.common.proto.network.NetworkEnvelope;
+import haveno.common.UserThread;
+import haveno.common.app.Capabilities;
+import haveno.common.crypto.CryptoException;
+import haveno.common.crypto.KeyRing;
+import haveno.common.crypto.PubKeyRing;
+import haveno.common.proto.ProtobufferException;
+import haveno.common.proto.network.NetworkEnvelope;
 
 import com.google.inject.Inject;
 

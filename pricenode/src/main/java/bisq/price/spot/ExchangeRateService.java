@@ -1,21 +1,21 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.price.spot;
+package haveno.price.spot;
 
 import org.springframework.stereotype.Service;
 
@@ -124,7 +124,7 @@ class ExchangeRateService {
                         currencyCode,
                         BigDecimal.valueOf(priceAvg),
                         new Date(), // timestamp = time when avg is calculated
-                        "Bisq-Aggregate");
+                        "Haveno-Aggregate");
             }
             aggregateExchangeRates.put(aggregateExchangeRate.getCurrency(), aggregateExchangeRate);
         });
@@ -159,7 +159,7 @@ class ExchangeRateService {
 
         // In case a provider is not available we still want to deliver the data of the
         // other providers, so we catch a possible exception and leave timestamp at 0. The
-        // Bisq app will check if the timestamp is in a tolerance window and if it is too
+        // Haveno app will check if the timestamp is in a tolerance window and if it is too
         // old it will show that the price is not available.
         long timestamp = 0;
         try {

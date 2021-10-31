@@ -1,51 +1,51 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.desktop.main.funds.withdrawal;
+package haveno.desktop.main.funds.withdrawal;
 
-import bisq.desktop.common.view.ActivatableView;
-import bisq.desktop.common.view.FxmlView;
-import bisq.desktop.components.AutoTooltipCheckBox;
-import bisq.desktop.components.AutoTooltipLabel;
-import bisq.desktop.components.ExternalHyperlink;
-import bisq.desktop.components.HyperlinkWithIcon;
-import bisq.desktop.components.InputTextField;
-import bisq.desktop.components.TitledGroupBg;
-import bisq.desktop.main.overlays.popups.Popup;
-import bisq.desktop.main.overlays.windows.WalletPasswordWindow;
-import bisq.desktop.util.GUIUtil;
-import bisq.desktop.util.Layout;
+import haveno.desktop.common.view.ActivatableView;
+import haveno.desktop.common.view.FxmlView;
+import haveno.desktop.components.AutoTooltipCheckBox;
+import haveno.desktop.components.AutoTooltipLabel;
+import haveno.desktop.components.ExternalHyperlink;
+import haveno.desktop.components.HyperlinkWithIcon;
+import haveno.desktop.components.InputTextField;
+import haveno.desktop.components.TitledGroupBg;
+import haveno.desktop.main.overlays.popups.Popup;
+import haveno.desktop.main.overlays.windows.WalletPasswordWindow;
+import haveno.desktop.util.GUIUtil;
+import haveno.desktop.util.Layout;
 
-import bisq.core.btc.listeners.XmrBalanceListener;
-import bisq.core.btc.setup.WalletsSetup;
-import bisq.core.btc.wallet.XmrWalletService;
-import bisq.core.locale.Res;
-import bisq.core.provider.fee.FeeService;
-import bisq.core.trade.TradeManager;
-import bisq.core.user.Preferences;
-import bisq.core.util.FormattingUtils;
-import bisq.core.util.ParsingUtils;
-import bisq.core.util.coin.CoinFormatter;
-import bisq.core.util.validation.BtcAddressValidator;
+import haveno.core.btc.listeners.XmrBalanceListener;
+import haveno.core.btc.setup.WalletsSetup;
+import haveno.core.btc.wallet.XmrWalletService;
+import haveno.core.locale.Res;
+import haveno.core.provider.fee.FeeService;
+import haveno.core.trade.TradeManager;
+import haveno.core.user.Preferences;
+import haveno.core.util.FormattingUtils;
+import haveno.core.util.ParsingUtils;
+import haveno.core.util.coin.CoinFormatter;
+import haveno.core.util.validation.BtcAddressValidator;
 
-import bisq.network.p2p.P2PService;
+import haveno.network.p2p.P2PService;
 
-import bisq.common.util.Tuple3;
-import bisq.common.util.Tuple4;
+import haveno.common.util.Tuple3;
+import haveno.common.util.Tuple4;
 
 import org.bitcoinj.core.Coin;
 import org.bitcoinj.core.Transaction;
@@ -97,7 +97,7 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import static bisq.desktop.util.FormBuilder.*;
+import static haveno.desktop.util.FormBuilder.*;
 
 @FxmlView
 public class WithdrawalView extends ActivatableView<VBox, Void> {

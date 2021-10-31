@@ -1,45 +1,45 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.core.offer;
+package haveno.core.offer;
 
-import bisq.core.exceptions.TradePriceOutOfToleranceException;
-import bisq.core.locale.CurrencyUtil;
-import bisq.core.monetary.Altcoin;
-import bisq.core.monetary.Price;
-import bisq.core.monetary.Volume;
-import bisq.core.offer.availability.OfferAvailabilityModel;
-import bisq.core.offer.availability.OfferAvailabilityProtocol;
-import bisq.core.payment.payload.PaymentMethod;
-import bisq.core.provider.price.MarketPrice;
-import bisq.core.provider.price.PriceFeedService;
-import bisq.core.util.VolumeUtil;
+import haveno.core.exceptions.TradePriceOutOfToleranceException;
+import haveno.core.locale.CurrencyUtil;
+import haveno.core.monetary.Altcoin;
+import haveno.core.monetary.Price;
+import haveno.core.monetary.Volume;
+import haveno.core.offer.availability.OfferAvailabilityModel;
+import haveno.core.offer.availability.OfferAvailabilityProtocol;
+import haveno.core.payment.payload.PaymentMethod;
+import haveno.core.provider.price.MarketPrice;
+import haveno.core.provider.price.PriceFeedService;
+import haveno.core.util.VolumeUtil;
 
-import bisq.network.p2p.NodeAddress;
+import haveno.network.p2p.NodeAddress;
 
-import bisq.common.crypto.KeyRing;
-import bisq.common.crypto.PubKeyRing;
-import bisq.common.handlers.ErrorMessageHandler;
-import bisq.common.handlers.ResultHandler;
-import bisq.common.proto.network.NetworkPayload;
-import bisq.common.proto.persistable.PersistablePayload;
-import bisq.common.util.JsonExclude;
-import bisq.common.util.MathUtils;
-import bisq.common.util.Utilities;
+import haveno.common.crypto.KeyRing;
+import haveno.common.crypto.PubKeyRing;
+import haveno.common.handlers.ErrorMessageHandler;
+import haveno.common.handlers.ResultHandler;
+import haveno.common.proto.network.NetworkPayload;
+import haveno.common.proto.persistable.PersistablePayload;
+import haveno.common.util.JsonExclude;
+import haveno.common.util.MathUtils;
+import haveno.common.util.Utilities;
 
 import org.bitcoinj.core.Coin;
 import org.bitcoinj.utils.Fiat;

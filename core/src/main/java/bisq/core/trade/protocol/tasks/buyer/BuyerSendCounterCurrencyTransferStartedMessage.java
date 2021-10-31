@@ -1,34 +1,34 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.core.trade.protocol.tasks.buyer;
+package haveno.core.trade.protocol.tasks.buyer;
 
-import bisq.core.btc.model.XmrAddressEntry;
-import bisq.core.btc.wallet.XmrWalletService;
-import bisq.core.network.MessageState;
-import bisq.core.trade.Trade;
-import bisq.core.trade.messages.CounterCurrencyTransferStartedMessage;
-import bisq.core.trade.messages.TradeMailboxMessage;
-import bisq.core.trade.messages.TradeMessage;
-import bisq.core.trade.protocol.tasks.SendMailboxMessageTask;
+import haveno.core.btc.model.XmrAddressEntry;
+import haveno.core.btc.wallet.XmrWalletService;
+import haveno.core.network.MessageState;
+import haveno.core.trade.Trade;
+import haveno.core.trade.messages.CounterCurrencyTransferStartedMessage;
+import haveno.core.trade.messages.TradeMailboxMessage;
+import haveno.core.trade.messages.TradeMessage;
+import haveno.core.trade.protocol.tasks.SendMailboxMessageTask;
 
-import bisq.common.Timer;
-import bisq.common.UserThread;
-import bisq.common.taskrunner.TaskRunner;
+import haveno.common.Timer;
+import haveno.common.UserThread;
+import haveno.common.taskrunner.TaskRunner;
 
 import javafx.beans.value.ChangeListener;
 

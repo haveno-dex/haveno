@@ -1,23 +1,23 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * bisq is free software: you can redistribute it and/or modify it
+ * haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * bisq is distributed in the hope that it will be useful, but WITHOUT
+ * haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.core.btc.nodes;
+package haveno.core.btc.nodes;
 
-import bisq.common.config.Config;
+import haveno.common.config.Config;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -33,7 +33,7 @@ import javax.annotation.Nullable;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
-// Managed here: https://github.com/bisq-network/roles/issues/39
+// Managed here: https://github.com/haveno-network/roles/issues/39
 @Slf4j
 public class BtcNodes {
 
@@ -68,8 +68,8 @@ public class BtcNodes {
                         new BtcNode("btc.ispol.sk", "mbm6ffx6j5ygi2ck.onion", "193.58.196.212", BtcNode.DEFAULT_PORT, "@KanoczTomas"),
 
                         // Devin Bileck
-                        new BtcNode("btc1.bisq.services", "lva54pnbq2nsmjyr.onion", "172.105.21.216", BtcNode.DEFAULT_PORT, "@devinbileck"),
-                        new BtcNode("btc2.bisq.services", "qxjrxmhyqp5vy5hj.onion", "173.255.240.205", BtcNode.DEFAULT_PORT, "@devinbileck"),
+                        new BtcNode("btc1.haveno.services", "lva54pnbq2nsmjyr.onion", "172.105.21.216", BtcNode.DEFAULT_PORT, "@devinbileck"),
+                        new BtcNode("btc2.haveno.services", "qxjrxmhyqp5vy5hj.onion", "173.255.240.205", BtcNode.DEFAULT_PORT, "@devinbileck"),
                         new BtcNode(null, "wubwzaadboxwiffa.onion", null, BtcNode.DEFAULT_PORT, "@devinbileck"),
 
                         // m52go

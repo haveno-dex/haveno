@@ -1,7 +1,7 @@
-package bisq.desktop.util.validation;
+package haveno.desktop.util.validation;
 
-import bisq.core.locale.Res;
-import bisq.core.util.validation.InputValidator.ValidationResult;
+import haveno.core.locale.Res;
+import haveno.core.util.validation.InputValidator.ValidationResult;
 
 import org.junit.Before;
 import org.junit.Test;

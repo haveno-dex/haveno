@@ -1,49 +1,49 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.desktop.main.overlays.windows;
+package haveno.desktop.main.overlays.windows;
 
-import bisq.desktop.Navigation;
-import bisq.desktop.components.AutoTooltipButton;
-import bisq.desktop.components.BusyAnimation;
-import bisq.desktop.components.TitledGroupBg;
-import bisq.desktop.components.TxIdTextField;
-import bisq.desktop.main.overlays.Overlay;
-import bisq.desktop.util.DisplayUtils;
-import bisq.desktop.util.GUIUtil;
-import bisq.desktop.util.Layout;
+import haveno.desktop.Navigation;
+import haveno.desktop.components.AutoTooltipButton;
+import haveno.desktop.components.BusyAnimation;
+import haveno.desktop.components.TitledGroupBg;
+import haveno.desktop.components.TxIdTextField;
+import haveno.desktop.main.overlays.Overlay;
+import haveno.desktop.util.DisplayUtils;
+import haveno.desktop.util.GUIUtil;
+import haveno.desktop.util.Layout;
 
-import bisq.core.btc.wallet.BtcWalletService;
-import bisq.core.locale.BankUtil;
-import bisq.core.locale.CountryUtil;
-import bisq.core.locale.Res;
-import bisq.core.monetary.Price;
-import bisq.core.offer.Offer;
-import bisq.core.offer.OfferPayload;
-import bisq.core.offer.OfferUtil;
-import bisq.core.payment.PaymentAccount;
-import bisq.core.payment.payload.PaymentMethod;
-import bisq.core.user.User;
-import bisq.core.util.FormattingUtils;
-import bisq.core.util.coin.CoinFormatter;
+import haveno.core.btc.wallet.BtcWalletService;
+import haveno.core.locale.BankUtil;
+import haveno.core.locale.CountryUtil;
+import haveno.core.locale.Res;
+import haveno.core.monetary.Price;
+import haveno.core.offer.Offer;
+import haveno.core.offer.OfferPayload;
+import haveno.core.offer.OfferUtil;
+import haveno.core.payment.PaymentAccount;
+import haveno.core.payment.payload.PaymentMethod;
+import haveno.core.user.User;
+import haveno.core.util.FormattingUtils;
+import haveno.core.util.coin.CoinFormatter;
 
-import bisq.common.crypto.KeyRing;
-import bisq.common.util.Tuple2;
-import bisq.common.util.Tuple4;
+import haveno.common.crypto.KeyRing;
+import haveno.common.util.Tuple2;
+import haveno.common.util.Tuple4;
 
 import org.bitcoinj.core.Coin;
 
@@ -69,7 +69,7 @@ import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static bisq.desktop.util.FormBuilder.*;
+import static haveno.desktop.util.FormBuilder.*;
 
 public class OfferDetailsWindow extends Overlay<OfferDetailsWindow> {
     protected static final Logger log = LoggerFactory.getLogger(OfferDetailsWindow.class);

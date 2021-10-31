@@ -1,60 +1,60 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.core.app;
+package haveno.core.app;
 
-import bisq.core.account.sign.SignedWitnessService;
-import bisq.core.account.witness.AccountAgeWitnessService;
-import bisq.core.alert.PrivateNotificationManager;
-import bisq.core.alert.PrivateNotificationPayload;
-import bisq.core.btc.Balances;
-import bisq.core.filter.FilterManager;
-import bisq.core.notifications.MobileNotificationService;
-import bisq.core.notifications.alerts.DisputeMsgEvents;
-import bisq.core.notifications.alerts.MyOfferTakenEvents;
-import bisq.core.notifications.alerts.TradeEvents;
-import bisq.core.notifications.alerts.market.MarketAlerts;
-import bisq.core.notifications.alerts.price.PriceAlert;
-import bisq.core.offer.OpenOfferManager;
-import bisq.core.offer.TriggerPriceService;
-import bisq.core.payment.AmazonGiftCardAccount;
-import bisq.core.payment.RevolutAccount;
-import bisq.core.provider.fee.FeeService;
-import bisq.core.provider.mempool.MempoolService;
-import bisq.core.provider.price.PriceFeedService;
-import bisq.core.support.dispute.arbitration.ArbitrationManager;
-import bisq.core.support.dispute.arbitration.arbitrator.ArbitratorManager;
-import bisq.core.support.dispute.mediation.MediationManager;
-import bisq.core.support.dispute.mediation.mediator.MediatorManager;
-import bisq.core.support.dispute.refund.RefundManager;
-import bisq.core.support.dispute.refund.refundagent.RefundAgentManager;
-import bisq.core.support.traderchat.TraderChatManager;
-import bisq.core.trade.TradeManager;
-import bisq.core.trade.closed.ClosedTradableManager;
-import bisq.core.trade.failed.FailedTradesManager;
-import bisq.core.trade.statistics.TradeStatisticsManager;
-import bisq.core.trade.txproof.xmr.XmrTxProofService;
-import bisq.core.user.User;
+import haveno.core.account.sign.SignedWitnessService;
+import haveno.core.account.witness.AccountAgeWitnessService;
+import haveno.core.alert.PrivateNotificationManager;
+import haveno.core.alert.PrivateNotificationPayload;
+import haveno.core.btc.Balances;
+import haveno.core.filter.FilterManager;
+import haveno.core.notifications.MobileNotificationService;
+import haveno.core.notifications.alerts.DisputeMsgEvents;
+import haveno.core.notifications.alerts.MyOfferTakenEvents;
+import haveno.core.notifications.alerts.TradeEvents;
+import haveno.core.notifications.alerts.market.MarketAlerts;
+import haveno.core.notifications.alerts.price.PriceAlert;
+import haveno.core.offer.OpenOfferManager;
+import haveno.core.offer.TriggerPriceService;
+import haveno.core.payment.AmazonGiftCardAccount;
+import haveno.core.payment.RevolutAccount;
+import haveno.core.provider.fee.FeeService;
+import haveno.core.provider.mempool.MempoolService;
+import haveno.core.provider.price.PriceFeedService;
+import haveno.core.support.dispute.arbitration.ArbitrationManager;
+import haveno.core.support.dispute.arbitration.arbitrator.ArbitratorManager;
+import haveno.core.support.dispute.mediation.MediationManager;
+import haveno.core.support.dispute.mediation.mediator.MediatorManager;
+import haveno.core.support.dispute.refund.RefundManager;
+import haveno.core.support.dispute.refund.refundagent.RefundAgentManager;
+import haveno.core.support.traderchat.TraderChatManager;
+import haveno.core.trade.TradeManager;
+import haveno.core.trade.closed.ClosedTradableManager;
+import haveno.core.trade.failed.FailedTradesManager;
+import haveno.core.trade.statistics.TradeStatisticsManager;
+import haveno.core.trade.txproof.xmr.XmrTxProofService;
+import haveno.core.user.User;
 
-import bisq.network.p2p.P2PService;
+import haveno.network.p2p.P2PService;
 
-import bisq.common.ClockWatcher;
-import bisq.common.app.DevEnv;
-import bisq.common.persistence.PersistenceManager;
+import haveno.common.ClockWatcher;
+import haveno.common.app.DevEnv;
+import haveno.common.persistence.PersistenceManager;
 
 import javax.inject.Inject;
 
@@ -67,7 +67,7 @@ import java.util.stream.Collectors;
 /**
  * Handles the initialisation of domain classes. We should refactor to the model that the domain classes listen on the
  * relevant start up state from AppStartupState instead to get called. Only for initialisation which has a required
- * order we will still need this class. For now it helps to keep BisqSetup more focussed on the process and not getting
+ * order we will still need this class. For now it helps to keep HavenoSetup more focussed on the process and not getting
  * overloaded with domain initialisation code.
  */
 public class DomainInitialisation {

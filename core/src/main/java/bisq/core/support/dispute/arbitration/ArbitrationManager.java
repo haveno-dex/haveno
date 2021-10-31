@@ -1,61 +1,61 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.core.support.dispute.arbitration;
+package haveno.core.support.dispute.arbitration;
 
-import bisq.core.btc.setup.WalletsSetup;
-import bisq.core.btc.wallet.TradeWalletService;
-import bisq.core.btc.wallet.XmrWalletService;
-import bisq.core.locale.Res;
-import bisq.core.offer.OpenOffer;
-import bisq.core.offer.OpenOfferManager;
-import bisq.core.provider.price.PriceFeedService;
-import bisq.core.support.SupportType;
-import bisq.core.support.dispute.Dispute;
-import bisq.core.support.dispute.DisputeManager;
-import bisq.core.support.dispute.DisputeResult;
-import bisq.core.support.dispute.DisputeResult.Winner;
-import bisq.core.support.dispute.arbitration.messages.PeerPublishedDisputePayoutTxMessage;
-import bisq.core.support.dispute.messages.ArbitratorPayoutTxRequest;
-import bisq.core.support.dispute.messages.ArbitratorPayoutTxResponse;
-import bisq.core.support.dispute.messages.DisputeResultMessage;
-import bisq.core.support.dispute.messages.OpenNewDisputeMessage;
-import bisq.core.support.dispute.messages.PeerOpenedDisputeMessage;
-import bisq.core.support.messages.ChatMessage;
-import bisq.core.support.messages.SupportMessage;
-import bisq.core.trade.Contract;
-import bisq.core.trade.Tradable;
-import bisq.core.trade.Trade;
-import bisq.core.trade.TradeManager;
-import bisq.core.trade.closed.ClosedTradableManager;
-import bisq.core.util.ParsingUtils;
+import haveno.core.btc.setup.WalletsSetup;
+import haveno.core.btc.wallet.TradeWalletService;
+import haveno.core.btc.wallet.XmrWalletService;
+import haveno.core.locale.Res;
+import haveno.core.offer.OpenOffer;
+import haveno.core.offer.OpenOfferManager;
+import haveno.core.provider.price.PriceFeedService;
+import haveno.core.support.SupportType;
+import haveno.core.support.dispute.Dispute;
+import haveno.core.support.dispute.DisputeManager;
+import haveno.core.support.dispute.DisputeResult;
+import haveno.core.support.dispute.DisputeResult.Winner;
+import haveno.core.support.dispute.arbitration.messages.PeerPublishedDisputePayoutTxMessage;
+import haveno.core.support.dispute.messages.ArbitratorPayoutTxRequest;
+import haveno.core.support.dispute.messages.ArbitratorPayoutTxResponse;
+import haveno.core.support.dispute.messages.DisputeResultMessage;
+import haveno.core.support.dispute.messages.OpenNewDisputeMessage;
+import haveno.core.support.dispute.messages.PeerOpenedDisputeMessage;
+import haveno.core.support.messages.ChatMessage;
+import haveno.core.support.messages.SupportMessage;
+import haveno.core.trade.Contract;
+import haveno.core.trade.Tradable;
+import haveno.core.trade.Trade;
+import haveno.core.trade.TradeManager;
+import haveno.core.trade.closed.ClosedTradableManager;
+import haveno.core.util.ParsingUtils;
 
-import bisq.network.p2p.AckMessageSourceType;
-import bisq.network.p2p.NodeAddress;
-import bisq.network.p2p.P2PService;
-import bisq.network.p2p.SendDirectMessageListener;
-import bisq.network.p2p.SendMailboxMessageListener;
+import haveno.network.p2p.AckMessageSourceType;
+import haveno.network.p2p.NodeAddress;
+import haveno.network.p2p.P2PService;
+import haveno.network.p2p.SendDirectMessageListener;
+import haveno.network.p2p.SendMailboxMessageListener;
 
-import bisq.common.Timer;
-import bisq.common.UserThread;
-import bisq.common.app.Version;
-import bisq.common.config.Config;
-import bisq.common.crypto.KeyRing;
-import bisq.common.crypto.PubKeyRing;
+import haveno.common.Timer;
+import haveno.common.UserThread;
+import haveno.common.app.Version;
+import haveno.common.config.Config;
+import haveno.common.crypto.KeyRing;
+import haveno.common.crypto.PubKeyRing;
 
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
@@ -165,7 +165,7 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
     @Override
     protected String getDisputeInfo(Dispute dispute) {
         String role = Res.get("shared.arbitrator").toLowerCase();
-        String link = "https://docs.bisq.network/trading-rules.html#legacy-arbitration";
+        String link = "https://docs.haveno.network/trading-rules.html#legacy-arbitration";
         return Res.get("support.initialInfo", role, role, link);
     }
 

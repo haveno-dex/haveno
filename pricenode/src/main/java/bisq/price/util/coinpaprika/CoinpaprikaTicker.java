@@ -1,4 +1,4 @@
-package bisq.price.util.coinpaprika;
+package haveno.price.util.coinpaprika;
 
 import java.math.BigDecimal;
 

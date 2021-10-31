@@ -1,35 +1,35 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.desktop.main.overlays.windows;
+package haveno.desktop.main.overlays.windows;
 
-import bisq.desktop.components.AutoTooltipButton;
-import bisq.desktop.components.InputTextField;
-import bisq.desktop.main.overlays.Overlay;
-import bisq.desktop.main.overlays.popups.Popup;
+import haveno.desktop.components.AutoTooltipButton;
+import haveno.desktop.components.InputTextField;
+import haveno.desktop.main.overlays.Overlay;
+import haveno.desktop.main.overlays.popups.Popup;
 
-import bisq.core.account.sign.SignedWitness;
-import bisq.core.account.witness.AccountAgeWitnessService;
-import bisq.core.locale.Res;
-import bisq.core.support.dispute.arbitration.arbitrator.ArbitratorManager;
+import haveno.core.account.sign.SignedWitness;
+import haveno.core.account.witness.AccountAgeWitnessService;
+import haveno.core.locale.Res;
+import haveno.core.support.dispute.arbitration.arbitrator.ArbitratorManager;
 
-import bisq.common.crypto.Hash;
-import bisq.common.util.Tuple3;
-import bisq.common.util.Utilities;
+import haveno.common.crypto.Hash;
+import haveno.common.util.Tuple3;
+import haveno.common.util.Utilities;
 
 import org.bitcoinj.core.Utils;
 
@@ -53,10 +53,10 @@ import java.util.List;
 
 import lombok.extern.slf4j.Slf4j;
 
-import static bisq.desktop.util.FormBuilder.add2ButtonsAfterGroup;
-import static bisq.desktop.util.FormBuilder.addInputTextField;
-import static bisq.desktop.util.FormBuilder.addTopLabelListView;
-import static bisq.desktop.util.FormBuilder.removeRowsFromGridPane;
+import static haveno.desktop.util.FormBuilder.add2ButtonsAfterGroup;
+import static haveno.desktop.util.FormBuilder.addInputTextField;
+import static haveno.desktop.util.FormBuilder.addTopLabelListView;
+import static haveno.desktop.util.FormBuilder.removeRowsFromGridPane;
 
 @Slf4j
 public class SignUnsignedPubKeysWindow extends Overlay<SignUnsignedPubKeysWindow> {

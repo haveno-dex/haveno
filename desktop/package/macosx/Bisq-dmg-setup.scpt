@@ -1,5 +1,5 @@
 tell application "Finder"
-  tell disk "Bisq"
+  tell disk "Haveno"
     open
     set current view of container window to icon view
     set toolbar visible of container window to false
@@ -20,7 +20,7 @@ tell application "Finder"
     set allTheFiles to the name of every item of container window
     repeat with theFile in allTheFiles
       set theFilePath to POSIX Path of theFile
-      if theFilePath is "/Bisq.app"
+      if theFilePath is "/Haveno.app"
         -- Position application location
         set position of item theFile of container window to {345, 343}
       else if theFilePath is "/Applications"

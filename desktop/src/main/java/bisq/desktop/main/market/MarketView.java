@@ -1,47 +1,47 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.desktop.main.market;
+package haveno.desktop.main.market;
 
-import bisq.desktop.Navigation;
-import bisq.desktop.common.view.ActivatableView;
-import bisq.desktop.common.view.CachingViewLoader;
-import bisq.desktop.common.view.FxmlView;
-import bisq.desktop.common.view.View;
-import bisq.desktop.common.view.ViewLoader;
-import bisq.desktop.main.MainView;
-import bisq.desktop.main.market.offerbook.OfferBookChartView;
-import bisq.desktop.main.market.spread.SpreadView;
-import bisq.desktop.main.market.spread.SpreadViewPaymentMethod;
-import bisq.desktop.main.market.trades.TradesChartsView;
-import bisq.desktop.main.offer.offerbook.OfferBook;
-import bisq.desktop.main.offer.offerbook.OfferBookListItem;
-import bisq.desktop.main.overlays.popups.Popup;
-import bisq.desktop.util.DisplayUtils;
+import haveno.desktop.Navigation;
+import haveno.desktop.common.view.ActivatableView;
+import haveno.desktop.common.view.CachingViewLoader;
+import haveno.desktop.common.view.FxmlView;
+import haveno.desktop.common.view.View;
+import haveno.desktop.common.view.ViewLoader;
+import haveno.desktop.main.MainView;
+import haveno.desktop.main.market.offerbook.OfferBookChartView;
+import haveno.desktop.main.market.spread.SpreadView;
+import haveno.desktop.main.market.spread.SpreadViewPaymentMethod;
+import haveno.desktop.main.market.trades.TradesChartsView;
+import haveno.desktop.main.offer.offerbook.OfferBook;
+import haveno.desktop.main.offer.offerbook.OfferBookListItem;
+import haveno.desktop.main.overlays.popups.Popup;
+import haveno.desktop.util.DisplayUtils;
 
-import bisq.core.locale.CurrencyUtil;
-import bisq.core.locale.Res;
-import bisq.core.offer.OfferPayload;
-import bisq.core.trade.statistics.TradeStatistics3;
-import bisq.core.trade.statistics.TradeStatistics3StorageService;
-import bisq.core.util.FormattingUtils;
-import bisq.core.util.coin.CoinFormatter;
+import haveno.core.locale.CurrencyUtil;
+import haveno.core.locale.Res;
+import haveno.core.offer.OfferPayload;
+import haveno.core.trade.statistics.TradeStatistics3;
+import haveno.core.trade.statistics.TradeStatistics3StorageService;
+import haveno.core.util.FormattingUtils;
+import haveno.core.util.coin.CoinFormatter;
 
-import bisq.common.util.Utilities;
+import haveno.common.util.Utilities;
 
 import javax.inject.Inject;
 import javax.inject.Named;

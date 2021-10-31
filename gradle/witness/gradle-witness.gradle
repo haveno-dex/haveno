@@ -1,10 +1,10 @@
-// To update the `dependencyVerification` block below (we don't add local bisq modules and org.openjfx libraries as
+// To update the `dependencyVerification` block below (we don't add local haveno modules and org.openjfx libraries as
 // those cause problems):
 //
 // 1. Remove the block entirely
 // 2. Replace the block with the following command:
 //
-//    ./gradlew -q calculateChecksums | grep -v 'bisq:\|org.openjfx:' >> gradle/witness/gradle-witness.gradle
+//    ./gradlew -q calculateChecksums | grep -v 'haveno:\|org.openjfx:' >> gradle/witness/gradle-witness.gradle
 //
 // 3. Run `git diff` to verify that expected hashes have changed
 // 4. Commit the changes
@@ -22,16 +22,16 @@ dependencyVerification {
         'com.fasterxml.jackson.core:jackson-core:cc899cb6eae0c80b87d590eea86528797369cc4feb7b79463207d6bb18f0c257',
         'com.fasterxml.jackson.core:jackson-databind:f2ca3c28ebded59c98447d51afe945323df961540af66a063c015597af936aa0',
         'com.github.JesusMcCloud:jtorctl:6465e0b22b921344a065a6e82a5390ab2f9dac5ab293c38bd8a76baddead6492',
-        'com.github.bisq-network.netlayer:tor.external:e1d6b8fe73891207701c6b14317be789fd4acd25f7b499425d2471598d9a22ac',
-        'com.github.bisq-network.netlayer:tor.native:aa3edf9c27071fdc2b7d55b00dbc7c6cd5dc9aa9f87aafa4be0805f818a466be',
-        'com.github.bisq-network.netlayer:tor:37198bc56e8fe112f8c80441544a2b9731929dae586bda841a4a926fdc04f457',
-        'com.github.bisq-network.tor-binary:tor-binary-geoip:cfefbf2d8591b5dd321ec17a02a3682d21763cf50525fa5496c9ec8968413c4e',
-        'com.github.bisq-network.tor-binary:tor-binary-linux32:b82b6595f78ef52a44e58000fe5d7f679681739451872f5bbd123e5dbd2af050',
-        'com.github.bisq-network.tor-binary:tor-binary-linux64:d5c1d54b2c2323ac1124435be633c7822a28e6fe9160486d03102cc2b444df24',
-        'com.github.bisq-network.tor-binary:tor-binary-macos:6216d66241e020fec1a55648d7176ef64959e094c493df8f49e7e8e8f62fe1e1',
-        'com.github.bisq-network.tor-binary:tor-binary-windows:28a1031d7610863f774eedbd00b83b06b132781c31077b805033299de3e3a263',
-        'com.github.bisq-network:bitcoinj:65ed08fa5777ea4a08599bdd575e7dc1f4ba2d4d5835472551439d6f6252e68a',
-        'com.github.bisq-network:jsonrpc4j:842b4a660440ef53cd436da2e21c3e1fed939b620a3fc7542307deb3e77fdeb6',
+        'com.github.haveno-network.netlayer:tor.external:e1d6b8fe73891207701c6b14317be789fd4acd25f7b499425d2471598d9a22ac',
+        'com.github.haveno-network.netlayer:tor.native:aa3edf9c27071fdc2b7d55b00dbc7c6cd5dc9aa9f87aafa4be0805f818a466be',
+        'com.github.haveno-network.netlayer:tor:37198bc56e8fe112f8c80441544a2b9731929dae586bda841a4a926fdc04f457',
+        'com.github.haveno-network.tor-binary:tor-binary-geoip:cfefbf2d8591b5dd321ec17a02a3682d21763cf50525fa5496c9ec8968413c4e',
+        'com.github.haveno-network.tor-binary:tor-binary-linux32:b82b6595f78ef52a44e58000fe5d7f679681739451872f5bbd123e5dbd2af050',
+        'com.github.haveno-network.tor-binary:tor-binary-linux64:d5c1d54b2c2323ac1124435be633c7822a28e6fe9160486d03102cc2b444df24',
+        'com.github.haveno-network.tor-binary:tor-binary-macos:6216d66241e020fec1a55648d7176ef64959e094c493df8f49e7e8e8f62fe1e1',
+        'com.github.haveno-network.tor-binary:tor-binary-windows:28a1031d7610863f774eedbd00b83b06b132781c31077b805033299de3e3a263',
+        'com.github.haveno-network:bitcoinj:65ed08fa5777ea4a08599bdd575e7dc1f4ba2d4d5835472551439d6f6252e68a',
+        'com.github.haveno-network:jsonrpc4j:842b4a660440ef53cd436da2e21c3e1fed939b620a3fc7542307deb3e77fdeb6',
         'com.github.ravn:jsocks:3c71600af027b2b6d4244e4ad14d98ff2352a379410daebefff5d8cd48d742a4',
         'com.google.android:annotations:ba734e1e84c09d615af6a09d33034b4f0442f8772dec120efb376d86a565ae15',
         'com.google.api.grpc:proto-google-common-protos:bd60cd7a423b00fb824c27bdd0293aaf4781be1daba6ed256311103fb4b84108',

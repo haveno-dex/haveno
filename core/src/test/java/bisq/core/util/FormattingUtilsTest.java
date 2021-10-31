@@ -1,8 +1,8 @@
-package bisq.core.util;
+package haveno.core.util;
 
-import bisq.core.locale.Res;
-import bisq.core.monetary.Altcoin;
-import bisq.core.monetary.Price;
+import haveno.core.locale.Res;
+import haveno.core.monetary.Altcoin;
+import haveno.core.monetary.Price;
 
 import org.bitcoinj.utils.Fiat;
 

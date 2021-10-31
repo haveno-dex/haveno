@@ -1,23 +1,23 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.core.provider;
+package haveno.core.provider;
 
-import bisq.common.config.Config;
+import haveno.common.config.Config;
 
 import com.google.inject.Inject;
 
@@ -109,7 +109,7 @@ public class ProvidersRepository {
                 // If we run in localhost mode we don't have the tor node running, so we need a clearnet host
                 // Use localhost for using a locally running provider
                 // providerAsString = Collections.singletonList("http://localhost:8080/");
-                providers = Collections.singletonList("https://price.bisq.wiz.biz/"); // @wiz
+                providers = Collections.singletonList("https://price.haveno.wiz.biz/"); // @wiz
             } else {
                 providers = DEFAULT_NODES;
             }

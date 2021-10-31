@@ -1,37 +1,37 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.core.offer.placeoffer;
+package haveno.core.offer.placeoffer;
 
-import bisq.core.btc.wallet.BtcWalletService;
-import bisq.core.btc.wallet.TradeWalletService;
-import bisq.core.btc.wallet.XmrWalletService;
-import bisq.core.filter.FilterManager;
-import bisq.core.offer.Offer;
-import bisq.core.offer.OfferBookService;
-import bisq.core.offer.messages.SignOfferResponse;
-import bisq.core.support.dispute.arbitration.arbitrator.ArbitratorManager;
-import bisq.core.support.dispute.mediation.mediator.MediatorManager;
-import bisq.core.trade.statistics.TradeStatisticsManager;
-import bisq.core.user.User;
-import bisq.common.crypto.KeyRing;
-import bisq.common.taskrunner.Model;
+import haveno.core.btc.wallet.BtcWalletService;
+import haveno.core.btc.wallet.TradeWalletService;
+import haveno.core.btc.wallet.XmrWalletService;
+import haveno.core.filter.FilterManager;
+import haveno.core.offer.Offer;
+import haveno.core.offer.OfferBookService;
+import haveno.core.offer.messages.SignOfferResponse;
+import haveno.core.support.dispute.arbitration.arbitrator.ArbitratorManager;
+import haveno.core.support.dispute.mediation.mediator.MediatorManager;
+import haveno.core.trade.statistics.TradeStatisticsManager;
+import haveno.core.user.User;
+import haveno.common.crypto.KeyRing;
+import haveno.common.taskrunner.Model;
 
-import bisq.network.p2p.P2PService;
+import haveno.network.p2p.P2PService;
 
 import org.bitcoinj.core.Coin;
 import org.bitcoinj.core.Transaction;

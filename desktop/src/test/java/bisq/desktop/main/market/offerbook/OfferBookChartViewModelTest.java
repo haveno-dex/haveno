@@ -1,28 +1,28 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.desktop.main.market.offerbook;
+package haveno.desktop.main.market.offerbook;
 
-import bisq.desktop.main.offer.offerbook.OfferBook;
-import bisq.desktop.main.offer.offerbook.OfferBookListItem;
-import bisq.desktop.main.offer.offerbook.OfferBookListItemMaker;
+import haveno.desktop.main.offer.offerbook.OfferBook;
+import haveno.desktop.main.offer.offerbook.OfferBookListItem;
+import haveno.desktop.main.offer.offerbook.OfferBookListItemMaker;
 
-import bisq.core.locale.GlobalSettings;
-import bisq.core.provider.price.PriceFeedService;
+import haveno.core.locale.GlobalSettings;
+import haveno.core.provider.price.PriceFeedService;
 
 import javafx.beans.property.SimpleIntegerProperty;
 
@@ -32,10 +32,10 @@ import javafx.collections.ObservableList;
 import org.junit.Before;
 import org.junit.Test;
 
-import static bisq.desktop.main.offer.offerbook.OfferBookListItemMaker.btcBuyItem;
-import static bisq.desktop.main.offer.offerbook.OfferBookListItemMaker.btcSellItem;
-import static bisq.desktop.maker.PreferenceMakers.empty;
-import static bisq.desktop.maker.TradeCurrencyMakers.usd;
+import static haveno.desktop.main.offer.offerbook.OfferBookListItemMaker.btcBuyItem;
+import static haveno.desktop.main.offer.offerbook.OfferBookListItemMaker.btcSellItem;
+import static haveno.desktop.maker.PreferenceMakers.empty;
+import static haveno.desktop.maker.TradeCurrencyMakers.usd;
 import static com.natpryce.makeiteasy.MakeItEasy.make;
 import static com.natpryce.makeiteasy.MakeItEasy.with;
 import static org.junit.Assert.assertEquals;

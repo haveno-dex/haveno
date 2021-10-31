@@ -1,29 +1,29 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.desktop.main.portfolio.pendingtrades.steps.buyer;
+package haveno.desktop.main.portfolio.pendingtrades.steps.buyer;
 
-import bisq.desktop.components.TextFieldWithIcon;
-import bisq.desktop.main.portfolio.pendingtrades.PendingTradesViewModel;
-import bisq.desktop.main.portfolio.pendingtrades.steps.TradeStepView;
-import bisq.desktop.util.Layout;
+import haveno.desktop.components.TextFieldWithIcon;
+import haveno.desktop.main.portfolio.pendingtrades.PendingTradesViewModel;
+import haveno.desktop.main.portfolio.pendingtrades.steps.TradeStepView;
+import haveno.desktop.util.Layout;
 
-import bisq.core.locale.Res;
-import bisq.core.network.MessageState;
+import haveno.core.locale.Res;
+import haveno.core.network.MessageState;
 
 import de.jensd.fx.fontawesome.AwesomeIcon;
 
@@ -31,9 +31,9 @@ import javafx.scene.control.Label;
 
 import javafx.beans.value.ChangeListener;
 
-import static bisq.desktop.util.FormBuilder.addMultilineLabel;
-import static bisq.desktop.util.FormBuilder.addTitledGroupBg;
-import static bisq.desktop.util.FormBuilder.addTopLabelTextFieldWithIcon;
+import static haveno.desktop.util.FormBuilder.addMultilineLabel;
+import static haveno.desktop.util.FormBuilder.addTitledGroupBg;
+import static haveno.desktop.util.FormBuilder.addTopLabelTextFieldWithIcon;
 
 public class BuyerStep3View extends TradeStepView {
     private final ChangeListener<MessageState> messageStateChangeListener;

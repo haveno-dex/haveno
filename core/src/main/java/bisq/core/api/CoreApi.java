@@ -1,39 +1,39 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.core.api;
+package haveno.core.api;
 
-import bisq.core.api.model.AddressBalanceInfo;
-import bisq.core.api.model.BalancesInfo;
-import bisq.core.api.model.TxFeeRateInfo;
-import bisq.core.monetary.Price;
-import bisq.core.offer.Offer;
-import bisq.core.offer.OfferPayload;
-import bisq.core.offer.OpenOffer;
-import bisq.core.payment.PaymentAccount;
-import bisq.core.payment.payload.PaymentMethod;
-import bisq.core.trade.Trade;
-import bisq.core.trade.statistics.TradeStatistics3;
-import bisq.core.trade.statistics.TradeStatisticsManager;
+import haveno.core.api.model.AddressBalanceInfo;
+import haveno.core.api.model.BalancesInfo;
+import haveno.core.api.model.TxFeeRateInfo;
+import haveno.core.monetary.Price;
+import haveno.core.offer.Offer;
+import haveno.core.offer.OfferPayload;
+import haveno.core.offer.OpenOffer;
+import haveno.core.payment.PaymentAccount;
+import haveno.core.payment.payload.PaymentMethod;
+import haveno.core.trade.Trade;
+import haveno.core.trade.statistics.TradeStatistics3;
+import haveno.core.trade.statistics.TradeStatisticsManager;
 
-import bisq.common.app.Version;
-import bisq.common.config.Config;
-import bisq.common.handlers.ErrorMessageHandler;
-import bisq.common.handlers.ResultHandler;
+import haveno.common.app.Version;
+import haveno.common.config.Config;
+import haveno.common.handlers.ErrorMessageHandler;
+import haveno.common.handlers.ResultHandler;
 
 import org.bitcoinj.core.Coin;
 import org.bitcoinj.core.Transaction;
@@ -52,8 +52,8 @@ import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * Provides high level interface to functionality of core Bisq features.
- * E.g. useful for different APIs to access data of different domains of Bisq.
+ * Provides high level interface to functionality of core Haveno features.
+ * E.g. useful for different APIs to access data of different domains of Haveno.
  */
 @Singleton
 @Slf4j

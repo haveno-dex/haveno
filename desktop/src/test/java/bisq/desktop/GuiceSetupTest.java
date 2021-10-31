@@ -1,62 +1,62 @@
-package bisq.desktop;
+package haveno.desktop;
 
-import bisq.desktop.app.BisqAppModule;
-import bisq.desktop.common.view.CachingViewLoader;
-import bisq.desktop.common.view.ViewLoader;
-import bisq.desktop.common.view.guice.InjectorViewFactory;
-import bisq.desktop.main.funds.transactions.DisplayedTransactionsFactory;
-import bisq.desktop.main.funds.transactions.TradableRepository;
-import bisq.desktop.main.funds.transactions.TransactionAwareTradableFactory;
-import bisq.desktop.main.funds.transactions.TransactionListItemFactory;
-import bisq.desktop.main.offer.offerbook.OfferBook;
-import bisq.desktop.main.overlays.notifications.NotificationCenter;
-import bisq.desktop.main.overlays.windows.TorNetworkSettingsWindow;
-import bisq.desktop.main.presentation.MarketPricePresentation;
-import bisq.desktop.util.Transitions;
+import haveno.desktop.app.HavenoAppModule;
+import haveno.desktop.common.view.CachingViewLoader;
+import haveno.desktop.common.view.ViewLoader;
+import haveno.desktop.common.view.guice.InjectorViewFactory;
+import haveno.desktop.main.funds.transactions.DisplayedTransactionsFactory;
+import haveno.desktop.main.funds.transactions.TradableRepository;
+import haveno.desktop.main.funds.transactions.TransactionAwareTradableFactory;
+import haveno.desktop.main.funds.transactions.TransactionListItemFactory;
+import haveno.desktop.main.offer.offerbook.OfferBook;
+import haveno.desktop.main.overlays.notifications.NotificationCenter;
+import haveno.desktop.main.overlays.windows.TorNetworkSettingsWindow;
+import haveno.desktop.main.presentation.MarketPricePresentation;
+import haveno.desktop.util.Transitions;
 
-import bisq.core.app.AvoidStandbyModeService;
-import bisq.core.app.P2PNetworkSetup;
-import bisq.core.app.TorSetup;
-import bisq.core.app.WalletAppSetup;
-import bisq.core.locale.CurrencyUtil;
-import bisq.core.locale.Res;
-import bisq.core.network.p2p.seed.DefaultSeedNodeRepository;
-import bisq.core.notifications.MobileMessageEncryption;
-import bisq.core.notifications.MobileModel;
-import bisq.core.notifications.MobileNotificationService;
-import bisq.core.notifications.MobileNotificationValidator;
-import bisq.core.notifications.alerts.MyOfferTakenEvents;
-import bisq.core.notifications.alerts.TradeEvents;
-import bisq.core.notifications.alerts.market.MarketAlerts;
-import bisq.core.notifications.alerts.price.PriceAlert;
-import bisq.core.payment.ChargeBackRisk;
-import bisq.core.payment.TradeLimits;
-import bisq.core.proto.network.CoreNetworkProtoResolver;
-import bisq.core.proto.persistable.CorePersistenceProtoResolver;
-import bisq.core.support.dispute.arbitration.ArbitrationDisputeListService;
-import bisq.core.support.dispute.arbitration.ArbitrationManager;
-import bisq.core.support.dispute.arbitration.arbitrator.ArbitratorManager;
-import bisq.core.support.dispute.arbitration.arbitrator.ArbitratorService;
-import bisq.core.support.dispute.mediation.MediationDisputeListService;
-import bisq.core.support.dispute.mediation.MediationManager;
-import bisq.core.support.dispute.mediation.mediator.MediatorManager;
-import bisq.core.support.dispute.mediation.mediator.MediatorService;
-import bisq.core.support.traderchat.TraderChatManager;
-import bisq.core.user.Preferences;
-import bisq.core.user.User;
+import haveno.core.app.AvoidStandbyModeService;
+import haveno.core.app.P2PNetworkSetup;
+import haveno.core.app.TorSetup;
+import haveno.core.app.WalletAppSetup;
+import haveno.core.locale.CurrencyUtil;
+import haveno.core.locale.Res;
+import haveno.core.network.p2p.seed.DefaultSeedNodeRepository;
+import haveno.core.notifications.MobileMessageEncryption;
+import haveno.core.notifications.MobileModel;
+import haveno.core.notifications.MobileNotificationService;
+import haveno.core.notifications.MobileNotificationValidator;
+import haveno.core.notifications.alerts.MyOfferTakenEvents;
+import haveno.core.notifications.alerts.TradeEvents;
+import haveno.core.notifications.alerts.market.MarketAlerts;
+import haveno.core.notifications.alerts.price.PriceAlert;
+import haveno.core.payment.ChargeBackRisk;
+import haveno.core.payment.TradeLimits;
+import haveno.core.proto.network.CoreNetworkProtoResolver;
+import haveno.core.proto.persistable.CorePersistenceProtoResolver;
+import haveno.core.support.dispute.arbitration.ArbitrationDisputeListService;
+import haveno.core.support.dispute.arbitration.ArbitrationManager;
+import haveno.core.support.dispute.arbitration.arbitrator.ArbitratorManager;
+import haveno.core.support.dispute.arbitration.arbitrator.ArbitratorService;
+import haveno.core.support.dispute.mediation.MediationDisputeListService;
+import haveno.core.support.dispute.mediation.MediationManager;
+import haveno.core.support.dispute.mediation.mediator.MediatorManager;
+import haveno.core.support.dispute.mediation.mediator.MediatorService;
+import haveno.core.support.traderchat.TraderChatManager;
+import haveno.core.user.Preferences;
+import haveno.core.user.User;
 
-import bisq.network.p2p.network.BridgeAddressProvider;
-import bisq.network.p2p.seed.SeedNodeRepository;
+import haveno.network.p2p.network.BridgeAddressProvider;
+import haveno.network.p2p.seed.SeedNodeRepository;
 
-import bisq.common.ClockWatcher;
-import bisq.common.config.Config;
-import bisq.common.crypto.KeyRing;
-import bisq.common.crypto.KeyStorage;
-import bisq.common.crypto.PubKeyRing;
-import bisq.common.file.CorruptedStorageFileHandler;
-import bisq.common.persistence.PersistenceManager;
-import bisq.common.proto.network.NetworkProtoResolver;
-import bisq.common.proto.persistable.PersistenceProtoResolver;
+import haveno.common.ClockWatcher;
+import haveno.common.config.Config;
+import haveno.common.crypto.KeyRing;
+import haveno.common.crypto.KeyStorage;
+import haveno.common.crypto.PubKeyRing;
+import haveno.common.file.CorruptedStorageFileHandler;
+import haveno.common.persistence.PersistenceManager;
+import haveno.common.proto.network.NetworkProtoResolver;
+import haveno.common.proto.persistable.PersistenceProtoResolver;
 
 import com.google.inject.Guice;
 import com.google.inject.Injector;
@@ -77,7 +77,7 @@ public class GuiceSetupTest {
         Res.setup();
         CurrencyUtil.setup();
 
-        injector = Guice.createInjector(new BisqAppModule(new Config()));
+        injector = Guice.createInjector(new HavenoAppModule(new Config()));
     }
 
     @Test
@@ -99,7 +99,7 @@ public class GuiceSetupTest {
         assertSingleton(DisplayedTransactionsFactory.class);
 
         // core module
-//        assertSingleton(BisqSetup.class); // this is a can of worms
+//        assertSingleton(HavenoSetup.class); // this is a can of worms
 //        assertSingleton(DisputeMsgEvents.class);
         assertSingleton(TorSetup.class);
         assertSingleton(P2PNetworkSetup.class);

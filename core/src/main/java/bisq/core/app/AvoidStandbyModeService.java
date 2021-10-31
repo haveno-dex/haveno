@@ -1,28 +1,28 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.core.app;
+package haveno.core.app;
 
-import bisq.core.user.Preferences;
+import haveno.core.user.Preferences;
 
-import bisq.common.config.Config;
-import bisq.common.file.FileUtil;
-import bisq.common.file.ResourceNotFoundException;
-import bisq.common.util.Utilities;
+import haveno.common.config.Config;
+import haveno.common.file.FileUtil;
+import haveno.common.file.ResourceNotFoundException;
+import haveno.common.util.Utilities;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -53,9 +53,9 @@ import javax.sound.sampled.LineUnavailableException;
 import javax.sound.sampled.SourceDataLine;
 
 /**
- * Prevents that Bisq gets hibernated from the OS. On OSX there is a tool called caffeinate but it seems it does not
+ * Prevents that Haveno gets hibernated from the OS. On OSX there is a tool called caffeinate but it seems it does not
  * provide the behaviour we need, thus we use the trick to play a almost silent sound file in a loop. This keeps the
- * application active even if the OS has moved to hibernate. Hibernating Bisq would cause network degradations and other
+ * application active even if the OS has moved to hibernate. Hibernating Haveno would cause network degradations and other
  * resource limitations which would lead to offers not published or if a taker takes an offer that the trade process is
  * at risk to fail due too slow response time.
  */
@@ -201,8 +201,8 @@ public class AvoidStandbyModeService {
             String cmd = inhibitorPathSpec.get();
             if (Utilities.isLinux()) {
                 params = cmd.contains("gnome-session-inhibit")
-                        ? new String[]{cmd, "--app-id", "Bisq", "--inhibit", "suspend", "--reason", "Avoid Standby", "--inhibit-only"}
-                        : new String[]{cmd, "--who", "Bisq", "--what", "sleep", "--why", "Avoid Standby", "--mode", "block", "tail", "-f", "/dev/null"};
+                        ? new String[]{cmd, "--app-id", "Haveno", "--inhibit", "suspend", "--reason", "Avoid Standby", "--inhibit-only"}
+                        : new String[]{cmd, "--who", "Haveno", "--what", "sleep", "--why", "Avoid Standby", "--mode", "block", "tail", "-f", "/dev/null"};
             } else {
                 params = null;
             }

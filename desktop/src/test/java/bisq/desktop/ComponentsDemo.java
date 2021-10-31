@@ -1,18 +1,18 @@
-package bisq.desktop;
+package haveno.desktop;
 
-import bisq.desktop.components.AutoTooltipLabel;
-import bisq.desktop.components.FundsTextField;
-import bisq.desktop.components.InfoInputTextField;
-import bisq.desktop.components.InputTextField;
-import bisq.desktop.components.TitledGroupBg;
-import bisq.desktop.util.FormBuilder;
-import bisq.desktop.util.Layout;
+import haveno.desktop.components.AutoTooltipLabel;
+import haveno.desktop.components.FundsTextField;
+import haveno.desktop.components.InfoInputTextField;
+import haveno.desktop.components.InputTextField;
+import haveno.desktop.components.TitledGroupBg;
+import haveno.desktop.util.FormBuilder;
+import haveno.desktop.util.Layout;
 
-import bisq.core.locale.CryptoCurrency;
-import bisq.core.locale.GlobalSettings;
-import bisq.core.locale.Res;
+import haveno.core.locale.CryptoCurrency;
+import haveno.core.locale.GlobalSettings;
+import haveno.core.locale.Res;
 
-import bisq.common.util.Tuple3;
+import haveno.common.util.Tuple3;
 
 import com.jfoenix.controls.JFXBadge;
 import com.jfoenix.controls.JFXSnackbar;
@@ -39,8 +39,8 @@ import javafx.collections.ObservableList;
 
 import java.util.Locale;
 
-import static bisq.desktop.util.FormBuilder.addFundsTextfield;
-import static bisq.desktop.util.FormBuilder.addTopLabelInputTextFieldSlideToggleButton;
+import static haveno.desktop.util.FormBuilder.addFundsTextfield;
+import static haveno.desktop.util.FormBuilder.addTopLabelInputTextFieldSlideToggleButton;
 
 public class ComponentsDemo extends Application {
     private JFXSnackbar bar;
@@ -202,8 +202,8 @@ public class ComponentsDemo extends Application {
 
         Scene scene = new Scene(stackPane, 1000, 650);
         scene.getStylesheets().setAll(
-                "/bisq/desktop/bisq.css",
-                "/bisq/desktop/images.css");
+                "/haveno/desktop/haveno.css",
+                "/haveno/desktop/images.css");
         primaryStage.setScene(scene);
         primaryStage.show();
     }

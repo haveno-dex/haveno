@@ -1,63 +1,63 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.desktop.main.portfolio.pendingtrades;
+package haveno.desktop.main.portfolio.pendingtrades;
 
-import bisq.desktop.Navigation;
-import bisq.desktop.common.model.ActivatableDataModel;
-import bisq.desktop.main.MainView;
-import bisq.desktop.main.overlays.notifications.NotificationCenter;
-import bisq.desktop.main.overlays.popups.Popup;
-import bisq.desktop.main.overlays.windows.WalletPasswordWindow;
-import bisq.desktop.main.support.SupportView;
-import bisq.desktop.main.support.dispute.client.arbitration.ArbitrationClientView;
-import bisq.desktop.main.support.dispute.client.mediation.MediationClientView;
-import bisq.desktop.util.GUIUtil;
+import haveno.desktop.Navigation;
+import haveno.desktop.common.model.ActivatableDataModel;
+import haveno.desktop.main.MainView;
+import haveno.desktop.main.overlays.notifications.NotificationCenter;
+import haveno.desktop.main.overlays.popups.Popup;
+import haveno.desktop.main.overlays.windows.WalletPasswordWindow;
+import haveno.desktop.main.support.SupportView;
+import haveno.desktop.main.support.dispute.client.arbitration.ArbitrationClientView;
+import haveno.desktop.main.support.dispute.client.mediation.MediationClientView;
+import haveno.desktop.util.GUIUtil;
 
-import bisq.core.account.witness.AccountAgeWitnessService;
-import bisq.core.btc.setup.WalletsSetup;
-import bisq.core.btc.wallet.XmrWalletService;
-import bisq.core.locale.Res;
-import bisq.core.offer.Offer;
-import bisq.core.offer.OfferPayload;
-import bisq.core.offer.OfferUtil;
-import bisq.core.payment.payload.PaymentAccountPayload;
-import bisq.core.support.SupportType;
-import bisq.core.support.dispute.Dispute;
-import bisq.core.support.dispute.DisputeAlreadyOpenException;
-import bisq.core.support.dispute.DisputeList;
-import bisq.core.support.dispute.DisputeManager;
-import bisq.core.support.dispute.arbitration.ArbitrationManager;
-import bisq.core.support.dispute.mediation.MediationManager;
-import bisq.core.support.traderchat.TraderChatManager;
-import bisq.core.trade.BuyerTrade;
-import bisq.core.trade.SellerTrade;
-import bisq.core.trade.Trade;
-import bisq.core.trade.TradeManager;
-import bisq.core.trade.protocol.BuyerProtocol;
-import bisq.core.trade.protocol.SellerProtocol;
-import bisq.core.user.Preferences;
+import haveno.core.account.witness.AccountAgeWitnessService;
+import haveno.core.btc.setup.WalletsSetup;
+import haveno.core.btc.wallet.XmrWalletService;
+import haveno.core.locale.Res;
+import haveno.core.offer.Offer;
+import haveno.core.offer.OfferPayload;
+import haveno.core.offer.OfferUtil;
+import haveno.core.payment.payload.PaymentAccountPayload;
+import haveno.core.support.SupportType;
+import haveno.core.support.dispute.Dispute;
+import haveno.core.support.dispute.DisputeAlreadyOpenException;
+import haveno.core.support.dispute.DisputeList;
+import haveno.core.support.dispute.DisputeManager;
+import haveno.core.support.dispute.arbitration.ArbitrationManager;
+import haveno.core.support.dispute.mediation.MediationManager;
+import haveno.core.support.traderchat.TraderChatManager;
+import haveno.core.trade.BuyerTrade;
+import haveno.core.trade.SellerTrade;
+import haveno.core.trade.Trade;
+import haveno.core.trade.TradeManager;
+import haveno.core.trade.protocol.BuyerProtocol;
+import haveno.core.trade.protocol.SellerProtocol;
+import haveno.core.user.Preferences;
 
-import bisq.network.p2p.P2PService;
+import haveno.network.p2p.P2PService;
 
-import bisq.common.crypto.PubKeyRing;
-import bisq.common.handlers.ErrorMessageHandler;
-import bisq.common.handlers.FaultHandler;
-import bisq.common.handlers.ResultHandler;
+import haveno.common.crypto.PubKeyRing;
+import haveno.common.handlers.ErrorMessageHandler;
+import haveno.common.handlers.FaultHandler;
+import haveno.common.handlers.ResultHandler;
 
 import org.bitcoinj.core.Coin;
 

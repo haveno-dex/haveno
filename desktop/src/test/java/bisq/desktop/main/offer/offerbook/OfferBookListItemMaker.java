@@ -1,32 +1,32 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.desktop.main.offer.offerbook;
+package haveno.desktop.main.offer.offerbook;
 
-import bisq.desktop.maker.OfferMaker;
+import haveno.desktop.maker.OfferMaker;
 
-import bisq.core.offer.OfferPayload;
+import haveno.core.offer.OfferPayload;
 
 import com.natpryce.makeiteasy.Instantiator;
 import com.natpryce.makeiteasy.MakeItEasy;
 import com.natpryce.makeiteasy.Maker;
 import com.natpryce.makeiteasy.Property;
 
-import static bisq.desktop.maker.OfferMaker.btcUsdOffer;
+import static haveno.desktop.maker.OfferMaker.btcUsdOffer;
 import static com.natpryce.makeiteasy.MakeItEasy.a;
 import static com.natpryce.makeiteasy.MakeItEasy.make;
 import static com.natpryce.makeiteasy.MakeItEasy.with;

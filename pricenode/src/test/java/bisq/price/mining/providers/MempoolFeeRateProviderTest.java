@@ -1,24 +1,24 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.price.mining.providers;
+package haveno.price.mining.providers;
 
-import bisq.price.mining.FeeRate;
-import bisq.price.mining.FeeRateProvider;
+import haveno.price.mining.FeeRate;
+import haveno.price.mining.FeeRateProvider;
 
 import org.springframework.core.env.Environment;
 import org.springframework.core.env.StandardEnvironment;
@@ -34,7 +34,7 @@ import static org.junit.Assert.assertTrue;
 /**
  * Tests specific to a {@link MempoolFeeRateProvider} which queries one API endpoint. For
  * tests related to managing parallel fee API endpoints, see
- * {@link bisq.price.mining.FeeRateServiceTest}
+ * {@link haveno.price.mining.FeeRateServiceTest}
  */
 public class MempoolFeeRateProviderTest {
 

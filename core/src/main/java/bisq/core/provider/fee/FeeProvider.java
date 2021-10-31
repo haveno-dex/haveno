@@ -1,31 +1,31 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.core.provider.fee;
+package haveno.core.provider.fee;
 
-import bisq.core.provider.FeeHttpClient;
-import bisq.core.provider.HttpClientProvider;
-import bisq.core.provider.ProvidersRepository;
+import haveno.core.provider.FeeHttpClient;
+import haveno.core.provider.HttpClientProvider;
+import haveno.core.provider.ProvidersRepository;
 
-import bisq.network.http.HttpClient;
+import haveno.network.http.HttpClient;
 
-import bisq.common.app.Version;
-import bisq.common.config.Config;
-import bisq.common.util.Tuple2;
+import haveno.common.app.Version;
+import haveno.common.config.Config;
+import haveno.common.util.Tuple2;
 
 import com.google.gson.Gson;
 import com.google.gson.internal.LinkedTreeMap;
@@ -48,7 +48,7 @@ public class FeeProvider extends HttpClientProvider {
     }
 
     public Tuple2<Map<String, Long>, Map<String, Long>> getFees() throws IOException {
-        String json = httpClient.get("getFees", "User-Agent", "bisq/" + Version.VERSION);
+        String json = httpClient.get("getFees", "User-Agent", "haveno/" + Version.VERSION);
 
         LinkedTreeMap<?, ?> linkedTreeMap = new Gson().fromJson(json, LinkedTreeMap.class);
         Map<String, Long> tsMap = new HashMap<>();

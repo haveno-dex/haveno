@@ -1,12 +1,12 @@
-package bisq.core.util;
+package haveno.core.util;
 
-import bisq.core.locale.CurrencyUtil;
-import bisq.core.locale.GlobalSettings;
-import bisq.core.locale.Res;
-import bisq.core.monetary.Altcoin;
-import bisq.core.monetary.Price;
+import haveno.core.locale.CurrencyUtil;
+import haveno.core.locale.GlobalSettings;
+import haveno.core.locale.Res;
+import haveno.core.monetary.Altcoin;
+import haveno.core.monetary.Price;
 
-import bisq.common.util.MathUtils;
+import haveno.common.util.MathUtils;
 
 import org.bitcoinj.core.Coin;
 import org.bitcoinj.core.Monetary;

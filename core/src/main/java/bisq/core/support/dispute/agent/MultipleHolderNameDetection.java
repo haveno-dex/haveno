@@ -1,35 +1,35 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.core.support.dispute.agent;
+package haveno.core.support.dispute.agent;
 
-import bisq.core.locale.Res;
-import bisq.core.payment.payload.PayloadWithHolderName;
-import bisq.core.payment.payload.PaymentAccountPayload;
-import bisq.core.support.dispute.Dispute;
-import bisq.core.support.dispute.DisputeList;
-import bisq.core.support.dispute.DisputeManager;
-import bisq.core.support.dispute.DisputeResult;
-import bisq.core.user.DontShowAgainLookup;
+import haveno.core.locale.Res;
+import haveno.core.payment.payload.PayloadWithHolderName;
+import haveno.core.payment.payload.PaymentAccountPayload;
+import haveno.core.support.dispute.Dispute;
+import haveno.core.support.dispute.DisputeList;
+import haveno.core.support.dispute.DisputeManager;
+import haveno.core.support.dispute.DisputeResult;
+import haveno.core.user.DontShowAgainLookup;
 
-import bisq.common.crypto.Hash;
-import bisq.common.crypto.PubKeyRing;
-import bisq.common.util.Tuple2;
-import bisq.common.util.Utilities;
+import haveno.common.crypto.Hash;
+import haveno.common.crypto.PubKeyRing;
+import haveno.common.util.Tuple2;
+import haveno.common.util.Utilities;
 
 import javafx.collections.ListChangeListener;
 

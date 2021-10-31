@@ -1,38 +1,38 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.core.btc;
+package haveno.core.btc;
 
-import bisq.core.btc.model.AddressEntryList;
-import bisq.core.btc.model.XmrAddressEntryList;
-import bisq.core.btc.nodes.BtcNodes;
-import bisq.core.btc.setup.RegTestHost;
-import bisq.core.btc.setup.WalletsSetup;
-import bisq.core.btc.wallet.BtcWalletService;
-import bisq.core.btc.wallet.NonBsqCoinSelector;
-import bisq.core.btc.wallet.TradeWalletService;
-import bisq.core.btc.wallet.XmrWalletService;
-import bisq.core.provider.ProvidersRepository;
-import bisq.core.provider.fee.FeeProvider;
-import bisq.core.provider.fee.FeeService;
-import bisq.core.provider.price.PriceFeedService;
+import haveno.core.btc.model.AddressEntryList;
+import haveno.core.btc.model.XmrAddressEntryList;
+import haveno.core.btc.nodes.BtcNodes;
+import haveno.core.btc.setup.RegTestHost;
+import haveno.core.btc.setup.WalletsSetup;
+import haveno.core.btc.wallet.BtcWalletService;
+import haveno.core.btc.wallet.NonBsqCoinSelector;
+import haveno.core.btc.wallet.TradeWalletService;
+import haveno.core.btc.wallet.XmrWalletService;
+import haveno.core.provider.ProvidersRepository;
+import haveno.core.provider.fee.FeeProvider;
+import haveno.core.provider.fee.FeeService;
+import haveno.core.provider.price.PriceFeedService;
 
-import bisq.common.app.AppModule;
-import bisq.common.config.Config;
+import haveno.common.app.AppModule;
+import haveno.common.config.Config;
 
 import com.google.inject.Singleton;
 import com.google.inject.TypeLiteral;
@@ -42,8 +42,8 @@ import java.io.File;
 import java.util.Arrays;
 import java.util.List;
 
-import static bisq.common.config.Config.PROVIDERS;
-import static bisq.common.config.Config.WALLET_DIR;
+import static haveno.common.config.Config.PROVIDERS;
+import static haveno.common.config.Config.WALLET_DIR;
 import static com.google.inject.name.Names.named;
 
 public class BitcoinModule extends AppModule {

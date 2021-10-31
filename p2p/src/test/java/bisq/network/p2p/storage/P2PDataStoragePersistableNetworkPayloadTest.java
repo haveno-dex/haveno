@@ -1,27 +1,27 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.network.p2p.storage;
+package haveno.network.p2p.storage;
 
-import bisq.network.p2p.network.Connection;
-import bisq.network.p2p.storage.messages.AddPersistableNetworkPayloadMessage;
-import bisq.network.p2p.storage.mocks.DateTolerantPayloadStub;
-import bisq.network.p2p.storage.mocks.PersistableNetworkPayloadStub;
-import bisq.network.p2p.storage.payload.PersistableNetworkPayload;
+import haveno.network.p2p.network.Connection;
+import haveno.network.p2p.storage.messages.AddPersistableNetworkPayloadMessage;
+import haveno.network.p2p.storage.mocks.DateTolerantPayloadStub;
+import haveno.network.p2p.storage.mocks.PersistableNetworkPayloadStub;
+import haveno.network.p2p.storage.payload.PersistableNetworkPayload;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -37,7 +37,7 @@ import org.junit.runners.Parameterized;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import static bisq.network.p2p.storage.TestState.*;
+import static haveno.network.p2p.storage.TestState.*;
 
 /**
  * Tests of the P2PDataStore entry points that use the PersistableNetworkPayload type

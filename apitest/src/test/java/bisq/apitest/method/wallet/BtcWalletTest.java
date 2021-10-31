@@ -1,7 +1,7 @@
-package bisq.apitest.method.wallet;
+package haveno.apitest.method.wallet;
 
-import bisq.proto.grpc.BtcBalanceInfo;
-import bisq.proto.grpc.TxInfo;
+import haveno.proto.grpc.BtcBalanceInfo;
+import haveno.proto.grpc.TxInfo;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -13,14 +13,14 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInfo;
 import org.junit.jupiter.api.TestMethodOrder;
 
-import static bisq.apitest.Scaffold.BitcoinCoreApp.bitcoind;
-import static bisq.apitest.config.BisqAppConfig.alicedaemon;
-import static bisq.apitest.config.BisqAppConfig.bobdaemon;
-import static bisq.apitest.config.BisqAppConfig.seednode;
-import static bisq.apitest.method.wallet.WalletTestUtil.INITIAL_BTC_BALANCES;
-import static bisq.apitest.method.wallet.WalletTestUtil.verifyBtcBalances;
-import static bisq.cli.TableFormat.formatAddressBalanceTbl;
-import static bisq.cli.TableFormat.formatBtcBalanceInfoTbl;
+import static haveno.apitest.Scaffold.BitcoinCoreApp.bitcoind;
+import static haveno.apitest.config.HavenoAppConfig.alicedaemon;
+import static haveno.apitest.config.HavenoAppConfig.bobdaemon;
+import static haveno.apitest.config.HavenoAppConfig.seednode;
+import static haveno.apitest.method.wallet.WalletTestUtil.INITIAL_BTC_BALANCES;
+import static haveno.apitest.method.wallet.WalletTestUtil.verifyBtcBalances;
+import static haveno.cli.TableFormat.formatAddressBalanceTbl;
+import static haveno.cli.TableFormat.formatBtcBalanceInfoTbl;
 import static java.util.Collections.singletonList;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -29,7 +29,7 @@ import static org.junit.jupiter.api.MethodOrderer.OrderAnnotation;
 
 
 
-import bisq.apitest.method.MethodTest;
+import haveno.apitest.method.MethodTest;
 
 @Disabled
 @Slf4j
@@ -51,7 +51,7 @@ public class BtcWalletTest extends MethodTest {
     @Test
     @Order(1)
     public void testInitialBtcBalances(final TestInfo testInfo) {
-        // Bob & Alice's regtest Bisq wallets were initialized with 10 BTC.
+        // Bob & Alice's regtest Haveno wallets were initialized with 10 BTC.
 
         BtcBalanceInfo alicesBalances = aliceClient.getBtcBalances();
         log.debug("{} Alice's BTC Balances:\n{}", testName(testInfo), formatBtcBalanceInfoTbl(alicesBalances));
@@ -80,8 +80,8 @@ public class BtcWalletTest extends MethodTest {
 
         // New balance is 12.5 BTC
         btcBalanceInfo = aliceClient.getBtcBalances();
-        bisq.core.api.model.BtcBalanceInfo alicesExpectedBalances =
-                bisq.core.api.model.BtcBalanceInfo.valueOf(1250000000,
+        haveno.core.api.model.BtcBalanceInfo alicesExpectedBalances =
+                haveno.core.api.model.BtcBalanceInfo.valueOf(1250000000,
                         0,
                         1250000000,
                         0);
@@ -116,8 +116,8 @@ public class BtcWalletTest extends MethodTest {
         log.debug("{} Alice's BTC Balances:\n{}",
                 testName(testInfo),
                 formatBtcBalanceInfoTbl(alicesBalances));
-        bisq.core.api.model.BtcBalanceInfo alicesExpectedBalances =
-                bisq.core.api.model.BtcBalanceInfo.valueOf(700000000,
+        haveno.core.api.model.BtcBalanceInfo alicesExpectedBalances =
+                haveno.core.api.model.BtcBalanceInfo.valueOf(700000000,
                         0,
                         700000000,
                         0);

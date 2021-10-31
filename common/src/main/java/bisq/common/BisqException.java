@@ -1,33 +1,33 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.common;
+package haveno.common;
 
-public class BisqException extends RuntimeException {
+public class HavenoException extends RuntimeException {
 
-    public BisqException(Throwable cause) {
+    public HavenoException(Throwable cause) {
         super(cause);
     }
 
-    public BisqException(String format, Object... args) {
+    public HavenoException(String format, Object... args) {
         super(String.format(format, args));
     }
 
-    public BisqException(Throwable cause, String format, Object... args) {
+    public HavenoException(Throwable cause, String format, Object... args) {
         super(String.format(format, args), cause);
     }
 }

@@ -1,40 +1,40 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.desktop.main.portfolio;
+package haveno.desktop.main.portfolio;
 
-import bisq.desktop.Navigation;
-import bisq.desktop.common.view.ActivatableView;
-import bisq.desktop.common.view.CachingViewLoader;
-import bisq.desktop.common.view.FxmlView;
-import bisq.desktop.common.view.View;
-import bisq.desktop.main.MainView;
-import bisq.desktop.main.portfolio.closedtrades.ClosedTradesView;
-import bisq.desktop.main.portfolio.duplicateoffer.DuplicateOfferView;
-import bisq.desktop.main.portfolio.editoffer.EditOfferView;
-import bisq.desktop.main.portfolio.failedtrades.FailedTradesView;
-import bisq.desktop.main.portfolio.openoffer.OpenOffersView;
-import bisq.desktop.main.portfolio.pendingtrades.PendingTradesView;
+import haveno.desktop.Navigation;
+import haveno.desktop.common.view.ActivatableView;
+import haveno.desktop.common.view.CachingViewLoader;
+import haveno.desktop.common.view.FxmlView;
+import haveno.desktop.common.view.View;
+import haveno.desktop.main.MainView;
+import haveno.desktop.main.portfolio.closedtrades.ClosedTradesView;
+import haveno.desktop.main.portfolio.duplicateoffer.DuplicateOfferView;
+import haveno.desktop.main.portfolio.editoffer.EditOfferView;
+import haveno.desktop.main.portfolio.failedtrades.FailedTradesView;
+import haveno.desktop.main.portfolio.openoffer.OpenOffersView;
+import haveno.desktop.main.portfolio.pendingtrades.PendingTradesView;
 
-import bisq.core.locale.Res;
-import bisq.core.offer.OfferPayload;
-import bisq.core.offer.OpenOffer;
-import bisq.core.trade.Trade;
-import bisq.core.trade.failed.FailedTradesManager;
+import haveno.core.locale.Res;
+import haveno.core.offer.OfferPayload;
+import haveno.core.offer.OpenOffer;
+import haveno.core.trade.Trade;
+import haveno.core.trade.failed.FailedTradesManager;
 
 import javax.inject.Inject;
 

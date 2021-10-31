@@ -1,44 +1,44 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * bisq is free software: you can redistribute it and/or modify it
+ * haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * bisq is distributed in the hope that it will be useful, but WITHOUT
+ * haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.core.offer;
+package haveno.core.offer;
 
-import bisq.core.account.witness.AccountAgeWitnessService;
-import bisq.core.btc.wallet.BtcWalletService;
-import bisq.core.filter.FilterManager;
-import bisq.core.locale.CurrencyUtil;
-import bisq.core.locale.Res;
-import bisq.core.monetary.Price;
-import bisq.core.monetary.Volume;
-import bisq.core.payment.CashByMailAccount;
-import bisq.core.payment.F2FAccount;
-import bisq.core.payment.PaymentAccount;
-import bisq.core.provider.fee.FeeService;
-import bisq.core.provider.price.MarketPrice;
-import bisq.core.provider.price.PriceFeedService;
-import bisq.core.trade.statistics.ReferralIdService;
-import bisq.core.user.AutoConfirmSettings;
-import bisq.core.user.Preferences;
-import bisq.core.util.coin.CoinUtil;
+import haveno.core.account.witness.AccountAgeWitnessService;
+import haveno.core.btc.wallet.BtcWalletService;
+import haveno.core.filter.FilterManager;
+import haveno.core.locale.CurrencyUtil;
+import haveno.core.locale.Res;
+import haveno.core.monetary.Price;
+import haveno.core.monetary.Volume;
+import haveno.core.payment.CashByMailAccount;
+import haveno.core.payment.F2FAccount;
+import haveno.core.payment.PaymentAccount;
+import haveno.core.provider.fee.FeeService;
+import haveno.core.provider.price.MarketPrice;
+import haveno.core.provider.price.PriceFeedService;
+import haveno.core.trade.statistics.ReferralIdService;
+import haveno.core.user.AutoConfirmSettings;
+import haveno.core.user.Preferences;
+import haveno.core.util.coin.CoinUtil;
 
-import bisq.network.p2p.P2PService;
+import haveno.network.p2p.P2PService;
 
-import bisq.common.app.Capabilities;
-import bisq.common.util.MathUtils;
+import haveno.common.app.Capabilities;
+import haveno.common.util.MathUtils;
 
 import org.bitcoinj.core.Coin;
 import org.bitcoinj.core.Transaction;
@@ -58,11 +58,11 @@ import lombok.extern.slf4j.Slf4j;
 
 import javax.annotation.Nullable;
 
-import static bisq.common.util.MathUtils.roundDoubleToLong;
-import static bisq.common.util.MathUtils.scaleUpByPowerOf10;
-import static bisq.core.btc.wallet.Restrictions.getMaxBuyerSecurityDepositAsPercent;
-import static bisq.core.btc.wallet.Restrictions.getMinBuyerSecurityDepositAsPercent;
-import static bisq.core.offer.OfferPayload.*;
+import static haveno.common.util.MathUtils.roundDoubleToLong;
+import static haveno.common.util.MathUtils.scaleUpByPowerOf10;
+import static haveno.core.btc.wallet.Restrictions.getMaxBuyerSecurityDepositAsPercent;
+import static haveno.core.btc.wallet.Restrictions.getMinBuyerSecurityDepositAsPercent;
+import static haveno.core.offer.OfferPayload.*;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static java.lang.String.format;
@@ -285,7 +285,7 @@ public class OfferUtil {
                 "' has an invalid maker fee transaction.\n\n";
         String spendingTransaction = null;
         String extraString = "\nYou have to remove that offer to avoid failed trades.\n" +
-                "If this happened because of a bug please contact the Bisq developers " +
+                "If this happened because of a bug please contact the Haveno developers " +
                 "and you can request reimbursement for the lost maker fee.";
         if (makerFeeTx.getOutputs().size() > 1) {
             // Our output to fund the deposit tx is at index 1

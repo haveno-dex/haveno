@@ -1,38 +1,38 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.core.user;
+package haveno.core.user;
 
-import bisq.core.alert.Alert;
-import bisq.core.filter.Filter;
-import bisq.core.locale.LanguageUtil;
-import bisq.core.locale.TradeCurrency;
-import bisq.core.notifications.alerts.market.MarketAlertFilter;
-import bisq.core.notifications.alerts.price.PriceAlertFilter;
-import bisq.core.payment.PaymentAccount;
-import bisq.core.support.dispute.arbitration.arbitrator.Arbitrator;
-import bisq.core.support.dispute.mediation.mediator.Mediator;
-import bisq.core.support.dispute.refund.refundagent.RefundAgent;
+import haveno.core.alert.Alert;
+import haveno.core.filter.Filter;
+import haveno.core.locale.LanguageUtil;
+import haveno.core.locale.TradeCurrency;
+import haveno.core.notifications.alerts.market.MarketAlertFilter;
+import haveno.core.notifications.alerts.price.PriceAlertFilter;
+import haveno.core.payment.PaymentAccount;
+import haveno.core.support.dispute.arbitration.arbitrator.Arbitrator;
+import haveno.core.support.dispute.mediation.mediator.Mediator;
+import haveno.core.support.dispute.refund.refundagent.RefundAgent;
 
-import bisq.network.p2p.NodeAddress;
+import haveno.network.p2p.NodeAddress;
 
-import bisq.common.crypto.KeyRing;
-import bisq.common.persistence.PersistenceManager;
-import bisq.common.proto.persistable.PersistedDataHost;
+import haveno.common.crypto.KeyRing;
+import haveno.common.persistence.PersistenceManager;
+import haveno.common.proto.persistable.PersistedDataHost;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;

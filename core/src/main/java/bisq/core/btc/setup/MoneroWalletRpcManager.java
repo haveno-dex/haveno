@@ -1,4 +1,4 @@
-package bisq.core.btc.setup;
+package haveno.core.btc.setup;
 
 import java.net.ServerSocket;
 

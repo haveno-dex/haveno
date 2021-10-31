@@ -4,7 +4,7 @@
     The :daemon & :cli jars contain their own logback.xml config files, which causes chatty logback startup.
     To avoid chatty logback msgs during its configuration, pass logback.configurationFile as a system property:
         -Dlogback.configurationFile=apitest/build/resources/main/logback.xml
-    The gradle build file takes care of adding this system property to the bisq-apitest script.
+    The gradle build file takes care of adding this system property to the haveno-apitest script.
     -->
     <appender name="CONSOLE_APPENDER" class="ch.qos.logback.core.ConsoleAppender">
         <encoder>

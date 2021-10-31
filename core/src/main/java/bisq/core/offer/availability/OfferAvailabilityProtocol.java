@@ -1,42 +1,42 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.core.offer.availability;
+package haveno.core.offer.availability;
 
-import bisq.core.offer.Offer;
-import bisq.core.offer.availability.tasks.ProcessOfferAvailabilityResponse;
-import bisq.core.offer.availability.tasks.SendOfferAvailabilityRequest;
-import bisq.core.offer.messages.OfferAvailabilityResponse;
-import bisq.core.offer.messages.OfferMessage;
-import bisq.core.util.Validator;
+import haveno.core.offer.Offer;
+import haveno.core.offer.availability.tasks.ProcessOfferAvailabilityResponse;
+import haveno.core.offer.availability.tasks.SendOfferAvailabilityRequest;
+import haveno.core.offer.messages.OfferAvailabilityResponse;
+import haveno.core.offer.messages.OfferMessage;
+import haveno.core.util.Validator;
 
-import bisq.network.p2p.AckMessage;
-import bisq.network.p2p.AckMessageSourceType;
-import bisq.network.p2p.DecryptedDirectMessageListener;
-import bisq.network.p2p.NodeAddress;
-import bisq.network.p2p.SendDirectMessageListener;
+import haveno.network.p2p.AckMessage;
+import haveno.network.p2p.AckMessageSourceType;
+import haveno.network.p2p.DecryptedDirectMessageListener;
+import haveno.network.p2p.NodeAddress;
+import haveno.network.p2p.SendDirectMessageListener;
 
-import bisq.common.Timer;
-import bisq.common.UserThread;
-import bisq.common.crypto.PubKeyRing;
-import bisq.common.handlers.ErrorMessageHandler;
-import bisq.common.handlers.ResultHandler;
-import bisq.common.proto.network.NetworkEnvelope;
-import bisq.common.taskrunner.TaskRunner;
+import haveno.common.Timer;
+import haveno.common.UserThread;
+import haveno.common.crypto.PubKeyRing;
+import haveno.common.handlers.ErrorMessageHandler;
+import haveno.common.handlers.ResultHandler;
+import haveno.common.proto.network.NetworkEnvelope;
+import haveno.common.taskrunner.TaskRunner;
 
 import lombok.extern.slf4j.Slf4j;
 

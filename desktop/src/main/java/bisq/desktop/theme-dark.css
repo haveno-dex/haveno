@@ -17,7 +17,7 @@
     -fx-selection-bar-non-focused: #2a7e2e;
     -fx-default-button: derive(-fx-accent, 95%);
 
-    /* bisq main colors */
+    /* haveno main colors */
     -bs-color-primary: #25b135;
     -bs-color-primary-dark: #2ea33c;
     -bs-text-color: #dadada;

@@ -1,6 +1,6 @@
-package bisq.apitest.method.wallet;
+package haveno.apitest.method.wallet;
 
-import bisq.proto.grpc.BtcBalanceInfo;
+import haveno.proto.grpc.BtcBalanceInfo;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -11,14 +11,14 @@ public class WalletTestUtil {
 
     // All api tests depend on the regtest environment, and Bob & Alice's wallets
     // are initialized with 10 BTC during the scaffolding setup.
-    public static final bisq.core.api.model.BtcBalanceInfo INITIAL_BTC_BALANCES =
-            bisq.core.api.model.BtcBalanceInfo.valueOf(1000000000,
+    public static final haveno.core.api.model.BtcBalanceInfo INITIAL_BTC_BALANCES =
+            haveno.core.api.model.BtcBalanceInfo.valueOf(1000000000,
                     0,
                     1000000000,
                     0);
 
 
-    public static void verifyBtcBalances(bisq.core.api.model.BtcBalanceInfo expected,
+    public static void verifyBtcBalances(haveno.core.api.model.BtcBalanceInfo expected,
                                          BtcBalanceInfo actual) {
         assertEquals(expected.getAvailableBalance(), actual.getAvailableBalance());
         assertEquals(expected.getReservedBalance(), actual.getReservedBalance());

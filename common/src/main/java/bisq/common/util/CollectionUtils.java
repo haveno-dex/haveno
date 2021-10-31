@@ -1,4 +1,4 @@
-package bisq.common.util;
+package haveno.common.util;
 
 import java.util.Collection;
 import java.util.Map;
@@ -6,8 +6,8 @@ import java.util.Map;
 /**
  * Collection utility methods copied from Spring Framework v4.3.6's
  * {@code org.springframework.util.CollectionUtils} class in order to make it possible to
- * drop Bisq's dependency on Spring altogether. The name of the class and methods have
- * been preserved here to minimize the impact to the Bisq codebase of making this change.
+ * drop Haveno's dependency on Spring altogether. The name of the class and methods have
+ * been preserved here to minimize the impact to the Haveno codebase of making this change.
  * All that is necessary to swap this implementation in is to change the CollectionUtils
  * import statement.
  */

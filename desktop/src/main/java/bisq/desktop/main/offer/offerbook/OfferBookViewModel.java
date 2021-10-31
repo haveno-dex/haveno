@@ -1,62 +1,62 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.desktop.main.offer.offerbook;
+package haveno.desktop.main.offer.offerbook;
 
-import bisq.desktop.Navigation;
-import bisq.desktop.common.model.ActivatableViewModel;
-import bisq.desktop.main.MainView;
-import bisq.desktop.main.PriceUtil;
-import bisq.desktop.main.settings.SettingsView;
-import bisq.desktop.main.settings.preferences.PreferencesView;
-import bisq.desktop.util.DisplayUtils;
-import bisq.desktop.util.GUIUtil;
+import haveno.desktop.Navigation;
+import haveno.desktop.common.model.ActivatableViewModel;
+import haveno.desktop.main.MainView;
+import haveno.desktop.main.PriceUtil;
+import haveno.desktop.main.settings.SettingsView;
+import haveno.desktop.main.settings.preferences.PreferencesView;
+import haveno.desktop.util.DisplayUtils;
+import haveno.desktop.util.GUIUtil;
 
-import bisq.core.account.witness.AccountAgeWitnessService;
-import bisq.core.btc.setup.WalletsSetup;
-import bisq.core.locale.BankUtil;
-import bisq.core.locale.CountryUtil;
-import bisq.core.locale.CryptoCurrency;
-import bisq.core.locale.CurrencyUtil;
-import bisq.core.locale.GlobalSettings;
-import bisq.core.locale.Res;
-import bisq.core.locale.TradeCurrency;
-import bisq.core.monetary.Price;
-import bisq.core.monetary.Volume;
-import bisq.core.offer.Offer;
-import bisq.core.offer.OfferFilter;
-import bisq.core.offer.OfferPayload;
-import bisq.core.offer.OpenOfferManager;
-import bisq.core.payment.PaymentAccount;
-import bisq.core.payment.PaymentAccountUtil;
-import bisq.core.payment.payload.PaymentMethod;
-import bisq.core.provider.price.PriceFeedService;
-import bisq.core.trade.Trade;
-import bisq.core.trade.closed.ClosedTradableManager;
-import bisq.core.user.Preferences;
-import bisq.core.user.User;
-import bisq.core.util.FormattingUtils;
-import bisq.core.util.coin.CoinFormatter;
+import haveno.core.account.witness.AccountAgeWitnessService;
+import haveno.core.btc.setup.WalletsSetup;
+import haveno.core.locale.BankUtil;
+import haveno.core.locale.CountryUtil;
+import haveno.core.locale.CryptoCurrency;
+import haveno.core.locale.CurrencyUtil;
+import haveno.core.locale.GlobalSettings;
+import haveno.core.locale.Res;
+import haveno.core.locale.TradeCurrency;
+import haveno.core.monetary.Price;
+import haveno.core.monetary.Volume;
+import haveno.core.offer.Offer;
+import haveno.core.offer.OfferFilter;
+import haveno.core.offer.OfferPayload;
+import haveno.core.offer.OpenOfferManager;
+import haveno.core.payment.PaymentAccount;
+import haveno.core.payment.PaymentAccountUtil;
+import haveno.core.payment.payload.PaymentMethod;
+import haveno.core.provider.price.PriceFeedService;
+import haveno.core.trade.Trade;
+import haveno.core.trade.closed.ClosedTradableManager;
+import haveno.core.user.Preferences;
+import haveno.core.user.User;
+import haveno.core.util.FormattingUtils;
+import haveno.core.util.coin.CoinFormatter;
 
-import bisq.network.p2p.NodeAddress;
-import bisq.network.p2p.P2PService;
+import haveno.network.p2p.NodeAddress;
+import haveno.network.p2p.P2PService;
 
-import bisq.common.handlers.ErrorMessageHandler;
-import bisq.common.handlers.ResultHandler;
+import haveno.common.handlers.ErrorMessageHandler;
+import haveno.common.handlers.ResultHandler;
 
 import org.bitcoinj.core.Coin;
 

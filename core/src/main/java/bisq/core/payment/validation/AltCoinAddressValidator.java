@@ -1,31 +1,31 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.core.payment.validation;
+package haveno.core.payment.validation;
 
-import bisq.core.locale.CurrencyUtil;
-import bisq.core.locale.Res;
-import bisq.core.util.validation.InputValidator;
+import haveno.core.locale.CurrencyUtil;
+import haveno.core.locale.Res;
+import haveno.core.util.validation.InputValidator;
 
-import bisq.asset.AddressValidationResult;
-import bisq.asset.Asset;
-import bisq.asset.AssetRegistry;
+import haveno.asset.AddressValidationResult;
+import haveno.asset.Asset;
+import haveno.asset.AssetRegistry;
 
-import bisq.common.config.Config;
+import haveno.common.config.Config;
 
 import com.google.inject.Inject;
 

@@ -1,4 +1,4 @@
-package bisq.common.crypto;
+package haveno.common.crypto;
 
 import com.google.inject.Inject;
 import com.google.inject.Provider;

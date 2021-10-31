@@ -1,25 +1,25 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.asset;
+package haveno.asset;
 
 /**
  * Abstract base class for {@link Asset}s with their own dedicated blockchain, such as
- * {@link bisq.asset.coins.Bitcoin}, {@link bisq.asset.coins.Ether}, and {@link bisq.asset.coins.Monero}.
+ * {@link haveno.asset.coins.Bitcoin}, {@link haveno.asset.coins.Ether}, and {@link haveno.asset.coins.Monero}.
  * <p>
  * In addition to the usual {@code Asset} properties, a {@code Coin} maintains information
  * about which {@link Network} it may be used on. By default, coins are constructed with

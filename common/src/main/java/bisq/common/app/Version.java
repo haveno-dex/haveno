@@ -1,21 +1,21 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.common.app;
+package haveno.common.app;
 
 import java.util.Arrays;
 import java.util.List;
@@ -95,7 +95,7 @@ public class Version {
     // A taker will check the version of the offers to see if his version is compatible.
     // For the switch to version 2, offers created with the old version will become invalid and have to be canceled.
     // For the switch to version 3, offers created with the old version can be migrated to version 3 just by opening
-    // the Bisq app.
+    // the Haveno app.
     // VERSION = 0.5.0 -> TRADE_PROTOCOL_VERSION = 1
     // Version 1.2.2 -> TRADE_PROTOCOL_VERSION = 2
     // Version 1.5.0 -> TRADE_PROTOCOL_VERSION = 3

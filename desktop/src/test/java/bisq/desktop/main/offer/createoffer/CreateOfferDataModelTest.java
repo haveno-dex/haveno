@@ -1,21 +1,21 @@
-package bisq.desktop.main.offer.createoffer;
+package haveno.desktop.main.offer.createoffer;
 
-import bisq.core.btc.model.XmrAddressEntry;
-import bisq.core.btc.wallet.XmrWalletService;
-import bisq.core.locale.CryptoCurrency;
-import bisq.core.locale.FiatCurrency;
-import bisq.core.locale.GlobalSettings;
-import bisq.core.locale.Res;
-import bisq.core.offer.CreateOfferService;
-import bisq.core.offer.OfferUtil;
-import bisq.core.payment.ClearXchangeAccount;
-import bisq.core.payment.PaymentAccount;
-import bisq.core.payment.RevolutAccount;
-import bisq.core.provider.fee.FeeService;
-import bisq.core.provider.price.PriceFeedService;
-import bisq.core.trade.statistics.TradeStatisticsManager;
-import bisq.core.user.Preferences;
-import bisq.core.user.User;
+import haveno.core.btc.model.XmrAddressEntry;
+import haveno.core.btc.wallet.XmrWalletService;
+import haveno.core.locale.CryptoCurrency;
+import haveno.core.locale.FiatCurrency;
+import haveno.core.locale.GlobalSettings;
+import haveno.core.locale.Res;
+import haveno.core.offer.CreateOfferService;
+import haveno.core.offer.OfferUtil;
+import haveno.core.payment.ClearXchangeAccount;
+import haveno.core.payment.PaymentAccount;
+import haveno.core.payment.RevolutAccount;
+import haveno.core.provider.fee.FeeService;
+import haveno.core.provider.price.PriceFeedService;
+import haveno.core.trade.statistics.TradeStatisticsManager;
+import haveno.core.user.Preferences;
+import haveno.core.user.User;
 
 import org.bitcoinj.core.Coin;
 
@@ -27,7 +27,7 @@ import java.util.UUID;
 import org.junit.Before;
 import org.junit.Test;
 
-import static bisq.core.offer.OfferPayload.Direction;
+import static haveno.core.offer.OfferPayload.Direction;
 import static org.junit.Assert.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;

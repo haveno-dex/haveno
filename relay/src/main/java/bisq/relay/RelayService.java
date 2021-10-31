@@ -1,21 +1,21 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.relay;
+package haveno.relay;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -47,8 +47,8 @@ import com.turo.pushy.apns.util.concurrent.PushNotificationFuture;
 
 class RelayService {
     private static final Logger log = LoggerFactory.getLogger(RelayMain.class);
-    private static final String ANDROID_DATABASE_URL = "https://bisqnotifications.firebaseio.com";
-    // Used in Bisq app to check for success state. We won't want a code dependency just for that string so we keep it
+    private static final String ANDROID_DATABASE_URL = "https://havenonotifications.firebaseio.com";
+    // Used in Haveno app to check for success state. We won't want a code dependency just for that string so we keep it
     // duplicated in core and here. Must not be changed.
     private static final String SUCCESS = "success";
 
@@ -101,7 +101,7 @@ class RelayService {
         ApnsPayloadBuilder payloadBuilder = new ApnsPayloadBuilder();
         if (useSound)
             payloadBuilder.setSoundFileName("default");
-        payloadBuilder.setAlertBody("Bisq notification");
+        payloadBuilder.setAlertBody("Haveno notification");
         payloadBuilder.setContentAvailable(isContentAvailable);
         payloadBuilder.addCustomProperty("encrypted", encryptedMessage);
         final String payload = payloadBuilder.buildWithDefaultMaximumLength();
@@ -136,7 +136,7 @@ class RelayService {
 
     String sendAndroidMessage(String apsTokenHex, String encryptedMessage, boolean useSound) {
         Message.Builder messageBuilder = Message.builder();
-        Notification notification = new Notification("Bisq", "Notification");
+        Notification notification = new Notification("Haveno", "Notification");
         messageBuilder.setNotification(notification);
         messageBuilder.putData("encrypted", encryptedMessage);
         messageBuilder.setToken(apsTokenHex);

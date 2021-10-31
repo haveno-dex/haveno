@@ -1,37 +1,37 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.network.p2p.storage;
+package haveno.network.p2p.storage;
 
-import bisq.network.p2p.TestUtils;
-import bisq.network.p2p.network.Connection;
-import bisq.network.p2p.storage.messages.AddDataMessage;
-import bisq.network.p2p.storage.messages.RefreshOfferMessage;
-import bisq.network.p2p.storage.messages.RemoveDataMessage;
-import bisq.network.p2p.storage.messages.RemoveMailboxDataMessage;
-import bisq.network.p2p.storage.mocks.PersistableExpirableProtectedStoragePayloadStub;
-import bisq.network.p2p.storage.mocks.ProtectedStoragePayloadStub;
-import bisq.network.p2p.storage.payload.ProtectedMailboxStorageEntry;
-import bisq.network.p2p.storage.payload.ProtectedStorageEntry;
-import bisq.network.p2p.storage.payload.ProtectedStoragePayload;
+import haveno.network.p2p.TestUtils;
+import haveno.network.p2p.network.Connection;
+import haveno.network.p2p.storage.messages.AddDataMessage;
+import haveno.network.p2p.storage.messages.RefreshOfferMessage;
+import haveno.network.p2p.storage.messages.RemoveDataMessage;
+import haveno.network.p2p.storage.messages.RemoveMailboxDataMessage;
+import haveno.network.p2p.storage.mocks.PersistableExpirableProtectedStoragePayloadStub;
+import haveno.network.p2p.storage.mocks.ProtectedStoragePayloadStub;
+import haveno.network.p2p.storage.payload.ProtectedMailboxStorageEntry;
+import haveno.network.p2p.storage.payload.ProtectedStorageEntry;
+import haveno.network.p2p.storage.payload.ProtectedStoragePayload;
 
-import bisq.common.app.Version;
-import bisq.common.crypto.CryptoException;
-import bisq.common.crypto.Sig;
+import haveno.common.app.Version;
+import haveno.common.crypto.CryptoException;
+import haveno.common.crypto.Sig;
 
 import java.security.KeyPair;
 import java.security.NoSuchAlgorithmException;
@@ -49,7 +49,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
-import static bisq.network.p2p.storage.TestState.SavedTestState;
+import static haveno.network.p2p.storage.TestState.SavedTestState;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;

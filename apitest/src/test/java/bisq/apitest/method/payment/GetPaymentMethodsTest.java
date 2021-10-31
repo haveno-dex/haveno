@@ -1,4 +1,4 @@
-package bisq.apitest.method.payment;
+package haveno.apitest.method.payment;
 
 import protobuf.PaymentMethod;
 
@@ -15,14 +15,14 @@ import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 
-import static bisq.apitest.Scaffold.BitcoinCoreApp.bitcoind;
-import static bisq.apitest.config.BisqAppConfig.alicedaemon;
+import static haveno.apitest.Scaffold.BitcoinCoreApp.bitcoind;
+import static haveno.apitest.config.HavenoAppConfig.alicedaemon;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
 
 
-import bisq.apitest.method.MethodTest;
+import haveno.apitest.method.MethodTest;
 
 @Disabled
 @Slf4j

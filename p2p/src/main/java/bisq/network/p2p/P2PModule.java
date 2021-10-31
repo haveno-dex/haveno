@@ -1,39 +1,39 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.network.p2p;
+package haveno.network.p2p;
 
-import bisq.network.Socks5ProxyProvider;
-import bisq.network.http.HttpClient;
-import bisq.network.http.HttpClientImpl;
-import bisq.network.p2p.network.Connection;
-import bisq.network.p2p.network.NetworkNode;
-import bisq.network.p2p.peers.Broadcaster;
-import bisq.network.p2p.peers.PeerManager;
-import bisq.network.p2p.peers.getdata.RequestDataManager;
-import bisq.network.p2p.peers.keepalive.KeepAliveManager;
-import bisq.network.p2p.peers.peerexchange.PeerExchangeManager;
-import bisq.network.p2p.storage.P2PDataStorage;
-import bisq.network.p2p.storage.persistence.AppendOnlyDataStoreService;
-import bisq.network.p2p.storage.persistence.ProtectedDataStoreService;
-import bisq.network.p2p.storage.persistence.ResourceDataStoreService;
+import haveno.network.Socks5ProxyProvider;
+import haveno.network.http.HttpClient;
+import haveno.network.http.HttpClientImpl;
+import haveno.network.p2p.network.Connection;
+import haveno.network.p2p.network.NetworkNode;
+import haveno.network.p2p.peers.Broadcaster;
+import haveno.network.p2p.peers.PeerManager;
+import haveno.network.p2p.peers.getdata.RequestDataManager;
+import haveno.network.p2p.peers.keepalive.KeepAliveManager;
+import haveno.network.p2p.peers.peerexchange.PeerExchangeManager;
+import haveno.network.p2p.storage.P2PDataStorage;
+import haveno.network.p2p.storage.persistence.AppendOnlyDataStoreService;
+import haveno.network.p2p.storage.persistence.ProtectedDataStoreService;
+import haveno.network.p2p.storage.persistence.ResourceDataStoreService;
 
-import bisq.common.app.AppModule;
-import bisq.common.config.Config;
+import haveno.common.app.AppModule;
+import haveno.common.config.Config;
 
 import com.google.inject.Singleton;
 import com.google.inject.TypeLiteral;
@@ -44,7 +44,7 @@ import java.io.File;
 
 import java.util.List;
 
-import static bisq.common.config.Config.*;
+import static haveno.common.config.Config.*;
 import static com.google.inject.name.Names.named;
 import static com.google.inject.util.Providers.of;
 

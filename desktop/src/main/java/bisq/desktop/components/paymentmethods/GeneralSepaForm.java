@@ -1,18 +1,18 @@
-package bisq.desktop.components.paymentmethods;
+package haveno.desktop.components.paymentmethods;
 
-import bisq.desktop.components.InputTextField;
-import bisq.desktop.util.FormBuilder;
+import haveno.desktop.components.InputTextField;
+import haveno.desktop.util.FormBuilder;
 
-import bisq.core.account.witness.AccountAgeWitnessService;
-import bisq.core.locale.Country;
-import bisq.core.locale.CurrencyUtil;
-import bisq.core.locale.FiatCurrency;
-import bisq.core.locale.Res;
-import bisq.core.locale.TradeCurrency;
-import bisq.core.payment.CountryBasedPaymentAccount;
-import bisq.core.payment.PaymentAccount;
-import bisq.core.util.coin.CoinFormatter;
-import bisq.core.util.validation.InputValidator;
+import haveno.core.account.witness.AccountAgeWitnessService;
+import haveno.core.locale.Country;
+import haveno.core.locale.CurrencyUtil;
+import haveno.core.locale.FiatCurrency;
+import haveno.core.locale.Res;
+import haveno.core.locale.TradeCurrency;
+import haveno.core.payment.CountryBasedPaymentAccount;
+import haveno.core.payment.PaymentAccount;
+import haveno.core.util.coin.CoinFormatter;
+import haveno.core.util.validation.InputValidator;
 
 import org.apache.commons.lang3.StringUtils;
 
@@ -31,7 +31,7 @@ import javafx.util.StringConverter;
 import java.util.ArrayList;
 import java.util.List;
 
-import static bisq.desktop.util.FormBuilder.addTopLabelWithVBox;
+import static haveno.desktop.util.FormBuilder.addTopLabelWithVBox;
 
 public abstract class GeneralSepaForm extends PaymentMethodForm {
 

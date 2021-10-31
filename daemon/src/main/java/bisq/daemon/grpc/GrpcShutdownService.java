@@ -1,29 +1,29 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.daemon.grpc;
+package haveno.daemon.grpc;
 
-import bisq.core.app.BisqHeadlessApp;
+import haveno.core.app.HavenoHeadlessApp;
 
-import bisq.common.UserThread;
+import haveno.common.UserThread;
 
-import bisq.proto.grpc.ShutdownServerGrpc;
-import bisq.proto.grpc.StopReply;
-import bisq.proto.grpc.StopRequest;
+import haveno.proto.grpc.ShutdownServerGrpc;
+import haveno.proto.grpc.StopReply;
+import haveno.proto.grpc.StopRequest;
 
 import io.grpc.stub.StreamObserver;
 
@@ -51,7 +51,7 @@ class GrpcShutdownService extends ShutdownServerGrpc.ShutdownServerImplBase {
             var reply = StopReply.newBuilder().build();
             responseObserver.onNext(reply);
             responseObserver.onCompleted();
-            UserThread.runAfter(BisqHeadlessApp.getShutDownHandler(), 500, MILLISECONDS);
+            UserThread.runAfter(HavenoHeadlessApp.getShutDownHandler(), 500, MILLISECONDS);
         } catch (Throwable cause) {
             exceptionHandler.handleException(log, cause, responseObserver);
         }

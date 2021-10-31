@@ -1,30 +1,30 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.core.api.model;
+package haveno.core.api.model;
 
 
-import bisq.core.locale.Country;
-import bisq.core.locale.FiatCurrency;
-import bisq.core.locale.TradeCurrency;
-import bisq.core.payment.CountryBasedPaymentAccount;
-import bisq.core.payment.MoneyGramAccount;
-import bisq.core.payment.PaymentAccount;
-import bisq.core.payment.payload.PaymentAccountPayload;
+import haveno.core.locale.Country;
+import haveno.core.locale.FiatCurrency;
+import haveno.core.locale.TradeCurrency;
+import haveno.core.payment.CountryBasedPaymentAccount;
+import haveno.core.payment.MoneyGramAccount;
+import haveno.core.payment.PaymentAccount;
+import haveno.core.payment.payload.PaymentAccountPayload;
 
 import com.google.gson.TypeAdapter;
 import com.google.gson.stream.JsonReader;
@@ -50,13 +50,13 @@ import java.lang.reflect.Method;
 
 import lombok.extern.slf4j.Slf4j;
 
-import static bisq.common.util.ReflectionUtils.*;
-import static bisq.common.util.Utilities.decodeFromHex;
-import static bisq.core.locale.CountryUtil.findCountryByCode;
-import static bisq.core.locale.CurrencyUtil.getAllTransferwiseCurrencies;
-import static bisq.core.locale.CurrencyUtil.getCurrencyByCountryCode;
-import static bisq.core.locale.CurrencyUtil.getTradeCurrencies;
-import static bisq.core.locale.CurrencyUtil.getTradeCurrenciesInList;
+import static haveno.common.util.ReflectionUtils.*;
+import static haveno.common.util.Utilities.decodeFromHex;
+import static haveno.core.locale.CountryUtil.findCountryByCode;
+import static haveno.core.locale.CurrencyUtil.getAllTransferwiseCurrencies;
+import static haveno.core.locale.CurrencyUtil.getCurrencyByCountryCode;
+import static haveno.core.locale.CurrencyUtil.getTradeCurrencies;
+import static haveno.core.locale.CurrencyUtil.getTradeCurrenciesInList;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static java.lang.String.format;
 import static java.util.Arrays.stream;
@@ -338,7 +338,7 @@ class PaymentAccountTypeAdapter extends TypeAdapter<PaymentAccount> {
                 account.setSelectedTradeCurrency(account.getTradeCurrency().orElse(null));
             } else {
                 // Log a warning.  We should not throw an exception here because the
-                // gson library will not pass it up to the calling Bisq class as it
+                // gson library will not pass it up to the calling Haveno class as it
                 // would be defined here.  Do a check in a calling class to make sure
                 // the tradeCurrencies field is populated in the PaymentAccount
                 // object, if it is required for the payment account method.

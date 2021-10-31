@@ -1,35 +1,35 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.core.trade.protocol.tasks;
+package haveno.core.trade.protocol.tasks;
 
-import bisq.core.trade.ArbitratorTrade;
-import bisq.core.trade.MakerTrade;
-import bisq.core.trade.TakerTrade;
-import bisq.core.trade.Trade;
-import bisq.core.trade.messages.InitMultisigRequest;
-import bisq.core.trade.protocol.TradingPeer;
+import haveno.core.trade.ArbitratorTrade;
+import haveno.core.trade.MakerTrade;
+import haveno.core.trade.TakerTrade;
+import haveno.core.trade.Trade;
+import haveno.core.trade.messages.InitMultisigRequest;
+import haveno.core.trade.protocol.TradingPeer;
 
-import bisq.network.p2p.NodeAddress;
-import bisq.network.p2p.SendDirectMessageListener;
+import haveno.network.p2p.NodeAddress;
+import haveno.network.p2p.SendDirectMessageListener;
 
-import bisq.common.app.Version;
-import bisq.common.crypto.PubKeyRing;
-import bisq.common.taskrunner.TaskRunner;
+import haveno.common.app.Version;
+import haveno.common.crypto.PubKeyRing;
+import haveno.common.taskrunner.TaskRunner;
 
 import java.util.Arrays;
 import java.util.Date;
@@ -37,7 +37,7 @@ import java.util.UUID;
 
 import lombok.extern.slf4j.Slf4j;
 
-import static bisq.core.util.Validator.checkTradeId;
+import static haveno.core.util.Validator.checkTradeId;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 

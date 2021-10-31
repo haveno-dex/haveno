@@ -1,71 +1,71 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.desktop.main.offer.offerbook;
+package haveno.desktop.main.offer.offerbook;
 
-import bisq.desktop.Navigation;
-import bisq.desktop.common.view.ActivatableViewAndModel;
-import bisq.desktop.common.view.FxmlView;
-import bisq.desktop.components.AutoTooltipButton;
-import bisq.desktop.components.AutoTooltipLabel;
-import bisq.desktop.components.AutoTooltipSlideToggleButton;
-import bisq.desktop.components.AutoTooltipTableColumn;
-import bisq.desktop.components.AutocompleteComboBox;
-import bisq.desktop.components.ColoredDecimalPlacesWithZerosText;
-import bisq.desktop.components.HyperlinkWithIcon;
-import bisq.desktop.components.InfoAutoTooltipLabel;
-import bisq.desktop.components.PeerInfoIcon;
-import bisq.desktop.components.TitledGroupBg;
-import bisq.desktop.main.MainView;
-import bisq.desktop.main.account.AccountView;
-import bisq.desktop.main.account.content.fiataccounts.FiatAccountsView;
-import bisq.desktop.main.funds.FundsView;
-import bisq.desktop.main.funds.withdrawal.WithdrawalView;
-import bisq.desktop.main.offer.OfferView;
-import bisq.desktop.main.overlays.popups.Popup;
-import bisq.desktop.main.overlays.windows.OfferDetailsWindow;
-import bisq.desktop.util.CssTheme;
-import bisq.desktop.util.FormBuilder;
-import bisq.desktop.util.GUIUtil;
-import bisq.desktop.util.Layout;
+import haveno.desktop.Navigation;
+import haveno.desktop.common.view.ActivatableViewAndModel;
+import haveno.desktop.common.view.FxmlView;
+import haveno.desktop.components.AutoTooltipButton;
+import haveno.desktop.components.AutoTooltipLabel;
+import haveno.desktop.components.AutoTooltipSlideToggleButton;
+import haveno.desktop.components.AutoTooltipTableColumn;
+import haveno.desktop.components.AutocompleteComboBox;
+import haveno.desktop.components.ColoredDecimalPlacesWithZerosText;
+import haveno.desktop.components.HyperlinkWithIcon;
+import haveno.desktop.components.InfoAutoTooltipLabel;
+import haveno.desktop.components.PeerInfoIcon;
+import haveno.desktop.components.TitledGroupBg;
+import haveno.desktop.main.MainView;
+import haveno.desktop.main.account.AccountView;
+import haveno.desktop.main.account.content.fiataccounts.FiatAccountsView;
+import haveno.desktop.main.funds.FundsView;
+import haveno.desktop.main.funds.withdrawal.WithdrawalView;
+import haveno.desktop.main.offer.OfferView;
+import haveno.desktop.main.overlays.popups.Popup;
+import haveno.desktop.main.overlays.windows.OfferDetailsWindow;
+import haveno.desktop.util.CssTheme;
+import haveno.desktop.util.FormBuilder;
+import haveno.desktop.util.GUIUtil;
+import haveno.desktop.util.Layout;
 
-import bisq.core.account.sign.SignedWitnessService;
-import bisq.core.account.witness.AccountAgeWitnessService;
-import bisq.core.alert.PrivateNotificationManager;
-import bisq.core.locale.CurrencyUtil;
-import bisq.core.locale.FiatCurrency;
-import bisq.core.locale.Res;
-import bisq.core.locale.TradeCurrency;
-import bisq.core.monetary.Price;
-import bisq.core.offer.Offer;
-import bisq.core.offer.OfferFilter;
-import bisq.core.offer.OfferPayload;
-import bisq.core.offer.OfferRestrictions;
-import bisq.core.payment.PaymentAccount;
-import bisq.core.payment.payload.PaymentMethod;
-import bisq.core.user.DontShowAgainLookup;
-import bisq.core.util.FormattingUtils;
-import bisq.core.util.coin.CoinFormatter;
+import haveno.core.account.sign.SignedWitnessService;
+import haveno.core.account.witness.AccountAgeWitnessService;
+import haveno.core.alert.PrivateNotificationManager;
+import haveno.core.locale.CurrencyUtil;
+import haveno.core.locale.FiatCurrency;
+import haveno.core.locale.Res;
+import haveno.core.locale.TradeCurrency;
+import haveno.core.monetary.Price;
+import haveno.core.offer.Offer;
+import haveno.core.offer.OfferFilter;
+import haveno.core.offer.OfferPayload;
+import haveno.core.offer.OfferRestrictions;
+import haveno.core.payment.PaymentAccount;
+import haveno.core.payment.payload.PaymentMethod;
+import haveno.core.user.DontShowAgainLookup;
+import haveno.core.util.FormattingUtils;
+import haveno.core.util.coin.CoinFormatter;
 
-import bisq.network.p2p.NodeAddress;
+import haveno.network.p2p.NodeAddress;
 
-import bisq.common.app.DevEnv;
-import bisq.common.config.Config;
-import bisq.common.util.Tuple3;
+import haveno.common.app.DevEnv;
+import haveno.common.config.Config;
+import haveno.common.util.Tuple3;
 
 import org.bitcoinj.core.Coin;
 
@@ -115,7 +115,7 @@ import java.util.Optional;
 
 import org.jetbrains.annotations.NotNull;
 
-import static bisq.desktop.util.FormBuilder.addTitledGroupBg;
+import static haveno.desktop.util.FormBuilder.addTitledGroupBg;
 
 @FxmlView
 public class OfferBookView extends ActivatableViewAndModel<GridPane, OfferBookViewModel> {
@@ -308,7 +308,7 @@ public class OfferBookView extends ActivatableViewAndModel<GridPane, OfferBookVi
         offerListListener = c -> nrOfOffersLabel.setText(Res.get("offerbook.nrOffers", model.getOfferList().size()));
 
         // Fixes incorrect ordering of Available offers:
-        // https://github.com/bisq-network/bisq-desktop/issues/588
+        // https://github.com/haveno-network/haveno-desktop/issues/588
         priceFeedUpdateCounterListener = (observable, oldValue, newValue) -> tableView.sort();
     }
 

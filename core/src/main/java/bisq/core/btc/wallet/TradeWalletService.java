@@ -1,37 +1,37 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.core.btc.wallet;
+package haveno.core.btc.wallet;
 
-import bisq.core.btc.exceptions.SigningException;
-import bisq.core.btc.exceptions.TransactionVerificationException;
-import bisq.core.btc.exceptions.WalletException;
-import bisq.core.btc.model.AddressEntry;
-import bisq.core.btc.model.InputsAndChangeOutput;
-import bisq.core.btc.model.PreparedDepositTxAndMakerInputs;
-import bisq.core.btc.model.RawTransactionInput;
-import bisq.core.btc.setup.WalletConfig;
-import bisq.core.btc.setup.WalletsSetup;
-import bisq.core.locale.Res;
-import bisq.core.user.Preferences;
-import bisq.core.util.ParsingUtils;
+import haveno.core.btc.exceptions.SigningException;
+import haveno.core.btc.exceptions.TransactionVerificationException;
+import haveno.core.btc.exceptions.WalletException;
+import haveno.core.btc.model.AddressEntry;
+import haveno.core.btc.model.InputsAndChangeOutput;
+import haveno.core.btc.model.PreparedDepositTxAndMakerInputs;
+import haveno.core.btc.model.RawTransactionInput;
+import haveno.core.btc.setup.WalletConfig;
+import haveno.core.btc.setup.WalletsSetup;
+import haveno.core.locale.Res;
+import haveno.core.user.Preferences;
+import haveno.core.util.ParsingUtils;
 
-import bisq.common.config.Config;
-import bisq.common.util.Tuple2;
+import haveno.common.config.Config;
+import haveno.common.util.Tuple2;
 
 import org.bitcoinj.core.Address;
 import org.bitcoinj.core.AddressFormatException;
@@ -1101,7 +1101,7 @@ public class TradeWalletService {
                 "input.getConnectedOutput().getParentTransaction() must not be null");
         checkNotNull(input.getValue(), "input.getValue() must not be null");
 
-        // bitcoinSerialize(false) is used just in case the serialized tx is parsed by a bisq node still using
+        // bitcoinSerialize(false) is used just in case the serialized tx is parsed by a haveno node still using
         // bitcoinj 0.14. This is not supposed to happen ever since Version.TRADE_PROTOCOL_VERSION was set to 3,
         // but it costs nothing to be on the safe side.
         // The serialized tx is just used to obtain its hash, so the witness data is not relevant.

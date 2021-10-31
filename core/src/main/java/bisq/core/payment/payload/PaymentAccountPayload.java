@@ -1,28 +1,28 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.core.payment.payload;
+package haveno.core.payment.payload;
 
-import bisq.common.consensus.UsedForTradeContractJson;
-import bisq.common.crypto.CryptoUtils;
-import bisq.common.crypto.Hash;
-import bisq.common.proto.network.NetworkPayload;
-import bisq.common.util.JsonExclude;
-import bisq.common.util.Utilities;
+import haveno.common.consensus.UsedForTradeContractJson;
+import haveno.common.crypto.CryptoUtils;
+import haveno.common.crypto.Hash;
+import haveno.common.proto.network.NetworkPayload;
+import haveno.common.util.JsonExclude;
+import haveno.common.util.Utilities;
 
 import org.apache.commons.lang3.ArrayUtils;
 

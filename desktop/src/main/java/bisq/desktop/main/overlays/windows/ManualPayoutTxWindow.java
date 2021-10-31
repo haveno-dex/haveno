@@ -1,51 +1,51 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.desktop.main.overlays.windows;
+package haveno.desktop.main.overlays.windows;
 
-import bisq.desktop.components.AutoTooltipButton;
-import bisq.desktop.components.BisqTextArea;
-import bisq.desktop.components.InputTextField;
-import bisq.desktop.main.overlays.Overlay;
-import bisq.desktop.main.overlays.popups.Popup;
-import bisq.desktop.util.GUIUtil;
-import bisq.desktop.util.validation.LengthValidator;
-import bisq.desktop.util.validation.PercentageNumberValidator;
+import haveno.desktop.components.AutoTooltipButton;
+import haveno.desktop.components.HavenoTextArea;
+import haveno.desktop.components.InputTextField;
+import haveno.desktop.main.overlays.Overlay;
+import haveno.desktop.main.overlays.popups.Popup;
+import haveno.desktop.util.GUIUtil;
+import haveno.desktop.util.validation.LengthValidator;
+import haveno.desktop.util.validation.PercentageNumberValidator;
 
-import bisq.core.btc.exceptions.TransactionVerificationException;
-import bisq.core.btc.exceptions.TxBroadcastException;
-import bisq.core.btc.exceptions.WalletException;
-import bisq.core.btc.setup.WalletsSetup;
-import bisq.core.btc.wallet.TradeWalletService;
-import bisq.core.btc.wallet.TxBroadcaster;
-import bisq.core.btc.wallet.WalletsManager;
-import bisq.core.locale.Res;
-import bisq.core.support.dispute.Dispute;
-import bisq.core.support.dispute.mediation.MediationManager;
-import bisq.core.user.BlockChainExplorer;
-import bisq.core.user.Preferences;
+import haveno.core.btc.exceptions.TransactionVerificationException;
+import haveno.core.btc.exceptions.TxBroadcastException;
+import haveno.core.btc.exceptions.WalletException;
+import haveno.core.btc.setup.WalletsSetup;
+import haveno.core.btc.wallet.TradeWalletService;
+import haveno.core.btc.wallet.TxBroadcaster;
+import haveno.core.btc.wallet.WalletsManager;
+import haveno.core.locale.Res;
+import haveno.core.support.dispute.Dispute;
+import haveno.core.support.dispute.mediation.MediationManager;
+import haveno.core.user.BlockChainExplorer;
+import haveno.core.user.Preferences;
 
-import bisq.network.p2p.P2PService;
+import haveno.network.p2p.P2PService;
 
-import bisq.common.UserThread;
-import bisq.common.config.Config;
-import bisq.common.util.Base64;
-import bisq.common.util.Tuple2;
-import bisq.common.util.Utilities;
+import haveno.common.UserThread;
+import haveno.common.config.Config;
+import haveno.common.util.Base64;
+import haveno.common.util.Tuple2;
+import haveno.common.util.Utilities;
 
 import org.bitcoinj.core.Address;
 import org.bitcoinj.core.AddressFormatException;
@@ -100,7 +100,7 @@ import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
 
-import static bisq.desktop.util.FormBuilder.*;
+import static haveno.desktop.util.FormBuilder.*;
 
 // We don't translate here as it is for dev only purpose
 public class ManualPayoutTxWindow extends Overlay<ManualPayoutTxWindow> {
@@ -359,7 +359,7 @@ public class ManualPayoutTxWindow extends Overlay<ManualPayoutTxWindow> {
         int rowIndexB = 0;
         importTxGridPane = new GridPane();
         gridPane.add(importTxGridPane, 1, rowIndex);
-        importHex = new BisqTextArea();
+        importHex = new HavenoTextArea();
         importHex.setEditable(true);
         importHex.setWrapText(true);
         importHex.setPrefSize(800, 150);
@@ -412,7 +412,7 @@ public class ManualPayoutTxWindow extends Overlay<ManualPayoutTxWindow> {
     private void addExportPane() {
         exportTxGridPane = new GridPane();
         gridPane.add(exportTxGridPane, 1, rowIndex);
-        exportHex = new BisqTextArea();
+        exportHex = new HavenoTextArea();
         exportHex.setEditable(false);
         exportHex.setWrapText(true);
         exportHex.setPrefSize(800, 250);
@@ -473,7 +473,7 @@ public class ManualPayoutTxWindow extends Overlay<ManualPayoutTxWindow> {
         buyerSignatureAsHex = addInputTextField(buildTxGridPane, ++rowIndexA, "buyerSignatureAsHex");
         sellerSignatureAsHex = addInputTextField(buildTxGridPane, ++rowIndexA, "sellerSignatureAsHex");
         buildTxGridPane.add(new Label(""), 0, ++rowIndexA);  // spacer
-        finalSignedTxHex = new BisqTextArea();
+        finalSignedTxHex = new HavenoTextArea();
         finalSignedTxHex.setEditable(false);
         finalSignedTxHex.setWrapText(true);
         finalSignedTxHex.setPrefSize(800, 250);
@@ -496,7 +496,7 @@ public class ManualPayoutTxWindow extends Overlay<ManualPayoutTxWindow> {
     private GridPane addSignVerifyMsgPane(GridPane myGridPane) {
         int rowIndexB = 0;
         gridPane.add(myGridPane, 1, rowIndex);
-        TextArea messageText = new BisqTextArea();
+        TextArea messageText = new HavenoTextArea();
         messageText.setPromptText("Message");
         messageText.setEditable(true);
         messageText.setWrapText(true);
@@ -505,7 +505,7 @@ public class ManualPayoutTxWindow extends Overlay<ManualPayoutTxWindow> {
         myGridPane.add(new Label(""), 0, ++rowIndexB);  // spacer
         InputTextField address = addInputTextField(myGridPane, ++rowIndexB, "Address");
         myGridPane.add(new Label(""), 0, ++rowIndexB);  // spacer
-        TextArea messageSig = new BisqTextArea();
+        TextArea messageSig = new HavenoTextArea();
         messageSig.setPromptText("Signature");
         messageSig.setEditable(true);
         messageSig.setWrapText(true);

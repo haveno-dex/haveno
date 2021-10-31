@@ -1,30 +1,30 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.core.trade.txproof.xmr;
+package haveno.core.trade.txproof.xmr;
 
-import bisq.core.monetary.Volume;
-import bisq.core.payment.payload.AssetsAccountPayload;
-import bisq.core.payment.payload.PaymentAccountPayload;
-import bisq.core.trade.Trade;
-import bisq.core.trade.txproof.AssetTxProofModel;
-import bisq.core.user.AutoConfirmSettings;
+import haveno.core.monetary.Volume;
+import haveno.core.payment.payload.AssetsAccountPayload;
+import haveno.core.payment.payload.PaymentAccountPayload;
+import haveno.core.trade.Trade;
+import haveno.core.trade.txproof.AssetTxProofModel;
+import haveno.core.user.AutoConfirmSettings;
 
-import bisq.common.app.DevEnv;
+import haveno.common.app.DevEnv;
 
 import org.bitcoinj.core.Coin;
 

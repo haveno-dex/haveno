@@ -1,9 +1,9 @@
-package bisq.daemon.grpc;
+package haveno.daemon.grpc;
 
-import bisq.core.api.CoreApi;
+import haveno.core.api.CoreApi;
 
-import bisq.proto.grpc.RegisterDisputeAgentReply;
-import bisq.proto.grpc.RegisterDisputeAgentRequest;
+import haveno.proto.grpc.RegisterDisputeAgentReply;
+import haveno.proto.grpc.RegisterDisputeAgentRequest;
 
 import io.grpc.ServerInterceptor;
 import io.grpc.stub.StreamObserver;
@@ -15,15 +15,15 @@ import java.util.Optional;
 
 import lombok.extern.slf4j.Slf4j;
 
-import static bisq.daemon.grpc.interceptor.GrpcServiceRateMeteringConfig.getCustomRateMeteringInterceptor;
-import static bisq.proto.grpc.DisputeAgentsGrpc.DisputeAgentsImplBase;
-import static bisq.proto.grpc.DisputeAgentsGrpc.getRegisterDisputeAgentMethod;
+import static haveno.daemon.grpc.interceptor.GrpcServiceRateMeteringConfig.getCustomRateMeteringInterceptor;
+import static haveno.proto.grpc.DisputeAgentsGrpc.DisputeAgentsImplBase;
+import static haveno.proto.grpc.DisputeAgentsGrpc.getRegisterDisputeAgentMethod;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
 
 
-import bisq.daemon.grpc.interceptor.CallRateMeteringInterceptor;
-import bisq.daemon.grpc.interceptor.GrpcCallRateMeter;
+import haveno.daemon.grpc.interceptor.CallRateMeteringInterceptor;
+import haveno.daemon.grpc.interceptor.GrpcCallRateMeter;
 
 @Slf4j
 class GrpcDisputeAgentsService extends DisputeAgentsImplBase {

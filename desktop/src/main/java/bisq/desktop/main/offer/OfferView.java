@@ -1,45 +1,45 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.desktop.main.offer;
+package haveno.desktop.main.offer;
 
-import bisq.desktop.Navigation;
-import bisq.desktop.common.view.ActivatableView;
-import bisq.desktop.common.view.View;
-import bisq.desktop.common.view.ViewLoader;
-import bisq.desktop.main.MainView;
-import bisq.desktop.main.offer.createoffer.CreateOfferView;
-import bisq.desktop.main.offer.offerbook.OfferBookView;
-import bisq.desktop.main.offer.takeoffer.TakeOfferView;
-import bisq.desktop.main.overlays.popups.Popup;
-import bisq.desktop.util.GUIUtil;
+import haveno.desktop.Navigation;
+import haveno.desktop.common.view.ActivatableView;
+import haveno.desktop.common.view.View;
+import haveno.desktop.common.view.ViewLoader;
+import haveno.desktop.main.MainView;
+import haveno.desktop.main.offer.createoffer.CreateOfferView;
+import haveno.desktop.main.offer.offerbook.OfferBookView;
+import haveno.desktop.main.offer.takeoffer.TakeOfferView;
+import haveno.desktop.main.overlays.popups.Popup;
+import haveno.desktop.util.GUIUtil;
 
-import bisq.core.locale.CurrencyUtil;
-import bisq.core.locale.GlobalSettings;
-import bisq.core.locale.LanguageUtil;
-import bisq.core.locale.Res;
-import bisq.core.locale.TradeCurrency;
-import bisq.core.offer.Offer;
-import bisq.core.offer.OfferPayload;
-import bisq.core.support.dispute.arbitration.arbitrator.ArbitratorManager;
-import bisq.core.user.Preferences;
-import bisq.core.user.User;
+import haveno.core.locale.CurrencyUtil;
+import haveno.core.locale.GlobalSettings;
+import haveno.core.locale.LanguageUtil;
+import haveno.core.locale.Res;
+import haveno.core.locale.TradeCurrency;
+import haveno.core.offer.Offer;
+import haveno.core.offer.OfferPayload;
+import haveno.core.support.dispute.arbitration.arbitrator.ArbitratorManager;
+import haveno.core.user.Preferences;
+import haveno.core.user.User;
 
-import bisq.network.p2p.P2PService;
+import haveno.network.p2p.P2PService;
 
 import javafx.scene.control.Tab;
 import javafx.scene.control.TabPane;

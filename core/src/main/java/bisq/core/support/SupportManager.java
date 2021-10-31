@@ -1,39 +1,39 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.core.support;
+package haveno.core.support;
 
-import bisq.core.btc.setup.WalletsSetup;
-import bisq.core.locale.Res;
-import bisq.core.support.messages.ChatMessage;
-import bisq.core.support.messages.SupportMessage;
+import haveno.core.btc.setup.WalletsSetup;
+import haveno.core.locale.Res;
+import haveno.core.support.messages.ChatMessage;
+import haveno.core.support.messages.SupportMessage;
 
-import bisq.network.p2p.AckMessage;
-import bisq.network.p2p.AckMessageSourceType;
-import bisq.network.p2p.DecryptedMessageWithPubKey;
-import bisq.network.p2p.NodeAddress;
-import bisq.network.p2p.P2PService;
-import bisq.network.p2p.SendMailboxMessageListener;
-import bisq.network.p2p.mailbox.MailboxMessageService;
+import haveno.network.p2p.AckMessage;
+import haveno.network.p2p.AckMessageSourceType;
+import haveno.network.p2p.DecryptedMessageWithPubKey;
+import haveno.network.p2p.NodeAddress;
+import haveno.network.p2p.P2PService;
+import haveno.network.p2p.SendMailboxMessageListener;
+import haveno.network.p2p.mailbox.MailboxMessageService;
 
-import bisq.common.Timer;
-import bisq.common.UserThread;
-import bisq.common.crypto.PubKeyRing;
-import bisq.common.proto.network.NetworkEnvelope;
+import haveno.common.Timer;
+import haveno.common.UserThread;
+import haveno.common.crypto.PubKeyRing;
+import haveno.common.proto.network.NetworkEnvelope;
 
 import java.util.HashMap;
 import java.util.List;

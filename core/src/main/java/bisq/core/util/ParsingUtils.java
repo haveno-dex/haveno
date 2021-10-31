@@ -1,9 +1,9 @@
-package bisq.core.util;
+package haveno.core.util;
 
-import bisq.core.monetary.Price;
-import bisq.core.util.coin.CoinFormatter;
+import haveno.core.monetary.Price;
+import haveno.core.util.coin.CoinFormatter;
 
-import bisq.common.util.MathUtils;
+import haveno.common.util.MathUtils;
 
 import org.bitcoinj.core.Coin;
 import org.bitcoinj.utils.MonetaryFormat;

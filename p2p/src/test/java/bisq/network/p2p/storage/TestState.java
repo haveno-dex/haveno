@@ -1,47 +1,47 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.network.p2p.storage;
+package haveno.network.p2p.storage;
 
-import bisq.network.p2p.NodeAddress;
-import bisq.network.p2p.network.NetworkNode;
-import bisq.network.p2p.peers.Broadcaster;
-import bisq.network.p2p.storage.messages.AddDataMessage;
-import bisq.network.p2p.storage.messages.AddPersistableNetworkPayloadMessage;
-import bisq.network.p2p.storage.messages.BroadcastMessage;
-import bisq.network.p2p.storage.messages.RefreshOfferMessage;
-import bisq.network.p2p.storage.messages.RemoveDataMessage;
-import bisq.network.p2p.storage.messages.RemoveMailboxDataMessage;
-import bisq.network.p2p.storage.mocks.AppendOnlyDataStoreServiceFake;
-import bisq.network.p2p.storage.mocks.ClockFake;
-import bisq.network.p2p.storage.mocks.MapStoreServiceFake;
-import bisq.network.p2p.storage.payload.MailboxStoragePayload;
-import bisq.network.p2p.storage.payload.PersistableNetworkPayload;
-import bisq.network.p2p.storage.payload.ProtectedMailboxStorageEntry;
-import bisq.network.p2p.storage.payload.ProtectedStorageEntry;
-import bisq.network.p2p.storage.persistence.AppendOnlyDataStoreListener;
-import bisq.network.p2p.storage.persistence.ProtectedDataStoreService;
-import bisq.network.p2p.storage.persistence.RemovedPayloadsService;
-import bisq.network.p2p.storage.persistence.ResourceDataStoreService;
-import bisq.network.p2p.storage.persistence.SequenceNumberMap;
+import haveno.network.p2p.NodeAddress;
+import haveno.network.p2p.network.NetworkNode;
+import haveno.network.p2p.peers.Broadcaster;
+import haveno.network.p2p.storage.messages.AddDataMessage;
+import haveno.network.p2p.storage.messages.AddPersistableNetworkPayloadMessage;
+import haveno.network.p2p.storage.messages.BroadcastMessage;
+import haveno.network.p2p.storage.messages.RefreshOfferMessage;
+import haveno.network.p2p.storage.messages.RemoveDataMessage;
+import haveno.network.p2p.storage.messages.RemoveMailboxDataMessage;
+import haveno.network.p2p.storage.mocks.AppendOnlyDataStoreServiceFake;
+import haveno.network.p2p.storage.mocks.ClockFake;
+import haveno.network.p2p.storage.mocks.MapStoreServiceFake;
+import haveno.network.p2p.storage.payload.MailboxStoragePayload;
+import haveno.network.p2p.storage.payload.PersistableNetworkPayload;
+import haveno.network.p2p.storage.payload.ProtectedMailboxStorageEntry;
+import haveno.network.p2p.storage.payload.ProtectedStorageEntry;
+import haveno.network.p2p.storage.persistence.AppendOnlyDataStoreListener;
+import haveno.network.p2p.storage.persistence.ProtectedDataStoreService;
+import haveno.network.p2p.storage.persistence.RemovedPayloadsService;
+import haveno.network.p2p.storage.persistence.ResourceDataStoreService;
+import haveno.network.p2p.storage.persistence.SequenceNumberMap;
 
-import bisq.common.crypto.Sig;
-import bisq.common.persistence.PersistenceManager;
-import bisq.common.proto.persistable.PersistablePayload;
+import haveno.common.crypto.Sig;
+import haveno.common.persistence.PersistenceManager;
+import haveno.common.proto.persistable.PersistablePayload;
 
 import java.security.PublicKey;
 

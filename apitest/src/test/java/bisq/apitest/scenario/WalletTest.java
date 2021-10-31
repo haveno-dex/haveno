@@ -1,21 +1,21 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.apitest.scenario;
+package haveno.apitest.scenario;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -27,18 +27,18 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInfo;
 import org.junit.jupiter.api.TestMethodOrder;
 
-import static bisq.apitest.Scaffold.BitcoinCoreApp.bitcoind;
-import static bisq.apitest.config.BisqAppConfig.alicedaemon;
-import static bisq.apitest.config.BisqAppConfig.arbdaemon;
-import static bisq.apitest.config.BisqAppConfig.bobdaemon;
-import static bisq.apitest.config.BisqAppConfig.seednode;
+import static haveno.apitest.Scaffold.BitcoinCoreApp.bitcoind;
+import static haveno.apitest.config.HavenoAppConfig.alicedaemon;
+import static haveno.apitest.config.HavenoAppConfig.arbdaemon;
+import static haveno.apitest.config.HavenoAppConfig.bobdaemon;
+import static haveno.apitest.config.HavenoAppConfig.seednode;
 
 
 
-import bisq.apitest.method.MethodTest;
-import bisq.apitest.method.wallet.BtcTxFeeRateTest;
-import bisq.apitest.method.wallet.BtcWalletTest;
-import bisq.apitest.method.wallet.WalletProtectionTest;
+import haveno.apitest.method.MethodTest;
+import haveno.apitest.method.wallet.BtcTxFeeRateTest;
+import haveno.apitest.method.wallet.BtcWalletTest;
+import haveno.apitest.method.wallet.WalletProtectionTest;
 
 @Slf4j
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)

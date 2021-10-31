@@ -1,33 +1,33 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.desktop.main.market.trades;
+package haveno.desktop.main.market.trades;
 
-import bisq.desktop.Navigation;
-import bisq.desktop.main.market.trades.charts.CandleData;
+import haveno.desktop.Navigation;
+import haveno.desktop.main.market.trades.charts.CandleData;
 
-import bisq.core.locale.FiatCurrency;
-import bisq.core.monetary.Price;
-import bisq.core.offer.OfferPayload;
-import bisq.core.payment.payload.PaymentMethod;
-import bisq.core.provider.price.PriceFeedService;
-import bisq.core.trade.statistics.TradeStatistics3;
-import bisq.core.trade.statistics.TradeStatisticsManager;
-import bisq.core.user.Preferences;
+import haveno.core.locale.FiatCurrency;
+import haveno.core.monetary.Price;
+import haveno.core.offer.OfferPayload;
+import haveno.core.payment.payload.PaymentMethod;
+import haveno.core.provider.price.PriceFeedService;
+import haveno.core.trade.statistics.TradeStatistics3;
+import haveno.core.trade.statistics.TradeStatisticsManager;
+import haveno.core.user.Preferences;
 
 import org.bitcoinj.core.Coin;
 import org.bitcoinj.utils.Fiat;

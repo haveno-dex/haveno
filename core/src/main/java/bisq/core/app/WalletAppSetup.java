@@ -1,36 +1,36 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.core.app;
+package haveno.core.app;
 
-import bisq.core.api.CoreContext;
-import bisq.core.btc.exceptions.InvalidHostException;
-import bisq.core.btc.exceptions.RejectedTxException;
-import bisq.core.btc.setup.WalletsSetup;
-import bisq.core.btc.wallet.WalletsManager;
-import bisq.core.locale.Res;
-import bisq.core.offer.OpenOfferManager;
-import bisq.core.provider.fee.FeeService;
-import bisq.core.trade.TradeManager;
-import bisq.core.user.Preferences;
-import bisq.core.util.FormattingUtils;
+import haveno.core.api.CoreContext;
+import haveno.core.btc.exceptions.InvalidHostException;
+import haveno.core.btc.exceptions.RejectedTxException;
+import haveno.core.btc.setup.WalletsSetup;
+import haveno.core.btc.wallet.WalletsManager;
+import haveno.core.locale.Res;
+import haveno.core.offer.OpenOfferManager;
+import haveno.core.provider.fee.FeeService;
+import haveno.core.trade.TradeManager;
+import haveno.core.user.Preferences;
+import haveno.core.util.FormattingUtils;
 
-import bisq.common.UserThread;
-import bisq.common.config.Config;
+import haveno.common.UserThread;
+import haveno.common.config.Config;
 
 import org.bitcoinj.core.RejectMessage;
 import org.bitcoinj.core.VersionMessage;

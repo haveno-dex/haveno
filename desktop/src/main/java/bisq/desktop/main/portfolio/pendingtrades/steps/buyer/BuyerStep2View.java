@@ -1,90 +1,90 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.desktop.main.portfolio.pendingtrades.steps.buyer;
+package haveno.desktop.main.portfolio.pendingtrades.steps.buyer;
 
-import bisq.desktop.components.AutoTooltipButton;
-import bisq.desktop.components.BusyAnimation;
-import bisq.desktop.components.TextFieldWithCopyIcon;
-import bisq.desktop.components.TitledGroupBg;
-import bisq.desktop.components.paymentmethods.AdvancedCashForm;
-import bisq.desktop.components.paymentmethods.AliPayForm;
-import bisq.desktop.components.paymentmethods.AmazonGiftCardForm;
-import bisq.desktop.components.paymentmethods.AssetsForm;
-import bisq.desktop.components.paymentmethods.CashByMailForm;
-import bisq.desktop.components.paymentmethods.CashDepositForm;
-import bisq.desktop.components.paymentmethods.ChaseQuickPayForm;
-import bisq.desktop.components.paymentmethods.ClearXchangeForm;
-import bisq.desktop.components.paymentmethods.F2FForm;
-import bisq.desktop.components.paymentmethods.FasterPaymentsForm;
-import bisq.desktop.components.paymentmethods.HalCashForm;
-import bisq.desktop.components.paymentmethods.InteracETransferForm;
-import bisq.desktop.components.paymentmethods.JapanBankTransferForm;
-import bisq.desktop.components.paymentmethods.MoneyBeamForm;
-import bisq.desktop.components.paymentmethods.MoneyGramForm;
-import bisq.desktop.components.paymentmethods.NationalBankForm;
-import bisq.desktop.components.paymentmethods.PerfectMoneyForm;
-import bisq.desktop.components.paymentmethods.PopmoneyForm;
-import bisq.desktop.components.paymentmethods.PromptPayForm;
-import bisq.desktop.components.paymentmethods.RevolutForm;
-import bisq.desktop.components.paymentmethods.SameBankForm;
-import bisq.desktop.components.paymentmethods.SepaForm;
-import bisq.desktop.components.paymentmethods.SepaInstantForm;
-import bisq.desktop.components.paymentmethods.SpecificBankForm;
-import bisq.desktop.components.paymentmethods.SwishForm;
-import bisq.desktop.components.paymentmethods.TransferwiseForm;
-import bisq.desktop.components.paymentmethods.USPostalMoneyOrderForm;
-import bisq.desktop.components.paymentmethods.UpholdForm;
-import bisq.desktop.components.paymentmethods.WeChatPayForm;
-import bisq.desktop.components.paymentmethods.WesternUnionForm;
-import bisq.desktop.main.MainView;
-import bisq.desktop.main.overlays.popups.Popup;
-import bisq.desktop.main.overlays.windows.SetXmrTxKeyWindow;
-import bisq.desktop.main.portfolio.pendingtrades.PendingTradesViewModel;
-import bisq.desktop.main.portfolio.pendingtrades.steps.TradeStepView;
-import bisq.desktop.util.DisplayUtils;
-import bisq.desktop.util.Layout;
-import bisq.desktop.util.Transitions;
+import haveno.desktop.components.AutoTooltipButton;
+import haveno.desktop.components.BusyAnimation;
+import haveno.desktop.components.TextFieldWithCopyIcon;
+import haveno.desktop.components.TitledGroupBg;
+import haveno.desktop.components.paymentmethods.AdvancedCashForm;
+import haveno.desktop.components.paymentmethods.AliPayForm;
+import haveno.desktop.components.paymentmethods.AmazonGiftCardForm;
+import haveno.desktop.components.paymentmethods.AssetsForm;
+import haveno.desktop.components.paymentmethods.CashByMailForm;
+import haveno.desktop.components.paymentmethods.CashDepositForm;
+import haveno.desktop.components.paymentmethods.ChaseQuickPayForm;
+import haveno.desktop.components.paymentmethods.ClearXchangeForm;
+import haveno.desktop.components.paymentmethods.F2FForm;
+import haveno.desktop.components.paymentmethods.FasterPaymentsForm;
+import haveno.desktop.components.paymentmethods.HalCashForm;
+import haveno.desktop.components.paymentmethods.InteracETransferForm;
+import haveno.desktop.components.paymentmethods.JapanBankTransferForm;
+import haveno.desktop.components.paymentmethods.MoneyBeamForm;
+import haveno.desktop.components.paymentmethods.MoneyGramForm;
+import haveno.desktop.components.paymentmethods.NationalBankForm;
+import haveno.desktop.components.paymentmethods.PerfectMoneyForm;
+import haveno.desktop.components.paymentmethods.PopmoneyForm;
+import haveno.desktop.components.paymentmethods.PromptPayForm;
+import haveno.desktop.components.paymentmethods.RevolutForm;
+import haveno.desktop.components.paymentmethods.SameBankForm;
+import haveno.desktop.components.paymentmethods.SepaForm;
+import haveno.desktop.components.paymentmethods.SepaInstantForm;
+import haveno.desktop.components.paymentmethods.SpecificBankForm;
+import haveno.desktop.components.paymentmethods.SwishForm;
+import haveno.desktop.components.paymentmethods.TransferwiseForm;
+import haveno.desktop.components.paymentmethods.USPostalMoneyOrderForm;
+import haveno.desktop.components.paymentmethods.UpholdForm;
+import haveno.desktop.components.paymentmethods.WeChatPayForm;
+import haveno.desktop.components.paymentmethods.WesternUnionForm;
+import haveno.desktop.main.MainView;
+import haveno.desktop.main.overlays.popups.Popup;
+import haveno.desktop.main.overlays.windows.SetXmrTxKeyWindow;
+import haveno.desktop.main.portfolio.pendingtrades.PendingTradesViewModel;
+import haveno.desktop.main.portfolio.pendingtrades.steps.TradeStepView;
+import haveno.desktop.util.DisplayUtils;
+import haveno.desktop.util.Layout;
+import haveno.desktop.util.Transitions;
 
-import bisq.core.locale.Res;
-import bisq.core.monetary.Volume;
-import bisq.core.network.MessageState;
-import bisq.core.offer.Offer;
-import bisq.core.payment.PaymentAccount;
-import bisq.core.payment.PaymentAccountUtil;
-import bisq.core.payment.payload.AssetsAccountPayload;
-import bisq.core.payment.payload.CashByMailAccountPayload;
-import bisq.core.payment.payload.CashDepositAccountPayload;
-import bisq.core.payment.payload.F2FAccountPayload;
-import bisq.core.payment.payload.FasterPaymentsAccountPayload;
-import bisq.core.payment.payload.HalCashAccountPayload;
-import bisq.core.payment.payload.MoneyGramAccountPayload;
-import bisq.core.payment.payload.PaymentAccountPayload;
-import bisq.core.payment.payload.PaymentMethod;
-import bisq.core.payment.payload.USPostalMoneyOrderAccountPayload;
-import bisq.core.payment.payload.WesternUnionAccountPayload;
-import bisq.core.trade.Trade;
-import bisq.core.user.DontShowAgainLookup;
+import haveno.core.locale.Res;
+import haveno.core.monetary.Volume;
+import haveno.core.network.MessageState;
+import haveno.core.offer.Offer;
+import haveno.core.payment.PaymentAccount;
+import haveno.core.payment.PaymentAccountUtil;
+import haveno.core.payment.payload.AssetsAccountPayload;
+import haveno.core.payment.payload.CashByMailAccountPayload;
+import haveno.core.payment.payload.CashDepositAccountPayload;
+import haveno.core.payment.payload.F2FAccountPayload;
+import haveno.core.payment.payload.FasterPaymentsAccountPayload;
+import haveno.core.payment.payload.HalCashAccountPayload;
+import haveno.core.payment.payload.MoneyGramAccountPayload;
+import haveno.core.payment.payload.PaymentAccountPayload;
+import haveno.core.payment.payload.PaymentMethod;
+import haveno.core.payment.payload.USPostalMoneyOrderAccountPayload;
+import haveno.core.payment.payload.WesternUnionAccountPayload;
+import haveno.core.trade.Trade;
+import haveno.core.user.DontShowAgainLookup;
 
-import bisq.common.Timer;
-import bisq.common.UserThread;
-import bisq.common.app.DevEnv;
-import bisq.common.util.Tuple2;
-import bisq.common.util.Tuple4;
+import haveno.common.Timer;
+import haveno.common.UserThread;
+import haveno.common.app.DevEnv;
+import haveno.common.util.Tuple2;
+import haveno.common.util.Tuple4;
 
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
@@ -98,10 +98,10 @@ import org.fxmisc.easybind.Subscription;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-import static bisq.desktop.util.FormBuilder.addButtonBusyAnimationLabel;
-import static bisq.desktop.util.FormBuilder.addCompactTopLabelTextFieldWithCopyIcon;
-import static bisq.desktop.util.FormBuilder.addTitledGroupBg;
-import static bisq.desktop.util.FormBuilder.addTopLabelTextFieldWithCopyIcon;
+import static haveno.desktop.util.FormBuilder.addButtonBusyAnimationLabel;
+import static haveno.desktop.util.FormBuilder.addCompactTopLabelTextFieldWithCopyIcon;
+import static haveno.desktop.util.FormBuilder.addTitledGroupBg;
+import static haveno.desktop.util.FormBuilder.addTopLabelTextFieldWithCopyIcon;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 public class BuyerStep2View extends TradeStepView {

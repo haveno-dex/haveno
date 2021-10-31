@@ -1,33 +1,33 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.core.api;
+package haveno.core.api;
 
-import bisq.core.support.SupportType;
-import bisq.core.support.dispute.mediation.mediator.Mediator;
-import bisq.core.support.dispute.mediation.mediator.MediatorManager;
-import bisq.core.support.dispute.refund.refundagent.RefundAgent;
-import bisq.core.support.dispute.refund.refundagent.RefundAgentManager;
+import haveno.core.support.SupportType;
+import haveno.core.support.dispute.mediation.mediator.Mediator;
+import haveno.core.support.dispute.mediation.mediator.MediatorManager;
+import haveno.core.support.dispute.refund.refundagent.RefundAgent;
+import haveno.core.support.dispute.refund.refundagent.RefundAgentManager;
 
-import bisq.network.p2p.NodeAddress;
-import bisq.network.p2p.P2PService;
+import haveno.network.p2p.NodeAddress;
+import haveno.network.p2p.P2PService;
 
-import bisq.common.config.Config;
-import bisq.common.crypto.KeyRing;
+import haveno.common.config.Config;
+import haveno.common.crypto.KeyRing;
 
 import org.bitcoinj.core.ECKey;
 
@@ -41,11 +41,11 @@ import java.util.Optional;
 
 import lombok.extern.slf4j.Slf4j;
 
-import static bisq.common.app.DevEnv.DEV_PRIVILEGE_PRIV_KEY;
-import static bisq.core.support.SupportType.ARBITRATION;
-import static bisq.core.support.SupportType.MEDIATION;
-import static bisq.core.support.SupportType.REFUND;
-import static bisq.core.support.SupportType.TRADE;
+import static haveno.common.app.DevEnv.DEV_PRIVILEGE_PRIV_KEY;
+import static haveno.core.support.SupportType.ARBITRATION;
+import static haveno.core.support.SupportType.MEDIATION;
+import static haveno.core.support.SupportType.REFUND;
+import static haveno.core.support.SupportType.TRADE;
 import static java.lang.String.format;
 import static java.net.InetAddress.getLoopbackAddress;
 import static java.util.Arrays.asList;
@@ -83,7 +83,7 @@ class CoreDisputeAgentsService {
 
         if (config.baseCurrencyNetwork.isMainnet()
                 || !config.useLocalhostForP2P)
-            throw new IllegalStateException("dispute agents must be registered in a Bisq UI");
+            throw new IllegalStateException("dispute agents must be registered in a Haveno UI");
 
         if (!registrationKey.equals(DEV_PRIVILEGE_PRIV_KEY))
             throw new IllegalArgumentException("invalid registration key");
@@ -94,7 +94,7 @@ class CoreDisputeAgentsService {
             String signature;
             switch (supportType.get()) {
                 case ARBITRATION:
-                    throw new IllegalArgumentException("arbitrators must be registered in a Bisq UI");
+                    throw new IllegalArgumentException("arbitrators must be registered in a Haveno UI");
                 case MEDIATION:
                     ecKey = mediatorManager.getRegistrationKey(registrationKey);
                     signature = mediatorManager.signStorageSignaturePubKey(Objects.requireNonNull(ecKey));

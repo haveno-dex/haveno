@@ -1,7 +1,7 @@
-package bisq.price;
+package haveno.price;
 
-import bisq.price.spot.ExchangeRate;
-import bisq.price.spot.ExchangeRateProvider;
+import haveno.price.spot.ExchangeRate;
+import haveno.price.spot.ExchangeRateProvider;
 
 import com.google.common.collect.Sets;
 
@@ -35,8 +35,8 @@ public abstract class AbstractExchangeRateProviderTest {
 
     /**
      * Check that every retrieved currency pair is between BTC and either
-     * A) a fiat currency on the list of Bisq-supported fiat currencies, or
-     * B) an altcoin on the list of Bisq-supported altcoins
+     * A) a fiat currency on the list of Haveno-supported fiat currencies, or
+     * B) an altcoin on the list of Haveno-supported altcoins
      *
      * @param retrievedExchangeRates Exchange rates retrieved from the provider
      */

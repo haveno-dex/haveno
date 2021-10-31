@@ -1,24 +1,24 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.price.spot.providers;
+package haveno.price.spot.providers;
 
-import bisq.price.spot.ExchangeRate;
-import bisq.price.spot.ExchangeRateProvider;
+import haveno.price.spot.ExchangeRate;
+import haveno.price.spot.ExchangeRateProvider;
 
 import org.springframework.stereotype.Component;
 
@@ -29,7 +29,7 @@ import java.util.Set;
 
 /**
  * Stub implementation (similar to #CoinMarketCap) for backward compatibility with legacy
- * Bisq clients
+ * Haveno clients
  */
 @Component
 class BitcoinAverage extends ExchangeRateProvider {
@@ -38,7 +38,7 @@ class BitcoinAverage extends ExchangeRateProvider {
         // Simulate a deactivated BitcoinAverage provider
         // We still need the class to exist and be registered as a provider though,
         // because the returned data structure must contain the "btcAverageTs" key
-        // for backward compatibility with Bisq clients which hardcode that key
+        // for backward compatibility with Haveno clients which hardcode that key
         super("BA", "btcAverage", Duration.ofMinutes(100));
     }
 

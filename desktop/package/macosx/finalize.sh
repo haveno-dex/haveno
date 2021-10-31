@@ -29,19 +29,19 @@ cp "$target_dir/../../package/29CDFD3B.asc" "$target_dir/"
 # signing key
 cp "$target_dir/../../package/signingkey.asc" "$target_dir/"
 
-dmg="Bisq-$version.dmg"
+dmg="Haveno-$version.dmg"
 cp "$macos/$dmg" "$target_dir/"
 
-deb="bisq_$version-1_amd64.deb"
-deb64="Bisq-64bit-$version.deb"
+deb="haveno_$version-1_amd64.deb"
+deb64="Haveno-64bit-$version.deb"
 cp "$linux64/$deb" "$target_dir/$deb64"
 
-rpm="bisq-$version-1.x86_64.rpm"
-rpm64="Bisq-64bit-$version.rpm"
+rpm="haveno-$version-1.x86_64.rpm"
+rpm64="Haveno-64bit-$version.rpm"
 cp "$linux64/$rpm" "$target_dir/$rpm64"
 
-exe="Bisq-$version.exe"
-exe64="Bisq-64bit-$version.exe"
+exe="Haveno-$version.exe"
+exe64="Haveno-64bit-$version.exe"
 cp "$win64/$exe" "$target_dir/$exe64"
 
 rpi="jar-lib-for-raspberry-pi-$version.zip"

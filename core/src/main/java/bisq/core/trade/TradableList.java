@@ -1,29 +1,29 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.core.trade;
+package haveno.core.trade;
 
-import bisq.core.btc.wallet.XmrWalletService;
-import bisq.core.offer.OpenOffer;
-import bisq.core.proto.CoreProtoResolver;
+import haveno.core.btc.wallet.XmrWalletService;
+import haveno.core.offer.OpenOffer;
+import haveno.core.proto.CoreProtoResolver;
 
-import bisq.common.proto.ProtoUtil;
-import bisq.common.proto.ProtobufferRuntimeException;
-import bisq.common.proto.persistable.PersistableListAsObservable;
+import haveno.common.proto.ProtoUtil;
+import haveno.common.proto.ProtobufferRuntimeException;
+import haveno.common.proto.persistable.PersistableListAsObservable;
 
 import com.google.protobuf.Message;
 

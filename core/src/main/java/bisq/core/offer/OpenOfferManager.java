@@ -1,75 +1,75 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.core.offer;
+package haveno.core.offer;
 
-import bisq.core.api.CoreContext;
-import bisq.core.btc.wallet.BtcWalletService;
-import bisq.core.btc.wallet.TradeWalletService;
-import bisq.core.btc.wallet.XmrWalletService;
-import bisq.core.exceptions.TradePriceOutOfToleranceException;
-import bisq.core.filter.FilterManager;
-import bisq.core.locale.Res;
-import bisq.core.offer.availability.DisputeAgentSelection;
-import bisq.core.offer.messages.OfferAvailabilityRequest;
-import bisq.core.offer.messages.OfferAvailabilityResponse;
-import bisq.core.offer.messages.SignOfferRequest;
-import bisq.core.offer.messages.SignOfferResponse;
-import bisq.core.offer.placeoffer.PlaceOfferModel;
-import bisq.core.offer.placeoffer.PlaceOfferProtocol;
-import bisq.core.provider.price.PriceFeedService;
-import bisq.core.support.dispute.arbitration.arbitrator.ArbitratorManager;
-import bisq.core.support.dispute.mediation.mediator.Mediator;
-import bisq.core.support.dispute.mediation.mediator.MediatorManager;
-import bisq.core.trade.TradableList;
-import bisq.core.trade.TradeUtils;
-import bisq.core.trade.closed.ClosedTradableManager;
-import bisq.core.trade.handlers.TransactionResultHandler;
-import bisq.core.trade.statistics.TradeStatisticsManager;
-import bisq.core.user.Preferences;
-import bisq.core.user.User;
-import bisq.core.util.ParsingUtils;
-import bisq.core.util.Validator;
+import haveno.core.api.CoreContext;
+import haveno.core.btc.wallet.BtcWalletService;
+import haveno.core.btc.wallet.TradeWalletService;
+import haveno.core.btc.wallet.XmrWalletService;
+import haveno.core.exceptions.TradePriceOutOfToleranceException;
+import haveno.core.filter.FilterManager;
+import haveno.core.locale.Res;
+import haveno.core.offer.availability.DisputeAgentSelection;
+import haveno.core.offer.messages.OfferAvailabilityRequest;
+import haveno.core.offer.messages.OfferAvailabilityResponse;
+import haveno.core.offer.messages.SignOfferRequest;
+import haveno.core.offer.messages.SignOfferResponse;
+import haveno.core.offer.placeoffer.PlaceOfferModel;
+import haveno.core.offer.placeoffer.PlaceOfferProtocol;
+import haveno.core.provider.price.PriceFeedService;
+import haveno.core.support.dispute.arbitration.arbitrator.ArbitratorManager;
+import haveno.core.support.dispute.mediation.mediator.Mediator;
+import haveno.core.support.dispute.mediation.mediator.MediatorManager;
+import haveno.core.trade.TradableList;
+import haveno.core.trade.TradeUtils;
+import haveno.core.trade.closed.ClosedTradableManager;
+import haveno.core.trade.handlers.TransactionResultHandler;
+import haveno.core.trade.statistics.TradeStatisticsManager;
+import haveno.core.user.Preferences;
+import haveno.core.user.User;
+import haveno.core.util.ParsingUtils;
+import haveno.core.util.Validator;
 
-import bisq.network.p2p.AckMessage;
-import bisq.network.p2p.AckMessageSourceType;
-import bisq.network.p2p.BootstrapListener;
-import bisq.network.p2p.DecryptedDirectMessageListener;
-import bisq.network.p2p.DecryptedMessageWithPubKey;
-import bisq.network.p2p.NodeAddress;
-import bisq.network.p2p.P2PService;
-import bisq.network.p2p.SendDirectMessageListener;
-import bisq.network.p2p.peers.Broadcaster;
-import bisq.network.p2p.peers.PeerManager;
-import bisq.common.Timer;
-import bisq.common.UserThread;
-import bisq.common.app.Capabilities;
-import bisq.common.app.Capability;
-import bisq.common.app.Version;
-import bisq.common.crypto.KeyRing;
-import bisq.common.crypto.PubKeyRing;
-import bisq.common.crypto.Sig;
-import bisq.common.handlers.ErrorMessageHandler;
-import bisq.common.handlers.ResultHandler;
-import bisq.common.persistence.PersistenceManager;
-import bisq.common.proto.network.NetworkEnvelope;
-import bisq.common.proto.persistable.PersistedDataHost;
-import bisq.common.util.Tuple2;
-import bisq.common.util.Utilities;
+import haveno.network.p2p.AckMessage;
+import haveno.network.p2p.AckMessageSourceType;
+import haveno.network.p2p.BootstrapListener;
+import haveno.network.p2p.DecryptedDirectMessageListener;
+import haveno.network.p2p.DecryptedMessageWithPubKey;
+import haveno.network.p2p.NodeAddress;
+import haveno.network.p2p.P2PService;
+import haveno.network.p2p.SendDirectMessageListener;
+import haveno.network.p2p.peers.Broadcaster;
+import haveno.network.p2p.peers.PeerManager;
+import haveno.common.Timer;
+import haveno.common.UserThread;
+import haveno.common.app.Capabilities;
+import haveno.common.app.Capability;
+import haveno.common.app.Version;
+import haveno.common.crypto.KeyRing;
+import haveno.common.crypto.PubKeyRing;
+import haveno.common.crypto.Sig;
+import haveno.common.handlers.ErrorMessageHandler;
+import haveno.common.handlers.ResultHandler;
+import haveno.common.persistence.PersistenceManager;
+import haveno.common.proto.network.NetworkEnvelope;
+import haveno.common.proto.persistable.PersistedDataHost;
+import haveno.common.util.Tuple2;
+import haveno.common.util.Utilities;
 import org.bitcoinj.core.Coin;
 
 import javax.inject.Inject;
@@ -755,7 +755,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
             return;
         }
 
-        // Don't allow trade start if BitcoinJ is not fully synced (bisq issue #4764)
+        // Don't allow trade start if BitcoinJ is not fully synced (haveno issue #4764)
         if (!btcWalletService.isChainHeightSyncedWithinTolerance()) {
             errorMessage = "We got a handleOfferAvailabilityRequest but our chain is not synced.";
             log.info(errorMessage);

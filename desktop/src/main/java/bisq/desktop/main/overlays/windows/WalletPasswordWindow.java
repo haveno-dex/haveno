@@ -1,40 +1,40 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.desktop.main.overlays.windows;
+package haveno.desktop.main.overlays.windows;
 
-import bisq.desktop.components.AutoTooltipButton;
-import bisq.desktop.components.AutoTooltipLabel;
-import bisq.desktop.components.BusyAnimation;
-import bisq.desktop.components.PasswordTextField;
-import bisq.desktop.main.SharedPresentation;
-import bisq.desktop.main.overlays.Overlay;
-import bisq.desktop.main.overlays.popups.Popup;
-import bisq.desktop.util.Layout;
-import bisq.desktop.util.Transitions;
+import haveno.desktop.components.AutoTooltipButton;
+import haveno.desktop.components.AutoTooltipLabel;
+import haveno.desktop.components.BusyAnimation;
+import haveno.desktop.components.PasswordTextField;
+import haveno.desktop.main.SharedPresentation;
+import haveno.desktop.main.overlays.Overlay;
+import haveno.desktop.main.overlays.popups.Popup;
+import haveno.desktop.util.Layout;
+import haveno.desktop.util.Transitions;
 
-import bisq.core.btc.wallet.WalletsManager;
-import bisq.core.crypto.ScryptUtil;
-import bisq.core.locale.Res;
-import bisq.core.offer.OpenOfferManager;
+import haveno.core.btc.wallet.WalletsManager;
+import haveno.core.crypto.ScryptUtil;
+import haveno.core.locale.Res;
+import haveno.core.offer.OpenOfferManager;
 
-import bisq.common.UserThread;
-import bisq.common.config.Config;
-import bisq.common.util.Tuple2;
+import haveno.common.UserThread;
+import haveno.common.config.Config;
+import haveno.common.util.Tuple2;
 
 import org.bitcoinj.crypto.KeyCrypterScrypt;
 import org.bitcoinj.crypto.MnemonicCode;
@@ -79,10 +79,10 @@ import java.util.concurrent.TimeUnit;
 
 import lombok.extern.slf4j.Slf4j;
 
-import static bisq.desktop.util.FormBuilder.addPasswordTextField;
-import static bisq.desktop.util.FormBuilder.addPrimaryActionButton;
-import static bisq.desktop.util.FormBuilder.addTextArea;
-import static bisq.desktop.util.FormBuilder.addTopLabelDatePicker;
+import static haveno.desktop.util.FormBuilder.addPasswordTextField;
+import static haveno.desktop.util.FormBuilder.addPrimaryActionButton;
+import static haveno.desktop.util.FormBuilder.addTextArea;
+import static haveno.desktop.util.FormBuilder.addTopLabelDatePicker;
 import static com.google.common.base.Preconditions.checkArgument;
 import static javafx.beans.binding.Bindings.createBooleanBinding;
 

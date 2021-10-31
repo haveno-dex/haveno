@@ -1,4 +1,4 @@
-package bisq.price.util.bitpay;
+package haveno.price.util.bitpay;
 
 
 import lombok.Getter;

@@ -1,12 +1,12 @@
-package bisq.core.trade.protocol.tasks.buyer;
+package haveno.core.trade.protocol.tasks.buyer;
 
-import bisq.core.btc.model.AddressEntry;
-import bisq.core.btc.wallet.BtcWalletService;
-import bisq.core.trade.Trade;
-import bisq.core.trade.protocol.tasks.TradeTask;
+import haveno.core.btc.model.AddressEntry;
+import haveno.core.btc.wallet.BtcWalletService;
+import haveno.core.trade.Trade;
+import haveno.core.trade.protocol.tasks.TradeTask;
 
-import bisq.common.taskrunner.TaskRunner;
-import bisq.common.util.Utilities;
+import haveno.common.taskrunner.TaskRunner;
+import haveno.common.util.Utilities;
 
 import org.bitcoinj.core.Transaction;
 

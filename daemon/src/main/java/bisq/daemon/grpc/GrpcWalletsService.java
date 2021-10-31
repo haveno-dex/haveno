@@ -1,54 +1,54 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.daemon.grpc;
+package haveno.daemon.grpc;
 
-import bisq.core.api.CoreApi;
-import bisq.core.api.model.AddressBalanceInfo;
-import bisq.core.api.model.TxFeeRateInfo;
-import bisq.core.btc.exceptions.TxBroadcastException;
-import bisq.core.btc.wallet.TxBroadcaster;
+import haveno.core.api.CoreApi;
+import haveno.core.api.model.AddressBalanceInfo;
+import haveno.core.api.model.TxFeeRateInfo;
+import haveno.core.btc.exceptions.TxBroadcastException;
+import haveno.core.btc.wallet.TxBroadcaster;
 
-import bisq.proto.grpc.GetAddressBalanceReply;
-import bisq.proto.grpc.GetAddressBalanceRequest;
-import bisq.proto.grpc.GetBalancesReply;
-import bisq.proto.grpc.GetBalancesRequest;
-import bisq.proto.grpc.GetFundingAddressesReply;
-import bisq.proto.grpc.GetFundingAddressesRequest;
-import bisq.proto.grpc.GetNewDepositSubaddressRequest;
-import bisq.proto.grpc.GetNewDepositSubaddressReply;
-import bisq.proto.grpc.GetTransactionReply;
-import bisq.proto.grpc.GetTransactionRequest;
-import bisq.proto.grpc.GetTxFeeRateReply;
-import bisq.proto.grpc.GetTxFeeRateRequest;
-import bisq.proto.grpc.LockWalletReply;
-import bisq.proto.grpc.LockWalletRequest;
-import bisq.proto.grpc.RemoveWalletPasswordReply;
-import bisq.proto.grpc.RemoveWalletPasswordRequest;
-import bisq.proto.grpc.SendBtcReply;
-import bisq.proto.grpc.SendBtcRequest;
-import bisq.proto.grpc.SetTxFeeRatePreferenceReply;
-import bisq.proto.grpc.SetTxFeeRatePreferenceRequest;
-import bisq.proto.grpc.SetWalletPasswordReply;
-import bisq.proto.grpc.SetWalletPasswordRequest;
-import bisq.proto.grpc.UnlockWalletReply;
-import bisq.proto.grpc.UnlockWalletRequest;
-import bisq.proto.grpc.UnsetTxFeeRatePreferenceReply;
-import bisq.proto.grpc.UnsetTxFeeRatePreferenceRequest;
+import haveno.proto.grpc.GetAddressBalanceReply;
+import haveno.proto.grpc.GetAddressBalanceRequest;
+import haveno.proto.grpc.GetBalancesReply;
+import haveno.proto.grpc.GetBalancesRequest;
+import haveno.proto.grpc.GetFundingAddressesReply;
+import haveno.proto.grpc.GetFundingAddressesRequest;
+import haveno.proto.grpc.GetNewDepositSubaddressRequest;
+import haveno.proto.grpc.GetNewDepositSubaddressReply;
+import haveno.proto.grpc.GetTransactionReply;
+import haveno.proto.grpc.GetTransactionRequest;
+import haveno.proto.grpc.GetTxFeeRateReply;
+import haveno.proto.grpc.GetTxFeeRateRequest;
+import haveno.proto.grpc.LockWalletReply;
+import haveno.proto.grpc.LockWalletRequest;
+import haveno.proto.grpc.RemoveWalletPasswordReply;
+import haveno.proto.grpc.RemoveWalletPasswordRequest;
+import haveno.proto.grpc.SendBtcReply;
+import haveno.proto.grpc.SendBtcRequest;
+import haveno.proto.grpc.SetTxFeeRatePreferenceReply;
+import haveno.proto.grpc.SetTxFeeRatePreferenceRequest;
+import haveno.proto.grpc.SetWalletPasswordReply;
+import haveno.proto.grpc.SetWalletPasswordRequest;
+import haveno.proto.grpc.UnlockWalletReply;
+import haveno.proto.grpc.UnlockWalletRequest;
+import haveno.proto.grpc.UnsetTxFeeRatePreferenceReply;
+import haveno.proto.grpc.UnsetTxFeeRatePreferenceRequest;
 
 import io.grpc.ServerInterceptor;
 import io.grpc.stub.StreamObserver;
@@ -68,16 +68,16 @@ import lombok.extern.slf4j.Slf4j;
 
 import org.jetbrains.annotations.NotNull;
 
-import static bisq.core.api.model.TxInfo.toTxInfo;
-import static bisq.daemon.grpc.interceptor.GrpcServiceRateMeteringConfig.getCustomRateMeteringInterceptor;
-import static bisq.proto.grpc.WalletsGrpc.*;
+import static haveno.core.api.model.TxInfo.toTxInfo;
+import static haveno.daemon.grpc.interceptor.GrpcServiceRateMeteringConfig.getCustomRateMeteringInterceptor;
+import static haveno.proto.grpc.WalletsGrpc.*;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
 
 
-import bisq.daemon.grpc.interceptor.CallRateMeteringInterceptor;
-import bisq.daemon.grpc.interceptor.GrpcCallRateMeter;
+import haveno.daemon.grpc.interceptor.CallRateMeteringInterceptor;
+import haveno.daemon.grpc.interceptor.GrpcCallRateMeter;
 
 @Slf4j
 class GrpcWalletsService extends WalletsImplBase {

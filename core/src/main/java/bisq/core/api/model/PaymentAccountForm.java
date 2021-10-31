@@ -1,25 +1,25 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.core.api.model;
+package haveno.core.api.model;
 
-import bisq.core.payment.PaymentAccount;
-import bisq.core.payment.PaymentAccountFactory;
-import bisq.core.payment.payload.PaymentMethod;
+import haveno.core.payment.PaymentAccount;
+import haveno.core.payment.PaymentAccountFactory;
+import haveno.core.payment.payload.PaymentMethod;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -47,7 +47,7 @@ import java.lang.reflect.Type;
 
 import lombok.extern.slf4j.Slf4j;
 
-import static bisq.core.payment.payload.PaymentMethod.getPaymentMethodById;
+import static haveno.core.payment.payload.PaymentMethod.getPaymentMethodById;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static java.lang.String.format;
 import static java.lang.System.getProperty;
@@ -62,7 +62,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
  * </p>
  * <p>
  * Example use case: (1) ask for a blank Hal Cash account form, (2) edit it, (3) derive a
- * {@link bisq.core.payment.HalCashAccount} instance from the edited json file.
+ * {@link haveno.core.payment.HalCashAccount} instance from the edited json file.
  * </p>
  * <br>
  * <p>
@@ -100,7 +100,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
  * (3) De-serialize the edited json account form:  Pass the edited json file to
  * {@link PaymentAccountForm#toPaymentAccount(File)}, or
  * a json string to {@link PaymentAccountForm#toPaymentAccount(String)}
- * and get a {@link bisq.core.payment.HalCashAccount} instance.
+ * and get a {@link haveno.core.payment.HalCashAccount} instance.
  * <pre>
  * PaymentAccount(
  * paymentMethod=PaymentMethod(id=HAL_CASH,

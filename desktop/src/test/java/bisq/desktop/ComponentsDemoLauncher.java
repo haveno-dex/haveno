@@ -1,4 +1,4 @@
-package bisq.desktop;
+package haveno.desktop;
 
 import javafx.application.Application;
 

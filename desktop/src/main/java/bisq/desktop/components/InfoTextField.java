@@ -1,25 +1,25 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.desktop.components;
+package haveno.desktop.components;
 
-import bisq.desktop.components.controlsfx.control.PopOver;
+import haveno.desktop.components.controlsfx.control.PopOver;
 
-import bisq.common.UserThread;
+import haveno.common.UserThread;
 
 import de.jensd.fx.fontawesome.AwesomeIcon;
 import de.jensd.fx.glyphs.materialdesignicons.MaterialDesignIcon;
@@ -39,8 +39,8 @@ import org.slf4j.LoggerFactory;
 
 import lombok.Getter;
 
-import static bisq.desktop.util.FormBuilder.getIcon;
-import static bisq.desktop.util.FormBuilder.getRegularIconForLabel;
+import static haveno.desktop.util.FormBuilder.getIcon;
+import static haveno.desktop.util.FormBuilder.getRegularIconForLabel;
 
 public class InfoTextField extends AnchorPane {
     public static final Logger log = LoggerFactory.getLogger(InfoTextField.class);
@@ -57,7 +57,7 @@ public class InfoTextField extends AnchorPane {
     public InfoTextField() {
 
         arrowLocation = PopOver.ArrowLocation.RIGHT_TOP;
-        textField = new BisqTextField();
+        textField = new HavenoTextField();
         textField.setLabelFloat(true);
         textField.setEditable(false);
         textField.textProperty().bind(text);

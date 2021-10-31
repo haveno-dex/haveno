@@ -1,4 +1,4 @@
-# Bisq Seed Node
+# Haveno Seed Node
 
 ## Hardware
 
@@ -20,10 +20,10 @@ The following OS's are known to work well:
 
 Start with a clean Ubuntu server installation, and run the script
 ```bash
-curl -s https://raw.githubusercontent.com/bisq-network/bisq/master/seednode/install_seednode_debian.sh | sudo bash
+curl -s https://raw.githubusercontent.com/haveno-network/haveno/master/seednode/install_seednode_debian.sh | sudo bash
 ```
 
-This will install and configure Tor, Bitcoin, and Bisq-Seednode services to start on boot.
+This will install and configure Tor, Bitcoin, and Haveno-Seednode services to start on boot.
 
 ### Firewall
 
@@ -41,25 +41,25 @@ After installation, watch the Bitcoin blockchain sync progress
 sudo tail -f /bitcoin/debug.log
 ```
 
-After Bitcoin is fully synced, start the bisq service
+After Bitcoin is fully synced, start the haveno service
 ```bash
-sudo systemctl start bisq
-sudo journalctl --unit bisq --follow
+sudo systemctl start haveno
+sudo journalctl --unit haveno --follow
 ```
 
-After Bisq is fully synced, check your Bitcoin and Bisq onion hostnames:
+After Haveno is fully synced, check your Bitcoin and Haveno onion hostnames:
 ```bash
 sudo -H -u bitcoin bitcoin-cli getnetworkinfo|grep address
-sudo cat /bisq/bisq-seednode/btc_mainnet/tor/hiddenservice/hostname
+sudo cat /haveno/haveno-seednode/btc_mainnet/tor/hiddenservice/hostname
 ```
 
 ### Testing
 
-After your Bisq seednode is ready, test it by connecting to your new btcnode and bisq!
+After your Haveno seednode is ready, test it by connecting to your new btcnode and haveno!
 
 macOS:
 ```bash
-/Applications/Bisq.app/Contents/MacOS/Bisq --seedNodes=foo.onion:8000 --btcNodes=foo.onion:8333
+/Applications/Haveno.app/Contents/MacOS/Haveno --seedNodes=foo.onion:8000 --btcNodes=foo.onion:8333
 ```
 
 ### Monitoring
@@ -67,7 +67,7 @@ macOS:
 If you run a main seednode, you also are obliged to activate the monitoring feed by running
 
 ```bash
-bash <(curl -s https://raw.githubusercontent.com/bisq-network/bisq/master/monitor/install_collectd_debian.sh)
+bash <(curl -s https://raw.githubusercontent.com/haveno-network/haveno/master/monitor/install_collectd_debian.sh)
 ```
 Follow the instruction given by the script and report your certificate to the seednode group!
 
@@ -75,14 +75,14 @@ Follow the instruction given by the script and report your certificate to the se
 
 To upgrade your seednode to a new tag, for example v1.2.5
 ```bash
-sudo -u bisq -s
-cd bisq
+sudo -u haveno -s
+cd haveno
 git fetch origin
 git checkout v1.2.5 # new tag
 ./gradlew clean build -x test
 exit
-sudo service bisq restart
-sudo journalctl --unit bisq --follow
+sudo service haveno restart
+sudo journalctl --unit haveno --follow
 ```
 
 ### Uninstall

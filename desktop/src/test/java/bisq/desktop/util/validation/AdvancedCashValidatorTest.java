@@ -1,11 +1,11 @@
-package bisq.desktop.util.validation;
+package haveno.desktop.util.validation;
 
-import bisq.core.locale.CurrencyUtil;
-import bisq.core.locale.Res;
-import bisq.core.util.validation.RegexValidator;
+import haveno.core.locale.CurrencyUtil;
+import haveno.core.locale.Res;
+import haveno.core.util.validation.RegexValidator;
 
-import bisq.common.config.BaseCurrencyNetwork;
-import bisq.common.config.Config;
+import haveno.common.config.BaseCurrencyNetwork;
+import haveno.common.config.Config;
 
 import org.junit.Before;
 import org.junit.Test;

@@ -1,37 +1,37 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.core.offer;
+package haveno.core.offer;
 
-import bisq.core.filter.FilterManager;
-import bisq.core.locale.Res;
-import bisq.core.provider.price.PriceFeedService;
+import haveno.core.filter.FilterManager;
+import haveno.core.locale.Res;
+import haveno.core.provider.price.PriceFeedService;
 
-import bisq.network.p2p.BootstrapListener;
-import bisq.network.p2p.P2PService;
-import bisq.network.p2p.storage.HashMapChangedListener;
-import bisq.network.p2p.storage.payload.ProtectedStorageEntry;
+import haveno.network.p2p.BootstrapListener;
+import haveno.network.p2p.P2PService;
+import haveno.network.p2p.storage.HashMapChangedListener;
+import haveno.network.p2p.storage.payload.ProtectedStorageEntry;
 
-import bisq.common.UserThread;
-import bisq.common.config.Config;
-import bisq.common.file.JsonFileManager;
-import bisq.common.handlers.ErrorMessageHandler;
-import bisq.common.handlers.ResultHandler;
-import bisq.common.util.Utilities;
+import haveno.common.UserThread;
+import haveno.common.config.Config;
+import haveno.common.file.JsonFileManager;
+import haveno.common.handlers.ErrorMessageHandler;
+import haveno.common.handlers.ResultHandler;
+import haveno.common.util.Utilities;
 
 import javax.inject.Inject;
 import javax.inject.Named;

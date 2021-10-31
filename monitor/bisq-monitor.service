@@ -1,16 +1,16 @@
 [Unit]
-Description=Bisq network monitor
+Description=Haveno network monitor
 After=network.target
 
 [Service]
 WorkingDirectory=~
 Environment="JAVA_OPTS='-Xmx500M'"
-ExecStart=/home/bisq/bisq/bisq-monitor /home/bisq/monitor.properties
+ExecStart=/home/haveno/haveno/haveno-monitor /home/haveno/monitor.properties
 ExecReload=/bin/kill -USR1 $MAINPID
 Restart=on-failure
 
-User=bisq
-Group=bisq
+User=haveno
+Group=haveno
 
 [Install]
 WantedBy=multi-user.target

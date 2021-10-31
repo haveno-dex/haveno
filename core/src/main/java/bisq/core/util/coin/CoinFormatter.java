@@ -1,4 +1,4 @@
-package bisq.core.util.coin;
+package haveno.core.util.coin;
 
 import org.bitcoinj.core.Coin;
 

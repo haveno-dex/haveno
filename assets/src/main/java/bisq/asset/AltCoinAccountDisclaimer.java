@@ -1,4 +1,4 @@
-package bisq.asset;
+package haveno.asset;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;

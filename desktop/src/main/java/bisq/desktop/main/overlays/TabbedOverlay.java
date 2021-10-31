@@ -1,4 +1,4 @@
-package bisq.desktop.main.overlays;
+package haveno.desktop.main.overlays;
 
 import com.jfoenix.controls.JFXTabPane;
 

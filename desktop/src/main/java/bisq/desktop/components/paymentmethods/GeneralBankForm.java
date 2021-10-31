@@ -1,18 +1,18 @@
-package bisq.desktop.components.paymentmethods;
+package haveno.desktop.components.paymentmethods;
 
-import bisq.desktop.components.InputTextField;
-import bisq.desktop.util.validation.AccountNrValidator;
-import bisq.desktop.util.validation.BankIdValidator;
-import bisq.desktop.util.validation.BranchIdValidator;
-import bisq.desktop.util.validation.NationalAccountIdValidator;
+import haveno.desktop.components.InputTextField;
+import haveno.desktop.util.validation.AccountNrValidator;
+import haveno.desktop.util.validation.BankIdValidator;
+import haveno.desktop.util.validation.BranchIdValidator;
+import haveno.desktop.util.validation.NationalAccountIdValidator;
 
-import bisq.core.account.witness.AccountAgeWitnessService;
-import bisq.core.locale.BankUtil;
-import bisq.core.locale.Res;
-import bisq.core.payment.PaymentAccount;
-import bisq.core.payment.payload.CountryBasedPaymentAccountPayload;
-import bisq.core.util.coin.CoinFormatter;
-import bisq.core.util.validation.InputValidator;
+import haveno.core.account.witness.AccountAgeWitnessService;
+import haveno.core.locale.BankUtil;
+import haveno.core.locale.Res;
+import haveno.core.payment.PaymentAccount;
+import haveno.core.payment.payload.CountryBasedPaymentAccountPayload;
+import haveno.core.util.coin.CoinFormatter;
+import haveno.core.util.validation.InputValidator;
 
 import org.apache.commons.lang3.StringUtils;
 

@@ -1,6 +1,6 @@
-package bisq.apitest.scenario.bot.shutdown;
+package haveno.apitest.scenario.bot.shutdown;
 
-import bisq.common.UserThread;
+import haveno.common.UserThread;
 
 import java.io.File;
 import java.io.IOException;
@@ -9,7 +9,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import lombok.extern.slf4j.Slf4j;
 
-import static bisq.common.file.FileUtil.deleteFileIfExists;
+import static haveno.common.file.FileUtil.deleteFileIfExists;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
 @Slf4j
@@ -24,7 +24,7 @@ public class ManualShutdown {
      *
      * Running '$ touch /tmp/bottest-shutdown' could be used to trigger a scaffold teardown.
      *
-     * This is much easier than manually shutdown down bisq apps & bitcoind.
+     * This is much easier than manually shutdown down haveno apps & bitcoind.
      */
     public static void startShutdownTimer() {
         deleteStaleShutdownFile();

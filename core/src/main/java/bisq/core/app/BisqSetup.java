@@ -1,61 +1,61 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.core.app;
+package haveno.core.app;
 
-import bisq.core.account.sign.SignedWitness;
-import bisq.core.account.sign.SignedWitnessStorageService;
-import bisq.core.account.witness.AccountAgeWitnessService;
-import bisq.core.alert.Alert;
-import bisq.core.alert.AlertManager;
-import bisq.core.alert.PrivateNotificationPayload;
-import bisq.core.btc.model.AddressEntry;
-import bisq.core.btc.nodes.LocalBitcoinNode;
-import bisq.core.btc.setup.WalletsSetup;
-import bisq.core.btc.wallet.BtcWalletService;
-import bisq.core.btc.wallet.WalletsManager;
-import bisq.core.btc.wallet.XmrWalletService;
-import bisq.core.btc.wallet.http.MemPoolSpaceTxBroadcaster;
-import bisq.core.locale.Res;
-import bisq.core.offer.OpenOfferManager;
-import bisq.core.payment.AmazonGiftCardAccount;
-import bisq.core.payment.PaymentAccount;
-import bisq.core.payment.RevolutAccount;
-import bisq.core.payment.payload.PaymentMethod;
-import bisq.core.trade.TradeManager;
-import bisq.core.trade.TradeTxException;
-import bisq.core.user.Preferences;
-import bisq.core.user.User;
-import bisq.core.util.FormattingUtils;
-import bisq.core.util.coin.CoinFormatter;
+import haveno.core.account.sign.SignedWitness;
+import haveno.core.account.sign.SignedWitnessStorageService;
+import haveno.core.account.witness.AccountAgeWitnessService;
+import haveno.core.alert.Alert;
+import haveno.core.alert.AlertManager;
+import haveno.core.alert.PrivateNotificationPayload;
+import haveno.core.btc.model.AddressEntry;
+import haveno.core.btc.nodes.LocalBitcoinNode;
+import haveno.core.btc.setup.WalletsSetup;
+import haveno.core.btc.wallet.BtcWalletService;
+import haveno.core.btc.wallet.WalletsManager;
+import haveno.core.btc.wallet.XmrWalletService;
+import haveno.core.btc.wallet.http.MemPoolSpaceTxBroadcaster;
+import haveno.core.locale.Res;
+import haveno.core.offer.OpenOfferManager;
+import haveno.core.payment.AmazonGiftCardAccount;
+import haveno.core.payment.PaymentAccount;
+import haveno.core.payment.RevolutAccount;
+import haveno.core.payment.payload.PaymentMethod;
+import haveno.core.trade.TradeManager;
+import haveno.core.trade.TradeTxException;
+import haveno.core.user.Preferences;
+import haveno.core.user.User;
+import haveno.core.util.FormattingUtils;
+import haveno.core.util.coin.CoinFormatter;
 
-import bisq.network.Socks5ProxyProvider;
-import bisq.network.p2p.P2PService;
-import bisq.network.p2p.storage.payload.PersistableNetworkPayload;
+import haveno.network.Socks5ProxyProvider;
+import haveno.network.p2p.P2PService;
+import haveno.network.p2p.storage.payload.PersistableNetworkPayload;
 
-import bisq.common.Timer;
-import bisq.common.UserThread;
-import bisq.common.app.DevEnv;
-import bisq.common.app.Log;
-import bisq.common.app.Version;
-import bisq.common.config.BaseCurrencyNetwork;
-import bisq.common.config.Config;
-import bisq.common.util.InvalidVersionException;
-import bisq.common.util.Utilities;
+import haveno.common.Timer;
+import haveno.common.UserThread;
+import haveno.common.app.DevEnv;
+import haveno.common.app.Log;
+import haveno.common.app.Version;
+import haveno.common.config.BaseCurrencyNetwork;
+import haveno.common.config.Config;
+import haveno.common.util.InvalidVersionException;
+import haveno.common.util.Utilities;
 
 import org.bitcoinj.core.Coin;
 
@@ -100,11 +100,11 @@ import javax.annotation.Nullable;
 
 @Slf4j
 @Singleton
-public class BisqSetup {
+public class HavenoSetup {
     private static final String VERSION_FILE_NAME = "version";
     private static final String RESYNC_SPV_FILE_NAME = "resyncSpv";
 
-    public interface BisqSetupListener {
+    public interface HavenoSetupListener {
         default void onInitP2pNetwork() {
         }
 
@@ -195,10 +195,10 @@ public class BisqSetup {
     private boolean allBasicServicesInitialized;
     @SuppressWarnings("FieldCanBeLocal")
     private MonadicBinding<Boolean> p2pNetworkAndWalletInitialized;
-    private final List<BisqSetupListener> bisqSetupListeners = new ArrayList<>();
+    private final List<HavenoSetupListener> havenoSetupListeners = new ArrayList<>();
 
     @Inject
-    public BisqSetup(DomainInitialisation domainInitialisation,
+    public HavenoSetup(DomainInitialisation domainInitialisation,
                      P2PNetworkSetup p2PNetworkSetup,
                      WalletAppSetup walletAppSetup,
                      WalletsManager walletsManager,
@@ -273,8 +273,8 @@ public class BisqSetup {
     // Main startup tasks
     ///////////////////////////////////////////////////////////////////////////////////////////
 
-    public void addBisqSetupListener(BisqSetupListener listener) {
-        bisqSetupListeners.add(listener);
+    public void addHavenoSetupListener(HavenoSetupListener listener) {
+        havenoSetupListeners.add(listener);
     }
 
     public void start() {
@@ -284,7 +284,7 @@ public class BisqSetup {
             return;
         }
 
-        persistBisqVersion();
+        persistHavenoVersion();
         maybeReSyncSPVChain();
         maybeShowTac(this::step2);
     }
@@ -303,7 +303,7 @@ public class BisqSetup {
     private void step4() {
         initDomainServices();
 
-        bisqSetupListeners.forEach(BisqSetupListener::onSetupComplete);
+        havenoSetupListeners.forEach(HavenoSetupListener::onSetupComplete);
 
         // We set that after calling the setupCompleteHandler to not trigger a popup from the dev dummy accounts
         // in MainViewModel
@@ -373,7 +373,7 @@ public class BisqSetup {
         }, STARTUP_TIMEOUT_MINUTES, TimeUnit.MINUTES);
 
         log.info("Init P2P network");
-        bisqSetupListeners.forEach(BisqSetupListener::onInitP2pNetwork);
+        havenoSetupListeners.forEach(HavenoSetupListener::onInitP2pNetwork);
         p2pNetworkReady = p2PNetworkSetup.init(this::initWallet, displayTorNetworkSettingsHandler);
 
         // We only init wallet service here if not using Tor for bitcoinj.
@@ -402,10 +402,10 @@ public class BisqSetup {
 
     private void initWallet() {
         log.info("Init wallet");
-        bisqSetupListeners.forEach(BisqSetupListener::onInitWallet);
+        havenoSetupListeners.forEach(HavenoSetupListener::onInitWallet);
         Runnable walletPasswordHandler = () -> {
             log.info("Wallet password required");
-            bisqSetupListeners.forEach(BisqSetupListener::onRequestWalletPassword);
+            havenoSetupListeners.forEach(HavenoSetupListener::onRequestWalletPassword);
             if (p2pNetworkReady.get())
                 p2PNetworkSetup.setSplashP2PNetworkAnimationVisible(true);
 
@@ -514,7 +514,7 @@ public class BisqSetup {
     }
 
     @Nullable
-    public static String getLastBisqVersion() {
+    public static String getLastHavenoVersion() {
         File versionFile = getVersionFile();
         if (!versionFile.exists()) {
             return null;
@@ -562,7 +562,7 @@ public class BisqSetup {
     }
 
     public static boolean hasDowngraded() {
-        return hasDowngraded(getLastBisqVersion());
+        return hasDowngraded(getLastHavenoVersion());
     }
 
     public static boolean hasDowngraded(String lastVersion) {
@@ -570,7 +570,7 @@ public class BisqSetup {
     }
 
     public static boolean hasDowngraded(@Nullable Consumer<String> downGradePreventionHandler) {
-        String lastVersion = getLastBisqVersion();
+        String lastVersion = getLastHavenoVersion();
         boolean hasDowngraded = hasDowngraded(lastVersion);
         if (hasDowngraded) {
             log.error("Downgrade from version {} to version {} is not supported", lastVersion, Version.VERSION);
@@ -581,7 +581,7 @@ public class BisqSetup {
         return hasDowngraded;
     }
 
-    public static void persistBisqVersion() {
+    public static void persistHavenoVersion() {
         File versionFile = getVersionFile();
         if (!versionFile.exists()) {
             try {
@@ -628,7 +628,7 @@ public class BisqSetup {
     }
 
     /**
-     * If Bisq is running on an OS that is virtualized under Qubes, show info popup with
+     * If Haveno is running on an OS that is virtualized under Qubes, show info popup with
      * link to the Setup Guide. The guide documents what other steps are needed, in
      * addition to installing the Linux package (qube sizing, etc)
      */

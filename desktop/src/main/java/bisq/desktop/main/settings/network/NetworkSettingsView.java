@@ -1,49 +1,49 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.desktop.main.settings.network;
+package haveno.desktop.main.settings.network;
 
-import bisq.desktop.app.BisqApp;
-import bisq.desktop.common.view.ActivatableView;
-import bisq.desktop.common.view.FxmlView;
-import bisq.desktop.components.AutoTooltipButton;
-import bisq.desktop.components.AutoTooltipLabel;
-import bisq.desktop.components.InputTextField;
-import bisq.desktop.components.TitledGroupBg;
-import bisq.desktop.main.overlays.popups.Popup;
-import bisq.desktop.main.overlays.windows.TorNetworkSettingsWindow;
-import bisq.desktop.util.GUIUtil;
+import haveno.desktop.app.HavenoApp;
+import haveno.desktop.common.view.ActivatableView;
+import haveno.desktop.common.view.FxmlView;
+import haveno.desktop.components.AutoTooltipButton;
+import haveno.desktop.components.AutoTooltipLabel;
+import haveno.desktop.components.InputTextField;
+import haveno.desktop.components.TitledGroupBg;
+import haveno.desktop.main.overlays.popups.Popup;
+import haveno.desktop.main.overlays.windows.TorNetworkSettingsWindow;
+import haveno.desktop.util.GUIUtil;
 
-import bisq.core.btc.nodes.BtcNodes;
-import bisq.core.btc.nodes.LocalBitcoinNode;
-import bisq.core.btc.setup.WalletsSetup;
-import bisq.core.filter.Filter;
-import bisq.core.filter.FilterManager;
-import bisq.core.locale.Res;
-import bisq.core.user.Preferences;
-import bisq.core.util.FormattingUtils;
-import bisq.core.util.validation.RegexValidator;
-import bisq.core.util.validation.RegexValidatorFactory;
+import haveno.core.btc.nodes.BtcNodes;
+import haveno.core.btc.nodes.LocalBitcoinNode;
+import haveno.core.btc.setup.WalletsSetup;
+import haveno.core.filter.Filter;
+import haveno.core.filter.FilterManager;
+import haveno.core.locale.Res;
+import haveno.core.user.Preferences;
+import haveno.core.util.FormattingUtils;
+import haveno.core.util.validation.RegexValidator;
+import haveno.core.util.validation.RegexValidatorFactory;
 
-import bisq.network.p2p.P2PService;
-import bisq.network.p2p.network.Statistic;
+import haveno.network.p2p.P2PService;
+import haveno.network.p2p.network.Statistic;
 
-import bisq.common.ClockWatcher;
-import bisq.common.UserThread;
+import haveno.common.ClockWatcher;
+import haveno.common.UserThread;
 
 import org.bitcoinj.core.PeerGroup;
 
@@ -280,7 +280,7 @@ public class NetworkSettingsView extends ActivatableView<GridPane, Void> {
                         .actionButtonText(Res.get("shared.applyAndShutDown"))
                         .onAction(() -> {
                             preferences.setUseTorForBitcoinJ(selected);
-                            UserThread.runAfter(BisqApp.getShutDownHandler(), 500, TimeUnit.MILLISECONDS);
+                            UserThread.runAfter(HavenoApp.getShutDownHandler(), 500, TimeUnit.MILLISECONDS);
                         })
                         .closeButtonText(Res.get("shared.cancel"))
                         .onClose(() -> useTorForBtcJCheckBox.setSelected(!selected))

@@ -1,54 +1,54 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.core.trade.protocol;
+package haveno.core.trade.protocol;
 
-import bisq.core.trade.BuyerAsMakerTrade;
-import bisq.core.trade.Trade;
-import bisq.core.trade.messages.DelayedPayoutTxSignatureRequest;
-import bisq.core.trade.messages.DepositResponse;
-import bisq.core.trade.messages.DepositTxAndDelayedPayoutTxMessage;
-import bisq.core.trade.messages.InitMultisigRequest;
-import bisq.core.trade.messages.InitTradeRequest;
-import bisq.core.trade.messages.PaymentAccountPayloadRequest;
-import bisq.core.trade.messages.PayoutTxPublishedMessage;
-import bisq.core.trade.messages.SignContractRequest;
-import bisq.core.trade.messages.SignContractResponse;
-import bisq.core.trade.protocol.tasks.ProcessDepositResponse;
-import bisq.core.trade.protocol.tasks.ProcessInitMultisigRequest;
-import bisq.core.trade.protocol.tasks.ProcessInitTradeRequest;
-import bisq.core.trade.protocol.tasks.ProcessPaymentAccountPayloadRequest;
-import bisq.core.trade.protocol.tasks.ProcessSignContractRequest;
-import bisq.core.trade.protocol.tasks.ProcessSignContractResponse;
-import bisq.core.trade.protocol.tasks.SendSignContractRequestAfterMultisig;
-import bisq.core.trade.protocol.tasks.TradeTask;
-import bisq.core.trade.protocol.tasks.buyer.BuyerFinalizesDelayedPayoutTx;
-import bisq.core.trade.protocol.tasks.buyer.BuyerProcessDelayedPayoutTxSignatureRequest;
-import bisq.core.trade.protocol.tasks.buyer.BuyerSendsDelayedPayoutTxSignatureResponse;
-import bisq.core.trade.protocol.tasks.buyer.BuyerSignsDelayedPayoutTx;
-import bisq.core.trade.protocol.tasks.buyer.BuyerVerifiesPreparedDelayedPayoutTx;
-import bisq.core.trade.protocol.tasks.maker.MakerRemovesOpenOffer;
-import bisq.core.trade.protocol.tasks.maker.MakerVerifyTakerFeePayment;
-import bisq.core.util.Validator;
+import haveno.core.trade.BuyerAsMakerTrade;
+import haveno.core.trade.Trade;
+import haveno.core.trade.messages.DelayedPayoutTxSignatureRequest;
+import haveno.core.trade.messages.DepositResponse;
+import haveno.core.trade.messages.DepositTxAndDelayedPayoutTxMessage;
+import haveno.core.trade.messages.InitMultisigRequest;
+import haveno.core.trade.messages.InitTradeRequest;
+import haveno.core.trade.messages.PaymentAccountPayloadRequest;
+import haveno.core.trade.messages.PayoutTxPublishedMessage;
+import haveno.core.trade.messages.SignContractRequest;
+import haveno.core.trade.messages.SignContractResponse;
+import haveno.core.trade.protocol.tasks.ProcessDepositResponse;
+import haveno.core.trade.protocol.tasks.ProcessInitMultisigRequest;
+import haveno.core.trade.protocol.tasks.ProcessInitTradeRequest;
+import haveno.core.trade.protocol.tasks.ProcessPaymentAccountPayloadRequest;
+import haveno.core.trade.protocol.tasks.ProcessSignContractRequest;
+import haveno.core.trade.protocol.tasks.ProcessSignContractResponse;
+import haveno.core.trade.protocol.tasks.SendSignContractRequestAfterMultisig;
+import haveno.core.trade.protocol.tasks.TradeTask;
+import haveno.core.trade.protocol.tasks.buyer.BuyerFinalizesDelayedPayoutTx;
+import haveno.core.trade.protocol.tasks.buyer.BuyerProcessDelayedPayoutTxSignatureRequest;
+import haveno.core.trade.protocol.tasks.buyer.BuyerSendsDelayedPayoutTxSignatureResponse;
+import haveno.core.trade.protocol.tasks.buyer.BuyerSignsDelayedPayoutTx;
+import haveno.core.trade.protocol.tasks.buyer.BuyerVerifiesPreparedDelayedPayoutTx;
+import haveno.core.trade.protocol.tasks.maker.MakerRemovesOpenOffer;
+import haveno.core.trade.protocol.tasks.maker.MakerVerifyTakerFeePayment;
+import haveno.core.util.Validator;
 
-import bisq.network.p2p.NodeAddress;
+import haveno.network.p2p.NodeAddress;
 
-import bisq.common.handlers.ErrorMessageHandler;
-import bisq.common.handlers.ResultHandler;
+import haveno.common.handlers.ErrorMessageHandler;
+import haveno.common.handlers.ResultHandler;
 
 import lombok.extern.slf4j.Slf4j;
 

@@ -1,9 +1,9 @@
-package bisq.asset.coins;
+package haveno.asset.coins;
 
-import bisq.asset.AddressValidationResult;
-import bisq.asset.Base58AddressValidator;
-import bisq.asset.Coin;
-import bisq.asset.NetworkParametersAdapter;
+import haveno.asset.AddressValidationResult;
+import haveno.asset.Base58AddressValidator;
+import haveno.asset.Coin;
+import haveno.asset.NetworkParametersAdapter;
 
 public class Qbase extends Coin {
     public Qbase() {

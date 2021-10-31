@@ -4,7 +4,7 @@ The Java based API runs on Linux and OSX.
 
 ## Mainnet
 
-To build from the source, clone the github repository found at `https://github.com/bisq-network/bisq`,
+To build from the source, clone the github repository found at `https://github.com/haveno-network/haveno`,
 and build with gradle:
 
     $ ./gradlew clean build
@@ -13,13 +13,13 @@ To skip tests:
 
     $ ./gradlew clean build -x test
 
-To run the Bisq daemon:
+To run the Haveno daemon:
 
-    $ ./bisq-daemon --apiPassword=<api-password> --apiPort=<api-port(default=9998)> --appDataDir=$APPDIR`
+    $ ./haveno-daemon --apiPassword=<api-password> --apiPort=<api-port(default=9998)> --appDataDir=$APPDIR`
 
-_Note: `$APPDIR` is empty or otherwise contains a Bisq wallet created by the daemon or the UI._
+_Note: `$APPDIR` is empty or otherwise contains a Haveno wallet created by the daemon or the UI._
 
-_Note: Never run the API daemon and Bisq UI on the same host, or you will corrupt your wallet.  It will be possible
+_Note: Never run the API daemon and Haveno UI on the same host, or you will corrupt your wallet.  It will be possible
 with specific command line options, i.e., unique appDatadir and ports, but this scenario has not been tested yet._
 
 ## Test Harness
@@ -30,7 +30,7 @@ The API test harness uses the GNU Bourne-Again SHell `bash`, and is not supporte
 
 The API test harness supports narrow & broad functional and full end to end test cases requiring
 long setup and teardown times -- for example, to start a bitcoind instance, seednode, arbnode, plus Bob & Alice
-Bisq instances, then shut everything down in proper order.  For this reason, API test cases do not run during a normal
+Haveno instances, then shut everything down in proper order.  For this reason, API test cases do not run during a normal
 gradle build.
 
 To run API test cases, pass system property`-DrunApiTests=true`.
@@ -41,18 +41,18 @@ To run all existing test cases:
 
 To run all test cases in a package:
 
-    $ ./gradlew  :apitest:test --tests "bisq.apitest.method.*" -DrunApiTests=true
+    $ ./gradlew  :apitest:test --tests "haveno.apitest.method.*" -DrunApiTests=true
 
 To run a single test case:
 
-    $ ./gradlew  :apitest:test --tests "bisq.apitest.scenario.WalletTest" -DrunApiTests=true
+    $ ./gradlew  :apitest:test --tests "haveno.apitest.scenario.WalletTest" -DrunApiTests=true
 
 To run test cases from Intellij, add two JVM arguments to your JUnit launchers:
 
     -DrunApiTests=true -Dlogback.configurationFile=apitest/build/resources/main/logback.xml
 
 The `-Dlogback.configurationFile` property will prevent `logback` from printing warnings about multiple `logback.xml`
-files it will find in Bisq jars `cli.jar`, `daemon.jar`, and `seednode.jar`.
+files it will find in Haveno jars `cli.jar`, `daemon.jar`, and `seednode.jar`.
 
 ### Gradle Test Reports
 

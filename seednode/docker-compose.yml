@@ -5,7 +5,7 @@ services:
         build:
             context: .
             dockerfile: docker/development/Dockerfile
-        image: bisq-seednode
+        image: haveno-seednode
         ports:
             - 8000:8000
         environment:

@@ -1,66 +1,66 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.cli;
+package haveno.cli;
 
-import bisq.proto.grpc.AddressBalanceInfo;
-import bisq.proto.grpc.BalancesInfo;
-import bisq.proto.grpc.BtcBalanceInfo;
-import bisq.proto.grpc.CancelOfferRequest;
-import bisq.proto.grpc.ConfirmPaymentReceivedRequest;
-import bisq.proto.grpc.ConfirmPaymentStartedRequest;
-import bisq.proto.grpc.CreateCryptoCurrencyPaymentAccountRequest;
-import bisq.proto.grpc.CreateOfferRequest;
-import bisq.proto.grpc.CreatePaymentAccountRequest;
-import bisq.proto.grpc.GetAddressBalanceRequest;
-import bisq.proto.grpc.GetBalancesRequest;
-import bisq.proto.grpc.GetCryptoCurrencyPaymentMethodsRequest;
-import bisq.proto.grpc.GetFundingAddressesRequest;
-import bisq.proto.grpc.GetMethodHelpRequest;
-import bisq.proto.grpc.GetMyOfferRequest;
-import bisq.proto.grpc.GetMyOffersRequest;
-import bisq.proto.grpc.GetOfferRequest;
-import bisq.proto.grpc.GetOffersRequest;
-import bisq.proto.grpc.GetPaymentAccountFormRequest;
-import bisq.proto.grpc.GetPaymentAccountsRequest;
-import bisq.proto.grpc.GetPaymentMethodsRequest;
-import bisq.proto.grpc.GetTradeRequest;
-import bisq.proto.grpc.GetTransactionRequest;
-import bisq.proto.grpc.GetTxFeeRateRequest;
-import bisq.proto.grpc.GetVersionRequest;
-import bisq.proto.grpc.KeepFundsRequest;
-import bisq.proto.grpc.LockWalletRequest;
-import bisq.proto.grpc.MarketPriceRequest;
-import bisq.proto.grpc.OfferInfo;
-import bisq.proto.grpc.RegisterDisputeAgentRequest;
-import bisq.proto.grpc.RemoveWalletPasswordRequest;
-import bisq.proto.grpc.SendBtcRequest;
-import bisq.proto.grpc.SetTxFeeRatePreferenceRequest;
-import bisq.proto.grpc.SetWalletPasswordRequest;
-import bisq.proto.grpc.StopRequest;
-import bisq.proto.grpc.TakeOfferReply;
-import bisq.proto.grpc.TakeOfferRequest;
-import bisq.proto.grpc.TradeInfo;
-import bisq.proto.grpc.TxFeeRateInfo;
-import bisq.proto.grpc.TxInfo;
-import bisq.proto.grpc.UnlockWalletRequest;
-import bisq.proto.grpc.UnsetTxFeeRatePreferenceRequest;
-import bisq.proto.grpc.WithdrawFundsRequest;
-import bisq.proto.grpc.XmrBalanceInfo;
+import haveno.proto.grpc.AddressBalanceInfo;
+import haveno.proto.grpc.BalancesInfo;
+import haveno.proto.grpc.BtcBalanceInfo;
+import haveno.proto.grpc.CancelOfferRequest;
+import haveno.proto.grpc.ConfirmPaymentReceivedRequest;
+import haveno.proto.grpc.ConfirmPaymentStartedRequest;
+import haveno.proto.grpc.CreateCryptoCurrencyPaymentAccountRequest;
+import haveno.proto.grpc.CreateOfferRequest;
+import haveno.proto.grpc.CreatePaymentAccountRequest;
+import haveno.proto.grpc.GetAddressBalanceRequest;
+import haveno.proto.grpc.GetBalancesRequest;
+import haveno.proto.grpc.GetCryptoCurrencyPaymentMethodsRequest;
+import haveno.proto.grpc.GetFundingAddressesRequest;
+import haveno.proto.grpc.GetMethodHelpRequest;
+import haveno.proto.grpc.GetMyOfferRequest;
+import haveno.proto.grpc.GetMyOffersRequest;
+import haveno.proto.grpc.GetOfferRequest;
+import haveno.proto.grpc.GetOffersRequest;
+import haveno.proto.grpc.GetPaymentAccountFormRequest;
+import haveno.proto.grpc.GetPaymentAccountsRequest;
+import haveno.proto.grpc.GetPaymentMethodsRequest;
+import haveno.proto.grpc.GetTradeRequest;
+import haveno.proto.grpc.GetTransactionRequest;
+import haveno.proto.grpc.GetTxFeeRateRequest;
+import haveno.proto.grpc.GetVersionRequest;
+import haveno.proto.grpc.KeepFundsRequest;
+import haveno.proto.grpc.LockWalletRequest;
+import haveno.proto.grpc.MarketPriceRequest;
+import haveno.proto.grpc.OfferInfo;
+import haveno.proto.grpc.RegisterDisputeAgentRequest;
+import haveno.proto.grpc.RemoveWalletPasswordRequest;
+import haveno.proto.grpc.SendBtcRequest;
+import haveno.proto.grpc.SetTxFeeRatePreferenceRequest;
+import haveno.proto.grpc.SetWalletPasswordRequest;
+import haveno.proto.grpc.StopRequest;
+import haveno.proto.grpc.TakeOfferReply;
+import haveno.proto.grpc.TakeOfferRequest;
+import haveno.proto.grpc.TradeInfo;
+import haveno.proto.grpc.TxFeeRateInfo;
+import haveno.proto.grpc.TxInfo;
+import haveno.proto.grpc.UnlockWalletRequest;
+import haveno.proto.grpc.UnsetTxFeeRatePreferenceRequest;
+import haveno.proto.grpc.WithdrawFundsRequest;
+import haveno.proto.grpc.XmrBalanceInfo;
 
 import protobuf.PaymentAccount;
 import protobuf.PaymentMethod;
@@ -70,7 +70,7 @@ import java.util.List;
 
 import lombok.extern.slf4j.Slf4j;
 
-import static bisq.cli.CryptoCurrencyUtil.isSupportedCryptoCurrency;
+import static haveno.cli.CryptoCurrencyUtil.isSupportedCryptoCurrency;
 import static java.util.Comparator.comparing;
 import static java.util.stream.Collectors.toList;
 import static protobuf.OfferPayload.Direction.BUY;

@@ -1,55 +1,55 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.core.support.dispute.mediation;
+package haveno.core.support.dispute.mediation;
 
-import bisq.core.btc.setup.WalletsSetup;
-import bisq.core.btc.wallet.TradeWalletService;
-import bisq.core.btc.wallet.XmrWalletService;
-import bisq.core.locale.Res;
-import bisq.core.offer.OpenOffer;
-import bisq.core.offer.OpenOfferManager;
-import bisq.core.provider.price.PriceFeedService;
-import bisq.core.support.SupportType;
-import bisq.core.support.dispute.Dispute;
-import bisq.core.support.dispute.DisputeManager;
-import bisq.core.support.dispute.DisputeResult;
-import bisq.core.support.dispute.messages.DisputeResultMessage;
-import bisq.core.support.dispute.messages.OpenNewDisputeMessage;
-import bisq.core.support.dispute.messages.PeerOpenedDisputeMessage;
-import bisq.core.support.messages.ChatMessage;
-import bisq.core.support.messages.SupportMessage;
-import bisq.core.trade.Trade;
-import bisq.core.trade.TradeManager;
-import bisq.core.trade.closed.ClosedTradableManager;
-import bisq.core.trade.protocol.DisputeProtocol;
-import bisq.core.trade.protocol.ProcessModel;
+import haveno.core.btc.setup.WalletsSetup;
+import haveno.core.btc.wallet.TradeWalletService;
+import haveno.core.btc.wallet.XmrWalletService;
+import haveno.core.locale.Res;
+import haveno.core.offer.OpenOffer;
+import haveno.core.offer.OpenOfferManager;
+import haveno.core.provider.price.PriceFeedService;
+import haveno.core.support.SupportType;
+import haveno.core.support.dispute.Dispute;
+import haveno.core.support.dispute.DisputeManager;
+import haveno.core.support.dispute.DisputeResult;
+import haveno.core.support.dispute.messages.DisputeResultMessage;
+import haveno.core.support.dispute.messages.OpenNewDisputeMessage;
+import haveno.core.support.dispute.messages.PeerOpenedDisputeMessage;
+import haveno.core.support.messages.ChatMessage;
+import haveno.core.support.messages.SupportMessage;
+import haveno.core.trade.Trade;
+import haveno.core.trade.TradeManager;
+import haveno.core.trade.closed.ClosedTradableManager;
+import haveno.core.trade.protocol.DisputeProtocol;
+import haveno.core.trade.protocol.ProcessModel;
 
-import bisq.network.p2p.AckMessageSourceType;
-import bisq.network.p2p.NodeAddress;
-import bisq.network.p2p.P2PService;
+import haveno.network.p2p.AckMessageSourceType;
+import haveno.network.p2p.NodeAddress;
+import haveno.network.p2p.P2PService;
 
-import bisq.common.Timer;
-import bisq.common.UserThread;
-import bisq.common.app.Version;
-import bisq.common.config.Config;
-import bisq.common.crypto.KeyRing;
-import bisq.common.handlers.ErrorMessageHandler;
-import bisq.common.handlers.ResultHandler;
+import haveno.common.Timer;
+import haveno.common.UserThread;
+import haveno.common.app.Version;
+import haveno.common.config.Config;
+import haveno.common.crypto.KeyRing;
+import haveno.common.handlers.ErrorMessageHandler;
+import haveno.common.handlers.ResultHandler;
 
 import org.bitcoinj.core.Coin;
 
@@ -142,7 +142,7 @@ public final class MediationManager extends DisputeManager<MediationDisputeList>
     @Override
     protected String getDisputeInfo(Dispute dispute) {
         String role = Res.get("shared.mediator").toLowerCase();
-        String link = "https://docs.bisq.network/trading-rules.html#mediation";
+        String link = "https://docs.haveno.network/trading-rules.html#mediation";
         return Res.get("support.initialInfo", role, role, link);
     }
 

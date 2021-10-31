@@ -1,39 +1,39 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.desktop.main.account.content.fiataccounts;
+package haveno.desktop.main.account.content.fiataccounts;
 
-import bisq.desktop.common.model.ActivatableDataModel;
-import bisq.desktop.util.GUIUtil;
+import haveno.desktop.common.model.ActivatableDataModel;
+import haveno.desktop.util.GUIUtil;
 
-import bisq.core.account.witness.AccountAgeWitnessService;
-import bisq.core.locale.CryptoCurrency;
-import bisq.core.locale.CurrencyUtil;
-import bisq.core.locale.FiatCurrency;
-import bisq.core.locale.TradeCurrency;
-import bisq.core.offer.OpenOfferManager;
-import bisq.core.payment.AssetAccount;
-import bisq.core.payment.PaymentAccount;
-import bisq.core.trade.TradeManager;
-import bisq.core.user.Preferences;
-import bisq.core.user.User;
+import haveno.core.account.witness.AccountAgeWitnessService;
+import haveno.core.locale.CryptoCurrency;
+import haveno.core.locale.CurrencyUtil;
+import haveno.core.locale.FiatCurrency;
+import haveno.core.locale.TradeCurrency;
+import haveno.core.offer.OpenOfferManager;
+import haveno.core.payment.AssetAccount;
+import haveno.core.payment.PaymentAccount;
+import haveno.core.trade.TradeManager;
+import haveno.core.user.Preferences;
+import haveno.core.user.User;
 
-import bisq.common.file.CorruptedStorageFileHandler;
-import bisq.common.proto.persistable.PersistenceProtoResolver;
+import haveno.common.file.CorruptedStorageFileHandler;
+import haveno.common.proto.persistable.PersistenceProtoResolver;
 
 import com.google.inject.Inject;
 

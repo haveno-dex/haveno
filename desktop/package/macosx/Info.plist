@@ -11,22 +11,22 @@
         <string>1.6.2</string>
 
         <key>CFBundleExecutable</key>
-        <string>Bisq</string>
+        <string>Haveno</string>
 
         <key>CFBundleName</key>
-        <string>Bisq</string>
+        <string>Haveno</string>
 
         <key>CFBundleIdentifier</key>
-        <string>io.bisq.CAT</string>
+        <string>io.haveno.CAT</string>
 
         <key>CFBundleIconFile</key>
-        <string>Bisq.icns</string>
+        <string>Haveno.icns</string>
 
         <key>LSApplicationCategoryType</key>
         <string>public.app-category.finance</string>
 
         <key>NSHumanReadableCopyright</key>
-        <string>Copyright © 2013-2021 - The Bisq developers</string>
+        <string>Copyright © 2013-2021 - The Haveno developers</string>
 
          <!-- Only supported in older OSX versions.
               See: https://github.com/bitcoin/bitcoin/issues/11896#issuecomment-352148399-->

@@ -1,53 +1,53 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.desktop.main.support;
+package haveno.desktop.main.support;
 
-import bisq.desktop.Navigation;
-import bisq.desktop.common.view.ActivatableView;
-import bisq.desktop.common.view.CachingViewLoader;
-import bisq.desktop.common.view.FxmlView;
-import bisq.desktop.common.view.View;
-import bisq.desktop.common.view.ViewLoader;
-import bisq.desktop.main.MainView;
-import bisq.desktop.main.overlays.popups.Popup;
-import bisq.desktop.main.support.dispute.agent.arbitration.ArbitratorView;
-import bisq.desktop.main.support.dispute.agent.mediation.MediatorView;
-import bisq.desktop.main.support.dispute.agent.refund.RefundAgentView;
-import bisq.desktop.main.support.dispute.client.arbitration.ArbitrationClientView;
-import bisq.desktop.main.support.dispute.client.mediation.MediationClientView;
-import bisq.desktop.main.support.dispute.client.refund.RefundClientView;
+import haveno.desktop.Navigation;
+import haveno.desktop.common.view.ActivatableView;
+import haveno.desktop.common.view.CachingViewLoader;
+import haveno.desktop.common.view.FxmlView;
+import haveno.desktop.common.view.View;
+import haveno.desktop.common.view.ViewLoader;
+import haveno.desktop.main.MainView;
+import haveno.desktop.main.overlays.popups.Popup;
+import haveno.desktop.main.support.dispute.agent.arbitration.ArbitratorView;
+import haveno.desktop.main.support.dispute.agent.mediation.MediatorView;
+import haveno.desktop.main.support.dispute.agent.refund.RefundAgentView;
+import haveno.desktop.main.support.dispute.client.arbitration.ArbitrationClientView;
+import haveno.desktop.main.support.dispute.client.mediation.MediationClientView;
+import haveno.desktop.main.support.dispute.client.refund.RefundClientView;
 
-import bisq.core.locale.Res;
-import bisq.core.support.dispute.arbitration.ArbitrationManager;
-import bisq.core.support.dispute.arbitration.arbitrator.Arbitrator;
-import bisq.core.support.dispute.arbitration.arbitrator.ArbitratorManager;
-import bisq.core.support.dispute.mediation.MediationManager;
-import bisq.core.support.dispute.mediation.mediator.Mediator;
-import bisq.core.support.dispute.mediation.mediator.MediatorManager;
-import bisq.core.support.dispute.refund.RefundManager;
-import bisq.core.support.dispute.refund.refundagent.RefundAgent;
-import bisq.core.support.dispute.refund.refundagent.RefundAgentManager;
+import haveno.core.locale.Res;
+import haveno.core.support.dispute.arbitration.ArbitrationManager;
+import haveno.core.support.dispute.arbitration.arbitrator.Arbitrator;
+import haveno.core.support.dispute.arbitration.arbitrator.ArbitratorManager;
+import haveno.core.support.dispute.mediation.MediationManager;
+import haveno.core.support.dispute.mediation.mediator.Mediator;
+import haveno.core.support.dispute.mediation.mediator.MediatorManager;
+import haveno.core.support.dispute.refund.RefundManager;
+import haveno.core.support.dispute.refund.refundagent.RefundAgent;
+import haveno.core.support.dispute.refund.refundagent.RefundAgentManager;
 
-import bisq.network.p2p.NodeAddress;
+import haveno.network.p2p.NodeAddress;
 
-import bisq.common.app.DevEnv;
-import bisq.common.crypto.KeyRing;
-import bisq.common.crypto.PubKeyRing;
+import haveno.common.app.DevEnv;
+import haveno.common.crypto.KeyRing;
+import haveno.common.crypto.PubKeyRing;
 
 import javax.inject.Inject;
 

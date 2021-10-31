@@ -1,25 +1,25 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.core.app;
+package haveno.core.app;
 
-import bisq.common.UserThread;
-import bisq.common.app.AppModule;
-import bisq.common.app.Version;
+import haveno.common.UserThread;
+import haveno.common.app.AppModule;
+import haveno.common.app.Version;
 
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
@@ -29,11 +29,11 @@ import java.util.concurrent.ThreadFactory;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public class BisqHeadlessAppMain extends BisqExecutable {
+public class HavenoHeadlessAppMain extends HavenoExecutable {
     protected HeadlessApp headlessApp;
 
-    public BisqHeadlessAppMain() {
-        super("Bisq Daemon", "bisqd", "Bisq", Version.VERSION);
+    public HavenoHeadlessAppMain() {
+        super("Haveno Daemon", "havenod", "Haveno", Version.VERSION);
     }
 
     public static void main(String[] args) throws Exception {
@@ -41,9 +41,9 @@ public class BisqHeadlessAppMain extends BisqExecutable {
         // context class loader: reset it. In order to work around a bug in JavaFX 8u25
         // and below, you must include the following code as the first line of your
         // realMain method:
-        Thread.currentThread().setContextClassLoader(BisqHeadlessAppMain.class.getClassLoader());
+        Thread.currentThread().setContextClassLoader(HavenoHeadlessAppMain.class.getClassLoader());
 
-        new BisqHeadlessAppMain().execute(args);
+        new HavenoHeadlessAppMain().execute(args);
     }
 
     @Override
@@ -68,7 +68,7 @@ public class BisqHeadlessAppMain extends BisqExecutable {
 
     @Override
     protected void launchApplication() {
-        headlessApp = new BisqHeadlessApp();
+        headlessApp = new HavenoHeadlessApp();
 
         UserThread.execute(this::onApplicationLaunched);
     }

@@ -1,7 +1,7 @@
-package bisq.desktop.util.validation;
+package haveno.desktop.util.validation;
 
-import bisq.core.locale.BankUtil;
-import bisq.core.locale.Res;
+import haveno.core.locale.BankUtil;
+import haveno.core.locale.Res;
 
 public class NationalAccountIdValidator extends BankValidator {
 

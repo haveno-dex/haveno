@@ -1,28 +1,28 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.monitor.metric;
+package haveno.monitor.metric;
 
-import bisq.monitor.Metric;
-import bisq.monitor.OnionParser;
-import bisq.monitor.Reporter;
-import bisq.monitor.StatisticsHelper;
+import haveno.monitor.Metric;
+import haveno.monitor.OnionParser;
+import haveno.monitor.Reporter;
+import haveno.monitor.StatisticsHelper;
 
-import bisq.network.p2p.NodeAddress;
+import haveno.network.p2p.NodeAddress;
 
 import org.berndpruenster.netlayer.tor.Tor;
 import org.berndpruenster.netlayer.tor.TorCtlException;
@@ -38,7 +38,7 @@ import java.util.List;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
- * A Metric to measure the round-trip time to the Bisq seed nodes via plain tor.
+ * A Metric to measure the round-trip time to the Haveno seed nodes via plain tor.
  *
  * @author Florian Reimair
  */

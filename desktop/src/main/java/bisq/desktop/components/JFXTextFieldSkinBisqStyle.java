@@ -1,4 +1,4 @@
-package bisq.desktop.components;
+package haveno.desktop.components;
 
 import com.jfoenix.adapters.ReflectionHelper;
 import com.jfoenix.controls.base.IFXLabelFloatControl;
@@ -20,7 +20,7 @@ import java.lang.reflect.Field;
  * Code copied and adapted from com.jfoenix.skins.JFXTextFieldSkin
  */
 
-public class JFXTextFieldSkinBisqStyle<T extends TextField & IFXLabelFloatControl> extends TextFieldSkin {
+public class JFXTextFieldSkinHavenoStyle<T extends TextField & IFXLabelFloatControl> extends TextFieldSkin {
 
     private double inputLineExtension;
     private boolean invalid = true;
@@ -34,7 +34,7 @@ public class JFXTextFieldSkinBisqStyle<T extends TextField & IFXLabelFloatContro
     private ValidationPane<T> errorContainer;
     private PromptLinesWrapper<T> linesWrapper;
 
-    public JFXTextFieldSkinBisqStyle(T textField, double inputLineExtension) {
+    public JFXTextFieldSkinHavenoStyle(T textField, double inputLineExtension) {
         super(textField);
         textPane = (Pane) this.getChildren().get(0);
         this.inputLineExtension = inputLineExtension;

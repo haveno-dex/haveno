@@ -1,51 +1,51 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.core.proto.persistable;
+package haveno.core.proto.persistable;
 
-import bisq.core.account.sign.SignedWitnessStore;
-import bisq.core.account.witness.AccountAgeWitnessStore;
-import bisq.core.btc.model.AddressEntryList;
-import bisq.core.btc.model.XmrAddressEntryList;
-import bisq.core.btc.wallet.BtcWalletService;
-import bisq.core.btc.wallet.XmrWalletService;
-import bisq.core.offer.SignedOfferList;
-import bisq.core.payment.PaymentAccountList;
-import bisq.core.proto.CoreProtoResolver;
-import bisq.core.support.dispute.arbitration.ArbitrationDisputeList;
-import bisq.core.support.dispute.mediation.MediationDisputeList;
-import bisq.core.support.dispute.refund.RefundDisputeList;
-import bisq.core.trade.TradableList;
-import bisq.core.trade.statistics.TradeStatistics2Store;
-import bisq.core.trade.statistics.TradeStatistics3Store;
-import bisq.core.user.PreferencesPayload;
-import bisq.core.user.UserPayload;
+import haveno.core.account.sign.SignedWitnessStore;
+import haveno.core.account.witness.AccountAgeWitnessStore;
+import haveno.core.btc.model.AddressEntryList;
+import haveno.core.btc.model.XmrAddressEntryList;
+import haveno.core.btc.wallet.BtcWalletService;
+import haveno.core.btc.wallet.XmrWalletService;
+import haveno.core.offer.SignedOfferList;
+import haveno.core.payment.PaymentAccountList;
+import haveno.core.proto.CoreProtoResolver;
+import haveno.core.support.dispute.arbitration.ArbitrationDisputeList;
+import haveno.core.support.dispute.mediation.MediationDisputeList;
+import haveno.core.support.dispute.refund.RefundDisputeList;
+import haveno.core.trade.TradableList;
+import haveno.core.trade.statistics.TradeStatistics2Store;
+import haveno.core.trade.statistics.TradeStatistics3Store;
+import haveno.core.user.PreferencesPayload;
+import haveno.core.user.UserPayload;
 
-import bisq.network.p2p.mailbox.IgnoredMailboxMap;
-import bisq.network.p2p.mailbox.MailboxMessageList;
-import bisq.network.p2p.peers.peerexchange.PeerList;
-import bisq.network.p2p.storage.persistence.RemovedPayloadsMap;
-import bisq.network.p2p.storage.persistence.SequenceNumberMap;
+import haveno.network.p2p.mailbox.IgnoredMailboxMap;
+import haveno.network.p2p.mailbox.MailboxMessageList;
+import haveno.network.p2p.peers.peerexchange.PeerList;
+import haveno.network.p2p.storage.persistence.RemovedPayloadsMap;
+import haveno.network.p2p.storage.persistence.SequenceNumberMap;
 
-import bisq.common.proto.ProtobufferRuntimeException;
-import bisq.common.proto.network.NetworkProtoResolver;
-import bisq.common.proto.persistable.NavigationPath;
-import bisq.common.proto.persistable.PersistableEnvelope;
-import bisq.common.proto.persistable.PersistenceProtoResolver;
+import haveno.common.proto.ProtobufferRuntimeException;
+import haveno.common.proto.network.NetworkProtoResolver;
+import haveno.common.proto.persistable.NavigationPath;
+import haveno.common.proto.persistable.PersistableEnvelope;
+import haveno.common.proto.persistable.PersistenceProtoResolver;
 
 import com.google.inject.Provider;
 

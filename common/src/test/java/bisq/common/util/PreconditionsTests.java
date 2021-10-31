@@ -1,4 +1,4 @@
-package bisq.common.util;
+package haveno.common.util;
 
 import java.nio.file.Files;
 
@@ -9,7 +9,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
-import static bisq.common.util.Preconditions.checkDir;
+import static haveno.common.util.Preconditions.checkDir;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertSame;
 

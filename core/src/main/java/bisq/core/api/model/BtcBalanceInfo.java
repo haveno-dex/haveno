@@ -1,6 +1,6 @@
-package bisq.core.api.model;
+package haveno.core.api.model;
 
-import bisq.common.Payload;
+import haveno.common.Payload;
 
 import com.google.common.annotations.VisibleForTesting;
 
@@ -47,8 +47,8 @@ public class BtcBalanceInfo implements Payload {
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     @Override
-    public bisq.proto.grpc.BtcBalanceInfo toProtoMessage() {
-        return bisq.proto.grpc.BtcBalanceInfo.newBuilder()
+    public haveno.proto.grpc.BtcBalanceInfo toProtoMessage() {
+        return haveno.proto.grpc.BtcBalanceInfo.newBuilder()
                 .setAvailableBalance(availableBalance)
                 .setReservedBalance(reservedBalance)
                 .setTotalAvailableBalance(totalAvailableBalance)
@@ -56,7 +56,7 @@ public class BtcBalanceInfo implements Payload {
                 .build();
     }
 
-    public static BtcBalanceInfo fromProto(bisq.proto.grpc.BtcBalanceInfo proto) {
+    public static BtcBalanceInfo fromProto(haveno.proto.grpc.BtcBalanceInfo proto) {
         return new BtcBalanceInfo(proto.getAvailableBalance(),
                 proto.getReservedBalance(),
                 proto.getTotalAvailableBalance(),

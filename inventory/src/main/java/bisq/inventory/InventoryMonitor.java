@@ -1,42 +1,42 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.inventory;
+package haveno.inventory;
 
 
-import bisq.core.app.TorSetup;
-import bisq.core.network.p2p.inventory.GetInventoryRequestManager;
-import bisq.core.network.p2p.inventory.model.Average;
-import bisq.core.network.p2p.inventory.model.DeviationSeverity;
-import bisq.core.network.p2p.inventory.model.InventoryItem;
-import bisq.core.network.p2p.inventory.model.RequestInfo;
-import bisq.core.network.p2p.seed.DefaultSeedNodeRepository;
-import bisq.core.proto.network.CoreNetworkProtoResolver;
+import haveno.core.app.TorSetup;
+import haveno.core.network.p2p.inventory.GetInventoryRequestManager;
+import haveno.core.network.p2p.inventory.model.Average;
+import haveno.core.network.p2p.inventory.model.DeviationSeverity;
+import haveno.core.network.p2p.inventory.model.InventoryItem;
+import haveno.core.network.p2p.inventory.model.RequestInfo;
+import haveno.core.network.p2p.seed.DefaultSeedNodeRepository;
+import haveno.core.proto.network.CoreNetworkProtoResolver;
 
-import bisq.network.p2p.NetworkNodeProvider;
-import bisq.network.p2p.NodeAddress;
-import bisq.network.p2p.network.NetworkNode;
-import bisq.network.p2p.network.SetupListener;
+import haveno.network.p2p.NetworkNodeProvider;
+import haveno.network.p2p.NodeAddress;
+import haveno.network.p2p.network.NetworkNode;
+import haveno.network.p2p.network.SetupListener;
 
-import bisq.common.UserThread;
-import bisq.common.config.BaseCurrencyNetwork;
-import bisq.common.file.JsonFileManager;
-import bisq.common.util.Tuple2;
-import bisq.common.util.Utilities;
+import haveno.common.UserThread;
+import haveno.common.config.BaseCurrencyNetwork;
+import haveno.common.file.JsonFileManager;
+import haveno.common.util.Tuple2;
+import haveno.common.util.Utilities;
 
 import java.time.Clock;
 

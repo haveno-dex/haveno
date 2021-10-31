@@ -1,21 +1,21 @@
-package bisq.cli.opt;
+package haveno.cli.opt;
 
 import org.junit.jupiter.api.Test;
 
-import static bisq.cli.Method.canceloffer;
-import static bisq.cli.Method.createcryptopaymentacct;
-import static bisq.cli.Method.createoffer;
-import static bisq.cli.Method.createpaymentacct;
-import static bisq.cli.opts.OptLabel.*;
+import static haveno.cli.Method.canceloffer;
+import static haveno.cli.Method.createcryptopaymentacct;
+import static haveno.cli.Method.createoffer;
+import static haveno.cli.Method.createpaymentacct;
+import static haveno.cli.opts.OptLabel.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 
 
-import bisq.cli.opts.CancelOfferOptionParser;
-import bisq.cli.opts.CreateCryptoCurrencyPaymentAcctOptionParser;
-import bisq.cli.opts.CreateOfferOptionParser;
-import bisq.cli.opts.CreatePaymentAcctOptionParser;
+import haveno.cli.opts.CancelOfferOptionParser;
+import haveno.cli.opts.CreateCryptoCurrencyPaymentAcctOptionParser;
+import haveno.cli.opts.CreateOfferOptionParser;
+import haveno.cli.opts.CreatePaymentAcctOptionParser;
 
 
 public class OptionParsersTest {

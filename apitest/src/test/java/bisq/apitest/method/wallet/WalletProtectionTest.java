@@ -1,4 +1,4 @@
-package bisq.apitest.method.wallet;
+package haveno.apitest.method.wallet;
 
 import io.grpc.StatusRuntimeException;
 
@@ -11,7 +11,7 @@ import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 
-import static bisq.apitest.config.BisqAppConfig.alicedaemon;
+import static haveno.apitest.config.HavenoAppConfig.alicedaemon;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -20,7 +20,7 @@ import static org.junit.jupiter.api.MethodOrderer.OrderAnnotation;
 
 
 
-import bisq.apitest.method.MethodTest;
+import haveno.apitest.method.MethodTest;
 
 @SuppressWarnings("ResultOfMethodCallIgnored")
 @Disabled

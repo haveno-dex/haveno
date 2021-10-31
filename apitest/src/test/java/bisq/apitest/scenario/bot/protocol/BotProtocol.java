@@ -1,24 +1,24 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.apitest.scenario.bot.protocol;
+package haveno.apitest.scenario.bot.protocol;
 
 
-import bisq.proto.grpc.TradeInfo;
+import haveno.proto.grpc.TradeInfo;
 
 import protobuf.PaymentAccount;
 
@@ -37,8 +37,8 @@ import java.util.stream.Collectors;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
-import static bisq.apitest.scenario.bot.protocol.ProtocolStep.*;
-import static bisq.apitest.scenario.bot.shutdown.ManualShutdown.checkIfShutdownCalled;
+import static haveno.apitest.scenario.bot.protocol.ProtocolStep.*;
+import static haveno.apitest.scenario.bot.shutdown.ManualShutdown.checkIfShutdownCalled;
 import static java.lang.String.format;
 import static java.lang.System.currentTimeMillis;
 import static java.util.Arrays.stream;
@@ -46,11 +46,11 @@ import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
 
 
-import bisq.apitest.method.BitcoinCliHelper;
-import bisq.apitest.scenario.bot.BotClient;
-import bisq.apitest.scenario.bot.script.BashScriptGenerator;
-import bisq.apitest.scenario.bot.shutdown.ManualBotShutdownException;
-import bisq.cli.TradeFormat;
+import haveno.apitest.method.BitcoinCliHelper;
+import haveno.apitest.scenario.bot.BotClient;
+import haveno.apitest.scenario.bot.script.BashScriptGenerator;
+import haveno.apitest.scenario.bot.shutdown.ManualBotShutdownException;
+import haveno.cli.TradeFormat;
 
 @Slf4j
 public abstract class BotProtocol {

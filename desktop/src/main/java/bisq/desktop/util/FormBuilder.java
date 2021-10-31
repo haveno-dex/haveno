@@ -1,50 +1,50 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.desktop.util;
+package haveno.desktop.util;
 
-import bisq.desktop.components.AddressTextField;
-import bisq.desktop.components.AutoTooltipButton;
-import bisq.desktop.components.AutoTooltipCheckBox;
-import bisq.desktop.components.AutoTooltipLabel;
-import bisq.desktop.components.AutoTooltipRadioButton;
-import bisq.desktop.components.AutoTooltipSlideToggleButton;
-import bisq.desktop.components.AutocompleteComboBox;
-import bisq.desktop.components.BalanceTextField;
-import bisq.desktop.components.BisqTextArea;
-import bisq.desktop.components.BisqTextField;
-import bisq.desktop.components.BusyAnimation;
-import bisq.desktop.components.ExternalHyperlink;
-import bisq.desktop.components.FundsTextField;
-import bisq.desktop.components.HyperlinkWithIcon;
-import bisq.desktop.components.InfoInputTextField;
-import bisq.desktop.components.InfoTextField;
-import bisq.desktop.components.InputTextField;
-import bisq.desktop.components.PasswordTextField;
-import bisq.desktop.components.TextFieldWithCopyIcon;
-import bisq.desktop.components.TextFieldWithIcon;
-import bisq.desktop.components.TitledGroupBg;
-import bisq.desktop.components.TxIdTextField;
+import haveno.desktop.components.AddressTextField;
+import haveno.desktop.components.AutoTooltipButton;
+import haveno.desktop.components.AutoTooltipCheckBox;
+import haveno.desktop.components.AutoTooltipLabel;
+import haveno.desktop.components.AutoTooltipRadioButton;
+import haveno.desktop.components.AutoTooltipSlideToggleButton;
+import haveno.desktop.components.AutocompleteComboBox;
+import haveno.desktop.components.BalanceTextField;
+import haveno.desktop.components.HavenoTextArea;
+import haveno.desktop.components.HavenoTextField;
+import haveno.desktop.components.BusyAnimation;
+import haveno.desktop.components.ExternalHyperlink;
+import haveno.desktop.components.FundsTextField;
+import haveno.desktop.components.HyperlinkWithIcon;
+import haveno.desktop.components.InfoInputTextField;
+import haveno.desktop.components.InfoTextField;
+import haveno.desktop.components.InputTextField;
+import haveno.desktop.components.PasswordTextField;
+import haveno.desktop.components.TextFieldWithCopyIcon;
+import haveno.desktop.components.TextFieldWithIcon;
+import haveno.desktop.components.TitledGroupBg;
+import haveno.desktop.components.TxIdTextField;
 
-import bisq.core.locale.Res;
+import haveno.core.locale.Res;
 
-import bisq.common.util.Tuple2;
-import bisq.common.util.Tuple3;
-import bisq.common.util.Tuple4;
+import haveno.common.util.Tuple2;
+import haveno.common.util.Tuple3;
+import haveno.common.util.Tuple4;
 
 import de.jensd.fx.fontawesome.AwesomeDude;
 import de.jensd.fx.fontawesome.AwesomeIcon;
@@ -88,7 +88,7 @@ import java.util.concurrent.CopyOnWriteArraySet;
 
 import org.jetbrains.annotations.NotNull;
 
-import static bisq.desktop.util.GUIUtil.getComboBoxButtonCell;
+import static haveno.desktop.util.GUIUtil.getComboBoxButtonCell;
 
 public class FormBuilder {
     private static final String MATERIAL_DESIGN_ICONS = "'Material Design Icons'";
@@ -326,7 +326,7 @@ public class FormBuilder {
                                                                       String title,
                                                                       String value,
                                                                       double top) {
-        TextField textField = new BisqTextField(value);
+        TextField textField = new HavenoTextField(value);
         textField.setEditable(false);
         textField.setFocusTraversable(false);
 
@@ -339,7 +339,7 @@ public class FormBuilder {
     }
 
     public static Tuple2<TextField, Button> addTextFieldWithEditButton(GridPane gridPane, int rowIndex, String title) {
-        TextField textField = new BisqTextField();
+        TextField textField = new HavenoTextField();
         textField.setPromptText(title);
         textField.setEditable(false);
         textField.setFocusTraversable(false);
@@ -544,7 +544,7 @@ public class FormBuilder {
 
     public static TextArea addTextArea(GridPane gridPane, int rowIndex, String prompt, double top) {
 
-        JFXTextArea textArea = new BisqTextArea();
+        JFXTextArea textArea = new HavenoTextArea();
         textArea.setPromptText(prompt);
         textArea.setLabelFloat(true);
         textArea.setWrapText(true);
@@ -603,7 +603,7 @@ public class FormBuilder {
     public static Tuple2<Label, TextArea> addTopLabelTextArea(GridPane gridPane, int rowIndex, int colIndex,
                                                               String title, String prompt, double top) {
 
-        TextArea textArea = new BisqTextArea();
+        TextArea textArea = new HavenoTextArea();
         textArea.setPromptText(prompt);
         textArea.setWrapText(true);
 
@@ -860,7 +860,7 @@ public class FormBuilder {
                                                                               String buttonTitle,
                                                                               double top) {
 
-        TextField textField = new BisqTextField();
+        TextField textField = new HavenoTextField();
         textField.setEditable(false);
         textField.setMouseTransparent(true);
         textField.setFocusTraversable(false);
@@ -914,14 +914,14 @@ public class FormBuilder {
                                                                                                           int rowIndex,
                                                                                                           String title1,
                                                                                                           String title2) {
-        TextField textField1 = new BisqTextField();
+        TextField textField1 = new HavenoTextField();
         textField1.setEditable(false);
         textField1.setMouseTransparent(true);
         textField1.setFocusTraversable(false);
 
         final Tuple2<Label, VBox> topLabelWithVBox1 = getTopLabelWithVBox(title1, textField1);
 
-        TextField textField2 = new BisqTextField();
+        TextField textField2 = new HavenoTextField();
         textField2.setEditable(false);
         textField2.setMouseTransparent(true);
         textField2.setFocusTraversable(false);
@@ -1054,7 +1054,7 @@ public class FormBuilder {
                                                                                                                 String radioButtonTitle1,
                                                                                                                 String radioButtonTitle2,
                                                                                                                 double top) {
-        TextField textField = new BisqTextField();
+        TextField textField = new HavenoTextField();
         textField.setPromptText(textFieldTitle);
 
         RadioButton radioButton1 = new AutoTooltipRadioButton(radioButtonTitle1);
@@ -1296,7 +1296,7 @@ public class FormBuilder {
 
         final VBox topLabelVBox1 = getTopLabelVBox(5);
         final Label topLabel1 = getTopLabel(titleTextfield);
-        final TextField textField = new BisqTextField();
+        final TextField textField = new HavenoTextField();
         topLabelVBox1.getChildren().addAll(topLabel1, textField);
 
         final VBox topLabelVBox2 = getTopLabelVBox(5);
@@ -1364,7 +1364,7 @@ public class FormBuilder {
         comboBox.setPromptText(titleCombobox);
         comboBox.setLabelFloat(true);
 
-        TextField textField = new BisqTextField();
+        TextField textField = new HavenoTextField();
 
         final VBox topLabelVBox = getTopLabelVBox(5);
         final Label topLabel = getTopLabel(titleTextfield);

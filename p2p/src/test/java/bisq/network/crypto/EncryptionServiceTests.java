@@ -1,28 +1,28 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.network.crypto;
+package haveno.network.crypto;
 
-import bisq.common.crypto.CryptoException;
-import bisq.common.crypto.KeyRing;
-import bisq.common.crypto.KeyStorage;
-import bisq.common.crypto.PubKeyRing;
-import bisq.common.file.FileUtil;
-import bisq.common.proto.network.NetworkEnvelope;
+import haveno.common.crypto.CryptoException;
+import haveno.common.crypto.KeyRing;
+import haveno.common.crypto.KeyStorage;
+import haveno.common.crypto.PubKeyRing;
+import haveno.common.file.FileUtil;
+import haveno.common.proto.network.NetworkEnvelope;
 
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
@@ -67,7 +67,7 @@ public class EncryptionServiceTests {
         FileUtil.deleteDirectory(dir);
     }
 
-    //TODO Use NetworkProtoResolver, PersistenceProtoResolver or ProtoResolver which are all in io.bisq.common.
+    //TODO Use NetworkProtoResolver, PersistenceProtoResolver or ProtoResolver which are all in io.haveno.common.
 /*
     @Test
     public void testDecryptAndVerifyMessage() throws CryptoException {

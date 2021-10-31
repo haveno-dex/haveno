@@ -1,31 +1,31 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.core.provider.price;
+package haveno.core.provider.price;
 
-import bisq.core.locale.CurrencyUtil;
-import bisq.core.provider.HttpClientProvider;
+import haveno.core.locale.CurrencyUtil;
+import haveno.core.provider.HttpClientProvider;
 
-import bisq.network.http.HttpClient;
-import bisq.network.p2p.P2PService;
+import haveno.network.http.HttpClient;
+import haveno.network.p2p.P2PService;
 
-import bisq.common.app.Version;
-import bisq.common.util.MathUtils;
-import bisq.common.util.Tuple2;
+import haveno.common.app.Version;
+import haveno.common.util.MathUtils;
+import haveno.common.util.Tuple2;
 
 import com.google.gson.Gson;
 import com.google.gson.internal.LinkedTreeMap;
@@ -59,7 +59,7 @@ public class PriceProvider extends HttpClientProvider {
         if (P2PService.getMyNodeAddress() != null)
             hsVersion = P2PService.getMyNodeAddress().getHostName().length() > 22 ? ", HSv3" : ", HSv2";
 
-        String json = httpClient.get("getAllMarketPrices", "User-Agent", "bisq/"
+        String json = httpClient.get("getAllMarketPrices", "User-Agent", "haveno/"
                 + Version.VERSION + hsVersion);
 
         LinkedTreeMap<?, ?> map = new Gson().fromJson(json, LinkedTreeMap.class);
@@ -69,7 +69,7 @@ public class PriceProvider extends HttpClientProvider {
         tsMap.put("coinmarketcapTs", ((Double) map.get("coinmarketcapTs")).longValue());
 
         // get btc per xmr price to convert all prices to xmr
-        // TODO (woodser): currently using bisq price feed, switch?
+        // TODO (woodser): currently using haveno price feed, switch?
         Double btcPerXmr = null;
         List<?> list = (ArrayList<?>) map.get("data");
         for (Object obj : list) {

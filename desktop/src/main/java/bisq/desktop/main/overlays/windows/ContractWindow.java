@@ -1,49 +1,49 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.desktop.main.overlays.windows;
+package haveno.desktop.main.overlays.windows;
 
-import bisq.desktop.components.BisqTextArea;
-import bisq.desktop.main.MainView;
-import bisq.desktop.main.overlays.Overlay;
-import bisq.desktop.util.DisplayUtils;
-import bisq.desktop.util.Layout;
+import haveno.desktop.components.HavenoTextArea;
+import haveno.desktop.main.MainView;
+import haveno.desktop.main.overlays.Overlay;
+import haveno.desktop.util.DisplayUtils;
+import haveno.desktop.util.Layout;
 
-import bisq.core.account.witness.AccountAgeWitnessService;
-import bisq.core.locale.CountryUtil;
-import bisq.core.locale.CurrencyUtil;
-import bisq.core.locale.Res;
-import bisq.core.offer.Offer;
-import bisq.core.payment.payload.PaymentAccountPayload;
-import bisq.core.payment.payload.PaymentMethod;
-import bisq.core.support.dispute.Dispute;
-import bisq.core.support.dispute.DisputeList;
-import bisq.core.support.dispute.DisputeManager;
-import bisq.core.support.dispute.arbitration.ArbitrationManager;
-import bisq.core.support.dispute.mediation.MediationManager;
-import bisq.core.support.dispute.refund.RefundManager;
-import bisq.core.trade.Contract;
-import bisq.core.util.FormattingUtils;
-import bisq.core.util.coin.CoinFormatter;
+import haveno.core.account.witness.AccountAgeWitnessService;
+import haveno.core.locale.CountryUtil;
+import haveno.core.locale.CurrencyUtil;
+import haveno.core.locale.Res;
+import haveno.core.offer.Offer;
+import haveno.core.payment.payload.PaymentAccountPayload;
+import haveno.core.payment.payload.PaymentMethod;
+import haveno.core.support.dispute.Dispute;
+import haveno.core.support.dispute.DisputeList;
+import haveno.core.support.dispute.DisputeManager;
+import haveno.core.support.dispute.arbitration.ArbitrationManager;
+import haveno.core.support.dispute.mediation.MediationManager;
+import haveno.core.support.dispute.refund.RefundManager;
+import haveno.core.trade.Contract;
+import haveno.core.util.FormattingUtils;
+import haveno.core.util.coin.CoinFormatter;
 
-import bisq.network.p2p.NodeAddress;
+import haveno.network.p2p.NodeAddress;
 
-import bisq.common.UserThread;
-import bisq.common.crypto.PubKeyRing;
+import haveno.common.UserThread;
+import haveno.common.crypto.PubKeyRing;
 
 import org.bitcoinj.core.Utils;
 
@@ -71,7 +71,7 @@ import java.util.List;
 
 import lombok.extern.slf4j.Slf4j;
 
-import static bisq.desktop.util.FormBuilder.*;
+import static haveno.desktop.util.FormBuilder.*;
 
 @Slf4j
 public class ContractWindow extends Overlay<ContractWindow> {
@@ -271,7 +271,7 @@ public class ContractWindow extends Overlay<ContractWindow> {
                 Res.get("shared.viewContractAsJson"), 0).second;
         viewContractButton.setDefaultButton(false);
         viewContractButton.setOnAction(e -> {
-            TextArea textArea = new BisqTextArea();
+            TextArea textArea = new HavenoTextArea();
             String contractAsJson = dispute.getContractAsJson();
             textArea.setText(contractAsJson);
             textArea.setPrefHeight(50);

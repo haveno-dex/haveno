@@ -1,72 +1,72 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.desktop.util;
+package haveno.desktop.util;
 
-import bisq.desktop.Navigation;
-import bisq.desktop.app.BisqApp;
-import bisq.desktop.components.AutoTooltipLabel;
-import bisq.desktop.components.BisqTextArea;
-import bisq.desktop.components.InfoAutoTooltipLabel;
-import bisq.desktop.components.indicator.TxConfidenceIndicator;
-import bisq.desktop.main.MainView;
-import bisq.desktop.main.account.AccountView;
-import bisq.desktop.main.account.content.fiataccounts.FiatAccountsView;
-import bisq.desktop.main.overlays.popups.Popup;
+import haveno.desktop.Navigation;
+import haveno.desktop.app.HavenoApp;
+import haveno.desktop.components.AutoTooltipLabel;
+import haveno.desktop.components.HavenoTextArea;
+import haveno.desktop.components.InfoAutoTooltipLabel;
+import haveno.desktop.components.indicator.TxConfidenceIndicator;
+import haveno.desktop.main.MainView;
+import haveno.desktop.main.account.AccountView;
+import haveno.desktop.main.account.content.fiataccounts.FiatAccountsView;
+import haveno.desktop.main.overlays.popups.Popup;
 
-import bisq.core.account.witness.AccountAgeWitness;
-import bisq.core.account.witness.AccountAgeWitnessService;
-import bisq.core.app.BisqSetup;
-import bisq.core.btc.setup.WalletsSetup;
-import bisq.core.locale.Country;
-import bisq.core.locale.CountryUtil;
-import bisq.core.locale.CurrencyUtil;
-import bisq.core.locale.Res;
-import bisq.core.locale.TradeCurrency;
-import bisq.core.monetary.Price;
-import bisq.core.monetary.Volume;
-import bisq.core.offer.OfferRestrictions;
-import bisq.core.payment.PaymentAccount;
-import bisq.core.payment.PaymentAccountList;
-import bisq.core.payment.payload.PaymentMethod;
-import bisq.core.provider.fee.FeeService;
-import bisq.core.provider.price.MarketPrice;
-import bisq.core.provider.price.PriceFeedService;
-import bisq.core.trade.txproof.AssetTxProofResult;
-import bisq.core.user.DontShowAgainLookup;
-import bisq.core.user.Preferences;
-import bisq.core.user.User;
-import bisq.core.util.FormattingUtils;
-import bisq.core.util.coin.CoinFormatter;
-import bisq.core.util.coin.CoinUtil;
+import haveno.core.account.witness.AccountAgeWitness;
+import haveno.core.account.witness.AccountAgeWitnessService;
+import haveno.core.app.HavenoSetup;
+import haveno.core.btc.setup.WalletsSetup;
+import haveno.core.locale.Country;
+import haveno.core.locale.CountryUtil;
+import haveno.core.locale.CurrencyUtil;
+import haveno.core.locale.Res;
+import haveno.core.locale.TradeCurrency;
+import haveno.core.monetary.Price;
+import haveno.core.monetary.Volume;
+import haveno.core.offer.OfferRestrictions;
+import haveno.core.payment.PaymentAccount;
+import haveno.core.payment.PaymentAccountList;
+import haveno.core.payment.payload.PaymentMethod;
+import haveno.core.provider.fee.FeeService;
+import haveno.core.provider.price.MarketPrice;
+import haveno.core.provider.price.PriceFeedService;
+import haveno.core.trade.txproof.AssetTxProofResult;
+import haveno.core.user.DontShowAgainLookup;
+import haveno.core.user.Preferences;
+import haveno.core.user.User;
+import haveno.core.util.FormattingUtils;
+import haveno.core.util.coin.CoinFormatter;
+import haveno.core.util.coin.CoinUtil;
 
-import bisq.network.p2p.P2PService;
+import haveno.network.p2p.P2PService;
 
-import bisq.common.UserThread;
-import bisq.common.app.DevEnv;
-import bisq.common.config.Config;
-import bisq.common.file.CorruptedStorageFileHandler;
-import bisq.common.persistence.PersistenceManager;
-import bisq.common.proto.persistable.PersistableEnvelope;
-import bisq.common.proto.persistable.PersistenceProtoResolver;
-import bisq.common.util.MathUtils;
-import bisq.common.util.Tuple2;
-import bisq.common.util.Tuple3;
-import bisq.common.util.Utilities;
+import haveno.common.UserThread;
+import haveno.common.app.DevEnv;
+import haveno.common.config.Config;
+import haveno.common.file.CorruptedStorageFileHandler;
+import haveno.common.persistence.PersistenceManager;
+import haveno.common.proto.persistable.PersistableEnvelope;
+import haveno.common.proto.persistable.PersistenceProtoResolver;
+import haveno.common.util.MathUtils;
+import haveno.common.util.Tuple2;
+import haveno.common.util.Tuple3;
+import haveno.common.util.Utilities;
 
 import org.bitcoinj.core.Address;
 import org.bitcoinj.core.Coin;
@@ -143,7 +143,7 @@ import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nullable;
 
-import static bisq.desktop.util.FormBuilder.addTopLabelComboBoxComboBox;
+import static haveno.desktop.util.FormBuilder.addTopLabelComboBoxComboBox;
 import static com.google.common.base.Preconditions.checkArgument;
 
 @Slf4j
@@ -608,7 +608,7 @@ public class GUIUtil {
 
     public static void openWebPage(String target, boolean useReferrer, Runnable closeHandler) {
 
-        if (useReferrer && target.contains("bisq.network")) {
+        if (useReferrer && target.contains("haveno.network")) {
             // add utm parameters
             target = appendURI(target, "utm_source=desktop-client&utm_medium=in-app-link&utm_campaign=language_" +
                     preferences.getUserLanguage());
@@ -827,8 +827,8 @@ public class GUIUtil {
                     .useShutDownButton()
                     .actionButtonText(Res.get("shared.shutDown"))
                     .onAction(() -> {
-                        BisqSetup.setResyncSpvSemaphore(true);
-                        UserThread.runAfter(BisqApp.getShutDownHandler(), 100, TimeUnit.MILLISECONDS);
+                        HavenoSetup.setResyncSpvSemaphore(true);
+                        UserThread.runAfter(HavenoApp.getShutDownHandler(), 100, TimeUnit.MILLISECONDS);
                     })
                     .closeButtonText(Res.get("shared.cancel"))
                     .show();
@@ -838,7 +838,7 @@ public class GUIUtil {
     }
 
     public static void showSelectableTextModal(String title, String text) {
-        TextArea textArea = new BisqTextArea();
+        TextArea textArea = new HavenoTextArea();
         textArea.setText(text);
         textArea.setEditable(false);
         textArea.setWrapText(true);
@@ -987,18 +987,18 @@ public class GUIUtil {
     public static int addRegionCountry(GridPane gridPane,
                                        int gridRow,
                                        Consumer<Country> onCountrySelectedHandler) {
-        Tuple3<Label, ComboBox<bisq.core.locale.Region>, ComboBox<Country>> tuple3 = addTopLabelComboBoxComboBox(gridPane, ++gridRow, Res.get("payment.country"));
+        Tuple3<Label, ComboBox<haveno.core.locale.Region>, ComboBox<Country>> tuple3 = addTopLabelComboBoxComboBox(gridPane, ++gridRow, Res.get("payment.country"));
 
-        ComboBox<bisq.core.locale.Region> regionComboBox = tuple3.second;
+        ComboBox<haveno.core.locale.Region> regionComboBox = tuple3.second;
         regionComboBox.setPromptText(Res.get("payment.select.region"));
         regionComboBox.setConverter(new StringConverter<>() {
             @Override
-            public String toString(bisq.core.locale.Region region) {
+            public String toString(haveno.core.locale.Region region) {
                 return region.name;
             }
 
             @Override
-            public bisq.core.locale.Region fromString(String s) {
+            public haveno.core.locale.Region fromString(String s) {
                 return null;
             }
         });
@@ -1021,7 +1021,7 @@ public class GUIUtil {
         });
 
         regionComboBox.setOnAction(e -> {
-            bisq.core.locale.Region selectedItem = regionComboBox.getSelectionModel().getSelectedItem();
+            haveno.core.locale.Region selectedItem = regionComboBox.getSelectionModel().getSelectedItem();
             if (selectedItem != null) {
                 countryComboBox.setDisable(false);
                 countryComboBox.setItems(FXCollections.observableArrayList(CountryUtil.getAllCountriesForRegion(selectedItem)));

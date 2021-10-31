@@ -1,13 +1,13 @@
-package bisq.core.trade;
+package haveno.core.trade;
 
-import bisq.core.btc.wallet.XmrWalletService;
-import bisq.core.offer.Offer;
-import bisq.core.proto.CoreProtoResolver;
-import bisq.core.trade.protocol.ProcessModel;
+import haveno.core.btc.wallet.XmrWalletService;
+import haveno.core.offer.Offer;
+import haveno.core.proto.CoreProtoResolver;
+import haveno.core.trade.protocol.ProcessModel;
 
-import bisq.network.p2p.NodeAddress;
+import haveno.network.p2p.NodeAddress;
 
-import bisq.common.proto.ProtoUtil;
+import haveno.common.proto.ProtoUtil;
 
 import org.bitcoinj.core.Coin;
 

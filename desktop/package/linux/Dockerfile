@@ -15,6 +15,6 @@ apt-get install -y vim fakeroot
 
 
 COPY 64bitBuild.sh /root
-COPY bisq-$version.jar /root
+COPY haveno-$version.jar /root
 # cd to the Dex directory and execute the jar.
 #CMD cd ~/Dex && java -jar Dex.jar

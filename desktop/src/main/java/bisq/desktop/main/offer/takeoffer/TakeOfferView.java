@@ -1,68 +1,68 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.desktop.main.offer.takeoffer;
+package haveno.desktop.main.offer.takeoffer;
 
-import bisq.desktop.Navigation;
-import bisq.desktop.common.view.ActivatableViewAndModel;
-import bisq.desktop.common.view.FxmlView;
-import bisq.desktop.components.AddressTextField;
-import bisq.desktop.components.AutoTooltipButton;
-import bisq.desktop.components.AutoTooltipLabel;
-import bisq.desktop.components.AutoTooltipSlideToggleButton;
-import bisq.desktop.components.BalanceTextField;
-import bisq.desktop.components.BusyAnimation;
-import bisq.desktop.components.FundsTextField;
-import bisq.desktop.components.InfoInputTextField;
-import bisq.desktop.components.InputTextField;
-import bisq.desktop.components.TitledGroupBg;
-import bisq.desktop.main.MainView;
-import bisq.desktop.main.funds.FundsView;
-import bisq.desktop.main.funds.withdrawal.WithdrawalView;
-import bisq.desktop.main.offer.OfferView;
-import bisq.desktop.main.offer.OfferViewUtil;
-import bisq.desktop.main.overlays.notifications.Notification;
-import bisq.desktop.main.overlays.popups.Popup;
-import bisq.desktop.main.overlays.windows.GenericMessageWindow;
-import bisq.desktop.main.overlays.windows.OfferDetailsWindow;
-import bisq.desktop.main.overlays.windows.QRCodeWindow;
-import bisq.desktop.main.portfolio.PortfolioView;
-import bisq.desktop.main.portfolio.pendingtrades.PendingTradesView;
-import bisq.desktop.util.GUIUtil;
-import bisq.desktop.util.Layout;
-import bisq.desktop.util.Transitions;
+import haveno.desktop.Navigation;
+import haveno.desktop.common.view.ActivatableViewAndModel;
+import haveno.desktop.common.view.FxmlView;
+import haveno.desktop.components.AddressTextField;
+import haveno.desktop.components.AutoTooltipButton;
+import haveno.desktop.components.AutoTooltipLabel;
+import haveno.desktop.components.AutoTooltipSlideToggleButton;
+import haveno.desktop.components.BalanceTextField;
+import haveno.desktop.components.BusyAnimation;
+import haveno.desktop.components.FundsTextField;
+import haveno.desktop.components.InfoInputTextField;
+import haveno.desktop.components.InputTextField;
+import haveno.desktop.components.TitledGroupBg;
+import haveno.desktop.main.MainView;
+import haveno.desktop.main.funds.FundsView;
+import haveno.desktop.main.funds.withdrawal.WithdrawalView;
+import haveno.desktop.main.offer.OfferView;
+import haveno.desktop.main.offer.OfferViewUtil;
+import haveno.desktop.main.overlays.notifications.Notification;
+import haveno.desktop.main.overlays.popups.Popup;
+import haveno.desktop.main.overlays.windows.GenericMessageWindow;
+import haveno.desktop.main.overlays.windows.OfferDetailsWindow;
+import haveno.desktop.main.overlays.windows.QRCodeWindow;
+import haveno.desktop.main.portfolio.PortfolioView;
+import haveno.desktop.main.portfolio.pendingtrades.PendingTradesView;
+import haveno.desktop.util.GUIUtil;
+import haveno.desktop.util.Layout;
+import haveno.desktop.util.Transitions;
 
-import bisq.core.locale.CurrencyUtil;
-import bisq.core.locale.Res;
-import bisq.core.offer.Offer;
-import bisq.core.offer.OfferPayload;
-import bisq.core.payment.FasterPaymentsAccount;
-import bisq.core.payment.PaymentAccount;
-import bisq.core.payment.payload.PaymentMethod;
-import bisq.core.user.DontShowAgainLookup;
-import bisq.core.util.FormattingUtils;
-import bisq.core.util.coin.CoinFormatter;
+import haveno.core.locale.CurrencyUtil;
+import haveno.core.locale.Res;
+import haveno.core.offer.Offer;
+import haveno.core.offer.OfferPayload;
+import haveno.core.payment.FasterPaymentsAccount;
+import haveno.core.payment.PaymentAccount;
+import haveno.core.payment.payload.PaymentMethod;
+import haveno.core.user.DontShowAgainLookup;
+import haveno.core.util.FormattingUtils;
+import haveno.core.util.coin.CoinFormatter;
 
-import bisq.common.UserThread;
-import bisq.common.app.DevEnv;
-import bisq.common.util.Tuple2;
-import bisq.common.util.Tuple3;
-import bisq.common.util.Tuple4;
-import bisq.common.util.Utilities;
+import haveno.common.UserThread;
+import haveno.common.app.DevEnv;
+import haveno.common.util.Tuple2;
+import haveno.common.util.Tuple3;
+import haveno.common.util.Tuple4;
+import haveno.common.util.Utilities;
 
 import org.bitcoinj.core.Coin;
 
@@ -113,7 +113,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.jetbrains.annotations.NotNull;
 
-import static bisq.desktop.util.FormBuilder.*;
+import static haveno.desktop.util.FormBuilder.*;
 import static javafx.beans.binding.Bindings.createStringBinding;
 
 @FxmlView
@@ -443,7 +443,7 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
             String key = "securityDepositInfo";
             new Popup().backgroundInfo(Res.get("popup.info.securityDepositInfo"))
                     .actionButtonText(Res.get("shared.faq"))
-                    .onAction(() -> GUIUtil.openWebPage("https://bisq.network/faq#6"))
+                    .onAction(() -> GUIUtil.openWebPage("https://haveno.network/faq#6"))
                     .useIUnderstandButton()
                     .dontShowAgainId(key)
                     .show();

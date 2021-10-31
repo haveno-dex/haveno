@@ -1,32 +1,32 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.core.locale;
+package haveno.core.locale;
 
-import bisq.core.filter.FilterManager;
+import haveno.core.filter.FilterManager;
 
-import bisq.asset.Asset;
-import bisq.asset.AssetRegistry;
-import bisq.asset.Coin;
-import bisq.asset.Token;
+import haveno.asset.Asset;
+import haveno.asset.AssetRegistry;
+import haveno.asset.Coin;
+import haveno.asset.Token;
 
-import bisq.common.app.DevEnv;
-import bisq.common.config.BaseCurrencyNetwork;
-import bisq.common.config.Config;
+import haveno.common.app.DevEnv;
+import haveno.common.config.BaseCurrencyNetwork;
+import haveno.common.config.Config;
 
 import com.google.common.base.Suppliers;
 
@@ -66,7 +66,7 @@ public class CurrencyUtil {
     // The main improvement was already achieved with using memoize for the source maps, but
     // the caching still reduces performance costs by about 20% for isCryptoCurrency (1752 ms vs 2121 ms) and about 50%
     // for isFiatCurrency calls (1777 ms vs 3467 ms).
-    // See: https://github.com/bisq-network/bisq/pull/4955#issuecomment-745302802
+    // See: https://github.com/haveno-network/haveno/pull/4955#issuecomment-745302802
     private static final Map<String, Boolean> isFiatCurrencyMap = new ConcurrentHashMap<>();
     private static final Map<String, Boolean> isCryptoCurrencyMap = new ConcurrentHashMap<>();
 
@@ -271,7 +271,7 @@ public class CurrencyUtil {
         return currencies;
     }
 
-    // https://github.com/bisq-network/proposals/issues/243
+    // https://github.com/haveno-network/proposals/issues/243
     public static List<TradeCurrency> getAllTransferwiseCurrencies() {
         ArrayList<TradeCurrency> currencies = new ArrayList<>(Arrays.asList(
                 new FiatCurrency("ARS"),

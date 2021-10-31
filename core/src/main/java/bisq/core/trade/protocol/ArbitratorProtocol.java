@@ -1,23 +1,23 @@
-package bisq.core.trade.protocol;
+package haveno.core.trade.protocol;
 
-import bisq.core.trade.ArbitratorTrade;
-import bisq.core.trade.Trade;
-import bisq.core.trade.messages.DepositRequest;
-import bisq.core.trade.messages.InitMultisigRequest;
-import bisq.core.trade.messages.InitTradeRequest;
-import bisq.core.trade.messages.SignContractRequest;
-import bisq.core.trade.protocol.tasks.ApplyFilter;
-import bisq.core.trade.protocol.tasks.ArbitratorSendsInitTradeRequestToMakerIfFromTaker;
-import bisq.core.trade.protocol.tasks.ProcessDepositRequest;
-import bisq.core.trade.protocol.tasks.ProcessInitMultisigRequest;
-import bisq.core.trade.protocol.tasks.ArbitratorProcessesReserveTx;
-import bisq.core.trade.protocol.tasks.ArbitratorSendsInitMultisigRequestsIfFundsReserved;
-import bisq.core.trade.protocol.tasks.ProcessInitTradeRequest;
-import bisq.core.trade.protocol.tasks.ProcessSignContractRequest;
-import bisq.core.util.Validator;
-import bisq.network.p2p.NodeAddress;
+import haveno.core.trade.ArbitratorTrade;
+import haveno.core.trade.Trade;
+import haveno.core.trade.messages.DepositRequest;
+import haveno.core.trade.messages.InitMultisigRequest;
+import haveno.core.trade.messages.InitTradeRequest;
+import haveno.core.trade.messages.SignContractRequest;
+import haveno.core.trade.protocol.tasks.ApplyFilter;
+import haveno.core.trade.protocol.tasks.ArbitratorSendsInitTradeRequestToMakerIfFromTaker;
+import haveno.core.trade.protocol.tasks.ProcessDepositRequest;
+import haveno.core.trade.protocol.tasks.ProcessInitMultisigRequest;
+import haveno.core.trade.protocol.tasks.ArbitratorProcessesReserveTx;
+import haveno.core.trade.protocol.tasks.ArbitratorSendsInitMultisigRequestsIfFundsReserved;
+import haveno.core.trade.protocol.tasks.ProcessInitTradeRequest;
+import haveno.core.trade.protocol.tasks.ProcessSignContractRequest;
+import haveno.core.util.Validator;
+import haveno.network.p2p.NodeAddress;
 
-import bisq.common.handlers.ErrorMessageHandler;
+import haveno.common.handlers.ErrorMessageHandler;
 
 import lombok.extern.slf4j.Slf4j;
 

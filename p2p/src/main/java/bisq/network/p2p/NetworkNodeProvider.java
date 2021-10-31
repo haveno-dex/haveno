@@ -1,33 +1,33 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * bisq is free software: you can redistribute it and/or modify it
+ * haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * bisq is distributed in the hope that it will be useful, but WITHOUT
+ * haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.network.p2p;
+package haveno.network.p2p;
 
-import bisq.network.p2p.network.BridgeAddressProvider;
-import bisq.network.p2p.network.LocalhostNetworkNode;
-import bisq.network.p2p.network.NetworkFilter;
-import bisq.network.p2p.network.NetworkNode;
-import bisq.network.p2p.network.NewTor;
-import bisq.network.p2p.network.RunningTor;
-import bisq.network.p2p.network.TorMode;
-import bisq.network.p2p.network.TorNetworkNode;
+import haveno.network.p2p.network.BridgeAddressProvider;
+import haveno.network.p2p.network.LocalhostNetworkNode;
+import haveno.network.p2p.network.NetworkFilter;
+import haveno.network.p2p.network.NetworkNode;
+import haveno.network.p2p.network.NewTor;
+import haveno.network.p2p.network.RunningTor;
+import haveno.network.p2p.network.TorMode;
+import haveno.network.p2p.network.TorNetworkNode;
 
-import bisq.common.config.Config;
-import bisq.common.proto.network.NetworkProtoResolver;
+import haveno.common.config.Config;
+import haveno.common.proto.network.NetworkProtoResolver;
 
 import javax.inject.Inject;
 import javax.inject.Named;

@@ -24,12 +24,12 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package bisq.desktop.components.controlsfx.skin;
+package haveno.desktop.components.controlsfx.skin;
 
 import static java.lang.Double.MAX_VALUE;
 import static javafx.geometry.Pos.CENTER_LEFT;
 import static javafx.scene.control.ContentDisplay.GRAPHIC_ONLY;
-import static bisq.desktop.components.controlsfx.control.PopOver.ArrowLocation.*;
+import static haveno.desktop.components.controlsfx.control.PopOver.ArrowLocation.*;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -62,8 +62,8 @@ import javafx.scene.shape.QuadCurveTo;
 import javafx.scene.shape.VLineTo;
 import javafx.stage.Window;
 
-import bisq.desktop.components.controlsfx.control.PopOver;
-import bisq.desktop.components.controlsfx.control.PopOver.ArrowLocation;
+import haveno.desktop.components.controlsfx.control.PopOver;
+import haveno.desktop.components.controlsfx.control.PopOver.ArrowLocation;
 
 public class PopOverSkin implements Skin<PopOver> {
 

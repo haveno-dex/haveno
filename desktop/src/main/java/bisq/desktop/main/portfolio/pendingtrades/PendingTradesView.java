@@ -1,58 +1,58 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.desktop.main.portfolio.pendingtrades;
+package haveno.desktop.main.portfolio.pendingtrades;
 
-import bisq.desktop.Navigation;
-import bisq.desktop.common.view.ActivatableViewAndModel;
-import bisq.desktop.common.view.FxmlView;
-import bisq.desktop.components.AutoTooltipLabel;
-import bisq.desktop.components.HyperlinkWithIcon;
-import bisq.desktop.components.PeerInfoIcon;
-import bisq.desktop.main.MainView;
-import bisq.desktop.main.overlays.popups.Popup;
-import bisq.desktop.main.overlays.windows.TradeDetailsWindow;
-import bisq.desktop.main.portfolio.PortfolioView;
-import bisq.desktop.main.portfolio.duplicateoffer.DuplicateOfferView;
-import bisq.desktop.main.shared.ChatView;
-import bisq.desktop.util.CssTheme;
-import bisq.desktop.util.DisplayUtils;
-import bisq.desktop.util.FormBuilder;
+import haveno.desktop.Navigation;
+import haveno.desktop.common.view.ActivatableViewAndModel;
+import haveno.desktop.common.view.FxmlView;
+import haveno.desktop.components.AutoTooltipLabel;
+import haveno.desktop.components.HyperlinkWithIcon;
+import haveno.desktop.components.PeerInfoIcon;
+import haveno.desktop.main.MainView;
+import haveno.desktop.main.overlays.popups.Popup;
+import haveno.desktop.main.overlays.windows.TradeDetailsWindow;
+import haveno.desktop.main.portfolio.PortfolioView;
+import haveno.desktop.main.portfolio.duplicateoffer.DuplicateOfferView;
+import haveno.desktop.main.shared.ChatView;
+import haveno.desktop.util.CssTheme;
+import haveno.desktop.util.DisplayUtils;
+import haveno.desktop.util.FormBuilder;
 
-import bisq.core.alert.PrivateNotificationManager;
-import bisq.core.locale.Res;
-import bisq.core.offer.OfferPayload;
-import bisq.core.support.dispute.mediation.MediationResultState;
-import bisq.core.support.messages.ChatMessage;
-import bisq.core.support.traderchat.TradeChatSession;
-import bisq.core.support.traderchat.TraderChatManager;
-import bisq.core.trade.Contract;
-import bisq.core.trade.Trade;
-import bisq.core.user.Preferences;
-import bisq.core.util.FormattingUtils;
-import bisq.core.util.coin.CoinFormatter;
+import haveno.core.alert.PrivateNotificationManager;
+import haveno.core.locale.Res;
+import haveno.core.offer.OfferPayload;
+import haveno.core.support.dispute.mediation.MediationResultState;
+import haveno.core.support.messages.ChatMessage;
+import haveno.core.support.traderchat.TradeChatSession;
+import haveno.core.support.traderchat.TraderChatManager;
+import haveno.core.trade.Contract;
+import haveno.core.trade.Trade;
+import haveno.core.user.Preferences;
+import haveno.core.util.FormattingUtils;
+import haveno.core.util.coin.CoinFormatter;
 
-import bisq.network.p2p.NodeAddress;
+import haveno.network.p2p.NodeAddress;
 
-import bisq.common.UserThread;
-import bisq.common.config.Config;
-import bisq.common.crypto.KeyRing;
-import bisq.common.crypto.PubKeyRing;
-import bisq.common.util.Utilities;
+import haveno.common.UserThread;
+import haveno.common.config.Config;
+import haveno.common.crypto.KeyRing;
+import haveno.common.crypto.PubKeyRing;
+import haveno.common.util.Utilities;
 
 import javax.inject.Inject;
 import javax.inject.Named;

@@ -1,52 +1,52 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.desktop.main.market.offerbook;
+package haveno.desktop.main.market.offerbook;
 
-import bisq.desktop.Navigation;
-import bisq.desktop.common.view.ActivatableViewAndModel;
-import bisq.desktop.common.view.FxmlView;
-import bisq.desktop.components.AutoTooltipButton;
-import bisq.desktop.components.AutoTooltipLabel;
-import bisq.desktop.components.AutoTooltipTableColumn;
-import bisq.desktop.components.AutocompleteComboBox;
-import bisq.desktop.components.ColoredDecimalPlacesWithZerosText;
-import bisq.desktop.components.PeerInfoIconSmall;
-import bisq.desktop.main.MainView;
-import bisq.desktop.main.offer.BuyOfferView;
-import bisq.desktop.main.offer.SellOfferView;
-import bisq.desktop.main.offer.offerbook.OfferBookListItem;
-import bisq.desktop.util.CurrencyListItem;
-import bisq.desktop.util.DisplayUtils;
-import bisq.desktop.util.GUIUtil;
+import haveno.desktop.Navigation;
+import haveno.desktop.common.view.ActivatableViewAndModel;
+import haveno.desktop.common.view.FxmlView;
+import haveno.desktop.components.AutoTooltipButton;
+import haveno.desktop.components.AutoTooltipLabel;
+import haveno.desktop.components.AutoTooltipTableColumn;
+import haveno.desktop.components.AutocompleteComboBox;
+import haveno.desktop.components.ColoredDecimalPlacesWithZerosText;
+import haveno.desktop.components.PeerInfoIconSmall;
+import haveno.desktop.main.MainView;
+import haveno.desktop.main.offer.BuyOfferView;
+import haveno.desktop.main.offer.SellOfferView;
+import haveno.desktop.main.offer.offerbook.OfferBookListItem;
+import haveno.desktop.util.CurrencyListItem;
+import haveno.desktop.util.DisplayUtils;
+import haveno.desktop.util.GUIUtil;
 
-import bisq.core.locale.CurrencyUtil;
-import bisq.core.locale.Res;
-import bisq.core.offer.Offer;
-import bisq.core.offer.OfferPayload;
-import bisq.core.util.FormattingUtils;
-import bisq.core.util.coin.CoinFormatter;
+import haveno.core.locale.CurrencyUtil;
+import haveno.core.locale.Res;
+import haveno.core.offer.Offer;
+import haveno.core.offer.OfferPayload;
+import haveno.core.util.FormattingUtils;
+import haveno.core.util.coin.CoinFormatter;
 
-import bisq.network.p2p.NodeAddress;
+import haveno.network.p2p.NodeAddress;
 
-import bisq.common.UserThread;
-import bisq.common.config.Config;
-import bisq.common.util.Tuple3;
-import bisq.common.util.Tuple4;
+import haveno.common.UserThread;
+import haveno.common.config.Config;
+import haveno.common.util.Tuple3;
+import haveno.common.util.Tuple4;
 
 import javax.inject.Inject;
 import javax.inject.Named;
@@ -98,8 +98,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import static bisq.desktop.util.FormBuilder.addTopLabelAutocompleteComboBox;
-import static bisq.desktop.util.Layout.INITIAL_WINDOW_HEIGHT;
+import static haveno.desktop.util.FormBuilder.addTopLabelAutocompleteComboBox;
+import static haveno.desktop.util.Layout.INITIAL_WINDOW_HEIGHT;
 
 @FxmlView
 public class OfferBookChartView extends ActivatableViewAndModel<VBox, OfferBookChartViewModel> {
@@ -133,7 +133,7 @@ public class OfferBookChartView extends ActivatableViewAndModel<VBox, OfferBookC
         int extraRows = screenSize <= INITIAL_WINDOW_HEIGHT ? 0 : (int) ((screenSize - INITIAL_WINDOW_HEIGHT) / pixelsPerOfferTableRow);
         return extraRows == 0 ? initialOfferTableViewHeight : Math.ceil(initialOfferTableViewHeight + ((extraRows + 1) * pixelsPerOfferTableRow));
     };
-    private ChangeListener<Number> bisqWindowVerticalSizeListener;
+    private ChangeListener<Number> havenoWindowVerticalSizeListener;
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Constructor, lifecycle
@@ -285,7 +285,7 @@ public class OfferBookChartView extends ActivatableViewAndModel<VBox, OfferBookC
         buyOfferTableView.getSelectionModel().selectedItemProperty().addListener(buyTableRowSelectionListener);
         sellOfferTableView.getSelectionModel().selectedItemProperty().addListener(sellTableRowSelectionListener);
 
-        root.getScene().heightProperty().addListener(bisqWindowVerticalSizeListener);
+        root.getScene().heightProperty().addListener(havenoWindowVerticalSizeListener);
         layout();
 
         updateChartData();
@@ -328,7 +328,7 @@ public class OfferBookChartView extends ActivatableViewAndModel<VBox, OfferBookC
             navigation.navigateTo(MainView.class, BuyOfferView.class);
         };
 
-        bisqWindowVerticalSizeListener = (observable, oldValue, newValue) -> layout();
+        havenoWindowVerticalSizeListener = (observable, oldValue, newValue) -> layout();
     }
 
     @Override

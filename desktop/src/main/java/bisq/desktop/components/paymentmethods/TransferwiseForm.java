@@ -1,44 +1,44 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.desktop.components.paymentmethods;
+package haveno.desktop.components.paymentmethods;
 
-import bisq.desktop.components.InputTextField;
-import bisq.desktop.util.FormBuilder;
-import bisq.desktop.util.Layout;
-import bisq.desktop.util.validation.TransferwiseValidator;
+import haveno.desktop.components.InputTextField;
+import haveno.desktop.util.FormBuilder;
+import haveno.desktop.util.Layout;
+import haveno.desktop.util.validation.TransferwiseValidator;
 
-import bisq.core.account.witness.AccountAgeWitnessService;
-import bisq.core.locale.CurrencyUtil;
-import bisq.core.locale.Res;
-import bisq.core.payment.PaymentAccount;
-import bisq.core.payment.TransferwiseAccount;
-import bisq.core.payment.payload.PaymentAccountPayload;
-import bisq.core.payment.payload.TransferwiseAccountPayload;
-import bisq.core.util.coin.CoinFormatter;
-import bisq.core.util.validation.InputValidator;
+import haveno.core.account.witness.AccountAgeWitnessService;
+import haveno.core.locale.CurrencyUtil;
+import haveno.core.locale.Res;
+import haveno.core.payment.PaymentAccount;
+import haveno.core.payment.TransferwiseAccount;
+import haveno.core.payment.payload.PaymentAccountPayload;
+import haveno.core.payment.payload.TransferwiseAccountPayload;
+import haveno.core.util.coin.CoinFormatter;
+import haveno.core.util.validation.InputValidator;
 
 import javafx.scene.control.TextField;
 import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.GridPane;
 
-import static bisq.desktop.util.FormBuilder.addCompactTopLabelTextField;
-import static bisq.desktop.util.FormBuilder.addCompactTopLabelTextFieldWithCopyIcon;
-import static bisq.desktop.util.FormBuilder.addTopLabelTextField;
+import static haveno.desktop.util.FormBuilder.addCompactTopLabelTextField;
+import static haveno.desktop.util.FormBuilder.addCompactTopLabelTextFieldWithCopyIcon;
+import static haveno.desktop.util.FormBuilder.addTopLabelTextField;
 
 public class TransferwiseForm extends PaymentMethodForm {
     private final TransferwiseAccount account;

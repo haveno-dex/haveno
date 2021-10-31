@@ -1,55 +1,55 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.desktop.main;
+package haveno.desktop.main;
 
-import bisq.desktop.Navigation;
-import bisq.desktop.common.view.CachingViewLoader;
-import bisq.desktop.common.view.FxmlView;
-import bisq.desktop.common.view.InitializableView;
-import bisq.desktop.common.view.View;
-import bisq.desktop.common.view.ViewLoader;
-import bisq.desktop.components.AutoTooltipButton;
-import bisq.desktop.components.AutoTooltipLabel;
-import bisq.desktop.components.AutoTooltipToggleButton;
-import bisq.desktop.components.BusyAnimation;
-import bisq.desktop.main.account.AccountView;
-import bisq.desktop.main.market.MarketView;
-import bisq.desktop.main.market.offerbook.OfferBookChartView;
-import bisq.desktop.main.offer.BuyOfferView;
-import bisq.desktop.main.offer.SellOfferView;
-import bisq.desktop.main.overlays.popups.Popup;
-import bisq.desktop.main.portfolio.PortfolioView;
-import bisq.desktop.main.settings.SettingsView;
-import bisq.desktop.main.shared.PriceFeedComboBoxItem;
-import bisq.desktop.main.support.SupportView;
-import bisq.desktop.util.DisplayUtils;
-import bisq.desktop.util.Transitions;
+import haveno.desktop.Navigation;
+import haveno.desktop.common.view.CachingViewLoader;
+import haveno.desktop.common.view.FxmlView;
+import haveno.desktop.common.view.InitializableView;
+import haveno.desktop.common.view.View;
+import haveno.desktop.common.view.ViewLoader;
+import haveno.desktop.components.AutoTooltipButton;
+import haveno.desktop.components.AutoTooltipLabel;
+import haveno.desktop.components.AutoTooltipToggleButton;
+import haveno.desktop.components.BusyAnimation;
+import haveno.desktop.main.account.AccountView;
+import haveno.desktop.main.market.MarketView;
+import haveno.desktop.main.market.offerbook.OfferBookChartView;
+import haveno.desktop.main.offer.BuyOfferView;
+import haveno.desktop.main.offer.SellOfferView;
+import haveno.desktop.main.overlays.popups.Popup;
+import haveno.desktop.main.portfolio.PortfolioView;
+import haveno.desktop.main.settings.SettingsView;
+import haveno.desktop.main.shared.PriceFeedComboBoxItem;
+import haveno.desktop.main.support.SupportView;
+import haveno.desktop.util.DisplayUtils;
+import haveno.desktop.util.Transitions;
 
-import bisq.core.locale.GlobalSettings;
-import bisq.core.locale.LanguageUtil;
-import bisq.core.locale.Res;
-import bisq.core.provider.price.MarketPrice;
+import haveno.core.locale.GlobalSettings;
+import haveno.core.locale.LanguageUtil;
+import haveno.core.locale.Res;
+import haveno.core.provider.price.MarketPrice;
 
-import bisq.common.BisqException;
-import bisq.common.Timer;
-import bisq.common.UserThread;
-import bisq.common.util.Tuple2;
-import bisq.common.util.Utilities;
+import haveno.common.HavenoException;
+import haveno.common.Timer;
+import haveno.common.UserThread;
+import haveno.common.util.Tuple2;
+import haveno.common.util.Utilities;
 
 import javax.inject.Inject;
 
@@ -369,9 +369,9 @@ public class MainView extends InitializableView<StackPane, MainViewModel> {
                         .filter(toggle -> toggle instanceof NavButton)
                         .filter(button -> viewClass == ((NavButton) button).viewClass)
                         .findFirst()
-                        .orElseThrow(() -> new BisqException("No button matching %s found", viewClass))
+                        .orElseThrow(() -> new HavenoException("No button matching %s found", viewClass))
                         .setSelected(true);
-            } catch (BisqException e) {
+            } catch (HavenoException e) {
                 navigation.navigateTo(MainView.class, MarketView.class, OfferBookChartView.class);
             }
         });
@@ -480,11 +480,11 @@ public class MainView extends InitializableView<StackPane, MainViewModel> {
     private void updateMarketPriceLabel(Label label) {
         if (model.getIsPriceAvailable().get()) {
             if (model.getIsExternallyProvidedPrice().get()) {
-                label.setText(Res.get("mainView.marketPriceWithProvider.label", "Bisq Price Index"));
+                label.setText(Res.get("mainView.marketPriceWithProvider.label", "Haveno Price Index"));
                 label.setTooltip(new Tooltip(getPriceProviderTooltipString()));
             } else {
-                label.setText(Res.get("mainView.marketPrice.bisqInternalPrice"));
-                final Tooltip tooltip = new Tooltip(Res.get("mainView.marketPrice.tooltip.bisqInternalPrice"));
+                label.setText(Res.get("mainView.marketPrice.havenoInternalPrice"));
+                final Tooltip tooltip = new Tooltip(Res.get("mainView.marketPrice.tooltip.havenoInternalPrice"));
                 label.setTooltip(tooltip);
             }
         } else {
@@ -500,7 +500,7 @@ public class MainView extends InitializableView<StackPane, MainViewModel> {
         MarketPrice selectedMarketPrice = model.getPriceFeedService().getMarketPrice(selectedCurrencyCode);
 
         return Res.get("mainView.marketPrice.tooltip",
-                "Bisq Price Index for " + selectedCurrencyCode,
+                "Haveno Price Index for " + selectedCurrencyCode,
                 "",
                 selectedMarketPrice != null ? DisplayUtils.formatTime(new Date(selectedMarketPrice.getTimestampSec())) : Res.get("shared.na"),
                 model.getPriceFeedService().getProviderNodeAddress());

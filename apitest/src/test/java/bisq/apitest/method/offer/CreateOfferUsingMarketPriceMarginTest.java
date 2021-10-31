@@ -1,25 +1,25 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.apitest.method.offer;
+package haveno.apitest.method.offer;
 
-import bisq.core.payment.PaymentAccount;
+import haveno.core.payment.PaymentAccount;
 
-import bisq.proto.grpc.OfferInfo;
+import haveno.proto.grpc.OfferInfo;
 
 import java.text.DecimalFormat;
 
@@ -31,11 +31,11 @@ import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 
-import static bisq.apitest.config.ApiTestConfig.XMR;
-import static bisq.cli.TableFormat.formatOfferTable;
-import static bisq.common.util.MathUtils.scaleDownByPowerOf10;
-import static bisq.common.util.MathUtils.scaleUpByPowerOf10;
-import static bisq.core.btc.wallet.Restrictions.getDefaultBuyerSecurityDepositAsPercent;
+import static haveno.apitest.config.ApiTestConfig.XMR;
+import static haveno.cli.TableFormat.formatOfferTable;
+import static haveno.common.util.MathUtils.scaleDownByPowerOf10;
+import static haveno.common.util.MathUtils.scaleUpByPowerOf10;
+import static haveno.core.btc.wallet.Restrictions.getDefaultBuyerSecurityDepositAsPercent;
 import static java.lang.Math.abs;
 import static java.lang.String.format;
 import static java.util.Collections.singletonList;

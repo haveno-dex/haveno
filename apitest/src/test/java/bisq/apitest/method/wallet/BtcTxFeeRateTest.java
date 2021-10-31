@@ -1,6 +1,6 @@
-package bisq.apitest.method.wallet;
+package haveno.apitest.method.wallet;
 
-import bisq.core.api.model.TxFeeRateInfo;
+import haveno.core.api.model.TxFeeRateInfo;
 
 import io.grpc.StatusRuntimeException;
 
@@ -14,9 +14,9 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInfo;
 import org.junit.jupiter.api.TestMethodOrder;
 
-import static bisq.apitest.Scaffold.BitcoinCoreApp.bitcoind;
-import static bisq.apitest.config.BisqAppConfig.alicedaemon;
-import static bisq.apitest.config.BisqAppConfig.seednode;
+import static haveno.apitest.Scaffold.BitcoinCoreApp.bitcoind;
+import static haveno.apitest.config.HavenoAppConfig.alicedaemon;
+import static haveno.apitest.config.HavenoAppConfig.seednode;
 import static java.lang.String.format;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -26,7 +26,7 @@ import static org.junit.jupiter.api.MethodOrderer.OrderAnnotation;
 
 
 
-import bisq.apitest.method.MethodTest;
+import haveno.apitest.method.MethodTest;
 
 @Disabled
 @Slf4j

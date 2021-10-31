@@ -1,7 +1,7 @@
-package bisq.core.btc.nodes;
+package haveno.core.btc.nodes;
 
-import bisq.common.config.BaseCurrencyNetwork;
-import bisq.common.config.Config;
+import haveno.common.config.BaseCurrencyNetwork;
+import haveno.common.config.Config;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -18,7 +18,7 @@ import org.slf4j.LoggerFactory;
 /**
  * Detects whether a Bitcoin node is running on localhost and contains logic for when to
  * ignore it. The query methods lazily trigger the needed checks and cache the results.
- * @see bisq.common.config.Config#ignoreLocalBtcNode
+ * @see haveno.common.config.Config#ignoreLocalBtcNode
  */
 @Singleton
 public class LocalBitcoinNode {
@@ -38,7 +38,7 @@ public class LocalBitcoinNode {
     }
 
     /**
-     * Returns whether Bisq should use a local Bitcoin node, meaning that a node was
+     * Returns whether Haveno should use a local Bitcoin node, meaning that a node was
      * detected and conditions under which it should be ignored have not been met. If
      * the local node should be ignored, a call to this method will not trigger an
      * unnecessary detection attempt.
@@ -48,7 +48,7 @@ public class LocalBitcoinNode {
     }
 
     /**
-     * Returns whether Bisq should ignore a local Bitcoin node even if it is usable.
+     * Returns whether Haveno should ignore a local Bitcoin node even if it is usable.
      */
     public boolean shouldBeIgnored() {
         BaseCurrencyNetwork baseCurrencyNetwork = config.baseCurrencyNetwork;

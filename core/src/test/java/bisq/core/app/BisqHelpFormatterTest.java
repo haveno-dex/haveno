@@ -1,23 +1,23 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.core.app;
+package haveno.core.app;
 
-import bisq.common.config.BisqHelpFormatter;
+import haveno.common.config.HavenoHelpFormatter;
 
 import joptsimple.OptionParser;
 
@@ -36,20 +36,20 @@ import org.junit.Test;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertThat;
 
-public class BisqHelpFormatterTest {
+public class HavenoHelpFormatterTest {
 
     @Test
     public void testHelpFormatter() throws IOException, URISyntaxException {
 
         OptionParser parser = new OptionParser();
 
-        parser.formatHelpWith(new BisqHelpFormatter("Bisq Test", "bisq-test", "0.1.0"));
+        parser.formatHelpWith(new HavenoHelpFormatter("Haveno Test", "haveno-test", "0.1.0"));
 
         parser.accepts("name",
-                "The name of the Bisq node")
+                "The name of the Haveno node")
                 .withRequiredArg()
                 .ofType(String.class)
-                .defaultsTo("Bisq");
+                .defaultsTo("Haveno");
 
         parser.accepts("another-option",
                 "This is a long description which will need to break over multiple linessssssssssss such " +
@@ -116,7 +116,7 @@ public class BisqHelpFormatterTest {
                 "Application data directory")
                 .withRequiredArg()
                 .ofType(File.class)
-                .defaultsTo(new File("/Users/cbeams/Library/Application Support/Bisq"));
+                .defaultsTo(new File("/Users/cbeams/Library/Application Support/Haveno"));
 
         parser.accepts("enum-opt",
                 "Some option that accepts an enum value as an argument")

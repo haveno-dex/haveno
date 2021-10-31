@@ -1,37 +1,37 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.core.provider.price;
+package haveno.core.provider.price;
 
-import bisq.core.locale.CurrencyUtil;
-import bisq.core.locale.TradeCurrency;
-import bisq.core.monetary.Price;
-import bisq.core.provider.PriceHttpClient;
-import bisq.core.provider.ProvidersRepository;
-import bisq.core.trade.statistics.TradeStatistics3;
-import bisq.core.user.Preferences;
+import haveno.core.locale.CurrencyUtil;
+import haveno.core.locale.TradeCurrency;
+import haveno.core.monetary.Price;
+import haveno.core.provider.PriceHttpClient;
+import haveno.core.provider.ProvidersRepository;
+import haveno.core.trade.statistics.TradeStatistics3;
+import haveno.core.user.Preferences;
 
-import bisq.network.http.HttpClient;
+import haveno.network.http.HttpClient;
 
-import bisq.common.Timer;
-import bisq.common.UserThread;
-import bisq.common.handlers.FaultHandler;
-import bisq.common.util.MathUtils;
-import bisq.common.util.Tuple2;
+import haveno.common.Timer;
+import haveno.common.UserThread;
+import haveno.common.handlers.FaultHandler;
+import haveno.common.util.MathUtils;
+import haveno.common.util.Tuple2;
 
 import com.google.inject.Inject;
 
@@ -255,7 +255,7 @@ public class PriceFeedService {
         return cache.getOrDefault(currencyCode, null);
     }
 
-    private void setBisqMarketPrice(String currencyCode, Price price) {
+    private void setHavenoMarketPrice(String currencyCode, Price price) {
         if (!cache.containsKey(currencyCode) || !cache.get(currencyCode).isExternallyProvidedPrice()) {
             cache.put(currencyCode, new MarketPrice(currencyCode,
                     MathUtils.scaleDownByPowerOf10(price.getValue(), CurrencyUtil.isCryptoCurrency(currencyCode) ? 8 : 4),
@@ -299,7 +299,7 @@ public class PriceFeedService {
         return new Date(epochInMillisAtLastRequest);
     }
 
-    public void applyLatestBisqMarketPrice(Set<TradeStatistics3> tradeStatisticsSet) {
+    public void applyLatestHavenoMarketPrice(Set<TradeStatistics3> tradeStatisticsSet) {
         // takes about 10 ms for 5000 items
         Map<String, List<TradeStatistics3>> mapByCurrencyCode = new HashMap<>();
         tradeStatisticsSet.forEach(e -> {
@@ -319,7 +319,7 @@ public class PriceFeedService {
                 .forEach(list -> {
                     list.sort(Comparator.comparing(TradeStatistics3::getDate));
                     TradeStatistics3 tradeStatistics = list.get(list.size() - 1);
-                    setBisqMarketPrice(tradeStatistics.getCurrency(), tradeStatistics.getTradePrice());
+                    setHavenoMarketPrice(tradeStatistics.getCurrency(), tradeStatistics.getTradePrice());
                 });
     }
 

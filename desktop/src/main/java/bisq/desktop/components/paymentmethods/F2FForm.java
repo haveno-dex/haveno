@@ -1,45 +1,45 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.desktop.components.paymentmethods;
+package haveno.desktop.components.paymentmethods;
 
-import bisq.desktop.components.InputTextField;
-import bisq.desktop.util.FormBuilder;
-import bisq.desktop.util.GUIUtil;
-import bisq.desktop.util.Layout;
-import bisq.desktop.util.validation.F2FValidator;
+import haveno.desktop.components.InputTextField;
+import haveno.desktop.util.FormBuilder;
+import haveno.desktop.util.GUIUtil;
+import haveno.desktop.util.Layout;
+import haveno.desktop.util.validation.F2FValidator;
 
-import bisq.core.account.witness.AccountAgeWitnessService;
-import bisq.core.locale.Country;
-import bisq.core.locale.CountryUtil;
-import bisq.core.locale.CurrencyUtil;
-import bisq.core.locale.FiatCurrency;
-import bisq.core.locale.Res;
-import bisq.core.locale.TradeCurrency;
-import bisq.core.offer.Offer;
-import bisq.core.payment.CountryBasedPaymentAccount;
-import bisq.core.payment.F2FAccount;
-import bisq.core.payment.PaymentAccount;
-import bisq.core.payment.payload.F2FAccountPayload;
-import bisq.core.payment.payload.PaymentAccountPayload;
-import bisq.core.util.coin.CoinFormatter;
-import bisq.core.util.validation.InputValidator;
+import haveno.core.account.witness.AccountAgeWitnessService;
+import haveno.core.locale.Country;
+import haveno.core.locale.CountryUtil;
+import haveno.core.locale.CurrencyUtil;
+import haveno.core.locale.FiatCurrency;
+import haveno.core.locale.Res;
+import haveno.core.locale.TradeCurrency;
+import haveno.core.offer.Offer;
+import haveno.core.payment.CountryBasedPaymentAccount;
+import haveno.core.payment.F2FAccount;
+import haveno.core.payment.PaymentAccount;
+import haveno.core.payment.payload.F2FAccountPayload;
+import haveno.core.payment.payload.PaymentAccountPayload;
+import haveno.core.util.coin.CoinFormatter;
+import haveno.core.util.validation.InputValidator;
 
-import bisq.common.util.Tuple2;
+import haveno.common.util.Tuple2;
 
 import com.jfoenix.controls.JFXTextArea;
 
@@ -47,7 +47,7 @@ import javafx.scene.control.ComboBox;
 import javafx.scene.control.TextArea;
 import javafx.scene.layout.GridPane;
 
-import static bisq.desktop.util.FormBuilder.*;
+import static haveno.desktop.util.FormBuilder.*;
 
 public class F2FForm extends PaymentMethodForm {
     private final F2FAccount f2fAccount;

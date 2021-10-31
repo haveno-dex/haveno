@@ -1,34 +1,34 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.core.user;
+package haveno.core.user;
 
-import bisq.core.alert.Alert;
-import bisq.core.filter.Filter;
-import bisq.core.notifications.alerts.market.MarketAlertFilter;
-import bisq.core.notifications.alerts.price.PriceAlertFilter;
-import bisq.core.payment.PaymentAccount;
-import bisq.core.proto.CoreProtoResolver;
-import bisq.core.support.dispute.arbitration.arbitrator.Arbitrator;
-import bisq.core.support.dispute.mediation.mediator.Mediator;
-import bisq.core.support.dispute.refund.refundagent.RefundAgent;
+import haveno.core.alert.Alert;
+import haveno.core.filter.Filter;
+import haveno.core.notifications.alerts.market.MarketAlertFilter;
+import haveno.core.notifications.alerts.price.PriceAlertFilter;
+import haveno.core.payment.PaymentAccount;
+import haveno.core.proto.CoreProtoResolver;
+import haveno.core.support.dispute.arbitration.arbitrator.Arbitrator;
+import haveno.core.support.dispute.mediation.mediator.Mediator;
+import haveno.core.support.dispute.refund.refundagent.RefundAgent;
 
-import bisq.common.proto.ProtoUtil;
-import bisq.common.proto.persistable.PersistableEnvelope;
+import haveno.common.proto.ProtoUtil;
+import haveno.common.proto.persistable.PersistableEnvelope;
 
 import java.util.ArrayList;
 import java.util.HashSet;

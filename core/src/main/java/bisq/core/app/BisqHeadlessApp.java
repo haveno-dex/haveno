@@ -1,28 +1,28 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.core.app;
+package haveno.core.app;
 
-import bisq.core.trade.TradeManager;
+import haveno.core.trade.TradeManager;
 
-import bisq.common.UserThread;
-import bisq.common.app.Version;
-import bisq.common.file.CorruptedStorageFileHandler;
-import bisq.common.setup.GracefulShutDownHandler;
+import haveno.common.UserThread;
+import haveno.common.app.Version;
+import haveno.common.file.CorruptedStorageFileHandler;
+import haveno.common.setup.GracefulShutDownHandler;
 
 import com.google.inject.Injector;
 
@@ -33,7 +33,7 @@ import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public class BisqHeadlessApp implements HeadlessApp {
+public class HavenoHeadlessApp implements HeadlessApp {
     @Getter
     private static Runnable shutDownHandler;
 
@@ -42,18 +42,18 @@ public class BisqHeadlessApp implements HeadlessApp {
     @Setter
     private GracefulShutDownHandler gracefulShutDownHandler;
     private boolean shutDownRequested;
-    protected BisqSetup bisqSetup;
+    protected HavenoSetup havenoSetup;
     private CorruptedStorageFileHandler corruptedStorageFileHandler;
     private TradeManager tradeManager;
 
-    public BisqHeadlessApp() {
+    public HavenoHeadlessApp() {
         shutDownHandler = this::stop;
     }
 
     public void startApplication() {
         try {
-            bisqSetup = injector.getInstance(BisqSetup.class);
-            bisqSetup.addBisqSetupListener(this);
+            havenoSetup = injector.getInstance(HavenoSetup.class);
+            havenoSetup.addHavenoSetupListener(this);
 
             corruptedStorageFileHandler = injector.getInstance(CorruptedStorageFileHandler.class);
             tradeManager = injector.getInstance(TradeManager.class);
@@ -71,27 +71,27 @@ public class BisqHeadlessApp implements HeadlessApp {
     }
 
     protected void setupHandlers() {
-        bisqSetup.setDisplayTacHandler(acceptedHandler -> {
+        havenoSetup.setDisplayTacHandler(acceptedHandler -> {
             log.info("onDisplayTacHandler: We accept the tacs automatically in headless mode");
             acceptedHandler.run();
         });
-        bisqSetup.setDisplayTorNetworkSettingsHandler(show -> log.info("onDisplayTorNetworkSettingsHandler: show={}", show));
-        bisqSetup.setSpvFileCorruptedHandler(msg -> log.error("onSpvFileCorruptedHandler: msg={}", msg));
-        bisqSetup.setChainFileLockedExceptionHandler(msg -> log.error("onChainFileLockedExceptionHandler: msg={}", msg));
-        bisqSetup.setLockedUpFundsHandler(msg -> log.info("onLockedUpFundsHandler: msg={}", msg));
-        bisqSetup.setShowFirstPopupIfResyncSPVRequestedHandler(() -> log.info("onShowFirstPopupIfResyncSPVRequestedHandler"));
-        bisqSetup.setRequestWalletPasswordHandler(aesKeyHandler -> log.info("onRequestWalletPasswordHandler"));
-        bisqSetup.setDisplayUpdateHandler((alert, key) -> log.info("onDisplayUpdateHandler"));
-        bisqSetup.setDisplayAlertHandler(alert -> log.info("onDisplayAlertHandler. alert={}", alert));
-        bisqSetup.setDisplayPrivateNotificationHandler(privateNotification -> log.info("onDisplayPrivateNotificationHandler. privateNotification={}", privateNotification));
-        bisqSetup.setDisplaySecurityRecommendationHandler(key -> log.info("onDisplaySecurityRecommendationHandler"));
-        bisqSetup.setWrongOSArchitectureHandler(msg -> log.error("onWrongOSArchitectureHandler. msg={}", msg));
-        bisqSetup.setRejectedTxErrorMessageHandler(errorMessage -> log.warn("setRejectedTxErrorMessageHandler. errorMessage={}", errorMessage));
-        bisqSetup.setShowPopupIfInvalidBtcConfigHandler(() -> log.error("onShowPopupIfInvalidBtcConfigHandler"));
-        bisqSetup.setRevolutAccountsUpdateHandler(revolutAccountList -> log.info("setRevolutAccountsUpdateHandler: revolutAccountList={}", revolutAccountList));
-        bisqSetup.setOsxKeyLoggerWarningHandler(() -> log.info("setOsxKeyLoggerWarningHandler"));
-        bisqSetup.setQubesOSInfoHandler(() -> log.info("setQubesOSInfoHandler"));
-        bisqSetup.setDownGradePreventionHandler(lastVersion -> log.info("Downgrade from version {} to version {} is not supported",
+        havenoSetup.setDisplayTorNetworkSettingsHandler(show -> log.info("onDisplayTorNetworkSettingsHandler: show={}", show));
+        havenoSetup.setSpvFileCorruptedHandler(msg -> log.error("onSpvFileCorruptedHandler: msg={}", msg));
+        havenoSetup.setChainFileLockedExceptionHandler(msg -> log.error("onChainFileLockedExceptionHandler: msg={}", msg));
+        havenoSetup.setLockedUpFundsHandler(msg -> log.info("onLockedUpFundsHandler: msg={}", msg));
+        havenoSetup.setShowFirstPopupIfResyncSPVRequestedHandler(() -> log.info("onShowFirstPopupIfResyncSPVRequestedHandler"));
+        havenoSetup.setRequestWalletPasswordHandler(aesKeyHandler -> log.info("onRequestWalletPasswordHandler"));
+        havenoSetup.setDisplayUpdateHandler((alert, key) -> log.info("onDisplayUpdateHandler"));
+        havenoSetup.setDisplayAlertHandler(alert -> log.info("onDisplayAlertHandler. alert={}", alert));
+        havenoSetup.setDisplayPrivateNotificationHandler(privateNotification -> log.info("onDisplayPrivateNotificationHandler. privateNotification={}", privateNotification));
+        havenoSetup.setDisplaySecurityRecommendationHandler(key -> log.info("onDisplaySecurityRecommendationHandler"));
+        havenoSetup.setWrongOSArchitectureHandler(msg -> log.error("onWrongOSArchitectureHandler. msg={}", msg));
+        havenoSetup.setRejectedTxErrorMessageHandler(errorMessage -> log.warn("setRejectedTxErrorMessageHandler. errorMessage={}", errorMessage));
+        havenoSetup.setShowPopupIfInvalidBtcConfigHandler(() -> log.error("onShowPopupIfInvalidBtcConfigHandler"));
+        havenoSetup.setRevolutAccountsUpdateHandler(revolutAccountList -> log.info("setRevolutAccountsUpdateHandler: revolutAccountList={}", revolutAccountList));
+        havenoSetup.setOsxKeyLoggerWarningHandler(() -> log.info("setOsxKeyLoggerWarningHandler"));
+        havenoSetup.setQubesOSInfoHandler(() -> log.info("setQubesOSInfoHandler"));
+        havenoSetup.setDownGradePreventionHandler(lastVersion -> log.info("Downgrade from version {} to version {} is not supported",
                 lastVersion, Version.VERSION));
 
         corruptedStorageFileHandler.getFiles().ifPresent(files -> log.warn("getCorruptedDatabaseFiles. files={}", files));

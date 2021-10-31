@@ -1,32 +1,32 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.core.api;
+package haveno.core.api;
 
-import bisq.core.account.witness.AccountAgeWitnessService;
-import bisq.core.api.model.PaymentAccountForm;
-import bisq.core.locale.CryptoCurrency;
-import bisq.core.payment.AssetAccount;
-import bisq.core.payment.CryptoCurrencyAccount;
-import bisq.core.payment.InstantCryptoCurrencyAccount;
-import bisq.core.payment.PaymentAccount;
-import bisq.core.payment.PaymentAccountFactory;
-import bisq.core.payment.payload.PaymentMethod;
-import bisq.core.user.User;
+import haveno.core.account.witness.AccountAgeWitnessService;
+import haveno.core.api.model.PaymentAccountForm;
+import haveno.core.locale.CryptoCurrency;
+import haveno.core.payment.AssetAccount;
+import haveno.core.payment.CryptoCurrencyAccount;
+import haveno.core.payment.InstantCryptoCurrencyAccount;
+import haveno.core.payment.PaymentAccount;
+import haveno.core.payment.PaymentAccountFactory;
+import haveno.core.payment.payload.PaymentMethod;
+import haveno.core.user.User;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -41,7 +41,7 @@ import java.util.stream.Collectors;
 
 import lombok.extern.slf4j.Slf4j;
 
-import static bisq.core.locale.CurrencyUtil.getCryptoCurrency;
+import static haveno.core.locale.CurrencyUtil.getCryptoCurrency;
 import static java.lang.String.format;
 
 @Singleton

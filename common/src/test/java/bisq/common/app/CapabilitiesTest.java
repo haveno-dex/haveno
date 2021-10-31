@@ -1,21 +1,21 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.common.app;
+package haveno.common.app;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -23,9 +23,9 @@ import java.util.HashSet;
 
 import org.junit.Test;
 
-import static bisq.common.app.Capability.SEED_NODE;
-import static bisq.common.app.Capability.TRADE_STATISTICS;
-import static bisq.common.app.Capability.TRADE_STATISTICS_2;
+import static haveno.common.app.Capability.SEED_NODE;
+import static haveno.common.app.Capability.TRADE_STATISTICS;
+import static haveno.common.app.Capability.TRADE_STATISTICS_2;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;

@@ -1,107 +1,107 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.desktop.main.account.content.fiataccounts;
+package haveno.desktop.main.account.content.fiataccounts;
 
-import bisq.desktop.common.view.FxmlView;
-import bisq.desktop.components.TitledGroupBg;
-import bisq.desktop.components.paymentmethods.AdvancedCashForm;
-import bisq.desktop.components.paymentmethods.AliPayForm;
-import bisq.desktop.components.paymentmethods.AmazonGiftCardForm;
-import bisq.desktop.components.paymentmethods.AustraliaPayidForm;
-import bisq.desktop.components.paymentmethods.CashByMailForm;
-import bisq.desktop.components.paymentmethods.CashDepositForm;
-import bisq.desktop.components.paymentmethods.ChaseQuickPayForm;
-import bisq.desktop.components.paymentmethods.ClearXchangeForm;
-import bisq.desktop.components.paymentmethods.F2FForm;
-import bisq.desktop.components.paymentmethods.FasterPaymentsForm;
-import bisq.desktop.components.paymentmethods.HalCashForm;
-import bisq.desktop.components.paymentmethods.InteracETransferForm;
-import bisq.desktop.components.paymentmethods.JapanBankTransferForm;
-import bisq.desktop.components.paymentmethods.MoneyBeamForm;
-import bisq.desktop.components.paymentmethods.MoneyGramForm;
-import bisq.desktop.components.paymentmethods.NationalBankForm;
-import bisq.desktop.components.paymentmethods.PaymentMethodForm;
-import bisq.desktop.components.paymentmethods.PerfectMoneyForm;
-import bisq.desktop.components.paymentmethods.PopmoneyForm;
-import bisq.desktop.components.paymentmethods.PromptPayForm;
-import bisq.desktop.components.paymentmethods.RevolutForm;
-import bisq.desktop.components.paymentmethods.SameBankForm;
-import bisq.desktop.components.paymentmethods.SepaForm;
-import bisq.desktop.components.paymentmethods.SepaInstantForm;
-import bisq.desktop.components.paymentmethods.SpecificBankForm;
-import bisq.desktop.components.paymentmethods.SwishForm;
-import bisq.desktop.components.paymentmethods.TransferwiseForm;
-import bisq.desktop.components.paymentmethods.USPostalMoneyOrderForm;
-import bisq.desktop.components.paymentmethods.UpholdForm;
-import bisq.desktop.components.paymentmethods.WeChatPayForm;
-import bisq.desktop.components.paymentmethods.WesternUnionForm;
-import bisq.desktop.main.account.content.PaymentAccountsView;
-import bisq.desktop.main.overlays.popups.Popup;
-import bisq.desktop.util.FormBuilder;
-import bisq.desktop.util.GUIUtil;
-import bisq.desktop.util.Layout;
-import bisq.desktop.util.validation.AdvancedCashValidator;
-import bisq.desktop.util.validation.AliPayValidator;
-import bisq.desktop.util.validation.AustraliaPayidValidator;
-import bisq.desktop.util.validation.BICValidator;
-import bisq.desktop.util.validation.ChaseQuickPayValidator;
-import bisq.desktop.util.validation.ClearXchangeValidator;
-import bisq.desktop.util.validation.F2FValidator;
-import bisq.desktop.util.validation.HalCashValidator;
-import bisq.desktop.util.validation.IBANValidator;
-import bisq.desktop.util.validation.InteracETransferValidator;
-import bisq.desktop.util.validation.JapanBankTransferValidator;
-import bisq.desktop.util.validation.MoneyBeamValidator;
-import bisq.desktop.util.validation.PerfectMoneyValidator;
-import bisq.desktop.util.validation.PopmoneyValidator;
-import bisq.desktop.util.validation.PromptPayValidator;
-import bisq.desktop.util.validation.RevolutValidator;
-import bisq.desktop.util.validation.SwishValidator;
-import bisq.desktop.util.validation.TransferwiseValidator;
-import bisq.desktop.util.validation.USPostalMoneyOrderValidator;
-import bisq.desktop.util.validation.UpholdValidator;
-import bisq.desktop.util.validation.WeChatPayValidator;
-import bisq.desktop.util.validation.LengthValidator;
+import haveno.desktop.common.view.FxmlView;
+import haveno.desktop.components.TitledGroupBg;
+import haveno.desktop.components.paymentmethods.AdvancedCashForm;
+import haveno.desktop.components.paymentmethods.AliPayForm;
+import haveno.desktop.components.paymentmethods.AmazonGiftCardForm;
+import haveno.desktop.components.paymentmethods.AustraliaPayidForm;
+import haveno.desktop.components.paymentmethods.CashByMailForm;
+import haveno.desktop.components.paymentmethods.CashDepositForm;
+import haveno.desktop.components.paymentmethods.ChaseQuickPayForm;
+import haveno.desktop.components.paymentmethods.ClearXchangeForm;
+import haveno.desktop.components.paymentmethods.F2FForm;
+import haveno.desktop.components.paymentmethods.FasterPaymentsForm;
+import haveno.desktop.components.paymentmethods.HalCashForm;
+import haveno.desktop.components.paymentmethods.InteracETransferForm;
+import haveno.desktop.components.paymentmethods.JapanBankTransferForm;
+import haveno.desktop.components.paymentmethods.MoneyBeamForm;
+import haveno.desktop.components.paymentmethods.MoneyGramForm;
+import haveno.desktop.components.paymentmethods.NationalBankForm;
+import haveno.desktop.components.paymentmethods.PaymentMethodForm;
+import haveno.desktop.components.paymentmethods.PerfectMoneyForm;
+import haveno.desktop.components.paymentmethods.PopmoneyForm;
+import haveno.desktop.components.paymentmethods.PromptPayForm;
+import haveno.desktop.components.paymentmethods.RevolutForm;
+import haveno.desktop.components.paymentmethods.SameBankForm;
+import haveno.desktop.components.paymentmethods.SepaForm;
+import haveno.desktop.components.paymentmethods.SepaInstantForm;
+import haveno.desktop.components.paymentmethods.SpecificBankForm;
+import haveno.desktop.components.paymentmethods.SwishForm;
+import haveno.desktop.components.paymentmethods.TransferwiseForm;
+import haveno.desktop.components.paymentmethods.USPostalMoneyOrderForm;
+import haveno.desktop.components.paymentmethods.UpholdForm;
+import haveno.desktop.components.paymentmethods.WeChatPayForm;
+import haveno.desktop.components.paymentmethods.WesternUnionForm;
+import haveno.desktop.main.account.content.PaymentAccountsView;
+import haveno.desktop.main.overlays.popups.Popup;
+import haveno.desktop.util.FormBuilder;
+import haveno.desktop.util.GUIUtil;
+import haveno.desktop.util.Layout;
+import haveno.desktop.util.validation.AdvancedCashValidator;
+import haveno.desktop.util.validation.AliPayValidator;
+import haveno.desktop.util.validation.AustraliaPayidValidator;
+import haveno.desktop.util.validation.BICValidator;
+import haveno.desktop.util.validation.ChaseQuickPayValidator;
+import haveno.desktop.util.validation.ClearXchangeValidator;
+import haveno.desktop.util.validation.F2FValidator;
+import haveno.desktop.util.validation.HalCashValidator;
+import haveno.desktop.util.validation.IBANValidator;
+import haveno.desktop.util.validation.InteracETransferValidator;
+import haveno.desktop.util.validation.JapanBankTransferValidator;
+import haveno.desktop.util.validation.MoneyBeamValidator;
+import haveno.desktop.util.validation.PerfectMoneyValidator;
+import haveno.desktop.util.validation.PopmoneyValidator;
+import haveno.desktop.util.validation.PromptPayValidator;
+import haveno.desktop.util.validation.RevolutValidator;
+import haveno.desktop.util.validation.SwishValidator;
+import haveno.desktop.util.validation.TransferwiseValidator;
+import haveno.desktop.util.validation.USPostalMoneyOrderValidator;
+import haveno.desktop.util.validation.UpholdValidator;
+import haveno.desktop.util.validation.WeChatPayValidator;
+import haveno.desktop.util.validation.LengthValidator;
 
-import bisq.core.account.witness.AccountAgeWitnessService;
-import bisq.core.locale.Res;
-import bisq.core.offer.OfferRestrictions;
-import bisq.core.payment.AmazonGiftCardAccount;
-import bisq.core.payment.AustraliaPayid;
-import bisq.core.payment.CashByMailAccount;
-import bisq.core.payment.CashDepositAccount;
-import bisq.core.payment.ClearXchangeAccount;
-import bisq.core.payment.F2FAccount;
-import bisq.core.payment.HalCashAccount;
-import bisq.core.payment.MoneyGramAccount;
-import bisq.core.payment.PaymentAccount;
-import bisq.core.payment.PaymentAccountFactory;
-import bisq.core.payment.RevolutAccount;
-import bisq.core.payment.USPostalMoneyOrderAccount;
-import bisq.core.payment.WesternUnionAccount;
-import bisq.core.payment.payload.PaymentMethod;
-import bisq.core.util.FormattingUtils;
-import bisq.core.util.coin.CoinFormatter;
+import haveno.core.account.witness.AccountAgeWitnessService;
+import haveno.core.locale.Res;
+import haveno.core.offer.OfferRestrictions;
+import haveno.core.payment.AmazonGiftCardAccount;
+import haveno.core.payment.AustraliaPayid;
+import haveno.core.payment.CashByMailAccount;
+import haveno.core.payment.CashDepositAccount;
+import haveno.core.payment.ClearXchangeAccount;
+import haveno.core.payment.F2FAccount;
+import haveno.core.payment.HalCashAccount;
+import haveno.core.payment.MoneyGramAccount;
+import haveno.core.payment.PaymentAccount;
+import haveno.core.payment.PaymentAccountFactory;
+import haveno.core.payment.RevolutAccount;
+import haveno.core.payment.USPostalMoneyOrderAccount;
+import haveno.core.payment.WesternUnionAccount;
+import haveno.core.payment.payload.PaymentMethod;
+import haveno.core.util.FormattingUtils;
+import haveno.core.util.coin.CoinFormatter;
 
-import bisq.common.config.Config;
-import bisq.common.util.Tuple2;
-import bisq.common.util.Tuple3;
-import bisq.common.util.Utilities;
+import haveno.common.config.Config;
+import haveno.common.util.Tuple2;
+import haveno.common.util.Tuple3;
+import haveno.common.util.Utilities;
 
 import org.bitcoinj.core.Coin;
 
@@ -125,10 +125,10 @@ import javafx.util.StringConverter;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import static bisq.desktop.util.FormBuilder.add2ButtonsAfterGroup;
-import static bisq.desktop.util.FormBuilder.add3ButtonsAfterGroup;
-import static bisq.desktop.util.FormBuilder.addTitledGroupBg;
-import static bisq.desktop.util.FormBuilder.addTopLabelListView;
+import static haveno.desktop.util.FormBuilder.add2ButtonsAfterGroup;
+import static haveno.desktop.util.FormBuilder.add3ButtonsAfterGroup;
+import static haveno.desktop.util.FormBuilder.addTitledGroupBg;
+import static haveno.desktop.util.FormBuilder.addTopLabelListView;
 
 @FxmlView
 public class FiatAccountsView extends PaymentAccountsView<GridPane, FiatAccountsViewModel> {
@@ -244,7 +244,7 @@ public class FiatAccountsView extends PaymentAccountsView<GridPane, FiatAccounts
             new Popup().information(Res.get("payment.f2f.info"))
                     .width(700)
                     .closeButtonText(Res.get("payment.f2f.info.openURL"))
-                    .onClose(() -> GUIUtil.openWebPage("https://docs.bisq.network/trading-rules.html#f2f-trading"))
+                    .onClose(() -> GUIUtil.openWebPage("https://docs.haveno.network/trading-rules.html#f2f-trading"))
                     .actionButtonText(Res.get("shared.iUnderstand"))
                     .onAction(() -> doSaveNewAccount(paymentAccount))
                     .show();

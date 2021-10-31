@@ -1,26 +1,26 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.desktop.main.offer.offerbook;
+package haveno.desktop.main.offer.offerbook;
 
-import bisq.core.filter.FilterManager;
-import bisq.core.offer.Offer;
-import bisq.core.offer.OfferBookService;
-import bisq.core.trade.TradeManager;
+import haveno.core.filter.FilterManager;
+import haveno.core.offer.Offer;
+import haveno.core.offer.OfferBookService;
+import haveno.core.trade.TradeManager;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -35,7 +35,7 @@ import java.util.stream.Collectors;
 
 import lombok.extern.slf4j.Slf4j;
 
-import static bisq.core.offer.OfferPayload.Direction.BUY;
+import static haveno.core.offer.OfferPayload.Direction.BUY;
 
 /**
  * Holds and manages the unsorted and unfiltered offerbook list (except for banned offers) of both buy and sell offers.

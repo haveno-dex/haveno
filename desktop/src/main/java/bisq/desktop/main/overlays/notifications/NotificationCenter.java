@@ -1,43 +1,43 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.desktop.main.overlays.notifications;
+package haveno.desktop.main.overlays.notifications;
 
-import bisq.desktop.Navigation;
-import bisq.desktop.main.MainView;
-import bisq.desktop.main.portfolio.PortfolioView;
-import bisq.desktop.main.portfolio.pendingtrades.PendingTradesView;
-import bisq.desktop.main.support.SupportView;
-import bisq.desktop.main.support.dispute.client.DisputeClientView;
-import bisq.desktop.main.support.dispute.client.mediation.MediationClientView;
-import bisq.desktop.main.support.dispute.client.refund.RefundClientView;
+import haveno.desktop.Navigation;
+import haveno.desktop.main.MainView;
+import haveno.desktop.main.portfolio.PortfolioView;
+import haveno.desktop.main.portfolio.pendingtrades.PendingTradesView;
+import haveno.desktop.main.support.SupportView;
+import haveno.desktop.main.support.dispute.client.DisputeClientView;
+import haveno.desktop.main.support.dispute.client.mediation.MediationClientView;
+import haveno.desktop.main.support.dispute.client.refund.RefundClientView;
 
-import bisq.core.locale.Res;
-import bisq.core.support.dispute.mediation.MediationManager;
-import bisq.core.support.dispute.refund.RefundManager;
-import bisq.core.trade.BuyerTrade;
-import bisq.core.trade.MakerTrade;
-import bisq.core.trade.SellerTrade;
-import bisq.core.trade.Trade;
-import bisq.core.trade.TradeManager;
-import bisq.core.user.DontShowAgainLookup;
-import bisq.core.user.Preferences;
+import haveno.core.locale.Res;
+import haveno.core.support.dispute.mediation.MediationManager;
+import haveno.core.support.dispute.refund.RefundManager;
+import haveno.core.trade.BuyerTrade;
+import haveno.core.trade.MakerTrade;
+import haveno.core.trade.SellerTrade;
+import haveno.core.trade.Trade;
+import haveno.core.trade.TradeManager;
+import haveno.core.user.DontShowAgainLookup;
+import haveno.core.user.Preferences;
 
-import bisq.common.UserThread;
+import haveno.common.UserThread;
 
 import com.google.inject.Inject;
 

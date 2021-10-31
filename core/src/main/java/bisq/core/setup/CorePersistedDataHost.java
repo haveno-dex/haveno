@@ -1,42 +1,42 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.core.setup;
+package haveno.core.setup;
 
-import bisq.core.btc.model.AddressEntryList;
-import bisq.core.btc.model.XmrAddressEntryList;
-import bisq.core.offer.OpenOfferManager;
-import bisq.core.support.dispute.arbitration.ArbitrationDisputeListService;
-import bisq.core.support.dispute.mediation.MediationDisputeListService;
-import bisq.core.support.dispute.refund.RefundDisputeListService;
-import bisq.core.trade.TradeManager;
-import bisq.core.trade.closed.ClosedTradableManager;
-import bisq.core.trade.failed.FailedTradesManager;
-import bisq.core.user.Preferences;
-import bisq.core.user.User;
+import haveno.core.btc.model.AddressEntryList;
+import haveno.core.btc.model.XmrAddressEntryList;
+import haveno.core.offer.OpenOfferManager;
+import haveno.core.support.dispute.arbitration.ArbitrationDisputeListService;
+import haveno.core.support.dispute.mediation.MediationDisputeListService;
+import haveno.core.support.dispute.refund.RefundDisputeListService;
+import haveno.core.trade.TradeManager;
+import haveno.core.trade.closed.ClosedTradableManager;
+import haveno.core.trade.failed.FailedTradesManager;
+import haveno.core.user.Preferences;
+import haveno.core.user.User;
 
-import bisq.network.p2p.mailbox.IgnoredMailboxService;
-import bisq.network.p2p.mailbox.MailboxMessageService;
-import bisq.network.p2p.peers.PeerManager;
-import bisq.network.p2p.storage.P2PDataStorage;
-import bisq.network.p2p.storage.persistence.RemovedPayloadsService;
+import haveno.network.p2p.mailbox.IgnoredMailboxService;
+import haveno.network.p2p.mailbox.MailboxMessageService;
+import haveno.network.p2p.peers.PeerManager;
+import haveno.network.p2p.storage.P2PDataStorage;
+import haveno.network.p2p.storage.persistence.RemovedPayloadsService;
 
-import bisq.common.config.Config;
-import bisq.common.proto.persistable.PersistedDataHost;
+import haveno.common.config.Config;
+import haveno.common.proto.persistable.PersistedDataHost;
 
 import com.google.inject.Injector;
 

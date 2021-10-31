@@ -1,21 +1,21 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.core.btc.wallet;
+package haveno.core.btc.wallet;
 
 import org.bitcoinj.core.Coin;
 import org.bitcoinj.core.InsufficientMoneyException;
@@ -48,7 +48,7 @@ import javax.annotation.Nullable;
  * "spending" more priority than would be required to get the transaction we are creating confirmed.
  */
 @Slf4j
-public abstract class BisqDefaultCoinSelector implements CoinSelector {
+public abstract class HavenoDefaultCoinSelector implements CoinSelector {
 
     protected final boolean permitForeignPendingTx;
 
@@ -62,11 +62,11 @@ public abstract class BisqDefaultCoinSelector implements CoinSelector {
         return select(target, new ArrayList<>(candidates));
     }
 
-    public BisqDefaultCoinSelector(boolean permitForeignPendingTx) {
+    public HavenoDefaultCoinSelector(boolean permitForeignPendingTx) {
         this.permitForeignPendingTx = permitForeignPendingTx;
     }
 
-    public BisqDefaultCoinSelector() {
+    public HavenoDefaultCoinSelector() {
         permitForeignPendingTx = false;
     }
 

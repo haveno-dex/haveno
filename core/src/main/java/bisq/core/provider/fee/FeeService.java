@@ -1,26 +1,26 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.core.provider.fee;
+package haveno.core.provider.fee;
 
-import bisq.common.UserThread;
-import bisq.common.config.Config;
-import bisq.common.handlers.FaultHandler;
-import bisq.common.util.Tuple2;
+import haveno.common.UserThread;
+import haveno.common.config.Config;
+import haveno.common.handlers.FaultHandler;
+import haveno.common.util.Tuple2;
 
 import org.bitcoinj.utils.MonetaryFormat;
 import org.bitcoinj.core.Coin;
@@ -40,7 +40,7 @@ import java.time.Instant;
 
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
-import bisq.core.util.ParsingUtils;
+import haveno.core.util.ParsingUtils;
 
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;

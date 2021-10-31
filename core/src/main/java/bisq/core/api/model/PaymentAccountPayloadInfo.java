@@ -1,27 +1,27 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.core.api.model;
+package haveno.core.api.model;
 
-import bisq.core.payment.payload.CryptoCurrencyAccountPayload;
-import bisq.core.payment.payload.InstantCryptoCurrencyPayload;
-import bisq.core.payment.payload.PaymentAccountPayload;
+import haveno.core.payment.payload.CryptoCurrencyAccountPayload;
+import haveno.core.payment.payload.InstantCryptoCurrencyPayload;
+import haveno.core.payment.payload.PaymentAccountPayload;
 
-import bisq.common.Payload;
+import haveno.common.Payload;
 
 import java.util.Optional;
 import java.util.function.Supplier;
@@ -66,13 +66,13 @@ public class PaymentAccountPayloadInfo implements Payload {
     // PROTO BUFFER
     ///////////////////////////////////////////////////////////////////////////////////////////
 
-    public static PaymentAccountPayloadInfo fromProto(bisq.proto.grpc.PaymentAccountPayloadInfo proto) {
+    public static PaymentAccountPayloadInfo fromProto(haveno.proto.grpc.PaymentAccountPayloadInfo proto) {
         return new PaymentAccountPayloadInfo(proto.getId(), proto.getPaymentMethodId(), proto.getAddress());
     }
 
     @Override
-    public bisq.proto.grpc.PaymentAccountPayloadInfo toProtoMessage() {
-        return bisq.proto.grpc.PaymentAccountPayloadInfo.newBuilder()
+    public haveno.proto.grpc.PaymentAccountPayloadInfo toProtoMessage() {
+        return haveno.proto.grpc.PaymentAccountPayloadInfo.newBuilder()
                 .setId(id)
                 .setPaymentMethodId(paymentMethodId)
                 .setAddress(address != null ? address : "")

@@ -1,57 +1,57 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.core.trade.protocol;
+package haveno.core.trade.protocol;
 
-import bisq.core.account.witness.AccountAgeWitnessService;
-import bisq.core.btc.model.RawTransactionInput;
-import bisq.core.btc.wallet.BtcWalletService;
-import bisq.core.btc.wallet.TradeWalletService;
-import bisq.core.btc.wallet.XmrWalletService;
-import bisq.core.filter.FilterManager;
-import bisq.core.network.MessageState;
-import bisq.core.offer.Offer;
-import bisq.core.offer.OfferPayload.Direction;
-import bisq.core.offer.OpenOfferManager;
-import bisq.core.payment.PaymentAccount;
-import bisq.core.payment.payload.PaymentAccountPayload;
-import bisq.core.proto.CoreProtoResolver;
-import bisq.core.support.dispute.arbitration.arbitrator.ArbitratorManager;
-import bisq.core.support.dispute.mediation.mediator.MediatorManager;
-import bisq.core.support.dispute.refund.refundagent.RefundAgentManager;
-import bisq.core.trade.ArbitratorTrade;
-import bisq.core.trade.MakerTrade;
-import bisq.core.trade.TakerTrade;
-import bisq.core.trade.Trade;
-import bisq.core.trade.TradeManager;
-import bisq.core.trade.messages.TradeMessage;
-import bisq.core.trade.statistics.ReferralIdService;
-import bisq.core.trade.statistics.TradeStatisticsManager;
-import bisq.core.user.User;
+import haveno.core.account.witness.AccountAgeWitnessService;
+import haveno.core.btc.model.RawTransactionInput;
+import haveno.core.btc.wallet.BtcWalletService;
+import haveno.core.btc.wallet.TradeWalletService;
+import haveno.core.btc.wallet.XmrWalletService;
+import haveno.core.filter.FilterManager;
+import haveno.core.network.MessageState;
+import haveno.core.offer.Offer;
+import haveno.core.offer.OfferPayload.Direction;
+import haveno.core.offer.OpenOfferManager;
+import haveno.core.payment.PaymentAccount;
+import haveno.core.payment.payload.PaymentAccountPayload;
+import haveno.core.proto.CoreProtoResolver;
+import haveno.core.support.dispute.arbitration.arbitrator.ArbitratorManager;
+import haveno.core.support.dispute.mediation.mediator.MediatorManager;
+import haveno.core.support.dispute.refund.refundagent.RefundAgentManager;
+import haveno.core.trade.ArbitratorTrade;
+import haveno.core.trade.MakerTrade;
+import haveno.core.trade.TakerTrade;
+import haveno.core.trade.Trade;
+import haveno.core.trade.TradeManager;
+import haveno.core.trade.messages.TradeMessage;
+import haveno.core.trade.statistics.ReferralIdService;
+import haveno.core.trade.statistics.TradeStatisticsManager;
+import haveno.core.user.User;
 
-import bisq.network.p2p.AckMessage;
-import bisq.network.p2p.NodeAddress;
-import bisq.network.p2p.P2PService;
+import haveno.network.p2p.AckMessage;
+import haveno.network.p2p.NodeAddress;
+import haveno.network.p2p.P2PService;
 
-import bisq.common.crypto.KeyRing;
-import bisq.common.crypto.PubKeyRing;
-import bisq.common.proto.ProtoUtil;
-import bisq.common.proto.persistable.PersistablePayload;
-import bisq.common.taskrunner.Model;
+import haveno.common.crypto.KeyRing;
+import haveno.common.crypto.PubKeyRing;
+import haveno.common.proto.ProtoUtil;
+import haveno.common.proto.persistable.PersistablePayload;
+import haveno.common.taskrunner.Model;
 
 import com.google.protobuf.ByteString;
 

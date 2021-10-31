@@ -1,56 +1,56 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.apitest.method.payment;
+package haveno.apitest.method.payment;
 
-import bisq.core.locale.TradeCurrency;
-import bisq.core.payment.AdvancedCashAccount;
-import bisq.core.payment.AliPayAccount;
-import bisq.core.payment.AustraliaPayid;
-import bisq.core.payment.CashDepositAccount;
-import bisq.core.payment.ChaseQuickPayAccount;
-import bisq.core.payment.ClearXchangeAccount;
-import bisq.core.payment.F2FAccount;
-import bisq.core.payment.FasterPaymentsAccount;
-import bisq.core.payment.HalCashAccount;
-import bisq.core.payment.InteracETransferAccount;
-import bisq.core.payment.JapanBankAccount;
-import bisq.core.payment.MoneyBeamAccount;
-import bisq.core.payment.MoneyGramAccount;
-import bisq.core.payment.NationalBankAccount;
-import bisq.core.payment.PaymentAccount;
-import bisq.core.payment.PerfectMoneyAccount;
-import bisq.core.payment.PopmoneyAccount;
-import bisq.core.payment.PromptPayAccount;
-import bisq.core.payment.RevolutAccount;
-import bisq.core.payment.SameBankAccount;
-import bisq.core.payment.SepaAccount;
-import bisq.core.payment.SepaInstantAccount;
-import bisq.core.payment.SpecificBanksAccount;
-import bisq.core.payment.SwishAccount;
-import bisq.core.payment.TransferwiseAccount;
-import bisq.core.payment.USPostalMoneyOrderAccount;
-import bisq.core.payment.UpholdAccount;
-import bisq.core.payment.WeChatPayAccount;
-import bisq.core.payment.WesternUnionAccount;
-import bisq.core.payment.payload.BankAccountPayload;
-import bisq.core.payment.payload.CashDepositAccountPayload;
-import bisq.core.payment.payload.SameBankAccountPayload;
-import bisq.core.payment.payload.SpecificBanksAccountPayload;
+import haveno.core.locale.TradeCurrency;
+import haveno.core.payment.AdvancedCashAccount;
+import haveno.core.payment.AliPayAccount;
+import haveno.core.payment.AustraliaPayid;
+import haveno.core.payment.CashDepositAccount;
+import haveno.core.payment.ChaseQuickPayAccount;
+import haveno.core.payment.ClearXchangeAccount;
+import haveno.core.payment.F2FAccount;
+import haveno.core.payment.FasterPaymentsAccount;
+import haveno.core.payment.HalCashAccount;
+import haveno.core.payment.InteracETransferAccount;
+import haveno.core.payment.JapanBankAccount;
+import haveno.core.payment.MoneyBeamAccount;
+import haveno.core.payment.MoneyGramAccount;
+import haveno.core.payment.NationalBankAccount;
+import haveno.core.payment.PaymentAccount;
+import haveno.core.payment.PerfectMoneyAccount;
+import haveno.core.payment.PopmoneyAccount;
+import haveno.core.payment.PromptPayAccount;
+import haveno.core.payment.RevolutAccount;
+import haveno.core.payment.SameBankAccount;
+import haveno.core.payment.SepaAccount;
+import haveno.core.payment.SepaInstantAccount;
+import haveno.core.payment.SpecificBanksAccount;
+import haveno.core.payment.SwishAccount;
+import haveno.core.payment.TransferwiseAccount;
+import haveno.core.payment.USPostalMoneyOrderAccount;
+import haveno.core.payment.UpholdAccount;
+import haveno.core.payment.WeChatPayAccount;
+import haveno.core.payment.WesternUnionAccount;
+import haveno.core.payment.payload.BankAccountPayload;
+import haveno.core.payment.payload.CashDepositAccountPayload;
+import haveno.core.payment.payload.SameBankAccountPayload;
+import haveno.core.payment.payload.SpecificBanksAccountPayload;
 
 import io.grpc.StatusRuntimeException;
 
@@ -69,11 +69,11 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInfo;
 import org.junit.jupiter.api.TestMethodOrder;
 
-import static bisq.apitest.Scaffold.BitcoinCoreApp.bitcoind;
-import static bisq.apitest.config.BisqAppConfig.alicedaemon;
-import static bisq.cli.TableFormat.formatPaymentAcctTbl;
-import static bisq.core.locale.CurrencyUtil.*;
-import static bisq.core.payment.payload.PaymentMethod.*;
+import static haveno.apitest.Scaffold.BitcoinCoreApp.bitcoind;
+import static haveno.apitest.config.HavenoAppConfig.alicedaemon;
+import static haveno.cli.TableFormat.formatPaymentAcctTbl;
+import static haveno.core.locale.CurrencyUtil.*;
+import static haveno.core.payment.payload.PaymentMethod.*;
 import static java.util.Collections.singletonList;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;

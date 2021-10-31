@@ -1,59 +1,59 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.desktop.main.offer;
+package haveno.desktop.main.offer;
 
-import bisq.desktop.Navigation;
-import bisq.desktop.util.DisplayUtils;
-import bisq.desktop.util.GUIUtil;
+import haveno.desktop.Navigation;
+import haveno.desktop.util.DisplayUtils;
+import haveno.desktop.util.GUIUtil;
 
-import bisq.core.account.witness.AccountAgeWitnessService;
-import bisq.core.btc.TxFeeEstimationService;
-import bisq.core.btc.listeners.XmrBalanceListener;
-import bisq.core.btc.model.XmrAddressEntry;
-import bisq.core.btc.wallet.Restrictions;
-import bisq.core.btc.wallet.XmrWalletService;
-import bisq.core.locale.CurrencyUtil;
-import bisq.core.locale.TradeCurrency;
-import bisq.core.monetary.Price;
-import bisq.core.monetary.Volume;
-import bisq.core.offer.CreateOfferService;
-import bisq.core.offer.Offer;
-import bisq.core.offer.OfferPayload;
-import bisq.core.offer.OfferUtil;
-import bisq.core.offer.OpenOfferManager;
-import bisq.core.payment.PaymentAccount;
-import bisq.core.provider.fee.FeeService;
-import bisq.core.provider.price.PriceFeedService;
-import bisq.core.trade.handlers.TransactionResultHandler;
-import bisq.core.trade.statistics.TradeStatistics3;
-import bisq.core.trade.statistics.TradeStatisticsManager;
-import bisq.core.user.Preferences;
-import bisq.core.user.User;
-import bisq.core.util.FormattingUtils;
-import bisq.core.util.VolumeUtil;
-import bisq.core.util.coin.CoinFormatter;
-import bisq.core.util.coin.CoinUtil;
+import haveno.core.account.witness.AccountAgeWitnessService;
+import haveno.core.btc.TxFeeEstimationService;
+import haveno.core.btc.listeners.XmrBalanceListener;
+import haveno.core.btc.model.XmrAddressEntry;
+import haveno.core.btc.wallet.Restrictions;
+import haveno.core.btc.wallet.XmrWalletService;
+import haveno.core.locale.CurrencyUtil;
+import haveno.core.locale.TradeCurrency;
+import haveno.core.monetary.Price;
+import haveno.core.monetary.Volume;
+import haveno.core.offer.CreateOfferService;
+import haveno.core.offer.Offer;
+import haveno.core.offer.OfferPayload;
+import haveno.core.offer.OfferUtil;
+import haveno.core.offer.OpenOfferManager;
+import haveno.core.payment.PaymentAccount;
+import haveno.core.provider.fee.FeeService;
+import haveno.core.provider.price.PriceFeedService;
+import haveno.core.trade.handlers.TransactionResultHandler;
+import haveno.core.trade.statistics.TradeStatistics3;
+import haveno.core.trade.statistics.TradeStatisticsManager;
+import haveno.core.user.Preferences;
+import haveno.core.user.User;
+import haveno.core.util.FormattingUtils;
+import haveno.core.util.VolumeUtil;
+import haveno.core.util.coin.CoinFormatter;
+import haveno.core.util.coin.CoinUtil;
 
-import bisq.network.p2p.P2PService;
+import haveno.network.p2p.P2PService;
 
-import bisq.common.util.MathUtils;
-import bisq.common.util.Tuple2;
-import bisq.common.util.Utilities;
+import haveno.common.util.MathUtils;
+import haveno.common.util.Tuple2;
+import haveno.common.util.Utilities;
 
 import org.bitcoinj.core.Coin;
 

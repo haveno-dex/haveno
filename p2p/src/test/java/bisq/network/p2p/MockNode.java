@@ -1,38 +1,38 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.network.p2p;
+package haveno.network.p2p;
 
-import bisq.network.p2p.network.Connection;
-import bisq.network.p2p.network.ConnectionState;
-import bisq.network.p2p.network.ConnectionStatistics;
-import bisq.network.p2p.network.InboundConnection;
-import bisq.network.p2p.network.NetworkNode;
-import bisq.network.p2p.network.OutboundConnection;
-import bisq.network.p2p.network.PeerType;
-import bisq.network.p2p.network.Statistic;
-import bisq.network.p2p.peers.PeerManager;
-import bisq.network.p2p.peers.peerexchange.PeerList;
-import bisq.network.p2p.seed.SeedNodeRepository;
+import haveno.network.p2p.network.Connection;
+import haveno.network.p2p.network.ConnectionState;
+import haveno.network.p2p.network.ConnectionStatistics;
+import haveno.network.p2p.network.InboundConnection;
+import haveno.network.p2p.network.NetworkNode;
+import haveno.network.p2p.network.OutboundConnection;
+import haveno.network.p2p.network.PeerType;
+import haveno.network.p2p.network.Statistic;
+import haveno.network.p2p.peers.PeerManager;
+import haveno.network.p2p.peers.peerexchange.PeerList;
+import haveno.network.p2p.seed.SeedNodeRepository;
 
-import bisq.common.ClockWatcher;
-import bisq.common.file.CorruptedStorageFileHandler;
-import bisq.common.persistence.PersistenceManager;
-import bisq.common.proto.persistable.PersistenceProtoResolver;
+import haveno.common.ClockWatcher;
+import haveno.common.file.CorruptedStorageFileHandler;
+import haveno.common.persistence.PersistenceManager;
+import haveno.common.proto.persistable.PersistenceProtoResolver;
 
 import java.nio.file.Files;
 

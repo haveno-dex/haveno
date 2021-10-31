@@ -1,66 +1,66 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.core.proto;
+package haveno.core.proto;
 
-import bisq.core.account.sign.SignedWitness;
-import bisq.core.account.witness.AccountAgeWitness;
-import bisq.core.payment.payload.AdvancedCashAccountPayload;
-import bisq.core.payment.payload.AliPayAccountPayload;
-import bisq.core.payment.payload.AmazonGiftCardAccountPayload;
-import bisq.core.payment.payload.AustraliaPayidPayload;
-import bisq.core.payment.payload.CashAppAccountPayload;
-import bisq.core.payment.payload.CashByMailAccountPayload;
-import bisq.core.payment.payload.CashDepositAccountPayload;
-import bisq.core.payment.payload.ChaseQuickPayAccountPayload;
-import bisq.core.payment.payload.ClearXchangeAccountPayload;
-import bisq.core.payment.payload.CryptoCurrencyAccountPayload;
-import bisq.core.payment.payload.F2FAccountPayload;
-import bisq.core.payment.payload.FasterPaymentsAccountPayload;
-import bisq.core.payment.payload.HalCashAccountPayload;
-import bisq.core.payment.payload.InstantCryptoCurrencyPayload;
-import bisq.core.payment.payload.InteracETransferAccountPayload;
-import bisq.core.payment.payload.JapanBankAccountPayload;
-import bisq.core.payment.payload.MoneyBeamAccountPayload;
-import bisq.core.payment.payload.MoneyGramAccountPayload;
-import bisq.core.payment.payload.NationalBankAccountPayload;
-import bisq.core.payment.payload.OKPayAccountPayload;
-import bisq.core.payment.payload.PaymentAccountPayload;
-import bisq.core.payment.payload.PerfectMoneyAccountPayload;
-import bisq.core.payment.payload.PopmoneyAccountPayload;
-import bisq.core.payment.payload.PromptPayAccountPayload;
-import bisq.core.payment.payload.RevolutAccountPayload;
-import bisq.core.payment.payload.SameBankAccountPayload;
-import bisq.core.payment.payload.SepaAccountPayload;
-import bisq.core.payment.payload.SepaInstantAccountPayload;
-import bisq.core.payment.payload.SpecificBanksAccountPayload;
-import bisq.core.payment.payload.SwishAccountPayload;
-import bisq.core.payment.payload.TransferwiseAccountPayload;
-import bisq.core.payment.payload.USPostalMoneyOrderAccountPayload;
-import bisq.core.payment.payload.UpholdAccountPayload;
-import bisq.core.payment.payload.VenmoAccountPayload;
-import bisq.core.payment.payload.WeChatPayAccountPayload;
-import bisq.core.payment.payload.WesternUnionAccountPayload;
-import bisq.core.trade.statistics.TradeStatistics2;
-import bisq.core.trade.statistics.TradeStatistics3;
+import haveno.core.account.sign.SignedWitness;
+import haveno.core.account.witness.AccountAgeWitness;
+import haveno.core.payment.payload.AdvancedCashAccountPayload;
+import haveno.core.payment.payload.AliPayAccountPayload;
+import haveno.core.payment.payload.AmazonGiftCardAccountPayload;
+import haveno.core.payment.payload.AustraliaPayidPayload;
+import haveno.core.payment.payload.CashAppAccountPayload;
+import haveno.core.payment.payload.CashByMailAccountPayload;
+import haveno.core.payment.payload.CashDepositAccountPayload;
+import haveno.core.payment.payload.ChaseQuickPayAccountPayload;
+import haveno.core.payment.payload.ClearXchangeAccountPayload;
+import haveno.core.payment.payload.CryptoCurrencyAccountPayload;
+import haveno.core.payment.payload.F2FAccountPayload;
+import haveno.core.payment.payload.FasterPaymentsAccountPayload;
+import haveno.core.payment.payload.HalCashAccountPayload;
+import haveno.core.payment.payload.InstantCryptoCurrencyPayload;
+import haveno.core.payment.payload.InteracETransferAccountPayload;
+import haveno.core.payment.payload.JapanBankAccountPayload;
+import haveno.core.payment.payload.MoneyBeamAccountPayload;
+import haveno.core.payment.payload.MoneyGramAccountPayload;
+import haveno.core.payment.payload.NationalBankAccountPayload;
+import haveno.core.payment.payload.OKPayAccountPayload;
+import haveno.core.payment.payload.PaymentAccountPayload;
+import haveno.core.payment.payload.PerfectMoneyAccountPayload;
+import haveno.core.payment.payload.PopmoneyAccountPayload;
+import haveno.core.payment.payload.PromptPayAccountPayload;
+import haveno.core.payment.payload.RevolutAccountPayload;
+import haveno.core.payment.payload.SameBankAccountPayload;
+import haveno.core.payment.payload.SepaAccountPayload;
+import haveno.core.payment.payload.SepaInstantAccountPayload;
+import haveno.core.payment.payload.SpecificBanksAccountPayload;
+import haveno.core.payment.payload.SwishAccountPayload;
+import haveno.core.payment.payload.TransferwiseAccountPayload;
+import haveno.core.payment.payload.USPostalMoneyOrderAccountPayload;
+import haveno.core.payment.payload.UpholdAccountPayload;
+import haveno.core.payment.payload.VenmoAccountPayload;
+import haveno.core.payment.payload.WeChatPayAccountPayload;
+import haveno.core.payment.payload.WesternUnionAccountPayload;
+import haveno.core.trade.statistics.TradeStatistics2;
+import haveno.core.trade.statistics.TradeStatistics3;
 
-import bisq.common.proto.ProtoResolver;
-import bisq.common.proto.ProtobufferRuntimeException;
-import bisq.common.proto.persistable.PersistablePayload;
+import haveno.common.proto.ProtoResolver;
+import haveno.common.proto.ProtobufferRuntimeException;
+import haveno.common.proto.persistable.PersistablePayload;
 
 import java.time.Clock;
 

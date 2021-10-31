@@ -1,4 +1,4 @@
-package bisq.desktop.util.validation;
+package haveno.desktop.util.validation;
 
 import java.util.Map;
 

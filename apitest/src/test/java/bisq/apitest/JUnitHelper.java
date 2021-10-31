@@ -1,4 +1,4 @@
-package bisq.apitest;
+package haveno.apitest;
 
 import lombok.extern.slf4j.Slf4j;
 

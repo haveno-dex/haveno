@@ -1,31 +1,31 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.core.user;
+package haveno.core.user;
 
-import bisq.core.locale.Country;
-import bisq.core.locale.CryptoCurrency;
-import bisq.core.locale.FiatCurrency;
-import bisq.core.locale.TradeCurrency;
-import bisq.core.payment.PaymentAccount;
-import bisq.core.proto.CoreProtoResolver;
+import haveno.core.locale.Country;
+import haveno.core.locale.CryptoCurrency;
+import haveno.core.locale.FiatCurrency;
+import haveno.core.locale.TradeCurrency;
+import haveno.core.payment.PaymentAccount;
+import haveno.core.proto.CoreProtoResolver;
 
-import bisq.common.proto.ProtoUtil;
-import bisq.common.proto.persistable.PersistableEnvelope;
+import haveno.common.proto.ProtoUtil;
+import haveno.common.proto.persistable.PersistableEnvelope;
 
 import com.google.protobuf.Message;
 
@@ -44,7 +44,7 @@ import lombok.extern.slf4j.Slf4j;
 
 import javax.annotation.Nullable;
 
-import static bisq.core.btc.wallet.Restrictions.getDefaultBuyerSecurityDepositAsPercent;
+import static haveno.core.btc.wallet.Restrictions.getDefaultBuyerSecurityDepositAsPercent;
 
 @Slf4j
 @Data

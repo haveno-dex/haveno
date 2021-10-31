@@ -1,48 +1,48 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.desktop.main.account;
+package haveno.desktop.main.account;
 
-import bisq.desktop.Navigation;
-import bisq.desktop.common.view.ActivatableView;
-import bisq.desktop.common.view.CachingViewLoader;
-import bisq.desktop.common.view.FxmlView;
-import bisq.desktop.common.view.View;
-import bisq.desktop.common.view.ViewLoader;
-import bisq.desktop.main.MainView;
-import bisq.desktop.main.account.content.altcoinaccounts.AltCoinAccountsView;
-import bisq.desktop.main.account.content.backup.BackupView;
-import bisq.desktop.main.account.content.fiataccounts.FiatAccountsView;
-import bisq.desktop.main.account.content.notifications.MobileNotificationsView;
-import bisq.desktop.main.account.content.password.PasswordView;
-import bisq.desktop.main.account.content.seedwords.SeedWordsView;
-import bisq.desktop.main.account.content.walletinfo.WalletInfoView;
-import bisq.desktop.main.account.register.arbitrator.ArbitratorRegistrationView;
-import bisq.desktop.main.account.register.mediator.MediatorRegistrationView;
-import bisq.desktop.main.account.register.refundagent.RefundAgentRegistrationView;
-import bisq.desktop.main.account.register.signing.SigningView;
-import bisq.desktop.main.overlays.popups.Popup;
-import bisq.desktop.main.presentation.AccountPresentation;
+import haveno.desktop.Navigation;
+import haveno.desktop.common.view.ActivatableView;
+import haveno.desktop.common.view.CachingViewLoader;
+import haveno.desktop.common.view.FxmlView;
+import haveno.desktop.common.view.View;
+import haveno.desktop.common.view.ViewLoader;
+import haveno.desktop.main.MainView;
+import haveno.desktop.main.account.content.altcoinaccounts.AltCoinAccountsView;
+import haveno.desktop.main.account.content.backup.BackupView;
+import haveno.desktop.main.account.content.fiataccounts.FiatAccountsView;
+import haveno.desktop.main.account.content.notifications.MobileNotificationsView;
+import haveno.desktop.main.account.content.password.PasswordView;
+import haveno.desktop.main.account.content.seedwords.SeedWordsView;
+import haveno.desktop.main.account.content.walletinfo.WalletInfoView;
+import haveno.desktop.main.account.register.arbitrator.ArbitratorRegistrationView;
+import haveno.desktop.main.account.register.mediator.MediatorRegistrationView;
+import haveno.desktop.main.account.register.refundagent.RefundAgentRegistrationView;
+import haveno.desktop.main.account.register.signing.SigningView;
+import haveno.desktop.main.overlays.popups.Popup;
+import haveno.desktop.main.presentation.AccountPresentation;
 
-import bisq.core.locale.Res;
-import bisq.core.user.DontShowAgainLookup;
+import haveno.core.locale.Res;
+import haveno.core.user.DontShowAgainLookup;
 
-import bisq.common.app.DevEnv;
-import bisq.common.util.Utilities;
+import haveno.common.app.DevEnv;
+import haveno.common.util.Utilities;
 
 import javax.inject.Inject;
 

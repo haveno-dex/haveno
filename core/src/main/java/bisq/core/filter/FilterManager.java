@@ -1,42 +1,42 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.core.filter;
+package haveno.core.filter;
 
-import bisq.core.btc.nodes.BtcNodes;
-import bisq.core.locale.Res;
-import bisq.core.payment.payload.PaymentAccountPayload;
-import bisq.core.payment.payload.PaymentMethod;
-import bisq.core.provider.ProvidersRepository;
-import bisq.core.user.Preferences;
-import bisq.core.user.User;
+import haveno.core.btc.nodes.BtcNodes;
+import haveno.core.locale.Res;
+import haveno.core.payment.payload.PaymentAccountPayload;
+import haveno.core.payment.payload.PaymentMethod;
+import haveno.core.provider.ProvidersRepository;
+import haveno.core.user.Preferences;
+import haveno.core.user.User;
 
-import bisq.network.p2p.NodeAddress;
-import bisq.network.p2p.P2PService;
-import bisq.network.p2p.P2PServiceListener;
-import bisq.network.p2p.network.NetworkFilter;
-import bisq.network.p2p.storage.HashMapChangedListener;
-import bisq.network.p2p.storage.payload.ProtectedStorageEntry;
+import haveno.network.p2p.NodeAddress;
+import haveno.network.p2p.P2PService;
+import haveno.network.p2p.P2PServiceListener;
+import haveno.network.p2p.network.NetworkFilter;
+import haveno.network.p2p.storage.HashMapChangedListener;
+import haveno.network.p2p.storage.payload.ProtectedStorageEntry;
 
-import bisq.common.app.DevEnv;
-import bisq.common.app.Version;
-import bisq.common.config.Config;
-import bisq.common.config.ConfigFileEditor;
-import bisq.common.crypto.KeyRing;
+import haveno.common.app.DevEnv;
+import haveno.common.app.Version;
+import haveno.common.config.Config;
+import haveno.common.config.ConfigFileEditor;
+import haveno.common.crypto.KeyRing;
 
 import org.bitcoinj.core.ECKey;
 import org.bitcoinj.core.Sha256Hash;
@@ -154,7 +154,7 @@ public class FilterManager {
                 .forEach(this::onFilterAddedFromNetwork);
 
         // On mainNet we expect to have received a filter object, if not show a popup to the user to inform the
-        // Bisq devs.
+        // Haveno devs.
         if (Config.baseCurrencyNetwork().isMainnet() && getFilter() == null) {
             filterWarningHandler.accept(Res.get("popup.warning.noFilter"));
         }

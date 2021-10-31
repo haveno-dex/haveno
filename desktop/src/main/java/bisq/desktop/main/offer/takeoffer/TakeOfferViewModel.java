@@ -1,58 +1,58 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.desktop.main.offer.takeoffer;
+package haveno.desktop.main.offer.takeoffer;
 
-import bisq.desktop.Navigation;
-import bisq.desktop.common.model.ActivatableWithDataModel;
-import bisq.desktop.common.model.ViewModel;
-import bisq.desktop.main.MainView;
-import bisq.desktop.main.funds.FundsView;
-import bisq.desktop.main.funds.deposit.DepositView;
-import bisq.desktop.main.offer.FeeUtil;
-import bisq.desktop.main.overlays.popups.Popup;
-import bisq.desktop.util.DisplayUtils;
-import bisq.desktop.util.GUIUtil;
-import bisq.desktop.util.validation.BtcValidator;
+import haveno.desktop.Navigation;
+import haveno.desktop.common.model.ActivatableWithDataModel;
+import haveno.desktop.common.model.ViewModel;
+import haveno.desktop.main.MainView;
+import haveno.desktop.main.funds.FundsView;
+import haveno.desktop.main.funds.deposit.DepositView;
+import haveno.desktop.main.offer.FeeUtil;
+import haveno.desktop.main.overlays.popups.Popup;
+import haveno.desktop.util.DisplayUtils;
+import haveno.desktop.util.GUIUtil;
+import haveno.desktop.util.validation.BtcValidator;
 
-import bisq.core.account.witness.AccountAgeWitnessService;
-import bisq.core.btc.wallet.Restrictions;
-import bisq.core.locale.CurrencyUtil;
-import bisq.core.locale.Res;
-import bisq.core.monetary.Price;
-import bisq.core.offer.Offer;
-import bisq.core.offer.OfferPayload;
-import bisq.core.offer.OfferRestrictions;
-import bisq.core.offer.OfferUtil;
-import bisq.core.payment.PaymentAccount;
-import bisq.core.payment.payload.PaymentMethod;
-import bisq.core.provider.fee.FeeService;
-import bisq.core.trade.Trade;
-import bisq.core.util.FormattingUtils;
-import bisq.core.util.coin.CoinFormatter;
-import bisq.core.util.coin.CoinUtil;
-import bisq.core.util.validation.InputValidator;
+import haveno.core.account.witness.AccountAgeWitnessService;
+import haveno.core.btc.wallet.Restrictions;
+import haveno.core.locale.CurrencyUtil;
+import haveno.core.locale.Res;
+import haveno.core.monetary.Price;
+import haveno.core.offer.Offer;
+import haveno.core.offer.OfferPayload;
+import haveno.core.offer.OfferRestrictions;
+import haveno.core.offer.OfferUtil;
+import haveno.core.payment.PaymentAccount;
+import haveno.core.payment.payload.PaymentMethod;
+import haveno.core.provider.fee.FeeService;
+import haveno.core.trade.Trade;
+import haveno.core.util.FormattingUtils;
+import haveno.core.util.coin.CoinFormatter;
+import haveno.core.util.coin.CoinUtil;
+import haveno.core.util.validation.InputValidator;
 
-import bisq.network.p2p.P2PService;
-import bisq.network.p2p.network.CloseConnectionReason;
-import bisq.network.p2p.network.Connection;
-import bisq.network.p2p.network.ConnectionListener;
+import haveno.network.p2p.P2PService;
+import haveno.network.p2p.network.CloseConnectionReason;
+import haveno.network.p2p.network.Connection;
+import haveno.network.p2p.network.ConnectionListener;
 
-import bisq.common.app.DevEnv;
+import haveno.common.app.DevEnv;
 
 import org.bitcoinj.core.Coin;
 

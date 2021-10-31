@@ -1,27 +1,27 @@
-package bisq.desktop.main.portfolio.editoffer;
+package haveno.desktop.main.portfolio.editoffer;
 
-import bisq.desktop.util.validation.SecurityDepositValidator;
+import haveno.desktop.util.validation.SecurityDepositValidator;
 
-import bisq.core.account.witness.AccountAgeWitnessService;
-import bisq.core.btc.model.XmrAddressEntry;
-import bisq.core.btc.wallet.XmrWalletService;
-import bisq.core.locale.Country;
-import bisq.core.locale.CryptoCurrency;
-import bisq.core.locale.GlobalSettings;
-import bisq.core.locale.Res;
-import bisq.core.offer.CreateOfferService;
-import bisq.core.offer.OfferPayload;
-import bisq.core.offer.OfferUtil;
-import bisq.core.offer.OpenOffer;
-import bisq.core.payment.CryptoCurrencyAccount;
-import bisq.core.payment.PaymentAccount;
-import bisq.core.provider.fee.FeeService;
-import bisq.core.provider.price.MarketPrice;
-import bisq.core.provider.price.PriceFeedService;
-import bisq.core.trade.statistics.TradeStatisticsManager;
-import bisq.core.user.Preferences;
-import bisq.core.user.User;
-import bisq.core.util.validation.InputValidator;
+import haveno.core.account.witness.AccountAgeWitnessService;
+import haveno.core.btc.model.XmrAddressEntry;
+import haveno.core.btc.wallet.XmrWalletService;
+import haveno.core.locale.Country;
+import haveno.core.locale.CryptoCurrency;
+import haveno.core.locale.GlobalSettings;
+import haveno.core.locale.Res;
+import haveno.core.offer.CreateOfferService;
+import haveno.core.offer.OfferPayload;
+import haveno.core.offer.OfferUtil;
+import haveno.core.offer.OpenOffer;
+import haveno.core.payment.CryptoCurrencyAccount;
+import haveno.core.payment.PaymentAccount;
+import haveno.core.provider.fee.FeeService;
+import haveno.core.provider.price.MarketPrice;
+import haveno.core.provider.price.PriceFeedService;
+import haveno.core.trade.statistics.TradeStatisticsManager;
+import haveno.core.user.Preferences;
+import haveno.core.user.User;
+import haveno.core.util.validation.InputValidator;
 
 import org.bitcoinj.core.Coin;
 
@@ -38,8 +38,8 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
-import static bisq.desktop.maker.OfferMaker.btcBCHCOffer;
-import static bisq.desktop.maker.PreferenceMakers.empty;
+import static haveno.desktop.maker.OfferMaker.btcBCHCOffer;
+import static haveno.desktop.maker.PreferenceMakers.empty;
 import static com.natpryce.makeiteasy.MakeItEasy.make;
 import static org.junit.Assert.assertNull;
 import static org.mockito.ArgumentMatchers.any;

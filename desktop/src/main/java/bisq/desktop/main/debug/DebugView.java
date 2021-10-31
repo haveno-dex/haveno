@@ -1,73 +1,73 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.desktop.main.debug;
+package haveno.desktop.main.debug;
 
-import bisq.desktop.common.view.FxmlView;
-import bisq.desktop.common.view.InitializableView;
-import bisq.desktop.components.TitledGroupBg;
+import haveno.desktop.common.view.FxmlView;
+import haveno.desktop.common.view.InitializableView;
+import haveno.desktop.components.TitledGroupBg;
 
-import bisq.core.offer.availability.tasks.ProcessOfferAvailabilityResponse;
-import bisq.core.offer.availability.tasks.SendOfferAvailabilityRequest;
-import bisq.core.offer.placeoffer.tasks.AddToOfferBook;
-import bisq.core.offer.placeoffer.tasks.MakerReservesTradeFunds;
-import bisq.core.offer.placeoffer.tasks.ValidateOffer;
-import bisq.core.trade.protocol.tasks.ApplyFilter;
-import bisq.core.trade.protocol.tasks.VerifyPeersAccountAgeWitness;
-import bisq.core.trade.protocol.tasks.buyer.BuyerCreateAndSignPayoutTx;
-import bisq.core.trade.protocol.tasks.buyer.BuyerProcessDelayedPayoutTxSignatureRequest;
-import bisq.core.trade.protocol.tasks.buyer.BuyerProcessDepositTxAndDelayedPayoutTxMessage;
-import bisq.core.trade.protocol.tasks.buyer.BuyerProcessPayoutTxPublishedMessage;
-import bisq.core.trade.protocol.tasks.buyer.BuyerSendCounterCurrencyTransferStartedMessage;
-import bisq.core.trade.protocol.tasks.buyer.BuyerSendsDelayedPayoutTxSignatureResponse;
-import bisq.core.trade.protocol.tasks.buyer.BuyerSetupPayoutTxListener;
-import bisq.core.trade.protocol.tasks.buyer.BuyerSignsDelayedPayoutTx;
-import bisq.core.trade.protocol.tasks.buyer.BuyerVerifiesFinalDelayedPayoutTx;
-import bisq.core.trade.protocol.tasks.buyer.BuyerVerifiesPreparedDelayedPayoutTx;
-import bisq.core.trade.protocol.tasks.buyer_as_maker.BuyerAsMakerCreatesAndSignsDepositTx;
-import bisq.core.trade.protocol.tasks.buyer_as_maker.BuyerAsMakerSendsInputsForDepositTxResponse;
-import bisq.core.trade.protocol.tasks.buyer_as_taker.BuyerAsTakerCreatesDepositTxInputs;
-import bisq.core.trade.protocol.tasks.buyer_as_taker.BuyerAsTakerSendsDepositTxMessage;
-import bisq.core.trade.protocol.tasks.buyer_as_taker.BuyerAsTakerSignsDepositTx;
-import bisq.core.trade.protocol.tasks.maker.MakerRemovesOpenOffer;
-import bisq.core.trade.protocol.tasks.maker.MakerSetsLockTime;
-import bisq.core.trade.protocol.tasks.maker.MakerVerifyTakerFeePayment;
-import bisq.core.trade.protocol.tasks.seller.SellerCreatesDelayedPayoutTx;
-import bisq.core.trade.protocol.tasks.seller.SellerFinalizesDelayedPayoutTx;
-import bisq.core.trade.protocol.tasks.seller.SellerProcessCounterCurrencyTransferStartedMessage;
-import bisq.core.trade.protocol.tasks.seller.SellerProcessDelayedPayoutTxSignatureResponse;
-import bisq.core.trade.protocol.tasks.seller.SellerPublishesDepositTx;
-import bisq.core.trade.protocol.tasks.seller.SellerPublishesTradeStatistics;
-import bisq.core.trade.protocol.tasks.seller.SellerSendDelayedPayoutTxSignatureRequest;
-import bisq.core.trade.protocol.tasks.seller.SellerSendPayoutTxPublishedMessage;
-import bisq.core.trade.protocol.tasks.seller.SellerSignAndPublishPayoutTx;
-import bisq.core.trade.protocol.tasks.seller.SellerSignsDelayedPayoutTx;
-import bisq.core.trade.protocol.tasks.seller_as_maker.SellerAsMakerCreatesUnsignedDepositTx;
-import bisq.core.trade.protocol.tasks.seller_as_maker.SellerAsMakerFinalizesDepositTx;
-import bisq.core.trade.protocol.tasks.seller_as_maker.SellerAsMakerSendsInputsForDepositTxResponse;
-import bisq.core.trade.protocol.tasks.seller_as_taker.SellerAsTakerCreatesDepositTxInputs;
-import bisq.core.trade.protocol.tasks.seller_as_taker.SellerAsTakerSignsDepositTx;
-import bisq.core.trade.protocol.tasks.taker.TakerCreateFeeTx;
-import bisq.core.trade.protocol.tasks.taker.TakerProcessesInputsForDepositTxResponse;
-import bisq.core.trade.protocol.tasks.taker.TakerPublishFeeTx;
-import bisq.core.trade.protocol.tasks.taker.TakerVerifyMakerFeePayment;
+import haveno.core.offer.availability.tasks.ProcessOfferAvailabilityResponse;
+import haveno.core.offer.availability.tasks.SendOfferAvailabilityRequest;
+import haveno.core.offer.placeoffer.tasks.AddToOfferBook;
+import haveno.core.offer.placeoffer.tasks.MakerReservesTradeFunds;
+import haveno.core.offer.placeoffer.tasks.ValidateOffer;
+import haveno.core.trade.protocol.tasks.ApplyFilter;
+import haveno.core.trade.protocol.tasks.VerifyPeersAccountAgeWitness;
+import haveno.core.trade.protocol.tasks.buyer.BuyerCreateAndSignPayoutTx;
+import haveno.core.trade.protocol.tasks.buyer.BuyerProcessDelayedPayoutTxSignatureRequest;
+import haveno.core.trade.protocol.tasks.buyer.BuyerProcessDepositTxAndDelayedPayoutTxMessage;
+import haveno.core.trade.protocol.tasks.buyer.BuyerProcessPayoutTxPublishedMessage;
+import haveno.core.trade.protocol.tasks.buyer.BuyerSendCounterCurrencyTransferStartedMessage;
+import haveno.core.trade.protocol.tasks.buyer.BuyerSendsDelayedPayoutTxSignatureResponse;
+import haveno.core.trade.protocol.tasks.buyer.BuyerSetupPayoutTxListener;
+import haveno.core.trade.protocol.tasks.buyer.BuyerSignsDelayedPayoutTx;
+import haveno.core.trade.protocol.tasks.buyer.BuyerVerifiesFinalDelayedPayoutTx;
+import haveno.core.trade.protocol.tasks.buyer.BuyerVerifiesPreparedDelayedPayoutTx;
+import haveno.core.trade.protocol.tasks.buyer_as_maker.BuyerAsMakerCreatesAndSignsDepositTx;
+import haveno.core.trade.protocol.tasks.buyer_as_maker.BuyerAsMakerSendsInputsForDepositTxResponse;
+import haveno.core.trade.protocol.tasks.buyer_as_taker.BuyerAsTakerCreatesDepositTxInputs;
+import haveno.core.trade.protocol.tasks.buyer_as_taker.BuyerAsTakerSendsDepositTxMessage;
+import haveno.core.trade.protocol.tasks.buyer_as_taker.BuyerAsTakerSignsDepositTx;
+import haveno.core.trade.protocol.tasks.maker.MakerRemovesOpenOffer;
+import haveno.core.trade.protocol.tasks.maker.MakerSetsLockTime;
+import haveno.core.trade.protocol.tasks.maker.MakerVerifyTakerFeePayment;
+import haveno.core.trade.protocol.tasks.seller.SellerCreatesDelayedPayoutTx;
+import haveno.core.trade.protocol.tasks.seller.SellerFinalizesDelayedPayoutTx;
+import haveno.core.trade.protocol.tasks.seller.SellerProcessCounterCurrencyTransferStartedMessage;
+import haveno.core.trade.protocol.tasks.seller.SellerProcessDelayedPayoutTxSignatureResponse;
+import haveno.core.trade.protocol.tasks.seller.SellerPublishesDepositTx;
+import haveno.core.trade.protocol.tasks.seller.SellerPublishesTradeStatistics;
+import haveno.core.trade.protocol.tasks.seller.SellerSendDelayedPayoutTxSignatureRequest;
+import haveno.core.trade.protocol.tasks.seller.SellerSendPayoutTxPublishedMessage;
+import haveno.core.trade.protocol.tasks.seller.SellerSignAndPublishPayoutTx;
+import haveno.core.trade.protocol.tasks.seller.SellerSignsDelayedPayoutTx;
+import haveno.core.trade.protocol.tasks.seller_as_maker.SellerAsMakerCreatesUnsignedDepositTx;
+import haveno.core.trade.protocol.tasks.seller_as_maker.SellerAsMakerFinalizesDepositTx;
+import haveno.core.trade.protocol.tasks.seller_as_maker.SellerAsMakerSendsInputsForDepositTxResponse;
+import haveno.core.trade.protocol.tasks.seller_as_taker.SellerAsTakerCreatesDepositTxInputs;
+import haveno.core.trade.protocol.tasks.seller_as_taker.SellerAsTakerSignsDepositTx;
+import haveno.core.trade.protocol.tasks.taker.TakerCreateFeeTx;
+import haveno.core.trade.protocol.tasks.taker.TakerProcessesInputsForDepositTxResponse;
+import haveno.core.trade.protocol.tasks.taker.TakerPublishFeeTx;
+import haveno.core.trade.protocol.tasks.taker.TakerVerifyMakerFeePayment;
 
-import bisq.common.taskrunner.Task;
-import bisq.common.util.Tuple2;
+import haveno.common.taskrunner.Task;
+import haveno.common.util.Tuple2;
 
 import javax.inject.Inject;
 
@@ -84,7 +84,7 @@ import javafx.util.StringConverter;
 
 import java.util.Arrays;
 
-import static bisq.desktop.util.FormBuilder.addTopLabelComboBox;
+import static haveno.desktop.util.FormBuilder.addTopLabelComboBox;
 
 // Not maintained anymore with new trade protocol, but leave it...If used needs to be adopted to current protocol.
 @FxmlView

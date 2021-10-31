@@ -1,4 +1,4 @@
-package bisq.price.util;
+package haveno.price.util;
 
 import org.springframework.core.io.FileSystemResource;
 

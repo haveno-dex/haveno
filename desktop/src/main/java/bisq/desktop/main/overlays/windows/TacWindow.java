@@ -1,27 +1,27 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.desktop.main.overlays.windows;
+package haveno.desktop.main.overlays.windows;
 
-import bisq.desktop.app.BisqApp;
-import bisq.desktop.components.HyperlinkWithIcon;
-import bisq.desktop.main.overlays.Overlay;
+import haveno.desktop.app.HavenoApp;
+import haveno.desktop.components.HyperlinkWithIcon;
+import haveno.desktop.main.overlays.Overlay;
 
-import bisq.core.locale.Res;
+import haveno.core.locale.Res;
 
 import com.google.inject.Inject;
 
@@ -34,7 +34,7 @@ import javafx.geometry.Rectangle2D;
 
 import lombok.extern.slf4j.Slf4j;
 
-import static bisq.desktop.util.FormBuilder.addHyperlinkWithIcon;
+import static haveno.desktop.util.FormBuilder.addHyperlinkWithIcon;
 
 @Slf4j
 public class TacWindow extends Overlay<TacWindow> {
@@ -72,33 +72,33 @@ public class TacWindow extends Overlay<TacWindow> {
 
                 "2. The user is responsible for using the software in compliance with local laws. Don't use the software if using it is not legal in your jurisdiction.\n\n" +
 
-                "3. Any " + Res.getBaseCurrencyName() + " market prices, network fee estimates, or other data obtained from servers operated by Bisq provided on an 'as is, as available' basis without representation or warranty of any kind. It is your responsibility to verify any data provided in regards to inaccuracies or omissions.\n\n" +
+                "3. Any " + Res.getBaseCurrencyName() + " market prices, network fee estimates, or other data obtained from servers operated by Haveno provided on an 'as is, as available' basis without representation or warranty of any kind. It is your responsibility to verify any data provided in regards to inaccuracies or omissions.\n\n" +
 
                 "4. Any Fiat payment method carries a potential risk for bank chargeback. By accepting the \"User Agreement\" the user confirms " +
                 "to be aware of those risks and in no case will claim legal responsibility to the authors or copyright holders of the software.\n\n" +
 
                 "5. Any dispute, controversy or claim arising out of or relating to the use of the software shall be settled by arbitration in " +
-                "accordance with the Bisq arbitration rules as at present in force. The arbitration is conducted online. " +
+                "accordance with the Haveno arbitration rules as at present in force. The arbitration is conducted online. " +
                 "The language to be used in the arbitration proceedings shall be English if not otherwise stated.\n\n" +
 
                 "6. The user confirms that they have read and agreed to the rules regarding the dispute process:\n" +
                 "    - You must complete trades within the maximum duration specified for each payment method.\n" +
-                "    - Leave the \"reason for payment\" field empty. DO NOT put the trade ID or any other text like 'bitcoin', 'BTC', or 'Bisq'.\n" +
+                "    - Leave the \"reason for payment\" field empty. DO NOT put the trade ID or any other text like 'bitcoin', 'BTC', or 'Haveno'.\n" +
                 "    - If the bank of the fiat sender charges fees, the sender (" + Res.getBaseCurrencyCode() + " buyer) has to cover the fees.\n" +
                 "    - You must cooperate with the mediator during the mediation process, and respond to each mediator message within 48 hours.\n" +
                 "    - If either (or both) traders do not accept the mediator's suggested payout, traders can open a refund request from an arbitrator after 10 days in case of altcoin trades\n" +
                 "      and 20 days for fiat trades.\n" +
                 "    - You should only open a refund request from an arbitrator if you think the mediator's suggested payout is unfair, or if your trading peer is unresponsive.\n" +
-                "    - Opening a refund request from an arbitrator triggers the delayed payout transaction, sending all funds from the deposit transaction to the Bisq receiver\n" +
+                "    - Opening a refund request from an arbitrator triggers the delayed payout transaction, sending all funds from the deposit transaction to the Haveno receiver\n" +
                 "      address ('collateral for refund to avoid scamming the refund process'). At this point, the arbitrator will re-investigate the case and personally refund \n" +
                 "      (at their discretion) the trader who requested arbitration.\n" +
                 "    - The arbitrator may charge a small fee (max. the traders security deposit) as compensation for their work.\n" +
-                "    - The arbitrator will then make a reimbursement request to the Bisq to get reimbursed for the refund they paid to the trader.\n\n" +
+                "    - The arbitrator will then make a reimbursement request to the Haveno to get reimbursed for the refund they paid to the trader.\n\n" +
                 "For more details and a general overview please read the full documentation about dispute resolution.";
         message(text);
         actionButtonText(Res.get("tacWindow.agree"));
         closeButtonText(Res.get("tacWindow.disagree"));
-        onClose(BisqApp.getShutDownHandler());
+        onClose(HavenoApp.getShutDownHandler());
 
         super.show();
     }
@@ -110,7 +110,7 @@ public class TacWindow extends Overlay<TacWindow> {
         messageLabel.getStyleClass().add(fontStyleClass);
 
         HyperlinkWithIcon hyperlinkWithIcon = addHyperlinkWithIcon(gridPane, ++rowIndex, Res.get("tacWindow.arbitrationSystem"),
-                "https://bisq.wiki/Dispute_resolution");
+                "https://haveno.wiki/Dispute_resolution");
         hyperlinkWithIcon.getStyleClass().add(fontStyleClass);
         GridPane.setMargin(hyperlinkWithIcon, new Insets(-6, 0, -20, -4));
     }

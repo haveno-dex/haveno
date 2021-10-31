@@ -1,12 +1,12 @@
-package bisq.desktop.components;
+package haveno.desktop.components;
 
-import bisq.core.account.witness.AccountAgeWitnessService;
-import bisq.core.alert.PrivateNotificationManager;
-import bisq.core.offer.Offer;
-import bisq.core.trade.Trade;
-import bisq.core.user.Preferences;
+import haveno.core.account.witness.AccountAgeWitnessService;
+import haveno.core.alert.PrivateNotificationManager;
+import haveno.core.offer.Offer;
+import haveno.core.trade.Trade;
+import haveno.core.user.Preferences;
 
-import bisq.network.p2p.NodeAddress;
+import haveno.network.p2p.NodeAddress;
 
 import javax.annotation.Nullable;
 

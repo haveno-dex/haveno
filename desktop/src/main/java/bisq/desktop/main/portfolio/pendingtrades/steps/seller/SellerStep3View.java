@@ -1,59 +1,59 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.desktop.main.portfolio.pendingtrades.steps.seller;
+package haveno.desktop.main.portfolio.pendingtrades.steps.seller;
 
-import bisq.desktop.components.BusyAnimation;
-import bisq.desktop.components.InfoTextField;
-import bisq.desktop.components.TextFieldWithCopyIcon;
-import bisq.desktop.components.indicator.TxConfidenceIndicator;
-import bisq.desktop.main.overlays.popups.Popup;
-import bisq.desktop.main.portfolio.pendingtrades.PendingTradesViewModel;
-import bisq.desktop.main.portfolio.pendingtrades.steps.TradeStepView;
-import bisq.desktop.util.DisplayUtils;
-import bisq.desktop.util.GUIUtil;
-import bisq.desktop.util.Layout;
+import haveno.desktop.components.BusyAnimation;
+import haveno.desktop.components.InfoTextField;
+import haveno.desktop.components.TextFieldWithCopyIcon;
+import haveno.desktop.components.indicator.TxConfidenceIndicator;
+import haveno.desktop.main.overlays.popups.Popup;
+import haveno.desktop.main.portfolio.pendingtrades.PendingTradesViewModel;
+import haveno.desktop.main.portfolio.pendingtrades.steps.TradeStepView;
+import haveno.desktop.util.DisplayUtils;
+import haveno.desktop.util.GUIUtil;
+import haveno.desktop.util.Layout;
 
-import bisq.core.locale.Res;
-import bisq.core.payment.PaymentAccount;
-import bisq.core.payment.PaymentAccountUtil;
-import bisq.core.payment.payload.AmazonGiftCardAccountPayload;
-import bisq.core.payment.payload.AssetsAccountPayload;
-import bisq.core.payment.payload.BankAccountPayload;
-import bisq.core.payment.payload.CashByMailAccountPayload;
-import bisq.core.payment.payload.CashDepositAccountPayload;
-import bisq.core.payment.payload.F2FAccountPayload;
-import bisq.core.payment.payload.HalCashAccountPayload;
-import bisq.core.payment.payload.MoneyGramAccountPayload;
-import bisq.core.payment.payload.PaymentAccountPayload;
-import bisq.core.payment.payload.SepaAccountPayload;
-import bisq.core.payment.payload.SepaInstantAccountPayload;
-import bisq.core.payment.payload.USPostalMoneyOrderAccountPayload;
-import bisq.core.payment.payload.WesternUnionAccountPayload;
-import bisq.core.trade.Contract;
-import bisq.core.trade.Trade;
-import bisq.core.trade.txproof.AssetTxProofResult;
-import bisq.core.user.DontShowAgainLookup;
+import haveno.core.locale.Res;
+import haveno.core.payment.PaymentAccount;
+import haveno.core.payment.PaymentAccountUtil;
+import haveno.core.payment.payload.AmazonGiftCardAccountPayload;
+import haveno.core.payment.payload.AssetsAccountPayload;
+import haveno.core.payment.payload.BankAccountPayload;
+import haveno.core.payment.payload.CashByMailAccountPayload;
+import haveno.core.payment.payload.CashDepositAccountPayload;
+import haveno.core.payment.payload.F2FAccountPayload;
+import haveno.core.payment.payload.HalCashAccountPayload;
+import haveno.core.payment.payload.MoneyGramAccountPayload;
+import haveno.core.payment.payload.PaymentAccountPayload;
+import haveno.core.payment.payload.SepaAccountPayload;
+import haveno.core.payment.payload.SepaInstantAccountPayload;
+import haveno.core.payment.payload.USPostalMoneyOrderAccountPayload;
+import haveno.core.payment.payload.WesternUnionAccountPayload;
+import haveno.core.trade.Contract;
+import haveno.core.trade.Trade;
+import haveno.core.trade.txproof.AssetTxProofResult;
+import haveno.core.user.DontShowAgainLookup;
 
-import bisq.common.Timer;
-import bisq.common.UserThread;
-import bisq.common.app.DevEnv;
-import bisq.common.util.Tuple2;
-import bisq.common.util.Tuple4;
+import haveno.common.Timer;
+import haveno.common.UserThread;
+import haveno.common.app.DevEnv;
+import haveno.common.util.Tuple2;
+import haveno.common.util.Tuple4;
 
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
@@ -74,7 +74,7 @@ import java.util.Optional;
 
 import javax.annotation.Nullable;
 
-import static bisq.desktop.util.FormBuilder.*;
+import static haveno.desktop.util.FormBuilder.*;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 public class SellerStep3View extends TradeStepView {

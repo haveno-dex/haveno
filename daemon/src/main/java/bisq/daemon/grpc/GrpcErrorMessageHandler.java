@@ -1,26 +1,26 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.daemon.grpc;
+package haveno.daemon.grpc;
 
-import bisq.common.handlers.ErrorMessageHandler;
+import haveno.common.handlers.ErrorMessageHandler;
 
-import bisq.proto.grpc.AvailabilityResultWithDescription;
-import bisq.proto.grpc.TakeOfferReply;
+import haveno.proto.grpc.AvailabilityResultWithDescription;
+import haveno.proto.grpc.TakeOfferReply;
 
 import protobuf.AvailabilityResult;
 
@@ -30,13 +30,13 @@ import org.slf4j.Logger;
 
 import lombok.Getter;
 
-import static bisq.proto.grpc.TradesGrpc.getTakeOfferMethod;
+import static haveno.proto.grpc.TradesGrpc.getTakeOfferMethod;
 import static java.lang.String.format;
 import static java.util.Arrays.stream;
 
 /**
- * An implementation of bisq.common.handlers.ErrorMessageHandler that avoids
- * an exception loop with the UI's bisq.common.taskrunner framework.
+ * An implementation of haveno.common.handlers.ErrorMessageHandler that avoids
+ * an exception loop with the UI's haveno.common.taskrunner framework.
  *
  * The legacy ErrorMessageHandler is for reporting error messages only to the UI, but
  * some core api tasks (takeoffer) require one.  This implementation works around
@@ -134,7 +134,7 @@ public class GrpcErrorMessageHandler implements ErrorMessageHandler {
     }
 
     private String getAvailabilityResultDescription(AvailabilityResult proto) {
-        return bisq.core.offer.AvailabilityResult.fromProto(proto).description();
+        return haveno.core.offer.AvailabilityResult.fromProto(proto).description();
     }
 
     private boolean takeOfferWasCalled() {

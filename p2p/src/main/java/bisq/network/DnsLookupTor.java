@@ -1,21 +1,21 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.network;
+package haveno.network;
 
 import com.runjva.sourceforge.jsocks.protocol.Socks5Proxy;
 
@@ -62,7 +62,7 @@ public class DnsLookupTor {
     public static InetAddress lookup(Socks5Proxy proxy, String host) throws DnsLookupException {
         try {
             // note:  This is creating a new connection to our proxy, without any authentication.
-            //        This works fine when connecting to bisq's internal Tor proxy, but
+            //        This works fine when connecting to haveno's internal Tor proxy, but
             //        would fail if user has configured an external proxy that requires auth.
             //        It would be much better to use the already connected proxy socket, but when I
             //        tried that I get weird errors and the lookup fails.

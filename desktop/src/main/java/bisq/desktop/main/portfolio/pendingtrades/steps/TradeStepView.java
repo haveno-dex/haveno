@@ -1,48 +1,48 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.desktop.main.portfolio.pendingtrades.steps;
+package haveno.desktop.main.portfolio.pendingtrades.steps;
 
-import bisq.desktop.components.InfoTextField;
-import bisq.desktop.components.TitledGroupBg;
-import bisq.desktop.components.TxIdTextField;
-import bisq.desktop.main.overlays.popups.Popup;
-import bisq.desktop.main.portfolio.pendingtrades.PendingTradesViewModel;
-import bisq.desktop.main.portfolio.pendingtrades.TradeStepInfo;
-import bisq.desktop.main.portfolio.pendingtrades.TradeSubView;
-import bisq.desktop.util.Layout;
+import haveno.desktop.components.InfoTextField;
+import haveno.desktop.components.TitledGroupBg;
+import haveno.desktop.components.TxIdTextField;
+import haveno.desktop.main.overlays.popups.Popup;
+import haveno.desktop.main.portfolio.pendingtrades.PendingTradesViewModel;
+import haveno.desktop.main.portfolio.pendingtrades.TradeStepInfo;
+import haveno.desktop.main.portfolio.pendingtrades.TradeSubView;
+import haveno.desktop.util.Layout;
 
-import bisq.core.locale.CurrencyUtil;
-import bisq.core.locale.Res;
-import bisq.core.support.dispute.Dispute;
-import bisq.core.support.dispute.DisputeResult;
-import bisq.core.support.dispute.mediation.MediationResultState;
-import bisq.core.trade.Contract;
-import bisq.core.trade.MakerTrade;
-import bisq.core.trade.TakerTrade;
-import bisq.core.trade.Trade;
-import bisq.core.user.DontShowAgainLookup;
-import bisq.core.user.Preferences;
+import haveno.core.locale.CurrencyUtil;
+import haveno.core.locale.Res;
+import haveno.core.support.dispute.Dispute;
+import haveno.core.support.dispute.DisputeResult;
+import haveno.core.support.dispute.mediation.MediationResultState;
+import haveno.core.trade.Contract;
+import haveno.core.trade.MakerTrade;
+import haveno.core.trade.TakerTrade;
+import haveno.core.trade.Trade;
+import haveno.core.user.DontShowAgainLookup;
+import haveno.core.user.Preferences;
 
-import bisq.network.p2p.BootstrapListener;
+import haveno.network.p2p.BootstrapListener;
 
-import bisq.common.ClockWatcher;
-import bisq.common.UserThread;
-import bisq.common.util.Tuple3;
+import haveno.common.ClockWatcher;
+import haveno.common.UserThread;
+import haveno.common.util.Tuple3;
 
 import de.jensd.fx.fontawesome.AwesomeDude;
 import de.jensd.fx.fontawesome.AwesomeIcon;
@@ -76,11 +76,11 @@ import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static bisq.desktop.components.paymentmethods.PaymentMethodForm.addOpenTradeDuration;
-import static bisq.desktop.util.FormBuilder.addCompactTopLabelTextField;
-import static bisq.desktop.util.FormBuilder.addMultilineLabel;
-import static bisq.desktop.util.FormBuilder.addTitledGroupBg;
-import static bisq.desktop.util.FormBuilder.addTopLabelTxIdTextField;
+import static haveno.desktop.components.paymentmethods.PaymentMethodForm.addOpenTradeDuration;
+import static haveno.desktop.util.FormBuilder.addCompactTopLabelTextField;
+import static haveno.desktop.util.FormBuilder.addMultilineLabel;
+import static haveno.desktop.util.FormBuilder.addTitledGroupBg;
+import static haveno.desktop.util.FormBuilder.addTopLabelTxIdTextField;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 public abstract class TradeStepView extends AnchorPane {

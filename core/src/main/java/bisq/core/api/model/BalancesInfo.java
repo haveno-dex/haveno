@@ -1,6 +1,6 @@
-package bisq.core.api.model;
+package haveno.core.api.model;
 
-import bisq.common.Payload;
+import haveno.common.Payload;
 
 import lombok.Getter;
 
@@ -23,14 +23,14 @@ public class BalancesInfo implements Payload {
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     @Override
-    public bisq.proto.grpc.BalancesInfo toProtoMessage() {
-        return bisq.proto.grpc.BalancesInfo.newBuilder()
+    public haveno.proto.grpc.BalancesInfo toProtoMessage() {
+        return haveno.proto.grpc.BalancesInfo.newBuilder()
                 .setBtc(btc.toProtoMessage())
                 .setXmr(xmr.toProtoMessage())
                 .build();
     }
 
-    public static BalancesInfo fromProto(bisq.proto.grpc.BalancesInfo proto) {
+    public static BalancesInfo fromProto(haveno.proto.grpc.BalancesInfo proto) {
         return new BalancesInfo(
                 BtcBalanceInfo.fromProto(proto.getBtc()),
                 XmrBalanceInfo.fromProto(proto.getXmr()));

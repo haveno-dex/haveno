@@ -1,28 +1,28 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.core.trade.protocol;
+package haveno.core.trade.protocol;
 
-import bisq.core.trade.Trade;
-import bisq.core.trade.messages.TradeMessage;
+import haveno.core.trade.Trade;
+import haveno.core.trade.messages.TradeMessage;
 
-import bisq.network.p2p.NodeAddress;
+import haveno.network.p2p.NodeAddress;
 
-import bisq.common.taskrunner.Task;
+import haveno.common.taskrunner.Task;
 
 import java.text.MessageFormat;
 
@@ -35,7 +35,7 @@ import lombok.extern.slf4j.Slf4j;
 
 import javax.annotation.Nullable;
 
-import static bisq.core.util.Validator.isTradeIdValid;
+import static haveno.core.util.Validator.isTradeIdValid;
 import static com.google.common.base.Preconditions.checkArgument;
 
 // Main class. Contains the condition and setup, if condition is valid it will execute the

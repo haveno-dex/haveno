@@ -55,7 +55,7 @@ configure(subprojects) {
         jfoenixVersion = '9.0.10'
         joptVersion = '5.0.4'
         jsonsimpleVersion = '1.1.1'
-        jsonrpc4jVersion = '1.6.0.bisq.1'
+        jsonrpc4jVersion = '1.6.0.haveno.1'
         junitVersion = '4.12'
         jupiterVersion = '5.7.0'
         kotlinVersion = '1.3.41'
@@ -65,7 +65,7 @@ configure(subprojects) {
         loggingVersion = '1.2'
         lombokVersion = '1.18.12'
         mockitoVersion = '3.5.15'
-        netlayerVersion = '8db4a13' // Commit ID from https://github.com/bisq-network/netlayer/commits/externaltor
+        netlayerVersion = '8db4a13' // Commit ID from https://github.com/haveno-network/netlayer/commits/externaltor
         protobufVersion = '3.10.0'
         protocVersion = protobufVersion
         pushyVersion = '0.13.2'
@@ -215,7 +215,7 @@ configure(project(':proto')) {
 
 configure(project(':assets')) {
     dependencies {
-        compile("com.github.bisq-network:bitcoinj:$bitcoinjVersion") {
+        compile("com.github.haveno-network:bitcoinj:$bitcoinjVersion") {
             exclude(module: 'jsr305')
             exclude(module: 'slf4j-api')
             exclude(module: 'guava')
@@ -248,7 +248,7 @@ configure(project(':common')) {
         compile("com.google.inject:guice:$guiceVersion") {
             exclude(module: 'guava')
         }
-        compile("com.github.bisq-network:bitcoinj:$bitcoinjVersion") {
+        compile("com.github.haveno-network:bitcoinj:$bitcoinjVersion") {
             exclude(module: 'jsr305')
             exclude(module: 'slf4j-api')
             exclude(module: 'guava')
@@ -275,10 +275,10 @@ configure(project(':common')) {
 configure(project(':p2p')) {
     dependencies {
         compile project(':common')
-        compile("com.github.bisq-network.netlayer:tor.native:$netlayerVersion") {
+        compile("com.github.haveno-network.netlayer:tor.native:$netlayerVersion") {
             exclude(module: 'slf4j-api')
         }
-        compile("com.github.bisq-network.netlayer:tor.external:$netlayerVersion") {
+        compile("com.github.haveno-network.netlayer:tor.external:$netlayerVersion") {
             exclude(module: 'slf4j-api')
         }
         implementation("org.apache.httpcomponents:httpclient:$httpclientVersion") {
@@ -317,7 +317,7 @@ configure(project(':core')) {
             exclude(module: 'commons-codec')
         }
         compile "com.google.guava:guava:$guavaVersion"
-        compile("com.github.bisq-network:jsonrpc4j:$jsonrpc4jVersion") {
+        compile("com.github.haveno-network:jsonrpc4j:$jsonrpc4jVersion") {
             exclude(module: 'base64')
             exclude(module: 'httpcore-nio')
         }
@@ -350,7 +350,7 @@ configure(project(':core')) {
 }
 
 configure(project(':cli')) {
-    mainClassName = 'bisq.cli.CliMain'
+    mainClassName = 'haveno.cli.CliMain'
 
     dependencies {
         compile project(':proto')
@@ -401,7 +401,7 @@ configure(project(':desktop')) {
         "Implementation-Title": project.name,
         "Implementation-Version": version)
 
-    mainClassName = 'bisq.desktop.app.BisqAppMain'
+    mainClassName = 'haveno.desktop.app.HavenoAppMain'
 
     tasks.withType(AbstractArchiveTask) {
         preserveFileTimestamps = false
@@ -439,7 +439,7 @@ configure(project(':desktop')) {
 
 
 configure(project(':monitor')) {
-    mainClassName = 'bisq.monitor.Monitor'
+    mainClassName = 'haveno.monitor.Monitor'
 
     test {
         useJUnitPlatform()
@@ -525,7 +525,7 @@ configure(project(':pricenode')) {
         // ./gradlew test -Dtest.pricenode.includeSpotProviderTests=true
         if (System.properties['test.pricenode.includeSpotProviderTests'] != 'true') {
             project.logger.lifecycle('Pricenode: Skipping spot provider tests')
-            exclude 'bisq/price/spot/providers/**'
+            exclude 'haveno/price/spot/providers/**'
         }
     }
 
@@ -536,7 +536,7 @@ configure(project(':pricenode')) {
 
 
 configure(project(':relay')) {
-    mainClassName = 'bisq.relay.RelayMain'
+    mainClassName = 'haveno.relay.RelayMain'
 
     dependencies {
         compile project(':common')
@@ -557,7 +557,7 @@ configure(project(':relay')) {
 configure(project(':seednode')) {
     apply plugin: 'com.github.johnrengelman.shadow'
 
-    mainClassName = 'bisq.seednode.SeedNodeMain'
+    mainClassName = 'haveno.seednode.SeedNodeMain'
 
     dependencies {
         compile project(':core')
@@ -570,7 +570,7 @@ configure(project(':seednode')) {
 
 
 configure(project(':statsnode')) {
-    mainClassName = 'bisq.statistics.StatisticsMain'
+    mainClassName = 'haveno.statistics.StatisticsMain'
 
     dependencies {
         compile project(':core')
@@ -580,7 +580,7 @@ configure(project(':statsnode')) {
 }
 
 configure(project(':daemon')) {
-    mainClassName = 'bisq.daemon.app.BisqDaemonMain'
+    mainClassName = 'haveno.daemon.app.HavenoDaemonMain'
 
     dependencies {
         compile project(':core')
@@ -616,7 +616,7 @@ configure(project(':daemon')) {
 configure(project(':inventory')) {
     apply plugin: 'com.github.johnrengelman.shadow'
 
-    mainClassName = 'bisq.inventory.InventoryMonitorMain'
+    mainClassName = 'haveno.inventory.InventoryMonitorMain'
 
     dependencies {
         compile project(':core')
@@ -629,7 +629,7 @@ configure(project(':inventory')) {
 }
 
 configure(project(':apitest')) {
-    mainClassName = 'bisq.apitest.ApiTestMain'
+    mainClassName = 'haveno.apitest.ApiTestMain'
 
     // We have to disable the :apitest 'test' task by default because we do not want
     // to interfere with normal builds.  To run JUnit tests in this subproject:

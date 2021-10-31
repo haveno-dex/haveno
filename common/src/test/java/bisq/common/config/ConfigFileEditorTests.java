@@ -1,4 +1,4 @@
-package bisq.common.config;
+package haveno.common.config;
 
 import java.io.File;
 import java.io.IOException;
@@ -21,7 +21,7 @@ public class ConfigFileEditorTests {
 
     @Before
     public void setUp() throws IOException {
-        file = File.createTempFile("bisq", "properties");
+        file = File.createTempFile("haveno", "properties");
         reader = new ConfigFileReader(file);
         editor = new ConfigFileEditor(file);
         writer = new PrintWriter(file);

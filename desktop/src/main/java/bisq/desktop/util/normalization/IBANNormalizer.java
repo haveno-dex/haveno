@@ -1,4 +1,4 @@
-package bisq.desktop.util.normalization;
+package haveno.desktop.util.normalization;
 
 import javafx.util.StringConverter;
 

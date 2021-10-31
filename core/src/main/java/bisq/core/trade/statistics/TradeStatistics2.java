@@ -1,44 +1,44 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.core.trade.statistics;
+package haveno.core.trade.statistics;
 
-import bisq.core.monetary.Altcoin;
-import bisq.core.monetary.AltcoinExchangeRate;
-import bisq.core.monetary.Price;
-import bisq.core.monetary.Volume;
-import bisq.core.offer.Offer;
-import bisq.core.offer.OfferPayload;
-import bisq.core.trade.Trade;
-import bisq.core.util.VolumeUtil;
+import haveno.core.monetary.Altcoin;
+import haveno.core.monetary.AltcoinExchangeRate;
+import haveno.core.monetary.Price;
+import haveno.core.monetary.Volume;
+import haveno.core.offer.Offer;
+import haveno.core.offer.OfferPayload;
+import haveno.core.trade.Trade;
+import haveno.core.util.VolumeUtil;
 
-import bisq.network.p2p.NodeAddress;
-import bisq.network.p2p.storage.payload.CapabilityRequiringPayload;
-import bisq.network.p2p.storage.payload.PersistableNetworkPayload;
-import bisq.network.p2p.storage.payload.ProcessOncePersistableNetworkPayload;
+import haveno.network.p2p.NodeAddress;
+import haveno.network.p2p.storage.payload.CapabilityRequiringPayload;
+import haveno.network.p2p.storage.payload.PersistableNetworkPayload;
+import haveno.network.p2p.storage.payload.ProcessOncePersistableNetworkPayload;
 
-import bisq.common.app.Capabilities;
-import bisq.common.app.Capability;
-import bisq.common.crypto.Hash;
-import bisq.common.proto.ProtoUtil;
-import bisq.common.util.CollectionUtils;
-import bisq.common.util.ExtraDataMapValidator;
-import bisq.common.util.JsonExclude;
-import bisq.common.util.Utilities;
+import haveno.common.app.Capabilities;
+import haveno.common.app.Capability;
+import haveno.common.crypto.Hash;
+import haveno.common.proto.ProtoUtil;
+import haveno.common.util.CollectionUtils;
+import haveno.common.util.ExtraDataMapValidator;
+import haveno.common.util.JsonExclude;
+import haveno.common.util.Utilities;
 
 import com.google.protobuf.ByteString;
 

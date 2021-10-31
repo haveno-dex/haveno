@@ -1,36 +1,36 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.monitor;
+package haveno.monitor;
 
-import bisq.monitor.metric.MarketStats;
-import bisq.monitor.metric.P2PMarketStats;
-import bisq.monitor.metric.P2PNetworkLoad;
-import bisq.monitor.metric.P2PRoundTripTime;
-import bisq.monitor.metric.P2PSeedNodeSnapshot;
-import bisq.monitor.metric.PriceNodeStats;
-import bisq.monitor.metric.TorHiddenServiceStartupTime;
-import bisq.monitor.metric.TorRoundTripTime;
-import bisq.monitor.metric.TorStartupTime;
-import bisq.monitor.reporter.ConsoleReporter;
-import bisq.monitor.reporter.GraphiteReporter;
+import haveno.monitor.metric.MarketStats;
+import haveno.monitor.metric.P2PMarketStats;
+import haveno.monitor.metric.P2PNetworkLoad;
+import haveno.monitor.metric.P2PRoundTripTime;
+import haveno.monitor.metric.P2PSeedNodeSnapshot;
+import haveno.monitor.metric.PriceNodeStats;
+import haveno.monitor.metric.TorHiddenServiceStartupTime;
+import haveno.monitor.metric.TorRoundTripTime;
+import haveno.monitor.metric.TorStartupTime;
+import haveno.monitor.reporter.ConsoleReporter;
+import haveno.monitor.reporter.GraphiteReporter;
 
-import bisq.common.app.Capabilities;
-import bisq.common.app.Capability;
+import haveno.common.app.Capabilities;
+import haveno.common.app.Capability;
 
 import org.berndpruenster.netlayer.tor.NativeTor;
 import org.berndpruenster.netlayer.tor.Tor;
@@ -51,7 +51,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import sun.misc.Signal;
 
 /**
- * Monitor executable for the Bisq network.
+ * Monitor executable for the Haveno network.
  *
  * @author Florian Reimair
  */

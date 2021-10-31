@@ -1,33 +1,33 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.core.offer;
+package haveno.core.offer;
 
-import bisq.core.locale.CurrencyUtil;
-import bisq.core.monetary.Altcoin;
-import bisq.core.monetary.Price;
-import bisq.core.provider.mempool.MempoolService;
-import bisq.core.provider.price.MarketPrice;
-import bisq.core.provider.price.PriceFeedService;
+import haveno.core.locale.CurrencyUtil;
+import haveno.core.monetary.Altcoin;
+import haveno.core.monetary.Price;
+import haveno.core.provider.mempool.MempoolService;
+import haveno.core.provider.price.MarketPrice;
+import haveno.core.provider.price.PriceFeedService;
 
-import bisq.network.p2p.BootstrapListener;
-import bisq.network.p2p.P2PService;
+import haveno.network.p2p.BootstrapListener;
+import haveno.network.p2p.P2PService;
 
-import bisq.common.util.MathUtils;
+import haveno.common.util.MathUtils;
 
 import org.bitcoinj.utils.Fiat;
 
@@ -45,8 +45,8 @@ import java.util.Set;
 
 import lombok.extern.slf4j.Slf4j;
 
-import static bisq.common.util.MathUtils.roundDoubleToLong;
-import static bisq.common.util.MathUtils.scaleUpByPowerOf10;
+import static haveno.common.util.MathUtils.roundDoubleToLong;
+import static haveno.common.util.MathUtils.scaleUpByPowerOf10;
 
 @Slf4j
 @Singleton

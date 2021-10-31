@@ -1,4 +1,4 @@
-package bisq.common.util;
+package haveno.common.util;
 
 import java.io.File;
 

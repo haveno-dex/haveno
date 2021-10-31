@@ -14,12 +14,12 @@ Adjust the following command with tha arguments above and execute it twice:
 
 The first execution should automatically update:
 
- - `bisq/gradle/wrapper/gradle-wrapper.properties`
+ - `haveno/gradle/wrapper/gradle-wrapper.properties`
 
 The second execution should then update:
 
- - `bisq/gradle/wrapper/gradle-wrapper.jar`
- - `bisq/gradlew`
- - `bisq/gradlew.bat`
+ - `haveno/gradle/wrapper/gradle-wrapper.jar`
+ - `haveno/gradlew`
+ - `haveno/gradlew.bat`
 
 The four updated files are ready to be committed.

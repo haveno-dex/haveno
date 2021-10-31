@@ -1,21 +1,21 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.core.btc.setup;
+package haveno.core.btc.setup;
 
 import org.bitcoinj.crypto.ChildNumber;
 import org.bitcoinj.crypto.DeterministicKey;
@@ -41,14 +41,14 @@ import com.google.common.collect.ImmutableList;
  * 1) Run pre bitcoinj 0.15 btc and copy their seed words on a piece of paper.
  * 2) Run post bitcoinj 0.15 btc and use recover from seed.
  * */
-public class BisqKeyChainFactory extends DefaultKeyChainFactory {
+public class HavenoKeyChainFactory extends DefaultKeyChainFactory {
 
     @Override
     public DeterministicKeyChain makeKeyChain(Protos.Key key, Protos.Key firstSubKey, DeterministicSeed seed, KeyCrypter crypter, boolean isMarried, Script.ScriptType outputScriptType, ImmutableList<ChildNumber> accountPath) {
         ImmutableList<ChildNumber> maybeUpdatedAccountPath = accountPath;
         if (DeterministicKeyChain.ACCOUNT_ZERO_PATH.equals(accountPath)) {
             // This is a bitcoinj 0.14 wallet that has no account path in the serialized mnemonic
-            KeyChainGroupStructure structure = new BisqKeyChainGroupStructure();
+            KeyChainGroupStructure structure = new HavenoKeyChainGroupStructure();
             maybeUpdatedAccountPath = structure.accountPathFor(outputScriptType);
         }
 
@@ -57,11 +57,11 @@ public class BisqKeyChainFactory extends DefaultKeyChainFactory {
 
     @Override
     public DeterministicKeyChain makeWatchingKeyChain(Protos.Key key, Protos.Key firstSubKey, DeterministicKey accountKey, boolean isFollowingKey, boolean isMarried, Script.ScriptType outputScriptType) {
-        throw new UnsupportedOperationException("Bisq is not supposed to use this");
+        throw new UnsupportedOperationException("Haveno is not supposed to use this");
     }
 
     @Override
     public DeterministicKeyChain makeSpendingKeyChain(Protos.Key key, Protos.Key firstSubKey, DeterministicKey accountKey, boolean isMarried, Script.ScriptType outputScriptType) {
-        throw new UnsupportedOperationException("Bisq is not supposed to use this");
+        throw new UnsupportedOperationException("Haveno is not supposed to use this");
     }
 }

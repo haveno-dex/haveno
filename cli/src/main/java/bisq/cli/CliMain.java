@@ -1,23 +1,23 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.cli;
+package haveno.cli;
 
-import bisq.proto.grpc.OfferInfo;
+import haveno.proto.grpc.OfferInfo;
 
 import io.grpc.StatusRuntimeException;
 
@@ -39,13 +39,13 @@ import java.util.List;
 
 import lombok.extern.slf4j.Slf4j;
 
-import static bisq.cli.CurrencyFormat.formatMarketPrice;
-import static bisq.cli.CurrencyFormat.formatTxFeeRateInfo;
-import static bisq.cli.CurrencyFormat.toSatoshis;
-import static bisq.cli.CurrencyFormat.toSecurityDepositAsPct;
-import static bisq.cli.Method.*;
-import static bisq.cli.TableFormat.*;
-import static bisq.cli.opts.OptLabel.*;
+import static haveno.cli.CurrencyFormat.formatMarketPrice;
+import static haveno.cli.CurrencyFormat.formatTxFeeRateInfo;
+import static haveno.cli.CurrencyFormat.toSatoshis;
+import static haveno.cli.CurrencyFormat.toSecurityDepositAsPct;
+import static haveno.cli.Method.*;
+import static haveno.cli.TableFormat.*;
+import static haveno.cli.opts.OptLabel.*;
 import static java.lang.String.format;
 import static java.lang.System.err;
 import static java.lang.System.exit;
@@ -54,31 +54,31 @@ import static java.util.Collections.singletonList;
 
 
 
-import bisq.cli.opts.ArgumentList;
-import bisq.cli.opts.CancelOfferOptionParser;
-import bisq.cli.opts.CreateCryptoCurrencyPaymentAcctOptionParser;
-import bisq.cli.opts.CreateOfferOptionParser;
-import bisq.cli.opts.CreatePaymentAcctOptionParser;
-import bisq.cli.opts.GetAddressBalanceOptionParser;
-import bisq.cli.opts.GetBTCMarketPriceOptionParser;
-import bisq.cli.opts.GetBalanceOptionParser;
-import bisq.cli.opts.GetOfferOptionParser;
-import bisq.cli.opts.GetOffersOptionParser;
-import bisq.cli.opts.GetPaymentAcctFormOptionParser;
-import bisq.cli.opts.GetTradeOptionParser;
-import bisq.cli.opts.GetTransactionOptionParser;
-import bisq.cli.opts.RegisterDisputeAgentOptionParser;
-import bisq.cli.opts.RemoveWalletPasswordOptionParser;
-import bisq.cli.opts.SendBtcOptionParser;
-import bisq.cli.opts.SetTxFeeRateOptionParser;
-import bisq.cli.opts.SetWalletPasswordOptionParser;
-import bisq.cli.opts.SimpleMethodOptionParser;
-import bisq.cli.opts.TakeOfferOptionParser;
-import bisq.cli.opts.UnlockWalletOptionParser;
-import bisq.cli.opts.WithdrawFundsOptionParser;
+import haveno.cli.opts.ArgumentList;
+import haveno.cli.opts.CancelOfferOptionParser;
+import haveno.cli.opts.CreateCryptoCurrencyPaymentAcctOptionParser;
+import haveno.cli.opts.CreateOfferOptionParser;
+import haveno.cli.opts.CreatePaymentAcctOptionParser;
+import haveno.cli.opts.GetAddressBalanceOptionParser;
+import haveno.cli.opts.GetBTCMarketPriceOptionParser;
+import haveno.cli.opts.GetBalanceOptionParser;
+import haveno.cli.opts.GetOfferOptionParser;
+import haveno.cli.opts.GetOffersOptionParser;
+import haveno.cli.opts.GetPaymentAcctFormOptionParser;
+import haveno.cli.opts.GetTradeOptionParser;
+import haveno.cli.opts.GetTransactionOptionParser;
+import haveno.cli.opts.RegisterDisputeAgentOptionParser;
+import haveno.cli.opts.RemoveWalletPasswordOptionParser;
+import haveno.cli.opts.SendBtcOptionParser;
+import haveno.cli.opts.SetTxFeeRateOptionParser;
+import haveno.cli.opts.SetWalletPasswordOptionParser;
+import haveno.cli.opts.SimpleMethodOptionParser;
+import haveno.cli.opts.TakeOfferOptionParser;
+import haveno.cli.opts.UnlockWalletOptionParser;
+import haveno.cli.opts.WithdrawFundsOptionParser;
 
 /**
- * A command-line client for the Bisq gRPC API.
+ * A command-line client for the Haveno gRPC API.
  */
 @Slf4j
 public class CliMain {
@@ -423,7 +423,7 @@ public class CliMain {
                     }
                     var tradeId = opts.getTradeId();
                     client.keepFunds(tradeId);
-                    out.printf("funds from trade %s saved in bisq wallet%n", tradeId);
+                    out.printf("funds from trade %s saved in haveno wallet%n", tradeId);
                     return;
                 }
                 case withdrawfunds: {
@@ -655,9 +655,9 @@ public class CliMain {
 
     private static void printHelp(OptionParser parser, @SuppressWarnings("SameParameterValue") PrintStream stream) {
         try {
-            stream.println("Bisq RPC Client");
+            stream.println("Haveno RPC Client");
             stream.println();
-            stream.println("Usage: bisq-cli [options] <method> [params]");
+            stream.println("Usage: haveno-cli [options] <method> [params]");
             stream.println();
             parser.printHelpOn(stream);
             stream.println();
@@ -719,7 +719,7 @@ public class CliMain {
             stream.println();
             stream.format(rowFormat, confirmpaymentreceived.name(), "--trade-id=<trade-id>", "Confirm payment received");
             stream.println();
-            stream.format(rowFormat, keepfunds.name(), "--trade-id=<trade-id>", "Keep received funds in Bisq wallet");
+            stream.format(rowFormat, keepfunds.name(), "--trade-id=<trade-id>", "Keep received funds in Haveno wallet");
             stream.println();
             stream.format(rowFormat, withdrawfunds.name(), "--trade-id=<trade-id> --address=<btc-address> \\",
                     "Withdraw received funds to external wallet address");
@@ -749,7 +749,7 @@ public class CliMain {
             stream.println();
             stream.format(rowFormat, stop.name(), "", "Shut down the server");
             stream.println();
-            stream.println("Method Help Usage: bisq-cli [options] <method> --help");
+            stream.println("Method Help Usage: haveno-cli [options] <method> --help");
             stream.println();
         } catch (IOException ex) {
             ex.printStackTrace(stream);

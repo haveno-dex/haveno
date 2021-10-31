@@ -1,31 +1,31 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.core.provider.mempool;
+package haveno.core.provider.mempool;
 
-import bisq.core.filter.FilterManager;
-import bisq.core.offer.OfferPayload;
-import bisq.core.trade.Trade;
-import bisq.core.user.Preferences;
+import haveno.core.filter.FilterManager;
+import haveno.core.offer.OfferPayload;
+import haveno.core.trade.Trade;
+import haveno.core.user.Preferences;
 
-import bisq.network.Socks5ProxyProvider;
+import haveno.network.Socks5ProxyProvider;
 
-import bisq.common.UserThread;
-import bisq.common.config.Config;
+import haveno.common.UserThread;
+import haveno.common.config.Config;
 
 import org.bitcoinj.core.Coin;
 
@@ -231,7 +231,7 @@ public class MempoolService {
 
     private List<String> getAllBtcFeeReceivers() {
         List<String> btcFeeReceivers = new ArrayList<>();
-        // fee receivers from filter ref: bisq-network/bisq/pull/4294
+        // fee receivers from filter ref: haveno-network/haveno/pull/4294
         List<String> feeReceivers = Optional.ofNullable(filterManager.getFilter())
                 .flatMap(f -> Optional.ofNullable(f.getBtcFeeReceiverAddresses()))
                 .orElse(List.of());

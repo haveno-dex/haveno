@@ -1,21 +1,21 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.apitest;
+package haveno.apitest;
 
 import java.io.File;
 import java.io.IOException;
@@ -29,11 +29,11 @@ import javax.annotation.Nullable;
 
 import org.junit.jupiter.api.TestInfo;
 
-import static bisq.apitest.config.BisqAppConfig.alicedaemon;
-import static bisq.apitest.config.BisqAppConfig.arbdaemon;
-import static bisq.apitest.config.BisqAppConfig.bobdaemon;
-import static bisq.proto.grpc.DisputeAgentsGrpc.getRegisterDisputeAgentMethod;
-import static bisq.proto.grpc.GetVersionGrpc.getGetVersionMethod;
+import static haveno.apitest.config.HavenoAppConfig.alicedaemon;
+import static haveno.apitest.config.HavenoAppConfig.arbdaemon;
+import static haveno.apitest.config.HavenoAppConfig.bobdaemon;
+import static haveno.proto.grpc.DisputeAgentsGrpc.getRegisterDisputeAgentMethod;
+import static haveno.proto.grpc.GetVersionGrpc.getGetVersionMethod;
 import static java.net.InetAddress.getLoopbackAddress;
 import static java.util.Arrays.stream;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
@@ -41,29 +41,29 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 
 
 
-import bisq.apitest.config.ApiTestConfig;
-import bisq.apitest.method.BitcoinCliHelper;
-import bisq.cli.GrpcClient;
-import bisq.daemon.grpc.GrpcVersionService;
-import bisq.daemon.grpc.interceptor.GrpcServiceRateMeteringConfig;
+import haveno.apitest.config.ApiTestConfig;
+import haveno.apitest.method.BitcoinCliHelper;
+import haveno.cli.GrpcClient;
+import haveno.daemon.grpc.GrpcVersionService;
+import haveno.daemon.grpc.interceptor.GrpcServiceRateMeteringConfig;
 
 /**
  * Base class for all test types:  'method', 'scenario' and 'e2e'.
  * <p>
- * During scaffold setup, various combinations of bitcoind and bisq instances
+ * During scaffold setup, various combinations of bitcoind and haveno instances
  * can be started in the background before test cases are run.  Currently, this test
- * harness supports only the "Bisq DAO development environment running against a
+ * harness supports only the "Haveno DAO development environment running against a
  * local Bitcoin regtest network" as described in
- * <a href="https://github.com/bisq-network/bisq/blob/master/docs/dev-setup.md">dev-setup.md</a>
- * and <a href="https://github.com/bisq-network/bisq/blob/master/docs/dao-setup.md">dao-setup.md</a>.
+ * <a href="https://github.com/haveno-network/haveno/blob/master/docs/dev-setup.md">dev-setup.md</a>
+ * and <a href="https://github.com/haveno-network/haveno/blob/master/docs/dao-setup.md">dao-setup.md</a>.
  * <p>
  * Those documents contain information about the configurations used by this test harness:
- * bitcoin-core's bitcoin.conf and blocknotify values, bisq instance options, the DAO genesis
+ * bitcoin-core's bitcoin.conf and blocknotify values, haveno instance options, the DAO genesis
  * transaction id, initial BTC balances for Bob & Alice accounts, and Bob and
  * Alice's default payment accounts.
  * <p>
  * During a build, the
- * <a href="https://github.com/bisq-network/bisq/blob/master/docs/dao-setup.zip">dao-setup.zip</a>
+ * <a href="https://github.com/haveno-network/haveno/blob/master/docs/dao-setup.zip">dao-setup.zip</a>
  * file is downloaded and extracted if necessary.  In each test case's @BeforeClass
  * method, the DAO setup files are re-installed into the run time's data directories
  * (each test case runs on a refreshed DAO/regtest environment setup).
@@ -91,7 +91,7 @@ public class ApiTestCase {
         String[] params = new String[]{
                 "--supportingApps", stream(supportingApps).map(Enum::name).collect(Collectors.joining(",")),
                 "--callRateMeteringConfigPath", defaultRateMeterInterceptorConfig().getAbsolutePath(),
-                "--enableBisqDebugging", "false"
+                "--enableHavenoDebugging", "false"
         };
         setUpScaffold(params);
     }

@@ -1,52 +1,52 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.desktop.app;
+package haveno.desktop.app;
 
-import bisq.desktop.common.view.CachingViewLoader;
-import bisq.desktop.common.view.View;
-import bisq.desktop.common.view.ViewLoader;
-import bisq.desktop.main.MainView;
-import bisq.desktop.main.debug.DebugView;
-import bisq.desktop.main.overlays.popups.Popup;
-import bisq.desktop.main.overlays.windows.BtcEmptyWalletWindow;
-import bisq.desktop.main.overlays.windows.FilterWindow;
-import bisq.desktop.main.overlays.windows.ManualPayoutTxWindow;
-import bisq.desktop.main.overlays.windows.SendAlertMessageWindow;
-import bisq.desktop.main.overlays.windows.ShowWalletDataWindow;
-import bisq.desktop.util.CssTheme;
-import bisq.desktop.util.ImageUtil;
+import haveno.desktop.common.view.CachingViewLoader;
+import haveno.desktop.common.view.View;
+import haveno.desktop.common.view.ViewLoader;
+import haveno.desktop.main.MainView;
+import haveno.desktop.main.debug.DebugView;
+import haveno.desktop.main.overlays.popups.Popup;
+import haveno.desktop.main.overlays.windows.BtcEmptyWalletWindow;
+import haveno.desktop.main.overlays.windows.FilterWindow;
+import haveno.desktop.main.overlays.windows.ManualPayoutTxWindow;
+import haveno.desktop.main.overlays.windows.SendAlertMessageWindow;
+import haveno.desktop.main.overlays.windows.ShowWalletDataWindow;
+import haveno.desktop.util.CssTheme;
+import haveno.desktop.util.ImageUtil;
 
-import bisq.core.btc.wallet.BtcWalletService;
-import bisq.core.btc.wallet.WalletsManager;
-import bisq.core.locale.Res;
-import bisq.core.offer.OpenOffer;
-import bisq.core.offer.OpenOfferManager;
-import bisq.core.user.Cookie;
-import bisq.core.user.CookieKey;
-import bisq.core.user.Preferences;
-import bisq.core.user.User;
+import haveno.core.btc.wallet.BtcWalletService;
+import haveno.core.btc.wallet.WalletsManager;
+import haveno.core.locale.Res;
+import haveno.core.offer.OpenOffer;
+import haveno.core.offer.OpenOfferManager;
+import haveno.core.user.Cookie;
+import haveno.core.user.CookieKey;
+import haveno.core.user.Preferences;
+import haveno.core.user.User;
 
-import bisq.common.app.DevEnv;
-import bisq.common.app.Log;
-import bisq.common.config.Config;
-import bisq.common.setup.GracefulShutDownHandler;
-import bisq.common.setup.UncaughtExceptionHandler;
-import bisq.common.util.Utilities;
+import haveno.common.app.DevEnv;
+import haveno.common.app.Log;
+import haveno.common.config.Config;
+import haveno.common.setup.GracefulShutDownHandler;
+import haveno.common.setup.UncaughtExceptionHandler;
+import haveno.common.util.Utilities;
 
 import com.google.inject.Injector;
 import com.google.inject.Key;
@@ -84,13 +84,13 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 
-import static bisq.desktop.util.Layout.INITIAL_WINDOW_HEIGHT;
-import static bisq.desktop.util.Layout.INITIAL_WINDOW_WIDTH;
-import static bisq.desktop.util.Layout.MIN_WINDOW_HEIGHT;
-import static bisq.desktop.util.Layout.MIN_WINDOW_WIDTH;
+import static haveno.desktop.util.Layout.INITIAL_WINDOW_HEIGHT;
+import static haveno.desktop.util.Layout.INITIAL_WINDOW_WIDTH;
+import static haveno.desktop.util.Layout.MIN_WINDOW_HEIGHT;
+import static haveno.desktop.util.Layout.MIN_WINDOW_WIDTH;
 
 @Slf4j
-public class BisqApp extends Application implements UncaughtExceptionHandler {
+public class HavenoApp extends Application implements UncaughtExceptionHandler {
     @Setter
     private static Consumer<Application> appLaunchedHandler;
     @Getter
@@ -106,7 +106,7 @@ public class BisqApp extends Application implements UncaughtExceptionHandler {
     private boolean shutDownRequested;
     private MainView mainView;
 
-    public BisqApp() {
+    public HavenoApp() {
         shutDownHandler = this::stop;
     }
 
@@ -360,7 +360,7 @@ public class BisqApp extends Application implements UncaughtExceptionHandler {
             return;
         }
 
-        // We show a popup to inform user that open offers will be removed if Bisq is not running.
+        // We show a popup to inform user that open offers will be removed if Haveno is not running.
         String key = "showOpenOfferWarnPopupAtShutDown";
         if (injector.getInstance(Preferences.class).showAgain(key) && !DevEnv.isDevMode()) {
             new Popup().information(Res.get("popup.info.shutDownWithOpenOffers"))

@@ -1,7 +1,7 @@
-package bisq.desktop.util.validation;
+package haveno.desktop.util.validation;
 
-import bisq.core.locale.Res;
-import bisq.core.util.validation.InputValidator;
+import haveno.core.locale.Res;
+import haveno.core.util.validation.InputValidator;
 
 public class LengthValidator extends InputValidator {
     private int minLength;

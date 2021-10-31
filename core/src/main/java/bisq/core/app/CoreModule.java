@@ -1,55 +1,55 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.core.app;
+package haveno.core.app;
 
-import bisq.core.alert.AlertModule;
-import bisq.core.btc.BitcoinModule;
-import bisq.core.filter.FilterModule;
-import bisq.core.network.CoreNetworkFilter;
-import bisq.core.network.p2p.seed.DefaultSeedNodeRepository;
-import bisq.core.offer.OfferModule;
-import bisq.core.presentation.CorePresentationModule;
-import bisq.core.proto.network.CoreNetworkProtoResolver;
-import bisq.core.proto.persistable.CorePersistenceProtoResolver;
-import bisq.core.trade.TradeModule;
-import bisq.core.user.Preferences;
-import bisq.core.util.FormattingUtils;
-import bisq.core.util.coin.CoinFormatter;
-import bisq.core.util.coin.ImmutableCoinFormatter;
+import haveno.core.alert.AlertModule;
+import haveno.core.btc.BitcoinModule;
+import haveno.core.filter.FilterModule;
+import haveno.core.network.CoreNetworkFilter;
+import haveno.core.network.p2p.seed.DefaultSeedNodeRepository;
+import haveno.core.offer.OfferModule;
+import haveno.core.presentation.CorePresentationModule;
+import haveno.core.proto.network.CoreNetworkProtoResolver;
+import haveno.core.proto.persistable.CorePersistenceProtoResolver;
+import haveno.core.trade.TradeModule;
+import haveno.core.user.Preferences;
+import haveno.core.util.FormattingUtils;
+import haveno.core.util.coin.CoinFormatter;
+import haveno.core.util.coin.ImmutableCoinFormatter;
 
-import bisq.network.crypto.EncryptionServiceModule;
-import bisq.network.p2p.P2PModule;
-import bisq.network.p2p.network.BridgeAddressProvider;
-import bisq.network.p2p.network.NetworkFilter;
-import bisq.network.p2p.seed.SeedNodeRepository;
+import haveno.network.crypto.EncryptionServiceModule;
+import haveno.network.p2p.P2PModule;
+import haveno.network.p2p.network.BridgeAddressProvider;
+import haveno.network.p2p.network.NetworkFilter;
+import haveno.network.p2p.seed.SeedNodeRepository;
 
-import bisq.common.app.AppModule;
-import bisq.common.config.Config;
-import bisq.common.crypto.PubKeyRing;
-import bisq.common.crypto.PubKeyRingProvider;
-import bisq.common.proto.network.NetworkProtoResolver;
-import bisq.common.proto.persistable.PersistenceProtoResolver;
+import haveno.common.app.AppModule;
+import haveno.common.config.Config;
+import haveno.common.crypto.PubKeyRing;
+import haveno.common.crypto.PubKeyRingProvider;
+import haveno.common.proto.network.NetworkProtoResolver;
+import haveno.common.proto.persistable.PersistenceProtoResolver;
 
 import com.google.inject.Singleton;
 
 import java.io.File;
 
-import static bisq.common.config.Config.*;
+import static haveno.common.config.Config.*;
 import static com.google.inject.name.Names.named;
 
 public class CoreModule extends AppModule {

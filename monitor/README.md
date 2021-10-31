@@ -1,13 +1,13 @@
-# Bisq Network Monitor Node
+# Haveno Network Monitor Node
 
-The Bisq monitor node collects a set of metrics which are of interest to developers and users alike. These metrics are then made available through reporters.
+The Haveno monitor node collects a set of metrics which are of interest to developers and users alike. These metrics are then made available through reporters.
 
 The *Settled* release features these metrics:
 - Tor Startup Time: The time it takes to start Tor starting at a clean system, unpacking the shipped Tor binaries, firing up Tor until Tor is connected to the Tor network and ready to use.
 - Tor Roundtrip Time: Given a bootstrapped Tor, the roundtrip time of connecting to a hidden service is measured.
 - Tor Hidden Service Startup Time: Given a bootstrapped Tor, the time it takes to create and announce a freshly created hidden service.
 - P2P Round Trip Time: A metric hitchhiking the Ping/Pong messages of the Keep-Alive-Mechanism to determine the Round Trip Time when issuing a Ping to a seed node.
-- P2P Seed Node Message Snapshot: Get absolute number and constellation of messages a fresh Bisq client will get on startup. Also reports diffs between seed nodes on a per-message-type basis.
+- P2P Seed Node Message Snapshot: Get absolute number and constellation of messages a fresh Haveno client will get on startup. Also reports diffs between seed nodes on a per-message-type basis.
 - P2P Network Load: listens to the P2P network and its broadcast messages. Reports every X seconds.
 - P2P Market Statistics: a demonstration metric which extracts market information from broadcast messages. This demo implementation reports the number of open offers per market.
 
@@ -18,12 +18,12 @@ The *Settled* release features these reporters:
 
 ## Configuration
 
-The *Bisq Network Monitor Node* is to be configured via a Java properties file. There is a default configuration file shipped with the monitor which reports to the one monitoring service currently up and running.
+The *Haveno Network Monitor Node* is to be configured via a Java properties file. There is a default configuration file shipped with the monitor which reports to the one monitoring service currently up and running.
 
 If you want to tweak the configuration, you can pass the location of the file as command line parameter:
 
 ```
-./bisq-monitor /path/to/your/config.properties
+./haveno-monitor /path/to/your/config.properties
 ```
 
 A sample configuration file looks like follows:
@@ -108,27 +108,27 @@ GraphiteReporter.serviceUrl=k6evlhg44acpchtc.onion:2003
 
 ## Run
 
-The distribution ships with a systemd .service file. Validate/change the executable/config paths within the shipped `bisq-monitor.service` file and copy/move the file to your systemd directory (something along `/usr/lib/systemd/system/`). Now you can control your *Monitor Node* via the usual systemd start/stop commands
+The distribution ships with a systemd .service file. Validate/change the executable/config paths within the shipped `haveno-monitor.service` file and copy/move the file to your systemd directory (something along `/usr/lib/systemd/system/`). Now you can control your *Monitor Node* via the usual systemd start/stop commands
 
 ```
-systemctl start bisq-monitor.service
-systemctl stop bisq-monitor.service
+systemctl start haveno-monitor.service
+systemctl stop haveno-monitor.service
 ```
 and
 ```
-systemctl enable bisq-monitor.service
+systemctl enable haveno-monitor.service
 ```
 
 You can reload the configuration without restarting the service by using
 
 ```
-systemctl reload bisq-monitor.service
+systemctl reload haveno-monitor.service
 ```
 
 Follow the logs created by the service by inspecting
 
 ```
-journalctl --unit bisq-monitor --follow
+journalctl --unit haveno-monitor --follow
 ```
 
 # Monitoring Service
@@ -167,16 +167,16 @@ docker inspect graphite | grep -C 2 graphite/conf\",
 
 Edit `storage-schemas.conf` so that the frequency of your incoming data (configured in the monitor configs `interval`) is matched. For example, insert 
 ```
-[bisq]
-pattern = ^bisq.*
+[haveno]
+pattern = ^haveno.*
 retentions = 10s:1h,5m:31d,30m:2y,1h:5y
 ```
 before the `[default...` blocks of the file. This basically says, that every incoming set of data reflects 5 minutes of the time series. Furthermore, every 30 minutes, the data is compressed and thus, takes less memory as it is kept for 2 years.
 
 Further, edit `storage-aggregation.conf` to configure how your data is compressed. For example, insert
 ```
-[bisq]
-pattern=^bisq.*
+[haveno]
+pattern=^haveno.*
 xFilesFactor = 0
 aggregationMethod = average
 ```

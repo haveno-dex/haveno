@@ -1,4 +1,4 @@
-package bisq.cli;
+package haveno.cli;
 
 import static java.lang.System.out;
 
@@ -7,7 +7,7 @@ import static java.lang.System.out;
 
  Prerequisites:
 
- - Run `./bisq-daemon --apiPassword=xyz --appDataDir=$TESTDIR`
+ - Run `./haveno-daemon --apiPassword=xyz --appDataDir=$TESTDIR`
 
  This can be run on mainnet.
  */

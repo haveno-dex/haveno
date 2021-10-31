@@ -1,38 +1,38 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.daemon.grpc;
+package haveno.daemon.grpc;
 
-import bisq.core.api.CoreApi;
-import bisq.core.payment.PaymentAccount;
-import bisq.core.payment.payload.PaymentMethod;
+import haveno.core.api.CoreApi;
+import haveno.core.payment.PaymentAccount;
+import haveno.core.payment.payload.PaymentMethod;
 
-import bisq.proto.grpc.CreateCryptoCurrencyPaymentAccountReply;
-import bisq.proto.grpc.CreateCryptoCurrencyPaymentAccountRequest;
-import bisq.proto.grpc.CreatePaymentAccountReply;
-import bisq.proto.grpc.CreatePaymentAccountRequest;
-import bisq.proto.grpc.GetCryptoCurrencyPaymentMethodsReply;
-import bisq.proto.grpc.GetCryptoCurrencyPaymentMethodsRequest;
-import bisq.proto.grpc.GetPaymentAccountFormReply;
-import bisq.proto.grpc.GetPaymentAccountFormRequest;
-import bisq.proto.grpc.GetPaymentAccountsReply;
-import bisq.proto.grpc.GetPaymentAccountsRequest;
-import bisq.proto.grpc.GetPaymentMethodsReply;
-import bisq.proto.grpc.GetPaymentMethodsRequest;
+import haveno.proto.grpc.CreateCryptoCurrencyPaymentAccountReply;
+import haveno.proto.grpc.CreateCryptoCurrencyPaymentAccountRequest;
+import haveno.proto.grpc.CreatePaymentAccountReply;
+import haveno.proto.grpc.CreatePaymentAccountRequest;
+import haveno.proto.grpc.GetCryptoCurrencyPaymentMethodsReply;
+import haveno.proto.grpc.GetCryptoCurrencyPaymentMethodsRequest;
+import haveno.proto.grpc.GetPaymentAccountFormReply;
+import haveno.proto.grpc.GetPaymentAccountFormRequest;
+import haveno.proto.grpc.GetPaymentAccountsReply;
+import haveno.proto.grpc.GetPaymentAccountsRequest;
+import haveno.proto.grpc.GetPaymentMethodsReply;
+import haveno.proto.grpc.GetPaymentMethodsRequest;
 
 import io.grpc.ServerInterceptor;
 import io.grpc.stub.StreamObserver;
@@ -45,15 +45,15 @@ import java.util.stream.Collectors;
 
 import lombok.extern.slf4j.Slf4j;
 
-import static bisq.daemon.grpc.interceptor.GrpcServiceRateMeteringConfig.getCustomRateMeteringInterceptor;
-import static bisq.proto.grpc.PaymentAccountsGrpc.*;
+import static haveno.daemon.grpc.interceptor.GrpcServiceRateMeteringConfig.getCustomRateMeteringInterceptor;
+import static haveno.proto.grpc.PaymentAccountsGrpc.*;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
 
 
-import bisq.daemon.grpc.interceptor.CallRateMeteringInterceptor;
-import bisq.daemon.grpc.interceptor.GrpcCallRateMeter;
+import haveno.daemon.grpc.interceptor.CallRateMeteringInterceptor;
+import haveno.daemon.grpc.interceptor.GrpcCallRateMeter;
 
 @Slf4j
 class GrpcPaymentAccountsService extends PaymentAccountsImplBase {

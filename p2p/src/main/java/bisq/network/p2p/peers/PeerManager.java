@@ -1,42 +1,42 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.network.p2p.peers;
+package haveno.network.p2p.peers;
 
-import bisq.network.p2p.NodeAddress;
-import bisq.network.p2p.network.CloseConnectionReason;
-import bisq.network.p2p.network.Connection;
-import bisq.network.p2p.network.ConnectionListener;
-import bisq.network.p2p.network.InboundConnection;
-import bisq.network.p2p.network.NetworkNode;
-import bisq.network.p2p.network.PeerType;
-import bisq.network.p2p.network.RuleViolation;
-import bisq.network.p2p.peers.peerexchange.Peer;
-import bisq.network.p2p.peers.peerexchange.PeerList;
-import bisq.network.p2p.seed.SeedNodeRepository;
+import haveno.network.p2p.NodeAddress;
+import haveno.network.p2p.network.CloseConnectionReason;
+import haveno.network.p2p.network.Connection;
+import haveno.network.p2p.network.ConnectionListener;
+import haveno.network.p2p.network.InboundConnection;
+import haveno.network.p2p.network.NetworkNode;
+import haveno.network.p2p.network.PeerType;
+import haveno.network.p2p.network.RuleViolation;
+import haveno.network.p2p.peers.peerexchange.Peer;
+import haveno.network.p2p.peers.peerexchange.PeerList;
+import haveno.network.p2p.seed.SeedNodeRepository;
 
-import bisq.common.ClockWatcher;
-import bisq.common.Timer;
-import bisq.common.UserThread;
-import bisq.common.app.Capabilities;
-import bisq.common.app.Capability;
-import bisq.common.config.Config;
-import bisq.common.persistence.PersistenceManager;
-import bisq.common.proto.persistable.PersistedDataHost;
+import haveno.common.ClockWatcher;
+import haveno.common.Timer;
+import haveno.common.UserThread;
+import haveno.common.app.Capabilities;
+import haveno.common.app.Capability;
+import haveno.common.config.Config;
+import haveno.common.persistence.PersistenceManager;
+import haveno.common.proto.persistable.PersistedDataHost;
 
 import javax.inject.Inject;
 import javax.inject.Named;

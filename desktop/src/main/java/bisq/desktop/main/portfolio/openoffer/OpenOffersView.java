@@ -1,45 +1,45 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.desktop.main.portfolio.openoffer;
+package haveno.desktop.main.portfolio.openoffer;
 
-import bisq.desktop.Navigation;
-import bisq.desktop.common.view.ActivatableViewAndModel;
-import bisq.desktop.common.view.FxmlView;
-import bisq.desktop.components.AutoTooltipButton;
-import bisq.desktop.components.AutoTooltipLabel;
-import bisq.desktop.components.AutoTooltipSlideToggleButton;
-import bisq.desktop.components.AutoTooltipTableColumn;
-import bisq.desktop.components.HyperlinkWithIcon;
-import bisq.desktop.components.InputTextField;
-import bisq.desktop.main.MainView;
-import bisq.desktop.main.funds.FundsView;
-import bisq.desktop.main.funds.withdrawal.WithdrawalView;
-import bisq.desktop.main.overlays.popups.Popup;
-import bisq.desktop.main.overlays.windows.OfferDetailsWindow;
-import bisq.desktop.main.portfolio.PortfolioView;
-import bisq.desktop.main.portfolio.duplicateoffer.DuplicateOfferView;
-import bisq.desktop.util.GUIUtil;
+import haveno.desktop.Navigation;
+import haveno.desktop.common.view.ActivatableViewAndModel;
+import haveno.desktop.common.view.FxmlView;
+import haveno.desktop.components.AutoTooltipButton;
+import haveno.desktop.components.AutoTooltipLabel;
+import haveno.desktop.components.AutoTooltipSlideToggleButton;
+import haveno.desktop.components.AutoTooltipTableColumn;
+import haveno.desktop.components.HyperlinkWithIcon;
+import haveno.desktop.components.InputTextField;
+import haveno.desktop.main.MainView;
+import haveno.desktop.main.funds.FundsView;
+import haveno.desktop.main.funds.withdrawal.WithdrawalView;
+import haveno.desktop.main.overlays.popups.Popup;
+import haveno.desktop.main.overlays.windows.OfferDetailsWindow;
+import haveno.desktop.main.portfolio.PortfolioView;
+import haveno.desktop.main.portfolio.duplicateoffer.DuplicateOfferView;
+import haveno.desktop.util.GUIUtil;
 
-import bisq.core.locale.Res;
-import bisq.core.offer.Offer;
-import bisq.core.offer.OfferPayload;
-import bisq.core.offer.OpenOffer;
-import bisq.core.user.DontShowAgainLookup;
+import haveno.core.locale.Res;
+import haveno.core.offer.Offer;
+import haveno.core.offer.OfferPayload;
+import haveno.core.offer.OpenOffer;
+import haveno.core.user.DontShowAgainLookup;
 
 import com.googlecode.jcsv.writer.CSVEntryConverter;
 
@@ -85,7 +85,7 @@ import java.util.Comparator;
 
 import org.jetbrains.annotations.NotNull;
 
-import static bisq.desktop.util.FormBuilder.getRegularIconButton;
+import static haveno.desktop.util.FormBuilder.getRegularIconButton;
 
 @FxmlView
 public class OpenOffersView extends ActivatableViewAndModel<VBox, OpenOffersViewModel> {

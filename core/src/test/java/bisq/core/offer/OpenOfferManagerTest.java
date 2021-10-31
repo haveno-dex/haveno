@@ -1,15 +1,15 @@
-package bisq.core.offer;
+package haveno.core.offer;
 
-import bisq.core.api.CoreContext;
-import bisq.core.trade.TradableList;
+import haveno.core.api.CoreContext;
+import haveno.core.trade.TradableList;
 
-import bisq.network.p2p.P2PService;
-import bisq.network.p2p.peers.PeerManager;
+import haveno.network.p2p.P2PService;
+import haveno.network.p2p.peers.PeerManager;
 
-import bisq.common.file.CorruptedStorageFileHandler;
-import bisq.common.handlers.ErrorMessageHandler;
-import bisq.common.handlers.ResultHandler;
-import bisq.common.persistence.PersistenceManager;
+import haveno.common.file.CorruptedStorageFileHandler;
+import haveno.common.handlers.ErrorMessageHandler;
+import haveno.common.handlers.ResultHandler;
+import haveno.common.persistence.PersistenceManager;
 
 import java.nio.file.Files;
 
@@ -19,7 +19,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import static bisq.core.offer.OfferMaker.btcUsdOffer;
+import static haveno.core.offer.OfferMaker.btcUsdOffer;
 import static com.natpryce.makeiteasy.MakeItEasy.make;
 import static junit.framework.TestCase.assertTrue;
 import static org.mockito.ArgumentMatchers.any;

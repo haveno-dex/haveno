@@ -1,4 +1,4 @@
-package bisq.price.util.coingecko;
+package haveno.price.util.coingecko;
 
 
 import java.util.Map;

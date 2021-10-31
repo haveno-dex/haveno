@@ -1,35 +1,35 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.desktop.main.account.content.backup;
+package haveno.desktop.main.account.content.backup;
 
-import bisq.desktop.common.view.ActivatableView;
-import bisq.desktop.common.view.FxmlView;
-import bisq.desktop.main.overlays.popups.Popup;
-import bisq.desktop.util.Layout;
+import haveno.desktop.common.view.ActivatableView;
+import haveno.desktop.common.view.FxmlView;
+import haveno.desktop.main.overlays.popups.Popup;
+import haveno.desktop.util.Layout;
 
-import bisq.core.locale.Res;
-import bisq.core.user.Preferences;
+import haveno.core.locale.Res;
+import haveno.core.user.Preferences;
 
-import bisq.common.config.Config;
-import bisq.common.file.FileUtil;
-import bisq.common.persistence.PersistenceManager;
-import bisq.common.util.Tuple2;
-import bisq.common.util.Utilities;
+import haveno.common.config.Config;
+import haveno.common.file.FileUtil;
+import haveno.common.persistence.PersistenceManager;
+import haveno.common.util.Tuple2;
+import haveno.common.util.Utilities;
 
 import javax.inject.Inject;
 
@@ -52,10 +52,10 @@ import java.util.Date;
 
 import javax.annotation.Nullable;
 
-import static bisq.desktop.util.FormBuilder.add2Buttons;
-import static bisq.desktop.util.FormBuilder.add2ButtonsAfterGroup;
-import static bisq.desktop.util.FormBuilder.addInputTextField;
-import static bisq.desktop.util.FormBuilder.addTitledGroupBg;
+import static haveno.desktop.util.FormBuilder.add2Buttons;
+import static haveno.desktop.util.FormBuilder.add2ButtonsAfterGroup;
+import static haveno.desktop.util.FormBuilder.addInputTextField;
+import static haveno.desktop.util.FormBuilder.addTitledGroupBg;
 
 @FxmlView
 public class BackupView extends ActivatableView<GridPane, Void> {
@@ -77,7 +77,7 @@ public class BackupView extends ActivatableView<GridPane, Void> {
         super();
         this.preferences = preferences;
         dataDir = new File(config.appDataDir.getPath());
-        logFile = new File(Paths.get(dataDir.getPath(), "bisq.log").toString());
+        logFile = new File(Paths.get(dataDir.getPath(), "haveno.log").toString());
     }
 
 
@@ -140,7 +140,7 @@ public class BackupView extends ActivatableView<GridPane, Void> {
                 PersistenceManager.flushAllDataToDiskAtBackup(() -> {
                     try {
                         String dateString = new SimpleDateFormat("yyyy-MM-dd-HHmmss").format(new Date());
-                        String destination = Paths.get(backupDirectory, "bisq_backup_" + dateString).toString();
+                        String destination = Paths.get(backupDirectory, "haveno_backup_" + dateString).toString();
                         FileUtil.copyDirectory(dataDir, new File(destination));
                         new Popup().feedback(Res.get("account.backup.success", destination)).show();
                     } catch (IOException e) {

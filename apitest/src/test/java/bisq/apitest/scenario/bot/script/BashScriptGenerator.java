@@ -1,26 +1,26 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.apitest.scenario.bot.script;
+package haveno.apitest.scenario.bot.script;
 
-import bisq.common.file.FileUtil;
+import haveno.common.file.FileUtil;
 
-import bisq.proto.grpc.OfferInfo;
-import bisq.proto.grpc.TradeInfo;
+import haveno.proto.grpc.OfferInfo;
+import haveno.proto.grpc.TradeInfo;
 
 import com.google.common.io.Files;
 
@@ -60,7 +60,7 @@ public class BashScriptGenerator {
         this.apiPort = apiPort;
         this.paymentAccountId = paymentAccountId;
         this.printCliScripts = printCliScripts;
-        this.cliBase = format("./bisq-cli --password=%s --port=%d", apiPassword, apiPort);
+        this.cliBase = format("./haveno-cli --password=%s --port=%d", apiPassword, apiPort);
     }
 
     public File createMakeMarginPricedOfferScript(String direction,

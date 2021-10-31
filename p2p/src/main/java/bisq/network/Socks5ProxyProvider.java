@@ -1,27 +1,27 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.network;
+package haveno.network;
 
 import com.runjva.sourceforge.jsocks.protocol.Socks5Proxy;
 
-import bisq.network.p2p.network.NetworkNode;
+import haveno.network.p2p.network.NetworkNode;
 
-import bisq.common.config.Config;
+import haveno.common.config.Config;
 
 import com.google.inject.Inject;
 
@@ -37,7 +37,7 @@ import javax.annotation.Nullable;
 /**
  * Provides Socks5Proxies for the bitcoin network and http requests
  * <p/>
- * By default there is only used the bisq internal Tor proxy, which is used for the P2P network, Btc network
+ * By default there is only used the haveno internal Tor proxy, which is used for the P2P network, Btc network
  * (if Tor for btc is enabled) and http requests (if Tor for http requests is enabled).
  * If the user provides a socks5ProxyHttpAddress it will be used for http requests.
  * If the user provides a socks5ProxyBtcAddress, this will be used for the btc network.
@@ -91,8 +91,8 @@ public class Socks5ProxyProvider {
         return socks5ProxyInternalFactory.getSocksProxy();
     }
 
-    public void setSocks5ProxyInternal(@Nullable NetworkNode bisqSocks5ProxyFactory) {
-        this.socks5ProxyInternalFactory = bisqSocks5ProxyFactory;
+    public void setSocks5ProxyInternal(@Nullable NetworkNode havenoSocks5ProxyFactory) {
+        this.socks5ProxyInternalFactory = havenoSocks5ProxyFactory;
     }
 
     @Nullable

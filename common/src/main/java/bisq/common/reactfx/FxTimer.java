@@ -1,4 +1,4 @@
-package bisq.common.reactfx;
+package haveno.common.reactfx;
 
 import javafx.animation.Animation;
 import javafx.animation.KeyFrame;

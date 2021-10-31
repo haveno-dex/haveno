@@ -14,4 +14,4 @@ Returns a list of currently supported fiat payment method IDs.
 
 EXAMPLES
 --------
-$ ./bisq-cli --password=xyz --port=9998 getpaymentmethods
+$ ./haveno-cli --password=xyz --port=9998 getpaymentmethods

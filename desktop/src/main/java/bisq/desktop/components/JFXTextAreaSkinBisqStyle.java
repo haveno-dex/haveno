@@ -1,4 +1,4 @@
-package bisq.desktop.components;
+package haveno.desktop.components;
 
 import com.jfoenix.adapters.ReflectionHelper;
 import com.jfoenix.controls.JFXTextArea;
@@ -25,7 +25,7 @@ import java.lang.reflect.Field;
  * Code copied and adapted from com.jfoenix.skins.JFXTextAreaSkin
  */
 
-public class JFXTextAreaSkinBisqStyle extends TextAreaSkin {
+public class JFXTextAreaSkinHavenoStyle extends TextAreaSkin {
 
     private boolean invalid = true;
 
@@ -35,7 +35,7 @@ public class JFXTextAreaSkinBisqStyle extends TextAreaSkin {
     private ValidationPane<JFXTextArea> errorContainer;
     private PromptLinesWrapper<JFXTextArea> linesWrapper;
 
-    public JFXTextAreaSkinBisqStyle(JFXTextArea textArea) {
+    public JFXTextAreaSkinHavenoStyle(JFXTextArea textArea) {
         super(textArea);
         // init text area properties
         scrollPane = (ScrollPane) getChildren().get(0);

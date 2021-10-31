@@ -1,33 +1,33 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.core.trade.protocol.tasks.seller_as_maker;
+package haveno.core.trade.protocol.tasks.seller_as_maker;
 
-import bisq.core.btc.model.AddressEntry;
-import bisq.core.btc.model.PreparedDepositTxAndMakerInputs;
-import bisq.core.btc.model.RawTransactionInput;
-import bisq.core.btc.wallet.BtcWalletService;
-import bisq.core.offer.Offer;
-import bisq.core.trade.Trade;
-import bisq.core.trade.protocol.TradingPeer;
-import bisq.core.trade.protocol.tasks.TradeTask;
+import haveno.core.btc.model.AddressEntry;
+import haveno.core.btc.model.PreparedDepositTxAndMakerInputs;
+import haveno.core.btc.model.RawTransactionInput;
+import haveno.core.btc.wallet.BtcWalletService;
+import haveno.core.offer.Offer;
+import haveno.core.trade.Trade;
+import haveno.core.trade.protocol.TradingPeer;
+import haveno.core.trade.protocol.tasks.TradeTask;
 
-import bisq.common.crypto.Hash;
-import bisq.common.taskrunner.TaskRunner;
+import haveno.common.crypto.Hash;
+import haveno.common.taskrunner.TaskRunner;
 
 import org.bitcoinj.core.Address;
 import org.bitcoinj.core.Coin;

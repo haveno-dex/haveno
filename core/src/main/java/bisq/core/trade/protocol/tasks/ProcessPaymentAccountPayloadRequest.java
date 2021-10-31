@@ -1,32 +1,32 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.core.trade.protocol.tasks;
+package haveno.core.trade.protocol.tasks;
 
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import bisq.common.UserThread;
-import bisq.common.taskrunner.TaskRunner;
-import bisq.core.btc.model.XmrAddressEntry;
-import bisq.core.payment.payload.PaymentAccountPayload;
-import bisq.core.trade.MakerTrade;
-import bisq.core.trade.Trade;
-import bisq.core.trade.messages.PaymentAccountPayloadRequest;
+import haveno.common.UserThread;
+import haveno.common.taskrunner.TaskRunner;
+import haveno.core.btc.model.XmrAddressEntry;
+import haveno.core.payment.payload.PaymentAccountPayload;
+import haveno.core.trade.MakerTrade;
+import haveno.core.trade.Trade;
+import haveno.core.trade.messages.PaymentAccountPayloadRequest;
 import java.util.Arrays;
 import lombok.extern.slf4j.Slf4j;
 import monero.wallet.MoneroWallet;

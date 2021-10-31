@@ -1,10 +1,10 @@
-package bisq.daemon.grpc;
+package haveno.daemon.grpc;
 
-import bisq.core.api.CoreApi;
-import bisq.core.trade.statistics.TradeStatistics3;
+import haveno.core.api.CoreApi;
+import haveno.core.trade.statistics.TradeStatistics3;
 
-import bisq.proto.grpc.GetTradeStatisticsReply;
-import bisq.proto.grpc.GetTradeStatisticsRequest;
+import haveno.proto.grpc.GetTradeStatisticsReply;
+import haveno.proto.grpc.GetTradeStatisticsRequest;
 
 import io.grpc.ServerInterceptor;
 import io.grpc.stub.StreamObserver;
@@ -17,15 +17,15 @@ import java.util.stream.Collectors;
 
 import lombok.extern.slf4j.Slf4j;
 
-import static bisq.daemon.grpc.interceptor.GrpcServiceRateMeteringConfig.getCustomRateMeteringInterceptor;
-import static bisq.proto.grpc.GetTradeStatisticsGrpc.GetTradeStatisticsImplBase;
-import static bisq.proto.grpc.GetTradeStatisticsGrpc.getGetTradeStatisticsMethod;
+import static haveno.daemon.grpc.interceptor.GrpcServiceRateMeteringConfig.getCustomRateMeteringInterceptor;
+import static haveno.proto.grpc.GetTradeStatisticsGrpc.GetTradeStatisticsImplBase;
+import static haveno.proto.grpc.GetTradeStatisticsGrpc.getGetTradeStatisticsMethod;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
 
 
-import bisq.daemon.grpc.interceptor.CallRateMeteringInterceptor;
-import bisq.daemon.grpc.interceptor.GrpcCallRateMeter;
+import haveno.daemon.grpc.interceptor.CallRateMeteringInterceptor;
+import haveno.daemon.grpc.interceptor.GrpcCallRateMeter;
 
 @Slf4j
 class GrpcGetTradeStatisticsService extends GetTradeStatisticsImplBase {

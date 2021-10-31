@@ -1,34 +1,34 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.desktop.main.account.content.notifications;
+package haveno.desktop.main.account.content.notifications;
 
-import bisq.desktop.components.AutoTooltipButton;
-import bisq.desktop.components.AutoTooltipLabel;
-import bisq.desktop.components.AutoTooltipTableColumn;
-import bisq.desktop.main.overlays.Overlay;
-import bisq.desktop.util.ImageUtil;
+import haveno.desktop.components.AutoTooltipButton;
+import haveno.desktop.components.AutoTooltipLabel;
+import haveno.desktop.components.AutoTooltipTableColumn;
+import haveno.desktop.main.overlays.Overlay;
+import haveno.desktop.util.ImageUtil;
 
-import bisq.core.locale.Res;
-import bisq.core.notifications.alerts.market.MarketAlertFilter;
-import bisq.core.notifications.alerts.market.MarketAlerts;
-import bisq.core.util.FormattingUtils;
+import haveno.core.locale.Res;
+import haveno.core.notifications.alerts.market.MarketAlertFilter;
+import haveno.core.notifications.alerts.market.MarketAlerts;
+import haveno.core.util.FormattingUtils;
 
-import bisq.common.UserThread;
+import haveno.common.UserThread;
 
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;

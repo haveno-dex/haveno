@@ -1,26 +1,26 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.price.spot;
+package haveno.price.spot;
 
-import bisq.price.PriceProvider;
+import haveno.price.PriceProvider;
 
-import bisq.core.locale.CurrencyUtil;
-import bisq.core.locale.TradeCurrency;
+import haveno.core.locale.CurrencyUtil;
+import haveno.core.locale.TradeCurrency;
 
 import org.knowm.xchange.Exchange;
 import org.knowm.xchange.ExchangeFactory;
@@ -94,7 +94,7 @@ public abstract class ExchangeRateProvider extends PriceProvider<Set<ExchangeRat
     /**
      * @param exchangeClass Class of the {@link Exchange} for which the rates should be
      *                      polled
-     * @return Exchange rates for Bisq-supported fiat currencies and altcoins in the
+     * @return Exchange rates for Haveno-supported fiat currencies and altcoins in the
      * specified {@link Exchange}
      *
      * @see CurrencyUtil#getAllSortedFiatCurrencies()
@@ -113,7 +113,7 @@ public abstract class ExchangeRateProvider extends PriceProvider<Set<ExchangeRat
         // Find out which currency pairs we are interested in polling ("desired pairs")
         // This will be the intersection of:
         // 1) the pairs available on the exchange, and
-        // 2) the pairs Bisq considers relevant / valid
+        // 2) the pairs Haveno considers relevant / valid
         // This will result in two lists of desired pairs (fiat and alts)
 
         // Find the desired fiat pairs (pair format is BTC-FIAT)
@@ -237,7 +237,7 @@ public abstract class ExchangeRateProvider extends PriceProvider<Set<ExchangeRat
                     // In the second type, BTC is listed as the second currency
                     // Distinguish between the two and create ExchangeRates accordingly
 
-                    // In every Bisq ExchangeRate, BTC is one currency in the pair
+                    // In every Haveno ExchangeRate, BTC is one currency in the pair
                     // Extract the other currency from the ticker, to create ExchangeRates
                     String otherExchangeRateCurrency;
                     if (t.getCurrencyPair().base.equals(Currency.BTC)) {

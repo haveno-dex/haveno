@@ -1,23 +1,23 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.core.api.model;
+package haveno.core.api.model;
 
-import bisq.common.Payload;
+import haveno.common.Payload;
 
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -49,8 +49,8 @@ public class TxFeeRateInfo implements Payload {
     //////////////////////////////////////////////////////////////////////////////////////
 
     @Override
-    public bisq.proto.grpc.TxFeeRateInfo toProtoMessage() {
-        return bisq.proto.grpc.TxFeeRateInfo.newBuilder()
+    public haveno.proto.grpc.TxFeeRateInfo toProtoMessage() {
+        return haveno.proto.grpc.TxFeeRateInfo.newBuilder()
                 .setUseCustomTxFeeRate(useCustomTxFeeRate)
                 .setCustomTxFeeRate(customTxFeeRate)
                 .setMinFeeServiceRate(minFeeServiceRate)
@@ -60,7 +60,7 @@ public class TxFeeRateInfo implements Payload {
     }
 
     @SuppressWarnings("unused")
-    public static TxFeeRateInfo fromProto(bisq.proto.grpc.TxFeeRateInfo proto) {
+    public static TxFeeRateInfo fromProto(haveno.proto.grpc.TxFeeRateInfo proto) {
         return new TxFeeRateInfo(proto.getUseCustomTxFeeRate(),
                 proto.getCustomTxFeeRate(),
                 proto.getMinFeeServiceRate(),

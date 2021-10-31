@@ -1,6 +1,6 @@
-package bisq.apitest.method.trade;
+package haveno.apitest.method.trade;
 
-import bisq.core.trade.Trade;
+import haveno.core.trade.Trade;
 
 /**
  * A test fixture encapsulating expected trade protocol status.

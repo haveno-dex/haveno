@@ -1,42 +1,42 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.core.network.p2p.inventory;
+package haveno.core.network.p2p.inventory;
 
-import bisq.core.filter.Filter;
-import bisq.core.filter.FilterManager;
-import bisq.core.network.p2p.inventory.messages.GetInventoryRequest;
-import bisq.core.network.p2p.inventory.messages.GetInventoryResponse;
-import bisq.core.network.p2p.inventory.model.InventoryItem;
-import bisq.core.network.p2p.inventory.model.RequestInfo;
+import haveno.core.filter.Filter;
+import haveno.core.filter.FilterManager;
+import haveno.core.network.p2p.inventory.messages.GetInventoryRequest;
+import haveno.core.network.p2p.inventory.messages.GetInventoryResponse;
+import haveno.core.network.p2p.inventory.model.InventoryItem;
+import haveno.core.network.p2p.inventory.model.RequestInfo;
 
-import bisq.network.p2p.network.Connection;
-import bisq.network.p2p.network.MessageListener;
-import bisq.network.p2p.network.NetworkNode;
-import bisq.network.p2p.network.Statistic;
-import bisq.network.p2p.peers.PeerManager;
-import bisq.network.p2p.storage.P2PDataStorage;
-import bisq.network.p2p.storage.payload.ProtectedStorageEntry;
+import haveno.network.p2p.network.Connection;
+import haveno.network.p2p.network.MessageListener;
+import haveno.network.p2p.network.NetworkNode;
+import haveno.network.p2p.network.Statistic;
+import haveno.network.p2p.peers.PeerManager;
+import haveno.network.p2p.storage.P2PDataStorage;
+import haveno.network.p2p.storage.payload.ProtectedStorageEntry;
 
-import bisq.common.app.Version;
-import bisq.common.config.Config;
-import bisq.common.proto.network.NetworkEnvelope;
-import bisq.common.util.Profiler;
-import bisq.common.util.Utilities;
+import haveno.common.app.Version;
+import haveno.common.config.Config;
+import haveno.common.proto.network.NetworkEnvelope;
+import haveno.common.util.Profiler;
+import haveno.common.util.Utilities;
 
 import javax.inject.Inject;
 import javax.inject.Named;

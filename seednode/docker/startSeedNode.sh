@@ -28,4 +28,4 @@ if [ ! -z "$USE_LOCALHOST_FOR_P2P" ]; then
     ARGS="$ARGS --useLocalhostForP2P=$USE_LOCALHOST_FOR_P2P"
 fi
 
-JAVA_OPTS='-Xms1800m -Xmx1800m' ./build/app/bin/bisq-seednode $ARGS
+JAVA_OPTS='-Xms1800m -Xmx1800m' ./build/app/bin/haveno-seednode $ARGS

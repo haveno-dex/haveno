@@ -1,32 +1,32 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.core.app.misc;
+package haveno.core.app.misc;
 
-import bisq.core.account.sign.SignedWitnessService;
-import bisq.core.account.witness.AccountAgeWitnessService;
-import bisq.core.filter.FilterManager;
-import bisq.core.trade.statistics.TradeStatisticsManager;
+import haveno.core.account.sign.SignedWitnessService;
+import haveno.core.account.witness.AccountAgeWitnessService;
+import haveno.core.filter.FilterManager;
+import haveno.core.trade.statistics.TradeStatisticsManager;
 
-import bisq.network.p2p.P2PService;
-import bisq.network.p2p.peers.PeerManager;
-import bisq.network.p2p.storage.P2PDataStorage;
+import haveno.network.p2p.P2PService;
+import haveno.network.p2p.peers.PeerManager;
+import haveno.network.p2p.storage.P2PDataStorage;
 
-import bisq.common.config.Config;
+import haveno.common.config.Config;
 
 import javax.inject.Inject;
 

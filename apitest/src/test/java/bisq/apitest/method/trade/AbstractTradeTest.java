@@ -1,6 +1,6 @@
-package bisq.apitest.method.trade;
+package haveno.apitest.method.trade;
 
-import bisq.proto.grpc.TradeInfo;
+import haveno.proto.grpc.TradeInfo;
 
 import java.util.function.Supplier;
 
@@ -9,15 +9,15 @@ import org.slf4j.Logger;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.TestInfo;
 
-import static bisq.cli.TradeFormat.format;
+import static haveno.cli.TradeFormat.format;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.fail;
 
 
 
-import bisq.apitest.method.offer.AbstractOfferTest;
-import bisq.cli.GrpcClient;
+import haveno.apitest.method.offer.AbstractOfferTest;
+import haveno.cli.GrpcClient;
 
 public class AbstractTradeTest extends AbstractOfferTest {
 

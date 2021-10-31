@@ -1,44 +1,44 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.desktop.main.shared;
+package haveno.desktop.main.shared;
 
-import bisq.desktop.components.AutoTooltipButton;
-import bisq.desktop.components.AutoTooltipLabel;
-import bisq.desktop.components.BisqTextArea;
-import bisq.desktop.components.BusyAnimation;
-import bisq.desktop.components.TableGroupHeadline;
-import bisq.desktop.components.TextFieldWithIcon;
-import bisq.desktop.main.overlays.popups.Popup;
-import bisq.desktop.util.DisplayUtils;
-import bisq.desktop.util.GUIUtil;
+import haveno.desktop.components.AutoTooltipButton;
+import haveno.desktop.components.AutoTooltipLabel;
+import haveno.desktop.components.HavenoTextArea;
+import haveno.desktop.components.BusyAnimation;
+import haveno.desktop.components.TableGroupHeadline;
+import haveno.desktop.components.TextFieldWithIcon;
+import haveno.desktop.main.overlays.popups.Popup;
+import haveno.desktop.util.DisplayUtils;
+import haveno.desktop.util.GUIUtil;
 
-import bisq.core.locale.Res;
-import bisq.core.support.SupportManager;
-import bisq.core.support.SupportSession;
-import bisq.core.support.dispute.Attachment;
-import bisq.core.support.messages.ChatMessage;
-import bisq.core.util.coin.CoinFormatter;
+import haveno.core.locale.Res;
+import haveno.core.support.SupportManager;
+import haveno.core.support.SupportSession;
+import haveno.core.support.dispute.Attachment;
+import haveno.core.support.messages.ChatMessage;
+import haveno.core.util.coin.CoinFormatter;
 
-import bisq.network.p2p.network.Connection;
+import haveno.network.p2p.network.Connection;
 
-import bisq.common.Timer;
-import bisq.common.UserThread;
-import bisq.common.util.Utilities;
+import haveno.common.Timer;
+import haveno.common.UserThread;
+import haveno.common.util.Utilities;
 
 import com.google.common.io.ByteStreams;
 
@@ -204,7 +204,7 @@ public class ChatView extends AnchorPane {
 
         VBox.setVgrow(this, Priority.ALWAYS);
 
-        inputTextArea = new BisqTextArea();
+        inputTextArea = new HavenoTextArea();
         inputTextArea.setPrefHeight(70);
         inputTextArea.setWrapText(true);
 

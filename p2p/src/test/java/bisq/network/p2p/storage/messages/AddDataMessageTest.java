@@ -1,32 +1,32 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.network.p2p.storage.messages;
+package haveno.network.p2p.storage.messages;
 
-import bisq.network.p2p.NodeAddress;
-import bisq.network.p2p.PrefixedSealedAndSignedMessage;
-import bisq.network.p2p.storage.payload.MailboxStoragePayload;
-import bisq.network.p2p.storage.payload.ProtectedMailboxStorageEntry;
-import bisq.network.p2p.storage.payload.ProtectedStorageEntry;
+import haveno.network.p2p.NodeAddress;
+import haveno.network.p2p.PrefixedSealedAndSignedMessage;
+import haveno.network.p2p.storage.payload.MailboxStoragePayload;
+import haveno.network.p2p.storage.payload.ProtectedMailboxStorageEntry;
+import haveno.network.p2p.storage.payload.ProtectedStorageEntry;
 
-import bisq.common.crypto.CryptoException;
-import bisq.common.crypto.KeyRing;
-import bisq.common.crypto.KeyStorage;
-import bisq.common.crypto.SealedAndSigned;
+import haveno.common.crypto.CryptoException;
+import haveno.common.crypto.KeyRing;
+import haveno.common.crypto.KeyStorage;
+import haveno.common.crypto.SealedAndSigned;
 
 import org.apache.commons.lang3.RandomUtils;
 
@@ -75,7 +75,7 @@ public class AddDataMessageTest {
         AddDataMessage dataMessage1 = new AddDataMessage(protectedStorageEntry);
         protobuf.NetworkEnvelope envelope = dataMessage1.toProtoNetworkEnvelope();
 
-        //TODO Use NetworkProtoResolver, PersistenceProtoResolver or ProtoResolver which are all in io.bisq.common.
+        //TODO Use NetworkProtoResolver, PersistenceProtoResolver or ProtoResolver which are all in io.haveno.common.
       /*  AddDataMessage dataMessage2 = (AddDataMessage) ProtoBufferUtilities.getAddDataMessage(envelope);
 
         assertTrue(dataMessage1.protectedStorageEntry.getStoragePayload().equals(dataMessage2.protectedStorageEntry.getStoragePayload()));

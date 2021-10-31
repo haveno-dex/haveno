@@ -1,4 +1,4 @@
-package bisq.core.locale;
+package haveno.core.locale;
 
 import java.util.Locale;
 

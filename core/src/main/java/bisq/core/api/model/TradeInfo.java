@@ -1,40 +1,40 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.core.api.model;
+package haveno.core.api.model;
 
-import bisq.core.trade.Contract;
-import bisq.core.trade.Trade;
+import haveno.core.trade.Contract;
+import haveno.core.trade.Trade;
 
-import bisq.common.Payload;
+import haveno.common.Payload;
 
 import java.util.Objects;
 
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 
-import static bisq.core.api.model.OfferInfo.toOfferInfo;
-import static bisq.core.api.model.PaymentAccountPayloadInfo.toPaymentAccountPayloadInfo;
+import static haveno.core.api.model.OfferInfo.toOfferInfo;
+import static haveno.core.api.model.PaymentAccountPayloadInfo.toPaymentAccountPayloadInfo;
 
 @EqualsAndHashCode
 @Getter
 public class TradeInfo implements Payload {
 
-    // The client cannot see bisq.core.trade.Trade or its fromProto method.  We use the
+    // The client cannot see haveno.core.trade.Trade or its fromProto method.  We use the
     // lighter weight TradeInfo proto wrapper instead, containing just enough fields to
     // view and interact with trades.
 
@@ -151,8 +151,8 @@ public class TradeInfo implements Payload {
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     @Override
-    public bisq.proto.grpc.TradeInfo toProtoMessage() {
-        return bisq.proto.grpc.TradeInfo.newBuilder()
+    public haveno.proto.grpc.TradeInfo toProtoMessage() {
+        return haveno.proto.grpc.TradeInfo.newBuilder()
                 .setOffer(offer.toProtoMessage())
                 .setTradeId(tradeId)
                 .setShortId(shortId)
@@ -181,7 +181,7 @@ public class TradeInfo implements Payload {
                 .build();
     }
 
-    public static TradeInfo fromProto(bisq.proto.grpc.TradeInfo proto) {
+    public static TradeInfo fromProto(haveno.proto.grpc.TradeInfo proto) {
         return new TradeInfoBuilder()
                 .withOffer(OfferInfo.fromProto(proto.getOffer()))
                 .withTradeId(proto.getTradeId())

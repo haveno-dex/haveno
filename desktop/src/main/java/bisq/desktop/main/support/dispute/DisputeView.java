@@ -1,66 +1,66 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.desktop.main.support.dispute;
+package haveno.desktop.main.support.dispute;
 
-import bisq.desktop.common.view.ActivatableView;
-import bisq.desktop.components.AutoTooltipButton;
-import bisq.desktop.components.AutoTooltipLabel;
-import bisq.desktop.components.AutoTooltipTableColumn;
-import bisq.desktop.components.HyperlinkWithIcon;
-import bisq.desktop.components.InputTextField;
-import bisq.desktop.main.overlays.popups.Popup;
-import bisq.desktop.main.overlays.windows.ContractWindow;
-import bisq.desktop.main.overlays.windows.DisputeSummaryWindow;
-import bisq.desktop.main.overlays.windows.SendPrivateNotificationWindow;
-import bisq.desktop.main.overlays.windows.TradeDetailsWindow;
-import bisq.desktop.main.overlays.windows.VerifyDisputeResultSignatureWindow;
-import bisq.desktop.util.DisplayUtils;
-import bisq.desktop.util.FormBuilder;
-import bisq.desktop.util.GUIUtil;
+import haveno.desktop.common.view.ActivatableView;
+import haveno.desktop.components.AutoTooltipButton;
+import haveno.desktop.components.AutoTooltipLabel;
+import haveno.desktop.components.AutoTooltipTableColumn;
+import haveno.desktop.components.HyperlinkWithIcon;
+import haveno.desktop.components.InputTextField;
+import haveno.desktop.main.overlays.popups.Popup;
+import haveno.desktop.main.overlays.windows.ContractWindow;
+import haveno.desktop.main.overlays.windows.DisputeSummaryWindow;
+import haveno.desktop.main.overlays.windows.SendPrivateNotificationWindow;
+import haveno.desktop.main.overlays.windows.TradeDetailsWindow;
+import haveno.desktop.main.overlays.windows.VerifyDisputeResultSignatureWindow;
+import haveno.desktop.util.DisplayUtils;
+import haveno.desktop.util.FormBuilder;
+import haveno.desktop.util.GUIUtil;
 
-import bisq.core.account.witness.AccountAgeWitnessService;
-import bisq.core.alert.PrivateNotificationManager;
-import bisq.core.locale.CurrencyUtil;
-import bisq.core.locale.Res;
-import bisq.core.support.SupportType;
-import bisq.core.support.dispute.Dispute;
-import bisq.core.support.dispute.DisputeList;
-import bisq.core.support.dispute.DisputeManager;
-import bisq.core.support.dispute.DisputeResult;
-import bisq.core.support.dispute.DisputeSession;
-import bisq.core.support.dispute.agent.DisputeAgentLookupMap;
-import bisq.core.support.dispute.mediation.MediationManager;
-import bisq.core.support.dispute.mediation.mediator.MediatorManager;
-import bisq.core.support.dispute.refund.refundagent.RefundAgentManager;
-import bisq.core.support.messages.ChatMessage;
-import bisq.core.trade.Contract;
-import bisq.core.trade.Trade;
-import bisq.core.trade.TradeManager;
-import bisq.core.user.Preferences;
-import bisq.core.util.FormattingUtils;
-import bisq.core.util.coin.CoinFormatter;
+import haveno.core.account.witness.AccountAgeWitnessService;
+import haveno.core.alert.PrivateNotificationManager;
+import haveno.core.locale.CurrencyUtil;
+import haveno.core.locale.Res;
+import haveno.core.support.SupportType;
+import haveno.core.support.dispute.Dispute;
+import haveno.core.support.dispute.DisputeList;
+import haveno.core.support.dispute.DisputeManager;
+import haveno.core.support.dispute.DisputeResult;
+import haveno.core.support.dispute.DisputeSession;
+import haveno.core.support.dispute.agent.DisputeAgentLookupMap;
+import haveno.core.support.dispute.mediation.MediationManager;
+import haveno.core.support.dispute.mediation.mediator.MediatorManager;
+import haveno.core.support.dispute.refund.refundagent.RefundAgentManager;
+import haveno.core.support.messages.ChatMessage;
+import haveno.core.trade.Contract;
+import haveno.core.trade.Trade;
+import haveno.core.trade.TradeManager;
+import haveno.core.user.Preferences;
+import haveno.core.util.FormattingUtils;
+import haveno.core.util.coin.CoinFormatter;
 
-import bisq.network.p2p.NodeAddress;
+import haveno.network.p2p.NodeAddress;
 
-import bisq.common.UserThread;
-import bisq.common.crypto.KeyRing;
-import bisq.common.crypto.PubKeyRing;
-import bisq.common.util.Utilities;
+import haveno.common.UserThread;
+import haveno.common.crypto.KeyRing;
+import haveno.common.crypto.PubKeyRing;
+import haveno.common.util.Utilities;
 
 import org.bitcoinj.core.Coin;
 
@@ -115,8 +115,8 @@ import lombok.Getter;
 
 import javax.annotation.Nullable;
 
-import static bisq.desktop.util.FormBuilder.getIconForLabel;
-import static bisq.desktop.util.FormBuilder.getRegularIconButton;
+import static haveno.desktop.util.FormBuilder.getIconForLabel;
+import static haveno.desktop.util.FormBuilder.getRegularIconButton;
 
 public abstract class DisputeView extends ActivatableView<VBox, Void> {
     public enum FilterResult {

@@ -1,13 +1,13 @@
-package bisq.desktop.util;
+package haveno.desktop.util;
 
-import bisq.core.locale.Res;
-import bisq.core.monetary.Volume;
-import bisq.core.offer.Offer;
-import bisq.core.offer.OfferPayload;
-import bisq.core.util.coin.ImmutableCoinFormatter;
-import bisq.core.util.coin.CoinFormatter;
+import haveno.core.locale.Res;
+import haveno.core.monetary.Volume;
+import haveno.core.offer.Offer;
+import haveno.core.offer.OfferPayload;
+import haveno.core.util.coin.ImmutableCoinFormatter;
+import haveno.core.util.coin.CoinFormatter;
 
-import bisq.common.config.Config;
+import haveno.common.config.Config;
 
 import org.bitcoinj.core.Coin;
 
@@ -17,9 +17,9 @@ import java.util.concurrent.TimeUnit;
 import org.junit.Before;
 import org.junit.Test;
 
-import static bisq.desktop.maker.OfferMaker.btcUsdOffer;
-import static bisq.desktop.maker.VolumeMaker.usdVolume;
-import static bisq.desktop.maker.VolumeMaker.volumeString;
+import static haveno.desktop.maker.OfferMaker.btcUsdOffer;
+import static haveno.desktop.maker.VolumeMaker.usdVolume;
+import static haveno.desktop.maker.VolumeMaker.volumeString;
 import static com.natpryce.makeiteasy.MakeItEasy.make;
 import static com.natpryce.makeiteasy.MakeItEasy.with;
 import static org.junit.Assert.assertEquals;

@@ -1,31 +1,31 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.core.trade.protocol.tasks.taker;
+package haveno.core.trade.protocol.tasks.taker;
 
-import bisq.core.support.dispute.mediation.mediator.Mediator;
-import bisq.core.trade.Trade;
-import bisq.core.trade.messages.InitTradeRequest;
-import bisq.core.trade.protocol.tasks.TradeTask;
+import haveno.core.support.dispute.mediation.mediator.Mediator;
+import haveno.core.trade.Trade;
+import haveno.core.trade.messages.InitTradeRequest;
+import haveno.core.trade.protocol.tasks.TradeTask;
 
-import bisq.network.p2p.SendDirectMessageListener;
+import haveno.network.p2p.SendDirectMessageListener;
 
-import bisq.common.app.Version;
-import bisq.common.taskrunner.TaskRunner;
+import haveno.common.app.Version;
+import haveno.common.taskrunner.TaskRunner;
 
 import lombok.extern.slf4j.Slf4j;
 

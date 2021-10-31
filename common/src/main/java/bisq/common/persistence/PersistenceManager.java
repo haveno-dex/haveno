@@ -1,32 +1,32 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.common.persistence;
+package haveno.common.persistence;
 
-import bisq.common.Timer;
-import bisq.common.UserThread;
-import bisq.common.app.DevEnv;
-import bisq.common.config.Config;
-import bisq.common.file.CorruptedStorageFileHandler;
-import bisq.common.file.FileUtil;
-import bisq.common.handlers.ResultHandler;
-import bisq.common.proto.persistable.PersistableEnvelope;
-import bisq.common.proto.persistable.PersistenceProtoResolver;
-import bisq.common.util.Utilities;
+import haveno.common.Timer;
+import haveno.common.UserThread;
+import haveno.common.app.DevEnv;
+import haveno.common.config.Config;
+import haveno.common.file.CorruptedStorageFileHandler;
+import haveno.common.file.FileUtil;
+import haveno.common.handlers.ResultHandler;
+import haveno.common.proto.persistable.PersistableEnvelope;
+import haveno.common.proto.persistable.PersistenceProtoResolver;
+import haveno.common.util.Utilities;
 
 import com.google.inject.Inject;
 
@@ -53,7 +53,7 @@ import lombok.extern.slf4j.Slf4j;
 
 import javax.annotation.Nullable;
 
-import static bisq.common.util.Preconditions.checkDir;
+import static haveno.common.util.Preconditions.checkDir;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
@@ -140,7 +140,7 @@ public class PersistenceManager<T extends PersistableEnvelope> {
                 // Otherwise we only persist if requestPersistence was called since the last persist call.
                 // We also check if we have called read already to avoid a very early write attempt before we have ever
                 // read the data, which would lead to a write of empty data
-                // (fixes https://github.com/bisq-network/bisq/issues/4844).
+                // (fixes https://github.com/haveno-network/haveno/issues/4844).
                 if (persistenceManager.readCalled.get() &&
                         (persistenceManager.source.flushAtShutDown || persistenceManager.persistenceRequested)) {
                     // We always get our completeHandler called even if exceptions happen. In case a file write fails

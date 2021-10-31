@@ -1,34 +1,34 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.core.trade.statistics;
+package haveno.core.trade.statistics;
 
-import bisq.core.offer.availability.DisputeAgentSelection;
+import haveno.core.offer.availability.DisputeAgentSelection;
 
-import bisq.network.p2p.BootstrapListener;
-import bisq.network.p2p.P2PService;
-import bisq.network.p2p.storage.P2PDataStorage;
-import bisq.network.p2p.storage.payload.PersistableNetworkPayload;
-import bisq.network.p2p.storage.persistence.AppendOnlyDataStoreService;
+import haveno.network.p2p.BootstrapListener;
+import haveno.network.p2p.P2PService;
+import haveno.network.p2p.storage.P2PDataStorage;
+import haveno.network.p2p.storage.payload.PersistableNetworkPayload;
+import haveno.network.p2p.storage.persistence.AppendOnlyDataStoreService;
 
-import bisq.common.UserThread;
-import bisq.common.config.Config;
-import bisq.common.file.FileUtil;
-import bisq.common.util.Utilities;
+import haveno.common.UserThread;
+import haveno.common.config.Config;
+import haveno.common.file.FileUtil;
+import haveno.common.util.Utilities;
 
 import com.google.inject.Inject;
 

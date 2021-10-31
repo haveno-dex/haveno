@@ -1,48 +1,48 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.desktop.main.portfolio.pendingtrades;
+package haveno.desktop.main.portfolio.pendingtrades;
 
-import bisq.desktop.Navigation;
-import bisq.desktop.common.model.ActivatableWithDataModel;
-import bisq.desktop.common.model.ViewModel;
-import bisq.desktop.util.DisplayUtils;
-import bisq.desktop.util.GUIUtil;
+import haveno.desktop.Navigation;
+import haveno.desktop.common.model.ActivatableWithDataModel;
+import haveno.desktop.common.model.ViewModel;
+import haveno.desktop.util.DisplayUtils;
+import haveno.desktop.util.GUIUtil;
 
-import bisq.core.account.witness.AccountAgeWitnessService;
-import bisq.core.btc.wallet.Restrictions;
-import bisq.core.network.MessageState;
-import bisq.core.offer.Offer;
-import bisq.core.offer.OfferUtil;
-import bisq.core.provider.fee.FeeService;
-import bisq.core.provider.mempool.MempoolService;
-import bisq.core.trade.Contract;
-import bisq.core.trade.Trade;
-import bisq.core.trade.TradeUtil;
-import bisq.core.trade.closed.ClosedTradableManager;
-import bisq.core.user.User;
-import bisq.core.util.FormattingUtils;
-import bisq.core.util.coin.CoinFormatter;
-import bisq.core.util.validation.BtcAddressValidator;
+import haveno.core.account.witness.AccountAgeWitnessService;
+import haveno.core.btc.wallet.Restrictions;
+import haveno.core.network.MessageState;
+import haveno.core.offer.Offer;
+import haveno.core.offer.OfferUtil;
+import haveno.core.provider.fee.FeeService;
+import haveno.core.provider.mempool.MempoolService;
+import haveno.core.trade.Contract;
+import haveno.core.trade.Trade;
+import haveno.core.trade.TradeUtil;
+import haveno.core.trade.closed.ClosedTradableManager;
+import haveno.core.user.User;
+import haveno.core.util.FormattingUtils;
+import haveno.core.util.coin.CoinFormatter;
+import haveno.core.util.validation.BtcAddressValidator;
 
-import bisq.network.p2p.P2PService;
+import haveno.network.p2p.P2PService;
 
-import bisq.common.ClockWatcher;
-import bisq.common.app.DevEnv;
+import haveno.common.ClockWatcher;
+import haveno.common.app.DevEnv;
 
 import org.bitcoinj.core.Coin;
 
@@ -66,7 +66,7 @@ import lombok.Getter;
 
 import javax.annotation.Nullable;
 
-import static bisq.desktop.main.portfolio.pendingtrades.PendingTradesViewModel.SellerState.UNDEFINED;
+import static haveno.desktop.main.portfolio.pendingtrades.PendingTradesViewModel.SellerState.UNDEFINED;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 public class PendingTradesViewModel extends ActivatableWithDataModel<PendingTradesDataModel> implements ViewModel {

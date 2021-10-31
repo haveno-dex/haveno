@@ -1,27 +1,27 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.desktop.main.offer;
+package haveno.desktop.main.offer;
 
-import bisq.desktop.common.model.ActivatableDataModel;
+import haveno.desktop.common.model.ActivatableDataModel;
 
-import bisq.core.btc.model.XmrAddressEntry;
-import bisq.core.btc.wallet.XmrWalletService;
-import bisq.core.offer.OfferUtil;
+import haveno.core.btc.model.XmrAddressEntry;
+import haveno.core.btc.wallet.XmrWalletService;
+import haveno.core.offer.OfferUtil;
 
 import org.bitcoinj.core.Coin;
 
@@ -32,7 +32,7 @@ import javafx.beans.property.SimpleObjectProperty;
 
 import lombok.Getter;
 
-import static bisq.core.util.coin.CoinUtil.minCoin;
+import static haveno.core.util.coin.CoinUtil.minCoin;
 
 /**
  * Domain for that UI element.

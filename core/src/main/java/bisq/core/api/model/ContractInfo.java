@@ -1,29 +1,29 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.core.api.model;
+package haveno.core.api.model;
 
-import bisq.common.Payload;
+import haveno.common.Payload;
 
 import java.util.function.Supplier;
 
 import lombok.Getter;
 
-import static bisq.core.api.model.PaymentAccountPayloadInfo.emptyPaymentAccountPayload;
+import static haveno.core.api.model.PaymentAccountPayloadInfo.emptyPaymentAccountPayload;
 
 /**
  * A lightweight Trade Contract constructed from a trade's json contract.
@@ -87,7 +87,7 @@ public class ContractInfo implements Payload {
     // PROTO BUFFER
     ///////////////////////////////////////////////////////////////////////////////////////////
 
-    public static ContractInfo fromProto(bisq.proto.grpc.ContractInfo proto) {
+    public static ContractInfo fromProto(haveno.proto.grpc.ContractInfo proto) {
         return new ContractInfo(proto.getBuyerNodeAddress(),
                 proto.getSellerNodeAddress(),
                 proto.getArbitratorNodeAddress(),
@@ -102,8 +102,8 @@ public class ContractInfo implements Payload {
     }
 
     @Override
-    public bisq.proto.grpc.ContractInfo toProtoMessage() {
-        return bisq.proto.grpc.ContractInfo.newBuilder()
+    public haveno.proto.grpc.ContractInfo toProtoMessage() {
+        return haveno.proto.grpc.ContractInfo.newBuilder()
                 .setBuyerNodeAddress(buyerNodeAddress)
                 .setSellerNodeAddress(sellerNodeAddress)
                 .setArbitratorNodeAddress(arbitratorNodeAddress)
