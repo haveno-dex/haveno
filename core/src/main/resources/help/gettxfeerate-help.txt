@@ -1,0 +1,17 @@
+gettxfeerate
+
+NAME
+----
+gettxfeerate - get transaction fee rate
+
+SYNOPSIS
+--------
+gettxfeerate
+
+DESCRIPTION
+-----------
+Returns the most recent bitcoin network transaction fee the Haveno server could find.
+
+EXAMPLES
+--------
+$ ./haveno-cli --password=xyz --port=9998 gettxfeerate

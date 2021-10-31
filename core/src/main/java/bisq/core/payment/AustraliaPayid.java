@@ -1,0 +1,53 @@
+/*
+ * This file is part of Haveno.
+ *
+ * Haveno is free software: you can redistribute it and/or modify it
+ * under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or (at
+ * your option) any later version.
+ *
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
+ * License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
+ */
+
+package haveno.core.payment;
+
+import haveno.core.locale.FiatCurrency;
+import haveno.core.payment.payload.AustraliaPayidPayload;
+import haveno.core.payment.payload.PaymentAccountPayload;
+import haveno.core.payment.payload.PaymentMethod;
+
+public final class AustraliaPayid extends PaymentAccount {
+    public AustraliaPayid() {
+        super(PaymentMethod.AUSTRALIA_PAYID);
+        setSingleTradeCurrency(new FiatCurrency("AUD"));
+    }
+
+    @Override
+    protected PaymentAccountPayload createPayload() {
+        return new AustraliaPayidPayload(paymentMethod.getId(), id);
+    }
+
+    public String getPayid() {
+        return ((AustraliaPayidPayload) paymentAccountPayload).getPayid();
+    }
+
+    public void setPayid(String payid) {
+        if (payid == null) payid = "";
+        ((AustraliaPayidPayload) paymentAccountPayload).setPayid(payid);
+    }
+
+    public String getBankAccountName() {
+        return ((AustraliaPayidPayload) paymentAccountPayload).getBankAccountName();
+    }
+
+    public void setBankAccountName(String bankAccountName) {
+        if (bankAccountName == null) bankAccountName = "";
+        ((AustraliaPayidPayload) paymentAccountPayload).setBankAccountName(bankAccountName);
+    }
+}

@@ -1,0 +1,77 @@
+/*
+ * This file is part of Haveno.
+ *
+ * Haveno is free software: you can redistribute it and/or modify it
+ * under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or (at
+ * your option) any later version.
+ *
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
+ * License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
+ */
+
+package haveno.core.offer.placeoffer.tasks;
+
+import haveno.common.taskrunner.Task;
+import haveno.common.taskrunner.TaskRunner;
+import haveno.core.btc.model.XmrAddressEntry;
+import haveno.core.offer.Offer;
+import haveno.core.offer.placeoffer.PlaceOfferModel;
+import haveno.core.trade.TradeUtils;
+import haveno.core.util.ParsingUtils;
+import java.math.BigInteger;
+import java.util.ArrayList;
+import java.util.List;
+import monero.daemon.model.MoneroOutput;
+import monero.wallet.MoneroWallet;
+import monero.wallet.model.MoneroTxWallet;
+
+public class MakerReservesTradeFunds extends Task<PlaceOfferModel> {
+
+    public MakerReservesTradeFunds(TaskRunner taskHandler, PlaceOfferModel model) {
+        super(taskHandler, model);
+    }
+
+    @Override
+    protected void run() {
+
+        Offer offer = model.getOffer();
+
+        try {
+            runInterceptHook();
+            
+            // create transaction to reserve trade
+            String returnAddress = model.getXmrWalletService().getOrCreateAddressEntry(offer.getId(), XmrAddressEntry.Context.TRADE_PAYOUT).getAddressString();
+            BigInteger makerFee = ParsingUtils.coinToAtomicUnits(offer.getMakerFee());
+            BigInteger depositAmount = ParsingUtils.coinToAtomicUnits(model.getReservedFundsForOffer());
+            MoneroTxWallet reserveTx = TradeUtils.createReserveTx(model.getXmrWalletService(), offer.getId(), makerFee, returnAddress, depositAmount);
+            
+            // freeze reserved outputs
+            // TODO (woodser): synchronize to handle potential race condition where concurrent trades freeze each other's outputs
+            List<String> reservedKeyImages = new ArrayList<String>();
+            MoneroWallet wallet = model.getXmrWalletService().getWallet();
+            for (MoneroOutput input : reserveTx.getInputs()) {
+                reservedKeyImages.add(input.getKeyImage().getHex());
+                wallet.freezeOutput(input.getKeyImage().getHex());
+            }
+            
+            // save offer state
+            // TODO (woodser): persist
+            model.setReserveTx(reserveTx);
+            offer.getOfferPayload().setReserveTxKeyImages(reservedKeyImages);
+            offer.setOfferFeePaymentTxId(reserveTx.getHash()); // TODO (woodser): rename this to reserve tx id
+            offer.setState(Offer.State.OFFER_FEE_RESERVED);
+            complete();
+        } catch (Throwable t) {
+            offer.setErrorMessage("An error occurred.\n" +
+                "Error message:\n"
+                + t.getMessage());
+            failed(t);
+        }
+    }
+}

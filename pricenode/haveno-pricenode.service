@@ -1,0 +1,22 @@
+[Unit]
+Description=Haveno Price Node
+After=network.target
+
+[Service]
+SyslogIdentifier=haveno-pricenode
+EnvironmentFile=/etc/default/haveno-pricenode.env
+ExecStart=/haveno/haveno/haveno-pricenode 2
+ExecStop=/bin/kill -TERM ${MAINPID}
+Restart=on-failure
+
+User=haveno
+Group=haveno
+
+PrivateTmp=true
+ProtectSystem=full
+NoNewPrivileges=true
+PrivateDevices=true
+MemoryDenyWriteExecute=false
+
+[Install]
+WantedBy=multi-user.target

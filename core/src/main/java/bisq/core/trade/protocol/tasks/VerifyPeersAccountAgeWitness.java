@@ -1,0 +1,82 @@
+/*
+ * This file is part of Haveno.
+ *
+ * Haveno is free software: you can redistribute it and/or modify it
+ * under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or (at
+ * your option) any later version.
+ *
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
+ * License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
+ */
+
+package haveno.core.trade.protocol.tasks;
+
+import haveno.core.account.witness.AccountAgeWitnessService;
+import haveno.core.locale.CurrencyUtil;
+import haveno.core.offer.Offer;
+import haveno.core.payment.payload.PaymentAccountPayload;
+import haveno.core.trade.Trade;
+import haveno.core.trade.protocol.TradingPeer;
+
+import haveno.common.crypto.PubKeyRing;
+import haveno.common.taskrunner.TaskRunner;
+
+import java.util.Date;
+import java.util.concurrent.atomic.AtomicReference;
+
+import lombok.extern.slf4j.Slf4j;
+
+import static com.google.common.base.Preconditions.checkNotNull;
+
+@Slf4j
+public class VerifyPeersAccountAgeWitness extends TradeTask {
+
+    public VerifyPeersAccountAgeWitness(TaskRunner<Trade> taskHandler, Trade trade) {
+        super(taskHandler, trade);
+    }
+
+    @Override
+    protected void run() {
+        try {
+            runInterceptHook();
+
+            Offer offer = checkNotNull(trade.getOffer());
+            if (CurrencyUtil.isCryptoCurrency(offer.getCurrencyCode())) {
+                complete();
+                return;
+            }
+
+            AccountAgeWitnessService accountAgeWitnessService = processModel.getAccountAgeWitnessService();
+            TradingPeer tradingPeer = trade.getTradingPeer();
+            PaymentAccountPayload peersPaymentAccountPayload = checkNotNull(tradingPeer.getPaymentAccountPayload(),
+                    "Peers peersPaymentAccountPayload must not be null");
+            PubKeyRing peersPubKeyRing = checkNotNull(tradingPeer.getPubKeyRing(), "peersPubKeyRing must not be null");
+            byte[] nonce = checkNotNull(tradingPeer.getAccountAgeWitnessNonce());
+            byte[] signature = checkNotNull(tradingPeer.getAccountAgeWitnessSignature());
+            AtomicReference<String> errorMsg = new AtomicReference<>();
+            long currentDateAsLong = tradingPeer.getCurrentDate();
+            // In case the peer has an older version we get 0, so we use our time instead
+            Date peersCurrentDate = currentDateAsLong > 0 ? new Date(currentDateAsLong) : new Date();
+            boolean isValid = accountAgeWitnessService.verifyAccountAgeWitness(trade,
+                    peersPaymentAccountPayload,
+                    peersCurrentDate,
+                    peersPubKeyRing,
+                    nonce,
+                    signature,
+                    errorMsg::set);
+            if (isValid) {
+                complete();
+            } else {
+                failed(errorMsg.get());
+            }
+        } catch (Throwable t) {
+            failed(t);
+        }
+    }
+}

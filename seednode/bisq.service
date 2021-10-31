@@ -1,0 +1,40 @@
+# install in /etc/systemd/system/haveno.service
+
+[Unit]
+Description=Haveno Node
+After=bitcoin.service
+#Requires=bitcoin.service
+#BindsTo=bitcoin.service
+
+[Service]
+SyslogIdentifier=haveno
+EnvironmentFile=/etc/default/haveno.env
+
+ExecStart=/bin/sh __BISQ_HOME__/__BISQ_REPO_NAME__/${BISQ_ENTRYPOINT} \
+          --userDataDir=${BISQ_HOME} \
+          --appName=${BISQ_APP_NAME} \
+          --baseCurrencyNetwork=${BISQ_BASE_CURRENCY} \
+          --maxConnections=${BISQ_MAX_CONNECTIONS} \
+          --maxMemory=${BISQ_MAX_MEMORY} \
+          --nodePort=${BISQ_NODE_PORT} \
+          --btcNodes=${BITCOIN_P2P_HOST}:${BITCOIN_P2P_PORT} \
+          --rpcBlockNotificationHost=${BITCOIN_RPC_BLOCKNOTIFY_HOST} \
+          --rpcBlockNotificationPort=${BITCOIN_RPC_BLOCKNOTIFY_PORT} \
+          --rpcHost=${BITCOIN_RPC_HOST} \
+          --rpcPort=${BITCOIN_RPC_PORT} \
+          --rpcUser=${BITCOIN_RPC_USER} \
+          --rpcPassword=${BITCOIN_RPC_PASS} \
+          --dumpBlockchainData=${BISQ_DUMP_BLOCKCHAIN} \
+          --dumpStatistics=${BISQ_DUMP_STATISTICS} \
+
+ExecStop=/bin/kill ${MAINPID}
+Restart=on-failure
+
+ExecStartPre=+/bin/bash -c "if [ $BISQ_DUMP_BLOCKCHAIN = true ];then mount -t tmpfs none -o size=2000M,uid=haveno,gid=haveno $BISQ_HOME/$BISQ_APP_NAME/$BISQ_BASE_CURRENCY/db/json;else true;fi"
+ExecStopPost=+/bin/bash -c "if [ $BISQ_DUMP_BLOCKCHAIN = true ];then umount $BISQ_HOME/$BISQ_APP_NAME/$BISQ_BASE_CURRENCY/db/json;else true;fi"
+
+User=haveno
+Group=haveno
+
+[Install]
+WantedBy=multi-user.target
