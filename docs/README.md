@@ -4,7 +4,7 @@
 - [CONTRIBUTING.md](CONTRIBUTING.md) - Guidelines for contributors
 - [developer-guide.md](developer-guide.md) - Guide for developers
 - [bounties.md](bounties.md) - Rules and description of the bounty program
-- [haveno-import.md](idea-import.md) - Instructions for importing Haveno into Eclipse IDE or IntelliJ IDEA (from Bisq)
+- [haveno-import.md](haveno-import.md) - Instructions for importing Haveno into Eclipse IDE or IntelliJ IDEA (from Bisq)
 - [trade-protocol.md](trade_protocol/trade-protocol.md) - Documents Haveno's core trade protocol
 - [data-stores.md](data-stores.md) - Instructions for updating data stores (from Bisq)
 - [tor-upgrade.md](tor-upgrade.md) - Instructions for upgrading the Tor dependencies used by Haveno (from Bisq)
