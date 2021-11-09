@@ -4,23 +4,25 @@ This document describes how to import Haveno into an integrated development envi
 
 ## Importing Haveno into Eclipse IDE
 
-The following steps describe how to import Haveno into Eclipse IDE for development. You can also develop using [IntelliJ IDEA](#importing-haveno-into-intellij-idea) or VSCode if you prefer.
+These steps describe how to import Haveno into Eclipse IDE for development. You can also develop using [IntelliJ IDEA](#importing-haveno-into-intellij-idea) or VSCode if you prefer.
 
 > Note: Use default values unless specified otherwise.
 
-1. Download and run the [Eclipse](https://www.eclipse.org/downloads/) installer.
-2. Select "Eclipse IDE for Enterprise Java and Web Developers" to install.
-3. Launch an eclipse workspace and close out of the welcome screen.
-4. [Download](https://search.maven.org/search?q=g:org.projectlombok%20AND%20a:lombok&core=gav) the latest version of the lombok jar.
-5. Run lombok jar, e.g.: `java -jar ~/Downloads/lombok-1.18.22.jar`.
-6. Follow prompts to install lombok to your Eclipse installation.
-7. Restart Eclipse.
-8. File > Import... > Existing Gradle Project.
-9. Select the location of "haveno" project, e.g. ~/git/haveno.
-10. Advance to finish importing haveno project.
-11. File > Import... > Existing Projects into Workspace.
-12. Select the location of "haveno-ui-poc" project, e.g. ~git/haveno-ui-poc.
-13. Advance to finish importing haveno-ui-poc project.
+1. If you haven't already, first [install and run a Haveno test network](installing.md).
+2. Download and run the [Eclipse](https://www.eclipse.org/downloads/) installer.
+3. Select "Eclipse IDE for Enterprise Java and Web Developers" to install.
+4. Launch an eclipse workspace and close out of the welcome screen.
+5. [Download](https://search.maven.org/search?q=g:org.projectlombok%20AND%20a:lombok&core=gav) the latest version of the lombok jar.
+6. Run lombok jar, e.g.: `java -jar ~/Downloads/lombok-1.18.22.jar`.
+7. Follow prompts to install lombok to your Eclipse installation.
+8. Restart Eclipse.
+9. File > Import... > Existing Gradle Project.
+10. Select the location of "haveno" project, e.g. ~/git/haveno.
+11. Advance to finish importing haveno project.
+12. Right click haveno project > Gradle > Refresh Gradle Project.
+13. File > Import... > Existing Projects into Workspace.
+14. Select the location of "haveno-ui-poc" project, e.g. ~git/haveno-ui-poc.
+15. Advance to finish importing haveno-ui-poc project.
 
 You are now ready to make, run, and test changes to the Haveno project!
 
