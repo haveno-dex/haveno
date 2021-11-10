@@ -964,7 +964,7 @@ message DisputeResult {
     bool screen_cast = 7;
     string summary_notes = 8;
     ChatMessage chat_message = 9;
-    reserved 10; // was bytes arbitrator_signature = 10;
+    bytes arbitrator_signature = 10;
     int64 buyer_payout_amount = 11;
     int64 seller_payout_amount = 12;
     bytes arbitrator_pub_key = 13;
