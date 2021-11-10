@@ -80,6 +80,9 @@ public final class DisputeResult implements NetworkPayload {
     @Setter
     @Nullable
     private ChatMessage chatMessage;
+    @Setter
+    @Nullable
+    private byte[] arbitratorSignature;
     private long buyerPayoutAmount;
     private long sellerPayoutAmount;
     @Setter
@@ -111,6 +114,7 @@ public final class DisputeResult implements NetworkPayload {
                          boolean screenCast,
                          String summaryNotes,
                          @Nullable ChatMessage chatMessage,
+                         @Nullable byte[] arbitratorSignature,
                          @Nullable String arbitratorPayoutTxSigned,
                          @Nullable String arbitratorUpdatedMultisigHex,
                          long buyerPayoutAmount,
@@ -127,6 +131,7 @@ public final class DisputeResult implements NetworkPayload {
         this.screenCastProperty.set(screenCast);
         this.summaryNotesProperty.set(summaryNotes);
         this.chatMessage = chatMessage;
+        this.arbitratorSignature = arbitratorSignature;
         this.arbitratorSignedPayoutTxHex = arbitratorPayoutTxSigned;
         this.arbitratorUpdatedMultisigHex = arbitratorUpdatedMultisigHex;
         this.buyerPayoutAmount = buyerPayoutAmount;
@@ -151,6 +156,7 @@ public final class DisputeResult implements NetworkPayload {
                 proto.getScreenCast(),
                 proto.getSummaryNotes(),
                 proto.getChatMessage() == null ? null : ChatMessage.fromPayloadProto(proto.getChatMessage()),
+                proto.getArbitratorSignature().toByteArray(),
                 ProtoUtil.stringOrNullFromProto(proto.getArbitratorSignedPayoutTxHex()),
                 ProtoUtil.stringOrNullFromProto(proto.getArbitratorUpdatedMultisigHex()),
                 proto.getBuyerPayoutAmount(),
@@ -175,6 +181,7 @@ public final class DisputeResult implements NetworkPayload {
                 .setCloseDate(closeDate)
                 .setIsLoserPublisher(isLoserPublisher);
 
+        Optional.ofNullable(arbitratorSignature).ifPresent(arbitratorSignature -> builder.setArbitratorSignature(ByteString.copyFrom(arbitratorSignature)));
         Optional.ofNullable(arbitratorSignedPayoutTxHex).ifPresent(arbitratorPayoutTxSigned -> builder.setArbitratorSignedPayoutTxHex(arbitratorPayoutTxSigned));
         Optional.ofNullable(arbitratorUpdatedMultisigHex).ifPresent(arbitratorUpdatedMultisigHex -> builder.setArbitratorUpdatedMultisigHex(arbitratorUpdatedMultisigHex));
         Optional.ofNullable(arbitratorPubKey).ifPresent(arbitratorPubKey -> builder.setArbitratorPubKey(ByteString.copyFrom(arbitratorPubKey)));
@@ -257,6 +264,7 @@ public final class DisputeResult implements NetworkPayload {
                 ",\n     screenCastProperty=" + screenCastProperty +
                 ",\n     summaryNotesProperty=" + summaryNotesProperty +
                 ",\n     chatMessage=" + chatMessage +
+                ",\n     arbitratorSignature=" + Utilities.bytesAsHexString(arbitratorSignature) +
                 ",\n     arbitratorPayoutTxSigned=" + arbitratorSignedPayoutTxHex +
                 ",\n     arbitratorUpdatedMultisigHex=" + arbitratorUpdatedMultisigHex +
                 ",\n     buyerPayoutAmount=" + buyerPayoutAmount +

@@ -23,10 +23,10 @@ import bisq.desktop.components.BisqTextArea;
 import bisq.desktop.components.InputTextField;
 import bisq.desktop.main.overlays.Overlay;
 import bisq.desktop.main.overlays.popups.Popup;
+import bisq.desktop.main.support.dispute.DisputeSummaryVerification;
 import bisq.desktop.util.DisplayUtils;
 import bisq.desktop.util.Layout;
 
-import bisq.core.btc.model.XmrAddressEntry;
 import bisq.core.btc.wallet.TradeWalletService;
 import bisq.core.btc.wallet.XmrWalletService;
 import bisq.core.locale.Res;
@@ -801,58 +801,45 @@ public class DisputeSummaryWindow extends Overlay<DisputeSummaryWindow> {
             return;
         }
 
-//        boolean isRefundAgent = disputeManager instanceof RefundManager;
+        boolean isRefundAgent = disputeManager instanceof RefundManager;
         disputeResult.setLoserPublisher(isLoserPublisherCheckBox.isSelected());
         disputeResult.setCloseDate(new Date());
         dispute.setDisputeResult(disputeResult);
         dispute.setIsClosed();
-//        DisputeResult.Reason reason = disputeResult.getReason();
+        DisputeResult.Reason reason = disputeResult.getReason();
 
         summaryNotesTextArea.textProperty().unbindBidirectional(disputeResult.summaryNotesProperty());
 
-        // TODO (woodser): not used for xmr? calls setArbitratorSignature()
+        String role = isRefundAgent ? Res.get("shared.refundAgent") : Res.get("shared.mediator");
+        String agentNodeAddress = checkNotNull(disputeManager.getAgentNodeAddress(dispute)).getFullAddress();
+        Contract contract = dispute.getContract();
+        String currencyCode = contract.getOfferPayload().getCurrencyCode();
+        String amount = formatter.formatCoinWithCode(contract.getTradeAmount());
 
-//        String role = isRefundAgent ? Res.get("shared.refundAgent") : Res.get("shared.mediator");
-//        String agentNodeAddress = checkNotNull(disputeManager.getAgentNodeAddress(dispute)).getFullAddress();
-//        Contract contract = dispute.getContract();
-//        String currencyCode = contract.getOfferPayload().getCurrencyCode();
-//        String amount = formatter.formatCoinWithCode(contract.getTradeAmount());
-//
-//
-//        String textToSign = Res.get("disputeSummaryWindow.close.msg",
-//                DisplayUtils.formatDateTime(disputeResult.getCloseDate()),
-//                role,
-//                agentNodeAddress,
-//                dispute.getShortTradeId(),
-//                currencyCode,
-//                amount,
-//                formatter.formatCoinWithCode(disputeResult.getBuyerPayoutAmount()),
-//                formatter.formatCoinWithCode(disputeResult.getSellerPayoutAmount()),
-//                Res.get("disputeSummaryWindow.reason." + reason.name()),
-//                disputeResult.summaryNotesProperty().get()
-//        );
-//
-//        if (reason == DisputeResult.Reason.OPTION_TRADE &&
-//                dispute.getChatMessages().size() > 1 &&
-//                dispute.getChatMessages().get(1).isSystemMessage()) {
-//            textToSign += "\n" + dispute.getChatMessages().get(1).getMessage() + "\n";
-//        }
-//
-//        String summaryText = DisputeSummaryVerification.signAndApply(disputeManager, disputeResult, textToSign);
-//
-//        if (isRefundAgent) {
-//            summaryText += Res.get("disputeSummaryWindow.close.nextStepsForRefundAgentArbitration");
-//        } else {
-//            summaryText += Res.get("disputeSummaryWindow.close.nextStepsForMediation");
-//        }
+        String textToSign = Res.get("disputeSummaryWindow.close.msg",
+                DisplayUtils.formatDateTime(disputeResult.getCloseDate()),
+                role,
+                agentNodeAddress,
+                dispute.getShortTradeId(),
+                currencyCode,
+                amount,
+                formatter.formatCoinWithCode(disputeResult.getBuyerPayoutAmount()),
+                formatter.formatCoinWithCode(disputeResult.getSellerPayoutAmount()),
+                Res.get("disputeSummaryWindow.reason." + reason.name()),
+                disputeResult.summaryNotesProperty().get()
+        );
 
-        String summaryText = Res.get("disputeSummaryWindow.close.msg",
-            DisplayUtils.formatDateTime(disputeResult.getCloseDate()),
-            formatter.formatCoinWithCode(disputeResult.getBuyerPayoutAmount()),
-            formatter.formatCoinWithCode(disputeResult.getSellerPayoutAmount()),
-            disputeResult.summaryNotesProperty().get());
+        if (reason == DisputeResult.Reason.OPTION_TRADE &&
+                dispute.getChatMessages().size() > 1 &&
+                dispute.getChatMessages().get(1).isSystemMessage()) {
+            textToSign += "\n" + dispute.getChatMessages().get(1).getMessage() + "\n";
+        }
 
-        if (dispute.isMediationDispute()) {
+        String summaryText = DisputeSummaryVerification.signAndApply(disputeManager, disputeResult, textToSign);
+
+        if (isRefundAgent) {
+            summaryText += Res.get("disputeSummaryWindow.close.nextStepsForRefundAgentArbitration");
+        } else {
             summaryText += Res.get("disputeSummaryWindow.close.nextStepsForMediation");
         }
 
