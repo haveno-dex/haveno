@@ -16,8 +16,6 @@ import javax.inject.Inject;
 
 import com.google.common.util.concurrent.FutureCallback;
 
-import java.io.File;
-
 import java.math.BigInteger;
 
 import java.util.ArrayList;
@@ -34,9 +32,6 @@ import org.slf4j.LoggerFactory;
 
 import lombok.Getter;
 
-
-
-import monero.common.MoneroUtils;
 import monero.daemon.MoneroDaemon;
 import monero.wallet.MoneroWallet;
 import monero.wallet.model.MoneroOutputWallet;
@@ -280,7 +275,6 @@ public class XmrWalletService {
   }
 
   public void shutDown() {
-    System.out.println("XmrWalletService.shutDown()");
 
     // collect wallets to shutdown
     List<MoneroWallet> openWallets = new ArrayList<MoneroWallet>();
@@ -297,7 +291,7 @@ public class XmrWalletService {
         public void run() {
           try { walletsSetup.getWalletConfig().closeWallet(openWallet); }
           catch (Exception e) {
-            e.printStackTrace(); // exception expected on shutdown when run as daemon TODO (woodser): detect if running as daemon
+            log.warn("Error closing monero-wallet-rpc subprocess. Was Haveno stopped manually with ctrl+c?");
           }
         }
       }));
@@ -307,12 +301,10 @@ public class XmrWalletService {
     for (Thread thread : threads) thread.start();
 
     // wait for all threads
-    System.out.println("Joining threads");
     for (Thread thread : threads) {
       try { thread.join(); }
       catch (InterruptedException e) { e.printStackTrace(); }
     }
-    System.out.println("Done joining threads");
   }
 
   ///////////////////////////////////////////////////////////////////////////////////////////
