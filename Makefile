@@ -1,6 +1,6 @@
 # See docs/installing.md
 
-build: nodes localnet build-haveno
+build: nodes localnet haveno
 
 clean:
 	./gradlew clean
@@ -14,8 +14,11 @@ localnet:
 nodes: localnet
 	./scripts/xmr_btc_deps.sh
 
-build-haveno:
+haveno:
 	./gradlew build
+
+haveno-apps: # quick build desktop and daemon apps without tests, etc
+	./gradlew :core:compileJava :desktop:build
 
 deploy:
 	# create a new screen session named 'localnet'
