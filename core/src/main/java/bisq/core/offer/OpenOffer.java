@@ -24,9 +24,7 @@ import bisq.network.p2p.NodeAddress;
 import bisq.common.Timer;
 import bisq.common.UserThread;
 import bisq.common.proto.ProtoUtil;
-import java.util.ArrayList;
 import java.util.Date;
-import java.util.List;
 import java.util.Optional;
 
 import lombok.EqualsAndHashCode;
@@ -58,10 +56,17 @@ public final class OpenOffer implements Tradable {
     @Getter
     @Setter
     @Nullable
-    private NodeAddress arbitratorNodeAddress;
+    private NodeAddress backupArbitrator;
     @Setter
     @Getter
-    private List<String> frozenKeyImages = new ArrayList<>();
+    private String reserveTxHash;
+    @Setter
+    @Getter
+    private String reserveTxHex;
+    @Setter
+    @Getter
+    private String reserveTxKey;
+    
 
     // Added in v1.5.3.
     // If market price reaches that trigger price the offer gets deactivated
@@ -81,11 +86,17 @@ public final class OpenOffer implements Tradable {
         state = State.AVAILABLE;
     }
     
-    public OpenOffer(Offer offer, long triggerPrice, List<String> frozenKeyImages) {
+    public OpenOffer(Offer offer,
+                     long triggerPrice,
+                     String reserveTxHash,
+                     String reserveTxHex,
+                     String reserveTxKey) {
         this.offer = offer;
         this.triggerPrice = triggerPrice;
         state = State.AVAILABLE;
-        this.frozenKeyImages = frozenKeyImages;
+        this.reserveTxHash = reserveTxHash;
+        this.reserveTxHex = reserveTxHex;
+        this.reserveTxKey = reserveTxKey;
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -94,12 +105,18 @@ public final class OpenOffer implements Tradable {
 
     private OpenOffer(Offer offer,
                       State state,
-                      @Nullable NodeAddress arbitratorNodeAddress,
-                      long triggerPrice) {
+                      @Nullable NodeAddress backupArbitrator,
+                      long triggerPrice,
+                      String reserveTxHash,
+                      String reserveTxHex,
+                      String reserveTxKey) {
         this.offer = offer;
         this.state = state;
-        this.arbitratorNodeAddress = arbitratorNodeAddress;
+        this.backupArbitrator = backupArbitrator;
         this.triggerPrice = triggerPrice;
+        this.reserveTxHash = reserveTxHash;
+        this.reserveTxHex = reserveTxHex;
+        this.reserveTxKey = reserveTxKey;
 
         if (this.state == State.RESERVED)
             setState(State.AVAILABLE);
@@ -111,9 +128,11 @@ public final class OpenOffer implements Tradable {
                 .setOffer(offer.toProtoMessage())
                 .setTriggerPrice(triggerPrice)
                 .setState(protobuf.OpenOffer.State.valueOf(state.name()))
-                .addAllFrozenKeyImages(frozenKeyImages);
+                .setReserveTxHash(reserveTxHash)
+                .setReserveTxHex(reserveTxHex)
+                .setReserveTxKey(reserveTxKey);
 
-        Optional.ofNullable(arbitratorNodeAddress).ifPresent(nodeAddress -> builder.setArbitratorNodeAddress(nodeAddress.toProtoMessage()));
+        Optional.ofNullable(backupArbitrator).ifPresent(nodeAddress -> builder.setBackupArbitrator(nodeAddress.toProtoMessage()));
 
         return protobuf.Tradable.newBuilder().setOpenOffer(builder).build();
     }
@@ -121,9 +140,11 @@ public final class OpenOffer implements Tradable {
     public static Tradable fromProto(protobuf.OpenOffer proto) {
         OpenOffer openOffer = new OpenOffer(Offer.fromProto(proto.getOffer()),
                 ProtoUtil.enumFromProto(OpenOffer.State.class, proto.getState().name()),
-                proto.hasArbitratorNodeAddress() ? NodeAddress.fromProto(proto.getArbitratorNodeAddress()) : null,
-                proto.getTriggerPrice());
-        openOffer.setFrozenKeyImages(proto.getFrozenKeyImagesList());
+                proto.hasBackupArbitrator() ? NodeAddress.fromProto(proto.getBackupArbitrator()) : null,
+                proto.getTriggerPrice(),
+                proto.getReserveTxHash(),
+                proto.getReserveTxHex(),
+                proto.getReserveTxKey());
         return openOffer;
     }
 
@@ -187,7 +208,7 @@ public final class OpenOffer implements Tradable {
         return "OpenOffer{" +
                 ",\n     offer=" + offer +
                 ",\n     state=" + state +
-                ",\n     arbitratorNodeAddress=" + arbitratorNodeAddress +
+                ",\n     arbitratorNodeAddress=" + backupArbitrator +
                 ",\n     triggerPrice=" + triggerPrice +
                 "\n}";
     }

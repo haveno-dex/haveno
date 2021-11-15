@@ -22,24 +22,33 @@ import bisq.common.app.Version;
 import bisq.common.crypto.Sig;
 import bisq.common.taskrunner.TaskRunner;
 import bisq.core.trade.Trade;
+import bisq.core.trade.messages.InitMultisigRequest;
 import bisq.core.trade.messages.InitTradeRequest;
 import bisq.core.trade.protocol.TradeListener;
 import bisq.network.p2p.AckMessage;
 import bisq.network.p2p.NodeAddress;
+import bisq.network.p2p.P2PService;
 import bisq.network.p2p.SendDirectMessageListener;
 import com.google.common.base.Charsets;
 import java.util.Date;
 import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
+import monero.wallet.MoneroWallet;
 
 /**
  * Arbitrator sends InitTradeRequest to maker after receiving InitTradeRequest
  * from taker and verifying taker reserve tx.
+ * 
+ * Arbitrator sends InitMultisigRequests after the maker acks.
  */
 @Slf4j
-public class ArbitratorSendsInitTradeRequestToMakerIfFromTaker extends TradeTask {
+public class ArbitratorSendsInitTradeAndMultisigRequests extends TradeTask {
+    
+    private boolean takerAck;
+    private boolean makerAck;
+    
     @SuppressWarnings({"unused"})
-    public ArbitratorSendsInitTradeRequestToMakerIfFromTaker(TaskRunner taskHandler, Trade trade) {
+    public ArbitratorSendsInitTradeAndMultisigRequests(TaskRunner taskHandler, Trade trade) {
         super(taskHandler, trade);
     }
 
@@ -48,12 +57,15 @@ public class ArbitratorSendsInitTradeRequestToMakerIfFromTaker extends TradeTask
         try {
             runInterceptHook();
             
-            // collect fields for request
-            String offerId = processModel.getOffer().getId();
+            // skip if request not from taker
             InitTradeRequest request = (InitTradeRequest) processModel.getTradeMessage();
+            if (!request.getSenderNodeAddress().equals(trade.getTakerNodeAddress())) {
+                complete();
+                return;
+            }
             
             // arbitrator signs offer id as nonce to avoid challenge protocol
-            byte[] sig = Sig.sign(processModel.getKeyRing().getSignatureKeyPair().getPrivate(), offerId.getBytes(Charsets.UTF_8));
+            byte[] sig = Sig.sign(processModel.getKeyRing().getSignatureKeyPair().getPrivate(), processModel.getOfferId().getBytes(Charsets.UTF_8));
             
             // save pub keys
             processModel.getArbitrator().setPubKeyRing(processModel.getPubKeyRing()); // TODO (woodser): why duplicating field in process model
@@ -63,7 +75,7 @@ public class ArbitratorSendsInitTradeRequestToMakerIfFromTaker extends TradeTask
             
             // create request to initialize trade with maker
             InitTradeRequest makerRequest = new InitTradeRequest(
-                    offerId,
+                    processModel.getOfferId(),
                     request.getSenderNodeAddress(),
                     request.getPubKeyRing(),
                     trade.getTradeAmount().value,
@@ -91,7 +103,7 @@ public class ArbitratorSendsInitTradeRequestToMakerIfFromTaker extends TradeTask
                 public void onAckMessage(AckMessage ackMessage, NodeAddress sender) {
                     if (sender.equals(trade.getMakerNodeAddress()) && ackMessage.getSourceMsgClassName().equals(InitTradeRequest.class.getSimpleName())) {
                         trade.removeListener(this);
-                        if (ackMessage.isSuccess()) complete();
+                        if (ackMessage.isSuccess()) sendInitMultisigRequests();
                         else failed("Received unsuccessful ack for InitTradeRequest from maker"); // TODO (woodser): maker should not do this, penalize them by broadcasting reserve tx?
                     }
                 }
@@ -121,5 +133,81 @@ public class ArbitratorSendsInitTradeRequestToMakerIfFromTaker extends TradeTask
         } catch (Throwable t) {
             failed(t);
         }
+    }
+    
+    private void sendInitMultisigRequests() {
+        
+        // ensure arbitrator has maker's reserve tx
+        if (processModel.getMaker().getReserveTxHash() == null) {
+            log.warn("Arbitrator {} does not have maker's reserve tx after initializing trade", P2PService.getMyNodeAddress());
+            failed();
+            return;
+        }
+        
+        // create wallet for multisig
+        MoneroWallet multisigWallet = processModel.getXmrWalletService().createMultisigWallet(trade.getId());
+        
+        // prepare multisig
+        String preparedHex = multisigWallet.prepareMultisig();
+        processModel.setPreparedMultisigHex(preparedHex);
+
+        // create message to initialize multisig
+        InitMultisigRequest initMultisigRequest = new InitMultisigRequest(
+                processModel.getOffer().getId(),
+                processModel.getMyNodeAddress(),
+                processModel.getPubKeyRing(),
+                UUID.randomUUID().toString(),
+                Version.getP2PMessageVersion(),
+                new Date().getTime(),
+                preparedHex,
+                null);
+
+        // send request to maker
+        log.info("Send {} with offerId {} and uid {} to maker {}", initMultisigRequest.getClass().getSimpleName(), initMultisigRequest.getTradeId(), initMultisigRequest.getUid(), trade.getMakerNodeAddress());
+        processModel.getP2PService().sendEncryptedDirectMessage(
+                trade.getMakerNodeAddress(),
+                trade.getMakerPubKeyRing(),
+                initMultisigRequest,
+                new SendDirectMessageListener() {
+                    @Override
+                    public void onArrived() {
+                        log.info("{} arrived at arbitrator: offerId={}; uid={}", initMultisigRequest.getClass().getSimpleName(), initMultisigRequest.getTradeId(), initMultisigRequest.getUid());
+                        makerAck = true;
+                        checkComplete();
+                    }
+                    @Override
+                    public void onFault(String errorMessage) {
+                        log.error("Sending {} failed: uid={}; peer={}; error={}", initMultisigRequest.getClass().getSimpleName(), initMultisigRequest.getUid(), trade.getMakerNodeAddress(), errorMessage);
+                        appendToErrorMessage("Sending message failed: message=" + initMultisigRequest + "\nerrorMessage=" + errorMessage);
+                        failed();
+                    }
+                }
+        );
+
+        // send request to taker
+        log.info("Send {} with offerId {} and uid {} to taker {}", initMultisigRequest.getClass().getSimpleName(), initMultisigRequest.getTradeId(), initMultisigRequest.getUid(), trade.getTakerNodeAddress());
+        processModel.getP2PService().sendEncryptedDirectMessage(
+                trade.getTakerNodeAddress(),
+                trade.getTakerPubKeyRing(),
+                initMultisigRequest,
+                new SendDirectMessageListener() {
+                    @Override
+                    public void onArrived() {
+                        log.info("{} arrived at peer: offerId={}; uid={}", initMultisigRequest.getClass().getSimpleName(), initMultisigRequest.getTradeId(), initMultisigRequest.getUid());
+                        takerAck = true;
+                        checkComplete();
+                    }
+                    @Override
+                    public void onFault(String errorMessage) {
+                        log.error("Sending {} failed: uid={}; peer={}; error={}", initMultisigRequest.getClass().getSimpleName(), initMultisigRequest.getUid(), trade.getTakerNodeAddress(), errorMessage);
+                        appendToErrorMessage("Sending message failed: message=" + initMultisigRequest + "\nerrorMessage=" + errorMessage);
+                        failed();
+                    }
+                }
+        );
+    }
+    
+    private void checkComplete() {
+        if (makerAck && takerAck) complete();
     }
 }

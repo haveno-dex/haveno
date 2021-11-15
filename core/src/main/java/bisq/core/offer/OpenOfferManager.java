@@ -91,7 +91,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import lombok.Getter;
-import monero.daemon.model.MoneroOutput;
 import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nullable;
@@ -416,10 +415,8 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                 model,
                 transaction -> {
                     
-                    // save frozen key images with open offer
-                    List<String> frozenKeyImages = new ArrayList<String>();
-                    for (MoneroOutput output : model.getReserveTx().getInputs()) frozenKeyImages.add(output.getKeyImage().getHex());
-                    OpenOffer openOffer = new OpenOffer(offer, triggerPrice, frozenKeyImages);
+                    // save reserve tx with open offer
+                    OpenOffer openOffer = new OpenOffer(offer, triggerPrice, model.getReserveTx().getHash(), model.getReserveTx().getFullHex(), model.getReserveTx().getKey());
                     openOffers.add(openOffer);
                     requestPersistence();
                     resultHandler.handleResult(transaction);
@@ -577,7 +574,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
         closedTradableManager.add(openOffer);
         log.info("onRemoved offerId={}", offer.getId());
         btcWalletService.resetAddressEntriesForOpenOffer(offer.getId());
-        for (String frozenKeyImage : openOffer.getFrozenKeyImages()) xmrWalletService.getWallet().thawOutput(frozenKeyImage);
+        for (String frozenKeyImage : offer.getOfferPayload().getReserveTxKeyImages()) xmrWalletService.getWallet().thawOutput(frozenKeyImage);
         requestPersistence();
         resultHandler.handleResult();
     }
@@ -642,7 +639,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
             }
             
             // verify arbitrator is signer of offer payload
-            if (!request.getOfferPayload().getArbitratorNodeAddress().equals(thisAddress)) {
+            if (!thisAddress.equals(request.getOfferPayload().getArbitratorSigner())) {
                 errorMessage = "Cannot sign offer because offer payload is for a different arbitrator";
                 log.info(errorMessage);
                 sendAckMessage(request.getClass(), peer, request.getPubKeyRing(), request.getOfferId(), request.getUid(), false, errorMessage);
@@ -784,7 +781,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
             Optional<OpenOffer> openOfferOptional = getOpenOfferById(request.offerId);
             AvailabilityResult availabilityResult;
             String makerSignature = null;
-            NodeAddress arbitratorNodeAddress = null;
+            NodeAddress backupArbitratorNodeAddress = null;
             if (openOfferOptional.isPresent()) {
                 OpenOffer openOffer = openOfferOptional.get();
                 if (!apiUserDeniedByOffer(request)) {
@@ -793,10 +790,10 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                             Offer offer = openOffer.getOffer();
                             if (preferences.getIgnoreTradersList().stream().noneMatch(fullAddress -> fullAddress.equals(peer.getFullAddress()))) {
                                 
-                                // use signing arbitrator if available, otherwise use least used arbitrator
-                                boolean isSignerOnline = true;
-                                arbitratorNodeAddress = isSignerOnline ? offer.getOfferPayload().getArbitratorNodeAddress() : DisputeAgentSelection.getLeastUsedArbitrator(tradeStatisticsManager, mediatorManager).getNodeAddress();
-                                openOffer.setArbitratorNodeAddress(arbitratorNodeAddress);
+                                // set backup arbitrator if signer is not available
+                                Mediator backupMediator = DisputeAgentSelection.getLeastUsedArbitrator(tradeStatisticsManager, mediatorManager, offer.getOfferPayload().getArbitratorSigner());
+                                backupArbitratorNodeAddress = backupMediator == null ? null : backupMediator.getNodeAddress();
+                                openOffer.setBackupArbitrator(backupArbitratorNodeAddress);
                                 
                                 // maker signs taker's request // TODO (woodser): should maker signature include selected arbitrator?
                                 String tradeRequestAsJson = Utilities.objectToJson(request.getTradeRequest());
@@ -848,7 +845,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
             OfferAvailabilityResponse offerAvailabilityResponse = new OfferAvailabilityResponse(request.offerId,
                     availabilityResult,
                     makerSignature,
-                    arbitratorNodeAddress);
+                    backupArbitratorNodeAddress);
             log.info("Send {} with offerId {} and uid {} to peer {}",
                     offerAvailabilityResponse.getClass().getSimpleName(), offerAvailabilityResponse.getOfferId(),
                     offerAvailabilityResponse.getUid(), peer);
@@ -933,6 +930,8 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Update persisted offer if a new capability is required after a software update
     ///////////////////////////////////////////////////////////////////////////////////////////
+    
+    // TODO (woodser): arbitrator signature will be invalid if offer updated (exclude updateable fields from signature? re-sign?)
 
     private void maybeUpdatePersistedOffers() {
         // We need to clone to avoid ConcurrentModificationException
@@ -1019,7 +1018,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                         originalOfferPayload.getHashOfChallenge(),
                         updatedExtraDataMap,
                         protocolVersion,
-                        originalOfferPayload.getArbitratorNodeAddress(),
+                        originalOfferPayload.getArbitratorSigner(),
                         originalOfferPayload.getArbitratorSignature(),
                         originalOfferPayload.getReserveTxKeyImages());
 

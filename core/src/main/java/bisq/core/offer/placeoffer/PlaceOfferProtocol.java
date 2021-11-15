@@ -56,6 +56,7 @@ public class PlaceOfferProtocol {
     // Called from UI
     ///////////////////////////////////////////////////////////////////////////////////////////
 
+    // TODO (woodser): this returns before offer is placed
     public void placeOffer() {
         log.debug("placeOffer() " + model.getOffer().getId());
         TaskRunner<PlaceOfferModel> taskRunner = new TaskRunner<>(model,
@@ -82,7 +83,7 @@ public class PlaceOfferProtocol {
       log.debug("handleSignOfferResponse() " + model.getOffer().getId());
       model.setSignOfferResponse(response);
       
-      if (!model.getOffer().getOfferPayload().getArbitratorNodeAddress().equals(sender)) {
+      if (!model.getOffer().getOfferPayload().getArbitratorSigner().equals(sender)) {
           log.warn("Ignoring sign offer response from different sender");
           return;
       }

@@ -101,8 +101,7 @@ public class UpdateMultisigWithTradingPeer extends TradeTask {
                     new Date().getTime(),
                     updatedMultisigHex);
 
-            System.out.println("SENDING MESSAGE!!!!!!!");
-            System.out.println(message);
+            System.out.println("Sending message: " + message);
 
             // TODO (woodser): trade.getTradingPeerNodeAddress() and/or trade.getTradingPeerPubKeyRing() are null on restart of application, so cannot send payment to complete trade
             log.info("Send {} with offerId {} and uid {} to peer {}", message.getClass().getSimpleName(), message.getTradeId(), message.getUid(), trade.getTradingPeerNodeAddress());

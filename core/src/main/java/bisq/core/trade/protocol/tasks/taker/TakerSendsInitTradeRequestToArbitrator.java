@@ -21,7 +21,7 @@ import bisq.core.support.dispute.mediation.mediator.Mediator;
 import bisq.core.trade.Trade;
 import bisq.core.trade.messages.InitTradeRequest;
 import bisq.core.trade.protocol.tasks.TradeTask;
-
+import bisq.network.p2p.NodeAddress;
 import bisq.network.p2p.SendDirectMessageListener;
 
 import bisq.common.app.Version;
@@ -42,62 +42,85 @@ public class TakerSendsInitTradeRequestToArbitrator extends TradeTask {
         try {
             runInterceptHook();
             
-            // get primary arbitrator
-            Mediator arbitrator = processModel.getUser().getAcceptedMediatorByAddress(trade.getArbitratorNodeAddress());
-            if (arbitrator == null) throw new RuntimeException("Cannot get arbitrator instance from node address"); // TODO (woodser): null if arbitrator goes offline or never seen?
-            
-            // save pub keys
-            processModel.getArbitrator().setPubKeyRing(arbitrator.getPubKeyRing());
-            trade.setArbitratorPubKeyRing(processModel.getArbitrator().getPubKeyRing());
-            trade.setMakerPubKeyRing(trade.getTradingPeer().getPubKeyRing());
-            
-            // send trade request to arbitrator
-            InitTradeRequest makerRequest = (InitTradeRequest) processModel.getTradeMessage();
-            InitTradeRequest arbitratorRequest = new InitTradeRequest(
-                    makerRequest.getTradeId(),
-                    makerRequest.getSenderNodeAddress(),
-                    makerRequest.getPubKeyRing(),
-                    makerRequest.getTradeAmount(),
-                    makerRequest.getTradePrice(),
-                    makerRequest.getTradeFee(),
-                    makerRequest.getAccountId(),
-                    makerRequest.getPaymentAccountId(),
-                    makerRequest.getPaymentMethodId(),
-                    makerRequest.getUid(),
-                    Version.getP2PMessageVersion(),
-                    makerRequest.getAccountAgeWitnessSignatureOfOfferId(),
-                    makerRequest.getCurrentDate(),
-                    makerRequest.getMakerNodeAddress(),
-                    makerRequest.getTakerNodeAddress(),
-                    trade.getArbitratorNodeAddress(),
-                    processModel.getReserveTx().getHash(),
-                    processModel.getReserveTx().getFullHex(),
-                    processModel.getReserveTx().getKey(),
-                    makerRequest.getPayoutAddress(),
-                    processModel.getMakerSignature());
-
-            // send request to arbitrator
-            System.out.println("SENDING INIT TRADE REQUEST TO ARBITRATOR!");
-            log.info("Send {} with offerId {} and uid {} to arbitrator {} with pub key ring", arbitratorRequest.getClass().getSimpleName(), arbitratorRequest.getTradeId(), arbitratorRequest.getUid(), trade.getArbitratorNodeAddress(), trade.getArbitratorPubKeyRing());
-            processModel.getP2PService().sendEncryptedDirectMessage(
-                    trade.getArbitratorNodeAddress(),
-                    trade.getArbitratorPubKeyRing(),
-                    arbitratorRequest,
-                    new SendDirectMessageListener() {
+            // send request to offer signer
+            sendInitTradeRequest(trade.getOffer().getOfferPayload().getArbitratorSigner(), new SendDirectMessageListener() {
+                @Override
+                public void onArrived() {
+                    log.info("{} arrived at arbitrator: offerId={}", InitTradeRequest.class.getSimpleName(), trade.getId());
+                    complete();
+                }
+                
+                // send request to backup arbitrator if signer unavailable
+                @Override
+                public void onFault(String errorMessage) {
+                    log.info("Sending {} to signing arbitrator {} failed, using backup arbitrator {}. error={}", InitTradeRequest.class.getSimpleName(), trade.getOffer().getOfferPayload().getArbitratorSigner(), processModel.getBackupArbitrator(), errorMessage);
+                    if (processModel.getBackupArbitrator() == null) {
+                        log.warn("Cannot take offer because signing arbitrator is offline and backup arbitrator is null");
+                        failed();
+                        return;
+                    }
+                    sendInitTradeRequest(processModel.getBackupArbitrator(), new SendDirectMessageListener() {
                         @Override
                         public void onArrived() {
-                            log.info("{} arrived at arbitrator: offerId={}; uid={}", arbitratorRequest.getClass().getSimpleName(), arbitratorRequest.getTradeId(), arbitratorRequest.getUid());
+                            log.info("{} arrived at backup arbitrator: offerId={}", InitTradeRequest.class.getSimpleName(), trade.getId());
+                            complete();
                         }
-                        @Override // TODO (woodser): handle case where primary arbitrator is unavailable so use backup arbitrator, distinguish offline from bad ack
-                        public void onFault(String errorMessage) {
-                            log.error("Sending {} failed: uid={}; peer={}; error={}", arbitratorRequest.getClass().getSimpleName(), arbitratorRequest.getUid(), trade.getArbitratorNodeAddress(), errorMessage);
-                            appendToErrorMessage("Sending message failed: message=" + arbitratorRequest + "\nerrorMessage=" + errorMessage);
+                        @Override
+                        public void onFault(String errorMessage) { // TODO (woodser): distinguish nack from offline
+                            log.warn("Cannot take offer because arbitrators are unavailable: error={}.", InitTradeRequest.class.getSimpleName(), errorMessage);
                             failed();
                         }
-                    }
-            );
+                    });
+                }
+            });
         } catch (Throwable t) {
           failed(t);
         }
+    }
+    
+    private void sendInitTradeRequest(NodeAddress arbitratorNodeAddress, SendDirectMessageListener listener) {
+        
+        // get registered arbitrator
+        Mediator arbitrator = processModel.getUser().getAcceptedMediatorByAddress(arbitratorNodeAddress);
+        if (arbitrator == null) throw new RuntimeException("Node address " + arbitratorNodeAddress + " is not a registered arbitrator");
+        
+        // set pub keys
+        processModel.getArbitrator().setPubKeyRing(arbitrator.getPubKeyRing());
+        trade.setArbitratorNodeAddress(arbitratorNodeAddress);
+        trade.setArbitratorPubKeyRing(processModel.getArbitrator().getPubKeyRing());
+        
+        // create request to arbitrator
+        InitTradeRequest makerRequest = (InitTradeRequest) processModel.getTradeMessage(); // taker's InitTradeRequest to maker
+        InitTradeRequest arbitratorRequest = new InitTradeRequest(
+                makerRequest.getTradeId(),
+                makerRequest.getSenderNodeAddress(),
+                makerRequest.getPubKeyRing(),
+                makerRequest.getTradeAmount(),
+                makerRequest.getTradePrice(),
+                makerRequest.getTradeFee(),
+                makerRequest.getAccountId(),
+                makerRequest.getPaymentAccountId(),
+                makerRequest.getPaymentMethodId(),
+                makerRequest.getUid(),
+                Version.getP2PMessageVersion(),
+                makerRequest.getAccountAgeWitnessSignatureOfOfferId(),
+                makerRequest.getCurrentDate(),
+                makerRequest.getMakerNodeAddress(),
+                makerRequest.getTakerNodeAddress(),
+                trade.getArbitratorNodeAddress(),
+                processModel.getReserveTx().getHash(),
+                processModel.getReserveTx().getFullHex(),
+                processModel.getReserveTx().getKey(),
+                makerRequest.getPayoutAddress(),
+                processModel.getMakerSignature());
+
+        // send request to arbitrator
+        log.info("Sending {} with offerId {} and uid {} to arbitrator {} with pub key ring {}", arbitratorRequest.getClass().getSimpleName(), arbitratorRequest.getTradeId(), arbitratorRequest.getUid(), trade.getArbitratorNodeAddress(), trade.getArbitratorPubKeyRing());
+        processModel.getP2PService().sendEncryptedDirectMessage(
+                arbitratorNodeAddress,
+                arbitrator.getPubKeyRing(),
+                arbitratorRequest,
+                listener
+        );
     }
 }

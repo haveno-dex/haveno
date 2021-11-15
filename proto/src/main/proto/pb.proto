@@ -189,7 +189,7 @@ message OfferAvailabilityResponse {
     repeated int32 supported_capabilities = 3;
     string uid = 4;
     string maker_signature = 5;
-    NodeAddress arbitrator_node_address = 6;
+    NodeAddress backup_arbitrator = 6;
 }
 
 message RefreshOfferMessage {
@@ -853,7 +853,7 @@ message OfferPayload {
     map<string, string> extra_data = 34;
     int32 protocol_version = 35;
 
-    NodeAddress arbitrator_node_address = 1001;
+    NodeAddress arbitrator_signer = 1001;
     string arbitrator_signature = 1002;
     repeated string reserve_tx_key_images = 1003;
 }
@@ -1472,9 +1472,11 @@ message OpenOffer {
 
     Offer offer = 1;
     State state = 2;
-    NodeAddress arbitrator_node_address = 3;
+    NodeAddress backup_arbitrator = 3;
     int64 trigger_price = 4;
-    repeated string frozen_key_images = 5;
+    string reserve_tx_hash = 5;
+    string reserve_tx_hex = 6;
+    string reserve_tx_key = 7;
 }
 
 message Tradable {
@@ -1644,18 +1646,16 @@ message ProcessModel {
     int64 seller_payout_amount_from_mediation = 20;
 
     string maker_signature = 1001;
-    NodeAddress arbitrator_node_address = 1002;
+    NodeAddress backup_arbitrator = 1002;
     TradingPeer maker = 1003;
     TradingPeer taker = 1004;
     TradingPeer arbitrator = 1005;
     NodeAddress temp_trading_peer_node_address = 1006;
-    string reserve_tx_hash = 1007;
-    repeated string frozen_key_images = 1008;
-    string prepared_multisig_hex = 1009;
-    string made_multisig_hex = 1010;
-    bool multisig_setup_complete = 1011;
-    bool maker_ready_to_fund_multisig = 1012;
-    bool multisig_deposit_initiated = 1013;
+    string prepared_multisig_hex = 1007;
+    string made_multisig_hex = 1008;
+    bool multisig_setup_complete = 1009;
+    bool maker_ready_to_fund_multisig = 1010;
+    bool multisig_deposit_initiated = 1011;
 }
 
 message TradingPeer {
@@ -1681,12 +1681,13 @@ message TradingPeer {
     string reserve_tx_hash = 1001;
     string reserve_tx_hex = 1002;
     string reserve_tx_key = 1003;
-    string prepared_multisig_hex = 1004;
-    string made_multisig_hex = 1005;
-    string signed_payout_tx_hex = 1006;
-    string deposit_tx_hash = 1007;
-    string deposit_tx_hex = 1008;
-    string deposit_tx_key = 1009;
+    repeated string reserve_tx_key_images = 1004;
+    string prepared_multisig_hex = 1005;
+    string made_multisig_hex = 1006;
+    string signed_payout_tx_hex = 1007;
+    string deposit_tx_hash = 1008;
+    string deposit_tx_hex = 1009;
+    string deposit_tx_key = 1010;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////

@@ -433,11 +433,13 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
                       request.getTakerNodeAddress(),
                       request.getArbitratorNodeAddress());
 
-              // set reserve tx hash
+              // set reserve tx hash if available
               Optional<SignedOffer> signedOfferOptional = openOfferManager.getSignedOfferById(request.getTradeId());
-              if (!signedOfferOptional.isPresent()) return;
-              SignedOffer signedOffer = signedOfferOptional.get();
-              trade.getMaker().setReserveTxHash(signedOffer.getReserveTxHash());
+              if (signedOfferOptional.isPresent()) {
+                  SignedOffer signedOffer = signedOfferOptional.get();
+                  trade.getMaker().setReserveTxHash(signedOffer.getReserveTxHash());
+              }
+
               initTradeAndProtocol(trade, getTradeProtocol(trade));
               tradableList.add(trade);
           }
@@ -464,19 +466,14 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
           }
 
           Offer offer = openOffer.getOffer();
-          openOfferManager.reserveOpenOffer(openOffer); // TODO (woodser): reserve offer if arbitrator?
 
-          // verify request is from signing arbitrator when they're online, else from selected arbitrator
-          if (!sender.equals(offer.getOfferPayload().getArbitratorNodeAddress())) {
-              boolean isSignerOnline = true; // TODO (woodser): determine if signer is online and test
-              if (isSignerOnline) {
-                  log.warn("Ignoring InitTradeRequest from {} with tradeId {} because request must be from signing arbitrator when online", sender, request.getTradeId());
-                  return;
-              } else if (!sender.equals(openOffer.getArbitratorNodeAddress())) {
-                  log.warn("Ignoring InitTradeRequest from {} with tradeId {} because request must be from selected arbitrator when signing arbitrator is offline", sender, request.getTradeId());
-                  return;
-              }
+          // verify request is from signer or backup arbitrator
+          if (!sender.equals(offer.getOfferPayload().getArbitratorSigner()) && !sender.equals(openOffer.getBackupArbitrator())) { // TODO (woodser): get backup arbitrator from maker-signed InitTradeRequest and remove from OpenOffer
+              log.warn("Ignoring InitTradeRequest from {} with tradeId {} because request must be from signer or backup arbitrator", sender, request.getTradeId());
+              return;
           }
+
+          openOfferManager.reserveOpenOffer(openOffer); // TODO (woodser): reserve offer if arbitrator?
 
           Trade trade;
           if (offer.isBuyOffer())
@@ -504,12 +501,14 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
 
           //System.out.println("TradeManager trade.setTradingPeerNodeAddress(): " + sender);
           //trade.setTradingPeerNodeAddress(sender);
-          // TODO (woodser): what if maker's address changes while offer open, or taker's address changes after multisig deposit available? need to verify and update
+          // TODO (woodser): what if maker's address changes while offer open, or taker's address changes after multisig deposit available? need to verify and update. see OpenOfferManager.maybeUpdatePersistedOffers()
           trade.setArbitratorPubKeyRing(user.getAcceptedMediatorByAddress(sender).getPubKeyRing());
           trade.setMakerPubKeyRing(trade.getOffer().getPubKeyRing());
           initTradeAndProtocol(trade, getTradeProtocol(trade));
-          trade.getProcessModel().setReserveTxHash(offer.getOfferFeePaymentTxId()); // TODO (woodser): initialize in initTradeAndProtocol ?
-          trade.getProcessModel().setFrozenKeyImages(openOffer.getFrozenKeyImages());
+          trade.getSelf().setReserveTxHash(openOffer.getReserveTxHash()); // TODO (woodser): initialize in initTradeAndProtocol?
+          trade.getSelf().setReserveTxHex(openOffer.getReserveTxHex());
+          trade.getSelf().setReserveTxKey(openOffer.getReserveTxKey());
+          trade.getSelf().setReserveTxKeyImages(offer.getOfferPayload().getReserveTxKeyImages());
           tradableList.add(trade);
 
           ((MakerProtocol) getTradeProtocol(trade)).handleInitTradeRequest(request,  sender, errorMessage -> {
@@ -702,7 +701,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
                                     UUID.randomUUID().toString(),
                                     model.getPeerNodeAddress(),
                                     P2PService.getMyNodeAddress(),
-                                    offer.getOfferPayload().getArbitratorNodeAddress());
+                                    offer.getOfferPayload().getArbitratorSigner());
                         } else {
                             trade = new BuyerAsTakerTrade(offer,
                                     amount,
@@ -713,12 +712,12 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
                                     UUID.randomUUID().toString(),
                                     model.getPeerNodeAddress(),
                                     P2PService.getMyNodeAddress(),
-                                    offer.getOfferPayload().getArbitratorNodeAddress());
+                                    offer.getOfferPayload().getArbitratorSigner());
                         }
 
                         trade.getProcessModel().setTradeMessage(model.getTradeRequest());
                         trade.getProcessModel().setMakerSignature(model.getMakerSignature());
-                        trade.getProcessModel().setArbitratorNodeAddress(model.getArbitratorNodeAddress());
+                        trade.getProcessModel().setBackupArbitrator(model.getBackupArbitrator()); // backup arbitrator only used if signer offline
                         trade.getProcessModel().setUseSavingsWallet(useSavingsWallet);
                         trade.getProcessModel().setFundsNeededForTradeAsLong(fundsNeededForTrade.value);
                         trade.setTakerPubKeyRing(model.getPubKeyRing());

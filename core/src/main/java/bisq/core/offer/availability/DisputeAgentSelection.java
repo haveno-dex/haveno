@@ -21,7 +21,7 @@ import bisq.core.support.dispute.agent.DisputeAgent;
 import bisq.core.support.dispute.agent.DisputeAgentManager;
 import bisq.core.trade.statistics.TradeStatistics3;
 import bisq.core.trade.statistics.TradeStatisticsManager;
-
+import bisq.network.p2p.NodeAddress;
 import bisq.common.util.Tuple2;
 
 import com.google.common.annotations.VisibleForTesting;
@@ -43,15 +43,25 @@ import static com.google.common.base.Preconditions.checkArgument;
 @Slf4j
 public class DisputeAgentSelection {
     public static final int LOOK_BACK_RANGE = 100;
-
+    
     public static <T extends DisputeAgent> T getLeastUsedArbitrator(TradeStatisticsManager tradeStatisticsManager,
                                                                   DisputeAgentManager<T> disputeAgentManager) {
         return getLeastUsedDisputeAgent(tradeStatisticsManager,
-                disputeAgentManager);
+                disputeAgentManager,
+                null);
+}
+
+    public static <T extends DisputeAgent> T getLeastUsedArbitrator(TradeStatisticsManager tradeStatisticsManager,
+                                                                  DisputeAgentManager<T> disputeAgentManager,
+                                                                  NodeAddress excludedArbitrator) {
+        return getLeastUsedDisputeAgent(tradeStatisticsManager,
+                disputeAgentManager,
+                excludedArbitrator);
     }
 
     private static <T extends DisputeAgent> T getLeastUsedDisputeAgent(TradeStatisticsManager tradeStatisticsManager,
-                                                                       DisputeAgentManager<T> disputeAgentManager) {
+                                                                       DisputeAgentManager<T> disputeAgentManager,
+                                                                       NodeAddress excludedDisputeAgent) {
         // We take last 100 entries from trade statistics
         List<TradeStatistics3> list = new ArrayList<>(tradeStatisticsManager.getObservableTradeStatisticsSet());
         list.sort(Comparator.comparing(TradeStatistics3::getDateAsLong));
@@ -70,6 +80,9 @@ public class DisputeAgentSelection {
         Set<String> disputeAgents = disputeAgentManager.getObservableMap().values().stream()
                 .map(disputeAgent -> disputeAgent.getNodeAddress().getFullAddress())
                 .collect(Collectors.toSet());
+
+        if (excludedDisputeAgent != null) disputeAgents.remove(excludedDisputeAgent.getFullAddress());
+        if (disputeAgents.isEmpty()) return null;
 
         String result = getLeastUsedDisputeAgent(lastAddressesUsedInTrades, disputeAgents);
 

@@ -64,7 +64,7 @@ public class MakerReservesTradeFunds extends Task<PlaceOfferModel> {
             // TODO (woodser): persist
             model.setReserveTx(reserveTx);
             offer.getOfferPayload().setReserveTxKeyImages(reservedKeyImages);
-            offer.setOfferFeePaymentTxId(reserveTx.getHash()); // TODO (woodser): rename this to reserve tx id
+            offer.setOfferFeePaymentTxId(reserveTx.getHash()); // TODO (woodser): don't use this field
             offer.setState(Offer.State.OFFER_FEE_RESERVED);
             complete();
         } catch (Throwable t) {

@@ -76,9 +76,9 @@ public class BuyerAsTakerProtocol extends BuyerProtocol implements TakerProtocol
 
     public BuyerAsTakerProtocol(BuyerAsTakerTrade trade) {
         super(trade);
-
         Offer offer = checkNotNull(trade.getOffer());
         trade.getTradingPeer().setPubKeyRing(offer.getPubKeyRing());
+        trade.setMakerPubKeyRing(offer.getPubKeyRing());
 
        // TODO (woodser): setup deposit and payout listeners on construction for startup like before rebase?
     }
@@ -100,7 +100,7 @@ public class BuyerAsTakerProtocol extends BuyerProtocol implements TakerProtocol
           .setup(tasks(
               ApplyFilter.class,
               TakerReservesTradeFunds.class,
-              TakerSendsInitTradeRequestToArbitrator.class)
+              TakerSendsInitTradeRequestToArbitrator.class) // TODO (woodser): app hangs if this pipeline fails. use .using() like below
           .withTimeout(30))
           .executeTasks();
     }

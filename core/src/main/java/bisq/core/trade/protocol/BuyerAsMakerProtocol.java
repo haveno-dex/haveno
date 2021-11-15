@@ -42,6 +42,7 @@ import bisq.core.trade.protocol.tasks.buyer.BuyerSendsDelayedPayoutTxSignatureRe
 import bisq.core.trade.protocol.tasks.buyer.BuyerSignsDelayedPayoutTx;
 import bisq.core.trade.protocol.tasks.buyer.BuyerVerifiesPreparedDelayedPayoutTx;
 import bisq.core.trade.protocol.tasks.maker.MakerRemovesOpenOffer;
+import bisq.core.trade.protocol.tasks.maker.MakerSendsInitTradeRequestIfUnreserved;
 import bisq.core.trade.protocol.tasks.maker.MakerVerifyTakerFeePayment;
 import bisq.core.util.Validator;
 
@@ -142,7 +143,7 @@ public class BuyerAsMakerProtocol extends BuyerProtocol implements MakerProtocol
                     ProcessInitTradeRequest.class,
                     //ApplyFilter.class, // TODO (woodser): these checks apply when maker signs availability request, but not here
                     //VerifyPeersAccountAgeWitness.class, // TODO (woodser): these checks apply after in multisig, means if rejected need to reimburse other's fee
-                    //MakerSendsInitTradeRequestIfUnreserved.class, // TODO (woodser): implement this
+                    MakerSendsInitTradeRequestIfUnreserved.class,
                     MakerRemovesOpenOffer.class).
                     using(new TradeTaskRunner(trade,
                             () -> {

@@ -49,19 +49,18 @@ public class TakerReservesTradeFunds extends TradeTask {
             
             // freeze trade funds
             // TODO (woodser): synchronize to handle potential race condition where concurrent trades freeze each other's outputs
-            List<String> frozenKeyImages = new ArrayList<String>();
+            List<String> reserveTxKeyImages = new ArrayList<String>();
             MoneroWallet wallet = model.getXmrWalletService().getWallet();
             for (MoneroOutput input : reserveTx.getInputs()) {
-                frozenKeyImages.add(input.getKeyImage().getHex());
+                reserveTxKeyImages.add(input.getKeyImage().getHex());
                 wallet.freezeOutput(input.getKeyImage().getHex());
             }
             
             // save process state
             // TODO (woodser): persist
             processModel.setReserveTx(reserveTx);
-            processModel.setReserveTxHash(reserveTx.getHash());
-            processModel.setFrozenKeyImages(frozenKeyImages);
-            trade.setTakerFeeTxId(reserveTx.getHash());
+            processModel.getTaker().setReserveTxKeyImages(reserveTxKeyImages);
+            trade.setTakerFeeTxId(reserveTx.getHash()); // TODO (woodser): this should be multisig deposit tx id? how is it used?
             //trade.setState(Trade.State.TAKER_PUBLISHED_TAKER_FEE_TX); // TODO (woodser): fee tx is not broadcast separate, update states
             complete();
         } catch (Throwable t) {
