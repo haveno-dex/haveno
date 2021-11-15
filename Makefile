@@ -53,6 +53,17 @@ arbitrator-desktop:
 		--appName=haveno-XMR_STAGENET_arbitrator \
 		--apiPassword=apitest \
 		--apiPort=9998
+		
+arbitrator-desktop2:
+	# Arbitrator and mediator need to be registerd in the UI after launching it.
+	./haveno-desktop \
+		--baseCurrencyNetwork=XMR_STAGENET \
+		--useLocalhostForP2P=true \
+		--useDevPrivilegeKeys=true \
+		--nodePort=7777 \
+		--appName=haveno-XMR_STAGENET_arbitrator2 \
+		--apiPassword=apitest \
+		--apiPort=10001
 
 alice-desktop:
 	./haveno-desktop \

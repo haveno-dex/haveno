@@ -67,7 +67,7 @@ public class OfferAvailabilityModel implements Model {
     private String makerSignature;
     @Setter
     @Getter
-    private NodeAddress arbitratorNodeAddress;
+    private NodeAddress backupArbitrator;
 
     // Added in v1.5.5
     @Getter

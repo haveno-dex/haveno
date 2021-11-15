@@ -23,7 +23,6 @@ import bisq.core.btc.model.XmrAddressEntry;
 import bisq.core.offer.Offer;
 import bisq.core.trade.MakerTrade;
 import bisq.core.trade.SellerTrade;
-import bisq.core.trade.TakerTrade;
 import bisq.core.trade.Trade;
 import bisq.core.trade.TradeUtils;
 import bisq.core.trade.messages.SignContractRequest;
@@ -62,8 +61,8 @@ public class SendSignContractRequestAfterMultisig extends TradeTask {
 
           // thaw reserved outputs
           MoneroWallet wallet = trade.getXmrWalletService().getWallet();
-          for (String frozenKeyImage : processModel.getFrozenKeyImages()) {
-              wallet.thawOutput(frozenKeyImage);
+          for (String reserveTxKeyImage : trade.getSelf().getReserveTxKeyImages()) {
+              wallet.thawOutput(reserveTxKeyImage);
           }
           
           // create deposit tx

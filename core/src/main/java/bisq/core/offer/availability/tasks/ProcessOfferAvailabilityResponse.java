@@ -53,19 +53,17 @@ public class ProcessOfferAvailabilityResponse extends Task<OfferAvailabilityMode
                 return;
             }
             
-            // check maker signature for trade request
+            // verify maker signature for trade request
             if (!TradeUtils.isMakerSignatureValid(model.getTradeRequest(), offerAvailabilityResponse.getMakerSignature(), offer.getPubKeyRing())) {
                 offer.setState(Offer.State.NOT_AVAILABLE);
                 failed("Take offer attempt failed because maker signature is invalid");
                 return;
             }
-
-            offer.setState(Offer.State.AVAILABLE);
             
+            offer.setState(Offer.State.AVAILABLE);
             model.setMakerSignature(offerAvailabilityResponse.getMakerSignature());
-            model.setArbitratorNodeAddress(offerAvailabilityResponse.getArbitratorNodeAddress());
+            model.setBackupArbitrator(offerAvailabilityResponse.getBackupArbitrator());
             checkNotNull(model.getMakerSignature());
-            checkNotNull(model.getArbitratorNodeAddress());
 
             complete();
         } catch (Throwable t) {

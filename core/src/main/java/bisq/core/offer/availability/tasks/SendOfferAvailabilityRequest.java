@@ -37,6 +37,7 @@ import bisq.common.taskrunner.TaskRunner;
 
 import lombok.extern.slf4j.Slf4j;
 
+// TODO (woodser): rename to TakerSendOfferAvailabilityRequest and group with other taker tasks
 @Slf4j
 public class SendOfferAvailabilityRequest extends Task<OfferAvailabilityModel> {
     public SendOfferAvailabilityRequest(TaskRunner<OfferAvailabilityModel> taskHandler, OfferAvailabilityModel model) {
@@ -78,7 +79,7 @@ public class SendOfferAvailabilityRequest extends Task<OfferAvailabilityModel> {
                     new Date().getTime(),
                     offer.getMakerNodeAddress(),
                     P2PService.getMyNodeAddress(),
-                    null, // maker provides node address of arbitrator on response
+                    null, // maker provides node address of backup arbitrator on response
                     null, // reserve tx not sent from taker to maker
                     null,
                     null,

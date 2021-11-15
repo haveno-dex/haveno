@@ -7,11 +7,10 @@ import bisq.core.trade.messages.InitMultisigRequest;
 import bisq.core.trade.messages.InitTradeRequest;
 import bisq.core.trade.messages.SignContractRequest;
 import bisq.core.trade.protocol.tasks.ApplyFilter;
-import bisq.core.trade.protocol.tasks.ArbitratorSendsInitTradeRequestToMakerIfFromTaker;
+import bisq.core.trade.protocol.tasks.ArbitratorSendsInitTradeAndMultisigRequests;
 import bisq.core.trade.protocol.tasks.ProcessDepositRequest;
 import bisq.core.trade.protocol.tasks.ProcessInitMultisigRequest;
 import bisq.core.trade.protocol.tasks.ArbitratorProcessesReserveTx;
-import bisq.core.trade.protocol.tasks.ArbitratorSendsInitMultisigRequestsIfFundsReserved;
 import bisq.core.trade.protocol.tasks.ProcessInitTradeRequest;
 import bisq.core.trade.protocol.tasks.ProcessSignContractRequest;
 import bisq.core.util.Validator;
@@ -42,8 +41,7 @@ public class ArbitratorProtocol extends DisputeProtocol {
                   ApplyFilter.class,
                   ProcessInitTradeRequest.class,
                   ArbitratorProcessesReserveTx.class,
-                  ArbitratorSendsInitTradeRequestToMakerIfFromTaker.class,
-                  ArbitratorSendsInitMultisigRequestsIfFundsReserved.class))
+                  ArbitratorSendsInitTradeAndMultisigRequests.class))
               .executeTasks();
   }
   

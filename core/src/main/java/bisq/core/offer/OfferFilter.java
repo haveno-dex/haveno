@@ -216,8 +216,8 @@ public class OfferFilter {
     public boolean hasValidSignature(Offer offer) {
         
         // get arbitrator
-        Mediator arbitrator = user.getAcceptedMediatorByAddress(offer.getOfferPayload().getArbitratorNodeAddress()); // TODO (woodser): does this return null if arbitrator goes offline?
-        if (arbitrator == null) return false; // TODO (woodser): if arbitrator is null, get arbirator's pub key ring from store, otherwise cannot validate and offer is not seen by takers when arbitrator goes offline
+        Mediator arbitrator = user.getAcceptedMediatorByAddress(offer.getOfferPayload().getArbitratorSigner());
+        if (arbitrator == null) return false; // invalid arbitrator
         
         // validate arbitrator signature
         return TradeUtils.isArbitratorSignatureValid(offer.getOfferPayload(), arbitrator);

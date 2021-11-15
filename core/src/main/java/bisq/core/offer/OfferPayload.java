@@ -169,7 +169,7 @@ public final class OfferPayload implements ProtectedStoragePayload, ExpirablePay
     
     // address and signature of signing arbitrator
     @Setter
-    private NodeAddress arbitratorNodeAddress;
+    private NodeAddress arbitratorSigner;
     @Setter
     @Nullable
     private String arbitratorSignature;
@@ -255,7 +255,7 @@ public final class OfferPayload implements ProtectedStoragePayload, ExpirablePay
         this.hashOfChallenge = hashOfChallenge;
         this.extraDataMap = ExtraDataMapValidator.getValidatedExtraDataMap(extraDataMap);
         this.protocolVersion = protocolVersion;
-        this.arbitratorNodeAddress = arbitratorSigner;
+        this.arbitratorSigner = arbitratorSigner;
         this.arbitratorSignature = arbitratorSignature;
         this.reserveTxKeyImages = reserveTxKeyImages;
     }
@@ -295,7 +295,7 @@ public final class OfferPayload implements ProtectedStoragePayload, ExpirablePay
                 .setUpperClosePrice(upperClosePrice)
                 .setIsPrivateOffer(isPrivateOffer)
                 .setProtocolVersion(protocolVersion)
-                .setArbitratorNodeAddress(arbitratorNodeAddress.toProtoMessage());
+                .setArbitratorSigner(arbitratorSigner.toProtoMessage());
 
         builder.setOfferFeePaymentTxId(checkNotNull(offerFeePaymentTxId,
                 "OfferPayload is in invalid state: offerFeePaymentTxID is not set when adding to P2P network."));
@@ -357,7 +357,7 @@ public final class OfferPayload implements ProtectedStoragePayload, ExpirablePay
                 hashOfChallenge,
                 extraDataMapMap,
                 proto.getProtocolVersion(),
-                NodeAddress.fromProto(proto.getArbitratorNodeAddress()),
+                NodeAddress.fromProto(proto.getArbitratorSigner()),
                 ProtoUtil.stringOrNullFromProto(proto.getArbitratorSignature()),
                 proto.getReserveTxKeyImagesList() == null ? null : new ArrayList<String>(proto.getReserveTxKeyImagesList()));
     }
@@ -424,7 +424,7 @@ public final class OfferPayload implements ProtectedStoragePayload, ExpirablePay
                 ",\n     hashOfChallenge='" + hashOfChallenge + '\'' +
                 ",\n     extraDataMap=" + extraDataMap +
                 ",\n     protocolVersion=" + protocolVersion +
-                ",\n     arbitratorSigner=" + arbitratorNodeAddress +
+                ",\n     arbitratorSigner=" + arbitratorSigner +
                 ",\n     arbitratorSignature=" + arbitratorSignature +
                 "\n}";
     }

@@ -219,7 +219,7 @@ class EditOfferDataModel extends MutableOfferDataModel {
                 offerPayload.getHashOfChallenge(),
                 offerPayload.getExtraDataMap(),
                 offerPayload.getProtocolVersion(),
-                offerPayload.getArbitratorNodeAddress(),
+                offerPayload.getArbitratorSigner(),
                 offerPayload.getArbitratorSignature(),
                 offerPayload.getReserveTxKeyImages());
 

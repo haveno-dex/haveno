@@ -27,7 +27,7 @@ import bisq.common.proto.persistable.PersistablePayload;
 
 import com.google.protobuf.ByteString;
 import com.google.protobuf.Message;
-
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -102,6 +102,8 @@ public final class TradingPeer implements PersistablePayload {
     @Nullable
     private String reserveTxKey;
     @Nullable
+    private List<String> reserveTxKeyImages = new ArrayList<>();
+    @Nullable
     private String preparedMultisigHex;
     @Nullable
     private String madeMultisigHex;
@@ -120,7 +122,8 @@ public final class TradingPeer implements PersistablePayload {
     @Override
     public Message toProtoMessage() {
         final protobuf.TradingPeer.Builder builder = protobuf.TradingPeer.newBuilder()
-                .setChangeOutputValue(changeOutputValue);
+                .setChangeOutputValue(changeOutputValue)
+                .addAllReserveTxKeyImages(reserveTxKeyImages);
         Optional.ofNullable(accountId).ifPresent(builder::setAccountId);
         Optional.ofNullable(paymentAccountId).ifPresent(builder::setPaymentAccountId);
         Optional.ofNullable(paymentMethodId).ifPresent(builder::setPaymentMethodId);
@@ -183,6 +186,7 @@ public final class TradingPeer implements PersistablePayload {
             tradingPeer.setReserveTxHash(ProtoUtil.stringOrNullFromProto(proto.getReserveTxHash()));
             tradingPeer.setReserveTxHex(ProtoUtil.stringOrNullFromProto(proto.getReserveTxHex()));
             tradingPeer.setReserveTxKey(ProtoUtil.stringOrNullFromProto(proto.getReserveTxKey()));
+            tradingPeer.setReserveTxKeyImages(proto.getReserveTxKeyImagesList());
             tradingPeer.setPreparedMultisigHex(ProtoUtil.stringOrNullFromProto(proto.getPreparedMultisigHex()));
             tradingPeer.setMadeMultisigHex(ProtoUtil.stringOrNullFromProto(proto.getMadeMultisigHex()));
             tradingPeer.setSignedPayoutTxHex(ProtoUtil.stringOrNullFromProto(proto.getSignedPayoutTxHex()));
