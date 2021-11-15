@@ -62,7 +62,8 @@ alice-desktop:
 		--nodePort=5555 \
 		--appName=haveno-XMR_STAGENET_Alice \
 		--apiPassword=apitest \
-		--apiPort=9999
+		--apiPort=9999 \
+		--walletRpcBindPort=38091
 
 alice-daemon:
 	./haveno-daemon \
@@ -72,7 +73,8 @@ alice-daemon:
 		--nodePort=5555 \
 		--appName=haveno-XMR_STAGENET_Alice \
 		--apiPassword=apitest \
-		--apiPort=9999
+		--apiPort=9999 \
+		--walletRpcBindPort=38091
 
 bob-desktop:
 	./haveno-desktop \
@@ -82,7 +84,8 @@ bob-desktop:
 		--nodePort=6666 \
 		--appName=haveno-XMR_STAGENET_Bob \
 		--apiPassword=apitest \
-		--apiPort=10000
+		--apiPort=10000 \
+		--walletRpcBindPort=38092
 
 bob-daemon:
 	./haveno-daemon \
@@ -92,7 +95,8 @@ bob-daemon:
 		--nodePort=6666 \
 		--appName=haveno-XMR_STAGENET_Bob \
 		--apiPassword=apitest \
-		--apiPort=10000
+		--apiPort=10000 \
+		--walletRpcBindPort=38092
 
 monero-shared:
 	./.localnet/monerod \

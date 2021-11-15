@@ -92,7 +92,8 @@ public class XmrWalletService {
       MoneroWallet multisigWallet = null;
       multisigWallet = walletsSetup.getWalletConfig().createWallet(new MoneroWalletConfig()
               .setPath(path)
-              .setPassword("abctesting123"));
+              .setPassword("abctesting123"),
+              null); // auto-assign port
       multisigWallets.put(tradeId, multisigWallet);
       multisigWallet.startSyncing(5000l);
       return multisigWallet;
@@ -104,7 +105,8 @@ public class XmrWalletService {
       MoneroWallet multisigWallet = null;
       multisigWallet = walletsSetup.getWalletConfig().openWallet(new MoneroWalletConfig()
               .setPath(path)
-              .setPassword("abctesting123"));
+              .setPassword("abctesting123"),
+              null);
       multisigWallets.put(tradeId, multisigWallet);
       multisigWallet.startSyncing(5000l); // TODO (woodser): use sync period from config. apps stall if too many multisig wallets and too short sync period
       return multisigWallet;

@@ -73,6 +73,7 @@ public class Config {
     public static final String STORAGE_DIR = "storageDir";
     public static final String KEY_STORAGE_DIR = "keyStorageDir";
     public static final String WALLET_DIR = "walletDir";
+    public static final String WALLET_RPC_BIND_PORT = "walletRpcBindPort";
     public static final String USE_DEV_PRIVILEGE_KEYS = "useDevPrivilegeKeys";
     public static final String DUMP_STATISTICS = "dumpStatistics";
     public static final String IGNORE_DEV_MSG = "ignoreDevMsg";
@@ -140,6 +141,7 @@ public class Config {
     public final String appName;
     public final File userDataDir;
     public final File appDataDir;
+    public final int walletRpcBindPort;
     public final int nodePort;
     public final int maxMemory;
     public final String logLevel;
@@ -271,6 +273,12 @@ public class Config {
                         .withRequiredArg()
                         .ofType(Integer.class)
                         .defaultsTo(9999);
+
+        ArgumentAcceptingOptionSpec<Integer> walletRpcBindPortOpt =
+                parser.accepts(WALLET_RPC_BIND_PORT, "Port to bind the wallet RPC on")
+                        .withRequiredArg()
+                        .ofType(int.class)
+                        .defaultsTo(UNSPECIFIED_PORT);
 
         ArgumentAcceptingOptionSpec<Integer> maxMemoryOpt =
                 parser.accepts(MAX_MEMORY, "Max. permitted memory (used only by headless versions)")
@@ -628,6 +636,7 @@ public class Config {
             this.helpRequested = options.has(helpOpt);
             this.configFile = configFile;
             this.nodePort = options.valueOf(nodePortOpt);
+            this.walletRpcBindPort = options.valueOf(walletRpcBindPortOpt);
             this.maxMemory = options.valueOf(maxMemoryOpt);
             this.logLevel = options.valueOf(logLevelOpt);
             this.bannedBtcNodes = options.valuesOf(bannedBtcNodesOpt);
