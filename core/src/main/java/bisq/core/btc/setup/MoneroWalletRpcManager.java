@@ -9,7 +9,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-
+import lombok.extern.slf4j.Slf4j;
 
 import monero.common.MoneroError;
 import monero.wallet.MoneroWalletRpc;
@@ -17,11 +17,13 @@ import monero.wallet.MoneroWalletRpc;
 /**
  * Manages monero-wallet-rpc processes bound to ports.
  */
+@Slf4j
 public class MoneroWalletRpcManager {
 
-  private static int NUM_ALLOWED_ATTEMPTS = 1; // allow this many attempts to bind to an assigned port
+  private static final String RPC_BIND_PORT_ARGUMENT = "--rpc-bind-port";
+  private static int NUM_ALLOWED_ATTEMPTS = 2; // allow this many attempts to bind to an assigned port
   private Integer startPort;
-  private Map<Integer, MoneroWalletRpc> registeredPorts = new HashMap<Integer, MoneroWalletRpc>();
+  private final Map<Integer, MoneroWalletRpc> registeredPorts = new HashMap<>();
 
   /**
    * Manage monero-wallet-rpc instances by auto-assigning ports.
@@ -48,8 +50,9 @@ public class MoneroWalletRpcManager {
     try {
 
       // register given port
-      if (cmd.indexOf("--rpc-bind-port") >= 0) {
-        int port = Integer.valueOf(cmd.indexOf("--rpc-bind-port") + 1);
+      if (cmd.contains(RPC_BIND_PORT_ARGUMENT)) {
+        int portArgumentPosition = cmd.indexOf(RPC_BIND_PORT_ARGUMENT) + 1;
+        int port = Integer.parseInt(cmd.get(portArgumentPosition));
         MoneroWalletRpc walletRpc = new MoneroWalletRpc(cmd); // starts monero-wallet-rpc process
         registeredPorts.put(port, walletRpc);
         return walletRpc;
@@ -59,19 +62,19 @@ public class MoneroWalletRpcManager {
       else {
         int numAttempts = 0;
         while (numAttempts < NUM_ALLOWED_ATTEMPTS) {
+          int port = -1;
           try {
             numAttempts++;
-            int port = registerPort();
-            List<String> cmdCopy = new ArrayList<String>(cmd); // preserve original cmd
-            cmdCopy.add("--rpc-bind-port");
+            port = registerPort();
+            List<String> cmdCopy = new ArrayList<>(cmd); // preserve original cmd
+            cmdCopy.add(RPC_BIND_PORT_ARGUMENT);
             cmdCopy.add("" + port);
-            System.out.println(cmdCopy);
             MoneroWalletRpc walletRpc = new MoneroWalletRpc(cmdCopy); // start monero-wallet-rpc process
             registeredPorts.put(port, walletRpc);
             return walletRpc;
           } catch (Exception e) {
             if (numAttempts >= NUM_ALLOWED_ATTEMPTS) {
-              System.err.println("Unable to start monero-wallet-rpc instance after " + NUM_ALLOWED_ATTEMPTS + " attempts");
+              log.error("Unable to start monero-wallet-rpc instance after {} attempts", NUM_ALLOWED_ATTEMPTS);
               throw e;
             }
           }

@@ -44,6 +44,7 @@ import java.util.List;
 
 import static bisq.common.config.Config.PROVIDERS;
 import static bisq.common.config.Config.WALLET_DIR;
+import static bisq.common.config.Config.WALLET_RPC_BIND_PORT;
 import static com.google.inject.name.Names.named;
 
 public class BitcoinModule extends AppModule {
@@ -71,6 +72,7 @@ public class BitcoinModule extends AppModule {
         }
 
         bind(File.class).annotatedWith(named(WALLET_DIR)).toInstance(config.walletDir);
+        bind(int.class).annotatedWith(named(WALLET_RPC_BIND_PORT)).toInstance(config.walletRpcBindPort);
 
         bindConstant().annotatedWith(named(Config.BTC_NODES)).to(config.btcNodes);
         bindConstant().annotatedWith(named(Config.USER_AGENT)).to(config.userAgent);

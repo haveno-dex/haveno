@@ -50,9 +50,6 @@ import org.bitcoinj.core.PeerAddress;
 import org.bitcoinj.core.PeerGroup;
 import org.bitcoinj.core.RejectMessage;
 import org.bitcoinj.core.listeners.DownloadProgressTracker;
-import org.bitcoinj.params.MainNetParams;
-import org.bitcoinj.params.RegTestParams;
-import org.bitcoinj.params.TestNet3Params;
 import org.bitcoinj.utils.Threading;
 import org.bitcoinj.wallet.DeterministicSeed;
 import org.bitcoinj.wallet.Wallet;
@@ -135,6 +132,7 @@ public class WalletsSetup {
     private final String userAgent;
     private final NetworkParameters params;
     private final File walletDir;
+    private final int walletRpcBindPort;
     private final int socks5DiscoverMode;
     private final IntegerProperty numPeers = new SimpleIntegerProperty(0);
     private final IntegerProperty chainHeight = new SimpleIntegerProperty(0);
@@ -161,6 +159,7 @@ public class WalletsSetup {
                         BtcNodes btcNodes,
                         @Named(Config.USER_AGENT) String userAgent,
                         @Named(Config.WALLET_DIR) File walletDir,
+                        @Named(Config.WALLET_RPC_BIND_PORT) int walletRpcBindPort,
                         @Named(Config.USE_ALL_PROVIDED_NODES) boolean useAllProvidedNodes,
                         @Named(Config.NUM_CONNECTIONS_FOR_BTC) int numConnectionsForBtc,
                         @Named(Config.SOCKS5_DISCOVER_MODE) String socks5DiscoverModeString) {
@@ -177,6 +176,7 @@ public class WalletsSetup {
         this.userAgent = userAgent;
         this.socks5DiscoverMode = evaluateMode(socks5DiscoverModeString);
         this.walletDir = walletDir;
+        this.walletRpcBindPort = walletRpcBindPort;
 
         xmrWalletFileName = "haveno_" + config.baseCurrencyNetwork.getCurrencyCode();
         params = Config.baseCurrencyNetworkParameters();
@@ -207,9 +207,7 @@ public class WalletsSetup {
         final Socks5Proxy socks5Proxy = preferences.getUseTorForBitcoinJ() ? socks5ProxyProvider.getSocks5Proxy() : null;
         log.info("Socks5Proxy for bitcoinj: socks5Proxy=" + socks5Proxy);
 
-        walletConfig = new WalletConfig(params,
-                walletDir,
-                "haveno") {
+        walletConfig = new WalletConfig(params, walletDir, walletRpcBindPort, "haveno") {
             @Override
             protected void onSetupCompleted() {
                 //We are here in the btcj thread Thread[ STARTING,5,main]
