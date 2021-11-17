@@ -238,6 +238,8 @@ message GetCryptoCurrencyPaymentMethodsReply {
 service Price {
     rpc GetMarketPrice (MarketPriceRequest) returns (MarketPriceReply) {
     }
+    rpc GetMarketPrices (MarketPricesRequest) returns (MarketPricesReply) {
+    }
 }
 
 message MarketPriceRequest {
@@ -246,6 +248,18 @@ message MarketPriceRequest {
 
 message MarketPriceReply {
     double price = 1;
+}
+
+message MarketPricesRequest {
+}
+
+message MarketPricesReply {
+    repeated MarketPrice market_price = 1;
+}
+
+message MarketPrice {
+    string currency_code = 1;
+    double price = 2;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////
@@ -371,7 +385,7 @@ message TradeInfo {
     bool is_withdrawn = 23;
     string contract_as_json = 24;
     ContractInfo contract = 25;
-    
+
     string maker_deposit_tx_id = 100;
     string taker_deposit_tx_id = 101;
 }
@@ -389,7 +403,7 @@ message ContractInfo {
     string maker_payout_address_string = 10;
     string taker_payout_address_string = 11;
     uint64 lock_time = 12;
-    
+
     string arbitrator_node_address = 100;
 }
 

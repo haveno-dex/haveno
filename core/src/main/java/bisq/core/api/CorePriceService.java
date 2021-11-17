@@ -17,18 +17,19 @@
 
 package bisq.core.api;
 
+import bisq.core.api.model.MarketPrice;
+import bisq.core.locale.CurrencyUtil;
 import bisq.core.provider.price.PriceFeedService;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
-import java.util.function.Consumer;
+import java.util.List;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeoutException;
+import java.util.stream.Collectors;
 
 import lombok.extern.slf4j.Slf4j;
-
-import static bisq.common.util.MathUtils.roundDouble;
-import static bisq.core.locale.CurrencyUtil.isFiatCurrency;
-import static java.lang.String.format;
 
 @Singleton
 @Slf4j
@@ -41,29 +42,42 @@ class CorePriceService {
         this.priceFeedService = priceFeedService;
     }
 
-    public void getMarketPrice(String currencyCode, Consumer<Double> resultHandler) {
-        String upperCaseCurrencyCode = currencyCode.toUpperCase();
-
-        if (!isFiatCurrency(upperCaseCurrencyCode))
-            throw new IllegalStateException(format("%s is not a valid currency code", upperCaseCurrencyCode));
-
-        if (!priceFeedService.hasPrices())
-            throw new IllegalStateException("price feed service has no prices");
-
-        try {
-            priceFeedService.setCurrencyCode(upperCaseCurrencyCode);
-        } catch (Throwable throwable) {
-            log.warn("Could not set currency code in PriceFeedService", throwable);
+    /**
+     * @return Price per 1 XMR in the given currency (fiat or crypto)
+     */
+    public double getMarketPrice(String currencyCode) throws ExecutionException, InterruptedException, TimeoutException, IllegalArgumentException {
+        var marketPrice = priceFeedService.requestAllPrices().get(currencyCode);
+        if (marketPrice == null) {
+            throw new IllegalArgumentException("Currency not found: " + currencyCode); // message sent to client
         }
+        return mapPriceFeedServicePrice(marketPrice.getPrice(), marketPrice.getCurrencyCode());
+    }
 
-        priceFeedService.requestPriceFeed(price -> {
-                    if (price > 0) {
-                        log.info("{} price feed request returned {}", upperCaseCurrencyCode, price);
-                        resultHandler.accept(roundDouble(price, 4));
-                    } else {
-                        throw new IllegalStateException(format("%s price is not available", upperCaseCurrencyCode));
-                    }
-                },
-                (errorMessage, throwable) -> log.warn(errorMessage, throwable));
+    /**
+     * @return Price per 1 XMR in all supported currencies (fiat & crypto)
+     */
+    public List<MarketPrice> getMarketPrices() throws ExecutionException, InterruptedException, TimeoutException {
+        return priceFeedService.requestAllPrices().values().stream()
+                .map(marketPrice -> {
+                    double mappedPrice = mapPriceFeedServicePrice(marketPrice.getPrice(), marketPrice.getCurrencyCode());
+                    return new MarketPrice(marketPrice.getCurrencyCode(), mappedPrice);
+                })
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * PriceProvider returns different values for crypto and fiat,
+     * e.g. 1 XMR = X USD
+     * but 1 DOGE = X XMR
+     * Here we convert all to:
+     * 1 XMR = X (FIAT or CRYPTO)
+     *
+     */
+    private double mapPriceFeedServicePrice(double price, String currencyCode) {
+        if (CurrencyUtil.isFiatCurrency(currencyCode)) {
+            return price;
+        }
+        return price == 0 ? 0 : 1 / price;
+        // TODO PriceProvider.getAll() could provide these values directly when the original values are not needed for the 'desktop' UI anymore
     }
 }

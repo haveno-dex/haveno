@@ -19,6 +19,7 @@ package bisq.core.api;
 
 import bisq.core.api.model.AddressBalanceInfo;
 import bisq.core.api.model.BalancesInfo;
+import bisq.core.api.model.MarketPrice;
 import bisq.core.api.model.TxFeeRateInfo;
 import bisq.core.monetary.Price;
 import bisq.core.offer.Offer;
@@ -46,6 +47,8 @@ import com.google.common.util.concurrent.FutureCallback;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeoutException;
 import java.util.function.Consumer;
 
 import lombok.Getter;
@@ -225,8 +228,12 @@ public class CoreApi {
     // Prices
     ///////////////////////////////////////////////////////////////////////////////////////////
 
-    public void getMarketPrice(String currencyCode, Consumer<Double> resultHandler) {
-        corePriceService.getMarketPrice(currencyCode, resultHandler);
+    public double getMarketPrice(String currencyCode) throws ExecutionException, InterruptedException, TimeoutException {
+        return corePriceService.getMarketPrice(currencyCode);
+    }
+
+    public List<MarketPrice> getMarketPrices() throws ExecutionException, InterruptedException, TimeoutException {
+        return corePriceService.getMarketPrices();
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -275,7 +282,7 @@ public class CoreApi {
     public BalancesInfo getBalances(String currencyCode) {
         return walletsService.getBalances(currencyCode);
     }
-    
+
     public String getNewDepositSubaddress() {
         return walletsService.getNewDepositSubaddress();
     }

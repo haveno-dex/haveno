@@ -56,6 +56,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
+import java.util.concurrent.CancellationException;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.function.Consumer;
 
 import lombok.extern.slf4j.Slf4j;
@@ -322,6 +326,19 @@ public class PriceFeedService {
                     setBisqMarketPrice(tradeStatistics.getCurrency(), tradeStatistics.getTradePrice());
                 });
     }
+
+    /**
+     * Returns prices for all available currencies.
+     * For crypto currencies the value is XMR price for 1 unit of given crypto currency (e.g. 1 DOGE = X XMR).
+     * For fiat currencies the value is price in the given fiiat currency per 1 XMR (e.g.  1 XMR = X USD).
+     * Does not update PriceFeedService internal state (cache, epochInMillisAtLastRequest)
+     */
+    public Map<String, MarketPrice> requestAllPrices() throws ExecutionException, InterruptedException, TimeoutException, CancellationException {
+        return new PriceRequest().requestAllPrices(priceProvider)
+                .get(20, TimeUnit.SECONDS)
+                .second;
+    }
+
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Private

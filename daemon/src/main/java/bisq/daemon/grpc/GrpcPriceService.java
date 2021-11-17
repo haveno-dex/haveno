@@ -18,9 +18,12 @@
 package bisq.daemon.grpc;
 
 import bisq.core.api.CoreApi;
+import bisq.core.api.model.MarketPrice;
 
 import bisq.proto.grpc.MarketPriceReply;
 import bisq.proto.grpc.MarketPriceRequest;
+import bisq.proto.grpc.MarketPricesReply;
+import bisq.proto.grpc.MarketPricesRequest;
 
 import io.grpc.ServerInterceptor;
 import io.grpc.stub.StreamObserver;
@@ -28,6 +31,7 @@ import io.grpc.stub.StreamObserver;
 import javax.inject.Inject;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Optional;
 
 import lombok.extern.slf4j.Slf4j;
@@ -58,15 +62,31 @@ class GrpcPriceService extends PriceImplBase {
     public void getMarketPrice(MarketPriceRequest req,
                                StreamObserver<MarketPriceReply> responseObserver) {
         try {
-            coreApi.getMarketPrice(req.getCurrencyCode(),
-                    price -> {
-                        var reply = MarketPriceReply.newBuilder().setPrice(price).build();
-                        responseObserver.onNext(reply);
-                        responseObserver.onCompleted();
-                    });
+            double marketPrice = coreApi.getMarketPrice(req.getCurrencyCode());
+            responseObserver.onNext(MarketPriceReply.newBuilder().setPrice(marketPrice).build());
+            responseObserver.onCompleted();
         } catch (Throwable cause) {
             exceptionHandler.handleException(log, cause, responseObserver);
         }
+    }
+
+    @Override
+    public void getMarketPrices(MarketPricesRequest request,
+                                StreamObserver<MarketPricesReply> responseObserver) {
+        try {
+            responseObserver.onNext(mapMarketPricesReply(coreApi.getMarketPrices()));
+            responseObserver.onCompleted();
+        } catch (Throwable cause) {
+            exceptionHandler.handleException(log, cause, responseObserver);
+        }
+    }
+
+    private MarketPricesReply mapMarketPricesReply(List<MarketPrice> marketPrices) {
+        MarketPricesReply.Builder builder = MarketPricesReply.newBuilder();
+        marketPrices.stream()
+                .map(MarketPrice::toProtoMessage)
+                .forEach(builder::addMarketPrice);
+        return builder.build();
     }
 
     final ServerInterceptor[] interceptors() {
@@ -79,7 +99,7 @@ class GrpcPriceService extends PriceImplBase {
         return getCustomRateMeteringInterceptor(coreApi.getConfig().appDataDir, this.getClass())
                 .or(() -> Optional.of(CallRateMeteringInterceptor.valueOf(
                         new HashMap<>() {{
-                            put(getGetMarketPriceMethod().getFullMethodName(), new GrpcCallRateMeter(1, SECONDS));
+                            put(getGetMarketPriceMethod().getFullMethodName(), new GrpcCallRateMeter(10, SECONDS));
                         }}
                 )));
     }

@@ -70,19 +70,10 @@ public class PriceProvider extends HttpClientProvider {
 
         // get btc per xmr price to convert all prices to xmr
         // TODO (woodser): currently using bisq price feed, switch?
-        Double btcPerXmr = null;
         List<?> list = (ArrayList<?>) map.get("data");
-        for (Object obj : list) {
-            LinkedTreeMap<?, ?> treeMap = (LinkedTreeMap<?, ?>) obj;
-            String currencyCode = (String) treeMap.get("currencyCode");
-            if ("XMR".equalsIgnoreCase(currencyCode)) {
-                btcPerXmr = (Double) treeMap.get("price");
-                break;
-            }
-        }
+        double btcPerXmr = findBtcPerXmr(list);
 
-        final double btcPerXmrFinal = btcPerXmr;
-        list.forEach(obj -> {
+        for (Object obj : list) {
             try {
                 LinkedTreeMap<?, ?> treeMap = (LinkedTreeMap<?, ?>) obj;
                 String currencyCode = (String) treeMap.get("currencyCode");
@@ -92,8 +83,8 @@ public class PriceProvider extends HttpClientProvider {
 
                 // convert price from btc to xmr
                 boolean isFiat = CurrencyUtil.isFiatCurrency(currencyCode);
-                if (isFiat) price = price * btcPerXmrFinal;
-                else price = price / btcPerXmrFinal;
+                if (isFiat) price = price * btcPerXmr;
+                else price = price / btcPerXmr;
 
                 // add currency price to map
                 marketPriceMap.put(currencyCode, new MarketPrice(currencyCode, price, timestampSec, true));
@@ -101,12 +92,26 @@ public class PriceProvider extends HttpClientProvider {
                 log.error(t.toString());
                 t.printStackTrace();
             }
-        });
+        }
 
         // add btc to price map, remove xmr since base currency
-        marketPriceMap.put("BTC", new MarketPrice("BTC", 1 / btcPerXmrFinal, marketPriceMap.get("XMR").getTimestampSec(), true));
+        marketPriceMap.put("BTC", new MarketPrice("BTC", 1 / btcPerXmr, marketPriceMap.get("XMR").getTimestampSec(), true));
         marketPriceMap.remove("XMR");
         return new Tuple2<>(tsMap, marketPriceMap);
+    }
+
+    /**
+     * @return price of 1 XMR in BTC
+     */
+    private double findBtcPerXmr(List<?> list) {
+        for (Object obj : list) {
+            LinkedTreeMap<?, ?> treeMap = (LinkedTreeMap<?, ?>) obj;
+            String currencyCode = (String) treeMap.get("currencyCode");
+            if ("XMR".equalsIgnoreCase(currencyCode)) {
+                return (double) treeMap.get("price");
+            }
+        }
+        throw new IllegalStateException("BTC per XMR price not found");
     }
 
     public String getBaseUrl() {
