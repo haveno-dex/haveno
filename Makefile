@@ -12,7 +12,7 @@ localnet:
 	mkdir -p .localnet
 
 nodes: localnet
-	./scripts/xmr_btc_deps.sh
+	./scripts/haveno_deps.sh
 
 haveno:
 	./gradlew build

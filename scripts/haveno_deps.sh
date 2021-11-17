@@ -97,8 +97,8 @@ while true; do
     cd .localnet
 
     if ! is_linux && ! is_mac; then
-        bins_deps=("bitcoind" "bitcoin-cli" "monerod" "monero-wallet-rpc")
-        
+        bins_deps=("monerod" "monero-wallet-rpc") # "bitcoind" "bitcoin-cli"
+
         for i in ${bins_deps[@]}; do
             [ -f "$i" ] || { echo "${i} not found."; echo "Dependencies are installed automatically only on Linux and Mac. Please manually install bitcoind, bitcoin-cli, monerod, and monero-wallet-rpc executables into haveno/.localnet/ before running make."; exit 1; }
         done
@@ -106,6 +106,6 @@ while true; do
     fi
 
     dw_monero
-    dw_bitcoin
+    # dw_bitcoin
     exit 0
 done

@@ -17,28 +17,28 @@
 
 package bisq.desktop.main.settings.network;
 
-import org.bitcoinj.core.Peer;
+import monero.daemon.model.MoneroDaemonPeer;
 
-public class BitcoinNetworkListItem {
-    private final Peer peer;
+public class MoneroNetworkListItem {
+    private final MoneroDaemonPeer peer;
 
-    public BitcoinNetworkListItem(Peer peer) {
+    public MoneroNetworkListItem(MoneroDaemonPeer peer) {
         this.peer = peer;
     }
 
     public String getOnionAddress() {
-        return peer.getAddress().toString();
+        return peer.getHost() + ":" + peer.getPort();
     }
 
     public String getVersion() {
-        return String.valueOf(peer.getPeerVersionMessage().clientVersion);
+        return "";
     }
 
     public String getSubVersion() {
-        return peer.getPeerVersionMessage().subVer;
+        return "";
     }
 
     public String getHeight() {
-        return String.valueOf(peer.getBestHeight());
+        return "";
     }
 }

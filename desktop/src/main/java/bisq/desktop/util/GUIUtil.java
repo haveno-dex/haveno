@@ -785,7 +785,7 @@ public class GUIUtil {
     }
 
     public static boolean canCreateOrTakeOfferOrShowPopup(User user, Navigation navigation) {
-        
+
         // TODO (woodser): use refund agents to dispute arbitration?
         if (!user.hasAcceptedRefundAgents()) {
             log.warn("There are no refund agents available"); // TODO (woodser): refund agents changing from [4444] to [] causing this error

@@ -45,8 +45,6 @@ import bisq.network.p2p.network.Statistic;
 import bisq.common.ClockWatcher;
 import bisq.common.UserThread;
 
-import org.bitcoinj.core.PeerGroup;
-
 import javax.inject.Inject;
 
 import javafx.fxml.FXML;
@@ -73,10 +71,13 @@ import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.collections.transformation.SortedList;
 
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import static javafx.beans.binding.Bindings.createStringBinding;
+
+import monero.daemon.model.MoneroDaemonPeer;
 
 @FxmlView
 public class NetworkSettingsView extends ActivatableView<GridPane, Void> {
@@ -98,13 +99,13 @@ public class NetworkSettingsView extends ActivatableView<GridPane, Void> {
     @FXML
     TableView<P2pNetworkListItem> p2pPeersTableView;
     @FXML
-    TableView<BitcoinNetworkListItem> bitcoinPeersTableView;
+    TableView<MoneroNetworkListItem> moneroPeersTableView;
     @FXML
     TableColumn<P2pNetworkListItem, String> onionAddressColumn, connectionTypeColumn, creationDateColumn,
             roundTripTimeColumn, sentBytesColumn, receivedBytesColumn, peerTypeColumn;
     @FXML
-    TableColumn<BitcoinNetworkListItem, String> bitcoinPeerAddressColumn, bitcoinPeerVersionColumn,
-            bitcoinPeerSubVersionColumn, bitcoinPeerHeightColumn;
+    TableColumn<MoneroNetworkListItem, String> moneroPeerAddressColumn, moneroPeerVersionColumn,
+            moneroPeerSubVersionColumn, moneroPeerHeightColumn;
     @FXML
     Label reSyncSPVChainLabel;
     @FXML
@@ -122,13 +123,12 @@ public class NetworkSettingsView extends ActivatableView<GridPane, Void> {
     private final ObservableList<P2pNetworkListItem> p2pNetworkListItems = FXCollections.observableArrayList();
     private final SortedList<P2pNetworkListItem> p2pSortedList = new SortedList<>(p2pNetworkListItems);
 
-    private final ObservableList<BitcoinNetworkListItem> bitcoinNetworkListItems = FXCollections.observableArrayList();
-    private final SortedList<BitcoinNetworkListItem> bitcoinSortedList = new SortedList<>(bitcoinNetworkListItems);
+    private final ObservableList<MoneroNetworkListItem> moneroNetworkListItems = FXCollections.observableArrayList();
+    private final SortedList<MoneroNetworkListItem> moneroSortedList = new SortedList<>(moneroNetworkListItems);
 
     private Subscription numP2PPeersSubscription;
-    private Subscription bitcoinPeersSubscription;
-    private Subscription bitcoinBlockHeightSubscription;
-    private Subscription bitcoinBlocksDownloadedSubscription;
+    private Subscription moneroPeersSubscription;
+    private Subscription moneroBlockHeightSubscription;
     private Subscription nodeAddressSubscription;
     private ChangeListener<Boolean> btcNodesInputTextFieldFocusListener;
     private ToggleGroup bitcoinPeersToggleGroup;
@@ -164,11 +164,11 @@ public class NetworkSettingsView extends ActivatableView<GridPane, Void> {
         bitcoinPeersLabel.setText(Res.get("settings.net.bitcoinPeersLabel"));
         useTorForBtcJCheckBox.setText(Res.get("settings.net.useTorForBtcJLabel"));
         bitcoinNodesLabel.setText(Res.get("settings.net.bitcoinNodesLabel"));
-        bitcoinPeerAddressColumn.setGraphic(new AutoTooltipLabel(Res.get("settings.net.onionAddressColumn")));
-        bitcoinPeerAddressColumn.getStyleClass().add("first-column");
-        bitcoinPeerVersionColumn.setGraphic(new AutoTooltipLabel(Res.get("settings.net.versionColumn")));
-        bitcoinPeerSubVersionColumn.setGraphic(new AutoTooltipLabel(Res.get("settings.net.subVersionColumn")));
-        bitcoinPeerHeightColumn.setGraphic(new AutoTooltipLabel(Res.get("settings.net.heightColumn")));
+        moneroPeerAddressColumn.setGraphic(new AutoTooltipLabel(Res.get("settings.net.onionAddressColumn")));
+        moneroPeerAddressColumn.getStyleClass().add("first-column");
+        moneroPeerVersionColumn.setGraphic(new AutoTooltipLabel(Res.get("settings.net.versionColumn")));
+        moneroPeerSubVersionColumn.setGraphic(new AutoTooltipLabel(Res.get("settings.net.subVersionColumn")));
+        moneroPeerHeightColumn.setGraphic(new AutoTooltipLabel(Res.get("settings.net.heightColumn")));
         localhostBtcNodeInfoLabel.setText(Res.get("settings.net.localhostBtcNodeInfo"));
         useProvidedNodesRadio.setText(Res.get("settings.net.useProvidedNodesRadio"));
         useCustomNodesRadio.setText(Res.get("settings.net.useCustomNodesRadio"));
@@ -196,12 +196,12 @@ public class NetworkSettingsView extends ActivatableView<GridPane, Void> {
         GridPane.setMargin(p2PPeersLabel, new Insets(4, 0, 0, 0));
         GridPane.setValignment(p2PPeersLabel, VPos.TOP);
 
-        bitcoinPeersTableView.setMinHeight(180);
-        bitcoinPeersTableView.setPrefHeight(180);
-        bitcoinPeersTableView.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
-        bitcoinPeersTableView.setPlaceholder(new AutoTooltipLabel(Res.get("table.placeholder.noData")));
-        bitcoinPeersTableView.getSortOrder().add(bitcoinPeerAddressColumn);
-        bitcoinPeerAddressColumn.setSortType(TableColumn.SortType.ASCENDING);
+        moneroPeersTableView.setMinHeight(180);
+        moneroPeersTableView.setPrefHeight(180);
+        moneroPeersTableView.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
+        moneroPeersTableView.setPlaceholder(new AutoTooltipLabel(Res.get("table.placeholder.noData")));
+        moneroPeersTableView.getSortOrder().add(moneroPeerAddressColumn);
+        moneroPeerAddressColumn.setSortType(TableColumn.SortType.ASCENDING);
 
 
         p2pPeersTableView.setMinHeight(180);
@@ -290,14 +290,11 @@ public class NetworkSettingsView extends ActivatableView<GridPane, Void> {
 
         reSyncSPVChainButton.setOnAction(event -> GUIUtil.reSyncSPVChain(preferences));
 
-        bitcoinPeersSubscription = EasyBind.subscribe(walletsSetup.connectedPeersProperty(),
-                connectedPeers -> updateBitcoinPeersTable());
+        moneroPeersSubscription = EasyBind.subscribe(walletsSetup.connectedPeersProperty(),
+                this::updateMoneroPeersTable);
 
-        bitcoinBlocksDownloadedSubscription = EasyBind.subscribe(walletsSetup.blocksDownloadedFromPeerProperty(),
-                peer -> updateBitcoinPeersTable());
-
-        bitcoinBlockHeightSubscription = EasyBind.subscribe(walletsSetup.chainHeightProperty(),
-                chainHeight -> updateBitcoinPeersTable());
+        moneroBlockHeightSubscription = EasyBind.subscribe(walletsSetup.chainHeightProperty(),
+                this::updateChainHeightTextField);
 
         nodeAddressSubscription = EasyBind.subscribe(p2PService.getNetworkNode().nodeAddressProperty(),
                 nodeAddress -> onionAddress.setText(nodeAddress == null ?
@@ -317,8 +314,8 @@ public class NetworkSettingsView extends ActivatableView<GridPane, Void> {
                 Statistic.numTotalReceivedMessagesPerSecProperty().get()),
                 Statistic.numTotalReceivedMessagesPerSecProperty()));
 
-        bitcoinSortedList.comparatorProperty().bind(bitcoinPeersTableView.comparatorProperty());
-        bitcoinPeersTableView.setItems(bitcoinSortedList);
+        moneroSortedList.comparatorProperty().bind(moneroPeersTableView.comparatorProperty());
+        moneroPeersTableView.setItems(moneroSortedList);
 
         p2pSortedList.comparatorProperty().bind(p2pPeersTableView.comparatorProperty());
         p2pPeersTableView.setItems(p2pSortedList);
@@ -340,14 +337,11 @@ public class NetworkSettingsView extends ActivatableView<GridPane, Void> {
         if (nodeAddressSubscription != null)
             nodeAddressSubscription.unsubscribe();
 
-        if (bitcoinPeersSubscription != null)
-            bitcoinPeersSubscription.unsubscribe();
+        if (moneroPeersSubscription != null)
+            moneroPeersSubscription.unsubscribe();
 
-        if (bitcoinBlockHeightSubscription != null)
-            bitcoinBlockHeightSubscription.unsubscribe();
-
-        if (bitcoinBlocksDownloadedSubscription != null)
-            bitcoinBlocksDownloadedSubscription.unsubscribe();
+        if (moneroBlockHeightSubscription != null)
+            moneroBlockHeightSubscription.unsubscribe();
 
         if (numP2PPeersSubscription != null)
             numP2PPeersSubscription.unsubscribe();
@@ -355,7 +349,7 @@ public class NetworkSettingsView extends ActivatableView<GridPane, Void> {
         sentDataTextField.textProperty().unbind();
         receivedDataTextField.textProperty().unbind();
 
-        bitcoinSortedList.comparatorProperty().unbind();
+        moneroSortedList.comparatorProperty().unbind();
         p2pSortedList.comparatorProperty().unbind();
         p2pPeersTableView.getItems().forEach(P2pNetworkListItem::cleanup);
         btcNodesInputTextField.focusedProperty().removeListener(btcNodesInputTextFieldFocusListener);
@@ -485,14 +479,18 @@ public class NetworkSettingsView extends ActivatableView<GridPane, Void> {
                 .collect(Collectors.toList()));
     }
 
-    private void updateBitcoinPeersTable() {
-        bitcoinNetworkListItems.clear();
-        bitcoinNetworkListItems.setAll(walletsSetup.getPeerGroup().getConnectedPeers().stream()
-                .map(BitcoinNetworkListItem::new)
+    private void updateMoneroPeersTable(List<MoneroDaemonPeer> connectedPeers) {
+        moneroNetworkListItems.clear();
+        moneroNetworkListItems.setAll(connectedPeers.stream()
+                .map(MoneroNetworkListItem::new)
                 .collect(Collectors.toList()));
-        chainHeightTextField.textProperty().setValue(Res.get("settings.net.chainHeight",
-                walletsSetup.chainHeightProperty().get(),
-                PeerGroup.getMostCommonChainHeight(walletsSetup.connectedPeersProperty().get())));
     }
+
+    private void updateChainHeightTextField(Number chainHeight) {
+        chainHeightTextField.textProperty().setValue(Res.get("settings.net.chainHeight",
+                null,
+                chainHeight));
+    }
+
 }
 

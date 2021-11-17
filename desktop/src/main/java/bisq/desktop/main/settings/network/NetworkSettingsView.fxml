@@ -46,24 +46,24 @@
     <TitledGroupBg fx:id="btcHeader" GridPane.rowSpan="5"/>
     <VBox GridPane.rowIndex="0" GridPane.hgrow="ALWAYS" GridPane.vgrow="SOMETIMES">
         <AutoTooltipLabel fx:id="bitcoinPeersLabel" styleClass="small-text"/>
-        <TableView fx:id="bitcoinPeersTableView">
+        <TableView fx:id="moneroPeersTableView">
             <columns>
-                <TableColumn fx:id="bitcoinPeerAddressColumn" minWidth="220">
+                <TableColumn fx:id="moneroPeerAddressColumn" minWidth="220">
                     <cellValueFactory>
                         <PropertyValueFactory property="onionAddress"/>
                     </cellValueFactory>
                 </TableColumn>
-                <TableColumn fx:id="bitcoinPeerVersionColumn" minWidth="80" maxWidth="90">
+                <TableColumn fx:id="moneroPeerVersionColumn" minWidth="80" maxWidth="90">
                     <cellValueFactory>
                         <PropertyValueFactory property="version"/>
                     </cellValueFactory>
                 </TableColumn>
-                <TableColumn fx:id="bitcoinPeerSubVersionColumn" minWidth="180" maxWidth="180">
+                <TableColumn fx:id="moneroPeerSubVersionColumn" minWidth="180" maxWidth="180">
                     <cellValueFactory>
                         <PropertyValueFactory property="subVersion"/>
                     </cellValueFactory>
                 </TableColumn>
-                <TableColumn fx:id="bitcoinPeerHeightColumn" minWidth="80" maxWidth="80">
+                <TableColumn fx:id="moneroPeerHeightColumn" minWidth="80" maxWidth="80">
                     <cellValueFactory>
                         <PropertyValueFactory property="height"/>
                     </cellValueFactory>
