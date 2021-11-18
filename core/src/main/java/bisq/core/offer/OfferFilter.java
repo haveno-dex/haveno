@@ -101,9 +101,6 @@ public class OfferFilter {
         if (isTakerApiUser && filterManager.getFilter() != null && filterManager.getFilter().isDisableApi()) {
             return Result.API_DISABLED;
         }
-        if (!isAnyPaymentAccountValidForOffer(offer)) {
-            return Result.HAS_NO_PAYMENT_ACCOUNT_VALID_FOR_OFFER;
-        }
         if (!hasSameProtocolVersion(offer)) {
             return Result.HAS_NOT_SAME_PROTOCOL_VERSION;
         }
@@ -133,6 +130,9 @@ public class OfferFilter {
         }
         if (!hasValidSignature(offer)) {
             return Result.SIGNATURE_NOT_VALIDATED; // TODO (woodser): handle this wherever IS_MY_INSUFFICIENT_TRADE_LIMIT is handled
+        }
+        if (!isAnyPaymentAccountValidForOffer(offer)) {
+            return Result.HAS_NO_PAYMENT_ACCOUNT_VALID_FOR_OFFER;
         }
 
         return Result.VALID;
