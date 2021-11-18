@@ -41,6 +41,92 @@ message RegisterDisputeAgentReply {
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////
+// Account
+///////////////////////////////////////////////////////////////////////////////////////////
+
+service Account {
+    rpc AccountExists(AccountExistsRequest) returns (AccountExistsReply) {
+    }
+    rpc IsAccountOpen (IsAccountOpenRequest) returns (IsAccountOpenReply) {
+    }
+    rpc CreateAccount(CreateAccountRequest) returns (CreateAccountReply) {
+    }
+    rpc OpenAccount(OpenAccountRequest) returns (OpenAccountReply) {
+    }
+    rpc CloseAccount(CloseAccountRequest) returns (CloseAccountReply) {
+    }
+    rpc BackupAccount(BackupAccountRequest) returns (BackupAccountReply) {
+    }
+    rpc DeleteAccount(DeleteAccountRequest) returns (DeleteAccountReply) {
+    }
+    // rpc RestoreAccount(RestoreAccountRequest) returns (RestoreAccountReply) {
+    // }
+    rpc ChangePassword(ChangePasswordRequest) returns (ChangePasswordReply) {
+    }
+}
+
+message AccountExistsRequest {
+}
+
+message AccountExistsReply {
+    bool account_exists = 1;
+}
+
+message IsAccountOpenRequest {
+}
+
+message IsAccountOpenReply {
+    bool is_account_open = 1;
+}
+
+message CreateAccountRequest {
+    string password = 1;
+}
+
+message CreateAccountReply {
+}
+
+message OpenAccountRequest {
+    string password = 1;
+}
+
+message OpenAccountReply {
+}
+
+message CloseAccountRequest {
+}
+
+message CloseAccountReply {
+}
+
+message BackupAccountRequest {
+}
+
+message BackupAccountReply {
+}
+
+message DeleteAccountRequest {
+}
+
+message DeleteAccountReply {
+}
+
+// message RestoreAccountRequest {
+//     zip zip = 1;
+// }
+
+// message RestoreAccountReply {
+// }
+
+message ChangePasswordRequest {
+    string password = 1;
+}
+
+message ChangePasswordReply {
+}
+
+
+///////////////////////////////////////////////////////////////////////////////////////////
 // Help
 ///////////////////////////////////////////////////////////////////////////////////////////
 
