@@ -24,6 +24,7 @@ import bisq.core.offer.CreateOfferService;
 import bisq.core.offer.Offer;
 import bisq.core.offer.OfferBookService;
 import bisq.core.offer.OfferFilter;
+import bisq.core.offer.OfferFilter.Result;
 import bisq.core.offer.OfferUtil;
 import bisq.core.offer.OpenOffer;
 import bisq.core.offer.OpenOfferManager;
@@ -110,7 +111,10 @@ class CoreOffersService {
         return offerBookService.getOffers().stream()
                 .filter(o -> o.getId().equals(id))
                 .filter(o -> !o.isMyOffer(keyRing))
-                .filter(o -> offerFilter.canTakeOffer(o, coreContext.isApiUser()).isValid())
+                .filter(o -> {
+                    Result result = offerFilter.canTakeOffer(o, coreContext.isApiUser());
+                    return result.isValid() || result == Result.HAS_NO_PAYMENT_ACCOUNT_VALID_FOR_OFFER;
+                })
                 .findAny().orElseThrow(() ->
                         new IllegalStateException(format("offer with id '%s' not found", id)));
     }
@@ -127,7 +131,10 @@ class CoreOffersService {
         List<Offer> offers = offerBookService.getOffers().stream()
                 .filter(o -> !o.isMyOffer(keyRing))
                 .filter(o -> offerMatchesDirectionAndCurrency(o, direction, currencyCode))
-                .filter(o -> offerFilter.canTakeOffer(o, coreContext.isApiUser()).isValid())
+                .filter(o -> {
+                    Result result = offerFilter.canTakeOffer(o, coreContext.isApiUser());
+                    return result.isValid() || result == Result.HAS_NO_PAYMENT_ACCOUNT_VALID_FOR_OFFER;
+                })
                 .sorted(priceComparator(direction))
                 .collect(Collectors.toList());
         offers.removeAll(getUnreservedOffers(offers));
