@@ -49,7 +49,8 @@ public class GrpcAccountService extends AccountImplBase {
     private final CoreApi coreApi;
     private final GrpcExceptionHandler exceptionHandler;
     @Inject
-    public GrpcAccountService(CoreApi coreApi, GrpcExceptionHandler exceptionHandler) {
+    public GrpcAccountService(CoreApi coreApi, 
+    						  GrpcExceptionHandler exceptionHandler) {
         this.coreApi = coreApi;
         this.exceptionHandler = exceptionHandler;
     }
@@ -58,7 +59,7 @@ public class GrpcAccountService extends AccountImplBase {
     public void accountExists(AccountExistsRequest req, StreamObserver<AccountExistsReply> responseObserver) {
         try {
             var reply = AccountExistsReply.newBuilder()
-                                         .setAccountExists(true)
+                                         .setAccountExists(coreApi.accountExists())
                                          .build();
             responseObserver.onNext(reply);
             responseObserver.onCompleted();
@@ -71,7 +72,7 @@ public class GrpcAccountService extends AccountImplBase {
     public void isAccountOpen(IsAccountOpenRequest req, StreamObserver<IsAccountOpenReply> responseObserver) {
         try {
             var reply = IsAccountOpenReply.newBuilder()
-                                          .setIsAccountOpen(true)
+                                          .setIsAccountOpen(coreApi.isAccountOpen())
                                           .build();
             responseObserver.onNext(reply);
             responseObserver.onCompleted();
@@ -83,6 +84,7 @@ public class GrpcAccountService extends AccountImplBase {
     @Override
     public void createAccount(CreateAccountRequest req, StreamObserver<CreateAccountReply> responseObserver) {
         try {
+        	coreApi.createAccount(req.getPassword());
         	var reply = CreateAccountReply.newBuilder()
         								  .build();
         	responseObserver.onNext(reply);
@@ -95,6 +97,7 @@ public class GrpcAccountService extends AccountImplBase {
     @Override
     public void openAccount(OpenAccountRequest req, StreamObserver<OpenAccountReply> responseObserver) {
         try {
+        	coreApi.openAccount(req.getPassword());
             var reply = OpenAccountReply.newBuilder()
                     .build();
             responseObserver.onNext(reply);
@@ -107,6 +110,7 @@ public class GrpcAccountService extends AccountImplBase {
     @Override
     public void closeAccount(CloseAccountRequest req, StreamObserver<CloseAccountReply> responseObserver) {
         try {
+        	coreApi.closeAccount();
             var reply = CloseAccountReply.newBuilder()
                     					 .build();
             responseObserver.onNext(reply);
@@ -119,6 +123,7 @@ public class GrpcAccountService extends AccountImplBase {
     @Override
     public void backupAccount(BackupAccountRequest req, StreamObserver<BackupAccountReply> responseObserver) {
         try {
+        	coreApi.backupAccount();
             var reply = BackupAccountReply.newBuilder()
 					 					 .build();
             responseObserver.onNext(reply);
@@ -131,6 +136,7 @@ public class GrpcAccountService extends AccountImplBase {
     @Override
     public void deleteAccount(DeleteAccountRequest req, StreamObserver<DeleteAccountReply> responseObserver) {
         try {
+        	coreApi.deleteAccount();
             var reply = DeleteAccountReply.newBuilder()
 					 					  .build();
             responseObserver.onNext(reply);
@@ -143,6 +149,7 @@ public class GrpcAccountService extends AccountImplBase {
     @Override
     public void changePassword(ChangePasswordRequest req, StreamObserver<ChangePasswordReply> responseObserver) {
         try {
+        	coreApi.changePassword(req.getPassword());
             var reply = ChangePasswordReply.newBuilder()
 					  					   .build();
             responseObserver.onNext(reply);

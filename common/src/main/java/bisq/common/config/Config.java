@@ -13,6 +13,8 @@ import joptsimple.OptionSpecBuilder;
 import joptsimple.util.PathConverter;
 import joptsimple.util.PathProperties;
 import joptsimple.util.RegexMatcher;
+import lombok.Getter;
+import lombok.Setter;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -53,7 +55,8 @@ import static java.util.stream.Collectors.toList;
  * @see #Config(String, File, String...)
  */
 public class Config {
-
+	
+	public enum DaemonMode { DESKTOP, WEBAPP }
     // Option name constants
     public static final String HELP = "help";
     public static final String APP_NAME = "appName";
@@ -114,6 +117,7 @@ public class Config {
     public static final String BTC_MIN_TX_FEE = "btcMinTxFee";
     public static final String BTC_FEES_TS = "bitcoinFeesTs";
     public static final String BYPASS_MEMPOOL_VALIDATION = "bypassMempoolValidation";
+    public static final String DAEMON_MODE = "daemonMode";
 
     // Default values for certain options
     public static final int UNSPECIFIED_PORT = -1;
@@ -190,12 +194,16 @@ public class Config {
     public final boolean preventPeriodicShutdownAtSeedNode;
     public final boolean republishMailboxEntries;
     public final boolean bypassMempoolValidation;
+    public final DaemonMode mode;
 
     // Properties derived from options but not exposed as options themselves
     public final File torDir;
     public final File walletDir;
     public final File storageDir;
     public final File keyStorageDir;
+    
+    @Getter @Setter
+    private String havenoWalletPassword;
 
     // The parser that will be used to parse both cmd line and config file options
     private final OptionParser parser = new OptionParser();
@@ -578,6 +586,12 @@ public class Config {
                         .withRequiredArg()
                         .ofType(boolean.class)
                         .defaultsTo(false);
+        
+//        ArgumentAcceptingOptionSpec<Enum> daemonModeOpt =
+//                parser.accepts(DAEMON_MODE, "Mode to run daemon")
+//                        .withRequiredArg()
+//                        .defaultsTo(DaemonMode.DESKTOP);
+        
 
         try {
             CompositeOptionSet options = new CompositeOptionSet();
@@ -686,6 +700,11 @@ public class Config {
             this.preventPeriodicShutdownAtSeedNode = options.valueOf(preventPeriodicShutdownAtSeedNodeOpt);
             this.republishMailboxEntries = options.valueOf(republishMailboxEntriesOpt);
             this.bypassMempoolValidation = options.valueOf(bypassMempoolValidationOpt);
+            
+            //this.mode = DaemonMode.DESKTOP; //
+            this.mode = DaemonMode.WEBAPP;
+            //this.mode = options.valueOf(daemonModeOpt);
+            
         } catch (OptionException ex) {
             throw new ConfigException("problem parsing option '%s': %s",
                     ex.options().get(0),
@@ -700,6 +719,7 @@ public class Config {
         this.storageDir = mkdir(btcNetworkDir, "db");
         this.torDir = mkdir(btcNetworkDir, "tor");
         this.walletDir = mkdir(btcNetworkDir, "wallet");
+        
 
         // Assign values to special-case static fields
         APP_DATA_DIR_VALUE = appDataDir;

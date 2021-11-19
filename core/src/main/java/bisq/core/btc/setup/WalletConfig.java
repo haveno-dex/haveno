@@ -22,6 +22,7 @@ import bisq.core.btc.nodes.ProxySocketFactory;
 import bisq.core.btc.wallet.BisqRiskAnalysis;
 
 import bisq.common.config.Config;
+import bisq.common.config.Config.DaemonMode;
 import bisq.common.file.FileUtil;
 
 import org.bitcoinj.core.BlockChain;
@@ -366,9 +367,9 @@ public class WalletConfig extends AbstractIdleService {
             String xmrPrefix = "_XMR";
             vXmrWalletFile = new File(directory, filePrefix + xmrPrefix);
             if (MoneroUtils.walletExists(vXmrWalletFile.getPath())) {
-              vXmrWallet = openWallet(new MoneroWalletConfig().setPath(filePrefix + xmrPrefix).setPassword("abctesting123"), rpcBindPort);
+            	vXmrWallet = openWallet(new MoneroWalletConfig().setPath(filePrefix + xmrPrefix).setPassword(config.getHavenoWalletPassword()), rpcBindPort);
             } else {
-              vXmrWallet = createWallet(new MoneroWalletConfig().setPath(filePrefix + xmrPrefix).setPassword("abctesting123"), rpcBindPort);
+            	vXmrWallet = createWallet(new MoneroWalletConfig().setPath(filePrefix + xmrPrefix).setPassword(config.getHavenoWalletPassword()), rpcBindPort);
             }
             System.out.println("Monero wallet path: " + vXmrWallet.getPath());
             System.out.println("Monero wallet address: " + vXmrWallet.getPrimaryAddress());
