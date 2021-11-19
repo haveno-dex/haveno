@@ -65,7 +65,6 @@ public class MakerReservesTradeFunds extends Task<PlaceOfferModel> {
             model.setReserveTx(reserveTx);
             offer.getOfferPayload().setReserveTxKeyImages(reservedKeyImages);
             offer.setOfferFeePaymentTxId(reserveTx.getHash()); // TODO (woodser): don't use this field
-            offer.setState(Offer.State.OFFER_FEE_RESERVED);
             complete();
         } catch (Throwable t) {
             offer.setErrorMessage("An error occurred.\n" +

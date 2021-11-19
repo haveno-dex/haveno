@@ -74,6 +74,7 @@ public class MakerSendsSignOfferRequest extends Task<PlaceOfferModel> {
             model.getP2PService().sendEncryptedDirectMessage(arbitrator.getNodeAddress(), arbitrator.getPubKeyRing(), request, new SendDirectMessageListener() {
                 @Override
                 public void onArrived() {
+                    offer.setState(Offer.State.OFFER_FEE_RESERVED);
                     log.info("{} arrived: arbitrator={}; offerId={}; uid={}", request.getClass().getSimpleName(), arbitrator.getNodeAddress(), offer.getId());
                     complete();
                 }
