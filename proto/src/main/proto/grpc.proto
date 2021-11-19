@@ -570,10 +570,11 @@ message BtcBalanceInfo {
 }
 
 message XmrBalanceInfo {
-    uint64 unlocked_balance = 1 [jstype = JS_STRING];
-    uint64 locked_balance = 2 [jstype = JS_STRING];
-    uint64 reserved_offer_balance = 3 [jstype = JS_STRING];
-    uint64 reserved_trade_balance = 4 [jstype = JS_STRING];
+    uint64 balance = 1 [jstype = JS_STRING];
+    uint64 unlocked_balance = 2 [jstype = JS_STRING];
+    uint64 locked_balance = 3 [jstype = JS_STRING];
+    uint64 reserved_offer_balance = 4 [jstype = JS_STRING];
+    uint64 reserved_trade_balance = 5 [jstype = JS_STRING];
 }
 
 message AddressBalanceInfo {

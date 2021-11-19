@@ -12,18 +12,22 @@ public class XmrBalanceInfo implements Payload {
     public static final XmrBalanceInfo EMPTY = new XmrBalanceInfo(-1,
             -1,
             -1,
+            -1,
             -1);
 
     // all balances are in atomic units
+    private final long balance;
     private final long unlockedBalance;
     private final long lockedBalance;
     private final long reservedOfferBalance;
     private final long reservedTradeBalance;
 
-    public XmrBalanceInfo(long unlockedBalance,
+    public XmrBalanceInfo(long balance,
+                          long unlockedBalance,
                           long lockedBalance,
                           long reservedOfferBalance,
                           long reservedTradeBalance) {
+        this.balance = balance;
         this.unlockedBalance = unlockedBalance;
         this.lockedBalance = lockedBalance;
         this.reservedOfferBalance = reservedOfferBalance;
@@ -31,11 +35,13 @@ public class XmrBalanceInfo implements Payload {
     }
 
     @VisibleForTesting
-    public static XmrBalanceInfo valueOf(long unlockedBalance,
+    public static XmrBalanceInfo valueOf(long balance,
+                                         long unlockedBalance,
                                          long lockedBalance,
                                          long reservedOfferBalance,
                                          long reservedTradeBalance) {
-        return new XmrBalanceInfo(unlockedBalance,
+        return new XmrBalanceInfo(balance,
+                unlockedBalance,
                 lockedBalance,
                 reservedOfferBalance,
                 reservedTradeBalance);
@@ -48,6 +54,7 @@ public class XmrBalanceInfo implements Payload {
     @Override
     public bisq.proto.grpc.XmrBalanceInfo toProtoMessage() {
         return bisq.proto.grpc.XmrBalanceInfo.newBuilder()
+                .setBalance(balance)
                 .setUnlockedBalance(unlockedBalance)
                 .setLockedBalance(lockedBalance)
                 .setReservedOfferBalance(reservedOfferBalance)
@@ -56,7 +63,8 @@ public class XmrBalanceInfo implements Payload {
     }
 
     public static XmrBalanceInfo fromProto(bisq.proto.grpc.XmrBalanceInfo proto) {
-        return new XmrBalanceInfo(proto.getUnlockedBalance(),
+        return new XmrBalanceInfo(proto.getBalance(),
+                proto.getUnlockedBalance(),
                 proto.getLockedBalance(),
                 proto.getReservedOfferBalance(),
                 proto.getReservedTradeBalance());
@@ -64,7 +72,8 @@ public class XmrBalanceInfo implements Payload {
 
     @Override
     public String toString() {
-        return "BtcBalanceInfo{" +
+        return "XmrBalanceInfo{" +
+                "balance=" + balance +
                 "unlockedBalance=" + unlockedBalance +
                 ", lockedBalance=" + lockedBalance +
                 ", reservedOfferBalance=" + reservedOfferBalance +

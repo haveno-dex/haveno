@@ -46,7 +46,7 @@ public class MakerProcessesSignOfferResponse extends Task<PlaceOfferModel> {
             
             // set arbitrator signature for maker's offer
             model.getOffer().getOfferPayload().setArbitratorSignature(model.getSignOfferResponse().getSignedOfferPayload().getArbitratorSignature());
-            
+            offer.setState(Offer.State.AVAILABLE);
             complete();
         } catch (Exception e) {
             offer.setErrorMessage("An error occurred.\n" +

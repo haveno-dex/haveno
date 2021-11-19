@@ -543,7 +543,8 @@ class CoreWalletsService {
         if (reservedTradeBalance == null)
             throw new IllegalStateException("reserved trade balance is not yet available");
 
-        return new XmrBalanceInfo(availableBalance.longValue(),
+        return new XmrBalanceInfo(availableBalance.longValue() + lockedBalance.longValue(),
+                availableBalance.longValue(),
                 lockedBalance.longValue(),
                 reservedOfferBalance.longValue(),
                 reservedTradeBalance.longValue());
