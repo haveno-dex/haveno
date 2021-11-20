@@ -22,7 +22,7 @@ import bisq.core.btc.nodes.ProxySocketFactory;
 import bisq.core.btc.wallet.BisqRiskAnalysis;
 
 import bisq.common.config.Config;
-import bisq.common.config.Config.DaemonMode;
+import bisq.common.config.DaemonMode;
 import bisq.common.file.FileUtil;
 
 import org.bitcoinj.core.BlockChain;

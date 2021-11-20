@@ -55,12 +55,12 @@ service Account {
     }
     rpc CloseAccount(CloseAccountRequest) returns (CloseAccountReply) {
     }
-    rpc BackupAccount(BackupAccountRequest) returns (BackupAccountReply) {
+    rpc BackupAccount(BackupAccountRequest) returns (stream BackupAccountReply) {
     }
     rpc DeleteAccount(DeleteAccountRequest) returns (DeleteAccountReply) {
     }
-    // rpc RestoreAccount(RestoreAccountRequest) returns (RestoreAccountReply) {
-    // }
+    rpc RestoreAccount(stream RestoreAccountRequest) returns (RestoreAccountReply) {
+    }
     rpc ChangePassword(ChangePasswordRequest) returns (ChangePasswordReply) {
     }
 }
@@ -103,6 +103,7 @@ message BackupAccountRequest {
 }
 
 message BackupAccountReply {
+	bytes data = 1;
 }
 
 message DeleteAccountRequest {
@@ -111,12 +112,33 @@ message DeleteAccountRequest {
 message DeleteAccountReply {
 }
 
-// message RestoreAccountRequest {
-//     zip zip = 1;
-// }
+message MetaData {
+	string name = 1;
+	string type = 2;
+}
 
-// message RestoreAccountReply {
-// }
+message Zip {
+	bytes content = 1;
+}
+
+enum Status {
+	PENDING = 0;
+	IN_PROGRESS = 1;
+	SUCCESS = 2;
+	FAILED = 3;
+}
+
+message RestoreAccountRequest {
+	oneof request {
+    	MetaData metadata = 1;
+    	Zip zip = 2;
+    }
+}
+
+message RestoreAccountReply {
+	string name = 1;
+	Status status = 2;
+}
 
 message ChangePasswordRequest {
     string password = 1;

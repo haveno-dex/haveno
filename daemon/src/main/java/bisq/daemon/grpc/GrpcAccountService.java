@@ -18,13 +18,16 @@ import bisq.proto.grpc.IsAccountOpenReply;
 import bisq.proto.grpc.IsAccountOpenRequest;
 import bisq.proto.grpc.OpenAccountReply;
 import bisq.proto.grpc.OpenAccountRequest;
-
+import bisq.proto.grpc.RestoreAccountReply;
+import bisq.proto.grpc.RestoreAccountRequest;
+import bisq.proto.grpc.Status;
 import io.grpc.ServerInterceptor;
 import io.grpc.stub.StreamObserver;
 
 import javax.inject.Inject;
 
 import com.google.common.util.concurrent.FutureCallback;
+import com.google.protobuf.ByteString;
 
 import java.util.HashMap;
 import java.util.List;
@@ -38,7 +41,17 @@ import static bisq.proto.grpc.AccountGrpc.*;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
-
+import java.io.BufferedInputStream;
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
 
 import bisq.daemon.grpc.interceptor.CallRateMeteringInterceptor;
 import bisq.daemon.grpc.interceptor.GrpcCallRateMeter;
@@ -121,19 +134,6 @@ public class GrpcAccountService extends AccountImplBase {
     }
 
     @Override
-    public void backupAccount(BackupAccountRequest req, StreamObserver<BackupAccountReply> responseObserver) {
-        try {
-        	coreApi.backupAccount();
-            var reply = BackupAccountReply.newBuilder()
-					 					 .build();
-            responseObserver.onNext(reply);
-            responseObserver.onCompleted();
-        } catch (Throwable cause) {
-            exceptionHandler.handleException(log, cause, responseObserver);
-        }
-    }
-
-    @Override
     public void deleteAccount(DeleteAccountRequest req, StreamObserver<DeleteAccountReply> responseObserver) {
         try {
         	coreApi.deleteAccount();
@@ -156,6 +156,101 @@ public class GrpcAccountService extends AccountImplBase {
             responseObserver.onCompleted();
         } catch (Throwable cause) {
             exceptionHandler.handleException(log, cause, responseObserver);
+        }
+    }
+    
+    private static final Path SERVER_BASE_PATH = Paths.get("src/test/resources/output");
+       
+    @Override
+    public StreamObserver<RestoreAccountRequest> restoreAccount(StreamObserver<RestoreAccountReply> responseObserver) {
+    	return new StreamObserver<RestoreAccountRequest>() {
+    		OutputStream writer;
+    		Status status = Status.IN_PROGRESS;
+    		
+    		@Override
+    		public void onNext(RestoreAccountRequest restoreAccountRequest) {
+    			try {
+    				if (restoreAccountRequest.hasMetadata()) {
+    					writer = getFilePath(restoreAccountRequest);
+    				} else {
+    					writeFile(writer, restoreAccountRequest.getZip().getContent());
+    				}
+    			}
+    			catch (IOException e) {
+    				this.onError(e);
+    			}
+    		}
+    		
+    		@Override
+    		public void onError(Throwable throwable) {
+    			status = Status.FAILED;
+    			this.onCompleted();
+    		}
+    		
+    		@Override
+    		public void onCompleted() {
+    			closeFile(writer);
+    			status = Status.IN_PROGRESS.equals(status) ? Status.SUCCESS : status;
+    			RestoreAccountReply response = RestoreAccountReply.newBuilder()
+    															  .setStatus(status)
+    															  .build();
+    			responseObserver.onNext(response);
+    			responseObserver.onCompleted();
+    		}
+    	};
+    }
+    
+    @Override
+    public void backupAccount(BackupAccountRequest req, StreamObserver<BackupAccountReply> responseObserver) {
+    	File tmpFile = null;
+    	try {
+            tmpFile = File.createTempFile("tmp_file_for_demo_purposes", ".txt");
+            try (FileWriter fw = new FileWriter(tmpFile);
+                 BufferedWriter bw = new BufferedWriter(fw)) {
+              int numBytes = 0;
+              String foo = "foo bar malarky";
+              while (numBytes < 256 * 1024 * 4) { // 1024k
+                bw.write(foo);
+                bw.write("\n");
+                numBytes += foo.length();
+              }
+            }
+            try (FileInputStream fis = new FileInputStream(tmpFile);
+                 BufferedInputStream bis = new BufferedInputStream(fis)) {
+              int bufferSize = 256 * 1024;// 256k
+              byte[] buffer = new byte[bufferSize];
+              int length;
+              while ((length = bis.read(buffer, 0, bufferSize)) != -1) {
+                responseObserver.onNext(
+                  BackupAccountReply.newBuilder().setData(ByteString.copyFrom(buffer, 0, length)).build()
+                );
+              }
+              responseObserver.onCompleted();
+            }
+        } catch (Throwable cause) {
+            exceptionHandler.handleException(log, cause, responseObserver);
+        } finally {
+        	if (tmpFile != null) {
+        		tmpFile.delete();
+        	}
+        }
+    }
+    
+    private OutputStream getFilePath(RestoreAccountRequest request) throws IOException {
+        var fileName = request.getMetadata().getName() + "." + request.getMetadata().getType();
+        return Files.newOutputStream(SERVER_BASE_PATH.resolve(fileName), StandardOpenOption.CREATE, StandardOpenOption.APPEND);
+    }
+
+    private void writeFile(OutputStream writer, ByteString content) throws IOException {
+        writer.write(content.toByteArray());
+        writer.flush();
+    }
+
+    private void closeFile(OutputStream writer){
+        try {
+            writer.close();
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 

@@ -56,7 +56,6 @@ import static java.util.stream.Collectors.toList;
  */
 public class Config {
 	
-	public enum DaemonMode { DESKTOP, WEBAPP }
     // Option name constants
     public static final String HELP = "help";
     public static final String APP_NAME = "appName";
@@ -587,10 +586,12 @@ public class Config {
                         .ofType(boolean.class)
                         .defaultsTo(false);
         
-//        ArgumentAcceptingOptionSpec<Enum> daemonModeOpt =
-//                parser.accepts(DAEMON_MODE, "Mode to run daemon")
-//                        .withRequiredArg()
-//                        .defaultsTo(DaemonMode.DESKTOP);
+        ArgumentAcceptingOptionSpec<Enum> daemonModeOpt =
+                parser.accepts(DAEMON_MODE, "Mode to run daemon, DESKTOP or WEBAPP")
+                        .withRequiredArg()
+                        .ofType(DaemonMode.class)
+                        .withValuesConvertedBy(new EnumValueConverter(DaemonMode.class))
+                        .defaultsTo(DaemonMode.DESKTOP);
         
 
         try {
@@ -701,9 +702,7 @@ public class Config {
             this.republishMailboxEntries = options.valueOf(republishMailboxEntriesOpt);
             this.bypassMempoolValidation = options.valueOf(bypassMempoolValidationOpt);
             
-            //this.mode = DaemonMode.DESKTOP; //
-            this.mode = DaemonMode.WEBAPP;
-            //this.mode = options.valueOf(daemonModeOpt);
+            this.mode = (DaemonMode)options.valueOf(daemonModeOpt);
             
         } catch (OptionException ex) {
             throw new ConfigException("problem parsing option '%s': %s",
