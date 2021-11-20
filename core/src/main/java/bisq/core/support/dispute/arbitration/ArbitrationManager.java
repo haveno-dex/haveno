@@ -618,12 +618,17 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
 
       // TODO (woodser): include arbitration fee
       //System.out.println("Creating feeEstimateTx!");
-      MoneroTxWallet feeEstimateTx = multisigWallet.createTx(new MoneroTxConfig()
-              .setAccountIndex(0)
-              .addDestination(buyerPayoutAddress, buyerPayoutAmount.multiply(BigInteger.valueOf(4)).divide(BigInteger.valueOf(5))) // reduce payment amount to compute fee of similar tx
-              .addDestination(sellerPayoutAddress, sellerPayoutAmount.multiply(BigInteger.valueOf(4)).divide(BigInteger.valueOf(5)))
-              .setRelay(false)
-      );
+      MoneroTxConfig txConfig = new MoneroTxConfig().setAccountIndex(0).setRelay(false);
+      BigInteger buyerAmount = buyerPayoutAmount.multiply(BigInteger.valueOf(4)).divide(BigInteger.valueOf(5)); // reduce payment amount to compute fee of similar tx
+      if (buyerAmount.compareTo(BigInteger.valueOf(0)) > 0) {
+          txConfig.addDestination(buyerPayoutAddress, buyerAmount);
+      }
+      BigInteger sellerAmount = sellerPayoutAmount.multiply(BigInteger.valueOf(4)).divide(BigInteger.valueOf(5));
+      if (sellerAmount.compareTo(BigInteger.valueOf(0)) > 0) {
+        txConfig.addDestination(sellerPayoutAddress, sellerAmount);
+      }
+
+      MoneroTxWallet feeEstimateTx = multisigWallet.createTx(txConfig);
 
       System.out.println("Created fee estimate tx!");
       System.out.println(feeEstimateTx);
@@ -636,11 +641,16 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
         BigInteger feeEstimate = feeEstimateTx.getFee().add(feeEstimateTx.getFee().multiply(BigInteger.valueOf(numAttempts)).divide(BigInteger.valueOf(10))); // add 1/10 of fee until tx is successful
         try {
           numAttempts++;
-          payoutTx = multisigWallet.createTx(new MoneroTxConfig()
-                  .setAccountIndex(0)
-                  .addDestination(buyerPayoutAddress, buyerPayoutAmount.subtract(feeEstimate.divide(BigInteger.valueOf(2)))) // split fee subtracted from each payout amount
-                  .addDestination(sellerPayoutAddress, sellerPayoutAmount.subtract(feeEstimate.divide(BigInteger.valueOf(2))))
-                  .setRelay(false));
+          txConfig = new MoneroTxConfig().setAccountIndex(0).setRelay(false);
+          buyerAmount = buyerPayoutAmount.subtract(feeEstimate.divide(BigInteger.valueOf(2))); // split fee subtracted from each payout amount
+          if (buyerAmount.compareTo(BigInteger.valueOf(0)) > 0) {
+            txConfig.addDestination(buyerPayoutAddress, buyerAmount);
+          }
+          sellerAmount = sellerPayoutAmount.subtract(feeEstimate.divide(BigInteger.valueOf(2)));
+          if (sellerAmount.compareTo(BigInteger.valueOf(0)) > 0) {
+            txConfig.addDestination(sellerPayoutAddress, sellerAmount);
+          }
+          payoutTx = multisigWallet.createTx(txConfig);
         } catch (MoneroError e) {
           // exception expected // TODO: better way of estimating fee?
         }
