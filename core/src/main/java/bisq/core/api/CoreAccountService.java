@@ -2,9 +2,11 @@ package bisq.core.api;
 
 import com.google.inject.Inject;
 
-
+import bisq.core.btc.setup.WalletsSetup;
 import haveno.core.account.AccountService;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 public class CoreAccountService {
 	private final AccountService accountService;
 	@Inject

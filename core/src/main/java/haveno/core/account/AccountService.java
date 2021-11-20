@@ -1,18 +1,29 @@
 package haveno.core.account;
 
+import java.io.File;
+import java.io.IOException;
+
 import com.google.inject.Inject;
 
+import bisq.common.config.Config;
+import bisq.common.file.FileUtil;
 import bisq.core.btc.setup.WalletsSetup;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 public class AccountService {
 	private final WalletsSetup walletsSetup;
+	private final Config config;
 	
 	@Inject
-	public AccountService(WalletsSetup walletsSetup) {
+	public AccountService(Config config,
+						  WalletsSetup walletsSetup) {
 		this.walletsSetup = walletsSetup;
+		this.config = config;
 	}
 	
 	public void createAccount() {
+		config.createSubDirectories();
 		this.walletsSetup.initialize(null,               
 				() -> {
 	                // We only check one wallet as we apply encryption to all or none
@@ -48,13 +59,29 @@ public class AccountService {
 	}
 	
 	public void closeAccount() {
+		this.walletsSetup.shutDown();
 	}
 	
 	public void backupAccount() {
+		try {
+			this.walletsSetup.backupWallets();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 		
 	}
 	
 	public void deleteAccount() {
+		try {
+			this.walletsSetup.shutDown();
+			var dir = new File(config.appDataDir(), config.baseCurrencyNetwork().name().toLowerCase());
+			FileUtil.deleteDirectory(dir);
+		} catch (IOException e) {
+			log.error("Could not delete directory " + e.getMessage());
+			e.printStackTrace();
+		}
+				
 	}
 	
 	public void restoreAccount() {

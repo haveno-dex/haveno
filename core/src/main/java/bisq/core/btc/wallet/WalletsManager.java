@@ -38,6 +38,8 @@ import org.bouncycastle.crypto.params.KeyParameter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
+
 import javax.annotation.Nullable;
 
 // Convenience class to handle methods applied to several wallets
@@ -89,7 +91,12 @@ public class WalletsManager {
     }
 
     public void backupWallets() {
-        walletsSetup.backupWallets();
+        try {
+			walletsSetup.backupWallets();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
     }
 
     public void clearBackup() {

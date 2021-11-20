@@ -202,7 +202,12 @@ public class WalletsSetup {
                 exceptionHandler.handleException(new TimeoutException("Wallet did not initialize in " +
                         STARTUP_TIMEOUT + " seconds.")), STARTUP_TIMEOUT);
 
-        backupWallets();
+        try {
+        	backupWallets();
+		} catch (IOException e) {
+			log.error("Could not delete directory " + e.getMessage());
+			e.printStackTrace();
+		}
 
         final Socks5Proxy socks5Proxy = preferences.getUseTorForBitcoinJ() ? socks5ProxyProvider.getSocks5Proxy() : null;
         log.info("Socks5Proxy for bitcoinj: socks5Proxy=" + socks5Proxy);
@@ -420,7 +425,7 @@ public class WalletsSetup {
     // Backup
     ///////////////////////////////////////////////////////////////////////////////////////////
 
-    public void backupWallets() {
+    public void backupWallets() throws IOException{
         FileUtil.rollingBackup(walletDir, xmrWalletFileName, 20);
         FileUtil.rollingBackup(walletDir, xmrWalletFileName + ".keys", 20);
         FileUtil.rollingBackup(walletDir, xmrWalletFileName + ".address.txt", 20);
@@ -452,7 +457,12 @@ public class WalletsSetup {
                                  ExceptionHandler exceptionHandler) {
         checkNotNull(seed, "Seed must be not be null.");
 
-        backupWallets();
+        try {
+			backupWallets();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 
         Context ctx = Context.get();
         new Thread(() -> {

@@ -197,10 +197,10 @@ public class Config {
     public final DaemonMode mode;
 
     // Properties derived from options but not exposed as options themselves
-    public final File torDir;
-    public final File walletDir;
-    public final File storageDir;
-    public final File keyStorageDir;
+    public File torDir;
+    public File walletDir;
+    public File storageDir;
+    public File keyStorageDir;
     
     @Getter @Setter
     private String havenoWalletPassword;
@@ -714,16 +714,26 @@ public class Config {
         }
 
         // Create all appDataDir subdirectories and assign to their respective properties
-        File btcNetworkDir = mkdir(appDataDir, baseCurrencyNetwork.name().toLowerCase());
-        this.keyStorageDir = mkdir(btcNetworkDir, "keys");
-        this.storageDir = mkdir(btcNetworkDir, "db");
-        this.torDir = mkdir(btcNetworkDir, "tor");
-        this.walletDir = mkdir(btcNetworkDir, "wallet");
+//        File btcNetworkDir = mkdir(appDataDir, baseCurrencyNetwork.name().toLowerCase());
+//        this.keyStorageDir = mkdir(btcNetworkDir, "keys");
+//        this.storageDir = mkdir(btcNetworkDir, "db");
+//        this.torDir = mkdir(btcNetworkDir, "tor");
+//        this.walletDir = mkdir(btcNetworkDir, "wallet");
+        
+        createSubDirectories();
         
 
         // Assign values to special-case static fields
         APP_DATA_DIR_VALUE = appDataDir;
         BASE_CURRENCY_NETWORK_VALUE = baseCurrencyNetwork;
+    }
+    
+    public void createSubDirectories() {
+        File btcNetworkDir = mkdir(appDataDir, baseCurrencyNetwork.name().toLowerCase());
+        this.keyStorageDir = mkdir(btcNetworkDir, "keys");
+        this.storageDir = mkdir(btcNetworkDir, "db");
+        this.torDir = mkdir(btcNetworkDir, "tor");
+        this.walletDir = mkdir(btcNetworkDir, "wallet");	
     }
 
     private static File absoluteConfigFile(File parentDir, String relativeConfigFilePath) {
