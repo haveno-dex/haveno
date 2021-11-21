@@ -254,6 +254,47 @@ public class ConfigTests {
         }
         configWithOpts(opt(APP_DATA_DIR, symlink));
     }
+    
+    @Test
+    public void whenDaemonModeArgIsAbsent_thenDefaultToDESKTOPmode() {
+    	Config config = new Config();
+        assertThat(config.mode, equalTo(DaemonMode.DESKTOP));
+    }
+    
+    @Test
+    public void whenDaemonModeArgIsDESKTOP_thenModeIsDesktop() {
+        Config config = configWithOpts(opt(DAEMON_MODE, DaemonMode.DESKTOP));
+        assertThat(config.mode, equalTo(DaemonMode.DESKTOP));
+    }
+    
+    @Test
+    public void whenDaemonModeArgIsWEBAPP_thenModeIsWEBAPP() {
+        Config config = configWithOpts(opt(DAEMON_MODE, DaemonMode.WEBAPP));
+        assertThat(config.mode, equalTo(DaemonMode.WEBAPP));
+    }
+    
+    @Test
+    public void whenDaemonModeIsAbsent_thenCorrectHavenoWalletPassword() {
+        Config config = new Config();
+        String password = "abctesting123";
+        assertThat(config.getHavenoWalletPassword(), equalTo(password));
+    }
+
+    @Test
+    public void whenDaemonModeIsDESKTOP_thenCorrectHavenoWalletPassword() {
+        Config config = configWithOpts(opt(DAEMON_MODE, DaemonMode.DESKTOP));
+        String password = "abctesting123";
+        config.setHavenoWalletPassword(password);
+        assertThat(config.getHavenoWalletPassword(), equalTo(password));
+    }
+    
+    @Test
+    public void whenDaemonModeIsWEBAPP_thenCorrectHavenoWalletPassword() {
+        Config config = configWithOpts(opt(DAEMON_MODE, DaemonMode.WEBAPP));
+        String password = "spongbob_squarepants";
+        config.setHavenoWalletPassword(password);
+        assertThat(config.getHavenoWalletPassword(), equalTo(password));
+    }
 
 
     // == TEST SUPPORT FACILITIES ========================================================

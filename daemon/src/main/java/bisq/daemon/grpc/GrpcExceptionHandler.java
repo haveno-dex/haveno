@@ -29,6 +29,7 @@ import java.util.function.Predicate;
 
 import org.slf4j.Logger;
 
+
 import static io.grpc.Status.INVALID_ARGUMENT;
 import static io.grpc.Status.UNKNOWN;
 
@@ -117,6 +118,8 @@ class GrpcExceptionHandler {
             // of more, specific exception mappings.
             case "IllegalArgumentException":
                 return INVALID_ARGUMENT.withDescription(description);
+            case "AccountException":
+            	return UNKNOWN.withDescription(description);
             default:
                 return UNKNOWN.withDescription(description);
         }

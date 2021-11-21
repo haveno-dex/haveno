@@ -112,7 +112,7 @@ message RestoreAccountRequest {
     	MetaData metadata = 1;
     	Zip zip = 2;
     }
-	string foo = 1;
+	string foo = 3;
 }
 
 message RestoreAccountReply {
@@ -142,7 +142,7 @@ service Account {
     }
     rpc IsAccountOpen (IsAccountOpenRequest) returns (IsAccountOpenReply) {
     }
-    rpc RestoreAccount(stream RestoreAccountRequest) returns (stream RestoreAccountReply) {
+    rpc RestoreAccount(stream RestoreAccountRequest) returns (RestoreAccountReply) {
     }
     rpc OpenAccount(OpenAccountRequest) returns (OpenAccountReply) {
     }

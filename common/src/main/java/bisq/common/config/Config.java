@@ -117,6 +117,9 @@ public class Config {
     public static final String BTC_FEES_TS = "bitcoinFeesTs";
     public static final String BYPASS_MEMPOOL_VALIDATION = "bypassMempoolValidation";
     public static final String DAEMON_MODE = "daemonMode";
+    public static String HAVENO_WALLET_PASSWORD = "abctesting123";
+    public static final String WALLET_PASSWORD = "abctesting123";
+    
 
     // Default values for certain options
     public static final int UNSPECIFIED_PORT = -1;
@@ -201,8 +204,14 @@ public class Config {
     public File storageDir;
     public File keyStorageDir;
     
-    @Getter @Setter
-    private String havenoWalletPassword;
+    public void setHavenoWalletPassword(String password) {
+    	this.HAVENO_WALLET_PASSWORD = password;
+    }
+    public String getHavenoWalletPassword() {
+    	if (this.mode == DaemonMode.DESKTOP)
+    		return WALLET_PASSWORD;
+    	return HAVENO_WALLET_PASSWORD;
+    }
 
     // The parser that will be used to parse both cmd line and config file options
     private final OptionParser parser = new OptionParser();

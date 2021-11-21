@@ -101,7 +101,7 @@ import javax.annotation.Nullable;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-
+import monero.common.MoneroUtils;
 import monero.daemon.MoneroDaemon;
 import monero.wallet.MoneroWallet;
 
@@ -143,6 +143,7 @@ public class WalletsSetup {
     public final BooleanProperty shutDownComplete = new SimpleBooleanProperty();
     private final boolean useAllProvidedNodes;
     private WalletConfig walletConfig;
+    private final String filePrefix = "haveno";
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Constructor
@@ -212,7 +213,7 @@ public class WalletsSetup {
         final Socks5Proxy socks5Proxy = preferences.getUseTorForBitcoinJ() ? socks5ProxyProvider.getSocks5Proxy() : null;
         log.info("Socks5Proxy for bitcoinj: socks5Proxy=" + socks5Proxy);
 
-        walletConfig = new WalletConfig(params, walletDir, walletRpcBindPort, "haveno") {
+        walletConfig = new WalletConfig(params, walletDir, walletRpcBindPort, filePrefix) {
             @Override
             protected void onSetupCompleted() {
                 //We are here in the btcj thread Thread[ STARTING,5,main]
@@ -574,6 +575,23 @@ public class WalletsSetup {
 
     public int getMinBroadcastConnections() {
         return walletConfig.getMinBroadcastConnections();
+    }
+    
+    
+    private boolean doesChainFileExist() {
+        return new File(walletDir, filePrefix + ".spvchain").exists();
+    }
+    
+    public boolean xmrAccountExists() {
+        String xmrPrefix = "_XMR";
+        var a = MoneroUtils.walletExists(new File(walletDir, filePrefix + xmrPrefix).getPath());
+        return a;
+    }
+    
+    public boolean btcAccountExists() {
+        String btcPrefix = "_BTC";
+        var a = new File(walletDir, filePrefix + btcPrefix + ".wallet").exists() && doesChainFileExist();
+        return a;
     }
 
 

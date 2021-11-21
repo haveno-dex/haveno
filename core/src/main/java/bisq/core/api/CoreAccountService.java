@@ -6,6 +6,7 @@ import com.google.inject.Inject;
 
 import bisq.core.btc.setup.WalletsSetup;
 import haveno.core.account.AccountService;
+import haveno.core.account.exceptions.AccountException;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -16,8 +17,8 @@ public class CoreAccountService {
 		this.accountService = accountService;
 	}
 	
-	public void createAccount() {
-		accountService.createAccount();
+	public void createAccount(String password) throws AccountException {
+		accountService.createAccount(password);
 	}
 	
 	public boolean accountExists() {
@@ -25,18 +26,18 @@ public class CoreAccountService {
 	}
 	
 	public boolean isAccountOpen() {
-		return true;
+		return accountService.isAccountOpen();
 	}
 	
-	public void openAccount() {
-		accountService.openAccount();
+	public void openAccount(String password) throws AccountException {
+		accountService.openAccount(password);
 	}
 	
-	public void closeAccount() {
+	public void closeAccount() throws AccountException {
 		accountService.closeAccount();
 	}
 	
-	public BufferedInputStream backupAccount() {
+	public BufferedInputStream backupAccount() throws AccountException {
 		return accountService.backupAccount();
 	}
 	
@@ -44,11 +45,11 @@ public class CoreAccountService {
 		accountService.deleteAccount();
 	}
 	
-	public void restoreAccount() {
+	public void restoreAccount() throws AccountException {
 		accountService.restoreAccount();
 	}
 	
-	public void changePassword() {
-		accountService.changePassword();
+	public void changePassword(String password) throws AccountException {
+		accountService.changePassword(password);
 	}
 }

@@ -29,7 +29,7 @@ import bisq.core.payment.payload.PaymentMethod;
 import bisq.core.trade.Trade;
 import bisq.core.trade.statistics.TradeStatistics3;
 import bisq.core.trade.statistics.TradeStatisticsManager;
-
+import haveno.core.account.exceptions.AccountException;
 import bisq.common.app.Version;
 import bisq.common.config.Config;
 import bisq.common.handlers.ErrorMessageHandler;
@@ -350,9 +350,12 @@ public class CoreApi {
         return walletsService.getNumConfirmationsForMostRecentTransaction(addressString);
     }
     
-    public void createAccount(String password) {
-    	config.setHavenoWalletPassword(password);
-    	coreAccountService.createAccount();
+    ///////////////////////////////////////////////////////////////////////////////////////////
+    // Accounts
+    ///////////////////////////////////////////////////////////////////////////////////////////
+    
+    public void createAccount(String password) throws AccountException {
+     	coreAccountService.createAccount(password);
     }
     
     public boolean accountExists() {
@@ -363,16 +366,15 @@ public class CoreApi {
 		return coreAccountService.isAccountOpen();
 	}
 	
-	public void openAccount(String password) {
-		config.setHavenoWalletPassword(password);
-		coreAccountService.openAccount();
+	public void openAccount(String password) throws AccountException {
+		coreAccountService.openAccount(password);
 	}
 	
-	public void closeAccount() {
+	public void closeAccount() throws AccountException {
 		coreAccountService.closeAccount();
 	}
 	
-	public BufferedInputStream backupAccount() {
+	public BufferedInputStream backupAccount() throws AccountException {
 		return coreAccountService.backupAccount();
 	}
 	
@@ -380,12 +382,11 @@ public class CoreApi {
 		coreAccountService.deleteAccount();
 	}
 	
-	public void restoreAccount() {
+	public void restoreAccount() throws AccountException {
 		coreAccountService.restoreAccount();
 	}
 	
-	public void changePassword(String password) {
-		config.setHavenoWalletPassword(password);
-		coreAccountService.changePassword();
+	public void changePassword(String password) throws AccountException {
+		coreAccountService.changePassword(password);
 	}
 }
