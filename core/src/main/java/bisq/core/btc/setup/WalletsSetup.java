@@ -584,14 +584,12 @@ public class WalletsSetup {
     
     public boolean xmrAccountExists() {
         String xmrPrefix = "_XMR";
-        var a = MoneroUtils.walletExists(new File(walletDir, filePrefix + xmrPrefix).getPath());
-        return a;
+        return MoneroUtils.walletExists(new File(walletDir, filePrefix + xmrPrefix).getPath());
     }
     
     public boolean btcAccountExists() {
         String btcPrefix = "_BTC";
-        var a = new File(walletDir, filePrefix + btcPrefix + ".wallet").exists() && doesChainFileExist();
-        return a;
+        return new File(walletDir, filePrefix + btcPrefix + ".wallet").exists() && doesChainFileExist();
     }
 
 

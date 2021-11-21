@@ -10,15 +10,11 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
 public class Zip {
-	private final List<String> fileList = new ArrayList<>();
-//	
-//	public void zipDirectory(File fileToZip, String zipFile) throws IOException {
-//		compressDirectory(fileToZip.getAbsolutePath(), zipFile;)
-//	}
 	
-    public void compressDirectory(String dir, String zipFile) {
+    public static void compressDirectory(String dir, String zipFile) {
+    	List<String> fileList = new ArrayList<>();
         File directory = new File(dir);
-        getFileList(directory);
+        getFileList(directory, fileList);
 
         try (
         	FileOutputStream fos = new FileOutputStream(zipFile);
@@ -54,47 +50,17 @@ public class Zip {
         }
     }
     
-    private void getFileList(File directory) {
+    private static void getFileList(File directory, List<String> fileList ) {
         File[] files = directory.listFiles();
         if (files != null && files.length > 0) {
             for (File file : files) {
                 if (file.isFile()) {
                     fileList.add(file.getAbsolutePath());
                 } else {
-                    getFileList(file);
+                    getFileList(file, fileList);
                 }
             }
         }
 
     }
-	
-//	private static void zipFile(File fileToZip, String fileName, ZipOutputStream zipOut) throws IOException {
-//        if (fileToZip.isHidden()) {
-//            return;
-//        }
-//        if (!fileToZip.exists()) return;
-//        if (fileToZip.isDirectory()) {
-//            if (fileName.endsWith("/")) {
-//                zipOut.putNextEntry(new ZipEntry(fileName));
-//                zipOut.closeEntry();
-//            } else {
-//                zipOut.putNextEntry(new ZipEntry(fileName + "/"));
-//                zipOut.closeEntry();
-//            }
-//            File[] children = fileToZip.listFiles();
-//            for (File childFile : children) {
-//                zipFile(childFile, fileName + "/" + childFile.getName(), zipOut);
-//            }
-//            return;
-//        }
-//        FileInputStream fis = new FileInputStream(fileToZip);
-//        ZipEntry zipEntry = new ZipEntry(fileName);
-//        zipOut.putNextEntry(zipEntry);
-//        byte[] bytes = new byte[1024];
-//        int length;
-//        while ((length = fis.read(bytes)) >= 0) {
-//            zipOut.write(bytes, 0, length);
-//        }
-//        fis.close();
-//    }
 }

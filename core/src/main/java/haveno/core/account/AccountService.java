@@ -12,11 +12,8 @@ import bisq.common.config.Config;
 import bisq.common.file.FileUtil;
 import bisq.common.util.Zip;
 import bisq.core.btc.setup.WalletsSetup;
-import bisq.core.btc.wallet.BtcWalletService;
-import bisq.core.btc.wallet.XmrWalletService;
 import haveno.core.account.exceptions.AccountException;
 import lombok.extern.slf4j.Slf4j;
-import monero.common.MoneroUtils;
 
 @Slf4j
 public class AccountService {
@@ -131,16 +128,16 @@ public class AccountService {
 
 		File sourceDirectory = new File(config.appDataDir.getAbsolutePath());
 		var zipName = config.appDataDir.getAbsolutePath() + "/xmr_stagenet.zip";
-		File z = new File(zipName);
-		if (z.exists())
-			z.delete();
-		new Zip().compressDirectory(config.appDataDir.getAbsolutePath(), zipName);
+		File zipFile = new File(zipName);
+		if (zipFile.exists())
+			zipFile.delete();
+		Zip.compressDirectory(config.appDataDir.getAbsolutePath(), zipName);
 		
-      	 FileInputStream fis = null;
+      	FileInputStream fis = null;
 		try {
 			fis = new FileInputStream(zipName);
 		} catch (FileNotFoundException e) {
-			// TODO Auto-generated catch block
+			log.error("Could not load" + zipName + e.getMessage());
 			e.printStackTrace();
 		}
 		return new BufferedInputStream(fis);		
