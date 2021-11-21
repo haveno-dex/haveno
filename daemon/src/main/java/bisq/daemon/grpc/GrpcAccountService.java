@@ -204,29 +204,17 @@ public class GrpcAccountService extends AccountImplBase {
     public void backupAccount(BackupAccountRequest req, StreamObserver<BackupAccountReply> responseObserver) {
     	File tmpFile = null;
     	try {
-            tmpFile = File.createTempFile("tmp_file_for_demo_purposes", ".txt");
-            try (FileWriter fw = new FileWriter(tmpFile);
-                 BufferedWriter bw = new BufferedWriter(fw)) {
-              int numBytes = 0;
-              String foo = "foo bar malarky";
-              while (numBytes < 256 * 1024 * 4) { // 1024k
-                bw.write(foo);
-                bw.write("\n");
-                numBytes += foo.length();
-              }
-            }
-            try (FileInputStream fis = new FileInputStream(tmpFile);
-                 BufferedInputStream bis = new BufferedInputStream(fis)) {
-              int bufferSize = 256 * 1024;// 256k
-              byte[] buffer = new byte[bufferSize];
-              int length;
-              while ((length = bis.read(buffer, 0, bufferSize)) != -1) {
-                responseObserver.onNext(
-                  BackupAccountReply.newBuilder().setData(ByteString.copyFrom(buffer, 0, length)).build()
-                );
-              }
-              responseObserver.onCompleted();
-            }
+    	  BufferedInputStream bis = coreApi.backupAccount();          
+		  int bufferSize = 64 * 1024;
+		  byte[] buffer = new byte[bufferSize];
+		  int length;
+		  while ((length = bis.read(buffer, 0, bufferSize)) != -1) {
+		    responseObserver.onNext(
+		      BackupAccountReply.newBuilder().setData(ByteString.copyFrom(buffer, 0, length)).build()
+		    );
+		  }
+		  responseObserver.onCompleted();
+            
         } catch (Throwable cause) {
             exceptionHandler.handleException(log, cause, responseObserver);
         } finally {

@@ -1,5 +1,7 @@
 package bisq.core.api;
 
+import java.io.BufferedInputStream;
+
 import com.google.inject.Inject;
 
 import bisq.core.btc.setup.WalletsSetup;
@@ -34,8 +36,8 @@ public class CoreAccountService {
 		accountService.closeAccount();
 	}
 	
-	public void backupAccount() {
-		accountService.backupAccount();
+	public BufferedInputStream backupAccount() {
+		return accountService.backupAccount();
 	}
 	
 	public void deleteAccount() {

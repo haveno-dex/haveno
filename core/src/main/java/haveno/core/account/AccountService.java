@@ -1,12 +1,16 @@
 package haveno.core.account;
 
+import java.io.BufferedInputStream;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 
 import com.google.inject.Inject;
 
 import bisq.common.config.Config;
 import bisq.common.file.FileUtil;
+import bisq.common.util.Zip;
 import bisq.core.btc.setup.WalletsSetup;
 import lombok.extern.slf4j.Slf4j;
 
@@ -62,13 +66,29 @@ public class AccountService {
 		this.walletsSetup.shutDown();
 	}
 	
-	public void backupAccount() {
-		try {
-			this.walletsSetup.backupWallets();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
+	public BufferedInputStream backupAccount() {
+//		try {
+			//this.walletsSetup.backupWallets();
+			File sourceDirectory = new File(config.appDataDir.getAbsolutePath());
+			var zipName = config.appDataDir.getAbsolutePath() + "/xmr_stagenet.zip";
+			File z = new File(zipName);
+			if (z.exists())
+				z.delete();
+			new Zip().compressDirectory(config.appDataDir.getAbsolutePath(), zipName);
+			
+          	 FileInputStream fis = null;
+			try {
+				fis = new FileInputStream(zipName);
+			} catch (FileNotFoundException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			return new BufferedInputStream(fis);
+			
+//		} catch (IOException e) {
+//			// TODO Auto-generated catch block
+//			e.printStackTrace();
+//		}
 		
 	}
 	

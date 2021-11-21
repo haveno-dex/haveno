@@ -44,27 +44,6 @@ message RegisterDisputeAgentReply {
 // Account
 ///////////////////////////////////////////////////////////////////////////////////////////
 
-service Account {
-    rpc AccountExists(AccountExistsRequest) returns (AccountExistsReply) {
-    }
-    rpc IsAccountOpen (IsAccountOpenRequest) returns (IsAccountOpenReply) {
-    }
-    rpc CreateAccount(CreateAccountRequest) returns (CreateAccountReply) {
-    }
-    rpc OpenAccount(OpenAccountRequest) returns (OpenAccountReply) {
-    }
-    rpc CloseAccount(CloseAccountRequest) returns (CloseAccountReply) {
-    }
-    rpc BackupAccount(BackupAccountRequest) returns (stream BackupAccountReply) {
-    }
-    rpc DeleteAccount(DeleteAccountRequest) returns (DeleteAccountReply) {
-    }
-    rpc RestoreAccount(stream RestoreAccountRequest) returns (RestoreAccountReply) {
-    }
-    rpc ChangePassword(ChangePasswordRequest) returns (ChangePasswordReply) {
-    }
-}
-
 message AccountExistsRequest {
 }
 
@@ -133,6 +112,7 @@ message RestoreAccountRequest {
     	MetaData metadata = 1;
     	Zip zip = 2;
     }
+	string foo = 1;
 }
 
 message RestoreAccountReply {
@@ -147,6 +127,26 @@ message ChangePasswordRequest {
 message ChangePasswordReply {
 }
 
+service Account {
+    rpc AccountExists(AccountExistsRequest) returns (AccountExistsReply) {
+    }
+    rpc BackupAccount(BackupAccountRequest) returns (stream BackupAccountReply) {
+    }
+    rpc ChangePassword(ChangePasswordRequest) returns (ChangePasswordReply) {
+    }
+    rpc CloseAccount(CloseAccountRequest) returns (CloseAccountReply) {
+    }
+    rpc CreateAccount(CreateAccountRequest) returns (CreateAccountReply) {
+    }
+    rpc DeleteAccount(DeleteAccountRequest) returns (DeleteAccountReply) {
+    }
+    rpc IsAccountOpen (IsAccountOpenRequest) returns (IsAccountOpenReply) {
+    }
+    rpc RestoreAccount(stream RestoreAccountRequest) returns (stream RestoreAccountReply) {
+    }
+    rpc OpenAccount(OpenAccountRequest) returns (OpenAccountReply) {
+    }
+}
 
 ///////////////////////////////////////////////////////////////////////////////////////////
 // Help

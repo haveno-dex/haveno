@@ -43,6 +43,7 @@ import javax.inject.Singleton;
 
 import com.google.common.util.concurrent.FutureCallback;
 
+import java.io.BufferedInputStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -371,8 +372,8 @@ public class CoreApi {
 		coreAccountService.closeAccount();
 	}
 	
-	public void backupAccount() {
-		coreAccountService.backupAccount();
+	public BufferedInputStream backupAccount() {
+		return coreAccountService.backupAccount();
 	}
 	
 	public void deleteAccount() {
