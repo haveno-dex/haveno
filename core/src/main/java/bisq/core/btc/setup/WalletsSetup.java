@@ -93,6 +93,7 @@ import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 
 import lombok.Getter;
+import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 
 import org.jetbrains.annotations.NotNull;
@@ -101,9 +102,10 @@ import javax.annotation.Nullable;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-
+import monero.common.MoneroUtils;
 import monero.daemon.MoneroDaemon;
 import monero.wallet.MoneroWallet;
+import monero.wallet.model.MoneroWalletConfig;
 
 // Setup wallets and use WalletConfig for BitcoinJ wiring.
 // Other like WalletConfig we are here always on the user thread. That is one reason why we do not
@@ -143,6 +145,8 @@ public class WalletsSetup {
     public final BooleanProperty shutDownComplete = new SimpleBooleanProperty();
     private final boolean useAllProvidedNodes;
     private WalletConfig walletConfig;
+    @Setter
+    public MoneroWalletConfig moneroWalletConfig;
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Constructor
@@ -162,7 +166,8 @@ public class WalletsSetup {
                         @Named(Config.WALLET_RPC_BIND_PORT) int walletRpcBindPort,
                         @Named(Config.USE_ALL_PROVIDED_NODES) boolean useAllProvidedNodes,
                         @Named(Config.NUM_CONNECTIONS_FOR_BTC) int numConnectionsForBtc,
-                        @Named(Config.SOCKS5_DISCOVER_MODE) String socks5DiscoverModeString) {
+                        @Named(Config.SOCKS5_DISCOVER_MODE) String socks5DiscoverModeString,
+                        MoneroWalletConfig moneroWalletConfig) {
         this.regTestHost = regTestHost;
         this.addressEntryList = addressEntryList;
         this.xmrAddressEntryList = xmrAddressEntryList;
@@ -177,6 +182,7 @@ public class WalletsSetup {
         this.socks5DiscoverMode = evaluateMode(socks5DiscoverModeString);
         this.walletDir = walletDir;
         this.walletRpcBindPort = walletRpcBindPort;
+        this.moneroWalletConfig = moneroWalletConfig;
 
         xmrWalletFileName = "haveno_" + config.baseCurrencyNetwork.getCurrencyCode();
         params = Config.baseCurrencyNetworkParameters();
@@ -195,7 +201,7 @@ public class WalletsSetup {
         // we cannot forget to switch threads when adding event handlers. Unfortunately, the DownloadListener
         // we give to the app kit is currently an exception and runs on a library thread. It'll get fixed in
         // a future version.
-
+    	shutDownComplete.setValue(false);
         Threading.USER_THREAD = UserThread.getExecutor();
 
         Timer timeoutTimer = UserThread.runAfter(() ->
@@ -206,7 +212,6 @@ public class WalletsSetup {
 
         final Socks5Proxy socks5Proxy = preferences.getUseTorForBitcoinJ() ? socks5ProxyProvider.getSocks5Proxy() : null;
         log.info("Socks5Proxy for bitcoinj: socks5Proxy=" + socks5Proxy);
-
         walletConfig = new WalletConfig(params, walletDir, walletRpcBindPort, "haveno") {
             @Override
             protected void onSetupCompleted() {
@@ -334,6 +339,7 @@ public class WalletsSetup {
                 UserThread.execute(() -> exceptionHandler.handleException(failure));
             }
         }, Threading.USER_THREAD);
+
 
         walletConfig.startAsync();
     }
@@ -566,7 +572,6 @@ public class WalletsSetup {
         return walletConfig.getMinBroadcastConnections();
     }
 
-
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Inner classes
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -590,4 +595,5 @@ public class WalletsSetup {
             return percentage;
         }
     }
+
 }

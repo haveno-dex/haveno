@@ -254,8 +254,7 @@ public class ConfigTests {
         }
         configWithOpts(opt(APP_DATA_DIR, symlink));
     }
-
-
+    
     // == TEST SUPPORT FACILITIES ========================================================
 
     static Config configWithOpts(Opt... opts) {

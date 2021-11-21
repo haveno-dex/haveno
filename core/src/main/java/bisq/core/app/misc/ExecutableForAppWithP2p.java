@@ -60,8 +60,8 @@ public abstract class ExecutableForAppWithP2p extends BisqExecutable {
     private volatile boolean stopped;
     private final long startTime = System.currentTimeMillis();
 
-    public ExecutableForAppWithP2p(String fullName, String scriptName, String appName, String version) {
-        super(fullName, scriptName, appName, version);
+    public ExecutableForAppWithP2p(String fullName, String scriptName, String appName, String version, boolean isApiUser) {
+        super(fullName, scriptName, appName, version, isApiUser);
     }
 
     @Override

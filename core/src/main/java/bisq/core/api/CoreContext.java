@@ -30,7 +30,7 @@ public class CoreContext {
 
     @Getter
     @Setter
-    private boolean isApiUser;
+    private boolean isApiUser = true;
 
     @Inject
     public CoreContext() {

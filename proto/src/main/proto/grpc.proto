@@ -39,8 +39,94 @@ message RegisterDisputeAgentRequest {
 
 message RegisterDisputeAgentReply {
 }
-
-///////////////////////////////////////////////////////////////////////////////////////////
+ 
+ ///////////////////////////////////////////////////////////////////////////////////////////
+ // Account
+ ///////////////////////////////////////////////////////////////////////////////////////////
+ 
+ service Account {
+     rpc AccountExists(AccountExistsRequest) returns (AccountExistsReply) {
+     }
+     rpc BackupAccount(BackupAccountRequest) returns (BackupAccountReply) {
+     }
+     rpc ChangePassword(ChangePasswordRequest) returns (ChangePasswordReply) {
+     }
+     rpc CloseAccount(CloseAccountRequest) returns (CloseAccountReply) {
+     }
+     rpc CreateAccount(CreateAccountRequest) returns (CreateAccountReply) {
+     }
+     rpc DeleteAccount(DeleteAccountRequest) returns (DeleteAccountReply) {
+     }
+     rpc IsAccountOpen (IsAccountOpenRequest) returns (IsAccountOpenReply) {
+     }
+     rpc RestoreAccount(RestoreAccountRequest) returns (RestoreAccountReply) {
+     }
+     rpc OpenAccount(OpenAccountRequest) returns (OpenAccountReply) {
+     }
+ }
+ 
+ message AccountExistsRequest {
+ }
+ 
+ message AccountExistsReply {
+     bool account_exists = 1;
+ }
+ 
+ message IsAccountOpenRequest {
+ }
+ 
+ message IsAccountOpenReply {
+     bool is_account_open = 1;
+ }
+ 
+ message CreateAccountRequest {
+     string password = 1;
+ }
+ 
+ message CreateAccountReply {
+ }
+ 
+ message OpenAccountRequest {
+     string password = 1;
+ }
+ 
+ message OpenAccountReply {
+ }
+ 
+ message CloseAccountRequest {
+ }
+ 
+ message CloseAccountReply {
+ }
+ 
+ message BackupAccountRequest {
+ }
+ 
+ message BackupAccountReply {
+     Attachment attachment = 1;
+ }
+ 
+ message DeleteAccountRequest {
+ }
+ 
+ message DeleteAccountReply {
+ }
+ 
+ message RestoreAccountRequest {
+     Attachment attachment = 1;
+ }
+ 
+ message RestoreAccountReply {
+ }
+ 
+ message ChangePasswordRequest {
+     string password = 1;
+ }
+ 
+ message ChangePasswordReply {
+ }
+ 
+ ///////////////////////////////////////////////////////////////////////////////////////////
 // Help
 ///////////////////////////////////////////////////////////////////////////////////////////
 
@@ -613,3 +699,4 @@ message GetVersionRequest {
 message GetVersionReply {
     string version = 1;
 }
+ 

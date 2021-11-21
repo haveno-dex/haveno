@@ -31,7 +31,7 @@ public class StatisticsMain extends ExecutableForAppWithP2p {
     private Statistics statistics;
 
     public StatisticsMain() {
-        super("Bisq Statsnode", "bisq-statistics", "bisq_statistics", VERSION);
+        super("Bisq Statsnode", "bisq-statistics", "bisq_statistics", VERSION, false);
     }
 
     public static void main(String[] args) {

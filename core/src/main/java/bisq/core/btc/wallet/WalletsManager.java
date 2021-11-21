@@ -38,6 +38,8 @@ import org.bouncycastle.crypto.params.KeyParameter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
+
 import javax.annotation.Nullable;
 
 // Convenience class to handle methods applied to several wallets
@@ -87,7 +89,7 @@ public class WalletsManager {
     public void restoreSeedWords(@Nullable DeterministicSeed seed, ResultHandler resultHandler, ExceptionHandler exceptionHandler) {
         walletsSetup.restoreSeedWords(seed, resultHandler, exceptionHandler);
     }
-
+    
     public void backupWallets() {
         walletsSetup.backupWallets();
     }

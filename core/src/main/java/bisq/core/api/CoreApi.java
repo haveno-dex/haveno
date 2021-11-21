@@ -27,10 +27,10 @@ import bisq.core.offer.OfferPayload;
 import bisq.core.offer.OpenOffer;
 import bisq.core.payment.PaymentAccount;
 import bisq.core.payment.payload.PaymentMethod;
+import bisq.core.support.dispute.Attachment;
 import bisq.core.trade.Trade;
 import bisq.core.trade.statistics.TradeStatistics3;
 import bisq.core.trade.statistics.TradeStatisticsManager;
-
 import bisq.common.app.Version;
 import bisq.common.config.Config;
 import bisq.common.handlers.ErrorMessageHandler;
@@ -72,6 +72,7 @@ public class CoreApi {
     private final CoreTradesService coreTradesService;
     private final CoreWalletsService walletsService;
     private final TradeStatisticsManager tradeStatisticsManager;
+    private final CoreAccountService coreAccountService;
 
     @Inject
     public CoreApi(Config config,
@@ -82,7 +83,8 @@ public class CoreApi {
                    CorePriceService corePriceService,
                    CoreTradesService coreTradesService,
                    CoreWalletsService walletsService,
-                   TradeStatisticsManager tradeStatisticsManager) {
+                   TradeStatisticsManager tradeStatisticsManager,
+                   CoreAccountService coreAccountService) {
         this.config = config;
         this.coreDisputeAgentsService = coreDisputeAgentsService;
         this.coreHelpService = coreHelpService;
@@ -92,6 +94,7 @@ public class CoreApi {
         this.corePriceService = corePriceService;
         this.walletsService = walletsService;
         this.tradeStatisticsManager = tradeStatisticsManager;
+        this.coreAccountService = coreAccountService;
     }
 
     @SuppressWarnings("SameReturnValue")
@@ -351,5 +354,45 @@ public class CoreApi {
 
     public int getNumConfirmationsForMostRecentTransaction(String addressString) {
         return walletsService.getNumConfirmationsForMostRecentTransaction(addressString);
+    }
+    
+    ///////////////////////////////////////////////////////////////////////////////////////////
+    // Accounts
+    ///////////////////////////////////////////////////////////////////////////////////////////
+    
+    public void createAccount(String password) throws Exception {
+        coreAccountService.createAccount(password);
+    }
+    
+    public boolean accountExists() {
+        return coreAccountService.accountExists();
+    }
+    
+    public boolean isAccountOpen() {
+        return coreAccountService.isAccountOpen();
+    }
+
+    public void openAccount(String password) throws Exception {
+        coreAccountService.openAccount(password);
+    }
+
+    public void closeAccount() throws Exception {
+        coreAccountService.closeAccount();
+    }
+
+    public Attachment backupAccount() throws Exception {
+        return coreAccountService.backupAccount();
+    }
+
+    public void deleteAccount() {
+        coreAccountService.deleteAccount();
+    }
+
+    public void restoreAccount(Attachment attachment) throws Exception {
+        coreAccountService.restoreAccount(attachment);
+    }
+
+    public void changePassword(String newPassword) throws Exception {
+        coreAccountService.changePassword(newPassword);
     }
 }

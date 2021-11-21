@@ -13,6 +13,8 @@ import joptsimple.OptionSpecBuilder;
 import joptsimple.util.PathConverter;
 import joptsimple.util.PathProperties;
 import joptsimple.util.RegexMatcher;
+import lombok.Getter;
+import lombok.Setter;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -53,7 +55,7 @@ import static java.util.stream.Collectors.toList;
  * @see #Config(String, File, String...)
  */
 public class Config {
-
+    
     // Option name constants
     public static final String HELP = "help";
     public static final String APP_NAME = "appName";
@@ -192,10 +194,10 @@ public class Config {
     public final boolean bypassMempoolValidation;
 
     // Properties derived from options but not exposed as options themselves
-    public final File torDir;
-    public final File walletDir;
-    public final File storageDir;
-    public final File keyStorageDir;
+    public File torDir;
+    public File walletDir;
+    public File storageDir;
+    public File keyStorageDir;
 
     // The parser that will be used to parse both cmd line and config file options
     private final OptionParser parser = new OptionParser();
@@ -577,7 +579,7 @@ public class Config {
                         "Prevents mempool check of trade parameters")
                         .withRequiredArg()
                         .ofType(boolean.class)
-                        .defaultsTo(false);
+                        .defaultsTo(false);  
 
         try {
             CompositeOptionSet options = new CompositeOptionSet();
@@ -686,6 +688,7 @@ public class Config {
             this.preventPeriodicShutdownAtSeedNode = options.valueOf(preventPeriodicShutdownAtSeedNodeOpt);
             this.republishMailboxEntries = options.valueOf(republishMailboxEntriesOpt);
             this.bypassMempoolValidation = options.valueOf(bypassMempoolValidationOpt);
+            
         } catch (OptionException ex) {
             throw new ConfigException("problem parsing option '%s': %s",
                     ex.options().get(0),
@@ -694,16 +697,20 @@ public class Config {
                             ex.getMessage());
         }
 
-        // Create all appDataDir subdirectories and assign to their respective properties
-        File btcNetworkDir = mkdir(appDataDir, baseCurrencyNetwork.name().toLowerCase());
-        this.keyStorageDir = mkdir(btcNetworkDir, "keys");
-        this.storageDir = mkdir(btcNetworkDir, "db");
-        this.torDir = mkdir(btcNetworkDir, "tor");
-        this.walletDir = mkdir(btcNetworkDir, "wallet");
+        // Create all appDataDir subdirectories and assign to their respective properties       
+        createSubDirectories();   
 
         // Assign values to special-case static fields
         APP_DATA_DIR_VALUE = appDataDir;
         BASE_CURRENCY_NETWORK_VALUE = baseCurrencyNetwork;
+    }
+
+    public void createSubDirectories() {
+        File btcNetworkDir = mkdir(appDataDir, baseCurrencyNetwork.name().toLowerCase());
+        this.keyStorageDir = mkdir(btcNetworkDir, "keys");
+        this.storageDir = mkdir(btcNetworkDir, "db");
+        this.torDir = mkdir(btcNetworkDir, "tor");
+        this.walletDir = mkdir(btcNetworkDir, "wallet");	
     }
 
     private static File absoluteConfigFile(File parentDir, String relativeConfigFilePath) {

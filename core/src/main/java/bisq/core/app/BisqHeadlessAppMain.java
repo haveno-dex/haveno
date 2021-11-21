@@ -20,6 +20,7 @@ package bisq.core.app;
 import bisq.common.UserThread;
 import bisq.common.app.AppModule;
 import bisq.common.app.Version;
+import bisq.core.api.CoreContext;
 
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
@@ -33,7 +34,7 @@ public class BisqHeadlessAppMain extends BisqExecutable {
     protected HeadlessApp headlessApp;
 
     public BisqHeadlessAppMain() {
-        super("Bisq Daemon", "bisqd", "Bisq", Version.VERSION);
+        super("Bisq Daemon", "bisqd", "Bisq", Version.VERSION, true);
     }
 
     public static void main(String[] args) throws Exception {

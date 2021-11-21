@@ -41,7 +41,7 @@ public class BisqAppMain extends BisqExecutable {
     private BisqApp application;
 
     public BisqAppMain() {
-        super("Bisq Desktop", "bisq-desktop", DEFAULT_APP_NAME, Version.VERSION);
+        super("Bisq Desktop", "bisq-desktop", DEFAULT_APP_NAME, Version.VERSION, false);
     }
 
     public static void main(String[] args) {
@@ -50,7 +50,6 @@ public class BisqAppMain extends BisqExecutable {
         // and below, you must include the following code as the first line of your
         // realMain method:
         Thread.currentThread().setContextClassLoader(BisqAppMain.class.getClassLoader());
-
         new BisqAppMain().execute(args);
     }
 

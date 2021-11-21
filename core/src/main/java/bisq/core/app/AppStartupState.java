@@ -77,6 +77,7 @@ public class AppStartupState {
                 hasSufficientPeersForBroadcast,
                 allDomainServicesInitialized,
                 (a, b, c, d) -> {
+                    System.out.println(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> "+ a + " " + b + " " + c + " <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<");
                     if (a && b && c) {
                         walletAndNetworkReady.set(true);
                     }

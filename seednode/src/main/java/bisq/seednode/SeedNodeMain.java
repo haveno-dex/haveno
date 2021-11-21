@@ -51,7 +51,7 @@ public class SeedNodeMain extends ExecutableForAppWithP2p {
     private Timer checkConnectionLossTime;
 
     public SeedNodeMain() {
-        super("Bisq Seednode", "bisq-seednode", "bisq_seednode", VERSION);
+        super("Bisq Seednode", "bisq-seednode", "bisq_seednode", VERSION, false);
     }
 
     public static void main(String[] args) {

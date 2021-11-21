@@ -173,28 +173,30 @@ public class WalletAppSetup {
 
                 });
         btcInfoBinding.subscribe((observable, oldValue, newValue) -> getBtcInfo().set(newValue));
-
-        walletsSetup.initialize(null,
-                () -> {
-                    // We only check one wallet as we apply encryption to all or none
-                    if (walletsManager.areWalletsEncrypted() && !coreContext.isApiUser()) {
-                        walletPasswordHandler.run();
-                    } else {
-                        if (isSpvResyncRequested && !coreContext.isApiUser()) {
-                            if (showFirstPopupIfResyncSPVRequestedHandler != null)
-                                showFirstPopupIfResyncSPVRequestedHandler.run();
-                        } else {
-                            walletInitializedHandler.run();
-                        }
-                    }
-                },
-                exception -> {
-                    if (exception instanceof InvalidHostException && showPopupIfInvalidBtcConfigHandler != null) {
-                        showPopupIfInvalidBtcConfigHandler.run();
-                    } else {
-                        walletServiceException.set(exception);
-                    }
-                });
+        //if (!BisqExecutable.ISAPIUSER)
+        //{
+	        walletsSetup.initialize(null,
+	                () -> {
+	                    // We only check one wallet as we apply encryption to all or none
+	                    if (walletsManager.areWalletsEncrypted() && !coreContext.isApiUser()) {
+	                        walletPasswordHandler.run();
+	                    } else {
+	                        if (isSpvResyncRequested && !coreContext.isApiUser()) {
+	                            if (showFirstPopupIfResyncSPVRequestedHandler != null)
+	                                showFirstPopupIfResyncSPVRequestedHandler.run();
+	                        } else {
+	                            walletInitializedHandler.run();
+	                        }
+	                    }
+	                },
+	                exception -> {
+	                    if (exception instanceof InvalidHostException && showPopupIfInvalidBtcConfigHandler != null) {
+	                        showPopupIfInvalidBtcConfigHandler.run();
+	                    } else {
+	                        walletServiceException.set(exception);
+	                    }
+	                });
+        //}
     }
 
     void setRejectedTxErrorMessageHandler(Consumer<String> rejectedTxErrorMessageHandler,

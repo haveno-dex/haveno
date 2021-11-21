@@ -77,6 +77,7 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import lombok.extern.slf4j.Slf4j;
+import monero.common.MoneroUtils;
 
 import javax.annotation.Nullable;
 
@@ -139,6 +140,11 @@ class CoreWalletsService {
 
     NetworkParameters getNetworkParameters() {
         return btcWalletService.getWallet().getContext().getParams();
+    }
+
+    public void shutDown() {
+    	xmrWalletService.shutDown();
+        walletsSetup.shutDown();
     }
 
     BalancesInfo getBalances(String currencyCode) {
@@ -350,9 +356,11 @@ class CoreWalletsService {
     }
 
     void setWalletPassword(String password, String newPassword) {
+//    	xmrWalletService.setWalletPasswords(password, newPassword);
         verifyWalletsAreAvailable();
 
         KeyCrypterScrypt keyCrypterScrypt = getKeyCrypterScrypt();
+        
 
         if (newPassword != null && !newPassword.isEmpty()) {
             // TODO Validate new password before replacing old password.

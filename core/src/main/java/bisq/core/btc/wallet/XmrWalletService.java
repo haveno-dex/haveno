@@ -1,12 +1,16 @@
 package bisq.core.btc.wallet;
 
 import bisq.common.UserThread;
+import bisq.core.api.AccountService;
 import bisq.core.btc.exceptions.AddressEntryException;
 import bisq.core.btc.listeners.XmrBalanceListener;
 import bisq.core.btc.model.XmrAddressEntry;
 import bisq.core.btc.model.XmrAddressEntryList;
+import bisq.core.btc.setup.WalletConfig;
 import bisq.core.btc.setup.WalletsSetup;
 import bisq.core.util.ParsingUtils;
+import javafx.beans.property.ObjectProperty;
+import javafx.beans.property.SimpleObjectProperty;
 
 import org.bitcoinj.core.AddressFormatException;
 import org.bitcoinj.core.Coin;
@@ -31,8 +35,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import lombok.Getter;
-
+import monero.common.MoneroUtils;
 import monero.daemon.MoneroDaemon;
+import monero.daemon.MoneroDaemonRpc;
 import monero.wallet.MoneroWallet;
 import monero.wallet.model.MoneroOutputWallet;
 import monero.wallet.model.MoneroSubaddress;
@@ -92,7 +97,7 @@ public class XmrWalletService {
       MoneroWallet multisigWallet = null;
       multisigWallet = walletsSetup.getWalletConfig().createWallet(new MoneroWalletConfig()
               .setPath(path)
-              .setPassword("abctesting123"),
+              .setPassword(AccountService.DEFAULT_PASSWORD),
               null); // auto-assign port
       multisigWallets.put(tradeId, multisigWallet);
       multisigWallet.startSyncing(5000l);
@@ -105,7 +110,7 @@ public class XmrWalletService {
       MoneroWallet multisigWallet = null;
       multisigWallet = walletsSetup.getWalletConfig().openWallet(new MoneroWalletConfig()
               .setPath(path)
-              .setPassword("abctesting123"),
+              .setPassword(AccountService.DEFAULT_PASSWORD),
               null);
       multisigWallets.put(tradeId, multisigWallet);
       multisigWallet.startSyncing(5000l); // TODO (woodser): use sync period from config. apps stall if too many multisig wallets and too short sync period
@@ -276,6 +281,34 @@ public class XmrWalletService {
       return wallet.getTxs(new MoneroTxQuery().setIsFailed(includeDead ? null : false));
   }
 
+  public void setWalletPasswords(String oldPassword, String newPassword) {
+      ObjectProperty<Throwable> accountServiceException = new SimpleObjectProperty<>();
+      this.walletsSetup.initialize(null,
+                  () -> {
+                      var w = this.walletsSetup.getWalletConfig().getXmrWallet();
+                      var c = this.walletsSetup.moneroWalletConfig;
+                      c.setMnemonic(w.getMnemonic());
+                      c.setPassword(newPassword);
+                      
+                      this.walletsSetup.shutDown();
+                      String MONERO_DAEMON_URI = "http://localhost:38081";
+                      String MONERO_DAEMON_USERNAME = "superuser";
+                      String MONERO_DAEMON_PASSWORD = "abctesting123";
+                      var a = new MoneroDaemonRpc(MONERO_DAEMON_URI, MONERO_DAEMON_USERNAME, MONERO_DAEMON_PASSWORD);
+                      
+                      this.walletsSetup.getWalletConfig().createWallet(c, 38091);
+                  },
+                  exception -> {
+                      accountServiceException.set(exception);
+                  });
+    
+    //get mnemonic
+    //closewallet, create with mnemonic seed
+    //NOTE: how??
+    //wallet.changePassword();
+    
+  }
+
   public void shutDown() {
 
     // collect wallets to shutdown
@@ -293,7 +326,7 @@ public class XmrWalletService {
         public void run() {
           try { walletsSetup.getWalletConfig().closeWallet(openWallet); }
           catch (Exception e) {
-            log.warn("Error closing monero-wallet-rpc subprocess. Was Haveno stopped manually with ctrl+c?");
+            log.warn("Error closing monero-wallet-rpc subprocess. Was Haveno stopped manually with ctrl+c?" + e.toString());
           }
         }
       }));

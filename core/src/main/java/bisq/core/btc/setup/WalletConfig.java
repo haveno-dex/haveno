@@ -17,10 +17,10 @@
 
 package bisq.core.btc.setup;
 
+import bisq.core.api.AccountService;
 import bisq.core.btc.nodes.LocalBitcoinNode;
 import bisq.core.btc.nodes.ProxySocketFactory;
 import bisq.core.btc.wallet.BisqRiskAnalysis;
-
 import bisq.common.config.Config;
 import bisq.common.file.FileUtil;
 
@@ -171,6 +171,7 @@ public class WalletConfig extends AbstractIdleService {
     private int minBroadcastConnections;
     @Getter
     private BooleanProperty migratedWalletToSegwit = new SimpleBooleanProperty(false);
+    private final String xmrPrefix = "_XMR";
 
     /**
      * Creates a new WalletConfig, with a newly created {@link Context}. Files will be stored in the given directory.
@@ -363,12 +364,11 @@ public class WalletConfig extends AbstractIdleService {
             vXmrDaemon = new MoneroDaemonRpc(MONERO_DAEMON_URI, MONERO_DAEMON_USERNAME, MONERO_DAEMON_PASSWORD);
 
             // XMR wallet
-            String xmrPrefix = "_XMR";
             vXmrWalletFile = new File(directory, filePrefix + xmrPrefix);
             if (MoneroUtils.walletExists(vXmrWalletFile.getPath())) {
-              vXmrWallet = openWallet(new MoneroWalletConfig().setPath(filePrefix + xmrPrefix).setPassword("abctesting123"), rpcBindPort);
+              vXmrWallet = openWallet(new MoneroWalletConfig().setPath(filePrefix + xmrPrefix).setPassword(AccountService.DEFAULT_PASSWORD), rpcBindPort);
             } else {
-              vXmrWallet = createWallet(new MoneroWalletConfig().setPath(filePrefix + xmrPrefix).setPassword("abctesting123"), rpcBindPort);
+              vXmrWallet = createWallet(new MoneroWalletConfig().setPath(filePrefix + xmrPrefix).setPassword(AccountService.DEFAULT_PASSWORD), rpcBindPort);
             }
             System.out.println("Monero wallet path: " + vXmrWallet.getPath());
             System.out.println("Monero wallet address: " + vXmrWallet.getPrimaryAddress());

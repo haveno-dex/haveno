@@ -17,6 +17,7 @@
 
 package bisq.core.app;
 
+import bisq.core.api.CoreContext;
 import bisq.core.btc.setup.WalletsSetup;
 import bisq.core.btc.wallet.BtcWalletService;
 import bisq.core.btc.wallet.XmrWalletService;
@@ -49,6 +50,7 @@ import com.google.inject.Injector;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
 import javax.annotation.Nullable;
@@ -63,6 +65,7 @@ public abstract class BisqExecutable implements GracefulShutDownHandler, BisqSet
     private final String scriptName;
     private final String appName;
     private final String version;
+    public static boolean ISAPIUSER;
 
     protected Injector injector;
     protected AppModule module;
@@ -70,11 +73,12 @@ public abstract class BisqExecutable implements GracefulShutDownHandler, BisqSet
     private boolean isShutdownInProgress;
     private boolean hasDowngraded;
 
-    public BisqExecutable(String fullName, String scriptName, String appName, String version) {
+    public BisqExecutable(String fullName, String scriptName, String appName, String version, boolean isApiUser) {
         this.fullName = fullName;
         this.scriptName = scriptName;
         this.appName = appName;
         this.version = version;
+        BisqExecutable.ISAPIUSER = isApiUser;
     }
 
     public void execute(String[] args) {

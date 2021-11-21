@@ -17,6 +17,7 @@
 
 package bisq.core.trade.protocol.tasks;
 
+import bisq.core.api.AccountService;
 import bisq.core.trade.ArbitratorTrade;
 import bisq.core.trade.MakerTrade;
 import bisq.core.trade.TakerTrade;
@@ -26,7 +27,6 @@ import bisq.core.trade.protocol.TradingPeer;
 
 import bisq.network.p2p.NodeAddress;
 import bisq.network.p2p.SendDirectMessageListener;
-
 import bisq.common.app.Version;
 import bisq.common.crypto.PubKeyRing;
 import bisq.common.taskrunner.TaskRunner;
@@ -107,7 +107,7 @@ public class ProcessInitMultisigRequest extends TradeTask {
             TradingPeer[] peers = getMultisigPeers();
             if (processModel.getMadeMultisigHex() == null && peers[0].getPreparedMultisigHex() != null && peers[1].getPreparedMultisigHex() != null) {
               System.out.println("Making multisig wallet!");
-              MoneroMultisigInitResult result = multisigWallet.makeMultisig(Arrays.asList(peers[0].getPreparedMultisigHex(), peers[1].getPreparedMultisigHex()), 2, "abctesting123"); // TODO (woodser): move this to config
+              MoneroMultisigInitResult result = multisigWallet.makeMultisig(Arrays.asList(peers[0].getPreparedMultisigHex(), peers[1].getPreparedMultisigHex()), 2, AccountService.DEFAULT_PASSWORD); // TODO (woodser): move this to config
               processModel.setMadeMultisigHex(result.getMultisigHex());
               updateParticipants = true;
             }
@@ -115,7 +115,7 @@ public class ProcessInitMultisigRequest extends TradeTask {
             // exchange multisig keys if applicable
             if (!processModel.isMultisigSetupComplete() && peers[0].getMadeMultisigHex() != null && peers[1].getMadeMultisigHex() != null) {
               System.out.println("Exchanging multisig wallet!");
-              multisigWallet.exchangeMultisigKeys(Arrays.asList(peers[0].getMadeMultisigHex(), peers[1].getMadeMultisigHex()), "abctesting123");  // TODO (woodser): move this to config
+              multisigWallet.exchangeMultisigKeys(Arrays.asList(peers[0].getMadeMultisigHex(), peers[1].getMadeMultisigHex()), AccountService.DEFAULT_PASSWORD);  // TODO (woodser): move this to config
               processModel.setMultisigSetupComplete(true);
             }
 

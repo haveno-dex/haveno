@@ -15,7 +15,7 @@ nodes: localnet
 	./scripts/xmr_btc_deps.sh
 
 haveno:
-	./gradlew build
+	./gradlew build -x test
 
 haveno-apps: # quick build desktop and daemon apps without tests, etc
 	./gradlew :core:compileJava :desktop:build
