@@ -21,7 +21,7 @@ These steps describe how to import Haveno into Eclipse IDE for development. You 
 11. Advance to finish importing haveno project.
 12. Right click haveno project > Gradle > Refresh Gradle Project.
 13. File > Import... > Existing Projects into Workspace.
-14. Select the location of "haveno-ui-poc" project, e.g. ~git/haveno-ui-poc.
+14. Select the location of "haveno-ui-poc" project, e.g. ~/git/haveno-ui-poc.
 15. Advance to finish importing haveno-ui-poc project.
 
 You are now ready to make, run, and test changes to the Haveno project!
