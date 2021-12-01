@@ -31,8 +31,8 @@ Follow [instructions](https://github.com/haveno-dex/haveno-ui-poc#run-tests) to 
 6. Update the gRPC client in haveno-ui-poc: `npm install`
 7. Add the corresponding typescript method(s) to [HavenoDaemon.ts](https://github.com/haveno-dex/haveno-ui-poc/blob/master/src/HavenoDaemon.ts) with clear and concise documentation.
 8. Add clean and comprehensive tests to [HavenoDaemon.test.ts](https://github.com/haveno-dex/haveno-ui-poc/blob/master/src/HavenoDaemon.test.ts), following existing patterns.
-9. Verify the tests with `npm run test -- -t 'my test'` to run tests by name and `npm test` to run all tests together.
-10. Open a pull request for review.
+9. Run the tests with `npm run test -- -t 'my test'` to run tests by name and `npm test` to run all tests together. Ensure all tests pass and there are no exception stacktraces in the terminals of Alice, Bob, or the arbitrator.
+10. Open pull requests to the haveno and haveno-ui-poc projects for the backend and frontend implementations.
 
 ## Trade Protocol
 
