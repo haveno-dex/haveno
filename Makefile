@@ -148,6 +148,16 @@ monero-private2:
 		--rpc-login superuser:abctesting123 \
 		--rpc-access-control-origins http://localhost:8080 \
 		--fixed-difficulty 100
+		
+funding-wallet:
+	./.localnet/monero-wallet-rpc \
+		--stagenet \
+		--daemon-address http://localhost:38081 \
+		--daemon-login superuser:abctesting123 \
+		--rpc-bind-port 38084 \
+		--rpc-login rpc_user:abc123 \
+		--rpc-access-control-origins http://localhost:8080 \
+		--wallet-dir ./.localnet
 
 bitcoind:
 	./.localnet/bitcoind \
