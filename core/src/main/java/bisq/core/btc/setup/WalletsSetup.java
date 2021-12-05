@@ -402,7 +402,8 @@ public class WalletsSetup {
 
         List<BtcNode> nodes = btcNodesSetupPreferences.selectPreferredNodes(btcNodes);
         int minBroadcastConnections = btcNodesSetupPreferences.calculateMinBroadcastConnections(nodes);
-        walletConfig.setMinBroadcastConnections(minBroadcastConnections);
+        //walletConfig.setMinBroadcastConnections(minBroadcastConnections);
+        walletConfig.setMinBroadcastConnections(1); // TODO do we need to do this the same as it is done for btc above?
 
         BtcNodesRepository repository = new BtcNodesRepository(nodes);
         boolean isUseClearNodesWithProxies = (useAllProvidedNodes || btcNodesSetupPreferences.isUseCustomNodes());
