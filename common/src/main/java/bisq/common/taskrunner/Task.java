@@ -17,6 +17,8 @@
 
 package bisq.common.taskrunner;
 
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -64,7 +66,11 @@ public abstract class Task<T extends Model> {
     }
 
     protected void failed(Throwable t) {
-        log.error(errorMessage, t);
+        StringWriter sw = new StringWriter();
+        PrintWriter pw = new PrintWriter(sw);
+        t.printStackTrace(pw);
+        errorMessage = sw.toString();
+        log.error(t.getMessage(), t);
         taskHandler.handleErrorMessage(errorMessage);
     }
 

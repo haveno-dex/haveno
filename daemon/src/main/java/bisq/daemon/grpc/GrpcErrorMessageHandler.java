@@ -109,7 +109,6 @@ public class GrpcErrorMessageHandler implements ErrorMessageHandler {
             takeOfferResponseObserver.onNext(reply);
             takeOfferResponseObserver.onCompleted();
         } catch (IllegalArgumentException ex) {
-            log.error("", ex);
             exceptionHandler.handleErrorMessage(log,
                     errorMessage,
                     responseObserver);
