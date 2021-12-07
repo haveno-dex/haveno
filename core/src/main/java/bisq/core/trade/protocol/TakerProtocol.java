@@ -17,10 +17,11 @@
 
 package bisq.core.trade.protocol;
 
+import bisq.common.handlers.ErrorMessageHandler;
 import bisq.core.trade.handlers.TradeResultHandler;
 
 public interface TakerProtocol extends TraderProtocol {
-    void onTakeOffer(TradeResultHandler tradeResultHandler);
+    void onTakeOffer(TradeResultHandler tradeResultHandler, ErrorMessageHandler errorMessageHandler);
 
     enum TakerEvent implements FluentProtocol.Event {
         TAKE_OFFER

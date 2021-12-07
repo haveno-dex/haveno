@@ -90,7 +90,7 @@ public class BuyerAsTakerProtocol extends BuyerProtocol implements TakerProtocol
 
     // TODO (woodser): this implementation is duplicated with SellerAsTakerProtocol
     @Override
-    public void onTakeOffer(TradeResultHandler tradeResultHandler) {
+    public void onTakeOffer(TradeResultHandler tradeResultHandler, ErrorMessageHandler errorMessageHandler) {
       System.out.println("onTakeOffer()");
       this.tradeResultHandler = tradeResultHandler;
 
@@ -101,6 +101,9 @@ public class BuyerAsTakerProtocol extends BuyerProtocol implements TakerProtocol
               ApplyFilter.class,
               TakerReservesTradeFunds.class,
               TakerSendsInitTradeRequestToArbitrator.class) // TODO (woodser): app hangs if this pipeline fails. use .using() like below
+              .using(new TradeTaskRunner(trade,
+                      () -> { },
+                      errorMessageHandler))
           .withTimeout(30))
           .executeTasks();
     }

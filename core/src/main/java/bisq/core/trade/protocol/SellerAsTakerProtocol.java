@@ -82,7 +82,8 @@ public class SellerAsTakerProtocol extends SellerProtocol implements TakerProtoc
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     @Override
-    public void onTakeOffer(TradeResultHandler tradeResultHandler) {
+    public void onTakeOffer(TradeResultHandler tradeResultHandler,
+                            ErrorMessageHandler errorMessageHandler) {
       System.out.println("onTakeOffer()");
       this.tradeResultHandler = tradeResultHandler;
 
@@ -93,6 +94,9 @@ public class SellerAsTakerProtocol extends SellerProtocol implements TakerProtoc
               ApplyFilter.class,
               TakerReservesTradeFunds.class,
               TakerSendsInitTradeRequestToArbitrator.class)
+              .using(new TradeTaskRunner(trade,
+                      () -> { },
+                      errorMessageHandler))
           .withTimeout(30))
           .executeTasks();
     }
