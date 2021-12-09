@@ -506,6 +506,8 @@ service Price {
     }
     rpc GetMarketPrices (MarketPricesRequest) returns (MarketPricesReply) {
     }
+    rpc GetMarketDepth (MarketDepthRequest) returns (MarketDepthReply) {
+    }
 }
 
 message MarketPriceRequest {
@@ -526,6 +528,18 @@ message MarketPricesReply {
 message MarketPriceInfo {
     string currency_code = 1;
     double price = 2;
+}
+
+message MarketDepthRequest {
+    string currency_code = 1;
+}
+
+message MarketDepthReply {
+    string currency_code = 1;
+    repeated double buy_prices = 2;
+    repeated double buy_depth = 3;
+    repeated double sell_prices = 4;
+    repeated double sell_depth = 5;  
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////

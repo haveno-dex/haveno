@@ -18,8 +18,10 @@
 package bisq.daemon.grpc;
 
 import bisq.core.api.CoreApi;
+import bisq.core.api.model.MarketDepthInfo;
 import bisq.core.api.model.MarketPriceInfo;
-
+import bisq.proto.grpc.MarketDepthReply;
+import bisq.proto.grpc.MarketDepthRequest;
 import bisq.proto.grpc.MarketPriceReply;
 import bisq.proto.grpc.MarketPriceRequest;
 import bisq.proto.grpc.MarketPricesReply;
@@ -40,7 +42,6 @@ import static bisq.daemon.grpc.interceptor.GrpcServiceRateMeteringConfig.getCust
 import static bisq.proto.grpc.PriceGrpc.PriceImplBase;
 import static bisq.proto.grpc.PriceGrpc.getGetMarketPriceMethod;
 import static java.util.concurrent.TimeUnit.SECONDS;
-
 
 
 import bisq.daemon.grpc.interceptor.CallRateMeteringInterceptor;
@@ -81,6 +82,19 @@ class GrpcPriceService extends PriceImplBase {
         }
     }
 
+    @Override
+    public void getMarketDepth(MarketDepthRequest req,
+                               StreamObserver<MarketDepthReply> responseObserver) {
+        try {
+            MarketDepthInfo marketDepthInfo = coreApi.getMarketDepth(req.getCurrencyCode());
+            responseObserver.onNext(
+                marketDepthInfo.toProtoMessage());
+            responseObserver.onCompleted();
+        } catch (Throwable cause) {
+            exceptionHandler.handleException(log, cause, responseObserver);
+        }
+    }
+
     private MarketPricesReply mapMarketPricesReply(List<MarketPriceInfo> marketPrices) {
         MarketPricesReply.Builder builder = MarketPricesReply.newBuilder();
         marketPrices.stream()
@@ -88,7 +102,7 @@ class GrpcPriceService extends PriceImplBase {
                 .forEach(builder::addMarketPrice);
         return builder.build();
     }
-
+    
     final ServerInterceptor[] interceptors() {
         Optional<ServerInterceptor> rateMeteringInterceptor = rateMeteringInterceptor();
         return rateMeteringInterceptor.map(serverInterceptor ->

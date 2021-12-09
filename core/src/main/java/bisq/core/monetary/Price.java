@@ -20,6 +20,8 @@ package bisq.core.monetary;
 import bisq.core.locale.CurrencyUtil;
 import bisq.core.util.ParsingUtils;
 
+import java.math.BigDecimal;
+
 import org.bitcoinj.core.Coin;
 import org.bitcoinj.core.Monetary;
 import org.bitcoinj.utils.ExchangeRate;
@@ -105,6 +107,13 @@ public class Price extends MonetaryWrapper implements Comparable<Price> {
 
     public long getValue() {
         return monetary.getValue();
+    }
+
+    /** 
+    / @return amount of whole coins or fiat dollars as double
+     * */ 
+    public double getDoubleValue() {
+        return BigDecimal.valueOf(monetary.getValue()).movePointLeft(monetary.smallestUnitExponent()).doubleValue();
     }
 
     @Override

@@ -19,6 +19,7 @@ package bisq.core.api;
 
 import bisq.core.api.model.AddressBalanceInfo;
 import bisq.core.api.model.BalancesInfo;
+import bisq.core.api.model.MarketDepthInfo;
 import bisq.core.api.model.MarketPriceInfo;
 import bisq.core.api.model.TxFeeRateInfo;
 import bisq.core.app.AppStartupState;
@@ -31,7 +32,6 @@ import bisq.core.payment.payload.PaymentMethod;
 import bisq.core.trade.Trade;
 import bisq.core.trade.statistics.TradeStatistics3;
 import bisq.core.trade.statistics.TradeStatisticsManager;
-
 import bisq.common.app.Version;
 import bisq.common.config.Config;
 import bisq.common.crypto.IncorrectPasswordException;
@@ -459,6 +459,10 @@ public class CoreApi {
 
     public List<MarketPriceInfo> getMarketPrices() throws ExecutionException, InterruptedException, TimeoutException {
         return corePriceService.getMarketPrices();
+    }
+
+    public MarketDepthInfo getMarketDepth(String currencyCode) throws ExecutionException, InterruptedException, TimeoutException {
+        return corePriceService.getMarketDepth(currencyCode);
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
