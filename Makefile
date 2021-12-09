@@ -53,7 +53,18 @@ arbitrator-desktop:
 		--appName=haveno-XMR_STAGENET_arbitrator \
 		--apiPassword=apitest \
 		--apiPort=9998
-		
+
+arbitrator-daemon:
+	# Arbitrator and mediator need to be registerd in the UI before launching the daemon.
+	./haveno-daemon \
+		--baseCurrencyNetwork=XMR_STAGENET \
+		--useLocalhostForP2P=true \
+		--useDevPrivilegeKeys=true \
+		--nodePort=4444 \
+		--appName=haveno-XMR_STAGENET_arbitrator \
+		--apiPassword=apitest \
+		--apiPort=9998
+
 arbitrator-desktop2:
 	# Arbitrator and mediator need to be registerd in the UI after launching it.
 	./haveno-desktop \
