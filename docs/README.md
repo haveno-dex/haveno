@@ -12,4 +12,4 @@
 
 Documents outside of this folder:
 
-- [FAQ](https://github.com/haveno-dex/haveno/wiki/FAQ) - Common questions and answers
+- [FAQ on haveno.exchange](https://haveno.exchange/faq/) - Common questions and answers
