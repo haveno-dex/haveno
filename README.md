@@ -5,14 +5,14 @@
   ![GitHub Workflow Status](https://img.shields.io/github/workflow/status/haveno-dex/haveno/CI)
   [![GitHub issues with bounty](https://img.shields.io/github/issues-search/haveno-dex/haveno?color=%23fef2c0&label=Issues%20with%20bounties&query=project%3Ahaveno-dex%2F2)](https://github.com/orgs/haveno-dex/projects/2) | 
   [![Twitter Follow](https://img.shields.io/twitter/follow/HavenoDEX?style=social)](https://twitter.com/havenodex)
-  [![Matrix Room](https://img.shields.io/badge/Matrix%20room-%23haveno-blue)](https://matrix.to/#/!cSwJDzxRuWndmFUZTd:haveno.network?via=libera.chat&via=matrix.org&via=monero.social)
+  [![Matrix rooms](https://img.shields.io/badge/Matrix%20room-%23haveno-blue)](https://matrix.to/#/#space:haveno.network)
 </div>
 
 ## What is Haveno?
 
-Haveno (pronounced ha‧ve‧no) is a private and decentralized way to exchange Monero for national currencies or other cryptocurrencies. Haveno uses peer-to-peer networking and multi-signature escrow to facilitate trading without a trusted third party custodian. Disputes can be resolved using non-custodial arbitration. Everything is built around Monero and Tor.
+Haveno (pronounced ha‧ve‧no) is a private and decentralized way to exchange Monero for national currencies or other cryptocurrencies. Haveno uses peer-to-peer networking and multi-signature escrow to facilitate trading without a trusted third party custodian. Disputes can be resolved using non-custodial arbitration. Everything is built around Monero and Tor. See the [FAQ on our website](https://haveno.exchange/faq/) for more information.
 
-Haveno is the Esperanto word for "Harbor". The project is stewarded by a core Team, currently formed by 2 people: ErCiccione and Woodser. See the [FAQ in the wiki](https://github.com/haveno-dex/haveno/wiki/FAQ) for more information about the project.
+Haveno is the Esperanto word for "Harbor". The project is stewarded by a core Team formed of 2 people: ErCiccione and Woodser.
 
 Haveno is still work in progress. There are no binaries available at this stage. If you want to test Haveno you have to compile it first (see [docs/installing.md](docs/installing.md)).
 
@@ -22,19 +22,19 @@ At the moment Haveno is only a Proof of Concept. It's already possible to initia
 
 The project is divided between multiple repositories:
 
-- **[haveno](https://github.com/haveno-dex/haveno)** - This repository. Contains the Proof of Concept of what will be the heart of Haveno.
+- **[haveno](https://github.com/haveno-dex/haveno)** - This repository. The heart of Haveno.
 - **[haveno-ui-poc](https://github.com/haveno-dex/haveno-ui-poc)** - The PoC of the future user interface. Uses gRPC APIs to serve the UI in React.
 - **[haveno-design](https://github.com/haveno-dex/haveno-design)** - Repository for design discussions and development.
 - **[haveno-meta](https://github.com/haveno-dex/haveno-meta)** - For project-wide discussions and proposals.
-- **[haveno-site](https://github.com/haveno-dex/haveno-site)** - The repository of the future website.
+- **[haveno-site](https://github.com/haveno-dex/haveno-site)** - The repository of the website.
 
-Currently, efforts are focused in developing the core repository ('haveno'). If you wish to help, take a look at the [issue tracker](https://github.com/haveno-dex/haveno/issues) and the [Kanban boards (projects)](https://github.com/haveno-dex/haveno/projects). We run a bounty program to incentivize development, the issues eligible for a reward in XMR [are labelled '💰bounty'](https://github.com/haveno-dex/haveno/labels/%F0%9F%92%B0bounty).
+If you wish to help, take a look at the [issue tracker](https://github.com/haveno-dex/haveno/issues). We run a bounty program to incentivize development. See [Bounties](#bounties)
 
 The PGP keys of the core team members are in `gpg_keys/`.
 
 ## Keep in touch and help out!
 
-Haveno is a community-driven project. For it to be succesful it's fundamental to have the support and help of the Monero community. We have our own Matrix server. Registrations are not open at the moment, but the rooms are public and can be joined from any matrix client (like Element). We look forward to hearing from you!
+Haveno is a community-driven project. For it to be successful it's fundamental to have the support and help of the Monero community. We have our own Matrix server. Registrations are not open at the moment, but the rooms are public and can be joined from any matrix client (like Element). We look forward to hearing from you!
 
 - General discussions: **Haveno** (`#haveno:haveno.network`) relayed on Libera (IRC) (`#haveno`)
 - Development discussions: **Haveno Development** (`#haveno-dev:haveno.network`) relayed on Libera (IRC) (`#haveno-dev`)
@@ -62,7 +62,7 @@ To incentivize development and reward contributors we adopt a simple bounty syst
 
 ## Sponsors
 
-Would you like to help us build Haveno? Become a sponsor! We will show your logo here. Contact us at havenodex@protonmail.com.
+Would you like to help us build Haveno? Become a sponsor! We will show your logo here. Contact us at contact@haveno.exchange.
 
 <a href="https://getmonero.org"><img src="/media/sponsors/monero-community.png" title="Monero community" alt="Monero community logo" width="100px"></a>
 <a href="https://samouraiwallet.com/"><img src="/media/sponsors/samourai.png" title="Samourai wallet" alt="Samourai wallet logo" width="100px"></a>
