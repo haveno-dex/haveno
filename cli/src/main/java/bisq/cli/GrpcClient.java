@@ -39,6 +39,7 @@ import bisq.proto.grpc.GetPaymentAccountFormRequest;
 import bisq.proto.grpc.GetPaymentAccountsRequest;
 import bisq.proto.grpc.GetPaymentMethodsRequest;
 import bisq.proto.grpc.GetTradeRequest;
+import bisq.proto.grpc.GetTradesRequest;
 import bisq.proto.grpc.GetTransactionRequest;
 import bisq.proto.grpc.GetTxFeeRateRequest;
 import bisq.proto.grpc.GetVersionRequest;
@@ -347,6 +348,11 @@ public final class GrpcClient {
                 .setTradeId(tradeId)
                 .build();
         return grpcStubs.tradesService.getTrade(request).getTrade();
+    }
+
+    public List<TradeInfo> getTrades() {
+        var request = GetTradesRequest.newBuilder().build();
+        return grpcStubs.tradesService.getTrades(request).getTradesList();
     }
 
     public void confirmPaymentStarted(String tradeId) {

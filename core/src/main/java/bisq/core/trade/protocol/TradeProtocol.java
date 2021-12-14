@@ -20,6 +20,7 @@ package bisq.core.trade.protocol;
 import bisq.core.offer.Offer;
 import bisq.core.trade.Trade;
 import bisq.core.trade.TradeManager;
+import bisq.core.trade.handlers.TradeResultHandler;
 import bisq.core.trade.messages.CounterCurrencyTransferStartedMessage;
 import bisq.core.trade.messages.DepositTxAndDelayedPayoutTxMessage;
 import bisq.core.trade.messages.InitMultisigRequest;
@@ -60,6 +61,8 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
     protected final ProcessModel processModel;
     protected final Trade trade;
     private Timer timeoutTimer;
+    protected TradeResultHandler tradeResultHandler;
+    protected ErrorMessageHandler errorMessageHandler;
 
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -205,8 +208,8 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     protected abstract void onTradeMessage(TradeMessage message, NodeAddress peer);
-    public abstract void handleInitMultisigRequest(InitMultisigRequest request, NodeAddress peer, ErrorMessageHandler errorMessageHandler);
-    public abstract void handleSignContractRequest(SignContractRequest request, NodeAddress peer, ErrorMessageHandler errorMessageHandler);
+    public abstract void handleInitMultisigRequest(InitMultisigRequest request, NodeAddress peer);
+    public abstract void handleSignContractRequest(SignContractRequest request, NodeAddress peer);
 
     // TODO (woodser): update to use fluent for consistency
     public void handleUpdateMultisigRequest(UpdateMultisigRequest message, NodeAddress peer, ErrorMessageHandler errorMessageHandler) {
@@ -348,12 +351,10 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
 
     protected void startTimeout(long timeoutSec) {
         stopTimeout();
-
         timeoutTimer = UserThread.runAfter(() -> {
-            log.error("Timeout reached. TradeID={}, state={}, timeoutSec={}",
-                    trade.getId(), trade.stateProperty().get(), timeoutSec);
+            log.error("Timeout reached. TradeID={}, state={}, timeoutSec={}", trade.getId(), trade.stateProperty().get(), timeoutSec);
             trade.setErrorMessage("Timeout reached. Protocol did not complete in " + timeoutSec + " sec.");
-
+            if (errorMessageHandler != null) errorMessageHandler.handleErrorMessage("Timeout reached. Protocol did not complete in " + timeoutSec + " sec. TradeID=" + trade.getId() + ", state=" + trade.stateProperty().get());
             processModel.getTradeManager().requestPersistence();
             cleanup();
         }, timeoutSec);

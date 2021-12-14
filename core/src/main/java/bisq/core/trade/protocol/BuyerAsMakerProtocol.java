@@ -64,10 +64,178 @@ public class BuyerAsMakerProtocol extends BuyerProtocol implements MakerProtocol
         super(trade);
     }
 
+    ///////////////////////////////////////////////////////////////////////////////////////////
+    // MakerProtocol
+    ///////////////////////////////////////////////////////////////////////////////////////////
+
+    // TODO (woodser): these methods are duplicated with SellerAsMakerProtocol due to single inheritance
+
+    @Override
+    public void handleInitTradeRequest(InitTradeRequest message,
+                                       NodeAddress peer,
+                                       ErrorMessageHandler errorMessageHandler) {
+        this.errorMessageHandler = errorMessageHandler;
+        expect(phase(Trade.Phase.INIT)
+                .with(message)
+                .from(peer))
+                .setup(tasks(
+                        ProcessInitTradeRequest.class,
+                        //ApplyFilter.class, // TODO (woodser): these checks apply when maker signs availability request, but not here
+                        //VerifyPeersAccountAgeWitness.class, // TODO (woodser): these checks apply after in multisig, means if rejected need to reimburse other's fee
+                        MakerSendsInitTradeRequestIfUnreserved.class)
+                .using(new TradeTaskRunner(trade,
+                        () -> {
+                            handleTaskRunnerSuccess(peer, message);
+                        },
+                        errorMessage -> {
+                            errorMessageHandler.handleErrorMessage(errorMessage);
+                            handleTaskRunnerFault(peer, message, errorMessage);
+                        }))
+                .withTimeout(30))
+                .executeTasks();
+    }
+    
+    @Override
+    public void handleInitMultisigRequest(InitMultisigRequest request, NodeAddress sender) {
+      System.out.println("BuyerAsMakerProtocol.handleInitMultisigRequest()");
+      Validator.checkTradeId(processModel.getOfferId(), request);
+      processModel.setTradeMessage(request); // TODO (woodser): synchronize access since concurrent requests processed
+      expect(anyPhase(Trade.Phase.INIT)
+              .with(request)
+              .from(sender))
+              .setup(tasks(
+                      ProcessInitMultisigRequest.class,
+                      SendSignContractRequestAfterMultisig.class)
+              .using(new TradeTaskRunner(trade,
+                  () -> {
+                    handleTaskRunnerSuccess(sender, request);
+                  },
+                  errorMessage -> {
+                      errorMessageHandler.handleErrorMessage(errorMessage);
+                      handleTaskRunnerFault(sender, request, errorMessage);
+                  }))
+              .withTimeout(30))
+              .executeTasks();
+    }
+    
+    @Override
+    public void handleSignContractRequest(SignContractRequest message, NodeAddress sender) {
+        System.out.println("BuyerAsMakerProtocol.handleSignContractRequest()");
+        Validator.checkTradeId(processModel.getOfferId(), message);
+        processModel.setTradeMessage(message);
+        expect(anyPhase(Trade.Phase.INIT)
+                .with(message)
+                .from(sender))
+                .setup(tasks(
+                        // TODO (woodser): validate request
+                        ProcessSignContractRequest.class)
+                .using(new TradeTaskRunner(trade,
+                    () -> {
+                      handleTaskRunnerSuccess(sender, message);
+                    },
+                    errorMessage -> {
+                        errorMessageHandler.handleErrorMessage(errorMessage);
+                        handleTaskRunnerFault(sender, message, errorMessage);
+                    }))
+                .withTimeout(30))
+                .executeTasks();
+    }
+
+    @Override
+    public void handleSignContractResponse(SignContractResponse message, NodeAddress sender) {
+        System.out.println("BuyerAsMakerProtocol.handleSignContractResponse()");
+        Validator.checkTradeId(processModel.getOfferId(), message);
+        processModel.setTradeMessage(message); // TODO (woodser): synchronize access since concurrent requests processed
+        expect(anyPhase(Trade.Phase.INIT)
+                .with(message)
+                .from(sender))
+                .setup(tasks(
+                        // TODO (woodser): validate request
+                        ProcessSignContractResponse.class)
+                .using(new TradeTaskRunner(trade,
+                    () -> {
+                      handleTaskRunnerSuccess(sender, message);
+                    },
+                    errorMessage -> {
+                        errorMessageHandler.handleErrorMessage(errorMessage);
+                        handleTaskRunnerFault(sender, message, errorMessage);
+                    }))
+                .withTimeout(30))
+                .executeTasks();
+    }
+    
+    @Override
+    public void handleDepositResponse(DepositResponse response, NodeAddress sender) {
+        System.out.println("BuyerAsMakerProtocol.handleDepositResponse()");
+        Validator.checkTradeId(processModel.getOfferId(), response);
+        processModel.setTradeMessage(response);
+        expect(anyPhase(Trade.Phase.INIT, Trade.Phase.DEPOSIT_PUBLISHED)
+                .with(response)
+                .from(sender)) // TODO (woodser): ensure this asserts sender == response.getSenderNodeAddress()
+                .setup(tasks(
+                        // TODO (woodser): validate request
+                        ProcessDepositResponse.class)
+                .using(new TradeTaskRunner(trade,
+                    () -> {
+                      handleTaskRunnerSuccess(sender, response);
+                    },
+                    errorMessage -> {
+                        errorMessageHandler.handleErrorMessage(errorMessage);
+                        handleTaskRunnerFault(sender, response, errorMessage);
+                    }))
+                .withTimeout(30))
+                .executeTasks();
+    }
+    
+    @Override
+    public void handlePaymentAccountPayloadRequest(PaymentAccountPayloadRequest request, NodeAddress sender) {
+        System.out.println("BuyerAsMakerProtocol.handlePaymentAccountPayloadRequest()");
+        Validator.checkTradeId(processModel.getOfferId(), request);
+        processModel.setTradeMessage(request);
+        expect(anyPhase(Trade.Phase.INIT, Trade.Phase.DEPOSIT_PUBLISHED)
+                .with(request)
+                .from(sender)) // TODO (woodser): ensure this asserts sender == response.getSenderNodeAddress()
+                .setup(tasks(
+                        // TODO (woodser): validate request
+                        ProcessPaymentAccountPayloadRequest.class,
+                        MakerRemovesOpenOffer.class)
+                .using(new TradeTaskRunner(trade,
+                    () -> {
+                        stopTimeout();
+                        handleTaskRunnerSuccess(sender, request);
+                    },
+                    errorMessage -> {
+                        errorMessageHandler.handleErrorMessage(errorMessage);
+                        handleTaskRunnerFault(sender, request, errorMessage);
+                    }))
+                .withTimeout(30))
+                .executeTasks();
+    }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
-    // Handle take offer request
+    // User interaction
     ///////////////////////////////////////////////////////////////////////////////////////////
+
+    // We keep the handler here in as well to make it more transparent which events we expect
+    @Override
+    public void onPaymentStarted(ResultHandler resultHandler, ErrorMessageHandler errorMessageHandler) {
+        super.onPaymentStarted(resultHandler, errorMessageHandler);
+    }
+
+    ///////////////////////////////////////////////////////////////////////////////////////////
+    // Incoming message Payout tx
+    ///////////////////////////////////////////////////////////////////////////////////////////
+
+    // We keep the handler here in as well to make it more transparent which messages we expect
+    @Override
+    protected void handle(PayoutTxPublishedMessage message, NodeAddress peer) {
+        super.handle(message, peer);
+    }
+
+    @Override
+    protected Class<? extends TradeTask> getVerifyPeersFeePaymentClass() {
+        return MakerVerifyTakerFeePayment.class;
+    }
 
     // TODO (woodser): remove or ignore any unsupported requests
 
@@ -95,176 +263,5 @@ public class BuyerAsMakerProtocol extends BuyerProtocol implements MakerProtocol
     @Override
     protected void handle(DepositTxAndDelayedPayoutTxMessage message, NodeAddress peer) {
         super.handle(message, peer);
-    }
-
-
-    ///////////////////////////////////////////////////////////////////////////////////////////
-    // User interaction
-    ///////////////////////////////////////////////////////////////////////////////////////////
-
-    // We keep the handler here in as well to make it more transparent which events we expect
-    @Override
-    public void onPaymentStarted(ResultHandler resultHandler, ErrorMessageHandler errorMessageHandler) {
-        super.onPaymentStarted(resultHandler, errorMessageHandler);
-    }
-
-
-    ///////////////////////////////////////////////////////////////////////////////////////////
-    // Incoming message Payout tx
-    ///////////////////////////////////////////////////////////////////////////////////////////
-
-    // We keep the handler here in as well to make it more transparent which messages we expect
-    @Override
-    protected void handle(PayoutTxPublishedMessage message, NodeAddress peer) {
-        super.handle(message, peer);
-    }
-
-
-    @Override
-    protected Class<? extends TradeTask> getVerifyPeersFeePaymentClass() {
-        return MakerVerifyTakerFeePayment.class;
-    }
-
-
-    ///////////////////////////////////////////////////////////////////////////////////////////
-    // MakerProtocol
-    ///////////////////////////////////////////////////////////////////////////////////////////
-
-    // TODO (woodser): these methods are duplicated with SellerAsMakerProtocol due to single inheritance
-
-    @Override
-    public void handleInitTradeRequest(InitTradeRequest message,
-                                       NodeAddress peer,
-                                       ErrorMessageHandler errorMessageHandler) {
-        expect(phase(Trade.Phase.INIT)
-            .with(message)
-            .from(peer))
-            .setup(tasks(
-                    ProcessInitTradeRequest.class,
-                    //ApplyFilter.class, // TODO (woodser): these checks apply when maker signs availability request, but not here
-                    //VerifyPeersAccountAgeWitness.class, // TODO (woodser): these checks apply after in multisig, means if rejected need to reimburse other's fee
-                    MakerSendsInitTradeRequestIfUnreserved.class,
-                    MakerRemovesOpenOffer.class).
-                    using(new TradeTaskRunner(trade,
-                            () -> {
-                              handleTaskRunnerSuccess(peer, message);
-                            },
-                            errorMessage -> {
-                                errorMessageHandler.handleErrorMessage(errorMessage);
-                                handleTaskRunnerFault(peer, message, errorMessage);
-                            }))
-                    .withTimeout(30))
-            .executeTasks();
-    }
-    
-    @Override
-    public void handleInitMultisigRequest(InitMultisigRequest request, NodeAddress sender, ErrorMessageHandler errorMessageHandler) {
-      System.out.println("BuyerAsMakerProtocol.handleInitMultisigRequest()");
-      Validator.checkTradeId(processModel.getOfferId(), request);
-      processModel.setTradeMessage(request); // TODO (woodser): synchronize access since concurrent requests processed
-      expect(anyPhase(Trade.Phase.INIT)
-          .with(request)
-          .from(sender))
-          .setup(tasks(
-                  ProcessInitMultisigRequest.class,
-                  SendSignContractRequestAfterMultisig.class)
-              .using(new TradeTaskRunner(trade,
-                  () -> {
-                    handleTaskRunnerSuccess(sender, request);
-                  },
-                  errorMessage -> {
-                      errorMessageHandler.handleErrorMessage(errorMessage);
-                      handleTaskRunnerFault(sender, request, errorMessage);
-                  })))
-          .executeTasks();
-    }
-    
-    @Override
-    public void handleSignContractRequest(SignContractRequest message, NodeAddress sender, ErrorMessageHandler errorMessageHandler) {
-        System.out.println("BuyerAsMakerProtocol.handleSignContractRequest()");
-        Validator.checkTradeId(processModel.getOfferId(), message);
-        processModel.setTradeMessage(message);
-        expect(anyPhase(Trade.Phase.INIT)
-            .with(message)
-            .from(sender))
-            .setup(tasks(
-                    // TODO (woodser): validate request
-                    ProcessSignContractRequest.class)
-                .using(new TradeTaskRunner(trade,
-                    () -> {
-                      handleTaskRunnerSuccess(sender, message);
-                    },
-                    errorMessage -> {
-                        errorMessageHandler.handleErrorMessage(errorMessage);
-                        handleTaskRunnerFault(sender, message, errorMessage);
-                    })))
-            .executeTasks();
-    }
-
-    @Override
-    public void handleSignContractResponse(SignContractResponse message, NodeAddress sender, ErrorMessageHandler errorMessageHandler) {
-        System.out.println("BuyerAsMakerProtocol.handleSignContractResponse()");
-        Validator.checkTradeId(processModel.getOfferId(), message);
-        processModel.setTradeMessage(message); // TODO (woodser): synchronize access since concurrent requests processed
-        expect(anyPhase(Trade.Phase.INIT)
-            .with(message)
-            .from(sender))
-            .setup(tasks(
-                    // TODO (woodser): validate request
-                    ProcessSignContractResponse.class)
-                .using(new TradeTaskRunner(trade,
-                    () -> {
-                      handleTaskRunnerSuccess(sender, message);
-                    },
-                    errorMessage -> {
-                        errorMessageHandler.handleErrorMessage(errorMessage);
-                        handleTaskRunnerFault(sender, message, errorMessage);
-                    })))
-            .executeTasks();
-    }
-    
-    @Override
-    public void handleDepositResponse(DepositResponse response, NodeAddress sender, ErrorMessageHandler errorMessageHandler) {
-        System.out.println("BuyerAsMakerProtocol.handleDepositResponse()");
-        Validator.checkTradeId(processModel.getOfferId(), response);
-        processModel.setTradeMessage(response);
-        expect(anyPhase(Trade.Phase.INIT, Trade.Phase.DEPOSIT_PUBLISHED)
-            .with(response)
-            .from(sender)) // TODO (woodser): ensure this asserts sender == response.getSenderNodeAddress()
-            .setup(tasks(
-                    // TODO (woodser): validate request
-                    ProcessDepositResponse.class)
-                .using(new TradeTaskRunner(trade,
-                    () -> {
-                      handleTaskRunnerSuccess(sender, response);
-                    },
-                    errorMessage -> {
-                        errorMessageHandler.handleErrorMessage(errorMessage);
-                        handleTaskRunnerFault(sender, response, errorMessage);
-                    })))
-            .executeTasks();
-    }
-    
-    @Override
-    public void handlePaymentAccountPayloadRequest(PaymentAccountPayloadRequest request, NodeAddress sender, ErrorMessageHandler errorMessageHandler) {
-        System.out.println("BuyerAsMakerProtocol.handlePaymentAccountPayloadRequest()");
-        Validator.checkTradeId(processModel.getOfferId(), request);
-        processModel.setTradeMessage(request);
-        expect(anyPhase(Trade.Phase.INIT, Trade.Phase.DEPOSIT_PUBLISHED)
-            .with(request)
-            .from(sender)) // TODO (woodser): ensure this asserts sender == response.getSenderNodeAddress()
-            .setup(tasks(
-                    // TODO (woodser): validate request
-                    ProcessPaymentAccountPayloadRequest.class)
-                .using(new TradeTaskRunner(trade,
-                    () -> {
-                        stopTimeout();
-                        handleTaskRunnerSuccess(sender, request);
-                    },
-                    errorMessage -> {
-                        errorMessageHandler.handleErrorMessage(errorMessage);
-                        handleTaskRunnerFault(sender, request, errorMessage);
-                    })))
-            .executeTasks();
     }
 }

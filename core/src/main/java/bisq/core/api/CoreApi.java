@@ -244,11 +244,15 @@ public class CoreApi {
                           String paymentAccountId,
                           Consumer<Trade> resultHandler,
                           ErrorMessageHandler errorMessageHandler) {
-        Offer offer = coreOffersService.getOffer(offerId);
-        coreTradesService.takeOffer(offer,
-                paymentAccountId,
-                resultHandler,
-                errorMessageHandler);
+        try {
+            Offer offer = coreOffersService.getOffer(offerId);
+            coreTradesService.takeOffer(offer,
+                    paymentAccountId,
+                    resultHandler,
+                    errorMessageHandler);
+        } catch (Exception e) {
+            errorMessageHandler.handleErrorMessage(e.getMessage());
+        }
     }
 
     public void confirmPaymentStarted(String tradeId) {
@@ -269,6 +273,10 @@ public class CoreApi {
 
     public Trade getTrade(String tradeId) {
         return coreTradesService.getTrade(tradeId);
+    }
+
+    public List<Trade> getTrades() {
+        return coreTradesService.getTrades();
     }
 
     public String getTradeRole(String tradeId) {

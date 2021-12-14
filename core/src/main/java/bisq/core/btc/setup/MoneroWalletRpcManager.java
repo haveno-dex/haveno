@@ -90,12 +90,14 @@ public class MoneroWalletRpcManager {
    * Stop an instance of monero-wallet-rpc.
    *
    * @param walletRpc the client connected to the monero-wallet-rpc instance to stop
+   * @param save specifies if the wallet should be saved before closing
    */
-  public void stopInstance(MoneroWalletRpc walletRpc) {
+  public void stopInstance(MoneroWalletRpc walletRpc, boolean save) {
     boolean found = false;
     for (Map.Entry<Integer, MoneroWalletRpc> entry : registeredPorts.entrySet()) {
       if (walletRpc == entry.getValue()) {
-        walletRpc.stop();
+        walletRpc.close(save);
+        walletRpc.stopProcess();
         found = true;
         try { unregisterPort(entry.getKey()); }
         catch (Exception e) { throw new MoneroError(e); }

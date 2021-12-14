@@ -23,10 +23,8 @@ import bisq.core.trade.messages.PaymentAccountPayloadRequest;
 import bisq.core.trade.messages.SignContractResponse;
 import bisq.network.p2p.NodeAddress;
 
-import bisq.common.handlers.ErrorMessageHandler;
-
 public interface TraderProtocol {
-    public void handleSignContractResponse(SignContractResponse message, NodeAddress peer, ErrorMessageHandler errorMessageHandler);
-    public void handleDepositResponse(DepositResponse response, NodeAddress peer, ErrorMessageHandler errorMessageHandler);
-    public void handlePaymentAccountPayloadRequest(PaymentAccountPayloadRequest request, NodeAddress peer, ErrorMessageHandler errorMessageHandler);
+    public void handleSignContractResponse(SignContractResponse message, NodeAddress peer);
+    public void handleDepositResponse(DepositResponse response, NodeAddress peer);
+    public void handlePaymentAccountPayloadRequest(PaymentAccountPayloadRequest request, NodeAddress peer);
 }

@@ -88,8 +88,6 @@ import static bisq.common.util.Preconditions.checkDir;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 
-
-
 import monero.common.MoneroUtils;
 import monero.daemon.MoneroDaemon;
 import monero.daemon.MoneroDaemonRpc;
@@ -132,7 +130,8 @@ public class WalletConfig extends AbstractIdleService {
     private static final String MONERO_DAEMON_USERNAME = "superuser";
     private static final String MONERO_DAEMON_PASSWORD = "abctesting123";
     private static final MoneroWalletRpcManager MONERO_WALLET_RPC_MANAGER = new MoneroWalletRpcManager();
-    private static final String MONERO_WALLET_RPC_PATH = System.getProperty("user.dir") + File.separator + ".localnet" + File.separator + "monero-wallet-rpc"; // use wallet rpc in .localnet
+    private static final String MONERO_WALLET_RPC_DIR = System.getProperty("user.dir") + File.separator + ".localnet"; // .localnet contains monero-wallet-rpc and wallet files
+    private static final String MONERO_WALLET_RPC_PATH = MONERO_WALLET_RPC_DIR + File.separator + "monero-wallet-rpc";
     private static final String MONERO_WALLET_RPC_USERNAME = "rpc_user";
     private static final String MONERO_WALLET_RPC_PASSWORD = "abc123";
     private static final long MONERO_WALLET_SYNC_RATE = 5000l;
@@ -292,6 +291,11 @@ public class WalletConfig extends AbstractIdleService {
         // Meant to be overridden by subclasses
     }
 
+    public boolean walletExists(String walletName) {
+      String path = directory.toString() + File.separator + walletName;
+      return new File(path + ".keys").exists();
+    }
+
     public MoneroWalletRpc createWallet(MoneroWalletConfig config, Integer port) {
 
       // start monero-wallet-rpc instance
@@ -304,7 +308,7 @@ public class WalletConfig extends AbstractIdleService {
         return walletRpc;
       } catch (Exception e) {
         e.printStackTrace();
-        WalletConfig.MONERO_WALLET_RPC_MANAGER.stopInstance(walletRpc);
+        WalletConfig.MONERO_WALLET_RPC_MANAGER.stopInstance(walletRpc, false);
         throw e;
       }
     }
@@ -321,7 +325,7 @@ public class WalletConfig extends AbstractIdleService {
         return walletRpc;
       } catch (Exception e) {
         e.printStackTrace();
-        WalletConfig.MONERO_WALLET_RPC_MANAGER.stopInstance(walletRpc);
+        WalletConfig.MONERO_WALLET_RPC_MANAGER.stopInstance(walletRpc, false);
         throw e;
       }
     }
@@ -347,8 +351,17 @@ public class WalletConfig extends AbstractIdleService {
       return WalletConfig.MONERO_WALLET_RPC_MANAGER.startInstance(cmd);
     }
 
-    public void closeWallet(MoneroWallet walletRpc) {
-      WalletConfig.MONERO_WALLET_RPC_MANAGER.stopInstance((MoneroWalletRpc) walletRpc);
+    public void closeWallet(MoneroWallet walletRpc, boolean save) {
+      WalletConfig.MONERO_WALLET_RPC_MANAGER.stopInstance((MoneroWalletRpc) walletRpc, save);
+    }
+
+    public void deleteWallet(String walletName) {
+      if (!walletExists(walletName)) throw new Error("Wallet does not exist at path: " + walletName);
+      String path = directory.toString() + File.separator + walletName;
+      if (!new File(path).delete()) throw new RuntimeException("Failed to delete wallet file: " + path);
+      if (!new File(path + ".keys").delete()) throw new RuntimeException("Failed to delete wallet file: " + path);
+      if (!new File(path + ".address.txt").delete()) throw new RuntimeException("Failed to delete wallet file: " + path);
+      //WalletsSetup.deleteRollingBackup(walletName); // TODO (woodser): necessary to delete rolling backup?
     }
 
     @Override

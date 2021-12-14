@@ -31,22 +31,34 @@ public class ArbitratorProtocol extends DisputeProtocol {
   // Incoming messages
   ///////////////////////////////////////////////////////////////////////////////////////////
 
-  public void handleInitTradeRequest(InitTradeRequest message, NodeAddress peer, ErrorMessageHandler errorMessageHandler) { // TODO (woodser): update impl to use errorMessageHandler
+  public void handleInitTradeRequest(InitTradeRequest message,
+          NodeAddress peer,
+          ErrorMessageHandler errorMessageHandler) {
+      this.errorMessageHandler = errorMessageHandler;
       processModel.setTradeMessage(message); // TODO (woodser): confirm these are null without being set
       //processModel.setTempTradingPeerNodeAddress(peer);
       expect(phase(Trade.Phase.INIT)
               .with(message)
               .from(peer))
               .setup(tasks(
-                  ApplyFilter.class,
-                  ProcessInitTradeRequest.class,
-                  ArbitratorProcessesReserveTx.class,
-                  ArbitratorSendsInitTradeAndMultisigRequests.class))
+                      ApplyFilter.class,
+                      ProcessInitTradeRequest.class,
+                      ArbitratorProcessesReserveTx.class,
+                      ArbitratorSendsInitTradeAndMultisigRequests.class)
+              .using(new TradeTaskRunner(trade,
+                      () -> {
+                          handleTaskRunnerSuccess(peer, message);
+                      },
+                      errorMessage -> {
+                          errorMessageHandler.handleErrorMessage(errorMessage);
+                          handleTaskRunnerFault(peer, message, errorMessage);
+                      }))
+              .withTimeout(30))
               .executeTasks();
   }
   
   @Override
-  public void handleInitMultisigRequest(InitMultisigRequest request, NodeAddress sender, ErrorMessageHandler errorMessageHandler) {
+  public void handleInitMultisigRequest(InitMultisigRequest request, NodeAddress sender) {
     System.out.println("ArbitratorProtocol.handleInitMultisigRequest()");
     Validator.checkTradeId(processModel.getOfferId(), request);
     processModel.setTradeMessage(request);
@@ -54,20 +66,21 @@ public class ArbitratorProtocol extends DisputeProtocol {
         .with(request)
         .from(sender))
         .setup(tasks(
-            ProcessInitMultisigRequest.class)
-            .using(new TradeTaskRunner(trade,
+                ProcessInitMultisigRequest.class)
+        .using(new TradeTaskRunner(trade,
                 () -> {
-                  handleTaskRunnerSuccess(sender, request);
+                    handleTaskRunnerSuccess(sender, request);
                 },
                 errorMessage -> {
                     errorMessageHandler.handleErrorMessage(errorMessage);
                     handleTaskRunnerFault(sender, request, errorMessage);
-                })))
+                }))
+        .withTimeout(30))
         .executeTasks();
   }
   
   @Override
-  public void handleSignContractRequest(SignContractRequest message, NodeAddress sender, ErrorMessageHandler errorMessageHandler) {
+  public void handleSignContractRequest(SignContractRequest message, NodeAddress sender) {
       System.out.println("ArbitratorProtocol.handleSignContractRequest()");
       Validator.checkTradeId(processModel.getOfferId(), message);
       processModel.setTradeMessage(message); // TODO (woodser): synchronize access since concurrent requests processed
@@ -77,18 +90,19 @@ public class ArbitratorProtocol extends DisputeProtocol {
           .setup(tasks(
                   // TODO (woodser): validate request
                   ProcessSignContractRequest.class)
-              .using(new TradeTaskRunner(trade,
+          .using(new TradeTaskRunner(trade,
                   () -> {
-                    handleTaskRunnerSuccess(sender, message);
+                      handleTaskRunnerSuccess(sender, message);
                   },
                   errorMessage -> {
                       errorMessageHandler.handleErrorMessage(errorMessage);
                       handleTaskRunnerFault(sender, message, errorMessage);
-                  })))
+                  }))
+          .withTimeout(30))
           .executeTasks();
   }
   
-  public void handleDepositRequest(DepositRequest request, NodeAddress sender, ErrorMessageHandler errorMessageHandler) {
+  public void handleDepositRequest(DepositRequest request, NodeAddress sender) {
     System.out.println("ArbitratorProtocol.handleDepositRequest()");
     Validator.checkTradeId(processModel.getOfferId(), request);
     processModel.setTradeMessage(request);
@@ -96,15 +110,16 @@ public class ArbitratorProtocol extends DisputeProtocol {
         .with(request)
         .from(sender))
         .setup(tasks(
-            ProcessDepositRequest.class)
-            .using(new TradeTaskRunner(trade,
+                ProcessDepositRequest.class)
+        .using(new TradeTaskRunner(trade,
                 () -> {
-                  handleTaskRunnerSuccess(sender, request);
+                    handleTaskRunnerSuccess(sender, request);
                 },
                 errorMessage -> {
                     errorMessageHandler.handleErrorMessage(errorMessage);
                     handleTaskRunnerFault(sender, request, errorMessage);
-                })))
+                }))
+        .withTimeout(30))
         .executeTasks();
   }
 

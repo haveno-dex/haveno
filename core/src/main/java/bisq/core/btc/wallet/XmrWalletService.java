@@ -86,7 +86,7 @@ public class XmrWalletService {
   // TODO (woodser): wallet has single password which is passed here?
   // TODO (woodser): test retaking failed trade.  create new multisig wallet or replace?  cannot reuse
   
-  public MoneroWallet createMultisigWallet(String tradeId) {
+  public synchronized MoneroWallet createMultisigWallet(String tradeId) {
       if (multisigWallets.containsKey(tradeId)) return multisigWallets.get(tradeId);
       String path = "xmr_multisig_trade_" + tradeId;
       MoneroWallet multisigWallet = null;
@@ -99,7 +99,7 @@ public class XmrWalletService {
       return multisigWallet;
   }
   
-  public MoneroWallet getMultisigWallet(String tradeId) {
+  public synchronized MoneroWallet getMultisigWallet(String tradeId) {
       if (multisigWallets.containsKey(tradeId)) return multisigWallets.get(tradeId);
       String path = "xmr_multisig_trade_" + tradeId;
       MoneroWallet multisigWallet = null;
@@ -110,6 +110,19 @@ public class XmrWalletService {
       multisigWallets.put(tradeId, multisigWallet);
       multisigWallet.startSyncing(5000l); // TODO (woodser): use sync period from config. apps stall if too many multisig wallets and too short sync period
       return multisigWallet;
+  }
+  
+  public synchronized boolean deleteMultisigWallet(String tradeId) {
+      String walletName = "xmr_multisig_trade_" + tradeId;
+      if (!walletsSetup.getWalletConfig().walletExists(walletName)) return false;
+      try {
+          walletsSetup.getWalletConfig().closeWallet(getMultisigWallet(tradeId), false);
+      } catch (Exception err) {
+          // multisig wallet may not be open
+      }
+      walletsSetup.getWalletConfig().deleteWallet(walletName);
+      multisigWallets.remove(tradeId);
+      return true;
   }
 
   public XmrAddressEntry recoverAddressEntry(String offerId, String address, XmrAddressEntry.Context context) {
@@ -291,7 +304,7 @@ public class XmrWalletService {
       threads.add(new Thread(new Runnable() {
         @Override
         public void run() {
-          try { walletsSetup.getWalletConfig().closeWallet(openWallet); }
+          try { walletsSetup.getWalletConfig().closeWallet(openWallet, true); }
           catch (Exception e) {
             log.warn("Error closing monero-wallet-rpc subprocess. Was Haveno stopped manually with ctrl+c?");
           }
