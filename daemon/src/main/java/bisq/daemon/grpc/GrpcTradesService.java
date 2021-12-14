@@ -27,6 +27,8 @@ import bisq.proto.grpc.ConfirmPaymentStartedReply;
 import bisq.proto.grpc.ConfirmPaymentStartedRequest;
 import bisq.proto.grpc.GetTradeReply;
 import bisq.proto.grpc.GetTradeRequest;
+import bisq.proto.grpc.GetTradesReply;
+import bisq.proto.grpc.GetTradesRequest;
 import bisq.proto.grpc.KeepFundsReply;
 import bisq.proto.grpc.KeepFundsRequest;
 import bisq.proto.grpc.TakeOfferReply;
@@ -40,8 +42,9 @@ import io.grpc.stub.StreamObserver;
 import javax.inject.Inject;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Optional;
-
+import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 
 import static bisq.core.api.model.TradeInfo.toTradeInfo;
@@ -82,6 +85,25 @@ class GrpcTradesService extends TradesImplBase {
             // Offer makers may call 'gettrade' many times before a trade exists.
             // Log a 'trade not found' warning instead of a full stack trace.
             exceptionHandler.handleExceptionAsWarning(log, "getTrade", cause, responseObserver);
+        } catch (Throwable cause) {
+            exceptionHandler.handleException(log, cause, responseObserver);
+        }
+    }
+
+    @Override
+    public void getTrades(GetTradesRequest req,
+                         StreamObserver<GetTradesReply> responseObserver) {
+        try {
+            List<TradeInfo> trades = coreApi.getTrades()
+                    .stream().map(TradeInfo::toTradeInfo)
+                    .collect(Collectors.toList());
+            var reply = GetTradesReply.newBuilder()
+                    .addAllTrades(trades.stream()
+                            .map(TradeInfo::toProtoMessage)
+                            .collect(Collectors.toList()))
+                    .build();
+            responseObserver.onNext(reply);
+            responseObserver.onCompleted();
         } catch (Throwable cause) {
             exceptionHandler.handleException(log, cause, responseObserver);
         }
@@ -173,8 +195,9 @@ class GrpcTradesService extends TradesImplBase {
         return getCustomRateMeteringInterceptor(coreApi.getConfig().appDataDir, this.getClass())
                 .or(() -> Optional.of(CallRateMeteringInterceptor.valueOf(
                         new HashMap<>() {{
-                            put(getGetTradeMethod().getFullMethodName(), new GrpcCallRateMeter(3, SECONDS));
-                            put(getTakeOfferMethod().getFullMethodName(), new GrpcCallRateMeter(1, SECONDS));
+                            put(getGetTradeMethod().getFullMethodName(), new GrpcCallRateMeter(10, SECONDS));
+                            put(getGetTradesMethod().getFullMethodName(), new GrpcCallRateMeter(10, SECONDS));
+                            put(getTakeOfferMethod().getFullMethodName(), new GrpcCallRateMeter(10, SECONDS));
                             put(getConfirmPaymentStartedMethod().getFullMethodName(), new GrpcCallRateMeter(1, SECONDS));
                             put(getConfirmPaymentReceivedMethod().getFullMethodName(), new GrpcCallRateMeter(1, SECONDS));
                             put(getKeepFundsMethod().getFullMethodName(), new GrpcCallRateMeter(1, MINUTES));

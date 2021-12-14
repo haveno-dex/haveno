@@ -391,11 +391,6 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                 offer.getAmount(),
                 buyerSecurityDeposit,
                 createOfferService.getSellerSecurityDepositAsDouble(buyerSecurityDeposit));
-        
-        if (placeOfferProtocols.containsKey(offer.getId())) {
-            log.warn("We already have a place offer protocol for offer " + offer.getId() + ", ignoring");
-            throw new RuntimeException("We already have a place offer protocol for offer " + offer.getId() + ", ignoring");
-        }
 
         PlaceOfferModel model = new PlaceOfferModel(offer,
                 reservedFundsForOffer,
@@ -596,6 +591,10 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
         requestPersistence();
     }
 
+    public void unreserveOpenOffer(OpenOffer openOffer) {
+        openOffer.setState(OpenOffer.State.AVAILABLE);
+        requestPersistence();
+    }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Getters

@@ -63,8 +63,6 @@ import static com.google.common.base.Preconditions.checkNotNull;
 @Slf4j
 public class SellerAsTakerProtocol extends SellerProtocol implements TakerProtocol {
     
-    private TradeResultHandler tradeResultHandler;
-
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Constructor
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -86,41 +84,141 @@ public class SellerAsTakerProtocol extends SellerProtocol implements TakerProtoc
                             ErrorMessageHandler errorMessageHandler) {
       System.out.println("onTakeOffer()");
       this.tradeResultHandler = tradeResultHandler;
-
+      this.errorMessageHandler = errorMessageHandler;
       expect(phase(Trade.Phase.INIT)
-          .with(TakerEvent.TAKE_OFFER)
-          .from(trade.getTradingPeerNodeAddress()))
-          .setup(tasks(
-              ApplyFilter.class,
-              TakerReservesTradeFunds.class,
-              TakerSendsInitTradeRequestToArbitrator.class)
+              .with(TakerEvent.TAKE_OFFER)
+              .from(trade.getTradingPeerNodeAddress()))
+              .setup(tasks(
+                      ApplyFilter.class,
+                      TakerReservesTradeFunds.class,
+                      TakerSendsInitTradeRequestToArbitrator.class)
               .using(new TradeTaskRunner(trade,
                       () -> { },
                       errorMessageHandler))
-          .withTimeout(30))
-          .executeTasks();
+              .withTimeout(30))
+              .executeTasks();
+    }
+    
+    ///////////////////////////////////////////////////////////////////////////////////////////
+    // TakerProtocol
+    ///////////////////////////////////////////////////////////////////////////////////////////
+
+    // TODO (woodser): these methods are duplicated with BuyerAsTakerProtocol due to single inheritance
+
+    @Override
+    public void handleInitMultisigRequest(InitMultisigRequest request, NodeAddress sender) {
+      System.out.println("BuyerAsTakerProtocol.handleInitMultisigRequest()");
+      Validator.checkTradeId(processModel.getOfferId(), request);
+      processModel.setTradeMessage(request);
+      expect(anyPhase(Trade.Phase.INIT)
+              .with(request)
+              .from(sender))
+              .setup(tasks(
+                      ProcessInitMultisigRequest.class,
+                      SendSignContractRequestAfterMultisig.class)
+              .using(new TradeTaskRunner(trade,
+                      () -> {
+                          handleTaskRunnerSuccess(sender, request);
+                      },
+                      errorMessage -> {
+                          handleTaskRunnerFault(sender, request, errorMessage);
+                          errorMessageHandler.handleErrorMessage(errorMessage);
+                      }))
+              .withTimeout(30))
+              .executeTasks();
     }
 
-
-    ///////////////////////////////////////////////////////////////////////////////////////////
-    // Incoming messages Take offer process
-    ///////////////////////////////////////////////////////////////////////////////////////////
-
-    private void handle(InputsForDepositTxResponse message, NodeAddress peer) {
-        expect(phase(Trade.Phase.INIT)
+    @Override
+    public void handleSignContractRequest(SignContractRequest message, NodeAddress sender) {
+        System.out.println("SellerAsTakerProtocol.handleSignContractRequest()");
+        Validator.checkTradeId(processModel.getOfferId(), message);
+        processModel.setTradeMessage(message);
+        expect(anyPhase(Trade.Phase.INIT)
                 .with(message)
-                .from(peer))
+                .from(sender))
                 .setup(tasks(
-                        TakerProcessesInputsForDepositTxResponse.class,
-                        ApplyFilter.class,
-                        VerifyPeersAccountAgeWitness.class,
-                        //TakerVerifyAndSignContract.class,
-                        TakerPublishFeeTx.class,
-                        SellerAsTakerSignsDepositTx.class,
-                        SellerCreatesDelayedPayoutTx.class,
-                        SellerSignsDelayedPayoutTx.class,
-                        SellerSendDelayedPayoutTxSignatureRequest.class)
-                        .withTimeout(60))
+                        // TODO (woodser): validate request
+                        ProcessSignContractRequest.class)
+                .using(new TradeTaskRunner(trade,
+                        () -> {
+                            handleTaskRunnerSuccess(sender, message);
+                        },
+                        errorMessage -> {
+                            errorMessageHandler.handleErrorMessage(errorMessage);
+                            handleTaskRunnerFault(sender, message, errorMessage);
+                        }))
+                .withTimeout(30))
+                .executeTasks();
+    }
+
+    @Override
+    public void handleSignContractResponse(SignContractResponse message, NodeAddress sender) {
+        System.out.println("SellerAsTakerProtocol.handleSignContractResponse()");
+        Validator.checkTradeId(processModel.getOfferId(), message);
+        processModel.setTradeMessage(message);
+        expect(anyPhase(Trade.Phase.INIT)
+                .with(message)
+                .from(sender))
+                .setup(tasks(
+                        // TODO (woodser): validate request
+                        ProcessSignContractResponse.class)
+                .using(new TradeTaskRunner(trade,
+                        () -> {
+                            handleTaskRunnerSuccess(sender, message);
+                        },
+                        errorMessage -> {
+                            errorMessageHandler.handleErrorMessage(errorMessage);
+                            handleTaskRunnerFault(sender, message, errorMessage);
+                        }))
+                .withTimeout(30))
+                .executeTasks();
+    }
+
+    @Override
+    public void handleDepositResponse(DepositResponse response, NodeAddress sender) {
+        System.out.println("SellerAsTakerProtocol.handleDepositResponse()");
+        Validator.checkTradeId(processModel.getOfferId(), response);
+        processModel.setTradeMessage(response);
+        expect(anyPhase(Trade.Phase.INIT, Trade.Phase.DEPOSIT_PUBLISHED)
+                .with(response)
+                .from(sender))
+                .setup(tasks(
+                        // TODO (woodser): validate request
+                        ProcessDepositResponse.class)
+                .using(new TradeTaskRunner(trade,
+                        () -> {
+                            handleTaskRunnerSuccess(sender, response);
+                        },
+                        errorMessage -> {
+                            errorMessageHandler.handleErrorMessage(errorMessage);
+                            handleTaskRunnerFault(sender, response, errorMessage);
+                        }))
+                .withTimeout(30))
+                .executeTasks();
+    }
+
+    @Override
+    public void handlePaymentAccountPayloadRequest(PaymentAccountPayloadRequest request, NodeAddress sender) {
+        System.out.println("SellerAsTakerProtocol.handlePaymentAccountPayloadRequest()");
+        Validator.checkTradeId(processModel.getOfferId(), request);
+        processModel.setTradeMessage(request);
+        expect(anyPhase(Trade.Phase.INIT, Trade.Phase.DEPOSIT_PUBLISHED) // TODO: only deposit_published should be expected
+                .with(request)
+                .from(sender)) // TODO (woodser): ensure this asserts sender == response.getSenderNodeAddress()
+                .setup(tasks(
+                        // TODO (woodser): validate request
+                        ProcessPaymentAccountPayloadRequest.class)
+                .using(new TradeTaskRunner(trade,
+                        () -> {
+                            stopTimeout();
+                            handleTaskRunnerSuccess(sender, request);
+                            tradeResultHandler.handleResult(trade); // trade is initialized
+                        },
+                        errorMessage -> {
+                            errorMessageHandler.handleErrorMessage(errorMessage);
+                            handleTaskRunnerFault(sender, request, errorMessage);
+                        }))
+                .withTimeout(30))
                 .executeTasks();
     }
 
@@ -135,7 +233,6 @@ public class SellerAsTakerProtocol extends SellerProtocol implements TakerProtoc
         super.handle(message, peer);
     }
 
-
     ///////////////////////////////////////////////////////////////////////////////////////////
     // User interaction
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -145,7 +242,6 @@ public class SellerAsTakerProtocol extends SellerProtocol implements TakerProtoc
     public void onPaymentReceived(ResultHandler resultHandler, ErrorMessageHandler errorMessageHandler) {
         super.onPaymentReceived(resultHandler, errorMessageHandler);
     }
-
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Massage dispatcher
@@ -167,126 +263,28 @@ public class SellerAsTakerProtocol extends SellerProtocol implements TakerProtoc
     protected Class<? extends TradeTask> getVerifyPeersFeePaymentClass() {
         return TakerVerifyMakerFeePayment.class;
     }
-
+    
+    // TODO (woodser): remove unused calls and classes
+    
     ///////////////////////////////////////////////////////////////////////////////////////////
-    // TakerProtocol
+    // Incoming messages Take offer process
     ///////////////////////////////////////////////////////////////////////////////////////////
 
-    // TODO (woodser): these methods are duplicated with BuyerAsTakerProtocol due to single inheritance
-
-    @Override
-    public void handleInitMultisigRequest(InitMultisigRequest request, NodeAddress sender, ErrorMessageHandler errorMessageHandler) {
-      System.out.println("BuyerAsTakerProtocol.handleInitMultisigRequest()");
-      Validator.checkTradeId(processModel.getOfferId(), request);
-      processModel.setTradeMessage(request);
-      expect(anyPhase(Trade.Phase.INIT)
-          .with(request)
-          .from(sender))
-          .setup(tasks(
-              ProcessInitMultisigRequest.class,
-              SendSignContractRequestAfterMultisig.class)
-              .using(new TradeTaskRunner(trade,
-                  () -> {
-                    System.out.println("handle multisig pipeline completed successfully!");
-                    handleTaskRunnerSuccess(sender, request);
-                  },
-                  errorMessage -> {
-                      System.out.println("error in handle multisig pipeline!!!: " + errorMessage);
-                      errorMessageHandler.handleErrorMessage(errorMessage);
-                      handleTaskRunnerFault(sender, request, errorMessage);
-                  }))
-          .withTimeout(30))
-          .executeTasks();
-    }
-    
-    @Override
-    public void handleSignContractRequest(SignContractRequest message, NodeAddress sender, ErrorMessageHandler errorMessageHandler) {
-        System.out.println("SellerAsTakerProtocol.handleSignContractRequest()");
-        Validator.checkTradeId(processModel.getOfferId(), message);
-        processModel.setTradeMessage(message);
-        expect(anyPhase(Trade.Phase.INIT)
-            .with(message)
-            .from(sender))
-            .setup(tasks(
-                    // TODO (woodser): validate request
-                    ProcessSignContractRequest.class)
-                .using(new TradeTaskRunner(trade,
-                    () -> {
-                      handleTaskRunnerSuccess(sender, message);
-                    },
-                    errorMessage -> {
-                        errorMessageHandler.handleErrorMessage(errorMessage);
-                        handleTaskRunnerFault(sender, message, errorMessage);
-                    }))
-            .withTimeout(30))
-            .executeTasks();
-    }
-    
-    @Override
-    public void handleSignContractResponse(SignContractResponse message, NodeAddress sender, ErrorMessageHandler errorMessageHandler) {
-        System.out.println("SellerAsTakerProtocol.handleSignContractResponse()");
-        Validator.checkTradeId(processModel.getOfferId(), message);
-        processModel.setTradeMessage(message);
-        expect(anyPhase(Trade.Phase.INIT)
-            .with(message)
-            .from(sender))
-            .setup(tasks(
-                    // TODO (woodser): validate request
-                    ProcessSignContractResponse.class)
-                .using(new TradeTaskRunner(trade,
-                    () -> {
-                      handleTaskRunnerSuccess(sender, message);
-                    },
-                    errorMessage -> {
-                        errorMessageHandler.handleErrorMessage(errorMessage);
-                        handleTaskRunnerFault(sender, message, errorMessage);
-                    })))
-            .executeTasks();
-    }
-    
-    @Override
-    public void handleDepositResponse(DepositResponse response, NodeAddress sender, ErrorMessageHandler errorMessageHandler) {
-        System.out.println("SellerAsTakerProtocol.handleDepositResponse()");
-        Validator.checkTradeId(processModel.getOfferId(), response);
-        processModel.setTradeMessage(response);
-        expect(anyPhase(Trade.Phase.INIT, Trade.Phase.DEPOSIT_PUBLISHED)
-            .with(response)
-            .from(sender))
-            .setup(tasks(
-                    // TODO (woodser): validate request
-                    ProcessDepositResponse.class)
-                .using(new TradeTaskRunner(trade,
-                    () -> {
-                      handleTaskRunnerSuccess(sender, response);
-                    },
-                    errorMessage -> {
-                        errorMessageHandler.handleErrorMessage(errorMessage);
-                        handleTaskRunnerFault(sender, response, errorMessage);
-                    })))
-            .executeTasks();
-    }
-    
-    @Override
-    public void handlePaymentAccountPayloadRequest(PaymentAccountPayloadRequest request, NodeAddress sender, ErrorMessageHandler errorMessageHandler) {
-        System.out.println("SellerAsTakerProtocol.handlePaymentAccountPayloadRequest()");
-        Validator.checkTradeId(processModel.getOfferId(), request);
-        processModel.setTradeMessage(request);
-        expect(anyPhase(Trade.Phase.INIT, Trade.Phase.DEPOSIT_PUBLISHED) // TODO: only deposit_published should be expected
-            .with(request)
-            .from(sender)) // TODO (woodser): ensure this asserts sender == response.getSenderNodeAddress()
-            .setup(tasks(
-                    // TODO (woodser): validate request
-                    ProcessPaymentAccountPayloadRequest.class)
-            .using(new TradeTaskRunner(trade,
-                    () -> {
-                        stopTimeout();
-                        handleTaskRunnerSuccess(sender, request);
-                        tradeResultHandler.handleResult(trade); // trade is initialized
-                    },
-                    errorMessage -> {
-                        errorMessageHandler.handleErrorMessage(errorMessage);
-                        handleTaskRunnerFault(sender, request, errorMessage);
-                    })))
-            .executeTasks();
+    private void handle(InputsForDepositTxResponse message, NodeAddress peer) {
+        expect(phase(Trade.Phase.INIT)
+                .with(message)
+                .from(peer))
+                .setup(tasks(
+                        TakerProcessesInputsForDepositTxResponse.class,
+                        ApplyFilter.class,
+                        VerifyPeersAccountAgeWitness.class,
+                        //TakerVerifyAndSignContract.class,
+                        TakerPublishFeeTx.class,
+                        SellerAsTakerSignsDepositTx.class,
+                        SellerCreatesDelayedPayoutTx.class,
+                        SellerSignsDelayedPayoutTx.class,
+                        SellerSendDelayedPayoutTxSignatureRequest.class)
+                        .withTimeout(60))
+                .executeTasks();
     }
 }

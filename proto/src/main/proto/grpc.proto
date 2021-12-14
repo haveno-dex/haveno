@@ -300,6 +300,8 @@ message StopReply {
 service Trades {
     rpc GetTrade (GetTradeRequest) returns (GetTradeReply) {
     }
+    rpc GetTrades (GetTradesRequest) returns (GetTradesReply) {
+    }
     rpc TakeOffer (TakeOfferRequest) returns (TakeOfferReply) {
     }
     rpc ConfirmPaymentStarted (ConfirmPaymentStartedRequest) returns (ConfirmPaymentStartedReply) {
@@ -342,6 +344,13 @@ message GetTradeRequest {
 
 message GetTradeReply {
     TradeInfo trade = 1;
+}
+
+message GetTradesRequest {
+}
+
+message GetTradesReply {
+    repeated TradeInfo trades = 1;
 }
 
 message KeepFundsRequest {
