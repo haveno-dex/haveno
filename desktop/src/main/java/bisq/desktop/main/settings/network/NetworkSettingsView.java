@@ -17,7 +17,7 @@
 
 package bisq.desktop.main.settings.network;
 
-import bisq.desktop.app.BisqApp;
+import bisq.desktop.app.HavenoApp;
 import bisq.desktop.common.view.ActivatableView;
 import bisq.desktop.common.view.FxmlView;
 import bisq.desktop.components.AutoTooltipButton;
@@ -280,7 +280,7 @@ public class NetworkSettingsView extends ActivatableView<GridPane, Void> {
                         .actionButtonText(Res.get("shared.applyAndShutDown"))
                         .onAction(() -> {
                             preferences.setUseTorForBitcoinJ(selected);
-                            UserThread.runAfter(BisqApp.getShutDownHandler(), 500, TimeUnit.MILLISECONDS);
+                            UserThread.runAfter(HavenoApp.getShutDownHandler(), 500, TimeUnit.MILLISECONDS);
                         })
                         .closeButtonText(Res.get("shared.cancel"))
                         .onClose(() -> useTorForBtcJCheckBox.setSelected(!selected))

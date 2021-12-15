@@ -23,7 +23,7 @@ import org.bitcoinj.wallet.KeyChainGroupStructure;
 
 import com.google.common.collect.ImmutableList;
 
-public class BisqKeyChainGroupStructure implements KeyChainGroupStructure {
+public class HavenoKeyChainGroupStructure implements KeyChainGroupStructure {
 
     // See https://github.com/bitcoin/bips/blob/master/bip-0044.mediawiki
     // https://github.com/satoshilabs/slips/blob/master/slip-0044.md

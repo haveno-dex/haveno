@@ -17,7 +17,7 @@
 
 package bisq.apitest;
 
-import bisq.common.config.BisqHelpFormatter;
+import bisq.common.config.HavenoHelpFormatter;
 import bisq.common.util.Utilities;
 
 import java.nio.file.Files;
@@ -44,7 +44,7 @@ import javax.annotation.Nullable;
 import static bisq.apitest.Scaffold.BitcoinCoreApp.bitcoind;
 import static bisq.apitest.config.ApiTestConfig.MEDIATOR;
 import static bisq.apitest.config.ApiTestConfig.REFUND_AGENT;
-import static bisq.apitest.config.BisqAppConfig.*;
+import static bisq.apitest.config.HavenoAppConfig.*;
 import static bisq.common.app.DevEnv.DEV_PRIVILEGE_PRIV_KEY;
 import static java.lang.String.format;
 import static java.lang.System.exit;
@@ -57,9 +57,9 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 
 
 import bisq.apitest.config.ApiTestConfig;
-import bisq.apitest.config.BisqAppConfig;
+import bisq.apitest.config.HavenoAppConfig;
 import bisq.apitest.linux.BashCommand;
-import bisq.apitest.linux.BisqProcess;
+import bisq.apitest.linux.HavenoProcess;
 import bisq.apitest.linux.BitcoinDaemon;
 import bisq.apitest.linux.LinuxProcess;
 import bisq.cli.GrpcClient;
@@ -129,7 +129,7 @@ public class Scaffold {
         this.executor = Executors.newFixedThreadPool(config.supportingApps.size());
         if (config.helpRequested) {
             config.printHelp(out,
-                    new BisqHelpFormatter(
+                    new HavenoHelpFormatter(
                             "Bisq ApiTest",
                             "bisq-apitest",
                             "0.1.0"));
@@ -289,12 +289,12 @@ public class Scaffold {
             startBisqApp(bobdesktop, executor, countdownLatch);
     }
 
-    private void startBisqApp(BisqAppConfig bisqAppConfig,
+    private void startBisqApp(HavenoAppConfig bisqAppConfig,
                               ExecutorService executor,
                               CountDownLatch countdownLatch)
             throws IOException, InterruptedException {
 
-        BisqProcess bisqProcess = createBisqProcess(bisqAppConfig);
+        HavenoProcess bisqProcess = createBisqProcess(bisqAppConfig);
         switch (bisqAppConfig) {
             case seednode:
                 seedNodeTask = new SetupTask(bisqProcess, countdownLatch);
@@ -326,9 +326,9 @@ public class Scaffold {
         }
     }
 
-    private BisqProcess createBisqProcess(BisqAppConfig bisqAppConfig)
+    private HavenoProcess createBisqProcess(HavenoAppConfig bisqAppConfig)
             throws IOException, InterruptedException {
-        BisqProcess bisqProcess = new BisqProcess(bisqAppConfig, config);
+        HavenoProcess bisqProcess = new HavenoProcess(bisqAppConfig, config);
         bisqProcess.verifyAppNotRunning();
         bisqProcess.verifyAppDataDirInstalled();
         return bisqProcess;

@@ -19,17 +19,17 @@ package bisq.apitest.config;
 
 import bisq.seednode.SeedNodeMain;
 
-import bisq.desktop.app.BisqAppMain;
+import bisq.desktop.app.HavenoAppMain;
 
 
 
-import bisq.daemon.app.BisqDaemonMain;
+import bisq.daemon.app.HavenoDaemonMain;
 
 /**
  Some non user configurable Bisq seednode, arb node, bob and alice daemon option values.
  @see <a href="https://github.com/bisq-network/bisq/blob/master/docs/dev-setup.md">dev-setup.md</a>
  */
-public enum BisqAppConfig {
+public enum HavenoAppConfig {
 
     seednode("bisq-XMR_STAGENET_Seed_2002",
             "bisq-seednode",
@@ -42,7 +42,7 @@ public enum BisqAppConfig {
     arbdaemon("bisq-XMR_STAGENET_Arb",
             "bisq-daemon",
             "-XX:MaxRAM=2g -Dlogback.configurationFile=apitest/build/resources/main/logback.xml",
-            BisqDaemonMain.class.getName(),
+            HavenoDaemonMain.class.getName(),
             4444,
             5121,
             9997,
@@ -50,7 +50,7 @@ public enum BisqAppConfig {
     arbdesktop("bisq-XMR_STAGENET_Arb",
             "bisq-desktop",
             "-XX:MaxRAM=3g -Dlogback.configurationFile=apitest/build/resources/main/logback.xml",
-            BisqAppMain.class.getName(),
+            HavenoAppMain.class.getName(),
             4444,
             5121,
             -1,
@@ -58,7 +58,7 @@ public enum BisqAppConfig {
     alicedaemon("bisq-XMR_STAGENET_Alice",
             "bisq-daemon",
             "-XX:MaxRAM=2g -Dlogback.configurationFile=apitest/build/resources/main/logback.xml",
-            BisqDaemonMain.class.getName(),
+            HavenoDaemonMain.class.getName(),
             7777,
             5122,
             9998,
@@ -66,7 +66,7 @@ public enum BisqAppConfig {
     alicedesktop("bisq-XMR_STAGENET_Alice",
             "bisq-desktop",
             "-XX:MaxRAM=4g -Dlogback.configurationFile=apitest/build/resources/main/logback.xml",
-            BisqAppMain.class.getName(),
+            HavenoAppMain.class.getName(),
             7777,
             5122,
             -1,
@@ -74,7 +74,7 @@ public enum BisqAppConfig {
     bobdaemon("bisq-XMR_STAGENET_Bob",
             "bisq-daemon",
             "-XX:MaxRAM=2g -Dlogback.configurationFile=apitest/build/resources/main/logback.xml",
-            BisqDaemonMain.class.getName(),
+            HavenoDaemonMain.class.getName(),
             8888,
             5123,
             9999,
@@ -82,7 +82,7 @@ public enum BisqAppConfig {
     bobdesktop("bisq-XMR_STAGENET_Bob",
             "bisq-desktop",
             "-XX:MaxRAM=4g -Dlogback.configurationFile=apitest/build/resources/main/logback.xml",
-            BisqAppMain.class.getName(),
+            HavenoAppMain.class.getName(),
             8888,
             5123,
             -1,
@@ -98,7 +98,7 @@ public enum BisqAppConfig {
     public final int apiPort;
     public final int remoteDebugPort;
 
-    BisqAppConfig(String appName,
+    HavenoAppConfig(String appName,
                   String startupScript,
                   String javaOpts,
                   String mainClassName,

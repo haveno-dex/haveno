@@ -25,8 +25,8 @@ import bisq.desktop.components.AutoTooltipRadioButton;
 import bisq.desktop.components.AutoTooltipSlideToggleButton;
 import bisq.desktop.components.AutocompleteComboBox;
 import bisq.desktop.components.BalanceTextField;
-import bisq.desktop.components.BisqTextArea;
-import bisq.desktop.components.BisqTextField;
+import bisq.desktop.components.HavenoTextArea;
+import bisq.desktop.components.HavenoTextField;
 import bisq.desktop.components.BusyAnimation;
 import bisq.desktop.components.ExternalHyperlink;
 import bisq.desktop.components.FundsTextField;
@@ -326,7 +326,7 @@ public class FormBuilder {
                                                                       String title,
                                                                       String value,
                                                                       double top) {
-        TextField textField = new BisqTextField(value);
+        TextField textField = new HavenoTextField(value);
         textField.setEditable(false);
         textField.setFocusTraversable(false);
 
@@ -339,7 +339,7 @@ public class FormBuilder {
     }
 
     public static Tuple2<TextField, Button> addTextFieldWithEditButton(GridPane gridPane, int rowIndex, String title) {
-        TextField textField = new BisqTextField();
+        TextField textField = new HavenoTextField();
         textField.setPromptText(title);
         textField.setEditable(false);
         textField.setFocusTraversable(false);
@@ -544,7 +544,7 @@ public class FormBuilder {
 
     public static TextArea addTextArea(GridPane gridPane, int rowIndex, String prompt, double top) {
 
-        JFXTextArea textArea = new BisqTextArea();
+        JFXTextArea textArea = new HavenoTextArea();
         textArea.setPromptText(prompt);
         textArea.setLabelFloat(true);
         textArea.setWrapText(true);
@@ -603,7 +603,7 @@ public class FormBuilder {
     public static Tuple2<Label, TextArea> addTopLabelTextArea(GridPane gridPane, int rowIndex, int colIndex,
                                                               String title, String prompt, double top) {
 
-        TextArea textArea = new BisqTextArea();
+        TextArea textArea = new HavenoTextArea();
         textArea.setPromptText(prompt);
         textArea.setWrapText(true);
 
@@ -860,7 +860,7 @@ public class FormBuilder {
                                                                               String buttonTitle,
                                                                               double top) {
 
-        TextField textField = new BisqTextField();
+        TextField textField = new HavenoTextField();
         textField.setEditable(false);
         textField.setMouseTransparent(true);
         textField.setFocusTraversable(false);
@@ -914,14 +914,14 @@ public class FormBuilder {
                                                                                                           int rowIndex,
                                                                                                           String title1,
                                                                                                           String title2) {
-        TextField textField1 = new BisqTextField();
+        TextField textField1 = new HavenoTextField();
         textField1.setEditable(false);
         textField1.setMouseTransparent(true);
         textField1.setFocusTraversable(false);
 
         final Tuple2<Label, VBox> topLabelWithVBox1 = getTopLabelWithVBox(title1, textField1);
 
-        TextField textField2 = new BisqTextField();
+        TextField textField2 = new HavenoTextField();
         textField2.setEditable(false);
         textField2.setMouseTransparent(true);
         textField2.setFocusTraversable(false);
@@ -1054,7 +1054,7 @@ public class FormBuilder {
                                                                                                                 String radioButtonTitle1,
                                                                                                                 String radioButtonTitle2,
                                                                                                                 double top) {
-        TextField textField = new BisqTextField();
+        TextField textField = new HavenoTextField();
         textField.setPromptText(textFieldTitle);
 
         RadioButton radioButton1 = new AutoTooltipRadioButton(radioButtonTitle1);
@@ -1296,7 +1296,7 @@ public class FormBuilder {
 
         final VBox topLabelVBox1 = getTopLabelVBox(5);
         final Label topLabel1 = getTopLabel(titleTextfield);
-        final TextField textField = new BisqTextField();
+        final TextField textField = new HavenoTextField();
         topLabelVBox1.getChildren().addAll(topLabel1, textField);
 
         final VBox topLabelVBox2 = getTopLabelVBox(5);
@@ -1364,7 +1364,7 @@ public class FormBuilder {
         comboBox.setPromptText(titleCombobox);
         comboBox.setLabelFloat(true);
 
-        TextField textField = new BisqTextField();
+        TextField textField = new HavenoTextField();
 
         final VBox topLabelVBox = getTopLabelVBox(5);
         final Label topLabel = getTopLabel(titleTextfield);

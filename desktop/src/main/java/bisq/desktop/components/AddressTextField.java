@@ -59,7 +59,7 @@ public class AddressTextField extends AnchorPane {
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     public AddressTextField(String label) {
-        JFXTextField textField = new BisqTextField();
+        JFXTextField textField = new HavenoTextField();
         textField.setId("address-text-field");
         textField.setEditable(false);
         textField.setLabelFloat(true);

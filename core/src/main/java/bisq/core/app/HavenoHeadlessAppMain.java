@@ -29,10 +29,10 @@ import java.util.concurrent.ThreadFactory;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public class BisqHeadlessAppMain extends BisqExecutable {
+public class HavenoHeadlessAppMain extends HavenoExecutable {
     protected HeadlessApp headlessApp;
 
-    public BisqHeadlessAppMain() {
+    public HavenoHeadlessAppMain() {
         super("Bisq Daemon", "bisqd", "Bisq", Version.VERSION);
     }
 
@@ -41,9 +41,9 @@ public class BisqHeadlessAppMain extends BisqExecutable {
         // context class loader: reset it. In order to work around a bug in JavaFX 8u25
         // and below, you must include the following code as the first line of your
         // realMain method:
-        Thread.currentThread().setContextClassLoader(BisqHeadlessAppMain.class.getClassLoader());
+        Thread.currentThread().setContextClassLoader(HavenoHeadlessAppMain.class.getClassLoader());
 
-        new BisqHeadlessAppMain().execute(args);
+        new HavenoHeadlessAppMain().execute(args);
     }
 
     @Override
@@ -68,7 +68,7 @@ public class BisqHeadlessAppMain extends BisqExecutable {
 
     @Override
     protected void launchApplication() {
-        headlessApp = new BisqHeadlessApp();
+        headlessApp = new HavenoHeadlessApp();
 
         UserThread.execute(this::onApplicationLaunched);
     }

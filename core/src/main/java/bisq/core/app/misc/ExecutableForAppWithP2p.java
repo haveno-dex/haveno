@@ -17,7 +17,7 @@
 
 package bisq.core.app.misc;
 
-import bisq.core.app.BisqExecutable;
+import bisq.core.app.HavenoExecutable;
 import bisq.core.btc.setup.WalletsSetup;
 import bisq.core.btc.wallet.BtcWalletService;
 import bisq.core.btc.wallet.XmrWalletService;
@@ -53,7 +53,7 @@ import java.util.concurrent.TimeUnit;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public abstract class ExecutableForAppWithP2p extends BisqExecutable {
+public abstract class ExecutableForAppWithP2p extends HavenoExecutable {
     private static final long CHECK_MEMORY_PERIOD_SEC = 300;
     private static final long CHECK_SHUTDOWN_SEC = TimeUnit.HOURS.toSeconds(1);
     private static final long SHUTDOWN_INTERVAL = TimeUnit.HOURS.toMillis(24);
@@ -93,7 +93,7 @@ public abstract class ExecutableForAppWithP2p extends BisqExecutable {
                         PersistenceManager.flushAllDataToDiskAtShutdown(() -> {
                             resultHandler.handleResult();
                             log.info("Graceful shutdown completed. Exiting now.");
-                            UserThread.runAfter(() -> System.exit(BisqExecutable.EXIT_SUCCESS), 1);
+                            UserThread.runAfter(() -> System.exit(HavenoExecutable.EXIT_SUCCESS), 1);
                         });
                     });
                     injector.getInstance(WalletsSetup.class).shutDown();
@@ -105,13 +105,13 @@ public abstract class ExecutableForAppWithP2p extends BisqExecutable {
                     PersistenceManager.flushAllDataToDiskAtShutdown(() -> {
                         resultHandler.handleResult();
                         log.info("Graceful shutdown caused a timeout. Exiting now.");
-                        UserThread.runAfter(() -> System.exit(BisqExecutable.EXIT_SUCCESS), 1);
+                        UserThread.runAfter(() -> System.exit(HavenoExecutable.EXIT_SUCCESS), 1);
                     });
                 }, 5);
             } else {
                 UserThread.runAfter(() -> {
                     resultHandler.handleResult();
-                    System.exit(BisqExecutable.EXIT_SUCCESS);
+                    System.exit(HavenoExecutable.EXIT_SUCCESS);
                 }, 1);
             }
         } catch (Throwable t) {
@@ -120,7 +120,7 @@ public abstract class ExecutableForAppWithP2p extends BisqExecutable {
             PersistenceManager.flushAllDataToDiskAtShutdown(() -> {
                 resultHandler.handleResult();
                 log.info("Graceful shutdown resulted in an error. Exiting now.");
-                UserThread.runAfter(() -> System.exit(BisqExecutable.EXIT_FAILURE), 1);
+                UserThread.runAfter(() -> System.exit(HavenoExecutable.EXIT_FAILURE), 1);
             });
 
         }

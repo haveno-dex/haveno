@@ -401,7 +401,7 @@ configure(project(':desktop')) {
         "Implementation-Title": project.name,
         "Implementation-Version": version)
 
-    mainClassName = 'bisq.desktop.app.BisqAppMain'
+    mainClassName = 'bisq.desktop.app.HavenoAppMain'
 
     tasks.withType(AbstractArchiveTask) {
         preserveFileTimestamps = false
@@ -580,7 +580,7 @@ configure(project(':statsnode')) {
 }
 
 configure(project(':daemon')) {
-    mainClassName = 'bisq.daemon.app.BisqDaemonMain'
+    mainClassName = 'bisq.daemon.app.HavenoDaemonMain'
 
     dependencies {
         compile project(':core')

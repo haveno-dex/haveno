@@ -1,6 +1,6 @@
 package bisq.desktop;
 
-import bisq.desktop.app.BisqAppModule;
+import bisq.desktop.app.HavenoAppModule;
 import bisq.desktop.common.view.CachingViewLoader;
 import bisq.desktop.common.view.ViewLoader;
 import bisq.desktop.common.view.guice.InjectorViewFactory;
@@ -77,7 +77,7 @@ public class GuiceSetupTest {
         Res.setup();
         CurrencyUtil.setup();
 
-        injector = Guice.createInjector(new BisqAppModule(new Config()));
+        injector = Guice.createInjector(new HavenoAppModule(new Config()));
     }
 
     @Test

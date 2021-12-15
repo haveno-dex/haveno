@@ -17,7 +17,7 @@
 
 package bisq.desktop.main.overlays.windows;
 
-import bisq.desktop.components.BisqTextArea;
+import bisq.desktop.components.HavenoTextArea;
 import bisq.desktop.main.MainView;
 import bisq.desktop.main.overlays.Overlay;
 import bisq.desktop.util.DisplayUtils;
@@ -271,7 +271,7 @@ public class ContractWindow extends Overlay<ContractWindow> {
                 Res.get("shared.viewContractAsJson"), 0).second;
         viewContractButton.setDefaultButton(false);
         viewContractButton.setOnAction(e -> {
-            TextArea textArea = new BisqTextArea();
+            TextArea textArea = new HavenoTextArea();
             String contractAsJson = dispute.getContractAsJson();
             textArea.setText(contractAsJson);
             textArea.setPrefHeight(50);

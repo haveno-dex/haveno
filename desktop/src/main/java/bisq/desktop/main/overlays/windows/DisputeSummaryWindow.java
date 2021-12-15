@@ -19,7 +19,7 @@ package bisq.desktop.main.overlays.windows;
 
 import bisq.desktop.components.AutoTooltipCheckBox;
 import bisq.desktop.components.AutoTooltipRadioButton;
-import bisq.desktop.components.BisqTextArea;
+import bisq.desktop.components.HavenoTextArea;
 import bisq.desktop.components.InputTextField;
 import bisq.desktop.main.overlays.Overlay;
 import bisq.desktop.main.overlays.popups.Popup;
@@ -568,7 +568,7 @@ public class DisputeSummaryWindow extends Overlay<DisputeSummaryWindow> {
     }
 
     private void addSummaryNotes() {
-        summaryNotesTextArea = new BisqTextArea();
+        summaryNotesTextArea = new HavenoTextArea();
         summaryNotesTextArea.setPromptText(Res.get("disputeSummaryWindow.addSummaryNotes"));
         summaryNotesTextArea.setWrapText(true);
 

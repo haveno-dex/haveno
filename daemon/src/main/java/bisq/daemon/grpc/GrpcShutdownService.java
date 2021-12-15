@@ -17,7 +17,7 @@
 
 package bisq.daemon.grpc;
 
-import bisq.core.app.BisqHeadlessApp;
+import bisq.core.app.HavenoHeadlessApp;
 
 import bisq.common.UserThread;
 
@@ -51,7 +51,7 @@ class GrpcShutdownService extends ShutdownServerGrpc.ShutdownServerImplBase {
             var reply = StopReply.newBuilder().build();
             responseObserver.onNext(reply);
             responseObserver.onCompleted();
-            UserThread.runAfter(BisqHeadlessApp.getShutDownHandler(), 500, MILLISECONDS);
+            UserThread.runAfter(HavenoHeadlessApp.getShutDownHandler(), 500, MILLISECONDS);
         } catch (Throwable cause) {
             exceptionHandler.handleException(log, cause, responseObserver);
         }

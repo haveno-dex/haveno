@@ -57,7 +57,7 @@ public class InfoTextField extends AnchorPane {
     public InfoTextField() {
 
         arrowLocation = PopOver.ArrowLocation.RIGHT_TOP;
-        textField = new BisqTextField();
+        textField = new HavenoTextField();
         textField.setLabelFloat(true);
         textField.setEditable(false);
         textField.textProperty().bind(text);

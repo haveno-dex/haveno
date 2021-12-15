@@ -14,9 +14,9 @@ import org.junit.jupiter.api.TestInfo;
 import org.junit.jupiter.api.TestMethodOrder;
 
 import static bisq.apitest.Scaffold.BitcoinCoreApp.bitcoind;
-import static bisq.apitest.config.BisqAppConfig.alicedaemon;
-import static bisq.apitest.config.BisqAppConfig.bobdaemon;
-import static bisq.apitest.config.BisqAppConfig.seednode;
+import static bisq.apitest.config.HavenoAppConfig.alicedaemon;
+import static bisq.apitest.config.HavenoAppConfig.bobdaemon;
+import static bisq.apitest.config.HavenoAppConfig.seednode;
 import static bisq.apitest.method.wallet.WalletTestUtil.INITIAL_BTC_BALANCES;
 import static bisq.apitest.method.wallet.WalletTestUtil.verifyBtcBalances;
 import static bisq.cli.TableFormat.formatAddressBalanceTbl;

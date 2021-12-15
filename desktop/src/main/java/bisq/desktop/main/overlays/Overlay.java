@@ -17,7 +17,7 @@
 
 package bisq.desktop.main.overlays;
 
-import bisq.desktop.app.BisqApp;
+import bisq.desktop.app.HavenoApp;
 import bisq.desktop.components.AutoTooltipButton;
 import bisq.desktop.components.AutoTooltipCheckBox;
 import bisq.desktop.components.AutoTooltipLabel;
@@ -430,7 +430,7 @@ public abstract class Overlay<T extends Overlay<T>> {
 
     public T useShutDownButton() {
         this.actionButtonText = Res.get("shared.shutDown");
-        this.actionHandlerOptional = Optional.ofNullable(BisqApp.getShutDownHandler());
+        this.actionHandlerOptional = Optional.ofNullable(HavenoApp.getShutDownHandler());
         return cast();
     }
 

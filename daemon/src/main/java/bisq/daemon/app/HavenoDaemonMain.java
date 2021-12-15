@@ -17,8 +17,8 @@
 
 package bisq.daemon.app;
 
-import bisq.core.app.BisqHeadlessAppMain;
-import bisq.core.app.BisqSetup;
+import bisq.core.app.HavenoHeadlessAppMain;
+import bisq.core.app.HavenoSetup;
 import bisq.core.app.CoreModule;
 
 import bisq.common.UserThread;
@@ -37,12 +37,12 @@ import lombok.extern.slf4j.Slf4j;
 import bisq.daemon.grpc.GrpcServer;
 
 @Slf4j
-public class BisqDaemonMain extends BisqHeadlessAppMain implements BisqSetup.BisqSetupListener {
+public class HavenoDaemonMain extends HavenoHeadlessAppMain implements HavenoSetup.BisqSetupListener {
 
     private GrpcServer grpcServer;
 
     public static void main(String[] args) {
-        new BisqDaemonMain().execute(args);
+        new HavenoDaemonMain().execute(args);
     }
 
     /////////////////////////////////////////////////////////////////////////////////////
@@ -60,7 +60,7 @@ public class BisqDaemonMain extends BisqHeadlessAppMain implements BisqSetup.Bis
 
     @Override
     protected void launchApplication() {
-        headlessApp = new BisqDaemon();
+        headlessApp = new HavenoDaemon();
 
         UserThread.execute(this::onApplicationLaunched);
     }

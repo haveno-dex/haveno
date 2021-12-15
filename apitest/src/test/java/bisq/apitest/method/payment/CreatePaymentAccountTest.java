@@ -70,7 +70,7 @@ import org.junit.jupiter.api.TestInfo;
 import org.junit.jupiter.api.TestMethodOrder;
 
 import static bisq.apitest.Scaffold.BitcoinCoreApp.bitcoind;
-import static bisq.apitest.config.BisqAppConfig.alicedaemon;
+import static bisq.apitest.config.HavenoAppConfig.alicedaemon;
 import static bisq.cli.TableFormat.formatPaymentAcctTbl;
 import static bisq.core.locale.CurrencyUtil.*;
 import static bisq.core.payment.payload.PaymentMethod.*;

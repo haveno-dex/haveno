@@ -17,10 +17,10 @@
 
 package bisq.apitest.scenario.bot;
 
-import bisq.common.BisqException;
+import bisq.common.HavenoException;
 
 @SuppressWarnings("unused")
-public class PaymentAccountNotFoundException extends BisqException {
+public class PaymentAccountNotFoundException extends HavenoException {
     public PaymentAccountNotFoundException(Throwable cause) {
         super(cause);
     }

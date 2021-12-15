@@ -17,10 +17,10 @@
 
 package bisq.apitest.scenario.bot.shutdown;
 
-import bisq.common.BisqException;
+import bisq.common.HavenoException;
 
 @SuppressWarnings("unused")
-public class ManualBotShutdownException extends BisqException {
+public class ManualBotShutdownException extends HavenoException {
     public ManualBotShutdownException(Throwable cause) {
         super(cause);
     }

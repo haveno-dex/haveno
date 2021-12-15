@@ -15,10 +15,24 @@
  * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.network.p2p.network;
+package bisq.desktop.app;
 
-class BisqRuntimeException extends RuntimeException {
-    BisqRuntimeException(String message, Throwable cause) {
-        super(message, cause);
+import bisq.desktop.DesktopModule;
+
+import bisq.core.app.CoreModule;
+
+import bisq.common.app.AppModule;
+import bisq.common.config.Config;
+
+public class HavenoAppModule extends AppModule {
+
+    public HavenoAppModule(Config config) {
+        super(config);
+    }
+
+    @Override
+    protected void configure() {
+        install(new CoreModule(config));
+        install(new DesktopModule(config));
     }
 }

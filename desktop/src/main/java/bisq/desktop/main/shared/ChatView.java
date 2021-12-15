@@ -19,7 +19,7 @@ package bisq.desktop.main.shared;
 
 import bisq.desktop.components.AutoTooltipButton;
 import bisq.desktop.components.AutoTooltipLabel;
-import bisq.desktop.components.BisqTextArea;
+import bisq.desktop.components.HavenoTextArea;
 import bisq.desktop.components.BusyAnimation;
 import bisq.desktop.components.TableGroupHeadline;
 import bisq.desktop.components.TextFieldWithIcon;
@@ -204,7 +204,7 @@ public class ChatView extends AnchorPane {
 
         VBox.setVgrow(this, Priority.ALWAYS);
 
-        inputTextArea = new BisqTextArea();
+        inputTextArea = new HavenoTextArea();
         inputTextArea.setPrefHeight(70);
         inputTextArea.setWrapText(true);
 

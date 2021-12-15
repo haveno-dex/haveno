@@ -17,7 +17,7 @@
 
 package bisq.core.app;
 
-import bisq.common.config.BisqHelpFormatter;
+import bisq.common.config.HavenoHelpFormatter;
 
 import joptsimple.OptionParser;
 
@@ -36,14 +36,14 @@ import org.junit.Test;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertThat;
 
-public class BisqHelpFormatterTest {
+public class HavenoHelpFormatterTest {
 
     @Test
     public void testHelpFormatter() throws IOException, URISyntaxException {
 
         OptionParser parser = new OptionParser();
 
-        parser.formatHelpWith(new BisqHelpFormatter("Bisq Test", "bisq-test", "0.1.0"));
+        parser.formatHelpWith(new HavenoHelpFormatter("Bisq Test", "bisq-test", "0.1.0"));
 
         parser.accepts("name",
                 "The name of the Bisq node")

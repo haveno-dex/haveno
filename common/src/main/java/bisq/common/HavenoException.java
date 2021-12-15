@@ -15,24 +15,19 @@
  * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.desktop.app;
+package bisq.common;
 
-import bisq.desktop.DesktopModule;
+public class HavenoException extends RuntimeException {
 
-import bisq.core.app.CoreModule;
-
-import bisq.common.app.AppModule;
-import bisq.common.config.Config;
-
-public class BisqAppModule extends AppModule {
-
-    public BisqAppModule(Config config) {
-        super(config);
+    public HavenoException(Throwable cause) {
+        super(cause);
     }
 
-    @Override
-    protected void configure() {
-        install(new CoreModule(config));
-        install(new DesktopModule(config));
+    public HavenoException(String format, Object... args) {
+        super(String.format(format, args));
+    }
+
+    public HavenoException(Throwable cause, String format, Object... args) {
+        super(String.format(format, args), cause);
     }
 }

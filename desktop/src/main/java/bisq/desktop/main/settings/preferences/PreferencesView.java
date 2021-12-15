@@ -17,7 +17,7 @@
 
 package bisq.desktop.main.settings.preferences;
 
-import bisq.desktop.app.BisqApp;
+import bisq.desktop.app.HavenoApp;
 import bisq.desktop.common.view.ActivatableViewAndModel;
 import bisq.desktop.common.view.FxmlView;
 import bisq.desktop.components.AutoTooltipButton;

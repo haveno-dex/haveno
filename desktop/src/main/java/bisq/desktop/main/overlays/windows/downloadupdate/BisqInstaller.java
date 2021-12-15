@@ -54,6 +54,7 @@ import org.jetbrains.annotations.NotNull;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
+// TODO (woodser): update for Haveno?
 @Slf4j
 public class BisqInstaller {
     private static final String FINGER_PRINT_MANFRED_KARRER = "F379A1C6";

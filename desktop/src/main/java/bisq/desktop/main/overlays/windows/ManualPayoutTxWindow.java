@@ -18,7 +18,7 @@
 package bisq.desktop.main.overlays.windows;
 
 import bisq.desktop.components.AutoTooltipButton;
-import bisq.desktop.components.BisqTextArea;
+import bisq.desktop.components.HavenoTextArea;
 import bisq.desktop.components.InputTextField;
 import bisq.desktop.main.overlays.Overlay;
 import bisq.desktop.main.overlays.popups.Popup;
@@ -359,7 +359,7 @@ public class ManualPayoutTxWindow extends Overlay<ManualPayoutTxWindow> {
         int rowIndexB = 0;
         importTxGridPane = new GridPane();
         gridPane.add(importTxGridPane, 1, rowIndex);
-        importHex = new BisqTextArea();
+        importHex = new HavenoTextArea();
         importHex.setEditable(true);
         importHex.setWrapText(true);
         importHex.setPrefSize(800, 150);
@@ -412,7 +412,7 @@ public class ManualPayoutTxWindow extends Overlay<ManualPayoutTxWindow> {
     private void addExportPane() {
         exportTxGridPane = new GridPane();
         gridPane.add(exportTxGridPane, 1, rowIndex);
-        exportHex = new BisqTextArea();
+        exportHex = new HavenoTextArea();
         exportHex.setEditable(false);
         exportHex.setWrapText(true);
         exportHex.setPrefSize(800, 250);
@@ -473,7 +473,7 @@ public class ManualPayoutTxWindow extends Overlay<ManualPayoutTxWindow> {
         buyerSignatureAsHex = addInputTextField(buildTxGridPane, ++rowIndexA, "buyerSignatureAsHex");
         sellerSignatureAsHex = addInputTextField(buildTxGridPane, ++rowIndexA, "sellerSignatureAsHex");
         buildTxGridPane.add(new Label(""), 0, ++rowIndexA);  // spacer
-        finalSignedTxHex = new BisqTextArea();
+        finalSignedTxHex = new HavenoTextArea();
         finalSignedTxHex.setEditable(false);
         finalSignedTxHex.setWrapText(true);
         finalSignedTxHex.setPrefSize(800, 250);
@@ -496,7 +496,7 @@ public class ManualPayoutTxWindow extends Overlay<ManualPayoutTxWindow> {
     private GridPane addSignVerifyMsgPane(GridPane myGridPane) {
         int rowIndexB = 0;
         gridPane.add(myGridPane, 1, rowIndex);
-        TextArea messageText = new BisqTextArea();
+        TextArea messageText = new HavenoTextArea();
         messageText.setPromptText("Message");
         messageText.setEditable(true);
         messageText.setWrapText(true);
@@ -505,7 +505,7 @@ public class ManualPayoutTxWindow extends Overlay<ManualPayoutTxWindow> {
         myGridPane.add(new Label(""), 0, ++rowIndexB);  // spacer
         InputTextField address = addInputTextField(myGridPane, ++rowIndexB, "Address");
         myGridPane.add(new Label(""), 0, ++rowIndexB);  // spacer
-        TextArea messageSig = new BisqTextArea();
+        TextArea messageSig = new HavenoTextArea();
         messageSig.setPromptText("Signature");
         messageSig.setEditable(true);
         messageSig.setWrapText(true);

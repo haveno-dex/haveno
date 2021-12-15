@@ -25,13 +25,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-public class BisqHelpFormatter implements HelpFormatter {
+public class HavenoHelpFormatter implements HelpFormatter {
 
     private final String fullName;
     private final String scriptName;
     private final String version;
 
-    public BisqHelpFormatter(String fullName, String scriptName, String version) {
+    public HavenoHelpFormatter(String fullName, String scriptName, String version) {
         this.fullName = fullName;
         this.scriptName = scriptName;
         this.version = version;

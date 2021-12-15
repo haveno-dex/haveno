@@ -17,10 +17,10 @@
 
 package bisq.apitest.scenario.bot;
 
-import bisq.common.BisqException;
+import bisq.common.HavenoException;
 
 @SuppressWarnings("unused")
-public class InvalidRandomOfferException extends BisqException {
+public class InvalidRandomOfferException extends HavenoException {
     public InvalidRandomOfferException(Throwable cause) {
         super(cause);
     }

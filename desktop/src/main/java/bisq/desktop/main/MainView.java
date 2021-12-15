@@ -45,7 +45,7 @@ import bisq.core.locale.LanguageUtil;
 import bisq.core.locale.Res;
 import bisq.core.provider.price.MarketPrice;
 
-import bisq.common.BisqException;
+import bisq.common.HavenoException;
 import bisq.common.Timer;
 import bisq.common.UserThread;
 import bisq.common.util.Tuple2;
@@ -369,9 +369,9 @@ public class MainView extends InitializableView<StackPane, MainViewModel> {
                         .filter(toggle -> toggle instanceof NavButton)
                         .filter(button -> viewClass == ((NavButton) button).viewClass)
                         .findFirst()
-                        .orElseThrow(() -> new BisqException("No button matching %s found", viewClass))
+                        .orElseThrow(() -> new HavenoException("No button matching %s found", viewClass))
                         .setSelected(true);
-            } catch (BisqException e) {
+            } catch (HavenoException e) {
                 navigation.navigateTo(MainView.class, MarketView.class, OfferBookChartView.class);
             }
         });

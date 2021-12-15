@@ -15,9 +15,10 @@
  * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.daemon.app;
+package bisq.network.p2p.network;
 
-import bisq.core.app.BisqHeadlessApp;
-
-public class BisqDaemon extends BisqHeadlessApp {
+class HavenoRuntimeException extends RuntimeException {
+    HavenoRuntimeException(String message, Throwable cause) {
+        super(message, cause);
+    }
 }

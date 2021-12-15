@@ -22,7 +22,7 @@ import bisq.common.setup.UncaughtExceptionHandler;
 
 import com.google.inject.Injector;
 
-public interface HeadlessApp extends UncaughtExceptionHandler, BisqSetup.BisqSetupListener {
+public interface HeadlessApp extends UncaughtExceptionHandler, HavenoSetup.BisqSetupListener {
     void setGracefulShutDownHandler(GracefulShutDownHandler gracefulShutDownHandler);
 
     void setInjector(Injector injector);

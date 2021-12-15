@@ -17,7 +17,7 @@
 
 package bisq.desktop.main.overlays.windows;
 
-import bisq.desktop.app.BisqApp;
+import bisq.desktop.app.HavenoApp;
 import bisq.desktop.components.HyperlinkWithIcon;
 import bisq.desktop.main.overlays.Overlay;
 
@@ -98,7 +98,7 @@ public class TacWindow extends Overlay<TacWindow> {
         message(text);
         actionButtonText(Res.get("tacWindow.agree"));
         closeButtonText(Res.get("tacWindow.disagree"));
-        onClose(BisqApp.getShutDownHandler());
+        onClose(HavenoApp.getShutDownHandler());
 
         super.show();
     }
