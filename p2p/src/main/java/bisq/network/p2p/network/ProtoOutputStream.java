@@ -46,7 +46,7 @@ class ProtoOutputStream {
             writeEnvelopeOrThrow(envelope);
         } catch (IOException e) {
             log.error("Failed to write envelope", e);
-            throw new BisqRuntimeException("Failed to write envelope", e);
+            throw new HavenoRuntimeException("Failed to write envelope", e);
         }
     }
 

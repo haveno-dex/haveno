@@ -18,9 +18,9 @@
 package bisq.desktop.util;
 
 import bisq.desktop.Navigation;
-import bisq.desktop.app.BisqApp;
+import bisq.desktop.app.HavenoApp;
 import bisq.desktop.components.AutoTooltipLabel;
-import bisq.desktop.components.BisqTextArea;
+import bisq.desktop.components.HavenoTextArea;
 import bisq.desktop.components.InfoAutoTooltipLabel;
 import bisq.desktop.components.indicator.TxConfidenceIndicator;
 import bisq.desktop.main.MainView;
@@ -30,7 +30,7 @@ import bisq.desktop.main.overlays.popups.Popup;
 
 import bisq.core.account.witness.AccountAgeWitness;
 import bisq.core.account.witness.AccountAgeWitnessService;
-import bisq.core.app.BisqSetup;
+import bisq.core.app.HavenoSetup;
 import bisq.core.btc.setup.WalletsSetup;
 import bisq.core.locale.Country;
 import bisq.core.locale.CountryUtil;
@@ -827,8 +827,8 @@ public class GUIUtil {
                     .useShutDownButton()
                     .actionButtonText(Res.get("shared.shutDown"))
                     .onAction(() -> {
-                        BisqSetup.setResyncSpvSemaphore(true);
-                        UserThread.runAfter(BisqApp.getShutDownHandler(), 100, TimeUnit.MILLISECONDS);
+                        HavenoSetup.setResyncSpvSemaphore(true);
+                        UserThread.runAfter(HavenoApp.getShutDownHandler(), 100, TimeUnit.MILLISECONDS);
                     })
                     .closeButtonText(Res.get("shared.cancel"))
                     .show();
@@ -838,7 +838,7 @@ public class GUIUtil {
     }
 
     public static void showSelectableTextModal(String title, String text) {
-        TextArea textArea = new BisqTextArea();
+        TextArea textArea = new HavenoTextArea();
         textArea.setText(text);
         textArea.setEditable(false);
         textArea.setWrapText(true);

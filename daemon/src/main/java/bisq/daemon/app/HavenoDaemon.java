@@ -15,19 +15,9 @@
  * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.common;
+package bisq.daemon.app;
 
-public class BisqException extends RuntimeException {
+import bisq.core.app.HavenoHeadlessApp;
 
-    public BisqException(Throwable cause) {
-        super(cause);
-    }
-
-    public BisqException(String format, Object... args) {
-        super(String.format(format, args));
-    }
-
-    public BisqException(Throwable cause, String format, Object... args) {
-        super(String.format(format, args), cause);
-    }
+public class HavenoDaemon extends HavenoHeadlessApp {
 }

@@ -33,7 +33,7 @@ import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public class BisqHeadlessApp implements HeadlessApp {
+public class HavenoHeadlessApp implements HeadlessApp {
     @Getter
     private static Runnable shutDownHandler;
 
@@ -42,17 +42,17 @@ public class BisqHeadlessApp implements HeadlessApp {
     @Setter
     private GracefulShutDownHandler gracefulShutDownHandler;
     private boolean shutDownRequested;
-    protected BisqSetup bisqSetup;
+    protected HavenoSetup bisqSetup;
     private CorruptedStorageFileHandler corruptedStorageFileHandler;
     private TradeManager tradeManager;
 
-    public BisqHeadlessApp() {
+    public HavenoHeadlessApp() {
         shutDownHandler = this::stop;
     }
 
     public void startApplication() {
         try {
-            bisqSetup = injector.getInstance(BisqSetup.class);
+            bisqSetup = injector.getInstance(HavenoSetup.class);
             bisqSetup.addBisqSetupListener(this);
 
             corruptedStorageFileHandler = injector.getInstance(CorruptedStorageFileHandler.class);

@@ -41,14 +41,14 @@ import com.google.common.collect.ImmutableList;
  * 1) Run pre bitcoinj 0.15 btc and copy their seed words on a piece of paper.
  * 2) Run post bitcoinj 0.15 btc and use recover from seed.
  * */
-public class BisqKeyChainFactory extends DefaultKeyChainFactory {
+public class HavenoKeyChainFactory extends DefaultKeyChainFactory {
 
     @Override
     public DeterministicKeyChain makeKeyChain(Protos.Key key, Protos.Key firstSubKey, DeterministicSeed seed, KeyCrypter crypter, boolean isMarried, Script.ScriptType outputScriptType, ImmutableList<ChildNumber> accountPath) {
         ImmutableList<ChildNumber> maybeUpdatedAccountPath = accountPath;
         if (DeterministicKeyChain.ACCOUNT_ZERO_PATH.equals(accountPath)) {
             // This is a bitcoinj 0.14 wallet that has no account path in the serialized mnemonic
-            KeyChainGroupStructure structure = new BisqKeyChainGroupStructure();
+            KeyChainGroupStructure structure = new HavenoKeyChainGroupStructure();
             maybeUpdatedAccountPath = structure.accountPathFor(outputScriptType);
         }
 

@@ -4,13 +4,13 @@ import com.jfoenix.controls.JFXTextField;
 
 import javafx.scene.control.Skin;
 
-public class BisqTextField extends JFXTextField {
+public class HavenoTextField extends JFXTextField {
 
-    public BisqTextField(String value) {
+    public HavenoTextField(String value) {
         super(value);
     }
 
-    public BisqTextField() {
+    public HavenoTextField() {
         super();
     }
 

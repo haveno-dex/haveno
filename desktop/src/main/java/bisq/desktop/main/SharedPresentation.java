@@ -17,7 +17,7 @@
 
 package bisq.desktop.main;
 
-import bisq.desktop.app.BisqApp;
+import bisq.desktop.app.HavenoApp;
 import bisq.desktop.main.overlays.popups.Popup;
 
 import bisq.core.btc.wallet.WalletsManager;
@@ -76,7 +76,7 @@ public class SharedPresentation {
                 () -> UserThread.execute(() -> {
                     log.info("Wallets restored with seed words");
                     new Popup().feedback(Res.get("seed.restore.success")).hideCloseButton().show();
-                    BisqApp.getShutDownHandler().run();
+                    HavenoApp.getShutDownHandler().run();
                 }),
                 throwable -> UserThread.execute(() -> {
                     log.error(throwable.toString());

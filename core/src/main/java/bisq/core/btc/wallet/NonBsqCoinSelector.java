@@ -33,7 +33,7 @@ import lombok.extern.slf4j.Slf4j;
  * We lookup for spendable outputs which matches our address of our address.
  */
 @Slf4j
-public class NonBsqCoinSelector extends BisqDefaultCoinSelector {
+public class NonBsqCoinSelector extends HavenoDefaultCoinSelector {
     @Setter
     private Preferences preferences;
 

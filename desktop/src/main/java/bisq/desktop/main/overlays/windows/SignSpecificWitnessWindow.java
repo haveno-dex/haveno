@@ -18,7 +18,7 @@
 package bisq.desktop.main.overlays.windows;
 
 import bisq.desktop.components.AutoTooltipButton;
-import bisq.desktop.components.BisqTextArea;
+import bisq.desktop.components.HavenoTextArea;
 import bisq.desktop.components.InputTextField;
 import bisq.desktop.main.overlays.Overlay;
 import bisq.desktop.main.overlays.popups.Popup;
@@ -84,7 +84,7 @@ public class SignSpecificWitnessWindow extends Overlay<SignSpecificWitnessWindow
     }
 
     private void addSelectWitnessContent() {
-        TextArea accountInfoText = new BisqTextArea();
+        TextArea accountInfoText = new HavenoTextArea();
         accountInfoText.setPrefHeight(270);
         accountInfoText.setWrapText(true);
         GridPane.setRowIndex(accountInfoText, ++rowIndex);

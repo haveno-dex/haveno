@@ -72,8 +72,8 @@ import static com.google.common.base.Preconditions.checkState;
  * whether a tx/dependency violates the dust rules. Outside of specialised protocols you should not encounter non-final
  * transactions.</p>
  */
-public class BisqRiskAnalysis implements RiskAnalysis {
-    private static final Logger log = LoggerFactory.getLogger(BisqRiskAnalysis.class);
+public class HavenoRiskAnalysis implements RiskAnalysis {
+    private static final Logger log = LoggerFactory.getLogger(HavenoRiskAnalysis.class);
 
     /**
      * Any standard output smaller than this value (in satoshis) will be considered risky, as it's most likely be
@@ -91,7 +91,7 @@ public class BisqRiskAnalysis implements RiskAnalysis {
     protected Transaction nonFinal;
     protected boolean analyzed;
 
-    private BisqRiskAnalysis(Wallet wallet, Transaction tx, List<Transaction> dependencies) {
+    private HavenoRiskAnalysis(Wallet wallet, Transaction tx, List<Transaction> dependencies) {
         this.tx = tx;
         this.dependencies = dependencies;
         this.wallet = wallet;
@@ -289,8 +289,8 @@ public class BisqRiskAnalysis implements RiskAnalysis {
 
     public static class Analyzer implements RiskAnalysis.Analyzer {
         @Override
-        public BisqRiskAnalysis create(Wallet wallet, Transaction tx, List<Transaction> dependencies) {
-            return new BisqRiskAnalysis(wallet, tx, dependencies);
+        public HavenoRiskAnalysis create(Wallet wallet, Transaction tx, List<Transaction> dependencies) {
+            return new HavenoRiskAnalysis(wallet, tx, dependencies);
         }
     }
 

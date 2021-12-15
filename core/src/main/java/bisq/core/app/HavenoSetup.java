@@ -100,7 +100,7 @@ import javax.annotation.Nullable;
 
 @Slf4j
 @Singleton
-public class BisqSetup {
+public class HavenoSetup {
     private static final String VERSION_FILE_NAME = "version";
     private static final String RESYNC_SPV_FILE_NAME = "resyncSpv";
 
@@ -198,7 +198,7 @@ public class BisqSetup {
     private final List<BisqSetupListener> bisqSetupListeners = new ArrayList<>();
 
     @Inject
-    public BisqSetup(DomainInitialisation domainInitialisation,
+    public HavenoSetup(DomainInitialisation domainInitialisation,
                      P2PNetworkSetup p2PNetworkSetup,
                      WalletAppSetup walletAppSetup,
                      WalletsManager walletsManager,

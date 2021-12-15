@@ -90,7 +90,7 @@ import static bisq.desktop.util.Layout.MIN_WINDOW_HEIGHT;
 import static bisq.desktop.util.Layout.MIN_WINDOW_WIDTH;
 
 @Slf4j
-public class BisqApp extends Application implements UncaughtExceptionHandler {
+public class HavenoApp extends Application implements UncaughtExceptionHandler {
     @Setter
     private static Consumer<Application> appLaunchedHandler;
     @Getter
@@ -106,7 +106,7 @@ public class BisqApp extends Application implements UncaughtExceptionHandler {
     private boolean shutDownRequested;
     private MainView mainView;
 
-    public BisqApp() {
+    public HavenoApp() {
         shutDownHandler = this::stop;
     }
 

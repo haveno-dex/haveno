@@ -19,7 +19,7 @@ package bisq.core.btc.setup;
 
 import bisq.core.btc.nodes.LocalBitcoinNode;
 import bisq.core.btc.nodes.ProxySocketFactory;
-import bisq.core.btc.wallet.BisqRiskAnalysis;
+import bisq.core.btc.wallet.HavenoRiskAnalysis;
 
 import bisq.common.config.Config;
 import bisq.common.file.FileUtil;
@@ -398,7 +398,7 @@ public class WalletConfig extends AbstractIdleService {
             boolean shouldReplayWallet = (vBtcWalletFile.exists() && !chainFileExists) || restoreFromSeed != null;
             vBtcWallet = createOrLoadWallet(shouldReplayWallet, vBtcWalletFile);
             vBtcWallet.allowSpendingUnconfirmedTransactions();
-            vBtcWallet.setRiskAnalyzer(new BisqRiskAnalysis.Analyzer());
+            vBtcWallet.setRiskAnalyzer(new HavenoRiskAnalysis.Analyzer());
 
             // Initiate Bitcoin network objects (block store, blockchain and peer group)
             vStore = new SPVBlockStore(params, chainFile);
@@ -519,7 +519,7 @@ public class WalletConfig extends AbstractIdleService {
             final WalletProtobufSerializer serializer;
             serializer = new WalletProtobufSerializer();
             // Hack to convert bitcoinj 0.14 wallets to bitcoinj 0.15 format
-            serializer.setKeyChainFactory(new BisqKeyChainFactory());
+            serializer.setKeyChainFactory(new HavenoKeyChainFactory());
             wallet = serializer.readWallet(params, extArray, proto);
             if (shouldReplayWallet)
                 wallet.reset();
@@ -530,7 +530,7 @@ public class WalletConfig extends AbstractIdleService {
 
     protected Wallet createWallet() {
         Script.ScriptType preferredOutputScriptType = Script.ScriptType.P2WPKH;
-        KeyChainGroupStructure structure = new BisqKeyChainGroupStructure();
+        KeyChainGroupStructure structure = new HavenoKeyChainGroupStructure();
         KeyChainGroup.Builder kcgBuilder = KeyChainGroup.builder(params, structure);
         if (restoreFromSeed != null) {
             kcgBuilder.fromSeed(restoreFromSeed, preferredOutputScriptType);
@@ -655,7 +655,7 @@ public class WalletConfig extends AbstractIdleService {
     }
 
     public void maybeAddSegwitKeychain(Wallet wallet, KeyParameter aesKey) {
-        if (BisqKeyChainGroupStructure.BIP44_BTC_NON_SEGWIT_ACCOUNT_PATH.equals(wallet.getActiveKeyChain().getAccountPath())) {
+        if (HavenoKeyChainGroupStructure.BIP44_BTC_NON_SEGWIT_ACCOUNT_PATH.equals(wallet.getActiveKeyChain().getAccountPath())) {
             if (wallet.isEncrypted() && aesKey == null) {
                 // wait for the aesKey to be set and this method to be invoked again.
                 return;
@@ -677,7 +677,7 @@ public class WalletConfig extends AbstractIdleService {
             }
             DeterministicKeyChain nativeSegwitKeyChain = DeterministicKeyChain.builder().seed(seed)
                     .outputScriptType(Script.ScriptType.P2WPKH)
-                    .accountPath(new BisqKeyChainGroupStructure().accountPathFor(Script.ScriptType.P2WPKH)).build();
+                    .accountPath(new HavenoKeyChainGroupStructure().accountPathFor(Script.ScriptType.P2WPKH)).build();
             if (aesKey != null) {
                 // If wallet is encrypted, encrypt the new keychain.
                 KeyCrypter keyCrypter = wallet.getKeyCrypter();

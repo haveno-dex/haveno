@@ -52,11 +52,11 @@ class SynchronizedProtoOutputStream extends ProtoOutputStream {
             currentThread.interrupt();
             String msg = "Thread " + currentThread + " was interrupted. InterruptedException=" + e;
             log.error(msg);
-            throw new BisqRuntimeException(msg, e);
+            throw new HavenoRuntimeException(msg, e);
         } catch (ExecutionException e) {
             String msg = "Failed to write envelope. ExecutionException " + e;
             log.error(msg);
-            throw new BisqRuntimeException(msg, e);
+            throw new HavenoRuntimeException(msg, e);
         }
     }
 

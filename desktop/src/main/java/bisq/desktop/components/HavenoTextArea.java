@@ -4,7 +4,7 @@ import com.jfoenix.controls.JFXTextArea;
 
 import javafx.scene.control.Skin;
 
-public class BisqTextArea extends JFXTextArea {
+public class HavenoTextArea extends JFXTextArea {
     @Override
     protected Skin<?> createDefaultSkin() {
         return new JFXTextAreaSkinBisqStyle(this);

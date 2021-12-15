@@ -22,7 +22,7 @@ import bisq.desktop.common.view.guice.InjectorViewFactory;
 import bisq.desktop.setup.DesktopPersistedDataHost;
 
 import bisq.core.app.AvoidStandbyModeService;
-import bisq.core.app.BisqExecutable;
+import bisq.core.app.HavenoExecutable;
 
 import bisq.common.UserThread;
 import bisq.common.app.AppModule;
@@ -34,13 +34,13 @@ import javafx.application.Platform;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public class BisqAppMain extends BisqExecutable {
+public class HavenoAppMain extends HavenoExecutable {
 
     public static final String DEFAULT_APP_NAME = "Haveno";
 
-    private BisqApp application;
+    private HavenoApp application;
 
-    public BisqAppMain() {
+    public HavenoAppMain() {
         super("Bisq Desktop", "bisq-desktop", DEFAULT_APP_NAME, Version.VERSION);
     }
 
@@ -49,9 +49,9 @@ public class BisqAppMain extends BisqExecutable {
         // context class loader: reset it. In order to work around a bug in JavaFX 8u25
         // and below, you must include the following code as the first line of your
         // realMain method:
-        Thread.currentThread().setContextClassLoader(BisqAppMain.class.getClassLoader());
+        Thread.currentThread().setContextClassLoader(HavenoAppMain.class.getClassLoader());
 
-        new BisqAppMain().execute(args);
+        new HavenoAppMain().execute(args);
     }
 
     @Override
@@ -71,13 +71,13 @@ public class BisqAppMain extends BisqExecutable {
 
     @Override
     protected void launchApplication() {
-        BisqApp.setAppLaunchedHandler(application -> {
-            BisqAppMain.this.application = (BisqApp) application;
+        HavenoApp.setAppLaunchedHandler(application -> {
+            HavenoAppMain.this.application = (HavenoApp) application;
             // Map to user thread!
             UserThread.execute(this::onApplicationLaunched);
         });
 
-        Application.launch(BisqApp.class);
+        Application.launch(HavenoApp.class);
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -102,7 +102,7 @@ public class BisqAppMain extends BisqExecutable {
 
     @Override
     protected AppModule getModule() {
-        return new BisqAppModule(config);
+        return new HavenoAppModule(config);
     }
 
     @Override

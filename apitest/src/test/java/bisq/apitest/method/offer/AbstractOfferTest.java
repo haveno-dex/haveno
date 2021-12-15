@@ -32,10 +32,10 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 
 import static bisq.apitest.Scaffold.BitcoinCoreApp.bitcoind;
-import static bisq.apitest.config.BisqAppConfig.alicedaemon;
-import static bisq.apitest.config.BisqAppConfig.arbdaemon;
-import static bisq.apitest.config.BisqAppConfig.bobdaemon;
-import static bisq.apitest.config.BisqAppConfig.seednode;
+import static bisq.apitest.config.HavenoAppConfig.alicedaemon;
+import static bisq.apitest.config.HavenoAppConfig.arbdaemon;
+import static bisq.apitest.config.HavenoAppConfig.bobdaemon;
+import static bisq.apitest.config.HavenoAppConfig.seednode;
 import static bisq.common.util.MathUtils.roundDouble;
 import static bisq.common.util.MathUtils.scaleDownByPowerOf10;
 import static bisq.core.locale.CurrencyUtil.isCryptoCurrency;

@@ -34,16 +34,16 @@ import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
 
 import bisq.apitest.config.ApiTestConfig;
-import bisq.apitest.config.BisqAppConfig;
-import bisq.daemon.app.BisqDaemonMain;
+import bisq.apitest.config.HavenoAppConfig;
+import bisq.daemon.app.HavenoDaemonMain;
 
 /**
  * Runs a regtest/dao Bisq application instance in the background.
  */
 @Slf4j
-public class BisqProcess extends AbstractLinuxProcess implements LinuxProcess {
+public class HavenoProcess extends AbstractLinuxProcess implements LinuxProcess {
 
-    private final BisqAppConfig bisqAppConfig;
+    private final HavenoAppConfig bisqAppConfig;
     private final String baseCurrencyNetwork;
     private final String genesisTxId;
     private final int genesisBlockHeight;
@@ -53,7 +53,7 @@ public class BisqProcess extends AbstractLinuxProcess implements LinuxProcess {
     private final String findBisqPidScript;
     private final String debugOpts;
 
-    public BisqProcess(BisqAppConfig bisqAppConfig, ApiTestConfig config) {
+    public HavenoProcess(HavenoAppConfig bisqAppConfig, ApiTestConfig config) {
         super(bisqAppConfig.appName, config);
         this.bisqAppConfig = bisqAppConfig;
         this.baseCurrencyNetwork = "XMR_STAGENET";
@@ -235,7 +235,7 @@ public class BisqProcess extends AbstractLinuxProcess implements LinuxProcess {
                 case bobdesktop:
                     add("--genesisBlockHeight=" + genesisBlockHeight);
                     add("--genesisTxId=" + genesisTxId);
-                    if (bisqAppConfig.mainClassName.equals(BisqDaemonMain.class.getName())) {
+                    if (bisqAppConfig.mainClassName.equals(HavenoDaemonMain.class.getName())) {
                         add("--apiPassword=" + config.apiPassword);
                         add("--apiPort=" + bisqAppConfig.apiPort);
                     }

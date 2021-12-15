@@ -29,9 +29,9 @@ import javax.annotation.Nullable;
 
 import org.junit.jupiter.api.TestInfo;
 
-import static bisq.apitest.config.BisqAppConfig.alicedaemon;
-import static bisq.apitest.config.BisqAppConfig.arbdaemon;
-import static bisq.apitest.config.BisqAppConfig.bobdaemon;
+import static bisq.apitest.config.HavenoAppConfig.alicedaemon;
+import static bisq.apitest.config.HavenoAppConfig.arbdaemon;
+import static bisq.apitest.config.HavenoAppConfig.bobdaemon;
 import static bisq.proto.grpc.DisputeAgentsGrpc.getRegisterDisputeAgentMethod;
 import static bisq.proto.grpc.GetVersionGrpc.getGetVersionMethod;
 import static java.net.InetAddress.getLoopbackAddress;
