@@ -78,7 +78,7 @@ public class GrpcVersionService extends GetVersionImplBase {
         return getCustomRateMeteringInterceptor(coreApi.getConfig().appDataDir, this.getClass())
                 .or(() -> Optional.of(CallRateMeteringInterceptor.valueOf(
                         new HashMap<>() {{
-                            put(getGetVersionMethod().getFullMethodName(), new GrpcCallRateMeter(1, SECONDS));
+                            put(getGetVersionMethod().getFullMethodName(), new GrpcCallRateMeter(5, SECONDS));
                         }}
                 )));
     }
