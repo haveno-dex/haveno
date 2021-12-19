@@ -37,7 +37,7 @@ import lombok.extern.slf4j.Slf4j;
 import bisq.daemon.grpc.GrpcServer;
 
 @Slf4j
-public class HavenoDaemonMain extends HavenoHeadlessAppMain implements HavenoSetup.BisqSetupListener {
+public class HavenoDaemonMain extends HavenoHeadlessAppMain implements HavenoSetup.HavenoSetupListener {
 
     private GrpcServer grpcServer;
 

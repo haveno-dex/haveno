@@ -118,7 +118,7 @@ public enum HavenoAppConfig {
 
     @Override
     public String toString() {
-        return "BisqAppConfig{" + "\n" +
+        return "HavenoAppConfig{" + "\n" +
                 "  appName='" + appName + '\'' + "\n" +
                 ", startupScript='" + startupScript + '\'' + "\n" +
                 ", javaOpts='" + javaOpts + '\'' + "\n" +

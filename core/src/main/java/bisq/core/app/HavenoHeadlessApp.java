@@ -53,7 +53,7 @@ public class HavenoHeadlessApp implements HeadlessApp {
     public void startApplication() {
         try {
             bisqSetup = injector.getInstance(HavenoSetup.class);
-            bisqSetup.addBisqSetupListener(this);
+            bisqSetup.addHavenoSetupListener(this);
 
             corruptedStorageFileHandler = injector.getInstance(CorruptedStorageFileHandler.class);
             tradeManager = injector.getInstance(TradeManager.class);

@@ -21,7 +21,7 @@
 <?import bisq.desktop.components.AutoTooltipCheckBox?>
 <?import bisq.desktop.components.AutoTooltipLabel?>
 <?import bisq.desktop.components.AutoTooltipRadioButton?>
-<?import bisq.desktop.components.BisqTextField?>
+<?import bisq.desktop.components.HavenoTextField?>
 <?import bisq.desktop.components.InputTextField?>
 <?import bisq.desktop.components.TitledGroupBg?>
 <?import javafx.scene.control.cell.PropertyValueFactory?>
@@ -103,12 +103,12 @@
         </GridPane.margin>
     </TitledGroupBg>
 
-    <BisqTextField fx:id="onionAddress" GridPane.rowIndex="5"
+    <HavenoTextField fx:id="onionAddress" GridPane.rowIndex="5"
                    editable="false" focusTraversable="false" labelFloat="true">
         <GridPane.margin>
             <Insets top="60.0"/>
         </GridPane.margin>
-    </BisqTextField>
+    </HavenoTextField>
 
     <VBox GridPane.rowIndex="6" GridPane.hgrow="ALWAYS" GridPane.vgrow="SOMETIMES">
         <AutoTooltipLabel fx:id="p2PPeersLabel" styleClass="small-text"/>
@@ -153,13 +153,13 @@
         </TableView>
     </VBox>
 
-    <BisqTextField fx:id="sentDataTextField" GridPane.rowIndex="7" editable="false"
+    <HavenoTextField fx:id="sentDataTextField" GridPane.rowIndex="7" editable="false"
                    focusTraversable="false" labelFloat="true"/>
 
-    <BisqTextField fx:id="receivedDataTextField" GridPane.rowIndex="8" editable="false"
+    <HavenoTextField fx:id="receivedDataTextField" GridPane.rowIndex="8" editable="false"
                    focusTraversable="false" labelFloat="true"/>
 
-    <BisqTextField fx:id="chainHeightTextField" GridPane.rowIndex="9" editable="false"
+    <HavenoTextField fx:id="chainHeightTextField" GridPane.rowIndex="9" editable="false"
                    focusTraversable="false" labelFloat="true"/>
 
     <AutoTooltipButton fx:id="openTorSettingsButton" GridPane.rowIndex="10" GridPane.columnIndex="0"/>

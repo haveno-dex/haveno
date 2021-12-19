@@ -107,7 +107,7 @@ import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public class MainViewModel implements ViewModel, HavenoSetup.BisqSetupListener {
+public class MainViewModel implements ViewModel, HavenoSetup.HavenoSetupListener {
     private final HavenoSetup bisqSetup;
     private final WalletsSetup walletsSetup;
     private final User user;
@@ -209,12 +209,12 @@ public class MainViewModel implements ViewModel, HavenoSetup.BisqSetupListener {
         GUIUtil.setPreferences(preferences);
 
         setupHandlers();
-        bisqSetup.addBisqSetupListener(this);
+        bisqSetup.addHavenoSetupListener(this);
     }
 
 
     ///////////////////////////////////////////////////////////////////////////////////////////
-    // BisqSetupListener
+    // HavenoSetupListener
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     @Override
