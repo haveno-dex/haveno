@@ -289,13 +289,13 @@ public class Scaffold {
             startBisqApp(bobdesktop, executor, countdownLatch);
     }
 
-    private void startBisqApp(HavenoAppConfig bisqAppConfig,
+    private void startBisqApp(HavenoAppConfig havenoAppConfig,
                               ExecutorService executor,
                               CountDownLatch countdownLatch)
             throws IOException, InterruptedException {
 
-        HavenoProcess bisqProcess = createBisqProcess(bisqAppConfig);
-        switch (bisqAppConfig) {
+        HavenoProcess bisqProcess = createBisqProcess(havenoAppConfig);
+        switch (havenoAppConfig) {
             case seednode:
                 seedNodeTask = new SetupTask(bisqProcess, countdownLatch);
                 seedNodeTaskFuture = executor.submit(seedNodeTask);
@@ -316,9 +316,9 @@ public class Scaffold {
                 bobNodeTaskFuture = executor.submit(bobNodeTask);
                 break;
             default:
-                throw new IllegalStateException("Unknown BisqAppConfig " + bisqAppConfig.name());
+                throw new IllegalStateException("Unknown HavenoAppConfig " + havenoAppConfig.name());
         }
-        log.info("Giving {} ms for {} to initialize ...", config.bisqAppInitTime, bisqAppConfig.appName);
+        log.info("Giving {} ms for {} to initialize ...", config.bisqAppInitTime, havenoAppConfig.appName);
         MILLISECONDS.sleep(config.bisqAppInitTime);
         if (bisqProcess.hasStartupExceptions()) {
             bisqProcess.logExceptions(bisqProcess.getStartupExceptions(), log);
@@ -326,9 +326,9 @@ public class Scaffold {
         }
     }
 
-    private HavenoProcess createBisqProcess(HavenoAppConfig bisqAppConfig)
+    private HavenoProcess createBisqProcess(HavenoAppConfig havenoAppConfig)
             throws IOException, InterruptedException {
-        HavenoProcess bisqProcess = new HavenoProcess(bisqAppConfig, config);
+        HavenoProcess bisqProcess = new HavenoProcess(havenoAppConfig, config);
         bisqProcess.verifyAppNotRunning();
         bisqProcess.verifyAppDataDirInstalled();
         return bisqProcess;

@@ -54,7 +54,7 @@ import lombok.extern.slf4j.Slf4j;
 import javax.annotation.Nullable;
 
 @Slf4j
-public abstract class HavenoExecutable implements GracefulShutDownHandler, HavenoSetup.BisqSetupListener, UncaughtExceptionHandler {
+public abstract class HavenoExecutable implements GracefulShutDownHandler, HavenoSetup.HavenoSetupListener, UncaughtExceptionHandler {
 
     public static final int EXIT_SUCCESS = 0;
     public static final int EXIT_FAILURE = 1;
@@ -139,7 +139,7 @@ public abstract class HavenoExecutable implements GracefulShutDownHandler, Haven
         hasDowngraded = HavenoSetup.hasDowngraded();
         if (hasDowngraded) {
             // If user tried to downgrade we do not read the persisted data to avoid data corruption
-            // We call startApplication to enable UI to show popup. We prevent in BisqSetup to go further
+            // We call startApplication to enable UI to show popup. We prevent in HavenoSetup to go further
             // in the process and require a shut down.
             startApplication();
         } else {
@@ -194,12 +194,12 @@ public abstract class HavenoExecutable implements GracefulShutDownHandler, Haven
 
     // Once the application is ready we get that callback and we start the setup
     protected void onApplicationStarted() {
-        runBisqSetup();
+        runHavenoSetup();
     }
 
-    protected void runBisqSetup() {
+    protected void runHavenoSetup() {
         HavenoSetup bisqSetup = injector.getInstance(HavenoSetup.class);
-        bisqSetup.addBisqSetupListener(this);
+        bisqSetup.addHavenoSetupListener(this);
         bisqSetup.start();
     }
 
