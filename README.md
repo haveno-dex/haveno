@@ -74,8 +74,16 @@ Would you like to help us build Haveno? Become a sponsor! We will show your logo
 
 To bring Haveno to life, we need resources. If you have the possibility, please consider donating to the project:
 
+### Monero
+
 `42sjokkT9FmiWPqVzrWPFE5NCJXwt96bkBozHf4vgLR9hXyJDqKHEHKVscAARuD7in5wV1meEcSTJTanCTDzidTe2cFXS1F`
 
 ![Qr code](https://raw.githubusercontent.com/haveno-dex/haveno/master/media/qrhaveno.png)
 
 If you are using a wallet that supports Openalias (like the 'official' CLI and GUI wallets), you can simply put `donations@haveno.network` as the "receiver" address.
+
+### Bitcoin
+
+`bc1q4j5a9hfjxltfvv66gnfaw6478hagzpmjx3zkam`
+
+![Qr code](https://raw.githubusercontent.com/haveno-dex/haveno/master/media/qrbtc.png)
