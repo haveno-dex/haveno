@@ -26,12 +26,9 @@ import bisq.core.app.AppStartupState;
 import bisq.core.btc.Balances;
 import bisq.core.btc.exceptions.AddressEntryException;
 import bisq.core.btc.exceptions.InsufficientFundsException;
-import bisq.core.btc.exceptions.TransactionVerificationException;
-import bisq.core.btc.exceptions.WalletException;
 import bisq.core.btc.model.AddressEntry;
 import bisq.core.btc.setup.WalletsSetup;
 import bisq.core.btc.wallet.BtcWalletService;
-import bisq.core.btc.wallet.TxBroadcaster;
 import bisq.core.btc.wallet.WalletsManager;
 import bisq.core.btc.wallet.XmrWalletService;
 import bisq.core.provider.fee.FeeService;
@@ -47,11 +44,9 @@ import bisq.common.util.Utilities;
 import org.bitcoinj.core.Address;
 import org.bitcoinj.core.Coin;
 import org.bitcoinj.core.InsufficientMoneyException;
-import org.bitcoinj.core.LegacyAddress;
 import org.bitcoinj.core.NetworkParameters;
 import org.bitcoinj.core.Transaction;
 import org.bitcoinj.core.TransactionConfidence;
-import org.bitcoinj.core.TransactionOutput;
 import org.bitcoinj.crypto.KeyCrypterScrypt;
 
 import javax.inject.Inject;
@@ -73,7 +68,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
-import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import lombok.extern.slf4j.Slf4j;
@@ -84,6 +78,11 @@ import static bisq.core.btc.wallet.Restrictions.getMinNonDustOutput;
 import static bisq.core.util.ParsingUtils.parseToCoin;
 import static java.lang.String.format;
 import static java.util.concurrent.TimeUnit.SECONDS;
+
+
+
+import monero.wallet.model.MoneroDestination;
+import monero.wallet.model.MoneroTxWallet;
 
 @Singleton
 @Slf4j
@@ -157,9 +156,35 @@ class CoreWalletsService {
                 return new BalancesInfo(getBtcBalances(), getXmrBalances());
         }
     }
-    
+
     String getNewDepositSubaddress() {
         return xmrWalletService.getWallet().createSubaddress(0).getAddress();
+    }
+
+    List<MoneroTxWallet> getXmrTxs(){
+        return xmrWalletService.getWallet().getTxs();
+    }
+
+    MoneroTxWallet createXmrTx(List<MoneroDestination> destinations) {
+        verifyWalletsAreAvailable();
+        verifyEncryptedWalletIsUnlocked();
+        try {
+            return xmrWalletService.createTx(destinations);
+        } catch (Exception ex) {
+            log.error("", ex);
+            throw new IllegalStateException(ex);
+        }
+    }
+
+    String relayXmrTx(String metadata) {
+        verifyWalletsAreAvailable();
+        verifyEncryptedWalletIsUnlocked();
+        try {
+            return xmrWalletService.getWallet().relayTx(metadata);
+        } catch (Exception ex) {
+            log.error("", ex);
+            throw new IllegalStateException(ex);
+        }
     }
 
     long getAddressBalance(String addressString) {
@@ -214,7 +239,6 @@ class CoreWalletsService {
                         btcWalletService.isAddressUnused(getAddressEntry(address).getAddress())))
                 .collect(Collectors.toList());
     }
-
 
     void sendBtc(String address,
                  String amount,
@@ -530,15 +554,15 @@ class CoreWalletsService {
         var availableBalance = balances.getAvailableBalance().get();
         if (availableBalance == null)
             throw new IllegalStateException("available balance is not yet available");
-        
+
         var lockedBalance = balances.getLockedBalance().get();
         if (lockedBalance == null)
             throw new IllegalStateException("locked balance is not yet available");
-        
+
         var reservedOfferBalance = balances.getReservedOfferBalance().get();
         if (reservedOfferBalance == null)
             throw new IllegalStateException("reserved offer balance is not yet available");
-        
+
         var reservedTradeBalance = balances.getReservedTradeBalance().get();
         if (reservedTradeBalance == null)
             throw new IllegalStateException("reserved trade balance is not yet available");

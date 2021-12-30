@@ -20,8 +20,6 @@ package bisq.daemon.grpc;
 import bisq.core.api.CoreApi;
 import bisq.core.api.model.AddressBalanceInfo;
 import bisq.core.api.model.TxFeeRateInfo;
-import bisq.core.btc.exceptions.TxBroadcastException;
-import bisq.core.btc.wallet.TxBroadcaster;
 
 import bisq.proto.grpc.GetAddressBalanceReply;
 import bisq.proto.grpc.GetAddressBalanceRequest;
@@ -31,6 +29,12 @@ import bisq.proto.grpc.GetFundingAddressesReply;
 import bisq.proto.grpc.GetFundingAddressesRequest;
 import bisq.proto.grpc.GetNewDepositSubaddressRequest;
 import bisq.proto.grpc.GetNewDepositSubaddressReply;
+import bisq.proto.grpc.GetXmrTxsRequest;
+import bisq.proto.grpc.GetXmrTxsReply;
+import bisq.proto.grpc.CreateXmrTxRequest;
+import bisq.proto.grpc.CreateXmrTxReply;
+import bisq.proto.grpc.RelayXmrTxRequest;
+import bisq.proto.grpc.RelayXmrTxReply;
 import bisq.proto.grpc.GetTransactionReply;
 import bisq.proto.grpc.GetTransactionRequest;
 import bisq.proto.grpc.GetTxFeeRateReply;
@@ -59,6 +63,8 @@ import javax.inject.Inject;
 
 import com.google.common.util.concurrent.FutureCallback;
 
+import java.math.BigInteger;
+
 import java.util.HashMap;
 import java.util.List;
 import java.util.Optional;
@@ -69,6 +75,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
 
 import static bisq.core.api.model.TxInfo.toTxInfo;
+import static bisq.core.api.model.XmrTx.toXmrTx;
 import static bisq.daemon.grpc.interceptor.GrpcServiceRateMeteringConfig.getCustomRateMeteringInterceptor;
 import static bisq.proto.grpc.WalletsGrpc.*;
 import static java.util.concurrent.TimeUnit.MINUTES;
@@ -78,6 +85,8 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 
 import bisq.daemon.grpc.interceptor.CallRateMeteringInterceptor;
 import bisq.daemon.grpc.interceptor.GrpcCallRateMeter;
+import monero.wallet.model.MoneroDestination;
+import monero.wallet.model.MoneroTxWallet;
 
 @Slf4j
 class GrpcWalletsService extends WalletsImplBase {
@@ -104,7 +113,7 @@ class GrpcWalletsService extends WalletsImplBase {
             exceptionHandler.handleException(log, cause, responseObserver);
         }
     }
-    
+
     @Override
     public void getNewDepositSubaddress(GetNewDepositSubaddressRequest req,
                                     StreamObserver<GetNewDepositSubaddressReply> responseObserver) {
@@ -112,6 +121,59 @@ class GrpcWalletsService extends WalletsImplBase {
             String subaddress = coreApi.getNewDepositSubaddress();
             var reply = GetNewDepositSubaddressReply.newBuilder()
                     .setSubaddress(subaddress)
+                    .build();
+            responseObserver.onNext(reply);
+            responseObserver.onCompleted();
+        } catch (Throwable cause) {
+            exceptionHandler.handleException(log, cause, responseObserver);
+        }
+    }
+
+    @Override
+    public void getXmrTxs(GetXmrTxsRequest req, StreamObserver<GetXmrTxsReply> responseObserver) {
+        try {
+            List<MoneroTxWallet> xmrTxs = coreApi.getXmrTxs();
+            var reply = GetXmrTxsReply.newBuilder()
+                    .addAllTxs(xmrTxs.stream()
+                            .map(s -> toXmrTx(s).toProtoMessage())
+                            .collect(Collectors.toList()))
+                    .build();
+            responseObserver.onNext(reply);
+            responseObserver.onCompleted();
+        } catch (Throwable cause) {
+            exceptionHandler.handleException(log, cause, responseObserver);
+        }
+    }
+
+    @Override
+    public void createXmrTx(CreateXmrTxRequest req,
+                            StreamObserver<CreateXmrTxReply> responseObserver) {
+        try {
+            MoneroTxWallet tx = coreApi.createXmrTx(
+                    req.getDestinationsList()
+                    .stream()
+                    .map(s -> new MoneroDestination(s.getAddress(), new BigInteger(s.getAmount())))
+                    .collect(Collectors.toList()));
+            log.info("Successfully created XMR tx: hash {}, metadata {}",
+                    tx.getHash(),
+                    tx.getMetadata());
+            var reply = CreateXmrTxReply.newBuilder()
+                    .setTx(toXmrTx(tx).toProtoMessage())
+                    .build();
+            responseObserver.onNext(reply);
+            responseObserver.onCompleted();
+        } catch (Throwable cause) {
+            exceptionHandler.handleException(log, cause, responseObserver);
+        }
+    }
+
+    @Override
+    public void relayXmrTx(RelayXmrTxRequest req,
+                            StreamObserver<RelayXmrTxReply> responseObserver) {
+        try {
+            String txHash = coreApi.relayXmrTx(req.getMetadata());
+            var reply = RelayXmrTxReply.newBuilder()
+                    .setHash(txHash)
                     .build();
             responseObserver.onNext(reply);
             responseObserver.onCompleted();

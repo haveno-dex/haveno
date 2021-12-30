@@ -54,6 +54,11 @@ import java.util.function.Consumer;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
+
+
+import monero.wallet.model.MoneroDestination;
+import monero.wallet.model.MoneroTxWallet;
+
 /**
  * Provides high level interface to functionality of core Bisq features.
  * E.g. useful for different APIs to access data of different domains of Bisq.
@@ -293,6 +298,18 @@ public class CoreApi {
 
     public String getNewDepositSubaddress() {
         return walletsService.getNewDepositSubaddress();
+    }
+
+    public List<MoneroTxWallet> getXmrTxs() {
+        return walletsService.getXmrTxs();
+    }
+
+    public MoneroTxWallet createXmrTx(List<MoneroDestination> destinations) {
+        return walletsService.createXmrTx(destinations);
+    }
+
+    public String relayXmrTx(String metadata) {
+        return walletsService.relayXmrTx(metadata);
     }
 
     public long getAddressBalance(String addressString) {

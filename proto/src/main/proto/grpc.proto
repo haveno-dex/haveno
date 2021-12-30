@@ -453,6 +453,12 @@ service Wallets {
     }
     rpc GetNewDepositSubaddress (GetNewDepositSubaddressRequest) returns (GetNewDepositSubaddressReply) {
     }
+    rpc GetXmrTxs (GetXmrTxsRequest) returns (GetXmrTxsReply) {
+    }
+    rpc CreateXmrTx (CreateXmrTxRequest) returns (CreateXmrTxReply) {
+    }
+    rpc relayXmrTx (RelayXmrTxRequest) returns (RelayXmrTxReply) {
+    }
     rpc GetAddressBalance (GetAddressBalanceRequest) returns (GetAddressBalanceReply) {
     }
     rpc SendBtc (SendBtcRequest) returns (SendBtcReply) {
@@ -490,6 +496,61 @@ message GetNewDepositSubaddressRequest {
 
 message GetNewDepositSubaddressReply {
      string subaddress = 1;
+}
+
+message GetXmrTxsRequest {
+}
+
+message GetXmrTxsReply {
+    repeated XmrTx txs = 1;
+}
+
+message XmrTx {
+    string hash = 1;
+    string fee = 2;
+    bool is_confirmed = 3;
+    bool is_locked = 4;
+    uint64 height = 5;
+    uint64 timestamp = 6;
+    repeated XmrIncomingTransfer incoming_transfers = 7;
+    XmrOutgoingTransfer outgoing_transfer = 8;
+    string metadata = 9;
+}
+
+message XmrDestination {
+    string address = 1;
+    string amount = 2;
+}
+
+message XmrIncomingTransfer {
+    string amount = 1;
+    int32 account_index = 2;
+    int32 subaddress_index = 3;
+    string address = 4;
+    uint64 num_suggested_confirmations = 5;
+}
+
+message XmrOutgoingTransfer {
+    string amount = 1;
+    int32 account_index = 2;
+    repeated int32 subaddress_indices = 3;
+    repeated XmrDestination destinations = 4;
+}
+
+message CreateXmrTxRequest {
+    repeated XmrDestination destinations = 1;
+}
+
+message CreateXmrTxReply {
+    XmrTx tx = 1;
+}
+
+message RelayXmrTxRequest {
+    string metadata = 1;
+}
+
+message RelayXmrTxReply {
+    string hash = 1;
 }
 
 message GetAddressBalanceRequest {
