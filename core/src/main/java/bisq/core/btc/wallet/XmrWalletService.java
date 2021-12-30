@@ -34,6 +34,7 @@ import lombok.Getter;
 
 import monero.daemon.MoneroDaemon;
 import monero.wallet.MoneroWallet;
+import monero.wallet.model.MoneroDestination;
 import monero.wallet.model.MoneroOutputWallet;
 import monero.wallet.model.MoneroSubaddress;
 import monero.wallet.model.MoneroTxConfig;
@@ -239,7 +240,7 @@ public class XmrWalletService {
   }
 
   public Coin getBalanceForSubaddress(int subaddressIndex) {
-      
+
     // get subaddress balance
     BigInteger balance = wallet.getBalance(0, subaddressIndex);
 
@@ -358,6 +359,25 @@ public class XmrWalletService {
 //    return sendResult.tx.getTxId().toString();
 //  }
 
+
+    ///////////////////////////////////////////////////////////////////////////////////////////
+    // Create Tx
+    ///////////////////////////////////////////////////////////////////////////////////////////
+
+    public MoneroTxWallet createTx(List<MoneroDestination> destinations) {
+        try {
+            MoneroTxWallet tx = wallet.createTx(new MoneroTxConfig()
+                    .setAccountIndex(0)
+                    .setDestinations(destinations)
+                    .setRelay(false)
+                    .setCanSplit(false));
+            printTxs("XmrWalletService.createTx", tx);
+            return tx;
+        } catch (Exception e) {
+            throw e;
+        }
+    }
+
   ///////////////////////////////////////////////////////////////////////////////////////////
   // Util
   ///////////////////////////////////////////////////////////////////////////////////////////
@@ -414,7 +434,7 @@ public class XmrWalletService {
         }
       });
     }
-    
+
     @Override
     public void onBalancesChanged(BigInteger newBalance, BigInteger newUnlockedBalance) {
       UserThread.execute(new Runnable() {
