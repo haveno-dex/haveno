@@ -1,4 +1,3 @@
-# This file is maintained in https://github.com/WeblateOrg/meta/
 name: Comment to label
 
 on:
@@ -15,5 +14,11 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           issue-number: ${{ github.event.issue.number }}
-          body: |
-            There is a bounty on this issue, the amount is in the title. The bounty will be awarded to the first person(s) who resolves this issue. Read the full conditions in the ['bounties.md' file](https://github.com/erciccione/haveno/blob/master/docs/bounties.md). If you are starting to work on this issue, please write a comment here, so that we can assign the issue to you and avoid duplicated work.
+          body: >
+            There is a bounty on this issue, the amount is in the title. The reward will be awarded to the first person or group of people who resolves this issue.
+            
+            
+            If you are starting to work on this bounty, please write a comment, so that we can assign the issue to you. We expect contributors to provide a PR in a reasonable time frame or, in case of an extensive work, updates on their progresses. We will unassign the issue if we feel the assignee is not responsive or has abandoned the task.
+
+
+            Read the [full conditions and details](https://github.com/erciccione/haveno/blob/master/docs/bounties.md) of our bounty system.
