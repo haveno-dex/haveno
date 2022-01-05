@@ -71,16 +71,10 @@ public class UpdateMultisigWithTradingPeer extends TradeTask {
               @Override
               public void onVerifiedTradeMessage(TradeMessage message, NodeAddress sender) {
                 if (!(message instanceof UpdateMultisigResponse)) return;
-
-                System.out.println("Received UpdateMultisigResponse!!!");
-                System.out.println(message);
-                System.out.println(sender);
-
                 UpdateMultisigResponse response = (UpdateMultisigResponse) message;
-                int numOutputsSigned = multisigWallet.importMultisigHex(Arrays.asList(response.getUpdatedMultisigHex()));
+                multisigWallet.importMultisigHex(Arrays.asList(response.getUpdatedMultisigHex()));
                 multisigWallet.sync();
                 multisigWallet.save();
-                System.out.println("Num outputs signed with imported multisig hex: " + numOutputsSigned);
                 trade.removeListener(updateMultisigResponseListener);
                 complete();
               }
