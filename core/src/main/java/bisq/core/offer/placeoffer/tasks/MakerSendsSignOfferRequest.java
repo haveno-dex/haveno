@@ -27,6 +27,10 @@ import bisq.core.offer.Offer;
 import bisq.core.offer.messages.SignOfferRequest;
 import bisq.core.offer.placeoffer.PlaceOfferModel;
 import bisq.core.support.dispute.mediation.mediator.Mediator;
+import bisq.network.p2p.AckMessage;
+import bisq.network.p2p.DecryptedDirectMessageListener;
+import bisq.network.p2p.DecryptedMessageWithPubKey;
+import bisq.network.p2p.NodeAddress;
 import bisq.network.p2p.P2PService;
 import bisq.network.p2p.SendDirectMessageListener;
 import java.util.Date;
@@ -36,6 +40,8 @@ import org.slf4j.LoggerFactory;
 
 public class MakerSendsSignOfferRequest extends Task<PlaceOfferModel> {
     private static final Logger log = LoggerFactory.getLogger(MakerSendsSignOfferRequest.class);
+    
+    private boolean failed = false;
 
     @SuppressWarnings({"unused"})
     public MakerSendsSignOfferRequest(TaskRunner taskHandler, PlaceOfferModel model) {
@@ -69,14 +75,34 @@ public class MakerSendsSignOfferRequest extends Task<PlaceOfferModel> {
             
             // get signing arbitrator
             Mediator arbitrator = checkNotNull(model.getUser().getAcceptedMediatorByAddress(offer.getOfferPayload().getArbitratorSigner()), "user.getAcceptedMediatorByAddress(mediatorNodeAddress) must not be null");
+            
+            // complete on successful ack message
+            DecryptedDirectMessageListener ackListener = new DecryptedDirectMessageListener() {
+                @Override
+                public void onDirectMessage(DecryptedMessageWithPubKey decryptedMessageWithPubKey, NodeAddress sender) {
+                    if (!(decryptedMessageWithPubKey.getNetworkEnvelope() instanceof AckMessage)) return;
+                    if (!sender.equals(arbitrator.getNodeAddress())) return;
+                    AckMessage ackMessage = (AckMessage) decryptedMessageWithPubKey.getNetworkEnvelope();
+                    if (!ackMessage.getSourceMsgClassName().equals(SignOfferRequest.class.getSimpleName())) return;
+                    if (ackMessage.isSuccess()) {
+                        offer.setState(Offer.State.OFFER_FEE_RESERVED);
+                        model.getP2PService().removeDecryptedDirectMessageListener(this);
+                        complete();
+                     } else {
+                         if (!failed) {
+                             failed = true;
+                             failed(ackMessage.getErrorMessage()); // TODO: (woodser): only fail once? build into task?
+                         }
+                     }
+                }
+            };
+            model.getP2PService().addDecryptedDirectMessageListener(ackListener);
 
             // send request
             model.getP2PService().sendEncryptedDirectMessage(arbitrator.getNodeAddress(), arbitrator.getPubKeyRing(), request, new SendDirectMessageListener() {
                 @Override
                 public void onArrived() {
-                    offer.setState(Offer.State.OFFER_FEE_RESERVED);
                     log.info("{} arrived: arbitrator={}; offerId={}; uid={}", request.getClass().getSimpleName(), arbitrator.getNodeAddress(), offer.getId());
-                    complete();
                 }
                 @Override
                 public void onFault(String errorMessage) {
