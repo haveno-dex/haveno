@@ -22,7 +22,7 @@ import bisq.core.support.dispute.mediation.mediator.Mediator;
 import bisq.core.support.dispute.mediation.mediator.MediatorManager;
 import bisq.core.support.dispute.refund.refundagent.RefundAgent;
 import bisq.core.support.dispute.refund.refundagent.RefundAgentManager;
-
+import bisq.core.user.User;
 import bisq.network.p2p.NodeAddress;
 import bisq.network.p2p.P2PService;
 
@@ -54,6 +54,7 @@ import static java.util.Arrays.asList;
 @Slf4j
 class CoreDisputeAgentsService {
 
+    private final User user;
     private final Config config;
     private final KeyRing keyRing;
     private final MediatorManager mediatorManager;
@@ -63,17 +64,19 @@ class CoreDisputeAgentsService {
     private final List<String> languageCodes;
 
     @Inject
-    public CoreDisputeAgentsService(Config config,
+    public CoreDisputeAgentsService(User user,
+                                    Config config,
                                     KeyRing keyRing,
                                     MediatorManager mediatorManager,
                                     RefundAgentManager refundAgentManager,
                                     P2PService p2PService) {
+        this.user = user;
         this.config = config;
         this.keyRing = keyRing;
         this.mediatorManager = mediatorManager;
         this.refundAgentManager = refundAgentManager;
         this.p2PService = p2PService;
-        this.nodeAddress = new NodeAddress(getLoopbackAddress().getHostAddress(), config.nodePort);
+        this.nodeAddress = new NodeAddress(getLoopbackAddress().getHostName(), config.nodePort);
         this.languageCodes = asList("de", "en", "es", "fr");
     }
 
@@ -96,11 +99,19 @@ class CoreDisputeAgentsService {
                 case ARBITRATION:
                     throw new IllegalArgumentException("arbitrators must be registered in a Bisq UI");
                 case MEDIATION:
+                    if (user.getRegisteredMediator() != null) {
+                        log.warn("ignoring request to re-register as mediator");
+                        return;
+                    }
                     ecKey = mediatorManager.getRegistrationKey(registrationKey);
                     signature = mediatorManager.signStorageSignaturePubKey(Objects.requireNonNull(ecKey));
                     registerMediator(nodeAddress, languageCodes, ecKey, signature);
                     return;
                 case REFUND:
+                    if (user.getRegisteredRefundAgent() != null) {
+                        log.warn("ignoring request to re-register as refund agent");
+                        return;
+                    }
                     ecKey = refundAgentManager.getRegistrationKey(registrationKey);
                     signature = refundAgentManager.signStorageSignaturePubKey(Objects.requireNonNull(ecKey));
                     registerRefundAgent(nodeAddress, languageCodes, ecKey, signature);
