@@ -45,11 +45,9 @@ import org.bitcoinj.core.Address;
 import org.bitcoinj.core.BlockChain;
 import org.bitcoinj.core.Context;
 import org.bitcoinj.core.NetworkParameters;
-import org.bitcoinj.core.Peer;
 import org.bitcoinj.core.PeerAddress;
 import org.bitcoinj.core.PeerGroup;
 import org.bitcoinj.core.RejectMessage;
-import org.bitcoinj.core.listeners.DownloadProgressTracker;
 import org.bitcoinj.utils.Threading;
 import org.bitcoinj.wallet.DeterministicSeed;
 import org.bitcoinj.wallet.Wallet;
@@ -65,15 +63,15 @@ import com.google.common.util.concurrent.Service;
 import org.apache.commons.lang3.StringUtils;
 
 import javafx.beans.property.BooleanProperty;
-import javafx.beans.property.DoubleProperty;
 import javafx.beans.property.IntegerProperty;
+import javafx.beans.property.LongProperty;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.ReadOnlyDoubleProperty;
 import javafx.beans.property.ReadOnlyIntegerProperty;
 import javafx.beans.property.ReadOnlyObjectProperty;
 import javafx.beans.property.SimpleBooleanProperty;
-import javafx.beans.property.SimpleDoubleProperty;
 import javafx.beans.property.SimpleIntegerProperty;
+import javafx.beans.property.SimpleLongProperty;
 import javafx.beans.property.SimpleObjectProperty;
 
 import java.net.InetAddress;
@@ -85,7 +83,6 @@ import java.io.File;
 import java.io.IOException;
 
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
@@ -103,6 +100,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 
 import monero.daemon.MoneroDaemon;
+import monero.daemon.model.MoneroDaemonConnection;
 import monero.wallet.MoneroWallet;
 
 // Setup wallets and use WalletConfig for BitcoinJ wiring.
@@ -112,6 +110,8 @@ import monero.wallet.MoneroWallet;
 public class WalletsSetup {
 
     public static final String PRE_SEGWIT_WALLET_BACKUP = "pre_segwit_haveno_BTC.wallet.backup";
+    private static final int MIN_BROADCAST_CONNECTIONS = 2;
+    private static final long DAEMON_POLL_INTERVAL_SECONDS = 20;
 
     @Getter
     public final BooleanProperty walletsSetupFailed = new SimpleBooleanProperty();
@@ -135,9 +135,8 @@ public class WalletsSetup {
     private final int walletRpcBindPort;
     private final int socks5DiscoverMode;
     private final IntegerProperty numPeers = new SimpleIntegerProperty(0);
-    private final IntegerProperty chainHeight = new SimpleIntegerProperty(0);
-    private final ObjectProperty<Peer> blocksDownloadedFromPeer = new SimpleObjectProperty<>();
-    private final ObjectProperty<List<Peer>> connectedPeers = new SimpleObjectProperty<>();
+    private final LongProperty chainHeight = new SimpleLongProperty(0);
+    private final ObjectProperty<List<MoneroDaemonConnection>> peerConnections = new SimpleObjectProperty<>();
     private final DownloadListener downloadListener = new DownloadListener();
     private final List<Runnable> setupCompletedHandlers = new ArrayList<>();
     public final BooleanProperty shutDownComplete = new SimpleBooleanProperty();
@@ -220,19 +219,11 @@ public class WalletsSetup {
                 if (preferences.getBitcoinNodes() != null && !preferences.getBitcoinNodes().isEmpty())
                     peerGroup.setAddPeersFromAddressMessage(false);
 
-                peerGroup.addConnectedEventListener((peer, peerCount) -> {
-                    // We get called here on our user thread
-                    numPeers.set(peerCount);
-                    connectedPeers.set(peerGroup.getConnectedPeers());
-                });
-                peerGroup.addDisconnectedEventListener((peer, peerCount) -> {
-                    // We get called here on our user thread
-                    numPeers.set(peerCount);
-                    connectedPeers.set(peerGroup.getConnectedPeers());
-                });
-                peerGroup.addBlocksDownloadedEventListener((peer, block, filteredBlock, blocksLeft) -> {
-                    blocksDownloadedFromPeer.set(peer);
-                });
+                UserThread.runPeriodically(() -> {
+                    peerConnections.set(getPeerConnections());
+                    numPeers.set(peerConnections.get().size());
+                    chainHeight.set(vXmrDaemon.getHeight());
+                }, DAEMON_POLL_INTERVAL_SECONDS);
 
                 // Need to be Threading.SAME_THREAD executor otherwise BitcoinJ will skip that listener
                 peerGroup.addPreMessageReceivedEventListener(Threading.SAME_THREAD, (peer, message) -> {
@@ -247,16 +238,11 @@ public class WalletsSetup {
                     return message;
                 });
 
-                chain.addNewBestBlockListener(block -> {
-                    UserThread.execute(() -> {
-                        connectedPeers.set(peerGroup.getConnectedPeers());
-                        chainHeight.set(block.getHeight());
-                    });
-                });
-
                 // Map to user thread
                 UserThread.execute(() -> {
-                    chainHeight.set(chain.getBestChainHeight());
+                    peerConnections.set(getPeerConnections());
+                    numPeers.set(peerConnections.get().size());
+                    chainHeight.set(vXmrDaemon.getHeight());
                     addressEntryList.onWalletReady(walletConfig.btcWallet());
                     xmrAddressEntryList.onWalletReady(walletConfig.getXmrWallet());
                     timeoutTimer.stop();
@@ -265,6 +251,12 @@ public class WalletsSetup {
 
                 // onSetupCompleted in walletAppKit is not the called on the last invocations, so we add a bit of delay
                 UserThread.runAfter(resultHandler::handleResult, 100, TimeUnit.MILLISECONDS);
+            }
+
+            private List<MoneroDaemonConnection> getPeerConnections() {
+                return vXmrDaemon.getConnections().stream()
+                        .filter(peerConnection -> peerConnection.getPeer().isOnline())
+                        .collect(Collectors.toList());
             }
         };
         walletConfig.setSocks5Proxy(socks5Proxy);
@@ -401,11 +393,10 @@ public class WalletsSetup {
     }
 
     private void configPeerNodes(@Nullable Socks5Proxy proxy) {
-        BtcNodesSetupPreferences btcNodesSetupPreferences = new BtcNodesSetupPreferences(preferences);
+        walletConfig.setMinBroadcastConnections(MIN_BROADCAST_CONNECTIONS);
 
+        BtcNodesSetupPreferences btcNodesSetupPreferences = new BtcNodesSetupPreferences(preferences);
         List<BtcNode> nodes = btcNodesSetupPreferences.selectPreferredNodes(btcNodes);
-        int minBroadcastConnections = btcNodesSetupPreferences.calculateMinBroadcastConnections(nodes);
-        walletConfig.setMinBroadcastConnections(minBroadcastConnections);
 
         BtcNodesRepository repository = new BtcNodesRepository(nodes);
         boolean isUseClearNodesWithProxies = (useAllProvidedNodes || btcNodesSetupPreferences.isUseCustomNodes());
@@ -515,16 +506,12 @@ public class WalletsSetup {
         return numPeers;
     }
 
-    public ReadOnlyObjectProperty<List<Peer>> connectedPeersProperty() {
-        return connectedPeers;
+    public ReadOnlyObjectProperty<List<MoneroDaemonConnection>> peerConnectionsProperty() {
+        return peerConnections;
     }
 
-    public ReadOnlyIntegerProperty chainHeightProperty() {
+    public LongProperty chainHeightProperty() {
         return chainHeight;
-    }
-
-    public ReadOnlyObjectProperty<Peer> blocksDownloadedFromPeerProperty() {
-        return blocksDownloadedFromPeer;
     }
 
     public ReadOnlyDoubleProperty downloadPercentageProperty() {
@@ -536,8 +523,9 @@ public class WalletsSetup {
     }
 
     public boolean isChainHeightSyncedWithinTolerance() {
-        int peersChainHeight = PeerGroup.getMostCommonChainHeight(connectedPeers.get());
-        int bestChainHeight = walletConfig.chain().getBestChainHeight();
+        Long peersChainHeight = walletConfig.vXmrDaemon.getSyncInfo().getTargetHeight();
+        if (peersChainHeight == 0) return true; // monero-daemon-rpc sync_info's target_height returns 0 when node is fully synced
+        long bestChainHeight = chainHeight.get();
         if (Math.abs(peersChainHeight - bestChainHeight) <= 3) {
             return true;
         }
@@ -566,28 +554,4 @@ public class WalletsSetup {
         return walletConfig.getMinBroadcastConnections();
     }
 
-
-    ///////////////////////////////////////////////////////////////////////////////////////////
-    // Inner classes
-    ///////////////////////////////////////////////////////////////////////////////////////////
-
-    private static class DownloadListener extends DownloadProgressTracker {
-        private final DoubleProperty percentage = new SimpleDoubleProperty(-1);
-
-        @Override
-        protected void progress(double percentage, int blocksLeft, Date date) {
-            super.progress(percentage, blocksLeft, date);
-            UserThread.execute(() -> this.percentage.set(percentage / 100d));
-        }
-
-        @Override
-        protected void doneDownload() {
-            super.doneDownload();
-            UserThread.execute(() -> this.percentage.set(1d));
-        }
-
-        public ReadOnlyDoubleProperty percentageProperty() {
-            return percentage;
-        }
-    }
 }
