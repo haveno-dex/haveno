@@ -85,6 +85,7 @@ public class AppStartupState {
         p2pNetworkAndWalletInitialized.subscribe((observable, oldValue, newValue) -> {
             if (newValue) {
                 applicationFullyInitialized.set(true);
+                log.info("Application fully initialized");
             }
         });
     }

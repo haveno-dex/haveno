@@ -81,7 +81,7 @@ public class XmrTxProofService implements AssetTxProofService {
     private final Map<String, XmrTxProofRequestsPerTrade> servicesByTradeId = new HashMap<>();
     private AutoConfirmSettings autoConfirmSettings;
     private final Map<String, ChangeListener<Trade.State>> tradeStateListenerMap = new HashMap<>();
-    private ChangeListener<Number> btcPeersListener, btcBlockListener;
+    private ChangeListener<Number> xmrPeersListener, xmrBlockListener;
     private BootstrapListener bootstrapListener;
     private MonadicBinding<Boolean> p2pNetworkAndWalletReady;
     private ChangeListener<Boolean> p2pNetworkAndWalletReadyListener;
@@ -126,12 +126,12 @@ public class XmrTxProofService implements AssetTxProofService {
         // onAllServicesInitialized is called once we have received the initial data but we want to have our
         // hidden service published and upDatedDataResponse received before we start.
         BooleanProperty isP2pBootstrapped = isP2pBootstrapped();
-        BooleanProperty hasSufficientBtcPeers = hasSufficientBtcPeers();
-        BooleanProperty isBtcBlockDownloadComplete = isBtcBlockDownloadComplete();
-        if (isP2pBootstrapped.get() && hasSufficientBtcPeers.get() && isBtcBlockDownloadComplete.get()) {
+        BooleanProperty hasSufficientXmrPeers = hasSufficientXmrPeers();
+        BooleanProperty isXmrBlockDownloadComplete = isXmrBlockDownloadComplete();
+        if (isP2pBootstrapped.get() && hasSufficientXmrPeers.get() && isXmrBlockDownloadComplete.get()) {
             onP2pNetworkAndWalletReady();
         } else {
-            p2pNetworkAndWalletReady = EasyBind.combine(isP2pBootstrapped, hasSufficientBtcPeers, isBtcBlockDownloadComplete,
+            p2pNetworkAndWalletReady = EasyBind.combine(isP2pBootstrapped, hasSufficientXmrPeers, isXmrBlockDownloadComplete,
                     (bootstrapped, sufficientPeers, downloadComplete) ->
                             bootstrapped && sufficientPeers && downloadComplete);
 
@@ -287,34 +287,34 @@ public class XmrTxProofService implements AssetTxProofService {
     // Startup checks
     ///////////////////////////////////////////////////////////////////////////////////////////
 
-    private BooleanProperty isBtcBlockDownloadComplete() {
+    private BooleanProperty isXmrBlockDownloadComplete() {
         BooleanProperty result = new SimpleBooleanProperty();
         if (walletsSetup.isDownloadComplete()) {
             result.set(true);
         } else {
-            btcBlockListener = (observable, oldValue, newValue) -> {
+            xmrBlockListener = (observable, oldValue, newValue) -> {
                 if (walletsSetup.isDownloadComplete()) {
-                    walletsSetup.downloadPercentageProperty().removeListener(btcBlockListener);
+                    walletsSetup.downloadPercentageProperty().removeListener(xmrBlockListener);
                     result.set(true);
                 }
             };
-            walletsSetup.downloadPercentageProperty().addListener(btcBlockListener);
+            walletsSetup.downloadPercentageProperty().addListener(xmrBlockListener);
         }
         return result;
     }
 
-    private BooleanProperty hasSufficientBtcPeers() {
+    private BooleanProperty hasSufficientXmrPeers() {
         BooleanProperty result = new SimpleBooleanProperty();
         if (walletsSetup.hasSufficientPeersForBroadcast()) {
             result.set(true);
         } else {
-            btcPeersListener = (observable, oldValue, newValue) -> {
+            xmrPeersListener = (observable, oldValue, newValue) -> {
                 if (walletsSetup.hasSufficientPeersForBroadcast()) {
-                    walletsSetup.numPeersProperty().removeListener(btcPeersListener);
+                    walletsSetup.numPeersProperty().removeListener(xmrPeersListener);
                     result.set(true);
                 }
             };
-            walletsSetup.numPeersProperty().addListener(btcPeersListener);
+            walletsSetup.numPeersProperty().addListener(xmrPeersListener);
         }
         return result;
     }

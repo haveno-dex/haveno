@@ -151,7 +151,7 @@ public class WalletConfig extends AbstractIdleService {
     protected volatile File vBtcWalletFile;
 
     protected PeerAddress[] peerAddresses;
-    protected DownloadProgressTracker downloadListener;
+    protected DownloadListener downloadListener;
     protected InputStream checkpoints;
     protected String userAgent, version;
     @Nullable
@@ -234,7 +234,7 @@ public class WalletConfig extends AbstractIdleService {
      * If you want to learn about the sync process, you can provide a listener here. For instance, a
      * {@link DownloadProgressTracker} is a good choice.
      */
-    public WalletConfig setDownloadListener(DownloadProgressTracker listener) {
+    public WalletConfig setDownloadListener(DownloadListener listener) {
         this.downloadListener = listener;
         return this;
     }
@@ -388,7 +388,8 @@ public class WalletConfig extends AbstractIdleService {
             System.out.println("Monero wallet uri: " + vXmrWallet.getRpcConnection().getUri());
 //            vXmrWallet.rescanSpent();
 //            vXmrWallet.rescanBlockchain();
-            vXmrWallet.sync();
+            vXmrWallet.sync(); // blocking
+            downloadListener.doneDownload();
             vXmrWallet.save();
             System.out.println("Loaded wallet balance: " + vXmrWallet.getBalance(0));
             System.out.println("Loaded wallet unlocked balance: " + vXmrWallet.getUnlockedBalance(0));
@@ -471,7 +472,7 @@ public class WalletConfig extends AbstractIdleService {
             @Override
             public void onSuccess(@Nullable Object result) {
                 //completeExtensionInitiations(vPeerGroup);
-                DownloadProgressTracker tracker = downloadListener == null ? new DownloadProgressTracker() : downloadListener;
+                DownloadProgressTracker tracker = new DownloadProgressTracker();
                 vPeerGroup.startBlockChainDownload(tracker);
             }
 
