@@ -17,6 +17,7 @@
 
 package bisq.core.trade;
 
+import bisq.core.api.CoreNotificationService;
 import bisq.core.btc.model.XmrAddressEntry;
 import bisq.core.btc.wallet.XmrWalletService;
 import bisq.core.locale.Res;
@@ -33,6 +34,7 @@ import bisq.core.provider.price.PriceFeedService;
 import bisq.core.support.dispute.arbitration.arbitrator.ArbitratorManager;
 import bisq.core.support.dispute.mediation.mediator.Mediator;
 import bisq.core.support.dispute.mediation.mediator.MediatorManager;
+import bisq.core.trade.Trade.Phase;
 import bisq.core.trade.closed.ClosedTradableManager;
 import bisq.core.trade.failed.FailedTradesManager;
 import bisq.core.trade.handlers.TradeResultHandler;
@@ -64,6 +66,7 @@ import bisq.network.p2p.DecryptedMessageWithPubKey;
 import bisq.network.p2p.NodeAddress;
 import bisq.network.p2p.P2PService;
 import bisq.network.p2p.network.TorNetworkNode;
+import bisq.proto.grpc.NotificationMessage;
 import com.google.common.collect.ImmutableList;
 import bisq.common.ClockWatcher;
 import bisq.common.config.Config;
@@ -89,7 +92,8 @@ import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
 
 import org.bouncycastle.crypto.params.KeyParameter;
-
+import org.fxmisc.easybind.EasyBind;
+import org.fxmisc.easybind.Subscription;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -127,6 +131,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
     @Getter
     private final KeyRing keyRing;
     private final XmrWalletService xmrWalletService;
+    private final CoreNotificationService notificationService;
     private final OfferBookService offerBookService;
     private final OpenOfferManager openOfferManager;
     private final ClosedTradableManager closedTradableManager;
@@ -166,6 +171,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
     public TradeManager(User user,
                         KeyRing keyRing,
                         XmrWalletService xmrWalletService,
+                        CoreNotificationService notificationService,
                         OfferBookService offerBookService,
                         OpenOfferManager openOfferManager,
                         ClosedTradableManager closedTradableManager,
@@ -186,6 +192,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
         this.user = user;
         this.keyRing = keyRing;
         this.xmrWalletService = xmrWalletService;
+        this.notificationService = notificationService;
         this.offerBookService = offerBookService;
         this.openOfferManager = openOfferManager;
         this.closedTradableManager = closedTradableManager;
@@ -510,6 +517,17 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
           trade.getSelf().setReserveTxKey(openOffer.getReserveTxKey());
           trade.getSelf().setReserveTxKeyImages(offer.getOfferPayload().getReserveTxKeyImages());
           tradableList.add(trade);
+          
+          // notify on phase changes
+          // TODO (woodser): save subscription, bind on startup
+          EasyBind.subscribe(trade.statePhaseProperty(), phase -> {
+              if (phase == Phase.DEPOSIT_PUBLISHED) {
+                  notificationService.sendNotification(NotificationMessage.newBuilder()
+                          .setTimestamp(System.currentTimeMillis())
+                          .setTitle("Offer Taken")
+                          .setMessage("Your offer " + offer.getId() + " has been accepted").build());
+              }
+          });
 
           ((MakerProtocol) getTradeProtocol(trade)).handleInitTradeRequest(request, sender, errorMessage -> {
               log.warn("Maker error during trade initialization: " + errorMessage);

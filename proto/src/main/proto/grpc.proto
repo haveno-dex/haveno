@@ -41,6 +41,33 @@ message RegisterDisputeAgentReply {
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////
+// Notifications
+///////////////////////////////////////////////////////////////////////////////////////////
+
+service Notifications {
+    rpc RegisterNotificationListener (RegisterNotificationListenerRequest) returns (stream NotificationMessage) {
+    }
+    rpc SendNotification (SendNotificationRequest) returns (SendNotificationReply) { // only used for testing
+    }
+}
+
+message RegisterNotificationListenerRequest {
+}
+
+message NotificationMessage {
+    int64 timestamp = 1;
+    string title = 2;
+    string message = 3;
+}
+
+message SendNotificationRequest {
+    NotificationMessage notification = 1;
+}
+
+message SendNotificationReply {
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////
 // Help
 ///////////////////////////////////////////////////////////////////////////////////////////
 
