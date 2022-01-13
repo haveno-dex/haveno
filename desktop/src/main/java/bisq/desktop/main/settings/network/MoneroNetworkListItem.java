@@ -17,17 +17,17 @@
 
 package bisq.desktop.main.settings.network;
 
-import monero.daemon.model.MoneroDaemonConnection;
+import monero.daemon.model.MoneroPeer;
 
 public class MoneroNetworkListItem {
-    private final MoneroDaemonConnection peerConnection;
+    private final MoneroPeer peer;
 
-    public MoneroNetworkListItem(MoneroDaemonConnection peerConnection) {
-        this.peerConnection = peerConnection;
+    public MoneroNetworkListItem(MoneroPeer peer) {
+        this.peer = peer;
     }
 
     public String getOnionAddress() {
-        return peerConnection.getPeer().getHost() + ":" + peerConnection.getPeer().getPort();
+        return peer.getHost() + ":" + peer.getPort();
     }
 
     public String getVersion() {
@@ -39,6 +39,6 @@ public class MoneroNetworkListItem {
     }
 
     public String getHeight() {
-        return String.valueOf(peerConnection.getHeight());
+        return String.valueOf(peer.getHeight());
     }
 }
