@@ -1,5 +1,6 @@
 package bisq.core.util;
 
+import bisq.core.locale.GlobalSettings;
 import bisq.core.locale.Res;
 import bisq.core.monetary.Altcoin;
 import bisq.core.monetary.Price;
@@ -31,6 +32,7 @@ public class FormattingUtilsTest {
     @Before
     public void setUp() {
         Locale.setDefault(new Locale("en", "US"));
+        GlobalSettings.setLocale(new Locale("en", "US"));
         Res.setBaseCurrencyCode("XMR");
         Res.setBaseCurrencyName("Monero");
     }
