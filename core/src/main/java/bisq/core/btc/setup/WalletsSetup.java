@@ -100,7 +100,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 
 import monero.daemon.MoneroDaemon;
-import monero.daemon.model.MoneroDaemonConnection;
+import monero.daemon.model.MoneroPeer;
 import monero.wallet.MoneroWallet;
 
 // Setup wallets and use WalletConfig for BitcoinJ wiring.
@@ -136,7 +136,7 @@ public class WalletsSetup {
     private final int socks5DiscoverMode;
     private final IntegerProperty numPeers = new SimpleIntegerProperty(0);
     private final LongProperty chainHeight = new SimpleLongProperty(0);
-    private final ObjectProperty<List<MoneroDaemonConnection>> peerConnections = new SimpleObjectProperty<>();
+    private final ObjectProperty<List<MoneroPeer>> peers = new SimpleObjectProperty<>();
     private final DownloadListener downloadListener = new DownloadListener();
     private final List<Runnable> setupCompletedHandlers = new ArrayList<>();
     public final BooleanProperty shutDownComplete = new SimpleBooleanProperty();
@@ -220,8 +220,8 @@ public class WalletsSetup {
                     peerGroup.setAddPeersFromAddressMessage(false);
 
                 UserThread.runPeriodically(() -> {
-                    peerConnections.set(getPeerConnections());
-                    numPeers.set(peerConnections.get().size());
+                    peers.set(getPeerConnections());
+                    numPeers.set(peers.get().size());
                     chainHeight.set(vXmrDaemon.getHeight());
                 }, DAEMON_POLL_INTERVAL_SECONDS);
 
@@ -240,8 +240,8 @@ public class WalletsSetup {
 
                 // Map to user thread
                 UserThread.execute(() -> {
-                    peerConnections.set(getPeerConnections());
-                    numPeers.set(peerConnections.get().size());
+                    peers.set(getPeerConnections());
+                    numPeers.set(peers.get().size());
                     chainHeight.set(vXmrDaemon.getHeight());
                     addressEntryList.onWalletReady(walletConfig.btcWallet());
                     xmrAddressEntryList.onWalletReady(walletConfig.getXmrWallet());
@@ -253,9 +253,9 @@ public class WalletsSetup {
                 UserThread.runAfter(resultHandler::handleResult, 100, TimeUnit.MILLISECONDS);
             }
 
-            private List<MoneroDaemonConnection> getPeerConnections() {
-                return vXmrDaemon.getConnections().stream()
-                        .filter(peerConnection -> peerConnection.getPeer().isOnline())
+            private List<MoneroPeer> getPeerConnections() {
+                return vXmrDaemon.getPeers().stream()
+                        .filter(peer -> peer.isOnline())
                         .collect(Collectors.toList());
             }
         };
@@ -506,8 +506,8 @@ public class WalletsSetup {
         return numPeers;
     }
 
-    public ReadOnlyObjectProperty<List<MoneroDaemonConnection>> peerConnectionsProperty() {
-        return peerConnections;
+    public ReadOnlyObjectProperty<List<MoneroPeer>> peerConnectionsProperty() {
+        return peers;
     }
 
     public LongProperty chainHeightProperty() {

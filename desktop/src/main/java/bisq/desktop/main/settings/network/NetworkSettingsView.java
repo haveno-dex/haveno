@@ -77,7 +77,7 @@ import java.util.stream.Collectors;
 
 import static javafx.beans.binding.Bindings.createStringBinding;
 
-import monero.daemon.model.MoneroDaemonConnection;
+import monero.daemon.model.MoneroPeer;
 
 @FxmlView
 public class NetworkSettingsView extends ActivatableView<GridPane, Void> {
@@ -480,9 +480,9 @@ public class NetworkSettingsView extends ActivatableView<GridPane, Void> {
                 .collect(Collectors.toList()));
     }
 
-    private void updateMoneroPeersTable(List<MoneroDaemonConnection> peerConnections) {
+    private void updateMoneroPeersTable(List<MoneroPeer> peers) {
         moneroNetworkListItems.clear();
-        moneroNetworkListItems.setAll(peerConnections.stream()
+        moneroNetworkListItems.setAll(peers.stream()
                 .map(MoneroNetworkListItem::new)
                 .collect(Collectors.toList()));
     }
