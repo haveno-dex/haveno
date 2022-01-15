@@ -47,6 +47,7 @@ public class PaymentAccountPayloadInfo implements Payload {
     }
 
     public static PaymentAccountPayloadInfo toPaymentAccountPayloadInfo(PaymentAccountPayload paymentAccountPayload) {
+        if (paymentAccountPayload == null) return null;
         Optional<String> address = Optional.empty();
         if (paymentAccountPayload instanceof CryptoCurrencyAccountPayload)
             address = Optional.of(((CryptoCurrencyAccountPayload) paymentAccountPayload).getAddress());

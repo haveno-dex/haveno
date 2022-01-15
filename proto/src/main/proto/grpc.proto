@@ -55,9 +55,19 @@ message RegisterNotificationListenerRequest {
 }
 
 message NotificationMessage {
-    int64 timestamp = 1;
-    string title = 2;
-    string message = 3;
+    enum NotificationType {
+        TRADE_UPDATE = 0;
+        CHAT_MESSAGE = 1;
+        KEEP_ALIVE = 2;
+    }
+
+    string id = 1;
+    NotificationType type = 2;
+    int64 timestamp = 3;
+    string title = 4;
+    string message = 5;
+    TradeInfo trade = 6;
+    ChatMessage chat_message = 7;
 }
 
 message SendNotificationRequest {

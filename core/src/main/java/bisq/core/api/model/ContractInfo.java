@@ -94,8 +94,8 @@ public class ContractInfo implements Payload {
                 proto.getIsBuyerMakerAndSellerTaker(),
                 proto.getMakerAccountId(),
                 proto.getTakerAccountId(),
-                PaymentAccountPayloadInfo.fromProto(proto.getMakerPaymentAccountPayload()),
-                PaymentAccountPayloadInfo.fromProto(proto.getTakerPaymentAccountPayload()),
+                proto.getMakerPaymentAccountPayload() == null ? null : PaymentAccountPayloadInfo.fromProto(proto.getMakerPaymentAccountPayload()),
+                proto.getTakerPaymentAccountPayload() == null ? null : PaymentAccountPayloadInfo.fromProto(proto.getTakerPaymentAccountPayload()),
                 proto.getMakerPayoutAddressString(),
                 proto.getTakerPayoutAddressString(),
                 proto.getLockTime());
@@ -103,18 +103,18 @@ public class ContractInfo implements Payload {
 
     @Override
     public bisq.proto.grpc.ContractInfo toProtoMessage() {
-        return bisq.proto.grpc.ContractInfo.newBuilder()
+        bisq.proto.grpc.ContractInfo.Builder builder = bisq.proto.grpc.ContractInfo.newBuilder()
                 .setBuyerNodeAddress(buyerNodeAddress)
                 .setSellerNodeAddress(sellerNodeAddress)
                 .setArbitratorNodeAddress(arbitratorNodeAddress)
                 .setIsBuyerMakerAndSellerTaker(isBuyerMakerAndSellerTaker)
                 .setMakerAccountId(makerAccountId)
                 .setTakerAccountId(takerAccountId)
-                .setMakerPaymentAccountPayload(makerPaymentAccountPayload.toProtoMessage())
-                .setTakerPaymentAccountPayload(takerPaymentAccountPayload.toProtoMessage())
                 .setMakerPayoutAddressString(makerPayoutAddressString)
                 .setTakerPayoutAddressString(takerPayoutAddressString)
-                .setLockTime(lockTime)
-                .build();
+                .setLockTime(lockTime);
+       if (makerPaymentAccountPayload != null) builder.setMakerPaymentAccountPayload(makerPaymentAccountPayload.toProtoMessage());
+       if (takerPaymentAccountPayload != null) builder.setTakerPaymentAccountPayload(takerPaymentAccountPayload.toProtoMessage());
+       return builder.build();
     }
 }
