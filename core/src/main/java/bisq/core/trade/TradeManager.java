@@ -66,7 +66,6 @@ import bisq.network.p2p.DecryptedMessageWithPubKey;
 import bisq.network.p2p.NodeAddress;
 import bisq.network.p2p.P2PService;
 import bisq.network.p2p.network.TorNetworkNode;
-import bisq.proto.grpc.NotificationMessage;
 import com.google.common.collect.ImmutableList;
 import bisq.common.ClockWatcher;
 import bisq.common.config.Config;
@@ -93,7 +92,6 @@ import javafx.collections.ObservableList;
 
 import org.bouncycastle.crypto.params.KeyParameter;
 import org.fxmisc.easybind.EasyBind;
-import org.fxmisc.easybind.Subscription;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -522,10 +520,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
           // TODO (woodser): save subscription, bind on startup
           EasyBind.subscribe(trade.statePhaseProperty(), phase -> {
               if (phase == Phase.DEPOSIT_PUBLISHED) {
-                  notificationService.sendNotification(NotificationMessage.newBuilder()
-                          .setTimestamp(System.currentTimeMillis())
-                          .setTitle("Offer Taken")
-                          .setMessage("Your offer " + offer.getId() + " has been accepted").build());
+                  notificationService.sendTradeNotification(trade, "Offer Taken", "Your offer " + offer.getId() + " has been accepted"); // TODO (woodser): use language translation
               }
           });
 

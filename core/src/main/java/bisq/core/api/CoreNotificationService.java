@@ -1,9 +1,10 @@
 package bisq.core.api;
 
 import bisq.core.api.CoreApi.NotificationListener;
-
+import bisq.core.api.model.TradeInfo;
+import bisq.core.trade.Trade;
 import bisq.proto.grpc.NotificationMessage;
-
+import bisq.proto.grpc.NotificationMessage.NotificationType;
 import javax.inject.Singleton;
 
 import java.util.Iterator;
@@ -33,10 +34,19 @@ public class CoreNotificationService {
                 try {
                     listener.onMessage(notification);
                 } catch (RuntimeException e) {
-                    log.warn("Failed to send message {} to listener {}", notification, listener, e);
+                    log.warn("Failed to send notification to listener {}: {}", listener, e.getMessage());
                     iter.remove();
                 }
             }
         }
+    }
+    
+    public void sendTradeNotification(Trade trade, String title, String message) {
+        sendNotification(NotificationMessage.newBuilder()
+                .setType(NotificationType.TRADE_UPDATE)
+                .setTrade(TradeInfo.toTradeInfo(trade).toProtoMessage())
+                .setTimestamp(System.currentTimeMillis())
+                .setTitle(title)
+                .setMessage(message).build());
     }
 }
