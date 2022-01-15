@@ -268,6 +268,11 @@ configure(project(':common')) {
         compileOnly "org.projectlombok:lombok:$lombokVersion"
         annotationProcessor "org.projectlombok:lombok:$lombokVersion"
         testCompile "org.hamcrest:hamcrest-all:$hamcrestVersion"
+
+        // override transitive dependency version from 1.5 to the same version just identified by commit number. 
+        // Remove this if transitive dependency is changed to something else than 1.5
+        compile( group: 'com.github.JesusMcCloud', name: 'jtorctl') { version { strictly "[9b5ba2036b]" } }
+
     }
 }
 
