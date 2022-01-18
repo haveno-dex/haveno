@@ -23,6 +23,8 @@ configure(rootProject) {
 configure(subprojects) {
     apply plugin: 'java'
     apply plugin: 'com.google.osdetector'
+    // Apply the jacoco plugin to add support for test coverage
+    apply plugin: 'jacoco'
 
     sourceCompatibility = 1.10
 
@@ -91,6 +93,15 @@ configure(subprojects) {
     tasks.withType(JavaCompile) {
         options.encoding = 'UTF-8'
     }
+
+    jacocoTestReport {
+        reports {
+            xml.enabled true
+            html.enabled false
+        }
+    }
+    // Codacy report generated with every build at assets/build/reports/jacoco/test/jacocoTestReport.xml
+    test.finalizedBy jacocoTestReport
 }
 
 
