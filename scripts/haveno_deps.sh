@@ -32,9 +32,9 @@ dw_source() {
 # Verify Monero hash
 check_monero() {
     if is_mac; then
-        shasum -a 256 -c <<<'4184a141be8ea31af9fd8aaf1b2e38737dafb76838f7d3527b0140942f1bbe87 *monero-bins-haveno-'"${platform}"'.tar.gz' || exit 1
+        shasum -a 256 -c <<<'648ea261ffe20857bd05a645245df05be7b01e678861854ce711ea6d6dcebc4c *monero-bins-haveno-'"${platform}"'.tar.gz' || exit 1
     else
-        echo "9bf988aeaa0c9954fb6b070146b46e1a78a13a7914a0ddb96c265a6f79595646 monero-bins-haveno-${platform}.tar.gz" | sha256sum -c || exit 1
+        echo "72f31a4a1858730387beb8c3688e868fc22a8df534e616cb94af9e1b76f2450a monero-bins-haveno-${platform}.tar.gz" | sha256sum -c || exit 1
     fi
 
     echo "-> Monero binaries downloaded and verified"
@@ -62,7 +62,7 @@ dw_monero() {
     if [ -f monero-bins-haveno-${platform}.tar.gz ]; then
         check_monero
     else
-        dw_source https://github.com/haveno-dex/monero/releases/download/testing2/monero-bins-haveno-${platform}.tar.gz || { echo "! something went wrong while downloading the Monero binaries. Exiting...";  exit 1; } && \
+        dw_source https://github.com/haveno-dex/monero/releases/download/testing3/monero-bins-haveno-${platform}.tar.gz || { echo "! something went wrong while downloading the Monero binaries. Exiting...";  exit 1; } && \
         check_monero
     fi
 
