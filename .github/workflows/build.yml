@@ -66,8 +66,3 @@ jobs:
         run: git lfs pull
       - name: Build with Gradle
         run: ./gradlew build --stacktrace --scan
-      - name: Send coverage report to Codacy
-        env:
-          CODACY_PROJECT_TOKEN: ${{ secrets.CODACY_PROJECT_TOKEN }}
-        if: success()
-        run: bash <(curl -Ls https://coverage.codacy.com/get.sh) report -r assets/build/reports/jacoco/test/jacocoTestReport.xml
