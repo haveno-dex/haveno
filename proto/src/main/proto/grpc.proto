@@ -532,7 +532,7 @@ message GetNewDepositSubaddressRequest {
 }
 
 message GetNewDepositSubaddressReply {
-     string subaddress = 1;
+    string subaddress = 1;
 }
 
 message GetXmrTxsRequest {
@@ -704,6 +704,120 @@ message AddressBalanceInfo {
     int64 num_confirmations = 3;
     bool is_address_unused = 4;
 }
+
+///////////////////////////////////////////////////////////////////////////////////////////
+// MoneroConnections
+///////////////////////////////////////////////////////////////////////////////////////////
+
+service MoneroConnections {
+    rpc AddConnection (AddConnectionRequest) returns (AddConnectionReply) {
+    }
+    rpc RemoveConnection(RemoveConnectionRequest) returns (RemoveConnectionReply) {
+    }
+    rpc GetConnection(GetConnectionRequest) returns (GetConnectionReply) {
+    }
+    rpc GetConnections(GetConnectionsRequest) returns (GetConnectionsReply) {
+    }
+    rpc SetConnection(SetConnectionRequest) returns (SetConnectionReply) {
+    }
+    rpc CheckConnection(CheckConnectionRequest) returns (CheckConnectionReply) {
+    }
+    rpc CheckConnections(CheckConnectionsRequest) returns (CheckConnectionsReply) {
+    }
+    rpc StartCheckingConnections(StartCheckingConnectionsRequest) returns (StartCheckingConnectionsReply) {
+    }
+    rpc StopCheckingConnections(StopCheckingConnectionsRequest) returns (StopCheckingConnectionsReply) {
+    }
+    rpc GetBestAvailableConnection(GetBestAvailableConnectionRequest) returns (GetBestAvailableConnectionReply) {
+    }
+    rpc SetAutoSwitch(SetAutoSwitchRequest) returns (SetAutoSwitchReply) {
+    }
+}
+
+message UriConnection {
+    enum OnlineStatus {
+        UNKNOWN = 0;
+        ONLINE = 1;
+        OFFLINE = 2;
+    }
+    enum AuthenticationStatus {
+        NO_AUTHENTICATION = 0;
+        AUTHENTICATED = 1;
+        NOT_AUTHENTICATED = 2;
+    }
+
+    string uri = 1;
+    string username = 2; // request only
+    string password = 3; // request only
+    int32 priority = 4;
+    OnlineStatus online_status = 5; // reply only
+    AuthenticationStatus authentication_status = 6; // reply only
+}
+
+message AddConnectionRequest {
+    UriConnection connection = 1;
+}
+
+message AddConnectionReply {}
+
+message RemoveConnectionRequest {
+    string uri = 1;
+}
+
+message RemoveConnectionReply {}
+
+message GetConnectionRequest {}
+
+message GetConnectionReply {
+    UriConnection connection = 1;
+}
+
+message GetConnectionsRequest {}
+
+message GetConnectionsReply {
+    repeated UriConnection connections = 1;
+}
+
+message SetConnectionRequest {
+    string uri = 1;
+    UriConnection connection = 2;
+}
+
+message SetConnectionReply {}
+
+message CheckConnectionRequest {}
+
+message CheckConnectionReply {
+    UriConnection connection = 1;
+}
+
+message CheckConnectionsRequest {}
+
+message CheckConnectionsReply {
+    repeated UriConnection connections = 1;
+}
+
+message StartCheckingConnectionsRequest {
+    int32 refresh_period = 1; // milliseconds
+}
+
+message StartCheckingConnectionsReply {}
+
+message StopCheckingConnectionsRequest {}
+
+message StopCheckingConnectionsReply {}
+
+message GetBestAvailableConnectionRequest {}
+
+message GetBestAvailableConnectionReply {
+    UriConnection connection = 1;
+}
+
+message SetAutoSwitchRequest {
+    bool auto_switch = 1;
+}
+
+message SetAutoSwitchReply {}
 
 ///////////////////////////////////////////////////////////////////////////////////////////
 // Version

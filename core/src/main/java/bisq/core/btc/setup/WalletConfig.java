@@ -17,6 +17,7 @@
 
 package bisq.core.btc.setup;
 
+import bisq.core.api.CoreMoneroConnectionsService;
 import bisq.core.btc.nodes.LocalBitcoinNode;
 import bisq.core.btc.nodes.ProxySocketFactory;
 import bisq.core.btc.wallet.HavenoRiskAnalysis;
@@ -88,6 +89,7 @@ import static bisq.common.util.Preconditions.checkDir;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 
+import monero.common.MoneroRpcConnection;
 import monero.common.MoneroUtils;
 import monero.daemon.MoneroDaemon;
 import monero.daemon.MoneroDaemonRpc;
@@ -126,9 +128,6 @@ public class WalletConfig extends AbstractIdleService {
     // Monero configuration
     // TODO: don't hard code configuration, inject into classes?
     private static final MoneroNetworkType MONERO_NETWORK_TYPE = MoneroNetworkType.STAGENET;
-    private static final String MONERO_DAEMON_URI = "http://localhost:38081";
-    private static final String MONERO_DAEMON_USERNAME = "superuser";
-    private static final String MONERO_DAEMON_PASSWORD = "abctesting123";
     private static final MoneroWalletRpcManager MONERO_WALLET_RPC_MANAGER = new MoneroWalletRpcManager();
     private static final String MONERO_WALLET_RPC_DIR = System.getProperty("user.dir") + File.separator + ".localnet"; // .localnet contains monero-wallet-rpc and wallet files
     private static final String MONERO_WALLET_RPC_PATH = MONERO_WALLET_RPC_DIR + File.separator + "monero-wallet-rpc";
@@ -138,9 +137,10 @@ public class WalletConfig extends AbstractIdleService {
 
     protected final NetworkParameters params;
     protected final String filePrefix;
+    protected final CoreMoneroConnectionsService moneroConnectionsManager;
     protected volatile BlockChain vChain;
     protected volatile SPVBlockStore vStore;
-    protected volatile MoneroDaemon vXmrDaemon;
+    protected volatile MoneroDaemonRpc vXmrDaemon;
     protected volatile MoneroWalletRpc vXmrWallet;
     protected volatile Wallet vBtcWallet;
     protected volatile PeerGroup vPeerGroup;
@@ -177,18 +177,20 @@ public class WalletConfig extends AbstractIdleService {
     public WalletConfig(NetworkParameters params,
                         File directory,
                         int rpcBindPort,
+                        CoreMoneroConnectionsService connectionsManager,
                         String filePrefix) {
-        this(new Context(params), directory, rpcBindPort, filePrefix);
+        this(new Context(params), directory, rpcBindPort, connectionsManager, filePrefix);
     }
 
     /**
      * Creates a new WalletConfig, with the given {@link Context}. Files will be stored in the given directory.
      */
-    private WalletConfig(Context context, File directory, int rpcBindPort, String filePrefix) {
+    private WalletConfig(Context context, File directory, int rpcBindPort, CoreMoneroConnectionsService connectionsManager, String filePrefix) {
         this.context = context;
         this.params = checkNotNull(context.getParams());
         this.directory = checkDir(directory);
         this.rpcBindPort = rpcBindPort;
+        this.moneroConnectionsManager = connectionsManager;
         this.filePrefix = checkNotNull(filePrefix);
     }
 
@@ -335,15 +337,21 @@ public class WalletConfig extends AbstractIdleService {
       // check if monero-wallet-rpc exists
       if (!new File(MONERO_WALLET_RPC_PATH).exists()) throw new Error("monero-wallet-rpc executable doesn't exist at path " + MONERO_WALLET_RPC_PATH + "; copy monero-wallet-rpc to the project root or set WalletConfig.java MONERO_WALLET_RPC_PATH for your system");
 
+      // get app's current daemon connection
+      MoneroRpcConnection connection = moneroConnectionsManager.getConnection();
+
       // start monero-wallet-rpc instance and return connected client
       List<String> cmd = new ArrayList<>(Arrays.asList( // modifiable list
           MONERO_WALLET_RPC_PATH,
           "--" + MONERO_NETWORK_TYPE.toString().toLowerCase(),
-          "--daemon-address", MONERO_DAEMON_URI,
-          "--daemon-login", MONERO_DAEMON_USERNAME + ":" + MONERO_DAEMON_PASSWORD,
+          "--daemon-address", connection.getUri(),
           "--rpc-login", MONERO_WALLET_RPC_USERNAME + ":" + MONERO_WALLET_RPC_PASSWORD,
           "--wallet-dir", directory.toString()
       ));
+      if (connection.getUsername() != null) {
+          cmd.add("--daemon-login");
+          cmd.add(connection.getUsername() + ":" + connection.getPassword());
+      }
       if (port != null && port > 0) {
           cmd.add("--rpc-bind-port");
           cmd.add(Integer.toString(port));
@@ -372,8 +380,11 @@ public class WalletConfig extends AbstractIdleService {
             File chainFile = new File(directory, filePrefix + ".spvchain");
             boolean chainFileExists = chainFile.exists();
 
-            // XMR daemon
-            vXmrDaemon = new MoneroDaemonRpc(MONERO_DAEMON_URI, MONERO_DAEMON_USERNAME, MONERO_DAEMON_PASSWORD);
+            // set XMR daemon and listen for updates
+            vXmrDaemon = new MoneroDaemonRpc(moneroConnectionsManager.getConnection());
+            moneroConnectionsManager.addConnectionListener(newConnection -> {
+                vXmrDaemon = newConnection == null ? null : new MoneroDaemonRpc(newConnection);
+            });
 
             // XMR wallet
             String xmrPrefix = "_XMR";

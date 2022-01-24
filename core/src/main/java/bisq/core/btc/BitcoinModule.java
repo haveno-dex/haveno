@@ -18,6 +18,7 @@
 package bisq.core.btc;
 
 import bisq.core.btc.model.AddressEntryList;
+import bisq.core.btc.model.EncryptedConnectionList;
 import bisq.core.btc.model.XmrAddressEntryList;
 import bisq.core.btc.nodes.BtcNodes;
 import bisq.core.btc.setup.RegTestHost;
@@ -83,6 +84,7 @@ public class BitcoinModule extends AppModule {
 
         bind(AddressEntryList.class).in(Singleton.class);
         bind(XmrAddressEntryList.class).in(Singleton.class);
+        bind(EncryptedConnectionList.class).in(Singleton.class);
         bind(WalletsSetup.class).in(Singleton.class);
         bind(XmrWalletService.class).in(Singleton.class);
         bind(BtcWalletService.class).in(Singleton.class);

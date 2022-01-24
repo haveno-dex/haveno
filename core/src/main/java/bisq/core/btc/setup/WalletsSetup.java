@@ -17,6 +17,7 @@
 
 package bisq.core.btc.setup;
 
+import bisq.core.api.CoreMoneroConnectionsService;
 import bisq.core.btc.exceptions.InvalidHostException;
 import bisq.core.btc.exceptions.RejectedTxException;
 import bisq.core.btc.model.AddressEntry;
@@ -127,6 +128,8 @@ public class WalletsSetup {
     private final Config config;
     private final LocalBitcoinNode localBitcoinNode;
     private final BtcNodes btcNodes;
+    @Getter
+    private final CoreMoneroConnectionsService moneroConnectionsManager;
     private final String xmrWalletFileName;
     private final int numConnectionsForBtc;
     private final String userAgent;
@@ -156,6 +159,7 @@ public class WalletsSetup {
                         Config config,
                         LocalBitcoinNode localBitcoinNode,
                         BtcNodes btcNodes,
+                        CoreMoneroConnectionsService moneroConnectionsManager,
                         @Named(Config.USER_AGENT) String userAgent,
                         @Named(Config.WALLET_DIR) File walletDir,
                         @Named(Config.WALLET_RPC_BIND_PORT) int walletRpcBindPort,
@@ -170,6 +174,7 @@ public class WalletsSetup {
         this.config = config;
         this.localBitcoinNode = localBitcoinNode;
         this.btcNodes = btcNodes;
+        this.moneroConnectionsManager = moneroConnectionsManager;
         this.numConnectionsForBtc = numConnectionsForBtc;
         this.useAllProvidedNodes = useAllProvidedNodes;
         this.userAgent = userAgent;
@@ -201,12 +206,15 @@ public class WalletsSetup {
                 exceptionHandler.handleException(new TimeoutException("Wallet did not initialize in " +
                         STARTUP_TIMEOUT + " seconds.")), STARTUP_TIMEOUT);
 
+        // initialize Monero connection manager
+        moneroConnectionsManager.initialize();
+
         backupWallets();
 
         final Socks5Proxy socks5Proxy = preferences.getUseTorForBitcoinJ() ? socks5ProxyProvider.getSocks5Proxy() : null;
         log.info("Socks5Proxy for bitcoinj: socks5Proxy=" + socks5Proxy);
 
-        walletConfig = new WalletConfig(params, walletDir, walletRpcBindPort, "haveno") {
+        walletConfig = new WalletConfig(params, walletDir, walletRpcBindPort, moneroConnectionsManager, "haveno") {
             @Override
             protected void onSetupCompleted() {
                 //We are here in the btcj thread Thread[ STARTING,5,main]
@@ -220,9 +228,7 @@ public class WalletsSetup {
                     peerGroup.setAddPeersFromAddressMessage(false);
 
                 UserThread.runPeriodically(() -> {
-                    peers.set(getPeerConnections());
-                    numPeers.set(peers.get().size());
-                    chainHeight.set(vXmrDaemon.getHeight());
+                    updateDaemonInfo();
                 }, DAEMON_POLL_INTERVAL_SECONDS);
 
                 // Need to be Threading.SAME_THREAD executor otherwise BitcoinJ will skip that listener
@@ -240,9 +246,7 @@ public class WalletsSetup {
 
                 // Map to user thread
                 UserThread.execute(() -> {
-                    peers.set(getPeerConnections());
-                    numPeers.set(peers.get().size());
-                    chainHeight.set(vXmrDaemon.getHeight());
+                    updateDaemonInfo();
                     addressEntryList.onWalletReady(walletConfig.btcWallet());
                     xmrAddressEntryList.onWalletReady(walletConfig.getXmrWallet());
                     timeoutTimer.stop();
@@ -253,7 +257,18 @@ public class WalletsSetup {
                 UserThread.runAfter(resultHandler::handleResult, 100, TimeUnit.MILLISECONDS);
             }
 
-            private List<MoneroPeer> getPeerConnections() {
+            private void updateDaemonInfo() {
+                try {
+                    if (vXmrDaemon == null) throw new RuntimeException("No daemon connection");
+                    peers.set(getOnlinePeers());
+                    numPeers.set(peers.get().size());
+                    chainHeight.set(vXmrDaemon.getHeight());
+                } catch (Exception e) {
+                    log.warn("Could not update daemon info: " + e.getMessage());
+                }
+            }
+
+            private List<MoneroPeer> getOnlinePeers() {
                 return vXmrDaemon.getPeers().stream()
                         .filter(peer -> peer.isOnline())
                         .collect(Collectors.toList());

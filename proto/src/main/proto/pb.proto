@@ -1321,6 +1321,7 @@ message PersistableEnvelope {
 
         XmrAddressEntryList xmr_address_entry_list = 1001;
         SignedOfferList signed_offer_list = 1002;
+        EncryptedConnectionList encrypted_connection_list = 1003;
     }
 }
 
@@ -1688,6 +1689,26 @@ message TradingPeer {
     string deposit_tx_hash = 1008;
     string deposit_tx_hex = 1009;
     string deposit_tx_key = 1010;
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////
+// Connections
+///////////////////////////////////////////////////////////////////////////////////////////
+
+message EncryptedConnection {
+    string uri = 1;
+    string username = 2;
+    bytes encrypted_password = 3;
+    bytes encryption_salt = 4;
+    int32 priority = 5;
+}
+
+message EncryptedConnectionList {
+    bytes salt = 1;
+    repeated EncryptedConnection items = 2;
+    string current_connection_uri = 3;
+    int64 refresh_period = 4; // negative: no automated refresh is activated, zero: automated refresh with default period, positive: automated refresh with configured period (value)
+    bool auto_switch = 5;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////
