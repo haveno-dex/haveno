@@ -59,6 +59,7 @@ import lombok.extern.slf4j.Slf4j;
 
 
 
+import monero.common.MoneroRpcConnection;
 import monero.wallet.model.MoneroDestination;
 import monero.wallet.model.MoneroTxWallet;
 
@@ -81,6 +82,7 @@ public class CoreApi {
     private final CoreWalletsService walletsService;
     private final TradeStatisticsManager tradeStatisticsManager;
     private final CoreNotificationService notificationService;
+    private final CoreMoneroConnectionsService coreMoneroConnectionsService;
 
     @Inject
     public CoreApi(Config config,
@@ -92,7 +94,8 @@ public class CoreApi {
                    CoreTradesService coreTradesService,
                    CoreWalletsService walletsService,
                    TradeStatisticsManager tradeStatisticsManager,
-                   CoreNotificationService notificationService) {
+                   CoreNotificationService notificationService,
+                   CoreMoneroConnectionsService coreMoneroConnectionsService) {
         this.config = config;
         this.coreDisputeAgentsService = coreDisputeAgentsService;
         this.coreHelpService = coreHelpService;
@@ -103,6 +106,7 @@ public class CoreApi {
         this.walletsService = walletsService;
         this.tradeStatisticsManager = tradeStatisticsManager;
         this.notificationService = notificationService;
+        this.coreMoneroConnectionsService = coreMoneroConnectionsService;
     }
 
     @SuppressWarnings("SameReturnValue")
@@ -397,5 +401,57 @@ public class CoreApi {
 
     public int getNumConfirmationsForMostRecentTransaction(String addressString) {
         return walletsService.getNumConfirmationsForMostRecentTransaction(addressString);
+    }
+
+    ///////////////////////////////////////////////////////////////////////////////////////////
+    // Monero Connections
+    ///////////////////////////////////////////////////////////////////////////////////////////
+
+    public void addMoneroConnection(MoneroRpcConnection connection) {
+        coreMoneroConnectionsService.addConnection(connection);
+    }
+
+    public void removeMoneroConnection(String connectionUri) {
+        coreMoneroConnectionsService.removeConnection(connectionUri);
+    }
+
+    public MoneroRpcConnection getMoneroConnection() {
+        return coreMoneroConnectionsService.getConnection();
+    }
+
+    public List<MoneroRpcConnection> getMoneroConnections() {
+        return coreMoneroConnectionsService.getConnections();
+    }
+
+    public void setMoneroConnection(String connectionUri) {
+        coreMoneroConnectionsService.setConnection(connectionUri);
+    }
+
+    public void setMoneroConnection(MoneroRpcConnection connection) {
+        coreMoneroConnectionsService.setConnection(connection);
+    }
+
+    public MoneroRpcConnection checkMoneroConnection() {
+        return coreMoneroConnectionsService.checkConnection();
+    }
+
+    public List<MoneroRpcConnection> checkMoneroConnections() {
+        return coreMoneroConnectionsService.checkConnections();
+    }
+
+    public void startCheckingMoneroConnection(Long refreshPeriod) {
+        coreMoneroConnectionsService.startCheckingConnection(refreshPeriod);
+    }
+
+    public void stopCheckingMoneroConnection() {
+        coreMoneroConnectionsService.stopCheckingConnection();
+    }
+
+    public MoneroRpcConnection getBestAvailableMoneroConnection() {
+        return coreMoneroConnectionsService.getBestAvailableConnection();
+    }
+
+    public void setMoneroConnectionAutoSwitch(boolean autoSwitch) {
+        coreMoneroConnectionsService.setAutoSwitch(autoSwitch);
     }
 }

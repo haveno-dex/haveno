@@ -31,6 +31,7 @@ import bisq.core.user.Preferences;
 import bisq.core.util.FormattingUtils;
 import bisq.core.util.coin.CoinFormatter;
 import bisq.core.util.coin.ImmutableCoinFormatter;
+import bisq.core.xmr.connection.MoneroConnectionModule;
 
 import bisq.network.crypto.EncryptionServiceModule;
 import bisq.network.p2p.P2PModule;
@@ -91,6 +92,7 @@ public class CoreModule extends AppModule {
         install(new AlertModule(config));
         install(new FilterModule(config));
         install(new CorePresentationModule(config));
+        install(new MoneroConnectionModule(config));
         bind(PubKeyRing.class).toProvider(PubKeyRingProvider.class);
     }
 }
