@@ -118,21 +118,17 @@ public class SupportView extends ActivatableView<TabPane, Void> {
         tradersRefundDisputesTab.setClosable(false);
         root.getTabs().add(tradersRefundDisputesTab);
 
-        // We only show tradersArbitrationDisputesTab if we have cases
-        if (!arbitrationManager.getDisputesAsObservableList().isEmpty()) {
-            tradersArbitrationDisputesTab = new Tab();
-            tradersArbitrationDisputesTab.setClosable(false);
-            root.getTabs().add(tradersArbitrationDisputesTab);
-        }
+        tradersArbitrationDisputesTab = new Tab();
+        tradersArbitrationDisputesTab.setClosable(false);
+        root.getTabs().add(tradersArbitrationDisputesTab);
 
         // Has to be called before loadView
         updateAgentTabs();
 
         tradersMediationDisputesTab.setText(Res.get("support.tab.mediation.support").toUpperCase());
         tradersRefundDisputesTab.setText(Res.get("support.tab.arbitration.support").toUpperCase());
-        if (tradersArbitrationDisputesTab != null) {
-            tradersArbitrationDisputesTab.setText(Res.get("support.tab.legacyArbitration.support").toUpperCase());
-        }
+        tradersArbitrationDisputesTab.setText(Res.get("support.tab.legacyArbitration.support").toUpperCase());
+
         navigationListener = (viewPath, data) -> {
             if (viewPath.size() == 3 && viewPath.indexOf(SupportView.class) == 1)
                 loadView(viewPath.tip());
