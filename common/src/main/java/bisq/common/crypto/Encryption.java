@@ -24,7 +24,9 @@ import javax.crypto.Cipher;
 import javax.crypto.KeyGenerator;
 import javax.crypto.Mac;
 import javax.crypto.SecretKey;
+import javax.crypto.SecretKeyFactory;
 import javax.crypto.spec.OAEPParameterSpec;
+import javax.crypto.spec.PBEKeySpec;
 import javax.crypto.spec.PSource;
 import javax.crypto.spec.SecretKeySpec;
 
@@ -228,6 +230,24 @@ public class Encryption {
             log.error("Couldn't generate key", e);
             throw new RuntimeException("Couldn't generate key");
         }
+    }
+
+    /**
+     * Generates a secret key from password string.
+     * 
+     * @param p Password
+     * @param s Salt
+     * @param i Iterations
+     * @param l Key length
+     * @return
+     * @throws Exception
+     */
+    public static SecretKey generateSecretKey(String p, byte[] s, int i, int l) throws NoSuchAlgorithmException, InvalidKeySpecException {
+        PBEKeySpec ks = new PBEKeySpec(p.toCharArray(), s, i, l);
+        SecretKeyFactory skf = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA512");
+        SecretKey secret = skf.generateSecret(ks);
+        SecretKeySpec secretKeySpec = new SecretKeySpec(secret.getEncoded(), Encryption.SYM_KEY_ALGO);
+        return secretKeySpec;
     }
 
     public static byte[] getPublicKeyBytes(PublicKey encryptionPubKey) {

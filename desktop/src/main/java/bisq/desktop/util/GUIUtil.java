@@ -30,29 +30,24 @@ import bisq.desktop.main.overlays.popups.Popup;
 
 import bisq.core.account.witness.AccountAgeWitness;
 import bisq.core.account.witness.AccountAgeWitnessService;
+import bisq.core.api.CoreMoneroConnectionsService;
 import bisq.core.app.HavenoSetup;
-import bisq.core.btc.setup.WalletsSetup;
 import bisq.core.locale.Country;
 import bisq.core.locale.CountryUtil;
 import bisq.core.locale.CurrencyUtil;
 import bisq.core.locale.Res;
 import bisq.core.locale.TradeCurrency;
-import bisq.core.monetary.Price;
-import bisq.core.monetary.Volume;
 import bisq.core.offer.OfferRestrictions;
 import bisq.core.payment.PaymentAccount;
 import bisq.core.payment.PaymentAccountList;
 import bisq.core.payment.payload.PaymentMethod;
 import bisq.core.provider.fee.FeeService;
-import bisq.core.provider.price.MarketPrice;
-import bisq.core.provider.price.PriceFeedService;
 import bisq.core.trade.txproof.AssetTxProofResult;
 import bisq.core.user.DontShowAgainLookup;
 import bisq.core.user.Preferences;
 import bisq.core.user.User;
 import bisq.core.util.FormattingUtils;
 import bisq.core.util.coin.CoinFormatter;
-import bisq.core.util.coin.CoinUtil;
 
 import bisq.network.p2p.P2PService;
 
@@ -63,7 +58,6 @@ import bisq.common.file.CorruptedStorageFileHandler;
 import bisq.common.persistence.PersistenceManager;
 import bisq.common.proto.persistable.PersistableEnvelope;
 import bisq.common.proto.persistable.PersistenceProtoResolver;
-import bisq.common.util.MathUtils;
 import bisq.common.util.Tuple2;
 import bisq.common.util.Tuple3;
 import bisq.common.util.Utilities;
@@ -72,7 +66,6 @@ import org.bitcoinj.core.Address;
 import org.bitcoinj.core.Coin;
 import org.bitcoinj.core.TransactionConfidence;
 import org.bitcoinj.uri.BitcoinURI;
-import org.bitcoinj.utils.Fiat;
 
 import com.googlecode.jcsv.CSVStrategy;
 import com.googlecode.jcsv.writer.CSVEntryConverter;
@@ -757,17 +750,17 @@ public class GUIUtil {
         return true;
     }
 
-    public static boolean isReadyForTxBroadcastOrShowPopup(P2PService p2PService, WalletsSetup walletsSetup) {
+    public static boolean isReadyForTxBroadcastOrShowPopup(P2PService p2PService, CoreMoneroConnectionsService connectionService) {
         if (!GUIUtil.isBootstrappedOrShowPopup(p2PService)) {
             return false;
         }
 
-        if (!walletsSetup.hasSufficientPeersForBroadcast()) {
-            new Popup().information(Res.get("popup.warning.notSufficientConnectionsToBtcNetwork", walletsSetup.getMinBroadcastConnections())).show();
+        if (!connectionService.hasSufficientPeersForBroadcast()) {
+            new Popup().information(Res.get("popup.warning.notSufficientConnectionsToBtcNetwork", connectionService.getMinBroadcastConnections())).show();
             return false;
         }
 
-        if (!walletsSetup.isDownloadComplete()) {
+        if (!connectionService.isDownloadComplete()) {
             new Popup().information(Res.get("popup.warning.downloadNotComplete")).show();
             return false;
         }
@@ -775,8 +768,8 @@ public class GUIUtil {
         return true;
     }
 
-    public static boolean isChainHeightSyncedWithinToleranceOrShowPopup(WalletsSetup walletsSetup) {
-        if (!walletsSetup.isChainHeightSyncedWithinTolerance()) {
+    public static boolean isChainHeightSyncedWithinToleranceOrShowPopup(CoreMoneroConnectionsService connectionService) {
+        if (!connectionService.isChainHeightSyncedWithinTolerance()) {
             new Popup().information(Res.get("popup.warning.chainNotSynced")).show();
             return false;
         }

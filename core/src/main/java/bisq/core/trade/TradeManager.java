@@ -118,9 +118,8 @@ import javax.annotation.Nullable;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
-
-
 import monero.wallet.model.MoneroTxWallet;
+
 
 public class TradeManager implements PersistedDataHost, DecryptedDirectMessageListener {
     private static final Logger log = LoggerFactory.getLogger(TradeManager.class);
@@ -283,6 +282,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
         getObservableList().addListener((ListChangeListener<Trade>) change -> onTradesChanged());
         onTradesChanged();
 
+        xmrWalletService.setTradeManager(this);
         xmrWalletService.getAddressEntriesForAvailableBalanceStream()
                 .filter(addressEntry -> addressEntry.getOfferId() != null)
                 .forEach(addressEntry -> {

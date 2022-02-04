@@ -63,7 +63,7 @@ public class OfferFilter {
         this.filterManager = filterManager;
         this.accountAgeWitnessService = accountAgeWitnessService;
 
-        if (user != null) {
+        if (user != null && user.getPaymentAccountsAsObservable() != null) {
             // If our accounts have changed we reset our myInsufficientTradeLimitCache as it depends on account data
             user.getPaymentAccountsAsObservable().addListener((SetChangeListener<PaymentAccount>) c ->
                     myInsufficientTradeLimitCache.clear());
@@ -212,13 +212,13 @@ public class OfferFilter {
         myInsufficientTradeLimitCache.put(offerId, result);
         return result;
     }
-    
+
     public boolean hasValidSignature(Offer offer) {
-        
+
         // get arbitrator
         Mediator arbitrator = user.getAcceptedMediatorByAddress(offer.getOfferPayload().getArbitratorSigner());
         if (arbitrator == null) return false; // invalid arbitrator
-        
+
         // validate arbitrator signature
         return TradeUtils.isArbitratorSignatureValid(offer.getOfferPayload(), arbitrator);
     }

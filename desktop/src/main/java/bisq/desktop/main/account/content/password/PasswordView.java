@@ -33,9 +33,8 @@ import bisq.desktop.util.Layout;
 import bisq.desktop.util.validation.PasswordValidator;
 
 import bisq.core.btc.wallet.WalletsManager;
-import bisq.core.crypto.ScryptUtil;
 import bisq.core.locale.Res;
-
+import bisq.common.crypto.ScryptUtil;
 import bisq.common.util.Tuple4;
 
 import org.bitcoinj.crypto.KeyCrypterScrypt;

@@ -195,7 +195,7 @@ public class HavenoSetup {
     private boolean allBasicServicesInitialized;
     @SuppressWarnings("FieldCanBeLocal")
     private MonadicBinding<Boolean> p2pNetworkAndWalletInitialized;
-    private final List<HavenoSetupListener> bisqSetupListeners = new ArrayList<>();
+    private final List<HavenoSetupListener> havenoSetupListeners = new ArrayList<>();
 
     @Inject
     public HavenoSetup(DomainInitialisation domainInitialisation,
@@ -274,7 +274,7 @@ public class HavenoSetup {
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     public void addHavenoSetupListener(HavenoSetupListener listener) {
-        bisqSetupListeners.add(listener);
+        havenoSetupListeners.add(listener);
     }
 
     public void start() {
@@ -284,7 +284,7 @@ public class HavenoSetup {
             return;
         }
 
-        persistBisqVersion();
+        persistHavenoVersion();
         maybeReSyncSPVChain();
         maybeShowTac(this::step2);
     }
@@ -303,7 +303,7 @@ public class HavenoSetup {
     private void step4() {
         initDomainServices();
 
-        bisqSetupListeners.forEach(HavenoSetupListener::onSetupComplete);
+        havenoSetupListeners.forEach(HavenoSetupListener::onSetupComplete);
 
         // We set that after calling the setupCompleteHandler to not trigger a popup from the dev dummy accounts
         // in MainViewModel
@@ -373,7 +373,7 @@ public class HavenoSetup {
         }, STARTUP_TIMEOUT_MINUTES, TimeUnit.MINUTES);
 
         log.info("Init P2P network");
-        bisqSetupListeners.forEach(HavenoSetupListener::onInitP2pNetwork);
+        havenoSetupListeners.forEach(HavenoSetupListener::onInitP2pNetwork);
         p2pNetworkReady = p2PNetworkSetup.init(this::initWallet, displayTorNetworkSettingsHandler);
 
         // We only init wallet service here if not using Tor for bitcoinj.
@@ -402,10 +402,10 @@ public class HavenoSetup {
 
     private void initWallet() {
         log.info("Init wallet");
-        bisqSetupListeners.forEach(HavenoSetupListener::onInitWallet);
+        havenoSetupListeners.forEach(HavenoSetupListener::onInitWallet);
         Runnable walletPasswordHandler = () -> {
             log.info("Wallet password required");
-            bisqSetupListeners.forEach(HavenoSetupListener::onRequestWalletPassword);
+            havenoSetupListeners.forEach(HavenoSetupListener::onRequestWalletPassword);
             if (p2pNetworkReady.get())
                 p2PNetworkSetup.setSplashP2PNetworkAnimationVisible(true);
 
@@ -581,7 +581,7 @@ public class HavenoSetup {
         return hasDowngraded;
     }
 
-    public static void persistBisqVersion() {
+    public static void persistHavenoVersion() {
         File versionFile = getVersionFile();
         if (!versionFile.exists()) {
             try {
@@ -639,6 +639,7 @@ public class HavenoSetup {
     }
 
     private void maybeShowSecurityRecommendation() {
+        if (user.getPaymentAccountsAsObservable() == null) return;
         String key = "remindPasswordAndBackup";
         user.getPaymentAccountsAsObservable().addListener((SetChangeListener<PaymentAccount>) change -> {
             if (!walletsManager.areWalletsEncrypted() && !user.isPaymentAccountImport() && preferences.showAgain(key) && change.wasAdded() &&

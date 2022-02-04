@@ -39,7 +39,7 @@ import bisq.network.p2p.NodeAddress;
 import bisq.network.p2p.P2PService;
 
 import bisq.common.app.Version;
-import bisq.common.crypto.PubKeyRing;
+import bisq.common.crypto.PubKeyRingProvider;
 import bisq.common.util.Tuple2;
 import bisq.common.util.Utilities;
 
@@ -65,7 +65,7 @@ public class CreateOfferService {
     private final TxFeeEstimationService txFeeEstimationService;
     private final PriceFeedService priceFeedService;
     private final P2PService p2PService;
-    private final PubKeyRing pubKeyRing;
+    private final PubKeyRingProvider pubKeyRing;
     private final User user;
     private final BtcWalletService btcWalletService;
     private final TradeStatisticsManager tradeStatisticsManager;
@@ -81,7 +81,7 @@ public class CreateOfferService {
                               TxFeeEstimationService txFeeEstimationService,
                               PriceFeedService priceFeedService,
                               P2PService p2PService,
-                              PubKeyRing pubKeyRing,
+                              PubKeyRingProvider pubKeyRing,
                               User user,
                               BtcWalletService btcWalletService,
                               TradeStatisticsManager tradeStatisticsManager,
@@ -190,14 +190,14 @@ public class CreateOfferService {
                 paymentAccount,
                 currencyCode,
                 makerFeeAsCoin);
-        
+
         // select signing arbitrator
         Mediator arbitrator = DisputeAgentSelection.getLeastUsedArbitrator(tradeStatisticsManager, mediatorManager); // TODO (woodser): using mediator manager for arbitrators
 
         OfferPayload offerPayload = new OfferPayload(offerId,
                 creationTime,
                 makerAddress,
-                pubKeyRing,
+                pubKeyRing.get(),
                 OfferPayload.Direction.valueOf(direction.name()),
                 priceAsLong,
                 marketPriceMarginParam,

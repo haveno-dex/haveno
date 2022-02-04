@@ -17,6 +17,7 @@
 
 package bisq.core.trade.protocol.tasks;
 
+import bisq.core.btc.wallet.XmrWalletService;
 import bisq.core.trade.ArbitratorTrade;
 import bisq.core.trade.MakerTrade;
 import bisq.core.trade.TakerTrade;
@@ -68,6 +69,7 @@ public class ProcessInitMultisigRequest extends TradeTask {
           InitMultisigRequest request = (InitMultisigRequest) processModel.getTradeMessage();
           checkNotNull(request);
           checkTradeId(processModel.getOfferId(), request);
+          XmrWalletService xmrWalletService = processModel.getProvider().getXmrWalletService();
 
           System.out.println("PROCESS MULTISIG MESSAGE");
           System.out.println(request);
@@ -98,18 +100,18 @@ public class ProcessInitMultisigRequest extends TradeTask {
             boolean updateParticipants = false;
             if (processModel.getPreparedMultisigHex() == null) {
               System.out.println("Preparing multisig wallet!");
-              multisigWallet = processModel.getProvider().getXmrWalletService().createMultisigWallet(trade.getId());
+              multisigWallet = xmrWalletService.createMultisigWallet(trade.getId());
               processModel.setPreparedMultisigHex(multisigWallet.prepareMultisig());
               updateParticipants = true;
             } else {
-              multisigWallet = processModel.getProvider().getXmrWalletService().getMultisigWallet(trade.getId());
+              multisigWallet = xmrWalletService.getMultisigWallet(trade.getId());
             }
 
             // make multisig if applicable
             TradingPeer[] peers = getMultisigPeers();
             if (processModel.getMadeMultisigHex() == null && peers[0].getPreparedMultisigHex() != null && peers[1].getPreparedMultisigHex() != null) {
               System.out.println("Making multisig wallet!");
-              MoneroMultisigInitResult result = multisigWallet.makeMultisig(Arrays.asList(peers[0].getPreparedMultisigHex(), peers[1].getPreparedMultisigHex()), 2, "abctesting123"); // TODO (woodser): move this to config
+              MoneroMultisigInitResult result = multisigWallet.makeMultisig(Arrays.asList(peers[0].getPreparedMultisigHex(), peers[1].getPreparedMultisigHex()), 2, xmrWalletService.getWalletPassword()); // TODO (woodser): xmrWalletService.makeMultisig(tradeId, multisigHexes, threshold)?
               processModel.setMadeMultisigHex(result.getMultisigHex());
               updateParticipants = true;
             }
@@ -117,7 +119,7 @@ public class ProcessInitMultisigRequest extends TradeTask {
             // exchange multisig keys if applicable
             if (!processModel.isMultisigSetupComplete() && peers[0].getMadeMultisigHex() != null && peers[1].getMadeMultisigHex() != null) {
               System.out.println("Exchanging multisig wallet!");
-              multisigWallet.exchangeMultisigKeys(Arrays.asList(peers[0].getMadeMultisigHex(), peers[1].getMadeMultisigHex()), "abctesting123");  // TODO (woodser): move this to config
+              multisigWallet.exchangeMultisigKeys(Arrays.asList(peers[0].getMadeMultisigHex(), peers[1].getMadeMultisigHex()), xmrWalletService.getWalletPassword());
               processModel.setMultisigSetupComplete(true);
             }
 

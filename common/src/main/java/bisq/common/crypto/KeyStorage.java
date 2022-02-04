@@ -20,10 +20,16 @@ package bisq.common.crypto;
 import bisq.common.config.Config;
 import bisq.common.file.FileUtil;
 
+import org.bitcoinj.crypto.KeyCrypterScrypt;
+
 import com.google.inject.Inject;
 
 import javax.inject.Named;
 import javax.inject.Singleton;
+
+import org.bouncycastle.crypto.params.KeyParameter;
+
+import javax.crypto.SecretKey;
 
 import java.security.KeyFactory;
 import java.security.KeyPair;
@@ -39,6 +45,9 @@ import java.security.spec.KeySpec;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.RSAPublicKeySpec;
 
+import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -46,6 +55,7 @@ import java.io.IOException;
 
 import java.math.BigInteger;
 
+import java.util.Arrays;
 import java.util.Date;
 
 import org.slf4j.Logger;
@@ -58,6 +68,13 @@ import static bisq.common.util.Preconditions.checkDir;
 @Singleton
 public class KeyStorage {
     private static final Logger log = LoggerFactory.getLogger(KeyStorage.class);
+    private static final int SALT_LENGTH = 20;
+    private static final int SECRET_ITERATIONS = 65536;
+    private static final int SECRET_LENGTH = 256;
+
+    private static final byte[] ENCRYPTED_FORMAT_MAGIC = "HVNENC".getBytes(StandardCharsets.UTF_8);
+    private static final int ENCRYPTED_FORMAT_VERSION = 1;
+    private static final int ENCRYPTED_FORMAT_LENGTH = 4*4; // version,salt,iterations,length
 
     public enum KeyEntry {
         MSG_SIGNATURE("sig", Sig.KEY_ALGO),
@@ -104,7 +121,7 @@ public class KeyStorage {
         return new File(storageDir + "/" + keyEntry.getFileName() + ".key").exists();
     }
 
-    public KeyPair loadKeyPair(KeyEntry keyEntry) {
+    public KeyPair loadKeyPair(KeyEntry keyEntry, String password) throws IncorrectPasswordException {
         FileUtil.rollingBackup(storageDir, keyEntry.getFileName() + ".key", 20);
         // long now = System.currentTimeMillis();
         try {
@@ -118,9 +135,51 @@ public class KeyStorage {
                 //noinspection ResultOfMethodCallIgnored
                 fis.read(encodedPrivateKey);
 
+                // Read magic bytes
+                byte[] magicBytes = Arrays.copyOfRange(encodedPrivateKey, 0, ENCRYPTED_FORMAT_MAGIC.length);
+                boolean isEncryptedPassword = Arrays.compare(magicBytes, ENCRYPTED_FORMAT_MAGIC) == 0;
+                if (isEncryptedPassword && password == null) {
+                    throw new IncorrectPasswordException("Cannot load encrypted keys, user must open account with password " + filePrivateKey);
+                } else if (password != null && !isEncryptedPassword) {
+                    log.warn("Password not needed for unencrypted key " + filePrivateKey);
+                }
+
+                // Decrypt using password
+                if (password != null) {
+                    int position = ENCRYPTED_FORMAT_MAGIC.length;
+
+                    // Read remaining header
+                    ByteBuffer buf = ByteBuffer.wrap(encodedPrivateKey, position, ENCRYPTED_FORMAT_LENGTH);
+                    position += ENCRYPTED_FORMAT_LENGTH;
+                    int version = buf.getInt();
+                    if (version != 1) throw new RuntimeException("Unable to parse encrypted keys");
+                    int saltLength = buf.getInt();
+                    int iterations = buf.getInt();
+                    int secretLength = buf.getInt();
+
+                    byte[] salt = Arrays.copyOfRange(encodedPrivateKey, position, position + saltLength);
+                    position += saltLength;
+                    KeyCrypterScrypt crypter = ScryptUtil.getKeyCrypterScrypt(salt);
+                    KeyParameter pwKey = ScryptUtil.deriveKeyWithScrypt(crypter, password);
+                    byte[] pwEncrypted = Arrays.copyOfRange(encodedPrivateKey, position, position + pwKey.getKey().length);
+                    if (Arrays.compare(pwEncrypted, pwKey.getKey()) != 0) {
+                        throw new IncorrectPasswordException("Incorrect password");
+                    }
+                    position += pwEncrypted.length;
+
+                    // Payload salt
+                    salt = Arrays.copyOfRange(encodedPrivateKey, position, position + saltLength);
+                    position += saltLength;
+
+                    // Decrypt payload
+                    SecretKey secretKey = Encryption.generateSecretKey(password, salt, iterations, secretLength);
+                    byte[] encryptedPayload = Arrays.copyOfRange(encodedPrivateKey, position, encodedPrivateKey.length);
+                    encodedPrivateKey = Encryption.decryptPayloadWithHmac(encryptedPayload, secretKey);
+                }
+
                 PKCS8EncodedKeySpec privateKeySpec = new PKCS8EncodedKeySpec(encodedPrivateKey);
                 privateKey = keyFactory.generatePrivate(privateKeySpec);
-            } catch (InvalidKeySpecException | IOException e) {
+            } catch (InvalidKeySpecException | IOException | CryptoException e) {
                 log.error("Could not load key " + keyEntry.toString(), e.getMessage());
                 throw new RuntimeException("Could not load key " + keyEntry.toString(), e);
             }
@@ -150,20 +209,49 @@ public class KeyStorage {
         }
     }
 
-    public void saveKeyRing(KeyRing keyRing) {
-        savePrivateKey(keyRing.getSignatureKeyPair().getPrivate(), KeyEntry.MSG_SIGNATURE.getFileName());
-        savePrivateKey(keyRing.getEncryptionKeyPair().getPrivate(), KeyEntry.MSG_ENCRYPTION.getFileName());
+    public void saveKeyRing(KeyRing keyRing, String password) {
+        savePrivateKey(keyRing.getSignatureKeyPair().getPrivate(), KeyEntry.MSG_SIGNATURE.getFileName(), password);
+        savePrivateKey(keyRing.getEncryptionKeyPair().getPrivate(), KeyEntry.MSG_ENCRYPTION.getFileName(), password);
     }
 
-    private void savePrivateKey(PrivateKey privateKey, String name) {
+    private void savePrivateKey(PrivateKey privateKey, String name, String password) {
         if (!storageDir.exists())
             //noinspection ResultOfMethodCallIgnored
-            storageDir.mkdir();
+            storageDir.mkdirs();
 
         PKCS8EncodedKeySpec pkcs8EncodedKeySpec = new PKCS8EncodedKeySpec(privateKey.getEncoded());
         try (FileOutputStream fos = new FileOutputStream(storageDir + "/" + name + ".key")) {
-            fos.write(pkcs8EncodedKeySpec.getEncoded());
-        } catch (IOException e) {
+            byte[] keyBytes = pkcs8EncodedKeySpec.getEncoded();
+            // Encrypt
+            if (password != null) {
+                // Magic
+                fos.write(ENCRYPTED_FORMAT_MAGIC);
+
+                // Version, salt length, iterations, and secret length.
+                ByteBuffer header = ByteBuffer.allocate(ENCRYPTED_FORMAT_LENGTH);
+                header.putInt(ENCRYPTED_FORMAT_VERSION);
+                header.putInt(SALT_LENGTH);
+                header.putInt(SECRET_ITERATIONS);
+                header.putInt(SECRET_LENGTH);
+                fos.write(header.array());
+
+                // Write pw salt and pw encrypted
+                byte[] salt = CryptoUtils.getRandomBytes(SALT_LENGTH);
+                fos.write(salt);
+                KeyCrypterScrypt crypter = ScryptUtil.getKeyCrypterScrypt(salt);
+                KeyParameter pwKey = ScryptUtil.deriveKeyWithScrypt(crypter, password);
+                fos.write(pwKey.getKey());
+
+                // Write new salt and generate SecretKey
+                salt = CryptoUtils.getRandomBytes(SALT_LENGTH);
+                fos.write(salt);
+                SecretKey secretKey = Encryption.generateSecretKey(password, salt, SECRET_ITERATIONS, SECRET_LENGTH);
+
+                // Encrypt payload
+                keyBytes = Encryption.encryptPayloadWithHmac(keyBytes, secretKey);
+            }
+            fos.write(keyBytes);
+        } catch (Exception e) {
             log.error("Could not save key " + name, e);
             throw new RuntimeException("Could not save key " + name, e);
         }

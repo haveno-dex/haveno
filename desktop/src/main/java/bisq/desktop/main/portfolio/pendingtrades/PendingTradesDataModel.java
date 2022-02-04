@@ -29,7 +29,7 @@ import bisq.desktop.main.support.dispute.client.mediation.MediationClientView;
 import bisq.desktop.util.GUIUtil;
 
 import bisq.core.account.witness.AccountAgeWitnessService;
-import bisq.core.btc.setup.WalletsSetup;
+import bisq.core.api.CoreMoneroConnectionsService;
 import bisq.core.btc.wallet.XmrWalletService;
 import bisq.core.locale.Res;
 import bisq.core.offer.Offer;
@@ -55,6 +55,7 @@ import bisq.core.user.Preferences;
 import bisq.network.p2p.P2PService;
 
 import bisq.common.crypto.PubKeyRing;
+import bisq.common.crypto.PubKeyRingProvider;
 import bisq.common.handlers.ErrorMessageHandler;
 import bisq.common.handlers.FaultHandler;
 import bisq.common.handlers.ResultHandler;
@@ -97,7 +98,7 @@ public class PendingTradesDataModel extends ActivatableDataModel {
     public final ArbitrationManager arbitrationManager;
     public final MediationManager mediationManager;
     private final P2PService p2PService;
-    private final WalletsSetup walletsSetup;
+    private final CoreMoneroConnectionsService connectionService;
     @Getter
     private final AccountAgeWitnessService accountAgeWitnessService;
     public final Navigation navigation;
@@ -120,7 +121,7 @@ public class PendingTradesDataModel extends ActivatableDataModel {
     private ChangeListener<Trade.State> tradeStateChangeListener;
     private Trade selectedTrade;
     @Getter
-    private final PubKeyRing pubKeyRing;
+    private final PubKeyRingProvider pubKeyRing;
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Constructor, initialization
@@ -129,13 +130,13 @@ public class PendingTradesDataModel extends ActivatableDataModel {
     @Inject
     public PendingTradesDataModel(TradeManager tradeManager,
                                   XmrWalletService xmrWalletService,
-                                  PubKeyRing pubKeyRing,
+                                  PubKeyRingProvider pubKeyRing,
                                   ArbitrationManager arbitrationManager,
                                   MediationManager mediationManager,
                                   TraderChatManager traderChatManager,
                                   Preferences preferences,
                                   P2PService p2PService,
-                                  WalletsSetup walletsSetup,
+                                  CoreMoneroConnectionsService connectionService,
                                   AccountAgeWitnessService accountAgeWitnessService,
                                   Navigation navigation,
                                   WalletPasswordWindow walletPasswordWindow,
@@ -149,7 +150,7 @@ public class PendingTradesDataModel extends ActivatableDataModel {
         this.traderChatManager = traderChatManager;
         this.preferences = preferences;
         this.p2PService = p2PService;
-        this.walletsSetup = walletsSetup;
+        this.connectionService = connectionService;
         this.accountAgeWitnessService = accountAgeWitnessService;
         this.navigation = navigation;
         this.walletPasswordWindow = walletPasswordWindow;
@@ -517,7 +518,7 @@ public class PendingTradesDataModel extends ActivatableDataModel {
                     true,
                     (offer.getDirection() == OfferPayload.Direction.BUY) == isMaker,
                     isMaker,
-                    pubKeyRing,
+                    pubKeyRing.get(),
                     trade.getDate().getTime(),
                     trade.getMaxTradePeriodDate().getTime(),
                     trade.getContract(),
@@ -553,7 +554,7 @@ public class PendingTradesDataModel extends ActivatableDataModel {
                   true,
                   (offer.getDirection() == OfferPayload.Direction.BUY) == isMaker,
                   isMaker,
-                  pubKeyRing,
+                  pubKeyRing.get(),
                   trade.getDate().getTime(),
                   trade.getMaxTradePeriodDate().getTime(),
                   trade.getContract(),
@@ -595,7 +596,7 @@ public class PendingTradesDataModel extends ActivatableDataModel {
     }
 
     public boolean isReadyForTxBroadcast() {
-        return GUIUtil.isReadyForTxBroadcastOrShowPopup(p2PService, walletsSetup);
+        return GUIUtil.isReadyForTxBroadcastOrShowPopup(p2PService, connectionService);
     }
 
     public boolean isBootstrappedOrShowPopup() {

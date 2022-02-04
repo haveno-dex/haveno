@@ -29,7 +29,7 @@ import bisq.core.proto.persistable.CorePersistenceProtoResolver;
 import bisq.core.trade.TradeModule;
 import bisq.core.user.Preferences;
 import bisq.core.user.User;
-
+import bisq.core.xmr.connection.MoneroConnectionModule;
 import bisq.network.crypto.EncryptionServiceModule;
 import bisq.network.p2p.P2PModule;
 import bisq.network.p2p.network.BridgeAddressProvider;
@@ -41,8 +41,6 @@ import bisq.common.app.AppModule;
 import bisq.common.config.Config;
 import bisq.common.crypto.KeyRing;
 import bisq.common.crypto.KeyStorage;
-import bisq.common.crypto.PubKeyRing;
-import bisq.common.crypto.PubKeyRingProvider;
 import bisq.common.proto.network.NetworkProtoResolver;
 import bisq.common.proto.persistable.PersistenceProtoResolver;
 
@@ -93,6 +91,6 @@ public class ModuleForAppWithP2p extends AppModule {
         install(new BitcoinModule(config));
         install(new AlertModule(config));
         install(new FilterModule(config));
-        bind(PubKeyRing.class).toProvider(PubKeyRingProvider.class);
+        install(new MoneroConnectionModule(config));
     }
 }

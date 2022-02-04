@@ -28,8 +28,7 @@ import bisq.desktop.main.overlays.popups.Popup;
 import bisq.desktop.main.overlays.windows.OfferDetailsWindow;
 import bisq.desktop.main.overlays.windows.TradeDetailsWindow;
 import bisq.desktop.util.GUIUtil;
-
-import bisq.core.btc.setup.WalletsSetup;
+import bisq.core.api.CoreMoneroConnectionsService;
 import bisq.core.btc.wallet.BtcWalletService;
 import bisq.core.locale.Res;
 import bisq.core.offer.OpenOffer;
@@ -103,7 +102,7 @@ public class TransactionsView extends ActivatableView<VBox, Void> {
 
     private final BtcWalletService btcWalletService;
     private final P2PService p2PService;
-    private final WalletsSetup walletsSetup;
+    private final CoreMoneroConnectionsService connectionService;
     private final Preferences preferences;
     private final TradeDetailsWindow tradeDetailsWindow;
     private final OfferDetailsWindow offerDetailsWindow;
@@ -120,14 +119,14 @@ public class TransactionsView extends ActivatableView<VBox, Void> {
     @Inject
     private TransactionsView(BtcWalletService btcWalletService,
                              P2PService p2PService,
-                             WalletsSetup walletsSetup,
+                             CoreMoneroConnectionsService connectionService,
                              Preferences preferences,
                              TradeDetailsWindow tradeDetailsWindow,
                              OfferDetailsWindow offerDetailsWindow,
                              DisplayedTransactionsFactory displayedTransactionsFactory) {
         this.btcWalletService = btcWalletService;
         this.p2PService = p2PService;
-        this.walletsSetup = walletsSetup;
+        this.connectionService = connectionService;
         this.preferences = preferences;
         this.tradeDetailsWindow = tradeDetailsWindow;
         this.offerDetailsWindow = offerDetailsWindow;
@@ -537,7 +536,7 @@ public class TransactionsView extends ActivatableView<VBox, Void> {
     }
 
     private void revertTransaction(String txId, @Nullable Tradable tradable) {
-        if (GUIUtil.isReadyForTxBroadcastOrShowPopup(p2PService, walletsSetup)) {
+        if (GUIUtil.isReadyForTxBroadcastOrShowPopup(p2PService, connectionService)) {
             try {
                 btcWalletService.doubleSpendTransaction(txId, () -> {
                     if (tradable != null)

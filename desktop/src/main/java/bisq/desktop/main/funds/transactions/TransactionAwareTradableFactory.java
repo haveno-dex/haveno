@@ -24,7 +24,7 @@ import bisq.core.support.dispute.refund.RefundManager;
 import bisq.core.trade.Tradable;
 import bisq.core.trade.Trade;
 
-import bisq.common.crypto.PubKeyRing;
+import bisq.common.crypto.PubKeyRingProvider;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -35,13 +35,13 @@ public class TransactionAwareTradableFactory {
     private final ArbitrationManager arbitrationManager;
     private final RefundManager refundManager;
     private final XmrWalletService xmrWalletService;
-    private final PubKeyRing pubKeyRing;
+    private final PubKeyRingProvider pubKeyRing;
 
     @Inject
     TransactionAwareTradableFactory(ArbitrationManager arbitrationManager,
                                     RefundManager refundManager,
                                     XmrWalletService xmrWalletService,
-                                    PubKeyRing pubKeyRing) {
+                                    PubKeyRingProvider pubKeyRing) {
         this.arbitrationManager = arbitrationManager;
         this.refundManager = refundManager;
         this.xmrWalletService = xmrWalletService;
@@ -56,7 +56,7 @@ public class TransactionAwareTradableFactory {
                     arbitrationManager,
                     refundManager,
                     xmrWalletService,
-                    pubKeyRing);
+                    pubKeyRing.get());
         } else {
             return new DummyTransactionAwareTradable(delegate);
         }

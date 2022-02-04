@@ -409,11 +409,11 @@ public abstract class TradeStepView extends AnchorPane {
 
     private void updateTimeLeft() {
         if (timeLeftTextField != null) {
-            
+
             // TODO (woodser): extra TradeStepView created but not deactivated on trade.setState(), so deactivate when model's trade is null
             if (model.dataModel.getTrade() == null) {
                 log.warn("deactivating TradeStepView because model's trade is null");
-                
+
                 // schedule deactivation to avoid concurrent modification of clock listeners
                 Platform.runLater(new Runnable() {
                     @Override
@@ -423,7 +423,7 @@ public abstract class TradeStepView extends AnchorPane {
                 });
                 return;
             }
-            
+
             String remainingTime = model.getRemainingTradeDurationAsWords();
             timeLeftProgressBar.setProgress(model.getRemainingTradeDurationAsPercentage());
             if (!remainingTime.isEmpty()) {
@@ -675,7 +675,7 @@ public abstract class TradeStepView extends AnchorPane {
 
         DisputeResult disputeResult = optionalDispute.get().getDisputeResultProperty().get();
         Contract contract = checkNotNull(trade.getContract(), "contract must not be null");
-        boolean isMyRoleBuyer = contract.isMyRoleBuyer(model.dataModel.getPubKeyRing());
+        boolean isMyRoleBuyer = contract.isMyRoleBuyer(model.dataModel.getPubKeyRing().get());
         String buyerPayoutAmount = model.btcFormatter.formatCoinWithCode(disputeResult.getBuyerPayoutAmount());
         String sellerPayoutAmount = model.btcFormatter.formatCoinWithCode(disputeResult.getSellerPayoutAmount());
         String myPayoutAmount = isMyRoleBuyer ? buyerPayoutAmount : sellerPayoutAmount;

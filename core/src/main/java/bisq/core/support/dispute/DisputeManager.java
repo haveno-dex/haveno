@@ -17,7 +17,7 @@
 
 package bisq.core.support.dispute;
 
-import bisq.core.btc.setup.WalletsSetup;
+import bisq.core.api.CoreMoneroConnectionsService;
 import bisq.core.btc.wallet.Restrictions;
 import bisq.core.btc.wallet.TradeWalletService;
 import bisq.core.btc.wallet.XmrWalletService;
@@ -39,7 +39,6 @@ import bisq.core.trade.Trade;
 import bisq.core.trade.TradeDataValidation;
 import bisq.core.trade.TradeManager;
 import bisq.core.trade.closed.ClosedTradableManager;
-
 import bisq.network.p2p.BootstrapListener;
 import bisq.network.p2p.NodeAddress;
 import bisq.network.p2p.P2PService;
@@ -111,7 +110,7 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
     public DisputeManager(P2PService p2PService,
                           TradeWalletService tradeWalletService,
                           XmrWalletService xmrWalletService,
-                          WalletsSetup walletsSetup,
+                          CoreMoneroConnectionsService connectionService,
                           TradeManager tradeManager,
                           ClosedTradableManager closedTradableManager,
                           OpenOfferManager openOfferManager,
@@ -119,7 +118,7 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
                           DisputeListService<T> disputeListService,
                           Config config,
                           PriceFeedService priceFeedService) {
-        super(p2PService, walletsSetup);
+        super(p2PService, connectionService);
 
         this.tradeWalletService = tradeWalletService;
         this.xmrWalletService = xmrWalletService;
@@ -252,13 +251,13 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
             }
         });
 
-        walletsSetup.downloadPercentageProperty().addListener((observable, oldValue, newValue) -> {
-            if (walletsSetup.isDownloadComplete())
+        connectionService.downloadPercentageProperty().addListener((observable, oldValue, newValue) -> {
+            if (connectionService.isDownloadComplete())
                 tryApplyMessages();
         });
 
-        walletsSetup.numPeersProperty().addListener((observable, oldValue, newValue) -> {
-            if (walletsSetup.hasSufficientPeersForBroadcast())
+        connectionService.numPeersProperty().addListener((observable, oldValue, newValue) -> {
+            if (connectionService.hasSufficientPeersForBroadcast())
                 tryApplyMessages();
         });
 

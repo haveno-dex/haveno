@@ -28,12 +28,12 @@ import bisq.desktop.util.Layout;
 import bisq.desktop.util.Transitions;
 
 import bisq.core.btc.wallet.WalletsManager;
-import bisq.core.crypto.ScryptUtil;
 import bisq.core.locale.Res;
 import bisq.core.offer.OpenOfferManager;
 
 import bisq.common.UserThread;
 import bisq.common.config.Config;
+import bisq.common.crypto.ScryptUtil;
 import bisq.common.util.Tuple2;
 
 import org.bitcoinj.crypto.KeyCrypterScrypt;

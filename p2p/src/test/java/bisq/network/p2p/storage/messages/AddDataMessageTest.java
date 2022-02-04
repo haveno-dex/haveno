@@ -61,7 +61,7 @@ public class AddDataMessageTest {
         dir1.delete();
         //noinspection ResultOfMethodCallIgnored
         dir1.mkdir();
-        keyRing1 = new KeyRing(new KeyStorage(dir1));
+        keyRing1 = new KeyRing(new KeyStorage(dir1), null, true);
     }
 
     @Test

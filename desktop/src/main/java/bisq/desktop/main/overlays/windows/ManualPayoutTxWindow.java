@@ -25,11 +25,10 @@ import bisq.desktop.main.overlays.popups.Popup;
 import bisq.desktop.util.GUIUtil;
 import bisq.desktop.util.validation.LengthValidator;
 import bisq.desktop.util.validation.PercentageNumberValidator;
-
+import bisq.core.api.CoreMoneroConnectionsService;
 import bisq.core.btc.exceptions.TransactionVerificationException;
 import bisq.core.btc.exceptions.TxBroadcastException;
 import bisq.core.btc.exceptions.WalletException;
-import bisq.core.btc.setup.WalletsSetup;
 import bisq.core.btc.wallet.TradeWalletService;
 import bisq.core.btc.wallet.TxBroadcaster;
 import bisq.core.btc.wallet.WalletsManager;
@@ -92,7 +91,6 @@ import java.time.Instant;
 import java.nio.charset.Charset;
 
 import java.util.ArrayList;
-import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
 import org.slf4j.Logger;
@@ -111,7 +109,7 @@ public class ManualPayoutTxWindow extends Overlay<ManualPayoutTxWindow> {
     private final P2PService p2PService;
     private final MediationManager mediationManager;
     private final Preferences preferences;
-    private final WalletsSetup walletsSetup;
+    private final  CoreMoneroConnectionsService connectionService;
     private final WalletsManager walletsManager;
     GridPane inputsGridPane;
     GridPane importTxGridPane;
@@ -150,17 +148,18 @@ public class ManualPayoutTxWindow extends Overlay<ManualPayoutTxWindow> {
                                 P2PService p2PService,
                                 MediationManager mediationManager,
                                 Preferences preferences,
-                                WalletsSetup walletsSetup,
+                                CoreMoneroConnectionsService connectionService,
                                 WalletsManager walletsManager) {
         this.tradeWalletService = tradeWalletService;
         this.p2PService = p2PService;
         this.mediationManager = mediationManager;
         this.preferences = preferences;
-        this.walletsSetup = walletsSetup;
+        this.connectionService = connectionService;
         this.walletsManager = walletsManager;
         type = Type.Attention;
     }
 
+    @Override
     public void show() {
         if (headLine == null)
             headLine = "Emergency MultiSig payout tool"; // We dont translate here as it is for dev only purpose
@@ -810,7 +809,7 @@ public class ManualPayoutTxWindow extends Overlay<ManualPayoutTxWindow> {
                         }
                     };
 
-                    if (GUIUtil.isReadyForTxBroadcastOrShowPopup(p2PService, walletsSetup)) {
+                    if (GUIUtil.isReadyForTxBroadcastOrShowPopup(p2PService, connectionService)) {
                         try {
                             tradeWalletService.emergencyPublishPayoutTxFrom2of2MultiSig(
                                     txIdAndHex.second,

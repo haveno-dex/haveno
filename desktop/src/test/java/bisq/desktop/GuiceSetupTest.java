@@ -107,7 +107,6 @@ public class GuiceSetupTest {
         assertSingleton(TradeLimits.class);
         assertSingleton(KeyStorage.class);
         assertSingleton(KeyRing.class);
-        assertSingleton(PubKeyRing.class);
         assertSingleton(User.class);
         assertSingleton(ClockWatcher.class);
         assertSingleton(Preferences.class);

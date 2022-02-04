@@ -42,9 +42,9 @@ import bisq.proto.grpc.StartCheckingConnectionsReply;
 import bisq.proto.grpc.StartCheckingConnectionsRequest;
 import bisq.proto.grpc.StopCheckingConnectionsReply;
 import bisq.proto.grpc.StopCheckingConnectionsRequest;
-import bisq.proto.grpc.UriConnection;
-import java.net.URI;
-import java.net.URISyntaxException;
+import bisq.proto.grpc.UrlConnection;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Optional;
@@ -84,7 +84,7 @@ class GrpcMoneroConnectionsService extends MoneroConnectionsImplBase {
     public void removeConnection(RemoveConnectionRequest request,
                                  StreamObserver<RemoveConnectionReply> responseObserver) {
         handleRequest(responseObserver, () -> {
-            coreApi.removeMoneroConnection(validateUri(request.getUri()));
+            coreApi.removeMoneroConnection(validateUri(request.getUrl()));
             return RemoveConnectionReply.newBuilder().build();
         });
     }
@@ -93,7 +93,7 @@ class GrpcMoneroConnectionsService extends MoneroConnectionsImplBase {
     public void getConnection(GetConnectionRequest request,
                               StreamObserver<GetConnectionReply> responseObserver) {
         handleRequest(responseObserver, () -> {
-            UriConnection replyConnection = toUriConnection(coreApi.getMoneroConnection());
+            UrlConnection replyConnection = toUrlConnection(coreApi.getMoneroConnection());
             GetConnectionReply.Builder builder = GetConnectionReply.newBuilder();
             if (replyConnection != null) {
                 builder.setConnection(replyConnection);
@@ -107,8 +107,8 @@ class GrpcMoneroConnectionsService extends MoneroConnectionsImplBase {
                                StreamObserver<GetConnectionsReply> responseObserver) {
         handleRequest(responseObserver, () -> {
             List<MoneroRpcConnection> connections = coreApi.getMoneroConnections();
-            List<UriConnection> replyConnections = connections.stream()
-                    .map(GrpcMoneroConnectionsService::toUriConnection).collect(Collectors.toList());
+            List<UrlConnection> replyConnections = connections.stream()
+                    .map(GrpcMoneroConnectionsService::toUrlConnection).collect(Collectors.toList());
             return GetConnectionsReply.newBuilder().addAllConnections(replyConnections).build();
         });
     }
@@ -117,8 +117,8 @@ class GrpcMoneroConnectionsService extends MoneroConnectionsImplBase {
     public void setConnection(SetConnectionRequest request,
                               StreamObserver<SetConnectionReply> responseObserver) {
         handleRequest(responseObserver, () -> {
-            if (request.getUri() != null && !request.getUri().isEmpty())
-                coreApi.setMoneroConnection(validateUri(request.getUri()));
+            if (request.getUrl() != null && !request.getUrl().isEmpty())
+                coreApi.setMoneroConnection(validateUri(request.getUrl()));
             else if (request.hasConnection())
                 coreApi.setMoneroConnection(toMoneroRpcConnection(request.getConnection()));
             else coreApi.setMoneroConnection((MoneroRpcConnection) null); // disconnect from client
@@ -131,7 +131,7 @@ class GrpcMoneroConnectionsService extends MoneroConnectionsImplBase {
                                 StreamObserver<CheckConnectionReply> responseObserver) {
         handleRequest(responseObserver, () -> {
             MoneroRpcConnection connection = coreApi.checkMoneroConnection();
-            UriConnection replyConnection = toUriConnection(connection);
+            UrlConnection replyConnection = toUrlConnection(connection);
             CheckConnectionReply.Builder builder = CheckConnectionReply.newBuilder();
             if (replyConnection != null) {
                 builder.setConnection(replyConnection);
@@ -145,8 +145,8 @@ class GrpcMoneroConnectionsService extends MoneroConnectionsImplBase {
                                  StreamObserver<CheckConnectionsReply> responseObserver) {
         handleRequest(responseObserver, () -> {
             List<MoneroRpcConnection> connections = coreApi.checkMoneroConnections();
-            List<UriConnection> replyConnections = connections.stream()
-                    .map(GrpcMoneroConnectionsService::toUriConnection).collect(Collectors.toList());
+            List<UrlConnection> replyConnections = connections.stream()
+                    .map(GrpcMoneroConnectionsService::toUrlConnection).collect(Collectors.toList());
             return CheckConnectionsReply.newBuilder().addAllConnections(replyConnections).build();
         });
     }
@@ -176,7 +176,7 @@ class GrpcMoneroConnectionsService extends MoneroConnectionsImplBase {
                                            StreamObserver<GetBestAvailableConnectionReply> responseObserver) {
         handleRequest(responseObserver, () -> {
             MoneroRpcConnection connection = coreApi.getBestAvailableMoneroConnection();
-            UriConnection replyConnection = toUriConnection(connection);
+            UrlConnection replyConnection = toUrlConnection(connection);
             GetBestAvailableConnectionReply.Builder builder = GetBestAvailableConnectionReply.newBuilder();
             if (replyConnection != null) {
                 builder.setConnection(replyConnection);
@@ -211,43 +211,40 @@ class GrpcMoneroConnectionsService extends MoneroConnectionsImplBase {
     }
 
 
-    private static UriConnection toUriConnection(MoneroRpcConnection rpcConnection) {
+    private static UrlConnection toUrlConnection(MoneroRpcConnection rpcConnection) {
         if (rpcConnection == null) return null;
-        return UriConnection.newBuilder()
-                .setUri(rpcConnection.getUri())
+        return UrlConnection.newBuilder()
+                .setUrl(rpcConnection.getUri())
                 .setPriority(rpcConnection.getPriority())
                 .setOnlineStatus(toOnlineStatus(rpcConnection.isOnline()))
                 .setAuthenticationStatus(toAuthenticationStatus(rpcConnection.isAuthenticated()))
                 .build();
     }
 
-    private static UriConnection.AuthenticationStatus toAuthenticationStatus(Boolean authenticated) {
-        if (authenticated == null) return UriConnection.AuthenticationStatus.NO_AUTHENTICATION;
-        else if (authenticated) return UriConnection.AuthenticationStatus.AUTHENTICATED;
-        else return UriConnection.AuthenticationStatus.NOT_AUTHENTICATED;
+    private static UrlConnection.AuthenticationStatus toAuthenticationStatus(Boolean authenticated) {
+        if (authenticated == null) return UrlConnection.AuthenticationStatus.NO_AUTHENTICATION;
+        else if (authenticated) return UrlConnection.AuthenticationStatus.AUTHENTICATED;
+        else return UrlConnection.AuthenticationStatus.NOT_AUTHENTICATED;
     }
 
-    private static UriConnection.OnlineStatus toOnlineStatus(Boolean online) {
-        if (online == null) return UriConnection.OnlineStatus.UNKNOWN;
-        else if (online) return UriConnection.OnlineStatus.ONLINE;
-        else return UriConnection.OnlineStatus.OFFLINE;
+    private static UrlConnection.OnlineStatus toOnlineStatus(Boolean online) {
+        if (online == null) return UrlConnection.OnlineStatus.UNKNOWN;
+        else if (online) return UrlConnection.OnlineStatus.ONLINE;
+        else return UrlConnection.OnlineStatus.OFFLINE;
     }
 
-    private static MoneroRpcConnection toMoneroRpcConnection(UriConnection uriConnection) throws URISyntaxException {
+    private static MoneroRpcConnection toMoneroRpcConnection(UrlConnection uriConnection) throws MalformedURLException {
         if (uriConnection == null) return null;
         return new MoneroRpcConnection(
-                validateUri(uriConnection.getUri()),
+                validateUri(uriConnection.getUrl()),
                 nullIfEmpty(uriConnection.getUsername()),
                 nullIfEmpty(uriConnection.getPassword()))
                 .setPriority(uriConnection.getPriority());
     }
 
-    private static String validateUri(String uri) throws URISyntaxException {
-        if (uri.isEmpty()) {
-            throw new IllegalArgumentException("URI is required");
-        }
-        // Create new URI for validation, internally String is used again
-        return new URI(uri).toString();
+    private static String validateUri(String url) throws MalformedURLException {
+        if (url.isEmpty()) throw new IllegalArgumentException("URL is required");
+        return new URL(url).toString(); // validate and return
     }
 
     private static String nullIfEmpty(String value) {

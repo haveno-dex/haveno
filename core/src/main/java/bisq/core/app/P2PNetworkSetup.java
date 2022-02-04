@@ -17,7 +17,7 @@
 
 package bisq.core.app;
 
-import bisq.core.btc.setup.WalletsSetup;
+import bisq.core.api.CoreMoneroConnectionsService;
 import bisq.core.locale.Res;
 import bisq.core.provider.price.PriceFeedService;
 import bisq.core.user.Preferences;
@@ -51,7 +51,7 @@ import javax.annotation.Nullable;
 public class P2PNetworkSetup {
     private final PriceFeedService priceFeedService;
     private final P2PService p2PService;
-    private final WalletsSetup walletsSetup;
+    private final CoreMoneroConnectionsService connectionService;
     private final Preferences preferences;
 
     @SuppressWarnings("FieldCanBeLocal")
@@ -75,12 +75,12 @@ public class P2PNetworkSetup {
     @Inject
     public P2PNetworkSetup(PriceFeedService priceFeedService,
                            P2PService p2PService,
-                           WalletsSetup walletsSetup,
+                           CoreMoneroConnectionsService connectionService,
                            Preferences preferences) {
 
         this.priceFeedService = priceFeedService;
         this.p2PService = p2PService;
-        this.walletsSetup = walletsSetup;
+        this.connectionService = connectionService;
         this.preferences = preferences;
     }
 
@@ -91,7 +91,7 @@ public class P2PNetworkSetup {
         BooleanProperty initialP2PNetworkDataReceived = new SimpleBooleanProperty();
 
         p2PNetworkInfoBinding = EasyBind.combine(bootstrapState, bootstrapWarning, p2PService.getNumConnectedPeers(),
-                walletsSetup.numPeersProperty(), hiddenServicePublished, initialP2PNetworkDataReceived,
+                connectionService.numPeersProperty(), hiddenServicePublished, initialP2PNetworkDataReceived,
                 (state, warning, numP2pPeers, numBtcPeers, hiddenService, dataReceived) -> {
                     String result;
                     int p2pPeers = (int) numP2pPeers;

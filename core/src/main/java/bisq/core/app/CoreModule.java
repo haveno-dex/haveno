@@ -41,8 +41,6 @@ import bisq.network.p2p.seed.SeedNodeRepository;
 
 import bisq.common.app.AppModule;
 import bisq.common.config.Config;
-import bisq.common.crypto.PubKeyRing;
-import bisq.common.crypto.PubKeyRingProvider;
 import bisq.common.proto.network.NetworkProtoResolver;
 import bisq.common.proto.persistable.PersistenceProtoResolver;
 
@@ -93,6 +91,5 @@ public class CoreModule extends AppModule {
         install(new FilterModule(config));
         install(new CorePresentationModule(config));
         install(new MoneroConnectionModule(config));
-        bind(PubKeyRing.class).toProvider(PubKeyRingProvider.class);
     }
 }

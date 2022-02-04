@@ -24,8 +24,7 @@ import bisq.core.notifications.MobileNotificationService;
 import bisq.core.trade.Trade;
 import bisq.core.trade.TradeManager;
 
-import bisq.common.crypto.KeyRing;
-import bisq.common.crypto.PubKeyRing;
+import bisq.common.crypto.PubKeyRingProvider;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -41,15 +40,15 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @Singleton
 public class TradeEvents {
-    private final PubKeyRing pubKeyRing;
+    private final PubKeyRingProvider pubKeyRing;
     private final TradeManager tradeManager;
     private final MobileNotificationService mobileNotificationService;
 
     @Inject
-    public TradeEvents(TradeManager tradeManager, KeyRing keyRing, MobileNotificationService mobileNotificationService) {
+    public TradeEvents(TradeManager tradeManager, PubKeyRingProvider pubKeyRing, MobileNotificationService mobileNotificationService) {
         this.tradeManager = tradeManager;
         this.mobileNotificationService = mobileNotificationService;
-        this.pubKeyRing = keyRing.getPubKeyRing();
+        this.pubKeyRing = pubKeyRing;
     }
 
     public void onAllServicesInitialized() {
@@ -74,19 +73,19 @@ public class TradeEvents {
                     case DEPOSIT_PUBLISHED:
                         break;
                     case DEPOSIT_CONFIRMED:
-                        if (trade.getContract() != null && pubKeyRing.equals(trade.getContract().getBuyerPubKeyRing()))
+                        if (trade.getContract() != null && pubKeyRing.get().equals(trade.getContract().getBuyerPubKeyRing()))
                             msg = Res.get("account.notifications.trade.message.msg.conf", shortId);
                         break;
                     case FIAT_SENT:
                         // We only notify the seller
-                        if (trade.getContract() != null && pubKeyRing.equals(trade.getContract().getSellerPubKeyRing()))
+                        if (trade.getContract() != null && pubKeyRing.get().equals(trade.getContract().getSellerPubKeyRing()))
                             msg = Res.get("account.notifications.trade.message.msg.started", shortId);
                         break;
                     case FIAT_RECEIVED:
                         break;
                     case PAYOUT_PUBLISHED:
                         // We only notify the buyer
-                        if (trade.getContract() != null && pubKeyRing.equals(trade.getContract().getBuyerPubKeyRing()))
+                        if (trade.getContract() != null && pubKeyRing.get().equals(trade.getContract().getBuyerPubKeyRing()))
                             msg = Res.get("account.notifications.trade.message.msg.completed", shortId);
                         break;
                     case WITHDRAWN:

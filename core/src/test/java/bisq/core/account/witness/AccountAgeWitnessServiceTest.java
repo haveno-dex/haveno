@@ -162,8 +162,8 @@ public class AccountAgeWitnessServiceTest {
 
     @Test
     public void testArbitratorSignWitness() {
-        KeyRing buyerKeyRing = new KeyRing(new KeyStorage(dir1));
-        KeyRing sellerKeyRing = new KeyRing(new KeyStorage(dir2));
+        KeyRing buyerKeyRing = new KeyRing(new KeyStorage(dir1), null, true);
+        KeyRing sellerKeyRing = new KeyRing(new KeyStorage(dir2), null, true);
 
         // Setup dispute for arbitrator to sign both sides
         List<Dispute> disputes = new ArrayList<>();
@@ -278,9 +278,9 @@ public class AccountAgeWitnessServiceTest {
     public void testArbitratorSignDummyWitness() throws CryptoException {
         ECKey arbitratorKey = new ECKey();
         // Init 2 user accounts
-        var user1KeyRing = new KeyRing(new KeyStorage(dir1));
-        var user2KeyRing = new KeyRing(new KeyStorage(dir2));
-        var user3KeyRing = new KeyRing(new KeyStorage(dir3));
+        var user1KeyRing = new KeyRing(new KeyStorage(dir1), null, true);
+        var user2KeyRing = new KeyRing(new KeyStorage(dir2), null, true);
+        var user3KeyRing = new KeyRing(new KeyStorage(dir3), null, true);
         var pubKeyRing1 = user1KeyRing.getPubKeyRing();
         var pubKeyRing2 = user2KeyRing.getPubKeyRing();
         var pubKeyRing3 = user3KeyRing.getPubKeyRing();

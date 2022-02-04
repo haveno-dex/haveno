@@ -18,9 +18,8 @@
 package bisq.core.btc.wallet;
 
 import bisq.core.btc.setup.WalletsSetup;
-import bisq.core.crypto.ScryptUtil;
 import bisq.core.locale.Res;
-
+import bisq.common.crypto.ScryptUtil;
 import bisq.common.handlers.ExceptionHandler;
 import bisq.common.handlers.ResultHandler;
 

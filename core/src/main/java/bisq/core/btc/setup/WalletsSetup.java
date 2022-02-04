@@ -17,12 +17,10 @@
 
 package bisq.core.btc.setup;
 
-import bisq.core.api.CoreMoneroConnectionsService;
 import bisq.core.btc.exceptions.InvalidHostException;
 import bisq.core.btc.exceptions.RejectedTxException;
 import bisq.core.btc.model.AddressEntry;
 import bisq.core.btc.model.AddressEntryList;
-import bisq.core.btc.model.XmrAddressEntryList;
 import bisq.core.btc.nodes.BtcNetworkConfig;
 import bisq.core.btc.nodes.BtcNodes;
 import bisq.core.btc.nodes.BtcNodes.BtcNode;
@@ -66,14 +64,11 @@ import org.apache.commons.lang3.StringUtils;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.IntegerProperty;
 import javafx.beans.property.LongProperty;
-import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.ReadOnlyDoubleProperty;
 import javafx.beans.property.ReadOnlyIntegerProperty;
-import javafx.beans.property.ReadOnlyObjectProperty;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleIntegerProperty;
 import javafx.beans.property.SimpleLongProperty;
-import javafx.beans.property.SimpleObjectProperty;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
@@ -100,9 +95,6 @@ import javax.annotation.Nullable;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 
-import monero.daemon.MoneroDaemon;
-import monero.daemon.model.MoneroPeer;
-import monero.wallet.MoneroWallet;
 
 // Setup wallets and use WalletConfig for BitcoinJ wiring.
 // Other like WalletConfig we are here always on the user thread. That is one reason why we do not
@@ -111,8 +103,7 @@ import monero.wallet.MoneroWallet;
 public class WalletsSetup {
 
     public static final String PRE_SEGWIT_WALLET_BACKUP = "pre_segwit_haveno_BTC.wallet.backup";
-    private static final int MIN_BROADCAST_CONNECTIONS = 2;
-    private static final long DAEMON_POLL_INTERVAL_SECONDS = 20;
+    private static final int MIN_BROADCAST_CONNECTIONS = 0;
 
     @Getter
     public final BooleanProperty walletsSetupFailed = new SimpleBooleanProperty();
@@ -122,25 +113,20 @@ public class WalletsSetup {
 
     private final RegTestHost regTestHost;
     private final AddressEntryList addressEntryList;
-    private final XmrAddressEntryList xmrAddressEntryList;
     private final Preferences preferences;
     private final Socks5ProxyProvider socks5ProxyProvider;
     private final Config config;
     private final LocalBitcoinNode localBitcoinNode;
     private final BtcNodes btcNodes;
-    @Getter
-    private final CoreMoneroConnectionsService moneroConnectionsManager;
-    private final String xmrWalletFileName;
     private final int numConnectionsForBtc;
     private final String userAgent;
     private final NetworkParameters params;
     private final File walletDir;
-    private final int walletRpcBindPort;
     private final int socks5DiscoverMode;
     private final IntegerProperty numPeers = new SimpleIntegerProperty(0);
     private final LongProperty chainHeight = new SimpleLongProperty(0);
-    private final ObjectProperty<List<MoneroPeer>> peers = new SimpleObjectProperty<>();
     private final DownloadListener downloadListener = new DownloadListener();
+    private final List<Runnable> setupTaskHandlers = new ArrayList<>();
     private final List<Runnable> setupCompletedHandlers = new ArrayList<>();
     public final BooleanProperty shutDownComplete = new SimpleBooleanProperty();
     private final boolean useAllProvidedNodes;
@@ -153,36 +139,29 @@ public class WalletsSetup {
     @Inject
     public WalletsSetup(RegTestHost regTestHost,
                         AddressEntryList addressEntryList,
-                        XmrAddressEntryList xmrAddressEntryList,
                         Preferences preferences,
                         Socks5ProxyProvider socks5ProxyProvider,
                         Config config,
                         LocalBitcoinNode localBitcoinNode,
                         BtcNodes btcNodes,
-                        CoreMoneroConnectionsService moneroConnectionsManager,
                         @Named(Config.USER_AGENT) String userAgent,
                         @Named(Config.WALLET_DIR) File walletDir,
-                        @Named(Config.WALLET_RPC_BIND_PORT) int walletRpcBindPort,
                         @Named(Config.USE_ALL_PROVIDED_NODES) boolean useAllProvidedNodes,
                         @Named(Config.NUM_CONNECTIONS_FOR_BTC) int numConnectionsForBtc,
                         @Named(Config.SOCKS5_DISCOVER_MODE) String socks5DiscoverModeString) {
         this.regTestHost = regTestHost;
         this.addressEntryList = addressEntryList;
-        this.xmrAddressEntryList = xmrAddressEntryList;
         this.preferences = preferences;
         this.socks5ProxyProvider = socks5ProxyProvider;
         this.config = config;
         this.localBitcoinNode = localBitcoinNode;
         this.btcNodes = btcNodes;
-        this.moneroConnectionsManager = moneroConnectionsManager;
         this.numConnectionsForBtc = numConnectionsForBtc;
         this.useAllProvidedNodes = useAllProvidedNodes;
         this.userAgent = userAgent;
         this.socks5DiscoverMode = evaluateMode(socks5DiscoverModeString);
         this.walletDir = walletDir;
-        this.walletRpcBindPort = walletRpcBindPort;
 
-        xmrWalletFileName = "haveno_" + config.baseCurrencyNetwork.getCurrencyCode();
         params = Config.baseCurrencyNetworkParameters();
         PeerGroup.setIgnoreHttpSeeds(true);
     }
@@ -206,30 +185,22 @@ public class WalletsSetup {
                 exceptionHandler.handleException(new TimeoutException("Wallet did not initialize in " +
                         STARTUP_TIMEOUT + " seconds.")), STARTUP_TIMEOUT);
 
-        // initialize Monero connection manager
-        moneroConnectionsManager.initialize();
-
         backupWallets();
 
         final Socks5Proxy socks5Proxy = preferences.getUseTorForBitcoinJ() ? socks5ProxyProvider.getSocks5Proxy() : null;
         log.info("Socks5Proxy for bitcoinj: socks5Proxy=" + socks5Proxy);
 
-        walletConfig = new WalletConfig(params, walletDir, walletRpcBindPort, moneroConnectionsManager, "haveno") {
+        walletConfig = new WalletConfig(params, walletDir, "haveno") {
             @Override
             protected void onSetupCompleted() {
                 //We are here in the btcj thread Thread[ STARTING,5,main]
                 super.onSetupCompleted();
 
                 final PeerGroup peerGroup = walletConfig.peerGroup();
-                final BlockChain chain = walletConfig.chain();
 
                 // We don't want to get our node white list polluted with nodes from AddressMessage calls.
                 if (preferences.getBitcoinNodes() != null && !preferences.getBitcoinNodes().isEmpty())
                     peerGroup.setAddPeersFromAddressMessage(false);
-
-                UserThread.runPeriodically(() -> {
-                    updateDaemonInfo();
-                }, DAEMON_POLL_INTERVAL_SECONDS);
 
                 // Need to be Threading.SAME_THREAD executor otherwise BitcoinJ will skip that listener
                 peerGroup.addPreMessageReceivedEventListener(Threading.SAME_THREAD, (peer, message) -> {
@@ -244,34 +215,18 @@ public class WalletsSetup {
                     return message;
                 });
 
+                // run external startup handlers
+                setupTaskHandlers.forEach(Runnable::run);
+
                 // Map to user thread
                 UserThread.execute(() -> {
-                    updateDaemonInfo();
                     addressEntryList.onWalletReady(walletConfig.btcWallet());
-                    xmrAddressEntryList.onWalletReady(walletConfig.getXmrWallet());
                     timeoutTimer.stop();
                     setupCompletedHandlers.forEach(Runnable::run);
                 });
 
                 // onSetupCompleted in walletAppKit is not the called on the last invocations, so we add a bit of delay
                 UserThread.runAfter(resultHandler::handleResult, 100, TimeUnit.MILLISECONDS);
-            }
-
-            private void updateDaemonInfo() {
-                try {
-                    if (vXmrDaemon == null) throw new RuntimeException("No daemon connection");
-                    peers.set(getOnlinePeers());
-                    numPeers.set(peers.get().size());
-                    chainHeight.set(vXmrDaemon.getHeight());
-                } catch (Exception e) {
-                    log.warn("Could not update daemon info: " + e.getMessage());
-                }
-            }
-
-            private List<MoneroPeer> getOnlinePeers() {
-                return vXmrDaemon.getPeers().stream()
-                        .filter(peer -> peer.isOnline())
-                        .collect(Collectors.toList());
             }
         };
         walletConfig.setSocks5Proxy(socks5Proxy);
@@ -427,9 +382,7 @@ public class WalletsSetup {
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     public void backupWallets() {
-        FileUtil.rollingBackup(walletDir, xmrWalletFileName, 20);
-        FileUtil.rollingBackup(walletDir, xmrWalletFileName + ".keys", 20);
-        FileUtil.rollingBackup(walletDir, xmrWalletFileName + ".address.txt", 20);
+        // TODO: remove?
     }
 
     public void clearBackups() {
@@ -479,6 +432,10 @@ public class WalletsSetup {
     // Handlers
     ///////////////////////////////////////////////////////////////////////////////////////////
 
+    public void addSetupTaskHandler(Runnable handler) {
+        setupTaskHandlers.add(handler);
+    }
+
     public void addSetupCompletedHandler(Runnable handler) {
         setupCompletedHandlers.add(handler);
     }
@@ -490,14 +447,6 @@ public class WalletsSetup {
 
     public Wallet getBtcWallet() {
         return walletConfig.btcWallet();
-    }
-
-    public MoneroDaemon getXmrDaemon() {
-        return walletConfig.getXmrDaemon();
-    }
-
-    public MoneroWallet getXmrWallet() {
-      return walletConfig.getXmrWallet();
     }
 
     public NetworkParameters getParams() {
@@ -521,10 +470,6 @@ public class WalletsSetup {
         return numPeers;
     }
 
-    public ReadOnlyObjectProperty<List<MoneroPeer>> peerConnectionsProperty() {
-        return peers;
-    }
-
     public LongProperty chainHeightProperty() {
         return chainHeight;
     }
@@ -538,14 +483,7 @@ public class WalletsSetup {
     }
 
     public boolean isChainHeightSyncedWithinTolerance() {
-        Long peersChainHeight = walletConfig.vXmrDaemon.getSyncInfo().getTargetHeight();
-        if (peersChainHeight == 0) return true; // monero-daemon-rpc sync_info's target_height returns 0 when node is fully synced
-        long bestChainHeight = chainHeight.get();
-        if (Math.abs(peersChainHeight - bestChainHeight) <= 3) {
-            return true;
-        }
-        log.warn("Our chain height: {} is out of sync with peer nodes chain height: {}", chainHeight.get(), peersChainHeight);
-        return false;
+        throw new RuntimeException("WalletsSetup.isChainHeightSyncedWithinTolerance() not implemented for BTC");
     }
 
     public Set<Address> getAddressesByContext(@SuppressWarnings("SameParameterValue") AddressEntry.Context context) {
