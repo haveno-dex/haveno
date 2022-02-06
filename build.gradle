@@ -363,6 +363,13 @@ configure(project(':core')) {
     test {
         systemProperty 'jdk.attach.allowAttachSelf', true
     }
+
+    task havenoDeps(type: Exec) {
+        workingDir '..'
+        commandLine './scripts/haveno_deps.sh'
+    }
+    if (osdetector.os != 'windows') processResources.dependsOn havenoDeps // before both test and build
+    else println "Haveno dependencies must be downloaded manually on Windows"
 }
 
 configure(project(':cli')) {

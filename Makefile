@@ -1,6 +1,6 @@
 # See docs/installing.md
 
-build: nodes localnet haveno
+build: localnet haveno
 
 clean:
 	./gradlew clean
@@ -10,9 +10,6 @@ clean-localnet:
 
 localnet:
 	mkdir -p .localnet
-
-nodes: localnet
-	./scripts/haveno_deps.sh
 
 haveno:
 	./gradlew build
@@ -159,7 +156,7 @@ monero-private2:
 		--rpc-login superuser:abctesting123 \
 		--rpc-access-control-origins http://localhost:8080 \
 		--fixed-difficulty 100
-		
+
 funding-wallet:
 	./.localnet/monero-wallet-rpc \
 		--stagenet \
