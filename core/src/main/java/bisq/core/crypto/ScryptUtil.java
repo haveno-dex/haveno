@@ -39,11 +39,15 @@ public class ScryptUtil {
     }
 
     public static KeyCrypterScrypt getKeyCrypterScrypt() {
+        return getKeyCrypterScrypt(KeyCrypterScrypt.randomSalt());
+    }
+
+    public static KeyCrypterScrypt getKeyCrypterScrypt(byte[] salt) {
         Protos.ScryptParameters scryptParameters = Protos.ScryptParameters.newBuilder()
                 .setP(6)
                 .setR(8)
                 .setN(32768)
-                .setSalt(ByteString.copyFrom(KeyCrypterScrypt.randomSalt()))
+                .setSalt(ByteString.copyFrom(salt))
                 .build();
         return new KeyCrypterScrypt(scryptParameters);
     }

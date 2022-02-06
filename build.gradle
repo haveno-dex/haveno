@@ -1,12 +1,11 @@
 buildscript {
     repositories {
-        jcenter()
+        gradlePluginPortal()
     }
     dependencies {
         classpath 'com.google.protobuf:protobuf-gradle-plugin:0.8.10'
         classpath 'com.google.gradle:osdetector-gradle-plugin:1.6.0'
         classpath 'com.github.jengelman.gradle.plugins:shadow:5.2.0'
-        classpath files('gradle/witness/gradle-witness.jar')
         classpath 'org.springframework.boot:spring-boot-gradle-plugin:1.5.10.RELEASE'
     }
 }
@@ -280,9 +279,9 @@ configure(project(':common')) {
         annotationProcessor "org.projectlombok:lombok:$lombokVersion"
         testCompile "org.hamcrest:hamcrest-all:$hamcrestVersion"
 
-        // override transitive dependency version from 1.5 to the same version just identified by commit number. 
+        // override transitive dependency version from 1.5 to the same version just identified by commit number.
         // Remove this if transitive dependency is changed to something else than 1.5
-        compile( group: 'com.github.JesusMcCloud', name: 'jtorctl') { version { strictly "[9b5ba2036b]" } }
+        compile(group: 'com.github.JesusMcCloud', name: 'jtorctl') { version { strictly "[9b5ba2036b]" } }
 
     }
 }
@@ -347,6 +346,7 @@ configure(project(':core')) {
             exclude(module: 'jackson-annotations')
             exclude(module: 'jackson-databind')
             exclude(module: 'bcprov-jdk15on')
+            exclude(group: 'org.slf4j', module: 'slf4j-simple')
         }
         implementation("org.apache.httpcomponents.client5:httpclient5:$httpclient5Version")
         implementation "com.google.protobuf:protobuf-java:$protobufVersion"
@@ -363,6 +363,13 @@ configure(project(':core')) {
     test {
         systemProperty 'jdk.attach.allowAttachSelf', true
     }
+
+    task havenoDeps(type: Exec) {
+        workingDir '..'
+        commandLine './scripts/haveno_deps.sh'
+    }
+    if (osdetector.os != 'windows') processResources.dependsOn havenoDeps // before both test and build
+    else println "Haveno dependencies must be downloaded manually on Windows"
 }
 
 configure(project(':cli')) {
@@ -407,8 +414,6 @@ configure(project(':cli')) {
 
 configure(project(':desktop')) {
     apply plugin: 'com.github.johnrengelman.shadow'
-    apply plugin: 'witness'
-    apply from: '../gradle/witness/gradle-witness.gradle'
     apply from: 'package/package.gradle'
 
     version = '1.6.2-SNAPSHOT'

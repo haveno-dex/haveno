@@ -18,6 +18,7 @@
 package bisq.core.setup;
 
 import bisq.core.btc.model.AddressEntryList;
+import bisq.core.btc.model.EncryptedConnectionList;
 import bisq.core.btc.model.XmrAddressEntryList;
 import bisq.core.offer.OpenOfferManager;
 import bisq.core.support.dispute.arbitration.ArbitrationDisputeListService;
@@ -28,14 +29,12 @@ import bisq.core.trade.closed.ClosedTradableManager;
 import bisq.core.trade.failed.FailedTradesManager;
 import bisq.core.user.Preferences;
 import bisq.core.user.User;
-
 import bisq.network.p2p.mailbox.IgnoredMailboxService;
 import bisq.network.p2p.mailbox.MailboxMessageService;
 import bisq.network.p2p.peers.PeerManager;
 import bisq.network.p2p.storage.P2PDataStorage;
 import bisq.network.p2p.storage.persistence.RemovedPayloadsService;
 
-import bisq.common.config.Config;
 import bisq.common.proto.persistable.PersistedDataHost;
 
 import com.google.inject.Injector;
@@ -55,6 +54,7 @@ public class CorePersistedDataHost {
         persistedDataHosts.add(injector.getInstance(User.class));
         persistedDataHosts.add(injector.getInstance(AddressEntryList.class));
         persistedDataHosts.add(injector.getInstance(XmrAddressEntryList.class));
+        persistedDataHosts.add(injector.getInstance(EncryptedConnectionList.class));
         persistedDataHosts.add(injector.getInstance(OpenOfferManager.class));
         persistedDataHosts.add(injector.getInstance(TradeManager.class));
         persistedDataHosts.add(injector.getInstance(ClosedTradableManager.class));
