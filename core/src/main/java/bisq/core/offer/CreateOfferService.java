@@ -65,7 +65,7 @@ public class CreateOfferService {
     private final TxFeeEstimationService txFeeEstimationService;
     private final PriceFeedService priceFeedService;
     private final P2PService p2PService;
-    private final PubKeyRingProvider pubKeyRing;
+    private final PubKeyRingProvider pubKeyRingProvider;
     private final User user;
     private final BtcWalletService btcWalletService;
     private final TradeStatisticsManager tradeStatisticsManager;
@@ -81,7 +81,7 @@ public class CreateOfferService {
                               TxFeeEstimationService txFeeEstimationService,
                               PriceFeedService priceFeedService,
                               P2PService p2PService,
-                              PubKeyRingProvider pubKeyRing,
+                              PubKeyRingProvider pubKeyRingProvider,
                               User user,
                               BtcWalletService btcWalletService,
                               TradeStatisticsManager tradeStatisticsManager,
@@ -90,7 +90,7 @@ public class CreateOfferService {
         this.txFeeEstimationService = txFeeEstimationService;
         this.priceFeedService = priceFeedService;
         this.p2PService = p2PService;
-        this.pubKeyRing = pubKeyRing;
+        this.pubKeyRingProvider = pubKeyRingProvider;
         this.user = user;
         this.btcWalletService = btcWalletService;
         this.tradeStatisticsManager = tradeStatisticsManager;
@@ -197,7 +197,7 @@ public class CreateOfferService {
         OfferPayload offerPayload = new OfferPayload(offerId,
                 creationTime,
                 makerAddress,
-                pubKeyRing.get(),
+                pubKeyRingProvider.get(),
                 OfferPayload.Direction.valueOf(direction.name()),
                 priceAsLong,
                 marketPriceMarginParam,

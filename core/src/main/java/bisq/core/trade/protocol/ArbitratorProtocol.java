@@ -113,6 +113,7 @@ public class ArbitratorProtocol extends DisputeProtocol {
                 ProcessDepositRequest.class)
         .using(new TradeTaskRunner(trade,
                 () -> {
+                    stopTimeout();
                     handleTaskRunnerSuccess(sender, request);
                 },
                 errorMessage -> {

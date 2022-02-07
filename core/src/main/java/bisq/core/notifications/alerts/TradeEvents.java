@@ -40,15 +40,15 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @Singleton
 public class TradeEvents {
-    private final PubKeyRingProvider pubKeyRing;
+    private final PubKeyRingProvider pubKeyRingProvider;
     private final TradeManager tradeManager;
     private final MobileNotificationService mobileNotificationService;
 
     @Inject
-    public TradeEvents(TradeManager tradeManager, PubKeyRingProvider pubKeyRing, MobileNotificationService mobileNotificationService) {
+    public TradeEvents(TradeManager tradeManager, PubKeyRingProvider pubKeyRingProvider, MobileNotificationService mobileNotificationService) {
         this.tradeManager = tradeManager;
         this.mobileNotificationService = mobileNotificationService;
-        this.pubKeyRing = pubKeyRing;
+        this.pubKeyRingProvider = pubKeyRingProvider;
     }
 
     public void onAllServicesInitialized() {
@@ -73,19 +73,19 @@ public class TradeEvents {
                     case DEPOSIT_PUBLISHED:
                         break;
                     case DEPOSIT_CONFIRMED:
-                        if (trade.getContract() != null && pubKeyRing.get().equals(trade.getContract().getBuyerPubKeyRing()))
+                        if (trade.getContract() != null && pubKeyRingProvider.get().equals(trade.getContract().getBuyerPubKeyRing()))
                             msg = Res.get("account.notifications.trade.message.msg.conf", shortId);
                         break;
                     case FIAT_SENT:
                         // We only notify the seller
-                        if (trade.getContract() != null && pubKeyRing.get().equals(trade.getContract().getSellerPubKeyRing()))
+                        if (trade.getContract() != null && pubKeyRingProvider.get().equals(trade.getContract().getSellerPubKeyRing()))
                             msg = Res.get("account.notifications.trade.message.msg.started", shortId);
                         break;
                     case FIAT_RECEIVED:
                         break;
                     case PAYOUT_PUBLISHED:
                         // We only notify the buyer
-                        if (trade.getContract() != null && pubKeyRing.get().equals(trade.getContract().getBuyerPubKeyRing()))
+                        if (trade.getContract() != null && pubKeyRingProvider.get().equals(trade.getContract().getBuyerPubKeyRing()))
                             msg = Res.get("account.notifications.trade.message.msg.completed", shortId);
                         break;
                     case WITHDRAWN:

@@ -398,7 +398,7 @@ public class PendingTradesView extends ActivatableViewAndModel<VBox, PendingTrad
             return Res.get("portfolio.pending.failedTrade.missingContract");
         }
 
-        PubKeyRing myPubKeyRing = model.dataModel.getPubKeyRing().get();
+        PubKeyRing myPubKeyRing = model.dataModel.getPubKeyRingProvider().get();
         boolean isMyRoleBuyer = contract.isMyRoleBuyer(myPubKeyRing);
         boolean isMyRoleMaker = contract.isMyRoleMaker(myPubKeyRing);
 

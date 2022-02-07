@@ -35,17 +35,17 @@ public class TransactionAwareTradableFactory {
     private final ArbitrationManager arbitrationManager;
     private final RefundManager refundManager;
     private final XmrWalletService xmrWalletService;
-    private final PubKeyRingProvider pubKeyRing;
+    private final PubKeyRingProvider pubKeyRingProvider;
 
     @Inject
     TransactionAwareTradableFactory(ArbitrationManager arbitrationManager,
                                     RefundManager refundManager,
                                     XmrWalletService xmrWalletService,
-                                    PubKeyRingProvider pubKeyRing) {
+                                    PubKeyRingProvider pubKeyRingProvider) {
         this.arbitrationManager = arbitrationManager;
         this.refundManager = refundManager;
         this.xmrWalletService = xmrWalletService;
-        this.pubKeyRing = pubKeyRing;
+        this.pubKeyRingProvider = pubKeyRingProvider;
     }
 
     TransactionAwareTradable create(Tradable delegate) {
@@ -56,7 +56,7 @@ public class TransactionAwareTradableFactory {
                     arbitrationManager,
                     refundManager,
                     xmrWalletService,
-                    pubKeyRing.get());
+                    pubKeyRingProvider.get());
         } else {
             return new DummyTransactionAwareTradable(delegate);
         }

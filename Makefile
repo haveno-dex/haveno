@@ -72,7 +72,7 @@ arbitrator-daemon:
 		--appName=haveno-XMR_STAGENET_arbitrator \
 		--apiPassword=apitest \
 		--apiPort=9998 \
-		--passwordRequired=true
+		--passwordRequired=false
 
 alice-desktop:
 	./haveno-desktop \
@@ -95,7 +95,7 @@ alice-daemon:
 		--apiPassword=apitest \
 		--apiPort=9999 \
 		--walletRpcBindPort=38091 \
-		--passwordRequired=true
+		--passwordRequired=false
 
 bob-desktop:
 	./haveno-desktop \
@@ -118,7 +118,7 @@ bob-daemon:
 		--apiPassword=apitest \
 		--apiPort=10000 \
 		--walletRpcBindPort=38092 \
-		--passwordRequired=true
+		--passwordRequired=false
 
 monero-shared:
 	./.localnet/monerod \

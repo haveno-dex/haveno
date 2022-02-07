@@ -60,8 +60,8 @@ public class XmrWalletService {
     private static final MoneroWalletRpcManager MONERO_WALLET_RPC_MANAGER = new MoneroWalletRpcManager();
     private static final String MONERO_WALLET_RPC_DIR = System.getProperty("user.dir") + File.separator + ".localnet"; // .localnet contains monero-wallet-rpc and wallet files
     private static final String MONERO_WALLET_RPC_PATH = MONERO_WALLET_RPC_DIR + File.separator + "monero-wallet-rpc";
-    private static final String DEFAULT_WALLET_PASSWORD = "password"; // only used if account password is null
     private static final String MONERO_WALLET_RPC_USERNAME = "haveno_user";
+    private static final String MONERO_WALLET_RPC_DEFAULT_PASSWORD = "password"; // only used if account password is null
     private static final String MONERO_WALLET_NAME = "haveno_XMR";
     private static final long MONERO_WALLET_SYNC_RATE = 5000l;
 
@@ -151,7 +151,7 @@ public class XmrWalletService {
     }
     
     public String getWalletPassword() {
-        return accountService.getPassword() == null ? DEFAULT_WALLET_PASSWORD : accountService.getPassword();
+        return accountService.getPassword() == null ? MONERO_WALLET_RPC_DEFAULT_PASSWORD : accountService.getPassword();
     }
 
     public boolean walletExists(String walletName) {
@@ -244,7 +244,7 @@ public class XmrWalletService {
         return multisigWallet;
     }
 
-    public synchronized MoneroWallet getMultisigWallet(String tradeId) {
+    public MoneroWallet getMultisigWallet(String tradeId) { // TODO (woodser): synchronize per wallet id
         log.info("{}.getMultisigWallet({})", getClass(), tradeId);
         if (multisigWallets.containsKey(tradeId)) return multisigWallets.get(tradeId);
         String path = "xmr_multisig_trade_" + tradeId;
@@ -386,6 +386,9 @@ public class XmrWalletService {
         for (String multisigWalletKey : multisigWallets.keySet()) {
             openWallets.add(multisigWallets.get(multisigWalletKey));
         }
+
+        // done if no open wallets
+        if (openWallets.isEmpty()) return;
 
         // close all wallets in parallel
         ExecutorService pool = Executors.newFixedThreadPool(Math.min(10, openWallets.size()));

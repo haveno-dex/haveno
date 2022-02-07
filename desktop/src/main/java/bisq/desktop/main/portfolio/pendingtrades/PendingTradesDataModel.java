@@ -121,7 +121,7 @@ public class PendingTradesDataModel extends ActivatableDataModel {
     private ChangeListener<Trade.State> tradeStateChangeListener;
     private Trade selectedTrade;
     @Getter
-    private final PubKeyRingProvider pubKeyRing;
+    private final PubKeyRingProvider pubKeyRingProvider;
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Constructor, initialization
@@ -130,7 +130,7 @@ public class PendingTradesDataModel extends ActivatableDataModel {
     @Inject
     public PendingTradesDataModel(TradeManager tradeManager,
                                   XmrWalletService xmrWalletService,
-                                  PubKeyRingProvider pubKeyRing,
+                                  PubKeyRingProvider pubKeyRingProvider,
                                   ArbitrationManager arbitrationManager,
                                   MediationManager mediationManager,
                                   TraderChatManager traderChatManager,
@@ -144,7 +144,7 @@ public class PendingTradesDataModel extends ActivatableDataModel {
                                   OfferUtil offerUtil) {
         this.tradeManager = tradeManager;
         this.xmrWalletService = xmrWalletService;
-        this.pubKeyRing = pubKeyRing;
+        this.pubKeyRingProvider = pubKeyRingProvider;
         this.arbitrationManager = arbitrationManager;
         this.mediationManager = mediationManager;
         this.traderChatManager = traderChatManager;
@@ -514,11 +514,11 @@ public class PendingTradesDataModel extends ActivatableDataModel {
             byte[] depositTxSerialized = null;  // depositTx.bitcoinSerialize();  // TODO (woodser): no serialized txs in xmr
             Dispute dispute = new Dispute(new Date().getTime(),
                     trade.getId(),
-                    pubKeyRing.hashCode(), // traderId
+                    pubKeyRingProvider.get().hashCode(), // trader id
                     true,
                     (offer.getDirection() == OfferPayload.Direction.BUY) == isMaker,
                     isMaker,
-                    pubKeyRing.get(),
+                    pubKeyRingProvider.get(),
                     trade.getDate().getTime(),
                     trade.getMaxTradePeriodDate().getTime(),
                     trade.getContract(),
@@ -550,11 +550,11 @@ public class PendingTradesDataModel extends ActivatableDataModel {
           String depositTxHashAsString = null; // depositTx.getHashAsString(); TODO (woodser)
           Dispute dispute = new Dispute(new Date().getTime(),
                   trade.getId(),
-                  pubKeyRing.hashCode(), // traderId,
+                  pubKeyRingProvider.get().hashCode(), // trader id,
                   true,
                   (offer.getDirection() == OfferPayload.Direction.BUY) == isMaker,
                   isMaker,
-                  pubKeyRing.get(),
+                  pubKeyRingProvider.get(),
                   trade.getDate().getTime(),
                   trade.getMaxTradePeriodDate().getTime(),
                   trade.getContract(),

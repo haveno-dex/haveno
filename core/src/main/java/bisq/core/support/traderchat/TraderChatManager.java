@@ -47,7 +47,7 @@ import lombok.extern.slf4j.Slf4j;
 @Singleton
 public class TraderChatManager extends SupportManager {
     private final TradeManager tradeManager;
-    private final PubKeyRingProvider pubKeyRing;
+    private final PubKeyRingProvider pubKeyRingProvider;
 
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -58,10 +58,10 @@ public class TraderChatManager extends SupportManager {
     public TraderChatManager(P2PService p2PService,
                              CoreMoneroConnectionsService connectionService,
                              TradeManager tradeManager,
-                             PubKeyRingProvider pubKeyRing) {
+                             PubKeyRingProvider pubKeyRingProvider) {
         super(p2PService, connectionService);
         this.tradeManager = tradeManager;
-        this.pubKeyRing = pubKeyRing;
+        this.pubKeyRingProvider = pubKeyRingProvider;
     }
 
 
@@ -83,7 +83,7 @@ public class TraderChatManager extends SupportManager {
     public NodeAddress getPeerNodeAddress(ChatMessage message) {
         return tradeManager.getTradeById(message.getTradeId()).map(trade -> {
             if (trade.getContract() != null) {
-                return trade.getContract().getPeersNodeAddress(pubKeyRing.get());
+                return trade.getContract().getPeersNodeAddress(pubKeyRingProvider.get());
             } else {
                 return null;
             }
@@ -94,7 +94,7 @@ public class TraderChatManager extends SupportManager {
     public PubKeyRing getPeerPubKeyRing(ChatMessage message) {
         return tradeManager.getTradeById(message.getTradeId()).map(trade -> {
             if (trade.getContract() != null) {
-                return trade.getContract().getPeersPubKeyRing(pubKeyRing.get());
+                return trade.getContract().getPeersPubKeyRing(pubKeyRingProvider.get());
             } else {
                 return null;
             }
