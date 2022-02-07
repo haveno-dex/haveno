@@ -29,7 +29,9 @@ import javax.inject.Singleton;
 
 import org.bouncycastle.crypto.params.KeyParameter;
 
+import javax.crypto.BadPaddingException;
 import javax.crypto.SecretKey;
+import javax.crypto.spec.SecretKeySpec;
 
 import java.security.KeyFactory;
 import java.security.KeyPair;
@@ -69,12 +71,10 @@ import static bisq.common.util.Preconditions.checkDir;
 public class KeyStorage {
     private static final Logger log = LoggerFactory.getLogger(KeyStorage.class);
     private static final int SALT_LENGTH = 20;
-    private static final int SECRET_ITERATIONS = 65536;
-    private static final int SECRET_LENGTH = 256;
 
     private static final byte[] ENCRYPTED_FORMAT_MAGIC = "HVNENC".getBytes(StandardCharsets.UTF_8);
     private static final int ENCRYPTED_FORMAT_VERSION = 1;
-    private static final int ENCRYPTED_FORMAT_LENGTH = 4*4; // version,salt,iterations,length
+    private static final int ENCRYPTED_FORMAT_LENGTH = 4*2; // version,salt
 
     public enum KeyEntry {
         MSG_SIGNATURE("sig", Sig.KEY_ALGO),
@@ -154,27 +154,29 @@ public class KeyStorage {
                     int version = buf.getInt();
                     if (version != 1) throw new RuntimeException("Unable to parse encrypted keys");
                     int saltLength = buf.getInt();
-                    int iterations = buf.getInt();
-                    int secretLength = buf.getInt();
 
+                    // Read salt
                     byte[] salt = Arrays.copyOfRange(encodedPrivateKey, position, position + saltLength);
                     position += saltLength;
+
+                    // Payload key derived from password
                     KeyCrypterScrypt crypter = ScryptUtil.getKeyCrypterScrypt(salt);
                     KeyParameter pwKey = ScryptUtil.deriveKeyWithScrypt(crypter, password);
-                    byte[] pwEncrypted = Arrays.copyOfRange(encodedPrivateKey, position, position + pwKey.getKey().length);
-                    if (Arrays.compare(pwEncrypted, pwKey.getKey()) != 0) {
-                        throw new IncorrectPasswordException("Incorrect password");
-                    }
-                    position += pwEncrypted.length;
-
-                    // Payload salt
-                    salt = Arrays.copyOfRange(encodedPrivateKey, position, position + saltLength);
-                    position += saltLength;
-
-                    // Decrypt payload
-                    SecretKey secretKey = Encryption.generateSecretKey(password, salt, iterations, secretLength);
+                    SecretKey secretKey = new SecretKeySpec(pwKey.getKey(), Encryption.SYM_KEY_ALGO);
                     byte[] encryptedPayload = Arrays.copyOfRange(encodedPrivateKey, position, encodedPrivateKey.length);
-                    encodedPrivateKey = Encryption.decryptPayloadWithHmac(encryptedPayload, secretKey);
+
+                    // Decrypt key, handling exceptions caused by an incorrect password key
+                    try {
+                        encodedPrivateKey = Encryption.decryptPayloadWithHmac(encryptedPayload, secretKey);
+                    } catch (CryptoException ce) {
+                        // Most of the time (probably of slightly less than 255/256, around 99.61%) a bad password
+                        // will result in BadPaddingException before HMAC check.
+                        // See https://stackoverflow.com/questions/8049872/given-final-block-not-properly-padded
+                        if (ce.getCause() instanceof BadPaddingException || ce.getMessage() == Encryption.HMAC_ERROR_MSG)
+                            throw new IncorrectPasswordException("Incorrect password");
+                        else
+                            throw ce;
+                    }
                 }
 
                 PKCS8EncodedKeySpec privateKeySpec = new PKCS8EncodedKeySpec(encodedPrivateKey);
@@ -227,25 +229,20 @@ public class KeyStorage {
                 // Magic
                 fos.write(ENCRYPTED_FORMAT_MAGIC);
 
-                // Version, salt length, iterations, and secret length.
+                // Version, salt length
                 ByteBuffer header = ByteBuffer.allocate(ENCRYPTED_FORMAT_LENGTH);
                 header.putInt(ENCRYPTED_FORMAT_VERSION);
                 header.putInt(SALT_LENGTH);
-                header.putInt(SECRET_ITERATIONS);
-                header.putInt(SECRET_LENGTH);
                 fos.write(header.array());
 
-                // Write pw salt and pw encrypted
+                // Salt value
                 byte[] salt = CryptoUtils.getRandomBytes(SALT_LENGTH);
                 fos.write(salt);
+
+                // Generate secret from password key and salt
                 KeyCrypterScrypt crypter = ScryptUtil.getKeyCrypterScrypt(salt);
                 KeyParameter pwKey = ScryptUtil.deriveKeyWithScrypt(crypter, password);
-                fos.write(pwKey.getKey());
-
-                // Write new salt and generate SecretKey
-                salt = CryptoUtils.getRandomBytes(SALT_LENGTH);
-                fos.write(salt);
-                SecretKey secretKey = Encryption.generateSecretKey(password, salt, SECRET_ITERATIONS, SECRET_LENGTH);
+                SecretKey secretKey = new SecretKeySpec(pwKey.getKey(), Encryption.SYM_KEY_ALGO);
 
                 // Encrypt payload
                 keyBytes = Encryption.encryptPayloadWithHmac(keyBytes, secretKey);

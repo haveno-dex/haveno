@@ -56,10 +56,12 @@ public class Encryption {
     public static final String ASYM_KEY_ALGO = "RSA";
     private static final String ASYM_CIPHER = "RSA/ECB/OAEPWithSHA-256AndMGF1PADDING";
 
-    private static final String SYM_KEY_ALGO = "AES";
+    public static final String SYM_KEY_ALGO = "AES";
     private static final String SYM_CIPHER = "AES";
 
     private static final String HMAC = "HmacSHA256";
+
+    public static final String HMAC_ERROR_MSG = "Hmac does not match.";
 
     public static KeyPair generateKeyPair() {
         long ts = System.currentTimeMillis();
@@ -181,7 +183,7 @@ public class Encryption {
         if (verifyHmac(Hex.decode(payloadAsHex), Hex.decode(hmacAsHex), secretKey)) {
             return Hex.decode(payloadAsHex);
         } else {
-            throw new CryptoException("Hmac does not match.");
+            throw new CryptoException(HMAC_ERROR_MSG);
         }
     }
 
@@ -230,24 +232,6 @@ public class Encryption {
             log.error("Couldn't generate key", e);
             throw new RuntimeException("Couldn't generate key");
         }
-    }
-
-    /**
-     * Generates a secret key from password string.
-     * 
-     * @param p Password
-     * @param s Salt
-     * @param i Iterations
-     * @param l Key length
-     * @return
-     * @throws Exception
-     */
-    public static SecretKey generateSecretKey(String p, byte[] s, int i, int l) throws NoSuchAlgorithmException, InvalidKeySpecException {
-        PBEKeySpec ks = new PBEKeySpec(p.toCharArray(), s, i, l);
-        SecretKeyFactory skf = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA512");
-        SecretKey secret = skf.generateSecret(ks);
-        SecretKeySpec secretKeySpec = new SecretKeySpec(secret.getEncoded(), Encryption.SYM_KEY_ALGO);
-        return secretKeySpec;
     }
 
     public static byte[] getPublicKeyBytes(PublicKey encryptionPubKey) {
