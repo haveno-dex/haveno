@@ -24,9 +24,7 @@ import javax.crypto.Cipher;
 import javax.crypto.KeyGenerator;
 import javax.crypto.Mac;
 import javax.crypto.SecretKey;
-import javax.crypto.SecretKeyFactory;
 import javax.crypto.spec.OAEPParameterSpec;
-import javax.crypto.spec.PBEKeySpec;
 import javax.crypto.spec.PSource;
 import javax.crypto.spec.SecretKeySpec;
 
@@ -104,11 +102,6 @@ public class Encryption {
     public static SecretKey getSecretKeyFromBytes(byte[] secretKeyBytes) {
         return new SecretKeySpec(secretKeyBytes, 0, secretKeyBytes.length, SYM_KEY_ALGO);
     }
-
-    public static byte[] getSecretKeyBytes(SecretKey secretKey) {
-        return secretKey.getEncoded();
-    }
-
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Hmac
