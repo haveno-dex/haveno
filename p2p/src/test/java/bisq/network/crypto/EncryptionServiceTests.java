@@ -20,7 +20,6 @@ package bisq.network.crypto;
 import bisq.common.crypto.CryptoException;
 import bisq.common.crypto.KeyRing;
 import bisq.common.crypto.KeyStorage;
-import bisq.common.crypto.PubKeyRing;
 import bisq.common.file.FileUtil;
 import bisq.common.proto.network.NetworkEnvelope;
 
@@ -45,7 +44,6 @@ public class EncryptionServiceTests {
     @Rule
     public ExpectedException thrown = ExpectedException.none();
 
-    private PubKeyRing pubKeyRing;
     private KeyRing keyRing;
     private File dir;
 
@@ -58,8 +56,7 @@ public class EncryptionServiceTests {
         //noinspection ResultOfMethodCallIgnored
         dir.mkdir();
         KeyStorage keyStorage = new KeyStorage(dir);
-        keyRing = new KeyRing(keyStorage);
-        pubKeyRing = keyRing.getPubKeyRing();
+        keyRing = new KeyRing(keyStorage, null, true);
     }
 
     @After

@@ -24,20 +24,134 @@ option java_package = "bisq.proto.grpc";
 option java_multiple_files = true;
 
 ///////////////////////////////////////////////////////////////////////////////////////////
-// DisputeAgents
+// Help
 ///////////////////////////////////////////////////////////////////////////////////////////
 
-service DisputeAgents {
-    rpc RegisterDisputeAgent (RegisterDisputeAgentRequest) returns (RegisterDisputeAgentReply) {
+service Help {
+    rpc GetMethodHelp (GetMethodHelpRequest) returns (GetMethodHelpReply) {
     }
 }
 
-message RegisterDisputeAgentRequest {
-    string dispute_agent_type = 1;
-    string registration_key = 2;
+message GetMethodHelpRequest {
+    string method_name = 1;
 }
 
-message RegisterDisputeAgentReply {
+message GetMethodHelpReply {
+    string method_help = 1;
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////
+// Version
+///////////////////////////////////////////////////////////////////////////////////////////
+
+service GetVersion {
+    rpc GetVersion (GetVersionRequest) returns (GetVersionReply) {
+    }
+}
+
+message GetVersionRequest {
+}
+
+message GetVersionReply {
+    string version = 1;
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////
+// Account
+///////////////////////////////////////////////////////////////////////////////////////////
+
+service Account {
+    rpc AccountExists (AccountExistsRequest) returns (AccountExistsReply) {
+    }
+    rpc IsAccountOpen (IsAccountOpenRequest) returns (IsAccountOpenReply) {
+    }
+    rpc CreateAccount (CreateAccountRequest) returns (CreateAccountReply) {
+    }
+    rpc OpenAccount (OpenAccountRequest) returns (OpenAccountReply) {
+    }
+    rpc IsAppInitialized (IsAppInitializedRequest) returns (IsAppInitializedReply) {
+    }
+    rpc ChangePassword (ChangePasswordRequest) returns (ChangePasswordReply) {
+    }
+    rpc CloseAccount (CloseAccountRequest) returns (CloseAccountReply) {
+    }
+    rpc DeleteAccount (DeleteAccountRequest) returns (DeleteAccountReply) {
+    }
+    rpc BackupAccount (BackupAccountRequest) returns (stream BackupAccountReply) {
+    }
+    rpc RestoreAccount (RestoreAccountRequest) returns (RestoreAccountReply) {
+    }
+}
+
+message AccountExistsRequest {
+}
+
+message AccountExistsReply {
+    bool account_exists = 1;
+}
+
+message IsAccountOpenRequest {
+}
+
+message IsAccountOpenReply {
+    bool is_account_open = 1;
+}
+
+message CreateAccountRequest {
+    string password = 1;
+}
+
+message CreateAccountReply {
+}
+
+message OpenAccountRequest {
+    string password = 1;
+}
+
+message OpenAccountReply {
+}
+
+message IsAppInitializedRequest {
+}
+
+message IsAppInitializedReply {
+    bool is_app_initialized = 1;
+}
+
+message ChangePasswordRequest {
+    string password = 1;
+}
+
+message ChangePasswordReply {
+}
+
+message CloseAccountRequest {
+}
+
+message CloseAccountReply {
+}
+
+message DeleteAccountRequest {
+}
+
+message DeleteAccountReply {
+}
+
+message BackupAccountRequest {
+}
+
+message BackupAccountReply {
+    bytes zip_bytes = 1;
+}
+
+message RestoreAccountRequest {
+    bytes zip_bytes = 1;
+    uint64 offset = 2;
+    uint64 total_length = 3;
+    bool has_more = 4;
+}
+
+message RestoreAccountReply {
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////
@@ -56,9 +170,10 @@ message RegisterNotificationListenerRequest {
 
 message NotificationMessage {
     enum NotificationType {
-        TRADE_UPDATE = 0;
-        CHAT_MESSAGE = 1;
-        KEEP_ALIVE = 2;
+        APP_INITIALIZED = 0;
+        KEEP_ALIVE = 1;
+        TRADE_UPDATE = 2;
+        CHAT_MESSAGE = 3;
     }
 
     string id = 1;
@@ -78,20 +193,134 @@ message SendNotificationReply {
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////
-// Help
+// MoneroConnections
 ///////////////////////////////////////////////////////////////////////////////////////////
 
-service Help {
-    rpc GetMethodHelp (GetMethodHelpRequest) returns (GetMethodHelpReply) {
+service MoneroConnections {
+    rpc AddConnection (AddConnectionRequest) returns (AddConnectionReply) {
+    }
+    rpc RemoveConnection(RemoveConnectionRequest) returns (RemoveConnectionReply) {
+    }
+    rpc GetConnection(GetConnectionRequest) returns (GetConnectionReply) {
+    }
+    rpc GetConnections(GetConnectionsRequest) returns (GetConnectionsReply) {
+    }
+    rpc SetConnection(SetConnectionRequest) returns (SetConnectionReply) {
+    }
+    rpc CheckConnection(CheckConnectionRequest) returns (CheckConnectionReply) {
+    }
+    rpc CheckConnections(CheckConnectionsRequest) returns (CheckConnectionsReply) {
+    }
+    rpc StartCheckingConnections(StartCheckingConnectionsRequest) returns (StartCheckingConnectionsReply) {
+    }
+    rpc StopCheckingConnections(StopCheckingConnectionsRequest) returns (StopCheckingConnectionsReply) {
+    }
+    rpc GetBestAvailableConnection(GetBestAvailableConnectionRequest) returns (GetBestAvailableConnectionReply) {
+    }
+    rpc SetAutoSwitch(SetAutoSwitchRequest) returns (SetAutoSwitchReply) {
     }
 }
 
-message GetMethodHelpRequest {
-    string method_name = 1;
+message UrlConnection {
+    enum OnlineStatus {
+        UNKNOWN = 0;
+        ONLINE = 1;
+        OFFLINE = 2;
+    }
+    enum AuthenticationStatus {
+        NO_AUTHENTICATION = 0;
+        AUTHENTICATED = 1;
+        NOT_AUTHENTICATED = 2;
+    }
+
+    string url = 1;
+    string username = 2; // request only
+    string password = 3; // request only
+    int32 priority = 4;
+    OnlineStatus online_status = 5; // reply only
+    AuthenticationStatus authentication_status = 6; // reply only
 }
 
-message GetMethodHelpReply {
-    string method_help = 1;
+message AddConnectionRequest {
+    UrlConnection connection = 1;
+}
+
+message AddConnectionReply {}
+
+message RemoveConnectionRequest {
+    string url = 1;
+}
+
+message RemoveConnectionReply {}
+
+message GetConnectionRequest {}
+
+message GetConnectionReply {
+    UrlConnection connection = 1;
+}
+
+message GetConnectionsRequest {}
+
+message GetConnectionsReply {
+    repeated UrlConnection connections = 1;
+}
+
+message SetConnectionRequest {
+    string url = 1;
+    UrlConnection connection = 2;
+}
+
+message SetConnectionReply {}
+
+message CheckConnectionRequest {}
+
+message CheckConnectionReply {
+    UrlConnection connection = 1;
+}
+
+message CheckConnectionsRequest {}
+
+message CheckConnectionsReply {
+    repeated UrlConnection connections = 1;
+}
+
+message StartCheckingConnectionsRequest {
+    int32 refresh_period = 1; // milliseconds
+}
+
+message StartCheckingConnectionsReply {}
+
+message StopCheckingConnectionsRequest {}
+
+message StopCheckingConnectionsReply {}
+
+message GetBestAvailableConnectionRequest {}
+
+message GetBestAvailableConnectionReply {
+    UrlConnection connection = 1;
+}
+
+message SetAutoSwitchRequest {
+    bool auto_switch = 1;
+}
+
+message SetAutoSwitchReply {}
+
+///////////////////////////////////////////////////////////////////////////////////////////
+// DisputeAgents
+///////////////////////////////////////////////////////////////////////////////////////////
+
+service DisputeAgents {
+    rpc RegisterDisputeAgent (RegisterDisputeAgentRequest) returns (RegisterDisputeAgentReply) {
+    }
+}
+
+message RegisterDisputeAgentRequest {
+    string dispute_agent_type = 1;
+    string registration_key = 2;
+}
+
+message RegisterDisputeAgentReply {
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////
@@ -703,134 +932,4 @@ message AddressBalanceInfo {
     int64 balance = 2;
     int64 num_confirmations = 3;
     bool is_address_unused = 4;
-}
-
-///////////////////////////////////////////////////////////////////////////////////////////
-// MoneroConnections
-///////////////////////////////////////////////////////////////////////////////////////////
-
-service MoneroConnections {
-    rpc AddConnection (AddConnectionRequest) returns (AddConnectionReply) {
-    }
-    rpc RemoveConnection(RemoveConnectionRequest) returns (RemoveConnectionReply) {
-    }
-    rpc GetConnection(GetConnectionRequest) returns (GetConnectionReply) {
-    }
-    rpc GetConnections(GetConnectionsRequest) returns (GetConnectionsReply) {
-    }
-    rpc SetConnection(SetConnectionRequest) returns (SetConnectionReply) {
-    }
-    rpc CheckConnection(CheckConnectionRequest) returns (CheckConnectionReply) {
-    }
-    rpc CheckConnections(CheckConnectionsRequest) returns (CheckConnectionsReply) {
-    }
-    rpc StartCheckingConnections(StartCheckingConnectionsRequest) returns (StartCheckingConnectionsReply) {
-    }
-    rpc StopCheckingConnections(StopCheckingConnectionsRequest) returns (StopCheckingConnectionsReply) {
-    }
-    rpc GetBestAvailableConnection(GetBestAvailableConnectionRequest) returns (GetBestAvailableConnectionReply) {
-    }
-    rpc SetAutoSwitch(SetAutoSwitchRequest) returns (SetAutoSwitchReply) {
-    }
-}
-
-message UriConnection {
-    enum OnlineStatus {
-        UNKNOWN = 0;
-        ONLINE = 1;
-        OFFLINE = 2;
-    }
-    enum AuthenticationStatus {
-        NO_AUTHENTICATION = 0;
-        AUTHENTICATED = 1;
-        NOT_AUTHENTICATED = 2;
-    }
-
-    string uri = 1;
-    string username = 2; // request only
-    string password = 3; // request only
-    int32 priority = 4;
-    OnlineStatus online_status = 5; // reply only
-    AuthenticationStatus authentication_status = 6; // reply only
-}
-
-message AddConnectionRequest {
-    UriConnection connection = 1;
-}
-
-message AddConnectionReply {}
-
-message RemoveConnectionRequest {
-    string uri = 1;
-}
-
-message RemoveConnectionReply {}
-
-message GetConnectionRequest {}
-
-message GetConnectionReply {
-    UriConnection connection = 1;
-}
-
-message GetConnectionsRequest {}
-
-message GetConnectionsReply {
-    repeated UriConnection connections = 1;
-}
-
-message SetConnectionRequest {
-    string uri = 1;
-    UriConnection connection = 2;
-}
-
-message SetConnectionReply {}
-
-message CheckConnectionRequest {}
-
-message CheckConnectionReply {
-    UriConnection connection = 1;
-}
-
-message CheckConnectionsRequest {}
-
-message CheckConnectionsReply {
-    repeated UriConnection connections = 1;
-}
-
-message StartCheckingConnectionsRequest {
-    int32 refresh_period = 1; // milliseconds
-}
-
-message StartCheckingConnectionsReply {}
-
-message StopCheckingConnectionsRequest {}
-
-message StopCheckingConnectionsReply {}
-
-message GetBestAvailableConnectionRequest {}
-
-message GetBestAvailableConnectionReply {
-    UriConnection connection = 1;
-}
-
-message SetAutoSwitchRequest {
-    bool auto_switch = 1;
-}
-
-message SetAutoSwitchReply {}
-
-///////////////////////////////////////////////////////////////////////////////////////////
-// Version
-///////////////////////////////////////////////////////////////////////////////////////////
-
-service GetVersion {
-    rpc GetVersion (GetVersionRequest) returns (GetVersionReply) {
-    }
-}
-
-message GetVersionRequest {
-}
-
-message GetVersionReply {
-    string version = 1;
 }

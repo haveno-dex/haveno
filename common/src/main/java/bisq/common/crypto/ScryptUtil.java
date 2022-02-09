@@ -15,7 +15,7 @@
  * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.core.crypto;
+package bisq.common.crypto;
 
 import bisq.common.UserThread;
 import bisq.common.util.Utilities;
@@ -51,15 +51,26 @@ public class ScryptUtil {
                 .build();
         return new KeyCrypterScrypt(scryptParameters);
     }
+    
+    public static KeyParameter deriveKeyWithScrypt(KeyCrypterScrypt keyCrypterScrypt, String password) {
+        try {
+            log.debug("Doing key derivation");
+            long start = System.currentTimeMillis();
+            KeyParameter aesKey = keyCrypterScrypt.deriveKey(password);
+            long duration = System.currentTimeMillis() - start;
+            log.debug("Key derivation took {} msec", duration);
+            return aesKey;
+        } catch (Throwable t) {
+            t.printStackTrace();
+            log.error("Key derivation failed. " + t.getMessage());
+            throw t;
+        }
+    }
 
     public static void deriveKeyWithScrypt(KeyCrypterScrypt keyCrypterScrypt, String password, DeriveKeyResultHandler resultHandler) {
         Utilities.getThreadPoolExecutor("ScryptUtil:deriveKeyWithScrypt-%d", 1, 2, 5L).submit(() -> {
             try {
-                log.debug("Doing key derivation");
-                long start = System.currentTimeMillis();
-                KeyParameter aesKey = keyCrypterScrypt.deriveKey(password);
-                long duration = System.currentTimeMillis() - start;
-                log.debug("Key derivation took {} msec", duration);
+                KeyParameter aesKey = deriveKeyWithScrypt(keyCrypterScrypt, password);
                 UserThread.execute(() -> {
                     try {
                         resultHandler.handleResult(aesKey);

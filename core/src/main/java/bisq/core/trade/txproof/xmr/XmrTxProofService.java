@@ -17,7 +17,7 @@
 
 package bisq.core.trade.txproof.xmr;
 
-import bisq.core.btc.setup.WalletsSetup;
+import bisq.core.api.CoreMoneroConnectionsService;
 import bisq.core.filter.FilterManager;
 import bisq.core.locale.Res;
 import bisq.core.support.dispute.mediation.MediationManager;
@@ -76,7 +76,7 @@ public class XmrTxProofService implements AssetTxProofService {
     private final MediationManager mediationManager;
     private final RefundManager refundManager;
     private final P2PService p2PService;
-    private final WalletsSetup walletsSetup;
+    private final CoreMoneroConnectionsService connectionService;
     private final Socks5ProxyProvider socks5ProxyProvider;
     private final Map<String, XmrTxProofRequestsPerTrade> servicesByTradeId = new HashMap<>();
     private AutoConfirmSettings autoConfirmSettings;
@@ -101,7 +101,7 @@ public class XmrTxProofService implements AssetTxProofService {
                              MediationManager mediationManager,
                              RefundManager refundManager,
                              P2PService p2PService,
-                             WalletsSetup walletsSetup,
+                             CoreMoneroConnectionsService connectionService,
                              Socks5ProxyProvider socks5ProxyProvider) {
         this.filterManager = filterManager;
         this.preferences = preferences;
@@ -111,7 +111,7 @@ public class XmrTxProofService implements AssetTxProofService {
         this.mediationManager = mediationManager;
         this.refundManager = refundManager;
         this.p2PService = p2PService;
-        this.walletsSetup = walletsSetup;
+        this.connectionService = connectionService;
         this.socks5ProxyProvider = socks5ProxyProvider;
     }
 
@@ -289,32 +289,32 @@ public class XmrTxProofService implements AssetTxProofService {
 
     private BooleanProperty isXmrBlockDownloadComplete() {
         BooleanProperty result = new SimpleBooleanProperty();
-        if (walletsSetup.isDownloadComplete()) {
+        if (connectionService.isDownloadComplete()) {
             result.set(true);
         } else {
             xmrBlockListener = (observable, oldValue, newValue) -> {
-                if (walletsSetup.isDownloadComplete()) {
-                    walletsSetup.downloadPercentageProperty().removeListener(xmrBlockListener);
+                if (connectionService.isDownloadComplete()) {
+                    connectionService.downloadPercentageProperty().removeListener(xmrBlockListener);
                     result.set(true);
                 }
             };
-            walletsSetup.downloadPercentageProperty().addListener(xmrBlockListener);
+            connectionService.downloadPercentageProperty().addListener(xmrBlockListener);
         }
         return result;
     }
 
     private BooleanProperty hasSufficientXmrPeers() {
         BooleanProperty result = new SimpleBooleanProperty();
-        if (walletsSetup.hasSufficientPeersForBroadcast()) {
+        if (connectionService.hasSufficientPeersForBroadcast()) {
             result.set(true);
         } else {
             xmrPeersListener = (observable, oldValue, newValue) -> {
-                if (walletsSetup.hasSufficientPeersForBroadcast()) {
-                    walletsSetup.numPeersProperty().removeListener(xmrPeersListener);
+                if (connectionService.hasSufficientPeersForBroadcast()) {
+                    connectionService.numPeersProperty().removeListener(xmrPeersListener);
                     result.set(true);
                 }
             };
-            walletsSetup.numPeersProperty().addListener(xmrPeersListener);
+            connectionService.numPeersProperty().addListener(xmrPeersListener);
         }
         return result;
     }

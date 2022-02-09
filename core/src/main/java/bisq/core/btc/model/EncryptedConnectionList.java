@@ -2,12 +2,14 @@ package bisq.core.btc.model;
 
 import bisq.common.crypto.CryptoException;
 import bisq.common.crypto.Encryption;
+import bisq.common.crypto.ScryptUtil;
 import bisq.common.persistence.PersistenceManager;
 import bisq.common.proto.persistable.PersistableEnvelope;
 import bisq.common.proto.persistable.PersistedDataHost;
 import bisq.core.api.CoreAccountService;
 import bisq.core.api.model.EncryptedConnection;
-import bisq.core.crypto.ScryptUtil;
+import com.google.protobuf.ByteString;
+import com.google.protobuf.Message;
 import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
 import java.util.HashMap;
@@ -22,8 +24,6 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import javax.crypto.SecretKey;
 import javax.inject.Inject;
-import com.google.protobuf.ByteString;
-import com.google.protobuf.Message;
 import lombok.NonNull;
 import monero.common.MoneroRpcConnection;
 import org.bitcoinj.crypto.KeyCrypterScrypt;
@@ -60,7 +60,7 @@ public class EncryptedConnectionList implements PersistableEnvelope, PersistedDa
     transient private PersistenceManager<EncryptedConnectionList> persistenceManager;
 
     private final Map<String, EncryptedConnection> items = new HashMap<>();
-    private @NonNull String currentConnectionUri = "";
+    private @NonNull String currentConnectionUrl = "";
     private long refreshPeriod;
     private boolean autoSwitch;
 
@@ -70,17 +70,16 @@ public class EncryptedConnectionList implements PersistableEnvelope, PersistedDa
         this.accountService = accountService;
         this.persistenceManager = persistenceManager;
         this.persistenceManager.initialize(this, "EncryptedConnectionList", PersistenceManager.Source.PRIVATE);
-        this.accountService.addPasswordChangeListener(this::onPasswordChange);
     }
 
     private EncryptedConnectionList(byte[] salt,
                               List<EncryptedConnection> items,
-                              @NonNull String currentConnectionUri,
+                              @NonNull String currentConnectionUrl,
                               long refreshPeriod,
                               boolean autoSwitch) {
         this.keyCrypterScrypt = ScryptUtil.getKeyCrypterScrypt(salt);
-        this.items.putAll(items.stream().collect(Collectors.toMap(EncryptedConnection::getUri, Function.identity())));
-        this.currentConnectionUri = currentConnectionUri;
+        this.items.putAll(items.stream().collect(Collectors.toMap(EncryptedConnection::getUrl, Function.identity())));
+        this.currentConnectionUrl = currentConnectionUrl;
         this.refreshPeriod = refreshPeriod;
         this.autoSwitch = autoSwitch;
     }
@@ -93,9 +92,11 @@ public class EncryptedConnectionList implements PersistableEnvelope, PersistedDa
                 initializeEncryption(persistedEncryptedConnectionList.keyCrypterScrypt);
                 items.clear();
                 items.putAll(persistedEncryptedConnectionList.items);
-                currentConnectionUri = persistedEncryptedConnectionList.currentConnectionUri;
+                currentConnectionUrl = persistedEncryptedConnectionList.currentConnectionUrl;
                 refreshPeriod = persistedEncryptedConnectionList.refreshPeriod;
                 autoSwitch = persistedEncryptedConnectionList.autoSwitch;
+            } catch (Exception e) {
+                e.printStackTrace();
             } finally {
                 writeLock.unlock();
             }
@@ -104,6 +105,8 @@ public class EncryptedConnectionList implements PersistableEnvelope, PersistedDa
             writeLock.lock();
             try {
                 initializeEncryption(ScryptUtil.getKeyCrypterScrypt());
+            } catch (Exception e) {
+                e.printStackTrace();
             } finally {
                 writeLock.unlock();
             }
@@ -203,11 +206,11 @@ public class EncryptedConnectionList implements PersistableEnvelope, PersistedDa
         }
     }
 
-    public void setCurrentConnectionUri(String currentConnectionUri) {
+    public void setCurrentConnectionUri(String currentConnectionUrl) {
         boolean changed;
         writeLock.lock();
         try {
-            changed = !this.currentConnectionUri.equals(this.currentConnectionUri = currentConnectionUri == null ? "" : currentConnectionUri);
+            changed = !this.currentConnectionUrl.equals(this.currentConnectionUrl = currentConnectionUrl == null ? "" : currentConnectionUrl);
         } finally {
             writeLock.unlock();
         }
@@ -219,17 +222,54 @@ public class EncryptedConnectionList implements PersistableEnvelope, PersistedDa
     public Optional<String> getCurrentConnectionUri() {
         readLock.lock();
         try {
-            return Optional.of(currentConnectionUri).filter(s -> !s.isEmpty());
+            return Optional.of(currentConnectionUrl).filter(s -> !s.isEmpty());
         } finally {
             readLock.unlock();
         }
     }
 
-    private void requestPersistence() {
+    public void requestPersistence() {
         persistenceManager.requestPersistence();
     }
+    
+    @Override
+    public Message toProtoMessage() {
+        List<protobuf.EncryptedConnection> connections;
+        ByteString saltString;
+        String currentConnectionUrl;
+        boolean autoSwitchEnabled;
+        long refreshPeriod;
+        readLock.lock();
+        try {
+            connections = items.values().stream()
+                    .map(EncryptedConnection::toProtoMessage).collect(Collectors.toList());
+            saltString = keyCrypterScrypt.getScryptParameters().getSalt();
+            currentConnectionUrl = this.currentConnectionUrl;
+            autoSwitchEnabled = this.autoSwitch;
+            refreshPeriod = this.refreshPeriod;
+        } finally {
+            readLock.unlock();
+        }
+        return protobuf.PersistableEnvelope.newBuilder()
+                .setEncryptedConnectionList(protobuf.EncryptedConnectionList.newBuilder()
+                        .setSalt(saltString)
+                        .addAllItems(connections)
+                        .setCurrentConnectionUrl(currentConnectionUrl)
+                        .setRefreshPeriod(refreshPeriod)
+                        .setAutoSwitch(autoSwitchEnabled))
+                .build();
+    }
 
-    private void onPasswordChange(String oldPassword, String newPassword) {
+    public static EncryptedConnectionList fromProto(protobuf.EncryptedConnectionList proto) {
+        List<EncryptedConnection> items = proto.getItemsList().stream()
+                .map(EncryptedConnection::fromProto)
+                .collect(Collectors.toList());
+        return new EncryptedConnectionList(proto.getSalt().toByteArray(), items, proto.getCurrentConnectionUrl(), proto.getRefreshPeriod(), proto.getAutoSwitch());
+    }
+    
+    // ----------------------------- HELPERS ----------------------------------
+    
+    public void changePassword(String oldPassword, String newPassword) {
         writeLock.lock();
         try {
             SecretKey oldSecret = encryptionKey;
@@ -243,9 +283,7 @@ public class EncryptedConnectionList implements PersistableEnvelope, PersistedDa
     }
 
     private SecretKey toSecretKey(String password) {
-        if (password == null) {
-            return null;
-        }
+        if (password == null) return null;
         return Encryption.getSecretKeyFromBytes(keyCrypterScrypt.deriveKey(password).getKey());
     }
 
@@ -265,6 +303,7 @@ public class EncryptedConnectionList implements PersistableEnvelope, PersistedDa
     }
 
     private static byte[] decrypt(byte[] encrypted, SecretKey secret) {
+        if (secret == null) return encrypted; // no encryption
         try {
             return Encryption.decrypt(encrypted, secret);
         } catch (CryptoException e) {
@@ -273,6 +312,7 @@ public class EncryptedConnectionList implements PersistableEnvelope, PersistedDa
     }
 
     private static byte[] encrypt(byte[] unencrypted, SecretKey secretKey) {
+        if (secretKey == null) return unencrypted; // no encryption
         try {
             return Encryption.encrypt(unencrypted, secretKey);
         } catch (CryptoException e) {
@@ -286,7 +326,7 @@ public class EncryptedConnectionList implements PersistableEnvelope, PersistedDa
         byte[] passwordSalt = generateSalt(passwordBytes);
         byte[] encryptedPassword = encryptPassword(passwordBytes, passwordSalt);
         return EncryptedConnection.builder()
-                .uri(connection.getUri())
+                .url(connection.getUri())
                 .username(connection.getUsername() == null ? "" : connection.getUsername())
                 .encryptedPassword(encryptedPassword)
                 .encryptionSalt(passwordSalt)
@@ -298,7 +338,7 @@ public class EncryptedConnectionList implements PersistableEnvelope, PersistedDa
         byte[] decryptedPasswordBytes = decryptPassword(connection.getEncryptedPassword(), connection.getEncryptionSalt());
         String password = decryptedPasswordBytes == null ? null : new String(decryptedPasswordBytes, StandardCharsets.UTF_8);
         String username = connection.getUsername().isEmpty() ? null : connection.getUsername();
-        MoneroRpcConnection moneroRpcConnection = new MoneroRpcConnection(connection.getUri(), username, password);
+        MoneroRpcConnection moneroRpcConnection = new MoneroRpcConnection(connection.getUrl(), username, password);
         moneroRpcConnection.setPriority(connection.getPriority());
         return moneroRpcConnection;
     }
@@ -356,40 +396,5 @@ public class EncryptedConnectionList implements PersistableEnvelope, PersistedDa
             }
         }
         return true;
-    }
-
-    @Override
-    public Message toProtoMessage() {
-        List<protobuf.EncryptedConnection> connections;
-        ByteString saltString;
-        String currentConnectionUri;
-        boolean autoSwitchEnabled;
-        long refreshPeriod;
-        readLock.lock();
-        try {
-            connections = items.values().stream()
-                    .map(EncryptedConnection::toProtoMessage).collect(Collectors.toList());
-            saltString = keyCrypterScrypt.getScryptParameters().getSalt();
-            currentConnectionUri = this.currentConnectionUri;
-            autoSwitchEnabled = this.autoSwitch;
-            refreshPeriod = this.refreshPeriod;
-        } finally {
-            readLock.unlock();
-        }
-        return protobuf.PersistableEnvelope.newBuilder()
-                .setEncryptedConnectionList(protobuf.EncryptedConnectionList.newBuilder()
-                        .setSalt(saltString)
-                        .addAllItems(connections)
-                        .setCurrentConnectionUri(currentConnectionUri)
-                        .setRefreshPeriod(refreshPeriod)
-                        .setAutoSwitch(autoSwitchEnabled))
-                .build();
-    }
-
-    public static EncryptedConnectionList fromProto(protobuf.EncryptedConnectionList proto) {
-        List<EncryptedConnection> items = proto.getItemsList().stream()
-                .map(EncryptedConnection::fromProto)
-                .collect(Collectors.toList());
-        return new EncryptedConnectionList(proto.getSalt().toByteArray(), items, proto.getCurrentConnectionUri(), proto.getRefreshPeriod(), proto.getAutoSwitch());
     }
 }

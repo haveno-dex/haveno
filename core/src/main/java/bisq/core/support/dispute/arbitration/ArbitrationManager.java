@@ -17,7 +17,7 @@
 
 package bisq.core.support.dispute.arbitration;
 
-import bisq.core.btc.setup.WalletsSetup;
+import bisq.core.api.CoreMoneroConnectionsService;
 import bisq.core.btc.wallet.TradeWalletService;
 import bisq.core.btc.wallet.XmrWalletService;
 import bisq.core.locale.Res;
@@ -95,7 +95,7 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
     public ArbitrationManager(P2PService p2PService,
                               TradeWalletService tradeWalletService,
                               XmrWalletService walletService,
-                              WalletsSetup walletsSetup,
+                              CoreMoneroConnectionsService connectionService,
                               TradeManager tradeManager,
                               ClosedTradableManager closedTradableManager,
                               OpenOfferManager openOfferManager,
@@ -103,7 +103,7 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
                               ArbitrationDisputeListService arbitrationDisputeListService,
                               Config config,
                               PriceFeedService priceFeedService) {
-        super(p2PService, tradeWalletService, walletService, walletsSetup, tradeManager, closedTradableManager,
+        super(p2PService, tradeWalletService, walletService, connectionService, tradeManager, closedTradableManager,
                 openOfferManager, keyRing, arbitrationDisputeListService, config, priceFeedService);
     }
 
@@ -365,18 +365,18 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
         cleanupRetryMap(uid);
 
         // update multisig wallet
+        // TODO: multisig wallet may already be deleted if peer completed trade with arbitrator. refactor trade completion?
         MoneroWallet multisigWallet = xmrWalletService.getMultisigWallet(dispute.getTradeId());
-        multisigWallet.importMultisigHex(Arrays.asList(peerPublishedDisputePayoutTxMessage.getUpdatedMultisigHex()));
-
-        // parse payout tx
-        MoneroTxWallet parsedPayoutTx = multisigWallet.describeTxSet(new MoneroTxSet().setMultisigTxHex(peerPublishedDisputePayoutTxMessage.getPayoutTxHex())).getTxs().get(0);
+        if (multisigWallet != null) {
+            multisigWallet.importMultisigHex(Arrays.asList(peerPublishedDisputePayoutTxMessage.getUpdatedMultisigHex()));
+            MoneroTxWallet parsedPayoutTx = multisigWallet.describeTxSet(new MoneroTxSet().setMultisigTxHex(peerPublishedDisputePayoutTxMessage.getPayoutTxHex())).getTxs().get(0);
+            dispute.setDisputePayoutTxId(parsedPayoutTx.getHash());
+            XmrWalletService.printTxs("Disputed payoutTx received from peer", parsedPayoutTx);
+        }
 
 //        System.out.println("LOSER'S VIEW OF MULTISIG WALLET (SHOULD INCLUDE PAYOUT TX):\n" + multisigWallet.getTxs());
 //        if (multisigWallet.getTxs().size() != 3) throw new RuntimeException("Loser's multisig wallet does not include record of payout tx");
 //        Transaction committedDisputePayoutTx = WalletService.maybeAddNetworkTxToWallet(peerPublishedDisputePayoutTxMessage.getTransaction(), btcWalletService.getWallet());
-
-        dispute.setDisputePayoutTxId(parsedPayoutTx.getHash());
-        XmrWalletService.printTxs("Disputed payoutTx received from peer", parsedPayoutTx);
 
         // We can only send the ack msg if we have the peersPubKeyRing which requires the dispute
         sendAckMessage(peerPublishedDisputePayoutTxMessage, peersPubKeyRing, true, null);
@@ -436,7 +436,7 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
           UUID.randomUUID().toString(),
           SupportType.ARBITRATION,
           payoutTx.getTxSet().getMultisigTxHex());
-      log.info("Send {} to peer {}. tradeId={}, uid={}", response.getClass().getSimpleName(), contract.getArbitratorNodeAddress(), dispute.getTradeId(), response.getUid());
+      log.info("Send {} to peer {}. tradeId={}, uid={}", response.getClass().getSimpleName(), request.getSenderNodeAddress(), dispute.getTradeId(), response.getUid());
       p2PService.sendEncryptedDirectMessage(request.getSenderNodeAddress(),
           senderPubKeyRing,
           response,
@@ -644,8 +644,6 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
           numAttempts++;
           payoutTx = multisigWallet.createTx(txConfig);
         } catch (MoneroError e) {
-            System.out.println(e.toString());
-            System.out.println(e.getStackTrace());
           // exception expected // TODO: better way of estimating fee?
         }
       }
@@ -715,7 +713,6 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
       // payout amount is dispute payout amount - 1/2 tx cost - deposit tx fee
 
       // TODO (woodser): VERIFY PAYOUT TX AMOUNTS WHICH CONSIDERS FEE IF LONG TRADE, EXACT AMOUNT IF SHORT TRADE
-
 
   //    if (!buyerPayoutDestination.getAmount().equals(expectedBuyerPayout)) throw new RuntimeException("Buyer destination amount is not payout amount - 1/2 tx costs, " + buyerPayoutDestination.getAmount() + " vs " + expectedBuyerPayout);
 

@@ -18,6 +18,7 @@
 package bisq.core.app;
 
 import bisq.core.api.CoreContext;
+import bisq.core.api.CoreMoneroConnectionsService;
 import bisq.core.btc.exceptions.InvalidHostException;
 import bisq.core.btc.exceptions.RejectedTxException;
 import bisq.core.btc.setup.WalletsSetup;
@@ -67,6 +68,7 @@ public class WalletAppSetup {
     private final CoreContext coreContext;
     private final WalletsManager walletsManager;
     private final WalletsSetup walletsSetup;
+    private final CoreMoneroConnectionsService connectionService;
     private final FeeService feeService;
     private final Config config;
     private final Preferences preferences;
@@ -91,12 +93,14 @@ public class WalletAppSetup {
     public WalletAppSetup(CoreContext coreContext,
                           WalletsManager walletsManager,
                           WalletsSetup walletsSetup,
+                          CoreMoneroConnectionsService connectionService,
                           FeeService feeService,
                           Config config,
                           Preferences preferences) {
         this.coreContext = coreContext;
         this.walletsManager = walletsManager;
         this.walletsSetup = walletsSetup;
+        this.connectionService = connectionService;
         this.feeService = feeService;
         this.config = config;
         this.preferences = preferences;
@@ -115,8 +119,8 @@ public class WalletAppSetup {
                 VersionMessage.BITCOINJ_VERSION, "2a80db4");
 
         ObjectProperty<Throwable> walletServiceException = new SimpleObjectProperty<>();
-        btcInfoBinding = EasyBind.combine(walletsSetup.downloadPercentageProperty(),
-                walletsSetup.chainHeightProperty(),
+        btcInfoBinding = EasyBind.combine(connectionService.downloadPercentageProperty(), // TODO (woodser): update to XMR
+                connectionService.chainHeightProperty(),
                 feeService.feeUpdateCounterProperty(),
                 walletServiceException,
                 (downloadPercentage, chainHeight, feeUpdate, exception) -> {
@@ -124,10 +128,8 @@ public class WalletAppSetup {
                     if (exception == null) {
                         double percentage = (double) downloadPercentage;
                         btcSyncProgress.set(percentage);
-                        int bestChainHeight = walletsSetup.getChain() != null ?
-                                walletsSetup.getChain().getBestChainHeight() :
-                                0;
-                        String chainHeightAsString = bestChainHeight > 0 ?
+                        Long bestChainHeight = connectionService.getDaemon() == null ? null : connectionService.getDaemon().getInfo().getHeight();
+                        String chainHeightAsString = bestChainHeight != null && bestChainHeight > 0 ?
                                 String.valueOf(bestChainHeight) :
                                 "";
                         if (percentage == 1) {

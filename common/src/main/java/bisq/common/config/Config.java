@@ -114,6 +114,7 @@ public class Config {
     public static final String BTC_MIN_TX_FEE = "btcMinTxFee";
     public static final String BTC_FEES_TS = "bitcoinFeesTs";
     public static final String BYPASS_MEMPOOL_VALIDATION = "bypassMempoolValidation";
+    public static final String PASSWORD_REQUIRED = "passwordRequired";
 
     // Default values for certain options
     public static final int UNSPECIFIED_PORT = -1;
@@ -190,6 +191,7 @@ public class Config {
     public final boolean preventPeriodicShutdownAtSeedNode;
     public final boolean republishMailboxEntries;
     public final boolean bypassMempoolValidation;
+    public final boolean passwordRequired;
 
     // Properties derived from options but not exposed as options themselves
     public final File torDir;
@@ -579,6 +581,13 @@ public class Config {
                         .ofType(boolean.class)
                         .defaultsTo(false);
 
+        ArgumentAcceptingOptionSpec<Boolean> passwordRequiredOpt =
+                parser.accepts(PASSWORD_REQUIRED,
+                        "Requires a password for creating a Haveno account")
+                        .withRequiredArg()
+                        .ofType(boolean.class)
+                        .defaultsTo(false);
+
         try {
             CompositeOptionSet options = new CompositeOptionSet();
 
@@ -686,6 +695,7 @@ public class Config {
             this.preventPeriodicShutdownAtSeedNode = options.valueOf(preventPeriodicShutdownAtSeedNodeOpt);
             this.republishMailboxEntries = options.valueOf(republishMailboxEntriesOpt);
             this.bypassMempoolValidation = options.valueOf(bypassMempoolValidationOpt);
+            this.passwordRequired = options.valueOf(passwordRequiredOpt);
         } catch (OptionException ex) {
             throw new ConfigException("problem parsing option '%s': %s",
                     ex.options().get(0),

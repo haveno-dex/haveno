@@ -17,22 +17,18 @@
 
 package bisq.core.app;
 
-import bisq.core.btc.setup.WalletsSetup;
-
+import bisq.core.api.CoreMoneroConnectionsService;
+import bisq.core.api.CoreNotificationService;
 import bisq.network.p2p.BootstrapListener;
 import bisq.network.p2p.P2PService;
-
-import javax.inject.Inject;
-import javax.inject.Singleton;
-
-import org.fxmisc.easybind.EasyBind;
-import org.fxmisc.easybind.monadic.MonadicBinding;
-
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.ReadOnlyBooleanProperty;
 import javafx.beans.property.SimpleBooleanProperty;
-
+import javax.inject.Inject;
+import javax.inject.Singleton;
 import lombok.extern.slf4j.Slf4j;
+import org.fxmisc.easybind.EasyBind;
+import org.fxmisc.easybind.monadic.MonadicBinding;
 
 /**
  * We often need to wait until network and wallet is ready or other combination of startup states.
@@ -53,7 +49,9 @@ public class AppStartupState {
     private final BooleanProperty hasSufficientPeersForBroadcast = new SimpleBooleanProperty();
 
     @Inject
-    public AppStartupState(WalletsSetup walletsSetup, P2PService p2PService) {
+    public AppStartupState(CoreNotificationService notificationService,
+                           CoreMoneroConnectionsService connectionsService,
+                           P2PService p2PService) {
 
         p2PService.addP2PServiceListener(new BootstrapListener() {
             @Override
@@ -62,13 +60,13 @@ public class AppStartupState {
             }
         });
 
-        walletsSetup.downloadPercentageProperty().addListener((observable, oldValue, newValue) -> {
-            if (walletsSetup.isDownloadComplete())
+        connectionsService.downloadPercentageProperty().addListener((observable, oldValue, newValue) -> {
+            if (connectionsService.isDownloadComplete())
                 isBlockDownloadComplete.set(true);
         });
 
-        walletsSetup.numPeersProperty().addListener((observable, oldValue, newValue) -> {
-            if (walletsSetup.hasSufficientPeersForBroadcast())
+        connectionsService.numPeersProperty().addListener((observable, oldValue, newValue) -> {
+            if (connectionsService.hasSufficientPeersForBroadcast())
                 hasSufficientPeersForBroadcast.set(true);
         });
 
@@ -77,6 +75,7 @@ public class AppStartupState {
                 hasSufficientPeersForBroadcast,
                 allDomainServicesInitialized,
                 (a, b, c, d) -> {
+                    log.info("p2pNetworkAndWalletInitialized = {} = updatedDataReceived={} && isBlockDownloadComplete={} && hasSufficientPeersForBroadcast={} && allDomainServicesInitialized={}", (a && b && c && d), updatedDataReceived.get(), isBlockDownloadComplete.get(), hasSufficientPeersForBroadcast.get(), allDomainServicesInitialized.get());
                     if (a && b && c) {
                         walletAndNetworkReady.set(true);
                     }
@@ -85,6 +84,7 @@ public class AppStartupState {
         p2pNetworkAndWalletInitialized.subscribe((observable, oldValue, newValue) -> {
             if (newValue) {
                 applicationFullyInitialized.set(true);
+                notificationService.sendAppInitializedNotification();
                 log.info("Application fully initialized");
             }
         });

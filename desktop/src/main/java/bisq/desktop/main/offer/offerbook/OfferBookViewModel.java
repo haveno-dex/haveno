@@ -27,7 +27,7 @@ import bisq.desktop.util.DisplayUtils;
 import bisq.desktop.util.GUIUtil;
 
 import bisq.core.account.witness.AccountAgeWitnessService;
-import bisq.core.btc.setup.WalletsSetup;
+import bisq.core.api.CoreMoneroConnectionsService;
 import bisq.core.locale.BankUtil;
 import bisq.core.locale.CountryUtil;
 import bisq.core.locale.CryptoCurrency;
@@ -97,8 +97,8 @@ class OfferBookViewModel extends ActivatableViewModel {
     private final User user;
     private final OfferBook offerBook;
     final Preferences preferences;
-    private final WalletsSetup walletsSetup;
     private final P2PService p2PService;
+    private final CoreMoneroConnectionsService connectionService;
     final PriceFeedService priceFeedService;
     private final ClosedTradableManager closedTradableManager;
     final AccountAgeWitnessService accountAgeWitnessService;
@@ -142,7 +142,7 @@ class OfferBookViewModel extends ActivatableViewModel {
                               OpenOfferManager openOfferManager,
                               OfferBook offerBook,
                               Preferences preferences,
-                              WalletsSetup walletsSetup,
+                              CoreMoneroConnectionsService connectionService,
                               P2PService p2PService,
                               PriceFeedService priceFeedService,
                               ClosedTradableManager closedTradableManager,
@@ -157,7 +157,7 @@ class OfferBookViewModel extends ActivatableViewModel {
         this.user = user;
         this.offerBook = offerBook;
         this.preferences = preferences;
-        this.walletsSetup = walletsSetup;
+        this.connectionService = connectionService;
         this.p2PService = p2PService;
         this.priceFeedService = priceFeedService;
         this.closedTradableManager = closedTradableManager;
@@ -561,7 +561,7 @@ class OfferBookViewModel extends ActivatableViewModel {
 
     boolean canCreateOrTakeOffer() {
         return GUIUtil.canCreateOrTakeOfferOrShowPopup(user, navigation) &&
-                GUIUtil.isChainHeightSyncedWithinToleranceOrShowPopup(walletsSetup) &&
+                GUIUtil.isChainHeightSyncedWithinToleranceOrShowPopup(connectionService) &&
                 GUIUtil.isBootstrappedOrShowPopup(p2PService);
     }
 

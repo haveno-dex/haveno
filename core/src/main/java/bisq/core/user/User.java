@@ -399,6 +399,7 @@ public class User implements PersistedDataHost {
         return userPayload.getPaymentAccounts();
     }
 
+    @Nullable
     public ObservableSet<PaymentAccount> getPaymentAccountsAsObservable() {
         return paymentAccountsAsObservable;
     }

@@ -49,7 +49,7 @@ public class EncryptionTest {
         //noinspection ResultOfMethodCallIgnored
         dir.mkdir();
         KeyStorage keyStorage = new KeyStorage(dir);
-        keyRing = new KeyRing(keyStorage);
+        keyRing = new KeyRing(keyStorage, null, true);
     }
 
     @After

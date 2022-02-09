@@ -48,9 +48,14 @@ class GrpcShutdownService extends ShutdownServerGrpc.ShutdownServerImplBase {
                      StreamObserver<StopReply> responseObserver) {
         try {
             log.info("Shutdown request received.");
-            var reply = StopReply.newBuilder().build();
-            responseObserver.onNext(reply);
-            responseObserver.onCompleted();
+            HavenoHeadlessApp.setOnGracefulShutDownHandler(new Runnable() {
+                @Override
+                public void run() {
+                    var reply = StopReply.newBuilder().build();
+                    responseObserver.onNext(reply);
+                    responseObserver.onCompleted();
+                }
+            });
             UserThread.runAfter(HavenoHeadlessApp.getShutDownHandler(), 500, MILLISECONDS);
         } catch (Throwable cause) {
             exceptionHandler.handleException(log, cause, responseObserver);

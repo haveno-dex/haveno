@@ -40,9 +40,9 @@ import bisq.desktop.util.GUIUtil;
 import bisq.core.account.sign.SignedWitnessService;
 import bisq.core.account.witness.AccountAgeWitnessService;
 import bisq.core.alert.PrivateNotificationManager;
+import bisq.core.api.CoreMoneroConnectionsService;
 import bisq.core.app.HavenoSetup;
 import bisq.core.btc.nodes.LocalBitcoinNode;
-import bisq.core.btc.setup.WalletsSetup;
 import bisq.core.btc.wallet.BtcWalletService;
 import bisq.core.locale.CryptoCurrency;
 import bisq.core.locale.CurrencyUtil;
@@ -53,7 +53,6 @@ import bisq.core.payment.AliPayAccount;
 import bisq.core.payment.AmazonGiftCardAccount;
 import bisq.core.payment.CryptoCurrencyAccount;
 import bisq.core.payment.RevolutAccount;
-import bisq.core.payment.payload.AssetsAccountPayload;
 import bisq.core.presentation.BalancePresentation;
 import bisq.core.presentation.SupportTicketsPresentation;
 import bisq.core.presentation.TradePresentation;
@@ -109,7 +108,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class MainViewModel implements ViewModel, HavenoSetup.HavenoSetupListener {
     private final HavenoSetup bisqSetup;
-    private final WalletsSetup walletsSetup;
+    private final CoreMoneroConnectionsService connectionService;
     private final User user;
     private final BalancePresentation balancePresentation;
     private final TradePresentation tradePresentation;
@@ -140,7 +139,7 @@ public class MainViewModel implements ViewModel, HavenoSetup.HavenoSetupListener
     private final DoubleProperty combinedSyncProgress = new SimpleDoubleProperty(-1);
     private final BooleanProperty isSplashScreenRemoved = new SimpleBooleanProperty();
     private final StringProperty footerVersionInfo = new SimpleStringProperty();
-    private Timer checkNumberOfBtcPeersTimer;
+    private Timer checkNumberOfXmrPeersTimer;
     private Timer checkNumberOfP2pNetworkPeersTimer;
     @SuppressWarnings("FieldCanBeLocal")
     private MonadicBinding<Boolean> tradesAndUIReady;
@@ -153,7 +152,7 @@ public class MainViewModel implements ViewModel, HavenoSetup.HavenoSetupListener
 
     @Inject
     public MainViewModel(HavenoSetup bisqSetup,
-                         WalletsSetup walletsSetup,
+                         CoreMoneroConnectionsService connectionService,
                          BtcWalletService btcWalletService,
                          User user,
                          BalancePresentation balancePresentation,
@@ -178,7 +177,7 @@ public class MainViewModel implements ViewModel, HavenoSetup.HavenoSetupListener
                          TorNetworkSettingsWindow torNetworkSettingsWindow,
                          CorruptedStorageFileHandler corruptedStorageFileHandler) {
         this.bisqSetup = bisqSetup;
-        this.walletsSetup = walletsSetup;
+        this.connectionService = connectionService;
         this.user = user;
         this.balancePresentation = balancePresentation;
         this.tradePresentation = tradePresentation;
@@ -258,7 +257,7 @@ public class MainViewModel implements ViewModel, HavenoSetup.HavenoSetupListener
         });
 
         setupP2PNumPeersWatcher();
-        setupBtcNumPeersWatcher();
+        setupXmrNumPeersWatcher();
 
         marketPricePresentation.setup();
         accountPresentation.setup();
@@ -509,19 +508,19 @@ public class MainViewModel implements ViewModel, HavenoSetup.HavenoSetupListener
         });
     }
 
-    private void setupBtcNumPeersWatcher() {
-        walletsSetup.numPeersProperty().addListener((observable, oldValue, newValue) -> {
+    private void setupXmrNumPeersWatcher() {
+        connectionService.numPeersProperty().addListener((observable, oldValue, newValue) -> {
             int numPeers = (int) newValue;
             if ((int) oldValue > 0 && numPeers == 0) {
-                if (checkNumberOfBtcPeersTimer != null)
-                    checkNumberOfBtcPeersTimer.stop();
+                if (checkNumberOfXmrPeersTimer != null)
+                    checkNumberOfXmrPeersTimer.stop();
 
-                checkNumberOfBtcPeersTimer = UserThread.runAfter(() -> {
+                checkNumberOfXmrPeersTimer = UserThread.runAfter(() -> {
                     // check again numPeers
-                    if (walletsSetup.numPeersProperty().get() == 0) {
+                    if (connectionService.numPeersProperty().get() == 0) {
                         if (localBitcoinNode.shouldBeUsed())
                             getWalletServiceErrorMsg().set(
-                                    Res.get("mainView.networkWarning.localhostBitcoinLost",
+                                    Res.get("mainView.networkWarning.localhostBitcoinLost", // TODO: update error message for XMR
                                             Res.getBaseCurrencyName().toLowerCase()));
                         else
                             getWalletServiceErrorMsg().set(
@@ -532,8 +531,8 @@ public class MainViewModel implements ViewModel, HavenoSetup.HavenoSetupListener
                     }
                 }, 5);
             } else if ((int) oldValue == 0 && numPeers > 0) {
-                if (checkNumberOfBtcPeersTimer != null)
-                    checkNumberOfBtcPeersTimer.stop();
+                if (checkNumberOfXmrPeersTimer != null)
+                    checkNumberOfXmrPeersTimer.stop();
                 getWalletServiceErrorMsg().set(null);
             }
         });

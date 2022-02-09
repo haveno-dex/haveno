@@ -17,7 +17,7 @@
 
 package bisq.core.support.traderchat;
 
-import bisq.core.btc.setup.WalletsSetup;
+import bisq.core.api.CoreMoneroConnectionsService;
 import bisq.core.locale.Res;
 import bisq.core.support.SupportManager;
 import bisq.core.support.SupportType;
@@ -31,6 +31,7 @@ import bisq.network.p2p.NodeAddress;
 import bisq.network.p2p.P2PService;
 
 import bisq.common.crypto.PubKeyRing;
+import bisq.common.crypto.PubKeyRingProvider;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -46,7 +47,7 @@ import lombok.extern.slf4j.Slf4j;
 @Singleton
 public class TraderChatManager extends SupportManager {
     private final TradeManager tradeManager;
-    private final PubKeyRing pubKeyRing;
+    private final PubKeyRingProvider pubKeyRingProvider;
 
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -55,12 +56,12 @@ public class TraderChatManager extends SupportManager {
 
     @Inject
     public TraderChatManager(P2PService p2PService,
-                             WalletsSetup walletsSetup,
+                             CoreMoneroConnectionsService connectionService,
                              TradeManager tradeManager,
-                             PubKeyRing pubKeyRing) {
-        super(p2PService, walletsSetup);
+                             PubKeyRingProvider pubKeyRingProvider) {
+        super(p2PService, connectionService);
         this.tradeManager = tradeManager;
-        this.pubKeyRing = pubKeyRing;
+        this.pubKeyRingProvider = pubKeyRingProvider;
     }
 
 
@@ -82,7 +83,7 @@ public class TraderChatManager extends SupportManager {
     public NodeAddress getPeerNodeAddress(ChatMessage message) {
         return tradeManager.getTradeById(message.getTradeId()).map(trade -> {
             if (trade.getContract() != null) {
-                return trade.getContract().getPeersNodeAddress(pubKeyRing);
+                return trade.getContract().getPeersNodeAddress(pubKeyRingProvider.get());
             } else {
                 return null;
             }
@@ -93,7 +94,7 @@ public class TraderChatManager extends SupportManager {
     public PubKeyRing getPeerPubKeyRing(ChatMessage message) {
         return tradeManager.getTradeById(message.getTradeId()).map(trade -> {
             if (trade.getContract() != null) {
-                return trade.getContract().getPeersPubKeyRing(pubKeyRing);
+                return trade.getContract().getPeersPubKeyRing(pubKeyRingProvider.get());
             } else {
                 return null;
             }
@@ -139,11 +140,13 @@ public class TraderChatManager extends SupportManager {
     // API
     ///////////////////////////////////////////////////////////////////////////////////////////
 
+    @Override
     public void onAllServicesInitialized() {
         super.onAllServicesInitialized();
         tryApplyMessages();
     }
 
+    @Override
     public void onSupportMessage(SupportMessage message) {
         if (canProcessMessage(message)) {
             log.info("Received {} with tradeId {} and uid {}",

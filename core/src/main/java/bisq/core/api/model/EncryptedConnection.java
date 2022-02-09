@@ -12,7 +12,7 @@ import lombok.Value;
 @Builder(toBuilder = true)
 public class EncryptedConnection implements PersistablePayload {
 
-    String uri;
+    String url;
     String username;
     byte[] encryptedPassword;
     byte[] encryptionSalt;
@@ -21,7 +21,7 @@ public class EncryptedConnection implements PersistablePayload {
     @Override
     public protobuf.EncryptedConnection toProtoMessage() {
         return protobuf.EncryptedConnection.newBuilder()
-                .setUri(uri)
+                .setUrl(url)
                 .setUsername(username)
                 .setEncryptedPassword(ByteString.copyFrom(encryptedPassword))
                 .setEncryptionSalt(ByteString.copyFrom(encryptionSalt))
@@ -31,7 +31,7 @@ public class EncryptedConnection implements PersistablePayload {
 
     public static EncryptedConnection fromProto(protobuf.EncryptedConnection encryptedConnection) {
         return new EncryptedConnection(
-                encryptedConnection.getUri(),
+                encryptedConnection.getUrl(),
                 encryptedConnection.getUsername(),
                 encryptedConnection.getEncryptedPassword().toByteArray(),
                 encryptedConnection.getEncryptionSalt().toByteArray(),

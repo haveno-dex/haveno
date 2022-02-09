@@ -1108,7 +1108,8 @@ public abstract class Trade implements Tradable, Model {
             return false;
         }
 
-        // Legacy arbitration is not handled anymore as not used anymore.
+        // check for closed disputed case
+        if (disputeState == DisputeState.DISPUTE_CLOSED) return false;
 
         // In mediation case we check for the mediationResultState. As there are multiple sub-states we use ordinal.
         if (disputeState == DisputeState.MEDIATION_CLOSED) {

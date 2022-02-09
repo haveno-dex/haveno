@@ -61,7 +61,6 @@ import bisq.core.trade.protocol.tasks.seller_as_maker.SellerAsMakerFinalizesDepo
 import bisq.core.trade.protocol.tasks.seller_as_maker.SellerAsMakerSendsInputsForDepositTxResponse;
 import bisq.core.trade.protocol.tasks.seller_as_taker.SellerAsTakerCreatesDepositTxInputs;
 import bisq.core.trade.protocol.tasks.seller_as_taker.SellerAsTakerSignsDepositTx;
-import bisq.core.trade.protocol.tasks.taker.TakerCreateFeeTx;
 import bisq.core.trade.protocol.tasks.taker.TakerProcessesInputsForDepositTxResponse;
 import bisq.core.trade.protocol.tasks.taker.TakerPublishFeeTx;
 import bisq.core.trade.protocol.tasks.taker.TakerVerifyMakerFeePayment;
@@ -119,7 +118,6 @@ public class DebugView extends InitializableView<GridPane, Void> {
                 FXCollections.observableArrayList(Arrays.asList(
                         ApplyFilter.class,
                         TakerVerifyMakerFeePayment.class,
-                        TakerCreateFeeTx.class, // TODO (woodser): rename to TakerCreateFeeTx
                         SellerAsTakerCreatesDepositTxInputs.class,
 
                         TakerProcessesInputsForDepositTxResponse.class,
@@ -182,7 +180,6 @@ public class DebugView extends InitializableView<GridPane, Void> {
                 FXCollections.observableArrayList(Arrays.asList(
                         ApplyFilter.class,
                         TakerVerifyMakerFeePayment.class,
-                        TakerCreateFeeTx.class,
                         BuyerAsTakerCreatesDepositTxInputs.class,
 
                         TakerProcessesInputsForDepositTxResponse.class,

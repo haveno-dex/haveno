@@ -89,6 +89,7 @@ import monero.wallet.model.MoneroTxWallet;
 class CoreWalletsService {
 
     private final AppStartupState appStartupState;
+    private final CoreAccountService accountService;
     private final CoreContext coreContext;
     private final Balances balances;
     private final WalletsManager walletsManager;
@@ -110,6 +111,7 @@ class CoreWalletsService {
     @Inject
     public CoreWalletsService(AppStartupState appStartupState,
                               CoreContext coreContext,
+                              CoreAccountService accountService,
                               Balances balances,
                               WalletsManager walletsManager,
                               WalletsSetup walletsSetup,
@@ -120,6 +122,7 @@ class CoreWalletsService {
                               Preferences preferences) {
         this.appStartupState = appStartupState;
         this.coreContext = coreContext;
+        this.accountService = accountService;
         this.balances = balances;
         this.walletsManager = walletsManager;
         this.walletsSetup = walletsSetup;
@@ -141,6 +144,7 @@ class CoreWalletsService {
     }
 
     BalancesInfo getBalances(String currencyCode) {
+        accountService.checkAccountOpen();
         verifyWalletCurrencyCodeIsValid(currencyCode);
         verifyWalletsAreAvailable();
         verifyEncryptedWalletIsUnlocked();
@@ -158,14 +162,17 @@ class CoreWalletsService {
     }
 
     String getNewDepositSubaddress() {
+        accountService.checkAccountOpen();
         return xmrWalletService.getWallet().createSubaddress(0).getAddress();
     }
 
-    List<MoneroTxWallet> getXmrTxs(){
+    List<MoneroTxWallet> getXmrTxs() {
+        accountService.checkAccountOpen();
         return xmrWalletService.getWallet().getTxs();
     }
 
     MoneroTxWallet createXmrTx(List<MoneroDestination> destinations) {
+        accountService.checkAccountOpen();
         verifyWalletsAreAvailable();
         verifyEncryptedWalletIsUnlocked();
         try {
@@ -177,6 +184,7 @@ class CoreWalletsService {
     }
 
     String relayXmrTx(String metadata) {
+        accountService.checkAccountOpen();
         verifyWalletsAreAvailable();
         verifyEncryptedWalletIsUnlocked();
         try {

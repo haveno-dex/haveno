@@ -1696,7 +1696,7 @@ message TradingPeer {
 ///////////////////////////////////////////////////////////////////////////////////////////
 
 message EncryptedConnection {
-    string uri = 1;
+    string url = 1;
     string username = 2;
     bytes encrypted_password = 3;
     bytes encryption_salt = 4;
@@ -1706,7 +1706,7 @@ message EncryptedConnection {
 message EncryptedConnectionList {
     bytes salt = 1;
     repeated EncryptedConnection items = 2;
-    string current_connection_uri = 3;
+    string current_connection_url = 3;
     int64 refresh_period = 4; // negative: no automated refresh is activated, zero: automated refresh with default period, positive: automated refresh with configured period (value)
     bool auto_switch = 5;
 }

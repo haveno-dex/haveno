@@ -27,8 +27,6 @@ import com.google.inject.Inject;
 
 import com.google.common.collect.ImmutableList;
 
-import java.math.BigInteger;
-
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.stream.Collectors;
@@ -37,10 +35,6 @@ import lombok.extern.slf4j.Slf4j;
 
 
 
-import monero.wallet.MoneroWallet;
-import monero.wallet.model.MoneroOutputWallet;
-import monero.wallet.model.MoneroWalletListener;
-
 /**
  * The AddressEntries was previously stored as list, now as hashSet. We still keep the old name to reflect the
  * associated protobuf message.
@@ -48,7 +42,6 @@ import monero.wallet.model.MoneroWalletListener;
 @Slf4j
 public final class XmrAddressEntryList implements PersistableEnvelope, PersistedDataHost {
     transient private PersistenceManager<XmrAddressEntryList> persistenceManager;
-    transient private MoneroWallet wallet;
     private final Set<XmrAddressEntry> entrySet = new CopyOnWriteArraySet<>();
 
     @Inject
@@ -100,61 +93,6 @@ public final class XmrAddressEntryList implements PersistableEnvelope, Persisted
     // API
     ///////////////////////////////////////////////////////////////////////////////////////////
 
-    public void onWalletReady(MoneroWallet wallet) {
-        this.wallet = wallet;
-
-        if (!entrySet.isEmpty()) {
-//            Set<XmrAddressEntry> toBeRemoved = new HashSet<>();
-//            entrySet.forEach(addressEntry -> {
-//                DeterministicKey keyFromPubHash = (DeterministicKey) wallet.findKeyFromPubKeyHash(
-//                        addressEntry.getPubKeyHash(),
-//                        Script.ScriptType.P2PKH);
-//                if (keyFromPubHash != null) {
-//                    Address addressFromKey = LegacyAddress.fromKey(Config.baseCurrencyNetworkParameters(), keyFromPubHash);
-//                    // We want to ensure key and address matches in case we have address in entry available already
-//                    if (addressEntry.getAddress() == null || addressFromKey.equals(addressEntry.getAddress())) {
-//                        addressEntry.setDeterministicKey(keyFromPubHash);
-//                    } else {
-//                        log.error("We found an address entry without key but cannot apply the key as the address " +
-//                                        "is not matching. " +
-//                                        "We remove that entry as it seems it is not compatible with our wallet. " +
-//                                        "addressFromKey={}, addressEntry.getAddress()={}",
-//                                addressFromKey, addressEntry.getAddress());
-//                        toBeRemoved.add(addressEntry);
-//                    }
-//                } else {
-//                    log.error("Key from addressEntry {} not found in that wallet. We remove that entry. " +
-//                            "This is expected at restore from seeds.", addressEntry.toString());
-//                    toBeRemoved.add(addressEntry);
-//                }
-//            });
-//
-//            toBeRemoved.forEach(entrySet::remove);
-        }
-
-        // In case we restore from seed words and have balance we need to add the relevant addresses to our list.
-        // IssuedReceiveAddresses does not contain all addresses where we expect balance so we need to listen to
-        // incoming txs at blockchain sync to add the rest.
-        if (wallet.getBalance().compareTo(new BigInteger("0")) > 0) {
-          wallet.getAccounts().forEach(acct -> {
-            log.info("Create XmrAddressEntry for IssuedReceiveAddress. address={}", acct.getPrimaryAddress());
-            if (acct.getIndex() != 0) entrySet.add(new XmrAddressEntry(acct.getIndex(), acct.getPrimaryAddress(), XmrAddressEntry.Context.AVAILABLE));
-        });
-       }
-
-        // We add those listeners to get notified about potential new transactions and
-        // add an address entry list in case it does not exist yet. This is mainly needed for restore from seed words
-        // but can help as well in case the addressEntry list would miss an address where the wallet was received
-        // funds (e.g. if the user sends funds to an address which has not been provided in the main UI - like from the
-        // wallet details window).
-        wallet.addListener(new MoneroWalletListener() {
-          @Override public void onOutputReceived(MoneroOutputWallet output) { maybeAddNewAddressEntry(output); }
-          @Override public void onOutputSpent(MoneroOutputWallet output) { maybeAddNewAddressEntry(output); }
-        });
-
-        requestPersistence();
-    }
-
     public ImmutableList<XmrAddressEntry> getAddressEntriesAsListImmutable() {
         return ImmutableList.copyOf(entrySet);
     }
@@ -200,25 +138,6 @@ public final class XmrAddressEntryList implements PersistableEnvelope, Persisted
 
     public void requestPersistence() {
         persistenceManager.requestPersistence();
-    }
-
-
-    ///////////////////////////////////////////////////////////////////////////////////////////
-    // Private
-    ///////////////////////////////////////////////////////////////////////////////////////////
-
-    // TODO (woodser): this should be removed since only using account 0
-    private void maybeAddNewAddressEntry(MoneroOutputWallet output) {
-      if (output.getAccountIndex() == 0) return;
-      String address = wallet.getAddress(output.getAccountIndex(), output.getSubaddressIndex());
-      if (!isAddressInEntries(address)) addAddressEntry(new XmrAddressEntry(output.getAccountIndex(), address, XmrAddressEntry.Context.AVAILABLE));
-    }
-
-    private boolean isAddressInEntries(String address) {
-      for (XmrAddressEntry entry : entrySet) {
-        if (entry.getAddressString().equals(address)) return true;
-      }
-      return false;
     }
 
     @Override

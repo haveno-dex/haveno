@@ -36,6 +36,8 @@ import lombok.extern.slf4j.Slf4j;
 public class HavenoHeadlessApp implements HeadlessApp {
     @Getter
     private static Runnable shutDownHandler;
+    @Setter
+    public static Runnable onGracefulShutDownHandler;
 
     @Setter
     protected Injector injector;
@@ -50,6 +52,7 @@ public class HavenoHeadlessApp implements HeadlessApp {
         shutDownHandler = this::stop;
     }
 
+    @Override
     public void startApplication() {
         try {
             bisqSetup = injector.getInstance(HavenoSetup.class);
@@ -103,12 +106,12 @@ public class HavenoHeadlessApp implements HeadlessApp {
             UserThread.runAfter(() -> {
                 gracefulShutDownHandler.gracefulShutDown(() -> {
                     log.debug("App shutdown complete");
+                    if (onGracefulShutDownHandler != null) onGracefulShutDownHandler.run();
                 });
             }, 200, TimeUnit.MILLISECONDS);
             shutDownRequested = true;
         }
     }
-
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // UncaughtExceptionHandler implementation

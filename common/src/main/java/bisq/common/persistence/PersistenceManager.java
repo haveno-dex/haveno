@@ -114,7 +114,6 @@ public class PersistenceManager<T extends PersistableEnvelope> {
             return;
         }
 
-
         // We don't know from which thread we are called so we map to user thread
         UserThread.execute(() -> {
             if (doShutdown) {
@@ -379,6 +378,11 @@ public class PersistenceManager<T extends PersistableEnvelope> {
     public void requestPersistence() {
         if (flushAtShutdownCalled) {
             log.warn("We have started the shut down routine already. We ignore that requestPersistence call.");
+            return;
+        }
+
+        if (!initCalled.get()) {
+            log.warn("requestPersistence() called before init. Ignoring request");
             return;
         }
 

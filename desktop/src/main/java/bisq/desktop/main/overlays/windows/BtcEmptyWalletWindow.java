@@ -6,8 +6,7 @@ import bisq.desktop.main.overlays.Overlay;
 import bisq.desktop.main.overlays.popups.Popup;
 import bisq.desktop.util.GUIUtil;
 import bisq.desktop.util.Transitions;
-
-import bisq.core.btc.setup.WalletsSetup;
+import bisq.core.api.CoreMoneroConnectionsService;
 import bisq.core.btc.wallet.BtcWalletService;
 import bisq.core.btc.wallet.Restrictions;
 import bisq.core.locale.Res;
@@ -53,7 +52,7 @@ public final class BtcEmptyWalletWindow extends Overlay<BtcEmptyWalletWindow> {
     private final WalletPasswordWindow walletPasswordWindow;
     private final OpenOfferManager openOfferManager;
     private final P2PService p2PService;
-    private final WalletsSetup walletsSetup;
+    private final CoreMoneroConnectionsService connectionService;
     private final BtcWalletService btcWalletService;
     private final CoinFormatter btcFormatter;
 
@@ -65,7 +64,7 @@ public final class BtcEmptyWalletWindow extends Overlay<BtcEmptyWalletWindow> {
     public BtcEmptyWalletWindow(WalletPasswordWindow walletPasswordWindow,
                                 OpenOfferManager openOfferManager,
                                 P2PService p2PService,
-                                WalletsSetup walletsSetup,
+                                CoreMoneroConnectionsService connectionService,
                                 BtcWalletService btcWalletService,
                                 @Named(FormattingUtils.BTC_FORMATTER_KEY) CoinFormatter btcFormatter) {
         headLine(Res.get("emptyWalletWindow.headline", "BTC"));
@@ -73,13 +72,14 @@ public final class BtcEmptyWalletWindow extends Overlay<BtcEmptyWalletWindow> {
         type = Type.Instruction;
 
         this.p2PService = p2PService;
-        this.walletsSetup = walletsSetup;
+        this.connectionService = connectionService;
         this.btcWalletService = btcWalletService;
         this.btcFormatter = btcFormatter;
         this.walletPasswordWindow = walletPasswordWindow;
         this.openOfferManager = openOfferManager;
     }
 
+    @Override
     public void show() {
         createGridPane();
         addHeadLine();
@@ -143,7 +143,7 @@ public final class BtcEmptyWalletWindow extends Overlay<BtcEmptyWalletWindow> {
     }
 
     private void doEmptyWallet(KeyParameter aesKey) {
-        if (GUIUtil.isReadyForTxBroadcastOrShowPopup(p2PService, walletsSetup)) {
+        if (GUIUtil.isReadyForTxBroadcastOrShowPopup(p2PService, connectionService)) {
             if (!openOfferManager.getObservableList().isEmpty()) {
                 UserThread.runAfter(() ->
                         new Popup().warning(Res.get("emptyWalletWindow.openOffers.warn"))

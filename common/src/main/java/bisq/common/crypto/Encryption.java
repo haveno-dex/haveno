@@ -54,10 +54,12 @@ public class Encryption {
     public static final String ASYM_KEY_ALGO = "RSA";
     private static final String ASYM_CIPHER = "RSA/ECB/OAEPWithSHA-256AndMGF1PADDING";
 
-    private static final String SYM_KEY_ALGO = "AES";
+    public static final String SYM_KEY_ALGO = "AES";
     private static final String SYM_CIPHER = "AES";
 
     private static final String HMAC = "HmacSHA256";
+
+    public static final String HMAC_ERROR_MSG = "Hmac does not match.";
 
     public static KeyPair generateKeyPair() {
         long ts = System.currentTimeMillis();
@@ -100,11 +102,6 @@ public class Encryption {
     public static SecretKey getSecretKeyFromBytes(byte[] secretKeyBytes) {
         return new SecretKeySpec(secretKeyBytes, 0, secretKeyBytes.length, SYM_KEY_ALGO);
     }
-
-    public static byte[] getSecretKeyBytes(SecretKey secretKey) {
-        return secretKey.getEncoded();
-    }
-
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Hmac
@@ -179,7 +176,7 @@ public class Encryption {
         if (verifyHmac(Hex.decode(payloadAsHex), Hex.decode(hmacAsHex), secretKey)) {
             return Hex.decode(payloadAsHex);
         } else {
-            throw new CryptoException("Hmac does not match.");
+            throw new CryptoException(HMAC_ERROR_MSG);
         }
     }
 
