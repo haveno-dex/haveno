@@ -29,7 +29,7 @@ public class MarketDepthInfo {
     public final String currencyCode;
     public final Double[] buyPrices;
     public final Double[] buyDepth;
-    public final Double[] sellPrices; 
+    public final Double[] sellPrices;
     public final Double[] sellDepth;
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -37,8 +37,8 @@ public class MarketDepthInfo {
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     // @Override
-    public bisq.proto.grpc.MarketDepthReply toProtoMessage() {
-        return bisq.proto.grpc.MarketDepthReply.newBuilder()
+    public bisq.proto.grpc.MarketDepthInfo toProtoMessage() {
+        return bisq.proto.grpc.MarketDepthInfo.newBuilder()
         .setCurrencyCode(currencyCode)
         .addAllBuyPrices(Arrays.asList(buyPrices))
         .addAllBuyDepth(Arrays.asList((buyDepth)))

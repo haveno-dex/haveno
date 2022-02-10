@@ -203,9 +203,9 @@ public class OfferBookService {
     }
 
     public List<Offer> getOffersByCurrency(String direction, String currencyCode) {
-        return getOffers().stream().filter(o -> o.getOfferPayload().getBaseCurrencyCode().equalsIgnoreCase(currencyCode) && 
-                                               o.getDirection().name() == direction)
-                                               .collect(Collectors.toList());
+        return getOffers().stream()
+                .filter(o -> o.getOfferPayload().getBaseCurrencyCode().equalsIgnoreCase(currencyCode) && o.getDirection().name() == direction)
+                .collect(Collectors.toList());
     }
 
     public void removeOfferAtShutDown(OfferPayload offerPayload) {

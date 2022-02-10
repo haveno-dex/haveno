@@ -105,13 +105,14 @@ public class Price extends MonetaryWrapper implements Comparable<Price> {
         return monetary instanceof Altcoin ? ((Altcoin) monetary).getCurrencyCode() : ((Fiat) monetary).getCurrencyCode();
     }
 
+    @Override
     public long getValue() {
         return monetary.getValue();
     }
 
-    /** 
-    / @return amount of whole coins or fiat dollars as double
-     * */ 
+    /**
+     * Get the amount of whole coins or fiat units as double.
+     */
     public double getDoubleValue() {
         return BigDecimal.valueOf(monetary.getValue()).movePointLeft(monetary.smallestUnitExponent()).doubleValue();
     }

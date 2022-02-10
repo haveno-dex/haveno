@@ -535,6 +535,10 @@ message MarketDepthRequest {
 }
 
 message MarketDepthReply {
+    MarketDepthInfo market_depth = 1;
+}
+
+message MarketDepthInfo {
     string currency_code = 1;
     repeated double buy_prices = 2;
     repeated double buy_depth = 3;
