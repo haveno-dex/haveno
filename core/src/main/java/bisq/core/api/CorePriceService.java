@@ -44,7 +44,7 @@ import lombok.extern.slf4j.Slf4j;
 @Singleton
 @Slf4j
 class CorePriceService {
-    
+
     private final PriceFeedService priceFeedService;
     private final OfferBookService offerBookService;
 
@@ -77,11 +77,11 @@ class CorePriceService {
                 .collect(Collectors.toList());
     }
 
-    /** 
-     *  @return Data for market depth chart  
-    */
+    /**
+     * @return Data for market depth chart
+     */
      public MarketDepthInfo getMarketDepth(String currencyCode) throws ExecutionException, InterruptedException, TimeoutException, IllegalArgumentException  {
-        if (priceFeedService.requestAllPrices().get(currencyCode.toUpperCase()) == null) throw new IllegalArgumentException("Currency not found: " + currencyCode) ; 
+        if (priceFeedService.requestAllPrices().get(currencyCode.toUpperCase()) == null) throw new IllegalArgumentException("Currency not found: " + currencyCode) ;
 
         // Offer price can be null (if price feed unavailable), thus a null-tolerant comparator is used.
         Comparator<Offer> offerPriceComparator = Comparator.comparing(Offer::getPrice, Comparator.nullsLast(Comparator.naturalOrder()));
@@ -102,45 +102,43 @@ class CorePriceService {
         var sellOfferSortComparator =
                 offerPriceComparator
                         .thenComparing(offerAmountComparator);
-        List<Offer> buyOffers = offerBookService.getOffersByCurrency(Direction.BUY.name(), currencyCode).stream().sorted(buyOfferSortComparator).collect(Collectors.toList()); 
+        List<Offer> buyOffers = offerBookService.getOffersByCurrency(Direction.BUY.name(), currencyCode).stream().sorted(buyOfferSortComparator).collect(Collectors.toList());
         List<Offer> sellOffers = offerBookService.getOffersByCurrency(Direction.SELL.name(), currencyCode).stream().sorted(sellOfferSortComparator).collect(Collectors.toList());
-        
+
         // Create buyer hashmap {key:price, value:count}, uses LinkedHashMap to maintain insertion order
         double accumulatedAmount = 0;
-        LinkedHashMap<Double,Double> buyTM = new LinkedHashMap<Double,Double>();        
-        for(Offer offer: buyOffers) {            
+        LinkedHashMap<Double,Double> buyTM = new LinkedHashMap<Double,Double>();
+        for(Offer offer: buyOffers) {
             Price price = offer.getPrice();
             if (price != null) {
                 double amount = (double) offer.getAmount().value / LongMath.pow(10, offer.getAmount().smallestUnitExponent());
                 accumulatedAmount += amount;
                 double priceAsDouble = (double) price.getValue() / LongMath.pow(10, price.smallestUnitExponent());
-                buyTM.put(priceAsDouble, accumulatedAmount);                
+                buyTM.put(mapPriceFeedServicePrice(priceAsDouble, currencyCode), accumulatedAmount);
             }
         };
 
-        // buildChartAndTableEntries called
-        accumulatedAmount = 0;
-        
         // Create buyer hashmap {key:price, value:count}, uses TreeMap to sort by key (asc)
-        LinkedHashMap<Double,Double> sellTM = new LinkedHashMap<Double,Double>();               
-        for(Offer offer: sellOffers){            
+        accumulatedAmount = 0;
+        LinkedHashMap<Double,Double> sellTM = new LinkedHashMap<Double,Double>();
+        for(Offer offer: sellOffers){
             Price price = offer.getPrice();
             if (price != null) {
                 double amount = (double) offer.getAmount().value / LongMath.pow(10, offer.getAmount().smallestUnitExponent());
                 accumulatedAmount += amount;
                 double priceAsDouble = (double) price.getValue() / LongMath.pow(10, price.smallestUnitExponent());
-                sellTM.put(priceAsDouble, accumulatedAmount);
+                sellTM.put(mapPriceFeedServicePrice(priceAsDouble, currencyCode), accumulatedAmount);
             }
         };
 
         // Make array of buyPrices and buyDepth
         Double[] buyDepth = buyTM.values().toArray(new Double[buyTM.size()]);
         Double[] buyPrices = buyTM.keySet().toArray(new Double[buyTM.size()]);
-                
-        // Make array of sellPrices and sellDepth 
+
+        // Make array of sellPrices and sellDepth
         Double[] sellDepth = sellTM.values().toArray(new Double[sellTM.size()]);
         Double[] sellPrices = sellTM.keySet().toArray(new Double[sellTM.size()]);
-        
+
         return new MarketDepthInfo(currencyCode, buyPrices, buyDepth, sellPrices, sellDepth);
     }
     
