@@ -18,8 +18,10 @@
 package bisq.daemon.grpc;
 
 import bisq.core.api.CoreApi;
+import bisq.core.api.model.MarketDepthInfo;
 import bisq.core.api.model.MarketPriceInfo;
-
+import bisq.proto.grpc.MarketDepthReply;
+import bisq.proto.grpc.MarketDepthRequest;
 import bisq.proto.grpc.MarketPriceReply;
 import bisq.proto.grpc.MarketPriceRequest;
 import bisq.proto.grpc.MarketPricesReply;
@@ -81,12 +83,27 @@ class GrpcPriceService extends PriceImplBase {
         }
     }
 
+    @Override
+    public void getMarketDepth(MarketDepthRequest req,
+                               StreamObserver<MarketDepthReply> responseObserver) {
+        try {
+            responseObserver.onNext(mapMarketDepthReply(coreApi.getMarketDepth(req.getCurrencyCode())));
+            responseObserver.onCompleted();
+        } catch (Throwable cause) {
+            exceptionHandler.handleException(log, cause, responseObserver);
+        }
+    }
+
     private MarketPricesReply mapMarketPricesReply(List<MarketPriceInfo> marketPrices) {
         MarketPricesReply.Builder builder = MarketPricesReply.newBuilder();
         marketPrices.stream()
                 .map(MarketPriceInfo::toProtoMessage)
                 .forEach(builder::addMarketPrice);
         return builder.build();
+    }
+
+    private MarketDepthReply mapMarketDepthReply(MarketDepthInfo marketDepth) {
+        return MarketDepthReply.newBuilder().setMarketDepth(marketDepth.toProtoMessage()).build();
     }
 
     final ServerInterceptor[] interceptors() {
