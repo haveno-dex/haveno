@@ -491,51 +491,57 @@ configure(project(':monitor')) {
 configure(project(':pricenode')) {
     apply plugin: "org.springframework.boot"
 
+    apply plugin: 'io.spring.dependency-management'
+
+    mainClassName = 'bisq.price.Main'
+
     version = file("src/main/resources/version.txt").text.trim()
 
     jar.manifest.attributes(
         "Implementation-Title": project.name,
         "Implementation-Version": version)
 
+    ext['log4j2.version'] = '2.17.0'
+
     dependencies {
-        compile project(":core")
-
-        compileOnly "org.projectlombok:lombok:$lombokVersion"
+        implementation project(":common")
+        implementation project(":core")
         annotationProcessor "org.projectlombok:lombok:$lombokVersion"
-
+        compileOnly "org.projectlombok:lombok:$lombokVersion"
         implementation "com.google.code.gson:gson:$gsonVersion"
+        implementation "com.google.guava:guava:$guavaVersion"
         implementation "commons-codec:commons-codec:$codecVersion"
         implementation "org.apache.httpcomponents:httpcore:$httpcoreVersion"
         implementation("org.apache.httpcomponents:httpclient:$httpclientVersion") {
             exclude(module: 'commons-codec')
         }
-        compile("org.knowm.xchange:xchange-bitbay:$knowmXchangeVersion")
-        compile("org.knowm.xchange:xchange-btcmarkets:$knowmXchangeVersion")
-        compile("org.knowm.xchange:xchange-binance:$knowmXchangeVersion")
-        compile("org.knowm.xchange:xchange-bitfinex:$knowmXchangeVersion")
-        compile("org.knowm.xchange:xchange-bitflyer:$knowmXchangeVersion")
-        compile("org.knowm.xchange:xchange-bitstamp:$knowmXchangeVersion")
-        compile("org.knowm.xchange:xchange-cexio:$knowmXchangeVersion")
-        compile("org.knowm.xchange:xchange-coinmate:$knowmXchangeVersion")
-        compile("org.knowm.xchange:xchange-coinmarketcap:$knowmXchangeVersion")
-        compile("org.knowm.xchange:xchange-coinone:$knowmXchangeVersion")
-        compile("org.knowm.xchange:xchange-exmo:$knowmXchangeVersion")
-        compile("org.knowm.xchange:xchange-hitbtc:$knowmXchangeVersion")
-        compile("org.knowm.xchange:xchange-huobi:$knowmXchangeVersion")
-        compile("org.knowm.xchange:xchange-independentreserve:$knowmXchangeVersion")
-        compile("org.knowm.xchange:xchange-kraken:$knowmXchangeVersion")
-        compile("org.knowm.xchange:xchange-luno:$knowmXchangeVersion")
-        compile("org.knowm.xchange:xchange-mercadobitcoin:$knowmXchangeVersion")
-        compile("org.knowm.xchange:xchange-paribu:$knowmXchangeVersion")
-        compile("org.knowm.xchange:xchange-poloniex:$knowmXchangeVersion")
-        compile("org.knowm.xchange:xchange-quoine:$knowmXchangeVersion")
-        compile("org.springframework.boot:spring-boot-starter-web:$springBootVersion")
-        compile("org.springframework.boot:spring-boot-starter-actuator")
-        testCompile "org.junit.jupiter:junit-jupiter-api:$jupiterVersion"
-        testCompile "org.junit.jupiter:junit-jupiter-params:$jupiterVersion"
-        testRuntime("org.junit.jupiter:junit-jupiter-engine:$jupiterVersion")
-        testCompileOnly "org.projectlombok:lombok:$lombokVersion"
+        implementation("org.knowm.xchange:xchange-binance:$knowmXchangeVersion")
+        implementation("org.knowm.xchange:xchange-bitbay:$knowmXchangeVersion")
+        implementation("org.knowm.xchange:xchange-bitfinex:$knowmXchangeVersion")
+        implementation("org.knowm.xchange:xchange-bitflyer:$knowmXchangeVersion")
+        implementation("org.knowm.xchange:xchange-bitstamp:$knowmXchangeVersion")
+        implementation("org.knowm.xchange:xchange-btcmarkets:$knowmXchangeVersion")
+        implementation("org.knowm.xchange:xchange-cexio:$knowmXchangeVersion")
+        implementation("org.knowm.xchange:xchange-coinmarketcap:$knowmXchangeVersion")
+        implementation("org.knowm.xchange:xchange-coinmate:$knowmXchangeVersion")
+        implementation("org.knowm.xchange:xchange-coinone:$knowmXchangeVersion")
+        implementation("org.knowm.xchange:xchange-exmo:$knowmXchangeVersion")
+        implementation("org.knowm.xchange:xchange-hitbtc:$knowmXchangeVersion")
+        implementation("org.knowm.xchange:xchange-huobi:$knowmXchangeVersion")
+        implementation("org.knowm.xchange:xchange-independentreserve:$knowmXchangeVersion")
+        implementation("org.knowm.xchange:xchange-kraken:$knowmXchangeVersion")
+        implementation("org.knowm.xchange:xchange-luno:$knowmXchangeVersion")
+        implementation("org.knowm.xchange:xchange-mercadobitcoin:$knowmXchangeVersion")
+        implementation("org.knowm.xchange:xchange-paribu:$knowmXchangeVersion")
+        implementation("org.knowm.xchange:xchange-poloniex:$knowmXchangeVersion")
+        implementation("org.knowm.xchange:xchange-quoine:$knowmXchangeVersion")
+        implementation("org.springframework.boot:spring-boot-starter-web:$springBootVersion")
         testAnnotationProcessor "org.projectlombok:lombok:$lombokVersion"
+        testCompileOnly "org.projectlombok:lombok:$lombokVersion"
+        testImplementation "org.junit.jupiter:junit-jupiter-api:$jupiterVersion"
+        testImplementation "org.junit.jupiter:junit-jupiter-params:$jupiterVersion"
+        testImplementation "org.mockito:mockito-core:$mockitoVersion"
+        testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:$jupiterVersion")
     }
 
     test {

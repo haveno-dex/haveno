@@ -78,13 +78,14 @@ public abstract class PriceProvider<T> implements SmartLifecycle, Supplier<T> {
     }
 
     private void refresh() {
-        long ts = System.currentTimeMillis();
-
-        cachedResult = doGet();
-
-        log.info("refresh took {} ms.", (System.currentTimeMillis() - ts));
-
-        onRefresh();
+        try {
+            long ts = System.currentTimeMillis();
+            cachedResult = doGet();
+            log.info("refresh took {} ms.", (System.currentTimeMillis() - ts));
+            onRefresh();
+        } catch (Exception e) {
+            log.warn("Error refreshing price provider {}", getClass());
+        }
     }
 
     protected abstract T doGet();

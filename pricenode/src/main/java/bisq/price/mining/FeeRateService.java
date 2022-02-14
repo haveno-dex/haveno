@@ -36,7 +36,7 @@ import org.slf4j.LoggerFactory;
  * High-level mining {@link FeeRate} operations.
  */
 @Service
-class FeeRateService {
+public class FeeRateService {
 
     private final List<FeeRateProvider> providers;
     protected final Logger log = LoggerFactory.getLogger(this.getClass());
@@ -78,15 +78,15 @@ class FeeRateService {
         // Calculate the average
         long averageFeeRate = (amountOfFeeRates.intValue() > 0)
                 ? sumOfAllFeeRates.longValue() / amountOfFeeRates.intValue()
-                : FeeRateProvider.MIN_FEE_RATE;
+                : FeeRateProvider.MIN_FEE_RATE_FOR_TRADING;
         long averageMinFeeRate = (amountOfFeeRates.intValue() > 0)
                 ? sumOfAllMinFeeRates.longValue() / amountOfFeeRates.intValue()
-                : FeeRateProvider.MIN_FEE_RATE;
+                : FeeRateProvider.MIN_FEE_RATE_FOR_WITHDRAWAL;
 
         // Make sure the returned value is within the min-max range
-        averageFeeRate = Math.max(averageFeeRate, FeeRateProvider.MIN_FEE_RATE);
+        averageFeeRate = Math.max(averageFeeRate, FeeRateProvider.MIN_FEE_RATE_FOR_TRADING);
         averageFeeRate = Math.min(averageFeeRate, FeeRateProvider.MAX_FEE_RATE);
-        averageMinFeeRate = Math.max(averageMinFeeRate, FeeRateProvider.MIN_FEE_RATE);
+        averageMinFeeRate = Math.max(averageMinFeeRate, FeeRateProvider.MIN_FEE_RATE_FOR_WITHDRAWAL);
         averageMinFeeRate = Math.min(averageMinFeeRate, FeeRateProvider.MAX_FEE_RATE);
 
         // Prepare response: Add timestamp of now
@@ -101,7 +101,7 @@ class FeeRateService {
         // Build response
         return new HashMap<>() {{
             putAll(metadata);
-            put("dataMap", allFeeRates);
+            put(Config.LEGACY_FEE_DATAMAP, allFeeRates);
         }};
     }
 }

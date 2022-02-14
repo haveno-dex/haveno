@@ -16,7 +16,7 @@ HAVENO_USER=haveno
 HAVENO_GROUP=haveno
 HAVENO_HOME=/haveno
 
-HAVENO_REPO_URL=https://github.com/haveno-dex/haveno
+HAVENO_REPO_URL=https://github.com/haveno-network/haveno
 HAVENO_REPO_NAME=haveno
 HAVENO_REPO_TAG=master
 HAVENO_LATEST_RELEASE=master
