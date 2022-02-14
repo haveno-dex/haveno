@@ -47,13 +47,13 @@ public class FeeRateServiceTest {
 
         // Even with no working providers, we expect the service to return pre-configured
         // minimum fee rate
-        doSanityChecksForRetrievedData(retrievedData, FeeRateProvider.MIN_FEE_RATE);
+        doSanityChecksForRetrievedData(retrievedData, FeeRateProvider.MIN_FEE_RATE_FOR_TRADING);
     }
 
     @Test
     public void getFees_singleProvider_feeBelowMin() {
         // One working provider, which returns a fee lower than the minimum
-        long providerFee = FeeRateProvider.MIN_FEE_RATE - 3;
+        long providerFee = FeeRateProvider.MIN_FEE_RATE_FOR_TRADING - 3;
         FeeRateService service = new FeeRateService(
                 Collections.singletonList(
                         buildDummyReachableMempoolFeeRateProvider(providerFee)));
@@ -62,7 +62,7 @@ public class FeeRateServiceTest {
 
         // When the provider returns a value below the expected min, the service should
         // return the min
-        doSanityChecksForRetrievedData(retrievedData, FeeRateProvider.MIN_FEE_RATE);
+        doSanityChecksForRetrievedData(retrievedData, FeeRateProvider.MIN_FEE_RATE_FOR_TRADING);
     }
 
     @Test
@@ -84,14 +84,14 @@ public class FeeRateServiceTest {
     public void getFees_multipleProviders() {
         // 3 providers, returning 1xMIN, 2xMIN, 3xMIN
         FeeRateService service = new FeeRateService(asList(
-                buildDummyReachableMempoolFeeRateProvider(FeeRateProvider.MIN_FEE_RATE * 1),
-                buildDummyReachableMempoolFeeRateProvider(FeeRateProvider.MIN_FEE_RATE * 2),
-                buildDummyReachableMempoolFeeRateProvider(FeeRateProvider.MIN_FEE_RATE * 3)));
+                buildDummyReachableMempoolFeeRateProvider(FeeRateProvider.MIN_FEE_RATE_FOR_TRADING * 1),
+                buildDummyReachableMempoolFeeRateProvider(FeeRateProvider.MIN_FEE_RATE_FOR_TRADING * 2),
+                buildDummyReachableMempoolFeeRateProvider(FeeRateProvider.MIN_FEE_RATE_FOR_TRADING * 3)));
 
         Map<String, Object> retrievedData = service.getFees();
 
         // The service should then return the average, which is 2xMIN
-        doSanityChecksForRetrievedData(retrievedData, FeeRateProvider.MIN_FEE_RATE * 2);
+        doSanityChecksForRetrievedData(retrievedData, FeeRateProvider.MIN_FEE_RATE_FOR_TRADING * 2);
     }
 
     /**
@@ -103,7 +103,7 @@ public class FeeRateServiceTest {
         // providers), we always expect a non-zero timestamp
         assertNotEquals(0L, retrievedData.get(Config.BTC_FEES_TS));
 
-        Map<String, String> retrievedDataMap = (Map<String, String>) retrievedData.get("dataMap");
+        Map<String, String> retrievedDataMap = (Map<String, String>) retrievedData.get(Config.LEGACY_FEE_DATAMAP);
         assertEquals(2, retrievedDataMap.size());
         assertEquals(expectedFeeRate, retrievedDataMap.get(Config.BTC_TX_FEE));
     }
