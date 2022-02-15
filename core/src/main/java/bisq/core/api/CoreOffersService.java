@@ -81,7 +81,6 @@ class CoreOffersService {
     private final OfferBookService offerBookService;
     private final OfferFilter offerFilter;
     private final OpenOfferManager openOfferManager;
-    private final OfferUtil offerUtil;
     private final User user;
     private final XmrWalletService xmrWalletService;
 
@@ -103,7 +102,6 @@ class CoreOffersService {
         this.offerBookService = offerBookService;
         this.offerFilter = offerFilter;
         this.openOfferManager = openOfferManager;
-        this.offerUtil = offerUtil;
         this.user = user;
         this.xmrWalletService = xmrWalletService;
     }
@@ -121,11 +119,13 @@ class CoreOffersService {
     }
 
     Offer getMyOffer(String id) {
-        return offerBookService.getOffers().stream()
+        Offer offer = offerBookService.getOffers().stream()
                 .filter(o -> o.getId().equals(id))
                 .filter(o -> o.isMyOffer(keyRing))
                 .findAny().orElseThrow(() ->
                         new IllegalStateException(format("offer with id '%s' not found", id)));
+        setOpenOfferState(offer);
+        return offer;
     }
 
     List<Offer> getOffers(String direction, String currencyCode) {
@@ -152,7 +152,7 @@ class CoreOffersService {
                 .collect(Collectors.toList());
 
         // remove unreserved offers
-        Set<Offer> unreservedOffers = getUnreservedOffers(offers);
+        Set<Offer> unreservedOffers = getUnreservedOffers(offers); // TODO (woodser): optimize performance, probably don't call here
         offers.removeAll(unreservedOffers);
 
         // remove my unreserved offers from offer manager
@@ -162,11 +162,8 @@ class CoreOffersService {
         }
         openOfferManager.removeOpenOffers(unreservedOpenOffers, null);
 
-        // set offer state
-        for (Offer offer : offers) {
-            Optional<OpenOffer> openOffer = openOfferManager.getOpenOfferById(offer.getId());
-            if (openOffer.isPresent()) offer.setState(openOffer.get().getState() == OpenOffer.State.AVAILABLE ? Offer.State.AVAILABLE : Offer.State.NOT_AVAILABLE);
-        }
+        // set offer states
+        for (Offer offer : offers) setOpenOfferState(offer);
 
         return offers;
     }
@@ -322,9 +319,14 @@ class CoreOffersService {
                                                      String direction,
                                                      String currencyCode) {
         var offerOfWantedDirection = offer.getDirection().name().equalsIgnoreCase(direction);
-        var offerInWantedCurrency = offer.getOfferPayload().getCounterCurrencyCode()
-                .equalsIgnoreCase(currencyCode);
+        var counterAssetCode = isCryptoCurrency(currencyCode) ? offer.getOfferPayload().getBaseCurrencyCode() : offer.getOfferPayload().getCounterCurrencyCode(); // TODO: crypto pairs invert base and counter currencies
+        var offerInWantedCurrency = counterAssetCode.equalsIgnoreCase(currencyCode);
         return offerOfWantedDirection && offerInWantedCurrency;
+    }
+
+    private void setOpenOfferState(Offer offer) {
+        Optional<OpenOffer> openOffer = openOfferManager.getOpenOfferById(offer.getId());
+        if (openOffer.isPresent()) offer.setState(openOffer.get().getState() == OpenOffer.State.AVAILABLE ? Offer.State.AVAILABLE : Offer.State.NOT_AVAILABLE);
     }
 
     private Comparator<Offer> priceComparator(String direction) {
