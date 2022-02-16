@@ -98,7 +98,6 @@ public class CurrencyUtilTest {
 
     @Test
     public void testGetNameAndCodeOfRemovedAsset() {
-        assertEquals("Bitcoin Cash (BCH)", CurrencyUtil.getNameAndCode("BCH"));
         assertEquals("N/A (XYZ)", CurrencyUtil.getNameAndCode("XYZ"));
     }
 

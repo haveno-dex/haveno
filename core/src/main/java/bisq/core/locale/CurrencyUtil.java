@@ -135,17 +135,16 @@ public class CurrencyUtil {
     public static List<CryptoCurrency> getMainCryptoCurrencies() {
         final List<CryptoCurrency> result = new ArrayList<>();
         result.add(new CryptoCurrency("BTC", "Bitcoin"));
-        result.add(new CryptoCurrency("LTC", "Litecoin"));
+        result.add(new CryptoCurrency("BCH", "Bitcoin Cash"));
         result.add(new CryptoCurrency("ETH", "Ether"));
+        result.add(new CryptoCurrency("LTC", "Litecoin"));
         result.add(new CryptoCurrency("ZEC", "Zcash"));
         result.sort(TradeCurrency::compareTo);
-
         return result;
     }
 
     public static List<CryptoCurrency> getRemovedCryptoCurrencies() {
         final List<CryptoCurrency> currencies = new ArrayList<>();
-        currencies.add(new CryptoCurrency("BCH", "Bitcoin Cash"));
         currencies.add(new CryptoCurrency("BCHC", "Bitcoin Clashic"));
         currencies.add(new CryptoCurrency("ACH", "AchieveCoin"));
         currencies.add(new CryptoCurrency("SC", "Siacoin"));
