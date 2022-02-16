@@ -116,7 +116,7 @@ class GrpcPriceService extends PriceImplBase {
         return getCustomRateMeteringInterceptor(coreApi.getConfig().appDataDir, this.getClass())
                 .or(() -> Optional.of(CallRateMeteringInterceptor.valueOf(
                         new HashMap<>() {{
-                            put(getGetMarketPriceMethod().getFullMethodName(), new GrpcCallRateMeter(10, SECONDS));
+                            put(getGetMarketPriceMethod().getFullMethodName(), new GrpcCallRateMeter(20, SECONDS));
                         }}
                 )));
     }
