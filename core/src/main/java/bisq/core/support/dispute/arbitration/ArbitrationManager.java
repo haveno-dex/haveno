@@ -18,6 +18,7 @@
 package bisq.core.support.dispute.arbitration;
 
 import bisq.core.api.CoreMoneroConnectionsService;
+import bisq.core.api.CoreNotificationService;
 import bisq.core.btc.wallet.TradeWalletService;
 import bisq.core.btc.wallet.XmrWalletService;
 import bisq.core.locale.Res;
@@ -96,6 +97,7 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
                               TradeWalletService tradeWalletService,
                               XmrWalletService walletService,
                               CoreMoneroConnectionsService connectionService,
+                              CoreNotificationService notificationService,
                               TradeManager tradeManager,
                               ClosedTradableManager closedTradableManager,
                               OpenOfferManager openOfferManager,
@@ -103,7 +105,7 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
                               ArbitrationDisputeListService arbitrationDisputeListService,
                               Config config,
                               PriceFeedService priceFeedService) {
-        super(p2PService, tradeWalletService, walletService, connectionService, tradeManager, closedTradableManager,
+        super(p2PService, tradeWalletService, walletService, connectionService, notificationService, tradeManager, closedTradableManager,
                 openOfferManager, keyRing, arbitrationDisputeListService, config, priceFeedService);
     }
 
@@ -286,7 +288,7 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
                         MoneroTxSet txSet = traderSignsDisputePayoutTx(tradeId, arbitratorSignedPayoutTxHex);
                         onTraderSignedDisputePayoutTx(tradeId, txSet);
                       } catch (Exception e) {
-                        errorMessage = "Failed to sign dispute payout tx from arbitrator: " + e.getMessage() + ". TradeId = " + tradeId;
+                        errorMessage = "Failed to sign dispute payout tx from arbitrator: " + e.getMessage() + ". TradeId = " + tradeId + " SignedPayoutTx = " + arbitratorSignedPayoutTxHex;
                         log.warn(errorMessage);
                         success = false;
                       }
@@ -343,7 +345,7 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
     private void onDisputedPayoutTxMessage(PeerPublishedDisputePayoutTxMessage peerPublishedDisputePayoutTxMessage) {
         String uid = peerPublishedDisputePayoutTxMessage.getUid();
         String tradeId = peerPublishedDisputePayoutTxMessage.getTradeId();
-        Optional<Dispute> disputeOptional = findOwnDispute(tradeId);
+        Optional<Dispute> disputeOptional = findDispute(tradeId);
         if (!disputeOptional.isPresent()) {
             log.debug("We got a peerPublishedPayoutTxMessage but we don't have a matching dispute. TradeId = " + tradeId);
             if (!delayMsgMap.containsKey(uid)) {
@@ -473,7 +475,7 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
 
       // gather trade info
       MoneroWallet multisigWallet = xmrWalletService.getMultisigWallet(tradeId);
-      Optional<Dispute> disputeOptional = findOwnDispute(tradeId);
+      Optional<Dispute> disputeOptional = findDispute(tradeId);
       if (!disputeOptional.isPresent()) {
           log.warn("Trader has no dispute when signing dispute payout tx. This should never happen. TradeId = " + tradeId);
           return;
@@ -658,7 +660,7 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
 
       // gather trade info
       MoneroWallet multisigWallet = xmrWalletService.getMultisigWallet(tradeId);
-      Optional<Dispute> disputeOptional = findOwnDispute(tradeId);
+      Optional<Dispute> disputeOptional = findDispute(tradeId);
       if (!disputeOptional.isPresent()) throw new RuntimeException("Trader has no dispute when signing dispute payout tx. This should never happen. TradeId = " + tradeId);
       Dispute dispute = disputeOptional.get();
       Contract contract = dispute.getContract();
@@ -695,7 +697,7 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
 
       // verify change address is multisig's primary address
       if (!arbitratorSignedPayoutTx.getChangeAddress().equals(multisigWallet.getPrimaryAddress())) throw new RuntimeException("Change address is not multisig wallet's primary address");
-      
+
       // verify sum of outputs = destination amounts + change amount
       BigInteger destinationSum = (buyerPayoutDestination == null ? BigInteger.ZERO : buyerPayoutDestination.getAmount()).add(sellerPayoutDestination == null ? BigInteger.ZERO : sellerPayoutDestination.getAmount());
       if (!arbitratorSignedPayoutTx.getOutputSum().equals(destinationSum.add(arbitratorSignedPayoutTx.getChangeAmount()))) throw new RuntimeException("Sum of outputs != destination amounts + change amount");
@@ -704,7 +706,7 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
       if (buyerPayoutDestination != null) {
           BigInteger txCost = arbitratorSignedPayoutTx.getFee().add(arbitratorSignedPayoutTx.getChangeAmount());
           BigInteger expectedBuyerPayout = buyerPayoutAmount.subtract(txCost.divide(BigInteger.valueOf(2)));
-          
+
           System.out.println("Dispute buyer payout amount: " + buyerPayoutAmount);
           System.out.println("Tx cost: " + txCost);
           System.out.println("Buyer destination payout amount: " + buyerPayoutDestination.getAmount());

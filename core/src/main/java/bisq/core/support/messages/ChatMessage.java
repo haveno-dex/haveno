@@ -205,9 +205,7 @@ public final class ChatMessage extends SupportMessage {
         notifyChangeListener();
     }
 
-    // We cannot rename protobuf definition because it would break backward compatibility
-    @Override
-    public protobuf.NetworkEnvelope toProtoNetworkEnvelope() {
+    public protobuf.ChatMessage.Builder toProtoChatMessageBuilder() {
         protobuf.ChatMessage.Builder builder = protobuf.ChatMessage.newBuilder()
                 .setType(SupportType.toProtoMessage(supportType))
                 .setTradeId(tradeId)
@@ -225,6 +223,14 @@ public final class ChatMessage extends SupportMessage {
                 .setWasDisplayed(wasDisplayed);
         Optional.ofNullable(sendMessageErrorProperty.get()).ifPresent(builder::setSendMessageError);
         Optional.ofNullable(ackErrorProperty.get()).ifPresent(builder::setAckError);
+
+        return builder;
+    }
+
+    // We cannot rename protobuf definition because it would break backward compatibility
+    @Override
+    public protobuf.NetworkEnvelope toProtoNetworkEnvelope() {
+        protobuf.ChatMessage.Builder builder = toProtoChatMessageBuilder();
         return getNetworkEnvelopeBuilder()
                 .setChatMessage(builder)
                 .build();

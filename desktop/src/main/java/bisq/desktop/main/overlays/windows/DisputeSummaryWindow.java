@@ -23,7 +23,9 @@ import bisq.desktop.components.HavenoTextArea;
 import bisq.desktop.components.InputTextField;
 import bisq.desktop.main.overlays.Overlay;
 import bisq.desktop.main.overlays.popups.Popup;
-import bisq.desktop.main.support.dispute.DisputeSummaryVerification;
+
+import bisq.core.api.CoreDisputesService;
+import bisq.core.support.dispute.DisputeSummaryVerification;
 import bisq.desktop.util.DisplayUtils;
 import bisq.desktop.util.Layout;
 
@@ -98,8 +100,8 @@ public class DisputeSummaryWindow extends Overlay<DisputeSummaryWindow> {
     private final MediationManager mediationManager;
     private final XmrWalletService walletService;
     private final TradeWalletService tradeWalletService;  // TODO (woodser): remove for xmr or adapt to get/create multisig wallets for tx creation utils
+    private final CoreDisputesService disputesService;
     private Dispute dispute;
-    private Optional<Runnable> finalizeDisputeHandlerOptional = Optional.empty();
     private ToggleGroup tradeAmountToggleGroup, reasonToggleGroup;
     private DisputeResult disputeResult;
     private RadioButton buyerGetsTradeAmountRadioButton, sellerGetsTradeAmountRadioButton,
@@ -132,13 +134,15 @@ public class DisputeSummaryWindow extends Overlay<DisputeSummaryWindow> {
                                 ArbitrationManager arbitrationManager,
                                 MediationManager mediationManager,
                                 XmrWalletService walletService,
-                                TradeWalletService tradeWalletService) {
+                                TradeWalletService tradeWalletService,
+                                CoreDisputesService disputesService) {
 
         this.formatter = formatter;
         this.arbitrationManager = arbitrationManager;
         this.mediationManager = mediationManager;
         this.walletService = walletService;
         this.tradeWalletService = tradeWalletService;
+        this.disputesService = disputesService;
 
         type = Type.Confirmation;
     }
@@ -158,12 +162,6 @@ public class DisputeSummaryWindow extends Overlay<DisputeSummaryWindow> {
             });
         }
     }
-
-    public DisputeSummaryWindow onFinalizeDispute(Runnable finalizeDisputeHandler) {
-        this.finalizeDisputeHandlerOptional = Optional.of(finalizeDisputeHandler);
-        return this;
-    }
-
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Protected
@@ -598,39 +596,7 @@ public class DisputeSummaryWindow extends Overlay<DisputeSummaryWindow> {
       Button cancelButton = tuple.second;
 
       closeTicketButton.setOnAction(e -> {
-
-          // TODO (woodser): create disputed payout tx after showing payout tx confirmation, within doCloseIfValid() (see upstream/master)
-          if (!dispute.isMediationDispute()) {
-            try {
-                System.out.println(disputeResult);
-                MoneroWallet multisigWallet = walletService.getMultisigWallet(dispute.getTradeId());
-                //dispute.getContract().getArbitratorPubKeyRing();  // TODO: support arbitrator pub key ring in contract?
-                //disputeResult.setArbitratorPubKey(arbitratorAddressEntry.getPubKey());
-
-                // TODO (woodser): don't send signed tx if opener is not co-signer?
-  //              // determine if opener is co-signer
-  //              boolean openerIsWinner = (contract.getBuyerPubKeyRing().equals(dispute.getTraderPubKeyRing()) && disputeResult.getWinner() == Winner.BUYER) || (contract.getSellerPubKeyRing().equals(dispute.getTraderPubKeyRing()) && disputeResult.getWinner() == Winner.SELLER);
-  //              boolean openerIsCosigner = openerIsWinner || disputeResult.isLoserPublisher();
-  //              if (!openerIsCosigner) throw new RuntimeException("Need to query non-opener for updated multisig hex before creating tx");
-
-                // arbitrator creates and signs dispute payout tx if dispute is in context of opener, otherwise opener's peer must request payout tx by providing updated multisig hex
-                boolean isOpener = dispute.isOpener();
-                System.out.println("Is dispute opener: " + isOpener);
-                if (isOpener) {
-                  MoneroTxWallet arbitratorPayoutTx = ArbitrationManager.arbitratorCreatesDisputedPayoutTx(contract, dispute, disputeResult, multisigWallet);
-                  System.out.println("Created arbitrator-signed payout tx: " + arbitratorPayoutTx);
-                  if (arbitratorPayoutTx != null) disputeResult.setArbitratorSignedPayoutTxHex(arbitratorPayoutTx.getTxSet().getMultisigTxHex());
-                }
-
-                // send arbitrator's updated multisig hex with dispute result
-                disputeResult.setArbitratorUpdatedMultisigHex(multisigWallet.getMultisigHex());
-            } catch (AddressFormatException e2) {
-                log.error("Error at close dispute", e2);
-                return;
-            }
-          }
-
-//        // TODO (woodser): handle with showPayoutTxConfirmation() / doCloseIfValid() in order to have confirmation window (see upstream/master)
+          disputesService.resolveDisputePayout(dispute, disputeResult, contract);
           doClose(closeTicketButton);
 
 //          if (dispute.getDepositTxSerialized() == null) {
@@ -801,49 +767,12 @@ public class DisputeSummaryWindow extends Overlay<DisputeSummaryWindow> {
             return;
         }
 
+        summaryNotesTextArea.textProperty().unbindBidirectional(disputeResult.summaryNotesProperty());
+
         boolean isRefundAgent = disputeManager instanceof RefundManager;
         disputeResult.setLoserPublisher(isLoserPublisherCheckBox.isSelected());
         disputeResult.setCloseDate(new Date());
-        dispute.setDisputeResult(disputeResult);
-        dispute.setIsClosed();
-        DisputeResult.Reason reason = disputeResult.getReason();
-
-        summaryNotesTextArea.textProperty().unbindBidirectional(disputeResult.summaryNotesProperty());
-
-        String role = isRefundAgent ? Res.get("shared.refundAgent") : Res.get("shared.mediator");
-        String agentNodeAddress = checkNotNull(disputeManager.getAgentNodeAddress(dispute)).getFullAddress();
-        Contract contract = dispute.getContract();
-        String currencyCode = contract.getOfferPayload().getCurrencyCode();
-        String amount = formatter.formatCoinWithCode(contract.getTradeAmount());
-
-        String textToSign = Res.get("disputeSummaryWindow.close.msg",
-                DisplayUtils.formatDateTime(disputeResult.getCloseDate()),
-                role,
-                agentNodeAddress,
-                dispute.getShortTradeId(),
-                currencyCode,
-                amount,
-                formatter.formatCoinWithCode(disputeResult.getBuyerPayoutAmount()),
-                formatter.formatCoinWithCode(disputeResult.getSellerPayoutAmount()),
-                Res.get("disputeSummaryWindow.reason." + reason.name()),
-                disputeResult.summaryNotesProperty().get()
-        );
-
-        if (reason == DisputeResult.Reason.OPTION_TRADE &&
-                dispute.getChatMessages().size() > 1 &&
-                dispute.getChatMessages().get(1).isSystemMessage()) {
-            textToSign += "\n" + dispute.getChatMessages().get(1).getMessage() + "\n";
-        }
-
-        String summaryText = DisputeSummaryVerification.signAndApply(disputeManager, disputeResult, textToSign);
-
-        if (isRefundAgent) {
-            summaryText += Res.get("disputeSummaryWindow.close.nextStepsForRefundAgentArbitration");
-        } else {
-            summaryText += Res.get("disputeSummaryWindow.close.nextStepsForMediation");
-        }
-
-        disputeManager.sendDisputeResultMessage(disputeResult, dispute, summaryText);
+        disputesService.closeDispute(disputeManager, dispute, disputeResult, isRefundAgent);
 
         if (peersDisputeOptional.isPresent() && !peersDisputeOptional.get().isClosed() && !DevEnv.isDevMode()) {
             UserThread.runAfter(() -> new Popup()
@@ -852,12 +781,8 @@ public class DisputeSummaryWindow extends Overlay<DisputeSummaryWindow> {
                     200, TimeUnit.MILLISECONDS);
         }
 
-        finalizeDisputeHandlerOptional.ifPresent(Runnable::run);
-
         disputeManager.requestPersistence();
-
         closeTicketButton.disableProperty().unbind();
-
         hide();
     }
 
@@ -878,33 +803,24 @@ public class DisputeSummaryWindow extends Overlay<DisputeSummaryWindow> {
     }
 
     private void applyPayoutAmountsToDisputeResult(Toggle selectedTradeAmountToggle) {
-        Contract contract = dispute.getContract();
-        Offer offer = new Offer(contract.getOfferPayload());
-        Coin buyerSecurityDeposit = offer.getBuyerSecurityDeposit();
-        Coin sellerSecurityDeposit = offer.getSellerSecurityDeposit();
-        Coin tradeAmount = contract.getTradeAmount();
+        CoreDisputesService.DisputePayout payout;
         if (selectedTradeAmountToggle == buyerGetsTradeAmountRadioButton) {
-            disputeResult.setBuyerPayoutAmount(tradeAmount.add(buyerSecurityDeposit));
-            disputeResult.setSellerPayoutAmount(sellerSecurityDeposit);
+            payout = CoreDisputesService.DisputePayout.BUYER_GETS_TRADE_AMOUNT;
             disputeResult.setWinner(DisputeResult.Winner.BUYER);
         } else if (selectedTradeAmountToggle == buyerGetsAllRadioButton) {
-            disputeResult.setBuyerPayoutAmount(tradeAmount
-                    .add(buyerSecurityDeposit)
-                    .add(sellerSecurityDeposit)); // TODO (woodser): apply min payout to incentivize loser (see post v1.1.7)
-            disputeResult.setSellerPayoutAmount(Coin.ZERO);
+            payout = CoreDisputesService.DisputePayout.BUYER_GETS_ALL;
             disputeResult.setWinner(DisputeResult.Winner.BUYER);
         } else if (selectedTradeAmountToggle == sellerGetsTradeAmountRadioButton) {
-            disputeResult.setBuyerPayoutAmount(buyerSecurityDeposit);
-            disputeResult.setSellerPayoutAmount(tradeAmount.add(sellerSecurityDeposit));
+            payout = CoreDisputesService.DisputePayout.SELLER_GETS_TRADE_AMOUNT;
             disputeResult.setWinner(DisputeResult.Winner.SELLER);
         } else if (selectedTradeAmountToggle == sellerGetsAllRadioButton) {
-            disputeResult.setBuyerPayoutAmount(Coin.ZERO);
-            disputeResult.setSellerPayoutAmount(tradeAmount
-                    .add(sellerSecurityDeposit)
-                    .add(buyerSecurityDeposit));
+            payout = CoreDisputesService.DisputePayout.SELLER_GETS_ALL;
             disputeResult.setWinner(DisputeResult.Winner.SELLER);
+        } else {
+            // should not happen
+            throw new IllegalStateException("Unknown radio button");
         }
-
+        disputesService.applyPayoutAmountsToDisputeResult(payout, dispute, disputeResult, -1);
         buyerPayoutAmountInputTextField.setText(formatter.formatCoin(disputeResult.getBuyerPayoutAmount()));
         sellerPayoutAmountInputTextField.setText(formatter.formatCoin(disputeResult.getSellerPayoutAmount()));
     }

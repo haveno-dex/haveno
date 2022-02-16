@@ -3,6 +3,7 @@ package bisq.core.api;
 import bisq.core.api.CoreApi.NotificationListener;
 import bisq.core.api.model.TradeInfo;
 import bisq.core.trade.Trade;
+import bisq.core.support.messages.ChatMessage;
 import bisq.proto.grpc.NotificationMessage;
 import bisq.proto.grpc.NotificationMessage.NotificationType;
 import javax.inject.Singleton;
@@ -55,5 +56,13 @@ public class CoreNotificationService {
                 .setTimestamp(System.currentTimeMillis())
                 .setTitle(title)
                 .setMessage(message).build());
+    }
+
+    public void sendChatNotification(ChatMessage chatMessage) {
+        sendNotification(NotificationMessage.newBuilder()
+                .setType(NotificationType.CHAT_MESSAGE)
+                .setTimestamp(System.currentTimeMillis())
+                .setChatMessage(chatMessage.toProtoChatMessageBuilder())
+                .build());
     }
 }

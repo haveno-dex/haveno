@@ -29,6 +29,7 @@ import bisq.desktop.main.support.dispute.client.mediation.MediationClientView;
 import bisq.desktop.util.GUIUtil;
 
 import bisq.core.account.witness.AccountAgeWitnessService;
+import bisq.core.api.CoreDisputesService;
 import bisq.core.api.CoreMoneroConnectionsService;
 import bisq.core.btc.wallet.XmrWalletService;
 import bisq.core.locale.Res;
@@ -122,6 +123,7 @@ public class PendingTradesDataModel extends ActivatableDataModel {
     private Trade selectedTrade;
     @Getter
     private final PubKeyRingProvider pubKeyRingProvider;
+    private final CoreDisputesService disputesService;
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Constructor, initialization
@@ -141,7 +143,8 @@ public class PendingTradesDataModel extends ActivatableDataModel {
                                   Navigation navigation,
                                   WalletPasswordWindow walletPasswordWindow,
                                   NotificationCenter notificationCenter,
-                                  OfferUtil offerUtil) {
+                                  OfferUtil offerUtil,
+                                  CoreDisputesService disputesService) {
         this.tradeManager = tradeManager;
         this.xmrWalletService = xmrWalletService;
         this.pubKeyRingProvider = pubKeyRingProvider;
@@ -156,6 +159,7 @@ public class PendingTradesDataModel extends ActivatableDataModel {
         this.walletPasswordWindow = walletPasswordWindow;
         this.notificationCenter = notificationCenter;
         this.offerUtil = offerUtil;
+        this.disputesService = disputesService;
 
         tradesListChangeListener = change -> onListChanged();
         notificationCenter.setSelectItemByTradeIdConsumer(this::selectItemByTradeId);
@@ -544,40 +548,12 @@ public class PendingTradesDataModel extends ActivatableDataModel {
         } else if (useArbitration) {
           // Only if we have completed mediation we allow arbitration
           disputeManager = arbitrationManager;
-          PubKeyRing arbitratorPubKeyRing = trade.getArbitratorPubKeyRing();
-          checkNotNull(arbitratorPubKeyRing, "arbitratorPubKeyRing must not be null");
-          byte[] depositTxSerialized = null; // depositTx.bitcoinSerialize(); TODO (woodser)
-          String depositTxHashAsString = null; // depositTx.getHashAsString(); TODO (woodser)
-          Dispute dispute = new Dispute(new Date().getTime(),
-                  trade.getId(),
-                  pubKeyRingProvider.get().hashCode(), // trader id,
-                  true,
-                  (offer.getDirection() == OfferPayload.Direction.BUY) == isMaker,
-                  isMaker,
-                  pubKeyRingProvider.get(),
-                  trade.getDate().getTime(),
-                  trade.getMaxTradePeriodDate().getTime(),
-                  trade.getContract(),
-                  trade.getContractHash(),
-                  depositTxSerialized,
-                  payoutTxSerialized,
-                  depositTxHashAsString,
-                  payoutTxHashAsString,
-                  trade.getContractAsJson(),
-                  trade.getMaker().getContractSignature(),
-                  trade.getTaker().getContractSignature(),
-                  trade.getMaker().getPaymentAccountPayload(),
-                  trade.getTaker().getPaymentAccountPayload(),
-                  arbitratorPubKeyRing,
-                  isSupportTicket,
-                  SupportType.ARBITRATION);
-
-          trade.setDisputeState(Trade.DisputeState.DISPUTE_REQUESTED);
+          Dispute dispute = disputesService.createDisputeForTrade(trade, offer, pubKeyRingProvider.get(), isMaker, isSupportTicket);
           sendOpenNewDisputeMessage(dispute, false, disputeManager, updatedMultisigHex);
+          tradeManager.requestPersistence();
         } else {
             log.warn("Invalid dispute state {}", disputeState.name());
         }
-        tradeManager.requestPersistence();
     }
 
     private void sendOpenNewDisputeMessage(Dispute dispute, boolean reOpen, DisputeManager<? extends DisputeList<Dispute>> disputeManager, String senderMultisigHex) {

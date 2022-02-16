@@ -15,13 +15,9 @@
  * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.desktop.main.support.dispute;
+package bisq.core.support.dispute;
 
 import bisq.core.locale.Res;
-import bisq.core.support.dispute.Dispute;
-import bisq.core.support.dispute.DisputeList;
-import bisq.core.support.dispute.DisputeManager;
-import bisq.core.support.dispute.DisputeResult;
 import bisq.core.support.dispute.agent.DisputeAgent;
 import bisq.core.support.dispute.mediation.mediator.MediatorManager;
 import bisq.core.support.dispute.refund.refundagent.RefundAgentManager;
