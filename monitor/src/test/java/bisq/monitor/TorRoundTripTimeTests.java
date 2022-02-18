@@ -102,7 +102,7 @@ public class TorRoundTripTimeTests {
         if (!"default".equals(sampleSize))
             configuration.put("TorRoundTripTime.run.sampleSize", sampleSize);
         // torproject.org hidden service
-        configuration.put("TorRoundTripTime.run.hosts", "http://expyuzz4wqqyqhjn.onion:80");
+        configuration.put("TorRoundTripTime.run.hosts", "http://2gzyxa5ihm7nsggfxnu52rck2vv4rvmdlkiu3zzui5du4xyclen53wid.onion:80");
 
         Metric DUT = new TorRoundTripTime(reporter);
         // start

@@ -390,7 +390,7 @@ public class Config {
 
         ArgumentAcceptingOptionSpec<String> seedNodesOpt =
                 parser.accepts(SEED_NODES, "Override hard coded seed nodes as comma separated list e.g. " +
-                        "'rxdkppp3vicnbgqt.onion:8002,mfla72c4igh5ta2t.onion:8002'")
+                        "'_haveno_v3_.onion:2002'")
                         .withRequiredArg()
                         .withValuesSeparatedBy(',')
                         .describedAs("host:port[,...]");

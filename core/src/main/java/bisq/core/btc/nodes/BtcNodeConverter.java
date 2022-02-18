@@ -116,10 +116,6 @@ class BtcNodeConverter {
     }
 
     static class Facade {
-        InetAddress onionHostToInetAddress(String onionAddress) throws UnknownHostException {
-            return OnionCatConverter.onionHostToInetAddress(onionAddress);
-        }
-
         InetAddress torLookup(Socks5Proxy proxy, String host) throws DnsLookupException {
             return DnsLookupTor.lookup(proxy, host);
         }

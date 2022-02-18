@@ -128,7 +128,7 @@ public class FilterWindow extends Overlay<FilterWindow> {
                 Res.get("filterWindow.onions")).second;
         InputTextField bannedFromNetworkTF = addTopLabelInputTextField(gridPane, ++rowIndex,
                 Res.get("filterWindow.bannedFromNetwork")).second;
-        bannedFromTradingTF.setPromptText("E.g. zqnzx6o3nifef5df.onion:9999"); // Do not translate
+        bannedFromTradingTF.setPromptText("E.g. v3.onion:9999"); // Do not translate
         InputTextField paymentAccountFilterTF = addTopLabelInputTextField(gridPane, ++rowIndex,
                 Res.get("filterWindow.accounts")).second;
         GridPane.setHalignment(paymentAccountFilterTF, HPos.RIGHT);

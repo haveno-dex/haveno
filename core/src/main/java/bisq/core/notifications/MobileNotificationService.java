@@ -62,8 +62,8 @@ public class MobileNotificationService {
     // duplicated in relay and here. Must not be changed.
     private static final String SUCCESS = "success";
     private static final String DEV_URL_LOCALHOST = "http://localhost:8080/";
-    private static final String DEV_URL = "http://165.227.40.124:8080/";
-    private static final String URL = "http://jtboonrvwmq7frkj.onion/";
+    //private static final String DEV_URL = "http://__relay-ip__:8080/";
+    //private static final String URL = "http://__v3__.onion/";
     private static final String BISQ_MESSAGE_IOS_MAGIC = "BisqMessageiOS";
     private static final String BISQ_MESSAGE_ANDROID_MAGIC = "BisqMessageAndroid";
 
@@ -103,7 +103,7 @@ public class MobileNotificationService {
 
         // httpClient.setBaseUrl(useLocalHost ? DEV_URL_LOCALHOST : URL);
 
-        httpClient.setBaseUrl(useLocalHost ? DEV_URL : URL);
+        // httpClient.setBaseUrl(useLocalHost ? DEV_URL : URL);
         httpClient.setIgnoreSocks5Proxy(false);
     }
 

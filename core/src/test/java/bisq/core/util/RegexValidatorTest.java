@@ -48,20 +48,6 @@ public class RegexValidatorTest {
         assertTrue(regexValidator.validate("").isValid);
         assertFalse(regexValidator.validate(" ").isValid);
 
-        // onion V2 addresses
-        assertTrue(regexValidator.validate("abcdefghij234567.onion").isValid);
-        assertTrue(regexValidator.validate("abcdefghijklmnop.onion,abcdefghijklmnop.onion").isValid);
-        assertTrue(regexValidator.validate("abcdefghijklmnop.onion, abcdefghijklmnop.onion").isValid);
-        assertTrue(regexValidator.validate("qrstuvwxyzABCDEF.onion,qrstuvwxyzABCDEF.onion,aaaaaaaaaaaaaaaa.onion").isValid);
-        assertTrue(regexValidator.validate("GHIJKLMNOPQRSTUV.onion:9999").isValid);
-        assertTrue(regexValidator.validate("WXYZ234567abcdef.onion,GHIJKLMNOPQRSTUV.onion:9999").isValid);
-        assertTrue(regexValidator.validate("aaaaaaaaaaaaaaaa.onion:9999,WXYZ234567abcdef.onion:9999,2222222222222222.onion:9999").isValid);
-        assertFalse(regexValidator.validate("abcd.onion").isValid);
-        assertFalse(regexValidator.validate("abcdefghijklmnop,abcdefghijklmnop.onion").isValid);
-        assertFalse(regexValidator.validate("abcdefghi2345689.onion:9999").isValid);
-        assertFalse(regexValidator.validate("onion:9999,abcdefghijklmnop.onion:9999").isValid);
-        assertFalse(regexValidator.validate("abcdefghijklmnop.onion:").isValid);
-
         // onion v3 addresses
         assertFalse(regexValidator.validate("32zzibxmqi2ybxpqyggwwuwz7a3lbvtzoloti7cxoevyvijexvgsfei.onion:8333").isValid); // 1 missing char
         assertTrue(regexValidator.validate("wizseedscybbttk4bmb2lzvbuk2jtect37lcpva4l3twktmkzemwbead.onion:8000").isValid);
@@ -104,20 +90,6 @@ public class RegexValidatorTest {
         assertTrue(regexValidator.validate("").isValid);
         assertFalse(regexValidator.validate(" ").isValid);
 
-        // onion V2 addresses
-        assertTrue(regexValidator.validate("abcdefghij234567.onion").isValid);
-        assertTrue(regexValidator.validate("abcdefghijklmnop.onion,abcdefghijklmnop.onion").isValid);
-        assertTrue(regexValidator.validate("abcdefghijklmnop.onion, abcdefghijklmnop.onion").isValid);
-        assertTrue(regexValidator.validate("qrstuvwxyzABCDEF.onion,qrstuvwxyzABCDEF.onion,aaaaaaaaaaaaaaaa.onion").isValid);
-        assertTrue(regexValidator.validate("GHIJKLMNOPQRSTUV.onion:9999").isValid);
-        assertTrue(regexValidator.validate("WXYZ234567abcdef.onion,GHIJKLMNOPQRSTUV.onion:9999").isValid);
-        assertTrue(regexValidator.validate("aaaaaaaaaaaaaaaa.onion:9999,WXYZ234567abcdef.onion:9999,2222222222222222.onion:9999").isValid);
-        assertFalse(regexValidator.validate("abcd.onion").isValid);
-        assertFalse(regexValidator.validate("abcdefghijklmnop,abcdefghijklmnop.onion").isValid);
-        assertFalse(regexValidator.validate("abcdefghi2345689.onion:9999").isValid);
-        assertFalse(regexValidator.validate("onion:9999,abcdefghijklmnop.onion:9999").isValid);
-        assertFalse(regexValidator.validate("abcdefghijklmnop.onion:").isValid);
-
         // onion v3 addresses
         assertFalse(regexValidator.validate("32zzibxmqi2ybxpqyggwwuwz7a3lbvtzoloti7cxoevyvijexvgsfei.onion:8333").isValid); // 1 missing char
         assertTrue(regexValidator.validate("wizseedscybbttk4bmb2lzvbuk2jtect37lcpva4l3twktmkzemwbead.onion:8000").isValid);
@@ -130,20 +102,6 @@ public class RegexValidatorTest {
 
         assertTrue(regexValidator.validate("").isValid);
         assertFalse(regexValidator.validate(" ").isValid);
-
-        // onion V2 addresses
-        assertFalse(regexValidator.validate("abcdefghij234567.onion").isValid);
-        assertFalse(regexValidator.validate("abcdefghijklmnop.onion,abcdefghijklmnop.onion").isValid);
-        assertFalse(regexValidator.validate("abcdefghijklmnop.onion, abcdefghijklmnop.onion").isValid);
-        assertFalse(regexValidator.validate("qrstuvwxyzABCDEF.onion,qrstuvwxyzABCDEF.onion,aaaaaaaaaaaaaaaa.onion").isValid);
-        assertFalse(regexValidator.validate("GHIJKLMNOPQRSTUV.onion:9999").isValid);
-        assertFalse(regexValidator.validate("WXYZ234567abcdef.onion,GHIJKLMNOPQRSTUV.onion:9999").isValid);
-        assertFalse(regexValidator.validate("aaaaaaaaaaaaaaaa.onion:9999,WXYZ234567abcdef.onion:9999,2222222222222222.onion:9999").isValid);
-        assertFalse(regexValidator.validate("abcd.onion").isValid);
-        assertFalse(regexValidator.validate("abcdefghijklmnop,abcdefghijklmnop.onion").isValid);
-        assertFalse(regexValidator.validate("abcdefghi2345689.onion:9999").isValid);
-        assertFalse(regexValidator.validate("onion:9999,abcdefghijklmnop.onion:9999").isValid);
-        assertFalse(regexValidator.validate("abcdefghijklmnop.onion:").isValid);
 
         // onion v3 addresses
         assertFalse(regexValidator.validate("32zzibxmqi2ybxpqyggwwuwz7a3lbvtzoloti7cxoevyvijexvgsfei.onion:8333").isValid); // 1 missing char
@@ -219,20 +177,6 @@ public class RegexValidatorTest {
 
         assertTrue(regexValidator.validate("").isValid);
         assertFalse(regexValidator.validate(" ").isValid);
-
-        // onion V2 addresses
-        assertFalse(regexValidator.validate("abcdefghij234567.onion").isValid);
-        assertFalse(regexValidator.validate("abcdefghijklmnop.onion,abcdefghijklmnop.onion").isValid);
-        assertFalse(regexValidator.validate("abcdefghijklmnop.onion, abcdefghijklmnop.onion").isValid);
-        assertFalse(regexValidator.validate("qrstuvwxyzABCDEF.onion,qrstuvwxyzABCDEF.onion,aaaaaaaaaaaaaaaa.onion").isValid);
-        assertFalse(regexValidator.validate("GHIJKLMNOPQRSTUV.onion:9999").isValid);
-        assertFalse(regexValidator.validate("WXYZ234567abcdef.onion,GHIJKLMNOPQRSTUV.onion:9999").isValid);
-        assertFalse(regexValidator.validate("aaaaaaaaaaaaaaaa.onion:9999,WXYZ234567abcdef.onion:9999,2222222222222222.onion:9999").isValid);
-        assertFalse(regexValidator.validate("abcd.onion").isValid);
-        assertFalse(regexValidator.validate("abcdefghijklmnop,abcdefghijklmnop.onion").isValid);
-        assertFalse(regexValidator.validate("abcdefghi2345689.onion:9999").isValid);
-        assertFalse(regexValidator.validate("onion:9999,abcdefghijklmnop.onion:9999").isValid);
-        assertFalse(regexValidator.validate("abcdefghijklmnop.onion:").isValid);
 
         // onion v3 addresses
         assertFalse(regexValidator.validate("32zzibxmqi2ybxpqyggwwuwz7a3lbvtzoloti7cxoevyvijexvgsfei.onion:8333").isValid); // 1 missing char

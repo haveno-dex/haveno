@@ -48,9 +48,12 @@ public class Socks5SeedOnionDiscovery implements PeerDiscovery {
             case NetworkParameters.ID_MAINNET:
                 seedAddresses = mainNetSeeds();
                 break;
+        /*
             case NetworkParameters.ID_TESTNET:
                 seedAddresses = testNet3Seeds();
                 break;
+
+         */
         }
 
         this.seedAddrs = convertAddrsString(seedAddresses, params.getPort());
@@ -64,77 +67,38 @@ public class Socks5SeedOnionDiscovery implements PeerDiscovery {
         // https://raw.githubusercontent.com/bitcoin/bitcoin/master/contrib/seeds/nodes_main.txt
 
         return new String[]{
-                "226eupdnaouu4h2v.onion",
-                "2frgxpe5mheghyom.onion",
-                "3ihjnsvwc3x6dp2o.onion",
-                "3w77hrilg6q64opl.onion",
-                "4ls4o6iszcd7mkfw.onion",
-                "4p3abjxqppzxi7qi.onion",
-                "546esc6botbjfbxb.onion",
-                "5msftytzlsskr4ut.onion",
-                "5ty6rxpgrkmdnk4a.onion",
-                "akmqyuidrf56ip26.onion",
-                "alhlegtjkdmbqsvt.onion",
-                "bafk5ioatlgt7dgl.onion",
-                "bup5n5e3kurvjzf3.onion",
-                "cjygd7pu5lqkky5j.onion",
-                "cyvpgt25274i5b7c.onion",
-                "dekj4wacywpqsad3.onion",
-                "dqpxwlpnv3z3hznl.onion",
-                "drarzpycbtxwbcld.onion",
-                "drp4pvejybx2ejdr.onion",
-                "dxkmtmwiq7ddtgul.onion",
-                "e6j57zkyibu2smad.onion",
-                "ejcqevujcqltqn7d.onion",
-                "eqgbt2ghfvsshbvo.onion",
-                "fgizgkdnndilo6ka.onion",
-                "fqxup4oev33eeidg.onion",
-                "gb5ypqt63du3wfhn.onion",
-                "ggdy2pb2avlbtjwq.onion",
-                "hahhloezyfqh3hci.onion",
-                "ihdv6bzz2gx72fs7.onion",
-                "in7r5ieo7ogkxbne.onion",
-                "kvd44sw7skb5folw.onion",
-                "mn744hbioayn3ojs.onion",
-                "ms4ntrrisfxzpvmy.onion",
-                "n5lqwpjabqg62ihx.onion",
-                "o4sl5na6jeqgi3l6.onion",
-                "omjv24nbck4k5ud6.onion",
-                "po3j2hfkmf7sh36o.onion",
-                "psco6bxjewljrczx.onion",
-                "qi5yr6lvlckzffor.onion",
-                "qlv6py6hdtzipntn.onion",
-                "qynmpgdbp23xyfnj.onion",
-                "rhtawcs7xak4gi3t.onion",
-                "rjacws757ai66lre.onion",
-                "rjlnp3hwvrsmap6e.onion",
-                "rkdvqcrtfv6yt4oy.onion",
-                "rlafimkctvz63llg.onion",
-                "rlj4ppok4dnsdu5n.onion",
-                "seoskudzk6vn6mqz.onion",
-                "tayqi57tfiy7x3vk.onion",
-                "tchop676j6yppwwm.onion",
-                "trrtyp3sirmwttyu.onion",
-                "tx4zd7d5exonnblh.onion",
-                "u4ecb7txxi6l3gix.onion",
-                "umcxcmfycvejw264.onion",
-                "v7xqd42ocemalurd.onion",
-                "vb267mt3lnwfdmdb.onion",
-                "vev3n5fxfrtqj6e5.onion",
-                "visevrizz3quyagj.onion",
-                "vpg6p5e5ln33dqtp.onion",
-                "vr2ruasinafoy3fl.onion",
-                "x6pthvd5x6abyfo7.onion",
-                "xbwbzrspvav7u5ie.onion",
-                "xfcevnql2chnawko.onion",
-                "ycivnom44dmxx4ob.onion",
-                "yzdvlv5daitafekn.onion"
+            "2g5qfdkn2vvcbqhzcyvyiitg4ceukybxklraxjnu7atlhd22gdwywaid.onion",
+            "2jmtxvyup3ijr7u6uvu7ijtnojx4g5wodvaedivbv74w4vzntxbrhvad.onion",
+            "37m62wn7dz3uqpathpc4qfmgrbupachj52nt3jbtbjugpbu54kbud7yd.onion",
+            "5g72ppm3krkorsfopcm2bi7wlv4ohhs4u4mlseymasn7g7zhdcyjpfid.onion",
+            "7cgwjuwi5ehvcay4tazy7ya6463bndjk6xzrttw5t3xbpq4p22q6fyid.onion",
+            "7pyrpvqdhmayxggpcyqn5l3m5vqkw3qubnmgwlpya2mdo6x7pih7r7id.onion",
+            "b64xcbleqmwgq2u46bh4hegnlrzzvxntyzbmucn3zt7cssm7y4ubv3id.onion",
+            "ejxefzf5fpst4mg2rib7grksvscl7p6fvjp6agzgfc2yglxnjtxc3aid.onion",
+            "fjdyxicpm4o42xmedlwl3uvk5gmqdfs5j37wir52327vncjzvtpfv7yd.onion",
+            "fpz6r5ppsakkwypjcglz6gcnwt7ytfhxskkfhzu62tnylcknh3eq6pad.onion",
+            "fzhn4uoxfbfss7h7d6ffbn266ca432ekbbzvqtsdd55ylgxn4jucm5qd.onion",
+            "gxo5anvfnffnftfy5frkgvplq3rpga2ie3tcblo2vl754fvnhgorn5yd.onion",
+            "ifdu5qvbofrt4ekui2iyb3kbcyzcsglazhx2hn4wfskkrx2v24qxriid.onion",
+            "itz3oxsihs62muvknc237xabl5f6w6rfznfhbpayrslv2j2ubels47yd.onion",
+            "lrjh6fywjqttmlifuemq3puhvmshxzzyhoqx7uoufali57eypuenzzid.onion",
+            "m7cbpjolo662uel7rpaid46as2otcj44vvwg3gccodnvaeuwbm3anbyd.onion",
+            "opnyfyeiibe5qo5a3wbxzbb4xdiagc32bbce46owmertdknta5mi7uyd.onion",
+            "owjsdxmzla6d7lrwkbmetywqym5cyswpihciesfl5qdv2vrmwsgy4uqd.onion",
+            "q7kgmd7n7h27ds4fg7wocgniuqb3oe2zxp4nfe4skd5da6wyipibqzqd.onion",
+            "rp7k2go3s5lyj3fnj6zn62ktarlrsft2ohlsxkyd7v3e3idqyptvread.onion",
+            "sys54sv4xv3hn3sdiv3oadmzqpgyhd4u4xphv4xqk64ckvaxzm57a7yd.onion",
+            "tddeij4qigtjr6jfnrmq6btnirmq5msgwcsdpcdjr7atftm7cxlqztid.onion",
+            "vi5bnbxkleeqi6hfccjochnn65lcxlfqs4uwgmhudph554zibiusqnad.onion",
+            "xqt25cobm5zqucac3634zfght72he6u3eagfyej5ellbhcdgos7t2had.onion"
         };
     }
 
     /**
      * returns .onion nodes available on testnet3
      */
+    // No new V3 test seeds. Disabling...
+    /*
     private String[] testNet3Seeds() {
         // this list copied from bitcoin-core on 2017-01-19
         //   https://github.com/bitcoin/bitcoin/blob/57b34599b2deb179ff1bd97ffeab91ec9f904d85/contrib/seeds/nodes_test.txt
@@ -148,7 +112,7 @@ public class Socks5SeedOnionDiscovery implements PeerDiscovery {
                 "ubqj4rsu3nqtxmtp.onion"
         };
     }
-
+    */
     /**
      * Returns an array containing all the Bitcoin nodes within the list.
      */
