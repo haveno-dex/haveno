@@ -21,7 +21,7 @@ import bisq.core.support.SupportType;
 import bisq.core.support.dispute.messages.DisputeMessage;
 
 abstract class ArbitrationMessage extends DisputeMessage {
-    ArbitrationMessage(int messageVersion, String uid, SupportType supportType) {
+    ArbitrationMessage(String messageVersion, String uid, SupportType supportType) {
         super(messageVersion, uid, supportType);
     }
 }

@@ -69,7 +69,7 @@ public final class OfferAvailabilityResponse extends OfferMessage implements Sup
     private OfferAvailabilityResponse(String offerId,
                                       AvailabilityResult availabilityResult,
                                       @Nullable Capabilities supportedCapabilities,
-                                      int messageVersion,
+                                      String messageVersion,
                                       @Nullable String uid,
                                       String makerSignature,
                                       NodeAddress arbitratorNodeAddress) {
@@ -96,7 +96,7 @@ public final class OfferAvailabilityResponse extends OfferMessage implements Sup
                 .build();
     }
 
-    public static OfferAvailabilityResponse fromProto(protobuf.OfferAvailabilityResponse proto, int messageVersion) {
+    public static OfferAvailabilityResponse fromProto(protobuf.OfferAvailabilityResponse proto, String messageVersion) {
         return new OfferAvailabilityResponse(proto.getOfferId(),
                 ProtoUtil.enumFromProto(AvailabilityResult.class, proto.getAvailabilityResult().name()),
                 Capabilities.fromIntList(proto.getSupportedCapabilitiesList()),

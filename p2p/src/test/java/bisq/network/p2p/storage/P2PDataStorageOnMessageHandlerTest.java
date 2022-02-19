@@ -53,7 +53,7 @@ public class P2PDataStorageOnMessageHandlerTest {
     static class UnsupportedBroadcastMessage extends BroadcastMessage {
 
         UnsupportedBroadcastMessage() {
-            super(0);
+            super("0");
         }
     }
 

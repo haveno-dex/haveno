@@ -35,7 +35,7 @@ public abstract class SupportMessage extends NetworkEnvelope implements MailboxM
     // Added with v1.1.6. Old clients will not have set that field and we fall back to entry 0 which is ARBITRATION.
     protected final SupportType supportType;
 
-    public SupportMessage(int messageVersion, String uid, SupportType supportType) {
+    public SupportMessage(String messageVersion, String uid, SupportType supportType) {
         super(messageVersion);
         this.uid = uid;
         this.supportType = supportType;

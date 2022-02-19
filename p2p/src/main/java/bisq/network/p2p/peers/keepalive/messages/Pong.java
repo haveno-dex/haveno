@@ -37,7 +37,7 @@ public final class Pong extends NetworkEnvelope implements KeepAliveMessage {
     // PROTO BUFFER
     ///////////////////////////////////////////////////////////////////////////////////////////
 
-    private Pong(int requestNonce, int messageVersion) {
+    private Pong(int requestNonce, String messageVersion) {
         super(messageVersion);
         this.requestNonce = requestNonce;
     }
@@ -50,7 +50,7 @@ public final class Pong extends NetworkEnvelope implements KeepAliveMessage {
                 .build();
     }
 
-    public static Pong fromProto(protobuf.Pong proto, int messageVersion) {
+    public static Pong fromProto(protobuf.Pong proto, String messageVersion) {
         return new Pong(proto.getRequestNonce(), messageVersion);
     }
 }

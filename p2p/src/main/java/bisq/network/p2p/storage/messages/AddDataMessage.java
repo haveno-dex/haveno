@@ -42,7 +42,7 @@ public final class AddDataMessage extends BroadcastMessage {
     // PROTO BUFFER
     ///////////////////////////////////////////////////////////////////////////////////////////
 
-    private AddDataMessage(ProtectedStorageEntry protectedStorageEntry, int messageVersion) {
+    private AddDataMessage(ProtectedStorageEntry protectedStorageEntry, String messageVersion) {
         super(messageVersion);
         this.protectedStorageEntry = protectedStorageEntry;
     }
@@ -62,7 +62,7 @@ public final class AddDataMessage extends BroadcastMessage {
                 .build();
     }
 
-    public static AddDataMessage fromProto(protobuf.AddDataMessage proto, NetworkProtoResolver resolver, int messageVersion) {
+    public static AddDataMessage fromProto(protobuf.AddDataMessage proto, NetworkProtoResolver resolver, String messageVersion) {
         return new AddDataMessage((ProtectedStorageEntry) resolver.fromProto(proto.getEntry()), messageVersion);
     }
 }

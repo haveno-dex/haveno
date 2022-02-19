@@ -48,7 +48,7 @@ public final class RefreshOfferMessage extends BroadcastMessage {
                                 byte[] signature,
                                 byte[] hashOfPayload,
                                 int sequenceNumber,
-                                int messageVersion) {
+                                String messageVersion) {
         super(messageVersion);
         this.hashOfDataAndSeqNr = hashOfDataAndSeqNr;
         this.signature = signature;
@@ -67,7 +67,7 @@ public final class RefreshOfferMessage extends BroadcastMessage {
                 .build();
     }
 
-    public static RefreshOfferMessage fromProto(protobuf.RefreshOfferMessage proto, int messageVersion) {
+    public static RefreshOfferMessage fromProto(protobuf.RefreshOfferMessage proto, String messageVersion) {
         return new RefreshOfferMessage(proto.getHashOfDataAndSeqNr().toByteArray(),
                 proto.getSignature().toByteArray(),
                 proto.getHashOfPayload().toByteArray(),

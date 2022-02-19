@@ -85,7 +85,7 @@ public class Version {
     // If objects are used for both network and database the network version is applied.
     // VERSION = 0.5.0 -> P2P_NETWORK_VERSION = 1
     // With version 1.2.2 we change to version 2 (new trade protocol)
-    public static final int P2P_NETWORK_VERSION = 1;
+    public static final String P2P_NETWORK_VERSION = "A";
 
     // The version no. of the serialized data stored to disc. A change will break the serialization of old objects.
     // VERSION = 0.5.0 -> LOCAL_DB_VERSION = 1
@@ -100,9 +100,9 @@ public class Version {
     // Version 1.2.2 -> TRADE_PROTOCOL_VERSION = 2
     // Version 1.5.0 -> TRADE_PROTOCOL_VERSION = 3
     public static final int TRADE_PROTOCOL_VERSION = 3;
-    private static int p2pMessageVersion;
+    private static String p2pMessageVersion;
 
-    public static int getP2PMessageVersion() {
+    public static String getP2PMessageVersion() {
         return p2pMessageVersion;
     }
 
@@ -114,7 +114,12 @@ public class Version {
 
         // CRYPTO_NETWORK_ID is ordinal of enum. We use for changes at NETWORK_PROTOCOL_VERSION a multiplication with 10
         // to not mix up networks:
-        p2pMessageVersion = BASE_CURRENCY_NETWORK + 10 * P2P_NETWORK_VERSION;
+        if (BASE_CURRENCY_NETWORK == 0)
+            p2pMessageVersion =  "0" + P2P_NETWORK_VERSION;
+        if (BASE_CURRENCY_NETWORK == 1)
+            p2pMessageVersion =  "1" + P2P_NETWORK_VERSION;
+        if (BASE_CURRENCY_NETWORK == 2)
+            p2pMessageVersion =  "2" + P2P_NETWORK_VERSION;
     }
 
     public static int getBaseCurrencyNetwork() {

@@ -41,7 +41,7 @@ public final class DepositRequest extends TradeMessage implements DirectMessage 
                                      NodeAddress senderNodeAddress,
                                      PubKeyRing pubKeyRing,
                                      String uid,
-                                     int messageVersion,
+                                     String messageVersion,
                                      long currentDate,
                                      String contractSignature,
                                      String depositTxHex,
@@ -77,7 +77,7 @@ public final class DepositRequest extends TradeMessage implements DirectMessage 
 
     public static DepositRequest fromProto(protobuf.DepositRequest proto,
                                                       CoreProtoResolver coreProtoResolver,
-                                                      int messageVersion) {
+                                                      String messageVersion) {
         return new DepositRequest(proto.getTradeId(),
                 NodeAddress.fromProto(proto.getSenderNodeAddress()),
                 PubKeyRing.fromProto(proto.getPubKeyRing()),

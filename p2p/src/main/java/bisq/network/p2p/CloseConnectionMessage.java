@@ -37,7 +37,7 @@ public final class CloseConnectionMessage extends NetworkEnvelope {
     // PROTO BUFFER
     ///////////////////////////////////////////////////////////////////////////////////////////
 
-    private CloseConnectionMessage(String reason, int messageVersion) {
+    private CloseConnectionMessage(String reason, String messageVersion) {
         super(messageVersion);
         this.reason = reason;
     }
@@ -51,7 +51,7 @@ public final class CloseConnectionMessage extends NetworkEnvelope {
                 .build();
     }
 
-    public static CloseConnectionMessage fromProto(protobuf.CloseConnectionMessage proto, int messageVersion) {
+    public static CloseConnectionMessage fromProto(protobuf.CloseConnectionMessage proto, String messageVersion) {
         return new CloseConnectionMessage(proto.getReason(), messageVersion);
     }
 }

@@ -45,7 +45,7 @@ public final class UpdateMultisigRequest extends TradeMessage implements DirectM
                                      NodeAddress senderNodeAddress,
                                      PubKeyRing pubKeyRing,
                                      String uid,
-                                     int messageVersion,
+                                     String messageVersion,
                                      long currentDate,
                                      String updatedMultisigHex) {
         super(messageVersion, tradeId, uid);
@@ -77,7 +77,7 @@ public final class UpdateMultisigRequest extends TradeMessage implements DirectM
 
     public static UpdateMultisigRequest fromProto(protobuf.UpdateMultisigRequest proto,
                                                       CoreProtoResolver coreProtoResolver,
-                                                      int messageVersion) {
+                                                      String messageVersion) {
         return new UpdateMultisigRequest(proto.getTradeId(),
                 NodeAddress.fromProto(proto.getSenderNodeAddress()),
                 PubKeyRing.fromProto(proto.getPubKeyRing()),

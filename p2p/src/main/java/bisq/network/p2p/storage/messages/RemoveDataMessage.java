@@ -40,7 +40,7 @@ public final class RemoveDataMessage extends BroadcastMessage {
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     private RemoveDataMessage(ProtectedStorageEntry protectedStorageEntry,
-                              int messageVersion) {
+                              String messageVersion) {
         super(messageVersion);
         this.protectedStorageEntry = protectedStorageEntry;
     }
@@ -53,7 +53,7 @@ public final class RemoveDataMessage extends BroadcastMessage {
                 .build();
     }
 
-    public static RemoveDataMessage fromProto(protobuf.RemoveDataMessage proto, NetworkProtoResolver resolver, int messageVersion) {
+    public static RemoveDataMessage fromProto(protobuf.RemoveDataMessage proto, NetworkProtoResolver resolver, String messageVersion) {
         return new RemoveDataMessage(ProtectedStorageEntry.fromProto(proto.getProtectedStorageEntry(), resolver), messageVersion);
     }
 }

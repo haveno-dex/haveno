@@ -46,7 +46,7 @@ public class GetInventoryResponse extends NetworkEnvelope {
     // PROTO BUFFER
     ///////////////////////////////////////////////////////////////////////////////////////////
 
-    private GetInventoryResponse(Map<InventoryItem, String> inventory, int messageVersion) {
+    private GetInventoryResponse(Map<InventoryItem, String> inventory, String messageVersion) {
         super(messageVersion);
 
         this.inventory = inventory;
@@ -63,7 +63,7 @@ public class GetInventoryResponse extends NetworkEnvelope {
                 .build();
     }
 
-    public static GetInventoryResponse fromProto(protobuf.GetInventoryResponse proto, int messageVersion) {
+    public static GetInventoryResponse fromProto(protobuf.GetInventoryResponse proto, String messageVersion) {
         // For protobuf we use a map with a string key
         Map<String, String> map = proto.getInventoryMap();
         Map<InventoryItem, String> inventory = new HashMap<>();

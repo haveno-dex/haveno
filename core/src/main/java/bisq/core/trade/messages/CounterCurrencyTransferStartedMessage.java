@@ -72,7 +72,7 @@ public final class CounterCurrencyTransferStartedMessage extends TradeMailboxMes
                                                   @Nullable String counterCurrencyTxId,
                                                   @Nullable String counterCurrencyExtraData,
                                                   String uid,
-                                                  int messageVersion) {
+                                                  String messageVersion) {
         super(messageVersion, tradeId, uid);
         this.buyerPayoutAddress = buyerPayoutAddress;
         this.senderNodeAddress = senderNodeAddress;
@@ -97,7 +97,7 @@ public final class CounterCurrencyTransferStartedMessage extends TradeMailboxMes
     }
 
     public static CounterCurrencyTransferStartedMessage fromProto(protobuf.CounterCurrencyTransferStartedMessage proto,
-                                                                  int messageVersion) {
+                                                                  String messageVersion) {
         return new CounterCurrencyTransferStartedMessage(proto.getTradeId(),
                 proto.getBuyerPayoutAddress(),
                 NodeAddress.fromProto(proto.getSenderNodeAddress()),

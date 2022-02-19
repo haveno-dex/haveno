@@ -71,7 +71,7 @@ public final class OfferAvailabilityRequest extends OfferMessage implements Supp
                                      long takersTradePrice,
                                      boolean isTakerApiUser,
                                      @Nullable Capabilities supportedCapabilities,
-                                     int messageVersion,
+                                     String messageVersion,
                                      @Nullable String uid,
                                      InitTradeRequest tradeRequest) {
         super(messageVersion, offerId, uid);
@@ -81,7 +81,7 @@ public final class OfferAvailabilityRequest extends OfferMessage implements Supp
         this.supportedCapabilities = supportedCapabilities;
         this.tradeRequest = tradeRequest;
     }
-    
+
 //    @Override
 //    public protobuf.Offer toProtoMessage() {
 //        return protobuf.Offer.newBuilder().setOfferPayload(offerPayload.toProtoMessage().getOfferPayload()).build();
@@ -108,7 +108,7 @@ public final class OfferAvailabilityRequest extends OfferMessage implements Supp
                 .build();
     }
 
-    public static OfferAvailabilityRequest fromProto(protobuf.OfferAvailabilityRequest proto, CoreProtoResolver coreProtoResolver, int messageVersion) {
+    public static OfferAvailabilityRequest fromProto(protobuf.OfferAvailabilityRequest proto, CoreProtoResolver coreProtoResolver, String messageVersion) {
         return new OfferAvailabilityRequest(proto.getOfferId(),
                 PubKeyRing.fromProto(proto.getPubKeyRing()),
                 proto.getTakersTradePrice(),

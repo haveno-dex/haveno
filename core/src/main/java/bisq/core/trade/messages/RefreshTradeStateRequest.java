@@ -39,7 +39,7 @@ public class RefreshTradeStateRequest extends TradeMailboxMessage {
     // PROTO BUFFER
     ///////////////////////////////////////////////////////////////////////////////////////////
 
-    private RefreshTradeStateRequest(int messageVersion,
+    private RefreshTradeStateRequest(String messageVersion,
                                      String uid,
                                      String tradeId,
                                      NodeAddress senderNodeAddress) {
@@ -56,7 +56,7 @@ public class RefreshTradeStateRequest extends TradeMailboxMessage {
         return getNetworkEnvelopeBuilder().setRefreshTradeStateRequest(builder).build();
     }
 
-    public static RefreshTradeStateRequest fromProto(protobuf.RefreshTradeStateRequest proto, int messageVersion) {
+    public static RefreshTradeStateRequest fromProto(protobuf.RefreshTradeStateRequest proto, String messageVersion) {
         return new RefreshTradeStateRequest(messageVersion,
                 proto.getUid(),
                 proto.getTradeId(),

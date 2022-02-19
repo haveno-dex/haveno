@@ -32,7 +32,7 @@ public abstract class TradeMessage extends NetworkEnvelope implements UidMessage
     protected final String tradeId;
     protected final String uid;
 
-    protected TradeMessage(int messageVersion, String tradeId, String uid) {
+    protected TradeMessage(String messageVersion, String tradeId, String uid) {
         super(messageVersion);
         this.tradeId = tradeId;
         this.uid = uid;

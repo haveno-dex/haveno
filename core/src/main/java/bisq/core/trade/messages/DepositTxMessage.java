@@ -67,7 +67,7 @@ public final class DepositTxMessage extends TradeMessage implements DirectMessag
       return getNetworkEnvelopeBuilder().setDepositTxMessage(builder).build();
     }
 
-    public static DepositTxMessage fromProto(protobuf.DepositTxMessage proto, int messageVersion) {
+    public static DepositTxMessage fromProto(protobuf.DepositTxMessage proto, String messageVersion) {
         return new DepositTxMessage(proto.getUid(),
                 proto.getTradeId(),
                 NodeAddress.fromProto(proto.getSenderNodeAddress()),

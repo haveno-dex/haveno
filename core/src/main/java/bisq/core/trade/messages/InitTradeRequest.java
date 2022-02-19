@@ -78,7 +78,7 @@ public final class InitTradeRequest extends TradeMessage implements DirectMessag
                                      String paymentAccountId,
                                      String paymentMethodId,
                                      String uid,
-                                     int messageVersion,
+                                     String messageVersion,
                                      @Nullable byte[] accountAgeWitnessSignatureOfOfferId,
                                      long currentDate,
                                      NodeAddress makerNodeAddress,
@@ -145,7 +145,7 @@ public final class InitTradeRequest extends TradeMessage implements DirectMessag
 
     public static InitTradeRequest fromProto(protobuf.InitTradeRequest proto,
                                                       CoreProtoResolver coreProtoResolver,
-                                                      int messageVersion) {
+                                                      String messageVersion) {
         return new InitTradeRequest(proto.getTradeId(),
                 NodeAddress.fromProto(proto.getSenderNodeAddress()),
                 PubKeyRing.fromProto(proto.getPubKeyRing()),

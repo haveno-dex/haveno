@@ -38,7 +38,7 @@ public final class DepositResponse extends TradeMessage implements DirectMessage
                                      NodeAddress senderNodeAddress,
                                      PubKeyRing pubKeyRing,
                                      String uid,
-                                     int messageVersion,
+                                     String messageVersion,
                                      long currentDate) {
         super(messageVersion, tradeId, uid);
         this.senderNodeAddress = senderNodeAddress;
@@ -65,7 +65,7 @@ public final class DepositResponse extends TradeMessage implements DirectMessage
 
     public static DepositResponse fromProto(protobuf.DepositResponse proto,
                                                       CoreProtoResolver coreProtoResolver,
-                                                      int messageVersion) {
+                                                      String messageVersion) {
         return new DepositResponse(proto.getTradeId(),
                 NodeAddress.fromProto(proto.getSenderNodeAddress()),
                 PubKeyRing.fromProto(proto.getPubKeyRing()),

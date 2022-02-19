@@ -106,7 +106,7 @@ public class CoreNetworkProtoResolver extends CoreProtoResolver implements Netwo
     @Override
     public NetworkEnvelope fromProto(protobuf.NetworkEnvelope proto) throws ProtobufferException {
         if (proto != null) {
-            final int messageVersion = proto.getMessageVersion();
+            final String messageVersion = proto.getMessageVersion();
             switch (proto.getMessageCase()) {
                 case PRELIMINARY_GET_DATA_REQUEST:
                     return PreliminaryGetDataRequest.fromProto(proto.getPreliminaryGetDataRequest(), messageVersion);

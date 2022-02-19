@@ -50,6 +50,8 @@ import javax.inject.Inject;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.Uninterruptibles;
 
+import org.apache.commons.lang3.StringUtils;
+
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleObjectProperty;
 
@@ -81,6 +83,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+
 
 import java.lang.ref.WeakReference;
 
@@ -842,12 +845,16 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
                         return;
 
                     // Check P2P network ID
-                    if (proto.getMessageVersion() != Version.getP2PMessageVersion()
-                            && reportInvalidRequest(RuleViolation.WRONG_NETWORK_ID)) {
+                    boolean comparison = proto.getMessageVersion().compareTo(Version.getP2PMessageVersion()) == 0 ? true : false;
+
+                    if (!comparison && reportInvalidRequest(RuleViolation.WRONG_NETWORK_ID)) {
                         log.warn("RuleViolation.WRONG_NETWORK_ID. version of message={}, app version={}, " +
                                         "proto.toTruncatedString={}", proto.getMessageVersion(),
                                 Version.getP2PMessageVersion(),
                                 Utilities.toTruncatedString(proto.toString()));
+                        if (StringUtils.isNumeric(proto.getMessageVersion()) || proto.getMessageVersion().compareTo("") == 0 ? true : false || proto.getMessageVersion().compareTo(" ") == 0 ? true : false )
+                            log.warn("Peer NETWORK_ID is numeric. Bisq seednode detected, adding peer {} to BANNED_SEED_NODES", peersNodeAddressOptional.get());
+                            networkFilter.banNode(peersNodeAddressOptional.get());
                         return;
                     }
 
