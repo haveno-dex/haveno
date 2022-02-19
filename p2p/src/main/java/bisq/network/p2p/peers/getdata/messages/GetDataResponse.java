@@ -77,7 +77,7 @@ public final class GetDataResponse extends NetworkEnvelope implements SupportedC
                             int requestNonce,
                             boolean isGetUpdatedDataResponse,
                             @NotNull Capabilities supportedCapabilities,
-                            int messageVersion) {
+                            String messageVersion) {
         super(messageVersion);
 
         this.dataSet = dataSet;
@@ -116,7 +116,7 @@ public final class GetDataResponse extends NetworkEnvelope implements SupportedC
 
     public static GetDataResponse fromProto(protobuf.GetDataResponse proto,
                                             NetworkProtoResolver resolver,
-                                            int messageVersion) {
+                                            String messageVersion) {
         log.info("Received a GetDataResponse with {}", Utilities.readableFileSize(proto.getSerializedSize()));
         Set<ProtectedStorageEntry> dataSet = proto.getDataSetList().stream()
                 .map(entry -> (ProtectedStorageEntry) resolver.fromProto(entry)).collect(Collectors.toSet());

@@ -23,7 +23,7 @@ import lombok.EqualsAndHashCode;
 
 @EqualsAndHashCode(callSuper = true)
 public abstract class BroadcastMessage extends NetworkEnvelope {
-    protected BroadcastMessage(int messageVersion) {
+    protected BroadcastMessage(String messageVersion) {
         super(messageVersion);
     }
 }

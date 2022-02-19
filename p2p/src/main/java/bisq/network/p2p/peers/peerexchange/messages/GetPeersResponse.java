@@ -59,7 +59,7 @@ public final class GetPeersResponse extends NetworkEnvelope implements PeerExcha
     private GetPeersResponse(int requestNonce,
                              Set<Peer> reportedPeers,
                              @Nullable Capabilities supportedCapabilities,
-                             int messageVersion) {
+                             String messageVersion) {
         super(messageVersion);
         this.requestNonce = requestNonce;
         this.reportedPeers = reportedPeers;
@@ -83,7 +83,7 @@ public final class GetPeersResponse extends NetworkEnvelope implements PeerExcha
                 .build();
     }
 
-    public static GetPeersResponse fromProto(protobuf.GetPeersResponse proto, int messageVersion) {
+    public static GetPeersResponse fromProto(protobuf.GetPeersResponse proto, String messageVersion) {
         HashSet<Peer> reportedPeers = proto.getReportedPeersList()
                 .stream()
                 .map(peer -> {

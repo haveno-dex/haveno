@@ -55,7 +55,7 @@ public final class ArbitratorPayoutTxResponse extends DisputeMessage {
     private ArbitratorPayoutTxResponse(String tradeId,
                                   NodeAddress senderNodeAddress,
                                   String uid,
-                                  int messageVersion,
+                                  String messageVersion,
                                   SupportType supportType,
                                   String arbitratorSignedPayoutTxHex) {
         super(messageVersion, uid, supportType);
@@ -78,7 +78,7 @@ public final class ArbitratorPayoutTxResponse extends DisputeMessage {
 
     public static ArbitratorPayoutTxResponse fromProto(protobuf.ArbitratorPayoutTxResponse proto,
                                                   CoreProtoResolver coreProtoResolver,
-                                                  int messageVersion) {
+                                                  String messageVersion) {
         return new ArbitratorPayoutTxResponse(proto.getTradeId(),
                 NodeAddress.fromProto(proto.getSenderNodeAddress()),
                 proto.getUid(),

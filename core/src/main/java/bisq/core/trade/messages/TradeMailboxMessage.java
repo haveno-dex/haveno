@@ -29,7 +29,7 @@ import lombok.ToString;
 public abstract class TradeMailboxMessage extends TradeMessage implements MailboxMessage {
     public static final long TTL = TimeUnit.DAYS.toMillis(15);
 
-    protected TradeMailboxMessage(int messageVersion, String tradeId, String uid) {
+    protected TradeMailboxMessage(String messageVersion, String tradeId, String uid) {
         super(messageVersion, tradeId, uid);
     }
 

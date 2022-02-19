@@ -40,7 +40,7 @@ public final class RemoveMailboxDataMessage extends BroadcastMessage {
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     private RemoveMailboxDataMessage(ProtectedMailboxStorageEntry protectedMailboxStorageEntry,
-                                     int messageVersion) {
+                                     String messageVersion) {
         super(messageVersion);
         this.protectedMailboxStorageEntry = protectedMailboxStorageEntry;
     }
@@ -53,7 +53,7 @@ public final class RemoveMailboxDataMessage extends BroadcastMessage {
                 .build();
     }
 
-    public static RemoveMailboxDataMessage fromProto(protobuf.RemoveMailboxDataMessage proto, NetworkProtoResolver resolver, int messageVersion) {
+    public static RemoveMailboxDataMessage fromProto(protobuf.RemoveMailboxDataMessage proto, NetworkProtoResolver resolver, String messageVersion) {
         return new RemoveMailboxDataMessage(ProtectedMailboxStorageEntry.fromProto(proto.getProtectedStorageEntry(), resolver), messageVersion);
     }
 }

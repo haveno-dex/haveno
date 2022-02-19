@@ -23,6 +23,7 @@ import bisq.network.p2p.storage.payload.MailboxStoragePayload;
 import bisq.network.p2p.storage.payload.ProtectedMailboxStorageEntry;
 import bisq.network.p2p.storage.payload.ProtectedStorageEntry;
 
+import bisq.common.app.Version;
 import bisq.common.crypto.CryptoException;
 import bisq.common.crypto.KeyRing;
 import bisq.common.crypto.KeyStorage;
@@ -62,6 +63,7 @@ public class AddDataMessageTest {
         //noinspection ResultOfMethodCallIgnored
         dir1.mkdir();
         keyRing1 = new KeyRing(new KeyStorage(dir1), null, true);
+        Version.setBaseCryptoNetworkId(1);
     }
 
     @Test

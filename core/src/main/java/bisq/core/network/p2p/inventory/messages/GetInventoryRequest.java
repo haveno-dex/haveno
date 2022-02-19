@@ -39,7 +39,7 @@ public class GetInventoryRequest extends NetworkEnvelope {
     // PROTO BUFFER
     ///////////////////////////////////////////////////////////////////////////////////////////
 
-    private GetInventoryRequest(String version, int messageVersion) {
+    private GetInventoryRequest(String version, String messageVersion) {
         super(messageVersion);
 
         this.version = version;
@@ -53,7 +53,7 @@ public class GetInventoryRequest extends NetworkEnvelope {
                 .build();
     }
 
-    public static GetInventoryRequest fromProto(protobuf.GetInventoryRequest proto, int messageVersion) {
+    public static GetInventoryRequest fromProto(protobuf.GetInventoryRequest proto, String messageVersion) {
         return new GetInventoryRequest(proto.getVersion(), messageVersion);
     }
 }

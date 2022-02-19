@@ -38,7 +38,7 @@ public abstract class OfferMessage extends NetworkEnvelope implements DirectMess
     @Nullable
     protected final String uid;
 
-    protected OfferMessage(int messageVersion, String offerId, @Nullable String uid) {
+    protected OfferMessage(String messageVersion, String offerId, @Nullable String uid) {
         super(messageVersion);
         this.offerId = offerId;
         this.uid = uid;

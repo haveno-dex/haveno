@@ -53,7 +53,7 @@ public final class DepositTxAndDelayedPayoutTxMessage extends TradeMailboxMessag
     // PROTO BUFFER
     ///////////////////////////////////////////////////////////////////////////////////////////
 
-    private DepositTxAndDelayedPayoutTxMessage(int messageVersion,
+    private DepositTxAndDelayedPayoutTxMessage(String messageVersion,
                                                String uid,
                                                String tradeId,
                                                NodeAddress senderNodeAddress,
@@ -78,7 +78,7 @@ public final class DepositTxAndDelayedPayoutTxMessage extends TradeMailboxMessag
     }
 
     public static DepositTxAndDelayedPayoutTxMessage fromProto(protobuf.DepositTxAndDelayedPayoutTxMessage proto,
-                                                               int messageVersion) {
+                                                               String messageVersion) {
         return new DepositTxAndDelayedPayoutTxMessage(messageVersion,
                 proto.getUid(),
                 proto.getTradeId(),

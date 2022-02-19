@@ -42,7 +42,7 @@ public final class SignContractRequest extends TradeMessage implements DirectMes
                                      NodeAddress senderNodeAddress,
                                      PubKeyRing pubKeyRing,
                                      String uid,
-                                     int messageVersion,
+                                     String messageVersion,
                                      long currentDate,
                                      String accountId,
                                      byte[] paymentAccountPayloadHash,
@@ -82,7 +82,7 @@ public final class SignContractRequest extends TradeMessage implements DirectMes
 
     public static SignContractRequest fromProto(protobuf.SignContractRequest proto,
                                                       CoreProtoResolver coreProtoResolver,
-                                                      int messageVersion) {
+                                                      String messageVersion) {
         return new SignContractRequest(proto.getTradeId(),
                 NodeAddress.fromProto(proto.getSenderNodeAddress()),
                 PubKeyRing.fromProto(proto.getPubKeyRing()),

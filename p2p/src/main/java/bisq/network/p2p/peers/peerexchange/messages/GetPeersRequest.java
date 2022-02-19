@@ -66,7 +66,7 @@ public final class GetPeersRequest extends NetworkEnvelope implements PeerExchan
                             int nonce,
                             Set<Peer> reportedPeers,
                             @Nullable Capabilities supportedCapabilities,
-                            int messageVersion) {
+                            String messageVersion) {
         super(messageVersion);
         checkNotNull(senderNodeAddress, "senderNodeAddress must not be null at GetPeersRequest");
         this.senderNodeAddress = senderNodeAddress;
@@ -93,7 +93,7 @@ public final class GetPeersRequest extends NetworkEnvelope implements PeerExchan
                 .build();
     }
 
-    public static GetPeersRequest fromProto(protobuf.GetPeersRequest proto, int messageVersion) {
+    public static GetPeersRequest fromProto(protobuf.GetPeersRequest proto, String messageVersion) {
         return new GetPeersRequest(NodeAddress.fromProto(proto.getSenderNodeAddress()),
                 proto.getNonce(),
                 new HashSet<>(proto.getReportedPeersList().stream()

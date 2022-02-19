@@ -44,7 +44,7 @@ public abstract class GetDataRequest extends NetworkEnvelope implements Extended
     @Nullable
     protected final String version;
 
-    public GetDataRequest(int messageVersion,
+    public GetDataRequest(String messageVersion,
                           int nonce,
                           Set<byte[]> excludedKeys,
                           @Nullable String version) {

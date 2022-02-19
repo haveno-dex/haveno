@@ -56,7 +56,7 @@ public final class ArbitratorPayoutTxRequest extends DisputeMessage {
     private ArbitratorPayoutTxRequest(Dispute dispute,
                                   NodeAddress senderNodeAddress,
                                   String uid,
-                                  int messageVersion,
+                                  String messageVersion,
                                   SupportType supportType,
                                   String updatedMultisigHex) {
         super(messageVersion, uid, supportType);
@@ -79,7 +79,7 @@ public final class ArbitratorPayoutTxRequest extends DisputeMessage {
 
     public static ArbitratorPayoutTxRequest fromProto(protobuf.ArbitratorPayoutTxRequest proto,
                                                   CoreProtoResolver coreProtoResolver,
-                                                  int messageVersion) {
+                                                  String messageVersion) {
         return new ArbitratorPayoutTxRequest(Dispute.fromProto(proto.getDispute(), coreProtoResolver),
                 NodeAddress.fromProto(proto.getSenderNodeAddress()),
                 proto.getUid(),

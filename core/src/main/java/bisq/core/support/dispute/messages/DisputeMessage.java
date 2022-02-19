@@ -25,7 +25,7 @@ import java.util.concurrent.TimeUnit;
 public abstract class DisputeMessage extends SupportMessage {
     public static final long TTL = TimeUnit.DAYS.toMillis(15);
 
-    public DisputeMessage(int messageVersion, String uid, SupportType supportType) {
+    public DisputeMessage(String messageVersion, String uid, SupportType supportType) {
         super(messageVersion, uid, supportType);
     }
 

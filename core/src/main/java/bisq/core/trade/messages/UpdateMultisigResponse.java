@@ -45,7 +45,7 @@ public final class UpdateMultisigResponse extends TradeMessage implements Direct
                                      NodeAddress senderNodeAddress,
                                      PubKeyRing pubKeyRing,
                                      String uid,
-                                     int messageVersion,
+                                     String messageVersion,
                                      long currentDate,
                                      String updatedMultisigHex) {
         super(messageVersion, tradeId, uid);
@@ -77,7 +77,7 @@ public final class UpdateMultisigResponse extends TradeMessage implements Direct
 
     public static UpdateMultisigResponse fromProto(protobuf.UpdateMultisigResponse proto,
                                                       CoreProtoResolver coreProtoResolver,
-                                                      int messageVersion) {
+                                                      String messageVersion) {
         return new UpdateMultisigResponse(proto.getTradeId(),
                 NodeAddress.fromProto(proto.getSenderNodeAddress()),
                 PubKeyRing.fromProto(proto.getPubKeyRing()),

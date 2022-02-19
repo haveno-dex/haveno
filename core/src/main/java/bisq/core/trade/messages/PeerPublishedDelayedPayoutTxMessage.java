@@ -43,7 +43,7 @@ public final class PeerPublishedDelayedPayoutTxMessage extends TradeMailboxMessa
     // PROTO BUFFER
     ///////////////////////////////////////////////////////////////////////////////////////////
 
-    private PeerPublishedDelayedPayoutTxMessage(int messageVersion,
+    private PeerPublishedDelayedPayoutTxMessage(String messageVersion,
                                                 String uid,
                                                 String tradeId,
                                                 NodeAddress senderNodeAddress) {
@@ -60,7 +60,7 @@ public final class PeerPublishedDelayedPayoutTxMessage extends TradeMailboxMessa
         return getNetworkEnvelopeBuilder().setPeerPublishedDelayedPayoutTxMessage(builder).build();
     }
 
-    public static PeerPublishedDelayedPayoutTxMessage fromProto(protobuf.PeerPublishedDelayedPayoutTxMessage proto, int messageVersion) {
+    public static PeerPublishedDelayedPayoutTxMessage fromProto(protobuf.PeerPublishedDelayedPayoutTxMessage proto, String messageVersion) {
         return new PeerPublishedDelayedPayoutTxMessage(messageVersion,
                 proto.getUid(),
                 proto.getTradeId(),

@@ -25,4 +25,6 @@ public interface NetworkFilter {
     boolean isPeerBanned(NodeAddress nodeAddress);
 
     void setBannedNodeFunction(Function<NodeAddress, Boolean> isNodeAddressBanned);
+
+    void banNode(NodeAddress nodeAddress);
 }

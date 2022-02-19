@@ -54,7 +54,7 @@ public final class MediatedPayoutTxPublishedMessage extends TradeMailboxMessage 
                                              byte[] payoutTx,
                                              NodeAddress senderNodeAddress,
                                              String uid,
-                                             int messageVersion) {
+                                             String messageVersion) {
         super(messageVersion, tradeId, uid);
         this.payoutTx = payoutTx;
         this.senderNodeAddress = senderNodeAddress;
@@ -71,7 +71,7 @@ public final class MediatedPayoutTxPublishedMessage extends TradeMailboxMessage 
                 .build();
     }
 
-    public static NetworkEnvelope fromProto(protobuf.MediatedPayoutTxPublishedMessage proto, int messageVersion) {
+    public static NetworkEnvelope fromProto(protobuf.MediatedPayoutTxPublishedMessage proto, String messageVersion) {
         return new MediatedPayoutTxPublishedMessage(proto.getTradeId(),
                 proto.getPayoutTx().toByteArray(),
                 NodeAddress.fromProto(proto.getSenderNodeAddress()),

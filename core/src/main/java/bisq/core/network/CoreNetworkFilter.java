@@ -51,6 +51,12 @@ public class CoreNetworkFilter implements NetworkFilter {
     }
 
     @Override
+    public void banNode(NodeAddress nodeAddress) {
+        bannedPeersFromOptions.add(nodeAddress);
+
+    }
+
+    @Override
     public boolean isPeerBanned(NodeAddress nodeAddress) {
         return bannedPeersFromOptions.contains(nodeAddress) ||
                 bannedNodeFunction != null && bannedNodeFunction.apply(nodeAddress);

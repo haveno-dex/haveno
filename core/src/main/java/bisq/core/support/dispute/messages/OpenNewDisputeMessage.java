@@ -56,7 +56,7 @@ public final class OpenNewDisputeMessage extends DisputeMessage {
     private OpenNewDisputeMessage(Dispute dispute,
                                   NodeAddress senderNodeAddress,
                                   String uid,
-                                  int messageVersion,
+                                  String messageVersion,
                                   SupportType supportType,
                                   String updatedMultisigHex) {
         super(messageVersion, uid, supportType);
@@ -79,7 +79,7 @@ public final class OpenNewDisputeMessage extends DisputeMessage {
 
     public static OpenNewDisputeMessage fromProto(protobuf.OpenNewDisputeMessage proto,
                                                   CoreProtoResolver coreProtoResolver,
-                                                  int messageVersion) {
+                                                  String messageVersion) {
         return new OpenNewDisputeMessage(Dispute.fromProto(proto.getDispute(), coreProtoResolver),
                 NodeAddress.fromProto(proto.getSenderNodeAddress()),
                 proto.getUid(),

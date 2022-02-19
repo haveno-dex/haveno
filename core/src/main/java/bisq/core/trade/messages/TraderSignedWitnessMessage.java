@@ -53,7 +53,7 @@ public class TraderSignedWitnessMessage extends TradeMailboxMessage {
     // PROTO BUFFER
     ///////////////////////////////////////////////////////////////////////////////////////////
 
-    private TraderSignedWitnessMessage(int messageVersion,
+    private TraderSignedWitnessMessage(String messageVersion,
                                        String uid,
                                        String tradeId,
                                        NodeAddress senderNodeAddress,
@@ -73,7 +73,7 @@ public class TraderSignedWitnessMessage extends TradeMailboxMessage {
         return getNetworkEnvelopeBuilder().setTraderSignedWitnessMessage(builder).build();
     }
 
-    public static TraderSignedWitnessMessage fromProto(protobuf.TraderSignedWitnessMessage proto, int messageVersion) {
+    public static TraderSignedWitnessMessage fromProto(protobuf.TraderSignedWitnessMessage proto, String messageVersion) {
         return new TraderSignedWitnessMessage(messageVersion,
                 proto.getUid(),
                 proto.getTradeId(),

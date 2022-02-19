@@ -28,14 +28,14 @@ import static com.google.common.base.Preconditions.checkArgument;
 @EqualsAndHashCode
 public abstract class NetworkEnvelope implements Envelope {
 
-    protected final int messageVersion;
+    protected final String messageVersion;
 
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // PROTO BUFFER
     ///////////////////////////////////////////////////////////////////////////////////////////
 
-    protected NetworkEnvelope(int messageVersion) {
+    protected NetworkEnvelope(String messageVersion) {
         this.messageVersion = messageVersion;
     }
 
@@ -57,10 +57,10 @@ public abstract class NetworkEnvelope implements Envelope {
     // API
     ///////////////////////////////////////////////////////////////////////////////////////////
 
-    public int getMessageVersion() {
+    public String getMessageVersion() {
         // -1 is used for the case that we use an envelope message as payload (mailbox)
         // so we check only against 0 which is the default value if not set
-        checkArgument(messageVersion != 0, "messageVersion is not set (0).");
+        checkArgument(messageVersion.equals("0"), "messageVersion is not set (0).");
         return messageVersion;
     }
 

@@ -64,7 +64,7 @@ public final class PrefixedSealedAndSignedMessage extends NetworkEnvelope implem
                                            SealedAndSigned sealedAndSigned,
                                            byte[] addressPrefixHash,
                                            String uid,
-                                           int messageVersion) {
+                                           String messageVersion) {
         super(messageVersion);
         this.senderNodeAddress = checkNotNull(senderNodeAddress, "senderNodeAddress must not be null");
         this.sealedAndSigned = sealedAndSigned;
@@ -84,7 +84,7 @@ public final class PrefixedSealedAndSignedMessage extends NetworkEnvelope implem
     }
 
     public static PrefixedSealedAndSignedMessage fromProto(protobuf.PrefixedSealedAndSignedMessage proto,
-                                                           int messageVersion) {
+                                                           String messageVersion) {
         return new PrefixedSealedAndSignedMessage(NodeAddress.fromProto(proto.getNodeAddress()),
                 SealedAndSigned.fromProto(proto.getSealedAndSigned()),
                 proto.getAddressPrefixHash().toByteArray(),
@@ -101,7 +101,7 @@ public final class PrefixedSealedAndSignedMessage extends NetworkEnvelope implem
                 SealedAndSigned.fromProto(proto.getSealedAndSigned()),
                 proto.getAddressPrefixHash().toByteArray(),
                 proto.getUid(),
-                -1);
+                "-1");
     }
 
     @Override
