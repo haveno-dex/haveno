@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -e
 
-echo "[*] Haveno haveno-pricenode installation script"
+echo "[*] haveno-pricenode installation script"
 
 ##### change as necessary for your system
 
@@ -12,11 +12,11 @@ ROOT_USER=root
 ROOT_GROUP=root
 #ROOT_HOME=/root
 
-HAVENO_USER=haveno
-HAVENO_GROUP=haveno
-HAVENO_HOME=/haveno
+HAVENO_USER=pricenode
+HAVENO_GROUP=pricenode
+HAVENO_HOME=/pricenode
 
-HAVENO_REPO_URL=https://github.com/haveno-network/haveno
+HAVENO_REPO_URL=https://github.com/haveno-dex/haveno
 HAVENO_REPO_NAME=haveno
 HAVENO_REPO_TAG=master
 HAVENO_LATEST_RELEASE=master
@@ -45,7 +45,7 @@ sudo -H -i -u "${ROOT_USER}" DEBIAN_FRONTEND=noninteractive apt-get install -qq 
 echo "[*] Adding Tor configuration"
 if ! grep "${HAVENO_TORHS}" /etc/tor/torrc >/dev/null 2>&1;then
   sudo -H -i -u "${ROOT_USER}" sh -c "echo HiddenServiceDir ${TOR_RESOURCES}/${HAVENO_TORHS}/ >> ${TOR_CONF}"
-  sudo -H -i -u "${ROOT_USER}" sh -c "echo HiddenServicePort 80 127.0.0.1:8080 >> ${TOR_CONF}"
+  sudo -H -i -u "${ROOT_USER}" sh -c "echo HiddenServicePort 80 127.0.0.1:8078 >> ${TOR_CONF}"
   sudo -H -i -u "${ROOT_USER}" sh -c "echo HiddenServiceVersion 3 >> ${TOR_CONF}"
 fi
 
