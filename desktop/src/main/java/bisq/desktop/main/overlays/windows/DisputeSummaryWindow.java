@@ -25,7 +25,6 @@ import bisq.desktop.main.overlays.Overlay;
 import bisq.desktop.main.overlays.popups.Popup;
 
 import bisq.core.api.CoreDisputesService;
-import bisq.core.support.dispute.DisputeSummaryVerification;
 import bisq.desktop.util.DisplayUtils;
 import bisq.desktop.util.Layout;
 
@@ -51,7 +50,6 @@ import bisq.common.handlers.ResultHandler;
 import bisq.common.util.Tuple2;
 import bisq.common.util.Tuple3;
 
-import org.bitcoinj.core.AddressFormatException;
 import org.bitcoinj.core.Coin;
 
 import com.google.inject.Inject;
@@ -87,11 +85,6 @@ import static bisq.desktop.util.FormBuilder.addConfirmationLabelLabel;
 import static bisq.desktop.util.FormBuilder.addTitledGroupBg;
 import static bisq.desktop.util.FormBuilder.addTopLabelWithVBox;
 import static com.google.common.base.Preconditions.checkNotNull;
-
-
-
-import monero.wallet.MoneroWallet;
-import monero.wallet.model.MoneroTxWallet;
 
 @Slf4j
 public class DisputeSummaryWindow extends Overlay<DisputeSummaryWindow> {

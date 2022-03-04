@@ -171,10 +171,10 @@ public class CoreDisputesService {
         }
         applyPayoutAmountsToDisputeResult(payout, dispute, disputeResult, customAmount);
 
-        // resolve the payout for opener
+        // resolve the payout
         resolveDisputePayout(dispute, disputeResult, contract);
 
-        // close dispute ticket for opener
+        // close dispute ticket
         closeDispute(disputeManager, dispute, disputeResult, false);
 
         // close dispute ticket for peer
@@ -188,7 +188,7 @@ public class CoreDisputesService {
             peerDisputeResult.setBuyerPayoutAmount(disputeResult.getBuyerPayoutAmount());
             peerDisputeResult.setSellerPayoutAmount(disputeResult.getSellerPayoutAmount());
             peerDisputeResult.setLoserPublisher(disputeResult.isLoserPublisher());
-            resolveDisputePayout(peerDispute, peerDisputeResult, contract);
+            resolveDisputePayout(peerDispute, peerDisputeResult, peerDispute.getContract());
             closeDispute(disputeManager, peerDispute, peerDisputeResult, false);
         } else {
             throw new IllegalStateException("could not find peer dispute");
