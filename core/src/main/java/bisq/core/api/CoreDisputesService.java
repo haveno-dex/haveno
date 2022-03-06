@@ -144,56 +144,57 @@ public class CoreDisputesService {
     }
 
     public void resolveDispute(String tradeId, DisputeResult.Winner winner, DisputeResult.Reason reason, String summaryNotes, long customWinnerAmount) {
+        try {
+            var disputeOptional = arbitrationManager.getDisputesAsObservableList().stream()
+                    .filter(d -> tradeId.equals(d.getTradeId()))
+                    .findFirst();
+            Dispute dispute;
+            if (disputeOptional.isPresent()) dispute = disputeOptional.get();
+            else throw new IllegalStateException(format("dispute for tradeId '%s' not found", tradeId));
 
-        var disputeManager = arbitrationManager;
+            var closeDate = new Date();
+            var disputeResult = createDisputeResult(dispute, winner, reason, summaryNotes, closeDate);
+            var contract = dispute.getContract();
 
-        var disputeOptional = disputeManager.getDisputesAsObservableList().stream()
-                .filter(d -> tradeId.equals(d.getTradeId()))
-                .findFirst();
-        Dispute dispute;
-        if (disputeOptional.isPresent()) dispute = disputeOptional.get();
-        else throw new IllegalStateException(format("dispute for tradeId '%s' not found", tradeId));
+            DisputePayout payout;
+            if (customWinnerAmount > 0) {
+                payout = DisputePayout.CUSTOM;
+            } else if (winner == DisputeResult.Winner.BUYER) {
+                payout = DisputePayout.BUYER_GETS_TRADE_AMOUNT;
+            } else if (winner == DisputeResult.Winner.SELLER) {
+                payout = DisputePayout.SELLER_GETS_TRADE_AMOUNT;
+            } else {
+                throw new IllegalStateException("Unexpected DisputeResult.Winner: " + winner);
+            }
+            applyPayoutAmountsToDisputeResult(payout, dispute, disputeResult, customWinnerAmount);
 
-        var closeDate = new Date();
-        var disputeResult = createDisputeResult(dispute, winner, reason, summaryNotes, closeDate);
-        var contract = dispute.getContract();
+            // resolve the payout
+            resolveDisputePayout(dispute, disputeResult, contract);
 
-        DisputePayout payout;
-        if (customWinnerAmount > 0) {
-            payout = DisputePayout.CUSTOM;
-        } else if (winner == DisputeResult.Winner.BUYER) {
-            payout = DisputePayout.BUYER_GETS_TRADE_AMOUNT;
-        } else if (winner == DisputeResult.Winner.SELLER) {
-            payout = DisputePayout.SELLER_GETS_TRADE_AMOUNT;
-        } else {
-            throw new IllegalStateException("Unexpected DisputeResult.Winner: " + winner);
+            // close dispute ticket
+            closeDispute(arbitrationManager, dispute, disputeResult, false);
+
+            // close dispute ticket for peer
+            var peersDisputeOptional = arbitrationManager.getDisputesAsObservableList().stream()
+                    .filter(d -> tradeId.equals(d.getTradeId()) && dispute.getTraderId() != d.getTraderId())
+                    .findFirst();
+
+            if (peersDisputeOptional.isPresent()) {
+                var peerDispute = peersDisputeOptional.get();
+                var peerDisputeResult = createDisputeResult(peerDispute, winner, reason, summaryNotes, closeDate);
+                peerDisputeResult.setBuyerPayoutAmount(disputeResult.getBuyerPayoutAmount());
+                peerDisputeResult.setSellerPayoutAmount(disputeResult.getSellerPayoutAmount());
+                peerDisputeResult.setLoserPublisher(disputeResult.isLoserPublisher());
+                resolveDisputePayout(peerDispute, peerDisputeResult, peerDispute.getContract());
+                closeDispute(arbitrationManager, peerDispute, peerDisputeResult, false);
+            } else {
+                throw new IllegalStateException("could not find peer dispute");
+            }
+
+            arbitrationManager.requestPersistence();
+        } catch (Exception e) {
+            throw new IllegalStateException(e);
         }
-        applyPayoutAmountsToDisputeResult(payout, dispute, disputeResult, customWinnerAmount);
-
-        // resolve the payout
-        resolveDisputePayout(dispute, disputeResult, contract);
-
-        // close dispute ticket
-        closeDispute(disputeManager, dispute, disputeResult, false);
-
-        // close dispute ticket for peer
-        var peersDisputeOptional = disputeManager.getDisputesAsObservableList().stream()
-                .filter(d -> tradeId.equals(d.getTradeId()) && dispute.getTraderId() != d.getTraderId())
-                .findFirst();
-
-        if (peersDisputeOptional.isPresent()) {
-            var peerDispute = peersDisputeOptional.get();
-            var peerDisputeResult = createDisputeResult(peerDispute, winner, reason, summaryNotes, closeDate);
-            peerDisputeResult.setBuyerPayoutAmount(disputeResult.getBuyerPayoutAmount());
-            peerDisputeResult.setSellerPayoutAmount(disputeResult.getSellerPayoutAmount());
-            peerDisputeResult.setLoserPublisher(disputeResult.isLoserPublisher());
-            resolveDisputePayout(peerDispute, peerDisputeResult, peerDispute.getContract());
-            closeDispute(disputeManager, peerDispute, peerDisputeResult, false);
-        } else {
-            throw new IllegalStateException("could not find peer dispute");
-        }
-
-        disputeManager.requestPersistence();
     }
 
     private DisputeResult createDisputeResult(Dispute dispute, DisputeResult.Winner winner, DisputeResult.Reason reason,
