@@ -36,11 +36,7 @@ import javax.annotation.Nullable;
 @Slf4j
 public class ProvidersRepository {
     private static final List<String> DEFAULT_NODES = Arrays.asList(
-            "http://wizpriceje6q5tdrxkyiazsgu7irquiqjy2dptezqhrtu7l2qelqktid.onion/", // @wiz
-            "http://emzypricpidesmyqg2hc6dkwitqzaxrqnpkdg3ae2wef5znncu2ambqd.onion/", // @emzy
-            "http://aprcndeiwdrkbf4fq7iozxbd27dl72oeo76n7zmjwdi4z34agdrnheyd.onion/", // @mrosseel
-            "http://devinpndvdwll4wiqcyq5e7itezmarg7rzicrvf6brzkwxdm374kmmyd.onion/", // @devinbileck
-            "http://ro7nv73awqs3ga2qtqeqawrjpbxwarsazznszvr6whv7tes5ehffopid.onion/" // @alexej996
+            "http://gbmks3wzvdzu5xq6gnqpj2qz3262tcr36iltagk37udcbwzsbfazq3yd.onion/" // Haveno
     );
 
     private final Config config;
@@ -109,7 +105,7 @@ public class ProvidersRepository {
                 // If we run in localhost mode we don't have the tor node running, so we need a clearnet host
                 // Use localhost for using a locally running provider
                 // providerAsString = Collections.singletonList("http://localhost:8080/");
-                providers = Collections.singletonList("https://price.bisq.wiz.biz/"); // @wiz
+                providers = Collections.singletonList("https://price.haveno.network/"); // Haveno
             } else {
                 providers = DEFAULT_NODES;
             }
