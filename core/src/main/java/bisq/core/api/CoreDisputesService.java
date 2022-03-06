@@ -27,7 +27,6 @@ import org.bitcoinj.core.AddressFormatException;
 import org.bitcoinj.core.Coin;
 
 import com.google.inject.name.Named;
-
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
@@ -144,7 +143,7 @@ public class CoreDisputesService {
         return dispute;
     }
 
-    public void resolveDispute(String tradeId, DisputeResult.Winner winner, DisputeResult.Reason reason, String summaryNotes, long customAmount) {
+    public void resolveDispute(String tradeId, DisputeResult.Winner winner, DisputeResult.Reason reason, String summaryNotes, long customWinnerAmount) {
 
         var disputeManager = arbitrationManager;
 
@@ -160,7 +159,7 @@ public class CoreDisputesService {
         var contract = dispute.getContract();
 
         DisputePayout payout;
-        if (customAmount > 0) {
+        if (customWinnerAmount > 0) {
             payout = DisputePayout.CUSTOM;
         } else if (winner == DisputeResult.Winner.BUYER) {
             payout = DisputePayout.BUYER_GETS_TRADE_AMOUNT;
@@ -169,7 +168,7 @@ public class CoreDisputesService {
         } else {
             throw new IllegalStateException("Unexpected DisputeResult.Winner: " + winner);
         }
-        applyPayoutAmountsToDisputeResult(payout, dispute, disputeResult, customAmount);
+        applyPayoutAmountsToDisputeResult(payout, dispute, disputeResult, customWinnerAmount);
 
         // resolve the payout
         resolveDisputePayout(dispute, disputeResult, contract);
@@ -209,9 +208,9 @@ public class CoreDisputesService {
 
     /**
      * Sets payout amounts given a payout type. If custom is selected, the winner gets a custom amount, and the peer
-     * receives the remaining amount.
+     * receives the remaining amount minus the mining fee.
      */
-    public void applyPayoutAmountsToDisputeResult(DisputePayout payout, Dispute dispute, DisputeResult disputeResult, long customAmount) {
+    public void applyPayoutAmountsToDisputeResult(DisputePayout payout, Dispute dispute, DisputeResult disputeResult, long customWinnerAmount) {
         Contract contract = dispute.getContract();
         Offer offer = new Offer(contract.getOfferPayload());
         Coin buyerSecurityDeposit = offer.getBuyerSecurityDeposit();
@@ -234,15 +233,10 @@ public class CoreDisputesService {
                     .add(sellerSecurityDeposit)
                     .add(buyerSecurityDeposit));
         } else if (payout == DisputePayout.CUSTOM) {
-            Coin winnerAmount = Coin.valueOf(customAmount);
-            Coin loserAmount = tradeAmount.minus(winnerAmount);
-            if (disputeResult.getWinner() == DisputeResult.Winner.BUYER) {
-                disputeResult.setBuyerPayoutAmount(winnerAmount.add(buyerSecurityDeposit));
-                disputeResult.setSellerPayoutAmount(loserAmount.add(sellerSecurityDeposit));
-            } else {
-                disputeResult.setBuyerPayoutAmount(loserAmount.add(buyerSecurityDeposit));
-                disputeResult.setSellerPayoutAmount(winnerAmount.add(sellerSecurityDeposit));
-            }
+            Coin winnerAmount = Coin.valueOf(customWinnerAmount);
+            Coin loserAmount = tradeAmount.add(buyerSecurityDeposit).add(sellerSecurityDeposit).minus(winnerAmount);
+            disputeResult.setBuyerPayoutAmount(disputeResult.getWinner() == DisputeResult.Winner.BUYER ? winnerAmount : loserAmount);
+            disputeResult.setSellerPayoutAmount(disputeResult.getWinner() == DisputeResult.Winner.BUYER ? loserAmount : winnerAmount);
         }
     }
 
