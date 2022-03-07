@@ -204,8 +204,8 @@ public class TradeDetailsWindow extends Overlay<TradeDetailsWindow> {
           rows++;
         if (trade.getPayoutTx() != null)
             rows++;
-        boolean showDisputedTx = arbitrationManager.findOwnDispute(trade.getId()).isPresent() &&
-                arbitrationManager.findOwnDispute(trade.getId()).get().getDisputePayoutTxId() != null;
+        boolean showDisputedTx = arbitrationManager.findDispute(trade.getId()).isPresent() &&
+                arbitrationManager.findDispute(trade.getId()).get().getDisputePayoutTxId() != null;
         if (showDisputedTx)
             rows++;
         if (trade.hasFailed())
@@ -301,7 +301,7 @@ public class TradeDetailsWindow extends Overlay<TradeDetailsWindow> {
                     trade.getPayoutTx().getHash());
         if (showDisputedTx)
             addLabelTxIdTextField(gridPane, ++rowIndex, Res.get("tradeDetailsWindow.disputedPayoutTxId"),
-                    arbitrationManager.findOwnDispute(trade.getId()).get().getDisputePayoutTxId());
+                    arbitrationManager.findDispute(trade.getId()).get().getDisputePayoutTxId());
 
         if (trade.hasFailed()) {
             textArea = addConfirmationLabelTextArea(gridPane, ++rowIndex, Res.get("shared.errorMessage"), "", 0).second;

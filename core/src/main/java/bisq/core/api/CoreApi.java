@@ -29,6 +29,9 @@ import bisq.core.offer.OfferPayload;
 import bisq.core.offer.OpenOffer;
 import bisq.core.payment.PaymentAccount;
 import bisq.core.payment.payload.PaymentMethod;
+import bisq.core.support.dispute.Attachment;
+import bisq.core.support.dispute.Dispute;
+import bisq.core.support.dispute.DisputeResult;
 import bisq.core.trade.Trade;
 import bisq.core.trade.statistics.TradeStatistics3;
 import bisq.core.trade.statistics.TradeStatisticsManager;
@@ -36,6 +39,7 @@ import bisq.common.app.Version;
 import bisq.common.config.Config;
 import bisq.common.crypto.IncorrectPasswordException;
 import bisq.common.handlers.ErrorMessageHandler;
+import bisq.common.handlers.FaultHandler;
 import bisq.common.handlers.ResultHandler;
 
 import bisq.proto.grpc.NotificationMessage;
@@ -79,6 +83,7 @@ public class CoreApi {
     private final AppStartupState appStartupState;
     private final CoreAccountService coreAccountService;
     private final CoreDisputeAgentsService coreDisputeAgentsService;
+    private final CoreDisputesService coreDisputeService;
     private final CoreHelpService coreHelpService;
     private final CoreOffersService coreOffersService;
     private final CorePaymentAccountsService paymentAccountsService;
@@ -94,6 +99,7 @@ public class CoreApi {
                    AppStartupState appStartupState,
                    CoreAccountService coreAccountService,
                    CoreDisputeAgentsService coreDisputeAgentsService,
+                   CoreDisputesService coreDisputeService,
                    CoreHelpService coreHelpService,
                    CoreOffersService coreOffersService,
                    CorePaymentAccountsService paymentAccountsService,
@@ -107,6 +113,7 @@ public class CoreApi {
         this.appStartupState = appStartupState;
         this.coreAccountService = coreAccountService;
         this.coreDisputeAgentsService = coreDisputeAgentsService;
+        this.coreDisputeService = coreDisputeService;
         this.coreHelpService = coreHelpService;
         this.coreOffersService = coreOffersService;
         this.paymentAccountsService = paymentAccountsService;
@@ -134,7 +141,7 @@ public class CoreApi {
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Account Service
     ///////////////////////////////////////////////////////////////////////////////////////////
-    
+
     public boolean accountExists() {
         return coreAccountService.accountExists();
     }
@@ -174,7 +181,7 @@ public class CoreApi {
     public void restoreAccount(InputStream zipStream, int bufferSize, Runnable onShutdown) throws Exception {
         coreAccountService.restoreAccount(zipStream, bufferSize, onShutdown);
     }
-    
+
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Monero Connections
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -331,6 +338,31 @@ public class CoreApi {
 
     public void sendNotification(NotificationMessage notification) {
         notificationService.sendNotification(notification);
+    }
+
+    ///////////////////////////////////////////////////////////////////////////////////////////
+    // Disputes
+    ///////////////////////////////////////////////////////////////////////////////////////////
+
+    public List<Dispute> getDisputes() {
+        return coreDisputeService.getDisputes();
+    }
+
+    public Dispute getDispute(String tradeId) {
+        return coreDisputeService.getDispute(tradeId);
+    }
+
+    public void openDispute(String tradeId, ResultHandler resultHandler, FaultHandler faultHandler) {
+        coreDisputeService.openDispute(tradeId, resultHandler, faultHandler);
+    }
+
+    public void resolveDispute(String tradeId, DisputeResult.Winner winner, DisputeResult.Reason reason,
+                               String summaryNotes, long customPayoutAmount) {
+        coreDisputeService.resolveDispute(tradeId, winner, reason, summaryNotes, customPayoutAmount);
+    }
+
+    public void sendDisputeChatMessage(String disputeId, String message, ArrayList<Attachment> attachments) {
+        coreDisputeService.sendDisputeChatMessage(disputeId, message, attachments);
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////

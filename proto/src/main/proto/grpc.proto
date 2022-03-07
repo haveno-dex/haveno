@@ -155,6 +155,82 @@ message RestoreAccountReply {
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////
+// Disputes
+///////////////////////////////////////////////////////////////////////////////////////////
+
+service Disputes {
+    rpc GetDispute (GetDisputeRequest) returns (GetDisputeReply) {
+    }
+    rpc GetDisputes (GetDisputesRequest) returns (GetDisputesReply) {
+    }
+    rpc OpenDispute (OpenDisputeRequest) returns (OpenDisputeReply) {
+    }
+    rpc ResolveDispute (ResolveDisputeRequest) returns (ResolveDisputeReply) {
+    }
+    rpc SendDisputeChatMessage (SendDisputeChatMessageRequest) returns (SendDisputeChatMessageReply) {
+    }
+}
+
+message GetDisputesRequest {
+}
+
+message GetDisputesReply {
+    repeated Dispute disputes = 1; // pb.proto
+}
+
+message GetDisputeRequest {
+    string trade_id = 1;
+}
+
+message GetDisputeReply {
+    Dispute dispute = 1; // pb.proto
+}
+
+message OpenDisputeRequest {
+    string trade_id = 1;
+}
+
+message OpenDisputeReply {
+}
+
+message ResolveDisputeReply {
+}
+
+message ResolveDisputeRequest {
+    string trade_id = 1;
+    DisputeResult.Winner winner = 2;
+    DisputeResult.Reason reason = 3;
+    string summary_notes = 4;
+    uint64 custom_payout_amount = 5 [jstype = JS_STRING];
+}
+
+message SendDisputeChatMessageRequest {
+    string dispute_id = 1;
+    string message = 2;
+    repeated Attachment attachments = 3; // pb.proto
+}
+
+message SendDisputeChatMessageReply {
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////
+// DisputeAgents
+///////////////////////////////////////////////////////////////////////////////////////////
+
+service DisputeAgents {
+    rpc RegisterDisputeAgent (RegisterDisputeAgentRequest) returns (RegisterDisputeAgentReply) {
+    }
+}
+
+message RegisterDisputeAgentRequest {
+    string dispute_agent_type = 1;
+    string registration_key = 2;
+}
+
+message RegisterDisputeAgentReply {
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////
 // Notifications
 ///////////////////////////////////////////////////////////////////////////////////////////
 
@@ -305,23 +381,6 @@ message SetAutoSwitchRequest {
 }
 
 message SetAutoSwitchReply {}
-
-///////////////////////////////////////////////////////////////////////////////////////////
-// DisputeAgents
-///////////////////////////////////////////////////////////////////////////////////////////
-
-service DisputeAgents {
-    rpc RegisterDisputeAgent (RegisterDisputeAgentRequest) returns (RegisterDisputeAgentReply) {
-    }
-}
-
-message RegisterDisputeAgentRequest {
-    string dispute_agent_type = 1;
-    string registration_key = 2;
-}
-
-message RegisterDisputeAgentReply {
-}
 
 ///////////////////////////////////////////////////////////////////////////////////////////
 // Offers
@@ -543,7 +602,7 @@ message MarketDepthInfo {
     repeated double buy_prices = 2;
     repeated double buy_depth = 3;
     repeated double sell_prices = 4;
-    repeated double sell_depth = 5;  
+    repeated double sell_depth = 5;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////

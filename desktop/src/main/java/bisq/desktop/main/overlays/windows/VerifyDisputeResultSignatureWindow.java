@@ -18,7 +18,7 @@
 package bisq.desktop.main.overlays.windows;
 
 import bisq.desktop.main.overlays.Overlay;
-import bisq.desktop.main.support.dispute.DisputeSummaryVerification;
+import bisq.core.support.dispute.DisputeSummaryVerification;
 
 import bisq.core.locale.Res;
 import bisq.core.support.dispute.mediation.mediator.MediatorManager;

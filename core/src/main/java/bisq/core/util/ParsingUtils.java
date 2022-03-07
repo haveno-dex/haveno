@@ -21,12 +21,13 @@ public class ParsingUtils {
      * Multiplier to convert centineros (the base XMR unit of Coin) to atomic units.
      * 
      * TODO: change base unit to atomic units and long
+     * TODO: move these static utilities?
      */
     private static BigInteger CENTINEROS_AU_MULTIPLIER = BigInteger.valueOf(10000);
-    
+
     /**
      * Convert Coin (denominated in centineros) to atomic units.
-     *
+     * 
      * @param coin has an amount denominated in centineros
      * @return BigInteger the coin amount denominated in atomic units
      */
@@ -43,7 +44,7 @@ public class ParsingUtils {
     public static BigInteger centinerosToAtomicUnits(long centineros) {
         return BigInteger.valueOf(centineros).multiply(ParsingUtils.CENTINEROS_AU_MULTIPLIER);
     }
-    
+
     /**
      * Convert atomic units to centineros.
      * 

@@ -18,6 +18,7 @@
 package bisq.core.support;
 
 import bisq.core.api.CoreMoneroConnectionsService;
+import bisq.core.api.CoreNotificationService;
 import bisq.core.locale.Res;
 import bisq.core.support.messages.ChatMessage;
 import bisq.core.support.messages.SupportMessage;
@@ -48,6 +49,7 @@ import javax.annotation.Nullable;
 public abstract class SupportManager {
     protected final P2PService p2PService;
     protected final CoreMoneroConnectionsService connectionService;
+    protected final CoreNotificationService notificationService;
     protected final Map<String, Timer> delayMsgMap = new HashMap<>();
     private final CopyOnWriteArraySet<DecryptedMessageWithPubKey> decryptedMailboxMessageWithPubKeys = new CopyOnWriteArraySet<>();
     private final CopyOnWriteArraySet<DecryptedMessageWithPubKey> decryptedDirectMessageWithPubKeys = new CopyOnWriteArraySet<>();
@@ -59,10 +61,11 @@ public abstract class SupportManager {
     // Constructor
     ///////////////////////////////////////////////////////////////////////////////////////////
 
-    public SupportManager(P2PService p2PService, CoreMoneroConnectionsService connectionService) {
+    public SupportManager(P2PService p2PService, CoreMoneroConnectionsService connectionService, CoreNotificationService notificationService) {
         this.p2PService = p2PService;
         this.connectionService = connectionService;
-        mailboxMessageService = p2PService.getMailboxMessageService();
+        this.mailboxMessageService = p2PService.getMailboxMessageService();
+        this.notificationService = notificationService;
 
         // We get first the message handler called then the onBootstrapped
         p2PService.addDecryptedDirectMessageListener((decryptedMessageWithPubKey, senderAddress) -> {
@@ -152,6 +155,7 @@ public abstract class SupportManager {
         PubKeyRing receiverPubKeyRing = getPeerPubKeyRing(chatMessage);
 
         addAndPersistChatMessage(chatMessage);
+        notificationService.sendChatNotification(chatMessage);
 
         // We never get a errorMessage in that method (only if we cannot resolve the receiverPubKeyRing but then we
         // cannot send it anyway)

@@ -486,7 +486,7 @@ public abstract class TradeStepView extends AnchorPane {
                 }
                 applyOnDisputeOpened();
 
-                ownDispute = model.dataModel.arbitrationManager.findOwnDispute(trade.getId());
+                ownDispute = model.dataModel.arbitrationManager.findDispute(trade.getId());
                 ownDispute.ifPresent(dispute -> {
                     if (tradeStepInfo != null)
                         tradeStepInfo.setState(TradeStepInfo.State.IN_ARBITRATION_SELF_REQUESTED);
@@ -499,7 +499,7 @@ public abstract class TradeStepView extends AnchorPane {
                 }
                 applyOnDisputeOpened();
 
-                ownDispute = model.dataModel.arbitrationManager.findOwnDispute(trade.getId());
+                ownDispute = model.dataModel.arbitrationManager.findDispute(trade.getId());
                 ownDispute.ifPresent(dispute -> {
                     if (tradeStepInfo != null)
                         tradeStepInfo.setState(TradeStepInfo.State.IN_ARBITRATION_PEER_REQUESTED);
@@ -513,7 +513,7 @@ public abstract class TradeStepView extends AnchorPane {
                 }
                 applyOnDisputeOpened();
 
-                ownDispute = model.dataModel.mediationManager.findOwnDispute(trade.getId());
+                ownDispute = model.dataModel.mediationManager.findDispute(trade.getId());
                 ownDispute.ifPresent(dispute -> {
                     if (tradeStepInfo != null)
                         tradeStepInfo.setState(TradeStepInfo.State.IN_MEDIATION_SELF_REQUESTED);
@@ -525,7 +525,7 @@ public abstract class TradeStepView extends AnchorPane {
                 }
                 applyOnDisputeOpened();
 
-                ownDispute = model.dataModel.mediationManager.findOwnDispute(trade.getId());
+                ownDispute = model.dataModel.mediationManager.findDispute(trade.getId());
                 ownDispute.ifPresent(dispute -> {
                     if (tradeStepInfo != null) {
                         tradeStepInfo.setState(TradeStepInfo.State.IN_MEDIATION_PEER_REQUESTED);

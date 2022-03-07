@@ -18,6 +18,7 @@
 package bisq.core.support.dispute;
 
 import bisq.core.api.CoreMoneroConnectionsService;
+import bisq.core.api.CoreNotificationService;
 import bisq.core.btc.wallet.Restrictions;
 import bisq.core.btc.wallet.TradeWalletService;
 import bisq.core.btc.wallet.XmrWalletService;
@@ -111,6 +112,7 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
                           TradeWalletService tradeWalletService,
                           XmrWalletService xmrWalletService,
                           CoreMoneroConnectionsService connectionService,
+                          CoreNotificationService notificationService,
                           TradeManager tradeManager,
                           ClosedTradableManager closedTradableManager,
                           OpenOfferManager openOfferManager,
@@ -118,7 +120,7 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
                           DisputeListService<T> disputeListService,
                           Config config,
                           PriceFeedService priceFeedService) {
-        super(p2PService, connectionService);
+        super(p2PService, connectionService, notificationService);
 
         this.tradeWalletService = tradeWalletService;
         this.xmrWalletService = xmrWalletService;
@@ -287,17 +289,6 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
     public boolean isTrader(Dispute dispute) {
         return pubKeyRing.equals(dispute.getTraderPubKeyRing());
     }
-
-
-    public Optional<Dispute> findOwnDispute(String tradeId) {
-        T disputeList = getDisputeList();
-        if (disputeList == null) {
-            log.warn("disputes is null");
-            return Optional.empty();
-        }
-        return disputeList.stream().filter(e -> e.getTradeId().equals(tradeId)).findAny();
-    }
-
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Message handler
@@ -820,6 +811,17 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
         }
         return disputeList.stream()
                 .filter(e -> e.getTradeId().equals(tradeId))
+                .findAny();
+    }
+
+    public Optional<Dispute> findDisputeById(String disputeId) {
+        T disputeList = getDisputeList();
+        if (disputeList == null) {
+            log.warn("disputes is null");
+            return Optional.empty();
+        }
+        return disputeList.stream()
+                .filter(e -> e.getId().equals(disputeId))
                 .findAny();
     }
 

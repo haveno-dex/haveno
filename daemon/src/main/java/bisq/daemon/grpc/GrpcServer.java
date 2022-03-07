@@ -51,6 +51,7 @@ public class GrpcServer {
                       PasswordAuthInterceptor passwordAuthInterceptor,
                       GrpcAccountService accountService,
                       GrpcDisputeAgentsService disputeAgentsService,
+                      GrpcDisputesService disputesService,
                       GrpcHelpService helpService,
                       GrpcOffersService offersService,
                       GrpcPaymentAccountsService paymentAccountsService,
@@ -66,6 +67,7 @@ public class GrpcServer {
                 .executor(UserThread.getExecutor())
                 .addService(interceptForward(accountService, accountService.interceptors()))
                 .addService(interceptForward(disputeAgentsService, disputeAgentsService.interceptors()))
+                .addService(interceptForward(disputesService, disputesService.interceptors()))
                 .addService(interceptForward(helpService, helpService.interceptors()))
                 .addService(interceptForward(offersService, offersService.interceptors()))
                 .addService(interceptForward(paymentAccountsService, paymentAccountsService.interceptors()))

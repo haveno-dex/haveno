@@ -228,8 +228,8 @@ public class NotificationCenter {
 
     private void onDisputeStateChanged(Trade trade, Trade.DisputeState disputeState) {
         String message = null;
-        if (refundManager.findOwnDispute(trade.getId()).isPresent()) {
-            String disputeOrTicket = refundManager.findOwnDispute(trade.getId()).get().isSupportTicket() ?
+        if (refundManager.findDispute(trade.getId()).isPresent()) {
+            String disputeOrTicket = refundManager.findDispute(trade.getId()).get().isSupportTicket() ?
                     Res.get("shared.supportTicket") :
                     Res.get("shared.dispute");
             switch (disputeState) {
@@ -253,8 +253,8 @@ public class NotificationCenter {
             if (message != null) {
                 goToSupport(trade, message, false);
             }
-        } else if (mediationManager.findOwnDispute(trade.getId()).isPresent()) {
-            String disputeOrTicket = mediationManager.findOwnDispute(trade.getId()).get().isSupportTicket() ?
+        } else if (mediationManager.findDispute(trade.getId()).isPresent()) {
+            String disputeOrTicket = mediationManager.findDispute(trade.getId()).get().isSupportTicket() ?
                     Res.get("shared.supportTicket") :
                     Res.get("shared.mediationCase");
             switch (disputeState) {
