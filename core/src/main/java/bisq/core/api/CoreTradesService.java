@@ -22,6 +22,10 @@ import bisq.core.btc.wallet.BtcWalletService;
 import bisq.core.offer.Offer;
 import bisq.core.offer.OfferUtil;
 import bisq.core.offer.takeoffer.TakeOfferModel;
+import bisq.core.support.dispute.Dispute;
+import bisq.core.support.messages.ChatMessage;
+import bisq.core.support.traderchat.TradeChatSession;
+import bisq.core.support.traderchat.TraderChatManager;
 import bisq.core.trade.Tradable;
 import bisq.core.trade.Trade;
 import bisq.core.trade.TradeManager;
@@ -58,10 +62,10 @@ class CoreTradesService {
     // exception is made in this case.
     private final CoreWalletsService coreWalletsService;
     private final BtcWalletService btcWalletService;
-    private final OfferUtil offerUtil;
     private final ClosedTradableManager closedTradableManager;
     private final TakeOfferModel takeOfferModel;
     private final TradeManager tradeManager;
+    private final TraderChatManager traderChatManager;
     private final TradeUtil tradeUtil;
     private final User user;
 
@@ -69,19 +73,19 @@ class CoreTradesService {
     public CoreTradesService(CoreContext coreContext,
                              CoreWalletsService coreWalletsService,
                              BtcWalletService btcWalletService,
-                             OfferUtil offerUtil,
                              ClosedTradableManager closedTradableManager,
                              TakeOfferModel takeOfferModel,
                              TradeManager tradeManager,
+                             TraderChatManager traderChatManager,
                              TradeUtil tradeUtil,
                              User user) {
         this.coreContext = coreContext;
         this.coreWalletsService = coreWalletsService;
         this.btcWalletService = btcWalletService;
-        this.offerUtil = offerUtil;
         this.closedTradableManager = closedTradableManager;
         this.takeOfferModel = takeOfferModel;
         this.tradeManager = tradeManager;
+        this.traderChatManager = traderChatManager;
         this.tradeUtil = tradeUtil;
         this.user = user;
     }
@@ -235,6 +239,34 @@ class CoreTradesService {
         List<Trade> trades = new ArrayList<Trade>(tradeManager.getTrades());
         trades.addAll(closedTradableManager.getClosedTrades());
         return trades;
+    }
+
+    List<ChatMessage> getChatMessages(String tradeId) {
+        Trade trade;
+        var tradeOptional = tradeManager.getTradeById(tradeId);
+        if (tradeOptional.isPresent()) trade = tradeOptional.get();
+        else throw new IllegalStateException(format("trade with id '%s' not found", tradeId));
+        boolean isMaker = tradeManager.isMyOffer(trade.getOffer());
+        TradeChatSession tradeChatSession = new TradeChatSession(trade, !isMaker);
+        return tradeChatSession.getObservableChatMessageList();
+    }
+
+    void sendChatMessage(String tradeId, String message) {
+        Trade trade;
+        var tradeOptional = tradeManager.getTradeById(tradeId);
+        if (tradeOptional.isPresent()) trade = tradeOptional.get();
+        else throw new IllegalStateException(format("trade with id '%s' not found", tradeId));
+        boolean isMaker = tradeManager.isMyOffer(trade.getOffer());
+        TradeChatSession tradeChatSession = new TradeChatSession(trade, !isMaker);
+        ChatMessage chatMessage = new ChatMessage(
+                traderChatManager.getSupportType(),
+                tradeChatSession.getTradeId(),
+                tradeChatSession.getClientId(),
+                tradeChatSession.isClient(),
+                message,
+                traderChatManager.getMyAddress());
+        traderChatManager.addAndPersistChatMessage(chatMessage);
+        traderChatManager.sendChatMessage(chatMessage);
     }
 
     private boolean isFollowingBuyerProtocol(Trade trade) {
