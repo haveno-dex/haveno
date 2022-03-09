@@ -19,18 +19,23 @@ package bisq.daemon.grpc;
 
 import bisq.core.api.CoreApi;
 import bisq.core.api.model.TradeInfo;
+import bisq.core.support.messages.ChatMessage;
 import bisq.core.trade.Trade;
 
 import bisq.proto.grpc.ConfirmPaymentReceivedReply;
 import bisq.proto.grpc.ConfirmPaymentReceivedRequest;
 import bisq.proto.grpc.ConfirmPaymentStartedReply;
 import bisq.proto.grpc.ConfirmPaymentStartedRequest;
+import bisq.proto.grpc.GetChatMessagesReply;
+import bisq.proto.grpc.GetChatMessagesRequest;
 import bisq.proto.grpc.GetTradeReply;
 import bisq.proto.grpc.GetTradeRequest;
 import bisq.proto.grpc.GetTradesReply;
 import bisq.proto.grpc.GetTradesRequest;
 import bisq.proto.grpc.KeepFundsReply;
 import bisq.proto.grpc.KeepFundsRequest;
+import bisq.proto.grpc.SendChatMessageReply;
+import bisq.proto.grpc.SendChatMessageRequest;
 import bisq.proto.grpc.TakeOfferReply;
 import bisq.proto.grpc.TakeOfferRequest;
 import bisq.proto.grpc.WithdrawFundsReply;
@@ -185,6 +190,37 @@ class GrpcTradesService extends TradesImplBase {
         }
     }
 
+    @Override
+    public void getChatMessages(GetChatMessagesRequest req,
+                                StreamObserver<GetChatMessagesReply> responseObserver) {
+        try {
+            var tradeChats = coreApi.getChatMessages(req.getTradeId())
+                    .stream()
+                    .map(msg -> msg.toProtoNetworkEnvelope().getChatMessage())
+                    .collect(Collectors.toList());
+            var reply = GetChatMessagesReply.newBuilder()
+                    .addAllMessage(tradeChats)
+                    .build();
+            responseObserver.onNext(reply);
+            responseObserver.onCompleted();
+        } catch (Throwable cause) {
+            exceptionHandler.handleException(log, cause, responseObserver);
+        }
+    }
+
+    @Override
+    public void sendChatMessage(SendChatMessageRequest req,
+                                StreamObserver<SendChatMessageReply> responseObserver) {
+        try {
+            coreApi.sendChatMessage(req.getTradeId(), req.getMessage());
+            var reply = SendChatMessageReply.newBuilder().build();
+            responseObserver.onNext(reply);
+            responseObserver.onCompleted();
+        } catch (Throwable cause) {
+            exceptionHandler.handleException(log, cause, responseObserver);
+        }
+    }
+
     final ServerInterceptor[] interceptors() {
         Optional<ServerInterceptor> rateMeteringInterceptor = rateMeteringInterceptor();
         return rateMeteringInterceptor.map(serverInterceptor ->
@@ -202,6 +238,8 @@ class GrpcTradesService extends TradesImplBase {
                             put(getConfirmPaymentReceivedMethod().getFullMethodName(), new GrpcCallRateMeter(1, SECONDS));
                             put(getKeepFundsMethod().getFullMethodName(), new GrpcCallRateMeter(1, MINUTES));
                             put(getWithdrawFundsMethod().getFullMethodName(), new GrpcCallRateMeter(1, MINUTES));
+                            put(getGetChatMessagesMethod().getFullMethodName(), new GrpcCallRateMeter(10, SECONDS));
+                            put(getSendChatMessageMethod().getFullMethodName(), new GrpcCallRateMeter(10, SECONDS));
                         }}
                 )));
     }

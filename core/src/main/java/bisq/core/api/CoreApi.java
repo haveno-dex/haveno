@@ -32,6 +32,7 @@ import bisq.core.payment.payload.PaymentMethod;
 import bisq.core.support.dispute.Attachment;
 import bisq.core.support.dispute.Dispute;
 import bisq.core.support.dispute.DisputeResult;
+import bisq.core.support.messages.ChatMessage;
 import bisq.core.trade.Trade;
 import bisq.core.trade.statistics.TradeStatistics3;
 import bisq.core.trade.statistics.TradeStatisticsManager;
@@ -542,5 +543,13 @@ public class CoreApi {
 
     public String getTradeRole(String tradeId) {
         return coreTradesService.getTradeRole(tradeId);
+    }
+
+    public List<ChatMessage> getChatMessages(String tradeId) {
+        return coreTradesService.getChatMessages(tradeId);
+    }
+
+    public void sendChatMessage(String tradeId, String message) {
+        coreTradesService.sendChatMessage(tradeId, message);
     }
 }

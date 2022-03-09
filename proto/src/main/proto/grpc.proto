@@ -655,6 +655,10 @@ service Trades {
     }
     rpc WithdrawFunds (WithdrawFundsRequest) returns (WithdrawFundsReply) {
     }
+    rpc GetChatMessages (GetChatMessagesRequest) returns (GetChatMessagesReply) {
+    }
+    rpc SendChatMessage (SendChatMessageRequest) returns (SendChatMessageReply) {
+    }
 }
 
 message TakeOfferRequest {
@@ -710,6 +714,22 @@ message WithdrawFundsRequest {
 }
 
 message WithdrawFundsReply {
+}
+
+message GetChatMessagesRequest {
+    string trade_id = 1;
+}
+
+message GetChatMessagesReply {
+    repeated ChatMessage message = 1;
+}
+
+message SendChatMessageRequest {
+    string trade_id = 1;
+    string message = 2;
+}
+
+message SendChatMessageReply {
 }
 
 message TradeInfo {
