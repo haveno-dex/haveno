@@ -55,6 +55,7 @@ public final class CoreMoneroConnectionsService {
     @Inject
     public CoreMoneroConnectionsService(WalletsSetup walletsSetup,
                                         CoreAccountService accountService,
+                                        CoreMoneroNodeService nodeService,
                                         MoneroConnectionManager connectionManager,
                                         EncryptedConnectionList connectionList) {
         this.accountService = accountService;
@@ -63,13 +64,13 @@ public final class CoreMoneroConnectionsService {
 
         // initialize after account open and basic setup
         walletsSetup.addSetupTaskHandler(() -> { // TODO: use something better than legacy WalletSetup for notification to initialize
-            
+
             // initialize from connections read from disk
             initialize();
-            
+
             // listen for account to be opened or password changed
             accountService.addListener(new AccountServiceListener() {
-                
+
                 @Override
                 public void onAccountOpened() {
                     try {
@@ -80,23 +81,44 @@ public final class CoreMoneroConnectionsService {
                         throw new RuntimeException(e);
                     }
                 }
-                
+
                 @Override
                 public void onPasswordChanged(String oldPassword, String newPassword) {
                     log.info(getClass() + ".onPasswordChanged({}, {}) called", oldPassword, newPassword);
                     connectionList.changePassword(oldPassword, newPassword);
                 }
             });
+
+            nodeService.addListener(new MoneroNodeServiceListener() {
+                @Override
+                public void onNodeStarted(MoneroDaemon daemon) {
+                    log.info(getClass() + ".onNodeStarted() called");
+                    setConnection((MoneroRpcConnection) null);
+                    setDaemon(daemon);
+                }
+
+                @Override
+                public void onNodeStopped() {
+                    log.info(getClass() + ".onNodeStopped() called");
+                    var connection = getBestAvailableConnection();
+                    setConnection(connection);
+                }
+            });
         });
     }
 
     // ------------------------ CONNECTION MANAGEMENT -------------------------
-    
+
     public MoneroDaemon getDaemon() {
         accountService.checkAccountOpen();
         return this.daemon;
     }
-    
+
+    protected void setDaemon(MoneroDaemon daemon) {
+        this.daemon = daemon;
+    }
+
+
     public void addListener(MoneroConnectionManagerListener listener) {
         synchronized (lock) {
             accountService.checkAccountOpen();
@@ -194,9 +216,9 @@ public final class CoreMoneroConnectionsService {
             connectionList.setAutoSwitch(autoSwitch);
         }
     }
-    
+
     // ----------------------------- APP METHODS ------------------------------
-    
+
     public boolean isChainHeightSyncedWithinTolerance() {
         if (daemon == null) return false;
         Long targetHeight = daemon.getSyncInfo().getTargetHeight();
@@ -208,7 +230,7 @@ public final class CoreMoneroConnectionsService {
         log.warn("Our chain height: {} is out of sync with peer nodes chain height: {}", chainHeight.get(), targetHeight);
         return false;
     }
-    
+
     public ReadOnlyIntegerProperty numPeersProperty() {
         return numPeers;
     }
@@ -216,7 +238,7 @@ public final class CoreMoneroConnectionsService {
     public ReadOnlyObjectProperty<List<MoneroPeer>> peerConnectionsProperty() {
         return peers;
     }
-    
+
     public boolean hasSufficientPeersForBroadcast() {
         return numPeers.get() >= getMinBroadcastConnections();
     }
@@ -224,33 +246,33 @@ public final class CoreMoneroConnectionsService {
     public LongProperty chainHeightProperty() {
         return chainHeight;
     }
-    
+
     public ReadOnlyDoubleProperty downloadPercentageProperty() {
         return downloadListener.percentageProperty();
     }
-    
+
     public int getMinBroadcastConnections() {
         return MIN_BROADCAST_CONNECTIONS;
     }
-    
+
     public boolean isDownloadComplete() {
         return downloadPercentageProperty().get() == 1d;
     }
-    
+
     /**
      * Signals that both the daemon and wallet have synced.
-     * 
+     *
      * TODO: separate daemon and wallet download/done listeners
      */
     public void doneDownload() {
         downloadListener.doneDownload();
     }
-    
+
     // ------------------------------- HELPERS --------------------------------
-    
+
     private void initialize() {
         synchronized (lock) {
-            
+
             // reset connection manager's connections and listeners
             connectionManager.reset();
 
@@ -268,7 +290,7 @@ public final class CoreMoneroConnectionsService {
             connectionList.getCurrentConnectionUri().ifPresentOrElse(connectionManager::setConnection, () -> {
                 connectionManager.setConnection(DEFAULT_CONNECTIONS.get(0).getUri()); // default to localhost
             });
-            
+
             // initialize daemon
             daemon = new MoneroDaemonRpc(connectionManager.getConnection());
             updateDaemonInfo();
@@ -292,7 +314,7 @@ public final class CoreMoneroConnectionsService {
             }
         }
     }
-    
+
     private void onConnectionChanged(MoneroRpcConnection currentConnection) {
         synchronized (lock) {
             if (currentConnection == null) {

@@ -53,6 +53,7 @@ import javax.inject.Singleton;
 
 import com.google.common.util.concurrent.FutureCallback;
 
+import java.io.IOException;
 import java.io.InputStream;
 
 import java.util.ArrayList;
@@ -94,6 +95,7 @@ public class CoreApi {
     private final TradeStatisticsManager tradeStatisticsManager;
     private final CoreNotificationService notificationService;
     private final CoreMoneroConnectionsService coreMoneroConnectionsService;
+    private final CoreMoneroNodeService coreMoneroNodeService;
 
     @Inject
     public CoreApi(Config config,
@@ -109,7 +111,8 @@ public class CoreApi {
                    CoreWalletsService walletsService,
                    TradeStatisticsManager tradeStatisticsManager,
                    CoreNotificationService notificationService,
-                   CoreMoneroConnectionsService coreMoneroConnectionsService) {
+                   CoreMoneroConnectionsService coreMoneroConnectionsService,
+                   CoreMoneroNodeService coreMoneroNodeService) {
         this.config = config;
         this.appStartupState = appStartupState;
         this.coreAccountService = coreAccountService;
@@ -124,6 +127,7 @@ public class CoreApi {
         this.tradeStatisticsManager = tradeStatisticsManager;
         this.notificationService = notificationService;
         this.coreMoneroConnectionsService = coreMoneroConnectionsService;
+        this.coreMoneroNodeService = coreMoneroNodeService;
     }
 
     @SuppressWarnings("SameReturnValue")
@@ -233,6 +237,22 @@ public class CoreApi {
 
     public void setMoneroConnectionAutoSwitch(boolean autoSwitch) {
         coreMoneroConnectionsService.setAutoSwitch(autoSwitch);
+    }
+
+    ///////////////////////////////////////////////////////////////////////////////////////////
+    // Monero node
+    ///////////////////////////////////////////////////////////////////////////////////////////
+
+    public boolean isMoneroNodeStarted() {
+        return coreMoneroNodeService.isMoneroNodeStarted();
+    }
+
+    public void startMoneroNode(String rpcUsername, String rpcPassword) throws IOException {
+        coreMoneroNodeService.startMoneroNode(rpcUsername, rpcPassword);
+    }
+
+    public void stopMoneroNode() {
+        coreMoneroNodeService.stopMoneroNode();
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
