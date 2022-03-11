@@ -16,6 +16,11 @@
  */
 package bisq.core.api;
 
+import bisq.core.user.Preferences;
+import bisq.core.xmr.MoneroNodeSettings;
+
+import bisq.common.config.Config;
+
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
@@ -31,7 +36,6 @@ import lombok.extern.slf4j.Slf4j;
 
 import monero.daemon.MoneroDaemon;
 import monero.daemon.MoneroDaemonRpc;
-import monero.daemon.model.MoneroNetworkType;
 
 /**
  * Manages a Monero node instance or connection to an instance.
@@ -40,34 +44,27 @@ import monero.daemon.model.MoneroNetworkType;
 @Singleton
 public class CoreMoneroNodeService {
 
-    // Monero configuration
-    // TODO: don't hard code configuration, inject into classes?
-    private static final MoneroNetworkType MONERO_NETWORK_TYPE = MoneroNetworkType.STAGENET;
+    private static final String MONERO_NETWORK_TYPE = Config.baseCurrencyNetwork().getNetwork().toLowerCase();
     private static final String MONEROD_PATH = System.getProperty("user.dir") + File.separator + ".localnet" + File.separator + "monerod";
-    private static final String MONEROD_DATADIR =  System.getProperty("user.dir") + File.separator + ".localnet" + File.separator + MONERO_NETWORK_TYPE.toString().toLowerCase();
-    private static final String MONEROD_P2PPORT = "58080";
-    private static final String MONEROD_RPCPORT = "58081";
-    private static final String MONEROD_ZMQPORT = "58082";
+    private static final String MONEROD_DATADIR =  System.getProperty("user.dir") + File.separator + ".localnet" + File.separator + MONERO_NETWORK_TYPE;
 
-    private List<MoneroNodeServiceListener> listeners = new ArrayList<>();
+    private final Preferences preferences;
+    private final List<MoneroNodeServiceListener> listeners = new ArrayList<>();
 
     private static final List<String> DevArgs = Arrays.asList(
             MONEROD_PATH,
-            "--" + MONERO_NETWORK_TYPE.toString().toLowerCase(),
+            "--" + MONERO_NETWORK_TYPE,
             "--no-igd",
-            "--hide-my-port",
-            "--data-dir", MONEROD_DATADIR,
-            "--p2p-bind-port", MONEROD_P2PPORT,
-            "--rpc-bind-port", MONEROD_RPCPORT,
-            "--zmq-rpc-bind-port", MONEROD_ZMQPORT
+            "--hide-my-port"
     );
 
     @Getter
     private MoneroDaemon daemon;
 
     @Inject
-    public CoreMoneroNodeService() {
+    public CoreMoneroNodeService(Preferences preferences) {
         this.daemon = null;
+        this.preferences = preferences;
     }
 
     public void addListener(MoneroNodeServiceListener listener) {
@@ -78,22 +75,52 @@ public class CoreMoneroNodeService {
         return listeners.remove(listener);
     }
 
+    /**
+     * Returns whether the local monero node is running or an external monero node is running
+     */
     public boolean isMoneroNodeStarted() {
+        // todo: check if node is running at 18081, 28081, or 38081 for mainnet, testnet, and stagenet respectively
         return daemon != null;
+    }
+
+    public MoneroNodeSettings getMoneroNodeSettings() {
+        return preferences.getMoneroNodeSettings();
     }
 
     /**
      * Starts a local monero node. Throws MoneroError if the node cannot be started.
+     * Persists the settings to preferences if the node started successfully.
      */
-    public void startMoneroNode(String rpcUsername, String rpcPassword) throws IOException {
+    public void startMoneroNode(MoneroNodeSettings settings) throws IOException {
         if (daemon != null) throw new IllegalStateException("Monero node already running");
+
         var args = new ArrayList<>(DevArgs);
-        args.add("--rpc-login");
-        args.add(rpcUsername + ":" + rpcPassword);
+
+        var dataDir = settings.getBlockchainPath();
+        if (dataDir == null || dataDir.isEmpty()) {
+            dataDir = MONEROD_DATADIR;
+        }
+        args.add("--data-dir=" + dataDir);
+
+        var bootstrapUrl = settings.getBootstrapUrl();
+        if (bootstrapUrl != null && !bootstrapUrl.isEmpty()) {
+            args.add("--bootstrap-daemon-address=" + bootstrapUrl);
+        }
+
+        var flags = settings.getStartupFlags();
+        if (flags != null) {
+            args.addAll(flags);
+        }
+
         daemon = new MoneroDaemonRpc(args);
+        preferences.setMoneroNodeSettings(settings);
         for (var listener : listeners) listener.onNodeStarted(daemon);
     }
 
+    /**
+     * Stops the current local monero node if the node was started by this process.
+     * Does not remove the last MoneroNodeSettings.
+     */
     public void stopMoneroNode() {
         if (daemon == null) throw new IllegalStateException("Monero node is not running");
         daemon.stop();

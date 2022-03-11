@@ -36,6 +36,8 @@ import bisq.core.support.messages.ChatMessage;
 import bisq.core.trade.Trade;
 import bisq.core.trade.statistics.TradeStatistics3;
 import bisq.core.trade.statistics.TradeStatisticsManager;
+import bisq.core.xmr.MoneroNodeSettings;
+
 import bisq.common.app.Version;
 import bisq.common.config.Config;
 import bisq.common.crypto.IncorrectPasswordException;
@@ -247,8 +249,12 @@ public class CoreApi {
         return coreMoneroNodeService.isMoneroNodeStarted();
     }
 
-    public void startMoneroNode(String rpcUsername, String rpcPassword) throws IOException {
-        coreMoneroNodeService.startMoneroNode(rpcUsername, rpcPassword);
+    public MoneroNodeSettings getMoneroNodeSettings() {
+        return coreMoneroNodeService.getMoneroNodeSettings();
+    }
+
+    public void startMoneroNode(MoneroNodeSettings settings) throws IOException {
+        coreMoneroNodeService.startMoneroNode(settings);
     }
 
     public void stopMoneroNode() {

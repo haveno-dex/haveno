@@ -23,6 +23,7 @@ import bisq.core.locale.FiatCurrency;
 import bisq.core.locale.TradeCurrency;
 import bisq.core.payment.PaymentAccount;
 import bisq.core.proto.CoreProtoResolver;
+import bisq.core.xmr.MoneroNodeSettings;
 
 import bisq.common.proto.ProtoUtil;
 import bisq.common.proto.persistable.PersistableEnvelope;
@@ -130,6 +131,8 @@ public final class PreferencesPayload implements PersistableEnvelope {
     private boolean denyApiTaker;
     private boolean notifyOnPreRelease;
 
+    private MoneroNodeSettings moneroNodeSettings;
+
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Constructor
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -201,8 +204,7 @@ public final class PreferencesPayload implements PersistableEnvelope {
         Optional.ofNullable(tradeChartsScreenCurrencyCode).ifPresent(builder::setTradeChartsScreenCurrencyCode);
         Optional.ofNullable(buyScreenCurrencyCode).ifPresent(builder::setBuyScreenCurrencyCode);
         Optional.ofNullable(sellScreenCurrencyCode).ifPresent(builder::setSellScreenCurrencyCode);
-        Optional.ofNullable(selectedPaymentAccountForCreateOffer).ifPresent(
-                account -> builder.setSelectedPaymentAccountForCreateOffer(selectedPaymentAccountForCreateOffer.toProtoMessage()));
+        Optional.ofNullable(selectedPaymentAccountForCreateOffer).ifPresent(account -> builder.setSelectedPaymentAccountForCreateOffer(account.toProtoMessage()));
         Optional.ofNullable(bridgeAddresses).ifPresent(builder::addAllBridgeAddresses);
         Optional.ofNullable(customBridges).ifPresent(builder::setCustomBridges);
         Optional.ofNullable(referralId).ifPresent(builder::setReferralId);
@@ -210,7 +212,7 @@ public final class PreferencesPayload implements PersistableEnvelope {
         Optional.ofNullable(rpcUser).ifPresent(builder::setRpcUser);
         Optional.ofNullable(rpcPw).ifPresent(builder::setRpcPw);
         Optional.ofNullable(takeOfferSelectedPaymentAccountId).ifPresent(builder::setTakeOfferSelectedPaymentAccountId);
-
+        Optional.ofNullable(moneroNodeSettings).ifPresent(settings -> builder.setMoneroNodeSettings(settings.toProtoMessage()));
         return protobuf.PersistableEnvelope.newBuilder().setPreferencesPayload(builder).build();
     }
 
@@ -286,7 +288,8 @@ public final class PreferencesPayload implements PersistableEnvelope {
                 proto.getHideNonAccountPaymentMethods(),
                 proto.getShowOffersMatchingMyAccounts(),
                 proto.getDenyApiTaker(),
-                proto.getNotifyOnPreRelease()
+                proto.getNotifyOnPreRelease(),
+                MoneroNodeSettings.fromProto(proto.getMoneroNodeSettings())
         );
     }
 }

@@ -30,6 +30,7 @@ import bisq.core.locale.TradeCurrency;
 import bisq.core.payment.PaymentAccount;
 import bisq.core.payment.PaymentAccountUtil;
 import bisq.core.provider.fee.FeeService;
+import bisq.core.xmr.MoneroNodeSettings;
 
 import bisq.network.p2p.network.BridgeAddressProvider;
 
@@ -165,7 +166,6 @@ public final class Preferences implements PersistedDataHost, BridgeAddressProvid
     private final String btcNodesFromOptions;
     @Getter
     private final BooleanProperty useStandbyModeProperty = new SimpleBooleanProperty(prefPayload.isUseStandbyMode());
-
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Constructor
@@ -687,7 +687,7 @@ public final class Preferences implements PersistedDataHost, BridgeAddressProvid
         prefPayload.setTakeOfferSelectedPaymentAccountId(value);
         requestPersistence();
     }
-    
+
     public void setIgnoreDustThreshold(int value) {
         prefPayload.setIgnoreDustThreshold(value);
         requestPersistence();
@@ -708,6 +708,10 @@ public final class Preferences implements PersistedDataHost, BridgeAddressProvid
         requestPersistence();
     }
 
+    public void setMoneroNodeSettings(MoneroNodeSettings settings) {
+        prefPayload.setMoneroNodeSettings(settings);
+        requestPersistence();
+    }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Getter
@@ -957,5 +961,7 @@ public final class Preferences implements PersistedDataHost, BridgeAddressProvid
         void setDenyApiTaker(boolean value);
 
         void setNotifyOnPreRelease(boolean value);
+
+        void setMoneroNodeSettings(MoneroNodeSettings settings);
     }
 }

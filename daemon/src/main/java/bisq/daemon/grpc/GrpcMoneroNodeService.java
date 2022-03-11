@@ -17,9 +17,12 @@
 package bisq.daemon.grpc;
 
 import bisq.core.api.CoreApi;
+import bisq.core.xmr.MoneroNodeSettings;
 
-import bisq.proto.grpc.IsMoneroNodeStartedReply;
-import bisq.proto.grpc.IsMoneroNodeStartedRequest;
+import bisq.proto.grpc.GetMoneroNodeSettingsReply;
+import bisq.proto.grpc.GetMoneroNodeSettingsRequest;
+import bisq.proto.grpc.IsMoneroNodeRunningReply;
+import bisq.proto.grpc.IsMoneroNodeRunningRequest;
 import bisq.proto.grpc.MoneroNodeGrpc.MoneroNodeImplBase;
 import bisq.proto.grpc.StartMoneroNodeReply;
 import bisq.proto.grpc.StartMoneroNodeRequest;
@@ -39,7 +42,8 @@ import lombok.extern.slf4j.Slf4j;
 import static bisq.daemon.grpc.interceptor.GrpcServiceRateMeteringConfig.getCustomRateMeteringInterceptor;
 import static bisq.proto.grpc.MoneroNodeGrpc.getStartMoneroNodeMethod;
 import static bisq.proto.grpc.MoneroNodeGrpc.getStopMoneroNodeMethod;
-import static bisq.proto.grpc.MoneroNodeGrpc.getIsMoneroNodeStartedMethod;
+import static bisq.proto.grpc.MoneroNodeGrpc.getIsMoneroNodeRunningMethod;
+import static bisq.proto.grpc.MoneroNodeGrpc.getGetMoneroNodeSettingsMethod;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
 import bisq.daemon.grpc.interceptor.CallRateMeteringInterceptor;
@@ -59,11 +63,25 @@ public class GrpcMoneroNodeService extends MoneroNodeImplBase {
     }
 
     @Override
-    public void isMoneroNodeStarted(IsMoneroNodeStartedRequest request,
-                                    StreamObserver<IsMoneroNodeStartedReply> responseObserver) {
+    public void isMoneroNodeRunning(IsMoneroNodeRunningRequest request,
+                                    StreamObserver<IsMoneroNodeRunningReply> responseObserver) {
         try {
-            var reply = IsMoneroNodeStartedReply.newBuilder()
+            var reply = IsMoneroNodeRunningReply.newBuilder()
                     .setIsRunning(coreApi.isMoneroNodeStarted())
+                    .build();
+            responseObserver.onNext(reply);
+            responseObserver.onCompleted();
+        } catch (Throwable cause) {
+            exceptionHandler.handleException(log, cause, responseObserver);
+        }
+    }
+
+    @Override
+    public void getMoneroNodeSettings(GetMoneroNodeSettingsRequest request,
+                                      StreamObserver<GetMoneroNodeSettingsReply> responseObserver) {
+        try {
+            var reply = GetMoneroNodeSettingsReply.newBuilder()
+                    .setSettings(coreApi.getMoneroNodeSettings().toProtoMessage())
                     .build();
             responseObserver.onNext(reply);
             responseObserver.onCompleted();
@@ -76,7 +94,8 @@ public class GrpcMoneroNodeService extends MoneroNodeImplBase {
     public void startMoneroNode(StartMoneroNodeRequest request,
                                 StreamObserver<StartMoneroNodeReply> responseObserver) {
         try {
-            coreApi.startMoneroNode(request.getRpcUsername(), request.getRpcPassword());
+            var settings = request.getSettings();
+            coreApi.startMoneroNode(MoneroNodeSettings.fromProto(settings));
             var reply = StartMoneroNodeReply.newBuilder().build();
             responseObserver.onNext(reply);
             responseObserver.onCompleted();
@@ -113,7 +132,8 @@ public class GrpcMoneroNodeService extends MoneroNodeImplBase {
                 .or(() -> Optional.of(CallRateMeteringInterceptor.valueOf(
                         new HashMap<>() {{
                             int allowedCallsPerTimeWindow = 10;
-                            put(getIsMoneroNodeStartedMethod().getFullMethodName(), new GrpcCallRateMeter(allowedCallsPerTimeWindow, SECONDS));
+                            put(getIsMoneroNodeRunningMethod().getFullMethodName(), new GrpcCallRateMeter(allowedCallsPerTimeWindow, SECONDS));
+                            put(getGetMoneroNodeSettingsMethod().getFullMethodName(), new GrpcCallRateMeter(allowedCallsPerTimeWindow, SECONDS));
                             put(getStartMoneroNodeMethod().getFullMethodName(), new GrpcCallRateMeter(allowedCallsPerTimeWindow, SECONDS));
                             put(getStopMoneroNodeMethod().getFullMethodName(), new GrpcCallRateMeter(allowedCallsPerTimeWindow, SECONDS));
                         }}
