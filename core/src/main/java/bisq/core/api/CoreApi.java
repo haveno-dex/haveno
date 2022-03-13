@@ -245,8 +245,8 @@ public class CoreApi {
     // Monero node
     ///////////////////////////////////////////////////////////////////////////////////////////
 
-    public boolean isMoneroNodeStarted() {
-        return coreMoneroNodeService.isMoneroNodeStarted();
+    public boolean isMoneroNodeRunning() {
+        return coreMoneroNodeService.isMoneroNodeRunning();
     }
 
     public MoneroNodeSettings getMoneroNodeSettings() {

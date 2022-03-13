@@ -18,6 +18,9 @@ import javafx.beans.property.SimpleLongProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javax.inject.Inject;
 import javax.inject.Singleton;
+
+import java.io.IOException;
+
 import lombok.extern.slf4j.Slf4j;
 import monero.common.MoneroConnectionManager;
 import monero.common.MoneroConnectionManagerListener;
@@ -34,14 +37,13 @@ public final class CoreMoneroConnectionsService {
     private static final long DAEMON_REFRESH_PERIOD_MS = 15000L; // check connection periodically in ms
     private static final long DAEMON_INFO_POLL_PERIOD_MS = 20000L; // collect daemon info periodically in ms
 
-    // TODO (woodser): support each network type, move to config, remove localhost authentication
     private static final List<MoneroRpcConnection> DEFAULT_CONNECTIONS = Arrays.asList(
-            new MoneroRpcConnection("http://localhost:38081", "superuser", "abctesting123").setPriority(1), // localhost is first priority
             new MoneroRpcConnection("http://haveno.exchange:38081", "", "").setPriority(2)
     );
 
     private final Object lock = new Object();
     private final CoreAccountService accountService;
+    private final CoreMoneroNodeService nodeService;
     private final MoneroConnectionManager connectionManager;
     private final EncryptedConnectionList connectionList;
     private final ObjectProperty<List<MoneroPeer>> peers = new SimpleObjectProperty<>();
@@ -59,6 +61,7 @@ public final class CoreMoneroConnectionsService {
                                         MoneroConnectionManager connectionManager,
                                         EncryptedConnectionList connectionList) {
         this.accountService = accountService;
+        this.nodeService = nodeService;
         this.connectionManager = connectionManager;
         this.connectionList = connectionList;
 
@@ -88,22 +91,6 @@ public final class CoreMoneroConnectionsService {
                     connectionList.changePassword(oldPassword, newPassword);
                 }
             });
-
-            nodeService.addListener(new MoneroNodeServiceListener() {
-                @Override
-                public void onNodeStarted(MoneroDaemon daemon) {
-                    log.info(getClass() + ".onNodeStarted() called");
-                    setConnection((MoneroRpcConnection) null);
-                    setDaemon(daemon);
-                }
-
-                @Override
-                public void onNodeStopped() {
-                    log.info(getClass() + ".onNodeStopped() called");
-                    var connection = getBestAvailableConnection();
-                    setConnection(connection);
-                }
-            });
         });
     }
 
@@ -117,7 +104,6 @@ public final class CoreMoneroConnectionsService {
     protected void setDaemon(MoneroDaemon daemon) {
         this.daemon = daemon;
     }
-
 
     public void addListener(MoneroConnectionManagerListener listener) {
         synchronized (lock) {
@@ -286,13 +272,31 @@ public final class CoreMoneroConnectionsService {
                 addConnection(connection);
             }
 
-            // restore last used connection
-            connectionList.getCurrentConnectionUri().ifPresentOrElse(connectionManager::setConnection, () -> {
-                connectionManager.setConnection(DEFAULT_CONNECTIONS.get(0).getUri()); // default to localhost
-            });
+            // initialize local monero node
+            nodeService.addListener(new MoneroNodeServiceListener() {
+                @Override
+                public void onNodeStarted(MoneroDaemonRpc daemon) {
+                    log.info(getClass() + ".onNodeStarted() called");
+                    setConnection(daemon.getRpcConnection());
+                    setDaemon(daemon);
+                }
 
-            // initialize daemon
-            daemon = new MoneroDaemonRpc(connectionManager.getConnection());
+                @Override
+                public void onNodeStopped() {
+                    log.info(getClass() + ".onNodeStopped() called");
+                    var connection = getBestAvailableConnection();
+                    setConnection(connection);
+                }
+            });
+            nodeService.initializeMoneroNode();
+            if (!nodeService.isMoneroNodeRunning()) {
+                // restore last used connection
+                connectionList.getCurrentConnectionUri().ifPresentOrElse(connectionManager::setConnection, () -> {
+                    connectionManager.setConnection(nodeService.getDefaultMoneroConnection().getUri()); // default to localhost
+                });
+                // initialize daemon
+                daemon = new MoneroDaemonRpc(connectionManager.getConnection());
+            }
             updateDaemonInfo();
 
             // restore configuration

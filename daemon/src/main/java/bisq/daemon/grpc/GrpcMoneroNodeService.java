@@ -67,7 +67,7 @@ public class GrpcMoneroNodeService extends MoneroNodeImplBase {
                                     StreamObserver<IsMoneroNodeRunningReply> responseObserver) {
         try {
             var reply = IsMoneroNodeRunningReply.newBuilder()
-                    .setIsRunning(coreApi.isMoneroNodeStarted())
+                    .setIsRunning(coreApi.isMoneroNodeRunning())
                     .build();
             responseObserver.onNext(reply);
             responseObserver.onCompleted();
@@ -100,9 +100,7 @@ public class GrpcMoneroNodeService extends MoneroNodeImplBase {
             responseObserver.onNext(reply);
             responseObserver.onCompleted();
         } catch (MoneroError me) {
-            // MoneroError is caused by the node startup failing, don't treat as unknown server error
-            // by wrapping with a handled exception type.
-            exceptionHandler.handleException(log, new IllegalStateException(me), responseObserver);
+            handleMoneroError(me, responseObserver);
         } catch (Throwable cause) {
             exceptionHandler.handleException(log, cause, responseObserver);
         }
@@ -116,8 +114,21 @@ public class GrpcMoneroNodeService extends MoneroNodeImplBase {
             var reply = StopMoneroNodeReply.newBuilder().build();
             responseObserver.onNext(reply);
             responseObserver.onCompleted();
+        } catch (MoneroError me) {
+            handleMoneroError(me, responseObserver);
         } catch (Throwable cause) {
             exceptionHandler.handleException(log, cause, responseObserver);
+        }
+    }
+
+    private void handleMoneroError(MoneroError me, StreamObserver<?> responseObserver) {
+        // MoneroError is caused by the node startup failing, don't treat as unknown server error
+        // by wrapping with a handled exception type.
+        var headerLengthLimit = 8192; // MoneroErrors may print the entire monerod help text which causes a header overflow in grpc
+        if (me.getMessage().length() > headerLengthLimit) {
+            exceptionHandler.handleException(log, new IllegalStateException(me.getMessage().substring(0, headerLengthLimit - 1)), responseObserver);
+        } else {
+            exceptionHandler.handleException(log, new IllegalStateException(me), responseObserver);
         }
     }
 

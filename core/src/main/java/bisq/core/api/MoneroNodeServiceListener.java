@@ -16,9 +16,9 @@
  */
 package bisq.core.api;
 
-import monero.daemon.MoneroDaemon;
+import monero.daemon.MoneroDaemonRpc;
 
 public class MoneroNodeServiceListener {
-    public void onNodeStarted(MoneroDaemon daemon) {}
+    public void onNodeStarted(MoneroDaemonRpc daemon) {}
     public void onNodeStopped() {}
 }
