@@ -29,7 +29,6 @@ import lombok.extern.slf4j.Slf4j;
 @AllArgsConstructor
 public class MoneroNodeSettings implements PersistableEnvelope {
 
-    // todo: apply encryption since there may be sensitive flags
     String blockchainPath;
     String bootstrapUrl;
     List<String> startupFlags;
