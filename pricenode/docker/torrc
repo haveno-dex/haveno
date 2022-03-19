@@ -1,2 +1,4 @@
-HiddenServiceDir /var/lib/tor/
-HiddenServicePort 80 127.0.0.1:8080
+HiddenServiceDir /var/lib/tor/pricenode/
+HiddenServicePort 80 127.0.0.1:8078
+HiddenServiceVersion 3
+RunAsDaemon 1

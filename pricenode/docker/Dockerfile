@@ -1,26 +1,33 @@
 ###
-# The directory of the Dockerfile should contain your 'hostname' and 'private_key' files.
-# In the docker-compose.yml file you can pass the ONION_ADDRESS referenced below.
+# Haveno pricenode dockerfile
 ###
 
 # pull base image
-FROM openjdk:8-jdk
+FROM openjdk:11-jdk
 
+# install tor
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    vim \
-    tor \
-    fakeroot \
-    sudo \
-    openjfx && rm -rf /var/lib/apt/lists/*
+    tor && rm -rf /var/lib/apt/lists/*
 
-RUN git clone https://github.com/bisq-network/pricenode.git
-WORKDIR /pricenode/
-RUN ./gradlew assemble
-
-COPY loop.sh start_node.sh start_tor.sh ./
-COPY hostname private_key /var/lib/tor/
+# copy tor configuration file
 COPY torrc /etc/tor/
-RUN  chmod +x *.sh && chown debian-tor:debian-tor /etc/tor/torrc /var/lib/tor/hostname /var/lib/tor/private_key
-
-CMD ./start_tor.sh && ./start_node.sh
-#CMD tail -f /dev/null
+# give proper permissions for tor configuration file
+RUN chown debian-tor:debian-tor /etc/tor/torrc
+# add haveno user
+RUN useradd -d /haveno -G debian-tor haveno
+# make haveno directory
+RUN mkdir -p /haveno
+# give haveno user proper permissions
+RUN chown haveno:haveno /haveno
+# clone haveno repository
+RUN git clone https://github.com/haveno-dex/haveno.git /haveno/haveno
+# build pricenode
+WORKDIR /haveno/haveno
+RUN ./gradlew :pricenode:installDist -x test
+# set proper java options
+ENV JAVA_OPTS=""
+# expose ports
+EXPOSE 80
+EXPOSE 8078
+# set launch command (tor and pricenode)
+CMD tor && /haveno/haveno/haveno-pricenode 2

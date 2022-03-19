@@ -41,10 +41,10 @@ This will install the pricenode under the user `pricenode`. At the end of the in
 To manually test endpoints, run each of the following:
 
 ``` bash
-curl http://localhost:8080/getAllMarketPrices
-curl http://localhost:8080/getFees
-curl http://localhost:8080/getParams
-curl http://localhost:8080/info
+curl http://localhost:8078/getAllMarketPrices
+curl http://localhost:8078/getFees
+curl http://localhost:8078/getParams
+curl http://localhost:8078/info
 ```
 
 ### Monitoring
