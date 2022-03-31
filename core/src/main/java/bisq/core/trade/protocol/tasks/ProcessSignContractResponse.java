@@ -27,7 +27,6 @@ import bisq.core.trade.messages.DepositRequest;
 import bisq.core.trade.messages.SignContractResponse;
 import bisq.core.trade.protocol.TradingPeer;
 import bisq.network.p2p.SendDirectMessageListener;
-import common.utils.GenUtils;
 import java.util.Date;
 import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
@@ -44,18 +43,12 @@ public class ProcessSignContractResponse extends TradeTask {
     protected void run() {
         try {
           runInterceptHook();
-          
-          // wait until contract is available from peer's sign contract request
-          // TODO (woodser): this will loop if peer disappears; use proper notification
-          while (trade.getContract() == null) {
-              GenUtils.waitFor(250);
-          }
-          
+
           // get contract and signature
           String contractAsJson = trade.getContractAsJson();
           SignContractResponse response = (SignContractResponse) processModel.getTradeMessage(); // TODO (woodser): verify response
           String signature = response.getContractSignature();
-          
+
           // get peer info
           // TODO (woodser): make these utilities / refactor model
           PubKeyRing peerPubKeyRing;
@@ -64,20 +57,20 @@ public class ProcessSignContractResponse extends TradeTask {
           else if (peer == processModel.getMaker()) peerPubKeyRing = trade.getMakerPubKeyRing();
           else if (peer == processModel.getTaker()) peerPubKeyRing = trade.getTakerPubKeyRing();
           else throw new RuntimeException(response.getClass().getSimpleName() + " is not from maker, taker, or arbitrator");
-          
+
           // verify signature
           // TODO (woodser): transfer contract for convenient comparison?
           if (!Sig.verify(peerPubKeyRing.getSignaturePubKey(), contractAsJson, signature)) throw new RuntimeException("Peer's contract signature is invalid");
-          
+
           // set peer's signature
           peer.setContractSignature(signature);
-          
+
           // send deposit request when all contract signatures received
           if (processModel.getArbitrator().getContractSignature() != null && processModel.getMaker().getContractSignature() != null && processModel.getTaker().getContractSignature() != null) {
-              
+
               // start listening for deposit txs
-              trade.setupDepositTxsListener();
-              
+              trade.listenForDepositTxs();
+
               // create request for arbitrator to deposit funds to multisig
               DepositRequest request = new DepositRequest(
                       trade.getOffer().getId(),
@@ -89,12 +82,14 @@ public class ProcessSignContractResponse extends TradeTask {
                       trade.getSelf().getContractSignature(),
                       processModel.getDepositTxXmr().getFullHex(),
                       processModel.getDepositTxXmr().getKey());
-              
+
               // send request to arbitrator
               processModel.getP2PService().sendEncryptedDirectMessage(trade.getArbitratorNodeAddress(), trade.getArbitratorPubKeyRing(), request, new SendDirectMessageListener() {
                   @Override
                   public void onArrived() {
                       log.info("{} arrived: trading peer={}; offerId={}; uid={}", request.getClass().getSimpleName(), trade.getArbitratorNodeAddress(), trade.getId());
+                      processModel.getTradeManager().requestPersistence();
+                      complete();
                   }
                   @Override
                   public void onFault(String errorMessage) {
@@ -103,11 +98,9 @@ public class ProcessSignContractResponse extends TradeTask {
                       failed();
                   }
               });
+          } else {
+              complete(); // does not yet have needed signatures
           }
-          
-          // persist and complete
-          processModel.getTradeManager().requestPersistence();
-          complete();
         } catch (Throwable t) {
           failed(t);
         }

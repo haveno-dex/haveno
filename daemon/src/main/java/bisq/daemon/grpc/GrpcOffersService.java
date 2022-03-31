@@ -141,6 +141,11 @@ class GrpcOffersService extends OffersImplBase {
     @Override
     public void createOffer(CreateOfferRequest req,
                             StreamObserver<CreateOfferReply> responseObserver) {
+        GrpcErrorMessageHandler errorMessageHandler =
+                new GrpcErrorMessageHandler(getCreateOfferMethod().getFullMethodName(),
+                        responseObserver,
+                        exceptionHandler,
+                        log);
         try {
             coreApi.createAnPlaceOffer(
                     req.getCurrencyCode(),
@@ -162,6 +167,10 @@ class GrpcOffersService extends OffersImplBase {
                                 .build();
                         responseObserver.onNext(reply);
                         responseObserver.onCompleted();
+                    },
+                    errorMessage -> {
+                        if (!errorMessageHandler.isErrorHandled())
+                            errorMessageHandler.handleErrorMessage(errorMessage);
                     });
         } catch (Throwable cause) {
             exceptionHandler.handleException(log, cause, responseObserver);

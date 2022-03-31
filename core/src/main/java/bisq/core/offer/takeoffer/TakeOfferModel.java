@@ -114,7 +114,7 @@ public class TakeOfferModel implements Model {
         this.clearModel();
         this.offer = offer;
         this.paymentAccount = paymentAccount;
-        this.addressEntry = btcWalletService.getOrCreateAddressEntry(offer.getId(), OFFER_FUNDING);
+        this.addressEntry = btcWalletService.getOrCreateAddressEntry(offer.getId(), OFFER_FUNDING); // TODO (woodser): replace with xmr or remove
         validateModelInputs();
 
         this.useSavingsWallet = useSavingsWallet;

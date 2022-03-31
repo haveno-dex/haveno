@@ -44,9 +44,6 @@ import monero.wallet.MoneroWallet;
 @Slf4j
 public class ArbitratorSendsInitTradeAndMultisigRequests extends TradeTask {
     
-    private boolean takerAck;
-    private boolean makerAck;
-    
     @SuppressWarnings({"unused"})
     public ArbitratorSendsInitTradeAndMultisigRequests(TaskRunner taskHandler, Trade trade) {
         super(taskHandler, trade);
@@ -97,14 +94,15 @@ public class ArbitratorSendsInitTradeAndMultisigRequests extends TradeTask {
                     null,
                     null);
             
-            // listen for maker to ack InitTradeRequest
+            // send init multisig requests on ack // TODO (woodser): only send InitMultisigRequests if arbitrator has maker reserve tx, else wait for that
             TradeListener listener = new TradeListener() {
                 @Override
                 public void onAckMessage(AckMessage ackMessage, NodeAddress sender) {
-                    if (sender.equals(trade.getMakerNodeAddress()) && ackMessage.getSourceMsgClassName().equals(InitTradeRequest.class.getSimpleName())) {
+                    if (sender.equals(trade.getMakerNodeAddress()) &&
+                            ackMessage.getSourceMsgClassName().equals(InitTradeRequest.class.getSimpleName()) &&
+                            ackMessage.getSourceUid().equals(makerRequest.getUid())) {
                         trade.removeListener(this);
                         if (ackMessage.isSuccess()) sendInitMultisigRequests();
-                        else failed("Received unsuccessful ack for InitTradeRequest from maker"); // TODO (woodser): maker should not do this, penalize them by broadcasting reserve tx?
                     }
                 }
             };
@@ -120,6 +118,7 @@ public class ArbitratorSendsInitTradeAndMultisigRequests extends TradeTask {
                         @Override
                         public void onArrived() {
                             log.info("{} arrived at maker: offerId={}; uid={}", makerRequest.getClass().getSimpleName(), makerRequest.getTradeId(), makerRequest.getUid());
+                            complete();
                         }
                         @Override
                         public void onFault(String errorMessage) {
@@ -172,8 +171,6 @@ public class ArbitratorSendsInitTradeAndMultisigRequests extends TradeTask {
                     @Override
                     public void onArrived() {
                         log.info("{} arrived at arbitrator: offerId={}; uid={}", initMultisigRequest.getClass().getSimpleName(), initMultisigRequest.getTradeId(), initMultisigRequest.getUid());
-                        makerAck = true;
-                        checkComplete();
                     }
                     @Override
                     public void onFault(String errorMessage) {
@@ -194,8 +191,6 @@ public class ArbitratorSendsInitTradeAndMultisigRequests extends TradeTask {
                     @Override
                     public void onArrived() {
                         log.info("{} arrived at peer: offerId={}; uid={}", initMultisigRequest.getClass().getSimpleName(), initMultisigRequest.getTradeId(), initMultisigRequest.getUid());
-                        takerAck = true;
-                        checkComplete();
                     }
                     @Override
                     public void onFault(String errorMessage) {
@@ -205,9 +200,5 @@ public class ArbitratorSendsInitTradeAndMultisigRequests extends TradeTask {
                     }
                 }
         );
-    }
-    
-    private void checkComplete() {
-        if (makerAck && takerAck) complete();
     }
 }

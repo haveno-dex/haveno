@@ -64,7 +64,9 @@ public class Notification extends Overlay<Notification> {
         if (autoClose && autoCloseTimer == null)
             autoCloseTimer = UserThread.runAfter(this::doClose, 6);
 
-        stage.addEventHandler(MouseEvent.MOUSE_PRESSED, (event) -> doClose());
+        UserThread.execute(() -> {
+            stage.addEventHandler(MouseEvent.MOUSE_PRESSED, (event) -> doClose());
+        });
     }
 
     @Override

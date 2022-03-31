@@ -92,12 +92,12 @@ public class Transitions {
     public void fadeOutAndRemove(Node node, int duration, EventHandler<ActionEvent> handler) {
         FadeTransition fade = fadeOut(node, getDuration(duration));
         fade.setInterpolator(Interpolator.EASE_IN);
-        fade.setOnFinished(actionEvent -> {
+        fade.setOnFinished(actionEvent -> UserThread.execute(() -> {
             ((Pane) (node.getParent())).getChildren().remove(node);
             //Profiler.printMsgWithTime("fadeOutAndRemove");
             if (handler != null)
                 handler.handle(actionEvent);
-        });
+        }));
     }
 
     // Blur

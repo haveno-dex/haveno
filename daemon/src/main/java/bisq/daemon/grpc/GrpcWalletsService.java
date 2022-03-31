@@ -17,6 +17,7 @@
 
 package bisq.daemon.grpc;
 
+import bisq.common.UserThread;
 import bisq.core.api.CoreApi;
 import bisq.core.api.model.AddressBalanceInfo;
 import bisq.core.api.model.TxFeeRateInfo;
@@ -102,16 +103,18 @@ class GrpcWalletsService extends WalletsImplBase {
 
     @Override
     public void getBalances(GetBalancesRequest req, StreamObserver<GetBalancesReply> responseObserver) {
-        try {
-            var balances = coreApi.getBalances(req.getCurrencyCode());
-            var reply = GetBalancesReply.newBuilder()
-                    .setBalances(balances.toProtoMessage())
-                    .build();
-            responseObserver.onNext(reply);
-            responseObserver.onCompleted();
-        } catch (Throwable cause) {
-            exceptionHandler.handleException(log, cause, responseObserver);
-        }
+        UserThread.execute(() -> { // TODO (woodser): Balances.updateBalances() runs on UserThread for JFX components, so call from user thread, else the properties may not be updated. remove JFX properties or push delay into CoreWalletsService.getXmrBalances()?
+            try {
+                var balances = coreApi.getBalances(req.getCurrencyCode());
+                var reply = GetBalancesReply.newBuilder()
+                        .setBalances(balances.toProtoMessage())
+                        .build();
+                responseObserver.onNext(reply);
+                responseObserver.onCompleted();
+            } catch (Throwable cause) {
+                exceptionHandler.handleException(log, cause, responseObserver);
+            }
+        });
     }
 
     @Override

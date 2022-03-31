@@ -509,12 +509,12 @@ class CoreWalletsService {
     }
 
 
-    // Throws a RuntimeException if wallet currency code is not BTC.
+    // Throws a RuntimeException if wallet currency code is not BTC or XMR.
     private void verifyWalletCurrencyCodeIsValid(String currencyCode) {
         if (currencyCode == null || currencyCode.isEmpty())
             return;
 
-        if (!currencyCode.equalsIgnoreCase("BTC"))
+        if (!currencyCode.equalsIgnoreCase("BTC") && !currencyCode.equalsIgnoreCase("XMR"))
             throw new IllegalStateException(format("wallet does not support %s", currencyCode));
     }
 

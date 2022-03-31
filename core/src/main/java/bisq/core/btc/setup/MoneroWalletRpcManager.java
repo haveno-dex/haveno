@@ -46,44 +46,51 @@ public class MoneroWalletRpcManager {
    * @return a client connected to the monero-wallet-rpc instance
    */
   public MoneroWalletRpc startInstance(List<String> cmd) {
+      try {
 
-    try {
-
-      // register given port
-      if (cmd.contains(RPC_BIND_PORT_ARGUMENT)) {
-        int portArgumentPosition = cmd.indexOf(RPC_BIND_PORT_ARGUMENT) + 1;
-        int port = Integer.parseInt(cmd.get(portArgumentPosition));
-        MoneroWalletRpc walletRpc = new MoneroWalletRpc(cmd); // starts monero-wallet-rpc process
-        registeredPorts.put(port, walletRpc);
-        return walletRpc;
-      }
-
-      // register assigned ports up to maximum attempts
-      else {
-        int numAttempts = 0;
-        while (numAttempts < NUM_ALLOWED_ATTEMPTS) {
-          int port = -1;
-          try {
-            numAttempts++;
-            port = registerPort();
-            List<String> cmdCopy = new ArrayList<>(cmd); // preserve original cmd
-            cmdCopy.add(RPC_BIND_PORT_ARGUMENT);
-            cmdCopy.add("" + port);
-            MoneroWalletRpc walletRpc = new MoneroWalletRpc(cmdCopy); // start monero-wallet-rpc process
-            registeredPorts.put(port, walletRpc);
-            return walletRpc;
-          } catch (Exception e) {
-            if (numAttempts >= NUM_ALLOWED_ATTEMPTS) {
-              log.error("Unable to start monero-wallet-rpc instance after {} attempts", NUM_ALLOWED_ATTEMPTS);
-              throw e;
-            }
+          // register given port
+          if (cmd.contains(RPC_BIND_PORT_ARGUMENT)) {
+              int portArgumentPosition = cmd.indexOf(RPC_BIND_PORT_ARGUMENT) + 1;
+              int port = Integer.parseInt(cmd.get(portArgumentPosition));
+              synchronized (registeredPorts) {
+                  if (registeredPorts.containsKey(port)) throw new RuntimeException("Port " + port + " is already registered");
+                  registeredPorts.put(port, null);
+              }
+              MoneroWalletRpc walletRpc = new MoneroWalletRpc(cmd); // starts monero-wallet-rpc process
+              synchronized (registeredPorts) {
+                  registeredPorts.put(port, walletRpc);
+              }
+              return walletRpc;
           }
-        }
-        throw new MoneroError("Failed to start monero-wallet-rpc instance after " + NUM_ALLOWED_ATTEMPTS + " attempts"); // should never reach here
+
+          // register assigned ports up to maximum attempts
+          else {
+              int numAttempts = 0;
+              while (numAttempts < NUM_ALLOWED_ATTEMPTS) {
+                  int port = -1;
+                  try {
+                      numAttempts++;
+                      port = registerPort();
+                      List<String> cmdCopy = new ArrayList<>(cmd); // preserve original cmd
+                      cmdCopy.add(RPC_BIND_PORT_ARGUMENT);
+                      cmdCopy.add("" + port);
+                      MoneroWalletRpc walletRpc = new MoneroWalletRpc(cmdCopy); // start monero-wallet-rpc process
+                      synchronized (registeredPorts) {
+                          registeredPorts.put(port, walletRpc);
+                      }
+                      return walletRpc;
+                  } catch (Exception e) {
+                      if (numAttempts >= NUM_ALLOWED_ATTEMPTS) {
+                          log.error("Unable to start monero-wallet-rpc instance after {} attempts", NUM_ALLOWED_ATTEMPTS);
+                          throw e;
+                      }
+                  }
+              }
+              throw new MoneroError("Failed to start monero-wallet-rpc instance after " + NUM_ALLOWED_ATTEMPTS + " attempts"); // should never reach here
+          }
+      } catch (IOException e) {
+          throw new MoneroError(e);
       }
-    } catch (IOException e) {
-      throw new MoneroError(e);
-    }
   }
 
   /**
@@ -93,41 +100,59 @@ public class MoneroWalletRpcManager {
    * @param save specifies if the wallet should be saved before closing
    */
   public void stopInstance(MoneroWalletRpc walletRpc, boolean save) {
-    boolean found = false;
-    for (Map.Entry<Integer, MoneroWalletRpc> entry : registeredPorts.entrySet()) {
-      if (walletRpc == entry.getValue()) {
-        walletRpc.close(save);
-        walletRpc.stopProcess();
-        found = true;
-        try { unregisterPort(entry.getKey()); }
-        catch (Exception e) { throw new MoneroError(e); }
-        break;
+
+      // unregister port
+      synchronized (registeredPorts) {
+          boolean found = false;
+          for (Map.Entry<Integer, MoneroWalletRpc> entry : registeredPorts.entrySet()) {
+              if (walletRpc == entry.getValue()) {
+                  found = true;
+                  try {
+                      unregisterPort(entry.getKey());
+                  } catch (Exception e) {
+                      throw new MoneroError(e);
+                  }
+                  break;
+              }
+          }
+          if (!found) throw new RuntimeException("MoneroWalletRpc instance not registered with a port");
       }
-    }
-    if (!found) throw new RuntimeException("MoneroWalletRpc instance not associated with port");
+
+      // close wallet and stop process
+      walletRpc.close(save);
+      walletRpc.stopProcess();
   }
 
   private int registerPort() throws IOException {
+      synchronized (registeredPorts) {
 
-    // register next consecutive port
-    if (startPort != null) {
-      int port = startPort;
-      while (registeredPorts.containsKey(port)) port++;
-      registeredPorts.put(port, null);
-      return port;
-    }
+          // register next consecutive port
+          if (startPort != null) {
+            int port = startPort;
+            while (registeredPorts.containsKey(port)) port++;
+            registeredPorts.put(port, null);
+            return port;
+          }
 
-    // register auto-assigned port
-    else {
+          // register auto-assigned port
+          else {
+            int port = getLocalPort();
+            registeredPorts.put(port, null);
+            return port;
+          }
+      }
+  }
+  
+  private void unregisterPort(int port) {
+      synchronized (registeredPorts) {
+          registeredPorts.remove(port);
+      }
+  }
+  
+  private int getLocalPort() throws IOException {
       ServerSocket socket = new ServerSocket(0); // use socket to get available port
       int port = socket.getLocalPort();
       socket.close();
-      registeredPorts.put(port, null);
       return port;
-    }
-  }
-
-  private void unregisterPort(int port) {
-    registeredPorts.remove(port);
   }
 }

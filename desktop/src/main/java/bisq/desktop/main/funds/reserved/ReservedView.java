@@ -239,7 +239,7 @@ public class ReservedView extends ActivatableView<VBox, Void> {
 
     private Optional<Tradable> getTradable(ReservedListItem item) {
         String offerId = item.getAddressEntry().getOfferId();
-        Optional<Trade> tradeOptional = tradeManager.getTradeById(offerId);
+        Optional<Trade> tradeOptional = tradeManager.getOpenTrade(offerId);
         if (tradeOptional.isPresent()) {
             return Optional.of(tradeOptional.get());
         } else if (openOfferManager.getOpenOfferById(offerId).isPresent()) {

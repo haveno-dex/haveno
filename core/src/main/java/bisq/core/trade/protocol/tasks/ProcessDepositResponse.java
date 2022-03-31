@@ -60,6 +60,7 @@ public class ProcessDepositResponse extends TradeTask {
           processModel.getP2PService().sendEncryptedDirectMessage(trade.getTradingPeerNodeAddress(), trade.getTradingPeerPubKeyRing(), request, new SendDirectMessageListener() {
               @Override
               public void onArrived() {
+                  complete();
                   log.info("{} arrived: trading peer={}; offerId={}; uid={}", request.getClass().getSimpleName(), trade.getTradingPeerNodeAddress(), trade.getId());
               }
               @Override
@@ -69,8 +70,6 @@ public class ProcessDepositResponse extends TradeTask {
                   failed();
               }
           });
-          
-          complete();
         } catch (Throwable t) {
           failed(t);
         }

@@ -63,6 +63,7 @@ public class BuyerProcessPayoutTxPublishedMessage extends TradeTask {
                 trade.setPayoutTx(multisigWallet.getTx(txHashes.get(0)));
                 XmrWalletService.printTxs("payoutTx received from peer", trade.getPayoutTx());
                 trade.setState(Trade.State.BUYER_RECEIVED_PAYOUT_TX_PUBLISHED_MSG);
+                walletService.closeMultisigWallet(trade.getId());
                 //processModel.getBtcWalletService().resetCoinLockedInMultiSigAddressEntry(trade.getId());
             } else {
                 log.info("We got the payout tx already set from BuyerSetupPayoutTxListener and do nothing here. trade ID={}", trade.getId());

@@ -18,7 +18,6 @@
 package bisq.core.trade.protocol.tasks.buyer;
 
 import bisq.core.btc.wallet.XmrWalletService;
-import bisq.core.offer.Offer;
 import bisq.core.trade.MakerTrade;
 import bisq.core.trade.Trade;
 import bisq.core.trade.protocol.tasks.TradeTask;
@@ -42,10 +41,8 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import monero.common.MoneroError;
 import monero.wallet.MoneroWallet;
 import monero.wallet.model.MoneroAccount;
-import monero.wallet.model.MoneroDestination;
 import monero.wallet.model.MoneroSubaddress;
 import monero.wallet.model.MoneroTxConfig;
-import monero.wallet.model.MoneroTxQuery;
 import monero.wallet.model.MoneroTxWallet;
 
 @Slf4j
@@ -65,7 +62,7 @@ public class BuyerCreateAndSignPayoutTx extends TradeTask {
             Preconditions.checkNotNull(trade.getTradeAmount(), "trade.getTradeAmount() must not be null");
             Preconditions.checkNotNull(trade.getMakerDepositTx(), "trade.getMakerDepositTx() must not be null");
             Preconditions.checkNotNull(trade.getTakerDepositTx(), "trade.getTakerDepositTx() must not be null");
-            Offer offer = checkNotNull(trade.getOffer(), "offer must not be null");
+            checkNotNull(trade.getOffer(), "offer must not be null");
 
             // gather relevant trade info
             XmrWalletService walletService = processModel.getProvider().getXmrWalletService();
@@ -84,8 +81,8 @@ public class BuyerCreateAndSignPayoutTx extends TradeTask {
             if (multisigWallet.isMultisigImportNeeded()) throw new RuntimeException("Multisig import is still needed!!!");
             MoneroTxWallet feeEstimateTx = multisigWallet.createTx(new MoneroTxConfig()
                     .setAccountIndex(0)
-                    .addDestination(buyerPayoutAddress, buyerPayoutAmount.multiply(BigInteger.valueOf(4)).divide(BigInteger.valueOf(5))) // reduce payment amount to compute fee of similar tx
-                    .addDestination(sellerPayoutAddress, sellerPayoutAmount.multiply(BigInteger.valueOf(4)).divide(BigInteger.valueOf(5)))
+                    .addDestination(buyerPayoutAddress, buyerPayoutAmount.multiply(BigInteger.valueOf(9)).divide(BigInteger.valueOf(10))) // reduce payment amount to compute fee of similar tx
+                    .addDestination(sellerPayoutAddress, sellerPayoutAmount.multiply(BigInteger.valueOf(9)).divide(BigInteger.valueOf(10)))
                     .setRelay(false)
             );
 
@@ -98,19 +95,18 @@ public class BuyerCreateAndSignPayoutTx extends TradeTask {
                 numAttempts++;
                 payoutTx = multisigWallet.createTx(new MoneroTxConfig()
                         .setAccountIndex(0)
-                        .addDestination(new MoneroDestination(buyerPayoutAddress, buyerPayoutAmount.subtract(feeEstimate.divide(BigInteger.valueOf(2))))) // split fee subtracted from each payout amount
-                        .addDestination(new MoneroDestination(sellerPayoutAddress, sellerPayoutAmount.subtract(feeEstimate.divide(BigInteger.valueOf(2))))) // TODO (woodser): support addDestination(addr, amt) without new
+                        .addDestination(buyerPayoutAddress, buyerPayoutAmount.subtract(feeEstimate.divide(BigInteger.valueOf(2)))) // split fee subtracted from each payout amount
+                        .addDestination(sellerPayoutAddress, sellerPayoutAmount.subtract(feeEstimate.divide(BigInteger.valueOf(2))))
                         .setRelay(false));
               } catch (MoneroError e) {
-                //e.printStackTrace();
-                //System.out.println("FAILED TO CREATE PAYOUT TX, ITERATING...");
+                // exception expected
               }
             }
 
-            if (payoutTx == null) throw new RuntimeException("Failed to generate payout tx");
-            System.out.println("PAYOUT TX GENERATED ON ATTEMPT " + numAttempts);
-            System.out.println(payoutTx);
+            if (payoutTx == null) throw new RuntimeException("Failed to generate payout tx after " + numAttempts + " attempts");
+            log.info("Payout transaction generated on attempt {}: {}", numAttempts, payoutTx);
             processModel.setBuyerSignedPayoutTx(payoutTx);
+            walletService.closeMultisigWallet(trade.getId());
             complete();
         } catch (Throwable t) {
             failed(t);

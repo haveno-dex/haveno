@@ -84,6 +84,7 @@ public class MakerSendsSignOfferRequest extends Task<PlaceOfferModel> {
                     if (!sender.equals(arbitrator.getNodeAddress())) return;
                     AckMessage ackMessage = (AckMessage) decryptedMessageWithPubKey.getNetworkEnvelope();
                     if (!ackMessage.getSourceMsgClassName().equals(SignOfferRequest.class.getSimpleName())) return;
+                    if (!ackMessage.getSourceUid().equals(request.getUid())) return;
                     if (ackMessage.isSuccess()) {
                         offer.setState(Offer.State.OFFER_FEE_RESERVED);
                         model.getP2PService().removeDecryptedDirectMessageListener(this);

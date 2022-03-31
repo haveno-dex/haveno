@@ -471,43 +471,45 @@ public class ChatView extends AnchorPane {
                     }
 
                     private void updateMsgState(ChatMessage message) {
-                        boolean visible;
-                        AwesomeIcon icon = null;
-                        String text = null;
-                        statusIcon.getStyleClass().add("status-icon");
-                        statusInfoLabel.getStyleClass().add("status-icon");
-                        statusHBox.setOpacity(1);
-                        log.debug("updateMsgState msg-{}, ack={}, arrived={}", message.getMessage(),
-                                message.acknowledgedProperty().get(), message.arrivedProperty().get());
-                        if (message.acknowledgedProperty().get()) {
-                            visible = true;
-                            icon = AwesomeIcon.OK_SIGN;
-                            text = Res.get("support.acknowledged");
-                        } else if (message.ackErrorProperty().get() != null) {
-                            visible = true;
-                            icon = AwesomeIcon.EXCLAMATION_SIGN;
-                            text = Res.get("support.error", message.ackErrorProperty().get());
-                            statusIcon.getStyleClass().add("error-text");
-                            statusInfoLabel.getStyleClass().add("error-text");
-                        } else if (message.arrivedProperty().get()) {
-                            visible = true;
-                            icon = AwesomeIcon.OK;
-                            text = Res.get("support.arrived");
-                        } else if (message.storedInMailboxProperty().get()) {
-                            visible = true;
-                            icon = AwesomeIcon.ENVELOPE;
-                            text = Res.get("support.savedInMailbox");
-                        } else {
-                            visible = false;
-                            log.debug("updateMsgState called but no msg state available. message={}", message);
-                        }
+                        UserThread.execute(() -> {
+                            boolean visible;
+                            AwesomeIcon icon = null;
+                            String text = null;
+                            statusIcon.getStyleClass().add("status-icon");
+                            statusInfoLabel.getStyleClass().add("status-icon");
+                            statusHBox.setOpacity(1);
+                            log.debug("updateMsgState msg-{}, ack={}, arrived={}", message.getMessage(),
+                                    message.acknowledgedProperty().get(), message.arrivedProperty().get());
+                            if (message.acknowledgedProperty().get()) {
+                                visible = true;
+                                icon = AwesomeIcon.OK_SIGN;
+                                text = Res.get("support.acknowledged");
+                            } else if (message.ackErrorProperty().get() != null) {
+                                visible = true;
+                                icon = AwesomeIcon.EXCLAMATION_SIGN;
+                                text = Res.get("support.error", message.ackErrorProperty().get());
+                                statusIcon.getStyleClass().add("error-text");
+                                statusInfoLabel.getStyleClass().add("error-text");
+                            } else if (message.arrivedProperty().get()) {
+                                visible = true;
+                                icon = AwesomeIcon.OK;
+                                text = Res.get("support.arrived");
+                            } else if (message.storedInMailboxProperty().get()) {
+                                visible = true;
+                                icon = AwesomeIcon.ENVELOPE;
+                                text = Res.get("support.savedInMailbox");
+                            } else {
+                                visible = false;
+                                log.debug("updateMsgState called but no msg state available. message={}", message);
+                            }
 
-                        statusHBox.setVisible(visible);
-                        if (visible) {
-                            AwesomeDude.setIcon(statusIcon, icon, "14");
-                            statusIcon.setTooltip(new Tooltip(text));
-                            statusInfoLabel.setText(text);
-                        }
+                            statusHBox.setVisible(visible);
+                            if (visible) {
+                                AwesomeDude.setIcon(statusIcon, icon, "14");
+                                statusIcon.setTooltip(new Tooltip(text));
+                                statusInfoLabel.setText(text);
+                            }
+                        });
                     }
                 };
             }

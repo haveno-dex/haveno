@@ -40,31 +40,37 @@ public class GrpcCallRateMeter {
     }
 
     public boolean checkAndIncrement() {
-        if (getCallsCount() < allowedCallsPerTimeWindow) {
-            incrementCallsCount();
-            return true;
-        } else {
-            return false;
+        synchronized (callTimestamps) {
+            if (getCallsCount() < allowedCallsPerTimeWindow) {
+                incrementCallsCount();
+                return true;
+            } else {
+                return false;
+            }
         }
     }
 
     public int getCallsCount() {
-        removeStaleCallTimestamps();
-        return callTimestamps.size();
+        synchronized (callTimestamps) {
+            removeStaleCallTimestamps();
+            return callTimestamps.size();
+        }
     }
 
     public String getCallsCountProgress(String calledMethodName) {
-        String shortTimeUnitName = StringUtils.chop(timeUnit.name().toLowerCase());
-        // Just print 'GetVersion has been called N times...',
-        // not 'io.bisq.protobuffer.GetVersion/GetVersion has been called N times...'
-        String loggedMethodName = calledMethodName.split("/")[1];
-        return format("%s has been called %d time%s in the last %s, rate limit is %d/%s",
-                loggedMethodName,
-                callTimestamps.size(),
-                callTimestamps.size() == 1 ? "" : "s",
-                shortTimeUnitName,
-                allowedCallsPerTimeWindow,
-                shortTimeUnitName);
+        synchronized (callTimestamps) {
+            String shortTimeUnitName = StringUtils.chop(timeUnit.name().toLowerCase());
+            // Just print 'GetVersion has been called N times...',
+            // not 'io.bisq.protobuffer.GetVersion/GetVersion has been called N times...'
+            String loggedMethodName = calledMethodName.split("/")[1];
+            return format("%s has been called %d time%s in the last %s, rate limit is %d/%s",
+                    loggedMethodName,
+                    callTimestamps.size(),
+                    callTimestamps.size() == 1 ? "" : "s",
+                    shortTimeUnitName,
+                    allowedCallsPerTimeWindow,
+                    shortTimeUnitName);
+        }
     }
 
     private void incrementCallsCount() {
@@ -85,11 +91,13 @@ public class GrpcCallRateMeter {
 
     @Override
     public String toString() {
-        return "GrpcCallRateMeter{" +
-                "allowedCallsPerTimeWindow=" + allowedCallsPerTimeWindow +
-                ", timeUnit=" + timeUnit.name() +
-                ", timeUnitIntervalInMilliseconds=" + timeUnitIntervalInMilliseconds +
-                ", callsCount=" + callTimestamps.size() +
-                '}';
+        synchronized (callTimestamps) {
+            return "GrpcCallRateMeter{" +
+                    "allowedCallsPerTimeWindow=" + allowedCallsPerTimeWindow +
+                    ", timeUnit=" + timeUnit.name() +
+                    ", timeUnitIntervalInMilliseconds=" + timeUnitIntervalInMilliseconds +
+                    ", callsCount=" + callTimestamps.size() +
+                    '}';
+        }
     }
 }

@@ -1131,7 +1131,7 @@ public abstract class DisputeView extends ActivatableView<VBox, Void> {
                                 super.updateItem(item, empty);
 
                                 if (item != null && !empty) {
-                                    Optional<Trade> tradeOptional = tradeManager.getTradeById(item.getTradeId());
+                                    Optional<Trade> tradeOptional = tradeManager.getOpenTrade(item.getTradeId());
                                     if (tradeOptional.isPresent()) {
                                         field = new HyperlinkWithIcon(item.getShortTradeId());
                                         field.setMouseTransparent(false);
@@ -1349,31 +1349,33 @@ public abstract class DisputeView extends ActivatableView<VBox, Void> {
                             @Override
                             public void updateItem(final Dispute item, boolean empty) {
                                 super.updateItem(item, empty);
-                                if (item != null && !empty) {
-                                    if (closedProperty != null) {
-                                        closedProperty.removeListener(listener);
-                                    }
+                                UserThread.execute(() -> {
+                                    if (item != null && !empty) {
+                                        if (closedProperty != null) {
+                                            closedProperty.removeListener(listener);
+                                        }
 
-                                    listener = (observable, oldValue, newValue) -> {
-                                        setText(newValue ? Res.get("support.closed") : Res.get("support.open"));
+                                        listener = (observable, oldValue, newValue) -> {
+                                            setText(newValue ? Res.get("support.closed") : Res.get("support.open"));
+                                            if (getTableRow() != null)
+                                                getTableRow().setOpacity(newValue && item.getBadgeCountProperty().get() == 0 ? 0.4 : 1);
+                                            if (item.isClosed() && item == chatPopup.getSelectedDispute())
+                                                chatPopup.closeChat(); // close the chat popup when the associated ticket is closed
+                                        };
+                                        closedProperty = item.isClosedProperty();
+                                        closedProperty.addListener(listener);
+                                        boolean isClosed = item.isClosed();
+                                        setText(isClosed ? Res.get("support.closed") : Res.get("support.open"));
                                         if (getTableRow() != null)
-                                            getTableRow().setOpacity(newValue && item.getBadgeCountProperty().get() == 0 ? 0.4 : 1);
-                                        if (item.isClosed() && item == chatPopup.getSelectedDispute())
-                                            chatPopup.closeChat(); // close the chat popup when the associated ticket is closed
-                                    };
-                                    closedProperty = item.isClosedProperty();
-                                    closedProperty.addListener(listener);
-                                    boolean isClosed = item.isClosed();
-                                    setText(isClosed ? Res.get("support.closed") : Res.get("support.open"));
-                                    if (getTableRow() != null)
-                                        getTableRow().setOpacity(isClosed && item.getBadgeCountProperty().get() == 0  ? 0.4 : 1);
-                                } else {
-                                    if (closedProperty != null) {
-                                        closedProperty.removeListener(listener);
-                                        closedProperty = null;
+                                            getTableRow().setOpacity(isClosed && item.getBadgeCountProperty().get() == 0  ? 0.4 : 1);
+                                    } else {
+                                        if (closedProperty != null) {
+                                            closedProperty.removeListener(listener);
+                                            closedProperty = null;
+                                        }
+                                        setText("");
                                     }
-                                    setText("");
-                                }
+                                });
                             }
                         };
                     }
@@ -1389,27 +1391,29 @@ public abstract class DisputeView extends ActivatableView<VBox, Void> {
     }
 
     private void updateChatMessageCount(Dispute dispute, JFXBadge chatBadge) {
-        if (chatBadge == null)
-            return;
-        // when the chat popup is active, we do not display new message count indicator for that item
-        if (chatPopup.isChatShown() && selectedDispute != null && dispute.getId().equals(selectedDispute.getId())) {
-            chatBadge.setText("");
-            chatBadge.setEnabled(false);
-            chatBadge.refreshBadge();
-            // have to UserThread.execute or the new message will be sent to peer as "read"
-            UserThread.execute(() -> dispute.setChatMessagesSeen(senderFlag()));
-            return;
-        }
+        UserThread.execute(() -> {
+            if (chatBadge == null)
+                return;
+            // when the chat popup is active, we do not display new message count indicator for that item
+            if (chatPopup.isChatShown() && selectedDispute != null && dispute.getId().equals(selectedDispute.getId())) {
+                chatBadge.setText("");
+                chatBadge.setEnabled(false);
+                chatBadge.refreshBadge();
+                // have to UserThread.execute or the new message will be sent to peer as "read"
+                UserThread.execute(() -> dispute.setChatMessagesSeen(senderFlag()));
+                return;
+            }
 
-        if (dispute.unreadMessageCount(senderFlag()) > 0) {
-            chatBadge.setText(String.valueOf(dispute.unreadMessageCount(senderFlag())));
-            chatBadge.setEnabled(true);
-        } else {
-            chatBadge.setText("");
-            chatBadge.setEnabled(false);
-        }
-        chatBadge.refreshBadge();
-        dispute.refreshAlertLevel(senderFlag());
+            if (dispute.unreadMessageCount(senderFlag()) > 0) {
+                chatBadge.setText(String.valueOf(dispute.unreadMessageCount(senderFlag())));
+                chatBadge.setEnabled(true);
+            } else {
+                chatBadge.setText("");
+                chatBadge.setEnabled(false);
+            }
+            chatBadge.refreshBadge();
+            dispute.refreshAlertLevel(senderFlag());
+        });
     }
 
     private String getCounterpartyName() {

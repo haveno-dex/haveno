@@ -18,7 +18,6 @@
 package bisq.core.trade.protocol.tasks.seller;
 
 import bisq.core.btc.wallet.XmrWalletService;
-import bisq.core.offer.Offer;
 import bisq.core.trade.Contract;
 import bisq.core.trade.MakerTrade;
 import bisq.core.trade.Trade;
@@ -30,10 +29,6 @@ import bisq.common.taskrunner.TaskRunner;
 import java.math.BigInteger;
 
 import lombok.extern.slf4j.Slf4j;
-
-import static com.google.common.base.Preconditions.checkNotNull;
-
-
 
 import monero.wallet.MoneroWallet;
 import monero.wallet.model.MoneroDestination;
@@ -59,29 +54,17 @@ public class SellerSignAndPublishPayoutTx extends TradeTask {
             MoneroWallet multisigWallet = walletService.getMultisigWallet(trade.getId());
             String buyerSignedPayoutTxHex = trade.getTradingPeer().getSignedPayoutTxHex();
             Contract contract = trade.getContract();
-            Offer offer = checkNotNull(trade.getOffer(), "offer must not be null");
             BigInteger sellerDepositAmount = multisigWallet.getTx(trade instanceof MakerTrade ? processModel.getMaker().getDepositTxHash() : processModel.getTaker().getDepositTxHash()).getIncomingAmount(); 	// TODO (woodser): redundancy of processModel.getPreparedDepositTxId() vs trade.getDepositTxId() necessary or avoidable?
             BigInteger buyerDepositAmount = multisigWallet.getTx(trade instanceof MakerTrade ? processModel.getTaker().getDepositTxHash() : processModel.getMaker().getDepositTxHash()).getIncomingAmount();
             BigInteger tradeAmount = ParsingUtils.coinToAtomicUnits(trade.getTradeAmount());
 
-            System.out.println("SELLER VERIFYING PAYOUT TX");
-            System.out.println("Trade amount: " + trade.getTradeAmount());
-            System.out.println("Buyer deposit amount: " + buyerDepositAmount);
-            System.out.println("Seller deposit amount: " + sellerDepositAmount);
-
-            BigInteger buyerPayoutAmount = ParsingUtils.coinToAtomicUnits(offer.getBuyerSecurityDeposit().add(trade.getTradeAmount()));
-            System.out.println("Buyer payout amount (with multiplier): " + buyerPayoutAmount);
-            BigInteger sellerPayoutAmount = ParsingUtils.coinToAtomicUnits(offer.getSellerSecurityDeposit());
-            System.out.println("Seller payout amount (with multiplier): " + sellerPayoutAmount);
-
             // parse buyer-signed payout tx
             MoneroTxSet parsedTxSet = multisigWallet.describeTxSet(new MoneroTxSet().setMultisigTxHex(buyerSignedPayoutTxHex));
-            if (parsedTxSet.getTxs().get(0).getTxSet() != parsedTxSet) System.out.println("LINKS ARE WRONG STRAIGHT FROM PARSING!!!");
-            if (parsedTxSet.getTxs() == null || parsedTxSet.getTxs().size() != 1) throw new RuntimeException("Bad buyer-signed payout tx");	// TODO (woodser): nack
+            if (parsedTxSet.getTxs() == null || parsedTxSet.getTxs().size() != 1) throw new RuntimeException("Bad buyer-signed payout tx");	// TODO (woodser): test nack
             MoneroTxWallet buyerSignedPayoutTx = parsedTxSet.getTxs().get(0);
-            System.out.println("Parsed buyer signed tx hex:\n" + buyerSignedPayoutTx);
 
             // verify payout tx has exactly 2 destinations
+            log.info("Seller verifying buyer-signed payout tx");
             if (buyerSignedPayoutTx.getOutgoingTransfer() == null || buyerSignedPayoutTx.getOutgoingTransfer().getDestinations() == null || buyerSignedPayoutTx.getOutgoingTransfer().getDestinations().size() != 2) throw new RuntimeException("Buyer-signed payout tx does not have exactly two destinations");
 
             // get buyer and seller destinations (order not preserved)
@@ -93,8 +76,8 @@ public class SellerSignAndPublishPayoutTx extends TradeTask {
             if (!buyerPayoutDestination.getAddress().equals(contract.getBuyerPayoutAddressString())) throw new RuntimeException("Buyer payout address does not match contract");
             if (!sellerPayoutDestination.getAddress().equals(contract.getSellerPayoutAddressString())) throw new RuntimeException("Seller payout address does not match contract");
 
-            // verify change address is multisig's primary address // TODO (woodser): ideally change amount is 0, seen with 0 conf payout tx
-            if (!buyerSignedPayoutTx.getChangeAmount().equals(new BigInteger("0")) && !buyerSignedPayoutTx.getChangeAddress().equals(multisigWallet.getPrimaryAddress())) throw new RuntimeException("Change address is not multisig wallet's primary address");
+            // verify change address is multisig's primary address
+            if (!buyerSignedPayoutTx.getChangeAmount().equals(BigInteger.ZERO) && !buyerSignedPayoutTx.getChangeAddress().equals(multisigWallet.getPrimaryAddress())) throw new RuntimeException("Change address is not multisig wallet's primary address");
 
             // verify sum of outputs = destination amounts + change amount
             if (!buyerSignedPayoutTx.getOutputSum().equals(buyerPayoutDestination.getAmount().add(sellerPayoutDestination.getAmount()).add(buyerSignedPayoutTx.getChangeAmount()))) throw new RuntimeException("Sum of outputs != destination amounts + change amount");
@@ -117,69 +100,16 @@ public class SellerSignAndPublishPayoutTx extends TradeTask {
 
             // submit fully signed payout tx to the network
             multisigWallet.submitMultisigTxHex(signedMultisigTxHex);
+            
+            // close multisig wallet
+            walletService.closeMultisigWallet(trade.getId());
 
-            // update state
-            parsedTxSet.setMultisigTxHex(signedMultisigTxHex);
-            if (parsedTxSet.getTxs().get(0).getTxSet() != parsedTxSet) System.out.println("LINKS ARE WRONG!!!");
-	          trade.setPayoutTx(parsedTxSet.getTxs().get(0));
-	          trade.setPayoutTxId(parsedTxSet.getTxs().get(0).getHash());
-	          trade.setState(Trade.State.SELLER_PUBLISHED_PAYOUT_TX);
-	          complete();
-
-//            checkNotNull(trade.getTradeAmount(), "trade.getTradeAmount() must not be null");
-//
-//            Offer offer = trade.getOffer();
-//            TradingPeer tradingPeer = trade.getTradingPeer();
-//            BtcWalletService walletService = processModel.getBtcWalletService();
-//            String id = processModel.getOffer().getId();
-//
-//            final byte[] buyerSignature = tradingPeer.getSignature();
-//
-//            Coin buyerPayoutAmount = checkNotNull(offer.getBuyerSecurityDeposit()).add(trade.getTradeAmount());
-//            Coin sellerPayoutAmount = offer.getSellerSecurityDeposit();
-//
-//            final String buyerPayoutAddressString = tradingPeer.getPayoutAddressString();
-//            String sellerPayoutAddressString = walletService.getOrCreateAddressEntry(id,
-//                    AddressEntry.Context.TRADE_PAYOUT).getAddressString();
-//
-//            final byte[] buyerMultiSigPubKey = tradingPeer.getMultiSigPubKey();
-//            byte[] sellerMultiSigPubKey = processModel.getMyMultiSigPubKey();
-//
-//            Optional<AddressEntry> multiSigAddressEntryOptional = walletService.getAddressEntry(id,
-//                    AddressEntry.Context.MULTI_SIG);
-//            if (!multiSigAddressEntryOptional.isPresent() || !Arrays.equals(sellerMultiSigPubKey,
-//                    multiSigAddressEntryOptional.get().getPubKey())) {
-//                // In some error edge cases it can be that the address entry is not marked (or was unmarked).
-//                // We do not want to fail in that case and only report a warning.
-//                // One case where that helped to avoid a failed payout attempt was when the taker had a power failure
-//                // at the moment when the offer was taken. This caused first to not see step 1 in the trade process
-//                // (all greyed out) but after the deposit tx was confirmed the trade process was on step 2 and
-//                // everything looked ok. At the payout multiSigAddressEntryOptional was not present and payout
-//                // could not be done. By changing the previous behaviour from fail if multiSigAddressEntryOptional
-//                // is not present to only log a warning the payout worked.
-//                log.warn("sellerMultiSigPubKey from AddressEntry does not match the one from the trade data. " +
-//                        "Trade id ={}, multiSigAddressEntryOptional={}", id, multiSigAddressEntryOptional);
-//            }
-//
-//            DeterministicKey multiSigKeyPair = walletService.getMultiSigKeyPair(id, sellerMultiSigPubKey);
-//
-//            Transaction transaction = processModel.getTradeWalletService().sellerSignsAndFinalizesPayoutTx(
-//                    checkNotNull(trade.getDepositTx()),
-//                    buyerSignature,
-//                    buyerPayoutAmount,
-//                    sellerPayoutAmount,
-//                    buyerPayoutAddressString,
-//                    sellerPayoutAddressString,
-//                    multiSigKeyPair,
-//                    buyerMultiSigPubKey,
-//                    sellerMultiSigPubKey
-//            );
-//
-//            trade.setPayoutTx(transaction);
-//
-//            walletService.swapTradeEntryToAvailableEntry(id, AddressEntry.Context.MULTI_SIG);
-//
-//            complete();
+            // update trade state
+            parsedTxSet.setMultisigTxHex(signedMultisigTxHex); // TODO (woodser): better place to store this?
+            trade.setPayoutTx(parsedTxSet.getTxs().get(0));
+            trade.setPayoutTxId(parsedTxSet.getTxs().get(0).getHash());
+            trade.setState(Trade.State.SELLER_PUBLISHED_PAYOUT_TX);
+            complete();
         } catch (Throwable t) {
             failed(t);
         }

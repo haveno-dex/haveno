@@ -112,6 +112,7 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
     private static final int MAX_PERMITTED_MESSAGE_SIZE = 10 * 1024 * 1024;             // 10 MB (425 offers resulted in about 660 kb, mailbox msg will add more to it) offer has usually 2 kb, mailbox 3kb.
     //TODO decrease limits again after testing
     private static final int SOCKET_TIMEOUT = (int) TimeUnit.SECONDS.toMillis(180);
+    private static final int MAX_CONNECTION_THREADS = 10;
 
     public static int getPermittedMessageSize() {
         return PERMITTED_MESSAGE_SIZE;
@@ -130,6 +131,8 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
     @Getter
     private final String uid;
     private final ExecutorService singleThreadExecutor = Executors.newSingleThreadExecutor(runnable -> new Thread(runnable, "Connection.java executor-service"));
+    private final ExecutorService connectionThreadPool = Executors.newFixedThreadPool(MAX_CONNECTION_THREADS);
+
     // holder of state shared between InputHandler and Connection
     @Getter
     private final Statistic statistic;
@@ -429,12 +432,18 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
     // Only receive non - CloseConnectionMessage network_messages
     @Override
     public void onMessage(NetworkEnvelope networkEnvelope, Connection connection) {
-        checkArgument(connection.equals(this));
-        if (networkEnvelope instanceof BundleOfEnvelopes) {
-            onBundleOfEnvelopes((BundleOfEnvelopes) networkEnvelope, connection);
-        } else {
-            UserThread.execute(() -> messageListeners.forEach(e -> e.onMessage(networkEnvelope, connection)));
-        }
+        Connection that = this;
+        connectionThreadPool.submit(new Runnable() {
+            @Override
+            public void run() {
+                checkArgument(connection.equals(that));
+                if (networkEnvelope instanceof BundleOfEnvelopes) {
+                    onBundleOfEnvelopes((BundleOfEnvelopes) networkEnvelope, connection);
+                } else {
+                    messageListeners.forEach(e -> e.onMessage(networkEnvelope, connection));
+                }
+            }
+        });
     }
 
     private void onBundleOfEnvelopes(BundleOfEnvelopes bundleOfEnvelopes, Connection connection) {
@@ -466,8 +475,8 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
                 envelopesToProcess.add(networkEnvelope);
             }
         }
-        envelopesToProcess.forEach(envelope -> UserThread.execute(() ->
-                messageListeners.forEach(listener -> listener.onMessage(envelope, connection))));
+        envelopesToProcess.forEach(envelope ->
+                messageListeners.forEach(listener -> listener.onMessage(envelope, connection)));
     }
 
 
@@ -793,11 +802,11 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
                         return;
                     }
 
-                    // Throttle inbound network_messages
+                    // Throttle inbound network messages
                     long now = System.currentTimeMillis();
                     long elapsed = now - lastReadTimeStamp;
                     if (elapsed < 10) {
-                        log.debug("We got 2 network_messages received in less than 10 ms. We set the thread to sleep " +
+                        log.info("We got 2 network messages received in less than 10 ms. We set the thread to sleep " +
                                         "for 20 ms to avoid getting flooded by our peer. lastReadTimeStamp={}, now={}, elapsed={}",
                                 lastReadTimeStamp, now, elapsed);
                         Thread.sleep(20);

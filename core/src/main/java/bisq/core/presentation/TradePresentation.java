@@ -17,6 +17,7 @@
 
 package bisq.core.presentation;
 
+import bisq.common.UserThread;
 import bisq.core.trade.TradeManager;
 
 import javax.inject.Inject;
@@ -38,10 +39,12 @@ public class TradePresentation {
     public TradePresentation(TradeManager tradeManager) {
         tradeManager.getNumPendingTrades().addListener((observable, oldValue, newValue) -> {
             long numPendingTrades = (long) newValue;
-            if (numPendingTrades > 0)
-                this.numPendingTrades.set(String.valueOf(numPendingTrades));
+            UserThread.execute(() -> {
+                if (numPendingTrades > 0)
+                    this.numPendingTrades.set(String.valueOf(numPendingTrades));
 
-            showPendingTradesNotification.set(numPendingTrades > 0);
+                showPendingTradesNotification.set(numPendingTrades > 0);
+            });
         });
     }
 }

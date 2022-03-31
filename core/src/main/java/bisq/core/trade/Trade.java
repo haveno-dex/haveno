@@ -63,6 +63,7 @@ import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
@@ -82,8 +83,8 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import monero.common.MoneroError;
 import monero.daemon.MoneroDaemon;
+import monero.daemon.model.MoneroTx;
 import monero.wallet.MoneroWallet;
-import monero.wallet.model.MoneroOutputWallet;
 import monero.wallet.model.MoneroTxWallet;
 import monero.wallet.model.MoneroWalletListener;
 
@@ -99,9 +100,11 @@ public abstract class Trade implements Tradable, Model {
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     public enum State {
-        // #################### Phase PREPARATION
+        // #################### Phase INIT
         // When trade protocol starts no funds are on stake
         PREPARATION(Phase.INIT),
+        CONTRACT_SIGNATURE_REQUESTED(Phase.INIT), // TODO (woodser): add more states for initializing multisig, etc to support trade initialization notifications
+        CONTRACT_SIGNED(Phase.INIT),
 
         // At first part maker/taker have different roles
         // taker perspective
@@ -206,9 +209,9 @@ public abstract class Trade implements Tradable, Model {
 
     public enum Phase {
         INIT,
-        TAKER_FEE_PUBLISHED,
+        TAKER_FEE_PUBLISHED, // TODO (woodser): remove unused phases
         DEPOSIT_PUBLISHED,
-        DEPOSIT_CONFIRMED,
+        DEPOSIT_CONFIRMED, // TODO (woodser): rename to or add DEPOSIT_UNLOCKED
         FIAT_SENT,
         FIAT_RECEIVED,
         PAYOUT_PUBLISHED,
@@ -463,8 +466,8 @@ public abstract class Trade implements Tradable, Model {
     transient MoneroWalletListener depositTxListener;
     transient Boolean makerDepositLocked; // null when unknown, true while locked, false when unlocked
     transient Boolean takerDepositLocked;
-    transient private MoneroTxWallet makerDepositTx;
-    transient private MoneroTxWallet takerDepositTx;
+    transient private MoneroTx makerDepositTx;
+    transient private MoneroTx takerDepositTx;
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Constructor, initialization
@@ -696,72 +699,101 @@ public abstract class Trade implements Tradable, Model {
       else throw new RuntimeException("Unknown trade type: " + this.getClass().getName());
     }
 
-    // The deserialized tx has not actual confidence data, so we need to get the fresh one from the wallet.
-    void updateDepositTxFromWallet() {
-        if (getMakerDepositTx() != null && getTakerDepositTx() != null) {
-          MoneroWallet multisigWallet = processModel.getProvider().getXmrWalletService().getMultisigWallet(getId());
-          applyDepositTxs(multisigWallet.getTx(getMakerDepositTx().getHash()), multisigWallet.getTx(getTakerDepositTx().getHash()));
-        }
-    }
+    /**
+     * Listen for deposit transactions to unlock and then apply the transactions.
+     * 
+     * TODO: adopt for general purpose scheduling
+     * TODO: check and notify if deposits are dropped due to re-org
+     */
+    public void listenForDepositTxs() {
+        log.info("Listening for deposit txs to unlock for trade {}", getId());
 
-    public void applyDepositTxs(MoneroTxWallet makerDepositTx, MoneroTxWallet takerDepositTx) {
-        this.makerDepositTx = makerDepositTx;
-        this.takerDepositTx = takerDepositTx;
-        if (!makerDepositTx.isLocked() && !takerDepositTx.isLocked()) {
-          setConfirmedState();  // TODO (woodser): bisq "confirmed" = xmr unlocked after 10 confirmations
-        }
-    }
-    
-    public void setupDepositTxsListener() {
-        
         // ignore if already listening
         if (depositTxListener != null) {
             log.warn("Trade {} already listening for deposit txs", getId());
             return;
         }
-        
-        // create listener for deposit transactions
-        MoneroWallet multisigWallet = processModel.getXmrWalletService().getMultisigWallet(getId());
-        depositTxListener = processModel.getXmrWalletService().new HavenoWalletListener(new MoneroWalletListener() { // TODO (woodser): separate into own class file
-            @Override
-            public void onOutputReceived(MoneroOutputWallet output) {
 
+        // get daemon and primary wallet
+        MoneroDaemon daemon = processModel.getXmrWalletService().getDaemon();
+        MoneroWallet havenoWallet = processModel.getXmrWalletService().getWallet();
+
+        // fetch deposit txs from daemon
+        List<MoneroTx> txs = daemon.getTxs(Arrays.asList(processModel.getMaker().getDepositTxHash(), processModel.getTaker().getDepositTxHash()), true);
+
+        // handle deposit txs seen
+        if (txs.size() == 2) {
+
+            // update state
+            setState(this instanceof MakerTrade ? Trade.State.MAKER_SAW_DEPOSIT_TX_IN_NETWORK : Trade.State.TAKER_SAW_DEPOSIT_TX_IN_NETWORK);
+            boolean makerFirst = txs.get(0).getHash().equals(processModel.getMaker().getDepositTxHash());
+            makerDepositTx = makerFirst ? txs.get(0) : txs.get(1);
+            takerDepositTx = makerFirst ? txs.get(1) : txs.get(0);
+            
+            // check if deposit txs unlocked
+            if (txs.get(0).isConfirmed() && txs.get(1).isConfirmed()) {
+                long unlockHeight = Math.max(txs.get(0).getHeight(), txs.get(0).getHeight()) + 9;
+                if (havenoWallet.getHeight() >= unlockHeight) {
+                    setConfirmedState();
+                    return;
+                }
+            }
+        }
+
+        // create block listener
+        depositTxListener = processModel.getXmrWalletService().new HavenoWalletListener(new MoneroWalletListener() { // TODO (woodser): separate into own class file
+            
+            Long unlockHeight = null;
+
+            @Override
+            public void onNewBlock(long height) {
+                
                 // ignore if no longer listening
                 if (depositTxListener == null) return;
-
-                // TODO (woodser): remove this
-                if (output.getTx().isConfirmed() && output.getTx().isLocked() && (processModel.getMaker().getDepositTxHash().equals(output.getTx().getHash()) || processModel.getTaker().getDepositTxHash().equals(output.getTx().getHash()))) {
-                    System.out.println("Deposit output for tx " + output.getTx().getHash() + " is confirmed at height " + output.getTx().getHeight());
-                }
-
-                // update locked state
-                if (output.getTx().getHash().equals(processModel.getMaker().getDepositTxHash())) makerDepositLocked = output.getTx().isLocked();
-                else if (output.getTx().getHash().equals(processModel.getTaker().getDepositTxHash())) takerDepositLocked = output.getTx().isLocked();
-
-                // deposit txs seen when both locked states seen
-                if (makerDepositLocked != null && takerDepositLocked != null) {
+                
+                // ignore if before unlock height
+                if (unlockHeight != null && height < unlockHeight) return;
+                
+                // fetch txs from daemon
+                List<MoneroTx> txs = daemon.getTxs(Arrays.asList(processModel.getMaker().getDepositTxHash(), processModel.getTaker().getDepositTxHash()), true);
+                
+                // ignore if deposit txs not seen
+                if (txs.size() != 2) return;
+                
+                // update deposit txs
+                boolean makerFirst = txs.get(0).getHash().equals(processModel.getMaker().getDepositTxHash());
+                makerDepositTx = makerFirst ? txs.get(0) : txs.get(1);
+                takerDepositTx = makerFirst ? txs.get(1) : txs.get(0);
+                
+                // update state when deposit txs seen
+                if (txs.size() == 2) {
                     setState(this instanceof MakerTrade ? Trade.State.MAKER_SAW_DEPOSIT_TX_IN_NETWORK : Trade.State.TAKER_SAW_DEPOSIT_TX_IN_NETWORK);
                 }
-
-                // confirm trade and update ui when both deposits unlock
-                if (Boolean.FALSE.equals(makerDepositLocked) && Boolean.FALSE.equals(takerDepositLocked)) {
-                    System.out.println("Multisig deposit txs unlocked!");
-                    applyDepositTxs(multisigWallet.getTx(processModel.getMaker().getDepositTxHash()), multisigWallet.getTx(processModel.getTaker().getDepositTxHash()));
-                    multisigWallet.removeListener(depositTxListener); // remove listener when notified
+                
+                // compute unlock height
+                if (unlockHeight == null && txs.size() == 2 && txs.get(0).isConfirmed() && txs.get(1).isConfirmed()) {
+                    unlockHeight = Math.max(txs.get(0).getHeight(), txs.get(0).getHeight()) + 9;
+                }
+                
+                // check if txs unlocked
+                if (unlockHeight != null && height == unlockHeight) {
+                    log.info("Multisig deposits unlocked for trade {}", getId());
+                    setConfirmedState();  // TODO (woodser): bisq "confirmed" = xmr unlocked after 10 confirmations
+                    havenoWallet.removeListener(depositTxListener); // remove listener when notified
                     depositTxListener = null; // prevent re-applying trade state in subsequent requests
                 }
             }
         });
 
         // register wallet listener
-        multisigWallet.addListener(depositTxListener);
+        havenoWallet.addListener(depositTxListener);
     }
 
     @Nullable
-    public MoneroTxWallet getTakerDepositTx() {
+    public MoneroTx getTakerDepositTx() {
         String depositTxHash = getProcessModel().getTaker().getDepositTxHash();
         try {
-            if (takerDepositTx == null) takerDepositTx = depositTxHash == null ? null : xmrWalletService.getMultisigWallet(getId()).getTx(depositTxHash);
+            if (takerDepositTx == null) takerDepositTx = depositTxHash == null ? null : getXmrWalletService().getDaemon().getTx(depositTxHash);
             return takerDepositTx;
         } catch (MoneroError e) {
             log.error("Wallet is missing taker deposit tx " + depositTxHash);
@@ -770,10 +802,10 @@ public abstract class Trade implements Tradable, Model {
     }
 
     @Nullable
-    public MoneroTxWallet getMakerDepositTx() {
+    public MoneroTx getMakerDepositTx() {
         String depositTxHash = getProcessModel().getMaker().getDepositTxHash();
         try {
-            if (makerDepositTx == null) makerDepositTx = depositTxHash == null ? null : xmrWalletService.getMultisigWallet(getId()).getTx(depositTxHash);
+            if (makerDepositTx == null) makerDepositTx = depositTxHash == null ? null : getXmrWalletService().getDaemon().getTx(depositTxHash);
             return makerDepositTx;
         } catch (MoneroError e) {
             log.error("Wallet is missing maker deposit tx " + depositTxHash);
@@ -1047,10 +1079,10 @@ public abstract class Trade implements Tradable, Model {
     private long getTradeStartTime() {
         long now = System.currentTimeMillis();
         long startTime;
-        final MoneroTxWallet takerDepositTx = getTakerDepositTx();
-        final MoneroTxWallet makerDepositTx = getMakerDepositTx();
+        final MoneroTx takerDepositTx = getTakerDepositTx();
+        final MoneroTx makerDepositTx = getMakerDepositTx();
         if (makerDepositTx != null && takerDepositTx != null && getTakeOfferDate() != null) {
-            if (!makerDepositTx.isLocked() && !takerDepositTx.isLocked()) {
+            if (isDepositConfirmed()) {
                 final long tradeTime = getTakeOfferDate().getTime();
                 long maxHeight = Math.max(makerDepositTx.getHeight(), takerDepositTx.getHeight());
                 MoneroDaemon daemonRpc = xmrWalletService.getDaemon();

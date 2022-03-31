@@ -736,8 +736,10 @@ public class MainView extends InitializableView<StackPane, MainViewModel> {
         });
 
         model.getUpdatedDataReceived().addListener((observable, oldValue, newValue) -> {
-            p2PNetworkIcon.setOpacity(1);
-            p2pNetworkProgressBar.setProgress(0);
+            UserThread.execute(() -> {
+                p2PNetworkIcon.setOpacity(1);
+                p2pNetworkProgressBar.setProgress(0);
+            });
         });
 
         p2pNetworkProgressBar = new JFXProgressBar(-1);

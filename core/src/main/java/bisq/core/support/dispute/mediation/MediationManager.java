@@ -134,7 +134,7 @@ public final class MediationManager extends DisputeManager<MediationDisputeList>
     @Override
     public void cleanupDisputes() {
         disputeListService.cleanupDisputes(tradeId -> {
-            tradeManager.getTradeById(tradeId).filter(trade -> trade.getPayoutTx() != null)
+            tradeManager.getOpenTrade(tradeId).filter(trade -> trade.getPayoutTx() != null)
                     .ifPresent(trade -> {
                         tradeManager.closeDisputedTrade(tradeId, Trade.DisputeState.MEDIATION_CLOSED);
                     });
@@ -197,7 +197,7 @@ public final class MediationManager extends DisputeManager<MediationDisputeList>
 
         dispute.setDisputeResult(disputeResult);
 
-        Optional<Trade> tradeOptional = tradeManager.getTradeById(tradeId);
+        Optional<Trade> tradeOptional = tradeManager.getOpenTrade(tradeId);
         if (tradeOptional.isPresent()) {
             Trade trade = tradeOptional.get();
             if (trade.getDisputeState() == Trade.DisputeState.MEDIATION_REQUESTED ||

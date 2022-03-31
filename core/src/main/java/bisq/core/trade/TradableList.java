@@ -54,10 +54,12 @@ public final class TradableList<T extends Tradable> extends PersistableListAsObs
 
     @Override
     public Message toProtoMessage() {
-        return protobuf.PersistableEnvelope.newBuilder()
-                .setTradableList(protobuf.TradableList.newBuilder()
-                        .addAllTradable(ProtoUtil.collectionToProto(getList(), protobuf.Tradable.class)))
-                .build();
+        synchronized (getList()) {
+            return protobuf.PersistableEnvelope.newBuilder()
+                    .setTradableList(protobuf.TradableList.newBuilder()
+                            .addAllTradable(ProtoUtil.collectionToProto(getList(), protobuf.Tradable.class)))
+                    .build();
+        }
     }
 
     public static TradableList<Tradable> fromProto(protobuf.TradableList proto,

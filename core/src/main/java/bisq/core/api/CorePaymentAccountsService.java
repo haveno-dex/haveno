@@ -100,7 +100,7 @@ class CorePaymentAccountsService {
 
     // Crypto Currency Accounts
 
-    PaymentAccount createCryptoCurrencyPaymentAccount(String accountName,
+    synchronized PaymentAccount createCryptoCurrencyPaymentAccount(String accountName,
                                                       String currencyCode,
                                                       String address,
                                                       boolean tradeInstant) {

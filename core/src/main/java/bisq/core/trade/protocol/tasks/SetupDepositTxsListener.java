@@ -33,7 +33,7 @@ public class SetupDepositTxsListener extends TradeTask {
     protected void run() {
         try {
             runInterceptHook();
-            trade.setupDepositTxsListener();
+            trade.listenForDepositTxs();
             complete();
         } catch (Throwable t) {
             failed(t);

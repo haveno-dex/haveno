@@ -240,7 +240,7 @@ public class LockedView extends ActivatableView<VBox, Void> {
 
     private Optional<Tradable> getTradable(LockedListItem item) {
         String offerId = item.getAddressEntry().getOfferId();
-        Optional<Trade> tradeOptional = tradeManager.getTradeById(offerId);
+        Optional<Trade> tradeOptional = tradeManager.getOpenTrade(offerId);
         if (tradeOptional.isPresent()) {
             return Optional.of(tradeOptional.get());
         } else if (openOfferManager.getOpenOfferById(offerId).isPresent()) {

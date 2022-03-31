@@ -54,7 +54,7 @@ import bisq.core.trade.protocol.SellerProtocol;
 import bisq.core.user.Preferences;
 
 import bisq.network.p2p.P2PService;
-
+import bisq.common.UserThread;
 import bisq.common.crypto.PubKeyRing;
 import bisq.common.crypto.PubKeyRingProvider;
 import bisq.common.handlers.ErrorMessageHandler;
@@ -87,8 +87,7 @@ import javax.annotation.Nullable;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
-
-
+import monero.daemon.model.MoneroTx;
 import monero.wallet.MoneroWallet;
 import monero.wallet.model.MoneroTxWallet;
 
@@ -360,54 +359,56 @@ public class PendingTradesDataModel extends ActivatableDataModel {
     }
 
     private void doSelectItem(@Nullable PendingTradesListItem item) {
-        if (selectedTrade != null)
-            selectedTrade.stateProperty().removeListener(tradeStateChangeListener);
+        UserThread.execute(() -> {
+            if (selectedTrade != null)
+                selectedTrade.stateProperty().removeListener(tradeStateChangeListener);
 
-        if (item != null) {
-            selectedTrade = item.getTrade();
-            if (selectedTrade == null) {
-                log.error("selectedTrade is null");
-                return;
-            }
-
-            MoneroTxWallet makerDepositTx = selectedTrade.getMakerDepositTx();
-            MoneroTxWallet takerDepositTx = selectedTrade.getTakerDepositTx();
-            String tradeId = selectedTrade.getId();
-            tradeStateChangeListener = (observable, oldValue, newValue) -> {
-                if (makerDepositTx != null && takerDepositTx != null) { // TODO (woodser): this treats separate deposit ids as one unit, being both available or unavailable
-                    makerTxId.set(makerDepositTx.getHash());
-                    takerTxId.set(takerDepositTx.getHash());
-                    notificationCenter.setSelectedTradeId(tradeId);
-                    selectedTrade.stateProperty().removeListener(tradeStateChangeListener);
-                } else {
-                  makerTxId.set("");
-                  takerTxId.set("");
+            if (item != null) {
+                selectedTrade = item.getTrade();
+                if (selectedTrade == null) {
+                    log.error("selectedTrade is null");
+                    return;
                 }
-            };
-            selectedTrade.stateProperty().addListener(tradeStateChangeListener);
 
-            Offer offer = selectedTrade.getOffer();
-            if (offer == null) {
-                log.error("offer is null");
-                return;
-            }
+                MoneroTx makerDepositTx = selectedTrade.getMakerDepositTx();
+                MoneroTx takerDepositTx = selectedTrade.getTakerDepositTx();
+                String tradeId = selectedTrade.getId();
+                tradeStateChangeListener = (observable, oldValue, newValue) -> {
+                    if (makerDepositTx != null && takerDepositTx != null) { // TODO (woodser): this treats separate deposit ids as one unit, being both available or unavailable
+                        makerTxId.set(makerDepositTx.getHash());
+                        takerTxId.set(takerDepositTx.getHash());
+                        notificationCenter.setSelectedTradeId(tradeId);
+                        selectedTrade.stateProperty().removeListener(tradeStateChangeListener);
+                    } else {
+                      makerTxId.set("");
+                      takerTxId.set("");
+                    }
+                };
+                selectedTrade.stateProperty().addListener(tradeStateChangeListener);
 
-            isMaker = tradeManager.isMyOffer(offer);
-            if (makerDepositTx != null && takerDepositTx != null) {
-              makerTxId.set(makerDepositTx.getHash());
-              takerTxId.set(takerDepositTx.getHash());
+                Offer offer = selectedTrade.getOffer();
+                if (offer == null) {
+                    log.error("offer is null");
+                    return;
+                }
+
+                isMaker = tradeManager.isMyOffer(offer);
+                if (makerDepositTx != null && takerDepositTx != null) {
+                  makerTxId.set(makerDepositTx.getHash());
+                  takerTxId.set(takerDepositTx.getHash());
+                } else {
+                    makerTxId.set("");
+                    takerTxId.set("");
+                }
+                notificationCenter.setSelectedTradeId(tradeId);
             } else {
+                selectedTrade = null;
                 makerTxId.set("");
                 takerTxId.set("");
+                notificationCenter.setSelectedTradeId(null);
             }
-            notificationCenter.setSelectedTradeId(tradeId);
-        } else {
-            selectedTrade = null;
-            makerTxId.set("");
-            takerTxId.set("");
-            notificationCenter.setSelectedTradeId(null);
-        }
-        selectedItemProperty.set(item);
+            selectedItemProperty.set(item);
+        });
     }
 
     private void tryOpenDispute(boolean isSupportTicket) {
@@ -458,8 +459,9 @@ public class PendingTradesDataModel extends ActivatableDataModel {
       byte[] payoutTxSerialized = null;
       String payoutTxHashAsString = null;
       MoneroTxWallet payoutTx = trade.getPayoutTx();
-      MoneroWallet  multisigWallet = xmrWalletService.getMultisigWallet(trade.getId());
+      MoneroWallet multisigWallet = xmrWalletService.getMultisigWallet(trade.getId());
       String updatedMultisigHex = multisigWallet.getMultisigHex();
+      xmrWalletService.closeMultisigWallet(trade.getId()); // close multisig wallet
       if (payoutTx != null) {
 //          payoutTxSerialized = payoutTx.bitcoinSerialize(); // TODO (woodser): no need to pass serialized txs for xmr
 //          payoutTxHashAsString = payoutTx.getHashAsString();

@@ -51,6 +51,7 @@ public abstract class SupportManager {
     protected final CoreMoneroConnectionsService connectionService;
     protected final CoreNotificationService notificationService;
     protected final Map<String, Timer> delayMsgMap = new HashMap<>();
+    private final Object lock = new Object();
     private final CopyOnWriteArraySet<DecryptedMessageWithPubKey> decryptedMailboxMessageWithPubKeys = new CopyOnWriteArraySet<>();
     private final CopyOnWriteArraySet<DecryptedMessageWithPubKey> decryptedDirectMessageWithPubKeys = new CopyOnWriteArraySet<>();
     protected final MailboxMessageService mailboxMessageService;
@@ -69,16 +70,24 @@ public abstract class SupportManager {
 
         // We get first the message handler called then the onBootstrapped
         p2PService.addDecryptedDirectMessageListener((decryptedMessageWithPubKey, senderAddress) -> {
-            // As decryptedDirectMessageWithPubKeys is a CopyOnWriteArraySet we do not need to check if it was
-            // already stored
-            decryptedDirectMessageWithPubKeys.add(decryptedMessageWithPubKey);
-            tryApplyMessages();
+            if (isReady()) applyDirectMessage(decryptedMessageWithPubKey);
+            else {
+                synchronized (lock) {
+                    // As decryptedDirectMessageWithPubKeys is a CopyOnWriteArraySet we do not need to check if it was already stored
+                    decryptedDirectMessageWithPubKeys.add(decryptedMessageWithPubKey);
+                    tryApplyMessages();
+                }
+            }
         });
         mailboxMessageService.addDecryptedMailboxListener((decryptedMessageWithPubKey, senderAddress) -> {
-            // As decryptedMailboxMessageWithPubKeys is a CopyOnWriteArraySet we do not need to check if it was
-            // already stored
-            decryptedMailboxMessageWithPubKeys.add(decryptedMessageWithPubKey);
-            tryApplyMessages();
+            if (isReady()) applyMailboxMessage(decryptedMessageWithPubKey);
+            else {
+                synchronized (lock) {
+                    // As decryptedMailboxMessageWithPubKeys is a CopyOnWriteArraySet we do not need to check if it was already stored
+                    decryptedDirectMessageWithPubKeys.add(decryptedMessageWithPubKey);
+                    tryApplyMessages();
+                }
+            }
         });
     }
 
@@ -138,6 +147,7 @@ public abstract class SupportManager {
     protected void onChatMessage(ChatMessage chatMessage) {
         final String tradeId = chatMessage.getTradeId();
         final String uid = chatMessage.getUid();
+        log.info("Received {} from peer {}. tradeId={}, uid={}", chatMessage.getClass().getSimpleName(), chatMessage.getSenderNodeAddress(), tradeId, uid);
         boolean channelOpen = channelOpen(chatMessage);
         if (!channelOpen) {
             log.debug("We got a chatMessage but we don't have a matching chat. TradeId = " + tradeId);
@@ -293,6 +303,11 @@ public abstract class SupportManager {
         }
     }
 
+    
+    ///////////////////////////////////////////////////////////////////////////////////////////
+    // Private
+    ///////////////////////////////////////////////////////////////////////////////////////////
+
     private boolean isReady() {
         return allServicesInitialized &&
                 p2PService.isBootstrapped() &&
@@ -306,29 +321,34 @@ public abstract class SupportManager {
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     private void applyMessages() {
-        decryptedDirectMessageWithPubKeys.forEach(decryptedMessageWithPubKey -> {
-            NetworkEnvelope networkEnvelope = decryptedMessageWithPubKey.getNetworkEnvelope();
-            if (networkEnvelope instanceof SupportMessage) {
-                onSupportMessage((SupportMessage) networkEnvelope);
-            } else if (networkEnvelope instanceof AckMessage) {
-                onAckMessage((AckMessage) networkEnvelope);
-            }
-        });
-        decryptedDirectMessageWithPubKeys.clear();
+        synchronized (lock) {
+            decryptedDirectMessageWithPubKeys.forEach(decryptedMessageWithPubKey -> applyDirectMessage(decryptedMessageWithPubKey));
+            decryptedDirectMessageWithPubKeys.clear();
+            decryptedMailboxMessageWithPubKeys.forEach(decryptedMessageWithPubKey -> applyMailboxMessage(decryptedMessageWithPubKey));
+            decryptedMailboxMessageWithPubKeys.clear();
+        }
+    }
 
-        decryptedMailboxMessageWithPubKeys.forEach(decryptedMessageWithPubKey -> {
-            NetworkEnvelope networkEnvelope = decryptedMessageWithPubKey.getNetworkEnvelope();
-            log.trace("## decryptedMessageWithPubKey message={}", networkEnvelope.getClass().getSimpleName());
-            if (networkEnvelope instanceof SupportMessage) {
-                SupportMessage supportMessage = (SupportMessage) networkEnvelope;
-                onSupportMessage(supportMessage);
-                mailboxMessageService.removeMailboxMsg(supportMessage);
-            } else if (networkEnvelope instanceof AckMessage) {
-                AckMessage ackMessage = (AckMessage) networkEnvelope;
-                onAckMessage(ackMessage);
-                mailboxMessageService.removeMailboxMsg(ackMessage);
-            }
-        });
-        decryptedMailboxMessageWithPubKeys.clear();
+    private void applyDirectMessage(DecryptedMessageWithPubKey decryptedMessageWithPubKey) {
+        NetworkEnvelope networkEnvelope = decryptedMessageWithPubKey.getNetworkEnvelope();
+        if (networkEnvelope instanceof SupportMessage) {
+            onSupportMessage((SupportMessage) networkEnvelope);
+        } else if (networkEnvelope instanceof AckMessage) {
+            onAckMessage((AckMessage) networkEnvelope);
+        }
+    }
+
+    private void applyMailboxMessage(DecryptedMessageWithPubKey decryptedMessageWithPubKey) {
+        NetworkEnvelope networkEnvelope = decryptedMessageWithPubKey.getNetworkEnvelope();
+        log.trace("## decryptedMessageWithPubKey message={}", networkEnvelope.getClass().getSimpleName());
+        if (networkEnvelope instanceof SupportMessage) {
+            SupportMessage supportMessage = (SupportMessage) networkEnvelope;
+            onSupportMessage(supportMessage);
+            mailboxMessageService.removeMailboxMsg(supportMessage);
+        } else if (networkEnvelope instanceof AckMessage) {
+            AckMessage ackMessage = (AckMessage) networkEnvelope;
+            onAckMessage(ackMessage);
+            mailboxMessageService.removeMailboxMsg(ackMessage);
+        }
     }
 }

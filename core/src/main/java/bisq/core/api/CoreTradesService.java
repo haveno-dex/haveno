@@ -103,16 +103,24 @@ class CoreTradesService {
                 throw new IllegalArgumentException(format("payment account with id '%s' not found", paymentAccountId));
 
             var useSavingsWallet = true;
-            //noinspection ConstantConditions
-            takeOfferModel.initModel(offer, paymentAccount, useSavingsWallet);
-            log.info("Initiating take {} offer, {}",
-                    offer.isBuyOffer() ? "buy" : "sell",
-                    takeOfferModel);
-            //noinspection ConstantConditions
+
+            // synchronize access to take offer model // TODO (woodser): to avoid synchronizing, don't use stateful model
+            Coin txFeeFromFeeService; // TODO (woodser): remove this and other unused fields
+            Coin takerFee;
+            Coin fundsNeededForTrade;
+            synchronized (takeOfferModel) {
+                takeOfferModel.initModel(offer, paymentAccount, useSavingsWallet);
+                txFeeFromFeeService = takeOfferModel.getTxFeeFromFeeService();
+                takerFee = takeOfferModel.getTakerFee();
+                fundsNeededForTrade = takeOfferModel.getFundsNeededForTrade();
+                log.info("Initiating take {} offer, {}", offer.isBuyOffer() ? "buy" : "sell", takeOfferModel);
+            }
+
+            // take offer
             tradeManager.onTakeOffer(offer.getAmount(),
-                    takeOfferModel.getTxFeeFromFeeService(),
-                    takeOfferModel.getTakerFee(),
-                    takeOfferModel.getFundsNeededForTrade(),
+                    txFeeFromFeeService,
+                    takerFee,
+                    fundsNeededForTrade,
                     offer,
                     paymentAccountId,
                     useSavingsWallet,
@@ -225,7 +233,7 @@ class CoreTradesService {
     }
 
     private Optional<Trade> getOpenTrade(String tradeId) {
-        return tradeManager.getTradeById(tradeId);
+        return tradeManager.getOpenTrade(tradeId);
     }
 
     private Optional<Trade> getClosedTrade(String tradeId) {
@@ -236,14 +244,14 @@ class CoreTradesService {
     List<Trade> getTrades() {
         coreWalletsService.verifyWalletsAreAvailable();
         coreWalletsService.verifyEncryptedWalletIsUnlocked();
-        List<Trade> trades = new ArrayList<Trade>(tradeManager.getTrades());
+        List<Trade> trades = new ArrayList<Trade>(tradeManager.getOpenTrades());
         trades.addAll(closedTradableManager.getClosedTrades());
         return trades;
     }
 
     List<ChatMessage> getChatMessages(String tradeId) {
         Trade trade;
-        var tradeOptional = tradeManager.getTradeById(tradeId);
+        var tradeOptional = tradeManager.getOpenTrade(tradeId);
         if (tradeOptional.isPresent()) trade = tradeOptional.get();
         else throw new IllegalStateException(format("trade with id '%s' not found", tradeId));
         boolean isMaker = tradeManager.isMyOffer(trade.getOffer());
@@ -253,7 +261,7 @@ class CoreTradesService {
 
     void sendChatMessage(String tradeId, String message) {
         Trade trade;
-        var tradeOptional = tradeManager.getTradeById(tradeId);
+        var tradeOptional = tradeManager.getOpenTrade(tradeId);
         if (tradeOptional.isPresent()) trade = tradeOptional.get();
         else throw new IllegalStateException(format("trade with id '%s' not found", tradeId));
         boolean isMaker = tradeManager.isMyOffer(trade.getOffer());

@@ -40,29 +40,28 @@ public class TakerReservesTradeFunds extends TradeTask {
     protected void run() {
         try {
             runInterceptHook();
-            
-            // create transaction to reserve trade
-            String returnAddress = model.getXmrWalletService().getOrCreateAddressEntry(trade.getOffer().getId(), XmrAddressEntry.Context.TRADE_PAYOUT).getAddressString();
-            BigInteger takerFee = ParsingUtils.coinToAtomicUnits(trade.getTakerFee());
-            BigInteger depositAmount = ParsingUtils.centinerosToAtomicUnits(processModel.getFundsNeededForTradeAsLong());
-            MoneroTxWallet reserveTx = TradeUtils.createReserveTx(model.getXmrWalletService(), trade.getId(), takerFee, returnAddress, depositAmount);
-            
-            // freeze trade funds
-            // TODO (woodser): synchronize to handle potential race condition where concurrent trades freeze each other's outputs
-            List<String> reserveTxKeyImages = new ArrayList<String>();
-            MoneroWallet wallet = model.getXmrWalletService().getWallet();
-            for (MoneroOutput input : reserveTx.getInputs()) {
-                reserveTxKeyImages.add(input.getKeyImage().getHex());
-                wallet.freezeOutput(input.getKeyImage().getHex());
+
+            // synchronize on wallet to reserve key images
+            synchronized (model.getXmrWalletService().getWallet()) {
+
+                // create transaction to reserve trade
+                String returnAddress = model.getXmrWalletService().getOrCreateAddressEntry(trade.getOffer().getId(), XmrAddressEntry.Context.TRADE_PAYOUT).getAddressString();
+                BigInteger takerFee = ParsingUtils.coinToAtomicUnits(trade.getTakerFee());
+                BigInteger depositAmount = ParsingUtils.centinerosToAtomicUnits(processModel.getFundsNeededForTradeAsLong());
+                MoneroTxWallet reserveTx = TradeUtils.reserveTradeFunds(model.getXmrWalletService(), trade.getId(), takerFee, returnAddress, depositAmount);
+                
+                // collect reserved key images // TODO (woodser): switch to proof of reserve?
+                List<String> reservedKeyImages = new ArrayList<String>();
+                for (MoneroOutput input : reserveTx.getInputs()) reservedKeyImages.add(input.getKeyImage().getHex());
+                
+                // save process state
+                // TODO (woodser): persist
+                processModel.setReserveTx(reserveTx);
+                processModel.getTaker().setReserveTxKeyImages(reservedKeyImages);
+                trade.setTakerFeeTxId(reserveTx.getHash()); // TODO (woodser): this should be multisig deposit tx id? how is it used?
+                //trade.setState(Trade.State.TAKER_PUBLISHED_TAKER_FEE_TX); // TODO (woodser): fee tx is not broadcast separate, update states
+                complete();
             }
-            
-            // save process state
-            // TODO (woodser): persist
-            processModel.setReserveTx(reserveTx);
-            processModel.getTaker().setReserveTxKeyImages(reserveTxKeyImages);
-            trade.setTakerFeeTxId(reserveTx.getHash()); // TODO (woodser): this should be multisig deposit tx id? how is it used?
-            //trade.setState(Trade.State.TAKER_PUBLISHED_TAKER_FEE_TX); // TODO (woodser): fee tx is not broadcast separate, update states
-            complete();
         } catch (Throwable t) {
             trade.setErrorMessage("An error occurred.\n" +
                 "Error message:\n"

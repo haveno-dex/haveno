@@ -200,7 +200,7 @@ public final class RefundManager extends DisputeManager<RefundDisputeList> {
 
         dispute.setDisputeResult(disputeResult);
 
-        Optional<Trade> tradeOptional = tradeManager.getTradeById(tradeId);
+        Optional<Trade> tradeOptional = tradeManager.getOpenTrade(tradeId);
         if (tradeOptional.isPresent()) {
             Trade trade = tradeOptional.get();
             if (trade.getDisputeState() == Trade.DisputeState.REFUND_REQUESTED ||
@@ -215,7 +215,7 @@ public final class RefundManager extends DisputeManager<RefundDisputeList> {
         sendAckMessage(chatMessage, dispute.getAgentPubKeyRing(), true, null);
 
         // set state after payout as we call swapTradeEntryToAvailableEntry
-        if (tradeManager.getTradeById(tradeId).isPresent()) {
+        if (tradeManager.getOpenTrade(tradeId).isPresent()) {
             tradeManager.closeDisputedTrade(tradeId, Trade.DisputeState.REFUND_REQUEST_CLOSED);
         } else {
             Optional<OpenOffer> openOfferOptional = openOfferManager.getOpenOfferById(tradeId);

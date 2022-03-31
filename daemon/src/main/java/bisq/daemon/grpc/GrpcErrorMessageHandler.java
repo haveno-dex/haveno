@@ -70,7 +70,7 @@ public class GrpcErrorMessageHandler implements ErrorMessageHandler {
     }
 
     @Override
-    public void handleErrorMessage(String errorMessage) {
+    public synchronized void handleErrorMessage(String errorMessage) {
         // A task runner may call handleErrorMessage(String) more than once.
         // Throw only one exception if that happens, to avoid looping until the
         // grpc stream is closed

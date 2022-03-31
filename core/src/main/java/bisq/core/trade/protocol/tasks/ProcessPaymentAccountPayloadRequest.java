@@ -60,27 +60,13 @@ public class ProcessPaymentAccountPayloadRequest extends TradeTask {
           
           // set payment account payload
           trade.getTradingPeer().setPaymentAccountPayload(paymentAccountPayload);
-          
-          // subscribe to trade state to notify ui when deposit txs seen in network
-          tradeStateSubscription = EasyBind.subscribe(trade.stateProperty(), newValue -> {
-            if (trade.isDepositPublished()) applyPublishedDepositTxs();
-          });
-          if (trade.isDepositPublished()) applyPublishedDepositTxs(); // deposit txs might be seen before subcription
-          
+
           // persist and complete
           processModel.getTradeManager().requestPersistence();
           complete();
         } catch (Throwable t) {
           failed(t);
         }
-    }
-    
-    private void applyPublishedDepositTxs() {
-        MoneroWallet multisigWallet = processModel.getXmrWalletService().getMultisigWallet(trade.getId());
-        MoneroTxWallet makerDepositTx = checkNotNull(multisigWallet.getTx(processModel.getMaker().getDepositTxHash()));
-        MoneroTxWallet takerDepositTx = checkNotNull(multisigWallet.getTx(processModel.getTaker().getDepositTxHash()));
-        trade.applyDepositTxs(makerDepositTx, takerDepositTx);
-        UserThread.execute(this::unSubscribe); // remove trade state subscription at callback
     }
 
     private void unSubscribe() {

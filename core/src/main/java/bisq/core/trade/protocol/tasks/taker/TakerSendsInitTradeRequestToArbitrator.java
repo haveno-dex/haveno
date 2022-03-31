@@ -42,12 +42,11 @@ public class TakerSendsInitTradeRequestToArbitrator extends TradeTask {
         try {
             runInterceptHook();
             
-            // send request to offer signer
+            // send request to arbitrator
             sendInitTradeRequest(trade.getOffer().getOfferPayload().getArbitratorSigner(), new SendDirectMessageListener() {
                 @Override
                 public void onArrived() {
                     log.info("{} arrived at arbitrator: offerId={}", InitTradeRequest.class.getSimpleName(), trade.getId());
-                    complete();
                 }
                 
                 // send request to backup arbitrator if signer unavailable
@@ -63,7 +62,6 @@ public class TakerSendsInitTradeRequestToArbitrator extends TradeTask {
                         @Override
                         public void onArrived() {
                             log.info("{} arrived at backup arbitrator: offerId={}", InitTradeRequest.class.getSimpleName(), trade.getId());
-                            complete();
                         }
                         @Override
                         public void onFault(String errorMessage) { // TODO (woodser): distinguish nack from offline
@@ -73,6 +71,7 @@ public class TakerSendsInitTradeRequestToArbitrator extends TradeTask {
                     });
                 }
             });
+            complete(); // TODO (woodser): onArrived() doesn't get called if arbitrator rejects concurrent requests. always complete before onArrived()?
         } catch (Throwable t) {
           failed(t);
         }

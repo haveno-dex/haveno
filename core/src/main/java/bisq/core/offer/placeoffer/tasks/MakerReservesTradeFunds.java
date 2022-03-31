@@ -45,27 +45,26 @@ public class MakerReservesTradeFunds extends Task<PlaceOfferModel> {
         try {
             runInterceptHook();
             
-            // create transaction to reserve trade
-            String returnAddress = model.getXmrWalletService().getOrCreateAddressEntry(offer.getId(), XmrAddressEntry.Context.TRADE_PAYOUT).getAddressString();
-            BigInteger makerFee = ParsingUtils.coinToAtomicUnits(offer.getMakerFee());
-            BigInteger depositAmount = ParsingUtils.coinToAtomicUnits(model.getReservedFundsForOffer());
-            MoneroTxWallet reserveTx = TradeUtils.createReserveTx(model.getXmrWalletService(), offer.getId(), makerFee, returnAddress, depositAmount);
-            
-            // freeze reserved outputs
-            // TODO (woodser): synchronize to handle potential race condition where concurrent trades freeze each other's outputs
-            List<String> reservedKeyImages = new ArrayList<String>();
-            MoneroWallet wallet = model.getXmrWalletService().getWallet();
-            for (MoneroOutput input : reserveTx.getInputs()) {
-                reservedKeyImages.add(input.getKeyImage().getHex());
-                wallet.freezeOutput(input.getKeyImage().getHex());
+            // synchronize on wallet to reserve key images
+            synchronized (model.getXmrWalletService().getWallet()) {
+
+                // create transaction to reserve trade
+                String returnAddress = model.getXmrWalletService().getOrCreateAddressEntry(offer.getId(), XmrAddressEntry.Context.TRADE_PAYOUT).getAddressString();
+                BigInteger makerFee = ParsingUtils.coinToAtomicUnits(offer.getMakerFee());
+                BigInteger depositAmount = ParsingUtils.coinToAtomicUnits(model.getReservedFundsForOffer());
+                MoneroTxWallet reserveTx = TradeUtils.reserveTradeFunds(model.getXmrWalletService(), offer.getId(), makerFee, returnAddress, depositAmount);
+
+                // collect reserved key images // TODO (woodser): switch to proof of reserve?
+                List<String> reservedKeyImages = new ArrayList<String>();
+                for (MoneroOutput input : reserveTx.getInputs()) reservedKeyImages.add(input.getKeyImage().getHex());
+
+                // save offer state
+                // TODO (woodser): persist
+                model.setReserveTx(reserveTx);
+                offer.getOfferPayload().setReserveTxKeyImages(reservedKeyImages);
+                offer.setOfferFeePaymentTxId(reserveTx.getHash()); // TODO (woodser): don't use this field
+                complete();
             }
-            
-            // save offer state
-            // TODO (woodser): persist
-            model.setReserveTx(reserveTx);
-            offer.getOfferPayload().setReserveTxKeyImages(reservedKeyImages);
-            offer.setOfferFeePaymentTxId(reserveTx.getHash()); // TODO (woodser): don't use this field
-            complete();
         } catch (Throwable t) {
             offer.setErrorMessage("An error occurred.\n" +
                 "Error message:\n"

@@ -32,9 +32,7 @@ import javafx.collections.ObservableList;
 import java.util.Optional;
 
 import lombok.extern.slf4j.Slf4j;
-
-
-
+import monero.daemon.model.MoneroTx;
 import monero.wallet.model.MoneroTxWallet;
 
 
@@ -82,14 +80,14 @@ class TransactionAwareTrade implements TransactionAwareTradable {
 
     private boolean isMakerDepositTx(String txId) {
       return Optional.ofNullable(trade.getMakerDepositTx())
-              .map(MoneroTxWallet::getHash)
+              .map(MoneroTx::getHash)
               .map(hash -> hash.equals(txId))
               .orElse(false);
     }
 
     private boolean isTakerDepositTx(String txId) {
       return Optional.ofNullable(trade.getTakerDepositTx())
-            .map(MoneroTxWallet::getHash)
+            .map(MoneroTx::getHash)
             .map(hash -> hash.equals(txId))
             .orElse(false);
     }
