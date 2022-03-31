@@ -22,10 +22,10 @@ import bisq.common.app.Version;
 import bisq.common.crypto.PubKeyRing;
 import bisq.common.crypto.Sig;
 import bisq.common.taskrunner.TaskRunner;
+import bisq.core.btc.wallet.XmrWalletService;
 import bisq.core.offer.Offer;
 import bisq.core.offer.OfferPayload;
 import bisq.core.trade.Trade;
-import bisq.core.trade.TradeUtils;
 import bisq.core.trade.messages.DepositRequest;
 import bisq.core.trade.messages.DepositResponse;
 import bisq.core.trade.protocol.TradingPeer;
@@ -37,7 +37,6 @@ import java.util.Date;
 import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
 import monero.daemon.MoneroDaemon;
-import monero.wallet.MoneroWallet;
 
 @Slf4j
 public class ArbitratorProcessesDepositRequest extends TradeTask {
@@ -86,14 +85,12 @@ public class ArbitratorProcessesDepositRequest extends TradeTask {
           else throw new RuntimeException("DepositRequest is not from maker or taker");
           
           // flush reserve tx from pool
-          MoneroDaemon daemon = trade.getXmrWalletService().getDaemon();
+          XmrWalletService xmrWalletService = trade.getXmrWalletService();
+          MoneroDaemon daemon = xmrWalletService.getDaemon();
           daemon.flushTxPool(trader.getReserveTxHash());
           
-          // process and verify deposit tx
-          TradeUtils.processTradeTx(
-                  daemon,
-                  trade.getXmrWalletService().getWallet(),
-                  depositAddress,
+          // verify deposit tx
+          xmrWalletService.verifyTradeTx(depositAddress,
                   depositAmount,
                   tradeFee,
                   trader.getDepositTxHash(),

@@ -35,7 +35,7 @@ import java.util.stream.Collectors;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
-
+import monero.wallet.model.MoneroTxWallet;
 import javax.annotation.Nullable;
 
 // Fields marked as transient are only used during protocol execution which are based on directMessages so we do not
@@ -108,13 +108,17 @@ public final class TradingPeer implements PersistablePayload {
     @Nullable
     private String madeMultisigHex;
     @Nullable
-    private String signedPayoutTxHex;
-    @Nullable
     private String depositTxHash;
     @Nullable
     private String depositTxHex;
     @Nullable
     private String depositTxKey;
+    @Nullable
+    transient private MoneroTxWallet payoutTx;
+    @Nullable
+    private String payoutTxHex;
+    @Nullable
+    private String updatedMultisigHex;
     
     public TradingPeer() {
     }
@@ -146,10 +150,11 @@ public final class TradingPeer implements PersistablePayload {
         Optional.ofNullable(reserveTxKey).ifPresent(e -> builder.setReserveTxKey(reserveTxKey));
         Optional.ofNullable(preparedMultisigHex).ifPresent(e -> builder.setPreparedMultisigHex(preparedMultisigHex));
         Optional.ofNullable(madeMultisigHex).ifPresent(e -> builder.setMadeMultisigHex(madeMultisigHex));
-        Optional.ofNullable(signedPayoutTxHex).ifPresent(e -> builder.setSignedPayoutTxHex(signedPayoutTxHex));
+        Optional.ofNullable(payoutTxHex).ifPresent(e -> builder.setPayoutTxHex(payoutTxHex));
         Optional.ofNullable(depositTxHash).ifPresent(e -> builder.setDepositTxHash(depositTxHash));
         Optional.ofNullable(depositTxHex).ifPresent(e -> builder.setDepositTxHex(depositTxHex));
         Optional.ofNullable(depositTxKey).ifPresent(e -> builder.setDepositTxKey(depositTxKey));
+        Optional.ofNullable(updatedMultisigHex).ifPresent(e -> builder.setUpdatedMultisigHex(updatedMultisigHex));
 
         builder.setCurrentDate(currentDate);
         return builder.build();
@@ -189,10 +194,11 @@ public final class TradingPeer implements PersistablePayload {
             tradingPeer.setReserveTxKeyImages(proto.getReserveTxKeyImagesList());
             tradingPeer.setPreparedMultisigHex(ProtoUtil.stringOrNullFromProto(proto.getPreparedMultisigHex()));
             tradingPeer.setMadeMultisigHex(ProtoUtil.stringOrNullFromProto(proto.getMadeMultisigHex()));
-            tradingPeer.setSignedPayoutTxHex(ProtoUtil.stringOrNullFromProto(proto.getSignedPayoutTxHex()));
             tradingPeer.setDepositTxHash(ProtoUtil.stringOrNullFromProto(proto.getDepositTxHash()));
             tradingPeer.setDepositTxHex(ProtoUtil.stringOrNullFromProto(proto.getDepositTxHex()));
             tradingPeer.setDepositTxKey(ProtoUtil.stringOrNullFromProto(proto.getDepositTxKey()));
+            tradingPeer.setPayoutTxHex(ProtoUtil.stringOrNullFromProto(proto.getPayoutTxHex()));
+            tradingPeer.setUpdatedMultisigHex(ProtoUtil.stringOrNullFromProto(proto.getUpdatedMultisigHex()));
             return tradingPeer;
         }
     }

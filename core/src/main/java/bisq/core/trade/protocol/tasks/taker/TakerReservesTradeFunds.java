@@ -20,14 +20,12 @@ package bisq.core.trade.protocol.tasks.taker;
 import bisq.common.taskrunner.TaskRunner;
 import bisq.core.btc.model.XmrAddressEntry;
 import bisq.core.trade.Trade;
-import bisq.core.trade.TradeUtils;
 import bisq.core.trade.protocol.tasks.TradeTask;
 import bisq.core.util.ParsingUtils;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.List;
 import monero.daemon.model.MoneroOutput;
-import monero.wallet.MoneroWallet;
 import monero.wallet.model.MoneroTxWallet;
 
 public class TakerReservesTradeFunds extends TradeTask {
@@ -41,27 +39,23 @@ public class TakerReservesTradeFunds extends TradeTask {
         try {
             runInterceptHook();
 
-            // synchronize on wallet to reserve key images
-            synchronized (model.getXmrWalletService().getWallet()) {
-
-                // create transaction to reserve trade
-                String returnAddress = model.getXmrWalletService().getOrCreateAddressEntry(trade.getOffer().getId(), XmrAddressEntry.Context.TRADE_PAYOUT).getAddressString();
-                BigInteger takerFee = ParsingUtils.coinToAtomicUnits(trade.getTakerFee());
-                BigInteger depositAmount = ParsingUtils.centinerosToAtomicUnits(processModel.getFundsNeededForTradeAsLong());
-                MoneroTxWallet reserveTx = TradeUtils.reserveTradeFunds(model.getXmrWalletService(), trade.getId(), takerFee, returnAddress, depositAmount);
-                
-                // collect reserved key images // TODO (woodser): switch to proof of reserve?
-                List<String> reservedKeyImages = new ArrayList<String>();
-                for (MoneroOutput input : reserveTx.getInputs()) reservedKeyImages.add(input.getKeyImage().getHex());
-                
-                // save process state
-                // TODO (woodser): persist
-                processModel.setReserveTx(reserveTx);
-                processModel.getTaker().setReserveTxKeyImages(reservedKeyImages);
-                trade.setTakerFeeTxId(reserveTx.getHash()); // TODO (woodser): this should be multisig deposit tx id? how is it used?
-                //trade.setState(Trade.State.TAKER_PUBLISHED_TAKER_FEE_TX); // TODO (woodser): fee tx is not broadcast separate, update states
-                complete();
-            }
+            // freeze trade funds and get reserve tx
+            String returnAddress = model.getXmrWalletService().getOrCreateAddressEntry(trade.getOffer().getId(), XmrAddressEntry.Context.TRADE_PAYOUT).getAddressString();
+            BigInteger takerFee = ParsingUtils.coinToAtomicUnits(trade.getTakerFee());
+            BigInteger depositAmount = ParsingUtils.centinerosToAtomicUnits(processModel.getFundsNeededForTradeAsLong());
+            MoneroTxWallet reserveTx = model.getXmrWalletService().createReserveTx(takerFee, returnAddress, depositAmount);
+            
+            // collect reserved key images // TODO (woodser): switch to proof of reserve?
+            List<String> reservedKeyImages = new ArrayList<String>();
+            for (MoneroOutput input : reserveTx.getInputs()) reservedKeyImages.add(input.getKeyImage().getHex());
+            
+            // save process state
+            // TODO (woodser): persist
+            processModel.setReserveTx(reserveTx);
+            processModel.getTaker().setReserveTxKeyImages(reservedKeyImages);
+            trade.setTakerFeeTxId(reserveTx.getHash()); // TODO (woodser): this should be multisig deposit tx id? how is it used?
+            //trade.setState(Trade.State.TAKER_PUBLISHED_TAKER_FEE_TX); // TODO (woodser): fee tx is not broadcast separate, update states
+            complete();
         } catch (Throwable t) {
             trade.setErrorMessage("An error occurred.\n" +
                 "Error message:\n"

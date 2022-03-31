@@ -468,27 +468,33 @@ public class PendingTradesView extends ActivatableViewAndModel<VBox, PendingTrad
         TradeChatSession tradeChatSession = new TradeChatSession(trade, isTaker);
 
         tradeStateListener = (observable, oldValue, newValue) -> {
-            if (trade.isPayoutPublished()) {
-                if (chatPopupStage.isShowing()) {
-                    chatPopupStage.hide();
+            UserThread.execute(() -> {
+                if (trade.isPayoutPublished()) {
+                    if (chatPopupStage.isShowing()) {
+                        chatPopupStage.hide();
+                    }
                 }
-            }
+            });
         };
         trade.stateProperty().addListener(tradeStateListener);
 
         disputeStateListener = (observable, oldValue, newValue) -> {
-            if (newValue == Trade.DisputeState.DISPUTE_CLOSED || newValue == Trade.DisputeState.REFUND_REQUEST_CLOSED) {
-                chatPopupStage.hide();
-            }
+            UserThread.execute(() -> {
+                if (newValue == Trade.DisputeState.DISPUTE_CLOSED || newValue == Trade.DisputeState.REFUND_REQUEST_CLOSED) {
+                    chatPopupStage.hide();
+                }
+            });
         };
         trade.disputeStateProperty().addListener(disputeStateListener);
 
         mediationResultStateListener = (observable, oldValue, newValue) -> {
-            if (newValue == MediationResultState.PAYOUT_TX_PUBLISHED ||
-                    newValue == MediationResultState.RECEIVED_PAYOUT_TX_PUBLISHED_MSG ||
-                    newValue == MediationResultState.PAYOUT_TX_SEEN_IN_NETWORK) {
-                chatPopupStage.hide();
-            }
+            UserThread.execute(() -> {
+                if (newValue == MediationResultState.PAYOUT_TX_PUBLISHED ||
+                        newValue == MediationResultState.RECEIVED_PAYOUT_TX_PUBLISHED_MSG ||
+                        newValue == MediationResultState.PAYOUT_TX_SEEN_IN_NETWORK) {
+                    chatPopupStage.hide();
+                }
+            });
         };
         trade.mediationResultStateProperty().addListener(mediationResultStateListener);
 
@@ -559,21 +565,23 @@ public class PendingTradesView extends ActivatableViewAndModel<VBox, PendingTrad
     }
 
     private void updateChatMessageCount(Trade trade, JFXBadge badge) {
-        if (!trade.getId().equals(tradeIdOfOpenChat)) {
-            updateNewChatMessagesByTradeMap();
-            long num = newChatMessagesByTradeMap.get(trade.getId());
-            if (num > 0) {
-                badge.setText(String.valueOf(num));
-                badge.setEnabled(true);
+        UserThread.execute(() -> {
+            if (!trade.getId().equals(tradeIdOfOpenChat)) {
+                updateNewChatMessagesByTradeMap();
+                long num = newChatMessagesByTradeMap.get(trade.getId());
+                if (num > 0) {
+                    badge.setText(String.valueOf(num));
+                    badge.setEnabled(true);
+                } else {
+                    badge.setText("");
+                    badge.setEnabled(false);
+                }
             } else {
                 badge.setText("");
                 badge.setEnabled(false);
             }
-        } else {
-            badge.setText("");
-            badge.setEnabled(false);
-        }
-        badge.refreshBadge();
+            badge.refreshBadge();
+        });
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////

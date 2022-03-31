@@ -36,7 +36,7 @@ import javax.annotation.Nullable;
 @Slf4j
 @EqualsAndHashCode(callSuper = true)
 @Value
-public final class PayoutTxPublishedMessage extends TradeMailboxMessage {
+public final class PaymentReceivedMessage extends TradeMailboxMessage {
     private final NodeAddress senderNodeAddress;
     private final String payoutTxHex;
 
@@ -44,16 +44,16 @@ public final class PayoutTxPublishedMessage extends TradeMailboxMessage {
     @Nullable
     private final SignedWitness signedWitness;
 
-    public PayoutTxPublishedMessage(String tradeId,
+    public PaymentReceivedMessage(String tradeId,
                                     NodeAddress senderNodeAddress,
                                     @Nullable SignedWitness signedWitness,
-                                    String payoutTxHex) {
+                                    String signedPayoutTxHex) {
         this(tradeId,
                 senderNodeAddress,
                 signedWitness,
                 UUID.randomUUID().toString(),
                 Version.getP2PMessageVersion(),
-                payoutTxHex);
+                signedPayoutTxHex);
     }
 
 
@@ -61,37 +61,37 @@ public final class PayoutTxPublishedMessage extends TradeMailboxMessage {
     // PROTO BUFFER
     ///////////////////////////////////////////////////////////////////////////////////////////
 
-    private PayoutTxPublishedMessage(String tradeId,
+    private PaymentReceivedMessage(String tradeId,
                                      NodeAddress senderNodeAddress,
                                      @Nullable SignedWitness signedWitness,
                                      String uid,
                                      String messageVersion,
-                                     String payoutTxHex) {
+                                     String signedPayoutTxHex) {
         super(messageVersion, tradeId, uid);
         this.senderNodeAddress = senderNodeAddress;
         this.signedWitness = signedWitness;
-        this.payoutTxHex = payoutTxHex;
+        this.payoutTxHex = signedPayoutTxHex;
     }
 
     @Override
     public protobuf.NetworkEnvelope toProtoNetworkEnvelope() {
-        protobuf.PayoutTxPublishedMessage.Builder builder = protobuf.PayoutTxPublishedMessage.newBuilder()
+        protobuf.PaymentReceivedMessage.Builder builder = protobuf.PaymentReceivedMessage.newBuilder()
                 .setTradeId(tradeId)
                 .setSenderNodeAddress(senderNodeAddress.toProtoMessage())
                 .setUid(uid)
                 .setPayoutTxHex(payoutTxHex);
         Optional.ofNullable(signedWitness).ifPresent(signedWitness -> builder.setSignedWitness(signedWitness.toProtoSignedWitness()));
-        return getNetworkEnvelopeBuilder().setPayoutTxPublishedMessage(builder).build();
+        return getNetworkEnvelopeBuilder().setPaymentReceivedMessage(builder).build();
     }
 
-    public static NetworkEnvelope fromProto(protobuf.PayoutTxPublishedMessage proto, String messageVersion) {
+    public static NetworkEnvelope fromProto(protobuf.PaymentReceivedMessage proto, String messageVersion) {
         // There is no method to check for a nullable non-primitive data type object but we know that all fields
         // are empty/null, so we check for the signature to see if we got a valid signedWitness.
         protobuf.SignedWitness protoSignedWitness = proto.getSignedWitness();
         SignedWitness signedWitness = !protoSignedWitness.getSignature().isEmpty() ?
                 SignedWitness.fromProto(protoSignedWitness) :
                 null;
-        return new PayoutTxPublishedMessage(proto.getTradeId(),
+        return new PaymentReceivedMessage(proto.getTradeId(),
                 NodeAddress.fromProto(proto.getSenderNodeAddress()),
                 signedWitness,
                 proto.getUid(),
@@ -101,7 +101,7 @@ public final class PayoutTxPublishedMessage extends TradeMailboxMessage {
 
     @Override
     public String toString() {
-        return "PayoutTxPublishedMessage{" +
+        return "SellerReceivedPaymentMessage{" +
                 "\n     senderNodeAddress=" + senderNodeAddress +
                 ",\n     signedWitness=" + signedWitness +
                 ",\n     payoutTxHex=" + payoutTxHex +

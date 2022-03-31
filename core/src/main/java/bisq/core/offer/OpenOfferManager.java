@@ -664,9 +664,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
             Offer offer = new Offer(request.getOfferPayload());
             BigInteger tradeFee = ParsingUtils.coinToAtomicUnits(offer.getMakerFee());
             BigInteger depositAmount = ParsingUtils.coinToAtomicUnits(offer.getDirection() == OfferPayload.Direction.BUY ? offer.getBuyerSecurityDeposit() : offer.getAmount().add(offer.getSellerSecurityDeposit()));
-            TradeUtils.processTradeTx(
-                    xmrWalletService.getDaemon(),
-                    xmrWalletService.getWallet(),
+            xmrWalletService.verifyTradeTx(
                     request.getPayoutAddress(),
                     depositAmount,
                     tradeFee,

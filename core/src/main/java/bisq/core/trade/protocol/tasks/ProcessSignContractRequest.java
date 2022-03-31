@@ -27,7 +27,6 @@ import bisq.core.trade.ArbitratorTrade;
 import bisq.core.trade.Contract;
 import bisq.core.trade.Trade;
 import bisq.core.trade.Trade.State;
-import bisq.core.trade.TradeUtils;
 import bisq.core.trade.messages.SignContractRequest;
 import bisq.core.trade.messages.SignContractResponse;
 import bisq.core.trade.protocol.TradingPeer;
@@ -71,7 +70,7 @@ public class ProcessSignContractRequest extends TradeTask {
           }
 
           // create and sign contract
-          Contract contract = TradeUtils.createContract(trade);
+          Contract contract = trade.createContract();
           String contractAsJson = Utilities.objectToJson(contract);
           String signature = Sig.sign(processModel.getKeyRing().getSignatureKeyPair().getPrivate(), contractAsJson);
 

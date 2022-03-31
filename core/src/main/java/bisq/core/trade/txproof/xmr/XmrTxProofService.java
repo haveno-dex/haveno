@@ -346,7 +346,7 @@ public class XmrTxProofService implements AssetTxProofService {
     }
 
     private boolean isExpectedTradeState(Trade.State newValue) {
-        return newValue == Trade.State.SELLER_RECEIVED_FIAT_PAYMENT_INITIATED_MSG;
+        return newValue == Trade.State.SELLER_RECEIVED_PAYMENT_INITIATED_MSG;
     }
 
     private boolean is32BitHexStringInValid(String hexString) {

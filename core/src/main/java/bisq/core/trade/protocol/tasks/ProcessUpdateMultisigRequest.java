@@ -72,9 +72,9 @@ public class ProcessUpdateMultisigRequest extends TradeTask {
           String updatedMultisigHex = multisigWallet.getMultisigHex();
 
           // import the multisig hex
-          int numOutputsSigned = multisigWallet.importMultisigHex(Arrays.asList(request.getUpdatedMultisigHex()));
+          int numOutputsSigned = multisigWallet.importMultisigHex(request.getUpdatedMultisigHex());
           System.out.println("Num outputs signed by imported multisig hex: " + numOutputsSigned);
-          
+
           // close multisig wallet
           processModel.getProvider().getXmrWalletService().closeMultisigWallet(trade.getId());
 

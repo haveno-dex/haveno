@@ -186,12 +186,10 @@ public class ProcessModel implements Model, PersistablePayload {
     @Getter
     @Setter
     private boolean multisigSetupComplete; // TODO (woodser): redundant with multisigAddress existing, remove
-    @Nullable
-    transient private MoneroTxWallet buyerSignedPayoutTx; // TODO (woodser): remove
 
 
     // We want to indicate the user the state of the message delivery of the
-    // CounterCurrencyTransferStartedMessage. As well we do an automatic re-send in case it was not ACKed yet.
+    // PaymentSentMessage. As well we do an automatic re-send in case it was not ACKed yet.
     // To enable that even after restart we persist the state.
     @Setter
     private ObjectProperty<MessageState> paymentStartedMessageStateProperty = new SimpleObjectProperty<>(MessageState.UNDEFINED);
@@ -420,14 +418,5 @@ public class ProcessModel implements Model, PersistablePayload {
 
     public KeyRing getKeyRing() {
         return provider.getKeyRing();
-    }
-
-    public void setBuyerSignedPayoutTx(MoneroTxWallet buyerSignedPayoutTx) {
-        this.buyerSignedPayoutTx = buyerSignedPayoutTx;
-    }
-
-    @Nullable
-    public MoneroTxWallet getBuyerSignedPayoutTx() {
-    	return buyerSignedPayoutTx;
     }
 }

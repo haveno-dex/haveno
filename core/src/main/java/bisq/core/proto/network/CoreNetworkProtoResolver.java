@@ -38,7 +38,8 @@ import bisq.core.support.dispute.messages.OpenNewDisputeMessage;
 import bisq.core.support.dispute.messages.PeerOpenedDisputeMessage;
 import bisq.core.support.dispute.refund.refundagent.RefundAgent;
 import bisq.core.support.messages.ChatMessage;
-import bisq.core.trade.messages.CounterCurrencyTransferStartedMessage;
+import bisq.core.trade.messages.PaymentSentMessage;
+import bisq.core.trade.messages.PayoutTxPublishedMessage;
 import bisq.core.trade.messages.DelayedPayoutTxSignatureRequest;
 import bisq.core.trade.messages.DelayedPayoutTxSignatureResponse;
 import bisq.core.trade.messages.DepositRequest;
@@ -52,7 +53,7 @@ import bisq.core.trade.messages.InputsForDepositTxResponse;
 import bisq.core.trade.messages.MediatedPayoutTxPublishedMessage;
 import bisq.core.trade.messages.MediatedPayoutTxSignatureMessage;
 import bisq.core.trade.messages.PaymentAccountPayloadRequest;
-import bisq.core.trade.messages.PayoutTxPublishedMessage;
+import bisq.core.trade.messages.PaymentReceivedMessage;
 import bisq.core.trade.messages.PeerPublishedDelayedPayoutTxMessage;
 import bisq.core.trade.messages.RefreshTradeStateRequest;
 import bisq.core.trade.messages.SignContractRequest;
@@ -182,11 +183,13 @@ public class CoreNetworkProtoResolver extends CoreProtoResolver implements Netwo
                 case DEPOSIT_TX_AND_DELAYED_PAYOUT_TX_MESSAGE:
                     return DepositTxAndDelayedPayoutTxMessage.fromProto(proto.getDepositTxAndDelayedPayoutTxMessage(), messageVersion);
 
-                case COUNTER_CURRENCY_TRANSFER_STARTED_MESSAGE:
-                    return CounterCurrencyTransferStartedMessage.fromProto(proto.getCounterCurrencyTransferStartedMessage(), messageVersion);
-
+                case PAYMENT_SENT_MESSAGE:
+                    return PaymentSentMessage.fromProto(proto.getPaymentSentMessage(), messageVersion);
+                case PAYMENT_RECEIVED_MESSAGE:
+                    return PaymentReceivedMessage.fromProto(proto.getPaymentReceivedMessage(), messageVersion);
                 case PAYOUT_TX_PUBLISHED_MESSAGE:
                     return PayoutTxPublishedMessage.fromProto(proto.getPayoutTxPublishedMessage(), messageVersion);
+
                 case PEER_PUBLISHED_DELAYED_PAYOUT_TX_MESSAGE:
                     return PeerPublishedDelayedPayoutTxMessage.fromProto(proto.getPeerPublishedDelayedPayoutTxMessage(), messageVersion);
                 case TRADER_SIGNED_WITNESS_MESSAGE:

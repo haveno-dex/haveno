@@ -135,12 +135,12 @@ public class BuyerStep2View extends TradeStepView {
 
                 if (trade.isDepositConfirmed() && !trade.isFiatSent()) {
                     showPopup();
-                } else if (state.ordinal() <= Trade.State.BUYER_SEND_FAILED_FIAT_PAYMENT_INITIATED_MSG.ordinal()) {
+                } else if (state.ordinal() <= Trade.State.BUYER_SEND_FAILED_PAYMENT_INITIATED_MSG.ordinal()) {
                     if (!trade.hasFailed()) {
                         UserThread.execute(() -> {
                             switch (state) {
-                            case BUYER_CONFIRMED_IN_UI_FIAT_PAYMENT_INITIATED:
-                            case BUYER_SENT_FIAT_PAYMENT_INITIATED_MSG:
+                            case BUYER_CONFIRMED_IN_UI_PAYMENT_INITIATED:
+                            case BUYER_SENT_PAYMENT_INITIATED_MSG:
                                 busyAnimation.play();
                                 statusLabel.setText(Res.get("shared.sendingConfirmation"));
                                 model.setMessageStateProperty(MessageState.SENT);
@@ -149,17 +149,17 @@ public class BuyerStep2View extends TradeStepView {
                                     statusLabel.setText(Res.get("shared.sendingConfirmationAgain"));
                                 }, 10);
                                 break;
-                            case BUYER_SAW_ARRIVED_FIAT_PAYMENT_INITIATED_MSG:
+                            case BUYER_SAW_ARRIVED_PAYMENT_INITIATED_MSG:
                                 busyAnimation.stop();
                                 statusLabel.setText(Res.get("shared.messageArrived"));
                                 model.setMessageStateProperty(MessageState.ARRIVED);
                                 break;
-                            case BUYER_STORED_IN_MAILBOX_FIAT_PAYMENT_INITIATED_MSG:
+                            case BUYER_STORED_IN_MAILBOX_PAYMENT_INITIATED_MSG:
                                 busyAnimation.stop();
                                 statusLabel.setText(Res.get("shared.messageStoredInMailbox"));
                                 model.setMessageStateProperty(MessageState.STORED_IN_MAILBOX);
                                 break;
-                            case BUYER_SEND_FAILED_FIAT_PAYMENT_INITIATED_MSG:
+                            case BUYER_SEND_FAILED_PAYMENT_INITIATED_MSG:
                                 // We get a popup and the trade closed, so we dont need to show anything here
                                 busyAnimation.stop();
                                 statusLabel.setText("");

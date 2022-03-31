@@ -326,7 +326,7 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
 
                 // update arbitrator's multisig wallet
                 MoneroWallet multisigWallet = xmrWalletService.getMultisigWallet(dispute.getTradeId());
-                multisigWallet.importMultisigHex(Arrays.asList(openNewDisputeMessage.getUpdatedMultisigHex()));
+                multisigWallet.importMultisigHex(openNewDisputeMessage.getUpdatedMultisigHex());
                 log.info("Arbitrator multisig wallet updated on new dispute message for trade " + dispute.getTradeId());
                 
                 // close multisig wallet

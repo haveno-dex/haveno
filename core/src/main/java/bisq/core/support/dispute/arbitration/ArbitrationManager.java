@@ -380,7 +380,7 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
             // update multisig wallet
             if (xmrWalletService.multisigWalletExists(tradeId)) { // TODO: multisig wallet may already be deleted if peer completed trade with arbitrator. refactor trade completion?
                 MoneroWallet multisigWallet = xmrWalletService.getMultisigWallet(dispute.getTradeId());
-                multisigWallet.importMultisigHex(Arrays.asList(peerPublishedDisputePayoutTxMessage.getUpdatedMultisigHex()));
+                multisigWallet.importMultisigHex(peerPublishedDisputePayoutTxMessage.getUpdatedMultisigHex());
                 MoneroTxWallet parsedPayoutTx = multisigWallet.describeTxSet(new MoneroTxSet().setMultisigTxHex(peerPublishedDisputePayoutTxMessage.getPayoutTxHex())).getTxs().get(0);
                 xmrWalletService.closeMultisigWallet(tradeId);
                 dispute.setDisputePayoutTxId(parsedPayoutTx.getHash());
@@ -434,7 +434,7 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
           // update arbitrator's multisig wallet with co-signer's multisig hex
           MoneroWallet multisigWallet = xmrWalletService.getMultisigWallet(dispute.getTradeId());
           try {
-            multisigWallet.importMultisigHex(Arrays.asList(request.getUpdatedMultisigHex()));
+            multisigWallet.importMultisigHex(request.getUpdatedMultisigHex());
           } catch (Exception e) {
             log.warn("Failed to import multisig hex from payout co-signer for trade id " + tradeId);
             return;
@@ -550,7 +550,7 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
       if (!expectedLoserAmount.equals(actualLoserAmount)) throw new RuntimeException("Unexpected loser payout: " + expectedLoserAmount + " vs " + actualLoserAmount);
 
       // update multisig wallet from arbitrator
-      multisigWallet.importMultisigHex(Arrays.asList(disputeResult.getArbitratorUpdatedMultisigHex()));
+      multisigWallet.importMultisigHex(disputeResult.getArbitratorUpdatedMultisigHex());
 
       // sign arbitrator-signed payout tx
       MoneroMultisigSignResult result = multisigWallet.signMultisigTxHex(payoutTxHex);

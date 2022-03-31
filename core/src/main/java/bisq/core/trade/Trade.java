@@ -17,6 +17,7 @@
 
 package bisq.core.trade;
 
+import bisq.core.btc.model.XmrAddressEntry;
 import bisq.core.btc.wallet.XmrWalletService;
 import bisq.core.locale.CurrencyUtil;
 import bisq.core.monetary.Price;
@@ -35,6 +36,7 @@ import bisq.core.trade.protocol.ProcessModelServiceProvider;
 import bisq.core.trade.protocol.TradeListener;
 import bisq.core.trade.protocol.TradingPeer;
 import bisq.core.trade.txproof.AssetTxProofResult;
+import bisq.core.util.ParsingUtils;
 import bisq.core.util.VolumeUtil;
 import bisq.network.p2p.AckMessage;
 import bisq.network.p2p.NodeAddress;
@@ -43,10 +45,9 @@ import bisq.common.crypto.PubKeyRing;
 import bisq.common.proto.ProtoUtil;
 import bisq.common.taskrunner.Model;
 import bisq.common.util.Utilities;
-
+import com.google.common.base.Preconditions;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.Message;
-
 import org.bitcoinj.core.Coin;
 import org.bitcoinj.core.Transaction;
 
@@ -61,7 +62,7 @@ import javafx.beans.property.StringProperty;
 
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
-
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
@@ -85,6 +86,10 @@ import monero.common.MoneroError;
 import monero.daemon.MoneroDaemon;
 import monero.daemon.model.MoneroTx;
 import monero.wallet.MoneroWallet;
+import monero.wallet.model.MoneroDestination;
+import monero.wallet.model.MoneroMultisigSignResult;
+import monero.wallet.model.MoneroTxConfig;
+import monero.wallet.model.MoneroTxSet;
 import monero.wallet.model.MoneroTxWallet;
 import monero.wallet.model.MoneroWalletListener;
 
@@ -148,21 +153,21 @@ public abstract class Trade implements Tradable, Model {
         DEPOSIT_CONFIRMED_IN_BLOCK_CHAIN(Phase.DEPOSIT_CONFIRMED),
 
 
-        // #################### Phase FIAT_SENT
-        BUYER_CONFIRMED_IN_UI_FIAT_PAYMENT_INITIATED(Phase.FIAT_SENT),
-        BUYER_SENT_FIAT_PAYMENT_INITIATED_MSG(Phase.FIAT_SENT),
-        BUYER_SAW_ARRIVED_FIAT_PAYMENT_INITIATED_MSG(Phase.FIAT_SENT),
-        BUYER_STORED_IN_MAILBOX_FIAT_PAYMENT_INITIATED_MSG(Phase.FIAT_SENT),
-        BUYER_SEND_FAILED_FIAT_PAYMENT_INITIATED_MSG(Phase.FIAT_SENT),
+        // #################### Phase PAYMENT_SENT
+        BUYER_CONFIRMED_IN_UI_PAYMENT_INITIATED(Phase.PAYMENT_SENT),
+        BUYER_SENT_PAYMENT_INITIATED_MSG(Phase.PAYMENT_SENT),
+        BUYER_SAW_ARRIVED_PAYMENT_INITIATED_MSG(Phase.PAYMENT_SENT),
+        BUYER_STORED_IN_MAILBOX_PAYMENT_INITIATED_MSG(Phase.PAYMENT_SENT),
+        BUYER_SEND_FAILED_PAYMENT_INITIATED_MSG(Phase.PAYMENT_SENT),
 
-        SELLER_RECEIVED_FIAT_PAYMENT_INITIATED_MSG(Phase.FIAT_SENT),
+        SELLER_RECEIVED_PAYMENT_INITIATED_MSG(Phase.PAYMENT_SENT),
 
-        // #################### Phase FIAT_RECEIVED
+        // #################### Phase PAYMENT_RECEIVED
         // note that this state can also be triggered by auto confirmation feature
-        SELLER_CONFIRMED_IN_UI_FIAT_PAYMENT_RECEIPT(Phase.FIAT_RECEIVED),
+        SELLER_CONFIRMED_IN_UI_PAYMENT_RECEIPT(Phase.PAYMENT_RECEIVED),
 
         // #################### Phase PAYOUT_PUBLISHED
-        SELLER_PUBLISHED_PAYOUT_TX(Phase.PAYOUT_PUBLISHED),
+        SELLER_PUBLISHED_PAYOUT_TX(Phase.PAYOUT_PUBLISHED), // TODO (woodser): this enum is over used, like during arbitration
 
         SELLER_SENT_PAYOUT_TX_PUBLISHED_MSG(Phase.PAYOUT_PUBLISHED),
         SELLER_SAW_ARRIVED_PAYOUT_TX_PUBLISHED_MSG(Phase.PAYOUT_PUBLISHED),
@@ -172,6 +177,7 @@ public abstract class Trade implements Tradable, Model {
         BUYER_RECEIVED_PAYOUT_TX_PUBLISHED_MSG(Phase.PAYOUT_PUBLISHED),
         // Alternatively the maker could have seen the payout tx earlier before he received the PAYOUT_TX_PUBLISHED_MSG
         BUYER_SAW_PAYOUT_TX_IN_NETWORK(Phase.PAYOUT_PUBLISHED),
+        BUYER_PUBLISHED_PAYOUT_TX(Phase.PAYOUT_PUBLISHED),
 
 
         // #################### Phase WITHDRAWN
@@ -212,8 +218,8 @@ public abstract class Trade implements Tradable, Model {
         TAKER_FEE_PUBLISHED, // TODO (woodser): remove unused phases
         DEPOSIT_PUBLISHED,
         DEPOSIT_CONFIRMED, // TODO (woodser): rename to or add DEPOSIT_UNLOCKED
-        FIAT_SENT,
-        FIAT_RECEIVED,
+        PAYMENT_SENT,
+        PAYMENT_RECEIVED,
         PAYOUT_PUBLISHED,
         WITHDRAWN;
 
@@ -700,6 +706,157 @@ public abstract class Trade implements Tradable, Model {
     }
 
     /**
+     * Create a contract based on the current state.
+     * 
+     * @param trade is the trade to create the contract from
+     * @return the contract
+     */
+    public Contract createContract() {
+        boolean isBuyerMakerAndSellerTaker = getOffer().getDirection() == Direction.BUY;
+        Contract contract = new Contract(
+                getOffer().getOfferPayload(),
+                checkNotNull(getTradeAmount()).value,
+                getTradePrice().getValue(),
+                isBuyerMakerAndSellerTaker ? getMakerNodeAddress() : getTakerNodeAddress(), // buyer node address // TODO (woodser): use maker and taker node address instead of buyer and seller node address for consistency
+                isBuyerMakerAndSellerTaker ? getTakerNodeAddress() : getMakerNodeAddress(), // seller node address
+                getArbitratorNodeAddress(),
+                isBuyerMakerAndSellerTaker,
+                this instanceof MakerTrade ? processModel.getAccountId() : getMaker().getAccountId(), // maker account id
+                this instanceof TakerTrade ? processModel.getAccountId() : getTaker().getAccountId(), // taker account id
+                checkNotNull(this instanceof MakerTrade ? processModel.getPaymentAccountPayload(this).getPaymentMethodId() : getOffer().getOfferPayload().getPaymentMethodId()), // maker payment method id
+                checkNotNull(this instanceof TakerTrade ? processModel.getPaymentAccountPayload(this).getPaymentMethodId() : getTaker().getPaymentMethodId()), // taker payment method id
+                this instanceof MakerTrade ? processModel.getPaymentAccountPayload(this).getHash() : getMaker().getPaymentAccountPayloadHash(), // maker payment account payload hash
+                this instanceof TakerTrade ? processModel.getPaymentAccountPayload(this).getHash() : getTaker().getPaymentAccountPayloadHash(), // maker payment account payload hash
+                getMakerPubKeyRing(),
+                getTakerPubKeyRing(),
+                this instanceof MakerTrade ? xmrWalletService.getAddressEntry(getId(), XmrAddressEntry.Context.TRADE_PAYOUT).get().getAddressString() : getMaker().getPayoutAddressString(), // maker payout address
+                this instanceof TakerTrade ? xmrWalletService.getAddressEntry(getId(), XmrAddressEntry.Context.TRADE_PAYOUT).get().getAddressString() : getTaker().getPayoutAddressString(), // taker payout address
+                getLockTime(),
+                getMaker().getDepositTxHash(),
+                getTaker().getDepositTxHash()
+        );
+        return contract;
+    }
+
+    /**
+     * Create the payout tx.
+     * 
+     * @return MoneroTxWallet the payout tx when the trade is successfully completed
+     */
+    public MoneroTxWallet createPayoutTx() {
+
+        // gather relevant info
+        XmrWalletService walletService = processModel.getProvider().getXmrWalletService();
+        MoneroWallet multisigWallet = walletService.getMultisigWallet(this.getId());
+        String sellerPayoutAddress = this.getSeller().getPayoutAddressString();
+        String buyerPayoutAddress = this.getBuyer().getPayoutAddressString();
+        Preconditions.checkNotNull(sellerPayoutAddress, "Seller payout address must not be null");
+        Preconditions.checkNotNull(buyerPayoutAddress, "Buyer payout address must not be null");
+        BigInteger sellerDepositAmount = multisigWallet.getTx(this.getSeller().getDepositTxHash()).getIncomingAmount();
+        BigInteger buyerDepositAmount = multisigWallet.getTx(this.getBuyer().getDepositTxHash()).getIncomingAmount();
+        BigInteger tradeAmount = ParsingUtils.coinToAtomicUnits(this.getTradeAmount());
+        BigInteger buyerPayoutAmount = buyerDepositAmount.add(tradeAmount);
+        BigInteger sellerPayoutAmount = sellerDepositAmount.subtract(tradeAmount);
+
+        // create transaction to get fee estimate
+        if (multisigWallet.isMultisigImportNeeded()) throw new RuntimeException("Cannot create payout tx because multisig import is needed");
+        MoneroTxWallet feeEstimateTx = multisigWallet.createTx(new MoneroTxConfig()
+                .setAccountIndex(0)
+                .addDestination(buyerPayoutAddress, buyerPayoutAmount.multiply(BigInteger.valueOf(9)).divide(BigInteger.valueOf(10))) // reduce payment amount to compute fee of similar tx
+                .addDestination(sellerPayoutAddress, sellerPayoutAmount.multiply(BigInteger.valueOf(9)).divide(BigInteger.valueOf(10)))
+                .setRelay(false)
+        );
+
+        // attempt to create payout tx by increasing estimated fee until successful
+        MoneroTxWallet payoutTx = null;
+        int numAttempts = 0;
+        while (payoutTx == null && numAttempts < 50) {
+          BigInteger feeEstimate = feeEstimateTx.getFee().add(feeEstimateTx.getFee().multiply(BigInteger.valueOf(numAttempts)).divide(BigInteger.valueOf(10))); // add 1/10 of fee until tx is successful
+          try {
+            numAttempts++;
+            payoutTx = multisigWallet.createTx(new MoneroTxConfig()
+                    .setAccountIndex(0)
+                    .addDestination(buyerPayoutAddress, buyerPayoutAmount.subtract(feeEstimate.divide(BigInteger.valueOf(2)))) // split fee subtracted from each payout amount
+                    .addDestination(sellerPayoutAddress, sellerPayoutAmount.subtract(feeEstimate.divide(BigInteger.valueOf(2))))
+                    .setRelay(false));
+          } catch (MoneroError e) {
+            // exception expected
+          }
+        }
+
+        if (payoutTx == null) throw new RuntimeException("Failed to generate payout tx after " + numAttempts + " attempts");
+        log.info("Payout transaction generated on attempt {}: {}", numAttempts, payoutTx);
+        return payoutTx;
+    }
+
+    /**
+     * Verify and sign a payout tx.
+     * 
+     * @param payoutTxHex is the payout tx hex to verify
+     * @return String the signed payout tx hex
+     */
+    public void verifySignAndPublishPayoutTx(String payoutTxHex) {
+        log.info("Verifying payout tx");
+        
+        // gather relevant info
+        XmrWalletService walletService = processModel.getProvider().getXmrWalletService();
+        MoneroWallet multisigWallet = walletService.getMultisigWallet(getId());
+        Contract contract = getContract();
+        BigInteger sellerDepositAmount = multisigWallet.getTx(getSeller().getDepositTxHash()).getIncomingAmount();   // TODO (woodser): redundancy of processModel.getPreparedDepositTxId() vs this.getDepositTxId() necessary or avoidable?
+        BigInteger buyerDepositAmount = multisigWallet.getTx(getBuyer().getDepositTxHash()).getIncomingAmount();
+        BigInteger tradeAmount = ParsingUtils.coinToAtomicUnits(getTradeAmount());
+
+        // parse payout tx
+        MoneroTxSet parsedTxSet = multisigWallet.describeTxSet(new MoneroTxSet().setMultisigTxHex(payoutTxHex));
+        if (parsedTxSet.getTxs() == null || parsedTxSet.getTxs().size() != 1) throw new RuntimeException("Bad payout tx"); // TODO (woodser): test nack
+        MoneroTxWallet payoutTx = parsedTxSet.getTxs().get(0);
+
+        // verify payout tx has exactly 2 destinations
+        if (payoutTx.getOutgoingTransfer() == null || payoutTx.getOutgoingTransfer().getDestinations() == null || payoutTx.getOutgoingTransfer().getDestinations().size() != 2) throw new RuntimeException("Payout tx does not have exactly two destinations");
+
+        // get buyer and seller destinations (order not preserved)
+        boolean buyerFirst = payoutTx.getOutgoingTransfer().getDestinations().get(0).getAddress().equals(contract.getBuyerPayoutAddressString());
+        MoneroDestination buyerPayoutDestination = payoutTx.getOutgoingTransfer().getDestinations().get(buyerFirst ? 0 : 1);
+        MoneroDestination sellerPayoutDestination = payoutTx.getOutgoingTransfer().getDestinations().get(buyerFirst ? 1 : 0);
+
+        // verify payout addresses
+        if (!buyerPayoutDestination.getAddress().equals(contract.getBuyerPayoutAddressString())) throw new RuntimeException("Buyer payout address does not match contract");
+        if (!sellerPayoutDestination.getAddress().equals(contract.getSellerPayoutAddressString())) throw new RuntimeException("Seller payout address does not match contract");
+
+        // verify change address is multisig's primary address
+        if (!payoutTx.getChangeAmount().equals(BigInteger.ZERO) && !payoutTx.getChangeAddress().equals(multisigWallet.getPrimaryAddress())) throw new RuntimeException("Change address is not multisig wallet's primary address");
+
+        // verify sum of outputs = destination amounts + change amount
+        if (!payoutTx.getOutputSum().equals(buyerPayoutDestination.getAmount().add(sellerPayoutDestination.getAmount()).add(payoutTx.getChangeAmount()))) throw new RuntimeException("Sum of outputs != destination amounts + change amount");
+
+        // verify buyer destination amount is deposit amount + this amount - 1/2 tx costs
+        BigInteger txCost = payoutTx.getFee().add(payoutTx.getChangeAmount());
+        BigInteger expectedBuyerPayout = buyerDepositAmount.add(tradeAmount).subtract(txCost.divide(BigInteger.valueOf(2)));
+        if (!buyerPayoutDestination.getAmount().equals(expectedBuyerPayout)) throw new RuntimeException("Buyer destination amount is not deposit amount + trade amount - 1/2 tx costs, " + buyerPayoutDestination.getAmount() + " vs " + expectedBuyerPayout);
+
+        // verify seller destination amount is deposit amount - this amount - 1/2 tx costs
+        BigInteger expectedSellerPayout = sellerDepositAmount.subtract(tradeAmount).subtract(txCost.divide(BigInteger.valueOf(2)));
+        if (!sellerPayoutDestination.getAmount().equals(expectedSellerPayout)) throw new RuntimeException("Seller destination amount is not deposit amount - trade amount - 1/2 tx costs, " + sellerPayoutDestination.getAmount() + " vs " + expectedSellerPayout);
+
+        // TODO (woodser): verify fee is reasonable (e.g. within 2x of fee estimate tx)
+        
+        // sign payout tx
+        MoneroMultisigSignResult result = multisigWallet.signMultisigTxHex(payoutTxHex);
+        if (result.getSignedMultisigTxHex() == null) throw new RuntimeException("Error signing payout tx");
+        String signedPayoutTxHex = result.getSignedMultisigTxHex();
+        
+        // submit payout tx
+        multisigWallet.submitMultisigTxHex(signedPayoutTxHex);
+        walletService.closeMultisigWallet(getId());
+        
+        // update trade state
+        this.getSelf().setPayoutTxHex(signedPayoutTxHex);
+        this.setPayoutTx(parsedTxSet.getTxs().get(0));
+        this.setPayoutTxId(parsedTxSet.getTxs().get(0).getHash());
+        this.setState(Trade.State.SELLER_PUBLISHED_PAYOUT_TX);
+    }
+
+    /**
      * Listen for deposit transactions to unlock and then apply the transactions.
      * 
      * TODO: adopt for general purpose scheduling
@@ -821,32 +978,6 @@ public abstract class Trade implements Tradable, Model {
     public void applyDelayedPayoutTxBytes(byte[] delayedPayoutTxBytes) {
         this.delayedPayoutTxBytes = delayedPayoutTxBytes;
     }
-
-//    @Nullable
-//    public Transaction getDelayedPayoutTx() {
-//        return getDelayedPayoutTx(processModel.getBtcWalletService());
-//    }
-//
-//    // If called from a not initialized trade (or a closed or failed trade)
-//    // we need to pass the xmrWalletService
-//    @Nullable
-//    public Transaction getDelayedPayoutTx(XmrWalletService xmrWalletService) {
-//        if (delayedPayoutTx == null) {
-//            if (xmrWalletService == null) {
-//                log.warn("xmrWalletService is null. You might call that method before the tradeManager has " +
-//                        "initialized all trades");
-//                return null;
-//            }
-//
-//            if (delayedPayoutTxBytes == null) {
-//                log.warn("delayedPayoutTxBytes are null");
-//                return null;
-//            }
-//
-//            delayedPayoutTx = xmrWalletService.getTxFromSerializedTx(delayedPayoutTxBytes);
-//        }
-//        return delayedPayoutTx;
-//    }
 
     public void addAndPersistChatMessage(ChatMessage chatMessage) {
         if (!chatMessages.contains(chatMessage)) {
@@ -1163,11 +1294,11 @@ public abstract class Trade implements Tradable, Model {
     }
 
     public boolean isFiatSent() {
-        return getState().getPhase().ordinal() >= Phase.FIAT_SENT.ordinal();
+        return getState().getPhase().ordinal() >= Phase.PAYMENT_SENT.ordinal();
     }
 
     public boolean isFiatReceived() {
-        return getState().getPhase().ordinal() >= Phase.FIAT_RECEIVED.ordinal();
+        return getState().getPhase().ordinal() >= Phase.PAYMENT_RECEIVED.ordinal();
     }
 
     public boolean isPayoutPublished() {

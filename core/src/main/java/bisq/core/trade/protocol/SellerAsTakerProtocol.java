@@ -23,7 +23,7 @@ import bisq.core.trade.SellerAsTakerTrade;
 import bisq.core.trade.Trade;
 import bisq.core.trade.Trade.State;
 import bisq.core.trade.handlers.TradeResultHandler;
-import bisq.core.trade.messages.CounterCurrencyTransferStartedMessage;
+import bisq.core.trade.messages.PaymentSentMessage;
 import bisq.core.trade.messages.DepositResponse;
 import bisq.core.trade.messages.InitMultisigRequest;
 import bisq.core.trade.messages.InputsForDepositTxResponse;
@@ -279,7 +279,7 @@ public class SellerAsTakerProtocol extends SellerProtocol implements TakerProtoc
 
     // We keep the handler here in as well to make it more transparent which messages we expect
     @Override
-    protected void handle(CounterCurrencyTransferStartedMessage message, NodeAddress peer) {
+    protected void handle(PaymentSentMessage message, NodeAddress peer) {
         super.handle(message, peer);
     }
 
