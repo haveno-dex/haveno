@@ -30,7 +30,7 @@ import bisq.core.trade.protocol.tasks.seller.SellerSendPayoutTxPublishedMessage;
 import bisq.core.trade.protocol.tasks.seller.SellerSignAndPublishPayoutTx;
 
 import bisq.network.p2p.NodeAddress;
-
+import java.util.concurrent.CountDownLatch;
 import bisq.common.handlers.ErrorMessageHandler;
 import bisq.common.handlers.ResultHandler;
 
@@ -77,27 +77,39 @@ public abstract class SellerProtocol extends DisputeProtocol {
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     protected void handle(CounterCurrencyTransferStartedMessage message, NodeAddress peer) {
+        log.info("SellerProtocol.handle(CounterCurrencyTransferStartedMessage)");
         // We are more tolerant with expected phase and allow also DEPOSIT_PUBLISHED as it can be the case
         // that the wallet is still syncing and so the DEPOSIT_CONFIRMED state to yet triggered when we received
         // a mailbox message with CounterCurrencyTransferStartedMessage.
         // TODO A better fix would be to add a listener for the wallet sync state and process
         // the mailbox msg once wallet is ready and trade state set.
-        expect(anyPhase(Trade.Phase.DEPOSIT_CONFIRMED, Trade.Phase.DEPOSIT_PUBLISHED)
-                .with(message)
-                .from(peer)
-                .preCondition(trade.getPayoutTx() == null,
-                        () -> {
-                            log.warn("We received a CounterCurrencyTransferStartedMessage but we have already created the payout tx " +
-                                    "so we ignore the message. This can happen if the ACK message to the peer did not " +
-                                    "arrive and the peer repeats sending us the message. We send another ACK msg.");
-                            sendAckMessage(peer, message, true, null);
-                            removeMailboxMessageAfterProcessing(message);
-                        }))
-                .setup(tasks(
-                        SellerProcessCounterCurrencyTransferStartedMessage.class,
-                        ApplyFilter.class,
-                        getVerifyPeersFeePaymentClass()))
-                .executeTasks();
+        synchronized (trade) {
+            CountDownLatch latch = new CountDownLatch(1);
+            expect(anyPhase(Trade.Phase.DEPOSIT_CONFIRMED, Trade.Phase.DEPOSIT_PUBLISHED)
+                    .with(message)
+                    .from(peer)
+                    .preCondition(trade.getPayoutTx() == null,
+                            () -> {
+                                log.warn("We received a CounterCurrencyTransferStartedMessage but we have already created the payout tx " +
+                                        "so we ignore the message. This can happen if the ACK message to the peer did not " +
+                                        "arrive and the peer repeats sending us the message. We send another ACK msg.");
+                                sendAckMessage(peer, message, true, null);
+                                removeMailboxMessageAfterProcessing(message);
+                            }))
+                    .setup(tasks(
+                            SellerProcessCounterCurrencyTransferStartedMessage.class,
+                            ApplyFilter.class,
+                            getVerifyPeersFeePaymentClass())
+                            .using(new TradeTaskRunner(trade,
+                                    () -> {
+                                        latch.countDown();
+                                    },
+                                    (errorMessage) -> {
+                                        latch.countDown();
+                                    })))
+                    .executeTasks();
+            wait(latch);
+        }
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -105,26 +117,33 @@ public abstract class SellerProtocol extends DisputeProtocol {
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     public void onPaymentReceived(ResultHandler resultHandler, ErrorMessageHandler errorMessageHandler) {
-        SellerEvent event = SellerEvent.PAYMENT_RECEIVED;
-        expect(anyPhase(Trade.Phase.FIAT_SENT, Trade.Phase.PAYOUT_PUBLISHED)
-                .with(event)
-                .preCondition(trade.confirmPermitted()))
-                .setup(tasks(
-                        ApplyFilter.class,
-                        getVerifyPeersFeePaymentClass(),
-                        SellerSignAndPublishPayoutTx.class,
-                        // SellerSignAndFinalizePayoutTx.class,
-                        // SellerBroadcastPayoutTx.class,
-                        SellerSendPayoutTxPublishedMessage.class)
-                        .using(new TradeTaskRunner(trade, () -> {
-                            resultHandler.handleResult();
-                            handleTaskRunnerSuccess(event);
-                        }, (errorMessage) -> {
-                            errorMessageHandler.handleErrorMessage(errorMessage);
-                            handleTaskRunnerFault(event, errorMessage);
-                        })))
-                .run(() -> trade.setState(Trade.State.SELLER_CONFIRMED_IN_UI_FIAT_PAYMENT_RECEIPT))
-                .executeTasks();
+        log.info("SellerProtocol.onPaymentReceived()");
+        synchronized (trade) {
+            CountDownLatch latch = new CountDownLatch(1);
+            SellerEvent event = SellerEvent.PAYMENT_RECEIVED;
+            expect(anyPhase(Trade.Phase.FIAT_SENT, Trade.Phase.PAYOUT_PUBLISHED)
+                    .with(event)
+                    .preCondition(trade.confirmPermitted()))
+                    .setup(tasks(
+                            ApplyFilter.class,
+                            getVerifyPeersFeePaymentClass(),
+                            SellerSignAndPublishPayoutTx.class,
+                            // SellerSignAndFinalizePayoutTx.class,
+                            // SellerBroadcastPayoutTx.class,
+                            SellerSendPayoutTxPublishedMessage.class)
+                            .using(new TradeTaskRunner(trade, () -> {
+                                latch.countDown();
+                                resultHandler.handleResult();
+                                handleTaskRunnerSuccess(event);
+                            }, (errorMessage) -> {
+                                latch.countDown();
+                                errorMessageHandler.handleErrorMessage(errorMessage);
+                                handleTaskRunnerFault(event, errorMessage);
+                            })))
+                    .run(() -> trade.setState(Trade.State.SELLER_CONFIRMED_IN_UI_FIAT_PAYMENT_RECEIPT))
+                    .executeTasks();
+            wait(latch);
+        }
     }
 
 

@@ -382,17 +382,19 @@ public class OfferBookChartView extends ActivatableViewAndModel<VBox, OfferBookC
     }
 
     private void updateChartData() {
-        seriesBuy.getData().clear();
-        seriesSell.getData().clear();
-        areaChart.getData().clear();
+        UserThread.execute(() -> {
+            seriesBuy.getData().clear();
+            seriesSell.getData().clear();
+            areaChart.getData().clear();
 
-        boolean isCrypto = CurrencyUtil.isCryptoCurrency(model.getCurrencyCode());
+            boolean isCrypto = CurrencyUtil.isCryptoCurrency(model.getCurrencyCode());
 
-        // crypto: left-sell, right-buy. fiat: left-buy, right-sell
-        seriesBuy.getData().addAll(filterOutliersBuy(model.getBuyData(), isCrypto));
-        seriesSell.getData().addAll(filterOutliersSell(model.getSellData(), isCrypto));
+            // crypto: left-sell, right-buy. fiat: left-buy, right-sell
+            seriesBuy.getData().addAll(filterOutliersBuy(model.getBuyData(), isCrypto));
+            seriesSell.getData().addAll(filterOutliersSell(model.getSellData(), isCrypto));
 
-        areaChart.getData().addAll(List.of(seriesBuy, seriesSell));
+            areaChart.getData().addAll(List.of(seriesBuy, seriesSell));
+        });
     }
 
     List<XYChart.Data<Number, Number>> filterOutliersBuy(List<XYChart.Data<Number, Number>> buy, boolean isCrypto) {

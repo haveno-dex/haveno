@@ -51,7 +51,7 @@ import bisq.network.p2p.P2PService;
 import bisq.network.p2p.network.CloseConnectionReason;
 import bisq.network.p2p.network.Connection;
 import bisq.network.p2p.network.ConnectionListener;
-
+import bisq.common.UserThread;
 import bisq.common.app.DevEnv;
 
 import org.bitcoinj.core.Coin;
@@ -524,23 +524,25 @@ class TakeOfferViewModel extends ActivatableWithDataModel<TakeOfferDataModel> im
     }
 
     private void updateSpinnerInfo() {
-        if (!showPayFundsScreenDisplayed.get() ||
-                offerWarning.get() != null ||
-                errorMessage.get() != null ||
-                showTransactionPublishedScreen.get()) {
-            spinnerInfoText.set("");
-        } else if (dataModel.getIsBtcWalletFunded().get()) {
-            spinnerInfoText.set("");
-           /* if (dataModel.isFeeFromFundingTxSufficient.get()) {
+        UserThread.execute(() -> {
+            if (!showPayFundsScreenDisplayed.get() ||
+                    offerWarning.get() != null ||
+                    errorMessage.get() != null ||
+                    showTransactionPublishedScreen.get()) {
                 spinnerInfoText.set("");
+            } else if (dataModel.getIsBtcWalletFunded().get()) {
+                spinnerInfoText.set("");
+               /* if (dataModel.isFeeFromFundingTxSufficient.get()) {
+                    spinnerInfoText.set("");
+                } else {
+                    spinnerInfoText.set("Check if funding tx miner fee is sufficient...");
+                }*/
             } else {
-                spinnerInfoText.set("Check if funding tx miner fee is sufficient...");
-            }*/
-        } else {
-            spinnerInfoText.set(Res.get("shared.waitingForFunds"));
-        }
+                spinnerInfoText.set(Res.get("shared.waitingForFunds"));
+            }
 
-        isWaitingForFunds.set(!spinnerInfoText.get().isEmpty());
+            isWaitingForFunds.set(!spinnerInfoText.get().isEmpty());
+        });
     }
 
     private void addListeners() {

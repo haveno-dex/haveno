@@ -137,7 +137,8 @@ public class BuyerStep2View extends TradeStepView {
                     showPopup();
                 } else if (state.ordinal() <= Trade.State.BUYER_SEND_FAILED_FIAT_PAYMENT_INITIATED_MSG.ordinal()) {
                     if (!trade.hasFailed()) {
-                        switch (state) {
+                        UserThread.execute(() -> {
+                            switch (state) {
                             case BUYER_CONFIRMED_IN_UI_FIAT_PAYMENT_INITIATED:
                             case BUYER_SENT_FIAT_PAYMENT_INITIATED_MSG:
                                 busyAnimation.play();
@@ -169,7 +170,8 @@ public class BuyerStep2View extends TradeStepView {
                                 busyAnimation.stop();
                                 statusLabel.setText(Res.get("shared.sendingConfirmationAgain"));
                                 break;
-                        }
+                            }
+                        });
                     } else {
                         log.warn("Trade contains error message {}", trade.getErrorMessage());
                         statusLabel.setText("");

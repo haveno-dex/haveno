@@ -14,8 +14,13 @@ localnet:
 haveno:
 	./gradlew build
 
-haveno-apps: # quick build desktop and daemon apps without tests, etc
-	./gradlew :core:compileJava :desktop:build
+# build haveno without tests
+no-tests:
+	./gradlew build -x test
+
+# quick build desktop and daemon apps without tests
+haveno-apps:
+	./gradlew :core:compileJava :desktop:build -x test
 
 deploy:
 	# create a new screen session named 'localnet'

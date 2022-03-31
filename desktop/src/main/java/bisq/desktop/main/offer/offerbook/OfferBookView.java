@@ -62,7 +62,7 @@ import bisq.core.util.FormattingUtils;
 import bisq.core.util.coin.CoinFormatter;
 
 import bisq.network.p2p.NodeAddress;
-
+import bisq.common.UserThread;
 import bisq.common.app.DevEnv;
 import bisq.common.config.Config;
 import bisq.common.util.Tuple3;
@@ -305,7 +305,7 @@ public class OfferBookView extends ActivatableViewAndModel<GridPane, OfferBookVi
         GridPane.setMargin(nrOfOffersLabel, new Insets(10, 0, 0, 0));
         root.getChildren().add(nrOfOffersLabel);
 
-        offerListListener = c -> nrOfOffersLabel.setText(Res.get("offerbook.nrOffers", model.getOfferList().size()));
+        offerListListener = c -> UserThread.execute(() -> nrOfOffersLabel.setText(Res.get("offerbook.nrOffers", model.getOfferList().size())));
 
         // Fixes incorrect ordering of Available offers:
         // https://github.com/bisq-network/bisq-desktop/issues/588

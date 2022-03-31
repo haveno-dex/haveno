@@ -23,7 +23,7 @@ import bisq.core.proto.CoreProtoResolver;
 import bisq.core.support.SupportType;
 import bisq.core.support.messages.ChatMessage;
 import bisq.core.trade.Contract;
-
+import bisq.common.UserThread;
 import bisq.common.crypto.PubKeyRing;
 import bisq.common.proto.ProtoUtil;
 import bisq.common.proto.network.NetworkPayload;
@@ -365,7 +365,7 @@ public final class Dispute implements NetworkPayload, PersistablePayload {
 
     public void setState(Dispute.State disputeState) {
         this.disputeState = disputeState;
-        this.isClosedProperty.set(disputeState == State.CLOSED);
+        UserThread.execute(() -> this.isClosedProperty.set(disputeState == State.CLOSED));
     }
 
     public void setDisputeResult(DisputeResult disputeResult) {

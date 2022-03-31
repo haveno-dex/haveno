@@ -63,7 +63,7 @@ public class XmrWalletService {
     private static final String MONERO_WALLET_RPC_USERNAME = "haveno_user";
     private static final String MONERO_WALLET_RPC_DEFAULT_PASSWORD = "password"; // only used if account password is null
     private static final String MONERO_WALLET_NAME = "haveno_XMR";
-    private static final long MONERO_WALLET_SYNC_RATE = 5000l;
+    private static final long MONERO_WALLET_SYNC_PERIOD = 5000l;
 
     private final CoreAccountService accountService;
     private final CoreMoneroConnectionsService connectionsService;
@@ -154,61 +154,57 @@ public class XmrWalletService {
         return accountService.getPassword() == null ? MONERO_WALLET_RPC_DEFAULT_PASSWORD : accountService.getPassword();
     }
 
-    public boolean walletExists(String walletName) {
-        String path = walletDir.toString() + File.separator + walletName;
-        return new File(path + ".keys").exists();
-    }
-
-    public void closeWallet(MoneroWallet walletRpc, boolean save) {
-        log.info("{}.closeWallet({}, {})", getClass(), walletRpc.getPath(), save);
-        MONERO_WALLET_RPC_MANAGER.stopInstance((MoneroWalletRpc) walletRpc, save);
-    }
-
-    public void deleteWallet(String walletName) {
-        log.info("{}.deleteWallet({})", getClass(), walletName);
-        if (!walletExists(walletName)) throw new Error("Wallet does not exist at path: " + walletName);
-        String path = walletDir.toString() + File.separator + walletName;
-        if (!new File(path).delete()) throw new RuntimeException("Failed to delete wallet file: " + path);
-        if (!new File(path + ".keys").delete()) throw new RuntimeException("Failed to delete wallet file: " + path);
-        if (!new File(path + ".address.txt").delete()) throw new RuntimeException("Failed to delete wallet file: " + path);
-        // WalletsSetup.deleteRollingBackup(walletName); // TODO (woodser): necessary to delete rolling backup?
+    public boolean multisigWalletExists(String tradeId) {
+        return walletExists("xmr_multisig_trade_" + tradeId);
     }
 
     // TODO (woodser): test retaking failed trade. create new multisig wallet or replace? cannot reuse
-    public synchronized MoneroWallet createMultisigWallet(String tradeId) {
-        log.info("{}.createMultisigWallet({})", getClass(), tradeId);
-        if (multisigWallets.containsKey(tradeId)) return multisigWallets.get(tradeId);
-        String path = "xmr_multisig_trade_" + tradeId;
-        MoneroWallet multisigWallet = null;
-        multisigWallet = createWallet(new MoneroWalletConfig().setPath(path).setPassword(getWalletPassword()), null); // auto-assign port
-        multisigWallets.put(tradeId, multisigWallet);
-        multisigWallet.startSyncing(5000l);
-        return multisigWallet;
-    }
-
-    public MoneroWallet getMultisigWallet(String tradeId) { // TODO (woodser): synchronize per wallet id
-        log.info("{}.getMultisigWallet({})", getClass(), tradeId);
-        if (multisigWallets.containsKey(tradeId)) return multisigWallets.get(tradeId);
-        String path = "xmr_multisig_trade_" + tradeId;
-        if (!walletExists(path)) return null;
-        MoneroWallet multisigWallet = openWallet(new MoneroWalletConfig().setPath(path).setPassword(getWalletPassword()), null);
-        multisigWallets.put(tradeId, multisigWallet);
-        multisigWallet.startSyncing(5000l); // TODO (woodser): use sync period from config. apps stall if too many multisig wallets and too short sync period
-        return multisigWallet;
-    }
-
-    public synchronized boolean deleteMultisigWallet(String tradeId) {
-        log.info("{}.deleteMultisigWallet({})", getClass(), tradeId);
-        String walletName = "xmr_multisig_trade_" + tradeId;
-        if (!walletExists(walletName)) return false;
-        try {
-            closeWallet(getMultisigWallet(tradeId), false);
-        } catch (Exception err) {
-            // multisig wallet may not be open
+    public MoneroWallet createMultisigWallet(String tradeId) {
+        log.info("{}.createMultisigWallet({})", getClass().getSimpleName(), tradeId);
+        Trade trade = tradeManager.getOpenTrade(tradeId).get();
+        synchronized (trade) {
+            if (multisigWallets.containsKey(trade.getId())) return multisigWallets.get(trade.getId());
+            String path = "xmr_multisig_trade_" + trade.getId();
+            MoneroWallet multisigWallet = createWallet(new MoneroWalletConfig().setPath(path).setPassword(getWalletPassword()), null); // auto-assign port
+            multisigWallets.put(trade.getId(), multisigWallet);
+            return multisigWallet;
         }
-        deleteWallet(walletName);
-        multisigWallets.remove(tradeId);
-        return true;
+    }
+
+    // TODO (woodser): provide progress notifications during open?
+    public MoneroWallet getMultisigWallet(String tradeId) {
+        log.info("{}.getMultisigWallet({})", getClass().getSimpleName(), tradeId);
+        Trade trade = tradeManager.getTrade(tradeId);
+        synchronized (trade) {
+            if (multisigWallets.containsKey(trade.getId())) return multisigWallets.get(trade.getId());
+            String path = "xmr_multisig_trade_" + trade.getId();
+            if (!walletExists(path)) throw new RuntimeException("Multisig wallet does not exist for trade " + trade.getId());
+            MoneroWallet multisigWallet = openWallet(new MoneroWalletConfig().setPath(path).setPassword(getWalletPassword()), null);
+            multisigWallets.put(trade.getId(), multisigWallet);
+            return multisigWallet;
+        }
+    }
+
+    public void closeMultisigWallet(String tradeId) {
+        log.info("{}.closeMultisigWallet({})", getClass().getSimpleName(), tradeId);
+        Trade trade = tradeManager.getTrade(tradeId);
+        synchronized (trade) {
+            if (!multisigWallets.containsKey(trade.getId())) throw new RuntimeException("Multisig wallet to close was not previously opened for trade " + trade.getId());
+            MoneroWallet wallet = multisigWallets.remove(trade.getId());
+            closeWallet(wallet, true);
+        }
+    }
+
+    public boolean deleteMultisigWallet(String tradeId) {
+        log.info("{}.deleteMultisigWallet({})", getClass().getSimpleName(), tradeId);
+        Trade trade = tradeManager.getTrade(tradeId);
+        synchronized (trade) {
+            String walletName = "xmr_multisig_trade_" + tradeId;
+            if (!walletExists(walletName)) return false;
+            if (multisigWallets.containsKey(trade.getId())) closeMultisigWallet(tradeId);
+            deleteWallet(walletName);
+            return true;
+        }
     }
 
     public MoneroTxWallet createTx(List<MoneroDestination> destinations) {
@@ -239,6 +235,11 @@ public class XmrWalletService {
         connectionsService.addListener(newConnection -> {
             setWalletDaemonConnections(newConnection);
         });
+    }
+    
+    private boolean walletExists(String walletName) {
+        String path = walletDir.toString() + File.separator + walletName;
+        return new File(path + ".keys").exists();
     }
 
     private void tryInitMainWallet() {
@@ -288,7 +289,7 @@ public class XmrWalletService {
         // create wallet
         try {
             walletRpc.createWallet(config);
-            walletRpc.startSyncing(MONERO_WALLET_SYNC_RATE);
+            walletRpc.startSyncing(MONERO_WALLET_SYNC_PERIOD);
             return walletRpc;
         } catch (Exception e) {
             e.printStackTrace();
@@ -305,7 +306,7 @@ public class XmrWalletService {
         // open wallet
         try {
             walletRpc.openWallet(config);
-            walletRpc.startSyncing(MONERO_WALLET_SYNC_RATE);
+            walletRpc.startSyncing(MONERO_WALLET_SYNC_PERIOD);
             return walletRpc;
         } catch (Exception e) {
             e.printStackTrace();
@@ -370,7 +371,7 @@ public class XmrWalletService {
     }
 
     private void changeWalletPasswords(String oldPassword, String newPassword) {
-        List<String> tradeIds = tradeManager.getTrades().stream().map(Trade::getId).collect(Collectors.toList());
+        List<String> tradeIds = tradeManager.getOpenTrades().stream().map(Trade::getId).collect(Collectors.toList());
         ExecutorService pool = Executors.newFixedThreadPool(Math.min(10, 1 + tradeIds.size()));
         pool.submit(new Runnable() {
             @Override
@@ -404,7 +405,22 @@ public class XmrWalletService {
             throw new RuntimeException(e);
         }
     }
-    
+
+    private void closeWallet(MoneroWallet walletRpc, boolean save) {
+        log.info("{}.closeWallet({}, {})", getClass().getSimpleName(), walletRpc.getPath(), save);
+        MONERO_WALLET_RPC_MANAGER.stopInstance((MoneroWalletRpc) walletRpc, save);
+    }
+
+    private void deleteWallet(String walletName) {
+        log.info("{}.deleteWallet({})", getClass().getSimpleName(), walletName);
+        if (!walletExists(walletName)) throw new Error("Wallet does not exist at path: " + walletName);
+        String path = walletDir.toString() + File.separator + walletName;
+        if (!new File(path).delete()) throw new RuntimeException("Failed to delete wallet file: " + path);
+        if (!new File(path + ".keys").delete()) throw new RuntimeException("Failed to delete wallet file: " + path);
+        if (!new File(path + ".address.txt").delete()) throw new RuntimeException("Failed to delete wallet file: " + path);
+        // WalletsSetup.deleteRollingBackup(walletName); // TODO (woodser): necessary to delete rolling backup?
+    }
+
     private void closeAllWallets() {
 
         // collect wallets to shutdown

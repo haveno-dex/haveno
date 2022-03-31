@@ -181,14 +181,11 @@ public class ProcessModel implements Model, PersistablePayload {
     @Nullable
     @Getter
     @Setter
-    private boolean multisigSetupComplete;
+    private String multisigAddress;
     @Nullable
     @Getter
     @Setter
-    private boolean makerReadyToFundMultisig; // TODO (woodser): remove
-    @Getter
-    @Setter
-    private boolean multisigDepositInitiated;
+    private boolean multisigSetupComplete; // TODO (woodser): redundant with multisigAddress existing, remove
     @Nullable
     transient private MoneroTxWallet buyerSignedPayoutTx; // TODO (woodser): remove
 
@@ -251,9 +248,8 @@ public class ProcessModel implements Model, PersistablePayload {
         Optional.ofNullable(backupArbitrator).ifPresent(e -> builder.setBackupArbitrator(backupArbitrator.toProtoMessage()));
         Optional.ofNullable(preparedMultisigHex).ifPresent(e -> builder.setPreparedMultisigHex(preparedMultisigHex));
         Optional.ofNullable(madeMultisigHex).ifPresent(e -> builder.setMadeMultisigHex(madeMultisigHex));
+        Optional.ofNullable(multisigAddress).ifPresent(e -> builder.setMultisigAddress(multisigAddress));
         Optional.ofNullable(multisigSetupComplete).ifPresent(e -> builder.setMultisigSetupComplete(multisigSetupComplete));
-        Optional.ofNullable(makerReadyToFundMultisig).ifPresent(e -> builder.setMakerReadyToFundMultisig(makerReadyToFundMultisig));
-        Optional.ofNullable(multisigDepositInitiated).ifPresent(e -> builder.setMultisigSetupComplete(multisigDepositInitiated));
         return builder.build();
     }
 
@@ -284,9 +280,8 @@ public class ProcessModel implements Model, PersistablePayload {
         processModel.setBackupArbitrator(proto.hasBackupArbitrator() ? NodeAddress.fromProto(proto.getBackupArbitrator()) : null);
         processModel.setPreparedMultisigHex(ProtoUtil.stringOrNullFromProto(proto.getPreparedMultisigHex()));
         processModel.setMadeMultisigHex(ProtoUtil.stringOrNullFromProto(proto.getMadeMultisigHex()));
+        processModel.setMultisigAddress(ProtoUtil.stringOrNullFromProto(proto.getMultisigAddress()));
         processModel.setMultisigSetupComplete(proto.getMultisigSetupComplete());
-        processModel.setMakerReadyToFundMultisig(proto.getMakerReadyToFundMultisig());
-        processModel.setMultisigDepositInitiated(proto.getMultisigDepositInitiated());
 
         String paymentStartedMessageStateString = ProtoUtil.stringOrNullFromProto(proto.getPaymentStartedMessageState());
         MessageState paymentStartedMessageState = ProtoUtil.enumFromProto(MessageState.class, paymentStartedMessageStateString);

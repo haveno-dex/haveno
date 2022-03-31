@@ -83,7 +83,7 @@ public class TraderChatManager extends SupportManager {
 
     @Override
     public NodeAddress getPeerNodeAddress(ChatMessage message) {
-        return tradeManager.getTradeById(message.getTradeId()).map(trade -> {
+        return tradeManager.getOpenTrade(message.getTradeId()).map(trade -> {
             if (trade.getContract() != null) {
                 return trade.getContract().getPeersNodeAddress(pubKeyRingProvider.get());
             } else {
@@ -94,7 +94,7 @@ public class TraderChatManager extends SupportManager {
 
     @Override
     public PubKeyRing getPeerPubKeyRing(ChatMessage message) {
-        return tradeManager.getTradeById(message.getTradeId()).map(trade -> {
+        return tradeManager.getOpenTrade(message.getTradeId()).map(trade -> {
             if (trade.getContract() != null) {
                 return trade.getContract().getPeersPubKeyRing(pubKeyRingProvider.get());
             } else {
@@ -112,12 +112,12 @@ public class TraderChatManager extends SupportManager {
 
     @Override
     public boolean channelOpen(ChatMessage message) {
-        return tradeManager.getTradeById(message.getTradeId()).isPresent();
+        return tradeManager.getOpenTrade(message.getTradeId()).isPresent();
     }
 
     @Override
     public void addAndPersistChatMessage(ChatMessage message) {
-        tradeManager.getTradeById(message.getTradeId()).ifPresent(trade -> {
+        tradeManager.getOpenTrade(message.getTradeId()).ifPresent(trade -> {
             ObservableList<ChatMessage> chatMessages = trade.getChatMessages();
             if (chatMessages.stream().noneMatch(m -> m.getUid().equals(message.getUid()))) {
                 if (chatMessages.isEmpty()) {

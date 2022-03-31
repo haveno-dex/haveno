@@ -42,43 +42,61 @@ public abstract class PersistableList<T extends PersistablePayload> implements P
     }
 
     public void setAll(Collection<T> collection) {
-        this.list.clear();
-        this.list.addAll(collection);
+        synchronized (this.list) {
+            this.list.clear();
+            this.list.addAll(collection);
+        }
     }
 
     public boolean add(T item) {
-        if (!list.contains(item)) {
-            list.add(item);
-            return true;
+        synchronized (list) {
+            if (!list.contains(item)) {
+                list.add(item);
+                return true;
+            }
+            return false;
         }
-        return false;
     }
 
     public boolean remove(T item) {
-        return list.remove(item);
+        synchronized (list) {
+            return list.remove(item);
+        }
     }
 
     public Stream<T> stream() {
-        return list.stream();
+        synchronized (list) {
+            return list.stream();
+        }
     }
 
     public int size() {
-        return list.size();
+        synchronized (list) {
+            return list.size();
+        }
     }
 
     public boolean contains(T item) {
-        return list.contains(item);
+        synchronized (list) {
+            return list.contains(item);
+        }
     }
 
     public boolean isEmpty() {
-        return list.isEmpty();
+        synchronized (list) {
+            return list.isEmpty();
+        }
     }
 
     public void forEach(Consumer<? super T> action) {
-        list.forEach(action);
+        synchronized (list) {
+            list.forEach(action);
+        }
     }
 
     public void clear() {
-        list.clear();
+        synchronized (list) {
+            list.clear();
+        }
     }
 }

@@ -40,10 +40,10 @@ import monero.daemon.MoneroDaemon;
 import monero.wallet.MoneroWallet;
 
 @Slf4j
-public class ProcessDepositRequest extends TradeTask {
+public class ArbitratorProcessesDepositRequest extends TradeTask {
     
     @SuppressWarnings({"unused"})
-    public ProcessDepositRequest(TaskRunner taskHandler, Trade trade) {
+    public ArbitratorProcessesDepositRequest(TaskRunner taskHandler, Trade trade) {
         super(taskHandler, trade);
     }
 
@@ -78,8 +78,7 @@ public class ProcessDepositRequest extends TradeTask {
           boolean isFromTaker = request.getSenderNodeAddress().equals(trade.getTakerNodeAddress());
           boolean isFromBuyer = isFromTaker ? offer.getDirection() == OfferPayload.Direction.SELL : offer.getDirection() == OfferPayload.Direction.BUY;
           BigInteger depositAmount = ParsingUtils.coinToAtomicUnits(isFromBuyer ? offer.getBuyerSecurityDeposit() : offer.getAmount().add(offer.getSellerSecurityDeposit()));
-          MoneroWallet multisigWallet = processModel.getProvider().getXmrWalletService().getMultisigWallet(trade.getId()); // TODO (woodser): only get, do not create
-          String depositAddress = multisigWallet.getPrimaryAddress();
+          String depositAddress = processModel.getMultisigAddress();
           BigInteger tradeFee;
           TradingPeer trader = trade.getTradingPeer(request.getSenderNodeAddress());
           if (trader == processModel.getMaker()) tradeFee = ParsingUtils.coinToAtomicUnits(trade.getOffer().getMakerFee());
@@ -103,34 +102,30 @@ public class ProcessDepositRequest extends TradeTask {
                   null,
                   false);
           
-          // sychronize to send only one response
-          synchronized(processModel) {
+          // set deposit info
+          trader.setDepositTxHex(request.getDepositTxHex());
+          trader.setDepositTxKey(request.getDepositTxKey());
+          
+          // relay deposit txs when both available
+          // TODO (woodser): add small delay so tx has head start against double spend attempts?
+          if (processModel.getMaker().getDepositTxHex() != null && processModel.getTaker().getDepositTxHex() != null) {
               
-              // set deposit info
-              trader.setDepositTxHex(request.getDepositTxHex());
-              trader.setDepositTxKey(request.getDepositTxKey());
+              // relay txs
+              daemon.submitTxHex(processModel.getMaker().getDepositTxHex()); // TODO (woodser): check that result is good. will need to release funds if one is submitted
+              daemon.submitTxHex(processModel.getTaker().getDepositTxHex());
               
-              // relay deposit txs when both available
-              // TODO (woodser): add small delay so tx has head start against double spend attempts?
-              if (processModel.getMaker().getDepositTxHex() != null && processModel.getTaker().getDepositTxHex() != null) {
-                  
-                  // relay txs
-                  daemon.submitTxHex(processModel.getMaker().getDepositTxHex());
-                  daemon.submitTxHex(processModel.getTaker().getDepositTxHex());
-                  
-                  // create deposit response
-                  DepositResponse response = new DepositResponse(
-                          trade.getOffer().getId(),
-                          processModel.getMyNodeAddress(),
-                          processModel.getPubKeyRing(),
-                          UUID.randomUUID().toString(),
-                          Version.getP2PMessageVersion(),
-                          new Date().getTime());
-                  
-                  // send deposit response to maker and taker
-                  sendDepositResponse(trade.getMakerNodeAddress(), trade.getMakerPubKeyRing(), response);
-                  sendDepositResponse(trade.getTakerNodeAddress(), trade.getTakerPubKeyRing(), response);
-              }
+              // create deposit response
+              DepositResponse response = new DepositResponse(
+                      trade.getOffer().getId(),
+                      processModel.getMyNodeAddress(),
+                      processModel.getPubKeyRing(),
+                      UUID.randomUUID().toString(),
+                      Version.getP2PMessageVersion(),
+                      new Date().getTime());
+              
+              // send deposit response to maker and taker
+              sendDepositResponse(trade.getMakerNodeAddress(), trade.getMakerPubKeyRing(), response);
+              sendDepositResponse(trade.getTakerNodeAddress(), trade.getTakerPubKeyRing(), response);
           }
           
           // TODO (woodser): request persistence?

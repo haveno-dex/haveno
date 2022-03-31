@@ -49,6 +49,7 @@ import bisq.common.taskrunner.Task;
 
 import java.util.Collection;
 import java.util.Collections;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 import lombok.extern.slf4j.Slf4j;
@@ -57,6 +58,8 @@ import javax.annotation.Nullable;
 
 @Slf4j
 public abstract class TradeProtocol implements DecryptedDirectMessageListener, DecryptedMailboxListener {
+
+    public static final int TRADE_TIMEOUT = 60;
 
     protected final ProcessModel processModel;
     protected final Trade trade;
@@ -213,23 +216,28 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
 
     // TODO (woodser): update to use fluent for consistency
     public void handleUpdateMultisigRequest(UpdateMultisigRequest message, NodeAddress peer, ErrorMessageHandler errorMessageHandler) {
-      Validator.checkTradeId(processModel.getOfferId(), message);
-      processModel.setTradeMessage(message);
-
-      TradeTaskRunner taskRunner = new TradeTaskRunner(trade,
-              () -> {
-                stopTimeout();
-                handleTaskRunnerSuccess(peer, message, "handleUpdateMultisigRequest");
-              },
-              errorMessage -> {
-                  errorMessageHandler.handleErrorMessage(errorMessage);
-                  handleTaskRunnerFault(peer, message, errorMessage);
-              });
-      taskRunner.addTasks(
-              ProcessUpdateMultisigRequest.class
-      );
-      startTimeout(60);  // TODO (woodser): what timeout to use?  don't hardcode
-      taskRunner.run();
+        synchronized (trade) {
+            Validator.checkTradeId(processModel.getOfferId(), message);
+            processModel.setTradeMessage(message);
+            CountDownLatch latch = new CountDownLatch(1);
+            TradeTaskRunner taskRunner = new TradeTaskRunner(trade,
+                    () -> {
+                        stopTimeout();
+                        latch.countDown();
+                        handleTaskRunnerSuccess(peer, message, "handleUpdateMultisigRequest");
+                    },
+                    errorMessage -> {
+                        latch.countDown();
+                        errorMessageHandler.handleErrorMessage(errorMessage);
+                        handleTaskRunnerFault(peer, message, errorMessage);
+                    });
+            taskRunner.addTasks(
+                    ProcessUpdateMultisigRequest.class
+            );
+            startTimeout(TRADE_TIMEOUT);
+            taskRunner.run();
+            wait(latch);
+        }
     }
 
 
@@ -265,6 +273,14 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
     protected FluentProtocol.Condition anyPhase(Trade.Phase... expectedPhases) {
         return new FluentProtocol.Condition(trade).anyPhase(expectedPhases);
     }
+    
+    protected FluentProtocol.Condition state(Trade.State expectedState) {
+        return new FluentProtocol.Condition(trade).state(expectedState);
+    }
+
+    protected FluentProtocol.Condition anyState(Trade.State... expectedStates) {
+        return new FluentProtocol.Condition(trade).anyState(expectedStates);
+    }
 
     @SafeVarargs
     public final FluentProtocol.Setup tasks(Class<? extends Task<Trade>>... tasks) {
@@ -291,8 +307,11 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
             log.info("Received AckMessage for {} from {} with tradeId {} and uid {}",
                     ackMessage.getSourceMsgClassName(), peer, trade.getId(), ackMessage.getSourceUid());
         } else {
-            log.warn("Received AckMessage with error state for {} from {} with tradeId {} and errorMessage={}",
-                    ackMessage.getSourceMsgClassName(), peer, trade.getId(), ackMessage.getErrorMessage());
+            String err = "Received AckMessage with error state for " + ackMessage.getSourceMsgClassName() +
+                    " from "+ peer + " with tradeId " + trade.getId() + " and errorMessage=" + ackMessage.getErrorMessage();
+            log.warn(err);
+            stopTimeout();
+            if (errorMessageHandler != null) errorMessageHandler.handleErrorMessage(err);
         }
     }
 
@@ -348,6 +367,14 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Timeout
     ///////////////////////////////////////////////////////////////////////////////////////////
+    
+    protected void wait(CountDownLatch latch) {
+        try {
+            latch.await();
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+    }
 
     protected void startTimeout(long timeoutSec) {
         stopTimeout();

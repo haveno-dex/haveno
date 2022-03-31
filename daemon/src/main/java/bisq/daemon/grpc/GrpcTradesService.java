@@ -19,7 +19,6 @@ package bisq.daemon.grpc;
 
 import bisq.core.api.CoreApi;
 import bisq.core.api.model.TradeInfo;
-import bisq.core.support.messages.ChatMessage;
 import bisq.core.trade.Trade;
 
 import bisq.proto.grpc.ConfirmPaymentReceivedReply;
@@ -40,7 +39,6 @@ import bisq.proto.grpc.TakeOfferReply;
 import bisq.proto.grpc.TakeOfferRequest;
 import bisq.proto.grpc.WithdrawFundsReply;
 import bisq.proto.grpc.WithdrawFundsRequest;
-
 import io.grpc.ServerInterceptor;
 import io.grpc.stub.StreamObserver;
 
@@ -122,20 +120,24 @@ class GrpcTradesService extends TradesImplBase {
                         responseObserver,
                         exceptionHandler,
                         log);
-        coreApi.takeOffer(req.getOfferId(),
-                req.getPaymentAccountId(),
-                trade -> {
-                    TradeInfo tradeInfo = toTradeInfo(trade);
-                    var reply = TakeOfferReply.newBuilder()
-                            .setTrade(tradeInfo.toProtoMessage())
-                            .build();
-                    responseObserver.onNext(reply);
-                    responseObserver.onCompleted();
-                },
-                errorMessage -> {
-                    if (!errorMessageHandler.isErrorHandled())
-                        errorMessageHandler.handleErrorMessage(errorMessage);
-                });
+        try {
+            coreApi.takeOffer(req.getOfferId(),
+                    req.getPaymentAccountId(),
+                    trade -> {
+                        TradeInfo tradeInfo = toTradeInfo(trade);
+                        var reply = TakeOfferReply.newBuilder()
+                                .setTrade(tradeInfo.toProtoMessage())
+                                .build();
+                        responseObserver.onNext(reply);
+                        responseObserver.onCompleted();
+                    },
+                    errorMessage -> {
+                        if (!errorMessageHandler.isErrorHandled())
+                            errorMessageHandler.handleErrorMessage(errorMessage);
+                    });
+        } catch (Throwable cause) {
+            exceptionHandler.handleException(log, cause, responseObserver);
+        }
     }
 
     @Override

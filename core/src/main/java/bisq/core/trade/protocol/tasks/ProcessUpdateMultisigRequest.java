@@ -74,6 +74,9 @@ public class ProcessUpdateMultisigRequest extends TradeTask {
           // import the multisig hex
           int numOutputsSigned = multisigWallet.importMultisigHex(Arrays.asList(request.getUpdatedMultisigHex()));
           System.out.println("Num outputs signed by imported multisig hex: " + numOutputsSigned);
+          
+          // close multisig wallet
+          processModel.getProvider().getXmrWalletService().closeMultisigWallet(trade.getId());
 
           // respond with updated multisig hex
           UpdateMultisigResponse response = new UpdateMultisigResponse(
@@ -90,9 +93,6 @@ public class ProcessUpdateMultisigRequest extends TradeTask {
             @Override
             public void onArrived() {
                 log.info("{} arrived at trading peer: offerId={}; uid={}", response.getClass().getSimpleName(), response.getTradeId(), response.getUid());
-
-                // save multisig wallet
-                multisigWallet.save();  // TODO (woodser): save on each step or after multisig wallets created?
                 complete();
             }
             @Override

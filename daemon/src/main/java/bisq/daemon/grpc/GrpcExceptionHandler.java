@@ -47,7 +47,7 @@ class GrpcExceptionHandler {
     public GrpcExceptionHandler() {
     }
 
-    public void handleException(Logger log,
+    public synchronized void handleException(Logger log,
                                 Throwable t,
                                 StreamObserver<?> responseObserver) {
         // Log the core api error (this is last chance to do that), wrap it in a new
@@ -58,7 +58,7 @@ class GrpcExceptionHandler {
         throw grpcStatusRuntimeException;
     }
 
-    public void handleExceptionAsWarning(Logger log,
+    public synchronized void handleExceptionAsWarning(Logger log,
                                          String calledMethod,
                                          Throwable t,
                                          StreamObserver<?> responseObserver) {

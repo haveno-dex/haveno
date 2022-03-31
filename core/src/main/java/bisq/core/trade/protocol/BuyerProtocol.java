@@ -33,7 +33,7 @@ import bisq.core.trade.protocol.tasks.buyer.BuyerSendCounterCurrencyTransferStar
 import bisq.core.trade.protocol.tasks.buyer.BuyerSetupPayoutTxListener;
 
 import bisq.network.p2p.NodeAddress;
-
+import java.util.concurrent.CountDownLatch;
 import bisq.common.handlers.ErrorMessageHandler;
 import bisq.common.handlers.ResultHandler;
 
@@ -127,27 +127,31 @@ public abstract class BuyerProtocol extends DisputeProtocol {
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     public void onPaymentStarted(ResultHandler resultHandler, ErrorMessageHandler errorMessageHandler) {
-        BuyerEvent event = BuyerEvent.PAYMENT_SENT;
-        expect(phase(Trade.Phase.DEPOSIT_CONFIRMED)
-                .with(event)
-                .preCondition(trade.confirmPermitted()))
-                .setup(tasks(ApplyFilter.class,
-                        getVerifyPeersFeePaymentClass(),
-                        UpdateMultisigWithTradingPeer.class,
-                        BuyerCreateAndSignPayoutTx.class,
-                        BuyerSetupPayoutTxListener.class,
-                        BuyerSendCounterCurrencyTransferStartedMessage.class)
-                        .using(new TradeTaskRunner(trade,
-                                () -> {
-                                    resultHandler.handleResult();
-                                    handleTaskRunnerSuccess(event);
-                                },
-                                (errorMessage) -> {
-                                    errorMessageHandler.handleErrorMessage(errorMessage);
-                                    handleTaskRunnerFault(event, errorMessage);
-                                })))
-                .run(() -> trade.setState(Trade.State.BUYER_CONFIRMED_IN_UI_FIAT_PAYMENT_INITIATED))
-                .executeTasks();
+        System.out.println("BuyerProtocol.onPaymentStarted()");
+        synchronized (trade) { // TODO (woodser): UpdateMultisigWithTradingPeer sends UpdateMultisigRequest and waits for UpdateMultisigResponse which is new thread, so synchronized (trade) in subsequent pipeline blocks forever if we hold on with countdown latch in this function
+            System.out.println("BuyerProtocol.onPaymentStarted() has the lock!!!");
+            BuyerEvent event = BuyerEvent.PAYMENT_SENT;
+            expect(phase(Trade.Phase.DEPOSIT_CONFIRMED)
+                    .with(event)
+                    .preCondition(trade.confirmPermitted()))
+                    .setup(tasks(ApplyFilter.class,
+                            getVerifyPeersFeePaymentClass(),
+                            UpdateMultisigWithTradingPeer.class,
+                            BuyerCreateAndSignPayoutTx.class,
+                            BuyerSetupPayoutTxListener.class,
+                            BuyerSendCounterCurrencyTransferStartedMessage.class)
+                            .using(new TradeTaskRunner(trade,
+                                    () -> {
+                                        resultHandler.handleResult();
+                                        handleTaskRunnerSuccess(event);
+                                    },
+                                    (errorMessage) -> {
+                                        errorMessageHandler.handleErrorMessage(errorMessage);
+                                        handleTaskRunnerFault(event, errorMessage);
+                                    })))
+                    .run(() -> trade.setState(Trade.State.BUYER_CONFIRMED_IN_UI_FIAT_PAYMENT_INITIATED))
+                    .executeTasks();
+       }
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -155,22 +159,29 @@ public abstract class BuyerProtocol extends DisputeProtocol {
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     protected void handle(PayoutTxPublishedMessage message, NodeAddress peer) {
-        processModel.setTradeMessage(message);
-        processModel.setTempTradingPeerNodeAddress(peer);
-        expect(anyPhase(Trade.Phase.FIAT_SENT, Trade.Phase.PAYOUT_PUBLISHED)
-            .with(message)
-            .from(peer))
-            .setup(tasks(
-                getVerifyPeersFeePaymentClass(),
-                BuyerProcessPayoutTxPublishedMessage.class)
-                .using(new TradeTaskRunner(trade,
-                    () -> {
-                      handleTaskRunnerSuccess(peer, message);
-                    },
-                    errorMessage -> {
-                        handleTaskRunnerFault(peer, message, errorMessage);
-                    })))
-            .executeTasks();
+        log.info("BuyerProtocol.handle(PayoutTxPublishedMessage)");
+        synchronized (trade) {
+            processModel.setTradeMessage(message);
+            processModel.setTempTradingPeerNodeAddress(peer);
+            CountDownLatch latch = new CountDownLatch(1);
+            expect(anyPhase(Trade.Phase.FIAT_SENT, Trade.Phase.PAYOUT_PUBLISHED)
+                .with(message)
+                .from(peer))
+                .setup(tasks(
+                    getVerifyPeersFeePaymentClass(),
+                    BuyerProcessPayoutTxPublishedMessage.class)
+                    .using(new TradeTaskRunner(trade,
+                        () -> {
+                            latch.countDown();
+                            handleTaskRunnerSuccess(peer, message);
+                        },
+                        errorMessage -> {
+                            latch.countDown();
+                            handleTaskRunnerFault(peer, message, errorMessage);
+                        })))
+                .executeTasks();
+            wait(latch);
+        }
     }
 
 

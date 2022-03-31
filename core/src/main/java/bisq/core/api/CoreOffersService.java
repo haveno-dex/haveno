@@ -32,7 +32,7 @@ import bisq.core.payment.PaymentAccount;
 import bisq.core.user.User;
 
 import bisq.common.crypto.KeyRing;
-
+import bisq.common.handlers.ErrorMessageHandler;
 import org.bitcoinj.core.Coin;
 import org.bitcoinj.core.Transaction;
 import org.bitcoinj.utils.Fiat;
@@ -175,7 +175,10 @@ class CoreOffersService {
         List<String> allKeyImages = new ArrayList<String>();
         for (Offer offer : offers) {
           for (String keyImage : offer.getOfferPayload().getReserveTxKeyImages()) {
-            if (!allKeyImages.add(keyImage)) unreservedOffers.add(offer);
+            if (!allKeyImages.add(keyImage)) {
+                log.warn("Key image {} belongs to another offer, removing offer {}", keyImage, offer.getId());
+                unreservedOffers.add(offer);
+            }
           }
         }
         
@@ -191,7 +194,10 @@ class CoreOffersService {
         for (Offer offer : offers) {
           if (unreservedOffers.contains(offer)) continue;
           for (String keyImage : offer.getOfferPayload().getReserveTxKeyImages()) {
-            if (spentKeyImages.contains(keyImage)) unreservedOffers.add(offer);
+            if (spentKeyImages.contains(keyImage)) {
+                log.warn("Offer {} reserved funds have already been spent with key image {}", offer.getId(), keyImage);
+                unreservedOffers.add(offer);
+            }
           }
         }
         
@@ -216,7 +222,8 @@ class CoreOffersService {
                              double buyerSecurityDeposit,
                              long triggerPrice,
                              String paymentAccountId,
-                             Consumer<Offer> resultHandler) {
+                             Consumer<Offer> resultHandler,
+                             ErrorMessageHandler errorMessageHandler) {
         coreWalletsService.verifyWalletsAreAvailable();
         coreWalletsService.verifyEncryptedWalletIsUnlocked();
 
@@ -252,7 +259,8 @@ class CoreOffersService {
                 buyerSecurityDeposit,
                 triggerPrice,
                 useSavingsWallet,
-                transaction -> resultHandler.accept(offer));
+                transaction -> resultHandler.accept(offer),
+                errorMessageHandler);
     }
 
     // Edit a placed offer.
@@ -303,16 +311,14 @@ class CoreOffersService {
                             double buyerSecurityDeposit,
                             long triggerPrice,
                             boolean useSavingsWallet,
-                            Consumer<Transaction> resultHandler) {
+                            Consumer<Transaction> resultHandler,
+                            ErrorMessageHandler errorMessageHandler) {
         openOfferManager.placeOffer(offer,
                 buyerSecurityDeposit,
                 useSavingsWallet,
                 triggerPrice,
                 resultHandler::accept,
-                log::error);
-
-        if (offer.getErrorMessage() != null)
-            throw new IllegalStateException(offer.getErrorMessage());
+                errorMessageHandler);
     }
 
     private boolean offerMatchesDirectionAndCurrency(Offer offer,

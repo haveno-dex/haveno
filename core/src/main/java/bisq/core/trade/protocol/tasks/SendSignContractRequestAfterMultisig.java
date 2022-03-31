@@ -44,9 +44,8 @@ import monero.wallet.model.MoneroTxWallet;
 @Slf4j
 public class SendSignContractRequestAfterMultisig extends TradeTask {
     
-    private boolean ack1 = false;
+    private boolean ack1 = false; // TODO (woodser) these represent onArrived(), not the ack
     private boolean ack2 = false;
-    private boolean failed = false;
 
     @SuppressWarnings({"unused"})
     public SendSignContractRequestAfterMultisig(TaskRunner taskHandler, Trade trade) {
@@ -57,95 +56,92 @@ public class SendSignContractRequestAfterMultisig extends TradeTask {
     protected void run() {
         try {
           runInterceptHook();
-          
-          // skip if multisig wallet not complete
-          if (!processModel.isMultisigSetupComplete()) return; // TODO: woodser: this does not ack original request?
-          
-          // skip if deposit tx already created
-          if (processModel.getDepositTxXmr() != null) return;
 
-          // thaw reserved outputs
-          MoneroWallet wallet = trade.getXmrWalletService().getWallet();
-          for (String reserveTxKeyImage : trade.getSelf().getReserveTxKeyImages()) {
-              wallet.thawOutput(reserveTxKeyImage);
-          }
-          
-          // create deposit tx
-          BigInteger tradeFee = ParsingUtils.coinToAtomicUnits(trade instanceof MakerTrade ? trade.getOffer().getMakerFee() : trade.getTakerFee());
-          Offer offer = processModel.getOffer();
-          BigInteger depositAmount = ParsingUtils.coinToAtomicUnits(trade instanceof SellerTrade ? offer.getAmount().add(offer.getSellerSecurityDeposit()) : offer.getBuyerSecurityDeposit());
-          MoneroWallet multisigWallet = processModel.getProvider().getXmrWalletService().getMultisigWallet(trade.getId());
-          String multisigAddress = multisigWallet.getPrimaryAddress();
-          MoneroTxWallet depositTx = TradeUtils.createDepositTx(trade.getXmrWalletService(), tradeFee, multisigAddress, depositAmount);
-          
-          // freeze deposit outputs
-          // TODO (woodser): save frozen key images and unfreeze if trade fails before deposited to multisig
-          for (MoneroOutput input : depositTx.getInputs()) {
-              wallet.freezeOutput(input.getKeyImage().getHex());
-          }
-          
-          // save process state
-          processModel.setDepositTxXmr(depositTx);
-          trade.getSelf().setDepositTxHash(depositTx.getHash());
-          
-          // complete on successful ack messages
-          TradeListener ackListener = new TradeListener() {
-              @Override
-              public void onAckMessage(AckMessage ackMessage, NodeAddress sender) {
-                  if (!ackMessage.getSourceMsgClassName().equals(SignContractRequest.class.getSimpleName())) return;
-                  if (ackMessage.isSuccess()) {
-                     if (sender.equals(trade.getTradingPeerNodeAddress())) ack1 = true;
-                     if (sender.equals(trade.getArbitratorNodeAddress())) ack2 = true;
-                     if (ack1 && ack2) {
-                         trade.removeListener(this);
-                         completeAux();
-                     }
-                  } else {
-                      if (!failed) {
-                          failed = true;
-                          failed(ackMessage.getErrorMessage()); // TODO: (woodser): only fail once? build into task?
-                      }
-                  }
+          synchronized (trade.getXmrWalletService().getWallet()) { // synchronize on wallet to create deposit tx and freeze funds
+
+              // skip if multisig wallet not complete
+              if (!processModel.isMultisigSetupComplete()) {
+                  complete();
+                  return; // TODO: woodser: this does not ack original request?
               }
-          };
-          trade.addListener(ackListener);
+ 
+              // skip if deposit tx already created
+              if (processModel.getDepositTxXmr() != null) {
+                  complete();
+                  return;
+              }
 
-          // send sign contract requests to peer and arbitrator
-          sendSignContractRequest(trade.getTradingPeerNodeAddress(), trade.getTradingPeerPubKeyRing(), offer, depositTx);
-          sendSignContractRequest(trade.getArbitratorNodeAddress(), trade.getArbitratorPubKeyRing(), offer, depositTx);
+              // thaw reserved outputs
+              MoneroWallet wallet = trade.getXmrWalletService().getWallet();
+              for (String reserveTxKeyImage : trade.getSelf().getReserveTxKeyImages()) {
+                  wallet.thawOutput(reserveTxKeyImage);
+              }
+
+              // create deposit tx
+              BigInteger tradeFee = ParsingUtils.coinToAtomicUnits(trade instanceof MakerTrade ? trade.getOffer().getMakerFee() : trade.getTakerFee());
+              Offer offer = processModel.getOffer();
+              BigInteger depositAmount = ParsingUtils.coinToAtomicUnits(trade instanceof SellerTrade ? offer.getAmount().add(offer.getSellerSecurityDeposit()) : offer.getBuyerSecurityDeposit());
+              String multisigAddress = processModel.getMultisigAddress();
+              MoneroTxWallet depositTx = TradeUtils.createDepositTx(trade.getXmrWalletService(), tradeFee, multisigAddress, depositAmount);
+
+              // freeze deposit outputs
+              // TODO (woodser): save frozen key images and unfreeze if trade fails before deposited to multisig
+              for (MoneroOutput input : depositTx.getInputs()) {
+                  wallet.freezeOutput(input.getKeyImage().getHex());
+              }
+
+              // save process state
+              processModel.setDepositTxXmr(depositTx);
+              trade.getSelf().setDepositTxHash(depositTx.getHash());
+
+              // create request for peer and arbitrator to sign contract
+              SignContractRequest request = new SignContractRequest(
+                      trade.getOffer().getId(),
+                      processModel.getMyNodeAddress(),
+                      processModel.getPubKeyRing(),
+                      UUID.randomUUID().toString(),
+                      Version.getP2PMessageVersion(),
+                      new Date().getTime(),
+                      trade.getProcessModel().getAccountId(),
+                      trade.getProcessModel().getPaymentAccountPayload(trade).getHash(),
+                      trade.getXmrWalletService().getAddressEntry(offer.getId(), XmrAddressEntry.Context.TRADE_PAYOUT).get().getAddressString(),
+                      depositTx.getHash());
+
+              // send request to trading peer
+              processModel.getP2PService().sendEncryptedDirectMessage(trade.getTradingPeerNodeAddress(), trade.getTradingPeerPubKeyRing(), request, new SendDirectMessageListener() {
+                  @Override
+                  public void onArrived() {
+                      log.info("{} arrived: trading peer={}; offerId={}; uid={}", request.getClass().getSimpleName(), trade.getTradingPeerNodeAddress(), trade.getId());
+                      ack1 = true;
+                      if (ack1 && ack2) completeAux();
+                  }
+                  @Override
+                  public void onFault(String errorMessage) {
+                      log.error("Sending {} failed: uid={}; peer={}; error={}", request.getClass().getSimpleName(), trade.getTradingPeerNodeAddress(), trade.getId(), errorMessage);
+                      appendToErrorMessage("Sending message failed: message=" + request + "\nerrorMessage=" + errorMessage);
+                      failed();
+                  }
+              });
+              
+              // send request to arbitrator
+              processModel.getP2PService().sendEncryptedDirectMessage(trade.getArbitratorNodeAddress(), trade.getArbitratorPubKeyRing(), request, new SendDirectMessageListener() {
+                  @Override
+                  public void onArrived() {
+                      log.info("{} arrived: trading peer={}; offerId={}; uid={}", request.getClass().getSimpleName(), trade.getArbitratorNodeAddress(), trade.getId());
+                      ack2 = true;
+                      if (ack1 && ack2) completeAux();
+                  }
+                  @Override
+                  public void onFault(String errorMessage) {
+                      log.error("Sending {} failed: uid={}; peer={}; error={}", request.getClass().getSimpleName(), trade.getArbitratorNodeAddress(), trade.getId(), errorMessage);
+                      appendToErrorMessage("Sending message failed: message=" + request + "\nerrorMessage=" + errorMessage);
+                      failed();
+                  }
+              });
+          }
         } catch (Throwable t) {
           failed(t);
         }
-    }
-    
-    private void sendSignContractRequest(NodeAddress nodeAddress, PubKeyRing pubKeyRing, Offer offer, MoneroTxWallet depositTx) {
-        
-        // create request to sign contract
-        SignContractRequest request = new SignContractRequest(
-                trade.getOffer().getId(),
-                processModel.getMyNodeAddress(),
-                processModel.getPubKeyRing(),
-                UUID.randomUUID().toString(), // TODO: ensure not reusing request id across protocol
-                Version.getP2PMessageVersion(),
-                new Date().getTime(),
-                trade.getProcessModel().getAccountId(),
-                trade.getProcessModel().getPaymentAccountPayload(trade).getHash(),
-                trade.getXmrWalletService().getAddressEntry(offer.getId(), XmrAddressEntry.Context.TRADE_PAYOUT).get().getAddressString(),
-                depositTx.getHash());
-        
-        // send request
-        processModel.getP2PService().sendEncryptedDirectMessage(nodeAddress, pubKeyRing, request, new SendDirectMessageListener() {
-            @Override
-            public void onArrived() {
-                log.info("{} arrived: trading peer={}; offerId={}; uid={}", request.getClass().getSimpleName(), nodeAddress, trade.getId());
-            }
-            @Override
-            public void onFault(String errorMessage) {
-                log.error("Sending {} failed: uid={}; peer={}; error={}", request.getClass().getSimpleName(), nodeAddress, trade.getId(), errorMessage);
-                appendToErrorMessage("Sending message failed: message=" + request + "\nerrorMessage=" + errorMessage);
-                failed();
-            }
-        });
     }
     
     private void completeAux() {

@@ -137,9 +137,9 @@ public class TradeUtils {
     }
     
     /**
-     * Create a transaction to reserve a trade. The deposit amount is returned
-     * to the sender's payout address. Additional funds are reserved to allow
-     * fluctuations in the mining fee.
+     * Create a transaction to reserve a trade and freeze its funds. The deposit
+     * amount is returned to the sender's payout address. Additional funds are
+     * reserved to allow fluctuations in the mining fee.
      * 
      * @param xmrWalletService
      * @param offerId
@@ -147,8 +147,8 @@ public class TradeUtils {
      * @param depositAmount
      * @return a transaction to reserve a trade
      */
-    public static MoneroTxWallet createReserveTx(XmrWalletService xmrWalletService, String offerId, BigInteger tradeFee, String returnAddress, BigInteger depositAmount) {
-        
+    public static MoneroTxWallet reserveTradeFunds(XmrWalletService xmrWalletService, String offerId, BigInteger tradeFee, String returnAddress, BigInteger depositAmount) {
+
         // get expected mining fee
         MoneroWallet wallet = xmrWalletService.getWallet();
         MoneroTxWallet miningFeeTx = wallet.createTx(new MoneroTxConfig()
@@ -156,12 +156,17 @@ public class TradeUtils {
                 .addDestination(TradeUtils.FEE_ADDRESS, tradeFee)
                 .addDestination(returnAddress, depositAmount));
         BigInteger miningFee = miningFeeTx.getFee();
-        
+
         // create reserve tx
         MoneroTxWallet reserveTx = wallet.createTx(new MoneroTxConfig()
                 .setAccountIndex(0)
                 .addDestination(TradeUtils.FEE_ADDRESS, tradeFee)
                 .addDestination(returnAddress, depositAmount.add(miningFee.multiply(BigInteger.valueOf(3l))))); // add thrice the mining fee // TODO (woodser): really require more funds on top of security deposit?
+
+        // freeze trade funds
+        for (MoneroOutput input : reserveTx.getInputs()) {
+            wallet.freezeOutput(input.getKeyImage().getHex());
+        }
 
         return reserveTx;
     }
@@ -222,6 +227,9 @@ public class TradeUtils {
                 if (!txKeyImages.equals(new HashSet<String>(keyImages))) throw new Error("Reserve tx's inputs do not match claimed key images");
             }
             
+            // verify the unlock height
+            if (tx.getUnlockHeight() != 0) throw new RuntimeException("Unlock height must be 0");
+
             // verify trade fee
             String feeAddress = TradeUtils.FEE_ADDRESS;
             MoneroCheckTx check = wallet.checkTxKey(txHash, txKey, feeAddress);

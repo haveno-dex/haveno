@@ -114,7 +114,7 @@ public class OfferAvailabilityProtocol {
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     private void handleOfferAvailabilityResponse(OfferAvailabilityResponse message, NodeAddress peersNodeAddress) {
-        log.info("Received handleOfferAvailabilityResponse from {} with offerId {} and uid {}",
+        log.info("Received OfferAvailabilityResponse from {} with offerId {} and uid {}",
                 peersNodeAddress, message.getOfferId(), message.getUid());
 
         stopTimeout();

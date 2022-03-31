@@ -66,11 +66,14 @@ public abstract class Task<T extends Model> {
     }
 
     protected void failed(Throwable t) {
-        StringWriter sw = new StringWriter();
-        PrintWriter pw = new PrintWriter(sw);
-        t.printStackTrace(pw);
-        errorMessage = sw.toString();
-        log.error(t.getMessage(), t);
+//        // append stacktrace to error message (only for development)
+//        StringWriter sw = new StringWriter();
+//        PrintWriter pw = new PrintWriter(sw);
+//        t.printStackTrace(pw);
+//        errorMessage = sw.toString();
+        
+        errorMessage = t.getMessage() + " (task " + getClass().getSimpleName() + ")";
+        log.error(errorMessage, t);
         taskHandler.handleErrorMessage(errorMessage);
     }
 

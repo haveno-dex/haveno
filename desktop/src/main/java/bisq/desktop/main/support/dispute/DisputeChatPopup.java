@@ -85,76 +85,78 @@ public class DisputeChatPopup {
     }
 
     public void openChat(Dispute selectedDispute, DisputeSession concreteDisputeSession, String counterpartyName) {
-        closeChat();
-        this.selectedDispute = selectedDispute;
-        selectedDispute.getChatMessages().forEach(m -> m.setWasDisplayed(true));
-        disputeManager.requestPersistence();
-
-        ChatView chatView = new ChatView(disputeManager, formatter, counterpartyName);
-        chatView.setAllowAttachments(true);
-        chatView.setDisplayHeader(false);
-        chatView.initialize();
-
-        AnchorPane pane = new AnchorPane(chatView);
-        pane.setPrefSize(760, 500);
-        AnchorPane.setLeftAnchor(chatView, 10d);
-        AnchorPane.setRightAnchor(chatView, 10d);
-        AnchorPane.setTopAnchor(chatView, -20d);
-        AnchorPane.setBottomAnchor(chatView, 10d);
-        pane.getStyleClass().add("dispute-chat-border");
-        Button closeDisputeButton = null;
-        if (!selectedDispute.isClosed() && !disputeManager.isTrader(selectedDispute)) {
-            closeDisputeButton = new AutoTooltipButton(Res.get("support.closeTicket"));
-            closeDisputeButton.setOnAction(e -> chatCallback.onCloseDisputeFromChatWindow(selectedDispute));
-        }
-        chatView.display(concreteDisputeSession, closeDisputeButton, pane.widthProperty());
-        chatView.activate();
-        chatView.scrollToBottom();
-        chatPopupStage = new Stage();
-        chatPopupStage.setTitle(Res.get("disputeChat.chatWindowTitle", selectedDispute.getShortTradeId())
-                + " " + selectedDispute.getRoleString());
-        StackPane owner = MainView.getRootContainer();
-        Scene rootScene = owner.getScene();
-        chatPopupStage.initOwner(rootScene.getWindow());
-        chatPopupStage.initModality(Modality.NONE);
-        chatPopupStage.initStyle(StageStyle.DECORATED);
-        chatPopupStage.setOnHiding(event -> {
-            chatView.deactivate();
-            // at close we set all as displayed. While open we ignore updates of the numNewMsg in the list icon.
+        UserThread.execute(() -> {
+            closeChat();
+            this.selectedDispute = selectedDispute;
             selectedDispute.getChatMessages().forEach(m -> m.setWasDisplayed(true));
             disputeManager.requestPersistence();
-            chatPopupStage = null;
-        });
 
-        Scene scene = new Scene(pane);
-        CssTheme.loadSceneStyles(scene, preferences.getCssTheme(), false);
-        scene.addEventHandler(KeyEvent.KEY_RELEASED, ev -> {
-            if (ev.getCode() == KeyCode.ESCAPE) {
-                ev.consume();
-                chatPopupStage.hide();
+            ChatView chatView = new ChatView(disputeManager, formatter, counterpartyName);
+            chatView.setAllowAttachments(true);
+            chatView.setDisplayHeader(false);
+            chatView.initialize();
+
+            AnchorPane pane = new AnchorPane(chatView);
+            pane.setPrefSize(760, 500);
+            AnchorPane.setLeftAnchor(chatView, 10d);
+            AnchorPane.setRightAnchor(chatView, 10d);
+            AnchorPane.setTopAnchor(chatView, -20d);
+            AnchorPane.setBottomAnchor(chatView, 10d);
+            pane.getStyleClass().add("dispute-chat-border");
+            Button closeDisputeButton = null;
+            if (!selectedDispute.isClosed() && !disputeManager.isTrader(selectedDispute)) {
+                closeDisputeButton = new AutoTooltipButton(Res.get("support.closeTicket"));
+                closeDisputeButton.setOnAction(e -> chatCallback.onCloseDisputeFromChatWindow(selectedDispute));
             }
+            chatView.display(concreteDisputeSession, closeDisputeButton, pane.widthProperty());
+            chatView.activate();
+            chatView.scrollToBottom();
+            chatPopupStage = new Stage();
+            chatPopupStage.setTitle(Res.get("disputeChat.chatWindowTitle", selectedDispute.getShortTradeId())
+                    + " " + selectedDispute.getRoleString());
+            StackPane owner = MainView.getRootContainer();
+            Scene rootScene = owner.getScene();
+            chatPopupStage.initOwner(rootScene.getWindow());
+            chatPopupStage.initModality(Modality.NONE);
+            chatPopupStage.initStyle(StageStyle.DECORATED);
+            chatPopupStage.setOnHiding(event -> {
+                chatView.deactivate();
+                // at close we set all as displayed. While open we ignore updates of the numNewMsg in the list icon.
+                selectedDispute.getChatMessages().forEach(m -> m.setWasDisplayed(true));
+                disputeManager.requestPersistence();
+                chatPopupStage = null;
+            });
+
+            Scene scene = new Scene(pane);
+            CssTheme.loadSceneStyles(scene, preferences.getCssTheme(), false);
+            scene.addEventHandler(KeyEvent.KEY_RELEASED, ev -> {
+                if (ev.getCode() == KeyCode.ESCAPE) {
+                    ev.consume();
+                    chatPopupStage.hide();
+                }
+            });
+            chatPopupStage.setScene(scene);
+            chatPopupStage.setOpacity(0);
+            chatPopupStage.show();
+
+            xPositionListener = (observable, oldValue, newValue) -> chatPopupStageXPosition = (double) newValue;
+            chatPopupStage.xProperty().addListener(xPositionListener);
+            yPositionListener = (observable, oldValue, newValue) -> chatPopupStageYPosition = (double) newValue;
+            chatPopupStage.yProperty().addListener(yPositionListener);
+
+            if (chatPopupStageXPosition == -1) {
+                Window rootSceneWindow = rootScene.getWindow();
+                double titleBarHeight = rootSceneWindow.getHeight() - rootScene.getHeight();
+                chatPopupStage.setX(Math.round(rootSceneWindow.getX() + (owner.getWidth() - chatPopupStage.getWidth() / 4 * 3)));
+                chatPopupStage.setY(Math.round(rootSceneWindow.getY() + titleBarHeight + (owner.getHeight() - chatPopupStage.getHeight() / 4 * 3)));
+            } else {
+                chatPopupStage.setX(chatPopupStageXPosition);
+                chatPopupStage.setY(chatPopupStageYPosition);
+            }
+
+            // Delay display to next render frame to avoid that the popup is first quickly displayed in default position
+            // and after a short moment in the correct position
+            UserThread.execute(() -> chatPopupStage.setOpacity(1));
         });
-        chatPopupStage.setScene(scene);
-        chatPopupStage.setOpacity(0);
-        chatPopupStage.show();
-
-        xPositionListener = (observable, oldValue, newValue) -> chatPopupStageXPosition = (double) newValue;
-        chatPopupStage.xProperty().addListener(xPositionListener);
-        yPositionListener = (observable, oldValue, newValue) -> chatPopupStageYPosition = (double) newValue;
-        chatPopupStage.yProperty().addListener(yPositionListener);
-
-        if (chatPopupStageXPosition == -1) {
-            Window rootSceneWindow = rootScene.getWindow();
-            double titleBarHeight = rootSceneWindow.getHeight() - rootScene.getHeight();
-            chatPopupStage.setX(Math.round(rootSceneWindow.getX() + (owner.getWidth() - chatPopupStage.getWidth() / 4 * 3)));
-            chatPopupStage.setY(Math.round(rootSceneWindow.getY() + titleBarHeight + (owner.getHeight() - chatPopupStage.getHeight() / 4 * 3)));
-        } else {
-            chatPopupStage.setX(chatPopupStageXPosition);
-            chatPopupStage.setY(chatPopupStageYPosition);
-        }
-
-        // Delay display to next render frame to avoid that the popup is first quickly displayed in default position
-        // and after a short moment in the correct position
-        UserThread.execute(() -> chatPopupStage.setOpacity(1));
     }
 }

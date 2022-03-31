@@ -8,7 +8,7 @@ import bisq.proto.grpc.NotificationsGrpc.NotificationsImplBase;
 import bisq.proto.grpc.RegisterNotificationListenerRequest;
 import bisq.proto.grpc.SendNotificationReply;
 import bisq.proto.grpc.SendNotificationRequest;
-
+import io.grpc.Context;
 import io.grpc.ServerInterceptor;
 import io.grpc.stub.StreamObserver;
 
@@ -46,24 +46,30 @@ class GrpcNotificationsService extends NotificationsImplBase {
     @Override
     public void registerNotificationListener(RegisterNotificationListenerRequest request,
                                              StreamObserver<NotificationMessage> responseObserver) {
-        try {
-            coreApi.addNotificationListener(new GrpcNotificationListener(responseObserver));
-            // No onNext / onCompleted, as the response observer should be kept open
-        } catch (Throwable t) {
-            exceptionHandler.handleException(log, t, responseObserver);
-        }
+        Context ctx = Context.current().fork(); // context is independent for long-lived request
+        ctx.run(() -> {
+            try {
+                coreApi.addNotificationListener(new GrpcNotificationListener(responseObserver));
+                // No onNext / onCompleted, as the response observer should be kept open
+            } catch (Throwable t) {
+                exceptionHandler.handleException(log, t, responseObserver);
+            }
+        });
     }
 
     @Override
     public void sendNotification(SendNotificationRequest request,
                                  StreamObserver<SendNotificationReply> responseObserver) {
-        try {
-            coreApi.sendNotification(request.getNotification());
-            responseObserver.onNext(SendNotificationReply.newBuilder().build());
-            responseObserver.onCompleted();
-        } catch (Throwable t) {
-            exceptionHandler.handleException(log, t, responseObserver);
-        }
+        Context ctx = Context.current().fork(); // context is independent from notification delivery
+        ctx.run(() -> {
+            try {
+                coreApi.sendNotification(request.getNotification());
+                responseObserver.onNext(SendNotificationReply.newBuilder().build());
+                responseObserver.onCompleted();
+            } catch (Throwable t) {
+                exceptionHandler.handleException(log, t, responseObserver);
+            }
+        });
     }
 
     @Value

@@ -434,7 +434,8 @@ public class CoreApi {
                                    double buyerSecurityDeposit,
                                    long triggerPrice,
                                    String paymentAccountId,
-                                   Consumer<Offer> resultHandler) {
+                                   Consumer<Offer> resultHandler,
+                                   ErrorMessageHandler errorMessageHandler) {
         coreOffersService.createAndPlaceOffer(currencyCode,
                 directionAsString,
                 priceAsString,
@@ -445,7 +446,8 @@ public class CoreApi {
                 buyerSecurityDeposit,
                 triggerPrice,
                 paymentAccountId,
-                resultHandler);
+                resultHandler,
+                errorMessageHandler);
     }
 
     public Offer editOffer(String offerId,

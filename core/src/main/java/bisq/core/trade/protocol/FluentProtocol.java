@@ -91,27 +91,29 @@ public class FluentProtocol {
             }
             return this;
         }
+        
+        synchronized (tradeProtocol.trade) {
+            if (setup.getTimeoutSec() > 0) {
+                tradeProtocol.startTimeout(setup.getTimeoutSec());
+            }
 
-        if (setup.getTimeoutSec() > 0) {
-            tradeProtocol.startTimeout(setup.getTimeoutSec());
+            NodeAddress peer = condition.getPeer();
+            if (peer != null) {
+                tradeProtocol.processModel.setTempTradingPeerNodeAddress(peer); // TODO (woodser): node has multiple peers (arbitrator and maker or taker), but fluent protocol assumes only one
+                tradeProtocol.processModel.getTradeManager().requestPersistence();
+            }
+
+            TradeMessage message = condition.getMessage();
+            if (message != null) {
+                tradeProtocol.processModel.setTradeMessage(message);
+                tradeProtocol.processModel.getTradeManager().requestPersistence();
+            }
+
+            TradeTaskRunner taskRunner = setup.getTaskRunner(peer, message, condition.getEvent());
+            taskRunner.addTasks(setup.getTasks());
+            taskRunner.run();
+            return this;
         }
-
-        NodeAddress peer = condition.getPeer();
-        if (peer != null) {
-            tradeProtocol.processModel.setTempTradingPeerNodeAddress(peer); // TODO (woodser): node has multiple peers (arbitrator and maker or taker), but fluent protocol assumes only one
-            tradeProtocol.processModel.getTradeManager().requestPersistence();
-        }
-
-        TradeMessage message = condition.getMessage();
-        if (message != null) {
-            tradeProtocol.processModel.setTradeMessage(message);
-            tradeProtocol.processModel.getTradeManager().requestPersistence();
-        }
-
-        TradeTaskRunner taskRunner = setup.getTaskRunner(peer, message, condition.getEvent());
-        taskRunner.addTasks(setup.getTasks());
-        taskRunner.run();
-        return this;
     }
 
 

@@ -413,7 +413,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
         PlaceOfferProtocol placeOfferProtocol = new PlaceOfferProtocol(
                 model,
                 transaction -> {
-                    
+
                     // save reserve tx with open offer
                     OpenOffer openOffer = new OpenOffer(offer, triggerPrice, model.getReserveTx().getHash(), model.getReserveTx().getFullHex(), model.getReserveTx().getKey());
                     openOffers.add(openOffer);
@@ -428,8 +428,10 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                 },
                 errorMessageHandler
         );
-        
-        placeOfferProtocols.put(offer.getId(), placeOfferProtocol);
+
+        synchronized (placeOfferProtocols) {
+            placeOfferProtocols.put(offer.getId(), placeOfferProtocol);
+        }
         placeOfferProtocol.placeOffer(); // TODO (woodser): if error placing offer (e.g. bad signature), remove protocol and unfreeze trade funds
     }
 
@@ -567,13 +569,13 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
     }
 
     private void onRemoved(@NotNull OpenOffer openOffer, ResultHandler resultHandler, Offer offer) {
+        for (String frozenKeyImage : offer.getOfferPayload().getReserveTxKeyImages()) xmrWalletService.getWallet().thawOutput(frozenKeyImage);
         offer.setState(Offer.State.REMOVED);
         openOffer.setState(OpenOffer.State.CANCELED);
         openOffers.remove(openOffer);
         closedTradableManager.add(openOffer);
         log.info("onRemoved offerId={}", offer.getId());
         btcWalletService.resetAddressEntriesForOpenOffer(offer.getId());
-        for (String frozenKeyImage : offer.getOfferPayload().getReserveTxKeyImages()) xmrWalletService.getWallet().thawOutput(frozenKeyImage);
         requestPersistence();
         resultHandler.handleResult();
     }
@@ -725,14 +727,17 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
     private void handleSignOfferResponse(SignOfferResponse response, NodeAddress peer) {
         log.info("Received SignOfferResponse from {} with offerId {} and uid {}",
                 peer, response.getOfferId(), response.getUid());
-        
+
         // get previously created protocol
-        PlaceOfferProtocol protocol = placeOfferProtocols.get(response.getOfferId());
-        if (protocol == null) {
-            log.warn("No place offer protocol created for offer " + response.getOfferId());
-            return;
+        PlaceOfferProtocol protocol;
+        synchronized (placeOfferProtocols) {
+            protocol = placeOfferProtocols.get(response.getOfferId());
+            if (protocol == null) {
+                log.warn("No place offer protocol created for offer " + response.getOfferId());
+                return;
+            }
         }
-        
+
         // handle response
         protocol.handleSignOfferResponse(response, peer);
     }
