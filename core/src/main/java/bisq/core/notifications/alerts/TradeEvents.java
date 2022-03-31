@@ -76,12 +76,12 @@ public class TradeEvents {
                         if (trade.getContract() != null && pubKeyRingProvider.get().equals(trade.getContract().getBuyerPubKeyRing()))
                             msg = Res.get("account.notifications.trade.message.msg.conf", shortId);
                         break;
-                    case FIAT_SENT:
+                    case PAYMENT_SENT:
                         // We only notify the seller
                         if (trade.getContract() != null && pubKeyRingProvider.get().equals(trade.getContract().getSellerPubKeyRing()))
                             msg = Res.get("account.notifications.trade.message.msg.started", shortId);
                         break;
-                    case FIAT_RECEIVED:
+                    case PAYMENT_RECEIVED:
                         break;
                     case PAYOUT_PUBLISHED:
                         // We only notify the buyer

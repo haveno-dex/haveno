@@ -116,7 +116,7 @@ public class SellerStep3View extends TradeStepView {
             } else if (trade.isFiatReceived()) {
                 if (!trade.hasFailed()) {
                     switch (state) {
-                        case SELLER_CONFIRMED_IN_UI_FIAT_PAYMENT_RECEIPT:
+                        case SELLER_CONFIRMED_IN_UI_PAYMENT_RECEIPT:
                         case SELLER_PUBLISHED_PAYOUT_TX:
                         case SELLER_SENT_PAYOUT_TX_PUBLISHED_MSG:
                             busyAnimation.play();

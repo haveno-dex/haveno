@@ -17,20 +17,21 @@
 
 package bisq.core.trade.protocol.tasks.seller;
 
-import bisq.core.trade.Trade;
-import bisq.core.trade.messages.CounterCurrencyTransferStartedMessage;
-import bisq.core.trade.protocol.tasks.TradeTask;
-import bisq.core.util.Validator;
-
-import bisq.common.taskrunner.TaskRunner;
-
-import lombok.extern.slf4j.Slf4j;
-
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import bisq.common.taskrunner.TaskRunner;
+import bisq.core.btc.wallet.XmrWalletService;
+import bisq.core.trade.Trade;
+import bisq.core.trade.messages.PaymentSentMessage;
+import bisq.core.trade.protocol.tasks.TradeTask;
+import bisq.core.util.Validator;
+import java.util.Arrays;
+import lombok.extern.slf4j.Slf4j;
+import monero.wallet.MoneroWallet;
+
 @Slf4j
-public class SellerProcessCounterCurrencyTransferStartedMessage extends TradeTask {
-    public SellerProcessCounterCurrencyTransferStartedMessage(TaskRunner<Trade> taskHandler, Trade trade) {
+public class SellerProcessesPaymentSentMessage extends TradeTask {
+    public SellerProcessesPaymentSentMessage(TaskRunner<Trade> taskHandler, Trade trade) {
         super(taskHandler, trade);
     }
 
@@ -39,12 +40,21 @@ public class SellerProcessCounterCurrencyTransferStartedMessage extends TradeTas
         try {
             runInterceptHook();
             log.debug("current trade state " + trade.getState());
-            CounterCurrencyTransferStartedMessage message = (CounterCurrencyTransferStartedMessage) processModel.getTradeMessage();
+            PaymentSentMessage message = (PaymentSentMessage) processModel.getTradeMessage();
             Validator.checkTradeId(processModel.getOfferId(), message);
             checkNotNull(message);
 
-            trade.getTradingPeer().setPayoutAddressString(Validator.nonEmptyStringOf(message.getBuyerPayoutAddress()));	// TODO (woodser): verify against contract
-            trade.getTradingPeer().setSignedPayoutTxHex(message.getBuyerPayoutTxSigned());
+            trade.getBuyer().setPayoutAddressString(Validator.nonEmptyStringOf(message.getBuyerPayoutAddress()));	// TODO (woodser): verify against contract
+            trade.getBuyer().setPayoutTxHex(message.getPayoutTxHex());
+            trade.getBuyer().setUpdatedMultisigHex(message.getUpdatedMultisigHex());
+            
+            // sync and update multisig wallet
+            if (trade.getBuyer().getUpdatedMultisigHex() != null) {
+                XmrWalletService walletService = processModel.getProvider().getXmrWalletService();
+                MoneroWallet multisigWallet = walletService.getMultisigWallet(trade.getId()); // TODO: ensure sync() always called before importMultisigHex() 
+                multisigWallet.importMultisigHex(trade.getBuyer().getUpdatedMultisigHex());
+                walletService.closeMultisigWallet(trade.getId());
+            }
 
             // update to the latest peer address of our peer if the message is correct  // TODO (woodser): update to latest peer addresses where needed
             trade.setTradingPeerNodeAddress(processModel.getTempTradingPeerNodeAddress());
@@ -59,7 +69,7 @@ public class SellerProcessCounterCurrencyTransferStartedMessage extends TradeTas
                 trade.setCounterCurrencyExtraData(counterCurrencyExtraData);
             }
 
-            trade.setState(Trade.State.SELLER_RECEIVED_FIAT_PAYMENT_INITIATED_MSG);
+            trade.setState(Trade.State.SELLER_RECEIVED_PAYMENT_INITIATED_MSG);
 
             processModel.getTradeManager().requestPersistence();
 

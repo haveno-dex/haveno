@@ -24,7 +24,7 @@ import lombok.Value;
 
 /**
  * Not used anymore since v1.4.0
- * We do the re-sending of the payment sent message via the BuyerSendCounterCurrencyTransferStartedMessage task on the
+ * We do the re-sending of the payment sent message via the BuyerSendPaymentSentMessage task on the
  * buyer side, so seller do not need to do anything interactively.
  */
 @Deprecated

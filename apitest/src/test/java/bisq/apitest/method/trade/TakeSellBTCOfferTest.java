@@ -38,7 +38,7 @@ import static bisq.apitest.config.ApiTestConfig.BTC;
 import static bisq.cli.TableFormat.formatBalancesTbls;
 import static bisq.core.btc.wallet.Restrictions.getDefaultBuyerSecurityDepositAsPercent;
 import static bisq.core.trade.Trade.Phase.DEPOSIT_CONFIRMED;
-import static bisq.core.trade.Trade.Phase.FIAT_SENT;
+import static bisq.core.trade.Trade.Phase.PAYMENT_SENT;
 import static bisq.core.trade.Trade.Phase.PAYOUT_PUBLISHED;
 import static bisq.core.trade.Trade.Phase.WITHDRAWN;
 import static bisq.core.trade.Trade.State.*;
@@ -173,8 +173,8 @@ public class TakeSellBTCOfferTest extends AbstractTradeTest {
                 } else {
                     // Note: offer.state == available
                     assertEquals(AVAILABLE.name(), trade.getOffer().getState());
-                    EXPECTED_PROTOCOL_STATUS.setState(BUYER_SAW_ARRIVED_FIAT_PAYMENT_INITIATED_MSG)
-                            .setPhase(FIAT_SENT)
+                    EXPECTED_PROTOCOL_STATUS.setState(BUYER_SAW_ARRIVED_PAYMENT_INITIATED_MSG)
+                            .setPhase(PAYMENT_SENT)
                             .setFiatSent(true);
                     verifyExpectedProtocolStatus(trade);
                     logTrade(log, testInfo, "Bob's view after confirming fiat payment sent", trade);
@@ -193,8 +193,8 @@ public class TakeSellBTCOfferTest extends AbstractTradeTest {
             var trade = aliceClient.getTrade(tradeId);
 
             Predicate<TradeInfo> tradeStateAndPhaseCorrect = (t) ->
-                    t.getState().equals(SELLER_RECEIVED_FIAT_PAYMENT_INITIATED_MSG.name())
-                            && (t.getPhase().equals(PAYOUT_PUBLISHED.name()) || t.getPhase().equals(FIAT_SENT.name()));
+                    t.getState().equals(SELLER_RECEIVED_PAYMENT_INITIATED_MSG.name())
+                            && (t.getPhase().equals(PAYOUT_PUBLISHED.name()) || t.getPhase().equals(PAYMENT_SENT.name()));
             for (int i = 1; i <= maxTradeStateAndPhaseChecks.get(); i++) {
                 if (!tradeStateAndPhaseCorrect.test(trade)) {
                     log.warn("INVALID_PHASE for Alice's trade {} in STATE={} PHASE={}, cannot confirm payment received yet.",

@@ -62,8 +62,8 @@ public abstract class DisputeProtocol extends TradeProtocol {
     public void onAcceptMediationResult(ResultHandler resultHandler, ErrorMessageHandler errorMessageHandler) {
         DisputeEvent event = DisputeEvent.MEDIATION_RESULT_ACCEPTED;
         expect(anyPhase(Trade.Phase.DEPOSIT_CONFIRMED,
-                Trade.Phase.FIAT_SENT,
-                Trade.Phase.FIAT_RECEIVED)
+                Trade.Phase.PAYMENT_SENT,
+                Trade.Phase.PAYMENT_RECEIVED)
                 .with(event)
                 .preCondition(trade.getTradingPeer().getMediatedPayoutTxSignature() == null,
                         () -> errorMessageHandler.handleErrorMessage("We have received already the signature from the peer."))
@@ -89,8 +89,8 @@ public abstract class DisputeProtocol extends TradeProtocol {
     public void onFinalizeMediationResultPayout(ResultHandler resultHandler, ErrorMessageHandler errorMessageHandler) {
         DisputeEvent event = DisputeEvent.MEDIATION_RESULT_ACCEPTED;
         expect(anyPhase(Trade.Phase.DEPOSIT_CONFIRMED,
-                Trade.Phase.FIAT_SENT,
-                Trade.Phase.FIAT_RECEIVED)
+                Trade.Phase.PAYMENT_SENT,
+                Trade.Phase.PAYMENT_RECEIVED)
                 .with(event)
                 .preCondition(trade.getPayoutTx() == null,
                         () -> errorMessageHandler.handleErrorMessage("Payout tx is already published.")))
@@ -118,8 +118,8 @@ public abstract class DisputeProtocol extends TradeProtocol {
 
     protected void handle(MediatedPayoutTxSignatureMessage message, NodeAddress peer) {
         expect(anyPhase(Trade.Phase.DEPOSIT_CONFIRMED,
-                Trade.Phase.FIAT_SENT,
-                Trade.Phase.FIAT_RECEIVED)
+                Trade.Phase.PAYMENT_SENT,
+                Trade.Phase.PAYMENT_RECEIVED)
                 .with(message)
                 .from(peer))
                 .setup(tasks(ProcessMediatedPayoutSignatureMessage.class))
@@ -128,8 +128,8 @@ public abstract class DisputeProtocol extends TradeProtocol {
 
     protected void handle(MediatedPayoutTxPublishedMessage message, NodeAddress peer) {
         expect(anyPhase(Trade.Phase.DEPOSIT_CONFIRMED,
-                Trade.Phase.FIAT_SENT,
-                Trade.Phase.FIAT_RECEIVED)
+                Trade.Phase.PAYMENT_SENT,
+                Trade.Phase.PAYMENT_RECEIVED)
                 .with(message)
                 .from(peer))
                 .setup(tasks(ProcessMediatedPayoutTxPublishedMessage.class))
@@ -168,8 +168,8 @@ public abstract class DisputeProtocol extends TradeProtocol {
 
     private void handle(PeerPublishedDelayedPayoutTxMessage message, NodeAddress peer) {
         expect(anyPhase(Trade.Phase.DEPOSIT_CONFIRMED,
-                Trade.Phase.FIAT_SENT,
-                Trade.Phase.FIAT_RECEIVED)
+                Trade.Phase.PAYMENT_SENT,
+                Trade.Phase.PAYMENT_RECEIVED)
                 .with(message)
                 .from(peer))
                 .setup(tasks(ProcessPeerPublishedDelayedPayoutTxMessage.class))

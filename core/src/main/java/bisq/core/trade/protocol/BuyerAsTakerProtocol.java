@@ -29,7 +29,7 @@ import bisq.core.trade.messages.DepositTxAndDelayedPayoutTxMessage;
 import bisq.core.trade.messages.InitMultisigRequest;
 import bisq.core.trade.messages.InputsForDepositTxResponse;
 import bisq.core.trade.messages.PaymentAccountPayloadRequest;
-import bisq.core.trade.messages.PayoutTxPublishedMessage;
+import bisq.core.trade.messages.PaymentReceivedMessage;
 import bisq.core.trade.messages.SignContractRequest;
 import bisq.core.trade.messages.SignContractResponse;
 import bisq.core.trade.messages.TradeMessage;
@@ -296,7 +296,7 @@ public class BuyerAsTakerProtocol extends BuyerProtocol implements TakerProtocol
 
     // We keep the handler here in as well to make it more transparent which messages we expect
     @Override
-    protected void handle(PayoutTxPublishedMessage message, NodeAddress peer) {
+    protected void handle(PaymentReceivedMessage message, NodeAddress peer) {
         super.handle(message, peer);
     }
 

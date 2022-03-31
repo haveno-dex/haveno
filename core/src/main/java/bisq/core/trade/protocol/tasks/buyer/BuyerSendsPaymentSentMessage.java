@@ -21,7 +21,7 @@ import bisq.core.btc.model.XmrAddressEntry;
 import bisq.core.btc.wallet.XmrWalletService;
 import bisq.core.network.MessageState;
 import bisq.core.trade.Trade;
-import bisq.core.trade.messages.CounterCurrencyTransferStartedMessage;
+import bisq.core.trade.messages.PaymentSentMessage;
 import bisq.core.trade.messages.TradeMailboxMessage;
 import bisq.core.trade.messages.TradeMessage;
 import bisq.core.trade.protocol.tasks.SendMailboxMessageTask;
@@ -35,9 +35,10 @@ import javafx.beans.value.ChangeListener;
 import java.util.concurrent.TimeUnit;
 
 import lombok.extern.slf4j.Slf4j;
+import monero.wallet.MoneroWallet;
 
 /**
- * We send the seller the BuyerSendCounterCurrencyTransferStartedMessage.
+ * We send the seller the BuyerSendPaymentSentMessage.
  * We wait to receive a ACK message back and resend the message
  * in case that does not happen in 10 minutes or if the message was stored in mailbox or failed. We keep repeating that
  * with doubling the interval each time and until the MAX_RESEND_ATTEMPTS is reached.
@@ -46,15 +47,15 @@ import lombok.extern.slf4j.Slf4j;
  * online he will process it.
  */
 @Slf4j
-public class BuyerSendCounterCurrencyTransferStartedMessage extends SendMailboxMessageTask {
+public class BuyerSendsPaymentSentMessage extends SendMailboxMessageTask {
     private static final int MAX_RESEND_ATTEMPTS = 10;
     private int delayInMin = 15;
     private int resendCounter = 0;
-    private CounterCurrencyTransferStartedMessage message;
+    private PaymentSentMessage message;
     private ChangeListener<MessageState> listener;
     private Timer timer;
 
-    public BuyerSendCounterCurrencyTransferStartedMessage(TaskRunner<Trade> taskHandler, Trade trade) {
+    public BuyerSendsPaymentSentMessage(TaskRunner<Trade> taskHandler, Trade trade) {
         super(taskHandler, trade);
     }
 
@@ -66,21 +67,21 @@ public class BuyerSendCounterCurrencyTransferStartedMessage extends SendMailboxM
             XmrWalletService walletService = processModel.getProvider().getXmrWalletService();
             final String id = processModel.getOfferId();
             XmrAddressEntry payoutAddressEntry = walletService.getOrCreateAddressEntry(id, XmrAddressEntry.Context.TRADE_PAYOUT);
-            String payoutTxHex = processModel.getBuyerSignedPayoutTx().getTxSet().getMultisigTxHex();
 
             // We do not use a real unique ID here as we want to be able to re-send the exact same message in case the
             // peer does not respond with an ACK msg in a certain time interval. To avoid that we get dangling mailbox
             // messages where only the one which gets processed by the peer would be removed we use the same uid. All
             // other data stays the same when we re-send the message at any time later.
             String deterministicId = tradeId + processModel.getMyNodeAddress().getFullAddress();
-            message = new CounterCurrencyTransferStartedMessage(
+            message = new PaymentSentMessage(
                     tradeId,
                     payoutAddressEntry.getAddressString(),
                     processModel.getMyNodeAddress(),
-                    payoutTxHex,
                     trade.getCounterCurrencyTxId(),
                     trade.getCounterCurrencyExtraData(),
-                    deterministicId
+                    deterministicId,
+                    trade.getBuyer().getPayoutTxHex(),
+                    trade.getBuyer().getUpdatedMultisigHex()
             );
         }
         return message;
@@ -88,8 +89,8 @@ public class BuyerSendCounterCurrencyTransferStartedMessage extends SendMailboxM
 
     @Override
     protected void setStateSent() {
-        if (trade.getState().ordinal() < Trade.State.BUYER_SENT_FIAT_PAYMENT_INITIATED_MSG.ordinal()) {
-            trade.setStateIfValidTransitionTo(Trade.State.BUYER_SENT_FIAT_PAYMENT_INITIATED_MSG);
+        if (trade.getState().ordinal() < Trade.State.BUYER_SENT_PAYMENT_INITIATED_MSG.ordinal()) {
+            trade.setStateIfValidTransitionTo(Trade.State.BUYER_SENT_PAYMENT_INITIATED_MSG);
         }
 
         processModel.getTradeManager().requestPersistence();
@@ -111,7 +112,7 @@ public class BuyerSendCounterCurrencyTransferStartedMessage extends SendMailboxM
 
     @Override
     protected void setStateStoredInMailbox() {
-        trade.setStateIfValidTransitionTo(Trade.State.BUYER_STORED_IN_MAILBOX_FIAT_PAYMENT_INITIATED_MSG);
+        trade.setStateIfValidTransitionTo(Trade.State.BUYER_STORED_IN_MAILBOX_PAYMENT_INITIATED_MSG);
         if (!trade.isPayoutPublished()) {
             tryToSendAgainLater();
         }
@@ -126,7 +127,7 @@ public class BuyerSendCounterCurrencyTransferStartedMessage extends SendMailboxM
 
     @Override
     protected void setStateFault() {
-        trade.setStateIfValidTransitionTo(Trade.State.BUYER_SEND_FAILED_FIAT_PAYMENT_INITIATED_MSG);
+        trade.setStateIfValidTransitionTo(Trade.State.BUYER_SEND_FAILED_PAYMENT_INITIATED_MSG);
         if (!trade.isPayoutPublished()) {
             tryToSendAgainLater();
         }
@@ -165,7 +166,7 @@ public class BuyerSendCounterCurrencyTransferStartedMessage extends SendMailboxM
     private void tryToSendAgainLater() {
         if (resendCounter >= MAX_RESEND_ATTEMPTS) {
             cleanup();
-            log.warn("We never received an ACK message when sending the CounterCurrencyTransferStartedMessage to the peer. " +
+            log.warn("We never received an ACK message when sending the PaymentSentMessage to the peer. " +
                     "We stop now and complete the protocol task.");
             complete();
             return;
@@ -192,7 +193,7 @@ public class BuyerSendCounterCurrencyTransferStartedMessage extends SendMailboxM
         // Once we receive an ACK from our msg we know the peer has received the msg and we stop.
         if (newValue == MessageState.ACKNOWLEDGED) {
             // We treat a ACK like BUYER_SAW_ARRIVED_FIAT_PAYMENT_INITIATED_MSG
-            trade.setStateIfValidTransitionTo(Trade.State.BUYER_SAW_ARRIVED_FIAT_PAYMENT_INITIATED_MSG);
+            trade.setStateIfValidTransitionTo(Trade.State.BUYER_SAW_ARRIVED_PAYMENT_INITIATED_MSG);
 
             processModel.getTradeManager().requestPersistence();
 

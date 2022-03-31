@@ -21,7 +21,7 @@ import bisq.core.offer.Offer;
 import bisq.core.trade.Trade;
 import bisq.core.trade.TradeManager;
 import bisq.core.trade.handlers.TradeResultHandler;
-import bisq.core.trade.messages.CounterCurrencyTransferStartedMessage;
+import bisq.core.trade.messages.PaymentSentMessage;
 import bisq.core.trade.messages.DepositTxAndDelayedPayoutTxMessage;
 import bisq.core.trade.messages.InitMultisigRequest;
 import bisq.core.trade.messages.SignContractRequest;
@@ -294,10 +294,10 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
 
     // TODO (woodser): support notifications of ack messages
     private void onAckMessage(AckMessage ackMessage, NodeAddress peer) {
-        // We handle the ack for CounterCurrencyTransferStartedMessage and DepositTxAndDelayedPayoutTxMessage
+        // We handle the ack for PaymentSentMessage and DepositTxAndDelayedPayoutTxMessage
         // as we support automatic re-send of the msg in case it was not ACKed after a certain time
         // TODO (woodser): add AckMessage for InitTradeRequest and support automatic re-send ?
-        if (ackMessage.getSourceMsgClassName().equals(CounterCurrencyTransferStartedMessage.class.getSimpleName())) {
+        if (ackMessage.getSourceMsgClassName().equals(PaymentSentMessage.class.getSimpleName())) {
             processModel.setPaymentStartedAckMessage(ackMessage);
         } else if (ackMessage.getSourceMsgClassName().equals(DepositTxAndDelayedPayoutTxMessage.class.getSimpleName())) {
             processModel.setDepositTxSentAckMessage(ackMessage);

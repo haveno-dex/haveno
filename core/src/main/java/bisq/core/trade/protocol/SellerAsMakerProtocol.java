@@ -21,7 +21,7 @@ package bisq.core.trade.protocol;
 import bisq.core.trade.SellerAsMakerTrade;
 import bisq.core.trade.Trade;
 import bisq.core.trade.Trade.State;
-import bisq.core.trade.messages.CounterCurrencyTransferStartedMessage;
+import bisq.core.trade.messages.PaymentSentMessage;
 import bisq.core.trade.messages.DepositResponse;
 import bisq.core.trade.messages.DepositTxMessage;
 import bisq.core.trade.messages.InitMultisigRequest;
@@ -322,7 +322,7 @@ public class SellerAsMakerProtocol extends SellerProtocol implements MakerProtoc
 
     // We keep the handler here in as well to make it more transparent which messages we expect
     @Override
-    protected void handle(CounterCurrencyTransferStartedMessage message, NodeAddress peer) {
+    protected void handle(PaymentSentMessage message, NodeAddress peer) {
         super.handle(message, peer);
     }
 }

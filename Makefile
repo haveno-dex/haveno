@@ -15,7 +15,7 @@ haveno:
 	./gradlew build
 
 # build haveno without tests
-no-tests:
+skip-tests:
 	./gradlew build -x test
 
 # quick build desktop and daemon apps without tests

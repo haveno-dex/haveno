@@ -409,8 +409,8 @@ class TakeOfferViewModel extends ActivatableWithDataModel<TakeOfferDataModel> im
                     appendMsg = Res.get("takeOffer.error.feePaid");
                     break;
                 case DEPOSIT_PUBLISHED:
-                case FIAT_SENT:
-                case FIAT_RECEIVED:
+                case PAYMENT_SENT:
+                case PAYMENT_RECEIVED:
                     appendMsg = Res.get("takeOffer.error.depositPublished");
                     break;
                 case PAYOUT_PUBLISHED:

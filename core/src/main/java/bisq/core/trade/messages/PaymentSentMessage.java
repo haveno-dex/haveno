@@ -31,33 +31,38 @@ import javax.annotation.Nullable;
 
 @EqualsAndHashCode(callSuper = true)
 @Value
-public final class CounterCurrencyTransferStartedMessage extends TradeMailboxMessage {
+public final class PaymentSentMessage extends TradeMailboxMessage {
     private final String buyerPayoutAddress;
     private final NodeAddress senderNodeAddress;
-    private final String buyerPayoutTxSigned;
     @Nullable
     private final String counterCurrencyTxId;
+    @Nullable
+    private final String payoutTxHex;
+    @Nullable
+    private final String updatedMultisigHex;
 
     // Added after v1.3.7
     // We use that for the XMR txKey but want to keep it generic to be flexible for data of other payment methods or assets.
     @Nullable
     private String counterCurrencyExtraData;
 
-    public CounterCurrencyTransferStartedMessage(String tradeId,
+    public PaymentSentMessage(String tradeId,
                                                  String buyerPayoutAddress,
                                                  NodeAddress senderNodeAddress,
-                                                 String buyerPayoutTxSigned,
                                                  @Nullable String counterCurrencyTxId,
                                                  @Nullable String counterCurrencyExtraData,
-                                                 String uid) {
+                                                 String uid,
+                                                 String signedPayoutTxHex,
+                                                 String updatedMultisigHex) {
         this(tradeId,
                 buyerPayoutAddress,
                 senderNodeAddress,
-                buyerPayoutTxSigned,
                 counterCurrencyTxId,
                 counterCurrencyExtraData,
                 uid,
-                Version.getP2PMessageVersion());
+                Version.getP2PMessageVersion(),
+                signedPayoutTxHex,
+                updatedMultisigHex);
     }
 
 
@@ -65,59 +70,64 @@ public final class CounterCurrencyTransferStartedMessage extends TradeMailboxMes
     // PROTO BUFFER
     ///////////////////////////////////////////////////////////////////////////////////////////
 
-    private CounterCurrencyTransferStartedMessage(String tradeId,
+    private PaymentSentMessage(String tradeId,
                                                   String buyerPayoutAddress,
                                                   NodeAddress senderNodeAddress,
-                                                  String buyerPayoutTxSigned,
                                                   @Nullable String counterCurrencyTxId,
                                                   @Nullable String counterCurrencyExtraData,
                                                   String uid,
-                                                  String messageVersion) {
+                                                  String messageVersion,
+                                                  @Nullable String signedPayoutTxHex,
+                                                  @Nullable String updatedMultisigHex) {
         super(messageVersion, tradeId, uid);
         this.buyerPayoutAddress = buyerPayoutAddress;
         this.senderNodeAddress = senderNodeAddress;
-        this.buyerPayoutTxSigned = buyerPayoutTxSigned;
         this.counterCurrencyTxId = counterCurrencyTxId;
         this.counterCurrencyExtraData = counterCurrencyExtraData;
+        this.payoutTxHex = signedPayoutTxHex;
+        this.updatedMultisigHex = updatedMultisigHex;
     }
 
     @Override
     public protobuf.NetworkEnvelope toProtoNetworkEnvelope() {
-        final protobuf.CounterCurrencyTransferStartedMessage.Builder builder = protobuf.CounterCurrencyTransferStartedMessage.newBuilder();
+        final protobuf.PaymentSentMessage.Builder builder = protobuf.PaymentSentMessage.newBuilder();
         builder.setTradeId(tradeId)
                 .setBuyerPayoutAddress(buyerPayoutAddress)
                 .setSenderNodeAddress(senderNodeAddress.toProtoMessage())
-                .setBuyerPayoutTxSigned(buyerPayoutTxSigned)
                 .setUid(uid);
 
         Optional.ofNullable(counterCurrencyTxId).ifPresent(e -> builder.setCounterCurrencyTxId(counterCurrencyTxId));
         Optional.ofNullable(counterCurrencyExtraData).ifPresent(e -> builder.setCounterCurrencyExtraData(counterCurrencyExtraData));
+        Optional.ofNullable(payoutTxHex).ifPresent(e -> builder.setPayoutTxHex(payoutTxHex));
+        Optional.ofNullable(updatedMultisigHex).ifPresent(e -> builder.setUpdatedMultisigHex(updatedMultisigHex));
 
-        return getNetworkEnvelopeBuilder().setCounterCurrencyTransferStartedMessage(builder).build();
+        return getNetworkEnvelopeBuilder().setPaymentSentMessage(builder).build();
     }
 
-    public static CounterCurrencyTransferStartedMessage fromProto(protobuf.CounterCurrencyTransferStartedMessage proto,
+    public static PaymentSentMessage fromProto(protobuf.PaymentSentMessage proto,
                                                                   String messageVersion) {
-        return new CounterCurrencyTransferStartedMessage(proto.getTradeId(),
+        return new PaymentSentMessage(proto.getTradeId(),
                 proto.getBuyerPayoutAddress(),
                 NodeAddress.fromProto(proto.getSenderNodeAddress()),
-                proto.getBuyerPayoutTxSigned(),
                 ProtoUtil.stringOrNullFromProto(proto.getCounterCurrencyTxId()),
                 ProtoUtil.stringOrNullFromProto(proto.getCounterCurrencyExtraData()),
                 proto.getUid(),
-                messageVersion);
+                messageVersion,
+                ProtoUtil.stringOrNullFromProto(proto.getPayoutTxHex()),
+                ProtoUtil.stringOrNullFromProto(proto.getUpdatedMultisigHex()));
     }
 
 
     @Override
     public String toString() {
-        return "CounterCurrencyTransferStartedMessage{" +
+        return "PaymentSentMessage{" +
                 "\n     buyerPayoutAddress='" + buyerPayoutAddress + '\'' +
                 ",\n     senderNodeAddress=" + senderNodeAddress +
                 ",\n     counterCurrencyTxId=" + counterCurrencyTxId +
                 ",\n     counterCurrencyExtraData=" + counterCurrencyExtraData +
                 ",\n     uid='" + uid + '\'' +
-                ",\n     buyerPayoutTxSigned=" + buyerPayoutTxSigned +
+                ",\n     payoutTxHex=" + payoutTxHex +
+                ",\n     updatedMultisigHex=" + updatedMultisigHex +
                 "\n} " + super.toString();
     }
 }

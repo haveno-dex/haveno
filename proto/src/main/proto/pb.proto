@@ -39,34 +39,32 @@ message NetworkEnvelope {
         InputsForDepositTxRequest inputs_for_deposit_tx_request = 17;
         InputsForDepositTxResponse inputs_for_deposit_tx_response = 18;
         DepositTxMessage deposit_tx_message = 19;
-        CounterCurrencyTransferStartedMessage counter_currency_transfer_started_message = 20;
-        PayoutTxPublishedMessage payout_tx_published_message = 21;
 
-        OpenNewDisputeMessage open_new_dispute_message = 22;
-        PeerOpenedDisputeMessage peer_opened_dispute_message = 23;
-        ChatMessage chat_message = 24;
-        DisputeResultMessage dispute_result_message = 25;
-        PeerPublishedDisputePayoutTxMessage peer_published_dispute_payout_tx_message = 26;
+        OpenNewDisputeMessage open_new_dispute_message = 20;
+        PeerOpenedDisputeMessage peer_opened_dispute_message = 21;
+        ChatMessage chat_message = 22;
+        DisputeResultMessage dispute_result_message = 23;
+        PeerPublishedDisputePayoutTxMessage peer_published_dispute_payout_tx_message = 24;
 
-        PrivateNotificationMessage private_notification_message = 27;
+        PrivateNotificationMessage private_notification_message = 25;
 
-        AddPersistableNetworkPayloadMessage add_persistable_network_payload_message = 28;
-        AckMessage ack_message = 29;
+        AddPersistableNetworkPayloadMessage add_persistable_network_payload_message = 26;
+        AckMessage ack_message = 27;
 
-        BundleOfEnvelopes bundle_of_envelopes = 30;
-        MediatedPayoutTxSignatureMessage mediated_payout_tx_signature_message = 31;
-        MediatedPayoutTxPublishedMessage mediated_payout_tx_published_message = 32;
+        BundleOfEnvelopes bundle_of_envelopes = 28;
+        MediatedPayoutTxSignatureMessage mediated_payout_tx_signature_message = 29;
+        MediatedPayoutTxPublishedMessage mediated_payout_tx_published_message = 30;
 
-        DelayedPayoutTxSignatureRequest delayed_payout_tx_signature_request = 33;
-        DelayedPayoutTxSignatureResponse delayed_payout_tx_signature_response = 34;
-        DepositTxAndDelayedPayoutTxMessage deposit_tx_and_delayed_payout_tx_message = 35;
-        PeerPublishedDelayedPayoutTxMessage peer_published_delayed_payout_tx_message = 36;
+        DelayedPayoutTxSignatureRequest delayed_payout_tx_signature_request = 31;
+        DelayedPayoutTxSignatureResponse delayed_payout_tx_signature_response = 32;
+        DepositTxAndDelayedPayoutTxMessage deposit_tx_and_delayed_payout_tx_message = 33;
+        PeerPublishedDelayedPayoutTxMessage peer_published_delayed_payout_tx_message = 34;
 
-        RefreshTradeStateRequest refresh_trade_state_request = 37 [deprecated = true];
-        TraderSignedWitnessMessage trader_signed_witness_message = 38 [deprecated = true];
+        RefreshTradeStateRequest refresh_trade_state_request = 35 [deprecated = true];
+        TraderSignedWitnessMessage trader_signed_witness_message = 36 [deprecated = true];
 
-        GetInventoryRequest get_inventory_request = 39;
-        GetInventoryResponse get_inventory_response = 40;
+        GetInventoryRequest get_inventory_request = 37;
+        GetInventoryResponse get_inventory_response = 38;
 
         SignOfferRequest sign_offer_request = 1001;
         SignOfferResponse sign_offer_response = 1002;
@@ -77,10 +75,13 @@ message NetworkEnvelope {
         DepositRequest deposit_request = 1007;
         DepositResponse deposit_response = 1008;
         PaymentAccountPayloadRequest payment_account_payload_request = 1009;
-        UpdateMultisigRequest update_multisig_request = 1010;
-        UpdateMultisigResponse update_multisig_response = 1011;
-        ArbitratorPayoutTxRequest arbitrator_payout_tx_request = 1012;
-        ArbitratorPayoutTxResponse arbitrator_payout_tx_response = 1013;
+        PaymentSentMessage payment_sent_message = 1010;
+        PaymentReceivedMessage payment_received_message = 1011;
+        PayoutTxPublishedMessage payout_tx_published_message = 1012;
+        UpdateMultisigRequest update_multisig_request = 1013;
+        UpdateMultisigResponse update_multisig_response = 1014;
+        ArbitratorPayoutTxRequest arbitrator_payout_tx_request = 1015;
+        ArbitratorPayoutTxResponse arbitrator_payout_tx_response = 1016;
     }
 }
 
@@ -428,22 +429,39 @@ message PeerPublishedDelayedPayoutTxMessage {
     NodeAddress sender_node_address = 3;
 }
 
-message CounterCurrencyTransferStartedMessage {
-    string trade_id = 1;
-    string buyer_payout_address = 2;
-    NodeAddress sender_node_address = 3;
-    string buyer_payout_tx_signed = 4;
-    string counter_currency_tx_id = 5;
-    string uid = 6;
-    string counter_currency_extra_data = 7;
-}
-
 message FinalizePayoutTxRequest {
     string trade_id = 1;
     bytes seller_signature = 2;
     string seller_payout_address = 3;
     NodeAddress sender_node_address = 4;
     string uid = 5;
+}
+
+message PaymentSentMessage {
+    string trade_id = 1;
+    string buyer_payout_address = 2;
+    NodeAddress sender_node_address = 3;
+    string counter_currency_tx_id = 4;
+    string uid = 5;
+    string counter_currency_extra_data = 6;
+    string payout_tx_hex = 7;
+    string updated_multisig_hex = 8;
+}
+
+message PaymentReceivedMessage {
+    string trade_id = 1;
+    NodeAddress sender_node_address = 2;
+    string uid = 3;
+    SignedWitness signed_witness = 4; // Added in v1.4.0
+    string payout_tx_hex = 5;
+}
+
+message PayoutTxPublishedMessage {
+    string trade_id = 1;
+    NodeAddress sender_node_address = 2;
+    string uid = 3;
+    SignedWitness signed_witness = 4; // Added in v1.4.0
+    string payout_tx_hex = 5;
 }
 
 message ArbitratorPayoutTxRequest {
@@ -460,14 +478,6 @@ message ArbitratorPayoutTxResponse {
     string uid = 3;
     SupportType type = 4;
     string arbitrator_signed_payout_tx_hex = 5;
-}
-
-message PayoutTxPublishedMessage {
-    string trade_id = 1;
-    string signed_multisig_tx_hex = 2;
-    NodeAddress sender_node_address = 3;
-    string uid = 4;
-    SignedWitness signed_witness = 5; // Added in v1.4.0
 }
 
 message MediatedPayoutTxPublishedMessage {
@@ -1514,13 +1524,13 @@ message Trade {
         MAKER_RECEIVED_DEPOSIT_TX_PUBLISHED_MSG = 16;
         MAKER_SAW_DEPOSIT_TX_IN_NETWORK = 17;
         DEPOSIT_CONFIRMED_IN_BLOCK_CHAIN = 18;
-        BUYER_CONFIRMED_IN_UI_FIAT_PAYMENT_INITIATED = 19;
-        BUYER_SENT_FIAT_PAYMENT_INITIATED_MSG = 20;
-        BUYER_SAW_ARRIVED_FIAT_PAYMENT_INITIATED_MSG = 21;
-        BUYER_STORED_IN_MAILBOX_FIAT_PAYMENT_INITIATED_MSG = 22;
-        BUYER_SEND_FAILED_FIAT_PAYMENT_INITIATED_MSG = 23;
-        SELLER_RECEIVED_FIAT_PAYMENT_INITIATED_MSG = 24;
-        SELLER_CONFIRMED_IN_UI_FIAT_PAYMENT_RECEIPT = 25;
+        BUYER_CONFIRMED_IN_UI_PAYMENT_INITIATED = 19;
+        BUYER_SENT_PAYMENT_INITIATED_MSG = 20;
+        BUYER_SAW_ARRIVED_PAYMENT_INITIATED_MSG = 21;
+        BUYER_STORED_IN_MAILBOX_PAYMENT_INITIATED_MSG = 22;
+        BUYER_SEND_FAILED_PAYMENT_INITIATED_MSG = 23;
+        SELLER_RECEIVED_PAYMENT_INITIATED_MSG = 24;
+        SELLER_CONFIRMED_IN_UI_PAYMENT_RECEIPT = 25;
         SELLER_PUBLISHED_PAYOUT_TX = 26;
         SELLER_SENT_PAYOUT_TX_PUBLISHED_MSG = 27;
         SELLER_SAW_ARRIVED_PAYOUT_TX_PUBLISHED_MSG = 28;
@@ -1528,7 +1538,8 @@ message Trade {
         SELLER_SEND_FAILED_PAYOUT_TX_PUBLISHED_MSG = 30;
         BUYER_RECEIVED_PAYOUT_TX_PUBLISHED_MSG = 31;
         BUYER_SAW_PAYOUT_TX_IN_NETWORK = 32;
-        WITHDRAW_COMPLETED = 33;
+        BUYER_PUBLISHED_PAYOUT_TX = 33;
+        WITHDRAW_COMPLETED = 34;
     }
 
     enum Phase {
@@ -1537,8 +1548,8 @@ message Trade {
         TAKER_FEE_PUBLISHED = 2;
         DEPOSIT_PUBLISHED = 3;
         DEPOSIT_CONFIRMED = 4;
-        FIAT_SENT = 5;
-        FIAT_RECEIVED = 6;
+        PAYMENT_SENT = 5;
+        PAYMENT_RECEIVED = 6;
         PAYOUT_PUBLISHED = 7;
         WITHDRAWN = 8;
     }
@@ -1686,10 +1697,11 @@ message TradingPeer {
     repeated string reserve_tx_key_images = 1004;
     string prepared_multisig_hex = 1005;
     string made_multisig_hex = 1006;
-    string signed_payout_tx_hex = 1007;
+    string payout_tx_hex = 1007;
     string deposit_tx_hash = 1008;
     string deposit_tx_hex = 1009;
     string deposit_tx_key = 1010;
+    string updated_multisig_hex = 1011;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////
