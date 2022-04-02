@@ -36,17 +36,17 @@ import java.util.List;
 
 import lombok.extern.slf4j.Slf4j;
 
-import monero.common.MoneroRpcConnection;
 import monero.daemon.MoneroDaemonRpc;
 
 /**
- * Manages a Monero node instance or connection to an instance.
+ * Start and stop or connect to a local Monero node.
  */
 @Slf4j
 @Singleton
 public class CoreMoneroNodeService {
 
-    public static final String LOCAL_NODE_ADDRESS = "127.0.0.1"; // expected connection from local MoneroDaemonRpc
+    private static final String LOOPBACK_HOST = "127.0.0.1"; // local loopback address to host Monero node
+    private static final String LOCALHOST = "localhost";
     private static final String MONERO_NETWORK_TYPE = Config.baseCurrencyNetwork().getNetwork().toLowerCase();
     private static final String MONEROD_PATH = System.getProperty("user.dir") + File.separator + ".localnet" + File.separator + "monerod";
     private static final String MONEROD_DATADIR =  System.getProperty("user.dir") + File.separator + ".localnet" + File.separator + MONERO_NETWORK_TYPE;
@@ -63,15 +63,11 @@ public class CoreMoneroNodeService {
             "--rpc-login", "superuser:abctesting123" // TODO: remove authentication
     );
 
-    // local monero node owned by this process
+    // client to the local Monero node
     private MoneroDaemonRpc daemon;
-
-    // local monero node for detecting running node not owned by this process
-    private MoneroDaemonRpc defaultMoneroDaemon;
 
     @Inject
     public CoreMoneroNodeService(Preferences preferences) {
-        this.daemon = null;
         this.preferences = preferences;
         int rpcPort = 18081; // mainnet
         if (Config.baseCurrencyNetwork().isTestnet()) {
@@ -79,9 +75,15 @@ public class CoreMoneroNodeService {
         } else if (Config.baseCurrencyNetwork().isStagenet()) {
             rpcPort = 38081;
         }
-        // TODO: remove authentication
-        var defaultMoneroConnection = new MoneroRpcConnection("http://" + LOCAL_NODE_ADDRESS + ":" + rpcPort, "superuser", "abctesting123").setPriority(1); // localhost is first priority
-        defaultMoneroDaemon = new MoneroDaemonRpc(defaultMoneroConnection);
+        this.daemon = new MoneroDaemonRpc("http://" + LOOPBACK_HOST + ":" + rpcPort, "superuser", "abctesting123"); // TODO: remove authentication
+    }
+
+    /**
+     * Returns whether the given URI is on local host. // TODO: move to utils
+     */
+    public static boolean isLocalHost(String uri) throws URISyntaxException {
+        String host = new URI(uri).getHost();
+        return host.equals(CoreMoneroNodeService.LOOPBACK_HOST) || host.equals(CoreMoneroNodeService.LOCALHOST);
     }
 
     public void addListener(MoneroNodeServiceListener listener) {
@@ -93,18 +95,17 @@ public class CoreMoneroNodeService {
     }
 
     /**
-     * Returns whether a connection string URI is a local monero node.
+     * Returns the client of the local monero node.
      */
-    public boolean isMoneroNodeConnection(String connection) throws URISyntaxException {
-        var uri = new URI(connection);
-        return CoreMoneroNodeService.LOCAL_NODE_ADDRESS.equals(uri.getHost());
+    public MoneroDaemonRpc getDaemon() {
+        return daemon;
     }
 
     /**
-     * Returns whether the local monero node is running or local daemon connection is running
+     * Returns whether a local monero node is running.
      */
     public boolean isMoneroNodeRunning() {
-        return daemon != null || defaultMoneroDaemon.isConnected();
+        return daemon.isConnected();
     }
 
     public MoneroNodeSettings getMoneroNodeSettings() {
@@ -124,7 +125,7 @@ public class CoreMoneroNodeService {
      * Persists the settings to preferences if the node started successfully.
      */
     public void startMoneroNode(MoneroNodeSettings settings) throws IOException {
-        if (isMoneroNodeRunning()) throw new IllegalStateException("Monero node already running");
+        if (isMoneroNodeRunning()) throw new IllegalStateException("Local Monero node already running");
 
         log.info("Starting local Monero node: " + settings);
 
@@ -146,23 +147,19 @@ public class CoreMoneroNodeService {
             args.addAll(flags);
         }
 
-        daemon = new MoneroDaemonRpc(args);
+        daemon = new MoneroDaemonRpc(args); // start daemon as process and re-assign client
         preferences.setMoneroNodeSettings(settings);
         for (var listener : listeners) listener.onNodeStarted(daemon);
     }
 
     /**
-     * Stops the current local monero node if owned by this process.
+     * Stops the current local monero node if we own its process.
      * Does not remove the last MoneroNodeSettings.
      */
     public void stopMoneroNode() {
-        if (!isMoneroNodeRunning()) throw new IllegalStateException("Monero node is not running");
-        if (daemon != null) {
-            daemon.stopProcess();
-            daemon = null;
-            for (var listener : listeners) listener.onNodeStopped();
-        } else {
-            defaultMoneroDaemon.stopProcess(); // throws MoneroError
-        }
+        if (!isMoneroNodeRunning()) throw new IllegalStateException("Local Monero node is not running");
+        if (daemon.getProcess() == null || !daemon.getProcess().isAlive()) throw new IllegalStateException("Cannot stop local Monero node because we don't own its process"); // TODO (woodser): remove isAlive() check after monero-java 0.5.4 which nullifies internal process
+        daemon.stopProcess();
+        for (var listener : listeners) listener.onNodeStopped();
     }
 }

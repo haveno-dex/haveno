@@ -17,6 +17,7 @@
 
 package bisq.core.app;
 
+import bisq.common.UserThread;
 import bisq.core.api.CoreMoneroConnectionsService;
 import bisq.core.locale.Res;
 import bisq.core.provider.price.PriceFeedService;
@@ -109,7 +110,7 @@ public class P2PNetworkSetup {
                     return result;
                 });
         p2PNetworkInfoBinding.subscribe((observable, oldValue, newValue) -> {
-            p2PNetworkInfo.set(newValue);
+            UserThread.execute(() -> p2PNetworkInfo.set(newValue));
         });
 
         bootstrapState.set(Res.get("mainView.bootstrapState.connectionToTorNetwork"));
