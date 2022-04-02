@@ -1814,6 +1814,7 @@ message PreferencesPayload {
     bool show_offers_matching_my_accounts = 55;
     bool deny_api_taker = 56;
     bool notify_on_pre_release = 57;
+    MoneroNodeSettings monero_node_settings = 58;
 }
 
 message AutoConfirmSettings {
@@ -1822,6 +1823,12 @@ message AutoConfirmSettings {
     int64 trade_limit = 3;
     repeated string service_addresses = 4;
     string currency_code = 5;
+}
+
+message MoneroNodeSettings {
+    string blockchain_path = 1;
+    string bootstrap_url = 2;
+    repeated string startup_flags = 3;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////

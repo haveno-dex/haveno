@@ -172,7 +172,7 @@ public class KeyStorage {
                         // Most of the time (probably of slightly less than 255/256, around 99.61%) a bad password
                         // will result in BadPaddingException before HMAC check.
                         // See https://stackoverflow.com/questions/8049872/given-final-block-not-properly-padded
-                        if (ce.getCause() instanceof BadPaddingException || ce.getMessage() == Encryption.HMAC_ERROR_MSG)
+                        if (ce.getCause() instanceof BadPaddingException || Encryption.HMAC_ERROR_MSG.equals(ce.getMessage()))
                             throw new IncorrectPasswordException("Incorrect password");
                         else
                             throw ce;
