@@ -36,6 +36,8 @@ import bisq.core.support.messages.ChatMessage;
 import bisq.core.trade.Trade;
 import bisq.core.trade.statistics.TradeStatistics3;
 import bisq.core.trade.statistics.TradeStatisticsManager;
+import bisq.core.xmr.MoneroNodeSettings;
+
 import bisq.common.app.Version;
 import bisq.common.config.Config;
 import bisq.common.crypto.IncorrectPasswordException;
@@ -53,6 +55,7 @@ import javax.inject.Singleton;
 
 import com.google.common.util.concurrent.FutureCallback;
 
+import java.io.IOException;
 import java.io.InputStream;
 
 import java.util.ArrayList;
@@ -94,6 +97,7 @@ public class CoreApi {
     private final TradeStatisticsManager tradeStatisticsManager;
     private final CoreNotificationService notificationService;
     private final CoreMoneroConnectionsService coreMoneroConnectionsService;
+    private final CoreMoneroNodeService coreMoneroNodeService;
 
     @Inject
     public CoreApi(Config config,
@@ -109,7 +113,8 @@ public class CoreApi {
                    CoreWalletsService walletsService,
                    TradeStatisticsManager tradeStatisticsManager,
                    CoreNotificationService notificationService,
-                   CoreMoneroConnectionsService coreMoneroConnectionsService) {
+                   CoreMoneroConnectionsService coreMoneroConnectionsService,
+                   CoreMoneroNodeService coreMoneroNodeService) {
         this.config = config;
         this.appStartupState = appStartupState;
         this.coreAccountService = coreAccountService;
@@ -124,6 +129,7 @@ public class CoreApi {
         this.tradeStatisticsManager = tradeStatisticsManager;
         this.notificationService = notificationService;
         this.coreMoneroConnectionsService = coreMoneroConnectionsService;
+        this.coreMoneroNodeService = coreMoneroNodeService;
     }
 
     @SuppressWarnings("SameReturnValue")
@@ -233,6 +239,26 @@ public class CoreApi {
 
     public void setMoneroConnectionAutoSwitch(boolean autoSwitch) {
         coreMoneroConnectionsService.setAutoSwitch(autoSwitch);
+    }
+
+    ///////////////////////////////////////////////////////////////////////////////////////////
+    // Monero node
+    ///////////////////////////////////////////////////////////////////////////////////////////
+
+    public boolean isMoneroNodeRunning() {
+        return coreMoneroNodeService.isMoneroNodeRunning();
+    }
+
+    public MoneroNodeSettings getMoneroNodeSettings() {
+        return coreMoneroNodeService.getMoneroNodeSettings();
+    }
+
+    public void startMoneroNode(MoneroNodeSettings settings) throws IOException {
+        coreMoneroNodeService.startMoneroNode(settings);
+    }
+
+    public void stopMoneroNode() {
+        coreMoneroNodeService.stopMoneroNode();
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////

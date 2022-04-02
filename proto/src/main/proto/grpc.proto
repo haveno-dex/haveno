@@ -383,6 +383,48 @@ message SetAutoSwitchRequest {
 message SetAutoSwitchReply {}
 
 ///////////////////////////////////////////////////////////////////////////////////////////
+// MoneroNode
+///////////////////////////////////////////////////////////////////////////////////////////
+
+service MoneroNode {
+    rpc IsMoneroNodeRunning (IsMoneroNodeRunningRequest) returns (IsMoneroNodeRunningReply) {
+    }
+    rpc GetMoneroNodeSettings (GetMoneroNodeSettingsRequest) returns (GetMoneroNodeSettingsReply) {
+    }
+    rpc StartMoneroNode (StartMoneroNodeRequest) returns (StartMoneroNodeReply) {
+    }
+    rpc StopMoneroNode (StopMoneroNodeRequest) returns (StopMoneroNodeReply) {
+    }
+}
+
+message IsMoneroNodeRunningRequest {
+}
+
+message IsMoneroNodeRunningReply {
+    bool is_running = 1;
+}
+
+message GetMoneroNodeSettingsRequest {
+}
+
+message GetMoneroNodeSettingsReply {
+    MoneroNodeSettings settings = 1; // pb.proto
+}
+
+message StartMoneroNodeRequest {
+    MoneroNodeSettings settings = 1;
+}
+
+message StartMoneroNodeReply {
+}
+
+message StopMoneroNodeRequest {
+}
+
+message StopMoneroNodeReply {
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////
 // Offers
 ///////////////////////////////////////////////////////////////////////////////////////////
 

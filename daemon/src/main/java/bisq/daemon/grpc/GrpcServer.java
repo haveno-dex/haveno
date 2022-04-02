@@ -62,7 +62,8 @@ public class GrpcServer {
                       GrpcTradesService tradesService,
                       GrpcWalletsService walletsService,
                       GrpcNotificationsService notificationsService,
-                      GrpcMoneroConnectionsService moneroConnectionsService) {
+                      GrpcMoneroConnectionsService moneroConnectionsService,
+                      GrpcMoneroNodeService moneroNodeService) {
         this.server = ServerBuilder.forPort(config.apiPort)
                 .executor(UserThread.getExecutor())
                 .addService(interceptForward(accountService, accountService.interceptors()))
@@ -79,6 +80,7 @@ public class GrpcServer {
                 .addService(interceptForward(walletsService, walletsService.interceptors()))
                 .addService(interceptForward(notificationsService, notificationsService.interceptors()))
                 .addService(interceptForward(moneroConnectionsService, moneroConnectionsService.interceptors()))
+                .addService(interceptForward(moneroNodeService, moneroNodeService.interceptors()))
                 .intercept(passwordAuthInterceptor)
                 .build();
         coreContext.setApiUser(true);
