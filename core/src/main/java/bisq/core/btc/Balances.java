@@ -18,6 +18,7 @@
 package bisq.core.btc;
 
 import bisq.common.UserThread;
+import bisq.core.btc.listeners.XmrBalanceListener;
 import bisq.core.btc.wallet.XmrWalletService;
 import bisq.core.offer.OfferPayload;
 import bisq.core.offer.OpenOffer;
@@ -41,7 +42,6 @@ import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import monero.wallet.model.MoneroOutputQuery;
 import monero.wallet.model.MoneroOutputWallet;
-import monero.wallet.model.MoneroWalletListener;
 import org.bitcoinj.core.Coin;
 
 @Slf4j
@@ -80,18 +80,19 @@ public class Balances {
     }
 
     public void onAllServicesInitialized() {
-        openOfferManager.getObservableList().addListener((ListChangeListener<OpenOffer>) c -> updateBalance());
-        tradeManager.getObservableList().addListener((ListChangeListener<Trade>) change -> updateBalance());
-        refundManager.getDisputesAsObservableList().addListener((ListChangeListener<Dispute>) c -> updateBalance());
-        xmrWalletService.getWallet().addListener(new MoneroWalletListener() {
-          @Override public void onBalancesChanged(BigInteger newBalance, BigInteger newUnlockedBalance) { updateBalance(); }
-          @Override public void onOutputReceived(MoneroOutputWallet output) { updateBalance(); }
-          @Override public void onOutputSpent(MoneroOutputWallet output) { updateBalance(); }
+        openOfferManager.getObservableList().addListener((ListChangeListener<OpenOffer>) c -> updatedBalances());
+        tradeManager.getObservableList().addListener((ListChangeListener<Trade>) change -> updatedBalances());
+        refundManager.getDisputesAsObservableList().addListener((ListChangeListener<Dispute>) c -> updatedBalances());
+        xmrWalletService.addBalanceListener(new XmrBalanceListener() {
+            @Override
+            public void onBalanceChanged(BigInteger balance) {
+                updatedBalances();
+            }
         });
-        updateBalance();
+        updatedBalances();
     }
 
-    private void updateBalance() {
+    private void updatedBalances() {
         // Need to delay a bit to get the balances correct
         UserThread.execute(() -> {
             updateAvailableBalance();
@@ -105,19 +106,21 @@ public class Balances {
     // TODO (woodser): balances being set as Coin from BigInteger.longValue(), which can lose precision. should be in centineros for consistency with the rest of the application
 
     private void updateAvailableBalance() {
-        availableBalance.set(Coin.valueOf(xmrWalletService.getWallet().getUnlockedBalance(0).longValueExact()));
+        availableBalance.set(Coin.valueOf(xmrWalletService.getWallet() == null ? 0 : xmrWalletService.getWallet().getUnlockedBalance(0).longValueExact()));
     }
     
     private void updateLockedBalance() {
-        BigInteger balance = xmrWalletService.getWallet().getBalance(0);
-        BigInteger unlockedBalance = xmrWalletService.getWallet().getUnlockedBalance(0);
+        BigInteger balance = xmrWalletService.getWallet() == null ? new BigInteger("0") : xmrWalletService.getWallet().getBalance(0);
+        BigInteger unlockedBalance = xmrWalletService.getWallet() == null ? new BigInteger("0") : xmrWalletService.getWallet().getUnlockedBalance(0);
         lockedBalance.set(Coin.valueOf(balance.subtract(unlockedBalance).longValueExact()));
     }
     
     private void updateReservedOfferBalance() {
         Coin sum = Coin.valueOf(0);
-        List<MoneroOutputWallet> frozenOutputs = xmrWalletService.getWallet().getOutputs(new MoneroOutputQuery().setIsFrozen(true).setIsSpent(false));
-        for (MoneroOutputWallet frozenOutput : frozenOutputs) sum = sum.add(Coin.valueOf(frozenOutput.getAmount().longValueExact()));
+        if (xmrWalletService.getWallet() != null) {
+            List<MoneroOutputWallet> frozenOutputs = xmrWalletService.getWallet().getOutputs(new MoneroOutputQuery().setIsFrozen(true).setIsSpent(false));
+            for (MoneroOutputWallet frozenOutput : frozenOutputs) sum = sum.add(Coin.valueOf(frozenOutput.getAmount().longValueExact()));
+        }
         reservedOfferBalance.set(sum);
     }
     

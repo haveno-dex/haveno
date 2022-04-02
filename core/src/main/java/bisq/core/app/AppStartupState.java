@@ -79,7 +79,7 @@ public class AppStartupState {
                     if (a && b && c) {
                         walletAndNetworkReady.set(true);
                     }
-                    return a && b && c && d;
+                    return a && d; // app fully initialized before daemon connection and wallet by default
                 });
         p2pNetworkAndWalletInitialized.subscribe((observable, oldValue, newValue) -> {
             if (newValue) {
