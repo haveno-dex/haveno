@@ -222,13 +222,6 @@ public class FilterManager {
         });
     }
 
-    public void banNode(String nodeAddress){
-        List<String> bannedNodes = providersRepository.getBannedNodes();
-        bannedNodes.add(nodeAddress);
-        providersRepository.applyBannedNodes(bannedNodes);
-        saveBannedNodes(BANNED_SEED_NODES, bannedNodes);
-    }
-
     public void setFilterWarningHandler(Consumer<String> filterWarningHandler) {
         this.filterWarningHandler = filterWarningHandler;
 
