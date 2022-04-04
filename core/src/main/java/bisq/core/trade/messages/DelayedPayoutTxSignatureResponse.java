@@ -52,7 +52,7 @@ public final class DelayedPayoutTxSignatureResponse extends TradeMessage impleme
     // PROTO BUFFER
     ///////////////////////////////////////////////////////////////////////////////////////////
 
-    private DelayedPayoutTxSignatureResponse(int messageVersion,
+    private DelayedPayoutTxSignatureResponse(String messageVersion,
                                              String uid,
                                              String tradeId,
                                              NodeAddress senderNodeAddress,
@@ -79,7 +79,7 @@ public final class DelayedPayoutTxSignatureResponse extends TradeMessage impleme
     }
 
     public static DelayedPayoutTxSignatureResponse fromProto(protobuf.DelayedPayoutTxSignatureResponse proto,
-                                                             int messageVersion) {
+                                                             String messageVersion) {
         return new DelayedPayoutTxSignatureResponse(messageVersion,
                 proto.getUid(),
                 proto.getTradeId(),

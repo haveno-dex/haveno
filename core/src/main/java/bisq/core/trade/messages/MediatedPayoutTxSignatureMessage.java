@@ -55,7 +55,7 @@ public class MediatedPayoutTxSignatureMessage extends TradeMailboxMessage {
                                              String tradeId,
                                              NodeAddress senderNodeAddress,
                                              String uid,
-                                             int messageVersion) {
+                                             String messageVersion) {
         super(messageVersion, tradeId, uid);
         this.txSignature = txSignature;
         this.senderNodeAddress = senderNodeAddress;
@@ -73,7 +73,7 @@ public class MediatedPayoutTxSignatureMessage extends TradeMailboxMessage {
     }
 
     public static MediatedPayoutTxSignatureMessage fromProto(protobuf.MediatedPayoutTxSignatureMessage proto,
-                                                             int messageVersion) {
+                                                             String messageVersion) {
         return new MediatedPayoutTxSignatureMessage(proto.getTxSignature().toByteArray(),
                 proto.getTradeId(),
                 NodeAddress.fromProto(proto.getSenderNodeAddress()),

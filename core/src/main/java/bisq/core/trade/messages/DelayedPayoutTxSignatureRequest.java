@@ -52,7 +52,7 @@ public final class DelayedPayoutTxSignatureRequest extends TradeMessage implemen
     // PROTO BUFFER
     ///////////////////////////////////////////////////////////////////////////////////////////
 
-    private DelayedPayoutTxSignatureRequest(int messageVersion,
+    private DelayedPayoutTxSignatureRequest(String messageVersion,
                                             String uid,
                                             String tradeId,
                                             NodeAddress senderNodeAddress,
@@ -78,7 +78,7 @@ public final class DelayedPayoutTxSignatureRequest extends TradeMessage implemen
     }
 
     public static DelayedPayoutTxSignatureRequest fromProto(protobuf.DelayedPayoutTxSignatureRequest proto,
-                                                            int messageVersion) {
+                                                            String messageVersion) {
         return new DelayedPayoutTxSignatureRequest(messageVersion,
                 proto.getUid(),
                 proto.getTradeId(),

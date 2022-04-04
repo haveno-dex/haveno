@@ -38,7 +38,7 @@ public final class Ping extends NetworkEnvelope implements KeepAliveMessage {
     // PROTO BUFFER
     ///////////////////////////////////////////////////////////////////////////////////////////
 
-    private Ping(int nonce, int lastRoundTripTime, int messageVersion) {
+    private Ping(int nonce, int lastRoundTripTime, String messageVersion) {
         super(messageVersion);
         this.nonce = nonce;
         this.lastRoundTripTime = lastRoundTripTime;
@@ -53,7 +53,7 @@ public final class Ping extends NetworkEnvelope implements KeepAliveMessage {
                 .build();
     }
 
-    public static Ping fromProto(protobuf.Ping proto, int messageVersion) {
+    public static Ping fromProto(protobuf.Ping proto, String messageVersion) {
         return new Ping(proto.getNonce(), proto.getLastRoundTripTime(), messageVersion);
     }
 }

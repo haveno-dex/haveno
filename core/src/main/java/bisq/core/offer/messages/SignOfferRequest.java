@@ -46,7 +46,7 @@ public final class SignOfferRequest extends OfferMessage implements DirectMessag
                                      String senderAccountId,
                                      OfferPayload offerPayload,
                                      String uid,
-                                     int messageVersion,
+                                     String messageVersion,
                                      long currentDate,
                                      String reserveTxHash,
                                      String reserveTxHex,
@@ -91,7 +91,7 @@ public final class SignOfferRequest extends OfferMessage implements DirectMessag
     }
 
     public static SignOfferRequest fromProto(protobuf.SignOfferRequest proto,
-                                                      int messageVersion) {
+                                                      String messageVersion) {
         return new SignOfferRequest(proto.getOfferId(),
                 NodeAddress.fromProto(proto.getSenderNodeAddress()),
                 PubKeyRing.fromProto(proto.getPubKeyRing()),

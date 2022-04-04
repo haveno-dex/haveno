@@ -59,7 +59,7 @@ public final class PeerPublishedDisputePayoutTxMessage extends ArbitrationMessag
                                                 String tradeId,
                                                 NodeAddress senderNodeAddress,
                                                 String uid,
-                                                int messageVersion,
+                                                String messageVersion,
                                                 SupportType supportType) {
         super(messageVersion, uid, supportType);
         this.updatedMultisigHex = updatedMultisigHex;
@@ -82,7 +82,7 @@ public final class PeerPublishedDisputePayoutTxMessage extends ArbitrationMessag
     }
 
     public static PeerPublishedDisputePayoutTxMessage fromProto(protobuf.PeerPublishedDisputePayoutTxMessage proto,
-                                                                int messageVersion) {
+                                                                String messageVersion) {
         return new PeerPublishedDisputePayoutTxMessage(proto.getUpdatedMultisigHex(),
         		proto.getPayoutTxHex(),
                 proto.getTradeId(),

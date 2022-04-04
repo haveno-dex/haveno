@@ -40,7 +40,7 @@ public final class PaymentAccountPayloadRequest extends TradeMessage implements 
                                      NodeAddress senderNodeAddress,
                                      PubKeyRing pubKeyRing,
                                      String uid,
-                                     int messageVersion,
+                                     String messageVersion,
                                      long currentDate,
                                      PaymentAccountPayload paymentAccountPayload) {
         super(messageVersion, tradeId, uid);
@@ -70,7 +70,7 @@ public final class PaymentAccountPayloadRequest extends TradeMessage implements 
 
     public static PaymentAccountPayloadRequest fromProto(protobuf.PaymentAccountPayloadRequest proto,
                                                       CoreProtoResolver coreProtoResolver,
-                                                      int messageVersion) {
+                                                      String messageVersion) {
         return new PaymentAccountPayloadRequest(proto.getTradeId(),
                 NodeAddress.fromProto(proto.getSenderNodeAddress()),
                 PubKeyRing.fromProto(proto.getPubKeyRing()),

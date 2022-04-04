@@ -51,7 +51,7 @@ public class PrivateNotificationMessage extends NetworkEnvelope implements Mailb
     private PrivateNotificationMessage(PrivateNotificationPayload privateNotificationPayload,
                                        NodeAddress senderNodeAddress,
                                        String uid,
-                                       int messageVersion) {
+                                       String messageVersion) {
         super(messageVersion);
         this.privateNotificationPayload = privateNotificationPayload;
         this.senderNodeAddress = senderNodeAddress;
@@ -68,7 +68,7 @@ public class PrivateNotificationMessage extends NetworkEnvelope implements Mailb
                 .build();
     }
 
-    public static PrivateNotificationMessage fromProto(protobuf.PrivateNotificationMessage proto, int messageVersion) {
+    public static PrivateNotificationMessage fromProto(protobuf.PrivateNotificationMessage proto, String messageVersion) {
         return new PrivateNotificationMessage(PrivateNotificationPayload.fromProto(proto.getPrivateNotificationPayload()),
                 NodeAddress.fromProto(proto.getSenderNodeAddress()),
                 proto.getUid(),

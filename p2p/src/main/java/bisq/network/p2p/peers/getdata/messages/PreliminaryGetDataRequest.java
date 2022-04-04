@@ -61,7 +61,7 @@ public final class PreliminaryGetDataRequest extends GetDataRequest implements A
                                       Set<byte[]> excludedKeys,
                                       @Nullable String version,
                                       Capabilities supportedCapabilities,
-                                      int messageVersion) {
+                                      String messageVersion) {
         super(messageVersion, nonce, excludedKeys, version);
 
         this.supportedCapabilities = supportedCapabilities;
@@ -84,7 +84,7 @@ public final class PreliminaryGetDataRequest extends GetDataRequest implements A
         return proto;
     }
 
-    public static PreliminaryGetDataRequest fromProto(protobuf.PreliminaryGetDataRequest proto, int messageVersion) {
+    public static PreliminaryGetDataRequest fromProto(protobuf.PreliminaryGetDataRequest proto, String messageVersion) {
         Set<byte[]> excludedKeys = ProtoUtil.byteSetFromProtoByteStringList(proto.getExcludedKeysList());
         String requestersVersion = ProtoUtil.stringOrNullFromProto(proto.getVersion());
         log.info("Received a PreliminaryGetDataRequest with {} kB and {} excluded key entries. Requesters version={}",

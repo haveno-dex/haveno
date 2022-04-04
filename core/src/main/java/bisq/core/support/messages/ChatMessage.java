@@ -183,7 +183,7 @@ public final class ChatMessage extends SupportMessage {
                         boolean arrived,
                         boolean storedInMailbox,
                         String uid,
-                        int messageVersion,
+                        String messageVersion,
                         boolean acknowledged,
                         @Nullable String sendMessageError,
                         @Nullable String ackError,
@@ -238,7 +238,7 @@ public final class ChatMessage extends SupportMessage {
 
     // The protobuf definition ChatMessage cannot be changed as it would break backward compatibility.
     public static ChatMessage fromProto(protobuf.ChatMessage proto,
-                                        int messageVersion) {
+                                        String messageVersion) {
         // If we get a msg from an old client type will be ordinal 0 which is the dispute entry and as we only added
         // the trade case it is the desired behaviour.
         final ChatMessage chatMessage = new ChatMessage(
@@ -267,7 +267,7 @@ public final class ChatMessage extends SupportMessage {
         // We don't check the message version here as it was checked in the carrier envelope already (in connection class)
         // Payloads don't have a message version and are also used for persistence
         // We set the value to -1 to indicate it is set but irrelevant
-        return fromProto(proto, -1);
+        return fromProto(proto, "-1");
     }
 
 

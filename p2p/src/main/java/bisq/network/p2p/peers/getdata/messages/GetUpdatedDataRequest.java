@@ -62,7 +62,7 @@ public final class GetUpdatedDataRequest extends GetDataRequest implements Sende
                                   int nonce,
                                   Set<byte[]> excludedKeys,
                                   @Nullable String version,
-                                  int messageVersion) {
+                                  String messageVersion) {
         super(messageVersion,
                 nonce,
                 excludedKeys,
@@ -87,7 +87,7 @@ public final class GetUpdatedDataRequest extends GetDataRequest implements Sende
         return proto;
     }
 
-    public static GetUpdatedDataRequest fromProto(protobuf.GetUpdatedDataRequest proto, int messageVersion) {
+    public static GetUpdatedDataRequest fromProto(protobuf.GetUpdatedDataRequest proto, String messageVersion) {
         Set<byte[]> excludedKeys = ProtoUtil.byteSetFromProtoByteStringList(proto.getExcludedKeysList());
         String requestersVersion = ProtoUtil.stringOrNullFromProto(proto.getVersion());
         log.info("Received a GetUpdatedDataRequest with {} kB and {} excluded key entries. Requesters version={}",

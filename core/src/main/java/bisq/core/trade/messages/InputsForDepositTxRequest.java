@@ -90,7 +90,7 @@ public final class InputsForDepositTxRequest extends TradeMessage implements Dir
                                      NodeAddress mediatorNodeAddress,
                                      NodeAddress refundAgentNodeAddress,
                                      String uid,
-                                     int messageVersion,
+                                     String messageVersion,
                                      byte[] accountAgeWitnessSignatureOfOfferId,
                                      long currentDate) {
         super(messageVersion, tradeId, uid);
@@ -160,7 +160,7 @@ public final class InputsForDepositTxRequest extends TradeMessage implements Dir
 
     public static InputsForDepositTxRequest fromProto(protobuf.InputsForDepositTxRequest proto,
                                                       CoreProtoResolver coreProtoResolver,
-                                                      int messageVersion) {
+                                                      String messageVersion) {
         List<RawTransactionInput> rawTransactionInputs = proto.getRawTransactionInputsList().stream()
                 .map(rawTransactionInput -> new RawTransactionInput(rawTransactionInput.getIndex(),
                         rawTransactionInput.getParentTransaction().toByteArray(), rawTransactionInput.getValue()))

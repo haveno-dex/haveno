@@ -47,7 +47,7 @@ public final class InitMultisigRequest extends TradeMessage implements DirectMes
                                      NodeAddress senderNodeAddress,
                                      PubKeyRing pubKeyRing,
                                      String uid,
-                                     int messageVersion,
+                                     String messageVersion,
                                      long currentDate,
                                      String preparedMultisigHex,
                                      String madeMultisigHex) {
@@ -82,7 +82,7 @@ public final class InitMultisigRequest extends TradeMessage implements DirectMes
 
     public static InitMultisigRequest fromProto(protobuf.InitMultisigRequest proto,
                                                       CoreProtoResolver coreProtoResolver,
-                                                      int messageVersion) {
+                                                      String messageVersion) {
         return new InitMultisigRequest(proto.getTradeId(),
                 NodeAddress.fromProto(proto.getSenderNodeAddress()),
                 PubKeyRing.fromProto(proto.getPubKeyRing()),

@@ -66,7 +66,7 @@ public final class PayoutTxPublishedMessage extends TradeMailboxMessage {
                                      NodeAddress senderNodeAddress,
                                      @Nullable SignedWitness signedWitness,
                                      String uid,
-                                     int messageVersion) {
+                                     String messageVersion) {
         super(messageVersion, tradeId, uid);
         this.signedMultisigTxHex = signedMultisigTxHex;
         this.senderNodeAddress = senderNodeAddress;
@@ -84,7 +84,7 @@ public final class PayoutTxPublishedMessage extends TradeMailboxMessage {
         return getNetworkEnvelopeBuilder().setPayoutTxPublishedMessage(builder).build();
     }
 
-    public static NetworkEnvelope fromProto(protobuf.PayoutTxPublishedMessage proto, int messageVersion) {
+    public static NetworkEnvelope fromProto(protobuf.PayoutTxPublishedMessage proto, String messageVersion) {
         // There is no method to check for a nullable non-primitive data type object but we know that all fields
         // are empty/null, so we check for the signature to see if we got a valid signedWitness.
         protobuf.SignedWitness protoSignedWitness = proto.getSignedWitness();

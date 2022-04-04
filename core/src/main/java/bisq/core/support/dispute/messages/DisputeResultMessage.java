@@ -54,7 +54,7 @@ public final class DisputeResultMessage extends DisputeMessage {
     private DisputeResultMessage(DisputeResult disputeResult,
                                  NodeAddress senderNodeAddress,
                                  String uid,
-                                 int messageVersion,
+                                 String messageVersion,
                                  SupportType supportType) {
         super(messageVersion, uid, supportType);
         this.disputeResult = disputeResult;
@@ -72,7 +72,7 @@ public final class DisputeResultMessage extends DisputeMessage {
                 .build();
     }
 
-    public static DisputeResultMessage fromProto(protobuf.DisputeResultMessage proto, int messageVersion) {
+    public static DisputeResultMessage fromProto(protobuf.DisputeResultMessage proto, String messageVersion) {
         checkArgument(proto.hasDisputeResult(), "DisputeResult must be set");
         return new DisputeResultMessage(DisputeResult.fromProto(proto.getDisputeResult()),
                 NodeAddress.fromProto(proto.getSenderNodeAddress()),

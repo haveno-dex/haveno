@@ -29,7 +29,7 @@ public final class SignOfferResponse extends OfferMessage implements DirectMessa
 
     public SignOfferResponse(String offerId,
                                      String uid,
-                                     int messageVersion,
+                                     String messageVersion,
                                      OfferPayload signedOfferPayload) {
         super(messageVersion, offerId, uid);
         this.signedOfferPayload = signedOfferPayload;
@@ -51,7 +51,7 @@ public final class SignOfferResponse extends OfferMessage implements DirectMessa
     }
 
     public static SignOfferResponse fromProto(protobuf.SignOfferResponse proto,
-                                                      int messageVersion) {
+                                                      String messageVersion) {
         return new SignOfferResponse(proto.getOfferId(),
                 proto.getUid(),
                 messageVersion,

@@ -106,7 +106,7 @@ public final class InputsForDepositTxResponse extends TradeMessage implements Di
                                        List<RawTransactionInput> makerInputs,
                                        NodeAddress senderNodeAddress,
                                        String uid,
-                                       int messageVersion,
+                                       String messageVersion,
                                        @Nullable byte[] accountAgeWitnessSignatureOfPreparedDepositTx,
                                        long currentDate,
                                        long lockTime) {
@@ -149,7 +149,7 @@ public final class InputsForDepositTxResponse extends TradeMessage implements Di
                 .build();
     }
 
-    public static InputsForDepositTxResponse fromProto(protobuf.InputsForDepositTxResponse proto, CoreProtoResolver coreProtoResolver, int messageVersion) {
+    public static InputsForDepositTxResponse fromProto(protobuf.InputsForDepositTxResponse proto, CoreProtoResolver coreProtoResolver, String messageVersion) {
         List<RawTransactionInput> makerInputs = proto.getMakerInputsList().stream()
                 .map(RawTransactionInput::fromProto)
                 .collect(Collectors.toList());

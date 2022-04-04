@@ -98,7 +98,7 @@ public final class AckMessage extends NetworkEnvelope implements MailboxMessage,
                        String sourceId,
                        boolean success,
                        @Nullable String errorMessage,
-                       int messageVersion) {
+                       String messageVersion) {
         super(messageVersion);
         this.uid = uid;
         this.senderNodeAddress = senderNodeAddress;
@@ -132,7 +132,7 @@ public final class AckMessage extends NetworkEnvelope implements MailboxMessage,
         return builder;
     }
 
-    public static AckMessage fromProto(protobuf.AckMessage proto, int messageVersion) {
+    public static AckMessage fromProto(protobuf.AckMessage proto, String messageVersion) {
         AckMessageSourceType sourceType = ProtoUtil.enumFromProto(AckMessageSourceType.class, proto.getSourceType());
         return new AckMessage(proto.getUid(),
                 NodeAddress.fromProto(proto.getSenderNodeAddress()),

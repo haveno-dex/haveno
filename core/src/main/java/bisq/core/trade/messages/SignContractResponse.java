@@ -44,7 +44,7 @@ public final class SignContractResponse extends TradeMessage implements DirectMe
                                      NodeAddress senderNodeAddress,
                                      PubKeyRing pubKeyRing,
                                      String uid,
-                                     int messageVersion,
+                                     String messageVersion,
                                      long currentDate,
                                      String contractSignature) {
         super(messageVersion, tradeId, uid);
@@ -76,7 +76,7 @@ public final class SignContractResponse extends TradeMessage implements DirectMe
 
     public static SignContractResponse fromProto(protobuf.SignContractResponse proto,
                                                       CoreProtoResolver coreProtoResolver,
-                                                      int messageVersion) {
+                                                      String messageVersion) {
         return new SignContractResponse(proto.getTradeId(),
                 NodeAddress.fromProto(proto.getSenderNodeAddress()),
                 PubKeyRing.fromProto(proto.getPubKeyRing()),

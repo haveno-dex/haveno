@@ -32,14 +32,14 @@ import lombok.Getter;
 
 @Getter
 public final class MockMailboxPayload extends NetworkEnvelope implements MailboxMessage, ExpirablePayload {
-    private final int messageVersion = Version.getP2PMessageVersion();
+    private final String messageVersion = Version.getP2PMessageVersion();
     public final String msg;
     public final NodeAddress senderNodeAddress;
     public long ttl = 0;
     private final String uid;
 
     public MockMailboxPayload(String msg, NodeAddress senderNodeAddress) {
-        super(0);
+        super("0");
         this.msg = msg;
         this.senderNodeAddress = senderNodeAddress;
         uid = UUID.randomUUID().toString();

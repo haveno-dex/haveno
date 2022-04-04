@@ -39,7 +39,7 @@ public final class AddPersistableNetworkPayloadMessage extends BroadcastMessage 
     // PROTO BUFFER
     ///////////////////////////////////////////////////////////////////////////////////////////
 
-    private AddPersistableNetworkPayloadMessage(PersistableNetworkPayload persistableNetworkPayload, int messageVersion) {
+    private AddPersistableNetworkPayloadMessage(PersistableNetworkPayload persistableNetworkPayload, String messageVersion) {
         super(messageVersion);
         this.persistableNetworkPayload = persistableNetworkPayload;
     }
@@ -54,7 +54,7 @@ public final class AddPersistableNetworkPayloadMessage extends BroadcastMessage 
 
     public static AddPersistableNetworkPayloadMessage fromProto(protobuf.AddPersistableNetworkPayloadMessage proto,
                                                                 NetworkProtoResolver resolver,
-                                                                int messageVersion) {
+                                                                String messageVersion) {
         return new AddPersistableNetworkPayloadMessage((PersistableNetworkPayload) resolver.fromProto(proto.getPayload()),
                 messageVersion);
     }

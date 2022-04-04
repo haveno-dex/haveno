@@ -14,7 +14,7 @@ option java_multiple_files = true;
 
 // Those are messages sent over wire
 message NetworkEnvelope {
-    int32 message_version = 1;
+    string message_version = 1;
     oneof message {
         PreliminaryGetDataRequest preliminary_get_data_request = 2;
         GetDataResponse get_data_response = 3;

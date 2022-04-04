@@ -57,7 +57,7 @@ public final class BundleOfEnvelopes extends BroadcastMessage implements Extende
     // PROTO BUFFER
     ///////////////////////////////////////////////////////////////////////////////////////////
 
-    private BundleOfEnvelopes(List<NetworkEnvelope> envelopes, int messageVersion) {
+    private BundleOfEnvelopes(List<NetworkEnvelope> envelopes, String messageVersion) {
         super(messageVersion);
         this.envelopes = envelopes;
     }
@@ -74,7 +74,7 @@ public final class BundleOfEnvelopes extends BroadcastMessage implements Extende
 
     public static BundleOfEnvelopes fromProto(protobuf.BundleOfEnvelopes proto,
                                               NetworkProtoResolver resolver,
-                                              int messageVersion) {
+                                              String messageVersion) {
         List<NetworkEnvelope> envelopes = proto.getEnvelopesList()
                 .stream()
                 .map(envelope -> {

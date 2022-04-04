@@ -28,15 +28,15 @@ import org.apache.commons.lang3.NotImplementedException;
 public final class MockPayload extends NetworkEnvelope implements ExpirablePayload {
     public final String msg;
     public long ttl;
-    private final int messageVersion = Version.getP2PMessageVersion();
+    private final String messageVersion = Version.getP2PMessageVersion();
 
     public MockPayload(String msg) {
-        super(0);
+        super("0");
         this.msg = msg;
     }
 
     @Override
-    public int getMessageVersion() {
+    public String getMessageVersion() {
         return messageVersion;
     }
 

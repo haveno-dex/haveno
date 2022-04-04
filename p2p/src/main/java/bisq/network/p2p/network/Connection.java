@@ -842,7 +842,7 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
                         return;
 
                     // Check P2P network ID
-                    if (proto.getMessageVersion() != Version.getP2PMessageVersion()
+                    if (!proto.getMessageVersion().equals(Version.getP2PMessageVersion())
                             && reportInvalidRequest(RuleViolation.WRONG_NETWORK_ID)) {
                         log.warn("RuleViolation.WRONG_NETWORK_ID. version of message={}, app version={}, " +
                                         "proto.toTruncatedString={}", proto.getMessageVersion(),

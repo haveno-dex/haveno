@@ -53,7 +53,7 @@ public final class PeerOpenedDisputeMessage extends DisputeMessage {
     private PeerOpenedDisputeMessage(Dispute dispute,
                                      NodeAddress senderNodeAddress,
                                      String uid,
-                                     int messageVersion,
+                                     String messageVersion,
                                      SupportType supportType) {
         super(messageVersion, uid, supportType);
         this.dispute = dispute;
@@ -71,7 +71,7 @@ public final class PeerOpenedDisputeMessage extends DisputeMessage {
                 .build();
     }
 
-    public static PeerOpenedDisputeMessage fromProto(protobuf.PeerOpenedDisputeMessage proto, CoreProtoResolver coreProtoResolver, int messageVersion) {
+    public static PeerOpenedDisputeMessage fromProto(protobuf.PeerOpenedDisputeMessage proto, CoreProtoResolver coreProtoResolver, String messageVersion) {
         return new PeerOpenedDisputeMessage(Dispute.fromProto(proto.getDispute(), coreProtoResolver),
                 NodeAddress.fromProto(proto.getSenderNodeAddress()),
                 proto.getUid(),
