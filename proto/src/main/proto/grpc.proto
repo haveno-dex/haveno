@@ -856,7 +856,7 @@ message TxInfo {
 service Wallets {
     rpc GetBalances (GetBalancesRequest) returns (GetBalancesReply) {
     }
-    rpc GetNewDepositSubaddress (GetNewDepositSubaddressRequest) returns (GetNewDepositSubaddressReply) {
+    rpc GetNewDepositAddress (GetNewDepositAddressRequest) returns (GetNewDepositAddressReply) {
     }
     rpc GetXmrTxs (GetXmrTxsRequest) returns (GetXmrTxsReply) {
     }
@@ -896,10 +896,10 @@ message GetBalancesReply {
     BalancesInfo balances = 1;
 }
 
-message GetNewDepositSubaddressRequest {
+message GetNewDepositAddressRequest {
 }
 
-message GetNewDepositSubaddressReply {
+message GetNewDepositAddressReply {
     string subaddress = 1;
 }
 
