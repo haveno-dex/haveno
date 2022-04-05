@@ -524,7 +524,7 @@ public class BuyerStep2View extends TradeStepView {
 
         //TODO seems this was a hack to enable repeated confirm???
         if (trade.isFiatSent()) {
-            trade.setState(Trade.State.DEPOSIT_CONFIRMED_IN_BLOCK_CHAIN);
+            trade.setState(Trade.State.DEPOSIT_UNLOCKED_IN_BLOCK_CHAIN);
             model.dataModel.getTradeManager().requestPersistence();
         }
 

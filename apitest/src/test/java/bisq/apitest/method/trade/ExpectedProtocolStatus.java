@@ -10,7 +10,7 @@ public class ExpectedProtocolStatus {
     Trade.State state;
     Trade.Phase phase;
     boolean isDepositPublished;
-    boolean isDepositConfirmed;
+    boolean isDepositUnlocked;
     boolean isFiatSent;
     boolean isFiatReceived;
     boolean isPayoutPublished;
@@ -31,8 +31,8 @@ public class ExpectedProtocolStatus {
         return this;
     }
 
-    public ExpectedProtocolStatus setDepositConfirmed(boolean depositConfirmed) {
-        isDepositConfirmed = depositConfirmed;
+    public ExpectedProtocolStatus setDepositUnlocked(boolean depositUnlocked) {
+        isDepositUnlocked = depositUnlocked;
         return this;
     }
 
@@ -60,7 +60,7 @@ public class ExpectedProtocolStatus {
         state = null;
         phase = null;
         isDepositPublished = false;
-        isDepositConfirmed = false;
+        isDepositUnlocked = false;
         isFiatSent = false;
         isFiatReceived = false;
         isPayoutPublished = false;

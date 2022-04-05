@@ -110,7 +110,7 @@ public abstract class BotProtocol {
         log.info("Starting protocol step {}.  Bot will shutdown if step not completed within {} minutes.",
                 currentProtocolStep.name(), MILLISECONDS.toMinutes(protocolStepTimeLimitInMs));
 
-        if (currentProtocolStep.equals(WAIT_FOR_TAKER_DEPOSIT_TX_CONFIRMED)) {
+        if (currentProtocolStep.equals(WAIT_FOR_TAKER_DEPOSIT_TX_UNLOCKED)) {
             log.info("Generate a btc block to trigger taker's deposit fee tx confirmation.");
             createGenerateBtcBlockScript();
         }
@@ -281,12 +281,12 @@ public abstract class BotProtocol {
     }
 
     private void waitForTakerFeeTxConfirmed(String tradeId) {
-        waitForTakerDepositFee(tradeId, WAIT_FOR_TAKER_DEPOSIT_TX_CONFIRMED);
+        waitForTakerDepositFee(tradeId, WAIT_FOR_TAKER_DEPOSIT_TX_UNLOCKED);
     }
 
     private void waitForTakerDepositFee(String tradeId, ProtocolStep depositTxProtocolStep) {
         initProtocolStep.accept(depositTxProtocolStep);
-        validateCurrentProtocolStep(WAIT_FOR_TAKER_DEPOSIT_TX_PUBLISHED, WAIT_FOR_TAKER_DEPOSIT_TX_CONFIRMED);
+        validateCurrentProtocolStep(WAIT_FOR_TAKER_DEPOSIT_TX_PUBLISHED, WAIT_FOR_TAKER_DEPOSIT_TX_UNLOCKED);
         try {
             log.info(waitingForDepositFeeTxMsg(tradeId));
             while (isWithinProtocolStepTimeLimit()) {
@@ -316,8 +316,8 @@ public abstract class BotProtocol {
         if (currentProtocolStep.equals(WAIT_FOR_TAKER_DEPOSIT_TX_PUBLISHED) && trade.getIsDepositPublished()) {
             log.info("Taker deposit fee tx {} has been published.", trade.getTakerDepositTxId());
             return true;
-        } else if (currentProtocolStep.equals(WAIT_FOR_TAKER_DEPOSIT_TX_CONFIRMED) && trade.getIsDepositConfirmed()) {
-            log.info("Taker deposit fee tx {} has been confirmed.", trade.getTakerDepositTxId());
+        } else if (currentProtocolStep.equals(WAIT_FOR_TAKER_DEPOSIT_TX_UNLOCKED) && trade.getIsDepositUnlocked()) {
+            log.info("Taker deposit fee tx {} is unlocked.", trade.getTakerDepositTxId());
             return true;
         } else {
             return false;

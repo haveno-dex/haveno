@@ -445,8 +445,8 @@ public class PendingTradesViewModel extends ActivatableWithDataModel<PendingTrad
 
 
             // buyer and seller step 2
-            // #################### Phase DEPOSIT_CONFIRMED
-            case DEPOSIT_CONFIRMED_IN_BLOCK_CHAIN:
+            // #################### Phase DEPOSIT_UNLOCKED
+            case DEPOSIT_UNLOCKED_IN_BLOCK_CHAIN:
                 sellerState.set(SellerState.STEP2);
                 buyerState.set(BuyerState.STEP2);
                 break;

@@ -56,7 +56,7 @@ public class TradeInfo implements Payload {
     private final String phase;
     private final String tradePeriodState;
     private final boolean isDepositPublished;
-    private final boolean isDepositConfirmed;
+    private final boolean isDepositUnlocked;
     private final boolean isFiatSent;
     private final boolean isFiatReceived;
     private final boolean isPayoutPublished;
@@ -83,7 +83,7 @@ public class TradeInfo implements Payload {
         this.phase = builder.phase;
         this.tradePeriodState = builder.tradePeriodState;
         this.isDepositPublished = builder.isDepositPublished;
-        this.isDepositConfirmed = builder.isDepositConfirmed;
+        this.isDepositUnlocked = builder.isDepositConfirmed;
         this.isFiatSent = builder.isFiatSent;
         this.isFiatReceived = builder.isFiatReceived;
         this.isPayoutPublished = builder.isPayoutPublished;
@@ -136,7 +136,7 @@ public class TradeInfo implements Payload {
                 .withPhase(trade.getPhase().name())
                 .withTradePeriodState(trade.getTradePeriodState().name())
                 .withIsDepositPublished(trade.isDepositPublished())
-                .withIsDepositConfirmed(trade.isDepositConfirmed())
+                .withIsDepositUnlocked(trade.isDepositConfirmed())
                 .withIsFiatSent(trade.isFiatSent())
                 .withIsFiatReceived(trade.isFiatReceived())
                 .withIsPayoutPublished(trade.isPayoutPublished())
@@ -171,7 +171,7 @@ public class TradeInfo implements Payload {
                 .setPhase(phase)
                 .setTradePeriodState(tradePeriodState)
                 .setIsDepositPublished(isDepositPublished)
-                .setIsDepositConfirmed(isDepositConfirmed)
+                .setIsDepositUnlocked(isDepositUnlocked)
                 .setIsFiatSent(isFiatSent)
                 .setIsFiatReceived(isFiatReceived)
                 .setIsPayoutPublished(isPayoutPublished)
@@ -201,7 +201,7 @@ public class TradeInfo implements Payload {
                 .withPhase(proto.getPhase())
                 .withTradingPeerNodeAddress(proto.getTradingPeerNodeAddress())
                 .withIsDepositPublished(proto.getIsDepositPublished())
-                .withIsDepositConfirmed(proto.getIsDepositConfirmed())
+                .withIsDepositUnlocked(proto.getIsDepositUnlocked())
                 .withIsFiatSent(proto.getIsFiatSent())
                 .withIsFiatReceived(proto.getIsFiatReceived())
                 .withIsPayoutPublished(proto.getIsPayoutPublished())
@@ -334,7 +334,7 @@ public class TradeInfo implements Payload {
             return this;
         }
 
-        public TradeInfoBuilder withIsDepositConfirmed(boolean isDepositConfirmed) {
+        public TradeInfoBuilder withIsDepositUnlocked(boolean isDepositConfirmed) {
             this.isDepositConfirmed = isDepositConfirmed;
             return this;
         }
@@ -394,7 +394,7 @@ public class TradeInfo implements Payload {
                 ", phase='" + phase + '\'' + "\n" +
                 ", tradePeriodState='" + tradePeriodState + '\'' + "\n" +
                 ", isDepositPublished=" + isDepositPublished + "\n" +
-                ", isDepositConfirmed=" + isDepositConfirmed + "\n" +
+                ", isDepositConfirmed=" + isDepositUnlocked + "\n" +
                 ", isFiatSent=" + isFiatSent + "\n" +
                 ", isFiatReceived=" + isFiatReceived + "\n" +
                 ", isPayoutPublished=" + isPayoutPublished + "\n" +

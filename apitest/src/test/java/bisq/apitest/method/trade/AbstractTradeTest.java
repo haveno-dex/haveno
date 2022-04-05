@@ -52,7 +52,7 @@ public class AbstractTradeTest extends AbstractOfferTest {
         if (!isLongRunningTest)
             assertEquals(EXPECTED_PROTOCOL_STATUS.isDepositPublished, trade.getIsDepositPublished());
 
-        assertEquals(EXPECTED_PROTOCOL_STATUS.isDepositConfirmed, trade.getIsDepositConfirmed());
+        assertEquals(EXPECTED_PROTOCOL_STATUS.isDepositUnlocked, trade.getIsDepositUnlocked());
         assertEquals(EXPECTED_PROTOCOL_STATUS.isFiatSent, trade.getIsFiatSent());
         assertEquals(EXPECTED_PROTOCOL_STATUS.isFiatReceived, trade.getIsFiatReceived());
         assertEquals(EXPECTED_PROTOCOL_STATUS.isPayoutPublished, trade.getIsPayoutPublished());

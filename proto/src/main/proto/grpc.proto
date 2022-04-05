@@ -792,7 +792,7 @@ message TradeInfo {
     string phase = 16;
     string trade_period_state = 17;
     bool is_deposit_published = 18;
-    bool is_deposit_confirmed = 19;
+    bool is_deposit_unlocked = 19;
     bool is_fiat_sent = 20;
     bool is_fiat_received = 21;
     bool is_payout_published = 22;

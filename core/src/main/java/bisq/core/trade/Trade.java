@@ -150,7 +150,7 @@ public abstract class Trade implements Tradable, Model {
 
 
         // #################### Phase DEPOSIT_CONFIRMED
-        DEPOSIT_CONFIRMED_IN_BLOCK_CHAIN(Phase.DEPOSIT_CONFIRMED),
+        DEPOSIT_UNLOCKED_IN_BLOCK_CHAIN(Phase.DEPOSIT_UNLOCKED),
 
 
         // #################### Phase PAYMENT_SENT
@@ -217,7 +217,7 @@ public abstract class Trade implements Tradable, Model {
         INIT,
         TAKER_FEE_PUBLISHED, // TODO (woodser): remove unused phases
         DEPOSIT_PUBLISHED,
-        DEPOSIT_CONFIRMED, // TODO (woodser): rename to or add DEPOSIT_UNLOCKED
+        DEPOSIT_UNLOCKED, // TODO (woodser): rename to or add DEPOSIT_UNLOCKED
         PAYMENT_SENT,
         PAYMENT_RECEIVED,
         PAYOUT_PUBLISHED,
@@ -1290,7 +1290,7 @@ public abstract class Trade implements Tradable, Model {
     }
 
     public boolean isDepositConfirmed() {
-        return getState().getPhase().ordinal() >= Phase.DEPOSIT_CONFIRMED.ordinal();
+        return getState().getPhase().ordinal() >= Phase.DEPOSIT_UNLOCKED.ordinal();
     }
 
     public boolean isFiatSent() {
@@ -1460,7 +1460,7 @@ public abstract class Trade implements Tradable, Model {
             // As setState is called here from the trade itself we cannot trigger a requestPersistence call.
             // But as we get setupConfidenceListener called at startup anyway there is no issue if it would not be
             // persisted in case the shutdown routine did not persist the trade.
-            setState(State.DEPOSIT_CONFIRMED_IN_BLOCK_CHAIN);	// TODO (woodser): for xmr this means deposit txs have unlocked after 10 confirmations
+            setState(State.DEPOSIT_UNLOCKED_IN_BLOCK_CHAIN);	// TODO (woodser): for xmr this means deposit txs have unlocked after 10 confirmations
         }
     }
 

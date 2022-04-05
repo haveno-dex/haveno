@@ -225,12 +225,12 @@ public class BotClient {
     }
 
     /**
-     * Returns true if the trade's taker deposit fee transaction has been confirmed.
+     * Returns true if the trade's taker deposit fee transaction is unlocked.
      * @param tradeId a valid trade id
      * @return boolean
      */
-    public boolean isTakerDepositFeeTxConfirmed(String tradeId) {
-        return grpcClient.getTrade(tradeId).getIsDepositConfirmed();
+    public boolean isTakerDepositFeeTxUnlocked(String tradeId) {
+        return grpcClient.getTrade(tradeId).getIsDepositUnlocked();
     }
 
     /**
