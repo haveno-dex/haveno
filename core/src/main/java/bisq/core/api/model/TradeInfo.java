@@ -57,8 +57,8 @@ public class TradeInfo implements Payload {
     private final String tradePeriodState;
     private final boolean isDepositPublished;
     private final boolean isDepositUnlocked;
-    private final boolean isFiatSent;
-    private final boolean isFiatReceived;
+    private final boolean isPaymentSent;
+    private final boolean isPaymentReceived;
     private final boolean isPayoutPublished;
     private final boolean isWithdrawn;
     private final String contractAsJson;
@@ -84,8 +84,8 @@ public class TradeInfo implements Payload {
         this.tradePeriodState = builder.tradePeriodState;
         this.isDepositPublished = builder.isDepositPublished;
         this.isDepositUnlocked = builder.isDepositConfirmed;
-        this.isFiatSent = builder.isFiatSent;
-        this.isFiatReceived = builder.isFiatReceived;
+        this.isPaymentSent = builder.isPaymentSent;
+        this.isPaymentReceived = builder.isPaymentReceived;
         this.isPayoutPublished = builder.isPayoutPublished;
         this.isWithdrawn = builder.isWithdrawn;
         this.contractAsJson = builder.contractAsJson;
@@ -137,8 +137,8 @@ public class TradeInfo implements Payload {
                 .withTradePeriodState(trade.getTradePeriodState().name())
                 .withIsDepositPublished(trade.isDepositPublished())
                 .withIsDepositUnlocked(trade.isDepositConfirmed())
-                .withIsFiatSent(trade.isFiatSent())
-                .withIsFiatReceived(trade.isFiatReceived())
+                .withIsPaymentSent(trade.isPaymentSent())
+                .withIsPaymentReceived(trade.isPaymentReceived())
                 .withIsPayoutPublished(trade.isPayoutPublished())
                 .withIsWithdrawn(trade.isWithdrawn())
                 .withContractAsJson(trade.getContractAsJson())
@@ -172,8 +172,8 @@ public class TradeInfo implements Payload {
                 .setTradePeriodState(tradePeriodState)
                 .setIsDepositPublished(isDepositPublished)
                 .setIsDepositUnlocked(isDepositUnlocked)
-                .setIsFiatSent(isFiatSent)
-                .setIsFiatReceived(isFiatReceived)
+                .setIsPaymentSent(isPaymentSent)
+                .setIsPaymentReceived(isPaymentReceived)
                 .setIsPayoutPublished(isPayoutPublished)
                 .setIsWithdrawn(isWithdrawn)
                 .setContractAsJson(contractAsJson == null ? "" : contractAsJson)
@@ -202,8 +202,8 @@ public class TradeInfo implements Payload {
                 .withTradingPeerNodeAddress(proto.getTradingPeerNodeAddress())
                 .withIsDepositPublished(proto.getIsDepositPublished())
                 .withIsDepositUnlocked(proto.getIsDepositUnlocked())
-                .withIsFiatSent(proto.getIsFiatSent())
-                .withIsFiatReceived(proto.getIsFiatReceived())
+                .withIsPaymentSent(proto.getIsPaymentSent())
+                .withIsPaymentReceived(proto.getIsPaymentReceived())
                 .withIsPayoutPublished(proto.getIsPayoutPublished())
                 .withIsWithdrawn(proto.getIsWithdrawn())
                 .withContractAsJson(proto.getContractAsJson())
@@ -237,8 +237,8 @@ public class TradeInfo implements Payload {
         private String tradePeriodState;
         private boolean isDepositPublished;
         private boolean isDepositConfirmed;
-        private boolean isFiatSent;
-        private boolean isFiatReceived;
+        private boolean isPaymentSent;
+        private boolean isPaymentReceived;
         private boolean isPayoutPublished;
         private boolean isWithdrawn;
         private String contractAsJson;
@@ -339,13 +339,13 @@ public class TradeInfo implements Payload {
             return this;
         }
 
-        public TradeInfoBuilder withIsFiatSent(boolean isFiatSent) {
-            this.isFiatSent = isFiatSent;
+        public TradeInfoBuilder withIsPaymentSent(boolean isPaymentSent) {
+            this.isPaymentSent = isPaymentSent;
             return this;
         }
 
-        public TradeInfoBuilder withIsFiatReceived(boolean isFiatReceived) {
-            this.isFiatReceived = isFiatReceived;
+        public TradeInfoBuilder withIsPaymentReceived(boolean isPaymentReceived) {
+            this.isPaymentReceived = isPaymentReceived;
             return this;
         }
 
@@ -395,8 +395,8 @@ public class TradeInfo implements Payload {
                 ", tradePeriodState='" + tradePeriodState + '\'' + "\n" +
                 ", isDepositPublished=" + isDepositPublished + "\n" +
                 ", isDepositConfirmed=" + isDepositUnlocked + "\n" +
-                ", isFiatSent=" + isFiatSent + "\n" +
-                ", isFiatReceived=" + isFiatReceived + "\n" +
+                ", isPaymentSent=" + isPaymentSent + "\n" +
+                ", isPaymentReceived=" + isPaymentReceived + "\n" +
                 ", isPayoutPublished=" + isPayoutPublished + "\n" +
                 ", isWithdrawn=" + isWithdrawn + "\n" +
                 ", offer=" + offer + "\n" +

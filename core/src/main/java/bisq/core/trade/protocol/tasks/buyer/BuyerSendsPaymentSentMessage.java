@@ -192,7 +192,7 @@ public class BuyerSendsPaymentSentMessage extends SendMailboxMessageTask {
     private void onMessageStateChange(MessageState newValue) {
         // Once we receive an ACK from our msg we know the peer has received the msg and we stop.
         if (newValue == MessageState.ACKNOWLEDGED) {
-            // We treat a ACK like BUYER_SAW_ARRIVED_FIAT_PAYMENT_INITIATED_MSG
+            // We treat a ACK like BUYER_SAW_ARRIVED_PAYMENT_INITIATED_MSG
             trade.setStateIfValidTransitionTo(Trade.State.BUYER_SAW_ARRIVED_PAYMENT_INITIATED_MSG);
 
             processModel.getTradeManager().requestPersistence();

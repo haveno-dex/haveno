@@ -1293,11 +1293,11 @@ public abstract class Trade implements Tradable, Model {
         return getState().getPhase().ordinal() >= Phase.DEPOSIT_UNLOCKED.ordinal();
     }
 
-    public boolean isFiatSent() {
+    public boolean isPaymentSent() {
         return getState().getPhase().ordinal() >= Phase.PAYMENT_SENT.ordinal();
     }
 
-    public boolean isFiatReceived() {
+    public boolean isPaymentReceived() {
         return getState().getPhase().ordinal() >= Phase.PAYMENT_RECEIVED.ordinal();
     }
 

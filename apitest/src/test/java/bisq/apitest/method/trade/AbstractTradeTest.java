@@ -12,12 +12,9 @@ import org.junit.jupiter.api.TestInfo;
 import static bisq.cli.TradeFormat.format;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.fail;
-
 
 
 import bisq.apitest.method.offer.AbstractOfferTest;
-import bisq.cli.GrpcClient;
 
 public class AbstractTradeTest extends AbstractOfferTest {
 
@@ -53,8 +50,8 @@ public class AbstractTradeTest extends AbstractOfferTest {
             assertEquals(EXPECTED_PROTOCOL_STATUS.isDepositPublished, trade.getIsDepositPublished());
 
         assertEquals(EXPECTED_PROTOCOL_STATUS.isDepositUnlocked, trade.getIsDepositUnlocked());
-        assertEquals(EXPECTED_PROTOCOL_STATUS.isFiatSent, trade.getIsFiatSent());
-        assertEquals(EXPECTED_PROTOCOL_STATUS.isFiatReceived, trade.getIsFiatReceived());
+        assertEquals(EXPECTED_PROTOCOL_STATUS.isPaymentSent, trade.getIsPaymentSent());
+        assertEquals(EXPECTED_PROTOCOL_STATUS.isPaymentReceived, trade.getIsPaymentReceived());
         assertEquals(EXPECTED_PROTOCOL_STATUS.isPayoutPublished, trade.getIsPayoutPublished());
         assertEquals(EXPECTED_PROTOCOL_STATUS.isWithdrawn, trade.getIsWithdrawn());
     }

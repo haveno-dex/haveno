@@ -163,8 +163,8 @@ public class TakeSellBTCOfferTest extends AbstractTradeTest {
             for (int i = 1; i <= maxTradeStateAndPhaseChecks.get(); i++) {
                 trade = bobClient.getTrade(tradeId);
 
-                if (!trade.getIsFiatSent()) {
-                    log.warn("Bob still waiting for trade {} BUYER_SAW_ARRIVED_FIAT_PAYMENT_INITIATED_MSG, attempt # {}",
+                if (!trade.getIsPaymentSent()) {
+                    log.warn("Bob still waiting for trade {} BUYER_SAW_ARRIVED_PAYMENT_INITIATED_MSG, attempt # {}",
                             trade.getShortId(),
                             i);
                     sleep(5000);

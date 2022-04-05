@@ -11,8 +11,8 @@ public class ExpectedProtocolStatus {
     Trade.Phase phase;
     boolean isDepositPublished;
     boolean isDepositUnlocked;
-    boolean isFiatSent;
-    boolean isFiatReceived;
+    boolean isPaymentSent;
+    boolean isPaymentReceived;
     boolean isPayoutPublished;
     boolean isWithdrawn;
 
@@ -36,13 +36,13 @@ public class ExpectedProtocolStatus {
         return this;
     }
 
-    public ExpectedProtocolStatus setFiatSent(boolean fiatSent) {
-        isFiatSent = fiatSent;
+    public ExpectedProtocolStatus setFiatSent(boolean paymentSent) {
+        isPaymentSent = paymentSent;
         return this;
     }
 
-    public ExpectedProtocolStatus setFiatReceived(boolean fiatReceived) {
-        isFiatReceived = fiatReceived;
+    public ExpectedProtocolStatus setFiatReceived(boolean paymentReceived) {
+        isPaymentReceived = paymentReceived;
         return this;
     }
 
@@ -61,8 +61,8 @@ public class ExpectedProtocolStatus {
         phase = null;
         isDepositPublished = false;
         isDepositUnlocked = false;
-        isFiatSent = false;
-        isFiatReceived = false;
+        isPaymentSent = false;
+        isPaymentReceived = false;
         isPayoutPublished = false;
         isWithdrawn = false;
     }

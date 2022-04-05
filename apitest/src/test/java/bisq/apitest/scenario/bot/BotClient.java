@@ -239,7 +239,7 @@ public class BotClient {
      * @return boolean
      */
     public boolean isTradePaymentStartedSent(String tradeId) {
-        return grpcClient.getTrade(tradeId).getIsFiatSent();
+        return grpcClient.getTrade(tradeId).getIsPaymentSent();
     }
 
     /**
@@ -248,7 +248,7 @@ public class BotClient {
      * @return boolean
      */
     public boolean isTradePaymentReceivedConfirmationSent(String tradeId) {
-        return grpcClient.getTrade(tradeId).getIsFiatReceived();
+        return grpcClient.getTrade(tradeId).getIsPaymentReceived();
     }
 
     /**

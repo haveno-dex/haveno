@@ -197,7 +197,7 @@ public class XmrTxProofService implements AssetTxProofService {
                 .filter(trade -> trade instanceof SellerTrade)
                 .map(trade -> (SellerTrade) trade)
                 .filter(this::isXmrTrade)
-                .filter(trade -> !trade.isFiatReceived()) // Phase name is from the time when it was fiat only. Means counter currency (XMR) received.
+                .filter(trade -> !trade.isPaymentReceived()) // Phase name is from the time when it was fiat only. Means counter currency (XMR) received.
                 .forEach(this::processTradeOrAddListener);
     }
 
@@ -207,7 +207,7 @@ public class XmrTxProofService implements AssetTxProofService {
         if (isExpectedTradeState(trade.getState())) {
             startRequestsIfValid(trade);
         } else {
-            // We are expecting SELLER_RECEIVED_FIAT_PAYMENT_INITIATED_MSG in the future, so listen on changes
+            // We are expecting SELLER_RECEIVED_PAYMENT_INITIATED_MSG in the future, so listen on changes
             ChangeListener<Trade.State> tradeStateListener = (observable, oldValue, newValue) -> {
                 if (isExpectedTradeState(newValue)) {
                     ChangeListener<Trade.State> listener = tradeStateListenerMap.remove(trade.getId());

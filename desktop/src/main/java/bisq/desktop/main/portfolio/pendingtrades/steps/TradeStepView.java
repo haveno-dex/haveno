@@ -771,7 +771,7 @@ public abstract class TradeStepView extends AnchorPane {
                     }
                     break;
                 case SECOND_HALF:
-                    if (!trade.isFiatReceived()) {
+                    if (!trade.isPaymentReceived()) {
                         if (tradeStepInfo != null) {
                             tradeStepInfo.setFirstHalfOverWarnTextSupplier(this::getFirstHalfOverWarnText);
                             tradeStepInfo.setState(TradeStepInfo.State.WARN_HALF_PERIOD);

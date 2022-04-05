@@ -793,8 +793,8 @@ message TradeInfo {
     string trade_period_state = 17;
     bool is_deposit_published = 18;
     bool is_deposit_unlocked = 19;
-    bool is_fiat_sent = 20;
-    bool is_fiat_received = 21;
+    bool is_payment_sent = 20;
+    bool is_payment_received = 21;
     bool is_payout_published = 22;
     bool is_withdrawn = 23;
     string contract_as_json = 24;
