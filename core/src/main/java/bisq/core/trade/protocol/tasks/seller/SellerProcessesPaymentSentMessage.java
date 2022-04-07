@@ -69,7 +69,7 @@ public class SellerProcessesPaymentSentMessage extends TradeTask {
                 trade.setCounterCurrencyExtraData(counterCurrencyExtraData);
             }
 
-            trade.setState(Trade.State.SELLER_RECEIVED_PAYMENT_INITIATED_MSG);
+            trade.setState(Trade.State.SELLER_RECEIVED_PAYMENT_SENT_MSG);
 
             processModel.getTradeManager().requestPersistence();
 

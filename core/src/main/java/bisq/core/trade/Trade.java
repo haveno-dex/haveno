@@ -154,21 +154,24 @@ public abstract class Trade implements Tradable, Model {
 
 
         // #################### Phase PAYMENT_SENT
-        BUYER_CONFIRMED_IN_UI_PAYMENT_INITIATED(Phase.PAYMENT_SENT),
-        BUYER_SENT_PAYMENT_INITIATED_MSG(Phase.PAYMENT_SENT),
-        BUYER_SAW_ARRIVED_PAYMENT_INITIATED_MSG(Phase.PAYMENT_SENT),
-        BUYER_STORED_IN_MAILBOX_PAYMENT_INITIATED_MSG(Phase.PAYMENT_SENT),
-        BUYER_SEND_FAILED_PAYMENT_INITIATED_MSG(Phase.PAYMENT_SENT),
+        BUYER_CONFIRMED_IN_UI_PAYMENT_SENT(Phase.PAYMENT_SENT),
+        BUYER_SENT_PAYMENT_SENT_MSG(Phase.PAYMENT_SENT),
+        BUYER_SAW_ARRIVED_PAYMENT_SENT_MSG(Phase.PAYMENT_SENT),
+        BUYER_STORED_IN_MAILBOX_PAYMENT_SENT_MSG(Phase.PAYMENT_SENT),
+        BUYER_SEND_FAILED_PAYMENT_SENT_MSG(Phase.PAYMENT_SENT),
 
-        SELLER_RECEIVED_PAYMENT_INITIATED_MSG(Phase.PAYMENT_SENT),
+        SELLER_RECEIVED_PAYMENT_SENT_MSG(Phase.PAYMENT_SENT),
 
         // #################### Phase PAYMENT_RECEIVED
         // note that this state can also be triggered by auto confirmation feature
         SELLER_CONFIRMED_IN_UI_PAYMENT_RECEIPT(Phase.PAYMENT_RECEIVED),
+        SELLER_SENT_PAYMENT_RECEIVED_MSG(Phase.PAYMENT_RECEIVED),
+        SELLER_SAW_ARRIVED_PAYMENT_RECEIVED_MSG(Phase.PAYMENT_RECEIVED),
+        SELLER_STORED_IN_MAILBOX_PAYMENT_RECEIVED_MSG(Phase.PAYMENT_RECEIVED),
+        SELLER_SEND_FAILED_PAYMENT_RECEIVED_MSG(Phase.PAYMENT_RECEIVED),
 
         // #################### Phase PAYOUT_PUBLISHED
         SELLER_PUBLISHED_PAYOUT_TX(Phase.PAYOUT_PUBLISHED), // TODO (woodser): this enum is over used, like during arbitration
-
         SELLER_SENT_PAYOUT_TX_PUBLISHED_MSG(Phase.PAYOUT_PUBLISHED),
         SELLER_SAW_ARRIVED_PAYOUT_TX_PUBLISHED_MSG(Phase.PAYOUT_PUBLISHED),
         SELLER_STORED_IN_MAILBOX_PAYOUT_TX_PUBLISHED_MSG(Phase.PAYOUT_PUBLISHED),
@@ -850,10 +853,10 @@ public abstract class Trade implements Tradable, Model {
         walletService.closeMultisigWallet(getId());
         
         // update trade state
-        this.getSelf().setPayoutTxHex(signedPayoutTxHex);
-        this.setPayoutTx(parsedTxSet.getTxs().get(0));
-        this.setPayoutTxId(parsedTxSet.getTxs().get(0).getHash());
-        this.setState(Trade.State.SELLER_PUBLISHED_PAYOUT_TX);
+        getSelf().setPayoutTxHex(signedPayoutTxHex);
+        setPayoutTx(parsedTxSet.getTxs().get(0));
+        setPayoutTxId(parsedTxSet.getTxs().get(0).getHash());
+        setState(isBuyer() ? Trade.State.BUYER_PUBLISHED_PAYOUT_TX : Trade.State.SELLER_PUBLISHED_PAYOUT_TX);
     }
 
     /**
@@ -1116,26 +1119,42 @@ public abstract class Trade implements Tradable, Model {
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Getter
     ///////////////////////////////////////////////////////////////////////////////////////////
-    
+
+    public boolean isBuyer() {
+        return offer.getDirection() == Direction.BUY;
+    }
+
+    public boolean isSeller() {
+        return offer.getDirection() == Direction.SELL;
+    }
+
+    public boolean isMaker() {
+        return this instanceof MakerTrade;
+    }
+
+    public boolean isTaker() {
+        return this instanceof TakerTrade;
+    }
+
     public TradingPeer getSelf() {
         if (this instanceof MakerTrade) return processModel.getMaker();
         if (this instanceof TakerTrade) return processModel.getTaker();
         if (this instanceof ArbitratorTrade) return processModel.getArbitrator();
         throw new RuntimeException("Trade is not maker, taker, or arbitrator");
     }
-    
+
     public TradingPeer getMaker() {
         return processModel.getMaker();
     }
-    
+
     public TradingPeer getTaker() {
         return processModel.getTaker();
     }
-    
+
     public TradingPeer getBuyer() {
         return offer.getDirection() == Direction.BUY ? processModel.getMaker() : processModel.getTaker();
     }
-    
+
     public TradingPeer getSeller() {
         return offer.getDirection() == Direction.BUY ? processModel.getTaker() : processModel.getMaker();
     }
