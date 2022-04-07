@@ -111,9 +111,9 @@ public class SellerStep3View extends TradeStepView {
             if (timeoutTimer != null)
                 timeoutTimer.stop();
 
-            if (trade.isFiatSent() && !trade.isFiatReceived()) {
+            if (trade.isPaymentSent() && !trade.isPaymentReceived()) {
                 showPopup();
-            } else if (trade.isFiatReceived()) {
+            } else if (trade.isPaymentReceived()) {
                 if (!trade.hasFailed()) {
                     switch (state) {
                         case SELLER_CONFIRMED_IN_UI_PAYMENT_RECEIPT:

@@ -133,7 +133,7 @@ public class BuyerStep2View extends TradeStepView {
                 if (timeoutTimer != null)
                     timeoutTimer.stop();
 
-                if (trade.isDepositConfirmed() && !trade.isFiatSent()) {
+                if (trade.isDepositConfirmed() && !trade.isPaymentSent()) {
                     showPopup();
                 } else if (state.ordinal() <= Trade.State.BUYER_SEND_FAILED_PAYMENT_INITIATED_MSG.ordinal()) {
                     if (!trade.hasFailed()) {
@@ -523,8 +523,8 @@ public class BuyerStep2View extends TradeStepView {
         statusLabel.setText(Res.get("shared.sendingConfirmation"));
 
         //TODO seems this was a hack to enable repeated confirm???
-        if (trade.isFiatSent()) {
-            trade.setState(Trade.State.DEPOSIT_CONFIRMED_IN_BLOCK_CHAIN);
+        if (trade.isPaymentSent()) {
+            trade.setState(Trade.State.DEPOSIT_UNLOCKED_IN_BLOCK_CHAIN);
             model.dataModel.getTradeManager().requestPersistence();
         }
 

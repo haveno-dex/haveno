@@ -129,10 +129,9 @@ public abstract class BuyerProtocol extends DisputeProtocol {
     public void onPaymentStarted(ResultHandler resultHandler, ErrorMessageHandler errorMessageHandler) {
         System.out.println("BuyerProtocol.onPaymentStarted()");
         synchronized (trade) { // TODO (woodser): UpdateMultisigWithTradingPeer sends UpdateMultisigRequest and waits for UpdateMultisigResponse which is new thread, so synchronized (trade) in subsequent pipeline blocks forever if we hold on with countdown latch in this function
-            System.out.println("BuyerProtocol.onPaymentStarted() has the lock!!!");
             BuyerEvent event = BuyerEvent.PAYMENT_SENT;
             CountDownLatch latch = new CountDownLatch(1);
-            expect(phase(Trade.Phase.DEPOSIT_CONFIRMED)
+            expect(phase(Trade.Phase.DEPOSIT_UNLOCKED)
                     .with(event)
                     .preCondition(trade.confirmPermitted()))
                     .setup(tasks(ApplyFilter.class,

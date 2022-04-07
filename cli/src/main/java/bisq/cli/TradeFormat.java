@@ -120,10 +120,10 @@ public class TradeFormat {
                 makerTakerMinerTxFeeFormat.apply(tradeInfo, isTaker),
                 makerTakerFeeFormat.apply(tradeInfo, isTaker),
                 tradeInfo.getIsDepositPublished() ? YES : NO,
-                tradeInfo.getIsDepositConfirmed() ? YES : NO,
+                tradeInfo.getIsDepositUnlocked() ? YES : NO,
                 tradeCostFormat.apply(tradeInfo),
-                tradeInfo.getIsFiatSent() ? YES : NO,
-                tradeInfo.getIsFiatReceived() ? YES : NO,
+                tradeInfo.getIsPaymentSent() ? YES : NO,
+                tradeInfo.getIsPaymentReceived() ? YES : NO,
                 tradeInfo.getIsPayoutPublished() ? YES : NO,
                 tradeInfo.getIsWithdrawn() ? YES : NO);
     }

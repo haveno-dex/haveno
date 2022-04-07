@@ -85,7 +85,7 @@ public abstract class SellerProtocol extends DisputeProtocol {
         // the mailbox msg once wallet is ready and trade state set.
         synchronized (trade) {
             //CountDownLatch latch = new CountDownLatch(1); // TODO: apply latch countdown
-            expect(anyPhase(Trade.Phase.DEPOSIT_CONFIRMED, Trade.Phase.DEPOSIT_PUBLISHED)
+            expect(anyPhase(Trade.Phase.DEPOSIT_UNLOCKED, Trade.Phase.DEPOSIT_PUBLISHED)
                     .with(message)
                     .from(peer)
                     .preCondition(trade.getPayoutTx() == null,

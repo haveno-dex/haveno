@@ -269,8 +269,8 @@ public class CoreApi {
         return walletsService.getBalances(currencyCode);
     }
 
-    public String getNewDepositSubaddress() {
-        return walletsService.getNewDepositSubaddress();
+    public String getNewDepositAddress() {
+        return walletsService.getNewDepositAddress();
     }
 
     public List<MoneroTxWallet> getXmrTxs() {

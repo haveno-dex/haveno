@@ -161,7 +161,7 @@ class CoreWalletsService {
         }
     }
 
-    String getNewDepositSubaddress() {
+    String getNewDepositAddress() {
         accountService.checkAccountOpen();
         return xmrWalletService.getWallet().createSubaddress(0).getAddress();
     }

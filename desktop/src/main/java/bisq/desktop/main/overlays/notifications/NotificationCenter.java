@@ -192,7 +192,7 @@ public class NotificationCenter {
                 message = Res.get("notification.trade.accepted", role);
             }
 
-            if (trade instanceof BuyerTrade && phase.ordinal() == Trade.Phase.DEPOSIT_CONFIRMED.ordinal())
+            if (trade instanceof BuyerTrade && phase.ordinal() == Trade.Phase.DEPOSIT_UNLOCKED.ordinal())
                 message = Res.get("notification.trade.confirmed");
             else if (trade instanceof SellerTrade && phase.ordinal() == Trade.Phase.PAYMENT_SENT.ordinal())
                 message = Res.get("notification.trade.paymentStarted");

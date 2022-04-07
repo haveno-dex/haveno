@@ -37,7 +37,7 @@ import org.junit.jupiter.api.TestMethodOrder;
 import static bisq.apitest.config.ApiTestConfig.BTC;
 import static bisq.cli.TableFormat.formatBalancesTbls;
 import static bisq.core.btc.wallet.Restrictions.getDefaultBuyerSecurityDepositAsPercent;
-import static bisq.core.trade.Trade.Phase.DEPOSIT_CONFIRMED;
+import static bisq.core.trade.Trade.Phase.DEPOSIT_UNLOCKED;
 import static bisq.core.trade.Trade.Phase.PAYMENT_SENT;
 import static bisq.core.trade.Trade.Phase.PAYOUT_PUBLISHED;
 import static bisq.core.trade.Trade.Phase.WITHDRAWN;
@@ -45,7 +45,6 @@ import static bisq.core.trade.Trade.State.*;
 import static java.lang.String.format;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 import static protobuf.Offer.State.OFFER_FEE_PAID;
 import static protobuf.OfferPayload.Direction.SELL;
@@ -97,8 +96,8 @@ public class TakeSellBTCOfferTest extends AbstractTradeTest {
             for (int i = 1; i <= maxTradeStateAndPhaseChecks.get(); i++) {
                 trade = bobClient.getTrade(trade.getTradeId());
 
-                if (!trade.getIsDepositConfirmed()) {
-                    log.warn("Bob still waiting on trade {} maker tx {} taker tx {}: DEPOSIT_CONFIRMED_IN_BLOCK_CHAIN, attempt # {}",
+                if (!trade.getIsDepositUnlocked()) {
+                    log.warn("Bob still waiting on trade {} maker tx {} taker tx {}: DEPOSIT_UNLOCKED_IN_BLOCK_CHAIN, attempt # {}",
                             trade.getShortId(),
                             trade.getMakerDepositTxId(),
                             trade.getTakerDepositTxId(),
@@ -106,18 +105,18 @@ public class TakeSellBTCOfferTest extends AbstractTradeTest {
                     genBtcBlocksThenWait(1, 4000);
                     continue;
                 } else {
-                    EXPECTED_PROTOCOL_STATUS.setState(DEPOSIT_CONFIRMED_IN_BLOCK_CHAIN)
-                            .setPhase(DEPOSIT_CONFIRMED)
+                    EXPECTED_PROTOCOL_STATUS.setState(DEPOSIT_UNLOCKED_IN_BLOCK_CHAIN)
+                            .setPhase(DEPOSIT_UNLOCKED)
                             .setDepositPublished(true)
-                            .setDepositConfirmed(true);
+                            .setDepositUnlocked(true);
                     verifyExpectedProtocolStatus(trade);
                     logTrade(log, testInfo, "Bob's view after deposit is confirmed", trade, true);
                     break;
                 }
             }
 
-            if (!trade.getIsDepositConfirmed()) {
-                fail(format("INVALID_PHASE for Bob's trade %s in STATE=%s PHASE=%s, deposit tx was never confirmed.",
+            if (!trade.getIsDepositUnlocked()) {
+                fail(format("INVALID_PHASE for Bob's trade %s in STATE=%s PHASE=%s, deposit tx never unlocked.",
                         trade.getShortId(),
                         trade.getState(),
                         trade.getPhase()));
@@ -135,7 +134,7 @@ public class TakeSellBTCOfferTest extends AbstractTradeTest {
             var trade = bobClient.getTrade(tradeId);
 
             Predicate<TradeInfo> tradeStateAndPhaseCorrect = (t) ->
-                    t.getState().equals(DEPOSIT_CONFIRMED_IN_BLOCK_CHAIN.name()) && t.getPhase().equals(DEPOSIT_CONFIRMED.name());
+                    t.getState().equals(DEPOSIT_UNLOCKED_IN_BLOCK_CHAIN.name()) && t.getPhase().equals(DEPOSIT_UNLOCKED.name());
             for (int i = 1; i <= maxTradeStateAndPhaseChecks.get(); i++) {
                 if (!tradeStateAndPhaseCorrect.test(trade)) {
                     log.warn("INVALID_PHASE for Bob's trade {} in STATE={} PHASE={}, cannot confirm payment started yet.",
@@ -164,8 +163,8 @@ public class TakeSellBTCOfferTest extends AbstractTradeTest {
             for (int i = 1; i <= maxTradeStateAndPhaseChecks.get(); i++) {
                 trade = bobClient.getTrade(tradeId);
 
-                if (!trade.getIsFiatSent()) {
-                    log.warn("Bob still waiting for trade {} BUYER_SAW_ARRIVED_FIAT_PAYMENT_INITIATED_MSG, attempt # {}",
+                if (!trade.getIsPaymentSent()) {
+                    log.warn("Bob still waiting for trade {} BUYER_SAW_ARRIVED_PAYMENT_INITIATED_MSG, attempt # {}",
                             trade.getShortId(),
                             i);
                     sleep(5000);
