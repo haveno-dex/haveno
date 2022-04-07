@@ -113,7 +113,7 @@ public abstract class SellerProtocol extends DisputeProtocol {
         synchronized (trade) {
             SellerEvent event = SellerEvent.PAYMENT_RECEIVED;
 //          CountDownLatch latch = new CountDownLatch(1); // TODO (woodser): user countdown latch, but freezes legacy app
-            expect(anyPhase(Trade.Phase.PAYMENT_SENT, Trade.Phase.PAYOUT_PUBLISHED)
+            expect(anyPhase(Trade.Phase.PAYMENT_SENT)
                     .with(event)
                     .preCondition(trade.confirmPermitted()))
                     .setup(tasks(

@@ -69,8 +69,8 @@ public abstract class BuyerProtocol extends DisputeProtocol {
                 .executeTasks();
 
         given(anyPhase(Trade.Phase.PAYMENT_SENT, Trade.Phase.PAYMENT_RECEIVED)
-                .anyState(Trade.State.BUYER_STORED_IN_MAILBOX_PAYMENT_INITIATED_MSG,
-                        Trade.State.BUYER_SEND_FAILED_PAYMENT_INITIATED_MSG)
+                .anyState(Trade.State.BUYER_STORED_IN_MAILBOX_PAYMENT_SENT_MSG,
+                        Trade.State.BUYER_SEND_FAILED_PAYMENT_SENT_MSG)
                 .with(BuyerEvent.STARTUP))
                 .setup(tasks(BuyerSendsPaymentSentMessage.class))
                 .executeTasks();
@@ -151,7 +151,7 @@ public abstract class BuyerProtocol extends DisputeProtocol {
                                         errorMessageHandler.handleErrorMessage(errorMessage);
                                         handleTaskRunnerFault(event, errorMessage);
                                     })))
-                    .run(() -> trade.setState(Trade.State.BUYER_CONFIRMED_IN_UI_PAYMENT_INITIATED))
+                    .run(() -> trade.setState(Trade.State.BUYER_CONFIRMED_IN_UI_PAYMENT_SENT))
                     .executeTasks();
        }
     }

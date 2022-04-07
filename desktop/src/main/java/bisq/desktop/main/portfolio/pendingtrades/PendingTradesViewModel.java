@@ -452,31 +452,35 @@ public class PendingTradesViewModel extends ActivatableWithDataModel<PendingTrad
                 break;
 
             // buyer step 3
-            case BUYER_CONFIRMED_IN_UI_PAYMENT_INITIATED: // UI action
-            case BUYER_SENT_PAYMENT_INITIATED_MSG:  // PAYMENT_INITIATED_MSG sent
+            case BUYER_CONFIRMED_IN_UI_PAYMENT_SENT: // UI action
+            case BUYER_SENT_PAYMENT_SENT_MSG:  // PAYMENT_SENT_MSG sent
                 // We don't switch the UI before we got the feedback of the msg delivery
                 buyerState.set(BuyerState.STEP2);
                 break;
-            case BUYER_SAW_ARRIVED_PAYMENT_INITIATED_MSG:  // PAYMENT_INITIATED_MSG arrived
-            case BUYER_STORED_IN_MAILBOX_PAYMENT_INITIATED_MSG:  // PAYMENT_INITIATED_MSG in mailbox
+            case BUYER_SAW_ARRIVED_PAYMENT_SENT_MSG:  // PAYMENT_SENT_MSG arrived
+            case BUYER_STORED_IN_MAILBOX_PAYMENT_SENT_MSG:  // PAYMENT_SENT_MSG in mailbox
                 buyerState.set(BuyerState.STEP3);
                 break;
-            case BUYER_SEND_FAILED_PAYMENT_INITIATED_MSG:  // PAYMENT_INITIATED_MSG failed
+            case BUYER_SEND_FAILED_PAYMENT_SENT_MSG:  // PAYMENT_SENT_MSG failed
                 // if failed we need to repeat sending so back to step 2
                 buyerState.set(BuyerState.STEP2);
                 break;
 
             // seller step 3
-            case SELLER_RECEIVED_PAYMENT_INITIATED_MSG: // PAYMENT_INITIATED_MSG received
+            case SELLER_RECEIVED_PAYMENT_SENT_MSG: // PAYMENT_SENT_MSG received
                 sellerState.set(SellerState.STEP3);
                 break;
 
             // seller step 4
-            case SELLER_CONFIRMED_IN_UI_PAYMENT_RECEIPT:   // UI action
-            case SELLER_PUBLISHED_PAYOUT_TX: // payout tx broad casted
+            case SELLER_CONFIRMED_IN_UI_PAYMENT_RECEIPT: // UI action
+            case SELLER_SENT_PAYMENT_RECEIVED_MSG:
+            case SELLER_PUBLISHED_PAYOUT_TX: // payout tx broadcasted
             case SELLER_SENT_PAYOUT_TX_PUBLISHED_MSG: // PAYOUT_TX_PUBLISHED_MSG sent
                 sellerState.set(SellerState.STEP3);
                 break;
+            case SELLER_SAW_ARRIVED_PAYMENT_RECEIVED_MSG:
+            case SELLER_STORED_IN_MAILBOX_PAYMENT_RECEIVED_MSG:
+            case SELLER_SEND_FAILED_PAYMENT_RECEIVED_MSG:
             case SELLER_SAW_ARRIVED_PAYOUT_TX_PUBLISHED_MSG: // PAYOUT_TX_PUBLISHED_MSG arrived
             case SELLER_STORED_IN_MAILBOX_PAYOUT_TX_PUBLISHED_MSG: // PAYOUT_TX_PUBLISHED_MSG mailbox
             case SELLER_SEND_FAILED_PAYOUT_TX_PUBLISHED_MSG: // PAYOUT_TX_PUBLISHED_MSG failed -  payout tx is published, peer will see it in network so we ignore failure and complete

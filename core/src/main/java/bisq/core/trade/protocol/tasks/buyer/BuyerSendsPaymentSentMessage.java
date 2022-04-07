@@ -89,8 +89,8 @@ public class BuyerSendsPaymentSentMessage extends SendMailboxMessageTask {
 
     @Override
     protected void setStateSent() {
-        if (trade.getState().ordinal() < Trade.State.BUYER_SENT_PAYMENT_INITIATED_MSG.ordinal()) {
-            trade.setStateIfValidTransitionTo(Trade.State.BUYER_SENT_PAYMENT_INITIATED_MSG);
+        if (trade.getState().ordinal() < Trade.State.BUYER_SENT_PAYMENT_SENT_MSG.ordinal()) {
+            trade.setStateIfValidTransitionTo(Trade.State.BUYER_SENT_PAYMENT_SENT_MSG);
         }
 
         processModel.getTradeManager().requestPersistence();
@@ -112,7 +112,7 @@ public class BuyerSendsPaymentSentMessage extends SendMailboxMessageTask {
 
     @Override
     protected void setStateStoredInMailbox() {
-        trade.setStateIfValidTransitionTo(Trade.State.BUYER_STORED_IN_MAILBOX_PAYMENT_INITIATED_MSG);
+        trade.setStateIfValidTransitionTo(Trade.State.BUYER_STORED_IN_MAILBOX_PAYMENT_SENT_MSG);
         if (!trade.isPayoutPublished()) {
             tryToSendAgainLater();
         }
@@ -127,7 +127,7 @@ public class BuyerSendsPaymentSentMessage extends SendMailboxMessageTask {
 
     @Override
     protected void setStateFault() {
-        trade.setStateIfValidTransitionTo(Trade.State.BUYER_SEND_FAILED_PAYMENT_INITIATED_MSG);
+        trade.setStateIfValidTransitionTo(Trade.State.BUYER_SEND_FAILED_PAYMENT_SENT_MSG);
         if (!trade.isPayoutPublished()) {
             tryToSendAgainLater();
         }
@@ -192,8 +192,8 @@ public class BuyerSendsPaymentSentMessage extends SendMailboxMessageTask {
     private void onMessageStateChange(MessageState newValue) {
         // Once we receive an ACK from our msg we know the peer has received the msg and we stop.
         if (newValue == MessageState.ACKNOWLEDGED) {
-            // We treat a ACK like BUYER_SAW_ARRIVED_PAYMENT_INITIATED_MSG
-            trade.setStateIfValidTransitionTo(Trade.State.BUYER_SAW_ARRIVED_PAYMENT_INITIATED_MSG);
+            // We treat a ACK like BUYER_SAW_ARRIVED_PAYMENT_SENT_MSG
+            trade.setStateIfValidTransitionTo(Trade.State.BUYER_SAW_ARRIVED_PAYMENT_SENT_MSG);
 
             processModel.getTradeManager().requestPersistence();
 

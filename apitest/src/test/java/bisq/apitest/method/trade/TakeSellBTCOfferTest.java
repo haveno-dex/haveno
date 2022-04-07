@@ -164,7 +164,7 @@ public class TakeSellBTCOfferTest extends AbstractTradeTest {
                 trade = bobClient.getTrade(tradeId);
 
                 if (!trade.getIsPaymentSent()) {
-                    log.warn("Bob still waiting for trade {} BUYER_SAW_ARRIVED_PAYMENT_INITIATED_MSG, attempt # {}",
+                    log.warn("Bob still waiting for trade {} BUYER_SAW_ARRIVED_PAYMENT_SENT_MSG, attempt # {}",
                             trade.getShortId(),
                             i);
                     sleep(5000);
@@ -172,7 +172,7 @@ public class TakeSellBTCOfferTest extends AbstractTradeTest {
                 } else {
                     // Note: offer.state == available
                     assertEquals(AVAILABLE.name(), trade.getOffer().getState());
-                    EXPECTED_PROTOCOL_STATUS.setState(BUYER_SAW_ARRIVED_PAYMENT_INITIATED_MSG)
+                    EXPECTED_PROTOCOL_STATUS.setState(BUYER_SAW_ARRIVED_PAYMENT_SENT_MSG)
                             .setPhase(PAYMENT_SENT)
                             .setFiatSent(true);
                     verifyExpectedProtocolStatus(trade);
@@ -192,7 +192,7 @@ public class TakeSellBTCOfferTest extends AbstractTradeTest {
             var trade = aliceClient.getTrade(tradeId);
 
             Predicate<TradeInfo> tradeStateAndPhaseCorrect = (t) ->
-                    t.getState().equals(SELLER_RECEIVED_PAYMENT_INITIATED_MSG.name())
+                    t.getState().equals(SELLER_RECEIVED_PAYMENT_SENT_MSG.name())
                             && (t.getPhase().equals(PAYOUT_PUBLISHED.name()) || t.getPhase().equals(PAYMENT_SENT.name()));
             for (int i = 1; i <= maxTradeStateAndPhaseChecks.get(); i++) {
                 if (!tradeStateAndPhaseCorrect.test(trade)) {

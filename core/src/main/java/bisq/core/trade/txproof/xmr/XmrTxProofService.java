@@ -207,7 +207,7 @@ public class XmrTxProofService implements AssetTxProofService {
         if (isExpectedTradeState(trade.getState())) {
             startRequestsIfValid(trade);
         } else {
-            // We are expecting SELLER_RECEIVED_PAYMENT_INITIATED_MSG in the future, so listen on changes
+            // We are expecting SELLER_RECEIVED_PAYMENT_SENT_MSG in the future, so listen on changes
             ChangeListener<Trade.State> tradeStateListener = (observable, oldValue, newValue) -> {
                 if (isExpectedTradeState(newValue)) {
                     ChangeListener<Trade.State> listener = tradeStateListenerMap.remove(trade.getId());
@@ -346,7 +346,7 @@ public class XmrTxProofService implements AssetTxProofService {
     }
 
     private boolean isExpectedTradeState(Trade.State newValue) {
-        return newValue == Trade.State.SELLER_RECEIVED_PAYMENT_INITIATED_MSG;
+        return newValue == Trade.State.SELLER_RECEIVED_PAYMENT_SENT_MSG;
     }
 
     private boolean is32BitHexStringInValid(String hexString) {
