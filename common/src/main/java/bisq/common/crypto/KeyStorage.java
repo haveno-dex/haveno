@@ -175,7 +175,7 @@ public class KeyStorage {
      * @param password Optional password that protects the key
      */
     public SecretKey loadSecretKey(KeyEntry keyEntry, String password) throws IncorrectPasswordException {
-        char[] passwordChars = password == null ? null : password.toCharArray();
+        char[] passwordChars = password == null ? new char[0] : password.toCharArray();
         try {
             KeyStore keyStore = KeyStore.getInstance("PKCS12");
             keyStore.load(new FileInputStream(storageDir + "/" + keyEntry.getFileName()), passwordChars);
