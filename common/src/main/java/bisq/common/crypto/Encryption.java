@@ -218,9 +218,9 @@ public class Encryption {
 
     public static SecretKey generateSecretKey(int bits) {
         try {
-            KeyGenerator keyPairGenerator = KeyGenerator.getInstance(SYM_KEY_ALGO);
-            keyPairGenerator.init(bits);
-            return keyPairGenerator.generateKey();
+            KeyGenerator keyGenerator = KeyGenerator.getInstance(SYM_KEY_ALGO);
+            keyGenerator.init(bits);
+            return keyGenerator.generateKey();
         } catch (Throwable e) {
             log.error("Couldn't generate key", e);
             throw new RuntimeException("Couldn't generate key");

@@ -20,6 +20,8 @@ package bisq.common.crypto;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
+import javax.crypto.SecretKey;
+
 import java.security.KeyPair;
 
 import lombok.EqualsAndHashCode;
@@ -36,13 +38,14 @@ public final class KeyRing {
 
     private final KeyStorage keyStorage;
 
+    private SecretKey symmetricKey;
     private KeyPair signatureKeyPair;
     private KeyPair encryptionKeyPair;
     private PubKeyRing pubKeyRing;
 
     /**
      * Creates the KeyRing. Unlocks if not encrypted. Does not generate keys.
-     * 
+     *
      * @param keyStorage Persisted storage
      */
     @Inject
@@ -52,7 +55,7 @@ public final class KeyRing {
 
     /**
      * Creates KeyRing with a password. Attempts to generate keys if they don't exist.
-     * 
+     *
      * @param keyStorage Persisted storage
      * @param password The password to unlock the keys or to generate new keys, nullable.
      * @param generateKeys Generate new keys with password if not created yet.
@@ -67,7 +70,8 @@ public final class KeyRing {
     }
 
     public boolean isUnlocked() {
-        boolean isUnlocked = this.signatureKeyPair != null
+        boolean isUnlocked = this.symmetricKey != null
+                && this.signatureKeyPair != null
                 && this.encryptionKeyPair != null
                 && this.pubKeyRing != null;
         return isUnlocked;
@@ -80,21 +84,23 @@ public final class KeyRing {
     public void lockKeys() {
         signatureKeyPair = null;
         encryptionKeyPair = null;
+        symmetricKey = null;
         pubKeyRing = null;
     }
 
     /**
      * Unlocks the keyring with a given password if required. If the keyring is already
      * unlocked, do nothing.
-     * 
+     *
      * @param password Decrypts the or encrypts newly generated keys with the given password.
      * @return Whether KeyRing is unlocked
      */
     public boolean unlockKeys(@Nullable String password, boolean generateKeys) throws IncorrectPasswordException {
         if (isUnlocked()) return true;
         if (keyStorage.allKeyFilesExist()) {
-            signatureKeyPair = keyStorage.loadKeyPair(KeyStorage.KeyEntry.MSG_SIGNATURE, password);
-            encryptionKeyPair = keyStorage.loadKeyPair(KeyStorage.KeyEntry.MSG_ENCRYPTION, password);
+            symmetricKey = keyStorage.loadSecretKey(KeyStorage.KeyEntry.SYM_ENCRYPTION, password);
+            signatureKeyPair = keyStorage.loadKeyPair(KeyStorage.KeyEntry.MSG_SIGNATURE, symmetricKey);
+            encryptionKeyPair = keyStorage.loadKeyPair(KeyStorage.KeyEntry.MSG_ENCRYPTION, symmetricKey);
             if (signatureKeyPair != null && encryptionKeyPair != null) pubKeyRing = new PubKeyRing(signatureKeyPair.getPublic(), encryptionKeyPair.getPublic());
         } else if (generateKeys) {
             generateKeys(password);
@@ -104,22 +110,24 @@ public final class KeyRing {
 
     /**
      * Generates a new set of keys if the current keyring is closed.
-     * 
+     *
      * @param password The password to unlock the keys or to generate new keys, nullable.
      */
     public void generateKeys(String password) {
         if (isUnlocked()) throw new Error("Current keyring must be closed to generate new keys");
+        symmetricKey = Encryption.generateSecretKey(256);
         signatureKeyPair = Sig.generateKeyPair();
         encryptionKeyPair = Encryption.generateKeyPair();
         pubKeyRing = new PubKeyRing(signatureKeyPair.getPublic(), encryptionKeyPair.getPublic());
-        keyStorage.saveKeyRing(this, password);
+        keyStorage.saveKeyRing(this, null, password);
     }
 
     // Don't print keys for security reasons
     @Override
     public String toString() {
         return "KeyRing{" +
-                "signatureKeyPair.hashCode()=" + signatureKeyPair.hashCode() +
+                "symmetricKey.hashCode()=" + symmetricKey.hashCode() +
+                ", signatureKeyPair.hashCode()=" + signatureKeyPair.hashCode() +
                 ", encryptionKeyPair.hashCode()=" + encryptionKeyPair.hashCode() +
                 ", pubKeyRing.hashCode()=" + pubKeyRing.hashCode() +
                 '}';

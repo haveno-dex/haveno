@@ -35,7 +35,7 @@ public class ZipUtils {
 
     /**
      * Zips directory into the output stream. Empty directories are not included.
-     * 
+     *
      * @param dir The directory to create the zip from.
      * @param out The stream to write to.
      */
@@ -64,6 +64,8 @@ public class ZipUtils {
 
                     // Close the zip entry.
                     zos.closeEntry();
+                } catch (Exception e) {
+                    log.warn(e.getMessage());
                 }
             }
         }
@@ -88,7 +90,7 @@ public class ZipUtils {
     /**
      * Unzips the zipStream into the specified directory, overwriting any files.
      * Existing files are preserved.
-     * 
+     *
      * @param dir The directory to write to.
      * @param inputStream The raw stream assumed to be in zip format.
      * @param bufferSize The buffer used to read from efficiently.
