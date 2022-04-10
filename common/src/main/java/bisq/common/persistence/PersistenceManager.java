@@ -465,7 +465,10 @@ public class PersistenceManager<T extends PersistableEnvelope> {
         }
         if (keyRing != null && !keyRing.isUnlocked()) {
             log.warn("Account is not open, ignoring writeToDisk.");
-            UserThread.execute(completeHandler);
+            if (completeHandler != null) {
+                UserThread.execute(completeHandler);
+            }
+            return;
         }
 
         long ts = System.currentTimeMillis();
