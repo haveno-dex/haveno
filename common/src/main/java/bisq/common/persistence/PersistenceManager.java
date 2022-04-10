@@ -460,7 +460,9 @@ public class PersistenceManager<T extends PersistableEnvelope> {
     public void writeToDisk(protobuf.PersistableEnvelope serialized, @Nullable Runnable completeHandler) {
         if (!allServicesInitialized.get()) {
             log.warn("Application has not completed start up yet so we do not permit writing data to disk.");
-            UserThread.execute(completeHandler);
+            if (completeHandler != null) {
+                UserThread.execute(completeHandler);
+            }
             return;
         }
         if (keyRing != null && !keyRing.isUnlocked()) {
