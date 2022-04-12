@@ -120,7 +120,7 @@ public abstract class P2PSeedNodeSnapshotBase extends Metric implements MessageL
                 //TODO will not work with historical data... should be refactored to re-use code for reading resource files
                 TradeStatistics3Store tradeStatistics3Store = new TradeStatistics3Store();
                 PersistenceManager<TradeStatistics3Store> tradeStatistics3PersistenceManager = new PersistenceManager<>(dir,
-                        persistenceProtoResolver, null);
+                        persistenceProtoResolver, null, null);
                 tradeStatistics3PersistenceManager.initialize(tradeStatistics3Store,
                         tradeStatistics3Store.getDefaultStorageFileName() + networkPostfix,
                         PersistenceManager.Source.NETWORK);
@@ -133,7 +133,7 @@ public abstract class P2PSeedNodeSnapshotBase extends Metric implements MessageL
 
                 AccountAgeWitnessStore accountAgeWitnessStore = new AccountAgeWitnessStore();
                 PersistenceManager<AccountAgeWitnessStore> accountAgeWitnessPersistenceManager = new PersistenceManager<>(dir,
-                        persistenceProtoResolver, null);
+                        persistenceProtoResolver, null, null);
                 accountAgeWitnessPersistenceManager.initialize(accountAgeWitnessStore,
                         accountAgeWitnessStore.getDefaultStorageFileName() + networkPostfix,
                         PersistenceManager.Source.NETWORK);

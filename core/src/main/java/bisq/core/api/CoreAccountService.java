@@ -50,15 +50,15 @@ import lombok.extern.slf4j.Slf4j;
 @Singleton
 @Slf4j
 public class CoreAccountService {
-    
+
     private final Config config;
     private final KeyStorage keyStorage;
     private final KeyRing keyRing;
-    
+
     @Getter
     private String password;
     private List<AccountServiceListener> listeners = new ArrayList<AccountServiceListener>();
-    
+
     @Inject
     public CoreAccountService(Config config,
                               KeyStorage keyStorage,
@@ -67,34 +67,34 @@ public class CoreAccountService {
         this.keyStorage = keyStorage;
         this.keyRing = keyRing;
     }
-    
+
     public void addListener(AccountServiceListener listener) {
         listeners.add(listener);
     }
-    
+
     public boolean removeListener(AccountServiceListener listener) {
         return listeners.remove(listener);
     }
-    
+
     public boolean accountExists() {
         return keyStorage.allKeyFilesExist(); // public and private key pair indicate the existence of the account
     }
-    
+
     public boolean isAccountOpen() {
         return keyRing.isUnlocked() && accountExists();
     }
-    
+
     public void checkAccountOpen() {
         checkState(isAccountOpen(), "Account not open");
     }
-    
+
     public void createAccount(String password) {
         if (accountExists()) throw new IllegalStateException("Cannot create account if account already exists");
         keyRing.generateKeys(password);
         this.password = password;
         for (AccountServiceListener listener : listeners) listener.onAccountCreated();
     }
-    
+
     public void openAccount(String password) throws IncorrectPasswordException {
         if (!accountExists()) throw new IllegalStateException("Cannot open account if account does not exist");
         if (keyRing.unlockKeys(password, false)) {
@@ -104,21 +104,21 @@ public class CoreAccountService {
             throw new IllegalStateException("keyRing.unlockKeys() returned false, that should never happen");
         }
     }
-    
+
     public void changePassword(String password) {
         if (!isAccountOpen()) throw new IllegalStateException("Cannot change password on unopened account");
-        keyStorage.saveKeyRing(keyRing, password);
         String oldPassword = this.password;
+        keyStorage.saveKeyRing(keyRing, oldPassword, password);
         this.password = password;
         for (AccountServiceListener listener : listeners) listener.onPasswordChanged(oldPassword, password);
     }
-    
+
     public void closeAccount() {
         if (!isAccountOpen()) throw new IllegalStateException("Cannot close unopened account");
         keyRing.lockKeys(); // closed account means the keys are locked
         for (AccountServiceListener listener : listeners) listener.onAccountClosed();
     }
-    
+
     public void backupAccount(int bufferSize, Consumer<InputStream> consume, Consumer<Exception> error) {
         if (!accountExists()) throw new IllegalStateException("Cannot backup non existing account");
 
@@ -142,14 +142,14 @@ public class CoreAccountService {
             }
         });
     }
-    
+
     public void restoreAccount(InputStream inputStream, int bufferSize, Runnable onShutdown) throws Exception {
         if (accountExists()) throw new IllegalStateException("Cannot restore account if there is an existing account");
         File dataDir = new File(config.appDataDir.getPath());
         ZipUtils.unzipToDir(dataDir, inputStream, bufferSize);
         for (AccountServiceListener listener : listeners) listener.onAccountRestored(onShutdown);
     }
-    
+
     public void deleteAccount(Runnable onShutdown) {
         try {
             keyRing.lockKeys();

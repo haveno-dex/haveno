@@ -54,6 +54,7 @@ import bisq.network.p2p.P2PService;
 import bisq.common.UserThread;
 import bisq.common.app.DevEnv;
 import bisq.common.config.Config;
+import bisq.common.crypto.KeyRing;
 import bisq.common.file.CorruptedStorageFileHandler;
 import bisq.common.persistence.PersistenceManager;
 import bisq.common.proto.persistable.PersistableEnvelope;
@@ -203,11 +204,12 @@ public class GUIUtil {
                                       Preferences preferences,
                                       Stage stage,
                                       PersistenceProtoResolver persistenceProtoResolver,
-                                      CorruptedStorageFileHandler corruptedStorageFileHandler) {
+                                      CorruptedStorageFileHandler corruptedStorageFileHandler,
+                                      KeyRing keyRing) {
         if (!accounts.isEmpty()) {
             String directory = getDirectoryFromChooser(preferences, stage);
             if (!directory.isEmpty()) {
-                PersistenceManager<PersistableEnvelope> persistenceManager = new PersistenceManager<>(new File(directory), persistenceProtoResolver, corruptedStorageFileHandler);
+                PersistenceManager<PersistableEnvelope> persistenceManager = new PersistenceManager<>(new File(directory), persistenceProtoResolver, corruptedStorageFileHandler, keyRing);
                 PaymentAccountList paymentAccounts = new PaymentAccountList(accounts);
                 persistenceManager.initialize(paymentAccounts, fileName, PersistenceManager.Source.PRIVATE_LOW_PRIO);
                 persistenceManager.persistNow(() -> {
@@ -227,7 +229,8 @@ public class GUIUtil {
                                       Preferences preferences,
                                       Stage stage,
                                       PersistenceProtoResolver persistenceProtoResolver,
-                                      CorruptedStorageFileHandler corruptedStorageFileHandler) {
+                                      CorruptedStorageFileHandler corruptedStorageFileHandler,
+                                      KeyRing keyRing) {
         FileChooser fileChooser = new FileChooser();
         File initDir = new File(preferences.getDirectoryChooserPath());
         if (initDir.isDirectory()) {
@@ -240,7 +243,7 @@ public class GUIUtil {
             if (Paths.get(path).getFileName().toString().equals(fileName)) {
                 String directory = Paths.get(path).getParent().toString();
                 preferences.setDirectoryChooserPath(directory);
-                PersistenceManager<PaymentAccountList> persistenceManager = new PersistenceManager<>(new File(directory), persistenceProtoResolver, corruptedStorageFileHandler);
+                PersistenceManager<PaymentAccountList> persistenceManager = new PersistenceManager<>(new File(directory), persistenceProtoResolver, corruptedStorageFileHandler, keyRing);
                 persistenceManager.readPersisted(fileName, persisted -> {
                             StringBuilder msg = new StringBuilder();
                             HashSet<PaymentAccount> paymentAccounts = new HashSet<>();
