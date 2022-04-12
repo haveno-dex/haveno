@@ -48,17 +48,17 @@ import static java.lang.String.format;
 @Slf4j
 class CorePaymentAccountsService {
 
-    private final CoreWalletsService coreWalletsService;
+    private final CoreAccountService accountService;
     private final AccountAgeWitnessService accountAgeWitnessService;
     private final PaymentAccountForm paymentAccountForm;
     private final User user;
 
     @Inject
-    public CorePaymentAccountsService(CoreWalletsService coreWalletsService,
+    public CorePaymentAccountsService(CoreAccountService accountService,
                                       AccountAgeWitnessService accountAgeWitnessService,
                                       PaymentAccountForm paymentAccountForm,
                                       User user) {
-        this.coreWalletsService = coreWalletsService;
+        this.accountService = accountService;
         this.accountAgeWitnessService = accountAgeWitnessService;
         this.paymentAccountForm = paymentAccountForm;
         this.user = user;
@@ -104,6 +104,7 @@ class CorePaymentAccountsService {
                                                       String currencyCode,
                                                       String address,
                                                       boolean tradeInstant) {
+        accountService.checkAccountOpen();
         if (currencyCode == null) throw new RuntimeException("Cryptocurrency code is null");
         var cryptoCurrencyAccount = tradeInstant
                 ? (InstantCryptoCurrencyAccount) PaymentAccountFactory.getPaymentAccount(PaymentMethod.BLOCK_CHAINS_INSTANT)
