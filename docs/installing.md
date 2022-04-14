@@ -2,6 +2,8 @@
 
 These are the steps needed to set up a local Haveno test network. You'll have the possibility to either connect to our shared Monero stagenet node or to create your own private stagenet.
 
+We also provide instructions and dockerfiles for [running a test network using Docker and docker-compose](https://github.com/haveno-dex/haveno/tree/docker/docker)
+
 ## 1. Install dependencies
 
 On Ubuntu: `sudo apt install make wget git git-lfs openjdk-11-jdk`. The Bitcoin and Monero binaries will be downloaded and verified automatically in the next step.
@@ -22,7 +24,7 @@ Run `make monero-shared`
 ### 3b. Run your own private stagenet
 
 1. In a new terminal window run `make monero-private1`;
-1. In a new terminal window run `make monero-private2`;
+2. In a new terminal window run `make monero-private2`;
 3. Now mine the first 130 blocks to a random address before using, so wallets only use the latest output type. Run in one of the terminal windows opened above:
 
 `start_mining 56k9Yra1pxwcTYzqKcnLip8mymSQdEfA6V7476W9XhSiHPp1hAboo1F6na7kxTxwvXU6JjDQtu8VJdGj9FEcjkxGJfsyyah 1`

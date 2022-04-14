@@ -1,0 +1,56 @@
+version: '3'
+
+services:
+  node1: 
+    build: monero/
+    container_name: node1
+    command: ["--data-dir=/home/monero/node1", "--p2p-bind-port=48080", "--rpc-bind-port=48081", "--zmq-rpc-bind-port=48082", "--add-exclusive-node=127.0.0.1:38080"]
+    # All containers will use this network
+    networks:
+      - mynet
+    ports:
+    # monero rpc
+    - "38081:38081"
+    # alice
+    - "9999:9999"
+    - "58081:58081"
+    # bob
+    - "10000:10000"
+    - "58082:58082"
+
+  node2: 
+    build: monero/
+    container_name: node2
+    command: ["--data-dir=/home/monero/node2", "--p2p-bind-port=38080","--rpc-bind-ip=0.0.0.0", "--rpc-bind-port=38081", "--confirm-external-bind", "--add-exclusive-node=127.0.0.1:48080"]
+    network_mode: "service:node1"
+    depends_on:
+      - node1
+
+  seed:
+    build: haveno/
+    container_name: seed
+    entrypoint: ["./haveno-seednode"]
+    command: ["--baseCurrencyNetwork=XMR_STAGENET", "--useLocalhostForP2P=true", "--useDevPrivilegeKeys=true", "--nodePort=2002", "--appName=haveno-XMR_STAGENET_Seed_2002" ]
+    network_mode: "service:node1"
+    depends_on:
+      - node2
+
+  alice:
+    build: haveno/
+    container_name: alice
+    command: ["--baseCurrencyNetwork=XMR_STAGENET", "--useLocalhostForP2P=true", "--useDevPrivilegeKeys=true", "--nodePort=5555", "--appName=haveno-XMR_STAGENET_Alice", "--apiPassword=apitest", "--apiPort=9999", "--walletRpcBindPort=58081", "--passwordRequired=false" ]
+    network_mode: "service:node1"
+    depends_on:
+      - seed
+
+  bob:
+    build: haveno/
+    container_name: bob
+    command: ["--baseCurrencyNetwork=XMR_STAGENET", "--useLocalhostForP2P=true", "--useDevPrivilegeKeys=true", "--nodePort=6666", "--appName=haveno-XMR_STAGENET_Bob", "--apiPassword=apitest", "--apiPort=10000", "--walletRpcBindPort=58082", "--passwordRequired=false"]
+    network_mode: "service:node1"
+    depends_on:
+      - seed
+
+networks:
+    mynet:
+      driver: bridge
