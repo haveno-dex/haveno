@@ -17,7 +17,11 @@
 
 package bisq.core.api;
 
+import bisq.core.btc.model.AddressEntry;
+import bisq.core.btc.wallet.BtcWalletService;
 import bisq.core.support.SupportType;
+import bisq.core.support.dispute.arbitration.arbitrator.Arbitrator;
+import bisq.core.support.dispute.arbitration.arbitrator.ArbitratorManager;
 import bisq.core.support.dispute.mediation.mediator.Mediator;
 import bisq.core.support.dispute.mediation.mediator.MediatorManager;
 import bisq.core.support.dispute.refund.refundagent.RefundAgent;
@@ -33,7 +37,7 @@ import org.bitcoinj.core.ECKey;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
-
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Objects;
@@ -57,6 +61,8 @@ class CoreDisputeAgentsService {
     private final User user;
     private final Config config;
     private final KeyRing keyRing;
+    private final BtcWalletService btcWalletService;
+    private final ArbitratorManager arbitratorManager;
     private final MediatorManager mediatorManager;
     private final RefundAgentManager refundAgentManager;
     private final P2PService p2PService;
@@ -67,12 +73,16 @@ class CoreDisputeAgentsService {
     public CoreDisputeAgentsService(User user,
                                     Config config,
                                     KeyRing keyRing,
+                                    BtcWalletService btcWalletService,
+                                    ArbitratorManager arbitratorManager,
                                     MediatorManager mediatorManager,
                                     RefundAgentManager refundAgentManager,
                                     P2PService p2PService) {
         this.user = user;
         this.config = config;
         this.keyRing = keyRing;
+        this.btcWalletService = btcWalletService;
+        this.arbitratorManager = arbitratorManager;
         this.mediatorManager = mediatorManager;
         this.refundAgentManager = refundAgentManager;
         this.p2PService = p2PService;
@@ -97,7 +107,14 @@ class CoreDisputeAgentsService {
             String signature;
             switch (supportType.get()) {
                 case ARBITRATION:
-                    throw new IllegalArgumentException("arbitrators must be registered in a Bisq UI");
+                    if (user.getRegisteredArbitrator() != null) {
+                        log.warn("ignoring request to re-register as arbitrator");
+                        return;
+                    }
+                    ecKey = arbitratorManager.getRegistrationKey(registrationKey);
+                    signature = arbitratorManager.signStorageSignaturePubKey(Objects.requireNonNull(ecKey));
+                    registerArbitrator(nodeAddress, languageCodes, ecKey, signature);
+                    return;
                 case MEDIATION:
                     if (user.getRegisteredMediator() != null) {
                         log.warn("ignoring request to re-register as mediator");
@@ -122,6 +139,30 @@ class CoreDisputeAgentsService {
         } else {
             throw new IllegalArgumentException(format("unknown dispute agent type '%s'", disputeAgentType));
         }
+    }
+
+    private void registerArbitrator(NodeAddress nodeAddress,
+                                    List<String> languageCodes,
+                                    ECKey ecKey,
+                                    String signature) {
+        AddressEntry arbitratorAddressEntry = btcWalletService.getArbitratorAddressEntry(); // TODO (woodser): switch to XMR; no reason for arbitrator to have BTC address / pub key
+        Arbitrator arbitrator = new Arbitrator(
+                p2PService.getAddress(),
+                arbitratorAddressEntry.getPubKey(),
+                arbitratorAddressEntry.getAddressString(),
+                keyRing.getPubKeyRing(),
+                new ArrayList<>(languageCodes),
+                new Date().getTime(),
+                ecKey.getPubKey(),
+                signature,
+                "",
+                null,
+                null);
+        arbitratorManager.addDisputeAgent(arbitrator, () -> {
+        }, errorMessage -> {
+        });
+        arbitratorManager.getDisputeAgentByNodeAddress(nodeAddress).orElseThrow(() ->
+                new IllegalStateException("could not register arbitrator"));
     }
 
     private void registerMediator(NodeAddress nodeAddress,

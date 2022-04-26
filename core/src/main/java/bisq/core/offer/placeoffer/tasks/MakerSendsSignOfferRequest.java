@@ -26,7 +26,7 @@ import bisq.core.btc.model.XmrAddressEntry;
 import bisq.core.offer.Offer;
 import bisq.core.offer.messages.SignOfferRequest;
 import bisq.core.offer.placeoffer.PlaceOfferModel;
-import bisq.core.support.dispute.mediation.mediator.Mediator;
+import bisq.core.support.dispute.arbitration.arbitrator.Arbitrator;
 import bisq.network.p2p.AckMessage;
 import bisq.network.p2p.DecryptedDirectMessageListener;
 import bisq.network.p2p.DecryptedMessageWithPubKey;
@@ -74,7 +74,7 @@ public class MakerSendsSignOfferRequest extends Task<PlaceOfferModel> {
                     returnAddress);
             
             // get signing arbitrator
-            Mediator arbitrator = checkNotNull(model.getUser().getAcceptedMediatorByAddress(offer.getOfferPayload().getArbitratorSigner()), "user.getAcceptedMediatorByAddress(mediatorNodeAddress) must not be null");
+            Arbitrator arbitrator = checkNotNull(model.getUser().getAcceptedArbitratorByAddress(offer.getOfferPayload().getArbitratorSigner()), "user.getAcceptedArbitratorByAddress(arbitratorNodeAddress) must not be null");
             
             // complete on successful ack message
             DecryptedDirectMessageListener ackListener = new DecryptedDirectMessageListener() {

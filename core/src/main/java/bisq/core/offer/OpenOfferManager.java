@@ -33,11 +33,11 @@ import bisq.core.offer.messages.SignOfferResponse;
 import bisq.core.offer.placeoffer.PlaceOfferModel;
 import bisq.core.offer.placeoffer.PlaceOfferProtocol;
 import bisq.core.provider.price.PriceFeedService;
+import bisq.core.support.dispute.arbitration.arbitrator.Arbitrator;
 import bisq.core.support.dispute.arbitration.arbitrator.ArbitratorManager;
 import bisq.core.support.dispute.mediation.mediator.Mediator;
 import bisq.core.support.dispute.mediation.mediator.MediatorManager;
 import bisq.core.trade.TradableList;
-import bisq.core.trade.TradeUtils;
 import bisq.core.trade.closed.ClosedTradableManager;
 import bisq.core.trade.handlers.TransactionResultHandler;
 import bisq.core.trade.statistics.TradeStatisticsManager;
@@ -634,7 +634,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
         try {
             
             // verify this node is an arbitrator
-            Mediator thisArbitrator = user.getRegisteredMediator();
+            Arbitrator thisArbitrator = user.getRegisteredArbitrator();
             NodeAddress thisAddress = p2PService.getNetworkNode().getNodeAddress();
             if (thisArbitrator == null || !thisArbitrator.getNodeAddress().equals(thisAddress)) {
               errorMessage = "Cannot sign offer because we are not a registered arbitrator";

@@ -22,7 +22,7 @@ import bisq.core.filter.FilterManager;
 import bisq.core.locale.CurrencyUtil;
 import bisq.core.payment.PaymentAccount;
 import bisq.core.payment.PaymentAccountUtil;
-import bisq.core.support.dispute.mediation.mediator.Mediator;
+import bisq.core.support.dispute.arbitration.arbitrator.Arbitrator;
 import bisq.core.trade.TradeUtils;
 import bisq.core.user.Preferences;
 import bisq.core.user.User;
@@ -216,7 +216,7 @@ public class OfferFilter {
     public boolean hasValidSignature(Offer offer) {
 
         // get arbitrator
-        Mediator arbitrator = user.getAcceptedMediatorByAddress(offer.getOfferPayload().getArbitratorSigner());
+        Arbitrator arbitrator = user.getAcceptedArbitratorByAddress(offer.getOfferPayload().getArbitratorSigner());
         if (arbitrator == null) return false; // invalid arbitrator
 
         // validate arbitrator signature
