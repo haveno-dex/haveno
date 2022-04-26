@@ -486,7 +486,7 @@ message CreateOfferRequest {
     uint64 amount = 6 [jstype = JS_STRING];
     uint64 min_amount = 7 [jstype = JS_STRING];
     double buyer_security_deposit = 8;
-    uint64 trigger_price = 9 [jstype = JS_STRING];
+    string trigger_price = 9;
     string payment_account_id = 10;
 }
 

@@ -20,7 +20,6 @@ package bisq.desktop.main.offer.offerbook;
 import bisq.desktop.Navigation;
 import bisq.desktop.common.model.ActivatableViewModel;
 import bisq.desktop.main.MainView;
-import bisq.desktop.main.PriceUtil;
 import bisq.desktop.main.settings.SettingsView;
 import bisq.desktop.main.settings.preferences.PreferencesView;
 import bisq.desktop.util.DisplayUtils;
@@ -50,6 +49,7 @@ import bisq.core.trade.closed.ClosedTradableManager;
 import bisq.core.user.Preferences;
 import bisq.core.user.User;
 import bisq.core.util.FormattingUtils;
+import bisq.core.util.PriceUtil;
 import bisq.core.util.coin.CoinFormatter;
 
 import bisq.network.p2p.NodeAddress;

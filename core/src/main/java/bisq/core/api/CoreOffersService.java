@@ -30,7 +30,7 @@ import bisq.core.offer.OpenOffer;
 import bisq.core.offer.OpenOfferManager;
 import bisq.core.payment.PaymentAccount;
 import bisq.core.user.User;
-
+import bisq.core.util.PriceUtil;
 import bisq.common.crypto.KeyRing;
 import bisq.common.handlers.ErrorMessageHandler;
 import org.bitcoinj.core.Coin;
@@ -176,7 +176,7 @@ class CoreOffersService {
         for (Offer offer : offers) {
           for (String keyImage : offer.getOfferPayload().getReserveTxKeyImages()) {
             if (!allKeyImages.add(keyImage)) {
-                log.warn("Key image {} belongs to another offer, removing offer {}", keyImage, offer.getId());
+                log.warn("Key image {} belongs to another offer, removing offer {}", keyImage, offer.getId()); // TODO (woodser): this is list, not set, so not checking for duplicates
                 unreservedOffers.add(offer);
             }
           }
@@ -220,7 +220,7 @@ class CoreOffersService {
                              long amountAsLong,
                              long minAmountAsLong,
                              double buyerSecurityDeposit,
-                             long triggerPrice,
+                             String triggerPriceAsString,
                              String paymentAccountId,
                              Consumer<Offer> resultHandler,
                              ErrorMessageHandler errorMessageHandler) {
@@ -257,7 +257,7 @@ class CoreOffersService {
         //noinspection ConstantConditions
         placeOffer(offer,
                 buyerSecurityDeposit,
-                triggerPrice,
+                triggerPriceAsString,
                 useSavingsWallet,
                 transaction -> resultHandler.accept(offer),
                 errorMessageHandler);
@@ -309,14 +309,15 @@ class CoreOffersService {
 
     private void placeOffer(Offer offer,
                             double buyerSecurityDeposit,
-                            long triggerPrice,
+                            String triggerPriceAsString,
                             boolean useSavingsWallet,
                             Consumer<Transaction> resultHandler,
                             ErrorMessageHandler errorMessageHandler) {
+        long triggerPriceAsLong = PriceUtil.getMarketPriceAsLong(triggerPriceAsString, offer.getCurrencyCode());
         openOfferManager.placeOffer(offer,
                 buyerSecurityDeposit,
                 useSavingsWallet,
-                triggerPrice,
+                triggerPriceAsLong,
                 resultHandler::accept,
                 errorMessageHandler);
     }

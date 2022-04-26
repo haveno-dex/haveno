@@ -15,11 +15,11 @@
  * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.desktop.main;
+package bisq.core.util;
 
-import bisq.desktop.util.validation.AltcoinValidator;
-import bisq.desktop.util.validation.FiatPriceValidator;
-import bisq.desktop.util.validation.MonetaryValidator;
+import bisq.core.util.validation.AltcoinValidator;
+import bisq.core.util.validation.FiatPriceValidator;
+import bisq.core.util.validation.MonetaryValidator;
 
 import bisq.core.locale.CurrencyUtil;
 import bisq.core.locale.Res;
@@ -31,8 +31,6 @@ import bisq.core.provider.price.MarketPrice;
 import bisq.core.provider.price.PriceFeedService;
 import bisq.core.trade.statistics.TradeStatisticsManager;
 import bisq.core.user.Preferences;
-import bisq.core.util.FormattingUtils;
-import bisq.core.util.ParsingUtils;
 import bisq.core.util.validation.InputValidator;
 
 import bisq.common.util.MathUtils;
@@ -41,14 +39,12 @@ import org.bitcoinj.utils.Fiat;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
-
+import lombok.extern.slf4j.Slf4j;
 import java.util.Optional;
 
-import javax.annotation.Nullable;
-
-import static bisq.desktop.main.shared.ChatView.log;
 import static com.google.common.base.Preconditions.checkNotNull;
 
+@Slf4j
 @Singleton
 public class PriceUtil {
     private final PriceFeedService priceFeedService;
