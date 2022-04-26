@@ -18,8 +18,6 @@
 package bisq.desktop.main.portfolio.closedtrades;
 
 import bisq.desktop.common.model.ActivatableDataModel;
-import bisq.desktop.main.PriceUtil;
-
 import bisq.core.monetary.Price;
 import bisq.core.monetary.Volume;
 import bisq.core.offer.Offer;
@@ -32,6 +30,7 @@ import bisq.core.trade.Trade;
 import bisq.core.trade.closed.ClosedTradableManager;
 import bisq.core.trade.statistics.TradeStatisticsManager;
 import bisq.core.user.Preferences;
+import bisq.core.util.PriceUtil;
 import bisq.core.util.VolumeUtil;
 
 import bisq.common.util.Tuple2;

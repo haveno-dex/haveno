@@ -15,10 +15,9 @@
  * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.desktop.util.validation;
+package bisq.core.util.validation;
 
 import bisq.core.locale.Res;
-
 import javax.inject.Inject;
 
 public abstract class MonetaryValidator extends NumberValidator {

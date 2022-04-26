@@ -75,6 +75,8 @@ public class ValidateOffer extends Task<PlaceOfferModel> {
 
             checkArgument(offer.getDate().getTime() > 0,
                     "Date must not be 0. date=" + offer.getDate().toString());
+            
+            System.out.println("OFFER PRICE: " + offer.getPrice());
 
             checkNotNull(offer.getCurrencyCode(), "Currency is null");
             checkNotNull(offer.getDirection(), "Direction is null");
