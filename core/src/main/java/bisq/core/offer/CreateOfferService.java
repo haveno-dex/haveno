@@ -28,8 +28,8 @@ import bisq.core.payment.PaymentAccount;
 import bisq.core.payment.PaymentAccountUtil;
 import bisq.core.provider.price.MarketPrice;
 import bisq.core.provider.price.PriceFeedService;
-import bisq.core.support.dispute.mediation.mediator.Mediator;
-import bisq.core.support.dispute.mediation.mediator.MediatorManager;
+import bisq.core.support.dispute.arbitration.arbitrator.Arbitrator;
+import bisq.core.support.dispute.arbitration.arbitrator.ArbitratorManager;
 import bisq.core.trade.statistics.TradeStatisticsManager;
 import bisq.core.user.Preferences;
 import bisq.core.user.User;
@@ -69,7 +69,7 @@ public class CreateOfferService {
     private final User user;
     private final BtcWalletService btcWalletService;
     private final TradeStatisticsManager tradeStatisticsManager;
-    private final MediatorManager mediatorManager;
+    private final ArbitratorManager arbitratorManager;
 
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -85,7 +85,7 @@ public class CreateOfferService {
                               User user,
                               BtcWalletService btcWalletService,
                               TradeStatisticsManager tradeStatisticsManager,
-                              MediatorManager mediatorManager) {
+                              ArbitratorManager arbitratorManager) {
         this.offerUtil = offerUtil;
         this.txFeeEstimationService = txFeeEstimationService;
         this.priceFeedService = priceFeedService;
@@ -94,7 +94,7 @@ public class CreateOfferService {
         this.user = user;
         this.btcWalletService = btcWalletService;
         this.tradeStatisticsManager = tradeStatisticsManager;
-        this.mediatorManager = mediatorManager;
+        this.arbitratorManager = arbitratorManager;
     }
 
 
@@ -192,7 +192,7 @@ public class CreateOfferService {
                 makerFeeAsCoin);
 
         // select signing arbitrator
-        Mediator arbitrator = DisputeAgentSelection.getLeastUsedArbitrator(tradeStatisticsManager, mediatorManager); // TODO (woodser): using mediator manager for arbitrators
+        Arbitrator arbitrator = DisputeAgentSelection.getLeastUsedArbitrator(tradeStatisticsManager, arbitratorManager);
 
         OfferPayload offerPayload = new OfferPayload(offerId,
                 creationTime,
@@ -214,7 +214,7 @@ public class CreateOfferService {
                 bankId,
                 acceptedBanks,
                 Version.VERSION,
-                btcWalletService.getLastBlockSeenHeight(),
+                btcWalletService.getLastBlockSeenHeight(), // TODO (woodser): switch to XMR
                 txFeeToUse.value,
                 makerFeeAsCoin.value,
                 buyerSecurityDepositAsCoin.value,

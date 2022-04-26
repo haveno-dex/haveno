@@ -24,7 +24,7 @@ import bisq.common.util.Tuple2;
 import bisq.common.util.Utilities;
 import bisq.core.btc.wallet.XmrWalletService;
 import bisq.core.offer.OfferPayload;
-import bisq.core.support.dispute.mediation.mediator.Mediator;
+import bisq.core.support.dispute.arbitration.arbitrator.Arbitrator;
 import bisq.core.trade.messages.InitTradeRequest;
 import java.util.Objects;
 
@@ -47,7 +47,7 @@ public class TradeUtils {
      * @param signedOfferPayload is a signed offer payload
      * @return true if the arbitrator's signature is valid for the offer
      */
-    public static boolean isArbitratorSignatureValid(OfferPayload signedOfferPayload, Mediator arbitrator) {
+    public static boolean isArbitratorSignatureValid(OfferPayload signedOfferPayload, Arbitrator arbitrator) {
         
         // remove arbitrator signature from signed payload
         String signature = signedOfferPayload.getArbitratorSignature();

@@ -31,8 +31,8 @@ import bisq.core.offer.SignedOffer;
 import bisq.core.offer.availability.OfferAvailabilityModel;
 import bisq.core.provider.fee.FeeService;
 import bisq.core.provider.price.PriceFeedService;
+import bisq.core.support.dispute.arbitration.arbitrator.Arbitrator;
 import bisq.core.support.dispute.arbitration.arbitrator.ArbitratorManager;
-import bisq.core.support.dispute.mediation.mediator.Mediator;
 import bisq.core.support.dispute.mediation.mediator.MediatorManager;
 import bisq.core.trade.Trade.Phase;
 import bisq.core.trade.closed.ClosedTradableManager;
@@ -374,7 +374,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
       if (isArbitrator) {
 
           // verify this node is registered arbitrator
-          Mediator thisArbitrator = user.getRegisteredMediator();
+          Arbitrator thisArbitrator = user.getRegisteredArbitrator();
           NodeAddress thisAddress = p2PService.getNetworkNode().getNodeAddress();
           if (thisArbitrator == null || !thisArbitrator.getNodeAddress().equals(thisAddress)) {
               log.warn("Ignoring InitTradeRequest from {} with tradeId {} because we are not an arbitrator", sender, request.getTradeId());
@@ -508,7 +508,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
           //System.out.println("TradeManager trade.setTradingPeerNodeAddress(): " + sender);
           //trade.setTradingPeerNodeAddress(sender);
           // TODO (woodser): what if maker's address changes while offer open, or taker's address changes after multisig deposit available? need to verify and update. see OpenOfferManager.maybeUpdatePersistedOffers()
-          trade.setArbitratorPubKeyRing(user.getAcceptedMediatorByAddress(sender).getPubKeyRing());
+          trade.setArbitratorPubKeyRing(user.getAcceptedArbitratorByAddress(sender).getPubKeyRing());
           trade.setMakerPubKeyRing(trade.getOffer().getPubKeyRing());
           initTradeAndProtocol(trade, getTradeProtocol(trade));
           trade.getSelf().setReserveTxHash(openOffer.getReserveTxHash()); // TODO (woodser): initialize in initTradeAndProtocol?

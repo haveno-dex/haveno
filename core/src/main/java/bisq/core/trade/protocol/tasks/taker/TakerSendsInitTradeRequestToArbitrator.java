@@ -17,7 +17,7 @@
 
 package bisq.core.trade.protocol.tasks.taker;
 
-import bisq.core.support.dispute.mediation.mediator.Mediator;
+import bisq.core.support.dispute.arbitration.arbitrator.Arbitrator;
 import bisq.core.trade.Trade;
 import bisq.core.trade.messages.InitTradeRequest;
 import bisq.core.trade.protocol.tasks.TradeTask;
@@ -80,7 +80,7 @@ public class TakerSendsInitTradeRequestToArbitrator extends TradeTask {
     private void sendInitTradeRequest(NodeAddress arbitratorNodeAddress, SendDirectMessageListener listener) {
         
         // get registered arbitrator
-        Mediator arbitrator = processModel.getUser().getAcceptedMediatorByAddress(arbitratorNodeAddress);
+        Arbitrator arbitrator = processModel.getUser().getAcceptedArbitratorByAddress(arbitratorNodeAddress);
         if (arbitrator == null) throw new RuntimeException("Node address " + arbitratorNodeAddress + " is not a registered arbitrator");
         
         // set pub keys

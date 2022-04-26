@@ -637,6 +637,14 @@ public class XmrWalletService {
         }
     }
 
+    public XmrAddressEntry getArbitratorAddressEntry() {
+        XmrAddressEntry.Context context = XmrAddressEntry.Context.ARBITRATOR;
+        Optional<XmrAddressEntry> addressEntry = getAddressEntryListAsImmutableList().stream()
+                .filter(e -> context == e.getContext())
+                .findAny();
+        return getOrCreateAddressEntry(context, addressEntry);
+    }
+
     public Optional<XmrAddressEntry> getAddressEntry(String offerId, XmrAddressEntry.Context context) {
         return getAddressEntryListAsImmutableList().stream().filter(e -> offerId.equals(e.getOfferId())).filter(e -> context == e.getContext()).findAny();
     }
@@ -670,6 +678,19 @@ public class XmrWalletService {
         // address entry it might cause
         // complications in some edge cases after a SPV resync).
         swapTradeEntryToAvailableEntry(offerId, XmrAddressEntry.Context.TRADE_PAYOUT);
+    }
+
+    private XmrAddressEntry getOrCreateAddressEntry(XmrAddressEntry.Context context,
+                                                    Optional<XmrAddressEntry> addressEntry) {
+        if (addressEntry.isPresent()) {
+            return addressEntry.get();
+        } else {
+            MoneroSubaddress subaddress = wallet.createSubaddress(0);
+            XmrAddressEntry entry = new XmrAddressEntry(subaddress.getIndex(), subaddress.getAddress(), context, null, null);
+            log.info("getOrCreateAddressEntry: add new XmrAddressEntry {}", entry);
+            xmrAddressEntryList.addAddressEntry(entry);
+            return entry;
+        }
     }
 
     private Optional<XmrAddressEntry> findAddressEntry(String address, XmrAddressEntry.Context context) {

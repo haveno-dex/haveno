@@ -782,15 +782,9 @@ public class GUIUtil {
 
     public static boolean canCreateOrTakeOfferOrShowPopup(User user, Navigation navigation) {
 
-        // TODO (woodser): use refund agents to dispute arbitration?
-        if (!user.hasAcceptedRefundAgents()) {
-            log.warn("There are no refund agents available"); // TODO (woodser): refund agents changing from [4444] to [] causing this error
-            //new Popup().warning(Res.get("popup.warning.noArbitratorsAvailable")).show();
-            //return false;
-        }
-
-        if (!user.hasAcceptedMediators()) {
-            new Popup().warning(Res.get("popup.warning.noMediatorsAvailable")).show();
+        if (!user.hasAcceptedArbitrators()) {
+            log.warn("There are no arbitrators available");
+            new Popup().warning(Res.get("popup.warning.noArbitratorsAvailable")).show();
             return false;
         }
 
