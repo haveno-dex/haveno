@@ -104,10 +104,14 @@ public class HavenoHeadlessApp implements HeadlessApp {
     public void stop() {
         if (!shutDownRequested) {
             UserThread.runAfter(() -> {
-                gracefulShutDownHandler.gracefulShutDown(() -> {
-                    log.debug("App shutdown complete");
-                    if (onGracefulShutDownHandler != null) onGracefulShutDownHandler.run();
-                });
+                if (gracefulShutDownHandler != null) {
+                    gracefulShutDownHandler.gracefulShutDown(() -> {
+                        log.debug("App shutdown complete");
+                        if (onGracefulShutDownHandler != null) onGracefulShutDownHandler.run();
+                    });
+                } else if (onGracefulShutDownHandler != null) {
+                    onGracefulShutDownHandler.run();
+                }
             }, 200, TimeUnit.MILLISECONDS);
             shutDownRequested = true;
         }
