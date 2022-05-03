@@ -8,7 +8,7 @@ In order to develop for Haveno, first [install and run a local Haveno test netwo
 
 ## Running the UI proof of concept
 
-Follow [instructions](https://github.com/haveno-dex/haveno-ui-poc#run-in-a-browser) to run Haveno's UI proof of concept in a browser.
+Follow [instructions](https://github.com/haveno-dex/haveno-ts#run-in-a-browser) to run Haveno's UI proof of concept in a browser.
 
 This proof of concept demonstrates using Haveno's gRPC server with a web frontend (react and typescript) instead of Bisq's JFX application.
 
@@ -18,21 +18,21 @@ Follow [instructions](import-haveno.md) to import Haveno into a development envi
 
 ## Running end-to-end API tests
 
-Follow [instructions](https://github.com/haveno-dex/haveno-ui-poc#run-tests) to run end-to-end API tests in the UI project.
+Follow [instructions](https://github.com/haveno-dex/haveno-ts#run-tests) to run end-to-end API tests in the UI project.
 
 ## Adding new API functions and tests
 
-1. Follow [instructions](https://github.com/haveno-dex/haveno-ui-poc#run-tests) to run Haveno's existing API tests successfully.
+1. Follow [instructions](https://github.com/haveno-dex/haveno-ts#run-tests) to run Haveno's existing API tests successfully.
 2. Define the new service or message in Haveno's [protobuf definition](../proto/src/main/proto/grpc.proto).
 3. Clean and build Haveno after modifying the protobuf definition: `make clean && make`
 4. Implement the new service in Haveno's backend, following existing patterns.<br>
    For example, the gRPC function to get offers is implemented by [`GrpcServer`](https://github.com/haveno-dex/haveno/blob/master/daemon/src/main/java/bisq/daemon/grpc/GrpcServer.java) > [`GrpcOffersService.getOffers(...)`](https://github.com/haveno-dex/haveno/blob/b761dbfd378faf49d95090c126318b419af7926b/daemon/src/main/java/bisq/daemon/grpc/GrpcOffersService.java#L104) > [`CoreApi.getOffers(...)`](https://github.com/haveno-dex/haveno/blob/b761dbfd378faf49d95090c126318b419af7926b/core/src/main/java/bisq/core/api/CoreApi.java#L128) > [`CoreOffersService.getOffers(...)`](https://github.com/haveno-dex/haveno/blob/b761dbfd378faf49d95090c126318b419af7926b/core/src/main/java/bisq/core/api/CoreOffersService.java#L126) > [`OfferBookService.getOffers()`](https://github.com/haveno-dex/haveno/blob/b761dbfd378faf49d95090c126318b419af7926b/core/src/main/java/bisq/core/offer/OfferBookService.java#L193).
 5. Build Haveno: `make`
-6. Update the gRPC client in haveno-ui-poc: `npm install`
-7. Add the corresponding typescript method(s) to [haveno.ts](https://github.com/haveno-dex/haveno-ui-poc/blob/master/src/haveno.ts) with clear and concise documentation.
-8. Add clean and comprehensive tests to [haveno.test.ts](https://github.com/haveno-dex/haveno-ui-poc/blob/master/src/haveno.test.ts), following existing patterns.
+6. Update the gRPC client in haveno-ts: `npm install`
+7. Add the corresponding typescript method(s) to [haveno.ts](https://github.com/haveno-dex/haveno-ts/blob/master/src/haveno.ts) with clear and concise documentation.
+8. Add clean and comprehensive tests to [haveno.test.ts](https://github.com/haveno-dex/haveno-ts/blob/master/src/haveno.test.ts), following existing patterns.
 9. Run the tests with `npm run test -- -t 'my test'` to run tests by name and `npm test` to run all tests together. Ensure all tests pass and there are no exception stacktraces in the terminals of Alice, Bob, or the arbitrator.
-10. Open pull requests to the haveno and haveno-ui-poc projects for the backend and frontend implementations.
+10. Open pull requests to the haveno and haveno-ts projects for the backend and frontend implementations.
 
 ## How to rebase and squash your commits
 

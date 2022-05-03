@@ -36,7 +36,7 @@ Haveno is currently being developed, but it's already possible to test XMR <->fi
 The project is divided between multiple repositories:
 
 - **[haveno](https://github.com/haveno-dex/haveno)** - This repository. The heart of Haveno.
-- **[haveno-ui-poc](https://github.com/haveno-dex/haveno-ui-poc)** - The PoC of the future user interface. Uses gRPC APIs to serve the UI in React.
+- **[haveno-ts](https://github.com/haveno-dex/haveno-ts)** - The PoC of the future user interface. Uses gRPC APIs to serve the UI in React.
 - **[haveno-meta](https://github.com/haveno-dex/haveno-meta)** - For project-wide discussions and proposals.
 - **[haveno-site](https://github.com/haveno-dex/haveno-site)** - The repository of the website.
 
