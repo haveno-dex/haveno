@@ -25,7 +25,6 @@ import bisq.core.trade.Trade;
 import bisq.core.trade.messages.PaymentSentMessage;
 import bisq.core.trade.protocol.tasks.TradeTask;
 import bisq.core.util.Validator;
-import java.util.Arrays;
 import lombok.extern.slf4j.Slf4j;
 import monero.wallet.MoneroWallet;
 
@@ -51,7 +50,7 @@ public class SellerProcessesPaymentSentMessage extends TradeTask {
             // sync and update multisig wallet
             if (trade.getBuyer().getUpdatedMultisigHex() != null) {
                 XmrWalletService walletService = processModel.getProvider().getXmrWalletService();
-                MoneroWallet multisigWallet = walletService.getMultisigWallet(trade.getId()); // TODO: ensure sync() always called before importMultisigHex() 
+                MoneroWallet multisigWallet = walletService.getMultisigWallet(trade.getId()); // TODO: ensure sync() always called before importMultisigHex()
                 multisigWallet.importMultisigHex(trade.getBuyer().getUpdatedMultisigHex());
                 walletService.closeMultisigWallet(trade.getId());
             }
