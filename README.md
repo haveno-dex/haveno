@@ -31,22 +31,22 @@ Haveno is still work in progress. There are no binaries available at this stage.
 
 ## Status of the project
 
-Haveno is currently being developed, but it's already possible to test XMR <->fiat/crypto trades using the legacy user interface. The development of Haveno's own user interface was [funded by the Monero community](https://ccs.getmonero.org/proposals/haveno-frontend.html).
+Haveno is currently being developed, but it's already possible to test XMR <->fiat/crypto trades using the legacy user interface.
 
-The project is divided between multiple repositories:
+Main repositories:
 
-- **[haveno](https://github.com/haveno-dex/haveno)** - This repository. The heart of Haveno.
-- **[haveno-ts](https://github.com/haveno-dex/haveno-ts)** - The PoC of the future user interface. Uses gRPC APIs to serve the UI in React.
+- **[haveno](https://github.com/haveno-dex/haveno)** - This repository. The core of Haveno.
+- **[haveno-ui](https://github.com/haveno-dex/haveno-ui)** - The user interface.
+- **[haveno-ts](https://github.com/haveno-dex/haveno-ts)** - TypeScript library for using Haveno.
 - **[haveno-meta](https://github.com/haveno-dex/haveno-meta)** - For project-wide discussions and proposals.
-- **[haveno-site](https://github.com/haveno-dex/haveno-site)** - The repository of the website.
 
-If you wish to help, take a look at the [issue tracker](https://github.com/haveno-dex/haveno/issues). We run a bounty program to incentivize development. See [Bounties](#bounties)
+If you wish to help, take a look at the repositories above and look for open issues. We run a bounty program to incentivize development. See [Bounties](#bounties)
 
 The project is lead by a core Team formed of 2 people: ErCiccione and Woodser. The PGP keys of the core team members are in `gpg_keys/`.
 
 ## Keep in touch and help out!
 
-Haveno is a community-driven project. For it to be successful it's fundamental to have the support and help of the community. We have our own Matrix server. Registrations are not open at the moment, but the rooms are public and can be joined from any matrix client (like Element).
+Haveno is a community-driven project. For it to be successful it's fundamental to have the support and help of the community. Join the community rooms on our Matrix server:
 
 - General discussions: **Haveno** ([#haveno:haveno.network](https://matrix.to/#/#haveno:haveno.network)) relayed on IRC/Libera (`#haveno`)
 - Development discussions: **Haveno Development** ([#haveno-dev:haveno.network](https://matrix.to/#/#haveno-dev:haveno.network)) relayed on IRC/Libera (`#haveno-dev`)
@@ -60,9 +60,7 @@ See [docs/installing.md](docs/installing.md)
 
 ## Contributing to Haveno
 
-We are looking for help building Haveno. There are many [tasks](https://github.com/haveno-dex/haveno/issues) to complete, and many tasks have bounties.
-
-See the [developer guide](docs/developer-guide.md) to get started developing for Haveno..
+See the [developer guide](docs/developer-guide.md) to get started developing for Haveno.
 
 See [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md) for our styling guides.
 
