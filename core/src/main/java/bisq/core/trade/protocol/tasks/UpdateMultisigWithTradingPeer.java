@@ -30,7 +30,6 @@ import bisq.network.p2p.SendDirectMessageListener;
 import bisq.common.app.Version;
 import bisq.common.taskrunner.TaskRunner;
 
-import java.util.Arrays;
 import java.util.Date;
 import java.util.UUID;
 
@@ -82,7 +81,7 @@ public class UpdateMultisigWithTradingPeer extends TradeTask {
 
             // get updated multisig hex
             multisigWallet.sync();
-            String updatedMultisigHex = multisigWallet.getMultisigHex();
+            String updatedMultisigHex = multisigWallet.exportMultisigHex();
 
             // message trading peer with updated multisig hex
             UpdateMultisigRequest message = new UpdateMultisigRequest(

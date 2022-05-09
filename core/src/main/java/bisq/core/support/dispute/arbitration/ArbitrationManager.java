@@ -338,7 +338,7 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
                 Trade trade = tradeManager.getTrade(tradeId);
                 synchronized (trade) {
                     MoneroWallet multisigWallet = xmrWalletService.getMultisigWallet(tradeId); // TODO (woodser): this is closed after sending ArbitratorPayoutTxRequest to arbitrator which opens and syncs multisig and responds with signed dispute tx. more efficient way is to include with arbitrator-signed dispute tx with dispute result?
-                    sendArbitratorPayoutTxRequest(multisigWallet.getMultisigHex(), dispute, contract);
+                    sendArbitratorPayoutTxRequest(multisigWallet.exportMultisigHex(), dispute, contract);
                     xmrWalletService.closeMultisigWallet(tradeId);
                 }
             }
@@ -582,7 +582,7 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
       trade.setPayoutTxId(txSet.getTxs().get(0).getHash());
       trade.setState(Trade.State.SELLER_PUBLISHED_PAYOUT_TX);
       dispute.setDisputePayoutTxId(txSet.getTxs().get(0).getHash());
-      sendPeerPublishedPayoutTxMessage(multisigWallet.getMultisigHex(), txSet.getMultisigTxHex(), dispute, contract);
+      sendPeerPublishedPayoutTxMessage(multisigWallet.exportMultisigHex(), txSet.getMultisigTxHex(), dispute, contract);
       updateTradeOrOpenOfferManager(tradeId);
     }
 

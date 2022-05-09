@@ -71,7 +71,7 @@ public class BuyerPreparesPaymentSentMessage extends TradeTask {
                 trade.getBuyer().setPayoutTx(payoutTx);
                 trade.getBuyer().setPayoutTxHex(payoutTx.getTxSet().getMultisigTxHex());
             } else {
-                trade.getSelf().setUpdatedMultisigHex(multisigWallet.getMultisigHex());
+                trade.getSelf().setUpdatedMultisigHex(multisigWallet.exportMultisigHex());
             }
             
             // close multisig wallet
