@@ -102,7 +102,7 @@ public class CoreDisputesService {
             // Sends the openNewDisputeMessage to arbitrator, who will then create 2 disputes
             // one for the opener, the other for the peer, see sendPeerOpenedDisputeMessage.
             MoneroWallet multisigWallet = xmrWalletService.getMultisigWallet(trade.getId());
-            String updatedMultisigHex = multisigWallet.getMultisigHex();
+            String updatedMultisigHex = multisigWallet.exportMultisigHex();
             disputeManager.sendOpenNewDisputeMessage(dispute, false, updatedMultisigHex, resultHandler, faultHandler);
             tradeManager.requestPersistence();
 
@@ -279,7 +279,7 @@ public class CoreDisputesService {
                     }
 
                     // send arbitrator's updated multisig hex with dispute result
-                    disputeResult.setArbitratorUpdatedMultisigHex(multisigWallet.getMultisigHex());
+                    disputeResult.setArbitratorUpdatedMultisigHex(multisigWallet.exportMultisigHex());
                     
                     // close multisig wallet
                     xmrWalletService.closeMultisigWallet(dispute.getTradeId());

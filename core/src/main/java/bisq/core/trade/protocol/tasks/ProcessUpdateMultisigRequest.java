@@ -69,7 +69,7 @@ public class ProcessUpdateMultisigRequest extends TradeTask {
 
           // get updated multisig hex
           multisigWallet.sync();
-          String updatedMultisigHex = multisigWallet.getMultisigHex();
+          String updatedMultisigHex = multisigWallet.exportMultisigHex();
 
           // import the multisig hex
           int numOutputsSigned = multisigWallet.importMultisigHex(request.getUpdatedMultisigHex());
