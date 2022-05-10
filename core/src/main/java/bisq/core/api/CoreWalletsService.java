@@ -160,6 +160,10 @@ class CoreWalletsService {
                 return new BalancesInfo(getBtcBalances(), getXmrBalances());
         }
     }
+    
+    String getXmrSeed() {
+        return xmrWalletService.getWallet().getMnemonic();
+    }
 
     String getNewDepositAddress() {
         accountService.checkAccountOpen();

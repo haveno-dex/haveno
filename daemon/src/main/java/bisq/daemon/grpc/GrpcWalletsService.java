@@ -40,6 +40,8 @@ import bisq.proto.grpc.GetTransactionReply;
 import bisq.proto.grpc.GetTransactionRequest;
 import bisq.proto.grpc.GetTxFeeRateReply;
 import bisq.proto.grpc.GetTxFeeRateRequest;
+import bisq.proto.grpc.GetXmrSeedReply;
+import bisq.proto.grpc.GetXmrSeedRequest;
 import bisq.proto.grpc.LockWalletReply;
 import bisq.proto.grpc.LockWalletRequest;
 import bisq.proto.grpc.RemoveWalletPasswordReply;
@@ -115,6 +117,20 @@ class GrpcWalletsService extends WalletsImplBase {
                 exceptionHandler.handleException(log, cause, responseObserver);
             }
         });
+    }
+
+    @Override
+    public void getXmrSeed(GetXmrSeedRequest req,
+                                    StreamObserver<GetXmrSeedReply> responseObserver) {
+        try {
+            var reply = GetXmrSeedReply.newBuilder()
+                    .setSeed(coreApi.getXmrSeed())
+                    .build();
+            responseObserver.onNext(reply);
+            responseObserver.onCompleted();
+        } catch (Throwable cause) {
+            exceptionHandler.handleException(log, cause, responseObserver);
+        }
     }
 
     @Override
