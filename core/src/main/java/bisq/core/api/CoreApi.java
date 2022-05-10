@@ -268,6 +268,10 @@ public class CoreApi {
     public BalancesInfo getBalances(String currencyCode) {
         return walletsService.getBalances(currencyCode);
     }
+    
+    public String getXmrSeed() {
+        return walletsService.getXmrSeed();
+    }
 
     public String getNewDepositAddress() {
         return walletsService.getNewDepositAddress();
