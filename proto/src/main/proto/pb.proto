@@ -1895,6 +1895,7 @@ message PaymentMethod {
     string id = 1;
     int64 max_trade_period = 2 [jstype = JS_STRING];
     int64 max_trade_limit = 3 [jstype = JS_STRING];
+    repeated string supported_asset_codes = 4;
 }
 
 // Currency
