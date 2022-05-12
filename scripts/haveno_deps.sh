@@ -41,12 +41,10 @@ dw_source() {
 # Verify Monero hash
 check_monero() {
     if is_mac; then
-        shasum -a 256 -c <<< ''"${MONERO_HASH_MAC}"' *monero-bins-haveno-'"${platform}"'.tar.gz' || exit 1
+        shasum -a 256 -c <<< ''"${MONERO_HASH_MAC}"' *monero-bins-haveno-'"${platform}"'.tar.gz' || return 1
     else
-        echo "${MONERO_HASH_LINUX} monero-bins-haveno-${platform}.tar.gz" | sha256sum -c || exit 1
+        echo "${MONERO_HASH_LINUX} monero-bins-haveno-${platform}.tar.gz" | sha256sum -c || return 1
     fi
-
-    echo "-> Monero binaries downloaded and verified"
 }
 
 # Verify hashes of bitcoind and bitcoin-cli
@@ -62,21 +60,37 @@ check_bitcoin() {
 
 # Download Monero bins
 dw_monero() {
+
+    extract_monero() {
+        echo "-> extracting monerod and monero-wallet-rpc from archive" && \
+        tar -xzf "monero-bins-haveno-${platform}.tar.gz" && \
+        chmod +x {monerod,monero-wallet-rpc} || exit 1
+    }
+
     if is_mac; then
         platform="mac"
     else
         platform="linux"
     fi
 
-    if [ -f monero-bins-haveno-${platform}.tar.gz ]; then
-        check_monero
+    if [ -f "monero-bins-haveno-${platform}.tar.gz" ]; then
+        if check_monero; then
+            echo "-> Correct Monero archive already downloaded"
+            if [ ! -f "monerod" ] || [ ! -f "monero-wallet-rpc" ]; then
+                extract_monero
+            fi
+        else
+            echo "-> Monero archive found but outdated or corrupted. Downloading it again..." && \
+            rm monero-bins-haveno-${platform}.tar.gz && \
+            dw_source https://github.com/haveno-dex/monero/releases/download/${MONERO_TAG}/monero-bins-haveno-${platform}.tar.gz && \
+            check_monero && \
+            extract_monero
+        fi
     else
-        dw_source https://github.com/haveno-dex/monero/releases/download/${MONERO_TAG}/monero-bins-haveno-${platform}.tar.gz || { echo "! something went wrong while downloading the Monero binaries. Exiting...";  exit 1; } && \
-        check_monero
+        dw_source https://github.com/haveno-dex/monero/releases/download/${MONERO_TAG}/monero-bins-haveno-${platform}.tar.gz && \
+        check_monero && \
+        extract_monero
     fi
-
-    tar -xzf monero-bins-haveno-${platform}.tar.gz && \
-    chmod +x {monerod,monero-wallet-rpc} || exit 1
 }
 
 # Download Bitcoin bins
@@ -98,7 +112,6 @@ dw_bitcoin() {
     cp bitcoin-${BTC_VERSION}/bin/{bitcoin-cli,bitcoind} . && \
     rm -r bitcoin-${BTC_VERSION} || exit 1
 }
-
 
 while true; do
     cd .localnet
