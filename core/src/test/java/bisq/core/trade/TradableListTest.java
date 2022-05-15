@@ -39,7 +39,7 @@ public class TradableListTest {
 
         // test adding an OpenOffer and convert toProto
         Offer offer = new Offer(offerPayload);
-        OpenOffer openOffer = new OpenOffer(offer, 0, "", "", "");
+        OpenOffer openOffer = new OpenOffer(offer, 0);
         openOfferTradableList.add(openOffer);
         message = (protobuf.PersistableEnvelope) openOfferTradableList.toProtoMessage();
         assertEquals(message.getMessageCase(), TRADABLE_LIST);

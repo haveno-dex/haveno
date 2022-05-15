@@ -24,7 +24,7 @@ import bisq.desktop.components.TitledGroupBg;
 import bisq.core.offer.availability.tasks.ProcessOfferAvailabilityResponse;
 import bisq.core.offer.availability.tasks.SendOfferAvailabilityRequest;
 import bisq.core.offer.placeoffer.tasks.AddToOfferBook;
-import bisq.core.offer.placeoffer.tasks.MakerReservesTradeFunds;
+import bisq.core.offer.placeoffer.tasks.MakerReservesOfferFunds;
 import bisq.core.offer.placeoffer.tasks.ValidateOffer;
 import bisq.core.trade.protocol.tasks.ApplyFilter;
 import bisq.core.trade.protocol.tasks.VerifyPeersAccountAgeWitness;
@@ -109,7 +109,7 @@ public class DebugView extends InitializableView<GridPane, Void> {
         addGroup("PlaceOfferProtocol",
                 FXCollections.observableArrayList(Arrays.asList(
                         ValidateOffer.class,
-                        MakerReservesTradeFunds.class,
+                        MakerReservesOfferFunds.class,
                         AddToOfferBook.class)
                 ));
 

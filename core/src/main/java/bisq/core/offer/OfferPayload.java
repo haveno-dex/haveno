@@ -297,9 +297,7 @@ public final class OfferPayload implements ProtectedStoragePayload, ExpirablePay
                 .setProtocolVersion(protocolVersion)
                 .setArbitratorSigner(arbitratorSigner.toProtoMessage());
 
-        builder.setOfferFeePaymentTxId(checkNotNull(offerFeePaymentTxId,
-                "OfferPayload is in invalid state: offerFeePaymentTxID is not set when adding to P2P network."));
-
+        Optional.ofNullable(offerFeePaymentTxId).ifPresent(builder::setOfferFeePaymentTxId);
         Optional.ofNullable(countryCode).ifPresent(builder::setCountryCode);
         Optional.ofNullable(bankId).ifPresent(builder::setBankId);
         Optional.ofNullable(acceptedBankIds).ifPresent(builder::addAllAcceptedBankIds);
@@ -313,7 +311,6 @@ public final class OfferPayload implements ProtectedStoragePayload, ExpirablePay
     }
 
     public static OfferPayload fromProto(protobuf.OfferPayload proto) {
-        checkArgument(!proto.getOfferFeePaymentTxId().isEmpty(), "OfferFeePaymentTxId must be set in PB.OfferPayload");
         List<String> acceptedBankIds = proto.getAcceptedBankIdsList().isEmpty() ?
                 null : new ArrayList<>(proto.getAcceptedBankIdsList());
         List<String> acceptedCountryCodes = proto.getAcceptedCountryCodesList().isEmpty() ?
@@ -336,7 +333,7 @@ public final class OfferPayload implements ProtectedStoragePayload, ExpirablePay
                 proto.getCounterCurrencyCode(),
                 proto.getPaymentMethodId(),
                 proto.getMakerPaymentAccountId(),
-                proto.getOfferFeePaymentTxId(),
+                ProtoUtil.stringOrNullFromProto(proto.getOfferFeePaymentTxId()),
                 ProtoUtil.stringOrNullFromProto(proto.getCountryCode()),
                 acceptedCountryCodes,
                 ProtoUtil.stringOrNullFromProto(proto.getBankId()),

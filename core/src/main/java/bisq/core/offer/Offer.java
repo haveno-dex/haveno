@@ -22,13 +22,13 @@ import bisq.core.locale.CurrencyUtil;
 import bisq.core.monetary.Altcoin;
 import bisq.core.monetary.Price;
 import bisq.core.monetary.Volume;
+import bisq.core.offer.OfferPayload.Direction;
 import bisq.core.offer.availability.OfferAvailabilityModel;
 import bisq.core.offer.availability.OfferAvailabilityProtocol;
 import bisq.core.payment.payload.PaymentMethod;
 import bisq.core.provider.price.MarketPrice;
 import bisq.core.provider.price.PriceFeedService;
 import bisq.core.util.VolumeUtil;
-
 import bisq.network.p2p.NodeAddress;
 
 import bisq.common.crypto.KeyRing;
@@ -82,6 +82,7 @@ public class Offer implements NetworkPayload, PersistablePayload {
 
     public enum State {
         UNKNOWN,
+        SCHEDULED,
         OFFER_FEE_RESERVED,
         AVAILABLE,
         NOT_AVAILABLE,
@@ -257,6 +258,11 @@ public class Offer implements NetworkPayload, PersistablePayload {
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     public void setState(Offer.State state) {
+        try {
+            throw new RuntimeException("Setting offer state: " + state);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
         stateProperty().set(state);
     }
 
@@ -276,6 +282,15 @@ public class Offer implements NetworkPayload, PersistablePayload {
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Getter
     ///////////////////////////////////////////////////////////////////////////////////////////
+
+    // get the amount needed for the maker to reserve the offer
+    public Coin getReserveAmount() {
+        Coin reserveAmount = getAmount();
+        reserveAmount = reserveAmount.add(getDirection() == Direction.BUY ?
+                getBuyerSecurityDeposit() :
+                getSellerSecurityDeposit());
+        return reserveAmount;
+    }
 
     // converted payload properties
     public Coin getTxFee() {

@@ -46,7 +46,7 @@ import static java.lang.String.format;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.fail;
-import static protobuf.Offer.State.OFFER_FEE_PAID;
+import static protobuf.Offer.State.OFFER_FEE_RESERVED;
 import static protobuf.OfferPayload.Direction.SELL;
 import static protobuf.OpenOffer.State.AVAILABLE;
 
@@ -220,7 +220,7 @@ public class TakeSellBTCOfferTest extends AbstractTradeTest {
             sleep(3000);
 
             trade = aliceClient.getTrade(tradeId);
-            assertEquals(OFFER_FEE_PAID.name(), trade.getOffer().getState());
+            assertEquals(OFFER_FEE_RESERVED.name(), trade.getOffer().getState());
             EXPECTED_PROTOCOL_STATUS.setState(SELLER_SAW_ARRIVED_PAYOUT_TX_PUBLISHED_MSG)
                     .setPhase(PAYOUT_PUBLISHED)
                     .setPayoutPublished(true)

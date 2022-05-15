@@ -58,7 +58,6 @@ public class OpenOfferManagerTest {
         final OpenOfferManager manager = new OpenOfferManager(coreContext,
                 null,
                 null,
-                null,
                 p2PService,
                 null,
                 null,
@@ -105,7 +104,6 @@ public class OpenOfferManagerTest {
         final OpenOfferManager manager = new OpenOfferManager(coreContext,
                 null,
                 null,
-                null,
                 p2PService,
                 null,
                 null,
@@ -144,7 +142,6 @@ public class OpenOfferManagerTest {
 
 
         final OpenOfferManager manager = new OpenOfferManager(coreContext,
-                null,
                 null,
                 null,
                 p2PService,

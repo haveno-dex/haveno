@@ -19,6 +19,7 @@ package bisq.core.trade.protocol;
 
 import bisq.core.trade.BuyerTrade;
 import bisq.core.trade.Trade;
+import bisq.core.trade.TradeUtils;
 import bisq.core.trade.messages.DelayedPayoutTxSignatureRequest;
 import bisq.core.trade.messages.DepositTxAndDelayedPayoutTxMessage;
 import bisq.core.trade.messages.PaymentReceivedMessage;
@@ -26,7 +27,6 @@ import bisq.core.trade.messages.TradeMessage;
 import bisq.core.trade.protocol.tasks.ApplyFilter;
 import bisq.core.trade.protocol.tasks.SetupDepositTxsListener;
 import bisq.core.trade.protocol.tasks.TradeTask;
-import bisq.core.trade.protocol.tasks.UpdateMultisigWithTradingPeer;
 import bisq.core.trade.protocol.tasks.buyer.BuyerPreparesPaymentSentMessage;
 import bisq.core.trade.protocol.tasks.buyer.BuyerProcessesPaymentReceivedMessage;
 import bisq.core.trade.protocol.tasks.buyer.BuyerSendsPaymentSentMessage;
@@ -182,7 +182,7 @@ public abstract class BuyerProtocol extends DisputeProtocol {
                             handleTaskRunnerFault(peer, message, errorMessage);
                         })))
                 .executeTasks();
-            wait(latch);
+            TradeUtils.waitForLatch(latch);
         }
     }
 

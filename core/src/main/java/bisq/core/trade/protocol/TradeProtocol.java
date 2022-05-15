@@ -20,6 +20,7 @@ package bisq.core.trade.protocol;
 import bisq.core.offer.Offer;
 import bisq.core.trade.Trade;
 import bisq.core.trade.TradeManager;
+import bisq.core.trade.TradeUtils;
 import bisq.core.trade.handlers.TradeResultHandler;
 import bisq.core.trade.messages.PaymentSentMessage;
 import bisq.core.trade.messages.DepositTxAndDelayedPayoutTxMessage;
@@ -236,7 +237,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
             );
             startTimeout(TRADE_TIMEOUT);
             taskRunner.run();
-            wait(latch);
+            TradeUtils.waitForLatch(latch);
         }
     }
 
@@ -367,14 +368,6 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Timeout
     ///////////////////////////////////////////////////////////////////////////////////////////
-    
-    protected void wait(CountDownLatch latch) {
-        try {
-            latch.await();
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e);
-        }
-    }
 
     protected void startTimeout(long timeoutSec) {
         stopTimeout();

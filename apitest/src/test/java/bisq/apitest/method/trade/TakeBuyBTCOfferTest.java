@@ -44,7 +44,7 @@ import static java.lang.String.format;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.fail;
-import static protobuf.Offer.State.OFFER_FEE_PAID;
+import static protobuf.Offer.State.OFFER_FEE_RESERVED;
 import static protobuf.OfferPayload.Direction.BUY;
 import static protobuf.OpenOffer.State.AVAILABLE;
 
@@ -168,7 +168,7 @@ public class TakeBuyBTCOfferTest extends AbstractTradeTest {
                     sleep(5000);
                     continue;
                 } else {
-                    assertEquals(OFFER_FEE_PAID.name(), trade.getOffer().getState());
+                    assertEquals(OFFER_FEE_RESERVED.name(), trade.getOffer().getState());
                     EXPECTED_PROTOCOL_STATUS.setState(BUYER_SAW_ARRIVED_PAYMENT_SENT_MSG)
                             .setPhase(PAYMENT_SENT)
                             .setFiatSent(true);
