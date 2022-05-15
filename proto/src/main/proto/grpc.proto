@@ -858,7 +858,9 @@ service Wallets {
     }
     rpc GetXmrSeed (GetXmrSeedRequest) returns (GetXmrSeedReply) {
     }
-    rpc GetNewDepositAddress (GetNewDepositAddressRequest) returns (GetNewDepositAddressReply) {
+    rpc GetXmrPrimaryAddress (GetXmrPrimaryAddressRequest) returns (GetXmrPrimaryAddressReply) {
+    }
+    rpc GetXmrNewSubaddress (GetXmrNewSubaddressRequest) returns (GetXmrNewSubaddressReply) {
     }
     rpc GetXmrTxs (GetXmrTxsRequest) returns (GetXmrTxsReply) {
     }
@@ -905,10 +907,17 @@ message GetXmrSeedReply {
     string seed = 1;
 }
 
-message GetNewDepositAddressRequest {
+message GetXmrPrimaryAddressRequest {
 }
 
-message GetNewDepositAddressReply {
+message GetXmrPrimaryAddressReply {
+    string primary_address = 1;
+}
+
+message GetXmrNewSubaddressRequest {
+}
+
+message GetXmrNewSubaddressReply {
     string subaddress = 1;
 }
 
