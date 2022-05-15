@@ -268,13 +268,17 @@ public class CoreApi {
     public BalancesInfo getBalances(String currencyCode) {
         return walletsService.getBalances(currencyCode);
     }
-    
+
     public String getXmrSeed() {
         return walletsService.getXmrSeed();
     }
 
-    public String getNewDepositAddress() {
-        return walletsService.getNewDepositAddress();
+    public String getXmrPrimaryAddress() {
+        return walletsService.getXmrPrimaryAddress();
+    }
+
+    public String getXmrNewSubaddress() {
+        return walletsService.getXmrNewSubaddress();
     }
 
     public List<MoneroTxWallet> getXmrTxs() {

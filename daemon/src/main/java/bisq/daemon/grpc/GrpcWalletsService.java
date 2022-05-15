@@ -28,8 +28,10 @@ import bisq.proto.grpc.GetBalancesReply;
 import bisq.proto.grpc.GetBalancesRequest;
 import bisq.proto.grpc.GetFundingAddressesReply;
 import bisq.proto.grpc.GetFundingAddressesRequest;
-import bisq.proto.grpc.GetNewDepositAddressRequest;
-import bisq.proto.grpc.GetNewDepositAddressReply;
+import bisq.proto.grpc.GetXmrNewSubaddressRequest;
+import bisq.proto.grpc.GetXmrPrimaryAddressReply;
+import bisq.proto.grpc.GetXmrPrimaryAddressRequest;
+import bisq.proto.grpc.GetXmrNewSubaddressReply;
 import bisq.proto.grpc.GetXmrTxsRequest;
 import bisq.proto.grpc.GetXmrTxsReply;
 import bisq.proto.grpc.CreateXmrTxRequest;
@@ -132,13 +134,27 @@ class GrpcWalletsService extends WalletsImplBase {
             exceptionHandler.handleException(log, cause, responseObserver);
         }
     }
+    
+    @Override
+    public void getXmrPrimaryAddress(GetXmrPrimaryAddressRequest req,
+                                     StreamObserver<GetXmrPrimaryAddressReply> responseObserver) {
+        try {
+            var reply = GetXmrPrimaryAddressReply.newBuilder()
+                    .setPrimaryAddress(coreApi.getXmrPrimaryAddress())
+                    .build();
+            responseObserver.onNext(reply);
+            responseObserver.onCompleted();
+        } catch (Throwable cause) {
+            exceptionHandler.handleException(log, cause, responseObserver);
+        }
+    }
 
     @Override
-    public void getNewDepositAddress(GetNewDepositAddressRequest req,
-                                    StreamObserver<GetNewDepositAddressReply> responseObserver) {
+    public void getXmrNewSubaddress(GetXmrNewSubaddressRequest req,
+                                    StreamObserver<GetXmrNewSubaddressReply> responseObserver) {
         try {
-            String subaddress = coreApi.getNewDepositAddress();
-            var reply = GetNewDepositAddressReply.newBuilder()
+            String subaddress = coreApi.getXmrNewSubaddress();
+            var reply = GetXmrNewSubaddressReply.newBuilder()
                     .setSubaddress(subaddress)
                     .build();
             responseObserver.onNext(reply);
