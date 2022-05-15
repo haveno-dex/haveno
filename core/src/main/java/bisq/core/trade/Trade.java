@@ -901,7 +901,7 @@ public abstract class Trade implements Tradable, Model {
         }
 
         // create block listener
-        depositTxListener = processModel.getXmrWalletService().new HavenoWalletListener(new MoneroWalletListener() { // TODO (woodser): separate into own class file
+        depositTxListener = new MoneroWalletListener() {
             
             Long unlockHeight = null;
 
@@ -939,14 +939,14 @@ public abstract class Trade implements Tradable, Model {
                 if (unlockHeight != null && height == unlockHeight) {
                     log.info("Multisig deposits unlocked for trade {}", getId());
                     setConfirmedState();  // TODO (woodser): bisq "confirmed" = xmr unlocked after 10 confirmations
-                    havenoWallet.removeListener(depositTxListener); // remove listener when notified
+                    xmrWalletService.removeWalletListener(depositTxListener); // remove listener when notified
                     depositTxListener = null; // prevent re-applying trade state in subsequent requests
                 }
             }
-        });
+        };
 
         // register wallet listener
-        havenoWallet.addListener(depositTxListener);
+        xmrWalletService.addWalletListener(depositTxListener);
     }
 
     @Nullable

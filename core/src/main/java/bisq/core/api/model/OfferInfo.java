@@ -20,9 +20,10 @@ package bisq.core.api.model;
 import bisq.core.offer.Offer;
 
 import bisq.common.Payload;
-
+import bisq.common.proto.ProtoUtil;
 import java.util.Objects;
-
+import java.util.Optional;
+import javax.annotation.Nullable;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.ToString;
@@ -47,6 +48,7 @@ public class OfferInfo implements Payload {
     private final long minVolume;
     private final long txFee;
     private final long makerFee;
+    @Nullable
     private final String offerFeePaymentTxId;
     private final long buyerSecurityDeposit;
     private final long sellerSecurityDeposit;
@@ -129,7 +131,7 @@ public class OfferInfo implements Payload {
 
     @Override
     public bisq.proto.grpc.OfferInfo toProtoMessage() {
-        return bisq.proto.grpc.OfferInfo.newBuilder()
+        bisq.proto.grpc.OfferInfo.Builder builder = bisq.proto.grpc.OfferInfo.newBuilder()
                 .setId(id)
                 .setDirection(direction)
                 .setPrice(price)
@@ -141,7 +143,6 @@ public class OfferInfo implements Payload {
                 .setMinVolume(minVolume)
                 .setMakerFee(makerFee)
                 .setTxFee(txFee)
-                .setOfferFeePaymentTxId(offerFeePaymentTxId)
                 .setBuyerSecurityDeposit(buyerSecurityDeposit)
                 .setSellerSecurityDeposit(sellerSecurityDeposit)
                 .setTriggerPrice(triggerPrice)
@@ -151,8 +152,9 @@ public class OfferInfo implements Payload {
                 .setBaseCurrencyCode(baseCurrencyCode)
                 .setCounterCurrencyCode(counterCurrencyCode)
                 .setDate(date)
-                .setState(state)
-                .build();
+                .setState(state);
+        Optional.ofNullable(offerFeePaymentTxId).ifPresent(builder::setOfferFeePaymentTxId);
+        return builder.build();
     }
 
     @SuppressWarnings("unused")
@@ -169,7 +171,7 @@ public class OfferInfo implements Payload {
                 .withMinVolume(proto.getMinVolume())
                 .withMakerFee(proto.getMakerFee())
                 .withTxFee(proto.getTxFee())
-                .withOfferFeePaymentTxId(proto.getOfferFeePaymentTxId())
+                .withOfferFeePaymentTxId(ProtoUtil.stringOrNullFromProto(proto.getOfferFeePaymentTxId()))
                 .withBuyerSecurityDeposit(proto.getBuyerSecurityDeposit())
                 .withSellerSecurityDeposit(proto.getSellerSecurityDeposit())
                 .withTriggerPrice(proto.getTriggerPrice())

@@ -29,9 +29,9 @@ import java.util.List;
 import monero.daemon.model.MoneroOutput;
 import monero.wallet.model.MoneroTxWallet;
 
-public class MakerReservesTradeFunds extends Task<PlaceOfferModel> {
+public class MakerReservesOfferFunds extends Task<PlaceOfferModel> {
 
-    public MakerReservesTradeFunds(TaskRunner taskHandler, PlaceOfferModel model) {
+    public MakerReservesOfferFunds(TaskRunner taskHandler, PlaceOfferModel model) {
         super(taskHandler, model);
     }
 
@@ -43,7 +43,7 @@ public class MakerReservesTradeFunds extends Task<PlaceOfferModel> {
         try {
             runInterceptHook();
             
-            // freeze trade funds and get reserve tx
+            // freeze offer funds and get reserve tx
             String returnAddress = model.getXmrWalletService().getOrCreateAddressEntry(offer.getId(), XmrAddressEntry.Context.TRADE_PAYOUT).getAddressString();
             BigInteger makerFee = ParsingUtils.coinToAtomicUnits(offer.getMakerFee());
             BigInteger depositAmount = ParsingUtils.coinToAtomicUnits(model.getReservedFundsForOffer());

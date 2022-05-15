@@ -25,6 +25,7 @@ import bisq.common.Timer;
 import bisq.common.UserThread;
 import bisq.common.proto.ProtoUtil;
 import java.util.Date;
+import java.util.List;
 import java.util.Optional;
 
 import lombok.EqualsAndHashCode;
@@ -42,6 +43,7 @@ public final class OpenOffer implements Tradable {
     transient private Timer timeoutTimer;
 
     public enum State {
+        SCHEDULED,
         AVAILABLE,
         RESERVED,
         CLOSED,
@@ -59,10 +61,24 @@ public final class OpenOffer implements Tradable {
     private NodeAddress backupArbitrator;
     @Setter
     @Getter
+    private boolean autoSplit;
+    @Setter
+    @Getter
+    @Nullable
+    private String scheduledAmount;
+    @Setter
+    @Getter
+    @Nullable
+    private List<String> scheduledTxHashes;
+    @Nullable
+    @Setter
+    @Getter
     private String reserveTxHash;
+    @Nullable
     @Setter
     @Getter
     private String reserveTxHex;
+    @Nullable
     @Setter
     @Getter
     private String reserveTxKey;
@@ -77,26 +93,18 @@ public final class OpenOffer implements Tradable {
     transient private long mempoolStatus = -1;
 
     public OpenOffer(Offer offer) {
-        this(offer, 0);
+        this(offer, 0, false);
     }
 
     public OpenOffer(Offer offer, long triggerPrice) {
-        this.offer = offer;
-        this.triggerPrice = triggerPrice;
-        state = State.AVAILABLE;
+        this(offer, triggerPrice, false);
     }
-    
-    public OpenOffer(Offer offer,
-                     long triggerPrice,
-                     String reserveTxHash,
-                     String reserveTxHex,
-                     String reserveTxKey) {
+
+    public OpenOffer(Offer offer, long triggerPrice, boolean autoSplit) {
         this.offer = offer;
         this.triggerPrice = triggerPrice;
-        state = State.AVAILABLE;
-        this.reserveTxHash = reserveTxHash;
-        this.reserveTxHex = reserveTxHex;
-        this.reserveTxKey = reserveTxKey;
+        this.autoSplit = autoSplit;
+        state = State.SCHEDULED;
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -107,13 +115,18 @@ public final class OpenOffer implements Tradable {
                       State state,
                       @Nullable NodeAddress backupArbitrator,
                       long triggerPrice,
-                      String reserveTxHash,
-                      String reserveTxHex,
-                      String reserveTxKey) {
+                      boolean autoSplit,
+                      @Nullable String scheduledAmount,
+                      @Nullable List<String> scheduledTxHashes,
+                      @Nullable String reserveTxHash,
+                      @Nullable String reserveTxHex,
+                      @Nullable String reserveTxKey) {
         this.offer = offer;
         this.state = state;
         this.backupArbitrator = backupArbitrator;
         this.triggerPrice = triggerPrice;
+        this.autoSplit = autoSplit;
+        this.scheduledTxHashes = scheduledTxHashes;
         this.reserveTxHash = reserveTxHash;
         this.reserveTxHex = reserveTxHex;
         this.reserveTxKey = reserveTxKey;
@@ -128,11 +141,14 @@ public final class OpenOffer implements Tradable {
                 .setOffer(offer.toProtoMessage())
                 .setTriggerPrice(triggerPrice)
                 .setState(protobuf.OpenOffer.State.valueOf(state.name()))
-                .setReserveTxHash(reserveTxHash)
-                .setReserveTxHex(reserveTxHex)
-                .setReserveTxKey(reserveTxKey);
+                .setAutoSplit(autoSplit);
 
+        Optional.ofNullable(scheduledAmount).ifPresent(e -> builder.setScheduledAmount(scheduledAmount));
         Optional.ofNullable(backupArbitrator).ifPresent(nodeAddress -> builder.setBackupArbitrator(nodeAddress.toProtoMessage()));
+        Optional.ofNullable(scheduledTxHashes).ifPresent(e -> builder.addAllScheduledTxHashes(scheduledTxHashes));
+        Optional.ofNullable(reserveTxHash).ifPresent(e -> builder.setReserveTxHash(reserveTxHash));
+        Optional.ofNullable(reserveTxHex).ifPresent(e -> builder.setReserveTxHex(reserveTxHex));
+        Optional.ofNullable(reserveTxKey).ifPresent(e -> builder.setReserveTxKey(reserveTxKey));
 
         return protobuf.Tradable.newBuilder().setOpenOffer(builder).build();
     }
@@ -142,6 +158,9 @@ public final class OpenOffer implements Tradable {
                 ProtoUtil.enumFromProto(OpenOffer.State.class, proto.getState().name()),
                 proto.hasBackupArbitrator() ? NodeAddress.fromProto(proto.getBackupArbitrator()) : null,
                 proto.getTriggerPrice(),
+                proto.getAutoSplit(),
+                proto.getScheduledAmount(),
+                proto.getScheduledTxHashesList(),
                 proto.getReserveTxHash(),
                 proto.getReserveTxHex(),
                 proto.getReserveTxKey());
@@ -172,7 +191,7 @@ public final class OpenOffer implements Tradable {
         this.state = state;
 
         // We keep it reserved for a limited time, if trade preparation fails we revert to available state
-        if (this.state == State.RESERVED) {
+        if (this.state == State.RESERVED) { // TODO (woodser): remove this?
             startTimeout();
         } else {
             stopTimeout();

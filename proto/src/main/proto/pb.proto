@@ -1450,11 +1450,12 @@ message Offer {
     enum State {
         PB_ERROR = 0;
         UNKNOWN = 1;
-        OFFER_FEE_PAID = 2;
-        AVAILABLE = 3;
-        NOT_AVAILABLE = 4;
-        REMOVED = 5;
-        MAKER_OFFLINE = 6;
+        SCHEDULED = 2;
+        OFFER_FEE_RESERVED = 3;
+        AVAILABLE = 4;
+        NOT_AVAILABLE = 5;
+        REMOVED = 6;
+        MAKER_OFFLINE = 7;
     }
 
     OfferPayload offer_payload = 1;
@@ -1474,20 +1475,24 @@ message SignedOffer {
 message OpenOffer {
     enum State {
         PB_ERROR = 0;
-        AVAILABLE = 1;
-        RESERVED = 2;
-        CLOSED = 3;
-        CANCELED = 4;
-        DEACTIVATED = 5;
+        SCHEDULED = 1;
+        AVAILABLE = 2;
+        RESERVED = 3;
+        CLOSED = 4;
+        CANCELED = 5;
+        DEACTIVATED = 6;
     }
 
     Offer offer = 1;
     State state = 2;
     NodeAddress backup_arbitrator = 3;
     int64 trigger_price = 4;
-    string reserve_tx_hash = 5;
-    string reserve_tx_hex = 6;
-    string reserve_tx_key = 7;
+    bool auto_split = 5;
+    repeated string scheduled_tx_hashes = 6;
+    string scheduled_amount = 7; // BigInteger
+    string reserve_tx_hash = 8;
+    string reserve_tx_hex = 9;
+    string reserve_tx_key = 10;
 }
 
 message Tradable {

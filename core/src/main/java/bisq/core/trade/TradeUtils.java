@@ -27,6 +27,7 @@ import bisq.core.offer.OfferPayload;
 import bisq.core.support.dispute.arbitration.arbitrator.Arbitrator;
 import bisq.core.trade.messages.InitTradeRequest;
 import java.util.Objects;
+import java.util.concurrent.CountDownLatch;
 
 /**
  * Collection of utilities for trading.
@@ -172,5 +173,13 @@ public class TradeUtils {
 //            return null;
 //
 //        return new Tuple2<>(multiSigAddress.getAddressString(), payoutAddress);
+    }
+
+    public static void waitForLatch(CountDownLatch latch) {
+        try {
+            latch.await();
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
     }
 }

@@ -119,13 +119,12 @@ class CoreOffersService {
     }
 
     Offer getMyOffer(String id) {
-        Offer offer = offerBookService.getOffers().stream()
+        return openOfferManager.getObservableList().stream()
+                .map(OpenOffer::getOffer)
                 .filter(o -> o.getId().equals(id))
                 .filter(o -> o.isMyOffer(keyRing))
                 .findAny().orElseThrow(() ->
                         new IllegalStateException(format("offer with id '%s' not found", id)));
-        setOpenOfferState(offer);
-        return offer;
     }
 
     List<Offer> getOffers(String direction, String currencyCode) {
@@ -143,9 +142,10 @@ class CoreOffersService {
     }
 
     List<Offer> getMyOffers(String direction, String currencyCode) {
-
-        // get my offers posted to books
-        List<Offer> offers = offerBookService.getOffers().stream()
+        
+        // get my open offers
+        List<Offer> offers = openOfferManager.getObservableList().stream()
+                .map(OpenOffer::getOffer)
                 .filter(o -> o.isMyOffer(keyRing))
                 .filter(o -> offerMatchesDirectionAndCurrency(o, direction, currencyCode))
                 .sorted(priceComparator(direction))
@@ -162,9 +162,6 @@ class CoreOffersService {
         }
         openOfferManager.removeOpenOffers(unreservedOpenOffers, null);
 
-        // set offer states
-        for (Offer offer : offers) setOpenOfferState(offer);
-
         return offers;
     }
     
@@ -174,6 +171,7 @@ class CoreOffersService {
         // collect reserved key images and check for duplicate funds
         List<String> allKeyImages = new ArrayList<String>();
         for (Offer offer : offers) {
+          if (offer.getOfferPayload().getReserveTxKeyImages() == null) continue;
           for (String keyImage : offer.getOfferPayload().getReserveTxKeyImages()) {
             if (!allKeyImages.add(keyImage)) {
                 log.warn("Key image {} belongs to another offer, removing offer {}", keyImage, offer.getId()); // TODO (woodser): this is list, not set, so not checking for duplicates
@@ -192,6 +190,7 @@ class CoreOffersService {
         
         // check for offers with spent key images
         for (Offer offer : offers) {
+          if (offer.getOfferPayload().getReserveTxKeyImages() == null) continue;
           if (unreservedOffers.contains(offer)) continue;
           for (String keyImage : offer.getOfferPayload().getReserveTxKeyImages()) {
             if (spentKeyImages.contains(keyImage)) {
@@ -256,7 +255,6 @@ class CoreOffersService {
         boolean useSavingsWallet = true;
         //noinspection ConstantConditions
         placeOffer(offer,
-                buyerSecurityDeposit,
                 triggerPriceAsString,
                 useSavingsWallet,
                 transaction -> resultHandler.accept(offer),
@@ -308,14 +306,12 @@ class CoreOffersService {
     }
 
     private void placeOffer(Offer offer,
-                            double buyerSecurityDeposit,
                             String triggerPriceAsString,
                             boolean useSavingsWallet,
                             Consumer<Transaction> resultHandler,
                             ErrorMessageHandler errorMessageHandler) {
         long triggerPriceAsLong = PriceUtil.getMarketPriceAsLong(triggerPriceAsString, offer.getCurrencyCode());
         openOfferManager.placeOffer(offer,
-                buyerSecurityDeposit,
                 useSavingsWallet,
                 triggerPriceAsLong,
                 resultHandler::accept,
@@ -329,11 +325,6 @@ class CoreOffersService {
         var counterAssetCode = isCryptoCurrency(currencyCode) ? offer.getOfferPayload().getBaseCurrencyCode() : offer.getOfferPayload().getCounterCurrencyCode(); // TODO: crypto pairs invert base and counter currencies
         var offerInWantedCurrency = counterAssetCode.equalsIgnoreCase(currencyCode);
         return offerOfWantedDirection && offerInWantedCurrency;
-    }
-
-    private void setOpenOfferState(Offer offer) {
-        Optional<OpenOffer> openOffer = openOfferManager.getOpenOfferById(offer.getId());
-        if (openOffer.isPresent()) offer.setState(openOffer.get().getState() == OpenOffer.State.AVAILABLE ? Offer.State.AVAILABLE : Offer.State.NOT_AVAILABLE);
     }
 
     private Comparator<Offer> priceComparator(String direction) {

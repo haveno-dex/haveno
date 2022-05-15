@@ -2,6 +2,7 @@ package bisq.core.trade.protocol;
 
 import bisq.core.trade.ArbitratorTrade;
 import bisq.core.trade.Trade;
+import bisq.core.trade.TradeUtils;
 import bisq.core.trade.messages.DepositRequest;
 import bisq.core.trade.messages.InitMultisigRequest;
 import bisq.core.trade.messages.InitTradeRequest;
@@ -59,7 +60,7 @@ public class ArbitratorProtocol extends DisputeProtocol {
                           }))
                   .withTimeout(TRADE_TIMEOUT))
                   .executeTasks();
-          wait(latch);
+          TradeUtils.waitForLatch(latch);
       }
   }
   
@@ -87,7 +88,7 @@ public class ArbitratorProtocol extends DisputeProtocol {
                     }))
             .withTimeout(TRADE_TIMEOUT))
             .executeTasks();
-        wait(latch);
+        TradeUtils.waitForLatch(latch);
     }
   }
   
@@ -116,7 +117,7 @@ public class ArbitratorProtocol extends DisputeProtocol {
                       }))
               .withTimeout(TRADE_TIMEOUT))
               .executeTasks();
-          wait(latch);
+          TradeUtils.waitForLatch(latch);
       }
   }
   
@@ -144,7 +145,7 @@ public class ArbitratorProtocol extends DisputeProtocol {
                     }))
             .withTimeout(TRADE_TIMEOUT))
             .executeTasks();
-        wait(latch);
+        TradeUtils.waitForLatch(latch);
     }
   }
 

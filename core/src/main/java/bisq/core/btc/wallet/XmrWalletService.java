@@ -413,13 +413,8 @@ public class XmrWalletService {
             System.out.println("Monero wallet balance: " + wallet.getBalance(0));
             System.out.println("Monero wallet unlocked balance: " + wallet.getUnlockedBalance(0));
 
-            // notify on balance changes
-            wallet.addListener(new MoneroWalletListener() {
-                @Override
-                public void onBalancesChanged(BigInteger newBalance, BigInteger newUnlockedBalance) {
-                    notifyBalanceListeners();
-                }
-            });
+            // register internal listener to notify external listeners
+            wallet.addListener(new XmrWalletListener());
         }
     }
 
@@ -758,6 +753,15 @@ public class XmrWalletService {
         available = Stream.concat(available, getAddressEntries(XmrAddressEntry.Context.OFFER_FUNDING).stream());
         return available.filter(addressEntry -> getBalanceForSubaddress(addressEntry.getSubaddressIndex()).isPositive());
     }
+    
+    public void addWalletListener(MoneroWalletListenerI listener) {
+        walletListeners.add(listener);
+    }
+    
+    public void removeWalletListener(MoneroWalletListenerI listener) {
+        if (!walletListeners.contains(listener)) throw new RuntimeException("Listener is not registered with wallet");
+        walletListeners.remove(listener);
+    }
 
     // TODO (woodser): update balance and other listening
     public void addBalanceListener(XmrBalanceListener listener) {
@@ -786,26 +790,22 @@ public class XmrWalletService {
         for (MoneroTxWallet tx : txs) sb.append('\n' + tx.toString());
         log.info("\n" + tracePrefix + ":" + sb.toString());
     }
-
+    
+    // -------------------------------- HELPERS -------------------------------
+    
     /**
-     * Wraps a MoneroWalletListener to notify the Haveno application.
-     *
-     * TODO (woodser): this is no longer necessary since not syncing to thread?
+     * Processes internally before notifying external listeners.
+     * 
+     * TODO: no longer neccessary to execute on user thread?
      */
-    public class HavenoWalletListener extends MoneroWalletListener {
-
-        private MoneroWalletListener listener;
-
-        public HavenoWalletListener(MoneroWalletListener listener) {
-            this.listener = listener;
-        }
-
+    private class XmrWalletListener extends MoneroWalletListener {
+        
         @Override
         public void onSyncProgress(long height, long startHeight, long endHeight, double percentDone, String message) {
             UserThread.execute(new Runnable() {
                 @Override
                 public void run() {
-                    listener.onSyncProgress(height, startHeight, endHeight, percentDone, message);
+                    for (MoneroWalletListenerI listener : walletListeners) listener.onSyncProgress(height, startHeight, endHeight, percentDone, message);
                 }
             });
         }
@@ -815,7 +815,7 @@ public class XmrWalletService {
             UserThread.execute(new Runnable() {
                 @Override
                 public void run() {
-                    listener.onNewBlock(height);
+                    for (MoneroWalletListenerI listener : walletListeners) listener.onNewBlock(height);
                 }
             });
         }
@@ -825,7 +825,8 @@ public class XmrWalletService {
             UserThread.execute(new Runnable() {
                 @Override
                 public void run() {
-                    listener.onBalancesChanged(newBalance, newUnlockedBalance);
+                    for (MoneroWalletListenerI listener : walletListeners) listener.onBalancesChanged(newBalance, newUnlockedBalance);
+                    notifyBalanceListeners();
                 }
             });
         }
@@ -835,7 +836,7 @@ public class XmrWalletService {
             UserThread.execute(new Runnable() {
                 @Override
                 public void run() {
-                    listener.onOutputReceived(output);
+                    for (MoneroWalletListenerI listener : walletListeners) listener.onOutputReceived(output);
                 }
             });
         }
@@ -845,7 +846,7 @@ public class XmrWalletService {
             UserThread.execute(new Runnable() {
                 @Override
                 public void run() {
-                    listener.onOutputSpent(output);
+                    for (MoneroWalletListenerI listener : walletListeners) listener.onOutputSpent(output);
                 }
             });
         }

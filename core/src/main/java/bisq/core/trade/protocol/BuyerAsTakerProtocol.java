@@ -22,6 +22,7 @@ import bisq.core.offer.Offer;
 import bisq.core.trade.BuyerAsTakerTrade;
 import bisq.core.trade.Trade;
 import bisq.core.trade.Trade.State;
+import bisq.core.trade.TradeUtils;
 import bisq.core.trade.handlers.TradeResultHandler;
 import bisq.core.trade.messages.DelayedPayoutTxSignatureRequest;
 import bisq.core.trade.messages.DepositResponse;
@@ -33,7 +34,6 @@ import bisq.core.trade.messages.PaymentReceivedMessage;
 import bisq.core.trade.messages.SignContractRequest;
 import bisq.core.trade.messages.SignContractResponse;
 import bisq.core.trade.messages.TradeMessage;
-import bisq.core.trade.protocol.TakerProtocol.TakerEvent;
 import bisq.core.trade.protocol.tasks.ApplyFilter;
 import bisq.core.trade.protocol.tasks.ProcessDepositResponse;
 import bisq.core.trade.protocol.tasks.ProcessInitMultisigRequest;
@@ -116,7 +116,7 @@ public class BuyerAsTakerProtocol extends BuyerProtocol implements TakerProtocol
                           }))
                   .withTimeout(TRADE_TIMEOUT))
                   .executeTasks();
-          wait(latch);
+          TradeUtils.waitForLatch(latch);
       }
     }
 
@@ -145,7 +145,7 @@ public class BuyerAsTakerProtocol extends BuyerProtocol implements TakerProtocol
                             }))
                     .withTimeout(TRADE_TIMEOUT))
                     .executeTasks();
-            wait(latch);
+            TradeUtils.waitForLatch(latch);
         }
     }
 
@@ -174,7 +174,7 @@ public class BuyerAsTakerProtocol extends BuyerProtocol implements TakerProtocol
                             }))
                     .withTimeout(TRADE_TIMEOUT))
                     .executeTasks();
-            wait(latch);
+            TradeUtils.waitForLatch(latch);
         }
     }
 
@@ -204,7 +204,7 @@ public class BuyerAsTakerProtocol extends BuyerProtocol implements TakerProtocol
                                 }))
                         .withTimeout(TRADE_TIMEOUT))
                         .executeTasks();
-                wait(latch);
+                TradeUtils.waitForLatch(latch);
             } else {
                 EasyBind.subscribe(trade.stateProperty(), state -> {
                     if (state != State.CONTRACT_SIGNATURE_REQUESTED) return;
@@ -239,7 +239,7 @@ public class BuyerAsTakerProtocol extends BuyerProtocol implements TakerProtocol
                             }))
                     .withTimeout(TRADE_TIMEOUT))
                     .executeTasks();
-            wait(latch);
+            TradeUtils.waitForLatch(latch);
         }
     }
 
@@ -271,7 +271,7 @@ public class BuyerAsTakerProtocol extends BuyerProtocol implements TakerProtocol
                                 }))
                         .withTimeout(TRADE_TIMEOUT))
                         .executeTasks();
-                wait(latch);
+                TradeUtils.waitForLatch(latch);
             } else {
                 EasyBind.subscribe(trade.stateProperty(), state -> {
                     if (state == State.MAKER_RECEIVED_DEPOSIT_TX_PUBLISHED_MSG) handlePaymentAccountPayloadRequest(request, sender);

@@ -20,6 +20,7 @@ package bisq.core.trade.protocol;
 import bisq.core.trade.BuyerAsMakerTrade;
 import bisq.core.trade.Trade;
 import bisq.core.trade.Trade.State;
+import bisq.core.trade.TradeUtils;
 import bisq.core.trade.messages.DelayedPayoutTxSignatureRequest;
 import bisq.core.trade.messages.DepositResponse;
 import bisq.core.trade.messages.DepositTxAndDelayedPayoutTxMessage;
@@ -100,7 +101,7 @@ public class BuyerAsMakerProtocol extends BuyerProtocol implements MakerProtocol
                             }))
                     .withTimeout(TRADE_TIMEOUT))
                     .executeTasks();
-            wait(latch);
+            TradeUtils.waitForLatch(latch);
         }
     }
     
@@ -129,7 +130,7 @@ public class BuyerAsMakerProtocol extends BuyerProtocol implements MakerProtocol
                         }))
                     .withTimeout(TRADE_TIMEOUT))
                     .executeTasks();
-            wait(latch);
+            TradeUtils.waitForLatch(latch);
         }
     }
     
@@ -158,7 +159,7 @@ public class BuyerAsMakerProtocol extends BuyerProtocol implements MakerProtocol
                         }))
                     .withTimeout(TRADE_TIMEOUT))
                     .executeTasks();
-            wait(latch);
+            TradeUtils.waitForLatch(latch);
         }
     }
 
@@ -188,7 +189,7 @@ public class BuyerAsMakerProtocol extends BuyerProtocol implements MakerProtocol
                                 }))
                         .withTimeout(TRADE_TIMEOUT))
                         .executeTasks();
-                wait(latch);
+                TradeUtils.waitForLatch(latch);
             } else {
                 EasyBind.subscribe(trade.stateProperty(), state -> {
                     if (state == State.CONTRACT_SIGNATURE_REQUESTED) handleSignContractResponse(message, sender);
@@ -222,7 +223,7 @@ public class BuyerAsMakerProtocol extends BuyerProtocol implements MakerProtocol
                         }))
                     .withTimeout(TRADE_TIMEOUT))
                     .executeTasks();
-            wait(latch);
+            TradeUtils.waitForLatch(latch);
         }
     }
     
@@ -254,7 +255,7 @@ public class BuyerAsMakerProtocol extends BuyerProtocol implements MakerProtocol
                             }))
                         .withTimeout(TRADE_TIMEOUT))
                         .executeTasks();
-                wait(latch);
+                TradeUtils.waitForLatch(latch);
             } else {
                 EasyBind.subscribe(trade.stateProperty(), state -> {
                     if (state == State.MAKER_RECEIVED_DEPOSIT_TX_PUBLISHED_MSG) handlePaymentAccountPayloadRequest(request, sender);

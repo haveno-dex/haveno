@@ -315,7 +315,6 @@ public abstract class MutableOfferDataModel extends OfferDataModel {
 
     void onPlaceOffer(Offer offer, TransactionResultHandler resultHandler) {
         openOfferManager.placeOffer(offer,
-                buyerSecurityDeposit.get(),
                 useSavingsWallet,
                 triggerPrice,
                 resultHandler,
