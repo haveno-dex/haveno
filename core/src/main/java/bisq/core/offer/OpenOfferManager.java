@@ -229,16 +229,16 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                         .ifPresent(errorMsg -> invalidOffers.add(new Tuple2<>(openOffer, errorMsg))));
 
         // process unposted offers
-        lastUnlockedBalance = xmrWalletService.getWallet().getUnlockedBalance(0);
         processUnpostedOffers((transaction) -> {}, (errMessage) -> {
             log.warn("Error processing unposted offers on new unlocked balance: " + errMessage);
         });
 
         // register to process unposted offers when unlocked balance increases
+        if (xmrWalletService.getWallet() != null) lastUnlockedBalance = xmrWalletService.getWallet().getUnlockedBalance(0);
         xmrWalletService.addWalletListener(new MoneroWalletListener() {
             @Override
             public void onBalancesChanged(BigInteger newBalance, BigInteger newUnlockedBalance) {
-                if (lastUnlockedBalance.compareTo(newUnlockedBalance) < 0) {
+                if (lastUnlockedBalance == null || lastUnlockedBalance.compareTo(newUnlockedBalance) < 0) {
                     processUnpostedOffers((transaction) -> {}, (errMessage) -> {
                         log.warn("Error processing unposted offers on new unlocked balance: " + errMessage);
                     });
@@ -641,6 +641,12 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
 
     private void processUnpostedOffer(OpenOffer openOffer, TransactionResultHandler resultHandler, ErrorMessageHandler errorMessageHandler) {
         try {
+
+            // done processing if wallet not initialized
+            if (xmrWalletService.getWallet() == null) {
+                resultHandler.handleResult(null);
+                return;
+            }
 
             // get offer reserve amount
             Coin offerReserveAmountCoin = openOffer.getOffer().getReserveAmount();
