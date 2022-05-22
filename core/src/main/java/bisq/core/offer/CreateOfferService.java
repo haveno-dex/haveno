@@ -149,9 +149,8 @@ public class CreateOfferService {
         double marketPriceMarginParam = useMarketBasedPriceValue ? marketPriceMargin : 0;
         long amountAsLong = amount != null ? amount.getValue() : 0L;
         long minAmountAsLong = minAmount != null ? minAmount.getValue() : 0L;
-        boolean isCryptoCurrency = CurrencyUtil.isCryptoCurrency(currencyCode);
-        String baseCurrencyCode = isCryptoCurrency ? currencyCode : Res.getBaseCurrencyCode();
-        String counterCurrencyCode = isCryptoCurrency ? Res.getBaseCurrencyCode() : currencyCode;
+        String baseCurrencyCode = Res.getBaseCurrencyCode();
+        String counterCurrencyCode = currencyCode;
         List<NodeAddress> acceptedArbitratorAddresses = user.getAcceptedArbitratorAddresses();
         ArrayList<NodeAddress> arbitratorNodeAddresses = acceptedArbitratorAddresses != null ?
                 Lists.newArrayList(acceptedArbitratorAddresses) :

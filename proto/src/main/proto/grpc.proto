@@ -504,7 +504,7 @@ message CancelOfferReply {
 message OfferInfo {
     string id = 1;
     string direction = 2;
-    uint64 price = 3;
+    double price = 3;
     bool use_market_based_price = 4;
     double market_price_margin = 5;
     uint64 amount = 6;

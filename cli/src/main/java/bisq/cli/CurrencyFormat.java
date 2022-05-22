@@ -96,14 +96,14 @@ public class CurrencyFormat {
         return NUMBER_FORMAT.format(price);
     }
 
-    public static String formatPrice(long price) {
+    public static String formatPrice(double price) {
         NUMBER_FORMAT.setMinimumFractionDigits(4);
         NUMBER_FORMAT.setMaximumFractionDigits(4);
         NUMBER_FORMAT.setRoundingMode(UNNECESSARY);
         return NUMBER_FORMAT.format((double) price / 10_000);
     }
 
-    public static String formatCryptoCurrencyPrice(long price) {
+    public static String formatCryptoCurrencyPrice(double price) {
         NUMBER_FORMAT.setMinimumFractionDigits(8);
         NUMBER_FORMAT.setMaximumFractionDigits(8);
         NUMBER_FORMAT.setRoundingMode(UNNECESSARY);

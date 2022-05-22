@@ -17,10 +17,14 @@
 
 package bisq.core.api.model;
 
+import bisq.core.locale.CurrencyUtil;
+import bisq.core.monetary.Altcoin;
 import bisq.core.offer.Offer;
 
 import bisq.common.Payload;
 import bisq.common.proto.ProtoUtil;
+import bisq.common.util.MathUtils;
+
 import java.util.Objects;
 import java.util.Optional;
 import javax.annotation.Nullable;
@@ -39,7 +43,7 @@ public class OfferInfo implements Payload {
 
     private final String id;
     private final String direction;
-    private final long price;
+    private final double price;
     private final boolean useMarketBasedPrice;
     private final double marketPriceMargin;
     private final long amount;
@@ -56,8 +60,6 @@ public class OfferInfo implements Payload {
     private final String paymentAccountId;
     private final String paymentMethodId;
     private final String paymentMethodShortName;
-    // For fiat offer the baseCurrencyCode is BTC and the counterCurrencyCode is the fiat currency
-    // For altcoin offers it is the opposite. baseCurrencyCode is the altcoin and the counterCurrencyCode is BTC.
     private final String baseCurrencyCode;
     private final String counterCurrencyCode;
     private final long date;
@@ -87,7 +89,6 @@ public class OfferInfo implements Payload {
         this.counterCurrencyCode = builder.counterCurrencyCode;
         this.date = builder.date;
         this.state = builder.state;
-
     }
 
     public static OfferInfo toOfferInfo(Offer offer) {
@@ -100,11 +101,27 @@ public class OfferInfo implements Payload {
         return getOfferInfoBuilder(offer).withTriggerPrice(triggerPrice).build();
     }
 
+    /**
+     * Crypto prices are inverted when offers are created. Restore them to the original values (XMR price / currency price).
+     * TODO: treat all prices equally and remove the inversions
+     */
+    public static double unInvertCryptoPrice(long price, String currencyCode) {
+        boolean isCrypto = CurrencyUtil.isCryptoCurrency(currencyCode);
+        if (isCrypto) {
+            int smallestUnitExponent = Altcoin.SMALLEST_UNIT_EXPONENT;
+            double scaledPrice = MathUtils.scaleDownByPowerOf10(price, smallestUnitExponent);
+            return scaledPrice == 0 ? 0 : 1 / scaledPrice;
+        } else {
+            return price;
+        }
+    }
+
     private static OfferInfoBuilder getOfferInfoBuilder(Offer offer) {
+        double price = unInvertCryptoPrice(Objects.requireNonNull(offer.getPrice()).getValue(), offer.getCurrencyCode());
         return new OfferInfoBuilder()
                 .withId(offer.getId())
                 .withDirection(offer.getDirection().name())
-                .withPrice(Objects.requireNonNull(offer.getPrice()).getValue())
+                .withPrice(price)
                 .withUseMarketBasedPrice(offer.isUseMarketBasedPrice())
                 .withMarketPriceMargin(offer.getMarketPriceMargin())
                 .withAmount(offer.getAmount().value)
@@ -194,7 +211,7 @@ public class OfferInfo implements Payload {
     public static class OfferInfoBuilder {
         private String id;
         private String direction;
-        private long price;
+        private double price;
         private boolean useMarketBasedPrice;
         private double marketPriceMargin;
         private long amount;
@@ -225,7 +242,7 @@ public class OfferInfo implements Payload {
             return this;
         }
 
-        public OfferInfoBuilder withPrice(long price) {
+        public OfferInfoBuilder withPrice(double price) {
             this.price = price;
             return this;
         }

@@ -114,8 +114,6 @@ public final class OfferPayload implements ProtectedStoragePayload, ExpirablePay
     private final long amount;
     private final long minAmount;
 
-    // For fiat offer the baseCurrencyCode is BTC and the counterCurrencyCode is the fiat currency
-    // For altcoin offers it is the opposite. baseCurrencyCode is the altcoin and the counterCurrencyCode is BTC.
     private final String baseCurrencyCode;
     private final String counterCurrencyCode;
 
@@ -166,7 +164,7 @@ public final class OfferPayload implements ProtectedStoragePayload, ExpirablePay
     @Nullable
     private final Map<String, String> extraDataMap;
     private final int protocolVersion;
-    
+
     // address and signature of signing arbitrator
     @Setter
     private NodeAddress arbitratorSigner;
@@ -379,6 +377,7 @@ public final class OfferPayload implements ProtectedStoragePayload, ExpirablePay
     // Altcoins have base currency Altcoin and counterCurrency XMR
     // The rest of the app does not support yet that concept of base currency and counter currencies
     // so we map here for convenience
+    // NOTE: Altcoins now use XMR base currency in grpc created offers since CreateOfferService
     public String getCurrencyCode() {
         return getBaseCurrencyCode().equals("XMR") ? getCounterCurrencyCode() : getBaseCurrencyCode();
     }

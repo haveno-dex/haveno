@@ -141,7 +141,7 @@ class CorePriceService {
 
         return new MarketDepthInfo(currencyCode, buyPrices, buyDepth, sellPrices, sellDepth);
     }
-    
+
     /**
      * PriceProvider returns different values for crypto and fiat,
      * e.g. 1 XMR = X USD
@@ -149,7 +149,7 @@ class CorePriceService {
      * Here we convert all to:
      * 1 XMR = X (FIAT or CRYPTO)
      */
-    private double mapPriceFeedServicePrice(double price, String currencyCode) {
+    public double mapPriceFeedServicePrice(double price, String currencyCode) {
         if (CurrencyUtil.isFiatCurrency(currencyCode)) {
             return price;
         }

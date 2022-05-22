@@ -444,9 +444,7 @@ public class Offer implements NetworkPayload, PersistablePayload {
             return currencyCode;
         }
 
-        currencyCode = offerPayload.getBaseCurrencyCode().equals("XMR") ?
-                offerPayload.getCounterCurrencyCode() :
-                offerPayload.getBaseCurrencyCode();
+        currencyCode = offerPayload.getCurrencyCode();
         return currencyCode;
     }
 
@@ -541,7 +539,7 @@ public class Offer implements NetworkPayload, PersistablePayload {
     }
 
     public boolean isXmr() {
-        return getCurrencyCode().equals("XMR");
+        return getCurrencyCode().equals("XMR"); // TODO: this never returns true
     }
 
     @Override
