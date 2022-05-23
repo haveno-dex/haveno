@@ -18,7 +18,7 @@
 package bisq.core.api.model;
 
 import bisq.core.offer.Offer;
-
+import bisq.core.offer.OpenOffer;
 import bisq.common.Payload;
 import bisq.common.proto.ProtoUtil;
 import java.util.Objects;
@@ -94,10 +94,13 @@ public class OfferInfo implements Payload {
         return getOfferInfoBuilder(offer).build();
     }
 
-    public static OfferInfo toOfferInfo(Offer offer, long triggerPrice) {
-        // The Offer does not have a triggerPrice attribute, so we get
-        // the base OfferInfoBuilder, then add the OpenOffer's triggerPrice.
-        return getOfferInfoBuilder(offer).withTriggerPrice(triggerPrice).build();
+    public static OfferInfo toOfferInfo(Offer offer, OpenOffer openOffer) {
+        OfferInfoBuilder builder = getOfferInfoBuilder(offer);
+        if (openOffer != null) {
+            builder.withState(openOffer.getState().name());
+            builder.withTriggerPrice(openOffer.getTriggerPrice());
+        }
+        return builder.build();
     }
 
     private static OfferInfoBuilder getOfferInfoBuilder(Offer offer) {
