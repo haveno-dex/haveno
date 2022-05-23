@@ -39,7 +39,7 @@ import io.grpc.ServerInterceptor;
 import io.grpc.stub.StreamObserver;
 
 import javax.inject.Inject;
-
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Optional;
@@ -91,7 +91,7 @@ class GrpcOffersService extends OffersImplBase {
             Offer offer = coreApi.getMyOffer(req.getId());
             OpenOffer openOffer = coreApi.getMyOpenOffer(req.getId());
             var reply = GetMyOfferReply.newBuilder()
-                    .setOffer(toOfferInfo(offer, openOffer.getTriggerPrice()).toProtoMessage())
+                    .setOffer(toOfferInfo(offer, openOffer).toProtoMessage())
                     .build();
             responseObserver.onNext(reply);
             responseObserver.onCompleted();
@@ -123,9 +123,11 @@ class GrpcOffersService extends OffersImplBase {
     public void getMyOffers(GetMyOffersRequest req,
                             StreamObserver<GetMyOffersReply> responseObserver) {
         try {
-            List<OfferInfo> result = coreApi.getMyOffers(req.getDirection(), req.getCurrencyCode())
-                    .stream().map(OfferInfo::toOfferInfo)
-                    .collect(Collectors.toList());
+            List<OfferInfo> result = new ArrayList<OfferInfo>();
+            for (Offer offer : coreApi.getMyOffers(req.getDirection(), req.getCurrencyCode())) {
+                OpenOffer openOffer = coreApi.getMyOpenOffer(offer.getId());
+                result.add(toOfferInfo(offer, openOffer));
+            }
             var reply = GetMyOffersReply.newBuilder()
                     .addAllOffers(result.stream()
                             .map(OfferInfo::toProtoMessage)
@@ -161,7 +163,8 @@ class GrpcOffersService extends OffersImplBase {
                     offer -> {
                         // This result handling consumer's accept operation will return
                         // the new offer to the gRPC client after async placement is done.
-                        OfferInfo offerInfo = toOfferInfo(offer);
+                        OpenOffer openOffer = coreApi.getMyOpenOffer(offer.getId());
+                        OfferInfo offerInfo = toOfferInfo(offer, openOffer);
                         CreateOfferReply reply = CreateOfferReply.newBuilder()
                                 .setOffer(offerInfo.toProtoMessage())
                                 .build();

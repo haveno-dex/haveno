@@ -696,7 +696,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                 // schedule txs
                 openOffer.setScheduledTxHashes(scheduledTxHashes);
                 openOffer.setScheduledAmount(scheduledAmount.toString());
-                openOffer.getOffer().setState(Offer.State.SCHEDULED);
+                openOffer.setState(OpenOffer.State.SCHEDULED);
             }
 
             // handle result
