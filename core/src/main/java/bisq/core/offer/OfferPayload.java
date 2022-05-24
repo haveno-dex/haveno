@@ -372,12 +372,6 @@ public final class OfferPayload implements ProtectedStoragePayload, ExpirablePay
         return pubKeyRing.getSignaturePubKey();
     }
 
-    // In the offer we support base and counter currency
-    // Fiat offers have base currency XMR and counterCurrency Fiat
-    // Altcoins have base currency Altcoin and counterCurrency XMR
-    // The rest of the app does not support yet that concept of base currency and counter currencies
-    // so we map here for convenience
-    // NOTE: Altcoins now use XMR base currency in grpc created offers since CreateOfferService
     public String getCurrencyCode() {
         return getBaseCurrencyCode().equals("XMR") ? getCounterCurrencyCode() : getBaseCurrencyCode();
     }
