@@ -48,7 +48,7 @@ import bisq.core.trade.Contract;
 import bisq.core.trade.Trade;
 import bisq.core.trade.txproof.AssetTxProofResult;
 import bisq.core.user.DontShowAgainLookup;
-
+import bisq.core.util.VolumeUtil;
 import bisq.common.Timer;
 import bisq.common.UserThread;
 import bisq.common.app.DevEnv;
@@ -75,6 +75,9 @@ import java.util.Optional;
 import javax.annotation.Nullable;
 
 import static bisq.desktop.util.FormBuilder.*;
+import static bisq.desktop.util.Layout.COMPACT_FIRST_ROW_AND_GROUP_DISTANCE;
+import static bisq.desktop.util.Layout.COMPACT_GROUP_DISTANCE;
+import static bisq.desktop.util.Layout.FLOATING_LABEL_DISTANCE;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 public class SellerStep3View extends TradeStepView {
@@ -119,6 +122,7 @@ public class SellerStep3View extends TradeStepView {
                         case SELLER_CONFIRMED_IN_UI_PAYMENT_RECEIPT:
                         case SELLER_PUBLISHED_PAYOUT_TX:
                         case SELLER_SENT_PAYOUT_TX_PUBLISHED_MSG:
+                        case SELLER_SENT_PAYMENT_RECEIVED_MSG:
                             busyAnimation.play();
                             statusLabel.setText(Res.get("shared.sendingConfirmation"));
 
@@ -127,6 +131,7 @@ public class SellerStep3View extends TradeStepView {
                                 statusLabel.setText(Res.get("shared.sendingConfirmationAgain"));
                             }, 10);
                             break;
+                        case SELLER_SAW_ARRIVED_PAYMENT_RECEIVED_MSG:
                         case SELLER_SAW_ARRIVED_PAYOUT_TX_PUBLISHED_MSG:
                             busyAnimation.stop();
                             statusLabel.setText(Res.get("shared.messageArrived"));
@@ -195,7 +200,7 @@ public class SellerStep3View extends TradeStepView {
         addTradeInfoBlock();
 
         addTitledGroupBg(gridPane, ++gridRow, 3,
-                Res.get("portfolio.pending.step3_seller.confirmPaymentReceipt"), Layout.COMPACT_GROUP_DISTANCE);
+                Res.get("portfolio.pending.step3_seller.confirmPaymentReceipt"), COMPACT_GROUP_DISTANCE);
 
         TextFieldWithCopyIcon field = addTopLabelTextFieldWithCopyIcon(gridPane, gridRow,
                 Res.get("portfolio.pending.step3_seller.amountToReceive"),
@@ -221,15 +226,18 @@ public class SellerStep3View extends TradeStepView {
                     // Not expected
                     myPaymentDetails = ((AssetsAccountPayload) myPaymentAccountPayload).getAddress();
                 }
-                peersPaymentDetails = ((AssetsAccountPayload) peersPaymentAccountPayload).getAddress();
+                peersPaymentDetails = peersPaymentAccountPayload != null ?
+                        ((AssetsAccountPayload) peersPaymentAccountPayload).getAddress() : "NA";
                 myTitle = Res.get("portfolio.pending.step3_seller.yourAddress", currencyName);
                 peersTitle = Res.get("portfolio.pending.step3_seller.buyersAddress", currencyName);
             } else {
                 if (myPaymentDetails.isEmpty()) {
                     // Not expected
-                    myPaymentDetails = myPaymentAccountPayload.getPaymentDetails();
+                    myPaymentDetails = myPaymentAccountPayload != null ?
+                            myPaymentAccountPayload.getPaymentDetails() : "NA";
                 }
-                peersPaymentDetails = peersPaymentAccountPayload.getPaymentDetails();
+                peersPaymentDetails = peersPaymentAccountPayload != null ?
+                        peersPaymentAccountPayload.getPaymentDetails() : "NA";
                 myTitle = Res.get("portfolio.pending.step3_seller.yourAccount");
                 peersTitle = Res.get("portfolio.pending.step3_seller.buyersAccount");
             }
@@ -247,7 +255,7 @@ public class SellerStep3View extends TradeStepView {
             assetTxConfidenceIndicator.setTooltip(new Tooltip());
             assetTxProofResultField.setContentForInfoPopOver(createPopoverLabel(Res.get("setting.info.msg")));
 
-            HBox.setMargin(assetTxConfidenceIndicator, new Insets(Layout.FLOATING_LABEL_DISTANCE, 0, 0, 0));
+            HBox.setMargin(assetTxConfidenceIndicator, new Insets(FLOATING_LABEL_DISTANCE, 0, 0, 0));
 
             HBox hBox = new HBox();
             HBox.setHgrow(vBox, Priority.ALWAYS);
@@ -256,7 +264,10 @@ public class SellerStep3View extends TradeStepView {
 
             GridPane.setRowIndex(hBox, gridRow);
             GridPane.setColumnIndex(hBox, 1);
-            GridPane.setMargin(hBox, new Insets(Layout.COMPACT_FIRST_ROW_AND_GROUP_DISTANCE + Layout.FLOATING_LABEL_DISTANCE, 0, 0, 0));
+            GridPane.setMargin(hBox, new Insets(COMPACT_FIRST_ROW_AND_GROUP_DISTANCE + FLOATING_LABEL_DISTANCE,
+                    0,
+                    0,
+                    0));
             gridPane.getChildren().add(hBox);
         }
 
@@ -288,6 +299,7 @@ public class SellerStep3View extends TradeStepView {
         Tuple4<Button, BusyAnimation, Label, HBox> tuple = addButtonBusyAnimationLabelAfterGroup(gridPane, ++gridRow,
                 Res.get("portfolio.pending.step3_seller.confirmReceipt"));
 
+        HBox hBox = tuple.fourth;
         GridPane.setColumnSpan(tuple.fourth, 2);
         confirmButton = tuple.first;
         confirmButton.setOnAction(e -> onPaymentReceived());
@@ -386,7 +398,7 @@ public class SellerStep3View extends TradeStepView {
         PaymentAccountPayload paymentAccountPayload = model.dataModel.getSellersPaymentAccountPayload();
         String key = "confirmPayment" + trade.getId();
         String message = "";
-        String tradeVolumeWithCode = DisplayUtils.formatVolumeWithCode(trade.getTradeVolume());
+        String tradeVolumeWithCode = VolumeUtil.formatVolumeWithCode(trade.getVolume());
         String currencyName = getCurrencyName(trade);
         String part1 = Res.get("portfolio.pending.step3_seller.part", currencyName);
         if (paymentAccountPayload instanceof AssetsAccountPayload) {
@@ -394,7 +406,12 @@ public class SellerStep3View extends TradeStepView {
             String explorerOrWalletString = isXmrTrade() ?
                     Res.get("portfolio.pending.step3_seller.altcoin.wallet", currencyName) :
                     Res.get("portfolio.pending.step3_seller.altcoin.explorer", currencyName);
-            message = Res.get("portfolio.pending.step3_seller.altcoin", part1, explorerOrWalletString, address, tradeVolumeWithCode, currencyName);
+            message = Res.get("portfolio.pending.step3_seller.altcoin",
+                    part1,
+                    explorerOrWalletString,
+                    address,
+                    tradeVolumeWithCode,
+                    currencyName);
         } else {
             if (paymentAccountPayload instanceof USPostalMoneyOrderAccountPayload) {
                 message = Res.get("portfolio.pending.step3_seller.postal", part1, tradeVolumeWithCode);

@@ -86,9 +86,9 @@ public final class BuyerAsMakerTrade extends BuyerTrade implements MakerTrade {
         }
         BuyerAsMakerTrade trade = new BuyerAsMakerTrade(
                 Offer.fromProto(proto.getOffer()),
-                Coin.valueOf(proto.getTradeAmountAsLong()),
+                Coin.valueOf(proto.getAmountAsLong()),
                 Coin.valueOf(proto.getTakerFeeAsLong()),
-                proto.getTradePrice(),
+                proto.getPrice(),
                 xmrWalletService,
                 processModel,
                 uid,
@@ -96,8 +96,8 @@ public final class BuyerAsMakerTrade extends BuyerTrade implements MakerTrade {
                 proto.hasTakerNodeAddress() ? NodeAddress.fromProto(proto.getTakerNodeAddress()) : null,
                 proto.hasArbitratorNodeAddress() ? NodeAddress.fromProto(proto.getArbitratorNodeAddress()) : null);
 
-        trade.setTradeAmountAsLong(proto.getTradeAmountAsLong());
-        trade.setTradePrice(proto.getTradePrice());
+        trade.setAmountAsLong(proto.getAmountAsLong());
+        trade.setPrice(proto.getPrice());
 
         trade.setMakerNodeAddress(proto.hasMakerNodeAddress() ? NodeAddress.fromProto(proto.getMakerNodeAddress()) : null);
         trade.setTakerNodeAddress(proto.hasTakerNodeAddress() ? NodeAddress.fromProto(proto.getTakerNodeAddress()) : null);

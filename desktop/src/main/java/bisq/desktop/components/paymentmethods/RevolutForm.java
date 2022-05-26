@@ -23,7 +23,6 @@ import bisq.desktop.util.Layout;
 import bisq.desktop.util.validation.RevolutValidator;
 
 import bisq.core.account.witness.AccountAgeWitnessService;
-import bisq.core.locale.CurrencyUtil;
 import bisq.core.locale.Res;
 import bisq.core.payment.PaymentAccount;
 import bisq.core.payment.RevolutAccount;
@@ -43,13 +42,11 @@ import lombok.extern.slf4j.Slf4j;
 import static bisq.desktop.util.FormBuilder.addCompactTopLabelTextField;
 import static bisq.desktop.util.FormBuilder.addCompactTopLabelTextFieldWithCopyIcon;
 import static bisq.desktop.util.FormBuilder.addTopLabelFlowPane;
-import static bisq.desktop.util.FormBuilder.addTopLabelTextField;
 
 @Slf4j
 public class RevolutForm extends PaymentMethodForm {
     private final RevolutAccount account;
-    private RevolutValidator validator;
-    private InputTextField userNameInputTextField;
+    private final RevolutValidator validator;
 
     public static int addFormForBuyer(GridPane gridPane, int gridRow,
                                       PaymentAccountPayload paymentAccountPayload) {
@@ -70,7 +67,7 @@ public class RevolutForm extends PaymentMethodForm {
     public void addFormForAddAccount() {
         gridRowFrom = gridRow + 1;
 
-        userNameInputTextField = FormBuilder.addInputTextField(gridPane, ++gridRow, Res.get("payment.account.userName"));
+        InputTextField userNameInputTextField = FormBuilder.addInputTextField(gridPane, ++gridRow, Res.get("payment.account.userName"));
         userNameInputTextField.setValidator(validator);
         userNameInputTextField.textProperty().addListener((ov, oldValue, newValue) -> {
             account.setUserName(newValue.trim());
@@ -92,20 +89,19 @@ public class RevolutForm extends PaymentMethodForm {
         else
             flowPane.setId("flow-pane-checkboxes-non-editable-bg");
 
-        CurrencyUtil.getAllRevolutCurrencies().forEach(e ->
+        account.getSupportedCurrencies().forEach(e ->
                 fillUpFlowPaneWithCurrencies(isEditable, flowPane, e, account));
     }
 
     @Override
     protected void autoFillNameTextField() {
-        setAccountNameWithString(userNameInputTextField.getText());
+        setAccountNameWithString(account.getUserName());
     }
 
     @Override
-    public void addFormForDisplayAccount() {
+    public void addFormForEditAccount() {
         gridRowFrom = gridRow;
-        addTopLabelTextField(gridPane, gridRow, Res.get("payment.account.name"),
-                account.getAccountName(), Layout.FIRST_ROW_AND_GROUP_DISTANCE);
+        addAccountNameTextFieldWithAutoFillToggleButton();
         addCompactTopLabelTextField(gridPane, ++gridRow, Res.get("shared.paymentMethod"),
                 Res.get(account.getPaymentMethod().getId()));
 

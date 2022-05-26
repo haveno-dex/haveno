@@ -46,17 +46,10 @@ import lombok.Setter;
 import javax.annotation.Nullable;
 
 public class TxIdTextField extends AnchorPane {
+    @Setter
     private static Preferences preferences;
-
-    public static void setPreferences(Preferences preferences) {
-        TxIdTextField.preferences = preferences;
-    }
-
+    @Setter
     private static BtcWalletService walletService;
-
-    public static void setWalletService(BtcWalletService walletService) {
-        TxIdTextField.walletService = walletService;
-    }
 
     @Getter
     private final TextField textField;
@@ -64,7 +57,6 @@ public class TxIdTextField extends AnchorPane {
     private final TxConfidenceIndicator txConfidenceIndicator;
     private final Label copyIcon, blockExplorerIcon, missingTxWarningIcon;
     private TxConfidenceListener txConfidenceListener;
-
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Constructor

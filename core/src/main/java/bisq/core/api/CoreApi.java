@@ -25,7 +25,7 @@ import bisq.core.api.model.TxFeeRateInfo;
 import bisq.core.app.AppStartupState;
 import bisq.core.monetary.Price;
 import bisq.core.offer.Offer;
-import bisq.core.offer.OfferPayload;
+import bisq.core.offer.OfferDirection;
 import bisq.core.offer.OpenOffer;
 import bisq.core.payment.PaymentAccount;
 import bisq.core.payment.payload.PaymentMethod;
@@ -460,7 +460,7 @@ public class CoreApi {
 
     public Offer editOffer(String offerId,
                            String currencyCode,
-                           OfferPayload.Direction direction,
+                           OfferDirection direction,
                            Price price,
                            boolean useMarketBasedPrice,
                            double marketPriceMargin,

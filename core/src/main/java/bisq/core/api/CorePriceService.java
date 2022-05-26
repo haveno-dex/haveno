@@ -23,7 +23,7 @@ import bisq.core.locale.CurrencyUtil;
 import bisq.core.monetary.Price;
 import bisq.core.offer.Offer;
 import bisq.core.offer.OfferBookService;
-import bisq.core.offer.OfferPayload.Direction;
+import bisq.core.offer.OfferDirection;
 import bisq.core.provider.price.PriceFeedService;
 
 import javax.inject.Inject;
@@ -102,8 +102,8 @@ class CorePriceService {
         var sellOfferSortComparator =
                 offerPriceComparator
                         .thenComparing(offerAmountComparator);
-        List<Offer> buyOffers = offerBookService.getOffersByCurrency(Direction.BUY.name(), currencyCode).stream().sorted(buyOfferSortComparator).collect(Collectors.toList());
-        List<Offer> sellOffers = offerBookService.getOffersByCurrency(Direction.SELL.name(), currencyCode).stream().sorted(sellOfferSortComparator).collect(Collectors.toList());
+        List<Offer> buyOffers = offerBookService.getOffersByCurrency(OfferDirection.BUY.name(), currencyCode).stream().sorted(buyOfferSortComparator).collect(Collectors.toList());
+        List<Offer> sellOffers = offerBookService.getOffersByCurrency(OfferDirection.SELL.name(), currencyCode).stream().sorted(sellOfferSortComparator).collect(Collectors.toList());
 
         // Create buyer hashmap {key:price, value:count}, uses LinkedHashMap to maintain insertion order
         double accumulatedAmount = 0;

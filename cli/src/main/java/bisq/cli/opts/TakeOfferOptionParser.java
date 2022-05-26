@@ -21,39 +21,26 @@ package bisq.cli.opts;
 import joptsimple.OptionSpec;
 
 import static bisq.cli.opts.OptLabel.OPT_FEE_CURRENCY;
-import static bisq.cli.opts.OptLabel.OPT_OFFER_ID;
-import static bisq.cli.opts.OptLabel.OPT_PAYMENT_ACCOUNT;
+import static bisq.cli.opts.OptLabel.OPT_PAYMENT_ACCOUNT_ID;
 
-public class TakeOfferOptionParser extends AbstractMethodOptionParser implements MethodOpts {
+public class TakeOfferOptionParser extends OfferIdOptionParser implements MethodOpts {
 
-    final OptionSpec<String> offerIdOpt = parser.accepts(OPT_OFFER_ID, "id of offer to take")
-            .withRequiredArg();
-
-    final OptionSpec<String> paymentAccountIdOpt = parser.accepts(OPT_PAYMENT_ACCOUNT, "id of payment account used for trade")
+    final OptionSpec<String> paymentAccountIdOpt = parser.accepts(OPT_PAYMENT_ACCOUNT_ID, "id of payment account used for trade")
             .withRequiredArg();
 
     public TakeOfferOptionParser(String[] args) {
-        super(args);
+        super(args, true);
     }
 
     public TakeOfferOptionParser parse() {
         super.parse();
 
-        // Short circuit opt validation if user just wants help.
-        if (options.has(helpOpt))
-            return this;
-
-        if (!options.has(offerIdOpt) || options.valueOf(offerIdOpt).isEmpty())
-            throw new IllegalArgumentException("no offer id specified");
+        // Super class will short-circuit parsing if help option is present.
 
         if (!options.has(paymentAccountIdOpt) || options.valueOf(paymentAccountIdOpt).isEmpty())
             throw new IllegalArgumentException("no payment account id specified");
 
         return this;
-    }
-
-    public String getOfferId() {
-        return options.valueOf(offerIdOpt);
     }
 
     public String getPaymentAccountId() {

@@ -122,7 +122,7 @@ public class Config {
     public static final int UNSPECIFIED_PORT = -1;
     public static final String DEFAULT_REGTEST_HOST = "none";
     public static final int DEFAULT_NUM_CONNECTIONS_FOR_BTC = 9; // down from BitcoinJ default of 12
-    static final String DEFAULT_CONFIG_FILE_NAME = "bisq.properties";
+    static final String DEFAULT_CONFIG_FILE_NAME = "haveno.properties";
 
     // Static fields that provide access to Config properties in locations where injecting
     // a Config instance is not feasible. See Javadoc for corresponding static accessors.
@@ -599,7 +599,7 @@ public class Config {
 
             // Option parsing is strict at the command line, but we relax it now for any
             // subsequent config file processing. This is for compatibility with pre-1.2.6
-            // versions that allowed unrecognized options in the bisq.properties config
+            // versions that allowed unrecognized options in the haveno.properties config
             // file and because it follows suit with Bitcoin Core's config file behavior.
             parser.allowsUnrecognizedOptions();
 

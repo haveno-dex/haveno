@@ -35,12 +35,14 @@ import java.util.stream.Collectors;
 
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
+import lombok.NonNull;
 import lombok.Setter;
 import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
 
 import javax.annotation.Nullable;
 
+import static bisq.core.payment.payload.PaymentMethod.TRANSFERWISE_ID;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 @EqualsAndHashCode
@@ -48,6 +50,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 @Getter
 @Slf4j
 public abstract class PaymentAccount implements PersistablePayload {
+
     protected final PaymentMethod paymentMethod;
     @Setter
     protected String id;
@@ -57,6 +60,10 @@ public abstract class PaymentAccount implements PersistablePayload {
     public PaymentAccountPayload paymentAccountPayload;
     @Setter
     protected String accountName;
+    @Setter
+    @EqualsAndHashCode.Exclude
+    protected String persistedAccountName;
+
     protected final List<TradeCurrency> tradeCurrencies = new ArrayList<>();
     @Setter
     @Nullable
@@ -104,24 +111,30 @@ public abstract class PaymentAccount implements PersistablePayload {
 
         // We need to remove NGN for Transferwise
         Optional<TradeCurrency> ngnTwOptional = tradeCurrencies.stream()
-                .filter(e -> paymentMethodId.equals(PaymentMethod.TRANSFERWISE_ID))
+                .filter(e -> paymentMethodId.equals(TRANSFERWISE_ID))
                 .filter(e -> e.getCode().equals("NGN"))
                 .findAny();
         // We cannot remove it in the stream as it would cause a concurrentModificationException
         ngnTwOptional.ifPresent(tradeCurrencies::remove);
 
-        PaymentAccount account = PaymentAccountFactory.getPaymentAccount(PaymentMethod.getPaymentMethodById(paymentMethodId));
-        account.getTradeCurrencies().clear();
-        account.setId(proto.getId());
-        account.setCreationDate(proto.getCreationDate());
-        account.setAccountName(proto.getAccountName());
-        account.getTradeCurrencies().addAll(tradeCurrencies);
-        account.setPaymentAccountPayload(coreProtoResolver.fromProto(proto.getPaymentAccountPayload()));
+        try {
+            PaymentAccount account = PaymentAccountFactory.getPaymentAccount(PaymentMethod.getPaymentMethod(paymentMethodId));
+            account.getTradeCurrencies().clear();
+            account.setId(proto.getId());
+            account.setCreationDate(proto.getCreationDate());
+            account.setAccountName(proto.getAccountName());
+            account.setPersistedAccountName(proto.getAccountName());
+            account.getTradeCurrencies().addAll(tradeCurrencies);
+            account.setPaymentAccountPayload(coreProtoResolver.fromProto(proto.getPaymentAccountPayload()));
 
-        if (proto.hasSelectedTradeCurrency())
-            account.setSelectedTradeCurrency(TradeCurrency.fromProto(proto.getSelectedTradeCurrency()));
+            if (proto.hasSelectedTradeCurrency())
+                account.setSelectedTradeCurrency(TradeCurrency.fromProto(proto.getSelectedTradeCurrency()));
 
-        return account;
+            return account;
+        } catch (RuntimeException e) {
+            log.warn("Could not load account: {}, exception: {}", paymentMethodId, e.toString());
+            return null;
+        }
     }
 
 
@@ -190,23 +203,15 @@ public abstract class PaymentAccount implements PersistablePayload {
         return this instanceof CountryBasedPaymentAccount;
     }
 
-    public boolean isHalCashAccount() {
-        return this instanceof HalCashAccount;
-    }
-
-    public boolean isMoneyGramAccount() {
-        return this instanceof MoneyGramAccount;
-    }
-
-    public boolean isTransferwiseAccount() {
-        return this instanceof TransferwiseAccount;
+    public boolean hasPaymentMethodWithId(String paymentMethodId) {
+        return this.getPaymentMethod().getId().equals(paymentMethodId);
     }
 
     /**
      * Return an Optional of the trade currency for this payment account, or
      * Optional.empty() if none is found.  If this payment account has a selected
      * trade currency, that is returned, else its single trade currency is returned,
-     * else the first trade currency in the this payment account's tradeCurrencies
+     * else the first trade currency in this payment account's tradeCurrencies
      * list is returned.
      *
      * @return Optional of the trade currency for the given payment account
@@ -226,4 +231,38 @@ public abstract class PaymentAccount implements PersistablePayload {
         // We are in the process to get added to the user. This is called just before saving the account and the
         // last moment we could apply some special handling if needed (e.g. as it happens for Revolut)
     }
+
+    public String getPreTradeMessage(boolean isBuyer) {
+        if (isBuyer) {
+            return getMessageForBuyer();
+        } else {
+            return getMessageForSeller();
+        }
+    }
+
+    // will be overridden by specific account when necessary
+    public String getMessageForBuyer() {
+        return null;
+    }
+
+    // will be overridden by specific account when necessary
+    public String getMessageForSeller() {
+        return null;
+    }
+
+    // will be overridden by specific account when necessary
+    public String getMessageForAccountCreation() {
+        return null;
+    }
+
+    public void onPersistChanges() {
+        setPersistedAccountName(getAccountName());
+    }
+
+    public void revertChanges() {
+        setAccountName(getPersistedAccountName());
+    }
+
+    @NonNull
+    public abstract List<TradeCurrency> getSupportedCurrencies();
 }

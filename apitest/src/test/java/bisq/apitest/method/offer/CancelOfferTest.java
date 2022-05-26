@@ -32,9 +32,8 @@ import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 
-import static bisq.core.btc.wallet.Restrictions.getDefaultBuyerSecurityDepositAsPercent;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static protobuf.OfferPayload.Direction.BUY;
+import static protobuf.OfferDirection.BUY;
 
 @Disabled
 @Slf4j
@@ -51,8 +50,9 @@ public class CancelOfferTest extends AbstractOfferTest {
                 10000000L,
                 10000000L,
                 0.00,
-                getDefaultBuyerSecurityDepositAsPercent(),
-                paymentAccountId);
+                defaultBuyerSecurityDepositPct.get(),
+                paymentAccountId,
+                NO_TRIGGER_PRICE);
     };
 
     @Test

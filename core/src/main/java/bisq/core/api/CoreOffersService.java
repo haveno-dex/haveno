@@ -23,6 +23,7 @@ import bisq.core.monetary.Price;
 import bisq.core.offer.CreateOfferService;
 import bisq.core.offer.Offer;
 import bisq.core.offer.OfferBookService;
+import bisq.core.offer.OfferDirection;
 import bisq.core.offer.OfferFilter;
 import bisq.core.offer.OfferFilter.Result;
 import bisq.core.offer.OfferUtil;
@@ -45,7 +46,6 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Optional;
 import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
@@ -58,8 +58,7 @@ import static bisq.common.util.MathUtils.exactMultiply;
 import static bisq.common.util.MathUtils.roundDoubleToLong;
 import static bisq.common.util.MathUtils.scaleUpByPowerOf10;
 import static bisq.core.locale.CurrencyUtil.isCryptoCurrency;
-import static bisq.core.offer.OfferPayload.Direction;
-import static bisq.core.offer.OfferPayload.Direction.BUY;
+import static bisq.core.offer.OfferDirection.BUY;
 import static bisq.core.payment.PaymentAccountUtil.isPaymentAccountValidForOffer;
 import static java.lang.String.format;
 import static java.util.Comparator.comparing;
@@ -232,7 +231,7 @@ class CoreOffersService {
 
         String upperCaseCurrencyCode = currencyCode.toUpperCase();
         String offerId = createOfferService.getRandomOfferId();
-        Direction direction = Direction.valueOf(directionAsString.toUpperCase());
+        OfferDirection direction = OfferDirection.valueOf(directionAsString.toUpperCase());
         Price price = Price.valueOf(upperCaseCurrencyCode, priceStringToLong(priceAsString, upperCaseCurrencyCode));
         Coin amount = Coin.valueOf(amountAsLong);
         Coin minAmount = Coin.valueOf(minAmountAsLong);
@@ -264,7 +263,7 @@ class CoreOffersService {
     // Edit a placed offer.
     Offer editOffer(String offerId,
                     String currencyCode,
-                    Direction direction,
+                    OfferDirection direction,
                     Price price,
                     boolean useMarketBasedPrice,
                     double marketPriceMargin,

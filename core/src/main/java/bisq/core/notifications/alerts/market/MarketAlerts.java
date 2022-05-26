@@ -26,6 +26,7 @@ import bisq.core.notifications.MobileMessageType;
 import bisq.core.notifications.MobileNotificationService;
 import bisq.core.offer.Offer;
 import bisq.core.offer.OfferBookService;
+import bisq.core.offer.OfferDirection;
 import bisq.core.offer.OfferPayload;
 import bisq.core.provider.price.MarketPrice;
 import bisq.core.provider.price.PriceFeedService;
@@ -109,7 +110,7 @@ public class MarketAlerts {
     // % price get multiplied by 10000 to have 0.12% be converted to 12. For fixed price we have precision of 8 for
     // altcoins and precision of 4 for fiat.
     private String getAlertId(Offer offer) {
-        double price = offer.isUseMarketBasedPrice() ? offer.getMarketPriceMargin() * 10000 : offer.getOfferPayload().getPrice();
+        double price = offer.isUseMarketBasedPrice() ? offer.getMarketPriceMarginPct() * 10000 : offer.getOfferPayload().getPrice();
         String priceString = String.valueOf((long) price);
         return offer.getId() + "|" + priceString;
     }
@@ -119,7 +120,7 @@ public class MarketAlerts {
         MarketPrice marketPrice = priceFeedService.getMarketPrice(currencyCode);
         Price offerPrice = offer.getPrice();
         if (marketPrice != null && offerPrice != null) {
-            boolean isSellOffer = offer.getDirection() == OfferPayload.Direction.SELL;
+            boolean isSellOffer = offer.getDirection() == OfferDirection.SELL;
             String shortOfferId = offer.getShortId();
             boolean isFiatCurrency = CurrencyUtil.isFiatCurrency(currencyCode);
             String alertId = getAlertId(offer);

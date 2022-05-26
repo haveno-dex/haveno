@@ -47,7 +47,6 @@ import java.util.stream.Collectors;
 
 import lombok.extern.slf4j.Slf4j;
 
-import static bisq.core.api.model.OfferInfo.toOfferInfo;
 import static bisq.daemon.grpc.interceptor.GrpcServiceRateMeteringConfig.getCustomRateMeteringInterceptor;
 import static bisq.proto.grpc.OffersGrpc.*;
 import static java.util.concurrent.TimeUnit.SECONDS;
@@ -75,7 +74,7 @@ class GrpcOffersService extends OffersImplBase {
         try {
             Offer offer = coreApi.getOffer(req.getId());
             var reply = GetOfferReply.newBuilder()
-                    .setOffer(toOfferInfo(offer).toProtoMessage())
+                    .setOffer(OfferInfo.toOfferInfo(offer).toProtoMessage())
                     .build();
             responseObserver.onNext(reply);
             responseObserver.onCompleted();
@@ -84,14 +83,14 @@ class GrpcOffersService extends OffersImplBase {
         }
     }
 
+    // TODO: merge with getOffer()?
     @Override
     public void getMyOffer(GetMyOfferRequest req,
                            StreamObserver<GetMyOfferReply> responseObserver) {
         try {
-            Offer offer = coreApi.getMyOffer(req.getId());
             OpenOffer openOffer = coreApi.getMyOpenOffer(req.getId());
             var reply = GetMyOfferReply.newBuilder()
-                    .setOffer(toOfferInfo(offer, openOffer).toProtoMessage())
+                    .setOffer(OfferInfo.toMyOfferInfo(openOffer).toProtoMessage())
                     .build();
             responseObserver.onNext(reply);
             responseObserver.onCompleted();
@@ -126,7 +125,7 @@ class GrpcOffersService extends OffersImplBase {
             List<OfferInfo> result = new ArrayList<OfferInfo>();
             for (Offer offer : coreApi.getMyOffers(req.getDirection(), req.getCurrencyCode())) {
                 OpenOffer openOffer = coreApi.getMyOpenOffer(offer.getId());
-                result.add(toOfferInfo(offer, openOffer));
+                result.add(OfferInfo.toMyOfferInfo(openOffer));
             }
             var reply = GetMyOffersReply.newBuilder()
                     .addAllOffers(result.stream()
@@ -154,17 +153,17 @@ class GrpcOffersService extends OffersImplBase {
                     req.getDirection(),
                     req.getPrice(),
                     req.getUseMarketBasedPrice(),
-                    req.getMarketPriceMargin(),
+                    req.getMarketPriceMarginPct(),
                     ParsingUtils.atomicUnitsToCentineros(req.getAmount()), // scale atomic unit to centineros for consistency TODO switch base to atomic units?
                     ParsingUtils.atomicUnitsToCentineros(req.getMinAmount()),
-                    req.getBuyerSecurityDeposit(),
+                    req.getBuyerSecurityDepositPct(),
                     req.getTriggerPrice(),
                     req.getPaymentAccountId(),
                     offer -> {
                         // This result handling consumer's accept operation will return
                         // the new offer to the gRPC client after async placement is done.
                         OpenOffer openOffer = coreApi.getMyOpenOffer(offer.getId());
-                        OfferInfo offerInfo = toOfferInfo(offer, openOffer);
+                        OfferInfo offerInfo = OfferInfo.toMyOfferInfo(openOffer);
                         CreateOfferReply reply = CreateOfferReply.newBuilder()
                                 .setOffer(offerInfo.toProtoMessage())
                                 .build();

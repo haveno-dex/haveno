@@ -21,22 +21,23 @@ import bisq.network.p2p.NodeAddress;
 import bisq.network.p2p.storage.payload.ExpirablePayload;
 import bisq.network.p2p.storage.payload.ProtectedStoragePayload;
 import bisq.network.p2p.storage.payload.RequiresOwnerIsOnlinePayload;
-
+import bisq.common.crypto.Hash;
 import bisq.common.crypto.PubKeyRing;
 import bisq.common.proto.ProtoUtil;
 import bisq.common.util.CollectionUtils;
-import bisq.common.util.ExtraDataMapValidator;
+import bisq.common.util.Hex;
 import bisq.common.util.JsonExclude;
-
-import java.security.PublicKey;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonSerializationContext;
 
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
-
+import java.lang.reflect.Type;
+import java.security.PublicKey;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
@@ -44,35 +45,47 @@ import lombok.extern.slf4j.Slf4j;
 
 import javax.annotation.Nullable;
 
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
-
 // OfferPayload has about 1.4 kb. We should look into options to make it smaller but will be hard to do it in a
 // backward compatible way. Maybe a candidate when segwit activation is done as hardfork?
-
-@EqualsAndHashCode
+@EqualsAndHashCode(exclude = {"hash"})
 @Getter
 @Slf4j
 public final class OfferPayload implements ProtectedStoragePayload, ExpirablePayload, RequiresOwnerIsOnlinePayload {
     public static final long TTL = TimeUnit.MINUTES.toMillis(9);
 
-    ///////////////////////////////////////////////////////////////////////////////////////////
-    // Enum
-    ///////////////////////////////////////////////////////////////////////////////////////////
-
-    public enum Direction {
-        BUY,
-        SELL;
-
-        public static OfferPayload.Direction fromProto(protobuf.OfferPayload.Direction direction) {
-            return ProtoUtil.enumFromProto(OfferPayload.Direction.class, direction.name());
-        }
-
-        public static protobuf.OfferPayload.Direction toProtoMessage(Direction direction) {
-            return protobuf.OfferPayload.Direction.valueOf(direction.name());
-        }
-    }
-
+    protected final String id;
+    protected final long date;
+    // For fiat offer the baseCurrencyCode is BTC and the counterCurrencyCode is the fiat currency
+    // For altcoin offers it is the opposite. baseCurrencyCode is the altcoin and the counterCurrencyCode is BTC.
+    protected final String baseCurrencyCode;
+    protected final String counterCurrencyCode;
+    // price if fixed price is used (usePercentageBasedPrice = false), otherwise 0
+    protected final long price;
+    protected final long amount;
+    protected final long minAmount;
+    protected final String paymentMethodId;
+    protected final String makerPaymentAccountId;
+    protected final NodeAddress ownerNodeAddress;
+    protected final OfferDirection direction;
+    protected final String versionNr;
+    protected final int protocolVersion;
+    @JsonExclude
+    protected final PubKeyRing pubKeyRing;
+    // cache
+    protected transient byte[] hash;
+    @Nullable
+    protected final Map<String, String> extraDataMap;
+    
+    // address and signature of signing arbitrator
+    @Setter
+    protected NodeAddress arbitratorSigner;
+    @Setter
+    @Nullable
+    protected String arbitratorSignature;
+    @Setter
+    @Nullable
+    protected List<String> reserveTxKeyImages;
+    
     // Keys for extra map
     // Only set for fiat offers
     public static final String ACCOUNT_AGE_WITNESS_HASH = "accountAgeWitnessHash";
@@ -95,35 +108,18 @@ public final class OfferPayload implements ProtectedStoragePayload, ExpirablePay
     // Instance fields
     ///////////////////////////////////////////////////////////////////////////////////////////
 
-    private final String id;
-    private final long date;
-    private final NodeAddress ownerNodeAddress;
-    @JsonExclude
-    private final PubKeyRing pubKeyRing;
-    private final Direction direction;
-    // price if fixed price is used (usePercentageBasedPrice = false), otherwise 0
-    private final long price;
     // Distance form market price if percentage based price is used (usePercentageBasedPrice = true), otherwise 0.
     // E.g. 0.1 -> 10%. Can be negative as well. Depending on direction the marketPriceMargin is above or below the market price.
     // Positive values is always the usual case where you want a better price as the market.
     // E.g. Buy offer with market price 400.- leads to a 360.- price.
     // Sell offer with market price 400.- leads to a 440.- price.
-    private final double marketPriceMargin;
+    private final double marketPriceMarginPct;
     // We use 2 type of prices: fixed price or price based on distance from market price
     private final boolean useMarketBasedPrice;
-    private final long amount;
-    private final long minAmount;
 
-    // For fiat offer the baseCurrencyCode is BTC and the counterCurrencyCode is the fiat currency
-    // For altcoin offers it is the opposite. baseCurrencyCode is the altcoin and the counterCurrencyCode is BTC.
-    private final String baseCurrencyCode;
-    private final String counterCurrencyCode;
-
-    private final String paymentMethodId;
-    private final String makerPaymentAccountId;
-    // Mutable property. Has to be set before offer is save in P2P network as it changes the objects hash!
-    @Nullable
+    // Mutable property. Has to be set before offer is saved in P2P network as it changes the payload hash!
     @Setter
+    @Nullable
     private String offerFeePaymentTxId;
     @Nullable
     private final String countryCode;
@@ -133,7 +129,6 @@ public final class OfferPayload implements ProtectedStoragePayload, ExpirablePay
     private final String bankId;
     @Nullable
     private final List<String> acceptedBankIds;
-    private final String versionNr;
     private final long blockHeightAtOfferCreation;
     private final long txFee;
     private final long makerFee;
@@ -157,26 +152,6 @@ public final class OfferPayload implements ProtectedStoragePayload, ExpirablePay
     @Nullable
     private final String hashOfChallenge;
 
-    // Should be only used in emergency case if we need to add data but do not want to break backward compatibility
-    // at the P2P network storage checks. The hash of the object will be used to verify if the data is valid. Any new
-    // field in a class would break that hash and therefore break the storage mechanism.
-
-    // extraDataMap used from v0.6 on for hashOfPaymentAccount
-    // key ACCOUNT_AGE_WITNESS, value: hex string of hashOfPaymentAccount byte array
-    @Nullable
-    private final Map<String, String> extraDataMap;
-    private final int protocolVersion;
-    
-    // address and signature of signing arbitrator
-    @Setter
-    private NodeAddress arbitratorSigner;
-    @Setter
-    @Nullable
-    private String arbitratorSignature;
-    @Setter
-    @Nullable
-    private List<String> reserveTxKeyImages;
-
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Constructor
@@ -186,9 +161,9 @@ public final class OfferPayload implements ProtectedStoragePayload, ExpirablePay
                         long date,
                         NodeAddress ownerNodeAddress,
                         PubKeyRing pubKeyRing,
-                        Direction direction,
+                        OfferDirection direction,
                         long price,
-                        double marketPriceMargin,
+                        double marketPriceMarginPct,
                         boolean useMarketBasedPrice,
                         long amount,
                         long minAmount,
@@ -224,22 +199,27 @@ public final class OfferPayload implements ProtectedStoragePayload, ExpirablePay
         this.date = date;
         this.ownerNodeAddress = ownerNodeAddress;
         this.pubKeyRing = pubKeyRing;
-        this.direction = direction;
-        this.price = price;
-        this.marketPriceMargin = marketPriceMargin;
-        this.useMarketBasedPrice = useMarketBasedPrice;
-        this.amount = amount;
-        this.minAmount = minAmount;
         this.baseCurrencyCode = baseCurrencyCode;
         this.counterCurrencyCode = counterCurrencyCode;
+        this.direction = direction;
+        this.price = price;
+        this.amount = amount;
+        this.minAmount = minAmount;
         this.paymentMethodId = paymentMethodId;
         this.makerPaymentAccountId = makerPaymentAccountId;
+        this.extraDataMap = extraDataMap;
+        this.versionNr = versionNr;
+        this.protocolVersion = protocolVersion;
+        this.arbitratorSigner = arbitratorSigner;
+        this.arbitratorSignature = arbitratorSignature;
+        this.reserveTxKeyImages = reserveTxKeyImages;
+        this.marketPriceMarginPct = marketPriceMarginPct;
+        this.useMarketBasedPrice = useMarketBasedPrice;
         this.offerFeePaymentTxId = offerFeePaymentTxId;
         this.countryCode = countryCode;
         this.acceptedCountryCodes = acceptedCountryCodes;
         this.bankId = bankId;
         this.acceptedBankIds = acceptedBankIds;
-        this.versionNr = versionNr;
         this.blockHeightAtOfferCreation = blockHeightAtOfferCreation;
         this.txFee = txFee;
         this.makerFee = makerFee;
@@ -253,11 +233,34 @@ public final class OfferPayload implements ProtectedStoragePayload, ExpirablePay
         this.upperClosePrice = upperClosePrice;
         this.isPrivateOffer = isPrivateOffer;
         this.hashOfChallenge = hashOfChallenge;
-        this.extraDataMap = ExtraDataMapValidator.getValidatedExtraDataMap(extraDataMap);
-        this.protocolVersion = protocolVersion;
-        this.arbitratorSigner = arbitratorSigner;
-        this.arbitratorSignature = arbitratorSignature;
-        this.reserveTxKeyImages = reserveTxKeyImages;
+    }
+
+    public byte[] getHash() {
+        if (this.hash == null && this.offerFeePaymentTxId != null) {
+            // A proto message can be created only after the offerFeePaymentTxId is
+            // set to a non-null value;  now is the time to cache the payload hash.
+            this.hash = Hash.getSha256Hash(this.toProtoMessage().toByteArray());
+        }
+        return this.hash;
+    }
+
+    @Override
+    public long getTTL() {
+        return TTL;
+    }
+
+    @Override
+    public PublicKey getOwnerPubKey() {
+        return pubKeyRing.getSignaturePubKey();
+    }
+
+    // In the offer we support base and counter currency
+    // Fiat offers have base currency XMR and counterCurrency Fiat
+    // Altcoins have base currency Altcoin and counterCurrency XMR
+    // The rest of the app does not support yet that concept of base currency and counter currencies
+    // so we map here for convenience
+    public String getCurrencyCode() {
+        return getBaseCurrencyCode().equals("XMR") ? getCounterCurrencyCode() : getBaseCurrencyCode();
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -271,9 +274,9 @@ public final class OfferPayload implements ProtectedStoragePayload, ExpirablePay
                 .setDate(date)
                 .setOwnerNodeAddress(ownerNodeAddress.toProtoMessage())
                 .setPubKeyRing(pubKeyRing.toProtoMessage())
-                .setDirection(Direction.toProtoMessage(direction))
+                .setDirection(OfferDirection.toProtoMessage(direction))
                 .setPrice(price)
-                .setMarketPriceMargin(marketPriceMargin)
+                .setMarketPriceMarginPct(marketPriceMarginPct)
                 .setUseMarketBasedPrice(useMarketBasedPrice)
                 .setAmount(amount)
                 .setMinAmount(minAmount)
@@ -296,7 +299,6 @@ public final class OfferPayload implements ProtectedStoragePayload, ExpirablePay
                 .setIsPrivateOffer(isPrivateOffer)
                 .setProtocolVersion(protocolVersion)
                 .setArbitratorSigner(arbitratorSigner.toProtoMessage());
-
         Optional.ofNullable(offerFeePaymentTxId).ifPresent(builder::setOfferFeePaymentTxId);
         Optional.ofNullable(countryCode).ifPresent(builder::setCountryCode);
         Optional.ofNullable(bankId).ifPresent(builder::setBankId);
@@ -323,9 +325,9 @@ public final class OfferPayload implements ProtectedStoragePayload, ExpirablePay
                 proto.getDate(),
                 NodeAddress.fromProto(proto.getOwnerNodeAddress()),
                 PubKeyRing.fromProto(proto.getPubKeyRing()),
-                OfferPayload.Direction.fromProto(proto.getDirection()),
+                OfferDirection.fromProto(proto.getDirection()),
                 proto.getPrice(),
-                proto.getMarketPriceMargin(),
+                proto.getMarketPriceMarginPct(),
                 proto.getUseMarketBasedPrice(),
                 proto.getAmount(),
                 proto.getMinAmount(),
@@ -333,7 +335,7 @@ public final class OfferPayload implements ProtectedStoragePayload, ExpirablePay
                 proto.getCounterCurrencyCode(),
                 proto.getPaymentMethodId(),
                 proto.getMakerPaymentAccountId(),
-                ProtoUtil.stringOrNullFromProto(proto.getOfferFeePaymentTxId()),
+                proto.getOfferFeePaymentTxId(),
                 ProtoUtil.stringOrNullFromProto(proto.getCountryCode()),
                 acceptedCountryCodes,
                 ProtoUtil.stringOrNullFromProto(proto.getBankId()),
@@ -359,70 +361,92 @@ public final class OfferPayload implements ProtectedStoragePayload, ExpirablePay
                 proto.getReserveTxKeyImagesList() == null ? null : new ArrayList<String>(proto.getReserveTxKeyImagesList()));
     }
 
-
-    ///////////////////////////////////////////////////////////////////////////////////////////
-    // API
-    ///////////////////////////////////////////////////////////////////////////////////////////
-
-    @Override
-    public long getTTL() {
-        return TTL;
-    }
-
-    @Override
-    public PublicKey getOwnerPubKey() {
-        return pubKeyRing.getSignaturePubKey();
-    }
-
-    // In the offer we support base and counter currency
-    // Fiat offers have base currency XMR and counterCurrency Fiat
-    // Altcoins have base currency Altcoin and counterCurrency XMR
-    // The rest of the app does not support yet that concept of base currency and counter currencies
-    // so we map here for convenience
-    public String getCurrencyCode() {
-        return getBaseCurrencyCode().equals("XMR") ? getCounterCurrencyCode() : getBaseCurrencyCode();
-    }
-
     @Override
     public String toString() {
         return "OfferPayload{" +
-                "\n     id='" + id + '\'' +
-                ",\n     date=" + new Date(date) +
-                ",\n     ownerNodeAddress=" + ownerNodeAddress +
-                ",\n     pubKeyRing=" + pubKeyRing +
-                ",\n     direction=" + direction +
-                ",\n     price=" + price +
-                ",\n     marketPriceMargin=" + marketPriceMargin +
-                ",\n     useMarketBasedPrice=" + useMarketBasedPrice +
-                ",\n     amount=" + amount +
-                ",\n     minAmount=" + minAmount +
-                ",\n     baseCurrencyCode='" + baseCurrencyCode + '\'' +
-                ",\n     counterCurrencyCode='" + counterCurrencyCode + '\'' +
-                ",\n     paymentMethodId='" + paymentMethodId + '\'' +
-                ",\n     makerPaymentAccountId='" + makerPaymentAccountId + '\'' +
-                ",\n     offerFeePaymentTxId='" + offerFeePaymentTxId + '\'' +
-                ",\n     countryCode='" + countryCode + '\'' +
-                ",\n     acceptedCountryCodes=" + acceptedCountryCodes +
-                ",\n     bankId='" + bankId + '\'' +
-                ",\n     acceptedBankIds=" + acceptedBankIds +
-                ",\n     versionNr='" + versionNr + '\'' +
-                ",\n     blockHeightAtOfferCreation=" + blockHeightAtOfferCreation +
-                ",\n     txFee=" + txFee +
-                ",\n     makerFee=" + makerFee +
-                ",\n     buyerSecurityDeposit=" + buyerSecurityDeposit +
-                ",\n     sellerSecurityDeposit=" + sellerSecurityDeposit +
-                ",\n     maxTradeLimit=" + maxTradeLimit +
-                ",\n     maxTradePeriod=" + maxTradePeriod +
-                ",\n     useAutoClose=" + useAutoClose +
-                ",\n     useReOpenAfterAutoClose=" + useReOpenAfterAutoClose +
-                ",\n     lowerClosePrice=" + lowerClosePrice +
-                ",\n     upperClosePrice=" + upperClosePrice +
-                ",\n     isPrivateOffer=" + isPrivateOffer +
-                ",\n     hashOfChallenge='" + hashOfChallenge + '\'' +
-                ",\n     extraDataMap=" + extraDataMap +
-                ",\n     protocolVersion=" + protocolVersion +
+                "\r\n     id='" + id + '\'' +
+                ",\r\n     date=" + date +
+                ",\r\n     baseCurrencyCode='" + baseCurrencyCode + '\'' +
+                ",\r\n     counterCurrencyCode='" + counterCurrencyCode + '\'' +
+                ",\r\n     price=" + price +
+                ",\r\n     amount=" + amount +
+                ",\r\n     minAmount=" + minAmount +
+                ",\r\n     paymentMethodId='" + paymentMethodId + '\'' +
+                ",\r\n     makerPaymentAccountId='" + makerPaymentAccountId + '\'' +
+                ",\r\n     ownerNodeAddress=" + ownerNodeAddress +
+                ",\r\n     direction=" + direction +
+                ",\r\n     versionNr='" + versionNr + '\'' +
+                ",\r\n     protocolVersion=" + protocolVersion +
+                ",\r\n     pubKeyRing=" + pubKeyRing +
+                ",\r\n     hash=" + (hash != null ? Hex.encode(hash) : "null") +
+                ",\r\n     extraDataMap=" + extraDataMap +
+                ",\r\n     arbitratorSigner=" + arbitratorSigner +
+                ",\r\n     arbitratorSignature=" + arbitratorSignature +
+                ",\r\n     reserveTxKeyImages=" + reserveTxKeyImages +
+                ",\r\n     marketPriceMargin=" + marketPriceMarginPct +
+                ",\r\n     useMarketBasedPrice=" + useMarketBasedPrice +
+                ",\r\n     offerFeePaymentTxId='" + offerFeePaymentTxId + '\'' +
+                ",\r\n     countryCode='" + countryCode + '\'' +
+                ",\r\n     acceptedCountryCodes=" + acceptedCountryCodes +
+                ",\r\n     bankId='" + bankId + '\'' +
+                ",\r\n     acceptedBankIds=" + acceptedBankIds +
+                ",\r\n     blockHeightAtOfferCreation=" + blockHeightAtOfferCreation +
+                ",\r\n     txFee=" + txFee +
+                ",\r\n     makerFee=" + makerFee +
+                ",\r\n     buyerSecurityDeposit=" + buyerSecurityDeposit +
+                ",\r\n     sellerSecurityDeposit=" + sellerSecurityDeposit +
+                ",\r\n     maxTradeLimit=" + maxTradeLimit +
+                ",\r\n     maxTradePeriod=" + maxTradePeriod +
+                ",\r\n     useAutoClose=" + useAutoClose +
+                ",\r\n     useReOpenAfterAutoClose=" + useReOpenAfterAutoClose +
+                ",\r\n     lowerClosePrice=" + lowerClosePrice +
+                ",\r\n     upperClosePrice=" + upperClosePrice +
+                ",\r\n     isPrivateOffer=" + isPrivateOffer +
+                ",\r\n     hashOfChallenge='" + hashOfChallenge + '\'' +
                 ",\n     arbitratorSigner=" + arbitratorSigner +
                 ",\n     arbitratorSignature=" + arbitratorSignature +
-                "\n}";
+                "\r\n} ";
+    }
+
+    // For backward compatibility we need to ensure same order for json fields as with 1.7.5. and earlier versions.
+    // The json is used for the hash in the contract and change of oder would cause a different hash and
+    // therefore a failure during trade.
+    public static class JsonSerializer implements com.google.gson.JsonSerializer<OfferPayload> {
+        @Override
+        public JsonElement serialize(OfferPayload offerPayload, Type type, JsonSerializationContext context) {
+            JsonObject object = new JsonObject();
+            object.add("id", context.serialize(offerPayload.getId()));
+            object.add("date", context.serialize(offerPayload.getDate()));
+            object.add("ownerNodeAddress", context.serialize(offerPayload.getOwnerNodeAddress()));
+            object.add("direction", context.serialize(offerPayload.getDirection()));
+            object.add("price", context.serialize(offerPayload.getPrice()));
+            object.add("marketPriceMargin", context.serialize(offerPayload.getMarketPriceMarginPct()));
+            object.add("useMarketBasedPrice", context.serialize(offerPayload.isUseMarketBasedPrice()));
+            object.add("amount", context.serialize(offerPayload.getAmount()));
+            object.add("minAmount", context.serialize(offerPayload.getMinAmount()));
+            object.add("baseCurrencyCode", context.serialize(offerPayload.getBaseCurrencyCode()));
+            object.add("counterCurrencyCode", context.serialize(offerPayload.getCounterCurrencyCode()));
+            object.add("paymentMethodId", context.serialize(offerPayload.getPaymentMethodId()));
+            object.add("makerPaymentAccountId", context.serialize(offerPayload.getMakerPaymentAccountId()));
+            object.add("offerFeePaymentTxId", context.serialize(offerPayload.getOfferFeePaymentTxId()));
+            object.add("versionNr", context.serialize(offerPayload.getVersionNr()));
+            object.add("blockHeightAtOfferCreation", context.serialize(offerPayload.getBlockHeightAtOfferCreation()));
+            object.add("txFee", context.serialize(offerPayload.getTxFee()));
+            object.add("makerFee", context.serialize(offerPayload.getMakerFee()));
+            object.add("buyerSecurityDeposit", context.serialize(offerPayload.getBuyerSecurityDeposit()));
+            object.add("sellerSecurityDeposit", context.serialize(offerPayload.getSellerSecurityDeposit()));
+            object.add("maxTradeLimit", context.serialize(offerPayload.getMaxTradeLimit()));
+            object.add("maxTradePeriod", context.serialize(offerPayload.getMaxTradePeriod()));
+            object.add("useAutoClose", context.serialize(offerPayload.isUseAutoClose()));
+            object.add("useReOpenAfterAutoClose", context.serialize(offerPayload.isUseReOpenAfterAutoClose()));
+            object.add("lowerClosePrice", context.serialize(offerPayload.getLowerClosePrice()));
+            object.add("upperClosePrice", context.serialize(offerPayload.getUpperClosePrice()));
+            object.add("isPrivateOffer", context.serialize(offerPayload.isPrivateOffer()));
+            object.add("extraDataMap", context.serialize(offerPayload.getExtraDataMap()));
+            object.add("protocolVersion", context.serialize(offerPayload.getProtocolVersion()));
+            object.add("arbitratorSigner", context.serialize(offerPayload.getArbitratorSigner()));
+            object.add("arbitratorSignature", context.serialize(offerPayload.getArbitratorSignature()));
+            return object;
+        }
     }
 }

@@ -77,6 +77,10 @@ public final class PreferencesPayload implements PersistableEnvelope {
     private String buyScreenCurrencyCode;
     @Nullable
     private String sellScreenCurrencyCode;
+    @Nullable
+    private String buyScreenCryptoCurrencyCode;
+    @Nullable
+    private String sellScreenCryptoCurrencyCode;
     private int tradeStatisticsTickUnitIndex = 3;
     private boolean resyncSpvRequested;
     private boolean sortMarketCurrenciesNumerically = true;
@@ -118,9 +122,11 @@ public final class PreferencesPayload implements PersistableEnvelope {
     private String takeOfferSelectedPaymentAccountId;
     private double buyerSecurityDepositAsPercent = getDefaultBuyerSecurityDepositAsPercent();
     private int ignoreDustThreshold = 600;
+    private int clearDataAfterDays = Preferences.CLEAR_DATA_AFTER_DAYS_INITIAL;
     private double buyerSecurityDepositAsPercentForCrypto = getDefaultBuyerSecurityDepositAsPercent();
     private int blockNotifyPort;
     private boolean tacAcceptedV120;
+    private double bsqAverageTrimThreshold = 0.05;
 
     // Added at 1.3.8
     private List<AutoConfirmSettings> autoConfirmSettingsList = new ArrayList<>();
@@ -187,9 +193,11 @@ public final class PreferencesPayload implements PersistableEnvelope {
                 .setUseStandbyMode(useStandbyMode)
                 .setBuyerSecurityDepositAsPercent(buyerSecurityDepositAsPercent)
                 .setIgnoreDustThreshold(ignoreDustThreshold)
+                .setClearDataAfterDays(clearDataAfterDays)
                 .setBuyerSecurityDepositAsPercentForCrypto(buyerSecurityDepositAsPercentForCrypto)
                 .setBlockNotifyPort(blockNotifyPort)
                 .setTacAcceptedV120(tacAcceptedV120)
+                .setBsqAverageTrimThreshold(bsqAverageTrimThreshold)
                 .addAllAutoConfirmSettings(autoConfirmSettingsList.stream()
                         .map(autoConfirmSettings -> ((protobuf.AutoConfirmSettings) autoConfirmSettings.toProtoMessage()))
                         .collect(Collectors.toList()))
@@ -204,7 +212,10 @@ public final class PreferencesPayload implements PersistableEnvelope {
         Optional.ofNullable(tradeChartsScreenCurrencyCode).ifPresent(builder::setTradeChartsScreenCurrencyCode);
         Optional.ofNullable(buyScreenCurrencyCode).ifPresent(builder::setBuyScreenCurrencyCode);
         Optional.ofNullable(sellScreenCurrencyCode).ifPresent(builder::setSellScreenCurrencyCode);
-        Optional.ofNullable(selectedPaymentAccountForCreateOffer).ifPresent(account -> builder.setSelectedPaymentAccountForCreateOffer(account.toProtoMessage()));
+        Optional.ofNullable(buyScreenCryptoCurrencyCode).ifPresent(builder::setBuyScreenCryptoCurrencyCode);
+        Optional.ofNullable(sellScreenCryptoCurrencyCode).ifPresent(builder::setSellScreenCryptoCurrencyCode);
+        Optional.ofNullable(selectedPaymentAccountForCreateOffer).ifPresent(
+                account -> builder.setSelectedPaymentAccountForCreateOffer(selectedPaymentAccountForCreateOffer.toProtoMessage()));
         Optional.ofNullable(bridgeAddresses).ifPresent(builder::addAllBridgeAddresses);
         Optional.ofNullable(customBridges).ifPresent(builder::setCustomBridges);
         Optional.ofNullable(referralId).ifPresent(builder::setReferralId);
@@ -249,6 +260,8 @@ public final class PreferencesPayload implements PersistableEnvelope {
                 ProtoUtil.stringOrNullFromProto(proto.getTradeChartsScreenCurrencyCode()),
                 ProtoUtil.stringOrNullFromProto(proto.getBuyScreenCurrencyCode()),
                 ProtoUtil.stringOrNullFromProto(proto.getSellScreenCurrencyCode()),
+                ProtoUtil.stringOrNullFromProto(proto.getBuyScreenCryptoCurrencyCode()),
+                ProtoUtil.stringOrNullFromProto(proto.getSellScreenCryptoCurrencyCode()),
                 proto.getTradeStatisticsTickUnitIndex(),
                 proto.getResyncSpvRequested(),
                 proto.getSortMarketCurrenciesNumerically(),
@@ -278,9 +291,11 @@ public final class PreferencesPayload implements PersistableEnvelope {
                 proto.getTakeOfferSelectedPaymentAccountId().isEmpty() ? null : proto.getTakeOfferSelectedPaymentAccountId(),
                 proto.getBuyerSecurityDepositAsPercent(),
                 proto.getIgnoreDustThreshold(),
+                proto.getClearDataAfterDays(),
                 proto.getBuyerSecurityDepositAsPercentForCrypto(),
                 proto.getBlockNotifyPort(),
                 proto.getTacAcceptedV120(),
+                proto.getBsqAverageTrimThreshold(),
                 proto.getAutoConfirmSettingsList().isEmpty() ? new ArrayList<>() :
                         new ArrayList<>(proto.getAutoConfirmSettingsList().stream()
                                 .map(AutoConfirmSettings::fromProto)

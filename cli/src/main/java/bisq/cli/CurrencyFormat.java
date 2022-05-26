@@ -22,10 +22,10 @@ import bisq.proto.grpc.TxFeeRateInfo;
 import com.google.common.annotations.VisibleForTesting;
 
 import java.text.DecimalFormat;
+import java.text.DecimalFormatSymbols;
 import java.text.NumberFormat;
 
 import java.math.BigDecimal;
-import java.math.BigInteger;
 
 import java.util.Locale;
 
@@ -33,32 +33,48 @@ import static java.lang.String.format;
 import static java.math.RoundingMode.HALF_UP;
 import static java.math.RoundingMode.UNNECESSARY;
 
-
-
-import monero.common.MoneroUtils;
-
+/**
+ * Utility for formatting amounts, volumes and fees;  there is no i18n support in the CLI.
+ */
 @VisibleForTesting
 public class CurrencyFormat {
 
-    private static final NumberFormat NUMBER_FORMAT = NumberFormat.getInstance(Locale.US);
+    // Use the US locale as a base for all DecimalFormats, but commas should be omitted from number strings.
+    private static final DecimalFormatSymbols DECIMAL_FORMAT_SYMBOLS = DecimalFormatSymbols.getInstance(Locale.US);
+
+    // Use the US locale as a base for all NumberFormats, but commas should be omitted from number strings.
+    private static final NumberFormat US_LOCALE_NUMBER_FORMAT = NumberFormat.getInstance(Locale.US);
+
+    // Formats numbers for internal use, i.e., grpc request parameters.
+    private static final DecimalFormat INTERNAL_FIAT_DECIMAL_FORMAT = new DecimalFormat("##############0.0000");
 
     static final BigDecimal SATOSHI_DIVISOR = new BigDecimal(100_000_000);
-    static final DecimalFormat BTC_FORMAT = new DecimalFormat("###,##0.00000000");
-    static final DecimalFormat BTC_TX_FEE_FORMAT = new DecimalFormat("###,###,##0");
+    static final DecimalFormat SATOSHI_FORMAT = new DecimalFormat("###,##0.00000000", DECIMAL_FORMAT_SYMBOLS);
+    static final DecimalFormat BTC_FORMAT = new DecimalFormat("###,##0.########", DECIMAL_FORMAT_SYMBOLS);
+    static final DecimalFormat BTC_TX_FEE_FORMAT = new DecimalFormat("###,###,##0", DECIMAL_FORMAT_SYMBOLS);
 
-    static final BigDecimal SECURITY_DEPOSIT_MULTIPLICAND = new BigDecimal("0.01");
+    static final BigDecimal BSQ_SATOSHI_DIVISOR = new BigDecimal(100);
+    static final DecimalFormat BSQ_FORMAT = new DecimalFormat("###,###,###,##0.00", DECIMAL_FORMAT_SYMBOLS);
 
-    // TODO: (woodser): replace formatSatoshis(), formatBsq() with formatXmr()
+    public static String formatSatoshis(String sats) {
+        //noinspection BigDecimalMethodWithoutRoundingCalled
+        return SATOSHI_FORMAT.format(new BigDecimal(sats).divide(SATOSHI_DIVISOR));
+    }
 
     @SuppressWarnings("BigDecimalMethodWithoutRoundingCalled")
     public static String formatSatoshis(long sats) {
-        return BTC_FORMAT.format(BigDecimal.valueOf(sats).divide(SATOSHI_DIVISOR));
+        return SATOSHI_FORMAT.format(new BigDecimal(sats).divide(SATOSHI_DIVISOR));
     }
 
-    public static String formatXmr(BigInteger amount) {
-        return "" + MoneroUtils.atomicUnitsToXmr(amount);
+    @SuppressWarnings("BigDecimalMethodWithoutRoundingCalled")
+    public static String formatBtc(long sats) {
+        return BTC_FORMAT.format(new BigDecimal(sats).divide(SATOSHI_DIVISOR));
     }
 
+    @SuppressWarnings("BigDecimalMethodWithoutRoundingCalled")
+    public static String formatBsq(long sats) {
+        return BSQ_FORMAT.format(new BigDecimal(sats).divide(BSQ_SATOSHI_DIVISOR));
+    }
 
     public static String formatTxFeeRateInfo(TxFeeRateInfo txFeeRateInfo) {
         if (txFeeRateInfo.getUseCustomTxFeeRate())
@@ -72,56 +88,30 @@ public class CurrencyFormat {
                     formatFeeSatoshis(txFeeRateInfo.getMinFeeServiceRate()));
     }
 
-    public static String formatAmountRange(long minAmount, long amount) {
-        return minAmount != amount
-                ? formatSatoshis(minAmount) + " - " + formatSatoshis(amount)
-                : formatSatoshis(amount);
+    public static String formatInternalFiatPrice(BigDecimal price) {
+        INTERNAL_FIAT_DECIMAL_FORMAT.setMinimumFractionDigits(4);
+        INTERNAL_FIAT_DECIMAL_FORMAT.setMaximumFractionDigits(4);
+        return INTERNAL_FIAT_DECIMAL_FORMAT.format(price);
     }
 
-    public static String formatVolumeRange(long minVolume, long volume) {
-        return minVolume != volume
-                ? formatOfferVolume(minVolume) + " - " + formatOfferVolume(volume)
-                : formatOfferVolume(volume);
-    }
-
-    public static String formatCryptoCurrencyVolumeRange(long minVolume, long volume) {
-        return minVolume != volume
-                ? formatCryptoCurrencyOfferVolume(minVolume) + " - " + formatCryptoCurrencyOfferVolume(volume)
-                : formatCryptoCurrencyOfferVolume(volume);
-    }
-
-    public static String formatMarketPrice(double price) {
-        NUMBER_FORMAT.setMinimumFractionDigits(4);
-        NUMBER_FORMAT.setMaximumFractionDigits(4);
-        return NUMBER_FORMAT.format(price);
+    public static String formatInternalFiatPrice(double price) {
+        US_LOCALE_NUMBER_FORMAT.setMinimumFractionDigits(4);
+        US_LOCALE_NUMBER_FORMAT.setMaximumFractionDigits(4);
+        return US_LOCALE_NUMBER_FORMAT.format(price);
     }
 
     public static String formatPrice(long price) {
-        NUMBER_FORMAT.setMinimumFractionDigits(4);
-        NUMBER_FORMAT.setMaximumFractionDigits(4);
-        NUMBER_FORMAT.setRoundingMode(UNNECESSARY);
-        return NUMBER_FORMAT.format((double) price / 10_000);
+        US_LOCALE_NUMBER_FORMAT.setMinimumFractionDigits(4);
+        US_LOCALE_NUMBER_FORMAT.setMaximumFractionDigits(4);
+        US_LOCALE_NUMBER_FORMAT.setRoundingMode(UNNECESSARY);
+        return US_LOCALE_NUMBER_FORMAT.format((double) price / 10_000);
     }
 
-    public static String formatCryptoCurrencyPrice(long price) {
-        NUMBER_FORMAT.setMinimumFractionDigits(8);
-        NUMBER_FORMAT.setMaximumFractionDigits(8);
-        NUMBER_FORMAT.setRoundingMode(UNNECESSARY);
-        return NUMBER_FORMAT.format((double) price / SATOSHI_DIVISOR.doubleValue());
-    }
-
-    public static String formatOfferVolume(long volume) {
-        NUMBER_FORMAT.setMinimumFractionDigits(0);
-        NUMBER_FORMAT.setMaximumFractionDigits(0);
-        NUMBER_FORMAT.setRoundingMode(HALF_UP);
-        return NUMBER_FORMAT.format((double) volume / 10_000);
-    }
-
-    public static String formatCryptoCurrencyOfferVolume(long volume) {
-        NUMBER_FORMAT.setMinimumFractionDigits(2);
-        NUMBER_FORMAT.setMaximumFractionDigits(2);
-        NUMBER_FORMAT.setRoundingMode(HALF_UP);
-        return NUMBER_FORMAT.format((double) volume / SATOSHI_DIVISOR.doubleValue());
+    public static String formatFiatVolume(long volume) {
+        US_LOCALE_NUMBER_FORMAT.setMinimumFractionDigits(0);
+        US_LOCALE_NUMBER_FORMAT.setMaximumFractionDigits(0);
+        US_LOCALE_NUMBER_FORMAT.setRoundingMode(HALF_UP);
+        return US_LOCALE_NUMBER_FORMAT.format((double) volume / 10_000);
     }
 
     public static long toSatoshis(String btc) {
@@ -132,15 +122,6 @@ public class CurrencyFormat {
             return new BigDecimal(btc).multiply(SATOSHI_DIVISOR).longValue();
         } catch (NumberFormatException e) {
             throw new IllegalArgumentException(format("'%s' is not a number", btc));
-        }
-    }
-
-    public static double toSecurityDepositAsPct(String securityDepositInput) {
-        try {
-            return new BigDecimal(securityDepositInput)
-                    .multiply(SECURITY_DEPOSIT_MULTIPLICAND).doubleValue();
-        } catch (NumberFormatException e) {
-            throw new IllegalArgumentException(format("'%s' is not a number", securityDepositInput));
         }
     }
 

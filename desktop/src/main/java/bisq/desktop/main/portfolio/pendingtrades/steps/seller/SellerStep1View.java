@@ -22,9 +22,6 @@ import bisq.desktop.main.portfolio.pendingtrades.steps.TradeStepView;
 
 import bisq.core.locale.Res;
 
-import lombok.extern.slf4j.Slf4j;
-
-@Slf4j
 public class SellerStep1View extends TradeStepView {
 
     ///////////////////////////////////////////////////////////////////////////////////////////

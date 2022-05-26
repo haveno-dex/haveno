@@ -26,6 +26,7 @@ import bisq.core.btc.wallet.XmrWalletService;
 import bisq.core.offer.OfferPayload;
 import bisq.core.support.dispute.arbitration.arbitrator.Arbitrator;
 import bisq.core.trade.messages.InitTradeRequest;
+import bisq.core.util.JsonUtil;
 import java.util.Objects;
 import java.util.concurrent.CountDownLatch;
 
@@ -55,7 +56,7 @@ public class TradeUtils {
         signedOfferPayload.setArbitratorSignature(null);
         
         // get unsigned offer payload as json string
-        String unsignedOfferAsJson = Utilities.objectToJson(signedOfferPayload);
+        String unsignedOfferAsJson = JsonUtil.objectToJson(signedOfferPayload);
         
         // verify arbitrator signature
         boolean isValid = true;
@@ -108,7 +109,7 @@ public class TradeUtils {
                 );
         
         // get trade request as string
-        String tradeRequestAsJson = Utilities.objectToJson(signedRequest);
+        String tradeRequestAsJson = JsonUtil.objectToJson(signedRequest);
         
         // verify maker signature
         try {

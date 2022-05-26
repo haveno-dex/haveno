@@ -28,6 +28,7 @@ import bisq.desktop.main.overlays.windows.OfferDetailsWindow;
 import bisq.core.locale.CurrencyUtil;
 import bisq.core.locale.Res;
 import bisq.core.offer.OpenOffer;
+import bisq.core.payment.PaymentAccount;
 import bisq.core.user.DontShowAgainLookup;
 import bisq.core.user.Preferences;
 import bisq.core.util.FormattingUtils;
@@ -44,7 +45,7 @@ import javafx.scene.control.Label;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
-
+import javafx.collections.ObservableList;
 import javafx.geometry.HPos;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -113,7 +114,7 @@ public class EditOfferView extends MutableOfferView<EditOfferViewModel> {
         model.isNextButtonDisabled.setValue(false);
         cancelButton.setDisable(false);
 
-        model.onInvalidateMarketPriceMargin();
+        model.onInvalidateMarketPriceMarginPct();
         model.onInvalidatePrice();
 
         // To force re-validation of payment account validation
@@ -143,7 +144,8 @@ public class EditOfferView extends MutableOfferView<EditOfferViewModel> {
         model.applyOpenOffer(openOffer);
 
         initWithData(openOffer.getOffer().getDirection(),
-                CurrencyUtil.getTradeCurrency(openOffer.getOffer().getCurrencyCode()).get());
+                CurrencyUtil.getTradeCurrency(openOffer.getOffer().getCurrencyCode()).get(),
+                null);
 
         model.onStartEditOffer(errorMessage -> {
             log.error(errorMessage);
@@ -169,6 +171,11 @@ public class EditOfferView extends MutableOfferView<EditOfferViewModel> {
 
     private void removeBindings() {
         confirmButton.disableProperty().unbind();
+    }
+
+    @Override
+    protected ObservableList<PaymentAccount> filterPaymentAccounts(ObservableList<PaymentAccount> paymentAccounts) {
+        return paymentAccounts;
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////

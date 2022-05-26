@@ -19,17 +19,35 @@ package bisq.apitest.method;
 
 import bisq.core.api.model.PaymentAccountForm;
 import bisq.core.payment.F2FAccount;
+import bisq.core.payment.NationalBankAccount;
 import bisq.core.proto.CoreProtoResolver;
 
 import bisq.common.util.Utilities;
+
+import bisq.proto.grpc.BalancesInfo;
+
+import io.grpc.Status;
+import io.grpc.StatusRuntimeException;
 
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
 
+import java.math.BigDecimal;
+
 import java.util.function.Function;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
+import org.slf4j.Logger;
+
+import javax.annotation.Nullable;
+
+import static bisq.apitest.config.ApiTestConfig.BTC;
+import static bisq.apitest.config.ApiTestRateMeterInterceptorConfig.getTestRateMeterInterceptorConfig;
+import static bisq.cli.table.builder.TableType.BTC_BALANCE_TBL;
+import static bisq.core.btc.wallet.Restrictions.getDefaultBuyerSecurityDepositAsPercent;
+import static java.lang.String.format;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Arrays.stream;
 import static org.junit.jupiter.api.Assertions.fail;
@@ -37,7 +55,9 @@ import static org.junit.jupiter.api.Assertions.fail;
 
 
 import bisq.apitest.ApiTestCase;
+import bisq.apitest.linux.BashCommand;
 import bisq.cli.GrpcClient;
+import bisq.cli.table.builder.TableBuilder;
 
 public class MethodTest extends ApiTestCase {
 
@@ -45,15 +65,6 @@ public class MethodTest extends ApiTestCase {
 
     private static final Function<Enum<?>[], String> toNameList = (enums) ->
             stream(enums).map(Enum::name).collect(Collectors.joining(","));
-
-    public static void startSupportingApps(File callRateMeteringConfigFile,
-                                           boolean generateBtcBlock,
-                                           Enum<?>... supportingApps) {
-        startSupportingApps(callRateMeteringConfigFile,
-                generateBtcBlock,
-                false,
-                supportingApps);
-    }
 
     public static void startSupportingApps(File callRateMeteringConfigFile,
                                            boolean generateBtcBlock,
@@ -72,18 +83,11 @@ public class MethodTest extends ApiTestCase {
     }
 
     public static void startSupportingApps(boolean generateBtcBlock,
-                                           Enum<?>... supportingApps) {
-        startSupportingApps(generateBtcBlock,
-                false,
-                supportingApps);
-    }
-
-    public static void startSupportingApps(boolean generateBtcBlock,
                                            boolean startSupportingAppsInDebugMode,
                                            Enum<?>... supportingApps) {
         try {
             // Disable call rate metering where there is no callRateMeteringConfigFile.
-            File callRateMeteringConfigFile = defaultRateMeterInterceptorConfig();
+            File callRateMeteringConfigFile = getTestRateMeterInterceptorConfig();
             setUpScaffold(new String[]{
                     "--supportingApps", toNameList.apply(supportingApps),
                     "--callRateMeteringConfigPath", callRateMeteringConfigFile.getAbsolutePath(),
@@ -133,17 +137,94 @@ public class MethodTest extends ApiTestCase {
         return f2FAccount;
     }
 
+
+    protected bisq.core.payment.PaymentAccount createDummyBRLAccount(GrpcClient grpcClient,
+                                                                     String holderName,
+                                                                     String nationalAccountId,
+                                                                     String holderTaxId) {
+        String nationalBankAccountJsonString = "{\n" +
+                "  \"_COMMENTS_\": [ \"Dummy Account\" ],\n" +
+                "  \"paymentMethodId\": \"NATIONAL_BANK\",\n" +
+                "  \"accountName\": \"Banco do Brasil\",\n" +
+                "  \"country\": \"BR\",\n" +
+                "  \"bankName\": \"Banco do Brasil\",\n" +
+                "  \"branchId\": \"456789-10\",\n" +
+                "  \"holderName\": \"" + holderName + "\",\n" +
+                "  \"accountNr\": \"456789-87\",\n" +
+                "  \"nationalAccountId\": \"" + nationalAccountId + "\",\n" +
+                "  \"holderTaxId\": \"" + holderTaxId + "\"\n" +
+                "}\n";
+        NationalBankAccount nationalBankAccount =
+                (NationalBankAccount) createPaymentAccount(grpcClient, nationalBankAccountJsonString);
+        return nationalBankAccount;
+    }
+
     protected final bisq.core.payment.PaymentAccount createPaymentAccount(GrpcClient grpcClient, String jsonString) {
         // Normally, we do asserts on the protos from the gRPC service, but in this
         // case we need a bisq.core.payment.PaymentAccount so it can be cast to its
-        // sub type.
+        // sub-type.
         var paymentAccount = grpcClient.createPaymentAccount(jsonString);
         return bisq.core.payment.PaymentAccount.fromProto(paymentAccount, CORE_PROTO_RESOLVER);
     }
 
-    // Static conveniences for test methods and test case fixture setups.
+    public static final Supplier<Double> defaultBuyerSecurityDepositPct = () -> {
+        var defaultPct = BigDecimal.valueOf(getDefaultBuyerSecurityDepositAsPercent());
+        if (defaultPct.precision() != 2)
+            throw new IllegalStateException(format(
+                    "Unexpected decimal precision, expected 2 but actual is %d%n."
+                            + "Check for changes to Restrictions.getDefaultBuyerSecurityDepositAsPercent()",
+                    defaultPct.precision()));
+
+        return defaultPct.movePointRight(2).doubleValue();
+    };
+
+    public static String formatBalancesTbls(BalancesInfo allBalances) {
+        StringBuilder balances = new StringBuilder(BTC).append("\n");
+        balances.append(new TableBuilder(BTC_BALANCE_TBL, allBalances.getBtc()).build());
+        balances.append("\n");
+        return balances.toString();
+    }
 
     protected static String encodeToHex(String s) {
         return Utilities.bytesAsHexString(s.getBytes(UTF_8));
+    }
+
+    protected static Status.Code getStatusRuntimeExceptionStatusCode(Exception grpcException) {
+        if (grpcException instanceof StatusRuntimeException)
+            return ((StatusRuntimeException) grpcException).getStatus().getCode();
+        else
+            throw new IllegalArgumentException(
+                    format("Expected a io.grpc.StatusRuntimeException argument, but got a %s",
+                            grpcException.getClass().getName()));
+    }
+
+    protected void verifyNoLoggedNodeExceptions() {
+        var loggedExceptions = getNodeExceptionMessages();
+        if (loggedExceptions != null) {
+            String err = format("Exception(s) found in daemon log(s):%n%s", loggedExceptions);
+            fail(err);
+        }
+    }
+
+    protected void printNodeExceptionMessages(Logger log) {
+        var loggedExceptions = getNodeExceptionMessages();
+        if (loggedExceptions != null)
+            log.error("Exception(s) found in daemon log(s):\n{}", loggedExceptions);
+    }
+
+    @Nullable
+    protected static String getNodeExceptionMessages() {
+        var nodeLogsSpec = config.rootAppDataDir.getAbsolutePath() + "/bisq-BTC_REGTEST_*_dao/bisq.log";
+        var grep = "grep Exception " + nodeLogsSpec;
+        var bashCommand = new BashCommand(grep);
+        try {
+            bashCommand.run();
+        } catch (IOException | InterruptedException ex) {
+            fail("Bash command execution error: " + ex);
+        }
+        if (bashCommand.getError() == null)
+            return bashCommand.getOutput();
+        else
+            throw new IllegalStateException("Bash command execution error: " + bashCommand.getError());
     }
 }

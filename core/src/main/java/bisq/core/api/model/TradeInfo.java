@@ -17,18 +17,21 @@
 
 package bisq.core.api.model;
 
-import bisq.core.trade.Contract;
+import bisq.core.api.model.builder.TradeInfoV1Builder;
 import bisq.core.trade.Trade;
+import bisq.core.trade.Contract;
 
 import bisq.common.Payload;
 
-import java.util.Objects;
-
+import java.util.function.Function;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 
 import static bisq.core.api.model.OfferInfo.toOfferInfo;
 import static bisq.core.api.model.PaymentAccountPayloadInfo.toPaymentAccountPayloadInfo;
+import static bisq.core.util.PriceUtil.reformatMarketPrice;
+import static bisq.core.util.VolumeUtil.formatVolume;
+import static java.util.Objects.requireNonNull;
 
 @EqualsAndHashCode
 @Getter
@@ -38,6 +41,21 @@ public class TradeInfo implements Payload {
     // lighter weight TradeInfo proto wrapper instead, containing just enough fields to
     // view and interact with trades.
 
+    private static final Function<Trade, String> toPeerNodeAddress = (trade) ->
+            trade.getTradingPeerNodeAddress() == null
+                    ? ""
+                    : trade.getTradingPeerNodeAddress().getFullAddress();
+
+    private static final Function<Trade, String> toRoundedVolume = (trade) ->
+            trade.getVolume() == null
+                    ? ""
+                    : formatVolume(requireNonNull(trade.getVolume()));
+
+    private static final Function<Trade, String> toPreciseTradePrice = (trade) ->
+            reformatMarketPrice(requireNonNull(trade.getPrice()).toPlainString(),
+                    trade.getOffer().getCurrencyCode());
+
+    // Bisq v1 trade protocol fields (some are in common with the BSQ Swap protocol).
     private final OfferInfo offer;
     private final String tradeId;
     private final String shortId;
@@ -49,47 +67,49 @@ public class TradeInfo implements Payload {
     private final String makerDepositTxId;
     private final String takerDepositTxId;
     private final String payoutTxId;
-    private final long tradeAmountAsLong;
-    private final long tradePrice;
+    private final long amountAsLong;
+    private final String price;
+    private final String volume;
     private final String tradingPeerNodeAddress;
     private final String state;
     private final String phase;
-    private final String tradePeriodState;
+    private final String periodState;
     private final boolean isDepositPublished;
     private final boolean isDepositUnlocked;
     private final boolean isPaymentSent;
     private final boolean isPaymentReceived;
     private final boolean isPayoutPublished;
-    private final boolean isWithdrawn;
+    private final boolean isCompleted;
     private final String contractAsJson;
     private final ContractInfo contract;
 
-    public TradeInfo(TradeInfoBuilder builder) {
-        this.offer = builder.offer;
-        this.tradeId = builder.tradeId;
-        this.shortId = builder.shortId;
-        this.date = builder.date;
-        this.role = builder.role;
-        this.txFeeAsLong = builder.txFeeAsLong;
-        this.takerFeeAsLong = builder.takerFeeAsLong;
-        this.takerFeeTxId = builder.takerFeeTxId;
-        this.makerDepositTxId = builder.makerDepositTxId;
-        this.takerDepositTxId = builder.takerDepositTxId;
-        this.payoutTxId = builder.payoutTxId;
-        this.tradeAmountAsLong = builder.tradeAmountAsLong;
-        this.tradePrice = builder.tradePrice;
-        this.tradingPeerNodeAddress = builder.tradingPeerNodeAddress;
-        this.state = builder.state;
-        this.phase = builder.phase;
-        this.tradePeriodState = builder.tradePeriodState;
-        this.isDepositPublished = builder.isDepositPublished;
-        this.isDepositUnlocked = builder.isDepositConfirmed;
-        this.isPaymentSent = builder.isPaymentSent;
-        this.isPaymentReceived = builder.isPaymentReceived;
-        this.isPayoutPublished = builder.isPayoutPublished;
-        this.isWithdrawn = builder.isWithdrawn;
-        this.contractAsJson = builder.contractAsJson;
-        this.contract = builder.contract;
+    public TradeInfo(TradeInfoV1Builder builder) {
+        this.offer = builder.getOffer();
+        this.tradeId = builder.getTradeId();
+        this.shortId = builder.getShortId();
+        this.date = builder.getDate();
+        this.role = builder.getRole();
+        this.txFeeAsLong = builder.getTxFeeAsLong();
+        this.takerFeeAsLong = builder.getTakerFeeAsLong();
+        this.takerFeeTxId = builder.getTakerFeeTxId();
+        this.makerDepositTxId = builder.getMakerDepositTxId();
+        this.takerDepositTxId = builder.getTakerDepositTxId();
+        this.payoutTxId = builder.getPayoutTxId();
+        this.amountAsLong = builder.getAmountAsLong();
+        this.price = builder.getPrice();
+        this.volume = builder.getVolume();
+        this.tradingPeerNodeAddress = builder.getTradingPeerNodeAddress();
+        this.state = builder.getState();
+        this.phase = builder.getPhase();
+        this.periodState = builder.getPeriodState();
+        this.isDepositPublished = builder.isDepositPublished();
+        this.isDepositUnlocked = builder.isDepositUnlocked();
+        this.isPaymentSent = builder.isPaymentSent();
+        this.isPaymentReceived = builder.isPaymentReceived();
+        this.isPayoutPublished = builder.isPayoutPublished();
+        this.isCompleted = builder.isCompleted();
+        this.contractAsJson = builder.getContractAsJson();
+        this.contract = builder.getContract();
     }
 
     public static TradeInfo toTradeInfo(Trade trade) {
@@ -114,35 +134,34 @@ public class TradeInfo implements Payload {
         } else {
             contractInfo = ContractInfo.emptyContract.get();
         }
-
-        return new TradeInfoBuilder()
-                .withOffer(toOfferInfo(trade.getOffer()))
+        
+        return new TradeInfoV1Builder()
                 .withTradeId(trade.getId())
                 .withShortId(trade.getShortId())
                 .withDate(trade.getDate().getTime())
                 .withRole(role == null ? "" : role)
                 .withTxFeeAsLong(trade.getTxFeeAsLong())
                 .withTakerFeeAsLong(trade.getTakerFeeAsLong())
-                .withTakerFeeAsLong(trade.getTakerFeeAsLong())
                 .withTakerFeeTxId(trade.getTakerFeeTxId())
                 .withMakerDepositTxId(trade.getMaker().getDepositTxHash())
                 .withTakerDepositTxId(trade.getTaker().getDepositTxHash())
                 .withPayoutTxId(trade.getPayoutTxId())
-                .withTradeAmountAsLong(trade.getTradeAmountAsLong())
-                .withTradePrice(trade.getTradePrice().getValue())
-                .withTradingPeerNodeAddress(Objects.requireNonNull(
-                        trade.getTradingPeerNodeAddress()).getHostNameWithoutPostFix())
+                .withAmountAsLong(trade.getAmountAsLong())
+                .withPrice(toPreciseTradePrice.apply(trade))
+                .withVolume(toRoundedVolume.apply(trade))
+                .withTradingPeerNodeAddress(toPeerNodeAddress.apply(trade))
                 .withState(trade.getState().name())
                 .withPhase(trade.getPhase().name())
-                .withTradePeriodState(trade.getTradePeriodState().name())
+                .withPeriodState(trade.getPeriodState().name())
                 .withIsDepositPublished(trade.isDepositPublished())
                 .withIsDepositUnlocked(trade.isDepositConfirmed())
                 .withIsPaymentSent(trade.isPaymentSent())
                 .withIsPaymentReceived(trade.isPaymentReceived())
                 .withIsPayoutPublished(trade.isPayoutPublished())
-                .withIsWithdrawn(trade.isWithdrawn())
+                .withIsCompleted(trade.isCompleted())
                 .withContractAsJson(trade.getContractAsJson())
                 .withContract(contractInfo)
+                .withOffer(toOfferInfo(trade.getOffer()))
                 .build();
     }
 
@@ -164,25 +183,26 @@ public class TradeInfo implements Payload {
                 .setMakerDepositTxId(makerDepositTxId == null ? "" : makerDepositTxId)
                 .setTakerDepositTxId(takerDepositTxId == null ? "" : takerDepositTxId)
                 .setPayoutTxId(payoutTxId == null ? "" : payoutTxId)
-                .setTradeAmountAsLong(tradeAmountAsLong)
-                .setTradePrice(tradePrice)
+                .setAmountAsLong(amountAsLong)
+                .setPrice(price)
+                .setTradeVolume(volume)
                 .setTradingPeerNodeAddress(tradingPeerNodeAddress)
                 .setState(state)
                 .setPhase(phase)
-                .setTradePeriodState(tradePeriodState)
+                .setPeriodState(periodState)
                 .setIsDepositPublished(isDepositPublished)
                 .setIsDepositUnlocked(isDepositUnlocked)
                 .setIsPaymentSent(isPaymentSent)
                 .setIsPaymentReceived(isPaymentReceived)
                 .setIsPayoutPublished(isPayoutPublished)
-                .setIsWithdrawn(isWithdrawn)
+                .setIsPayoutPublished(isCompleted)
                 .setContractAsJson(contractAsJson == null ? "" : contractAsJson)
                 .setContract(contract.toProtoMessage())
                 .build();
     }
 
     public static TradeInfo fromProto(bisq.proto.grpc.TradeInfo proto) {
-        return new TradeInfoBuilder()
+        return new TradeInfoV1Builder()
                 .withOffer(OfferInfo.fromProto(proto.getOffer()))
                 .withTradeId(proto.getTradeId())
                 .withShortId(proto.getShortId())
@@ -194,9 +214,10 @@ public class TradeInfo implements Payload {
                 .withMakerDepositTxId(proto.getMakerDepositTxId())
                 .withTakerDepositTxId(proto.getTakerDepositTxId())
                 .withPayoutTxId(proto.getPayoutTxId())
-                .withTradeAmountAsLong(proto.getTradeAmountAsLong())
-                .withTradePrice(proto.getTradePrice())
-                .withTradePeriodState(proto.getTradePeriodState())
+                .withAmountAsLong(proto.getAmountAsLong())
+                .withPrice(proto.getPrice())
+                .withVolume(proto.getTradeVolume())
+                .withPeriodState(proto.getPeriodState())
                 .withState(proto.getState())
                 .withPhase(proto.getPhase())
                 .withTradingPeerNodeAddress(proto.getTradingPeerNodeAddress())
@@ -205,173 +226,10 @@ public class TradeInfo implements Payload {
                 .withIsPaymentSent(proto.getIsPaymentSent())
                 .withIsPaymentReceived(proto.getIsPaymentReceived())
                 .withIsPayoutPublished(proto.getIsPayoutPublished())
-                .withIsWithdrawn(proto.getIsWithdrawn())
+                .withIsCompleted(proto.getIsCompleted())
                 .withContractAsJson(proto.getContractAsJson())
                 .withContract((ContractInfo.fromProto(proto.getContract())))
                 .build();
-    }
-
-    /*
-     * TradeInfoBuilder helps avoid bungling use of a large TradeInfo constructor
-     * argument list.  If consecutive argument values of the same type are not
-     * ordered correctly, the compiler won't complain but the resulting bugs could
-     * be hard to find and fix.
-     */
-    public static class TradeInfoBuilder {
-        private OfferInfo offer;
-        private String tradeId;
-        private String shortId;
-        private long date;
-        private String role;
-        private long txFeeAsLong;
-        private long takerFeeAsLong;
-        private String takerFeeTxId;
-        private String makerDepositTxId;
-        private String takerDepositTxId;
-        private String payoutTxId;
-        private long tradeAmountAsLong;
-        private long tradePrice;
-        private String tradingPeerNodeAddress;
-        private String state;
-        private String phase;
-        private String tradePeriodState;
-        private boolean isDepositPublished;
-        private boolean isDepositConfirmed;
-        private boolean isPaymentSent;
-        private boolean isPaymentReceived;
-        private boolean isPayoutPublished;
-        private boolean isWithdrawn;
-        private String contractAsJson;
-        private ContractInfo contract;
-
-        public TradeInfoBuilder withOffer(OfferInfo offer) {
-            this.offer = offer;
-            return this;
-        }
-
-        public TradeInfoBuilder withTradeId(String tradeId) {
-            this.tradeId = tradeId;
-            return this;
-        }
-
-        public TradeInfoBuilder withShortId(String shortId) {
-            this.shortId = shortId;
-            return this;
-        }
-
-        public TradeInfoBuilder withDate(long date) {
-            this.date = date;
-            return this;
-        }
-
-        public TradeInfoBuilder withRole(String role) {
-            this.role = role;
-            return this;
-        }
-
-        public TradeInfoBuilder withTxFeeAsLong(long txFeeAsLong) {
-            this.txFeeAsLong = txFeeAsLong;
-            return this;
-        }
-
-        public TradeInfoBuilder withTakerFeeAsLong(long takerFeeAsLong) {
-            this.takerFeeAsLong = takerFeeAsLong;
-            return this;
-        }
-
-        public TradeInfoBuilder withTakerFeeTxId(String takerFeeTxId) {
-            this.takerFeeTxId = takerFeeTxId;
-            return this;
-        }
-
-        public TradeInfoBuilder withMakerDepositTxId(String makerDepositTxId) {
-            this.makerDepositTxId = makerDepositTxId;
-            return this;
-        }
-
-        public TradeInfoBuilder withTakerDepositTxId(String takerDepositTxId) {
-            this.takerDepositTxId = takerDepositTxId;
-            return this;
-        }
-
-        public TradeInfoBuilder withPayoutTxId(String payoutTxId) {
-            this.payoutTxId = payoutTxId;
-            return this;
-        }
-
-        public TradeInfoBuilder withTradeAmountAsLong(long tradeAmountAsLong) {
-            this.tradeAmountAsLong = tradeAmountAsLong;
-            return this;
-        }
-
-        public TradeInfoBuilder withTradePrice(long tradePrice) {
-            this.tradePrice = tradePrice;
-            return this;
-        }
-
-        public TradeInfoBuilder withTradePeriodState(String tradePeriodState) {
-            this.tradePeriodState = tradePeriodState;
-            return this;
-        }
-
-        public TradeInfoBuilder withState(String state) {
-            this.state = state;
-            return this;
-        }
-
-        public TradeInfoBuilder withPhase(String phase) {
-            this.phase = phase;
-            return this;
-        }
-
-        public TradeInfoBuilder withTradingPeerNodeAddress(String tradingPeerNodeAddress) {
-            this.tradingPeerNodeAddress = tradingPeerNodeAddress;
-            return this;
-        }
-
-        public TradeInfoBuilder withIsDepositPublished(boolean isDepositPublished) {
-            this.isDepositPublished = isDepositPublished;
-            return this;
-        }
-
-        public TradeInfoBuilder withIsDepositUnlocked(boolean isDepositConfirmed) {
-            this.isDepositConfirmed = isDepositConfirmed;
-            return this;
-        }
-
-        public TradeInfoBuilder withIsPaymentSent(boolean isPaymentSent) {
-            this.isPaymentSent = isPaymentSent;
-            return this;
-        }
-
-        public TradeInfoBuilder withIsPaymentReceived(boolean isPaymentReceived) {
-            this.isPaymentReceived = isPaymentReceived;
-            return this;
-        }
-
-        public TradeInfoBuilder withIsPayoutPublished(boolean isPayoutPublished) {
-            this.isPayoutPublished = isPayoutPublished;
-            return this;
-        }
-
-        public TradeInfoBuilder withIsWithdrawn(boolean isWithdrawn) {
-            this.isWithdrawn = isWithdrawn;
-            return this;
-        }
-
-        public TradeInfoBuilder withContractAsJson(String contractAsJson) {
-            this.contractAsJson = contractAsJson;
-            return this;
-        }
-
-        public TradeInfoBuilder withContract(ContractInfo contract) {
-            this.contract = contract;
-            return this;
-        }
-
-        public TradeInfo build() {
-            return new TradeInfo(this);
-        }
     }
 
     @Override
@@ -387,18 +245,18 @@ public class TradeInfo implements Payload {
                 ", makerDepositTxId='" + makerDepositTxId + '\'' + "\n" +
                 ", takerDepositTxId='" + takerDepositTxId + '\'' + "\n" +
                 ", payoutTxId='" + payoutTxId + '\'' + "\n" +
-                ", tradeAmountAsLong='" + tradeAmountAsLong + '\'' + "\n" +
-                ", tradePrice='" + tradePrice + '\'' + "\n" +
+                ", amountAsLong='" + amountAsLong + '\'' + "\n" +
+                ", price='" + price + '\'' + "\n" +
                 ", tradingPeerNodeAddress='" + tradingPeerNodeAddress + '\'' + "\n" +
                 ", state='" + state + '\'' + "\n" +
                 ", phase='" + phase + '\'' + "\n" +
-                ", tradePeriodState='" + tradePeriodState + '\'' + "\n" +
+                ", periodState='" + periodState + '\'' + "\n" +
                 ", isDepositPublished=" + isDepositPublished + "\n" +
                 ", isDepositConfirmed=" + isDepositUnlocked + "\n" +
                 ", isPaymentSent=" + isPaymentSent + "\n" +
                 ", isPaymentReceived=" + isPaymentReceived + "\n" +
                 ", isPayoutPublished=" + isPayoutPublished + "\n" +
-                ", isWithdrawn=" + isWithdrawn + "\n" +
+                ", isCompleted=" + isCompleted + "\n" +
                 ", offer=" + offer + "\n" +
                 ", contractAsJson=" + contractAsJson + "\n" +
                 ", contract=" + contract + "\n" +

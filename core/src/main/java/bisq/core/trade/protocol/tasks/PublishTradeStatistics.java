@@ -66,8 +66,8 @@ public class PublishTradeStatistics extends TradeTask {
 
             Offer offer = checkNotNull(trade.getOffer());
             TradeStatistics2 tradeStatistics = new TradeStatistics2(offer.getOfferPayload(),
-                trade.getTradePrice(),
-                trade.getTradeAmount(),
+                trade.getPrice(),
+                trade.getAmount(),
                 trade.getDate(),
                 trade.getMaker().getDepositTxHash(),
                 trade.getTaker().getDepositTxHash(),

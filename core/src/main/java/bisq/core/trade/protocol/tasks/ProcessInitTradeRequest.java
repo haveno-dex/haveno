@@ -109,8 +109,8 @@ public class ProcessInitTradeRequest extends TradeTask {
             // check trade price
             try {
                 long tradePrice = request.getTradePrice();
-                offer.checkTradePriceTolerance(tradePrice);
-                trade.setTradePrice(tradePrice);
+                offer.verifyTakersTradePrice(tradePrice);
+                trade.setPrice(tradePrice);
             } catch (TradePriceOutOfToleranceException e) {
                 failed(e.getMessage());
             } catch (Throwable e2) {
@@ -119,7 +119,7 @@ public class ProcessInitTradeRequest extends TradeTask {
 
             // check trade amount
             checkArgument(request.getTradeAmount() > 0);
-            trade.setTradeAmount(Coin.valueOf(request.getTradeAmount()));
+            trade.setAmount(Coin.valueOf(request.getTradeAmount()));
 
             // persist trade
             processModel.getTradeManager().requestPersistence();

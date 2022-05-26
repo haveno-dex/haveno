@@ -28,6 +28,7 @@ import bisq.core.locale.CurrencyUtil;
 import bisq.core.locale.TradeCurrency;
 import bisq.core.offer.CreateOfferService;
 import bisq.core.offer.Offer;
+import bisq.core.offer.OfferDirection;
 import bisq.core.offer.OfferPayload;
 import bisq.core.offer.OfferUtil;
 import bisq.core.offer.OpenOffer;
@@ -53,6 +54,7 @@ import com.google.inject.Inject;
 import javax.inject.Named;
 
 import java.util.Optional;
+import java.util.Set;
 
 class EditOfferDataModel extends MutableOfferDataModel {
 
@@ -143,7 +145,7 @@ class EditOfferDataModel extends MutableOfferDataModel {
     }
 
     @Override
-    public boolean initWithData(OfferPayload.Direction direction, TradeCurrency tradeCurrency) {
+    public boolean initWithData(OfferDirection direction, TradeCurrency tradeCurrency) {
         try {
             return super.initWithData(direction, tradeCurrency);
         } catch (NullPointerException e) {
@@ -169,7 +171,7 @@ class EditOfferDataModel extends MutableOfferDataModel {
         setUseMarketBasedPrice(offer.isUseMarketBasedPrice());
         setTriggerPrice(openOffer.getTriggerPrice());
         if (offer.isUseMarketBasedPrice()) {
-            setMarketPriceMargin(offer.getMarketPriceMargin());
+            setMarketPriceMarginPct(offer.getMarketPriceMarginPct());
         }
     }
 
@@ -190,7 +192,7 @@ class EditOfferDataModel extends MutableOfferDataModel {
                 offerPayload.getPubKeyRing(),
                 offerPayload.getDirection(),
                 newOfferPayload.getPrice(),
-                newOfferPayload.getMarketPriceMargin(),
+                newOfferPayload.getMarketPriceMarginPct(),
                 newOfferPayload.isUseMarketBasedPrice(),
                 offerPayload.getAmount(),
                 offerPayload.getMinAmount(),
@@ -237,5 +239,10 @@ class EditOfferDataModel extends MutableOfferDataModel {
         if (openOffer != null)
             openOfferManager.editOpenOfferCancel(openOffer, initialState, () -> {
             }, errorMessageHandler);
+    }
+
+    @Override
+    protected Set<PaymentAccount> getUserPaymentAccounts() {
+        throw new RuntimeException("Edit offer not supported with XMR");
     }
 }

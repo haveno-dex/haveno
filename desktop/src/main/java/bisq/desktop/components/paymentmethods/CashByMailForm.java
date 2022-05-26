@@ -1,17 +1,18 @@
-/* This file is part of Bisq.
+/*
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
 package bisq.desktop.components.paymentmethods;
@@ -42,7 +43,6 @@ import static bisq.desktop.util.FormBuilder.*;
 public class CashByMailForm extends PaymentMethodForm {
     private final CashByMailAccount cashByMailAccount;
     private TextArea postalAddressTextArea;
-    private InputTextField contactField;
 
     public static int addFormForBuyer(GridPane gridPane, int gridRow,
                                       PaymentAccountPayload paymentAccountPayload) {
@@ -78,7 +78,7 @@ public class CashByMailForm extends PaymentMethodForm {
         addTradeCurrencyComboBox();
         currencyComboBox.setItems(FXCollections.observableArrayList(CurrencyUtil.getAllSortedFiatCurrencies()));
 
-        contactField = addInputTextField(gridPane, ++gridRow,
+        InputTextField contactField = addInputTextField(gridPane, ++gridRow,
                 Res.get("payment.cashByMail.contact"));
         contactField.setPromptText(Res.get("payment.cashByMail.contact.prompt"));
         contactField.setValidator(inputValidator);
@@ -110,14 +110,13 @@ public class CashByMailForm extends PaymentMethodForm {
 
     @Override
     protected void autoFillNameTextField() {
-        setAccountNameWithString(contactField.getText());
+        setAccountNameWithString(cashByMailAccount.getContact());
     }
 
     @Override
-    public void addFormForDisplayAccount() {
+    public void addFormForEditAccount() {
         gridRowFrom = gridRow;
-        addTopLabelTextField(gridPane, gridRow, Res.get("payment.account.name"),
-                cashByMailAccount.getAccountName(), Layout.FIRST_ROW_AND_GROUP_DISTANCE);
+        addAccountNameTextFieldWithAutoFillToggleButton();
         addCompactTopLabelTextField(gridPane, ++gridRow, Res.get("shared.paymentMethod"),
                 Res.get(cashByMailAccount.getPaymentMethod().getId()));
 
@@ -143,7 +142,7 @@ public class CashByMailForm extends PaymentMethodForm {
     @Override
     public void updateAllInputsValid() {
         allInputsValid.set(isAccountNameValid()
-                && !postalAddressTextArea.getText().isEmpty()
+                && !cashByMailAccount.getPostalAddress().isEmpty()
                 && inputValidator.validate(cashByMailAccount.getContact()).isValid
                 && paymentAccount.getSingleTradeCurrency() != null);
     }

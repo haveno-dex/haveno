@@ -35,11 +35,11 @@ import bisq.core.support.dispute.messages.DisputeResultMessage;
 import bisq.core.support.dispute.messages.OpenNewDisputeMessage;
 import bisq.core.support.dispute.messages.PeerOpenedDisputeMessage;
 import bisq.core.support.messages.ChatMessage;
+import bisq.core.trade.ClosedTradableManager;
 import bisq.core.trade.Contract;
 import bisq.core.trade.Trade;
 import bisq.core.trade.TradeDataValidation;
 import bisq.core.trade.TradeManager;
-import bisq.core.trade.closed.ClosedTradableManager;
 import bisq.network.p2p.BootstrapListener;
 import bisq.network.p2p.NodeAddress;
 import bisq.network.p2p.P2PService;
@@ -288,6 +288,15 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
 
     public boolean isTrader(Dispute dispute) {
         return pubKeyRing.equals(dispute.getTraderPubKeyRing());
+    }
+
+    public Optional<Dispute> findOwnDispute(String tradeId) {
+        T disputeList = getDisputeList();
+        if (disputeList == null) {
+            log.warn("disputes is null");
+            return Optional.empty();
+        }
+        return disputeList.stream().filter(e -> e.getTradeId().equals(tradeId)).findAny();
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -941,11 +950,11 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
         }
 
         String percentagePriceDetails = offerPayload.isUseMarketBasedPrice() ?
-                " (market based price was used: " + offerPayload.getMarketPriceMargin() * 100 + "%)" :
+                " (market based price was used: " + offerPayload.getMarketPriceMarginPct() * 100 + "%)" :
                 " (fix price was used)";
 
         String priceInfoText = "System message: " + headline +
-                "\n\nTrade price: " + contract.getTradePrice().toFriendlyString() + percentagePriceDetails +
+                "\n\nTrade price: " + contract.getPrice().toFriendlyString() + percentagePriceDetails +
                 "\nTrade amount: " + tradeAmount.toFriendlyString() +
                 "\nPrice at dispute opening: " + priceAtDisputeOpening.toFriendlyString() +
                 optionTradeDetails;

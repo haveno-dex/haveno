@@ -52,13 +52,13 @@ public final class TradeStatisticsForJson {
 
     public TradeStatisticsForJson(TradeStatistics3 tradeStatistics) {
         this.currency = tradeStatistics.getCurrency();
-        this.paymentMethod = tradeStatistics.getPaymentMethod();
+        this.paymentMethod = tradeStatistics.getPaymentMethodId();
         this.tradePrice = tradeStatistics.getPrice();
         this.tradeAmount = tradeStatistics.getAmount();
         this.tradeDate = tradeStatistics.getDateAsLong();
 
         try {
-            Price tradePrice = getTradePrice();
+            Price tradePrice = getPrice();
             if (CurrencyUtil.isCryptoCurrency(currency)) {
                 currencyPair = currency + "/" + Res.getBaseCurrencyCode();
                 primaryMarketTradePrice = tradePrice.getValue();
@@ -82,7 +82,7 @@ public final class TradeStatisticsForJson {
         }
     }
 
-    public Price getTradePrice() {
+    public Price getPrice() {
         return Price.valueOf(currency, tradePrice);
     }
 
@@ -92,7 +92,7 @@ public final class TradeStatisticsForJson {
 
     public Volume getTradeVolume() {
         try {
-            return getTradePrice().getVolumeByAmount(getTradeAmount());
+            return getPrice().getVolumeByAmount(getTradeAmount());
         } catch (Throwable t) {
             return Volume.parse("0", currency);
         }

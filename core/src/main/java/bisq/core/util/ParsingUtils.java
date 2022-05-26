@@ -54,7 +54,7 @@ public class ParsingUtils {
     public static long atomicUnitsToCentineros(long atomicUnits) {
       return atomicUnits / CENTINEROS_AU_MULTIPLIER.longValue();
     }
-    
+
     public static Coin parseToCoin(String input, CoinFormatter coinFormatter) {
         return parseToCoin(input, coinFormatter.getMonetaryFormat());
     }

@@ -7,6 +7,7 @@ import bisq.core.locale.FiatCurrency;
 import bisq.core.locale.GlobalSettings;
 import bisq.core.locale.Res;
 import bisq.core.offer.CreateOfferService;
+import bisq.core.offer.OfferDirection;
 import bisq.core.offer.OfferUtil;
 import bisq.core.payment.ClearXchangeAccount;
 import bisq.core.payment.PaymentAccount;
@@ -27,7 +28,6 @@ import java.util.UUID;
 import org.junit.Before;
 import org.junit.Test;
 
-import static bisq.core.offer.OfferPayload.Direction;
 import static org.junit.Assert.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -96,7 +96,7 @@ public class CreateOfferDataModelTest {
         when(preferences.getSelectedPaymentAccountForCreateOffer()).thenReturn(revolutAccount);
         when(offerUtil.getMakerFee(any())).thenReturn(Coin.ZERO);
 
-        model.initWithData(Direction.BUY, new FiatCurrency("USD"));
+        model.initWithData(OfferDirection.BUY, new FiatCurrency("USD"));
         assertEquals("USD", model.getTradeCurrencyCode().get());
     }
 
@@ -118,7 +118,7 @@ public class CreateOfferDataModelTest {
         when(preferences.getSelectedPaymentAccountForCreateOffer()).thenReturn(revolutAccount);
         when(offerUtil.getMakerFee(any())).thenReturn(Coin.ZERO);
 
-        model.initWithData(Direction.BUY, new FiatCurrency("USD"));
+        model.initWithData(OfferDirection.BUY, new FiatCurrency("USD"));
         assertEquals("USD", model.getTradeCurrencyCode().get());
     }
 }

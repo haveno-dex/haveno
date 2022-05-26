@@ -30,6 +30,7 @@ import bisq.core.trade.Trade.State;
 import bisq.core.trade.messages.SignContractRequest;
 import bisq.core.trade.messages.SignContractResponse;
 import bisq.core.trade.protocol.TradingPeer;
+import bisq.core.util.JsonUtil;
 import bisq.network.p2p.NodeAddress;
 import bisq.network.p2p.SendDirectMessageListener;
 import java.util.Date;
@@ -71,7 +72,7 @@ public class ProcessSignContractRequest extends TradeTask {
 
           // create and sign contract
           Contract contract = trade.createContract();
-          String contractAsJson = Utilities.objectToJson(contract);
+          String contractAsJson = JsonUtil.objectToJson(contract);
           String signature = Sig.sign(processModel.getKeyRing().getSignatureKeyPair().getPrivate(), contractAsJson);
 
           // save contract and signature

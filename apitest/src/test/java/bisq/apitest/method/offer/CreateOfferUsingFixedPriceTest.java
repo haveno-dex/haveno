@@ -28,14 +28,14 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 
 import static bisq.apitest.config.ApiTestConfig.XMR;
-import static bisq.cli.TableFormat.formatOfferTable;
-import static bisq.core.btc.wallet.Restrictions.getDefaultBuyerSecurityDepositAsPercent;
-import static java.util.Collections.singletonList;
+import static bisq.apitest.config.ApiTestConfig.EUR;
+import static bisq.apitest.config.ApiTestConfig.USD;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
-import static protobuf.OfferPayload.Direction.BUY;
-import static protobuf.OfferPayload.Direction.SELL;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static protobuf.OfferDirection.BUY;
+import static protobuf.OfferDirection.SELL;
 
 @Disabled
 @Slf4j
@@ -44,35 +44,44 @@ public class CreateOfferUsingFixedPriceTest extends AbstractOfferTest {
 
     @Test
     @Order(1)
-    public void testCreateAUDXMRBuyOfferUsingFixedPrice16000() {
+    public void testCreateAUDBTCBuyOfferUsingFixedPrice16000() {
         PaymentAccount audAccount = createDummyF2FAccount(aliceClient, "AU");
         var newOffer = aliceClient.createFixedPricedOffer(BUY.name(),
                 "aud",
                 10_000_000L,
                 10_000_000L,
                 "36000",
-                getDefaultBuyerSecurityDepositAsPercent(),
+                defaultBuyerSecurityDepositPct.get(),
                 audAccount.getId());
-        log.info("OFFER #1:\n{}", formatOfferTable(singletonList(newOffer), "AUD"));
+        log.debug("Offer #1:\n{}", toOfferTable.apply(newOffer));
+        assertTrue(newOffer.getIsMyOffer());
+        assertFalse(newOffer.getIsActivated());
+
         String newOfferId = newOffer.getId();
         assertNotEquals("", newOfferId);
         assertEquals(BUY.name(), newOffer.getDirection());
         assertFalse(newOffer.getUseMarketBasedPrice());
-        assertEquals(360_000_000, newOffer.getPrice());
+        assertEquals("36000.0000", newOffer.getPrice());
         assertEquals(10_000_000, newOffer.getAmount());
         assertEquals(10_000_000, newOffer.getMinAmount());
+        assertEquals("3600", newOffer.getVolume());
+        assertEquals("3600", newOffer.getMinVolume());
         assertEquals(1_500_000, newOffer.getBuyerSecurityDeposit());
         assertEquals(audAccount.getId(), newOffer.getPaymentAccountId());
         assertEquals(XMR, newOffer.getBaseCurrencyCode());
         assertEquals("AUD", newOffer.getCounterCurrencyCode());
 
-        newOffer = aliceClient.getMyOffer(newOfferId);
+        newOffer = aliceClient.getOffer(newOfferId);
+        assertTrue(newOffer.getIsMyOffer());
+        assertTrue(newOffer.getIsActivated());
         assertEquals(newOfferId, newOffer.getId());
         assertEquals(BUY.name(), newOffer.getDirection());
         assertFalse(newOffer.getUseMarketBasedPrice());
-        assertEquals(360_000_000, newOffer.getPrice());
+        assertEquals("36000.0000", newOffer.getPrice());
         assertEquals(10_000_000, newOffer.getAmount());
         assertEquals(10_000_000, newOffer.getMinAmount());
+        assertEquals("3600", newOffer.getVolume());
+        assertEquals("3600", newOffer.getMinVolume());
         assertEquals(1_500_000, newOffer.getBuyerSecurityDeposit());
         assertEquals(audAccount.getId(), newOffer.getPaymentAccountId());
         assertEquals(XMR, newOffer.getBaseCurrencyCode());
@@ -81,75 +90,93 @@ public class CreateOfferUsingFixedPriceTest extends AbstractOfferTest {
 
     @Test
     @Order(2)
-    public void testCreateUSDXMRBuyOfferUsingFixedPrice100001234() {
+    public void testCreateUSDBTCBuyOfferUsingFixedPrice100001234() {
         PaymentAccount usdAccount = createDummyF2FAccount(aliceClient, "US");
         var newOffer = aliceClient.createFixedPricedOffer(BUY.name(),
                 "usd",
                 10_000_000L,
                 10_000_000L,
                 "30000.1234",
-                getDefaultBuyerSecurityDepositAsPercent(),
+                defaultBuyerSecurityDepositPct.get(),
                 usdAccount.getId());
-        log.info("OFFER #2:\n{}", formatOfferTable(singletonList(newOffer), "USD"));
+        log.debug("Offer #2:\n{}", toOfferTable.apply(newOffer));
+        assertTrue(newOffer.getIsMyOffer());
+        assertFalse(newOffer.getIsActivated());
+
         String newOfferId = newOffer.getId();
         assertNotEquals("", newOfferId);
         assertEquals(BUY.name(), newOffer.getDirection());
         assertFalse(newOffer.getUseMarketBasedPrice());
-        assertEquals(300_001_234, newOffer.getPrice());
+        assertEquals("30000.1234", newOffer.getPrice());
         assertEquals(10_000_000, newOffer.getAmount());
         assertEquals(10_000_000, newOffer.getMinAmount());
+        assertEquals("3000", newOffer.getVolume());
+        assertEquals("3000", newOffer.getMinVolume());
         assertEquals(1_500_000, newOffer.getBuyerSecurityDeposit());
         assertEquals(usdAccount.getId(), newOffer.getPaymentAccountId());
         assertEquals(XMR, newOffer.getBaseCurrencyCode());
-        assertEquals("USD", newOffer.getCounterCurrencyCode());
+        assertEquals(USD, newOffer.getCounterCurrencyCode());
 
-        newOffer = aliceClient.getMyOffer(newOfferId);
+        newOffer = aliceClient.getOffer(newOfferId);
+        assertTrue(newOffer.getIsMyOffer());
+        assertTrue(newOffer.getIsActivated());
         assertEquals(newOfferId, newOffer.getId());
         assertEquals(BUY.name(), newOffer.getDirection());
         assertFalse(newOffer.getUseMarketBasedPrice());
-        assertEquals(300_001_234, newOffer.getPrice());
+        assertEquals("30000.1234", newOffer.getPrice());
         assertEquals(10_000_000, newOffer.getAmount());
         assertEquals(10_000_000, newOffer.getMinAmount());
+        assertEquals("3000", newOffer.getVolume());
+        assertEquals("3000", newOffer.getMinVolume());
         assertEquals(1_500_000, newOffer.getBuyerSecurityDeposit());
         assertEquals(usdAccount.getId(), newOffer.getPaymentAccountId());
         assertEquals(XMR, newOffer.getBaseCurrencyCode());
-        assertEquals("USD", newOffer.getCounterCurrencyCode());
+        assertEquals(USD, newOffer.getCounterCurrencyCode());
     }
 
     @Test
     @Order(3)
-    public void testCreateEURXMRSellOfferUsingFixedPrice95001234() {
+    public void testCreateEURBTCSellOfferUsingFixedPrice95001234() {
         PaymentAccount eurAccount = createDummyF2FAccount(aliceClient, "FR");
         var newOffer = aliceClient.createFixedPricedOffer(SELL.name(),
                 "eur",
                 10_000_000L,
                 5_000_000L,
                 "29500.1234",
-                getDefaultBuyerSecurityDepositAsPercent(),
+                defaultBuyerSecurityDepositPct.get(),
                 eurAccount.getId());
-        log.info("OFFER #3:\n{}", formatOfferTable(singletonList(newOffer), "EUR"));
+        log.debug("Offer #3:\n{}", toOfferTable.apply(newOffer));
+        assertTrue(newOffer.getIsMyOffer());
+        assertFalse(newOffer.getIsActivated());
+
         String newOfferId = newOffer.getId();
         assertNotEquals("", newOfferId);
         assertEquals(SELL.name(), newOffer.getDirection());
         assertFalse(newOffer.getUseMarketBasedPrice());
-        assertEquals(295_001_234, newOffer.getPrice());
+        assertEquals("29500.1234", newOffer.getPrice());
         assertEquals(10_000_000, newOffer.getAmount());
         assertEquals(5_000_000, newOffer.getMinAmount());
+        assertEquals("2950", newOffer.getVolume());
+        assertEquals("1475", newOffer.getMinVolume());
         assertEquals(1_500_000, newOffer.getBuyerSecurityDeposit());
         assertEquals(eurAccount.getId(), newOffer.getPaymentAccountId());
         assertEquals(XMR, newOffer.getBaseCurrencyCode());
-        assertEquals("EUR", newOffer.getCounterCurrencyCode());
+        assertEquals(EUR, newOffer.getCounterCurrencyCode());
 
-        newOffer = aliceClient.getMyOffer(newOfferId);
+        newOffer = aliceClient.getOffer(newOfferId);
+        assertTrue(newOffer.getIsMyOffer());
+        assertTrue(newOffer.getIsActivated());
         assertEquals(newOfferId, newOffer.getId());
         assertEquals(SELL.name(), newOffer.getDirection());
         assertFalse(newOffer.getUseMarketBasedPrice());
-        assertEquals(295_001_234, newOffer.getPrice());
+        assertEquals("29500.1234", newOffer.getPrice());
         assertEquals(10_000_000, newOffer.getAmount());
         assertEquals(5_000_000, newOffer.getMinAmount());
+        assertEquals("2950", newOffer.getVolume());
+        assertEquals("1475", newOffer.getMinVolume());
         assertEquals(1_500_000, newOffer.getBuyerSecurityDeposit());
         assertEquals(eurAccount.getId(), newOffer.getPaymentAccountId());
         assertEquals(XMR, newOffer.getBaseCurrencyCode());
-        assertEquals("EUR", newOffer.getCounterCurrencyCode());
+        assertEquals(EUR, newOffer.getCounterCurrencyCode());
     }
 }

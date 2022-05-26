@@ -28,13 +28,12 @@ import bisq.desktop.util.Layout;
 
 import bisq.core.account.witness.AccountAgeWitness;
 import bisq.core.account.witness.AccountAgeWitnessService;
-import bisq.core.locale.Country;
 import bisq.core.locale.CurrencyUtil;
 import bisq.core.locale.FiatCurrency;
 import bisq.core.locale.Res;
 import bisq.core.locale.TradeCurrency;
 import bisq.core.offer.Offer;
-import bisq.core.offer.OfferPayload;
+import bisq.core.offer.OfferDirection;
 import bisq.core.payment.AssetAccount;
 import bisq.core.payment.PaymentAccount;
 import bisq.core.payment.payload.PaymentMethod;
@@ -68,11 +67,11 @@ import javafx.collections.FXCollections;
 import javafx.util.StringConverter;
 
 import java.util.Date;
-import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import lombok.extern.slf4j.Slf4j;
 
+import static bisq.desktop.util.DisplayUtils.createAccountName;
 import static bisq.desktop.util.FormBuilder.*;
 
 @Slf4j
@@ -123,19 +122,21 @@ public abstract class PaymentMethodForm {
     }
 
     protected void addAccountNameTextFieldWithAutoFillToggleButton() {
+        boolean isEditMode = paymentAccount.getPersistedAccountName() != null;
         Tuple3<Label, InputTextField, ToggleButton> tuple = addTopLabelInputTextFieldSlideToggleButton(gridPane, ++gridRow,
                 Res.get("payment.account.name"), Res.get("payment.useCustomAccountName"));
         accountNameTextField = tuple.second;
         accountNameTextField.setPrefWidth(300);
-        accountNameTextField.setEditable(false);
+        accountNameTextField.setEditable(isEditMode);
         accountNameTextField.setValidator(inputValidator);
         accountNameTextField.setFocusTraversable(false);
+        accountNameTextField.setText(paymentAccount.getAccountName());
         accountNameTextField.textProperty().addListener((ov, oldValue, newValue) -> {
             paymentAccount.setAccountName(newValue);
             updateAllInputsValid();
         });
         useCustomAccountNameToggleButton = tuple.third;
-        useCustomAccountNameToggleButton.setSelected(false);
+        useCustomAccountNameToggleButton.setSelected(isEditMode);
         useCustomAccountNameToggleButton.setOnAction(e -> {
             boolean selected = useCustomAccountNameToggleButton.isSelected();
             accountNameTextField.setEditable(selected);
@@ -147,7 +148,7 @@ public abstract class PaymentMethodForm {
     public static InfoTextField addOpenTradeDuration(GridPane gridPane,
                                                      int gridRow,
                                                      Offer offer) {
-        long hours = offer.getMaxTradePeriod() / 3600_000;
+        long hours = offer.getPaymentMethod().getMaxTradePeriod() / 3600_000;
         final Tuple3<Label, InfoTextField, VBox> labelInfoTextFieldVBoxTuple3 =
                 addTopLabelInfoTextField(gridPane, gridRow, Res.get("payment.maxPeriod"),
                         getTimeText(hours), -Layout.FLOATING_LABEL_DISTANCE);
@@ -187,14 +188,14 @@ public abstract class PaymentMethodForm {
                 Res.get("payment.maxPeriodAndLimitCrypto",
                         getTimeText(hours),
                         formatter.formatCoinWithCode(Coin.valueOf(accountAgeWitnessService.getMyTradeLimit(
-                                paymentAccount, tradeCurrency.getCode(), OfferPayload.Direction.BUY))))
+                                paymentAccount, tradeCurrency.getCode(), OfferDirection.BUY))))
                 :
                 Res.get("payment.maxPeriodAndLimit",
                         getTimeText(hours),
                         formatter.formatCoinWithCode(Coin.valueOf(accountAgeWitnessService.getMyTradeLimit(
-                                paymentAccount, tradeCurrency.getCode(), OfferPayload.Direction.BUY))),
+                                paymentAccount, tradeCurrency.getCode(), OfferDirection.BUY))),
                         formatter.formatCoinWithCode(Coin.valueOf(accountAgeWitnessService.getMyTradeLimit(
-                                paymentAccount, tradeCurrency.getCode(), OfferPayload.Direction.SELL))),
+                                paymentAccount, tradeCurrency.getCode(), OfferDirection.SELL))),
                         DisplayUtils.formatAccountAge(accountAge));
         return limitationsText;
     }
@@ -287,10 +288,8 @@ public abstract class PaymentMethodForm {
 
     void setAccountNameWithString(String name) {
         if (useCustomAccountNameToggleButton != null && !useCustomAccountNameToggleButton.isSelected()) {
-            name = name.trim();
-            name = StringUtils.abbreviate(name, 9);
-            String method = Res.get(paymentAccount.getPaymentMethod().getId());
-            accountNameTextField.setText(method.concat(": ").concat(name));
+            String accountName = createAccountName(paymentAccount.getPaymentMethod().getId(), name);
+            accountNameTextField.setText(accountName);
         }
     }
 
@@ -313,32 +312,11 @@ public abstract class PaymentMethodForm {
         flowPane.getChildren().add(checkBox);
     }
 
-    void fillUpFlowPaneWithCountries(List<CheckBox> checkBoxList, FlowPane flowPane, Country country) {
-        final String countryCode = country.code;
-        CheckBox checkBox = new AutoTooltipCheckBox(countryCode);
-        checkBox.setUserData(countryCode);
-        checkBoxList.add(checkBox);
-        checkBox.setMouseTransparent(false);
-        checkBox.setMinWidth(45);
-        checkBox.setMaxWidth(45);
-        checkBox.setTooltip(new Tooltip(country.name));
-        checkBox.setOnAction(event -> {
-            if (checkBox.isSelected()) {
-                addAcceptedCountry(countryCode);
-            } else {
-                removeAcceptedCountry(countryCode);
-            }
-
-            updateAllInputsValid();
-        });
-        flowPane.getChildren().add(checkBox);
-    }
-
     protected abstract void autoFillNameTextField();
 
     public abstract void addFormForAddAccount();
 
-    public abstract void addFormForDisplayAccount();
+    public abstract void addFormForEditAccount();
 
     protected abstract void updateAllInputsValid();
 

@@ -19,14 +19,14 @@ package bisq.desktop.main.offer.offerbook;
 
 import bisq.desktop.maker.OfferMaker;
 
-import bisq.core.offer.OfferPayload;
+import bisq.core.offer.OfferDirection;
 
 import com.natpryce.makeiteasy.Instantiator;
 import com.natpryce.makeiteasy.MakeItEasy;
 import com.natpryce.makeiteasy.Maker;
 import com.natpryce.makeiteasy.Property;
 
-import static bisq.desktop.maker.OfferMaker.btcUsdOffer;
+import static bisq.desktop.maker.OfferMaker.xmrUsdOffer;
 import static com.natpryce.makeiteasy.MakeItEasy.a;
 import static com.natpryce.makeiteasy.MakeItEasy.make;
 import static com.natpryce.makeiteasy.MakeItEasy.with;
@@ -37,18 +37,18 @@ public class OfferBookListItemMaker {
     public static final Property<OfferBookListItem, Long> price = new Property<>();
     public static final Property<OfferBookListItem, Long> amount = new Property<>();
     public static final Property<OfferBookListItem, Long> minAmount = new Property<>();
-    public static final Property<OfferBookListItem, OfferPayload.Direction> direction = new Property<>();
+    public static final Property<OfferBookListItem, OfferDirection> direction = new Property<>();
     public static final Property<OfferBookListItem, Boolean> useMarketBasedPrice = new Property<>();
     public static final Property<OfferBookListItem, Double> marketPriceMargin = new Property<>();
     public static final Property<OfferBookListItem, String> baseCurrencyCode = new Property<>();
     public static final Property<OfferBookListItem, String> counterCurrencyCode = new Property<>();
 
     public static final Instantiator<OfferBookListItem> OfferBookListItem = lookup ->
-            new OfferBookListItem(make(btcUsdOffer.but(
+            new OfferBookListItem(make(xmrUsdOffer.but(
                     MakeItEasy.with(OfferMaker.price, lookup.valueOf(price, 100000L)),
                     with(OfferMaker.amount, lookup.valueOf(amount, 100000L)),
                     with(OfferMaker.minAmount, lookup.valueOf(amount, 100000L)),
-                    with(OfferMaker.direction, lookup.valueOf(direction, OfferPayload.Direction.BUY)),
+                    with(OfferMaker.direction, lookup.valueOf(direction, OfferDirection.BUY)),
                     with(OfferMaker.useMarketBasedPrice, lookup.valueOf(useMarketBasedPrice, false)),
                     with(OfferMaker.marketPriceMargin, lookup.valueOf(marketPriceMargin, 0.0)),
                     with(OfferMaker.baseCurrencyCode, lookup.valueOf(baseCurrencyCode, "XMR")),
@@ -57,13 +57,13 @@ public class OfferBookListItemMaker {
             )));
 
     public static final Instantiator<OfferBookListItem> OfferBookListItemWithRange = lookup ->
-            new OfferBookListItem(make(btcUsdOffer.but(
+            new OfferBookListItem(make(xmrUsdOffer.but(
                     MakeItEasy.with(OfferMaker.price, lookup.valueOf(price, 100000L)),
                     with(OfferMaker.minAmount, lookup.valueOf(minAmount, 100000L)),
                     with(OfferMaker.amount, lookup.valueOf(amount, 200000L)))));
 
-    public static final Maker<OfferBookListItem> btcBuyItem = a(OfferBookListItem);
-    public static final Maker<OfferBookListItem> btcSellItem = a(OfferBookListItem, with(direction, OfferPayload.Direction.SELL));
+    public static final Maker<OfferBookListItem> xmrBuyItem = a(OfferBookListItem);
+    public static final Maker<OfferBookListItem> xmrSellItem = a(OfferBookListItem, with(direction, OfferDirection.SELL));
 
-    public static final Maker<OfferBookListItem> btcItemWithRange = a(OfferBookListItemWithRange);
+    public static final Maker<OfferBookListItem> xmrItemWithRange = a(OfferBookListItemWithRange);
 }

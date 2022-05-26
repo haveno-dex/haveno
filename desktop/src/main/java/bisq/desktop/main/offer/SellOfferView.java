@@ -20,7 +20,7 @@ package bisq.desktop.main.offer;
 import bisq.desktop.Navigation;
 import bisq.desktop.common.view.FxmlView;
 import bisq.desktop.common.view.ViewLoader;
-
+import bisq.core.offer.OfferDirection;
 import bisq.core.offer.OfferPayload;
 import bisq.core.support.dispute.arbitration.arbitrator.ArbitratorManager;
 import bisq.core.user.Preferences;
@@ -37,15 +37,13 @@ public class SellOfferView extends OfferView {
     public SellOfferView(ViewLoader viewLoader,
                          Navigation navigation,
                          Preferences preferences,
-                         ArbitratorManager arbitratorManager,
                          User user,
                          P2PService p2PService) {
         super(viewLoader,
                 navigation,
                 preferences,
-                arbitratorManager,
                 user,
                 p2PService,
-                OfferPayload.Direction.SELL);
+                OfferDirection.SELL);
     }
 }

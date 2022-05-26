@@ -19,7 +19,7 @@ option adjustments to compensate.
 
 **Java SDK**:  Version 10, 11, or 12
 
-**Bitcoin-Core**:  Version 0.19, 0.20, or 0.21
+**Bitcoin-Core**:  Version 0.19 - 22
 
 **Git Client**
 
@@ -252,9 +252,9 @@ To remove a custom withdrawal transaction fee rate preference, and revert to the
 $ ./bisq-cli --password=xyz unsettxfeerate
 ```
 
-### Creating Test Payment Accounts
+### Creating Test Fiat Payment Accounts
 
-Creating a payment account using the Api involves three steps:
+Creating a fiat payment account using the Api involves three steps:
 
 1.  Find the payment-method-id  for the payment account type you wish to create.  For example, if you want to
     create a face-to-face type payment account, find the face-to-face  payment-method-id (`F2F`):
@@ -286,6 +286,21 @@ Creating a payment account using the Api involves three steps:
     $ ./bisq-cli --password=xyz --port=9998 getpaymentaccts
     ```
 
+### Creating Test Altcoin Payment Accounts
+
+Unlike more complex fiat payment account setups, the `createcryptopaymentacct` command does not require a json form.
+
+#### XMR Altcoin Payment Accounts
+
+To create an XMR Altcoin payment account associated with example XMR address
+`44G4jWmSvTEfifSUZzTDnJVLPvYATmq9XhhtDqUof1BGCLceG82EQsVYG9Q9GN4bJcjbAJEc1JD1m5G7iK4UPZqACubV4Mq`:
+```
+$ ./bisq-cli --password=xyz --port=9999 createcryptopaymentacct --account-name=XMR-Account \
+        --currency-code=XMR
+        --address=44G4jWmSvTEfifSUZzTDnJVLPvYATmq9XhhtDqUof1BGCLceG82EQsVYG9Q9GN4bJcjbAJEc1JD1m5G7iK4UPZqACubV4Mq
+```
+
+
 ### Creating Offers
 
 The createoffer command is the Api's most complex command (so far), but CLI posix-style options are self-explanatory,
@@ -297,31 +312,29 @@ $ ./bisq-cli --password=xyz --port=9998 createoffer --help
 #### Examples
 
 The `trade-simulation.sh` script described above is an easy way to figure out how to use this command.
-In a previous example, Alice created a BUY/ EUR offer to buy 0.125 BTC at a fixed price of  30,800 EUR,
-and pay the Bisq maker fee in BTC.  Alice had already created an EUR face-to-face payment account with id
+In a previous example, Alice created a BUY/ EUR offer to buy 0.125 BTC at a fixed price of 30,800 EUR. 
+Alice had already created an EUR face-to-face payment account with id
 `f3c1ec8b-9761-458d-b13d-9039c6892413`, and used this `createoffer` command:
 ```
 $ ./bisq-cli --password=xyz --port=9998 createoffer \
-    --payment-account=f3c1ec8b-9761-458d-b13d-9039c6892413 \
+    --payment-account-id=f3c1ec8b-9761-458d-b13d-9039c6892413 \
     --direction=BUY \
     --currency-code=EUR \
     --amount=0.125 \
     --fixed-price=30800 \
-    --security-deposit=15.0 \
-    --fee-currency=BTC
+    --security-deposit=15.0
 ```
 
 If Alice was in Japan, and wanted to create an offer to sell 0.125 BTC at 0.5% above the current market JPY price,
 putting up a 15% security deposit, the `createoffer` command to do that would be:
 ```
 $ ./bisq-cli --password=xyz --port=9998 createoffer \
-    --payment-account=f3c1ec8b-9761-458d-b13d-9039c6892413 \
+    --payment-account-id=f3c1ec8b-9761-458d-b13d-9039c6892413 \
     --direction=SELL \
     --currency-code=JPY \
     --amount=0.125 \
     --market-price-margin=0.5 \
-    --security-deposit=15.0 \
-    --fee-currency=BTC
+    --security-deposit=15.0
 ```
 
 The `trade-simulation.sh` script options that would generate the previous `createoffer` example is:
@@ -340,7 +353,7 @@ $ ./bisq-cli --password=xyz --port=9998 getmyoffers --direction=<BUY|SELL> --cur
 
 To look at a specific offer you created:
 ```
-$ ./bisq-cli --password=xyz --port=9998 getmyoffer --offer-id=<offer-id>
+$ ./bisq-cli --password=xyz --port=9998 getoffer --offer-id=<offer-id>
 ```
 
 ### Browsing Available Offers
@@ -365,8 +378,116 @@ The offer will be removed from other Bisq users' offer views, and paid transacti
 
 ### Editing an Existing Offer
 
-Editing existing offers is not yet supported.  You can cancel and re-create an offer, but paid transaction fees
-for the canceled offer will be forfeited.
+Offers you create can be edited in various ways:
+
+- Disable or re-enable an offer.
+- Change an offer's price model and disable (or re-enable) it.
+- Change a market price margin based offer to a fixed price offer.
+- Change a market price margin based offer's price margin.
+- Change, set, or remove a trigger price on a market price margin based offer.
+- Change a market price margin based offer's price margin and trigger price.
+- Change a market price margin based offer's price margin and remove its trigger price.
+- Change a fixed price offer to a market price margin based offer.
+- Change a fixed price offer's fixed price.
+
+_Note: the API does not support editing an offer's payment account._
+
+The subsections below contain examples related to specific use cases.
+
+#### Enable and Disable Offer
+
+Existing offers you create can be disabled (removed from offer book) and re-enabled (re-published to offer book).
+
+To disable an offer:
+```
+./bisq-cli --password=xyz --port=9998 editoffer \
+    --offer-id=83e8b2e2-51b6-4f39-a748-3ebd29c22aea \
+    --enable=false
+```
+
+To enable an offer:
+```
+./bisq-cli --password=xyz --port=9998 editoffer \
+    --offer-id=83e8b2e2-51b6-4f39-a748-3ebd29c22aea \
+    --enable=true
+```
+
+#### Change Offer Pricing Model
+The `editoffer` command can be used to change an existing market price margin based offer to a fixed price offer,
+and vice-versa.
+
+##### Change Market Price Margin Based to Fixed Price Offer
+Suppose you used `createoffer` to create a market price margin based offer as follows:
+```
+$ ./bisq-cli --password=xyz --port=9998 createoffer \
+    --payment-account-id=f3c1ec8b-9761-458d-b13d-9039c6892413 \
+    --direction=SELL \
+    --currency-code=JPY \
+    --amount=0.125 \
+    --market-price-margin=0.5 \
+    --security-deposit=15.0
+```
+To change the market price margin based offer to a fixed price offer:
+```
+./bisq-cli --password=xyz --port=9998 editoffer \
+    --offer-id=83e8b2e2-51b6-4f39-a748-3ebd29c22aea \
+    --fixed-price=3960000.5555
+```
+
+##### Change Fixed Price Offer to Market Price Margin Based Offer
+Suppose you used `createoffer` to create a fixed price offer as follows:
+```
+$ ./bisq-cli --password=xyz --port=9998 createoffer \
+    --payment-account-id=f3c1ec8b-9761-458d-b13d-9039c6892413 \
+    --direction=SELL \
+    --currency-code=JPY \
+    --amount=0.125 \
+    --fixed-price=3960000.0000 \
+    --security-deposit=15.0
+```
+To change the fixed price offer to a market price margin based offer:
+```
+./bisq-cli --password=xyz --port=9998 editoffer \
+    --offer-id=83e8b2e2-51b6-4f39-a748-3ebd29c22aea \
+    --market-price-margin=0.5
+```
+Alternatively, you can also set a trigger price on the re-published, market price margin based offer.
+A trigger price on a SELL offer causes the offer to be automatically disabled when the market price
+falls below the trigger price.  In the `editoffer` example below, the SELL offer will be disabled when
+the JPY market price falls below 3960000.0000.
+
+```
+./bisq-cli --password=xyz --port=9998 editoffer \
+    --offer-id=83e8b2e2-51b6-4f39-a748-3ebd29c22aea \
+    --market-price-margin=0.5 \
+    --trigger-price=3960000.0000
+```
+On a BUY offer, a trigger price causes the BUY offer to be automatically disabled when the market price
+rises above the trigger price.
+
+_Note: Disabled offers never automatically re-enable; they can only be manually re-enabled via
+`editoffer --offer-id=<id> --enable=true`._
+
+#### Remove Trigger Price
+To remove a trigger price on a market price margin based offer, set the trigger price to 0:
+```
+./bisq-cli --password=xyz --port=9998 editoffer \
+    --offer-id=83e8b2e2-51b6-4f39-a748-3ebd29c22aea \
+    --trigger-price=0
+```
+
+#### Change Disabled Offer's Pricing Model and Enable It
+You can use `editoffer` to simultaneously change an offer's price details and disable or re-enable it.
+
+Suppose you have a disabled, fixed price offer, and want to change it to a market price margin based offer, set
+a trigger price, and re-enable it:
+```
+./bisq-cli --password=xyz --port=9998 editoffer \
+    --offer-id=83e8b2e2-51b6-4f39-a748-3ebd29c22aea \
+    --market-price-margin=0.5 \
+    --trigger-price=3960000.0000 \
+    --enable=true
+```
 
 ### Taking Offers
 
@@ -377,16 +498,14 @@ A CLI user browses available offers with the getoffers command.  For example, th
 $ ./bisq-cli --password=xyz --port=9998  getoffers --direction=SELL --currency-code=EUR
 ```
 
-And takes one of the available offers with an EUR payment account ( id `fe20cdbd-22be-4b8a-a4b6-d2608ff09d6e`)
+Then takes one of the available offers with an EUR payment account ( id `fe20cdbd-22be-4b8a-a4b6-d2608ff09d6e`)
 with the `takeoffer` command:
 ```
 $ ./bisq-cli --password=xyz --port=9998 takeoffer \
     --offer-id=83e8b2e2-51b6-4f39-a748-3ebd29c22aea \
-    --payment-account=fe20cdbd-22be-4b8a-a4b6-d2608ff09d6e \
-    --fee-currency=btc
+    --payment-account-id=fe20cdbd-22be-4b8a-a4b6-d2608ff09d6e
 ```
-The taken offer will be used to create a trade contract.  The next section describes how to use the Api to execute
-the trade.
+The next section describes how to use the Api to execute a trade.
 
 ### Completing Trade Protocol
 
@@ -429,19 +548,19 @@ protocol completed.  There are three CLI commands that must be performed in coor
 ```
 confirmpaymentstarted       Buyer sends seller a message confirming payment has been sent.
 confirmpaymentreceived      Seller sends buyer a message confirming payment has been received.
-keepfunds                   Keep trade proceeds in their Bisq wallets.
+closetrade                  Set trade state to CLOSED, and keep trade proceeds in user's Bisq wallet.
     OR
-withdrawfunds               Send trade proceeds to an external wallet.
+withdrawfunds               Set trade state to CLOSED, and send trade proceeds to an external wallet.
 ```
-The last two mutually exclusive commands (`keepfunds` or `withdrawfunds`) may seem unnecessary, but they are critical
-because they inform the Bisq node that a trade’s state can be set to `CLOSED`.  Please close out your trades with one
+The last two mutually exclusive commands (`closetrade` or `withdrawfunds`) may seem unnecessary, but they are critical
+because they tell the Bisq node to set a completed trade’s state `CLOSED`.  Please close out your trades with one
 or the other command.
 
 Each of the CLI commands above takes one argument:  `--trade-id=<trade-id>`:
 ```
 $ ./bisq-cli --password=xyz --port=9998 confirmpaymentstarted --trade-id=<trade-id>
 $ ./bisq-cli --password=xyz --port=9999 confirmpaymentreceived --trade-id=<trade-id>
-$ ./bisq-cli --password=xyz --port=9998 keepfunds --trade-id=<trade-id>
+$ ./bisq-cli --password=xyz --port=9998 closetrade --trade-id=<trade-id>
 $ ./bisq-cli --password=xyz --port=9999 withdrawfunds --trade-id=<trade-id> --address=<btc-address> [--memo=<"memo">]
 ```
 

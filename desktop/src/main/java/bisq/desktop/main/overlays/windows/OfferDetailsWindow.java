@@ -33,12 +33,14 @@ import bisq.core.locale.CountryUtil;
 import bisq.core.locale.Res;
 import bisq.core.monetary.Price;
 import bisq.core.offer.Offer;
+import bisq.core.offer.OfferDirection;
 import bisq.core.offer.OfferPayload;
 import bisq.core.offer.OfferUtil;
 import bisq.core.payment.PaymentAccount;
 import bisq.core.payment.payload.PaymentMethod;
 import bisq.core.user.User;
 import bisq.core.util.FormattingUtils;
+import bisq.core.util.VolumeUtil;
 import bisq.core.util.coin.CoinFormatter;
 
 import bisq.common.crypto.KeyRing;
@@ -175,7 +177,7 @@ public class OfferDetailsWindow extends Overlay<OfferDetailsWindow> {
         if (isF2F)
             rows++;
 
-        boolean showXmrAutoConf = offer.isXmr() && offer.getDirection() == OfferPayload.Direction.SELL;
+        boolean showXmrAutoConf = offer.isXmr() && offer.getDirection() == OfferDirection.SELL;
         if (showXmrAutoConf) {
             rows++;
         }
@@ -184,7 +186,7 @@ public class OfferDetailsWindow extends Overlay<OfferDetailsWindow> {
 
         String fiatDirectionInfo = "";
         String btcDirectionInfo = "";
-        OfferPayload.Direction direction = offer.getDirection();
+        OfferDirection direction = offer.getDirection();
         String currencyCode = offer.getCurrencyCode();
         String offerTypeLabel = Res.get("shared.offerType");
         String toReceive = " " + Res.get("shared.toReceive");
@@ -193,35 +195,35 @@ public class OfferDetailsWindow extends Overlay<OfferDetailsWindow> {
         if (takeOfferHandlerOptional.isPresent()) {
             addConfirmationLabelLabel(gridPane, rowIndex, offerTypeLabel,
                     DisplayUtils.getDirectionForTakeOffer(direction, currencyCode), firstRowDistance);
-            fiatDirectionInfo = direction == OfferPayload.Direction.BUY ? toReceive : toSpend;
-            btcDirectionInfo = direction == OfferPayload.Direction.SELL ? toReceive : toSpend;
+            fiatDirectionInfo = direction == OfferDirection.BUY ? toReceive : toSpend;
+            btcDirectionInfo = direction == OfferDirection.SELL ? toReceive : toSpend;
         } else if (placeOfferHandlerOptional.isPresent()) {
             addConfirmationLabelLabel(gridPane, rowIndex, offerTypeLabel,
                     DisplayUtils.getOfferDirectionForCreateOffer(direction, currencyCode), firstRowDistance);
-            fiatDirectionInfo = direction == OfferPayload.Direction.SELL ? toReceive : toSpend;
-            btcDirectionInfo = direction == OfferPayload.Direction.BUY ? toReceive : toSpend;
+            fiatDirectionInfo = direction == OfferDirection.SELL ? toReceive : toSpend;
+            btcDirectionInfo = direction == OfferDirection.BUY ? toReceive : toSpend;
         } else {
             addConfirmationLabelLabel(gridPane, rowIndex, offerTypeLabel,
-                    DisplayUtils.getDirectionBothSides(direction, currencyCode), firstRowDistance);
+                    DisplayUtils.getDirectionBothSides(direction), firstRowDistance);
         }
         String btcAmount = Res.get("shared.btcAmount");
         if (takeOfferHandlerOptional.isPresent()) {
             addConfirmationLabelLabel(gridPane, ++rowIndex, btcAmount + btcDirectionInfo,
                     formatter.formatCoinWithCode(tradeAmount));
-            addConfirmationLabelLabel(gridPane, ++rowIndex, DisplayUtils.formatVolumeLabel(currencyCode) + fiatDirectionInfo,
-                    DisplayUtils.formatVolumeWithCode(offer.getVolumeByAmount(tradeAmount)));
+            addConfirmationLabelLabel(gridPane, ++rowIndex, VolumeUtil.formatVolumeLabel(currencyCode) + fiatDirectionInfo,
+                    VolumeUtil.formatVolumeWithCode(offer.getVolumeByAmount(tradeAmount)));
         } else {
             addConfirmationLabelLabel(gridPane, ++rowIndex, btcAmount + btcDirectionInfo,
                     formatter.formatCoinWithCode(offer.getAmount()));
             addConfirmationLabelLabel(gridPane, ++rowIndex, Res.get("offerDetailsWindow.minBtcAmount"),
                     formatter.formatCoinWithCode(offer.getMinAmount()));
-            String volume = DisplayUtils.formatVolumeWithCode(offer.getVolume());
+            String volume = VolumeUtil.formatVolumeWithCode(offer.getVolume());
             String minVolume = "";
             if (offer.getVolume() != null && offer.getMinVolume() != null &&
                     !offer.getVolume().equals(offer.getMinVolume()))
-                minVolume = " " + Res.get("offerDetailsWindow.min", DisplayUtils.formatVolumeWithCode(offer.getMinVolume()));
+                minVolume = " " + Res.get("offerDetailsWindow.min", VolumeUtil.formatVolumeWithCode(offer.getMinVolume()));
             addConfirmationLabelLabel(gridPane, ++rowIndex,
-                    DisplayUtils.formatVolumeLabel(currencyCode) + fiatDirectionInfo, volume + minVolume);
+                    VolumeUtil.formatVolumeLabel(currencyCode) + fiatDirectionInfo, volume + minVolume);
         }
 
         String priceLabel = Res.get("shared.price");
@@ -232,7 +234,7 @@ public class OfferDetailsWindow extends Overlay<OfferDetailsWindow> {
             if (offer.isUseMarketBasedPrice()) {
                 addConfirmationLabelLabel(gridPane, ++rowIndex, priceLabel, FormattingUtils.formatPrice(price) +
                         " " + Res.get("offerDetailsWindow.distance",
-                        FormattingUtils.formatPercentagePrice(offer.getMarketPriceMargin())));
+                        FormattingUtils.formatPercentagePrice(offer.getMarketPriceMarginPct())));
             } else {
                 addConfirmationLabelLabel(gridPane, ++rowIndex, priceLabel, FormattingUtils.formatPrice(price));
             }

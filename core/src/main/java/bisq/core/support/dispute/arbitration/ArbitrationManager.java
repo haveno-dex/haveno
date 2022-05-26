@@ -38,11 +38,11 @@ import bisq.core.support.dispute.messages.OpenNewDisputeMessage;
 import bisq.core.support.dispute.messages.PeerOpenedDisputeMessage;
 import bisq.core.support.messages.ChatMessage;
 import bisq.core.support.messages.SupportMessage;
+import bisq.core.trade.ClosedTradableManager;
 import bisq.core.trade.Contract;
 import bisq.core.trade.Tradable;
 import bisq.core.trade.Trade;
 import bisq.core.trade.TradeManager;
-import bisq.core.trade.closed.ClosedTradableManager;
 import bisq.core.util.ParsingUtils;
 
 import bisq.network.p2p.AckMessageSourceType;
@@ -63,7 +63,6 @@ import com.google.inject.Singleton;
 
 import java.math.BigInteger;
 
-import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -498,6 +497,7 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
 
       // gather trade info
       MoneroWallet multisigWallet = xmrWalletService.getMultisigWallet(tradeId);
+      multisigWallet.sync();
       Optional<Dispute> disputeOptional = findDispute(tradeId);
       if (!disputeOptional.isPresent()) throw new RuntimeException("Trader has no dispute when signing dispute payout tx. This should never happen. TradeId = " + tradeId);
       Dispute dispute = disputeOptional.get();

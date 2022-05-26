@@ -1,6 +1,6 @@
 .root {
-    -bs-color-primary: #f1482d;
-    -bs-color-primary-dark: #c43f3d;
+    -bs-color-primary: #25b135;
+    -bs-color-primary-dark: #2ea33c;
     -bs-text-color: #000000;
     -bs-background-color: #ffffff;
     -bs-background-gray: #dddddd;
@@ -108,13 +108,20 @@
     /* dao chart colors */
     -bs-chart-dao-line1: -bs-color-blue-5;
     -bs-chart-dao-line2: -bs-color-green-3;
-    -bs-chart-dao-line3: -bs-turquoise;
-    -bs-chart-dao-line4: -bs-turquoise-light;
+    -bs-chart-dao-line3: #0195fe;
+    -bs-chart-dao-line4: -bs-soft-red;
     -bs-chart-dao-line5: -bs-yellow;
-    -bs-chart-dao-line6: -bs-soft-red;
+    -bs-chart-dao-line6: -bs-turquoise-light;
+    -bs-chart-dao-line7: #ff6c00;
+    -bs-chart-dao-line8: -bs-turquoise;
+    -bs-chart-dao-line9: #7fad01;
+    -bs-chart-dao-line10: #420080;
+    -bs-chart-dao-line11: #ff3939;
 
     /* Monero orange color code */
     -xmr-orange: #f26822;
+
+    -bs-support-chat-background: #4b4b4b;
 }
 
 .warning-box {

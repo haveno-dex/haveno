@@ -47,7 +47,7 @@ import java.lang.reflect.Type;
 
 import lombok.extern.slf4j.Slf4j;
 
-import static bisq.core.payment.payload.PaymentMethod.getPaymentMethodById;
+import static bisq.core.payment.payload.PaymentMethod.getPaymentMethod;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static java.lang.String.format;
 import static java.lang.System.getProperty;
@@ -134,11 +134,12 @@ public class PaymentAccountForm {
             "maxTradePeriod",
             "paymentAccountPayload",
             "paymentMethod",
-            "paymentMethodId",  // This field will be included, but handled differently.
-            "selectedTradeCurrency",
-            "tradeCurrencies",  // This field may be included, but handled differently.
+            "paymentMethodId",          // Will be included, but handled differently.
+            "persistedAccountName",     // Automatically set in PaymentAccount.onPersistChanges().
+            "selectedTradeCurrency",    // May be included, but handled differently.
+            "tradeCurrencies",          // May be included, but handled differently.
             "HOLDER_NAME",
-            "SALT"              // This field will be included, but handled differently.
+            "SALT"                      // Will be included, but handled differently.
     };
 
     /**
@@ -148,7 +149,7 @@ public class PaymentAccountForm {
      * @return A uniquely named tmp file used to define new payment account details.
      */
     public File getPaymentAccountForm(String paymentMethodId) {
-        PaymentMethod paymentMethod = getPaymentMethodById(paymentMethodId);
+        PaymentMethod paymentMethod = getPaymentMethod(paymentMethodId);
         File file = getTmpJsonFile(paymentMethodId);
         try (OutputStreamWriter outputStreamWriter = new OutputStreamWriter(new FileOutputStream(checkNotNull(file), false), UTF_8)) {
             PaymentAccount paymentAccount = PaymentAccountFactory.getPaymentAccount(paymentMethod);
@@ -244,7 +245,7 @@ public class PaymentAccountForm {
     }
 
     private Class<? extends PaymentAccount> getPaymentAccountClass(String paymentMethodId) {
-        PaymentMethod paymentMethod = getPaymentMethodById(paymentMethodId);
+        PaymentMethod paymentMethod = getPaymentMethod(paymentMethodId);
         return PaymentAccountFactory.getPaymentAccount(paymentMethod).getClass();
     }
 }

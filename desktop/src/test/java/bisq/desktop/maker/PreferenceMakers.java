@@ -45,7 +45,8 @@ public class PreferenceMakers {
             lookup.valueOf(config, new SameValueDonor<Config>(null)),
             lookup.valueOf(feeService, new SameValueDonor<FeeService>(null)),
             lookup.valueOf(localBitcoinNode, new SameValueDonor<LocalBitcoinNode>(null)),
-            lookup.valueOf(useTorFlagFromOptions, new SameValueDonor<String>(null)));
+            lookup.valueOf(useTorFlagFromOptions, new SameValueDonor<String>(null))
+            );
 
     public static final Preferences empty = make(a(Preferences));
 

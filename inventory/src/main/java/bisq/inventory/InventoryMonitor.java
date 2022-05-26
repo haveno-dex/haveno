@@ -26,7 +26,7 @@ import bisq.core.network.p2p.inventory.model.InventoryItem;
 import bisq.core.network.p2p.inventory.model.RequestInfo;
 import bisq.core.network.p2p.seed.DefaultSeedNodeRepository;
 import bisq.core.proto.network.CoreNetworkProtoResolver;
-
+import bisq.core.util.JsonUtil;
 import bisq.network.p2p.NetworkNodeProvider;
 import bisq.network.p2p.NodeAddress;
 import bisq.network.p2p.network.NetworkNode;
@@ -236,7 +236,7 @@ public class InventoryMonitor implements SetupListener {
 
         inventoryWebServer.onNewRequestInfo(requestInfoListByNode, requestCounter);
 
-        String json = Utilities.objectToJson(requestInfo);
+        String json = JsonUtil.objectToJson(requestInfo);
         jsonFileManagerByNodeAddress.get(nodeAddress).writeToDisc(json, String.valueOf(requestInfo.getRequestStartTime()));
     }
 

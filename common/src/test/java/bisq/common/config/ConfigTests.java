@@ -139,9 +139,9 @@ public class ConfigTests {
 
     @Test
     public void whenConfigFileOptionIsSetToNonExistentFile_thenConfigExceptionIsThrown() {
-        String filepath = "/no/such/bisq.properties";
+        String filepath = "/no/such/haveno.properties";
         if (System.getProperty("os.name").startsWith("Windows")) {
-            filepath = "C:\\no\\such\\bisq.properties";
+            filepath = "C:\\no\\such\\haveno.properties";
         }
         exceptionRule.expect(ConfigException.class);
         exceptionRule.expectMessage(format("The specified config file '%s' does not exist", filepath));
@@ -152,7 +152,7 @@ public class ConfigTests {
     public void whenConfigFileOptionIsSetInConfigFile_thenConfigExceptionIsThrown() throws IOException {
         File configFile = File.createTempFile("bisq", "properties");
         try (PrintWriter writer = new PrintWriter(configFile)) {
-            writer.println(new ConfigFileOption(CONFIG_FILE, "/tmp/other.bisq.properties"));
+            writer.println(new ConfigFileOption(CONFIG_FILE, "/tmp/other.haveno.properties"));
         }
         exceptionRule.expect(ConfigException.class);
         exceptionRule.expectMessage(format("The '%s' option is disallowed in config files", CONFIG_FILE));

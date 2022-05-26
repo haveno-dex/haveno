@@ -37,13 +37,14 @@ import bisq.core.support.dispute.arbitration.arbitrator.Arbitrator;
 import bisq.core.support.dispute.arbitration.arbitrator.ArbitratorManager;
 import bisq.core.support.dispute.mediation.mediator.Mediator;
 import bisq.core.support.dispute.mediation.mediator.MediatorManager;
+import bisq.core.trade.ClosedTradableManager;
 import bisq.core.trade.TradableList;
 import bisq.core.trade.TradeUtils;
-import bisq.core.trade.closed.ClosedTradableManager;
 import bisq.core.trade.handlers.TransactionResultHandler;
 import bisq.core.trade.statistics.TradeStatisticsManager;
 import bisq.core.user.Preferences;
 import bisq.core.user.User;
+import bisq.core.util.JsonUtil;
 import bisq.core.util.ParsingUtils;
 import bisq.core.util.Validator;
 
@@ -224,9 +225,10 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
 
         cleanUpAddressEntries();
 
-        openOffers.stream()
-                .forEach(openOffer -> OfferUtil.getInvalidMakerFeeTxErrorMessage(openOffer.getOffer(), btcWalletService)
-                        .ifPresent(errorMsg -> invalidOffers.add(new Tuple2<>(openOffer, errorMsg))));
+        // TODO: add to invalid offers on failure
+//        openOffers.stream()
+//                .forEach(openOffer -> OfferUtil.getInvalidMakerFeeTxErrorMessage(openOffer.getOffer(), btcWalletService)
+//                        .ifPresent(errorMsg -> invalidOffers.add(new Tuple2<>(openOffer, errorMsg))));
 
         // process unposted offers
         processUnpostedOffers((transaction) -> {}, (errMessage) -> {
@@ -823,7 +825,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
             // verify maker's reserve tx (double spend, trade fee, trade amount, mining fee)
             Offer offer = new Offer(request.getOfferPayload());
             BigInteger tradeFee = ParsingUtils.coinToAtomicUnits(offer.getMakerFee());
-            BigInteger depositAmount = ParsingUtils.coinToAtomicUnits(offer.getDirection() == OfferPayload.Direction.BUY ? offer.getBuyerSecurityDeposit() : offer.getAmount().add(offer.getSellerSecurityDeposit()));
+            BigInteger depositAmount = ParsingUtils.coinToAtomicUnits(offer.getDirection() == OfferDirection.BUY ? offer.getBuyerSecurityDeposit() : offer.getAmount().add(offer.getSellerSecurityDeposit()));
             xmrWalletService.verifyTradeTx(
                     request.getPayoutAddress(),
                     depositAmount,
@@ -835,7 +837,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                     true);
 
             // arbitrator signs offer to certify they have valid reserve tx
-            String offerPayloadAsJson = Utilities.objectToJson(request.getOfferPayload());
+            String offerPayloadAsJson = JsonUtil.objectToJson(request.getOfferPayload());
             String signature = Sig.sign(keyRing.getSignatureKeyPair().getPrivate(), offerPayloadAsJson);
             OfferPayload signedOfferPayload = request.getOfferPayload();
             signedOfferPayload.setArbitratorSignature(signature);
@@ -962,14 +964,14 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                                 openOffer.setBackupArbitrator(backupArbitratorNodeAddress);
                                 
                                 // maker signs taker's request // TODO (woodser): should maker signature include selected arbitrator?
-                                String tradeRequestAsJson = Utilities.objectToJson(request.getTradeRequest());
+                                String tradeRequestAsJson = JsonUtil.objectToJson(request.getTradeRequest());
                                 makerSignature = Sig.sign(keyRing.getSignatureKeyPair().getPrivate(), tradeRequestAsJson);
 
                                 try {
                                     // Check also tradePrice to avoid failures after taker fee is paid caused by a too big difference
                                     // in trade price between the peers. Also here poor connectivity might cause market price API connection
                                     // losses and therefore an outdated market price.
-                                    offer.checkTradePriceTolerance(request.getTakersTradePrice());
+                                    offer.verifyTakersTradePrice(request.getTakersTradePrice());
                                     availabilityResult = AvailabilityResult.AVAILABLE;
                                 } catch (TradePriceOutOfToleranceException e) {
                                     log.warn("Trade price check failed because takers price is outside out tolerance.");
@@ -1155,7 +1157,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                         originalOfferPayload.getPubKeyRing(),
                         originalOfferPayload.getDirection(),
                         originalOfferPayload.getPrice(),
-                        originalOfferPayload.getMarketPriceMargin(),
+                        originalOfferPayload.getMarketPriceMarginPct(),
                         originalOfferPayload.isUseMarketBasedPrice(),
                         originalOfferPayload.getAmount(),
                         originalOfferPayload.getMinAmount(),

@@ -71,7 +71,6 @@ public class LongRunningTradesTest extends AbstractTradeTest {
         test.testTakeAlicesBuyOffer(testInfo);
         test.testAlicesConfirmPaymentStarted(testInfo);
         test.testBobsConfirmPaymentReceived(testInfo);
-        test.testAlicesKeepFunds(testInfo);
     }
 
     public void testTakeSellBTCOffer(final TestInfo testInfo) {
@@ -80,7 +79,6 @@ public class LongRunningTradesTest extends AbstractTradeTest {
         test.testTakeAlicesSellOffer(testInfo);
         test.testBobsConfirmPaymentStarted(testInfo);
         test.testAlicesConfirmPaymentReceived(testInfo);
-        test.testBobsBtcWithdrawalToExternalAddress(testInfo);
     }
 
     protected static boolean envLongRunningTestEnabled() {

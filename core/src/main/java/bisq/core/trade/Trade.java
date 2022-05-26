@@ -23,7 +23,7 @@ import bisq.core.locale.CurrencyUtil;
 import bisq.core.monetary.Price;
 import bisq.core.monetary.Volume;
 import bisq.core.offer.Offer;
-import bisq.core.offer.OfferPayload.Direction;
+import bisq.core.offer.OfferDirection;
 import bisq.core.payment.payload.PaymentMethod;
 import bisq.core.proto.CoreProtoResolver;
 import bisq.core.support.dispute.arbitration.arbitrator.Arbitrator;
@@ -335,16 +335,16 @@ public abstract class Trade implements Tradable, Model {
     private String payoutTxId;
     @Getter
     @Setter
-    private long tradeAmountAsLong;
+    private long amountAsLong;
     @Setter
-    private long tradePrice;
+    private long price;
     @Nullable
     @Getter
     private State state = State.PREPARATION;
     @Getter
     private DisputeState disputeState = DisputeState.NO_DISPUTE;
     @Getter
-    private TradePeriodState tradePeriodState = TradePeriodState.FIRST_HALF;
+    private TradePeriodState periodState = TradePeriodState.FIRST_HALF;
     @Nullable
     @Getter
     @Setter
@@ -393,9 +393,9 @@ public abstract class Trade implements Tradable, Model {
     transient final private ObjectProperty<State> stateProperty = new SimpleObjectProperty<>(state);
     transient final private ObjectProperty<Phase> statePhaseProperty = new SimpleObjectProperty<>(state.phase);
     transient final private ObjectProperty<DisputeState> disputeStateProperty = new SimpleObjectProperty<>(disputeState);
-    transient final private ObjectProperty<TradePeriodState> tradePeriodStateProperty = new SimpleObjectProperty<>(tradePeriodState);
+    transient final private ObjectProperty<TradePeriodState> tradePeriodStateProperty = new SimpleObjectProperty<>(periodState);
     transient final private StringProperty errorMessageProperty = new SimpleStringProperty();
-
+    
     //  Mutable
     @Getter
     transient private boolean isInitialized;
@@ -497,7 +497,7 @@ public abstract class Trade implements Tradable, Model {
         this.tradeAmount = tradeAmount;
         this.txFee = Coin.valueOf(0);   // TODO (woodser): remove this field
         this.takerFee = takerFee;
-        this.tradePrice = tradePrice;
+        this.price = tradePrice;
         this.xmrWalletService = xmrWalletService;
         this.processModel = processModel;
         this.uid = uid;
@@ -511,7 +511,7 @@ public abstract class Trade implements Tradable, Model {
         this.takerNodeAddress = takerNodeAddress;
         this.arbitratorNodeAddress = arbitratorNodeAddress;
         
-        setTradeAmount(tradeAmount);
+        setAmount(tradeAmount);
     }
 
 
@@ -570,7 +570,7 @@ public abstract class Trade implements Tradable, Model {
               takerNodeAddress,
               arbitratorNodeAddress);
 
-        setTradeAmount(tradeAmount);
+        setAmount(tradeAmount);
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -585,11 +585,11 @@ public abstract class Trade implements Tradable, Model {
                 .setTakerFeeAsLong(takerFeeAsLong)
                 .setTakeOfferDate(takeOfferDate)
                 .setProcessModel(processModel.toProtoMessage())
-                .setTradeAmountAsLong(tradeAmountAsLong)
-                .setTradePrice(tradePrice)
+                .setAmountAsLong(amountAsLong)
+                .setPrice(price)
                 .setState(Trade.State.toProtoMessage(state))
                 .setDisputeState(Trade.DisputeState.toProtoMessage(disputeState))
-                .setTradePeriodState(Trade.TradePeriodState.toProtoMessage(tradePeriodState))
+                .setPeriodState(Trade.TradePeriodState.toProtoMessage(periodState))
                 .addAllChatMessage(chatMessages.stream()
                         .map(msg -> msg.toProtoNetworkEnvelope().getChatMessage())
                         .collect(Collectors.toList()))
@@ -625,7 +625,7 @@ public abstract class Trade implements Tradable, Model {
         trade.setTakeOfferDate(proto.getTakeOfferDate());
         trade.setState(State.fromProto(proto.getState()));
         trade.setDisputeState(DisputeState.fromProto(proto.getDisputeState()));
-        trade.setTradePeriodState(TradePeriodState.fromProto(proto.getTradePeriodState()));
+        trade.setPeriodState(TradePeriodState.fromProto(proto.getPeriodState()));
         trade.setTakerFeeTxId(ProtoUtil.stringOrNullFromProto(proto.getTakerFeeTxId()));
         trade.setPayoutTxId(ProtoUtil.stringOrNullFromProto(proto.getPayoutTxId()));
         trade.setContract(proto.hasContract() ? Contract.fromProto(proto.getContract(), coreProtoResolver) : null);
@@ -715,11 +715,11 @@ public abstract class Trade implements Tradable, Model {
      * @return the contract
      */
     public Contract createContract() {
-        boolean isBuyerMakerAndSellerTaker = getOffer().getDirection() == Direction.BUY;
+        boolean isBuyerMakerAndSellerTaker = getOffer().getDirection() == OfferDirection.BUY;
         Contract contract = new Contract(
                 getOffer().getOfferPayload(),
-                checkNotNull(getTradeAmount()).value,
-                getTradePrice().getValue(),
+                checkNotNull(getAmount()).value,
+                getPrice().getValue(),
                 isBuyerMakerAndSellerTaker ? getMakerNodeAddress() : getTakerNodeAddress(), // buyer node address // TODO (woodser): use maker and taker node address instead of buyer and seller node address for consistency
                 isBuyerMakerAndSellerTaker ? getTakerNodeAddress() : getMakerNodeAddress(), // seller node address
                 getArbitratorNodeAddress(),
@@ -757,7 +757,7 @@ public abstract class Trade implements Tradable, Model {
         Preconditions.checkNotNull(buyerPayoutAddress, "Buyer payout address must not be null");
         BigInteger sellerDepositAmount = multisigWallet.getTx(this.getSeller().getDepositTxHash()).getIncomingAmount();
         BigInteger buyerDepositAmount = multisigWallet.getTx(this.getBuyer().getDepositTxHash()).getIncomingAmount();
-        BigInteger tradeAmount = ParsingUtils.coinToAtomicUnits(this.getTradeAmount());
+        BigInteger tradeAmount = ParsingUtils.coinToAtomicUnits(this.getAmount());
         BigInteger buyerPayoutAmount = buyerDepositAmount.add(tradeAmount);
         BigInteger sellerPayoutAmount = sellerDepositAmount.subtract(tradeAmount);
 
@@ -807,7 +807,7 @@ public abstract class Trade implements Tradable, Model {
         Contract contract = getContract();
         BigInteger sellerDepositAmount = multisigWallet.getTx(getSeller().getDepositTxHash()).getIncomingAmount();   // TODO (woodser): redundancy of processModel.getPreparedDepositTxId() vs this.getDepositTxId() necessary or avoidable?
         BigInteger buyerDepositAmount = multisigWallet.getTx(getBuyer().getDepositTxHash()).getIncomingAmount();
-        BigInteger tradeAmount = ParsingUtils.coinToAtomicUnits(getTradeAmount());
+        BigInteger tradeAmount = ParsingUtils.coinToAtomicUnits(getAmount());
 
         // parse payout tx
         MoneroTxSet parsedTxSet = multisigWallet.describeTxSet(new MoneroTxSet().setMultisigTxHex(payoutTxHex));
@@ -990,6 +990,14 @@ public abstract class Trade implements Tradable, Model {
         }
     }
 
+    public boolean removeAllChatMessages() {
+        if (chatMessages.size() > 0) {
+            chatMessages.clear();
+            return true;
+        }
+        return false;
+    }
+
     public boolean mediationResultAppliedPenaltyToSeller() {
         // If mediated payout is same or more then normal payout we enable otherwise a penalty was applied
         // by mediators and we keep the confirm disabled to avoid that the seller can complete the trade
@@ -999,6 +1007,15 @@ public abstract class Trade implements Tradable, Model {
         return payoutAmountFromMediation < normalPayoutAmount;
     }
 
+    public void maybeClearSensitiveData() {
+        String change = "";
+        if (removeAllChatMessages()) {
+            change += "chat messages;";
+        }
+        if (change.length() > 0) {
+            log.info("cleared sensitive data from {} of trade {}", change, getShortId());
+        }
+    }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Model implementation
@@ -1088,16 +1105,16 @@ public abstract class Trade implements Tradable, Model {
         refundResultStateProperty.set(refundResultState);
     }
 
-    public void setTradePeriodState(TradePeriodState tradePeriodState) {
-        this.tradePeriodState = tradePeriodState;
+    public void setPeriodState(TradePeriodState tradePeriodState) {
+        this.periodState = tradePeriodState;
         tradePeriodStateProperty.set(tradePeriodState);
     }
 
-    public void setTradeAmount(Coin tradeAmount) {
+    public void setAmount(Coin tradeAmount) {
         this.tradeAmount = tradeAmount;
-        tradeAmountAsLong = tradeAmount.value;
-        getTradeAmountProperty().set(tradeAmount);
-        getTradeVolumeProperty().set(getTradeVolume());
+        amountAsLong = tradeAmount.value;
+        getAmountProperty().set(tradeAmount);
+        getVolumeProperty().set(getVolume());
     }
 
     public void setPayoutTx(MoneroTxWallet payoutTx) {
@@ -1121,11 +1138,11 @@ public abstract class Trade implements Tradable, Model {
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     public boolean isBuyer() {
-        return offer.getDirection() == Direction.BUY;
+        return offer.getDirection() == OfferDirection.BUY;
     }
 
     public boolean isSeller() {
-        return offer.getDirection() == Direction.SELL;
+        return offer.getDirection() == OfferDirection.SELL;
     }
 
     public boolean isMaker() {
@@ -1152,11 +1169,11 @@ public abstract class Trade implements Tradable, Model {
     }
 
     public TradingPeer getBuyer() {
-        return offer.getDirection() == Direction.BUY ? processModel.getMaker() : processModel.getTaker();
+        return offer.getDirection() == OfferDirection.BUY ? processModel.getMaker() : processModel.getTaker();
     }
 
     public TradingPeer getSeller() {
-        return offer.getDirection() == Direction.BUY ? processModel.getTaker() : processModel.getMaker();
+        return offer.getDirection() == OfferDirection.BUY ? processModel.getTaker() : processModel.getMaker();
     }
 
     /**
@@ -1195,10 +1212,10 @@ public abstract class Trade implements Tradable, Model {
     }
 
     @Nullable
-    public Volume getTradeVolume() {
+    public Volume getVolume() {
         try {
-            if (getTradeAmount() != null && getTradePrice() != null) {
-                Volume volumeByAmount = getTradePrice().getVolumeByAmount(getTradeAmount());
+            if (getAmount() != null && getPrice() != null) {
+                Volume volumeByAmount = getPrice().getVolumeByAmount(getAmount());
                 if (offer != null) {
                     if (offer.getPaymentMethod().getId().equals(PaymentMethod.HAL_CASH_ID))
                         volumeByAmount = VolumeUtil.getAdjustedVolumeForHalCash(volumeByAmount);
@@ -1215,18 +1232,18 @@ public abstract class Trade implements Tradable, Model {
     }
 
     public Date getHalfTradePeriodDate() {
-        return new Date(getTradeStartTime() + getMaxTradePeriod() / 2);
+        return new Date(getStartTime() + getMaxTradePeriod() / 2);
     }
 
     public Date getMaxTradePeriodDate() {
-        return new Date(getTradeStartTime() + getMaxTradePeriod());
+        return new Date(getStartTime() + getMaxTradePeriod());
     }
 
     private long getMaxTradePeriod() {
         return getOffer().getPaymentMethod().getMaxTradePeriod();
     }
 
-    private long getTradeStartTime() {
+    private long getStartTime() {
         long now = System.currentTimeMillis();
         long startTime;
         final MoneroTx takerDepositTx = getTakerDepositTx();
@@ -1324,6 +1341,10 @@ public abstract class Trade implements Tradable, Model {
         return getState().getPhase().ordinal() >= Phase.PAYOUT_PUBLISHED.ordinal() || isWithdrawn();
     }
 
+    public boolean isCompleted() {
+        return isPayoutPublished();
+    }
+
     public boolean isWithdrawn() {
         return getState().getPhase().ordinal() == Phase.WITHDRAWN.ordinal();
     }
@@ -1379,15 +1400,19 @@ public abstract class Trade implements Tradable, Model {
         return offer.getShortId();
     }
 
-    public Price getTradePrice() {
-        return Price.valueOf(offer.getCurrencyCode(), tradePrice);
+    public Price getPrice() {
+        return Price.valueOf(offer.getCurrencyCode(), price);
     }
 
     @Nullable
-    public Coin getTradeAmount() {
+    public Coin getAmount() {
         if (tradeAmount == null)
-            tradeAmount = Coin.valueOf(tradeAmountAsLong);
+            tradeAmount = Coin.valueOf(amountAsLong);
         return tradeAmount;
+    }
+
+    public Coin getMakerFee() {
+        return offer.getMakerFee();
     }
 
     @Nullable
@@ -1433,17 +1458,17 @@ public abstract class Trade implements Tradable, Model {
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     // lazy initialization
-    private ObjectProperty<Coin> getTradeAmountProperty() {
+    private ObjectProperty<Coin> getAmountProperty() {
         if (tradeAmountProperty == null)
-            tradeAmountProperty = getTradeAmount() != null ? new SimpleObjectProperty<>(getTradeAmount()) : new SimpleObjectProperty<>();
+            tradeAmountProperty = getAmount() != null ? new SimpleObjectProperty<>(getAmount()) : new SimpleObjectProperty<>();
 
         return tradeAmountProperty;
     }
 
     // lazy initialization
-    private ObjectProperty<Volume> getTradeVolumeProperty() {
+    private ObjectProperty<Volume> getVolumeProperty() {
         if (tradeVolumeProperty == null)
-            tradeVolumeProperty = getTradeVolume() != null ? new SimpleObjectProperty<>(getTradeVolume()) : new SimpleObjectProperty<>();
+            tradeVolumeProperty = getVolume() != null ? new SimpleObjectProperty<>(getVolume()) : new SimpleObjectProperty<>();
         return tradeVolumeProperty;
     }
 
@@ -1493,11 +1518,11 @@ public abstract class Trade implements Tradable, Model {
                 ",\n     processModel=" + processModel +
                 ",\n     takerFeeTxId='" + takerFeeTxId + '\'' +
                 ",\n     payoutTxId='" + payoutTxId + '\'' +
-                ",\n     tradeAmountAsLong=" + tradeAmountAsLong +
-                ",\n     tradePrice=" + tradePrice +
+                ",\n     tradeAmountAsLong=" + amountAsLong +
+                ",\n     tradePrice=" + price +
                 ",\n     state=" + state +
                 ",\n     disputeState=" + disputeState +
-                ",\n     tradePeriodState=" + tradePeriodState +
+                ",\n     tradePeriodState=" + periodState +
                 ",\n     contract=" + contract +
                 ",\n     contractAsJson='" + contractAsJson + '\'' +
                 ",\n     contractHash=" + Utilities.bytesAsHexString(contractHash) +

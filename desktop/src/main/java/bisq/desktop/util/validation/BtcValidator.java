@@ -22,6 +22,7 @@ import bisq.core.locale.Res;
 import bisq.core.util.FormattingUtils;
 import bisq.core.util.coin.CoinFormatter;
 import bisq.core.util.validation.NumberValidator;
+
 import org.bitcoinj.core.Coin;
 
 import javax.inject.Inject;
@@ -44,7 +45,6 @@ public class BtcValidator extends NumberValidator {
 
     @Nullable
     @Setter
-    @Getter
     protected Coin maxValue;
 
     @Nullable

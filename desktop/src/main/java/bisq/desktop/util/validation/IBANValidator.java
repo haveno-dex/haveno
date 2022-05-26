@@ -24,12 +24,22 @@ import java.math.BigInteger;
 
 import java.util.Locale;
 
-// TODO Does not yet recognize special letters like ä, ö, ü, å, ... as invalid characters
-public final class IBANValidator extends InputValidator {
+import lombok.Setter;
 
+// TODO Does not yet recognize special letters like ä, ö, ü, å, ... as invalid characters
+public class IBANValidator extends InputValidator {
+
+    @Setter
+    private String restrictToCountry = "";
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Public methods
     ///////////////////////////////////////////////////////////////////////////////////////////
+    public IBANValidator() {
+    }
+
+    public IBANValidator(String restrictToCountry) {
+        this.restrictToCountry = restrictToCountry;
+    }
 
     @Override
     public ValidationResult validate(String input) {
@@ -44,6 +54,8 @@ public final class IBANValidator extends InputValidator {
 
             // check if country code is letters and checksum numeric
             if (!(Character.isLetter(input.charAt(0)) && Character.isLetter(input.charAt(1))))
+                return new ValidationResult(false, Res.get("validation.iban.invalidCountryCode"));
+            if (restrictToCountry.length() > 0 && !restrictToCountry.equals(input.substring(0, 2)))
                 return new ValidationResult(false, Res.get("validation.iban.invalidCountryCode"));
             if (!(Character.isDigit(input.charAt(2)) && Character.isDigit(input.charAt(3))))
                 return new ValidationResult(false, Res.get("validation.iban.checkSumNotNumeric"));

@@ -17,21 +17,20 @@
 
 package bisq.core.util;
 
-import bisq.core.util.validation.AltcoinValidator;
-import bisq.core.util.validation.FiatPriceValidator;
-import bisq.core.util.validation.MonetaryValidator;
-
 import bisq.core.locale.CurrencyUtil;
 import bisq.core.locale.Res;
 import bisq.core.monetary.Altcoin;
 import bisq.core.monetary.Price;
 import bisq.core.offer.Offer;
-import bisq.core.offer.OfferPayload;
+import bisq.core.offer.OfferDirection;
 import bisq.core.provider.price.MarketPrice;
 import bisq.core.provider.price.PriceFeedService;
 import bisq.core.trade.statistics.TradeStatisticsManager;
 import bisq.core.user.Preferences;
+import bisq.core.util.validation.AltcoinValidator;
+import bisq.core.util.validation.FiatPriceValidator;
 import bisq.core.util.validation.InputValidator;
+import bisq.core.util.validation.MonetaryValidator;
 
 import bisq.common.util.MathUtils;
 
@@ -39,8 +38,10 @@ import org.bitcoinj.utils.Fiat;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
-import lombok.extern.slf4j.Slf4j;
+
 import java.util.Optional;
+
+import lombok.extern.slf4j.Slf4j;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
@@ -63,7 +64,7 @@ public class PriceUtil {
     }
 
     public static InputValidator.ValidationResult isTriggerPriceValid(String triggerPriceAsString,
-                                                                      Price price,
+                                                                      MarketPrice marketPrice,
                                                                       boolean isSellOffer,
                                                                       boolean isFiatCurrency) {
         if (triggerPriceAsString == null || triggerPriceAsString.isEmpty()) {
@@ -75,20 +76,21 @@ public class PriceUtil {
             return result;
         }
 
-        long triggerPriceAsLong = PriceUtil.getMarketPriceAsLong(triggerPriceAsString, price.getCurrencyCode());
-        long priceAsLong = price.getValue();
-        String priceAsString = FormattingUtils.formatPrice(price);
+        long triggerPriceAsLong = PriceUtil.getMarketPriceAsLong(triggerPriceAsString, marketPrice.getCurrencyCode());
+        long marketPriceAsLong = PriceUtil.getMarketPriceAsLong("" +  marketPrice.getPrice(), marketPrice.getCurrencyCode());
+        String marketPriceAsString = FormattingUtils.formatMarketPrice(marketPrice.getPrice(), marketPrice.getCurrencyCode());
+
         if ((isSellOffer && isFiatCurrency) || (!isSellOffer && !isFiatCurrency)) {
-            if (triggerPriceAsLong >= priceAsLong) {
+            if (triggerPriceAsLong >= marketPriceAsLong) {
                 return new InputValidator.ValidationResult(false,
-                        Res.get("createOffer.triggerPrice.invalid.tooHigh", priceAsString));
+                        Res.get("createOffer.triggerPrice.invalid.tooHigh", marketPriceAsString));
             } else {
                 return new InputValidator.ValidationResult(true);
             }
         } else {
-            if (triggerPriceAsLong <= priceAsLong) {
+            if (triggerPriceAsLong <= marketPriceAsLong) {
                 return new InputValidator.ValidationResult(false,
-                        Res.get("createOffer.triggerPrice.invalid.tooLow", priceAsString));
+                        Res.get("createOffer.triggerPrice.invalid.tooLow", marketPriceAsString));
             } else {
                 return new InputValidator.ValidationResult(true);
             }
@@ -115,14 +117,14 @@ public class PriceUtil {
     }
 
     public Optional<Double> getMarketBasedPrice(Offer offer,
-                                                OfferPayload.Direction direction) {
+                                                OfferDirection direction) {
         if (offer.isUseMarketBasedPrice()) {
-            return Optional.of(offer.getMarketPriceMargin());
+            return Optional.of(offer.getMarketPriceMarginPct());
         }
 
         if (!hasMarketPrice(offer)) {
             log.trace("We don't have a market price. " +
-                      "That case could only happen if you don't have a price feed.");
+                    "That case could only happen if you don't have a price feed.");
             return Optional.empty();
         }
 
@@ -133,9 +135,9 @@ public class PriceUtil {
         return calculatePercentage(offer, marketPriceAsDouble, direction);
     }
 
-    public Optional<Double> calculatePercentage(Offer offer,
-                                                double marketPrice,
-                                                OfferPayload.Direction direction) {
+    public static Optional<Double> calculatePercentage(Offer offer,
+                                                       double marketPrice,
+                                                       OfferDirection direction) {
         // If the offer did not use % price we calculate % from current market price
         String currencyCode = offer.getCurrencyCode();
         Price price = offer.getPrice();
@@ -145,7 +147,7 @@ public class PriceUtil {
         long priceAsLong = checkNotNull(price).getValue();
         double scaled = MathUtils.scaleDownByPowerOf10(priceAsLong, precision);
         double value;
-        if (direction == OfferPayload.Direction.SELL) {
+        if (direction == OfferDirection.SELL) {
             if (CurrencyUtil.isFiatCurrency(currencyCode)) {
                 if (marketPrice == 0) {
                     return Optional.empty();

@@ -67,8 +67,7 @@ public class BashScriptGenerator {
                                                   String currencyCode,
                                                   String amount,
                                                   String marketPriceMargin,
-                                                  String securityDeposit,
-                                                  String feeCurrency) {
+                                                  String securityDeposit) {
         String makeOfferCmd = format("%s createoffer --payment-account=%s "
                         + " --direction=%s"
                         + " --currency-code=%s"
@@ -82,8 +81,7 @@ public class BashScriptGenerator {
                 currencyCode,
                 amount,
                 marketPriceMargin,
-                securityDeposit,
-                feeCurrency);
+                securityDeposit);
         String getOffersCmd = format("%s getmyoffers --direction=%s --currency-code=%s",
                 cliBase,
                 direction,
@@ -98,8 +96,7 @@ public class BashScriptGenerator {
                                                  String currencyCode,
                                                  String amount,
                                                  String fixedPrice,
-                                                 String securityDeposit,
-                                                 String feeCurrency) {
+                                                 String securityDeposit) {
         String makeOfferCmd = format("%s createoffer --payment-account=%s "
                         + " --direction=%s"
                         + " --currency-code=%s"
@@ -113,8 +110,7 @@ public class BashScriptGenerator {
                 currencyCode,
                 amount,
                 fixedPrice,
-                securityDeposit,
-                feeCurrency);
+                securityDeposit);
         String getOffersCmd = format("%s getmyoffers --direction=%s --currency-code=%s",
                 cliBase,
                 direction,
@@ -167,10 +163,10 @@ public class BashScriptGenerator {
     }
 
     public File createKeepFundsScript(TradeInfo trade) {
-        String paymentStartedCmd = format("%s keepfunds --trade-id=%s", cliBase, trade.getTradeId());
+        String paymentStartedCmd = format("%s closetrade --trade-id=%s", cliBase, trade.getTradeId());
         String getTradeCmd = format("%s gettrade --trade-id=%s", cliBase, trade.getTradeId());
         String getBalanceCmd = format("%s getbalance", cliBase);
-        return createCliScript("keepfunds.sh",
+        return createCliScript("closetrade.sh",
                 paymentStartedCmd,
                 "sleep 2",
                 getTradeCmd,

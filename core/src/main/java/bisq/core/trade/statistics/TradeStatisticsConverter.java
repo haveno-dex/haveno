@@ -167,7 +167,7 @@ public class TradeStatisticsConverter {
         // for both traders as it excluded the trade date which is different for both.
         byte[] hash = tradeStatistics2.getHash();
         return new TradeStatistics3(tradeStatistics2.getCurrencyCode(),
-                tradeStatistics2.getTradePrice().getValue(),
+                tradeStatistics2.getPrice().getValue(),
                 tradeStatistics2.getTradeAmount().getValue(),
                 tradeStatistics2.getOfferPaymentMethod(),
                 time,

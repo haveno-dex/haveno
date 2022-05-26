@@ -1316,7 +1316,7 @@ public abstract class DisputeView extends ActivatableView<VBox, Void> {
                                         return;
                                     }
 
-                                    String keyBaseUserName = DisputeAgentLookupMap.getKeyBaseUserName(agentNodeAddress.getFullAddress());
+                                    String keyBaseUserName = DisputeAgentLookupMap.getMatrixUserName(agentNodeAddress.getFullAddress());
                                     setText(keyBaseUserName);
                                 } else {
                                     setText("");

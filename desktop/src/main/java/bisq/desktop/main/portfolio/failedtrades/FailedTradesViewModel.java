@@ -24,6 +24,7 @@ import bisq.desktop.util.DisplayUtils;
 import bisq.core.locale.CurrencyUtil;
 import bisq.core.locale.Res;
 import bisq.core.util.FormattingUtils;
+import bisq.core.util.VolumeUtil;
 import bisq.core.util.coin.CoinFormatter;
 
 import com.google.inject.Inject;
@@ -53,18 +54,18 @@ class FailedTradesViewModel extends ActivatableWithDataModel<FailedTradesDataMod
 
     String getAmount(FailedTradesListItem item) {
         if (item != null && item.getTrade() != null)
-            return formatter.formatCoin(item.getTrade().getTradeAmount());
+            return formatter.formatCoin(item.getTrade().getAmount());
         else
             return "";
     }
 
     String getPrice(FailedTradesListItem item) {
-        return (item != null) ? FormattingUtils.formatPrice(item.getTrade().getTradePrice()) : "";
+        return (item != null) ? FormattingUtils.formatPrice(item.getTrade().getPrice()) : "";
     }
 
     String getVolume(FailedTradesListItem item) {
         if (item != null && item.getTrade() != null)
-            return DisplayUtils.formatVolumeWithCode(item.getTrade().getTradeVolume());
+            return VolumeUtil.formatVolumeWithCode(item.getTrade().getVolume());
         else
             return "";
     }

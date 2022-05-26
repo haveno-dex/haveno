@@ -20,6 +20,7 @@ package bisq.desktop.main.portfolio.failedtrades;
 import bisq.desktop.common.model.ActivatableDataModel;
 
 import bisq.core.offer.Offer;
+import bisq.core.offer.OfferDirection;
 import bisq.core.offer.OfferPayload;
 import bisq.core.trade.Trade;
 import bisq.core.trade.TradeManager;
@@ -64,7 +65,7 @@ class FailedTradesDataModel extends ActivatableDataModel {
         return list;
     }
 
-    public OfferPayload.Direction getDirection(Offer offer) {
+    public OfferDirection getDirection(Offer offer) {
         return failedTradesManager.wasMyOffer(offer) ? offer.getDirection() : offer.getMirroredDirection();
     }
 

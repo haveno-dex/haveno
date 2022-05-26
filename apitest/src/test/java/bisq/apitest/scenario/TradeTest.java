@@ -30,7 +30,10 @@ import org.junit.jupiter.api.TestMethodOrder;
 
 import bisq.apitest.method.trade.AbstractTradeTest;
 import bisq.apitest.method.trade.TakeBuyBTCOfferTest;
+import bisq.apitest.method.trade.TakeBuyBTCOfferWithNationalBankAcctTest;
+import bisq.apitest.method.trade.TakeBuyXMROfferTest;
 import bisq.apitest.method.trade.TakeSellBTCOfferTest;
+import bisq.apitest.method.trade.TakeSellXMROfferTest;
 
 
 @Slf4j
@@ -49,7 +52,6 @@ public class TradeTest extends AbstractTradeTest {
         test.testTakeAlicesBuyOffer(testInfo);
         test.testAlicesConfirmPaymentStarted(testInfo);
         test.testBobsConfirmPaymentReceived(testInfo);
-        test.testAlicesKeepFunds(testInfo);
     }
 
     @Test
@@ -59,6 +61,35 @@ public class TradeTest extends AbstractTradeTest {
         test.testTakeAlicesSellOffer(testInfo);
         test.testBobsConfirmPaymentStarted(testInfo);
         test.testAlicesConfirmPaymentReceived(testInfo);
-        test.testBobsBtcWithdrawalToExternalAddress(testInfo);
+    }
+
+    @Test
+    @Order(4)
+    public void testTakeBuyBTCOfferWithNationalBankAcct(final TestInfo testInfo) {
+        TakeBuyBTCOfferWithNationalBankAcctTest test = new TakeBuyBTCOfferWithNationalBankAcctTest();
+        test.testTakeAlicesBuyOffer(testInfo);
+        test.testBankAcctDetailsIncludedInContracts(testInfo);
+        test.testAlicesConfirmPaymentStarted(testInfo);
+        test.testBobsConfirmPaymentReceived(testInfo);
+    }
+
+    @Test
+    @Order(6)
+    public void testTakeBuyXMROffer(final TestInfo testInfo) {
+        TakeBuyXMROfferTest test = new TakeBuyXMROfferTest();
+        TakeBuyXMROfferTest.createXmrPaymentAccounts();
+        test.testTakeAlicesSellBTCForXMROffer(testInfo);
+        test.testBobsConfirmPaymentStarted(testInfo);
+        test.testAlicesConfirmPaymentReceived(testInfo);
+    }
+
+    @Test
+    @Order(7)
+    public void testTakeSellXMROffer(final TestInfo testInfo) {
+        TakeSellXMROfferTest test = new TakeSellXMROfferTest();
+        TakeBuyXMROfferTest.createXmrPaymentAccounts();
+        test.testTakeAlicesBuyBTCForXMROffer(testInfo);
+        test.testAlicesConfirmPaymentStarted(testInfo);
+        test.testBobsConfirmPaymentReceived(testInfo);
     }
 }

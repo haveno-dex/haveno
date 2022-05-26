@@ -87,9 +87,9 @@ public final class SellerAsTakerTrade extends SellerTrade implements TakerTrade 
         }
         return fromProto(new SellerAsTakerTrade(
                         Offer.fromProto(proto.getOffer()),
-                        Coin.valueOf(proto.getTradeAmountAsLong()),
+                        Coin.valueOf(proto.getAmountAsLong()),
                         Coin.valueOf(proto.getTakerFeeAsLong()),
-                        proto.getTradePrice(),
+                        proto.getPrice(),
                         xmrWalletService,
                         processModel,
                         uid,

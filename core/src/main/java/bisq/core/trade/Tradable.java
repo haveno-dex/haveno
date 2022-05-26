@@ -17,11 +17,18 @@
 
 package bisq.core.trade;
 
+import bisq.core.monetary.Price;
+import bisq.core.monetary.Volume;
 import bisq.core.offer.Offer;
+
+import bisq.network.p2p.NodeAddress;
 
 import bisq.common.proto.persistable.PersistablePayload;
 
+import org.bitcoinj.core.Coin;
+
 import java.util.Date;
+import java.util.Optional;
 
 public interface Tradable extends PersistablePayload {
     Offer getOffer();
@@ -31,4 +38,44 @@ public interface Tradable extends PersistablePayload {
     String getId();
 
     String getShortId();
+
+    default Optional<Trade> asTradeModel() {
+        if (this instanceof Trade) {
+            return Optional.of(((Trade) this));
+        } else {
+            return Optional.empty();
+        }
+    }
+
+    default Optional<Volume> getOptionalVolume() {
+        return asTradeModel().map(Trade::getVolume).or(() -> Optional.ofNullable(getOffer().getVolume()));
+    }
+
+    default Optional<Price> getOptionalPrice() {
+        return asTradeModel().map(Trade::getPrice).or(() -> Optional.ofNullable(getOffer().getPrice()));
+    }
+
+    default Optional<Coin> getOptionalAmount() {
+        return asTradeModel().map(Trade::getAmount);
+    }
+
+    default Optional<Long> getOptionalAmountAsLong() {
+        return asTradeModel().map(Trade::getAmountAsLong);
+    }
+
+    default Optional<Coin> getOptionalTxFee() {
+        return asTradeModel().map(Trade::getTxFee);
+    }
+
+    default Optional<Coin> getOptionalTakerFee() {
+        return asTradeModel().map(Trade::getTakerFee);
+    }
+
+    default Optional<Coin> getOptionalMakerFee() {
+        return asTradeModel().map(Trade::getOffer).map(Offer::getMakerFee).or(() -> Optional.ofNullable(getOffer().getMakerFee()));
+    }
+
+    default Optional<NodeAddress> getOptionalTradingPeerNodeAddress() {
+        return asTradeModel().map(Trade::getTradingPeerNodeAddress);
+    }
 }

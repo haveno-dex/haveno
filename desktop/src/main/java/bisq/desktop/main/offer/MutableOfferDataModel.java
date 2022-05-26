@@ -33,7 +33,7 @@ import bisq.core.monetary.Price;
 import bisq.core.monetary.Volume;
 import bisq.core.offer.CreateOfferService;
 import bisq.core.offer.Offer;
-import bisq.core.offer.OfferPayload;
+import bisq.core.offer.OfferDirection;
 import bisq.core.offer.OfferUtil;
 import bisq.core.offer.OpenOfferManager;
 import bisq.core.payment.PaymentAccount;
@@ -56,7 +56,7 @@ import bisq.common.util.Tuple2;
 import bisq.common.util.Utilities;
 
 import org.bitcoinj.core.Coin;
-
+import org.jetbrains.annotations.NotNull;
 import com.google.inject.Inject;
 
 import javax.inject.Named;
@@ -83,7 +83,9 @@ import java.math.BigInteger;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.HashSet;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
@@ -91,6 +93,7 @@ import lombok.Getter;
 
 import javax.annotation.Nullable;
 
+import static bisq.core.payment.payload.PaymentMethod.HAL_CASH_ID;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static java.util.Comparator.comparing;
 
@@ -111,7 +114,7 @@ public abstract class MutableOfferDataModel extends OfferDataModel {
     private final XmrBalanceListener xmrBalanceListener;
     private final SetChangeListener<PaymentAccount> paymentAccountsChangeListener;
 
-    protected OfferPayload.Direction direction;
+    protected OfferDirection direction;
     protected TradeCurrency tradeCurrency;
     protected final StringProperty tradeCurrencyCode = new SimpleStringProperty();
     protected final BooleanProperty useMarketBasedPrice = new SimpleBooleanProperty();
@@ -176,7 +179,7 @@ public abstract class MutableOfferDataModel extends OfferDataModel {
         this.navigation = navigation;
         this.tradeStatisticsManager = tradeStatisticsManager;
 
-        offerId = createOfferService.getRandomOfferId();
+        offerId = OfferUtil.getRandomOfferId();
         shortOfferId = Utilities.getShortId(offerId);
         addressEntry = xmrWalletService.getOrCreateAddressEntry(offerId, XmrAddressEntry.Context.OFFER_FUNDING);
 
@@ -224,7 +227,7 @@ public abstract class MutableOfferDataModel extends OfferDataModel {
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     // called before activate()
-    public boolean initWithData(OfferPayload.Direction direction, TradeCurrency tradeCurrency) {
+    public boolean initWithData(OfferDirection direction, TradeCurrency tradeCurrency) {
         this.direction = direction;
         this.tradeCurrency = tradeCurrency;
 
@@ -245,7 +248,7 @@ public abstract class MutableOfferDataModel extends OfferDataModel {
         if (account != null) {
             this.paymentAccount = account;
         } else {
-            Optional<PaymentAccount> paymentAccountOptional = paymentAccounts.stream().findAny();
+            Optional<PaymentAccount> paymentAccountOptional = getAnyPaymentAccount();
             if (paymentAccountOptional.isPresent()) {
                 this.paymentAccount = paymentAccountOptional.get();
 
@@ -273,6 +276,17 @@ public abstract class MutableOfferDataModel extends OfferDataModel {
         setSuggestedSecurityDeposit(getPaymentAccount());
 
         return true;
+    }
+
+    @NotNull
+    private Optional<PaymentAccount> getAnyPaymentAccount() {
+        if (CurrencyUtil.isFiatCurrency(tradeCurrency.getCode())) {
+            return paymentAccounts.stream().filter(paymentAccount1 -> !paymentAccount1.getPaymentMethod().isAltcoin()).findAny();
+        } else {
+            return paymentAccounts.stream().filter(paymentAccount1 -> paymentAccount1.getPaymentMethod().isAltcoin() &&
+                    paymentAccount1.getTradeCurrency().isPresent() &&
+                    !Objects.equals(paymentAccount1.getTradeCurrency().get().getCode(), GUIUtil.TOP_ALTCOIN.getCode())).findAny();
+        }
     }
 
     protected PaymentAccount getPreselectedPaymentAccount() {
@@ -323,10 +337,6 @@ public abstract class MutableOfferDataModel extends OfferDataModel {
 
     void onPaymentAccountSelected(PaymentAccount paymentAccount) {
         if (paymentAccount != null && !this.paymentAccount.equals(paymentAccount)) {
-            volume.set(null);
-            minVolume.set(null);
-            price.set(null);
-            marketPriceMargin = 0;
             preferences.setSelectedPaymentAccountForCreateOffer(paymentAccount);
             this.paymentAccount = paymentAccount;
 
@@ -346,8 +356,8 @@ public abstract class MutableOfferDataModel extends OfferDataModel {
                 return;
             }
             // Get average historic prices over for the prior trade period equaling the lock time
-            var blocksRange = Restrictions.getLockTime(paymentAccount.getPaymentMethod().isAsset());
-            var startDate = new Date(System.currentTimeMillis() - blocksRange * 10 * 60000);
+            var blocksRange = Restrictions.getLockTime(paymentAccount.getPaymentMethod().isBlockchain());
+            var startDate = new Date(System.currentTimeMillis() - blocksRange * 10L * 60000);
             var sortedRangeData = tradeStatisticsManager.getObservableTradeStatisticsSet().stream()
                     .filter(e -> e.getCurrency().equals(getTradeCurrency().getCode()))
                     .filter(e -> e.getDate().compareTo(startDate) >= 0)
@@ -406,7 +416,7 @@ public abstract class MutableOfferDataModel extends OfferDataModel {
 
             Optional<TradeCurrency> tradeCurrencyOptional = preferences.getTradeCurrenciesAsObservable()
                     .stream().filter(e -> e.getCode().equals(code)).findAny();
-            if (!tradeCurrencyOptional.isPresent()) {
+            if (tradeCurrencyOptional.isEmpty()) {
                 if (CurrencyUtil.isCryptoCurrency(code)) {
                     CurrencyUtil.getCryptoCurrency(code).ifPresent(preferences::addCryptoCurrency);
                 } else {
@@ -425,7 +435,7 @@ public abstract class MutableOfferDataModel extends OfferDataModel {
         }
     }
 
-    protected void setMarketPriceMargin(double marketPriceMargin) {
+    protected void setMarketPriceMarginPct(double marketPriceMargin) {
         this.marketPriceMargin = marketPriceMargin;
     }
 
@@ -449,16 +459,16 @@ public abstract class MutableOfferDataModel extends OfferDataModel {
         return true;
     }
 
-    OfferPayload.Direction getDirection() {
+    public OfferDirection getDirection() {
         return direction;
     }
 
     boolean isSellOffer() {
-        return direction == OfferPayload.Direction.SELL;
+        return direction == OfferDirection.SELL;
     }
 
     boolean isBuyOffer() {
-        return direction == OfferPayload.Direction.BUY;
+        return direction == OfferDirection.BUY;
     }
 
     XmrAddressEntry getAddressEntry() {
@@ -482,7 +492,7 @@ public abstract class MutableOfferDataModel extends OfferDataModel {
         return paymentAccounts;
     }
 
-    public double getMarketPriceMargin() {
+    public double getMarketPriceMarginPct() {
         return marketPriceMargin;
     }
 
@@ -500,9 +510,9 @@ public abstract class MutableOfferDataModel extends OfferDataModel {
 
     double calculateMarketPriceManual(double marketPrice, double volumeAsDouble, double amountAsDouble) {
         double manualPriceAsDouble = offerUtil.calculateManualPrice(volumeAsDouble, amountAsDouble);
-        double percentage = offerUtil.calculateMarketPriceMargin(manualPriceAsDouble, marketPrice);
+        double percentage = offerUtil.calculateMarketPriceMarginPct(manualPriceAsDouble, marketPrice);
 
-        setMarketPriceMargin(percentage);
+        setMarketPriceMarginPct(percentage);
 
         return manualPriceAsDouble;
     }
@@ -540,7 +550,7 @@ public abstract class MutableOfferDataModel extends OfferDataModel {
         Volume volumeByAmount = price.get().getVolumeByAmount(minAmount.get());
 
         // For HalCash we want multiple of 10 EUR
-        if (paymentAccount.isHalCashAccount())
+        if (isUsingHalCashAccount())
             volumeByAmount = VolumeUtil.getAdjustedVolumeForHalCash(volumeByAmount);
         else if (CurrencyUtil.isFiatCurrency(tradeCurrencyCode.get()))
             volumeByAmount = VolumeUtil.getRoundedFiatVolume(volumeByAmount);
@@ -551,7 +561,7 @@ public abstract class MutableOfferDataModel extends OfferDataModel {
         if (isNonZeroPrice.test(price) && isNonZeroVolume.test(volume) && allowAmountUpdate) {
             try {
                 Coin value = DisplayUtils.reduceTo4Decimals(price.get().getAmountByVolume(volume.get()), btcFormatter);
-                if (paymentAccount.isHalCashAccount())
+                if (isUsingHalCashAccount())
                     value = CoinUtil.getAdjustedAmountForHalCash(value, price.get(), getMaxTradeLimit());
                 else if (CurrencyUtil.isFiatCurrency(tradeCurrencyCode.get()))
                     value = CoinUtil.getRoundedFiatAmount(value, price.get(), getMaxTradeLimit());
@@ -598,6 +608,8 @@ public abstract class MutableOfferDataModel extends OfferDataModel {
         paymentAccounts.sort(comparing(PaymentAccount::getAccountName));
     }
 
+    protected abstract Set<PaymentAccount> getUserPaymentAccounts();
+
     protected void setAmount(Coin amount) {
         this.amount.set(amount);
     }
@@ -610,12 +622,8 @@ public abstract class MutableOfferDataModel extends OfferDataModel {
         this.volume.set(volume);
     }
 
-    void setBuyerSecurityDeposit(double value) {
+    protected void setBuyerSecurityDeposit(double value) {
         this.buyerSecurityDeposit.set(value);
-    }
-
-    protected boolean isUseMarketBasedPriceValue() {
-        return marketPriceAvailable && useMarketBasedPrice.get() && !paymentAccount.isHalCashAccount();
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -685,7 +693,7 @@ public abstract class MutableOfferDataModel extends OfferDataModel {
         return getBoundedSellerSecurityDepositAsCoin(percentOfAmountAsCoin);
     }
 
-    private Coin getBoundedBuyerSecurityDepositAsCoin(Coin value) {
+    protected Coin getBoundedBuyerSecurityDepositAsCoin(Coin value) {
         // We need to ensure that for small amount values we don't get a too low BTC amount. We limit it with using the
         // MinBuyerSecurityDepositAsCoin from Restrictions.
         return Coin.valueOf(Math.max(Restrictions.getMinBuyerSecurityDepositAsCoin().value, value.value));
@@ -724,5 +732,9 @@ public abstract class MutableOfferDataModel extends OfferDataModel {
 
     public void setTriggerPrice(long triggerPrice) {
         this.triggerPrice = triggerPrice;
+    }
+
+    public boolean isUsingHalCashAccount() {
+        return paymentAccount.hasPaymentMethodWithId(HAL_CASH_ID);
     }
 }

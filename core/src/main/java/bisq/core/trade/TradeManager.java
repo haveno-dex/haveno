@@ -23,7 +23,7 @@ import bisq.core.btc.wallet.XmrWalletService;
 import bisq.core.locale.Res;
 import bisq.core.offer.Offer;
 import bisq.core.offer.OfferBookService;
-import bisq.core.offer.OfferPayload;
+import bisq.core.offer.OfferDirection;
 import bisq.core.offer.OfferUtil;
 import bisq.core.offer.OpenOffer;
 import bisq.core.offer.OpenOfferManager;
@@ -35,7 +35,6 @@ import bisq.core.support.dispute.arbitration.arbitrator.Arbitrator;
 import bisq.core.support.dispute.arbitration.arbitrator.ArbitratorManager;
 import bisq.core.support.dispute.mediation.mediator.MediatorManager;
 import bisq.core.trade.Trade.Phase;
-import bisq.core.trade.closed.ClosedTradableManager;
 import bisq.core.trade.failed.FailedTradesManager;
 import bisq.core.trade.handlers.TradeResultHandler;
 import bisq.core.trade.messages.DepositRequest;
@@ -806,6 +805,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
     // If trade was completed (closed without fault but might be closed by a dispute) we move it to the closed trades
     public void onTradeCompleted(Trade trade) {
         closedTradableManager.add(trade);
+        trade.setState(Trade.State.WITHDRAW_COMPLETED);
         removeTrade(trade);
 
         // TODO The address entry should have been removed already. Check and if its the case remove that.
@@ -855,10 +855,10 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
                 if (maxTradePeriodDate != null && halfTradePeriodDate != null) {
                     Date now = new Date();
                     if (now.after(maxTradePeriodDate)) {
-                        trade.setTradePeriodState(Trade.TradePeriodState.TRADE_PERIOD_OVER);
+                        trade.setPeriodState(Trade.TradePeriodState.TRADE_PERIOD_OVER);
                         requestPersistence();
                     } else if (now.after(halfTradePeriodDate)) {
-                        trade.setTradePeriodState(Trade.TradePeriodState.SECOND_HALF);
+                        trade.setPeriodState(Trade.TradePeriodState.SECOND_HALF);
                         requestPersistence();
                     }
                 }
@@ -998,11 +998,11 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
     }
 
     public boolean isBuyer(Offer offer) {
-        // If I am the maker, we use the OfferPayload.Direction, otherwise the mirrored direction
+        // If I am the maker, we use the OfferDirection, otherwise the mirrored direction
         if (isMyOffer(offer))
             return offer.isBuyOffer();
         else
-            return offer.getDirection() == OfferPayload.Direction.SELL;
+            return offer.getDirection() == OfferDirection.SELL;
     }
     
     // TODO (woodser): make Optional<Trade> versus Trade return types consistent

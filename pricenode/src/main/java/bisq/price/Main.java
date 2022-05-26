@@ -38,7 +38,7 @@ public class Main {
 
     private static Properties bisqProperties() {
         Properties props = new Properties();
-        File propsFile = new File(System.getenv("HOME"), ".config/bisq.properties");
+        File propsFile = new File(System.getenv("HOME"), ".config/haveno.properties");
         if (propsFile.exists()) {
             try {
                 props.load(new FileInputStream(propsFile));

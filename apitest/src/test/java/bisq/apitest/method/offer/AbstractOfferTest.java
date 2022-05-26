@@ -17,13 +17,15 @@
 
 package bisq.apitest.method.offer;
 
-import bisq.core.monetary.Altcoin;
+import bisq.proto.grpc.OfferInfo;
 
 import protobuf.PaymentAccount;
 
-import org.bitcoinj.utils.Fiat;
-
 import java.math.BigDecimal;
+import java.math.MathContext;
+
+import java.util.List;
+import java.util.function.Function;
 
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
@@ -32,49 +34,96 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 
 import static bisq.apitest.Scaffold.BitcoinCoreApp.bitcoind;
+import static bisq.apitest.config.ApiTestConfig.XMR;
 import static bisq.apitest.config.HavenoAppConfig.alicedaemon;
 import static bisq.apitest.config.HavenoAppConfig.arbdaemon;
 import static bisq.apitest.config.HavenoAppConfig.bobdaemon;
 import static bisq.apitest.config.HavenoAppConfig.seednode;
-import static bisq.common.util.MathUtils.roundDouble;
-import static bisq.common.util.MathUtils.scaleDownByPowerOf10;
-import static bisq.core.locale.CurrencyUtil.isCryptoCurrency;
-import static java.math.RoundingMode.HALF_UP;
+import static bisq.cli.table.builder.TableType.OFFER_TBL;
+import static java.lang.String.format;
+import static java.lang.System.out;
 
 
 
 import bisq.apitest.method.MethodTest;
+import bisq.cli.CliMain;
+import bisq.cli.table.builder.TableBuilder;
 
 @Slf4j
 public abstract class AbstractOfferTest extends MethodTest {
 
+    protected static final int ACTIVATE_OFFER = 1;
+    protected static final int DEACTIVATE_OFFER = 0;
+    protected static final String NO_TRIGGER_PRICE = "0";
+
     @Setter
     protected static boolean isLongRunningTest;
 
+    protected static PaymentAccount alicesBtcAcct;
+    protected static PaymentAccount bobsBtcAcct;
+
+    protected static PaymentAccount alicesXmrAcct;
+    protected static PaymentAccount bobsXmrAcct;
+
     @BeforeAll
     public static void setUp() {
+        setUp(false);
+    }
+
+    public static void setUp(boolean startSupportingAppsInDebugMode) {
         startSupportingApps(true,
-                false,
+                startSupportingAppsInDebugMode,
                 bitcoind,
                 seednode,
                 arbdaemon,
                 alicedaemon,
                 bobdaemon);
+        initPaymentAccounts();
     }
 
-    protected double getScaledOfferPrice(double offerPrice, String currencyCode) {
-        int precision = isCryptoCurrency(currencyCode) ? Altcoin.SMALLEST_UNIT_EXPONENT : Fiat.SMALLEST_UNIT_EXPONENT;
-        return scaleDownByPowerOf10(offerPrice, precision);
+    protected static final Function<OfferInfo, String> toOfferTable = (offer) ->
+            new TableBuilder(OFFER_TBL, offer).build().toString();
+
+    protected static final Function<List<OfferInfo>, String> toOffersTable = (offers) ->
+            new TableBuilder(OFFER_TBL, offers).build().toString();
+
+    protected static String calcPriceAsString(double base, double delta, int precision) {
+        var mathContext = new MathContext(precision);
+        var priceAsBigDecimal = new BigDecimal(Double.toString(base), mathContext)
+                .add(new BigDecimal(Double.toString(delta), mathContext))
+                .round(mathContext);
+        return format("%." + precision + "f", priceAsBigDecimal.doubleValue());
     }
 
-    protected final double getPercentageDifference(double price1, double price2) {
-        return BigDecimal.valueOf(roundDouble((1 - (price1 / price2)), 5))
-                .setScale(4, HALF_UP)
-                .doubleValue();
+    @SuppressWarnings("ConstantConditions")
+    public static void initPaymentAccounts() {
+        alicesBtcAcct = aliceClient.getPaymentAccount("BTC");
+        bobsBtcAcct = bobClient.getPaymentAccount("BTC");
+    }
+
+    @SuppressWarnings("ConstantConditions")
+    public static void createXmrPaymentAccounts() {
+        alicesXmrAcct = aliceClient.createCryptoCurrencyPaymentAccount("Alice's XMR Account",
+                XMR,
+                "44G4jWmSvTEfifSUZzTDnJVLPvYATmq9XhhtDqUof1BGCLceG82EQsVYG9Q9GN4bJcjbAJEc1JD1m5G7iK4UPZqACubV4Mq",
+                false);
+        log.trace("Alices XMR Account: {}", alicesXmrAcct);
+        bobsXmrAcct = bobClient.createCryptoCurrencyPaymentAccount("Bob's XMR Account",
+                XMR,
+                "4BDRhdSBKZqAXs3PuNTbMtaXBNqFj5idC2yMVnQj8Rm61AyKY8AxLTt9vGRJ8pwcG4EtpyD8YpGqdZWCZ2VZj6yVBN2RVKs",
+                false);
+        log.trace("Bob's XMR Account: {}", bobsXmrAcct);
     }
 
     @AfterAll
     public static void tearDown() {
         tearDownScaffold();
+    }
+
+    protected static void runCliGetOffer(String offerId) {
+        out.println("Alice's CLI 'getmyoffer' response:");
+        CliMain.main(new String[]{"--password=xyz", "--port=9998", "getmyoffer", "--offer-id=" + offerId});
+        out.println("Bob's CLI 'getoffer' response:");
+        CliMain.main(new String[]{"--password=xyz", "--port=9999", "getoffer", "--offer-id=" + offerId});
     }
 }

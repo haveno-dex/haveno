@@ -18,9 +18,9 @@
 package bisq.desktop.main.funds.transactions;
 
 import bisq.core.offer.OpenOfferManager;
+import bisq.core.trade.ClosedTradableManager;
 import bisq.core.trade.Tradable;
 import bisq.core.trade.TradeManager;
-import bisq.core.trade.closed.ClosedTradableManager;
 import bisq.core.trade.failed.FailedTradesManager;
 
 import javax.inject.Inject;

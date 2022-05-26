@@ -24,6 +24,7 @@ import bisq.core.monetary.Volume;
 import bisq.core.offer.Offer;
 import bisq.core.offer.OfferPayload;
 import bisq.core.trade.Trade;
+import bisq.core.util.JsonUtil;
 import bisq.core.util.VolumeUtil;
 
 import bisq.network.p2p.NodeAddress;
@@ -96,8 +97,8 @@ public final class TradeStatistics3 implements ProcessOncePersistableNetworkPayl
         
         Offer offer = checkNotNull(trade.getOffer());
         return new TradeStatistics3(offer.getCurrencyCode(),
-                trade.getTradePrice().getValue(),
-                trade.getTradeAmountAsLong(),
+                trade.getPrice().getValue(),
+                trade.getAmountAsLong(),
                 offer.getPaymentMethod().getId(),
                 trade.getTakeOfferDate().getTime(),
                 truncatedArbitratorNodeAddress,
@@ -143,7 +144,28 @@ public final class TradeStatistics3 implements ProcessOncePersistableNetworkPayl
         BLOCK_CHAINS_INSTANT,
         TRANSFERWISE,
         AMAZON_GIFT_CARD,
-        CASH_BY_MAIL
+        CASH_BY_MAIL,
+        CAPITUAL,
+        PAYSERA,
+        PAXUM,
+        SWIFT,
+        NEFT,
+        RTGS,
+        IMPS,
+        UPI,
+        PAYTM,
+        CELPAY,
+        NEQUI,
+        BIZUM,
+        PIX,
+        MONESE,
+        SATISPAY,
+        VERSE,
+        STRIKE,
+        TIKKIE,
+        TRANSFERWISE_USD,
+        ACH_TRANSFER,
+        DOMESTIC_WIRE_TRANSFER
     }
 
     @Getter
@@ -255,7 +277,7 @@ public final class TradeStatistics3 implements ProcessOncePersistableNetworkPayl
         // We create hash from all fields excluding hash itself. We use json as simple data serialisation.
         // TradeDate is different for both peers so we ignore it for hash. ExtraDataMap is ignored as well as at
         // software updates we might have different entries which would cause a different hash.
-        return Hash.getSha256Ripemd160hash(Utilities.objectToJson(this).getBytes(Charsets.UTF_8));
+        return Hash.getSha256Ripemd160hash(JsonUtil.objectToJson(this).getBytes(Charsets.UTF_8));
     }
 
     private protobuf.TradeStatistics3.Builder getBuilder() {
@@ -338,7 +360,7 @@ public final class TradeStatistics3 implements ProcessOncePersistableNetworkPayl
         arbitrator = null;
     }
 
-    public String getPaymentMethod() {
+    public String getPaymentMethodId() {
         try {
             return PaymentMethodMapper.values()[Integer.parseInt(paymentMethod)].name();
         } catch (Throwable ignore) {

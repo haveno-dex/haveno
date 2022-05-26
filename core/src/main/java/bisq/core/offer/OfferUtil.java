@@ -33,13 +33,16 @@ import bisq.core.provider.price.PriceFeedService;
 import bisq.core.trade.statistics.ReferralIdService;
 import bisq.core.user.AutoConfirmSettings;
 import bisq.core.user.Preferences;
+import bisq.core.util.AveragePriceUtil;
+import bisq.core.util.coin.CoinFormatter;
 import bisq.core.util.coin.CoinUtil;
 
 import bisq.network.p2p.P2PService;
 
 import bisq.common.app.Capabilities;
+import bisq.common.app.Version;
 import bisq.common.util.MathUtils;
-
+import bisq.common.util.Utilities;
 import org.bitcoinj.core.Coin;
 import org.bitcoinj.core.Transaction;
 import org.bitcoinj.core.TransactionInput;
@@ -52,7 +55,7 @@ import javax.inject.Singleton;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
-import java.util.function.Predicate;
+import java.util.UUID;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -95,6 +98,16 @@ public class OfferUtil {
         this.p2PService = p2PService;
         this.referralIdService = referralIdService;
     }
+    
+    public static String getRandomOfferId() {
+        return Utilities.getRandomPrefix(5, 8) + "-" +
+                UUID.randomUUID() + "-" +
+                getStrippedVersion();
+    }
+
+    public static String getStrippedVersion() {
+        return Version.VERSION.replace(".", "");
+    }
 
     /**
      * Given the direction, is this a BUY?
@@ -103,13 +116,13 @@ public class OfferUtil {
      * @return {@code true} for an offer to buy BTC from the taker, {@code false} for an
      * offer to sell BTC to the taker
      */
-    public boolean isBuyOffer(Direction direction) {
-        return direction == Direction.BUY;
+    public boolean isBuyOffer(OfferDirection direction) {
+        return direction == OfferDirection.BUY;
     }
 
     public long getMaxTradeLimit(PaymentAccount paymentAccount,
                                  String currencyCode,
-                                 Direction direction) {
+                                 OfferDirection direction) {
         return paymentAccount != null
                 ? accountAgeWitnessService.getMyTradeLimit(paymentAccount, currencyCode, direction)
                 : 0;
@@ -148,7 +161,7 @@ public class OfferUtil {
         return volumeAsDouble / amountAsDouble;
     }
 
-    public double calculateMarketPriceMargin(double manualPrice, double marketPrice) {
+    public double calculateMarketPriceMarginPct(double manualPrice, double marketPrice) {
         return MathUtils.roundDouble(manualPrice / marketPrice, 4);
     }
 
@@ -188,10 +201,11 @@ public class OfferUtil {
     }
 
     public boolean isBlockChainPaymentMethod(Offer offer) {
-        return offer != null && offer.getPaymentMethod().isAsset();
+        return offer != null && offer.getPaymentMethod().isBlockchain();
     }
 
-    public Optional<Volume> getFeeInUserFiatCurrency(Coin makerFee) {
+    public Optional<Volume> getFeeInUserFiatCurrency(Coin makerFee,
+                                                     CoinFormatter formatter) {
         String userCurrencyCode = preferences.getPreferredTradeCurrency().getCode();
         if (CurrencyUtil.isCryptoCurrency(userCurrencyCode)) {
             // In case the user has selected a altcoin as preferredTradeCurrency
@@ -200,12 +214,14 @@ public class OfferUtil {
             userCurrencyCode = CurrencyUtil.getCurrencyByCountryCode(countryCode).getCode();
         }
 
-        return getFeeInUserFiatCurrency(makerFee, userCurrencyCode);
+        return getFeeInUserFiatCurrency(makerFee,
+                userCurrencyCode,
+                formatter);
     }
 
     public Map<String, String> getExtraDataMap(PaymentAccount paymentAccount,
                                                String currencyCode,
-                                               Direction direction) {
+                                               OfferDirection direction) {
         Map<String, String> extraDataMap = new HashMap<>();
         if (CurrencyUtil.isFiatCurrency(currencyCode)) {
             String myWitnessHashAsHex = accountAgeWitnessService
@@ -228,7 +244,7 @@ public class OfferUtil {
 
         extraDataMap.put(CAPABILITIES, Capabilities.app.toStringList());
 
-        if (currencyCode.equals("XMR") && direction == Direction.SELL) {
+        if (currencyCode.equals("XMR") && direction == OfferDirection.SELL) {
             preferences.getAutoConfirmSettingsList().stream()
                     .filter(e -> e.getCurrencyCode().equals("XMR"))
                     .filter(AutoConfirmSettings::isEnabled)
@@ -256,17 +272,23 @@ public class OfferUtil {
                 Res.get("offerbook.warning.paymentMethodBanned"));
     }
 
-    private Optional<Volume> getFeeInUserFiatCurrency(Coin makerFee,
-                                                      String userCurrencyCode) {
+    private Optional<Volume> getFeeInUserFiatCurrency(Coin makerFee, String userCurrencyCode, CoinFormatter formatter) {
         MarketPrice marketPrice = priceFeedService.getMarketPrice(userCurrencyCode);
         if (marketPrice != null && makerFee != null) {
-            long marketPriceAsLong = roundDoubleToLong(
-                    scaleUpByPowerOf10(marketPrice.getPrice(), Fiat.SMALLEST_UNIT_EXPONENT));
+            long marketPriceAsLong = roundDoubleToLong(scaleUpByPowerOf10(marketPrice.getPrice(), Fiat.SMALLEST_UNIT_EXPONENT));
             Price userCurrencyPrice = Price.valueOf(userCurrencyCode, marketPriceAsLong);
             return Optional.of(userCurrencyPrice.getVolumeByAmount(makerFee));
         } else {
             return Optional.empty();
         }
+    }
+
+    public static boolean isFiatOffer(Offer offer) {
+        return offer.getBaseCurrencyCode().equals("XMR");
+    }
+
+    public static boolean isAltcoinOffer(Offer offer) {
+        return offer.getCounterCurrencyCode().equals("XMR");
     }
 
     public static Optional<String> getInvalidMakerFeeTxErrorMessage(Offer offer, BtcWalletService btcWalletService) {

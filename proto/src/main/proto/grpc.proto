@@ -482,10 +482,10 @@ message CreateOfferRequest {
     string direction = 2;
     string price = 3;
     bool use_market_based_price = 4;
-    double market_price_margin = 5;
+    double market_price_margin_pct = 5;
     uint64 amount = 6 [jstype = JS_STRING];
     uint64 min_amount = 7 [jstype = JS_STRING];
-    double buyer_security_deposit = 8;
+    double buyer_security_deposit_pct = 8;
     string trigger_price = 9;
     string payment_account_id = 10;
 }
@@ -504,15 +504,15 @@ message CancelOfferReply {
 message OfferInfo {
     string id = 1;
     string direction = 2;
-    uint64 price = 3;
+    string price = 3;
     bool use_market_based_price = 4;
-    double market_price_margin = 5;
+    double market_price_margin_pct = 5;
     uint64 amount = 6;
     uint64 min_amount = 7;
-    uint64 volume = 8;
-    uint64 min_volume = 9;
+    string volume = 8;
+    string min_volume = 9;
     uint64 buyer_security_deposit = 10;
-    uint64 trigger_price = 11;
+    string trigger_price = 11;
     string payment_account_id = 12;
     string payment_method_id = 13;
     string payment_method_short_name = 14;
@@ -524,6 +524,12 @@ message OfferInfo {
     string offer_fee_payment_tx_id = 20;
     uint64 tx_fee = 21;
     uint64 maker_fee = 22;
+    bool is_activated = 23;
+    bool is_my_offer = 24;
+    string owner_node_address = 25;
+    string pub_key_ring = 26;
+    string version_nr = 27;
+    int32 protocol_version = 28;
 }
 
 message AvailabilityResultWithDescription {
@@ -736,6 +742,13 @@ message GetTradeReply {
 }
 
 message GetTradesRequest {
+    // Rpc method GetTrades parameter determining what category of trade list is is being requested.
+    enum Category {
+        OPEN = 0;       // Get all currently open trades.
+        CLOSED = 1;     // Get all completed trades.
+        FAILED = 2;     // Get all failed trades.
+    }
+    Category category = 1;
 }
 
 message GetTradesReply {
@@ -785,20 +798,21 @@ message TradeInfo {
     string taker_fee_tx_id = 9;
     reserved 10; // was depositTxId
     string payout_tx_id = 11;
-    uint64 trade_amount_as_long = 12;
-    uint64 trade_price = 13;
+    uint64 amount_as_long = 12;
+    string price = 13;
     string trading_peer_node_address = 14;
     string state = 15;
     string phase = 16;
-    string trade_period_state = 17;
+    string period_state = 17;
     bool is_deposit_published = 18;
     bool is_deposit_unlocked = 19;
     bool is_payment_sent = 20;
     bool is_payment_received = 21;
     bool is_payout_published = 22;
-    bool is_withdrawn = 23;
+    bool is_completed = 23;
     string contract_as_json = 24;
     ContractInfo contract = 25;
+    string trade_volume = 26;
 
     string maker_deposit_tx_id = 100;
     string taker_deposit_tx_id = 101;
@@ -825,6 +839,7 @@ message PaymentAccountPayloadInfo {
     string id = 1;
     string payment_method_id = 2;
     string address = 3;
+    string payment_details = 4;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////

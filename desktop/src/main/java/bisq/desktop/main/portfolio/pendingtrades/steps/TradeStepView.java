@@ -175,6 +175,10 @@ public abstract class TradeStepView extends AnchorPane {
     }
 
     public void activate() {
+        UserThread.execute(() -> { activateAux(); });
+    }
+
+    private void activateAux() {
         if (makerTxIdTextField != null) {
             if (makerTxIdSubscription != null)
                 makerTxIdSubscription.unsubscribe();
@@ -226,7 +230,7 @@ public abstract class TradeStepView extends AnchorPane {
 
         tradePeriodStateSubscription = EasyBind.subscribe(trade.tradePeriodStateProperty(), newValue -> {
             if (newValue != null) {
-                updateTradePeriodState(newValue);
+                UserThread.execute(() -> updateTradePeriodState(newValue));
             }
         });
 

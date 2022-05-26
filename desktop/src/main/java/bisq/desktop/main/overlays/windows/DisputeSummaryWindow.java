@@ -42,6 +42,7 @@ import bisq.core.support.dispute.refund.RefundManager;
 import bisq.core.trade.Contract;
 import bisq.core.util.FormattingUtils;
 import bisq.core.util.ParsingUtils;
+import bisq.core.util.VolumeUtil;
 import bisq.core.util.coin.CoinFormatter;
 
 import bisq.common.UserThread;
@@ -283,9 +284,9 @@ public class DisputeSummaryWindow extends Overlay<DisputeSummaryWindow> {
         addConfirmationLabelLabel(gridPane, ++rowIndex, Res.get("shared.tradeAmount"),
                 formatter.formatCoinWithCode(contract.getTradeAmount()));
         addConfirmationLabelLabel(gridPane, ++rowIndex, Res.get("shared.tradePrice"),
-            FormattingUtils.formatPrice(contract.getTradePrice()));
+            FormattingUtils.formatPrice(contract.getPrice()));
         addConfirmationLabelLabel(gridPane, ++rowIndex, Res.get("shared.tradeVolume"),
-            DisplayUtils.formatVolumeWithCode(contract.getTradeVolume()));
+            VolumeUtil.formatVolumeWithCode(contract.getTradeVolume()));
         String securityDeposit = Res.getWithColAndCap("shared.buyer") +
                 " " +
                 formatter.formatCoinWithCode(contract.getOfferPayload().getBuyerSecurityDeposit()) +
