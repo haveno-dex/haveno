@@ -47,7 +47,7 @@ public class PaymentAccountFactory {
             case PaymentMethod.JAPAN_BANK_ID:
                 return new JapanBankAccount();
             case PaymentMethod.AUSTRALIA_PAYID_ID:
-                return new AustraliaPayid();
+                return new AustraliaPayidAccount();
             case PaymentMethod.ALI_PAY_ID:
                 return new AliPayAccount();
             case PaymentMethod.WECHAT_PAY_ID:
@@ -82,10 +82,52 @@ public class PaymentAccountFactory {
                 return new AdvancedCashAccount();
             case PaymentMethod.TRANSFERWISE_ID:
                 return new TransferwiseAccount();
+            case PaymentMethod.TRANSFERWISE_USD_ID:
+                return new TransferwiseUsdAccount();
+            case PaymentMethod.PAYSERA_ID:
+                return new PayseraAccount();
+            case PaymentMethod.PAXUM_ID:
+                return new PaxumAccount();
+            case PaymentMethod.NEFT_ID:
+                return new NeftAccount();
+            case PaymentMethod.RTGS_ID:
+                return new RtgsAccount();
+            case PaymentMethod.IMPS_ID:
+                return new ImpsAccount();
+            case PaymentMethod.UPI_ID:
+                return new UpiAccount();
+            case PaymentMethod.PAYTM_ID:
+                return new PaytmAccount();
+            case PaymentMethod.NEQUI_ID:
+                return new NequiAccount();
+            case PaymentMethod.BIZUM_ID:
+                return new BizumAccount();
+            case PaymentMethod.PIX_ID:
+                return new PixAccount();
             case PaymentMethod.AMAZON_GIFT_CARD_ID:
                 return new AmazonGiftCardAccount();
             case PaymentMethod.BLOCK_CHAINS_INSTANT_ID:
                 return new InstantCryptoCurrencyAccount();
+            case PaymentMethod.CAPITUAL_ID:
+                return new CapitualAccount();
+            case PaymentMethod.CELPAY_ID:
+                return new CelPayAccount();
+            case PaymentMethod.MONESE_ID:
+                return new MoneseAccount();
+            case PaymentMethod.SATISPAY_ID:
+                return new SatispayAccount();
+            case PaymentMethod.TIKKIE_ID:
+                return new TikkieAccount();
+            case PaymentMethod.VERSE_ID:
+                return new VerseAccount();
+            case PaymentMethod.STRIKE_ID:
+                return new StrikeAccount();
+            case PaymentMethod.SWIFT_ID:
+                return new SwiftAccount();
+            case PaymentMethod.ACH_TRANSFER_ID:
+                return new AchTransferAccount();
+            case PaymentMethod.DOMESTIC_WIRE_TRANSFER_ID:
+                return new DomesticWireTransferAccount();
 
             // Cannot be deleted as it would break old trade history entries
             case PaymentMethod.OK_PAY_ID:

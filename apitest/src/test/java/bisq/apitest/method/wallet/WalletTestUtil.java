@@ -9,14 +9,13 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 @Slf4j
 public class WalletTestUtil {
 
-    // All api tests depend on the regtest environment, and Bob & Alice's wallets
+    // All api tests depend on the DAO / regtest environment, and Bob & Alice's wallets
     // are initialized with 10 BTC during the scaffolding setup.
     public static final bisq.core.api.model.BtcBalanceInfo INITIAL_BTC_BALANCES =
             bisq.core.api.model.BtcBalanceInfo.valueOf(1000000000,
                     0,
                     1000000000,
                     0);
-
 
     public static void verifyBtcBalances(bisq.core.api.model.BtcBalanceInfo expected,
                                          BtcBalanceInfo actual) {

@@ -65,7 +65,7 @@ import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
 
-import static bisq.core.payment.payload.PaymentMethod.getPaymentMethodById;
+import static bisq.core.payment.payload.PaymentMethod.getPaymentMethod;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -237,7 +237,7 @@ public class AccountAgeWitnessServiceTest {
         when(contract.isBuyerMakerAndSellerTaker()).thenReturn(false);
         assertEquals(disputes.get(0).getBuyerPaymentAccountPayload(), buyerPaymentAccountPayload);
         assertEquals(disputes.get(0).getSellerPaymentAccountPayload(), sellerPaymentAccountPayload);
-        List<TraderDataItem> items = service.getTraderPaymentAccounts(now, getPaymentMethodById(PaymentMethod.SEPA_ID), disputes);
+        List<TraderDataItem> items = service.getTraderPaymentAccounts(now, getPaymentMethod(PaymentMethod.SEPA_ID), disputes);
         assertEquals(2, items.size());
 
         // Setup a mocked arbitrator key

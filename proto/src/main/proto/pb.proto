@@ -117,8 +117,6 @@ message GetUpdatedDataRequest {
     string version = 4;
 }
 
-// peers
-
 message GetPeersRequest {
     NodeAddress sender_node_address = 1;
     int32 nonce = 2;
@@ -141,8 +139,6 @@ message Pong {
     int32 request_nonce = 1;
 }
 
-// Inventory
-
 message GetInventoryRequest {
     string version = 1;
 }
@@ -150,8 +146,6 @@ message GetInventoryRequest {
 message GetInventoryResponse {
     map<string, string> inventory = 1;
 }
-
-// offer
 
 message SignOfferRequest {
     string offer_id = 1;
@@ -200,8 +194,6 @@ message RefreshOfferMessage {
     int32 sequence_number = 4;
 }
 
-// storage
-
 message AddDataMessage {
     StorageEntryWrapper entry = 1;
 }
@@ -217,8 +209,6 @@ message RemoveMailboxDataMessage {
 message AddPersistableNetworkPayloadMessage {
     PersistableNetworkPayload payload = 1;
 }
-
-// misc
 
 message CloseConnectionMessage {
     string reason = 1;
@@ -241,8 +231,6 @@ message PrefixedSealedAndSignedMessage {
     bytes address_prefix_hash = 3;
     string uid = 4;
 }
-
-// trade
 
 message InputsForDepositTxRequest {
     string trade_id = 1;
@@ -779,7 +767,7 @@ message Filter {
 message TradeStatistics2 {
     string base_currency = 1 [deprecated = true];
     string counter_currency = 2 [deprecated = true];
-    OfferPayload.Direction direction = 3 [deprecated = true];
+    OfferDirection direction = 3 [deprecated = true];
     int64 trade_price = 4 [deprecated = true];
     int64 trade_amount = 5 [deprecated = true];
     int64 trade_date = 6 [deprecated = true];
@@ -821,19 +809,13 @@ message MailboxStoragePayload {
 }
 
 message OfferPayload {
-    enum Direction {
-        PB_ERROR = 0;
-        BUY = 1;
-        SELL = 2;
-    }
-
     string id = 1;
     int64 date = 2;
     NodeAddress owner_node_address = 3;
     PubKeyRing pub_key_ring = 4;
-    Direction direction = 5;
+    OfferDirection direction = 5;
     int64 price = 6;
-    double market_price_margin = 7;
+    double market_price_margin_pct = 7;
     bool use_market_based_price = 8;
     int64 amount = 9;
     int64 min_amount = 10;
@@ -866,6 +848,12 @@ message OfferPayload {
     NodeAddress arbitrator_signer = 1001;
     string arbitrator_signature = 1002;
     repeated string reserve_tx_key_images = 1003;
+}
+
+enum OfferDirection {
+    OFFER_DIRECTION_ERROR = 0;
+    BUY = 1;
+    SELL = 2;
 }
 
 message AccountAgeWitness {
@@ -1075,6 +1063,13 @@ message PaymentAccountPayload {
         AustraliaPayidPayload australia_payid_payload = 30;
         AmazonGiftCardAccountPayload amazon_gift_card_account_payload = 31;
         CashByMailAccountPayload cash_by_mail_account_payload = 32;
+        CapitualAccountPayload capitual_account_payload = 33;
+        PayseraAccountPayload Paysera_account_payload = 34;
+        PaxumAccountPayload Paxum_account_payload = 35;
+        SwiftAccountPayload swift_account_payload = 36;
+        CelPayAccountPayload cel_pay_account_payload = 37;
+        MoneseAccountPayload monese_account_payload = 38;
+        VerseAccountPayload verse_account_payload = 39;
     }
     map<string, string> exclude_from_json_data = 15;
 }
@@ -1106,6 +1101,16 @@ message CountryBasedPaymentAccountPayload {
         WesternUnionAccountPayload western_union_account_payload = 5;
         SepaInstantAccountPayload sepa_instant_account_payload = 6;
         F2FAccountPayload f2f_account_payload = 7;
+        UpiAccountPayload upi_account_payload = 9;
+        PaytmAccountPayload paytm_account_payload = 10;
+        IfscBasedAccountPayload ifsc_based_account_payload = 11;
+        NequiAccountPayload nequi_account_payload = 12;
+        BizumAccountPayload bizum_account_payload = 13;
+        PixAccountPayload pix_account_payload = 14;
+        SatispayAccountPayload satispay_account_payload = 15;
+        StrikeAccountPayload strike_account_payload = 16;
+        TikkieAccountPayload tikkie_account_payload = 17;
+        TransferwiseUsdAccountPayload transferwise_usd_account_payload = 18;
     }
 }
 
@@ -1122,8 +1127,18 @@ message BankAccountPayload {
         NationalBankAccountPayload national_bank_account_payload = 9;
         SameBankAccountPayload same_bank_accont_payload = 10;
         SpecificBanksAccountPayload specific_banks_account_payload = 11;
+        AchTransferAccountPayload ach_transfer_account_payload = 13;
+        DomesticWireTransferAccountPayload domestic_wire_transfer_account_payload = 14;
     }
     string national_account_id = 12;
+}
+
+message AchTransferAccountPayload {
+    string holder_address = 1;
+}
+
+message DomesticWireTransferAccountPayload {
+    string holder_address = 1;
 }
 
 message NationalBankAccountPayload {
@@ -1230,6 +1245,7 @@ message OKPayAccountPayload {
 
 message UpholdAccountPayload {
     string account_id = 1;
+    string account_owner = 2;
 }
 
 // Deprecated, not used anymore
@@ -1277,6 +1293,34 @@ message F2FAccountPayload {
     string extra_info = 3;
 }
 
+message IfscBasedAccountPayload {
+    string holder_name = 1;
+    string account_nr = 2;
+    string ifsc = 3;
+    oneof message {
+        NeftAccountPayload neft_account_payload = 4;
+        RtgsAccountPayload rtgs_account_payload = 5;
+        ImpsAccountPayload imps_account_payload = 6;
+    }
+}
+
+message NeftAccountPayload {
+}
+
+message RtgsAccountPayload {
+}
+
+message ImpsAccountPayload {
+}
+
+message UpiAccountPayload {
+    string virtual_payment_address = 1;
+}
+
+message PaytmAccountPayload {
+    string email_or_mobile_nr = 1;
+}
+
 message CashByMailAccountPayload {
     string postal_address = 1;
     string contact = 2;
@@ -1295,11 +1339,83 @@ message TransferwiseAccountPayload {
     string email = 1;
 }
 
-///////////////////////////////////////////////////////////////////////////////////////////
-// PersistableEnvelope
-///////////////////////////////////////////////////////////////////////////////////////////
+message TransferwiseUsdAccountPayload {
+    string email = 1;
+    string holder_name = 2;
+    string beneficiary_address = 3;
+}
 
-// Those are persisted to disc
+message PayseraAccountPayload {
+    string email = 1;
+}
+
+message PaxumAccountPayload {
+    string email = 1;
+}
+
+message CapitualAccountPayload {
+    string account_nr = 1;
+}
+
+message CelPayAccountPayload {
+    string email = 1;
+}
+
+message NequiAccountPayload {
+    string mobile_nr = 1;
+}
+
+message BizumAccountPayload {
+    string mobile_nr = 1;
+}
+
+message PixAccountPayload {
+    string pix_key = 1;
+}
+
+message MoneseAccountPayload {
+    string mobile_nr = 1;
+    string holder_name = 2;
+}
+
+message SatispayAccountPayload {
+    string mobile_nr = 1;
+    string holder_name = 2;
+}
+
+message StrikeAccountPayload {
+    string holder_name = 1;
+}
+
+message TikkieAccountPayload {
+    string iban = 1;
+}
+
+message VerseAccountPayload {
+    string holder_name = 1;
+}
+
+message SwiftAccountPayload {
+    string beneficiary_name = 1;
+    string beneficiary_account_nr = 2;
+    string beneficiary_address = 3;
+    string beneficiary_city = 4;
+    string beneficiary_phone = 5;
+    string special_instructions = 6;
+
+    string bank_swift_code = 7;
+    string bank_country_code = 8;
+    string bank_name = 9;
+    string bank_branch = 10;
+    string bank_address = 11;
+
+    string intermediary_swift_code = 12;
+    string intermediary_country_code = 13;
+    string intermediary_name = 14;
+    string intermediary_branch = 15;
+    string intermediary_address = 16;
+}
+
 message PersistableEnvelope {
     oneof message {
         SequenceNumberMap sequence_number_map = 1;
@@ -1309,7 +1425,9 @@ message PersistableEnvelope {
         NavigationPath navigation_path = 5;
 
         TradableList tradable_list = 6;
-        // TradeStatisticsList trade_statistics_list = 7; // Was used in pre v0.6.0 version. Not used anymore.
+
+        // TradeStatisticsList trade_statistics_list = 7; Deprecated, Was used in pre v0.6.0 version. Not used anymore.
+
         ArbitrationDisputeList arbitration_dispute_list = 8;
 
         PreferencesPayload preferences_payload = 9;
@@ -1334,10 +1452,6 @@ message PersistableEnvelope {
         EncryptedConnectionList encrypted_connection_list = 1003;
     }
 }
-
-///////////////////////////////////////////////////////////////////////////////////////////
-// Collections
-///////////////////////////////////////////////////////////////////////////////////////////
 
 message SequenceNumberMap {
     repeated SequenceNumberEntry sequence_number_entries = 1;
@@ -1588,14 +1702,14 @@ message Trade {
     string taker_fee_tx_id = 3;
     reserved 4;
     string payout_tx_id = 5;
-    int64 trade_amount_as_long = 6;
+    int64 amount_as_long = 6;
     int64 tx_fee_as_long = 7;
     int64 taker_fee_as_long = 8;
     int64 take_offer_date = 9;
-    int64 trade_price = 10;
+    int64 price = 10;
     State state = 11;
     DisputeState dispute_state = 12;
-    TradePeriodState trade_period_state = 13;
+    TradePeriodState period_state = 13;
     Contract contract = 14;
     string contract_as_json = 15;
     bytes contract_hash = 16;
@@ -1831,11 +1945,15 @@ message PreferencesPayload {
     int32 css_theme = 51;
     bool tac_accepted_v120 = 52;
     repeated AutoConfirmSettings auto_confirm_settings = 53;
-    bool hide_non_account_payment_methods = 54;
-    bool show_offers_matching_my_accounts = 55;
-    bool deny_api_taker = 56;
-    bool notify_on_pre_release = 57;
-    MoneroNodeSettings monero_node_settings = 58;
+    double bsq_average_trim_threshold = 54;
+    bool hide_non_account_payment_methods = 55;
+    bool show_offers_matching_my_accounts = 56;
+    bool deny_api_taker = 57;
+    bool notify_on_pre_release = 58;
+    MoneroNodeSettings monero_node_settings = 59;
+    int32 clear_data_after_days = 60;
+    string buy_screen_crypto_currency_code = 61;
+    string sell_screen_crypto_currency_code = 62;
 }
 
 message AutoConfirmSettings {
@@ -1875,10 +1993,6 @@ message UserPayload {
     map<string, string> cookie = 16;
 }
 
-///////////////////////////////////////////////////////////////////////////////////////////
-// Misc
-///////////////////////////////////////////////////////////////////////////////////////////
-
 message BlockChainExplorer {
     string name = 1;
     string tx_url = 2;
@@ -1901,8 +2015,6 @@ message PaymentMethod {
     int64 max_trade_limit = 3 [jstype = JS_STRING];
     repeated string supported_asset_codes = 4;
 }
-
-// Currency
 
 message Currency {
     string currency_code = 1;
@@ -1936,10 +2048,6 @@ message Region {
     string name = 2;
 }
 
-///////////////////////////////////////////////////////////////////////////////////////////
-// Notifications
-///////////////////////////////////////////////////////////////////////////////////////////
-
 message PriceAlertFilter {
     string currencyCode = 1;
     int64 high = 2;
@@ -1952,10 +2060,6 @@ message MarketAlertFilter {
     bool is_buy_offer = 3;
     repeated string alert_ids = 4;
 }
-
-///////////////////////////////////////////////////////////////////////////////////////////
-// Mock
-///////////////////////////////////////////////////////////////////////////////////////////
 
 message MockMailboxPayload {
     string message = 1;

@@ -19,7 +19,6 @@ package bisq.desktop.components.paymentmethods;
 
 import bisq.desktop.components.InputTextField;
 import bisq.desktop.util.FormBuilder;
-import bisq.desktop.util.Layout;
 import bisq.desktop.util.validation.AccountNrValidator;
 import bisq.desktop.util.validation.BranchIdValidator;
 
@@ -61,6 +60,8 @@ public class FasterPaymentsForm extends PaymentMethodForm {
     private InputTextField holderNameInputTextField;
     private InputTextField accountNrInputTextField;
     private InputTextField sortCodeInputTextField;
+    private final BranchIdValidator branchIdValidator;
+    private final AccountNrValidator accountNrValidator;
 
     public FasterPaymentsForm(PaymentAccount paymentAccount,
                               AccountAgeWitnessService accountAgeWitnessService,
@@ -70,6 +71,8 @@ public class FasterPaymentsForm extends PaymentMethodForm {
                               CoinFormatter formatter) {
         super(paymentAccount, accountAgeWitnessService, inputValidator, gridPane, gridRow, formatter);
         this.fasterPaymentsAccount = (FasterPaymentsAccount) paymentAccount;
+        this.branchIdValidator = new BranchIdValidator("GB");
+        this.accountNrValidator = new AccountNrValidator("GB");
     }
 
     @Override
@@ -85,14 +88,14 @@ public class FasterPaymentsForm extends PaymentMethodForm {
         // do not translate as it is used in English only
         sortCodeInputTextField = FormBuilder.addInputTextField(gridPane, ++gridRow, UK_SORT_CODE);
         sortCodeInputTextField.setValidator(inputValidator);
-        sortCodeInputTextField.setValidator(new BranchIdValidator("GB"));
+        sortCodeInputTextField.setValidator(branchIdValidator);
         sortCodeInputTextField.textProperty().addListener((ov, oldValue, newValue) -> {
             fasterPaymentsAccount.setSortCode(newValue);
             updateFromInputs();
         });
 
         accountNrInputTextField = FormBuilder.addInputTextField(gridPane, ++gridRow, Res.get("payment.accountNr"));
-        accountNrInputTextField.setValidator(new AccountNrValidator("GB"));
+        accountNrInputTextField.setValidator(accountNrValidator);
         accountNrInputTextField.textProperty().addListener((ov, oldValue, newValue) -> {
             fasterPaymentsAccount.setAccountNr(newValue);
             updateFromInputs();
@@ -108,14 +111,13 @@ public class FasterPaymentsForm extends PaymentMethodForm {
 
     @Override
     protected void autoFillNameTextField() {
-        setAccountNameWithString(accountNrInputTextField.getText());
+        setAccountNameWithString(fasterPaymentsAccount.getAccountNr());
     }
 
     @Override
-    public void addFormForDisplayAccount() {
+    public void addFormForEditAccount() {
         gridRowFrom = gridRow;
-        addTopLabelTextField(gridPane, gridRow, Res.get("payment.account.name"),
-                fasterPaymentsAccount.getAccountName(), Layout.FIRST_ROW_AND_GROUP_DISTANCE);
+        addAccountNameTextFieldWithAutoFillToggleButton();
         addCompactTopLabelTextField(gridPane, ++gridRow, Res.get("shared.paymentMethod"),
                 Res.get(fasterPaymentsAccount.getPaymentMethod().getId()));
         if (!fasterPaymentsAccount.getHolderName().isEmpty()) {
@@ -136,9 +138,9 @@ public class FasterPaymentsForm extends PaymentMethodForm {
     @Override
     public void updateAllInputsValid() {
         allInputsValid.set(isAccountNameValid()
-                && holderNameInputTextField.getValidator().validate(fasterPaymentsAccount.getHolderName()).isValid
-                && sortCodeInputTextField.getValidator().validate(fasterPaymentsAccount.getSortCode()).isValid
-                && accountNrInputTextField.getValidator().validate(fasterPaymentsAccount.getAccountNr()).isValid
+                && inputValidator.validate(fasterPaymentsAccount.getHolderName()).isValid
+                && branchIdValidator.validate(fasterPaymentsAccount.getSortCode()).isValid
+                && accountNrValidator.validate(fasterPaymentsAccount.getAccountNr()).isValid
                 && fasterPaymentsAccount.getTradeCurrencies().size() > 0);
     }
 }

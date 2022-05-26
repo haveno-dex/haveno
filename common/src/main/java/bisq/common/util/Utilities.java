@@ -19,12 +19,8 @@ package bisq.common.util;
 
 import org.bitcoinj.core.Utils;
 
-import com.google.gson.ExclusionStrategy;
-import com.google.gson.FieldAttributes;
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-
 import com.google.common.base.Splitter;
+import com.google.common.primitives.Ints;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
@@ -52,9 +48,11 @@ import java.nio.file.Paths;
 import java.io.File;
 import java.io.IOException;
 
+import java.util.Arrays;
 import java.util.Date;
 import java.util.GregorianCalendar;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Random;
@@ -85,15 +83,6 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 @Slf4j
 public class Utilities {
-    public static String objectToJson(Object object) {
-        Gson gson = new GsonBuilder()
-                .setExclusionStrategies(new AnnotationExclusionStrategy())
-                /*.excludeFieldsWithModifiers(Modifier.TRANSIENT)*/
-                /*  .setFieldNamingPolicy(FieldNamingPolicy.UPPER_CAMEL_CASE)*/
-                .setPrettyPrinting()
-                .create();
-        return gson.toJson(object);
-    }
 
     public static ExecutorService getSingleThreadExecutor(String name) {
         final ThreadFactory threadFactory = new ThreadFactoryBuilder()
@@ -337,12 +326,12 @@ public class Utilities {
 
     public static void openURI(URI uri) throws IOException {
         if (!DesktopUtil.browse(uri))
-            throw new IOException("Failed to open URI: " + uri.toString());
+            throw new IOException("Failed to open URI: " + uri);
     }
 
     public static void openFile(File file) throws IOException {
         if (!DesktopUtil.open(file))
-            throw new IOException("Failed to open file: " + file.toString());
+            throw new IOException("Failed to open file: " + file);
     }
 
     public static String getDownloadOfHomeDir() {
@@ -447,18 +436,6 @@ public class Utilities {
         return new File(Utilities.class.getProtectionDomain().getCodeSource().getLocation().toURI()).getPath();
     }
 
-    private static class AnnotationExclusionStrategy implements ExclusionStrategy {
-        @Override
-        public boolean shouldSkipField(FieldAttributes f) {
-            return f.getAnnotation(JsonExclude.class) != null;
-        }
-
-        @Override
-        public boolean shouldSkipClass(Class<?> clazz) {
-            return false;
-        }
-    }
-
     public static String toTruncatedString(Object message) {
         return toTruncatedString(message, 200, true);
     }
@@ -478,6 +455,16 @@ public class Utilities {
 
         return result;
 
+    }
+
+    public static List<String> toListOfWrappedStrings(String s, int wrapLength) {
+        StringBuilder sb = new StringBuilder(s);
+        int i = 0;
+        while (i + wrapLength < sb.length() && (i = sb.lastIndexOf(" ", i + wrapLength)) != -1) {
+            sb.replace(i, i + 1, "\n");
+        }
+        String[] splitLine = sb.toString().split("\n");
+        return Arrays.asList(splitLine);
     }
 
     public static String getRandomPrefix(int minLength, int maxLength) {
@@ -539,6 +526,34 @@ public class Utilities {
         return result;
     }
 
+    public static byte[] copyRightAligned(byte[] src, int newLength) {
+        byte[] dest = new byte[newLength];
+        int srcPos = Math.max(src.length - newLength, 0);
+        int destPos = Math.max(newLength - src.length, 0);
+        System.arraycopy(src, srcPos, dest, destPos, newLength - destPos);
+        return dest;
+    }
+
+    public static byte[] intsToBytesBE(int[] ints) {
+        byte[] bytes = new byte[ints.length * 4];
+        int i = 0;
+        for (int v : ints) {
+            bytes[i++] = (byte) (v >> 24);
+            bytes[i++] = (byte) (v >> 16);
+            bytes[i++] = (byte) (v >> 8);
+            bytes[i++] = (byte) v;
+        }
+        return bytes;
+    }
+
+    public static int[] bytesToIntsBE(byte[] bytes) {
+        int[] ints = new int[bytes.length / 4];
+        for (int i = 0, j = 0; i < bytes.length / 4; i++) {
+            ints[i] = Ints.fromBytes(bytes[j++], bytes[j++], bytes[j++], bytes[j++]);
+        }
+        return ints;
+    }
+
     // Helper to filter unique elements by key
     public static <T> Predicate<T> distinctByKey(Function<? super T, Object> keyExtractor) {
         Map<Object, Boolean> map = new ConcurrentHashMap<>();
@@ -590,5 +605,9 @@ public class Utilities {
             result = "0.000 seconds";
         }
         return result;
+    }
+
+    public static String cleanString(String string) {
+        return string.replaceAll("[\\t\\n\\r]+", " ");
     }
 }

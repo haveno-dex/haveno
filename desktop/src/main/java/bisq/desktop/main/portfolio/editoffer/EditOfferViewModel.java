@@ -103,9 +103,9 @@ class EditOfferViewModel extends MutableOfferViewModel<EditOfferDataModel> {
         dataModel.onCancelEditOffer(errorMessageHandler);
     }
 
-    public void onInvalidateMarketPriceMargin() {
+    public void onInvalidateMarketPriceMarginPct() {
         marketPriceMargin.set("0.00%");
-        marketPriceMargin.set(FormattingUtils.formatToPercent(dataModel.getMarketPriceMargin()));
+        marketPriceMargin.set(FormattingUtils.formatToPercent(dataModel.getMarketPriceMarginPct()));
     }
 
     public void onInvalidatePrice() {

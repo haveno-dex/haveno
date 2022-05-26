@@ -55,7 +55,7 @@ public class BuyerPreparesPaymentSentMessage extends TradeTask {
             runInterceptHook();
             
             // validate state
-            Preconditions.checkNotNull(trade.getTradeAmount(), "trade.getTradeAmount() must not be null");
+            Preconditions.checkNotNull(trade.getAmount(), "trade.getTradeAmount() must not be null");
             Preconditions.checkNotNull(trade.getMakerDepositTx(), "trade.getMakerDepositTx() must not be null");
             Preconditions.checkNotNull(trade.getTakerDepositTx(), "trade.getTakerDepositTx() must not be null");
             checkNotNull(trade.getOffer(), "offer must not be null");

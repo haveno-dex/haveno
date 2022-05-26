@@ -28,23 +28,26 @@ import bisq.desktop.util.Layout;
 
 import bisq.core.account.witness.AccountAgeWitnessService;
 import bisq.core.btc.wallet.BtcWalletService;
-import bisq.core.locale.CurrencyUtil;
 import bisq.core.locale.Res;
 import bisq.core.offer.Offer;
 import bisq.core.payment.payload.PaymentAccountPayload;
 import bisq.core.support.dispute.agent.DisputeAgentLookupMap;
 import bisq.core.support.dispute.arbitration.ArbitrationManager;
+import bisq.core.trade.TradeManager;
 import bisq.core.trade.Contract;
 import bisq.core.trade.Trade;
-import bisq.core.trade.TradeManager;
 import bisq.core.trade.txproof.AssetTxProofResult;
 import bisq.core.util.FormattingUtils;
+import bisq.core.util.VolumeUtil;
 import bisq.core.util.coin.CoinFormatter;
 
 import bisq.network.p2p.NodeAddress;
 
 import bisq.common.UserThread;
 import bisq.common.util.Tuple3;
+
+import org.bitcoinj.core.Transaction;
+import org.bitcoinj.core.Utils;
 
 import javax.inject.Inject;
 import javax.inject.Named;
@@ -73,6 +76,7 @@ import javafx.beans.value.ChangeListener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static bisq.desktop.util.DisplayUtils.getAccountWitnessDescription;
 import static bisq.desktop.util.FormBuilder.*;
 import static com.google.common.base.Preconditions.checkNotNull;
 
@@ -151,26 +155,26 @@ public class TradeDetailsWindow extends Overlay<TradeDetailsWindow> {
         String toSpend = " " + Res.get("shared.toSpend");
         String offerType = Res.get("shared.offerType");
         if (tradeManager.isBuyer(offer)) {
-            addConfirmationLabelLabel(gridPane, rowIndex, offerType,
+            addConfirmationLabelTextField(gridPane, rowIndex, offerType,
                     DisplayUtils.getDirectionForBuyer(myOffer, offer.getCurrencyCode()), Layout.TWICE_FIRST_ROW_DISTANCE);
             fiatDirectionInfo = toSpend;
             btcDirectionInfo = toReceive;
         } else {
-            addConfirmationLabelLabel(gridPane, rowIndex, offerType,
+            addConfirmationLabelTextField(gridPane, rowIndex, offerType,
                     DisplayUtils.getDirectionForSeller(myOffer, offer.getCurrencyCode()), Layout.TWICE_FIRST_ROW_DISTANCE);
             fiatDirectionInfo = toReceive;
             btcDirectionInfo = toSpend;
         }
 
-        addConfirmationLabelLabel(gridPane, ++rowIndex, Res.get("shared.btcAmount") + btcDirectionInfo,
-                formatter.formatCoinWithCode(trade.getTradeAmount()));
-        addConfirmationLabelLabel(gridPane, ++rowIndex,
-                DisplayUtils.formatVolumeLabel(offer.getCurrencyCode()) + fiatDirectionInfo,
-                DisplayUtils.formatVolumeWithCode(trade.getTradeVolume()));
-        addConfirmationLabelLabel(gridPane, ++rowIndex, Res.get("shared.tradePrice"),
-                FormattingUtils.formatPrice(trade.getTradePrice()));
+        addConfirmationLabelTextField(gridPane, ++rowIndex, Res.get("shared.btcAmount") + btcDirectionInfo,
+                formatter.formatCoinWithCode(trade.getAmount()));
+        addConfirmationLabelTextField(gridPane, ++rowIndex,
+                VolumeUtil.formatVolumeLabel(offer.getCurrencyCode()) + fiatDirectionInfo,
+                VolumeUtil.formatVolumeWithCode(trade.getVolume()));
+        addConfirmationLabelTextField(gridPane, ++rowIndex, Res.get("shared.tradePrice"),
+                FormattingUtils.formatPrice(trade.getPrice()));
         String paymentMethodText = Res.get(offer.getPaymentMethod().getId());
-        addConfirmationLabelLabel(gridPane, ++rowIndex, Res.get("shared.paymentMethod"), paymentMethodText);
+        addConfirmationLabelTextField(gridPane, ++rowIndex, Res.get("shared.paymentMethod"), paymentMethodText);
 
         // second group
         rows = 7;
@@ -196,16 +200,10 @@ public class TradeDetailsWindow extends Overlay<TradeDetailsWindow> {
                 trade.getAssetTxProofResult() != null &&
                 trade.getAssetTxProofResult() != AssetTxProofResult.UNDEFINED;
 
-        if (trade.getTakerFeeTxId() != null)
-          rows++;
-        if (trade.getMakerDepositTx() != null)
-          rows++;
-        if (trade.getTakerDepositTx() != null)
-          rows++;
         if (trade.getPayoutTx() != null)
             rows++;
-        boolean showDisputedTx = arbitrationManager.findDispute(trade.getId()).isPresent() &&
-                arbitrationManager.findDispute(trade.getId()).get().getDisputePayoutTxId() != null;
+        boolean showDisputedTx = arbitrationManager.findOwnDispute(trade.getId()).isPresent() &&
+                arbitrationManager.findOwnDispute(trade.getId()).get().getDisputePayoutTxId() != null;
         if (showDisputedTx)
             rows++;
         if (trade.hasFailed())
@@ -216,9 +214,9 @@ public class TradeDetailsWindow extends Overlay<TradeDetailsWindow> {
             rows++;
 
         addTitledGroupBg(gridPane, ++rowIndex, rows, Res.get("shared.details"), Layout.GROUP_DISTANCE);
-        addConfirmationLabelTextFieldWithCopyIcon(gridPane, rowIndex, Res.get("shared.tradeId"),
+        addConfirmationLabelTextField(gridPane, rowIndex, Res.get("shared.tradeId"),
                 trade.getId(), Layout.TWICE_FIRST_ROW_AND_GROUP_DISTANCE);
-        addConfirmationLabelLabel(gridPane, ++rowIndex, Res.get("tradeDetailsWindow.tradeDate"),
+        addConfirmationLabelTextField(gridPane, ++rowIndex, Res.get("tradeDetailsWindow.tradeDate"),
                 DisplayUtils.formatDateTime(trade.getDate()));
         String securityDeposit = Res.getWithColAndCap("shared.buyer") +
                 " " +
@@ -227,62 +225,51 @@ public class TradeDetailsWindow extends Overlay<TradeDetailsWindow> {
                 Res.getWithColAndCap("shared.seller") +
                 " " +
                 formatter.formatCoinWithCode(offer.getSellerSecurityDeposit());
-        addConfirmationLabelLabel(gridPane, ++rowIndex, Res.get("shared.securityDeposit"), securityDeposit);
+        addConfirmationLabelTextField(gridPane, ++rowIndex, Res.get("shared.securityDeposit"), securityDeposit);
 
         String txFee = Res.get("shared.makerTxFee", formatter.formatCoinWithCode(offer.getTxFee())) +
                 " / " +
                 Res.get("shared.takerTxFee", formatter.formatCoinWithCode(trade.getTxFee().multiply(3)));
-        addConfirmationLabelLabel(gridPane, ++rowIndex, Res.get("tradeDetailsWindow.txFee"), txFee);
+        addConfirmationLabelTextField(gridPane, ++rowIndex, Res.get("tradeDetailsWindow.txFee"), txFee);
 
         NodeAddress arbitratorNodeAddress = trade.getArbitratorNodeAddress();
         if (arbitratorNodeAddress != null) {
-            addConfirmationLabelTextFieldWithCopyIcon(gridPane, ++rowIndex,
+            addConfirmationLabelTextField(gridPane, ++rowIndex,
                     Res.get("tradeDetailsWindow.agentAddresses"),
                     arbitratorNodeAddress.getFullAddress());
         }
 
         if (trade.getTradingPeerNodeAddress() != null)
-            addConfirmationLabelTextFieldWithCopyIcon(gridPane, ++rowIndex, Res.get("tradeDetailsWindow.tradingPeersOnion"),
+            addConfirmationLabelTextField(gridPane, ++rowIndex, Res.get("tradeDetailsWindow.tradingPeersOnion"),
                     trade.getTradingPeerNodeAddress().getFullAddress());
 
         if (showXmrProofResult) {
             // As the window is already overloaded we replace the tradingPeersPubKeyHash field with the auto-conf state
             // if XMR is the currency
-            addConfirmationLabelTextFieldWithCopyIcon(gridPane, ++rowIndex,
+            addConfirmationLabelTextField(gridPane, ++rowIndex,
                     Res.get("portfolio.pending.step3_seller.autoConf.status.label"),
                     GUIUtil.getProofResultAsString(trade.getAssetTxProofResult()));
         }
 
         if (contract != null) {
+            buyersAccountAge = getAccountWitnessDescription(accountAgeWitnessService, offer.getPaymentMethod(), buyerPaymentAccountPayload, contract.getBuyerPubKeyRing());
+            sellersAccountAge = getAccountWitnessDescription(accountAgeWitnessService, offer.getPaymentMethod(), sellerPaymentAccountPayload, contract.getSellerPubKeyRing());
             if (buyerPaymentAccountPayload != null) {
                 String paymentDetails = buyerPaymentAccountPayload.getPaymentDetails();
-                long age = accountAgeWitnessService.getAccountAge(buyerPaymentAccountPayload, contract.getBuyerPubKeyRing());
-                buyersAccountAge = CurrencyUtil.isFiatCurrency(offer.getCurrencyCode()) ?
-                        age > -1 ? Res.get("peerInfoIcon.tooltip.age", DisplayUtils.formatAccountAge(age)) :
-                                Res.get("peerInfoIcon.tooltip.unknownAge") :
-                        "";
-
-                String postFix = buyersAccountAge.isEmpty() ? "" : " / " + buyersAccountAge;
-                TextFieldWithCopyIcon tf = addConfirmationLabelTextFieldWithCopyIcon(gridPane, ++rowIndex,
+                String postFix = " / " + buyersAccountAge;
+                addConfirmationLabelTextField(gridPane, ++rowIndex,
                         Res.get("shared.paymentDetails", Res.get("shared.buyer")),
-                        paymentDetails + postFix).second;
-                tf.setTooltip(new Tooltip(tf.getText()));
+                        paymentDetails + postFix).second.setTooltip(new Tooltip(paymentDetails + postFix));
             }
             if (sellerPaymentAccountPayload != null) {
                 String paymentDetails = sellerPaymentAccountPayload.getPaymentDetails();
-                long age = accountAgeWitnessService.getAccountAge(sellerPaymentAccountPayload, contract.getSellerPubKeyRing());
-                sellersAccountAge = CurrencyUtil.isFiatCurrency(offer.getCurrencyCode()) ?
-                        age > -1 ? Res.get("peerInfoIcon.tooltip.age", DisplayUtils.formatAccountAge(age)) :
-                                Res.get("peerInfoIcon.tooltip.unknownAge") :
-                        "";
-                String postFix = sellersAccountAge.isEmpty() ? "" : " / " + sellersAccountAge;
-                TextFieldWithCopyIcon tf = addConfirmationLabelTextFieldWithCopyIcon(gridPane, ++rowIndex,
+                String postFix = " / " + sellersAccountAge;
+                addConfirmationLabelTextField(gridPane, ++rowIndex,
                         Res.get("shared.paymentDetails", Res.get("shared.seller")),
-                        paymentDetails + postFix).second;
-                tf.setTooltip(new Tooltip(tf.getText()));
+                        paymentDetails + postFix).second.setTooltip(new Tooltip(paymentDetails + postFix));
             }
             if (buyerPaymentAccountPayload == null && sellerPaymentAccountPayload == null)
-                addConfirmationLabelLabel(gridPane, ++rowIndex, Res.get("shared.paymentMethod"),
+                addConfirmationLabelTextField(gridPane, ++rowIndex, Res.get("shared.paymentMethod"),
                         Res.get(contract.getPaymentMethodId()));
         }
 
@@ -290,18 +277,18 @@ public class TradeDetailsWindow extends Overlay<TradeDetailsWindow> {
         addLabelTxIdTextField(gridPane, ++rowIndex, Res.get("shared.takerFeeTxId"), trade.getTakerFeeTxId());
 
         if (trade.getMakerDepositTx() != null)
-          addLabelTxIdTextField(gridPane, ++rowIndex, Res.get("shared.depositTransactionId"), // TODO (woodser): separate UI labels for deposit tx ids
-                  trade.getMakerDepositTx().getHash());
-        if (trade.getTakerDepositTx() != null)
-          addLabelTxIdTextField(gridPane, ++rowIndex, Res.get("shared.depositTransactionId"), // TODO (woodser): separate UI labels for deposit tx ids
-                  trade.getTakerDepositTx().getHash());
+            addLabelTxIdTextField(gridPane, ++rowIndex, Res.get("shared.depositTransactionId"), // TODO (woodser): separate UI labels for deposit tx ids
+                    trade.getMakerDepositTx().getHash());
+          if (trade.getTakerDepositTx() != null)
+            addLabelTxIdTextField(gridPane, ++rowIndex, Res.get("shared.depositTransactionId"), // TODO (woodser): separate UI labels for deposit tx ids
+                    trade.getTakerDepositTx().getHash());
 
         if (trade.getPayoutTx() != null)
             addLabelTxIdTextField(gridPane, ++rowIndex, Res.get("shared.payoutTxId"),
                     trade.getPayoutTx().getHash());
         if (showDisputedTx)
             addLabelTxIdTextField(gridPane, ++rowIndex, Res.get("tradeDetailsWindow.disputedPayoutTxId"),
-                    arbitrationManager.findDispute(trade.getId()).get().getDisputePayoutTxId());
+                    arbitrationManager.findOwnDispute(trade.getId()).get().getDisputePayoutTxId());
 
         if (trade.hasFailed()) {
             textArea = addConfirmationLabelTextArea(gridPane, ++rowIndex, Res.get("shared.errorMessage"), "", 0).second;
@@ -319,7 +306,7 @@ public class TradeDetailsWindow extends Overlay<TradeDetailsWindow> {
             textArea.scrollTopProperty().addListener(changeListener);
             textArea.setScrollTop(30);
 
-            addConfirmationLabelLabel(gridPane, ++rowIndex, Res.get("tradeDetailsWindow.tradeState"), trade.getState().getPhase().name());
+            addConfirmationLabelTextField(gridPane, ++rowIndex, Res.get("tradeDetailsWindow.tradeState"), trade.getPhase().name());
         }
 
         Tuple3<Button, Button, HBox> tuple = add2ButtonsWithBox(gridPane, ++rowIndex,
@@ -340,18 +327,19 @@ public class TradeDetailsWindow extends Overlay<TradeDetailsWindow> {
                 textArea.setText(trade.getContractAsJson());
                 String data = "Contract as json:\n";
                 data += trade.getContractAsJson();
-                if (CurrencyUtil.isFiatCurrency(offer.getCurrencyCode())) {
+                data += "\n\nOther detail data:";
+                if (offer.isFiatOffer()) {
                     data += "\n\nBuyersAccountAge: " + buyersAccountAge;
                     data += "\nSellersAccountAge: " + sellersAccountAge;
                 }
 
                 // TODO (woodser): include maker and taker deposit tx hex in contract?
-//                if (depositTx != null) {
-//                    String depositTxAsHex = Utils.HEX.encode(depositTx.bitcoinSerialize(true));
-//                    data += "\n\nRaw deposit transaction as hex:\n" + depositTxAsHex;
-//                }
+//              if (depositTx != null) {
+//                  String depositTxAsHex = Utils.HEX.encode(depositTx.bitcoinSerialize(true));
+//                  data += "\n\nRaw deposit transaction as hex:\n" + depositTxAsHex;
+//              }
 
-                data += "\n\nSelected arbitrator: " + DisputeAgentLookupMap.getKeyBaseUserName(contract.getArbitratorNodeAddress().getFullAddress());
+                data += "\n\nSelected arbitrator: " + DisputeAgentLookupMap.getMatrixUserName(contract.getArbitratorNodeAddress().getFullAddress());
 
                 textArea.setText(data);
                 textArea.setPrefHeight(50);

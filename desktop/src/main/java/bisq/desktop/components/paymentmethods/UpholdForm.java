@@ -19,11 +19,9 @@ package bisq.desktop.components.paymentmethods;
 
 import bisq.desktop.components.InputTextField;
 import bisq.desktop.util.FormBuilder;
-import bisq.desktop.util.Layout;
 import bisq.desktop.util.validation.UpholdValidator;
 
 import bisq.core.account.witness.AccountAgeWitnessService;
-import bisq.core.locale.CurrencyUtil;
 import bisq.core.locale.Res;
 import bisq.core.payment.PaymentAccount;
 import bisq.core.payment.UpholdAccount;
@@ -38,17 +36,23 @@ import javafx.scene.layout.GridPane;
 
 import static bisq.desktop.util.FormBuilder.addCompactTopLabelTextField;
 import static bisq.desktop.util.FormBuilder.addCompactTopLabelTextFieldWithCopyIcon;
-import static bisq.desktop.util.FormBuilder.addTopLabelTextField;
 
 public class UpholdForm extends PaymentMethodForm {
     private final UpholdAccount upholdAccount;
-    private UpholdValidator upholdValidator;
-    private InputTextField accountIdInputTextField;
+    private final UpholdValidator upholdValidator;
 
     public static int addFormForBuyer(GridPane gridPane, int gridRow,
                                       PaymentAccountPayload paymentAccountPayload) {
+        String accountOwner = ((UpholdAccountPayload) paymentAccountPayload).getAccountOwner();
+        if (accountOwner.isEmpty()) {
+            accountOwner = Res.get("payment.ask");
+        }
+        addCompactTopLabelTextFieldWithCopyIcon(gridPane, ++gridRow, Res.get("payment.account.owner"),
+                accountOwner);
+
         addCompactTopLabelTextFieldWithCopyIcon(gridPane, ++gridRow, Res.get("payment.uphold.accountId"),
                 ((UpholdAccountPayload) paymentAccountPayload).getAccountId());
+
         return gridRow;
     }
 
@@ -64,7 +68,15 @@ public class UpholdForm extends PaymentMethodForm {
     public void addFormForAddAccount() {
         gridRowFrom = gridRow + 1;
 
-        accountIdInputTextField = FormBuilder.addInputTextField(gridPane, ++gridRow, Res.get("payment.uphold.accountId"));
+        InputTextField holderNameInputTextField = FormBuilder.addInputTextField(gridPane, ++gridRow,
+                Res.get("payment.account.owner"));
+        holderNameInputTextField.setValidator(inputValidator);
+        holderNameInputTextField.textProperty().addListener((ov, oldValue, newValue) -> {
+            upholdAccount.setAccountOwner(newValue);
+            updateFromInputs();
+        });
+
+        InputTextField accountIdInputTextField = FormBuilder.addInputTextField(gridPane, ++gridRow, Res.get("payment.uphold.accountId"));
         accountIdInputTextField.setValidator(upholdValidator);
         accountIdInputTextField.textProperty().addListener((ov, oldValue, newValue) -> {
             upholdAccount.setAccountId(newValue.trim());
@@ -86,22 +98,23 @@ public class UpholdForm extends PaymentMethodForm {
         else
             flowPane.setId("flow-pane-checkboxes-non-editable-bg");
 
-        CurrencyUtil.getAllUpholdCurrencies().forEach(e ->
+        paymentAccount.getSupportedCurrencies().forEach(e ->
                 fillUpFlowPaneWithCurrencies(isEditable, flowPane, e, upholdAccount));
     }
 
     @Override
     protected void autoFillNameTextField() {
-        setAccountNameWithString(accountIdInputTextField.getText());
+        setAccountNameWithString(upholdAccount.getAccountId());
     }
 
     @Override
-    public void addFormForDisplayAccount() {
+    public void addFormForEditAccount() {
         gridRowFrom = gridRow;
-        addTopLabelTextField(gridPane, gridRow, Res.get("payment.account.name"),
-                upholdAccount.getAccountName(), Layout.FIRST_ROW_AND_GROUP_DISTANCE);
+        addAccountNameTextFieldWithAutoFillToggleButton();
         addCompactTopLabelTextField(gridPane, ++gridRow, Res.get("shared.paymentMethod"),
                 Res.get(upholdAccount.getPaymentMethod().getId()));
+        addCompactTopLabelTextField(gridPane, ++gridRow, Res.get("payment.account.owner"),
+                Res.get(upholdAccount.getAccountOwner()));
         TextField field = addCompactTopLabelTextField(gridPane, ++gridRow, Res.get("payment.uphold.accountId"),
                 upholdAccount.getAccountId()).second;
         field.setMouseTransparent(false);

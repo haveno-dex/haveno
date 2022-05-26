@@ -29,6 +29,7 @@ import bisq.common.file.FileUtil;
 import bisq.common.handlers.ResultHandler;
 import bisq.common.proto.persistable.PersistableEnvelope;
 import bisq.common.proto.persistable.PersistenceProtoResolver;
+import bisq.common.util.GcUtil;
 import bisq.common.util.Utilities;
 
 import com.google.inject.Inject;
@@ -325,7 +326,11 @@ public class PersistenceManager<T extends PersistableEnvelope> {
         new Thread(() -> {
             T persisted = getPersisted(fileName);
             if (persisted != null) {
-                UserThread.execute(() -> resultHandler.accept(persisted));
+                UserThread.execute(() -> {
+                    resultHandler.accept(persisted);
+
+                    GcUtil.maybeReleaseMemory();
+                });
             } else {
                 UserThread.execute(orElse);
             }
@@ -434,7 +439,16 @@ public class PersistenceManager<T extends PersistableEnvelope> {
         }
     }
 
+    public void forcePersistNow() {
+        // Tor Bridges settings are edited before app init completes, require persistNow to be forced, see writeToDisk()
+        persistNow(null, true);
+    }
+
     public void persistNow(@Nullable Runnable completeHandler) {
+        persistNow(completeHandler, false);
+    }
+
+    private void persistNow(@Nullable Runnable completeHandler, boolean force) {
         long ts = System.currentTimeMillis();
         try {
             // The serialisation is done on the user thread to avoid threading issue with potential mutations of the
@@ -444,7 +458,7 @@ public class PersistenceManager<T extends PersistableEnvelope> {
             // For the write to disk task we use a thread. We do not have any issues anymore if the persistable objects
             // gets mutated while the thread is running as we have serialized it already and do not operate on the
             // reference to the persistable object.
-            getWriteToDiskExecutor().execute(() -> writeToDisk(serialized, completeHandler));
+            getWriteToDiskExecutor().execute(() -> writeToDisk(serialized, completeHandler, force));
 
             long duration = System.currentTimeMillis() - ts;
             if (duration > 100) {
@@ -457,8 +471,8 @@ public class PersistenceManager<T extends PersistableEnvelope> {
         }
     }
 
-    public void writeToDisk(protobuf.PersistableEnvelope serialized, @Nullable Runnable completeHandler) {
-        if (!allServicesInitialized.get()) {
+    private void writeToDisk(protobuf.PersistableEnvelope serialized, @Nullable Runnable completeHandler, boolean force) {
+        if (!allServicesInitialized.get() && !force) {
             log.warn("Application has not completed start up yet so we do not permit writing data to disk.");
             if (completeHandler != null) {
                 UserThread.execute(completeHandler);

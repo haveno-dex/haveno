@@ -17,19 +17,29 @@
 
 package bisq.desktop.components;
 
+import bisq.desktop.util.FormBuilder;
+import bisq.desktop.util.GUIUtil;
+
+import de.jensd.fx.glyphs.materialdesignicons.MaterialDesignIcon;
+
 import javafx.scene.control.Label;
 import javafx.scene.layout.GridPane;
+import javafx.scene.layout.HBox;
 import javafx.scene.layout.Pane;
+import javafx.scene.text.Text;
 
 import javafx.geometry.Insets;
+import javafx.geometry.Pos;
 
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
 
 public class TitledGroupBg extends Pane {
 
+    private final HBox box;
     private final Label label;
     private final StringProperty text = new SimpleStringProperty();
+    private Text helpIcon;
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Constructor
@@ -39,13 +49,18 @@ public class TitledGroupBg extends Pane {
         GridPane.setMargin(this, new Insets(-10, -10, -10, -10));
         GridPane.setColumnSpan(this, 2);
 
+        box = new HBox();
+        box.setSpacing(4);
+        box.setLayoutX(4);
+        box.setLayoutY(-8);
+        box.setPadding(new Insets(0, 7, 0, 5));
+        box.setAlignment(Pos.CENTER_LEFT);
+
         label = new AutoTooltipLabel();
         label.textProperty().bind(text);
-        label.setLayoutX(4);
-        label.setLayoutY(-8);
-        label.setPadding(new Insets(0, 7, 0, 5));
         setActive();
-        getChildren().add(label);
+        box.getChildren().add(label);
+        getChildren().add(box);
     }
 
     public void setInactive() {
@@ -65,10 +80,6 @@ public class TitledGroupBg extends Pane {
         label.getStyleClass().add("titled-group-bg-label-active");
     }
 
-    public String getText() {
-        return text.get();
-    }
-
     public StringProperty textProperty() {
         return text;
     }
@@ -77,8 +88,13 @@ public class TitledGroupBg extends Pane {
         this.text.set(text);
     }
 
-    public Label getLabel() {
-        return label;
-    }
+    public void setHelpUrl(String helpUrl) {
+        if (helpIcon == null) {
+            helpIcon = FormBuilder.getIcon(MaterialDesignIcon.HELP_CIRCLE_OUTLINE, "1em");
+            helpIcon.getStyleClass().addAll("icon", "link-icon");
+            box.getChildren().add(helpIcon);
+        }
 
+        helpIcon.setOnMouseClicked(e -> GUIUtil.openWebPage(helpUrl));
+    }
 }

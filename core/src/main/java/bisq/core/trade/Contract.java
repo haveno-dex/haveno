@@ -23,6 +23,7 @@ import bisq.core.monetary.Volume;
 import bisq.core.offer.OfferPayload;
 import bisq.core.payment.payload.PaymentMethod;
 import bisq.core.proto.CoreProtoResolver;
+import bisq.core.util.JsonUtil;
 import bisq.core.util.VolumeUtil;
 
 import bisq.network.p2p.NodeAddress;
@@ -30,7 +31,6 @@ import com.google.protobuf.ByteString;
 import bisq.common.crypto.PubKeyRing;
 import bisq.common.proto.network.NetworkPayload;
 import bisq.common.util.JsonExclude;
-import bisq.common.util.Utilities;
 
 import org.bitcoinj.core.Coin;
 
@@ -213,7 +213,7 @@ public final class Contract implements NetworkPayload {
     }
 
     public Volume getTradeVolume() {
-        Volume volumeByAmount = getTradePrice().getVolumeByAmount(getTradeAmount());
+        Volume volumeByAmount = getPrice().getVolumeByAmount(getTradeAmount());
 
         if (getPaymentMethodId().equals(PaymentMethod.HAL_CASH_ID))
             volumeByAmount = VolumeUtil.getAdjustedVolumeForHalCash(volumeByAmount);
@@ -223,7 +223,7 @@ public final class Contract implements NetworkPayload {
         return volumeByAmount;
     }
 
-    public Price getTradePrice() {
+    public Price getPrice() {
         return Price.valueOf(offerPayload.getCurrencyCode(), tradePrice);
     }
 
@@ -257,7 +257,7 @@ public final class Contract implements NetworkPayload {
     }
 
     public void printDiff(@Nullable String peersContractAsJson) {
-        String json = Utilities.objectToJson(this);
+        String json = JsonUtil.objectToJson(this);
         String diff = StringUtils.difference(json, peersContractAsJson);
         if (!diff.isEmpty()) {
             log.warn("Diff of both contracts: \n" + diff);

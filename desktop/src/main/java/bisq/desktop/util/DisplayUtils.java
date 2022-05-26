@@ -1,35 +1,36 @@
 package bisq.desktop.util;
 
+import bisq.core.account.witness.AccountAgeWitness;
+import bisq.core.account.witness.AccountAgeWitnessService;
 import bisq.core.locale.CurrencyUtil;
 import bisq.core.locale.GlobalSettings;
 import bisq.core.locale.Res;
-import bisq.core.monetary.Altcoin;
 import bisq.core.monetary.Price;
 import bisq.core.monetary.Volume;
 import bisq.core.offer.Offer;
-import bisq.core.offer.OfferPayload;
+import bisq.core.payment.payload.PaymentAccountPayload;
+import bisq.core.payment.payload.PaymentMethod;
 import bisq.core.util.FormattingUtils;
+import bisq.core.offer.OfferDirection;
+import bisq.core.payment.PaymentAccount;
 import bisq.core.util.ParsingUtils;
+import bisq.core.util.VolumeUtil;
 import bisq.core.util.coin.CoinFormatter;
 
+import bisq.common.crypto.PubKeyRing;
+
 import org.bitcoinj.core.Coin;
-import org.bitcoinj.core.Monetary;
-import org.bitcoinj.utils.Fiat;
-import org.bitcoinj.utils.MonetaryFormat;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.time.DurationFormatUtils;
 
 import java.text.DateFormat;
-import java.text.DecimalFormat;
-import java.text.NumberFormat;
 import java.text.SimpleDateFormat;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 
 import java.util.Date;
-import java.util.Locale;
 import java.util.Optional;
 
 import lombok.extern.slf4j.Slf4j;
@@ -37,7 +38,6 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class DisplayUtils {
     private static final int SCALE = 3;
-    private static final MonetaryFormat FIAT_VOLUME_FORMAT = new MonetaryFormat().shift(0).minDecimals(0).repeatOptionalDecimals(0, 0);
 
     public static String formatDateTime(Date date) {
         return FormattingUtils.formatDateTime(date, true);
@@ -80,6 +80,30 @@ public class DisplayUtils {
         }
     }
 
+    public static String getAccountWitnessDescription(AccountAgeWitnessService accountAgeWitnessService,
+                                               PaymentMethod paymentMethod,
+                                               PaymentAccountPayload paymentAccountPayload,
+                                               PubKeyRing pubKeyRing) {
+        String description = Res.get("peerInfoIcon.tooltip.unknownAge");
+        Optional<AccountAgeWitness> aaw = accountAgeWitnessService.findWitness(paymentAccountPayload, pubKeyRing);
+        if (aaw.isPresent()) {
+            long accountAge = accountAgeWitnessService.getAccountAge(aaw.get(), new Date());
+            long signAge = -1L;
+            if (PaymentMethod.hasChargebackRisk(paymentMethod)) {
+                signAge = accountAgeWitnessService.getWitnessSignAge(aaw.get(), new Date());
+            }
+            if (signAge > -1) {
+                description = Res.get("peerInfo.age.chargeBackRisk") + ": " + formatAccountAge(signAge);
+            } else if (accountAge > -1) {
+                description = Res.get("peerInfoIcon.tooltip.age", formatAccountAge(accountAge));
+                if (PaymentMethod.hasChargebackRisk(paymentMethod)) {
+                    description += ", " + Res.get("offerbook.timeSinceSigning.notSigned");
+                }
+            }
+        }
+        return description;
+    }
+
     public static String formatAccountAge(long durationMillis) {
         durationMillis = Math.max(0, durationMillis);
         String day = Res.get("time.day").toLowerCase();
@@ -93,99 +117,21 @@ public class DisplayUtils {
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
-    // Volume
-    ///////////////////////////////////////////////////////////////////////////////////////////
-
-    public static String formatVolume(Offer offer, Boolean decimalAligned, int maxNumberOfDigits) {
-        return formatVolume(offer, decimalAligned, maxNumberOfDigits, true);
-    }
-
-    public static String formatVolume(Offer offer, Boolean decimalAligned, int maxNumberOfDigits, boolean showRange) {
-        String formattedVolume = offer.isRange() && showRange ? formatVolume(offer.getMinVolume()) + FormattingUtils.RANGE_SEPARATOR + formatVolume(offer.getVolume()) : formatVolume(offer.getVolume());
-
-        if (decimalAligned) {
-            formattedVolume = FormattingUtils.fillUpPlacesWithEmptyStrings(formattedVolume, maxNumberOfDigits);
-        }
-        return formattedVolume;
-    }
-
-    public static String formatLargeFiat(double value, String currency) {
-        if (value <= 0) {
-            return "0";
-        }
-        NumberFormat numberFormat = DecimalFormat.getInstance(Locale.US);
-        numberFormat.setGroupingUsed(true);
-        return numberFormat.format(value) + " " + currency;
-    }
-
-    public static String formatLargeFiatWithUnitPostFix(double value, String currency) {
-        if (value <= 0) {
-            return "0";
-        }
-        String[] units = new String[]{"", "K", "M", "B"};
-        int digitGroups = (int) (Math.log10(value) / Math.log10(1000));
-        return new DecimalFormat("#,##0.###").format(value / Math.pow(1000, digitGroups)) + units[digitGroups] + " " + currency;
-    }
-
-    public static String formatVolume(Volume volume) {
-        return formatVolume(volume, FIAT_VOLUME_FORMAT, false);
-    }
-
-    private static String formatVolume(Volume volume, MonetaryFormat fiatVolumeFormat, boolean appendCurrencyCode) {
-        if (volume != null) {
-            Monetary monetary = volume.getMonetary();
-            if (monetary instanceof Fiat)
-                return FormattingUtils.formatFiat((Fiat) monetary, fiatVolumeFormat, appendCurrencyCode);
-            else
-                return FormattingUtils.formatAltcoinVolume((Altcoin) monetary, appendCurrencyCode);
-        } else {
-            return "";
-        }
-    }
-
-    public static String formatVolumeWithCode(Volume volume) {
-        return formatVolume(volume, true);
-    }
-
-    public static String formatVolume(Volume volume, boolean appendCode) {
-        return formatVolume(volume, FIAT_VOLUME_FORMAT, appendCode);
-    }
-
-    public static String formatAverageVolumeWithCode(Volume volume) {
-        return formatVolume(volume, FIAT_VOLUME_FORMAT.minDecimals(2), true);
-    }
-
-    public static String formatVolumeLabel(String currencyCode) {
-        return formatVolumeLabel(currencyCode, "");
-    }
-
-    public static String formatVolumeLabel(String currencyCode, String postFix) {
-        return Res.get("formatter.formatVolumeLabel",
-                currencyCode, postFix);
-    }
-
-    ///////////////////////////////////////////////////////////////////////////////////////////
     // Offer direction
     ///////////////////////////////////////////////////////////////////////////////////////////
 
-    public static String getDirectionWithCode(OfferPayload.Direction direction, String currencyCode) {
+    public static String getDirectionWithCode(OfferDirection direction, String currencyCode) {
         if (CurrencyUtil.isFiatCurrency(currencyCode))
-            return (direction == OfferPayload.Direction.BUY) ? Res.get("shared.buyCurrency", Res.getBaseCurrencyCode()) : Res.get("shared.sellCurrency", Res.getBaseCurrencyCode());
+            return (direction == OfferDirection.BUY) ? Res.get("shared.buyCurrency", Res.getBaseCurrencyCode()) : Res.get("shared.sellCurrency", Res.getBaseCurrencyCode());
         else
-            return (direction == OfferPayload.Direction.SELL) ? Res.get("shared.buyCurrency", currencyCode) : Res.get("shared.sellCurrency", currencyCode);
+            return (direction == OfferDirection.SELL) ? Res.get("shared.buyCurrency", currencyCode) : Res.get("shared.sellCurrency", currencyCode);
     }
 
-    public static String getDirectionBothSides(OfferPayload.Direction direction, String currencyCode) {
-        if (CurrencyUtil.isFiatCurrency(currencyCode)) {
-            currencyCode = Res.getBaseCurrencyCode();
-            return direction == OfferPayload.Direction.BUY ?
-                    Res.get("formatter.makerTaker", currencyCode, Res.get("shared.buyer"), currencyCode, Res.get("shared.seller")) :
-                    Res.get("formatter.makerTaker", currencyCode, Res.get("shared.seller"), currencyCode, Res.get("shared.buyer"));
-        } else {
-            return direction == OfferPayload.Direction.SELL ?
-                    Res.get("formatter.makerTaker", currencyCode, Res.get("shared.buyer"), currencyCode, Res.get("shared.seller")) :
-                    Res.get("formatter.makerTaker", currencyCode, Res.get("shared.seller"), currencyCode, Res.get("shared.buyer"));
-        }
+    public static String getDirectionBothSides(OfferDirection direction) {
+        String currencyCode = Res.getBaseCurrencyCode();
+        return direction == OfferDirection.BUY ?
+                Res.get("formatter.makerTaker", currencyCode, Res.get("shared.buyer"), currencyCode, Res.get("shared.seller")) :
+                Res.get("formatter.makerTaker", currencyCode, Res.get("shared.seller"), currencyCode, Res.get("shared.buyer"));
     }
 
     public static String getDirectionForBuyer(boolean isMyOffer, String currencyCode) {
@@ -214,28 +160,28 @@ public class DisplayUtils {
         }
     }
 
-    public static String getDirectionForTakeOffer(OfferPayload.Direction direction, String currencyCode) {
+    public static String getDirectionForTakeOffer(OfferDirection direction, String currencyCode) {
         String baseCurrencyCode = Res.getBaseCurrencyCode();
         if (CurrencyUtil.isFiatCurrency(currencyCode)) {
-            return direction == OfferPayload.Direction.BUY ?
+            return direction == OfferDirection.BUY ?
                     Res.get("formatter.youAre", Res.get("shared.selling"), baseCurrencyCode, Res.get("shared.buying"), currencyCode) :
                     Res.get("formatter.youAre", Res.get("shared.buying"), baseCurrencyCode, Res.get("shared.selling"), currencyCode);
         } else {
 
-            return direction == OfferPayload.Direction.SELL ?
+            return direction == OfferDirection.SELL ?
                     Res.get("formatter.youAre", Res.get("shared.selling"), currencyCode, Res.get("shared.buying"), baseCurrencyCode) :
                     Res.get("formatter.youAre", Res.get("shared.buying"), currencyCode, Res.get("shared.selling"), baseCurrencyCode);
         }
     }
 
-    public static String getOfferDirectionForCreateOffer(OfferPayload.Direction direction, String currencyCode) {
+    public static String getOfferDirectionForCreateOffer(OfferDirection direction, String currencyCode) {
         String baseCurrencyCode = Res.getBaseCurrencyCode();
         if (CurrencyUtil.isFiatCurrency(currencyCode)) {
-            return direction == OfferPayload.Direction.BUY ?
+            return direction == OfferDirection.BUY ?
                     Res.get("formatter.youAreCreatingAnOffer.fiat", Res.get("shared.buy"), baseCurrencyCode) :
                     Res.get("formatter.youAreCreatingAnOffer.fiat", Res.get("shared.sell"), baseCurrencyCode);
         } else {
-            return direction == OfferPayload.Direction.SELL ?
+            return direction == OfferDirection.SELL ?
                     Res.get("formatter.youAreCreatingAnOffer.altcoin", Res.get("shared.buy"), currencyCode, Res.get("shared.selling"), baseCurrencyCode) :
                     Res.get("formatter.youAreCreatingAnOffer.altcoin", Res.get("shared.sell"), currencyCode, Res.get("shared.buying"), baseCurrencyCode);
         }
@@ -284,7 +230,7 @@ public class DisplayUtils {
                                               CoinFormatter formatter) {
         String feeInBtc = makerFeeAsCoin != null ? formatter.formatCoinWithCode(makerFeeAsCoin) : Res.get("shared.na");
         if (optionalFeeInFiat != null && optionalFeeInFiat.isPresent()) {
-            String feeInFiat = formatAverageVolumeWithCode(optionalFeeInFiat.get());
+            String feeInFiat = VolumeUtil.formatAverageVolumeWithCode(optionalFeeInFiat.get());
             return Res.get("feeOptionWindow.fee", feeInBtc, feeInFiat);
         } else {
             return feeInBtc;
@@ -329,5 +275,22 @@ public class DisplayUtils {
      */
     public static Coin reduceTo4Decimals(Coin coin, CoinFormatter coinFormatter) {
         return ParsingUtils.parseToCoin(coinFormatter.formatCoin(coin), coinFormatter);
+    }
+
+    public static String createAccountName(String paymentMethodId, String name) {
+        name = name.trim();
+        name = StringUtils.abbreviate(name, 9);
+        String method = Res.get(paymentMethodId);
+        return method.concat(": ").concat(name);
+    }
+
+    public static String createAssetsAccountName(PaymentAccount paymentAccount, String address) {
+        String currency = paymentAccount.getSingleTradeCurrency() != null ? paymentAccount.getSingleTradeCurrency().getCode() : "";
+        return createAssetsAccountName(currency, address);
+    }
+
+    public static String createAssetsAccountName(String currency, String address) {
+        address = StringUtils.abbreviate(address, 9);
+        return currency.concat(": ").concat(address);
     }
 }

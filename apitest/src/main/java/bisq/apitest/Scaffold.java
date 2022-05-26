@@ -160,6 +160,7 @@ public class Scaffold {
             try {
                 log.info("Shutting down executor service ...");
                 executor.shutdownNow();
+                //noinspection ResultOfMethodCallIgnored
                 executor.awaitTermination(config.supportingApps.size() * 2000L, MILLISECONDS);
 
                 SetupTask[] orderedTasks = new SetupTask[]{
@@ -189,7 +190,7 @@ public class Scaffold {
                     MILLISECONDS.sleep(1000);
                     if (p.hasShutdownExceptions()) {
                         // We log shutdown exceptions, but do not throw any from here
-                        // because all of the background instances must be shut down.
+                        // because all the background instances must be shut down.
                         p.logExceptions(p.getShutdownExceptions(), log);
 
                         // We cache only the 1st shutdown exception and move on to the
@@ -221,6 +222,9 @@ public class Scaffold {
     }
 
     private void installCallRateMeteringConfiguration(String dataDir) throws IOException, InterruptedException {
+        if (config.callRateMeteringConfigPath.isEmpty())
+            return;
+
         File testRateMeteringFile = new File(config.callRateMeteringConfigPath);
         if (!testRateMeteringFile.exists())
             throw new FileNotFoundException(
@@ -289,49 +293,49 @@ public class Scaffold {
             startBisqApp(bobdesktop, executor, countdownLatch);
     }
 
-    private void startBisqApp(HavenoAppConfig havenoAppConfig,
+    private void startBisqApp(HavenoAppConfig HavenoAppConfig,
                               ExecutorService executor,
                               CountDownLatch countdownLatch)
             throws IOException, InterruptedException {
 
-        HavenoProcess bisqProcess = createBisqProcess(havenoAppConfig);
-        switch (havenoAppConfig) {
+        HavenoProcess HavenoProcess = createHavenoProcess(HavenoAppConfig);
+        switch (HavenoAppConfig) {
             case seednode:
-                seedNodeTask = new SetupTask(bisqProcess, countdownLatch);
+                seedNodeTask = new SetupTask(HavenoProcess, countdownLatch);
                 seedNodeTaskFuture = executor.submit(seedNodeTask);
                 break;
             case arbdaemon:
             case arbdesktop:
-                arbNodeTask = new SetupTask(bisqProcess, countdownLatch);
+                arbNodeTask = new SetupTask(HavenoProcess, countdownLatch);
                 arbNodeTaskFuture = executor.submit(arbNodeTask);
                 break;
             case alicedaemon:
             case alicedesktop:
-                aliceNodeTask = new SetupTask(bisqProcess, countdownLatch);
+                aliceNodeTask = new SetupTask(HavenoProcess, countdownLatch);
                 aliceNodeTaskFuture = executor.submit(aliceNodeTask);
                 break;
             case bobdaemon:
             case bobdesktop:
-                bobNodeTask = new SetupTask(bisqProcess, countdownLatch);
+                bobNodeTask = new SetupTask(HavenoProcess, countdownLatch);
                 bobNodeTaskFuture = executor.submit(bobNodeTask);
                 break;
             default:
-                throw new IllegalStateException("Unknown HavenoAppConfig " + havenoAppConfig.name());
+                throw new IllegalStateException("Unknown HavenoAppConfig " + HavenoAppConfig.name());
         }
-        log.info("Giving {} ms for {} to initialize ...", config.bisqAppInitTime, havenoAppConfig.appName);
+        log.info("Giving {} ms for {} to initialize ...", config.bisqAppInitTime, HavenoAppConfig.appName);
         MILLISECONDS.sleep(config.bisqAppInitTime);
-        if (bisqProcess.hasStartupExceptions()) {
-            bisqProcess.logExceptions(bisqProcess.getStartupExceptions(), log);
-            throw new IllegalStateException(bisqProcess.getStartupExceptions().get(0));
+        if (HavenoProcess.hasStartupExceptions()) {
+            HavenoProcess.logExceptions(HavenoProcess.getStartupExceptions(), log);
+            throw new IllegalStateException(HavenoProcess.getStartupExceptions().get(0));
         }
     }
 
-    private HavenoProcess createBisqProcess(HavenoAppConfig havenoAppConfig)
+    private HavenoProcess createHavenoProcess(HavenoAppConfig HavenoAppConfig)
             throws IOException, InterruptedException {
-        HavenoProcess bisqProcess = new HavenoProcess(havenoAppConfig, config);
-        bisqProcess.verifyAppNotRunning();
-        bisqProcess.verifyAppDataDirInstalled();
-        return bisqProcess;
+        HavenoProcess HavenoProcess = new HavenoProcess(HavenoAppConfig, config);
+        HavenoProcess.verifyAppNotRunning();
+        HavenoProcess.verifyAppDataDirInstalled();
+        return HavenoProcess;
     }
 
     private void verifyStartupCompleted()

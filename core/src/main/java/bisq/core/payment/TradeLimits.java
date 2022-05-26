@@ -39,7 +39,6 @@ public class TradeLimits {
     @Getter
     private static TradeLimits INSTANCE;
 
-
     @Inject
     public TradeLimits() {
         INSTANCE = this;

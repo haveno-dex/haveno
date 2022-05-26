@@ -28,6 +28,7 @@ import bisq.core.locale.CryptoCurrency;
 import bisq.core.locale.GlobalSettings;
 import bisq.core.locale.Res;
 import bisq.core.offer.CreateOfferService;
+import bisq.core.offer.OfferDirection;
 import bisq.core.offer.OfferPayload;
 import bisq.core.offer.OfferUtil;
 import bisq.core.payment.PaymentAccount;
@@ -128,7 +129,7 @@ public class CreateOfferViewModelTest {
             coinFormatter,
             tradeStats,
             null);
-        dataModel.initWithData(OfferPayload.Direction.BUY, new CryptoCurrency("XMR", "monero"));
+        dataModel.initWithData(OfferDirection.BUY, new CryptoCurrency("XMR", "monero"));
         dataModel.activate();
 
         model = new CreateOfferViewModel(dataModel,

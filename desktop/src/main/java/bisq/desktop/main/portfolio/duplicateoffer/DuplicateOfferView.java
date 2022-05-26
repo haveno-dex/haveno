@@ -24,12 +24,14 @@ import bisq.desktop.main.overlays.windows.OfferDetailsWindow;
 
 import bisq.core.locale.CurrencyUtil;
 import bisq.core.offer.OfferPayload;
+import bisq.core.payment.PaymentAccount;
 import bisq.core.user.Preferences;
 import bisq.core.util.FormattingUtils;
 import bisq.core.util.coin.CoinFormatter;
 
 import com.google.inject.Inject;
-
+import javafx.collections.ObservableList;
+import javafx.geometry.Insets;
 import javax.inject.Named;
 
 @FxmlView
@@ -53,14 +55,24 @@ public class DuplicateOfferView extends MutableOfferView<DuplicateOfferViewModel
     protected void doActivate() {
         super.doActivate();
 
+        // Workaround to fix margin on top of amount group
+        gridPane.setPadding(new Insets(-20, 25, -1, 25));
+
         updatePriceToggle();
 
         // To force re-validation of payment account validation
         onPaymentAccountsComboBoxSelected();
     }
 
+    @Override
+    protected ObservableList<PaymentAccount> filterPaymentAccounts(ObservableList<PaymentAccount> paymentAccounts) {
+        return paymentAccounts;
+    }
+
     public void initWithData(OfferPayload offerPayload) {
-        initWithData(offerPayload.getDirection(), CurrencyUtil.getTradeCurrency(offerPayload.getCurrencyCode()).get());
+        initWithData(offerPayload.getDirection(),
+                CurrencyUtil.getTradeCurrency(offerPayload.getCurrencyCode()).get(),
+                null);
         model.initWithData(offerPayload);
     }
 }

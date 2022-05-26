@@ -47,7 +47,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 @ToString
 @Slf4j
 public abstract class PaymentAccountPayload implements NetworkPayload, UsedForTradeContractJson {
-    
+
     // Keys for excludeFromJsonDataMap
     public static final String SALT = "salt";
     public static final String HOLDER_NAME = "holderName";
@@ -118,7 +118,7 @@ public abstract class PaymentAccountPayload implements NetworkPayload, UsedForTr
     public abstract String getPaymentDetails();
 
     public abstract String getPaymentDetailsForTradePopup();
-    
+
     public byte[] getHash() {
         return Hash.getRipemd160hash(this.toProtoMessage().toByteArray());
     }

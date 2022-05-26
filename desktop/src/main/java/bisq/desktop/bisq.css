@@ -175,6 +175,14 @@
     -fx-padding: 0 10 0 10;
 }
 
+.tiny-button,
+.action-button.tiny-button {
+    -fx-font-size: 0.769em;
+    -fx-pref-height: 20;
+    -fx-padding: 3 8 3 8;
+    -fx-border-radius: 5;
+}
+
 .text-button {
     -fx-background-color: transparent;
     -fx-underline: true;
@@ -601,12 +609,21 @@ tree-table-view:focused {
     -fx-font-size: 0.769em;
 }
 
+.medium-text {
+    -fx-font-size: 0.846em;
+}
+
 .normal-text {
     -fx-font-size: 0.923em;
 }
 
 .default-text {
     -fx-font-size: 13;
+}
+
+.bold-text,
+.bold-text .text {
+    -fx-font-weight: bold;
 }
 
 /* Splash */
@@ -648,7 +665,7 @@ tree-table-view:focused {
 }
 
 .top-navigation .separator:vertical .line {
-    -fx-border-color: transparent transparent transparent -bs-rd-nav-border-color;
+    -fx-border-color: transparent transparent transparent transparent;
     -fx-border-width: 1;
     -fx-border-insets: 0 0 0 1;
 }
@@ -837,6 +854,14 @@ tree-table-view:focused {
 
 .tooltip-icon {
     -fx-fill: -bs-text-color;
+}
+
+.link-icon {
+    -fx-fill: -bs-color-gray-ccc;
+}
+
+.link-icon:hover {
+    -fx-fill: -fx-accent;
 }
 
 /*******************************************************************************
@@ -1740,34 +1765,117 @@ textfield */
 #charts-dao .default-color1.chart-line-symbol { -fx-background-color: -bs-chart-dao-line2, -bs-chart-dao-line2; }
 
 #charts-dao .default-color2.chart-series-line { -fx-stroke: -bs-chart-dao-line3; }
-#charts-dao .default-color2.chart-line-symbol { -fx-background-color: -bs-chart-dao-line3, -bs-chart-dao-line3; }
+#charts-dao .default-color2.chart-line-symbol {
+    -fx-background-color: -bs-chart-dao-line3, -bs-chart-dao-line3;
+}
 
-#charts-dao .default-color3.chart-series-line { -fx-stroke: -bs-chart-dao-line4; }
-#charts-dao .default-color3.chart-line-symbol { -fx-background-color: -bs-chart-dao-line4, -bs-chart-dao-line4; }
+#charts-dao .default-color3.chart-series-line {
+    -fx-stroke: -bs-chart-dao-line4;
+}
 
-#charts-dao .default-color4.chart-series-line { -fx-stroke: -bs-chart-dao-line5; }
-#charts-dao .default-color4.chart-line-symbol { -fx-background-color: -bs-chart-dao-line5, -bs-chart-dao-line5; }
+#charts-dao .default-color3.chart-line-symbol {
+    -fx-background-color: -bs-chart-dao-line4, -bs-chart-dao-line4;
+}
 
-#charts-dao .default-color5.chart-series-line { -fx-stroke: -bs-chart-dao-line6; }
-#charts-dao .default-color5.chart-line-symbol { -fx-background-color: -bs-chart-dao-line6, -bs-chart-dao-line6; }
+#charts-dao .default-color4.chart-series-line {
+    -fx-stroke: -bs-chart-dao-line5;
+}
+
+#charts-dao .default-color4.chart-line-symbol {
+    -fx-background-color: -bs-chart-dao-line5, -bs-chart-dao-line5;
+}
+
+#charts-dao .default-color5.chart-series-line {
+    -fx-stroke: -bs-chart-dao-line6;
+}
+
+#charts-dao .default-color5.chart-line-symbol {
+    -fx-background-color: -bs-chart-dao-line6, -bs-chart-dao-line6;
+}
+
+#charts-dao .default-color6.chart-series-line {
+    -fx-stroke: -bs-chart-dao-line7;
+}
+
+#charts-dao .default-color6.chart-line-symbol {
+    -fx-background-color: -bs-chart-dao-line7, -bs-chart-dao-line7;
+}
+
+#charts-dao .default-color7.chart-series-line {
+    -fx-stroke: -bs-chart-dao-line8;
+}
+
+#charts-dao .default-color7.chart-line-symbol {
+    -fx-background-color: -bs-chart-dao-line8, -bs-chart-dao-line8;
+}
+
+#charts-dao .default-color8.chart-series-line {
+    -fx-stroke: -bs-chart-dao-line9;
+}
+
+#charts-dao .default-color8.chart-line-symbol {
+    -fx-background-color: -bs-chart-dao-line9, -bs-chart-dao-line9;
+}
+
+#charts-dao .default-color9.chart-series-line {
+    -fx-stroke: -bs-chart-dao-line10;
+}
+
+#charts-dao .default-color9.chart-line-symbol {
+    -fx-background-color: -bs-chart-dao-line10, -bs-chart-dao-line10;
+}
+
+
+#charts-dao .default-color10.chart-series-line {
+    -fx-stroke: -bs-chart-dao-line11;
+}
+
+#charts-dao .default-color10.chart-line-symbol {
+    -fx-background-color: -bs-chart-dao-line11, -bs-chart-dao-line11;
+}
 
 #charts-legend-toggle0 {
     -jfx-toggle-color: -bs-chart-dao-line1
 }
+
 #charts-legend-toggle1 {
     -jfx-toggle-color: -bs-chart-dao-line2;
 }
+
 #charts-legend-toggle2 {
     -jfx-toggle-color: -bs-chart-dao-line3;
 }
+
 #charts-legend-toggle3 {
     -jfx-toggle-color: -bs-chart-dao-line4;
 }
+
 #charts-legend-toggle4 {
     -jfx-toggle-color: -bs-chart-dao-line5;
 }
+
 #charts-legend-toggle5 {
     -jfx-toggle-color: -bs-chart-dao-line6;
+}
+
+#charts-legend-toggle6 {
+    -jfx-toggle-color: -bs-chart-dao-line7;
+}
+
+#charts-legend-toggle7 {
+    -jfx-toggle-color: -bs-chart-dao-line8;
+}
+
+#charts-legend-toggle8 {
+    -jfx-toggle-color: -bs-chart-dao-line9;
+}
+
+#charts-legend-toggle9 {
+    -jfx-toggle-color: -bs-chart-dao-line10;
+}
+
+#charts-legend-toggle10 {
+    -jfx-toggle-color: -bs-chart-dao-line11;
 }
 
 #charts-dao .chart-series-line {
@@ -1916,6 +2024,21 @@ textfield */
     -fx-effect: dropshadow(gaussian, -bs-text-color-transparent-dark, 44, 0, -1, 3);
 }
 
+.account-status-title {
+    -fx-font-size: 0.769em;
+    -fx-font-family: "IBM Plex Sans Medium";
+}
+
+.account-status-inactive-info-item {
+    -fx-text-fill: -bs-color-gray-dim;
+    -fx-fill: -bs-color-gray-dim;
+}
+
+.account-status-active-info-item {
+    -fx-text-fill: -fx-accent;
+    -fx-fill: -fx-accent;
+}
+
 #price-feed-combo {
     -fx-background-color: none;
 }
@@ -2004,7 +2127,7 @@ textfield */
 }
 
 .dispute-chat-border {
-    -fx-background-color: -bs-color-blue-5;
+    -fx-background-color: -bs-support-chat-background;
 }
 
 /********************************************************************************************************************
@@ -2077,6 +2200,11 @@ textfield */
     -fx-text-fill: -bs-color-green-3;
 }
 
+.dao-tx-type-bsq-swap-icon,
+.dao-tx-type-bsq-swap-icon:hover {
+    -fx-text-fill: -bs-color-blue-4;
+}
+
 .dao-accepted-icon {
     -fx-text-fill: -bs-color-primary;
 }
@@ -2129,7 +2257,7 @@ textfield */
     -fx-text-fill: -bs-rd-font-dark;
 }
 
-.dao-news-content, .dao-news-section-link, .dao-news-section-link .hyperlink, .dao-launch-version {
+.dao-news-content, .dao-news-section-link, .dao-news-section-link .hyperlink {
     -fx-text-fill: -bs-rd-font-light;
     -fx-fill: -bs-rd-font-light;
 }

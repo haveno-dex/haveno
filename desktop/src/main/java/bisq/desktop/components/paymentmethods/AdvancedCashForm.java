@@ -19,11 +19,9 @@ package bisq.desktop.components.paymentmethods;
 
 import bisq.desktop.components.InputTextField;
 import bisq.desktop.util.FormBuilder;
-import bisq.desktop.util.Layout;
 import bisq.desktop.util.validation.AdvancedCashValidator;
 
 import bisq.core.account.witness.AccountAgeWitnessService;
-import bisq.core.locale.CurrencyUtil;
 import bisq.core.locale.Res;
 import bisq.core.payment.AdvancedCashAccount;
 import bisq.core.payment.PaymentAccount;
@@ -34,14 +32,9 @@ import bisq.core.util.validation.InputValidator;
 
 import bisq.common.util.Tuple2;
 
-import org.apache.commons.lang3.StringUtils;
-
 import javafx.scene.control.Label;
 import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.GridPane;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import static bisq.desktop.util.FormBuilder.addCompactTopLabelTextField;
 import static bisq.desktop.util.FormBuilder.addCompactTopLabelTextFieldWithCopyIcon;
@@ -49,11 +42,8 @@ import static bisq.desktop.util.FormBuilder.addTopLabelFlowPane;
 
 @Deprecated
 public class AdvancedCashForm extends PaymentMethodForm {
-    private static final Logger log = LoggerFactory.getLogger(AdvancedCashForm.class);
-
     private final AdvancedCashAccount advancedCashAccount;
     private final AdvancedCashValidator advancedCashValidator;
-    private InputTextField accountNrInputTextField;
 
     public static int addFormForBuyer(GridPane gridPane, int gridRow,
                                       PaymentAccountPayload paymentAccountPayload) {
@@ -62,8 +52,13 @@ public class AdvancedCashForm extends PaymentMethodForm {
         return gridRow;
     }
 
-    public AdvancedCashForm(PaymentAccount paymentAccount, AccountAgeWitnessService accountAgeWitnessService, AdvancedCashValidator advancedCashValidator,
-                     InputValidator inputValidator, GridPane gridPane, int gridRow, CoinFormatter formatter) {
+    public AdvancedCashForm(PaymentAccount paymentAccount,
+                            AccountAgeWitnessService accountAgeWitnessService,
+                            AdvancedCashValidator advancedCashValidator,
+                            InputValidator inputValidator,
+                            GridPane gridPane,
+                            int gridRow,
+                            CoinFormatter formatter) {
         super(paymentAccount, accountAgeWitnessService, inputValidator, gridPane, gridRow, formatter);
         this.advancedCashAccount = (AdvancedCashAccount) paymentAccount;
         this.advancedCashValidator = advancedCashValidator;
@@ -73,7 +68,7 @@ public class AdvancedCashForm extends PaymentMethodForm {
     public void addFormForAddAccount() {
         gridRowFrom = gridRow + 1;
 
-        accountNrInputTextField = FormBuilder.addInputTextField(gridPane, ++gridRow, Res.get("payment.wallet"));
+        InputTextField accountNrInputTextField = FormBuilder.addInputTextField(gridPane, ++gridRow, Res.get("payment.wallet"));
         accountNrInputTextField.setValidator(advancedCashValidator);
         accountNrInputTextField.textProperty().addListener((ov, oldValue, newValue) -> {
             advancedCashAccount.setAccountNr(newValue);
@@ -95,25 +90,19 @@ public class AdvancedCashForm extends PaymentMethodForm {
         else
             flowPane.setId("flow-pane-checkboxes-non-editable-bg");
 
-        CurrencyUtil.getAllAdvancedCashCurrencies().stream().forEach(e ->
+        paymentAccount.getSupportedCurrencies().forEach(e ->
                 fillUpFlowPaneWithCurrencies(isEditable, flowPane, e, advancedCashAccount));
     }
 
     @Override
     protected void autoFillNameTextField() {
-        if (useCustomAccountNameToggleButton != null && !useCustomAccountNameToggleButton.isSelected()) {
-            String accountNr = accountNrInputTextField.getText();
-            accountNr = StringUtils.abbreviate(accountNr, 9);
-            String method = Res.get(paymentAccount.getPaymentMethod().getId());
-            accountNameTextField.setText(method.concat(": ").concat(accountNr));
-        }
+        setAccountNameWithString(advancedCashAccount.getAccountNr());
     }
 
     @Override
-    public void addFormForDisplayAccount() {
+    public void addFormForEditAccount() {
         gridRowFrom = gridRow;
-        addCompactTopLabelTextField(gridPane, gridRow, Res.get("payment.account.name"),
-                advancedCashAccount.getAccountName(), Layout.FIRST_ROW_AND_GROUP_DISTANCE);
+        addAccountNameTextFieldWithAutoFillToggleButton();
         addCompactTopLabelTextField(gridPane, ++gridRow, Res.get("shared.paymentMethod"),
                 Res.get(advancedCashAccount.getPaymentMethod().getId()));
         addCompactTopLabelTextField(gridPane, ++gridRow, Res.get("payment.wallet"),

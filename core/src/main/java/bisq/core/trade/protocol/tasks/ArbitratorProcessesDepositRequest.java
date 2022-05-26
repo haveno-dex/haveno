@@ -24,6 +24,7 @@ import bisq.common.crypto.Sig;
 import bisq.common.taskrunner.TaskRunner;
 import bisq.core.btc.wallet.XmrWalletService;
 import bisq.core.offer.Offer;
+import bisq.core.offer.OfferDirection;
 import bisq.core.offer.OfferPayload;
 import bisq.core.trade.Trade;
 import bisq.core.trade.messages.DepositRequest;
@@ -75,7 +76,7 @@ public class ArbitratorProcessesDepositRequest extends TradeTask {
           // collect expected values of deposit tx
           Offer offer = trade.getOffer();
           boolean isFromTaker = request.getSenderNodeAddress().equals(trade.getTakerNodeAddress());
-          boolean isFromBuyer = isFromTaker ? offer.getDirection() == OfferPayload.Direction.SELL : offer.getDirection() == OfferPayload.Direction.BUY;
+          boolean isFromBuyer = isFromTaker ? offer.getDirection() == OfferDirection.SELL : offer.getDirection() == OfferDirection.BUY;
           BigInteger depositAmount = ParsingUtils.coinToAtomicUnits(isFromBuyer ? offer.getBuyerSecurityDeposit() : offer.getAmount().add(offer.getSellerSecurityDeposit()));
           String depositAddress = processModel.getMultisigAddress();
           BigInteger tradeFee;

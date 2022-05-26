@@ -1,34 +1,30 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
- * the Free Software Foundation,
-either version 3 of the License,
-or (at
+ * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful,
-but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not,
-see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
 package bisq.desktop.main.offer.createoffer;
 
 import bisq.desktop.Navigation;
 import bisq.desktop.main.offer.MutableOfferDataModel;
-
 import bisq.core.account.witness.AccountAgeWitnessService;
 import bisq.core.btc.wallet.XmrWalletService;
 import bisq.core.offer.CreateOfferService;
 import bisq.core.offer.OfferUtil;
 import bisq.core.offer.OpenOfferManager;
+import bisq.core.payment.PaymentAccount;
 import bisq.core.provider.fee.FeeService;
 import bisq.core.provider.price.PriceFeedService;
 import bisq.core.trade.statistics.TradeStatisticsManager;
@@ -40,7 +36,9 @@ import bisq.core.util.coin.CoinFormatter;
 import bisq.network.p2p.P2PService;
 
 import com.google.inject.Inject;
-
+import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Collectors;
 import javax.inject.Named;
 
 /**
@@ -77,5 +75,11 @@ class CreateOfferDataModel extends MutableOfferDataModel {
                 btcFormatter,
                 tradeStatisticsManager,
                 navigation);
+    }
+
+    @Override
+    protected Set<PaymentAccount> getUserPaymentAccounts() {
+        return Objects.requireNonNull(user.getPaymentAccounts()).stream()
+                .collect(Collectors.toSet());
     }
 }

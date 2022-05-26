@@ -18,25 +18,21 @@
 package bisq.desktop.main.portfolio.closedtrades;
 
 import bisq.desktop.common.model.ActivatableDataModel;
+
+import bisq.core.account.witness.AccountAgeWitnessService;
 import bisq.core.monetary.Price;
 import bisq.core.monetary.Volume;
-import bisq.core.offer.Offer;
-import bisq.core.offer.OfferPayload;
-import bisq.core.offer.OpenOffer;
 import bisq.core.provider.price.MarketPrice;
 import bisq.core.provider.price.PriceFeedService;
+import bisq.core.trade.ClosedTradableFormatter;
+import bisq.core.trade.ClosedTradableManager;
+import bisq.core.trade.ClosedTradableUtil;
 import bisq.core.trade.Tradable;
-import bisq.core.trade.Trade;
-import bisq.core.trade.closed.ClosedTradableManager;
-import bisq.core.trade.statistics.TradeStatisticsManager;
 import bisq.core.user.Preferences;
 import bisq.core.util.PriceUtil;
 import bisq.core.util.VolumeUtil;
 
-import bisq.common.util.Tuple2;
-
 import org.bitcoinj.core.Coin;
-import org.bitcoinj.utils.Fiat;
 
 import com.google.inject.Inject;
 
@@ -44,30 +40,31 @@ import javafx.collections.FXCollections;
 import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Objects;
+import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
 class ClosedTradesDataModel extends ActivatableDataModel {
 
     final ClosedTradableManager closedTradableManager;
+    final ClosedTradableFormatter closedTradableFormatter;
     private final Preferences preferences;
-    private final TradeStatisticsManager tradeStatisticsManager;
     private final PriceFeedService priceFeedService;
-    private final ObservableList<ClosedTradableListItem> list = FXCollections.observableArrayList();
+    final AccountAgeWitnessService accountAgeWitnessService;
+    private final ObservableList<ClosedTradesListItem> list = FXCollections.observableArrayList();
     private final ListChangeListener<Tradable> tradesListChangeListener;
 
     @Inject
     public ClosedTradesDataModel(ClosedTradableManager closedTradableManager,
+                                 ClosedTradableFormatter closedTradableFormatter,
                                  Preferences preferences,
-                                 TradeStatisticsManager tradeStatisticsManager,
-                                 PriceFeedService priceFeedService) {
+                                 PriceFeedService priceFeedService,
+                                 AccountAgeWitnessService accountAgeWitnessService) {
         this.closedTradableManager = closedTradableManager;
+        this.closedTradableFormatter = closedTradableFormatter;
         this.preferences = preferences;
-        this.tradeStatisticsManager = tradeStatisticsManager;
         this.priceFeedService = priceFeedService;
+        this.accountAgeWitnessService = accountAgeWitnessService;
 
         tradesListChangeListener = change -> applyList();
     }
@@ -83,57 +80,23 @@ class ClosedTradesDataModel extends ActivatableDataModel {
         closedTradableManager.getObservableList().removeListener(tradesListChangeListener);
     }
 
-    public ObservableList<ClosedTradableListItem> getList() {
+    ObservableList<ClosedTradesListItem> getList() {
         return list;
     }
 
-    public OfferPayload.Direction getDirection(Offer offer) {
-        return closedTradableManager.wasMyOffer(offer) ? offer.getDirection() : offer.getMirroredDirection();
-    }
-
-    private void applyList() {
-        list.clear();
-
-        list.addAll(closedTradableManager.getObservableList().stream().map(ClosedTradableListItem::new).collect(Collectors.toList()));
-
-        // we sort by date, earliest first
-        list.sort((o1, o2) -> o2.getTradable().getDate().compareTo(o1.getTradable().getDate()));
-    }
-
-    boolean wasMyOffer(Tradable tradable) {
-        return closedTradableManager.wasMyOffer(tradable.getOffer());
+    List<Tradable> getListAsTradables() {
+        return list.stream().map(ClosedTradesListItem::getTradable).collect(Collectors.toList());
     }
 
     Coin getTotalAmount() {
-        return Coin.valueOf(getList().stream()
-                .map(ClosedTradableListItem::getTradable)
-                .filter(e -> e instanceof Trade)
-                .map(e -> (Trade) e)
-                .mapToLong(Trade::getTradeAmountAsLong)
-                .sum());
+        return ClosedTradableUtil.getTotalAmount(getListAsTradables());
     }
 
-    Map<String, Long> getTotalVolumeByCurrency() {
-        Map<String, Long> map = new HashMap<>();
-        getList().stream()
-                .map(ClosedTradableListItem::getTradable)
-                .filter(e -> e instanceof Trade)
-                .map(e -> (Trade) e)
-                .map(Trade::getTradeVolume)
-                .filter(Objects::nonNull)
-                .forEach(volume -> {
-                    String currencyCode = volume.getCurrencyCode();
-                    map.putIfAbsent(currencyCode, 0L);
-                    map.put(currencyCode, volume.getValue() + map.get(currencyCode));
-                });
-        return map;
-    }
-
-    public Optional<Volume> getVolumeInUserFiatCurrency(Coin amount) {
+    Optional<Volume> getVolumeInUserFiatCurrency(Coin amount) {
         return getVolume(amount, preferences.getPreferredTradeCurrency().getCode());
     }
 
-    public Optional<Volume> getVolume(Coin amount, String currencyCode) {
+    Optional<Volume> getVolume(Coin amount, String currencyCode) {
         MarketPrice marketPrice = priceFeedService.getMarketPrice(currencyCode);
         if (marketPrice == null) {
             return Optional.empty();
@@ -143,44 +106,30 @@ class ClosedTradesDataModel extends ActivatableDataModel {
         return Optional.of(VolumeUtil.getVolume(amount, price));
     }
 
-    public Coin getTotalTxFee() {
-        return Coin.valueOf(getList().stream()
-                .map(ClosedTradableListItem::getTradable)
-                .mapToLong(tradable -> {
-                    if (wasMyOffer(tradable) || tradable instanceof OpenOffer) {
-                        return tradable.getOffer().getTxFee().value;
-                    } else {
-                        // taker pays for 3 transactions
-                        return ((Trade) tradable).getTxFee().multiply(3).value;
-                    }
-                })
-                .sum());
+    Volume getBsqVolumeInUsdWithAveragePrice(Coin amount) {
+        return closedTradableManager.getBsqVolumeInUsdWithAveragePrice(amount);
     }
 
-    public Coin getTotalTradeFee(boolean expectBtcFee) {
-        return Coin.valueOf(getList().stream()
-                .map(ClosedTradableListItem::getTradable)
-                .mapToLong(tradable -> getTradeFee(tradable, expectBtcFee))
-                .sum());
+    Coin getTotalTxFee() {
+        return ClosedTradableUtil.getTotalTxFee(getListAsTradables());
     }
 
-    protected long getTradeFee(Tradable tradable, boolean expectBtcFee) {
-        Offer offer = tradable.getOffer();
-        if (wasMyOffer(tradable) || tradable instanceof OpenOffer) {
-            String makerFeeTxId = offer.getOfferFeePaymentTxId();
-            if (expectBtcFee) {
-                return offer.getMakerFee().value;
-            } else {
-                return 0;
-            }
-        } else {
-            Trade trade = (Trade) tradable;
-            String takerFeeTxId = trade.getTakerFeeTxId();
-            if (expectBtcFee) {
-                return trade.getTakerFee().value;
-            } else {
-                return 0;
-            }
-        }
+    Coin getTotalTradeFee() {
+        return closedTradableManager.getTotalTradeFee(getListAsTradables());
+    }
+
+    boolean isCurrencyForTradeFeeBtc(Tradable item) {
+        return item != null;
+    }
+
+    private void applyList() {
+        list.clear();
+        list.addAll(
+                closedTradableManager.getObservableList().stream()
+                        .map(tradable -> new ClosedTradesListItem(tradable, closedTradableFormatter, closedTradableManager))
+                        .collect(Collectors.toList())
+        );
+        // We sort by date, the earliest first
+        list.sort((o1, o2) -> o2.getTradable().getDate().compareTo(o1.getTradable().getDate()));
     }
 }

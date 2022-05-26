@@ -20,7 +20,7 @@ package bisq.core.offer;
 import bisq.core.filter.FilterManager;
 import bisq.core.locale.Res;
 import bisq.core.provider.price.PriceFeedService;
-
+import bisq.core.util.JsonUtil;
 import bisq.network.p2p.BootstrapListener;
 import bisq.network.p2p.P2PService;
 import bisq.network.p2p.storage.HashMapChangedListener;
@@ -240,7 +240,7 @@ public class OfferBookService {
                                 offer.getDate(),
                                 offer.getId(),
                                 offer.isUseMarketBasedPrice(),
-                                offer.getMarketPriceMargin(),
+                                offer.getMarketPriceMarginPct(),
                                 offer.getPaymentMethod()
                         );
                     } catch (Throwable t) {
@@ -250,6 +250,6 @@ public class OfferBookService {
                 })
                 .filter(Objects::nonNull)
                 .collect(Collectors.toList());
-        jsonFileManager.writeToDiscThreaded(Utilities.objectToJson(offerForJsonList), "offers_statistics");
+        jsonFileManager.writeToDiscThreaded(JsonUtil.objectToJson(offerForJsonList), "offers_statistics");
     }
 }

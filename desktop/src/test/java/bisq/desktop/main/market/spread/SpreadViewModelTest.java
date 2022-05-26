@@ -33,8 +33,8 @@ import javafx.collections.ObservableList;
 
 import org.junit.Test;
 
-import static bisq.desktop.main.offer.offerbook.OfferBookListItemMaker.btcBuyItem;
-import static bisq.desktop.main.offer.offerbook.OfferBookListItemMaker.btcSellItem;
+import static bisq.desktop.main.offer.offerbook.OfferBookListItemMaker.xmrBuyItem;
+import static bisq.desktop.main.offer.offerbook.OfferBookListItemMaker.xmrSellItem;
 import static bisq.desktop.main.offer.offerbook.OfferBookListItemMaker.id;
 import static com.natpryce.makeiteasy.MakeItEasy.make;
 import static com.natpryce.makeiteasy.MakeItEasy.with;
@@ -61,14 +61,14 @@ public class SpreadViewModelTest {
     public void testMaxCharactersForAmount() {
         OfferBook offerBook = mock(OfferBook.class);
         final ObservableList<OfferBookListItem> offerBookListItems = FXCollections.observableArrayList();
-        offerBookListItems.addAll(make(btcBuyItem));
+        offerBookListItems.addAll(make(xmrBuyItem));
 
         when(offerBook.getOfferBookListItems()).thenReturn(offerBookListItems);
 
         SpreadViewModel model = new SpreadViewModel(offerBook, null, coinFormatter);
         model.activate();
         assertEquals(6, model.maxPlacesForAmount.intValue()); // 0.001
-        offerBookListItems.addAll(make(btcBuyItem.but(with(OfferBookListItemMaker.amount, 1403000000L))));
+        offerBookListItems.addAll(make(xmrBuyItem.but(with(OfferBookListItemMaker.amount, 1403000000L))));
         assertEquals(7, model.maxPlacesForAmount.intValue()); //14.0300
     }
 
@@ -77,7 +77,7 @@ public class SpreadViewModelTest {
         OfferBook offerBook = mock(OfferBook.class);
         PriceFeedService priceFeedService = mock(PriceFeedService.class);
         final ObservableList<OfferBookListItem> offerBookListItems = FXCollections.observableArrayList();
-        offerBookListItems.addAll(make(btcBuyItem));
+        offerBookListItems.addAll(make(xmrBuyItem));
 
         when(offerBook.getOfferBookListItems()).thenReturn(offerBookListItems);
 
@@ -86,10 +86,10 @@ public class SpreadViewModelTest {
 
         assertEquals(1, model.spreadItems.get(0).numberOfOffers);
 
-        offerBookListItems.addAll(make(btcBuyItem.but(with(id, "2345"))),
-                make(btcBuyItem.but(with(id, "2345"))),
-                make(btcSellItem.but(with(id, "3456"))),
-                make(btcSellItem.but(with(id, "3456"))));
+        offerBookListItems.addAll(make(xmrBuyItem.but(with(id, "2345"))),
+                make(xmrBuyItem.but(with(id, "2345"))),
+                make(xmrSellItem.but(with(id, "3456"))),
+                make(xmrSellItem.but(with(id, "3456"))));
 
         assertEquals(2, model.spreadItems.get(0).numberOfBuyOffers);
         assertEquals(1, model.spreadItems.get(0).numberOfSellOffers);

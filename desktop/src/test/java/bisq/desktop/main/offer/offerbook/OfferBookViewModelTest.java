@@ -23,8 +23,8 @@ import bisq.core.locale.FiatCurrency;
 import bisq.core.locale.GlobalSettings;
 import bisq.core.locale.Res;
 import bisq.core.offer.Offer;
-import bisq.core.offer.OfferPayload;
 import bisq.core.offer.OpenOfferManager;
+import bisq.core.offer.OfferPayload;
 import bisq.core.payment.AliPayAccount;
 import bisq.core.payment.CountryBasedPaymentAccount;
 import bisq.core.payment.CryptoCurrencyAccount;
@@ -42,6 +42,7 @@ import bisq.core.payment.payload.SpecificBanksAccountPayload;
 import bisq.core.provider.price.MarketPrice;
 import bisq.core.provider.price.PriceFeedService;
 import bisq.core.trade.statistics.TradeStatisticsManager;
+import bisq.core.user.User;
 import bisq.core.util.PriceUtil;
 import bisq.core.util.coin.CoinFormatter;
 import bisq.core.util.coin.ImmutableCoinFormatter;
@@ -75,7 +76,9 @@ import static com.natpryce.makeiteasy.MakeItEasy.make;
 import static com.natpryce.makeiteasy.MakeItEasy.with;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -83,12 +86,15 @@ import static org.mockito.Mockito.when;
 public class OfferBookViewModelTest {
     private final CoinFormatter coinFormatter = new ImmutableCoinFormatter(Config.baseCurrencyNetworkParameters().getMonetaryFormat());
     private static final Logger log = LoggerFactory.getLogger(OfferBookViewModelTest.class);
+    private User user;
 
     @Before
     public void setUp() {
         GlobalSettings.setDefaultTradeCurrency(usd);
         Res.setBaseCurrencyCode(usd.getCode());
         Res.setBaseCurrencyName(usd.getName());
+        user = mock(User.class);
+        when(user.hasPaymentAccountForCurrency(any())).thenReturn(true);
     }
 
     private PriceUtil getPriceUtil() {
@@ -236,8 +242,8 @@ public class OfferBookViewModelTest {
 
         when(offerBook.getOfferBookListItems()).thenReturn(offerBookListItems);
 
-        final OfferBookViewModel model = new OfferBookViewModel(null, null, offerBook, empty, null, null, null,
-                null, null, null, getPriceUtil(), null, coinFormatter);
+        final OfferBookViewModel model = new BtcOfferBookViewModel(null, null, offerBook, empty, null, null, null,
+                null, null, null, getPriceUtil(), null, coinFormatter, null);
         assertEquals(0, model.maxPlacesForAmount.intValue());
     }
 
@@ -246,16 +252,16 @@ public class OfferBookViewModelTest {
         OfferBook offerBook = mock(OfferBook.class);
         OpenOfferManager openOfferManager = mock(OpenOfferManager.class);
         final ObservableList<OfferBookListItem> offerBookListItems = FXCollections.observableArrayList();
-        offerBookListItems.addAll(make(OfferBookListItemMaker.btcBuyItem));
+        offerBookListItems.addAll(make(OfferBookListItemMaker.xmrBuyItem));
 
         when(offerBook.getOfferBookListItems()).thenReturn(offerBookListItems);
 
-        final OfferBookViewModel model = new OfferBookViewModel(null, openOfferManager, offerBook, empty, null, null, null,
-                null, null, null, getPriceUtil(), null, coinFormatter);
+        final OfferBookViewModel model = new BtcOfferBookViewModel(user, openOfferManager, offerBook, empty, null, null, null,
+                null, null, null, getPriceUtil(), null, coinFormatter, null);
         model.activate();
 
         assertEquals(6, model.maxPlacesForAmount.intValue());
-        offerBookListItems.addAll(make(btcBuyItem.but(with(amount, 2000000000L))));
+        offerBookListItems.addAll(make(xmrBuyItem.but(with(amount, 2000000000L))));
         assertEquals(7, model.maxPlacesForAmount.intValue());
     }
 
@@ -264,18 +270,18 @@ public class OfferBookViewModelTest {
         OfferBook offerBook = mock(OfferBook.class);
         OpenOfferManager openOfferManager = mock(OpenOfferManager.class);
         final ObservableList<OfferBookListItem> offerBookListItems = FXCollections.observableArrayList();
-        offerBookListItems.addAll(make(OfferBookListItemMaker.btcItemWithRange));
+        offerBookListItems.addAll(make(OfferBookListItemMaker.xmrItemWithRange));
 
         when(offerBook.getOfferBookListItems()).thenReturn(offerBookListItems);
 
-        final OfferBookViewModel model = new OfferBookViewModel(null, openOfferManager, offerBook, empty, null, null, null,
-                null, null, null, getPriceUtil(), null, coinFormatter);
+        final OfferBookViewModel model = new BtcOfferBookViewModel(user, openOfferManager, offerBook, empty, null, null, null,
+                null, null, null, getPriceUtil(), null, coinFormatter, null);
         model.activate();
 
         assertEquals(15, model.maxPlacesForAmount.intValue());
-        offerBookListItems.addAll(make(btcItemWithRange.but(with(amount, 2000000000L))));
+        offerBookListItems.addAll(make(xmrItemWithRange.but(with(amount, 2000000000L))));
         assertEquals(16, model.maxPlacesForAmount.intValue());
-        offerBookListItems.addAll(make(btcItemWithRange.but(with(minAmount, 30000000000L),
+        offerBookListItems.addAll(make(xmrItemWithRange.but(with(minAmount, 30000000000L),
                 with(amount, 30000000000L))));
         assertEquals(19, model.maxPlacesForAmount.intValue());
     }
@@ -287,8 +293,8 @@ public class OfferBookViewModelTest {
 
         when(offerBook.getOfferBookListItems()).thenReturn(offerBookListItems);
 
-        final OfferBookViewModel model = new OfferBookViewModel(null, null, offerBook, empty, null, null, null,
-                null, null, null, getPriceUtil(), null, coinFormatter);
+        final OfferBookViewModel model = new BtcOfferBookViewModel(null, null, offerBook, empty, null, null, null,
+                null, null, null, getPriceUtil(), null, coinFormatter, null);
         assertEquals(0, model.maxPlacesForVolume.intValue());
     }
 
@@ -297,16 +303,16 @@ public class OfferBookViewModelTest {
         OfferBook offerBook = mock(OfferBook.class);
         OpenOfferManager openOfferManager = mock(OpenOfferManager.class);
         final ObservableList<OfferBookListItem> offerBookListItems = FXCollections.observableArrayList();
-        offerBookListItems.addAll(make(OfferBookListItemMaker.btcBuyItem));
+        offerBookListItems.addAll(make(OfferBookListItemMaker.xmrBuyItem));
 
         when(offerBook.getOfferBookListItems()).thenReturn(offerBookListItems);
 
-        final OfferBookViewModel model = new OfferBookViewModel(null, openOfferManager, offerBook, empty, null, null, null,
-                null, null, null, getPriceUtil(), null, coinFormatter);
+        final OfferBookViewModel model = new BtcOfferBookViewModel(user, openOfferManager, offerBook, empty, null, null, null,
+                null, null, null, getPriceUtil(), null, coinFormatter, null);
         model.activate();
 
         assertEquals(5, model.maxPlacesForVolume.intValue());
-        offerBookListItems.addAll(make(btcBuyItem.but(with(amount, 2000000000L))));
+        offerBookListItems.addAll(make(xmrBuyItem.but(with(amount, 2000000000L))));
         assertEquals(7, model.maxPlacesForVolume.intValue());
     }
 
@@ -315,18 +321,18 @@ public class OfferBookViewModelTest {
         OfferBook offerBook = mock(OfferBook.class);
         OpenOfferManager openOfferManager = mock(OpenOfferManager.class);
         final ObservableList<OfferBookListItem> offerBookListItems = FXCollections.observableArrayList();
-        offerBookListItems.addAll(make(OfferBookListItemMaker.btcItemWithRange));
+        offerBookListItems.addAll(make(OfferBookListItemMaker.xmrItemWithRange));
 
         when(offerBook.getOfferBookListItems()).thenReturn(offerBookListItems);
 
-        final OfferBookViewModel model = new OfferBookViewModel(null, openOfferManager, offerBook, empty, null, null, null,
-                null, null, null, getPriceUtil(), null, coinFormatter);
+        final OfferBookViewModel model = new BtcOfferBookViewModel(user, openOfferManager, offerBook, empty, null, null, null,
+                null, null, null, getPriceUtil(), null, coinFormatter, null);
         model.activate();
 
         assertEquals(9, model.maxPlacesForVolume.intValue());
-        offerBookListItems.addAll(make(btcItemWithRange.but(with(amount, 2000000000L))));
+        offerBookListItems.addAll(make(xmrItemWithRange.but(with(amount, 2000000000L))));
         assertEquals(11, model.maxPlacesForVolume.intValue());
-        offerBookListItems.addAll(make(btcItemWithRange.but(with(minAmount, 30000000000L),
+        offerBookListItems.addAll(make(xmrItemWithRange.but(with(minAmount, 30000000000L),
                 with(amount, 30000000000L))));
         assertEquals(19, model.maxPlacesForVolume.intValue());
     }
@@ -338,8 +344,8 @@ public class OfferBookViewModelTest {
 
         when(offerBook.getOfferBookListItems()).thenReturn(offerBookListItems);
 
-        final OfferBookViewModel model = new OfferBookViewModel(null, null, offerBook, empty, null, null, null,
-                null, null, null, getPriceUtil(), null, coinFormatter);
+        final OfferBookViewModel model = new BtcOfferBookViewModel(null, null, offerBook, empty, null, null, null,
+                null, null, null, getPriceUtil(), null, coinFormatter, null);
         assertEquals(0, model.maxPlacesForPrice.intValue());
     }
 
@@ -348,18 +354,18 @@ public class OfferBookViewModelTest {
         OfferBook offerBook = mock(OfferBook.class);
         OpenOfferManager openOfferManager = mock(OpenOfferManager.class);
         final ObservableList<OfferBookListItem> offerBookListItems = FXCollections.observableArrayList();
-        offerBookListItems.addAll(make(OfferBookListItemMaker.btcBuyItem));
+        offerBookListItems.addAll(make(OfferBookListItemMaker.xmrBuyItem));
 
         when(offerBook.getOfferBookListItems()).thenReturn(offerBookListItems);
 
-        final OfferBookViewModel model = new OfferBookViewModel(null, openOfferManager, offerBook, empty, null, null, null,
-                null, null, null, getPriceUtil(), null, coinFormatter);
+        final OfferBookViewModel model = new BtcOfferBookViewModel(user, openOfferManager, offerBook, empty, null, null, null,
+                null, null, null, getPriceUtil(), null, coinFormatter, null);
         model.activate();
 
         assertEquals(7, model.maxPlacesForPrice.intValue());
-        offerBookListItems.addAll(make(btcBuyItem.but(with(price, 149558240L)))); //14955.8240
+        offerBookListItems.addAll(make(xmrBuyItem.but(with(price, 149558240L)))); //14955.8240
         assertEquals(10, model.maxPlacesForPrice.intValue());
-        offerBookListItems.addAll(make(btcBuyItem.but(with(price, 14955824L)))); //1495.58240
+        offerBookListItems.addAll(make(xmrBuyItem.but(with(price, 14955824L)))); //1495.58240
         assertEquals(10, model.maxPlacesForPrice.intValue());
     }
 
@@ -370,8 +376,8 @@ public class OfferBookViewModelTest {
 
         when(offerBook.getOfferBookListItems()).thenReturn(offerBookListItems);
 
-        final OfferBookViewModel model = new OfferBookViewModel(null, null, offerBook, empty, null, null, null,
-                null, null, null, getPriceUtil(), null, coinFormatter);
+        final OfferBookViewModel model = new BtcOfferBookViewModel(null, null, offerBook, empty, null, null, null,
+                null, null, null, getPriceUtil(), null, coinFormatter, null);
         assertEquals(0, model.maxPlacesForMarketPriceMargin.intValue());
     }
 
@@ -382,24 +388,31 @@ public class OfferBookViewModelTest {
         PriceFeedService priceFeedService = mock(PriceFeedService.class);
 
         final ObservableList<OfferBookListItem> offerBookListItems = FXCollections.observableArrayList();
-        final Maker<OfferBookListItem> item = btcBuyItem.but(with(useMarketBasedPrice, true));
+        final Maker<OfferBookListItem> item = xmrBuyItem.but(with(useMarketBasedPrice, true));
 
         when(offerBook.getOfferBookListItems()).thenReturn(offerBookListItems);
         when(priceFeedService.getMarketPrice(anyString())).thenReturn(null);
         when(priceFeedService.updateCounterProperty()).thenReturn(new SimpleIntegerProperty());
 
         final OfferBookListItem item1 = make(item);
+        assertNotNull(item1.getHashOfPayload());
         item1.getOffer().setPriceFeedService(priceFeedService);
+
         final OfferBookListItem item2 = make(item.but(with(marketPriceMargin, 0.0197)));
+        assertNotNull(item2.getHashOfPayload());
         item2.getOffer().setPriceFeedService(priceFeedService);
+
         final OfferBookListItem item3 = make(item.but(with(marketPriceMargin, 0.1)));
+        assertNotNull(item3.getHashOfPayload());
         item3.getOffer().setPriceFeedService(priceFeedService);
+
         final OfferBookListItem item4 = make(item.but(with(marketPriceMargin, -0.1)));
+        assertNotNull(item4.getHashOfPayload());
         item4.getOffer().setPriceFeedService(priceFeedService);
         offerBookListItems.addAll(item1, item2);
 
-        final OfferBookViewModel model = new OfferBookViewModel(null, openOfferManager, offerBook, empty, null, null, priceFeedService,
-                null, null, null, getPriceUtil(), null, coinFormatter);
+        final OfferBookViewModel model = new BtcOfferBookViewModel(user, openOfferManager, offerBook, empty, null, null, priceFeedService,
+                null, null, null, getPriceUtil(), null, coinFormatter, null);
         model.activate();
 
         assertEquals(8, model.maxPlacesForMarketPriceMargin.intValue()); //" (1.97%)"
@@ -419,18 +432,21 @@ public class OfferBookViewModelTest {
         when(offerBook.getOfferBookListItems()).thenReturn(offerBookListItems);
         when(priceFeedService.getMarketPrice(anyString())).thenReturn(new MarketPrice("USD", 12684.0450, Instant.now().getEpochSecond(), true));
 
-        final OfferBookViewModel model = new OfferBookViewModel(null, openOfferManager, offerBook, empty, null, null, null,
-                null, null, null, getPriceUtil(), null, coinFormatter);
+        final OfferBookViewModel model = new BtcOfferBookViewModel(user, openOfferManager, offerBook, empty, null, null, null,
+                null, null, null, getPriceUtil(), null, coinFormatter, null);
 
-        final OfferBookListItem item = make(btcBuyItem.but(
+        final OfferBookListItem item = make(xmrBuyItem.but(
                 with(useMarketBasedPrice, true),
                 with(marketPriceMargin, -0.12)));
+        assertNotNull(item.getHashOfPayload());
 
-        final OfferBookListItem lowItem = make(btcBuyItem.but(
+        final OfferBookListItem lowItem = make(xmrBuyItem.but(
                 with(useMarketBasedPrice, true),
                 with(marketPriceMargin, 0.01)));
+        assertNotNull(lowItem.getHashOfPayload());
 
-        final OfferBookListItem fixedItem = make(btcBuyItem);
+        final OfferBookListItem fixedItem = make(xmrBuyItem);
+        assertNotNull(fixedItem.getHashOfPayload());
 
         item.getOffer().setPriceFeedService(priceFeedService);
         lowItem.getOffer().setPriceFeedService(priceFeedService);
@@ -592,7 +608,7 @@ public class OfferBookViewModelTest {
                 false,
                 0,
                 0,
-                "XMR",
+                "BTC",
                 tradeCurrencyCode,
                 paymentMethodId,
                 null,
@@ -616,9 +632,10 @@ public class OfferBookViewModelTest {
                 false,
                 null,
                 null,
-                1,
+                0,
                 null,
                 null,
                 null));
     }
 }
+

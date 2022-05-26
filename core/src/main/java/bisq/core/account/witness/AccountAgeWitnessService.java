@@ -23,9 +23,8 @@ import bisq.core.filter.FilterManager;
 import bisq.core.locale.CurrencyUtil;
 import bisq.core.locale.Res;
 import bisq.core.offer.Offer;
-import bisq.core.offer.OfferPayload;
+import bisq.core.offer.OfferDirection;
 import bisq.core.offer.OfferRestrictions;
-import bisq.core.payment.AssetAccount;
 import bisq.core.payment.ChargeBackRisk;
 import bisq.core.payment.PaymentAccount;
 import bisq.core.payment.payload.PaymentAccountPayload;
@@ -34,7 +33,6 @@ import bisq.core.support.dispute.Dispute;
 import bisq.core.support.dispute.DisputeResult;
 import bisq.core.support.dispute.arbitration.TraderDataItem;
 import bisq.core.trade.ArbitratorTrade;
-import bisq.core.trade.Contract;
 import bisq.core.trade.Trade;
 import bisq.core.trade.protocol.TradingPeer;
 import bisq.core.user.User;
@@ -132,6 +130,10 @@ public class AccountAgeWitnessService {
             return String.format(displayString, daysUntilLimitLifted);
         }
 
+        public boolean isLimitLifted() {
+            return this == PEER_LIMIT_LIFTED || this == PEER_SIGNER || this == ARBITRATOR;
+        }
+
     }
 
     private final KeyRing keyRing;
@@ -225,7 +227,7 @@ public class AccountAgeWitnessService {
     private void republishAllFiatAccounts() {
         if (user.getPaymentAccounts() != null)
             user.getPaymentAccounts().stream()
-                    .filter(account -> !(account instanceof AssetAccount))
+                    .filter(account -> account.getPaymentMethod().isFiat())
                     .forEach(account -> {
                         AccountAgeWitness myWitness = getMyWitness(account.getPaymentAccountPayload());
                         // We only publish if the date of our witness is inside the date tolerance.
@@ -284,8 +286,12 @@ public class AccountAgeWitnessService {
         return new AccountAgeWitness(hash, new Date().getTime());
     }
 
-    Optional<AccountAgeWitness> findWitness(PaymentAccountPayload paymentAccountPayload,
+    public Optional<AccountAgeWitness> findWitness(PaymentAccountPayload paymentAccountPayload,
                                             PubKeyRing pubKeyRing) {
+        if (paymentAccountPayload == null) {
+            return Optional.empty();
+        }
+
         byte[] accountInputDataWithSalt = getAccountInputDataWithSalt(paymentAccountPayload);
         byte[] hash = Hash.getSha256Ripemd160hash(Utilities.concatenateByteArrays(accountInputDataWithSalt,
                 pubKeyRing.getSignaturePubKeyBytes()));
@@ -415,11 +421,11 @@ public class AccountAgeWitnessService {
                                String currencyCode,
                                AccountAgeWitness accountAgeWitness,
                                AccountAge accountAgeCategory,
-                               OfferPayload.Direction direction,
+                               OfferDirection direction,
                                PaymentMethod paymentMethod) {
         if (CurrencyUtil.isCryptoCurrency(currencyCode) ||
                 !PaymentMethod.hasChargebackRisk(paymentMethod, currencyCode) ||
-                direction == OfferPayload.Direction.SELL) {
+                direction == OfferDirection.SELL) {
             return maxTradeLimit.value;
         }
 
@@ -494,7 +500,7 @@ public class AccountAgeWitnessService {
         return getAccountAge(getMyWitness(paymentAccountPayload), new Date());
     }
 
-    public long getMyTradeLimit(PaymentAccount paymentAccount, String currencyCode, OfferPayload.Direction direction) {
+    public long getMyTradeLimit(PaymentAccount paymentAccount, String currencyCode, OfferDirection direction) {
         if (paymentAccount == null)
             return 0;
 
@@ -558,7 +564,7 @@ public class AccountAgeWitnessService {
             return false;
 
         // Check if the peers trade limit is not less than the trade amount
-        if (!verifyPeersTradeLimit(trade.getOffer(), trade.getTradeAmount(), peersWitness, peersCurrentDate,
+        if (!verifyPeersTradeLimit(trade.getOffer(), trade.getAmount(), peersWitness, peersCurrentDate,
                 errorMessageHandler)) {
             log.error("verifyPeersTradeLimit failed: peersPaymentAccountPayload {}", peersPaymentAccountPayload);
             return false;
@@ -635,13 +641,12 @@ public class AccountAgeWitnessService {
                                           ErrorMessageHandler errorMessageHandler) {
         checkNotNull(offer);
         final String currencyCode = offer.getCurrencyCode();
-        final Coin defaultMaxTradeLimit = PaymentMethod.getPaymentMethodById(
-                offer.getOfferPayload().getPaymentMethodId()).getMaxTradeLimitAsCoin(currencyCode);
+        final Coin defaultMaxTradeLimit = offer.getPaymentMethod().getMaxTradeLimitAsCoin(currencyCode);
         long peersCurrentTradeLimit = defaultMaxTradeLimit.value;
         if (!hasTradeLimitException(peersWitness)) {
             final long accountSignAge = getWitnessSignAge(peersWitness, peersCurrentDate);
             AccountAge accountAgeCategory = getPeersAccountAgeCategory(accountSignAge);
-            OfferPayload.Direction direction = offer.isMyOffer(keyRing) ?
+            OfferDirection direction = offer.isMyOffer(keyRing) ?
                     offer.getMirroredDirection() : offer.getDirection();
             peersCurrentTradeLimit = getTradeLimit(defaultMaxTradeLimit, currencyCode, peersWitness,
                     accountAgeCategory, direction, offer.getPaymentMethod());
@@ -725,7 +730,7 @@ public class AccountAgeWitnessService {
 
     public Optional<SignedWitness> traderSignAndPublishPeersAccountAgeWitness(Trade trade) {
         AccountAgeWitness peersWitness = findTradePeerWitness(trade).orElse(null);
-        Coin tradeAmount = trade.getTradeAmount();
+        Coin tradeAmount = trade.getAmount();
         checkNotNull(trade.getTradingPeer().getPubKeyRing(), "Peer must have a keyring");
         PublicKey peersPubKey = trade.getTradingPeer().getPubKeyRing().getSignaturePubKey();
         checkNotNull(peersWitness, "Not able to find peers witness, unable to sign for trade {}",
@@ -767,7 +772,7 @@ public class AccountAgeWitnessService {
         boolean isFiltered = filterManager.isNodeAddressBanned(dispute.getContract().getBuyerNodeAddress()) ||
                 filterManager.isNodeAddressBanned(dispute.getContract().getSellerNodeAddress()) ||
                 filterManager.isCurrencyBanned(dispute.getContract().getOfferPayload().getCurrencyCode()) ||
-                filterManager.isPaymentMethodBanned(PaymentMethod.getPaymentMethodById(dispute.getContract().getPaymentMethodId())) ||
+                filterManager.isPaymentMethodBanned(PaymentMethod.getPaymentMethod(dispute.getContract().getPaymentMethodId())) ||
                 filterManager.arePeersPaymentAccountDataBanned(dispute.getBuyerPaymentAccountPayload()) ||
                 filterManager.arePeersPaymentAccountDataBanned(dispute.getSellerPaymentAccountPayload()) ||
                 filterManager.isWitnessSignerPubKeyBanned(Utils.HEX.encode(dispute.getContract().getBuyerPubKeyRing().getSignaturePubKeyBytes())) ||
@@ -916,7 +921,7 @@ public class AccountAgeWitnessService {
 
         return accountIsSigner(myWitness) &&
                 !peerHasSignedWitness(trade) &&
-                tradeAmountIsSufficient(trade.getTradeAmount());
+                tradeAmountIsSufficient(trade.getAmount());
     }
 
     public String getSignInfoFromAccount(PaymentAccount paymentAccount) {

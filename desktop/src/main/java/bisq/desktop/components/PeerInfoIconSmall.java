@@ -10,7 +10,7 @@ import bisq.network.p2p.NodeAddress;
 
 import javax.annotation.Nullable;
 
-public class PeerInfoIconSmall extends PeerInfoIcon {
+public class PeerInfoIconSmall extends PeerInfoIconTrading {
     public PeerInfoIconSmall(NodeAddress nodeAddress,
                              String role,
                              Offer offer,
@@ -36,7 +36,7 @@ public class PeerInfoIconSmall extends PeerInfoIcon {
     @Override
     protected void addMouseListener(int numTrades,
                                     PrivateNotificationManager privateNotificationManager,
-                                    @Nullable Trade trade,
+                                    @Nullable Trade tradeModel,
                                     Offer offer,
                                     Preferences preferences,
                                     boolean useDevPrivilegeKeys,

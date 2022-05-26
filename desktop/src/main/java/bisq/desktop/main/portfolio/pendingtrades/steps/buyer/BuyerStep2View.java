@@ -21,34 +21,55 @@ import bisq.desktop.components.AutoTooltipButton;
 import bisq.desktop.components.BusyAnimation;
 import bisq.desktop.components.TextFieldWithCopyIcon;
 import bisq.desktop.components.TitledGroupBg;
+import bisq.desktop.components.paymentmethods.AchTransferForm;
 import bisq.desktop.components.paymentmethods.AdvancedCashForm;
 import bisq.desktop.components.paymentmethods.AliPayForm;
 import bisq.desktop.components.paymentmethods.AmazonGiftCardForm;
 import bisq.desktop.components.paymentmethods.AssetsForm;
+import bisq.desktop.components.paymentmethods.BizumForm;
+import bisq.desktop.components.paymentmethods.CapitualForm;
 import bisq.desktop.components.paymentmethods.CashByMailForm;
 import bisq.desktop.components.paymentmethods.CashDepositForm;
+import bisq.desktop.components.paymentmethods.CelPayForm;
 import bisq.desktop.components.paymentmethods.ChaseQuickPayForm;
 import bisq.desktop.components.paymentmethods.ClearXchangeForm;
+import bisq.desktop.components.paymentmethods.DomesticWireTransferForm;
 import bisq.desktop.components.paymentmethods.F2FForm;
 import bisq.desktop.components.paymentmethods.FasterPaymentsForm;
 import bisq.desktop.components.paymentmethods.HalCashForm;
+import bisq.desktop.components.paymentmethods.ImpsForm;
 import bisq.desktop.components.paymentmethods.InteracETransferForm;
 import bisq.desktop.components.paymentmethods.JapanBankTransferForm;
+import bisq.desktop.components.paymentmethods.MoneseForm;
 import bisq.desktop.components.paymentmethods.MoneyBeamForm;
 import bisq.desktop.components.paymentmethods.MoneyGramForm;
 import bisq.desktop.components.paymentmethods.NationalBankForm;
+import bisq.desktop.components.paymentmethods.NeftForm;
+import bisq.desktop.components.paymentmethods.NequiForm;
+import bisq.desktop.components.paymentmethods.PaxumForm;
+import bisq.desktop.components.paymentmethods.PayseraForm;
+import bisq.desktop.components.paymentmethods.PaytmForm;
 import bisq.desktop.components.paymentmethods.PerfectMoneyForm;
+import bisq.desktop.components.paymentmethods.PixForm;
 import bisq.desktop.components.paymentmethods.PopmoneyForm;
 import bisq.desktop.components.paymentmethods.PromptPayForm;
 import bisq.desktop.components.paymentmethods.RevolutForm;
+import bisq.desktop.components.paymentmethods.RtgsForm;
 import bisq.desktop.components.paymentmethods.SameBankForm;
+import bisq.desktop.components.paymentmethods.SatispayForm;
 import bisq.desktop.components.paymentmethods.SepaForm;
 import bisq.desktop.components.paymentmethods.SepaInstantForm;
 import bisq.desktop.components.paymentmethods.SpecificBankForm;
+import bisq.desktop.components.paymentmethods.StrikeForm;
+import bisq.desktop.components.paymentmethods.SwiftForm;
 import bisq.desktop.components.paymentmethods.SwishForm;
+import bisq.desktop.components.paymentmethods.TikkieForm;
 import bisq.desktop.components.paymentmethods.TransferwiseForm;
+import bisq.desktop.components.paymentmethods.TransferwiseUsdForm;
 import bisq.desktop.components.paymentmethods.USPostalMoneyOrderForm;
 import bisq.desktop.components.paymentmethods.UpholdForm;
+import bisq.desktop.components.paymentmethods.UpiForm;
+import bisq.desktop.components.paymentmethods.VerseForm;
 import bisq.desktop.components.paymentmethods.WeChatPayForm;
 import bisq.desktop.components.paymentmethods.WesternUnionForm;
 import bisq.desktop.main.MainView;
@@ -75,11 +96,12 @@ import bisq.core.payment.payload.HalCashAccountPayload;
 import bisq.core.payment.payload.MoneyGramAccountPayload;
 import bisq.core.payment.payload.PaymentAccountPayload;
 import bisq.core.payment.payload.PaymentMethod;
+import bisq.core.payment.payload.SwiftAccountPayload;
 import bisq.core.payment.payload.USPostalMoneyOrderAccountPayload;
 import bisq.core.payment.payload.WesternUnionAccountPayload;
 import bisq.core.trade.Trade;
 import bisq.core.user.DontShowAgainLookup;
-
+import bisq.core.util.VolumeUtil;
 import bisq.common.Timer;
 import bisq.common.UserThread;
 import bisq.common.app.DevEnv;
@@ -317,8 +339,71 @@ public class BuyerStep2View extends TradeStepView {
             case PaymentMethod.TRANSFERWISE_ID:
                 gridRow = TransferwiseForm.addFormForBuyer(gridPane, gridRow, paymentAccountPayload);
                 break;
+            case PaymentMethod.TRANSFERWISE_USD_ID:
+                gridRow = TransferwiseUsdForm.addFormForBuyer(gridPane, gridRow, paymentAccountPayload);
+                break;
+            case PaymentMethod.PAYSERA_ID:
+                gridRow = PayseraForm.addFormForBuyer(gridPane, gridRow, paymentAccountPayload);
+                break;
+            case PaymentMethod.PAXUM_ID:
+                gridRow = PaxumForm.addFormForBuyer(gridPane, gridRow, paymentAccountPayload);
+                break;
+            case PaymentMethod.NEFT_ID:
+                gridRow = NeftForm.addFormForBuyer(gridPane, gridRow, paymentAccountPayload);
+                break;
+            case PaymentMethod.RTGS_ID:
+                gridRow = RtgsForm.addFormForBuyer(gridPane, gridRow, paymentAccountPayload);
+                break;
+            case PaymentMethod.IMPS_ID:
+                gridRow = ImpsForm.addFormForBuyer(gridPane, gridRow, paymentAccountPayload);
+                break;
+            case PaymentMethod.UPI_ID:
+                gridRow = UpiForm.addFormForBuyer(gridPane, gridRow, paymentAccountPayload);
+                break;
+            case PaymentMethod.PAYTM_ID:
+                gridRow = PaytmForm.addFormForBuyer(gridPane, gridRow, paymentAccountPayload);
+                break;
+            case PaymentMethod.NEQUI_ID:
+                gridRow = NequiForm.addFormForBuyer(gridPane, gridRow, paymentAccountPayload);
+                break;
+            case PaymentMethod.BIZUM_ID:
+                gridRow = BizumForm.addFormForBuyer(gridPane, gridRow, paymentAccountPayload);
+                break;
+            case PaymentMethod.PIX_ID:
+                gridRow = PixForm.addFormForBuyer(gridPane, gridRow, paymentAccountPayload);
+                break;
             case PaymentMethod.AMAZON_GIFT_CARD_ID:
                 gridRow = AmazonGiftCardForm.addFormForBuyer(gridPane, gridRow, paymentAccountPayload);
+                break;
+            case PaymentMethod.CAPITUAL_ID:
+                gridRow = CapitualForm.addFormForBuyer(gridPane, gridRow, paymentAccountPayload);
+                break;
+            case PaymentMethod.CELPAY_ID:
+                gridRow = CelPayForm.addFormForBuyer(gridPane, gridRow, paymentAccountPayload);
+                break;
+            case PaymentMethod.MONESE_ID:
+                gridRow = MoneseForm.addFormForBuyer(gridPane, gridRow, paymentAccountPayload);
+                break;
+            case PaymentMethod.SATISPAY_ID:
+                gridRow = SatispayForm.addFormForBuyer(gridPane, gridRow, paymentAccountPayload);
+                break;
+            case PaymentMethod.TIKKIE_ID:
+                gridRow = TikkieForm.addFormForBuyer(gridPane, gridRow, paymentAccountPayload);
+                break;
+            case PaymentMethod.VERSE_ID:
+                gridRow = VerseForm.addFormForBuyer(gridPane, gridRow, paymentAccountPayload);
+                break;
+            case PaymentMethod.STRIKE_ID:
+                gridRow = StrikeForm.addFormForBuyer(gridPane, gridRow, paymentAccountPayload);
+                break;
+            case PaymentMethod.SWIFT_ID:
+                gridRow = SwiftForm.addFormForBuyer(gridPane, gridRow, paymentAccountPayload, trade);
+                break;
+            case PaymentMethod.ACH_TRANSFER_ID:
+                gridRow = AchTransferForm.addFormForBuyer(gridPane, gridRow, paymentAccountPayload);
+                break;
+            case PaymentMethod.DOMESTIC_WIRE_TRANSFER_ID:
+                gridRow = DomesticWireTransferForm.addFormForBuyer(gridPane, gridRow, paymentAccountPayload);
                 break;
             default:
                 log.error("Not supported PaymentMethod: " + paymentMethodId);
@@ -542,7 +627,7 @@ public class BuyerStep2View extends TradeStepView {
             String refTextWarn = Res.get("portfolio.pending.step2_buyer.refTextWarn");
             String fees = Res.get("portfolio.pending.step2_buyer.fees");
             String id = trade.getShortId();
-            String amount = DisplayUtils.formatVolumeWithCode(trade.getTradeVolume());
+            String amount = VolumeUtil.formatVolumeWithCode(trade.getVolume());
             if (paymentAccountPayload instanceof AssetsAccountPayload) {
                 message += Res.get("portfolio.pending.step2_buyer.altcoin",
                         getCurrencyName(trade),
@@ -578,6 +663,10 @@ public class BuyerStep2View extends TradeStepView {
             } else if (paymentAccountPayload instanceof CashByMailAccountPayload ||
                     paymentAccountPayload instanceof HalCashAccountPayload) {
                 message += Res.get("portfolio.pending.step2_buyer.pay", amount);
+            } else if (paymentAccountPayload instanceof SwiftAccountPayload) {
+                message += Res.get("portfolio.pending.step2_buyer.pay", amount) +
+                        refTextWarn + "\n\n" +
+                        Res.get("portfolio.pending.step2_buyer.fees.swift");
             } else {
                 message += Res.get("portfolio.pending.step2_buyer.pay", amount) +
                         refTextWarn + "\n\n" +

@@ -30,11 +30,10 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 
 import static bisq.apitest.config.ApiTestConfig.BTC;
-import static bisq.core.btc.wallet.Restrictions.getDefaultBuyerSecurityDepositAsPercent;
 import static java.lang.String.format;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static protobuf.OfferPayload.Direction.BUY;
+import static protobuf.OfferDirection.BUY;
 
 @Disabled
 @Slf4j
@@ -52,7 +51,7 @@ public class ValidateCreateOfferTest extends AbstractOfferTest {
                         100000000000L, // exceeds amount limit
                         100000000000L,
                         "10000.0000",
-                        getDefaultBuyerSecurityDepositAsPercent(),
+                        defaultBuyerSecurityDepositPct.get(),
                         usdAccount.getId()));
         assertEquals("UNKNOWN: An error occurred at task: ValidateOffer", exception.getMessage());
     }
@@ -68,7 +67,7 @@ public class ValidateCreateOfferTest extends AbstractOfferTest {
                         10000000L,
                         10000000L,
                         "40000.0000",
-                        getDefaultBuyerSecurityDepositAsPercent(),
+                        defaultBuyerSecurityDepositPct.get(),
                         chfAccount.getId()));
         String expectedError = format("UNKNOWN: cannot create EUR offer with payment account %s", chfAccount.getId());
         assertEquals(expectedError, exception.getMessage());
@@ -85,7 +84,7 @@ public class ValidateCreateOfferTest extends AbstractOfferTest {
                         10000000L,
                         10000000L,
                         "63000.0000",
-                        getDefaultBuyerSecurityDepositAsPercent(),
+                        defaultBuyerSecurityDepositPct.get(),
                         audAccount.getId()));
         String expectedError = format("UNKNOWN: cannot create CAD offer with payment account %s", audAccount.getId());
         assertEquals(expectedError, exception.getMessage());

@@ -193,7 +193,6 @@ gencreateoffercommand() {
         CMD+=" --market-price-margin=$MKT_PRICE_MARGIN"
     fi
     CMD+=" --security-deposit=15.0"
-    CMD+=" --fee-currency=BTC"
     echo "$CMD"
 }
 
@@ -368,7 +367,7 @@ waitfortradepaymentsent() {
 
         IS_TRADE_PAYMENT_SENT=$(istradepaymentsent "$TRADE_DETAIL")
         exitoncommandalert $?
-        printdate "$SELLER:  Has buyer's fiat payment been initiated?  $IS_TRADE_PAYMENT_SENT"
+        printdate "$SELLER:  Has buyer's payment been initiated?  $IS_TRADE_PAYMENT_SENT"
         if [ "$IS_TRADE_PAYMENT_SENT" = "YES" ]
         then
             DONE=1
@@ -407,7 +406,7 @@ waitfortradepaymentreceived() {
         # but we do not need to simulate that in this regtest script.
         IS_TRADE_PAYMENT_SENT=$(istradepaymentreceived "$TRADE_DETAIL")
         exitoncommandalert $?
-        printdate "$SELLER:  Has buyer's payment been transferred to seller's fiat account?  $IS_TRADE_PAYMENT_SENT"
+        printdate "$SELLER:  Has buyer's payment been transferred to seller's account?  $IS_TRADE_PAYMENT_SENT"
         if [ "$IS_TRADE_PAYMENT_SENT" = "YES" ]
         then
             DONE=1
@@ -427,7 +426,7 @@ delayconfirmpaymentstarted() {
     PORT="$2"
     OFFER_ID="$3"
     RANDOM_WAIT=$(echo $[$RANDOM % 5 + 1])
-    printdate "$PAYER:  Sending fiat payment sent message to seller in $RANDOM_WAIT seconds..."
+    printdate "$PAYER:  Sending 'payment sent' message to seller in $RANDOM_WAIT seconds..."
     sleeptraced "$RANDOM_WAIT"
     CMD="$CLI_BASE --port=$PORT confirmpaymentstarted --trade-id=$OFFER_ID"
     printdate "$PAYER_CLI: $CMD"
@@ -446,7 +445,7 @@ delayconfirmpaymentreceived() {
     PORT="$2"
     OFFER_ID="$3"
     RANDOM_WAIT=$(echo $[$RANDOM % 5 + 1])
-    printdate "$PAYEE:  Sending fiat payment sent message to seller in $RANDOM_WAIT seconds..."
+    printdate "$PAYEE:  Sending 'payment sent' message to seller in $RANDOM_WAIT seconds..."
     sleeptraced "$RANDOM_WAIT"
     CMD="$CLI_BASE --port=$PORT confirmpaymentreceived --trade-id=$OFFER_ID"
     printdate "$PAYEE_CLI: $CMD"
@@ -457,11 +456,10 @@ delayconfirmpaymentreceived() {
     printbreak
 }
 
-# This is a large function that should be broken up if it ever makes sense to not treat a trade
-# execution simulation as an atomic operation.  But we are not testing api methods here, just
-# demonstrating how to use them to get through the trade protocol.  It should work for any trade
-# between Bob & Alice, as long as Alice is maker, Bob is taker, and the offer to be taken is the
-# first displayed in Bob's getoffers command output.
+# This is a large function that might be split into smaller functions.  But we are not testing
+# api methods here, just demonstrating how to use them to get through the V1 trade protocol with
+# the CLI.  It should work for any trade between Bob & Alice, as long as Alice is maker, Bob is
+# taker, and the offer to be taken is the first displayed in Bob's getoffers command output.
 executetrade() {
     # Bob list available offers.
     printdate "BOB $BOB_ROLE:  Looking at $DIRECTION $CURRENCY_CODE offers."
@@ -532,24 +530,27 @@ executetrade() {
     fi
 
     # Generate some btc blocks
-    printdate "Generating btc blocks after fiat transfer."
+    printdate "Generating btc blocks after payment."
     genbtcblocks 2 2
     printbreak
 
-    # Complete the trade on the seller side.
-    if [ "$DIRECTION" = "BUY" ]
-    then
-        printdate "BOB $BOB_ROLE:  Closing trade by keeping funds in Bisq wallet."
-        CMD="$CLI_BASE --port=$BOB_PORT keepfunds --trade-id=$OFFER_ID"
-        printdate "BOB CLI: $CMD"
-    else
-        printdate "ALICE (taker):  Closing trade by keeping funds in Bisq wallet."
-        CMD="$CLI_BASE --port=$ALICE_PORT keepfunds --trade-id=$OFFER_ID"
-        printdate "ALICE CLI: $CMD"
-    fi
+    # Complete the trade on both sides
+    printdate "BOB $BOB_ROLE:  Closing trade and keeping funds in Bisq wallet."
+    CMD="$CLI_BASE --port=$BOB_PORT closetrade --trade-id=$OFFER_ID"
+    printdate "BOB CLI: $CMD"
     KEEP_FUNDS_MSG=$($CMD)
-    commandalert $? "Could close trade with keepfunds command."
-    # Print the keepfunds command's console output.
+    commandalert $? "Closed trade with closetrade command."
+    # Print the closetrade command's console output.
+    printdate "$KEEP_FUNDS_MSG"
+    sleeptraced 3
+    printbreak
+
+    printdate "ALICE (taker):  Closing trade and keeping funds in Bisq wallet."
+    CMD="$CLI_BASE --port=$ALICE_PORT closetrade --trade-id=$OFFER_ID"
+    printdate "ALICE CLI: $CMD"
+    KEEP_FUNDS_MSG=$($CMD)
+    commandalert $? "Closed trade with closetrade command."
+    # Print the closetrade command's console output.
     printdate "$KEEP_FUNDS_MSG"
     sleeptraced 3
     printbreak

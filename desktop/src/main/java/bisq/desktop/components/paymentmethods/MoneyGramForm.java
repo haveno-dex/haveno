@@ -26,7 +26,6 @@ import bisq.core.account.witness.AccountAgeWitnessService;
 import bisq.core.locale.BankUtil;
 import bisq.core.locale.Country;
 import bisq.core.locale.CountryUtil;
-import bisq.core.locale.CurrencyUtil;
 import bisq.core.locale.Res;
 import bisq.core.payment.MoneyGramAccount;
 import bisq.core.payment.PaymentAccount;
@@ -37,15 +36,16 @@ import bisq.core.util.validation.InputValidator;
 
 import bisq.common.util.Tuple2;
 
-import org.apache.commons.lang3.StringUtils;
-
 import javafx.scene.control.Label;
 import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.GridPane;
 
 import lombok.extern.slf4j.Slf4j;
 
-import static bisq.desktop.util.FormBuilder.*;
+import static bisq.desktop.util.FormBuilder.addCompactTopLabelTextField;
+import static bisq.desktop.util.FormBuilder.addCompactTopLabelTextFieldWithCopyIcon;
+import static bisq.desktop.util.FormBuilder.addInputTextField;
+import static bisq.desktop.util.FormBuilder.addTopLabelFlowPane;
 
 @Slf4j
 public class MoneyGramForm extends PaymentMethodForm {
@@ -69,7 +69,6 @@ public class MoneyGramForm extends PaymentMethodForm {
     }
 
     private final MoneyGramAccountPayload moneyGramAccountPayload;
-    private InputTextField holderNameInputTextField;
     private InputTextField stateInputTextField;
     private final EmailValidator emailValidator;
 
@@ -82,10 +81,10 @@ public class MoneyGramForm extends PaymentMethodForm {
     }
 
     @Override
-    public void addFormForDisplayAccount() {
+    public void addFormForEditAccount() {
         gridRowFrom = gridRow;
         final Country country = getMoneyGramPaymentAccount().getCountry();
-        addTopLabelTextField(gridPane, gridRow, Res.get("payment.account.name"), paymentAccount.getAccountName(), Layout.FIRST_ROW_AND_GROUP_DISTANCE);
+        addAccountNameTextFieldWithAutoFillToggleButton();
         addCompactTopLabelTextField(gridPane, ++gridRow, Res.get("shared.paymentMethod"),
                 Res.get(paymentAccount.getPaymentMethod().getId()));
         addCompactTopLabelTextField(gridPane, ++gridRow, Res.get("payment.country"), country != null ? country.name : "");
@@ -106,7 +105,7 @@ public class MoneyGramForm extends PaymentMethodForm {
 
         gridRow = GUIUtil.addRegionCountry(gridPane, gridRow, this::onCountrySelected);
 
-        holderNameInputTextField = addInputTextField(gridPane,
+        InputTextField holderNameInputTextField = addInputTextField(gridPane,
                 ++gridRow, Res.get("payment.account.fullName"));
         holderNameInputTextField.textProperty().addListener((ov, oldValue, newValue) -> {
             moneyGramAccountPayload.setHolderName(newValue);
@@ -156,7 +155,7 @@ public class MoneyGramForm extends PaymentMethodForm {
         else
             flowPane.setId("flow-pane-checkboxes-non-editable-bg");
 
-        CurrencyUtil.getAllMoneyGramCurrencies().forEach(e ->
+        paymentAccount.getSupportedCurrencies().forEach(e ->
                 fillUpFlowPaneWithCurrencies(isEditable, flowPane, e, paymentAccount));
     }
 
@@ -172,11 +171,7 @@ public class MoneyGramForm extends PaymentMethodForm {
 
     @Override
     protected void autoFillNameTextField() {
-        if (useCustomAccountNameToggleButton != null && !useCustomAccountNameToggleButton.isSelected()) {
-            accountNameTextField.setText(Res.get(paymentAccount.getPaymentMethod().getId())
-                    .concat(": ")
-                    .concat(StringUtils.abbreviate(holderNameInputTextField.getText(), 9)));
-        }
+        setAccountNameWithString(moneyGramAccountPayload.getHolderName());
     }
 
     @Override

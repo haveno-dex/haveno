@@ -40,8 +40,6 @@ import bisq.core.util.validation.InputValidator;
 import bisq.common.UserThread;
 import bisq.common.util.Tuple3;
 
-import org.apache.commons.lang3.StringUtils;
-
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
@@ -52,10 +50,10 @@ import javafx.geometry.Insets;
 
 import javafx.util.StringConverter;
 
+import static bisq.desktop.util.DisplayUtils.createAssetsAccountName;
 import static bisq.desktop.util.FormBuilder.addCompactTopLabelTextField;
 import static bisq.desktop.util.FormBuilder.addCompactTopLabelTextFieldWithCopyIcon;
 import static bisq.desktop.util.FormBuilder.addLabelCheckBox;
-import static bisq.desktop.util.FormBuilder.addTopLabelTextField;
 import static bisq.desktop.util.GUIUtil.getComboBoxButtonCell;
 
 public class AssetsForm extends PaymentMethodForm {
@@ -163,20 +161,14 @@ public class AssetsForm extends PaymentMethodForm {
     @Override
     protected void autoFillNameTextField() {
         if (useCustomAccountNameToggleButton != null && !useCustomAccountNameToggleButton.isSelected()) {
-            String currency = paymentAccount.getSingleTradeCurrency() != null ? paymentAccount.getSingleTradeCurrency().getCode() : "";
-            if (currency != null) {
-                String address = addressInputTextField.getText();
-                address = StringUtils.abbreviate(address, 9);
-                accountNameTextField.setText(currency.concat(": ").concat(address));
-            }
+            accountNameTextField.setText(createAssetsAccountName(paymentAccount, assetAccount.getAddress()));
         }
     }
 
     @Override
-    public void addFormForDisplayAccount() {
+    public void addFormForEditAccount() {
         gridRowFrom = gridRow;
-        addTopLabelTextField(gridPane, gridRow, Res.get("payment.account.name"),
-                assetAccount.getAccountName(), Layout.FIRST_ROW_AND_GROUP_DISTANCE);
+        addAccountNameTextFieldWithAutoFillToggleButton();
         addCompactTopLabelTextField(gridPane, ++gridRow, Res.get("shared.paymentMethod"),
                 Res.get(assetAccount.getPaymentMethod().getId()));
         Tuple3<Label, TextField, VBox> tuple2 = addCompactTopLabelTextField(gridPane, ++gridRow,
@@ -232,8 +224,13 @@ public class AssetsForm extends PaymentMethodForm {
         ((AutocompleteComboBox<?>) currencyComboBox).setOnChangeConfirmed(e -> {
             addressInputTextField.resetValidation();
             addressInputTextField.validate();
-            paymentAccount.setSingleTradeCurrency(currencyComboBox.getSelectionModel().getSelectedItem());
+            TradeCurrency tradeCurrency = currencyComboBox.getSelectionModel().getSelectedItem();
+            paymentAccount.setSingleTradeCurrency(tradeCurrency);
             updateFromInputs();
+
+            if (tradeCurrency != null && tradeCurrency.getCode().equals("BSQ")) {
+                new Popup().information(Res.get("payment.select.altcoin.bsq.warning")).show();
+            }
         });
     }
 }

@@ -91,7 +91,7 @@ class AltCoinAccountsDataModel extends ActivatableDataModel {
     private void fillAndSortPaymentAccounts() {
         if (user.getPaymentAccounts() != null) {
             paymentAccounts.setAll(user.getPaymentAccounts().stream()
-                    .filter(paymentAccount -> paymentAccount.getPaymentMethod().isAsset())
+                    .filter(paymentAccount -> paymentAccount.getPaymentMethod().isBlockchain())
                     .collect(Collectors.toList()));
             paymentAccounts.sort(Comparator.comparing(PaymentAccount::getAccountName));
         }
@@ -128,6 +128,11 @@ class AltCoinAccountsDataModel extends ActivatableDataModel {
 
         if (!(paymentAccount instanceof AssetAccount))
             accountAgeWitnessService.publishMyAccountAgeWitness(paymentAccount.getPaymentAccountPayload());
+    }
+
+    public void onUpdateAccount(PaymentAccount paymentAccount) {
+        paymentAccount.onPersistChanges();
+        user.requestPersistence();
     }
 
     public boolean onDeleteAccount(PaymentAccount paymentAccount) {

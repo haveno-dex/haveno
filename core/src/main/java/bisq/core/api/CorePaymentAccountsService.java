@@ -83,7 +83,7 @@ class CorePaymentAccountsService {
 
     List<PaymentMethod> getFiatPaymentMethods() {
         return PaymentMethod.getPaymentMethods().stream()
-                .filter(paymentMethod -> !paymentMethod.isAsset())
+                .filter(paymentMethod -> !paymentMethod.isBlockchain())
                 .sorted(Comparator.comparing(PaymentMethod::getId))
                 .collect(Collectors.toList());
     }
@@ -129,15 +129,14 @@ class CorePaymentAccountsService {
 
     List<PaymentMethod> getCryptoCurrencyPaymentMethods() {
         return PaymentMethod.getPaymentMethods().stream()
-                .filter(PaymentMethod::isAsset)
+                .filter(PaymentMethod::isAltcoin)
                 .sorted(Comparator.comparing(PaymentMethod::getId))
                 .collect(Collectors.toList());
     }
 
     private void verifyPaymentAccountHasRequiredFields(PaymentAccount paymentAccount) {
-        // Do checks here to make sure required fields are populated.
-        if (paymentAccount.isTransferwiseAccount() && paymentAccount.getTradeCurrencies().isEmpty())
-            throw new IllegalArgumentException(format("no trade currencies defined for %s payment account",
+        if (!paymentAccount.hasMultipleCurrencies() && paymentAccount.getSingleTradeCurrency() == null)
+            throw new IllegalArgumentException(format("no trade currency defined for %s payment account",
                     paymentAccount.getPaymentMethod().getDisplayString().toLowerCase()));
     }
 }

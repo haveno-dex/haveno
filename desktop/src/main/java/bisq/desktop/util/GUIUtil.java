@@ -37,7 +37,6 @@ import bisq.core.locale.CountryUtil;
 import bisq.core.locale.CurrencyUtil;
 import bisq.core.locale.Res;
 import bisq.core.locale.TradeCurrency;
-import bisq.core.offer.OfferRestrictions;
 import bisq.core.payment.PaymentAccount;
 import bisq.core.payment.PaymentAccountList;
 import bisq.core.payment.payload.PaymentMethod;
@@ -97,13 +96,16 @@ import javafx.scene.control.Label;
 import javafx.scene.control.ListCell;
 import javafx.scene.control.ListView;
 import javafx.scene.control.ScrollBar;
+import javafx.scene.control.ScrollPane;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.Tooltip;
 import javafx.scene.layout.AnchorPane;
+import javafx.scene.layout.ColumnConstraints;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
-
+import javafx.scene.layout.Priority;
+import javafx.geometry.HPos;
 import javafx.geometry.Orientation;
 
 import javafx.collections.FXCollections;
@@ -155,6 +157,8 @@ public class GUIUtil {
 
     private static FeeService feeService;
     private static Preferences preferences;
+    
+    public static TradeCurrency TOP_ALTCOIN = CurrencyUtil.getTradeCurrency("ETH").get();
 
     public static void setFeeService(FeeService feeService) {
         GUIUtil.feeService = feeService;
@@ -541,7 +545,7 @@ public class GUIUtil {
                     HBox box = new HBox();
                     box.setSpacing(20);
                     Label paymentType = new AutoTooltipLabel(
-                            method.isAsset() ? Res.get("shared.crypto") : Res.get("shared.fiat"));
+                            method.isAltcoin() ? Res.get("shared.crypto") : Res.get("shared.fiat"));
 
                     paymentType.getStyleClass().add("currency-label-small");
                     Label paymentMethod = new AutoTooltipLabel(Res.get(id));
@@ -695,18 +699,18 @@ public class GUIUtil {
         return t.cast(parent);
     }
 
-    public static void showTakeOfferFromUnsignedAccountWarning(CoinFormatter coinFormatter) {
+    public static void showTakeOfferFromUnsignedAccountWarning() {
         String key = "confirmTakeOfferFromUnsignedAccount";
-        new Popup().warning(Res.get("payment.takeOfferFromUnsignedAccount.warning", coinFormatter.formatCoinWithCode(OfferRestrictions.TOLERATED_SMALL_TRADE_AMOUNT)))
+        new Popup().warning(Res.get("payment.takeOfferFromUnsignedAccount.warning"))
                 .width(900)
                 .closeButtonText(Res.get("shared.iConfirm"))
                 .dontShowAgainId(key)
                 .show();
     }
 
-    public static void showMakeOfferToUnsignedAccountWarning(CoinFormatter coinFormatter) {
+    public static void showMakeOfferToUnsignedAccountWarning() {
         String key = "confirmMakeOfferToUnsignedAccount";
-        new Popup().warning(Res.get("payment.makeOfferToUnsignedAccount.warning", coinFormatter.formatCoinWithCode(OfferRestrictions.TOLERATED_SMALL_TRADE_AMOUNT)))
+        new Popup().warning(Res.get("payment.makeOfferToUnsignedAccount.warning"))
                 .width(900)
                 .closeButtonText(Res.get("shared.iConfirm"))
                 .dontShowAgainId(key)
@@ -1088,5 +1092,36 @@ public class GUIUtil {
             default:
                 return result.name();
         }
+    }
+
+    public static ScrollPane createScrollPane() {
+        ScrollPane scrollPane = new ScrollPane();
+        scrollPane.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
+        scrollPane.setVbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
+        scrollPane.setFitToWidth(true);
+        scrollPane.setFitToHeight(true);
+        AnchorPane.setLeftAnchor(scrollPane, 0d);
+        AnchorPane.setTopAnchor(scrollPane, 0d);
+        AnchorPane.setRightAnchor(scrollPane, 0d);
+        AnchorPane.setBottomAnchor(scrollPane, 0d);
+        return scrollPane;
+    }
+
+    public static void setDefaultTwoColumnConstraintsForGridPane(GridPane gridPane) {
+        ColumnConstraints columnConstraints1 = new ColumnConstraints();
+        columnConstraints1.setHalignment(HPos.RIGHT);
+        columnConstraints1.setHgrow(Priority.NEVER);
+        columnConstraints1.setMinWidth(200);
+        ColumnConstraints columnConstraints2 = new ColumnConstraints();
+        columnConstraints2.setHgrow(Priority.ALWAYS);
+        gridPane.getColumnConstraints().addAll(columnConstraints1, columnConstraints2);
+    }
+
+    public static void updateTopAltcoin(Preferences preferences) {
+        TradeCurrency tradeCurrency = preferences.getPreferredTradeCurrency();
+        if (CurrencyUtil.isFiatCurrency(tradeCurrency.getCode())) {
+            return;
+        }
+        TOP_ALTCOIN = tradeCurrency;
     }
 }

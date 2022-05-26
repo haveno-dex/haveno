@@ -35,6 +35,7 @@ import bisq.core.locale.Res;
 import bisq.core.monetary.Price;
 import bisq.core.monetary.Volume;
 import bisq.core.offer.Offer;
+import bisq.core.offer.OfferDirection;
 import bisq.core.offer.OfferPayload;
 import bisq.core.offer.OfferUtil;
 import bisq.core.payment.PaymentAccount;
@@ -75,6 +76,7 @@ import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nullable;
 
+import static bisq.core.payment.payload.PaymentMethod.HAL_CASH_ID;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
@@ -212,7 +214,7 @@ class TakeOfferDataModel extends OfferDataModel {
 
         this.amount.set(Coin.valueOf(Math.min(offer.getAmount().value, getMaxTradeLimit())));
 
-        securityDeposit = offer.getDirection() == OfferPayload.Direction.SELL ?
+        securityDeposit = offer.getDirection() == OfferDirection.SELL ?
                 getBuyerSecurityDeposit() :
                 getSellerSecurityDeposit();
 
@@ -294,7 +296,7 @@ class TakeOfferDataModel extends OfferDataModel {
         // only local effect. Other trader might see the offer for a few seconds
         // still (but cannot take it).
         if (removeOffer) {
-            offerBook.removeOffer(checkNotNull(offer), tradeManager);
+            offerBook.removeOffer(checkNotNull(offer));
         }
 
         //xmrWalletService.resetAddressEntriesForOpenOffer(offer.getId());  // TODO (woodser): this removes address entries for reserved trades before completion.  how doesn't this delete the multisig address entry in bisq before completion?
@@ -414,7 +416,7 @@ class TakeOfferDataModel extends OfferDataModel {
     // Getters
     ///////////////////////////////////////////////////////////////////////////////////////////
 
-    OfferPayload.Direction getDirection() {
+    OfferDirection getDirection() {
         return offer.getDirection();
     }
 
@@ -482,7 +484,7 @@ class TakeOfferDataModel extends OfferDataModel {
             Volume volumeByAmount = tradePrice.getVolumeByAmount(amount.get());
             if (offer.getPaymentMethod().getId().equals(PaymentMethod.HAL_CASH_ID))
                 volumeByAmount = VolumeUtil.getAdjustedVolumeForHalCash(volumeByAmount);
-            else if (CurrencyUtil.isFiatCurrency(getCurrencyCode()))
+            else if (offer.isFiatOffer())
                 volumeByAmount = VolumeUtil.getRoundedFiatVolume(volumeByAmount);
 
             volume.set(volumeByAmount);
@@ -515,11 +517,11 @@ class TakeOfferDataModel extends OfferDataModel {
     }
 
     boolean isBuyOffer() {
-        return getDirection() == OfferPayload.Direction.BUY;
+        return getDirection() == OfferDirection.BUY;
     }
 
     boolean isSellOffer() {
-        return getDirection() == OfferPayload.Direction.SELL;
+        return getDirection() == OfferDirection.SELL;
     }
 
     boolean isCryptoCurrency() {
@@ -646,8 +648,8 @@ class TakeOfferDataModel extends OfferDataModel {
         return offer.getSellerSecurityDeposit();
     }
 
-    public boolean isHalCashAccount() {
-        return paymentAccount.isHalCashAccount();
+    public boolean isUsingHalCashAccount() {
+        return paymentAccount.hasPaymentMethodWithId(HAL_CASH_ID);
     }
 
     public Coin getTakerFeeInBtc() {

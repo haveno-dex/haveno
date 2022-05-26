@@ -19,35 +19,56 @@ package bisq.desktop.main.account.content.fiataccounts;
 
 import bisq.desktop.common.view.FxmlView;
 import bisq.desktop.components.TitledGroupBg;
+import bisq.desktop.components.paymentmethods.AchTransferForm;
 import bisq.desktop.components.paymentmethods.AdvancedCashForm;
 import bisq.desktop.components.paymentmethods.AliPayForm;
 import bisq.desktop.components.paymentmethods.AmazonGiftCardForm;
 import bisq.desktop.components.paymentmethods.AustraliaPayidForm;
+import bisq.desktop.components.paymentmethods.BizumForm;
+import bisq.desktop.components.paymentmethods.CapitualForm;
 import bisq.desktop.components.paymentmethods.CashByMailForm;
 import bisq.desktop.components.paymentmethods.CashDepositForm;
+import bisq.desktop.components.paymentmethods.CelPayForm;
 import bisq.desktop.components.paymentmethods.ChaseQuickPayForm;
 import bisq.desktop.components.paymentmethods.ClearXchangeForm;
+import bisq.desktop.components.paymentmethods.DomesticWireTransferForm;
 import bisq.desktop.components.paymentmethods.F2FForm;
 import bisq.desktop.components.paymentmethods.FasterPaymentsForm;
 import bisq.desktop.components.paymentmethods.HalCashForm;
+import bisq.desktop.components.paymentmethods.ImpsForm;
 import bisq.desktop.components.paymentmethods.InteracETransferForm;
 import bisq.desktop.components.paymentmethods.JapanBankTransferForm;
+import bisq.desktop.components.paymentmethods.MoneseForm;
 import bisq.desktop.components.paymentmethods.MoneyBeamForm;
 import bisq.desktop.components.paymentmethods.MoneyGramForm;
 import bisq.desktop.components.paymentmethods.NationalBankForm;
+import bisq.desktop.components.paymentmethods.NeftForm;
+import bisq.desktop.components.paymentmethods.NequiForm;
+import bisq.desktop.components.paymentmethods.PaxumForm;
 import bisq.desktop.components.paymentmethods.PaymentMethodForm;
+import bisq.desktop.components.paymentmethods.PayseraForm;
+import bisq.desktop.components.paymentmethods.PaytmForm;
 import bisq.desktop.components.paymentmethods.PerfectMoneyForm;
+import bisq.desktop.components.paymentmethods.PixForm;
 import bisq.desktop.components.paymentmethods.PopmoneyForm;
 import bisq.desktop.components.paymentmethods.PromptPayForm;
 import bisq.desktop.components.paymentmethods.RevolutForm;
+import bisq.desktop.components.paymentmethods.RtgsForm;
 import bisq.desktop.components.paymentmethods.SameBankForm;
+import bisq.desktop.components.paymentmethods.SatispayForm;
 import bisq.desktop.components.paymentmethods.SepaForm;
 import bisq.desktop.components.paymentmethods.SepaInstantForm;
 import bisq.desktop.components.paymentmethods.SpecificBankForm;
+import bisq.desktop.components.paymentmethods.StrikeForm;
+import bisq.desktop.components.paymentmethods.SwiftForm;
 import bisq.desktop.components.paymentmethods.SwishForm;
+import bisq.desktop.components.paymentmethods.TikkieForm;
 import bisq.desktop.components.paymentmethods.TransferwiseForm;
+import bisq.desktop.components.paymentmethods.TransferwiseUsdForm;
 import bisq.desktop.components.paymentmethods.USPostalMoneyOrderForm;
 import bisq.desktop.components.paymentmethods.UpholdForm;
+import bisq.desktop.components.paymentmethods.UpiForm;
+import bisq.desktop.components.paymentmethods.VerseForm;
 import bisq.desktop.components.paymentmethods.WeChatPayForm;
 import bisq.desktop.components.paymentmethods.WesternUnionForm;
 import bisq.desktop.main.account.content.PaymentAccountsView;
@@ -59,13 +80,14 @@ import bisq.desktop.util.validation.AdvancedCashValidator;
 import bisq.desktop.util.validation.AliPayValidator;
 import bisq.desktop.util.validation.AustraliaPayidValidator;
 import bisq.desktop.util.validation.BICValidator;
+import bisq.desktop.util.validation.CapitualValidator;
 import bisq.desktop.util.validation.ChaseQuickPayValidator;
 import bisq.desktop.util.validation.ClearXchangeValidator;
 import bisq.desktop.util.validation.F2FValidator;
 import bisq.desktop.util.validation.HalCashValidator;
-import bisq.desktop.util.validation.IBANValidator;
 import bisq.desktop.util.validation.InteracETransferValidator;
 import bisq.desktop.util.validation.JapanBankTransferValidator;
+import bisq.desktop.util.validation.LengthValidator;
 import bisq.desktop.util.validation.MoneyBeamValidator;
 import bisq.desktop.util.validation.PerfectMoneyValidator;
 import bisq.desktop.util.validation.PopmoneyValidator;
@@ -76,13 +98,12 @@ import bisq.desktop.util.validation.TransferwiseValidator;
 import bisq.desktop.util.validation.USPostalMoneyOrderValidator;
 import bisq.desktop.util.validation.UpholdValidator;
 import bisq.desktop.util.validation.WeChatPayValidator;
-import bisq.desktop.util.validation.LengthValidator;
 
 import bisq.core.account.witness.AccountAgeWitnessService;
 import bisq.core.locale.Res;
 import bisq.core.offer.OfferRestrictions;
 import bisq.core.payment.AmazonGiftCardAccount;
-import bisq.core.payment.AustraliaPayid;
+import bisq.core.payment.AustraliaPayidAccount;
 import bisq.core.payment.CashByMailAccount;
 import bisq.core.payment.CashDepositAccount;
 import bisq.core.payment.ClearXchangeAccount;
@@ -133,8 +154,8 @@ import static bisq.desktop.util.FormBuilder.addTopLabelListView;
 @FxmlView
 public class FiatAccountsView extends PaymentAccountsView<GridPane, FiatAccountsViewModel> {
 
-    private final IBANValidator ibanValidator;
     private final BICValidator bicValidator;
+    private final CapitualValidator capitualValidator;
     private final LengthValidator inputValidator;
     private final UpholdValidator upholdValidator;
     private final MoneyBeamValidator moneyBeamValidator;
@@ -164,8 +185,8 @@ public class FiatAccountsView extends PaymentAccountsView<GridPane, FiatAccounts
 
     @Inject
     public FiatAccountsView(FiatAccountsViewModel model,
-                            IBANValidator ibanValidator,
                             BICValidator bicValidator,
+                            CapitualValidator capitualValidator,
                             LengthValidator inputValidator,
                             UpholdValidator upholdValidator,
                             MoneyBeamValidator moneyBeamValidator,
@@ -190,8 +211,8 @@ public class FiatAccountsView extends PaymentAccountsView<GridPane, FiatAccounts
                             @Named(FormattingUtils.BTC_FORMATTER_KEY) CoinFormatter formatter) {
         super(model, accountAgeWitnessService);
 
-        this.ibanValidator = ibanValidator;
         this.bicValidator = bicValidator;
+        this.capitualValidator = capitualValidator;
         this.inputValidator = inputValidator;
         this.inputValidator.setMaxLength(100); // restrict general field entry length
         this.inputValidator.setMinLength(2);
@@ -244,7 +265,7 @@ public class FiatAccountsView extends PaymentAccountsView<GridPane, FiatAccounts
             new Popup().information(Res.get("payment.f2f.info"))
                     .width(700)
                     .closeButtonText(Res.get("payment.f2f.info.openURL"))
-                    .onClose(() -> GUIUtil.openWebPage("https://docs.bisq.network/trading-rules.html#f2f-trading"))
+                    .onClose(() -> GUIUtil.openWebPage("https://bisq.wiki/Face-to-face_(payment_method)"))
                     .actionButtonText(Res.get("shared.iUnderstand"))
                     .onAction(() -> doSaveNewAccount(paymentAccount))
                     .show();
@@ -325,7 +346,7 @@ public class FiatAccountsView extends PaymentAccountsView<GridPane, FiatAccounts
                                     .actionButtonText(Res.get("shared.iUnderstand"))
                                     .onAction(() -> doSaveNewAccount(paymentAccount))
                                     .show();
-                        } else if (paymentAccount instanceof AustraliaPayid) {
+                        } else if (paymentAccount instanceof AustraliaPayidAccount) {
                             new Popup().information(Res.get("payment.payid.info", currencyName, currencyName))
                                     .width(900)
                                     .closeButtonText(Res.get("shared.cancel"))
@@ -359,6 +380,16 @@ public class FiatAccountsView extends PaymentAccountsView<GridPane, FiatAccounts
 
     private void onCancelNewAccount() {
         removeNewAccountForm();
+    }
+
+    private void onUpdateAccount(PaymentAccount paymentAccount) {
+        model.onUpdateAccount(paymentAccount);
+        removeSelectAccountForm();
+    }
+
+    private void onCancelSelectedAccount(PaymentAccount paymentAccount) {
+        paymentAccount.revertChanges();
+        removeSelectAccountForm();
     }
 
     protected boolean deleteAccountFromModel(PaymentAccount paymentAccount) {
@@ -397,7 +428,7 @@ public class FiatAccountsView extends PaymentAccountsView<GridPane, FiatAccounts
         paymentMethodComboBox.setVisibleRowCount(11);
         paymentMethodComboBox.setPrefWidth(250);
         List<PaymentMethod> list = PaymentMethod.getPaymentMethods().stream()
-                .filter(paymentMethod -> !paymentMethod.isAsset())
+                .filter(PaymentMethod::isFiat)
                 .sorted()
                 .collect(Collectors.toList());
         paymentMethodComboBox.setItems(FXCollections.observableArrayList(list));
@@ -420,6 +451,12 @@ public class FiatAccountsView extends PaymentAccountsView<GridPane, FiatAccounts
             gridRow = 2;
             paymentMethodForm = getPaymentMethodForm(paymentMethodComboBox.getSelectionModel().getSelectedItem());
             if (paymentMethodForm != null) {
+                if (paymentMethodForm.getPaymentAccount().getMessageForAccountCreation() != null) {
+                    new Popup().information(Res.get(paymentMethodForm.getPaymentAccount().getMessageForAccountCreation()))
+                            .width(900)
+                            .closeButtonText(Res.get("shared.iUnderstand"))
+                            .show();
+                }
                 paymentMethodForm.addFormForAddAccount();
                 gridRow = paymentMethodForm.getGridRow();
                 Tuple2<Button, Button> tuple2 = add2ButtonsAfterGroup(root, ++gridRow, Res.get("shared.saveNewAccount"), Res.get("shared.cancel"));
@@ -435,21 +472,32 @@ public class FiatAccountsView extends PaymentAccountsView<GridPane, FiatAccounts
 
     // Select account form
     @Override
-    protected void onSelectAccount(PaymentAccount paymentAccount) {
+    protected void onSelectAccount(PaymentAccount previous, PaymentAccount current) {
+        if (previous != null) {
+            previous.revertChanges();
+        }
         removeAccountRows();
         addAccountButton.setDisable(false);
         accountTitledGroupBg = addTitledGroupBg(root, ++gridRow, 2, Res.get("shared.selectedAccount"), Layout.GROUP_DISTANCE);
-        paymentMethodForm = getPaymentMethodForm(paymentAccount);
+        paymentMethodForm = getPaymentMethodForm(current);
         if (paymentMethodForm != null) {
-            paymentMethodForm.addFormForDisplayAccount();
+            paymentMethodForm.addFormForEditAccount();
             gridRow = paymentMethodForm.getGridRow();
-            Tuple2<Button, Button> tuple = add2ButtonsAfterGroup(root, ++gridRow, Res.get("shared.deleteAccount"), Res.get("shared.cancel"));
-            Button deleteAccountButton = tuple.first;
+            Tuple3<Button, Button, Button> tuple = add3ButtonsAfterGroup(
+                    root,
+                    ++gridRow,
+                    Res.get("shared.save"),
+                    Res.get("shared.deleteAccount"),
+                    Res.get("shared.cancel")
+            );
+            Button updateButton = tuple.first;
+            updateButton.setOnAction(event -> onUpdateAccount(paymentMethodForm.getPaymentAccount()));
+            Button deleteAccountButton = tuple.second;
             deleteAccountButton.setOnAction(event -> onDeleteAccount(paymentMethodForm.getPaymentAccount()));
-            Button cancelButton = tuple.second;
-            cancelButton.setOnAction(event -> removeSelectAccountForm());
+            Button cancelButton = tuple.third;
+            cancelButton.setOnAction(event -> onCancelSelectedAccount(paymentMethodForm.getPaymentAccount()));
             GridPane.setRowSpan(accountTitledGroupBg, paymentMethodForm.getRowSpan());
-            model.onSelectAccount(paymentAccount);
+            model.onSelectAccount(current);
         }
     }
 
@@ -481,9 +529,9 @@ public class FiatAccountsView extends PaymentAccountsView<GridPane, FiatAccounts
             case PaymentMethod.PERFECT_MONEY_ID:
                 return new PerfectMoneyForm(paymentAccount, accountAgeWitnessService, perfectMoneyValidator, inputValidator, root, gridRow, formatter);
             case PaymentMethod.SEPA_ID:
-                return new SepaForm(paymentAccount, accountAgeWitnessService, ibanValidator, bicValidator, inputValidator, root, gridRow, formatter);
+                return new SepaForm(paymentAccount, accountAgeWitnessService, bicValidator, inputValidator, root, gridRow, formatter);
             case PaymentMethod.SEPA_INSTANT_ID:
-                return new SepaInstantForm(paymentAccount, accountAgeWitnessService, ibanValidator, bicValidator, inputValidator, root, gridRow, formatter);
+                return new SepaInstantForm(paymentAccount, accountAgeWitnessService, bicValidator, inputValidator, root, gridRow, formatter);
             case PaymentMethod.FASTER_PAYMENTS_ID:
                 return new FasterPaymentsForm(paymentAccount, accountAgeWitnessService, inputValidator, root, gridRow, formatter);
             case PaymentMethod.NATIONAL_BANK_ID:
@@ -493,7 +541,7 @@ public class FiatAccountsView extends PaymentAccountsView<GridPane, FiatAccounts
             case PaymentMethod.SPECIFIC_BANKS_ID:
                 return new SpecificBankForm(paymentAccount, accountAgeWitnessService, inputValidator, root, gridRow, formatter);
             case PaymentMethod.JAPAN_BANK_ID:
-                return new JapanBankTransferForm(paymentAccount, accountAgeWitnessService, japanBankTransferValidator, inputValidator, root, gridRow, formatter);
+                return new JapanBankTransferForm(paymentAccount, accountAgeWitnessService, inputValidator, root, gridRow, formatter);
             case PaymentMethod.AUSTRALIA_PAYID_ID:
                 return new AustraliaPayidForm(paymentAccount, accountAgeWitnessService, australiapayidValidator, inputValidator, root, gridRow, formatter);
             case PaymentMethod.ALI_PAY_ID:
@@ -528,8 +576,50 @@ public class FiatAccountsView extends PaymentAccountsView<GridPane, FiatAccounts
                 return new AdvancedCashForm(paymentAccount, accountAgeWitnessService, advancedCashValidator, inputValidator, root, gridRow, formatter);
             case PaymentMethod.TRANSFERWISE_ID:
                 return new TransferwiseForm(paymentAccount, accountAgeWitnessService, transferwiseValidator, inputValidator, root, gridRow, formatter);
+            case PaymentMethod.TRANSFERWISE_USD_ID:
+                return new TransferwiseUsdForm(paymentAccount, accountAgeWitnessService, inputValidator, root, gridRow, formatter);
+            case PaymentMethod.PAYSERA_ID:
+                return new PayseraForm(paymentAccount, accountAgeWitnessService, inputValidator, root, gridRow, formatter);
+            case PaymentMethod.PAXUM_ID:
+                return new PaxumForm(paymentAccount, accountAgeWitnessService, inputValidator, root, gridRow, formatter);
+            case PaymentMethod.NEFT_ID:
+                return new NeftForm(paymentAccount, accountAgeWitnessService, inputValidator, root, gridRow, formatter);
+            case PaymentMethod.RTGS_ID:
+                return new RtgsForm(paymentAccount, accountAgeWitnessService, inputValidator, root, gridRow, formatter);
+            case PaymentMethod.IMPS_ID:
+                return new ImpsForm(paymentAccount, accountAgeWitnessService, inputValidator, root, gridRow, formatter);
+            case PaymentMethod.UPI_ID:
+                return new UpiForm(paymentAccount, accountAgeWitnessService, inputValidator, root, gridRow, formatter);
+            case PaymentMethod.PAYTM_ID:
+                return new PaytmForm(paymentAccount, accountAgeWitnessService, inputValidator, root, gridRow, formatter);
+            case PaymentMethod.NEQUI_ID:
+                return new NequiForm(paymentAccount, accountAgeWitnessService, inputValidator, root, gridRow, formatter);
+            case PaymentMethod.BIZUM_ID:
+                return new BizumForm(paymentAccount, accountAgeWitnessService, inputValidator, root, gridRow, formatter);
+            case PaymentMethod.PIX_ID:
+                return new PixForm(paymentAccount, accountAgeWitnessService, inputValidator, root, gridRow, formatter);
             case PaymentMethod.AMAZON_GIFT_CARD_ID:
                 return new AmazonGiftCardForm(paymentAccount, accountAgeWitnessService, inputValidator, root, gridRow, formatter);
+            case PaymentMethod.CAPITUAL_ID:
+                return new CapitualForm(paymentAccount, accountAgeWitnessService, capitualValidator, inputValidator, root, gridRow, formatter);
+            case PaymentMethod.CELPAY_ID:
+                return new CelPayForm(paymentAccount, accountAgeWitnessService, inputValidator, root, gridRow, formatter);
+            case PaymentMethod.MONESE_ID:
+                return new MoneseForm(paymentAccount, accountAgeWitnessService, inputValidator, root, gridRow, formatter);
+            case PaymentMethod.SATISPAY_ID:
+                return new SatispayForm(paymentAccount, accountAgeWitnessService, inputValidator, root, gridRow, formatter);
+            case PaymentMethod.TIKKIE_ID:
+                return new TikkieForm(paymentAccount, accountAgeWitnessService, inputValidator, root, gridRow, formatter);
+            case PaymentMethod.VERSE_ID:
+                return new VerseForm(paymentAccount, accountAgeWitnessService, inputValidator, root, gridRow, formatter);
+            case PaymentMethod.STRIKE_ID:
+                return new StrikeForm(paymentAccount, accountAgeWitnessService, inputValidator, root, gridRow, formatter);
+            case PaymentMethod.SWIFT_ID:
+                return new SwiftForm(paymentAccount, accountAgeWitnessService, inputValidator, root, gridRow, formatter);
+            case PaymentMethod.ACH_TRANSFER_ID:
+                return new AchTransferForm(paymentAccount, accountAgeWitnessService, inputValidator, root, gridRow, formatter);
+            case PaymentMethod.DOMESTIC_WIRE_TRANSFER_ID:
+                return new DomesticWireTransferForm(paymentAccount, accountAgeWitnessService, inputValidator, root, gridRow, formatter);
             default:
                 log.error("Not supported PaymentMethod: " + paymentMethod);
                 return null;
@@ -563,6 +653,15 @@ public class FiatAccountsView extends PaymentAccountsView<GridPane, FiatAccounts
             return;
         }
         Utilities.copyToClipboard(accountAgeWitnessService.getSignInfoFromAccount(selectedAccount));
+    }
+
+    @Override
+    protected void deactivate() {
+        super.deactivate();
+        var selectedAccount = paymentAccountsListView.getSelectionModel().getSelectedItem();
+        if (selectedAccount != null) {
+            onCancelSelectedAccount(selectedAccount);
+        }
     }
 
 }

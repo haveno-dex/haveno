@@ -19,7 +19,7 @@ package bisq.desktop.main.offer.offerbook;
 
 import bisq.desktop.Navigation;
 import bisq.desktop.common.view.ActivatableViewAndModel;
-import bisq.desktop.common.view.FxmlView;
+import bisq.desktop.components.AccountStatusTooltipLabel;
 import bisq.desktop.components.AutoTooltipButton;
 import bisq.desktop.components.AutoTooltipLabel;
 import bisq.desktop.components.AutoTooltipSlideToggleButton;
@@ -28,16 +28,20 @@ import bisq.desktop.components.AutocompleteComboBox;
 import bisq.desktop.components.ColoredDecimalPlacesWithZerosText;
 import bisq.desktop.components.HyperlinkWithIcon;
 import bisq.desktop.components.InfoAutoTooltipLabel;
-import bisq.desktop.components.PeerInfoIcon;
+import bisq.desktop.components.PeerInfoIconTrading;
 import bisq.desktop.components.TitledGroupBg;
 import bisq.desktop.main.MainView;
 import bisq.desktop.main.account.AccountView;
+import bisq.desktop.main.account.content.altcoinaccounts.AltCoinAccountsView;
 import bisq.desktop.main.account.content.fiataccounts.FiatAccountsView;
 import bisq.desktop.main.funds.FundsView;
 import bisq.desktop.main.funds.withdrawal.WithdrawalView;
 import bisq.desktop.main.offer.OfferView;
+import bisq.desktop.main.offer.OfferViewUtil;
 import bisq.desktop.main.overlays.popups.Popup;
 import bisq.desktop.main.overlays.windows.OfferDetailsWindow;
+import bisq.desktop.main.portfolio.PortfolioView;
+import bisq.desktop.main.portfolio.editoffer.EditOfferView;
 import bisq.desktop.util.CssTheme;
 import bisq.desktop.util.FormBuilder;
 import bisq.desktop.util.GUIUtil;
@@ -47,30 +51,25 @@ import bisq.core.account.sign.SignedWitnessService;
 import bisq.core.account.witness.AccountAgeWitnessService;
 import bisq.core.alert.PrivateNotificationManager;
 import bisq.core.locale.CurrencyUtil;
-import bisq.core.locale.FiatCurrency;
 import bisq.core.locale.Res;
 import bisq.core.locale.TradeCurrency;
 import bisq.core.monetary.Price;
 import bisq.core.offer.Offer;
-import bisq.core.offer.OfferFilter;
-import bisq.core.offer.OfferPayload;
+import bisq.core.offer.OfferDirection;
+import bisq.core.offer.OfferFilterService;
 import bisq.core.offer.OfferRestrictions;
+import bisq.core.offer.OpenOffer;
 import bisq.core.payment.PaymentAccount;
 import bisq.core.payment.payload.PaymentMethod;
 import bisq.core.user.DontShowAgainLookup;
-import bisq.core.util.FormattingUtils;
 import bisq.core.util.coin.CoinFormatter;
 
 import bisq.network.p2p.NodeAddress;
 import bisq.common.UserThread;
 import bisq.common.app.DevEnv;
-import bisq.common.config.Config;
 import bisq.common.util.Tuple3;
 
 import org.bitcoinj.core.Coin;
-
-import javax.inject.Inject;
-import javax.inject.Named;
 
 import de.jensd.fx.fontawesome.AwesomeIcon;
 import de.jensd.fx.glyphs.materialdesignicons.MaterialDesignIcon;
@@ -89,6 +88,7 @@ import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
+import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.text.TextAlignment;
 
@@ -111,14 +111,14 @@ import javafx.util.Callback;
 import javafx.util.StringConverter;
 
 import java.util.Comparator;
+import java.util.Map;
 import java.util.Optional;
 
 import org.jetbrains.annotations.NotNull;
 
 import static bisq.desktop.util.FormBuilder.addTitledGroupBg;
 
-@FxmlView
-public class OfferBookView extends ActivatableViewAndModel<GridPane, OfferBookViewModel> {
+abstract public class OfferBookView<R extends GridPane, M extends OfferBookViewModel> extends ActivatableViewAndModel<R, M> {
 
     private final Navigation navigation;
     private final OfferDetailsWindow offerDetailsWindow;
@@ -128,33 +128,39 @@ public class OfferBookView extends ActivatableViewAndModel<GridPane, OfferBookVi
     private final AccountAgeWitnessService accountAgeWitnessService;
     private final SignedWitnessService signedWitnessService;
 
-    private AutocompleteComboBox<TradeCurrency> currencyComboBox;
+    private TitledGroupBg titledGroupBg;
+    protected AutocompleteComboBox<TradeCurrency> currencyComboBox;
     private AutocompleteComboBox<PaymentMethod> paymentMethodComboBox;
     private AutoTooltipButton createOfferButton;
     private AutoTooltipSlideToggleButton matchingOffersToggle;
-    private AutoTooltipTableColumn<OfferBookListItem, OfferBookListItem> amountColumn, volumeColumn, marketColumn,
-            priceColumn, paymentMethodColumn, depositColumn, signingStateColumn, avatarColumn;
+    private AutoTooltipTableColumn<OfferBookListItem, OfferBookListItem> amountColumn;
+    private AutoTooltipTableColumn<OfferBookListItem, OfferBookListItem> volumeColumn;
+    private AutoTooltipTableColumn<OfferBookListItem, OfferBookListItem> marketColumn;
+    private AutoTooltipTableColumn<OfferBookListItem, OfferBookListItem> priceColumn;
+    private AutoTooltipTableColumn<OfferBookListItem, OfferBookListItem> depositColumn;
+    private AutoTooltipTableColumn<OfferBookListItem, OfferBookListItem> signingStateColumn;
+    private AutoTooltipTableColumn<OfferBookListItem, OfferBookListItem> avatarColumn;
     private TableView<OfferBookListItem> tableView;
 
-    private OfferView.OfferActionHandler offerActionHandler;
     private int gridRow = 0;
     private Label nrOfOffersLabel;
     private ListChangeListener<OfferBookListItem> offerListListener;
     private ChangeListener<Number> priceFeedUpdateCounterListener;
     private Subscription currencySelectionSubscriber;
     private static final int SHOW_ALL = 0;
+    private Label disabledCreateOfferButtonTooltip;
+    protected VBox currencyComboBoxContainer;
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Constructor, lifecycle
     ///////////////////////////////////////////////////////////////////////////////////////////
 
-    @Inject
-    OfferBookView(OfferBookViewModel model,
+    OfferBookView(M model,
                   Navigation navigation,
                   OfferDetailsWindow offerDetailsWindow,
-                  @Named(FormattingUtils.BTC_FORMATTER_KEY) CoinFormatter formatter,
+                  CoinFormatter formatter,
                   PrivateNotificationManager privateNotificationManager,
-                  @Named(Config.USE_DEV_PRIVILEGE_KEYS) boolean useDevPrivilegeKeys,
+                  boolean useDevPrivilegeKeys,
                   AccountAgeWitnessService accountAgeWitnessService,
                   SignedWitnessService signedWitnessService) {
         super(model);
@@ -172,7 +178,12 @@ public class OfferBookView extends ActivatableViewAndModel<GridPane, OfferBookVi
     public void initialize() {
         root.setPadding(new Insets(15, 15, 5, 15));
 
-        final TitledGroupBg titledGroupBg = addTitledGroupBg(root, gridRow, 2, Res.get("offerbook.availableOffers"));
+        titledGroupBg = addTitledGroupBg(
+                root,
+                gridRow,
+                2,
+                ""
+        );
         titledGroupBg.getStyleClass().add("last");
 
         HBox offerToolsBox = new HBox();
@@ -182,6 +193,7 @@ public class OfferBookView extends ActivatableViewAndModel<GridPane, OfferBookVi
 
         Tuple3<VBox, Label, AutocompleteComboBox<TradeCurrency>> currencyBoxTuple = FormBuilder.addTopLabelAutocompleteComboBox(
                 Res.get("offerbook.filterByCurrency"));
+        currencyComboBoxContainer = currencyBoxTuple.first;
         currencyComboBox = currencyBoxTuple.third;
         currencyComboBox.setPrefWidth(270);
 
@@ -195,13 +207,23 @@ public class OfferBookView extends ActivatableViewAndModel<GridPane, OfferBookVi
         matchingOffersToggle.setText(Res.get("offerbook.matchingOffers"));
         HBox.setMargin(matchingOffersToggle, new Insets(7, 0, -9, -15));
 
-
-        createOfferButton = new AutoTooltipButton();
+        createOfferButton = new AutoTooltipButton("");
         createOfferButton.setMinHeight(40);
         createOfferButton.setGraphicTextGap(10);
 
+        disabledCreateOfferButtonTooltip = new Label("");
+        disabledCreateOfferButtonTooltip.setMinSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
+        disabledCreateOfferButtonTooltip.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
+        disabledCreateOfferButtonTooltip.prefWidthProperty().bind(createOfferButton.widthProperty());
+        disabledCreateOfferButtonTooltip.prefHeightProperty().bind(createOfferButton.heightProperty());
+        disabledCreateOfferButtonTooltip.setTooltip(new Tooltip(Res.get("offerbook.createOfferDisabled.tooltip")));
+        disabledCreateOfferButtonTooltip.setManaged(false);
+        disabledCreateOfferButtonTooltip.setVisible(false);
+
+        var createOfferButtonStack = new StackPane(createOfferButton, disabledCreateOfferButtonTooltip);
+
         offerToolsBox.getChildren().addAll(currencyBoxTuple.first, paymentBoxTuple.first,
-                matchingOffersToggle, getSpacer(), createOfferButton);
+                matchingOffersToggle, getSpacer(), createOfferButtonStack);
 
         GridPane.setHgrow(offerToolsBox, Priority.ALWAYS);
         GridPane.setRowIndex(offerToolsBox, gridRow);
@@ -226,7 +248,7 @@ public class OfferBookView extends ActivatableViewAndModel<GridPane, OfferBookVi
         tableView.getColumns().add(amountColumn);
         volumeColumn = getVolumeColumn();
         tableView.getColumns().add(volumeColumn);
-        paymentMethodColumn = getPaymentMethodColumn();
+        AutoTooltipTableColumn<OfferBookListItem, OfferBookListItem> paymentMethodColumn = getPaymentMethodColumn();
         tableView.getColumns().add(paymentMethodColumn);
         depositColumn = getDepositColumn();
         tableView.getColumns().add(depositColumn);
@@ -264,7 +286,7 @@ public class OfferBookView extends ActivatableViewAndModel<GridPane, OfferBookVi
             if (price2 == null || price1 == null) {
                 return 0;
             }
-            if (model.getDirection() == OfferPayload.Direction.SELL) {
+            if (OfferViewUtil.isShownAsSellOffer(model.getSelectedTradeCurrency().getCode(), model.getDirection())) {
                 return price1.compareTo(price2);
             } else {
                 return price2.compareTo(price1);
@@ -276,7 +298,7 @@ public class OfferBookView extends ActivatableViewAndModel<GridPane, OfferBookVi
         paymentMethodColumn.setComparator(Comparator.comparing(o -> Res.get(o.getOffer().getPaymentMethod().getId())));
         avatarColumn.setComparator(Comparator.comparing(o -> model.getNumTrades(o.getOffer())));
         depositColumn.setComparator(Comparator.comparing(item -> {
-            boolean isSellOffer = item.getOffer().getDirection() == OfferPayload.Direction.SELL;
+            boolean isSellOffer = item.getOffer().getDirection() == OfferDirection.SELL;
             Coin deposit = isSellOffer ?
                     item.getOffer().getBuyerSecurityDeposit() :
                     item.getOffer().getSellerSecurityDeposit();
@@ -290,10 +312,7 @@ public class OfferBookView extends ActivatableViewAndModel<GridPane, OfferBookVi
 
         }, Comparator.nullsFirst(Comparator.naturalOrder())));
 
-        Comparator<OfferBookListItem> comparator = Comparator.comparing(e -> e.getWitnessAgeData(accountAgeWitnessService, signedWitnessService).getType(), Comparator.nullsFirst(Comparator.naturalOrder()));
-        signingStateColumn.setComparator(comparator.
-                thenComparing(e -> e.getWitnessAgeData(accountAgeWitnessService, signedWitnessService).getDays(),
-                        Comparator.nullsFirst(Comparator.naturalOrder())));
+        signingStateColumn.setComparator(Comparator.comparing(e -> e.getWitnessAgeData(accountAgeWitnessService, signedWitnessService), Comparator.nullsFirst(Comparator.naturalOrder())));
 
         nrOfOffersLabel = new AutoTooltipLabel("");
         nrOfOffersLabel.setId("num-offers");
@@ -312,22 +331,35 @@ public class OfferBookView extends ActivatableViewAndModel<GridPane, OfferBookVi
         priceFeedUpdateCounterListener = (observable, oldValue, newValue) -> tableView.sort();
     }
 
+    abstract protected String getMarketTitle();
+
     @Override
     protected void activate() {
+        titledGroupBg.setText(getMarketTitle());
+        titledGroupBg.setHelpUrl(model.getDirection() == OfferDirection.SELL
+                ? "https://bisq.wiki/Introduction#In_a_nutshell"
+                : "https://bisq.wiki/Taking_an_offer");
+
+        Map<String, Integer> offerCounts = OfferViewUtil.isShownAsBuyOffer(model.getDirection(), model.getSelectedTradeCurrency()) ? model.getSellOfferCounts() : model.getBuyOfferCounts();
         currencyComboBox.setCellFactory(GUIUtil.getTradeCurrencyCellFactory(Res.get("shared.oneOffer"),
                 Res.get("shared.multipleOffers"),
-                (model.getDirection() == OfferPayload.Direction.BUY ? model.getSellOfferCounts() : model.getBuyOfferCounts())));
+                offerCounts));
 
         currencyComboBox.setConverter(new CurrencyStringConverter(currencyComboBox));
         currencyComboBox.getEditor().getStyleClass().add("combo-box-editor-bold");
 
-        currencyComboBox.setAutocompleteItems(model.getTradeCurrencies());
+        currencyComboBox.setAutocompleteItems(model.getTradeCurrencies(), model.getAllCurrencies());
         currencyComboBox.setVisibleRowCount(Math.min(currencyComboBox.getItems().size(), 10));
 
         currencyComboBox.setOnChangeConfirmed(e -> {
             if (currencyComboBox.getEditor().getText().isEmpty())
                 currencyComboBox.getSelectionModel().select(SHOW_ALL);
             model.onSetTradeCurrency(currencyComboBox.getSelectionModel().getSelectedItem());
+            paymentMethodComboBox.setAutocompleteItems(model.getPaymentMethods());
+            model.updateSelectedPaymentMethod();
+            updatePaymentMethodComboBoxEditor();
+            model.onSetPaymentMethod(paymentMethodComboBox.getSelectionModel().getSelectedItem());
+            updateCreateOfferButton();
         });
         updateCurrencyComboBoxFromModel();
 
@@ -369,18 +401,13 @@ public class OfferBookView extends ActivatableViewAndModel<GridPane, OfferBookVi
             updateSigningStateColumn();
         });
 
-        if (model.showAllPaymentMethods)
-            paymentMethodComboBox.getSelectionModel().select(SHOW_ALL);
-        else
-            paymentMethodComboBox.getSelectionModel().select(model.selectedPaymentMethod);
-        paymentMethodComboBox.getEditor().setText(new PaymentMethodStringConverter(paymentMethodComboBox).toString(paymentMethodComboBox.getSelectionModel().getSelectedItem()));
+        updatePaymentMethodComboBoxEditor();
 
         createOfferButton.setOnAction(e -> onCreateOffer());
 
         MonadicBinding<Void> currencySelectionBinding = EasyBind.combine(
                 model.showAllTradeCurrenciesProperty, model.tradeCurrencyCode,
                 (showAll, code) -> {
-                    setDirectionTitles();
                     if (showAll) {
                         volumeColumn.setTitleWithHelpText(Res.get("shared.amountMinMax"), Res.get("shared.amountHelp"));
                         priceColumn.setTitle(Res.get("shared.price"));
@@ -412,7 +439,15 @@ public class OfferBookView extends ActivatableViewAndModel<GridPane, OfferBookVi
         model.priceFeedService.updateCounterProperty().addListener(priceFeedUpdateCounterListener);
     }
 
-    private void updateCurrencyComboBoxFromModel() {
+    private void updatePaymentMethodComboBoxEditor() {
+        if (model.showAllPaymentMethods)
+            paymentMethodComboBox.getSelectionModel().select(SHOW_ALL);
+        else
+            paymentMethodComboBox.getSelectionModel().select(model.selectedPaymentMethod);
+        paymentMethodComboBox.getEditor().setText(new PaymentMethodStringConverter(paymentMethodComboBox).toString(paymentMethodComboBox.getSelectionModel().getSelectedItem()));
+    }
+
+    protected void updateCurrencyComboBoxFromModel() {
         if (model.showAllTradeCurrenciesProperty.get()) {
             currencyComboBox.getSelectionModel().select(SHOW_ALL);
         } else {
@@ -536,54 +571,43 @@ public class OfferBookView extends ActivatableViewAndModel<GridPane, OfferBookVi
 
     public void enableCreateOfferButton() {
         createOfferButton.setDisable(false);
+        disabledCreateOfferButtonTooltip.setManaged(false);
+        disabledCreateOfferButtonTooltip.setVisible(false);
     }
 
-    public void setDirection(OfferPayload.Direction direction) {
+    private void disableCreateOfferButton() {
+        createOfferButton.setDisable(true);
+        disabledCreateOfferButtonTooltip.setManaged(true);
+        disabledCreateOfferButtonTooltip.setVisible(true);
+
+        model.onCreateOffer();
+    }
+
+    public void setDirection(OfferDirection direction) {
         model.initWithDirection(direction);
         ImageView iconView = new ImageView();
-
         createOfferButton.setGraphic(iconView);
-        iconView.setId(direction == OfferPayload.Direction.SELL ? "image-sell-white" : "image-buy-white");
-        createOfferButton.setId(direction == OfferPayload.Direction.SELL ? "sell-button-big" : "buy-button-big");
-        avatarColumn.setTitle(direction == OfferPayload.Direction.SELL ? Res.get("shared.buyerUpperCase") : Res.get("shared.sellerUpperCase"));
-        setDirectionTitles();
-    }
-
-    private void setDirectionTitles() {
-        TradeCurrency selectedTradeCurrency = model.getSelectedTradeCurrency();
-        if (selectedTradeCurrency != null) {
-            OfferPayload.Direction direction = model.getDirection();
-            String offerButtonText;
-            String code = selectedTradeCurrency.getCode();
-
-            if (model.showAllTradeCurrenciesProperty.get()) {
-                offerButtonText = direction == OfferPayload.Direction.BUY ?
-                        Res.get("offerbook.createOfferToBuy",
-                                Res.getBaseCurrencyCode()) :
-                        Res.get("offerbook.createOfferToSell",
-                                Res.getBaseCurrencyCode());
-            } else if (selectedTradeCurrency instanceof FiatCurrency) {
-                offerButtonText = direction == OfferPayload.Direction.BUY ?
-                        Res.get("offerbook.createOfferToBuy.withFiat",
-                                Res.getBaseCurrencyCode(), code) :
-                        Res.get("offerbook.createOfferToSell.forFiat", Res.getBaseCurrencyCode(), code);
-
-            } else {
-                offerButtonText = direction == OfferPayload.Direction.BUY ?
-                        Res.get("offerbook.createOfferToBuy.withCrypto",
-                                code, Res.getBaseCurrencyCode()) :
-                        Res.get("offerbook.createOfferToSell.forCrypto", code, Res.getBaseCurrencyCode());
-            }
-            createOfferButton.updateText(offerButtonText);
-        }
+        iconView.setId(direction == OfferDirection.SELL ? "image-sell-white" : "image-buy-white");
+        createOfferButton.setId(direction == OfferDirection.SELL ? "sell-button-big" : "buy-button-big");
+        avatarColumn.setTitle(direction == OfferDirection.SELL ? Res.get("shared.buyerUpperCase") : Res.get("shared.sellerUpperCase"));
     }
 
     public void setOfferActionHandler(OfferView.OfferActionHandler offerActionHandler) {
-        this.offerActionHandler = offerActionHandler;
+        model.setOfferActionHandler(offerActionHandler);
     }
 
     public void onTabSelected(boolean isSelected) {
+        if (model.isTabSelected == isSelected) {
+            return;
+        }
         model.onTabSelected(isSelected);
+
+        if (isSelected) {
+            updateCurrencyComboBoxFromModel();
+            root.requestFocus();
+            updateCreateOfferButton();
+        }
+        updateCreateOfferButton();
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -595,39 +619,32 @@ public class OfferBookView extends ActivatableViewAndModel<GridPane, OfferBookVi
             if (!model.hasPaymentAccountForCurrency()) {
                 new Popup().headLine(Res.get("offerbook.warning.noTradingAccountForCurrency.headline"))
                         .instruction(Res.get("offerbook.warning.noTradingAccountForCurrency.msg"))
-                        .actionButtonText(Res.get("offerbook.yesCreateOffer"))
+                        .actionButtonText(Res.get("offerbook.setupNewAccount"))
                         .onAction(() -> {
-                            createOfferButton.setDisable(true);
-                            offerActionHandler.onCreateOffer(model.getSelectedTradeCurrency());
-                        })
-                        .secondaryActionButtonText(Res.get("offerbook.setupNewAccount"))
-                        .onSecondaryAction(() -> {
                             navigation.setReturnPath(navigation.getCurrentPath());
-                            navigation.navigateTo(MainView.class, AccountView.class, FiatAccountsView.class);
+                            if (CurrencyUtil.isFiatCurrency(model.getSelectedTradeCurrency().getCode())) {
+                                navigation.navigateTo(MainView.class, AccountView.class, FiatAccountsView.class);
+                            } else {
+                                navigation.navigateTo(MainView.class, AccountView.class, AltCoinAccountsView.class);
+                            }
                         })
                         .width(725)
                         .show();
                 return;
             }
 
-            createOfferButton.setDisable(true);
-            offerActionHandler.onCreateOffer(model.getSelectedTradeCurrency());
+            disableCreateOfferButton();
         }
     }
 
-    private void onShowInfo(Offer offer, OfferFilter.Result result) {
+    private void onShowInfo(Offer offer, OfferFilterService.Result result) {
         switch (result) {
-            case VALID:
-                break;
             case API_DISABLED:
                 DevEnv.logErrorAndThrowIfDevMode("We are in desktop and in the taker position " +
                         "viewing offers, so it cannot be that we got that result as we are not an API user.");
                 break;
             case HAS_NO_PAYMENT_ACCOUNT_VALID_FOR_OFFER:
-                openPopupForMissingAccountSetup(Res.get("offerbook.warning.noMatchingAccount.headline"),
-                        Res.get("offerbook.warning.noMatchingAccount.msg"),
-                        FiatAccountsView.class,
-                        "navigation.account");
+                openPopupForMissingAccountSetup(offer);
                 break;
             case HAS_NOT_SAME_PROTOCOL_VERSION:
                 new Popup().warning(Res.get("offerbook.warning.wrongTradeProtocol")).show();
@@ -668,9 +685,10 @@ public class OfferBookView extends ActivatableViewAndModel<GridPane, OfferBookVi
                             "isInsufficientTradeLimit case.");
                 }
                 break;
-            case SIGNATURE_NOT_VALIDATED:
-                new Popup().warning(Res.get("offerbook.warning.signatureNotValidated")).show();
+            case HIDE_BSQ_SWAPS_DUE_DAO_DEACTIVATED:
+                new Popup().warning(Res.get("offerbook.warning.hideBsqSwapsDueDaoDeactivated")).show();
                 break;
+            case VALID:
             default:
                 break;
         }
@@ -678,14 +696,14 @@ public class OfferBookView extends ActivatableViewAndModel<GridPane, OfferBookVi
 
     private void onTakeOffer(Offer offer) {
         if (model.canCreateOrTakeOffer()) {
-            if (offer.getDirection() == OfferPayload.Direction.SELL &&
+            if (offer.getDirection() == OfferDirection.SELL &&
                     offer.getPaymentMethod().getId().equals(PaymentMethod.CASH_DEPOSIT.getId())) {
                 new Popup().confirmation(Res.get("popup.info.cashDepositInfo", offer.getBankId()))
                         .actionButtonText(Res.get("popup.info.cashDepositInfo.confirm"))
-                        .onAction(() -> offerActionHandler.onTakeOffer(offer))
+                        .onAction(() -> model.onTakeOffer(offer))
                         .show();
             } else {
-                offerActionHandler.onTakeOffer(offer);
+                model.onTakeOffer(offer);
             }
         }
     }
@@ -694,7 +712,10 @@ public class OfferBookView extends ActivatableViewAndModel<GridPane, OfferBookVi
         if (model.isBootstrappedOrShowPopup()) {
             String key = "RemoveOfferWarning";
             if (DontShowAgainLookup.showAgain(key)) {
-                new Popup().warning(Res.get("popup.warning.removeOffer", model.getMakerFeeAsString(offer)))
+                String message = offer.getMakerFee().isPositive() ?
+                        Res.get("popup.warning.removeOffer", model.getMakerFeeAsString(offer)) :
+                        Res.get("popup.warning.removeNoFeeOffer");
+                new Popup().warning(message)
                         .actionButtonText(Res.get("shared.removeOffer"))
                         .onAction(() -> doRemoveOffer(offer))
                         .closeButtonText(Res.get("shared.dontRemoveOffer"))
@@ -703,6 +724,13 @@ public class OfferBookView extends ActivatableViewAndModel<GridPane, OfferBookVi
             } else {
                 doRemoveOffer(offer);
             }
+        }
+    }
+
+    private void onEditOpenOffer(Offer offer) {
+        OpenOffer openOffer = model.getOpenOffer(offer);
+        if (openOffer != null) {
+            navigation.navigateToWithData(openOffer, MainView.class, PortfolioView.class, EditOfferView.class);
         }
     }
 
@@ -724,13 +752,17 @@ public class OfferBookView extends ActivatableViewAndModel<GridPane, OfferBookVi
                 });
     }
 
-    private void openPopupForMissingAccountSetup(String headLine, String message, Class target, String targetAsString) {
-        new Popup().headLine(headLine)
-                .instruction(message)
-                .actionButtonTextWithGoTo(targetAsString)
+    private void openPopupForMissingAccountSetup(Offer offer) {
+        String headline = Res.get("offerbook.warning.noMatchingAccount.headline");
+
+        var accountViewClass = offer.isFiatOffer() ? FiatAccountsView.class : AltCoinAccountsView.class;
+
+        new Popup().headLine(headline)
+                .instruction(Res.get("offerbook.warning.noMatchingAccount.msg"))
+                .actionButtonTextWithGoTo("navigation.account")
                 .onAction(() -> {
                     navigation.setReturnPath(navigation.getCurrentPath());
-                    navigation.navigateTo(MainView.class, AccountView.class, target);
+                    navigation.navigateTo(MainView.class, AccountView.class, accountViewClass);
                 }).show();
     }
 
@@ -827,13 +859,14 @@ public class OfferBookView extends ActivatableViewAndModel<GridPane, OfferBookVi
                             private HBox getPriceAndPercentage(OfferBookListItem item) {
                                 Offer offer = item.getOffer();
                                 boolean useMarketBasedPrice = offer.isUseMarketBasedPrice();
+                                boolean isShownAsBuyOffer = OfferViewUtil.isShownAsBuyOffer(offer);
                                 MaterialDesignIcon icon = useMarketBasedPrice ? MaterialDesignIcon.CHART_LINE : MaterialDesignIcon.LOCK;
                                 String info;
 
                                 if (useMarketBasedPrice) {
-                                    double marketPriceMargin = offer.getMarketPriceMargin();
+                                    double marketPriceMargin = offer.getMarketPriceMarginPct();
                                     if (marketPriceMargin == 0) {
-                                        if (offer.isBuyOffer()) {
+                                        if (isShownAsBuyOffer) {
                                             info = Res.get("offerbook.info.sellAtMarketPrice");
                                         } else {
                                             info = Res.get("offerbook.info.buyAtMarketPrice");
@@ -841,13 +874,13 @@ public class OfferBookView extends ActivatableViewAndModel<GridPane, OfferBookVi
                                     } else {
                                         String absolutePriceMargin = model.getAbsolutePriceMargin(offer);
                                         if (marketPriceMargin > 0) {
-                                            if (offer.isBuyOffer()) {
+                                            if (isShownAsBuyOffer) {
                                                 info = Res.get("offerbook.info.sellBelowMarketPrice", absolutePriceMargin);
                                             } else {
                                                 info = Res.get("offerbook.info.buyAboveMarketPrice", absolutePriceMargin);
                                             }
                                         } else {
-                                            if (offer.isBuyOffer()) {
+                                            if (isShownAsBuyOffer) {
                                                 info = Res.get("offerbook.info.sellAboveMarketPrice", absolutePriceMargin);
                                             } else {
                                                 info = Res.get("offerbook.info.buyBelowMarketPrice", absolutePriceMargin);
@@ -855,7 +888,7 @@ public class OfferBookView extends ActivatableViewAndModel<GridPane, OfferBookVi
                                         }
                                     }
                                 } else {
-                                    if (offer.isBuyOffer()) {
+                                    if (isShownAsBuyOffer) {
                                         info = Res.get("offerbook.info.sellAtFixedPrice");
                                     } else {
                                         info = Res.get("offerbook.info.buyAtFixedPrice");
@@ -939,15 +972,18 @@ public class OfferBookView extends ActivatableViewAndModel<GridPane, OfferBookVi
 
                                 if (item != null && !empty) {
 
-                                    if (model.isOfferBanned(item.getOffer())) {
+                                    Offer offer = item.getOffer();
+                                    if (model.isOfferBanned(offer)) {
                                         setGraphic(new AutoTooltipLabel(model.getPaymentMethod(item)));
                                     } else {
-                                        if (item.getOffer().isXmrAutoConf()) {
+                                        if (offer.isXmrAutoConf()) {
                                             field = new HyperlinkWithIcon(model.getPaymentMethod(item), AwesomeIcon.ROCKET);
                                         } else {
                                             field = new HyperlinkWithIcon(model.getPaymentMethod(item));
                                         }
-                                        field.setOnAction(event -> offerDetailsWindow.show(item.getOffer()));
+                                        field.setOnAction(event -> {
+                                            offerDetailsWindow.show(offer);
+                                        });
                                         field.setTooltip(new Tooltip(model.getPaymentMethodToolTip(item)));
                                         setGraphic(field);
                                     }
@@ -986,7 +1022,7 @@ public class OfferBookView extends ActivatableViewAndModel<GridPane, OfferBookVi
                             public void updateItem(final OfferBookListItem item, boolean empty) {
                                 super.updateItem(item, empty);
                                 if (item != null && !empty) {
-                                    var isSellOffer = item.getOffer().getDirection() == OfferPayload.Direction.SELL;
+                                    var isSellOffer = item.getOffer().getDirection() == OfferDirection.SELL;
                                     var deposit = isSellOffer ? item.getOffer().getBuyerSecurityDeposit() :
                                             item.getOffer().getSellerSecurityDeposit();
                                     if (deposit == null) {
@@ -1024,15 +1060,35 @@ public class OfferBookView extends ActivatableViewAndModel<GridPane, OfferBookVi
                     @Override
                     public TableCell<OfferBookListItem, OfferBookListItem> call(TableColumn<OfferBookListItem, OfferBookListItem> column) {
                         return new TableCell<>() {
+                            OfferFilterService.Result canTakeOfferResult = null;
+
                             final ImageView iconView = new ImageView();
                             final AutoTooltipButton button = new AutoTooltipButton();
-                            OfferFilter.Result canTakeOfferResult = null;
 
                             {
                                 button.setGraphic(iconView);
-                                button.setMinWidth(200);
-                                button.setMaxWidth(200);
                                 button.setGraphicTextGap(10);
+                                button.setPrefWidth(10000);
+                            }
+
+                            final ImageView iconView2 = new ImageView();
+                            final AutoTooltipButton button2 = new AutoTooltipButton();
+
+                            {
+                                button2.setGraphic(iconView2);
+                                button2.setGraphicTextGap(10);
+                                button2.setPrefWidth(10000);
+                            }
+
+                            final HBox hbox = new HBox();
+
+                            {
+                                hbox.setSpacing(8);
+                                hbox.setAlignment(Pos.CENTER);
+                                hbox.getChildren().add(button);
+                                hbox.getChildren().add(button2);
+                                HBox.setHgrow(button, Priority.ALWAYS);
+                                HBox.setHgrow(button2, Priority.ALWAYS);
                             }
 
                             @Override
@@ -1044,11 +1100,15 @@ public class OfferBookView extends ActivatableViewAndModel<GridPane, OfferBookVi
                                     Offer offer = item.getOffer();
                                     boolean myOffer = model.isMyOffer(offer);
 
+                                    // https://github.com/bisq-network/bisq/issues/4986
                                     if (tableRow != null) {
-                                        canTakeOfferResult = model.offerFilter.canTakeOffer(offer, false);
+                                        canTakeOfferResult = model.offerFilterService.canTakeOffer(offer, false);
                                         tableRow.setOpacity(canTakeOfferResult.isValid() || myOffer ? 1 : 0.4);
 
-                                        if (canTakeOfferResult.isValid()) {
+                                        if (myOffer) {
+                                            button.setDefaultButton(false);
+                                            tableRow.setOnMousePressed(null);
+                                        } else if (canTakeOfferResult.isValid()) {
                                             // set first row button as default
                                             button.setDefaultButton(getIndex() == 0);
                                             tableRow.setOnMousePressed(null);
@@ -1069,27 +1129,29 @@ public class OfferBookView extends ActivatableViewAndModel<GridPane, OfferBookVi
                                         button.setId(null);
                                         button.setStyle(CssTheme.isDarkTheme() ? "-fx-text-fill: white" : "-fx-text-fill: #444444");
                                         button.setOnAction(e -> onRemoveOpenOffer(offer));
+
+                                        iconView2.setId("image-edit");
+                                        button2.updateText(Res.get("shared.edit"));
+                                        button2.setId(null);
+                                        button2.setStyle(CssTheme.isDarkTheme() ? "-fx-text-fill: white" : "-fx-text-fill: #444444");
+                                        button2.setOnAction(e -> onEditOpenOffer(offer));
+                                        button2.setManaged(true);
+                                        button2.setVisible(true);
                                     } else {
-                                        boolean isSellOffer = offer.getDirection() == OfferPayload.Direction.SELL;
+                                        boolean isSellOffer = OfferViewUtil.isShownAsSellOffer(offer);
                                         iconView.setId(isSellOffer ? "image-buy-white" : "image-sell-white");
                                         button.setId(isSellOffer ? "buy-button" : "sell-button");
                                         button.setStyle("-fx-text-fill: white");
-                                        if (isSellOffer) {
-                                            title = CurrencyUtil.isFiatCurrency(offer.getCurrencyCode()) ?
-                                                    Res.get("offerbook.takeOfferToBuy", offer.getOfferPayload().getBaseCurrencyCode()) :
-                                                    Res.get("offerbook.takeOfferToSell", offer.getCurrencyCode());
-                                        } else {
-                                            title = CurrencyUtil.isFiatCurrency(offer.getCurrencyCode()) ?
-                                                    Res.get("offerbook.takeOfferToSell", offer.getOfferPayload().getBaseCurrencyCode()) :
-                                                    Res.get("offerbook.takeOfferToBuy", offer.getCurrencyCode());
-                                        }
+                                        title = Res.get("offerbook.takeOffer");
                                         button.setTooltip(new Tooltip(Res.get("offerbook.takeOfferButton.tooltip", model.getDirectionLabelTooltip(offer))));
                                         button.setOnAction(e -> onTakeOffer(offer));
+                                        button2.setManaged(false);
+                                        button2.setVisible(false);
                                     }
 
                                     if (!myOffer) {
                                         if (canTakeOfferResult == null) {
-                                            canTakeOfferResult = model.offerFilter.canTakeOffer(offer, false);
+                                            canTakeOfferResult = model.offerFilterService.canTakeOffer(offer, false);
                                         }
 
                                         if (!canTakeOfferResult.isValid()) {
@@ -1099,10 +1161,11 @@ public class OfferBookView extends ActivatableViewAndModel<GridPane, OfferBookVi
 
                                     button.updateText(title);
                                     setPadding(new Insets(0, 15, 0, 0));
-                                    setGraphic(button);
+                                    setGraphic(hbox);
                                 } else {
                                     setGraphic(null);
                                     button.setOnAction(null);
+                                    button2.setOnAction(null);
                                     if (tableRow != null) {
                                         tableRow.setOpacity(1);
                                         tableRow.setOnMousePressed(null);
@@ -1139,10 +1202,9 @@ public class OfferBookView extends ActivatableViewAndModel<GridPane, OfferBookVi
 
                         if (item != null && !empty) {
                             var witnessAgeData = item.getWitnessAgeData(accountAgeWitnessService, signedWitnessService);
-                            InfoAutoTooltipLabel label = new InfoAutoTooltipLabel(witnessAgeData.getDisplayString(),
-                                    witnessAgeData.getIcon(),
-                                    ContentDisplay.RIGHT,
-                                    witnessAgeData.getInfo());
+                            var label = witnessAgeData.isSigningRequired()
+                                    ? new AccountStatusTooltipLabel(witnessAgeData, formatter)
+                                    : new InfoAutoTooltipLabel(witnessAgeData.getDisplayString(), witnessAgeData.getIcon(), ContentDisplay.RIGHT, witnessAgeData.getInfo());
                             setGraphic(label);
                         } else {
                             setGraphic(null);
@@ -1178,7 +1240,7 @@ public class OfferBookView extends ActivatableViewAndModel<GridPane, OfferBookVi
                                     final NodeAddress makersNodeAddress = offer.getOwnerNodeAddress();
                                     String role = Res.get("peerInfoIcon.tooltip.maker");
                                     int numTrades = model.getNumTrades(offer);
-                                    PeerInfoIcon peerInfoIcon = new PeerInfoIcon(makersNodeAddress,
+                                    PeerInfoIconTrading peerInfoIcon = new PeerInfoIconTrading(makersNodeAddress,
                                             role,
                                             numTrades,
                                             privateNotificationManager,
@@ -1203,4 +1265,12 @@ public class OfferBookView extends ActivatableViewAndModel<GridPane, OfferBookVi
         HBox.setHgrow(spacer, Priority.ALWAYS);
         return spacer;
     }
+
+    private void updateCreateOfferButton() {
+        createOfferButton.setText(Res.get("offerbook.createNewOffer",
+                model.getDirection() == OfferDirection.BUY ? Res.get("shared.buy") : Res.get("shared.sell"),
+                getTradeCurrencyCode()).toUpperCase());
+    }
+
+    abstract String getTradeCurrencyCode();
 }

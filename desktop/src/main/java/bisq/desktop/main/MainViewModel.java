@@ -228,7 +228,7 @@ public class MainViewModel implements ViewModel, HavenoSetup.HavenoSetupListener
                 tradeManager.getObservableList().forEach(trade -> {
                     Date maxTradePeriodDate = trade.getMaxTradePeriodDate();
                     String key;
-                    switch (trade.getTradePeriodState()) {
+                    switch (trade.getPeriodState()) {
                         case FIRST_HALF:
                             break;
                         case SECOND_HALF:

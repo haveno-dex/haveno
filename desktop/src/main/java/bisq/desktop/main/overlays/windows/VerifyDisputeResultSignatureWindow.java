@@ -18,9 +18,9 @@
 package bisq.desktop.main.overlays.windows;
 
 import bisq.desktop.main.overlays.Overlay;
-import bisq.core.support.dispute.DisputeSummaryVerification;
 
 import bisq.core.locale.Res;
+import bisq.core.support.dispute.DisputeSummaryVerification;
 import bisq.core.support.dispute.mediation.mediator.MediatorManager;
 import bisq.core.support.dispute.refund.refundagent.RefundAgentManager;
 
@@ -53,6 +53,7 @@ public class VerifyDisputeResultSignatureWindow extends Overlay<VerifyDisputeRes
         type = Type.Attention;
     }
 
+    @Override
     public void show() {
         if (headLine == null)
             headLine = Res.get("support.sigCheck.popup.header");

@@ -38,6 +38,7 @@ import bisq.core.support.dispute.mediation.MediationManager;
 import bisq.core.support.dispute.refund.RefundManager;
 import bisq.core.trade.Contract;
 import bisq.core.util.FormattingUtils;
+import bisq.core.util.VolumeUtil;
 import bisq.core.util.coin.CoinFormatter;
 
 import bisq.network.p2p.NodeAddress;
@@ -59,7 +60,6 @@ import javafx.stage.Window;
 
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
-import javafx.scene.control.Label;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.Tooltip;
 import javafx.scene.input.KeyCode;
@@ -71,6 +71,7 @@ import java.util.List;
 
 import lombok.extern.slf4j.Slf4j;
 
+import static bisq.desktop.util.DisplayUtils.getAccountWitnessDescription;
 import static bisq.desktop.util.FormBuilder.*;
 
 @Slf4j
@@ -149,19 +150,21 @@ public class ContractWindow extends Overlay<ContractWindow> {
             rows++;
 
         addTitledGroupBg(gridPane, ++rowIndex, rows, Res.get("contractWindow.title"));
-        addConfirmationLabelTextFieldWithCopyIcon(gridPane, rowIndex, Res.get("shared.offerId"), offer.getId(),
-                Layout.TWICE_FIRST_ROW_DISTANCE).second.setMouseTransparent(false);
-        addConfirmationLabelLabel(gridPane, ++rowIndex, Res.get("contractWindow.dates"),
+        addConfirmationLabelTextField(gridPane, rowIndex, Res.get("shared.offerId"), offer.getId(),
+                Layout.TWICE_FIRST_ROW_DISTANCE);
+        addConfirmationLabelTextField(gridPane, ++rowIndex, Res.get("contractWindow.dates"),
                 DisplayUtils.formatDateTime(offer.getDate()) + " / " + DisplayUtils.formatDateTime(dispute.getTradeDate()));
         String currencyCode = offer.getCurrencyCode();
-        addConfirmationLabelLabel(gridPane, ++rowIndex, Res.get("shared.offerType"),
-                DisplayUtils.getDirectionBothSides(offer.getDirection(), currencyCode));
-        addConfirmationLabelLabel(gridPane, ++rowIndex, Res.get("shared.tradePrice"),
-                FormattingUtils.formatPrice(contract.getTradePrice()));
-        addConfirmationLabelLabel(gridPane, ++rowIndex, Res.get("shared.tradeAmount"),
+        addConfirmationLabelTextField(gridPane, ++rowIndex, Res.get("shared.offerType"),
+                DisplayUtils.getDirectionBothSides(offer.getDirection()));
+        addConfirmationLabelTextField(gridPane, ++rowIndex, Res.get("shared.tradePrice"),
+                FormattingUtils.formatPrice(contract.getPrice()));
+        addConfirmationLabelTextField(gridPane, ++rowIndex, Res.get("shared.tradeAmount"),
                 formatter.formatCoinWithCode(contract.getTradeAmount()));
-        addConfirmationLabelLabel(gridPane, ++rowIndex, DisplayUtils.formatVolumeLabel(currencyCode, ":"),
-                DisplayUtils.formatVolumeWithCode(contract.getTradeVolume()));
+        addConfirmationLabelTextField(gridPane,
+                ++rowIndex,
+                VolumeUtil.formatVolumeLabel(currencyCode, ":"),
+                VolumeUtil.formatVolumeWithCode(contract.getTradeVolume()));
         String securityDeposit = Res.getWithColAndCap("shared.buyer") +
                 " " +
                 formatter.formatCoinWithCode(offer.getBuyerSecurityDeposit()) +
@@ -169,30 +172,44 @@ public class ContractWindow extends Overlay<ContractWindow> {
                 Res.getWithColAndCap("shared.seller") +
                 " " +
                 formatter.formatCoinWithCode(offer.getSellerSecurityDeposit());
-        addConfirmationLabelLabel(gridPane, ++rowIndex, Res.get("shared.securityDeposit"), securityDeposit);
-        addConfirmationLabelTextFieldWithCopyIcon(gridPane, ++rowIndex, Res.get("contractWindow.btcAddresses"),
-                contract.getBuyerPayoutAddressString() + " / " +
-                        contract.getSellerPayoutAddressString()).second.setMouseTransparent(false);
-        addConfirmationLabelTextFieldWithCopyIcon(gridPane, ++rowIndex, Res.get("contractWindow.onions"),
+        addConfirmationLabelTextField(gridPane, ++rowIndex, Res.get("shared.securityDeposit"), securityDeposit);
+        addConfirmationLabelTextField(gridPane,
+                ++rowIndex,
+                Res.get("contractWindow.btcAddresses"),
+                contract.getBuyerPayoutAddressString() + " / " + contract.getSellerPayoutAddressString());
+        addConfirmationLabelTextField(gridPane,
+                ++rowIndex,
+                Res.get("contractWindow.onions"),
                 contract.getBuyerNodeAddress().getFullAddress() + " / " + contract.getSellerNodeAddress().getFullAddress());
 
-        addConfirmationLabelTextFieldWithCopyIcon(gridPane, ++rowIndex, Res.get("contractWindow.accountAge"),
-                getAccountAge(dispute.getBuyerPaymentAccountPayload(), contract.getBuyerPubKeyRing(), offer.getCurrencyCode()) + " / " +
-                        getAccountAge(dispute.getSellerPaymentAccountPayload(), contract.getSellerPubKeyRing(), offer.getCurrencyCode()));
+        addConfirmationLabelTextField(gridPane,
+                ++rowIndex,
+                Res.get("contractWindow.accountAge"),
+                getAccountWitnessDescription(accountAgeWitnessService, offer.getPaymentMethod(), dispute.getBuyerPaymentAccountPayload(), contract.getBuyerPubKeyRing()) + " / " +
+                        getAccountWitnessDescription(accountAgeWitnessService, offer.getPaymentMethod(), dispute.getSellerPaymentAccountPayload(), contract.getSellerPubKeyRing()));
 
         DisputeManager<? extends DisputeList<Dispute>> disputeManager = getDisputeManager(dispute);
         String nrOfDisputesAsBuyer = disputeManager != null ? disputeManager.getNrOfDisputes(true, contract) : "";
         String nrOfDisputesAsSeller = disputeManager != null ? disputeManager.getNrOfDisputes(false, contract) : "";
-        addConfirmationLabelTextFieldWithCopyIcon(gridPane, ++rowIndex, Res.get("contractWindow.numDisputes"),
+        addConfirmationLabelTextField(gridPane,
+                ++rowIndex,
+                Res.get("contractWindow.numDisputes"),
                 nrOfDisputesAsBuyer + " / " + nrOfDisputesAsSeller);
-
-        addConfirmationLabelTextFieldWithCopyIcon(gridPane, ++rowIndex, Res.get("shared.paymentDetails", Res.get("shared.buyer")),
-                dispute.getBuyerPaymentAccountPayload().getPaymentDetails()).second.setMouseTransparent(false);
-        addConfirmationLabelTextFieldWithCopyIcon(gridPane, ++rowIndex, Res.get("shared.paymentDetails", Res.get("shared.seller")),
-                dispute.getSellerPaymentAccountPayload().getPaymentDetails()).second.setMouseTransparent(false);
+        addConfirmationLabelTextField(gridPane,
+                ++rowIndex,
+                Res.get("shared.paymentDetails", Res.get("shared.buyer")),
+                dispute.getBuyerPaymentAccountPayload() != null
+                        ? dispute.getBuyerPaymentAccountPayload().getPaymentDetails()
+                        : "NA");
+        addConfirmationLabelTextField(gridPane,
+                ++rowIndex,
+                Res.get("shared.paymentDetails", Res.get("shared.seller")),
+                dispute.getSellerPaymentAccountPayload() != null
+                        ? dispute.getSellerPaymentAccountPayload().getPaymentDetails()
+                        : "NA");
 
         String title = "";
-        String agentKeyBaseUserName = "";
+        String agentMatrixUserName = "";
         if (dispute.getSupportType() != null) {
             switch (dispute.getSupportType()) {
                 case ARBITRATION:
@@ -200,24 +217,24 @@ public class ContractWindow extends Overlay<ContractWindow> {
                     break;
                 case MEDIATION:
                     throw new RuntimeException("Mediation type not adapted to XMR");
-//                    agentKeyBaseUserName = DisputeAgentLookupMap.getKeyBaseUserName(contract.getMediatorNodeAddress().getFullAddress());
+//                    agentMatrixUserName = DisputeAgentLookupMap.getMatrixUserName(contract.getMediatorNodeAddress().getFullAddress());
 //                    title = Res.get("shared.selectedMediator");
 //                    break;
                 case TRADE:
                     break;
                 case REFUND:
                     throw new RuntimeException("Refund type not adapted to XMR");
-                    //agentKeyBaseUserName = DisputeAgentLookupMap.getKeyBaseUserName(contract.getRefundAgentNodeAddress().getFullAddress());
-                    //title = Res.get("shared.selectedRefundAgent");
-                    //break;
+//                    agentMatrixUserName = DisputeAgentLookupMap.getMatrixUserName(contract.getRefundAgentNodeAddress().getFullAddress());
+//                    title = Res.get("shared.selectedRefundAgent");
+//                    break;
             }
         }
 
         if (disputeManager != null) {
             NodeAddress agentNodeAddress = disputeManager.getAgentNodeAddress(dispute);
             if (agentNodeAddress != null) {
-                String value = agentKeyBaseUserName + " (" + agentNodeAddress.getFullAddress() + ")";
-                addConfirmationLabelTextFieldWithCopyIcon(gridPane, ++rowIndex, title, value);
+                String value = agentMatrixUserName + " (" + agentNodeAddress.getFullAddress() + ")";
+                addConfirmationLabelTextField(gridPane, ++rowIndex, title, value);
             }
         }
 
@@ -230,19 +247,18 @@ public class ContractWindow extends Overlay<ContractWindow> {
                 countries = CountryUtil.getCodesString(acceptedCountryCodes);
                 tooltip = new Tooltip(CountryUtil.getNamesByCodesString(acceptedCountryCodes));
             }
-            Label acceptedCountries = addConfirmationLabelLabel(gridPane, ++rowIndex, Res.get("shared.acceptedTakerCountries"), countries).second;
-            if (tooltip != null) acceptedCountries.setTooltip(new Tooltip());
+            addConfirmationLabelTextField(gridPane, ++rowIndex, Res.get("shared.acceptedTakerCountries"), countries)
+                    .second.setTooltip(tooltip);
         }
 
         if (showAcceptedBanks) {
             if (offer.getPaymentMethod().equals(PaymentMethod.SAME_BANK)) {
-                addConfirmationLabelLabel(gridPane, ++rowIndex, Res.get("shared.bankName"), acceptedBanks.get(0));
+                addConfirmationLabelTextField(gridPane, ++rowIndex, Res.get("shared.bankName"), acceptedBanks.get(0));
             } else if (offer.getPaymentMethod().equals(PaymentMethod.SPECIFIC_BANKS)) {
                 String value = Joiner.on(", ").join(acceptedBanks);
                 Tooltip tooltip = new Tooltip(Res.get("shared.acceptedBanks") + value);
-                Label acceptedBanksTextField = addConfirmationLabelLabel(gridPane, ++rowIndex, Res.get("shared.acceptedBanks"), value).second;
-                acceptedBanksTextField.setMouseTransparent(false);
-                acceptedBanksTextField.setTooltip(tooltip);
+                addConfirmationLabelTextField(gridPane, ++rowIndex, Res.get("shared.acceptedBanks"), value)
+                        .second.setTooltip(tooltip);
             }
         }
 
@@ -256,7 +272,7 @@ public class ContractWindow extends Overlay<ContractWindow> {
             addLabelTxIdTextField(gridPane, ++rowIndex, Res.get("shared.delayedPayoutTxId"), dispute.getDelayedPayoutTxId());
 
         if (dispute.getDonationAddressOfDelayedPayoutTx() != null) {
-            addLabelTxIdTextField(gridPane, ++rowIndex, Res.get("shared.delayedPayoutTxReceiverAddress"),
+            addLabelExplorerAddressTextField(gridPane, ++rowIndex, Res.get("shared.delayedPayoutTxReceiverAddress"),
                     dispute.getDonationAddressOfDelayedPayoutTx());
         }
 
@@ -330,15 +346,5 @@ public class ContractWindow extends Overlay<ContractWindow> {
             }
         }
         return null;
-    }
-
-    private String getAccountAge(PaymentAccountPayload paymentAccountPayload,
-                                 PubKeyRing pubKeyRing,
-                                 String currencyCode) {
-        long age = accountAgeWitnessService.getAccountAge(paymentAccountPayload, pubKeyRing);
-        return CurrencyUtil.isFiatCurrency(currencyCode) ?
-                age > -1 ? Res.get("peerInfoIcon.tooltip.age", DisplayUtils.formatAccountAge(age)) :
-                        Res.get("peerInfoIcon.tooltip.unknownAge") :
-                "";
     }
 }

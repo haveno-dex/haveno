@@ -127,7 +127,10 @@ public class FormattingUtils {
             try {
                 // TODO quick hack...
                 String res;
-                res = altcoinFormat.noCode().format(altcoin).toString();
+                if (altcoin.getCurrencyCode().equals("BSQ"))
+                    res = altcoinFormat.noCode().minDecimals(2).repeatOptionalDecimals(0, 0).format(altcoin).toString();
+                else
+                    res = altcoinFormat.noCode().format(altcoin).toString();
                 if (appendCurrencyCode)
                     return res + " " + altcoin.getCurrencyCode();
                 else

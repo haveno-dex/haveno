@@ -56,8 +56,8 @@ public class GUIUtilTest {
     public void setup() {
         Locale.setDefault(new Locale("en", "US"));
         GlobalSettings.setLocale(new Locale("en", "US"));
-        Res.setBaseCurrencyCode("XMR");
-        Res.setBaseCurrencyName("Monero");
+        Res.setBaseCurrencyCode("BTC");
+        Res.setBaseCurrencyName("Bitcoin");
     }
 
     @Test

@@ -34,7 +34,7 @@ import bisq.core.api.CoreMoneroConnectionsService;
 import bisq.core.btc.wallet.XmrWalletService;
 import bisq.core.locale.Res;
 import bisq.core.offer.Offer;
-import bisq.core.offer.OfferPayload;
+import bisq.core.offer.OfferDirection;
 import bisq.core.offer.OfferUtil;
 import bisq.core.payment.payload.PaymentAccountPayload;
 import bisq.core.support.SupportType;
@@ -52,7 +52,8 @@ import bisq.core.trade.TradeManager;
 import bisq.core.trade.protocol.BuyerProtocol;
 import bisq.core.trade.protocol.SellerProtocol;
 import bisq.core.user.Preferences;
-
+import bisq.core.util.FormattingUtils;
+import bisq.core.util.coin.CoinFormatter;
 import bisq.network.p2p.P2PService;
 import bisq.common.UserThread;
 import bisq.common.crypto.PubKeyRing;
@@ -83,6 +84,7 @@ import java.util.stream.Collectors;
 import lombok.Getter;
 
 import javax.annotation.Nullable;
+import javax.inject.Named;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -105,6 +107,7 @@ public class PendingTradesDataModel extends ActivatableDataModel {
     public final WalletPasswordWindow walletPasswordWindow;
     private final NotificationCenter notificationCenter;
     private final OfferUtil offerUtil;
+    private final CoinFormatter btcFormatter;
 
     final ObservableList<PendingTradesListItem> list = FXCollections.observableArrayList();
     private final ListChangeListener<Trade> tradesListChangeListener;
@@ -143,7 +146,8 @@ public class PendingTradesDataModel extends ActivatableDataModel {
                                   WalletPasswordWindow walletPasswordWindow,
                                   NotificationCenter notificationCenter,
                                   OfferUtil offerUtil,
-                                  CoreDisputesService disputesService) {
+                                  CoreDisputesService disputesService,
+                                  @Named(FormattingUtils.BTC_FORMATTER_KEY) CoinFormatter formatter) {
         this.tradeManager = tradeManager;
         this.xmrWalletService = xmrWalletService;
         this.pubKeyRingProvider = pubKeyRingProvider;
@@ -159,6 +163,7 @@ public class PendingTradesDataModel extends ActivatableDataModel {
         this.notificationCenter = notificationCenter;
         this.offerUtil = offerUtil;
         this.disputesService = disputesService;
+        this.btcFormatter = formatter;
 
         tradesListChangeListener = change -> onListChanged();
         notificationCenter.setSelectItemByTradeIdConsumer(this::selectItemByTradeId);
@@ -192,7 +197,7 @@ public class PendingTradesDataModel extends ActivatableDataModel {
     public void onPaymentStarted(ResultHandler resultHandler, ErrorMessageHandler errorMessageHandler) {
         Trade trade = getTrade();
         checkNotNull(trade, "trade must not be null");
-        checkArgument(trade instanceof BuyerTrade, "Check failed: trade instanceof BuyerTrade");
+        checkArgument(trade instanceof BuyerTrade, "Check failed: trade instanceof BuyerTrade. Was: " + trade.getClass().getSimpleName());
         ((BuyerProtocol) tradeManager.getTradeProtocol(trade)).onPaymentStarted(resultHandler, errorMessageHandler);
     }
 
@@ -335,7 +340,9 @@ public class PendingTradesDataModel extends ActivatableDataModel {
 
     private void onListChanged() {
         list.clear();
-        list.addAll(tradeManager.getObservableList().stream().map(PendingTradesListItem::new).collect(Collectors.toList()));
+        list.addAll(tradeManager.getObservableList().stream()
+                .map(trade -> new PendingTradesListItem(trade, btcFormatter))
+                .collect(Collectors.toList()));
 
         // we sort by date, earliest first
         list.sort((o1, o2) -> o2.getTrade().getDate().compareTo(o1.getTrade().getDate()));
@@ -492,7 +499,7 @@ public class PendingTradesDataModel extends ActivatableDataModel {
 //                  trade.getId(),
 //                  pubKeyRing.hashCode(), // traderId
 //                  true,
-//                  (offer.getDirection() == OfferPayload.Direction.BUY) == isMaker,
+//                  (offer.getDirection() == OfferDirection.BUY) == isMaker,
 //                  isMaker,
 //                  pubKeyRing,
 //                  trade.getDate().getTime(),
@@ -522,7 +529,7 @@ public class PendingTradesDataModel extends ActivatableDataModel {
                     trade.getId(),
                     pubKeyRingProvider.get().hashCode(), // trader id
                     true,
-                    (offer.getDirection() == OfferPayload.Direction.BUY) == isMaker,
+                    (offer.getDirection() == OfferDirection.BUY) == isMaker,
                     isMaker,
                     pubKeyRingProvider.get(),
                     trade.getDate().getTime(),

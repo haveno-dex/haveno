@@ -3,7 +3,7 @@ package bisq.core.api;
 import bisq.core.btc.wallet.XmrWalletService;
 import bisq.core.locale.Res;
 import bisq.core.offer.Offer;
-import bisq.core.offer.OfferPayload;
+import bisq.core.offer.OfferDirection;
 import bisq.core.support.SupportType;
 import bisq.core.support.dispute.Attachment;
 import bisq.core.support.dispute.Dispute;
@@ -124,7 +124,7 @@ public class CoreDisputesService {
                     trade.getId(),
                     pubKey.hashCode(), // trader id,
                     true,
-                    (offer.getDirection() == OfferPayload.Direction.BUY) == isMaker,
+                    (offer.getDirection() == OfferDirection.BUY) == isMaker,
                     isMaker,
                     pubKey,
                     trade.getDate().getTime(),

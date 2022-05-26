@@ -10,11 +10,11 @@ public class ExpectedProtocolStatus {
     Trade.State state;
     Trade.Phase phase;
     boolean isDepositPublished;
-    boolean isDepositUnlocked;
-    boolean isPaymentSent;
-    boolean isPaymentReceived;
+    boolean isDepositConfirmed;
+    boolean isPaymentStartedMessageSent;
+    boolean isPaymentReceivedMessageSent;
     boolean isPayoutPublished;
-    boolean isWithdrawn;
+    boolean isCompleted;
 
     public ExpectedProtocolStatus setState(Trade.State state) {
         this.state = state;
@@ -31,18 +31,18 @@ public class ExpectedProtocolStatus {
         return this;
     }
 
-    public ExpectedProtocolStatus setDepositUnlocked(boolean depositUnlocked) {
-        isDepositUnlocked = depositUnlocked;
+    public ExpectedProtocolStatus setDepositConfirmed(boolean depositConfirmed) {
+        isDepositConfirmed = depositConfirmed;
         return this;
     }
 
-    public ExpectedProtocolStatus setFiatSent(boolean paymentSent) {
-        isPaymentSent = paymentSent;
+    public ExpectedProtocolStatus setPaymentStartedMessageSent(boolean paymentStartedMessageSent) {
+        isPaymentStartedMessageSent = paymentStartedMessageSent;
         return this;
     }
 
-    public ExpectedProtocolStatus setFiatReceived(boolean paymentReceived) {
-        isPaymentReceived = paymentReceived;
+    public ExpectedProtocolStatus setPaymentReceivedMessageSent(boolean paymentReceivedMessageSent) {
+        isPaymentReceivedMessageSent = paymentReceivedMessageSent;
         return this;
     }
 
@@ -51,8 +51,8 @@ public class ExpectedProtocolStatus {
         return this;
     }
 
-    public ExpectedProtocolStatus setWithdrawn(boolean withdrawn) {
-        isWithdrawn = withdrawn;
+    public ExpectedProtocolStatus setCompleted(boolean completed) {
+        isCompleted = completed;
         return this;
     }
 
@@ -60,10 +60,10 @@ public class ExpectedProtocolStatus {
         state = null;
         phase = null;
         isDepositPublished = false;
-        isDepositUnlocked = false;
-        isPaymentSent = false;
-        isPaymentReceived = false;
+        isDepositConfirmed = false;
+        isPaymentStartedMessageSent = false;
+        isPaymentReceivedMessageSent = false;
         isPayoutPublished = false;
-        isWithdrawn = false;
+        isCompleted = false;
     }
 }

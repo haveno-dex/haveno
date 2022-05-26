@@ -29,6 +29,8 @@ import org.jetbrains.annotations.NotNull;
 
 import static bisq.desktop.util.FormBuilder.getBigIcon;
 
+import bisq.common.UserThread;
+
 public class TradeWizardItem extends Label {
     private final String iconLabel;
 
@@ -52,20 +54,20 @@ public class TradeWizardItem extends Label {
 
     public void setDisabled() {
         setId("trade-wizard-item-background-disabled");
-        setGraphic(getStackPane("trade-step-disabled-bg"));
+        UserThread.execute(() -> setGraphic(getStackPane("trade-step-disabled-bg")));
     }
 
 
     public void setActive() {
         setId("trade-wizard-item-background-active");
-        setGraphic(getStackPane("trade-step-active-bg"));
+        UserThread.execute(() -> setGraphic(getStackPane("trade-step-active-bg")));
     }
 
     public void setCompleted() {
         setId("trade-wizard-item-background-active");
         final Text icon = getBigIcon(MaterialDesignIcon.CHECK_CIRCLE);
         icon.getStyleClass().add("trade-step-active-bg");
-        setGraphic(icon);
+        UserThread.execute(() -> setGraphic(icon));
     }
 
     @NotNull

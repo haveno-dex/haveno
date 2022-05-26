@@ -30,18 +30,20 @@ import bisq.core.offer.Offer;
 import bisq.core.offer.OfferUtil;
 import bisq.core.provider.fee.FeeService;
 import bisq.core.provider.mempool.MempoolService;
+import bisq.core.trade.ClosedTradableManager;
 import bisq.core.trade.Contract;
 import bisq.core.trade.Trade;
 import bisq.core.trade.TradeUtil;
-import bisq.core.trade.closed.ClosedTradableManager;
 import bisq.core.user.User;
 import bisq.core.util.FormattingUtils;
+import bisq.core.util.VolumeUtil;
 import bisq.core.util.coin.CoinFormatter;
 import bisq.core.util.validation.BtcAddressValidator;
 
 import bisq.network.p2p.P2PService;
 
 import bisq.common.ClockWatcher;
+import bisq.common.UserThread;
 import bisq.common.app.DevEnv;
 
 import org.bitcoinj.core.Coin;
@@ -179,8 +181,9 @@ public class PendingTradesViewModel extends ActivatableWithDataModel<PendingTrad
 
         if (selectedItem != null) {
             this.trade = selectedItem.getTrade();
-            tradeStateSubscription = EasyBind.subscribe(trade.stateProperty(), this::onTradeStateChanged);
-
+            tradeStateSubscription = EasyBind.subscribe(trade.stateProperty(), state -> {
+                UserThread.execute(() -> onTradeStateChanged(state));
+            });
             messageStateSubscription = EasyBind.subscribe(trade.getProcessModel().getPaymentStartedMessageStateProperty(), this::onMessageStateChanged);
         }
     }
@@ -299,21 +302,21 @@ public class PendingTradesViewModel extends ActivatableWithDataModel<PendingTrad
     // summary
     public String getTradeVolume() {
         return dataModel.getTrade() != null
-                ? btcFormatter.formatCoinWithCode(dataModel.getTrade().getTradeAmount())
+                ? btcFormatter.formatCoinWithCode(dataModel.getTrade().getAmount())
                 : "";
     }
 
     public String getFiatVolume() {
         return dataModel.getTrade() != null
-                ? DisplayUtils.formatVolumeWithCode(dataModel.getTrade().getTradeVolume())
+                ? VolumeUtil.formatVolumeWithCode(dataModel.getTrade().getVolume())
                 : "";
     }
 
     public String getTxFee() {
-        if (trade != null && trade.getTradeAmount() != null) {
+        if (trade != null && trade.getAmount() != null) {
             Coin txFee = dataModel.getTxFee();
             String percentage = GUIUtil.getPercentageOfTradeAmount(txFee,
-                    trade.getTradeAmount(),
+                    trade.getAmount(),
                     Coin.ZERO);
             return btcFormatter.formatCoinWithCode(txFee) + percentage;
         } else {
@@ -322,7 +325,7 @@ public class PendingTradesViewModel extends ActivatableWithDataModel<PendingTrad
     }
 
     public String getTradeFee() {
-        if (trade != null && dataModel.getOffer() != null && trade.getTradeAmount() != null) {
+        if (trade != null && dataModel.getOffer() != null && trade.getAmount() != null) {
             checkNotNull(dataModel.getTrade());
 
             Coin tradeFeeInBTC = dataModel.getTradeFeeInBTC();
@@ -331,7 +334,7 @@ public class PendingTradesViewModel extends ActivatableWithDataModel<PendingTrad
                     FeeService.getMinMakerFee() :
                     FeeService.getMinTakerFee();
 
-            String percentage = GUIUtil.getPercentageOfTradeAmount(tradeFeeInBTC, trade.getTradeAmount(),
+            String percentage = GUIUtil.getPercentageOfTradeAmount(tradeFeeInBTC, trade.getAmount(),
                     minTradeFee);
             return btcFormatter.formatCoinWithCode(tradeFeeInBTC) + percentage;
         } else {
@@ -342,7 +345,7 @@ public class PendingTradesViewModel extends ActivatableWithDataModel<PendingTrad
     public String getSecurityDeposit() {
         Offer offer = dataModel.getOffer();
         Trade trade = dataModel.getTrade();
-        if (offer != null && trade != null && trade.getTradeAmount() != null) {
+        if (offer != null && trade != null && trade.getAmount() != null) {
             Coin securityDeposit = dataModel.isBuyer() ?
                     offer.getBuyerSecurityDeposit()
                     : offer.getSellerSecurityDeposit();
@@ -352,7 +355,7 @@ public class PendingTradesViewModel extends ActivatableWithDataModel<PendingTrad
                     Restrictions.getMinSellerSecurityDepositAsCoin();
 
             String percentage = GUIUtil.getPercentageOfTradeAmount(securityDeposit,
-                    trade.getTradeAmount(),
+                    trade.getAmount(),
                     minSecurityDeposit);
             return btcFormatter.formatCoinWithCode(securityDeposit) + percentage;
         } else {

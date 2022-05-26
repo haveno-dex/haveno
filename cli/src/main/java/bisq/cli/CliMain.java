@@ -18,6 +18,7 @@
 package bisq.cli;
 
 import bisq.proto.grpc.OfferInfo;
+import bisq.proto.grpc.TradeInfo;
 
 import io.grpc.StatusRuntimeException;
 
@@ -39,18 +40,18 @@ import java.util.List;
 
 import lombok.extern.slf4j.Slf4j;
 
-import static bisq.cli.CurrencyFormat.formatMarketPrice;
+import static bisq.cli.CurrencyFormat.formatInternalFiatPrice;
 import static bisq.cli.CurrencyFormat.formatTxFeeRateInfo;
 import static bisq.cli.CurrencyFormat.toSatoshis;
-import static bisq.cli.CurrencyFormat.toSecurityDepositAsPct;
 import static bisq.cli.Method.*;
-import static bisq.cli.TableFormat.*;
 import static bisq.cli.opts.OptLabel.*;
+import static bisq.cli.table.builder.TableType.*;
+import static bisq.proto.grpc.GetTradesRequest.Category.CLOSED;
+import static bisq.proto.grpc.GetTradesRequest.Category.OPEN;
 import static java.lang.String.format;
 import static java.lang.System.err;
 import static java.lang.System.exit;
 import static java.lang.System.out;
-import static java.util.Collections.singletonList;
 
 
 
@@ -62,11 +63,12 @@ import bisq.cli.opts.CreatePaymentAcctOptionParser;
 import bisq.cli.opts.GetAddressBalanceOptionParser;
 import bisq.cli.opts.GetBTCMarketPriceOptionParser;
 import bisq.cli.opts.GetBalanceOptionParser;
-import bisq.cli.opts.GetOfferOptionParser;
 import bisq.cli.opts.GetOffersOptionParser;
 import bisq.cli.opts.GetPaymentAcctFormOptionParser;
 import bisq.cli.opts.GetTradeOptionParser;
+import bisq.cli.opts.GetTradesOptionParser;
 import bisq.cli.opts.GetTransactionOptionParser;
+import bisq.cli.opts.OfferIdOptionParser;
 import bisq.cli.opts.RegisterDisputeAgentOptionParser;
 import bisq.cli.opts.RemoveWalletPasswordOptionParser;
 import bisq.cli.opts.SendBtcOptionParser;
@@ -76,6 +78,7 @@ import bisq.cli.opts.SimpleMethodOptionParser;
 import bisq.cli.opts.TakeOfferOptionParser;
 import bisq.cli.opts.UnlockWalletOptionParser;
 import bisq.cli.opts.WithdrawFundsOptionParser;
+import bisq.cli.table.builder.TableBuilder;
 
 /**
  * A command-line client for the Bisq gRPC API.
@@ -167,15 +170,14 @@ public class CliMain {
                     var balances = client.getBalances(currencyCode);
                     switch (currencyCode.toUpperCase()) {
                         case "BTC":
-                            out.println(formatBtcBalanceInfoTbl(balances.getBtc()));
+                            new TableBuilder(BTC_BALANCE_TBL, balances.getBtc()).build().print(out);
                             break;
-                        case "XMR":
-                          out.println(formatXmrBalanceInfoTbl(balances.getXmr()));
-                          break;
                         case "":
-                        default:
-                            out.println(formatBalancesTbls(balances));
+                        default: {
+                            out.println("BTC");
+                            new TableBuilder(BTC_BALANCE_TBL, balances.getBtc()).build().print(out);
                             break;
+                        }
                     }
                     return;
                 }
@@ -187,7 +189,7 @@ public class CliMain {
                     }
                     var address = opts.getAddress();
                     var addressBalance = client.getAddressBalance(address);
-                    out.println(formatAddressBalanceTbl(singletonList(addressBalance)));
+                    new TableBuilder(ADDRESS_BALANCE_TBL, addressBalance).build().print(out);
                     return;
                 }
                 case getbtcprice: {
@@ -198,7 +200,7 @@ public class CliMain {
                     }
                     var currencyCode = opts.getCurrencyCode();
                     var price = client.getBtcPrice(currencyCode);
-                    out.println(formatMarketPrice(price));
+                    out.println(formatInternalFiatPrice(price));
                     return;
                 }
                 case getfundingaddresses: {
@@ -207,7 +209,7 @@ public class CliMain {
                         return;
                     }
                     var fundingAddresses = client.getFundingAddresses();
-                    out.println(formatAddressBalanceTbl(fundingAddresses));
+                    new TableBuilder(ADDRESS_BALANCE_TBL, fundingAddresses).build().print(out);
                     return;
                 }
                 case sendbtc: {
@@ -269,7 +271,7 @@ public class CliMain {
                     }
                     var txId = opts.getTxId();
                     var tx = client.getTransaction(txId);
-                    out.println(TransactionFormat.format(tx));
+                    new TableBuilder(TRANSACTION_TBL, tx).build().print(out);
                     return;
                 }
                 case createoffer: {
@@ -285,18 +287,21 @@ public class CliMain {
                     var minAmount = toSatoshis(opts.getMinAmount());
                     var useMarketBasedPrice = opts.isUsingMktPriceMargin();
                     var fixedPrice = opts.getFixedPrice();
-                    var marketPriceMargin = opts.getMktPriceMarginAsBigDecimal();
-                    var securityDeposit = toSecurityDepositAsPct(opts.getSecurityDeposit());
-                    var offer = client.createOffer(direction,
+                    var marketPriceMarginPct = opts.getMktPriceMarginPct();
+                    var securityDepositPct = opts.getSecurityDepositPct();
+                    var triggerPrice = "0"; // Cannot be defined until the new offer is added to book.
+                    OfferInfo offer;
+                    offer = client.createOffer(direction,
                             currencyCode,
                             amount,
                             minAmount,
                             useMarketBasedPrice,
                             fixedPrice,
-                            marketPriceMargin.doubleValue(),
-                            securityDeposit,
-                            paymentAcctId);
-                    out.println(formatOfferTable(singletonList(offer), currencyCode));
+                            marketPriceMarginPct,
+                            securityDepositPct,
+                            paymentAcctId,
+                            triggerPrice);
+                    new TableBuilder(OFFER_TBL, offer).build().print(out);
                     return;
                 }
                 case canceloffer: {
@@ -311,25 +316,25 @@ public class CliMain {
                     return;
                 }
                 case getoffer: {
-                    var opts = new GetOfferOptionParser(args).parse();
+                    var opts = new OfferIdOptionParser(args).parse();
                     if (opts.isForHelp()) {
                         out.println(client.getMethodHelp(method));
                         return;
                     }
                     var offerId = opts.getOfferId();
                     var offer = client.getOffer(offerId);
-                    out.println(formatOfferTable(singletonList(offer), offer.getCounterCurrencyCode()));
+                    new TableBuilder(OFFER_TBL, offer).build().print(out);
                     return;
                 }
                 case getmyoffer: {
-                    var opts = new GetOfferOptionParser(args).parse();
+                    var opts = new OfferIdOptionParser(args).parse();
                     if (opts.isForHelp()) {
                         out.println(client.getMethodHelp(method));
                         return;
                     }
                     var offerId = opts.getOfferId();
                     var offer = client.getMyOffer(offerId);
-                    out.println(formatOfferTable(singletonList(offer), offer.getCounterCurrencyCode()));
+                    new TableBuilder(OFFER_TBL, offer).build().print(out);
                     return;
                 }
                 case getoffers: {
@@ -344,7 +349,7 @@ public class CliMain {
                     if (offers.isEmpty())
                         out.printf("no %s %s offers found%n", direction, currencyCode);
                     else
-                        out.println(formatOfferTable(offers, currencyCode));
+                        new TableBuilder(OFFER_TBL, offers).build().print(out);
 
                     return;
                 }
@@ -360,11 +365,12 @@ public class CliMain {
                     if (offers.isEmpty())
                         out.printf("no %s %s offers found%n", direction, currencyCode);
                     else
-                        out.println(formatOfferTable(offers, currencyCode));
+                        new TableBuilder(OFFER_TBL, offers).build().print(out);
 
                     return;
                 }
                 case takeoffer: {
+
                     var opts = new TakeOfferOptionParser(args).parse();
                     if (opts.isForHelp()) {
                         out.println(client.getMethodHelp(method));
@@ -389,8 +395,28 @@ public class CliMain {
                     if (showContract)
                         out.println(trade.getContractAsJson());
                     else
-                        out.println(TradeFormat.format(trade));
+                        new TableBuilder(TRADE_DETAIL_TBL, trade).build().print(out);
 
+                    return;
+                }
+                case gettrades: {
+                    var opts = new GetTradesOptionParser(args).parse();
+                    if (opts.isForHelp()) {
+                        out.println(client.getMethodHelp(method));
+                        return;
+                    }
+                    var category = opts.getCategory();
+                    var trades = category.equals(OPEN)
+                            ? client.getOpenTrades()
+                            : client.getTradeHistory(category);
+                    if (trades.isEmpty()) {
+                        out.printf("no %s trades found%n", category.name().toLowerCase());
+                    } else {
+                        var tableType = category.equals(OPEN)
+                                ? OPEN_TRADES_TBL
+                                : category.equals(CLOSED) ? CLOSED_TRADES_TBL : FAILED_TRADES_TBL;
+                        new TableBuilder(tableType, trades).build().print(out);
+                    }
                     return;
                 }
                 case confirmpaymentstarted: {
@@ -415,17 +441,6 @@ public class CliMain {
                     out.printf("trade %s payment received message sent%n", tradeId);
                     return;
                 }
-                case keepfunds: {
-                    var opts = new GetTradeOptionParser(args).parse();
-                    if (opts.isForHelp()) {
-                        out.println(client.getMethodHelp(method));
-                        return;
-                    }
-                    var tradeId = opts.getTradeId();
-                    client.keepFunds(tradeId);
-                    out.printf("funds from trade %s saved in bisq wallet%n", tradeId);
-                    return;
-                }
                 case withdrawfunds: {
                     var opts = new WithdrawFundsOptionParser(args).parse();
                     if (opts.isForHelp()) {
@@ -434,7 +449,7 @@ public class CliMain {
                     }
                     var tradeId = opts.getTradeId();
                     var address = opts.getAddress();
-                    // Multi-word memos must be double quoted.
+                    // Multi-word memos must be double-quoted.
                     var memo = opts.getMemo();
                     client.withdrawFunds(tradeId, address, memo);
                     out.printf("trade %s funds sent to btc address %s%n", tradeId, address);
@@ -481,11 +496,12 @@ public class CliMain {
                     }
                     var paymentAccount = client.createPaymentAccount(jsonString);
                     out.println("payment account saved");
-                    out.println(formatPaymentAcctTbl(singletonList(paymentAccount)));
+                    new TableBuilder(PAYMENT_ACCOUNT_TBL, paymentAccount).build().print(out);
                     return;
                 }
                 case createcryptopaymentacct: {
-                    var opts = new CreateCryptoCurrencyPaymentAcctOptionParser(args).parse();
+                    var opts =
+                            new CreateCryptoCurrencyPaymentAcctOptionParser(args).parse();
                     if (opts.isForHelp()) {
                         out.println(client.getMethodHelp(method));
                         return;
@@ -499,7 +515,7 @@ public class CliMain {
                             address,
                             isTradeInstant);
                     out.println("payment account saved");
-                    out.println(formatPaymentAcctTbl(singletonList(paymentAccount)));
+                    new TableBuilder(PAYMENT_ACCOUNT_TBL, paymentAccount).build().print(out);
                     return;
                 }
                 case getpaymentaccts: {
@@ -509,7 +525,7 @@ public class CliMain {
                     }
                     var paymentAccounts = client.getPaymentAccounts();
                     if (paymentAccounts.size() > 0)
-                        out.println(formatPaymentAcctTbl(paymentAccounts));
+                        new TableBuilder(PAYMENT_ACCOUNT_TBL, paymentAccounts).build().print(out);
                     else
                         out.println("no payment accounts are saved");
 
@@ -585,7 +601,8 @@ public class CliMain {
                 }
             }
         } catch (StatusRuntimeException ex) {
-            // Remove the leading gRPC status code (e.g. "UNKNOWN: ") from the message
+            // Remove the leading gRPC status code, e.g., INVALID_ARGUMENT,
+            // NOT_FOUND, ..., UNKNOWN from the exception message.
             String message = ex.getMessage().replaceFirst("^[A-Z_]+: ", "");
             if (message.equals("io exception"))
                 throw new RuntimeException(message + ", server may not be running", ex);
@@ -666,7 +683,7 @@ public class CliMain {
             stream.format(rowFormat, "------", "------", "------------");
             stream.format(rowFormat, getversion.name(), "", "Get server version");
             stream.println();
-            stream.format(rowFormat, getbalance.name(), "[--currency-code=<btc>]", "Get server wallet balances");
+            stream.format(rowFormat, getbalance.name(), "[--currency-code=<bsq|btc>]", "Get server wallet balances");
             stream.println();
             stream.format(rowFormat, getaddressbalance.name(), "--address=<btc-address>", "Get server wallet address balance");
             stream.println();
@@ -674,10 +691,13 @@ public class CliMain {
             stream.println();
             stream.format(rowFormat, getfundingaddresses.name(), "", "Get BTC funding addresses");
             stream.println();
+            stream.format(rowFormat, getunusedbsqaddress.name(), "", "Get unused BSQ address");
+            stream.println();
+            stream.format(rowFormat, "", "[--tx-fee-rate=<sats/byte>]", "");
+            stream.println();
             stream.format(rowFormat, sendbtc.name(), "--address=<btc-address> --amount=<btc-amount> \\", "Send BTC");
             stream.format(rowFormat, "", "[--tx-fee-rate=<sats/byte>]", "");
             stream.format(rowFormat, "", "[--memo=<\"memo\">]", "");
-            stream.println();
             stream.println();
             stream.format(rowFormat, gettxfeerate.name(), "", "Get current tx fee rate in sats/byte");
             stream.println();
@@ -692,9 +712,17 @@ public class CliMain {
             stream.format(rowFormat, "", "--currency-code=<currency-code> \\", "");
             stream.format(rowFormat, "", "--amount=<btc-amount> \\", "");
             stream.format(rowFormat, "", "[--min-amount=<min-btc-amount>] \\", "");
-            stream.format(rowFormat, "", "--fixed-price=<price> | --market-price=margin=<percent> \\", "");
+            stream.format(rowFormat, "", "--fixed-price=<price> | --market-price-margin=<percent> \\", "");
             stream.format(rowFormat, "", "--security-deposit=<percent> \\", "");
-            stream.format(rowFormat, "", "[--fee-currency=<btc>]", "");
+            stream.format(rowFormat, "", "[--fee-currency=<bsq|btc>]", "");
+            stream.format(rowFormat, "", "[--trigger-price=<price>]", "");
+            stream.format(rowFormat, "", "[--swap=<true|false>]", "");
+            stream.println();
+            stream.format(rowFormat, editoffer.name(), "--offer-id=<offer-id> \\", "Edit offer with id");
+            stream.format(rowFormat, "", "[--fixed-price=<price>] \\", "");
+            stream.format(rowFormat, "", "[--market-price-margin=<percent>] \\", "");
+            stream.format(rowFormat, "", "[--trigger-price=<price>] \\", "");
+            stream.format(rowFormat, "", "[--enabled=<true|false>]", "");
             stream.println();
             stream.format(rowFormat, canceloffer.name(), "--offer-id=<offer-id>", "Cancel offer with id");
             stream.println();
@@ -709,21 +737,27 @@ public class CliMain {
             stream.format(rowFormat, "", "--currency-code=<currency-code>", "");
             stream.println();
             stream.format(rowFormat, takeoffer.name(), "--offer-id=<offer-id> \\", "Take offer with id");
-            stream.format(rowFormat, "", "--payment-account=<payment-account-id>", "");
-            stream.format(rowFormat, "", "[--fee-currency=<btc>]", "");
+            stream.format(rowFormat, "", "[--payment-account=<payment-account-id>]", "");
+            stream.format(rowFormat, "", "[--fee-currency=<btc|bsq>]", "");
             stream.println();
             stream.format(rowFormat, gettrade.name(), "--trade-id=<trade-id> \\", "Get trade summary or full contract");
             stream.format(rowFormat, "", "[--show-contract=<true|false>]", "");
+            stream.println();
+            stream.format(rowFormat, gettrades.name(), "[--category=<open|closed|failed>]", "Get open (default), closed, or failed trades");
             stream.println();
             stream.format(rowFormat, confirmpaymentstarted.name(), "--trade-id=<trade-id>", "Confirm payment started");
             stream.println();
             stream.format(rowFormat, confirmpaymentreceived.name(), "--trade-id=<trade-id>", "Confirm payment received");
             stream.println();
-            stream.format(rowFormat, keepfunds.name(), "--trade-id=<trade-id>", "Keep received funds in Bisq wallet");
+            stream.format(rowFormat, closetrade.name(), "--trade-id=<trade-id>", "Close completed trade");
             stream.println();
             stream.format(rowFormat, withdrawfunds.name(), "--trade-id=<trade-id> --address=<btc-address> \\",
-                    "Withdraw received funds to external wallet address");
+                    "Withdraw received trade funds to external wallet address");
             stream.format(rowFormat, "", "[--memo=<\"memo\">]", "");
+            stream.println();
+            stream.format(rowFormat, failtrade.name(), "--trade-id=<trade-id>", "Change open trade to failed trade");
+            stream.println();
+            stream.format(rowFormat, unfailtrade.name(), "--trade-id=<trade-id>", "Change failed trade to open trade");
             stream.println();
             stream.format(rowFormat, getpaymentmethods.name(), "", "Get list of supported payment account method ids");
             stream.println();
@@ -732,8 +766,8 @@ public class CliMain {
             stream.format(rowFormat, createpaymentacct.name(), "--payment-account-form=<path>", "Create a new payment account");
             stream.println();
             stream.format(rowFormat, createcryptopaymentacct.name(), "--account-name=<name> \\", "Create a new cryptocurrency payment account");
-            stream.format(rowFormat, "", "--currency-code=<btc> \\", "");
-            stream.format(rowFormat, "", "--address=<address>", "");
+            stream.format(rowFormat, "", "--currency-code=<bsq> \\", "");
+            stream.format(rowFormat, "", "--address=<bsq-address>", "");
             stream.format(rowFormat, "", "--trade-instant=<true|false>", "");
             stream.println();
             stream.format(rowFormat, getpaymentaccts.name(), "", "Get user payment accounts");

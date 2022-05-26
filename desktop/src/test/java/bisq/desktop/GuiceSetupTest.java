@@ -99,7 +99,7 @@ public class GuiceSetupTest {
         assertSingleton(DisplayedTransactionsFactory.class);
 
         // core module
-//        assertSingleton(HavenoSetup.class); // this is a can of worms
+//        assertSingleton(BisqSetup.class); // this is a can of worms
 //        assertSingleton(DisputeMsgEvents.class);
         assertSingleton(TorSetup.class);
         assertSingleton(P2PNetworkSetup.class);

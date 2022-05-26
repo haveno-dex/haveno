@@ -20,6 +20,7 @@ package bisq.apitest.scenario;
 
 import lombok.extern.slf4j.Slf4j;
 
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
@@ -31,15 +32,21 @@ import bisq.apitest.method.offer.AbstractOfferTest;
 import bisq.apitest.method.offer.CancelOfferTest;
 import bisq.apitest.method.offer.CreateOfferUsingFixedPriceTest;
 import bisq.apitest.method.offer.CreateOfferUsingMarketPriceMarginTest;
+import bisq.apitest.method.offer.CreateXMROffersTest;
 import bisq.apitest.method.offer.ValidateCreateOfferTest;
 
 @Slf4j
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class OfferTest extends AbstractOfferTest {
 
+    @BeforeAll
+    public static void setUp() {
+        setUp(false); // Use setUp(true) for running API daemons in remote debug mode.
+    }
+
     @Test
     @Order(1)
-    public void testAmtTooLargeShouldThrowException() {
+    public void testCreateOfferValidation() {
         ValidateCreateOfferTest test = new ValidateCreateOfferTest();
         test.testAmtTooLargeShouldThrowException();
         test.testNoMatchingEURPaymentAccountShouldThrowException();
@@ -57,18 +64,32 @@ public class OfferTest extends AbstractOfferTest {
     @Order(3)
     public void testCreateOfferUsingFixedPrice() {
         CreateOfferUsingFixedPriceTest test = new CreateOfferUsingFixedPriceTest();
-        test.testCreateAUDXMRBuyOfferUsingFixedPrice16000();
-        test.testCreateUSDXMRBuyOfferUsingFixedPrice100001234();
-        test.testCreateEURXMRSellOfferUsingFixedPrice95001234();
+        test.testCreateAUDBTCBuyOfferUsingFixedPrice16000();
+        test.testCreateUSDBTCBuyOfferUsingFixedPrice100001234();
+        test.testCreateEURBTCSellOfferUsingFixedPrice95001234();
     }
 
     @Test
     @Order(4)
-    public void testCreateOfferUsingMarketPriceMargin() {
+    public void testCreateOfferUsingMarketPriceMarginPct() {
         CreateOfferUsingMarketPriceMarginTest test = new CreateOfferUsingMarketPriceMarginTest();
-        test.testCreateUSDXMRBuyOffer5PctPriceMargin();
-        test.testCreateNZDXMRBuyOfferMinus2PctPriceMargin();
-        test.testCreateGBPXMRSellOfferMinus1Point5PctPriceMargin();
-        test.testCreateBRLXMRSellOffer6Point55PctPriceMargin();
+        test.testCreateUSDBTCBuyOffer5PctPriceMargin();
+        test.testCreateNZDBTCBuyOfferMinus2PctPriceMargin();
+        test.testCreateGBPBTCSellOfferMinus1Point5PctPriceMargin();
+        test.testCreateBRLBTCSellOffer6Point55PctPriceMargin();
+        test.testCreateUSDBTCBuyOfferWithTriggerPrice();
+    }
+
+    @Test
+    @Order(6)
+    public void testCreateXMROffers() {
+        CreateXMROffersTest test = new CreateXMROffersTest();
+        CreateXMROffersTest.createXmrPaymentAccounts();
+        test.testCreateFixedPriceBuy1BTCFor200KXMROffer();
+        test.testCreateFixedPriceSell1BTCFor200KXMROffer();
+        test.testCreatePriceMarginBasedBuy1BTCOfferWithTriggerPrice();
+        test.testCreatePriceMarginBasedSell1BTCOffer();
+        test.testGetAllMyXMROffers();
+        test.testGetAvailableXMROffers();
     }
 }
