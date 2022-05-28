@@ -3,6 +3,7 @@ name: Comment to label
 on:
   issues:
     types: [labeled]
+  workflow_call:
 
 jobs:
   issueLabeled:
