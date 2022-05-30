@@ -311,20 +311,12 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
 
         if (OfferViewUtil.isShownAsBuyOffer(direction, tradeCurrency)) {
             placeOfferButton.setId("buy-button-big");
-            if (CurrencyUtil.isFiatCurrency(tradeCurrency.getCode())) {
-                placeOfferButtonLabel = Res.get("createOffer.placeOfferButton", Res.get("shared.buy"));
-            } else {
-                placeOfferButtonLabel = Res.get("createOffer.placeOfferButtonAltcoin", Res.get("shared.buy"), tradeCurrency.getCode());
-            }
+            placeOfferButtonLabel = Res.get("createOffer.placeOfferButton", Res.get("shared.buy"));
             nextButton.setId("buy-button");
             fundFromSavingsWalletButton.setId("buy-button");
         } else {
             placeOfferButton.setId("sell-button-big");
-            if (CurrencyUtil.isFiatCurrency(tradeCurrency.getCode())) {
-                placeOfferButtonLabel = Res.get("createOffer.placeOfferButton", Res.get("shared.sell"));
-            } else {
-                placeOfferButtonLabel = Res.get("createOffer.placeOfferButtonAltcoin", Res.get("shared.sell"), tradeCurrency.getCode());
-            }
+            placeOfferButtonLabel = Res.get("createOffer.placeOfferButton", Res.get("shared.sell"));
             nextButton.setId("sell-button");
             fundFromSavingsWalletButton.setId("sell-button");
         }
@@ -714,15 +706,6 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
             marketBasedPriceTextField.clear();
             volumeTextField.clear();
             triggerPriceInputTextField.clear();
-            if (!CurrencyUtil.isFiatCurrency(newValue)) {
-                if (model.isShownAsBuyOffer()) {
-                    placeOfferButton.updateText(Res.get("createOffer.placeOfferButtonAltcoin", Res.get("shared.buy"),
-                            model.getTradeCurrency().getCode()));
-                } else {
-                    placeOfferButton.updateText(Res.get("createOffer.placeOfferButtonAltcoin", Res.get("shared.sell"),
-                            model.getTradeCurrency().getCode()));
-                }
-            }
         };
 
         placeOfferCompletedListener = (o, oldValue, newValue) -> {

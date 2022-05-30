@@ -261,15 +261,11 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
     private void addBindings() {
         if (dataModel.getDirection() == OfferDirection.BUY) {
             volumeDescriptionLabel.bind(createStringBinding(
-                    () -> Res.get(CurrencyUtil.isFiatCurrency(dataModel.getTradeCurrencyCode().get()) ?
-                            "createOffer.amountPriceBox.buy.volumeDescription" :
-                            "createOffer.amountPriceBox.buy.volumeDescriptionAltcoin", dataModel.getTradeCurrencyCode().get()),
+                    () -> Res.get("createOffer.amountPriceBox.buy.volumeDescription", dataModel.getTradeCurrencyCode().get()),
                     dataModel.getTradeCurrencyCode()));
         } else {
             volumeDescriptionLabel.bind(createStringBinding(
-                    () -> Res.get(CurrencyUtil.isFiatCurrency(dataModel.getTradeCurrencyCode().get()) ?
-                            "createOffer.amountPriceBox.sell.volumeDescription" :
-                            "createOffer.amountPriceBox.sell.volumeDescriptionAltcoin", dataModel.getTradeCurrencyCode().get()),
+                    () -> Res.get("createOffer.amountPriceBox.sell.volumeDescription", dataModel.getTradeCurrencyCode().get()),
                     dataModel.getTradeCurrencyCode()));
         }
         volumePromptLabel.bind(createStringBinding(
@@ -332,9 +328,7 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
                             try {
                                 double priceAsDouble = ParsingUtils.parseNumberStringToDouble(price.get());
                                 double relation = priceAsDouble / marketPriceAsDouble;
-                                final OfferDirection compareDirection = CurrencyUtil.isCryptoCurrency(currencyCode) ?
-                                        OfferDirection.SELL :
-                                        OfferDirection.BUY;
+                                final OfferDirection compareDirection = OfferDirection.BUY;
                                 double percentage = dataModel.getDirection() == compareDirection ? 1 - relation : relation - 1;
                                 percentage = MathUtils.roundDouble(percentage, 4);
                                 dataModel.setMarketPriceMarginPct(percentage);
@@ -368,9 +362,7 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
                                 percentage = MathUtils.roundDouble(percentage, 4);
                                 double marketPriceAsDouble = marketPrice.getPrice();
                                 final boolean isCryptoCurrency = CurrencyUtil.isCryptoCurrency(currencyCode);
-                                final OfferDirection compareDirection = isCryptoCurrency ?
-                                        OfferDirection.SELL :
-                                        OfferDirection.BUY;
+                                final OfferDirection compareDirection = OfferDirection.BUY;
                                 double factor = dataModel.getDirection() == compareDirection ?
                                         1 - percentage :
                                         1 + percentage;
@@ -585,15 +577,8 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
 
         final boolean isBuy = dataModel.getDirection() == OfferDirection.BUY;
 
-        boolean isFiatCurrency = CurrencyUtil.isFiatCurrency(tradeCurrency.getCode());
-
-        if (isFiatCurrency) {
-            amountDescription = Res.get("createOffer.amountPriceBox.amountDescription",
+        amountDescription = Res.get("createOffer.amountPriceBox.amountDescription",
                     isBuy ? Res.get("shared.buy") : Res.get("shared.sell"));
-        } else {
-            amountDescription = Res.get(isBuy ? "createOffer.amountPriceBox.sell.amountDescriptionAltcoin" :
-                    "createOffer.amountPriceBox.buy.amountDescriptionAltcoin");
-        }
 
         securityDepositValidator.setPaymentAccount(dataModel.paymentAccount);
         validateAndSetBuyerSecurityDepositToModel();
@@ -1094,26 +1079,18 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
     String getTriggerPriceDescriptionLabel() {
         String details;
         if (dataModel.isBuyOffer()) {
-            details = dataModel.isCryptoCurrency() ?
-                    Res.get("account.notifications.marketAlert.message.msg.below") :
-                    Res.get("account.notifications.marketAlert.message.msg.above");
+            details = Res.get("account.notifications.marketAlert.message.msg.above");
         } else {
-            details = dataModel.isCryptoCurrency() ?
-                    Res.get("account.notifications.marketAlert.message.msg.above") :
-                    Res.get("account.notifications.marketAlert.message.msg.below");
+            details = Res.get("account.notifications.marketAlert.message.msg.below");
         }
         return Res.get("createOffer.triggerPrice.label", details);
     }
 
     String getPercentagePriceDescription() {
         if (dataModel.isBuyOffer()) {
-            return dataModel.isCryptoCurrency() ?
-                    Res.get("shared.aboveInPercent") :
-                    Res.get("shared.belowInPercent");
+            return Res.get("shared.belowInPercent");
         } else {
-            return dataModel.isCryptoCurrency() ?
-                    Res.get("shared.belowInPercent") :
-                    Res.get("shared.aboveInPercent");
+            return Res.get("shared.aboveInPercent");
         }
     }
 

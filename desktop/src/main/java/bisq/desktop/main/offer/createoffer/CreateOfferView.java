@@ -49,14 +49,12 @@ public class CreateOfferView extends MutableOfferView<CreateOfferViewModel> {
                             @Named(FormattingUtils.BTC_FORMATTER_KEY) CoinFormatter btcFormatter) {
         super(model, navigation, preferences, offerDetailsWindow, btcFormatter);
     }
-    
+
     @Override
     public void initWithData(OfferDirection direction,
                              TradeCurrency tradeCurrency,
                              OfferView.OfferActionHandler offerActionHandler) {
-        // Invert direction for non-Fiat trade currencies -> BUY BSQ is to SELL Bitcoin
-        OfferDirection offerDirection = CurrencyUtil.isFiatCurrency(tradeCurrency.getCode()) ? direction :
-                direction == OfferDirection.BUY ? OfferDirection.SELL : OfferDirection.BUY;
+        OfferDirection offerDirection = direction;
         super.initWithData(offerDirection, tradeCurrency, offerActionHandler);
     }
 

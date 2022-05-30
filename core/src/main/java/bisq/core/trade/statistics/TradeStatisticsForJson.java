@@ -59,23 +59,15 @@ public final class TradeStatisticsForJson {
 
         try {
             Price tradePrice = getPrice();
-            if (CurrencyUtil.isCryptoCurrency(currency)) {
-                currencyPair = currency + "/" + Res.getBaseCurrencyCode();
-                primaryMarketTradePrice = tradePrice.getValue();
-                primaryMarketTradeAmount = getTradeVolume() != null ?
-                        getTradeVolume().getValue() :
-                        0;
-                primaryMarketTradeVolume = getTradeAmount().getValue();
-            } else {
-                currencyPair = Res.getBaseCurrencyCode() + "/" + currency;
-                // we use precision 4 for fiat based price but on the markets api we use precision 8 so we scale up by 10000
-                primaryMarketTradePrice = (long) MathUtils.scaleUpByPowerOf10(tradePrice.getValue(), 4);
-                primaryMarketTradeAmount = getTradeAmount().getValue();
-                // we use precision 4 for fiat but on the markets api we use precision 8 so we scale up by 10000
-                primaryMarketTradeVolume = getTradeVolume() != null ?
-                        (long) MathUtils.scaleUpByPowerOf10(getTradeVolume().getValue(), 4) :
-                        0;
-            }
+            boolean isCrypto = CurrencyUtil.isCryptoCurrency(currency);
+            currencyPair = Res.getBaseCurrencyCode() + "/" + currency;
+            // we use precision 4 for fiat based price but on the markets api we use precision 8 so we scale up by 10000
+            primaryMarketTradePrice = isCrypto ? tradePrice.getValue() : (long) MathUtils.scaleUpByPowerOf10(tradePrice.getValue(), 4);
+            primaryMarketTradeAmount = getTradeAmount().getValue();
+            // we use precision 4 for fiat but on the markets api we use precision 8 so we scale up by 10000
+            primaryMarketTradeVolume = getTradeVolume() != null ?
+                    (isCrypto ? getTradeVolume().getValue() : (long) MathUtils.scaleUpByPowerOf10(getTradeVolume().getValue(), 4)) :
+                    0;
         } catch (Throwable t) {
             log.error(t.getMessage());
             t.printStackTrace();

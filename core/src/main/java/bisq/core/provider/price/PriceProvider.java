@@ -83,7 +83,7 @@ public class PriceProvider extends HttpClientProvider {
                 // convert price from btc to xmr
                 boolean isFiat = CurrencyUtil.isFiatCurrency(currencyCode);
                 if (isFiat) price = price * btcPerXmr;
-                else price = price / btcPerXmr;
+                else price = btcPerXmr / price;
 
                 // add currency price to map
                 marketPriceMap.put(currencyCode, new MarketPrice(currencyCode, price, timestampSec, true));
@@ -94,7 +94,7 @@ public class PriceProvider extends HttpClientProvider {
         }
 
         // add btc to price map, remove xmr since base currency
-        marketPriceMap.put("BTC", new MarketPrice("BTC", 1 / btcPerXmr, marketPriceMap.get("XMR").getTimestampSec(), true));
+        marketPriceMap.put("BTC", new MarketPrice("BTC", btcPerXmr, marketPriceMap.get("XMR").getTimestampSec(), true));
         marketPriceMap.remove("XMR");
         return new Tuple2<>(tsMap, marketPriceMap);
     }

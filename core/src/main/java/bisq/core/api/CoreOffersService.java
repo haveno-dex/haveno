@@ -141,7 +141,7 @@ class CoreOffersService {
     }
 
     List<Offer> getMyOffers(String direction, String currencyCode) {
-        
+
         // get my open offers
         List<Offer> offers = openOfferManager.getObservableList().stream()
                 .map(OpenOffer::getOffer)
@@ -163,10 +163,10 @@ class CoreOffersService {
 
         return offers;
     }
-    
+
     private Set<Offer> getUnreservedOffers(List<Offer> offers) {
         Set<Offer> unreservedOffers = new HashSet<Offer>();
-        
+
         // collect reserved key images and check for duplicate funds
         List<String> allKeyImages = new ArrayList<String>();
         for (Offer offer : offers) {
@@ -178,7 +178,7 @@ class CoreOffersService {
             }
           }
         }
-        
+
         // get spent key images
         // TODO (woodser): paginate offers and only check key images of current page
         List<String> spentKeyImages = new ArrayList<String>();
@@ -186,7 +186,7 @@ class CoreOffersService {
         for (int i = 0; i < spentStatuses.size(); i++) {
           if (spentStatuses.get(i) != MoneroKeyImageSpentStatus.NOT_SPENT) spentKeyImages.add(allKeyImages.get(i));
         }
-        
+
         // check for offers with spent key images
         for (Offer offer : offers) {
           if (offer.getOfferPayload().getReserveTxKeyImages() == null) continue;
@@ -198,7 +198,7 @@ class CoreOffersService {
             }
           }
         }
-        
+
         return unreservedOffers;
     }
 
@@ -321,7 +321,7 @@ class CoreOffersService {
                                                      String direction,
                                                      String currencyCode) {
         var offerOfWantedDirection = offer.getDirection().name().equalsIgnoreCase(direction);
-        var counterAssetCode = isCryptoCurrency(currencyCode) ? offer.getOfferPayload().getBaseCurrencyCode() : offer.getOfferPayload().getCounterCurrencyCode(); // TODO: crypto pairs invert base and counter currencies
+        var counterAssetCode = offer.getOfferPayload().getCounterCurrencyCode();
         var offerInWantedCurrency = counterAssetCode.equalsIgnoreCase(currencyCode);
         return offerOfWantedDirection && offerInWantedCurrency;
     }

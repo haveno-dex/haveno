@@ -80,7 +80,7 @@ public class PriceUtil {
         long marketPriceAsLong = PriceUtil.getMarketPriceAsLong("" +  marketPrice.getPrice(), marketPrice.getCurrencyCode());
         String marketPriceAsString = FormattingUtils.formatMarketPrice(marketPrice.getPrice(), marketPrice.getCurrencyCode());
 
-        if ((isSellOffer && isFiatCurrency) || (!isSellOffer && !isFiatCurrency)) {
+        if (isSellOffer) {
             if (triggerPriceAsLong >= marketPriceAsLong) {
                 return new InputValidator.ValidationResult(false,
                         Res.get("createOffer.triggerPrice.invalid.tooHigh", marketPriceAsString));
@@ -148,29 +148,15 @@ public class PriceUtil {
         double scaled = MathUtils.scaleDownByPowerOf10(priceAsLong, precision);
         double value;
         if (direction == OfferDirection.SELL) {
-            if (CurrencyUtil.isFiatCurrency(currencyCode)) {
-                if (marketPrice == 0) {
-                    return Optional.empty();
-                }
-                value = 1 - scaled / marketPrice;
-            } else {
-                if (marketPrice == 1) {
-                    return Optional.empty();
-                }
-                value = scaled / marketPrice - 1;
+            if (marketPrice == 0) {
+                return Optional.empty();
             }
+            value = 1 - scaled / marketPrice;
         } else {
-            if (CurrencyUtil.isFiatCurrency(currencyCode)) {
-                if (marketPrice == 1) {
-                    return Optional.empty();
-                }
-                value = scaled / marketPrice - 1;
-            } else {
-                if (marketPrice == 0) {
-                    return Optional.empty();
-                }
-                value = 1 - scaled / marketPrice;
+            if (marketPrice == 1) {
+                return Optional.empty();
             }
+            value = scaled / marketPrice - 1;
         }
         return Optional.of(value);
     }

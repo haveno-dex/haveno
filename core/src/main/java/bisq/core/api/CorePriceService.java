@@ -62,7 +62,7 @@ class CorePriceService {
         if (marketPrice == null) {
             throw new IllegalArgumentException("Currency not found: " + currencyCode); // message sent to client
         }
-        return mapPriceFeedServicePrice(marketPrice.getPrice(), marketPrice.getCurrencyCode());
+        return marketPrice.getPrice();
     }
 
     /**
@@ -71,7 +71,7 @@ class CorePriceService {
     public List<MarketPriceInfo> getMarketPrices() throws ExecutionException, InterruptedException, TimeoutException {
         return priceFeedService.requestAllPrices().values().stream()
                 .map(marketPrice -> {
-                    double mappedPrice = mapPriceFeedServicePrice(marketPrice.getPrice(), marketPrice.getCurrencyCode());
+                    double mappedPrice = marketPrice.getPrice();
                     return new MarketPriceInfo(marketPrice.getCurrencyCode(), mappedPrice);
                 })
                 .collect(Collectors.toList());
@@ -85,13 +85,6 @@ class CorePriceService {
 
         // Offer price can be null (if price feed unavailable), thus a null-tolerant comparator is used.
         Comparator<Offer> offerPriceComparator = Comparator.comparing(Offer::getPrice, Comparator.nullsLast(Comparator.naturalOrder()));
-
-        // Trading btc-fiat is considered as buying/selling BTC, but trading btc-altcoin is
-        // considered as buying/selling Altcoin. Because of this, when viewing a btc-altcoin pair,
-        // the buy column is actually the sell column and vice versa. To maintain the expected
-        // ordering, we have to reverse the price comparator.
-        boolean isCrypto = CurrencyUtil.isCryptoCurrency(currencyCode);
-        if (isCrypto) offerPriceComparator = offerPriceComparator.reversed();
 
         // Offer amounts are used for the secondary sort. They are sorted from high to low.
         Comparator<Offer> offerAmountComparator = Comparator.comparing(Offer::getAmount).reversed();
@@ -114,7 +107,7 @@ class CorePriceService {
                 double amount = (double) offer.getAmount().value / LongMath.pow(10, offer.getAmount().smallestUnitExponent());
                 accumulatedAmount += amount;
                 double priceAsDouble = (double) price.getValue() / LongMath.pow(10, price.smallestUnitExponent());
-                buyTM.put(mapPriceFeedServicePrice(priceAsDouble, currencyCode), accumulatedAmount);
+                buyTM.put(priceAsDouble, accumulatedAmount);
             }
         };
 
@@ -127,7 +120,7 @@ class CorePriceService {
                 double amount = (double) offer.getAmount().value / LongMath.pow(10, offer.getAmount().smallestUnitExponent());
                 accumulatedAmount += amount;
                 double priceAsDouble = (double) price.getValue() / LongMath.pow(10, price.smallestUnitExponent());
-                sellTM.put(mapPriceFeedServicePrice(priceAsDouble, currencyCode), accumulatedAmount);
+                sellTM.put(priceAsDouble, accumulatedAmount);
             }
         };
 
@@ -140,21 +133,6 @@ class CorePriceService {
         Double[] sellPrices = sellTM.keySet().toArray(new Double[sellTM.size()]);
 
         return new MarketDepthInfo(currencyCode, buyPrices, buyDepth, sellPrices, sellDepth);
-    }
-    
-    /**
-     * PriceProvider returns different values for crypto and fiat,
-     * e.g. 1 XMR = X USD
-     * but 1 DOGE = X XMR
-     * Here we convert all to:
-     * 1 XMR = X (FIAT or CRYPTO)
-     */
-    private double mapPriceFeedServicePrice(double price, String currencyCode) {
-        if (CurrencyUtil.isFiatCurrency(currencyCode)) {
-            return price;
-        }
-        return price == 0 ? 0 : 1 / price;
-        // TODO PriceProvider.getAll() could provide these values directly when the original values are not needed for the 'desktop' UI anymore
     }
 }
 

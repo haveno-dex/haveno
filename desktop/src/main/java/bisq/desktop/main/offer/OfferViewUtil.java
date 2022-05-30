@@ -146,7 +146,7 @@ public class OfferViewUtil {
     }
 
     public static boolean isShownAsSellOffer(String currencyCode, OfferDirection direction) {
-        return CurrencyUtil.isFiatCurrency(currencyCode) == (direction == OfferDirection.SELL);
+        return direction == OfferDirection.SELL;
     }
 
     public static boolean isShownAsBuyOffer(Offer offer) {

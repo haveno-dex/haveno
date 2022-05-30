@@ -417,17 +417,11 @@ public class CurrencyUtil {
     }
 
     public static String getCurrencyPair(String currencyCode) {
-        if (isFiatCurrency(currencyCode))
-            return Res.getBaseCurrencyCode() + "/" + currencyCode;
-        else
-            return currencyCode + "/" + Res.getBaseCurrencyCode();
+        return Res.getBaseCurrencyCode() + "/" + currencyCode;
     }
 
     public static String getCounterCurrency(String currencyCode) {
-        if (isFiatCurrency(currencyCode))
-            return currencyCode;
-        else
-            return Res.getBaseCurrencyCode();
+        return currencyCode;
     }
 
     public static String getPriceWithCurrencyCode(String currencyCode) {
@@ -435,10 +429,7 @@ public class CurrencyUtil {
     }
 
     public static String getPriceWithCurrencyCode(String currencyCode, String translationKey) {
-        if (isCryptoCurrency(currencyCode))
-            return Res.get(translationKey, Res.getBaseCurrencyCode(), currencyCode);
-        else
-            return Res.get(translationKey, currencyCode, Res.getBaseCurrencyCode());
+        return Res.get(translationKey, currencyCode, Res.getBaseCurrencyCode());
     }
 
     public static String getOfferVolumeCode(String currencyCode) {

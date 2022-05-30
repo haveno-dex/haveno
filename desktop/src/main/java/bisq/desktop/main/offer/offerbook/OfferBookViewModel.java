@@ -406,8 +406,7 @@ abstract class OfferBookViewModel extends ActivatableViewModel {
     }
 
     public Optional<Double> getMarketBasedPrice(Offer offer) {
-        OfferDirection displayDirection = offer.isFiatOffer() ? direction :
-                direction.equals(OfferDirection.BUY) ? OfferDirection.SELL : OfferDirection.BUY;
+        OfferDirection displayDirection = direction;
         return priceUtil.getMarketBasedPrice(offer, displayDirection);
     }
 
@@ -632,10 +631,7 @@ abstract class OfferBookViewModel extends ActivatableViewModel {
     }
 
     private static String getDirectionWithCodeDetailed(OfferDirection direction, String currencyCode) {
-        if (CurrencyUtil.isFiatCurrency(currencyCode))
-            return (direction == OfferDirection.BUY) ? Res.get("shared.buyingBTCWith", currencyCode) : Res.get("shared.sellingBTCFor", currencyCode);
-        else
-            return (direction == OfferDirection.SELL) ? Res.get("shared.buyingCurrency", currencyCode) : Res.get("shared.sellingCurrency", currencyCode);
+        return (direction == OfferDirection.BUY) ? Res.get("shared.buyingBTCWith", currencyCode) : Res.get("shared.sellingBTCFor", currencyCode);
     }
 
     public String formatDepositString(Coin deposit, long amount) {

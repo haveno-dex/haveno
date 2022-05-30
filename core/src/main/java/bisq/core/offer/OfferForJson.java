@@ -103,44 +103,23 @@ public class OfferForJson {
     private void setDisplayStrings() {
         try {
             final Price price = getPrice();
-            if (CurrencyUtil.isCryptoCurrency(currencyCode)) {
-                primaryMarketDirection = direction == OfferDirection.BUY ? OfferDirection.SELL : OfferDirection.BUY;
-                currencyPair = currencyCode + "/" + Res.getBaseCurrencyCode();
+            boolean isCrypto = CurrencyUtil.isCryptoCurrency(currencyCode);
+            primaryMarketDirection = direction;
+            currencyPair = Res.getBaseCurrencyCode() + "/" + currencyCode;
 
-                // int precision = 8;
-                //decimalFormat.setMaximumFractionDigits(precision);
+            priceDisplayString = fiatFormat.noCode().format(price.getMonetary()).toString();
+            primaryMarketMinAmountDisplayString = coinFormat.noCode().format(getMinAmountAsCoin()).toString();
+            primaryMarketAmountDisplayString = coinFormat.noCode().format(getAmountAsCoin()).toString();
+            primaryMarketMinVolumeDisplayString = fiatFormat.noCode().format(getMinVolume().getMonetary()).toString();
+            primaryMarketVolumeDisplayString = fiatFormat.noCode().format(getVolume().getMonetary()).toString();
 
-                // amount and volume is inverted for json
-                priceDisplayString = altcoinFormat.noCode().format(price.getMonetary()).toString();
-                primaryMarketMinAmountDisplayString = altcoinFormat.noCode().format(getMinVolume().getMonetary()).toString();
-                primaryMarketAmountDisplayString = altcoinFormat.noCode().format(getVolume().getMonetary()).toString();
-                primaryMarketMinVolumeDisplayString = coinFormat.noCode().format(getMinAmountAsCoin()).toString();
-                primaryMarketVolumeDisplayString = coinFormat.noCode().format(getAmountAsCoin()).toString();
+            // we use precision 4 for fiat based price but on the markets api we use precision 8 so we scale up by 10000
+            primaryMarketPrice = isCrypto ? price.getValue() : (long) MathUtils.scaleUpByPowerOf10(price.getValue(), 4);
+            primaryMarketMinVolume = isCrypto ? getMinVolume().getValue() : (long) MathUtils.scaleUpByPowerOf10(getMinVolume().getValue(), 4);
+            primaryMarketVolume = isCrypto ? getVolume().getValue() : (long) MathUtils.scaleUpByPowerOf10(getVolume().getValue(), 4);
 
-                primaryMarketPrice = price.getValue();
-                primaryMarketMinAmount = getMinVolume().getValue();
-                primaryMarketAmount = getVolume().getValue();
-                primaryMarketMinVolume = getMinAmountAsCoin().getValue();
-                primaryMarketVolume = getAmountAsCoin().getValue();
-            } else {
-                primaryMarketDirection = direction;
-                currencyPair = Res.getBaseCurrencyCode() + "/" + currencyCode;
-
-                priceDisplayString = fiatFormat.noCode().format(price.getMonetary()).toString();
-                primaryMarketMinAmountDisplayString = coinFormat.noCode().format(getMinAmountAsCoin()).toString();
-                primaryMarketAmountDisplayString = coinFormat.noCode().format(getAmountAsCoin()).toString();
-                primaryMarketMinVolumeDisplayString = fiatFormat.noCode().format(getMinVolume().getMonetary()).toString();
-                primaryMarketVolumeDisplayString = fiatFormat.noCode().format(getVolume().getMonetary()).toString();
-
-                // we use precision 4 for fiat based price but on the markets api we use precision 8 so we scale up by 10000
-                primaryMarketPrice = (long) MathUtils.scaleUpByPowerOf10(price.getValue(), 4);
-                primaryMarketMinVolume = (long) MathUtils.scaleUpByPowerOf10(getMinVolume().getValue(), 4);
-                primaryMarketVolume = (long) MathUtils.scaleUpByPowerOf10(getVolume().getValue(), 4);
-
-                primaryMarketMinAmount = getMinAmountAsCoin().getValue();
-                primaryMarketAmount = getAmountAsCoin().getValue();
-            }
-
+            primaryMarketMinAmount = getMinAmountAsCoin().getValue();
+            primaryMarketAmount = getAmountAsCoin().getValue();
         } catch (Throwable t) {
             log.error("Error at setDisplayStrings: " + t.getMessage());
         }

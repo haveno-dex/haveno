@@ -171,15 +171,12 @@ public class Offer implements NetworkPayload, PersistablePayload {
         checkNotNull(priceFeedService, "priceFeed must not be null");
         MarketPrice marketPrice = priceFeedService.getMarketPrice(currencyCode);
         if (marketPrice != null && marketPrice.isRecentExternalPriceAvailable()) {
-            double factor;
             double marketPriceMargin = offerPayload.getMarketPriceMarginPct();
-            if (CurrencyUtil.isCryptoCurrency(currencyCode)) {
-                factor = getDirection() == OfferDirection.SELL ?
-                        1 - marketPriceMargin : 1 + marketPriceMargin;
-            } else {
-                factor = getDirection() == OfferDirection.BUY ?
-                        1 - marketPriceMargin : 1 + marketPriceMargin;
-            }
+
+            // if buying the base currency you would want a lower price
+            double factor = getDirection() == OfferDirection.BUY ?
+                    1 - marketPriceMargin : 1 + marketPriceMargin;
+
             double marketPriceAsDouble = marketPrice.getPrice();
             double targetPriceAsDouble = marketPriceAsDouble * factor;
             try {
@@ -445,9 +442,7 @@ public class Offer implements NetworkPayload, PersistablePayload {
             return currencyCode;
         }
 
-        currencyCode = offerPayload.getBaseCurrencyCode().equals("XMR") ?
-                offerPayload.getCounterCurrencyCode() :
-                offerPayload.getBaseCurrencyCode();
+        currencyCode = offerPayload.getCurrencyCode();
         return currencyCode;
     }
 
@@ -533,7 +528,7 @@ public class Offer implements NetworkPayload, PersistablePayload {
     }
 
     public boolean isXmr() {
-        return getCurrencyCode().equals("XMR");
+        return getCurrencyCode().equals("XMR"); // TODO: this never returns true
     }
 
     public boolean isFiatOffer() {

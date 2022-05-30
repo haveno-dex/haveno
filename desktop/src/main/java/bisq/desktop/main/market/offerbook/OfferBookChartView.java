@@ -240,8 +240,8 @@ public class OfferBookChartView extends ActivatableViewAndModel<VBox, OfferBookC
                         }
                     });
 
-                    String viewBaseCurrencyCode = CurrencyUtil.isCryptoCurrency(code) ? code : Res.getBaseCurrencyCode();
-                    String viewPriceCurrencyCode = CurrencyUtil.isCryptoCurrency(code) ? Res.getBaseCurrencyCode() : code;
+                    String viewBaseCurrencyCode = Res.getBaseCurrencyCode();
+                    String viewPriceCurrencyCode = code;
 
                     sellHeaderLabel.setText(Res.get("market.offerBook.sellOffersHeaderLabel", viewBaseCurrencyCode));
                     sellButton.updateText(Res.get("shared.sellCurrency", viewBaseCurrencyCode, viewPriceCurrencyCode));
