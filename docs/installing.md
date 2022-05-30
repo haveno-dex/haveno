@@ -13,7 +13,7 @@ On Ubuntu: `sudo apt install make wget git git-lfs openjdk-11-jdk`. The Bitcoin 
 
 ## 3. Connect to Monero stagenet
 
-The quickest way to get a Monero stagenet running is by connecting to our own shared instance (3a) so you won't have to do anything except mine coins for testing (step 5). If you prefer to have total control over the testing instance, you might prefer running your own private Monero stagenet (3b).
+The easiest way to get a Monero stagenet running is by connecting to our own shared instance (3a) so you won't have to do anything except mine coins for testing (step 5). If you are testing or developing locally, we suggest you create your own local stagenet (3b).
 
 ### 3a. Join our shared stagenet
 

@@ -134,7 +134,6 @@ monero-shared:
 		--add-exclusive-node 136.244.105.131:38080 \
 		--rpc-login superuser:abctesting123 \
 		--rpc-access-control-origins http://localhost:8080 \
-		--fixed-difficulty 100
 
 monero-private1:
 	./.localnet/monerod \
