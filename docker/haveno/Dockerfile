@@ -18,7 +18,7 @@ WORKDIR /home/haveno
         
 RUN set -ex && git clone https://github.com/haveno-dex/haveno.git && \
     cd haveno && \
-    make
+    make skip-tests
 
 WORKDIR /home/haveno/haveno
 

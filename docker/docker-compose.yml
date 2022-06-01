@@ -11,6 +11,8 @@ services:
     ports:
     # monero rpc
     - "38081:38081"
+    # arbitrator
+    - "9998:9998"
     # alice
     - "9999:9999"
     - "58081:58081"
@@ -34,6 +36,11 @@ services:
     network_mode: "service:node1"
     depends_on:
       - node2
+
+  arbitrator:
+    build: haveno/
+    container_name: arbitrator
+    command: [ "--baseCurrencyNetwork=XMR_STAGENET", "--useLocalhostForP2P=true", "--useDevPrivilegeKeys=true", --"nodePort=4444", "--appName=haveno-XMR_STAGENET_arbitrator", "--apiPassword=apitest", "--apiPort=9998", "--passwordRequired=false" ]
 
   alice:
     build: haveno/

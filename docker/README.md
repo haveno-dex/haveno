@@ -12,6 +12,7 @@ We use a docker-compose.yml file to set up the test environment. To build all th
 
 - 2 monero instances (for building and interacting with a local stagenet)
 - Haveno seednode
+- Haveno arbitrator
 - Haveno user 1 (Alice)
 - Haveno user 2 (Bob)
 
@@ -21,7 +22,7 @@ Run all instances using `docker-compose up`.
 
 Now open another terminal window, that we will use for sending commands to the containers.
 
-## 4. Mine first 150 blocks
+## 4. Mine first 130 blocks
 
 In this window run: `docker ps`. It will give you the details of the running containers. Copy the `CONTAINER ID` of the `IMAGE` `docker_node2`.
 
