@@ -64,4 +64,9 @@ public class BtcOfferBookView extends OfferBookView<GridPane, BtcOfferBookViewMo
     String getTradeCurrencyCode() {
         return Res.getBaseCurrencyCode();
     }
+
+    @Override
+    OfferDirection getDisplayDirection() {
+        return model.getDirection();
+    }
 }

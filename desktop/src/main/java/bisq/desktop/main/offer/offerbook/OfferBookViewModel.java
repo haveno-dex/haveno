@@ -631,7 +631,10 @@ abstract class OfferBookViewModel extends ActivatableViewModel {
     }
 
     private static String getDirectionWithCodeDetailed(OfferDirection direction, String currencyCode) {
-        return (direction == OfferDirection.BUY) ? Res.get("shared.buyingBTCWith", currencyCode) : Res.get("shared.sellingBTCFor", currencyCode);
+        if (CurrencyUtil.isFiatCurrency(currencyCode))
+            return (direction == OfferDirection.BUY) ? Res.get("shared.buyingBTCWith", currencyCode) : Res.get("shared.sellingBTCFor", currencyCode);
+        else
+            return (direction == OfferDirection.SELL) ? Res.get("shared.buyingCurrency", currencyCode) : Res.get("shared.sellingCurrency", currencyCode);
     }
 
     public String formatDepositString(Coin deposit, long amount) {

@@ -30,6 +30,7 @@ import bisq.desktop.main.offer.offerbook.TopAltcoinOfferBookView;
 import bisq.desktop.main.offer.takeoffer.TakeOfferView;
 import bisq.desktop.util.GUIUtil;
 import bisq.common.UserThread;
+
 import bisq.core.locale.CurrencyUtil;
 import bisq.core.locale.GlobalSettings;
 import bisq.core.locale.Res;
@@ -182,6 +183,9 @@ public abstract class OfferView extends ActivatableView<TabPane, Void> {
         TabPane tabPane = root;
         tabPane.setTabClosingPolicy(TabPane.TabClosingPolicy.ALL_TABS);
 
+        // invert the direction for cryptos
+        OfferDirection otherDirection = (this.direction == OfferDirection.SELL) ? OfferDirection.BUY : OfferDirection.SELL;
+
         if (OfferBookView.class.isAssignableFrom(viewClass)) {
 
             if (viewClass == BtcOfferBookView.class && btcOfferBookTab != null && btcOfferBookView != null) {
@@ -240,14 +244,14 @@ public abstract class OfferView extends ActivatableView<TabPane, Void> {
                 } else if (viewClass == TopAltcoinOfferBookView.class) {
                     topAltcoinOfferBookView = (TopAltcoinOfferBookView) viewLoader.load(TopAltcoinOfferBookView.class);
                     topAltcoinOfferBookView.setOfferActionHandler(offerActionHandler);
-                    topAltcoinOfferBookView.setDirection(direction);
+                    topAltcoinOfferBookView.setDirection(otherDirection);
                     topAltcoinOfferBookView.onTabSelected(true);
                     tabPane.getSelectionModel().select(topAltcoinOfferBookTab);
                     topAltcoinOfferBookTab.setContent(topAltcoinOfferBookView.getRoot());
                 } else if (viewClass == OtherOfferBookView.class) {
                     otherOfferBookView = (OtherOfferBookView) viewLoader.load(OtherOfferBookView.class);
                     otherOfferBookView.setOfferActionHandler(offerActionHandler);
-                    otherOfferBookView.setDirection(direction);
+                    otherOfferBookView.setDirection(otherDirection);
                     otherOfferBookView.onTabSelected(true);
                     tabPane.getSelectionModel().select(otherOfferBookTab);
                     otherOfferBookTab.setContent(otherOfferBookView.getRoot());
@@ -269,7 +273,13 @@ public abstract class OfferView extends ActivatableView<TabPane, Void> {
         // CreateOffer and TakeOffer must not be cached by ViewLoader as we cannot use a view multiple times
         // in different graphs
         view = viewLoader.load(childViewClass);
-        ((CreateOfferView) view).initWithData(direction, tradeCurrency, offerActionHandler);
+
+        // invert the direction for cryptos
+        var offerDirection = direction;
+        if (CurrencyUtil.isCryptoCurrency(tradeCurrency.getCode())) {
+            offerDirection = direction == OfferDirection.BUY ? OfferDirection.SELL : OfferDirection.BUY;
+        }
+        ((CreateOfferView) view).initWithData(offerDirection, tradeCurrency, offerActionHandler);
 
         ((SelectableView) view).onTabSelected(true);
 

@@ -587,9 +587,10 @@ abstract public class OfferBookView<R extends GridPane, M extends OfferBookViewM
         model.initWithDirection(direction);
         ImageView iconView = new ImageView();
         createOfferButton.setGraphic(iconView);
-        iconView.setId(direction == OfferDirection.SELL ? "image-sell-white" : "image-buy-white");
-        createOfferButton.setId(direction == OfferDirection.SELL ? "sell-button-big" : "buy-button-big");
-        avatarColumn.setTitle(direction == OfferDirection.SELL ? Res.get("shared.buyerUpperCase") : Res.get("shared.sellerUpperCase"));
+        var displayDirection = getDisplayDirection();
+        iconView.setId(displayDirection == OfferDirection.SELL ? "image-sell-white" : "image-buy-white");
+        createOfferButton.setId(displayDirection == OfferDirection.SELL ? "sell-button-big" : "buy-button-big");
+        avatarColumn.setTitle(displayDirection == OfferDirection.SELL ? Res.get("shared.buyerUpperCase") : Res.get("shared.sellerUpperCase"));
     }
 
     public void setOfferActionHandler(OfferView.OfferActionHandler offerActionHandler) {
@@ -1268,9 +1269,11 @@ abstract public class OfferBookView<R extends GridPane, M extends OfferBookViewM
 
     private void updateCreateOfferButton() {
         createOfferButton.setText(Res.get("offerbook.createNewOffer",
-                model.getDirection() == OfferDirection.BUY ? Res.get("shared.buy") : Res.get("shared.sell"),
+                getDisplayDirection() == OfferDirection.BUY ? Res.get("shared.buy") : Res.get("shared.sell"),
                 getTradeCurrencyCode()).toUpperCase());
     }
 
     abstract String getTradeCurrencyCode();
+
+    abstract OfferDirection getDisplayDirection();
 }

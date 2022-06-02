@@ -261,11 +261,15 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
     private void addBindings() {
         if (dataModel.getDirection() == OfferDirection.BUY) {
             volumeDescriptionLabel.bind(createStringBinding(
-                    () -> Res.get("createOffer.amountPriceBox.buy.volumeDescription", dataModel.getTradeCurrencyCode().get()),
+                    () -> Res.get(CurrencyUtil.isFiatCurrency(dataModel.getTradeCurrencyCode().get()) ?
+                            "createOffer.amountPriceBox.buy.volumeDescription" :
+                            "createOffer.amountPriceBox.buy.volumeDescriptionAltcoin", dataModel.getTradeCurrencyCode().get()),
                     dataModel.getTradeCurrencyCode()));
         } else {
             volumeDescriptionLabel.bind(createStringBinding(
-                    () -> Res.get("createOffer.amountPriceBox.sell.volumeDescription", dataModel.getTradeCurrencyCode().get()),
+                    () -> Res.get(CurrencyUtil.isFiatCurrency(dataModel.getTradeCurrencyCode().get()) ?
+                            "createOffer.amountPriceBox.sell.volumeDescription" :
+                            "createOffer.amountPriceBox.sell.volumeDescriptionAltcoin", dataModel.getTradeCurrencyCode().get()),
                     dataModel.getTradeCurrencyCode()));
         }
         volumePromptLabel.bind(createStringBinding(
@@ -577,8 +581,14 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
 
         final boolean isBuy = dataModel.getDirection() == OfferDirection.BUY;
 
-        amountDescription = Res.get("createOffer.amountPriceBox.amountDescription",
+        boolean isFiatCurrency = CurrencyUtil.isFiatCurrency(tradeCurrency.getCode());
+        if (isFiatCurrency) {
+            amountDescription = Res.get("createOffer.amountPriceBox.amountDescription",
                     isBuy ? Res.get("shared.buy") : Res.get("shared.sell"));
+        } else {
+            amountDescription = Res.get(isBuy ? "createOffer.amountPriceBox.sell.amountDescriptionAltcoin" :
+                    "createOffer.amountPriceBox.buy.amountDescriptionAltcoin");
+        }
 
         securityDepositValidator.setPaymentAccount(dataModel.paymentAccount);
         validateAndSetBuyerSecurityDepositToModel();

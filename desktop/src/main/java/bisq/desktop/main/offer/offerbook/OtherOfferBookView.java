@@ -54,12 +54,17 @@ public class OtherOfferBookView extends OfferBookView<GridPane, OtherOfferBookVi
     @Override
     protected String getMarketTitle() {
         return model.getDirection().equals(OfferDirection.BUY) ?
-                Res.get("offerbook.availableOffersToBuy", Res.getBaseCurrencyCode(), Res.get("shared.otherAssets")) :
-                Res.get("offerbook.availableOffersToSell", Res.getBaseCurrencyCode(), Res.get("shared.otherAssets"));
+                Res.get("offerbook.availableOffersToSell", Res.get("shared.otherAssets"), Res.getBaseCurrencyCode()) :
+                Res.get("offerbook.availableOffersToBuy", Res.get("shared.otherAssets"), Res.getBaseCurrencyCode());
     }
 
     @Override
     String getTradeCurrencyCode() {
-        return model.showAllTradeCurrenciesProperty.get() ? "" : Res.getBaseCurrencyCode();
+        return model.showAllTradeCurrenciesProperty.get() ? "" : model.getSelectedTradeCurrency().getCode();
+    }
+
+    @Override
+    OfferDirection getDisplayDirection() {
+        return model.getDirection() == OfferDirection.BUY ? OfferDirection.SELL : OfferDirection.BUY;
     }
 }
