@@ -180,7 +180,7 @@ public class WesternUnionForm extends PaymentMethodForm {
 
     @Override
     protected void autoFillNameTextField() {
-        setAccountNameWithString(westernUnionAccountPayload.getHolderName());
+        setAccountNameWithString(westernUnionAccountPayload.getHolderName() == null ? "" : westernUnionAccountPayload.getHolderName());
     }
 
     @Override
