@@ -19,6 +19,7 @@ package bisq.core.app;
 
 import bisq.core.api.AccountServiceListener;
 import bisq.core.api.CoreAccountService;
+import bisq.core.api.CoreMoneroConnectionsService;
 import bisq.core.btc.setup.WalletsSetup;
 import bisq.core.btc.wallet.BtcWalletService;
 import bisq.core.btc.wallet.XmrWalletService;
@@ -47,7 +48,11 @@ import bisq.common.util.Utilities;
 
 import com.google.inject.Guice;
 import com.google.inject.Injector;
+
+import java.io.Console;
+
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import lombok.extern.slf4j.Slf4j;
@@ -59,6 +64,7 @@ public abstract class HavenoExecutable implements GracefulShutDownHandler, Haven
 
     public static final int EXIT_SUCCESS = 0;
     public static final int EXIT_FAILURE = 1;
+    public static final int EXIT_RESTART = 2;
 
     private final String fullName;
     private final String scriptName;
@@ -71,6 +77,9 @@ public abstract class HavenoExecutable implements GracefulShutDownHandler, Haven
     protected Config config;
     private boolean isShutdownInProgress;
     private boolean isReadOnly;
+    private Thread keepRunningThread;
+    private AtomicInteger keepRunningResult = new AtomicInteger(EXIT_SUCCESS);
+    private Runnable shutdownCompletedHandler;
 
     public HavenoExecutable(String fullName, String scriptName, String appName, String version) {
         this.fullName = fullName;
@@ -79,7 +88,7 @@ public abstract class HavenoExecutable implements GracefulShutDownHandler, Haven
         this.version = version;
     }
 
-    public void execute(String[] args) {
+    public int execute(String[] args) {
         try {
             config = new Config(appName, Utilities.getUserDataDir(), args);
             if (config.helpRequested) {
@@ -97,14 +106,14 @@ public abstract class HavenoExecutable implements GracefulShutDownHandler, Haven
             System.exit(EXIT_FAILURE);
         }
 
-        doExecute();
+        return doExecute();
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // First synchronous execution tasks
     ///////////////////////////////////////////////////////////////////////////////////////////
 
-    protected void doExecute() {
+    protected int doExecute() {
         CommonSetup.setup(config, this);
         CoreSetup.setup(config);
 
@@ -112,6 +121,8 @@ public abstract class HavenoExecutable implements GracefulShutDownHandler, Haven
 
         // If application is JavaFX application we need to wait until it is initialized
         launchApplication();
+
+        return EXIT_SUCCESS;
     }
 
     protected abstract void configUserThread();
@@ -148,8 +159,8 @@ public abstract class HavenoExecutable implements GracefulShutDownHandler, Haven
 
         // Application needs to restart on delete and restore of account.
         accountService.addListener(new AccountServiceListener() {
-            @Override public void onAccountDeleted(Runnable onShutdown) { shutDownNoPersist(onShutdown); }
-            @Override public void onAccountRestored(Runnable onShutdown) { shutDownNoPersist(onShutdown); }
+            @Override public void onAccountDeleted(Runnable onShutdown) { shutDownNoPersist(onShutdown, true); }
+            @Override public void onAccountRestored(Runnable onShutdown) { shutDownNoPersist(onShutdown, true); }
         });
 
         // Attempt to login, subclasses should implement interactive login and or rpc login.
@@ -164,18 +175,27 @@ public abstract class HavenoExecutable implements GracefulShutDownHandler, Haven
     /**
      * Do not persist when shutting down after account restore and restarts since
      * that causes the current persistables to overwrite the restored or deleted state.
+     *
+     * If restart is specified, initiates an in-process asynchronous restart of the
+     * application by interrupting the keepRunningThread.
      */
-    protected void shutDownNoPersist(Runnable onShutdown) {
+    protected void shutDownNoPersist(Runnable onShutdown, boolean restart) {
         this.isReadOnly = true;
-        gracefulShutDown(() -> {
-            log.info("Shutdown without persisting");
-            if (onShutdown != null) onShutdown.run();
-        });
+        if (restart) {
+            shutdownCompletedHandler = onShutdown;
+            keepRunningResult.set(EXIT_RESTART);
+            keepRunningThread.interrupt();
+        } else {
+            gracefulShutDown(() -> {
+                log.info("Shutdown without persisting");
+                if (onShutdown != null) onShutdown.run();
+            });
+        }
     }
 
     /**
      * Attempt to login. TODO: supply a password in config or args
-     * 
+     *
      * @return true if account is opened successfully.
      */
     protected boolean loginAccount() {
@@ -257,15 +277,31 @@ public abstract class HavenoExecutable implements GracefulShutDownHandler, Haven
     // GracefulShutDownHandler implementation
     ///////////////////////////////////////////////////////////////////////////////////////////
 
-    // This might need to be overwritten in case the application is not using all modules
     @Override
     public void gracefulShutDown(ResultHandler resultHandler) {
+        gracefulShutDown(resultHandler, true);
+    }
+
+    // This might need to be overwritten in case the application is not using all modules
+    @Override
+    public void gracefulShutDown(ResultHandler onShutdown, boolean systemExit) {
         log.info("Start graceful shutDown");
         if (isShutdownInProgress) {
+            log.info("Ignoring call to gracefulShutDown, already in progress");
             return;
         }
 
         isShutdownInProgress = true;
+
+        ResultHandler resultHandler;
+        if (shutdownCompletedHandler != null) {
+            resultHandler = () -> {
+                shutdownCompletedHandler.run();
+                onShutdown.handleResult();
+            };
+        } else {
+            resultHandler = onShutdown;
+        }
 
         if (injector == null) {
             log.info("Shut down called before injector was created");
@@ -279,7 +315,7 @@ public abstract class HavenoExecutable implements GracefulShutDownHandler, Haven
             injector.getInstance(TradeStatisticsManager.class).shutDown();
             injector.getInstance(XmrTxProofService.class).shutDown();
             injector.getInstance(AvoidStandbyModeService.class).shutDown();
-            injector.getInstance(XmrWalletService.class).shutDown(); // TODO: why not shut down BtcWalletService, etc? shutdown CoreMoneroConnectionsService
+            injector.getInstance(XmrWalletService.class).shutDown(!isReadOnly); // TODO: why not shut down BtcWalletService, etc? shutdown CoreMoneroConnectionsService
             log.info("OpenOfferManager shutdown started");
             injector.getInstance(OpenOfferManager.class).shutDown(() -> {
                 log.info("OpenOfferManager shutdown completed");
@@ -294,36 +330,31 @@ public abstract class HavenoExecutable implements GracefulShutDownHandler, Haven
                     injector.getInstance(P2PService.class).shutDown(() -> {
                         log.info("P2PService shutdown completed");
                         module.close(injector);
-                        completeShutdown(resultHandler, EXIT_SUCCESS);
+                        completeShutdown(resultHandler, EXIT_SUCCESS, systemExit);
                     });
                 });
                 walletsSetup.shutDown();
-
             });
-
-            // Wait max 20 sec.
-            UserThread.runAfter(() -> {
-                log.warn("Graceful shut down not completed in 20 sec. We trigger our timeout handler.");
-                completeShutdown(resultHandler, EXIT_SUCCESS);
-            }, 20);
         } catch (Throwable t) {
             log.error("App shutdown failed with exception {}", t.toString());
             t.printStackTrace();
-            completeShutdown(resultHandler, EXIT_FAILURE);
+            completeShutdown(resultHandler, EXIT_FAILURE, systemExit);
         }
     }
 
-    private void completeShutdown(ResultHandler resultHandler, int exitCode) {
+    private void completeShutdown(ResultHandler resultHandler, int exitCode, boolean systemExit) {
         if (!isReadOnly) {
             // If user tried to downgrade we do not write the persistable data to avoid data corruption
             PersistenceManager.flushAllDataToDiskAtShutdown(() -> {
                 log.info("Graceful shutdown flushed persistence. Exiting now.");
                 resultHandler.handleResult();
-                UserThread.runAfter(() -> System.exit(exitCode), 1);
+                if (systemExit)
+                    UserThread.runAfter(() -> System.exit(exitCode), 1);
             });
         } else {
             resultHandler.handleResult();
-            UserThread.runAfter(() -> System.exit(exitCode), 1);
+            if (systemExit)
+                UserThread.runAfter(() -> System.exit(exitCode), 1);
         }
     }
 
@@ -338,5 +369,47 @@ public abstract class HavenoExecutable implements GracefulShutDownHandler, Haven
 
         if (doShutDown)
             gracefulShutDown(() -> log.info("gracefulShutDown complete"));
+    }
+
+    /**
+     * Runs until a command interrupts the application and returns the desired command behavior.
+     * @return EXIT_SUCCESS to initiate a shutdown, EXIT_RESTART to initiate an in process restart.
+     */
+    protected int keepRunning() {
+        keepRunningThread = new Thread(() -> {
+            ConsoleInput reader = new ConsoleInput(Integer.MAX_VALUE, Integer.MAX_VALUE, TimeUnit.MILLISECONDS);
+            while (true) {
+                Console console = System.console();
+                try {
+                    if (console == null) {
+                        Thread.sleep(Long.MAX_VALUE);
+                    } else {
+                        var cmd = reader.readLine();
+                        if ("exit".equals(cmd)) {
+                            keepRunningResult.set(EXIT_SUCCESS);
+                            break;
+                        } else if ("restart".equals(cmd)) {
+                            keepRunningResult.set(EXIT_RESTART);
+                            break;
+                        } else if ("help".equals(cmd)) {
+                            System.out.println("Commands: restart, exit, help");
+                        } else {
+                            System.out.println("Unknown command, use: restart, exit, help");
+                        }
+                    }
+                } catch (InterruptedException e) {
+                    break;
+                }
+            }
+        });
+
+        keepRunningThread.start();
+        try {
+            keepRunningThread.join();
+        } catch (InterruptedException ie) {
+            System.out.println(ie);
+        }
+
+        return keepRunningResult.get();
     }
 }

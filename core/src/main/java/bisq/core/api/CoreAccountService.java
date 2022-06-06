@@ -31,6 +31,7 @@ import java.io.InputStream;
 import java.io.PipedInputStream;
 import java.io.PipedOutputStream;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.function.Consumer;
 import javax.inject.Inject;
@@ -69,11 +70,15 @@ public class CoreAccountService {
     }
 
     public void addListener(AccountServiceListener listener) {
-        listeners.add(listener);
+        synchronized (listeners) {
+            listeners.add(listener);
+        }
     }
 
     public boolean removeListener(AccountServiceListener listener) {
-        return listeners.remove(listener);
+        synchronized (listeners) {
+            return listeners.remove(listener);
+        }
     }
 
     public boolean accountExists() {
@@ -99,7 +104,9 @@ public class CoreAccountService {
         if (!accountExists()) throw new IllegalStateException("Cannot open account if account does not exist");
         if (keyRing.unlockKeys(password, false)) {
             this.password = password;
-            for (AccountServiceListener listener : listeners) listener.onAccountOpened();
+            synchronized (listeners) {
+                for (AccountServiceListener listener : listeners) listener.onAccountOpened();
+            }
         } else {
             throw new IllegalStateException("keyRing.unlockKeys() returned false, that should never happen");
         }
@@ -110,13 +117,17 @@ public class CoreAccountService {
         String oldPassword = this.password;
         keyStorage.saveKeyRing(keyRing, oldPassword, password);
         this.password = password;
-        for (AccountServiceListener listener : listeners) listener.onPasswordChanged(oldPassword, password);
+        synchronized (listeners) {
+            for (AccountServiceListener listener : listeners) listener.onPasswordChanged(oldPassword, password);
+        }
     }
 
     public void closeAccount() {
         if (!isAccountOpen()) throw new IllegalStateException("Cannot close unopened account");
         keyRing.lockKeys(); // closed account means the keys are locked
-        for (AccountServiceListener listener : listeners) listener.onAccountClosed();
+        synchronized (listeners) {
+            for (AccountServiceListener listener : listeners) listener.onAccountClosed();
+        }
     }
 
     public void backupAccount(int bufferSize, Consumer<InputStream> consume, Consumer<Exception> error) {
@@ -147,13 +158,17 @@ public class CoreAccountService {
         if (accountExists()) throw new IllegalStateException("Cannot restore account if there is an existing account");
         File dataDir = new File(config.appDataDir.getPath());
         ZipUtils.unzipToDir(dataDir, inputStream, bufferSize);
-        for (AccountServiceListener listener : listeners) listener.onAccountRestored(onShutdown);
+        synchronized (listeners) {
+            for (AccountServiceListener listener : listeners) listener.onAccountRestored(onShutdown);
+        }
     }
 
     public void deleteAccount(Runnable onShutdown) {
         try {
             keyRing.lockKeys();
-            for (AccountServiceListener listener : listeners) listener.onAccountDeleted(onShutdown);
+            synchronized (listeners) {
+                for (AccountServiceListener listener : listeners) listener.onAccountDeleted(onShutdown);
+            }
             File dataDir = new File(config.appDataDir.getPath()); // TODO (woodser): deleting directory after gracefulShutdown() so services don't throw when they try to persist (e.g. XmrTxProofService), but gracefulShutdown() should honor read-only shutdown
             FileUtil.deleteDirectory(dataDir, null, false);
         } catch (Exception err) {

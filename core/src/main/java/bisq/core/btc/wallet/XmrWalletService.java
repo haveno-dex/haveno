@@ -131,7 +131,7 @@ public class XmrWalletService {
                 @Override
                 public void onAccountClosed() {
                     log.info(getClass() + ".accountService.onAccountClosed()");
-                    closeAllWallets();
+                    closeAllWallets(true);
                 }
 
                 @Override
@@ -142,26 +142,26 @@ public class XmrWalletService {
             });
         });
     }
-    
+
     // TODO (woodser): need trade manager to get trade ids to change all wallet passwords?
     public void setTradeManager(TradeManager tradeManager) {
         this.tradeManager = tradeManager;
     }
-    
+
     public MoneroWallet getWallet() {
         State state = walletsSetup.getWalletConfig().state();
         checkState(state == State.STARTING || state == State.RUNNING, "Cannot call until startup is complete");
         return wallet;
     }
-    
+
     public MoneroDaemon getDaemon() {
         return connectionsService.getDaemon();
     }
-    
+
     public CoreMoneroConnectionsService getConnectionsService() {
         return connectionsService;
     }
-    
+
     public String getWalletPassword() {
         return accountService.getPassword() == null ? MONERO_WALLET_RPC_DEFAULT_PASSWORD : accountService.getPassword();
     }
@@ -229,12 +229,12 @@ public class XmrWalletService {
         }
     }
 
-    
+
     /**
      * Create the reserve tx and freeze its inputs. The deposit amount is returned
      * to the sender's payout address. Additional funds are reserved to allow
      * fluctuations in the mining fee.
-     * 
+     *
      * @param tradeFee is the trade fee
      * @param depositAmount the amount needed for the trade minus the trade fee
      * @return a transaction to reserve a trade
@@ -264,10 +264,10 @@ public class XmrWalletService {
             return reserveTx;
         }
     }
-    
+
     /**
      * Create the multisig deposit tx and freeze its inputs.
-     * 
+     *
      * @return MoneroTxWallet the multisig deposit tx
      */
     public MoneroTxWallet createDepositTx(Trade trade) {
@@ -297,7 +297,7 @@ public class XmrWalletService {
      * Verify a reserve or deposit transaction used during trading.
      * Checks double spends, deposit amount and destination, trade fee, and mining fee.
      * The transaction is submitted but not relayed to the pool then flushed.
-     * 
+     *
      * @param depositAddress is the expected destination address for the deposit amount
      * @param depositAmount is the expected amount deposited to multisig
      * @param tradeFee is the expected fee for trading
@@ -312,10 +312,10 @@ public class XmrWalletService {
         MoneroDaemon daemon = getDaemon();
         MoneroWallet wallet = getWallet();
         try {
-            
+
             // get tx from daemon
             MoneroTx tx = daemon.getTx(txHash);
-            
+
             // if tx is not submitted, submit but do not relay
             if (tx == null) {
                 MoneroSubmitTxResult result = daemon.submitTxHex(txHex, true); // TODO (woodser): invert doNotRelay flag to relay for library consistency?
@@ -325,14 +325,14 @@ public class XmrWalletService {
             } else if (tx.isRelayed()) {
                 throw new RuntimeException("Trade tx must not be relayed");
             }
-            
+
             // verify reserved key images
             if (keyImages != null) {
                 Set<String> txKeyImages = new HashSet<String>();
                 for (MoneroOutput input : tx.getInputs()) txKeyImages.add(input.getKeyImage().getHex());
                 if (!txKeyImages.equals(new HashSet<String>(keyImages))) throw new Error("Reserve tx's inputs do not match claimed key images");
             }
-            
+
             // verify the unlock height
             if (tx.getUnlockHeight() != 0) throw new RuntimeException("Unlock height must be 0");
 
@@ -357,14 +357,14 @@ public class XmrWalletService {
             if (miningFeePadding) depositThreshold  = depositThreshold.add(feeThreshold.multiply(BigInteger.valueOf(3l))); // prove reserve of at least deposit amount + (3 * min mining fee)
             if (check.getReceivedAmount().compareTo(depositThreshold) < 0) throw new RuntimeException("Deposit amount is not enough, needed " + depositThreshold + " but was " + check.getReceivedAmount());
         } finally {
-            
+
             // flush tx from pool if we added it
             if (submittedToPool) daemon.flushTxPool(txHash);
         }
     }
 
-    public void shutDown() {
-        closeAllWallets();
+    public void shutDown(boolean save) {
+        closeAllWallets(save);
     }
 
     // ------------------------------ PRIVATE HELPERS -------------------------
@@ -382,7 +382,7 @@ public class XmrWalletService {
             setWalletDaemonConnections(newConnection);
         });
     }
-    
+
     private boolean walletExists(String walletName) {
         String path = walletDir.toString() + File.separator + walletName;
         return new File(path + ".keys").exists();
@@ -562,7 +562,7 @@ public class XmrWalletService {
         // WalletsSetup.deleteRollingBackup(walletName); // TODO (woodser): necessary to delete rolling backup?
     }
 
-    private void closeAllWallets() {
+    private void closeAllWallets(boolean save) {
 
         // collect wallets to shutdown
         List<MoneroWallet> openWallets = new ArrayList<MoneroWallet>();
@@ -581,9 +581,9 @@ public class XmrWalletService {
                 @Override
                 public void run() {
                     try {
-                        closeWallet(openWallet, true);
+                        closeWallet(openWallet, save);
                     } catch (Exception e) {
-                        log.warn("Error closing monero-wallet-rpc subprocess. Was Haveno stopped manually with ctrl+c?");
+                        log.warn("Error closing monero-wallet-rpc subprocess. Was Haveno stopped manually with ctrl+c? " + e);
                     }
                 }
             });
@@ -600,9 +600,9 @@ public class XmrWalletService {
         wallet = null;
         multisigWallets.clear();
     }
-    
+
     // ----------------------------- LEGACY APP -------------------------------
-    
+
     public XmrAddressEntry recoverAddressEntry(String offerId, String address, XmrAddressEntry.Context context) {
         var available = findAddressEntry(address, XmrAddressEntry.Context.AVAILABLE);
         if (!available.isPresent()) return null;
@@ -753,11 +753,11 @@ public class XmrWalletService {
         available = Stream.concat(available, getAddressEntries(XmrAddressEntry.Context.OFFER_FUNDING).stream());
         return available.filter(addressEntry -> getBalanceForSubaddress(addressEntry.getSubaddressIndex()).isPositive());
     }
-    
+
     public void addWalletListener(MoneroWalletListenerI listener) {
         walletListeners.add(listener);
     }
-    
+
     public void removeWalletListener(MoneroWalletListenerI listener) {
         if (!walletListeners.contains(listener)) throw new RuntimeException("Listener is not registered with wallet");
         walletListeners.remove(listener);
@@ -783,23 +783,23 @@ public class XmrWalletService {
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Util
     ///////////////////////////////////////////////////////////////////////////////////////////
-    
-    
+
+
     public static void printTxs(String tracePrefix, MoneroTxWallet... txs) {
         StringBuilder sb = new StringBuilder();
         for (MoneroTxWallet tx : txs) sb.append('\n' + tx.toString());
         log.info("\n" + tracePrefix + ":" + sb.toString());
     }
-    
+
     // -------------------------------- HELPERS -------------------------------
-    
+
     /**
      * Processes internally before notifying external listeners.
-     * 
+     *
      * TODO: no longer neccessary to execute on user thread?
      */
     private class XmrWalletListener extends MoneroWalletListener {
-        
+
         @Override
         public void onSyncProgress(long height, long startHeight, long endHeight, double percentDone, String message) {
             UserThread.execute(new Runnable() {

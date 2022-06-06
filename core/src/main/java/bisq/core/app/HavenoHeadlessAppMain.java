@@ -47,10 +47,10 @@ public class HavenoHeadlessAppMain extends HavenoExecutable {
     }
 
     @Override
-    protected void doExecute() {
+    protected int doExecute() {
         super.doExecute();
 
-        keepRunning();
+        return keepRunning();
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -113,15 +113,5 @@ public class HavenoHeadlessAppMain extends HavenoExecutable {
 
         // In headless mode we don't have an async behaviour so we trigger the setup by calling onApplicationStarted
         onApplicationStarted();
-    }
-
-    // TODO: implement interactive console which allows user to input commands; login, logoff, exit
-    private void keepRunning() {
-        while (true) {
-            try {
-                Thread.sleep(Long.MAX_VALUE);
-            } catch (InterruptedException ignore) {
-            }
-        }
     }
 }

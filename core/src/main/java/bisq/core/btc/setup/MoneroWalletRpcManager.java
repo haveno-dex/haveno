@@ -3,6 +3,7 @@ package bisq.core.btc.setup;
 import java.net.ServerSocket;
 
 import java.io.IOException;
+import java.io.Serializable;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -101,6 +102,7 @@ public class MoneroWalletRpcManager {
    */
   public void stopInstance(MoneroWalletRpc walletRpc, boolean save) {
 
+      int port = 0;
       // unregister port
       synchronized (registeredPorts) {
           boolean found = false;
@@ -108,7 +110,8 @@ public class MoneroWalletRpcManager {
               if (walletRpc == entry.getValue()) {
                   found = true;
                   try {
-                      unregisterPort(entry.getKey());
+                      port = entry.getKey();
+                      unregisterPort(port);
                   } catch (Exception e) {
                       throw new MoneroError(e);
                   }
@@ -118,7 +121,9 @@ public class MoneroWalletRpcManager {
           if (!found) throw new RuntimeException("MoneroWalletRpc instance not registered with a port");
       }
 
-      // close wallet and stop process
+      // close wallet and stop
+      String pid = walletRpc.getProcess() == null ? "null" : String.valueOf(walletRpc.getProcess().pid());
+      log.info("Stopping MoneroWalletRpc port: {} pid: {}", port, pid);
       walletRpc.close(save);
       walletRpc.stopProcess();
   }
@@ -142,13 +147,13 @@ public class MoneroWalletRpcManager {
           }
       }
   }
-  
+
   private void unregisterPort(int port) {
       synchronized (registeredPorts) {
           registeredPorts.remove(port);
       }
   }
-  
+
   private int getLocalPort() throws IOException {
       ServerSocket socket = new ServerSocket(0); // use socket to get available port
       int port = socket.getLocalPort();

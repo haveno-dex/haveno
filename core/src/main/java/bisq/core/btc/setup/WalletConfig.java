@@ -469,9 +469,13 @@ public class WalletConfig extends AbstractIdleService {
         try {
             Context.propagate(context);
 
-            vBtcWallet.saveToFile(vBtcWalletFile);
+            try {
+                vBtcWallet.saveToFile(vBtcWalletFile);
+                log.info("BtcWallet saved to file");
+            } catch (Exception e) {
+                log.error("Exception in WalletConfig.shutdown(), expected if the account was deleted" + e);
+            }
             vBtcWallet = null;
-            log.info("BtcWallet saved to file");
 
             vStore.close();
             vStore = null;

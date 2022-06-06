@@ -243,7 +243,7 @@ public final class CoreMoneroConnectionsService {
 
     /**
      * Signals that both the daemon and wallet have synced.
-     * 
+     *
      * TODO: separate daemon and wallet download/done listeners
      */
     public void doneDownload() {

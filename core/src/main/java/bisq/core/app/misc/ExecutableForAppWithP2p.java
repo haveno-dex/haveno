@@ -97,7 +97,7 @@ public abstract class ExecutableForAppWithP2p extends HavenoExecutable {
                         });
                     });
                     injector.getInstance(WalletsSetup.class).shutDown();
-                    injector.getInstance(XmrWalletService.class).shutDown(); // TODO (woodser): this is not actually called, perhaps because WalletsSetup.class completes too quick so its listener calls System.exit(0)
+                    injector.getInstance(XmrWalletService.class).shutDown(true); // TODO (woodser): this is not actually called, perhaps because WalletsSetup.class completes too quick so its listener calls System.exit(0)
                     injector.getInstance(BtcWalletService.class).shutDown();
                 }));
                 // we wait max 5 sec.
@@ -185,16 +185,6 @@ public abstract class ExecutableForAppWithP2p extends HavenoExecutable {
                 }
             }, TimeUnit.MINUTES.toSeconds(10));
         }, TimeUnit.HOURS.toSeconds(2));
-    }
-
-    @SuppressWarnings("InfiniteLoopStatement")
-    protected void keepRunning() {
-        while (true) {
-            try {
-                Thread.sleep(Long.MAX_VALUE);
-            } catch (InterruptedException ignore) {
-            }
-        }
     }
 
     protected void checkMemory(Config config, GracefulShutDownHandler gracefulShutDownHandler) {
