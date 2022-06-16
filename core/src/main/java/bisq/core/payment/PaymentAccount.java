@@ -17,11 +17,22 @@
 
 package bisq.core.payment;
 
+import bisq.core.api.model.PaymentAccountForm;
+import bisq.core.api.model.PaymentAccountFormField;
+import bisq.core.locale.Country;
+import bisq.core.locale.CountryUtil;
+import bisq.core.locale.CurrencyUtil;
+import bisq.core.locale.Res;
 import bisq.core.locale.TradeCurrency;
 import bisq.core.payment.payload.PaymentAccountPayload;
 import bisq.core.payment.payload.PaymentMethod;
+import bisq.core.payment.validation.BICValidator;
+import bisq.core.payment.validation.EmailOrMobileNrValidator;
+import bisq.core.payment.validation.EmailValidator;
+import bisq.core.payment.validation.IBANValidator;
+import bisq.core.payment.validation.LengthValidator;
 import bisq.core.proto.CoreProtoResolver;
-
+import bisq.core.util.validation.InputValidator.ValidationResult;
 import bisq.common.proto.ProtoUtil;
 import bisq.common.proto.persistable.PersistablePayload;
 import bisq.common.util.Utilities;
@@ -31,6 +42,8 @@ import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import lombok.EqualsAndHashCode;
@@ -44,6 +57,9 @@ import javax.annotation.Nullable;
 
 import static bisq.core.payment.payload.PaymentMethod.TRANSFERWISE_ID;
 import static com.google.common.base.Preconditions.checkNotNull;
+import static java.util.Arrays.stream;
+import static java.util.Collections.singletonList;
+import static java.util.stream.Collectors.toList;
 
 @EqualsAndHashCode
 @ToString
@@ -265,4 +281,394 @@ public abstract class PaymentAccount implements PersistablePayload {
 
     @NonNull
     public abstract List<TradeCurrency> getSupportedCurrencies();
+
+    // ------------------------- PAYMENT ACCOUNT FORM -------------------------
+
+    @NonNull
+    public abstract List<PaymentAccountFormField.FieldId> getInputFieldIds();
+
+    public PaymentAccountForm toForm() {
+        PaymentAccountForm form = new PaymentAccountForm(PaymentAccountForm.FormId.valueOf(paymentMethod.getId()));
+        for (PaymentAccountFormField.FieldId fieldId : getInputFieldIds()) {
+            PaymentAccountFormField field = getEmptyFormField(fieldId);
+            form.getFields().add(field);
+        }
+        return form;
+    }
+
+    public void validateFormField(PaymentAccountForm form, PaymentAccountFormField.FieldId fieldId, String value) {
+        switch (fieldId) {
+        case ACCEPTED_COUNTRY_CODES: {
+            List<String> countryCodes = PaymentAccount.commaDelimitedCodesToList.apply(value);
+            List<String> supportedCountryCodes = CountryUtil.getCountryCodes(((CountryBasedPaymentAccount) this).getSupportedCountries());
+            for (String countryCode : countryCodes) {
+                if (!supportedCountryCodes.contains(countryCode)) throw new IllegalArgumentException("Country is not supported by " + getPaymentMethod().getId() + ": " + value);
+            }
+            break;
+        }
+        case ACCOUNT_ID:
+            throw new IllegalArgumentException("Not implemented");
+        case ACCOUNT_NAME:
+            processValidationResult(new LengthValidator(2, 100).validate(value));
+            break;
+        case ACCOUNT_NR:
+            throw new IllegalArgumentException("Not implemented");
+        case ACCOUNT_OWNER:
+            throw new IllegalArgumentException("Not implemented");
+        case ACCOUNT_TYPE:
+            throw new IllegalArgumentException("Not implemented");
+        case ANSWER:
+            throw new IllegalArgumentException("Not implemented");
+        case BANK_ACCOUNT_NAME:
+            throw new IllegalArgumentException("Not implemented");
+        case BANK_ACCOUNT_NUMBER:
+            throw new IllegalArgumentException("Not implemented");
+        case BANK_ACCOUNT_TYPE:
+            throw new IllegalArgumentException("Not implemented");
+        case BANK_ADDRESS:
+        case INTERMEDIARY_ADDRESS:
+            processValidationResult(new LengthValidator(1, 100).validate(value));
+            break;
+        case BANK_BRANCH:
+        case INTERMEDIARY_BRANCH:
+            processValidationResult(new LengthValidator(2, 34).validate(value));
+            break;
+        case BANK_BRANCH_CODE:
+            throw new IllegalArgumentException("Not implemented");
+        case BANK_BRANCH_NAME:
+            throw new IllegalArgumentException("Not implemented");
+        case BANK_CODE:
+            throw new IllegalArgumentException("Not implemented");
+        case BANK_COUNTRY_CODE:
+            if (!CountryUtil.findCountryByCode(value).isPresent()) throw new IllegalArgumentException("Invalid country code: " + value);
+            break;
+        case BANK_ID:
+            throw new IllegalArgumentException("Not implemented");
+        case BANK_NAME:
+        case INTERMEDIARY_NAME:
+            processValidationResult(new LengthValidator(2, 34).validate(value));
+            break;
+        case BANK_SWIFT_CODE:
+        case INTERMEDIARY_SWIFT_CODE:
+            processValidationResult(new LengthValidator(11, 11).validate(value));
+            break;
+        case BENEFICIARY_ACCOUNT_NR:
+            processValidationResult(new LengthValidator(2, 40).validate(value));
+            break;
+        case BENEFICIARY_ADDRESS:
+            processValidationResult(new LengthValidator(1, 100).validate(value));
+            break;
+        case BENEFICIARY_CITY:
+            processValidationResult(new LengthValidator(2, 34).validate(value));
+            break;
+        case BENEFICIARY_NAME:
+            processValidationResult(new LengthValidator(2, 34).validate(value));
+            break;
+        case BENEFICIARY_PHONE:
+            processValidationResult(new LengthValidator(2, 34).validate(value));
+            break;
+        case BIC:
+            processValidationResult(new BICValidator().validate(value));
+            break;
+        case BRANCH_ID:
+            throw new IllegalArgumentException("Not implemented");
+        case CITY:
+            processValidationResult(new LengthValidator(2, 34).validate(value));
+            break;
+        case CONTACT:
+            checkNotEmpty(value);
+            break;
+        case COUNTRY:
+            List<Country> supportedCountries = ((CountryBasedPaymentAccount) this).getSupportedCountries();
+            if (supportedCountries == null || supportedCountries.isEmpty()) {
+                if (!CountryUtil.findCountryByCode(value).isPresent()) throw new IllegalArgumentException("Invalid country code: " + value);
+            } else {
+                System.out.println("BUT WE SUPPORT THESE COUNTRIES!");
+                System.out.println(supportedCountries);
+                List<String> supportedCountryCodes = CountryUtil.getCountryCodes(supportedCountries);
+                if (!supportedCountryCodes.contains(value)) throw new IllegalArgumentException("Country is not supported by " + getPaymentMethod().getId() + ": " + value);
+            }
+            break;
+        case EMAIL:
+            checkNotEmpty(value);
+            processValidationResult(new EmailValidator().validate(value));
+            break;
+        case EMAIL_OR_MOBILE_NR:
+            checkNotEmpty(value);
+            processValidationResult(new EmailOrMobileNrValidator().validate(value));
+            break;
+        case EXTRA_INFO:
+            break;
+        case HOLDER_ADDRESS:
+            throw new IllegalArgumentException("Not implemented");
+        case HOLDER_EMAIL:
+            throw new IllegalArgumentException("Not implemented");
+        case HOLDER_NAME:
+            processValidationResult(new LengthValidator(2, 100).validate(value));
+            break;
+        case HOLDER_TAX_ID:
+            throw new IllegalArgumentException("Not implemented");
+        case IBAN:
+            processValidationResult(new IBANValidator().validate(value));
+            break;
+        case IFSC:
+            throw new IllegalArgumentException("Not implemented");
+        case INTERMEDIARY_COUNTRY_CODE:
+            if (!CountryUtil.findCountryByCode(value).isPresent()) throw new IllegalArgumentException("Invalid country code: " + value); // TODO: value must be within supported countries unless all countries supported
+            break;
+        case MOBILE_NR:
+            throw new IllegalArgumentException("Not implemented");
+        case NATIONAL_ACCOUNT_ID:
+            throw new IllegalArgumentException("Not implemented");
+        case PAYID:
+            throw new IllegalArgumentException("Not implemented");
+        case PIX_KEY:
+            throw new IllegalArgumentException("Not implemented");
+        case POSTAL_ADDRESS:
+            throw new IllegalArgumentException("Not implemented");
+        case PROMPT_PAY_ID:
+            throw new IllegalArgumentException("Not implemented");
+        case QUESTION:
+            throw new IllegalArgumentException("Not implemented");
+        case REQUIREMENTS:
+            throw new IllegalArgumentException("Not implemented");
+        case SALT:
+            if (!value.equals("")) throw new IllegalArgumentException("Salt must be empty");
+            break;
+        case SORT_CODE:
+            throw new IllegalArgumentException("Not implemented");
+        case SPECIAL_INSTRUCTIONS:
+            break;
+        case STATE:
+            throw new IllegalArgumentException("Not implemented");
+        case TRADE_CURRENCIES:
+            checkNotEmpty(value);
+            List<String> currencyCodes = commaDelimitedCodesToList.apply(value);
+            Optional<List<TradeCurrency>> tradeCurrencies =  CurrencyUtil.getTradeCurrenciesInList(currencyCodes, getSupportedCurrencies());
+            if (!tradeCurrencies.isPresent()) throw new IllegalArgumentException("No trade currencies were found in the " + getPaymentMethod().getDisplayString() + " account form");
+            break;
+        case USER_NAME:
+            checkNotEmpty(value);
+            processValidationResult(new LengthValidator(3, 100).validate(value));
+            break;
+        case VIRTUAL_PAYMENT_ADDRESS:
+            throw new IllegalArgumentException("Not implemented");
+        default:
+            throw new RuntimeException("Unhandled form field: " + fieldId);
+        }
+    }
+
+    protected void checkNotEmpty(String input) {
+        if (input == null || "".equals(input)) throw new IllegalArgumentException("Field must not be empty");
+    }
+
+    protected void processValidationResult(ValidationResult result) {
+        if (!result.isValid) throw new IllegalArgumentException(result.errorMessage);
+    }
+
+    protected PaymentAccountFormField getEmptyFormField(PaymentAccountFormField.FieldId fieldId) {
+        PaymentAccountFormField field = new PaymentAccountFormField(fieldId);
+        switch (fieldId) {
+        case ACCEPTED_COUNTRY_CODES:
+            field.setComponent(PaymentAccountFormField.Component.SELECT_MULTIPLE);
+            field.setLabel("Accepted country codes");
+            field.setSupportedCountries(((CountryBasedPaymentAccount) this).getSupportedCountries());
+            break;
+        case ACCOUNT_ID:
+            throw new IllegalArgumentException("Not implemented");
+        case ACCOUNT_NAME:
+            field.setComponent(PaymentAccountFormField.Component.TEXT);
+            field.setLabel("Account name"); // TODO: pull all labels from language file
+            field.setMinLength(3);
+            field.setMaxLength(100);
+            break;
+        case ACCOUNT_NR:
+            throw new IllegalArgumentException("Not implemented");
+        case ACCOUNT_OWNER:
+            throw new IllegalArgumentException("Not implemented");
+        case ACCOUNT_TYPE:
+            throw new IllegalArgumentException("Not implemented");
+        case ANSWER:
+            throw new IllegalArgumentException("Not implemented");
+        case BANK_ACCOUNT_NAME:
+            throw new IllegalArgumentException("Not implemented");
+        case BANK_ACCOUNT_NUMBER:
+            throw new IllegalArgumentException("Not implemented");
+        case BANK_ACCOUNT_TYPE:
+            throw new IllegalArgumentException("Not implemented");
+        case BANK_ADDRESS:
+            field.setComponent(PaymentAccountFormField.Component.TEXT);
+            field.setLabel("Receiving Bank address");
+            break;
+        case BANK_BRANCH:
+            field.setComponent(PaymentAccountFormField.Component.TEXT);
+            field.setLabel("Receiving Bank branch");
+            break;
+        case BANK_BRANCH_CODE:
+            field.setComponent(PaymentAccountFormField.Component.TEXT);
+            field.setLabel("Receiving Bank SWIFT code"); // TODO: only used for swift?
+            break;
+        case BANK_BRANCH_NAME:
+            throw new IllegalArgumentException("Not implemented");
+        case BANK_CODE:
+            throw new IllegalArgumentException("Not implemented");
+        case BANK_COUNTRY_CODE:
+            field.setComponent(PaymentAccountFormField.Component.SELECT_ONE);
+            field.setLabel("Country of bank");
+            break;
+        case BANK_ID:
+            throw new IllegalArgumentException("Not implemented");
+        case BANK_NAME:
+            field.setComponent(PaymentAccountFormField.Component.TEXT);
+            field.setLabel("Receiving Bank name");
+            break;
+        case BANK_SWIFT_CODE:
+            field.setComponent(PaymentAccountFormField.Component.TEXT);
+            field.setLabel("Receiving Bank SWIFT Code");
+            break;
+        case BENEFICIARY_ACCOUNT_NR:
+            field.setComponent(PaymentAccountFormField.Component.TEXT);
+            field.setLabel("Account No. (or IBAN)");
+            break;
+        case BENEFICIARY_ADDRESS:
+            field.setComponent(PaymentAccountFormField.Component.TEXT);
+            field.setLabel("Beneficiary address");
+            break;
+        case BENEFICIARY_CITY:
+            field.setComponent(PaymentAccountFormField.Component.TEXT);
+            field.setLabel("Beneficiary city");
+            break;
+        case BENEFICIARY_NAME:
+            field.setComponent(PaymentAccountFormField.Component.TEXT);
+            field.setLabel("Account owner full name");
+            break;
+        case BENEFICIARY_PHONE:
+            field.setComponent(PaymentAccountFormField.Component.TEXT);
+            field.setLabel("Beneficiary phone number");
+            break;
+        case BIC:
+            field.setComponent(PaymentAccountFormField.Component.TEXT);
+            field.setLabel("BIC");
+            break;
+        case BRANCH_ID:
+            throw new IllegalArgumentException("Not implemented");
+        case CITY:
+            field.setComponent(PaymentAccountFormField.Component.TEXT);
+            field.setLabel(Res.get("Contact"));
+        case CONTACT:
+            field.setComponent(PaymentAccountFormField.Component.TEXT);
+            field.setLabel("City");
+        case COUNTRY:
+            field.setComponent(PaymentAccountFormField.Component.SELECT_ONE);
+            field.setLabel("Country");
+            field.setSupportedCountries(((CountryBasedPaymentAccount) this).getSupportedCountries());
+            break;
+        case EMAIL:
+            field.setComponent(PaymentAccountFormField.Component.TEXT);
+            field.setType("email");
+            field.setLabel("Email");
+            break;
+        case EMAIL_OR_MOBILE_NR:
+            field.setComponent(PaymentAccountFormField.Component.TEXT);
+            field.setLabel("Email or mobile number");
+            break;
+        case EXTRA_INFO:
+            field.setComponent(PaymentAccountFormField.Component.TEXT);
+            field.setLabel("Optional additional information");
+            break;
+        case HOLDER_ADDRESS:
+            throw new IllegalArgumentException("Not implemented");
+        case HOLDER_EMAIL:
+            throw new IllegalArgumentException("Not implemented");
+        case HOLDER_NAME:
+            field.setComponent(PaymentAccountFormField.Component.TEXT);
+            field.setLabel("Account owner full name");
+            field.setMinLength(2);
+            field.setMaxLength(100);
+            break;
+        case HOLDER_TAX_ID:
+            throw new IllegalArgumentException("Not implemented");
+        case IBAN:
+            field.setComponent(PaymentAccountFormField.Component.TEXT);
+            field.setLabel("IBAN");
+            break;
+        case IFSC:
+            throw new IllegalArgumentException("Not implemented");
+        case INTERMEDIARY_ADDRESS:
+            field.setComponent(PaymentAccountFormField.Component.TEXT);
+            field.setLabel("Intermediary Bank address");
+            break;
+        case INTERMEDIARY_BRANCH:
+            field.setComponent(PaymentAccountFormField.Component.TEXT);
+            field.setLabel("Intermediary Bank branch");
+            break;
+        case INTERMEDIARY_COUNTRY_CODE:
+            field.setComponent(PaymentAccountFormField.Component.SELECT_ONE);
+            field.setLabel("Intermediary Bank country");
+            break;
+        case INTERMEDIARY_NAME:
+            field.setComponent(PaymentAccountFormField.Component.TEXT);
+            field.setLabel("Intermediary Bank name");
+            break;
+        case INTERMEDIARY_SWIFT_CODE:
+            field.setComponent(PaymentAccountFormField.Component.TEXT);
+            field.setLabel("Intermediary Bank SWIFT Code"); // TODO: swift only?
+            break;
+        case MOBILE_NR:
+            throw new IllegalArgumentException("Not implemented");
+        case NATIONAL_ACCOUNT_ID:
+            throw new IllegalArgumentException("Not implemented");
+        case PAYID:
+            throw new IllegalArgumentException("Not implemented");
+        case PIX_KEY:
+            throw new IllegalArgumentException("Not implemented");
+        case POSTAL_ADDRESS:
+            throw new IllegalArgumentException("Not implemented");
+        case PROMPT_PAY_ID:
+            throw new IllegalArgumentException("Not implemented");
+        case QUESTION:
+            throw new IllegalArgumentException("Not implemented");
+        case REQUIREMENTS:
+            throw new IllegalArgumentException("Not implemented");
+        case SALT:
+            field.setComponent(PaymentAccountFormField.Component.TEXT);
+            field.setLabel("Salt");
+            break;
+        case SORT_CODE:
+            throw new IllegalArgumentException("Not implemented");
+        case SPECIAL_INSTRUCTIONS:
+            field.setComponent(PaymentAccountFormField.Component.TEXT);
+            field.setLabel("Special instructions");
+            break;
+        case STATE:
+            throw new IllegalArgumentException("Not implemented");
+        case TRADE_CURRENCIES:
+            field.setComponent(PaymentAccountFormField.Component.SELECT_MULTIPLE);
+            field.setLabel("Supported currencies");
+            field.setSupportedCurrencies(getSupportedCurrencies());
+            break;
+        case USER_NAME:
+            field.setComponent(PaymentAccountFormField.Component.TEXT);
+            field.setLabel("User name");
+            field.setMinLength(3);
+            field.setMaxLength(100);
+            break;
+        case VIRTUAL_PAYMENT_ADDRESS:
+            throw new IllegalArgumentException("Not implemented");
+        default:
+            throw new RuntimeException("Unhandled form field: " + field);
+        }
+        if ("".equals(field.getValue())) field.setValue("");
+        return field;
+    }
+
+    private static final Predicate<String> isCommaDelimitedCurrencyList = (s) -> s != null && s.contains(",");
+    public static final Function<String, List<String>> commaDelimitedCodesToList = (s) -> {
+        if (isCommaDelimitedCurrencyList.test(s))
+            return stream(s.split(",")).map(a -> a.trim().toUpperCase()).collect(toList());
+        else if (s != null && !s.isEmpty())
+            return singletonList(s.trim().toUpperCase());
+        else
+            return new ArrayList<>();
+    };
 }

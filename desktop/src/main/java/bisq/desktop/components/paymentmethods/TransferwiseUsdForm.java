@@ -19,9 +19,6 @@ package bisq.desktop.components.paymentmethods;
 
 import bisq.desktop.components.InputTextField;
 import bisq.desktop.util.Layout;
-import bisq.desktop.util.validation.EmailValidator;
-import bisq.desktop.util.validation.LengthValidator;
-
 import bisq.core.account.witness.AccountAgeWitnessService;
 import bisq.core.locale.CountryUtil;
 import bisq.core.locale.Res;
@@ -29,6 +26,8 @@ import bisq.core.payment.PaymentAccount;
 import bisq.core.payment.TransferwiseUsdAccount;
 import bisq.core.payment.payload.PaymentAccountPayload;
 import bisq.core.payment.payload.TransferwiseUsdAccountPayload;
+import bisq.core.payment.validation.EmailValidator;
+import bisq.core.payment.validation.LengthValidator;
 import bisq.core.util.coin.CoinFormatter;
 import bisq.core.util.validation.InputValidator;
 

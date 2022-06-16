@@ -17,14 +17,13 @@
 
 package bisq.desktop.components.paymentmethods;
 
-import bisq.desktop.util.validation.AliPayValidator;
-
 import bisq.core.account.witness.AccountAgeWitnessService;
 import bisq.core.locale.Res;
 import bisq.core.payment.AliPayAccount;
 import bisq.core.payment.PaymentAccount;
 import bisq.core.payment.payload.AliPayAccountPayload;
 import bisq.core.payment.payload.PaymentAccountPayload;
+import bisq.core.payment.validation.AliPayValidator;
 import bisq.core.util.coin.CoinFormatter;
 import bisq.core.util.validation.InputValidator;
 

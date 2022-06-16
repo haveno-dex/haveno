@@ -17,6 +17,7 @@
 
 package bisq.core.payment;
 
+import bisq.core.api.model.PaymentAccountFormField;
 import bisq.core.locale.TradeCurrency;
 import bisq.core.payment.payload.PaymentAccountPayload;
 import bisq.core.payment.payload.PaymentMethod;
@@ -36,6 +37,27 @@ public final class SwiftAccount extends PaymentAccount {
 
     public static final List<TradeCurrency> SUPPORTED_CURRENCIES = new ArrayList<>(getAllSortedFiatCurrencies(comparing(TradeCurrency::getCode)));
 
+    private static final List<PaymentAccountFormField.FieldId> INPUT_FIELD_IDS = List.of(
+            PaymentAccountFormField.FieldId.ACCOUNT_NAME,
+            PaymentAccountFormField.FieldId.BANK_SWIFT_CODE,
+            PaymentAccountFormField.FieldId.BANK_COUNTRY_CODE,
+            PaymentAccountFormField.FieldId.BANK_NAME,
+            PaymentAccountFormField.FieldId.BANK_BRANCH,
+            PaymentAccountFormField.FieldId.BANK_ADDRESS,
+            PaymentAccountFormField.FieldId.INTERMEDIARY_SWIFT_CODE,
+            PaymentAccountFormField.FieldId.INTERMEDIARY_COUNTRY_CODE,
+            PaymentAccountFormField.FieldId.INTERMEDIARY_NAME,
+            PaymentAccountFormField.FieldId.INTERMEDIARY_BRANCH,
+            PaymentAccountFormField.FieldId.INTERMEDIARY_ADDRESS,
+            PaymentAccountFormField.FieldId.BENEFICIARY_NAME,
+            PaymentAccountFormField.FieldId.BENEFICIARY_ACCOUNT_NR,
+            PaymentAccountFormField.FieldId.BENEFICIARY_ADDRESS,
+            PaymentAccountFormField.FieldId.BENEFICIARY_CITY,
+            PaymentAccountFormField.FieldId.BENEFICIARY_PHONE,
+            PaymentAccountFormField.FieldId.SPECIAL_INSTRUCTIONS,
+            PaymentAccountFormField.FieldId.SALT
+    );
+
     public SwiftAccount() {
         super(PaymentMethod.SWIFT);
         tradeCurrencies.addAll(SUPPORTED_CURRENCIES);
@@ -50,14 +72,17 @@ public final class SwiftAccount extends PaymentAccount {
         return ((SwiftAccountPayload) this.paymentAccountPayload);
     }
 
+    @Override
     public String getMessageForBuyer() {
         return "payment.swift.info.buyer";
     }
 
+    @Override
     public String getMessageForSeller() {
         return "payment.swift.info.seller";
     }
 
+    @Override
     public String getMessageForAccountCreation() {
         return "payment.swift.info.account";
     }
@@ -65,5 +90,10 @@ public final class SwiftAccount extends PaymentAccount {
     @Override
     public @NonNull List<TradeCurrency> getSupportedCurrencies() {
         return SUPPORTED_CURRENCIES;
+    }
+
+    @Override
+    public @NonNull List<PaymentAccountFormField.FieldId> getInputFieldIds() {
+        return INPUT_FIELD_IDS;
     }
 }

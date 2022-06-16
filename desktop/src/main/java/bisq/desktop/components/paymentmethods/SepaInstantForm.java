@@ -20,9 +20,6 @@ package bisq.desktop.components.paymentmethods;
 import bisq.desktop.components.InputTextField;
 import bisq.desktop.util.FormBuilder;
 import bisq.desktop.util.normalization.IBANNormalizer;
-import bisq.desktop.util.validation.BICValidator;
-import bisq.desktop.util.validation.SepaIBANValidator;
-
 import bisq.core.account.witness.AccountAgeWitnessService;
 import bisq.core.locale.Country;
 import bisq.core.locale.CountryUtil;
@@ -32,6 +29,8 @@ import bisq.core.payment.PaymentAccount;
 import bisq.core.payment.SepaInstantAccount;
 import bisq.core.payment.payload.PaymentAccountPayload;
 import bisq.core.payment.payload.SepaInstantAccountPayload;
+import bisq.core.payment.validation.BICValidator;
+import bisq.core.payment.validation.SepaIBANValidator;
 import bisq.core.util.coin.CoinFormatter;
 import bisq.core.util.validation.InputValidator;
 

@@ -27,8 +27,6 @@ import bisq.desktop.main.offer.OfferViewModelUtil;
 import bisq.desktop.main.overlays.popups.Popup;
 import bisq.desktop.util.DisplayUtils;
 import bisq.desktop.util.GUIUtil;
-import bisq.desktop.util.validation.BtcValidator;
-
 import bisq.core.account.witness.AccountAgeWitnessService;
 import bisq.core.btc.wallet.Restrictions;
 import bisq.core.locale.CurrencyUtil;
@@ -40,6 +38,7 @@ import bisq.core.offer.OfferRestrictions;
 import bisq.core.offer.OfferUtil;
 import bisq.core.payment.PaymentAccount;
 import bisq.core.payment.payload.PaymentMethod;
+import bisq.core.payment.validation.BtcValidator;
 import bisq.core.provider.fee.FeeService;
 import bisq.core.trade.Trade;
 import bisq.core.util.FormattingUtils;

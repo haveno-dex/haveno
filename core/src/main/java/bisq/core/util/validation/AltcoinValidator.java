@@ -21,12 +21,12 @@ import javax.inject.Inject;
 
 public class AltcoinValidator extends MonetaryValidator {
     @Override
-    protected double getMinValue() {
+    public double getMinValue() {
         return 0.00000001;
     }
 
     @Override
-    protected double getMaxValue() {
+    public double getMaxValue() {
         // hard to say what the max value should be with altcoins
         return 100_000_000;
     }

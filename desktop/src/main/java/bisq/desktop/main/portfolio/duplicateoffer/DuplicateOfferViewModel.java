@@ -19,14 +19,13 @@ package bisq.desktop.main.portfolio.duplicateoffer;
 
 import bisq.desktop.Navigation;
 import bisq.desktop.main.offer.MutableOfferViewModel;
-import bisq.desktop.util.validation.BtcValidator;
-import bisq.desktop.util.validation.FiatVolumeValidator;
-import bisq.desktop.util.validation.SecurityDepositValidator;
-
 import bisq.core.account.witness.AccountAgeWitnessService;
 import bisq.core.offer.Offer;
 import bisq.core.offer.OfferPayload;
 import bisq.core.offer.OfferUtil;
+import bisq.core.payment.validation.BtcValidator;
+import bisq.core.payment.validation.FiatVolumeValidator;
+import bisq.core.payment.validation.SecurityDepositValidator;
 import bisq.core.provider.price.PriceFeedService;
 import bisq.core.user.Preferences;
 import bisq.core.util.FormattingUtils;

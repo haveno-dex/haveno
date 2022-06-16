@@ -20,8 +20,6 @@ package bisq.desktop.components.paymentmethods;
 import bisq.desktop.components.InputTextField;
 import bisq.desktop.util.GUIUtil;
 import bisq.desktop.util.Layout;
-import bisq.desktop.util.validation.EmailValidator;
-
 import bisq.core.account.witness.AccountAgeWitnessService;
 import bisq.core.locale.BankUtil;
 import bisq.core.locale.Country;
@@ -31,6 +29,7 @@ import bisq.core.payment.MoneyGramAccount;
 import bisq.core.payment.PaymentAccount;
 import bisq.core.payment.payload.MoneyGramAccountPayload;
 import bisq.core.payment.payload.PaymentAccountPayload;
+import bisq.core.payment.validation.EmailValidator;
 import bisq.core.util.coin.CoinFormatter;
 import bisq.core.util.validation.InputValidator;
 
@@ -171,7 +170,7 @@ public class MoneyGramForm extends PaymentMethodForm {
 
     @Override
     protected void autoFillNameTextField() {
-        setAccountNameWithString(moneyGramAccountPayload.getHolderName());
+        setAccountNameWithString(moneyGramAccountPayload.getHolderName() == null ? "" : moneyGramAccountPayload.getHolderName());
     }
 
     @Override

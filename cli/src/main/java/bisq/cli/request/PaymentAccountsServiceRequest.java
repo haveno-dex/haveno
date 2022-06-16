@@ -20,11 +20,13 @@ package bisq.cli.request;
 import bisq.proto.grpc.CreateCryptoCurrencyPaymentAccountRequest;
 import bisq.proto.grpc.CreatePaymentAccountRequest;
 import bisq.proto.grpc.GetCryptoCurrencyPaymentMethodsRequest;
+import bisq.proto.grpc.GetPaymentAccountFormAsJsonRequest;
 import bisq.proto.grpc.GetPaymentAccountFormRequest;
 import bisq.proto.grpc.GetPaymentAccountsRequest;
 import bisq.proto.grpc.GetPaymentMethodsRequest;
 
 import protobuf.PaymentAccount;
+import protobuf.PaymentAccountForm;
 import protobuf.PaymentMethod;
 
 import java.util.List;
@@ -49,15 +51,15 @@ public class PaymentAccountsServiceRequest {
     }
 
     public String getPaymentAcctFormAsJson(String paymentMethodId) {
-        var request = GetPaymentAccountFormRequest.newBuilder()
+        var request = GetPaymentAccountFormAsJsonRequest.newBuilder()
                 .setPaymentMethodId(paymentMethodId)
                 .build();
-        return grpcStubs.paymentAccountsService.getPaymentAccountForm(request).getPaymentAccountFormJson();
+        return grpcStubs.paymentAccountsService.getPaymentAccountFormAsJson(request).getPaymentAccountFormAsJson();
     }
 
     public PaymentAccount createPaymentAccount(String json) {
         var request = CreatePaymentAccountRequest.newBuilder()
-                .setPaymentAccountForm(json)
+                .setPaymentAccountFormAsJson(json)
                 .build();
         return grpcStubs.paymentAccountsService.createPaymentAccount(request).getPaymentAccount();
     }

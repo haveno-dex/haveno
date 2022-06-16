@@ -6,7 +6,7 @@ import bisq.core.locale.CountryUtil;
 import bisq.core.locale.Res;
 
 import java.nio.charset.StandardCharsets;
-
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -37,6 +37,7 @@ public abstract class IfscBasedAccountPayload extends CountryBasedPaymentAccount
     protected IfscBasedAccountPayload(String paymentMethodName,
                                  String id,
                                  String countryCode,
+                                 List<String> acceptedCountryCodes,
                                  String holderName,
                                  String accountNr,
                                  String ifsc,
@@ -45,6 +46,7 @@ public abstract class IfscBasedAccountPayload extends CountryBasedPaymentAccount
         super(paymentMethodName,
                 id,
                 countryCode,
+                acceptedCountryCodes,
                 maxTradePeriod,
                 excludeFromJsonDataMap);
 

@@ -17,6 +17,7 @@
 
 package bisq.core.payment;
 
+import bisq.core.api.model.PaymentAccountFormField;
 import bisq.core.locale.FiatCurrency;
 import bisq.core.locale.TradeCurrency;
 import bisq.core.payment.payload.MoneseAccountPayload;
@@ -63,14 +64,17 @@ public final class MoneseAccount extends PaymentAccount {
         return ((MoneseAccountPayload) paymentAccountPayload).getMobileNr();
     }
 
+    @Override
     public String getMessageForBuyer() {
         return "payment.monese.info.buyer";
     }
 
+    @Override
     public String getMessageForSeller() {
         return "payment.monese.info.seller";
     }
 
+    @Override
     public String getMessageForAccountCreation() {
         return "payment.monese.info.account";
     }
@@ -78,5 +82,10 @@ public final class MoneseAccount extends PaymentAccount {
     @Override
     public @NonNull List<TradeCurrency> getSupportedCurrencies() {
         return SUPPORTED_CURRENCIES;
+    }
+
+    @Override
+    public @NonNull List<PaymentAccountFormField.FieldId> getInputFieldIds() {
+        throw new RuntimeException("Not implemented");
     }
 }

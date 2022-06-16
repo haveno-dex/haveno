@@ -22,8 +22,9 @@ import bisq.core.locale.Res;
 import com.google.protobuf.Message;
 
 import java.nio.charset.StandardCharsets;
-
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import lombok.EqualsAndHashCode;
@@ -46,6 +47,7 @@ public final class RtgsAccountPayload extends IfscBasedAccountPayload {
     private RtgsAccountPayload(String paymentMethod,
                                String id,
                                String countryCode,
+                               List<String> acceptedCountryCodes,
                                String holderName,
                                String accountNr,
                                String ifsc,
@@ -54,6 +56,7 @@ public final class RtgsAccountPayload extends IfscBasedAccountPayload {
         super(paymentMethod,
                 id,
                 countryCode,
+                acceptedCountryCodes,
                 holderName,
                 accountNr,
                 ifsc,
@@ -83,6 +86,7 @@ public final class RtgsAccountPayload extends IfscBasedAccountPayload {
         return new RtgsAccountPayload(proto.getPaymentMethodId(),
                 proto.getId(),
                 countryBasedPaymentAccountPayload.getCountryCode(),
+                new ArrayList<>(countryBasedPaymentAccountPayload.getAcceptedCountryCodesList()),
                 ifscBasedAccountPayloadPB.getHolderName(),
                 ifscBasedAccountPayloadPB.getAccountNr(),
                 ifscBasedAccountPayloadPB.getIfsc(),

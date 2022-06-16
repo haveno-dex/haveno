@@ -550,14 +550,19 @@ service PaymentAccounts {
     }
     rpc GetPaymentAccountForm (GetPaymentAccountFormRequest) returns (GetPaymentAccountFormReply) {
     }
+    rpc GetPaymentAccountFormAsJson (GetPaymentAccountFormAsJsonRequest) returns (GetPaymentAccountFormAsJsonReply) {
+    }
     rpc CreateCryptoCurrencyPaymentAccount (CreateCryptoCurrencyPaymentAccountRequest) returns (CreateCryptoCurrencyPaymentAccountReply) {
     }
     rpc GetCryptoCurrencyPaymentMethods (GetCryptoCurrencyPaymentMethodsRequest) returns (GetCryptoCurrencyPaymentMethodsReply) {
     }
+    rpc ValidateFormField (ValidateFormFieldRequest) returns (ValidateFormFieldReply) {
+    }
 }
 
 message CreatePaymentAccountRequest {
-    string payment_account_form = 1;
+    PaymentAccountForm payment_account_form = 1;
+    string payment_account_form_as_json = 2;
 }
 
 message CreatePaymentAccountReply {
@@ -583,7 +588,15 @@ message GetPaymentAccountFormRequest {
 }
 
 message GetPaymentAccountFormReply {
-    string payment_account_form_json = 1;
+    PaymentAccountForm payment_account_form = 1;
+}
+
+message GetPaymentAccountFormAsJsonRequest {
+    string payment_method_id = 1;
+}
+
+message GetPaymentAccountFormAsJsonReply {
+    string payment_account_form_as_json = 1;
 }
 
 message CreateCryptoCurrencyPaymentAccountRequest {
@@ -602,6 +615,15 @@ message GetCryptoCurrencyPaymentMethodsRequest {
 
 message GetCryptoCurrencyPaymentMethodsReply {
     repeated PaymentMethod payment_methods = 1;
+}
+
+message ValidateFormFieldRequest {
+    PaymentAccountForm form = 1;
+    PaymentAccountFormField.FieldId field_id = 2;
+    string value = 3;
+}
+
+message ValidateFormFieldReply {
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////

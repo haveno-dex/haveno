@@ -58,10 +58,9 @@ public class BotPaymentAccountGenerator {
     }
 
     private Map<String, Object> getPaymentAccountFormMap(String paymentMethodId) {
-        PaymentAccountForm paymentAccountForm = new PaymentAccountForm();
-        File jsonFormTemplate = paymentAccountForm.getPaymentAccountForm(paymentMethodId);
+        File jsonFormTemplate = PaymentAccountForm.getPaymentAccountForm(paymentMethodId);
         jsonFormTemplate.deleteOnExit();
-        String jsonString = paymentAccountForm.toJsonString(jsonFormTemplate);
+        String jsonString = PaymentAccountForm.toJsonString(jsonFormTemplate);
         //noinspection unchecked
         return (Map<String, Object>) gson.fromJson(jsonString, Object.class);
     }

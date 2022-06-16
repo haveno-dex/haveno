@@ -18,11 +18,13 @@
 package bisq.core.payment.payload;
 
 import bisq.core.locale.BankUtil;
+import bisq.core.locale.Country;
 import bisq.core.locale.Res;
 
 import com.google.protobuf.Message;
-
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import lombok.EqualsAndHashCode;
@@ -51,6 +53,7 @@ public final class DomesticWireTransferAccountPayload extends BankAccountPayload
     private DomesticWireTransferAccountPayload(String paymentMethodName,
                                       String id,
                                       String countryCode,
+                                      List<String> acceptedCountryCodes,
                                       String holderName,
                                       String bankName,
                                       String branchId,
@@ -61,6 +64,7 @@ public final class DomesticWireTransferAccountPayload extends BankAccountPayload
         super(paymentMethodName,
                 id,
                 countryCode,
+                acceptedCountryCodes,
                 holderName,
                 bankName,
                 branchId,
@@ -98,6 +102,7 @@ public final class DomesticWireTransferAccountPayload extends BankAccountPayload
         return new DomesticWireTransferAccountPayload(proto.getPaymentMethodId(),
                 proto.getId(),
                 countryBasedPaymentAccountPayload.getCountryCode(),
+                new ArrayList<>(countryBasedPaymentAccountPayload.getAcceptedCountryCodesList()),
                 bankAccountPayloadPB.getHolderName(),
                 bankAccountPayloadPB.getBankName().isEmpty() ? null : bankAccountPayloadPB.getBankName(),
                 bankAccountPayloadPB.getBranchId().isEmpty() ? null : bankAccountPayloadPB.getBranchId(),

@@ -21,12 +21,12 @@ import javax.inject.Inject;
 
 public class FiatPriceValidator extends MonetaryValidator {
     @Override
-    protected double getMinValue() {
+    public double getMinValue() {
         return 0.0001;
     }
 
     @Override
-    protected double getMaxValue() {
+    public double getMaxValue() {
         // Hard to say what the max value should be (zimbabwe dollar....)?
         // Lets set it to Double.MAX_VALUE until we find some reasonable number
         return Double.MAX_VALUE;

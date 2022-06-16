@@ -17,6 +17,7 @@
 
 package bisq.core.payment;
 
+import bisq.core.api.model.PaymentAccountFormField;
 import bisq.core.locale.FiatCurrency;
 import bisq.core.locale.TradeCurrency;
 import bisq.core.payment.payload.PaymentAccountPayload;
@@ -46,6 +47,11 @@ public final class PromptPayAccount extends PaymentAccount {
     @Override
     public @NonNull List<TradeCurrency> getSupportedCurrencies() {
         return SUPPORTED_CURRENCIES;
+    }
+
+    @Override
+    public @NonNull List<PaymentAccountFormField.FieldId> getInputFieldIds() {
+        throw new RuntimeException("Not implemented");
     }
 
     public void setPromptPayId(String promptPayId) {

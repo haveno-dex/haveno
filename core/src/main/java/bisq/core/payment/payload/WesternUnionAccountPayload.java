@@ -24,8 +24,9 @@ import bisq.core.locale.Res;
 import com.google.protobuf.Message;
 
 import java.nio.charset.StandardCharsets;
-
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import lombok.EqualsAndHashCode;
@@ -57,6 +58,7 @@ public class WesternUnionAccountPayload extends CountryBasedPaymentAccountPayloa
     private WesternUnionAccountPayload(String paymentMethodName,
                                        String id,
                                        String countryCode,
+                                       List<String> acceptedCountryCodes,
                                        String holderName,
                                        String city,
                                        String state,
@@ -66,6 +68,7 @@ public class WesternUnionAccountPayload extends CountryBasedPaymentAccountPayloa
         super(paymentMethodName,
                 id,
                 countryCode,
+                acceptedCountryCodes,
                 maxTradePeriod,
                 excludeFromJsonDataMap);
         this.holderName = holderName;
@@ -97,6 +100,7 @@ public class WesternUnionAccountPayload extends CountryBasedPaymentAccountPayloa
         return new WesternUnionAccountPayload(proto.getPaymentMethodId(),
                 proto.getId(),
                 countryBasedPaymentAccountPayload.getCountryCode(),
+                new ArrayList<>(countryBasedPaymentAccountPayload.getAcceptedCountryCodesList()),
                 westernUnionAccountPayload.getHolderName(),
                 westernUnionAccountPayload.getCity(),
                 westernUnionAccountPayload.getState(),

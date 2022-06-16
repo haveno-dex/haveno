@@ -20,10 +20,9 @@ package bisq.desktop.main.overlays.windows;
 import bisq.desktop.components.InputTextField;
 import bisq.desktop.main.overlays.Overlay;
 import bisq.desktop.util.Layout;
-import bisq.desktop.util.validation.RevolutValidator;
-
 import bisq.core.locale.Res;
 import bisq.core.payment.RevolutAccount;
+import bisq.core.payment.validation.RevolutValidator;
 import bisq.core.user.User;
 
 import javafx.scene.Scene;

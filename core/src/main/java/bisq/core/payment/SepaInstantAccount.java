@@ -17,6 +17,7 @@
 
 package bisq.core.payment;
 
+import bisq.core.api.model.PaymentAccountFormField;
 import bisq.core.locale.CountryUtil;
 import bisq.core.locale.FiatCurrency;
 import bisq.core.locale.TradeCurrency;
@@ -99,9 +100,13 @@ public final class SepaInstantAccount extends CountryBasedPaymentAccount impleme
         ((SepaInstantAccountPayload) paymentAccountPayload).revertChanges();
     }
 
-    @NotNull
     @Override
-    public List<TradeCurrency> getSupportedCurrencies() {
+    public @NotNull List<TradeCurrency> getSupportedCurrencies() {
         return SUPPORTED_CURRENCIES;
+    }
+
+    @Override
+    public @NotNull List<PaymentAccountFormField.FieldId> getInputFieldIds() {
+        throw new RuntimeException("Not implemented");
     }
 }

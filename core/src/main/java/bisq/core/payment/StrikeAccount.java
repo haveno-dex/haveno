@@ -17,14 +17,16 @@
 
 package bisq.core.payment;
 
+import bisq.core.api.model.PaymentAccountFormField;
+import bisq.core.locale.Country;
+import bisq.core.locale.CountryUtil;
 import bisq.core.locale.FiatCurrency;
 import bisq.core.locale.TradeCurrency;
 import bisq.core.payment.payload.PaymentAccountPayload;
 import bisq.core.payment.payload.PaymentMethod;
 import bisq.core.payment.payload.StrikeAccountPayload;
-
 import java.util.List;
-
+import javax.annotation.Nullable;
 import lombok.EqualsAndHashCode;
 
 import org.jetbrains.annotations.NotNull;
@@ -33,6 +35,14 @@ import org.jetbrains.annotations.NotNull;
 public final class StrikeAccount extends CountryBasedPaymentAccount {
 
     public static final List<TradeCurrency> SUPPORTED_CURRENCIES = List.of(new FiatCurrency("USD"));
+    public static final List<Country> SUPPORTED_COUNTRIES = CountryUtil.getCountries(List.of("US"));
+    
+    private static final List<PaymentAccountFormField.FieldId> INPUT_FIELD_IDS = List.of(
+            PaymentAccountFormField.FieldId.ACCOUNT_NAME,
+            PaymentAccountFormField.FieldId.COUNTRY,
+            PaymentAccountFormField.FieldId.HOLDER_NAME,
+            PaymentAccountFormField.FieldId.SALT
+    );
 
     public StrikeAccount() {
         super(PaymentMethod.STRIKE);
@@ -53,21 +63,35 @@ public final class StrikeAccount extends CountryBasedPaymentAccount {
         return ((StrikeAccountPayload) paymentAccountPayload).getHolderName();
     }
 
+    @Override
     public String getMessageForBuyer() {
         return "payment.strike.info.buyer";
     }
 
+    @Override
     public String getMessageForSeller() {
         return "payment.strike.info.seller";
     }
 
+    @Override
     public String getMessageForAccountCreation() {
         return "payment.strike.info.account";
     }
 
-    @NotNull
     @Override
-    public List<TradeCurrency> getSupportedCurrencies() {
+    public @NotNull List<TradeCurrency> getSupportedCurrencies() {
         return SUPPORTED_CURRENCIES;
+    }
+    
+    @Override
+    @Nullable
+    public @NotNull List<Country> getSupportedCountries() {
+        System.out.println("STIKE RETURNING SUPPORTED COUNTRIES: " + SUPPORTED_COUNTRIES);
+        return SUPPORTED_COUNTRIES;
+    }
+
+    @Override
+    public @NotNull List<PaymentAccountFormField.FieldId> getInputFieldIds() {
+        return INPUT_FIELD_IDS;
     }
 }

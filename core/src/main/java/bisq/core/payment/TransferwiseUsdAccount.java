@@ -17,6 +17,7 @@
 
 package bisq.core.payment;
 
+import bisq.core.api.model.PaymentAccountFormField;
 import bisq.core.locale.FiatCurrency;
 import bisq.core.locale.TradeCurrency;
 import bisq.core.payment.payload.PaymentAccountPayload;
@@ -69,21 +70,28 @@ public final class TransferwiseUsdAccount extends CountryBasedPaymentAccount {
         return ((TransferwiseUsdAccountPayload) paymentAccountPayload).getBeneficiaryAddress();
     }
 
+    @Override
     public String getMessageForBuyer() {
         return "payment.transferwiseUsd.info.buyer";
     }
 
+    @Override
     public String getMessageForSeller() {
         return "payment.transferwiseUsd.info.seller";
     }
 
+    @Override
     public String getMessageForAccountCreation() {
         return "payment.transferwiseUsd.info.account";
     }
 
-    @NotNull
     @Override
-    public List<TradeCurrency> getSupportedCurrencies() {
+    public @NotNull List<TradeCurrency> getSupportedCurrencies() {
         return SUPPORTED_CURRENCIES;
+    }
+
+    @Override
+    public @NotNull List<PaymentAccountFormField.FieldId> getInputFieldIds() {
+        throw new RuntimeException("Not implemented");
     }
 }

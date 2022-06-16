@@ -25,6 +25,7 @@ import com.google.common.base.Joiner;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import lombok.EqualsAndHashCode;
@@ -52,6 +53,7 @@ public final class SpecificBanksAccountPayload extends BankAccountPayload {
     private SpecificBanksAccountPayload(String paymentMethodName,
                                         String id,
                                         String countryCode,
+                                        List<String> acceptedCountryCodes,
                                         String holderName,
                                         String bankName,
                                         String branchId,
@@ -66,6 +68,7 @@ public final class SpecificBanksAccountPayload extends BankAccountPayload {
         super(paymentMethodName,
                 id,
                 countryCode,
+                acceptedCountryCodes,
                 holderName,
                 bankName,
                 branchId,
@@ -106,6 +109,7 @@ public final class SpecificBanksAccountPayload extends BankAccountPayload {
         return new SpecificBanksAccountPayload(proto.getPaymentMethodId(),
                 proto.getId(),
                 countryBasedPaymentAccountPayload.getCountryCode(),
+                new ArrayList<>(countryBasedPaymentAccountPayload.getAcceptedCountryCodesList()),
                 bankAccountPayload.getHolderName(),
                 bankAccountPayload.getBankName().isEmpty() ? null : bankAccountPayload.getBankName(),
                 bankAccountPayload.getBranchId().isEmpty() ? null : bankAccountPayload.getBranchId(),

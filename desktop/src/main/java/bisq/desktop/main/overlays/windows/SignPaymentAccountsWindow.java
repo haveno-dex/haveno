@@ -170,7 +170,7 @@ public class SignPaymentAccountsWindow extends Overlay<SignPaymentAccountsWindow
     }
 
     private List<PaymentMethod> getPaymentMethods() {
-        return PaymentMethod.getPaymentMethods().stream()
+        return PaymentMethod.paymentMethods.stream()
                 .filter(PaymentMethod::isFiat)
                 .filter(PaymentMethod::hasChargebackRisk)
                 .collect(Collectors.toList());

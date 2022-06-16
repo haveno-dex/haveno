@@ -20,8 +20,9 @@ package bisq.core.payment.payload;
 import bisq.core.locale.Res;
 
 import com.google.protobuf.Message;
-
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import lombok.EqualsAndHashCode;
@@ -50,6 +51,7 @@ public final class AchTransferAccountPayload extends BankAccountPayload {
     private AchTransferAccountPayload(String paymentMethodName,
                                        String id,
                                        String countryCode,
+                                       List<String> acceptedCountryCodes,
                                        String holderName,
                                        String bankName,
                                        String branchId,
@@ -61,6 +63,7 @@ public final class AchTransferAccountPayload extends BankAccountPayload {
         super(paymentMethodName,
                 id,
                 countryCode,
+                acceptedCountryCodes,
                 holderName,
                 bankName,
                 branchId,
@@ -98,6 +101,7 @@ public final class AchTransferAccountPayload extends BankAccountPayload {
         return new AchTransferAccountPayload(proto.getPaymentMethodId(),
                 proto.getId(),
                 countryBasedPaymentAccountPayload.getCountryCode(),
+                new ArrayList<>(countryBasedPaymentAccountPayload.getAcceptedCountryCodesList()),
                 bankAccountPayloadPB.getHolderName(),
                 bankAccountPayloadPB.getBankName().isEmpty() ? null : bankAccountPayloadPB.getBankName(),
                 bankAccountPayloadPB.getBranchId().isEmpty() ? null : bankAccountPayloadPB.getBranchId(),

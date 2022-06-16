@@ -19,7 +19,11 @@ package bisq.core.api;
 
 import bisq.core.account.witness.AccountAgeWitnessService;
 import bisq.core.api.model.PaymentAccountForm;
+import bisq.core.api.model.PaymentAccountForm;
+import bisq.core.api.model.PaymentAccountFormField;
 import bisq.core.locale.CryptoCurrency;
+import bisq.core.locale.CurrencyUtil;
+import bisq.core.locale.TradeCurrency;
 import bisq.core.payment.AssetAccount;
 import bisq.core.payment.CryptoCurrencyAccount;
 import bisq.core.payment.InstantCryptoCurrencyAccount;
@@ -27,7 +31,6 @@ import bisq.core.payment.PaymentAccount;
 import bisq.core.payment.PaymentAccountFactory;
 import bisq.core.payment.payload.PaymentMethod;
 import bisq.core.user.User;
-
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
@@ -50,24 +53,22 @@ class CorePaymentAccountsService {
 
     private final CoreAccountService accountService;
     private final AccountAgeWitnessService accountAgeWitnessService;
-    private final PaymentAccountForm paymentAccountForm;
     private final User user;
 
     @Inject
     public CorePaymentAccountsService(CoreAccountService accountService,
                                       AccountAgeWitnessService accountAgeWitnessService,
-                                      PaymentAccountForm paymentAccountForm,
                                       User user) {
         this.accountService = accountService;
         this.accountAgeWitnessService = accountAgeWitnessService;
-        this.paymentAccountForm = paymentAccountForm;
         this.user = user;
     }
 
     // Fiat Currency Accounts
 
-    PaymentAccount createPaymentAccount(String jsonString) {
-        PaymentAccount paymentAccount = paymentAccountForm.toPaymentAccount(jsonString);
+    PaymentAccount createPaymentAccount(PaymentAccountForm form) {
+        PaymentAccount paymentAccount = form.toPaymentAccount();
+        setSelectedTradeCurrency(paymentAccount); // TODO: selected trade currency is function of offer, not payment account payload
         verifyPaymentAccountHasRequiredFields(paymentAccount);
         user.addPaymentAccountIfNotExists(paymentAccount);
         accountAgeWitnessService.publishMyAccountAgeWitness(paymentAccount.getPaymentAccountPayload());
@@ -75,6 +76,18 @@ class CorePaymentAccountsService {
                 paymentAccount.getId(),
                 paymentAccount.getPaymentAccountPayload().getPaymentMethodId());
         return paymentAccount;
+    }
+    
+    private static void setSelectedTradeCurrency(PaymentAccount paymentAccount) {
+        TradeCurrency singleTradeCurrency = paymentAccount.getSingleTradeCurrency();
+        List<TradeCurrency> tradeCurrencies = paymentAccount.getTradeCurrencies();
+        if (singleTradeCurrency != null) return;
+        else if (tradeCurrencies != null && !tradeCurrencies.isEmpty()) {
+            if (tradeCurrencies.contains(CurrencyUtil.getDefaultTradeCurrency()))
+                paymentAccount.setSelectedTradeCurrency(CurrencyUtil.getDefaultTradeCurrency());
+            else
+                paymentAccount.setSelectedTradeCurrency(tradeCurrencies.get(0));
+        }
     }
 
     Set<PaymentAccount> getPaymentAccounts() {
@@ -88,14 +101,18 @@ class CorePaymentAccountsService {
                 .collect(Collectors.toList());
     }
 
-    String getPaymentAccountFormAsString(String paymentMethodId) {
-        File jsonForm = getPaymentAccountForm(paymentMethodId);
-        jsonForm.deleteOnExit(); // If just asking for a string, delete the form file.
-        return paymentAccountForm.toJsonString(jsonForm);
+    PaymentAccountForm getPaymentAccountForm(String paymentMethodId) {
+        return PaymentAccountForm.getForm(paymentMethodId);
     }
 
-    File getPaymentAccountForm(String paymentMethodId) {
-        return paymentAccountForm.getPaymentAccountForm(paymentMethodId);
+    String getPaymentAccountFormAsString(String paymentMethodId) {
+        File jsonForm = getPaymentAccountFormFile(paymentMethodId);
+        jsonForm.deleteOnExit(); // If just asking for a string, delete the form file.
+        return PaymentAccountForm.toJsonString(jsonForm);
+    }
+
+    File getPaymentAccountFormFile(String paymentMethodId) {
+        return PaymentAccountForm.getPaymentAccountForm(paymentMethodId);
     }
 
     // Crypto Currency Accounts
@@ -132,6 +149,16 @@ class CorePaymentAccountsService {
                 .filter(PaymentMethod::isAltcoin)
                 .sorted(Comparator.comparing(PaymentMethod::getId))
                 .collect(Collectors.toList());
+    }
+
+    void validateFormField(PaymentAccountForm form, PaymentAccountFormField.FieldId fieldId, String value) {
+
+        // get payment method id
+        PaymentAccountForm.FormId formId = form.getId();
+
+        // validate field with empty payment account
+        PaymentAccount paymentAccount = PaymentAccountFactory.getPaymentAccount(PaymentMethod.getPaymentMethod(formId.toString()));
+        paymentAccount.validateFormField(form, fieldId, value);
     }
 
     private void verifyPaymentAccountHasRequiredFields(PaymentAccount paymentAccount) {

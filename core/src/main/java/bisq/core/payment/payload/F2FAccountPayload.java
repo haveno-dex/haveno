@@ -24,8 +24,9 @@ import com.google.protobuf.Message;
 import org.apache.commons.lang3.ArrayUtils;
 
 import java.nio.charset.StandardCharsets;
-
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import lombok.EqualsAndHashCode;
@@ -56,6 +57,7 @@ public final class F2FAccountPayload extends CountryBasedPaymentAccountPayload {
     private F2FAccountPayload(String paymentMethodName,
                               String id,
                               String countryCode,
+                              List<String> acceptedCountryCodes,
                               String contact,
                               String city,
                               String extraInfo,
@@ -64,6 +66,7 @@ public final class F2FAccountPayload extends CountryBasedPaymentAccountPayload {
         super(paymentMethodName,
                 id,
                 countryCode,
+                acceptedCountryCodes,
                 maxTradePeriod,
                 excludeFromJsonDataMap);
         this.contact = contact;
@@ -91,6 +94,7 @@ public final class F2FAccountPayload extends CountryBasedPaymentAccountPayload {
         return new F2FAccountPayload(proto.getPaymentMethodId(),
                 proto.getId(),
                 countryBasedPaymentAccountPayload.getCountryCode(),
+                new ArrayList<>(countryBasedPaymentAccountPayload.getAcceptedCountryCodesList()),
                 f2fAccountPayloadPB.getContact(),
                 f2fAccountPayloadPB.getCity(),
                 f2fAccountPayloadPB.getExtraInfo(),

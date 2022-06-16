@@ -17,21 +17,34 @@
 
 package bisq.core.payment;
 
+import bisq.core.api.model.PaymentAccountForm;
+import bisq.core.api.model.PaymentAccountFormField;
+import bisq.core.locale.Country;
 import bisq.core.locale.CountryUtil;
 import bisq.core.locale.FiatCurrency;
 import bisq.core.locale.TradeCurrency;
 import bisq.core.payment.payload.PaymentAccountPayload;
 import bisq.core.payment.payload.PaymentMethod;
 import bisq.core.payment.payload.SepaAccountPayload;
-
+import bisq.core.payment.validation.SepaIBANValidator;
 import java.util.List;
-
+import javax.annotation.Nullable;
 import lombok.EqualsAndHashCode;
 
 import org.jetbrains.annotations.NotNull;
 
 @EqualsAndHashCode(callSuper = true)
 public final class SepaAccount extends CountryBasedPaymentAccount implements BankAccount {
+
+    private static final List<PaymentAccountFormField.FieldId> INPUT_FIELD_IDS = List.of(
+            PaymentAccountFormField.FieldId.ACCOUNT_NAME,
+            PaymentAccountFormField.FieldId.HOLDER_NAME,
+            PaymentAccountFormField.FieldId.IBAN,
+            PaymentAccountFormField.FieldId.BIC,
+            PaymentAccountFormField.FieldId.COUNTRY,
+            PaymentAccountFormField.FieldId.ACCEPTED_COUNTRY_CODES,
+            PaymentAccountFormField.FieldId.SALT
+    );
 
     public static final List<TradeCurrency> SUPPORTED_CURRENCIES = List.of(new FiatCurrency("EUR"));
 
@@ -78,6 +91,10 @@ public final class SepaAccount extends CountryBasedPaymentAccount implements Ban
     public List<String> getAcceptedCountryCodes() {
         return ((SepaAccountPayload) paymentAccountPayload).getAcceptedCountryCodes();
     }
+    
+    public void setAcceptedCountryCodes(List<String> acceptedCountryCodes) {
+        ((SepaAccountPayload) paymentAccountPayload).setAcceptedCountryCodes(acceptedCountryCodes);
+    }
 
     public void addAcceptedCountry(String countryCode) {
         ((SepaAccountPayload) paymentAccountPayload).addAcceptedCountry(countryCode);
@@ -99,9 +116,44 @@ public final class SepaAccount extends CountryBasedPaymentAccount implements Ban
         ((SepaAccountPayload) paymentAccountPayload).revertChanges();
     }
 
-    @NotNull
     @Override
-    public List<TradeCurrency> getSupportedCurrencies() {
+    public @NotNull List<PaymentAccountFormField.FieldId> getInputFieldIds() {
+        return INPUT_FIELD_IDS;
+    }
+
+    @Override
+    public @NotNull List<TradeCurrency> getSupportedCurrencies() {
         return SUPPORTED_CURRENCIES;
+    }
+    
+    @Override
+    @Nullable
+    public List<Country> getSupportedCountries() {
+        return CountryUtil.getAllSepaCountries();
+    }
+
+    @Override
+    public void validateFormField(PaymentAccountForm form, PaymentAccountFormField.FieldId fieldId, String value) {
+        switch (fieldId) {
+        case IBAN:
+            processValidationResult(new SepaIBANValidator().validate(value));
+            break;
+        default:
+            super.validateFormField(form, fieldId, value);
+        }
+    }
+    
+    @Override
+    protected PaymentAccountFormField getEmptyFormField(PaymentAccountFormField.FieldId fieldId) {
+        var field = super.getEmptyFormField(fieldId);
+        switch (fieldId) {
+        case ACCEPTED_COUNTRY_CODES:
+            field.setSupportedSepaEuroCountries(CountryUtil.getAllSepaEuroCountries());
+            field.setSupportedSepaNonEuroCountries(CountryUtil.getAllSepaNonEuroCountries());
+            break;
+        default:
+            // no action
+        }
+        return field;
     }
 }

@@ -22,8 +22,9 @@ import bisq.core.locale.CountryUtil;
 import bisq.core.locale.Res;
 
 import com.google.protobuf.Message;
-
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -58,6 +59,7 @@ public class CashDepositAccountPayload extends BankAccountPayload {
     private CashDepositAccountPayload(String paymentMethodName,
                                       String id,
                                       String countryCode,
+                                      List<String> acceptedCountryCodes,
                                       String holderName,
                                       @Nullable String holderEmail,
                                       @Nullable String bankName,
@@ -73,6 +75,7 @@ public class CashDepositAccountPayload extends BankAccountPayload {
         super(paymentMethodName,
                 id,
                 countryCode,
+                acceptedCountryCodes,
                 holderName,
                 bankName,
                 branchId,
@@ -117,6 +120,7 @@ public class CashDepositAccountPayload extends BankAccountPayload {
         return new CashDepositAccountPayload(proto.getPaymentMethodId(),
                 proto.getId(),
                 countryBasedPaymentAccountPayload.getCountryCode(),
+                new ArrayList<>(countryBasedPaymentAccountPayload.getAcceptedCountryCodesList()),
                 cashDepositAccountPayload.getHolderName(),
                 cashDepositAccountPayload.getHolderEmail().isEmpty() ? null : cashDepositAccountPayload.getHolderEmail(),
                 cashDepositAccountPayload.getBankName().isEmpty() ? null : cashDepositAccountPayload.getBankName(),

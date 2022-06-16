@@ -20,7 +20,8 @@ package bisq.core.payment.payload;
 import org.apache.commons.lang3.ArrayUtils;
 
 import java.nio.charset.StandardCharsets;
-
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 import lombok.EqualsAndHashCode;
@@ -36,6 +37,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public abstract class CountryBasedPaymentAccountPayload extends PaymentAccountPayload {
     protected String countryCode = "";
+    protected List<String> acceptedCountryCodes = new ArrayList<String>();
 
     CountryBasedPaymentAccountPayload(String paymentMethodName, String id) {
         super(paymentMethodName, id);
@@ -44,6 +46,7 @@ public abstract class CountryBasedPaymentAccountPayload extends PaymentAccountPa
     protected CountryBasedPaymentAccountPayload(String paymentMethodName,
                                                 String id,
                                                 String countryCode,
+                                                List<String> acceptedCountryCodes,
                                                 long maxTradePeriod,
                                                 Map<String, String> excludeFromJsonDataMap) {
         super(paymentMethodName,
@@ -52,18 +55,22 @@ public abstract class CountryBasedPaymentAccountPayload extends PaymentAccountPa
                 excludeFromJsonDataMap);
 
         this.countryCode = countryCode;
+        this.acceptedCountryCodes = acceptedCountryCodes;
     }
 
     @Override
     protected protobuf.PaymentAccountPayload.Builder getPaymentAccountPayloadBuilder() {
         protobuf.CountryBasedPaymentAccountPayload.Builder builder = protobuf.CountryBasedPaymentAccountPayload.newBuilder()
-                .setCountryCode(countryCode);
+                .setCountryCode(countryCode)
+                .addAllAcceptedCountryCodes(acceptedCountryCodes);
         return super.getPaymentAccountPayloadBuilder()
                 .setCountryBasedPaymentAccountPayload(builder);
     }
 
+    @Override
     public abstract String getPaymentDetails();
 
+    @Override
     public abstract String getPaymentDetailsForTradePopup();
 
     @Override

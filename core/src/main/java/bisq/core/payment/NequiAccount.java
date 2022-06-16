@@ -17,6 +17,7 @@
 
 package bisq.core.payment;
 
+import bisq.core.api.model.PaymentAccountFormField;
 import bisq.core.locale.FiatCurrency;
 import bisq.core.locale.TradeCurrency;
 import bisq.core.payment.payload.NequiAccountPayload;
@@ -50,14 +51,17 @@ public final class NequiAccount extends CountryBasedPaymentAccount {
         return ((NequiAccountPayload) paymentAccountPayload).getMobileNr();
     }
 
+    @Override
     public String getMessageForBuyer() {
         return "payment.nequi.info.buyer";
     }
 
+    @Override
     public String getMessageForSeller() {
         return "payment.nequi.info.seller";
     }
 
+    @Override
     public String getMessageForAccountCreation() {
         return "payment.nequi.info.account";
     }
@@ -65,5 +69,10 @@ public final class NequiAccount extends CountryBasedPaymentAccount {
     @Override
     public @NonNull List<TradeCurrency> getSupportedCurrencies() {
         return SUPPORTED_CURRENCIES;
+    }
+
+    @Override
+    public @NonNull List<PaymentAccountFormField.FieldId> getInputFieldIds() {
+        throw new RuntimeException("Not implemented");
     }
 }
