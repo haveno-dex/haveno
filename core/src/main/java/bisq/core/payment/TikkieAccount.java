@@ -17,6 +17,7 @@
 
 package bisq.core.payment;
 
+import bisq.core.api.model.PaymentAccountFormField;
 import bisq.core.locale.FiatCurrency;
 import bisq.core.locale.TradeCurrency;
 import bisq.core.payment.payload.PaymentAccountPayload;
@@ -53,21 +54,28 @@ public final class TikkieAccount extends CountryBasedPaymentAccount {
         return ((TikkieAccountPayload) paymentAccountPayload).getIban();
     }
 
+    @Override
     public String getMessageForBuyer() {
         return "payment.tikkie.info.buyer";
     }
 
+    @Override
     public String getMessageForSeller() {
         return "payment.tikkie.info.seller";
     }
 
+    @Override
     public String getMessageForAccountCreation() {
         return "payment.tikkie.info.account";
     }
 
-    @NotNull
     @Override
-    public List<TradeCurrency> getSupportedCurrencies() {
+    public @NotNull List<TradeCurrency> getSupportedCurrencies() {
         return SUPPORTED_CURRENCIES;
+    }
+
+    @Override
+    public @NotNull List<PaymentAccountFormField.FieldId> getInputFieldIds() {
+        throw new RuntimeException("Not implemented");
     }
 }

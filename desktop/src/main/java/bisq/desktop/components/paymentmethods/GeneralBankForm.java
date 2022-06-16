@@ -1,16 +1,15 @@
 package bisq.desktop.components.paymentmethods;
 
 import bisq.desktop.components.InputTextField;
-import bisq.desktop.util.validation.AccountNrValidator;
-import bisq.desktop.util.validation.BankIdValidator;
-import bisq.desktop.util.validation.BranchIdValidator;
-import bisq.desktop.util.validation.NationalAccountIdValidator;
-
 import bisq.core.account.witness.AccountAgeWitnessService;
 import bisq.core.locale.BankUtil;
 import bisq.core.locale.Res;
 import bisq.core.payment.PaymentAccount;
 import bisq.core.payment.payload.BankAccountPayload;
+import bisq.core.payment.validation.AccountNrValidator;
+import bisq.core.payment.validation.BankIdValidator;
+import bisq.core.payment.validation.BranchIdValidator;
+import bisq.core.payment.validation.NationalAccountIdValidator;
 import bisq.core.util.coin.CoinFormatter;
 import bisq.core.util.validation.InputValidator;
 

@@ -17,6 +17,7 @@
 
 package bisq.core.payment;
 
+import bisq.core.api.model.PaymentAccountFormField;
 import bisq.core.locale.FiatCurrency;
 import bisq.core.locale.TradeCurrency;
 import bisq.core.payment.payload.PaymentAccountPayload;
@@ -24,13 +25,19 @@ import bisq.core.payment.payload.PaymentMethod;
 import bisq.core.payment.payload.TransferwiseAccountPayload;
 
 import java.util.List;
-
+import java.util.Map;
 import lombok.EqualsAndHashCode;
-
-import org.jetbrains.annotations.NotNull;
+import lombok.NonNull;
 
 @EqualsAndHashCode(callSuper = true)
 public final class TransferwiseAccount extends PaymentAccount {
+
+    private static final List<PaymentAccountFormField.FieldId> INPUT_FIELD_IDS = List.of(
+            PaymentAccountFormField.FieldId.EMAIL,
+            PaymentAccountFormField.FieldId.TRADE_CURRENCIES,
+            PaymentAccountFormField.FieldId.ACCOUNT_NAME,
+            PaymentAccountFormField.FieldId.SALT
+    );
 
     // https://github.com/bisq-network/proposals/issues/243
     public static final List<TradeCurrency> SUPPORTED_CURRENCIES = List.of(
@@ -87,9 +94,13 @@ public final class TransferwiseAccount extends PaymentAccount {
         return new TransferwiseAccountPayload(paymentMethod.getId(), id);
     }
 
-    @NotNull
     @Override
-    public List<TradeCurrency> getSupportedCurrencies() {
+    public @NonNull List<PaymentAccountFormField.FieldId> getInputFieldIds() {
+        return INPUT_FIELD_IDS;
+    }
+
+    @Override
+    public @NonNull List<TradeCurrency> getSupportedCurrencies() {
         return SUPPORTED_CURRENCIES;
     }
 
@@ -99,5 +110,12 @@ public final class TransferwiseAccount extends PaymentAccount {
 
     public String getEmail() {
         return ((TransferwiseAccountPayload) paymentAccountPayload).getEmail();
+    }
+    
+    @Override
+    protected PaymentAccountFormField getEmptyFormField(PaymentAccountFormField.FieldId fieldId) {
+        var field = super.getEmptyFormField(fieldId);
+        if (field.getId() == PaymentAccountFormField.FieldId.TRADE_CURRENCIES) field.setLabel("Currencies for receiving funds");
+        return field;
     }
 }

@@ -22,8 +22,9 @@ import bisq.core.locale.Res;
 import com.google.protobuf.Message;
 
 import java.nio.charset.StandardCharsets;
-
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import lombok.EqualsAndHashCode;
@@ -49,6 +50,7 @@ public final class TransferwiseUsdAccountPayload extends CountryBasedPaymentAcco
     private TransferwiseUsdAccountPayload(String paymentMethod,
                                  String id,
                                  String countryCode,
+                                 List<String> acceptedCountryCodes,
                                  String email,
                                  String holderName,
                                  String beneficiaryAddress,
@@ -57,6 +59,7 @@ public final class TransferwiseUsdAccountPayload extends CountryBasedPaymentAcco
         super(paymentMethod,
                 id,
                 countryCode,
+                acceptedCountryCodes,
                 maxTradePeriod,
                 excludeFromJsonDataMap);
 
@@ -85,6 +88,7 @@ public final class TransferwiseUsdAccountPayload extends CountryBasedPaymentAcco
         return new TransferwiseUsdAccountPayload(proto.getPaymentMethodId(),
                 proto.getId(),
                 countryBasedPaymentAccountPayload.getCountryCode(),
+                new ArrayList<>(countryBasedPaymentAccountPayload.getAcceptedCountryCodesList()),
                 accountPayloadPB.getEmail(),
                 accountPayloadPB.getHolderName(),
                 accountPayloadPB.getBeneficiaryAddress(),

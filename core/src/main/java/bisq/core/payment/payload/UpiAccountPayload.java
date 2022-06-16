@@ -22,8 +22,9 @@ import bisq.core.locale.Res;
 import com.google.protobuf.Message;
 
 import java.nio.charset.StandardCharsets;
-
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import lombok.EqualsAndHashCode;
@@ -47,12 +48,14 @@ public final class UpiAccountPayload extends CountryBasedPaymentAccountPayload {
     private UpiAccountPayload(String paymentMethod,
                                 String id,
                                 String countryCode,
+                                List<String> acceptedCountryCodes,
                                 String virtualPaymentAddress,
                                 long maxTradePeriod,
                                 Map<String, String> excludeFromJsonDataMap) {
         super(paymentMethod,
                 id,
                 countryCode,
+                acceptedCountryCodes,
                 maxTradePeriod,
                 excludeFromJsonDataMap);
 
@@ -77,6 +80,7 @@ public final class UpiAccountPayload extends CountryBasedPaymentAccountPayload {
         return new UpiAccountPayload(proto.getPaymentMethodId(),
                 proto.getId(),
                 countryBasedPaymentAccountPayload.getCountryCode(),
+                new ArrayList<>(countryBasedPaymentAccountPayload.getAcceptedCountryCodesList()),
                 upiAccountPayloadPB.getVirtualPaymentAddress(),
                 proto.getMaxTradePeriod(),
                 new HashMap<>(proto.getExcludeFromJsonDataMap()));

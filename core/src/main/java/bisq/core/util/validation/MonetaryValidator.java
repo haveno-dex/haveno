@@ -22,10 +22,10 @@ import javax.inject.Inject;
 
 public abstract class MonetaryValidator extends NumberValidator {
 
-    protected abstract double getMinValue();
+    public abstract double getMinValue();
 
     @SuppressWarnings("SameReturnValue")
-    protected abstract double getMaxValue();
+    public abstract double getMaxValue();
 
     @Inject
     public MonetaryValidator() {

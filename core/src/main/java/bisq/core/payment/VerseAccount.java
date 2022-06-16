@@ -17,6 +17,7 @@
 
 package bisq.core.payment;
 
+import bisq.core.api.model.PaymentAccountFormField;
 import bisq.core.locale.FiatCurrency;
 import bisq.core.locale.TradeCurrency;
 import bisq.core.payment.payload.PaymentAccountPayload;
@@ -57,14 +58,17 @@ public final class VerseAccount extends PaymentAccount {
         return ((VerseAccountPayload) paymentAccountPayload).getHolderName();
     }
 
+    @Override
     public String getMessageForBuyer() {
         return "payment.verse.info.buyer";
     }
 
+    @Override
     public String getMessageForSeller() {
         return "payment.verse.info.seller";
     }
 
+    @Override
     public String getMessageForAccountCreation() {
         return "payment.verse.info.account";
     }
@@ -72,5 +76,10 @@ public final class VerseAccount extends PaymentAccount {
     @Override
     public @NonNull List<TradeCurrency> getSupportedCurrencies() {
         return SUPPORTED_CURRENCIES;
+    }
+
+    @Override
+    public @NonNull List<PaymentAccountFormField.FieldId> getInputFieldIds() {
+        throw new RuntimeException("Not implemented");
     }
 }

@@ -17,130 +17,137 @@
 
 package bisq.core.api.model;
 
-import bisq.core.payment.PaymentAccount;
-import bisq.core.payment.PaymentAccountFactory;
-import bisq.core.payment.payload.PaymentMethod;
-
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-
-import javax.inject.Singleton;
-
-import com.google.common.annotations.VisibleForTesting;
-
-import org.apache.commons.lang3.StringUtils;
-
-import java.net.URI;
-import java.net.URISyntaxException;
-
-import java.nio.file.Files;
-import java.nio.file.Paths;
-
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.OutputStreamWriter;
-
-import java.util.Map;
-
-import java.lang.reflect.Type;
-
-import lombok.extern.slf4j.Slf4j;
-
 import static bisq.core.payment.payload.PaymentMethod.getPaymentMethod;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static java.lang.String.format;
 import static java.lang.System.getProperty;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
+import bisq.common.proto.ProtoUtil;
+import bisq.common.proto.persistable.PersistablePayload;
+import bisq.core.payment.PaymentAccount;
+import bisq.core.payment.PaymentAccountFactory;
+import bisq.core.payment.payload.PaymentMethod;
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.CaseFormat;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.OutputStreamWriter;
+import java.lang.reflect.Type;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+import javax.annotation.concurrent.Immutable;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.ToString;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 
-/**
- * <p>
- * An instance of this class can write new payment account forms (editable json files),
- * and de-serialize edited json files into {@link PaymentAccount}
- * instances.
- * </p>
- * <p>
- * Example use case: (1) ask for a blank Hal Cash account form, (2) edit it, (3) derive a
- * {@link bisq.core.payment.HalCashAccount} instance from the edited json file.
- * </p>
- * <br>
- * <p>
- * (1) Ask for a hal cash account form:  Pass a {@link PaymentMethod#HAL_CASH_ID}
- * to {@link PaymentAccountForm#getPaymentAccountForm(String)} to
- * get the json Hal Cash payment account form:
- * <pre>
- * {
- *   "_COMMENTS_": [
- *     "Do not manually edit the paymentMethodId field.",
- *     "Edit the salt field only if you are recreating a payment account on a new installation and wish to preserve the account age."
- *   ],
- *   "paymentMethodId": "HAL_CASH",
- *   "accountName": "Your accountname",
- *   "mobileNr": "Your mobilenr"
- *   "salt": ""
- * }
- * </pre>
- * </p>
- * <p>
- * (2) Save the Hal Cash payment account form to disk, and edit it:
- * <pre>
- * {
- *   "_COMMENTS_": [
- *     "Do not manually edit the paymentMethodId field.",
- *     "Edit the salt field only if you are recreating a payment account on a new installation and wish to preserve the account age."
- *   ],
- *   "paymentMethodId": "HAL_CASH",
- *   "accountName": "Hal Cash Acct",
- *   "mobileNr": "798 123 456"
- *   "salt": ""
- * }
- * </pre>
- * </p>
- * (3) De-serialize the edited json account form:  Pass the edited json file to
- * {@link PaymentAccountForm#toPaymentAccount(File)}, or
- * a json string to {@link PaymentAccountForm#toPaymentAccount(String)}
- * and get a {@link bisq.core.payment.HalCashAccount} instance.
- * <pre>
- * PaymentAccount(
- * paymentMethod=PaymentMethod(id=HAL_CASH,
- *                             maxTradePeriod=86400000,
- *                             maxTradeLimit=50000000),
- * id=e33c9d94-1a1a-43fd-aa11-fcaacbb46100,
- * creationDate=Mon Nov 16 12:26:43 BRST 2020,
- * paymentAccountPayload=HalCashAccountPayload(mobileNr=798 123 456),
- * accountName=Hal Cash Acct,
- * tradeCurrencies=[FiatCurrency(currency=EUR)],
- * selectedTradeCurrency=FiatCurrency(currency=EUR)
- * )
- * </pre>
- */
-@Singleton
+@Getter
+@Immutable
+@EqualsAndHashCode
+@ToString
 @Slf4j
-public class PaymentAccountForm {
-
-    private final GsonBuilder gsonBuilder = new GsonBuilder()
+public final class PaymentAccountForm implements PersistablePayload {
+    
+    private static final GsonBuilder gsonBuilder = new GsonBuilder()
             .setPrettyPrinting()
             .serializeNulls();
+    
+    public enum FormId {
+        REVOLUT,
+        SEPA,
+        TRANSFERWISE,
+        CLEAR_X_CHANGE,
+        SWIFT,
+        F2F,
+        STRIKE;
 
-    // A list of PaymentAccount fields to exclude from json forms.
-    private final String[] excludedFields = new String[]{
-            "log",
-            "id",
-            "acceptedCountryCodes",
-            "countryCode",
-            "creationDate",
-            "excludeFromJsonDataMap",
-            "maxTradePeriod",
-            "paymentAccountPayload",
-            "paymentMethod",
-            "paymentMethodId",          // Will be included, but handled differently.
-            "persistedAccountName",     // Automatically set in PaymentAccount.onPersistChanges().
-            "selectedTradeCurrency",    // May be included, but handled differently.
-            "tradeCurrencies",          // May be included, but handled differently.
-            "HOLDER_NAME",
-            "SALT"                      // Will be included, but handled differently.
-    };
+        public static PaymentAccountForm.FormId fromProto(protobuf.PaymentAccountForm.FormId formId) {
+            return ProtoUtil.enumFromProto(PaymentAccountForm.FormId.class, formId.name());
+        }
+
+        public static protobuf.PaymentAccountForm.FormId toProtoMessage(PaymentAccountForm.FormId formId) {
+            return protobuf.PaymentAccountForm.FormId.valueOf(formId.name());
+        }
+    }
+    
+    private final FormId id;
+    private final List<PaymentAccountFormField> fields;
+    
+    public PaymentAccountForm(FormId id) {
+        this.id = id;
+        this.fields = new ArrayList<PaymentAccountFormField>();
+    }
+
+    public PaymentAccountForm(FormId id, List<PaymentAccountFormField> fields) {
+        this.id = id;
+        this.fields = fields;
+    }
+
+    @Override
+    public protobuf.PaymentAccountForm toProtoMessage() {
+        return protobuf.PaymentAccountForm.newBuilder()
+                .setId(PaymentAccountForm.FormId.toProtoMessage(id))
+                .addAllFields(fields.stream().map(field -> field.toProtoMessage()).collect(Collectors.toList()))
+                .build();
+    }
+
+    public static PaymentAccountForm fromProto(protobuf.PaymentAccountForm proto) {
+        List<PaymentAccountFormField> fields = proto.getFieldsList().isEmpty() ? null : proto.getFieldsList().stream().map(PaymentAccountFormField::fromProto).collect(Collectors.toList());
+        return new PaymentAccountForm(FormId.fromProto(proto.getId()), fields);
+    }
+
+    /**
+     * Get a structured form for the given payment method.
+     */
+    public static PaymentAccountForm getForm(String paymentMethodId) {
+        PaymentAccount paymentAccount = PaymentAccountFactory.getPaymentAccount(PaymentMethod.getPaymentMethod(paymentMethodId));
+        return paymentAccount.toForm();
+    }
+
+    /**
+     * Convert this form to a PaymentAccount json string.
+     */
+    public String toPaymentAccountJsonString() {
+        Map<String, Object> formMap = new HashMap<String, Object>();
+        formMap.put("paymentMethodId", getId().toString());
+        for (PaymentAccountFormField field : getFields()) {
+            formMap.put(toCamelCase(field.getId().toString()), field.getValue());
+        }
+        return new Gson().toJson(formMap);
+    }
+
+    /**
+     * Convert this form to a PaymentAccount.
+     */
+    public PaymentAccount toPaymentAccount() {
+        return toPaymentAccount(toPaymentAccountJsonString());
+    }
+
+    /**
+     * De-serialize a PaymentAccount json string into a new PaymentAccount instance.
+     *
+     * @param paymentAccountJsonString The json data representing a new payment account form.
+     * @return A populated PaymentAccount subclass instance.
+     */
+    public static PaymentAccount toPaymentAccount(String paymentAccountJsonString) {
+        Class<? extends PaymentAccount> clazz = getPaymentAccountClassFromJson(paymentAccountJsonString);
+        Gson gson = gsonBuilder.registerTypeAdapter(clazz, new PaymentAccountTypeAdapter(clazz)).create();
+        return gson.fromJson(paymentAccountJsonString, clazz);
+    }
+
+    // ----------------------------- OLD FORM API -----------------------------
 
     /**
      * Returns a blank payment account form (json) for the given paymentMethodId.
@@ -148,14 +155,12 @@ public class PaymentAccountForm {
      * @param paymentMethodId Determines what kind of json form to return.
      * @return A uniquely named tmp file used to define new payment account details.
      */
-    public File getPaymentAccountForm(String paymentMethodId) {
+    public static File getPaymentAccountForm(String paymentMethodId) {
         PaymentMethod paymentMethod = getPaymentMethod(paymentMethodId);
         File file = getTmpJsonFile(paymentMethodId);
         try (OutputStreamWriter outputStreamWriter = new OutputStreamWriter(new FileOutputStream(checkNotNull(file), false), UTF_8)) {
             PaymentAccount paymentAccount = PaymentAccountFactory.getPaymentAccount(paymentMethod);
-            Class<? extends PaymentAccount> clazz = paymentAccount.getClass();
-            Gson gson = gsonBuilder.registerTypeAdapter(clazz, new PaymentAccountTypeAdapter(clazz, excludedFields)).create();
-            String json = gson.toJson(paymentAccount); // serializes target to json
+            String json = paymentAccount.toForm().toPaymentAccountJsonString();
             outputStreamWriter.write(json);
         } catch (Exception ex) {
             String errMsg = format("cannot create a payment account form for a %s payment method", paymentMethodId);
@@ -173,24 +178,12 @@ public class PaymentAccountForm {
      */
     @SuppressWarnings("unused")
     @VisibleForTesting
-    public PaymentAccount toPaymentAccount(File jsonForm) {
+    public static PaymentAccount toPaymentAccount(File jsonForm) {
         String jsonString = toJsonString(jsonForm);
         return toPaymentAccount(jsonString);
     }
 
-    /**
-     * De-serialize a PaymentAccount json string into a new PaymentAccount instance.
-     *
-     * @param jsonString The json data representing a new payment account form.
-     * @return A populated PaymentAccount subclass instance.
-     */
-    public PaymentAccount toPaymentAccount(String jsonString) {
-        Class<? extends PaymentAccount> clazz = getPaymentAccountClassFromJson(jsonString);
-        Gson gson = gsonBuilder.registerTypeAdapter(clazz, new PaymentAccountTypeAdapter(clazz)).create();
-        return gson.fromJson(jsonString, clazz);
-    }
-
-    public String toJsonString(File jsonFile) {
+    public static String toJsonString(File jsonFile) {
         try {
             checkNotNull(jsonFile, "json file cannot be null");
             return new String(Files.readAllBytes(Paths.get(jsonFile.getAbsolutePath())));
@@ -203,7 +196,7 @@ public class PaymentAccountForm {
     }
 
     @VisibleForTesting
-    public URI getClickableURI(File jsonFile) {
+    public static URI getClickableURI(File jsonFile) {
         try {
             return new URI("file",
                     "",
@@ -237,14 +230,20 @@ public class PaymentAccountForm {
         return file;
     }
 
-    private Class<? extends PaymentAccount> getPaymentAccountClassFromJson(String json) {
+    // -------------------------------- HELPERS -------------------------------
+
+    private static String toCamelCase(String underscore) {
+        return CaseFormat.UPPER_UNDERSCORE.to(CaseFormat.LOWER_CAMEL, underscore);
+    }
+
+    private static Class<? extends PaymentAccount> getPaymentAccountClassFromJson(String json) {
         Map<String, Object> jsonMap = gsonBuilder.create().fromJson(json, (Type) Object.class);
         String paymentMethodId = checkNotNull((String) jsonMap.get("paymentMethodId"),
                 format("cannot not find a paymentMethodId in json string: %s", json));
         return getPaymentAccountClass(paymentMethodId);
     }
 
-    private Class<? extends PaymentAccount> getPaymentAccountClass(String paymentMethodId) {
+    private static Class<? extends PaymentAccount> getPaymentAccountClass(String paymentMethodId) {
         PaymentMethod paymentMethod = getPaymentMethod(paymentMethodId);
         return PaymentAccountFactory.getPaymentAccount(paymentMethod).getClass();
     }

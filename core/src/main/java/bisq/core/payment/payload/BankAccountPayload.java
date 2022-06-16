@@ -22,7 +22,7 @@ import bisq.core.locale.CountryUtil;
 import bisq.core.locale.Res;
 
 import java.nio.charset.StandardCharsets;
-
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -63,6 +63,7 @@ public abstract class BankAccountPayload extends CountryBasedPaymentAccountPaylo
     protected BankAccountPayload(String paymentMethodName,
                                  String id,
                                  String countryCode,
+                                 List<String> acceptedCountryCodes,
                                  String holderName,
                                  @Nullable String bankName,
                                  @Nullable String branchId,
@@ -76,6 +77,7 @@ public abstract class BankAccountPayload extends CountryBasedPaymentAccountPaylo
         super(paymentMethodName,
                 id,
                 countryCode,
+                acceptedCountryCodes,
                 maxTradePeriod,
                 excludeFromJsonDataMap);
 

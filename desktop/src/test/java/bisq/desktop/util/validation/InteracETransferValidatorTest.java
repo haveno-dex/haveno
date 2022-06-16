@@ -19,6 +19,11 @@ package bisq.desktop.util.validation;
 
 import bisq.core.locale.CurrencyUtil;
 import bisq.core.locale.Res;
+import bisq.core.payment.validation.EmailValidator;
+import bisq.core.payment.validation.InteracETransferAnswerValidator;
+import bisq.core.payment.validation.InteracETransferQuestionValidator;
+import bisq.core.payment.validation.InteracETransferValidator;
+import bisq.core.payment.validation.LengthValidator;
 import bisq.core.util.validation.RegexValidator;
 
 import bisq.common.config.BaseCurrencyNetwork;

@@ -17,8 +17,6 @@
 
 package bisq.desktop.components.paymentmethods;
 
-import bisq.desktop.util.validation.PerfectMoneyValidator;
-
 import bisq.core.account.witness.AccountAgeWitnessService;
 import bisq.core.locale.FiatCurrency;
 import bisq.core.locale.Res;
@@ -26,6 +24,7 @@ import bisq.core.payment.PaymentAccount;
 import bisq.core.payment.PerfectMoneyAccount;
 import bisq.core.payment.payload.PaymentAccountPayload;
 import bisq.core.payment.payload.PerfectMoneyAccountPayload;
+import bisq.core.payment.validation.PerfectMoneyValidator;
 import bisq.core.util.coin.CoinFormatter;
 import bisq.core.util.validation.InputValidator;
 

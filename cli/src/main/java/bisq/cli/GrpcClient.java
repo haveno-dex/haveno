@@ -31,6 +31,7 @@ import bisq.proto.grpc.TxFeeRateInfo;
 import bisq.proto.grpc.TxInfo;
 
 import protobuf.PaymentAccount;
+import protobuf.PaymentAccountForm;
 import protobuf.PaymentMethod;
 
 import java.util.List;

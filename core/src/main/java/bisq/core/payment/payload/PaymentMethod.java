@@ -245,7 +245,7 @@ public final class PaymentMethod implements PersistablePayload, Comparable<Payme
     // The limit and duration assignment must not be changed as that could break old offers (if amount would be higher
     // than new trade limit) and violate the maker expectation when he created the offer (duration).
     @Getter
-    private final static List<PaymentMethod> paymentMethods = new ArrayList<>(Arrays.asList(
+    public final static List<PaymentMethod> paymentMethods = new ArrayList<>(Arrays.asList(
             // EUR
             HAL_CASH = new PaymentMethod(HAL_CASH_ID, DAY, DEFAULT_TRADE_LIMIT_LOW_RISK, getAssetCodes(HalCashAccount.SUPPORTED_CURRENCIES)),
             SEPA = new PaymentMethod(SEPA_ID, 6 * DAY, DEFAULT_TRADE_LIMIT_HIGH_RISK, getAssetCodes(SepaAccount.SUPPORTED_CURRENCIES)),
@@ -324,6 +324,19 @@ public final class PaymentMethod implements PersistablePayload, Comparable<Payme
             // Altcoins with 1 hour trade period
             BLOCK_CHAINS_INSTANT = new PaymentMethod(BLOCK_CHAINS_INSTANT_ID, TimeUnit.HOURS.toMillis(1), DEFAULT_TRADE_LIMIT_VERY_LOW_RISK, Arrays.asList())
     ));
+
+    // TODO: delete this override method, which overrides the paymentMethods variable, when all payment methods supported using structured form api, and make paymentMethods private
+    public static final List<PaymentMethod> getPaymentMethods() {
+        List<String> paymentMethodIds = List.of(
+                REVOLUT_ID,
+                SEPA_ID,
+                TRANSFERWISE_ID,
+                CLEAR_X_CHANGE_ID,
+                SWIFT_ID,
+                F2F_ID,
+                STRIKE_ID);
+        return paymentMethods.stream().filter(paymentMethod -> paymentMethodIds.contains(paymentMethod.getId())).collect(Collectors.toList());
+    }
 
     private static List<String> getAssetCodes(List<TradeCurrency> tradeCurrencies) {
         return tradeCurrencies.stream().map(TradeCurrency::getCode).collect(Collectors.toList());

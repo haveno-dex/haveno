@@ -19,7 +19,7 @@ package bisq.desktop.util.validation;
 
 import bisq.core.locale.CurrencyUtil;
 import bisq.core.locale.Res;
-
+import bisq.core.payment.validation.FiatVolumeValidator;
 import bisq.common.config.BaseCurrencyNetwork;
 import bisq.common.config.Config;
 

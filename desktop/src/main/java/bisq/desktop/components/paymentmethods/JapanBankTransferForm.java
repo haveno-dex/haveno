@@ -19,20 +19,19 @@ package bisq.desktop.components.paymentmethods;
 
 import bisq.desktop.components.AutocompleteComboBox;
 import bisq.desktop.components.InputTextField;
-import bisq.desktop.components.paymentmethods.data.JapanBankData;
-import bisq.desktop.util.validation.JapanBankAccountNameValidator;
-import bisq.desktop.util.validation.JapanBankAccountNumberValidator;
-import bisq.desktop.util.validation.JapanBankBranchCodeValidator;
-import bisq.desktop.util.validation.JapanBankBranchNameValidator;
-import bisq.desktop.util.validation.LengthValidator;
-
 import bisq.core.account.witness.AccountAgeWitnessService;
 import bisq.core.locale.Res;
 import bisq.core.locale.TradeCurrency;
 import bisq.core.payment.JapanBankAccount;
+import bisq.core.payment.JapanBankData;
 import bisq.core.payment.PaymentAccount;
 import bisq.core.payment.payload.JapanBankAccountPayload;
 import bisq.core.payment.payload.PaymentAccountPayload;
+import bisq.core.payment.validation.JapanBankAccountNameValidator;
+import bisq.core.payment.validation.JapanBankAccountNumberValidator;
+import bisq.core.payment.validation.JapanBankBranchCodeValidator;
+import bisq.core.payment.validation.JapanBankBranchNameValidator;
+import bisq.core.payment.validation.LengthValidator;
 import bisq.core.util.coin.CoinFormatter;
 import bisq.core.util.validation.InputValidator;
 import bisq.core.util.validation.RegexValidator;

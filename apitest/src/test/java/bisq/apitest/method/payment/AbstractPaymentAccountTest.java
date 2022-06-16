@@ -115,9 +115,6 @@ public class AbstractPaymentAccountTest extends MethodTest {
 
     static final Map<String, Object> COMPLETED_FORM_MAP = new HashMap<>();
 
-    // A payment account serializer / deserializer.
-    static final PaymentAccountForm PAYMENT_ACCOUNT_FORM = new PaymentAccountForm();
-
     @BeforeEach
     public void setup() {
         Res.setup();
@@ -134,7 +131,7 @@ public class AbstractPaymentAccountTest extends MethodTest {
         // File emptyForm = PAYMENT_ACCOUNT_FORM.getPaymentAccountForm(paymentMethodId);
         log.debug("{} Empty form saved to {}",
                 testName(testInfo),
-                PAYMENT_ACCOUNT_FORM.getClickableURI(emptyForm));
+                PaymentAccountForm.getClickableURI(emptyForm));
         emptyForm.deleteOnExit();
         return emptyForm;
     }
@@ -142,7 +139,7 @@ public class AbstractPaymentAccountTest extends MethodTest {
     protected final void verifyEmptyForm(File jsonForm, String paymentMethodId, String... fields) {
         @SuppressWarnings("unchecked")
         Map<String, Object> emptyForm = (Map<String, Object>) GSON.fromJson(
-                PAYMENT_ACCOUNT_FORM.toJsonString(jsonForm),
+                PaymentAccountForm.toJsonString(jsonForm),
                 Object.class);
         assertNotNull(emptyForm);
 
@@ -201,14 +198,14 @@ public class AbstractPaymentAccountTest extends MethodTest {
 
     protected final String getCompletedFormAsJsonString(List<String> comments) {
         File completedForm = fillPaymentAccountForm(comments);
-        String jsonString = PAYMENT_ACCOUNT_FORM.toJsonString(completedForm);
+        String jsonString = PaymentAccountForm.toJsonString(completedForm);
         log.debug("Completed form: {}", jsonString);
         return jsonString;
     }
 
     protected final String getCompletedFormAsJsonString() {
         File completedForm = fillPaymentAccountForm(PROPERTY_VALUE_JSON_COMMENTS);
-        String jsonString = PAYMENT_ACCOUNT_FORM.toJsonString(completedForm);
+        String jsonString = PaymentAccountForm.toJsonString(completedForm);
         log.debug("Completed form: {}", jsonString);
         return jsonString;
     }

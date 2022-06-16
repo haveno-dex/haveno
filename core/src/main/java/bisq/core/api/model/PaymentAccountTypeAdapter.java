@@ -19,6 +19,7 @@ package bisq.core.api.model;
 
 
 import bisq.core.locale.Country;
+import bisq.core.locale.CountryUtil;
 import bisq.core.locale.FiatCurrency;
 import bisq.core.locale.Res;
 import bisq.core.locale.TradeCurrency;
@@ -39,7 +40,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.function.Function;
 import java.util.function.Predicate;
 
 import java.lang.reflect.Constructor;
@@ -59,10 +59,8 @@ import static bisq.core.payment.payload.PaymentMethod.MONEY_GRAM_ID;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static java.lang.String.format;
 import static java.util.Arrays.stream;
-import static java.util.Collections.singletonList;
 import static java.util.Collections.unmodifiableMap;
 import static java.util.Comparator.comparing;
-import static java.util.stream.Collectors.toList;
 import static org.apache.commons.lang3.StringUtils.capitalize;
 
 @Slf4j
@@ -222,6 +220,10 @@ class PaymentAccountTypeAdapter extends TypeAdapter<PaymentAccount> {
             if (didReadTradeCurrenciesField(in, account, currentFieldName))
                 continue;
 
+            // The acceptedCountryCodes field has no setter.
+            if (didReadAcceptedCountryCodes(in, account, currentFieldName))
+                continue;
+
             // The selectedTradeCurrency field is common to all payment account types,
             // but is @Nullable, and may not need to be explicitly defined by user.
             if (didReadSelectedTradeCurrencyField(in, account, currentFieldName))
@@ -339,15 +341,15 @@ class PaymentAccountTypeAdapter extends TypeAdapter<PaymentAccount> {
         }
     }
 
-    private final Predicate<String> isCommaDelimitedCurrencyList = (s) -> s != null && s.contains(",");
-    private final Function<String, List<String>> commaDelimitedCodesToList = (s) -> {
-        if (isCommaDelimitedCurrencyList.test(s))
-            return stream(s.split(",")).map(a -> a.trim().toUpperCase()).collect(toList());
-        else if (s != null && !s.isEmpty())
-            return singletonList(s.trim().toUpperCase());
-        else
-            return new ArrayList<>();
-    };
+    private boolean didReadAcceptedCountryCodes(JsonReader in,
+                                                PaymentAccount account,
+                                                String fieldName) {
+        if (!fieldName.equals("acceptedCountryCodes")) return false;
+        String fieldValue = nextStringOrNull(in);
+        List<String> countryCodes = PaymentAccount.commaDelimitedCodesToList.apply(fieldValue);
+        ((CountryBasedPaymentAccount) account).setAcceptedCountries(CountryUtil.getCountries(countryCodes));
+        return true;
+    }
 
     private boolean didReadTradeCurrenciesField(JsonReader in,
                                                 PaymentAccount account,
@@ -359,7 +361,7 @@ class PaymentAccountTypeAdapter extends TypeAdapter<PaymentAccount> {
         // no setter, so we add currencies to the List here if the payment account
         // supports multiple trade currencies.
         String fieldValue = nextStringOrNull(in);
-        List<String> currencyCodes = commaDelimitedCodesToList.apply(fieldValue);
+        List<String> currencyCodes = PaymentAccount.commaDelimitedCodesToList.apply(fieldValue);
         Optional<List<TradeCurrency>> tradeCurrencies = getReconciledTradeCurrencies(currencyCodes, account);
         if (tradeCurrencies.isPresent()) {
             for (TradeCurrency tradeCurrency : tradeCurrencies.get()) {

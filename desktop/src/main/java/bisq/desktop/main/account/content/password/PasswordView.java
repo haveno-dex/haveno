@@ -31,7 +31,6 @@ import bisq.desktop.main.account.content.seedwords.SeedWordsView;
 import bisq.desktop.main.overlays.popups.Popup;
 import bisq.desktop.util.Layout;
 import bisq.desktop.util.validation.PasswordValidator;
-
 import bisq.core.btc.wallet.WalletsManager;
 import bisq.core.locale.Res;
 import bisq.common.crypto.ScryptUtil;

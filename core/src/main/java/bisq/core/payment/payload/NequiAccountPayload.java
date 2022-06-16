@@ -17,13 +17,15 @@
 
 package bisq.core.payment.payload;
 
+import bisq.core.locale.Country;
 import bisq.core.locale.Res;
 
 import com.google.protobuf.Message;
 
 import java.nio.charset.StandardCharsets;
-
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import lombok.EqualsAndHashCode;
@@ -47,12 +49,14 @@ public final class NequiAccountPayload extends CountryBasedPaymentAccountPayload
     private NequiAccountPayload(String paymentMethod,
                                 String id,
                                 String countryCode,
+                                List<String> acceptedCountryCodes,
                                 String mobileNr,
                                 long maxTradePeriod,
                                 Map<String, String> excludeFromJsonDataMap) {
         super(paymentMethod,
                 id,
                 countryCode,
+                acceptedCountryCodes,
                 maxTradePeriod,
                 excludeFromJsonDataMap);
 
@@ -77,6 +81,7 @@ public final class NequiAccountPayload extends CountryBasedPaymentAccountPayload
         return new NequiAccountPayload(proto.getPaymentMethodId(),
                 proto.getId(),
                 countryBasedPaymentAccountPayload.getCountryCode(),
+                new ArrayList<>(countryBasedPaymentAccountPayload.getAcceptedCountryCodesList()),
                 paytmAccountPayloadPB.getMobileNr(),
                 proto.getMaxTradePeriod(),
                 new HashMap<>(proto.getExcludeFromJsonDataMap()));

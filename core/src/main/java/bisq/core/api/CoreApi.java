@@ -21,6 +21,8 @@ import bisq.core.api.model.AddressBalanceInfo;
 import bisq.core.api.model.BalancesInfo;
 import bisq.core.api.model.MarketDepthInfo;
 import bisq.core.api.model.MarketPriceInfo;
+import bisq.core.api.model.PaymentAccountForm;
+import bisq.core.api.model.PaymentAccountFormField;
 import bisq.core.api.model.TxFeeRateInfo;
 import bisq.core.app.AppStartupState;
 import bisq.core.monetary.Price;
@@ -488,8 +490,8 @@ public class CoreApi {
     // PaymentAccounts
     ///////////////////////////////////////////////////////////////////////////////////////////
 
-    public PaymentAccount createPaymentAccount(String jsonString) {
-        return paymentAccountsService.createPaymentAccount(jsonString);
+    public PaymentAccount createPaymentAccount(PaymentAccountForm form) {
+        return paymentAccountsService.createPaymentAccount(form);
     }
 
     public Set<PaymentAccount> getPaymentAccounts() {
@@ -500,8 +502,8 @@ public class CoreApi {
         return paymentAccountsService.getFiatPaymentMethods();
     }
 
-    public String getPaymentAccountForm(String paymentMethodId) {
-        return paymentAccountsService.getPaymentAccountFormAsString(paymentMethodId);
+    public PaymentAccountForm getPaymentAccountForm(String paymentMethodId) {
+        return paymentAccountsService.getPaymentAccountForm(paymentMethodId);
     }
 
     public PaymentAccount createCryptoCurrencyPaymentAccount(String accountName,
@@ -516,6 +518,10 @@ public class CoreApi {
 
     public List<PaymentMethod> getCryptoCurrencyPaymentMethods() {
         return paymentAccountsService.getCryptoCurrencyPaymentMethods();
+    }
+    
+    public void validateFormField(PaymentAccountForm form, PaymentAccountFormField.FieldId fieldId, String value) {
+        paymentAccountsService.validateFormField(form, fieldId, value);
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////

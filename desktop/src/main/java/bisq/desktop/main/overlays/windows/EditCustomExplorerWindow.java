@@ -22,9 +22,8 @@ import bisq.desktop.components.AutoTooltipLabel;
 import bisq.desktop.components.InputTextField;
 import bisq.desktop.main.overlays.Overlay;
 import bisq.desktop.util.Layout;
-import bisq.desktop.util.validation.LengthValidator;
-
 import bisq.core.locale.Res;
+import bisq.core.payment.validation.LengthValidator;
 import bisq.core.util.validation.UrlInputValidator;
 
 import bisq.common.util.Tuple2;

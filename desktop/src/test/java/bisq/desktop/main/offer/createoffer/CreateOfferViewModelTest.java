@@ -17,9 +17,6 @@
 
 package bisq.desktop.main.offer.createoffer;
 
-import bisq.desktop.util.validation.BtcValidator;
-import bisq.desktop.util.validation.SecurityDepositValidator;
-
 import bisq.core.account.witness.AccountAgeWitnessService;
 import bisq.core.btc.model.XmrAddressEntry;
 import bisq.core.btc.wallet.XmrWalletService;
@@ -33,6 +30,8 @@ import bisq.core.offer.OfferPayload;
 import bisq.core.offer.OfferUtil;
 import bisq.core.payment.PaymentAccount;
 import bisq.core.payment.payload.PaymentMethod;
+import bisq.core.payment.validation.BtcValidator;
+import bisq.core.payment.validation.SecurityDepositValidator;
 import bisq.core.provider.fee.FeeService;
 import bisq.core.provider.price.MarketPrice;
 import bisq.core.provider.price.PriceFeedService;

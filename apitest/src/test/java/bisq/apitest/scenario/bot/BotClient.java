@@ -36,11 +36,12 @@ import static org.apache.commons.lang3.StringUtils.capitalize;
 
 
 import bisq.cli.GrpcClient;
+import bisq.core.api.model.PaymentAccountForm;
 
 /**
  * Convenience GrpcClient wrapper for bots using gRPC services.
  */
-@SuppressWarnings({"JavaDoc", "unused"})
+@SuppressWarnings({"unused"})
 @Slf4j
 public class BotClient {
 

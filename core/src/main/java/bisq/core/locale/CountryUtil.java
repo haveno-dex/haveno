@@ -21,6 +21,7 @@ import com.google.common.collect.Collections2;
 import com.google.common.collect.Lists;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -35,6 +36,26 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class CountryUtil {
+
+    public static List<String> getCountryCodes(List<Country> countries) {
+        return countries.stream().map(country -> country.code).collect(Collectors.toList());
+    }
+
+    public static List<Country> getCountries(List<String> codes) {
+        List<Country> countries = new ArrayList<Country>();
+        for (String code : codes) {
+            Locale locale = new Locale(LanguageUtil.getDefaultLanguage(), code, "");
+            final String countryCode = locale.getCountry();
+            String regionCode = getRegionCode(countryCode);
+            final Region region = new Region(regionCode, getRegionName(regionCode));
+            Country country = new Country(countryCode, locale.getDisplayCountry(), region);
+            if (countryCode.equals("XK"))
+                country = new Country(countryCode, getNameByCode(countryCode), region);
+            countries.add(country);
+        }
+        return countries;
+    }
+
     public static List<Country> getAllSepaEuroCountries() {
         List<Country> list = new ArrayList<>();
         String[] codes = {"AT", "BE", "CY", "DE", "EE", "FI", "FR", "GR", "IE",
@@ -72,16 +93,7 @@ public class CountryUtil {
     }
 
     private static void populateCountryListByCodes(List<Country> list, String[] codes) {
-        for (String code : codes) {
-            Locale locale = new Locale(LanguageUtil.getDefaultLanguage(), code, "");
-            final String countryCode = locale.getCountry();
-            String regionCode = getRegionCode(countryCode);
-            final Region region = new Region(regionCode, getRegionName(regionCode));
-            Country country = new Country(countryCode, locale.getDisplayCountry(), region);
-            if (countryCode.equals("XK"))
-                country = new Country(countryCode, getNameByCode(countryCode), region);
-            list.add(country);
-        }
+        list.addAll(getCountries(Arrays.asList(codes)));
     }
 
     public static boolean containsAllSepaEuroCountries(List<String> countryCodesToCompare) {

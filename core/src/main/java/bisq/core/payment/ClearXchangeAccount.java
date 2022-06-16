@@ -17,6 +17,7 @@
 
 package bisq.core.payment;
 
+import bisq.core.api.model.PaymentAccountFormField;
 import bisq.core.locale.FiatCurrency;
 import bisq.core.locale.TradeCurrency;
 import bisq.core.payment.payload.ClearXchangeAccountPayload;
@@ -38,6 +39,13 @@ public final class ClearXchangeAccount extends PaymentAccount {
         setSingleTradeCurrency(SUPPORTED_CURRENCIES.get(0));
     }
 
+    private static final List<PaymentAccountFormField.FieldId> INPUT_FIELD_IDS = List.of(
+            PaymentAccountFormField.FieldId.ACCOUNT_NAME,
+            PaymentAccountFormField.FieldId.HOLDER_NAME,
+            PaymentAccountFormField.FieldId.EMAIL_OR_MOBILE_NR,
+            PaymentAccountFormField.FieldId.SALT
+    );
+
     @Override
     protected PaymentAccountPayload createPayload() {
         return new ClearXchangeAccountPayload(paymentMethod.getId(), id);
@@ -46,6 +54,11 @@ public final class ClearXchangeAccount extends PaymentAccount {
     @Override
     public @NonNull List<TradeCurrency> getSupportedCurrencies() {
         return SUPPORTED_CURRENCIES;
+    }
+
+    @Override
+    public @NonNull List<PaymentAccountFormField.FieldId> getInputFieldIds() {
+        return INPUT_FIELD_IDS;
     }
 
     public void setEmailOrMobileNr(String mobileNr) {

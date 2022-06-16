@@ -17,6 +17,7 @@
 
 package bisq.core.payment;
 
+import bisq.core.api.model.PaymentAccountFormField;
 import bisq.core.locale.FiatCurrency;
 import bisq.core.locale.TradeCurrency;
 import bisq.core.payment.payload.PaymentAccountPayload;
@@ -50,14 +51,17 @@ public final class PixAccount extends CountryBasedPaymentAccount {
         return ((PixAccountPayload) paymentAccountPayload).getPixKey();
     }
 
+    @Override
     public String getMessageForBuyer() {
         return "payment.pix.info.buyer";
     }
 
+    @Override
     public String getMessageForSeller() {
         return "payment.pix.info.seller";
     }
 
+    @Override
     public String getMessageForAccountCreation() {
         return "payment.pix.info.account";
     }
@@ -65,5 +69,10 @@ public final class PixAccount extends CountryBasedPaymentAccount {
     @Override
     public @NonNull List<TradeCurrency> getSupportedCurrencies() {
         return SUPPORTED_CURRENCIES;
+    }
+
+    @Override
+    public @NonNull List<PaymentAccountFormField.FieldId> getInputFieldIds() {
+        throw new RuntimeException("Not implemented");
     }
 }

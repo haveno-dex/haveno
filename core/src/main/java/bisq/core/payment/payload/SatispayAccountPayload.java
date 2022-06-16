@@ -17,13 +17,15 @@
 
 package bisq.core.payment.payload;
 
+import bisq.core.locale.Country;
 import bisq.core.locale.Res;
 
 import com.google.protobuf.Message;
 
 import java.nio.charset.StandardCharsets;
-
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import lombok.EqualsAndHashCode;
@@ -48,6 +50,7 @@ public final class SatispayAccountPayload extends CountryBasedPaymentAccountPayl
     private SatispayAccountPayload(String paymentMethod,
                                    String id,
                                    String countryCode,
+                                   List<String> acceptedCountryCodes,
                                    String holderName,
                                    String mobileNr,
                                    long maxTradePeriod,
@@ -55,6 +58,7 @@ public final class SatispayAccountPayload extends CountryBasedPaymentAccountPayl
         super(paymentMethod,
                 id,
                 countryCode,
+                acceptedCountryCodes,
                 maxTradePeriod,
                 excludeFromJsonDataMap);
 
@@ -81,6 +85,7 @@ public final class SatispayAccountPayload extends CountryBasedPaymentAccountPayl
         return new SatispayAccountPayload(proto.getPaymentMethodId(),
                 proto.getId(),
                 countryBasedPaymentAccountPayload.getCountryCode(),
+                new ArrayList<>(countryBasedPaymentAccountPayload.getAcceptedCountryCodesList()),
                 accountPayloadPB.getHolderName(),
                 accountPayloadPB.getMobileNr(),
                 proto.getMaxTradePeriod(),

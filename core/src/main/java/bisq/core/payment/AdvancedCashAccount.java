@@ -17,6 +17,7 @@
 
 package bisq.core.payment;
 
+import bisq.core.api.model.PaymentAccountFormField;
 import bisq.core.locale.FiatCurrency;
 import bisq.core.locale.TradeCurrency;
 import bisq.core.payment.payload.AdvancedCashAccountPayload;
@@ -55,6 +56,12 @@ public final class AdvancedCashAccount extends PaymentAccount {
     @Override
     public List<TradeCurrency> getSupportedCurrencies() {
         return SUPPORTED_CURRENCIES;
+    }
+
+    @NotNull
+    @Override
+    public List<PaymentAccountFormField.FieldId> getInputFieldIds() {
+        throw new RuntimeException("Not implemented");
     }
 
     public void setAccountNr(String accountNr) {

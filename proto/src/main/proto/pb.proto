@@ -1093,14 +1093,15 @@ message ClearXchangeAccountPayload {
 }
 
 message CountryBasedPaymentAccountPayload {
-    string countryCode = 1;
+    string country_code = 1;
+    repeated string accepted_country_codes = 2;
     oneof message {
-        BankAccountPayload bank_account_payload = 2;
-        CashDepositAccountPayload cash_deposit_account_payload = 3;
-        SepaAccountPayload sepa_account_payload = 4;
-        WesternUnionAccountPayload western_union_account_payload = 5;
-        SepaInstantAccountPayload sepa_instant_account_payload = 6;
-        F2FAccountPayload f2f_account_payload = 7;
+        BankAccountPayload bank_account_payload = 3;
+        CashDepositAccountPayload cash_deposit_account_payload = 4;
+        SepaAccountPayload sepa_account_payload = 5;
+        WesternUnionAccountPayload western_union_account_payload = 6;
+        SepaInstantAccountPayload sepa_instant_account_payload = 7;
+        F2FAccountPayload f2f_account_payload = 8;
         UpiAccountPayload upi_account_payload = 9;
         PaytmAccountPayload paytm_account_payload = 10;
         IfscBasedAccountPayload ifsc_based_account_payload = 11;
@@ -1111,6 +1112,7 @@ message CountryBasedPaymentAccountPayload {
         StrikeAccountPayload strike_account_payload = 16;
         TikkieAccountPayload tikkie_account_payload = 17;
         TransferwiseUsdAccountPayload transferwise_usd_account_payload = 18;
+        SwiftAccountPayload swift_account_payload = 19;
     }
 }
 
@@ -1207,14 +1209,12 @@ message SepaAccountPayload {
     string iban = 2;
     string bic = 3;
     string email = 4 [deprecated = true];
-    repeated string accepted_country_codes = 5;
 }
 
 message SepaInstantAccountPayload {
     string holder_name = 1;
     string iban = 2;
     string bic = 3;
-    repeated string accepted_country_codes = 4;
 }
 
 message CryptoCurrencyAccountPayload {
@@ -2070,4 +2070,97 @@ message MockMailboxPayload {
 message MockPayload {
     string message_version = 1;
     string message = 2;
+}
+
+message PaymentAccountForm {
+    enum FormId {
+        REVOLUT = 0;
+        SEPA = 1;
+        TRANSFERWISE = 2;
+        CLEAR_X_CHANGE = 3;
+        SWIFT = 4;
+        F2F = 5;
+        STRIKE = 6;
+    }
+    FormId id = 1;
+    repeated PaymentAccountFormField fields = 2;
+}
+
+message PaymentAccountFormField {
+    enum FieldId {
+        ACCEPTED_COUNTRY_CODES = 0;
+        ACCOUNT_ID = 1;
+        ACCOUNT_NAME = 2;
+        ACCOUNT_NR = 3;
+        ACCOUNT_OWNER = 4;
+        ACCOUNT_TYPE = 5;
+        ANSWER = 6;
+        BANK_ACCOUNT_NAME = 7;
+        BANK_ACCOUNT_NUMBER = 8;
+        BANK_ACCOUNT_TYPE = 9;
+        BANK_ADDRESS = 10;
+        BANK_BRANCH = 11;
+        BANK_BRANCH_CODE = 12;
+        BANK_BRANCH_NAME = 13;
+        BANK_CODE = 14;
+        BANK_COUNTRY_CODE = 15;
+        BANK_ID = 16;
+        BANK_NAME = 17;
+        BANK_SWIFT_CODE = 18;
+        BENEFICIARY_ACCOUNT_NR = 19;
+        BENEFICIARY_ADDRESS = 20;
+        BENEFICIARY_CITY = 21;
+        BENEFICIARY_NAME = 22;
+        BENEFICIARY_PHONE = 23;
+        BIC = 24;
+        BRANCH_ID = 25;
+        CITY = 26;
+        CONTACT = 27;
+        COUNTRY = 28;
+        EMAIL = 29;
+        EMAIL_OR_MOBILE_NR = 30;
+        EXTRA_INFO = 31;
+        HOLDER_ADDRESS = 32;
+        HOLDER_EMAIL = 33;
+        HOLDER_NAME = 34;
+        HOLDER_TAX_ID = 35;
+        IBAN = 36;
+        IFSC = 37;
+        INTERMEDIARY_ADDRESS = 38;
+        INTERMEDIARY_BRANCH = 39;
+        INTERMEDIARY_COUNTRY_CODE = 40;
+        INTERMEDIARY_NAME = 41;
+        INTERMEDIARY_SWIFT_CODE = 42;
+        MOBILE_NR = 43;
+        NATIONAL_ACCOUNT_ID = 44;
+        PAYID = 45;
+        PIX_KEY = 46;
+        POSTAL_ADDRESS = 47;
+        PROMPT_PAY_ID = 48;
+        QUESTION = 49;
+        REQUIREMENTS = 50;
+        SALT = 51;
+        SORT_CODE = 52;
+        SPECIAL_INSTRUCTIONS = 53;
+        STATE = 54;
+        TRADE_CURRENCIES = 55;
+        USER_NAME = 56;
+        VIRTUAL_PAYMENT_ADDRESS = 57;
+    }
+    enum Component {
+        TEXT = 0;
+        SELECT_ONE = 1;
+        SELECT_MULTIPLE = 2;
+    }
+    FieldId id = 1;
+    Component component = 2;
+    string type = 3;
+    string label = 4;
+    string value = 5;
+    uint32 minLength = 6;
+    uint32 maxLength = 7;
+    repeated TradeCurrency supported_currencies = 8;
+    repeated Country supported_countries = 9;
+    repeated Country supported_sepa_euro_countries = 10;
+    repeated Country supported_sepa_non_euro_countries = 11;
 }

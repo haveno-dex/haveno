@@ -1,6 +1,7 @@
 package bisq.desktop.util.validation;
 
 import bisq.core.locale.Res;
+import bisq.core.payment.validation.PhoneNumberValidator;
 import bisq.core.util.validation.InputValidator.ValidationResult;
 
 import org.junit.Before;

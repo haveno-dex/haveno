@@ -17,6 +17,7 @@
 
 package bisq.core.payment;
 
+import bisq.core.api.model.PaymentAccountFormField;
 import bisq.core.locale.FiatCurrency;
 import bisq.core.locale.TradeCurrency;
 import bisq.core.payment.payload.AchTransferAccountPayload;
@@ -57,14 +58,17 @@ public final class AchTransferAccount extends CountryBasedPaymentAccount impleme
         return (AchTransferAccountPayload) paymentAccountPayload;
     }
 
+    @Override
     public String getMessageForBuyer() {
         return "payment.achTransfer.info.buyer";
     }
 
+    @Override
     public String getMessageForSeller() {
         return "payment.achTransfer.info.seller";
     }
 
+    @Override
     public String getMessageForAccountCreation() {
         return "payment.achTransfer.info.account";
     }
@@ -72,5 +76,10 @@ public final class AchTransferAccount extends CountryBasedPaymentAccount impleme
     @Override
     public @NonNull List<TradeCurrency> getSupportedCurrencies() {
         return SUPPORTED_CURRENCIES;
+    }
+
+    @Override
+    public @NonNull List<PaymentAccountFormField.FieldId> getInputFieldIds() {
+        throw new RuntimeException("Not implemented");
     }
 }

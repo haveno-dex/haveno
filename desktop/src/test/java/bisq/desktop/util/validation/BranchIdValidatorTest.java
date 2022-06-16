@@ -1,7 +1,7 @@
 package bisq.desktop.util.validation;
 
 import bisq.core.locale.Res;
-
+import bisq.core.payment.validation.BranchIdValidator;
 import java.util.Locale;
 
 import org.junit.Before;

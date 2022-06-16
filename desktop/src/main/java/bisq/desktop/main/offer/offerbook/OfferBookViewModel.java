@@ -349,7 +349,7 @@ abstract class OfferBookViewModel extends ActivatableViewModel {
     }
 
     ObservableList<PaymentMethod> getPaymentMethods() {
-        ObservableList<PaymentMethod> list = FXCollections.observableArrayList(PaymentMethod.getPaymentMethods());
+        ObservableList<PaymentMethod> list = FXCollections.observableArrayList(PaymentMethod.paymentMethods);
         if (preferences.isHideNonAccountPaymentMethods() && user.getPaymentAccounts() != null) {
             Set<PaymentMethod> supportedPaymentMethods = user.getPaymentAccounts().stream()
                     .map(PaymentAccount::getPaymentMethod).collect(Collectors.toSet());

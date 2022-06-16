@@ -18,6 +18,8 @@
 package bisq.daemon.grpc;
 
 import bisq.core.api.CoreApi;
+import bisq.core.api.model.PaymentAccountForm;
+import bisq.core.api.model.PaymentAccountFormField;
 import bisq.core.payment.PaymentAccount;
 import bisq.core.payment.payload.PaymentMethod;
 
@@ -33,7 +35,8 @@ import bisq.proto.grpc.GetPaymentAccountsReply;
 import bisq.proto.grpc.GetPaymentAccountsRequest;
 import bisq.proto.grpc.GetPaymentMethodsReply;
 import bisq.proto.grpc.GetPaymentMethodsRequest;
-
+import bisq.proto.grpc.ValidateFormFieldReply;
+import bisq.proto.grpc.ValidateFormFieldRequest;
 import io.grpc.ServerInterceptor;
 import io.grpc.stub.StreamObserver;
 
@@ -47,7 +50,6 @@ import lombok.extern.slf4j.Slf4j;
 
 import static bisq.daemon.grpc.interceptor.GrpcServiceRateMeteringConfig.getCustomRateMeteringInterceptor;
 import static bisq.proto.grpc.PaymentAccountsGrpc.*;
-import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
 
@@ -71,7 +73,7 @@ class GrpcPaymentAccountsService extends PaymentAccountsImplBase {
     public void createPaymentAccount(CreatePaymentAccountRequest req,
                                      StreamObserver<CreatePaymentAccountReply> responseObserver) {
         try {
-            PaymentAccount paymentAccount = coreApi.createPaymentAccount(req.getPaymentAccountForm());
+            PaymentAccount paymentAccount = coreApi.createPaymentAccount(PaymentAccountForm.fromProto(req.getPaymentAccountForm()));
             var reply = CreatePaymentAccountReply.newBuilder()
                     .setPaymentAccount(paymentAccount.toProtoMessage())
                     .build();
@@ -118,9 +120,9 @@ class GrpcPaymentAccountsService extends PaymentAccountsImplBase {
     public void getPaymentAccountForm(GetPaymentAccountFormRequest req,
                                       StreamObserver<GetPaymentAccountFormReply> responseObserver) {
         try {
-            var paymentAccountFormJson = coreApi.getPaymentAccountForm(req.getPaymentMethodId());
+            var form = coreApi.getPaymentAccountForm(req.getPaymentMethodId());
             var reply = GetPaymentAccountFormReply.newBuilder()
-                    .setPaymentAccountFormJson(paymentAccountFormJson)
+                    .setPaymentAccountForm(form.toProtoMessage())
                     .build();
             responseObserver.onNext(reply);
             responseObserver.onCompleted();
@@ -162,6 +164,19 @@ class GrpcPaymentAccountsService extends PaymentAccountsImplBase {
             exceptionHandler.handleException(log, cause, responseObserver);
         }
     }
+    
+    @Override
+    public void validateFormField(ValidateFormFieldRequest req,
+                                                StreamObserver<ValidateFormFieldReply> responseObserver) {
+        try {
+            coreApi.validateFormField(PaymentAccountForm.fromProto(req.getForm()), PaymentAccountFormField.FieldId.fromProto(req.getFieldId()), req.getValue());
+            var reply = ValidateFormFieldReply.newBuilder().build();
+            responseObserver.onNext(reply);
+            responseObserver.onCompleted();
+        } catch (Throwable cause) {
+            exceptionHandler.handleException(log, cause, responseObserver);
+        }
+    }
 
     final ServerInterceptor[] interceptors() {
         Optional<ServerInterceptor> rateMeteringInterceptor = rateMeteringInterceptor();
@@ -173,11 +188,11 @@ class GrpcPaymentAccountsService extends PaymentAccountsImplBase {
         return getCustomRateMeteringInterceptor(coreApi.getConfig().appDataDir, this.getClass())
                 .or(() -> Optional.of(CallRateMeteringInterceptor.valueOf(
                         new HashMap<>() {{
-                            put(getCreatePaymentAccountMethod().getFullMethodName(), new GrpcCallRateMeter(10, SECONDS));
-                            put(getCreateCryptoCurrencyPaymentAccountMethod().getFullMethodName(), new GrpcCallRateMeter(10, SECONDS));
-                            put(getGetPaymentAccountsMethod().getFullMethodName(), new GrpcCallRateMeter(10, SECONDS));
-                            put(getGetPaymentMethodsMethod().getFullMethodName(), new GrpcCallRateMeter(10, SECONDS));
-                            put(getGetPaymentAccountFormMethod().getFullMethodName(), new GrpcCallRateMeter(10, SECONDS));
+                            put(getCreatePaymentAccountMethod().getFullMethodName(), new GrpcCallRateMeter(100, SECONDS));
+                            put(getCreateCryptoCurrencyPaymentAccountMethod().getFullMethodName(), new GrpcCallRateMeter(100, SECONDS));
+                            put(getGetPaymentAccountsMethod().getFullMethodName(), new GrpcCallRateMeter(100, SECONDS));
+                            put(getGetPaymentMethodsMethod().getFullMethodName(), new GrpcCallRateMeter(100, SECONDS));
+                            put(getGetPaymentAccountFormMethod().getFullMethodName(), new GrpcCallRateMeter(100, SECONDS));
                         }}
                 )));
     }

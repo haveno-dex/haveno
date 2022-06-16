@@ -76,29 +76,6 @@ import bisq.desktop.main.overlays.popups.Popup;
 import bisq.desktop.util.FormBuilder;
 import bisq.desktop.util.GUIUtil;
 import bisq.desktop.util.Layout;
-import bisq.desktop.util.validation.AdvancedCashValidator;
-import bisq.desktop.util.validation.AliPayValidator;
-import bisq.desktop.util.validation.AustraliaPayidValidator;
-import bisq.desktop.util.validation.BICValidator;
-import bisq.desktop.util.validation.CapitualValidator;
-import bisq.desktop.util.validation.ChaseQuickPayValidator;
-import bisq.desktop.util.validation.ClearXchangeValidator;
-import bisq.desktop.util.validation.F2FValidator;
-import bisq.desktop.util.validation.HalCashValidator;
-import bisq.desktop.util.validation.InteracETransferValidator;
-import bisq.desktop.util.validation.JapanBankTransferValidator;
-import bisq.desktop.util.validation.LengthValidator;
-import bisq.desktop.util.validation.MoneyBeamValidator;
-import bisq.desktop.util.validation.PerfectMoneyValidator;
-import bisq.desktop.util.validation.PopmoneyValidator;
-import bisq.desktop.util.validation.PromptPayValidator;
-import bisq.desktop.util.validation.RevolutValidator;
-import bisq.desktop.util.validation.SwishValidator;
-import bisq.desktop.util.validation.TransferwiseValidator;
-import bisq.desktop.util.validation.USPostalMoneyOrderValidator;
-import bisq.desktop.util.validation.UpholdValidator;
-import bisq.desktop.util.validation.WeChatPayValidator;
-
 import bisq.core.account.witness.AccountAgeWitnessService;
 import bisq.core.locale.Res;
 import bisq.core.offer.OfferRestrictions;
@@ -116,6 +93,28 @@ import bisq.core.payment.RevolutAccount;
 import bisq.core.payment.USPostalMoneyOrderAccount;
 import bisq.core.payment.WesternUnionAccount;
 import bisq.core.payment.payload.PaymentMethod;
+import bisq.core.payment.validation.AdvancedCashValidator;
+import bisq.core.payment.validation.AliPayValidator;
+import bisq.core.payment.validation.AustraliaPayidValidator;
+import bisq.core.payment.validation.BICValidator;
+import bisq.core.payment.validation.CapitualValidator;
+import bisq.core.payment.validation.ChaseQuickPayValidator;
+import bisq.core.payment.validation.EmailOrMobileNrValidator;
+import bisq.core.payment.validation.F2FValidator;
+import bisq.core.payment.validation.HalCashValidator;
+import bisq.core.payment.validation.InteracETransferValidator;
+import bisq.core.payment.validation.JapanBankTransferValidator;
+import bisq.core.payment.validation.LengthValidator;
+import bisq.core.payment.validation.MoneyBeamValidator;
+import bisq.core.payment.validation.PerfectMoneyValidator;
+import bisq.core.payment.validation.PopmoneyValidator;
+import bisq.core.payment.validation.PromptPayValidator;
+import bisq.core.payment.validation.RevolutValidator;
+import bisq.core.payment.validation.SwishValidator;
+import bisq.core.payment.validation.TransferwiseValidator;
+import bisq.core.payment.validation.USPostalMoneyOrderValidator;
+import bisq.core.payment.validation.UpholdValidator;
+import bisq.core.payment.validation.WeChatPayValidator;
 import bisq.core.util.FormattingUtils;
 import bisq.core.util.coin.CoinFormatter;
 
@@ -164,7 +163,7 @@ public class FiatAccountsView extends PaymentAccountsView<GridPane, FiatAccounts
     private final AliPayValidator aliPayValidator;
     private final PerfectMoneyValidator perfectMoneyValidator;
     private final SwishValidator swishValidator;
-    private final ClearXchangeValidator clearXchangeValidator;
+    private final EmailOrMobileNrValidator clearXchangeValidator;
     private final ChaseQuickPayValidator chaseQuickPayValidator;
     private final InteracETransferValidator interacETransferValidator;
     private final JapanBankTransferValidator japanBankTransferValidator;
@@ -195,7 +194,7 @@ public class FiatAccountsView extends PaymentAccountsView<GridPane, FiatAccounts
                             AliPayValidator aliPayValidator,
                             PerfectMoneyValidator perfectMoneyValidator,
                             SwishValidator swishValidator,
-                            ClearXchangeValidator clearXchangeValidator,
+                            EmailOrMobileNrValidator clearXchangeValidator,
                             ChaseQuickPayValidator chaseQuickPayValidator,
                             InteracETransferValidator interacETransferValidator,
                             JapanBankTransferValidator japanBankTransferValidator,
@@ -427,7 +426,7 @@ public class FiatAccountsView extends PaymentAccountsView<GridPane, FiatAccounts
         paymentMethodComboBox = FormBuilder.addComboBox(root, gridRow, Res.get("shared.selectPaymentMethod"), Layout.FIRST_ROW_AND_GROUP_DISTANCE);
         paymentMethodComboBox.setVisibleRowCount(11);
         paymentMethodComboBox.setPrefWidth(250);
-        List<PaymentMethod> list = PaymentMethod.getPaymentMethods().stream()
+        List<PaymentMethod> list = PaymentMethod.paymentMethods.stream()
                 .filter(PaymentMethod::isFiat)
                 .sorted()
                 .collect(Collectors.toList());
