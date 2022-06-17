@@ -41,6 +41,10 @@ public class CountryUtil {
         return countries.stream().map(country -> country.code).collect(Collectors.toList());
     }
 
+    public static Country getCountry(String code) {
+        return getCountries(List.of(code)).get(0);
+    }
+
     public static List<Country> getCountries(List<String> codes) {
         List<Country> countries = new ArrayList<Country>();
         for (String code : codes) {

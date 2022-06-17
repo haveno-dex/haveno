@@ -84,7 +84,7 @@ public final class F2FAccount extends CountryBasedPaymentAccount {
     public String getExtraInfo() {
         return ((F2FAccountPayload) paymentAccountPayload).getExtraInfo();
     }
-    
+
     @Override
     protected PaymentAccountFormField getEmptyFormField(PaymentAccountFormField.FieldId fieldId) {
         var field = super.getEmptyFormField(fieldId);

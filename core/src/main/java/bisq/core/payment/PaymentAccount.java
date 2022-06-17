@@ -19,6 +19,7 @@ package bisq.core.payment;
 
 import bisq.core.api.model.PaymentAccountForm;
 import bisq.core.api.model.PaymentAccountFormField;
+import bisq.core.locale.BankUtil;
 import bisq.core.locale.Country;
 import bisq.core.locale.CountryUtil;
 import bisq.core.locale.CurrencyUtil;
@@ -379,15 +380,15 @@ public abstract class PaymentAccount implements PersistablePayload {
             checkNotEmpty(value);
             break;
         case COUNTRY:
-            List<Country> supportedCountries = ((CountryBasedPaymentAccount) this).getSupportedCountries();
-            if (supportedCountries == null || supportedCountries.isEmpty()) {
-                if (!CountryUtil.findCountryByCode(value).isPresent()) throw new IllegalArgumentException("Invalid country code: " + value);
-            } else {
-                System.out.println("BUT WE SUPPORT THESE COUNTRIES!");
-                System.out.println(supportedCountries);
-                List<String> supportedCountryCodes = CountryUtil.getCountryCodes(supportedCountries);
-                if (!supportedCountryCodes.contains(value)) throw new IllegalArgumentException("Country is not supported by " + getPaymentMethod().getId() + ": " + value);
+            if (this instanceof CountryBasedPaymentAccount) {
+                List<Country> supportedCountries = ((CountryBasedPaymentAccount) this).getSupportedCountries();
+                if (supportedCountries != null && !supportedCountries.isEmpty()) {
+                    List<String> supportedCountryCodes = CountryUtil.getCountryCodes(supportedCountries);
+                    if (!supportedCountryCodes.contains(value)) throw new IllegalArgumentException("Country is not supported by " + getPaymentMethod().getId() + ": " + value);
+                    return;
+                }
             }
+            if (!CountryUtil.findCountryByCode(value).isPresent()) throw new IllegalArgumentException("Invalid country code: " + value);
             break;
         case EMAIL:
             checkNotEmpty(value);
@@ -414,7 +415,7 @@ public abstract class PaymentAccount implements PersistablePayload {
         case IFSC:
             throw new IllegalArgumentException("Not implemented");
         case INTERMEDIARY_COUNTRY_CODE:
-            if (!CountryUtil.findCountryByCode(value).isPresent()) throw new IllegalArgumentException("Invalid country code: " + value); // TODO: value must be within supported countries unless all countries supported
+            if (!CountryUtil.findCountryByCode(value).isPresent()) throw new IllegalArgumentException("Invalid country code: " + value);
             break;
         case MOBILE_NR:
             throw new IllegalArgumentException("Not implemented");
@@ -440,7 +441,17 @@ public abstract class PaymentAccount implements PersistablePayload {
         case SPECIAL_INSTRUCTIONS:
             break;
         case STATE:
-            throw new IllegalArgumentException("Not implemented");
+            String countryCode = form.getValue(PaymentAccountFormField.FieldId.COUNTRY);
+            System.out.println("BACKEND RECEIVED STATE COUNTRY CODE: " + countryCode);
+            System.out.println("BACKEND RECEIVED STATE: " + value);
+            boolean isStateRequired = BankUtil.isStateRequired(countryCode);
+            System.out.println("IS STATE REQUIRED :" + isStateRequired);
+            if (value == null || value.isEmpty()) {
+                if (isStateRequired) throw new IllegalArgumentException("Must provide state for country " + countryCode);
+            } else {
+                if (!isStateRequired) throw new IllegalArgumentException("Must not provide state for country " + countryCode);
+            }
+            break;
         case TRADE_CURRENCIES:
             checkNotEmpty(value);
             List<String> currencyCodes = commaDelimitedCodesToList.apply(value);
@@ -497,7 +508,7 @@ public abstract class PaymentAccount implements PersistablePayload {
         case BANK_ACCOUNT_TYPE:
             throw new IllegalArgumentException("Not implemented");
         case BANK_ADDRESS:
-            field.setComponent(PaymentAccountFormField.Component.TEXT);
+            field.setComponent(PaymentAccountFormField.Component.TEXTAREA);
             field.setLabel("Receiving Bank address");
             break;
         case BANK_BRANCH:
@@ -531,7 +542,7 @@ public abstract class PaymentAccount implements PersistablePayload {
             field.setLabel("Account No. (or IBAN)");
             break;
         case BENEFICIARY_ADDRESS:
-            field.setComponent(PaymentAccountFormField.Component.TEXT);
+            field.setComponent(PaymentAccountFormField.Component.TEXTAREA);
             field.setLabel("Beneficiary address");
             break;
         case BENEFICIARY_CITY:
@@ -561,7 +572,7 @@ public abstract class PaymentAccount implements PersistablePayload {
         case COUNTRY:
             field.setComponent(PaymentAccountFormField.Component.SELECT_ONE);
             field.setLabel("Country");
-            field.setSupportedCountries(((CountryBasedPaymentAccount) this).getSupportedCountries());
+            if (this instanceof CountryBasedPaymentAccount) field.setSupportedCountries(((CountryBasedPaymentAccount) this).getSupportedCountries());
             break;
         case EMAIL:
             field.setComponent(PaymentAccountFormField.Component.TEXT);
@@ -573,7 +584,7 @@ public abstract class PaymentAccount implements PersistablePayload {
             field.setLabel("Email or mobile number");
             break;
         case EXTRA_INFO:
-            field.setComponent(PaymentAccountFormField.Component.TEXT);
+            field.setComponent(PaymentAccountFormField.Component.TEXTAREA);
             field.setLabel("Optional additional information");
             break;
         case HOLDER_ADDRESS:
@@ -595,7 +606,7 @@ public abstract class PaymentAccount implements PersistablePayload {
         case IFSC:
             throw new IllegalArgumentException("Not implemented");
         case INTERMEDIARY_ADDRESS:
-            field.setComponent(PaymentAccountFormField.Component.TEXT);
+            field.setComponent(PaymentAccountFormField.Component.TEXTAREA);
             field.setLabel("Intermediary Bank address");
             break;
         case INTERMEDIARY_BRANCH:
@@ -641,7 +652,10 @@ public abstract class PaymentAccount implements PersistablePayload {
             field.setLabel("Special instructions");
             break;
         case STATE:
-            throw new IllegalArgumentException("Not implemented");
+            field.setComponent(PaymentAccountFormField.Component.TEXT);
+            field.setLabel("State/Province/Region");
+            field.setRequiredForCountries(CountryUtil.getCountryCodes(BankUtil.getAllStateRequiredCountries()));
+            break;
         case TRADE_CURRENCIES:
             field.setComponent(PaymentAccountFormField.Component.SELECT_MULTIPLE);
             field.setLabel("Supported currencies");

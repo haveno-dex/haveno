@@ -21,6 +21,7 @@ import bisq.common.proto.ProtoUtil;
 import bisq.common.proto.persistable.PersistablePayload;
 import bisq.core.locale.Country;
 import bisq.core.locale.TradeCurrency;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -109,6 +110,7 @@ public final class PaymentAccountFormField implements PersistablePayload {
 
     public enum Component {
         TEXT,
+        TEXTAREA,
         SELECT_ONE,
         SELECT_MULTIPLE;
 
@@ -133,6 +135,7 @@ public final class PaymentAccountFormField implements PersistablePayload {
     private List<Country> supportedCountries;
     private List<Country> supportedSepaEuroCountries;
     private List<Country> supportedSepaNonEuroCountries;
+    private List<String> requiredForCountries;
 
     public PaymentAccountFormField(FieldId id) {
         this.id = id;
@@ -152,6 +155,7 @@ public final class PaymentAccountFormField implements PersistablePayload {
         Optional.ofNullable(supportedCountries).ifPresent(e -> builder.addAllSupportedCountries(ProtoUtil.collectionToProto(supportedCountries, protobuf.Country.class)));
         Optional.ofNullable(supportedSepaEuroCountries).ifPresent(e -> builder.addAllSupportedSepaEuroCountries(ProtoUtil.collectionToProto(supportedSepaEuroCountries, protobuf.Country.class)));
         Optional.ofNullable(supportedSepaNonEuroCountries).ifPresent(e -> builder.addAllSupportedSepaNonEuroCountries(ProtoUtil.collectionToProto(supportedSepaNonEuroCountries, protobuf.Country.class)));
+        Optional.ofNullable(requiredForCountries).ifPresent(builder::addAllRequiredForCountries);
         return builder.build();
     }
 
@@ -165,6 +169,7 @@ public final class PaymentAccountFormField implements PersistablePayload {
         formField.supportedCountries = proto.getSupportedCountriesList().isEmpty() ? null : proto.getSupportedCountriesList().stream().map(Country::fromProto).collect(Collectors.toList());
         formField.supportedSepaEuroCountries = proto.getSupportedSepaEuroCountriesList().isEmpty() ? null : proto.getSupportedSepaEuroCountriesList().stream().map(Country::fromProto).collect(Collectors.toList());
         formField.supportedSepaNonEuroCountries = proto.getSupportedSepaNonEuroCountriesList().isEmpty() ? null : proto.getSupportedSepaNonEuroCountriesList().stream().map(Country::fromProto).collect(Collectors.toList());
+        formField.requiredForCountries = proto.getRequiredForCountriesList() == null ? null : new ArrayList<String>(proto.getRequiredForCountriesList());
         return formField;
     }
 }

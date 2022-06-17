@@ -20,7 +20,7 @@ package bisq.core.locale;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-
+import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -264,18 +264,15 @@ public class BankUtil {
         }
     }
 
+    public static List<Country> getAllStateRequiredCountries() {
+        List<String> codes = List.of("US", "CA", "AU", "MY", "MX", "CN");
+        List<Country> list = CountryUtil.getCountries(codes);
+        list.sort((a, b) -> a.name.compareTo(b.name));
+        return list;
+    }
+
     public static boolean isStateRequired(String countryCode) {
-        switch (countryCode) {
-            case "US":
-            case "CA":
-            case "AU":
-            case "MY":
-            case "MX":
-            case "CN":
-                return true;
-            default:
-                return false;
-        }
+        return getAllStateRequiredCountries().stream().map(country -> country.code).collect(Collectors.toList()).contains(countryCode);
     }
 
     public static boolean isNationalAccountIdRequired(String countryCode) {
