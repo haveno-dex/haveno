@@ -71,7 +71,8 @@ public final class PaymentAccountForm implements PersistablePayload {
         CLEAR_X_CHANGE,
         SWIFT,
         F2F,
-        STRIKE;
+        STRIKE,
+        MONEY_GRAM;
 
         public static PaymentAccountForm.FormId fromProto(protobuf.PaymentAccountForm.FormId formId) {
             return ProtoUtil.enumFromProto(PaymentAccountForm.FormId.class, formId.name());
@@ -106,6 +107,15 @@ public final class PaymentAccountForm implements PersistablePayload {
     public static PaymentAccountForm fromProto(protobuf.PaymentAccountForm proto) {
         List<PaymentAccountFormField> fields = proto.getFieldsList().isEmpty() ? null : proto.getFieldsList().stream().map(PaymentAccountFormField::fromProto).collect(Collectors.toList());
         return new PaymentAccountForm(FormId.fromProto(proto.getId()), fields);
+    }
+
+    public String getValue(PaymentAccountFormField.FieldId fieldId) {
+        for (PaymentAccountFormField field : fields) {
+            if (field.getId() == fieldId) {
+                return field.getValue();
+            }
+        }
+        throw new IllegalArgumentException("Form does not contain field " + fieldId);
     }
 
     /**

@@ -2081,6 +2081,7 @@ message PaymentAccountForm {
         SWIFT = 4;
         F2F = 5;
         STRIKE = 6;
+        MONEY_GRAM = 7;
     }
     FormId id = 1;
     repeated PaymentAccountFormField fields = 2;
@@ -2149,8 +2150,9 @@ message PaymentAccountFormField {
     }
     enum Component {
         TEXT = 0;
-        SELECT_ONE = 1;
-        SELECT_MULTIPLE = 2;
+        TEXTAREA = 1;
+        SELECT_ONE = 2;
+        SELECT_MULTIPLE = 3;
     }
     FieldId id = 1;
     Component component = 2;
@@ -2163,4 +2165,5 @@ message PaymentAccountFormField {
     repeated Country supported_countries = 9;
     repeated Country supported_sepa_euro_countries = 10;
     repeated Country supported_sepa_non_euro_countries = 11;
+    repeated string required_for_countries = 12;
 }
