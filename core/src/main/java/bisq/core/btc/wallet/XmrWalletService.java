@@ -485,9 +485,21 @@ public class XmrWalletService {
     }
 
     private void backupWallets() {
+
+        // Backup main wallet
         FileUtil.rollingBackup(walletDir, xmrWalletFile.getName(), 20);
         FileUtil.rollingBackup(walletDir, xmrWalletFile.getName() + ".keys", 20);
         FileUtil.rollingBackup(walletDir, xmrWalletFile.getName() + ".address.txt", 20);
+
+        // Backup multisig wallets
+        File[] multiSigWalletList = walletDir.listFiles();
+        for (int i = 0; i < multiSigWalletList.length; i++) {
+            if (multiSigWalletList[i].isFile() && multiSigWalletList[i].getName().startsWith("xmr_multisig_trade_")) {
+                FileUtil.rollingBackup(walletDir, multiSigWalletList[i].getName(), 20);
+                FileUtil.rollingBackup(walletDir, multiSigWalletList[i].getName() + ".keys", 20);
+                FileUtil.rollingBackup(walletDir, multiSigWalletList[i].getName() + ".address.txt", 20);
+            }
+        }
     }
 
     private void setWalletDaemonConnections(MoneroRpcConnection connection) {
