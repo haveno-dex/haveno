@@ -73,7 +73,8 @@ public final class PaymentAccountForm implements PersistablePayload {
         SWIFT,
         F2F,
         STRIKE,
-        MONEY_GRAM;
+        MONEY_GRAM,
+        FASTER_PAYMENTS;
 
         public static PaymentAccountForm.FormId fromProto(protobuf.PaymentAccountForm.FormId formId) {
             return ProtoUtil.enumFromProto(PaymentAccountForm.FormId.class, formId.name());
