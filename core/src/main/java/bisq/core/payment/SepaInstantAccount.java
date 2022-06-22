@@ -17,16 +17,18 @@
 
 package bisq.core.payment;
 
+import bisq.core.api.model.PaymentAccountForm;
 import bisq.core.api.model.PaymentAccountFormField;
+import bisq.core.locale.Country;
 import bisq.core.locale.CountryUtil;
 import bisq.core.locale.FiatCurrency;
 import bisq.core.locale.TradeCurrency;
 import bisq.core.payment.payload.PaymentAccountPayload;
 import bisq.core.payment.payload.PaymentMethod;
 import bisq.core.payment.payload.SepaInstantAccountPayload;
-
+import bisq.core.payment.validation.SepaIBANValidator;
 import java.util.List;
-
+import javax.annotation.Nullable;
 import lombok.EqualsAndHashCode;
 
 import org.jetbrains.annotations.NotNull;
@@ -101,12 +103,43 @@ public final class SepaInstantAccount extends CountryBasedPaymentAccount impleme
     }
 
     @Override
+    public @NotNull List<PaymentAccountFormField.FieldId> getInputFieldIds() {
+        return SepaAccount.INPUT_FIELD_IDS;
+    }
+
+    @Override
     public @NotNull List<TradeCurrency> getSupportedCurrencies() {
         return SUPPORTED_CURRENCIES;
     }
 
     @Override
-    public @NotNull List<PaymentAccountFormField.FieldId> getInputFieldIds() {
-        throw new RuntimeException("Not implemented");
+    @Nullable
+    public List<Country> getSupportedCountries() {
+        return CountryUtil.getAllSepaCountries();
+    }
+
+    @Override
+    public void validateFormField(PaymentAccountForm form, PaymentAccountFormField.FieldId fieldId, String value) {
+        switch (fieldId) {
+        case IBAN:
+            processValidationResult(new SepaIBANValidator().validate(value));
+            break;
+        default:
+            super.validateFormField(form, fieldId, value);
+        }
+    }
+
+    @Override
+    protected PaymentAccountFormField getEmptyFormField(PaymentAccountFormField.FieldId fieldId) {
+        var field = super.getEmptyFormField(fieldId);
+        switch (fieldId) {
+        case ACCEPTED_COUNTRY_CODES:
+            field.setSupportedSepaEuroCountries(CountryUtil.getAllSepaEuroCountries());
+            field.setSupportedSepaNonEuroCountries(CountryUtil.getAllSepaNonEuroCountries());
+            break;
+        default:
+            // no action
+        }
+        return field;
     }
 }

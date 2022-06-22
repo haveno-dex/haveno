@@ -36,7 +36,7 @@ import org.jetbrains.annotations.NotNull;
 @EqualsAndHashCode(callSuper = true)
 public final class SepaAccount extends CountryBasedPaymentAccount implements BankAccount {
 
-    private static final List<PaymentAccountFormField.FieldId> INPUT_FIELD_IDS = List.of(
+    protected static final List<PaymentAccountFormField.FieldId> INPUT_FIELD_IDS = List.of(
             PaymentAccountFormField.FieldId.ACCOUNT_NAME,
             PaymentAccountFormField.FieldId.HOLDER_NAME,
             PaymentAccountFormField.FieldId.IBAN,
@@ -142,7 +142,7 @@ public final class SepaAccount extends CountryBasedPaymentAccount implements Ban
             super.validateFormField(form, fieldId, value);
         }
     }
-    
+
     @Override
     protected PaymentAccountFormField getEmptyFormField(PaymentAccountFormField.FieldId fieldId) {
         var field = super.getEmptyFormField(fieldId);

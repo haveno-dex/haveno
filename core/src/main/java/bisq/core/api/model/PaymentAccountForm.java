@@ -67,6 +67,7 @@ public final class PaymentAccountForm implements PersistablePayload {
     public enum FormId {
         REVOLUT,
         SEPA,
+        SEPA_INSTANT,
         TRANSFERWISE,
         CLEAR_X_CHANGE,
         SWIFT,
