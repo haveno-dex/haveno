@@ -2076,12 +2076,13 @@ message PaymentAccountForm {
     enum FormId {
         REVOLUT = 0;
         SEPA = 1;
-        TRANSFERWISE = 2;
-        CLEAR_X_CHANGE = 3;
-        SWIFT = 4;
-        F2F = 5;
-        STRIKE = 6;
-        MONEY_GRAM = 7;
+        SEPA_INSTANT = 2;
+        TRANSFERWISE = 3;
+        CLEAR_X_CHANGE = 4;
+        SWIFT = 5;
+        F2F = 6;
+        STRIKE = 7;
+        MONEY_GRAM = 8;
     }
     FormId id = 1;
     repeated PaymentAccountFormField fields = 2;

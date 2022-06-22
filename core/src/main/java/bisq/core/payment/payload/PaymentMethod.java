@@ -330,6 +330,7 @@ public final class PaymentMethod implements PersistablePayload, Comparable<Payme
         List<String> paymentMethodIds = List.of(
                 REVOLUT_ID,
                 SEPA_ID,
+                SEPA_INSTANT_ID,
                 TRANSFERWISE_ID,
                 CLEAR_X_CHANGE_ID,
                 SWIFT_ID,
