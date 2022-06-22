@@ -1226,9 +1226,9 @@ message InstantCryptoCurrencyAccountPayload {
 }
 
 message FasterPaymentsAccountPayload {
-    string sort_code = 1;
-    string account_nr = 2;
-    string email = 3 [deprecated = true];
+    string holder_name = 1;
+    string sort_code = 2;
+    string account_nr = 3;
 }
 
 message InteracETransferAccountPayload {
@@ -2083,6 +2083,7 @@ message PaymentAccountForm {
         F2F = 6;
         STRIKE = 7;
         MONEY_GRAM = 8;
+        FASTER_PAYMENTS = 9;
     }
     FormId id = 1;
     repeated PaymentAccountFormField fields = 2;

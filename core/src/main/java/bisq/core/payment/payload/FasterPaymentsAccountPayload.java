@@ -42,10 +42,11 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public final class FasterPaymentsAccountPayload extends PaymentAccountPayload {
     @Setter
+    private String holderName = "";
+    @Setter
     private String sortCode = "";
     @Setter
     private String accountNr = "";
-    private String email = "";// not used anymore but need to keep it for backward compatibility, must not be null but empty string, otherwise hash check fails for contract
 
     public FasterPaymentsAccountPayload(String paymentMethod, String id) {
         super(paymentMethod, id);
@@ -58,36 +59,36 @@ public final class FasterPaymentsAccountPayload extends PaymentAccountPayload {
 
     private FasterPaymentsAccountPayload(String paymentMethod,
                                          String id,
+                                         String holderName,
                                          String sortCode,
                                          String accountNr,
-                                         String email,
                                          long maxTradePeriod,
                                          Map<String, String> excludeFromJsonDataMap) {
         super(paymentMethod,
                 id,
                 maxTradePeriod,
                 excludeFromJsonDataMap);
+        this.holderName = holderName;
         this.sortCode = sortCode;
         this.accountNr = accountNr;
-        this.email = email;
     }
 
     @Override
     public Message toProtoMessage() {
         return getPaymentAccountPayloadBuilder()
                 .setFasterPaymentsAccountPayload(protobuf.FasterPaymentsAccountPayload.newBuilder()
+                        .setHolderName(holderName)
                         .setSortCode(sortCode)
-                        .setAccountNr(accountNr)
-                        .setEmail(email))
+                        .setAccountNr(accountNr))
                 .build();
     }
 
     public static FasterPaymentsAccountPayload fromProto(protobuf.PaymentAccountPayload proto) {
         return new FasterPaymentsAccountPayload(proto.getPaymentMethodId(),
                 proto.getId(),
+                proto.getFasterPaymentsAccountPayload().getHolderName(),
                 proto.getFasterPaymentsAccountPayload().getSortCode(),
                 proto.getFasterPaymentsAccountPayload().getAccountNr(),
-                proto.getFasterPaymentsAccountPayload().getEmail(),
                 proto.getMaxTradePeriod(),
                 new HashMap<>(proto.getExcludeFromJsonDataMap()));
     }
@@ -96,14 +97,6 @@ public final class FasterPaymentsAccountPayload extends PaymentAccountPayload {
     ///////////////////////////////////////////////////////////////////////////////////////////
     // API
     ///////////////////////////////////////////////////////////////////////////////////////////
-
-    public String getHolderName() {
-        return excludeFromJsonDataMap.getOrDefault(HOLDER_NAME, "");
-    }
-
-    public void setHolderName(String holderName) {
-        excludeFromJsonDataMap.compute(HOLDER_NAME, (k, v) -> Strings.emptyToNull(holderName));
-    }
 
     @Override
     public String getPaymentDetails() {

@@ -32,6 +32,14 @@ import lombok.NonNull;
 @EqualsAndHashCode(callSuper = true)
 public final class FasterPaymentsAccount extends PaymentAccount {
 
+    private static final List<PaymentAccountFormField.FieldId> INPUT_FIELD_IDS = List.of(
+            PaymentAccountFormField.FieldId.ACCOUNT_NAME,
+            PaymentAccountFormField.FieldId.HOLDER_NAME,
+            PaymentAccountFormField.FieldId.SORT_CODE,
+            PaymentAccountFormField.FieldId.ACCOUNT_NR,
+            PaymentAccountFormField.FieldId.SALT
+    );
+
     public static final List<TradeCurrency> SUPPORTED_CURRENCIES = List.of(new FiatCurrency("GBP"));
 
     public FasterPaymentsAccount() {
@@ -51,7 +59,7 @@ public final class FasterPaymentsAccount extends PaymentAccount {
 
     @Override
     public @NonNull List<PaymentAccountFormField.FieldId> getInputFieldIds() {
-        throw new RuntimeException("Not implemented");
+        return INPUT_FIELD_IDS;
     }
 
     public void setHolderName(String value) {

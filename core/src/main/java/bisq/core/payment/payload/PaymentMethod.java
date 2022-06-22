@@ -336,7 +336,8 @@ public final class PaymentMethod implements PersistablePayload, Comparable<Payme
                 SWIFT_ID,
                 F2F_ID,
                 STRIKE_ID,
-                MONEY_GRAM_ID);
+                MONEY_GRAM_ID,
+                FASTER_PAYMENTS_ID);
         return paymentMethods.stream().filter(paymentMethod -> paymentMethodIds.contains(paymentMethod.getId())).collect(Collectors.toList());
     }
 

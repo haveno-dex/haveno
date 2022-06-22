@@ -27,7 +27,9 @@ import bisq.core.locale.Res;
 import bisq.core.locale.TradeCurrency;
 import bisq.core.payment.payload.PaymentAccountPayload;
 import bisq.core.payment.payload.PaymentMethod;
+import bisq.core.payment.validation.AccountNrValidator;
 import bisq.core.payment.validation.BICValidator;
+import bisq.core.payment.validation.BranchIdValidator;
 import bisq.core.payment.validation.EmailOrMobileNrValidator;
 import bisq.core.payment.validation.EmailValidator;
 import bisq.core.payment.validation.IBANValidator;
@@ -313,7 +315,8 @@ public abstract class PaymentAccount implements PersistablePayload {
             processValidationResult(new LengthValidator(2, 100).validate(value));
             break;
         case ACCOUNT_NR:
-            throw new IllegalArgumentException("Not implemented");
+            processValidationResult(new AccountNrValidator("GB").validate(value));
+            break;
         case ACCOUNT_OWNER:
             throw new IllegalArgumentException("Not implemented");
         case ACCOUNT_TYPE:
@@ -437,15 +440,13 @@ public abstract class PaymentAccount implements PersistablePayload {
             if (!value.equals("")) throw new IllegalArgumentException("Salt must be empty");
             break;
         case SORT_CODE:
-            throw new IllegalArgumentException("Not implemented");
+            processValidationResult(new BranchIdValidator("GB").validate(value));
+            break;
         case SPECIAL_INSTRUCTIONS:
             break;
         case STATE:
             String countryCode = form.getValue(PaymentAccountFormField.FieldId.COUNTRY);
-            System.out.println("BACKEND RECEIVED STATE COUNTRY CODE: " + countryCode);
-            System.out.println("BACKEND RECEIVED STATE: " + value);
             boolean isStateRequired = BankUtil.isStateRequired(countryCode);
-            System.out.println("IS STATE REQUIRED :" + isStateRequired);
             if (value == null || value.isEmpty()) {
                 if (isStateRequired) throw new IllegalArgumentException("Must provide state for country " + countryCode);
             } else {
@@ -494,7 +495,9 @@ public abstract class PaymentAccount implements PersistablePayload {
             field.setMaxLength(100);
             break;
         case ACCOUNT_NR:
-            throw new IllegalArgumentException("Not implemented");
+            field.setComponent(PaymentAccountFormField.Component.TEXT);
+            field.setLabel("Account number");
+            break;
         case ACCOUNT_OWNER:
             throw new IllegalArgumentException("Not implemented");
         case ACCOUNT_TYPE:
@@ -646,7 +649,9 @@ public abstract class PaymentAccount implements PersistablePayload {
             field.setLabel("Salt");
             break;
         case SORT_CODE:
-            throw new IllegalArgumentException("Not implemented");
+            field.setComponent(PaymentAccountFormField.Component.TEXT);
+            field.setLabel("UK sort code");
+            break;
         case SPECIAL_INSTRUCTIONS:
             field.setComponent(PaymentAccountFormField.Component.TEXT);
             field.setLabel("Special instructions");

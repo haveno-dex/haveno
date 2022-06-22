@@ -50,7 +50,6 @@ public abstract class PaymentAccountPayload implements NetworkPayload, UsedForTr
 
     // Keys for excludeFromJsonDataMap
     public static final String SALT = "salt";
-    public static final String HOLDER_NAME = "holderName";
 
     protected final String paymentMethodId;
     protected final String id;
