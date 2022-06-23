@@ -35,6 +35,7 @@ import bisq.core.payment.validation.EmailValidator;
 import bisq.core.payment.validation.IBANValidator;
 import bisq.core.payment.validation.LengthValidator;
 import bisq.core.proto.CoreProtoResolver;
+import bisq.core.util.validation.InputValidator;
 import bisq.core.util.validation.InputValidator.ValidationResult;
 import bisq.common.proto.ProtoUtil;
 import bisq.common.proto.persistable.PersistablePayload;
@@ -310,7 +311,8 @@ public abstract class PaymentAccount implements PersistablePayload {
             break;
         }
         case ACCOUNT_ID:
-            throw new IllegalArgumentException("Not implemented");
+            processValidationResult(new InputValidator().validate(value));
+            break;
         case ACCOUNT_NAME:
             processValidationResult(new LengthValidator(2, 100).validate(value));
             break;
@@ -318,7 +320,8 @@ public abstract class PaymentAccount implements PersistablePayload {
             processValidationResult(new AccountNrValidator("GB").validate(value));
             break;
         case ACCOUNT_OWNER:
-            throw new IllegalArgumentException("Not implemented");
+            processValidationResult(new LengthValidator(2, 100).validate(value));
+            break;
         case ACCOUNT_TYPE:
             throw new IllegalArgumentException("Not implemented");
         case ANSWER:
@@ -380,7 +383,7 @@ public abstract class PaymentAccount implements PersistablePayload {
             processValidationResult(new LengthValidator(2, 34).validate(value));
             break;
         case CONTACT:
-            checkNotEmpty(value);
+            processValidationResult(new InputValidator().validate(value));
             break;
         case COUNTRY:
             if (this instanceof CountryBasedPaymentAccount) {
@@ -394,11 +397,9 @@ public abstract class PaymentAccount implements PersistablePayload {
             if (!CountryUtil.findCountryByCode(value).isPresent()) throw new IllegalArgumentException("Invalid country code: " + value);
             break;
         case EMAIL:
-            checkNotEmpty(value);
             processValidationResult(new EmailValidator().validate(value));
             break;
         case EMAIL_OR_MOBILE_NR:
-            checkNotEmpty(value);
             processValidationResult(new EmailOrMobileNrValidator().validate(value));
             break;
         case EXTRA_INFO:
@@ -454,13 +455,12 @@ public abstract class PaymentAccount implements PersistablePayload {
             }
             break;
         case TRADE_CURRENCIES:
-            checkNotEmpty(value);
+            processValidationResult(new InputValidator().validate(value));
             List<String> currencyCodes = commaDelimitedCodesToList.apply(value);
             Optional<List<TradeCurrency>> tradeCurrencies =  CurrencyUtil.getTradeCurrenciesInList(currencyCodes, getSupportedCurrencies());
             if (!tradeCurrencies.isPresent()) throw new IllegalArgumentException("No trade currencies were found in the " + getPaymentMethod().getDisplayString() + " account form");
             break;
         case USER_NAME:
-            checkNotEmpty(value);
             processValidationResult(new LengthValidator(3, 100).validate(value));
             break;
         case VIRTUAL_PAYMENT_ADDRESS:
@@ -468,10 +468,6 @@ public abstract class PaymentAccount implements PersistablePayload {
         default:
             throw new RuntimeException("Unhandled form field: " + fieldId);
         }
-    }
-
-    protected void checkNotEmpty(String input) {
-        if (input == null || "".equals(input)) throw new IllegalArgumentException("Field must not be empty");
     }
 
     protected void processValidationResult(ValidationResult result) {
@@ -487,7 +483,9 @@ public abstract class PaymentAccount implements PersistablePayload {
             field.setSupportedCountries(((CountryBasedPaymentAccount) this).getSupportedCountries());
             break;
         case ACCOUNT_ID:
-            throw new IllegalArgumentException("Not implemented");
+            field.setComponent(PaymentAccountFormField.Component.TEXT);
+            field.setLabel("Username or email or phone no.");
+            break;
         case ACCOUNT_NAME:
             field.setComponent(PaymentAccountFormField.Component.TEXT);
             field.setLabel("Account name"); // TODO: pull all labels from language file
@@ -499,7 +497,9 @@ public abstract class PaymentAccount implements PersistablePayload {
             field.setLabel("Account number");
             break;
         case ACCOUNT_OWNER:
-            throw new IllegalArgumentException("Not implemented");
+            field.setComponent(PaymentAccountFormField.Component.TEXT);
+            field.setLabel("Account owner full name");
+            break;
         case ACCOUNT_TYPE:
             throw new IllegalArgumentException("Not implemented");
         case ANSWER:

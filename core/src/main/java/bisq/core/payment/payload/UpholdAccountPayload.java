@@ -41,9 +41,6 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public final class UpholdAccountPayload extends PaymentAccountPayload {
     private String accountId = "";
-
-    // For backward compatibility we need to exclude the new field from the contract json.
-    @JsonExclude
     private String accountOwner = "";
 
     public UpholdAccountPayload(String paymentMethod, String id) {
