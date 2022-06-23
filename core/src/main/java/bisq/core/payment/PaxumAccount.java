@@ -25,13 +25,20 @@ import bisq.core.payment.payload.PaymentAccountPayload;
 import bisq.core.payment.payload.PaymentMethod;
 
 import java.util.List;
-
+import java.util.stream.Collectors;
 import lombok.EqualsAndHashCode;
 
 import org.jetbrains.annotations.NotNull;
 
 @EqualsAndHashCode(callSuper = true)
 public final class PaxumAccount extends PaymentAccount {
+
+    private static final List<PaymentAccountFormField.FieldId> INPUT_FIELD_IDS = List.of(
+            PaymentAccountFormField.FieldId.ACCOUNT_NAME,
+            PaymentAccountFormField.FieldId.EMAIL,
+            PaymentAccountFormField.FieldId.TRADE_CURRENCIES,
+            PaymentAccountFormField.FieldId.SALT
+    );
 
     // https://github.com/bisq-network/growth/issues/235
     public static final List<TradeCurrency> SUPPORTED_CURRENCIES = List.of(
@@ -71,7 +78,7 @@ public final class PaxumAccount extends PaymentAccount {
 
     @Override
     public @NotNull List<PaymentAccountFormField.FieldId> getInputFieldIds() {
-        throw new RuntimeException("Not implemented");
+        return INPUT_FIELD_IDS;
     }
 
     public void setEmail(String accountId) {
@@ -80,5 +87,12 @@ public final class PaxumAccount extends PaymentAccount {
 
     public String getEmail() {
         return ((PaxumAccountPayload) paymentAccountPayload).getEmail();
+    }
+
+    @Override
+    protected PaymentAccountFormField getEmptyFormField(PaymentAccountFormField.FieldId fieldId) {
+        var field = super.getEmptyFormField(fieldId);
+        if (field.getId() == PaymentAccountFormField.FieldId.TRADE_CURRENCIES) field.setValue("");
+        return field;
     }
 }

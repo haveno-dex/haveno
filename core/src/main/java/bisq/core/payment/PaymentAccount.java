@@ -665,6 +665,7 @@ public abstract class PaymentAccount implements PersistablePayload {
             field.setComponent(PaymentAccountFormField.Component.SELECT_MULTIPLE);
             field.setLabel("Supported currencies");
             field.setSupportedCurrencies(getSupportedCurrencies());
+            field.setValue(String.join(",", getSupportedCurrencies().stream().map(TradeCurrency::getCode).collect(Collectors.toList())));
             break;
         case USER_NAME:
             field.setComponent(PaymentAccountFormField.Component.TEXT);

@@ -2085,6 +2085,7 @@ message PaymentAccountForm {
         MONEY_GRAM = 8;
         FASTER_PAYMENTS = 9;
         UPHOLD = 10;
+        PAXUM = 11;
     }
     FormId id = 1;
     repeated PaymentAccountFormField fields = 2;
