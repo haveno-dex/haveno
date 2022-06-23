@@ -75,7 +75,8 @@ public final class PaymentAccountForm implements PersistablePayload {
         STRIKE,
         MONEY_GRAM,
         FASTER_PAYMENTS,
-        UPHOLD;
+        UPHOLD,
+        PAXUM;
 
         public static PaymentAccountForm.FormId fromProto(protobuf.PaymentAccountForm.FormId formId) {
             return ProtoUtil.enumFromProto(PaymentAccountForm.FormId.class, formId.name());

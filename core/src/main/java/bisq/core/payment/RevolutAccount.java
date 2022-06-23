@@ -124,11 +124,4 @@ public final class RevolutAccount extends PaymentAccount {
     public @NonNull List<TradeCurrency> getSupportedCurrencies() {
         return SUPPORTED_CURRENCIES;
     }
-
-    @Override
-    protected PaymentAccountFormField getEmptyFormField(PaymentAccountFormField.FieldId fieldId) {
-        var field = super.getEmptyFormField(fieldId);
-        if (field.getId() == PaymentAccountFormField.FieldId.TRADE_CURRENCIES) field.setValue(String.join(",", getSupportedCurrencies().stream().map(TradeCurrency::getCode).collect(Collectors.toList())));
-        return field;
-    }
 }
