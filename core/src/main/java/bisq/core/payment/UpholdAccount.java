@@ -34,6 +34,14 @@ import org.jetbrains.annotations.NotNull;
 @EqualsAndHashCode(callSuper = true)
 public final class UpholdAccount extends PaymentAccount {
 
+    private static final List<PaymentAccountFormField.FieldId> INPUT_FIELD_IDS = List.of(
+            PaymentAccountFormField.FieldId.ACCOUNT_NAME,
+            PaymentAccountFormField.FieldId.ACCOUNT_OWNER,
+            PaymentAccountFormField.FieldId.ACCOUNT_ID,
+            PaymentAccountFormField.FieldId.TRADE_CURRENCIES,
+            PaymentAccountFormField.FieldId.SALT
+    );
+
     // https://support.uphold.com/hc/en-us/articles/202473803-Supported-currencies
     public static final List<TradeCurrency> SUPPORTED_CURRENCIES = List.of(
             new FiatCurrency("AED"),
@@ -78,7 +86,7 @@ public final class UpholdAccount extends PaymentAccount {
 
     @Override
     public @NotNull List<PaymentAccountFormField.FieldId> getInputFieldIds() {
-        throw new RuntimeException("Not implemented");
+        return INPUT_FIELD_IDS;
     }
 
     public void setAccountId(String accountId) {
