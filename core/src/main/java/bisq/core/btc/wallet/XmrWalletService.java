@@ -493,12 +493,12 @@ public class XmrWalletService {
         FileUtil.rollingBackup(walletDir, xmrWalletFile.getName() + ".address.txt", 20);
 
         // backup multisig wallets
-        File[] multiSigWalletFiles = walletDir.listFiles();
-        for (int i = 0; i < multiSigWalletFiles.length; i++) {
-            if (multiSigWalletFiles[i].isFile() && multiSigWalletFiles[i].getName().startsWith(MONERO_MULTISIG_WALLET_PREFIX)) {
-                FileUtil.rollingBackup(walletDir, multiSigWalletFiles[i].getName(), 20);
-                FileUtil.rollingBackup(walletDir, multiSigWalletFiles[i].getName() + ".keys", 20);
-                FileUtil.rollingBackup(walletDir, multiSigWalletFiles[i].getName() + ".address.txt", 20);
+        File[] multisigWalletFiles = walletDir.listFiles();
+        for (int i = 0; i < multisigWalletFiles.length; i++) {
+            if (multisigWalletFiles[i].isFile() && multisigWalletFiles[i].getName().startsWith(MONERO_MULTISIG_WALLET_PREFIX)) {
+                FileUtil.rollingBackup(walletDir, multisigWalletFiles[i].getName(), 20);
+                FileUtil.rollingBackup(walletDir, multisigWalletFiles[i].getName() + ".keys", 20);
+                FileUtil.rollingBackup(walletDir, multisigWalletFiles[i].getName() + ".address.txt", 20);
             }
         }
     }
