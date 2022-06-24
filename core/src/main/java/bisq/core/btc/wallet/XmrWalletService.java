@@ -75,6 +75,7 @@ public class XmrWalletService {
     private static final String MONERO_WALLET_RPC_USERNAME = "haveno_user";
     private static final String MONERO_WALLET_RPC_DEFAULT_PASSWORD = "password"; // only used if account password is null
     private static final String MONERO_WALLET_NAME = "haveno_XMR";
+    private static final String MONERO_MULTISIG_WALLET_PREFIX = "xmr_multisig_trade_";
     private static final long MONERO_WALLET_SYNC_PERIOD = 5000l;
 
     private final CoreAccountService accountService;
@@ -167,7 +168,7 @@ public class XmrWalletService {
     }
 
     public boolean multisigWalletExists(String tradeId) {
-        return walletExists("xmr_multisig_trade_" + tradeId);
+        return walletExists(MONERO_MULTISIG_WALLET_PREFIX + tradeId);
     }
 
     // TODO (woodser): test retaking failed trade. create new multisig wallet or replace? cannot reuse
@@ -176,7 +177,7 @@ public class XmrWalletService {
         Trade trade = tradeManager.getOpenTrade(tradeId).get();
         synchronized (trade) {
             if (multisigWallets.containsKey(trade.getId())) return multisigWallets.get(trade.getId());
-            String path = "xmr_multisig_trade_" + trade.getId();
+            String path = MONERO_MULTISIG_WALLET_PREFIX + trade.getId();
             MoneroWallet multisigWallet = createWallet(new MoneroWalletConfig().setPath(path).setPassword(getWalletPassword()), null); // auto-assign port
             multisigWallets.put(trade.getId(), multisigWallet);
             return multisigWallet;
@@ -189,7 +190,7 @@ public class XmrWalletService {
         Trade trade = tradeManager.getTrade(tradeId);
         synchronized (trade) {
             if (multisigWallets.containsKey(trade.getId())) return multisigWallets.get(trade.getId());
-            String path = "xmr_multisig_trade_" + trade.getId();
+            String path = MONERO_MULTISIG_WALLET_PREFIX + trade.getId();
             if (!walletExists(path)) throw new RuntimeException("Multisig wallet does not exist for trade " + trade.getId());
             MoneroWallet multisigWallet = openWallet(new MoneroWalletConfig().setPath(path).setPassword(getWalletPassword()), null);
             multisigWallets.put(trade.getId(), multisigWallet);
@@ -211,7 +212,7 @@ public class XmrWalletService {
         log.info("{}.deleteMultisigWallet({})", getClass().getSimpleName(), tradeId);
         Trade trade = tradeManager.getTrade(tradeId);
         synchronized (trade) {
-            String walletName = "xmr_multisig_trade_" + tradeId;
+            String walletName = MONERO_MULTISIG_WALLET_PREFIX + tradeId;
             if (!walletExists(walletName)) return false;
             if (multisigWallets.containsKey(trade.getId())) closeMultisigWallet(tradeId);
             deleteWallet(walletName);
@@ -486,18 +487,18 @@ public class XmrWalletService {
 
     private void backupWallets() {
 
-        // Backup main wallet
+        // backup main wallet
         FileUtil.rollingBackup(walletDir, xmrWalletFile.getName(), 20);
         FileUtil.rollingBackup(walletDir, xmrWalletFile.getName() + ".keys", 20);
         FileUtil.rollingBackup(walletDir, xmrWalletFile.getName() + ".address.txt", 20);
 
-        // Backup multisig wallets
-        File[] multiSigWalletList = walletDir.listFiles();
-        for (int i = 0; i < multiSigWalletList.length; i++) {
-            if (multiSigWalletList[i].isFile() && multiSigWalletList[i].getName().startsWith("xmr_multisig_trade_")) {
-                FileUtil.rollingBackup(walletDir, multiSigWalletList[i].getName(), 20);
-                FileUtil.rollingBackup(walletDir, multiSigWalletList[i].getName() + ".keys", 20);
-                FileUtil.rollingBackup(walletDir, multiSigWalletList[i].getName() + ".address.txt", 20);
+        // backup multisig wallets
+        File[] multiSigWalletFiles = walletDir.listFiles();
+        for (int i = 0; i < multiSigWalletFiles.length; i++) {
+            if (multiSigWalletFiles[i].isFile() && multiSigWalletFiles[i].getName().startsWith(MONERO_MULTISIG_WALLET_PREFIX)) {
+                FileUtil.rollingBackup(walletDir, multiSigWalletFiles[i].getName(), 20);
+                FileUtil.rollingBackup(walletDir, multiSigWalletFiles[i].getName() + ".keys", 20);
+                FileUtil.rollingBackup(walletDir, multiSigWalletFiles[i].getName() + ".address.txt", 20);
             }
         }
     }
