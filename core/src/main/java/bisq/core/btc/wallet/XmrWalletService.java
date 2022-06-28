@@ -40,6 +40,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.inject.Inject;
+import monero.common.MoneroError;
 import monero.common.MoneroRpcConnection;
 import monero.common.MoneroUtils;
 import monero.daemon.MoneroDaemon;
@@ -434,7 +435,7 @@ public class XmrWalletService {
             return walletRpc;
         } catch (Exception e) {
             e.printStackTrace();
-            MONERO_WALLET_RPC_MANAGER.stopInstance(walletRpc, false);
+            MONERO_WALLET_RPC_MANAGER.stopInstance(walletRpc);
             throw e;
         }
     }
@@ -451,7 +452,7 @@ public class XmrWalletService {
             return walletRpc;
         } catch (Exception e) {
             e.printStackTrace();
-            MONERO_WALLET_RPC_MANAGER.stopInstance(walletRpc, false);
+            MONERO_WALLET_RPC_MANAGER.stopInstance(walletRpc);
             throw e;
         }
     }
@@ -549,7 +550,14 @@ public class XmrWalletService {
 
     private void closeWallet(MoneroWallet walletRpc, boolean save) {
         log.info("{}.closeWallet({}, {})", getClass().getSimpleName(), walletRpc.getPath(), save);
-        MONERO_WALLET_RPC_MANAGER.stopInstance((MoneroWalletRpc) walletRpc, save);
+        MoneroError err = null;
+        try {
+            walletRpc.close(save);
+        } catch (MoneroError e) {
+            err = e;
+        }
+        MONERO_WALLET_RPC_MANAGER.stopInstance((MoneroWalletRpc) walletRpc);
+        if (err != null) throw err;
     }
 
     private void deleteWallet(String walletName) {

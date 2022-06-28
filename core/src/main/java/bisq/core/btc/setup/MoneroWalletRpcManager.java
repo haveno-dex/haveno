@@ -97,9 +97,8 @@ public class MoneroWalletRpcManager {
    * Stop an instance of monero-wallet-rpc.
    *
    * @param walletRpc the client connected to the monero-wallet-rpc instance to stop
-   * @param save specifies if the wallet should be saved before closing
    */
-  public void stopInstance(MoneroWalletRpc walletRpc, boolean save) {
+  public void stopInstance(MoneroWalletRpc walletRpc) {
 
       // unregister port
       synchronized (registeredPorts) {
@@ -118,8 +117,7 @@ public class MoneroWalletRpcManager {
           if (!found) throw new RuntimeException("MoneroWalletRpc instance not registered with a port");
       }
 
-      // close wallet and stop process
-      walletRpc.close(save);
+      // stop process
       walletRpc.stopProcess();
   }
 
