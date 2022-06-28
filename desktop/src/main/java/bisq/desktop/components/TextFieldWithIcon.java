@@ -19,7 +19,7 @@ package bisq.desktop.components;
 
 import de.jensd.fx.fontawesome.AwesomeDude;
 import de.jensd.fx.fontawesome.AwesomeIcon;
-
+import bisq.common.UserThread;
 import com.jfoenix.controls.JFXTextField;
 
 import javafx.scene.control.Label;
@@ -66,7 +66,9 @@ public class TextFieldWithIcon extends AnchorPane {
     }
 
     public void setIcon(AwesomeIcon iconLabel) {
-        AwesomeDude.setIcon(this.iconLabel, iconLabel);
+        UserThread.execute(() -> {
+            AwesomeDude.setIcon(this.iconLabel, iconLabel);
+        });
     }
 
     public void setText(String text) {
