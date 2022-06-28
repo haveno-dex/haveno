@@ -74,6 +74,19 @@ public class FileUtil {
         }
     }
 
+    public static void deleteRollingBackup(File dir, String fileName) {
+        File backupDir = new File(Paths.get(dir.getAbsolutePath(), "backup").toString());
+        if (!backupDir.exists()) throw new RuntimeException("backup directory does not exist: " + backupDir);
+        String dirName = "backups_" + fileName;
+        if (dirName.contains(".")) dirName = dirName.replace(".", "_");
+        File backupFileDir = new File(Paths.get(backupDir.getAbsolutePath(), dirName).toString());
+        try {
+            FileUtils.deleteDirectory(backupFileDir);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
     private static void pruneBackup(File backupDir, int numMaxBackupFiles) {
         if (backupDir.isDirectory()) {
             File[] files = backupDir.listFiles();

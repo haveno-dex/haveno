@@ -124,7 +124,7 @@ public class SendSignContractRequestAfterMultisig extends TradeTask {
     }
     
     private void completeAux() {
-        processModel.getXmrWalletService().getWallet().save();
+        processModel.getXmrWalletService().saveWallet(processModel.getXmrWalletService().getWallet());
         complete();
     }
 }
