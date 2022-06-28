@@ -49,21 +49,16 @@ public class ArbitratorManager extends DisputeAgentManager<Arbitrator> {
 
     @Override
     protected List<String> getPubKeyList() {
-        return List.of("0365c6af94681dbee69de1851f98d4684063bf5c2d64b1c73ed5d90434f375a054",
-                "031c502a60f9dbdb5ae5e438a79819e4e1f417211dd537ac12c9bc23246534c4bd",
-                "02c1e5a242387b6d5319ce27246cea6edaaf51c3550591b528d2578a4753c56c2c",
-                "025c319faf7067d9299590dd6c97fe7e56cd4dac61205ccee1cd1fc390142390a2",
-                "038f6e24c2bfe5d51d0a290f20a9a657c270b94ef2b9c12cd15ca3725fa798fc55",
-                "0255256ff7fb615278c4544a9bbd3f5298b903b8a011cd7889be19b6b1c45cbefe",
-                "024a3a37289f08c910fbd925ebc72b946f33feaeff451a4738ee82037b4cda2e95",
-                "02a88b75e9f0f8afba1467ab26799dcc38fd7a6468fb2795444b425eb43e2c10bd",
-                "02349a51512c1c04c67118386f4d27d768c5195a83247c150a4b722d161722ba81",
-                "03f718a2e0dc672c7cdec0113e72c3322efc70412bb95870750d25c32cd98de17d",
-                "028ff47ee2c56e66313928975c58fa4f1b19a0f81f3a96c4e9c9c3c6768075509e",
-                "02b517c0cbc3a49548f448ddf004ed695c5a1c52ec110be1bfd65fa0ca0761c94b",
-                "03df837a3a0f3d858e82f3356b71d1285327f101f7c10b404abed2abc1c94e7169",
-                "0203a90fb2ab698e524a5286f317a183a84327b8f8c3f7fa4a98fec9e1cefd6b72",
-                "023c99cc073b851c892d8c43329ca3beb5d2213ee87111af49884e3ce66cbd5ba5");
+        return List.of("03bb559ce207a4deb51d4c705076c95b85ad8581d35936b2a422dcb504eaf7cdb0",
+                "026c581ad773d987e6bd10785ac7f7e0e64864aedeb8bce5af37046de812a37854",
+                "025b058c9f2c60d839669dbfa5578cf5a8117d60e6b70e2f0946f8a691273c6a36",
+                "036c7d3f4bf05ef39b9d1b0a5d453a18210de36220c3d83cd16e59bd6132b037ad",
+                "030f7122a10ff73cd73808bddace95be77a94189c8a0eb24586265e125ce5ce6b9",
+                "03aa23e062afa0dda465f46986f8aa8d0374ad3e3f256141b05681dcb1e39c3859",
+                "02d3beb1293ca2ca14e6d42ca8bd18089a62aac62fd6bb23923ee6ead46ac60fba",
+                "03fa0f38f27bdd324db6f933f7e57851dadf3b911e4db6b19dd0950492c4525a31",
+                "02a1a458df5acf4ab08fdca748e28f33a955a30854c8c1a831ee733dca7f0d2fcd",
+                "0374dd70f3fa6e47ec5ab97932e1cec6233e98e6ae3129036b17118650c44fd3de");
     }
 
     @Override
