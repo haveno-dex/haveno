@@ -18,14 +18,13 @@ package bisq.core.api;
 
 import bisq.core.user.Preferences;
 import bisq.core.xmr.MoneroNodeSettings;
-
+import bisq.common.config.BaseCurrencyNetwork;
 import bisq.common.config.Config;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
 import java.net.URI;
-import java.net.URISyntaxException;
 
 import java.io.File;
 import java.io.IOException;
@@ -35,7 +34,7 @@ import java.util.Arrays;
 import java.util.List;
 
 import lombok.extern.slf4j.Slf4j;
-
+import monero.common.MoneroError;
 import monero.daemon.MoneroDaemonRpc;
 
 /**
@@ -49,7 +48,7 @@ public class CoreMoneroNodeService {
     private static final String LOCALHOST = "localhost";
     private static final String MONERO_NETWORK_TYPE = Config.baseCurrencyNetwork().getNetwork().toLowerCase();
     private static final String MONEROD_PATH = System.getProperty("user.dir") + File.separator + ".localnet" + File.separator + "monerod";
-    private static final String MONEROD_DATADIR =  System.getProperty("user.dir") + File.separator + ".localnet" + File.separator + MONERO_NETWORK_TYPE;
+    private static final String MONEROD_DATADIR =  Config.baseCurrencyNetwork() == BaseCurrencyNetwork.XMR_LOCAL ? System.getProperty("user.dir") + File.separator + ".localnet" + File.separator + Config.baseCurrencyNetwork().toString().toLowerCase() + File.separator + "node1" : null;
 
     private final Preferences preferences;
     private final List<MoneroNodeServiceListener> listeners = new ArrayList<>();
@@ -59,8 +58,7 @@ public class CoreMoneroNodeService {
             MONEROD_PATH,
             "--" + MONERO_NETWORK_TYPE,
             "--no-igd",
-            "--hide-my-port",
-            "--rpc-login", "superuser:abctesting123" // TODO: remove authentication
+            "--hide-my-port"
     );
 
     // client to the local Monero node
@@ -69,21 +67,24 @@ public class CoreMoneroNodeService {
     @Inject
     public CoreMoneroNodeService(Preferences preferences) {
         this.preferences = preferences;
-        int rpcPort = 18081; // mainnet
-        if (Config.baseCurrencyNetwork().isTestnet()) {
-            rpcPort = 28081;
-        } else if (Config.baseCurrencyNetwork().isStagenet()) {
-            rpcPort = 38081;
-        }
-        this.daemon = new MoneroDaemonRpc("http://" + LOOPBACK_HOST + ":" + rpcPort, "superuser", "abctesting123"); // TODO: remove authentication
+        Integer rpcPort = null;
+        if (Config.baseCurrencyNetwork().isMainnet()) rpcPort = 18081;
+        else if (Config.baseCurrencyNetwork().isTestnet()) rpcPort = 28081;
+        else if (Config.baseCurrencyNetwork().isStagenet()) rpcPort = 38081;
+        else throw new RuntimeException("Base network is not testnet, stagenet, or mainnet");
+        this.daemon = new MoneroDaemonRpc("http://" + LOOPBACK_HOST + ":" + rpcPort);
     }
 
     /**
      * Returns whether the given URI is on local host. // TODO: move to utils
      */
-    public static boolean isLocalHost(String uri) throws URISyntaxException {
-        String host = new URI(uri).getHost();
-        return host.equals(CoreMoneroNodeService.LOOPBACK_HOST) || host.equals(CoreMoneroNodeService.LOCALHOST);
+    public static boolean isLocalHost(String uri) {
+        try {
+            String host = new URI(uri).getHost();
+            return host.equals(CoreMoneroNodeService.LOOPBACK_HOST) || host.equals(CoreMoneroNodeService.LOCALHOST);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 
     public void addListener(MoneroNodeServiceListener listener) {
@@ -105,7 +106,13 @@ public class CoreMoneroNodeService {
      * Returns whether a local monero node is running.
      */
     public boolean isMoneroNodeRunning() {
-        return daemon.isConnected();
+        //return daemon.isConnected(); // TODO: daemonRpc.isConnected() should use getVersion() instead of getHeight() which throws when unsynced
+        try {
+            daemon.getVersion();
+            return true;
+          } catch (MoneroError e) {
+            return false;
+          }
     }
 
     public MoneroNodeSettings getMoneroNodeSettings() {
@@ -135,7 +142,7 @@ public class CoreMoneroNodeService {
         if (dataDir == null || dataDir.isEmpty()) {
             dataDir = MONEROD_DATADIR;
         }
-        args.add("--data-dir=" + dataDir);
+        if (dataDir != null) args.add("--data-dir=" + dataDir);
 
         var bootstrapUrl = settings.getBootstrapUrl();
         if (bootstrapUrl != null && !bootstrapUrl.isEmpty()) {

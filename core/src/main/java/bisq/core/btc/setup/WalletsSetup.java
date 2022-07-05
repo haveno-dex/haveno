@@ -196,31 +196,11 @@ public class WalletsSetup {
                 //We are here in the btcj thread Thread[ STARTING,5,main]
                 super.onSetupCompleted();
 
-                final PeerGroup peerGroup = walletConfig.peerGroup();
-
-                // We don't want to get our node white list polluted with nodes from AddressMessage calls.
-                if (preferences.getBitcoinNodes() != null && !preferences.getBitcoinNodes().isEmpty())
-                    peerGroup.setAddPeersFromAddressMessage(false);
-
-                // Need to be Threading.SAME_THREAD executor otherwise BitcoinJ will skip that listener
-                peerGroup.addPreMessageReceivedEventListener(Threading.SAME_THREAD, (peer, message) -> {
-                    if (message instanceof RejectMessage) {
-                        UserThread.execute(() -> {
-                            RejectMessage rejectMessage = (RejectMessage) message;
-                            String msg = rejectMessage.toString();
-                            log.warn(msg);
-                            exceptionHandler.handleException(new RejectedTxException(msg, rejectMessage));
-                        });
-                    }
-                    return message;
-                });
-
                 // run external startup handlers
                 setupTaskHandlers.forEach(Runnable::run);
 
                 // Map to user thread
                 UserThread.execute(() -> {
-                    addressEntryList.onWalletReady(walletConfig.btcWallet());
                     timeoutTimer.stop();
                     setupCompletedHandlers.forEach(Runnable::run);
                 });

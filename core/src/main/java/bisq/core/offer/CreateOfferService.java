@@ -18,8 +18,8 @@
 package bisq.core.offer;
 
 import bisq.core.btc.TxFeeEstimationService;
-import bisq.core.btc.wallet.BtcWalletService;
 import bisq.core.btc.wallet.Restrictions;
+import bisq.core.btc.wallet.XmrWalletService;
 import bisq.core.locale.CurrencyUtil;
 import bisq.core.locale.Res;
 import bisq.core.monetary.Price;
@@ -69,7 +69,7 @@ public class CreateOfferService {
     private final P2PService p2PService;
     private final PubKeyRingProvider pubKeyRingProvider;
     private final User user;
-    private final BtcWalletService btcWalletService;
+    private final XmrWalletService xmrWalletService;
     private final TradeStatisticsManager tradeStatisticsManager;
     private final ArbitratorManager arbitratorManager;
 
@@ -85,7 +85,7 @@ public class CreateOfferService {
                               P2PService p2PService,
                               PubKeyRingProvider pubKeyRingProvider,
                               User user,
-                              BtcWalletService btcWalletService,
+                              XmrWalletService xmrWalletService,
                               TradeStatisticsManager tradeStatisticsManager,
                               ArbitratorManager arbitratorManager) {
         this.offerUtil = offerUtil;
@@ -94,7 +94,7 @@ public class CreateOfferService {
         this.p2PService = p2PService;
         this.pubKeyRingProvider = pubKeyRingProvider;
         this.user = user;
-        this.btcWalletService = btcWalletService;
+        this.xmrWalletService = xmrWalletService;
         this.tradeStatisticsManager = tradeStatisticsManager;
         this.arbitratorManager = arbitratorManager;
     }
@@ -167,8 +167,6 @@ public class CreateOfferService {
         String bankId = PaymentAccountUtil.getBankId(paymentAccount);
         List<String> acceptedBanks = PaymentAccountUtil.getAcceptedBanks(paymentAccount);
         double sellerSecurityDeposit = getSellerSecurityDepositAsDouble(buyerSecurityDepositAsDouble);
-        Coin txFeeFromFeeService = getEstimatedFeeAndTxVsize(amount, direction, buyerSecurityDepositAsDouble, sellerSecurityDeposit).first;
-        Coin txFeeToUse = txFee.isPositive() ? txFee : txFeeFromFeeService;
         Coin makerFeeAsCoin = offerUtil.getMakerFee(amount);
         Coin buyerSecurityDepositAsCoin = getBuyerSecurityDeposit(amount, buyerSecurityDepositAsDouble);
         Coin sellerSecurityDepositAsCoin = getSellerSecurityDeposit(amount, sellerSecurityDeposit);
@@ -195,6 +193,7 @@ public class CreateOfferService {
 
         // select signing arbitrator
         Arbitrator arbitrator = DisputeAgentSelection.getLeastUsedArbitrator(tradeStatisticsManager, arbitratorManager);
+        if (arbitrator == null) throw new RuntimeException("No arbitrators available");
 
         OfferPayload offerPayload = new OfferPayload(offerId,
                 creationTime,
@@ -216,8 +215,8 @@ public class CreateOfferService {
                 bankId,
                 acceptedBanks,
                 Version.VERSION,
-                btcWalletService.getLastBlockSeenHeight(), // TODO (woodser): switch to XMR
-                txFeeToUse.value,
+                xmrWalletService.getWallet().getHeight(),
+                0, // todo: remove txFeeToUse from data model
                 makerFeeAsCoin.value,
                 buyerSecurityDepositAsCoin.value,
                 sellerSecurityDepositAsCoin.value,

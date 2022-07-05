@@ -24,7 +24,6 @@ import bisq.desktop.main.overlays.popups.Popup;
 import bisq.desktop.util.GUIUtil;
 
 import bisq.core.account.witness.AccountAgeWitnessService;
-import bisq.core.btc.TxFeeEstimationService;
 import bisq.core.btc.listeners.XmrBalanceListener;
 import bisq.core.btc.model.XmrAddressEntry;
 import bisq.core.btc.wallet.Restrictions;
@@ -36,7 +35,6 @@ import bisq.core.monetary.Price;
 import bisq.core.monetary.Volume;
 import bisq.core.offer.Offer;
 import bisq.core.offer.OfferDirection;
-import bisq.core.offer.OfferPayload;
 import bisq.core.offer.OfferUtil;
 import bisq.core.payment.PaymentAccount;
 import bisq.core.payment.PaymentAccountUtil;
@@ -52,7 +50,6 @@ import bisq.core.util.VolumeUtil;
 import bisq.core.util.coin.CoinUtil;
 
 import bisq.network.p2p.P2PService;
-import bisq.common.util.Tuple2;
 
 import org.bitcoinj.core.Coin;
 
@@ -93,7 +90,6 @@ class TakeOfferDataModel extends OfferDataModel {
     private final MempoolService mempoolService;
     private final FilterManager filterManager;
     final Preferences preferences;
-    private final TxFeeEstimationService txFeeEstimationService;
     private final PriceFeedService priceFeedService;
     private final AccountAgeWitnessService accountAgeWitnessService;
     private final Navigation navigation;
@@ -138,7 +134,6 @@ class TakeOfferDataModel extends OfferDataModel {
                        MempoolService mempoolService,
                        FilterManager filterManager,
                        Preferences preferences,
-                       TxFeeEstimationService txFeeEstimationService,
                        PriceFeedService priceFeedService,
                        AccountAgeWitnessService accountAgeWitnessService,
                        Navigation navigation,
@@ -153,7 +148,6 @@ class TakeOfferDataModel extends OfferDataModel {
         this.mempoolService = mempoolService;
         this.filterManager = filterManager;
         this.preferences = preferences;
-        this.txFeeEstimationService = txFeeEstimationService;
         this.priceFeedService = priceFeedService;
         this.accountAgeWitnessService = accountAgeWitnessService;
         this.navigation = navigation;
@@ -277,7 +271,6 @@ class TakeOfferDataModel extends OfferDataModel {
 
     // We don't want that the fee gets updated anymore after we show the funding screen.
     void onShowPayFundsScreen() {
-        estimateTxVsize();
         freezeFee = true;
         calculateTotalToPay();
     }
@@ -344,50 +337,6 @@ class TakeOfferDataModel extends OfferDataModel {
                         new Popup().warning(errorMessage).show();
                     }
             );
-        }
-    }
-
-    // This works only if have already funds in the wallet
-    // TODO: There still are issues if we get funded by very small inputs which are causing higher tx fees and the
-    // changed total required amount is not updated. That will cause a InsufficientMoneyException and the user need to
-    // start over again. To reproduce keep adding 0.002 BTC amounts while in the funding screen.
-    // It would require a listener on changed balance and a new fee estimation with a correct recalculation of the required funds.
-    // Another edge case not handled correctly is: If there are many small inputs and user add a large input later the
-    // fee estimation is based on the large tx with many inputs but the actual tx will get created with the large input, thus
-    // leading to a smaller tx and too high fees. Simply updating the fee estimation would lead to changed required funds
-    // and if funds get higher (if tx get larger) the user would get confused (adding small inputs would increase total required funds).
-    // So that would require more thoughts how to deal with all those cases.
-    public void estimateTxVsize() {
-        int txVsize = 0;
-        if (xmrWalletService.getWallet().getUnlockedBalance(0).compareTo(new BigInteger("0")) > 0) {
-            Coin fundsNeededForTrade = getFundsNeededForTrade();
-            if (isBuyOffer())
-                fundsNeededForTrade = fundsNeededForTrade.add(amount.get());
-
-            // As taker we pay 3 times the fee and currently the fee is the same for all 3 txs (trade fee tx, deposit
-            // tx and payout tx).
-            // We should try to change that in future to have the deposit and payout tx with a fixed fee as the vsize is
-            // there more deterministic.
-            // The trade fee tx can be in the worst case very large if there are many inputs so if we take that tx alone
-            // for the fee estimation we would overpay a lot.
-            // On the other side if we have the best case of a 1 input tx fee tx then it is only 175 vbytes but the
-            // other 2 txs are different (233 and 169 vbytes) and may get a lower fee/vbyte as intended.
-            // We apply following model to not overpay too much but be on the safe side as well.
-            // We sum the taker fee tx and the deposit tx together as it can be assumed that both be in the same block and
-            // as they are dependent txs the miner will pick both if the fee in total is good enough.
-            // We make sure that the fee is sufficient to meet our intended fee/vbyte for the larger deposit tx with 233 vbytes.
-            Tuple2<Coin, Integer> estimatedFeeAndTxVsize = txFeeEstimationService.getEstimatedFeeAndTxVsizeForTaker(fundsNeededForTrade,
-                    getTakerFee());
-            txFeeFromFeeService = estimatedFeeAndTxVsize.first;
-            feeTxVsize = estimatedFeeAndTxVsize.second;
-        } else {
-            feeTxVsize = 233;
-            txFeeFromFeeService = txFeePerVbyteFromFeeService.multiply(feeTxVsize);
-            log.info("We cannot do the fee estimation because there are no funds in the wallet.\nThis is expected " +
-                            "if the user has not funded their wallet yet.\n" +
-                            "In that case we use an estimated tx vsize of 233 vbytes.\n" +
-                            "txFee based on estimated vsize of {} vbytes. feeTxVsize = {} vbytes. Actual tx vsize = {} vbytes. TxFee is {} ({} sat/vbyte)",
-                    feeTxVsize, feeTxVsize, txVsize, txFeeFromFeeService.toFriendlyString(), feeService.getTxFeePerVbyte());
         }
     }
 

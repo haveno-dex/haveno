@@ -24,7 +24,6 @@ import bisq.core.btc.wallet.TradeWalletService;
 import bisq.core.btc.wallet.XmrWalletService;
 import bisq.core.exceptions.TradePriceOutOfToleranceException;
 import bisq.core.filter.FilterManager;
-import bisq.core.locale.Res;
 import bisq.core.offer.availability.DisputeAgentSelection;
 import bisq.core.offer.messages.OfferAvailabilityRequest;
 import bisq.core.offer.messages.OfferAvailabilityResponse;
@@ -72,7 +71,6 @@ import bisq.common.persistence.PersistenceManager;
 import bisq.common.proto.network.NetworkEnvelope;
 import bisq.common.proto.persistable.PersistedDataHost;
 import bisq.common.util.Tuple2;
-import bisq.common.util.Utilities;
 import org.bitcoinj.core.Coin;
 
 import javax.inject.Inject;
@@ -1004,12 +1002,6 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                 availabilityResult = AvailabilityResult.OFFER_TAKEN;
             }
 
-            if (btcWalletService.isUnconfirmedTransactionsLimitHit()) {
-                errorMessage = Res.get("shared.unconfirmedTransactionsLimitReached");
-                log.warn(errorMessage);
-                availabilityResult = AvailabilityResult.UNCONF_TX_LIMIT_HIT;
-            }
-            
             OfferAvailabilityResponse offerAvailabilityResponse = new OfferAvailabilityResponse(request.offerId,
                     availabilityResult,
                     makerSignature,

@@ -91,7 +91,7 @@ public abstract class Metric extends Configurable implements Runnable {
             super.configure(properties);
             reporter.configure(properties);
 
-            Version.setBaseCryptoNetworkId(Integer.parseInt(properties.getProperty("System." + BASE_CURRENCY_NETWORK, "1"))); // defaults to XMR_TESTNET
+            Version.setBaseCryptoNetworkId(Integer.parseInt(properties.getProperty("System." + BASE_CURRENCY_NETWORK, "1"))); // defaults to XMR_LOCAL
 
             // decide whether to enable or disable the task
             if (configuration.isEmpty() || !configuration.getProperty("enabled", "false").equals("true")

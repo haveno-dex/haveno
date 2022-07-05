@@ -24,7 +24,6 @@ import bisq.network.p2p.NodeAddress;
 import bisq.common.crypto.PubKeyRing;
 import bisq.common.proto.ProtoUtil;
 import bisq.common.util.CollectionUtils;
-import bisq.common.util.Utilities;
 
 import com.google.protobuf.ByteString;
 
@@ -43,12 +42,10 @@ import javax.annotation.Nullable;
 @Slf4j
 @Getter
 public final class Arbitrator extends DisputeAgent {
-    private final byte[] btcPubKey;
-    private final String btcAddress;
+    private final String xmrAddress;
 
     public Arbitrator(NodeAddress nodeAddress,
-                      byte[] btcPubKey,
-                      String btcAddress,
+                      String xmrAddress,
                       PubKeyRing pubKeyRing,
                       List<String> languageCodes,
                       long registrationDate,
@@ -68,8 +65,7 @@ public final class Arbitrator extends DisputeAgent {
                 info,
                 extraDataMap);
 
-        this.btcPubKey = btcPubKey;
-        this.btcAddress = btcAddress;
+        this.xmrAddress = xmrAddress;
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -80,8 +76,7 @@ public final class Arbitrator extends DisputeAgent {
     public protobuf.StoragePayload toProtoMessage() {
         protobuf.Arbitrator.Builder builder = protobuf.Arbitrator.newBuilder()
                 .setNodeAddress(nodeAddress.toProtoMessage())
-                .setBtcPubKey(ByteString.copyFrom(btcPubKey))
-                .setBtcAddress(btcAddress)
+                .setXmrAddress(xmrAddress)
                 .setPubKeyRing(pubKeyRing.toProtoMessage())
                 .addAllLanguageCodes(languageCodes)
                 .setRegistrationDate(registrationDate)
@@ -95,8 +90,7 @@ public final class Arbitrator extends DisputeAgent {
 
     public static Arbitrator fromProto(protobuf.Arbitrator proto) {
         return new Arbitrator(NodeAddress.fromProto(proto.getNodeAddress()),
-                proto.getBtcPubKey().toByteArray(),
-                proto.getBtcAddress(),
+                proto.getXmrAddress(),
                 PubKeyRing.fromProto(proto.getPubKeyRing()),
                 new ArrayList<>(proto.getLanguageCodesList()),
                 proto.getRegistrationDate(),
@@ -115,8 +109,7 @@ public final class Arbitrator extends DisputeAgent {
     @Override
     public String toString() {
         return "Arbitrator{" +
-                "\n     btcPubKey=" + Utilities.bytesAsHexString(btcPubKey) +
-                ",\n     btcAddress='" + btcAddress + '\'' +
+                ",\n     xmrAddress='" + xmrAddress + '\'' +
                 "\n} " + super.toString();
     }
 }

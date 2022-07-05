@@ -362,9 +362,6 @@ public abstract class Trade implements Tradable, Model {
     @Setter
     private NodeAddress arbitratorNodeAddress;
     @Nullable
-    @Setter
-    private byte[] arbitratorBtcPubKey;
-    @Nullable
     @Getter
     @Setter
     private PubKeyRing arbitratorPubKeyRing;
@@ -603,7 +600,6 @@ public abstract class Trade implements Tradable, Model {
         Optional.ofNullable(contractHash).ifPresent(e -> builder.setContractHash(ByteString.copyFrom(contractHash)));
         Optional.ofNullable(arbitratorNodeAddress).ifPresent(e -> builder.setArbitratorNodeAddress(arbitratorNodeAddress.toProtoMessage()));
         Optional.ofNullable(refundAgentNodeAddress).ifPresent(e -> builder.setRefundAgentNodeAddress(refundAgentNodeAddress.toProtoMessage()));
-        Optional.ofNullable(arbitratorBtcPubKey).ifPresent(e -> builder.setArbitratorBtcPubKey(ByteString.copyFrom(arbitratorBtcPubKey)));
         Optional.ofNullable(takerPaymentAccountId).ifPresent(builder::setTakerPaymentAccountId);
         Optional.ofNullable(errorMessage).ifPresent(builder::setErrorMessage);
         Optional.ofNullable(arbitratorPubKeyRing).ifPresent(e -> builder.setArbitratorPubKeyRing(arbitratorPubKeyRing.toProtoMessage()));
@@ -633,7 +629,6 @@ public abstract class Trade implements Tradable, Model {
         trade.setContractHash(ProtoUtil.byteArrayOrNullFromProto(proto.getContractHash()));
         trade.setArbitratorNodeAddress(proto.hasArbitratorNodeAddress() ? NodeAddress.fromProto(proto.getArbitratorNodeAddress()) : null);
         trade.setRefundAgentNodeAddress(proto.hasRefundAgentNodeAddress() ? NodeAddress.fromProto(proto.getRefundAgentNodeAddress()) : null);
-        trade.setArbitratorBtcPubKey(ProtoUtil.byteArrayOrNullFromProto(proto.getArbitratorBtcPubKey()));
         trade.setTakerPaymentAccountId(ProtoUtil.stringOrNullFromProto(proto.getTakerPaymentAccountId()));
         trade.setErrorMessage(ProtoUtil.stringOrNullFromProto(proto.getErrorMessage()));
         trade.setArbitratorPubKeyRing(proto.hasArbitratorPubKeyRing() ? PubKeyRing.fromProto(proto.getArbitratorPubKeyRing()) : null);
@@ -670,7 +665,6 @@ public abstract class Trade implements Tradable, Model {
 
     public void initialize(ProcessModelServiceProvider serviceProvider) {
         serviceProvider.getArbitratorManager().getDisputeAgentByNodeAddress(arbitratorNodeAddress).ifPresent(arbitrator -> {
-            arbitratorBtcPubKey = arbitrator.getBtcPubKey();
             arbitratorPubKeyRing = arbitrator.getPubKeyRing();
         });
 
@@ -1439,19 +1433,6 @@ public abstract class Trade implements Tradable, Model {
                 getDelayedPayoutTxBytes() == null;
     }
 
-    public byte[] getArbitratorBtcPubKey() {
-        // In case we are already in a trade the arbitrator can have been revoked and we still can complete the trade
-        // Only new trades cannot start without any arbitrator
-        if (arbitratorBtcPubKey == null) {
-            Arbitrator arbitrator = processModel.getUser().getAcceptedArbitratorByAddress(arbitratorNodeAddress);
-            checkNotNull(arbitrator, "arbitrator must not be null");
-            arbitratorBtcPubKey = arbitrator.getBtcPubKey();
-        }
-
-        checkNotNull(arbitratorBtcPubKey, "ArbitratorPubKey must not be null");
-        return arbitratorBtcPubKey;
-    }
-
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Private
@@ -1526,7 +1507,6 @@ public abstract class Trade implements Tradable, Model {
                 ",\n     contract=" + contract +
                 ",\n     contractAsJson='" + contractAsJson + '\'' +
                 ",\n     contractHash=" + Utilities.bytesAsHexString(contractHash) +
-                ",\n     arbitratorBtcPubKey=" + Utilities.bytesAsHexString(arbitratorBtcPubKey) +
                 ",\n     takerPaymentAccountId='" + takerPaymentAccountId + '\'' +
                 ",\n     errorMessage='" + errorMessage + '\'' +
                 ",\n     counterCurrencyTxId='" + counterCurrencyTxId + '\'' +

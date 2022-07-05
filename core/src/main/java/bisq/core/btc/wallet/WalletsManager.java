@@ -44,6 +44,7 @@ public class WalletsManager {
     private static final Logger log = LoggerFactory.getLogger(WalletsManager.class);
 
     private final BtcWalletService btcWalletService;
+    private final XmrWalletService xmrWalletService;
     private final TradeWalletService tradeWalletService;
     private final WalletsSetup walletsSetup;
 
@@ -53,9 +54,11 @@ public class WalletsManager {
 
     @Inject
     public WalletsManager(BtcWalletService btcWalletService,
+                          XmrWalletService xmrWalletService,
                           TradeWalletService tradeWalletService,
                           WalletsSetup walletsSetup) {
         this.btcWalletService = btcWalletService;
+        this.xmrWalletService = xmrWalletService;
         this.tradeWalletService = tradeWalletService;
         this.walletsSetup = walletsSetup;
     }
@@ -96,12 +99,11 @@ public class WalletsManager {
     }
 
     public boolean areWalletsEncrypted() {
-        return areWalletsAvailable() &&
-                btcWalletService.isEncrypted();
+        return xmrWalletService.isWalletEncrypted();
     }
 
     public boolean areWalletsAvailable() {
-        return btcWalletService.isWalletReady();
+        return xmrWalletService.isWalletReady();
     }
 
     public KeyCrypterScrypt getKeyCrypterScrypt() {

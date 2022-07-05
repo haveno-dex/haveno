@@ -160,11 +160,13 @@ public abstract class WalletService {
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     protected void addListenersToWallet() {
-        wallet.addCoinsReceivedEventListener(walletEventListener);
-        wallet.addCoinsSentEventListener(walletEventListener);
-        wallet.addReorganizeEventListener(walletEventListener);
-        wallet.addTransactionConfidenceEventListener(walletEventListener);
-        wallet.addChangeEventListener(Threading.SAME_THREAD, cacheInvalidationListener);
+        if (wallet != null) {
+            wallet.addCoinsReceivedEventListener(walletEventListener);
+            wallet.addCoinsSentEventListener(walletEventListener);
+            wallet.addReorganizeEventListener(walletEventListener);
+            wallet.addTransactionConfidenceEventListener(walletEventListener);
+            wallet.addChangeEventListener(Threading.SAME_THREAD, cacheInvalidationListener);
+        }
     }
 
     public void shutDown() {

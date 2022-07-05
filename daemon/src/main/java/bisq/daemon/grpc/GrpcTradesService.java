@@ -136,6 +136,7 @@ class GrpcTradesService extends TradesImplBase {
                             errorMessageHandler.handleErrorMessage(errorMessage);
                     });
         } catch (Throwable cause) {
+            cause.printStackTrace();
             exceptionHandler.handleException(log, cause, responseObserver);
         }
     }

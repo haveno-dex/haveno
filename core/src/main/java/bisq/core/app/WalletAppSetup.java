@@ -174,7 +174,7 @@ public class WalletAppSetup {
                     return result;
 
                 });
-        btcInfoBinding.subscribe((observable, oldValue, newValue) -> getBtcInfo().set(newValue));
+        btcInfoBinding.subscribe((observable, oldValue, newValue) -> UserThread.execute(() -> btcInfo.set(newValue)));
 
         walletsSetup.initialize(null,
                 () -> {

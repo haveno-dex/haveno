@@ -52,7 +52,6 @@ import bisq.core.util.coin.CoinUtil;
 import bisq.network.p2p.P2PService;
 
 import bisq.common.util.MathUtils;
-import bisq.common.util.Tuple2;
 import bisq.common.util.Utilities;
 
 import org.bitcoinj.core.Coin;
@@ -263,9 +262,6 @@ public abstract class MutableOfferDataModel extends OfferDataModel {
 
         priceFeedService.setCurrencyCode(tradeCurrencyCode.get());
 
-        // We request to get the actual estimated fee
-        requestTxFee(null);
-
         // Set the default values (in rare cases if the fee request was not done yet we get the hard coded default values)
         // But offer creation happens usually after that so we should have already the value from the estimation service.
         txFeeFromFeeService = feeService.getTxFee(feeTxVsize);
@@ -315,16 +311,6 @@ public abstract class MutableOfferDataModel extends OfferDataModel {
                 marketPriceMargin,
                 buyerSecurityDeposit.get(),
                 paymentAccount);
-    }
-
-    // This works only if we have already funds in the wallet
-    public void updateEstimatedFeeAndTxVsize() {
-        Tuple2<Coin, Integer> estimatedFeeAndTxVsize = createOfferService.getEstimatedFeeAndTxVsize(amount.get(),
-                direction,
-                buyerSecurityDeposit.get(),
-                createOfferService.getSellerSecurityDepositAsDouble(buyerSecurityDeposit.get()));
-        txFeeFromFeeService = estimatedFeeAndTxVsize.first;
-        feeTxVsize = estimatedFeeAndTxVsize.second;
     }
 
     void onPlaceOffer(Offer offer, TransactionResultHandler resultHandler) {
@@ -437,15 +423,6 @@ public abstract class MutableOfferDataModel extends OfferDataModel {
 
     protected void setMarketPriceMarginPct(double marketPriceMargin) {
         this.marketPriceMargin = marketPriceMargin;
-    }
-
-    void requestTxFee(@Nullable Runnable actionHandler) {
-        feeService.requestFees(() -> {
-            txFeeFromFeeService = feeService.getTxFee(feeTxVsize);
-            calculateTotalToPay();
-            if (actionHandler != null)
-                actionHandler.run();
-        });
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////

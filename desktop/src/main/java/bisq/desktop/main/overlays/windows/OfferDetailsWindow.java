@@ -20,22 +20,16 @@ package bisq.desktop.main.overlays.windows;
 import bisq.desktop.Navigation;
 import bisq.desktop.components.AutoTooltipButton;
 import bisq.desktop.components.BusyAnimation;
-import bisq.desktop.components.TitledGroupBg;
-import bisq.desktop.components.TxIdTextField;
 import bisq.desktop.main.overlays.Overlay;
 import bisq.desktop.util.DisplayUtils;
 import bisq.desktop.util.GUIUtil;
 import bisq.desktop.util.Layout;
 
-import bisq.core.btc.wallet.BtcWalletService;
-import bisq.core.locale.BankUtil;
 import bisq.core.locale.CountryUtil;
 import bisq.core.locale.Res;
 import bisq.core.monetary.Price;
 import bisq.core.offer.Offer;
 import bisq.core.offer.OfferDirection;
-import bisq.core.offer.OfferPayload;
-import bisq.core.offer.OfferUtil;
 import bisq.core.payment.PaymentAccount;
 import bisq.core.payment.payload.PaymentMethod;
 import bisq.core.user.User;
@@ -80,7 +74,6 @@ public class OfferDetailsWindow extends Overlay<OfferDetailsWindow> {
     private final User user;
     private final KeyRing keyRing;
     private final Navigation navigation;
-    private final BtcWalletService btcWalletService;
     private Offer offer;
     private Coin tradeAmount;
     private Price tradePrice;
@@ -97,13 +90,11 @@ public class OfferDetailsWindow extends Overlay<OfferDetailsWindow> {
     public OfferDetailsWindow(@Named(FormattingUtils.BTC_FORMATTER_KEY) CoinFormatter formatter,
                               User user,
                               KeyRing keyRing,
-                              Navigation navigation,
-                              BtcWalletService btcWalletService) {
+                              Navigation navigation) {
         this.formatter = formatter;
         this.user = user;
         this.keyRing = keyRing;
         this.navigation = navigation;
-        this.btcWalletService = btcWalletService;
         type = Type.Confirmation;
     }
 
@@ -321,7 +312,6 @@ public class OfferDetailsWindow extends Overlay<OfferDetailsWindow> {
             rows++;
         }
 
-        TitledGroupBg titledGroupBg = addTitledGroupBg(gridPane, ++rowIndex, rows, Res.get("shared.details"), Layout.GROUP_DISTANCE);
         addConfirmationLabelTextFieldWithCopyIcon(gridPane, rowIndex, Res.get("shared.offerId"), offer.getId(),
                 Layout.TWICE_FIRST_ROW_AND_GROUP_DISTANCE);
         addConfirmationLabelTextFieldWithCopyIcon(gridPane, ++rowIndex, Res.get("offerDetailsWindow.makersOnion"),
@@ -336,21 +326,6 @@ public class OfferDetailsWindow extends Overlay<OfferDetailsWindow> {
                 " " +
                 formatter.formatCoinWithCode(offer.getSellerSecurityDeposit());
         addConfirmationLabelLabel(gridPane, ++rowIndex, Res.get("shared.securityDeposit"), value);
-
-        // At create offer we do not show the makerFeeTxId
-        if (!placeOfferHandlerOptional.isPresent()) {
-            TxIdTextField makerFeeTxIdTextField = addLabelTxIdTextField(gridPane, ++rowIndex,
-                    Res.get("shared.makerFeeTxId"), offer.getOfferFeePaymentTxId()).second;
-
-            int finalRows = rows;
-            OfferUtil.getInvalidMakerFeeTxErrorMessage(offer, btcWalletService)
-                    .ifPresent(errorMsg -> {
-                        makerFeeTxIdTextField.getTextField().setId("address-text-field-error");
-                        GridPane.setRowSpan(titledGroupBg, finalRows + 1);
-                        addConfirmationLabelLabel(gridPane, ++rowIndex, Res.get("shared.errorMessage"),
-                                errorMsg.replace("\n\n", "\n"));
-                    });
-        }
 
         if (countryCode != null && !isF2F)
             addConfirmationLabelLabel(gridPane, ++rowIndex, Res.get("offerDetailsWindow.countryBank"),

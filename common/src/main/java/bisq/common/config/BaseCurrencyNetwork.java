@@ -20,15 +20,14 @@ package bisq.common.config;
 import org.bitcoinj.core.NetworkParameters;
 import org.bitcoinj.params.MainNetParams;
 import org.bitcoinj.params.RegTestParams;
-import org.bitcoinj.params.TestNet3Params;
 import org.bitcoinj.utils.MonetaryFormat;
 
 import lombok.Getter;
 
 public enum BaseCurrencyNetwork {
     XMR_MAINNET(new XmrMainNetParams(), "XMR", "MAINNET", "Monero"), // TODO (woodser): network params are part of bitcoinj and shouldn't be needed. only used to get MonetaryFormat? replace with MonetaryFormat if so
-    XMR_TESTNET(new XmrTestNet3Params(), "XMR", "TESTNET", "Monero"),
-    XMR_STAGENET(new XmrRegTestParams(), "XMR", "STAGENET", "Monero");
+    XMR_STAGENET(new XmrStageNetParams(), "XMR", "STAGENET", "Monero"),
+    XMR_LOCAL(new XmrTestNetParams(), "XMR", "TESTNET", "Monero");
 
     @Getter
     private final NetworkParameters parameters;
@@ -51,7 +50,7 @@ public enum BaseCurrencyNetwork {
     }
 
     public boolean isTestnet() {
-        return "XMR_TESTNET".equals(name());
+        return "XMR_LOCAL".equals(name());
     }
 
     public boolean isStagenet() {
@@ -71,14 +70,14 @@ public enum BaseCurrencyNetwork {
         }
     }
 
-    private static class XmrTestNet3Params extends TestNet3Params {
+    private static class XmrTestNetParams extends RegTestParams {
         @Override
         public MonetaryFormat getMonetaryFormat() {
             return XMR_MONETARY_FORMAT;
         }
     }
 
-    private static class XmrRegTestParams extends RegTestParams {
+    private static class XmrStageNetParams extends RegTestParams {
         @Override
         public MonetaryFormat getMonetaryFormat() {
             return XMR_MONETARY_FORMAT;

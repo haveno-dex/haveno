@@ -17,11 +17,11 @@
 
 package bisq.core.trade;
 
+import bisq.common.config.Config;
 import bisq.common.crypto.KeyRing;
 import bisq.common.crypto.PubKeyRing;
 import bisq.common.crypto.Sig;
 import bisq.common.util.Tuple2;
-import bisq.common.util.Utilities;
 import bisq.core.btc.wallet.XmrWalletService;
 import bisq.core.offer.OfferPayload;
 import bisq.core.support.dispute.arbitration.arbitrator.Arbitrator;
@@ -32,15 +32,28 @@ import java.util.concurrent.CountDownLatch;
 
 /**
  * Collection of utilities for trading.
- * 
- * TODO (woodser): combine with TradeUtil.java ?
  */
 public class TradeUtils {
     
     /**
-     * Address to collect Haveno trade fees. TODO (woodser): move to config constants
+     * Get address to collect trade fees.
+     * 
+     * TODO: move to config constants?
+     * 
+     * @return the address which collects trade fees
      */
-    public static String FEE_ADDRESS = "52FnB7ABUrKJzVQRpbMNrqDFWbcKLjFUq8Rgek7jZEuB6WE2ZggXaTf4FK6H8gQymvSrruHHrEuKhMN3qTMiBYzREKsmRKM";
+    public static String getTradeFeeAddress() {
+        switch (Config.baseCurrencyNetwork()) {
+        case XMR_LOCAL:
+            return "Bd37nTGHjL3RvPxc9dypzpWiXQrPzxxG4RsWAasD9CV2iZ1xfFZ7mzTKNDxWBfsqQSUimctAsGtTZ8c8bZJy35BYL9jYj88";
+        case XMR_STAGENET:
+            return "52FnB7ABUrKJzVQRpbMNrqDFWbcKLjFUq8Rgek7jZEuB6WE2ZggXaTf4FK6H8gQymvSrruHHrEuKhMN3qTMiBYzREKsmRKM";
+        case XMR_MAINNET:
+            throw new RuntimeException("Mainnet fee address not implemented");
+        default:
+            throw new RuntimeException("Unhandled base currency network: " + Config.baseCurrencyNetwork());
+        }
+    }
     
     /**
      * Check if the arbitrator signature for an offer is valid.

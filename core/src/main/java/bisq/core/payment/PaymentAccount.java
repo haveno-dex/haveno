@@ -568,10 +568,10 @@ public abstract class PaymentAccount implements PersistablePayload {
             throw new IllegalArgumentException("Not implemented");
         case CITY:
             field.setComponent(PaymentAccountFormField.Component.TEXT);
-            field.setLabel(Res.get("Contact"));
+            field.setLabel("City");
         case CONTACT:
             field.setComponent(PaymentAccountFormField.Component.TEXT);
-            field.setLabel("City");
+            field.setLabel("Contact info");
         case COUNTRY:
             field.setComponent(PaymentAccountFormField.Component.SELECT_ONE);
             field.setLabel("Country");

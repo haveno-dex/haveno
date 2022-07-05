@@ -500,7 +500,7 @@ class CoreWalletsService {
 
     // Throws a RuntimeException if wallets are encrypted and locked.
     void verifyEncryptedWalletIsUnlocked() {
-        if (walletsManager.areWalletsEncrypted() && tempAesKey == null)
+        if (walletsManager.areWalletsEncrypted() && !accountService.isAccountOpen())
             throw new IllegalStateException("wallet is locked");
     }
 

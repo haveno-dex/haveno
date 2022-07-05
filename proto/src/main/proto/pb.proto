@@ -703,11 +703,10 @@ message Arbitrator {
     string registration_signature = 4;
     bytes registration_pub_key = 5;
     PubKeyRing pub_key_ring = 6;
-    bytes btc_pub_key = 7;
-    string btc_address = 8;
-    string email_address = 9;
-    string info = 10;
-    map<string, string> extra_data = 11;
+    string xmr_address = 7;
+    string email_address = 8;
+    string info = 9;
+    map<string, string> extra_data = 10;
 }
 
 message Mediator {

@@ -18,44 +18,29 @@
 package bisq.core.btc.setup;
 
 import bisq.core.btc.nodes.LocalBitcoinNode;
-import bisq.core.btc.nodes.ProxySocketFactory;
-import bisq.core.btc.wallet.HavenoRiskAnalysis;
 
 import bisq.common.config.Config;
 import bisq.common.file.FileUtil;
 
 import org.bitcoinj.core.BlockChain;
-import org.bitcoinj.core.CheckpointManager;
 import org.bitcoinj.core.Context;
 import org.bitcoinj.core.NetworkParameters;
 import org.bitcoinj.core.PeerAddress;
 import org.bitcoinj.core.PeerGroup;
 import org.bitcoinj.core.listeners.DownloadProgressTracker;
 import org.bitcoinj.crypto.KeyCrypter;
-import org.bitcoinj.net.BlockingClientManager;
-import org.bitcoinj.net.discovery.DnsDiscovery;
 import org.bitcoinj.net.discovery.PeerDiscovery;
 import org.bitcoinj.script.Script;
 import org.bitcoinj.store.BlockStore;
-import org.bitcoinj.store.BlockStoreException;
 import org.bitcoinj.store.SPVBlockStore;
 import org.bitcoinj.wallet.DeterministicKeyChain;
 import org.bitcoinj.wallet.DeterministicSeed;
-import org.bitcoinj.wallet.KeyChainGroup;
-import org.bitcoinj.wallet.KeyChainGroupStructure;
-import org.bitcoinj.wallet.Protos;
 import org.bitcoinj.wallet.Wallet;
-import org.bitcoinj.wallet.WalletExtension;
-import org.bitcoinj.wallet.WalletProtobufSerializer;
 
 import com.runjva.sourceforge.jsocks.protocol.Socks5Proxy;
 
 import com.google.common.io.Closeables;
 import com.google.common.util.concurrent.AbstractIdleService;
-import com.google.common.util.concurrent.FutureCallback;
-import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.ListenableFuture;
-import com.google.common.util.concurrent.MoreExecutors;
 
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.SimpleBooleanProperty;
@@ -63,11 +48,8 @@ import javafx.beans.property.SimpleBooleanProperty;
 import org.bouncycastle.crypto.params.KeyParameter;
 
 import java.net.InetAddress;
-import java.net.InetSocketAddress;
-import java.net.Proxy;
 
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 
@@ -106,9 +88,6 @@ import static com.google.common.base.Preconditions.checkState;
  * out what went wrong more precisely. Same thing if you just use the {@link #startAsync()} method.</p>
  */
 public class WalletConfig extends AbstractIdleService {
-
-    private static final int TOR_SOCKET_TIMEOUT = 120 * 1000;  // 1 sec used in bitcoinj, but since bisq uses Tor we allow more.
-    private static final int TOR_VERSION_EXCHANGE_TIMEOUT = 125 * 1000;  // 5 sec used in bitcoinj, but since bisq uses Tor we allow more.
 
     protected static final Logger log = LoggerFactory.getLogger(WalletConfig.class);
 
@@ -264,233 +243,16 @@ public class WalletConfig extends AbstractIdleService {
 
     @Override
     protected void startUp() throws Exception {
-        // Runs in a separate thread.
-        Context.propagate(context);
-        try {
-            File chainFile = new File(directory, filePrefix + ".spvchain");
-            boolean chainFileExists = chainFile.exists();
-
-            String btcPrefix = "_BTC";
-            vBtcWalletFile = new File(directory, filePrefix + btcPrefix + ".wallet");
-            boolean shouldReplayWallet = (vBtcWalletFile.exists() && !chainFileExists) || restoreFromSeed != null;
-            vBtcWallet = createOrLoadWallet(shouldReplayWallet, vBtcWalletFile);
-            vBtcWallet.allowSpendingUnconfirmedTransactions();
-            vBtcWallet.setRiskAnalyzer(new HavenoRiskAnalysis.Analyzer());
-
-            // Initiate Bitcoin network objects (block store, blockchain and peer group)
-            vStore = new SPVBlockStore(params, chainFile);
-            if (!chainFileExists || restoreFromSeed != null) {
-                if (checkpoints == null) {
-                    checkpoints = CheckpointManager.openStream(params);
-                }
-
-                if (checkpoints != null) {
-                    // Initialize the chain file with a checkpoint to speed up first-run sync.
-                    long time;
-                    if (restoreFromSeed != null) {
-                        time = restoreFromSeed.getCreationTimeSeconds();
-                        if (chainFileExists) {
-                            log.info("Clearing the chain file in preparation for restore.");
-                            vStore.clear();
-                        }
-                    } else {
-                        time = vBtcWallet.getEarliestKeyCreationTime();
-                    }
-                    if (time > 0)
-                        CheckpointManager.checkpoint(params, checkpoints, vStore, time);
-                    else
-                        log.warn("Creating a new uncheckpointed block store due to a wallet with a creation time of zero: this will result in a very slow chain sync");
-                } else if (chainFileExists) {
-                    log.info("Clearing the chain file in preparation for restore.");
-                    vStore.clear();
-                }
-            }
-            vChain = new BlockChain(params, vStore);
-            vPeerGroup = createPeerGroup();
-            if (minBroadcastConnections > 0)
-                vPeerGroup.setMinBroadcastConnections(minBroadcastConnections);
-            if (this.userAgent != null)
-                vPeerGroup.setUserAgent(userAgent, version);
-
-            // Set up peer addresses or discovery first, so if wallet extensions try to broadcast a transaction
-            // before we're actually connected the broadcast waits for an appropriate number of connections.
-            if (peerAddresses != null) {
-                for (PeerAddress addr : peerAddresses) vPeerGroup.addAddress(addr);
-                int maxConnections = Math.min(numConnectionsForBtc, peerAddresses.length);
-                log.info("We try to connect to {} btc nodes", maxConnections);
-                vPeerGroup.setMaxConnections(maxConnections);
-                vPeerGroup.setAddPeersFromAddressMessage(false);
-                peerAddresses = null;
-            } else if (!params.getId().equals(NetworkParameters.ID_REGTEST)) {
-                vPeerGroup.addPeerDiscovery(discovery != null ? discovery : new DnsDiscovery(params));
-            }
-            vChain.addWallet(vBtcWallet);
-            vPeerGroup.addWallet(vBtcWallet);
-            onSetupCompleted();
-
-            if (migratedWalletToSegwit.get()) {
-                startPeerGroup();
-            } else {
-                migratedWalletToSegwit.addListener((observable, oldValue, newValue) -> {
-                    if (newValue) {
-                        startPeerGroup();
-                    }
-                });
-            }
-
-        } catch (BlockStoreException e) {
-            throw new IOException(e);
-        }
-    }
-
-    private void startPeerGroup() {
-        Futures.addCallback((ListenableFuture<?>) vPeerGroup.startAsync(), new FutureCallback<Object>() {
-            @Override
-            public void onSuccess(@Nullable Object result) {
-                //completeExtensionInitiations(vPeerGroup);
-                DownloadProgressTracker tracker = new DownloadProgressTracker();
-                vPeerGroup.startBlockChainDownload(tracker);
-            }
-
-            @Override
-            public void onFailure(Throwable t) {
-                throw new RuntimeException(t);
-
-            }
-        }, MoreExecutors.directExecutor());
-    }
-
-    private Wallet createOrLoadWallet(boolean shouldReplayWallet,
-                                      File walletFile) throws Exception {
-        Wallet wallet;
-
-        maybeMoveOldWalletOutOfTheWay(walletFile);
-
-        if (walletFile.exists()) {
-            wallet = loadWallet(shouldReplayWallet, walletFile);
-        } else {
-            wallet = createWallet();
-            //wallet.freshReceiveKey();
-
-            // Currently the only way we can be sure that an extension is aware of its containing wallet is by
-            // deserializing the extension (see WalletExtension#deserializeWalletExtension(Wallet, byte[]))
-            // Hence, we first save and then load wallet to ensure any extensions are correctly initialized.
-            wallet.saveToFile(walletFile);
-            wallet = loadWallet(false, walletFile);
-        }
-
-        this.setupAutoSave(wallet, walletFile);
-
-        return wallet;
+        onSetupCompleted();
     }
 
     protected void setupAutoSave(Wallet wallet, File walletFile) {
         wallet.autosaveToFile(walletFile, 5, TimeUnit.SECONDS, null);
     }
 
-    private Wallet loadWallet(boolean shouldReplayWallet, File walletFile) throws Exception {
-        Wallet wallet;
-        try (FileInputStream walletStream = new FileInputStream(walletFile)) {
-            WalletExtension[] extArray = new WalletExtension[]{};
-            Protos.Wallet proto = WalletProtobufSerializer.parseToProto(walletStream);
-            final WalletProtobufSerializer serializer;
-            serializer = new WalletProtobufSerializer();
-            // Hack to convert bitcoinj 0.14 wallets to bitcoinj 0.15 format
-            serializer.setKeyChainFactory(new HavenoKeyChainFactory());
-            wallet = serializer.readWallet(params, extArray, proto);
-            if (shouldReplayWallet)
-                wallet.reset();
-            maybeAddSegwitKeychain(wallet, null);
-        }
-        return wallet;
-    }
-
-    protected Wallet createWallet() {
-        Script.ScriptType preferredOutputScriptType = Script.ScriptType.P2WPKH;
-        KeyChainGroupStructure structure = new HavenoKeyChainGroupStructure();
-        KeyChainGroup.Builder kcgBuilder = KeyChainGroup.builder(params, structure);
-        if (restoreFromSeed != null) {
-            kcgBuilder.fromSeed(restoreFromSeed, preferredOutputScriptType);
-        } else {
-            // new wallet
-            // btc wallet uses a new random seed.
-            kcgBuilder.fromRandom(preferredOutputScriptType);
-        }
-        return new Wallet(params, kcgBuilder.build());
-    }
-
-    private void maybeMoveOldWalletOutOfTheWay(File walletFile) {
-        if (restoreFromSeed == null) return;
-        if (!walletFile.exists()) return;
-        int counter = 1;
-        File newName;
-        do {
-            newName = new File(walletFile.getParent(), "Backup " + counter + " for " + walletFile.getName());
-            counter++;
-        } while (newName.exists());
-        log.info("Renaming old wallet file {} to {}", walletFile, newName);
-        if (!walletFile.renameTo(newName)) {
-            // This should not happen unless something is really messed up.
-            throw new RuntimeException("Failed to rename wallet for restore");
-        }
-    }
-
-    private PeerGroup createPeerGroup() {
-        PeerGroup peerGroup;
-        // no proxy case.
-        if (socks5Proxy == null) {
-            peerGroup = new PeerGroup(params, vChain);
-        } else {
-            // proxy case (tor).
-            Proxy proxy = new Proxy(Proxy.Type.SOCKS,
-                    new InetSocketAddress(socks5Proxy.getInetAddress(), socks5Proxy.getPort()));
-
-            ProxySocketFactory proxySocketFactory = new ProxySocketFactory(proxy);
-            // We don't use tor mode if we have a local node running
-            BlockingClientManager blockingClientManager = localBitcoinNode.shouldBeUsed() ?
-                    new BlockingClientManager() :
-                    new BlockingClientManager(proxySocketFactory);
-
-            peerGroup = new PeerGroup(params, vChain, blockingClientManager);
-
-            blockingClientManager.setConnectTimeoutMillis(TOR_SOCKET_TIMEOUT);
-            peerGroup.setConnectTimeoutMillis(TOR_VERSION_EXCHANGE_TIMEOUT);
-        }
-
-        if (!localBitcoinNode.shouldBeUsed())
-            peerGroup.setUseLocalhostPeerWhenPossible(false);
-
-        return peerGroup;
-    }
-
     @Override
     protected void shutDown() throws Exception {
-        // Runs in a separate thread.
-        try {
-            Context.propagate(context);
-
-            vBtcWallet.saveToFile(vBtcWalletFile);
-            vBtcWallet = null;
-            log.info("BtcWallet saved to file");
-
-            vStore.close();
-            vStore = null;
-            log.info("SPV file closed");
-
-            vChain = null;
-
-            // vPeerGroup.stop has no timeout and can take very long (10 sec. in my test). So we call it at the end.
-            // We might get likely interrupted by the parent call timeout.
-            if (vPeerGroup.isRunning()) {
-                vPeerGroup.stop();
-                log.info("PeerGroup stopped");
-            } else {
-                log.info("PeerGroup not stopped because it was not running");
-            }
-            vPeerGroup = null;
-        } catch (BlockStoreException e) {
-            throw new IOException(e);
-        }
+        
     }
 
     public NetworkParameters params() {

@@ -17,8 +17,7 @@
 
 package bisq.core.api;
 
-import bisq.core.btc.model.AddressEntry;
-import bisq.core.btc.wallet.BtcWalletService;
+import bisq.core.btc.wallet.XmrWalletService;
 import bisq.core.support.SupportType;
 import bisq.core.support.dispute.arbitration.arbitrator.Arbitrator;
 import bisq.core.support.dispute.arbitration.arbitrator.ArbitratorManager;
@@ -45,7 +44,6 @@ import java.util.Optional;
 
 import lombok.extern.slf4j.Slf4j;
 
-import static bisq.common.app.DevEnv.DEV_PRIVILEGE_PRIV_KEY;
 import static bisq.core.support.SupportType.ARBITRATION;
 import static bisq.core.support.SupportType.MEDIATION;
 import static bisq.core.support.SupportType.REFUND;
@@ -61,7 +59,7 @@ class CoreDisputeAgentsService {
     private final User user;
     private final Config config;
     private final KeyRing keyRing;
-    private final BtcWalletService btcWalletService;
+    private final XmrWalletService xmrWalletService;
     private final ArbitratorManager arbitratorManager;
     private final MediatorManager mediatorManager;
     private final RefundAgentManager refundAgentManager;
@@ -73,7 +71,7 @@ class CoreDisputeAgentsService {
     public CoreDisputeAgentsService(User user,
                                     Config config,
                                     KeyRing keyRing,
-                                    BtcWalletService btcWalletService,
+                                    XmrWalletService xmrWalletService,
                                     ArbitratorManager arbitratorManager,
                                     MediatorManager mediatorManager,
                                     RefundAgentManager refundAgentManager,
@@ -81,7 +79,7 @@ class CoreDisputeAgentsService {
         this.user = user;
         this.config = config;
         this.keyRing = keyRing;
-        this.btcWalletService = btcWalletService;
+        this.xmrWalletService = xmrWalletService;
         this.arbitratorManager = arbitratorManager;
         this.mediatorManager = mediatorManager;
         this.refundAgentManager = refundAgentManager;
@@ -98,9 +96,6 @@ class CoreDisputeAgentsService {
                 || !config.useLocalhostForP2P)
             throw new IllegalStateException("dispute agents must be registered in a Bisq UI");
 
-        if (!registrationKey.equals(DEV_PRIVILEGE_PRIV_KEY))
-            throw new IllegalArgumentException("invalid registration key");
-
         Optional<SupportType> supportType = getSupportType(disputeAgentType);
         if (supportType.isPresent()) {
             ECKey ecKey;
@@ -112,6 +107,7 @@ class CoreDisputeAgentsService {
                         return;
                     }
                     ecKey = arbitratorManager.getRegistrationKey(registrationKey);
+                    if (ecKey == null) throw new IllegalStateException("invalid registration key");
                     signature = arbitratorManager.signStorageSignaturePubKey(Objects.requireNonNull(ecKey));
                     registerArbitrator(nodeAddress, languageCodes, ecKey, signature);
                     return;
@@ -121,6 +117,7 @@ class CoreDisputeAgentsService {
                         return;
                     }
                     ecKey = mediatorManager.getRegistrationKey(registrationKey);
+                    if (ecKey == null) throw new IllegalStateException("invalid registration key");
                     signature = mediatorManager.signStorageSignaturePubKey(Objects.requireNonNull(ecKey));
                     registerMediator(nodeAddress, languageCodes, ecKey, signature);
                     return;
@@ -130,6 +127,7 @@ class CoreDisputeAgentsService {
                         return;
                     }
                     ecKey = refundAgentManager.getRegistrationKey(registrationKey);
+                    if (ecKey == null) throw new IllegalStateException("invalid registration key");
                     signature = refundAgentManager.signStorageSignaturePubKey(Objects.requireNonNull(ecKey));
                     registerRefundAgent(nodeAddress, languageCodes, ecKey, signature);
                     return;
@@ -145,11 +143,9 @@ class CoreDisputeAgentsService {
                                     List<String> languageCodes,
                                     ECKey ecKey,
                                     String signature) {
-        AddressEntry arbitratorAddressEntry = btcWalletService.getArbitratorAddressEntry(); // TODO (woodser): switch to XMR; no reason for arbitrator to have BTC address / pub key
         Arbitrator arbitrator = new Arbitrator(
                 p2PService.getAddress(),
-                arbitratorAddressEntry.getPubKey(),
-                arbitratorAddressEntry.getAddressString(),
+                xmrWalletService.getWallet().getPrimaryAddress(), // TODO: how is this used?
                 keyRing.getPubKeyRing(),
                 new ArrayList<>(languageCodes),
                 new Date().getTime(),

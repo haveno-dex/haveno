@@ -20,7 +20,7 @@ package bisq.desktop.main.account.register;
 import bisq.desktop.common.model.ActivatableViewModel;
 import bisq.desktop.util.GUIUtil;
 
-import bisq.core.btc.wallet.BtcWalletService;
+import bisq.core.btc.wallet.XmrWalletService;
 import bisq.core.locale.LanguageUtil;
 import bisq.core.support.dispute.agent.DisputeAgent;
 import bisq.core.support.dispute.agent.DisputeAgentManager;
@@ -51,7 +51,7 @@ public abstract class AgentRegistrationViewModel<R extends DisputeAgent, T exten
     private final T disputeAgentManager;
     protected final User user;
     protected final P2PService p2PService;
-    protected final BtcWalletService walletService;
+    protected final XmrWalletService xmrWalletService;
     protected final KeyRing keyRing;
 
     final BooleanProperty registrationEditDisabled = new SimpleBooleanProperty(true);
@@ -73,12 +73,12 @@ public abstract class AgentRegistrationViewModel<R extends DisputeAgent, T exten
     public AgentRegistrationViewModel(T disputeAgentManager,
                                       User user,
                                       P2PService p2PService,
-                                      BtcWalletService walletService,
+                                      XmrWalletService xmrWalletService,
                                       KeyRing keyRing) {
         this.disputeAgentManager = disputeAgentManager;
         this.user = user;
         this.p2PService = p2PService;
-        this.walletService = walletService;
+        this.xmrWalletService = xmrWalletService;
         this.keyRing = keyRing;
 
         mapChangeListener = change -> {

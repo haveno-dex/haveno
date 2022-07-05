@@ -18,8 +18,8 @@
 package bisq.core.offer.takeoffer;
 
 import bisq.core.account.witness.AccountAgeWitnessService;
-import bisq.core.btc.model.AddressEntry;
-import bisq.core.btc.wallet.BtcWalletService;
+import bisq.core.btc.model.XmrAddressEntry;
+import bisq.core.btc.wallet.XmrWalletService;
 import bisq.core.locale.CurrencyUtil;
 import bisq.core.monetary.Price;
 import bisq.core.monetary.Volume;
@@ -45,7 +45,7 @@ import lombok.extern.slf4j.Slf4j;
 
 import org.jetbrains.annotations.NotNull;
 
-import static bisq.core.btc.model.AddressEntry.Context.OFFER_FUNDING;
+import static bisq.core.btc.model.XmrAddressEntry.Context.OFFER_FUNDING;
 import static bisq.core.offer.OfferDirection.SELL;
 import static bisq.core.util.VolumeUtil.getAdjustedVolumeForHalCash;
 import static bisq.core.util.VolumeUtil.getRoundedFiatVolume;
@@ -59,14 +59,14 @@ import static org.bitcoinj.core.Coin.valueOf;
 public class TakeOfferModel implements Model {
     // Immutable
     private final AccountAgeWitnessService accountAgeWitnessService;
-    private final BtcWalletService btcWalletService;
+    private final XmrWalletService xmrWalletService;
     private final FeeService feeService;
     private final OfferUtil offerUtil;
     private final PriceFeedService priceFeedService;
 
     // Mutable
     @Getter
-    private AddressEntry addressEntry;
+    private XmrAddressEntry addressEntry;
     @Getter
     private Coin amount;
     private Offer offer;
@@ -91,18 +91,18 @@ public class TakeOfferModel implements Model {
     @Getter
     private Coin balance;
     @Getter
-    private boolean isBtcWalletFunded;
+    private boolean isXmrWalletFunded;
     @Getter
     private Volume volume;
 
     @Inject
     public TakeOfferModel(AccountAgeWitnessService accountAgeWitnessService,
-                          BtcWalletService btcWalletService,
+                          XmrWalletService xmrWalletService,
                           FeeService feeService,
                           OfferUtil offerUtil,
                           PriceFeedService priceFeedService) {
         this.accountAgeWitnessService = accountAgeWitnessService;
-        this.btcWalletService = btcWalletService;
+        this.xmrWalletService = xmrWalletService;
         this.feeService = feeService;
         this.offerUtil = offerUtil;
         this.priceFeedService = priceFeedService;
@@ -114,7 +114,7 @@ public class TakeOfferModel implements Model {
         this.clearModel();
         this.offer = offer;
         this.paymentAccount = paymentAccount;
-        this.addressEntry = btcWalletService.getOrCreateAddressEntry(offer.getId(), OFFER_FUNDING); // TODO (woodser): replace with xmr or remove
+        this.addressEntry = xmrWalletService.getOrCreateAddressEntry(offer.getId(), OFFER_FUNDING); // TODO (woodser): replace with xmr or remove
         validateModelInputs();
 
         this.useSavingsWallet = useSavingsWallet;
@@ -200,18 +200,10 @@ public class TakeOfferModel implements Model {
     }
 
     private void updateBalance() {
-        Coin tradeWalletBalance = btcWalletService.getBalanceForAddress(addressEntry.getAddress());
-        if (useSavingsWallet) {
-            Coin savingWalletBalance = btcWalletService.getSavingWalletBalance();
-            totalAvailableBalance = savingWalletBalance.add(tradeWalletBalance);
-            if (totalToPayAsCoin != null)
-                balance = minCoin(totalToPayAsCoin, totalAvailableBalance);
-
-        } else {
-            balance = tradeWalletBalance;
-        }
+        totalAvailableBalance = xmrWalletService.getSavingWalletBalance();
+        if (totalToPayAsCoin != null) balance = minCoin(totalToPayAsCoin, totalAvailableBalance);
         missingCoin = offerUtil.getBalanceShortage(totalToPayAsCoin, balance);
-        isBtcWalletFunded = offerUtil.isBalanceSufficient(totalToPayAsCoin, balance);
+        isXmrWalletFunded = offerUtil.isBalanceSufficient(totalToPayAsCoin, balance);
     }
 
     private long getMaxTradeLimit() {
@@ -264,7 +256,7 @@ public class TakeOfferModel implements Model {
         this.addressEntry = null;
         this.amount = null;
         this.balance = null;
-        this.isBtcWalletFunded = false;
+        this.isXmrWalletFunded = false;
         this.missingCoin = ZERO;
         this.offer = null;
         this.paymentAccount = null;
@@ -299,7 +291,7 @@ public class TakeOfferModel implements Model {
                 ", balance=" + balance + "\n" +
                 ", volume=" + volume + "\n" +
                 ", fundsNeededForTrade=" + getFundsNeededForTrade() + "\n" +
-                ", isBtcWalletFunded=" + isBtcWalletFunded + "\n" +
+                ", isXmrWalletFunded=" + isXmrWalletFunded + "\n" +
                 '}';
     }
 }

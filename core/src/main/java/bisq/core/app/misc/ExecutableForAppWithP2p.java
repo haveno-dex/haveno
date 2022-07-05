@@ -224,7 +224,7 @@ public abstract class ExecutableForAppWithP2p extends HavenoExecutable {
                         log.warn("\n\n%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\n" +
                                         "We are over our memory limit ({}) and trigger a shutdown. usedMemory: {} MB. freeMemory: {} MB" +
                                         "\n%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\n\n",
-                                (int) maxMemory, usedMemory, Profiler.getFreeMemoryInMB());
+                                maxMemory, usedMemory, Profiler.getFreeMemoryInMB());
                         shutDown(gracefulShutDownHandler);
                     }
                 }, 5);
