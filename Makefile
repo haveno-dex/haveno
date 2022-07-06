@@ -46,7 +46,7 @@ monerod-local1:
 		--p2p-bind-ip 127.0.0.1 \
 		--p2p-bind-port 48080 \
 		--rpc-bind-port 48081 \
-		--zmq-rpc-bind-port 48082 \
+		--no-zmq \
 		--add-exclusive-node 127.0.0.1:28080 \
 		--rpc-access-control-origins http://localhost:8080 \
 		--fixed-difficulty 100
@@ -59,6 +59,7 @@ monerod-local2:
 		--data-dir .localnet/xmr_local/node2 \
 		--p2p-bind-ip 127.0.0.1 \
 		--rpc-bind-ip 0.0.0.0 \
+		--no-zmq \
 		--confirm-external-bind \
 		--add-exclusive-node 127.0.0.1:48080 \
 		--rpc-access-control-origins http://localhost:8080 \
