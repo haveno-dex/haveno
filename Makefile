@@ -95,7 +95,7 @@ seednode-local:
 		--useLocalhostForP2P=true \
 		--useDevPrivilegeKeys=true \
 		--nodePort=2002 \
-		--appName=haveno-XMR_TESTNET_Seed_2002 \
+		--appName=haveno-XMR_LOCAL_Seed_2002 \
 		
 seednode-stagenet:
 	./haveno-seednode \
@@ -112,7 +112,7 @@ arbitrator-desktop-local:
 		--useLocalhostForP2P=true \
 		--useDevPrivilegeKeys=true \
 		--nodePort=4444 \
-		--appName=haveno-XMR_TESTNET_arbitrator \
+		--appName=haveno-XMR_LOCAL_arbitrator \
 		--apiPassword=apitest \
 		--apiPort=9998
 
@@ -134,7 +134,7 @@ arbitrator-desktop2-local:
 		--useLocalhostForP2P=true \
 		--useDevPrivilegeKeys=true \
 		--nodePort=7777 \
-		--appName=haveno-XMR_TESTNET_arbitrator2 \
+		--appName=haveno-XMR_LOCAL_arbitrator2 \
 		--apiPassword=apitest \
 		--apiPort=10001
 
@@ -145,7 +145,7 @@ arbitrator-daemon-local:
 		--useLocalhostForP2P=true \
 		--useDevPrivilegeKeys=true \
 		--nodePort=4444 \
-		--appName=haveno-XMR_TESTNET_arbitrator \
+		--appName=haveno-XMR_LOCAL_arbitrator \
 		--apiPassword=apitest \
 		--apiPort=9998 \
 		--passwordRequired=false
@@ -168,7 +168,7 @@ alice-desktop-local:
 		--useLocalhostForP2P=true \
 		--useDevPrivilegeKeys=true \
 		--nodePort=5555 \
-		--appName=haveno-XMR_TESTNET_Alice \
+		--appName=haveno-XMR_LOCAL_Alice \
 		--apiPassword=apitest \
 		--apiPort=9999 \
 		--walletRpcBindPort=38091
@@ -190,7 +190,7 @@ alice-daemon-local:
 		--useLocalhostForP2P=true \
 		--useDevPrivilegeKeys=true \
 		--nodePort=5555 \
-		--appName=haveno-XMR_TESTNET_Alice \
+		--appName=haveno-XMR_LOCAL_Alice \
 		--apiPassword=apitest \
 		--apiPort=9999 \
 		--walletRpcBindPort=38091 \
@@ -214,7 +214,7 @@ bob-desktop-local:
 		--useLocalhostForP2P=true \
 		--useDevPrivilegeKeys=true \
 		--nodePort=6666 \
-		--appName=haveno-XMR_TESTNET_Bob \
+		--appName=haveno-XMR_LOCAL_Bob \
 		--apiPassword=apitest \
 		--apiPort=10000 \
 		--walletRpcBindPort=38092
@@ -236,7 +236,7 @@ bob-daemon-local:
 		--useLocalhostForP2P=true \
 		--useDevPrivilegeKeys=true \
 		--nodePort=6666 \
-		--appName=haveno-XMR_TESTNET_Bob \
+		--appName=haveno-XMR_LOCAL_Bob \
 		--apiPassword=apitest \
 		--apiPort=10000 \
 		--walletRpcBindPort=38092 \

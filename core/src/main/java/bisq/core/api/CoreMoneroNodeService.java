@@ -71,7 +71,7 @@ public class CoreMoneroNodeService {
         if (Config.baseCurrencyNetwork().isMainnet()) rpcPort = 18081;
         else if (Config.baseCurrencyNetwork().isTestnet()) rpcPort = 28081;
         else if (Config.baseCurrencyNetwork().isStagenet()) rpcPort = 38081;
-        else throw new RuntimeException("Base network is not testnet, stagenet, or mainnet");
+        else throw new RuntimeException("Base network is not local testnet, stagenet, or mainnet");
         this.daemon = new MoneroDaemonRpc("http://" + LOOPBACK_HOST + ":" + rpcPort);
     }
 
