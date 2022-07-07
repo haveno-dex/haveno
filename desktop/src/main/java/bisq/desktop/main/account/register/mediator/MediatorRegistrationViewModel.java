@@ -19,7 +19,7 @@ package bisq.desktop.main.account.register.mediator;
 
 import bisq.desktop.main.account.register.AgentRegistrationViewModel;
 
-import bisq.core.btc.wallet.BtcWalletService;
+import bisq.core.btc.wallet.XmrWalletService;
 import bisq.core.support.dispute.mediation.mediator.Mediator;
 import bisq.core.support.dispute.mediation.mediator.MediatorManager;
 import bisq.core.user.User;
@@ -39,9 +39,9 @@ class MediatorRegistrationViewModel extends AgentRegistrationViewModel<Mediator,
     public MediatorRegistrationViewModel(MediatorManager mediatorManager,
                                          User user,
                                          P2PService p2PService,
-                                         BtcWalletService walletService,
+                                         XmrWalletService xmrWalletService,
                                          KeyRing keyRing) {
-        super(mediatorManager, user, p2PService, walletService, keyRing);
+        super(mediatorManager, user, p2PService, xmrWalletService, keyRing);
     }
 
     @Override

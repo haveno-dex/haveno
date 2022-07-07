@@ -46,7 +46,7 @@ public class ValidateOffer extends Task<PlaceOfferModel> {
             checkCoinNotNullOrZero(offer.getMakerFee(), "MakerFee");
             checkCoinNotNullOrZero(offer.getBuyerSecurityDeposit(), "buyerSecurityDeposit");
             checkCoinNotNullOrZero(offer.getSellerSecurityDeposit(), "sellerSecurityDeposit");
-            checkCoinNotNullOrZero(offer.getTxFee(), "txFee");
+            //checkCoinNotNullOrZero(offer.getTxFee(), "txFee"); // TODO: remove from data model
             checkCoinNotNullOrZero(offer.getMaxTradeLimit(), "MaxTradeLimit");
 
             // We remove those checks to be more flexible with future changes.

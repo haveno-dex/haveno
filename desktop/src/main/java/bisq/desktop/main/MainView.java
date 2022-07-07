@@ -357,23 +357,25 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
         settingsButtonWithBadge.getStyleClass().add("new");
 
         navigation.addListener((viewPath, data) -> {
-            if (viewPath.size() != 2 || viewPath.indexOf(MainView.class) != 0)
-                return;
+            UserThread.execute(() -> {
+                if (viewPath.size() != 2 || viewPath.indexOf(MainView.class) != 0)
+                    return;
 
-            Class<? extends View> viewClass = viewPath.tip();
-            View view = viewLoader.load(viewClass);
-            contentContainer.getChildren().setAll(view.getRoot());
+                Class<? extends View> viewClass = viewPath.tip();
+                View view = viewLoader.load(viewClass);
+                contentContainer.getChildren().setAll(view.getRoot());
 
-            try {
-                navButtons.getToggles().stream()
-                        .filter(toggle -> toggle instanceof NavButton)
-                        .filter(button -> viewClass == ((NavButton) button).viewClass)
-                        .findFirst()
-                        .orElseThrow(() -> new HavenoException("No button matching %s found", viewClass))
-                        .setSelected(true);
-            } catch (HavenoException e) {
-                navigation.navigateTo(MainView.class, MarketView.class, OfferBookChartView.class);
-            }
+                try {
+                    navButtons.getToggles().stream()
+                            .filter(toggle -> toggle instanceof NavButton)
+                            .filter(button -> viewClass == ((NavButton) button).viewClass)
+                            .findFirst()
+                            .orElseThrow(() -> new HavenoException("No button matching %s found", viewClass))
+                            .setSelected(true);
+                } catch (HavenoException e) {
+                    navigation.navigateTo(MainView.class, MarketView.class, OfferBookChartView.class);
+                }
+            });
         });
 
         VBox splashScreen = createSplashScreen();
@@ -431,13 +433,14 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
         return new ListCell<>() {
             @Override
             protected void updateItem(PriceFeedComboBoxItem item, boolean empty) {
-                super.updateItem(item, empty);
-
-                if (!empty && item != null) {
-                    textProperty().bind(item.displayStringProperty);
-                } else {
-                    textProperty().unbind();
-                }
+                UserThread.execute(() -> {
+                    super.updateItem(item, empty);
+                    if (!empty && item != null) {
+                        textProperty().bind(item.displayStringProperty);
+                    } else {
+                        textProperty().unbind();
+                    }
+                });
             }
         };
     }
@@ -763,8 +766,10 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
         buttonWithBadge.textProperty().bind(badgeNumber);
         buttonWithBadge.setEnabled(badgeEnabled.get());
         badgeEnabled.addListener((observable, oldValue, newValue) -> {
-            buttonWithBadge.setEnabled(newValue);
-            buttonWithBadge.refreshBadge();
+            UserThread.execute(() -> {
+                buttonWithBadge.setEnabled(newValue);
+                buttonWithBadge.refreshBadge();
+            });
         });
 
         buttonWithBadge.setPosition(Pos.TOP_RIGHT);

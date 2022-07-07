@@ -45,7 +45,6 @@ import org.bitcoinj.core.TransactionOutput;
 import org.bitcoinj.crypto.DeterministicKey;
 import org.bitcoinj.crypto.KeyCrypterScrypt;
 import org.bitcoinj.script.Script;
-import org.bitcoinj.script.ScriptBuilder;
 import org.bitcoinj.script.ScriptPattern;
 import org.bitcoinj.wallet.SendRequest;
 import org.bitcoinj.wallet.Wallet;
@@ -97,12 +96,13 @@ public class BtcWalletService extends WalletService {
 
         this.addressEntryList = addressEntryList;
 
+        // TODO: set and use chainHeightProperty in XmrWalletService
         walletsSetup.addSetupCompletedHandler(() -> {
-            wallet = walletsSetup.getBtcWallet();
-            addListenersToWallet();
-
-            walletsSetup.getChain().addNewBestBlockListener(block -> chainHeightProperty.set(block.getHeight()));
-            chainHeightProperty.set(walletsSetup.getChain().getBestChainHeight());
+//            wallet = walletsSetup.getBtcWallet();
+//            addListenersToWallet();
+//
+//            walletsSetup.getChain().addNewBestBlockListener(block -> chainHeightProperty.set(block.getHeight()));
+//            chainHeightProperty.set(walletsSetup.getChain().getBestChainHeight());
         });
     }
 

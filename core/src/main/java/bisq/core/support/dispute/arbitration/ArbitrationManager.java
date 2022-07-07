@@ -416,11 +416,6 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
           boolean senderIsCosigner = senderIsWinner || disputeResult.isLoserPublisher();
           boolean receiverIsArbitrator = pubKeyRing.equals(dispute.getAgentPubKeyRing());
 
-          System.out.println("TESTING PUB KEY RINGS");
-          System.out.println(pubKeyRing);
-          System.out.println(dispute.getAgentPubKeyRing());
-          System.out.println("Receiver is arbitrator: " + receiverIsArbitrator);
-
           if (!senderIsCosigner) {
             log.warn("Received ArbitratorPayoutTxRequest but sender is not co-signer for trade id " + tradeId);
             return;

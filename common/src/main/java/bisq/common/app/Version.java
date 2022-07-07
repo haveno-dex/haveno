@@ -106,7 +106,7 @@ public class Version {
         return p2pMessageVersion;
     }
 
-    // The version for the crypto network (XMR_Mainnet = 0, XMR_Testnet = 1, XMR_Regtest = 2, ...)
+    // The version for the crypto network (XMR_Mainnet = 0, XMR_LOCAL = 1, XMR_Regtest = 2, ...)
     private static int BASE_CURRENCY_NETWORK;
 
     public static void setBaseCryptoNetworkId(int baseCryptoNetworkId) {

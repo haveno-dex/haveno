@@ -33,7 +33,6 @@ import bisq.core.provider.price.PriceFeedService;
 import bisq.core.trade.statistics.ReferralIdService;
 import bisq.core.user.AutoConfirmSettings;
 import bisq.core.user.Preferences;
-import bisq.core.util.AveragePriceUtil;
 import bisq.core.util.coin.CoinFormatter;
 import bisq.core.util.coin.CoinUtil;
 
@@ -68,7 +67,6 @@ import static bisq.core.btc.wallet.Restrictions.getMinBuyerSecurityDepositAsPerc
 import static bisq.core.offer.OfferPayload.*;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
-import static java.lang.String.format;
 
 /**
  * This class holds utility methods for creating, editing and taking an Offer.

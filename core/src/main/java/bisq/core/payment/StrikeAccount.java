@@ -86,7 +86,6 @@ public final class StrikeAccount extends CountryBasedPaymentAccount {
     @Override
     @Nullable
     public @NotNull List<Country> getSupportedCountries() {
-        System.out.println("STIKE RETURNING SUPPORTED COUNTRIES: " + SUPPORTED_COUNTRIES);
         return SUPPORTED_COUNTRIES;
     }
 

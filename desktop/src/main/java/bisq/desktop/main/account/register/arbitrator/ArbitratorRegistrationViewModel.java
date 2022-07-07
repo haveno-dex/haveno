@@ -19,8 +19,7 @@ package bisq.desktop.main.account.register.arbitrator;
 
 import bisq.desktop.main.account.register.AgentRegistrationViewModel;
 
-import bisq.core.btc.model.AddressEntry;
-import bisq.core.btc.wallet.BtcWalletService;
+import bisq.core.btc.wallet.XmrWalletService;
 import bisq.core.support.dispute.arbitration.arbitrator.Arbitrator;
 import bisq.core.support.dispute.arbitration.arbitrator.ArbitratorManager;
 import bisq.core.user.User;
@@ -30,7 +29,6 @@ import bisq.network.p2p.P2PService;
 import bisq.common.crypto.KeyRing;
 
 import com.google.inject.Inject;
-
 import java.util.ArrayList;
 import java.util.Date;
 
@@ -40,19 +38,17 @@ public class ArbitratorRegistrationViewModel extends AgentRegistrationViewModel<
     public ArbitratorRegistrationViewModel(ArbitratorManager arbitratorManager,
                                            User user,
                                            P2PService p2PService,
-                                           BtcWalletService walletService,
+                                           XmrWalletService xmrWalletService,
                                            KeyRing keyRing) {
-        super(arbitratorManager, user, p2PService, walletService, keyRing);
+        super(arbitratorManager, user, p2PService, xmrWalletService, keyRing);
     }
 
     @Override
     protected Arbitrator getDisputeAgent(String registrationSignature,
                                          String emailAddress) {
-        AddressEntry arbitratorAddressEntry = walletService.getArbitratorAddressEntry();
         return new Arbitrator(
                 p2PService.getAddress(),
-                arbitratorAddressEntry.getPubKey(),
-                arbitratorAddressEntry.getAddressString(),
+                xmrWalletService.getWallet().getPrimaryAddress(), // TODO: how is arbitrator address used?
                 keyRing.getPubKeyRing(),
                 new ArrayList<>(languageCodes),
                 new Date().getTime(),

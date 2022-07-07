@@ -44,8 +44,7 @@ public class ArbitratorTest {
 
     public static Arbitrator getArbitratorMock() {
         return new Arbitrator(new NodeAddress("host", 1000),
-                getBytes(100),
-                "btcaddress",
+                "xmraddress",
                 new PubKeyRing(getBytes(100), getBytes(100)),
                 Lists.newArrayList(),
                 new Date().getTime(),

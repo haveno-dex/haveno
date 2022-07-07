@@ -42,8 +42,9 @@ import java.util.stream.Stream;
 import javax.inject.Inject;
 import monero.common.MoneroError;
 import monero.common.MoneroRpcConnection;
+import monero.common.MoneroRpcError;
 import monero.common.MoneroUtils;
-import monero.daemon.MoneroDaemon;
+import monero.daemon.MoneroDaemonRpc;
 import monero.daemon.model.MoneroNetworkType;
 import monero.daemon.model.MoneroOutput;
 import monero.daemon.model.MoneroSubmitTxResult;
@@ -69,7 +70,7 @@ public class XmrWalletService {
 
     // Monero configuration
     // TODO: don't hard code configuration, inject into classes?
-    private static final MoneroNetworkType MONERO_NETWORK_TYPE = MoneroNetworkType.STAGENET;
+    private static final MoneroNetworkType MONERO_NETWORK_TYPE = getMoneroNetworkType();
     private static final MoneroWalletRpcManager MONERO_WALLET_RPC_MANAGER = new MoneroWalletRpcManager();
     private static final String MONERO_WALLET_RPC_DIR = System.getProperty("user.dir") + File.separator + ".localnet"; // .localnet contains monero-wallet-rpc and wallet files
     private static final String MONERO_WALLET_RPC_PATH = MONERO_WALLET_RPC_DIR + File.separator + "monero-wallet-rpc";
@@ -77,7 +78,6 @@ public class XmrWalletService {
     private static final String MONERO_WALLET_RPC_DEFAULT_PASSWORD = "password"; // only used if account password is null
     private static final String MONERO_WALLET_NAME = "haveno_XMR";
     private static final String MONERO_MULTISIG_WALLET_PREFIX = "xmr_multisig_trade_";
-    private static final long MONERO_WALLET_SYNC_PERIOD = 5000l;
 
     private final CoreAccountService accountService;
     private final CoreMoneroConnectionsService connectionsService;
@@ -155,8 +155,16 @@ public class XmrWalletService {
         checkState(state == State.STARTING || state == State.RUNNING, "Cannot call until startup is complete");
         return wallet;
     }
+
+    public boolean isWalletReady() {
+        return getWallet() != null;
+    }
+
+    public boolean isWalletEncrypted() {
+        return accountService.getPassword() != null;
+    }
     
-    public MoneroDaemon getDaemon() {
+    public MoneroDaemonRpc getDaemon() {
         return connectionsService.getDaemon();
     }
     
@@ -253,14 +261,14 @@ public class XmrWalletService {
             // get expected mining fee
             MoneroTxWallet miningFeeTx = wallet.createTx(new MoneroTxConfig()
                     .setAccountIndex(0)
-                    .addDestination(TradeUtils.FEE_ADDRESS, tradeFee)
+                    .addDestination(TradeUtils.getTradeFeeAddress(), tradeFee)
                     .addDestination(returnAddress, depositAmount));
             BigInteger miningFee = miningFeeTx.getFee();
 
             // create reserve tx
             MoneroTxWallet reserveTx = wallet.createTx(new MoneroTxConfig()
                     .setAccountIndex(0)
-                    .addDestination(TradeUtils.FEE_ADDRESS, tradeFee)
+                    .addDestination(TradeUtils.getTradeFeeAddress(), tradeFee)
                     .addDestination(returnAddress, depositAmount.add(miningFee.multiply(BigInteger.valueOf(3l))))); // add thrice the mining fee // TODO (woodser): really require more funds on top of security deposit?
 
             // freeze inputs
@@ -288,7 +296,7 @@ public class XmrWalletService {
             // create deposit tx
             MoneroTxWallet depositTx = wallet.createTx(new MoneroTxConfig()
                     .setAccountIndex(0)
-                    .addDestination(TradeUtils.FEE_ADDRESS, tradeFee)
+                    .addDestination(TradeUtils.getTradeFeeAddress(), tradeFee)
                     .addDestination(multisigAddress, depositAmount));
 
             // freeze deposit inputs
@@ -315,36 +323,31 @@ public class XmrWalletService {
      * @param miningFeePadding verifies depositAmount has additional funds to cover mining fee increase
      */
     public void verifyTradeTx(String depositAddress, BigInteger depositAmount, BigInteger tradeFee, String txHash, String txHex, String txKey, List<String> keyImages, boolean miningFeePadding) {
-        boolean submittedToPool = false;
-        MoneroDaemon daemon = getDaemon();
+        MoneroDaemonRpc daemon = getDaemon();
         MoneroWallet wallet = getWallet();
         try {
-            
-            // get tx from daemon
+
+            // verify tx not submitted to pool
             MoneroTx tx = daemon.getTx(txHash);
-            
-            // if tx is not submitted, submit but do not relay
-            if (tx == null) {
-                MoneroSubmitTxResult result = daemon.submitTxHex(txHex, true); // TODO (woodser): invert doNotRelay flag to relay for library consistency?
-                if (!result.isGood()) throw new RuntimeException("Failed to submit tx to daemon: " + JsonUtils.serialize(result));
-                submittedToPool = true;
-                tx = daemon.getTx(txHash);
-            } else if (tx.isRelayed()) {
-                throw new RuntimeException("Trade tx must not be relayed");
-            }
-            
+            if (tx != null) throw new RuntimeException("Tx is already submitted");
+
+            // submit tx to pool
+            MoneroSubmitTxResult result = daemon.submitTxHex(txHex, true); // TODO (woodser): invert doNotRelay flag to relay for library consistency?
+            if (!result.isGood()) throw new RuntimeException("Failed to submit tx to daemon: " + JsonUtils.serialize(result));
+            tx = daemon.getTx(txHash);
+
             // verify reserved key images
             if (keyImages != null) {
                 Set<String> txKeyImages = new HashSet<String>();
                 for (MoneroOutput input : tx.getInputs()) txKeyImages.add(input.getKeyImage().getHex());
                 if (!txKeyImages.equals(new HashSet<String>(keyImages))) throw new Error("Reserve tx's inputs do not match claimed key images");
             }
-            
+
             // verify the unlock height
             if (tx.getUnlockHeight() != 0) throw new RuntimeException("Unlock height must be 0");
 
             // verify trade fee
-            String feeAddress = TradeUtils.FEE_ADDRESS;
+            String feeAddress = TradeUtils.getTradeFeeAddress();
             MoneroCheckTx check = wallet.checkTxKey(txHash, txKey, feeAddress);
             if (!check.isGood()) throw new RuntimeException("Invalid proof of trade fee");
             if (!check.getReceivedAmount().equals(tradeFee)) throw new RuntimeException("Trade fee is incorrect amount, expected " + tradeFee + " but was " + check.getReceivedAmount());
@@ -364,9 +367,12 @@ public class XmrWalletService {
             if (miningFeePadding) depositThreshold  = depositThreshold.add(feeThreshold.multiply(BigInteger.valueOf(3l))); // prove reserve of at least deposit amount + (3 * min mining fee)
             if (check.getReceivedAmount().compareTo(depositThreshold) < 0) throw new RuntimeException("Deposit amount is not enough, needed " + depositThreshold + " but was " + check.getReceivedAmount());
         } finally {
-
-            // flush tx from pool if we added it
-            if (submittedToPool) daemon.flushTxPool(txHash);
+            try {
+                daemon.flushTxPool(txHash); // flush tx from pool
+            } catch (MoneroRpcError err) {
+                System.out.println(daemon.getRpcConnection());
+                throw err.getCode() == -32601 ? new RuntimeException("Failed to flush tx from pool. Arbitrator must use trusted, unrestricted daemon") : err;
+            }
         }
     }
 
@@ -393,11 +399,13 @@ public class XmrWalletService {
     }
 
     private void tryInitMainWallet() {
+
+        // open or create wallet
         MoneroWalletConfig walletConfig = new MoneroWalletConfig().setPath(MONERO_WALLET_NAME).setPassword(getWalletPassword());
         if (MoneroUtils.walletExists(xmrWalletFile.getPath())) {
             wallet = openWallet(walletConfig, rpcBindPort);
         } else if (connectionsService.getConnection() != null && Boolean.TRUE.equals(connectionsService.getConnection().isConnected())) {
-            wallet = createWallet(walletConfig, rpcBindPort); // wallet requires connection to daemon to correctly set height
+            wallet = createWallet(walletConfig, rpcBindPort);
         }
 
         // wallet is not initialized until connected to a daemon
@@ -410,9 +418,15 @@ public class XmrWalletService {
                 e.printStackTrace();
             }
 
-            System.out.println("Monero wallet path: " + wallet.getPath());
-            System.out.println("Monero wallet address: " + wallet.getPrimaryAddress());
+            if (connectionsService.getDaemon() == null) System.out.println("Daemon: null");
+            else {
+                System.out.println("Daemon uri: " + connectionsService.getDaemon().getRpcConnection().getUri());
+                System.out.println("Daemon height: " + connectionsService.getDaemon().getInfo().getHeight());
+            }
             System.out.println("Monero wallet uri: " + wallet.getRpcConnection().getUri());
+            System.out.println("Monero wallet path: " + wallet.getPath());
+            System.out.println("Monero wallet seed: " + wallet.getMnemonic());
+            System.out.println("Monero wallet primary address: " + wallet.getPrimaryAddress());
             System.out.println("Monero wallet height: " + wallet.getHeight());
             System.out.println("Monero wallet balance: " + wallet.getBalance(0));
             System.out.println("Monero wallet unlocked balance: " + wallet.getUnlockedBalance(0));
@@ -433,8 +447,10 @@ public class XmrWalletService {
 
         // create wallet
         try {
+            log.info("Creating wallet " + config.getPath());
             walletRpc.createWallet(config);
-            walletRpc.startSyncing(MONERO_WALLET_SYNC_PERIOD);
+            log.info("Syncing wallet " + config.getPath());
+            walletRpc.startSyncing(connectionsService.getDefaultRefreshPeriodMs());
             return walletRpc;
         } catch (Exception e) {
             e.printStackTrace();
@@ -450,8 +466,10 @@ public class XmrWalletService {
 
         // open wallet
         try {
+            log.info("Opening wallet " + config.getPath());
             walletRpc.openWallet(config);
-            walletRpc.startSyncing(MONERO_WALLET_SYNC_PERIOD);
+            log.info("Syncing wallet " + config.getPath());
+            walletRpc.startSyncing(connectionsService.getDefaultRefreshPeriodMs());
             return walletRpc;
         } catch (Exception e) {
             e.printStackTrace();
@@ -489,10 +507,16 @@ public class XmrWalletService {
     }
 
     private void setWalletDaemonConnections(MoneroRpcConnection connection) {
-        log.info("Setting wallet daemon connections: " + (connection == null ? null : connection.getUri()));
+        log.info("Setting wallet daemon connection: " + (connection == null ? null : connection.getUri()));
         if (wallet == null) tryInitMainWallet();
-        if (wallet != null) wallet.setDaemonConnection(connection);
-        for (MoneroWallet multisigWallet : multisigWallets.values()) multisigWallet.setDaemonConnection(connection);
+        if (wallet != null) {
+            wallet.setDaemonConnection(connection);
+            wallet.startSyncing(connectionsService.getDefaultRefreshPeriodMs());
+        }
+        for (MoneroWallet multisigWallet : multisigWallets.values()) {
+            multisigWallet.setDaemonConnection(connection);
+            multisigWallet.startSyncing(connectionsService.getDefaultRefreshPeriodMs()); // TODO: optimize when multisig wallets are open and syncing
+        }
     }
 
     private void notifyBalanceListeners() {
@@ -803,6 +827,19 @@ public class XmrWalletService {
     ///////////////////////////////////////////////////////////////////////////////////////////
     
     
+    public static MoneroNetworkType getMoneroNetworkType() {
+        switch (Config.baseCurrencyNetwork()) {
+        case XMR_LOCAL:
+            return MoneroNetworkType.TESTNET;
+        case XMR_STAGENET:
+            return MoneroNetworkType.STAGENET;
+        case XMR_MAINNET:
+            return MoneroNetworkType.MAINNET;
+        default:
+            throw new RuntimeException("Unhandled base currency network: " + Config.baseCurrencyNetwork());
+        }
+    }
+
     public static void printTxs(String tracePrefix, MoneroTxWallet... txs) {
         StringBuilder sb = new StringBuilder();
         for (MoneroTxWallet tx : txs) sb.append('\n' + tx.toString());

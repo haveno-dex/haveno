@@ -39,7 +39,7 @@ public class MakerSetsLockTime extends TradeTask {
 
             // 10 days for altcoins, 20 days for other payment methods
             // For regtest dev environment we use 5 blocks
-            int delay = Config.baseCurrencyNetwork().isStagenet() ?
+            int delay = Config.baseCurrencyNetwork().isTestnet() ?
                     5 :
                     Restrictions.getLockTime(processModel.getOffer().getPaymentMethod().isBlockchain());
 

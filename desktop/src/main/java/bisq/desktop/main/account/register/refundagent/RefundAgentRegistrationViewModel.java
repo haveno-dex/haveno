@@ -20,7 +20,7 @@ package bisq.desktop.main.account.register.refundagent;
 
 import bisq.desktop.main.account.register.AgentRegistrationViewModel;
 
-import bisq.core.btc.wallet.BtcWalletService;
+import bisq.core.btc.wallet.XmrWalletService;
 import bisq.core.support.dispute.refund.refundagent.RefundAgent;
 import bisq.core.support.dispute.refund.refundagent.RefundAgentManager;
 import bisq.core.user.User;
@@ -40,9 +40,9 @@ public class RefundAgentRegistrationViewModel extends AgentRegistrationViewModel
     public RefundAgentRegistrationViewModel(RefundAgentManager arbitratorManager,
                                             User user,
                                             P2PService p2PService,
-                                            BtcWalletService walletService,
+                                            XmrWalletService xmrWalletService,
                                             KeyRing keyRing) {
-        super(arbitratorManager, user, p2PService, walletService, keyRing);
+        super(arbitratorManager, user, p2PService, xmrWalletService, keyRing);
     }
 
     @Override

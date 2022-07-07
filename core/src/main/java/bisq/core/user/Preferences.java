@@ -778,9 +778,10 @@ public final class Preferences implements PersistedDataHost, BridgeAddressProvid
         switch (baseCurrencyNetwork) {
             case XMR_MAINNET:
                 return prefPayload.getBlockChainExplorerMainNet();
-            case XMR_TESTNET:
             case XMR_STAGENET:
                 return prefPayload.getBlockChainExplorerTestNet();
+            case XMR_LOCAL:
+                return prefPayload.getBlockChainExplorerTestNet(); // TODO: no testnet explorer for private testnet
             default:
                 throw new RuntimeException("BaseCurrencyNetwork not defined. BaseCurrencyNetwork=" + baseCurrencyNetwork);
         }
@@ -791,9 +792,10 @@ public final class Preferences implements PersistedDataHost, BridgeAddressProvid
         switch (baseCurrencyNetwork) {
             case XMR_MAINNET:
                 return BTC_MAIN_NET_EXPLORERS;
-            case XMR_TESTNET:
             case XMR_STAGENET:
                 return BTC_TEST_NET_EXPLORERS;
+            case XMR_LOCAL:
+                return BTC_TEST_NET_EXPLORERS; // TODO: no testnet explorer for private testnet
             default:
                 throw new RuntimeException("BaseCurrencyNetwork not defined. BaseCurrencyNetwork=" + baseCurrencyNetwork);
         }

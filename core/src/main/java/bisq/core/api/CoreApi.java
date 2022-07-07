@@ -548,15 +548,11 @@ public class CoreApi {
                           String paymentAccountId,
                           Consumer<Trade> resultHandler,
                           ErrorMessageHandler errorMessageHandler) {
-        try {
-            Offer offer = coreOffersService.getOffer(offerId);
-            coreTradesService.takeOffer(offer,
-                    paymentAccountId,
-                    resultHandler,
-                    errorMessageHandler);
-        } catch (Exception e) {
-            errorMessageHandler.handleErrorMessage(e.getMessage());
-        }
+        Offer offer = coreOffersService.getOffer(offerId);
+        coreTradesService.takeOffer(offer,
+                paymentAccountId,
+                resultHandler,
+                errorMessageHandler);
     }
 
     public void confirmPaymentStarted(String tradeId) {
