@@ -75,6 +75,9 @@ public class BitcoinModule extends AppModule {
         bind(File.class).annotatedWith(named(WALLET_DIR)).toInstance(config.walletDir);
         bind(int.class).annotatedWith(named(WALLET_RPC_BIND_PORT)).toInstance(config.walletRpcBindPort);
 
+        bindConstant().annotatedWith(named(Config.XMR_NODE)).to(config.xmrNode);
+        bindConstant().annotatedWith(named(Config.XMR_NODE_USERNAME)).to(config.xmrNodeUsername);
+        bindConstant().annotatedWith(named(Config.XMR_NODE_PASSWORD)).to(config.xmrNodePassword);
         bindConstant().annotatedWith(named(Config.BTC_NODES)).to(config.btcNodes);
         bindConstant().annotatedWith(named(Config.USER_AGENT)).to(config.userAgent);
         bindConstant().annotatedWith(named(Config.NUM_CONNECTIONS_FOR_BTC)).to(config.numConnectionsForBtc);

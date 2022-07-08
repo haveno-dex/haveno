@@ -68,6 +68,7 @@ public final class CoreMoneroConnectionsService {
     }
 
     private final Object lock = new Object();
+    private final Config config;
     private final CoreContext coreContext;
     private final CoreAccountService accountService;
     private final CoreMoneroNodeService nodeService;
@@ -85,12 +86,14 @@ public final class CoreMoneroConnectionsService {
     private TaskLooper updateDaemonLooper;;
 
     @Inject
-    public CoreMoneroConnectionsService(CoreContext coreContext,
+    public CoreMoneroConnectionsService(Config config,
+                                        CoreContext coreContext,
                                         WalletsSetup walletsSetup,
                                         CoreAccountService accountService,
                                         CoreMoneroNodeService nodeService,
                                         MoneroConnectionManager connectionManager,
                                         EncryptedConnectionList connectionList) {
+        this.config = config;
         this.coreContext = coreContext;
         this.accountService = accountService;
         this.nodeService = nodeService;
@@ -328,6 +331,11 @@ public final class CoreMoneroConnectionsService {
             // run once
             if (!isInitialized) {
 
+                // set monero connection from startup arguments
+                if (!"".equals(config.xmrNode)) {
+                    connectionManager.setConnection(new MoneroRpcConnection(config.xmrNode, config.xmrNodeUsername, config.xmrNodePassword).setPriority(1));
+                }
+
                 // register connection change listener
                 connectionManager.addListener(this::onConnectionChanged);
 
@@ -362,7 +370,7 @@ public final class CoreMoneroConnectionsService {
             });
 
             // connect to local node if available
-            if (nodeService.isMoneroNodeRunning() && (connectionManager.getAutoSwitch() || !connectionManager.isConnected())) {
+            if (nodeService.isMoneroNodeRunning() && (!connectionManager.isConnected() || connectionManager.getAutoSwitch())) {
                 MoneroRpcConnection connection = connectionManager.getConnectionByUri(nodeService.getDaemon().getRpcConnection().getUri());
                 if (connection != null) {
                     connection.checkConnection(connectionManager.getTimeout());

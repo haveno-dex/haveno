@@ -99,6 +99,9 @@ public class Config {
     public static final String SEND_MSG_THROTTLE_SLEEP = "sendMsgThrottleSleep";
     public static final String IGNORE_LOCAL_BTC_NODE = "ignoreLocalBtcNode";
     public static final String BITCOIN_REGTEST_HOST = "bitcoinRegtestHost";
+    public static final String XMR_NODE = "xmrNode";
+    public static final String XMR_NODE_USERNAME = "xmrNodeUsername";
+    public static final String XMR_NODE_PASSWORD = "xmrNodePassword";
     public static final String BTC_NODES = "btcNodes";
     public static final String SOCKS5_DISCOVER_MODE = "socks5DiscoverMode";
     public static final String USE_ALL_PROVIDED_NODES = "useAllProvidedNodes";
@@ -179,6 +182,9 @@ public class Config {
     public final int msgThrottlePer10Sec;
     public final int sendMsgThrottleTrigger;
     public final int sendMsgThrottleSleep;
+    public final String xmrNode;
+    public final String xmrNodeUsername;
+    public final String xmrNodePassword;
     public final String btcNodes;
     public final boolean useTorForBtc;
     public final boolean useTorForBtcOptionSetExplicitly;
@@ -326,14 +332,14 @@ public class Config {
                         .withValuesConvertedBy(new EnumValueConverter(BaseCurrencyNetwork.class))
                         .defaultsTo(BaseCurrencyNetwork.XMR_MAINNET);
 
-        ArgumentAcceptingOptionSpec<Boolean> ignoreLocalBtcNodeOpt =
+        ArgumentAcceptingOptionSpec<Boolean> ignoreLocalBtcNodeOpt = // TODO: update this to ignore local XMR node
                 parser.accepts(IGNORE_LOCAL_BTC_NODE,
-                        "If set to true a Bitcoin Core node running locally will be ignored")
+                        "If set to true a Monero node running locally will be ignored")
                         .withRequiredArg()
                         .ofType(Boolean.class)
                         .defaultsTo(false);
 
-        ArgumentAcceptingOptionSpec<String> bitcoinRegtestHostOpt =
+        ArgumentAcceptingOptionSpec<String> bitcoinRegtestHostOpt = // TODO: remove?
                 parser.accepts(BITCOIN_REGTEST_HOST, "Bitcoin Core node when using XMR_STAGENET network")
                         .withRequiredArg()
                         .ofType(String.class)
@@ -499,6 +505,21 @@ public class Config {
                         .withRequiredArg()
                         .ofType(int.class)
                         .defaultsTo(50); // Pause in ms to sleep if we get too many messages to send
+
+        ArgumentAcceptingOptionSpec<String> xmrNodeOpt =
+                parser.accepts(XMR_NODE, "URI of custom Monero node to use")
+                        .withRequiredArg()
+                        .defaultsTo("");
+
+        ArgumentAcceptingOptionSpec<String> xmrNodeUsernameOpt =
+                parser.accepts(XMR_NODE_USERNAME, "Username of custom Monero node to use")
+                        .withRequiredArg()
+                        .defaultsTo("");
+
+        ArgumentAcceptingOptionSpec<String> xmrNodePasswordOpt =
+                parser.accepts(XMR_NODE_PASSWORD, "Password of custom Monero node to use")
+                        .withRequiredArg()
+                        .defaultsTo("");
 
         ArgumentAcceptingOptionSpec<String> btcNodesOpt =
                 parser.accepts(BTC_NODES, "Custom nodes used for BitcoinJ as comma separated IP addresses.")
@@ -682,6 +703,9 @@ public class Config {
             this.msgThrottlePer10Sec = options.valueOf(msgThrottlePer10SecOpt);
             this.sendMsgThrottleTrigger = options.valueOf(sendMsgThrottleTriggerOpt);
             this.sendMsgThrottleSleep = options.valueOf(sendMsgThrottleSleepOpt);
+            this.xmrNode = options.valueOf(xmrNodeOpt);
+            this.xmrNodeUsername = options.valueOf(xmrNodeUsernameOpt);
+            this.xmrNodePassword = options.valueOf(xmrNodePasswordOpt);
             this.btcNodes = options.valueOf(btcNodesOpt);
             this.useTorForBtc = options.valueOf(useTorForBtcOpt);
             this.useTorForBtcOptionSetExplicitly = options.has(useTorForBtcOpt);
