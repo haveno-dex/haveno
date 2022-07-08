@@ -1,3 +1,2 @@
 # nodeaddress.onion:port [(@owner)]
-localhost:2002 (@devtest1) # TODO: replace with hosted stagenet seednodes
-localhost:3002 (@devtest2)
+p4egmovfaop5ayolai5nuz3fup25c5rpylwdsjmcrsfz4orvsyhkzrad.onion:2002 (@devtest1)
