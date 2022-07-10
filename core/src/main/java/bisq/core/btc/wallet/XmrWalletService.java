@@ -466,10 +466,15 @@ public class XmrWalletService {
 
         // open wallet
         try {
+            // open wallet
             log.info("Opening wallet " + config.getPath());
             walletRpc.openWallet(config);
-            log.info("Syncing wallet " + config.getPath());
+
+            // start syncing wallet in background
             walletRpc.startSyncing(connectionsService.getDefaultRefreshPeriodMs());
+
+            // sync wallet (blocks)
+            walletRpc.sync();
             return walletRpc;
         } catch (Exception e) {
             e.printStackTrace();
