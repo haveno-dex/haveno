@@ -37,6 +37,25 @@ deploy:
 	# give bitcoind rpc server time to start
 	sleep 5
 
+bitcoind:
+	./.localnet/bitcoind \
+		-regtest \
+		-peerbloomfilters=1 \
+		-datadir=.localnet/ \
+		-rpcuser=haveno \
+		-rpcpassword=1234
+
+btc-blocks:
+	./.localnet/bitcoin-cli \
+		-regtest \
+		-rpcuser=haveno \
+		-rpcpassword=1234 \
+		generatetoaddress 101 bcrt1q6j90vywv8x7eyevcnn2tn2wrlg3vsjlsvt46qz
+
+.PHONY: build seednode localnet
+
+# Local network
+
 monerod-local1:
 	./.localnet/monerod \
 		--testnet \
@@ -65,26 +84,11 @@ monerod-local2:
 		--rpc-access-control-origins http://localhost:8080 \
 		--fixed-difficulty 100
 
-monerod-stagenet:
-	./.localnet/monerod \
-		--stagenet \
-		--bootstrap-daemon-address auto \
-		--rpc-access-control-origins http://localhost:8080 \
-
 funding-wallet-local:
 	./.localnet/monero-wallet-rpc \
 		--testnet \
 		--daemon-address http://localhost:28081 \
 		--rpc-bind-port 28084 \
-		--rpc-login rpc_user:abc123 \
-		--rpc-access-control-origins http://localhost:8080 \
-		--wallet-dir ./.localnet
-
-funding-wallet-stagenet:
-	./.localnet/monero-wallet-rpc \
-		--stagenet \
-		--daemon-address http://localhost:38081 \
-		--rpc-bind-port 38084 \
 		--rpc-login rpc_user:abc123 \
 		--rpc-access-control-origins http://localhost:8080 \
 		--wallet-dir ./.localnet
@@ -96,14 +100,18 @@ seednode-local:
 		--useDevPrivilegeKeys=true \
 		--nodePort=2002 \
 		--appName=haveno-XMR_LOCAL_Seed_2002 \
-		
-seednode-stagenet:
-	./haveno-seednode \
-		--baseCurrencyNetwork=XMR_STAGENET \
+
+arbitrator-daemon-local:
+	# Arbitrator needs to be registered before making trades
+	./haveno-daemon \
+		--baseCurrencyNetwork=XMR_LOCAL \
 		--useLocalhostForP2P=true \
-		--useDevPrivilegeKeys=false \
-		--nodePort=2002 \
-		--appName=haveno-XMR_STAGENET_Seed_2002 \
+		--useDevPrivilegeKeys=true \
+		--nodePort=4444 \
+		--appName=haveno-XMR_LOCAL_arbitrator \
+		--apiPassword=apitest \
+		--apiPort=9998 \
+		--passwordRequired=false
 
 arbitrator-desktop-local:
 	# Arbitrator needs to be registered before making trades
@@ -113,17 +121,6 @@ arbitrator-desktop-local:
 		--useDevPrivilegeKeys=true \
 		--nodePort=4444 \
 		--appName=haveno-XMR_LOCAL_arbitrator \
-		--apiPassword=apitest \
-		--apiPort=9998
-
-arbitrator-desktop-stagenet:
-	# Arbitrator needs to be registered before making trades
-	./haveno-desktop \
-		--baseCurrencyNetwork=XMR_STAGENET \
-		--useLocalhostForP2P=true \
-		--useDevPrivilegeKeys=false \
-		--nodePort=4444 \
-		--appName=haveno-XMR_STAGENET_arbitrator \
 		--apiPassword=apitest \
 		--apiPort=9998
 
@@ -138,28 +135,16 @@ arbitrator-desktop2-local:
 		--apiPassword=apitest \
 		--apiPort=10001
 
-arbitrator-daemon-local:
-	# Arbitrator needs to be registered before making trades
+alice-daemon-local:
 	./haveno-daemon \
 		--baseCurrencyNetwork=XMR_LOCAL \
 		--useLocalhostForP2P=true \
 		--useDevPrivilegeKeys=true \
-		--nodePort=4444 \
-		--appName=haveno-XMR_LOCAL_arbitrator \
+		--nodePort=5555 \
+		--appName=haveno-XMR_LOCAL_Alice \
 		--apiPassword=apitest \
-		--apiPort=9998 \
-		--passwordRequired=false
-
-arbitrator-daemon-stagenet:
-	# Arbitrator needs to be registered before making trades
-	./haveno-daemon \
-		--baseCurrencyNetwork=XMR_STAGENET \
-		--useLocalhostForP2P=true \
-		--useDevPrivilegeKeys=false \
-		--nodePort=4444 \
-		--appName=haveno-XMR_STAGENET_arbitrator \
-		--apiPassword=apitest \
-		--apiPort=9998 \
+		--apiPort=9999 \
+		--walletRpcBindPort=38091 \
 		--passwordRequired=false
 
 alice-desktop-local:
@@ -173,41 +158,6 @@ alice-desktop-local:
 		--apiPort=9999 \
 		--walletRpcBindPort=38091
 
-alice-desktop-stagenet:
-	./haveno-desktop \
-		--baseCurrencyNetwork=XMR_STAGENET \
-		--useLocalhostForP2P=true \
-		--useDevPrivilegeKeys=false \
-		--nodePort=5555 \
-		--appName=haveno-XMR_STAGENET_Alice \
-		--apiPassword=apitest \
-		--apiPort=9999 \
-		--walletRpcBindPort=38091
-
-alice-daemon-local:
-	./haveno-daemon \
-		--baseCurrencyNetwork=XMR_LOCAL \
-		--useLocalhostForP2P=true \
-		--useDevPrivilegeKeys=true \
-		--nodePort=5555 \
-		--appName=haveno-XMR_LOCAL_Alice \
-		--apiPassword=apitest \
-		--apiPort=9999 \
-		--walletRpcBindPort=38091 \
-		--passwordRequired=false
-
-alice-daemon-stagenet:
-	./haveno-daemon \
-		--baseCurrencyNetwork=XMR_STAGENET \
-		--useLocalhostForP2P=true \
-		--useDevPrivilegeKeys=false \
-		--nodePort=5555 \
-		--appName=haveno-XMR_STAGENET_Alice \
-		--apiPassword=apitest \
-		--apiPort=9999 \
-		--walletRpcBindPort=38091 \
-		--passwordRequired=false
-
 bob-desktop-local:
 	./haveno-desktop \
 		--baseCurrencyNetwork=XMR_LOCAL \
@@ -215,17 +165,6 @@ bob-desktop-local:
 		--useDevPrivilegeKeys=true \
 		--nodePort=6666 \
 		--appName=haveno-XMR_LOCAL_Bob \
-		--apiPassword=apitest \
-		--apiPort=10000 \
-		--walletRpcBindPort=38092
-
-bob-desktop-stagenet:
-	./haveno-desktop \
-		--baseCurrencyNetwork=XMR_STAGENET \
-		--useLocalhostForP2P=true \
-		--useDevPrivilegeKeys=false \
-		--nodePort=6666 \
-		--appName=haveno-XMR_STAGENET_Bob \
 		--apiPassword=apitest \
 		--apiPort=10000 \
 		--walletRpcBindPort=38092
@@ -241,11 +180,73 @@ bob-daemon-local:
 		--apiPort=10000 \
 		--walletRpcBindPort=38092 \
 		--passwordRequired=false
-		
+
+# Stagenet network
+
+monerod-stagenet:
+	./.localnet/monerod \
+		--stagenet \
+		--bootstrap-daemon-address auto \
+		--rpc-access-control-origins http://localhost:8080 \
+
+seednode-stagenet:
+	./haveno-seednode \
+		--baseCurrencyNetwork=XMR_STAGENET \
+		--useLocalhostForP2P=false \
+		--useDevPrivilegeKeys=false \
+		--nodePort=2002 \
+		--appName=haveno-XMR_STAGENET_Seed_2002 \
+
+arbitrator-daemon-stagenet:
+	# Arbitrator needs to be registered before making trades
+	./haveno-daemon \
+		--baseCurrencyNetwork=XMR_STAGENET \
+		--useLocalhostForP2P=false \
+		--useDevPrivilegeKeys=false \
+		--nodePort=4444 \
+		--appName=haveno-XMR_STAGENET_arbitrator \
+		--apiPassword=apitest \
+		--apiPort=9998 \
+		--passwordRequired=false
+
+arbitrator-desktop-stagenet:
+	# Arbitrator needs to be registered before making trades
+	./haveno-desktop \
+		--baseCurrencyNetwork=XMR_STAGENET \
+		--useLocalhostForP2P=false \
+		--useDevPrivilegeKeys=false \
+		--nodePort=4444 \
+		--appName=haveno-XMR_STAGENET_arbitrator \
+		--apiPassword=apitest \
+		--apiPort=9998
+
+alice-daemon-stagenet:
+	./haveno-daemon \
+		--baseCurrencyNetwork=XMR_STAGENET \
+		--useLocalhostForP2P=false \
+		--useDevPrivilegeKeys=false \
+		--nodePort=5555 \
+		--appName=haveno-XMR_STAGENET_Alice \
+		--apiPassword=apitest \
+		--apiPort=9999 \
+		--walletRpcBindPort=38091 \
+		--passwordRequired=false
+
+alice-desktop-stagenet:
+	./haveno-desktop \
+		--baseCurrencyNetwork=XMR_STAGENET \
+		--useLocalhostForP2P=false \
+		--useDevPrivilegeKeys=false \
+		--nodePort=5555 \
+		--appName=haveno-XMR_STAGENET_Alice \
+		--apiPassword=apitest \
+		--apiPort=9999 \
+		--walletRpcBindPort=38091
+
 bob-daemon-stagenet:
 	./haveno-daemon \
 		--baseCurrencyNetwork=XMR_STAGENET \
-		--useLocalhostForP2P=true \
+		--useLocalhostForP2P=false \
 		--useDevPrivilegeKeys=false \
 		--nodePort=6666 \
 		--appName=haveno-XMR_STAGENET_Bob \
@@ -254,19 +255,24 @@ bob-daemon-stagenet:
 		--walletRpcBindPort=38092 \
 		--passwordRequired=false
 
-bitcoind:
-	./.localnet/bitcoind \
-		-regtest \
-		-peerbloomfilters=1 \
-		-datadir=.localnet/ \
-		-rpcuser=haveno \
-		-rpcpassword=1234
+bob-desktop-stagenet:
+	./haveno-desktop \
+		--baseCurrencyNetwork=XMR_STAGENET \
+		--useLocalhostForP2P=false \
+		--useDevPrivilegeKeys=false \
+		--nodePort=6666 \
+		--appName=haveno-XMR_STAGENET_Bob \
+		--apiPassword=apitest \
+		--apiPort=10000 \
+		--walletRpcBindPort=38092
 
-btc-blocks:
-	./.localnet/bitcoin-cli \
-		-regtest \
-		-rpcuser=haveno \
-		-rpcpassword=1234 \
-		generatetoaddress 101 bcrt1q6j90vywv8x7eyevcnn2tn2wrlg3vsjlsvt46qz
-
-.PHONY: build seednode localnet
+charlie-desktop-stagenet:
+	./haveno-desktop \
+		--baseCurrencyNetwork=XMR_STAGENET \
+		--useLocalhostForP2P=false \
+		--useDevPrivilegeKeys=false \
+		--nodePort=8888 \
+		--appName=haveno-XMR_STAGENET_Charlie \
+		--apiPassword=apitest \
+		--apiPort=10002 \
+		--walletRpcBindPort=38093
