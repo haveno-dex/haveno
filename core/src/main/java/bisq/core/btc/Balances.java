@@ -40,8 +40,10 @@ import javafx.collections.ListChangeListener;
 import javax.inject.Inject;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
+import monero.common.MoneroError;
 import monero.wallet.model.MoneroOutputQuery;
 import monero.wallet.model.MoneroOutputWallet;
+import monero.wallet.model.MoneroTxWallet;
 import org.bitcoinj.core.Coin;
 
 @Slf4j
@@ -128,6 +130,12 @@ public class Balances {
         Coin sum = Coin.valueOf(0);
         List<Trade> openTrades = tradeManager.getTradesStreamWithFundsLockedIn().collect(Collectors.toList());
         for (Trade trade : openTrades) {
+            try {
+                MoneroTxWallet depositTx = xmrWalletService.getWallet().getTx(trade.getSelf().getDepositTxHash());
+                if (!depositTx.isConfirmed()) continue; // outputs are frozen until confirmed by arbitrator's broadcast
+            } catch (MoneroError e) {
+                continue;
+            }
             if (trade.getContract() == null) continue;
             Long reservedAmt;
             OfferPayload offerPayload = trade.getContract().getOfferPayload();
