@@ -1332,6 +1332,7 @@ public abstract class Trade implements Tradable, Model {
     }
 
     public boolean isPayoutPublished() {
+        if (getState() == Trade.State.SELLER_SAW_ARRIVED_PAYMENT_RECEIVED_MSG) return true; // TODO: this is a hack because seller has not seen signed payout tx. replace when payout process refactored
         return getState().getPhase().ordinal() >= Phase.PAYOUT_PUBLISHED.ordinal() || isWithdrawn();
     }
 
