@@ -270,14 +270,6 @@ public class AccountView extends ActivatableView<TabPane, Void> {
             else
                 navigation.navigateTo(MainView.class, AccountView.class, FiatAccountsView.class);
         }
-
-        String key = "accountPrivacyInfo";
-        if (!DevEnv.isDevMode())
-            new Popup()
-                    .headLine(Res.get("account.info.headline"))
-                    .backgroundInfo(Res.get("account.info.msg"))
-                    .dontShowAgainId(key)
-                    .show();
     }
 
     @Override
