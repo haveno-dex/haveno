@@ -28,8 +28,8 @@ deploy:
 	# deploy each node in its own named screen window
 	for target in \
 		seednode-local \
-		alice-desktop-local \
-		bob-desktop-local \
+		user1-desktop-local \
+		user2-desktop-local \
 		arbitrator-desktop-local; do \
 			screen -S localnet -X screen -t $$target; \
 			screen -S localnet -p $$target -X stuff "make $$target\n"; \
@@ -135,47 +135,47 @@ arbitrator-desktop2-local:
 		--apiPassword=apitest \
 		--apiPort=10001
 
-alice-daemon-local:
+user1-daemon-local:
 	./haveno-daemon \
 		--baseCurrencyNetwork=XMR_LOCAL \
 		--useLocalhostForP2P=true \
 		--useDevPrivilegeKeys=true \
 		--nodePort=5555 \
-		--appName=haveno-XMR_LOCAL_Alice \
+		--appName=haveno-XMR_LOCAL_user1 \
 		--apiPassword=apitest \
 		--apiPort=9999 \
 		--walletRpcBindPort=38091 \
 		--passwordRequired=false
 
-alice-desktop-local:
+user1-desktop-local:
 	./haveno-desktop \
 		--baseCurrencyNetwork=XMR_LOCAL \
 		--useLocalhostForP2P=true \
 		--useDevPrivilegeKeys=true \
 		--nodePort=5555 \
-		--appName=haveno-XMR_LOCAL_Alice \
+		--appName=haveno-XMR_LOCAL_user1 \
 		--apiPassword=apitest \
 		--apiPort=9999 \
 		--walletRpcBindPort=38091
 
-bob-desktop-local:
+user2-desktop-local:
 	./haveno-desktop \
 		--baseCurrencyNetwork=XMR_LOCAL \
 		--useLocalhostForP2P=true \
 		--useDevPrivilegeKeys=true \
 		--nodePort=6666 \
-		--appName=haveno-XMR_LOCAL_Bob \
+		--appName=haveno-XMR_LOCAL_user2 \
 		--apiPassword=apitest \
 		--apiPort=10000 \
 		--walletRpcBindPort=38092
 
-bob-daemon-local:
+user2-daemon-local:
 	./haveno-daemon \
 		--baseCurrencyNetwork=XMR_LOCAL \
 		--useLocalhostForP2P=true \
 		--useDevPrivilegeKeys=true \
 		--nodePort=6666 \
-		--appName=haveno-XMR_LOCAL_Bob \
+		--appName=haveno-XMR_LOCAL_user2 \
 		--apiPassword=apitest \
 		--apiPort=10000 \
 		--walletRpcBindPort=38092 \
@@ -220,59 +220,59 @@ arbitrator-desktop-stagenet:
 		--apiPassword=apitest \
 		--apiPort=9998
 
-alice-daemon-stagenet:
+user1-daemon-stagenet:
 	./haveno-daemon \
 		--baseCurrencyNetwork=XMR_STAGENET \
 		--useLocalhostForP2P=false \
 		--useDevPrivilegeKeys=false \
 		--nodePort=5555 \
-		--appName=haveno-XMR_STAGENET_Alice \
+		--appName=haveno-XMR_STAGENET_user1 \
 		--apiPassword=apitest \
 		--apiPort=9999 \
 		--walletRpcBindPort=38091 \
 		--passwordRequired=false
 
-alice-desktop-stagenet:
+user1-desktop-stagenet:
 	./haveno-desktop \
 		--baseCurrencyNetwork=XMR_STAGENET \
 		--useLocalhostForP2P=false \
 		--useDevPrivilegeKeys=false \
 		--nodePort=5555 \
-		--appName=haveno-XMR_STAGENET_Alice \
+		--appName=haveno-XMR_STAGENET_user1 \
 		--apiPassword=apitest \
 		--apiPort=9999 \
 		--walletRpcBindPort=38091
 
-bob-daemon-stagenet:
+user2-daemon-stagenet:
 	./haveno-daemon \
 		--baseCurrencyNetwork=XMR_STAGENET \
 		--useLocalhostForP2P=false \
 		--useDevPrivilegeKeys=false \
 		--nodePort=6666 \
-		--appName=haveno-XMR_STAGENET_Bob \
+		--appName=haveno-XMR_STAGENET_user2 \
 		--apiPassword=apitest \
 		--apiPort=10000 \
 		--walletRpcBindPort=38092 \
 		--passwordRequired=false
 
-bob-desktop-stagenet:
+user2-desktop-stagenet:
 	./haveno-desktop \
 		--baseCurrencyNetwork=XMR_STAGENET \
 		--useLocalhostForP2P=false \
 		--useDevPrivilegeKeys=false \
 		--nodePort=6666 \
-		--appName=haveno-XMR_STAGENET_Bob \
+		--appName=haveno-XMR_STAGENET_user2 \
 		--apiPassword=apitest \
 		--apiPort=10000 \
 		--walletRpcBindPort=38092
 
-charlie-desktop-stagenet:
+user3-desktop-stagenet:
 	./haveno-desktop \
 		--baseCurrencyNetwork=XMR_STAGENET \
 		--useLocalhostForP2P=false \
 		--useDevPrivilegeKeys=false \
 		--nodePort=8888 \
-		--appName=haveno-XMR_STAGENET_Charlie \
+		--appName=haveno-XMR_STAGENET_user3 \
 		--apiPassword=apitest \
 		--apiPort=10002 \
 		--walletRpcBindPort=38093
