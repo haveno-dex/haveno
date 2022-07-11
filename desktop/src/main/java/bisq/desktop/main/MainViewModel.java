@@ -361,11 +361,7 @@ public class MainViewModel implements ViewModel, HavenoSetup.HavenoSetupListener
                         .onClose(privateNotificationManager::removePrivateNotification)
                         .useIUnderstandButton()
                         .show());
-        bisqSetup.setDisplaySecurityRecommendationHandler(key ->
-                new Popup().headLine(Res.get("popup.securityRecommendation.headline"))
-                        .information(Res.get("popup.securityRecommendation.msg"))
-                        .dontShowAgainId(key)
-                        .show());
+        bisqSetup.setDisplaySecurityRecommendationHandler(key -> {});
         bisqSetup.setDisplayLocalhostHandler(key -> {
             if (!DevEnv.isDevMode()) {
                 Popup popup = new Popup().backgroundInfo(Res.get("popup.bitcoinLocalhostNode.msg"))
@@ -397,15 +393,7 @@ public class MainViewModel implements ViewModel, HavenoSetup.HavenoSetupListener
             // We copy the array as we will mutate it later
             showAmazonGiftCardAccountUpdateWindow(new ArrayList<>(amazonGiftCardAccountList));
         });
-        bisqSetup.setOsxKeyLoggerWarningHandler(() -> {
-            String key = "osxKeyLoggerWarning";
-            if (preferences.showAgain(key)) {
-                new Popup().warning(Res.get("popup.warning.osxKeyLoggerWarning"))
-                        .closeButtonText(Res.get("shared.iUnderstand"))
-                        .dontShowAgainId(key)
-                        .show();
-            }
-        });
+        bisqSetup.setOsxKeyLoggerWarningHandler(() -> { });
         bisqSetup.setQubesOSInfoHandler(() -> {
             String key = "qubesOSSetupInfo";
             if (preferences.showAgain(key)) {

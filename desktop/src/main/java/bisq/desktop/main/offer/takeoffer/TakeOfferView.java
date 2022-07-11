@@ -450,15 +450,6 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
         balanceTextField.setTargetAmount(model.dataModel.getTotalToPayAsCoin().get());
 
         if (!DevEnv.isDevMode()) {
-            String key = "securityDepositInfo";
-            new Popup().backgroundInfo(Res.get("popup.info.securityDepositInfo"))
-                    .actionButtonText(Res.get("shared.faq"))
-                    .onAction(() -> GUIUtil.openWebPage("https://bisq.wiki/Frequently_asked_questions#Why_does_Bisq_require_a_security_deposit_in_BTC.3F"))
-                    .useIUnderstandButton()
-                    .dontShowAgainId(key)
-                    .show();
-
-
             String tradeAmountText = model.isSeller() ? Res.get("takeOffer.takeOfferFundWalletInfo.tradeAmount", model.getTradeAmount()) : "";
             String message = Res.get("takeOffer.takeOfferFundWalletInfo.msg",
                     model.getTotalToPayInfo(),
@@ -467,7 +458,7 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
                     model.getTradeFee(),
                     model.getTxFee()
             );
-            key = "takeOfferFundWalletInfo";
+            String key = "takeOfferFundWalletInfo";
             new Popup().headLine(Res.get("takeOffer.takeOfferFundWalletInfo.headline"))
                     .instruction(message)
                     .dontShowAgainId(key)
@@ -1106,7 +1097,6 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
         // warn if you are selling BTC to unsigned account (#5343)
         if (model.isSellingToAnUnsignedAccount(offer) && !takeOfferFromUnsignedAccountWarningDisplayed) {
             takeOfferFromUnsignedAccountWarningDisplayed = true;
-            UserThread.runAfter(() -> GUIUtil.showTakeOfferFromUnsignedAccountWarning(), 500, TimeUnit.MILLISECONDS);
         }
     }
 
