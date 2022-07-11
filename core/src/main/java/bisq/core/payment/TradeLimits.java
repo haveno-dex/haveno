@@ -34,7 +34,7 @@ import javax.annotation.Nullable;
 @Slf4j
 @Singleton
 public class TradeLimits {
-    private static final Coin MAX_TRADE_LIMIT = Coin.parseCoin("2"); // max trade limit for lowest risk payment method. Others will get derived from that.
+    private static final Coin MAX_TRADE_LIMIT = Coin.parseCoin("20"); // max trade limit for lowest risk payment method. Others will get derived from that.
     @Nullable
     @Getter
     private static TradeLimits INSTANCE;

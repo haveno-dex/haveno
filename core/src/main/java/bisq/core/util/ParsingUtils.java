@@ -9,7 +9,7 @@ import org.bitcoinj.core.Coin;
 import org.bitcoinj.utils.MonetaryFormat;
 
 import org.apache.commons.lang3.StringUtils;
-
+import java.math.BigDecimal;
 import java.math.BigInteger;
 
 import lombok.extern.slf4j.Slf4j;
@@ -23,7 +23,8 @@ public class ParsingUtils {
      * TODO: change base unit to atomic units and long
      * TODO: move these static utilities?
      */
-    private static BigInteger CENTINEROS_AU_MULTIPLIER = BigInteger.valueOf(10000);
+    private static BigInteger CENTINEROS_AU_MULTIPLIER = new BigInteger("10000");
+    private static BigInteger MONERO_AU_MULTIPLIER = new BigInteger("1000000000000");
 
     /**
      * Convert Coin (denominated in centineros) to atomic units.
@@ -51,8 +52,18 @@ public class ParsingUtils {
      * @param atomicUnits is an amount in atomic units
      * @return the amount in centineros
      */
-    public static long atomicUnitsToCentineros(long atomicUnits) {
+    public static long atomicUnitsToCentineros(long atomicUnits) { // TODO: atomic units should be BigInteger, this should return double, else losing precision
       return atomicUnits / CENTINEROS_AU_MULTIPLIER.longValue();
+    }
+
+    /**
+     * Convert atomic units to centineros.
+     * 
+     * @param atomicUnits is an amount in atomic units
+     * @return the amount in centineros
+     */
+    public static double atomicUnitsToXmr(BigInteger atomicUnits) {
+      return new BigDecimal(atomicUnits).divide(new BigDecimal(MONERO_AU_MULTIPLIER)).doubleValue();
     }
 
     public static Coin parseToCoin(String input, CoinFormatter coinFormatter) {
