@@ -161,7 +161,7 @@ public abstract class BuyerProtocol extends DisputeProtocol {
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     protected void handle(PaymentReceivedMessage message, NodeAddress peer) {
-        log.info("BuyerProtocol.handle(SellerReceivedPaymentMessage)");
+        log.info("BuyerProtocol.handle(PaymentReceivedMessage)");
         synchronized (trade) {
             processModel.setTradeMessage(message);
             processModel.setTempTradingPeerNodeAddress(peer);
