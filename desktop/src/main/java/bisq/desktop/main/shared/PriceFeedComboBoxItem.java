@@ -17,6 +17,7 @@
 
 package bisq.desktop.main.shared;
 
+import bisq.common.UserThread;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
 
@@ -38,6 +39,6 @@ public class PriceFeedComboBoxItem {
     }
 
     public void setDisplayString(String displayString) {
-        this.displayStringProperty.set(displayString);
+        UserThread.execute(() ->  this.displayStringProperty.set(displayString));
     }
 }

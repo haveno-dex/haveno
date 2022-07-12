@@ -426,6 +426,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
             requestPersistence();
             resultHandler.handleResult(transaction);
         }, (errMessage) -> {
+            onRemoved(openOffer);
             errorMessageHandler.handleErrorMessage(errMessage);
         });
     }
@@ -478,12 +479,11 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                                 ResultHandler resultHandler,
                                 ErrorMessageHandler errorMessageHandler) {
         if (!offersToBeEdited.containsKey(openOffer.getId())) {
-            Offer offer = openOffer.getOffer();
             if (openOffer.isDeactivated()) {
-                onRemoved(openOffer, resultHandler, offer);
+                onRemoved(openOffer);
             } else {
-                offerBookService.removeOffer(offer.getOfferPayload(),
-                        () -> onRemoved(openOffer, resultHandler, offer),
+                offerBookService.removeOffer(openOffer.getOffer().getOfferPayload(),
+                        () -> onRemoved(openOffer),
                         errorMessageHandler);
             }
         } else {
@@ -560,7 +560,8 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
         }
     }
 
-    private void onRemoved(@NotNull OpenOffer openOffer, ResultHandler resultHandler, Offer offer) {
+    private void onRemoved(@NotNull OpenOffer openOffer) {
+        Offer offer = openOffer.getOffer();
         if (offer.getOfferPayload().getReserveTxKeyImages() != null) {
             for (String frozenKeyImage : offer.getOfferPayload().getReserveTxKeyImages()) xmrWalletService.getWallet().thawOutput(frozenKeyImage);
         }
@@ -571,7 +572,6 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
         log.info("onRemoved offerId={}", offer.getId());
         btcWalletService.resetAddressEntriesForOpenOffer(offer.getId());
         requestPersistence();
-        resultHandler.handleResult();
     }
 
     // Close openOffer after deposit published

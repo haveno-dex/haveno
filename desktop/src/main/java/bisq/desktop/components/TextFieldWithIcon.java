@@ -72,7 +72,9 @@ public class TextFieldWithIcon extends AnchorPane {
     }
 
     public void setText(String text) {
-        textField.setText(text);
-        dummyTextField.setText(text);
+        UserThread.execute(() -> {
+            textField.setText(text);
+            dummyTextField.setText(text);
+        });
     }
 }
