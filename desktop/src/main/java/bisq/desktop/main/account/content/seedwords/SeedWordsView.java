@@ -24,8 +24,8 @@ import bisq.desktop.main.overlays.popups.Popup;
 import bisq.desktop.main.overlays.windows.WalletPasswordWindow;
 import bisq.desktop.util.Layout;
 
-import bisq.core.btc.wallet.BtcWalletService;
 import bisq.core.btc.wallet.WalletsManager;
+import bisq.core.btc.wallet.XmrWalletService;
 import bisq.core.locale.Res;
 import bisq.core.offer.OpenOfferManager;
 import bisq.core.user.DontShowAgainLookup;
@@ -39,7 +39,6 @@ import org.bitcoinj.wallet.DeterministicSeed;
 import javax.inject.Inject;
 import javax.inject.Named;
 
-import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
 
 import javafx.scene.control.Button;
@@ -54,13 +53,11 @@ import javafx.beans.value.ChangeListener;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.ZoneId;
 import java.time.ZoneOffset;
 
 import java.io.File;
 import java.io.IOException;
 
-import java.util.List;
 import java.util.TimeZone;
 
 import static bisq.desktop.util.FormBuilder.*;
@@ -70,7 +67,7 @@ import static javafx.beans.binding.Bindings.createBooleanBinding;
 public class SeedWordsView extends ActivatableView<GridPane, Void> {
     private final WalletsManager walletsManager;
     private final OpenOfferManager openOfferManager;
-    private final BtcWalletService btcWalletService;
+    private final XmrWalletService xmrWalletService;
     private final WalletPasswordWindow walletPasswordWindow;
     private final File storageDir;
 
@@ -94,12 +91,12 @@ public class SeedWordsView extends ActivatableView<GridPane, Void> {
     @Inject
     private SeedWordsView(WalletsManager walletsManager,
                           OpenOfferManager openOfferManager,
-                          BtcWalletService btcWalletService,
+                          XmrWalletService xmrWalletService,
                           WalletPasswordWindow walletPasswordWindow,
                           @Named(Config.STORAGE_DIR) File storageDir) {
         this.walletsManager = walletsManager;
         this.openOfferManager = openOfferManager;
-        this.btcWalletService = btcWalletService;
+        this.xmrWalletService = xmrWalletService;
         this.walletPasswordWindow = walletPasswordWindow;
         this.storageDir = storageDir;
     }
@@ -109,8 +106,8 @@ public class SeedWordsView extends ActivatableView<GridPane, Void> {
         addTitledGroupBg(root, gridRow, 2, Res.get("account.seed.backup.title"));
         displaySeedWordsTextArea = addTopLabelTextArea(root, gridRow, Res.get("seed.seedWords"), "", Layout.FIRST_ROW_DISTANCE).second;
         displaySeedWordsTextArea.getStyleClass().add("wallet-seed-words");
-        displaySeedWordsTextArea.setPrefHeight(40);
-        displaySeedWordsTextArea.setMaxHeight(40);
+        displaySeedWordsTextArea.setPrefHeight(70);
+        displaySeedWordsTextArea.setMaxHeight(70);
         displaySeedWordsTextArea.setEditable(false);
 
         datePicker = addTopLabelDatePicker(root, ++gridRow, Res.get("seed.date"), 10).second;
@@ -182,10 +179,7 @@ public class SeedWordsView extends ActivatableView<GridPane, Void> {
     }
 
     private void showSeedPhrase() {
-        DeterministicSeed keyChainSeed = btcWalletService.getKeyChainSeed();
-        // wallet creation date is not encrypted
-        walletCreationDate = Instant.ofEpochSecond(walletsManager.getChainSeedCreationTimeSeconds()).atZone(ZoneId.systemDefault()).toLocalDate();
-        if (keyChainSeed.isEncrypted()) {
+        if (xmrWalletService.isWalletEncrypted()) {
             askForPassword();
         } else {
             String key = "showSeedWordsWarning";
@@ -194,13 +188,13 @@ public class SeedWordsView extends ActivatableView<GridPane, Void> {
                         .actionButtonText(Res.get("account.seed.warn.noPw.yes"))
                         .onAction(() -> {
                             DontShowAgainLookup.dontShowAgain(key, true);
-                            initSeedWords(keyChainSeed);
+                            initSeedWords(xmrWalletService.getWallet().getMnemonic());
                             showSeedScreen();
                         })
                         .closeButtonText(Res.get("shared.no"))
                         .show();
             } else {
-                initSeedWords(keyChainSeed);
+                initSeedWords(xmrWalletService.getWallet().getMnemonic());
                 showSeedScreen();
             }
         }
@@ -225,16 +219,13 @@ public class SeedWordsView extends ActivatableView<GridPane, Void> {
 
     private void askForPassword() {
         walletPasswordWindow.headLine(Res.get("account.seed.enterPw")).onAesKey(aesKey -> {
-            initSeedWords(walletsManager.getDecryptedSeed(aesKey, btcWalletService.getKeyChainSeed(), btcWalletService.getKeyCrypter()));
+            initSeedWords(xmrWalletService.getWallet().getMnemonic());
             showSeedScreen();
         }).hideForgotPasswordButton().show();
     }
 
-    private void initSeedWords(DeterministicSeed seed) {
-        List<String> mnemonicCode = seed.getMnemonicCode();
-        if (mnemonicCode != null) {
-            seedWordText = Joiner.on(" ").join(mnemonicCode);
-        }
+    private void initSeedWords(String seed) {
+        seedWordText = seed;
     }
 
     private void showSeedScreen() {

@@ -103,7 +103,7 @@ public class AccountView extends ActivatableView<TabPane, Void> {
         notificationTab.setText(Res.get("account.menu.notifications").toUpperCase());
         passwordTab.setText(Res.get("account.menu.password").toUpperCase());
         seedWordsTab.setText(Res.get("account.menu.seedWords").toUpperCase());
-        walletInfoTab.setText(Res.get("account.menu.walletInfo").toUpperCase());
+        //walletInfoTab.setText(Res.get("account.menu.walletInfo").toUpperCase());
         backupTab.setText(Res.get("account.menu.backup").toUpperCase());
 
         navigationListener = (viewPath, data) -> {
