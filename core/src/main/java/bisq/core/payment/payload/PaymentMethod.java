@@ -68,10 +68,12 @@ import bisq.core.payment.UpiAccount;
 import bisq.core.payment.VerseAccount;
 import bisq.core.payment.WeChatPayAccount;
 import bisq.core.payment.WesternUnionAccount;
+import bisq.core.util.ParsingUtils;
 import bisq.core.locale.CurrencyUtil;
 import bisq.core.locale.Res;
 import bisq.core.locale.TradeCurrency;
-
+import bisq.common.config.BaseCurrencyNetwork;
+import bisq.common.config.Config;
 import bisq.common.proto.persistable.PersistablePayload;
 
 import org.bitcoinj.core.Coin;
@@ -113,6 +115,7 @@ public final class PaymentMethod implements PersistablePayload, Comparable<Payme
     private static final Coin DEFAULT_TRADE_LIMIT_LOW_RISK = Coin.parseCoin("50");
     private static final Coin DEFAULT_TRADE_LIMIT_MID_RISK = Coin.parseCoin("25");
     private static final Coin DEFAULT_TRADE_LIMIT_HIGH_RISK = Coin.parseCoin("12.5");
+    private static final double MAX_FIAT_STAGENET_XMR = 1.0; // denominated in XMR
 
     public static final String UPHOLD_ID = "UPHOLD";
     public static final String MONEY_BEAM_ID = "MONEY_BEAM";
@@ -477,9 +480,19 @@ public final class PaymentMethod implements PersistablePayload, Comparable<Payme
                     Coin.valueOf(maxTradeLimit).toFriendlyString(), this);
         }
 
+        // get risk based trade limit
         TradeLimits tradeLimits = new TradeLimits();
         long maxTradeLimit = tradeLimits.getMaxTradeLimit().value;
-        return Coin.valueOf(tradeLimits.getRoundedRiskBasedTradeLimit(maxTradeLimit, riskFactor));
+        long riskBasedTradeLimit = tradeLimits.getRoundedRiskBasedTradeLimit(maxTradeLimit, riskFactor); // as centineros
+
+        // if fiat and stagenet, cap offer amounts before trade credits supported
+        // TODO: remove this when trade credits supported
+        boolean isFiat = CurrencyUtil.isFiatCurrency(currencyCode);
+        boolean isStagenet = Config.baseCurrencyNetwork() == BaseCurrencyNetwork.XMR_STAGENET;
+        if (isFiat && isStagenet && ParsingUtils.centinerosToXmr(riskBasedTradeLimit) > MAX_FIAT_STAGENET_XMR) {
+            riskBasedTradeLimit = ParsingUtils.xmrToCentineros(MAX_FIAT_STAGENET_XMR);
+        }
+        return Coin.valueOf(riskBasedTradeLimit);
     }
 
     public String getShortName() {
