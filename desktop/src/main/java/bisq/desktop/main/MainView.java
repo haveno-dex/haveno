@@ -28,6 +28,7 @@ import bisq.desktop.components.AutoTooltipLabel;
 import bisq.desktop.components.AutoTooltipToggleButton;
 import bisq.desktop.components.BusyAnimation;
 import bisq.desktop.main.account.AccountView;
+import bisq.desktop.main.funds.FundsView;
 import bisq.desktop.main.market.MarketView;
 import bisq.desktop.main.market.offerbook.OfferBookChartView;
 import bisq.desktop.main.offer.BuyOfferView;
@@ -173,7 +174,7 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
         ToggleButton buyButton = new NavButton(BuyOfferView.class, Res.get("mainView.menu.buy").toUpperCase());
         ToggleButton sellButton = new NavButton(SellOfferView.class, Res.get("mainView.menu.sell").toUpperCase());
         ToggleButton portfolioButton = new NavButton(PortfolioView.class, Res.get("mainView.menu.portfolio").toUpperCase());
-//        ToggleButton fundsButton = new NavButton(FundsView.class, Res.get("mainView.menu.funds").toUpperCase());
+        ToggleButton fundsButton = new NavButton(FundsView.class, Res.get("mainView.menu.funds").toUpperCase());
 
         ToggleButton supportButton = new NavButton(SupportView.class, Res.get("mainView.menu.support"));
         ToggleButton settingsButton = new NavButton(SettingsView.class, Res.get("mainView.menu.settings"));
