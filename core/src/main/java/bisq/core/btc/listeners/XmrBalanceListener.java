@@ -25,8 +25,8 @@ public class XmrBalanceListener {
     public XmrBalanceListener() {
     }
 
-    public XmrBalanceListener(Integer accountIndex) {
-        this.subaddressIndex = accountIndex;
+    public XmrBalanceListener(Integer subaddressIndex) {
+        this.subaddressIndex = subaddressIndex;
     }
 
     public Integer getSubaddressIndex() {

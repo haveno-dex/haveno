@@ -29,10 +29,9 @@ import bisq.desktop.main.overlays.windows.OfferDetailsWindow;
 import bisq.desktop.main.overlays.windows.TradeDetailsWindow;
 import bisq.desktop.util.GUIUtil;
 import bisq.core.api.CoreMoneroConnectionsService;
-import bisq.core.btc.wallet.BtcWalletService;
+import bisq.core.btc.wallet.XmrWalletService;
 import bisq.core.locale.Res;
 import bisq.core.offer.OpenOffer;
-import bisq.core.trade.Tradable;
 import bisq.core.trade.Trade;
 import bisq.core.user.Preferences;
 
@@ -40,13 +39,10 @@ import bisq.network.p2p.P2PService;
 
 import bisq.common.util.Utilities;
 
-import org.bitcoinj.core.TransactionConfidence;
-import org.bitcoinj.wallet.listeners.WalletChangeEventListener;
-
 import com.googlecode.jcsv.writer.CSVEntryConverter;
 
 import javax.inject.Inject;
-
+import monero.wallet.model.MoneroWalletListener;
 import de.jensd.fx.fontawesome.AwesomeIcon;
 
 import javafx.fxml.FXML;
@@ -77,10 +73,8 @@ import javafx.collections.ObservableList;
 import javafx.collections.transformation.SortedList;
 
 import javafx.util.Callback;
-
+import java.math.BigInteger;
 import java.util.Comparator;
-
-import javax.annotation.Nullable;
 
 @FxmlView
 public class TransactionsView extends ActivatableView<VBox, Void> {
@@ -100,33 +94,40 @@ public class TransactionsView extends ActivatableView<VBox, Void> {
     private final DisplayedTransactions displayedTransactions;
     private final SortedList<TransactionsListItem> sortedDisplayedTransactions;
 
-    private final BtcWalletService btcWalletService;
-    private final P2PService p2PService;
-    private final CoreMoneroConnectionsService connectionService;
+    private final XmrWalletService xmrWalletService;
     private final Preferences preferences;
     private final TradeDetailsWindow tradeDetailsWindow;
     private final OfferDetailsWindow offerDetailsWindow;
 
-    private WalletChangeEventListener walletChangeEventListener;
-
     private EventHandler<KeyEvent> keyEventEventHandler;
     private Scene scene;
 
+    private TransactionsUpdater transactionsUpdater = new TransactionsUpdater();
+
+    private class TransactionsUpdater extends MoneroWalletListener {
+        @Override
+        public void onNewBlock(long height) {
+            displayedTransactions.update();
+        }
+        @Override
+        public void onBalancesChanged(BigInteger newBalance, BigInteger newUnlockedBalance) {
+            displayedTransactions.update();
+        }
+    }
+    
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Constructor, lifecycle
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     @Inject
-    private TransactionsView(BtcWalletService btcWalletService,
+    private TransactionsView(XmrWalletService xmrWalletService,
                              P2PService p2PService,
                              CoreMoneroConnectionsService connectionService,
                              Preferences preferences,
                              TradeDetailsWindow tradeDetailsWindow,
                              OfferDetailsWindow offerDetailsWindow,
                              DisplayedTransactionsFactory displayedTransactionsFactory) {
-        this.btcWalletService = btcWalletService;
-        this.p2PService = p2PService;
-        this.connectionService = connectionService;
+        this.xmrWalletService = xmrWalletService;
         this.preferences = preferences;
         this.tradeDetailsWindow = tradeDetailsWindow;
         this.offerDetailsWindow = offerDetailsWindow;
@@ -168,15 +169,11 @@ public class TransactionsView extends ActivatableView<VBox, Void> {
         addressColumn.setComparator(Comparator.comparing(item -> item.getDirection() + item.getAddressString()));
         transactionColumn.setComparator(Comparator.comparing(TransactionsListItem::getTxId));
         amountColumn.setComparator(Comparator.comparing(TransactionsListItem::getAmountAsCoin));
-        confidenceColumn.setComparator(Comparator.comparingDouble(item -> item.getTxConfidenceIndicator().getProgress()));
+        confidenceColumn.setComparator(Comparator.comparingLong(item -> item.getNumConfirmations()));
         memoColumn.setComparator(Comparator.comparing(TransactionsListItem::getMemo));
 
         dateColumn.setSortType(TableColumn.SortType.DESCENDING);
         tableView.getSortOrder().add(dateColumn);
-
-        walletChangeEventListener = wallet -> {
-            displayedTransactions.update();
-        };
 
         keyEventEventHandler = event -> {
             // Not intended to be public to users as the feature is not well tested
@@ -202,7 +199,7 @@ public class TransactionsView extends ActivatableView<VBox, Void> {
         tableView.setItems(sortedDisplayedTransactions);
         displayedTransactions.update();
 
-        btcWalletService.addChangeEventListener(walletChangeEventListener);
+        xmrWalletService.addWalletListener(transactionsUpdater);
 
         scene = root.getScene();
         if (scene != null)
@@ -226,7 +223,7 @@ public class TransactionsView extends ActivatableView<VBox, Void> {
                 columns[3] = item.getTxId();
                 columns[4] = item.getAmount();
                 columns[5] = item.getMemo() == null ? "" : item.getMemo();
-                columns[6] = item.getNumConfirmations();
+                columns[6] = String.valueOf(item.getNumConfirmations());
                 return columns;
             };
 
@@ -239,7 +236,7 @@ public class TransactionsView extends ActivatableView<VBox, Void> {
     protected void deactivate() {
         sortedDisplayedTransactions.comparatorProperty().unbind();
         displayedTransactions.forEach(TransactionsListItem::cleanup);
-        btcWalletService.removeChangeEventListener(walletChangeEventListener);
+        xmrWalletService.removeWalletListener(transactionsUpdater);
 
         if (scene != null)
             scene.removeEventHandler(KeyEvent.KEY_RELEASED, keyEventEventHandler);
@@ -505,49 +502,15 @@ public class TransactionsView extends ActivatableView<VBox, Void> {
                             @Override
                             public void updateItem(final TransactionsListItem item, boolean empty) {
                                 super.updateItem(item, empty);
-                                if (item != null && !empty) {
-                                    TransactionConfidence confidence = btcWalletService.getConfidenceForTxId(item.getTxId());
-                                    if (confidence != null) {
-                                        if (confidence.getConfidenceType() == TransactionConfidence.ConfidenceType.PENDING) {
-                                            if (button == null) {
-                                                button = new AutoTooltipButton(Res.get("funds.tx.revert"));
-                                                setGraphic(button);
-                                            }
-                                            button.setOnAction(e -> revertTransaction(item.getTxId(), item.getTradable()));
-                                        } else {
-                                            setGraphic(null);
-                                            if (button != null) {
-                                                button.setOnAction(null);
-                                                button = null;
-                                            }
-                                        }
-                                    }
-                                } else {
-                                    setGraphic(null);
-                                    if (button != null) {
-                                        button.setOnAction(null);
-                                        button = null;
-                                    }
+                                setGraphic(null);
+                                if (button != null) {
+                                    button.setOnAction(null);
+                                    button = null;
                                 }
                             }
                         };
                     }
                 });
-    }
-
-    private void revertTransaction(String txId, @Nullable Tradable tradable) {
-        if (GUIUtil.isReadyForTxBroadcastOrShowPopup(p2PService, connectionService)) {
-            try {
-                btcWalletService.doubleSpendTransaction(txId, () -> {
-                    if (tradable != null)
-                        btcWalletService.swapAnyTradeEntryContextToAvailableEntry(tradable.getId());
-
-                    new Popup().information(Res.get("funds.tx.txSent")).show();
-                }, errorMessage -> new Popup().warning(errorMessage).show());
-            } catch (Throwable e) {
-                new Popup().warning(e.getMessage()).show();
-            }
-        }
     }
 }
 

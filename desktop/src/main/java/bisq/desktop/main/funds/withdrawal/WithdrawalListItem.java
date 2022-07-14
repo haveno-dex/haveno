@@ -23,6 +23,7 @@ import bisq.core.btc.listeners.XmrBalanceListener;
 import bisq.core.btc.model.XmrAddressEntry;
 import bisq.core.btc.wallet.XmrWalletService;
 import bisq.core.locale.Res;
+import bisq.core.util.ParsingUtils;
 import bisq.core.util.coin.CoinFormatter;
 
 import org.bitcoinj.core.Coin;
@@ -71,7 +72,8 @@ class WithdrawalListItem {
     }
 
     private void updateBalance() {
-        balance = walletService.getBalanceForSubaddress(addressEntry.getSubaddressIndex());
+        balance = walletService.getBalanceForSubaddress(addressEntry.getSubaddressIndex()); // TODO: Coin represents centineros everywhere, but here it's atomic units. reconcile
+        balance = Coin.valueOf(ParsingUtils.atomicUnitsToCentineros(balance.longValue())); // in centineros
         if (balance != null)
             balanceLabel.setText(formatter.formatCoin(this.balance));
     }

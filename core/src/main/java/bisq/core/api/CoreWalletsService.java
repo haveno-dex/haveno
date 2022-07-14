@@ -171,7 +171,7 @@ class CoreWalletsService {
 
     String getXmrNewSubaddress() {
         accountService.checkAccountOpen();
-        return xmrWalletService.getWallet().createSubaddress(0).getAddress();
+        return xmrWalletService.getNewAddressEntry().getAddressString();
     }
 
     List<MoneroTxWallet> getXmrTxs() {

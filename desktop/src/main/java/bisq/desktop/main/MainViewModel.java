@@ -43,7 +43,7 @@ import bisq.core.alert.PrivateNotificationManager;
 import bisq.core.api.CoreMoneroConnectionsService;
 import bisq.core.app.HavenoSetup;
 import bisq.core.btc.nodes.LocalBitcoinNode;
-import bisq.core.btc.wallet.BtcWalletService;
+import bisq.core.btc.wallet.XmrWalletService;
 import bisq.core.locale.CryptoCurrency;
 import bisq.core.locale.CurrencyUtil;
 import bisq.core.locale.Res;
@@ -153,7 +153,7 @@ public class MainViewModel implements ViewModel, HavenoSetup.HavenoSetupListener
     @Inject
     public MainViewModel(HavenoSetup bisqSetup,
                          CoreMoneroConnectionsService connectionService,
-                         BtcWalletService btcWalletService,
+                         XmrWalletService xmrWalletService,
                          User user,
                          BalancePresentation balancePresentation,
                          TradePresentation tradePresentation,
@@ -202,7 +202,7 @@ public class MainViewModel implements ViewModel, HavenoSetup.HavenoSetupListener
 
         TxIdTextField.setPreferences(preferences);
 
-        TxIdTextField.setWalletService(btcWalletService);
+        TxIdTextField.setXmrWalletService(xmrWalletService);
 
         GUIUtil.setFeeService(feeService);
         GUIUtil.setPreferences(preferences);

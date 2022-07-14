@@ -55,6 +55,7 @@ import monero.wallet.model.MoneroCheckTx;
 import monero.wallet.model.MoneroDestination;
 import monero.wallet.model.MoneroOutputWallet;
 import monero.wallet.model.MoneroSubaddress;
+import monero.wallet.model.MoneroTransferQuery;
 import monero.wallet.model.MoneroTxConfig;
 import monero.wallet.model.MoneroTxQuery;
 import monero.wallet.model.MoneroTxWallet;
@@ -70,6 +71,7 @@ public class XmrWalletService {
 
     // Monero configuration
     // TODO: don't hard code configuration, inject into classes?
+    public static final int NUM_BLOCKS_UNLOCK = 10;
     private static final MoneroNetworkType MONERO_NETWORK_TYPE = getMoneroNetworkType();
     private static final MoneroWalletRpcManager MONERO_WALLET_RPC_MANAGER = new MoneroWalletRpcManager();
     private static final String MONERO_WALLET_RPC_DIR = System.getProperty("user.dir") + File.separator + ".localnet"; // .localnet contains monero-wallet-rpc and wallet files
@@ -634,6 +636,7 @@ public class XmrWalletService {
         // clear wallets
         wallet = null;
         multisigWallets.clear();
+        walletListeners.clear();
     }
     
     private void backupWallet(String walletName) {
@@ -649,7 +652,17 @@ public class XmrWalletService {
     }
     
     // ----------------------------- LEGACY APP -------------------------------
-    
+
+    public XmrAddressEntry getNewAddressEntry() {
+        return getOrCreateAddressEntry(XmrAddressEntry.Context.AVAILABLE, Optional.empty());
+    }
+
+    public XmrAddressEntry getFreshAddressEntry() {
+        List<XmrAddressEntry> unusedAddressEntries = getUnusedAddressEntries();
+        if (unusedAddressEntries.isEmpty()) return getNewAddressEntry();
+        else return unusedAddressEntries.get(0);
+    }
+
     public XmrAddressEntry recoverAddressEntry(String offerId, String address, XmrAddressEntry.Context context) {
         var available = findAddressEntry(address, XmrAddressEntry.Context.AVAILABLE);
         if (!available.isPresent()) return null;
@@ -761,12 +774,21 @@ public class XmrWalletService {
         return xmrAddressEntryList.getAddressEntriesAsListImmutable();
     }
 
-    public boolean isSubaddressUnused(int subaddressIndex) {
-        return subaddressIndex != 0 && getBalanceForSubaddress(subaddressIndex).value == 0;
-        // return !wallet.getSubaddress(accountIndex, 0).isUsed(); // TODO: isUsed()
-        // does not include unconfirmed funds
+    public List<XmrAddressEntry> getUnusedAddressEntries() {
+        return getAvailableAddressEntries().stream()
+                .filter(e -> isSubaddressUnused(e.getSubaddressIndex()))
+                .collect(Collectors.toList());
     }
 
+    public boolean isSubaddressUnused(int subaddressIndex) {
+        return getNumTxOutputsForSubaddress(subaddressIndex) == 0;
+    }
+
+    public Coin getBalanceForAddress(String address) {
+        return getBalanceForSubaddress(wallet.getAddressIndex(address).getIndex());
+    }
+
+    // TODO: Coin represents centineros everywhere, but here it's atomic units. reconcile
     public Coin getBalanceForSubaddress(int subaddressIndex) {
 
         // get subaddress balance
@@ -784,6 +806,24 @@ public class XmrWalletService {
         System.out.println("Returning balance for subaddress " + subaddressIndex + ": " + balance.longValueExact());
 
         return Coin.valueOf(balance.longValueExact());
+    }
+
+    public int getNumTxOutputsForSubaddress(int subaddressIndex) {
+
+        // get txs with transfers to the subaddress
+        List<MoneroTxWallet> txs = wallet.getTxs(new MoneroTxQuery()
+                .setTransferQuery((new MoneroTransferQuery()
+                        .setAccountIndex(0)
+                        .setSubaddressIndex(subaddressIndex)
+                        .setIsIncoming(true)))
+                .setIncludeOutputs(true));
+
+        // count num outputs
+        int numUnspentOutputs = 0;
+        for (MoneroTxWallet tx : txs) {
+            numUnspentOutputs += tx.isConfirmed() ? tx.getOutputs().size() : 1; // TODO: monero-project does not provide outputs for unconfirmed txs
+        }
+        return numUnspentOutputs;
     }
 
     public Coin getAvailableConfirmedBalance() {
