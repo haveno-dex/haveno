@@ -112,8 +112,8 @@ public final class Preferences implements PersistedDataHost, BridgeAddressProvid
     private static final ArrayList<BlockChainExplorer> XMR_MAIN_NET_EXPLORERS = new ArrayList<>(Arrays.asList(
             new BlockChainExplorer("xmrchain.net", "https://xmrchain.net/tx/", "")
     ));
-    private static final ArrayList<BlockChainExplorer> XMR_TEST_NET_EXPLORERS = new ArrayList<>(Arrays.asList(
-            new BlockChainExplorer("testnet.xmrchain.net", "https://testnet.xmrchain.net/tx/", "")
+    private static final ArrayList<BlockChainExplorer> XMR_STAGE_NET_EXPLORERS = new ArrayList<>(Arrays.asList(
+            new BlockChainExplorer("stagenet.xmrchain.net", "https://stagenet.xmrchain.net/tx/", "")
     ));
 
     private static final ArrayList<String> XMR_TX_PROOF_SERVICES_CLEAR_NET = new ArrayList<>(Arrays.asList(
@@ -273,10 +273,10 @@ public final class Preferences implements PersistedDataHost, BridgeAddressProvid
         BaseCurrencyNetwork baseCurrencyNetwork = Config.baseCurrencyNetwork();
         if ("BTC".equals(baseCurrencyNetwork.getCurrencyCode())) {
             setBlockChainExplorerMainNet(BTC_MAIN_NET_EXPLORERS.get(0));
-            setBlockChainExplorerTestNet(BTC_TEST_NET_EXPLORERS.get(0));
+            setBlockChainExplorerStageNet(BTC_TEST_NET_EXPLORERS.get(0));
         } else if ("XMR".equals(baseCurrencyNetwork.getCurrencyCode())) {
             setBlockChainExplorerMainNet(XMR_MAIN_NET_EXPLORERS.get(0));
-            setBlockChainExplorerTestNet(XMR_TEST_NET_EXPLORERS.get(0));
+            setBlockChainExplorerStageNet(XMR_STAGE_NET_EXPLORERS.get(0));
         } else {
             throw new RuntimeException("BaseCurrencyNetwork not defined. BaseCurrencyNetwork=" + baseCurrencyNetwork);
         }
@@ -420,7 +420,7 @@ public final class Preferences implements PersistedDataHost, BridgeAddressProvid
         if (Config.baseCurrencyNetwork().isMainnet())
             setBlockChainExplorerMainNet(blockChainExplorer);
         else
-            setBlockChainExplorerTestNet(blockChainExplorer);
+            setBlockChainExplorerStageNet(blockChainExplorer);
     }
 
     public void setTacAccepted(boolean tacAccepted) {
@@ -632,7 +632,7 @@ public final class Preferences implements PersistedDataHost, BridgeAddressProvid
         requestPersistence();
     }
 
-    private void setBlockChainExplorerTestNet(BlockChainExplorer blockChainExplorerTestNet) {
+    private void setBlockChainExplorerStageNet(BlockChainExplorer blockChainExplorerTestNet) {
         prefPayload.setBlockChainExplorerTestNet(blockChainExplorerTestNet);
         requestPersistence();
     }
