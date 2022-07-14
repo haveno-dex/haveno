@@ -21,7 +21,7 @@ import bisq.desktop.components.TxIdTextField;
 import bisq.desktop.main.shared.PriceFeedComboBoxItem;
 import bisq.desktop.util.GUIUtil;
 
-import bisq.core.btc.wallet.BtcWalletService;
+import bisq.core.btc.wallet.XmrWalletService;
 import bisq.core.locale.CurrencyUtil;
 import bisq.core.locale.Res;
 import bisq.core.locale.TradeCurrency;
@@ -86,7 +86,7 @@ public class MarketPricePresentation {
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     @Inject
-    public MarketPricePresentation(BtcWalletService btcWalletService,
+    public MarketPricePresentation(XmrWalletService xmrWalletService,
                                    PriceFeedService priceFeedService,
                                    Preferences preferences,
                                    FeeService feeService) {
@@ -96,7 +96,7 @@ public class MarketPricePresentation {
         TxIdTextField.setPreferences(preferences);
 
         // TODO
-        TxIdTextField.setWalletService(btcWalletService);
+        TxIdTextField.setXmrWalletService(xmrWalletService);
 
         GUIUtil.setFeeService(feeService);
     }

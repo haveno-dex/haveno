@@ -32,6 +32,7 @@ import bisq.core.account.witness.AccountAgeWitness;
 import bisq.core.account.witness.AccountAgeWitnessService;
 import bisq.core.api.CoreMoneroConnectionsService;
 import bisq.core.app.HavenoSetup;
+import bisq.core.btc.wallet.XmrWalletService;
 import bisq.core.locale.Country;
 import bisq.core.locale.CountryUtil;
 import bisq.core.locale.CurrencyUtil;
@@ -134,7 +135,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
 import lombok.extern.slf4j.Slf4j;
-
+import monero.wallet.model.MoneroTxWallet;
 import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nullable;
@@ -566,33 +567,27 @@ public class GUIUtil {
         };
     }
 
-    public static void updateConfidence(TransactionConfidence confidence,
+    public static void updateConfidence(MoneroTxWallet tx,
                                         Tooltip tooltip,
                                         TxConfidenceIndicator txConfidenceIndicator) {
-        if (confidence != null) {
-            switch (confidence.getConfidenceType()) {
-                case UNKNOWN:
-                    tooltip.setText(Res.get("confidence.unknown"));
-                    txConfidenceIndicator.setProgress(0);
-                    break;
-                case PENDING:
-                    tooltip.setText(Res.get("confidence.seen", confidence.numBroadcastPeers()));
-                    txConfidenceIndicator.setProgress(-1.0);
-                    break;
-                case BUILDING:
-                    tooltip.setText(Res.get("confidence.confirmed", confidence.getDepthInBlocks()));
-                    txConfidenceIndicator.setProgress(Math.min(1, confidence.getDepthInBlocks() / 6.0));
-                    break;
-                case DEAD:
-                    tooltip.setText(Res.get("confidence.invalid"));
-                    txConfidenceIndicator.setProgress(0);
-                    break;
+        if (tx != null) {
+            if (!tx.isRelayed()) {
+                tooltip.setText(Res.get("confidence.unknown"));
+                txConfidenceIndicator.setProgress(0);
+            } else if (tx.isFailed()) {
+                tooltip.setText(Res.get("confidence.invalid"));
+                txConfidenceIndicator.setProgress(0);
+            } else if (tx.isConfirmed()) {
+                tooltip.setText(Res.get("confidence.confirmed", tx.getNumConfirmations()));
+                txConfidenceIndicator.setProgress(Math.min(1, tx.getNumConfirmations() / (double) XmrWalletService.NUM_BLOCKS_UNLOCK));
+            } else {
+                tooltip.setText(Res.get("confidence.seen", 0)); // TODO: replace with numBroadcastPeers
+                txConfidenceIndicator.setProgress(-1.0);
             }
 
             txConfidenceIndicator.setPrefSize(24, 24);
         }
     }
-
 
     public static void openWebPage(String target) {
         openWebPage(target, true, null);

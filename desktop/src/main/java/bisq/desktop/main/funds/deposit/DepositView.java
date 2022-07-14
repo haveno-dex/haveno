@@ -30,9 +30,9 @@ import bisq.desktop.main.overlays.windows.QRCodeWindow;
 import bisq.desktop.util.GUIUtil;
 import bisq.desktop.util.Layout;
 
-import bisq.core.btc.listeners.BalanceListener;
-import bisq.core.btc.model.AddressEntry;
-import bisq.core.btc.wallet.BtcWalletService;
+import bisq.core.btc.listeners.XmrBalanceListener;
+import bisq.core.btc.model.XmrAddressEntry;
+import bisq.core.btc.wallet.XmrWalletService;
 import bisq.core.locale.Res;
 import bisq.core.user.Preferences;
 import bisq.core.util.FormattingUtils;
@@ -41,21 +41,16 @@ import bisq.core.util.coin.CoinFormatter;
 
 import bisq.common.UserThread;
 import bisq.common.app.DevEnv;
-import bisq.common.config.Config;
 import bisq.common.util.Tuple3;
 
-import org.bitcoinj.core.Address;
 import org.bitcoinj.core.Coin;
-import org.bitcoinj.core.NetworkParameters;
-import org.bitcoinj.core.SegwitAddress;
-import org.bitcoinj.core.Transaction;
 
 import net.glxn.qrgen.QRCode;
 import net.glxn.qrgen.image.ImageType;
 
 import javax.inject.Inject;
 import javax.inject.Named;
-
+import monero.wallet.model.MoneroTxConfig;
 import javafx.fxml.FXML;
 
 import javafx.scene.control.Button;
@@ -85,7 +80,7 @@ import javafx.collections.transformation.SortedList;
 import javafx.util.Callback;
 
 import java.io.ByteArrayInputStream;
-
+import java.math.BigInteger;
 import java.util.Comparator;
 import java.util.concurrent.TimeUnit;
 
@@ -105,17 +100,16 @@ public class DepositView extends ActivatableView<VBox, Void> {
     private ImageView qrCodeImageView;
     private AddressTextField addressTextField;
     private Button generateNewAddressButton;
-    private CheckBox generateNewAddressSegwitCheckbox;
     private TitledGroupBg titledGroupBg;
     private InputTextField amountTextField;
 
-    private final BtcWalletService walletService;
+    private final XmrWalletService xmrWalletService;
     private final Preferences preferences;
     private final CoinFormatter formatter;
     private String paymentLabelString;
     private final ObservableList<DepositListItem> observableList = FXCollections.observableArrayList();
     private final SortedList<DepositListItem> sortedList = new SortedList<>(observableList);
-    private BalanceListener balanceListener;
+    private XmrBalanceListener balanceListener;
     private Subscription amountTextFieldSubscription;
     private ChangeListener<DepositListItem> tableViewSelectionListener;
     private int gridRow = 0;
@@ -125,10 +119,10 @@ public class DepositView extends ActivatableView<VBox, Void> {
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     @Inject
-    private DepositView(BtcWalletService walletService,
+    private DepositView(XmrWalletService xmrWalletService,
                         Preferences preferences,
                         @Named(FormattingUtils.BTC_FORMATTER_KEY) CoinFormatter formatter) {
-        this.walletService = walletService;
+        this.xmrWalletService = xmrWalletService;
         this.preferences = preferences;
         this.formatter = formatter;
     }
@@ -143,7 +137,7 @@ public class DepositView extends ActivatableView<VBox, Void> {
         usageColumn.setGraphic(new AutoTooltipLabel(Res.get("shared.usage")));
 
         // trigger creation of at least 1 savings address
-        walletService.getFreshAddressEntry();
+        xmrWalletService.getFreshAddressEntry();
 
         tableView.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
         tableView.setPlaceholder(new AutoTooltipLabel(Res.get("funds.deposit.noAddresses")));
@@ -161,7 +155,7 @@ public class DepositView extends ActivatableView<VBox, Void> {
 
         addressColumn.setComparator(Comparator.comparing(DepositListItem::getAddressString));
         balanceColumn.setComparator(Comparator.comparing(DepositListItem::getBalanceAsCoin));
-        confirmationsColumn.setComparator(Comparator.comparingDouble(o -> o.getTxConfidenceIndicator().getProgress()));
+        confirmationsColumn.setComparator(Comparator.comparingInt(o -> o.getNumConfirmationsSinceFirstUsed()));
         usageColumn.setComparator(Comparator.comparingInt(DepositListItem::getNumTxOutputs));
         tableView.getSortOrder().add(usageColumn);
         tableView.setItems(sortedList);
@@ -174,7 +168,7 @@ public class DepositView extends ActivatableView<VBox, Void> {
         Tooltip.install(qrCodeImageView, new Tooltip(Res.get("shared.openLargeQRWindow")));
         qrCodeImageView.setOnMouseClicked(e -> GUIUtil.showFeeInfoBeforeExecute(
                 () -> UserThread.runAfter(
-                        () -> new QRCodeWindow(getBitcoinURI()).show(),
+                        () -> new QRCodeWindow(getPaymentUri()).show(),
                         200, TimeUnit.MILLISECONDS)));
         GridPane.setRowIndex(qrCodeImageView, gridRow);
         GridPane.setRowSpan(qrCodeImageView, 4);
@@ -201,23 +195,17 @@ public class DepositView extends ActivatableView<VBox, Void> {
 
         Tuple3<Button, CheckBox, HBox> buttonCheckBoxHBox = addButtonCheckBoxWithBox(gridPane, ++gridRow,
                 Res.get("funds.deposit.generateAddress"),
-                Res.get("funds.deposit.generateAddressSegwit"),
+                null,
                 15);
         buttonCheckBoxHBox.third.setSpacing(25);
         generateNewAddressButton = buttonCheckBoxHBox.first;
-        generateNewAddressSegwitCheckbox = buttonCheckBoxHBox.second;
-        generateNewAddressSegwitCheckbox.setAllowIndeterminate(false);
-        generateNewAddressSegwitCheckbox.setSelected(true);
 
         generateNewAddressButton.setOnAction(event -> {
-            boolean segwit = generateNewAddressSegwitCheckbox.isSelected();
-            NetworkParameters params = Config.baseCurrencyNetworkParameters();
-            boolean hasUnUsedAddress = observableList.stream().anyMatch(e -> e.getNumTxOutputs() == 0
-                            && (Address.fromString(params, e.getAddressString()) instanceof SegwitAddress)  == segwit);
+            boolean hasUnUsedAddress = observableList.stream().anyMatch(e -> e.getNumTxOutputs() == 0);
             if (hasUnUsedAddress) {
                 new Popup().warning(Res.get("funds.deposit.selectUnused")).show();
             } else {
-                AddressEntry newSavingsAddressEntry = walletService.getFreshAddressEntry(segwit);
+                XmrAddressEntry newSavingsAddressEntry = xmrWalletService.getNewAddressEntry();
                 updateList();
                 observableList.stream()
                         .filter(depositListItem -> depositListItem.getAddressString().equals(newSavingsAddressEntry.getAddressString()))
@@ -226,9 +214,9 @@ public class DepositView extends ActivatableView<VBox, Void> {
             }
         });
 
-        balanceListener = new BalanceListener() {
+        balanceListener = new XmrBalanceListener() {
             @Override
-            public void onBalanceChanged(Coin balance, Transaction tx) {
+            public void onBalanceChanged(BigInteger balance) {
                 updateList();
             }
         };
@@ -243,7 +231,7 @@ public class DepositView extends ActivatableView<VBox, Void> {
 
         updateList();
 
-        walletService.addBalanceListener(balanceListener);
+        xmrWalletService.addBalanceListener(balanceListener);
         amountTextFieldSubscription = EasyBind.subscribe(amountTextField.textProperty(), t -> {
             addressTextField.setAmountAsCoin(ParsingUtils.parseToCoin(t, formatter));
             updateQRCode();
@@ -258,7 +246,7 @@ public class DepositView extends ActivatableView<VBox, Void> {
         tableView.getSelectionModel().selectedItemProperty().removeListener(tableViewSelectionListener);
         sortedList.comparatorProperty().unbind();
         observableList.forEach(DepositListItem::cleanup);
-        walletService.removeBalanceListener(balanceListener);
+        xmrWalletService.removeBalanceListener(balanceListener);
         amountTextFieldSubscription.unsubscribe();
     }
 
@@ -266,7 +254,6 @@ public class DepositView extends ActivatableView<VBox, Void> {
     ///////////////////////////////////////////////////////////////////////////////////////////
     // UI handlers
     ///////////////////////////////////////////////////////////////////////////////////////////
-
 
     private void fillForm(String address) {
         titledGroupBg.setVisible(true);
@@ -287,7 +274,7 @@ public class DepositView extends ActivatableView<VBox, Void> {
     private void updateQRCode() {
         if (addressTextField.getAddress() != null && !addressTextField.getAddress().isEmpty()) {
             final byte[] imageBytes = QRCode
-                    .from(getBitcoinURI())
+                    .from(getPaymentUri())
                     .withSize(150, 150) // code has 41 elements 8 px is border with 150 we get 3x scale and min. border
                     .to(ImageType.PNG)
                     .stream()
@@ -309,8 +296,8 @@ public class DepositView extends ActivatableView<VBox, Void> {
     private void updateList() {
         observableList.forEach(DepositListItem::cleanup);
         observableList.clear();
-        walletService.getAvailableAddressEntries()
-                .forEach(e -> observableList.add(new DepositListItem(e, walletService, formatter)));
+        xmrWalletService.getAvailableAddressEntries()
+                .forEach(e -> observableList.add(new DepositListItem(e, xmrWalletService, formatter)));
     }
 
     private Coin getAmountAsCoin() {
@@ -318,10 +305,11 @@ public class DepositView extends ActivatableView<VBox, Void> {
     }
 
     @NotNull
-    private String getBitcoinURI() {
-        return GUIUtil.getBitcoinURI(addressTextField.getAddress(),
-                getAmountAsCoin(),
-                paymentLabelString);
+    private String getPaymentUri() {
+        return xmrWalletService.getWallet().createPaymentUri(new MoneroTxConfig()
+                .setAddress(addressTextField.getAddress())
+                .setAmount(ParsingUtils.coinToAtomicUnits(getAmountAsCoin()))
+                .setNote(paymentLabelString));
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -434,7 +422,7 @@ public class DepositView extends ActivatableView<VBox, Void> {
                                 super.updateItem(item, empty);
 
                                 if (item != null && !empty) {
-                                    setGraphic(item.getTxConfidenceIndicator());
+                                    //setGraphic(item.getTxConfidenceIndicator());
                                 } else {
                                     setGraphic(null);
                                 }

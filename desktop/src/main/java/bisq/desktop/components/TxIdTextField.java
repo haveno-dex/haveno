@@ -20,19 +20,17 @@ package bisq.desktop.components;
 import bisq.desktop.components.indicator.TxConfidenceIndicator;
 import bisq.desktop.util.GUIUtil;
 
-import bisq.core.btc.listeners.TxConfidenceListener;
-import bisq.core.btc.wallet.BtcWalletService;
+import bisq.core.btc.wallet.XmrWalletService;
 import bisq.core.locale.Res;
 import bisq.core.user.BlockChainExplorer;
 import bisq.core.user.Preferences;
 
 import bisq.common.util.Utilities;
 
-import org.bitcoinj.core.TransactionConfidence;
 
 import de.jensd.fx.fontawesome.AwesomeDude;
 import de.jensd.fx.fontawesome.AwesomeIcon;
-
+import java.math.BigInteger;
 import com.jfoenix.controls.JFXTextField;
 
 import javafx.scene.control.Label;
@@ -42,21 +40,23 @@ import javafx.scene.layout.AnchorPane;
 
 import lombok.Getter;
 import lombok.Setter;
-
+import monero.wallet.model.MoneroTxWallet;
+import monero.wallet.model.MoneroWalletListener;
 import javax.annotation.Nullable;
 
 public class TxIdTextField extends AnchorPane {
     @Setter
     private static Preferences preferences;
     @Setter
-    private static BtcWalletService walletService;
+    private static XmrWalletService xmrWalletService;
 
     @Getter
     private final TextField textField;
     private final Tooltip progressIndicatorTooltip;
     private final TxConfidenceIndicator txConfidenceIndicator;
     private final Label copyIcon, blockExplorerIcon, missingTxWarningIcon;
-    private TxConfidenceListener txConfidenceListener;
+
+    private MoneroWalletListener txUpdater;
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Constructor
@@ -113,8 +113,10 @@ public class TxIdTextField extends AnchorPane {
     }
 
     public void setup(@Nullable String txId) {
-        if (txConfidenceListener != null)
-            walletService.removeTxConfidenceListener(txConfidenceListener);
+        if (txUpdater != null) {
+            xmrWalletService.removeWalletListener(txUpdater);
+            txUpdater = null;
+        }
 
         if (txId == null) {
             textField.setText(Res.get("shared.na"));
@@ -128,15 +130,22 @@ public class TxIdTextField extends AnchorPane {
             missingTxWarningIcon.setManaged(true);
             return;
         }
-
-        txConfidenceListener = new TxConfidenceListener(txId) {
+        
+        // listen for tx updates
+        // TODO: this only listens for new blocks, listen for double spend
+        txUpdater = new MoneroWalletListener() {
             @Override
-            public void onTransactionConfidenceChanged(TransactionConfidence confidence) {
-                updateConfidence(confidence);
+            public void onNewBlock(long height) {
+                updateConfidence(txId);
+            }
+            @Override
+            public void onBalancesChanged(BigInteger newBalance, BigInteger newUnlockedBalance) {
+                updateConfidence(txId);
             }
         };
-        walletService.addTxConfidenceListener(txConfidenceListener);
-        updateConfidence(walletService.getConfidenceForTxId(txId));
+        xmrWalletService.addWalletListener(txUpdater);
+
+        updateConfidence(txId);
 
         textField.setText(txId);
         textField.setOnMouseClicked(mouseEvent -> openBlockExplorer(txId));
@@ -145,9 +154,10 @@ public class TxIdTextField extends AnchorPane {
     }
 
     public void cleanup() {
-        if (walletService != null && txConfidenceListener != null)
-            walletService.removeTxConfidenceListener(txConfidenceListener);
-
+        if (xmrWalletService != null && txUpdater != null) {
+            xmrWalletService.removeWalletListener(txUpdater);
+            txUpdater = null;
+        }
         textField.setOnMouseClicked(null);
         blockExplorerIcon.setOnMouseClicked(null);
         copyIcon.setOnMouseClicked(null);
@@ -165,9 +175,15 @@ public class TxIdTextField extends AnchorPane {
         }
     }
 
-    private void updateConfidence(TransactionConfidence confidence) {
-        GUIUtil.updateConfidence(confidence, progressIndicatorTooltip, txConfidenceIndicator);
-        if (confidence != null) {
+    private void updateConfidence(String txId) {
+        MoneroTxWallet tx = null;
+        try {
+            tx = xmrWalletService.getWallet().getTx(txId);
+        } catch (Exception e) {
+            // do nothing
+        }
+        GUIUtil.updateConfidence(tx, progressIndicatorTooltip, txConfidenceIndicator);
+        if (tx != null) {
             if (txConfidenceIndicator.getProgress() != 0) {
                 txConfidenceIndicator.setVisible(true);
                 AnchorPane.setRightAnchor(txConfidenceIndicator, 0.0);

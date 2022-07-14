@@ -25,6 +25,10 @@ public class ParsingUtils {
         return centinerosToAtomicUnits(coin.value);
     }
 
+    public static double coinToXmr(Coin coin) {
+        return atomicUnitsToXmr(coinToAtomicUnits(coin));
+    }
+
     public static BigInteger centinerosToAtomicUnits(long centineros) {
         return BigInteger.valueOf(centineros).multiply(ParsingUtils.CENTINEROS_AU_MULTIPLIER);
     }
@@ -39,7 +43,11 @@ public class ParsingUtils {
 
     public static long atomicUnitsToCentineros(BigInteger atomicUnits) {
         return atomicUnits.divide(CENTINEROS_AU_MULTIPLIER).longValueExact();
-      }
+    }
+
+    public static Coin atomicUnitsToCoin(BigInteger atomicUnits) {
+        return Coin.valueOf(atomicUnitsToCentineros(atomicUnits));
+    }
 
     public static double atomicUnitsToXmr(BigInteger atomicUnits) {
       return new BigDecimal(atomicUnits).divide(new BigDecimal(XMR_AU_MULTIPLIER)).doubleValue();

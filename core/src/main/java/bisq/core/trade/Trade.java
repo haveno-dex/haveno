@@ -26,7 +26,6 @@ import bisq.core.offer.Offer;
 import bisq.core.offer.OfferDirection;
 import bisq.core.payment.payload.PaymentMethod;
 import bisq.core.proto.CoreProtoResolver;
-import bisq.core.support.dispute.arbitration.arbitrator.Arbitrator;
 import bisq.core.support.dispute.mediation.MediationResultState;
 import bisq.core.support.dispute.refund.RefundResultState;
 import bisq.core.support.messages.ChatMessage;
@@ -886,7 +885,7 @@ public abstract class Trade implements Tradable, Model {
             
             // check if deposit txs unlocked
             if (txs.get(0).isConfirmed() && txs.get(1).isConfirmed()) {
-                long unlockHeight = Math.max(txs.get(0).getHeight(), txs.get(0).getHeight()) + 9;
+                long unlockHeight = Math.max(txs.get(0).getHeight(), txs.get(0).getHeight()) + XmrWalletService.NUM_BLOCKS_UNLOCK - 1;
                 if (havenoWallet.getHeight() >= unlockHeight) {
                     setConfirmedState();
                     return;
@@ -926,7 +925,7 @@ public abstract class Trade implements Tradable, Model {
                 
                 // compute unlock height
                 if (unlockHeight == null && txs.size() == 2 && txs.get(0).isConfirmed() && txs.get(1).isConfirmed()) {
-                    unlockHeight = Math.max(txs.get(0).getHeight(), txs.get(0).getHeight()) + 9;
+                    unlockHeight = Math.max(txs.get(0).getHeight(), txs.get(0).getHeight()) + XmrWalletService.NUM_BLOCKS_UNLOCK - 1;
                 }
                 
                 // check if txs unlocked

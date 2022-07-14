@@ -1047,11 +1047,12 @@ public class FormBuilder {
                                                                           String checkBoxTitle,
                                                                           double top) {
         Button button = new AutoTooltipButton(buttonTitle);
-        CheckBox checkBox = new AutoTooltipCheckBox(checkBoxTitle);
+        CheckBox checkBox = checkBoxTitle == null ? null : new AutoTooltipCheckBox(checkBoxTitle);
 
         HBox hBox = new HBox(20);
         hBox.setAlignment(Pos.CENTER_LEFT);
-        hBox.getChildren().addAll(button, checkBox);
+        hBox.getChildren().add(button);
+        if (checkBox != null) hBox.getChildren().add(button);
         GridPane.setRowIndex(hBox, rowIndex);
         hBox.setPadding(new Insets(top, 0, 0, 0));
         gridPane.getChildren().add(hBox);

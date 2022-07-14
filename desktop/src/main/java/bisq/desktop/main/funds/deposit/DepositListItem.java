@@ -17,117 +17,60 @@
 
 package bisq.desktop.main.funds.deposit;
 
-import bisq.desktop.components.indicator.TxConfidenceIndicator;
-import bisq.desktop.util.GUIUtil;
-
-import bisq.core.btc.listeners.BalanceListener;
-import bisq.core.btc.listeners.TxConfidenceListener;
-import bisq.core.btc.model.AddressEntry;
-import bisq.core.btc.wallet.BtcWalletService;
+import bisq.core.btc.listeners.XmrBalanceListener;
+import bisq.core.btc.model.XmrAddressEntry;
+import bisq.core.btc.wallet.XmrWalletService;
 import bisq.core.locale.Res;
+import bisq.core.util.ParsingUtils;
 import bisq.core.util.coin.CoinFormatter;
-
-import org.bitcoinj.core.Address;
-import org.bitcoinj.core.Coin;
-import org.bitcoinj.core.Transaction;
-import org.bitcoinj.core.TransactionConfidence;
-
-import com.google.common.base.Suppliers;
-
-import javafx.scene.control.Tooltip;
-
+import java.math.BigInteger;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
-
-import java.util.function.Supplier;
-
 import lombok.extern.slf4j.Slf4j;
+import org.bitcoinj.core.Coin;
 
 @Slf4j
 class DepositListItem {
     private final StringProperty balance = new SimpleStringProperty();
-    private final BtcWalletService walletService;
+    private final XmrAddressEntry addressEntry;
+    private final XmrWalletService xmrWalletService;
     private Coin balanceAsCoin;
-    private final String addressString;
     private String usage = "-";
-    private TxConfidenceListener txConfidenceListener;
-    private BalanceListener balanceListener;
+    private XmrBalanceListener balanceListener;
     private int numTxOutputs = 0;
-    private final Supplier<LazyFields> lazyFieldsSupplier;
 
-    private static class LazyFields {
-        TxConfidenceIndicator txConfidenceIndicator;
-        Tooltip tooltip;
-    }
+    DepositListItem(XmrAddressEntry addressEntry, XmrWalletService xmrWalletService, CoinFormatter formatter) {
+        this.xmrWalletService = xmrWalletService;
+        this.addressEntry = addressEntry;
 
-    private LazyFields lazy() {
-        return lazyFieldsSupplier.get();
-    }
-
-    DepositListItem(AddressEntry addressEntry, BtcWalletService walletService, CoinFormatter formatter) {
-        this.walletService = walletService;
-
-        addressString = addressEntry.getAddressString();
-
-        Address address = addressEntry.getAddress();
-        TransactionConfidence confidence = walletService.getConfidenceForAddress(address);
-
-        // confidence
-        lazyFieldsSupplier = Suppliers.memoize(() -> new LazyFields() {{
-            txConfidenceIndicator = new TxConfidenceIndicator();
-            txConfidenceIndicator.setId("funds-confidence");
-            tooltip = new Tooltip(Res.get("shared.notUsedYet"));
-            txConfidenceIndicator.setProgress(0);
-            txConfidenceIndicator.setTooltip(tooltip);
-            if (confidence != null) {
-                GUIUtil.updateConfidence(confidence, tooltip, txConfidenceIndicator);
-            }
-        }});
-
-        if (confidence != null) {
-            txConfidenceListener = new TxConfidenceListener(confidence.getTransactionHash().toString()) {
-                @Override
-                public void onTransactionConfidenceChanged(TransactionConfidence confidence) {
-                    GUIUtil.updateConfidence(confidence, lazy().tooltip, lazy().txConfidenceIndicator);
-                }
-            };
-            walletService.addTxConfidenceListener(txConfidenceListener);
-        }
-
-        balanceListener = new BalanceListener(address) {
+        balanceListener = new XmrBalanceListener(addressEntry.getSubaddressIndex()) {
             @Override
-            public void onBalanceChanged(Coin balanceAsCoin, Transaction tx) {
-                DepositListItem.this.balanceAsCoin = balanceAsCoin;
+            public void onBalanceChanged(BigInteger balance) {
+                DepositListItem.this.balanceAsCoin = ParsingUtils.atomicUnitsToCoin(balance);
                 DepositListItem.this.balance.set(formatter.formatCoin(balanceAsCoin));
-                var confidence = walletService.getConfidenceForTxId(tx.getTxId().toString());
-                GUIUtil.updateConfidence(confidence, lazy().tooltip, lazy().txConfidenceIndicator);
-                updateUsage(address);
+                updateUsage(addressEntry.getSubaddressIndex());
             }
         };
-        walletService.addBalanceListener(balanceListener);
+        xmrWalletService.addBalanceListener(balanceListener);
 
-        balanceAsCoin = walletService.getBalanceForAddress(address);
+        balanceAsCoin = xmrWalletService.getBalanceForSubaddress(addressEntry.getSubaddressIndex()); // TODO: Coin represents centineros everywhere, but here it's atomic units. reconcile
+        balanceAsCoin = Coin.valueOf(ParsingUtils.atomicUnitsToCentineros(balanceAsCoin.longValue())); // in centineros
         balance.set(formatter.formatCoin(balanceAsCoin));
 
-        updateUsage(address);
+        updateUsage(addressEntry.getSubaddressIndex());
     }
 
-    private void updateUsage(Address address) {
-        numTxOutputs = walletService.getNumTxOutputsForAddress(address);
+    private void updateUsage(int subaddressIndex) {
+        numTxOutputs = xmrWalletService.getNumTxOutputsForSubaddress(addressEntry.getSubaddressIndex());
         usage = numTxOutputs == 0 ? Res.get("funds.deposit.unused") : Res.get("funds.deposit.usedInTx", numTxOutputs);
     }
 
     public void cleanup() {
-        walletService.removeTxConfidenceListener(txConfidenceListener);
-        walletService.removeBalanceListener(balanceListener);
-    }
-
-    public TxConfidenceIndicator getTxConfidenceIndicator() {
-        return lazy().txConfidenceIndicator;
+        xmrWalletService.removeBalanceListener(balanceListener);
     }
 
     public String getAddressString() {
-        return addressString;
+        return addressEntry.getAddressString();
     }
 
     public String getUsage() {
@@ -148,5 +91,9 @@ class DepositListItem {
 
     public int getNumTxOutputs() {
         return numTxOutputs;
+    }
+
+    public int getNumConfirmationsSinceFirstUsed() {
+        throw new RuntimeException("Not implemented");
     }
 }
