@@ -268,7 +268,7 @@ public class MainViewModel implements ViewModel, HavenoSetup.HavenoSetupListener
             setupDevDummyPaymentAccounts();
         }
 
-        getShowAppScreen().set(true);
+        UserThread.execute(() -> getShowAppScreen().set(true));
 
         // We only show the popup if the user has already set up any fiat account. For new users it is not a rule
         // change and for altcoins its not relevant.
