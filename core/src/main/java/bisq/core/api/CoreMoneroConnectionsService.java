@@ -379,7 +379,7 @@ public final class CoreMoneroConnectionsService {
             }
 
             // if using legacy desktop app, connect to best available connection
-            if (!coreContext.isApiUser()) {
+            if (!coreContext.isApiUser() && "".equals(config.xmrNode)) {
                 connectionManager.setAutoSwitch(true);
                 connectionManager.setConnection(connectionManager.getBestAvailableConnection());
             }
