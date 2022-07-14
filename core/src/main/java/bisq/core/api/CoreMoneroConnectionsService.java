@@ -240,7 +240,7 @@ public final class CoreMoneroConnectionsService {
             boolean isLocal = CoreMoneroNodeService.isLocalHost(daemon.getRpcConnection().getUri());
             if (isLocal) {
                 updateDaemonInfo();
-                if (lastInfo.isBusySyncing() || (lastInfo.getHeightWithoutBootstrap() != null && lastInfo.getHeightWithoutBootstrap() > 0 && lastInfo.getHeightWithoutBootstrap() < lastInfo.getHeight())) return REFRESH_PERIOD_REMOTE_MS; // refresh slower if syncing or bootstrapped
+                if (lastInfo != null && (lastInfo.isBusySyncing() || (lastInfo.getHeightWithoutBootstrap() != null && lastInfo.getHeightWithoutBootstrap() > 0 && lastInfo.getHeightWithoutBootstrap() < lastInfo.getHeight()))) return REFRESH_PERIOD_REMOTE_MS; // refresh slower if syncing or bootstrapped
                 else return REFRESH_PERIOD_LOCAL_MS; // TODO: announce faster refresh after done syncing
             } else {
                 return REFRESH_PERIOD_REMOTE_MS;
