@@ -267,7 +267,7 @@ public class RequestDataManager implements MessageListener, ConnectionListener, 
         if (networkEnvelope instanceof GetDataRequest) {
             if (!stopped) {
                 GetDataRequest getDataRequest = (GetDataRequest) networkEnvelope;
-                if (getDataRequest.getVersion() == null || !Version.isNewVersion(getDataRequest.getVersion(), "1.5.0")) {
+                if (getDataRequest.getVersion() == null || !Version.isNewVersion(getDataRequest.getVersion(), "0.0.0")) {
                     connection.shutDown(CloseConnectionReason.MANDATORY_CAPABILITIES_NOT_SUPPORTED);
                     return;
                 }
