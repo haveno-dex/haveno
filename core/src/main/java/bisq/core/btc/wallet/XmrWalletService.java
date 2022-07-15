@@ -451,7 +451,7 @@ public class XmrWalletService {
         try {
             log.info("Creating wallet " + config.getPath());
             walletRpc.createWallet(config);
-            log.info("Syncing wallet " + config.getPath());
+            log.info("Syncing wallet " + config.getPath() + " in background");
             walletRpc.startSyncing(connectionsService.getDefaultRefreshPeriodMs());
             return walletRpc;
         } catch (Exception e) {
@@ -473,10 +473,13 @@ public class XmrWalletService {
             walletRpc.openWallet(config);
 
             // start syncing wallet in background
+            log.info("Syncing wallet " + config.getPath() + " in background");
             walletRpc.startSyncing(connectionsService.getDefaultRefreshPeriodMs());
 
             // sync wallet (blocks)
-            walletRpc.sync();
+            log.info("Syncing wallet " + config.getPath());
+            walletRpc.sync(); // TODO: does this initiate 2 syncs back-to-back?
+            log.info("Done syncing wallet " + config.getPath());
             return walletRpc;
         } catch (Exception e) {
             e.printStackTrace();

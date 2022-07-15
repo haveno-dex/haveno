@@ -5,6 +5,7 @@ import bisq.common.config.Config;
 import bisq.core.btc.model.EncryptedConnectionList;
 import bisq.core.btc.setup.DownloadListener;
 import bisq.core.btc.setup.WalletsSetup;
+import bisq.core.trade.TradeUtils;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -237,7 +238,7 @@ public final class CoreMoneroConnectionsService {
     public long getDefaultRefreshPeriodMs() {
         if (daemon == null) return REFRESH_PERIOD_LOCAL_MS;
         else {
-            boolean isLocal = CoreMoneroNodeService.isLocalHost(daemon.getRpcConnection().getUri());
+            boolean isLocal = TradeUtils.isLocalHost(daemon.getRpcConnection().getUri());
             if (isLocal) {
                 updateDaemonInfo();
                 if (lastInfo != null && (lastInfo.isBusySyncing() || (lastInfo.getHeightWithoutBootstrap() != null && lastInfo.getHeightWithoutBootstrap() > 0 && lastInfo.getHeightWithoutBootstrap() < lastInfo.getHeight()))) return REFRESH_PERIOD_REMOTE_MS; // refresh slower if syncing or bootstrapped
@@ -321,6 +322,11 @@ public final class CoreMoneroConnectionsService {
             var currentConnectionUri = connectionList.getCurrentConnectionUri();
             if (currentConnectionUri.isPresent()) connectionManager.setConnection(currentConnectionUri.get());
 
+            // set monero connection from startup arguments
+            if (!isInitialized && !"".equals(config.xmrNode)) {
+                connectionManager.setConnection(new MoneroRpcConnection(config.xmrNode, config.xmrNodeUsername, config.xmrNodePassword).setPriority(1));
+            }
+
             // restore configuration
             connectionManager.setAutoSwitch(connectionList.getAutoSwitch());
             long refreshPeriod = connectionList.getRefreshPeriod();
@@ -330,11 +336,6 @@ public final class CoreMoneroConnectionsService {
 
             // run once
             if (!isInitialized) {
-
-                // set monero connection from startup arguments
-                if (!"".equals(config.xmrNode)) {
-                    connectionManager.setConnection(new MoneroRpcConnection(config.xmrNode, config.xmrNodeUsername, config.xmrNodePassword).setPriority(1));
-                }
 
                 // register connection change listener
                 connectionManager.addListener(this::onConnectionChanged);
@@ -358,10 +359,10 @@ public final class CoreMoneroConnectionsService {
                 isInitialized = true;
             }
 
-            // start local node if offline and last connection is local
+            // if offline and last connection is local, start local node if offline
             currentConnectionUri.ifPresent(uri -> {
                 try {
-                    if (CoreMoneroNodeService.isLocalHost(uri) && !nodeService.isMoneroNodeRunning()) {
+                    if (!connectionManager.isConnected() && TradeUtils.isLocalHost(uri) && !nodeService.isOnline()) {
                         nodeService.startMoneroNode();
                     }
                 } catch (Exception e) {
@@ -369,8 +370,10 @@ public final class CoreMoneroConnectionsService {
                 }
             });
 
-            // connect to local node if available
-            if (nodeService.isMoneroNodeRunning() && (!connectionManager.isConnected() || connectionManager.getAutoSwitch())) {
+            // prefer to connect to local node unless prevented by configuration
+            if (("".equals(config.xmrNode) || TradeUtils.isLocalHost(config.xmrNode)) &&
+                (!connectionManager.isConnected() || connectionManager.getAutoSwitch()) &&
+                nodeService.isConnected()) {
                 MoneroRpcConnection connection = connectionManager.getConnectionByUri(nodeService.getDaemon().getRpcConnection().getUri());
                 if (connection != null) {
                     connection.checkConnection(connectionManager.getTimeout());

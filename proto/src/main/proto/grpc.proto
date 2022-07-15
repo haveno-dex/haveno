@@ -387,7 +387,7 @@ message SetAutoSwitchReply {}
 ///////////////////////////////////////////////////////////////////////////////////////////
 
 service MoneroNode {
-    rpc IsMoneroNodeRunning (IsMoneroNodeRunningRequest) returns (IsMoneroNodeRunningReply) {
+    rpc IsMoneroNodeOnline (IsMoneroNodeOnlineRequest) returns (IsMoneroNodeOnlineReply) {
     }
     rpc GetMoneroNodeSettings (GetMoneroNodeSettingsRequest) returns (GetMoneroNodeSettingsReply) {
     }
@@ -397,10 +397,10 @@ service MoneroNode {
     }
 }
 
-message IsMoneroNodeRunningRequest {
+message IsMoneroNodeOnlineRequest {
 }
 
-message IsMoneroNodeRunningReply {
+message IsMoneroNodeOnlineReply {
     bool is_running = 1;
 }
 
