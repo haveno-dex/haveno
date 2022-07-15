@@ -17,6 +17,7 @@
 
 package bisq.core.offer.placeoffer;
 
+import bisq.core.locale.Res;
 import bisq.core.offer.messages.SignOfferResponse;
 import bisq.core.offer.placeoffer.tasks.AddToOfferBook;
 import bisq.core.offer.placeoffer.tasks.MakerReservesOfferFunds;
@@ -24,7 +25,10 @@ import bisq.core.offer.placeoffer.tasks.MakerSendsSignOfferRequest;
 import bisq.core.offer.placeoffer.tasks.MakerProcessesSignOfferResponse;
 import bisq.core.offer.placeoffer.tasks.ValidateOffer;
 import bisq.core.trade.handlers.TransactionResultHandler;
+import bisq.core.trade.protocol.TradeProtocol;
 import bisq.network.p2p.NodeAddress;
+import bisq.common.Timer;
+import bisq.common.UserThread;
 import bisq.common.handlers.ErrorMessageHandler;
 import bisq.common.taskrunner.TaskRunner;
 
@@ -35,6 +39,7 @@ public class PlaceOfferProtocol {
     private static final Logger log = LoggerFactory.getLogger(PlaceOfferProtocol.class);
 
     private final PlaceOfferModel model;
+    private Timer timeoutTimer;
     private final TransactionResultHandler resultHandler;
     private final ErrorMessageHandler errorMessageHandler;
 
@@ -58,14 +63,16 @@ public class PlaceOfferProtocol {
 
     public void placeOffer() {
         log.debug("placeOffer() " + model.getOffer().getId());
+
+        timeoutTimer = UserThread.runAfter(() -> {
+            handleError(Res.get("createOffer.timeoutAtPublishing"));
+        }, TradeProtocol.TRADE_TIMEOUT);
+
         TaskRunner<PlaceOfferModel> taskRunner = new TaskRunner<>(model,
                 () -> {
-                    log.debug("sequence at placeOffer completed");
                 },
                 (errorMessage) -> {
-                    log.error(errorMessage);
-                    model.getOffer().setErrorMessage(errorMessage);
-                    errorMessageHandler.handleErrorMessage(errorMessage);
+                    handleError(errorMessage);
                 }
         );
         taskRunner.addTasks(
@@ -81,19 +88,29 @@ public class PlaceOfferProtocol {
     public void handleSignOfferResponse(SignOfferResponse response, NodeAddress sender) {
       log.debug("handleSignOfferResponse() " + model.getOffer().getId());
       model.setSignOfferResponse(response);
-      
+
       if (!model.getOffer().getOfferPayload().getArbitratorSigner().equals(sender)) {
           log.warn("Ignoring sign offer response from different sender");
           return;
       }
-      
+
+      // ignore if timer already stopped
+      if (timeoutTimer == null) {
+          log.warn("Ignoring sign offer response from arbitrator because timeout has expired");
+          return;
+      }
+
+      timeoutTimer = UserThread.runAfter(() -> {
+          handleError(Res.get("createOffer.timeoutAtPublishing"));
+      }, TradeProtocol.TRADE_TIMEOUT);
+
       TaskRunner<PlaceOfferModel> taskRunner = new TaskRunner<>(model,
               () -> {
                   log.debug("sequence at handleSignOfferResponse completed");
+                  stopTimeoutTimer();
                   resultHandler.handleResult(model.getTransaction()); // TODO (woodser): XMR transaction instead
               },
               (errorMessage) -> {
-                  log.error(errorMessage);
                   if (model.isOfferAddedToOfferBook()) {
                       model.getOfferBookService().removeOffer(model.getOffer().getOfferPayload(),
                               () -> {
@@ -102,8 +119,7 @@ public class PlaceOfferProtocol {
                               },
                               log::error);
                   }
-                  model.getOffer().setErrorMessage(errorMessage);
-                  errorMessageHandler.handleErrorMessage(errorMessage);
+                  handleError(errorMessage);
               }
       );
       taskRunner.addTasks(
@@ -112,5 +128,21 @@ public class PlaceOfferProtocol {
       );
 
       taskRunner.run();
+    }
+
+    private void stopTimeoutTimer() {
+        if (timeoutTimer != null) {
+            timeoutTimer.stop();
+            timeoutTimer = null;
+        }
+    }
+
+    private void handleError(String errorMessage) {
+        if (timeoutTimer != null) {
+            log.error(errorMessage);
+            stopTimeoutTimer();
+            model.getOffer().setErrorMessage(errorMessage);
+            errorMessageHandler.handleErrorMessage(errorMessage);
+        }
     }
 }

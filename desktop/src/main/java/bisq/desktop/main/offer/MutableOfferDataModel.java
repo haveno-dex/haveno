@@ -50,7 +50,7 @@ import bisq.core.util.coin.CoinFormatter;
 import bisq.core.util.coin.CoinUtil;
 
 import bisq.network.p2p.P2PService;
-
+import bisq.common.handlers.ErrorMessageHandler;
 import bisq.common.util.MathUtils;
 import bisq.common.util.Utilities;
 
@@ -89,8 +89,6 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import lombok.Getter;
-
-import javax.annotation.Nullable;
 
 import static bisq.core.payment.payload.PaymentMethod.HAL_CASH_ID;
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -313,12 +311,12 @@ public abstract class MutableOfferDataModel extends OfferDataModel {
                 paymentAccount);
     }
 
-    void onPlaceOffer(Offer offer, TransactionResultHandler resultHandler) {
+    void onPlaceOffer(Offer offer, TransactionResultHandler resultHandler, ErrorMessageHandler errorMessageHandler) {
         openOfferManager.placeOffer(offer,
                 useSavingsWallet,
                 triggerPrice,
                 resultHandler,
-                log::error);
+                errorMessageHandler);
     }
 
     void onPaymentAccountSelected(PaymentAccount paymentAccount) {

@@ -58,7 +58,6 @@ import bisq.core.util.validation.AltcoinValidator;
 import bisq.core.util.validation.FiatPriceValidator;
 import bisq.core.util.validation.InputValidator;
 import bisq.core.util.validation.MonetaryValidator;
-import bisq.common.Timer;
 import bisq.common.UserThread;
 import bisq.common.app.DevEnv;
 import bisq.common.util.MathUtils;
@@ -173,7 +172,6 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
     private ChangeListener<Boolean> isWalletFundedListener;
     private ChangeListener<String> errorMessageListener;
     protected Offer offer;
-    private Timer timeoutTimer;
     private boolean inputIsMarketBasedPrice;
     private ChangeListener<Boolean> useMarketBasedPriceListener;
     private boolean ignorePriceStringListener, ignoreVolumeStringListener, ignoreAmountStringListener, ignoreSecurityDepositStringListener;
@@ -253,7 +251,6 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
     protected void deactivate() {
         removeBindings();
         removeListeners();
-        stopTimeoutTimer();
     }
 
     private void addBindings() {
@@ -611,41 +608,19 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
         errorMessage.set(null);
         createOfferRequested = true;
 
-        if (timeoutTimer == null) {
-            timeoutTimer = UserThread.runAfter(() -> {
-                stopTimeoutTimer();
-                createOfferRequested = false;
-                errorMessage.set(Res.get("createOffer.timeoutAtPublishing"));
-
-                updateButtonDisableState();
-                updateSpinnerInfo();
-
-                resultHandler.run();
-            }, 60);
-        }
-        errorMessageListener = (observable, oldValue, newValue) -> {
-            if (newValue != null) {
-                stopTimeoutTimer();
-                createOfferRequested = false;
-                if (offer.getState() == Offer.State.OFFER_FEE_RESERVED)
-                    errorMessage.set(newValue + Res.get("createOffer.errorInfo"));
-                else
-                    errorMessage.set(newValue);
-
-                updateButtonDisableState();
-                updateSpinnerInfo();
-
-                resultHandler.run();
-            }
-        };
-
-        offer.errorMessageProperty().addListener(errorMessageListener);
-
         dataModel.onPlaceOffer(offer, transaction -> {
-            stopTimeoutTimer();
             resultHandler.run();
             placeOfferCompleted.set(true);
             errorMessage.set(null);
+        }, errMessage -> {
+            createOfferRequested = false;
+            if (offer.getState() == Offer.State.OFFER_FEE_RESERVED) errorMessage.set(errMessage + Res.get("createOffer.errorInfo"));
+            else errorMessage.set(errMessage);
+
+            updateButtonDisableState();
+            updateSpinnerInfo();
+
+            resultHandler.run();
         });
 
         updateButtonDisableState();
@@ -1285,13 +1260,6 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
 
         isNextButtonDisabled.set(!inputDataValid);
         isPlaceOfferButtonDisabled.set(createOfferRequested || !inputDataValid || !dataModel.getIsBtcWalletFunded().get());
-    }
-
-    private void stopTimeoutTimer() {
-        if (timeoutTimer != null) {
-            timeoutTimer.stop();
-            timeoutTimer = null;
-        }
     }
 
     private CoinFormatter getFormatterForMakerFee() {
