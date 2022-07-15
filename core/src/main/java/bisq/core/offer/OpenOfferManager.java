@@ -427,6 +427,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
             resultHandler.handleResult(transaction);
         }, (errMessage) -> {
             onRemoved(openOffer);
+            offer.setErrorMessage(errMessage);
             errorMessageHandler.handleErrorMessage(errMessage);
         });
     }
