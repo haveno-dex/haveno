@@ -135,10 +135,8 @@ public class WalletAppSetup {
                         if (percentage == 1) {
                             String synchronizedWith = Res.get("mainView.footer.btcInfo.synchronizedWith",
                                     getBtcNetworkAsString(), chainHeightAsString);
-                            String info = feeService.isFeeAvailable() ?
-                                    Res.get("mainView.footer.btcFeeRate", feeService.getTxFeePerVbyte().value) :
-                                    "";
-                            result = Res.get("mainView.footer.btcInfo", synchronizedWith, info);
+                            String feeInfo = ""; // TODO: feeService.isFeeAvailable() returns true, disable
+                            result = Res.get("mainView.footer.btcInfo", synchronizedWith, feeInfo);
                             getBtcSplashSyncIconId().set("image-connection-synced");
                             downloadCompleteHandler.run();
                         } else if (percentage > 0.0) {
