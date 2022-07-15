@@ -427,7 +427,6 @@ public class XmrWalletService {
             }
             System.out.println("Monero wallet uri: " + wallet.getRpcConnection().getUri());
             System.out.println("Monero wallet path: " + wallet.getPath());
-            System.out.println("Monero wallet seed: " + wallet.getMnemonic());
             System.out.println("Monero wallet primary address: " + wallet.getPrimaryAddress());
             System.out.println("Monero wallet height: " + wallet.getHeight());
             System.out.println("Monero wallet balance: " + wallet.getBalance(0));
