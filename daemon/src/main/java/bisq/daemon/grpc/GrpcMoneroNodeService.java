@@ -21,8 +21,8 @@ import bisq.core.xmr.MoneroNodeSettings;
 
 import bisq.proto.grpc.GetMoneroNodeSettingsReply;
 import bisq.proto.grpc.GetMoneroNodeSettingsRequest;
-import bisq.proto.grpc.IsMoneroNodeRunningReply;
-import bisq.proto.grpc.IsMoneroNodeRunningRequest;
+import bisq.proto.grpc.IsMoneroNodeOnlineReply;
+import bisq.proto.grpc.IsMoneroNodeOnlineRequest;
 import bisq.proto.grpc.MoneroNodeGrpc.MoneroNodeImplBase;
 import bisq.proto.grpc.StartMoneroNodeReply;
 import bisq.proto.grpc.StartMoneroNodeRequest;
@@ -42,7 +42,7 @@ import lombok.extern.slf4j.Slf4j;
 import static bisq.daemon.grpc.interceptor.GrpcServiceRateMeteringConfig.getCustomRateMeteringInterceptor;
 import static bisq.proto.grpc.MoneroNodeGrpc.getStartMoneroNodeMethod;
 import static bisq.proto.grpc.MoneroNodeGrpc.getStopMoneroNodeMethod;
-import static bisq.proto.grpc.MoneroNodeGrpc.getIsMoneroNodeRunningMethod;
+import static bisq.proto.grpc.MoneroNodeGrpc.getIsMoneroNodeOnlineMethod;
 import static bisq.proto.grpc.MoneroNodeGrpc.getGetMoneroNodeSettingsMethod;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
@@ -63,11 +63,11 @@ public class GrpcMoneroNodeService extends MoneroNodeImplBase {
     }
 
     @Override
-    public void isMoneroNodeRunning(IsMoneroNodeRunningRequest request,
-                                    StreamObserver<IsMoneroNodeRunningReply> responseObserver) {
+    public void isMoneroNodeOnline(IsMoneroNodeOnlineRequest request,
+                                    StreamObserver<IsMoneroNodeOnlineReply> responseObserver) {
         try {
-            var reply = IsMoneroNodeRunningReply.newBuilder()
-                    .setIsRunning(coreApi.isMoneroNodeRunning())
+            var reply = IsMoneroNodeOnlineReply.newBuilder()
+                    .setIsRunning(coreApi.isMoneroNodeOnline())
                     .build();
             responseObserver.onNext(reply);
             responseObserver.onCompleted();
@@ -146,7 +146,7 @@ public class GrpcMoneroNodeService extends MoneroNodeImplBase {
                 .or(() -> Optional.of(CallRateMeteringInterceptor.valueOf(
                         new HashMap<>() {{
                             int allowedCallsPerTimeWindow = 10;
-                            put(getIsMoneroNodeRunningMethod().getFullMethodName(), new GrpcCallRateMeter(allowedCallsPerTimeWindow, SECONDS));
+                            put(getIsMoneroNodeOnlineMethod().getFullMethodName(), new GrpcCallRateMeter(allowedCallsPerTimeWindow, SECONDS));
                             put(getGetMoneroNodeSettingsMethod().getFullMethodName(), new GrpcCallRateMeter(allowedCallsPerTimeWindow, SECONDS));
                             put(getStartMoneroNodeMethod().getFullMethodName(), new GrpcCallRateMeter(allowedCallsPerTimeWindow, SECONDS));
                             put(getStopMoneroNodeMethod().getFullMethodName(), new GrpcCallRateMeter(allowedCallsPerTimeWindow, SECONDS));

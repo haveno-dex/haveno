@@ -27,6 +27,7 @@ import bisq.core.offer.OfferPayload;
 import bisq.core.support.dispute.arbitration.arbitrator.Arbitrator;
 import bisq.core.trade.messages.InitTradeRequest;
 import bisq.core.util.JsonUtil;
+import java.net.URI;
 import java.util.Objects;
 import java.util.concurrent.CountDownLatch;
 
@@ -34,7 +35,10 @@ import java.util.concurrent.CountDownLatch;
  * Collection of utilities for trading.
  */
 public class TradeUtils {
-    
+
+    public static final String LOOPBACK_HOST = "127.0.0.1"; // local loopback address to host Monero node
+    public static final String LOCALHOST = "localhost";
+
     /**
      * Get address to collect trade fees.
      * 
@@ -54,7 +58,19 @@ public class TradeUtils {
             throw new RuntimeException("Unhandled base currency network: " + Config.baseCurrencyNetwork());
         }
     }
-    
+
+    /**
+     * Check if the given URI is on local host.
+     */
+    public static boolean isLocalHost(String uri) {
+        try {
+            String host = new URI(uri).getHost();
+            return host.equals(LOOPBACK_HOST) || host.equals(LOCALHOST);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     /**
      * Check if the arbitrator signature for an offer is valid.
      * 
