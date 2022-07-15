@@ -256,7 +256,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                     log.warn("We found an outdated addressEntry for openOffer {} (openOffers does not contain that " +
                                     "offer), offers.size={}",
                             e.getOfferId(), openOffers.size());
-                    btcWalletService.resetAddressEntriesForOpenOffer(e.getOfferId());
+                    xmrWalletService.resetAddressEntriesForOpenOffer(e.getOfferId());
                 });
     }
 
@@ -570,7 +570,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
         openOffers.remove(openOffer);
         closedTradableManager.add(openOffer);
         log.info("onRemoved offerId={}", offer.getId());
-        btcWalletService.resetAddressEntriesForOpenOffer(offer.getId());
+        xmrWalletService.resetAddressEntriesForOpenOffer(offer.getId());
         requestPersistence();
     }
 
