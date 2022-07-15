@@ -56,10 +56,6 @@ public class TradeFeedbackWindow extends Overlay<TradeFeedbackWindow> {
     protected void addMessage() {
         super.addMessage();
 
-        HyperlinkWithIcon survey = addHyperlinkWithIcon(gridPane, ++rowIndex, "https://bisq.network/survey",
-                "https://bisq.network/survey");
-        GridPane.setMargin(survey, new Insets(-6, 0, 10, 0));
-
         AutoTooltipLabel messageLabel2 = new AutoTooltipLabel(Res.get("tradeFeedbackWindow.msg.part2"));
         messageLabel2.setMouseTransparent(true);
         messageLabel2.setWrapText(true);
@@ -70,9 +66,9 @@ public class TradeFeedbackWindow extends Overlay<TradeFeedbackWindow> {
         GridPane.setColumnSpan(messageLabel2, 2);
         gridPane.getChildren().add(messageLabel2);
 
-        HyperlinkWithIcon forum = addHyperlinkWithIcon(gridPane, ++rowIndex, "https://bisq.community",
-                "https://bisq.community", 40);
-        GridPane.setMargin(forum, new Insets(-6, 0, 10, 0));
+        HyperlinkWithIcon matrix = addHyperlinkWithIcon(gridPane, ++rowIndex, "https://matrix.to/#/#haveno:haveno.network",
+                "https://matrix.to/#/#haveno:haveno.network", 40);
+        GridPane.setMargin(matrix, new Insets(-6, 0, 10, 0));
 
         AutoTooltipLabel messageLabel3 = new AutoTooltipLabel(Res.get("tradeFeedbackWindow.msg.part3"));
         messageLabel3.setMouseTransparent(true);
