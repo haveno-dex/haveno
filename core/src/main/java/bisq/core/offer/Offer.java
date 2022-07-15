@@ -287,10 +287,8 @@ public class Offer implements NetworkPayload, PersistablePayload {
 
     // get the amount needed for the maker to reserve the offer
     public Coin getReserveAmount() {
-        Coin reserveAmount = getAmount();
-        reserveAmount = reserveAmount.add(getDirection() == OfferDirection.BUY ?
-                getBuyerSecurityDeposit() :
-                getSellerSecurityDeposit());
+        Coin reserveAmount = getDirection() == OfferDirection.BUY ? getBuyerSecurityDeposit() : getSellerSecurityDeposit();
+        if (getDirection() == OfferDirection.SELL) reserveAmount = reserveAmount.add(getAmount());
         return reserveAmount;
     }
 
