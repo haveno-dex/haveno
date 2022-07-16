@@ -1,39 +1,28 @@
-# Haveno Trade Protocol
+## Overview
 
-Described here is the desired protocol for Haveno. Note that the discussion is still ongoing, so this protocol could be changed/updated in the future.
+Haveno is a decentralized network where people meet to exchange XMR for fiat or other cryptocurrencies. There are no central entities involved and trades happen directly between traders, which are both required to deposit and lock some XMR until the trade is completed. In case of disagreement between traders, both of them can request the involvement of an arbitrator, which will resolve the dispute.
 
-## Roles
+This document provides a simplified overview of Haveno's trade protocol, but a PDF with the technical details is available: [trade-protocol.pdf](trade-protocol.pdf).
 
-- **Buyer** - person buying XMR
-- **Seller** - person selling XMR
+## Protocol
+
+### Roles
+
 - **Maker** - person making offer
 - **Taker** - person taking offer
 - **Arbitrator** - entity resolving possible disputes
 
-For each trade, a trader is a buyer or seller and a maker or taker.
+### Overview of a trade
 
-## Protocol
+We assume the maker is selling XMR and the taker is buying them in exchange for fiat:
 
-1. Maker deposits funds to Haveno wallet and waits ~20 minutes. (optional)
-2. Maker initiates offer. If maker does not have available or pending outputs to cover trade funds, prompt to first deposit to Haveno wallet and wait ~20 minutes.
-3. Maker creates but does not relay "reserve transaction" which pays trade fee and returns multisig deposit amount to maker. Maker freezes input funds and submits offer to arbitrator to sign.
-4. Arbitrator verifies maker reserve transaction and signs offer. If maker breaks protocol, arbitrator can punish maker by relaying reserve transaction to pay trade fee (unless maker spends reserved inputs which incurs mining fee).
-5. Offer is posted and available to be taken immediately.
-6. Taker deposits funds to Haveno wallet and waits ~20 minutes. (optional)
-7. Taker verifies offer's arbitrator signature and initiates taking offer. If taker does not have available or pending outputs to cover trade funds, prompt to first deposit to Haveno wallet and wait ~20 minutes.
-8. Taker creates but does not relay "reserve transaction" which pays trade fee and returns multisig deposit amount to taker. Taker freezes input funds and submits request to take offer to arbitrator.
-9. Arbitrator verifies taker reserve transaction. If taker breaks protocol, arbitrator can punish taker by relaying reserve transaction to pay trade fee (unless taker spends reserved inputs which incurs mining fee).
-10. Maker, taker, and arbitrator create 2/3 multisig wallet.
-11. Maker and taker create but do not relay "deposit transactions" to pay trade fees and send deposit amounts to multisig. Buyer deposits trade amount + security deposit whereas seller only deposits security deposit.
-12. Maker and taker sign contract with trade terms and ids of deposit trasactions.
-13. Maker and taker submit signed contract and deposit transactions to arbitrator.
-14. Arbitrator verifies contract and deposit transactions then relays deposit transactions to commit funds to multisig.
-15. Buyer pays seller (e.g. sends ETH) outside of Haveno after at least a few confirmations.
-16. When the multisig deposits are available (after ~20 minutes) and payment is acknowledged, maker and taker sign to release funds from multisig to payout addresses, or one trader opens a dispute with the arbitrator.
-17. Arbitrator resolves dispute if applicable.
+1. (optional) Maker **deposits funds** to Haveno wallet and waits for them to be unlocked (~20 minutes).
+2. Maker **creates an offer** which reserves funds for the security deposit + amount to be sent to the taker. Also creates a penalty transaction which penalizes the maker if they break protocol.
+3. Taker **accepts offer** which reserves funds for the security deposit + amount to be sent to the maker. As for the maker in the step above, a penalty transaction is created.
+4. A **2/3 multisignature wallet is created** between the maker, taker and arbitrator. The arbitrator holds the third key, so that they can be summoned in case of disputes. If there is no dispute, the traders will complete the transaction without involving an arbitrator.
+5. Both users have their deposit locked in multisig. Now they wait until the funds are spendable (~20 minutes). In the meantime, the XMR buyer can send payment outside Haveno (e.g. send bank transfer to the other trader).
+6. When the taker has received the agreed amount with the agreed payment method, they **signal to the maker** that they have received the payment.
+7. The maker checks they have received the agreed amount and if everything is ok, they **confirm the completed payment**.
+8. When the XMR seller confirms they received the payment outside Haveno, the agreed amount in XMR is sent to the buyer, while the security deposits of both traders are returned to them. **Trade completed**.
 
-Note: all steps involving the arbitrator are automatic except resolving disputes.
-
-## Protocol Messaging
-
-See [trade-protocol.pdf](trade-protocol.pdf) for documentation of network messages used by the trade protocol.
+This protocol ensures trades on Haveno are non-custodial (Haveno never has access to your funds), peer-to-peer (there is no central entity, people trade among themselves) and safe (thanks to the security deposit and opt-in arbitration).
