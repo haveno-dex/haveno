@@ -1044,9 +1044,8 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
                     }
                 }
 
-                // delete multisig wallet // TODO (woodser): don't delete multisig wallet until payout tx unlocked
-                if (xmrWalletService.multisigWalletExists(trade.getId())) xmrWalletService.deleteMultisigWallet(trade.getId());
-                else log.warn("Multisig wallet to delete for trade {} does not exist", trade.getId());
+                // delete trade wallet when empty
+                deleteTradeWalletWhenEmpty(trade);
 
                 // unregister and persist
                 p2PService.removeDecryptedDirectMessageListener(getTradeProtocol(trade));
@@ -1068,5 +1067,22 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
     //  (part of the persistence refactor PR)
     private void onTradesChanged() {
         this.numPendingTrades.set(getObservableList().size());
+    }
+
+    private void deleteTradeWalletWhenEmpty(Trade trade) {
+
+        // delete trade wallet before funds deposited or after payout unlocked
+        // TODO: delete wallet if trade state < deposit_requested || state >= payout_unlocked (add trade states)
+        if (trade.getPhase().ordinal() < Trade.Phase.DEPOSIT_PUBLISHED.ordinal() || trade.getPhase().ordinal() >= Trade.Phase.PAYOUT_PUBLISHED.ordinal()) {
+            deleteTradeWallet(trade);
+        } else {
+            // TODO: schedule wallet for deletion after unlock
+            log.warn("Not deleting trade " + trade.getId() + " wallet because it might not be empty");
+        }
+    }
+
+    private void deleteTradeWallet(Trade trade) {
+        if (xmrWalletService.multisigWalletExists(trade.getId())) xmrWalletService.deleteMultisigWallet(trade.getId());
+        else log.warn("Multisig wallet to delete for trade {} does not exist", trade.getId());
     }
 }
