@@ -237,6 +237,7 @@ public class BuyerAsMakerProtocol extends BuyerProtocol implements MakerProtocol
                             () -> {
                                 stopTimeout();
                                 unlatchTrade();
+                                this.errorMessageHandler = null;
                                 handleTaskRunnerSuccess(sender, request);
                             },
                             errorMessage -> {
