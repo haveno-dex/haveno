@@ -252,8 +252,9 @@ public class BuyerAsTakerProtocol extends BuyerProtocol implements TakerProtocol
                                 ProcessPaymentAccountPayloadRequest.class)
                         .using(new TradeTaskRunner(trade,
                                 () -> {
-                                    unlatchTrade();
                                     stopTimeout();
+                                    unlatchTrade();
+                                    this.errorMessageHandler = null;
                                     handleTaskRunnerSuccess(sender, request);
                                     tradeResultHandler.handleResult(trade); // trade is initialized
                                 },

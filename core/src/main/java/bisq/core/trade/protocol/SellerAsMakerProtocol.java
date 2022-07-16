@@ -237,8 +237,9 @@ public class SellerAsMakerProtocol extends SellerProtocol implements MakerProtoc
                                 MakerRemovesOpenOffer.class)
                         .using(new TradeTaskRunner(trade,
                             () -> {
-                                unlatchTrade();
                                 stopTimeout();
+                                unlatchTrade();
+                                this.errorMessageHandler = null;
                                 handleTaskRunnerSuccess(sender, request);
                             },
                             errorMessage -> {
