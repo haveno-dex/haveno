@@ -387,7 +387,7 @@ public class XmrWalletService {
     private void initialize() {
 
         // initialize main wallet if connected or previously created
-        tryInitMainWallet();
+        maybeInitMainWallet();
 
         // update wallet connections on change
         connectionsService.addListener(newConnection -> {
@@ -400,7 +400,7 @@ public class XmrWalletService {
         return new File(path + ".keys").exists();
     }
 
-    private void tryInitMainWallet() {
+    private void maybeInitMainWallet() {
 
         // open or create wallet
         MoneroWalletConfig walletConfig = new MoneroWalletConfig().setPath(MONERO_WALLET_NAME).setPassword(getWalletPassword());
@@ -517,7 +517,7 @@ public class XmrWalletService {
 
     private void setWalletDaemonConnections(MoneroRpcConnection connection) {
         log.info("Setting wallet daemon connection: " + (connection == null ? null : connection.getUri()));
-        if (wallet == null) tryInitMainWallet();
+        if (wallet == null) maybeInitMainWallet();
         if (wallet != null) {
             wallet.setDaemonConnection(connection);
             wallet.startSyncing(connectionsService.getDefaultRefreshPeriodMs());

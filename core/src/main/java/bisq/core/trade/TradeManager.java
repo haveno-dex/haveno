@@ -118,6 +118,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import monero.daemon.model.MoneroTx;
+import monero.wallet.model.MoneroOutputQuery;
 
 
 public class TradeManager implements PersistedDataHost, DecryptedDirectMessageListener {
@@ -288,6 +289,35 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
                     log.warn("Swapping pending OFFER_FUNDING entries at startup. offerId={}", addressEntry.getOfferId());
                     xmrWalletService.swapTradeEntryToAvailableEntry(addressEntry.getOfferId(), XmrAddressEntry.Context.OFFER_FUNDING);
                 });
+
+        // thaw unreserved outputs
+        thawUnreservedOutputs();
+    }
+
+    private void thawUnreservedOutputs() {
+        if (xmrWalletService.getWallet() == null) return;
+
+        // collect reserved outputs
+        Set<String> reservedKeyImages = new HashSet<String>();
+        for (Trade trade : getObservableList()) {
+            if (trade.getSelf().getReserveTxKeyImages() == null) continue;
+            reservedKeyImages.addAll(trade.getSelf().getReserveTxKeyImages());
+        }
+        for (OpenOffer openOffer : openOfferManager.getObservableList()) {
+            reservedKeyImages.addAll(openOffer.getOffer().getOfferPayload().getReserveTxKeyImages());
+        }
+
+        // thaw unreserved outputs
+        Set<String> frozenKeyImages = xmrWalletService.getWallet().getOutputs(new MoneroOutputQuery()
+                .setIsFrozen(true)
+                .setIsSpent(false))
+                .stream().map(output -> output.getKeyImage().getHex())
+                .collect(Collectors.toSet());
+        frozenKeyImages.removeAll(reservedKeyImages);
+        for (String unreservedFrozenKeyImage : frozenKeyImages) {
+            log.info("Thawing output which is not reserved for offer or trade: " + unreservedFrozenKeyImage);
+            xmrWalletService.getWallet().thawOutput(unreservedFrozenKeyImage);
+        }
     }
 
     public TradeProtocol getTradeProtocol(Trade trade) {
