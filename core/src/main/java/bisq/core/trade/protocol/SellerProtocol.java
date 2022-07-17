@@ -30,7 +30,6 @@ import bisq.core.trade.protocol.tasks.seller.SellerSendsPaymentReceivedMessage;
 import bisq.core.trade.protocol.tasks.seller.SellerPreparesPaymentReceivedMessage;
 
 import bisq.network.p2p.NodeAddress;
-import java.util.concurrent.CountDownLatch;
 import bisq.common.handlers.ErrorMessageHandler;
 import bisq.common.handlers.ResultHandler;
 

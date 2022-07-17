@@ -64,6 +64,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
 
     protected final ProcessModel processModel;
     protected final Trade trade;
+    protected CountDownLatch tradeLatch; // to synchronize on trade
     private Timer timeoutTimer;
     protected TradeResultHandler tradeResultHandler;
     protected ErrorMessageHandler errorMessageHandler;
@@ -220,16 +221,15 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
         synchronized (trade) {
             Validator.checkTradeId(processModel.getOfferId(), message);
             processModel.setTradeMessage(message);
-            CountDownLatch latch = new CountDownLatch(1);
+            latchTrade();
             TradeTaskRunner taskRunner = new TradeTaskRunner(trade,
                     () -> {
+                        unlatchTrade();
                         stopTimeout();
-                        latch.countDown();
                         handleTaskRunnerSuccess(peer, message, "handleUpdateMultisigRequest");
                     },
                     errorMessage -> {
-                        latch.countDown();
-                        errorMessageHandler.handleErrorMessage(errorMessage);
+                        handleError(errorMessage);
                         handleTaskRunnerFault(peer, message, errorMessage);
                     });
             taskRunner.addTasks(
@@ -237,7 +237,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
             );
             startTimeout(TRADE_TIMEOUT);
             taskRunner.run();
-            TradeUtils.waitForLatch(latch);
+            awaitTradeLatch();
         }
     }
 
@@ -365,6 +365,32 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
         );
     }
 
+    // TODO: trade protocols block if these are synchronized
+
+    protected void handleError(String errorMessage) {
+        log.error(errorMessage);
+        unlatchTrade();
+        trade.setErrorMessage(errorMessage);
+        if (errorMessageHandler != null) errorMessageHandler.handleErrorMessage(errorMessage);
+        processModel.getTradeManager().requestPersistence();
+        cleanup();
+    }
+
+    protected void latchTrade() {
+        if (tradeLatch != null) throw new RuntimeException("Trade latch is not null. This should never happen.");
+        tradeLatch = new CountDownLatch(1);
+    }
+
+    protected void unlatchTrade() {
+        if (tradeLatch != null) tradeLatch.countDown();
+        tradeLatch = null;
+    }
+
+    protected void awaitTradeLatch() {
+        if (tradeLatch == null) return;
+        TradeUtils.awaitLatch(tradeLatch);
+    }
+
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Timeout
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -372,11 +398,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
     protected void startTimeout(long timeoutSec) {
         stopTimeout();
         timeoutTimer = UserThread.runAfter(() -> {
-            log.error("Timeout reached. TradeID={}, state={}, timeoutSec={}", trade.getId(), trade.stateProperty().get(), timeoutSec);
-            trade.setErrorMessage("Timeout reached. Protocol did not complete in " + timeoutSec + " sec.");
-            if (errorMessageHandler != null) errorMessageHandler.handleErrorMessage("Timeout reached. Protocol did not complete in " + timeoutSec + " sec. TradeID=" + trade.getId() + ", state=" + trade.stateProperty().get());
-            processModel.getTradeManager().requestPersistence();
-            cleanup();
+            handleError("Timeout reached. Protocol did not complete in " + timeoutSec + " sec. TradeID=" + trade.getId() + ", state=" + trade.stateProperty().get());
         }, timeoutSec);
     }
 

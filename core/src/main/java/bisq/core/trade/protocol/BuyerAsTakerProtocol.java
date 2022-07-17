@@ -22,7 +22,6 @@ import bisq.core.offer.Offer;
 import bisq.core.trade.BuyerAsTakerTrade;
 import bisq.core.trade.Trade;
 import bisq.core.trade.Trade.State;
-import bisq.core.trade.TradeUtils;
 import bisq.core.trade.handlers.TradeResultHandler;
 import bisq.core.trade.messages.DelayedPayoutTxSignatureRequest;
 import bisq.core.trade.messages.DepositResponse;
@@ -58,7 +57,6 @@ import bisq.core.trade.protocol.tasks.taker.TakerSendsInitTradeRequestToArbitrat
 import bisq.core.trade.protocol.tasks.taker.TakerVerifyMakerFeePayment;
 import bisq.core.util.Validator;
 import bisq.network.p2p.NodeAddress;
-import java.util.concurrent.CountDownLatch;
 import bisq.common.handlers.ErrorMessageHandler;
 import bisq.common.handlers.ResultHandler;
 
@@ -98,7 +96,7 @@ public class BuyerAsTakerProtocol extends BuyerProtocol implements TakerProtocol
       synchronized (trade) {
           this.tradeResultHandler = tradeResultHandler;
           this.errorMessageHandler = errorMessageHandler;
-          CountDownLatch latch = new CountDownLatch(1);
+          latchTrade();
           expect(phase(Trade.Phase.INIT)
                   .with(TakerEvent.TAKE_OFFER)
                   .from(trade.getTradingPeerNodeAddress()))
@@ -108,15 +106,14 @@ public class BuyerAsTakerProtocol extends BuyerProtocol implements TakerProtocol
                           TakerSendsInitTradeRequestToArbitrator.class)
                   .using(new TradeTaskRunner(trade,
                           () -> {
-                              latch.countDown();
+                              unlatchTrade();
                           },
                           errorMessage -> {
-                              latch.countDown();
-                              errorMessageHandler.handleErrorMessage(errorMessage);
+                              handleError(errorMessage);
                           }))
                   .withTimeout(TRADE_TIMEOUT))
                   .executeTasks();
-          TradeUtils.waitForLatch(latch);
+          awaitTradeLatch();
       }
     }
 
@@ -126,7 +123,7 @@ public class BuyerAsTakerProtocol extends BuyerProtocol implements TakerProtocol
         synchronized (trade) {
             Validator.checkTradeId(processModel.getOfferId(), request);
             processModel.setTradeMessage(request);
-            CountDownLatch latch = new CountDownLatch(1);
+            latchTrade();
             expect(anyPhase(Trade.Phase.INIT)
                     .with(request)
                     .from(sender))
@@ -135,17 +132,16 @@ public class BuyerAsTakerProtocol extends BuyerProtocol implements TakerProtocol
                             SendSignContractRequestAfterMultisig.class)
                     .using(new TradeTaskRunner(trade,
                             () -> {
-                                latch.countDown();
+                                unlatchTrade();
                                 handleTaskRunnerSuccess(sender, request);
                             },
                             errorMessage -> {
-                                latch.countDown();
+                                handleError(errorMessage);
                                 handleTaskRunnerFault(sender, request, errorMessage);
-                                errorMessageHandler.handleErrorMessage(errorMessage);
                             }))
                     .withTimeout(TRADE_TIMEOUT))
                     .executeTasks();
-            TradeUtils.waitForLatch(latch);
+            awaitTradeLatch();
         }
     }
 
@@ -155,7 +151,7 @@ public class BuyerAsTakerProtocol extends BuyerProtocol implements TakerProtocol
         synchronized (trade) {
             Validator.checkTradeId(processModel.getOfferId(), message);
             processModel.setTradeMessage(message);
-            CountDownLatch latch = new CountDownLatch(1);
+            latchTrade();
             expect(anyPhase(Trade.Phase.INIT)
                     .with(message)
                     .from(sender))
@@ -164,17 +160,16 @@ public class BuyerAsTakerProtocol extends BuyerProtocol implements TakerProtocol
                             ProcessSignContractRequest.class)
                     .using(new TradeTaskRunner(trade,
                             () -> {
-                                latch.countDown();
+                                unlatchTrade();
                                 handleTaskRunnerSuccess(sender, message);
                             },
                             errorMessage -> {
-                                latch.countDown();
+                                handleError(errorMessage);
                                 handleTaskRunnerFault(sender, message, errorMessage);
-                                errorMessageHandler.handleErrorMessage(errorMessage);
                             }))
                     .withTimeout(TRADE_TIMEOUT))
                     .executeTasks();
-            TradeUtils.waitForLatch(latch);
+            awaitTradeLatch();
         }
     }
 
@@ -185,7 +180,7 @@ public class BuyerAsTakerProtocol extends BuyerProtocol implements TakerProtocol
             Validator.checkTradeId(processModel.getOfferId(), message);
             if (trade.getState() == State.CONTRACT_SIGNATURE_REQUESTED) {
                 processModel.setTradeMessage(message);
-                CountDownLatch latch = new CountDownLatch(1);
+                if (tradeLatch == null) latchTrade(); // may be initialized from previous message
                 expect(state(Trade.State.CONTRACT_SIGNATURE_REQUESTED)
                         .with(message)
                         .from(sender))
@@ -194,17 +189,16 @@ public class BuyerAsTakerProtocol extends BuyerProtocol implements TakerProtocol
                                 ProcessSignContractResponse.class)
                         .using(new TradeTaskRunner(trade,
                                 () -> {
-                                    latch.countDown();
+                                    unlatchTrade();
                                     handleTaskRunnerSuccess(sender, message);
                                 },
                                 errorMessage -> {
-                                    latch.countDown();
+                                    handleError(errorMessage);
                                     handleTaskRunnerFault(sender, message, errorMessage);
-                                    errorMessageHandler.handleErrorMessage(errorMessage);
                                 }))
                         .withTimeout(TRADE_TIMEOUT))
                         .executeTasks();
-                TradeUtils.waitForLatch(latch);
+                awaitTradeLatch();
             } else {
                 EasyBind.subscribe(trade.stateProperty(), state -> {
                     if (state != State.CONTRACT_SIGNATURE_REQUESTED) return;
@@ -220,7 +214,7 @@ public class BuyerAsTakerProtocol extends BuyerProtocol implements TakerProtocol
         synchronized (trade) {
             Validator.checkTradeId(processModel.getOfferId(), response);
             processModel.setTradeMessage(response);
-            CountDownLatch latch = new CountDownLatch(1);
+            latchTrade();
             expect(state(Trade.State.CONTRACT_SIGNATURE_REQUESTED)
                     .with(response)
                     .from(sender))
@@ -229,17 +223,16 @@ public class BuyerAsTakerProtocol extends BuyerProtocol implements TakerProtocol
                             ProcessDepositResponse.class)
                     .using(new TradeTaskRunner(trade,
                             () -> {
-                                latch.countDown();
+                                unlatchTrade();
                                 handleTaskRunnerSuccess(sender, response);
                             },
                             errorMessage -> {
-                                latch.countDown();
+                                handleError(errorMessage);
                                 handleTaskRunnerFault(sender, response, errorMessage);
-                                errorMessageHandler.handleErrorMessage(errorMessage);
                             }))
                     .withTimeout(TRADE_TIMEOUT))
                     .executeTasks();
-            TradeUtils.waitForLatch(latch);
+            awaitTradeLatch();
         }
     }
 
@@ -248,7 +241,7 @@ public class BuyerAsTakerProtocol extends BuyerProtocol implements TakerProtocol
         System.out.println(getClass().getCanonicalName() + ".handlePaymentAccountPayloadRequest()");
         synchronized (trade) {
             Validator.checkTradeId(processModel.getOfferId(), request);
-            CountDownLatch latch = new CountDownLatch(1);
+            if (tradeLatch == null) latchTrade(); // may be initialized from previous message
             if (trade.getState() == State.MAKER_RECEIVED_DEPOSIT_TX_PUBLISHED_MSG) {
                 processModel.setTradeMessage(request);
                 expect(state(Trade.State.MAKER_RECEIVED_DEPOSIT_TX_PUBLISHED_MSG) // TODO (woodser): rename to RECEIVED_DEPOSIT_TX_PUBLISHED_MSG
@@ -259,19 +252,18 @@ public class BuyerAsTakerProtocol extends BuyerProtocol implements TakerProtocol
                                 ProcessPaymentAccountPayloadRequest.class)
                         .using(new TradeTaskRunner(trade,
                                 () -> {
-                                    latch.countDown();
+                                    unlatchTrade();
                                     stopTimeout();
                                     handleTaskRunnerSuccess(sender, request);
                                     tradeResultHandler.handleResult(trade); // trade is initialized
                                 },
                                 errorMessage -> {
-                                    latch.countDown();
+                                    handleError(errorMessage);
                                     handleTaskRunnerFault(sender, request, errorMessage);
-                                    errorMessageHandler.handleErrorMessage(errorMessage);
                                 }))
                         .withTimeout(TRADE_TIMEOUT))
                         .executeTasks();
-                TradeUtils.waitForLatch(latch);
+                awaitTradeLatch();
             } else {
                 EasyBind.subscribe(trade.stateProperty(), state -> {
                     if (state == State.MAKER_RECEIVED_DEPOSIT_TX_PUBLISHED_MSG) handlePaymentAccountPayloadRequest(request, sender);

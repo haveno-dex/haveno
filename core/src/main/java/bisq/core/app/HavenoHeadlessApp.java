@@ -98,7 +98,7 @@ public class HavenoHeadlessApp implements HeadlessApp {
                 lastVersion, Version.VERSION));
 
         corruptedStorageFileHandler.getFiles().ifPresent(files -> log.warn("getCorruptedDatabaseFiles. files={}", files));
-        tradeManager.setTakeOfferRequestErrorMessageHandler(errorMessage -> log.error("onTakeOfferRequestErrorMessageHandler"));
+        tradeManager.setTakeOfferRequestErrorMessageHandler(errorMessage -> log.error("Error taking offer: " + errorMessage));
     }
 
     public void stop() {

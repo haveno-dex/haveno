@@ -205,7 +205,7 @@ public class TradeUtils {
 //        return new Tuple2<>(multiSigAddress.getAddressString(), payoutAddress);
     }
 
-    public static void waitForLatch(CountDownLatch latch) {
+    public static void awaitLatch(CountDownLatch latch) {
         try {
             latch.await();
         } catch (InterruptedException e) {
