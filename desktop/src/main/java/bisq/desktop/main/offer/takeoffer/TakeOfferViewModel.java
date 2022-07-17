@@ -29,7 +29,6 @@ import bisq.desktop.util.DisplayUtils;
 import bisq.desktop.util.GUIUtil;
 import bisq.core.account.witness.AccountAgeWitnessService;
 import bisq.core.btc.wallet.Restrictions;
-import bisq.core.locale.CurrencyUtil;
 import bisq.core.locale.Res;
 import bisq.core.monetary.Price;
 import bisq.core.offer.Offer;
@@ -124,13 +123,11 @@ class TakeOfferViewModel extends ActivatableWithDataModel<TakeOfferDataModel> im
     private ChangeListener<Coin> amountAsCoinListener;
     private ChangeListener<Boolean> isWalletFundedListener;
     private ChangeListener<Trade.State> tradeStateListener;
-    private ChangeListener<String> tradeErrorListener;
     private ChangeListener<Offer.State> offerStateListener;
-    private ChangeListener<String> offerErrorListener;
     private ChangeListener<Number> getMempoolStatusListener;
     private ConnectionListener connectionListener;
     //  private Subscription isFeeSufficientSubscription;
-    private Runnable takeOfferSucceededHandler;
+    private Runnable takeOfferResultHandler;
     String marketPriceMargin;
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -220,11 +217,6 @@ class TakeOfferViewModel extends ActivatableWithDataModel<TakeOfferDataModel> im
 
         checkNotNull(dataModel.getAddressEntry(), "dataModel.getAddressEntry() must not be null");
 
-        offerErrorListener = (observable, oldValue, newValue) -> {
-            if (newValue != null)
-                errorMessage.set(newValue);
-        };
-        offer.errorMessageProperty().addListener(offerErrorListener);
         errorMessage.set(offer.getErrorMessage());
 
         btcValidator.setMaxValue(offer.getAmount());
@@ -237,7 +229,7 @@ class TakeOfferViewModel extends ActivatableWithDataModel<TakeOfferDataModel> im
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     void onTakeOffer(Runnable resultHandler) {
-        takeOfferSucceededHandler = resultHandler;
+        takeOfferResultHandler = resultHandler;
         takeOfferRequested = true;
         showTransactionPublishedScreen.set(false);
         dataModel.onTakeOffer(trade -> {
@@ -245,9 +237,10 @@ class TakeOfferViewModel extends ActivatableWithDataModel<TakeOfferDataModel> im
             takeOfferCompleted.set(true);
             trade.stateProperty().addListener(tradeStateListener);
             applyTradeState();
-            trade.errorMessageProperty().addListener(tradeErrorListener);
             applyTradeErrorMessage(trade.getErrorMessage());
             takeOfferCompleted.set(true);
+        }, errMessage -> {
+            applyTradeErrorMessage(errMessage);
         });
 
         updateButtonDisableState();
@@ -418,7 +411,8 @@ class TakeOfferViewModel extends ActivatableWithDataModel<TakeOfferDataModel> im
     private void applyTradeErrorMessage(@Nullable String errorMessage) {
         if (errorMessage != null) {
             String appendMsg = "";
-            switch (trade.getState().getPhase()) {
+            if (trade != null) {
+                switch (trade.getState().getPhase()) {
                 case INIT:
                     appendMsg = Res.get("takeOffer.error.noFundsLost");
                     break;
@@ -434,13 +428,16 @@ class TakeOfferViewModel extends ActivatableWithDataModel<TakeOfferDataModel> im
                 case WITHDRAWN:
                     appendMsg = Res.get("takeOffer.error.payoutPublished");
                     break;
+                default:
+                    break;
+                }
             }
             this.errorMessage.set(errorMessage + appendMsg);
 
             updateSpinnerInfo();
 
-            if (takeOfferSucceededHandler != null)
-                takeOfferSucceededHandler.run();
+            if (takeOfferResultHandler != null)
+                takeOfferResultHandler.run();
         } else {
             this.errorMessage.set(null);
         }
@@ -449,8 +446,8 @@ class TakeOfferViewModel extends ActivatableWithDataModel<TakeOfferDataModel> im
     private void applyTradeState() {
         if (trade.isTakerFeePublished()) {
             if (trade.getTakerFeeTxId() != null) {
-                if (takeOfferSucceededHandler != null)
-                    takeOfferSucceededHandler.run();
+                if (takeOfferResultHandler != null)
+                    takeOfferResultHandler.run();
 
                 showTransactionPublishedScreen.set(true);
                 updateSpinnerInfo();
@@ -505,7 +502,6 @@ class TakeOfferViewModel extends ActivatableWithDataModel<TakeOfferDataModel> im
         isWalletFundedListener = (ov, oldValue, newValue) -> updateButtonDisableState();
 
         tradeStateListener = (ov, oldValue, newValue) -> applyTradeState();
-        tradeErrorListener = (ov, oldValue, newValue) -> applyTradeErrorMessage(newValue);
         offerStateListener = (ov, oldValue, newValue) -> applyOfferState(newValue);
 
         getMempoolStatusListener = (observable, oldValue, newValue) -> {
@@ -583,12 +579,10 @@ class TakeOfferViewModel extends ActivatableWithDataModel<TakeOfferDataModel> im
         dataModel.getIsBtcWalletFunded().removeListener(isWalletFundedListener);
         if (offer != null) {
             offer.stateProperty().removeListener(offerStateListener);
-            offer.errorMessageProperty().removeListener(offerErrorListener);
         }
 
         if (trade != null) {
             trade.stateProperty().removeListener(tradeStateListener);
-            trade.errorMessageProperty().removeListener(tradeErrorListener);
         }
         p2PService.getNetworkNode().removeConnectionListener(connectionListener);
         //isFeeSufficientSubscription.unsubscribe();

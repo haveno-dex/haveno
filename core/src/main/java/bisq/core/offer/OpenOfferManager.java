@@ -633,7 +633,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                 latch.countDown();
                 errorMessages.add(errorMessage);
             });
-            TradeUtils.waitForLatch(latch);
+            TradeUtils.awaitLatch(latch);
         }
         requestPersistence();
         if (errorMessages.size() > 0) errorMessageHandler.handleErrorMessage(errorMessages.toString());

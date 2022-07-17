@@ -19,7 +19,6 @@ package bisq.core.trade.protocol;
 
 import bisq.core.trade.BuyerTrade;
 import bisq.core.trade.Trade;
-import bisq.core.trade.TradeUtils;
 import bisq.core.trade.messages.DelayedPayoutTxSignatureRequest;
 import bisq.core.trade.messages.DepositTxAndDelayedPayoutTxMessage;
 import bisq.core.trade.messages.PaymentReceivedMessage;
@@ -164,8 +163,7 @@ public abstract class BuyerProtocol extends DisputeProtocol {
         log.info("BuyerProtocol.handle(PaymentReceivedMessage)");
         synchronized (trade) {
             processModel.setTradeMessage(message);
-            processModel.setTempTradingPeerNodeAddress(peer);
-            CountDownLatch latch = new CountDownLatch(1);
+            latchTrade();
             expect(anyPhase(Trade.Phase.PAYMENT_SENT, Trade.Phase.PAYOUT_PUBLISHED)
                 .with(message)
                 .from(peer))
@@ -174,15 +172,15 @@ public abstract class BuyerProtocol extends DisputeProtocol {
                     BuyerProcessesPaymentReceivedMessage.class)
                     .using(new TradeTaskRunner(trade,
                         () -> {
-                            latch.countDown();
+                            unlatchTrade();
                             handleTaskRunnerSuccess(peer, message);
                         },
                         errorMessage -> {
-                            latch.countDown();
+                            handleError(errorMessage);
                             handleTaskRunnerFault(peer, message, errorMessage);
                         })))
                 .executeTasks();
-            TradeUtils.waitForLatch(latch);
+            awaitTradeLatch();
         }
     }
 

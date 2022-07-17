@@ -22,7 +22,7 @@ import bisq.desktop.main.offer.OfferDataModel;
 import bisq.desktop.main.offer.offerbook.OfferBook;
 import bisq.desktop.main.overlays.popups.Popup;
 import bisq.desktop.util.GUIUtil;
-
+import bisq.common.handlers.ErrorMessageHandler;
 import bisq.core.account.witness.AccountAgeWitnessService;
 import bisq.core.btc.listeners.XmrBalanceListener;
 import bisq.core.btc.model.XmrAddressEntry;
@@ -302,7 +302,7 @@ class TakeOfferDataModel extends OfferDataModel {
 
     // errorMessageHandler is used only in the check availability phase. As soon we have a trade we write the error msg in the trade object as we want to
     // have it persisted as well.
-    void onTakeOffer(TradeResultHandler tradeResultHandler) {
+    void onTakeOffer(TradeResultHandler tradeResultHandler, ErrorMessageHandler errorMessageHandler) {
         checkNotNull(txFeeFromFeeService, "txFeeFromFeeService must not be null");
         checkNotNull(getTakerFee(), "takerFee must not be null");
 
@@ -334,7 +334,7 @@ class TakeOfferDataModel extends OfferDataModel {
                     tradeResultHandler,
                     errorMessage -> {
                         log.warn(errorMessage);
-                        new Popup().warning(errorMessage).show();
+                        errorMessageHandler.handleErrorMessage(errorMessage);
                     }
             );
         }

@@ -305,7 +305,6 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
         }
     }
 
-
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Init pending trade
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -475,6 +474,12 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
           // verify request is from signer or backup arbitrator
           if (!sender.equals(offer.getOfferPayload().getArbitratorSigner()) && !sender.equals(openOffer.getBackupArbitrator())) { // TODO (woodser): get backup arbitrator from maker-signed InitTradeRequest and remove from OpenOffer
               log.warn("Ignoring InitTradeRequest from {} with tradeId {} because request must be from signer or backup arbitrator", sender, request.getTradeId());
+              return;
+          }
+
+          Optional<Trade> tradeOptional = getOpenTrade(request.getTradeId());
+          if (tradeOptional.isPresent()) {
+              log.warn("Maker trade already exists with id " + request.getTradeId() + ". This should never happen.");
               return;
           }
 
@@ -751,8 +756,8 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
                             requestPersistence();
                         }, errorMessage -> {
                             log.warn("Taker error during trade initialization: " + errorMessage);
-                            removeTrade(trade);
                             errorMessageHandler.handleErrorMessage(errorMessage);
+                            removeTrade(trade);
                         });
                         requestPersistence();
                     }

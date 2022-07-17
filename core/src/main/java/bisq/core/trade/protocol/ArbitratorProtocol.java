@@ -2,7 +2,6 @@ package bisq.core.trade.protocol;
 
 import bisq.core.trade.ArbitratorTrade;
 import bisq.core.trade.Trade;
-import bisq.core.trade.TradeUtils;
 import bisq.core.trade.messages.DepositRequest;
 import bisq.core.trade.messages.InitMultisigRequest;
 import bisq.core.trade.messages.InitTradeRequest;
@@ -16,7 +15,6 @@ import bisq.core.trade.protocol.tasks.ProcessInitTradeRequest;
 import bisq.core.trade.protocol.tasks.ProcessSignContractRequest;
 import bisq.core.util.Validator;
 import bisq.network.p2p.NodeAddress;
-import java.util.concurrent.CountDownLatch;
 import bisq.common.handlers.ErrorMessageHandler;
 
 import lombok.extern.slf4j.Slf4j;
@@ -32,14 +30,12 @@ public class ArbitratorProtocol extends DisputeProtocol {
   // Incoming messages
   ///////////////////////////////////////////////////////////////////////////////////////////
 
-  public void handleInitTradeRequest(InitTradeRequest message,
-          NodeAddress peer,
-          ErrorMessageHandler errorMessageHandler) {
+  public void handleInitTradeRequest(InitTradeRequest message, NodeAddress peer, ErrorMessageHandler errorMessageHandler) {
+      System.out.println("ArbitratorProtocol.handleInitTradeRequest()");
       synchronized (trade) {
           this.errorMessageHandler = errorMessageHandler;
           processModel.setTradeMessage(message); // TODO (woodser): confirm these are null without being set
-          CountDownLatch latch = new CountDownLatch(1);
-          //processModel.setTempTradingPeerNodeAddress(peer);
+          latchTrade();
           expect(phase(Trade.Phase.INIT)
                   .with(message)
                   .from(peer))
@@ -50,17 +46,16 @@ public class ArbitratorProtocol extends DisputeProtocol {
                           ArbitratorSendsInitTradeAndMultisigRequests.class)
                   .using(new TradeTaskRunner(trade,
                           () -> {
-                              latch.countDown();
+                              unlatchTrade();
                               handleTaskRunnerSuccess(peer, message);
                           },
                           errorMessage -> {
-                              latch.countDown();
-                              errorMessageHandler.handleErrorMessage(errorMessage);
+                              handleError(errorMessage);
                               handleTaskRunnerFault(peer, message, errorMessage);
                           }))
                   .withTimeout(TRADE_TIMEOUT))
                   .executeTasks();
-          TradeUtils.waitForLatch(latch);
+          awaitTradeLatch();
       }
   }
   
@@ -70,7 +65,7 @@ public class ArbitratorProtocol extends DisputeProtocol {
     synchronized (trade) {
         Validator.checkTradeId(processModel.getOfferId(), request);
         processModel.setTradeMessage(request);
-        CountDownLatch latch = new CountDownLatch(1);
+        latchTrade();
         expect(anyPhase(Trade.Phase.INIT)
             .with(request)
             .from(sender))
@@ -78,17 +73,16 @@ public class ArbitratorProtocol extends DisputeProtocol {
                     ProcessInitMultisigRequest.class)
             .using(new TradeTaskRunner(trade,
                     () -> {
-                        latch.countDown();
+                        unlatchTrade();
                         handleTaskRunnerSuccess(sender, request);
                     },
                     errorMessage -> {
-                        latch.countDown();
-                        errorMessageHandler.handleErrorMessage(errorMessage);
+                        handleError(errorMessage);
                         handleTaskRunnerFault(sender, request, errorMessage);
                     }))
             .withTimeout(TRADE_TIMEOUT))
             .executeTasks();
-        TradeUtils.waitForLatch(latch);
+        awaitTradeLatch();
     }
   }
   
@@ -98,7 +92,7 @@ public class ArbitratorProtocol extends DisputeProtocol {
       synchronized (trade) {
           Validator.checkTradeId(processModel.getOfferId(), message);
           processModel.setTradeMessage(message); // TODO (woodser): synchronize access since concurrent requests processed
-          CountDownLatch latch = new CountDownLatch(1);
+          latchTrade();
           expect(anyPhase(Trade.Phase.INIT)
               .with(message)
               .from(sender))
@@ -107,17 +101,16 @@ public class ArbitratorProtocol extends DisputeProtocol {
                       ProcessSignContractRequest.class)
               .using(new TradeTaskRunner(trade,
                       () -> {
-                          latch.countDown();
+                          unlatchTrade();
                           handleTaskRunnerSuccess(sender, message);
                       },
                       errorMessage -> {
-                          latch.countDown();
-                          errorMessageHandler.handleErrorMessage(errorMessage);
+                          handleError(errorMessage);
                           handleTaskRunnerFault(sender, message, errorMessage);
                       }))
               .withTimeout(TRADE_TIMEOUT))
               .executeTasks();
-          TradeUtils.waitForLatch(latch);
+          awaitTradeLatch();
       }
   }
   
@@ -126,7 +119,7 @@ public class ArbitratorProtocol extends DisputeProtocol {
     synchronized (trade) {
         Validator.checkTradeId(processModel.getOfferId(), request);
         processModel.setTradeMessage(request);
-        CountDownLatch latch = new CountDownLatch(1);
+        latchTrade();
         expect(anyPhase(Trade.Phase.INIT)
             .with(request)
             .from(sender))
@@ -134,18 +127,17 @@ public class ArbitratorProtocol extends DisputeProtocol {
                     ArbitratorProcessesDepositRequest.class)
             .using(new TradeTaskRunner(trade,
                     () -> {
-                        latch.countDown();
+                        unlatchTrade();
                         stopTimeout();
                         handleTaskRunnerSuccess(sender, request);
                     },
                     errorMessage -> {
-                        latch.countDown();
-                        errorMessageHandler.handleErrorMessage(errorMessage);
+                        handleError(errorMessage);
                         handleTaskRunnerFault(sender, request, errorMessage);
                     }))
             .withTimeout(TRADE_TIMEOUT))
             .executeTasks();
-        TradeUtils.waitForLatch(latch);
+        awaitTradeLatch();
     }
   }
 
