@@ -131,8 +131,7 @@ public class SellerAsTakerProtocol extends SellerProtocol implements TakerProtoc
                             errorMessage -> {
                                 handleError(errorMessage);
                                 handleTaskRunnerFault(sender, request, errorMessage);
-                            }))
-                    .withTimeout(TRADE_TIMEOUT))
+                            })))
                     .executeTasks();
             awaitTradeLatch();
         }

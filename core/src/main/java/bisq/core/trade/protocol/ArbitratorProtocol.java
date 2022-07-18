@@ -79,8 +79,7 @@ public class ArbitratorProtocol extends DisputeProtocol {
                     errorMessage -> {
                         handleError(errorMessage);
                         handleTaskRunnerFault(sender, request, errorMessage);
-                    }))
-            .withTimeout(TRADE_TIMEOUT))
+                    })))
             .executeTasks();
         awaitTradeLatch();
     }

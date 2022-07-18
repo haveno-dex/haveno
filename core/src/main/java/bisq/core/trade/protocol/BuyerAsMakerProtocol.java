@@ -150,7 +150,8 @@ public class BuyerAsMakerProtocol extends BuyerProtocol implements MakerProtocol
                         errorMessage -> {
                             handleError(errorMessage);
                             handleTaskRunnerFault(sender, message, errorMessage);
-                        })))
+                        }))
+                    .withTimeout(TRADE_TIMEOUT))
                     .executeTasks();
             awaitTradeLatch();
         }
