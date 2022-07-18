@@ -117,8 +117,8 @@ public class OtherOfferBookViewModel extends OfferBookViewModel {
             boolean directionResult = offer.getDirection() == direction;
             boolean currencyResult = CurrencyUtil.isCryptoCurrency(offer.getCurrencyCode()) &&
                     ((showAllTradeCurrenciesProperty.get() &&
-                            !offer.getCurrencyCode().equals(GUIUtil.TOP_ALTCOIN.getCode()) &&
-                            offer.getCurrencyCode().equals(selectedTradeCurrency.getCode())));
+                            !offer.getCurrencyCode().equals(GUIUtil.TOP_ALTCOIN.getCode())) ||
+                            offer.getCurrencyCode().equals(selectedTradeCurrency.getCode()));
             boolean paymentMethodResult = showAllPaymentMethods ||
                     offer.getPaymentMethod().equals(selectedPaymentMethod);
             boolean notMyOfferOrShowMyOffersActivated = !isMyOffer(offerBookListItem.getOffer()) || preferences.isShowOwnOffersInOfferBook();
