@@ -82,6 +82,8 @@ Would you like to help us build Haveno? Become a sponsor! We will show your logo
 <a href="https://majesticbank.sc"><img src="/media/sponsors/mb.png" title="MajesticBank" alt="MajesticBank logo" width="100px"></a>
 <a href="https://beldex.io"><img src="/media/sponsors/beldex.jpg" title="Beldex" alt="Beldex logo" width="100px"></a>
 
+*Note: Sponsors are generous donors that contributed substantially to the Haveno project. Being listed as a sponsor doesn't necessarily imply endorsement.*
+
 ## Support
 
 To bring Haveno to life, we need resources. If you have the possibility, please consider donating to the project:
