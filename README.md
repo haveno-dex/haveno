@@ -80,6 +80,7 @@ Would you like to help us build Haveno? Become a sponsor! We will show your logo
 <a href="https://twitter.com/DonYakka"><img src="/media/sponsors/donyakka.jpg" title="Don Yakka" alt="Don Yakka logo" width="100px"></a>
 <a href="https://twitter.com/mikedogsmd"><img src="/media/sponsors/mikedogsmd.jpg" title="Mike Dogs, MD" alt="Mike Dogs logo" width="100px"></a>
 <a href="https://majesticbank.sc"><img src="/media/sponsors/mb.png" title="MajesticBank" alt="MajesticBank logo" width="100px"></a>
+<a href="https://beldex.io"><img src="/media/sponsors/beldex.jpg" title="Beldex" alt="Beldex logo" width="100px"></a>
 
 ## Support
 
