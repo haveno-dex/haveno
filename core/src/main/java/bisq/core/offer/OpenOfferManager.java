@@ -692,7 +692,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                     }
                     if (scheduledAmount.compareTo(offerReserveAmount) >= 0) break;
                 }
-                if (scheduledAmount.compareTo(offerReserveAmount) < 0) throw new Error("Not enough funds to schedule offer");
+                if (scheduledAmount.compareTo(offerReserveAmount) < 0) throw new RuntimeException("Not enough funds to schedule offer");
 
                 // schedule txs
                 openOffer.setScheduledTxHashes(scheduledTxHashes);
