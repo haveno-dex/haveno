@@ -83,7 +83,11 @@ public abstract class SellerProtocol extends DisputeProtocol {
         // TODO A better fix would be to add a listener for the wallet sync state and process
         // the mailbox msg once wallet is ready and trade state set.
         synchronized (trade) {
-            //CountDownLatch latch = new CountDownLatch(1); // TODO: apply latch countdown
+            if (trade.getPhase().ordinal() >= Trade.Phase.PAYMENT_SENT.ordinal()) {
+                log.warn("Ignoring PaymentSentMessage which was already processed");
+                return;
+            }
+            latchTrade();
             expect(anyPhase(Trade.Phase.DEPOSIT_UNLOCKED, Trade.Phase.DEPOSIT_PUBLISHED)
                     .with(message)
                     .from(peer)
@@ -98,8 +102,19 @@ public abstract class SellerProtocol extends DisputeProtocol {
                     .setup(tasks(
                             SellerProcessesPaymentSentMessage.class,
                             ApplyFilter.class,
-                            getVerifyPeersFeePaymentClass()))
+                            getVerifyPeersFeePaymentClass())
+                    .using(new TradeTaskRunner(trade,
+                            () -> {
+                                stopTimeout();
+                                handleTaskRunnerSuccess(peer, message);
+                            },
+                            (errorMessage) -> {
+                                stopTimeout();
+                                handleTaskRunnerFault(peer, message, errorMessage);
+                            }))
+                    .withTimeout(TRADE_TIMEOUT))
                     .executeTasks();
+            awaitTradeLatch();
         }
     }
 
@@ -111,7 +126,6 @@ public abstract class SellerProtocol extends DisputeProtocol {
         log.info("SellerProtocol.onPaymentReceived()");
         synchronized (trade) {
             SellerEvent event = SellerEvent.PAYMENT_RECEIVED;
-//          CountDownLatch latch = new CountDownLatch(1); // TODO (woodser): user countdown latch, but freezes legacy app
             expect(anyPhase(Trade.Phase.PAYMENT_SENT)
                     .with(event)
                     .preCondition(trade.confirmPermitted()))

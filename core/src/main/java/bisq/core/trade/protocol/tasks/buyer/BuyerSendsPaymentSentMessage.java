@@ -35,7 +35,6 @@ import javafx.beans.value.ChangeListener;
 import java.util.concurrent.TimeUnit;
 
 import lombok.extern.slf4j.Slf4j;
-import monero.wallet.MoneroWallet;
 
 /**
  * We send the seller the BuyerSendPaymentSentMessage.

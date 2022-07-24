@@ -22,7 +22,6 @@ import bisq.common.app.Version;
 import bisq.common.crypto.PubKeyRing;
 import bisq.common.crypto.Sig;
 import bisq.common.taskrunner.TaskRunner;
-import bisq.common.util.Utilities;
 import bisq.core.trade.ArbitratorTrade;
 import bisq.core.trade.Contract;
 import bisq.core.trade.Trade;
@@ -102,7 +101,7 @@ public class ProcessSignContractRequest extends TradeTask {
               public void onArrived() {
                   log.info("{} arrived: trading peer={}; offerId={}; uid={}", response.getClass().getSimpleName(), recipient1, trade.getId());
                   ack1 = true;
-                  if (ack1 && (recipient2 == null || ack2)) complete();
+                  if (ack1 && (recipient2 == null || ack2)) completeAux();
               }
               @Override
               public void onFault(String errorMessage) {
@@ -119,7 +118,7 @@ public class ProcessSignContractRequest extends TradeTask {
                   public void onArrived() {
                       log.info("{} arrived: trading peer={}; offerId={}; uid={}", response.getClass().getSimpleName(), recipient2, trade.getId());
                       ack2 = true;
-                      if (ack1 && ack2) complete();
+                      if (ack1 && ack2) completeAux();
                   }
                   @Override
                   public void onFault(String errorMessage) {
@@ -129,11 +128,14 @@ public class ProcessSignContractRequest extends TradeTask {
                   }
               });
           }
-
-          // update trade state
-          trade.setState(State.CONTRACT_SIGNATURE_REQUESTED);
         } catch (Throwable t) {
           failed(t);
         }
+    }
+
+    private void completeAux() {
+        trade.setState(State.CONTRACT_SIGNATURE_REQUESTED); // TODO: rename to contract_signature_request_received
+        processModel.getTradeManager().requestPersistence();
+        complete();
     }
 }

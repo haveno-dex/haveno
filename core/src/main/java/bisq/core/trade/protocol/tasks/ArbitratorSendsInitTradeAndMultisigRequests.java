@@ -170,7 +170,7 @@ public class ArbitratorSendsInitTradeAndMultisigRequests extends TradeTask {
                 new SendDirectMessageListener() {
                     @Override
                     public void onArrived() {
-                        log.info("{} arrived at arbitrator: offerId={}; uid={}", initMultisigRequest.getClass().getSimpleName(), initMultisigRequest.getTradeId(), initMultisigRequest.getUid());
+                        log.info("{} arrived at maker: offerId={}; uid={}", initMultisigRequest.getClass().getSimpleName(), initMultisigRequest.getTradeId(), initMultisigRequest.getUid());
                     }
                     @Override
                     public void onFault(String errorMessage) {
@@ -190,7 +190,7 @@ public class ArbitratorSendsInitTradeAndMultisigRequests extends TradeTask {
                 new SendDirectMessageListener() {
                     @Override
                     public void onArrived() {
-                        log.info("{} arrived at peer: offerId={}; uid={}", initMultisigRequest.getClass().getSimpleName(), initMultisigRequest.getTradeId(), initMultisigRequest.getUid());
+                        log.info("{} arrived at taker: offerId={}; uid={}", initMultisigRequest.getClass().getSimpleName(), initMultisigRequest.getTradeId(), initMultisigRequest.getUid());
                     }
                     @Override
                     public void onFault(String errorMessage) {

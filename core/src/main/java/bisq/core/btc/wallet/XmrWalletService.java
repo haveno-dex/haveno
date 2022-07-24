@@ -186,27 +186,23 @@ public class XmrWalletService {
     public MoneroWallet createMultisigWallet(String tradeId) {
         log.info("{}.createMultisigWallet({})", getClass().getSimpleName(), tradeId);
         Trade trade = tradeManager.getOpenTrade(tradeId).get();
-        synchronized (trade) {
-            if (multisigWallets.containsKey(trade.getId())) return multisigWallets.get(trade.getId());
-            String path = MONERO_MULTISIG_WALLET_PREFIX + trade.getId();
-            MoneroWallet multisigWallet = createWallet(new MoneroWalletConfig().setPath(path).setPassword(getWalletPassword()), null); // auto-assign port
-            multisigWallets.put(trade.getId(), multisigWallet);
-            return multisigWallet;
-        }
+        if (multisigWallets.containsKey(trade.getId())) return multisigWallets.get(trade.getId());
+        String path = MONERO_MULTISIG_WALLET_PREFIX + trade.getId();
+        MoneroWallet multisigWallet = createWallet(new MoneroWalletConfig().setPath(path).setPassword(getWalletPassword()), null, false); // auto-assign port
+        multisigWallets.put(trade.getId(), multisigWallet);
+        return multisigWallet;
     }
 
     // TODO (woodser): provide progress notifications during open?
     public MoneroWallet getMultisigWallet(String tradeId) {
         log.info("{}.getMultisigWallet({})", getClass().getSimpleName(), tradeId);
         Trade trade = tradeManager.getTrade(tradeId);
-        synchronized (trade) {
-            if (multisigWallets.containsKey(trade.getId())) return multisigWallets.get(trade.getId());
-            String path = MONERO_MULTISIG_WALLET_PREFIX + trade.getId();
-            if (!walletExists(path)) throw new RuntimeException("Multisig wallet does not exist for trade " + trade.getId());
-            MoneroWallet multisigWallet = openWallet(new MoneroWalletConfig().setPath(path).setPassword(getWalletPassword()), null);
-            multisigWallets.put(trade.getId(), multisigWallet);
-            return multisigWallet;
-        }
+        if (multisigWallets.containsKey(trade.getId())) return multisigWallets.get(trade.getId());
+        String path = MONERO_MULTISIG_WALLET_PREFIX + trade.getId();
+        if (!walletExists(path)) throw new RuntimeException("Multisig wallet does not exist for trade " + trade.getId());
+        MoneroWallet multisigWallet = openWallet(new MoneroWalletConfig().setPath(path).setPassword(getWalletPassword()), null);
+        multisigWallets.put(trade.getId(), multisigWallet);
+        return multisigWallet;
     }
 
     public void saveWallet(MoneroWallet wallet) {
@@ -216,24 +212,18 @@ public class XmrWalletService {
 
     public void closeMultisigWallet(String tradeId) {
         log.info("{}.closeMultisigWallet({})", getClass().getSimpleName(), tradeId);
-        Trade trade = tradeManager.getTrade(tradeId);
-        synchronized (trade) {
-            if (!multisigWallets.containsKey(trade.getId())) throw new RuntimeException("Multisig wallet to close was not previously opened for trade " + trade.getId());
-            MoneroWallet wallet = multisigWallets.remove(trade.getId());
-            closeWallet(wallet, true);
-        }
+        if (!multisigWallets.containsKey(tradeId)) throw new RuntimeException("Multisig wallet to close was not previously opened for trade " + tradeId);
+        MoneroWallet wallet = multisigWallets.remove(tradeId);
+        closeWallet(wallet, true);
     }
 
     public boolean deleteMultisigWallet(String tradeId) {
         log.info("{}.deleteMultisigWallet({})", getClass().getSimpleName(), tradeId);
-        Trade trade = tradeManager.getTrade(tradeId);
-        synchronized (trade) {
-            String walletName = MONERO_MULTISIG_WALLET_PREFIX + tradeId;
-            if (!walletExists(walletName)) return false;
-            if (multisigWallets.containsKey(trade.getId())) closeMultisigWallet(tradeId);
-            deleteWallet(walletName);
-            return true;
-        }
+        String walletName = MONERO_MULTISIG_WALLET_PREFIX + tradeId;
+        if (!walletExists(walletName)) return false;
+        if (multisigWallets.containsKey(tradeId)) closeMultisigWallet(tradeId); // TODO: synchronize
+        deleteWallet(walletName);
+        return true;
     }
 
     public MoneroTxWallet createTx(List<MoneroDestination> destinations) {
@@ -407,7 +397,7 @@ public class XmrWalletService {
         if (MoneroUtils.walletExists(xmrWalletFile.getPath())) {
             wallet = openWallet(walletConfig, rpcBindPort);
         } else if (connectionsService.getConnection() != null && Boolean.TRUE.equals(connectionsService.getConnection().isConnected())) {
-            wallet = createWallet(walletConfig, rpcBindPort);
+            wallet = createWallet(walletConfig, rpcBindPort, true);
         }
 
         // wallet is not initialized until connected to a daemon
@@ -437,10 +427,10 @@ public class XmrWalletService {
         }
     }
 
-    private MoneroWalletRpc createWallet(MoneroWalletConfig config, Integer port) {
+    private MoneroWalletRpc createWallet(MoneroWalletConfig config, Integer port, boolean sync) {
 
         // start monero-wallet-rpc instance
-        MoneroWalletRpc walletRpc = startWalletRpcInstance(port);
+        MoneroWalletRpc walletRpc = startWalletRpcInstance(port, sync);
 
         // must be connected to daemon
         MoneroRpcConnection connection = connectionsService.getConnection();
@@ -449,9 +439,17 @@ public class XmrWalletService {
         // create wallet
         try {
             log.info("Creating wallet " + config.getPath());
+            MoneroRpcConnection daemonConnection = config.getServer();
+            if (!sync) config.setServer(null);
             walletRpc.createWallet(config);
-            log.info("Syncing wallet " + config.getPath() + " in background");
-            walletRpc.startSyncing(connectionsService.getDefaultRefreshPeriodMs());
+            if (sync) {
+                log.info("Syncing wallet " + config.getPath() + " in background");
+                walletRpc.startSyncing(connectionsService.getDefaultRefreshPeriodMs());
+                log.info("Done starting background wallet sync for " + config.getPath());
+            } else {
+                walletRpc.setDaemonConnection(daemonConnection);
+            }
+            log.info("Done creating wallet " + config.getPath());
             return walletRpc;
         } catch (Exception e) {
             e.printStackTrace();
@@ -463,7 +461,7 @@ public class XmrWalletService {
     private MoneroWalletRpc openWallet(MoneroWalletConfig config, Integer port) {
 
         // start monero-wallet-rpc instance
-        MoneroWalletRpc walletRpc = startWalletRpcInstance(port);
+        MoneroWalletRpc walletRpc = startWalletRpcInstance(port, true);
 
         // open wallet
         try {
@@ -474,10 +472,6 @@ public class XmrWalletService {
             // start syncing wallet in background
             log.info("Syncing wallet " + config.getPath() + " in background");
             walletRpc.startSyncing(connectionsService.getDefaultRefreshPeriodMs());
-
-            // sync wallet (blocks)
-            log.info("Syncing wallet " + config.getPath());
-            walletRpc.sync(); // TODO: does this initiate 2 syncs back-to-back?
             log.info("Done syncing wallet " + config.getPath());
             return walletRpc;
         } catch (Exception e) {
@@ -487,7 +481,7 @@ public class XmrWalletService {
         }
     }
 
-    private MoneroWalletRpc startWalletRpcInstance(Integer port) {
+    private MoneroWalletRpc startWalletRpcInstance(Integer port, boolean withConnection) {
 
         // check if monero-wallet-rpc exists
         if (!new File(MONERO_WALLET_RPC_PATH).exists()) throw new Error("monero-wallet-rpc executable doesn't exist at path " + MONERO_WALLET_RPC_PATH
@@ -497,7 +491,7 @@ public class XmrWalletService {
         List<String> cmd = new ArrayList<>(Arrays.asList( // modifiable list
                 MONERO_WALLET_RPC_PATH, "--" + MONERO_NETWORK_TYPE.toString().toLowerCase(), "--rpc-login",
                 MONERO_WALLET_RPC_USERNAME + ":" + getWalletPassword(), "--wallet-dir", walletDir.toString()));
-        MoneroRpcConnection connection = connectionsService.getConnection();
+        MoneroRpcConnection connection = withConnection ? connectionsService.getConnection() : null;
         if (connection != null) {
             cmd.add("--daemon-address");
             cmd.add(connection.getUri());
