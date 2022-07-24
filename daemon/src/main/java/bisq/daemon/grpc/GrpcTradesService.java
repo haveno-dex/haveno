@@ -237,8 +237,8 @@ class GrpcTradesService extends TradesImplBase {
                             put(getGetTradeMethod().getFullMethodName(), new GrpcCallRateMeter(10, SECONDS));
                             put(getGetTradesMethod().getFullMethodName(), new GrpcCallRateMeter(10, SECONDS));
                             put(getTakeOfferMethod().getFullMethodName(), new GrpcCallRateMeter(10, SECONDS));
-                            put(getConfirmPaymentStartedMethod().getFullMethodName(), new GrpcCallRateMeter(1, SECONDS));
-                            put(getConfirmPaymentReceivedMethod().getFullMethodName(), new GrpcCallRateMeter(1, SECONDS));
+                            put(getConfirmPaymentStartedMethod().getFullMethodName(), new GrpcCallRateMeter(10, SECONDS));
+                            put(getConfirmPaymentReceivedMethod().getFullMethodName(), new GrpcCallRateMeter(10, SECONDS));
                             put(getKeepFundsMethod().getFullMethodName(), new GrpcCallRateMeter(1, MINUTES));
                             put(getWithdrawFundsMethod().getFullMethodName(), new GrpcCallRateMeter(1, MINUTES));
                             put(getGetChatMessagesMethod().getFullMethodName(), new GrpcCallRateMeter(10, SECONDS));

@@ -30,9 +30,8 @@ import bisq.core.trade.protocol.tasks.buyer.BuyerPreparesPaymentSentMessage;
 import bisq.core.trade.protocol.tasks.buyer.BuyerProcessesPaymentReceivedMessage;
 import bisq.core.trade.protocol.tasks.buyer.BuyerSendsPaymentSentMessage;
 import bisq.core.trade.protocol.tasks.buyer.BuyerSetupPayoutTxListener;
-
+import bisq.core.util.Validator;
 import bisq.network.p2p.NodeAddress;
-import java.util.concurrent.CountDownLatch;
 import bisq.common.handlers.ErrorMessageHandler;
 import bisq.common.handlers.ResultHandler;
 
@@ -127,9 +126,8 @@ public abstract class BuyerProtocol extends DisputeProtocol {
 
     public void onPaymentStarted(ResultHandler resultHandler, ErrorMessageHandler errorMessageHandler) {
         System.out.println("BuyerProtocol.onPaymentStarted()");
-        synchronized (trade) { // TODO (woodser): UpdateMultisigWithTradingPeer sends UpdateMultisigRequest and waits for UpdateMultisigResponse which is new thread, so synchronized (trade) in subsequent pipeline blocks forever if we hold on with countdown latch in this function
+        synchronized (trade) {
             BuyerEvent event = BuyerEvent.PAYMENT_SENT;
-            CountDownLatch latch = new CountDownLatch(1);
             expect(phase(Trade.Phase.DEPOSIT_UNLOCKED)
                     .with(event)
                     .preCondition(trade.confirmPermitted()))
@@ -138,21 +136,19 @@ public abstract class BuyerProtocol extends DisputeProtocol {
                             //UpdateMultisigWithTradingPeer.class, // TODO (woodser): can use this to test protocol with updated multisig from peer. peer should attempt to send updated multisig hex earlier as part of protocol. cannot use with countdown latch because response comes back in a separate thread and blocks on trade
                             BuyerPreparesPaymentSentMessage.class,
                             //BuyerSetupPayoutTxListener.class,
-                            BuyerSendsPaymentSentMessage.class)
-                            .using(new TradeTaskRunner(trade,
-                                    () -> {
-                                        latch.countDown();
-                                        resultHandler.handleResult();
-                                        handleTaskRunnerSuccess(event);
-                                    },
-                                    (errorMessage) -> {
-                                        latch.countDown();
-                                        errorMessageHandler.handleErrorMessage(errorMessage);
-                                        handleTaskRunnerFault(event, errorMessage);
-                                    })))
+                            BuyerSendsPaymentSentMessage.class) // don't latch trade because this blocks and runs in background
+                    .using(new TradeTaskRunner(trade,
+                            () -> {
+                                resultHandler.handleResult();
+                                handleTaskRunnerSuccess(event);
+                            },
+                            (errorMessage) -> {
+                                errorMessageHandler.handleErrorMessage(errorMessage);
+                                handleTaskRunnerFault(event, errorMessage);
+                            })))
                     .run(() -> trade.setState(Trade.State.BUYER_CONFIRMED_IN_UI_PAYMENT_SENT))
                     .executeTasks();
-       }
+        }
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -162,8 +158,9 @@ public abstract class BuyerProtocol extends DisputeProtocol {
     protected void handle(PaymentReceivedMessage message, NodeAddress peer) {
         log.info("BuyerProtocol.handle(PaymentReceivedMessage)");
         synchronized (trade) {
-            processModel.setTradeMessage(message);
             latchTrade();
+            Validator.checkTradeId(processModel.getOfferId(), message);
+            processModel.setTradeMessage(message);
             expect(anyPhase(Trade.Phase.PAYMENT_SENT, Trade.Phase.PAYOUT_PUBLISHED)
                 .with(message)
                 .from(peer))
@@ -172,13 +169,14 @@ public abstract class BuyerProtocol extends DisputeProtocol {
                     BuyerProcessesPaymentReceivedMessage.class)
                     .using(new TradeTaskRunner(trade,
                         () -> {
-                            unlatchTrade();
+                            stopTimeout();
                             handleTaskRunnerSuccess(peer, message);
                         },
                         errorMessage -> {
-                            handleError(errorMessage);
+                            stopTimeout();
                             handleTaskRunnerFault(peer, message, errorMessage);
-                        })))
+                        }))
+                .withTimeout(TRADE_TIMEOUT))
                 .executeTasks();
             awaitTradeLatch();
         }

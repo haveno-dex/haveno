@@ -25,7 +25,6 @@ import bisq.common.taskrunner.TaskRunner;
 import bisq.core.btc.wallet.XmrWalletService;
 import bisq.core.offer.Offer;
 import bisq.core.offer.OfferDirection;
-import bisq.core.offer.OfferPayload;
 import bisq.core.trade.Trade;
 import bisq.core.trade.messages.DepositRequest;
 import bisq.core.trade.messages.DepositResponse;
@@ -112,6 +111,10 @@ public class ArbitratorProcessesDepositRequest extends TradeTask {
               daemon.submitTxHex(processModel.getMaker().getDepositTxHex()); // TODO (woodser): check that result is good. will need to release funds if one is submitted
               daemon.submitTxHex(processModel.getTaker().getDepositTxHex());
               
+              // update trade state
+              log.info("Arbitrator submitted deposit txs for trade " + trade.getId());
+              trade.setState(Trade.State.ARBITRATOR_PUBLISHED_DEPOSIT_TX);
+              
               // create deposit response
               DepositResponse response = new DepositResponse(
                       trade.getOffer().getId(),
@@ -124,6 +127,8 @@ public class ArbitratorProcessesDepositRequest extends TradeTask {
               // send deposit response to maker and taker
               sendDepositResponse(trade.getMakerNodeAddress(), trade.getMakerPubKeyRing(), response);
               sendDepositResponse(trade.getTakerNodeAddress(), trade.getTakerPubKeyRing(), response);
+          } else {
+              log.info("Arbitrator waiting for deposit request from maker and taker for trade " + trade.getId());
           }
           
           // TODO (woodser): request persistence?
@@ -134,6 +139,7 @@ public class ArbitratorProcessesDepositRequest extends TradeTask {
     }
     
     private void sendDepositResponse(NodeAddress nodeAddress, PubKeyRing pubKeyRing, DepositResponse response) {
+        log.info("Sending deposit response to trader={}; offerId={}", nodeAddress, trade.getId());
         processModel.getP2PService().sendEncryptedDirectMessage(nodeAddress, pubKeyRing, response, new SendDirectMessageListener() {
             @Override
             public void onArrived() {

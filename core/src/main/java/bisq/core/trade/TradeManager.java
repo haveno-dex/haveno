@@ -67,6 +67,7 @@ import bisq.network.p2p.P2PService;
 import bisq.network.p2p.network.TorNetworkNode;
 import com.google.common.collect.ImmutableList;
 import bisq.common.ClockWatcher;
+import bisq.common.UserThread;
 import bisq.common.config.Config;
 import bisq.common.crypto.KeyRing;
 import bisq.common.handlers.ErrorMessageHandler;
@@ -884,20 +885,22 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
 
     private void updateTradePeriodState() {
         getObservableList().forEach(trade -> {
-            if (!trade.isPayoutPublished()) {
-                Date maxTradePeriodDate = trade.getMaxTradePeriodDate();
-                Date halfTradePeriodDate = trade.getHalfTradePeriodDate();
-                if (maxTradePeriodDate != null && halfTradePeriodDate != null) {
-                    Date now = new Date();
-                    if (now.after(maxTradePeriodDate)) {
-                        trade.setPeriodState(Trade.TradePeriodState.TRADE_PERIOD_OVER);
-                        requestPersistence();
-                    } else if (now.after(halfTradePeriodDate)) {
-                        trade.setPeriodState(Trade.TradePeriodState.SECOND_HALF);
-                        requestPersistence();
+            UserThread.execute(() -> { // prevent concurrent modification error
+                if (!trade.isPayoutPublished()) {
+                    Date maxTradePeriodDate = trade.getMaxTradePeriodDate();
+                    Date halfTradePeriodDate = trade.getHalfTradePeriodDate();
+                    if (maxTradePeriodDate != null && halfTradePeriodDate != null) {
+                        Date now = new Date();
+                        if (now.after(maxTradePeriodDate)) {
+                            trade.setPeriodState(Trade.TradePeriodState.TRADE_PERIOD_OVER);
+                            requestPersistence();
+                        } else if (now.after(halfTradePeriodDate)) {
+                            trade.setPeriodState(Trade.TradePeriodState.SECOND_HALF);
+                            requestPersistence();
+                        }
                     }
                 }
-            }
+            });
         });
     }
 
@@ -1060,28 +1063,27 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
         return closedTradableManager.getClosedTrades().stream().filter(e -> e.getId().equals(tradeId)).findFirst();
     }
 
-    private void removeTrade(Trade trade) {
+    private synchronized void removeTrade(Trade trade) {
         log.info("TradeManager.removeTrade()");
         synchronized(tradableList) {
             if (!tradableList.contains(trade)) return;
 
-            synchronized (trade) {
+            // remove trade
+            tradableList.remove(trade);
 
-                // unreserve trade key images
-                if (trade instanceof TakerTrade && trade.getSelf().getReserveTxKeyImages() != null) {
-                    for (String keyImage : trade.getSelf().getReserveTxKeyImages()) {
-                        xmrWalletService.getWallet().thawOutput(keyImage);
-                    }
+            // unreserve trade key images
+            if (trade instanceof TakerTrade && trade.getSelf().getReserveTxKeyImages() != null) {
+                for (String keyImage : trade.getSelf().getReserveTxKeyImages()) {
+                    xmrWalletService.getWallet().thawOutput(keyImage);
                 }
-
-                // delete trade wallet when empty
-                deleteTradeWalletWhenEmpty(trade);
-
-                // unregister and persist
-                p2PService.removeDecryptedDirectMessageListener(getTradeProtocol(trade));
-                tradableList.remove(trade);
-                requestPersistence();
             }
+
+            // delete trade wallet when empty
+            deleteTradeWalletWhenEmpty(trade);
+
+            // unregister and persist
+            p2PService.removeDecryptedDirectMessageListener(getTradeProtocol(trade));
+            requestPersistence();
         }
     }
 

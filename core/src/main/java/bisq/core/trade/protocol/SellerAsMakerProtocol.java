@@ -20,7 +20,6 @@ package bisq.core.trade.protocol;
 
 import bisq.core.trade.SellerAsMakerTrade;
 import bisq.core.trade.Trade;
-import bisq.core.trade.Trade.State;
 import bisq.core.trade.messages.PaymentSentMessage;
 import bisq.core.trade.messages.DepositResponse;
 import bisq.core.trade.messages.DepositTxMessage;
@@ -77,8 +76,8 @@ public class SellerAsMakerProtocol extends SellerProtocol implements MakerProtoc
                                        ErrorMessageHandler errorMessageHandler) {
         System.out.println(getClass().getCanonicalName() + ".handleInitTradeRequest()");
         synchronized (trade) {
-            this.errorMessageHandler = errorMessageHandler;
             latchTrade();
+            this.errorMessageHandler = errorMessageHandler;
             expect(phase(Trade.Phase.INIT)
                     .with(message)
                     .from(peer))
@@ -89,11 +88,10 @@ public class SellerAsMakerProtocol extends SellerProtocol implements MakerProtoc
                             MakerSendsInitTradeRequestIfUnreserved.class)
                     .using(new TradeTaskRunner(trade,
                             () -> {
-                                unlatchTrade();
+                                startTimeout(TRADE_TIMEOUT);
                                 handleTaskRunnerSuccess(peer, message);
                             },
                             errorMessage -> {
-                                handleError(errorMessage);
                                 handleTaskRunnerFault(peer, message, errorMessage);
                             }))
                     .withTimeout(TRADE_TIMEOUT))
@@ -106,9 +104,9 @@ public class SellerAsMakerProtocol extends SellerProtocol implements MakerProtoc
     public void handleInitMultisigRequest(InitMultisigRequest request, NodeAddress sender) {
         System.out.println(getClass().getCanonicalName() + ".handleInitMultisigRequest()");
         synchronized (trade) {
+            latchTrade();
             Validator.checkTradeId(processModel.getOfferId(), request);
             processModel.setTradeMessage(request);
-            latchTrade();
             expect(anyPhase(Trade.Phase.INIT)
                     .with(request)
                     .from(sender))
@@ -117,11 +115,10 @@ public class SellerAsMakerProtocol extends SellerProtocol implements MakerProtoc
                             SendSignContractRequestAfterMultisig.class)
                     .using(new TradeTaskRunner(trade,
                         () -> {
-                            unlatchTrade();
+                            startTimeout(TRADE_TIMEOUT);
                             handleTaskRunnerSuccess(sender, request);
                         },
                         errorMessage -> {
-                            handleError(errorMessage);
                             handleTaskRunnerFault(sender, request, errorMessage);
                         }))
                     .withTimeout(TRADE_TIMEOUT))
@@ -134,9 +131,9 @@ public class SellerAsMakerProtocol extends SellerProtocol implements MakerProtoc
     public void handleSignContractRequest(SignContractRequest message, NodeAddress sender) {
         System.out.println(getClass().getCanonicalName() + ".handleSignContractRequest()");
         synchronized (trade) {
+            latchTrade();
             Validator.checkTradeId(processModel.getOfferId(), message);
             processModel.setTradeMessage(message);
-            latchTrade();
             expect(anyPhase(Trade.Phase.INIT)
                     .with(message)
                     .from(sender))
@@ -145,11 +142,10 @@ public class SellerAsMakerProtocol extends SellerProtocol implements MakerProtoc
                             ProcessSignContractRequest.class)
                     .using(new TradeTaskRunner(trade,
                         () -> {
-                            unlatchTrade();
+                            startTimeout(TRADE_TIMEOUT);
                             handleTaskRunnerSuccess(sender, message);
                         },
                         errorMessage -> {
-                            handleError(errorMessage);
                             handleTaskRunnerFault(sender, message, errorMessage);
                         }))
                     .withTimeout(TRADE_TIMEOUT))
@@ -163,9 +159,10 @@ public class SellerAsMakerProtocol extends SellerProtocol implements MakerProtoc
         System.out.println(getClass().getCanonicalName() + ".handleSignContractResponse()");
         synchronized (trade) {
             Validator.checkTradeId(processModel.getOfferId(), message);
-            if (trade.getState() == State.CONTRACT_SIGNATURE_REQUESTED) {
+            if (trade.getState() == Trade.State.CONTRACT_SIGNATURE_REQUESTED) {
+                latchTrade();
+                Validator.checkTradeId(processModel.getOfferId(), message);
                 processModel.setTradeMessage(message);
-                if (tradeLatch == null) latchTrade(); // may be initialized from previous message
                 expect(state(Trade.State.CONTRACT_SIGNATURE_REQUESTED)
                         .with(message)
                         .from(sender))
@@ -174,19 +171,18 @@ public class SellerAsMakerProtocol extends SellerProtocol implements MakerProtoc
                                 ProcessSignContractResponse.class)
                         .using(new TradeTaskRunner(trade,
                                 () -> {
-                                    unlatchTrade();
+                                    startTimeout(TRADE_TIMEOUT);
                                     handleTaskRunnerSuccess(sender, message);
                                 },
                                 errorMessage -> {
-                                    handleError(errorMessage);
                                     handleTaskRunnerFault(sender, message, errorMessage);
                                 }))
-                        .withTimeout(TRADE_TIMEOUT))
+                        .withTimeout(TRADE_TIMEOUT)) // extend timeout
                         .executeTasks();
                 awaitTradeLatch();
             } else {
                 EasyBind.subscribe(trade.stateProperty(), state -> {
-                    if (state == State.CONTRACT_SIGNATURE_REQUESTED) handleSignContractResponse(message, sender);
+                    if (state == Trade.State.CONTRACT_SIGNATURE_REQUESTED) new Thread(() -> handleSignContractResponse(message, sender)).start(); // process notification without trade lock
                 });
             }
         }
@@ -196,10 +192,10 @@ public class SellerAsMakerProtocol extends SellerProtocol implements MakerProtoc
     public void handleDepositResponse(DepositResponse response, NodeAddress sender) {
         System.out.println(getClass().getCanonicalName() + ".handleDepositResponse()");
         synchronized (trade) {
+            latchTrade();
             Validator.checkTradeId(processModel.getOfferId(), response);
             processModel.setTradeMessage(response);
-            latchTrade();
-            expect(state(Trade.State.CONTRACT_SIGNATURE_REQUESTED)
+            expect(state(Trade.State.MAKER_SENT_PUBLISH_DEPOSIT_TX_REQUEST)
                     .with(response)
                     .from(sender)) // TODO (woodser): ensure this asserts sender == response.getSenderNodeAddress()
                     .setup(tasks(
@@ -207,11 +203,10 @@ public class SellerAsMakerProtocol extends SellerProtocol implements MakerProtoc
                             ProcessDepositResponse.class)
                     .using(new TradeTaskRunner(trade,
                         () -> {
-                            unlatchTrade();
+                            startTimeout(TRADE_TIMEOUT);
                             handleTaskRunnerSuccess(sender, response);
                         },
                         errorMessage -> {
-                            handleError(errorMessage);
                             handleTaskRunnerFault(sender, response, errorMessage);
                         }))
                     .withTimeout(TRADE_TIMEOUT))
@@ -225,9 +220,10 @@ public class SellerAsMakerProtocol extends SellerProtocol implements MakerProtoc
         System.out.println(getClass().getCanonicalName() + ".handlePaymentAccountPayloadRequest()");
         synchronized (trade) {
             Validator.checkTradeId(processModel.getOfferId(), request);
-            if (trade.getState() == State.MAKER_RECEIVED_DEPOSIT_TX_PUBLISHED_MSG) {
+            if (trade.getState() == Trade.State.MAKER_RECEIVED_DEPOSIT_TX_PUBLISHED_MSG) {
+                latchTrade();
+                Validator.checkTradeId(processModel.getOfferId(), request);
                 processModel.setTradeMessage(request);
-                if (tradeLatch == null) latchTrade(); // may be initialized from previous message
                 expect(state(Trade.State.MAKER_RECEIVED_DEPOSIT_TX_PUBLISHED_MSG)
                         .with(request)
                         .from(sender)) // TODO (woodser): ensure this asserts sender == response.getSenderNodeAddress()
@@ -236,22 +232,20 @@ public class SellerAsMakerProtocol extends SellerProtocol implements MakerProtoc
                                 ProcessPaymentAccountPayloadRequest.class,
                                 MakerRemovesOpenOffer.class)
                         .using(new TradeTaskRunner(trade,
-                            () -> {
-                                stopTimeout();
-                                unlatchTrade();
-                                this.errorMessageHandler = null;
-                                handleTaskRunnerSuccess(sender, request);
-                            },
-                            errorMessage -> {
-                                handleError(errorMessage);
-                                handleTaskRunnerFault(sender, request, errorMessage);
-                            }))
+                                () -> {
+                                    stopTimeout();
+                                    this.errorMessageHandler = null;
+                                    handleTaskRunnerSuccess(sender, request);
+                                },
+                                errorMessage -> {
+                                    handleTaskRunnerFault(sender, request, errorMessage);
+                                }))
                         .withTimeout(TRADE_TIMEOUT))
                         .executeTasks();
                 awaitTradeLatch();
             } else {
                 EasyBind.subscribe(trade.stateProperty(), state -> {
-                    if (state == State.MAKER_RECEIVED_DEPOSIT_TX_PUBLISHED_MSG) handlePaymentAccountPayloadRequest(request, sender);
+                    if (state == Trade.State.MAKER_RECEIVED_DEPOSIT_TX_PUBLISHED_MSG) new Thread(() -> handlePaymentAccountPayloadRequest(request, sender)).start();  // process notification without trade lock
                 });
             }
         }

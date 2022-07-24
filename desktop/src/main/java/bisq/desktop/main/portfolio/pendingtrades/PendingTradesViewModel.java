@@ -428,7 +428,7 @@ public class PendingTradesViewModel extends ActivatableWithDataModel<PendingTrad
 
 
             // #################### Phase DEPOSIT_PAID
-            case TAKER_PUBLISHED_DEPOSIT_TX:
+            case ARBITRATOR_PUBLISHED_DEPOSIT_TX:
             case TAKER_SAW_DEPOSIT_TX_IN_NETWORK:
 
                 // DEPOSIT_TX_PUBLISHED_MSG

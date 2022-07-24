@@ -107,7 +107,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
     }
 
     public void onWithdrawCompleted() {
-        cleanup();
+        log.info("Withdraw completed");
     }
 
     protected void onMailboxMessage(TradeMessage message, NodeAddress peerNodeAddress) {
@@ -218,27 +218,23 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
 
     // TODO (woodser): update to use fluent for consistency
     public void handleUpdateMultisigRequest(UpdateMultisigRequest message, NodeAddress peer, ErrorMessageHandler errorMessageHandler) {
-        synchronized (trade) {
-            Validator.checkTradeId(processModel.getOfferId(), message);
-            processModel.setTradeMessage(message);
-            latchTrade();
-            TradeTaskRunner taskRunner = new TradeTaskRunner(trade,
-                    () -> {
-                        unlatchTrade();
-                        stopTimeout();
-                        handleTaskRunnerSuccess(peer, message, "handleUpdateMultisigRequest");
-                    },
-                    errorMessage -> {
-                        handleError(errorMessage);
-                        handleTaskRunnerFault(peer, message, errorMessage);
-                    });
-            taskRunner.addTasks(
-                    ProcessUpdateMultisigRequest.class
-            );
-            startTimeout(TRADE_TIMEOUT);
-            taskRunner.run();
-            awaitTradeLatch();
-        }
+        latchTrade();
+        Validator.checkTradeId(processModel.getOfferId(), message);
+        processModel.setTradeMessage(message);
+        TradeTaskRunner taskRunner = new TradeTaskRunner(trade,
+                () -> {
+                    stopTimeout();
+                    handleTaskRunnerSuccess(peer, message, "handleUpdateMultisigRequest");
+                },
+                errorMessage -> {
+                    handleTaskRunnerFault(peer, message, errorMessage);
+                });
+        taskRunner.addTasks(
+                ProcessUpdateMultisigRequest.class
+        );
+        startTimeout(TRADE_TIMEOUT);
+        taskRunner.run();
+        awaitTradeLatch();
     }
 
 
@@ -365,32 +361,6 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
         );
     }
 
-    // TODO: trade protocols block if these are synchronized
-
-    protected void handleError(String errorMessage) {
-        log.error(errorMessage);
-        unlatchTrade();
-        trade.setErrorMessage(errorMessage);
-        if (errorMessageHandler != null) errorMessageHandler.handleErrorMessage(errorMessage);
-        processModel.getTradeManager().requestPersistence();
-        cleanup();
-    }
-
-    protected void latchTrade() {
-        if (tradeLatch != null) throw new RuntimeException("Trade latch is not null. This should never happen.");
-        tradeLatch = new CountDownLatch(1);
-    }
-
-    protected void unlatchTrade() {
-        if (tradeLatch != null) tradeLatch.countDown();
-        tradeLatch = null;
-    }
-
-    protected void awaitTradeLatch() {
-        if (tradeLatch == null) return;
-        TradeUtils.awaitLatch(tradeLatch);
-    }
-
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Timeout
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -478,6 +448,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
             // again.
             removeMailboxMessageAfterProcessing(message);
         }
+        unlatchTrade();
     }
 
     void handleTaskRunnerFault(NodeAddress ackReceiver, @Nullable TradeMessage message, String source, String errorMessage) {
@@ -486,7 +457,33 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
         if (message != null) {
             sendAckMessage(ackReceiver, message, false, errorMessage);
         }
-        cleanup();
+
+        handleError(errorMessage);
+    }
+
+
+    protected void handleError(String errorMessage) {
+        stopTimeout();
+        log.error(errorMessage);
+        trade.setErrorMessage(errorMessage);
+        processModel.getTradeManager().requestPersistence();
+        if (errorMessageHandler != null) errorMessageHandler.handleErrorMessage(errorMessage);
+        unlatchTrade();
+    }
+
+    protected void latchTrade() {
+        if (tradeLatch != null) throw new RuntimeException("Trade latch is not null. That should never happen.");
+        tradeLatch = new CountDownLatch(1);
+    }
+
+    protected void unlatchTrade() {
+        if (tradeLatch != null) tradeLatch.countDown();
+        tradeLatch = null;
+    }
+
+    protected void awaitTradeLatch() {
+        if (tradeLatch == null) return;
+        TradeUtils.awaitLatch(tradeLatch);
     }
 
     private boolean isMyMessage(NetworkEnvelope message) {
@@ -500,11 +497,5 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
         } else {
             return false;
         }
-    }
-
-    private void cleanup() {
-        stopTimeout();
-        // We do not remove the decryptedDirectMessageListener as in case of not critical failures we want allow to receive
-        // follow-up messages still
     }
 }

@@ -132,7 +132,7 @@ public abstract class Trade implements Tradable, Model {
         // We changes order in trade protocol of publishing deposit tx and sending it to the peer.
         // Now we send it first to the peer and only if that succeeds we publish it to avoid likelihood of
         // failed trades. We do not want to change the order of the enum though so we keep it here as it was originally.
-        TAKER_PUBLISHED_DEPOSIT_TX(Phase.DEPOSIT_PUBLISHED),
+        ARBITRATOR_PUBLISHED_DEPOSIT_TX(Phase.DEPOSIT_PUBLISHED),
 
         // DEPOSIT_TX_PUBLISHED_MSG
         // taker perspective
