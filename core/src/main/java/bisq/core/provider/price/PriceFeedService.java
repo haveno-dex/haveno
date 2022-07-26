@@ -397,6 +397,7 @@ public class PriceFeedService {
     }
 
     private void requestAllPrices(PriceProvider provider, Runnable resultHandler, FaultHandler faultHandler) {
+        log.info("Fetching prices");
         if (httpClient.hasPendingRequest()) {
             log.warn("We have a pending request open. We ignore that request. httpClient {}", httpClient);
             return;
@@ -419,6 +420,7 @@ public class PriceFeedService {
                     cache.putAll(priceMap);
 
                     resultHandler.run();
+                    log.info("Prices updated successfully");
                 });
             }
 
