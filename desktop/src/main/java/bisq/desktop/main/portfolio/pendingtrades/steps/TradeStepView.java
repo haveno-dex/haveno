@@ -98,8 +98,8 @@ public abstract class TradeStepView extends AnchorPane {
     private TxIdTextField selfTxIdTextField;
     private TxIdTextField peerTxIdTextField;
     private TradeStepInfo tradeStepInfo;
-    private Subscription makerTxIdSubscription;
-    private Subscription takerTxIdSubscription;
+    private Subscription selfTxIdSubscription;
+    private Subscription peerTxIdSubscription;
     private ClockWatcher.Listener clockListener;
     private final ChangeListener<String> errorMessageListener;
     protected Label infoLabel;
@@ -175,15 +175,11 @@ public abstract class TradeStepView extends AnchorPane {
     }
 
     public void activate() {
-        UserThread.execute(() -> { activateAux(); });
-    }
-
-    private void activateAux() {
         if (selfTxIdTextField != null) {
-            if (makerTxIdSubscription != null)
-                makerTxIdSubscription.unsubscribe();
+            if (selfTxIdSubscription != null)
+                selfTxIdSubscription.unsubscribe();
 
-            makerTxIdSubscription = EasyBind.subscribe(model.dataModel.makerTxId, id -> {
+            selfTxIdSubscription = EasyBind.subscribe(model.dataModel.isMaker() ? model.dataModel.makerTxId : model.dataModel.takerTxId, id -> {
                 if (!id.isEmpty())
                     selfTxIdTextField.setup(id);
                 else
@@ -191,10 +187,10 @@ public abstract class TradeStepView extends AnchorPane {
             });
         }
         if (peerTxIdTextField != null) {
-            if (takerTxIdSubscription != null)
-                takerTxIdSubscription.unsubscribe();
+            if (peerTxIdSubscription != null)
+                peerTxIdSubscription.unsubscribe();
 
-            takerTxIdSubscription = EasyBind.subscribe(model.dataModel.takerTxId, id -> {
+            selfTxIdSubscription = EasyBind.subscribe(model.dataModel.isMaker() ? model.dataModel.takerTxId : model.dataModel.makerTxId, id -> {
                 if (!id.isEmpty())
                     peerTxIdTextField.setup(id);
                 else
@@ -288,10 +284,10 @@ public abstract class TradeStepView extends AnchorPane {
     }
 
     public void deactivate() {
-      if (makerTxIdSubscription != null)
-          makerTxIdSubscription.unsubscribe();
-      if (takerTxIdSubscription != null)
-          takerTxIdSubscription.unsubscribe();
+      if (selfTxIdSubscription != null)
+          selfTxIdSubscription.unsubscribe();
+      if (peerTxIdSubscription != null)
+          peerTxIdSubscription.unsubscribe();
 
       if (selfTxIdTextField != null)
           selfTxIdTextField.cleanup();

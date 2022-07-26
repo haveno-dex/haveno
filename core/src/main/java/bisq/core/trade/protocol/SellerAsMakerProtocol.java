@@ -95,7 +95,7 @@ public class SellerAsMakerProtocol extends SellerProtocol implements MakerProtoc
                                 handleTaskRunnerFault(peer, message, errorMessage);
                             }))
                     .withTimeout(TRADE_TIMEOUT))
-                    .executeTasks();
+                    .executeTasks(true);
             awaitTradeLatch();
         }
     }
@@ -122,35 +122,43 @@ public class SellerAsMakerProtocol extends SellerProtocol implements MakerProtoc
                             handleTaskRunnerFault(sender, request, errorMessage);
                         }))
                     .withTimeout(TRADE_TIMEOUT))
-                    .executeTasks();
+                    .executeTasks(true);
             awaitTradeLatch();
         }
     }
     
     @Override
     public void handleSignContractRequest(SignContractRequest message, NodeAddress sender) {
-        System.out.println(getClass().getCanonicalName() + ".handleSignContractRequest()");
+        System.out.println(getClass().getCanonicalName() + ".handleSignContractResponse() " + trade.getId());
         synchronized (trade) {
-            latchTrade();
             Validator.checkTradeId(processModel.getOfferId(), message);
-            processModel.setTradeMessage(message);
-            expect(anyPhase(Trade.Phase.INIT)
-                    .with(message)
-                    .from(sender))
-                    .setup(tasks(
-                            // TODO (woodser): validate request
-                            ProcessSignContractRequest.class)
-                    .using(new TradeTaskRunner(trade,
-                        () -> {
-                            startTimeout(TRADE_TIMEOUT);
-                            handleTaskRunnerSuccess(sender, message);
-                        },
-                        errorMessage -> {
-                            handleTaskRunnerFault(sender, message, errorMessage);
-                        }))
-                    .withTimeout(TRADE_TIMEOUT))
-                    .executeTasks();
-            awaitTradeLatch();
+            if (trade.getState() == Trade.State.CONTRACT_SIGNATURE_REQUESTED) {
+                latchTrade();
+                Validator.checkTradeId(processModel.getOfferId(), message);
+                processModel.setTradeMessage(message);
+                expect(state(Trade.State.CONTRACT_SIGNATURE_REQUESTED)
+                        .with(message)
+                        .from(sender))
+                        .setup(tasks(
+                                // TODO (woodser): validate request
+                                ProcessSignContractRequest.class)
+                        .using(new TradeTaskRunner(trade,
+                                () -> {
+                                    startTimeout(TRADE_TIMEOUT);
+                                    handleTaskRunnerSuccess(sender, message);
+                                },
+                                errorMessage -> {
+                                    handleTaskRunnerFault(sender, message, errorMessage);
+                                }))
+                        .withTimeout(TRADE_TIMEOUT)) // extend timeout
+                        .executeTasks(true);
+                awaitTradeLatch();
+            } else {
+                // process sign contract request after contract signature requested
+                EasyBind.subscribe(trade.stateProperty(), state -> {
+                    if (state == Trade.State.CONTRACT_SIGNATURE_REQUESTED) new Thread(() -> handleSignContractRequest(message, sender)).start(); // process notification without trade lock
+                });
+            }
         }
     }
 
@@ -159,11 +167,11 @@ public class SellerAsMakerProtocol extends SellerProtocol implements MakerProtoc
         System.out.println(getClass().getCanonicalName() + ".handleSignContractResponse()");
         synchronized (trade) {
             Validator.checkTradeId(processModel.getOfferId(), message);
-            if (trade.getState() == Trade.State.CONTRACT_SIGNATURE_REQUESTED) {
+            if (trade.getState() == Trade.State.CONTRACT_SIGNED) {
                 latchTrade();
                 Validator.checkTradeId(processModel.getOfferId(), message);
                 processModel.setTradeMessage(message);
-                expect(state(Trade.State.CONTRACT_SIGNATURE_REQUESTED)
+                expect(state(Trade.State.CONTRACT_SIGNED)
                         .with(message)
                         .from(sender))
                         .setup(tasks(
@@ -178,11 +186,11 @@ public class SellerAsMakerProtocol extends SellerProtocol implements MakerProtoc
                                     handleTaskRunnerFault(sender, message, errorMessage);
                                 }))
                         .withTimeout(TRADE_TIMEOUT)) // extend timeout
-                        .executeTasks();
+                        .executeTasks(true);
                 awaitTradeLatch();
             } else {
                 EasyBind.subscribe(trade.stateProperty(), state -> {
-                    if (state == Trade.State.CONTRACT_SIGNATURE_REQUESTED) new Thread(() -> handleSignContractResponse(message, sender)).start(); // process notification without trade lock
+                    if (state == Trade.State.CONTRACT_SIGNED) new Thread(() -> handleSignContractResponse(message, sender)).start(); // process notification without trade lock
                 });
             }
         }
@@ -210,7 +218,7 @@ public class SellerAsMakerProtocol extends SellerProtocol implements MakerProtoc
                             handleTaskRunnerFault(sender, response, errorMessage);
                         }))
                     .withTimeout(TRADE_TIMEOUT))
-                    .executeTasks();
+                    .executeTasks(true);
             awaitTradeLatch();
         }
     }
@@ -241,7 +249,7 @@ public class SellerAsMakerProtocol extends SellerProtocol implements MakerProtoc
                                     handleTaskRunnerFault(sender, request, errorMessage);
                                 }))
                         .withTimeout(TRADE_TIMEOUT))
-                        .executeTasks();
+                        .executeTasks(true);
                 awaitTradeLatch();
             } else {
                 EasyBind.subscribe(trade.stateProperty(), state -> {
@@ -300,7 +308,7 @@ public class SellerAsMakerProtocol extends SellerProtocol implements MakerProtoc
                         SellerSignsDelayedPayoutTx.class,
                         SellerSendDelayedPayoutTxSignatureRequest.class)
                 .withTimeout(60))
-                .executeTasks();
+                .executeTasks(true);
     }
 
 

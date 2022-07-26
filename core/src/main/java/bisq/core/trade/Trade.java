@@ -39,7 +39,7 @@ import bisq.core.util.ParsingUtils;
 import bisq.core.util.VolumeUtil;
 import bisq.network.p2p.AckMessage;
 import bisq.network.p2p.NodeAddress;
-
+import bisq.common.UserThread;
 import bisq.common.crypto.PubKeyRing;
 import bisq.common.proto.ProtoUtil;
 import bisq.common.taskrunner.Model;
@@ -876,20 +876,19 @@ public abstract class Trade implements Tradable, Model {
 
         // handle deposit txs seen
         if (txs.size() == 2) {
-
-            // update state
-            setState(this instanceof MakerTrade ? Trade.State.MAKER_SAW_DEPOSIT_TX_IN_NETWORK : Trade.State.TAKER_SAW_DEPOSIT_TX_IN_NETWORK);
             boolean makerFirst = txs.get(0).getHash().equals(processModel.getMaker().getDepositTxHash());
             makerDepositTx = makerFirst ? txs.get(0) : txs.get(1);
             takerDepositTx = makerFirst ? txs.get(1) : txs.get(0);
-            
+
             // check if deposit txs unlocked
             if (txs.get(0).isConfirmed() && txs.get(1).isConfirmed()) {
-                long unlockHeight = Math.max(txs.get(0).getHeight(), txs.get(0).getHeight()) + XmrWalletService.NUM_BLOCKS_UNLOCK - 1;
+                long unlockHeight = Math.max(txs.get(0).getHeight(), txs.get(1).getHeight()) + XmrWalletService.NUM_BLOCKS_UNLOCK;
                 if (havenoWallet.getHeight() >= unlockHeight) {
-                    setConfirmedState();
+                    setUnlockedState();
                     return;
                 }
+            } else {
+                setStateIfValidTransitionTo(this instanceof MakerTrade ? Trade.State.MAKER_SAW_DEPOSIT_TX_IN_NETWORK : Trade.State.TAKER_SAW_DEPOSIT_TX_IN_NETWORK);
             }
         }
 
@@ -900,40 +899,37 @@ public abstract class Trade implements Tradable, Model {
 
             @Override
             public void onNewBlock(long height) {
-                
+
                 // ignore if no longer listening
                 if (depositTxListener == null) return;
-                
+
                 // ignore if before unlock height
                 if (unlockHeight != null && height < unlockHeight) return;
-                
+
                 // fetch txs from daemon
                 List<MoneroTx> txs = daemon.getTxs(Arrays.asList(processModel.getMaker().getDepositTxHash(), processModel.getTaker().getDepositTxHash()), true);
-                
+
                 // ignore if deposit txs not seen
                 if (txs.size() != 2) return;
-                
+
                 // update deposit txs
                 boolean makerFirst = txs.get(0).getHash().equals(processModel.getMaker().getDepositTxHash());
                 makerDepositTx = makerFirst ? txs.get(0) : txs.get(1);
                 takerDepositTx = makerFirst ? txs.get(1) : txs.get(0);
-                
-                // update state when deposit txs seen
-                if (txs.size() == 2) {
-                    setState(this instanceof MakerTrade ? Trade.State.MAKER_SAW_DEPOSIT_TX_IN_NETWORK : Trade.State.TAKER_SAW_DEPOSIT_TX_IN_NETWORK);
-                }
-                
+
                 // compute unlock height
                 if (unlockHeight == null && txs.size() == 2 && txs.get(0).isConfirmed() && txs.get(1).isConfirmed()) {
-                    unlockHeight = Math.max(txs.get(0).getHeight(), txs.get(0).getHeight()) + XmrWalletService.NUM_BLOCKS_UNLOCK - 1;
+                    unlockHeight = Math.max(txs.get(0).getHeight(), txs.get(1).getHeight()) + XmrWalletService.NUM_BLOCKS_UNLOCK;
                 }
-                
-                // check if txs unlocked
+
+                // check if deposit txs unlocked
                 if (unlockHeight != null && height == unlockHeight) {
                     log.info("Multisig deposits unlocked for trade {}", getId());
-                    setConfirmedState();  // TODO (woodser): bisq "confirmed" = xmr unlocked after 10 confirmations
+                    setUnlockedState();
                     xmrWalletService.removeWalletListener(depositTxListener); // remove listener when notified
                     depositTxListener = null; // prevent re-applying trade state in subsequent requests
+                } else if (txs.size() == 2) {
+                    setStateIfValidTransitionTo(this instanceof MakerTrade ? Trade.State.MAKER_SAW_DEPOSIT_TX_IN_NETWORK : Trade.State.TAKER_SAW_DEPOSIT_TX_IN_NETWORK);
                 }
             }
         };
@@ -1079,8 +1075,10 @@ public abstract class Trade implements Tradable, Model {
         }
 
         this.state = state;
-        stateProperty.set(state);
-        statePhaseProperty.set(state.getPhase());
+        UserThread.execute(() -> {
+            stateProperty.set(state);
+            statePhaseProperty.set(state.getPhase());
+        });
     }
 
     public void setDisputeState(DisputeState disputeState) {
@@ -1242,7 +1240,7 @@ public abstract class Trade implements Tradable, Model {
         final MoneroTx takerDepositTx = getTakerDepositTx();
         final MoneroTx makerDepositTx = getMakerDepositTx();
         if (makerDepositTx != null && takerDepositTx != null && getTakeOfferDate() != null) {
-            if (isDepositConfirmed()) {
+            if (isDepositUnlocked()) {
                 final long tradeTime = getTakeOfferDate().getTime();
                 long maxHeight = Math.max(makerDepositTx.getHeight(), takerDepositTx.getHeight());
                 MoneroDaemon daemonRpc = xmrWalletService.getDaemon();
@@ -1318,7 +1316,7 @@ public abstract class Trade implements Tradable, Model {
                 disputeState != DisputeState.REFUND_REQUEST_CLOSED;
     }
 
-    public boolean isDepositConfirmed() {
+    public boolean isDepositUnlocked() {
         return getState().getPhase().ordinal() >= Phase.DEPOSIT_UNLOCKED.ordinal();
     }
 
@@ -1479,13 +1477,13 @@ public abstract class Trade implements Tradable, Model {
 //        }
 //    }
 
-    private void setConfirmedState() {
+    private void setUnlockedState() {
         // we only apply the state if we are not already further in the process
-        if (!isDepositConfirmed()) {
+        if (!isDepositUnlocked()) {
             // As setState is called here from the trade itself we cannot trigger a requestPersistence call.
             // But as we get setupConfidenceListener called at startup anyway there is no issue if it would not be
             // persisted in case the shutdown routine did not persist the trade.
-            setState(State.DEPOSIT_UNLOCKED_IN_BLOCK_CHAIN);	// TODO (woodser): for xmr this means deposit txs have unlocked after 10 confirmations
+            setStateIfValidTransitionTo(State.DEPOSIT_UNLOCKED_IN_BLOCK_CHAIN);	// TODO (woodser): for xmr this means deposit txs have unlocked after 10 confirmations
         }
     }
 

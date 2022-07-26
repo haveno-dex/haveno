@@ -65,7 +65,6 @@ import bisq.common.util.Utilities;
 
 import org.bitcoinj.core.Address;
 import org.bitcoinj.core.Coin;
-import org.bitcoinj.core.TransactionConfidence;
 import org.bitcoinj.uri.BitcoinURI;
 
 import com.googlecode.jcsv.CSVStrategy;
@@ -135,7 +134,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
 import lombok.extern.slf4j.Slf4j;
-import monero.wallet.model.MoneroTxWallet;
+import monero.daemon.model.MoneroTx;
 import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nullable;
@@ -567,7 +566,7 @@ public class GUIUtil {
         };
     }
 
-    public static void updateConfidence(MoneroTxWallet tx,
+    public static void updateConfidence(MoneroTx tx,
                                         Tooltip tooltip,
                                         TxConfidenceIndicator txConfidenceIndicator) {
         if (tx != null) {
