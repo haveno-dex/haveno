@@ -154,7 +154,7 @@ public class TradeInfo implements Payload {
                 .withPhase(trade.getPhase().name())
                 .withPeriodState(trade.getPeriodState().name())
                 .withIsDepositPublished(trade.isDepositPublished())
-                .withIsDepositUnlocked(trade.isDepositConfirmed())
+                .withIsDepositUnlocked(trade.isDepositUnlocked())
                 .withIsPaymentSent(trade.isPaymentSent())
                 .withIsPaymentReceived(trade.isPaymentReceived())
                 .withIsPayoutPublished(trade.isPayoutPublished())

@@ -136,6 +136,7 @@ public class SellerStep3View extends TradeStepView {
                             busyAnimation.stop();
                             statusLabel.setText(Res.get("shared.messageArrived"));
                             break;
+                        case SELLER_STORED_IN_MAILBOX_PAYMENT_RECEIVED_MSG:
                         case SELLER_STORED_IN_MAILBOX_PAYOUT_TX_PUBLISHED_MSG:
                             busyAnimation.stop();
                             statusLabel.setText(Res.get("shared.messageStoredInMailbox"));

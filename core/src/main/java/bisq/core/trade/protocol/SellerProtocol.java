@@ -113,7 +113,7 @@ public abstract class SellerProtocol extends DisputeProtocol {
                                 handleTaskRunnerFault(peer, message, errorMessage);
                             }))
                     .withTimeout(TRADE_TIMEOUT))
-                    .executeTasks();
+                    .executeTasks(true);
             awaitTradeLatch();
         }
     }
@@ -126,7 +126,7 @@ public abstract class SellerProtocol extends DisputeProtocol {
         log.info("SellerProtocol.onPaymentReceived()");
         synchronized (trade) {
             SellerEvent event = SellerEvent.PAYMENT_RECEIVED;
-            expect(anyPhase(Trade.Phase.PAYMENT_SENT)
+            expect(anyPhase(Trade.Phase.PAYMENT_SENT, Trade.Phase.PAYMENT_RECEIVED)
                     .with(event)
                     .preCondition(trade.confirmPermitted()))
                     .setup(tasks(

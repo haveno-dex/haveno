@@ -40,7 +40,7 @@ import javafx.scene.layout.AnchorPane;
 
 import lombok.Getter;
 import lombok.Setter;
-import monero.wallet.model.MoneroTxWallet;
+import monero.daemon.model.MoneroTx;
 import monero.wallet.model.MoneroWalletListener;
 import javax.annotation.Nullable;
 
@@ -176,9 +176,10 @@ public class TxIdTextField extends AnchorPane {
     }
 
     private void updateConfidence(String txId) {
-        MoneroTxWallet tx = null;
+        MoneroTx tx = null;
         try {
-            tx = xmrWalletService.getWallet().getTx(txId);
+            tx = xmrWalletService.getDaemon().getTx(txId); // TODO: cache results and don't re-fetch
+            tx.setNumConfirmations(tx.isConfirmed() ? xmrWalletService.getConnectionsService().getLastInfo().getHeight() - tx.getHeight() : 0l); // TODO: use tx.getNumConfirmations() when MoneroDaemonRpc supports it
         } catch (Exception e) {
             // do nothing
         }
@@ -187,6 +188,10 @@ public class TxIdTextField extends AnchorPane {
             if (txConfidenceIndicator.getProgress() != 0) {
                 txConfidenceIndicator.setVisible(true);
                 AnchorPane.setRightAnchor(txConfidenceIndicator, 0.0);
+            }
+            if (txConfidenceIndicator.getProgress() >= 1.0 && txUpdater != null) {
+                xmrWalletService.removeWalletListener(txUpdater); // unregister listener
+                txUpdater = null;
             }
         } else {
             //TODO we should show some placeholder in case of a tx which we are not aware of but which can be

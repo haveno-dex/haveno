@@ -461,6 +461,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
         handleError(errorMessage);
     }
 
+    // these are not thread safe, so they must be used within a lock on the trade
 
     protected void handleError(String errorMessage) {
         stopTimeout();

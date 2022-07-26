@@ -134,7 +134,7 @@ public class ProcessSignContractRequest extends TradeTask {
     }
 
     private void completeAux() {
-        trade.setState(State.CONTRACT_SIGNATURE_REQUESTED); // TODO: rename to contract_signature_request_received
+        trade.setState(State.CONTRACT_SIGNED);
         processModel.getTradeManager().requestPersistence();
         complete();
     }

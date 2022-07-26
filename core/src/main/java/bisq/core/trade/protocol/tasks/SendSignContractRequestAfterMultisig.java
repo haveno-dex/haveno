@@ -21,6 +21,7 @@ import bisq.common.app.Version;
 import bisq.common.taskrunner.TaskRunner;
 import bisq.core.btc.model.XmrAddressEntry;
 import bisq.core.trade.Trade;
+import bisq.core.trade.Trade.State;
 import bisq.core.trade.messages.SignContractRequest;
 import bisq.network.p2p.SendDirectMessageListener;
 import java.util.Date;
@@ -124,6 +125,7 @@ public class SendSignContractRequestAfterMultisig extends TradeTask {
     }
     
     private void completeAux() {
+        trade.setState(State.CONTRACT_SIGNATURE_REQUESTED);
         processModel.getTradeManager().requestPersistence();
         processModel.getXmrWalletService().saveWallet(processModel.getXmrWalletService().getWallet());
         complete();

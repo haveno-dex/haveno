@@ -161,7 +161,7 @@ public abstract class BuyerProtocol extends DisputeProtocol {
             latchTrade();
             Validator.checkTradeId(processModel.getOfferId(), message);
             processModel.setTradeMessage(message);
-            expect(anyPhase(Trade.Phase.PAYMENT_SENT, Trade.Phase.PAYOUT_PUBLISHED)
+            expect(anyPhase(Trade.Phase.PAYMENT_SENT, Trade.Phase.PAYMENT_RECEIVED)
                 .with(message)
                 .from(peer))
                 .setup(tasks(
@@ -177,7 +177,7 @@ public abstract class BuyerProtocol extends DisputeProtocol {
                             handleTaskRunnerFault(peer, message, errorMessage);
                         }))
                 .withTimeout(TRADE_TIMEOUT))
-                .executeTasks();
+                .executeTasks(true);
             awaitTradeLatch();
         }
     }
@@ -190,9 +190,6 @@ public abstract class BuyerProtocol extends DisputeProtocol {
     @Override
     protected void onTradeMessage(TradeMessage message, NodeAddress peer) {
         super.onTradeMessage(message, peer);
-
-        log.info("Received {} from {} with tradeId {} and uid {}",
-                message.getClass().getSimpleName(), peer, message.getTradeId(), message.getUid());
 
         if (message instanceof DelayedPayoutTxSignatureRequest) {
             handle((DelayedPayoutTxSignatureRequest) message, peer);

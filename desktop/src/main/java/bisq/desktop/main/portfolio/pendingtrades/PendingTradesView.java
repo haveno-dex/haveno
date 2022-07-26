@@ -640,11 +640,7 @@ public class PendingTradesView extends ActivatableViewAndModel<VBox, PendingTrad
 
                                 if (item != null && !empty) {
                                     trade = item.getTrade();
-                                    listener = (observable, oldValue, newValue) -> Platform.runLater(new Runnable() {
-                                        @Override public void run() {
-                                            update();
-                                        }
-                                    });
+                                    listener = (observable, oldValue, newValue) -> UserThread.execute(() -> update());
                                     trade.stateProperty().addListener(listener);
                                     update();
                                 } else {
@@ -805,7 +801,6 @@ public class PendingTradesView extends ActivatableViewAndModel<VBox, PendingTrad
                             @Override
                             public void updateItem(final PendingTradesListItem item, boolean empty) {
                                 super.updateItem(item, empty);
-
                                 if (item != null && !empty) {
                                     setGraphic(new AutoTooltipLabel(item.getMarketDescription()));
                                 } else {

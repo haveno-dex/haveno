@@ -884,8 +884,8 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
     }
 
     private void updateTradePeriodState() {
-        getObservableList().forEach(trade -> {
-            UserThread.execute(() -> { // prevent concurrent modification error
+        UserThread.execute(() -> { // prevent concurrent modification error
+            getObservableList().forEach(trade -> {
                 if (!trade.isPayoutPublished()) {
                     Date maxTradePeriodDate = trade.getMaxTradePeriodDate();
                     Date halfTradePeriodDate = trade.getHalfTradePeriodDate();

@@ -97,6 +97,7 @@ public class BuyerSendsPaymentSentMessage extends SendMailboxMessageTask {
 
     @Override
     protected void setStateArrived() {
+        trade.setStateIfValidTransitionTo(Trade.State.BUYER_SAW_ARRIVED_PAYMENT_SENT_MSG);
         // the message has arrived but we're ultimately waiting for an AckMessage response
         if (!trade.isPayoutPublished()) {
             tryToSendAgainLater();
