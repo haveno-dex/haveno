@@ -33,7 +33,7 @@ public class MarketPriceFeedServiceTest {
     public void testGetPrice() throws InterruptedException {
         PriceFeedService priceFeedService = new PriceFeedService(null, null, null);
         priceFeedService.setCurrencyCode("EUR");
-        priceFeedService.requestPriceFeed(tradeCurrency -> {
+        priceFeedService.startRequestingPrices(tradeCurrency -> {
                     log.debug(tradeCurrency.toString());
                     assertTrue(true);
                 },

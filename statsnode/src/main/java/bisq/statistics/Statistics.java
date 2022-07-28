@@ -58,7 +58,7 @@ public class Statistics {
             public void onUpdatedDataReceived() {
                 // we need to have tor ready
                 log.info("onBootstrapComplete: we start requestPriceFeed");
-                priceFeedService.requestPriceFeed(price -> log.info("requestPriceFeed. price=" + price),
+                priceFeedService.startRequestingPrices(price -> log.info("requestPriceFeed. price=" + price),
                         (errorMessage, throwable) -> log.warn("Exception at requestPriceFeed: " + throwable.getMessage()));
 
                 tradeStatisticsManager.onAllServicesInitialized();

@@ -216,6 +216,7 @@ public class DomainInitialisation {
         signedWitnessService.onAllServicesInitialized();
 
         priceFeedService.setCurrencyCodeOnInit();
+        priceFeedService.startRequestingPrices();
 
         filterManager.setFilterWarningHandler(filterWarningHandler);
         filterManager.onAllServicesInitialized();

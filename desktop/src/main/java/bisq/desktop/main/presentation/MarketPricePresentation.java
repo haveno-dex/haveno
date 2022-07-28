@@ -132,7 +132,7 @@ public class MarketPricePresentation {
     }
 
     private void setupMarketPriceFeed() {
-        priceFeedService.requestPriceFeed(price -> marketPrice.set(FormattingUtils.formatMarketPrice(price, priceFeedService.getCurrencyCode())),
+        priceFeedService.startRequestingPrices(price -> marketPrice.set(FormattingUtils.formatMarketPrice(price, priceFeedService.getCurrencyCode())),
                 (errorMessage, throwable) -> marketPrice.set(Res.get("shared.na")));
 
         marketPriceBinding = EasyBind.combine(
