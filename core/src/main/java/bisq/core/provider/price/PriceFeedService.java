@@ -137,7 +137,7 @@ public class PriceFeedService {
         }
     }
 
-    public void initialRequestPriceFeed() {
+    public void requestPrices() {
         request(false);
     }
 
@@ -145,11 +145,14 @@ public class PriceFeedService {
         return !cache.isEmpty();
     }
 
-    public void requestPriceFeed(Consumer<Double> resultHandler, FaultHandler faultHandler) {
+    public void startRequestingPrices() {
+        if (requestTimer == null) request(true); // ignore if already repeat requesting
+    }
+
+    public void startRequestingPrices(Consumer<Double> resultHandler, FaultHandler faultHandler) {
         this.priceConsumer = resultHandler;
         this.faultHandler = faultHandler;
-
-        request(true);
+        startRequestingPrices();
     }
 
     public String getProviderNodeAddress() {
