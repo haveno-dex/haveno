@@ -125,6 +125,8 @@ public abstract class SellerProtocol extends DisputeProtocol {
     public void onPaymentReceived(ResultHandler resultHandler, ErrorMessageHandler errorMessageHandler) {
         log.info("SellerProtocol.onPaymentReceived()");
         synchronized (trade) {
+            latchTrade();
+            this.errorMessageHandler = errorMessageHandler;
             SellerEvent event = SellerEvent.PAYMENT_RECEIVED;
             expect(anyPhase(Trade.Phase.PAYMENT_SENT, Trade.Phase.PAYMENT_RECEIVED)
                     .with(event)
@@ -135,14 +137,15 @@ public abstract class SellerProtocol extends DisputeProtocol {
                             SellerPreparesPaymentReceivedMessage.class,
                             SellerSendsPaymentReceivedMessage.class)
                             .using(new TradeTaskRunner(trade, () -> {
+                                this.errorMessageHandler = null;
                                 resultHandler.handleResult();
                                 handleTaskRunnerSuccess(event);
                             }, (errorMessage) -> {
-                                errorMessageHandler.handleErrorMessage(errorMessage);
                                 handleTaskRunnerFault(event, errorMessage);
                             })))
                     .run(() -> trade.setState(Trade.State.SELLER_CONFIRMED_IN_UI_PAYMENT_RECEIPT))
                     .executeTasks();
+            awaitTradeLatch();
         }
     }
 

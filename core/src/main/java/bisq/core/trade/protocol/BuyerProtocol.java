@@ -127,6 +127,8 @@ public abstract class BuyerProtocol extends DisputeProtocol {
     public void onPaymentStarted(ResultHandler resultHandler, ErrorMessageHandler errorMessageHandler) {
         System.out.println("BuyerProtocol.onPaymentStarted()");
         synchronized (trade) {
+            latchTrade();
+            this.errorMessageHandler = errorMessageHandler;
             BuyerEvent event = BuyerEvent.PAYMENT_SENT;
             expect(phase(Trade.Phase.DEPOSIT_UNLOCKED)
                     .with(event)
@@ -139,15 +141,16 @@ public abstract class BuyerProtocol extends DisputeProtocol {
                             BuyerSendsPaymentSentMessage.class) // don't latch trade because this blocks and runs in background
                     .using(new TradeTaskRunner(trade,
                             () -> {
+                                this.errorMessageHandler = null;
                                 resultHandler.handleResult();
                                 handleTaskRunnerSuccess(event);
                             },
                             (errorMessage) -> {
-                                errorMessageHandler.handleErrorMessage(errorMessage);
                                 handleTaskRunnerFault(event, errorMessage);
                             })))
                     .run(() -> trade.setState(Trade.State.BUYER_CONFIRMED_IN_UI_PAYMENT_SENT))
                     .executeTasks();
+            awaitTradeLatch();
         }
     }
 
@@ -169,14 +172,11 @@ public abstract class BuyerProtocol extends DisputeProtocol {
                     BuyerProcessesPaymentReceivedMessage.class)
                     .using(new TradeTaskRunner(trade,
                         () -> {
-                            stopTimeout();
                             handleTaskRunnerSuccess(peer, message);
                         },
                         errorMessage -> {
-                            stopTimeout();
                             handleTaskRunnerFault(peer, message, errorMessage);
-                        }))
-                .withTimeout(TRADE_TIMEOUT))
+                        })))
                 .executeTasks(true);
             awaitTradeLatch();
         }
