@@ -445,7 +445,7 @@ public class XmrWalletService {
             if (sync) {
                 log.info("Syncing wallet " + config.getPath() + " in background");
                 walletRpc.startSyncing(connectionsService.getDefaultRefreshPeriodMs());
-                log.info("Done starting background wallet sync for " + config.getPath());
+                log.info("Done starting background sync for wallet " + config.getPath());
             } else {
                 walletRpc.setDaemonConnection(daemonConnection);
             }
@@ -469,10 +469,17 @@ public class XmrWalletService {
             log.info("Opening wallet " + config.getPath());
             walletRpc.openWallet(config);
 
-            // start syncing wallet in background
-            log.info("Syncing wallet " + config.getPath() + " in background");
-            walletRpc.startSyncing(connectionsService.getDefaultRefreshPeriodMs());
+            // sync wallet
+            log.info("Syncing wallet " + config.getPath());
+            walletRpc.sync();
             log.info("Done syncing wallet " + config.getPath());
+            
+            // start syncing wallet in background
+            new Thread(() -> {
+                log.info("Syncing wallet " + config.getPath() + " in background");
+                walletRpc.startSyncing(connectionsService.getDefaultRefreshPeriodMs());
+                log.info("Done starting background sync for wallet " + config.getPath());
+            }).start();
             return walletRpc;
         } catch (Exception e) {
             e.printStackTrace();
