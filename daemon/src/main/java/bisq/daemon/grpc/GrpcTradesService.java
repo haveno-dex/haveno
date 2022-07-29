@@ -115,11 +115,7 @@ class GrpcTradesService extends TradesImplBase {
     @Override
     public void takeOffer(TakeOfferRequest req,
                           StreamObserver<TakeOfferReply> responseObserver) {
-        GrpcErrorMessageHandler errorMessageHandler =
-                new GrpcErrorMessageHandler(getTakeOfferMethod().getFullMethodName(),
-                        responseObserver,
-                        exceptionHandler,
-                        log);
+        GrpcErrorMessageHandler errorMessageHandler = new GrpcErrorMessageHandler(getTakeOfferMethod().getFullMethodName(), responseObserver, exceptionHandler, log);
         try {
             coreApi.takeOffer(req.getOfferId(),
                     req.getPaymentAccountId(),
@@ -144,12 +140,19 @@ class GrpcTradesService extends TradesImplBase {
     @Override
     public void confirmPaymentStarted(ConfirmPaymentStartedRequest req,
                                       StreamObserver<ConfirmPaymentStartedReply> responseObserver) {
+        GrpcErrorMessageHandler errorMessageHandler = new GrpcErrorMessageHandler(getConfirmPaymentStartedMethod().getFullMethodName(), responseObserver, exceptionHandler, log);
         try {
-            coreApi.confirmPaymentStarted(req.getTradeId());
-            var reply = ConfirmPaymentStartedReply.newBuilder().build();
-            responseObserver.onNext(reply);
-            responseObserver.onCompleted();
+            coreApi.confirmPaymentStarted(req.getTradeId(),
+                    () -> {
+                        var reply = ConfirmPaymentStartedReply.newBuilder().build();
+                        responseObserver.onNext(reply);
+                        responseObserver.onCompleted();
+                    },
+                    errorMessage -> {
+                        if (!errorMessageHandler.isErrorHandled()) errorMessageHandler.handleErrorMessage(errorMessage);
+                    });
         } catch (Throwable cause) {
+            cause.printStackTrace();
             exceptionHandler.handleException(log, cause, responseObserver);
         }
     }
@@ -157,12 +160,19 @@ class GrpcTradesService extends TradesImplBase {
     @Override
     public void confirmPaymentReceived(ConfirmPaymentReceivedRequest req,
                                        StreamObserver<ConfirmPaymentReceivedReply> responseObserver) {
+        GrpcErrorMessageHandler errorMessageHandler = new GrpcErrorMessageHandler(getConfirmPaymentReceivedMethod().getFullMethodName(), responseObserver, exceptionHandler, log);
         try {
-            coreApi.confirmPaymentReceived(req.getTradeId());
-            var reply = ConfirmPaymentReceivedReply.newBuilder().build();
-            responseObserver.onNext(reply);
-            responseObserver.onCompleted();
+            coreApi.confirmPaymentReceived(req.getTradeId(),
+                    () -> {
+                        var reply = ConfirmPaymentReceivedReply.newBuilder().build();
+                        responseObserver.onNext(reply);
+                        responseObserver.onCompleted();
+                    },
+                    errorMessage -> {
+                        if (!errorMessageHandler.isErrorHandled())  errorMessageHandler.handleErrorMessage(errorMessage);
+                    });
         } catch (Throwable cause) {
+            cause.printStackTrace();
             exceptionHandler.handleException(log, cause, responseObserver);
         }
     }

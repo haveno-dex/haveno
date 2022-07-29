@@ -35,7 +35,7 @@ import bisq.core.user.User;
 import bisq.core.util.validation.BtcAddressValidator;
 
 import bisq.common.handlers.ErrorMessageHandler;
-
+import bisq.common.handlers.ResultHandler;
 import org.bitcoinj.core.Coin;
 
 import javax.inject.Inject;
@@ -131,35 +131,27 @@ class CoreTradesService {
         }
     }
 
-    void confirmPaymentStarted(String tradeId) {
+    void confirmPaymentStarted(String tradeId,
+                               ResultHandler resultHandler,
+                               ErrorMessageHandler errorMessageHandler) {
         var trade = getTrade(tradeId);
         if (isFollowingBuyerProtocol(trade)) {
             var tradeProtocol = tradeManager.getTradeProtocol(trade);
-            ((BuyerProtocol) tradeProtocol).onPaymentStarted(
-                    () -> {
-                    },
-                    errorMessage -> {
-                        throw new IllegalStateException(errorMessage);
-                    }
-            );
+            ((BuyerProtocol) tradeProtocol).onPaymentStarted(resultHandler, errorMessageHandler);
         } else {
             throw new IllegalStateException("you are the seller and not sending payment");
         }
     }
 
-    void confirmPaymentReceived(String tradeId) {
+    void confirmPaymentReceived(String tradeId,
+                                ResultHandler resultHandler,
+                                ErrorMessageHandler errorMessageHandler) {
         var trade = getTrade(tradeId);
         if (isFollowingBuyerProtocol(trade)) {
             throw new IllegalStateException("you are the buyer, and not receiving payment");
         } else {
             var tradeProtocol = tradeManager.getTradeProtocol(trade);
-            ((SellerProtocol) tradeProtocol).onPaymentReceived(
-                    () -> {
-                    },
-                    errorMessage -> {
-                        throw new IllegalStateException(errorMessage);
-                    }
-            );
+            ((SellerProtocol) tradeProtocol).onPaymentReceived(resultHandler, errorMessageHandler);
         }
     }
 

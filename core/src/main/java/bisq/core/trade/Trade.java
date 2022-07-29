@@ -923,7 +923,7 @@ public abstract class Trade implements Tradable, Model {
                 }
 
                 // check if deposit txs unlocked
-                if (unlockHeight != null && height == unlockHeight) {
+                if (unlockHeight != null && height >= unlockHeight) {
                     log.info("Multisig deposits unlocked for trade {}", getId());
                     setUnlockedState();
                     xmrWalletService.removeWalletListener(depositTxListener); // remove listener when notified

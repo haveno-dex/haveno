@@ -185,23 +185,21 @@ public class XmrWalletService {
     // TODO (woodser): test retaking failed trade. create new multisig wallet or replace? cannot reuse
     public MoneroWallet createMultisigWallet(String tradeId) {
         log.info("{}.createMultisigWallet({})", getClass().getSimpleName(), tradeId);
-        Trade trade = tradeManager.getOpenTrade(tradeId).get();
-        if (multisigWallets.containsKey(trade.getId())) return multisigWallets.get(trade.getId());
-        String path = MONERO_MULTISIG_WALLET_PREFIX + trade.getId();
+        if (multisigWallets.containsKey(tradeId)) return multisigWallets.get(tradeId);
+        String path = MONERO_MULTISIG_WALLET_PREFIX + tradeId;
         MoneroWallet multisigWallet = createWallet(new MoneroWalletConfig().setPath(path).setPassword(getWalletPassword()), null, false); // auto-assign port
-        multisigWallets.put(trade.getId(), multisigWallet);
+        multisigWallets.put(tradeId, multisigWallet);
         return multisigWallet;
     }
 
     // TODO (woodser): provide progress notifications during open?
     public MoneroWallet getMultisigWallet(String tradeId) {
         log.info("{}.getMultisigWallet({})", getClass().getSimpleName(), tradeId);
-        Trade trade = tradeManager.getTrade(tradeId);
-        if (multisigWallets.containsKey(trade.getId())) return multisigWallets.get(trade.getId());
-        String path = MONERO_MULTISIG_WALLET_PREFIX + trade.getId();
-        if (!walletExists(path)) throw new RuntimeException("Multisig wallet does not exist for trade " + trade.getId());
+        if (multisigWallets.containsKey(tradeId)) return multisigWallets.get(tradeId);
+        String path = MONERO_MULTISIG_WALLET_PREFIX + tradeId;
+        if (!walletExists(path)) throw new RuntimeException("Multisig wallet does not exist for trade " + tradeId);
         MoneroWallet multisigWallet = openWallet(new MoneroWalletConfig().setPath(path).setPassword(getWalletPassword()), null);
-        multisigWallets.put(trade.getId(), multisigWallet);
+        multisigWallets.put(tradeId, multisigWallet);
         return multisigWallet;
     }
 

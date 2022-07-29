@@ -549,18 +549,19 @@ public class CoreApi {
                           Consumer<Trade> resultHandler,
                           ErrorMessageHandler errorMessageHandler) {
         Offer offer = coreOffersService.getOffer(offerId);
-        coreTradesService.takeOffer(offer,
-                paymentAccountId,
-                resultHandler,
-                errorMessageHandler);
+        coreTradesService.takeOffer(offer, paymentAccountId, resultHandler, errorMessageHandler);
     }
 
-    public void confirmPaymentStarted(String tradeId) {
-        coreTradesService.confirmPaymentStarted(tradeId);
+    public void confirmPaymentStarted(String tradeId,
+                                      ResultHandler resultHandler,
+                                      ErrorMessageHandler errorMessageHandler) {
+        coreTradesService.confirmPaymentStarted(tradeId, resultHandler, errorMessageHandler);
     }
 
-    public void confirmPaymentReceived(String tradeId) {
-        coreTradesService.confirmPaymentReceived(tradeId);
+    public void confirmPaymentReceived(String tradeId,
+                                       ResultHandler resultHandler,
+                                       ErrorMessageHandler errorMessageHandler) {
+        coreTradesService.confirmPaymentReceived(tradeId, resultHandler, errorMessageHandler);
     }
 
     public void keepFunds(String tradeId) {
