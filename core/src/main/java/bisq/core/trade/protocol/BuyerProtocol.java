@@ -142,8 +142,8 @@ public abstract class BuyerProtocol extends DisputeProtocol {
                     .using(new TradeTaskRunner(trade,
                             () -> {
                                 this.errorMessageHandler = null;
-                                resultHandler.handleResult();
                                 handleTaskRunnerSuccess(event);
+                                resultHandler.handleResult();
                             },
                             (errorMessage) -> {
                                 handleTaskRunnerFault(event, errorMessage);

@@ -183,10 +183,6 @@ public class ProcessModel implements Model, PersistablePayload {
     @Setter
     private String multisigAddress;
     @Nullable
-    @Getter
-    @Setter
-    private boolean multisigSetupComplete; // TODO (woodser): redundant with multisigAddress existing, remove
-
 
     // We want to indicate the user the state of the message delivery of the
     // PaymentSentMessage. As well we do an automatic re-send in case it was not ACKed yet.
@@ -247,7 +243,6 @@ public class ProcessModel implements Model, PersistablePayload {
         Optional.ofNullable(preparedMultisigHex).ifPresent(e -> builder.setPreparedMultisigHex(preparedMultisigHex));
         Optional.ofNullable(madeMultisigHex).ifPresent(e -> builder.setMadeMultisigHex(madeMultisigHex));
         Optional.ofNullable(multisigAddress).ifPresent(e -> builder.setMultisigAddress(multisigAddress));
-        Optional.ofNullable(multisigSetupComplete).ifPresent(e -> builder.setMultisigSetupComplete(multisigSetupComplete));
         return builder.build();
     }
 
@@ -279,7 +274,6 @@ public class ProcessModel implements Model, PersistablePayload {
         processModel.setPreparedMultisigHex(ProtoUtil.stringOrNullFromProto(proto.getPreparedMultisigHex()));
         processModel.setMadeMultisigHex(ProtoUtil.stringOrNullFromProto(proto.getMadeMultisigHex()));
         processModel.setMultisigAddress(ProtoUtil.stringOrNullFromProto(proto.getMultisigAddress()));
-        processModel.setMultisigSetupComplete(proto.getMultisigSetupComplete());
 
         String paymentStartedMessageStateString = ProtoUtil.stringOrNullFromProto(proto.getPaymentStartedMessageState());
         MessageState paymentStartedMessageState = ProtoUtil.enumFromProto(MessageState.class, paymentStartedMessageStateString);

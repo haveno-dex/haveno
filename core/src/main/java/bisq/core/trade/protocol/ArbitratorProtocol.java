@@ -3,16 +3,15 @@ package bisq.core.trade.protocol;
 import bisq.core.trade.ArbitratorTrade;
 import bisq.core.trade.Trade;
 import bisq.core.trade.messages.DepositRequest;
-import bisq.core.trade.messages.InitMultisigRequest;
+import bisq.core.trade.messages.DepositResponse;
 import bisq.core.trade.messages.InitTradeRequest;
-import bisq.core.trade.messages.SignContractRequest;
+import bisq.core.trade.messages.PaymentAccountPayloadRequest;
+import bisq.core.trade.messages.SignContractResponse;
 import bisq.core.trade.protocol.tasks.ApplyFilter;
 import bisq.core.trade.protocol.tasks.ArbitratorSendsInitTradeAndMultisigRequests;
 import bisq.core.trade.protocol.tasks.ArbitratorProcessesDepositRequest;
-import bisq.core.trade.protocol.tasks.ProcessInitMultisigRequest;
 import bisq.core.trade.protocol.tasks.ArbitratorProcessesReserveTx;
 import bisq.core.trade.protocol.tasks.ProcessInitTradeRequest;
-import bisq.core.trade.protocol.tasks.ProcessSignContractRequest;
 import bisq.core.util.Validator;
 import bisq.network.p2p.NodeAddress;
 import bisq.common.handlers.ErrorMessageHandler;
@@ -59,60 +58,12 @@ public class ArbitratorProtocol extends DisputeProtocol {
   }
   
   @Override
-  public void handleInitMultisigRequest(InitMultisigRequest request, NodeAddress sender) {
-    System.out.println("ArbitratorProtocol.handleInitMultisigRequest()");
-    synchronized (trade) {
-        latchTrade();
-        Validator.checkTradeId(processModel.getOfferId(), request);
-        processModel.setTradeMessage(request);
-        expect(anyPhase(Trade.Phase.INIT)
-            .with(request)
-            .from(sender))
-            .setup(tasks(
-                    ProcessInitMultisigRequest.class)
-            .using(new TradeTaskRunner(trade,
-                    () -> {
-                        startTimeout(TRADE_TIMEOUT);
-                        handleTaskRunnerSuccess(sender, request);
-                    },
-                    errorMessage -> {
-                        handleTaskRunnerFault(sender, request, errorMessage);
-                    }))
-            .withTimeout(TRADE_TIMEOUT))
-            .executeTasks(true);
-        awaitTradeLatch();
-    }
-  }
-  
-  @Override
-  public void handleSignContractRequest(SignContractRequest message, NodeAddress sender) {
-      System.out.println("ArbitratorProtocol.handleSignContractRequest()");
-      synchronized (trade) {
-          latchTrade();
-          Validator.checkTradeId(processModel.getOfferId(), message);
-          processModel.setTradeMessage(message); // TODO (woodser): synchronize access since concurrent requests processed
-          expect(anyPhase(Trade.Phase.INIT)
-              .with(message)
-              .from(sender))
-              .setup(tasks(
-                      // TODO (woodser): validate request
-                      ProcessSignContractRequest.class)
-              .using(new TradeTaskRunner(trade,
-                      () -> {
-                          startTimeout(TRADE_TIMEOUT);
-                          handleTaskRunnerSuccess(sender, message);
-                      },
-                      errorMessage -> {
-                          handleTaskRunnerFault(sender, message, errorMessage);
-                      }))
-              .withTimeout(TRADE_TIMEOUT))
-              .executeTasks(true);
-          awaitTradeLatch();
-      }
+  public void handleSignContractResponse(SignContractResponse message, NodeAddress sender) {
+      log.warn("Arbitrator ignoring SignContractResponse");
   }
   
   public void handleDepositRequest(DepositRequest request, NodeAddress sender) {
-    System.out.println("ArbitratorProtocol.handleDepositRequest()");
+    System.out.println("ArbitratorProtocol.handleDepositRequest() " + trade.getId());
     synchronized (trade) {
         latchTrade();
         Validator.checkTradeId(processModel.getOfferId(), request);
@@ -137,6 +88,16 @@ public class ArbitratorProtocol extends DisputeProtocol {
             .executeTasks(true);
         awaitTradeLatch();
     }
+  }
+  
+  @Override
+  public void handleDepositResponse(DepositResponse response, NodeAddress sender) {
+      log.warn("Arbitrator ignoring DepositResponse");
+  }
+
+  @Override
+  public void handlePaymentAccountPayloadRequest(PaymentAccountPayloadRequest request, NodeAddress sender) {
+      log.warn("Arbitrator ignoring PaymentAccountPayloadRequest");
   }
 
   ///////////////////////////////////////////////////////////////////////////////////////////

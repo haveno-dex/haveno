@@ -403,6 +403,7 @@ public class PendingTradesViewModel extends ActivatableWithDataModel<PendingTrad
             // #################### Phase PREPARATION
             case PREPARATION:
             case CONTRACT_SIGNATURE_REQUESTED:
+            case CONTRACT_SIGNED:
                 sellerState.set(UNDEFINED);
                 buyerState.set(BuyerState.UNDEFINED);
                 break;

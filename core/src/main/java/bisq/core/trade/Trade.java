@@ -107,7 +107,10 @@ public abstract class Trade implements Tradable, Model {
         // #################### Phase INIT
         // When trade protocol starts no funds are on stake
         PREPARATION(Phase.INIT),
-        CONTRACT_SIGNATURE_REQUESTED(Phase.INIT), // TODO (woodser): add more states for initializing multisig, etc to support trade initialization notifications
+        MULTISIG_PREPARED(Phase.INIT),
+        MULTISIG_MADE(Phase.INIT),
+        MULTISIG_COMPLETED(Phase.INIT),
+        CONTRACT_SIGNATURE_REQUESTED(Phase.INIT),
         CONTRACT_SIGNED(Phase.INIT),
 
         // At first part maker/taker have different roles
@@ -894,7 +897,6 @@ public abstract class Trade implements Tradable, Model {
 
         // create block listener
         depositTxListener = new MoneroWalletListener() {
-            
             Long unlockHeight = null;
 
             @Override
@@ -902,6 +904,9 @@ public abstract class Trade implements Tradable, Model {
 
                 // ignore if no longer listening
                 if (depositTxListener == null) return;
+
+                // use latest height
+                height = havenoWallet.getHeight();
 
                 // ignore if before unlock height
                 if (unlockHeight != null && height < unlockHeight) return;
@@ -921,7 +926,7 @@ public abstract class Trade implements Tradable, Model {
                 if (unlockHeight == null && txs.size() == 2 && txs.get(0).isConfirmed() && txs.get(1).isConfirmed()) {
                     unlockHeight = Math.max(txs.get(0).getHeight(), txs.get(1).getHeight()) + XmrWalletService.NUM_BLOCKS_UNLOCK;
                 }
-
+ 
                 // check if deposit txs unlocked
                 if (unlockHeight != null && height >= unlockHeight) {
                     log.info("Multisig deposits unlocked for trade {}", getId());

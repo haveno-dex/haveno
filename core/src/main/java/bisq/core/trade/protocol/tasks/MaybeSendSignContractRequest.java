@@ -20,6 +20,7 @@ package bisq.core.trade.protocol.tasks;
 import bisq.common.app.Version;
 import bisq.common.taskrunner.TaskRunner;
 import bisq.core.btc.model.XmrAddressEntry;
+import bisq.core.trade.ArbitratorTrade;
 import bisq.core.trade.Trade;
 import bisq.core.trade.Trade.State;
 import bisq.core.trade.messages.SignContractRequest;
@@ -32,13 +33,13 @@ import monero.wallet.model.MoneroTxWallet;
 
 // TODO (woodser): separate classes for deposit tx creation and contract request, or combine into ProcessInitMultisigRequest
 @Slf4j
-public class SendSignContractRequestAfterMultisig extends TradeTask {
+public class MaybeSendSignContractRequest extends TradeTask {
     
     private boolean ack1 = false; // TODO (woodser) these represent onArrived(), not the ack
     private boolean ack2 = false;
 
     @SuppressWarnings({"unused"})
-    public SendSignContractRequestAfterMultisig(TaskRunner taskHandler, Trade trade) {
+    public MaybeSendSignContractRequest(TaskRunner taskHandler, Trade trade) {
         super(taskHandler, trade);
     }
 
@@ -46,11 +47,17 @@ public class SendSignContractRequestAfterMultisig extends TradeTask {
     protected void run() {
         try {
           runInterceptHook();
+          
+          // skip if arbitrator
+          if (trade instanceof ArbitratorTrade) {
+              complete();
+              return;
+          }
 
           // skip if multisig wallet not complete
-          if (!processModel.isMultisigSetupComplete()) {
+          if (processModel.getMultisigAddress() == null) {
               complete();
-              return; // TODO: woodser: this does not ack original request?
+              return;
           }
  
           // skip if deposit tx already created
@@ -71,7 +78,7 @@ public class SendSignContractRequestAfterMultisig extends TradeTask {
           // TODO (woodser): save frozen key images and unfreeze if trade fails before deposited to multisig
 
           // save process state
-          processModel.setDepositTxXmr(depositTx);
+          processModel.setDepositTxXmr(depositTx); // TODO: trade.getSelf().setDepositTx()
           trade.getSelf().setDepositTxHash(depositTx.getHash());
           trade.getSelf().setPayoutAddressString(trade.getXmrWalletService().getAddressEntry(processModel.getOffer().getId(), XmrAddressEntry.Context.TRADE_PAYOUT).get().getAddressString()); // TODO (woodser): allow custom payout address?
 
