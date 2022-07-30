@@ -124,29 +124,31 @@ public abstract class SellerProtocol extends DisputeProtocol {
 
     public void onPaymentReceived(ResultHandler resultHandler, ErrorMessageHandler errorMessageHandler) {
         log.info("SellerProtocol.onPaymentReceived()");
-        synchronized (trade) {
-            latchTrade();
-            this.errorMessageHandler = errorMessageHandler;
-            SellerEvent event = SellerEvent.PAYMENT_RECEIVED;
-            expect(anyPhase(Trade.Phase.PAYMENT_SENT, Trade.Phase.PAYMENT_RECEIVED)
-                    .with(event)
-                    .preCondition(trade.confirmPermitted()))
-                    .setup(tasks(
-                            ApplyFilter.class,
-                            getVerifyPeersFeePaymentClass(),
-                            SellerPreparesPaymentReceivedMessage.class,
-                            SellerSendsPaymentReceivedMessage.class)
-                    .using(new TradeTaskRunner(trade, () -> {
-                        this.errorMessageHandler = null;
-                        handleTaskRunnerSuccess(event);
-                        resultHandler.handleResult();
-                    }, (errorMessage) -> {
-                        handleTaskRunnerFault(event, errorMessage);
-                    })))
-                    .run(() -> trade.setState(Trade.State.SELLER_CONFIRMED_IN_UI_PAYMENT_RECEIPT))
-                    .executeTasks();
-            awaitTradeLatch();
-        }
+        new Thread(() -> {
+            synchronized (trade) {
+                latchTrade();
+                this.errorMessageHandler = errorMessageHandler;
+                SellerEvent event = SellerEvent.PAYMENT_RECEIVED;
+                expect(anyPhase(Trade.Phase.PAYMENT_SENT, Trade.Phase.PAYMENT_RECEIVED)
+                        .with(event)
+                        .preCondition(trade.confirmPermitted()))
+                        .setup(tasks(
+                                ApplyFilter.class,
+                                getVerifyPeersFeePaymentClass(),
+                                SellerPreparesPaymentReceivedMessage.class,
+                                SellerSendsPaymentReceivedMessage.class)
+                        .using(new TradeTaskRunner(trade, () -> {
+                            this.errorMessageHandler = null;
+                            handleTaskRunnerSuccess(event);
+                            resultHandler.handleResult();
+                        }, (errorMessage) -> {
+                            handleTaskRunnerFault(event, errorMessage);
+                        })))
+                        .run(() -> trade.setState(Trade.State.SELLER_CONFIRMED_IN_UI_PAYMENT_RECEIPT))
+                        .executeTasks(true);
+                awaitTradeLatch();
+            }
+        }).start();
     }
 
     @Override
