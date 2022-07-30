@@ -120,6 +120,9 @@ public class SellerStep3View extends TradeStepView {
                 if (!trade.hasFailed()) {
                     switch (state) {
                         case SELLER_CONFIRMED_IN_UI_PAYMENT_RECEIPT:
+                            busyAnimation.play();
+                            statusLabel.setText(Res.get("Confirming payment received..."));
+                            break;
                         case SELLER_PUBLISHED_PAYOUT_TX:
                         case SELLER_SENT_PAYOUT_TX_PUBLISHED_MSG:
                         case SELLER_SENT_PAYMENT_RECEIVED_MSG:
