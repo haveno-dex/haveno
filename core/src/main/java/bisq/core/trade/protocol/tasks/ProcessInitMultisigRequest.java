@@ -23,9 +23,7 @@ import bisq.core.trade.MakerTrade;
 import bisq.core.trade.TakerTrade;
 import bisq.core.trade.Trade;
 import bisq.core.trade.messages.InitMultisigRequest;
-import bisq.core.trade.protocol.TradeListener;
 import bisq.core.trade.protocol.TradingPeer;
-import bisq.network.p2p.AckMessage;
 import bisq.network.p2p.NodeAddress;
 import bisq.network.p2p.SendDirectMessageListener;
 
@@ -92,8 +90,9 @@ public class ProcessInitMultisigRequest extends TradeTask {
             log.info("Preparing multisig wallet for trade {}", trade.getId());
             multisigWallet = xmrWalletService.createMultisigWallet(trade.getId());
             processModel.setPreparedMultisigHex(multisigWallet.prepareMultisig());
+            trade.setStateIfValidTransitionTo(Trade.State.MULTISIG_PREPARED);
             updateParticipants = true;
-          } else if (!processModel.isMultisigSetupComplete()) {
+          } else if (processModel.getMultisigAddress() == null) {
             multisigWallet = xmrWalletService.getMultisigWallet(trade.getId());
           }
 
@@ -103,15 +102,16 @@ public class ProcessInitMultisigRequest extends TradeTask {
             log.info("Making multisig wallet for trade {}", trade.getId());
             MoneroMultisigInitResult result = multisigWallet.makeMultisig(Arrays.asList(peers[0].getPreparedMultisigHex(), peers[1].getPreparedMultisigHex()), 2, xmrWalletService.getWalletPassword()); // TODO (woodser): xmrWalletService.makeMultisig(tradeId, multisigHexes, threshold)?
             processModel.setMadeMultisigHex(result.getMultisigHex());
+            trade.setStateIfValidTransitionTo(Trade.State.MULTISIG_MADE);
             updateParticipants = true;
           }
 
           // exchange multisig keys if applicable
-          if (!processModel.isMultisigSetupComplete() && peers[0].getMadeMultisigHex() != null && peers[1].getMadeMultisigHex() != null) {
+          if (processModel.getMultisigAddress() == null && peers[0].getMadeMultisigHex() != null && peers[1].getMadeMultisigHex() != null) {
             log.info("Exchanging multisig wallet keys for trade {}", trade.getId());
             multisigWallet.exchangeMultisigKeys(Arrays.asList(peers[0].getMadeMultisigHex(), peers[1].getMadeMultisigHex()), xmrWalletService.getWalletPassword());
-            processModel.setMultisigSetupComplete(true); // TODO: (woodser): remove this field?
             processModel.setMultisigAddress(multisigWallet.getPrimaryAddress());
+            trade.setStateIfValidTransitionTo(Trade.State.MULTISIG_COMPLETED);
             processModel.getProvider().getXmrWalletService().closeMultisigWallet(trade.getId()); // save and close multisig wallet once it's created
           }
 

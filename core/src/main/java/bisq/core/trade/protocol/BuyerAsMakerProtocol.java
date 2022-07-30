@@ -28,30 +28,22 @@ import bisq.core.trade.messages.PaymentAccountPayloadRequest;
 import bisq.core.trade.messages.PaymentReceivedMessage;
 import bisq.core.trade.messages.SignContractRequest;
 import bisq.core.trade.messages.SignContractResponse;
-import bisq.core.trade.protocol.tasks.ProcessDepositResponse;
-import bisq.core.trade.protocol.tasks.ProcessInitMultisigRequest;
 import bisq.core.trade.protocol.tasks.ProcessInitTradeRequest;
-import bisq.core.trade.protocol.tasks.ProcessPaymentAccountPayloadRequest;
-import bisq.core.trade.protocol.tasks.ProcessSignContractRequest;
-import bisq.core.trade.protocol.tasks.ProcessSignContractResponse;
-import bisq.core.trade.protocol.tasks.SendSignContractRequestAfterMultisig;
 import bisq.core.trade.protocol.tasks.TradeTask;
 import bisq.core.trade.protocol.tasks.buyer.BuyerFinalizesDelayedPayoutTx;
 import bisq.core.trade.protocol.tasks.buyer.BuyerProcessDelayedPayoutTxSignatureRequest;
 import bisq.core.trade.protocol.tasks.buyer.BuyerSendsDelayedPayoutTxSignatureResponse;
 import bisq.core.trade.protocol.tasks.buyer.BuyerSignsDelayedPayoutTx;
 import bisq.core.trade.protocol.tasks.buyer.BuyerVerifiesPreparedDelayedPayoutTx;
-import bisq.core.trade.protocol.tasks.maker.MakerRemovesOpenOffer;
+import bisq.core.trade.protocol.tasks.maker.MaybeRemoveOpenOffer;
 import bisq.core.trade.protocol.tasks.maker.MakerSendsInitTradeRequestIfUnreserved;
 import bisq.core.trade.protocol.tasks.maker.MakerVerifyTakerFeePayment;
-import bisq.core.util.Validator;
 
 import bisq.network.p2p.NodeAddress;
 import bisq.common.handlers.ErrorMessageHandler;
 import bisq.common.handlers.ResultHandler;
 
 import lombok.extern.slf4j.Slf4j;
-import org.fxmisc.easybind.EasyBind;
 
 @Slf4j
 public class BuyerAsMakerProtocol extends BuyerProtocol implements MakerProtocol {
@@ -67,8 +59,6 @@ public class BuyerAsMakerProtocol extends BuyerProtocol implements MakerProtocol
     ///////////////////////////////////////////////////////////////////////////////////////////
     // MakerProtocol
     ///////////////////////////////////////////////////////////////////////////////////////////
-
-    // TODO (woodser): these methods are duplicated with SellerAsMakerProtocol due to single inheritance
 
     @Override
     public void handleInitTradeRequest(InitTradeRequest message,
@@ -99,165 +89,30 @@ public class BuyerAsMakerProtocol extends BuyerProtocol implements MakerProtocol
             awaitTradeLatch();
         }
     }
-    
+
     @Override
     public void handleInitMultisigRequest(InitMultisigRequest request, NodeAddress sender) {
-        System.out.println(getClass().getCanonicalName() + ".handleInitMultisigRequest()");
-        synchronized (trade) {
-            latchTrade();
-            Validator.checkTradeId(processModel.getOfferId(), request);
-            processModel.setTradeMessage(request);
-            expect(anyPhase(Trade.Phase.INIT)
-                    .with(request)
-                    .from(sender))
-                    .setup(tasks(
-                            ProcessInitMultisigRequest.class,
-                            SendSignContractRequestAfterMultisig.class)
-                    .using(new TradeTaskRunner(trade,
-                        () -> {
-                            startTimeout(TRADE_TIMEOUT);
-                            handleTaskRunnerSuccess(sender, request);
-                        },
-                        errorMessage -> {
-                            handleTaskRunnerFault(sender, request, errorMessage);
-                        }))
-                    .withTimeout(TRADE_TIMEOUT))
-                    .executeTasks(true);
-            awaitTradeLatch();
-        }
+        super.handleInitMultisigRequest(request, sender);
     }
-    
+
     @Override
     public void handleSignContractRequest(SignContractRequest message, NodeAddress sender) {
-        System.out.println(getClass().getCanonicalName() + ".handleSignContractResponse() " + trade.getId());
-        synchronized (trade) {
-            Validator.checkTradeId(processModel.getOfferId(), message);
-            if (trade.getState() == Trade.State.CONTRACT_SIGNATURE_REQUESTED) {
-                latchTrade();
-                Validator.checkTradeId(processModel.getOfferId(), message);
-                processModel.setTradeMessage(message);
-                expect(state(Trade.State.CONTRACT_SIGNATURE_REQUESTED)
-                        .with(message)
-                        .from(sender))
-                        .setup(tasks(
-                                // TODO (woodser): validate request
-                                ProcessSignContractRequest.class)
-                        .using(new TradeTaskRunner(trade,
-                                () -> {
-                                    startTimeout(TRADE_TIMEOUT);
-                                    handleTaskRunnerSuccess(sender, message);
-                                },
-                                errorMessage -> {
-                                    handleTaskRunnerFault(sender, message, errorMessage);
-                                }))
-                        .withTimeout(TRADE_TIMEOUT)) // extend timeout
-                        .executeTasks(true);
-                awaitTradeLatch();
-            } else {
-                // process sign contract request after contract signature requested
-                EasyBind.subscribe(trade.stateProperty(), state -> {
-                    if (state == Trade.State.CONTRACT_SIGNATURE_REQUESTED) new Thread(() -> handleSignContractRequest(message, sender)).start(); // process notification without trade lock
-                });
-            }
-        }
+        super.handleSignContractRequest(message, sender);
     }
 
     @Override
     public void handleSignContractResponse(SignContractResponse message, NodeAddress sender) {
-        System.out.println(getClass().getCanonicalName() + ".handleSignContractResponse() " + trade.getId());
-        synchronized (trade) {
-            Validator.checkTradeId(processModel.getOfferId(), message);
-            if (trade.getState() == Trade.State.CONTRACT_SIGNED) {
-                latchTrade();
-                Validator.checkTradeId(processModel.getOfferId(), message);
-                processModel.setTradeMessage(message);
-                expect(state(Trade.State.CONTRACT_SIGNED)
-                        .with(message)
-                        .from(sender))
-                        .setup(tasks(
-                                // TODO (woodser): validate request
-                                ProcessSignContractResponse.class)
-                        .using(new TradeTaskRunner(trade,
-                                () -> {
-                                    startTimeout(TRADE_TIMEOUT);
-                                    handleTaskRunnerSuccess(sender, message);
-                                },
-                                errorMessage -> {
-                                    handleTaskRunnerFault(sender, message, errorMessage);
-                                }))
-                        .withTimeout(TRADE_TIMEOUT)) // extend timeout
-                        .executeTasks(true);
-                awaitTradeLatch();
-            } else {
-                // process sign contract response after contract signed
-                EasyBind.subscribe(trade.stateProperty(), state -> {
-                    if (state == Trade.State.CONTRACT_SIGNED) new Thread(() -> handleSignContractResponse(message, sender)).start(); // process notification without trade lock
-                });
-            }
-        }
+        super.handleSignContractResponse(message, sender);
     }
-    
+
     @Override
     public void handleDepositResponse(DepositResponse response, NodeAddress sender) {
-        System.out.println(getClass().getCanonicalName() + ".handleDepositResponse()");
-        synchronized (trade) {
-            latchTrade();
-            Validator.checkTradeId(processModel.getOfferId(), response);
-            processModel.setTradeMessage(response);
-            expect(state(Trade.State.MAKER_SENT_PUBLISH_DEPOSIT_TX_REQUEST)
-                    .with(response)
-                    .from(sender)) // TODO (woodser): ensure this asserts sender == response.getSenderNodeAddress()
-                    .setup(tasks(
-                            // TODO (woodser): validate request
-                            ProcessDepositResponse.class)
-                    .using(new TradeTaskRunner(trade,
-                        () -> {
-                            startTimeout(TRADE_TIMEOUT);
-                            handleTaskRunnerSuccess(sender, response);
-                        },
-                        errorMessage -> {
-                            handleTaskRunnerFault(sender, response, errorMessage);
-                        }))
-                    .withTimeout(TRADE_TIMEOUT))
-                    .executeTasks(true);
-            awaitTradeLatch();
-        }
+        super.handleDepositResponse(response, sender);
     }
-    
+
     @Override
     public void handlePaymentAccountPayloadRequest(PaymentAccountPayloadRequest request, NodeAddress sender) {
-        System.out.println(getClass().getCanonicalName() + ".handlePaymentAccountPayloadRequest() " + trade.getId());
-        synchronized (trade) {
-            Validator.checkTradeId(processModel.getOfferId(), request);
-            if (trade.getState() == Trade.State.MAKER_RECEIVED_DEPOSIT_TX_PUBLISHED_MSG) {
-                latchTrade();
-                Validator.checkTradeId(processModel.getOfferId(), request);
-                processModel.setTradeMessage(request);
-                expect(state(Trade.State.MAKER_RECEIVED_DEPOSIT_TX_PUBLISHED_MSG)
-                        .with(request)
-                        .from(sender)) // TODO (woodser): ensure this asserts sender == response.getSenderNodeAddress()
-                        .setup(tasks(
-                                // TODO (woodser): validate request
-                                ProcessPaymentAccountPayloadRequest.class,
-                                MakerRemovesOpenOffer.class)
-                        .using(new TradeTaskRunner(trade,
-                                () -> {
-                                    stopTimeout();
-                                    this.errorMessageHandler = null;
-                                    handleTaskRunnerSuccess(sender, request);
-                                },
-                                errorMessage -> {
-                                    handleTaskRunnerFault(sender, request, errorMessage);
-                                }))
-                        .withTimeout(TRADE_TIMEOUT))
-                        .executeTasks(true);
-                awaitTradeLatch();
-            } else {
-                EasyBind.subscribe(trade.stateProperty(), state -> {
-                    if (state == Trade.State.MAKER_RECEIVED_DEPOSIT_TX_PUBLISHED_MSG) new Thread(() -> handlePaymentAccountPayloadRequest(request, sender)).start(); // process notification without trade lock
-                });
-            }
-        }
+        super.handlePaymentAccountPayloadRequest(request, sender);
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -297,7 +152,7 @@ public class BuyerAsMakerProtocol extends BuyerProtocol implements MakerProtocol
                 .with(message)
                 .from(peer))
                 .setup(tasks(
-                        MakerRemovesOpenOffer.class,
+                        MaybeRemoveOpenOffer.class,
                         BuyerProcessDelayedPayoutTxSignatureRequest.class,
                         BuyerVerifiesPreparedDelayedPayoutTx.class,
                         BuyerSignsDelayedPayoutTx.class,

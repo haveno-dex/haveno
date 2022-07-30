@@ -43,7 +43,7 @@ import bisq.core.trade.protocol.tasks.buyer_as_maker.BuyerAsMakerSendsInputsForD
 import bisq.core.trade.protocol.tasks.buyer_as_taker.BuyerAsTakerCreatesDepositTxInputs;
 import bisq.core.trade.protocol.tasks.buyer_as_taker.BuyerAsTakerSendsDepositTxMessage;
 import bisq.core.trade.protocol.tasks.buyer_as_taker.BuyerAsTakerSignsDepositTx;
-import bisq.core.trade.protocol.tasks.maker.MakerRemovesOpenOffer;
+import bisq.core.trade.protocol.tasks.maker.MaybeRemoveOpenOffer;
 import bisq.core.trade.protocol.tasks.maker.MakerSetsLockTime;
 import bisq.core.trade.protocol.tasks.maker.MakerVerifyTakerFeePayment;
 import bisq.core.trade.protocol.tasks.seller.SellerCreatesDelayedPayoutTx;
@@ -157,7 +157,7 @@ public class DebugView extends InitializableView<GridPane, Void> {
                         BuyerAsMakerSendsInputsForDepositTxResponse.class,
 
                         BuyerProcessDelayedPayoutTxSignatureRequest.class,
-                        MakerRemovesOpenOffer.class,
+                        MaybeRemoveOpenOffer.class,
                         BuyerVerifiesPreparedDelayedPayoutTx.class,
                         BuyerSignsDelayedPayoutTx.class,
                         BuyerSendsDelayedPayoutTxSignatureResponse.class,
@@ -215,7 +215,7 @@ public class DebugView extends InitializableView<GridPane, Void> {
                         SellerAsMakerSendsInputsForDepositTxResponse.class,
 
                         //SellerAsMakerProcessDepositTxMessage.class,
-                        MakerRemovesOpenOffer.class,
+                        MaybeRemoveOpenOffer.class,
                         SellerAsMakerFinalizesDepositTx.class,
                         SellerCreatesDelayedPayoutTx.class,
                         SellerSendDelayedPayoutTxSignatureRequest.class,

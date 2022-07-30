@@ -17,6 +17,7 @@
 
 package bisq.core.trade.protocol.tasks.maker;
 
+import bisq.core.trade.MakerTrade;
 import bisq.core.trade.Trade;
 import bisq.core.trade.protocol.tasks.TradeTask;
 
@@ -27,8 +28,8 @@ import lombok.extern.slf4j.Slf4j;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 @Slf4j
-public class MakerRemovesOpenOffer extends TradeTask {
-    public MakerRemovesOpenOffer(TaskRunner<Trade> taskHandler, Trade trade) {
+public class MaybeRemoveOpenOffer extends TradeTask {
+    public MaybeRemoveOpenOffer(TaskRunner<Trade> taskHandler, Trade trade) {
         super(taskHandler, trade);
     }
 
@@ -36,8 +37,10 @@ public class MakerRemovesOpenOffer extends TradeTask {
     protected void run() {
         try {
             runInterceptHook();
-
-            processModel.getOpenOfferManager().closeOpenOffer(checkNotNull(trade.getOffer()));
+            
+            if (trade instanceof MakerTrade) {
+                processModel.getOpenOfferManager().closeOpenOffer(checkNotNull(trade.getOffer()));
+            }
 
             complete();
         } catch (Throwable t) {

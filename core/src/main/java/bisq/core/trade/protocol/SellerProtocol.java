@@ -136,13 +136,13 @@ public abstract class SellerProtocol extends DisputeProtocol {
                             getVerifyPeersFeePaymentClass(),
                             SellerPreparesPaymentReceivedMessage.class,
                             SellerSendsPaymentReceivedMessage.class)
-                            .using(new TradeTaskRunner(trade, () -> {
-                                this.errorMessageHandler = null;
-                                resultHandler.handleResult();
-                                handleTaskRunnerSuccess(event);
-                            }, (errorMessage) -> {
-                                handleTaskRunnerFault(event, errorMessage);
-                            })))
+                    .using(new TradeTaskRunner(trade, () -> {
+                        this.errorMessageHandler = null;
+                        handleTaskRunnerSuccess(event);
+                        resultHandler.handleResult();
+                    }, (errorMessage) -> {
+                        handleTaskRunnerFault(event, errorMessage);
+                    })))
                     .run(() -> trade.setState(Trade.State.SELLER_CONFIRMED_IN_UI_PAYMENT_RECEIPT))
                     .executeTasks();
             awaitTradeLatch();
