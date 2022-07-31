@@ -41,7 +41,6 @@ import bisq.core.trade.messages.DepositRequest;
 import bisq.core.trade.messages.DepositResponse;
 import bisq.core.trade.messages.InitMultisigRequest;
 import bisq.core.trade.messages.InitTradeRequest;
-import bisq.core.trade.messages.InputsForDepositTxRequest;
 import bisq.core.trade.messages.PaymentAccountPayloadRequest;
 import bisq.core.trade.messages.SignContractRequest;
 import bisq.core.trade.messages.SignContractResponse;
@@ -242,9 +241,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
     @Override
     public void onDirectMessage(DecryptedMessageWithPubKey message, NodeAddress peer) {
         NetworkEnvelope networkEnvelope = message.getNetworkEnvelope();
-        if (networkEnvelope instanceof InputsForDepositTxRequest) {
-          //handleTakeOfferRequest(peer, (InputsForDepositTxRequest) networkEnvelope);  // ignore bisq requests
-        } else if (networkEnvelope instanceof InitTradeRequest) {
+        if (networkEnvelope instanceof InitTradeRequest) {
             handleInitTradeRequest((InitTradeRequest) networkEnvelope, peer);
         } else if (networkEnvelope instanceof InitMultisigRequest) {
             handleInitMultisigRequest((InitMultisigRequest) networkEnvelope, peer);

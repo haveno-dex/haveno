@@ -113,7 +113,7 @@ public class ArbitratorProcessesDepositRequest extends TradeTask {
               
               // update trade state
               log.info("Arbitrator submitted deposit txs for trade " + trade.getId());
-              trade.setState(Trade.State.ARBITRATOR_PUBLISHED_DEPOSIT_TX);
+              trade.setState(Trade.State.ARBITRATOR_PUBLISHED_DEPOSIT_TXS);
               
               // create deposit response
               DepositResponse response = new DepositResponse(

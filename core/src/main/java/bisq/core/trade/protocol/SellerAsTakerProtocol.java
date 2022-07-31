@@ -27,22 +27,9 @@ import bisq.core.trade.messages.SignContractRequest;
 import bisq.core.trade.messages.SignContractResponse;
 import bisq.core.trade.messages.DepositResponse;
 import bisq.core.trade.messages.InitMultisigRequest;
-import bisq.core.trade.messages.InputsForDepositTxResponse;
 import bisq.core.trade.messages.PaymentAccountPayloadRequest;
 import bisq.core.trade.messages.TradeMessage;
 import bisq.core.trade.protocol.tasks.ApplyFilter;
-import bisq.core.trade.protocol.tasks.TradeTask;
-import bisq.core.trade.protocol.tasks.VerifyPeersAccountAgeWitness;
-import bisq.core.trade.protocol.tasks.seller.SellerCreatesDelayedPayoutTx;
-import bisq.core.trade.protocol.tasks.seller.SellerSendDelayedPayoutTxSignatureRequest;
-import bisq.core.trade.protocol.tasks.seller.SellerSignsDelayedPayoutTx;
-import bisq.core.trade.protocol.tasks.seller_as_taker.SellerAsTakerSignsDepositTx;
-import bisq.core.trade.protocol.tasks.taker.TakerProcessesInputsForDepositTxResponse;
-import bisq.core.trade.protocol.tasks.taker.TakerPublishFeeTx;
-import bisq.core.trade.protocol.tasks.taker.TakerReservesTradeFunds;
-import bisq.core.trade.protocol.tasks.taker.TakerSendsInitTradeRequestToArbitrator;
-import bisq.core.trade.protocol.tasks.taker.TakerVerifyMakerFeePayment;
-
 import bisq.network.p2p.NodeAddress;
 import bisq.common.handlers.ErrorMessageHandler;
 import bisq.common.handlers.ResultHandler;
@@ -152,41 +139,6 @@ public class SellerAsTakerProtocol extends SellerProtocol implements TakerProtoc
     @Override
     protected void onTradeMessage(TradeMessage message, NodeAddress peer) {
         super.onTradeMessage(message, peer);
-
-        log.info("Received {} from {} with tradeId {} and uid {}",
-                message.getClass().getSimpleName(), peer, message.getTradeId(), message.getUid());
-
-        if (message instanceof InputsForDepositTxResponse) {
-            handle((InputsForDepositTxResponse) message, peer);
-        }
-    }
-
-    @Override
-    protected Class<? extends TradeTask> getVerifyPeersFeePaymentClass() {
-        return TakerVerifyMakerFeePayment.class;
-    }
-    
-    // TODO (woodser): remove unused calls and classes
-    
-    ///////////////////////////////////////////////////////////////////////////////////////////
-    // Incoming messages Take offer process
-    ///////////////////////////////////////////////////////////////////////////////////////////
-
-    private void handle(InputsForDepositTxResponse message, NodeAddress peer) {
-        expect(phase(Trade.Phase.INIT)
-                .with(message)
-                .from(peer))
-                .setup(tasks(
-                        TakerProcessesInputsForDepositTxResponse.class,
-                        ApplyFilter.class,
-                        VerifyPeersAccountAgeWitness.class,
-                        //TakerVerifyAndSignContract.class,
-                        TakerPublishFeeTx.class,
-                        SellerAsTakerSignsDepositTx.class,
-                        SellerCreatesDelayedPayoutTx.class,
-                        SellerSignsDelayedPayoutTx.class,
-                        SellerSendDelayedPayoutTxSignatureRequest.class)
-                        .withTimeout(60))
-                .executeTasks(true);
+        log.info("Received {} from {} with tradeId {} and uid {}", message.getClass().getSimpleName(), peer, message.getTradeId(), message.getUid());
     }
 }

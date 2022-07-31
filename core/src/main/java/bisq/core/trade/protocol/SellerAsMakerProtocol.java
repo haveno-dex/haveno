@@ -24,21 +24,12 @@ import bisq.core.trade.messages.PaymentSentMessage;
 import bisq.core.trade.messages.SignContractRequest;
 import bisq.core.trade.messages.SignContractResponse;
 import bisq.core.trade.messages.DepositResponse;
-import bisq.core.trade.messages.DepositTxMessage;
 import bisq.core.trade.messages.InitMultisigRequest;
 import bisq.core.trade.messages.InitTradeRequest;
 import bisq.core.trade.messages.PaymentAccountPayloadRequest;
 import bisq.core.trade.messages.TradeMessage;
+import bisq.core.trade.protocol.tasks.MakerSendsInitTradeRequestIfUnreserved;
 import bisq.core.trade.protocol.tasks.ProcessInitTradeRequest;
-import bisq.core.trade.protocol.tasks.TradeTask;
-import bisq.core.trade.protocol.tasks.maker.MaybeRemoveOpenOffer;
-import bisq.core.trade.protocol.tasks.maker.MakerSendsInitTradeRequestIfUnreserved;
-import bisq.core.trade.protocol.tasks.maker.MakerVerifyTakerFeePayment;
-import bisq.core.trade.protocol.tasks.seller.SellerCreatesDelayedPayoutTx;
-import bisq.core.trade.protocol.tasks.seller.SellerSendDelayedPayoutTxSignatureRequest;
-import bisq.core.trade.protocol.tasks.seller.SellerSignsDelayedPayoutTx;
-import bisq.core.trade.protocol.tasks.seller_as_maker.SellerAsMakerFinalizesDepositTx;
-import bisq.core.trade.protocol.tasks.seller_as_maker.SellerAsMakerProcessDepositTxMessage;
 import bisq.network.p2p.NodeAddress;
 import bisq.common.handlers.ErrorMessageHandler;
 import bisq.common.handlers.ResultHandler;
@@ -132,41 +123,8 @@ public class SellerAsMakerProtocol extends SellerProtocol implements MakerProtoc
     @Override
     protected void onTradeMessage(TradeMessage message, NodeAddress peer) {
         super.onTradeMessage(message, peer);
-
-        log.info("Received {} from {} with tradeId {} and uid {}",
-                message.getClass().getSimpleName(), peer, message.getTradeId(), message.getUid());
-
-        if (message instanceof DepositTxMessage) {
-            handle((DepositTxMessage) message, peer);
-        }
+        log.info("Received {} from {} with tradeId {} and uid {}", message.getClass().getSimpleName(), peer, message.getTradeId(), message.getUid());
     }
-
-    @Override
-    protected Class<? extends TradeTask> getVerifyPeersFeePaymentClass() {
-        return MakerVerifyTakerFeePayment.class;
-    }
-
-    // TODO (woodser): remove unused
-
-    ///////////////////////////////////////////////////////////////////////////////////////////
-    // Incoming messages Take offer process
-    ///////////////////////////////////////////////////////////////////////////////////////////
-
-    protected void handle(DepositTxMessage message, NodeAddress peer) {
-        expect(phase(Trade.Phase.TAKER_FEE_PUBLISHED)
-                .with(message)
-                .from(peer))
-                .setup(tasks(
-                        MaybeRemoveOpenOffer.class,
-                        SellerAsMakerProcessDepositTxMessage.class,
-                        SellerAsMakerFinalizesDepositTx.class,
-                        SellerCreatesDelayedPayoutTx.class,
-                        SellerSignsDelayedPayoutTx.class,
-                        SellerSendDelayedPayoutTxSignatureRequest.class)
-                .withTimeout(60))
-                .executeTasks(true);
-    }
-
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Incoming message when buyer has clicked payment started button

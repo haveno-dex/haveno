@@ -400,7 +400,7 @@ public class PendingTradesViewModel extends ActivatableWithDataModel<PendingTrad
                 trade != null ? trade.getShortId() : "trade is null");
 
         switch (tradeState) {
-            // #################### Phase PREPARATION
+            // preparation
             case PREPARATION:
             case CONTRACT_SIGNATURE_REQUESTED:
             case CONTRACT_SIGNED:
@@ -408,50 +408,23 @@ public class PendingTradesViewModel extends ActivatableWithDataModel<PendingTrad
                 buyerState.set(BuyerState.UNDEFINED);
                 break;
 
-            // At first part maker/taker have different roles
-            // taker perspective
-            // #################### Phase TAKER_FEE_PAID
-            case TAKER_PUBLISHED_TAKER_FEE_TX:
+            // deposit requested
+            case SENT_PUBLISH_DEPOSIT_TX_REQUEST:
+            case SAW_ARRIVED_PUBLISH_DEPOSIT_TX_REQUEST:
+            case STORED_IN_MAILBOX_PUBLISH_DEPOSIT_TX_REQUEST:
+            case SEND_FAILED_PUBLISH_DEPOSIT_TX_REQUEST:
 
-                // PUBLISH_DEPOSIT_TX_REQUEST
-                // maker perspective
-            case MAKER_SENT_PUBLISH_DEPOSIT_TX_REQUEST:
-            case MAKER_SAW_ARRIVED_PUBLISH_DEPOSIT_TX_REQUEST:
-            case MAKER_STORED_IN_MAILBOX_PUBLISH_DEPOSIT_TX_REQUEST:
-            case MAKER_SEND_FAILED_PUBLISH_DEPOSIT_TX_REQUEST:
-
-                // taker perspective
-            case TAKER_RECEIVED_PUBLISH_DEPOSIT_TX_REQUEST:
-                // We don't have a UI state for that, we still have not a ready initiated trade
-                sellerState.set(UNDEFINED);
-                buyerState.set(BuyerState.UNDEFINED);
-                break;
-
-
-            // #################### Phase DEPOSIT_PAID
-            case ARBITRATOR_PUBLISHED_DEPOSIT_TX:
-            case TAKER_SAW_DEPOSIT_TX_IN_NETWORK:
-
-                // DEPOSIT_TX_PUBLISHED_MSG
-                // taker perspective
-            case TAKER_SENT_DEPOSIT_TX_PUBLISHED_MSG:
-            case TAKER_SAW_ARRIVED_DEPOSIT_TX_PUBLISHED_MSG:
-            case TAKER_STORED_IN_MAILBOX_DEPOSIT_TX_PUBLISHED_MSG:
-            case TAKER_SEND_FAILED_DEPOSIT_TX_PUBLISHED_MSG:
-
-                // maker perspective
-            case MAKER_RECEIVED_DEPOSIT_TX_PUBLISHED_MSG:
-
-                // Alternatively the maker could have seen the deposit tx earlier before he received the DEPOSIT_TX_PUBLISHED_MSG
-            case MAKER_SAW_DEPOSIT_TX_IN_NETWORK:
+            // deposit published
+            case ARBITRATOR_PUBLISHED_DEPOSIT_TXS:
+            case SAW_DEPOSIT_TXS_IN_NETWORK:
                 buyerState.set(BuyerState.STEP1);
                 sellerState.set(SellerState.STEP1);
                 break;
 
 
             // buyer and seller step 2
-            // #################### Phase DEPOSIT_UNLOCKED
-            case DEPOSIT_UNLOCKED_IN_BLOCK_CHAIN:
+            // deposit unlocked
+            case DEPOSIT_TXS_UNLOCKED_IN_BLOCKCHAIN:
                 sellerState.set(SellerState.STEP2);
                 buyerState.set(BuyerState.STEP2);
                 break;

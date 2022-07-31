@@ -19,26 +19,16 @@ package bisq.core.trade.protocol;
 
 import bisq.core.trade.BuyerAsMakerTrade;
 import bisq.core.trade.Trade;
-import bisq.core.trade.messages.DelayedPayoutTxSignatureRequest;
 import bisq.core.trade.messages.DepositResponse;
-import bisq.core.trade.messages.DepositTxAndDelayedPayoutTxMessage;
 import bisq.core.trade.messages.InitMultisigRequest;
 import bisq.core.trade.messages.InitTradeRequest;
 import bisq.core.trade.messages.PaymentAccountPayloadRequest;
 import bisq.core.trade.messages.PaymentReceivedMessage;
 import bisq.core.trade.messages.SignContractRequest;
 import bisq.core.trade.messages.SignContractResponse;
+import bisq.core.trade.protocol.tasks.MakerSendsInitTradeRequestIfUnreserved;
 import bisq.core.trade.protocol.tasks.ProcessInitTradeRequest;
 import bisq.core.trade.protocol.tasks.TradeTask;
-import bisq.core.trade.protocol.tasks.buyer.BuyerFinalizesDelayedPayoutTx;
-import bisq.core.trade.protocol.tasks.buyer.BuyerProcessDelayedPayoutTxSignatureRequest;
-import bisq.core.trade.protocol.tasks.buyer.BuyerSendsDelayedPayoutTxSignatureResponse;
-import bisq.core.trade.protocol.tasks.buyer.BuyerSignsDelayedPayoutTx;
-import bisq.core.trade.protocol.tasks.buyer.BuyerVerifiesPreparedDelayedPayoutTx;
-import bisq.core.trade.protocol.tasks.maker.MaybeRemoveOpenOffer;
-import bisq.core.trade.protocol.tasks.maker.MakerSendsInitTradeRequestIfUnreserved;
-import bisq.core.trade.protocol.tasks.maker.MakerVerifyTakerFeePayment;
-
 import bisq.network.p2p.NodeAddress;
 import bisq.common.handlers.ErrorMessageHandler;
 import bisq.common.handlers.ResultHandler;
@@ -132,39 +122,6 @@ public class BuyerAsMakerProtocol extends BuyerProtocol implements MakerProtocol
     // We keep the handler here in as well to make it more transparent which messages we expect
     @Override
     protected void handle(PaymentReceivedMessage message, NodeAddress peer) {
-        super.handle(message, peer);
-    }
-
-    @Override
-    protected Class<? extends TradeTask> getVerifyPeersFeePaymentClass() {
-        return MakerVerifyTakerFeePayment.class;
-    }
-
-    // TODO (woodser): remove or ignore any unsupported requests
-
-    ///////////////////////////////////////////////////////////////////////////////////////////
-    // Incoming messages Take offer process
-    ///////////////////////////////////////////////////////////////////////////////////////////
-
-    @Override
-    protected void handle(DelayedPayoutTxSignatureRequest message, NodeAddress peer) {
-        expect(phase(Trade.Phase.TAKER_FEE_PUBLISHED)
-                .with(message)
-                .from(peer))
-                .setup(tasks(
-                        MaybeRemoveOpenOffer.class,
-                        BuyerProcessDelayedPayoutTxSignatureRequest.class,
-                        BuyerVerifiesPreparedDelayedPayoutTx.class,
-                        BuyerSignsDelayedPayoutTx.class,
-                        BuyerFinalizesDelayedPayoutTx.class,
-                        BuyerSendsDelayedPayoutTxSignatureResponse.class)
-                        .withTimeout(60))
-                .executeTasks(true);
-    }
-
-    // We keep the handler here in as well to make it more transparent which messages we expect
-    @Override
-    protected void handle(DepositTxAndDelayedPayoutTxMessage message, NodeAddress peer) {
         super.handle(message, peer);
     }
 }

@@ -22,32 +22,14 @@ import bisq.core.offer.Offer;
 import bisq.core.trade.BuyerAsTakerTrade;
 import bisq.core.trade.Trade;
 import bisq.core.trade.handlers.TradeResultHandler;
-import bisq.core.trade.messages.DelayedPayoutTxSignatureRequest;
 import bisq.core.trade.messages.DepositResponse;
-import bisq.core.trade.messages.DepositTxAndDelayedPayoutTxMessage;
 import bisq.core.trade.messages.InitMultisigRequest;
-import bisq.core.trade.messages.InputsForDepositTxResponse;
 import bisq.core.trade.messages.PaymentAccountPayloadRequest;
 import bisq.core.trade.messages.PaymentReceivedMessage;
 import bisq.core.trade.messages.SignContractRequest;
 import bisq.core.trade.messages.SignContractResponse;
 import bisq.core.trade.messages.TradeMessage;
 import bisq.core.trade.protocol.tasks.ApplyFilter;
-import bisq.core.trade.protocol.tasks.TradeTask;
-import bisq.core.trade.protocol.tasks.VerifyPeersAccountAgeWitness;
-import bisq.core.trade.protocol.tasks.buyer.BuyerFinalizesDelayedPayoutTx;
-import bisq.core.trade.protocol.tasks.buyer.BuyerProcessDelayedPayoutTxSignatureRequest;
-import bisq.core.trade.protocol.tasks.buyer.BuyerSendsDelayedPayoutTxSignatureResponse;
-import bisq.core.trade.protocol.tasks.buyer.BuyerSetupDepositTxListener;
-import bisq.core.trade.protocol.tasks.buyer.BuyerSignsDelayedPayoutTx;
-import bisq.core.trade.protocol.tasks.buyer.BuyerVerifiesPreparedDelayedPayoutTx;
-import bisq.core.trade.protocol.tasks.buyer_as_taker.BuyerAsTakerSendsDepositTxMessage;
-import bisq.core.trade.protocol.tasks.buyer_as_taker.BuyerAsTakerSignsDepositTx;
-import bisq.core.trade.protocol.tasks.taker.TakerProcessesInputsForDepositTxResponse;
-import bisq.core.trade.protocol.tasks.taker.TakerPublishFeeTx;
-import bisq.core.trade.protocol.tasks.taker.TakerReservesTradeFunds;
-import bisq.core.trade.protocol.tasks.taker.TakerSendsInitTradeRequestToArbitrator;
-import bisq.core.trade.protocol.tasks.taker.TakerVerifyMakerFeePayment;
 import bisq.network.p2p.NodeAddress;
 import bisq.common.handlers.ErrorMessageHandler;
 import bisq.common.handlers.ResultHandler;
@@ -56,7 +38,6 @@ import lombok.extern.slf4j.Slf4j;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-// TODO (woodser): remove unused request handling
 @Slf4j
 public class BuyerAsTakerProtocol extends BuyerProtocol implements TakerProtocol {
     
@@ -159,57 +140,5 @@ public class BuyerAsTakerProtocol extends BuyerProtocol implements TakerProtocol
     @Override
     protected void onTradeMessage(TradeMessage message, NodeAddress peer) {
         super.onTradeMessage(message, peer);
-
-        if (message instanceof InputsForDepositTxResponse) {
-            handle((InputsForDepositTxResponse) message, peer);
-        }
-    }
-
-    @Override
-    protected Class<? extends TradeTask> getVerifyPeersFeePaymentClass() {
-        return TakerVerifyMakerFeePayment.class;
-    }
-
-    // TODO (woodser): remove unused
-
-    ///////////////////////////////////////////////////////////////////////////////////////////
-    // Incoming messages Take offer process
-    ///////////////////////////////////////////////////////////////////////////////////////////
-
-    private void handle(InputsForDepositTxResponse message, NodeAddress peer) {
-        expect(phase(Trade.Phase.INIT)
-                .with(message)
-                .from(peer))
-                .setup(tasks(TakerProcessesInputsForDepositTxResponse.class,
-                        ApplyFilter.class,
-                        VerifyPeersAccountAgeWitness.class,
-                        //TakerVerifyAndSignContract.class,
-                        TakerPublishFeeTx.class,
-                        BuyerAsTakerSignsDepositTx.class,
-                        BuyerSetupDepositTxListener.class,
-                        BuyerAsTakerSendsDepositTxMessage.class)
-                        .withTimeout(60))
-                .executeTasks(true);
-    }
-
-    @Override
-    protected void handle(DelayedPayoutTxSignatureRequest message, NodeAddress peer) {
-        expect(phase(Trade.Phase.TAKER_FEE_PUBLISHED)
-                .with(message)
-                .from(peer))
-                .setup(tasks(
-                        BuyerProcessDelayedPayoutTxSignatureRequest.class,
-                        BuyerVerifiesPreparedDelayedPayoutTx.class,
-                        BuyerSignsDelayedPayoutTx.class,
-                        BuyerFinalizesDelayedPayoutTx.class,
-                        BuyerSendsDelayedPayoutTxSignatureResponse.class)
-                        .withTimeout(60))
-                .executeTasks(true);
-    }
-
-    // We keep the handler here in as well to make it more transparent which messages we expect
-    @Override
-    protected void handle(DepositTxAndDelayedPayoutTxMessage message, NodeAddress peer) {
-        super.handle(message, peer);
     }
 }

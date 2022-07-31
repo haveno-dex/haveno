@@ -18,7 +18,7 @@ import static bisq.core.trade.Trade.Phase.DEPOSIT_UNLOCKED;
 import static bisq.core.trade.Trade.Phase.PAYMENT_SENT;
 import static bisq.core.trade.Trade.Phase.PAYOUT_PUBLISHED;
 import static bisq.core.trade.Trade.State.BUYER_SAW_ARRIVED_PAYMENT_SENT_MSG;
-import static bisq.core.trade.Trade.State.DEPOSIT_UNLOCKED_IN_BLOCK_CHAIN;
+import static bisq.core.trade.Trade.State.DEPOSIT_TXS_UNLOCKED_IN_BLOCKCHAIN;
 import static bisq.core.trade.Trade.State.SELLER_RECEIVED_PAYMENT_SENT_MSG;
 import static java.lang.String.format;
 import static java.lang.System.out;
@@ -79,7 +79,7 @@ public class AbstractTradeTest extends AbstractOfferTest {
                                                     GrpcClient grpcClient,
                                                     String tradeId) {
         Predicate<TradeInfo> isTradeInDepositUnlockedStateAndPhase = (t) ->
-                t.getState().equals(DEPOSIT_UNLOCKED_IN_BLOCK_CHAIN.name())
+                t.getState().equals(DEPOSIT_TXS_UNLOCKED_IN_BLOCKCHAIN.name())
                         && t.getPhase().equals(DEPOSIT_UNLOCKED.name());
 
         String userName = toUserName.apply(grpcClient);
@@ -94,7 +94,7 @@ public class AbstractTradeTest extends AbstractOfferTest {
                         i);
                 genBtcBlocksThenWait(1, 4_000);
             } else {
-                EXPECTED_PROTOCOL_STATUS.setState(DEPOSIT_UNLOCKED_IN_BLOCK_CHAIN)
+                EXPECTED_PROTOCOL_STATUS.setState(DEPOSIT_TXS_UNLOCKED_IN_BLOCKCHAIN)
                         .setPhase(DEPOSIT_UNLOCKED)
                         .setDepositPublished(true)
                         .setDepositConfirmed(true);
