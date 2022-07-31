@@ -26,45 +26,20 @@ import bisq.core.offer.availability.tasks.SendOfferAvailabilityRequest;
 import bisq.core.offer.placeoffer.tasks.AddToOfferBook;
 import bisq.core.offer.placeoffer.tasks.MakerReservesOfferFunds;
 import bisq.core.offer.placeoffer.tasks.ValidateOffer;
+import bisq.core.trade.protocol.TakerVerifyMakerFeePayment;
 import bisq.core.trade.protocol.tasks.ApplyFilter;
+import bisq.core.trade.protocol.tasks.BuyerPreparesPaymentSentMessage;
+import bisq.core.trade.protocol.tasks.BuyerProcessesPaymentReceivedMessage;
+import bisq.core.trade.protocol.tasks.BuyerSendsPaymentSentMessage;
+import bisq.core.trade.protocol.tasks.BuyerSetupPayoutTxListener;
+import bisq.core.trade.protocol.tasks.MakerSetsLockTime;
+import bisq.core.trade.protocol.tasks.MaybeRemoveOpenOffer;
+import bisq.core.trade.protocol.tasks.SellerPreparesPaymentReceivedMessage;
+import bisq.core.trade.protocol.tasks.SellerProcessesPaymentSentMessage;
+import bisq.core.trade.protocol.tasks.SellerPublishesDepositTx;
+import bisq.core.trade.protocol.tasks.SellerPublishesTradeStatistics;
+import bisq.core.trade.protocol.tasks.SellerSendsPaymentReceivedMessage;
 import bisq.core.trade.protocol.tasks.VerifyPeersAccountAgeWitness;
-import bisq.core.trade.protocol.tasks.buyer.BuyerPreparesPaymentSentMessage;
-import bisq.core.trade.protocol.tasks.buyer.BuyerProcessDelayedPayoutTxSignatureRequest;
-import bisq.core.trade.protocol.tasks.buyer.BuyerProcessDepositTxAndDelayedPayoutTxMessage;
-import bisq.core.trade.protocol.tasks.buyer.BuyerProcessesPaymentReceivedMessage;
-import bisq.core.trade.protocol.tasks.buyer.BuyerSendsPaymentSentMessage;
-import bisq.core.trade.protocol.tasks.buyer.BuyerSendsDelayedPayoutTxSignatureResponse;
-import bisq.core.trade.protocol.tasks.buyer.BuyerSetupPayoutTxListener;
-import bisq.core.trade.protocol.tasks.buyer.BuyerSignsDelayedPayoutTx;
-import bisq.core.trade.protocol.tasks.buyer.BuyerVerifiesFinalDelayedPayoutTx;
-import bisq.core.trade.protocol.tasks.buyer.BuyerVerifiesPreparedDelayedPayoutTx;
-import bisq.core.trade.protocol.tasks.buyer_as_maker.BuyerAsMakerCreatesAndSignsDepositTx;
-import bisq.core.trade.protocol.tasks.buyer_as_maker.BuyerAsMakerSendsInputsForDepositTxResponse;
-import bisq.core.trade.protocol.tasks.buyer_as_taker.BuyerAsTakerCreatesDepositTxInputs;
-import bisq.core.trade.protocol.tasks.buyer_as_taker.BuyerAsTakerSendsDepositTxMessage;
-import bisq.core.trade.protocol.tasks.buyer_as_taker.BuyerAsTakerSignsDepositTx;
-import bisq.core.trade.protocol.tasks.maker.MaybeRemoveOpenOffer;
-import bisq.core.trade.protocol.tasks.maker.MakerSetsLockTime;
-import bisq.core.trade.protocol.tasks.maker.MakerVerifyTakerFeePayment;
-import bisq.core.trade.protocol.tasks.seller.SellerCreatesDelayedPayoutTx;
-import bisq.core.trade.protocol.tasks.seller.SellerFinalizesDelayedPayoutTx;
-import bisq.core.trade.protocol.tasks.seller.SellerProcessesPaymentSentMessage;
-import bisq.core.trade.protocol.tasks.seller.SellerProcessDelayedPayoutTxSignatureResponse;
-import bisq.core.trade.protocol.tasks.seller.SellerPublishesDepositTx;
-import bisq.core.trade.protocol.tasks.seller.SellerPublishesTradeStatistics;
-import bisq.core.trade.protocol.tasks.seller.SellerSendDelayedPayoutTxSignatureRequest;
-import bisq.core.trade.protocol.tasks.seller.SellerSendsPaymentReceivedMessage;
-import bisq.core.trade.protocol.tasks.seller.SellerPreparesPaymentReceivedMessage;
-import bisq.core.trade.protocol.tasks.seller.SellerSignsDelayedPayoutTx;
-import bisq.core.trade.protocol.tasks.seller_as_maker.SellerAsMakerCreatesUnsignedDepositTx;
-import bisq.core.trade.protocol.tasks.seller_as_maker.SellerAsMakerFinalizesDepositTx;
-import bisq.core.trade.protocol.tasks.seller_as_maker.SellerAsMakerSendsInputsForDepositTxResponse;
-import bisq.core.trade.protocol.tasks.seller_as_taker.SellerAsTakerCreatesDepositTxInputs;
-import bisq.core.trade.protocol.tasks.seller_as_taker.SellerAsTakerSignsDepositTx;
-import bisq.core.trade.protocol.tasks.taker.TakerProcessesInputsForDepositTxResponse;
-import bisq.core.trade.protocol.tasks.taker.TakerPublishFeeTx;
-import bisq.core.trade.protocol.tasks.taker.TakerVerifyMakerFeePayment;
-
 import bisq.common.taskrunner.Task;
 import bisq.common.util.Tuple2;
 
@@ -118,19 +93,10 @@ public class DebugView extends InitializableView<GridPane, Void> {
                 FXCollections.observableArrayList(Arrays.asList(
                         ApplyFilter.class,
                         TakerVerifyMakerFeePayment.class,
-                        SellerAsTakerCreatesDepositTxInputs.class,
 
-                        TakerProcessesInputsForDepositTxResponse.class,
                         ApplyFilter.class,
                         VerifyPeersAccountAgeWitness.class,
-                        TakerPublishFeeTx.class,
-                        SellerAsTakerSignsDepositTx.class,
-                        SellerCreatesDelayedPayoutTx.class,
-                        SellerSendDelayedPayoutTxSignatureRequest.class,
 
-                        SellerProcessDelayedPayoutTxSignatureResponse.class,
-                        SellerSignsDelayedPayoutTx.class,
-                        SellerFinalizesDelayedPayoutTx.class,
                         //SellerSendsDepositTxAndDelayedPayoutTxMessage.class,
                         SellerPublishesDepositTx.class,
                         SellerPublishesTradeStatistics.class,
@@ -151,22 +117,11 @@ public class DebugView extends InitializableView<GridPane, Void> {
                 FXCollections.observableArrayList(Arrays.asList(
                         ApplyFilter.class,
                         VerifyPeersAccountAgeWitness.class,
-                        MakerVerifyTakerFeePayment.class,
                         MakerSetsLockTime.class,
-                        BuyerAsMakerCreatesAndSignsDepositTx.class,
-                        BuyerAsMakerSendsInputsForDepositTxResponse.class,
 
-                        BuyerProcessDelayedPayoutTxSignatureRequest.class,
                         MaybeRemoveOpenOffer.class,
-                        BuyerVerifiesPreparedDelayedPayoutTx.class,
-                        BuyerSignsDelayedPayoutTx.class,
-                        BuyerSendsDelayedPayoutTxSignatureResponse.class,
-
-                        BuyerProcessDepositTxAndDelayedPayoutTxMessage.class,
-                        BuyerVerifiesFinalDelayedPayoutTx.class,
 
                         ApplyFilter.class,
-                        MakerVerifyTakerFeePayment.class,
                         BuyerPreparesPaymentSentMessage.class,
                         BuyerSetupPayoutTxListener.class,
                         BuyerSendsPaymentSentMessage.class,
@@ -180,22 +135,9 @@ public class DebugView extends InitializableView<GridPane, Void> {
                 FXCollections.observableArrayList(Arrays.asList(
                         ApplyFilter.class,
                         TakerVerifyMakerFeePayment.class,
-                        BuyerAsTakerCreatesDepositTxInputs.class,
 
-                        TakerProcessesInputsForDepositTxResponse.class,
                         ApplyFilter.class,
                         VerifyPeersAccountAgeWitness.class,
-                        TakerPublishFeeTx.class,
-                        BuyerAsTakerSignsDepositTx.class,
-                        BuyerAsTakerSendsDepositTxMessage.class,
-
-                        BuyerProcessDelayedPayoutTxSignatureRequest.class,
-                        BuyerVerifiesPreparedDelayedPayoutTx.class,
-                        BuyerSignsDelayedPayoutTx.class,
-                        BuyerSendsDelayedPayoutTxSignatureResponse.class,
-
-                        BuyerProcessDepositTxAndDelayedPayoutTxMessage.class,
-                        BuyerVerifiesFinalDelayedPayoutTx.class,
 
                         ApplyFilter.class,
                         TakerVerifyMakerFeePayment.class,
@@ -209,30 +151,19 @@ public class DebugView extends InitializableView<GridPane, Void> {
                 FXCollections.observableArrayList(Arrays.asList(
                         ApplyFilter.class,
                         VerifyPeersAccountAgeWitness.class,
-                        MakerVerifyTakerFeePayment.class,
                         MakerSetsLockTime.class,
-                        SellerAsMakerCreatesUnsignedDepositTx.class,
-                        SellerAsMakerSendsInputsForDepositTxResponse.class,
 
                         //SellerAsMakerProcessDepositTxMessage.class,
                         MaybeRemoveOpenOffer.class,
-                        SellerAsMakerFinalizesDepositTx.class,
-                        SellerCreatesDelayedPayoutTx.class,
-                        SellerSendDelayedPayoutTxSignatureRequest.class,
 
-                        SellerProcessDelayedPayoutTxSignatureResponse.class,
-                        SellerSignsDelayedPayoutTx.class,
-                        SellerFinalizesDelayedPayoutTx.class,
                         //SellerSendsDepositTxAndDelayedPayoutTxMessage.class,
                         SellerPublishesDepositTx.class,
                         SellerPublishesTradeStatistics.class,
 
                         SellerProcessesPaymentSentMessage.class,
                         ApplyFilter.class,
-                        MakerVerifyTakerFeePayment.class,
 
                         ApplyFilter.class,
-                        MakerVerifyTakerFeePayment.class,
                         SellerPreparesPaymentReceivedMessage.class,
                         //SellerBroadcastPayoutTx.class, // TODO (woodser): removed from main pipeline; debug view?
                         SellerSendsPaymentReceivedMessage.class

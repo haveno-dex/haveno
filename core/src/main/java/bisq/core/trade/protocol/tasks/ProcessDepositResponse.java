@@ -41,7 +41,7 @@ public class ProcessDepositResponse extends TradeTask {
           runInterceptHook();
 
           // arbitrator has broadcast deposit txs
-          trade.setState(Trade.State.MAKER_RECEIVED_DEPOSIT_TX_PUBLISHED_MSG); // TODO (woodser): maker and taker?
+          trade.setState(Trade.State.ARBITRATOR_PUBLISHED_DEPOSIT_TXS);
           
           // set payment account payload
           trade.getSelf().setPaymentAccountPayload(processModel.getPaymentAccountPayload(trade));

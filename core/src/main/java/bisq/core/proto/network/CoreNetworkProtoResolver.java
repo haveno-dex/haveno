@@ -40,21 +40,14 @@ import bisq.core.support.dispute.refund.refundagent.RefundAgent;
 import bisq.core.support.messages.ChatMessage;
 import bisq.core.trade.messages.PaymentSentMessage;
 import bisq.core.trade.messages.PayoutTxPublishedMessage;
-import bisq.core.trade.messages.DelayedPayoutTxSignatureRequest;
-import bisq.core.trade.messages.DelayedPayoutTxSignatureResponse;
 import bisq.core.trade.messages.DepositRequest;
 import bisq.core.trade.messages.DepositResponse;
-import bisq.core.trade.messages.DepositTxAndDelayedPayoutTxMessage;
-import bisq.core.trade.messages.DepositTxMessage;
 import bisq.core.trade.messages.InitMultisigRequest;
 import bisq.core.trade.messages.InitTradeRequest;
-import bisq.core.trade.messages.InputsForDepositTxRequest;
-import bisq.core.trade.messages.InputsForDepositTxResponse;
 import bisq.core.trade.messages.MediatedPayoutTxPublishedMessage;
 import bisq.core.trade.messages.MediatedPayoutTxSignatureMessage;
 import bisq.core.trade.messages.PaymentAccountPayloadRequest;
 import bisq.core.trade.messages.PaymentReceivedMessage;
-import bisq.core.trade.messages.PeerPublishedDelayedPayoutTxMessage;
 import bisq.core.trade.messages.RefreshTradeStateRequest;
 import bisq.core.trade.messages.SignContractRequest;
 import bisq.core.trade.messages.SignContractResponse;
@@ -170,18 +163,6 @@ public class CoreNetworkProtoResolver extends CoreProtoResolver implements Netwo
                   return UpdateMultisigRequest.fromProto(proto.getUpdateMultisigRequest(), this, messageVersion);
                 case UPDATE_MULTISIG_RESPONSE:
                   return UpdateMultisigResponse.fromProto(proto.getUpdateMultisigResponse(), this, messageVersion);
-                case INPUTS_FOR_DEPOSIT_TX_REQUEST:
-                    return InputsForDepositTxRequest.fromProto(proto.getInputsForDepositTxRequest(), this, messageVersion);
-                case INPUTS_FOR_DEPOSIT_TX_RESPONSE:
-                    return InputsForDepositTxResponse.fromProto(proto.getInputsForDepositTxResponse(), this, messageVersion);
-                case DEPOSIT_TX_MESSAGE:
-                    return DepositTxMessage.fromProto(proto.getDepositTxMessage(), messageVersion);
-                case DELAYED_PAYOUT_TX_SIGNATURE_REQUEST:
-                    return DelayedPayoutTxSignatureRequest.fromProto(proto.getDelayedPayoutTxSignatureRequest(), messageVersion);
-                case DELAYED_PAYOUT_TX_SIGNATURE_RESPONSE:
-                    return DelayedPayoutTxSignatureResponse.fromProto(proto.getDelayedPayoutTxSignatureResponse(), messageVersion);
-                case DEPOSIT_TX_AND_DELAYED_PAYOUT_TX_MESSAGE:
-                    return DepositTxAndDelayedPayoutTxMessage.fromProto(proto.getDepositTxAndDelayedPayoutTxMessage(), messageVersion);
 
                 case PAYMENT_SENT_MESSAGE:
                     return PaymentSentMessage.fromProto(proto.getPaymentSentMessage(), messageVersion);
@@ -190,8 +171,6 @@ public class CoreNetworkProtoResolver extends CoreProtoResolver implements Netwo
                 case PAYOUT_TX_PUBLISHED_MESSAGE:
                     return PayoutTxPublishedMessage.fromProto(proto.getPayoutTxPublishedMessage(), messageVersion);
 
-                case PEER_PUBLISHED_DELAYED_PAYOUT_TX_MESSAGE:
-                    return PeerPublishedDelayedPayoutTxMessage.fromProto(proto.getPeerPublishedDelayedPayoutTxMessage(), messageVersion);
                 case TRADER_SIGNED_WITNESS_MESSAGE:
                     return TraderSignedWitnessMessage.fromProto(proto.getTraderSignedWitnessMessage(), messageVersion);
 

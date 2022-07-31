@@ -104,8 +104,8 @@ public abstract class Trade implements Tradable, Model {
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     public enum State {
-        // #################### Phase INIT
-        // When trade protocol starts no funds are on stake
+
+        // trade initialization
         PREPARATION(Phase.INIT),
         MULTISIG_PREPARED(Phase.INIT),
         MULTISIG_MADE(Phase.INIT),
@@ -113,79 +113,47 @@ public abstract class Trade implements Tradable, Model {
         CONTRACT_SIGNATURE_REQUESTED(Phase.INIT),
         CONTRACT_SIGNED(Phase.INIT),
 
-        // At first part maker/taker have different roles
-        // taker perspective
-        // #################### Phase TAKER_FEE_PUBLISHED
-        TAKER_PUBLISHED_TAKER_FEE_TX(Phase.TAKER_FEE_PUBLISHED),
+        // deposit requested
+        SENT_PUBLISH_DEPOSIT_TX_REQUEST(Phase.TAKER_FEE_PUBLISHED),
+        SAW_ARRIVED_PUBLISH_DEPOSIT_TX_REQUEST(Phase.TAKER_FEE_PUBLISHED),
+        STORED_IN_MAILBOX_PUBLISH_DEPOSIT_TX_REQUEST(Phase.TAKER_FEE_PUBLISHED), //not a mailbox msg, not used...
+        SEND_FAILED_PUBLISH_DEPOSIT_TX_REQUEST(Phase.TAKER_FEE_PUBLISHED),
 
-        // PUBLISH_DEPOSIT_TX_REQUEST
-        // maker perspective
-        MAKER_SENT_PUBLISH_DEPOSIT_TX_REQUEST(Phase.TAKER_FEE_PUBLISHED),
-        MAKER_SAW_ARRIVED_PUBLISH_DEPOSIT_TX_REQUEST(Phase.TAKER_FEE_PUBLISHED),
-        MAKER_STORED_IN_MAILBOX_PUBLISH_DEPOSIT_TX_REQUEST(Phase.TAKER_FEE_PUBLISHED), //not a mailbox msg, not used...
-        MAKER_SEND_FAILED_PUBLISH_DEPOSIT_TX_REQUEST(Phase.TAKER_FEE_PUBLISHED),
+        // deposit published
+        SAW_DEPOSIT_TXS_IN_NETWORK(Phase.DEPOSIT_PUBLISHED), // TODO: seeing in network usually happens after arbitrator publishes
+        ARBITRATOR_PUBLISHED_DEPOSIT_TXS(Phase.DEPOSIT_PUBLISHED),
 
-        // taker perspective
-        TAKER_RECEIVED_PUBLISH_DEPOSIT_TX_REQUEST(Phase.TAKER_FEE_PUBLISHED), // Not used anymore
+        // deposit confirmed (TODO)
 
-        // Alternatively the taker could have seen the deposit tx earlier before he received the DEPOSIT_TX_PUBLISHED_MSG
-        TAKER_SAW_DEPOSIT_TX_IN_NETWORK(Phase.DEPOSIT_PUBLISHED),
+        // deposit unlocked
+        DEPOSIT_TXS_UNLOCKED_IN_BLOCKCHAIN(Phase.DEPOSIT_UNLOCKED),
 
-        // #################### Phase DEPOSIT_PUBLISHED
-        // We changes order in trade protocol of publishing deposit tx and sending it to the peer.
-        // Now we send it first to the peer and only if that succeeds we publish it to avoid likelihood of
-        // failed trades. We do not want to change the order of the enum though so we keep it here as it was originally.
-        ARBITRATOR_PUBLISHED_DEPOSIT_TX(Phase.DEPOSIT_PUBLISHED),
-
-        // DEPOSIT_TX_PUBLISHED_MSG
-        // taker perspective
-        TAKER_SENT_DEPOSIT_TX_PUBLISHED_MSG(Phase.DEPOSIT_PUBLISHED),
-        TAKER_SAW_ARRIVED_DEPOSIT_TX_PUBLISHED_MSG(Phase.DEPOSIT_PUBLISHED),
-        TAKER_STORED_IN_MAILBOX_DEPOSIT_TX_PUBLISHED_MSG(Phase.DEPOSIT_PUBLISHED),
-        TAKER_SEND_FAILED_DEPOSIT_TX_PUBLISHED_MSG(Phase.DEPOSIT_PUBLISHED),
-
-        // maker perspective
-        MAKER_RECEIVED_DEPOSIT_TX_PUBLISHED_MSG(Phase.DEPOSIT_PUBLISHED),
-
-        // Alternatively the maker could have seen the deposit tx earlier before he received the DEPOSIT_TX_PUBLISHED_MSG
-        MAKER_SAW_DEPOSIT_TX_IN_NETWORK(Phase.DEPOSIT_PUBLISHED),
-
-
-        // #################### Phase DEPOSIT_CONFIRMED
-        DEPOSIT_UNLOCKED_IN_BLOCK_CHAIN(Phase.DEPOSIT_UNLOCKED),
-
-
-        // #################### Phase PAYMENT_SENT
+        // payment sent
         BUYER_CONFIRMED_IN_UI_PAYMENT_SENT(Phase.PAYMENT_SENT),
         BUYER_SENT_PAYMENT_SENT_MSG(Phase.PAYMENT_SENT),
         BUYER_SAW_ARRIVED_PAYMENT_SENT_MSG(Phase.PAYMENT_SENT),
         BUYER_STORED_IN_MAILBOX_PAYMENT_SENT_MSG(Phase.PAYMENT_SENT),
         BUYER_SEND_FAILED_PAYMENT_SENT_MSG(Phase.PAYMENT_SENT),
-
         SELLER_RECEIVED_PAYMENT_SENT_MSG(Phase.PAYMENT_SENT),
 
-        // #################### Phase PAYMENT_RECEIVED
-        // note that this state can also be triggered by auto confirmation feature
+        // payment received
         SELLER_CONFIRMED_IN_UI_PAYMENT_RECEIPT(Phase.PAYMENT_RECEIVED),
         SELLER_SENT_PAYMENT_RECEIVED_MSG(Phase.PAYMENT_RECEIVED),
         SELLER_SAW_ARRIVED_PAYMENT_RECEIVED_MSG(Phase.PAYMENT_RECEIVED),
         SELLER_STORED_IN_MAILBOX_PAYMENT_RECEIVED_MSG(Phase.PAYMENT_RECEIVED),
         SELLER_SEND_FAILED_PAYMENT_RECEIVED_MSG(Phase.PAYMENT_RECEIVED),
 
-        // #################### Phase PAYOUT_PUBLISHED
+        // payout published
         SELLER_PUBLISHED_PAYOUT_TX(Phase.PAYOUT_PUBLISHED), // TODO (woodser): this enum is over used, like during arbitration
         SELLER_SENT_PAYOUT_TX_PUBLISHED_MSG(Phase.PAYOUT_PUBLISHED),
         SELLER_SAW_ARRIVED_PAYOUT_TX_PUBLISHED_MSG(Phase.PAYOUT_PUBLISHED),
         SELLER_STORED_IN_MAILBOX_PAYOUT_TX_PUBLISHED_MSG(Phase.PAYOUT_PUBLISHED),
         SELLER_SEND_FAILED_PAYOUT_TX_PUBLISHED_MSG(Phase.PAYOUT_PUBLISHED),
-
         BUYER_RECEIVED_PAYOUT_TX_PUBLISHED_MSG(Phase.PAYOUT_PUBLISHED),
-        // Alternatively the maker could have seen the payout tx earlier before he received the PAYOUT_TX_PUBLISHED_MSG
         BUYER_SAW_PAYOUT_TX_IN_NETWORK(Phase.PAYOUT_PUBLISHED),
         BUYER_PUBLISHED_PAYOUT_TX(Phase.PAYOUT_PUBLISHED),
 
-
-        // #################### Phase WITHDRAWN
+        // trade completed
         WITHDRAW_COMPLETED(Phase.WITHDRAWN);
 
         @NotNull
@@ -891,7 +859,7 @@ public abstract class Trade implements Tradable, Model {
                     return;
                 }
             } else {
-                setStateIfValidTransitionTo(this instanceof MakerTrade ? Trade.State.MAKER_SAW_DEPOSIT_TX_IN_NETWORK : Trade.State.TAKER_SAW_DEPOSIT_TX_IN_NETWORK);
+                setStateIfValidTransitionTo(Trade.State.SAW_DEPOSIT_TXS_IN_NETWORK);
             }
         }
 
@@ -934,7 +902,7 @@ public abstract class Trade implements Tradable, Model {
                     xmrWalletService.removeWalletListener(depositTxListener); // remove listener when notified
                     depositTxListener = null; // prevent re-applying trade state in subsequent requests
                 } else if (txs.size() == 2) {
-                    setStateIfValidTransitionTo(this instanceof MakerTrade ? Trade.State.MAKER_SAW_DEPOSIT_TX_IN_NETWORK : Trade.State.TAKER_SAW_DEPOSIT_TX_IN_NETWORK);
+                    setStateIfValidTransitionTo(Trade.State.SAW_DEPOSIT_TXS_IN_NETWORK);
                 }
             }
         };
@@ -1488,7 +1456,7 @@ public abstract class Trade implements Tradable, Model {
             // As setState is called here from the trade itself we cannot trigger a requestPersistence call.
             // But as we get setupConfidenceListener called at startup anyway there is no issue if it would not be
             // persisted in case the shutdown routine did not persist the trade.
-            setStateIfValidTransitionTo(State.DEPOSIT_UNLOCKED_IN_BLOCK_CHAIN);	// TODO (woodser): for xmr this means deposit txs have unlocked after 10 confirmations
+            setStateIfValidTransitionTo(State.DEPOSIT_TXS_UNLOCKED_IN_BLOCKCHAIN);	// TODO (woodser): for xmr this means deposit txs have unlocked after 10 confirmations
         }
     }
 

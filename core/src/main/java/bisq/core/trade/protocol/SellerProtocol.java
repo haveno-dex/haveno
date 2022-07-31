@@ -23,12 +23,10 @@ import bisq.core.trade.messages.PaymentSentMessage;
 import bisq.core.trade.messages.TradeMessage;
 import bisq.core.trade.protocol.BuyerProtocol.BuyerEvent;
 import bisq.core.trade.protocol.tasks.ApplyFilter;
+import bisq.core.trade.protocol.tasks.SellerPreparesPaymentReceivedMessage;
+import bisq.core.trade.protocol.tasks.SellerProcessesPaymentSentMessage;
+import bisq.core.trade.protocol.tasks.SellerSendsPaymentReceivedMessage;
 import bisq.core.trade.protocol.tasks.SetupDepositTxsListener;
-import bisq.core.trade.protocol.tasks.TradeTask;
-import bisq.core.trade.protocol.tasks.seller.SellerProcessesPaymentSentMessage;
-import bisq.core.trade.protocol.tasks.seller.SellerSendsPaymentReceivedMessage;
-import bisq.core.trade.protocol.tasks.seller.SellerPreparesPaymentReceivedMessage;
-
 import bisq.network.p2p.NodeAddress;
 import bisq.common.handlers.ErrorMessageHandler;
 import bisq.common.handlers.ResultHandler;
@@ -100,9 +98,8 @@ public abstract class SellerProtocol extends DisputeProtocol {
                                 removeMailboxMessageAfterProcessing(message);
                             }))
                     .setup(tasks(
-                            SellerProcessesPaymentSentMessage.class,
                             ApplyFilter.class,
-                            getVerifyPeersFeePaymentClass())
+                            SellerProcessesPaymentSentMessage.class)
                     .using(new TradeTaskRunner(trade,
                             () -> {
                                 stopTimeout();
@@ -134,7 +131,6 @@ public abstract class SellerProtocol extends DisputeProtocol {
                         .preCondition(trade.confirmPermitted()))
                         .setup(tasks(
                                 ApplyFilter.class,
-                                getVerifyPeersFeePaymentClass(),
                                 SellerPreparesPaymentReceivedMessage.class,
                                 SellerSendsPaymentReceivedMessage.class)
                         .using(new TradeTaskRunner(trade, () -> {
@@ -159,7 +155,4 @@ public abstract class SellerProtocol extends DisputeProtocol {
             handle((PaymentSentMessage) message, peer);
         }
     }
-
-    abstract protected Class<? extends TradeTask> getVerifyPeersFeePaymentClass();
-
 }

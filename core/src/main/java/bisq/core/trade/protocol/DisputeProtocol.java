@@ -20,11 +20,8 @@ package bisq.core.trade.protocol;
 import bisq.core.trade.Trade;
 import bisq.core.trade.messages.MediatedPayoutTxPublishedMessage;
 import bisq.core.trade.messages.MediatedPayoutTxSignatureMessage;
-import bisq.core.trade.messages.PeerPublishedDelayedPayoutTxMessage;
 import bisq.core.trade.messages.TradeMessage;
 import bisq.core.trade.protocol.tasks.ApplyFilter;
-import bisq.core.trade.protocol.tasks.ProcessPeerPublishedDelayedPayoutTxMessage;
-import bisq.core.trade.protocol.tasks.mediation.BroadcastMediatedPayoutTx;
 import bisq.core.trade.protocol.tasks.mediation.FinalizeMediatedPayoutTx;
 import bisq.core.trade.protocol.tasks.mediation.ProcessMediatedPayoutSignatureMessage;
 import bisq.core.trade.protocol.tasks.mediation.ProcessMediatedPayoutTxPublishedMessage;
@@ -97,7 +94,6 @@ public abstract class DisputeProtocol extends TradeProtocol {
                 .setup(tasks(ApplyFilter.class,
                         SignMediatedPayoutTx.class,
                         FinalizeMediatedPayoutTx.class,
-                        BroadcastMediatedPayoutTx.class,
                         SendMediatedPayoutTxPublishedMessage.class)
                         .using(new TradeTaskRunner(trade,
                                 () -> {
@@ -163,21 +159,6 @@ public abstract class DisputeProtocol extends TradeProtocol {
 
 
     ///////////////////////////////////////////////////////////////////////////////////////////
-    // Peer has published the delayed payout tx
-    ///////////////////////////////////////////////////////////////////////////////////////////
-
-    private void handle(PeerPublishedDelayedPayoutTxMessage message, NodeAddress peer) {
-        expect(anyPhase(Trade.Phase.DEPOSIT_UNLOCKED,
-                Trade.Phase.PAYMENT_SENT,
-                Trade.Phase.PAYMENT_RECEIVED)
-                .with(message)
-                .from(peer))
-                .setup(tasks(ProcessPeerPublishedDelayedPayoutTxMessage.class))
-                .executeTasks();
-    }
-
-
-    ///////////////////////////////////////////////////////////////////////////////////////////
     // Dispatcher
     ///////////////////////////////////////////////////////////////////////////////////////////
 
@@ -187,8 +168,6 @@ public abstract class DisputeProtocol extends TradeProtocol {
             handle((MediatedPayoutTxSignatureMessage) message, peer);
         } else if (message instanceof MediatedPayoutTxPublishedMessage) {
             handle((MediatedPayoutTxPublishedMessage) message, peer);
-        } else if (message instanceof PeerPublishedDelayedPayoutTxMessage) {
-            handle((PeerPublishedDelayedPayoutTxMessage) message, peer);
         }
     }
 
@@ -199,8 +178,6 @@ public abstract class DisputeProtocol extends TradeProtocol {
             handle((MediatedPayoutTxSignatureMessage) message, peer);
         } else if (message instanceof MediatedPayoutTxPublishedMessage) {
             handle((MediatedPayoutTxPublishedMessage) message, peer);
-        } else if (message instanceof PeerPublishedDelayedPayoutTxMessage) {
-            handle((PeerPublishedDelayedPayoutTxMessage) message, peer);
         }
     }
 }

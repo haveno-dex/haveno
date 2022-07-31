@@ -24,13 +24,13 @@ import bisq.core.trade.TradeUtils;
 import bisq.core.trade.handlers.TradeResultHandler;
 import bisq.core.trade.messages.PaymentSentMessage;
 import bisq.core.trade.messages.DepositResponse;
-import bisq.core.trade.messages.DepositTxAndDelayedPayoutTxMessage;
 import bisq.core.trade.messages.InitMultisigRequest;
 import bisq.core.trade.messages.PaymentAccountPayloadRequest;
 import bisq.core.trade.messages.SignContractRequest;
 import bisq.core.trade.messages.SignContractResponse;
 import bisq.core.trade.messages.TradeMessage;
 import bisq.core.trade.messages.UpdateMultisigRequest;
+import bisq.core.trade.protocol.tasks.MaybeRemoveOpenOffer;
 import bisq.core.trade.protocol.tasks.MaybeSendSignContractRequest;
 import bisq.core.trade.protocol.tasks.ProcessDepositResponse;
 import bisq.core.trade.protocol.tasks.ProcessInitMultisigRequest;
@@ -38,7 +38,6 @@ import bisq.core.trade.protocol.tasks.ProcessPaymentAccountPayloadRequest;
 import bisq.core.trade.protocol.tasks.ProcessSignContractRequest;
 import bisq.core.trade.protocol.tasks.ProcessSignContractResponse;
 import bisq.core.trade.protocol.tasks.ProcessUpdateMultisigRequest;
-import bisq.core.trade.protocol.tasks.maker.MaybeRemoveOpenOffer;
 import bisq.core.util.Validator;
 
 import bisq.network.p2p.AckMessage;
@@ -324,7 +323,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
             latchTrade();
             Validator.checkTradeId(processModel.getOfferId(), response);
             processModel.setTradeMessage(response);
-            expect(state(Trade.State.MAKER_SENT_PUBLISH_DEPOSIT_TX_REQUEST)
+            expect(state(Trade.State.SENT_PUBLISH_DEPOSIT_TX_REQUEST)
                     .with(response)
                     .from(sender)) // TODO (woodser): ensure this asserts sender == response.getSenderNodeAddress()
                     .setup(tasks(
@@ -348,11 +347,11 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
         System.out.println(getClass().getCanonicalName() + ".handlePaymentAccountPayloadRequest()");
         synchronized (trade) {
             Validator.checkTradeId(processModel.getOfferId(), request);
-            if (trade.getState() == Trade.State.MAKER_RECEIVED_DEPOSIT_TX_PUBLISHED_MSG) {
+            if (trade.getState() == Trade.State.ARBITRATOR_PUBLISHED_DEPOSIT_TXS) {
                 latchTrade();
                 Validator.checkTradeId(processModel.getOfferId(), request);
                 processModel.setTradeMessage(request);
-                expect(state(Trade.State.MAKER_RECEIVED_DEPOSIT_TX_PUBLISHED_MSG)
+                expect(state(Trade.State.ARBITRATOR_PUBLISHED_DEPOSIT_TXS)
                         .with(request)
                         .from(sender)) // TODO (woodser): ensure this asserts sender == response.getSenderNodeAddress()
                         .setup(tasks(
@@ -374,7 +373,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
                 awaitTradeLatch();
             } else {
                 EasyBind.subscribe(trade.stateProperty(), state -> {
-                    if (state == Trade.State.MAKER_RECEIVED_DEPOSIT_TX_PUBLISHED_MSG) new Thread(() -> handlePaymentAccountPayloadRequest(request, sender)).start();  // process notification without trade lock
+                    if (state == Trade.State.ARBITRATOR_PUBLISHED_DEPOSIT_TXS) new Thread(() -> handlePaymentAccountPayloadRequest(request, sender)).start();  // process notification without trade lock
                 });
             }
         }
@@ -459,8 +458,6 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
         // TODO (woodser): add AckMessage for InitTradeRequest and support automatic re-send ?
         if (ackMessage.getSourceMsgClassName().equals(PaymentSentMessage.class.getSimpleName())) {
             processModel.setPaymentStartedAckMessage(ackMessage);
-        } else if (ackMessage.getSourceMsgClassName().equals(DepositTxAndDelayedPayoutTxMessage.class.getSimpleName())) {
-            processModel.setDepositTxSentAckMessage(ackMessage);
         }
 
         if (ackMessage.isSuccess()) {

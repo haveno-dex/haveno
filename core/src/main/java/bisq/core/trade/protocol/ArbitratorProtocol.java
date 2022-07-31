@@ -75,7 +75,7 @@ public class ArbitratorProtocol extends DisputeProtocol {
                     ArbitratorProcessesDepositRequest.class)
             .using(new TradeTaskRunner(trade,
                     () -> {
-                        if (trade.getState() == Trade.State.ARBITRATOR_PUBLISHED_DEPOSIT_TX) {
+                        if (trade.getState() == Trade.State.ARBITRATOR_PUBLISHED_DEPOSIT_TXS) {
                             stopTimeout();
                             this.errorMessageHandler = null;
                         }
