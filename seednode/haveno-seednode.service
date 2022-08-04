@@ -1,0 +1,32 @@
+[Unit]
+Description=Haveno seednode
+After=network.target
+
+[Service]
+User=haveno
+Group=haveno
+SyslogIdentifier=Haveno-Seednode
+
+# $PATH is a placeholder
+ExecStart=/bin/sh $PATH/haveno-seednode --baseCurrencyNetwork=XMR_STAGENET\
+  --useLocalhostForP2P=false\
+  --useDevPrivilegeKeys=false\
+  --nodePort=2002\
+  --appName=haveno-XMR_STAGENET_Seed_2002
+
+ExecStop=/bin/kill ${MAINPID}
+Restart=always
+
+# Hardening
+PrivateTmp=true
+ProtectSystem=full
+NoNewPrivileges=true
+PrivateDevices=true
+MemoryDenyWriteExecute=false
+ProtectControlGroups=true
+ProtectKernelTunables=true
+RestrictSUIDSGID=true
+
+
+[Install]
+WantedBy=multi-user.target

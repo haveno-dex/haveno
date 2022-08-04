@@ -17,6 +17,9 @@ ProtectSystem=full
 NoNewPrivileges=true
 PrivateDevices=true
 MemoryDenyWriteExecute=false
+ProtectControlGroups=true
+ProtectKernelTunables=true
+RestrictSUIDSGID=true
 
 [Install]
 WantedBy=multi-user.target
