@@ -64,9 +64,9 @@ public class PriceProvider extends HttpClientProvider {
 
         LinkedTreeMap<?, ?> map = new Gson().fromJson(json, LinkedTreeMap.class);
         Map<String, Long> tsMap = new HashMap<>();
-        tsMap.put("btcAverageTs", ((Double) map.get("btcAverageTs")).longValue());
-        tsMap.put("poloniexTs", ((Double) map.get("poloniexTs")).longValue());
-        tsMap.put("coinmarketcapTs", ((Double) map.get("coinmarketcapTs")).longValue());
+        transfer("btcAverageTs", map, tsMap);
+        transfer("poloniexTs", map, tsMap);
+        transfer("coinmarketcapTs", map, tsMap);
 
         // get btc per xmr price to convert all prices to xmr
         // TODO (woodser): currently using bisq price feed, switch?
@@ -98,6 +98,12 @@ public class PriceProvider extends HttpClientProvider {
         marketPriceMap.remove("XMR");
         return new Tuple2<>(tsMap, marketPriceMap);
     }
+
+    private void transfer(String key, LinkedTreeMap<?, ?> map, Map<String, Long> tsMap) {
+        if (map.containsKey(key)) tsMap.put(key, ((Double) map.get(key)).longValue());
+        else log.warn("No prices returned from provider " + key);
+    }
+
 
     /**
      * @return price of 1 XMR in BTC
