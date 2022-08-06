@@ -42,6 +42,8 @@ public final class InitMultisigRequest extends TradeMessage implements DirectMes
     private final String preparedMultisigHex;
     @Nullable
     private final String madeMultisigHex;
+    @Nullable
+    private final String exchangedMultisigHex;
 
     public InitMultisigRequest(String tradeId,
                                      NodeAddress senderNodeAddress,
@@ -50,13 +52,15 @@ public final class InitMultisigRequest extends TradeMessage implements DirectMes
                                      String messageVersion,
                                      long currentDate,
                                      String preparedMultisigHex,
-                                     String madeMultisigHex) {
+                                     String madeMultisigHex,
+                                     String exchangedMultisigHex) {
         super(messageVersion, tradeId, uid);
         this.senderNodeAddress = senderNodeAddress;
         this.pubKeyRing = pubKeyRing;
         this.currentDate = currentDate;
         this.preparedMultisigHex = preparedMultisigHex;
         this.madeMultisigHex = madeMultisigHex;
+        this.exchangedMultisigHex = exchangedMultisigHex;
     }
 
 
@@ -74,6 +78,7 @@ public final class InitMultisigRequest extends TradeMessage implements DirectMes
 
         Optional.ofNullable(preparedMultisigHex).ifPresent(e -> builder.setPreparedMultisigHex(preparedMultisigHex));
         Optional.ofNullable(madeMultisigHex).ifPresent(e -> builder.setMadeMultisigHex(madeMultisigHex));
+        Optional.ofNullable(exchangedMultisigHex).ifPresent(e -> builder.setExchangedMultisigHex(exchangedMultisigHex));
 
         builder.setCurrentDate(currentDate);
 
@@ -90,7 +95,8 @@ public final class InitMultisigRequest extends TradeMessage implements DirectMes
                 messageVersion,
                 proto.getCurrentDate(),
                 ProtoUtil.stringOrNullFromProto(proto.getPreparedMultisigHex()),
-                ProtoUtil.stringOrNullFromProto(proto.getMadeMultisigHex()));
+                ProtoUtil.stringOrNullFromProto(proto.getMadeMultisigHex()),
+                ProtoUtil.stringOrNullFromProto(proto.getExchangedMultisigHex()));
     }
 
     @Override
@@ -101,6 +107,7 @@ public final class InitMultisigRequest extends TradeMessage implements DirectMes
                 ",\n     currentDate=" + currentDate +
                 ",\n     preparedMultisigHex='" + preparedMultisigHex +
                 ",\n     madeMultisigHex='" + madeMultisigHex +
+                ",\n     exchangedMultisigHex='" + exchangedMultisigHex +
                 "\n} " + super.toString();
     }
 }

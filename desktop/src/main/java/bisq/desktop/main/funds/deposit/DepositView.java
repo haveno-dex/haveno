@@ -306,7 +306,7 @@ public class DepositView extends ActivatableView<VBox, Void> {
 
     @NotNull
     private String getPaymentUri() {
-        return xmrWalletService.getWallet().createPaymentUri(new MoneroTxConfig()
+        return xmrWalletService.getWallet().getPaymentUri(new MoneroTxConfig()
                 .setAddress(addressTextField.getAddress())
                 .setAmount(ParsingUtils.coinToAtomicUnits(getAmountAsCoin()))
                 .setNote(paymentLabelString));

@@ -148,7 +148,7 @@ public class ArbitratorSendsInitTradeAndMultisigRequests extends TradeTask {
         
         // prepare multisig
         String preparedHex = multisigWallet.prepareMultisig();
-        processModel.setPreparedMultisigHex(preparedHex);
+        trade.getSelf().setPreparedMultisigHex(preparedHex);
 
         // create message to initialize multisig
         InitMultisigRequest initMultisigRequest = new InitMultisigRequest(
@@ -159,6 +159,7 @@ public class ArbitratorSendsInitTradeAndMultisigRequests extends TradeTask {
                 Version.getP2PMessageVersion(),
                 new Date().getTime(),
                 preparedHex,
+                null,
                 null);
 
         // send request to maker

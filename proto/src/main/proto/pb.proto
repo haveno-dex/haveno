@@ -307,6 +307,7 @@ message InitMultisigRequest {
     int64 current_date = 5;
     string prepared_multisig_hex = 6;
     string made_multisig_hex = 7;
+    string exchanged_multisig_hex = 8;
 }
 
 message SignContractRequest {
@@ -1626,36 +1627,37 @@ message Trade {
         PREPARATION = 1;
         MULTISIG_PREPARED = 2;
         MULTISIG_MADE = 3;
-        MULTISIG_COMPLETED = 4;
-        CONTRACT_SIGNATURE_REQUESTED = 5;
-        CONTRACT_SIGNED = 6;
-        SENT_PUBLISH_DEPOSIT_TX_REQUEST = 7;
-        SAW_ARRIVED_PUBLISH_DEPOSIT_TX_REQUEST = 8;
-        STORED_IN_MAILBOX_PUBLISH_DEPOSIT_TX_REQUEST = 9;
-        SEND_FAILED_PUBLISH_DEPOSIT_TX_REQUEST = 10;
-        ARBITRATOR_PUBLISHED_DEPOSIT_TXS = 11;
-        SAW_DEPOSIT_TXS_IN_NETWORK = 12;
-        DEPOSIT_TXS_UNLOCKED_IN_BLOCKCHAIN = 13;
-        BUYER_CONFIRMED_IN_UI_PAYMENT_SENT = 14;
-        BUYER_SENT_PAYMENT_SENT_MSG = 15;
-        BUYER_SAW_ARRIVED_PAYMENT_SENT_MSG = 16;
-        BUYER_STORED_IN_MAILBOX_PAYMENT_SENT_MSG = 17;
-        BUYER_SEND_FAILED_PAYMENT_SENT_MSG = 18;
-        SELLER_RECEIVED_PAYMENT_SENT_MSG = 19;
-        SELLER_CONFIRMED_IN_UI_PAYMENT_RECEIPT = 20;
-        SELLER_SENT_PAYMENT_RECEIVED_MSG = 21;
-        SELLER_SAW_ARRIVED_PAYMENT_RECEIVED_MSG = 22;
-        SELLER_STORED_IN_MAILBOX_PAYMENT_RECEIVED_MSG = 23;
-        SELLER_SEND_FAILED_PAYMENT_RECEIVED_MSG = 24;
-        SELLER_PUBLISHED_PAYOUT_TX = 25;
-        SELLER_SENT_PAYOUT_TX_PUBLISHED_MSG = 26;
-        SELLER_SAW_ARRIVED_PAYOUT_TX_PUBLISHED_MSG = 27;
-        SELLER_STORED_IN_MAILBOX_PAYOUT_TX_PUBLISHED_MSG = 28;
-        SELLER_SEND_FAILED_PAYOUT_TX_PUBLISHED_MSG = 29;
-        BUYER_RECEIVED_PAYOUT_TX_PUBLISHED_MSG = 30;
-        BUYER_SAW_PAYOUT_TX_IN_NETWORK = 31;
-        BUYER_PUBLISHED_PAYOUT_TX = 32;
-        WITHDRAW_COMPLETED = 33;
+        MULTISIG_EXCHANGED = 4;
+        MULTISIG_COMPLETED = 5;
+        CONTRACT_SIGNATURE_REQUESTED = 6;
+        CONTRACT_SIGNED = 7;
+        SENT_PUBLISH_DEPOSIT_TX_REQUEST = 8;
+        SAW_ARRIVED_PUBLISH_DEPOSIT_TX_REQUEST = 9;
+        STORED_IN_MAILBOX_PUBLISH_DEPOSIT_TX_REQUEST = 10;
+        SEND_FAILED_PUBLISH_DEPOSIT_TX_REQUEST = 11;
+        ARBITRATOR_PUBLISHED_DEPOSIT_TXS = 12;
+        SAW_DEPOSIT_TXS_IN_NETWORK = 13;
+        DEPOSIT_TXS_UNLOCKED_IN_BLOCKCHAIN = 14;
+        BUYER_CONFIRMED_IN_UI_PAYMENT_SENT = 15;
+        BUYER_SENT_PAYMENT_SENT_MSG = 16;
+        BUYER_SAW_ARRIVED_PAYMENT_SENT_MSG = 17;
+        BUYER_STORED_IN_MAILBOX_PAYMENT_SENT_MSG = 18;
+        BUYER_SEND_FAILED_PAYMENT_SENT_MSG = 19;
+        SELLER_RECEIVED_PAYMENT_SENT_MSG = 20;
+        SELLER_CONFIRMED_IN_UI_PAYMENT_RECEIPT = 21;
+        SELLER_SENT_PAYMENT_RECEIVED_MSG = 22;
+        SELLER_SAW_ARRIVED_PAYMENT_RECEIVED_MSG = 23;
+        SELLER_STORED_IN_MAILBOX_PAYMENT_RECEIVED_MSG = 24;
+        SELLER_SEND_FAILED_PAYMENT_RECEIVED_MSG = 25;
+        SELLER_PUBLISHED_PAYOUT_TX = 26;
+        SELLER_SENT_PAYOUT_TX_PUBLISHED_MSG = 27;
+        SELLER_SAW_ARRIVED_PAYOUT_TX_PUBLISHED_MSG = 28;
+        SELLER_STORED_IN_MAILBOX_PAYOUT_TX_PUBLISHED_MSG = 29;
+        SELLER_SEND_FAILED_PAYOUT_TX_PUBLISHED_MSG = 30;
+        BUYER_RECEIVED_PAYOUT_TX_PUBLISHED_MSG = 31;
+        BUYER_SAW_PAYOUT_TX_IN_NETWORK = 32;
+        BUYER_PUBLISHED_PAYOUT_TX = 33;
+        WITHDRAW_COMPLETED = 34;
     }
 
     enum Phase {
@@ -1781,9 +1783,7 @@ message ProcessModel {
     TradingPeer taker = 1004;
     TradingPeer arbitrator = 1005;
     NodeAddress temp_trading_peer_node_address = 1006;
-    string prepared_multisig_hex = 1007;
-    string made_multisig_hex = 1008;
-    string multisig_address = 1009;
+    string multisig_address = 1007;
 }
 
 message TradingPeer {
@@ -1812,11 +1812,12 @@ message TradingPeer {
     repeated string reserve_tx_key_images = 1004;
     string prepared_multisig_hex = 1005;
     string made_multisig_hex = 1006;
-    string payout_tx_hex = 1007;
-    string deposit_tx_hash = 1008;
-    string deposit_tx_hex = 1009;
-    string deposit_tx_key = 1010;
-    string updated_multisig_hex = 1011;
+    string exchanged_multisig_hex = 1007;
+    string payout_tx_hex = 1008;
+    string deposit_tx_hash = 1009;
+    string deposit_tx_hex = 1010;
+    string deposit_tx_key = 1011;
+    string updated_multisig_hex = 1012;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////
