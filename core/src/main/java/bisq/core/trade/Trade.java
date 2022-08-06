@@ -109,6 +109,7 @@ public abstract class Trade implements Tradable, Model {
         PREPARATION(Phase.INIT),
         MULTISIG_PREPARED(Phase.INIT),
         MULTISIG_MADE(Phase.INIT),
+        MULTISIG_EXCHANGED(Phase.INIT),
         MULTISIG_COMPLETED(Phase.INIT),
         CONTRACT_SIGNATURE_REQUESTED(Phase.INIT),
         CONTRACT_SIGNED(Phase.INIT),

@@ -173,14 +173,6 @@ public class ProcessModel implements Model, PersistablePayload {
     @Nullable
     @Getter
     @Setter
-    private String preparedMultisigHex; // TODO (woodser): ProcessModel shares many fields with TradingPeer; switch to trade getMaker(), getTaker(), getArbitrator(), getSelf(), with common TradingPeer object?
-    @Nullable
-    @Getter
-    @Setter
-    private String madeMultisigHex;
-    @Nullable
-    @Getter
-    @Setter
     private String multisigAddress;
     @Nullable
 
@@ -240,8 +232,6 @@ public class ProcessModel implements Model, PersistablePayload {
         Optional.ofNullable(tempTradingPeerNodeAddress).ifPresent(e -> builder.setTempTradingPeerNodeAddress(tempTradingPeerNodeAddress.toProtoMessage()));
         Optional.ofNullable(makerSignature).ifPresent(e -> builder.setMakerSignature(makerSignature));
         Optional.ofNullable(backupArbitrator).ifPresent(e -> builder.setBackupArbitrator(backupArbitrator.toProtoMessage()));
-        Optional.ofNullable(preparedMultisigHex).ifPresent(e -> builder.setPreparedMultisigHex(preparedMultisigHex));
-        Optional.ofNullable(madeMultisigHex).ifPresent(e -> builder.setMadeMultisigHex(madeMultisigHex));
         Optional.ofNullable(multisigAddress).ifPresent(e -> builder.setMultisigAddress(multisigAddress));
         return builder.build();
     }
@@ -271,8 +261,6 @@ public class ProcessModel implements Model, PersistablePayload {
         processModel.setMediatedPayoutTxSignature(ProtoUtil.byteArrayOrNullFromProto(proto.getMediatedPayoutTxSignature()));
         processModel.setMakerSignature(proto.getMakerSignature());
         processModel.setBackupArbitrator(proto.hasBackupArbitrator() ? NodeAddress.fromProto(proto.getBackupArbitrator()) : null);
-        processModel.setPreparedMultisigHex(ProtoUtil.stringOrNullFromProto(proto.getPreparedMultisigHex()));
-        processModel.setMadeMultisigHex(ProtoUtil.stringOrNullFromProto(proto.getMadeMultisigHex()));
         processModel.setMultisigAddress(ProtoUtil.stringOrNullFromProto(proto.getMultisigAddress()));
 
         String paymentStartedMessageStateString = ProtoUtil.stringOrNullFromProto(proto.getPaymentStartedMessageState());

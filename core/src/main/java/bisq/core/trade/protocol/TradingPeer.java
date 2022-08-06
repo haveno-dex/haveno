@@ -108,6 +108,8 @@ public final class TradingPeer implements PersistablePayload {
     @Nullable
     private String madeMultisigHex;
     @Nullable
+    private String exchangedMultisigHex;
+    @Nullable
     private String depositTxHash;
     @Nullable
     private String depositTxHex;
@@ -150,6 +152,7 @@ public final class TradingPeer implements PersistablePayload {
         Optional.ofNullable(reserveTxKey).ifPresent(e -> builder.setReserveTxKey(reserveTxKey));
         Optional.ofNullable(preparedMultisigHex).ifPresent(e -> builder.setPreparedMultisigHex(preparedMultisigHex));
         Optional.ofNullable(madeMultisigHex).ifPresent(e -> builder.setMadeMultisigHex(madeMultisigHex));
+        Optional.ofNullable(exchangedMultisigHex).ifPresent(e -> builder.setExchangedMultisigHex(exchangedMultisigHex));
         Optional.ofNullable(payoutTxHex).ifPresent(e -> builder.setPayoutTxHex(payoutTxHex));
         Optional.ofNullable(depositTxHash).ifPresent(e -> builder.setDepositTxHash(depositTxHash));
         Optional.ofNullable(depositTxHex).ifPresent(e -> builder.setDepositTxHex(depositTxHex));
@@ -194,6 +197,7 @@ public final class TradingPeer implements PersistablePayload {
             tradingPeer.setReserveTxKeyImages(proto.getReserveTxKeyImagesList());
             tradingPeer.setPreparedMultisigHex(ProtoUtil.stringOrNullFromProto(proto.getPreparedMultisigHex()));
             tradingPeer.setMadeMultisigHex(ProtoUtil.stringOrNullFromProto(proto.getMadeMultisigHex()));
+            tradingPeer.setExchangedMultisigHex(ProtoUtil.stringOrNullFromProto(proto.getExchangedMultisigHex()));
             tradingPeer.setDepositTxHash(ProtoUtil.stringOrNullFromProto(proto.getDepositTxHash()));
             tradingPeer.setDepositTxHex(ProtoUtil.stringOrNullFromProto(proto.getDepositTxHex()));
             tradingPeer.setDepositTxKey(ProtoUtil.stringOrNullFromProto(proto.getDepositTxKey()));
