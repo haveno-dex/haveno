@@ -102,14 +102,12 @@ public abstract class SellerProtocol extends DisputeProtocol {
                             SellerProcessesPaymentSentMessage.class)
                     .using(new TradeTaskRunner(trade,
                             () -> {
-                                stopTimeout();
                                 handleTaskRunnerSuccess(peer, message);
                             },
                             (errorMessage) -> {
                                 stopTimeout();
                                 handleTaskRunnerFault(peer, message, errorMessage);
-                            }))
-                    .withTimeout(TRADE_TIMEOUT))
+                            })))
                     .executeTasks(true);
             awaitTradeLatch();
         }
