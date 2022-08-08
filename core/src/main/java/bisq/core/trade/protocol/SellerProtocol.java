@@ -48,7 +48,7 @@ public abstract class SellerProtocol extends DisputeProtocol {
     protected void onInitialized() {
         super.onInitialized();
         
-        given(phase(Trade.Phase.DEPOSIT_PUBLISHED)
+        given(phase(Trade.Phase.DEPOSITS_PUBLISHED)
                 .with(BuyerEvent.STARTUP))
                 .setup(tasks(SetupDepositTxsListener.class))
                 .executeTasks();
@@ -75,8 +75,8 @@ public abstract class SellerProtocol extends DisputeProtocol {
 
     protected void handle(PaymentSentMessage message, NodeAddress peer) {
         log.info("SellerProtocol.handle(PaymentSentMessage)");
-        // We are more tolerant with expected phase and allow also DEPOSIT_PUBLISHED as it can be the case
-        // that the wallet is still syncing and so the DEPOSIT_CONFIRMED state to yet triggered when we received
+        // We are more tolerant with expected phase and allow also DEPOSITS_PUBLISHED as it can be the case
+        // that the wallet is still syncing and so the DEPOSITS_CONFIRMED state to yet triggered when we received
         // a mailbox message with PaymentSentMessage.
         // TODO A better fix would be to add a listener for the wallet sync state and process
         // the mailbox msg once wallet is ready and trade state set.
@@ -86,7 +86,7 @@ public abstract class SellerProtocol extends DisputeProtocol {
                 return;
             }
             latchTrade();
-            expect(anyPhase(Trade.Phase.DEPOSIT_UNLOCKED, Trade.Phase.DEPOSIT_PUBLISHED)
+            expect(anyPhase(Trade.Phase.DEPOSIT_UNLOCKED, Trade.Phase.DEPOSITS_PUBLISHED)
                     .with(message)
                     .from(peer)
                     .preCondition(trade.getPayoutTx() == null,

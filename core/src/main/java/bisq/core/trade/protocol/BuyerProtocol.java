@@ -53,7 +53,7 @@ public abstract class BuyerProtocol extends DisputeProtocol {
     protected void onInitialized() {
         super.onInitialized();
         
-        given(phase(Trade.Phase.DEPOSIT_PUBLISHED)
+        given(phase(Trade.Phase.DEPOSITS_PUBLISHED)
                 .with(BuyerEvent.STARTUP))
                 .setup(tasks(SetupDepositTxsListener.class))
                 .executeTasks();

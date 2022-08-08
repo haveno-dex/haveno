@@ -402,6 +402,10 @@ public class PendingTradesViewModel extends ActivatableWithDataModel<PendingTrad
         switch (tradeState) {
             // preparation
             case PREPARATION:
+            case MULTISIG_PREPARED:
+            case MULTISIG_MADE:
+            case MULTISIG_EXCHANGED:
+            case MULTISIG_COMPLETED:
             case CONTRACT_SIGNATURE_REQUESTED:
             case CONTRACT_SIGNED:
                 sellerState.set(UNDEFINED);

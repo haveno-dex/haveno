@@ -416,10 +416,10 @@ class TakeOfferViewModel extends ActivatableWithDataModel<TakeOfferDataModel> im
                 case INIT:
                     appendMsg = Res.get("takeOffer.error.noFundsLost");
                     break;
-                case TAKER_FEE_PUBLISHED:
+                case DEPOSIT_REQUESTED:
                     appendMsg = Res.get("takeOffer.error.feePaid");
                     break;
-                case DEPOSIT_PUBLISHED:
+                case DEPOSITS_PUBLISHED:
                 case PAYMENT_SENT:
                 case PAYMENT_RECEIVED:
                     appendMsg = Res.get("takeOffer.error.depositPublished");

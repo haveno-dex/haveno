@@ -138,7 +138,7 @@ public abstract class DisputeProtocol extends TradeProtocol {
 
 //    public void onPublishDelayedPayoutTx(ResultHandler resultHandler, ErrorMessageHandler errorMessageHandler) {
 //        DisputeEvent event = DisputeEvent.ARBITRATION_REQUESTED;
-//        expect(anyPhase(Trade.Phase.DEPOSIT_CONFIRMED,
+//        expect(anyPhase(Trade.Phase.DEPOSITS_CONFIRMED,
 //                Trade.Phase.FIAT_SENT,
 //                Trade.Phase.FIAT_RECEIVED)
 //                .with(event)

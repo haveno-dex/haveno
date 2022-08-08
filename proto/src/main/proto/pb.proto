@@ -1663,9 +1663,9 @@ message Trade {
     enum Phase {
         PB_ERROR_PHASE = 0;
         INIT = 1;
-        TAKER_FEE_PUBLISHED = 2;
-        DEPOSIT_PUBLISHED = 3;
-        DEPOSIT_CONFIRMED = 4;
+        DEPOSIT_REQUESTED = 2;
+        DEPOSITS_PUBLISHED = 3;
+        DEPOSITS_CONFIRMED = 4;
         PAYMENT_SENT = 5;
         PAYMENT_RECEIVED = 6;
         PAYOUT_PUBLISHED = 7;
