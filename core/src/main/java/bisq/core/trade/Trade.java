@@ -115,14 +115,14 @@ public abstract class Trade implements Tradable, Model {
         CONTRACT_SIGNED(Phase.INIT),
 
         // deposit requested
-        SENT_PUBLISH_DEPOSIT_TX_REQUEST(Phase.TAKER_FEE_PUBLISHED),
-        SAW_ARRIVED_PUBLISH_DEPOSIT_TX_REQUEST(Phase.TAKER_FEE_PUBLISHED),
-        STORED_IN_MAILBOX_PUBLISH_DEPOSIT_TX_REQUEST(Phase.TAKER_FEE_PUBLISHED), //not a mailbox msg, not used...
-        SEND_FAILED_PUBLISH_DEPOSIT_TX_REQUEST(Phase.TAKER_FEE_PUBLISHED),
+        SENT_PUBLISH_DEPOSIT_TX_REQUEST(Phase.DEPOSIT_REQUESTED),
+        SAW_ARRIVED_PUBLISH_DEPOSIT_TX_REQUEST(Phase.DEPOSIT_REQUESTED),
+        STORED_IN_MAILBOX_PUBLISH_DEPOSIT_TX_REQUEST(Phase.DEPOSIT_REQUESTED), //not a mailbox msg, not used...
+        SEND_FAILED_PUBLISH_DEPOSIT_TX_REQUEST(Phase.DEPOSIT_REQUESTED),
 
         // deposit published
-        SAW_DEPOSIT_TXS_IN_NETWORK(Phase.DEPOSIT_PUBLISHED), // TODO: seeing in network usually happens after arbitrator publishes
-        ARBITRATOR_PUBLISHED_DEPOSIT_TXS(Phase.DEPOSIT_PUBLISHED),
+        SAW_DEPOSIT_TXS_IN_NETWORK(Phase.DEPOSITS_PUBLISHED), // TODO: seeing in network usually happens after arbitrator publishes
+        ARBITRATOR_PUBLISHED_DEPOSIT_TXS(Phase.DEPOSITS_PUBLISHED),
 
         // deposit confirmed (TODO)
 
@@ -189,8 +189,8 @@ public abstract class Trade implements Tradable, Model {
 
     public enum Phase {
         INIT,
-        TAKER_FEE_PUBLISHED, // TODO (woodser): remove unused phases
-        DEPOSIT_PUBLISHED,
+        DEPOSIT_REQUESTED, // TODO (woodser): remove unused phases
+        DEPOSITS_PUBLISHED,
         DEPOSIT_UNLOCKED, // TODO (woodser): rename to or add DEPOSIT_UNLOCKED
         PAYMENT_SENT,
         PAYMENT_RECEIVED,
@@ -1252,11 +1252,11 @@ public abstract class Trade implements Tradable, Model {
     }
 
     public boolean isTakerFeePublished() {
-        return getState().getPhase().ordinal() >= Phase.TAKER_FEE_PUBLISHED.ordinal();
+        return getState().getPhase().ordinal() >= Phase.DEPOSIT_REQUESTED.ordinal();
     }
 
     public boolean isDepositPublished() {
-        return getState().getPhase().ordinal() >= Phase.DEPOSIT_PUBLISHED.ordinal();
+        return getState().getPhase().ordinal() >= Phase.DEPOSITS_PUBLISHED.ordinal();
     }
 
     public boolean isFundsLockedIn() {

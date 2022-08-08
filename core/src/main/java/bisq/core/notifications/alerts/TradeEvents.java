@@ -69,8 +69,8 @@ public class TradeEvents {
                 String shortId = trade.getShortId();
                 switch (newValue) {
                     case INIT:
-                    case TAKER_FEE_PUBLISHED:
-                    case DEPOSIT_PUBLISHED:
+                    case DEPOSIT_REQUESTED:
+                    case DEPOSITS_PUBLISHED:
                         break;
                     case DEPOSIT_UNLOCKED:
                         if (trade.getContract() != null && pubKeyRingProvider.get().equals(trade.getContract().getBuyerPubKeyRing()))
