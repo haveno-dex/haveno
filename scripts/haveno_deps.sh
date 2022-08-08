@@ -1,9 +1,9 @@
 #!/bin/bash
 
 # Hashes and tag of our Monero testing binaries at https://github.com/haveno-dex/monero/releases
-MONERO_HASH_MAC="9188d0ee6111c5f68da0002bbbfc3ecf1ad4c053e99495b17652e2b6bc15ef49"
-MONERO_HASH_LINUX="ac5b335bbb5ee82e64d13898b951b8a3e1a9bd39b0dfbc3b08ea6be0d16d82f1"
-MONERO_TAG="testing6"
+MONERO_HASH_MAC="c2e82905a1161bd2438eac8c08e140f31d23e359a7969977c0e83456783b733b"
+MONERO_HASH_LINUX="afda3ab486a1f8e6c1ea6d3db6e80e5c75854475aa919aef6f3b3d9840c6ad62"
+MONERO_TAG="testing7"
 # Hashes and version of bitcoin core: https://bitcoin.org/bin/
 #BTC_HASH_MAC="1ea5cedb64318e9868a66d3ab65de14516f9ada53143e460d50af428b5aec3c7"
 #BTC_HASH_LINUX="366eb44a7a0aa5bd342deea215ec19a184a11f2ca22220304ebb20b9c8917e2b"
