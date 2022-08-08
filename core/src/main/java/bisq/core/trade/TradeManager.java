@@ -91,6 +91,7 @@ import javafx.collections.ObservableList;
 
 import org.bouncycastle.crypto.params.KeyParameter;
 import org.fxmisc.easybind.EasyBind;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -881,24 +882,22 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
     }
 
     private void updateTradePeriodState() {
-        UserThread.execute(() -> { // prevent concurrent modification error
-            getObservableList().forEach(trade -> {
-                if (!trade.isPayoutPublished()) {
-                    Date maxTradePeriodDate = trade.getMaxTradePeriodDate();
-                    Date halfTradePeriodDate = trade.getHalfTradePeriodDate();
-                    if (maxTradePeriodDate != null && halfTradePeriodDate != null) {
-                        Date now = new Date();
-                        if (now.after(maxTradePeriodDate)) {
-                            trade.setPeriodState(Trade.TradePeriodState.TRADE_PERIOD_OVER);
-                            requestPersistence();
-                        } else if (now.after(halfTradePeriodDate)) {
-                            trade.setPeriodState(Trade.TradePeriodState.SECOND_HALF);
-                            requestPersistence();
-                        }
+        for (Trade trade : new ArrayList<Trade>(tradableList.getList())) {
+            if (!trade.isPayoutPublished()) {
+                Date maxTradePeriodDate = trade.getMaxTradePeriodDate();
+                Date halfTradePeriodDate = trade.getHalfTradePeriodDate();
+                if (maxTradePeriodDate != null && halfTradePeriodDate != null) {
+                    Date now = new Date();
+                    if (now.after(maxTradePeriodDate)) {
+                        trade.setPeriodState(Trade.TradePeriodState.TRADE_PERIOD_OVER);
+                        requestPersistence();
+                    } else if (now.after(halfTradePeriodDate)) {
+                        trade.setPeriodState(Trade.TradePeriodState.SECOND_HALF);
+                        requestPersistence();
                     }
                 }
-            });
-        });
+            }
+        }
     }
 
 
