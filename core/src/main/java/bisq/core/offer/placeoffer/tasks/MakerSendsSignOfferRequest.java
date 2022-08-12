@@ -157,7 +157,7 @@ public class MakerSendsSignOfferRequest extends Task<PlaceOfferModel> {
         excludedArbitrators.add(arbitratorNodeAddress);
         Arbitrator altArbitrator = DisputeAgentSelection.getLeastUsedArbitrator(model.getTradeStatisticsManager(), model.getArbitratorManager(), excludedArbitrators);
         if (altArbitrator == null) {
-            errorMessageHandler.handleErrorMessage("Cannot sign offer because no arbitrators are available");
+            errorMessageHandler.handleErrorMessage("Offer could not be signed by any arbitrator");
             return;
         }
         log.info("Using alternative arbitrator {}", altArbitrator.getNodeAddress());
