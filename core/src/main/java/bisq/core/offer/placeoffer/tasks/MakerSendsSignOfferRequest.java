@@ -79,8 +79,8 @@ public class MakerSendsSignOfferRequest extends Task<PlaceOfferModel> {
             sendSignOfferRequests(request, () -> {
                 complete();
             }, (errorMessage) -> {
-                log.warn("Cannot sign offer with any arbitrator: " + errorMessage);
-                appendToErrorMessage("Cannot sign offer with any arbitrator: " + request + "\nerrorMessage=" + errorMessage);
+                log.warn("Error signing offer: " + errorMessage);
+                appendToErrorMessage("Error signing offer: " + errorMessage);
                 failed(errorMessage);
             });
         } catch (Throwable t) {
