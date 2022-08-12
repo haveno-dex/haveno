@@ -638,8 +638,9 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
     }
 
     protected void unlatchTrade() {
-        if (tradeLatch != null) tradeLatch.countDown();
+        CountDownLatch lastLatch = tradeLatch;
         tradeLatch = null;
+        if (lastLatch != null) lastLatch.countDown();
     }
 
     protected void awaitTradeLatch() {
