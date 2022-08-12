@@ -47,7 +47,6 @@ import java.math.BigInteger;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -94,13 +93,12 @@ public abstract class DisputeAgentManager<T extends DisputeAgent> {
     public DisputeAgentManager(KeyRing keyRing,
                                DisputeAgentService<T> disputeAgentService,
                                User user,
-                               FilterManager filterManager,
-                               boolean useDevPrivilegeKeys) {
+                               FilterManager filterManager) {
         this.keyRing = keyRing;
         this.disputeAgentService = disputeAgentService;
         this.user = user;
         this.filterManager = filterManager;
-        publicKeys = useDevPrivilegeKeys ? Collections.singletonList(DevEnv.DEV_PRIVILEGE_PUB_KEY) : getPubKeyList();
+        publicKeys = getPubKeyList();
     }
 
 
@@ -245,6 +243,8 @@ public abstract class DisputeAgentManager<T extends DisputeAgent> {
                         resultHandler.handleResult();
                     },
                     errorMessageHandler);
+        } else {
+            errorMessageHandler.handleErrorMessage("User is not registered dispute agent");
         }
     }
 

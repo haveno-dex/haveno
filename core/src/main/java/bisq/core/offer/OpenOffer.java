@@ -19,8 +19,6 @@ package bisq.core.offer;
 
 import bisq.core.trade.Tradable;
 
-import bisq.network.p2p.NodeAddress;
-
 import bisq.common.Timer;
 import bisq.common.UserThread;
 import bisq.common.proto.ProtoUtil;
@@ -55,10 +53,6 @@ public final class OpenOffer implements Tradable {
     private final Offer offer;
     @Getter
     private State state;
-    @Getter
-    @Setter
-    @Nullable
-    private NodeAddress backupArbitrator;
     @Setter
     @Getter
     private boolean autoSplit;
@@ -113,7 +107,6 @@ public final class OpenOffer implements Tradable {
 
     private OpenOffer(Offer offer,
                       State state,
-                      @Nullable NodeAddress backupArbitrator,
                       long triggerPrice,
                       boolean autoSplit,
                       @Nullable String scheduledAmount,
@@ -123,7 +116,6 @@ public final class OpenOffer implements Tradable {
                       @Nullable String reserveTxKey) {
         this.offer = offer;
         this.state = state;
-        this.backupArbitrator = backupArbitrator;
         this.triggerPrice = triggerPrice;
         this.autoSplit = autoSplit;
         this.scheduledTxHashes = scheduledTxHashes;
@@ -144,7 +136,6 @@ public final class OpenOffer implements Tradable {
                 .setAutoSplit(autoSplit);
 
         Optional.ofNullable(scheduledAmount).ifPresent(e -> builder.setScheduledAmount(scheduledAmount));
-        Optional.ofNullable(backupArbitrator).ifPresent(nodeAddress -> builder.setBackupArbitrator(nodeAddress.toProtoMessage()));
         Optional.ofNullable(scheduledTxHashes).ifPresent(e -> builder.addAllScheduledTxHashes(scheduledTxHashes));
         Optional.ofNullable(reserveTxHash).ifPresent(e -> builder.setReserveTxHash(reserveTxHash));
         Optional.ofNullable(reserveTxHex).ifPresent(e -> builder.setReserveTxHex(reserveTxHex));
@@ -156,7 +147,6 @@ public final class OpenOffer implements Tradable {
     public static Tradable fromProto(protobuf.OpenOffer proto) {
         OpenOffer openOffer = new OpenOffer(Offer.fromProto(proto.getOffer()),
                 ProtoUtil.enumFromProto(OpenOffer.State.class, proto.getState().name()),
-                proto.hasBackupArbitrator() ? NodeAddress.fromProto(proto.getBackupArbitrator()) : null,
                 proto.getTriggerPrice(),
                 proto.getAutoSplit(),
                 proto.getScheduledAmount(),
@@ -227,7 +217,6 @@ public final class OpenOffer implements Tradable {
         return "OpenOffer{" +
                 ",\n     offer=" + offer +
                 ",\n     state=" + state +
-                ",\n     arbitratorNodeAddress=" + backupArbitrator +
                 ",\n     triggerPrice=" + triggerPrice +
                 "\n}";
     }

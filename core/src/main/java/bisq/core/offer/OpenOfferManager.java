@@ -24,7 +24,6 @@ import bisq.core.btc.wallet.TradeWalletService;
 import bisq.core.btc.wallet.XmrWalletService;
 import bisq.core.exceptions.TradePriceOutOfToleranceException;
 import bisq.core.filter.FilterManager;
-import bisq.core.offer.availability.DisputeAgentSelection;
 import bisq.core.offer.messages.OfferAvailabilityRequest;
 import bisq.core.offer.messages.OfferAvailabilityResponse;
 import bisq.core.offer.messages.SignOfferRequest;
@@ -703,6 +702,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
             // handle result
             resultHandler.handleResult(null);
         } catch (Exception e) {
+            e.printStackTrace();
             errorMessageHandler.handleErrorMessage(e.getMessage());
         }
     }
@@ -760,7 +760,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
 
                     // set reserve tx on open offer
                     openOffer.setReserveTxHash(model.getReserveTx().getHash());
-                    openOffer.setReserveTxHex(model.getReserveTx().getHash());
+                    openOffer.setReserveTxHex(model.getReserveTx().getFullHex());
                     openOffer.setReserveTxKey(model.getReserveTx().getKey());
 
                     // set offer state
@@ -948,7 +948,6 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
             Optional<OpenOffer> openOfferOptional = getOpenOfferById(request.offerId);
             AvailabilityResult availabilityResult;
             String makerSignature = null;
-            NodeAddress backupArbitratorNodeAddress = null;
             if (openOfferOptional.isPresent()) {
                 OpenOffer openOffer = openOfferOptional.get();
                 if (!apiUserDeniedByOffer(request)) {
@@ -957,12 +956,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                             Offer offer = openOffer.getOffer();
                             if (preferences.getIgnoreTradersList().stream().noneMatch(fullAddress -> fullAddress.equals(peer.getFullAddress()))) {
                                 
-                                // set backup arbitrator if signer is not available
-                                Mediator backupMediator = DisputeAgentSelection.getLeastUsedArbitrator(tradeStatisticsManager, mediatorManager, offer.getOfferPayload().getArbitratorSigner());
-                                backupArbitratorNodeAddress = backupMediator == null ? null : backupMediator.getNodeAddress();
-                                openOffer.setBackupArbitrator(backupArbitratorNodeAddress);
-                                
-                                // maker signs taker's request // TODO (woodser): should maker signature include selected arbitrator?
+                                // maker signs taker's request
                                 String tradeRequestAsJson = JsonUtil.objectToJson(request.getTradeRequest());
                                 makerSignature = Sig.sign(keyRing.getSignatureKeyPair().getPrivate(), tradeRequestAsJson);
 
@@ -1005,8 +999,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
 
             OfferAvailabilityResponse offerAvailabilityResponse = new OfferAvailabilityResponse(request.offerId,
                     availabilityResult,
-                    makerSignature,
-                    backupArbitratorNodeAddress);
+                    makerSignature);
             log.info("Send {} with offerId {} and uid {} to peer {}",
                     offerAvailabilityResponse.getClass().getSimpleName(), offerAvailabilityResponse.getOfferId(),
                     offerAvailabilityResponse.getUid(), peer);

@@ -500,9 +500,10 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
 
           Offer offer = openOffer.getOffer();
 
-          // verify request is from signer or backup arbitrator
-          if (!sender.equals(offer.getOfferPayload().getArbitratorSigner()) && !sender.equals(openOffer.getBackupArbitrator())) { // TODO (woodser): get backup arbitrator from maker-signed InitTradeRequest and remove from OpenOffer
-              log.warn("Ignoring InitTradeRequest from {} with tradeId {} because request must be from signer or backup arbitrator", sender, request.getTradeId());
+          // verify request is from arbitrator
+          Arbitrator arbitrator = user.getAcceptedArbitratorByAddress(sender);
+          if (arbitrator == null) {
+              log.warn("Ignoring InitTradeRequest from {} with tradeId {} because request is not from accepted arbitrator", sender, request.getTradeId());
               return;
           }
 
@@ -762,7 +763,6 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
 
                         trade.getProcessModel().setTradeMessage(model.getTradeRequest());
                         trade.getProcessModel().setMakerSignature(model.getMakerSignature());
-                        trade.getProcessModel().setBackupArbitrator(model.getBackupArbitrator()); // backup arbitrator only used if signer offline
                         trade.getProcessModel().setUseSavingsWallet(useSavingsWallet);
                         trade.getProcessModel().setFundsNeededForTradeAsLong(fundsNeededForTrade.value);
                         trade.setTakerPubKeyRing(model.getPubKeyRing());

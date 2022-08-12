@@ -30,14 +30,13 @@ import java.util.Optional;
 import lombok.EqualsAndHashCode;
 import lombok.Value;
 
-import javax.annotation.Nullable;
-
 @EqualsAndHashCode(callSuper = true)
 @Value
 public final class SignContractResponse extends TradeMessage implements DirectMessage {
     private final NodeAddress senderNodeAddress;
     private final PubKeyRing pubKeyRing;
     private final long currentDate;
+    private final String contractAsJson;
     private final String contractSignature;
 
     public SignContractResponse(String tradeId,
@@ -46,11 +45,13 @@ public final class SignContractResponse extends TradeMessage implements DirectMe
                                      String uid,
                                      String messageVersion,
                                      long currentDate,
+                                     String contractAsJson,
                                      String contractSignature) {
         super(messageVersion, tradeId, uid);
         this.senderNodeAddress = senderNodeAddress;
         this.pubKeyRing = pubKeyRing;
         this.currentDate = currentDate;
+        this.contractAsJson = contractAsJson;
         this.contractSignature = contractSignature;
     }
 
@@ -67,6 +68,7 @@ public final class SignContractResponse extends TradeMessage implements DirectMe
                 .setPubKeyRing(pubKeyRing.toProtoMessage())
                 .setUid(uid);
 
+        Optional.ofNullable(contractAsJson).ifPresent(e -> builder.setContractAsJson(contractAsJson));
         Optional.ofNullable(contractSignature).ifPresent(e -> builder.setContractSignature(contractSignature));
 
         builder.setCurrentDate(currentDate);
@@ -83,6 +85,7 @@ public final class SignContractResponse extends TradeMessage implements DirectMe
                 proto.getUid(),
                 messageVersion,
                 proto.getCurrentDate(),
+                ProtoUtil.stringOrNullFromProto(proto.getContractAsJson()),
                 ProtoUtil.stringOrNullFromProto(proto.getContractSignature()));
     }
 
@@ -92,6 +95,7 @@ public final class SignContractResponse extends TradeMessage implements DirectMe
                 "\n     senderNodeAddress=" + senderNodeAddress +
                 ",\n     pubKeyRing=" + pubKeyRing +
                 ",\n     currentDate=" + currentDate +
+                ",\n     contractAsJson='" + contractAsJson +
                 ",\n     contractSignature='" + contractSignature +
                 "\n} " + super.toString();
     }

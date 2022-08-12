@@ -415,7 +415,7 @@ class GrpcWalletsService extends WalletsImplBase {
         return getCustomRateMeteringInterceptor(coreApi.getConfig().appDataDir, this.getClass())
                 .or(() -> Optional.of(CallRateMeteringInterceptor.valueOf(
                         new HashMap<>() {{
-                            put(getGetBalancesMethod().getFullMethodName(), new GrpcCallRateMeter(20, SECONDS));
+                            put(getGetBalancesMethod().getFullMethodName(), new GrpcCallRateMeter(50, SECONDS));
                             put(getGetAddressBalanceMethod().getFullMethodName(), new GrpcCallRateMeter(1, SECONDS));
                             put(getGetFundingAddressesMethod().getFullMethodName(), new GrpcCallRateMeter(1, SECONDS));
                             put(getSendBtcMethod().getFullMethodName(), new GrpcCallRateMeter(1, MINUTES));

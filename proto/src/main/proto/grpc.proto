@@ -220,6 +220,8 @@ message SendDisputeChatMessageReply {
 service DisputeAgents {
     rpc RegisterDisputeAgent (RegisterDisputeAgentRequest) returns (RegisterDisputeAgentReply) {
     }
+    rpc UnregisterDisputeAgent (UnregisterDisputeAgentRequest) returns (UnregisterDisputeAgentReply) {
+    }
 }
 
 message RegisterDisputeAgentRequest {
@@ -228,6 +230,13 @@ message RegisterDisputeAgentRequest {
 }
 
 message RegisterDisputeAgentReply {
+}
+
+message UnregisterDisputeAgentRequest {
+    string dispute_agent_type = 1;
+}
+
+message UnregisterDisputeAgentReply {
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////
@@ -530,6 +539,7 @@ message OfferInfo {
     string pub_key_ring = 26;
     string version_nr = 27;
     int32 protocol_version = 28;
+    string arbitrator_signer = 29;
 }
 
 message AvailabilityResultWithDescription {
@@ -822,19 +832,20 @@ message TradeInfo {
     string payout_tx_id = 11;
     uint64 amount_as_long = 12;
     string price = 13;
-    string trading_peer_node_address = 14;
-    string state = 15;
-    string phase = 16;
-    string period_state = 17;
-    bool is_deposit_published = 18;
-    bool is_deposit_unlocked = 19;
-    bool is_payment_sent = 20;
-    bool is_payment_received = 21;
-    bool is_payout_published = 22;
-    bool is_completed = 23;
-    string contract_as_json = 24;
-    ContractInfo contract = 25;
-    string trade_volume = 26;
+    string arbitrator_node_address = 14;
+    string trading_peer_node_address = 15;
+    string state = 16;
+    string phase = 17;
+    string period_state = 18;
+    bool is_deposit_published = 19;
+    bool is_deposit_unlocked = 20;
+    bool is_payment_sent = 21;
+    bool is_payment_received = 22;
+    bool is_payout_published = 23;
+    bool is_completed = 24;
+    string contract_as_json = 25;
+    ContractInfo contract = 26;
+    string trade_volume = 27;
 
     string maker_deposit_tx_id = 100;
     string taker_deposit_tx_id = 101;

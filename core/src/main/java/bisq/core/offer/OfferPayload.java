@@ -78,6 +78,7 @@ public final class OfferPayload implements ProtectedStoragePayload, ExpirablePay
     
     // address and signature of signing arbitrator
     @Setter
+    @Nullable
     protected NodeAddress arbitratorSigner;
     @Setter
     @Nullable
@@ -192,7 +193,7 @@ public final class OfferPayload implements ProtectedStoragePayload, ExpirablePay
                         @Nullable String hashOfChallenge,
                         @Nullable Map<String, String> extraDataMap,
                         int protocolVersion,
-                        NodeAddress arbitratorSigner,
+                        @Nullable NodeAddress arbitratorSigner,
                         @Nullable String arbitratorSignature,
                         @Nullable List<String> reserveTxKeyImages) {
         this.id = id;
@@ -297,8 +298,8 @@ public final class OfferPayload implements ProtectedStoragePayload, ExpirablePay
                 .setLowerClosePrice(lowerClosePrice)
                 .setUpperClosePrice(upperClosePrice)
                 .setIsPrivateOffer(isPrivateOffer)
-                .setProtocolVersion(protocolVersion)
-                .setArbitratorSigner(arbitratorSigner.toProtoMessage());
+                .setProtocolVersion(protocolVersion);
+        Optional.ofNullable(arbitratorSigner).ifPresent(e -> builder.setArbitratorSigner(arbitratorSigner.toProtoMessage()));
         Optional.ofNullable(offerFeePaymentTxId).ifPresent(builder::setOfferFeePaymentTxId);
         Optional.ofNullable(countryCode).ifPresent(builder::setCountryCode);
         Optional.ofNullable(bankId).ifPresent(builder::setBankId);
@@ -356,7 +357,7 @@ public final class OfferPayload implements ProtectedStoragePayload, ExpirablePay
                 hashOfChallenge,
                 extraDataMapMap,
                 proto.getProtocolVersion(),
-                NodeAddress.fromProto(proto.getArbitratorSigner()),
+                proto.hasArbitratorSigner() ? NodeAddress.fromProto(proto.getArbitratorSigner()) : null,
                 ProtoUtil.stringOrNullFromProto(proto.getArbitratorSignature()),
                 proto.getReserveTxKeyImagesList() == null ? null : new ArrayList<String>(proto.getReserveTxKeyImagesList()));
     }

@@ -44,10 +44,13 @@ public class ProcessSignContractResponse extends TradeTask {
         try {
             runInterceptHook();
 
-            // get contract and signature
+            // compare contracts
             String contractAsJson = trade.getContractAsJson();
-            SignContractResponse response = (SignContractResponse) processModel.getTradeMessage(); // TODO (woodser): verify response
-            String signature = response.getContractSignature();
+            SignContractResponse response = (SignContractResponse) processModel.getTradeMessage();
+            if (!contractAsJson.equals(response.getContractAsJson())) {
+                trade.getContract().printDiff(response.getContractAsJson());
+                failed("Contracts are not matching");
+            }
 
             // get peer info
             // TODO (woodser): make these utilities / refactor model
@@ -60,6 +63,7 @@ public class ProcessSignContractResponse extends TradeTask {
 
             // verify signature
             // TODO (woodser): transfer contract for convenient comparison?
+            String signature = response.getContractSignature();
             if (!Sig.verify(peerPubKeyRing.getSignaturePubKey(), contractAsJson, signature)) throw new RuntimeException("Peer's contract signature is invalid");
 
             // set peer's signature

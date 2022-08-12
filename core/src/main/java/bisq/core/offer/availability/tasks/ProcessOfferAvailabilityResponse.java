@@ -62,7 +62,6 @@ public class ProcessOfferAvailabilityResponse extends Task<OfferAvailabilityMode
             
             offer.setState(Offer.State.AVAILABLE);
             model.setMakerSignature(offerAvailabilityResponse.getMakerSignature());
-            model.setBackupArbitrator(offerAvailabilityResponse.getBackupArbitrator());
             checkNotNull(model.getMakerSignature());
 
             complete();

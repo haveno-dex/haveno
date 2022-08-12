@@ -74,6 +74,8 @@ public class OfferInfo implements Payload {
     private final String pubKeyRing;
     private final String versionNumber;
     private final int protocolVersion;
+    @Nullable
+    private final String arbitratorSigner;
 
     public OfferInfo(OfferInfoBuilder builder) {
         this.id = builder.getId();
@@ -104,6 +106,7 @@ public class OfferInfo implements Payload {
         this.pubKeyRing = builder.getPubKeyRing();
         this.versionNumber = builder.getVersionNumber();
         this.protocolVersion = builder.getProtocolVersion();
+        this.arbitratorSigner = builder.getArbitratorSigner();
     }
 
     public static OfferInfo toOfferInfo(Offer offer) {
@@ -166,7 +169,8 @@ public class OfferInfo implements Payload {
                 .withOwnerNodeAddress(offer.getOfferPayload().getOwnerNodeAddress().getFullAddress())
                 .withPubKeyRing(offer.getOfferPayload().getPubKeyRing().toString())
                 .withVersionNumber(offer.getOfferPayload().getVersionNr())
-                .withProtocolVersion(offer.getOfferPayload().getProtocolVersion());
+                .withProtocolVersion(offer.getOfferPayload().getProtocolVersion())
+                .withArbitratorSigner(offer.getOfferPayload().getArbitratorSigner() == null ? null : offer.getOfferPayload().getArbitratorSigner().getFullAddress());
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -203,6 +207,7 @@ public class OfferInfo implements Payload {
                 .setPubKeyRing(pubKeyRing)
                 .setVersionNr(versionNumber)
                 .setProtocolVersion(protocolVersion);
+        Optional.ofNullable(arbitratorSigner).ifPresent(builder::setArbitratorSigner);
         Optional.ofNullable(offerFeePaymentTxId).ifPresent(builder::setOfferFeePaymentTxId);
         return builder.build();
     }
@@ -238,6 +243,7 @@ public class OfferInfo implements Payload {
                 .withPubKeyRing(proto.getPubKeyRing())
                 .withVersionNumber(proto.getVersionNr())
                 .withProtocolVersion(proto.getProtocolVersion())
+                .withArbitratorSigner(proto.getArbitratorSigner())
                 .build();
     }
 }

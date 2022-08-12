@@ -61,6 +61,7 @@ public final class OfferInfoBuilder {
     private String pubKeyRing;
     private String versionNumber;
     private int protocolVersion;
+    private String arbitratorSigner;
 
     public OfferInfoBuilder withId(String id) {
         this.id = id;
@@ -214,6 +215,11 @@ public final class OfferInfoBuilder {
 
     public OfferInfoBuilder withProtocolVersion(int protocolVersion) {
         this.protocolVersion = protocolVersion;
+        return this;
+    }
+
+    public OfferInfoBuilder withArbitratorSigner(String arbitratorSigner) {
+        this.arbitratorSigner = arbitratorSigner;
         return this;
     }
 

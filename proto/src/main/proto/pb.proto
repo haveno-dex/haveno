@@ -184,7 +184,6 @@ message OfferAvailabilityResponse {
     repeated int32 supported_capabilities = 3;
     string uid = 4;
     string maker_signature = 5;
-    NodeAddress backup_arbitrator = 6;
 }
 
 message RefreshOfferMessage {
@@ -328,7 +327,8 @@ message SignContractResponse {
     PubKeyRing pub_key_ring = 3;
     string uid = 4;
     int64 current_date = 5;
-    string contract_signature = 6;
+    string contract_as_json = 6;
+    string contract_signature = 7;
 }
 
 message DepositRequest {
@@ -1598,14 +1598,13 @@ message OpenOffer {
 
     Offer offer = 1;
     State state = 2;
-    NodeAddress backup_arbitrator = 3;
-    int64 trigger_price = 4;
-    bool auto_split = 5;
-    repeated string scheduled_tx_hashes = 6;
-    string scheduled_amount = 7; // BigInteger
-    string reserve_tx_hash = 8;
-    string reserve_tx_hex = 9;
-    string reserve_tx_key = 10;
+    int64 trigger_price = 3;
+    bool auto_split = 4;
+    repeated string scheduled_tx_hashes = 5;
+    string scheduled_amount = 6; // BigInteger
+    string reserve_tx_hash = 7;
+    string reserve_tx_hex = 8;
+    string reserve_tx_key = 9;
 }
 
 message Tradable {
@@ -1665,7 +1664,7 @@ message Trade {
         INIT = 1;
         DEPOSIT_REQUESTED = 2;
         DEPOSITS_PUBLISHED = 3;
-        DEPOSITS_CONFIRMED = 4;
+        DEPOSITS_UNLOCKED = 4;
         PAYMENT_SENT = 5;
         PAYMENT_RECEIVED = 6;
         PAYOUT_PUBLISHED = 7;
@@ -1778,12 +1777,11 @@ message ProcessModel {
     int64 seller_payout_amount_from_mediation = 20;
 
     string maker_signature = 1001;
-    NodeAddress backup_arbitrator = 1002;
-    TradingPeer maker = 1003;
-    TradingPeer taker = 1004;
-    TradingPeer arbitrator = 1005;
-    NodeAddress temp_trading_peer_node_address = 1006;
-    string multisig_address = 1007;
+    TradingPeer maker = 1002;
+    TradingPeer taker = 1003;
+    TradingPeer arbitrator = 1004;
+    NodeAddress temp_trading_peer_node_address = 1005;
+    string multisig_address = 1006;
 }
 
 message TradingPeer {

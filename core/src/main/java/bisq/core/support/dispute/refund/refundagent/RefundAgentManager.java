@@ -23,12 +23,10 @@ import bisq.core.user.User;
 
 import bisq.network.p2p.storage.payload.ProtectedStorageEntry;
 
-import bisq.common.config.Config;
 import bisq.common.crypto.KeyRing;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
-import javax.inject.Named;
 
 import java.util.List;
 
@@ -42,9 +40,8 @@ public class RefundAgentManager extends DisputeAgentManager<RefundAgent> {
     public RefundAgentManager(KeyRing keyRing,
                               RefundAgentService refundAgentService,
                               User user,
-                              FilterManager filterManager,
-                              @Named(Config.USE_DEV_PRIVILEGE_KEYS) boolean useDevPrivilegeKeys) {
-        super(keyRing, refundAgentService, user, filterManager, useDevPrivilegeKeys);
+                              FilterManager filterManager) {
+        super(keyRing, refundAgentService, user, filterManager);
     }
 
     @Override

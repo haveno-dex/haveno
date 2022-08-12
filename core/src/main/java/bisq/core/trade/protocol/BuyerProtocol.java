@@ -90,7 +90,7 @@ public abstract class BuyerProtocol extends DisputeProtocol {
                 latchTrade();
                 this.errorMessageHandler = errorMessageHandler;
                 BuyerEvent event = BuyerEvent.PAYMENT_SENT;
-                expect(phase(Trade.Phase.DEPOSIT_UNLOCKED)
+                expect(phase(Trade.Phase.DEPOSITS_UNLOCKED)
                         .with(event)
                         .preCondition(trade.confirmPermitted()))
                         .setup(tasks(ApplyFilter.class,
