@@ -406,8 +406,12 @@ public class CoreApi {
     // Dispute Agents
     ///////////////////////////////////////////////////////////////////////////////////////////
 
-    public void registerDisputeAgent(String disputeAgentType, String registrationKey) {
-        coreDisputeAgentsService.registerDisputeAgent(disputeAgentType, registrationKey);
+    public void registerDisputeAgent(String disputeAgentType, String registrationKey, ResultHandler resultHandler, ErrorMessageHandler errorMessageHandler) {
+        coreDisputeAgentsService.registerDisputeAgent(disputeAgentType, registrationKey, resultHandler, errorMessageHandler);
+    }
+
+    public void unregisterDisputeAgent(String disputeAgentType, ResultHandler resultHandler, ErrorMessageHandler errorMessageHandler) {
+        coreDisputeAgentsService.unregisterDisputeAgent(disputeAgentType, resultHandler, errorMessageHandler);
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////

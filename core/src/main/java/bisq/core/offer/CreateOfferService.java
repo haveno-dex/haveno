@@ -154,14 +154,6 @@ public class CreateOfferService {
         boolean isCryptoCurrency = CurrencyUtil.isCryptoCurrency(currencyCode);
         String baseCurrencyCode = isCryptoCurrency ? currencyCode : Res.getBaseCurrencyCode();
         String counterCurrencyCode = isCryptoCurrency ? Res.getBaseCurrencyCode() : currencyCode;
-        List<NodeAddress> acceptedArbitratorAddresses = user.getAcceptedArbitratorAddresses();
-        ArrayList<NodeAddress> arbitratorNodeAddresses = acceptedArbitratorAddresses != null ?
-                Lists.newArrayList(acceptedArbitratorAddresses) :
-                new ArrayList<>();
-        List<NodeAddress> acceptedMediatorAddresses = user.getAcceptedMediatorAddresses();
-        ArrayList<NodeAddress> mediatorNodeAddresses = acceptedMediatorAddresses != null ?
-                Lists.newArrayList(acceptedMediatorAddresses) :
-                new ArrayList<>();
         String countryCode = PaymentAccountUtil.getCountryCode(paymentAccount);
         List<String> acceptedCountryCodes = PaymentAccountUtil.getAcceptedCountryCodes(paymentAccount);
         String bankId = PaymentAccountUtil.getBankId(paymentAccount);
@@ -190,10 +182,6 @@ public class CreateOfferService {
                 paymentAccount,
                 currencyCode,
                 makerFeeAsCoin);
-
-        // select signing arbitrator
-        Arbitrator arbitrator = DisputeAgentSelection.getLeastUsedArbitrator(tradeStatisticsManager, arbitratorManager);
-        if (arbitrator == null) throw new RuntimeException("No arbitrators available");
 
         OfferPayload offerPayload = new OfferPayload(offerId,
                 creationTime,
@@ -230,7 +218,7 @@ public class CreateOfferService {
                 hashOfChallenge,
                 extraDataMap,
                 Version.TRADE_PROTOCOL_VERSION,
-                arbitrator.getNodeAddress(),
+                null,
                 null,
                 null);
         Offer offer = new Offer(offerPayload);

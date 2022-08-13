@@ -22,7 +22,6 @@ import bisq.common.app.Version;
 import bisq.common.crypto.PubKeyRing;
 import bisq.common.crypto.Sig;
 import bisq.common.taskrunner.TaskRunner;
-import bisq.core.btc.wallet.XmrWalletService;
 import bisq.core.offer.Offer;
 import bisq.core.offer.OfferDirection;
 import bisq.core.trade.Trade;
@@ -40,7 +39,7 @@ import monero.daemon.MoneroDaemon;
 
 @Slf4j
 public class ArbitratorProcessesDepositRequest extends TradeTask {
-    
+
     @SuppressWarnings({"unused"})
     public ArbitratorProcessesDepositRequest(TaskRunner taskHandler, Trade trade) {
         super(taskHandler, trade);
@@ -50,7 +49,7 @@ public class ArbitratorProcessesDepositRequest extends TradeTask {
     protected void run() {
         try {
           runInterceptHook();
-          
+
           // get contract and signature
           String contractAsJson = trade.getContractAsJson();
           DepositRequest request = (DepositRequest) processModel.getTradeMessage(); // TODO (woodser): verify response
@@ -68,10 +67,10 @@ public class ArbitratorProcessesDepositRequest extends TradeTask {
 
           // verify signature
           if (!Sig.verify(peerPubKeyRing.getSignaturePubKey(), contractAsJson, signature)) throw new RuntimeException("Peer's contract signature is invalid");
-          
+
           // set peer's signature
           peer.setContractSignature(signature);
-          
+
           // collect expected values of deposit tx
           Offer offer = trade.getOffer();
           boolean isFromTaker = request.getSenderNodeAddress().equals(trade.getTakerNodeAddress());
@@ -83,14 +82,9 @@ public class ArbitratorProcessesDepositRequest extends TradeTask {
           if (trader == processModel.getMaker()) tradeFee = ParsingUtils.coinToAtomicUnits(trade.getOffer().getMakerFee());
           else if (trader == processModel.getTaker()) tradeFee = ParsingUtils.coinToAtomicUnits(trade.getTakerFee());
           else throw new RuntimeException("DepositRequest is not from maker or taker");
-          
-          // flush reserve tx from pool
-          XmrWalletService xmrWalletService = trade.getXmrWalletService();
-          MoneroDaemon daemon = xmrWalletService.getDaemon();
-          daemon.flushTxPool(trader.getReserveTxHash());
-          
+
           // verify deposit tx
-          xmrWalletService.verifyTradeTx(depositAddress,
+          trade.getXmrWalletService().verifyTradeTx(depositAddress,
                   depositAmount,
                   tradeFee,
                   trader.getDepositTxHash(),
@@ -98,16 +92,17 @@ public class ArbitratorProcessesDepositRequest extends TradeTask {
                   request.getDepositTxKey(),
                   null,
                   false);
-          
+
           // set deposit info
           trader.setDepositTxHex(request.getDepositTxHex());
           trader.setDepositTxKey(request.getDepositTxKey());
-          
+
           // relay deposit txs when both available
           // TODO (woodser): add small delay so tx has head start against double spend attempts?
           if (processModel.getMaker().getDepositTxHex() != null && processModel.getTaker().getDepositTxHex() != null) {
-              
+
               // relay txs
+              MoneroDaemon daemon = trade.getXmrWalletService().getDaemon();
               daemon.submitTxHex(processModel.getMaker().getDepositTxHex()); // TODO (woodser): check that result is good. will need to release funds if one is submitted
               daemon.submitTxHex(processModel.getTaker().getDepositTxHex());
               
@@ -130,14 +125,14 @@ public class ArbitratorProcessesDepositRequest extends TradeTask {
           } else {
               log.info("Arbitrator waiting for deposit request from maker and taker for trade " + trade.getId());
           }
-          
+
           // TODO (woodser): request persistence?
           complete();
         } catch (Throwable t) {
           failed(t);
         }
     }
-    
+
     private void sendDepositResponse(NodeAddress nodeAddress, PubKeyRing pubKeyRing, DepositResponse response) {
         log.info("Sending deposit response to trader={}; offerId={}", nodeAddress, trade.getId());
         processModel.getP2PService().sendEncryptedDirectMessage(nodeAddress, pubKeyRing, response, new SendDirectMessageListener() {

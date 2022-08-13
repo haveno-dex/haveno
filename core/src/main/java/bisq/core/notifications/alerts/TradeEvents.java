@@ -72,7 +72,7 @@ public class TradeEvents {
                     case DEPOSIT_REQUESTED:
                     case DEPOSITS_PUBLISHED:
                         break;
-                    case DEPOSIT_UNLOCKED:
+                    case DEPOSITS_UNLOCKED:
                         if (trade.getContract() != null && pubKeyRingProvider.get().equals(trade.getContract().getBuyerPubKeyRing()))
                             msg = Res.get("account.notifications.trade.message.msg.conf", shortId);
                         break;

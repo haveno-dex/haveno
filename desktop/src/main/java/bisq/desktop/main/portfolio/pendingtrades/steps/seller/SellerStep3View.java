@@ -121,7 +121,7 @@ public class SellerStep3View extends TradeStepView {
                     switch (state) {
                         case SELLER_CONFIRMED_IN_UI_PAYMENT_RECEIPT:
                             busyAnimation.play();
-                            statusLabel.setText(Res.get("Confirming payment received. This can take up to a few minutes depending on connection speed. Please wait..."));
+                            statusLabel.setText(Res.get("Confirming payment received. This can take up to a few minutes. Please wait..."));
                             break;
                         case SELLER_PUBLISHED_PAYOUT_TX:
                         case SELLER_SENT_PAYOUT_TX_PUBLISHED_MSG:

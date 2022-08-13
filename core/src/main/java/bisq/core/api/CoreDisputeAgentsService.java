@@ -31,7 +31,8 @@ import bisq.network.p2p.P2PService;
 
 import bisq.common.config.Config;
 import bisq.common.crypto.KeyRing;
-
+import bisq.common.handlers.ErrorMessageHandler;
+import bisq.common.handlers.ResultHandler;
 import org.bitcoinj.core.ECKey;
 
 import javax.inject.Inject;
@@ -88,13 +89,9 @@ class CoreDisputeAgentsService {
         this.languageCodes = asList("de", "en", "es", "fr");
     }
 
-    void registerDisputeAgent(String disputeAgentType, String registrationKey) {
+    void registerDisputeAgent(String disputeAgentType, String registrationKey, ResultHandler resultHandler, ErrorMessageHandler errorMessageHandler) {
         if (!p2PService.isBootstrapped())
             throw new IllegalStateException("p2p service is not bootstrapped yet");
-
-        if (config.baseCurrencyNetwork.isMainnet()
-                || !config.useLocalhostForP2P)
-            throw new IllegalStateException("dispute agents must be registered in a Bisq UI");
 
         Optional<SupportType> supportType = getSupportType(disputeAgentType);
         if (supportType.isPresent()) {
@@ -104,16 +101,18 @@ class CoreDisputeAgentsService {
                 case ARBITRATION:
                     if (user.getRegisteredArbitrator() != null) {
                         log.warn("ignoring request to re-register as arbitrator");
+                        resultHandler.handleResult();
                         return;
                     }
                     ecKey = arbitratorManager.getRegistrationKey(registrationKey);
                     if (ecKey == null) throw new IllegalStateException("invalid registration key");
                     signature = arbitratorManager.signStorageSignaturePubKey(Objects.requireNonNull(ecKey));
-                    registerArbitrator(nodeAddress, languageCodes, ecKey, signature);
+                    registerArbitrator(nodeAddress, languageCodes, ecKey, signature, resultHandler, errorMessageHandler);
                     return;
                 case MEDIATION:
                     if (user.getRegisteredMediator() != null) {
                         log.warn("ignoring request to re-register as mediator");
+                        resultHandler.handleResult();
                         return;
                     }
                     ecKey = mediatorManager.getRegistrationKey(registrationKey);
@@ -124,6 +123,7 @@ class CoreDisputeAgentsService {
                 case REFUND:
                     if (user.getRegisteredRefundAgent() != null) {
                         log.warn("ignoring request to re-register as refund agent");
+                        resultHandler.handleResult();
                         return;
                     }
                     ecKey = refundAgentManager.getRegistrationKey(registrationKey);
@@ -139,10 +139,38 @@ class CoreDisputeAgentsService {
         }
     }
 
+    void unregisterDisputeAgent(String disputeAgentType, ResultHandler resultHandler, ErrorMessageHandler errorMessageHandler) {
+        if (!p2PService.isBootstrapped())
+            throw new IllegalStateException("p2p service is not bootstrapped yet");
+
+        Optional<SupportType> supportType = getSupportType(disputeAgentType);
+        if (supportType.isPresent()) {
+            switch (supportType.get()) {
+                case ARBITRATION:
+                    if (user.getRegisteredArbitrator() == null) {
+                        errorMessageHandler.handleErrorMessage("User is not arbitrator");
+                        return;
+                    }
+                    unregisterDisputeAgent(resultHandler, errorMessageHandler);
+                    return;
+                case MEDIATION:
+                    throw new IllegalStateException("unregister mediator not implemented");
+                case REFUND:
+                    throw new IllegalStateException("unregister refund agent not implemented");
+                case TRADE:
+                    throw new IllegalArgumentException("trade agent registration not supported");
+            }
+        } else {
+            throw new IllegalArgumentException(format("unknown dispute agent type '%s'", disputeAgentType));
+        }
+    }
+
     private void registerArbitrator(NodeAddress nodeAddress,
                                     List<String> languageCodes,
                                     ECKey ecKey,
-                                    String signature) {
+                                    String signature,
+                                    ResultHandler resultHandler,
+                                    ErrorMessageHandler errorMessageHandler) {
         Arbitrator arbitrator = new Arbitrator(
                 p2PService.getAddress(),
                 xmrWalletService.getWallet().getPrimaryAddress(), // TODO: how is this used?
@@ -155,10 +183,9 @@ class CoreDisputeAgentsService {
                 null,
                 null);
         arbitratorManager.addDisputeAgent(arbitrator, () -> {
-        }, errorMessage -> {
-        });
-        arbitratorManager.getDisputeAgentByNodeAddress(nodeAddress).orElseThrow(() ->
-                new IllegalStateException("could not register arbitrator"));
+            if (!arbitratorManager.getDisputeAgentByNodeAddress(nodeAddress).isPresent()) errorMessageHandler.handleErrorMessage("could not register arbitrator");
+            else resultHandler.handleResult();
+        }, errorMessageHandler);
     }
 
     private void registerMediator(NodeAddress nodeAddress,
@@ -218,5 +245,11 @@ class CoreDisputeAgentsService {
             default:
                 return Optional.empty();
         }
+    }
+
+    private void unregisterDisputeAgent(ResultHandler resultHandler, ErrorMessageHandler errorMessageHandler) {
+        arbitratorManager.removeDisputeAgent(resultHandler, errorMesage -> {
+            errorMessageHandler.handleErrorMessage("Error unregistering dispute agent: " + errorMesage);
+        });
     }
 }

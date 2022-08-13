@@ -18,7 +18,10 @@
 package bisq.core.trade.protocol.tasks;
 
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import bisq.common.app.Version;
+import bisq.common.crypto.Hash;
 import bisq.common.crypto.PubKeyRing;
 import bisq.common.crypto.Sig;
 import bisq.common.taskrunner.TaskRunner;
@@ -77,6 +80,7 @@ public class ProcessSignContractRequest extends TradeTask {
           // save contract and signature
           trade.setContract(contract);
           trade.setContractAsJson(contractAsJson);
+          trade.setContractHash(Hash.getSha256Hash(checkNotNull(contractAsJson)));
           trade.getSelf().setContractSignature(signature);
 
           // create response with contract signature
@@ -87,6 +91,7 @@ public class ProcessSignContractRequest extends TradeTask {
                   UUID.randomUUID().toString(),
                   Version.getP2PMessageVersion(),
                   new Date().getTime(),
+                  contractAsJson,
                   signature);
 
           // get response recipients. only arbitrator sends response to both peers

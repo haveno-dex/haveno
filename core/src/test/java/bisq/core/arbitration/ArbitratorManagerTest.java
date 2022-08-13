@@ -44,7 +44,7 @@ public class ArbitratorManagerTest {
         User user = mock(User.class);
         ArbitratorService arbitratorService = mock(ArbitratorService.class);
 
-        ArbitratorManager manager = new ArbitratorManager(null, arbitratorService, user, null, false);
+        ArbitratorManager manager = new ArbitratorManager(null, arbitratorService, user, null);
 
         ArrayList<String> languagesOne = new ArrayList<String>() {{
             add("en");
@@ -80,7 +80,7 @@ public class ArbitratorManagerTest {
         User user = mock(User.class);
         ArbitratorService arbitratorService = mock(ArbitratorService.class);
 
-        ArbitratorManager manager = new ArbitratorManager(null, arbitratorService, user, null, false);
+        ArbitratorManager manager = new ArbitratorManager(null, arbitratorService, user, null);
 
         ArrayList<String> languagesOne = new ArrayList<String>() {{
             add("en");

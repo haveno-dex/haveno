@@ -17,15 +17,23 @@
 
 package bisq.core.trade.protocol;
 
+import bisq.core.offer.availability.DisputeAgentSelection;
 import bisq.core.support.dispute.arbitration.arbitrator.Arbitrator;
+import bisq.core.support.dispute.arbitration.arbitrator.ArbitratorManager;
+import bisq.core.support.dispute.mediation.mediator.Mediator;
 import bisq.core.trade.Trade;
 import bisq.core.trade.messages.InitTradeRequest;
 import bisq.core.trade.protocol.tasks.TradeTask;
+import bisq.core.trade.statistics.TradeStatisticsManager;
 import bisq.network.p2p.NodeAddress;
 import bisq.network.p2p.SendDirectMessageListener;
-
+import java.util.HashSet;
+import java.util.Set;
 import bisq.common.app.Version;
+import bisq.common.handlers.ErrorMessageHandler;
+import bisq.common.handlers.ResultHandler;
 import bisq.common.taskrunner.TaskRunner;
+
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -41,53 +49,54 @@ public class TakerSendsInitTradeRequestToArbitrator extends TradeTask {
     protected void run() {
         try {
             runInterceptHook();
-            
-            // send request to arbitrator
-            sendInitTradeRequest(trade.getOffer().getOfferPayload().getArbitratorSigner(), new SendDirectMessageListener() {
-                @Override
-                public void onArrived() {
-                    log.info("{} arrived at arbitrator: offerId={}", InitTradeRequest.class.getSimpleName(), trade.getId());
-                }
-                
-                // send request to backup arbitrator if signer unavailable
-                @Override
-                public void onFault(String errorMessage) {
-                    log.info("Sending {} to signing arbitrator {} failed, using backup arbitrator {}. error={}", InitTradeRequest.class.getSimpleName(), trade.getOffer().getOfferPayload().getArbitratorSigner(), processModel.getBackupArbitrator(), errorMessage);
-                    if (processModel.getBackupArbitrator() == null) {
-                        log.warn("Cannot take offer because signing arbitrator is offline and backup arbitrator is null");
-                        failed();
-                        return;
-                    }
-                    sendInitTradeRequest(processModel.getBackupArbitrator(), new SendDirectMessageListener() {
-                        @Override
-                        public void onArrived() {
-                            log.info("{} arrived at backup arbitrator: offerId={}", InitTradeRequest.class.getSimpleName(), trade.getId());
-                        }
-                        @Override
-                        public void onFault(String errorMessage) { // TODO (woodser): distinguish nack from offline
-                            log.warn("Cannot take offer because arbitrators are unavailable: error={}.", InitTradeRequest.class.getSimpleName(), errorMessage);
-                            failed();
-                        }
-                    });
-                }
+
+            // send request to signing arbitrator then least used arbitrators until success
+            sendInitTradeRequests(trade.getOffer().getOfferPayload().getArbitratorSigner(), new HashSet<NodeAddress>(), () -> {
+                complete();
+            }, (errorMessage) -> {
+                log.warn("Cannot initialize trade with arbitrators: " + errorMessage);
+                failed(errorMessage);
             });
-            complete(); // TODO (woodser): onArrived() doesn't get called if arbitrator rejects concurrent requests. always complete before onArrived()?
         } catch (Throwable t) {
           failed(t);
         }
     }
-    
+
+    private void sendInitTradeRequests(NodeAddress arbitratorNodeAddress, Set<NodeAddress> excludedArbitrators, ResultHandler resultHandler, ErrorMessageHandler errorMessageHandler) {
+        sendInitTradeRequest(arbitratorNodeAddress, new SendDirectMessageListener() {
+            @Override
+            public void onArrived() {
+                log.info("{} arrived at arbitrator: offerId={}", InitTradeRequest.class.getSimpleName(), trade.getId());
+                resultHandler.handleResult();
+            }
+
+            // if unavailable, try alternative arbitrator
+            @Override
+            public void onFault(String errorMessage) {
+                log.warn("Arbitrator {} unavailable: {}", arbitratorNodeAddress, errorMessage);
+                excludedArbitrators.add(arbitratorNodeAddress);
+                Arbitrator altArbitrator = DisputeAgentSelection.getLeastUsedArbitrator(processModel.getTradeStatisticsManager(), processModel.getArbitratorManager(), excludedArbitrators);
+                if (altArbitrator == null) {
+                    errorMessageHandler.handleErrorMessage("Cannot take offer because no arbitrators are available");
+                    return;
+                }
+                log.info("Using alternative arbitrator {}", altArbitrator.getNodeAddress());
+                sendInitTradeRequests(altArbitrator.getNodeAddress(), excludedArbitrators, resultHandler, errorMessageHandler);
+            }
+        });
+    }
+
     private void sendInitTradeRequest(NodeAddress arbitratorNodeAddress, SendDirectMessageListener listener) {
         
         // get registered arbitrator
         Arbitrator arbitrator = processModel.getUser().getAcceptedArbitratorByAddress(arbitratorNodeAddress);
         if (arbitrator == null) throw new RuntimeException("Node address " + arbitratorNodeAddress + " is not a registered arbitrator");
-        
+
         // set pub keys
         processModel.getArbitrator().setPubKeyRing(arbitrator.getPubKeyRing());
         trade.setArbitratorNodeAddress(arbitratorNodeAddress);
         trade.setArbitratorPubKeyRing(processModel.getArbitrator().getPubKeyRing());
-        
+
         // create request to arbitrator
         InitTradeRequest makerRequest = (InitTradeRequest) processModel.getTradeMessage(); // taker's InitTradeRequest to maker
         InitTradeRequest arbitratorRequest = new InitTradeRequest(

@@ -8,7 +8,7 @@ import bisq.core.trade.messages.InitTradeRequest;
 import bisq.core.trade.messages.PaymentAccountPayloadRequest;
 import bisq.core.trade.messages.SignContractResponse;
 import bisq.core.trade.protocol.tasks.ApplyFilter;
-import bisq.core.trade.protocol.tasks.ArbitratorSendsInitTradeAndMultisigRequests;
+import bisq.core.trade.protocol.tasks.ArbitratorSendsInitTradeOrMultisigRequests;
 import bisq.core.trade.protocol.tasks.ArbitratorProcessesDepositRequest;
 import bisq.core.trade.protocol.tasks.ArbitratorProcessesReserveTx;
 import bisq.core.trade.protocol.tasks.ProcessInitTradeRequest;
@@ -42,7 +42,7 @@ public class ArbitratorProtocol extends DisputeProtocol {
                           ApplyFilter.class,
                           ProcessInitTradeRequest.class,
                           ArbitratorProcessesReserveTx.class,
-                          ArbitratorSendsInitTradeAndMultisigRequests.class)
+                          ArbitratorSendsInitTradeOrMultisigRequests.class)
                   .using(new TradeTaskRunner(trade,
                           () -> {
                               startTimeout(TRADE_TIMEOUT);

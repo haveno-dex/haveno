@@ -37,9 +37,9 @@ import static bisq.core.util.Validator.checkTradeId;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 @Slf4j
-public class MakerSendsInitTradeRequestIfUnreserved extends TradeTask {
+public class MakerSendsInitTradeRequest extends TradeTask {
     @SuppressWarnings({"unused"})
-    public MakerSendsInitTradeRequestIfUnreserved(TaskRunner taskHandler, Trade trade) {
+    public MakerSendsInitTradeRequest(TaskRunner taskHandler, Trade trade) {
         super(taskHandler, trade);
     }
 
@@ -48,28 +48,22 @@ public class MakerSendsInitTradeRequestIfUnreserved extends TradeTask {
         try {
             runInterceptHook();
 
-            // skip if arbitrator is signer and therefore already has reserve tx
-            Offer offer = processModel.getOffer();
-            if (offer.getOfferPayload().getArbitratorSigner().equals(trade.getArbitratorNodeAddress())) {
-                complete();
-                return;
-            }
-
             // verify trade
             InitTradeRequest makerRequest = (InitTradeRequest) processModel.getTradeMessage(); // arbitrator's InitTradeRequest to maker
             checkNotNull(makerRequest);
             checkTradeId(processModel.getOfferId(), makerRequest);
-            
+
             // maker signs offer id as nonce to avoid challenge protocol // TODO (woodser): is this necessary?
+            Offer offer = processModel.getOffer();
             byte[] sig = Sig.sign(processModel.getKeyRing().getSignatureKeyPair().getPrivate(), offer.getId().getBytes(Charsets.UTF_8));
-            
+
             // create request to arbitrator
             InitTradeRequest arbitratorRequest = new InitTradeRequest(
                     offer.getId(),
                     processModel.getMyNodeAddress(),
                     processModel.getPubKeyRing(),
                     offer.getAmount().value,
-                    offer.getPrice().getValue(),
+                    trade.getPrice().getValue(),
                     offer.getMakerFee().value,
                     trade.getProcessModel().getAccountId(),
                     offer.getMakerPaymentAccountId(),
@@ -86,7 +80,7 @@ public class MakerSendsInitTradeRequestIfUnreserved extends TradeTask {
                     trade.getSelf().getReserveTxKey(),
                     model.getXmrWalletService().getOrCreateAddressEntry(offer.getId(), XmrAddressEntry.Context.TRADE_PAYOUT).getAddressString(),
                     null);
-            
+
             // send request to arbitrator
             log.info("Sending {} with offerId {} and uid {} to arbitrator {} with pub key ring {}", arbitratorRequest.getClass().getSimpleName(), arbitratorRequest.getTradeId(), arbitratorRequest.getUid(), trade.getArbitratorNodeAddress(), trade.getArbitratorPubKeyRing());
             processModel.getP2PService().sendEncryptedDirectMessage(

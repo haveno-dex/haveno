@@ -127,7 +127,7 @@ public abstract class Trade implements Tradable, Model {
         // deposit confirmed (TODO)
 
         // deposit unlocked
-        DEPOSIT_TXS_UNLOCKED_IN_BLOCKCHAIN(Phase.DEPOSIT_UNLOCKED),
+        DEPOSIT_TXS_UNLOCKED_IN_BLOCKCHAIN(Phase.DEPOSITS_UNLOCKED),
 
         // payment sent
         BUYER_CONFIRMED_IN_UI_PAYMENT_SENT(Phase.PAYMENT_SENT),
@@ -191,7 +191,7 @@ public abstract class Trade implements Tradable, Model {
         INIT,
         DEPOSIT_REQUESTED, // TODO (woodser): remove unused phases
         DEPOSITS_PUBLISHED,
-        DEPOSIT_UNLOCKED, // TODO (woodser): rename to or add DEPOSIT_UNLOCKED
+        DEPOSITS_UNLOCKED,
         PAYMENT_SENT,
         PAYMENT_RECEIVED,
         PAYOUT_PUBLISHED,
@@ -1291,7 +1291,7 @@ public abstract class Trade implements Tradable, Model {
     }
 
     public boolean isDepositUnlocked() {
-        return getState().getPhase().ordinal() >= Phase.DEPOSIT_UNLOCKED.ordinal();
+        return getState().getPhase().ordinal() >= Phase.DEPOSITS_UNLOCKED.ordinal();
     }
 
     public boolean isPaymentSent() {

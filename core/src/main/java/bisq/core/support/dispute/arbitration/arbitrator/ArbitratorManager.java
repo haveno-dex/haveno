@@ -27,7 +27,6 @@ import bisq.common.crypto.KeyRing;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
-import javax.inject.Named;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -41,16 +40,18 @@ public class ArbitratorManager extends DisputeAgentManager<Arbitrator> {
     public ArbitratorManager(KeyRing keyRing,
                              ArbitratorService arbitratorService,
                              User user,
-                             FilterManager filterManager,
-                             @Named(Config.USE_DEV_PRIVILEGE_KEYS) boolean useDevPrivilegeKeys) {
-        super(keyRing, arbitratorService, user, filterManager, useDevPrivilegeKeys);
+                             FilterManager filterManager) {
+        super(keyRing, arbitratorService, user, filterManager);
     }
 
     @Override
     protected List<String> getPubKeyList() {
         switch (Config.baseCurrencyNetwork()) {
         case XMR_LOCAL:
-            throw new RuntimeException("No arbitrator pub key list for local XMR testnet. Set useDevPrivilegeKeys=true");
+            return List.of(
+                    "027a381b5333a56e1cc3d90d3a7d07f26509adf7029ed06fc997c656621f8da1ee",
+                    "024baabdba90e7cc0dc4626ef73ea9d722ea7085d1104491da8c76f28187513492",
+                    "026eeec3c119dd6d537249d74e5752a642dd2c3cc5b6a9b44588eb58344f29b519");
         case XMR_STAGENET:
             return List.of(
                     "03bb559ce207a4deb51d4c705076c95b85ad8581d35936b2a422dcb504eaf7cdb0",

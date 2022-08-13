@@ -23,11 +23,9 @@ import bisq.core.user.User;
 
 import bisq.network.p2p.storage.payload.ProtectedStorageEntry;
 
-import bisq.common.config.Config;
 import bisq.common.crypto.KeyRing;
 
 import javax.inject.Singleton;
-import javax.inject.Named;
 
 import javax.inject.Inject;
 
@@ -40,9 +38,8 @@ public class MediatorManager extends DisputeAgentManager<Mediator> {
     public MediatorManager(KeyRing keyRing,
                            MediatorService mediatorService,
                            User user,
-                           FilterManager filterManager,
-                           @Named(Config.USE_DEV_PRIVILEGE_KEYS) boolean useDevPrivilegeKeys) {
-        super(keyRing, mediatorService, user, filterManager, useDevPrivilegeKeys);
+                           FilterManager filterManager) {
+        super(keyRing, mediatorService, user, filterManager);
     }
 
     @Override

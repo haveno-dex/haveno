@@ -47,6 +47,7 @@ public final class TradeInfoV1Builder {
     private long amountAsLong;
     private String price;
     private String volume;
+    private String arbitratorNodeAddress;
     private String tradingPeerNodeAddress;
     private String state;
     private String phase;
@@ -148,6 +149,11 @@ public final class TradeInfoV1Builder {
 
     public TradeInfoV1Builder withPhase(String phase) {
         this.phase = phase;
+        return this;
+    }
+
+    public TradeInfoV1Builder withArbitratorNodeAddress(String arbitratorNodeAddress) {
+        this.arbitratorNodeAddress = arbitratorNodeAddress;
         return this;
     }
 

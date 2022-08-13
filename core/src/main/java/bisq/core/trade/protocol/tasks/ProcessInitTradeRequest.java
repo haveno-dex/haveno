@@ -25,7 +25,6 @@ import bisq.core.trade.Trade;
 import bisq.core.trade.TradeUtils;
 import bisq.core.trade.messages.InitTradeRequest;
 import bisq.core.trade.protocol.TradingPeer;
-import bisq.core.user.User;
 
 import bisq.common.taskrunner.TaskRunner;
 import org.bitcoinj.core.Coin;
@@ -62,6 +61,9 @@ public class ProcessInitTradeRequest extends TradeTask {
             // handle request as arbitrator
             TradingPeer multisigParticipant;
             if (trade instanceof ArbitratorTrade) {
+                trade.setMakerPubKeyRing((trade.getOffer().getPubKeyRing()));
+                trade.setArbitratorPubKeyRing(processModel.getPubKeyRing());
+                processModel.getArbitrator().setPubKeyRing(processModel.getPubKeyRing()); // TODO (woodser): why duplicating field in process model
                 
                 // handle request from taker
                 if (request.getSenderNodeAddress().equals(request.getTakerNodeAddress())) {
@@ -70,6 +72,17 @@ public class ProcessInitTradeRequest extends TradeTask {
                     if (trade.getTakerPubKeyRing() != null) throw new RuntimeException("Pub key ring should not be initialized before processing InitTradeRequest");
                     trade.setTakerPubKeyRing(request.getPubKeyRing());
                     if (!TradeUtils.isMakerSignatureValid(request, request.getMakerSignature(), offer.getPubKeyRing())) throw new RuntimeException("Maker signature is invalid for the trade request"); // verify maker signature
+
+                    // check trade price
+                    try {
+                        long tradePrice = request.getTradePrice();
+                        offer.verifyTakersTradePrice(tradePrice);
+                        trade.setPrice(tradePrice);
+                    } catch (TradePriceOutOfToleranceException e) {
+                        failed(e.getMessage());
+                    } catch (Throwable e2) {
+                        failed(e2);
+                    }
                 }
                 
                 // handle request from maker
@@ -79,6 +92,7 @@ public class ProcessInitTradeRequest extends TradeTask {
                     if (trade.getMakerPubKeyRing() == null) trade.setMakerPubKeyRing(request.getPubKeyRing());
                     else if (!trade.getMakerPubKeyRing().equals(request.getPubKeyRing())) throw new RuntimeException("Init trade requests from maker and taker do not agree");  // TODO (woodser): proper handling
                     trade.setMakerPubKeyRing(request.getPubKeyRing());
+                    if (trade.getPrice().getValue() != request.getTradePrice()) throw new RuntimeException("Maker and taker price do not agree");
                 } else {
                     throw new RuntimeException("Sender is not trade's maker or taker");
                 }
@@ -89,6 +103,17 @@ public class ProcessInitTradeRequest extends TradeTask {
                 multisigParticipant = processModel.getTaker();
                 trade.setTakerNodeAddress(request.getSenderNodeAddress()); // arbitrator sends maker InitTradeRequest with taker's node address and pub key ring
                 trade.setTakerPubKeyRing(request.getPubKeyRing());
+
+                // check trade price
+                try {
+                    long tradePrice = request.getTradePrice();
+                    offer.verifyTakersTradePrice(tradePrice);
+                    trade.setPrice(tradePrice);
+                } catch (TradePriceOutOfToleranceException e) {
+                    failed(e.getMessage());
+                } catch (Throwable e2) {
+                    failed(e2);
+                }
             }
             
             // handle invalid trade type
@@ -105,17 +130,6 @@ public class ProcessInitTradeRequest extends TradeTask {
             multisigParticipant.setAccountAgeWitnessNonce(trade.getId().getBytes(Charsets.UTF_8));
             multisigParticipant.setAccountAgeWitnessSignature(request.getAccountAgeWitnessSignatureOfOfferId());
             multisigParticipant.setCurrentDate(request.getCurrentDate());
-
-            // check trade price
-            try {
-                long tradePrice = request.getTradePrice();
-                offer.verifyTakersTradePrice(tradePrice);
-                trade.setPrice(tradePrice);
-            } catch (TradePriceOutOfToleranceException e) {
-                failed(e.getMessage());
-            } catch (Throwable e2) {
-                failed(e2);
-            }
 
             // check trade amount
             checkArgument(request.getTradeAmount() > 0);

@@ -162,7 +162,7 @@ public class BuyerStep2View extends TradeStepView {
                         switch (state) {
                         case BUYER_CONFIRMED_IN_UI_PAYMENT_SENT:
                             busyAnimation.play();
-                            statusLabel.setText("Confirming payment sent. This can take up to a few minutes depending on connection speed. Please wait...");
+                            statusLabel.setText("Confirming payment sent. This can take up to a few minutes. Please wait...");
                             break;
                         case BUYER_SENT_PAYMENT_SENT_MSG:
                             busyAnimation.play();

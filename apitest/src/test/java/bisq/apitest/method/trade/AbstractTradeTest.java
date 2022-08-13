@@ -14,7 +14,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.TestInfo;
 
 import static bisq.cli.table.builder.TableType.TRADE_DETAIL_TBL;
-import static bisq.core.trade.Trade.Phase.DEPOSIT_UNLOCKED;
+import static bisq.core.trade.Trade.Phase.DEPOSITS_UNLOCKED;
 import static bisq.core.trade.Trade.Phase.PAYMENT_SENT;
 import static bisq.core.trade.Trade.Phase.PAYOUT_PUBLISHED;
 import static bisq.core.trade.Trade.State.BUYER_SAW_ARRIVED_PAYMENT_SENT_MSG;
@@ -80,7 +80,7 @@ public class AbstractTradeTest extends AbstractOfferTest {
                                                     String tradeId) {
         Predicate<TradeInfo> isTradeInDepositUnlockedStateAndPhase = (t) ->
                 t.getState().equals(DEPOSIT_TXS_UNLOCKED_IN_BLOCKCHAIN.name())
-                        && t.getPhase().equals(DEPOSIT_UNLOCKED.name());
+                        && t.getPhase().equals(DEPOSITS_UNLOCKED.name());
 
         String userName = toUserName.apply(grpcClient);
         for (int i = 1; i <= maxTradeStateAndPhaseChecks.get(); i++) {
@@ -95,7 +95,7 @@ public class AbstractTradeTest extends AbstractOfferTest {
                 genBtcBlocksThenWait(1, 4_000);
             } else {
                 EXPECTED_PROTOCOL_STATUS.setState(DEPOSIT_TXS_UNLOCKED_IN_BLOCKCHAIN)
-                        .setPhase(DEPOSIT_UNLOCKED)
+                        .setPhase(DEPOSITS_UNLOCKED)
                         .setDepositPublished(true)
                         .setDepositConfirmed(true);
                 verifyExpectedProtocolStatus(trade);

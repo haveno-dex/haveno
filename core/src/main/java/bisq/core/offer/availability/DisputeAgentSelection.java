@@ -53,7 +53,7 @@ public class DisputeAgentSelection {
 
     public static <T extends DisputeAgent> T getLeastUsedArbitrator(TradeStatisticsManager tradeStatisticsManager,
                                                                   DisputeAgentManager<T> disputeAgentManager,
-                                                                  NodeAddress excludedArbitrator) {
+                                                                  Set<NodeAddress> excludedArbitrator) {
         return getLeastUsedDisputeAgent(tradeStatisticsManager,
                 disputeAgentManager,
                 excludedArbitrator);
@@ -61,7 +61,7 @@ public class DisputeAgentSelection {
 
     private static <T extends DisputeAgent> T getLeastUsedDisputeAgent(TradeStatisticsManager tradeStatisticsManager,
                                                                        DisputeAgentManager<T> disputeAgentManager,
-                                                                       NodeAddress excludedDisputeAgent) {
+                                                                       Set<NodeAddress> excludedDisputeAgents) {
         // We take last 100 entries from trade statistics
         List<TradeStatistics3> list = new ArrayList<>(tradeStatisticsManager.getObservableTradeStatisticsSet());
         list.sort(Comparator.comparing(TradeStatistics3::getDateAsLong));
@@ -81,7 +81,7 @@ public class DisputeAgentSelection {
                 .map(disputeAgent -> disputeAgent.getNodeAddress().getFullAddress())
                 .collect(Collectors.toSet());
 
-        if (excludedDisputeAgent != null) disputeAgents.remove(excludedDisputeAgent.getFullAddress());
+        if (excludedDisputeAgents != null) disputeAgents.removeAll(excludedDisputeAgents.stream().map(NodeAddress::getFullAddress).collect(Collectors.toList()));
         if (disputeAgents.isEmpty()) return null;
 
         String result = getLeastUsedDisputeAgent(lastAddressesUsedInTrades, disputeAgents);
