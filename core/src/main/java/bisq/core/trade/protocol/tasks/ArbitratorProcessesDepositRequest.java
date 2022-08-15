@@ -123,7 +123,8 @@ public class ArbitratorProcessesDepositRequest extends TradeTask {
               sendDepositResponse(trade.getMakerNodeAddress(), trade.getMakerPubKeyRing(), response);
               sendDepositResponse(trade.getTakerNodeAddress(), trade.getTakerPubKeyRing(), response);
           } else {
-              log.info("Arbitrator waiting for deposit request from maker and taker for trade " + trade.getId());
+              if (processModel.getMaker().getDepositTxHex() == null) log.info("Arbitrator waiting for deposit request from maker for trade " + trade.getId());
+              if (processModel.getTaker().getDepositTxHex() == null) log.info("Arbitrator waiting for deposit request from taker for trade " + trade.getId());
           }
 
           // TODO (woodser): request persistence?

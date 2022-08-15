@@ -39,6 +39,7 @@ import bisq.core.util.ParsingUtils;
 import bisq.core.util.VolumeUtil;
 import bisq.network.p2p.AckMessage;
 import bisq.network.p2p.NodeAddress;
+import bisq.network.p2p.P2PService;
 import bisq.common.UserThread;
 import bisq.common.crypto.PubKeyRing;
 import bisq.common.proto.ProtoUtil;
@@ -646,6 +647,13 @@ public abstract class Trade implements Tradable, Model {
     ///////////////////////////////////////////////////////////////////////////////////////////
     // API
     ///////////////////////////////////////////////////////////////////////////////////////////
+
+    public void setMyNodeAddress() {
+      if (this instanceof MakerTrade) makerNodeAddress = P2PService.getMyNodeAddress();
+      else if (this instanceof TakerTrade) takerNodeAddress = P2PService.getMyNodeAddress();
+      else if (this instanceof ArbitratorTrade) arbitratorNodeAddress = P2PService.getMyNodeAddress();
+      else throw new RuntimeException("Must be maker, taker, or arbitrator to set own address");
+    }
 
     public void setTradingPeerNodeAddress(NodeAddress peerAddress) {
       if (this instanceof MakerTrade) takerNodeAddress = peerAddress;

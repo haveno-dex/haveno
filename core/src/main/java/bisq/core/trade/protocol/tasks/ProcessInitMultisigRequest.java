@@ -119,12 +119,12 @@ public class ProcessInitMultisigRequest extends TradeTask {
 
           // import exchanged multisig keys if applicable
           if (processModel.getMultisigAddress() == null && peers[0].getExchangedMultisigHex() != null && peers[1].getExchangedMultisigHex() != null) {
-              log.info("Importing exchanged multisig hex for trade {}", trade.getId());
-              MoneroMultisigInitResult result = multisigWallet.exchangeMultisigKeys(Arrays.asList(peers[0].getExchangedMultisigHex(), peers[1].getExchangedMultisigHex()), xmrWalletService.getWalletPassword());
-              processModel.setMultisigAddress(result.getAddress());
-              trade.setStateIfValidTransitionTo(Trade.State.MULTISIG_COMPLETED);
-              processModel.getProvider().getXmrWalletService().closeMultisigWallet(trade.getId()); // save and close multisig wallet once it's created
-            }
+            log.info("Importing exchanged multisig hex for trade {}", trade.getId());
+            MoneroMultisigInitResult result = multisigWallet.exchangeMultisigKeys(Arrays.asList(peers[0].getExchangedMultisigHex(), peers[1].getExchangedMultisigHex()), xmrWalletService.getWalletPassword());
+            processModel.setMultisigAddress(result.getAddress());
+            processModel.getProvider().getXmrWalletService().closeMultisigWallet(trade.getId()); // save and close multisig wallet once it's created
+            trade.setStateIfValidTransitionTo(Trade.State.MULTISIG_COMPLETED);
+          }
 
           // update multisig participants if new state to communicate
           if (updateParticipants) {
