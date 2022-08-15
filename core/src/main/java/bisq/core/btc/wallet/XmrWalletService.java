@@ -94,6 +94,7 @@ public class XmrWalletService {
     private TradeManager tradeManager;
     private MoneroWalletRpc wallet;
     private Map<String, MoneroWallet> multisigWallets;
+    private final Map<String, Optional<MoneroTx>> txCache = new HashMap<String, Optional<MoneroTx>>();
 
     @Inject
     XmrWalletService(CoreAccountService accountService,
@@ -325,7 +326,7 @@ public class XmrWalletService {
             // submit tx to pool
             MoneroSubmitTxResult result = daemon.submitTxHex(txHex, true); // TODO (woodser): invert doNotRelay flag to relay for library consistency?
             if (!result.isGood()) throw new RuntimeException("Failed to submit tx to daemon: " + JsonUtils.serialize(result));
-            tx = daemon.getTx(txHash);
+            tx = getTx(txHash);
 
             // verify reserved key images
             if (keyImages != null) {
@@ -346,7 +347,6 @@ public class XmrWalletService {
             // verify mining fee
             BigInteger feeEstimate = getFeeEstimate(txHex);
             BigInteger feeThreshold = feeEstimate.multiply(BigInteger.valueOf(1l)).divide(BigInteger.valueOf(2l)); // must be at least 50% of estimated fee
-            tx = daemon.getTx(txHash);
             if (tx.getFee().compareTo(feeThreshold) < 0) {
                 throw new RuntimeException("Mining fee is not enough, needed " + feeThreshold + " but was " + tx.getFee());
             }
@@ -370,6 +370,55 @@ public class XmrWalletService {
     // TODO (woodser): fee estimates are too high, use more accurate estimate
     public BigInteger getFeeEstimate(String txHex) {
         return getDaemon().getFeeEstimate().multiply(BigInteger.valueOf(txHex.length()));
+    }
+
+    public MoneroTx getTx(String txHash) {
+        synchronized (txCache) {
+            List<MoneroTx> txs = getTxs(Arrays.asList(txHash));
+            return txs.isEmpty() ? null : txs.get(0);
+        }
+    }
+
+    public List<MoneroTx> getTxs(List<String> txHashes) {
+        synchronized (txCache) {
+
+            // fetch txs
+            List<MoneroTx> txs = getDaemon().getTxs(txHashes, true);
+
+            // store to cache
+            for (MoneroTx tx : txs) txCache.put(tx.getHash(), Optional.of(tx));
+
+            // schedule txs to be removed from cache
+            UserThread.runAfter(() -> {
+                synchronized (txCache) {
+                    for (MoneroTx tx : txs) txCache.remove(tx.getHash());
+                }
+            }, connectionsService.getDefaultRefreshPeriodMs());
+            return txs;
+        }
+    }
+
+    public MoneroTx getTxWithCache(String txHash) {
+        synchronized (txCache) {
+            List<MoneroTx> cachedTxs = getTxsWithCache(Arrays.asList(txHash));
+            return cachedTxs.isEmpty() ? null : cachedTxs.get(0);
+        }
+    }
+
+    public List<MoneroTx> getTxsWithCache(List<String> txHashes) {
+        synchronized (txCache) {
+
+            // get cached txs
+            List<MoneroTx> cachedTxs = new ArrayList<MoneroTx>();
+            List<String> uncachedTxHashes = new ArrayList<String>();
+            for (int i = 0; i < txHashes.size(); i++) {
+                if (txCache.containsKey(txHashes.get(i))) cachedTxs.add(txCache.get(txHashes.get(i)).orElse(null));
+                else uncachedTxHashes.add(txHashes.get(i));
+            }
+
+            // return txs from cache if available, otherwise fetch
+            return uncachedTxHashes.isEmpty() ? cachedTxs : getTxs(txHashes);
+        }
     }
 
     public void shutDown() {
