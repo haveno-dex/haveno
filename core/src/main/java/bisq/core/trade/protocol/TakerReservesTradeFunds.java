@@ -39,12 +39,17 @@ public class TakerReservesTradeFunds extends TradeTask {
         try {
             runInterceptHook();
 
-            // freeze trade funds and get reserve tx
+            // create tx to estimate fee
             String returnAddress = model.getXmrWalletService().getOrCreateAddressEntry(trade.getOffer().getId(), XmrAddressEntry.Context.TRADE_PAYOUT).getAddressString();
             BigInteger takerFee = ParsingUtils.coinToAtomicUnits(trade.getTakerFee());
             BigInteger depositAmount = ParsingUtils.centinerosToAtomicUnits(processModel.getFundsNeededForTradeAsLong());
-            MoneroTxWallet reserveTx = model.getXmrWalletService().createReserveTx(takerFee, returnAddress, depositAmount);
-            
+            MoneroTxWallet feeEstimateTx = model.getXmrWalletService().createReserveTx(takerFee, returnAddress, depositAmount, false);
+
+            // create reserve tx and freeze inputs
+            BigInteger feeEstimate = model.getXmrWalletService().getFeeEstimate(feeEstimateTx.getFullHex());
+            depositAmount = depositAmount.add(feeEstimate.multiply(BigInteger.valueOf(3)));
+            MoneroTxWallet reserveTx = model.getXmrWalletService().createReserveTx(takerFee, returnAddress, depositAmount, true);
+
             // collect reserved key images // TODO (woodser): switch to proof of reserve?
             List<String> reservedKeyImages = new ArrayList<String>();
             for (MoneroOutput input : reserveTx.getInputs()) reservedKeyImages.add(input.getKeyImage().getHex());

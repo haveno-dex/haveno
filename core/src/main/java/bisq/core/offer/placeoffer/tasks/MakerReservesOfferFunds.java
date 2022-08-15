@@ -43,11 +43,16 @@ public class MakerReservesOfferFunds extends Task<PlaceOfferModel> {
         try {
             runInterceptHook();
             
-            // freeze offer funds and get reserve tx
+            // create tx to estimate fee
             String returnAddress = model.getXmrWalletService().getOrCreateAddressEntry(offer.getId(), XmrAddressEntry.Context.TRADE_PAYOUT).getAddressString();
             BigInteger makerFee = ParsingUtils.coinToAtomicUnits(offer.getMakerFee());
             BigInteger depositAmount = ParsingUtils.coinToAtomicUnits(model.getReservedFundsForOffer());
-            MoneroTxWallet reserveTx = model.getXmrWalletService().createReserveTx(makerFee, returnAddress, depositAmount);
+            MoneroTxWallet feeEstimateTx = model.getXmrWalletService().createReserveTx(makerFee, returnAddress, depositAmount, false);
+
+            // create reserve tx and freeze inputs
+            BigInteger feeEstimate = model.getXmrWalletService().getFeeEstimate(feeEstimateTx.getFullHex());
+            depositAmount = depositAmount.add(feeEstimate.multiply(BigInteger.valueOf(3)));
+            MoneroTxWallet reserveTx = model.getXmrWalletService().createReserveTx(makerFee, returnAddress, depositAmount, true);
 
             // collect reserved key images // TODO (woodser): switch to proof of reserve?
             List<String> reservedKeyImages = new ArrayList<String>();
