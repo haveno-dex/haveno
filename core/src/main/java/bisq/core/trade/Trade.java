@@ -446,6 +446,7 @@ public abstract class Trade implements Tradable, Model {
     transient Boolean takerDepositLocked;
     transient private MoneroTx makerDepositTx;
     transient private MoneroTx takerDepositTx;
+    private Long startTime; // cache
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Constructor, initialization
@@ -852,7 +853,7 @@ public abstract class Trade implements Tradable, Model {
         MoneroWallet havenoWallet = processModel.getXmrWalletService().getWallet();
 
         // fetch deposit txs from daemon
-        List<MoneroTx> txs = daemon.getTxs(Arrays.asList(processModel.getMaker().getDepositTxHash(), processModel.getTaker().getDepositTxHash()), true);
+        List<MoneroTx> txs = xmrWalletService.getTxs(Arrays.asList(processModel.getMaker().getDepositTxHash(), processModel.getTaker().getDepositTxHash()));
 
         // handle deposit txs seen
         if (txs.size() == 2) {
@@ -889,7 +890,7 @@ public abstract class Trade implements Tradable, Model {
                 if (unlockHeight != null && height < unlockHeight) return;
 
                 // fetch txs from daemon
-                List<MoneroTx> txs = daemon.getTxs(Arrays.asList(processModel.getMaker().getDepositTxHash(), processModel.getTaker().getDepositTxHash()), true);
+                List<MoneroTx> txs = xmrWalletService.getTxs(Arrays.asList(processModel.getMaker().getDepositTxHash(), processModel.getTaker().getDepositTxHash()));
 
                 // ignore if deposit txs not seen
                 if (txs.size() != 2) return;
@@ -924,7 +925,7 @@ public abstract class Trade implements Tradable, Model {
     public MoneroTx getTakerDepositTx() {
         String depositTxHash = getProcessModel().getTaker().getDepositTxHash();
         try {
-            if (takerDepositTx == null) takerDepositTx = depositTxHash == null ? null : getXmrWalletService().getDaemon().getTx(depositTxHash);
+            if (takerDepositTx == null) takerDepositTx = depositTxHash == null ? null : getXmrWalletService().getTxWithCache(depositTxHash);
             return takerDepositTx;
         } catch (MoneroError e) {
             log.error("Wallet is missing taker deposit tx " + depositTxHash);
@@ -936,7 +937,7 @@ public abstract class Trade implements Tradable, Model {
     public MoneroTx getMakerDepositTx() {
         String depositTxHash = getProcessModel().getMaker().getDepositTxHash();
         try {
-            if (makerDepositTx == null) makerDepositTx = depositTxHash == null ? null : getXmrWalletService().getDaemon().getTx(depositTxHash);
+            if (makerDepositTx == null) makerDepositTx = depositTxHash == null ? null : getXmrWalletService().getTxWithCache(depositTxHash);
             return makerDepositTx;
         } catch (MoneroError e) {
             log.error("Wallet is missing maker deposit tx " + depositTxHash);
@@ -1217,8 +1218,8 @@ public abstract class Trade implements Tradable, Model {
     }
 
     private long getStartTime() {
+        if (startTime != null) return startTime;
         long now = System.currentTimeMillis();
-        long startTime;
         final MoneroTx takerDepositTx = getTakerDepositTx();
         final MoneroTx makerDepositTx = getMakerDepositTx();
         if (makerDepositTx != null && takerDepositTx != null && getTakeOfferDate() != null) {

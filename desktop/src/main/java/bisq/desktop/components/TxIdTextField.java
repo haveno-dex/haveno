@@ -178,7 +178,7 @@ public class TxIdTextField extends AnchorPane {
     private void updateConfidence(String txId) {
         MoneroTx tx = null;
         try {
-            tx = xmrWalletService.getDaemon().getTx(txId); // TODO: cache results and don't re-fetch
+            tx = xmrWalletService.getTxWithCache(txId);
             tx.setNumConfirmations(tx.isConfirmed() ? xmrWalletService.getConnectionsService().getLastInfo().getHeight() - tx.getHeight() : 0l); // TODO: use tx.getNumConfirmations() when MoneroDaemonRpc supports it
         } catch (Exception e) {
             // do nothing
