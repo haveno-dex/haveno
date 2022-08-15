@@ -169,7 +169,7 @@ public class MarketPricePresentation {
 
         marketPriceCurrencyCode.bind(priceFeedService.currencyCodeProperty());
 
-        priceFeedAllLoadedSubscription = EasyBind.subscribe(priceFeedService.updateCounterProperty(), updateCounter -> setMarketPriceInItems());
+        priceFeedAllLoadedSubscription = EasyBind.subscribe(priceFeedService.updateCounterProperty(), updateCounter -> UserThread.execute(() -> setMarketPriceInItems()));
 
         preferences.getTradeCurrenciesAsObservable().addListener((ListChangeListener<TradeCurrency>) c -> UserThread.runAfter(() -> {
             fillPriceFeedComboBoxItems();
@@ -184,31 +184,29 @@ public class MarketPricePresentation {
     }
 
     private void setMarketPriceInItems() {
-        UserThread.execute(() -> {
-            priceFeedComboBoxItems.forEach(item -> {
-                String currencyCode = item.currencyCode;
-                MarketPrice marketPrice = priceFeedService.getMarketPrice(currencyCode);
-                String priceString;
-                if (marketPrice != null && marketPrice.isPriceAvailable()) {
-                    priceString = FormattingUtils.formatMarketPrice(marketPrice.getPrice(), currencyCode);
-                    item.setPriceAvailable(true);
-                    item.setExternallyProvidedPrice(marketPrice.isExternallyProvidedPrice());
-                } else {
-                    priceString = Res.get("shared.na");
-                    item.setPriceAvailable(false);
-                }
-                item.setDisplayString(CurrencyUtil.getCurrencyPair(currencyCode) + ": " + priceString);
+        priceFeedComboBoxItems.forEach(item -> {
+            String currencyCode = item.currencyCode;
+            MarketPrice marketPrice = priceFeedService.getMarketPrice(currencyCode);
+            String priceString;
+            if (marketPrice != null && marketPrice.isPriceAvailable()) {
+                priceString = FormattingUtils.formatMarketPrice(marketPrice.getPrice(), currencyCode);
+                item.setPriceAvailable(true);
+                item.setExternallyProvidedPrice(marketPrice.isExternallyProvidedPrice());
+            } else {
+                priceString = Res.get("shared.na");
+                item.setPriceAvailable(false);
+            }
+            item.setDisplayString(CurrencyUtil.getCurrencyPair(currencyCode) + ": " + priceString);
 
-                final String code = item.currencyCode;
-                if (selectedPriceFeedComboBoxItemProperty.get() != null &&
-                        selectedPriceFeedComboBoxItemProperty.get().currencyCode.equals(code)) {
-                    isFiatCurrencyPriceFeedSelected.set(CurrencyUtil.isFiatCurrency(code) && CurrencyUtil.getFiatCurrency(code).isPresent() && item.isPriceAvailable() && item.isExternallyProvidedPrice());
-                    isCryptoCurrencyPriceFeedSelected.set(CurrencyUtil.isCryptoCurrency(code) && CurrencyUtil.getCryptoCurrency(code).isPresent() && item.isPriceAvailable() && item.isExternallyProvidedPrice());
-                    isExternallyProvidedPrice.set(item.isExternallyProvidedPrice());
-                    isPriceAvailable.set(item.isPriceAvailable());
-                    marketPriceUpdated.set(marketPriceUpdated.get() + 1);
-                }
-            });
+            final String code = item.currencyCode;
+            if (selectedPriceFeedComboBoxItemProperty.get() != null &&
+                    selectedPriceFeedComboBoxItemProperty.get().currencyCode.equals(code)) {
+                isFiatCurrencyPriceFeedSelected.set(CurrencyUtil.isFiatCurrency(code) && CurrencyUtil.getFiatCurrency(code).isPresent() && item.isPriceAvailable() && item.isExternallyProvidedPrice());
+                isCryptoCurrencyPriceFeedSelected.set(CurrencyUtil.isCryptoCurrency(code) && CurrencyUtil.getCryptoCurrency(code).isPresent() && item.isPriceAvailable() && item.isExternallyProvidedPrice());
+                isExternallyProvidedPrice.set(item.isExternallyProvidedPrice());
+                isPriceAvailable.set(item.isPriceAvailable());
+                marketPriceUpdated.set(marketPriceUpdated.get() + 1);
+            }
         });
     }
 
