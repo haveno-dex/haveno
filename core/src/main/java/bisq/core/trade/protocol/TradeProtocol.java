@@ -250,7 +250,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
     }
 
     public void handleSignContractRequest(SignContractRequest message, NodeAddress sender) {
-        System.out.println(getClass().getCanonicalName() + ".handleSignContractResponse() " + trade.getId());
+        System.out.println(getClass().getCanonicalName() + ".handleSignContractRequest() " + trade.getId());
         synchronized (trade) {
             Validator.checkTradeId(processModel.getOfferId(), message);
             if (trade.getState() == Trade.State.MULTISIG_COMPLETED || trade.getState() == Trade.State.CONTRACT_SIGNATURE_REQUESTED) {
@@ -566,11 +566,12 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     private PubKeyRing getPeersPubKeyRing(NodeAddress peer) {
+      trade.setMyNodeAddress(); // TODO: this is a hack to update my node address before verifying the message
       if (peer.equals(trade.getArbitratorNodeAddress())) return trade.getArbitratorPubKeyRing();
       else if (peer.equals(trade.getMakerNodeAddress())) return trade.getMakerPubKeyRing();
       else if (peer.equals(trade.getTakerNodeAddress())) return trade.getTakerPubKeyRing();
       else {
-        log.error("Cannot get peer's pub key ring because peer is not maker, taker, or arbitrator");
+        log.warn("Cannot get peer's pub key ring because peer is not maker, taker, or arbitrator. Their address might have changed: " + peer);
         return null;
       }
     }
@@ -582,16 +583,19 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
     }
 
     private boolean isPubKeyValid(DecryptedMessageWithPubKey message, NodeAddress sender) {
-        // We can only validate the peers pubKey if we have it already. If we are the taker we get it from the offer
-        // Otherwise it depends on the state of the trade protocol if we have received the peers pubKeyRing already.
-        PubKeyRing peersPubKeyRing = getPeersPubKeyRing(sender);
-        boolean isValid = true; // TODO (woodser): this returns valid=true even if peer's pub key ring is null?
-        if (peersPubKeyRing != null &&
-                !message.getSignaturePubKey().equals(peersPubKeyRing.getSignaturePubKey())) {
-            isValid = false;
-            log.error("SignaturePubKey in message does not match the SignaturePubKey we have set for our trading peer.");
-        }
-        return isValid;
+
+        // not invalid if pub key rings are unknown
+        if (trade.getTradingPeer().getPubKeyRing() == null && trade.getArbitratorPubKeyRing() == null) return true;
+
+        // valid if peer's pub key ring
+        if (trade.getTradingPeer().getPubKeyRing() != null && message.getSignaturePubKey().equals(trade.getTradingPeer().getPubKeyRing().getSignaturePubKey())) return true;
+
+        // valid if arbitrator's pub key ring
+        if (trade.getArbitratorPubKeyRing() != null && message.getSignaturePubKey().equals(trade.getArbitratorPubKeyRing().getSignaturePubKey())) return true;
+
+        // invalid
+        log.error("SignaturePubKey in message does not match the SignaturePubKey we have set for our trading peer and arbitrator.");
+        return false;
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////

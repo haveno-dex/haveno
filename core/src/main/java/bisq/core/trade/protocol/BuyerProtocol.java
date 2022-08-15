@@ -52,7 +52,9 @@ public abstract class BuyerProtocol extends DisputeProtocol {
     @Override
     protected void onInitialized() {
         super.onInitialized();
-        
+
+        // TODO: run with trade lock and latch, otherwise getting invalid transition warnings on startup after offline trades
+
         given(phase(Trade.Phase.DEPOSITS_PUBLISHED)
                 .with(BuyerEvent.STARTUP))
                 .setup(tasks(SetupDepositTxsListener.class))
@@ -90,25 +92,30 @@ public abstract class BuyerProtocol extends DisputeProtocol {
                 latchTrade();
                 this.errorMessageHandler = errorMessageHandler;
                 BuyerEvent event = BuyerEvent.PAYMENT_SENT;
-                expect(phase(Trade.Phase.DEPOSITS_UNLOCKED)
-                        .with(event)
-                        .preCondition(trade.confirmPermitted()))
-                        .setup(tasks(ApplyFilter.class,
-                                //UpdateMultisigWithTradingPeer.class, // TODO (woodser): can use this to test protocol with updated multisig from peer. peer should attempt to send updated multisig hex earlier as part of protocol. cannot use with countdown latch because response comes back in a separate thread and blocks on trade
-                                BuyerPreparesPaymentSentMessage.class,
-                                //BuyerSetupPayoutTxListener.class,
-                                BuyerSendsPaymentSentMessage.class) // don't latch trade because this blocks and runs in background
-                        .using(new TradeTaskRunner(trade,
-                                () -> {
-                                    this.errorMessageHandler = null;
-                                    handleTaskRunnerSuccess(event);
-                                    resultHandler.handleResult();
-                                },
-                                (errorMessage) -> {
-                                    handleTaskRunnerFault(event, errorMessage);
-                                })))
-                        .run(() -> trade.setState(Trade.State.BUYER_CONFIRMED_IN_UI_PAYMENT_SENT))
-                        .executeTasks(true);
+                try {
+                    expect(anyPhase(Trade.Phase.DEPOSITS_UNLOCKED, Trade.Phase.PAYMENT_SENT)
+                            .with(event)
+                            .preCondition(trade.confirmPermitted()))
+                            .setup(tasks(ApplyFilter.class,
+                                    //UpdateMultisigWithTradingPeer.class, // TODO (woodser): can use this to test protocol with updated multisig from peer. peer should attempt to send updated multisig hex earlier as part of protocol. cannot use with countdown latch because response comes back in a separate thread and blocks on trade
+                                    BuyerPreparesPaymentSentMessage.class,
+                                    //BuyerSetupPayoutTxListener.class,
+                                    BuyerSendsPaymentSentMessage.class) // don't latch trade because this blocks and runs in background
+                            .using(new TradeTaskRunner(trade,
+                                    () -> {
+                                        this.errorMessageHandler = null;
+                                        resultHandler.handleResult();
+                                        handleTaskRunnerSuccess(event);
+                                    },
+                                    (errorMessage) -> {
+                                        handleTaskRunnerFault(event, errorMessage);
+                                    })))
+                            .run(() -> trade.setState(Trade.State.BUYER_CONFIRMED_IN_UI_PAYMENT_SENT))
+                            .executeTasks(true);
+                } catch (Exception e) {
+                    errorMessageHandler.handleErrorMessage("Error confirming payment sent: " + e.getMessage());
+                    unlatchTrade();
+                }
                 awaitTradeLatch();
             }
         }).start();

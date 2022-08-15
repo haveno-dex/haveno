@@ -381,7 +381,13 @@ public class P2PService implements SetupListener, MessageListener, ConnectionLis
                 DecryptedMessageWithPubKey decryptedMsg = encryptionService.decryptAndVerify(sealedMsg.getSealedAndSigned());
                 connection.maybeHandleSupportedCapabilitiesMessage(decryptedMsg.getNetworkEnvelope());
                 connection.getPeersNodeAddressOptional().ifPresentOrElse(nodeAddress ->
-                                decryptedDirectMessageListeners.forEach(e -> e.onDirectMessage(decryptedMsg, nodeAddress)),
+                                decryptedDirectMessageListeners.forEach(e -> {
+                                    try {
+                                        e.onDirectMessage(decryptedMsg, nodeAddress);
+                                    } catch (Exception e2) {
+                                        e2.printStackTrace();
+                                    }
+                                }),
                         () -> {
                             log.error("peersNodeAddress is expected to be available at onMessage for " +
                                     "processing PrefixedSealedAndSignedMessage.");

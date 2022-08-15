@@ -48,6 +48,8 @@ public abstract class SellerProtocol extends DisputeProtocol {
     protected void onInitialized() {
         super.onInitialized();
         
+       // TODO: run with trade lock and latch, otherwise getting invalid transition warnings on startup after offline trades
+        
         given(phase(Trade.Phase.DEPOSITS_PUBLISHED)
                 .with(BuyerEvent.STARTUP))
                 .setup(tasks(SetupDepositTxsListener.class))
@@ -124,22 +126,27 @@ public abstract class SellerProtocol extends DisputeProtocol {
                 latchTrade();
                 this.errorMessageHandler = errorMessageHandler;
                 SellerEvent event = SellerEvent.PAYMENT_RECEIVED;
-                expect(anyPhase(Trade.Phase.PAYMENT_SENT, Trade.Phase.PAYMENT_RECEIVED)
-                        .with(event)
-                        .preCondition(trade.confirmPermitted()))
-                        .setup(tasks(
-                                ApplyFilter.class,
-                                SellerPreparesPaymentReceivedMessage.class,
-                                SellerSendsPaymentReceivedMessage.class)
-                        .using(new TradeTaskRunner(trade, () -> {
-                            this.errorMessageHandler = null;
-                            handleTaskRunnerSuccess(event);
-                            resultHandler.handleResult();
-                        }, (errorMessage) -> {
-                            handleTaskRunnerFault(event, errorMessage);
-                        })))
-                        .run(() -> trade.setState(Trade.State.SELLER_CONFIRMED_IN_UI_PAYMENT_RECEIPT))
-                        .executeTasks(true);
+                try {
+                    expect(anyPhase(Trade.Phase.PAYMENT_SENT, Trade.Phase.PAYMENT_RECEIVED)
+                            .with(event)
+                            .preCondition(trade.confirmPermitted()))
+                            .setup(tasks(
+                                    ApplyFilter.class,
+                                    SellerPreparesPaymentReceivedMessage.class,
+                                    SellerSendsPaymentReceivedMessage.class)
+                            .using(new TradeTaskRunner(trade, () -> {
+                                this.errorMessageHandler = null;
+                                handleTaskRunnerSuccess(event);
+                                resultHandler.handleResult();
+                            }, (errorMessage) -> {
+                                handleTaskRunnerFault(event, errorMessage);
+                            })))
+                            .run(() -> trade.setState(Trade.State.SELLER_CONFIRMED_IN_UI_PAYMENT_RECEIPT))
+                            .executeTasks(true);
+                } catch (Exception e) {
+                    errorMessageHandler.handleErrorMessage("Error confirming payment received: " + e.getMessage());
+                    unlatchTrade();
+                }
                 awaitTradeLatch();
             }
         }).start();

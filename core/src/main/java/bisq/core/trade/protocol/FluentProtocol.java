@@ -288,11 +288,12 @@ public class FluentProtocol {
                             event.name() + " event" :
                             "";
             if (isPhaseValid) {
-                String info = MessageFormat.format("We received a {0} at phase {1} and state {2}, tradeId={3}",
+                String info = MessageFormat.format("We received a {0} at phase {1} and state {2}, tradeId={3}, peer={4}",
                         trigger,
                         trade.getPhase(),
                         trade.getState(),
-                        trade.getId());
+                        trade.getId(),
+                        this.peer);
                 log.info(info);
                 return Result.VALID.info(info);
             } else {
