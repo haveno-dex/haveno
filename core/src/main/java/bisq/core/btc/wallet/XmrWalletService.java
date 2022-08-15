@@ -233,7 +233,6 @@ public class XmrWalletService {
             throw e;
         }
     }
-
     
     /**
      * Create the reserve tx and freeze its inputs. The deposit amount is returned
@@ -244,7 +243,7 @@ public class XmrWalletService {
      * @param depositAmount the amount needed for the trade minus the trade fee
      * @return a transaction to reserve a trade
      */
-    public MoneroTxWallet createReserveTx(BigInteger tradeFee, String returnAddress, BigInteger depositAmount) {
+    public MoneroTxWallet createReserveTx(BigInteger tradeFee, String returnAddress, BigInteger depositAmount, boolean freezeInputs) {
         MoneroWallet wallet = getWallet();
         synchronized (wallet) {
 
@@ -262,8 +261,10 @@ public class XmrWalletService {
                     .addDestination(returnAddress, depositAmount.add(miningFee.multiply(BigInteger.valueOf(3l))))); // add thrice the mining fee // TODO (woodser): really require more funds on top of security deposit?
 
             // freeze inputs
-            for (MoneroOutput input : reserveTx.getInputs()) {
-                wallet.freezeOutput(input.getKeyImage().getHex());
+            if (freezeInputs) {
+                for (MoneroOutput input : reserveTx.getInputs()) {
+                    wallet.freezeOutput(input.getKeyImage().getHex());
+                }
             }
 
             return reserveTx;
@@ -343,7 +344,7 @@ public class XmrWalletService {
             if (!check.getReceivedAmount().equals(tradeFee)) throw new RuntimeException("Trade fee is incorrect amount, expected " + tradeFee + " but was " + check.getReceivedAmount());
 
             // verify mining fee
-            BigInteger feeEstimate = daemon.getFeeEstimate().multiply(BigInteger.valueOf(txHex.length())); // TODO (woodser): fee estimates are too high, use more accurate estimate
+            BigInteger feeEstimate = getFeeEstimate(txHex);
             BigInteger feeThreshold = feeEstimate.multiply(BigInteger.valueOf(1l)).divide(BigInteger.valueOf(2l)); // must be at least 50% of estimated fee
             tx = daemon.getTx(txHash);
             if (tx.getFee().compareTo(feeThreshold) < 0) {
@@ -364,6 +365,11 @@ public class XmrWalletService {
                 throw err.getCode() == -32601 ? new RuntimeException("Failed to flush tx from pool. Arbitrator must use trusted, unrestricted daemon") : err;
             }
         }
+    }
+
+    // TODO (woodser): fee estimates are too high, use more accurate estimate
+    public BigInteger getFeeEstimate(String txHex) {
+        return getDaemon().getFeeEstimate().multiply(BigInteger.valueOf(txHex.length()));
     }
 
     public void shutDown() {
