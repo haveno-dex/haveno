@@ -13,7 +13,7 @@ On Ubuntu: `sudo apt install make wget git git-lfs openjdk-11-jdk`. The Monero b
 
 ## Join the public test network
 
-If you want to try Haveno in a live setup, launch a Haveno instance that will connect to other peers on our public test environment, which runs on Monero's stagenet. You'll be able to make test trades with other users and have a preview of Haveno's trade protocol in action. Note that development is very much ongoing. Things are slow and might break.
+If you want to try Haveno in a live setup, launch a Haveno instance that will connect to other peers on our public test environment, which runs on Monero's stagenet (you won't need to download the blockchain locally). You'll be able to make test trades with other users and have a preview of Haveno's trade protocol in action. Note that development is very much ongoing. Things are slow and might break.
 
 Steps:
 
@@ -25,9 +25,9 @@ Steps:
 6. Now if you are taking a trade you'll be asked to confirm you have sent the payment outside Haveno. Confirm in the app and wait for the confirmation of received payment from the other trader.
 7. Once the other trader confirms, deposits are sent back to the owners and the trade is complete.
 
-If you are a developer who wants to test Haveno in a more controlled way, follow the next steps to build a local test environment.
-
 # Run a local test network
+
+If you are a developer who wants to test Haveno in a more controlled way, follow the next steps to build a local test environment.
 
 ## Run a local XMR testnet
 

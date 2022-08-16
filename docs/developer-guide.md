@@ -2,9 +2,9 @@
 
 This document is a guide for Haveno development.
 
-## Installing Haveno
+## Installing and testing Haveno
 
-In order to develop for Haveno, first [install and run a local Haveno test network](installing.md).
+[Build Haveno and join the test network or test locally](installing.md).
 
 ## Running the UI proof of concept
 
