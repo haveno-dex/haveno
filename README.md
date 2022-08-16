@@ -27,11 +27,9 @@ Main features:
 
 See the [FAQ on our website](https://haveno.exchange/faq/) for more information.
 
-Haveno is still work in progress. There are no binaries available at this stage. If you want to test Haveno you have to compile it first (see [docs/installing.md](docs/installing.md)).
-
 ## Status of the project
 
-Haveno is currently being developed, but it's already possible to test XMR <->fiat/crypto trades using the legacy user interface.
+A live test network is online and users can already run Haveno and make test trades between each others using Monero's stagenet. See the [instructions to build Haveno and connect to the network](https://github.com/haveno-dex/haveno/blob/master/docs/installing.md). Note that Haveno is still very much in development. If you find issues or bugs, please let us know.
 
 Main repositories:
 
