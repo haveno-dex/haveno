@@ -49,7 +49,7 @@ public class FundsTextField extends InfoTextField {
     public FundsTextField() {
         super();
         textField.textProperty().unbind();
-        textField.textProperty().bind(Bindings.concat(textProperty(), " ", fundsStructure));
+        textField.textProperty().bind(Bindings.concat(textProperty())); // TODO: removed `, " ", fundsStructure` for haveno to fix "Funds needed: .123 XMR (null)" bug
 
         Label copyIcon = getIcon(AwesomeIcon.COPY);
         copyIcon.setLayoutY(5);
