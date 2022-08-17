@@ -584,14 +584,14 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
 
     private boolean isPubKeyValid(DecryptedMessageWithPubKey message, NodeAddress sender) {
 
+        // valid if arbitrator's pub key ring
+        if (trade.getArbitratorPubKeyRing() != null && message.getSignaturePubKey().equals(trade.getArbitratorPubKeyRing().getSignaturePubKey())) return true;
+        
         // not invalid if pub key rings are unknown
         if (trade.getTradingPeer().getPubKeyRing() == null && trade.getArbitratorPubKeyRing() == null) return true;
 
         // valid if peer's pub key ring
-        if (trade.getTradingPeer().getPubKeyRing() != null && message.getSignaturePubKey().equals(trade.getTradingPeer().getPubKeyRing().getSignaturePubKey())) return true;
-
-        // valid if arbitrator's pub key ring
-        if (trade.getArbitratorPubKeyRing() != null && message.getSignaturePubKey().equals(trade.getArbitratorPubKeyRing().getSignaturePubKey())) return true;
+        if (trade.getTradingPeer() != null && trade.getTradingPeer().getPubKeyRing() != null && message.getSignaturePubKey().equals(trade.getTradingPeer().getPubKeyRing().getSignaturePubKey())) return true;
 
         // invalid
         log.error("SignaturePubKey in message does not match the SignaturePubKey we have set for our trading peer and arbitrator.");
