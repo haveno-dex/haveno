@@ -15,14 +15,18 @@
  * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.asset.coins;
+package bisq.asset;
 
-import bisq.asset.BitcoinCashAddressValidator;
-import bisq.asset.Coin;
+/**
+ * Validates a Bitcoin Cash address.
+ */
+public class BitcoinCashAddressValidator extends RegexAddressValidator {
 
-public class BitcoinCash extends Coin {
+    public BitcoinCashAddressValidator() {
+        super("^([13][a-km-zA-HJ-NP-Z1-9]{25,34})|^((bitcoincash:)?(q|p)[a-z0-9]{41})|^((BITCOINCASH:)?(Q|P)[A-Z0-9]{41})$");
+    }
 
-    public BitcoinCash() {
-        super("Bitcoin Cash", "BCH", new BitcoinCashAddressValidator());
+    public BitcoinCashAddressValidator(String errorMessageI18nKey) {
+        super("^([13][a-km-zA-HJ-NP-Z1-9]{25,34})|^((bitcoincash:)?(q|p)[a-z0-9]{41})|^((BITCOINCASH:)?(Q|P)[A-Z0-9]{41})$", errorMessageI18nKey);
     }
 }
