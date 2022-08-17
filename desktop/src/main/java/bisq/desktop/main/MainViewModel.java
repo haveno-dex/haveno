@@ -653,8 +653,8 @@ public class MainViewModel implements ViewModel, HavenoSetup.HavenoSetupListener
         return balancePresentation.getReservedBalance();
     }
 
-    StringProperty getLockedBalance() {
-        return balancePresentation.getLockedBalance();
+    StringProperty getPendingBalance() {
+        return balancePresentation.getPendingBalance();
     }
 
 

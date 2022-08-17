@@ -58,7 +58,7 @@ public class Balances {
     @Getter
     private final ObjectProperty<Coin> availableBalance = new SimpleObjectProperty<>();
     @Getter
-    private final ObjectProperty<Coin> lockedBalance = new SimpleObjectProperty<>();
+    private final ObjectProperty<Coin> pendingBalance = new SimpleObjectProperty<>();
     @Getter
     private final ObjectProperty<Coin> reservedOfferBalance = new SimpleObjectProperty<>();
     @Getter
@@ -98,7 +98,7 @@ public class Balances {
         // Need to delay a bit to get the balances correct
         UserThread.execute(() -> { // TODO (woodser): running on user thread because JFX properties updated for legacy app
             updateAvailableBalance();
-            updateLockedBalance();
+            updatePendingBalance();
             updateReservedOfferBalance();
             updateReservedTradeBalance();
             updateReservedBalance();
@@ -111,10 +111,10 @@ public class Balances {
         availableBalance.set(Coin.valueOf(xmrWalletService.getWallet() == null ? 0 : xmrWalletService.getWallet().getUnlockedBalance(0).longValueExact()));
     }
     
-    private void updateLockedBalance() {
+    private void updatePendingBalance() {
         BigInteger balance = xmrWalletService.getWallet() == null ? new BigInteger("0") : xmrWalletService.getWallet().getBalance(0);
         BigInteger unlockedBalance = xmrWalletService.getWallet() == null ? new BigInteger("0") : xmrWalletService.getWallet().getUnlockedBalance(0);
-        lockedBalance.set(Coin.valueOf(balance.subtract(unlockedBalance).longValueExact()));
+        pendingBalance.set(Coin.valueOf(balance.subtract(unlockedBalance).longValueExact()));
     }
     
     private void updateReservedOfferBalance() {
