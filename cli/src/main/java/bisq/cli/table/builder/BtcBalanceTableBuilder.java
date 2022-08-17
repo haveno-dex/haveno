@@ -53,6 +53,7 @@ class BtcBalanceTableBuilder extends AbstractTableBuilder {
         this.colLockedBalance = new SatoshiColumn(COL_HEADER_LOCKED_BALANCE);
     }
 
+    @Override
     public Table build() {
         BtcBalanceInfo balance = (BtcBalanceInfo) protos.get(0);
 

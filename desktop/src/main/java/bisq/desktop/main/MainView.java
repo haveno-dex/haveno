@@ -278,21 +278,21 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
             }
         });
 
-        Tuple2<Label, VBox> lockedBalanceBox = getBalanceBox(Res.get("mainView.balance.locked.short"));
-        lockedBalanceBox.first.textProperty().bind(model.getLockedBalance());
-        lockedBalanceBox.first.tooltipProperty().bind(new ObjectBinding<>() {
+        Tuple2<Label, VBox> pendingBalanceBox = getBalanceBox(Res.get("mainView.balance.pending.short"));
+        pendingBalanceBox.first.textProperty().bind(model.getPendingBalance());
+        pendingBalanceBox.first.tooltipProperty().bind(new ObjectBinding<>() {
             {
-                bind(model.getLockedBalance());
+                bind(model.getPendingBalance());
                 bind(model.getMarketPrice());
             }
 
             @Override
             protected Tooltip computeValue() {
-                String tooltipText = Res.get("mainView.balance.locked");
+                String tooltipText = Res.get("mainView.balance.pending");
                 try {
                     String preferredTradeCurrency = model.getPreferences().getPreferredTradeCurrency().getCode();
                     double lockedBalance = Double.parseDouble(
-                            model.getLockedBalance().getValue().replace("XMR", ""));
+                            model.getPendingBalance().getValue().replace("XMR", ""));
                     double marketPrice = Double.parseDouble(model.getMarketPrice(preferredTradeCurrency).getValue());
                     tooltipText += "\n" + currencyFormat.format(lockedBalance * marketPrice) +
                             " " + preferredTradeCurrency;
@@ -318,7 +318,7 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
         secondaryNav.setAlignment(Pos.CENTER);
 
         HBox priceAndBalance = new HBox(marketPriceBox.second, getNavigationSeparator(), availableBalanceBox.second,
-                getNavigationSeparator(), lockedBalanceBox.second, getNavigationSeparator(), reservedBalanceBox.second);
+                getNavigationSeparator(), pendingBalanceBox.second, getNavigationSeparator(), reservedBalanceBox.second);
         priceAndBalance.setMaxHeight(41);
 
         priceAndBalance.setAlignment(Pos.CENTER);

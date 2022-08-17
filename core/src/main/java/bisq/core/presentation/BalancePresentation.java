@@ -36,21 +36,20 @@ public class BalancePresentation {
     @Getter
     private final StringProperty availableBalance = new SimpleStringProperty();
     @Getter
-    private final StringProperty reservedBalance = new SimpleStringProperty();
+    private final StringProperty pendingBalance = new SimpleStringProperty();
     @Getter
-    private final StringProperty lockedBalance = new SimpleStringProperty();
+    private final StringProperty reservedBalance = new SimpleStringProperty();
 
     @Inject
     public BalancePresentation(Balances balances) {
         balances.getAvailableBalance().addListener((observable, oldValue, newValue) -> {
             availableBalance.set(longToXmr(newValue.value));
         });
-
+        balances.getPendingBalance().addListener((observable, oldValue, newValue) -> {
+            pendingBalance.set(longToXmr(newValue.value));
+        });
         balances.getReservedBalance().addListener((observable, oldValue, newValue) -> {
             reservedBalance.set(longToXmr(newValue.value));
-        });
-        balances.getLockedBalance().addListener((observable, oldValue, newValue) -> {
-            lockedBalance.set(longToXmr(newValue.value));
         });
     }
 

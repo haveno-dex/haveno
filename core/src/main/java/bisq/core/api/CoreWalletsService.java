@@ -553,14 +553,14 @@ class CoreWalletsService {
         if (reservedBalance == null)
             throw new IllegalStateException("reserved balance is not yet available");
 
-        var lockedBalance = balances.getLockedBalance().get();
-        if (lockedBalance == null)
+        var pendingBalance = balances.getPendingBalance().get();
+        if (pendingBalance == null)
             throw new IllegalStateException("locked balance is not yet available");
 
         return new BtcBalanceInfo(availableBalance.value,
                 reservedBalance.value,
                 availableBalance.add(reservedBalance).value,
-                lockedBalance.value);
+                pendingBalance.value);
     }
 
     private XmrBalanceInfo getXmrBalances() {
@@ -571,8 +571,8 @@ class CoreWalletsService {
         if (availableBalance == null)
             throw new IllegalStateException("available balance is not yet available");
 
-        var lockedBalance = balances.getLockedBalance().get();
-        if (lockedBalance == null)
+        var pendingBalance = balances.getPendingBalance().get();
+        if (pendingBalance == null)
             throw new IllegalStateException("locked balance is not yet available");
 
         var reservedOfferBalance = balances.getReservedOfferBalance().get();
@@ -583,9 +583,9 @@ class CoreWalletsService {
         if (reservedTradeBalance == null)
             throw new IllegalStateException("reserved trade balance is not yet available");
 
-        return new XmrBalanceInfo(availableBalance.longValue() + lockedBalance.longValue(),
+        return new XmrBalanceInfo(availableBalance.longValue() + pendingBalance.longValue(),
                 availableBalance.longValue(),
-                lockedBalance.longValue(),
+                pendingBalance.longValue(),
                 reservedOfferBalance.longValue(),
                 reservedTradeBalance.longValue());
     }
