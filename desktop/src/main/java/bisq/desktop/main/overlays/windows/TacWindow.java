@@ -62,7 +62,8 @@ public class TacWindow extends Overlay<TacWindow> {
 
         // We do not translate the tacs because of the legal nature. We would need translations checked by lawyers
         // in each language which is too expensive atm.
-        String text = "1. In no event, unless for damages caused by acts of intent and gross negligence, damages resulting from personal injury, " +
+        String text = "Note: This document is still related to bisq and will be adapted later on. Haveno is currently for testing only. Do not use real money.\n\n" +
+                "1. In no event, unless for damages caused by acts of intent and gross negligence, damages resulting from personal injury, " +
                 "or damages ensuing from other instances where liability is required by applicable law or agreed to in writing, will any " +
                 "developer, copyright holder and/or any other party who modifies and/or conveys the software as permitted above or " +
                 "facilitates its operation, be liable for damages, including any general, special, incidental or consequential damages " +
@@ -72,28 +73,28 @@ public class TacWindow extends Overlay<TacWindow> {
 
                 "2. The user is responsible for using the software in compliance with local laws. Don't use the software if using it is not legal in your jurisdiction.\n\n" +
 
-                "3. Any " + Res.getBaseCurrencyName() + " market prices, network fee estimates, or other data obtained from servers operated by the Bisq DAO is provided on an 'as is, as available' basis without representation or warranty of any kind. It is your responsibility to verify any data provided in regards to inaccuracies or omissions.\n\n" +
+                "3. Any " + Res.getBaseCurrencyName() + " market prices, network fee estimates, or other data obtained from servers operated by Haveno is provided on an 'as is, as available' basis without representation or warranty of any kind. It is your responsibility to verify any data provided in regards to inaccuracies or omissions.\n\n" +
 
                 "4. Any Fiat payment method carries a potential risk for bank chargeback. By accepting the \"User Agreement\" the user confirms " +
                 "to be aware of those risks and in no case will claim legal responsibility to the authors or copyright holders of the software.\n\n" +
 
                 "5. Any dispute, controversy or claim arising out of or relating to the use of the software shall be settled by arbitration in " +
-                "accordance with the Bisq arbitration rules as at present in force. The arbitration is conducted online. " +
+                "accordance with the Haveno arbitration rules as at present in force. The arbitration is conducted online. " +
                 "The language to be used in the arbitration proceedings shall be English if not otherwise stated.\n\n" +
 
                 "6. The user confirms that they have read and agreed to the rules regarding the dispute process:\n" +
                 "    - You must complete trades within the maximum duration specified for each payment method.\n" +
-                "    - Leave the \"reason for payment\" field empty. DO NOT put the trade ID or any other text like 'bitcoin', 'BTC', or 'Bisq'.\n" +
+                "    - Leave the \"reason for payment\" field empty. DO NOT put the trade ID or any other text like 'monero', 'XMR', or 'Haveno'.\n" +
                 "    - If the bank of the fiat sender charges fees, the sender (" + Res.getBaseCurrencyCode() + " buyer) has to cover the fees.\n" +
                 "    - You must cooperate with the mediator during the mediation process, and respond to each mediator message within 48 hours.\n" +
                 "    - If either (or both) traders do not accept the mediator's suggested payout, traders can open a refund request from an arbitrator after 10 days in case of altcoin trades\n" +
                 "      and 20 days for fiat trades.\n" +
                 "    - You should only open a refund request from an arbitrator if you think the mediator's suggested payout is unfair, or if your trading peer is unresponsive.\n" +
-                "    - Opening a refund request from an arbitrator triggers the delayed payout transaction, sending all funds from the deposit transaction to the Bisq DAO receiver\n" +
+                "    - Opening a refund request from an arbitrator triggers the delayed payout transaction, sending all funds from the deposit transaction to the Haveno receiver\n" +
                 "      address ('collateral for refund to avoid scamming the refund process'). At this point, the arbitrator will re-investigate the case and personally refund \n" +
                 "      (at their discretion) the trader who requested arbitration.\n" +
                 "    - The arbitrator may charge a small fee (max. the traders security deposit) as compensation for their work.\n" +
-                "    - The arbitrator will then make a reimbursement request to the Bisq DAO to get reimbursed for the refund they paid to the trader.\n\n" +
+                "    - The arbitrator will then make a reimbursement request to the Haveno to get reimbursed for the refund they paid to the trader.\n\n" +
                 "For more details and a general overview please read the full documentation about dispute resolution.";
         message(text);
         actionButtonText(Res.get("tacWindow.agree"));
