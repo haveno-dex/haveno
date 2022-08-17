@@ -588,7 +588,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
         if (trade.getArbitratorPubKeyRing() != null && message.getSignaturePubKey().equals(trade.getArbitratorPubKeyRing().getSignaturePubKey())) return true;
         
         // not invalid if pub key rings are unknown
-        if (trade.getTradingPeer().getPubKeyRing() == null && trade.getArbitratorPubKeyRing() == null) return true;
+        if ((trade.getTradingPeer() == null || trade.getTradingPeer().getPubKeyRing() == null) && trade.getArbitratorPubKeyRing() == null) return true;
 
         // valid if peer's pub key ring
         if (trade.getTradingPeer() != null && trade.getTradingPeer().getPubKeyRing() != null && message.getSignaturePubKey().equals(trade.getTradingPeer().getPubKeyRing().getSignaturePubKey())) return true;
