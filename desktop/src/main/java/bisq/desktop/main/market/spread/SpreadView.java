@@ -23,7 +23,7 @@ import bisq.desktop.components.AutoTooltipLabel;
 import bisq.desktop.components.AutoTooltipTableColumn;
 import bisq.desktop.components.ColoredDecimalPlacesWithZerosText;
 import bisq.desktop.util.GUIUtil;
-
+import bisq.common.UserThread;
 import bisq.core.locale.CurrencyUtil;
 import bisq.core.locale.Res;
 import bisq.core.util.FormattingUtils;
@@ -129,10 +129,12 @@ public class SpreadView extends ActivatableViewAndModel<GridPane, SpreadViewMode
         int numberOfSellOffers = sortedList.stream().mapToInt(item -> item.numberOfSellOffers).sum();
         String total = formatter.formatCoin(Coin.valueOf(sortedList.stream().mapToLong(item -> item.totalAmount.value).sum()));
 
-        numberOfOffersColumn.setGraphic(new AutoTooltipLabel(Res.get("market.spread.numberOfOffersColumn", numberOfOffers)));
-        numberOfBuyOffersColumn.setGraphic(new AutoTooltipLabel(Res.get("market.spread.numberOfBuyOffersColumn", numberOfBuyOffers)));
-        numberOfSellOffersColumn.setGraphic(new AutoTooltipLabel((Res.get("market.spread.numberOfSellOffersColumn", numberOfSellOffers))));
-        totalAmountColumn.setGraphic(new AutoTooltipLabel(Res.get("market.spread.totalAmountColumn", total)));
+        UserThread.execute(() -> {
+            numberOfOffersColumn.setGraphic(new AutoTooltipLabel(Res.get("market.spread.numberOfOffersColumn", numberOfOffers)));
+            numberOfBuyOffersColumn.setGraphic(new AutoTooltipLabel(Res.get("market.spread.numberOfBuyOffersColumn", numberOfBuyOffers)));
+            numberOfSellOffersColumn.setGraphic(new AutoTooltipLabel((Res.get("market.spread.numberOfSellOffersColumn", numberOfSellOffers))));
+            totalAmountColumn.setGraphic(new AutoTooltipLabel(Res.get("market.spread.totalAmountColumn", total)));
+        });
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
