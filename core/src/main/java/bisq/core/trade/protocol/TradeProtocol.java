@@ -583,18 +583,30 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
     }
 
     private boolean isPubKeyValid(DecryptedMessageWithPubKey message, NodeAddress sender) {
+        if (this instanceof ArbitratorProtocol) {
 
-        // valid if arbitrator's pub key ring
-        if (trade.getArbitratorPubKeyRing() != null && message.getSignaturePubKey().equals(trade.getArbitratorPubKeyRing().getSignaturePubKey())) return true;
+            // valid if traders unknown
+            if (trade.getMaker().getPubKeyRing() == null || trade.getTakerPubKeyRing() == null) return true;
+
+            // valid if maker pub key
+            if (message.getSignaturePubKey().equals(trade.getMaker().getPubKeyRing().getSignaturePubKey())) return true;
+            
+            // valid if taker pub key
+            if (message.getSignaturePubKey().equals(trade.getTaker().getPubKeyRing().getSignaturePubKey())) return true;
+        } else {
+
+            // valid if arbitrator or peer unknown
+            if (trade.getArbitratorPubKeyRing() == null || (trade.getTradingPeer() == null || trade.getTradingPeer().getPubKeyRing() == null)) return true;
+
+            // valid if arbitrator's pub key ring
+            if (message.getSignaturePubKey().equals(trade.getArbitratorPubKeyRing().getSignaturePubKey())) return true;
+
+            // valid if peer's pub key ring
+            if (message.getSignaturePubKey().equals(trade.getTradingPeer().getPubKeyRing().getSignaturePubKey())) return true;
+        }
         
-        // not invalid if pub key rings are unknown
-        if ((trade.getTradingPeer() == null || trade.getTradingPeer().getPubKeyRing() == null) && trade.getArbitratorPubKeyRing() == null) return true;
-
-        // valid if peer's pub key ring
-        if (trade.getTradingPeer() != null && trade.getTradingPeer().getPubKeyRing() != null && message.getSignaturePubKey().equals(trade.getTradingPeer().getPubKeyRing().getSignaturePubKey())) return true;
-
         // invalid
-        log.error("SignaturePubKey in message does not match the SignaturePubKey we have set for our trading peer and arbitrator.");
+        log.error("SignaturePubKey in message does not match the SignaturePubKey we have set for our arbitrator or trading peer.");
         return false;
     }
 
