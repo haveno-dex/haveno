@@ -68,23 +68,9 @@ If you are not able to contribute code and want to contribute development resour
 
 To incentivize development and reward contributors we adopt a simple bounty system. Contributors may be awarded bounties after completing a task (resolving an issue). Take a look at the issues eligible for a bounty on the [dedicated Kanban board](https://github.com/orgs/haveno-dex/projects/2) or look for [issues labelled '💰bounty'](https://github.com/haveno-dex/haveno/issues?q=is%3Aissue+is%3Aopen+label%3A%F0%9F%92%B0bounty) in the main `haveno` repository. [Details and conditions for receiving a bounty](docs/bounties.md).
 
-## Sponsors
+## Support and sponsorships
 
-Would you like to help us build Haveno? Become a sponsor! We will show your logo here. Contact us at contact@haveno.exchange.
-
-<a href="https://getmonero.org"><img src="/media/sponsors/monero-community.png" title="Monero community" alt="Monero community logo" width="100px"></a>
-<a href="https://samouraiwallet.com/"><img src="/media/sponsors/samourai.png" title="Samourai wallet" alt="Samourai wallet logo" width="100px"></a>
-<a href="https://cakewallet.com/"><img src="/media/sponsors/cake-logo-blue.jpg" title="Cake wallet" alt="Cake wallet logo" width="100px"></a>
-<a href="https://twitter.com/DonYakka"><img src="/media/sponsors/donyakka.jpg" title="Don Yakka" alt="Don Yakka logo" width="100px"></a>
-<a href="https://twitter.com/mikedogsmd"><img src="/media/sponsors/mikedogsmd.jpg" title="Mike Dogs, MD" alt="Mike Dogs logo" width="100px"></a>
-<a href="https://majesticbank.sc"><img src="/media/sponsors/mb.png" title="MajesticBank" alt="MajesticBank logo" width="100px"></a>
-<a href="https://beldex.io"><img src="/media/sponsors/beldex.jpg" title="Beldex" alt="Beldex logo" width="100px"></a>
-
-*Note: Sponsors are generous donors that contributed substantially to the Haveno project. Being listed as a sponsor doesn't necessarily imply endorsement.*
-
-## Support
-
-To bring Haveno to life, we need resources. If you have the possibility, please consider donating to the project:
+To bring Haveno to life, we need resources. If you have the possibility, please consider [becoming a sponsor](https://haveno.exchange/sponsors/) or donating to the project:
 
 ### Monero
 
