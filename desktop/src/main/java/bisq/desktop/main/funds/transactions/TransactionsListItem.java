@@ -174,7 +174,9 @@ class TransactionsListItem {
             }
         }
 
-        this.date = new Date(0); // TODO: convert height to date
+        // get tx date/time
+        Long timestamp = tx.getBlock() == null ? System.currentTimeMillis() : tx.getBlock().getTimestamp() * 1000l;
+        this.date = new Date(timestamp);
         dateString = DisplayUtils.formatDateTime(date);
 
         isDustAttackTx = received && valueSentToMe.value < ignoreDustThreshold;

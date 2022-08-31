@@ -66,7 +66,6 @@ import bisq.network.p2p.P2PService;
 import bisq.network.p2p.network.TorNetworkNode;
 import com.google.common.collect.ImmutableList;
 import bisq.common.ClockWatcher;
-import bisq.common.UserThread;
 import bisq.common.config.Config;
 import bisq.common.crypto.KeyRing;
 import bisq.common.handlers.ErrorMessageHandler;
