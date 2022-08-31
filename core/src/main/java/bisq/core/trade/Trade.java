@@ -75,7 +75,6 @@ import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 
 import org.jetbrains.annotations.NotNull;
-
 import javax.annotation.Nullable;
 
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -725,6 +724,7 @@ public abstract class Trade implements Tradable, Model {
         // gather relevant info
         XmrWalletService walletService = processModel.getProvider().getXmrWalletService();
         MoneroWallet multisigWallet = walletService.getMultisigWallet(this.getId());
+        if (multisigWallet.isMultisigImportNeeded()) throw new RuntimeException("Cannot create payout tx because multisig import is needed");
         String sellerPayoutAddress = this.getSeller().getPayoutAddressString();
         String buyerPayoutAddress = this.getBuyer().getPayoutAddressString();
         Preconditions.checkNotNull(sellerPayoutAddress, "Seller payout address must not be null");

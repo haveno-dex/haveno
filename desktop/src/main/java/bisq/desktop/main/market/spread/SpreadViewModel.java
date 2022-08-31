@@ -22,7 +22,7 @@ import bisq.desktop.main.offer.offerbook.OfferBook;
 import bisq.desktop.main.offer.offerbook.OfferBookListItem;
 import bisq.desktop.main.overlays.popups.Popup;
 import bisq.desktop.util.GUIUtil;
-
+import bisq.common.UserThread;
 import bisq.core.locale.Res;
 import bisq.core.monetary.Altcoin;
 import bisq.core.monetary.Price;
@@ -89,7 +89,7 @@ class SpreadViewModel extends ActivatableViewModel {
         this.formatter = formatter;
         includePaymentMethod = false;
         offerBookListItems = offerBook.getOfferBookListItems();
-        listChangeListener = c -> update(offerBookListItems);
+        listChangeListener = c -> UserThread.execute(() -> update(offerBookListItems));
     }
 
     public String getKeyColumnName() {
