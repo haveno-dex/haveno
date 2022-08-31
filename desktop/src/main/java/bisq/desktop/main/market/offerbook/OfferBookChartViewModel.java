@@ -32,7 +32,7 @@ import bisq.desktop.util.CurrencyList;
 import bisq.desktop.util.CurrencyListItem;
 import bisq.desktop.util.DisplayUtils;
 import bisq.desktop.util.GUIUtil;
-
+import bisq.common.UserThread;
 import bisq.core.account.witness.AccountAgeWitnessService;
 import bisq.core.locale.CurrencyUtil;
 import bisq.core.locale.GlobalSettings;
@@ -125,17 +125,19 @@ class OfferBookChartViewModel extends ActivatableViewModel {
 
         offerBookListItems = offerBook.getOfferBookListItems();
         offerBookListItemsListener = c -> {
-            c.next();
-            if (c.wasAdded() || c.wasRemoved()) {
-                ArrayList<OfferBookListItem> list = new ArrayList<>(c.getRemoved());
-                list.addAll(c.getAddedSubList());
-                if (list.stream()
-                        .map(OfferBookListItem::getOffer)
-                        .anyMatch(e -> e.getCurrencyCode().equals(selectedTradeCurrencyProperty.get().getCode())))
-                    updateChartData();
-            }
+            UserThread.execute(() -> {
+                c.next();
+                if (c.wasAdded() || c.wasRemoved()) {
+                    ArrayList<OfferBookListItem> list = new ArrayList<>(c.getRemoved());
+                    list.addAll(c.getAddedSubList());
+                    if (list.stream()
+                            .map(OfferBookListItem::getOffer)
+                            .anyMatch(e -> e.getCurrencyCode().equals(selectedTradeCurrencyProperty.get().getCode())))
+                        updateChartData();
+                }
 
-            fillTradeCurrencies();
+                fillTradeCurrencies();
+            });
         };
 
         currenciesUpdatedListener = (observable, oldValue, newValue) -> {
