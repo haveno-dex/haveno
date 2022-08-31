@@ -23,10 +23,20 @@ import bisq.core.btc.wallet.XmrWalletService;
 import bisq.core.locale.Res;
 import bisq.core.util.ParsingUtils;
 import bisq.core.util.coin.CoinFormatter;
+import bisq.desktop.components.indicator.TxConfidenceIndicator;
+import bisq.desktop.util.GUIUtil;
+import com.google.common.base.Supplier;
+import com.google.common.base.Suppliers;
 import java.math.BigInteger;
+import java.util.List;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
+import javafx.scene.control.Tooltip;
 import lombok.extern.slf4j.Slf4j;
+import monero.daemon.model.MoneroTx;
+import monero.wallet.model.MoneroTransferQuery;
+import monero.wallet.model.MoneroTxQuery;
+import monero.wallet.model.MoneroTxWallet;
 import org.bitcoinj.core.Coin;
 
 @Slf4j
@@ -38,6 +48,16 @@ class DepositListItem {
     private String usage = "-";
     private XmrBalanceListener balanceListener;
     private int numTxOutputs = 0;
+    private final Supplier<LazyFields> lazyFieldsSupplier;
+
+    private static class LazyFields {
+        TxConfidenceIndicator txConfidenceIndicator;
+        Tooltip tooltip;
+    }
+
+    private LazyFields lazy() {
+        return lazyFieldsSupplier.get();
+    }
 
     DepositListItem(XmrAddressEntry addressEntry, XmrWalletService xmrWalletService, CoinFormatter formatter) {
         this.xmrWalletService = xmrWalletService;
@@ -58,6 +78,22 @@ class DepositListItem {
         balance.set(formatter.formatCoin(balanceAsCoin));
 
         updateUsage(addressEntry.getSubaddressIndex());
+
+        // confidence
+        lazyFieldsSupplier = Suppliers.memoize(() -> new LazyFields() {{
+            txConfidenceIndicator = new TxConfidenceIndicator();
+            txConfidenceIndicator.setId("funds-confidence");
+            tooltip = new Tooltip(Res.get("shared.notUsedYet"));
+            txConfidenceIndicator.setProgress(0);
+            txConfidenceIndicator.setTooltip(tooltip);
+            MoneroTx tx = getTxWithFewestConfirmations();
+            if (tx == null) {
+                txConfidenceIndicator.setVisible(false);
+            } else {
+                GUIUtil.updateConfidence(tx, tooltip, txConfidenceIndicator);
+                txConfidenceIndicator.setVisible(true);
+            }
+        }});
     }
 
     private void updateUsage(int subaddressIndex) {
@@ -67,6 +103,10 @@ class DepositListItem {
 
     public void cleanup() {
         xmrWalletService.removeBalanceListener(balanceListener);
+    }
+
+    public TxConfidenceIndicator getTxConfidenceIndicator() {
+        return lazy().txConfidenceIndicator;
     }
 
     public String getAddressString() {
@@ -93,7 +133,23 @@ class DepositListItem {
         return numTxOutputs;
     }
 
-    public int getNumConfirmationsSinceFirstUsed() {
-        throw new RuntimeException("Not implemented");
+    public long getNumConfirmationsSinceFirstUsed() {
+        MoneroTx tx = getTxWithFewestConfirmations();
+        return tx == null ? 0 : tx.getNumConfirmations();
+    }
+    
+    private MoneroTxWallet getTxWithFewestConfirmations() {
+        
+        // get txs with incoming transfers to subaddress
+        List<MoneroTxWallet> txs = xmrWalletService.getWallet()
+                .getTxs(new MoneroTxQuery()
+                        .setTransferQuery(new MoneroTransferQuery()
+                                .setIsIncoming(true)
+                                .setSubaddressIndex(addressEntry.getSubaddressIndex())));
+        
+        // get tx with fewest confirmations
+        MoneroTxWallet highestTx = null;
+        for (MoneroTxWallet tx : txs) if (highestTx == null || tx.getNumConfirmations() < highestTx.getNumConfirmations()) highestTx = tx;
+        return highestTx;
     }
 }
