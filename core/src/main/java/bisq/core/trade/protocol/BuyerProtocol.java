@@ -127,25 +127,27 @@ public abstract class BuyerProtocol extends DisputeProtocol {
 
     protected void handle(PaymentReceivedMessage message, NodeAddress peer) {
         log.info("BuyerProtocol.handle(PaymentReceivedMessage)");
-        synchronized (trade) {
-            latchTrade();
-            Validator.checkTradeId(processModel.getOfferId(), message);
-            processModel.setTradeMessage(message);
-            expect(anyPhase(Trade.Phase.PAYMENT_SENT, Trade.Phase.PAYMENT_RECEIVED)
-                .with(message)
-                .from(peer))
-                .setup(tasks(
-                    BuyerProcessesPaymentReceivedMessage.class)
-                    .using(new TradeTaskRunner(trade,
-                        () -> {
-                            handleTaskRunnerSuccess(peer, message);
-                        },
-                        errorMessage -> {
-                            handleTaskRunnerFault(peer, message, errorMessage);
-                        })))
-                .executeTasks(true);
-            awaitTradeLatch();
-        }
+        new Thread(() -> {
+            synchronized (trade) {
+                latchTrade();
+                Validator.checkTradeId(processModel.getOfferId(), message);
+                processModel.setTradeMessage(message);
+                expect(anyPhase(Trade.Phase.PAYMENT_SENT, Trade.Phase.PAYMENT_RECEIVED)
+                    .with(message)
+                    .from(peer))
+                    .setup(tasks(
+                        BuyerProcessesPaymentReceivedMessage.class)
+                        .using(new TradeTaskRunner(trade,
+                            () -> {
+                                handleTaskRunnerSuccess(peer, message);
+                            },
+                            errorMessage -> {
+                                handleTaskRunnerFault(peer, message, errorMessage);
+                            })))
+                    .executeTasks(true);
+                awaitTradeLatch();
+            }
+        }).start();
     }
 
 
