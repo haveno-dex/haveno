@@ -83,7 +83,7 @@ public class TakeBuyXMROfferTest extends AbstractTradeTest {
             alicesXmrOffers = aliceClient.getMyOffersSortedByDate(XMR);
             assertEquals(0, alicesXmrOffers.size());
             genBtcBlocksThenWait(1, 2_500);
-            waitForDepositConfirmation(log, testInfo, bobClient, trade.getTradeId());
+            waitForDepositUnlocked(log, testInfo, bobClient, trade.getTradeId());
 
             trade = bobClient.getTrade(tradeId);
             verifyTakerDepositConfirmed(trade);

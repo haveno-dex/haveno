@@ -187,13 +187,14 @@ public class NotificationCenter {
             message = Res.get("notification.trade.completed");
         } else {
             if (trade instanceof MakerTrade &&
-                    phase.ordinal() == Trade.Phase.DEPOSITS_PUBLISHED.ordinal()) {
+                    phase.ordinal() == Trade.Phase.DEPOSITS_PUBLISHED.ordinal() ||
+                    phase.ordinal() == Trade.Phase.DEPOSITS_CONFIRMED.ordinal()) {
                 final String role = trade instanceof BuyerTrade ? Res.get("shared.seller") : Res.get("shared.buyer");
                 message = Res.get("notification.trade.accepted", role);
             }
 
             if (trade instanceof BuyerTrade && phase.ordinal() == Trade.Phase.DEPOSITS_UNLOCKED.ordinal())
-                message = Res.get("notification.trade.confirmed");
+                message = Res.get("notification.trade.unlocked");
             else if (trade instanceof SellerTrade && phase.ordinal() == Trade.Phase.PAYMENT_SENT.ordinal())
                 message = Res.get("notification.trade.paymentStarted");
         }

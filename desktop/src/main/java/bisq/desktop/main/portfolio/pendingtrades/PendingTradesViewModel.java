@@ -420,11 +420,11 @@ public class PendingTradesViewModel extends ActivatableWithDataModel<PendingTrad
 
             // deposit published
             case ARBITRATOR_PUBLISHED_DEPOSIT_TXS:
-            case SAW_DEPOSIT_TXS_IN_NETWORK:
+            case DEPOSIT_TXS_SEEN_IN_BLOCKCHAIN:
+            case DEPOSIT_TXS_CONFIRMED_IN_BLOCKCHAIN: // TODO: separate step to wait for first confirmation
                 buyerState.set(BuyerState.STEP1);
                 sellerState.set(SellerState.STEP1);
                 break;
-
 
             // buyer and seller step 2
             // deposit unlocked

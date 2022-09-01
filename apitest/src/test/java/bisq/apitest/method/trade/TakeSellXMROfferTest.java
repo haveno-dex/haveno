@@ -93,7 +93,7 @@ public class TakeSellXMROfferTest extends AbstractTradeTest {
             assertEquals(0, alicesXmrOffers.size());
             genBtcBlocksThenWait(1, 2_500);
 
-            waitForDepositConfirmation(log, testInfo, bobClient, trade.getTradeId());
+            waitForDepositUnlocked(log, testInfo, bobClient, trade.getTradeId());
 
             trade = bobClient.getTrade(tradeId);
             verifyTakerDepositConfirmed(trade);
@@ -109,7 +109,7 @@ public class TakeSellXMROfferTest extends AbstractTradeTest {
     public void testAlicesConfirmPaymentStarted(final TestInfo testInfo) {
         try {
             var trade = aliceClient.getTrade(tradeId);
-            waitForDepositConfirmation(log, testInfo, aliceClient, trade.getTradeId());
+            waitForDepositUnlocked(log, testInfo, aliceClient, trade.getTradeId());
             log.debug("Alice sends XMR payment to Bob for trade {}", trade.getTradeId());
             aliceClient.confirmPaymentStarted(trade.getTradeId());
             sleep(3500);
