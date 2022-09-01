@@ -74,7 +74,7 @@ public class AbstractTradeTest extends AbstractOfferTest {
         return trade;
     }
 
-    protected final void waitForDepositConfirmation(Logger log,
+    protected final void waitForDepositUnlocked(Logger log,
                                                     TestInfo testInfo,
                                                     GrpcClient grpcClient,
                                                     String tradeId) {

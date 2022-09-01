@@ -48,9 +48,9 @@ public abstract class SellerProtocol extends DisputeProtocol {
     protected void onInitialized() {
         super.onInitialized();
         
-       // TODO: run with trade lock and latch, otherwise getting invalid transition warnings on startup after offline trades
+        // TODO: run with trade lock and latch, otherwise getting invalid transition warnings on startup after offline trades
         
-        given(phase(Trade.Phase.DEPOSITS_PUBLISHED)
+        given(anyPhase(Trade.Phase.DEPOSIT_REQUESTED, Trade.Phase.DEPOSITS_PUBLISHED, Trade.Phase.DEPOSITS_CONFIRMED)
                 .with(BuyerEvent.STARTUP))
                 .setup(tasks(SetupDepositTxsListener.class))
                 .executeTasks();
