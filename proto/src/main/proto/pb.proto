@@ -74,14 +74,15 @@ message NetworkEnvelope {
         SignContractResponse sign_contract_response = 1006;
         DepositRequest deposit_request = 1007;
         DepositResponse deposit_response = 1008;
-        PaymentAccountPayloadRequest payment_account_payload_request = 1009;
-        PaymentSentMessage payment_sent_message = 1010;
-        PaymentReceivedMessage payment_received_message = 1011;
-        PayoutTxPublishedMessage payout_tx_published_message = 1012;
-        UpdateMultisigRequest update_multisig_request = 1013;
-        UpdateMultisigResponse update_multisig_response = 1014;
-        ArbitratorPayoutTxRequest arbitrator_payout_tx_request = 1015;
-        ArbitratorPayoutTxResponse arbitrator_payout_tx_response = 1016;
+        PaymentAccountKeyRequest payment_account_key_request = 1009;
+        PaymentAccountKeyResponse payment_account_key_response = 1010;
+        PaymentSentMessage payment_sent_message = 1011;
+        PaymentReceivedMessage payment_received_message = 1012;
+        PayoutTxPublishedMessage payout_tx_published_message = 1013;
+        UpdateMultisigRequest update_multisig_request = 1014;
+        UpdateMultisigResponse update_multisig_response = 1015;
+        ArbitratorPayoutTxRequest arbitrator_payout_tx_request = 1016;
+        ArbitratorPayoutTxResponse arbitrator_payout_tx_response = 1017;
     }
 }
 
@@ -329,6 +330,7 @@ message SignContractResponse {
     int64 current_date = 5;
     string contract_as_json = 6;
     string contract_signature = 7;
+    bytes encrypted_payment_account_payload = 8;
 }
 
 message DepositRequest {
@@ -340,6 +342,7 @@ message DepositRequest {
     string contract_signature = 6;
     string deposit_tx_hex = 7;
     string deposit_tx_key = 8;
+    bytes payment_account_key = 9;
 }
 
 message DepositResponse {
@@ -350,13 +353,20 @@ message DepositResponse {
     int64 current_date = 5;
 }
 
-message PaymentAccountPayloadRequest {
+message PaymentAccountKeyRequest {
     string trade_id = 1;
     NodeAddress sender_node_address = 2;
     PubKeyRing pub_key_ring = 3;
     string uid = 4;
-    int64 current_date = 5;
-    PaymentAccountPayload payment_account_payload = 6;
+}
+
+message PaymentAccountKeyResponse {
+    string trade_id = 1;
+    NodeAddress sender_node_address = 2;
+    PubKeyRing pub_key_ring = 3;
+    string uid = 4;
+    bytes payment_account_key = 5;
+    string updated_multisig_hex = 6;
 }
 
 message UpdateMultisigRequest {
@@ -1791,20 +1801,22 @@ message TradingPeer {
     string payment_account_id = 2;
     string payment_method_id = 3;
     bytes payment_account_payload_hash = 4;
-    PaymentAccountPayload payment_account_payload = 5;
-    string payout_address_string = 6;
-    string contract_as_json = 7;
-    string contract_signature = 8;
-    bytes signature = 9;	// TODO (woodser): remove unused fields? this was buyer-signed payout tx as bytes
-    PubKeyRing pub_key_ring = 10;
-    bytes multi_sig_pub_key = 11;
-    repeated RawTransactionInput raw_transaction_inputs = 12;
-    int64 change_output_value = 13;
-    string change_output_address = 14;
-    bytes account_age_witness_nonce = 15;
-    bytes account_age_witness_signature = 16;
-    int64 current_date = 17;
-    bytes mediated_payout_tx_signature = 18;
+    bytes encrypted_payment_account_payload = 5;
+    bytes payment_account_key = 6;
+    PaymentAccountPayload payment_account_payload = 7;
+    string payout_address_string = 8;
+    string contract_as_json = 9;
+    string contract_signature = 10;
+    bytes signature = 11;	// TODO (woodser): remove unused fields? this was buyer-signed payout tx as bytes
+    PubKeyRing pub_key_ring = 12;
+    bytes multi_sig_pub_key = 13;
+    repeated RawTransactionInput raw_transaction_inputs = 14;
+    int64 change_output_value = 15;
+    string change_output_address = 16;
+    bytes account_age_witness_nonce = 17;
+    bytes account_age_witness_signature = 18;
+    int64 current_date = 19;
+    bytes mediated_payout_tx_signature = 20;
 
     string reserve_tx_hash = 1001;
     string reserve_tx_hex = 1002;

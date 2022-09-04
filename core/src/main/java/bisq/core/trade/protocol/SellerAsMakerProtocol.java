@@ -26,7 +26,6 @@ import bisq.core.trade.messages.SignContractResponse;
 import bisq.core.trade.messages.DepositResponse;
 import bisq.core.trade.messages.InitMultisigRequest;
 import bisq.core.trade.messages.InitTradeRequest;
-import bisq.core.trade.messages.PaymentAccountPayloadRequest;
 import bisq.core.trade.messages.TradeMessage;
 import bisq.core.trade.protocol.tasks.MakerSendsInitTradeRequest;
 import bisq.core.trade.protocol.tasks.ProcessInitTradeRequest;
@@ -99,11 +98,6 @@ public class SellerAsMakerProtocol extends SellerProtocol implements MakerProtoc
     @Override
     public void handleDepositResponse(DepositResponse response, NodeAddress sender) {
         super.handleDepositResponse(response, sender);
-    }
-
-    @Override
-    public void handlePaymentAccountPayloadRequest(PaymentAccountPayloadRequest request, NodeAddress sender) {
-        super.handlePaymentAccountPayloadRequest(request, sender);
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////

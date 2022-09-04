@@ -65,7 +65,6 @@ import javafx.collections.ObservableList;
 
 import java.security.KeyPair;
 
-import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
@@ -373,7 +372,7 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
             addMediationResultMessage(dispute);
 
             try {
-                TradeDataValidation.validatePaymentAccountPayloads(dispute);
+                TradeDataValidation.validatePaymentAccountPayload(dispute);
                 TradeDataValidation.validateDonationAddress(dispute.getDonationAddressOfDelayedPayoutTx());
                 //TradeDataValidation.testIfDisputeTriesReplay(dispute, disputeList.getList()); // TODO (woodser): disabled for xmr, needed?
                 TradeDataValidation.validateNodeAddress(dispute, dispute.getContract().getBuyerNodeAddress(), config);

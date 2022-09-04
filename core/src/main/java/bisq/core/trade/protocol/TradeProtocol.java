@@ -25,16 +25,13 @@ import bisq.core.trade.handlers.TradeResultHandler;
 import bisq.core.trade.messages.PaymentSentMessage;
 import bisq.core.trade.messages.DepositResponse;
 import bisq.core.trade.messages.InitMultisigRequest;
-import bisq.core.trade.messages.PaymentAccountPayloadRequest;
 import bisq.core.trade.messages.SignContractRequest;
 import bisq.core.trade.messages.SignContractResponse;
 import bisq.core.trade.messages.TradeMessage;
 import bisq.core.trade.messages.UpdateMultisigRequest;
-import bisq.core.trade.protocol.tasks.MaybeRemoveOpenOffer;
 import bisq.core.trade.protocol.tasks.MaybeSendSignContractRequest;
 import bisq.core.trade.protocol.tasks.ProcessDepositResponse;
 import bisq.core.trade.protocol.tasks.ProcessInitMultisigRequest;
-import bisq.core.trade.protocol.tasks.ProcessPaymentAccountPayloadRequest;
 import bisq.core.trade.protocol.tasks.ProcessSignContractRequest;
 import bisq.core.trade.protocol.tasks.ProcessSignContractResponse;
 import bisq.core.trade.protocol.tasks.ProcessUpdateMultisigRequest;
@@ -331,8 +328,10 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
                             ProcessDepositResponse.class)
                     .using(new TradeTaskRunner(trade,
                         () -> {
-                            startTimeout(TRADE_TIMEOUT);
+                            stopTimeout();
+                            this.errorMessageHandler = null;
                             handleTaskRunnerSuccess(sender, response);
+                            if (tradeResultHandler != null) tradeResultHandler.handleResult(trade); // trade is initialized
                         },
                         errorMessage -> {
                             handleTaskRunnerFault(sender, response, errorMessage);
@@ -340,42 +339,6 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
                     .withTimeout(TRADE_TIMEOUT))
                     .executeTasks(true);
             awaitTradeLatch();
-        }
-    }
-
-    public void handlePaymentAccountPayloadRequest(PaymentAccountPayloadRequest request, NodeAddress sender) {
-        System.out.println(getClass().getCanonicalName() + ".handlePaymentAccountPayloadRequest()");
-        synchronized (trade) {
-            Validator.checkTradeId(processModel.getOfferId(), request);
-            if (trade.getState() == Trade.State.ARBITRATOR_PUBLISHED_DEPOSIT_TXS) {
-                latchTrade();
-                Validator.checkTradeId(processModel.getOfferId(), request);
-                processModel.setTradeMessage(request);
-                expect(state(Trade.State.ARBITRATOR_PUBLISHED_DEPOSIT_TXS)
-                        .with(request)
-                        .from(sender)) // TODO (woodser): ensure this asserts sender == response.getSenderNodeAddress()
-                        .setup(tasks(
-                                // TODO (woodser): validate request
-                                ProcessPaymentAccountPayloadRequest.class,
-                                MaybeRemoveOpenOffer.class)
-                        .using(new TradeTaskRunner(trade,
-                                () -> {
-                                    stopTimeout();
-                                    this.errorMessageHandler = null;
-                                    handleTaskRunnerSuccess(sender, request);
-                                    if (tradeResultHandler != null) tradeResultHandler.handleResult(trade); // trade is initialized
-                                },
-                                errorMessage -> {
-                                    handleTaskRunnerFault(sender, request, errorMessage);
-                                }))
-                        .withTimeout(TRADE_TIMEOUT))
-                        .executeTasks(true);
-                awaitTradeLatch();
-            } else {
-                EasyBind.subscribe(trade.stateProperty(), state -> {
-                    if (state == Trade.State.ARBITRATOR_PUBLISHED_DEPOSIT_TXS) new Thread(() -> handlePaymentAccountPayloadRequest(request, sender)).start();  // process notification without trade lock
-                });
-            }
         }
     }
 

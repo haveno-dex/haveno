@@ -15,11 +15,9 @@
  * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.core.trade.protocol;
+package bisq.core.trade.protocol.tasks;
 
 import bisq.core.trade.Trade;
-import bisq.core.trade.protocol.tasks.TradeTask;
-
 import bisq.common.taskrunner.TaskRunner;
 
 import lombok.extern.slf4j.Slf4j;

@@ -21,12 +21,12 @@ import bisq.core.proto.CoreProtoResolver;
 
 import bisq.network.p2p.DirectMessage;
 import bisq.network.p2p.NodeAddress;
-
+import com.google.protobuf.ByteString;
 import bisq.common.crypto.PubKeyRing;
 import bisq.common.proto.ProtoUtil;
 
 import java.util.Optional;
-
+import javax.annotation.Nullable;
 import lombok.EqualsAndHashCode;
 import lombok.Value;
 
@@ -38,6 +38,7 @@ public final class SignContractResponse extends TradeMessage implements DirectMe
     private final long currentDate;
     private final String contractAsJson;
     private final String contractSignature;
+    private final byte[] encryptedPaymentAccountPayload;
 
     public SignContractResponse(String tradeId,
                                      NodeAddress senderNodeAddress,
@@ -46,13 +47,15 @@ public final class SignContractResponse extends TradeMessage implements DirectMe
                                      String messageVersion,
                                      long currentDate,
                                      String contractAsJson,
-                                     String contractSignature) {
+                                     String contractSignature,
+                                     @Nullable byte[] encryptedPaymentAccountPayload) {
         super(messageVersion, tradeId, uid);
         this.senderNodeAddress = senderNodeAddress;
         this.pubKeyRing = pubKeyRing;
         this.currentDate = currentDate;
         this.contractAsJson = contractAsJson;
         this.contractSignature = contractSignature;
+        this.encryptedPaymentAccountPayload = encryptedPaymentAccountPayload;
     }
 
 
@@ -70,6 +73,7 @@ public final class SignContractResponse extends TradeMessage implements DirectMe
 
         Optional.ofNullable(contractAsJson).ifPresent(e -> builder.setContractAsJson(contractAsJson));
         Optional.ofNullable(contractSignature).ifPresent(e -> builder.setContractSignature(contractSignature));
+        Optional.ofNullable(encryptedPaymentAccountPayload).ifPresent(e -> builder.setEncryptedPaymentAccountPayload(ByteString.copyFrom(e)));
 
         builder.setCurrentDate(currentDate);
 
@@ -86,7 +90,8 @@ public final class SignContractResponse extends TradeMessage implements DirectMe
                 messageVersion,
                 proto.getCurrentDate(),
                 ProtoUtil.stringOrNullFromProto(proto.getContractAsJson()),
-                ProtoUtil.stringOrNullFromProto(proto.getContractSignature()));
+                ProtoUtil.stringOrNullFromProto(proto.getContractSignature()),
+                proto.getEncryptedPaymentAccountPayload().toByteArray());
     }
 
     @Override

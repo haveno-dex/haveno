@@ -75,6 +75,7 @@ import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 
 import org.jetbrains.annotations.NotNull;
+
 import javax.annotation.Nullable;
 
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -117,14 +118,14 @@ public abstract class Trade implements Tradable, Model {
         // deposit requested
         SENT_PUBLISH_DEPOSIT_TX_REQUEST(Phase.DEPOSIT_REQUESTED),
         SAW_ARRIVED_PUBLISH_DEPOSIT_TX_REQUEST(Phase.DEPOSIT_REQUESTED),
-        STORED_IN_MAILBOX_PUBLISH_DEPOSIT_TX_REQUEST(Phase.DEPOSIT_REQUESTED), //not a mailbox msg, not used...
+        STORED_IN_MAILBOX_PUBLISH_DEPOSIT_TX_REQUEST(Phase.DEPOSIT_REQUESTED), // not a mailbox msg, not used... remove
         SEND_FAILED_PUBLISH_DEPOSIT_TX_REQUEST(Phase.DEPOSIT_REQUESTED),
 
         // deposit published
         DEPOSIT_TXS_SEEN_IN_BLOCKCHAIN(Phase.DEPOSITS_PUBLISHED), // TODO: seeing in network usually happens after arbitrator publishes
         ARBITRATOR_PUBLISHED_DEPOSIT_TXS(Phase.DEPOSITS_PUBLISHED),
 
-        // deposit confirmed (TODO)
+        // deposit confirmed
         DEPOSIT_TXS_CONFIRMED_IN_BLOCKCHAIN(Phase.DEPOSITS_CONFIRMED),
 
         // deposit unlocked
@@ -1114,11 +1115,11 @@ public abstract class Trade implements Tradable, Model {
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     public boolean isBuyer() {
-        return offer.getDirection() == OfferDirection.BUY;
+        return getBuyer() == getSelf();
     }
 
     public boolean isSeller() {
-        return offer.getDirection() == OfferDirection.SELL;
+        return getSeller() == getSelf();
     }
 
     public boolean isMaker() {

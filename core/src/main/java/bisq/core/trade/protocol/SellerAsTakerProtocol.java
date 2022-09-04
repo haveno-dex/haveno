@@ -27,9 +27,10 @@ import bisq.core.trade.messages.SignContractRequest;
 import bisq.core.trade.messages.SignContractResponse;
 import bisq.core.trade.messages.DepositResponse;
 import bisq.core.trade.messages.InitMultisigRequest;
-import bisq.core.trade.messages.PaymentAccountPayloadRequest;
 import bisq.core.trade.messages.TradeMessage;
 import bisq.core.trade.protocol.tasks.ApplyFilter;
+import bisq.core.trade.protocol.tasks.TakerReservesTradeFunds;
+import bisq.core.trade.protocol.tasks.TakerSendsInitTradeRequestToArbitrator;
 import bisq.network.p2p.NodeAddress;
 import bisq.common.handlers.ErrorMessageHandler;
 import bisq.common.handlers.ResultHandler;
@@ -105,11 +106,6 @@ public class SellerAsTakerProtocol extends SellerProtocol implements TakerProtoc
     @Override
     public void handleDepositResponse(DepositResponse response, NodeAddress sender) {
         super.handleDepositResponse(response, sender);
-    }
-
-    @Override
-    public void handlePaymentAccountPayloadRequest(PaymentAccountPayloadRequest request, NodeAddress sender) {
-        super.handlePaymentAccountPayloadRequest(request, sender);
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////

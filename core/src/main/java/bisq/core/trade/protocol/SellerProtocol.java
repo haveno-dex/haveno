@@ -19,24 +19,29 @@ package bisq.core.trade.protocol;
 
 import bisq.core.trade.SellerTrade;
 import bisq.core.trade.Trade;
+import bisq.core.trade.messages.DepositResponse;
 import bisq.core.trade.messages.PaymentSentMessage;
+import bisq.core.trade.messages.SignContractResponse;
 import bisq.core.trade.messages.TradeMessage;
-import bisq.core.trade.protocol.BuyerProtocol.BuyerEvent;
+import bisq.core.trade.protocol.FluentProtocol.Condition;
 import bisq.core.trade.protocol.tasks.ApplyFilter;
 import bisq.core.trade.protocol.tasks.SellerPreparesPaymentReceivedMessage;
 import bisq.core.trade.protocol.tasks.SellerProcessesPaymentSentMessage;
 import bisq.core.trade.protocol.tasks.SellerSendsPaymentReceivedMessage;
+import bisq.core.trade.protocol.tasks.SellerSendsPaymentAccountPayloadKey;
 import bisq.core.trade.protocol.tasks.SetupDepositTxsListener;
 import bisq.network.p2p.NodeAddress;
 import bisq.common.handlers.ErrorMessageHandler;
 import bisq.common.handlers.ResultHandler;
 
 import lombok.extern.slf4j.Slf4j;
+import org.fxmisc.easybind.EasyBind;
 
 @Slf4j
 public abstract class SellerProtocol extends DisputeProtocol {
     enum SellerEvent implements FluentProtocol.Event {
         STARTUP,
+        DEPOSIT_TXS_CONFIRMED,
         PAYMENT_RECEIVED
     }
 
@@ -50,16 +55,25 @@ public abstract class SellerProtocol extends DisputeProtocol {
         
         // TODO: run with trade lock and latch, otherwise getting invalid transition warnings on startup after offline trades
         
+        // send payment account payload key when trade state is confirmed
+        if (trade.getPhase() == Trade.Phase.DEPOSIT_REQUESTED || trade.getPhase() == Trade.Phase.DEPOSITS_PUBLISHED) {
+            sendPaymentAccountPayloadKeyWhenConfirmed(SellerEvent.STARTUP);
+        }
+
+        // listen for changes to deposit txs
         given(anyPhase(Trade.Phase.DEPOSIT_REQUESTED, Trade.Phase.DEPOSITS_PUBLISHED, Trade.Phase.DEPOSITS_CONFIRMED)
-                .with(BuyerEvent.STARTUP))
+                .with(SellerEvent.STARTUP))
                 .setup(tasks(SetupDepositTxsListener.class))
                 .executeTasks();
     }
 
-
-    ///////////////////////////////////////////////////////////////////////////////////////////
-    // Mailbox
-    ///////////////////////////////////////////////////////////////////////////////////////////
+    @Override
+    protected void onTradeMessage(TradeMessage message, NodeAddress peer) {
+        super.onTradeMessage(message, peer);
+        if (message instanceof PaymentSentMessage) {
+            handle((PaymentSentMessage) message, peer);
+        }
+    }
 
     @Override
     public void onMailboxMessage(TradeMessage message, NodeAddress peerNodeAddress) {
@@ -68,6 +82,12 @@ public abstract class SellerProtocol extends DisputeProtocol {
         if (message instanceof PaymentSentMessage) {
             handle((PaymentSentMessage) message, peerNodeAddress);
         }
+    }
+
+    @Override
+    public void handleSignContractResponse(SignContractResponse response, NodeAddress sender) {
+        sendPaymentAccountPayloadKeyWhenConfirmed(SellerEvent.DEPOSIT_TXS_CONFIRMED);
+        super.handleSignContractResponse(response, sender);
     }
 
 
@@ -154,12 +174,26 @@ public abstract class SellerProtocol extends DisputeProtocol {
         }).start();
     }
 
-    @Override
-    protected void onTradeMessage(TradeMessage message, NodeAddress peer) {
-        super.onTradeMessage(message, peer);
-
-        if (message instanceof PaymentSentMessage) {
-            handle((PaymentSentMessage) message, peer);
-        }
+    private void sendPaymentAccountPayloadKeyWhenConfirmed(SellerEvent event) {
+        EasyBind.subscribe(trade.stateProperty(), state -> {
+            if (state == Trade.State.DEPOSIT_TXS_CONFIRMED_IN_BLOCKCHAIN) {
+                new Thread(() -> {
+                    synchronized (trade) {
+                        latchTrade();
+                        expect(new Condition(trade))
+                                .setup(tasks(SellerSendsPaymentAccountPayloadKey.class)
+                                .using(new TradeTaskRunner(trade,
+                                        () -> {
+                                            handleTaskRunnerSuccess(event);
+                                        },
+                                        (errorMessage) -> {
+                                            handleTaskRunnerFault(event, errorMessage);
+                                        })))
+                                .executeTasks(true);
+                        awaitTradeLatch();
+                    }
+                }).start();
+            }
+        });
     }
 }

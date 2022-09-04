@@ -81,6 +81,7 @@ public class MaybeSendSignContractRequest extends TradeTask {
           processModel.setDepositTxXmr(depositTx); // TODO: trade.getSelf().setDepositTx()
           trade.getSelf().setDepositTxHash(depositTx.getHash());
           trade.getSelf().setPayoutAddressString(trade.getXmrWalletService().getAddressEntry(processModel.getOffer().getId(), XmrAddressEntry.Context.TRADE_PAYOUT).get().getAddressString()); // TODO (woodser): allow custom payout address?
+          trade.getSelf().setPaymentAccountPayload(trade.getProcessModel().getPaymentAccountPayload(trade));
 
           // create request for peer and arbitrator to sign contract
           SignContractRequest request = new SignContractRequest(
@@ -91,7 +92,7 @@ public class MaybeSendSignContractRequest extends TradeTask {
                   Version.getP2PMessageVersion(),
                   new Date().getTime(),
                   trade.getProcessModel().getAccountId(),
-                  trade.getProcessModel().getPaymentAccountPayload(trade).getHash(),
+                  trade.getSelf().getPaymentAccountPayload().getHash(),
                   trade.getSelf().getPayoutAddressString(),
                   depositTx.getHash());
 

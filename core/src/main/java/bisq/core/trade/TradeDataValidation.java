@@ -54,9 +54,9 @@ import static com.google.common.base.Preconditions.checkNotNull;
 @Slf4j
 public class TradeDataValidation {
     
-    public static void validatePaymentAccountPayloads(Dispute dispute) throws InvalidPaymentAccountPayloadException {
-        if (!Arrays.equals(dispute.getMakerPaymentAccountPayload().getHash(), dispute.getContract().getMakerPaymentAccountPayloadHash())) throw new InvalidPaymentAccountPayloadException(dispute, "Hash of maker's payment account payload does not match contract");
-        if (!Arrays.equals(dispute.getTakerPaymentAccountPayload().getHash(), dispute.getContract().getTakerPaymentAccountPayloadHash())) throw new InvalidPaymentAccountPayloadException(dispute, "Hash of taker's payment account payload does not match contract");
+    public static void validatePaymentAccountPayload(Dispute dispute) throws InvalidPaymentAccountPayloadException {
+        if (dispute.getSellerPaymentAccountPayload() == null) throw new InvalidPaymentAccountPayloadException(dispute, "Seller's payment account payload is null in dispute opened for trade " + dispute.getTradeId());
+        if (!Arrays.equals(dispute.getSellerPaymentAccountPayload().getHash(), dispute.getContract().getSellerPaymentAccountPayloadHash())) throw new InvalidPaymentAccountPayloadException(dispute, "Hash of maker's payment account payload does not match contract");
     }
 
     public static void validateDonationAddress(String addressAsString)

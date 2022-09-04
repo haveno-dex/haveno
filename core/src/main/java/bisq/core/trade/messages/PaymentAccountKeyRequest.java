@@ -21,44 +21,25 @@ import bisq.core.proto.CoreProtoResolver;
 
 import bisq.network.p2p.DirectMessage;
 import bisq.network.p2p.NodeAddress;
-import com.google.protobuf.ByteString;
-import java.util.Optional;
-import javax.annotation.Nullable;
 import bisq.common.crypto.PubKeyRing;
-import bisq.common.proto.ProtoUtil;
+
 import lombok.EqualsAndHashCode;
 import lombok.Value;
 
 @EqualsAndHashCode(callSuper = true)
 @Value
-public final class DepositRequest extends TradeMessage implements DirectMessage {
+public final class PaymentAccountKeyRequest extends TradeMessage implements DirectMessage {
     private final NodeAddress senderNodeAddress;
     private final PubKeyRing pubKeyRing;
-    private final long currentDate;
-    private final String contractSignature;
-    private final String depositTxHex;
-    private final String depositTxKey;
-    @Nullable
-    private final byte[] paymentAccountKey;
 
-    public DepositRequest(String tradeId,
+    public PaymentAccountKeyRequest(String tradeId,
                                      NodeAddress senderNodeAddress,
                                      PubKeyRing pubKeyRing,
                                      String uid,
-                                     String messageVersion,
-                                     long currentDate,
-                                     String contractSignature,
-                                     String depositTxHex,
-                                     String depositTxKey,
-                                     @Nullable byte[] paymentAccountKey) {
+                                     String messageVersion) {
         super(messageVersion, tradeId, uid);
         this.senderNodeAddress = senderNodeAddress;
         this.pubKeyRing = pubKeyRing;
-        this.currentDate = currentDate;
-        this.contractSignature = contractSignature;
-        this.depositTxHex = depositTxHex;
-        this.depositTxKey = depositTxKey;
-        this.paymentAccountKey = paymentAccountKey;
     }
 
 
@@ -68,45 +49,29 @@ public final class DepositRequest extends TradeMessage implements DirectMessage 
 
     @Override
     public protobuf.NetworkEnvelope toProtoNetworkEnvelope() {
-        protobuf.DepositRequest.Builder builder = protobuf.DepositRequest.newBuilder()
+        protobuf.PaymentAccountKeyRequest.Builder builder = protobuf.PaymentAccountKeyRequest.newBuilder()
                 .setTradeId(tradeId)
                 .setSenderNodeAddress(senderNodeAddress.toProtoMessage())
                 .setPubKeyRing(pubKeyRing.toProtoMessage())
-                .setUid(uid)
-                .setContractSignature(contractSignature)
-                .setDepositTxHex(depositTxHex)
-                .setDepositTxKey(depositTxKey);
-        builder.setCurrentDate(currentDate);
-        Optional.ofNullable(paymentAccountKey).ifPresent(e -> builder.setPaymentAccountKey(ByteString.copyFrom(e)));
-
-        return getNetworkEnvelopeBuilder().setDepositRequest(builder).build();
+                .setUid(uid);
+        return getNetworkEnvelopeBuilder().setPaymentAccountKeyRequest(builder).build();
     }
 
-    public static DepositRequest fromProto(protobuf.DepositRequest proto,
+    public static PaymentAccountKeyRequest fromProto(protobuf.PaymentAccountKeyRequest proto,
                                                       CoreProtoResolver coreProtoResolver,
                                                       String messageVersion) {
-        return new DepositRequest(proto.getTradeId(),
+        return new PaymentAccountKeyRequest(proto.getTradeId(),
                 NodeAddress.fromProto(proto.getSenderNodeAddress()),
                 PubKeyRing.fromProto(proto.getPubKeyRing()),
                 proto.getUid(),
-                messageVersion,
-                proto.getCurrentDate(),
-                proto.getContractSignature(),
-                proto.getDepositTxHex(),
-                proto.getDepositTxKey(),
-                ProtoUtil.byteArrayOrNullFromProto(proto.getPaymentAccountKey()));
+                messageVersion);
     }
 
     @Override
     public String toString() {
-        return "DepositRequest {" +
+        return "PaymentAccountKeyRequest {" +
                 "\n     senderNodeAddress=" + senderNodeAddress +
                 ",\n     pubKeyRing=" + pubKeyRing +
-                ",\n     currentDate=" + currentDate +
-                ",\n     contractSignature=" + contractSignature +
-                ",\n     depositTxHex='" + depositTxHex +
-                ",\n     depositTxKey='" + depositTxKey +
-                ",\n     paymentAccountKey='" + paymentAccountKey +
                 "\n} " + super.toString();
     }
 }

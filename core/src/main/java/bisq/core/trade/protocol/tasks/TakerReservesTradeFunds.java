@@ -15,12 +15,11 @@
  * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.core.trade.protocol;
+package bisq.core.trade.protocol.tasks;
 
 import bisq.common.taskrunner.TaskRunner;
 import bisq.core.btc.model.XmrAddressEntry;
 import bisq.core.trade.Trade;
-import bisq.core.trade.protocol.tasks.TradeTask;
 import bisq.core.util.ParsingUtils;
 import java.math.BigInteger;
 import java.util.ArrayList;

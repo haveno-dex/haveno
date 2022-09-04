@@ -54,7 +54,7 @@ public class BuyerProcessesPaymentReceivedMessage extends TradeTask {
 
             // update to the latest peer address of our peer if the message is correct
             trade.setTradingPeerNodeAddress(processModel.getTempTradingPeerNodeAddress());
-            
+
             // handle if payout tx is not seen on network
             if (trade.getPayoutTx() == null) {
 
