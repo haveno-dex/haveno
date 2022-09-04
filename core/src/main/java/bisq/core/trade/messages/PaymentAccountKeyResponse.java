@@ -17,37 +17,40 @@
 
 package bisq.core.trade.messages;
 
-import bisq.core.payment.payload.PaymentAccountPayload;
 import bisq.core.proto.CoreProtoResolver;
 
 import bisq.network.p2p.DirectMessage;
 import bisq.network.p2p.NodeAddress;
 import com.google.protobuf.ByteString;
+import java.util.Optional;
+import javax.annotation.Nullable;
 import bisq.common.crypto.PubKeyRing;
-
+import bisq.common.proto.ProtoUtil;
 import lombok.EqualsAndHashCode;
 import lombok.Value;
 
 @EqualsAndHashCode(callSuper = true)
 @Value
-public final class PaymentAccountPayloadRequest extends TradeMessage implements DirectMessage {
+public final class PaymentAccountKeyResponse extends TradeMailboxMessage implements DirectMessage {
     private final NodeAddress senderNodeAddress;
     private final PubKeyRing pubKeyRing;
-    private final long currentDate;
-    private final PaymentAccountPayload paymentAccountPayload;
+    @Nullable
+    private final byte[] paymentAccountKey;
+    @Nullable
+    private final String updatedMultisigHex;
 
-    public PaymentAccountPayloadRequest(String tradeId,
+    public PaymentAccountKeyResponse(String tradeId,
                                      NodeAddress senderNodeAddress,
                                      PubKeyRing pubKeyRing,
                                      String uid,
                                      String messageVersion,
-                                     long currentDate,
-                                     PaymentAccountPayload paymentAccountPayload) {
+                                     @Nullable byte[] paymentAccountKey,
+                                     @Nullable String updatedMultisigHex) {
         super(messageVersion, tradeId, uid);
         this.senderNodeAddress = senderNodeAddress;
         this.pubKeyRing = pubKeyRing;
-        this.currentDate = currentDate;
-        this.paymentAccountPayload = paymentAccountPayload;
+        this.paymentAccountKey = paymentAccountKey;
+        this.updatedMultisigHex = updatedMultisigHex;
     }
 
 
@@ -57,36 +60,34 @@ public final class PaymentAccountPayloadRequest extends TradeMessage implements 
 
     @Override
     public protobuf.NetworkEnvelope toProtoNetworkEnvelope() {
-        protobuf.PaymentAccountPayloadRequest.Builder builder = protobuf.PaymentAccountPayloadRequest.newBuilder()
+        protobuf.PaymentAccountKeyResponse.Builder builder = protobuf.PaymentAccountKeyResponse.newBuilder()
                 .setTradeId(tradeId)
                 .setSenderNodeAddress(senderNodeAddress.toProtoMessage())
                 .setPubKeyRing(pubKeyRing.toProtoMessage())
-                .setUid(uid)
-                .setPaymentAccountPayload((protobuf.PaymentAccountPayload) paymentAccountPayload.toProtoMessage());
-        builder.setCurrentDate(currentDate);
-
-        return getNetworkEnvelopeBuilder().setPaymentAccountPayloadRequest(builder).build();
+                .setUid(uid);
+        Optional.ofNullable(paymentAccountKey).ifPresent(e -> builder.setPaymentAccountKey(ByteString.copyFrom(e)));
+        Optional.ofNullable(updatedMultisigHex).ifPresent(e -> builder.setUpdatedMultisigHex(updatedMultisigHex));
+        return getNetworkEnvelopeBuilder().setPaymentAccountKeyResponse(builder).build();
     }
 
-    public static PaymentAccountPayloadRequest fromProto(protobuf.PaymentAccountPayloadRequest proto,
+    public static PaymentAccountKeyResponse fromProto(protobuf.PaymentAccountKeyResponse proto,
                                                       CoreProtoResolver coreProtoResolver,
                                                       String messageVersion) {
-        return new PaymentAccountPayloadRequest(proto.getTradeId(),
+        return new PaymentAccountKeyResponse(proto.getTradeId(),
                 NodeAddress.fromProto(proto.getSenderNodeAddress()),
                 PubKeyRing.fromProto(proto.getPubKeyRing()),
                 proto.getUid(),
                 messageVersion,
-                proto.getCurrentDate(),
-                coreProtoResolver.fromProto(proto.getPaymentAccountPayload()));
+                ProtoUtil.byteArrayOrNullFromProto(proto.getPaymentAccountKey()),
+                ProtoUtil.stringOrNullFromProto(proto.getUpdatedMultisigHex()));
     }
 
     @Override
     public String toString() {
-        return "PaymentAccountPayloadRequest {" +
+        return "PaymentAccountKeyResponse {" +
                 "\n     senderNodeAddress=" + senderNodeAddress +
                 ",\n     pubKeyRing=" + pubKeyRing +
-                ",\n     currentDate=" + currentDate +
-                ",\n     paymentAccountPayload=" + paymentAccountPayload +
+                ",\n     paymentAccountKey=" + paymentAccountKey +
                 "\n} " + super.toString();
     }
 }

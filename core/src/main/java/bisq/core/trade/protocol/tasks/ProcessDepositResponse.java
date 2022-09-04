@@ -18,13 +18,8 @@
 package bisq.core.trade.protocol.tasks;
 
 
-import bisq.common.app.Version;
 import bisq.common.taskrunner.TaskRunner;
 import bisq.core.trade.Trade;
-import bisq.core.trade.messages.PaymentAccountPayloadRequest;
-import bisq.network.p2p.SendDirectMessageListener;
-import java.util.Date;
-import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -39,37 +34,9 @@ public class ProcessDepositResponse extends TradeTask {
     protected void run() {
         try {
           runInterceptHook();
-
-          // arbitrator has broadcast deposit txs
           trade.setState(Trade.State.ARBITRATOR_PUBLISHED_DEPOSIT_TXS);
-          
-          // set payment account payload
-          trade.getSelf().setPaymentAccountPayload(processModel.getPaymentAccountPayload(trade));
-          
-          // create request with payment account payload
-          PaymentAccountPayloadRequest request = new PaymentAccountPayloadRequest(
-                  trade.getOffer().getId(),
-                  processModel.getMyNodeAddress(),
-                  processModel.getPubKeyRing(),
-                  UUID.randomUUID().toString(),
-                  Version.getP2PMessageVersion(),
-                  new Date().getTime(),
-                  trade.getSelf().getPaymentAccountPayload());
-          
-          // send payment account payload to trading peer
-          processModel.getP2PService().sendEncryptedDirectMessage(trade.getTradingPeerNodeAddress(), trade.getTradingPeerPubKeyRing(), request, new SendDirectMessageListener() {
-              @Override
-              public void onArrived() {
-                  log.info("{} arrived: trading peer={}; offerId={}; uid={}", request.getClass().getSimpleName(), trade.getTradingPeerNodeAddress(), trade.getId());
-                  complete();
-              }
-              @Override
-              public void onFault(String errorMessage) {
-                  log.error("Sending {} failed: uid={}; peer={}; error={}", request.getClass().getSimpleName(), trade.getTradingPeerNodeAddress(), trade.getId(), errorMessage);
-                  appendToErrorMessage("Sending message failed: message=" + request + "\nerrorMessage=" + errorMessage);
-                  failed();
-              }
-          });
+          processModel.getTradeManager().requestPersistence();
+          complete();
         } catch (Throwable t) {
           failed(t);
         }

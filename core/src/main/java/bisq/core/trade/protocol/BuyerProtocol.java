@@ -19,25 +19,36 @@ package bisq.core.trade.protocol;
 
 import bisq.core.trade.BuyerTrade;
 import bisq.core.trade.Trade;
+import bisq.core.trade.messages.PaymentAccountKeyResponse;
 import bisq.core.trade.messages.PaymentReceivedMessage;
+import bisq.core.trade.messages.SignContractResponse;
 import bisq.core.trade.messages.TradeMessage;
+import bisq.core.trade.protocol.FluentProtocol.Condition;
 import bisq.core.trade.protocol.tasks.ApplyFilter;
 import bisq.core.trade.protocol.tasks.BuyerPreparesPaymentSentMessage;
 import bisq.core.trade.protocol.tasks.BuyerProcessesPaymentReceivedMessage;
+import bisq.core.trade.protocol.tasks.BuyerSendsPaymentAccountKeyRequestToArbitrator;
 import bisq.core.trade.protocol.tasks.BuyerSendsPaymentSentMessage;
 import bisq.core.trade.protocol.tasks.BuyerSetupPayoutTxListener;
+import bisq.core.trade.protocol.tasks.BuyerProcessesPaymentAccountKeyResponse;
 import bisq.core.trade.protocol.tasks.SetupDepositTxsListener;
 import bisq.core.util.Validator;
 import bisq.network.p2p.NodeAddress;
+import bisq.common.UserThread;
 import bisq.common.handlers.ErrorMessageHandler;
 import bisq.common.handlers.ResultHandler;
 
 import lombok.extern.slf4j.Slf4j;
+import org.fxmisc.easybind.EasyBind;
 
 @Slf4j
 public abstract class BuyerProtocol extends DisputeProtocol {
+    
+    private boolean listeningToSendPaymentAccountKey;
+    private boolean paymentAccountPayloadKeyRequestSent;
     enum BuyerEvent implements FluentProtocol.Event {
         STARTUP,
+        DEPOSIT_TXS_CONFIRMED,
         PAYMENT_SENT
     }
 
@@ -54,6 +65,9 @@ public abstract class BuyerProtocol extends DisputeProtocol {
         super.onInitialized();
 
         // TODO: run with trade lock and latch, otherwise getting invalid transition warnings on startup after offline trades
+        
+        // request key to decrypt seller's payment account payload after first confirmation
+        sendPaymentAccountKeyRequestIfWhenNeeded(BuyerEvent.STARTUP, false);
 
         given(anyPhase(Trade.Phase.DEPOSIT_REQUESTED, Trade.Phase.DEPOSITS_PUBLISHED, Trade.Phase.DEPOSITS_CONFIRMED)
                 .with(BuyerEvent.STARTUP))
@@ -66,11 +80,20 @@ public abstract class BuyerProtocol extends DisputeProtocol {
                 .executeTasks();
 
         given(anyPhase(Trade.Phase.PAYMENT_SENT, Trade.Phase.PAYMENT_RECEIVED)
-                .anyState(Trade.State.BUYER_STORED_IN_MAILBOX_PAYMENT_SENT_MSG,
-                        Trade.State.BUYER_SEND_FAILED_PAYMENT_SENT_MSG)
+                .anyState(Trade.State.BUYER_STORED_IN_MAILBOX_PAYMENT_SENT_MSG, Trade.State.BUYER_SEND_FAILED_PAYMENT_SENT_MSG)
                 .with(BuyerEvent.STARTUP))
                 .setup(tasks(BuyerSendsPaymentSentMessage.class))
                 .executeTasks();
+    }
+
+    @Override
+    protected void onTradeMessage(TradeMessage message, NodeAddress peer) {
+        super.onTradeMessage(message, peer);
+        if (message instanceof PaymentReceivedMessage) {
+            handle((PaymentReceivedMessage) message, peer);
+        } if (message instanceof PaymentAccountKeyResponse) {
+            handle((PaymentAccountKeyResponse) message, peer);
+        }
     }
 
     @Override
@@ -78,7 +101,37 @@ public abstract class BuyerProtocol extends DisputeProtocol {
         super.onMailboxMessage(message, peer);
         if (message instanceof PaymentReceivedMessage) {
             handle((PaymentReceivedMessage) message, peer);
+        } else if (message instanceof PaymentAccountKeyResponse) {
+            handle((PaymentAccountKeyResponse) message, peer);
         }
+    }
+
+    @Override
+    public void handleSignContractResponse(SignContractResponse response, NodeAddress sender) {
+        sendPaymentAccountKeyRequestIfWhenNeeded(BuyerEvent.DEPOSIT_TXS_CONFIRMED, true);
+        super.handleSignContractResponse(response, sender);
+    }
+
+    public void handle(PaymentAccountKeyResponse response, NodeAddress sender) {
+        System.out.println(getClass().getCanonicalName() + ".handlePaymentAccountKeyResponse()");
+        new Thread(() -> {
+            synchronized (trade) {
+                latchTrade();
+                expect(new Condition(trade)
+                        .with(response)
+                        .from(sender))
+                        .setup(tasks(BuyerProcessesPaymentAccountKeyResponse.class)
+                        .using(new TradeTaskRunner(trade,
+                                () -> {
+                                    handleTaskRunnerSuccess(sender, response);
+                                },
+                                errorMessage -> {
+                                    handleTaskRunnerFault(sender, response, errorMessage);
+                                })))
+                        .executeTasks();
+                awaitTradeLatch();
+            }
+        }).start();
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -126,7 +179,7 @@ public abstract class BuyerProtocol extends DisputeProtocol {
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     protected void handle(PaymentReceivedMessage message, NodeAddress peer) {
-        log.info("BuyerProtocol.handle(PaymentReceivedMessage)");
+        System.out.println("BuyerProtocol.handle(PaymentReceivedMessage)");
         new Thread(() -> {
             synchronized (trade) {
                 latchTrade();
@@ -150,16 +203,54 @@ public abstract class BuyerProtocol extends DisputeProtocol {
         }).start();
     }
 
+    private void sendPaymentAccountKeyRequestIfWhenNeeded(BuyerEvent event, boolean waitForSellerOnConfirm) {
 
-    ///////////////////////////////////////////////////////////////////////////////////////////
-    // Message dispatcher
-    ///////////////////////////////////////////////////////////////////////////////////////////
+        // skip if payment account payload already decrypted or not enough progress
+        if (trade.getSeller().getPaymentAccountPayload() != null) return;
+        if (trade.getPhase().ordinal() < Trade.Phase.DEPOSIT_REQUESTED.ordinal()) return;
 
-    @Override
-    protected void onTradeMessage(TradeMessage message, NodeAddress peer) {
-        super.onTradeMessage(message, peer);
-        if (message instanceof PaymentReceivedMessage) {
-            handle((PaymentReceivedMessage) message, peer);
+        // if confirmed and waiting for seller, recheck later
+        if (trade.getState() == Trade.State.DEPOSIT_TXS_CONFIRMED_IN_BLOCKCHAIN && waitForSellerOnConfirm) {
+            UserThread.runAfter(() -> {
+                sendPaymentAccountKeyRequestIfWhenNeeded(event, false);
+            }, TRADE_TIMEOUT);
+            return;
         }
+
+        // else if confirmed send request and return
+        else if (trade.getState().ordinal() >= Trade.State.DEPOSIT_TXS_CONFIRMED_IN_BLOCKCHAIN.ordinal()) {
+            sendPaymentAccountKeyRequest(event);
+            return;
+        }
+
+        // register for state changes once
+        if (!listeningToSendPaymentAccountKey) {
+            listeningToSendPaymentAccountKey = true;
+            EasyBind.subscribe(trade.stateProperty(), state -> {
+                sendPaymentAccountKeyRequestIfWhenNeeded(event, waitForSellerOnConfirm);
+            });
+        }
+    }
+
+    private void sendPaymentAccountKeyRequest(BuyerEvent event) {
+        new Thread(() -> {
+            synchronized (trade) {
+                if (paymentAccountPayloadKeyRequestSent) return;
+                if (trade.getSeller().getPaymentAccountPayload() != null) return; // skip if initialized
+                latchTrade();
+                expect(new Condition(trade))
+                        .setup(tasks(BuyerSendsPaymentAccountKeyRequestToArbitrator.class)
+                        .using(new TradeTaskRunner(trade,
+                                () -> {
+                                    handleTaskRunnerSuccess(event);
+                                },
+                                (errorMessage) -> {
+                                    handleTaskRunnerFault(event, errorMessage);
+                                })))
+                        .executeTasks(true);
+                awaitTradeLatch();
+                paymentAccountPayloadKeyRequestSent = true;
+            }
+        }).start();
     }
 }

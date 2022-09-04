@@ -506,6 +506,8 @@ public final class Dispute implements NetworkPayload, PersistablePayload {
                 ",\n     mediatorsDisputeResult='" + mediatorsDisputeResult + '\'' +
                 ",\n     delayedPayoutTxId='" + delayedPayoutTxId + '\'' +
                 ",\n     donationAddressOfDelayedPayoutTx='" + donationAddressOfDelayedPayoutTx + '\'' +
+                ",\n     makerPaymentAccountPayload='" + makerPaymentAccountPayload + '\'' +
+                ",\n     takerPaymentAccountPayload='" + takerPaymentAccountPayload + '\'' +
                 "\n}";
     }
 }

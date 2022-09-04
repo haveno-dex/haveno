@@ -18,7 +18,6 @@
 package bisq.core.trade.protocol.tasks;
 
 import bisq.core.account.sign.SignedWitness;
-import bisq.core.account.witness.AccountAgeWitnessService;
 import bisq.core.trade.Trade;
 import bisq.core.trade.messages.PaymentReceivedMessage;
 import bisq.core.trade.messages.TradeMailboxMessage;
@@ -58,13 +57,6 @@ public class SellerSendsPaymentReceivedMessage extends SendMailboxMessageTask {
     @Override
     protected TradeMailboxMessage getTradeMailboxMessage(String id) {
         checkNotNull(trade.getSeller().getPayoutTxHex(), "Payout tx must not be null");
-
-        AccountAgeWitnessService accountAgeWitnessService = processModel.getAccountAgeWitnessService();
-        if (accountAgeWitnessService.isSignWitnessTrade(trade)) {
-            // Broadcast is done in accountAgeWitness domain.
-            accountAgeWitnessService.traderSignAndPublishPeersAccountAgeWitness(trade).ifPresent(witness -> signedWitness = witness);
-        }
-
         return new PaymentReceivedMessage(
                 id,
                 processModel.getMyNodeAddress(),
@@ -83,7 +75,7 @@ public class SellerSendsPaymentReceivedMessage extends SendMailboxMessageTask {
 
     @Override
     protected void setStateArrived() {
-        trade.setState(trade.getState() == Trade.State.SELLER_PUBLISHED_PAYOUT_TX ? Trade.State.SELLER_SAW_ARRIVED_PAYOUT_TX_PUBLISHED_MSG : Trade.State.SELLER_SAW_ARRIVED_PAYMENT_RECEIVED_MSG);
+        trade.setState(trade.getState() == Trade.State.SELLER_SENT_PAYOUT_TX_PUBLISHED_MSG ? Trade.State.SELLER_SAW_ARRIVED_PAYOUT_TX_PUBLISHED_MSG : Trade.State.SELLER_SAW_ARRIVED_PAYMENT_RECEIVED_MSG);
         log.info("Seller's PaymentReceivedMessage arrived: tradeId={} at peer {} SignedWitness {}",
                 trade.getId(), trade.getTradingPeerNodeAddress(), signedWitness);
         processModel.getTradeManager().requestPersistence();

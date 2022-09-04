@@ -96,6 +96,7 @@ public class ArbitratorProcessesDepositRequest extends TradeTask {
           // set deposit info
           trader.setDepositTxHex(request.getDepositTxHex());
           trader.setDepositTxKey(request.getDepositTxKey());
+          if (request.getPaymentAccountKey() != null) trader.setPaymentAccountKey(request.getPaymentAccountKey());
 
           // relay deposit txs when both available
           // TODO (woodser): add small delay so tx has head start against double spend attempts?

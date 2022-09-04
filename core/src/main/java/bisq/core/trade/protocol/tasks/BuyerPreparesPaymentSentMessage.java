@@ -51,27 +51,29 @@ public class BuyerPreparesPaymentSentMessage extends TradeTask {
     protected void run() {
         try {
             runInterceptHook();
-            
+
             // validate state
+            Preconditions.checkNotNull(trade.getSeller().getPaymentAccountPayload(), "Seller's payment account payload is null");
             Preconditions.checkNotNull(trade.getAmount(), "trade.getTradeAmount() must not be null");
             Preconditions.checkNotNull(trade.getMakerDepositTx(), "trade.getMakerDepositTx() must not be null");
             Preconditions.checkNotNull(trade.getTakerDepositTx(), "trade.getTakerDepositTx() must not be null");
             checkNotNull(trade.getOffer(), "offer must not be null");
-            
+
             // get multisig wallet
             XmrWalletService walletService = processModel.getProvider().getXmrWalletService();
             MoneroWallet multisigWallet = walletService.getMultisigWallet(trade.getId());
 
             // create payout tx if we have seller's updated multisig hex
-            if (!multisigWallet.isMultisigImportNeeded()) {
+            if (trade.getTradingPeer().getUpdatedMultisigHex() != null) {
                 log.info("Buyer creating unsigned payout tx");
+                multisigWallet.importMultisigHex(trade.getTradingPeer().getUpdatedMultisigHex());
                 MoneroTxWallet payoutTx = trade.createPayoutTx();
                 trade.getBuyer().setPayoutTx(payoutTx);
                 trade.getBuyer().setPayoutTxHex(payoutTx.getTxSet().getMultisigTxHex());
             } else {
                 if (trade.getSelf().getUpdatedMultisigHex() == null) trade.getSelf().setUpdatedMultisigHex(multisigWallet.exportMultisigHex()); // only export multisig hex once
             }
-            
+
             // close multisig wallet
             walletService.closeMultisigWallet(trade.getId());
             complete();

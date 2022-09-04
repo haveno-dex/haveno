@@ -19,12 +19,10 @@ package bisq.core.trade.protocol;
 
 
 import bisq.core.trade.messages.DepositResponse;
-import bisq.core.trade.messages.PaymentAccountPayloadRequest;
 import bisq.core.trade.messages.SignContractResponse;
 import bisq.network.p2p.NodeAddress;
 
 public interface TraderProtocol {
     public void handleSignContractResponse(SignContractResponse message, NodeAddress peer);
     public void handleDepositResponse(DepositResponse response, NodeAddress peer);
-    public void handlePaymentAccountPayloadRequest(PaymentAccountPayloadRequest request, NodeAddress peer);
 }

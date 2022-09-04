@@ -5,11 +5,13 @@ import bisq.core.trade.Trade;
 import bisq.core.trade.messages.DepositRequest;
 import bisq.core.trade.messages.DepositResponse;
 import bisq.core.trade.messages.InitTradeRequest;
-import bisq.core.trade.messages.PaymentAccountPayloadRequest;
+import bisq.core.trade.messages.PaymentAccountKeyRequest;
 import bisq.core.trade.messages.SignContractResponse;
+import bisq.core.trade.protocol.FluentProtocol.Condition;
 import bisq.core.trade.protocol.tasks.ApplyFilter;
 import bisq.core.trade.protocol.tasks.ArbitratorSendsInitTradeOrMultisigRequests;
 import bisq.core.trade.protocol.tasks.ArbitratorProcessesDepositRequest;
+import bisq.core.trade.protocol.tasks.ArbitratorProcessesPaymentAccountKeyRequest;
 import bisq.core.trade.protocol.tasks.ArbitratorProcessesReserveTx;
 import bisq.core.trade.protocol.tasks.ProcessInitTradeRequest;
 import bisq.core.util.Validator;
@@ -94,10 +96,30 @@ public class ArbitratorProtocol extends DisputeProtocol {
   public void handleDepositResponse(DepositResponse response, NodeAddress sender) {
       log.warn("Arbitrator ignoring DepositResponse");
   }
-
-  @Override
-  public void handlePaymentAccountPayloadRequest(PaymentAccountPayloadRequest request, NodeAddress sender) {
-      log.warn("Arbitrator ignoring PaymentAccountPayloadRequest");
+  
+  public void handlePaymentAccountKeyRequest(PaymentAccountKeyRequest request, NodeAddress sender) {
+      System.out.println("ArbitratorProtocol.handlePaymentAccountKeyRequest() " + trade.getId());
+      synchronized (trade) {
+          latchTrade();
+          Validator.checkTradeId(processModel.getOfferId(), request);
+          processModel.setTradeMessage(request);
+          expect(new Condition(trade)
+              .with(request)
+              .from(sender))
+              .setup(tasks(
+                      ArbitratorProcessesPaymentAccountKeyRequest.class)
+              .using(new TradeTaskRunner(trade,
+                      () -> {
+                          stopTimeout();
+                          handleTaskRunnerSuccess(sender, request);
+                      },
+                      errorMessage -> {
+                          handleTaskRunnerFault(sender, request, errorMessage);
+                      }))
+              .withTimeout(TRADE_TIMEOUT))
+              .executeTasks(true);
+          awaitTradeLatch();
+      }
   }
 
   ///////////////////////////////////////////////////////////////////////////////////////////

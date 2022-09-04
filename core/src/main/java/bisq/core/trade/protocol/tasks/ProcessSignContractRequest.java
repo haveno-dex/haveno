@@ -21,8 +21,10 @@ package bisq.core.trade.protocol.tasks;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import bisq.common.app.Version;
+import bisq.common.crypto.Encryption;
 import bisq.common.crypto.Hash;
 import bisq.common.crypto.PubKeyRing;
+import bisq.common.crypto.ScryptUtil;
 import bisq.common.crypto.Sig;
 import bisq.common.taskrunner.TaskRunner;
 import bisq.core.trade.ArbitratorTrade;
@@ -37,6 +39,7 @@ import bisq.network.p2p.NodeAddress;
 import bisq.network.p2p.SendDirectMessageListener;
 import java.util.Date;
 import java.util.UUID;
+import javax.crypto.SecretKey;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -61,7 +64,7 @@ public class ProcessSignContractRequest extends TradeTask {
           TradingPeer trader = trade.getTradingPeer(request.getSenderNodeAddress());
           trader.setDepositTxHash(request.getDepositTxHash());
           trader.setAccountId(request.getAccountId());
-          trader.setPaymentAccountPayloadHash(request.getPaymentAccountPayloadHash());
+          trader.setPaymentAccountPayloadHash(request.getPaymentAccountPayloadHash()); // TODO: only seller's payment account payload is shared, so no need to send payment hash
           trader.setPayoutAddressString(request.getPayoutAddress());
           
           // sign contract only when both deposit txs hashes known
@@ -82,6 +85,20 @@ public class ProcessSignContractRequest extends TradeTask {
           trade.setContractAsJson(contractAsJson);
           trade.setContractHash(Hash.getSha256Hash(checkNotNull(contractAsJson)));
           trade.getSelf().setContractSignature(signature);
+          
+          // seller sends encrypted payment account payload
+          byte[] encryptedPaymentAccountPayload = null;
+          if (trade.isSeller()) {
+
+              // generate random key to encrypt payment account payload
+              byte[] decryptionKey = ScryptUtil.getKeyCrypterScrypt().deriveKey(UUID.randomUUID().toString()).getKey();
+              trade.getSelf().setPaymentAccountKey(decryptionKey);
+
+              // encrypt payment account payload
+              byte[] unencrypted = trade.getSelf().getPaymentAccountPayload().toProtoMessage().toByteArray();
+              SecretKey sk = Encryption.getSecretKeyFromBytes(trade.getSelf().getPaymentAccountKey());
+              encryptedPaymentAccountPayload = Encryption.encrypt(unencrypted, sk);
+          }
 
           // create response with contract signature
           SignContractResponse response = new SignContractResponse(
@@ -92,7 +109,8 @@ public class ProcessSignContractRequest extends TradeTask {
                   Version.getP2PMessageVersion(),
                   new Date().getTime(),
                   contractAsJson,
-                  signature);
+                  signature,
+                  encryptedPaymentAccountPayload);
 
           // get response recipients. only arbitrator sends response to both peers
           NodeAddress recipient1 = trade instanceof ArbitratorTrade ? trade.getMakerNodeAddress() : trade.getTradingPeerNodeAddress();
