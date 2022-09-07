@@ -685,8 +685,11 @@ abstract public class OfferBookView<R extends GridPane, M extends OfferBookViewM
                             "isInsufficientTradeLimit case.");
                 }
                 break;
-            case HIDE_BSQ_SWAPS_DUE_DAO_DEACTIVATED:
-                new Popup().warning(Res.get("offerbook.warning.hideBsqSwapsDueDaoDeactivated")).show();
+            case ARBITRATOR_NOT_VALIDATED:
+                new Popup().warning(Res.get("offerbook.warning.arbitratorNotValidated")).show();
+                break;
+            case SIGNATURE_NOT_VALIDATED:
+                new Popup().warning(Res.get("offerbook.warning.signatureNotValidated")).show();
                 break;
             case VALID:
             default:

@@ -90,9 +90,7 @@ public class TradeUtils {
         // verify arbitrator signature
         boolean isValid = true;
         try {
-            isValid = Sig.verify(arbitrator.getPubKeyRing().getSignaturePubKey(), // TODO (woodser): assign isValid
-                    unsignedOfferAsJson,
-                    signature);
+            isValid = Sig.verify(arbitrator.getPubKeyRing().getSignaturePubKey(), unsignedOfferAsJson, signature);
         } catch (Exception e) {
             isValid = false;
         }

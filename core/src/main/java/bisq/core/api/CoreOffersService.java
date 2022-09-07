@@ -24,8 +24,8 @@ import bisq.core.offer.CreateOfferService;
 import bisq.core.offer.Offer;
 import bisq.core.offer.OfferBookService;
 import bisq.core.offer.OfferDirection;
-import bisq.core.offer.OfferFilter;
-import bisq.core.offer.OfferFilter.Result;
+import bisq.core.offer.OfferFilterService;
+import bisq.core.offer.OfferFilterService.Result;
 import bisq.core.offer.OfferUtil;
 import bisq.core.offer.OpenOffer;
 import bisq.core.offer.OpenOfferManager;
@@ -65,7 +65,7 @@ import static java.util.Comparator.comparing;
 
 @Singleton
 @Slf4j
-class CoreOffersService {
+public class CoreOffersService {
 
     private final Supplier<Comparator<Offer>> priceComparator = () -> comparing(Offer::getPrice);
     private final Supplier<Comparator<Offer>> reversePriceComparator = () -> comparing(Offer::getPrice).reversed();
@@ -78,7 +78,7 @@ class CoreOffersService {
     private final CoreWalletsService coreWalletsService;
     private final CreateOfferService createOfferService;
     private final OfferBookService offerBookService;
-    private final OfferFilter offerFilter;
+    private final OfferFilterService offerFilter;
     private final OpenOfferManager openOfferManager;
     private final User user;
     private final XmrWalletService xmrWalletService;
@@ -89,7 +89,7 @@ class CoreOffersService {
                              CoreWalletsService coreWalletsService,
                              CreateOfferService createOfferService,
                              OfferBookService offerBookService,
-                             OfferFilter offerFilter,
+                             OfferFilterService offerFilter,
                              OpenOfferManager openOfferManager,
                              OfferUtil offerUtil,
                              User user,
