@@ -21,10 +21,11 @@ import bisq.core.account.witness.AccountAgeWitnessService;
 import bisq.core.filter.FilterManager;
 import bisq.core.payment.PaymentAccount;
 import bisq.core.payment.PaymentAccountUtil;
+import bisq.core.support.dispute.arbitration.arbitrator.Arbitrator;
+import bisq.core.trade.TradeUtils;
 import bisq.core.user.Preferences;
 import bisq.core.user.User;
 
-import bisq.common.app.DevEnv;
 import bisq.common.app.Version;
 
 import org.bitcoinj.core.Coin;
@@ -53,15 +54,15 @@ public class OfferFilterService {
 
     @Inject
     public OfferFilterService(User user,
-                              Preferences preferences,
-                              FilterManager filterManager,
-                              AccountAgeWitnessService accountAgeWitnessService) {
+                       Preferences preferences,
+                       FilterManager filterManager,
+                       AccountAgeWitnessService accountAgeWitnessService) {
         this.user = user;
         this.preferences = preferences;
         this.filterManager = filterManager;
         this.accountAgeWitnessService = accountAgeWitnessService;
 
-        if (user != null) {
+        if (user != null && user.getPaymentAccountsAsObservable() != null) {
             // If our accounts have changed we reset our myInsufficientTradeLimitCache as it depends on account data
             user.getPaymentAccountsAsObservable().addListener((SetChangeListener<PaymentAccount>) c ->
                     myInsufficientTradeLimitCache.clear());
@@ -81,7 +82,8 @@ public class OfferFilterService {
         REQUIRE_UPDATE_TO_NEW_VERSION,
         IS_INSUFFICIENT_COUNTERPARTY_TRADE_LIMIT,
         IS_MY_INSUFFICIENT_TRADE_LIMIT,
-        HIDE_BSQ_SWAPS_DUE_DAO_DEACTIVATED;
+        ARBITRATOR_NOT_VALIDATED,
+        SIGNATURE_NOT_VALIDATED;
 
         @Getter
         private final boolean isValid;
@@ -98,9 +100,6 @@ public class OfferFilterService {
     public Result canTakeOffer(Offer offer, boolean isTakerApiUser) {
         if (isTakerApiUser && filterManager.getFilter() != null && filterManager.getFilter().isDisableApi()) {
             return Result.API_DISABLED;
-        }
-        if (!isAnyPaymentAccountValidForOffer(offer)) {
-            return Result.HAS_NO_PAYMENT_ACCOUNT_VALID_FOR_OFFER;
         }
         if (!hasSameProtocolVersion(offer)) {
             return Result.HAS_NOT_SAME_PROTOCOL_VERSION;
@@ -128,6 +127,15 @@ public class OfferFilterService {
         }
         if (isMyInsufficientTradeLimit(offer)) {
             return Result.IS_MY_INSUFFICIENT_TRADE_LIMIT;
+        }
+        if (!hasValidArbitrator(offer)) {
+            return Result.ARBITRATOR_NOT_VALIDATED;
+        }
+        if (!hasValidSignature(offer)) {
+            return Result.SIGNATURE_NOT_VALIDATED;
+        }
+        if (!isAnyPaymentAccountValidForOffer(offer)) {
+            return Result.HAS_NO_PAYMENT_ACCOUNT_VALID_FOR_OFFER;
         }
 
         return Result.VALID;
@@ -206,5 +214,16 @@ public class OfferFilterService {
                 myTradeLimit < offerMinAmount;
         myInsufficientTradeLimitCache.put(offerId, result);
         return result;
+    }
+
+    public boolean hasValidArbitrator(Offer offer) {
+        Arbitrator arbitrator = user.getAcceptedArbitratorByAddress(offer.getOfferPayload().getArbitratorSigner());
+        return arbitrator != null;
+    }
+
+    public boolean hasValidSignature(Offer offer) {
+        Arbitrator arbitrator = user.getAcceptedArbitratorByAddress(offer.getOfferPayload().getArbitratorSigner());
+        if (arbitrator == null) return false; // invalid arbitrator
+        return TradeUtils.isArbitratorSignatureValid(offer.getOfferPayload(), arbitrator);
     }
 }
