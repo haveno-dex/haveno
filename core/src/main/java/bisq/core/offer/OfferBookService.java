@@ -19,6 +19,7 @@ package bisq.core.offer;
 
 import bisq.core.filter.FilterManager;
 import bisq.core.locale.Res;
+import bisq.core.offer.OfferFilterService.Result;
 import bisq.core.provider.price.PriceFeedService;
 import bisq.core.util.JsonUtil;
 import bisq.network.p2p.BootstrapListener;
@@ -31,7 +32,6 @@ import bisq.common.config.Config;
 import bisq.common.file.JsonFileManager;
 import bisq.common.handlers.ErrorMessageHandler;
 import bisq.common.handlers.ResultHandler;
-import bisq.common.util.Utilities;
 
 import javax.inject.Inject;
 import javax.inject.Named;
@@ -39,9 +39,11 @@ import javax.inject.Named;
 import java.io.File;
 
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
@@ -64,9 +66,11 @@ public class OfferBookService {
 
     private final P2PService p2PService;
     private final PriceFeedService priceFeedService;
+    private final OfferFilterService offerFilterService;
     private final List<OfferBookChangedListener> offerBookChangedListeners = new LinkedList<>();
     private final FilterManager filterManager;
     private final JsonFileManager jsonFileManager;
+    private final Set<String> invalidOfferIds = new HashSet<String>();
 
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -75,10 +79,12 @@ public class OfferBookService {
 
     @Inject
     public OfferBookService(P2PService p2PService,
+                            OfferFilterService offerFilterService,
                             PriceFeedService priceFeedService,
                             FilterManager filterManager,
                             @Named(Config.STORAGE_DIR) File storageDir,
                             @Named(Config.DUMP_STATISTICS) boolean dumpStatistics) {
+        this.offerFilterService = offerFilterService;
         this.p2PService = p2PService;
         this.priceFeedService = priceFeedService;
         this.filterManager = filterManager;
@@ -92,7 +98,7 @@ public class OfferBookService {
                         OfferPayload offerPayload = (OfferPayload) protectedStorageEntry.getProtectedStoragePayload();
                         Offer offer = new Offer(offerPayload);
                         offer.setPriceFeedService(priceFeedService);
-                        listener.onAdded(offer);
+                        if (canTakeOffer(offer)) listener.onAdded(offer);
                     }
                 }));
             }
@@ -130,7 +136,6 @@ public class OfferBookService {
             });
         }
     }
-
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // API
@@ -199,6 +204,7 @@ public class OfferBookService {
                     offer.setPriceFeedService(priceFeedService);
                     return offer;
                 })
+                .filter(offer -> canTakeOffer(offer))
                 .collect(Collectors.toList());
     }
 
@@ -224,6 +230,13 @@ public class OfferBookService {
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Private
     ///////////////////////////////////////////////////////////////////////////////////////////
+
+    private boolean canTakeOffer(Offer offer) {
+        Result result = offerFilterService.canTakeOffer(offer, false); // TODO: why indicate if api user?
+        boolean canTake = result.isValid() || result == Result.HAS_NO_PAYMENT_ACCOUNT_VALID_FOR_OFFER; // do not require existing payment account
+        if (!canTake && invalidOfferIds.add(offer.getId())) log.warn("Ignoring invalid offer " + offer.getId() + ": " + result);
+        return canTake;
+    }
 
     private void doDumpStatistics() {
         // We filter the case that it is a MarketBasedPrice but the price is not available

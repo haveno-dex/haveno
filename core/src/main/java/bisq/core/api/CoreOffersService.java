@@ -24,8 +24,6 @@ import bisq.core.offer.CreateOfferService;
 import bisq.core.offer.Offer;
 import bisq.core.offer.OfferBookService;
 import bisq.core.offer.OfferDirection;
-import bisq.core.offer.OfferFilter;
-import bisq.core.offer.OfferFilter.Result;
 import bisq.core.offer.OfferUtil;
 import bisq.core.offer.OpenOffer;
 import bisq.core.offer.OpenOfferManager;
@@ -65,7 +63,7 @@ import static java.util.Comparator.comparing;
 
 @Singleton
 @Slf4j
-class CoreOffersService {
+public class CoreOffersService {
 
     private final Supplier<Comparator<Offer>> priceComparator = () -> comparing(Offer::getPrice);
     private final Supplier<Comparator<Offer>> reversePriceComparator = () -> comparing(Offer::getPrice).reversed();
@@ -78,7 +76,6 @@ class CoreOffersService {
     private final CoreWalletsService coreWalletsService;
     private final CreateOfferService createOfferService;
     private final OfferBookService offerBookService;
-    private final OfferFilter offerFilter;
     private final OpenOfferManager openOfferManager;
     private final User user;
     private final XmrWalletService xmrWalletService;
@@ -89,7 +86,6 @@ class CoreOffersService {
                              CoreWalletsService coreWalletsService,
                              CreateOfferService createOfferService,
                              OfferBookService offerBookService,
-                             OfferFilter offerFilter,
                              OpenOfferManager openOfferManager,
                              OfferUtil offerUtil,
                              User user,
@@ -99,7 +95,6 @@ class CoreOffersService {
         this.coreWalletsService = coreWalletsService;
         this.createOfferService = createOfferService;
         this.offerBookService = offerBookService;
-        this.offerFilter = offerFilter;
         this.openOfferManager = openOfferManager;
         this.user = user;
         this.xmrWalletService = xmrWalletService;
@@ -109,10 +104,6 @@ class CoreOffersService {
         return offerBookService.getOffers().stream()
                 .filter(o -> o.getId().equals(id))
                 .filter(o -> !o.isMyOffer(keyRing))
-                .filter(o -> {
-                    Result result = offerFilter.canTakeOffer(o, coreContext.isApiUser());
-                    return result.isValid() || result == Result.HAS_NO_PAYMENT_ACCOUNT_VALID_FOR_OFFER;
-                })
                 .findAny().orElseThrow(() ->
                         new IllegalStateException(format("offer with id '%s' not found", id)));
     }
@@ -130,10 +121,6 @@ class CoreOffersService {
         List<Offer> offers = offerBookService.getOffers().stream()
                 .filter(o -> !o.isMyOffer(keyRing))
                 .filter(o -> offerMatchesDirectionAndCurrency(o, direction, currencyCode))
-                .filter(o -> {
-                    Result result = offerFilter.canTakeOffer(o, coreContext.isApiUser());
-                    return result.isValid() || result == Result.HAS_NO_PAYMENT_ACCOUNT_VALID_FOR_OFFER;
-                })
                 .sorted(priceComparator(direction))
                 .collect(Collectors.toList());
         offers.removeAll(getUnreservedOffers(offers));
