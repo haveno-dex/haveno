@@ -5,8 +5,8 @@ We use bounties to incentivize development and reward contributors. All issues a
 To receive a bounty, you agree to these conditions:
 
 - Your changes must follow the [styling guidelines](CONTRIBUTING.md).
-- Bounties will be set and awarded at discretion of the Haveno core team.
-- The issues eligible for a bounty are labelled '💰bounty' and have the amount of the bounty specified in the title in this form: `[$200]` if in dollars or `[ɱ20]` if in Monero.
+- Bounties will be set and awarded in XMR at discretion of the Haveno core team.
+- The issues eligible for a bounty are labelled '💰bounty' and have the amount of the bounty specified in the title in this form: `[$200]` if in dollars or `[1 XMR]` if in Monero.
 - An issue is considered resolved when the patch(es) proposed by the contributor is/are merged in the appropriate repository according to terms of the issue.
 - The first person who resolves an issue in its entirety will receive the entire amount of the bounty.
 - If the issue is resolved collaboratively by more than one person, the reward will be distributed among the contributors at discretion of the Haveno core team.
