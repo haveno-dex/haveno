@@ -4,7 +4,7 @@ These are the steps needed to build Haveno and test it on our test network or lo
 
 ## Install dependencies
 
-On Ubuntu: `sudo apt install make wget git git-lfs openjdk-11-jdk`. The Monero binaries will be downloaded and verified automatically in the next step.
+On Ubuntu: `sudo apt install make wget git openjdk-11-jdk`. The Monero binaries will be downloaded and verified automatically in the next step.
 
 ## Build Haveno
 
