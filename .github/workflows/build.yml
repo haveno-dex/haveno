@@ -24,8 +24,6 @@ jobs:
           java-version: '11'
           distribution: 'adopt'
           cache: gradle
-      - name: Pull lfs
-        run: git lfs pull
       - name: Build with make
         run: make
       - name: cache nodes dependencies
@@ -57,7 +55,5 @@ jobs:
         with:
           java-version: '11'
           distribution: 'adopt'
-      - name: Pull lfs
-        run: git lfs pull
       - name: Build with Gradle
         run: ./gradlew build --stacktrace --scan
