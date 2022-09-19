@@ -108,8 +108,8 @@ public abstract class BuyerProtocol extends DisputeProtocol {
 
     @Override
     public void handleSignContractResponse(SignContractResponse response, NodeAddress sender) {
-        sendPaymentAccountKeyRequestIfWhenNeeded(BuyerEvent.DEPOSIT_TXS_CONFIRMED, true);
         super.handleSignContractResponse(response, sender);
+        sendPaymentAccountKeyRequestIfWhenNeeded(BuyerEvent.DEPOSIT_TXS_CONFIRMED, true);
     }
 
     public void handle(PaymentAccountKeyResponse response, NodeAddress sender) {
