@@ -447,6 +447,7 @@ message PaymentSentMessage {
     string counter_currency_extra_data = 6;
     string payout_tx_hex = 7;
     string updated_multisig_hex = 8;
+    bytes payment_account_key = 9;
 }
 
 message PaymentReceivedMessage {

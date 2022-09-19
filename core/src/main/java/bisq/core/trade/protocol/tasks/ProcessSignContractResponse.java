@@ -61,11 +61,9 @@ public class ProcessSignContractResponse extends TradeTask {
             else if (peer == processModel.getTaker()) peerPubKeyRing = trade.getTakerPubKeyRing();
             else throw new RuntimeException(response.getClass().getSimpleName() + " is not from maker, taker, or arbitrator");
 
-            // buyer saves seller's encrypted payment account payload
-            if (trade.isBuyer() && peer == trade.getSeller()) {
-                peer.setEncryptedPaymentAccountPayload(response.getEncryptedPaymentAccountPayload());
-                if (peer.getEncryptedPaymentAccountPayload() == null) throw new RuntimeException("Seller did not send encrypted payment account payload");
-            }
+            // save peer's encrypted payment account payload
+            peer.setEncryptedPaymentAccountPayload(response.getEncryptedPaymentAccountPayload());
+            if (peer.getEncryptedPaymentAccountPayload() == null) throw new RuntimeException("Peer did not send encrypted payment account payload");
 
             // verify signature
             // TODO (woodser): transfer contract for convenient comparison?
