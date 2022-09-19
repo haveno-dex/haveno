@@ -38,7 +38,7 @@ import javax.annotation.Nullable;
 @Value
 public final class PayoutTxPublishedMessage extends TradeMailboxMessage {
     private final NodeAddress senderNodeAddress;
-    private final String payoutTxHex;
+    private final String signedPayoutTxHex;
 
     // Added in v1.4.0
     @Nullable
@@ -47,13 +47,13 @@ public final class PayoutTxPublishedMessage extends TradeMailboxMessage {
     public PayoutTxPublishedMessage(String tradeId,
                                     NodeAddress senderNodeAddress,
                                     @Nullable SignedWitness signedWitness,
-                                    String payoutTxHex) {
+                                    String signedPayoutTxHex) {
         this(tradeId,
                 senderNodeAddress,
                 signedWitness,
                 UUID.randomUUID().toString(),
                 Version.getP2PMessageVersion(),
-                payoutTxHex);
+                signedPayoutTxHex);
     }
 
 
@@ -66,11 +66,11 @@ public final class PayoutTxPublishedMessage extends TradeMailboxMessage {
                                      @Nullable SignedWitness signedWitness,
                                      String uid,
                                      String messageVersion,
-                                     String payoutTxHex) {
+                                     String signedPayoutTxHex) {
         super(messageVersion, tradeId, uid);
         this.senderNodeAddress = senderNodeAddress;
         this.signedWitness = signedWitness;
-        this.payoutTxHex = payoutTxHex;
+        this.signedPayoutTxHex = signedPayoutTxHex;
     }
 
     @Override
@@ -79,7 +79,7 @@ public final class PayoutTxPublishedMessage extends TradeMailboxMessage {
                 .setTradeId(tradeId)
                 .setSenderNodeAddress(senderNodeAddress.toProtoMessage())
                 .setUid(uid)
-                .setPayoutTxHex(payoutTxHex);
+                .setSignedPayoutTxHex(signedPayoutTxHex);
         Optional.ofNullable(signedWitness).ifPresent(signedWitness -> builder.setSignedWitness(signedWitness.toProtoSignedWitness()));
         return getNetworkEnvelopeBuilder().setPayoutTxPublishedMessage(builder).build();
     }
@@ -96,7 +96,7 @@ public final class PayoutTxPublishedMessage extends TradeMailboxMessage {
                 signedWitness,
                 proto.getUid(),
                 messageVersion,
-                proto.getPayoutTxHex());
+                proto.getSignedPayoutTxHex());
     }
 
     @Override
@@ -104,7 +104,7 @@ public final class PayoutTxPublishedMessage extends TradeMailboxMessage {
         return "PayoutTxPublishedMessage{" +
                 "\n     senderNodeAddress=" + senderNodeAddress +
                 ",\n     signedWitness=" + signedWitness +
-                ",\n     payoutTxHex=" + payoutTxHex +
+                ",\n     signedPayoutTxHex=" + signedPayoutTxHex +
                 "\n} " + super.toString();
     }
 }

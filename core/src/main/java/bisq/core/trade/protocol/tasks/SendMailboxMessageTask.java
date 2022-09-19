@@ -23,7 +23,7 @@ import bisq.core.trade.messages.TradeMessage;
 
 import bisq.network.p2p.NodeAddress;
 import bisq.network.p2p.SendMailboxMessageListener;
-
+import bisq.common.crypto.PubKeyRing;
 import bisq.common.taskrunner.TaskRunner;
 
 import lombok.extern.slf4j.Slf4j;
@@ -34,7 +34,15 @@ public abstract class SendMailboxMessageTask extends TradeTask {
         super(taskHandler, trade);
     }
 
-    protected abstract TradeMailboxMessage getTradeMailboxMessage(String id);
+    protected NodeAddress getReceiverNodeAddress() {
+        return trade.getTradingPeerNodeAddress();
+    }
+
+    protected PubKeyRing getReceiverPubKeyRing() {
+        return trade.getTradingPeer().getPubKeyRing();
+    }
+
+    protected abstract TradeMailboxMessage getTradeMailboxMessage(String tradeId);
 
     protected abstract void setStateSent();
 
@@ -51,34 +59,31 @@ public abstract class SendMailboxMessageTask extends TradeTask {
             String id = processModel.getOfferId();
             TradeMailboxMessage message = getTradeMailboxMessage(id);
             setStateSent();
-            NodeAddress peersNodeAddress = trade.getTradingPeerNodeAddress();
+            NodeAddress peersNodeAddress = getReceiverNodeAddress();
             log.info("Send {} to peer {}. tradeId={}, uid={}",
                     message.getClass().getSimpleName(), peersNodeAddress, message.getTradeId(), message.getUid());
 
             processModel.getP2PService().getMailboxMessageService().sendEncryptedMailboxMessage(
                     peersNodeAddress,
-                    trade.getTradingPeer().getPubKeyRing(),
+                    getReceiverPubKeyRing(),
                     message,
                     new SendMailboxMessageListener() {
                         @Override
                         public void onArrived() {
-                            log.info("{} arrived at peer {}. tradeId={}, uid={}",
-                                    message.getClass().getSimpleName(), peersNodeAddress, message.getTradeId(), message.getUid());
+                            log.info("{} arrived at peer {}. tradeId={}, uid={}", message.getClass().getSimpleName(), peersNodeAddress, message.getTradeId(), message.getUid());
                             setStateArrived();
                             complete();
                         }
 
                         @Override
                         public void onStoredInMailbox() {
-                            log.info("{} stored in mailbox for peer {}. tradeId={}, uid={}",
-                                    message.getClass().getSimpleName(), peersNodeAddress, message.getTradeId(), message.getUid());
+                            log.info("{} stored in mailbox for peer {}. tradeId={}, uid={}", message.getClass().getSimpleName(), peersNodeAddress, message.getTradeId(), message.getUid());
                             SendMailboxMessageTask.this.onStoredInMailbox();
                         }
 
                         @Override
                         public void onFault(String errorMessage) {
-                            log.error("{} failed: Peer {}. tradeId={}, uid={}, errorMessage={}",
-                                    message.getClass().getSimpleName(), peersNodeAddress, message.getTradeId(), message.getUid(), errorMessage);
+                            log.error("{} failed: Peer {}. tradeId={}, uid={}, errorMessage={}", message.getClass().getSimpleName(), peersNodeAddress, message.getTradeId(), message.getUid(), errorMessage);
                             SendMailboxMessageTask.this.onFault(errorMessage, message);
                         }
                     }

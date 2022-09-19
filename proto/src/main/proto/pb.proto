@@ -79,10 +79,12 @@ message NetworkEnvelope {
         PaymentSentMessage payment_sent_message = 1011;
         PaymentReceivedMessage payment_received_message = 1012;
         PayoutTxPublishedMessage payout_tx_published_message = 1013;
-        UpdateMultisigRequest update_multisig_request = 1014;
-        UpdateMultisigResponse update_multisig_response = 1015;
         ArbitratorPayoutTxRequest arbitrator_payout_tx_request = 1016;
         ArbitratorPayoutTxResponse arbitrator_payout_tx_response = 1017;
+
+        // TODO: delete these
+        UpdateMultisigRequest update_multisig_request = 1018;
+        UpdateMultisigResponse update_multisig_response = 1019;
     }
 }
 
@@ -459,8 +461,8 @@ message PayoutTxPublishedMessage {
     string trade_id = 1;
     NodeAddress sender_node_address = 2;
     string uid = 3;
-    SignedWitness signed_witness = 4; // Added in v1.4.0
-    string payout_tx_hex = 5;
+    SignedWitness signed_witness = 4;
+    string signed_payout_tx_hex = 5;
 }
 
 message ArbitratorPayoutTxRequest {

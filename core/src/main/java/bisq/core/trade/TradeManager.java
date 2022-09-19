@@ -541,7 +541,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
           //System.out.println("TradeManager trade.setTradingPeerNodeAddress(): " + sender);
           //trade.setTradingPeerNodeAddress(sender);
           // TODO (woodser): what if maker's address changes while offer open, or taker's address changes after multisig deposit available? need to verify and update. see OpenOfferManager.maybeUpdatePersistedOffers()
-          trade.setArbitratorPubKeyRing(user.getAcceptedArbitratorByAddress(sender).getPubKeyRing());
+          trade.setArbitratorPubKeyRing(arbitrator.getPubKeyRing());
           trade.setMakerPubKeyRing(trade.getOffer().getPubKeyRing());
           initTradeAndProtocol(trade, getTradeProtocol(trade));
           trade.getSelf().setReserveTxHash(openOffer.getReserveTxHash()); // TODO (woodser): initialize in initTradeAndProtocol?

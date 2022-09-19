@@ -25,6 +25,7 @@ import bisq.core.trade.messages.SignContractResponse;
 import bisq.core.trade.messages.TradeMessage;
 import bisq.core.trade.protocol.FluentProtocol.Condition;
 import bisq.core.trade.protocol.tasks.ApplyFilter;
+import bisq.core.trade.protocol.tasks.BuyerSendsPayoutTxPublishedMessage;
 import bisq.core.trade.protocol.tasks.BuyerPreparesPaymentSentMessage;
 import bisq.core.trade.protocol.tasks.BuyerProcessesPaymentReceivedMessage;
 import bisq.core.trade.protocol.tasks.BuyerSendsPaymentAccountKeyRequestToArbitrator;
@@ -189,7 +190,8 @@ public abstract class BuyerProtocol extends DisputeProtocol {
                     .with(message)
                     .from(peer))
                     .setup(tasks(
-                        BuyerProcessesPaymentReceivedMessage.class)
+                        BuyerProcessesPaymentReceivedMessage.class,
+                        BuyerSendsPayoutTxPublishedMessage.class)
                         .using(new TradeTaskRunner(trade,
                             () -> {
                                 handleTaskRunnerSuccess(peer, message);

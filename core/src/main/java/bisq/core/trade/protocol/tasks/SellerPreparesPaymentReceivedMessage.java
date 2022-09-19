@@ -40,7 +40,7 @@ public class SellerPreparesPaymentReceivedMessage extends TradeTask {
             // verify, sign, and publish payout tx if given. otherwise create payout tx
             if (trade.getBuyer().getPayoutTxHex() != null) {
                 log.info("Seller verifying, signing, and publishing payout tx");
-                trade.verifySignAndPublishPayoutTx(trade.getBuyer().getPayoutTxHex());
+                trade.verifyPayoutTx(trade.getBuyer().getPayoutTxHex(), true, true);
             } else {
                 log.info("Seller creating unsigned payout tx");
                 MoneroTxWallet payoutTx = trade.createPayoutTx();
