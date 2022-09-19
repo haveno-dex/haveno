@@ -45,7 +45,10 @@ public class SellerProcessesPaymentSentMessage extends TradeTask {
             trade.getBuyer().setPayoutAddressString(Validator.nonEmptyStringOf(message.getBuyerPayoutAddress()));	// TODO (woodser): verify against contract
             trade.getBuyer().setPayoutTxHex(message.getPayoutTxHex());
             trade.getBuyer().setUpdatedMultisigHex(message.getUpdatedMultisigHex());
-            
+
+            // decrypt peer's payment account payload
+            trade.decryptPeersPaymentAccountPayload(message.getPaymentAccountKey());
+
             // sync and update multisig wallet
             if (trade.getBuyer().getUpdatedMultisigHex() != null) {
                 XmrWalletService walletService = processModel.getProvider().getXmrWalletService();

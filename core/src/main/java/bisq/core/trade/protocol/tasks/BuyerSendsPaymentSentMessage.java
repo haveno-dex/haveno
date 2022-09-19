@@ -71,7 +71,8 @@ public class BuyerSendsPaymentSentMessage extends SendMailboxMessageTask {
                     trade.getCounterCurrencyExtraData(),
                     deterministicId,
                     trade.getBuyer().getPayoutTxHex(),
-                    trade.getBuyer().getUpdatedMultisigHex()
+                    trade.getBuyer().getUpdatedMultisigHex(),
+                    trade.getSelf().getPaymentAccountKey()
             );
         }
         return message;
