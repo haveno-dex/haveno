@@ -1,5 +1,6 @@
 package bisq.core.trade.protocol;
 
+import bisq.common.handlers.ErrorMessageHandler;
 import bisq.core.trade.ArbitratorTrade;
 import bisq.core.trade.Trade;
 import bisq.core.trade.messages.DepositRequest;
@@ -7,17 +8,18 @@ import bisq.core.trade.messages.DepositResponse;
 import bisq.core.trade.messages.InitTradeRequest;
 import bisq.core.trade.messages.PaymentAccountKeyRequest;
 import bisq.core.trade.messages.SignContractResponse;
+import bisq.core.trade.messages.PayoutTxPublishedMessage;
+import bisq.core.trade.messages.TradeMessage;
 import bisq.core.trade.protocol.FluentProtocol.Condition;
 import bisq.core.trade.protocol.tasks.ApplyFilter;
-import bisq.core.trade.protocol.tasks.ArbitratorSendsInitTradeOrMultisigRequests;
 import bisq.core.trade.protocol.tasks.ArbitratorProcessesDepositRequest;
 import bisq.core.trade.protocol.tasks.ArbitratorProcessesPaymentAccountKeyRequest;
 import bisq.core.trade.protocol.tasks.ArbitratorProcessesReserveTx;
+import bisq.core.trade.protocol.tasks.ArbitratorProcessPayoutTxPublishedMessage;
+import bisq.core.trade.protocol.tasks.ArbitratorSendsInitTradeOrMultisigRequests;
 import bisq.core.trade.protocol.tasks.ProcessInitTradeRequest;
 import bisq.core.util.Validator;
 import bisq.network.p2p.NodeAddress;
-import bisq.common.handlers.ErrorMessageHandler;
-
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -25,6 +27,22 @@ public class ArbitratorProtocol extends DisputeProtocol {
 
   public ArbitratorProtocol(ArbitratorTrade trade) {
     super(trade);
+  }
+
+  @Override
+  protected void onTradeMessage(TradeMessage message, NodeAddress peer) {
+      super.onTradeMessage(message, peer);
+      if (message instanceof PayoutTxPublishedMessage) {
+          handle((PayoutTxPublishedMessage) message, peer);
+      }
+  }
+
+  @Override
+  public void onMailboxMessage(TradeMessage message, NodeAddress peer) {
+      super.onMailboxMessage(message, peer);
+      if (message instanceof PayoutTxPublishedMessage) {
+          handle((PayoutTxPublishedMessage) message, peer);
+      }
   }
 
   ///////////////////////////////////////////////////////////////////////////////////////////
@@ -94,7 +112,7 @@ public class ArbitratorProtocol extends DisputeProtocol {
   
   @Override
   public void handleDepositResponse(DepositResponse response, NodeAddress sender) {
-      log.warn("Arbitrator ignoring DepositResponse");
+      log.warn("Arbitrator ignoring DepositResponse for trade " + response.getTradeId());
   }
   
   public void handlePaymentAccountKeyRequest(PaymentAccountKeyRequest request, NodeAddress sender) {
@@ -121,15 +139,30 @@ public class ArbitratorProtocol extends DisputeProtocol {
           awaitTradeLatch();
       }
   }
-
-  ///////////////////////////////////////////////////////////////////////////////////////////
-  // Message dispatcher
-  ///////////////////////////////////////////////////////////////////////////////////////////
-
-//  @Override
-//  protected void onTradeMessage(TradeMessage message, NodeAddress peer) {
-//    if (message instanceof InitTradeRequest) {
-//      handleInitTradeRequest((InitTradeRequest) message, peer);
-//    }
-//  }
+  
+  protected void handle(PayoutTxPublishedMessage request, NodeAddress peer) {
+      System.out.println("ArbitratorProtocol.handle(PayoutTxPublishedMessage)");
+      new Thread(() -> {
+          synchronized (trade) {
+              if (trade.isCompleted()) return; // ignore subsequent requests
+              latchTrade();
+              Validator.checkTradeId(processModel.getOfferId(), request);
+              processModel.setTradeMessage(request);
+              expect(phase(Trade.Phase.DEPOSITS_PUBLISHED)
+                  .with(request)
+                  .from(peer))
+                  .setup(tasks(
+                      ArbitratorProcessPayoutTxPublishedMessage.class)
+                      .using(new TradeTaskRunner(trade,
+                          () -> {
+                              handleTaskRunnerSuccess(peer, request);
+                          },
+                          errorMessage -> {
+                              handleTaskRunnerFault(peer, request, errorMessage);
+                          })))
+                  .executeTasks(true);
+              awaitTradeLatch();
+          }
+      }).start();
+  }
 }

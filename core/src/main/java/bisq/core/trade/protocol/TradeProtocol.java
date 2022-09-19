@@ -87,6 +87,19 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
 
 
     ///////////////////////////////////////////////////////////////////////////////////////////
+    // Dispatcher
+    ///////////////////////////////////////////////////////////////////////////////////////////
+
+    protected void onTradeMessage(TradeMessage message, NodeAddress peerNodeAddress) {
+        log.info("Received {} as TradeMessage from {} with tradeId {} and uid {}", message.getClass().getSimpleName(), peerNodeAddress, message.getTradeId(), message.getUid());
+    }
+
+    protected void onMailboxMessage(TradeMessage message, NodeAddress peerNodeAddress) {
+        log.info("Received {} as MailboxMessage from {} with tradeId {} and uid {}", message.getClass().getSimpleName(), peerNodeAddress, message.getTradeId(), message.getUid());
+    }
+
+
+    ///////////////////////////////////////////////////////////////////////////////////////////
     // API
     ///////////////////////////////////////////////////////////////////////////////////////////
 
@@ -114,11 +127,6 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
 
     public void onWithdrawCompleted() {
         log.info("Withdraw completed");
-    }
-
-    protected void onMailboxMessage(TradeMessage message, NodeAddress peerNodeAddress) {
-        log.info("Received {} as MailboxMessage from {} with tradeId {} and uid {}",
-                message.getClass().getSimpleName(), peerNodeAddress, message.getTradeId(), message.getUid());
     }
 
 
@@ -217,8 +225,6 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Abstract
     ///////////////////////////////////////////////////////////////////////////////////////////
-
-    protected abstract void onTradeMessage(TradeMessage message, NodeAddress peer);
 
     public void handleInitMultisigRequest(InitMultisigRequest request, NodeAddress sender) {
         System.out.println(getClass().getCanonicalName() + ".handleInitMultisigRequest()");

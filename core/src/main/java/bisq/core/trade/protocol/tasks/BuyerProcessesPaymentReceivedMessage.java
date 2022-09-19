@@ -71,7 +71,7 @@ public class BuyerProcessesPaymentReceivedMessage extends TradeTask {
                     walletService.closeMultisigWallet(trade.getId());
                 } else {
                     log.info("Buyer verifying, signing, and publishing seller's payout tx");
-                    trade.verifySignAndPublishPayoutTx(message.getPayoutTxHex());
+                    trade.verifyPayoutTx(message.getPayoutTxHex(), true, true);
                     trade.setState(Trade.State.BUYER_PUBLISHED_PAYOUT_TX);
                     // TODO (woodser): send PayoutTxPublishedMessage to arbitrator and seller
                 }
@@ -79,6 +79,7 @@ public class BuyerProcessesPaymentReceivedMessage extends TradeTask {
                 log.info("We got the payout tx already set from BuyerSetupPayoutTxListener and do nothing here. trade ID={}", trade.getId());
             }
 
+            // TODO: remove witness
             SignedWitness signedWitness = message.getSignedWitness();
             if (signedWitness != null) {
                 // We received the signedWitness from the seller and publish the data to the network.

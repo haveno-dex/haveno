@@ -770,14 +770,15 @@ public abstract class Trade implements Tradable, Model {
     }
 
     /**
-     * Verify and sign a payout tx.
+     * Verify a payout tx.
      * 
      * @param payoutTxHex is the payout tx hex to verify
-     * @return String the signed payout tx hex
+     * @param sign signs the payout tx if true
+     * @param publish publishes the signed payout tx if true
      */
-    public void verifySignAndPublishPayoutTx(String payoutTxHex) {
+    public void verifyPayoutTx(String payoutTxHex, boolean sign, boolean publish) {
         log.info("Verifying payout tx");
-        
+
         // gather relevant info
         XmrWalletService walletService = processModel.getProvider().getXmrWalletService();
         MoneroWallet multisigWallet = walletService.getMultisigWallet(getId());
@@ -787,9 +788,9 @@ public abstract class Trade implements Tradable, Model {
         BigInteger tradeAmount = ParsingUtils.coinToAtomicUnits(getAmount());
 
         // parse payout tx
-        MoneroTxSet parsedTxSet = multisigWallet.describeTxSet(new MoneroTxSet().setMultisigTxHex(payoutTxHex));
-        if (parsedTxSet.getTxs() == null || parsedTxSet.getTxs().size() != 1) throw new RuntimeException("Bad payout tx"); // TODO (woodser): test nack
-        MoneroTxWallet payoutTx = parsedTxSet.getTxs().get(0);
+        MoneroTxSet describedTxSet = multisigWallet.describeTxSet(new MoneroTxSet().setMultisigTxHex(payoutTxHex));
+        if (describedTxSet.getTxs() == null || describedTxSet.getTxs().size() != 1) throw new RuntimeException("Bad payout tx"); // TODO (woodser): test nack
+        MoneroTxWallet payoutTx = describedTxSet.getTxs().get(0);
 
         // verify payout tx has exactly 2 destinations
         if (payoutTx.getOutgoingTransfer() == null || payoutTx.getOutgoingTransfer().getDestinations() == null || payoutTx.getOutgoingTransfer().getDestinations().size() != 2) throw new RuntimeException("Payout tx does not have exactly two destinations");
@@ -819,21 +820,25 @@ public abstract class Trade implements Tradable, Model {
         if (!sellerPayoutDestination.getAmount().equals(expectedSellerPayout)) throw new RuntimeException("Seller destination amount is not deposit amount - trade amount - 1/2 tx costs, " + sellerPayoutDestination.getAmount() + " vs " + expectedSellerPayout);
 
         // TODO (woodser): verify fee is reasonable (e.g. within 2x of fee estimate tx)
-        
+
         // sign payout tx
-        MoneroMultisigSignResult result = multisigWallet.signMultisigTxHex(payoutTxHex);
-        if (result.getSignedMultisigTxHex() == null) throw new RuntimeException("Error signing payout tx");
-        String signedPayoutTxHex = result.getSignedMultisigTxHex();
-        
-        // submit payout tx
-        multisigWallet.submitMultisigTxHex(signedPayoutTxHex);
-        walletService.closeMultisigWallet(getId());
-        
+        if (sign) {
+            MoneroMultisigSignResult result = multisigWallet.signMultisigTxHex(payoutTxHex);
+            if (result.getSignedMultisigTxHex() == null) throw new RuntimeException("Error signing payout tx");
+            payoutTxHex = result.getSignedMultisigTxHex();
+        }
+
         // update trade state
-        getSelf().setPayoutTxHex(signedPayoutTxHex);
-        setPayoutTx(parsedTxSet.getTxs().get(0));
-        setPayoutTxId(parsedTxSet.getTxs().get(0).getHash());
-        setState(isBuyer() ? Trade.State.BUYER_PUBLISHED_PAYOUT_TX : Trade.State.SELLER_PUBLISHED_PAYOUT_TX);
+        getSelf().setPayoutTxHex(payoutTxHex);
+        setPayoutTx(describedTxSet.getTxs().get(0));
+        setPayoutTxId(describedTxSet.getTxs().get(0).getHash());
+
+        // submit payout tx
+        if (publish) {
+            multisigWallet.submitMultisigTxHex(payoutTxHex);
+            setState(isArbitrator() ? Trade.State.WITHDRAW_COMPLETED : isBuyer() ? Trade.State.BUYER_PUBLISHED_PAYOUT_TX : Trade.State.SELLER_PUBLISHED_PAYOUT_TX);
+        }
+        walletService.closeMultisigWallet(getId());
     }
 
     /**
@@ -1113,6 +1118,10 @@ public abstract class Trade implements Tradable, Model {
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Getter
     ///////////////////////////////////////////////////////////////////////////////////////////
+
+    public boolean isArbitrator() {
+        return this instanceof ArbitratorTrade;
+    }
 
     public boolean isBuyer() {
         return getBuyer() == getSelf();

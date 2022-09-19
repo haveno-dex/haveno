@@ -19,12 +19,12 @@ package bisq.core.trade.protocol;
 
 import bisq.core.trade.SellerTrade;
 import bisq.core.trade.Trade;
-import bisq.core.trade.messages.DepositResponse;
 import bisq.core.trade.messages.PaymentSentMessage;
 import bisq.core.trade.messages.SignContractResponse;
 import bisq.core.trade.messages.TradeMessage;
 import bisq.core.trade.protocol.FluentProtocol.Condition;
 import bisq.core.trade.protocol.tasks.ApplyFilter;
+import bisq.core.trade.protocol.tasks.SellerMaybeSendsPayoutTxPublishedMessage;
 import bisq.core.trade.protocol.tasks.SellerPreparesPaymentReceivedMessage;
 import bisq.core.trade.protocol.tasks.SellerProcessesPaymentSentMessage;
 import bisq.core.trade.protocol.tasks.SellerSendsPaymentReceivedMessage;
@@ -155,6 +155,7 @@ public abstract class SellerProtocol extends DisputeProtocol {
                             .setup(tasks(
                                     ApplyFilter.class,
                                     SellerPreparesPaymentReceivedMessage.class,
+                                    SellerMaybeSendsPayoutTxPublishedMessage.class,
                                     SellerSendsPaymentReceivedMessage.class)
                             .using(new TradeTaskRunner(trade, () -> {
                                 this.errorMessageHandler = null;

@@ -52,6 +52,31 @@ public abstract class DisputeProtocol extends TradeProtocol {
 
 
     ///////////////////////////////////////////////////////////////////////////////////////////
+    // Dispatcher
+    ///////////////////////////////////////////////////////////////////////////////////////////
+
+    @Override
+    protected void onTradeMessage(TradeMessage message, NodeAddress peer) {
+        super.onTradeMessage(message, peer);
+        if (message instanceof MediatedPayoutTxSignatureMessage) {
+            handle((MediatedPayoutTxSignatureMessage) message, peer);
+        } else if (message instanceof MediatedPayoutTxPublishedMessage) {
+            handle((MediatedPayoutTxPublishedMessage) message, peer);
+        }
+    }
+
+    @Override
+    protected void onMailboxMessage(TradeMessage message, NodeAddress peer) {
+        super.onMailboxMessage(message, peer);
+        if (message instanceof MediatedPayoutTxSignatureMessage) {
+            handle((MediatedPayoutTxSignatureMessage) message, peer);
+        } else if (message instanceof MediatedPayoutTxPublishedMessage) {
+            handle((MediatedPayoutTxPublishedMessage) message, peer);
+        }
+    }
+
+
+    ///////////////////////////////////////////////////////////////////////////////////////////
     // User interaction: Trader accepts mediation result
     ///////////////////////////////////////////////////////////////////////////////////////////
 
@@ -130,54 +155,5 @@ public abstract class DisputeProtocol extends TradeProtocol {
                 .from(peer))
                 .setup(tasks(ProcessMediatedPayoutTxPublishedMessage.class))
                 .executeTasks();
-    }
-
-    ///////////////////////////////////////////////////////////////////////////////////////////
-    // Delayed payout tx
-    ///////////////////////////////////////////////////////////////////////////////////////////
-
-//    public void onPublishDelayedPayoutTx(ResultHandler resultHandler, ErrorMessageHandler errorMessageHandler) {
-//        DisputeEvent event = DisputeEvent.ARBITRATION_REQUESTED;
-//        expect(anyPhase(Trade.Phase.DEPOSITS_CONFIRMED,
-//                Trade.Phase.FIAT_SENT,
-//                Trade.Phase.FIAT_RECEIVED)
-//                .with(event)
-//                .preCondition(trade.getDelayedPayoutTx() != null))
-//                .setup(tasks(PublishedDelayedPayoutTx.class,
-//                        SendPeerPublishedDelayedPayoutTxMessage.class)
-//                        .using(new TradeTaskRunner(trade,
-//                                () -> {
-//                                    resultHandler.handleResult();
-//                                    handleTaskRunnerSuccess(event);
-//                                },
-//                                errorMessage -> {
-//                                    errorMessageHandler.handleErrorMessage(errorMessage);
-//                                    handleTaskRunnerFault(event, errorMessage);
-//                                })))
-//                .executeTasks();
-//    }
-
-
-    ///////////////////////////////////////////////////////////////////////////////////////////
-    // Dispatcher
-    ///////////////////////////////////////////////////////////////////////////////////////////
-
-    @Override
-    protected void onTradeMessage(TradeMessage message, NodeAddress peer) {
-        if (message instanceof MediatedPayoutTxSignatureMessage) {
-            handle((MediatedPayoutTxSignatureMessage) message, peer);
-        } else if (message instanceof MediatedPayoutTxPublishedMessage) {
-            handle((MediatedPayoutTxPublishedMessage) message, peer);
-        }
-    }
-
-    @Override
-    protected void onMailboxMessage(TradeMessage message, NodeAddress peer) {
-        super.onMailboxMessage(message, peer);
-        if (message instanceof MediatedPayoutTxSignatureMessage) {
-            handle((MediatedPayoutTxSignatureMessage) message, peer);
-        } else if (message instanceof MediatedPayoutTxPublishedMessage) {
-            handle((MediatedPayoutTxPublishedMessage) message, peer);
-        }
     }
 }
