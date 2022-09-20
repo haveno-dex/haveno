@@ -461,9 +461,10 @@ message PaymentReceivedMessage {
 message PayoutTxPublishedMessage {
     string trade_id = 1;
     NodeAddress sender_node_address = 2;
-    string uid = 3;
-    SignedWitness signed_witness = 4;
-    string signed_payout_tx_hex = 5;
+    bool is_maker = 3;
+    string uid = 4;
+    SignedWitness signed_witness = 5;
+    string signed_payout_tx_hex = 6;
 }
 
 message ArbitratorPayoutTxRequest {

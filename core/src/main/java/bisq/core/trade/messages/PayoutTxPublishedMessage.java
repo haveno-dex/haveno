@@ -38,6 +38,7 @@ import javax.annotation.Nullable;
 @Value
 public final class PayoutTxPublishedMessage extends TradeMailboxMessage {
     private final NodeAddress senderNodeAddress;
+    private final boolean isMaker;
     private final String signedPayoutTxHex;
 
     // Added in v1.4.0
@@ -46,10 +47,12 @@ public final class PayoutTxPublishedMessage extends TradeMailboxMessage {
 
     public PayoutTxPublishedMessage(String tradeId,
                                     NodeAddress senderNodeAddress,
+                                    boolean isMaker,
                                     @Nullable SignedWitness signedWitness,
                                     String signedPayoutTxHex) {
         this(tradeId,
                 senderNodeAddress,
+                isMaker,
                 signedWitness,
                 UUID.randomUUID().toString(),
                 Version.getP2PMessageVersion(),
@@ -63,12 +66,14 @@ public final class PayoutTxPublishedMessage extends TradeMailboxMessage {
 
     private PayoutTxPublishedMessage(String tradeId,
                                      NodeAddress senderNodeAddress,
+                                     boolean isMaker,
                                      @Nullable SignedWitness signedWitness,
                                      String uid,
                                      String messageVersion,
                                      String signedPayoutTxHex) {
         super(messageVersion, tradeId, uid);
         this.senderNodeAddress = senderNodeAddress;
+        this.isMaker = isMaker;
         this.signedWitness = signedWitness;
         this.signedPayoutTxHex = signedPayoutTxHex;
     }
@@ -78,6 +83,7 @@ public final class PayoutTxPublishedMessage extends TradeMailboxMessage {
         protobuf.PayoutTxPublishedMessage.Builder builder = protobuf.PayoutTxPublishedMessage.newBuilder()
                 .setTradeId(tradeId)
                 .setSenderNodeAddress(senderNodeAddress.toProtoMessage())
+                .setIsMaker(isMaker)
                 .setUid(uid)
                 .setSignedPayoutTxHex(signedPayoutTxHex);
         Optional.ofNullable(signedWitness).ifPresent(signedWitness -> builder.setSignedWitness(signedWitness.toProtoSignedWitness()));
@@ -93,6 +99,7 @@ public final class PayoutTxPublishedMessage extends TradeMailboxMessage {
                 null;
         return new PayoutTxPublishedMessage(proto.getTradeId(),
                 NodeAddress.fromProto(proto.getSenderNodeAddress()),
+                proto.getIsMaker(),
                 signedWitness,
                 proto.getUid(),
                 messageVersion,
@@ -103,6 +110,7 @@ public final class PayoutTxPublishedMessage extends TradeMailboxMessage {
     public String toString() {
         return "PayoutTxPublishedMessage{" +
                 "\n     senderNodeAddress=" + senderNodeAddress +
+                ",\n     isMaker=" + isMaker +
                 ",\n     signedWitness=" + signedWitness +
                 ",\n     signedPayoutTxHex=" + signedPayoutTxHex +
                 "\n} " + super.toString();

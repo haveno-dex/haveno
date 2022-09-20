@@ -56,11 +56,11 @@ public class BuyerProcessPaymentReceivedMessage extends TradeTask {
             trade.setTradingPeerNodeAddress(processModel.getTempTradingPeerNodeAddress());
 
             // handle if payout tx is not seen on network
-            if (trade.getPayoutTx() == null) {
+            if (trade.getPhase().ordinal() < Trade.Phase.PAYOUT_PUBLISHED.ordinal()) {
 
                 // publish payout tx if signed. otherwise verify, sign, and publish payout tx
-                boolean fullySigned = trade.getSelf().getPayoutTx() != null;
-                if (fullySigned) {
+                boolean previouslySigned = trade.getBuyer().getPayoutTxHex() != null;
+                if (previouslySigned) {
                     log.info("Buyer publishing signed payout tx from seller");
                     XmrWalletService walletService = processModel.getProvider().getXmrWalletService();
                     MoneroWallet multisigWallet = walletService.getMultisigWallet(trade.getId());

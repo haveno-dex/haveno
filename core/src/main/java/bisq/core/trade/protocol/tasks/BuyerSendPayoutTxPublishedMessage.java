@@ -54,6 +54,7 @@ public class BuyerSendPayoutTxPublishedMessage extends SendMailboxMessageTask {
         return new PayoutTxPublishedMessage(
                 tradeId,
                 processModel.getMyNodeAddress(),
+                trade.isMaker(),
                 null, // TODO: send witness data?
                 trade.getSelf().getPayoutTxHex()
         );
