@@ -40,12 +40,12 @@ import lombok.extern.slf4j.Slf4j;
  * online he will process it.
  */
 @Slf4j
-public class BuyerSendsPaymentSentMessage extends SendMailboxMessageTask {
+public class BuyerSendPaymentSentMessage extends SendMailboxMessageTask {
     private PaymentSentMessage message;
     private ChangeListener<MessageState> listener;
     private Timer timer;
 
-    public BuyerSendsPaymentSentMessage(TaskRunner<Trade> taskHandler, Trade trade) {
+    public BuyerSendPaymentSentMessage(TaskRunner<Trade> taskHandler, Trade trade) {
         super(taskHandler, trade);
     }
 

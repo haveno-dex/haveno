@@ -37,8 +37,8 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import monero.wallet.MoneroWallet;
 
 @Slf4j
-public class BuyerProcessesPaymentReceivedMessage extends TradeTask {
-    public BuyerProcessesPaymentReceivedMessage(TaskRunner<Trade> taskHandler, Trade trade) {
+public class BuyerProcessPaymentReceivedMessage extends TradeTask {
+    public BuyerProcessPaymentReceivedMessage(TaskRunner<Trade> taskHandler, Trade trade) {
         super(taskHandler, trade);
     }
 

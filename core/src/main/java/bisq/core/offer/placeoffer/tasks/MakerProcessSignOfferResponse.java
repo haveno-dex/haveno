@@ -27,8 +27,8 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import bisq.common.taskrunner.Task;
 import bisq.common.taskrunner.TaskRunner;
 
-public class MakerProcessesSignOfferResponse extends Task<PlaceOfferModel> {
-    public MakerProcessesSignOfferResponse(TaskRunner<PlaceOfferModel> taskHandler, PlaceOfferModel model) {
+public class MakerProcessSignOfferResponse extends Task<PlaceOfferModel> {
+    public MakerProcessSignOfferResponse(TaskRunner<PlaceOfferModel> taskHandler, PlaceOfferModel model) {
         super(taskHandler, model);
     }
 

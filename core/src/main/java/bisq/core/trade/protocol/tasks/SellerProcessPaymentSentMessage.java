@@ -28,8 +28,8 @@ import lombok.extern.slf4j.Slf4j;
 import monero.wallet.MoneroWallet;
 
 @Slf4j
-public class SellerProcessesPaymentSentMessage extends TradeTask {
-    public SellerProcessesPaymentSentMessage(TaskRunner<Trade> taskHandler, Trade trade) {
+public class SellerProcessPaymentSentMessage extends TradeTask {
+    public SellerProcessPaymentSentMessage(TaskRunner<Trade> taskHandler, Trade trade) {
         super(taskHandler, trade);
     }
 

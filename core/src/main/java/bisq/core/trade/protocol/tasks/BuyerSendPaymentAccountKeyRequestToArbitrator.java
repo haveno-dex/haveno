@@ -27,10 +27,10 @@ import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public class BuyerSendsPaymentAccountKeyRequestToArbitrator extends TradeTask {
+public class BuyerSendPaymentAccountKeyRequestToArbitrator extends TradeTask {
 
     @SuppressWarnings({"unused"})
-    public BuyerSendsPaymentAccountKeyRequestToArbitrator(TaskRunner taskHandler, Trade trade) {
+    public BuyerSendPaymentAccountKeyRequestToArbitrator(TaskRunner taskHandler, Trade trade) {
         super(taskHandler, trade);
     }
 

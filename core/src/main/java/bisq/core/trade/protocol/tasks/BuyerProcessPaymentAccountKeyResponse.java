@@ -24,10 +24,10 @@ import bisq.core.trade.messages.PaymentAccountKeyResponse;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public class BuyerProcessesPaymentAccountKeyResponse extends TradeTask {
+public class BuyerProcessPaymentAccountKeyResponse extends TradeTask {
     
     @SuppressWarnings({"unused"})
-    public BuyerProcessesPaymentAccountKeyResponse(TaskRunner taskHandler, Trade trade) {
+    public BuyerProcessPaymentAccountKeyResponse(TaskRunner taskHandler, Trade trade) {
         super(taskHandler, trade);
     }
 

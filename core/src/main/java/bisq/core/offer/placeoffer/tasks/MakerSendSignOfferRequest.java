@@ -42,13 +42,13 @@ import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class MakerSendsSignOfferRequest extends Task<PlaceOfferModel> {
-    private static final Logger log = LoggerFactory.getLogger(MakerSendsSignOfferRequest.class);
+public class MakerSendSignOfferRequest extends Task<PlaceOfferModel> {
+    private static final Logger log = LoggerFactory.getLogger(MakerSendSignOfferRequest.class);
     
     private boolean failed = false;
 
     @SuppressWarnings({"unused"})
-    public MakerSendsSignOfferRequest(TaskRunner taskHandler, PlaceOfferModel model) {
+    public MakerSendSignOfferRequest(TaskRunner taskHandler, PlaceOfferModel model) {
         super(taskHandler, model);
     }
 

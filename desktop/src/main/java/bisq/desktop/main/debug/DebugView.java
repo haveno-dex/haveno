@@ -24,20 +24,20 @@ import bisq.desktop.components.TitledGroupBg;
 import bisq.core.offer.availability.tasks.ProcessOfferAvailabilityResponse;
 import bisq.core.offer.availability.tasks.SendOfferAvailabilityRequest;
 import bisq.core.offer.placeoffer.tasks.AddToOfferBook;
-import bisq.core.offer.placeoffer.tasks.MakerReservesOfferFunds;
+import bisq.core.offer.placeoffer.tasks.MakerReserveOfferFunds;
 import bisq.core.offer.placeoffer.tasks.ValidateOffer;
 import bisq.core.trade.protocol.tasks.ApplyFilter;
-import bisq.core.trade.protocol.tasks.BuyerPreparesPaymentSentMessage;
-import bisq.core.trade.protocol.tasks.BuyerProcessesPaymentReceivedMessage;
-import bisq.core.trade.protocol.tasks.BuyerSendsPaymentSentMessage;
+import bisq.core.trade.protocol.tasks.BuyerPreparePaymentSentMessage;
+import bisq.core.trade.protocol.tasks.BuyerProcessPaymentReceivedMessage;
+import bisq.core.trade.protocol.tasks.BuyerSendPaymentSentMessage;
 import bisq.core.trade.protocol.tasks.BuyerSetupPayoutTxListener;
-import bisq.core.trade.protocol.tasks.MakerSetsLockTime;
-import bisq.core.trade.protocol.tasks.MaybeRemoveOpenOffer;
-import bisq.core.trade.protocol.tasks.SellerPreparesPaymentReceivedMessage;
-import bisq.core.trade.protocol.tasks.SellerProcessesPaymentSentMessage;
-import bisq.core.trade.protocol.tasks.SellerPublishesDepositTx;
-import bisq.core.trade.protocol.tasks.SellerPublishesTradeStatistics;
-import bisq.core.trade.protocol.tasks.SellerSendsPaymentReceivedMessage;
+import bisq.core.trade.protocol.tasks.MakerSetLockTime;
+import bisq.core.trade.protocol.tasks.MakerRemoveOpenOffer;
+import bisq.core.trade.protocol.tasks.SellerPreparePaymentReceivedMessage;
+import bisq.core.trade.protocol.tasks.SellerProcessPaymentSentMessage;
+import bisq.core.trade.protocol.tasks.SellerPublishDepositTx;
+import bisq.core.trade.protocol.tasks.SellerPublishTradeStatistics;
+import bisq.core.trade.protocol.tasks.SellerSendPaymentReceivedMessage;
 import bisq.core.trade.protocol.tasks.TakerVerifyMakerFeePayment;
 import bisq.core.trade.protocol.tasks.VerifyPeersAccountAgeWitness;
 import bisq.common.taskrunner.Task;
@@ -84,7 +84,7 @@ public class DebugView extends InitializableView<GridPane, Void> {
         addGroup("PlaceOfferProtocol",
                 FXCollections.observableArrayList(Arrays.asList(
                         ValidateOffer.class,
-                        MakerReservesOfferFunds.class,
+                        MakerReserveOfferFunds.class,
                         AddToOfferBook.class)
                 ));
 
@@ -98,18 +98,18 @@ public class DebugView extends InitializableView<GridPane, Void> {
                         VerifyPeersAccountAgeWitness.class,
 
                         //SellerSendsDepositTxAndDelayedPayoutTxMessage.class,
-                        SellerPublishesDepositTx.class,
-                        SellerPublishesTradeStatistics.class,
+                        SellerPublishDepositTx.class,
+                        SellerPublishTradeStatistics.class,
 
-                        SellerProcessesPaymentSentMessage.class,
+                        SellerProcessPaymentSentMessage.class,
                         ApplyFilter.class,
                         TakerVerifyMakerFeePayment.class,
 
                         ApplyFilter.class,
                         TakerVerifyMakerFeePayment.class,
-                        SellerPreparesPaymentReceivedMessage.class,
+                        SellerPreparePaymentReceivedMessage.class,
                         //SellerBroadcastPayoutTx.class, // TODO (woodser): removed from main pipeline; debug view?
-                        SellerSendsPaymentReceivedMessage.class
+                        SellerSendPaymentReceivedMessage.class
 
                         )
                 ));
@@ -117,16 +117,16 @@ public class DebugView extends InitializableView<GridPane, Void> {
                 FXCollections.observableArrayList(Arrays.asList(
                         ApplyFilter.class,
                         VerifyPeersAccountAgeWitness.class,
-                        MakerSetsLockTime.class,
+                        MakerSetLockTime.class,
 
-                        MaybeRemoveOpenOffer.class,
+                        MakerRemoveOpenOffer.class,
 
                         ApplyFilter.class,
-                        BuyerPreparesPaymentSentMessage.class,
+                        BuyerPreparePaymentSentMessage.class,
                         BuyerSetupPayoutTxListener.class,
-                        BuyerSendsPaymentSentMessage.class,
+                        BuyerSendPaymentSentMessage.class,
 
-                        BuyerProcessesPaymentReceivedMessage.class
+                        BuyerProcessPaymentReceivedMessage.class
                         )
                 ));
 
@@ -141,32 +141,32 @@ public class DebugView extends InitializableView<GridPane, Void> {
 
                         ApplyFilter.class,
                         TakerVerifyMakerFeePayment.class,
-                        BuyerPreparesPaymentSentMessage.class,
+                        BuyerPreparePaymentSentMessage.class,
                         BuyerSetupPayoutTxListener.class,
-                        BuyerSendsPaymentSentMessage.class,
+                        BuyerSendPaymentSentMessage.class,
 
-                        BuyerProcessesPaymentReceivedMessage.class)
+                        BuyerProcessPaymentReceivedMessage.class)
                 ));
         addGroup("SellerAsMakerProtocol",
                 FXCollections.observableArrayList(Arrays.asList(
                         ApplyFilter.class,
                         VerifyPeersAccountAgeWitness.class,
-                        MakerSetsLockTime.class,
+                        MakerSetLockTime.class,
 
                         //SellerAsMakerProcessDepositTxMessage.class,
-                        MaybeRemoveOpenOffer.class,
+                        MakerRemoveOpenOffer.class,
 
                         //SellerSendsDepositTxAndDelayedPayoutTxMessage.class,
-                        SellerPublishesDepositTx.class,
-                        SellerPublishesTradeStatistics.class,
+                        SellerPublishDepositTx.class,
+                        SellerPublishTradeStatistics.class,
 
-                        SellerProcessesPaymentSentMessage.class,
+                        SellerProcessPaymentSentMessage.class,
                         ApplyFilter.class,
 
                         ApplyFilter.class,
-                        SellerPreparesPaymentReceivedMessage.class,
+                        SellerPreparePaymentReceivedMessage.class,
                         //SellerBroadcastPayoutTx.class, // TODO (woodser): removed from main pipeline; debug view?
-                        SellerSendsPaymentReceivedMessage.class
+                        SellerSendPaymentReceivedMessage.class
                         )
                 ));
     }

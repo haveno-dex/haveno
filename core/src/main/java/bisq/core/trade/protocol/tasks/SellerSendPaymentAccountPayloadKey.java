@@ -31,10 +31,10 @@ import monero.wallet.MoneroWallet;
  * Allow sender's payment account info to be decrypted when trade state is confirmed.
  */
 @Slf4j
-public class SellerSendsPaymentAccountPayloadKey extends SendMailboxMessageTask {
+public class SellerSendPaymentAccountPayloadKey extends SendMailboxMessageTask {
     private PaymentAccountKeyResponse message;
 
-    public SellerSendsPaymentAccountPayloadKey(TaskRunner<Trade> taskHandler, Trade trade) {
+    public SellerSendPaymentAccountPayloadKey(TaskRunner<Trade> taskHandler, Trade trade) {
         super(taskHandler, trade);
     }
 

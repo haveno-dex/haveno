@@ -38,10 +38,10 @@ import lombok.extern.slf4j.Slf4j;
 import monero.daemon.MoneroDaemon;
 
 @Slf4j
-public class ArbitratorProcessesDepositRequest extends TradeTask {
+public class ArbitratorProcessDepositRequest extends TradeTask {
 
     @SuppressWarnings({"unused"})
-    public ArbitratorProcessesDepositRequest(TaskRunner taskHandler, Trade trade) {
+    public ArbitratorProcessDepositRequest(TaskRunner taskHandler, Trade trade) {
         super(taskHandler, trade);
     }
 

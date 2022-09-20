@@ -30,10 +30,10 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 @EqualsAndHashCode(callSuper = true)
 @Slf4j
-public class SellerSendsPaymentReceivedMessage extends SendMailboxMessageTask {
+public class SellerSendPaymentReceivedMessage extends SendMailboxMessageTask {
     SignedWitness signedWitness = null;
 
-    public SellerSendsPaymentReceivedMessage(TaskRunner<Trade> taskHandler, Trade trade) {
+    public SellerSendPaymentReceivedMessage(TaskRunner<Trade> taskHandler, Trade trade) {
         super(taskHandler, trade);
     }
 
