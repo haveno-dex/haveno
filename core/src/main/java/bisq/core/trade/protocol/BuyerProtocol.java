@@ -25,13 +25,13 @@ import bisq.core.trade.messages.SignContractResponse;
 import bisq.core.trade.messages.TradeMessage;
 import bisq.core.trade.protocol.FluentProtocol.Condition;
 import bisq.core.trade.protocol.tasks.ApplyFilter;
-import bisq.core.trade.protocol.tasks.BuyerSendsPayoutTxPublishedMessage;
-import bisq.core.trade.protocol.tasks.BuyerPreparesPaymentSentMessage;
-import bisq.core.trade.protocol.tasks.BuyerProcessesPaymentReceivedMessage;
-import bisq.core.trade.protocol.tasks.BuyerSendsPaymentAccountKeyRequestToArbitrator;
-import bisq.core.trade.protocol.tasks.BuyerSendsPaymentSentMessage;
+import bisq.core.trade.protocol.tasks.BuyerSendPayoutTxPublishedMessage;
+import bisq.core.trade.protocol.tasks.BuyerPreparePaymentSentMessage;
+import bisq.core.trade.protocol.tasks.BuyerProcessPaymentReceivedMessage;
+import bisq.core.trade.protocol.tasks.BuyerSendPaymentAccountKeyRequestToArbitrator;
+import bisq.core.trade.protocol.tasks.BuyerSendPaymentSentMessage;
 import bisq.core.trade.protocol.tasks.BuyerSetupPayoutTxListener;
-import bisq.core.trade.protocol.tasks.BuyerProcessesPaymentAccountKeyResponse;
+import bisq.core.trade.protocol.tasks.BuyerProcessPaymentAccountKeyResponse;
 import bisq.core.trade.protocol.tasks.SetupDepositTxsListener;
 import bisq.core.util.Validator;
 import bisq.network.p2p.NodeAddress;
@@ -83,7 +83,7 @@ public abstract class BuyerProtocol extends DisputeProtocol {
         given(anyPhase(Trade.Phase.PAYMENT_SENT, Trade.Phase.PAYMENT_RECEIVED)
                 .anyState(Trade.State.BUYER_STORED_IN_MAILBOX_PAYMENT_SENT_MSG, Trade.State.BUYER_SEND_FAILED_PAYMENT_SENT_MSG)
                 .with(BuyerEvent.STARTUP))
-                .setup(tasks(BuyerSendsPaymentSentMessage.class))
+                .setup(tasks(BuyerSendPaymentSentMessage.class))
                 .executeTasks();
     }
 
@@ -121,7 +121,7 @@ public abstract class BuyerProtocol extends DisputeProtocol {
                 expect(new Condition(trade)
                         .with(response)
                         .from(sender))
-                        .setup(tasks(BuyerProcessesPaymentAccountKeyResponse.class)
+                        .setup(tasks(BuyerProcessPaymentAccountKeyResponse.class)
                         .using(new TradeTaskRunner(trade,
                                 () -> {
                                     handleTaskRunnerSuccess(sender, response);
@@ -152,9 +152,9 @@ public abstract class BuyerProtocol extends DisputeProtocol {
                             .preCondition(trade.confirmPermitted()))
                             .setup(tasks(ApplyFilter.class,
                                     //UpdateMultisigWithTradingPeer.class, // TODO (woodser): can use this to test protocol with updated multisig from peer. peer should attempt to send updated multisig hex earlier as part of protocol. cannot use with countdown latch because response comes back in a separate thread and blocks on trade
-                                    BuyerPreparesPaymentSentMessage.class,
+                                    BuyerPreparePaymentSentMessage.class,
                                     //BuyerSetupPayoutTxListener.class,
-                                    BuyerSendsPaymentSentMessage.class) // don't latch trade because this blocks and runs in background
+                                    BuyerSendPaymentSentMessage.class) // don't latch trade because this blocks and runs in background
                             .using(new TradeTaskRunner(trade,
                                     () -> {
                                         this.errorMessageHandler = null;
@@ -190,8 +190,8 @@ public abstract class BuyerProtocol extends DisputeProtocol {
                     .with(message)
                     .from(peer))
                     .setup(tasks(
-                        BuyerProcessesPaymentReceivedMessage.class,
-                        BuyerSendsPayoutTxPublishedMessage.class)
+                        BuyerProcessPaymentReceivedMessage.class,
+                        BuyerSendPayoutTxPublishedMessage.class)
                         .using(new TradeTaskRunner(trade,
                             () -> {
                                 handleTaskRunnerSuccess(peer, message);
@@ -241,7 +241,7 @@ public abstract class BuyerProtocol extends DisputeProtocol {
                 if (trade.getSeller().getPaymentAccountPayload() != null) return; // skip if initialized
                 latchTrade();
                 expect(new Condition(trade))
-                        .setup(tasks(BuyerSendsPaymentAccountKeyRequestToArbitrator.class)
+                        .setup(tasks(BuyerSendPaymentAccountKeyRequestToArbitrator.class)
                         .using(new TradeTaskRunner(trade,
                                 () -> {
                                     handleTaskRunnerSuccess(event);

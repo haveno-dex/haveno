@@ -30,9 +30,9 @@ import lombok.extern.slf4j.Slf4j;
 
 @EqualsAndHashCode(callSuper = true)
 @Slf4j
-public class SellerMaybeSendsPayoutTxPublishedMessage extends SendMailboxMessageTask {
+public class SellerMaybeSendPayoutTxPublishedMessage extends SendMailboxMessageTask {
 
-    public SellerMaybeSendsPayoutTxPublishedMessage(TaskRunner<Trade> taskHandler, Trade trade) {
+    public SellerMaybeSendPayoutTxPublishedMessage(TaskRunner<Trade> taskHandler, Trade trade) {
         super(taskHandler, trade);
     }
 

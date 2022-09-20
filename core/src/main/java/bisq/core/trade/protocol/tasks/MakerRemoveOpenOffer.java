@@ -17,18 +17,17 @@
 
 package bisq.core.trade.protocol.tasks;
 
+import bisq.core.trade.MakerTrade;
 import bisq.core.trade.Trade;
 import bisq.common.taskrunner.TaskRunner;
 
 import lombok.extern.slf4j.Slf4j;
 
-import monero.wallet.model.MoneroTxWallet;
+import static com.google.common.base.Preconditions.checkNotNull;
 
 @Slf4j
-public class SellerPreparesPaymentReceivedMessage extends TradeTask {
-
-    @SuppressWarnings({"unused"})
-    public SellerPreparesPaymentReceivedMessage(TaskRunner taskHandler, Trade trade) {
+public class MakerRemoveOpenOffer extends TradeTask {
+    public MakerRemoveOpenOffer(TaskRunner<Trade> taskHandler, Trade trade) {
         super(taskHandler, trade);
     }
 
@@ -36,17 +35,9 @@ public class SellerPreparesPaymentReceivedMessage extends TradeTask {
     protected void run() {
         try {
             runInterceptHook();
-
-            // verify, sign, and publish payout tx if given. otherwise create payout tx
-            if (trade.getBuyer().getPayoutTxHex() != null) {
-                log.info("Seller verifying, signing, and publishing payout tx");
-                trade.verifyPayoutTx(trade.getBuyer().getPayoutTxHex(), true, true);
-            } else {
-                log.info("Seller creating unsigned payout tx");
-                MoneroTxWallet payoutTx = trade.createPayoutTx();
-                System.out.println("created payout tx: " + payoutTx);
-                trade.getSeller().setPayoutTx(payoutTx);
-                trade.getSeller().setPayoutTxHex(payoutTx.getTxSet().getMultisigTxHex());
+            
+            if (trade instanceof MakerTrade) {
+                processModel.getOpenOfferManager().closeOpenOffer(checkNotNull(trade.getOffer()));
             }
 
             complete();

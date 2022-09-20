@@ -20,9 +20,9 @@ package bisq.core.offer.placeoffer;
 import bisq.core.locale.Res;
 import bisq.core.offer.messages.SignOfferResponse;
 import bisq.core.offer.placeoffer.tasks.AddToOfferBook;
-import bisq.core.offer.placeoffer.tasks.MakerReservesOfferFunds;
-import bisq.core.offer.placeoffer.tasks.MakerSendsSignOfferRequest;
-import bisq.core.offer.placeoffer.tasks.MakerProcessesSignOfferResponse;
+import bisq.core.offer.placeoffer.tasks.MakerReserveOfferFunds;
+import bisq.core.offer.placeoffer.tasks.MakerSendSignOfferRequest;
+import bisq.core.offer.placeoffer.tasks.MakerProcessSignOfferResponse;
 import bisq.core.offer.placeoffer.tasks.ValidateOffer;
 import bisq.core.trade.handlers.TransactionResultHandler;
 import bisq.core.trade.protocol.TradeProtocol;
@@ -77,8 +77,8 @@ public class PlaceOfferProtocol {
         );
         taskRunner.addTasks(
                 ValidateOffer.class,
-                MakerReservesOfferFunds.class,
-                MakerSendsSignOfferRequest.class
+                MakerReserveOfferFunds.class,
+                MakerSendSignOfferRequest.class
         );
 
         taskRunner.run();
@@ -123,7 +123,7 @@ public class PlaceOfferProtocol {
               }
       );
       taskRunner.addTasks(
-              MakerProcessesSignOfferResponse.class,
+              MakerProcessSignOfferResponse.class,
               AddToOfferBook.class
       );
 

@@ -27,7 +27,7 @@ import bisq.core.trade.messages.DepositResponse;
 import bisq.core.trade.messages.InitMultisigRequest;
 import bisq.core.trade.messages.InitTradeRequest;
 import bisq.core.trade.messages.TradeMessage;
-import bisq.core.trade.protocol.tasks.MakerSendsInitTradeRequest;
+import bisq.core.trade.protocol.tasks.MakerSendInitTradeRequest;
 import bisq.core.trade.protocol.tasks.ProcessInitTradeRequest;
 import bisq.network.p2p.NodeAddress;
 import bisq.common.handlers.ErrorMessageHandler;
@@ -65,7 +65,7 @@ public class SellerAsMakerProtocol extends SellerProtocol implements MakerProtoc
                             ProcessInitTradeRequest.class,
                             //ApplyFilter.class, // TODO (woodser): these checks apply when maker signs availability request, but not here
                             //VerifyPeersAccountAgeWitness.class, // TODO (woodser): these checks apply after in multisig, means if rejected need to reimburse other's fee
-                            MakerSendsInitTradeRequest.class)
+                            MakerSendInitTradeRequest.class)
                     .using(new TradeTaskRunner(trade,
                             () -> {
                                 startTimeout(TRADE_TIMEOUT);

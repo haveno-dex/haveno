@@ -23,8 +23,8 @@ import bisq.common.taskrunner.TaskRunner;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public class SellerPublishesTradeStatistics extends TradeTask {
-    public SellerPublishesTradeStatistics(TaskRunner<Trade> taskHandler, Trade trade) {
+public class SellerPublishTradeStatistics extends TradeTask {
+    public SellerPublishTradeStatistics(TaskRunner<Trade> taskHandler, Trade trade) {
         super(taskHandler, trade);
     }
 

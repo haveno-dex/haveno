@@ -34,9 +34,9 @@ import lombok.extern.slf4j.Slf4j;
  * the original offer signer and thus does not have the original reserve tx.
  */
 @Slf4j
-public class ArbitratorProcessesReserveTx extends TradeTask {
+public class ArbitratorProcessReserveTx extends TradeTask {
     @SuppressWarnings({"unused"})
-    public ArbitratorProcessesReserveTx(TaskRunner taskHandler, Trade trade) {
+    public ArbitratorProcessReserveTx(TaskRunner taskHandler, Trade trade) {
         super(taskHandler, trade);
     }
 

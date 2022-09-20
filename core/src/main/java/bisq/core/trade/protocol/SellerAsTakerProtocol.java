@@ -29,8 +29,8 @@ import bisq.core.trade.messages.DepositResponse;
 import bisq.core.trade.messages.InitMultisigRequest;
 import bisq.core.trade.messages.TradeMessage;
 import bisq.core.trade.protocol.tasks.ApplyFilter;
-import bisq.core.trade.protocol.tasks.TakerReservesTradeFunds;
-import bisq.core.trade.protocol.tasks.TakerSendsInitTradeRequestToArbitrator;
+import bisq.core.trade.protocol.tasks.TakerReserveTradeFunds;
+import bisq.core.trade.protocol.tasks.TakerSendInitTradeRequestToArbitrator;
 import bisq.network.p2p.NodeAddress;
 import bisq.common.handlers.ErrorMessageHandler;
 import bisq.common.handlers.ResultHandler;
@@ -72,8 +72,8 @@ public class SellerAsTakerProtocol extends SellerProtocol implements TakerProtoc
                   .from(trade.getTradingPeerNodeAddress()))
                   .setup(tasks(
                           ApplyFilter.class,
-                          TakerReservesTradeFunds.class,
-                          TakerSendsInitTradeRequestToArbitrator.class)
+                          TakerReserveTradeFunds.class,
+                          TakerSendInitTradeRequestToArbitrator.class)
                   .using(new TradeTaskRunner(trade,
                           () -> {
                               startTimeout(TRADE_TIMEOUT);

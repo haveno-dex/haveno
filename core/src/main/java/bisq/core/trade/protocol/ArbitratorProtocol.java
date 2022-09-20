@@ -12,11 +12,11 @@ import bisq.core.trade.messages.PayoutTxPublishedMessage;
 import bisq.core.trade.messages.TradeMessage;
 import bisq.core.trade.protocol.FluentProtocol.Condition;
 import bisq.core.trade.protocol.tasks.ApplyFilter;
-import bisq.core.trade.protocol.tasks.ArbitratorProcessesDepositRequest;
-import bisq.core.trade.protocol.tasks.ArbitratorProcessesPaymentAccountKeyRequest;
-import bisq.core.trade.protocol.tasks.ArbitratorProcessesReserveTx;
+import bisq.core.trade.protocol.tasks.ArbitratorProcessDepositRequest;
+import bisq.core.trade.protocol.tasks.ArbitratorProcessPaymentAccountKeyRequest;
+import bisq.core.trade.protocol.tasks.ArbitratorProcessReserveTx;
 import bisq.core.trade.protocol.tasks.ArbitratorProcessPayoutTxPublishedMessage;
-import bisq.core.trade.protocol.tasks.ArbitratorSendsInitTradeOrMultisigRequests;
+import bisq.core.trade.protocol.tasks.ArbitratorSendInitTradeOrMultisigRequests;
 import bisq.core.trade.protocol.tasks.ProcessInitTradeRequest;
 import bisq.core.util.Validator;
 import bisq.network.p2p.NodeAddress;
@@ -61,8 +61,8 @@ public class ArbitratorProtocol extends DisputeProtocol {
                   .setup(tasks(
                           ApplyFilter.class,
                           ProcessInitTradeRequest.class,
-                          ArbitratorProcessesReserveTx.class,
-                          ArbitratorSendsInitTradeOrMultisigRequests.class)
+                          ArbitratorProcessReserveTx.class,
+                          ArbitratorSendInitTradeOrMultisigRequests.class)
                   .using(new TradeTaskRunner(trade,
                           () -> {
                               startTimeout(TRADE_TIMEOUT);
@@ -92,7 +92,7 @@ public class ArbitratorProtocol extends DisputeProtocol {
             .with(request)
             .from(sender))
             .setup(tasks(
-                    ArbitratorProcessesDepositRequest.class)
+                    ArbitratorProcessDepositRequest.class)
             .using(new TradeTaskRunner(trade,
                     () -> {
                         if (trade.getState() == Trade.State.ARBITRATOR_PUBLISHED_DEPOSIT_TXS) {
@@ -125,7 +125,7 @@ public class ArbitratorProtocol extends DisputeProtocol {
               .with(request)
               .from(sender))
               .setup(tasks(
-                      ArbitratorProcessesPaymentAccountKeyRequest.class)
+                      ArbitratorProcessPaymentAccountKeyRequest.class)
               .using(new TradeTaskRunner(trade,
                       () -> {
                           stopTimeout();
