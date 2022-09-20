@@ -831,7 +831,6 @@ public abstract class Trade implements Tradable, Model {
         // update trade state
         getSelf().setPayoutTxHex(payoutTxHex);
         setPayoutTx(describedTxSet.getTxs().get(0));
-        setPayoutTxId(describedTxSet.getTxs().get(0).getHash());
 
         // submit payout tx
         if (publish) {

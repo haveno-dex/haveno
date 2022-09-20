@@ -57,7 +57,7 @@ public class SellerProcessPaymentSentMessage extends TradeTask {
                 walletService.closeMultisigWallet(trade.getId());
             }
 
-            // update to the latest peer address of our peer if the message is correct  // TODO (woodser): update to latest peer addresses where needed
+            // update latest peer address
             trade.setTradingPeerNodeAddress(processModel.getTempTradingPeerNodeAddress());
 
             String counterCurrencyTxId = message.getCounterCurrencyTxId();

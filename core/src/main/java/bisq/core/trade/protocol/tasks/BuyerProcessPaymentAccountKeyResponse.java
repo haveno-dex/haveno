@@ -41,18 +41,14 @@ public class BuyerProcessPaymentAccountKeyResponse extends TradeTask {
               trade.setTradingPeerNodeAddress(processModel.getTempTradingPeerNodeAddress());
           }
 
-          // buyer may already have decrypted payment account payload from arbitrator request
-          if (trade.getTradingPeer().getPaymentAccountPayload() != null) {
-              complete();
-              return;
-          }
-
           // decrypt peer's payment account payload
           PaymentAccountKeyResponse request = (PaymentAccountKeyResponse) processModel.getTradeMessage();
-          trade.decryptPeersPaymentAccountPayload(request.getPaymentAccountKey());
+          if (trade.getTradingPeer().getPaymentAccountPayload() == null) {
+              trade.decryptPeersPaymentAccountPayload(request.getPaymentAccountKey());
+          }
 
           // store updated multisig hex for processing on payment sent
-          trade.getTradingPeer().setUpdatedMultisigHex(request.getUpdatedMultisigHex());
+          if (request.getUpdatedMultisigHex() != null) trade.getTradingPeer().setUpdatedMultisigHex(request.getUpdatedMultisigHex());
 
           // persist and complete
           processModel.getTradeManager().requestPersistence();

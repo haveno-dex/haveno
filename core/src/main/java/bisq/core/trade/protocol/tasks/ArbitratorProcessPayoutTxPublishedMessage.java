@@ -40,6 +40,10 @@ public class ArbitratorProcessPayoutTxPublishedMessage extends TradeTask {
           // verify and publish payout tx
           trade.verifyPayoutTx(request.getSignedPayoutTxHex(), false, true);
 
+          // update latest peer address
+          if (request.isMaker()) trade.setMakerNodeAddress(processModel.getTempTradingPeerNodeAddress());
+          else trade.setTakerNodeAddress(processModel.getTempTradingPeerNodeAddress());
+
           // TODO: publish signed witness data?
           //request.getSignedWitness()
 
