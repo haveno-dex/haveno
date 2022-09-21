@@ -111,6 +111,13 @@
     -bs-support-chat-background: #4b4b4b;
 }
 
+/* text colors in the table view should correspond to the predefined theme */
+.table-view {
+    -fx-dark-text-color: bs-text-color;
+    -fx-mid-text-color: bs-text-color;
+    -fx-light-text-color: bs-text-color;
+}
+
 .warning-box {
     -fx-background-color: -bs-yellow-light;
 }
