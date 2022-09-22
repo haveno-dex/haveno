@@ -111,11 +111,11 @@
     -bs-support-chat-background: #4b4b4b;
 }
 
-/* text colors in the table view should correspond to the predefined theme */
+/* set a javafx.scene.paint.Color of black for text in the table view */
 .table-view {
-    -fx-dark-text-color: bs-text-color;
-    -fx-mid-text-color: bs-text-color;
-    -fx-light-text-color: bs-text-color;
+    -fx-dark-text-color: black;
+    -fx-mid-text-color: black;
+    -fx-light-text-color: black;
 }
 
 .warning-box {
