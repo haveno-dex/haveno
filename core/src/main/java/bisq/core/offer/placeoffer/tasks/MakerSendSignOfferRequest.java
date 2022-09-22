@@ -93,6 +93,10 @@ public class MakerSendSignOfferRequest extends Task<PlaceOfferModel> {
 
     private void sendSignOfferRequests(SignOfferRequest request, ResultHandler resultHandler, ErrorMessageHandler errorMessageHandler) {
         Arbitrator leastUsedArbitrator = DisputeAgentSelection.getLeastUsedArbitrator(model.getTradeStatisticsManager(), model.getArbitratorManager());
+        if (leastUsedArbitrator == null) {
+            errorMessageHandler.handleErrorMessage("Could not get least used arbitrator");
+            return;
+        }
         sendSignOfferRequests(request, leastUsedArbitrator.getNodeAddress(), new HashSet<NodeAddress>(), resultHandler, errorMessageHandler);
     }
 
@@ -140,7 +144,7 @@ public class MakerSendSignOfferRequest extends Task<PlaceOfferModel> {
 
         // get registered arbitrator
         Arbitrator arbitrator = model.getUser().getAcceptedArbitratorByAddress(arbitratorNodeAddress);
-        if (arbitrator == null) throw new RuntimeException("Node address " + arbitratorNodeAddress + " is not a registered arbitrator");
+        if (arbitrator == null) throw new RuntimeException("Node address " + arbitratorNodeAddress + " is not a registered arbitrator"); // TODO: use error handler
         request.getOfferPayload().setArbitratorSigner(arbitratorNodeAddress);
 
         // send request to arbitrator
