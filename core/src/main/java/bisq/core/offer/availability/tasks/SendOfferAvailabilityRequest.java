@@ -19,6 +19,7 @@ package bisq.core.offer.availability.tasks;
 
 import bisq.core.btc.model.XmrAddressEntry;
 import bisq.core.btc.wallet.XmrWalletService;
+import bisq.core.monetary.Price;
 import bisq.core.offer.Offer;
 import bisq.core.offer.OfferUtil;
 import bisq.core.offer.availability.OfferAvailabilityModel;
@@ -62,13 +63,17 @@ public class SendOfferAvailabilityRequest extends Task<OfferAvailabilityModel> {
             // taker signs offer using offer id as nonce to avoid challenge protocol
             byte[] sig = Sig.sign(model.getP2PService().getKeyRing().getSignatureKeyPair().getPrivate(), offer.getId().getBytes(Charsets.UTF_8));
 
+            // get price
+            Price price = offer.getPrice();
+            if (price == null) throw new RuntimeException("Could not get price for offer");
+
             // send InitTradeRequest to maker to sign
             InitTradeRequest tradeRequest = new InitTradeRequest(
                     offer.getId(),
                     P2PService.getMyNodeAddress(),
                     p2PService.getKeyRing().getPubKeyRing(),
                     offer.getAmount().value,
-                    offer.getPrice().getValue(),
+                    price.getValue(),
                     offerUtil.getTakerFee(offer.getAmount()).value,
                     user.getAccountId(),
                     paymentAccountId,
