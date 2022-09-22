@@ -42,6 +42,7 @@ import bisq.core.offer.Offer;
 import bisq.core.offer.OfferDirection;
 import bisq.core.offer.OpenOfferManager;
 import bisq.core.provider.price.PriceFeedService;
+import bisq.core.trade.TradeUtils;
 import bisq.core.user.Preferences;
 import bisq.core.util.VolumeUtil;
 
@@ -66,6 +67,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.CountDownLatch;
 import java.util.stream.Collectors;
 
 class OfferBookChartViewModel extends ActivatableViewModel {
@@ -125,19 +127,17 @@ class OfferBookChartViewModel extends ActivatableViewModel {
 
         offerBookListItems = offerBook.getOfferBookListItems();
         offerBookListItemsListener = c -> {
-            UserThread.execute(() -> {
-                c.next();
-                if (c.wasAdded() || c.wasRemoved()) {
-                    ArrayList<OfferBookListItem> list = new ArrayList<>(c.getRemoved());
-                    list.addAll(c.getAddedSubList());
-                    if (list.stream()
-                            .map(OfferBookListItem::getOffer)
-                            .anyMatch(e -> e.getCurrencyCode().equals(selectedTradeCurrencyProperty.get().getCode())))
-                        updateChartData();
-                }
+            c.next();
+            if (c.wasAdded() || c.wasRemoved()) {
+                ArrayList<OfferBookListItem> list = new ArrayList<>(c.getRemoved());
+                list.addAll(c.getAddedSubList());
+                if (list.stream()
+                        .map(OfferBookListItem::getOffer)
+                        .anyMatch(e -> e.getCurrencyCode().equals(selectedTradeCurrencyProperty.get().getCode())))
+                    updateChartData();
+            }
 
-                fillTradeCurrencies();
-            });
+            fillTradeCurrencies();
         };
 
         currenciesUpdatedListener = (observable, oldValue, newValue) -> {

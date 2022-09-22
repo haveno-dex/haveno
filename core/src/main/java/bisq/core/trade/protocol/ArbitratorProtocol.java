@@ -51,30 +51,32 @@ public class ArbitratorProtocol extends DisputeProtocol {
 
   public void handleInitTradeRequest(InitTradeRequest message, NodeAddress peer, ErrorMessageHandler errorMessageHandler) {
       System.out.println("ArbitratorProtocol.handleInitTradeRequest()");
-      synchronized (trade) {
-          latchTrade();
-          this.errorMessageHandler = errorMessageHandler;
-          processModel.setTradeMessage(message); // TODO (woodser): confirm these are null without being set
-          expect(phase(Trade.Phase.INIT)
-                  .with(message)
-                  .from(peer))
-                  .setup(tasks(
-                          ApplyFilter.class,
-                          ProcessInitTradeRequest.class,
-                          ArbitratorProcessReserveTx.class,
-                          ArbitratorSendInitTradeOrMultisigRequests.class)
-                  .using(new TradeTaskRunner(trade,
-                          () -> {
-                              startTimeout(TRADE_TIMEOUT);
-                              handleTaskRunnerSuccess(peer, message);
-                          },
-                          errorMessage -> {
-                              handleTaskRunnerFault(peer, message, errorMessage);
-                          }))
-                  .withTimeout(TRADE_TIMEOUT))
-                  .executeTasks(true);
-          awaitTradeLatch();
-      }
+      new Thread(() -> {
+          synchronized (trade) {
+              latchTrade();
+              this.errorMessageHandler = errorMessageHandler;
+              processModel.setTradeMessage(message); // TODO (woodser): confirm these are null without being set
+              expect(phase(Trade.Phase.INIT)
+                      .with(message)
+                      .from(peer))
+                      .setup(tasks(
+                              ApplyFilter.class,
+                              ProcessInitTradeRequest.class,
+                              ArbitratorProcessReserveTx.class,
+                              ArbitratorSendInitTradeOrMultisigRequests.class)
+                      .using(new TradeTaskRunner(trade,
+                              () -> {
+                                  startTimeout(TRADE_TIMEOUT);
+                                  handleTaskRunnerSuccess(peer, message);
+                              },
+                              errorMessage -> {
+                                  handleTaskRunnerFault(peer, message, errorMessage);
+                              }))
+                      .withTimeout(TRADE_TIMEOUT))
+                      .executeTasks(true);
+              awaitTradeLatch();
+          }
+      }).start();
   }
   
   @Override
@@ -84,30 +86,32 @@ public class ArbitratorProtocol extends DisputeProtocol {
   
   public void handleDepositRequest(DepositRequest request, NodeAddress sender) {
     System.out.println("ArbitratorProtocol.handleDepositRequest() " + trade.getId());
-    synchronized (trade) {
-        latchTrade();
-        Validator.checkTradeId(processModel.getOfferId(), request);
-        processModel.setTradeMessage(request);
-        expect(phase(Trade.Phase.INIT)
-            .with(request)
-            .from(sender))
-            .setup(tasks(
-                    ArbitratorProcessDepositRequest.class)
-            .using(new TradeTaskRunner(trade,
-                    () -> {
-                        if (trade.getState() == Trade.State.ARBITRATOR_PUBLISHED_DEPOSIT_TXS) {
-                            stopTimeout();
-                            this.errorMessageHandler = null;
-                        }
-                        handleTaskRunnerSuccess(sender, request);
-                    },
-                    errorMessage -> {
-                        handleTaskRunnerFault(sender, request, errorMessage);
-                    }))
-            .withTimeout(TRADE_TIMEOUT))
-            .executeTasks(true);
-        awaitTradeLatch();
-    }
+    new Thread(() -> {
+        synchronized (trade) {
+            latchTrade();
+            Validator.checkTradeId(processModel.getOfferId(), request);
+            processModel.setTradeMessage(request);
+            expect(phase(Trade.Phase.INIT)
+                .with(request)
+                .from(sender))
+                .setup(tasks(
+                        ArbitratorProcessDepositRequest.class)
+                .using(new TradeTaskRunner(trade,
+                        () -> {
+                            if (trade.getState() == Trade.State.ARBITRATOR_PUBLISHED_DEPOSIT_TXS) {
+                                stopTimeout();
+                                this.errorMessageHandler = null;
+                            }
+                            handleTaskRunnerSuccess(sender, request);
+                        },
+                        errorMessage -> {
+                            handleTaskRunnerFault(sender, request, errorMessage);
+                        }))
+                .withTimeout(TRADE_TIMEOUT))
+                .executeTasks(true);
+            awaitTradeLatch();
+        }
+    }).start();
   }
   
   @Override
@@ -117,27 +121,29 @@ public class ArbitratorProtocol extends DisputeProtocol {
   
   public void handlePaymentAccountKeyRequest(PaymentAccountKeyRequest request, NodeAddress sender) {
       System.out.println("ArbitratorProtocol.handlePaymentAccountKeyRequest() " + trade.getId());
-      synchronized (trade) {
-          latchTrade();
-          Validator.checkTradeId(processModel.getOfferId(), request);
-          processModel.setTradeMessage(request);
-          expect(new Condition(trade)
-              .with(request)
-              .from(sender))
-              .setup(tasks(
-                      ArbitratorProcessPaymentAccountKeyRequest.class)
-              .using(new TradeTaskRunner(trade,
-                      () -> {
-                          stopTimeout();
-                          handleTaskRunnerSuccess(sender, request);
-                      },
-                      errorMessage -> {
-                          handleTaskRunnerFault(sender, request, errorMessage);
-                      }))
-              .withTimeout(TRADE_TIMEOUT))
-              .executeTasks(true);
-          awaitTradeLatch();
-      }
+      new Thread(() -> {
+          synchronized (trade) {
+              latchTrade();
+              Validator.checkTradeId(processModel.getOfferId(), request);
+              processModel.setTradeMessage(request);
+              expect(new Condition(trade)
+                  .with(request)
+                  .from(sender))
+                  .setup(tasks(
+                          ArbitratorProcessPaymentAccountKeyRequest.class)
+                  .using(new TradeTaskRunner(trade,
+                          () -> {
+                              stopTimeout();
+                              handleTaskRunnerSuccess(sender, request);
+                          },
+                          errorMessage -> {
+                              handleTaskRunnerFault(sender, request, errorMessage);
+                          }))
+                  .withTimeout(TRADE_TIMEOUT))
+                  .executeTasks(true);
+              awaitTradeLatch();
+          }
+      }).start();
   }
   
   protected void handle(PayoutTxPublishedMessage request, NodeAddress peer) {

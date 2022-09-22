@@ -432,18 +432,12 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
     // Only receive non - CloseConnectionMessage network_messages
     @Override
     public void onMessage(NetworkEnvelope networkEnvelope, Connection connection) {
-        Connection that = this;
-        connectionThreadPool.submit(new Runnable() {
-            @Override
-            public void run() {
-                checkArgument(connection.equals(that));
-                if (networkEnvelope instanceof BundleOfEnvelopes) {
-                    onBundleOfEnvelopes((BundleOfEnvelopes) networkEnvelope, connection);
-                } else {
-                    messageListeners.forEach(e -> e.onMessage(networkEnvelope, connection));
-                }
-            }
-        });
+        checkArgument(connection.equals(this));
+        if (networkEnvelope instanceof BundleOfEnvelopes) {
+            onBundleOfEnvelopes((BundleOfEnvelopes) networkEnvelope, connection);
+        } else {
+            UserThread.execute(() -> messageListeners.forEach(e -> e.onMessage(networkEnvelope, connection)));
+        }
     }
 
     private void onBundleOfEnvelopes(BundleOfEnvelopes bundleOfEnvelopes, Connection connection) {
@@ -475,8 +469,8 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
                 envelopesToProcess.add(networkEnvelope);
             }
         }
-        envelopesToProcess.forEach(envelope ->
-                messageListeners.forEach(listener -> listener.onMessage(envelope, connection)));
+        envelopesToProcess.forEach(envelope -> UserThread.execute(() ->
+                messageListeners.forEach(listener -> listener.onMessage(envelope, connection))));
     }
 
 

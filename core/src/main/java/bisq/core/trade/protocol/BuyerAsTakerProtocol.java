@@ -65,29 +65,31 @@ public class BuyerAsTakerProtocol extends BuyerProtocol implements TakerProtocol
     public void onTakeOffer(TradeResultHandler tradeResultHandler,
                             ErrorMessageHandler errorMessageHandler) {
       System.out.println(getClass().getCanonicalName() + ".onTakeOffer()");
-      synchronized (trade) {
-          latchTrade();
-          this.tradeResultHandler = tradeResultHandler;
-          this.errorMessageHandler = errorMessageHandler;
-          expect(phase(Trade.Phase.INIT)
-                  .with(TakerEvent.TAKE_OFFER)
-                  .from(trade.getTradingPeerNodeAddress()))
-                  .setup(tasks(
-                          ApplyFilter.class,
-                          TakerReserveTradeFunds.class,
-                          TakerSendInitTradeRequestToArbitrator.class)
-                  .using(new TradeTaskRunner(trade,
-                          () -> {
-                              startTimeout(TRADE_TIMEOUT);
-                              unlatchTrade();
-                          },
-                          errorMessage -> {
-                              handleError(errorMessage);
-                          }))
-                  .withTimeout(TRADE_TIMEOUT))
-                  .executeTasks(true);
-          awaitTradeLatch();
-      }
+      new Thread(() -> {
+          synchronized (trade) {
+              latchTrade();
+              this.tradeResultHandler = tradeResultHandler;
+              this.errorMessageHandler = errorMessageHandler;
+              expect(phase(Trade.Phase.INIT)
+                      .with(TakerEvent.TAKE_OFFER)
+                      .from(trade.getTradingPeerNodeAddress()))
+                      .setup(tasks(
+                              ApplyFilter.class,
+                              TakerReserveTradeFunds.class,
+                              TakerSendInitTradeRequestToArbitrator.class)
+                      .using(new TradeTaskRunner(trade,
+                              () -> {
+                                  startTimeout(TRADE_TIMEOUT);
+                                  unlatchTrade();
+                              },
+                              errorMessage -> {
+                                  handleError(errorMessage);
+                              }))
+                      .withTimeout(TRADE_TIMEOUT))
+                      .executeTasks(true);
+              awaitTradeLatch();
+          }
+      }).start();
     }
 
     @Override
