@@ -74,8 +74,8 @@ public class TradeUtils {
     /**
      * Check if the arbitrator signature for an offer is valid.
      * 
-     * @param arbitrator is the possible original arbitrator
      * @param signedOfferPayload is a signed offer payload
+     * @param arbitrator is the possible original arbitrator
      * @return true if the arbitrator's signature is valid for the offer
      */
     public static boolean isArbitratorSignatureValid(OfferPayload signedOfferPayload, Arbitrator arbitrator) {

@@ -57,16 +57,16 @@ public class ProcessSignContractRequest extends TradeTask {
     protected void run() {
         try {
           runInterceptHook();
-          
+
           // extract fields from request
           // TODO (woodser): verify request and from maker or taker
           SignContractRequest request = (SignContractRequest) processModel.getTradeMessage();
           TradingPeer trader = trade.getTradingPeer(request.getSenderNodeAddress());
           trader.setDepositTxHash(request.getDepositTxHash());
           trader.setAccountId(request.getAccountId());
-          trader.setPaymentAccountPayloadHash(request.getPaymentAccountPayloadHash()); // TODO: only seller's payment account payload is shared, so no need to send payment hash
+          trader.setPaymentAccountPayloadHash(request.getPaymentAccountPayloadHash());
           trader.setPayoutAddressString(request.getPayoutAddress());
-          
+
           // sign contract only when both deposit txs hashes known
           // TODO (woodser): synchronize contract creation; both requests received at the same time
           // TODO (woodser): remove makerDepositTxId and takerDepositTxId from Trade
@@ -85,10 +85,10 @@ public class ProcessSignContractRequest extends TradeTask {
           trade.setContractAsJson(contractAsJson);
           trade.setContractHash(Hash.getSha256Hash(checkNotNull(contractAsJson)));
           trade.getSelf().setContractSignature(signature);
-          
-          // seller sends encrypted payment account payload
+
+          // traders send encrypted payment account payload
           byte[] encryptedPaymentAccountPayload = null;
-          if (trade.isSeller()) {
+          if (!trade.isArbitrator()) {
 
               // generate random key to encrypt payment account payload
               byte[] decryptionKey = ScryptUtil.getKeyCrypterScrypt().deriveKey(UUID.randomUUID().toString()).getKey();

@@ -24,8 +24,10 @@ import bisq.core.monetary.Price;
 import bisq.core.monetary.Volume;
 import bisq.core.offer.Offer;
 import bisq.core.offer.OfferDirection;
+import bisq.core.payment.payload.PaymentAccountPayload;
 import bisq.core.payment.payload.PaymentMethod;
 import bisq.core.proto.CoreProtoResolver;
+import bisq.core.proto.network.CoreNetworkProtoResolver;
 import bisq.core.support.dispute.mediation.MediationResultState;
 import bisq.core.support.dispute.refund.RefundResultState;
 import bisq.core.support.messages.ChatMessage;
@@ -41,6 +43,7 @@ import bisq.network.p2p.AckMessage;
 import bisq.network.p2p.NodeAddress;
 import bisq.network.p2p.P2PService;
 import bisq.common.UserThread;
+import bisq.common.crypto.Encryption;
 import bisq.common.crypto.PubKeyRing;
 import bisq.common.proto.ProtoUtil;
 import bisq.common.taskrunner.Model;
@@ -63,6 +66,7 @@ import javafx.beans.property.StringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import java.math.BigInteger;
+import java.time.Clock;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
@@ -77,6 +81,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nullable;
+import javax.crypto.SecretKey;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
@@ -633,11 +638,6 @@ public abstract class Trade implements Tradable, Model {
         return trade;
     }
 
-
-    ///////////////////////////////////////////////////////////////////////////////////////////
-    // API
-    ///////////////////////////////////////////////////////////////////////////////////////////
-
     public void initialize(ProcessModelServiceProvider serviceProvider) {
         serviceProvider.getArbitratorManager().getDisputeAgentByNodeAddress(arbitratorNodeAddress).ifPresent(arbitrator -> {
             arbitratorPubKeyRing = arbitrator.getPubKeyRing();
@@ -770,14 +770,15 @@ public abstract class Trade implements Tradable, Model {
     }
 
     /**
-     * Verify and sign a payout tx.
+     * Verify a payout tx.
      * 
      * @param payoutTxHex is the payout tx hex to verify
-     * @return String the signed payout tx hex
+     * @param sign signs the payout tx if true
+     * @param publish publishes the signed payout tx if true
      */
-    public void verifySignAndPublishPayoutTx(String payoutTxHex) {
+    public void verifyPayoutTx(String payoutTxHex, boolean sign, boolean publish) {
         log.info("Verifying payout tx");
-        
+
         // gather relevant info
         XmrWalletService walletService = processModel.getProvider().getXmrWalletService();
         MoneroWallet multisigWallet = walletService.getMultisigWallet(getId());
@@ -787,9 +788,9 @@ public abstract class Trade implements Tradable, Model {
         BigInteger tradeAmount = ParsingUtils.coinToAtomicUnits(getAmount());
 
         // parse payout tx
-        MoneroTxSet parsedTxSet = multisigWallet.describeTxSet(new MoneroTxSet().setMultisigTxHex(payoutTxHex));
-        if (parsedTxSet.getTxs() == null || parsedTxSet.getTxs().size() != 1) throw new RuntimeException("Bad payout tx"); // TODO (woodser): test nack
-        MoneroTxWallet payoutTx = parsedTxSet.getTxs().get(0);
+        MoneroTxSet describedTxSet = multisigWallet.describeTxSet(new MoneroTxSet().setMultisigTxHex(payoutTxHex));
+        if (describedTxSet.getTxs() == null || describedTxSet.getTxs().size() != 1) throw new RuntimeException("Bad payout tx"); // TODO (woodser): test nack
+        MoneroTxWallet payoutTx = describedTxSet.getTxs().get(0);
 
         // verify payout tx has exactly 2 destinations
         if (payoutTx.getOutgoingTransfer() == null || payoutTx.getOutgoingTransfer().getDestinations() == null || payoutTx.getOutgoingTransfer().getDestinations().size() != 2) throw new RuntimeException("Payout tx does not have exactly two destinations");
@@ -819,21 +820,50 @@ public abstract class Trade implements Tradable, Model {
         if (!sellerPayoutDestination.getAmount().equals(expectedSellerPayout)) throw new RuntimeException("Seller destination amount is not deposit amount - trade amount - 1/2 tx costs, " + sellerPayoutDestination.getAmount() + " vs " + expectedSellerPayout);
 
         // TODO (woodser): verify fee is reasonable (e.g. within 2x of fee estimate tx)
-        
+
         // sign payout tx
-        MoneroMultisigSignResult result = multisigWallet.signMultisigTxHex(payoutTxHex);
-        if (result.getSignedMultisigTxHex() == null) throw new RuntimeException("Error signing payout tx");
-        String signedPayoutTxHex = result.getSignedMultisigTxHex();
-        
-        // submit payout tx
-        multisigWallet.submitMultisigTxHex(signedPayoutTxHex);
-        walletService.closeMultisigWallet(getId());
-        
+        if (sign) {
+            MoneroMultisigSignResult result = multisigWallet.signMultisigTxHex(payoutTxHex);
+            if (result.getSignedMultisigTxHex() == null) throw new RuntimeException("Error signing payout tx");
+            payoutTxHex = result.getSignedMultisigTxHex();
+        }
+
         // update trade state
-        getSelf().setPayoutTxHex(signedPayoutTxHex);
-        setPayoutTx(parsedTxSet.getTxs().get(0));
-        setPayoutTxId(parsedTxSet.getTxs().get(0).getHash());
-        setState(isBuyer() ? Trade.State.BUYER_PUBLISHED_PAYOUT_TX : Trade.State.SELLER_PUBLISHED_PAYOUT_TX);
+        getSelf().setPayoutTxHex(payoutTxHex);
+        setPayoutTx(describedTxSet.getTxs().get(0));
+
+        // submit payout tx
+        if (publish) {
+            multisigWallet.submitMultisigTxHex(payoutTxHex);
+            setState(isArbitrator() ? Trade.State.WITHDRAW_COMPLETED : isBuyer() ? Trade.State.BUYER_PUBLISHED_PAYOUT_TX : Trade.State.SELLER_PUBLISHED_PAYOUT_TX);
+        }
+        walletService.closeMultisigWallet(getId());
+    }
+
+    /**
+     * Decrypt the peer's payment account payload using the given key.
+     * 
+     * @param paymentAccountKey is the key to decrypt the payment account payload
+     */
+    public void decryptPeersPaymentAccountPayload(byte[] paymentAccountKey) {
+        try {
+
+            // decrypt payment account payload
+            getTradingPeer().setPaymentAccountKey(paymentAccountKey);
+            SecretKey sk = Encryption.getSecretKeyFromBytes(getTradingPeer().getPaymentAccountKey());
+            byte[] decryptedPaymentAccountPayload = Encryption.decrypt(getTradingPeer().getEncryptedPaymentAccountPayload(), sk);
+            CoreNetworkProtoResolver resolver = new CoreNetworkProtoResolver(Clock.systemDefaultZone()); // TODO: reuse resolver from elsewhere?
+            PaymentAccountPayload paymentAccountPayload = resolver.fromProto(protobuf.PaymentAccountPayload.parseFrom(decryptedPaymentAccountPayload));
+
+            // verify hash of payment account payload
+            byte[] peerPaymentAccountPayloadHash = this instanceof MakerTrade ? getContract().getTakerPaymentAccountPayloadHash() : getContract().getMakerPaymentAccountPayloadHash();
+            if (!Arrays.equals(paymentAccountPayload.getHash(), peerPaymentAccountPayloadHash)) throw new RuntimeException("Hash of peer's payment account payload does not match contract");
+
+            // set payment account payload
+            getTradingPeer().setPaymentAccountPayload(paymentAccountPayload);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 
     /**
@@ -1113,6 +1143,10 @@ public abstract class Trade implements Tradable, Model {
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Getter
     ///////////////////////////////////////////////////////////////////////////////////////////
+
+    public boolean isArbitrator() {
+        return this instanceof ArbitratorTrade;
+    }
 
     public boolean isBuyer() {
         return getBuyer() == getSelf();

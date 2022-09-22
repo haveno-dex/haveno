@@ -37,8 +37,8 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import monero.wallet.MoneroWallet;
 
 @Slf4j
-public class BuyerProcessesPaymentReceivedMessage extends TradeTask {
-    public BuyerProcessesPaymentReceivedMessage(TaskRunner<Trade> taskHandler, Trade trade) {
+public class BuyerProcessPaymentReceivedMessage extends TradeTask {
+    public BuyerProcessPaymentReceivedMessage(TaskRunner<Trade> taskHandler, Trade trade) {
         super(taskHandler, trade);
     }
 
@@ -56,11 +56,11 @@ public class BuyerProcessesPaymentReceivedMessage extends TradeTask {
             trade.setTradingPeerNodeAddress(processModel.getTempTradingPeerNodeAddress());
 
             // handle if payout tx is not seen on network
-            if (trade.getPayoutTx() == null) {
+            if (trade.getPhase().ordinal() < Trade.Phase.PAYOUT_PUBLISHED.ordinal()) {
 
                 // publish payout tx if signed. otherwise verify, sign, and publish payout tx
-                boolean fullySigned = trade.getSelf().getPayoutTx() != null;
-                if (fullySigned) {
+                boolean previouslySigned = trade.getBuyer().getPayoutTxHex() != null;
+                if (previouslySigned) {
                     log.info("Buyer publishing signed payout tx from seller");
                     XmrWalletService walletService = processModel.getProvider().getXmrWalletService();
                     MoneroWallet multisigWallet = walletService.getMultisigWallet(trade.getId());
@@ -71,7 +71,7 @@ public class BuyerProcessesPaymentReceivedMessage extends TradeTask {
                     walletService.closeMultisigWallet(trade.getId());
                 } else {
                     log.info("Buyer verifying, signing, and publishing seller's payout tx");
-                    trade.verifySignAndPublishPayoutTx(message.getPayoutTxHex());
+                    trade.verifyPayoutTx(message.getPayoutTxHex(), true, true);
                     trade.setState(Trade.State.BUYER_PUBLISHED_PAYOUT_TX);
                     // TODO (woodser): send PayoutTxPublishedMessage to arbitrator and seller
                 }
@@ -79,6 +79,7 @@ public class BuyerProcessesPaymentReceivedMessage extends TradeTask {
                 log.info("We got the payout tx already set from BuyerSetupPayoutTxListener and do nothing here. trade ID={}", trade.getId());
             }
 
+            // TODO: remove witness
             SignedWitness signedWitness = message.getSignedWitness();
             if (signedWitness != null) {
                 // We received the signedWitness from the seller and publish the data to the network.

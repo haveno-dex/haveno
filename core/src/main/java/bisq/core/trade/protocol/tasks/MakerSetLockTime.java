@@ -17,17 +17,16 @@
 
 package bisq.core.trade.protocol.tasks;
 
-import bisq.core.trade.MakerTrade;
+import bisq.core.btc.wallet.Restrictions;
 import bisq.core.trade.Trade;
+import bisq.common.config.Config;
 import bisq.common.taskrunner.TaskRunner;
 
 import lombok.extern.slf4j.Slf4j;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-
 @Slf4j
-public class MaybeRemoveOpenOffer extends TradeTask {
-    public MaybeRemoveOpenOffer(TaskRunner<Trade> taskHandler, Trade trade) {
+public class MakerSetLockTime extends TradeTask {
+    public MakerSetLockTime(TaskRunner<Trade> taskHandler, Trade trade) {
         super(taskHandler, trade);
     }
 
@@ -35,10 +34,18 @@ public class MaybeRemoveOpenOffer extends TradeTask {
     protected void run() {
         try {
             runInterceptHook();
-            
-            if (trade instanceof MakerTrade) {
-                processModel.getOpenOfferManager().closeOpenOffer(checkNotNull(trade.getOffer()));
-            }
+
+            // 10 days for altcoins, 20 days for other payment methods
+            // For regtest dev environment we use 5 blocks
+            int delay = Config.baseCurrencyNetwork().isTestnet() ?
+                    5 :
+                    Restrictions.getLockTime(processModel.getOffer().getPaymentMethod().isBlockchain());
+
+            long lockTime = processModel.getBtcWalletService().getBestChainHeight() + delay;
+            log.info("lockTime={}, delay={}", lockTime, delay);
+            trade.setLockTime(lockTime);
+
+            processModel.getTradeManager().requestPersistence();
 
             complete();
         } catch (Throwable t) {

@@ -28,8 +28,8 @@ import lombok.extern.slf4j.Slf4j;
 import monero.wallet.MoneroWallet;
 
 @Slf4j
-public class SellerProcessesPaymentSentMessage extends TradeTask {
-    public SellerProcessesPaymentSentMessage(TaskRunner<Trade> taskHandler, Trade trade) {
+public class SellerProcessPaymentSentMessage extends TradeTask {
+    public SellerProcessPaymentSentMessage(TaskRunner<Trade> taskHandler, Trade trade) {
         super(taskHandler, trade);
     }
 
@@ -45,7 +45,10 @@ public class SellerProcessesPaymentSentMessage extends TradeTask {
             trade.getBuyer().setPayoutAddressString(Validator.nonEmptyStringOf(message.getBuyerPayoutAddress()));	// TODO (woodser): verify against contract
             trade.getBuyer().setPayoutTxHex(message.getPayoutTxHex());
             trade.getBuyer().setUpdatedMultisigHex(message.getUpdatedMultisigHex());
-            
+
+            // decrypt peer's payment account payload
+            trade.decryptPeersPaymentAccountPayload(message.getPaymentAccountKey());
+
             // sync and update multisig wallet
             if (trade.getBuyer().getUpdatedMultisigHex() != null) {
                 XmrWalletService walletService = processModel.getProvider().getXmrWalletService();
@@ -54,7 +57,7 @@ public class SellerProcessesPaymentSentMessage extends TradeTask {
                 walletService.closeMultisigWallet(trade.getId());
             }
 
-            // update to the latest peer address of our peer if the message is correct  // TODO (woodser): update to latest peer addresses where needed
+            // update latest peer address
             trade.setTradingPeerNodeAddress(processModel.getTempTradingPeerNodeAddress());
 
             String counterCurrencyTxId = message.getCounterCurrencyTxId();

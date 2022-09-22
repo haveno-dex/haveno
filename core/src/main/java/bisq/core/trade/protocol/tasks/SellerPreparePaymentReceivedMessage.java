@@ -17,16 +17,18 @@
 
 package bisq.core.trade.protocol.tasks;
 
-import bisq.core.btc.wallet.Restrictions;
 import bisq.core.trade.Trade;
-import bisq.common.config.Config;
 import bisq.common.taskrunner.TaskRunner;
 
 import lombok.extern.slf4j.Slf4j;
 
+import monero.wallet.model.MoneroTxWallet;
+
 @Slf4j
-public class MakerSetsLockTime extends TradeTask {
-    public MakerSetsLockTime(TaskRunner<Trade> taskHandler, Trade trade) {
+public class SellerPreparePaymentReceivedMessage extends TradeTask {
+
+    @SuppressWarnings({"unused"})
+    public SellerPreparePaymentReceivedMessage(TaskRunner taskHandler, Trade trade) {
         super(taskHandler, trade);
     }
 
@@ -35,17 +37,17 @@ public class MakerSetsLockTime extends TradeTask {
         try {
             runInterceptHook();
 
-            // 10 days for altcoins, 20 days for other payment methods
-            // For regtest dev environment we use 5 blocks
-            int delay = Config.baseCurrencyNetwork().isTestnet() ?
-                    5 :
-                    Restrictions.getLockTime(processModel.getOffer().getPaymentMethod().isBlockchain());
-
-            long lockTime = processModel.getBtcWalletService().getBestChainHeight() + delay;
-            log.info("lockTime={}, delay={}", lockTime, delay);
-            trade.setLockTime(lockTime);
-
-            processModel.getTradeManager().requestPersistence();
+            // verify, sign, and publish payout tx if given. otherwise create payout tx
+            if (trade.getBuyer().getPayoutTxHex() != null) {
+                log.info("Seller verifying, signing, and publishing payout tx");
+                trade.verifyPayoutTx(trade.getBuyer().getPayoutTxHex(), true, true);
+            } else {
+                log.info("Seller creating unsigned payout tx");
+                MoneroTxWallet payoutTx = trade.createPayoutTx();
+                System.out.println("created payout tx: " + payoutTx);
+                trade.getSeller().setPayoutTx(payoutTx);
+                trade.getSeller().setPayoutTxHex(payoutTx.getTxSet().getMultisigTxHex());
+            }
 
             complete();
         } catch (Throwable t) {

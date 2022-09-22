@@ -41,10 +41,10 @@ import monero.wallet.MoneroWallet;
  * Arbitrator sends InitMultisigRequests after the maker acks.
  */
 @Slf4j
-public class ArbitratorSendsInitTradeOrMultisigRequests extends TradeTask {
+public class ArbitratorSendInitTradeOrMultisigRequests extends TradeTask {
     
     @SuppressWarnings({"unused"})
-    public ArbitratorSendsInitTradeOrMultisigRequests(TaskRunner taskHandler, Trade trade) {
+    public ArbitratorSendInitTradeOrMultisigRequests(TaskRunner taskHandler, Trade trade) {
         super(taskHandler, trade);
     }
 

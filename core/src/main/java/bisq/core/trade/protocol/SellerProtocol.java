@@ -19,16 +19,16 @@ package bisq.core.trade.protocol;
 
 import bisq.core.trade.SellerTrade;
 import bisq.core.trade.Trade;
-import bisq.core.trade.messages.DepositResponse;
 import bisq.core.trade.messages.PaymentSentMessage;
 import bisq.core.trade.messages.SignContractResponse;
 import bisq.core.trade.messages.TradeMessage;
 import bisq.core.trade.protocol.FluentProtocol.Condition;
 import bisq.core.trade.protocol.tasks.ApplyFilter;
-import bisq.core.trade.protocol.tasks.SellerPreparesPaymentReceivedMessage;
-import bisq.core.trade.protocol.tasks.SellerProcessesPaymentSentMessage;
-import bisq.core.trade.protocol.tasks.SellerSendsPaymentReceivedMessage;
-import bisq.core.trade.protocol.tasks.SellerSendsPaymentAccountPayloadKey;
+import bisq.core.trade.protocol.tasks.SellerMaybeSendPayoutTxPublishedMessage;
+import bisq.core.trade.protocol.tasks.SellerPreparePaymentReceivedMessage;
+import bisq.core.trade.protocol.tasks.SellerProcessPaymentSentMessage;
+import bisq.core.trade.protocol.tasks.SellerSendPaymentReceivedMessage;
+import bisq.core.trade.protocol.tasks.SellerSendPaymentAccountPayloadKey;
 import bisq.core.trade.protocol.tasks.SetupDepositTxsListener;
 import bisq.network.p2p.NodeAddress;
 import bisq.common.handlers.ErrorMessageHandler;
@@ -122,7 +122,7 @@ public abstract class SellerProtocol extends DisputeProtocol {
                                 }))
                         .setup(tasks(
                                 ApplyFilter.class,
-                                SellerProcessesPaymentSentMessage.class)
+                                SellerProcessPaymentSentMessage.class)
                         .using(new TradeTaskRunner(trade,
                                 () -> {
                                     handleTaskRunnerSuccess(peer, message);
@@ -154,8 +154,9 @@ public abstract class SellerProtocol extends DisputeProtocol {
                             .preCondition(trade.confirmPermitted()))
                             .setup(tasks(
                                     ApplyFilter.class,
-                                    SellerPreparesPaymentReceivedMessage.class,
-                                    SellerSendsPaymentReceivedMessage.class)
+                                    SellerPreparePaymentReceivedMessage.class,
+                                    SellerMaybeSendPayoutTxPublishedMessage.class,
+                                    SellerSendPaymentReceivedMessage.class)
                             .using(new TradeTaskRunner(trade, () -> {
                                 this.errorMessageHandler = null;
                                 handleTaskRunnerSuccess(event);
@@ -181,7 +182,7 @@ public abstract class SellerProtocol extends DisputeProtocol {
                     synchronized (trade) {
                         latchTrade();
                         expect(new Condition(trade))
-                                .setup(tasks(SellerSendsPaymentAccountPayloadKey.class)
+                                .setup(tasks(SellerSendPaymentAccountPayloadKey.class)
                                 .using(new TradeTaskRunner(trade,
                                         () -> {
                                             handleTaskRunnerSuccess(event);

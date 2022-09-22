@@ -28,13 +28,13 @@ import lombok.extern.slf4j.Slf4j;
 import monero.wallet.MoneroWallet;
 
 /**
- * Send the buyer payment account info when the trade state is confirmed.
+ * Allow sender's payment account info to be decrypted when trade state is confirmed.
  */
 @Slf4j
-public class SellerSendsPaymentAccountPayloadKey extends SendMailboxMessageTask {
+public class SellerSendPaymentAccountPayloadKey extends SendMailboxMessageTask {
     private PaymentAccountKeyResponse message;
 
-    public SellerSendsPaymentAccountPayloadKey(TaskRunner<Trade> taskHandler, Trade trade) {
+    public SellerSendPaymentAccountPayloadKey(TaskRunner<Trade> taskHandler, Trade trade) {
         super(taskHandler, trade);
     }
 
@@ -51,9 +51,6 @@ public class SellerSendsPaymentAccountPayloadKey extends SendMailboxMessageTask 
     @Override
     protected TradeMailboxMessage getTradeMailboxMessage(String tradeId) {
         if (message == null) {
-
-            // set payment account payload
-            trade.getSelf().setPaymentAccountPayload(processModel.getPaymentAccountPayload(trade));
 
             // get updated multisig hex
             if (trade.getSelf().getUpdatedMultisigHex() == null) {

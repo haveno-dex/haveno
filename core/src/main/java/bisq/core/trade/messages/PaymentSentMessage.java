@@ -18,7 +18,7 @@
 package bisq.core.trade.messages;
 
 import bisq.network.p2p.NodeAddress;
-
+import com.google.protobuf.ByteString;
 import bisq.common.app.Version;
 import bisq.common.proto.ProtoUtil;
 
@@ -40,6 +40,8 @@ public final class PaymentSentMessage extends TradeMailboxMessage {
     private final String payoutTxHex;
     @Nullable
     private final String updatedMultisigHex;
+    @Nullable
+    private final byte[] paymentAccountKey;
 
     // Added after v1.3.7
     // We use that for the XMR txKey but want to keep it generic to be flexible for data of other payment methods or assets.
@@ -53,7 +55,8 @@ public final class PaymentSentMessage extends TradeMailboxMessage {
                                                  @Nullable String counterCurrencyExtraData,
                                                  String uid,
                                                  String signedPayoutTxHex,
-                                                 String updatedMultisigHex) {
+                                                 String updatedMultisigHex,
+                                                 @Nullable byte[] paymentAccountKey) {
         this(tradeId,
                 buyerPayoutAddress,
                 senderNodeAddress,
@@ -62,7 +65,8 @@ public final class PaymentSentMessage extends TradeMailboxMessage {
                 uid,
                 Version.getP2PMessageVersion(),
                 signedPayoutTxHex,
-                updatedMultisigHex);
+                updatedMultisigHex,
+                paymentAccountKey);
     }
 
 
@@ -78,7 +82,8 @@ public final class PaymentSentMessage extends TradeMailboxMessage {
                                                   String uid,
                                                   String messageVersion,
                                                   @Nullable String signedPayoutTxHex,
-                                                  @Nullable String updatedMultisigHex) {
+                                                  @Nullable String updatedMultisigHex,
+                                                  @Nullable byte[] paymentAccountKey) {
         super(messageVersion, tradeId, uid);
         this.buyerPayoutAddress = buyerPayoutAddress;
         this.senderNodeAddress = senderNodeAddress;
@@ -86,6 +91,7 @@ public final class PaymentSentMessage extends TradeMailboxMessage {
         this.counterCurrencyExtraData = counterCurrencyExtraData;
         this.payoutTxHex = signedPayoutTxHex;
         this.updatedMultisigHex = updatedMultisigHex;
+        this.paymentAccountKey = paymentAccountKey;
     }
 
     @Override
@@ -100,6 +106,7 @@ public final class PaymentSentMessage extends TradeMailboxMessage {
         Optional.ofNullable(counterCurrencyExtraData).ifPresent(e -> builder.setCounterCurrencyExtraData(counterCurrencyExtraData));
         Optional.ofNullable(payoutTxHex).ifPresent(e -> builder.setPayoutTxHex(payoutTxHex));
         Optional.ofNullable(updatedMultisigHex).ifPresent(e -> builder.setUpdatedMultisigHex(updatedMultisigHex));
+        Optional.ofNullable(paymentAccountKey).ifPresent(e -> builder.setPaymentAccountKey(ByteString.copyFrom(e)));
 
         return getNetworkEnvelopeBuilder().setPaymentSentMessage(builder).build();
     }
@@ -114,7 +121,9 @@ public final class PaymentSentMessage extends TradeMailboxMessage {
                 proto.getUid(),
                 messageVersion,
                 ProtoUtil.stringOrNullFromProto(proto.getPayoutTxHex()),
-                ProtoUtil.stringOrNullFromProto(proto.getUpdatedMultisigHex()));
+                ProtoUtil.stringOrNullFromProto(proto.getUpdatedMultisigHex()),
+                ProtoUtil.byteArrayOrNullFromProto(proto.getPaymentAccountKey())
+        );
     }
 
 
@@ -128,6 +137,7 @@ public final class PaymentSentMessage extends TradeMailboxMessage {
                 ",\n     uid='" + uid + '\'' +
                 ",\n     payoutTxHex=" + payoutTxHex +
                 ",\n     updatedMultisigHex=" + updatedMultisigHex +
+                ",\n     paymentAccountKey=" + paymentAccountKey +
                 "\n} " + super.toString();
     }
 }

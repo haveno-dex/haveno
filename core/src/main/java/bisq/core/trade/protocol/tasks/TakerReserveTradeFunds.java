@@ -15,13 +15,11 @@
  * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.core.offer.placeoffer.tasks;
+package bisq.core.trade.protocol.tasks;
 
-import bisq.common.taskrunner.Task;
 import bisq.common.taskrunner.TaskRunner;
 import bisq.core.btc.model.XmrAddressEntry;
-import bisq.core.offer.Offer;
-import bisq.core.offer.placeoffer.PlaceOfferModel;
+import bisq.core.trade.Trade;
 import bisq.core.util.ParsingUtils;
 import java.math.BigInteger;
 import java.util.ArrayList;
@@ -29,43 +27,41 @@ import java.util.List;
 import monero.daemon.model.MoneroOutput;
 import monero.wallet.model.MoneroTxWallet;
 
-public class MakerReservesOfferFunds extends Task<PlaceOfferModel> {
+public class TakerReserveTradeFunds extends TradeTask {
 
-    public MakerReservesOfferFunds(TaskRunner taskHandler, PlaceOfferModel model) {
-        super(taskHandler, model);
+    public TakerReserveTradeFunds(TaskRunner taskHandler, Trade trade) {
+        super(taskHandler, trade);
     }
 
     @Override
     protected void run() {
-
-        Offer offer = model.getOffer();
-
         try {
             runInterceptHook();
-            
+
             // create tx to estimate fee
-            String returnAddress = model.getXmrWalletService().getOrCreateAddressEntry(offer.getId(), XmrAddressEntry.Context.TRADE_PAYOUT).getAddressString();
-            BigInteger makerFee = ParsingUtils.coinToAtomicUnits(offer.getMakerFee());
-            BigInteger depositAmount = ParsingUtils.coinToAtomicUnits(model.getReservedFundsForOffer());
-            MoneroTxWallet feeEstimateTx = model.getXmrWalletService().createReserveTx(makerFee, returnAddress, depositAmount, false);
+            String returnAddress = model.getXmrWalletService().getOrCreateAddressEntry(trade.getOffer().getId(), XmrAddressEntry.Context.TRADE_PAYOUT).getAddressString();
+            BigInteger takerFee = ParsingUtils.coinToAtomicUnits(trade.getTakerFee());
+            BigInteger depositAmount = ParsingUtils.centinerosToAtomicUnits(processModel.getFundsNeededForTradeAsLong());
+            MoneroTxWallet feeEstimateTx = model.getXmrWalletService().createReserveTx(takerFee, returnAddress, depositAmount, false);
 
             // create reserve tx and freeze inputs
             BigInteger feeEstimate = model.getXmrWalletService().getFeeEstimate(feeEstimateTx.getFullHex());
             depositAmount = depositAmount.add(feeEstimate.multiply(BigInteger.valueOf(3)));
-            MoneroTxWallet reserveTx = model.getXmrWalletService().createReserveTx(makerFee, returnAddress, depositAmount, true);
+            MoneroTxWallet reserveTx = model.getXmrWalletService().createReserveTx(takerFee, returnAddress, depositAmount, true);
 
             // collect reserved key images // TODO (woodser): switch to proof of reserve?
             List<String> reservedKeyImages = new ArrayList<String>();
             for (MoneroOutput input : reserveTx.getInputs()) reservedKeyImages.add(input.getKeyImage().getHex());
-
-            // save offer state
+            
+            // save process state
             // TODO (woodser): persist
-            model.setReserveTx(reserveTx);
-            offer.getOfferPayload().setReserveTxKeyImages(reservedKeyImages);
-            offer.setOfferFeePaymentTxId(reserveTx.getHash()); // TODO (woodser): don't use this field
+            processModel.setReserveTx(reserveTx);
+            processModel.getTaker().setReserveTxKeyImages(reservedKeyImages);
+            trade.setTakerFeeTxId(reserveTx.getHash()); // TODO (woodser): this should be multisig deposit tx id? how is it used?
+            //trade.setState(Trade.State.TAKER_PUBLISHED_TAKER_FEE_TX); // TODO (woodser): fee tx is not broadcast separate, update states
             complete();
         } catch (Throwable t) {
-            offer.setErrorMessage("An error occurred.\n" +
+            trade.setErrorMessage("An error occurred.\n" +
                 "Error message:\n"
                 + t.getMessage());
             failed(t);

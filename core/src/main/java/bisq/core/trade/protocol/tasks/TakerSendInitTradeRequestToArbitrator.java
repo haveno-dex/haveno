@@ -37,10 +37,10 @@ import bisq.common.taskrunner.TaskRunner;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public class TakerSendsInitTradeRequestToArbitrator extends TradeTask {
+public class TakerSendInitTradeRequestToArbitrator extends TradeTask {
 
     @SuppressWarnings({"unused"})
-    public TakerSendsInitTradeRequestToArbitrator(TaskRunner taskHandler, Trade trade) {
+    public TakerSendInitTradeRequestToArbitrator(TaskRunner taskHandler, Trade trade) {
         super(taskHandler, trade);
     }
 

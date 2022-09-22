@@ -8,8 +8,30 @@ On Ubuntu: `sudo apt install make wget git openjdk-11-jdk`. The Monero binaries 
 
 ## Build Haveno
 
-1. Download this repository: `git clone https://github.com/haveno-dex/haveno.git`
-2. Navigate to the root of the repository (`cd haveno`) and build the repository: run `make` in the terminal and wait until the process is completed (this will also download and verify the Monero binaries).
+If it's the first time you are building Haveno, run the following commands to download the repository, the needed dependencies, and build the latest release: 
+
+```
+git clone https://github.com/haveno-dex/haveno.git
+cd haveno
+git checkout v0.0.2
+make
+```
+
+*If you only want to quickly build the binaries, use `make skip-tests` instead of `make`. It will skip the tests and increase the build speed drastically.*
+
+If you are updating from a previous version, run from the root of the repository:
+
+```
+git fetch --tags
+git checkout v0.0.2
+make clean && make
+```
+
+Make sure to delete the folder with the local settings, as there are breaking changes between releases:
+
+On **Linux**: remove everything inside `~/.local/share/haveno-*/xmr_stagenet/`, except the `wallet` folder.
+
+On **Mac**: remove everything inside `~/Library/Application\ Support/haveno-*/xmr_stagenet/`, except the `wallet` folder.
 
 ## Join the public test network
 

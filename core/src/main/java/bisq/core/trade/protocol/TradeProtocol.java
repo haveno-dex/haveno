@@ -29,6 +29,7 @@ import bisq.core.trade.messages.SignContractRequest;
 import bisq.core.trade.messages.SignContractResponse;
 import bisq.core.trade.messages.TradeMessage;
 import bisq.core.trade.messages.UpdateMultisigRequest;
+import bisq.core.trade.protocol.tasks.MakerRemoveOpenOffer;
 import bisq.core.trade.protocol.tasks.MaybeSendSignContractRequest;
 import bisq.core.trade.protocol.tasks.ProcessDepositResponse;
 import bisq.core.trade.protocol.tasks.ProcessInitMultisigRequest;
@@ -87,6 +88,19 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
 
 
     ///////////////////////////////////////////////////////////////////////////////////////////
+    // Dispatcher
+    ///////////////////////////////////////////////////////////////////////////////////////////
+
+    protected void onTradeMessage(TradeMessage message, NodeAddress peerNodeAddress) {
+        log.info("Received {} as TradeMessage from {} with tradeId {} and uid {}", message.getClass().getSimpleName(), peerNodeAddress, message.getTradeId(), message.getUid());
+    }
+
+    protected void onMailboxMessage(TradeMessage message, NodeAddress peerNodeAddress) {
+        log.info("Received {} as MailboxMessage from {} with tradeId {} and uid {}", message.getClass().getSimpleName(), peerNodeAddress, message.getTradeId(), message.getUid());
+    }
+
+
+    ///////////////////////////////////////////////////////////////////////////////////////////
     // API
     ///////////////////////////////////////////////////////////////////////////////////////////
 
@@ -114,11 +128,6 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
 
     public void onWithdrawCompleted() {
         log.info("Withdraw completed");
-    }
-
-    protected void onMailboxMessage(TradeMessage message, NodeAddress peerNodeAddress) {
-        log.info("Received {} as MailboxMessage from {} with tradeId {} and uid {}",
-                message.getClass().getSimpleName(), peerNodeAddress, message.getTradeId(), message.getUid());
     }
 
 
@@ -218,8 +227,6 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
     // Abstract
     ///////////////////////////////////////////////////////////////////////////////////////////
 
-    protected abstract void onTradeMessage(TradeMessage message, NodeAddress peer);
-
     public void handleInitMultisigRequest(InitMultisigRequest request, NodeAddress sender) {
         System.out.println(getClass().getCanonicalName() + ".handleInitMultisigRequest()");
         synchronized (trade) {
@@ -293,7 +300,8 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
                         .from(sender))
                         .setup(tasks(
                                 // TODO (woodser): validate request
-                                ProcessSignContractResponse.class)
+                                ProcessSignContractResponse.class,
+                                MakerRemoveOpenOffer.class)
                         .using(new TradeTaskRunner(trade,
                                 () -> {
                                     startTimeout(TRADE_TIMEOUT);

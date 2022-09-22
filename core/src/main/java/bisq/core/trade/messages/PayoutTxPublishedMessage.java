@@ -38,7 +38,8 @@ import javax.annotation.Nullable;
 @Value
 public final class PayoutTxPublishedMessage extends TradeMailboxMessage {
     private final NodeAddress senderNodeAddress;
-    private final String payoutTxHex;
+    private final boolean isMaker;
+    private final String signedPayoutTxHex;
 
     // Added in v1.4.0
     @Nullable
@@ -46,14 +47,16 @@ public final class PayoutTxPublishedMessage extends TradeMailboxMessage {
 
     public PayoutTxPublishedMessage(String tradeId,
                                     NodeAddress senderNodeAddress,
+                                    boolean isMaker,
                                     @Nullable SignedWitness signedWitness,
-                                    String payoutTxHex) {
+                                    String signedPayoutTxHex) {
         this(tradeId,
                 senderNodeAddress,
+                isMaker,
                 signedWitness,
                 UUID.randomUUID().toString(),
                 Version.getP2PMessageVersion(),
-                payoutTxHex);
+                signedPayoutTxHex);
     }
 
 
@@ -63,14 +66,16 @@ public final class PayoutTxPublishedMessage extends TradeMailboxMessage {
 
     private PayoutTxPublishedMessage(String tradeId,
                                      NodeAddress senderNodeAddress,
+                                     boolean isMaker,
                                      @Nullable SignedWitness signedWitness,
                                      String uid,
                                      String messageVersion,
-                                     String payoutTxHex) {
+                                     String signedPayoutTxHex) {
         super(messageVersion, tradeId, uid);
         this.senderNodeAddress = senderNodeAddress;
+        this.isMaker = isMaker;
         this.signedWitness = signedWitness;
-        this.payoutTxHex = payoutTxHex;
+        this.signedPayoutTxHex = signedPayoutTxHex;
     }
 
     @Override
@@ -78,8 +83,9 @@ public final class PayoutTxPublishedMessage extends TradeMailboxMessage {
         protobuf.PayoutTxPublishedMessage.Builder builder = protobuf.PayoutTxPublishedMessage.newBuilder()
                 .setTradeId(tradeId)
                 .setSenderNodeAddress(senderNodeAddress.toProtoMessage())
+                .setIsMaker(isMaker)
                 .setUid(uid)
-                .setPayoutTxHex(payoutTxHex);
+                .setSignedPayoutTxHex(signedPayoutTxHex);
         Optional.ofNullable(signedWitness).ifPresent(signedWitness -> builder.setSignedWitness(signedWitness.toProtoSignedWitness()));
         return getNetworkEnvelopeBuilder().setPayoutTxPublishedMessage(builder).build();
     }
@@ -93,18 +99,20 @@ public final class PayoutTxPublishedMessage extends TradeMailboxMessage {
                 null;
         return new PayoutTxPublishedMessage(proto.getTradeId(),
                 NodeAddress.fromProto(proto.getSenderNodeAddress()),
+                proto.getIsMaker(),
                 signedWitness,
                 proto.getUid(),
                 messageVersion,
-                proto.getPayoutTxHex());
+                proto.getSignedPayoutTxHex());
     }
 
     @Override
     public String toString() {
         return "PayoutTxPublishedMessage{" +
                 "\n     senderNodeAddress=" + senderNodeAddress +
+                ",\n     isMaker=" + isMaker +
                 ",\n     signedWitness=" + signedWitness +
-                ",\n     payoutTxHex=" + payoutTxHex +
+                ",\n     signedPayoutTxHex=" + signedPayoutTxHex +
                 "\n} " + super.toString();
     }
 }

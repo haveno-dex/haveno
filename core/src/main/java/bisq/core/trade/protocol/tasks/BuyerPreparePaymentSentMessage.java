@@ -40,10 +40,10 @@ import monero.wallet.model.MoneroSubaddress;
 import monero.wallet.model.MoneroTxWallet;
 
 @Slf4j
-public class BuyerPreparesPaymentSentMessage extends TradeTask {
+public class BuyerPreparePaymentSentMessage extends TradeTask {
 
     @SuppressWarnings({"unused"})
-    public BuyerPreparesPaymentSentMessage(TaskRunner taskHandler, Trade trade) {
+    public BuyerPreparePaymentSentMessage(TaskRunner taskHandler, Trade trade) {
         super(taskHandler, trade);
     }
 
