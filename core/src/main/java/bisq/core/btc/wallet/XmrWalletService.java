@@ -155,7 +155,7 @@ public class XmrWalletService {
     
     public MoneroWallet getWallet() {
         State state = walletsSetup.getWalletConfig().state();
-        checkState(state == State.STARTING || state == State.RUNNING, "Cannot call until startup is complete");
+        checkState(state == State.STARTING || state == State.RUNNING, "Cannot call until startup is complete, but state is: " + state);
         return wallet;
     }
 

@@ -335,7 +335,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
                 latchTrade();
                 Validator.checkTradeId(processModel.getOfferId(), response);
                 processModel.setTradeMessage(response);
-                expect(state(Trade.State.SAW_ARRIVED_PUBLISH_DEPOSIT_TX_REQUEST)
+                expect(anyState(Trade.State.SAW_ARRIVED_PUBLISH_DEPOSIT_TX_REQUEST, Trade.State.ARBITRATOR_PUBLISHED_DEPOSIT_TXS, Trade.State.DEPOSIT_TXS_SEEN_IN_BLOCKCHAIN)
                         .with(response)
                         .from(sender)) // TODO (woodser): ensure this asserts sender == response.getSenderNodeAddress()
                         .setup(tasks(

@@ -669,7 +669,7 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
     public static MoneroTxWallet arbitratorCreatesDisputedPayoutTx(Contract contract, Dispute dispute, DisputeResult disputeResult, MoneroWallet multisigWallet) {
 
         // multisig wallet must be synced
-        if (multisigWallet.isMultisigImportNeeded()) throw new RuntimeException("Arbitrator's wallet needs updated multisig hex to create payout tx which means a trader must have already broadcast the payout tx");
+        if (multisigWallet.isMultisigImportNeeded()) throw new RuntimeException("Arbitrator's wallet needs updated multisig hex to create payout tx which means a trader must have already broadcast the payout tx for trade " + dispute.getTradeId());
 
         // collect winner and loser payout address and amounts
         String winnerPayoutAddress = disputeResult.getWinner() == Winner.BUYER ?

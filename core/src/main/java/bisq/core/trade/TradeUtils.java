@@ -23,6 +23,7 @@ import bisq.common.crypto.PubKeyRing;
 import bisq.common.crypto.Sig;
 import bisq.common.util.Tuple2;
 import bisq.core.btc.wallet.XmrWalletService;
+import bisq.core.offer.Offer;
 import bisq.core.offer.OfferPayload;
 import bisq.core.support.dispute.arbitration.arbitrator.Arbitrator;
 import bisq.core.trade.messages.InitTradeRequest;
@@ -74,18 +75,21 @@ public class TradeUtils {
     /**
      * Check if the arbitrator signature for an offer is valid.
      * 
-     * @param signedOfferPayload is a signed offer payload
+     * @param offer is a signed offer with payload
      * @param arbitrator is the possible original arbitrator
      * @return true if the arbitrator's signature is valid for the offer
      */
-    public static boolean isArbitratorSignatureValid(OfferPayload signedOfferPayload, Arbitrator arbitrator) {
+    public static boolean isArbitratorSignatureValid(Offer offer, Arbitrator arbitrator) {
+        
+        // copy offer payload
+        OfferPayload offerPayloadCopy = OfferPayload.fromProto(offer.toProtoMessage().getOfferPayload());
         
         // remove arbitrator signature from signed payload
-        String signature = signedOfferPayload.getArbitratorSignature();
-        signedOfferPayload.setArbitratorSignature(null);
+        String signature = offerPayloadCopy.getArbitratorSignature();
+        offerPayloadCopy.setArbitratorSignature(null);
         
         // get unsigned offer payload as json string
-        String unsignedOfferAsJson = JsonUtil.objectToJson(signedOfferPayload);
+        String unsignedOfferAsJson = JsonUtil.objectToJson(offerPayloadCopy);
         
         // verify arbitrator signature
         boolean isValid = true;
@@ -94,9 +98,6 @@ public class TradeUtils {
         } catch (Exception e) {
             isValid = false;
         }
-        
-        // replace signature
-        signedOfferPayload.setArbitratorSignature(signature);
         
         // return result
         return isValid;
