@@ -99,7 +99,7 @@ public class ProcessSignContractResponse extends TradeTask {
                     @Override
                     public void onArrived() {
                         log.info("{} arrived: arbitrator={}; offerId={}; uid={}", request.getClass().getSimpleName(), trade.getArbitratorNodeAddress(), trade.getId(), request.getUid());
-                        trade.setState(Trade.State.SAW_ARRIVED_PUBLISH_DEPOSIT_TX_REQUEST);
+                        trade.setStateIfValidTransitionTo(Trade.State.SAW_ARRIVED_PUBLISH_DEPOSIT_TX_REQUEST);
                         processModel.getTradeManager().requestPersistence();
                         complete();
                     }

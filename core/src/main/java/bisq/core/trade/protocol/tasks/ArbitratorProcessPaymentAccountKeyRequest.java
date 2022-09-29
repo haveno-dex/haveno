@@ -41,6 +41,12 @@ public class ArbitratorProcessPaymentAccountKeyRequest extends TradeTask {
         try {
           runInterceptHook();
 
+          // ensure deposit txs confirmed
+          trade.listenForDepositTxs();
+          if (trade.getPhase().ordinal() < Trade.Phase.DEPOSITS_CONFIRMED.ordinal()) {
+              throw new RuntimeException("Arbitrator refusing payment account key request for trade " + trade.getId() + " because the deposit txs have not confirmed");
+          }
+
           // create response for buyer with key to decrypt seller's payment account payload
           PaymentAccountKeyResponse response = new PaymentAccountKeyResponse(
                   trade.getId(),

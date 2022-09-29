@@ -68,7 +68,6 @@ public class ProcessSignContractRequest extends TradeTask {
           trader.setPayoutAddressString(request.getPayoutAddress());
 
           // sign contract only when both deposit txs hashes known
-          // TODO (woodser): synchronize contract creation; both requests received at the same time
           // TODO (woodser): remove makerDepositTxId and takerDepositTxId from Trade
           if (processModel.getMaker().getDepositTxHash() == null || processModel.getTaker().getDepositTxHash() == null) {
               complete();

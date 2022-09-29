@@ -17,8 +17,6 @@
 
 package bisq.core.trade.protocol.tasks;
 
-import bisq.core.btc.model.XmrAddressEntry;
-import bisq.core.btc.wallet.XmrWalletService;
 import bisq.core.network.MessageState;
 import bisq.core.trade.Trade;
 import bisq.core.trade.messages.PaymentSentMessage;
@@ -53,11 +51,6 @@ public class BuyerSendPaymentSentMessage extends SendMailboxMessageTask {
     protected TradeMailboxMessage getTradeMailboxMessage(String tradeId) {
         if (message == null) {
 
-            // gather relevant info
-            XmrWalletService walletService = processModel.getProvider().getXmrWalletService();
-            final String id = processModel.getOfferId();
-            XmrAddressEntry payoutAddressEntry = walletService.getOrCreateAddressEntry(id, XmrAddressEntry.Context.TRADE_PAYOUT);
-
             // We do not use a real unique ID here as we want to be able to re-send the exact same message in case the
             // peer does not respond with an ACK msg in a certain time interval. To avoid that we get dangling mailbox
             // messages where only the one which gets processed by the peer would be removed we use the same uid. All
@@ -65,7 +58,6 @@ public class BuyerSendPaymentSentMessage extends SendMailboxMessageTask {
             String deterministicId = tradeId + processModel.getMyNodeAddress().getFullAddress();
             message = new PaymentSentMessage(
                     tradeId,
-                    payoutAddressEntry.getAddressString(),
                     processModel.getMyNodeAddress(),
                     trade.getCounterCurrencyTxId(),
                     trade.getCounterCurrencyExtraData(),
