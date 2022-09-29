@@ -34,7 +34,7 @@ public class ProcessDepositResponse extends TradeTask {
     protected void run() {
         try {
           runInterceptHook();
-          trade.setState(Trade.State.ARBITRATOR_PUBLISHED_DEPOSIT_TXS);
+          trade.setStateIfValidTransitionTo(Trade.State.ARBITRATOR_PUBLISHED_DEPOSIT_TXS);
           processModel.getTradeManager().requestPersistence();
           complete();
         } catch (Throwable t) {

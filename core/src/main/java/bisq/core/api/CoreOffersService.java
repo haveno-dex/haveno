@@ -111,7 +111,9 @@ public class CoreOffersService {
                 .filter(o -> !o.isMyOffer(keyRing))
                 .filter(o -> {
                     Result result = offerFilter.canTakeOffer(o, coreContext.isApiUser());
-                    return result.isValid() || result == Result.HAS_NO_PAYMENT_ACCOUNT_VALID_FOR_OFFER;
+                    boolean valid = result.isValid() || result == Result.HAS_NO_PAYMENT_ACCOUNT_VALID_FOR_OFFER;
+                    if (!valid) log.warn("Cannot take offer " + o.getId() + " with invalid state : " + result);
+                    return valid;
                 })
                 .findAny().orElseThrow(() ->
                         new IllegalStateException(format("offer with id '%s' not found", id)));

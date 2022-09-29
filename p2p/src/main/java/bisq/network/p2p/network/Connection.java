@@ -112,7 +112,6 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
     private static final int MAX_PERMITTED_MESSAGE_SIZE = 10 * 1024 * 1024;             // 10 MB (425 offers resulted in about 660 kb, mailbox msg will add more to it) offer has usually 2 kb, mailbox 3kb.
     //TODO decrease limits again after testing
     private static final int SOCKET_TIMEOUT = (int) TimeUnit.SECONDS.toMillis(180);
-    private static final int MAX_CONNECTION_THREADS = 10;
 
     public static int getPermittedMessageSize() {
         return PERMITTED_MESSAGE_SIZE;
@@ -131,7 +130,6 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
     @Getter
     private final String uid;
     private final ExecutorService singleThreadExecutor = Executors.newSingleThreadExecutor(runnable -> new Thread(runnable, "Connection.java executor-service"));
-    private final ExecutorService connectionThreadPool = Executors.newFixedThreadPool(MAX_CONNECTION_THREADS);
 
     // holder of state shared between InputHandler and Connection
     @Getter

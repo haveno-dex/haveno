@@ -23,6 +23,8 @@ import bisq.core.offer.placeoffer.PlaceOfferModel;
 import bisq.common.taskrunner.Task;
 import bisq.common.taskrunner.TaskRunner;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 public class AddToOfferBook extends Task<PlaceOfferModel> {
 
     public AddToOfferBook(TaskRunner<PlaceOfferModel> taskHandler, PlaceOfferModel model) {
@@ -33,6 +35,7 @@ public class AddToOfferBook extends Task<PlaceOfferModel> {
     protected void run() {
         try {
             runInterceptHook();
+            checkNotNull(model.getSignOfferResponse().getSignedOfferPayload().getArbitratorSignature(), "Offer's arbitrator signature is null: " + model.getOffer().getId());
             model.getOfferBookService().addOffer(new Offer(model.getSignOfferResponse().getSignedOfferPayload()),
                     () -> {
                         model.setOfferAddedToOfferBook(true);

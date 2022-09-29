@@ -224,6 +224,6 @@ public class OfferFilterService {
     public boolean hasValidSignature(Offer offer) {
         Arbitrator arbitrator = user.getAcceptedArbitratorByAddress(offer.getOfferPayload().getArbitratorSigner());
         if (arbitrator == null) return false; // invalid arbitrator
-        return TradeUtils.isArbitratorSignatureValid(offer.getOfferPayload(), arbitrator);
+        return TradeUtils.isArbitratorSignatureValid(offer, arbitrator);
     }
 }

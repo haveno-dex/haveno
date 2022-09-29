@@ -50,6 +50,7 @@ public class ProcessSignContractResponse extends TradeTask {
             if (!contractAsJson.equals(response.getContractAsJson())) {
                 trade.getContract().printDiff(response.getContractAsJson());
                 failed("Contracts are not matching");
+                return;
             }
 
             // get peer info

@@ -127,8 +127,8 @@ public abstract class Trade implements Tradable, Model {
         SEND_FAILED_PUBLISH_DEPOSIT_TX_REQUEST(Phase.DEPOSIT_REQUESTED),
 
         // deposit published
-        DEPOSIT_TXS_SEEN_IN_BLOCKCHAIN(Phase.DEPOSITS_PUBLISHED), // TODO: seeing in network usually happens after arbitrator publishes
         ARBITRATOR_PUBLISHED_DEPOSIT_TXS(Phase.DEPOSITS_PUBLISHED),
+        DEPOSIT_TXS_SEEN_IN_BLOCKCHAIN(Phase.DEPOSITS_PUBLISHED),
 
         // deposit confirmed
         DEPOSIT_TXS_CONFIRMED_IN_BLOCKCHAIN(Phase.DEPOSITS_CONFIRMED),
