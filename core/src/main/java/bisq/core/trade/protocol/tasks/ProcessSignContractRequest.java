@@ -112,10 +112,10 @@ public class ProcessSignContractRequest extends TradeTask {
                   encryptedPaymentAccountPayload);
 
           // get response recipients. only arbitrator sends response to both peers
-          NodeAddress recipient1 = trade instanceof ArbitratorTrade ? trade.getMakerNodeAddress() : trade.getTradingPeerNodeAddress();
-          PubKeyRing recipient1PubKey = trade instanceof ArbitratorTrade ? trade.getMakerPubKeyRing() : trade.getTradingPeerPubKeyRing();
-          NodeAddress recipient2 = trade instanceof ArbitratorTrade ? trade.getTakerNodeAddress() : null;
-          PubKeyRing recipient2PubKey = trade instanceof ArbitratorTrade ? trade.getTakerPubKeyRing() : null;
+          NodeAddress recipient1 = trade instanceof ArbitratorTrade ? trade.getMaker().getNodeAddress() : trade.getTradingPeer().getNodeAddress();
+          PubKeyRing recipient1PubKey = trade instanceof ArbitratorTrade ? trade.getMaker().getPubKeyRing() : trade.getTradingPeer().getPubKeyRing();
+          NodeAddress recipient2 = trade instanceof ArbitratorTrade ? trade.getTaker().getNodeAddress() : null;
+          PubKeyRing recipient2PubKey = trade instanceof ArbitratorTrade ? trade.getTaker().getPubKeyRing() : null;
 
           // send response to recipient 1
           processModel.getP2PService().sendEncryptedDirectMessage(recipient1, recipient1PubKey, response, new SendDirectMessageListener() {

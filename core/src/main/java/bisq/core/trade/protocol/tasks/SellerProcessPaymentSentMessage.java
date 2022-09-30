@@ -58,7 +58,7 @@ public class SellerProcessPaymentSentMessage extends TradeTask {
             }
 
             // update latest peer address
-            trade.setTradingPeerNodeAddress(processModel.getTempTradingPeerNodeAddress());
+            trade.getTradingPeer().setNodeAddress(processModel.getTempTradingPeerNodeAddress());
 
             String counterCurrencyTxId = message.getCounterCurrencyTxId();
             if (counterCurrencyTxId != null && counterCurrencyTxId.length() < 100) {

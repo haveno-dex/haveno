@@ -56,14 +56,9 @@ public class ArbitratorProcessDepositRequest extends TradeTask {
           String signature = request.getContractSignature();
 
           // get peer info
-          // TODO (woodser): make these utilities / refactor model
-          // TODO (woodser): verify request
-          PubKeyRing peerPubKeyRing;
           TradingPeer peer = trade.getTradingPeer(request.getSenderNodeAddress());
-          if (peer == processModel.getArbitrator()) peerPubKeyRing = trade.getArbitratorPubKeyRing();
-          else if (peer == processModel.getMaker()) peerPubKeyRing = trade.getMakerPubKeyRing();
-          else if (peer == processModel.getTaker()) peerPubKeyRing = trade.getTakerPubKeyRing();
-          else throw new RuntimeException(request.getClass().getSimpleName() + " is not from maker, taker, or arbitrator");
+          if (peer == null) throw new RuntimeException(request.getClass().getSimpleName() + " is not from maker, taker, or arbitrator");
+          PubKeyRing peerPubKeyRing = peer.getPubKeyRing();
 
           // verify signature
           if (!Sig.verify(peerPubKeyRing.getSignaturePubKey(), contractAsJson, signature)) throw new RuntimeException("Peer's contract signature is invalid");
@@ -73,7 +68,7 @@ public class ArbitratorProcessDepositRequest extends TradeTask {
 
           // collect expected values of deposit tx
           Offer offer = trade.getOffer();
-          boolean isFromTaker = request.getSenderNodeAddress().equals(trade.getTakerNodeAddress());
+          boolean isFromTaker = request.getSenderNodeAddress().equals(trade.getTaker().getNodeAddress());
           boolean isFromBuyer = isFromTaker ? offer.getDirection() == OfferDirection.SELL : offer.getDirection() == OfferDirection.BUY;
           BigInteger depositAmount = ParsingUtils.coinToAtomicUnits(isFromBuyer ? offer.getBuyerSecurityDeposit() : offer.getAmount().add(offer.getSellerSecurityDeposit()));
           String depositAddress = processModel.getMultisigAddress();
@@ -121,8 +116,8 @@ public class ArbitratorProcessDepositRequest extends TradeTask {
                       new Date().getTime());
               
               // send deposit response to maker and taker
-              sendDepositResponse(trade.getMakerNodeAddress(), trade.getMakerPubKeyRing(), response);
-              sendDepositResponse(trade.getTakerNodeAddress(), trade.getTakerPubKeyRing(), response);
+              sendDepositResponse(trade.getMaker().getNodeAddress(), trade.getMaker().getPubKeyRing(), response);
+              sendDepositResponse(trade.getTaker().getNodeAddress(), trade.getTaker().getPubKeyRing(), response);
           } else {
               if (processModel.getMaker().getDepositTxHex() == null) log.info("Arbitrator waiting for deposit request from maker for trade " + trade.getId());
               if (processModel.getTaker().getDepositTxHex() == null) log.info("Arbitrator waiting for deposit request from taker for trade " + trade.getId());

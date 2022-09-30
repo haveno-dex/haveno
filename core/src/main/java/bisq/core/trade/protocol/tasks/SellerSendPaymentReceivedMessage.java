@@ -71,7 +71,7 @@ public class SellerSendPaymentReceivedMessage extends SendMailboxMessageTask {
     protected void setStateSent() {
         trade.setState(trade.getState().ordinal() >= Trade.State.SELLER_PUBLISHED_PAYOUT_TX.ordinal() ? Trade.State.SELLER_SENT_PAYOUT_TX_PUBLISHED_MSG : Trade.State.SELLER_SENT_PAYMENT_RECEIVED_MSG);
         log.info("Sent SellerReceivedPaymentMessage: tradeId={} at peer {} SignedWitness {}",
-                trade.getId(), trade.getTradingPeerNodeAddress(), signedWitness);
+                trade.getId(), trade.getTradingPeer().getNodeAddress(), signedWitness);
         processModel.getTradeManager().requestPersistence();
     }
 
@@ -79,7 +79,7 @@ public class SellerSendPaymentReceivedMessage extends SendMailboxMessageTask {
     protected void setStateArrived() {
         trade.setState(trade.getState().ordinal() >= Trade.State.SELLER_PUBLISHED_PAYOUT_TX.ordinal() ? Trade.State.SELLER_SAW_ARRIVED_PAYOUT_TX_PUBLISHED_MSG : Trade.State.SELLER_SAW_ARRIVED_PAYMENT_RECEIVED_MSG);
         log.info("Seller's PaymentReceivedMessage arrived: tradeId={} at peer {} SignedWitness {}",
-                trade.getId(), trade.getTradingPeerNodeAddress(), signedWitness);
+                trade.getId(), trade.getTradingPeer().getNodeAddress(), signedWitness);
         processModel.getTradeManager().requestPersistence();
     }
 
@@ -87,7 +87,7 @@ public class SellerSendPaymentReceivedMessage extends SendMailboxMessageTask {
     protected void setStateStoredInMailbox() {
         trade.setState(trade.getState().ordinal() >= Trade.State.SELLER_PUBLISHED_PAYOUT_TX.ordinal() ? Trade.State.SELLER_STORED_IN_MAILBOX_PAYOUT_TX_PUBLISHED_MSG : Trade.State.SELLER_STORED_IN_MAILBOX_PAYMENT_RECEIVED_MSG);
         log.info("Seller's PaymentReceivedMessage stored in mailbox: tradeId={} at peer {} SignedWitness {}",
-                trade.getId(), trade.getTradingPeerNodeAddress(), signedWitness);
+                trade.getId(), trade.getTradingPeer().getNodeAddress(), signedWitness);
         processModel.getTradeManager().requestPersistence();
     }
 
@@ -95,7 +95,7 @@ public class SellerSendPaymentReceivedMessage extends SendMailboxMessageTask {
     protected void setStateFault() {
         trade.setState(trade.getState().ordinal() >= Trade.State.SELLER_PUBLISHED_PAYOUT_TX.ordinal() ? Trade.State.SELLER_SEND_FAILED_PAYOUT_TX_PUBLISHED_MSG : Trade.State.SELLER_SEND_FAILED_PAYMENT_RECEIVED_MSG);
         log.error("SellerReceivedPaymentMessage failed: tradeId={} at peer {} SignedWitness {}",
-                trade.getId(), trade.getTradingPeerNodeAddress(), signedWitness);
+                trade.getId(), trade.getTradingPeer().getNodeAddress(), signedWitness);
         processModel.getTradeManager().requestPersistence();
     }
 }

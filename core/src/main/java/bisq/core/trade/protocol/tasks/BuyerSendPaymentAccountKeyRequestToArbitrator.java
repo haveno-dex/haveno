@@ -49,10 +49,10 @@ public class BuyerSendPaymentAccountKeyRequestToArbitrator extends TradeTask {
             );
 
             // send request to arbitrator
-            log.info("Sending {} with offerId {} and uid {} to arbitrator {} with pub key ring {}", request.getClass().getSimpleName(), request.getTradeId(), request.getUid(), trade.getArbitratorNodeAddress(), trade.getArbitratorPubKeyRing());
+            log.info("Sending {} with offerId {} and uid {} to arbitrator {} with pub key ring {}", request.getClass().getSimpleName(), request.getTradeId(), request.getUid(), trade.getArbitrator().getNodeAddress(), trade.getArbitrator().getPubKeyRing());
             processModel.getP2PService().sendEncryptedDirectMessage(
-                    trade.getArbitratorNodeAddress(),
-                    trade.getArbitratorPubKeyRing(),
+                    trade.getArbitrator().getNodeAddress(),
+                    trade.getArbitrator().getPubKeyRing(),
                     request,
                     new SendDirectMessageListener() {
                         @Override

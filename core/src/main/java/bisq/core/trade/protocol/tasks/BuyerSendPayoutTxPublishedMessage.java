@@ -40,12 +40,12 @@ public class BuyerSendPayoutTxPublishedMessage extends SendMailboxMessageTask {
 
     @Override
     protected NodeAddress getReceiverNodeAddress() {
-        return trade.getArbitratorNodeAddress();
+        return trade.getArbitrator().getNodeAddress();
     }
 
     @Override
     protected PubKeyRing getReceiverPubKeyRing() {
-        return trade.getArbitratorPubKeyRing();
+        return trade.getArbitrator().getPubKeyRing();
     }
 
     @Override

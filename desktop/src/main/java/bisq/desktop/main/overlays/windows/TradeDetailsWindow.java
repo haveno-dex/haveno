@@ -208,7 +208,7 @@ public class TradeDetailsWindow extends Overlay<TradeDetailsWindow> {
             rows++;
         if (trade.hasFailed())
             rows += 2;
-        if (trade.getTradingPeerNodeAddress() != null)
+        if (trade.getTradingPeer().getNodeAddress() != null)
             rows++;
         if (showXmrProofResult)
             rows++;
@@ -232,16 +232,16 @@ public class TradeDetailsWindow extends Overlay<TradeDetailsWindow> {
                 Res.get("shared.takerTxFee", formatter.formatCoinWithCode(trade.getTxFee().multiply(3)));
         addConfirmationLabelTextField(gridPane, ++rowIndex, Res.get("tradeDetailsWindow.txFee"), txFee);
 
-        NodeAddress arbitratorNodeAddress = trade.getArbitratorNodeAddress();
+        NodeAddress arbitratorNodeAddress = trade.getArbitrator().getNodeAddress();
         if (arbitratorNodeAddress != null) {
             addConfirmationLabelTextField(gridPane, ++rowIndex,
                     Res.get("tradeDetailsWindow.agentAddresses"),
                     arbitratorNodeAddress.getFullAddress());
         }
 
-        if (trade.getTradingPeerNodeAddress() != null)
+        if (trade.getTradingPeer().getNodeAddress() != null)
             addConfirmationLabelTextField(gridPane, ++rowIndex, Res.get("tradeDetailsWindow.tradingPeersOnion"),
-                    trade.getTradingPeerNodeAddress().getFullAddress());
+                    trade.getTradingPeer().getNodeAddress().getFullAddress());
 
         if (showXmrProofResult) {
             // As the window is already overloaded we replace the tradingPeersPubKeyHash field with the auto-conf state

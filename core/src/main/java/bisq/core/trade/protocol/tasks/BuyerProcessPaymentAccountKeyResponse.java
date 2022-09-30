@@ -37,8 +37,8 @@ public class BuyerProcessPaymentAccountKeyResponse extends TradeTask {
           runInterceptHook();
 
           // update peer node address if not from arbitrator
-          if (!processModel.getTempTradingPeerNodeAddress().equals(trade.getArbitratorNodeAddress())) {
-              trade.setTradingPeerNodeAddress(processModel.getTempTradingPeerNodeAddress());
+          if (!processModel.getTempTradingPeerNodeAddress().equals(trade.getArbitrator().getNodeAddress())) {
+              trade.getTradingPeer().setNodeAddress(processModel.getTempTradingPeerNodeAddress());
           }
 
           // decrypt peer's payment account payload

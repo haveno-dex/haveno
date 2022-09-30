@@ -59,11 +59,9 @@ public class ArbitratorProcessPaymentAccountKeyRequest extends TradeTask {
           );
 
           // send response to buyer
-          boolean isMakerBuyer = trade.getOffer().isBuyOffer();
-          NodeAddress buyerAddress = isMakerBuyer ? trade.getMakerNodeAddress() : trade.getTakerNodeAddress(); // TODO: trade.getBuyer().getNodeAddress()
-          PubKeyRing buyerPubKeyRing = isMakerBuyer ? trade.getMakerPubKeyRing() : trade.getTakerPubKeyRing();
+          NodeAddress buyerAddress = trade.getBuyer().getNodeAddress();
           log.info("Arbitrator sending PaymentAccountKeyResponse to buyer={}; offerId={}", buyerAddress, trade.getId());
-          processModel.getP2PService().sendEncryptedDirectMessage(buyerAddress, buyerPubKeyRing, response, new SendDirectMessageListener() {
+          processModel.getP2PService().sendEncryptedDirectMessage(buyerAddress, trade.getBuyer().getPubKeyRing(), response, new SendDirectMessageListener() {
               @Override
               public void onArrived() {
                   log.info("{} arrived: trading peer={}; offerId={}; uid={}", response.getClass().getSimpleName(), buyerAddress, trade.getId());

@@ -1725,28 +1725,18 @@ message Trade {
     bytes contract_hash = 16;
     NodeAddress arbitrator_node_address = 17;
     NodeAddress mediator_node_address = 18;
-    bytes arbitrator_btc_pub_key = 19;
-    string taker_payment_account_id = 20;
     string error_message = 21;
-    PubKeyRing arbitrator_pub_key_ring = 22;
-    PubKeyRing mediator_pub_key_ring = 23;
     string counter_currency_tx_id = 24;
     repeated ChatMessage chat_message = 25;
     MediationResultState mediation_result_state = 26;
     int64 lock_time = 27;
     bytes delayed_payout_tx_bytes = 28;
     NodeAddress refund_agent_node_address = 29;
-    PubKeyRing refund_agent_pub_key_ring = 30;
-    RefundResultState refund_result_state = 31;
-    int64 last_refresh_request_date = 32 [deprecated = true];
-    string counter_currency_extra_data = 33;
-    string asset_tx_proof_result = 34; // name of AssetTxProofResult enum
-    string uid = 35;
-
-    NodeAddress maker_node_address = 100; // TODO (woodser): move these into TradingPeer
-    NodeAddress taker_node_address = 101;
-    PubKeyRing taker_pub_key_ring = 102;
-    PubKeyRing maker_pub_key_ring = 103;
+    RefundResultState refund_result_state = 30;
+    int64 last_refresh_request_date = 31 [deprecated = true];
+    string counter_currency_extra_data = 32;
+    string asset_tx_proof_result = 33; // name of AssetTxProofResult enum
+    string uid = 34;
 }
 
 message BuyerAsMakerTrade {
@@ -1800,26 +1790,27 @@ message ProcessModel {
 }
 
 message TradingPeer {
-    string account_id = 1;
-    string payment_account_id = 2;
-    string payment_method_id = 3;
-    bytes payment_account_payload_hash = 4;
-    bytes encrypted_payment_account_payload = 5;
-    bytes payment_account_key = 6;
-    PaymentAccountPayload payment_account_payload = 7;
-    string payout_address_string = 8;
-    string contract_as_json = 9;
-    string contract_signature = 10;
-    bytes signature = 11;	// TODO (woodser): remove unused fields? this was buyer-signed payout tx as bytes
-    PubKeyRing pub_key_ring = 12;
-    bytes multi_sig_pub_key = 13;
-    repeated RawTransactionInput raw_transaction_inputs = 14;
-    int64 change_output_value = 15;
-    string change_output_address = 16;
-    bytes account_age_witness_nonce = 17;
-    bytes account_age_witness_signature = 18;
-    int64 current_date = 19;
-    bytes mediated_payout_tx_signature = 20;
+    NodeAddress node_address = 1;
+    PubKeyRing pub_key_ring = 2;
+    string account_id = 3;
+    string payment_account_id = 4;
+    string payment_method_id = 5;
+    bytes payment_account_payload_hash = 6;
+    bytes encrypted_payment_account_payload = 7;
+    bytes payment_account_key = 8;
+    PaymentAccountPayload payment_account_payload = 9;
+    string payout_address_string = 10;
+    string contract_as_json = 11;
+    string contract_signature = 12;
+    bytes signature = 13;	// TODO (woodser): remove unused fields? this was buyer-signed payout tx as bytes
+    bytes multi_sig_pub_key = 14;
+    repeated RawTransactionInput raw_transaction_inputs = 15;
+    int64 change_output_value = 16;
+    string change_output_address = 17;
+    bytes account_age_witness_nonce = 18;
+    bytes account_age_witness_signature = 19;
+    int64 current_date = 20;
+    bytes mediated_payout_tx_signature = 21;
 
     string reserve_tx_hash = 1001;
     string reserve_tx_hex = 1002;

@@ -54,13 +54,8 @@ public class ProcessSignContractResponse extends TradeTask {
             }
 
             // get peer info
-            // TODO (woodser): make these utilities / refactor model
-            PubKeyRing peerPubKeyRing;
             TradingPeer peer = trade.getTradingPeer(response.getSenderNodeAddress());
-            if (peer == processModel.getArbitrator()) peerPubKeyRing = trade.getArbitratorPubKeyRing();
-            else if (peer == processModel.getMaker()) peerPubKeyRing = trade.getMakerPubKeyRing();
-            else if (peer == processModel.getTaker()) peerPubKeyRing = trade.getTakerPubKeyRing();
-            else throw new RuntimeException(response.getClass().getSimpleName() + " is not from maker, taker, or arbitrator");
+            PubKeyRing peerPubKeyRing = peer.getPubKeyRing();
 
             // save peer's encrypted payment account payload
             peer.setEncryptedPaymentAccountPayload(response.getEncryptedPaymentAccountPayload());
@@ -94,18 +89,18 @@ public class ProcessSignContractResponse extends TradeTask {
                         trade.getSelf().getPaymentAccountKey());
 
                 // send request to arbitrator
-                log.info("Sending {} to arbitrator {}; offerId={}; uid={}", request.getClass().getSimpleName(), trade.getArbitratorNodeAddress(), trade.getId(), request.getUid());
-                processModel.getP2PService().sendEncryptedDirectMessage(trade.getArbitratorNodeAddress(), trade.getArbitratorPubKeyRing(), request, new SendDirectMessageListener() {
+                log.info("Sending {} to arbitrator {}; offerId={}; uid={}", request.getClass().getSimpleName(), trade.getArbitrator().getNodeAddress(), trade.getId(), request.getUid());
+                processModel.getP2PService().sendEncryptedDirectMessage(trade.getArbitrator().getNodeAddress(), trade.getArbitrator().getPubKeyRing(), request, new SendDirectMessageListener() {
                     @Override
                     public void onArrived() {
-                        log.info("{} arrived: arbitrator={}; offerId={}; uid={}", request.getClass().getSimpleName(), trade.getArbitratorNodeAddress(), trade.getId(), request.getUid());
+                        log.info("{} arrived: arbitrator={}; offerId={}; uid={}", request.getClass().getSimpleName(), trade.getArbitrator().getNodeAddress(), trade.getId(), request.getUid());
                         trade.setStateIfValidTransitionTo(Trade.State.SAW_ARRIVED_PUBLISH_DEPOSIT_TX_REQUEST);
                         processModel.getTradeManager().requestPersistence();
                         complete();
                     }
                     @Override
                     public void onFault(String errorMessage) {
-                        log.error("Sending {} failed: uid={}; peer={}; error={}", request.getClass().getSimpleName(), trade.getArbitratorNodeAddress(), trade.getId(), errorMessage);
+                        log.error("Sending {} failed: uid={}; peer={}; error={}", request.getClass().getSimpleName(), trade.getArbitrator().getNodeAddress(), trade.getId(), errorMessage);
                         appendToErrorMessage("Sending message failed: message=" + request + "\nerrorMessage=" + errorMessage);
                         failed();
                     }

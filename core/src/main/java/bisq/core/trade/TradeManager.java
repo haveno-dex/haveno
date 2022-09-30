@@ -538,11 +538,11 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
                       request.getTakerNodeAddress(),
                       request.getArbitratorNodeAddress());
 
-          //System.out.println("TradeManager trade.setTradingPeerNodeAddress(): " + sender);
-          //trade.setTradingPeerNodeAddress(sender);
+          //System.out.println("TradeManager trade.getTradingPeer().setNodeAddress(): " + sender);
+          //trade.getTradingPeer().setNodeAddress(sender);
           // TODO (woodser): what if maker's address changes while offer open, or taker's address changes after multisig deposit available? need to verify and update. see OpenOfferManager.maybeUpdatePersistedOffers()
-          trade.setArbitratorPubKeyRing(arbitrator.getPubKeyRing());
-          trade.setMakerPubKeyRing(trade.getOffer().getPubKeyRing());
+          trade.getArbitrator().setPubKeyRing(arbitrator.getPubKeyRing());
+          trade.getMaker().setPubKeyRing(trade.getOffer().getPubKeyRing());
           initTradeAndProtocol(trade, getTradeProtocol(trade));
           trade.getSelf().setReserveTxHash(openOffer.getReserveTxHash()); // TODO (woodser): initialize in initTradeAndProtocol?
           trade.getSelf().setReserveTxHex(openOffer.getReserveTxHex());
@@ -764,8 +764,8 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
                         trade.getProcessModel().setMakerSignature(model.getMakerSignature());
                         trade.getProcessModel().setUseSavingsWallet(useSavingsWallet);
                         trade.getProcessModel().setFundsNeededForTradeAsLong(fundsNeededForTrade.value);
-                        trade.setTakerPubKeyRing(model.getPubKeyRing());
-                        trade.setTakerPaymentAccountId(paymentAccountId);
+                        trade.getTaker().setPubKeyRing(model.getPubKeyRing());
+                        trade.getTaker().setPaymentAccountId(paymentAccountId);
 
                         TradeProtocol tradeProtocol = TradeProtocolFactory.getNewTradeProtocol(trade);
                         TradeProtocol prev = tradeProtocolByTradeId.put(trade.getUid(), tradeProtocol);

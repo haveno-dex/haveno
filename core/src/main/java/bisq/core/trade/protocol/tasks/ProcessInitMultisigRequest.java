@@ -73,9 +73,9 @@ public class ProcessInitMultisigRequest extends TradeTask {
 
           // get peer multisig participant
           TradingPeer multisigParticipant;
-          if (request.getSenderNodeAddress().equals(trade.getMakerNodeAddress())) multisigParticipant = processModel.getMaker();
-          else if (request.getSenderNodeAddress().equals(trade.getTakerNodeAddress())) multisigParticipant = processModel.getTaker();
-          else if (request.getSenderNodeAddress().equals(trade.getArbitratorNodeAddress())) multisigParticipant = processModel.getArbitrator();
+          if (request.getSenderNodeAddress().equals(trade.getMaker().getNodeAddress())) multisigParticipant = processModel.getMaker();
+          else if (request.getSenderNodeAddress().equals(trade.getTaker().getNodeAddress())) multisigParticipant = processModel.getTaker();
+          else if (request.getSenderNodeAddress().equals(trade.getArbitrator().getNodeAddress())) multisigParticipant = processModel.getArbitrator();
           else throw new RuntimeException("Invalid sender to process init trade message: " + trade.getClass().getName());
 
           // reconcile peer's established multisig hex with message
@@ -135,20 +135,20 @@ public class ProcessInitMultisigRequest extends TradeTask {
             NodeAddress peer2Address;
             PubKeyRing peer2PubKeyRing;
             if (trade instanceof ArbitratorTrade) {
-              peer1Address = trade.getTakerNodeAddress();
-              peer1PubKeyRing = trade.getTakerPubKeyRing();
-              peer2Address = trade.getMakerNodeAddress();
-              peer2PubKeyRing = trade.getMakerPubKeyRing();
+              peer1Address = trade.getTaker().getNodeAddress();
+              peer1PubKeyRing = trade.getTaker().getPubKeyRing();
+              peer2Address = trade.getMaker().getNodeAddress();
+              peer2PubKeyRing = trade.getMaker().getPubKeyRing();
             } else if (trade instanceof MakerTrade) {
-              peer1Address = trade.getTakerNodeAddress();
-              peer1PubKeyRing = trade.getTakerPubKeyRing();
-              peer2Address = trade.getArbitratorNodeAddress();
-              peer2PubKeyRing = trade.getArbitratorPubKeyRing();
+              peer1Address = trade.getTaker().getNodeAddress();
+              peer1PubKeyRing = trade.getTaker().getPubKeyRing();
+              peer2Address = trade.getArbitrator().getNodeAddress();
+              peer2PubKeyRing = trade.getArbitrator().getPubKeyRing();
             } else {
-              peer1Address = trade.getMakerNodeAddress();
-              peer1PubKeyRing = trade.getMakerPubKeyRing();
-              peer2Address = trade.getArbitratorNodeAddress();
-              peer2PubKeyRing = trade.getArbitratorPubKeyRing();
+              peer1Address = trade.getMaker().getNodeAddress();
+              peer1PubKeyRing = trade.getMaker().getPubKeyRing();
+              peer2Address = trade.getArbitrator().getNodeAddress();
+              peer2PubKeyRing = trade.getArbitrator().getPubKeyRing();
             }
 
             if (peer1Address == null) throw new RuntimeException("Peer1 address is null");

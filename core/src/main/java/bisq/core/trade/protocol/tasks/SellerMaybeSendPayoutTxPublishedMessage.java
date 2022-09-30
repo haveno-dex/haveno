@@ -55,12 +55,12 @@ public class SellerMaybeSendPayoutTxPublishedMessage extends SendMailboxMessageT
 
     @Override
     protected NodeAddress getReceiverNodeAddress() {
-        return trade.getArbitratorNodeAddress();
+        return trade.getArbitrator().getNodeAddress();
     }
 
     @Override
     protected PubKeyRing getReceiverPubKeyRing() {
-        return trade.getArbitratorPubKeyRing();
+        return trade.getArbitrator().getPubKeyRing();
     }
 
     @Override

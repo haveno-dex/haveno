@@ -285,7 +285,7 @@ public class ProcessModel implements Model, PersistablePayload {
         if (trade instanceof MakerTrade)
             paymentAccount = getUser().getPaymentAccount(offer.getMakerPaymentAccountId());
         else
-            paymentAccount = getUser().getPaymentAccount(trade.getTakerPaymentAccountId());
+            paymentAccount = getUser().getPaymentAccount(trade.getTaker().getPaymentAccountId());
         return paymentAccount != null ? paymentAccount.getPaymentAccountPayload() : null;
     }
 

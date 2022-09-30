@@ -35,7 +35,7 @@ public abstract class SendMailboxMessageTask extends TradeTask {
     }
 
     protected NodeAddress getReceiverNodeAddress() {
-        return trade.getTradingPeerNodeAddress();
+        return trade.getTradingPeer().getNodeAddress();
     }
 
     protected PubKeyRing getReceiverPubKeyRing() {

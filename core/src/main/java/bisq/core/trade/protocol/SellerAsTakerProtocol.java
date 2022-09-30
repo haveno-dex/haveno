@@ -51,7 +51,7 @@ public class SellerAsTakerProtocol extends SellerProtocol implements TakerProtoc
         super(trade);
         Offer offer = checkNotNull(trade.getOffer());
         trade.getTradingPeer().setPubKeyRing(offer.getPubKeyRing());
-        trade.setMakerPubKeyRing(offer.getPubKeyRing());
+        trade.getMaker().setPubKeyRing(offer.getPubKeyRing());
     }
 
 
@@ -70,7 +70,7 @@ public class SellerAsTakerProtocol extends SellerProtocol implements TakerProtoc
               this.errorMessageHandler = errorMessageHandler;
               expect(phase(Trade.Phase.INIT)
                       .with(TakerEvent.TAKE_OFFER)
-                      .from(trade.getTradingPeerNodeAddress()))
+                      .from(trade.getTradingPeer().getNodeAddress()))
                       .setup(tasks(
                               ApplyFilter.class,
                               TakerReserveTradeFunds.class,
