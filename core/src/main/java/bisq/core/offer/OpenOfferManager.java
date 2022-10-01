@@ -251,8 +251,9 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
         xmrWalletService.getAddressEntriesForOpenOffer().stream()
                 .filter(e -> !openOffersIdSet.contains(e.getOfferId()))
                 .forEach(e -> {
-                    log.warn("We found an outdated addressEntry for openOffer {} (openOffers does not contain that " +
+                    log.warn("We found an outdated addressEntry with context {} for openOffer {} (openOffers does not contain that " +
                                     "offer), offers.size={}",
+                            e.getContext(),
                             e.getOfferId(), openOffers.size());
                     xmrWalletService.resetAddressEntriesForOpenOffer(e.getOfferId());
                 });
@@ -579,7 +580,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
             openOffers.remove(openOffer);
             openOffer.setState(OpenOffer.State.CLOSED);
             offerBookService.removeOffer(openOffer.getOffer().getOfferPayload(),
-                    () -> log.trace("Successful removed offer"),
+                    () -> log.info("Successfully removed offer {}", offer.getId()),
                     log::error);
             requestPersistence();
         });
