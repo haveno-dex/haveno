@@ -117,7 +117,7 @@ public abstract class SellerProtocol extends DisputeProtocol {
                     return;
                 }
                 latchTrade();
-                expect(anyPhase(Trade.Phase.DEPOSITS_UNLOCKED, Trade.Phase.DEPOSITS_PUBLISHED)
+                expect(anyPhase(Trade.Phase.DEPOSITS_CONFIRMED, Trade.Phase.DEPOSITS_UNLOCKED)
                         .with(message)
                         .from(peer)
                         .preCondition(trade.getPayoutTx() == null,
