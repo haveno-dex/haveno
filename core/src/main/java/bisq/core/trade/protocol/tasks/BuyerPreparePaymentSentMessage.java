@@ -65,11 +65,16 @@ public class BuyerPreparePaymentSentMessage extends TradeTask {
 
             // create payout tx if we have seller's updated multisig hex
             if (trade.getTradingPeer().getUpdatedMultisigHex() != null) {
+
+                // create payout tx
                 log.info("Buyer creating unsigned payout tx");
                 multisigWallet.importMultisigHex(trade.getTradingPeer().getUpdatedMultisigHex());
                 MoneroTxWallet payoutTx = trade.createPayoutTx();
-                trade.getBuyer().setPayoutTx(payoutTx);
-                trade.getBuyer().setPayoutTxHex(payoutTx.getTxSet().getMultisigTxHex());
+                trade.setPayoutTx(payoutTx);
+                trade.setPayoutTxHex(payoutTx.getTxSet().getMultisigTxHex());
+
+                // start listening for published payout tx
+                trade.listenForPayoutTx();
             } else {
                 if (trade.getSelf().getUpdatedMultisigHex() == null) trade.getSelf().setUpdatedMultisigHex(multisigWallet.exportMultisigHex()); // only export multisig hex once
             }

@@ -653,7 +653,7 @@ public abstract class TradeStepView extends AnchorPane {
             return;
         }
 
-        if (trade.getPayoutTx() != null) {
+        if (trade.getPayoutTxId() != null) {
             return;
         }
 

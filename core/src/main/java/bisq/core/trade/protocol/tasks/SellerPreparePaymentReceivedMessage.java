@@ -38,17 +38,21 @@ public class SellerPreparePaymentReceivedMessage extends TradeTask {
             runInterceptHook();
 
             // verify, sign, and publish payout tx if given. otherwise create payout tx
-            if (trade.getBuyer().getPayoutTxHex() != null) {
+            if (trade.getPayoutTxHex() != null) {
                 log.info("Seller verifying, signing, and publishing payout tx");
-                trade.verifyPayoutTx(trade.getBuyer().getPayoutTxHex(), true, true);
+                trade.verifyPayoutTx(trade.getPayoutTxHex(), true, true);
             } else {
+
+                // create unsigned payout tx
                 log.info("Seller creating unsigned payout tx");
                 MoneroTxWallet payoutTx = trade.createPayoutTx();
                 System.out.println("created payout tx: " + payoutTx);
-                trade.getSeller().setPayoutTx(payoutTx);
-                trade.getSeller().setPayoutTxHex(payoutTx.getTxSet().getMultisigTxHex());
-            }
+                trade.setPayoutTx(payoutTx);
+                trade.setPayoutTxHex(payoutTx.getTxSet().getMultisigTxHex());
 
+                // start listening for published payout tx
+                trade.listenForPayoutTx();
+            }
             complete();
         } catch (Throwable t) {
             failed(t);

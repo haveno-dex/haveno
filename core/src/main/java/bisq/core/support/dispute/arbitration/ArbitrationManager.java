@@ -407,11 +407,11 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
           Contract contract = dispute.getContract();
 
           // verify sender is co-signer and receiver is arbitrator
-          System.out.println("Any of these null???"); // TODO (woodser): NPE if dispute opener's peer-as-cosigner's ticket is closed first
-          System.out.println(disputeResult);
-          System.out.println(disputeResult.getWinner());
-          System.out.println(contract.getBuyerNodeAddress());
-          System.out.println(contract.getSellerNodeAddress());
+//          System.out.println("Any of these null???"); // TODO (woodser): NPE if dispute opener's peer-as-cosigner's ticket is closed first
+//          System.out.println(disputeResult);
+//          System.out.println(disputeResult.getWinner());
+//          System.out.println(contract.getBuyerNodeAddress());
+//          System.out.println(contract.getSellerNodeAddress());
           boolean senderIsWinner = (disputeResult.getWinner() == Winner.BUYER && contract.getBuyerNodeAddress().equals(request.getSenderNodeAddress())) || (disputeResult.getWinner() == Winner.SELLER && contract.getSellerNodeAddress().equals(request.getSenderNodeAddress()));
           boolean senderIsCosigner = senderIsWinner || disputeResult.isLoserPublisher();
           boolean receiverIsArbitrator = pubKeyRing.equals(dispute.getAgentPubKeyRing());

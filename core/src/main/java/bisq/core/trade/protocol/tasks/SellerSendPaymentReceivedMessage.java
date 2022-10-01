@@ -42,7 +42,7 @@ public class SellerSendPaymentReceivedMessage extends SendMailboxMessageTask {
         try {
             runInterceptHook();
 
-            if (trade.getSeller().getPayoutTxHex() == null) {
+            if (trade.getPayoutTxHex() == null) {
                 log.error("Payout tx is null");
                 failed("Payout tx is null");
                 return;
@@ -56,12 +56,12 @@ public class SellerSendPaymentReceivedMessage extends SendMailboxMessageTask {
 
     @Override
     protected TradeMailboxMessage getTradeMailboxMessage(String id) {
-        checkNotNull(trade.getSeller().getPayoutTxHex(), "Payout tx must not be null");
+        checkNotNull(trade.getPayoutTxHex(), "Payout tx must not be null");
         return new PaymentReceivedMessage(
                 id,
                 processModel.getMyNodeAddress(),
                 signedWitness,
-                trade.getSeller().getPayoutTxHex()
+                trade.getPayoutTxHex()
         );
     }
 

@@ -1648,7 +1648,7 @@ message Trade {
         STORED_IN_MAILBOX_PUBLISH_DEPOSIT_TX_REQUEST = 10;
         SEND_FAILED_PUBLISH_DEPOSIT_TX_REQUEST = 11;
         ARBITRATOR_PUBLISHED_DEPOSIT_TXS = 12;
-        DEPOSIT_TXS_SEEN_IN_BLOCKCHAIN = 13;
+        DEPOSIT_TXS_SEEN_IN_NETWORK = 13;
         DEPOSIT_TXS_CONFIRMED_IN_BLOCKCHAIN = 14;
         DEPOSIT_TXS_UNLOCKED_IN_BLOCKCHAIN = 15;
         BUYER_CONFIRMED_IN_UI_PAYMENT_SENT = 16;
@@ -1668,8 +1668,8 @@ message Trade {
         SELLER_STORED_IN_MAILBOX_PAYOUT_TX_PUBLISHED_MSG = 30;
         SELLER_SEND_FAILED_PAYOUT_TX_PUBLISHED_MSG = 31;
         BUYER_RECEIVED_PAYOUT_TX_PUBLISHED_MSG = 32;
-        BUYER_SAW_PAYOUT_TX_IN_NETWORK = 33;
-        BUYER_PUBLISHED_PAYOUT_TX = 34;
+        BUYER_PUBLISHED_PAYOUT_TX = 33;
+        PAYOUT_TX_SEEN_IN_NETWORK = 34;
         WITHDRAW_COMPLETED = 35;
     }
 
@@ -1712,31 +1712,33 @@ message Trade {
     string taker_fee_tx_id = 3;
     reserved 4;
     string payout_tx_id = 5;
-    int64 amount_as_long = 6;
-    int64 tx_fee_as_long = 7;
-    int64 taker_fee_as_long = 8;
-    int64 take_offer_date = 9;
-    int64 price = 10;
-    State state = 11;
-    DisputeState dispute_state = 12;
-    TradePeriodState period_state = 13;
-    Contract contract = 14;
-    string contract_as_json = 15;
-    bytes contract_hash = 16;
-    NodeAddress arbitrator_node_address = 17;
-    NodeAddress mediator_node_address = 18;
+    string payout_tx_hex = 6;
+    string payout_tx_key = 7;
+    int64 amount_as_long = 8;
+    int64 tx_fee_as_long = 9;
+    int64 taker_fee_as_long = 10;
+    int64 take_offer_date = 11;
+    int64 price = 12;
+    State state = 13;
+    DisputeState dispute_state = 14;
+    TradePeriodState period_state = 15;
+    Contract contract = 16;
+    string contract_as_json = 17;
+    bytes contract_hash = 18;
+    NodeAddress arbitrator_node_address = 19;
+    NodeAddress mediator_node_address = 20;
     string error_message = 21;
-    string counter_currency_tx_id = 24;
-    repeated ChatMessage chat_message = 25;
-    MediationResultState mediation_result_state = 26;
-    int64 lock_time = 27;
-    bytes delayed_payout_tx_bytes = 28;
-    NodeAddress refund_agent_node_address = 29;
-    RefundResultState refund_result_state = 30;
-    int64 last_refresh_request_date = 31 [deprecated = true];
-    string counter_currency_extra_data = 32;
-    string asset_tx_proof_result = 33; // name of AssetTxProofResult enum
-    string uid = 34;
+    string counter_currency_tx_id = 22;
+    repeated ChatMessage chat_message = 23;
+    MediationResultState mediation_result_state = 24;
+    int64 lock_time = 25;
+    bytes delayed_payout_tx_bytes = 26;
+    NodeAddress refund_agent_node_address = 27;
+    RefundResultState refund_result_state = 28;
+    int64 last_refresh_request_date = 29 [deprecated = true];
+    string counter_currency_extra_data = 30;
+    string asset_tx_proof_result = 31; // name of AssetTxProofResult enum
+    string uid = 32;
 }
 
 message BuyerAsMakerTrade {
@@ -1819,11 +1821,10 @@ message TradingPeer {
     string prepared_multisig_hex = 1005;
     string made_multisig_hex = 1006;
     string exchanged_multisig_hex = 1007;
-    string payout_tx_hex = 1008;
-    string deposit_tx_hash = 1009;
-    string deposit_tx_hex = 1010;
-    string deposit_tx_key = 1011;
-    string updated_multisig_hex = 1012;
+    string deposit_tx_hash = 1008;
+    string deposit_tx_hex = 1009;
+    string deposit_tx_key = 1010;
+    string updated_multisig_hex = 1011;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////

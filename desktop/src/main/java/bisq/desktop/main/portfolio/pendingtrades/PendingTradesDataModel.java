@@ -91,7 +91,6 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import monero.daemon.model.MoneroTx;
 import monero.wallet.MoneroWallet;
-import monero.wallet.model.MoneroTxWallet;
 
 public class PendingTradesDataModel extends ActivatableDataModel {
     @Getter
@@ -465,11 +464,10 @@ public class PendingTradesDataModel extends ActivatableDataModel {
 
       byte[] payoutTxSerialized = null;
       String payoutTxHashAsString = null;
-      MoneroTxWallet payoutTx = trade.getPayoutTx();
       MoneroWallet multisigWallet = xmrWalletService.getMultisigWallet(trade.getId());
       String updatedMultisigHex = multisigWallet.exportMultisigHex();
       xmrWalletService.closeMultisigWallet(trade.getId()); // close multisig wallet
-      if (payoutTx != null) {
+      if (trade.getPayoutTxId() != null) {
 //          payoutTxSerialized = payoutTx.bitcoinSerialize(); // TODO (woodser): no need to pass serialized txs for xmr
 //          payoutTxHashAsString = payoutTx.getHashAsString();
       }

@@ -200,7 +200,7 @@ public class TradeDetailsWindow extends Overlay<TradeDetailsWindow> {
                 trade.getAssetTxProofResult() != null &&
                 trade.getAssetTxProofResult() != AssetTxProofResult.UNDEFINED;
 
-        if (trade.getPayoutTx() != null)
+        if (trade.getPayoutTxId() != null)
             rows++;
         boolean showDisputedTx = arbitrationManager.findOwnDispute(trade.getId()).isPresent() &&
                 arbitrationManager.findOwnDispute(trade.getId()).get().getDisputePayoutTxId() != null;
@@ -283,9 +283,9 @@ public class TradeDetailsWindow extends Overlay<TradeDetailsWindow> {
             addLabelTxIdTextField(gridPane, ++rowIndex, Res.get("shared.depositTransactionId"), // TODO (woodser): separate UI labels for deposit tx ids
                     trade.getTakerDepositTx().getHash());
 
-        if (trade.getPayoutTx() != null)
+        if (trade.getPayoutTxId() != null)
             addLabelTxIdTextField(gridPane, ++rowIndex, Res.get("shared.payoutTxId"),
-                    trade.getPayoutTx().getHash());
+                    trade.getPayoutTxId());
         if (showDisputedTx)
             addLabelTxIdTextField(gridPane, ++rowIndex, Res.get("tradeDetailsWindow.disputedPayoutTxId"),
                     arbitrationManager.findOwnDispute(trade.getId()).get().getDisputePayoutTxId());

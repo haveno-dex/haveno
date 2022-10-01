@@ -30,7 +30,6 @@ import bisq.core.trade.protocol.tasks.ApplyFilter;
 import bisq.core.trade.protocol.tasks.BuyerPreparePaymentSentMessage;
 import bisq.core.trade.protocol.tasks.BuyerProcessPaymentReceivedMessage;
 import bisq.core.trade.protocol.tasks.BuyerSendPaymentSentMessage;
-import bisq.core.trade.protocol.tasks.BuyerSetupPayoutTxListener;
 import bisq.core.trade.protocol.tasks.MakerSetLockTime;
 import bisq.core.trade.protocol.tasks.MakerRemoveOpenOffer;
 import bisq.core.trade.protocol.tasks.SellerPreparePaymentReceivedMessage;
@@ -38,6 +37,7 @@ import bisq.core.trade.protocol.tasks.SellerProcessPaymentSentMessage;
 import bisq.core.trade.protocol.tasks.SellerPublishDepositTx;
 import bisq.core.trade.protocol.tasks.SellerPublishTradeStatistics;
 import bisq.core.trade.protocol.tasks.SellerSendPaymentReceivedMessage;
+import bisq.core.trade.protocol.tasks.SetupPayoutTxListener;
 import bisq.core.trade.protocol.tasks.TakerVerifyMakerFeePayment;
 import bisq.core.trade.protocol.tasks.VerifyPeersAccountAgeWitness;
 import bisq.common.taskrunner.Task;
@@ -123,7 +123,7 @@ public class DebugView extends InitializableView<GridPane, Void> {
 
                         ApplyFilter.class,
                         BuyerPreparePaymentSentMessage.class,
-                        BuyerSetupPayoutTxListener.class,
+                        SetupPayoutTxListener.class,
                         BuyerSendPaymentSentMessage.class,
 
                         BuyerProcessPaymentReceivedMessage.class
@@ -142,7 +142,7 @@ public class DebugView extends InitializableView<GridPane, Void> {
                         ApplyFilter.class,
                         TakerVerifyMakerFeePayment.class,
                         BuyerPreparePaymentSentMessage.class,
-                        BuyerSetupPayoutTxListener.class,
+                        SetupPayoutTxListener.class,
                         BuyerSendPaymentSentMessage.class,
 
                         BuyerProcessPaymentReceivedMessage.class)
