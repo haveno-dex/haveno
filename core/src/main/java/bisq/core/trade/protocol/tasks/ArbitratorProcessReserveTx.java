@@ -46,7 +46,7 @@ public class ArbitratorProcessReserveTx extends TradeTask {
             runInterceptHook();
             Offer offer = trade.getOffer();
             InitTradeRequest request = (InitTradeRequest) processModel.getTradeMessage();
-            boolean isFromTaker = request.getSenderNodeAddress().equals(trade.getTakerNodeAddress());
+            boolean isFromTaker = request.getSenderNodeAddress().equals(trade.getTaker().getNodeAddress());
             boolean isFromBuyer = isFromTaker ? offer.getDirection() == OfferDirection.SELL : offer.getDirection() == OfferDirection.BUY;
             
             // TODO (woodser): if signer online, should never be called by maker

@@ -72,9 +72,9 @@ public class MakerSendInitTradeRequest extends TradeTask {
                     Version.getP2PMessageVersion(),
                     sig,
                     makerRequest.getCurrentDate(),
-                    trade.getMakerNodeAddress(),
-                    trade.getTakerNodeAddress(),
-                    trade.getArbitratorNodeAddress(),
+                    trade.getMaker().getNodeAddress(),
+                    trade.getTaker().getNodeAddress(),
+                    trade.getArbitrator().getNodeAddress(),
                     trade.getSelf().getReserveTxHash(),
                     trade.getSelf().getReserveTxHex(),
                     trade.getSelf().getReserveTxKey(),
@@ -82,10 +82,10 @@ public class MakerSendInitTradeRequest extends TradeTask {
                     null);
 
             // send request to arbitrator
-            log.info("Sending {} with offerId {} and uid {} to arbitrator {} with pub key ring {}", arbitratorRequest.getClass().getSimpleName(), arbitratorRequest.getTradeId(), arbitratorRequest.getUid(), trade.getArbitratorNodeAddress(), trade.getArbitratorPubKeyRing());
+            log.info("Sending {} with offerId {} and uid {} to arbitrator {} with pub key ring {}", arbitratorRequest.getClass().getSimpleName(), arbitratorRequest.getTradeId(), arbitratorRequest.getUid(), trade.getArbitrator().getNodeAddress(), trade.getArbitrator().getPubKeyRing());
             processModel.getP2PService().sendEncryptedDirectMessage(
-                    trade.getArbitratorNodeAddress(),
-                    trade.getArbitratorPubKeyRing(),
+                    trade.getArbitrator().getNodeAddress(),
+                    trade.getArbitrator().getPubKeyRing(),
                     arbitratorRequest,
                     new SendDirectMessageListener() {
                         @Override

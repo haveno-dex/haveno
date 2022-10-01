@@ -147,7 +147,7 @@ class FiatAccountsDataModel extends ActivatableDataModel {
                 .anyMatch(o -> o.getOffer().getMakerPaymentAccountId().equals(paymentAccount.getId()));
         isPaymentAccountUsed = isPaymentAccountUsed || tradeManager.getObservableList().stream()
                 .anyMatch(t -> t.getOffer().getMakerPaymentAccountId().equals(paymentAccount.getId()) ||
-                        paymentAccount.getId().equals(t.getTakerPaymentAccountId()));
+                        paymentAccount.getId().equals(t.getTaker().getPaymentAccountId()));
         if (!isPaymentAccountUsed)
             user.removePaymentAccount(paymentAccount);
         return isPaymentAccountUsed;

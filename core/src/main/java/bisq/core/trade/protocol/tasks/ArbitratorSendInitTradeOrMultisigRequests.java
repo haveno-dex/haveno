@@ -58,7 +58,7 @@ public class ArbitratorSendInitTradeOrMultisigRequests extends TradeTask {
             byte[] sig = Sig.sign(processModel.getKeyRing().getSignatureKeyPair().getPrivate(), processModel.getOfferId().getBytes(Charsets.UTF_8));
             
             // handle request from taker
-            if (request.getSenderNodeAddress().equals(trade.getTakerNodeAddress())) {
+            if (request.getSenderNodeAddress().equals(trade.getTaker().getNodeAddress())) {
 
                 // create request to initialize trade with maker
                 InitTradeRequest makerRequest = new InitTradeRequest(
@@ -75,9 +75,9 @@ public class ArbitratorSendInitTradeOrMultisigRequests extends TradeTask {
                         Version.getP2PMessageVersion(),
                         sig,
                         new Date().getTime(),
-                        trade.getMakerNodeAddress(),
-                        trade.getTakerNodeAddress(),
-                        trade.getArbitratorNodeAddress(),
+                        trade.getMaker().getNodeAddress(),
+                        trade.getTaker().getNodeAddress(),
+                        trade.getArbitrator().getNodeAddress(),
                         null,
                         null, // do not include taker's reserve tx
                         null,
@@ -85,10 +85,10 @@ public class ArbitratorSendInitTradeOrMultisigRequests extends TradeTask {
                         null);
 
                 // send request to maker
-                log.info("Send {} with offerId {} and uid {} to maker {} with pub key ring", makerRequest.getClass().getSimpleName(), makerRequest.getTradeId(), makerRequest.getUid(), trade.getMakerNodeAddress(), trade.getMakerPubKeyRing());
+                log.info("Send {} with offerId {} and uid {} to maker {} with pub key ring", makerRequest.getClass().getSimpleName(), makerRequest.getTradeId(), makerRequest.getUid(), trade.getMaker().getNodeAddress(), trade.getMaker().getPubKeyRing());
                 processModel.getP2PService().sendEncryptedDirectMessage(
-                        trade.getMakerNodeAddress(), // TODO (woodser): maker's address might be different from original owner address if they disconnect and reconnect, need to validate and update address when requests received
-                        trade.getMakerPubKeyRing(),
+                        trade.getMaker().getNodeAddress(), // TODO (woodser): maker's address might be different from original owner address if they disconnect and reconnect, need to validate and update address when requests received
+                        trade.getMaker().getPubKeyRing(),
                         makerRequest,
                         new SendDirectMessageListener() {
                             @Override
@@ -98,7 +98,7 @@ public class ArbitratorSendInitTradeOrMultisigRequests extends TradeTask {
                             }
                             @Override
                             public void onFault(String errorMessage) {
-                                log.error("Sending {} failed: uid={}; peer={}; error={}", makerRequest.getClass().getSimpleName(), makerRequest.getUid(), trade.getArbitratorNodeAddress(), errorMessage);
+                                log.error("Sending {} failed: uid={}; peer={}; error={}", makerRequest.getClass().getSimpleName(), makerRequest.getUid(), trade.getArbitrator().getNodeAddress(), errorMessage);
                                 appendToErrorMessage("Sending message failed: message=" + makerRequest + "\nerrorMessage=" + errorMessage);
                                 failed();
                             }
@@ -107,7 +107,7 @@ public class ArbitratorSendInitTradeOrMultisigRequests extends TradeTask {
             }
 
             // handle request from maker
-            else if (request.getSenderNodeAddress().equals(trade.getMakerNodeAddress())) {
+            else if (request.getSenderNodeAddress().equals(trade.getMaker().getNodeAddress())) {
                 sendInitMultisigRequests();
                 complete(); // TODO: wait for InitMultisigRequest arrivals?
             } else {
@@ -145,10 +145,10 @@ public class ArbitratorSendInitTradeOrMultisigRequests extends TradeTask {
                 null);
 
         // send request to maker
-        log.info("Send {} with offerId {} and uid {} to maker {}", initMultisigRequest.getClass().getSimpleName(), initMultisigRequest.getTradeId(), initMultisigRequest.getUid(), trade.getMakerNodeAddress());
+        log.info("Send {} with offerId {} and uid {} to maker {}", initMultisigRequest.getClass().getSimpleName(), initMultisigRequest.getTradeId(), initMultisigRequest.getUid(), trade.getMaker().getNodeAddress());
         processModel.getP2PService().sendEncryptedDirectMessage(
-                trade.getMakerNodeAddress(),
-                trade.getMakerPubKeyRing(),
+                trade.getMaker().getNodeAddress(),
+                trade.getMaker().getPubKeyRing(),
                 initMultisigRequest,
                 new SendDirectMessageListener() {
                     @Override
@@ -157,16 +157,16 @@ public class ArbitratorSendInitTradeOrMultisigRequests extends TradeTask {
                     }
                     @Override
                     public void onFault(String errorMessage) {
-                        log.error("Sending {} failed: uid={}; peer={}; error={}", initMultisigRequest.getClass().getSimpleName(), initMultisigRequest.getUid(), trade.getMakerNodeAddress(), errorMessage);
+                        log.error("Sending {} failed: uid={}; peer={}; error={}", initMultisigRequest.getClass().getSimpleName(), initMultisigRequest.getUid(), trade.getMaker().getNodeAddress(), errorMessage);
                     }
                 }
         );
 
         // send request to taker
-        log.info("Send {} with offerId {} and uid {} to taker {}", initMultisigRequest.getClass().getSimpleName(), initMultisigRequest.getTradeId(), initMultisigRequest.getUid(), trade.getTakerNodeAddress());
+        log.info("Send {} with offerId {} and uid {} to taker {}", initMultisigRequest.getClass().getSimpleName(), initMultisigRequest.getTradeId(), initMultisigRequest.getUid(), trade.getTaker().getNodeAddress());
         processModel.getP2PService().sendEncryptedDirectMessage(
-                trade.getTakerNodeAddress(),
-                trade.getTakerPubKeyRing(),
+                trade.getTaker().getNodeAddress(),
+                trade.getTaker().getPubKeyRing(),
                 initMultisigRequest,
                 new SendDirectMessageListener() {
                     @Override
@@ -175,7 +175,7 @@ public class ArbitratorSendInitTradeOrMultisigRequests extends TradeTask {
                     }
                     @Override
                     public void onFault(String errorMessage) {
-                        log.error("Sending {} failed: uid={}; peer={}; error={}", initMultisigRequest.getClass().getSimpleName(), initMultisigRequest.getUid(), trade.getTakerNodeAddress(), errorMessage);
+                        log.error("Sending {} failed: uid={}; peer={}; error={}", initMultisigRequest.getClass().getSimpleName(), initMultisigRequest.getUid(), trade.getTaker().getNodeAddress(), errorMessage);
                     }
                 }
         );

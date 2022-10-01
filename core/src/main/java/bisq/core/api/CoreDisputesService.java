@@ -116,7 +116,7 @@ public class CoreDisputesService {
             byte[] payoutTxSerialized = null;
             String payoutTxHashAsString = null;
 
-            PubKeyRing arbitratorPubKeyRing = trade.getArbitratorPubKeyRing();
+            PubKeyRing arbitratorPubKeyRing = trade.getArbitrator().getPubKeyRing();
             checkNotNull(arbitratorPubKeyRing, "arbitratorPubKeyRing must not be null");
             byte[] depositTxSerialized = null; // depositTx.bitcoinSerialize(); TODO (woodser)
             String depositTxHashAsString = null; // depositTx.getHashAsString(); TODO (woodser)

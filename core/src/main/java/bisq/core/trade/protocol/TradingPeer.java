@@ -20,7 +20,7 @@ package bisq.core.trade.protocol;
 import bisq.core.btc.model.RawTransactionInput;
 import bisq.core.payment.payload.PaymentAccountPayload;
 import bisq.core.proto.CoreProtoResolver;
-
+import bisq.network.p2p.NodeAddress;
 import bisq.common.crypto.PubKeyRing;
 import bisq.common.proto.ProtoUtil;
 import bisq.common.proto.persistable.PersistablePayload;
@@ -35,6 +35,7 @@ import java.util.stream.Collectors;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
+import monero.daemon.model.MoneroTx;
 import monero.wallet.model.MoneroTxWallet;
 import javax.annotation.Nullable;
 
@@ -53,8 +54,13 @@ public final class TradingPeer implements PersistablePayload {
     @Setter
     @Nullable
     transient private byte[] preparedDepositTx;
+    transient private MoneroTx depositTx;
 
     // Persistable mutable
+    @Nullable
+    private NodeAddress nodeAddress;
+    @Nullable
+    private PubKeyRing pubKeyRing;
     @Nullable
     private String accountId;
     @Nullable
@@ -77,8 +83,6 @@ public final class TradingPeer implements PersistablePayload {
     private String contractSignature;
     @Nullable
     private byte[] signature;
-    @Nullable
-    private PubKeyRing pubKeyRing;
     @Nullable
     private byte[] multiSigPubKey;
     @Nullable
@@ -134,6 +138,8 @@ public final class TradingPeer implements PersistablePayload {
         final protobuf.TradingPeer.Builder builder = protobuf.TradingPeer.newBuilder()
                 .setChangeOutputValue(changeOutputValue)
                 .addAllReserveTxKeyImages(reserveTxKeyImages);
+        Optional.ofNullable(nodeAddress).ifPresent(e -> builder.setNodeAddress(nodeAddress.toProtoMessage()));
+        Optional.ofNullable(pubKeyRing).ifPresent(e -> builder.setPubKeyRing(pubKeyRing.toProtoMessage()));
         Optional.ofNullable(accountId).ifPresent(builder::setAccountId);
         Optional.ofNullable(paymentAccountId).ifPresent(builder::setPaymentAccountId);
         Optional.ofNullable(paymentMethodId).ifPresent(builder::setPaymentMethodId);
@@ -173,6 +179,8 @@ public final class TradingPeer implements PersistablePayload {
             return null;
         } else {
             TradingPeer tradingPeer = new TradingPeer();
+            tradingPeer.setNodeAddress(proto.hasNodeAddress() ? NodeAddress.fromProto(proto.getNodeAddress()) : null);
+            tradingPeer.setPubKeyRing(proto.hasPubKeyRing() ? PubKeyRing.fromProto(proto.getPubKeyRing()) : null);
             tradingPeer.setChangeOutputValue(proto.getChangeOutputValue());
             tradingPeer.setAccountId(ProtoUtil.stringOrNullFromProto(proto.getAccountId()));
             tradingPeer.setPaymentAccountId(ProtoUtil.stringOrNullFromProto(proto.getPaymentAccountId()));

@@ -93,8 +93,8 @@ public class TakerSendInitTradeRequestToArbitrator extends TradeTask {
 
         // set pub keys
         processModel.getArbitrator().setPubKeyRing(arbitrator.getPubKeyRing());
-        trade.setArbitratorNodeAddress(arbitratorNodeAddress);
-        trade.setArbitratorPubKeyRing(processModel.getArbitrator().getPubKeyRing());
+        trade.getArbitrator().setNodeAddress(arbitratorNodeAddress);
+        trade.getArbitrator().setPubKeyRing(processModel.getArbitrator().getPubKeyRing());
 
         // create request to arbitrator
         InitTradeRequest makerRequest = (InitTradeRequest) processModel.getTradeMessage(); // taker's InitTradeRequest to maker
@@ -114,7 +114,7 @@ public class TakerSendInitTradeRequestToArbitrator extends TradeTask {
                 makerRequest.getCurrentDate(),
                 makerRequest.getMakerNodeAddress(),
                 makerRequest.getTakerNodeAddress(),
-                trade.getArbitratorNodeAddress(),
+                trade.getArbitrator().getNodeAddress(),
                 processModel.getReserveTx().getHash(),
                 processModel.getReserveTx().getFullHex(),
                 processModel.getReserveTx().getKey(),
@@ -122,7 +122,7 @@ public class TakerSendInitTradeRequestToArbitrator extends TradeTask {
                 processModel.getMakerSignature());
 
         // send request to arbitrator
-        log.info("Sending {} with offerId {} and uid {} to arbitrator {} with pub key ring {}", arbitratorRequest.getClass().getSimpleName(), arbitratorRequest.getTradeId(), arbitratorRequest.getUid(), trade.getArbitratorNodeAddress(), trade.getArbitratorPubKeyRing());
+        log.info("Sending {} with offerId {} and uid {} to arbitrator {} with pub key ring {}", arbitratorRequest.getClass().getSimpleName(), arbitratorRequest.getTradeId(), arbitratorRequest.getUid(), trade.getArbitrator().getNodeAddress(), trade.getArbitrator().getPubKeyRing());
         processModel.getP2PService().sendEncryptedDirectMessage(
                 arbitratorNodeAddress,
                 arbitrator.getPubKeyRing(),

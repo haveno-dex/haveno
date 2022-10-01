@@ -522,7 +522,7 @@ public class PendingTradesDataModel extends ActivatableDataModel {
             // If no dispute state set we start with mediation
             resultHandler = () -> navigation.navigateTo(MainView.class, SupportView.class, MediationClientView.class);
             disputeManager = mediationManager;
-            PubKeyRing arbitratorPubKeyRing = trade.getArbitratorPubKeyRing();
+            PubKeyRing arbitratorPubKeyRing = trade.getArbitrator().getPubKeyRing();
             checkNotNull(arbitratorPubKeyRing, "arbitratorPubKeyRing must not be null");
             byte[] depositTxSerialized = null;  // depositTx.bitcoinSerialize();  // TODO (woodser): no serialized txs in xmr
             Dispute dispute = new Dispute(new Date().getTime(),

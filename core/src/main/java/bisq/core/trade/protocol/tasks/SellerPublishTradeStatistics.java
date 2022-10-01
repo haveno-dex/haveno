@@ -36,7 +36,7 @@ public class SellerPublishTradeStatistics extends TradeTask {
 //
 //            checkNotNull(trade.getDepositTx());
 //
-//            processModel.getP2PService().findPeersCapabilities(trade.getTradingPeerNodeAddress())
+//            processModel.getP2PService().findPeersCapabilities(trade.getTradingPeer().getNodeAddress())
 //                    .filter(capabilities -> capabilities.containsAll(Capability.TRADE_STATISTICS_3))
 //                    .ifPresentOrElse(capabilities -> {
 //                                // Our peer has updated, so as we are the seller we will publish the trade statistics.

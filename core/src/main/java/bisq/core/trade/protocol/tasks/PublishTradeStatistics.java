@@ -54,7 +54,7 @@ public class PublishTradeStatistics extends TradeTask {
                 extraDataMap.put(OfferPayload.REFERRAL_ID, processModel.getReferralIdService().getOptionalReferralId().get());
             }
 
-            NodeAddress mediatorNodeAddress = checkNotNull(trade.getArbitratorNodeAddress());
+            NodeAddress mediatorNodeAddress = checkNotNull(trade.getArbitrator().getNodeAddress());
             // The first 4 chars are sufficient to identify a mediator.
             // For testing with regtest/localhost we use the full address as its localhost and would result in
             // same values for multiple mediators.

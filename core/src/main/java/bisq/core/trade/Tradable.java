@@ -20,7 +20,7 @@ package bisq.core.trade;
 import bisq.core.monetary.Price;
 import bisq.core.monetary.Volume;
 import bisq.core.offer.Offer;
-
+import bisq.core.trade.protocol.TradingPeer;
 import bisq.network.p2p.NodeAddress;
 
 import bisq.common.proto.persistable.PersistablePayload;
@@ -76,6 +76,6 @@ public interface Tradable extends PersistablePayload {
     }
 
     default Optional<NodeAddress> getOptionalTradingPeerNodeAddress() {
-        return asTradeModel().map(Trade::getTradingPeerNodeAddress);
+        return asTradeModel().map(Trade::getTradingPeer).map(TradingPeer::getNodeAddress);
     }
 }

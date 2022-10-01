@@ -61,16 +61,16 @@ public class ProcessInitTradeRequest extends TradeTask {
             // handle request as arbitrator
             TradingPeer multisigParticipant;
             if (trade instanceof ArbitratorTrade) {
-                trade.setMakerPubKeyRing((trade.getOffer().getPubKeyRing()));
-                trade.setArbitratorPubKeyRing(processModel.getPubKeyRing());
+                trade.getMaker().setPubKeyRing((trade.getOffer().getPubKeyRing()));
+                trade.getArbitrator().setPubKeyRing(processModel.getPubKeyRing());
                 processModel.getArbitrator().setPubKeyRing(processModel.getPubKeyRing()); // TODO (woodser): why duplicating field in process model
                 
                 // handle request from taker
                 if (request.getSenderNodeAddress().equals(request.getTakerNodeAddress())) {
                     multisigParticipant = processModel.getTaker();
-                    if (!trade.getTakerNodeAddress().equals(request.getTakerNodeAddress())) throw new RuntimeException("Init trade requests from maker and taker do not agree");
-                    if (trade.getTakerPubKeyRing() != null) throw new RuntimeException("Pub key ring should not be initialized before processing InitTradeRequest");
-                    trade.setTakerPubKeyRing(request.getPubKeyRing());
+                    if (!trade.getTaker().getNodeAddress().equals(request.getTakerNodeAddress())) throw new RuntimeException("Init trade requests from maker and taker do not agree");
+                    if (trade.getTaker().getPubKeyRing() != null) throw new RuntimeException("Pub key ring should not be initialized before processing InitTradeRequest");
+                    trade.getTaker().setPubKeyRing(request.getPubKeyRing());
                     if (!TradeUtils.isMakerSignatureValid(request, request.getMakerSignature(), offer.getPubKeyRing())) throw new RuntimeException("Maker signature is invalid for the trade request"); // verify maker signature
 
                     // check trade price
@@ -88,10 +88,10 @@ public class ProcessInitTradeRequest extends TradeTask {
                 // handle request from maker
                 else if (request.getSenderNodeAddress().equals(request.getMakerNodeAddress())) {
                     multisigParticipant = processModel.getMaker();
-                    if (!trade.getMakerNodeAddress().equals(request.getMakerNodeAddress())) throw new RuntimeException("Init trade requests from maker and taker do not agree"); // TODO (woodser): test when maker and taker do not agree, use proper handling, uninitialize trade for other takers
-                    if (trade.getMakerPubKeyRing() == null) trade.setMakerPubKeyRing(request.getPubKeyRing());
-                    else if (!trade.getMakerPubKeyRing().equals(request.getPubKeyRing())) throw new RuntimeException("Init trade requests from maker and taker do not agree");  // TODO (woodser): proper handling
-                    trade.setMakerPubKeyRing(request.getPubKeyRing());
+                    if (!trade.getMaker().getNodeAddress().equals(request.getMakerNodeAddress())) throw new RuntimeException("Init trade requests from maker and taker do not agree"); // TODO (woodser): test when maker and taker do not agree, use proper handling, uninitialize trade for other takers
+                    if (trade.getMaker().getPubKeyRing() == null) trade.getMaker().setPubKeyRing(request.getPubKeyRing());
+                    else if (!trade.getMaker().getPubKeyRing().equals(request.getPubKeyRing())) throw new RuntimeException("Init trade requests from maker and taker do not agree");  // TODO (woodser): proper handling
+                    trade.getMaker().setPubKeyRing(request.getPubKeyRing());
                     if (trade.getPrice().getValue() != request.getTradePrice()) throw new RuntimeException("Maker and taker price do not agree");
                 } else {
                     throw new RuntimeException("Sender is not trade's maker or taker");
@@ -101,8 +101,8 @@ public class ProcessInitTradeRequest extends TradeTask {
             // handle maker trade
             else if (trade instanceof MakerTrade) {
                 multisigParticipant = processModel.getTaker();
-                trade.setTakerNodeAddress(request.getSenderNodeAddress()); // arbitrator sends maker InitTradeRequest with taker's node address and pub key ring
-                trade.setTakerPubKeyRing(request.getPubKeyRing());
+                trade.getTaker().setNodeAddress(request.getSenderNodeAddress()); // arbitrator sends maker InitTradeRequest with taker's node address and pub key ring
+                trade.getTaker().setPubKeyRing(request.getPubKeyRing());
 
                 // check trade price
                 try {

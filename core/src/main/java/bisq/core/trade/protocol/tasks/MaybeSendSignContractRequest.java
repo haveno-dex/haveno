@@ -97,32 +97,32 @@ public class MaybeSendSignContractRequest extends TradeTask {
                   depositTx.getHash());
 
           // send request to trading peer
-          processModel.getP2PService().sendEncryptedDirectMessage(trade.getTradingPeerNodeAddress(), trade.getTradingPeerPubKeyRing(), request, new SendDirectMessageListener() {
+          processModel.getP2PService().sendEncryptedDirectMessage(trade.getTradingPeer().getNodeAddress(), trade.getTradingPeer().getPubKeyRing(), request, new SendDirectMessageListener() {
               @Override
               public void onArrived() {
-                  log.info("{} arrived: trading peer={}; offerId={}; uid={}", request.getClass().getSimpleName(), trade.getTradingPeerNodeAddress(), trade.getId());
+                  log.info("{} arrived: trading peer={}; offerId={}; uid={}", request.getClass().getSimpleName(), trade.getTradingPeer().getNodeAddress(), trade.getId());
                   ack1 = true;
                   if (ack1 && ack2) completeAux();
               }
               @Override
               public void onFault(String errorMessage) {
-                  log.error("Sending {} failed: uid={}; peer={}; error={}", request.getClass().getSimpleName(), trade.getTradingPeerNodeAddress(), trade.getId(), errorMessage);
+                  log.error("Sending {} failed: uid={}; peer={}; error={}", request.getClass().getSimpleName(), trade.getTradingPeer().getNodeAddress(), trade.getId(), errorMessage);
                   appendToErrorMessage("Sending message failed: message=" + request + "\nerrorMessage=" + errorMessage);
                   failed();
               }
           });
           
           // send request to arbitrator
-          processModel.getP2PService().sendEncryptedDirectMessage(trade.getArbitratorNodeAddress(), trade.getArbitratorPubKeyRing(), request, new SendDirectMessageListener() {
+          processModel.getP2PService().sendEncryptedDirectMessage(trade.getArbitrator().getNodeAddress(), trade.getArbitrator().getPubKeyRing(), request, new SendDirectMessageListener() {
               @Override
               public void onArrived() {
-                  log.info("{} arrived: trading peer={}; offerId={}; uid={}", request.getClass().getSimpleName(), trade.getArbitratorNodeAddress(), trade.getId());
+                  log.info("{} arrived: trading peer={}; offerId={}; uid={}", request.getClass().getSimpleName(), trade.getArbitrator().getNodeAddress(), trade.getId());
                   ack2 = true;
                   if (ack1 && ack2) completeAux();
               }
               @Override
               public void onFault(String errorMessage) {
-                  log.error("Sending {} failed: uid={}; peer={}; error={}", request.getClass().getSimpleName(), trade.getArbitratorNodeAddress(), trade.getId(), errorMessage);
+                  log.error("Sending {} failed: uid={}; peer={}; error={}", request.getClass().getSimpleName(), trade.getArbitrator().getNodeAddress(), trade.getId(), errorMessage);
                   appendToErrorMessage("Sending message failed: message=" + request + "\nerrorMessage=" + errorMessage);
                   failed();
               }

@@ -41,7 +41,7 @@ public class ProcessMediatedPayoutTxPublishedMessage extends TradeTask {
 //            checkArgument(message.getPayoutTx() != null);
 //
 //            // update to the latest peer address of our peer if the message is correct
-//            trade.setTradingPeerNodeAddress(processModel.getTempTradingPeerNodeAddress());
+//            trade.getTradingPeer().setNodeAddress(processModel.getTempTradingPeerNodeAddress());
 //
 //            if (trade.getPayoutTx() == null) {
 //                Transaction committedMediatedPayoutTx = WalletService.maybeAddNetworkTxToWallet(message.getPayoutTx(), processModel.getBtcWalletService().getWallet());

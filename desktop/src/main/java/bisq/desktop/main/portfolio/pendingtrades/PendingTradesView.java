@@ -849,7 +849,7 @@ public class PendingTradesView extends ActivatableViewAndModel<VBox, PendingTrad
                                 super.updateItem(newItem, empty);
                                 if (!empty && newItem != null) {
                                     final Trade trade = newItem.getTrade();
-                                    final NodeAddress tradingPeerNodeAddress = trade.getTradingPeerNodeAddress();
+                                    final NodeAddress tradingPeerNodeAddress = trade.getTradingPeer().getNodeAddress();
                                     int numPastTrades = model.getNumPastTrades(trade);
                                     String role = Res.get("peerInfoIcon.tooltip.tradePeer");
                                     Node peerInfoIcon = new PeerInfoIconTrading(tradingPeerNodeAddress,

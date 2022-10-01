@@ -88,8 +88,8 @@ public class ProcessUpdateMultisigRequest extends TradeTask {
                   new Date().getTime(),
                   updatedMultisigHex);
 
-          log.info("Send {} with offerId {} and uid {} to peer {}", response.getClass().getSimpleName(), response.getTradeId(), response.getUid(), trade.getTradingPeerNodeAddress());
-          processModel.getP2PService().sendEncryptedDirectMessage(trade.getTradingPeerNodeAddress(), trade.getTradingPeerPubKeyRing(), response, new SendDirectMessageListener() {
+          log.info("Send {} with offerId {} and uid {} to peer {}", response.getClass().getSimpleName(), response.getTradeId(), response.getUid(), trade.getTradingPeer().getNodeAddress());
+          processModel.getP2PService().sendEncryptedDirectMessage(trade.getTradingPeer().getNodeAddress(), trade.getTradingPeer().getPubKeyRing(), response, new SendDirectMessageListener() {
             @Override
             public void onArrived() {
                 log.info("{} arrived at trading peer: offerId={}; uid={}", response.getClass().getSimpleName(), response.getTradeId(), response.getUid());
@@ -97,7 +97,7 @@ public class ProcessUpdateMultisigRequest extends TradeTask {
             }
             @Override
             public void onFault(String errorMessage) {
-                log.error("Sending {} failed: uid={}; peer={}; error={}", response.getClass().getSimpleName(), response.getUid(), trade.getArbitratorNodeAddress(), errorMessage);
+                log.error("Sending {} failed: uid={}; peer={}; error={}", response.getClass().getSimpleName(), response.getUid(), trade.getArbitrator().getNodeAddress(), errorMessage);
                 appendToErrorMessage("Sending response failed: response=" + response + "\nerrorMessage=" + errorMessage);
                 failed();
             }

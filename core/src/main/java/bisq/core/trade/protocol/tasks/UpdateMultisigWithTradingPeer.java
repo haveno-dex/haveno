@@ -95,16 +95,16 @@ public class UpdateMultisigWithTradingPeer extends TradeTask {
 
             System.out.println("Sending message: " + message);
 
-            // TODO (woodser): trade.getTradingPeerNodeAddress() and/or trade.getTradingPeerPubKeyRing() are null on restart of application, so cannot send payment to complete trade
-            log.info("Send {} with offerId {} and uid {} to peer {}", message.getClass().getSimpleName(), message.getTradeId(), message.getUid(), trade.getTradingPeerNodeAddress());
-            processModel.getP2PService().sendEncryptedDirectMessage(trade.getTradingPeerNodeAddress(), trade.getTradingPeerPubKeyRing(), message, new SendDirectMessageListener() {
+            // TODO (woodser): trade.getTradingPeer().getNodeAddress() and/or trade.getTradingPeer().getPubKeyRing() are null on restart of application, so cannot send payment to complete trade
+            log.info("Send {} with offerId {} and uid {} to peer {}", message.getClass().getSimpleName(), message.getTradeId(), message.getUid(), trade.getTradingPeer().getNodeAddress());
+            processModel.getP2PService().sendEncryptedDirectMessage(trade.getTradingPeer().getNodeAddress(), trade.getTradingPeer().getPubKeyRing(), message, new SendDirectMessageListener() {
               @Override
               public void onArrived() {
                   log.info("{} arrived at trading peer: offerId={}; uid={}", message.getClass().getSimpleName(), message.getTradeId(), message.getUid());
               }
               @Override
               public void onFault(String errorMessage) {
-                  log.error("Sending {} failed: uid={}; peer={}; error={}", message.getClass().getSimpleName(), message.getUid(), trade.getArbitratorNodeAddress(), errorMessage);
+                  log.error("Sending {} failed: uid={}; peer={}; error={}", message.getClass().getSimpleName(), message.getUid(), trade.getArbitrator().getNodeAddress(), errorMessage);
                   appendToErrorMessage("Sending message failed: message=" + message + "\nerrorMessage=" + errorMessage);
                   failed();
               }

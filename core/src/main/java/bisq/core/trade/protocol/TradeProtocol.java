@@ -453,8 +453,6 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
 
     protected void sendAckMessage(NodeAddress peer, TradeMessage message, boolean result, @Nullable String errorMessage) {
 
-        // TODO (woodser): remove trade.getTradingPeerNodeAddress() and processModel.getTempTradingPeerNodeAddress() if everything should be maker, taker, or arbitrator
-
         // get peer's pub key ring
         PubKeyRing peersPubKeyRing = getPeersPubKeyRing(peer);
         if (peersPubKeyRing == null) {
@@ -546,9 +544,9 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
 
     private PubKeyRing getPeersPubKeyRing(NodeAddress peer) {
       trade.setMyNodeAddress(); // TODO: this is a hack to update my node address before verifying the message
-      if (peer.equals(trade.getArbitratorNodeAddress())) return trade.getArbitratorPubKeyRing();
-      else if (peer.equals(trade.getMakerNodeAddress())) return trade.getMakerPubKeyRing();
-      else if (peer.equals(trade.getTakerNodeAddress())) return trade.getTakerPubKeyRing();
+      if (peer.equals(trade.getArbitrator().getNodeAddress())) return trade.getArbitrator().getPubKeyRing();
+      else if (peer.equals(trade.getMaker().getNodeAddress())) return trade.getMaker().getPubKeyRing();
+      else if (peer.equals(trade.getTaker().getNodeAddress())) return trade.getTaker().getPubKeyRing();
       else {
         log.warn("Cannot get peer's pub key ring because peer is not maker, taker, or arbitrator. Their address might have changed: " + peer);
         return null;
@@ -565,7 +563,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
         if (this instanceof ArbitratorProtocol) {
 
             // valid if traders unknown
-            if (trade.getMaker().getPubKeyRing() == null || trade.getTakerPubKeyRing() == null) return true;
+            if (trade.getMaker().getPubKeyRing() == null || trade.getTaker().getPubKeyRing() == null) return true;
 
             // valid if maker pub key
             if (message.getSignaturePubKey().equals(trade.getMaker().getPubKeyRing().getSignaturePubKey())) return true;
@@ -575,10 +573,10 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
         } else {
 
             // valid if arbitrator or peer unknown
-            if (trade.getArbitratorPubKeyRing() == null || (trade.getTradingPeer() == null || trade.getTradingPeer().getPubKeyRing() == null)) return true;
+            if (trade.getArbitrator().getPubKeyRing() == null || (trade.getTradingPeer() == null || trade.getTradingPeer().getPubKeyRing() == null)) return true;
 
             // valid if arbitrator's pub key ring
-            if (message.getSignaturePubKey().equals(trade.getArbitratorPubKeyRing().getSignaturePubKey())) return true;
+            if (message.getSignaturePubKey().equals(trade.getArbitrator().getPubKeyRing().getSignaturePubKey())) return true;
 
             // valid if peer's pub key ring
             if (message.getSignaturePubKey().equals(trade.getTradingPeer().getPubKeyRing().getSignaturePubKey())) return true;
