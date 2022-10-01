@@ -17,6 +17,9 @@
 
 package bisq.core.trade.protocol;
 
+import bisq.common.UserThread;
+import bisq.common.handlers.ErrorMessageHandler;
+import bisq.common.handlers.ResultHandler;
 import bisq.core.trade.BuyerTrade;
 import bisq.core.trade.Trade;
 import bisq.core.trade.messages.PaymentAccountKeyResponse;
@@ -25,20 +28,16 @@ import bisq.core.trade.messages.SignContractResponse;
 import bisq.core.trade.messages.TradeMessage;
 import bisq.core.trade.protocol.FluentProtocol.Condition;
 import bisq.core.trade.protocol.tasks.ApplyFilter;
-import bisq.core.trade.protocol.tasks.BuyerSendPayoutTxPublishedMessage;
 import bisq.core.trade.protocol.tasks.BuyerPreparePaymentSentMessage;
+import bisq.core.trade.protocol.tasks.BuyerProcessPaymentAccountKeyResponse;
 import bisq.core.trade.protocol.tasks.BuyerProcessPaymentReceivedMessage;
 import bisq.core.trade.protocol.tasks.BuyerSendPaymentAccountKeyRequestToArbitrator;
 import bisq.core.trade.protocol.tasks.BuyerSendPaymentSentMessage;
-import bisq.core.trade.protocol.tasks.BuyerSetupPayoutTxListener;
-import bisq.core.trade.protocol.tasks.BuyerProcessPaymentAccountKeyResponse;
+import bisq.core.trade.protocol.tasks.BuyerSendPayoutTxPublishedMessage;
 import bisq.core.trade.protocol.tasks.SetupDepositTxsListener;
+import bisq.core.trade.protocol.tasks.SetupPayoutTxListener;
 import bisq.core.util.Validator;
 import bisq.network.p2p.NodeAddress;
-import bisq.common.UserThread;
-import bisq.common.handlers.ErrorMessageHandler;
-import bisq.common.handlers.ResultHandler;
-
 import lombok.extern.slf4j.Slf4j;
 import org.fxmisc.easybind.EasyBind;
 
@@ -70,17 +69,20 @@ public abstract class BuyerProtocol extends DisputeProtocol {
         // request key to decrypt seller's payment account payload after first confirmation
         sendPaymentAccountKeyRequestIfWhenNeeded(BuyerEvent.STARTUP, false);
 
+        // listen for deposit txs
         given(anyPhase(Trade.Phase.DEPOSIT_REQUESTED, Trade.Phase.DEPOSITS_PUBLISHED, Trade.Phase.DEPOSITS_CONFIRMED)
                 .with(BuyerEvent.STARTUP))
                 .setup(tasks(SetupDepositTxsListener.class))
                 .executeTasks();
 
+        // listen for payout tx
         given(anyPhase(Trade.Phase.PAYMENT_SENT, Trade.Phase.PAYMENT_RECEIVED)
                 .with(BuyerEvent.STARTUP))
-                .setup(tasks(BuyerSetupPayoutTxListener.class)) // TODO (woodser): mirror deposit listener setup?
+                .setup(tasks(SetupPayoutTxListener.class))
                 .executeTasks();
 
-        given(anyPhase(Trade.Phase.PAYMENT_SENT, Trade.Phase.PAYMENT_RECEIVED)
+        // send payment sent message
+        given(anyPhase(Trade.Phase.PAYMENT_SENT, Trade.Phase.PAYMENT_RECEIVED) // TODO: remove payment received phase?
                 .anyState(Trade.State.BUYER_STORED_IN_MAILBOX_PAYMENT_SENT_MSG, Trade.State.BUYER_SEND_FAILED_PAYMENT_SENT_MSG)
                 .with(BuyerEvent.STARTUP))
                 .setup(tasks(BuyerSendPaymentSentMessage.class))

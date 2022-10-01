@@ -59,7 +59,7 @@ public class BuyerProcessPaymentReceivedMessage extends TradeTask {
             if (trade.getPhase().ordinal() < Trade.Phase.PAYOUT_PUBLISHED.ordinal()) {
 
                 // publish payout tx if signed. otherwise verify, sign, and publish payout tx
-                boolean previouslySigned = trade.getBuyer().getPayoutTxHex() != null;
+                boolean previouslySigned = trade.getPayoutTxHex() != null;
                 if (previouslySigned) {
                     log.info("Buyer publishing signed payout tx from seller");
                     XmrWalletService walletService = processModel.getProvider().getXmrWalletService();
@@ -67,14 +67,17 @@ public class BuyerProcessPaymentReceivedMessage extends TradeTask {
                     List<String> txHashes = multisigWallet.submitMultisigTxHex(message.getPayoutTxHex());
                     trade.setPayoutTx(multisigWallet.getTx(txHashes.get(0)));
                     XmrWalletService.printTxs("payoutTx received from peer", trade.getPayoutTx());
-                    trade.setState(Trade.State.BUYER_RECEIVED_PAYOUT_TX_PUBLISHED_MSG);
+                    trade.setStateIfValidTransitionTo(Trade.State.BUYER_RECEIVED_PAYOUT_TX_PUBLISHED_MSG);
                     walletService.closeMultisigWallet(trade.getId());
                 } else {
                     log.info("Buyer verifying, signing, and publishing seller's payout tx");
                     trade.verifyPayoutTx(message.getPayoutTxHex(), true, true);
-                    trade.setState(Trade.State.BUYER_PUBLISHED_PAYOUT_TX);
-                    // TODO (woodser): send PayoutTxPublishedMessage to arbitrator and seller
+                    trade.setStateIfValidTransitionTo(Trade.State.BUYER_PUBLISHED_PAYOUT_TX);
+                    // TODO (woodser): send PayoutTxPublishedMessage to seller
                 }
+
+                // mark address entries as available
+                processModel.getXmrWalletService().resetAddressEntriesForPendingTrade(trade.getId());
             } else {
                 log.info("We got the payout tx already set from BuyerSetupPayoutTxListener and do nothing here. trade ID={}", trade.getId());
             }
@@ -89,7 +92,6 @@ public class BuyerProcessPaymentReceivedMessage extends TradeTask {
             }
 
             processModel.getTradeManager().requestPersistence();
-
             complete();
         } catch (Throwable t) {
             failed(t);

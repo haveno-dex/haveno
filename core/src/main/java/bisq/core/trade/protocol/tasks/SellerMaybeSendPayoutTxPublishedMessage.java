@@ -65,13 +65,13 @@ public class SellerMaybeSendPayoutTxPublishedMessage extends SendMailboxMessageT
 
     @Override
     protected TradeMailboxMessage getTradeMailboxMessage(String tradeId) {
-        checkNotNull(trade.getSelf().getPayoutTxHex(), "Payout tx must not be null");
+        checkNotNull(trade.getPayoutTxHex(), "Payout tx must not be null");
         return new PayoutTxPublishedMessage(
                 tradeId,
                 processModel.getMyNodeAddress(),
                 trade.isMaker(),
                 null, // TODO: send witness data?
-                trade.getSelf().getPayoutTxHex()
+                trade.getPayoutTxHex()
         );
     }
 

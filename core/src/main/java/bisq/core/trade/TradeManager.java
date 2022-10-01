@@ -284,7 +284,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
         xmrWalletService.getAddressEntriesForAvailableBalanceStream()
                 .filter(addressEntry -> addressEntry.getOfferId() != null)
                 .forEach(addressEntry -> {
-                    log.warn("Swapping pending OFFER_FUNDING entries at startup. offerId={}", addressEntry.getOfferId());
+                    log.warn("Swapping pending {} entries at startup. offerId={}", addressEntry.getContext(), addressEntry.getOfferId());
                     xmrWalletService.swapTradeEntryToAvailableEntry(addressEntry.getOfferId(), XmrAddressEntry.Context.OFFER_FUNDING);
                 });
 
@@ -837,6 +837,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
 
     // If trade was completed (closed without fault but might be closed by a dispute) we move it to the closed trades
     public void onTradeCompleted(Trade trade) {
+        if (trade.getState() == Trade.State.WITHDRAW_COMPLETED) return;
         closedTradableManager.add(trade);
         trade.setState(Trade.State.WITHDRAW_COMPLETED);
         maybeRemoveTrade(trade);

@@ -176,11 +176,12 @@ class GrpcTradesService extends TradesImplBase {
         }
     }
 
+    // TODO: rename KeepFundsRequest to CloseTradeRequest
     @Override
     public void keepFunds(KeepFundsRequest req,
                           StreamObserver<KeepFundsReply> responseObserver) {
         try {
-            coreApi.keepFunds(req.getTradeId());
+            coreApi.closeTrade(req.getTradeId());
             var reply = KeepFundsReply.newBuilder().build();
             responseObserver.onNext(reply);
             responseObserver.onCompleted();

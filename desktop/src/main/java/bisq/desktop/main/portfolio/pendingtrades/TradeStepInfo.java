@@ -203,7 +203,7 @@ public class TradeStepInfo {
                 footerLabel.setVisible(false);
         }
 
-        if (trade != null && trade.getPayoutTx() != null) {
+        if (trade != null && trade.getPayoutTxId() != null) {
             button.setDisable(true);
         }
     }

@@ -17,17 +17,16 @@
 
 package bisq.core.trade.protocol.tasks.mediation;
 
-import bisq.core.support.dispute.mediation.MediationResultState;
-import bisq.core.trade.Trade;
-import bisq.core.trade.protocol.tasks.SetupPayoutTxListener;
-
 import bisq.common.taskrunner.TaskRunner;
-
+import bisq.core.trade.Trade;
+import bisq.core.trade.protocol.tasks.TradeTask;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public class SetupMediatedPayoutTxListener extends SetupPayoutTxListener {
-    public SetupMediatedPayoutTxListener(TaskRunner<Trade> taskHandler, Trade trade) {
+public class SetupMediatedPayoutTxListener extends TradeTask {
+
+    @SuppressWarnings({ "unused" })
+    public SetupMediatedPayoutTxListener(TaskRunner taskHandler, Trade trade) {
         super(taskHandler, trade);
     }
 
@@ -35,20 +34,10 @@ public class SetupMediatedPayoutTxListener extends SetupPayoutTxListener {
     protected void run() {
         try {
             runInterceptHook();
-
-            super.run();
-
+            if (true) throw new RuntimeException("Not implemented");
+            complete();
         } catch (Throwable t) {
             failed(t);
         }
-    }
-
-    @Override
-    protected void setState() {
-        trade.setMediationResultState(MediationResultState.PAYOUT_TX_SEEN_IN_NETWORK);
-        if (trade.getPayoutTx() != null) {
-            processModel.getTradeManager().closeDisputedTrade(trade.getId(), Trade.DisputeState.MEDIATION_CLOSED);
-        }
-        processModel.getTradeManager().requestPersistence();
     }
 }

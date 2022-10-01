@@ -812,6 +812,13 @@ public class XmrWalletService {
         return getAddressEntryListAsImmutableList().stream().filter(addressEntry -> XmrAddressEntry.Context.AVAILABLE == addressEntry.getContext()).collect(Collectors.toList());
     }
 
+    public List<XmrAddressEntry> getAddressEntriesForOpenOffer() {
+        return getAddressEntryListAsImmutableList().stream()
+                .filter(addressEntry -> XmrAddressEntry.Context.OFFER_FUNDING == addressEntry.getContext() ||
+                        XmrAddressEntry.Context.RESERVED_FOR_TRADE == addressEntry.getContext())
+                .collect(Collectors.toList());
+    }
+
     public List<XmrAddressEntry> getAddressEntriesForTrade() {
         return getAddressEntryListAsImmutableList().stream()
                 .filter(addressEntry -> XmrAddressEntry.Context.MULTI_SIG == addressEntry.getContext() || XmrAddressEntry.Context.TRADE_PAYOUT == addressEntry.getContext())

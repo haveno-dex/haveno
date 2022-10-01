@@ -420,7 +420,7 @@ public class PendingTradesViewModel extends ActivatableWithDataModel<PendingTrad
 
             // deposit published
             case ARBITRATOR_PUBLISHED_DEPOSIT_TXS:
-            case DEPOSIT_TXS_SEEN_IN_BLOCKCHAIN:
+            case DEPOSIT_TXS_SEEN_IN_NETWORK:
             case DEPOSIT_TXS_CONFIRMED_IN_BLOCKCHAIN: // TODO: separate step to wait for first confirmation
                 buyerState.set(BuyerState.STEP1);
                 sellerState.set(SellerState.STEP1);
@@ -472,7 +472,7 @@ public class PendingTradesViewModel extends ActivatableWithDataModel<PendingTrad
             // buyer step 4
             case BUYER_RECEIVED_PAYOUT_TX_PUBLISHED_MSG:
                 // Alternatively the maker could have seen the payout tx earlier before he received the PAYOUT_TX_PUBLISHED_MSG:
-            case BUYER_SAW_PAYOUT_TX_IN_NETWORK:
+            case PAYOUT_TX_SEEN_IN_NETWORK:
                 // Alternatively the buyer could fully sign and publish the payout tx
             case BUYER_PUBLISHED_PAYOUT_TX:
                 buyerState.set(BuyerState.STEP4);

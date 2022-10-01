@@ -155,7 +155,7 @@ class CoreTradesService {
         }
     }
 
-    void keepFunds(String tradeId) {
+    void closeTrade(String tradeId) {
         coreWalletsService.verifyWalletsAreAvailable();
         coreWalletsService.verifyEncryptedWalletIsUnlocked();
 

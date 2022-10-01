@@ -43,7 +43,7 @@ public class SellerProcessPaymentSentMessage extends TradeTask {
             checkNotNull(message);
 
             // store buyer info
-            trade.getBuyer().setPayoutTxHex(message.getPayoutTxHex());
+            trade.setPayoutTxHex(message.getPayoutTxHex());
             trade.getBuyer().setUpdatedMultisigHex(message.getUpdatedMultisigHex());
 
             // decrypt buyer's payment account payload
