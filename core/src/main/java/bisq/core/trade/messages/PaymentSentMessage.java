@@ -32,7 +32,6 @@ import javax.annotation.Nullable;
 @EqualsAndHashCode(callSuper = true)
 @Value
 public final class PaymentSentMessage extends TradeMailboxMessage {
-    private final String buyerPayoutAddress;
     private final NodeAddress senderNodeAddress;
     @Nullable
     private final String counterCurrencyTxId;
@@ -49,7 +48,6 @@ public final class PaymentSentMessage extends TradeMailboxMessage {
     private String counterCurrencyExtraData;
 
     public PaymentSentMessage(String tradeId,
-                                                 String buyerPayoutAddress,
                                                  NodeAddress senderNodeAddress,
                                                  @Nullable String counterCurrencyTxId,
                                                  @Nullable String counterCurrencyExtraData,
@@ -58,7 +56,6 @@ public final class PaymentSentMessage extends TradeMailboxMessage {
                                                  String updatedMultisigHex,
                                                  @Nullable byte[] paymentAccountKey) {
         this(tradeId,
-                buyerPayoutAddress,
                 senderNodeAddress,
                 counterCurrencyTxId,
                 counterCurrencyExtraData,
@@ -75,7 +72,6 @@ public final class PaymentSentMessage extends TradeMailboxMessage {
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     private PaymentSentMessage(String tradeId,
-                                                  String buyerPayoutAddress,
                                                   NodeAddress senderNodeAddress,
                                                   @Nullable String counterCurrencyTxId,
                                                   @Nullable String counterCurrencyExtraData,
@@ -85,7 +81,6 @@ public final class PaymentSentMessage extends TradeMailboxMessage {
                                                   @Nullable String updatedMultisigHex,
                                                   @Nullable byte[] paymentAccountKey) {
         super(messageVersion, tradeId, uid);
-        this.buyerPayoutAddress = buyerPayoutAddress;
         this.senderNodeAddress = senderNodeAddress;
         this.counterCurrencyTxId = counterCurrencyTxId;
         this.counterCurrencyExtraData = counterCurrencyExtraData;
@@ -98,7 +93,6 @@ public final class PaymentSentMessage extends TradeMailboxMessage {
     public protobuf.NetworkEnvelope toProtoNetworkEnvelope() {
         final protobuf.PaymentSentMessage.Builder builder = protobuf.PaymentSentMessage.newBuilder();
         builder.setTradeId(tradeId)
-                .setBuyerPayoutAddress(buyerPayoutAddress)
                 .setSenderNodeAddress(senderNodeAddress.toProtoMessage())
                 .setUid(uid);
 
@@ -114,7 +108,6 @@ public final class PaymentSentMessage extends TradeMailboxMessage {
     public static PaymentSentMessage fromProto(protobuf.PaymentSentMessage proto,
                                                                   String messageVersion) {
         return new PaymentSentMessage(proto.getTradeId(),
-                proto.getBuyerPayoutAddress(),
                 NodeAddress.fromProto(proto.getSenderNodeAddress()),
                 ProtoUtil.stringOrNullFromProto(proto.getCounterCurrencyTxId()),
                 ProtoUtil.stringOrNullFromProto(proto.getCounterCurrencyExtraData()),
@@ -130,7 +123,6 @@ public final class PaymentSentMessage extends TradeMailboxMessage {
     @Override
     public String toString() {
         return "PaymentSentMessage{" +
-                "\n     buyerPayoutAddress='" + buyerPayoutAddress + '\'' +
                 ",\n     senderNodeAddress=" + senderNodeAddress +
                 ",\n     counterCurrencyTxId=" + counterCurrencyTxId +
                 ",\n     counterCurrencyExtraData=" + counterCurrencyExtraData +

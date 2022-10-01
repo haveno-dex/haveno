@@ -440,14 +440,13 @@ message FinalizePayoutTxRequest {
 
 message PaymentSentMessage {
     string trade_id = 1;
-    string buyer_payout_address = 2;
-    NodeAddress sender_node_address = 3;
-    string counter_currency_tx_id = 4;
-    string uid = 5;
-    string counter_currency_extra_data = 6;
-    string payout_tx_hex = 7;
-    string updated_multisig_hex = 8;
-    bytes payment_account_key = 9;
+    NodeAddress sender_node_address = 2;
+    string counter_currency_tx_id = 3;
+    string uid = 4;
+    string counter_currency_extra_data = 5;
+    string payout_tx_hex = 6;
+    string updated_multisig_hex = 7;
+    bytes payment_account_key = 8;
 }
 
 message PaymentReceivedMessage {

@@ -42,11 +42,11 @@ public class SellerProcessPaymentSentMessage extends TradeTask {
             Validator.checkTradeId(processModel.getOfferId(), message);
             checkNotNull(message);
 
-            trade.getBuyer().setPayoutAddressString(Validator.nonEmptyStringOf(message.getBuyerPayoutAddress()));	// TODO (woodser): verify against contract
+            // store buyer info
             trade.getBuyer().setPayoutTxHex(message.getPayoutTxHex());
             trade.getBuyer().setUpdatedMultisigHex(message.getUpdatedMultisigHex());
 
-            // decrypt peer's payment account payload
+            // decrypt buyer's payment account payload
             trade.decryptPeersPaymentAccountPayload(message.getPaymentAccountKey());
 
             // sync and update multisig wallet

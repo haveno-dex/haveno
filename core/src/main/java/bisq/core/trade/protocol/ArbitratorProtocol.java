@@ -154,7 +154,7 @@ public class ArbitratorProtocol extends DisputeProtocol {
               latchTrade();
               Validator.checkTradeId(processModel.getOfferId(), request);
               processModel.setTradeMessage(request);
-              expect(phase(Trade.Phase.DEPOSITS_PUBLISHED)
+              expect(anyPhase(Trade.Phase.DEPOSITS_PUBLISHED, Trade.Phase.DEPOSITS_CONFIRMED, Trade.Phase.DEPOSITS_UNLOCKED)
                   .with(request)
                   .from(peer))
                   .setup(tasks(
