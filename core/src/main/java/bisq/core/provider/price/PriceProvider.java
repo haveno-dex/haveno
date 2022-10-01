@@ -49,7 +49,7 @@ public class PriceProvider extends HttpClientProvider {
         super(httpClient, baseUrl, false);
     }
 
-    public Tuple2<Map<String, Long>, Map<String, MarketPrice>> getAll() throws IOException {
+    public synchronized Tuple2<Map<String, Long>, Map<String, MarketPrice>> getAll() throws IOException {
         if (shutDownRequested) {
             return new Tuple2<>(new HashMap<>(), new HashMap<>());
         }
