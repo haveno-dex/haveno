@@ -41,6 +41,9 @@ public class SellerPreparePaymentReceivedMessage extends TradeTask {
             if (trade.getPayoutTxHex() != null) {
                 log.info("Seller verifying, signing, and publishing payout tx");
                 trade.verifyPayoutTx(trade.getPayoutTxHex(), true, true);
+
+                // mark address entries as available
+                processModel.getXmrWalletService().resetAddressEntriesForPendingTrade(trade.getId());
             } else {
 
                 // create unsigned payout tx
