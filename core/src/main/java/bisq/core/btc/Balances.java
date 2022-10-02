@@ -139,7 +139,7 @@ public class Balances {
             if (trade.getContract() == null) continue;
             Long reservedAmt;
             OfferPayload offerPayload = trade.getContract().getOfferPayload();
-            if (trade.getArbitrator().getNodeAddress().equals(P2PService.getMyNodeAddress())) { // TODO (woodser): this only works if node address does not change
+            if (trade.getArbitratorNodeAddress().equals(P2PService.getMyNodeAddress())) { // TODO (woodser): this only works if node address does not change
                 reservedAmt = offerPayload.getAmount() + offerPayload.getBuyerSecurityDeposit() + offerPayload.getSellerSecurityDeposit(); // arbitrator reserved balance is sum of amounts sent to multisig
             } else {
                 reservedAmt = trade.getContract().isMyRoleBuyer(tradeManager.getKeyRing().getPubKeyRing()) ? offerPayload.getBuyerSecurityDeposit() : offerPayload.getAmount() + offerPayload.getSellerSecurityDeposit();

@@ -600,7 +600,7 @@ public abstract class Trade implements Tradable, Model {
     }
 
     public void initialize(ProcessModelServiceProvider serviceProvider) {
-        serviceProvider.getArbitratorManager().getDisputeAgentByNodeAddress(getArbitrator().getNodeAddress()).ifPresent(arbitrator -> {
+        serviceProvider.getArbitratorManager().getDisputeAgentByNodeAddress(getArbitratorNodeAddress()).ifPresent(arbitrator -> {
             getArbitrator().setPubKeyRing(arbitrator.getPubKeyRing());
         });
 
@@ -615,6 +615,14 @@ public abstract class Trade implements Tradable, Model {
     public void setMyNodeAddress() {
         getSelf().setNodeAddress(P2PService.getMyNodeAddress());
     }
+
+    public NodeAddress getTradingPeerNodeAddress() {
+      return getTradingPeer() == null ? null : getTradingPeer().getNodeAddress();
+    }
+
+    public NodeAddress getArbitratorNodeAddress() {
+        return getArbitrator() == null ? null : getArbitrator().getNodeAddress();
+      }
 
     /**
      * Create a contract based on the current state.

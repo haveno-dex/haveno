@@ -837,7 +837,6 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
 
     // If trade was completed (closed without fault but might be closed by a dispute) we move it to the closed trades
     public void onTradeCompleted(Trade trade) {
-        if (trade.getState() == Trade.State.WITHDRAW_COMPLETED) return;
         closedTradableManager.add(trade);
         trade.setState(Trade.State.WITHDRAW_COMPLETED);
         maybeRemoveTrade(trade);

@@ -42,14 +42,14 @@ public class TradeInfo implements Payload {
     // view and interact with trades.
 
     private static final Function<Trade, String> toPeerNodeAddress = (trade) ->
-            trade.getTradingPeer() == null || trade.getTradingPeer().getNodeAddress() == null
+            trade.getTradingPeerNodeAddress() == null
                     ? ""
-                    : trade.getTradingPeer().getNodeAddress().getFullAddress();
+                    : trade.getTradingPeerNodeAddress().getFullAddress();
 
     private static final Function<Trade, String> toArbitratorNodeAddress = (trade) ->
-            trade.getArbitrator() == null || trade.getArbitrator().getNodeAddress() == null
+            trade.getArbitratorNodeAddress() == null
                     ? ""
-                    : trade.getArbitrator().getNodeAddress().getFullAddress();
+                    : trade.getArbitratorNodeAddress().getFullAddress();
 
     private static final Function<Trade, String> toRoundedVolume = (trade) ->
             trade.getVolume() == null
