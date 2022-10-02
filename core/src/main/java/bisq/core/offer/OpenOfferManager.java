@@ -579,6 +579,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
         getOpenOfferById(offer.getId()).ifPresent(openOffer -> {
             openOffers.remove(openOffer);
             openOffer.setState(OpenOffer.State.CLOSED);
+            xmrWalletService.resetAddressEntriesForOpenOffer(offer.getId());
             offerBookService.removeOffer(openOffer.getOffer().getOfferPayload(),
                     () -> log.info("Successfully removed offer {}", offer.getId()),
                     log::error);

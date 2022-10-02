@@ -29,7 +29,7 @@ import bisq.core.trade.messages.SignContractRequest;
 import bisq.core.trade.messages.SignContractResponse;
 import bisq.core.trade.messages.TradeMessage;
 import bisq.core.trade.messages.UpdateMultisigRequest;
-import bisq.core.trade.protocol.tasks.MakerRemoveOpenOffer;
+import bisq.core.trade.protocol.tasks.RemoveOffer;
 import bisq.core.trade.protocol.tasks.MaybeSendSignContractRequest;
 import bisq.core.trade.protocol.tasks.ProcessDepositResponse;
 import bisq.core.trade.protocol.tasks.ProcessInitMultisigRequest;
@@ -306,7 +306,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
                             .setup(tasks(
                                     // TODO (woodser): validate request
                                     ProcessSignContractResponse.class,
-                                    MakerRemoveOpenOffer.class)
+                                    RemoveOffer.class)
                             .using(new TradeTaskRunner(trade,
                                     () -> {
                                         startTimeout(TRADE_TIMEOUT);

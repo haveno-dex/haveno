@@ -26,8 +26,8 @@ import lombok.extern.slf4j.Slf4j;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 @Slf4j
-public class MakerRemoveOpenOffer extends TradeTask {
-    public MakerRemoveOpenOffer(TaskRunner<Trade> taskHandler, Trade trade) {
+public class RemoveOffer extends TradeTask {
+    public RemoveOffer(TaskRunner<Trade> taskHandler, Trade trade) {
         super(taskHandler, trade);
     }
 
@@ -35,9 +35,11 @@ public class MakerRemoveOpenOffer extends TradeTask {
     protected void run() {
         try {
             runInterceptHook();
-            
+
             if (trade instanceof MakerTrade) {
                 processModel.getOpenOfferManager().closeOpenOffer(checkNotNull(trade.getOffer()));
+            } else {
+                trade.getXmrWalletService().resetAddressEntriesForOpenOffer(trade.getId());
             }
 
             complete();
