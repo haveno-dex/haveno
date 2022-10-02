@@ -31,7 +31,7 @@ import bisq.core.trade.protocol.tasks.BuyerPreparePaymentSentMessage;
 import bisq.core.trade.protocol.tasks.BuyerProcessPaymentReceivedMessage;
 import bisq.core.trade.protocol.tasks.BuyerSendPaymentSentMessage;
 import bisq.core.trade.protocol.tasks.MakerSetLockTime;
-import bisq.core.trade.protocol.tasks.MakerRemoveOpenOffer;
+import bisq.core.trade.protocol.tasks.RemoveOffer;
 import bisq.core.trade.protocol.tasks.SellerPreparePaymentReceivedMessage;
 import bisq.core.trade.protocol.tasks.SellerProcessPaymentSentMessage;
 import bisq.core.trade.protocol.tasks.SellerPublishDepositTx;
@@ -119,7 +119,7 @@ public class DebugView extends InitializableView<GridPane, Void> {
                         VerifyPeersAccountAgeWitness.class,
                         MakerSetLockTime.class,
 
-                        MakerRemoveOpenOffer.class,
+                        RemoveOffer.class,
 
                         ApplyFilter.class,
                         BuyerPreparePaymentSentMessage.class,
@@ -154,7 +154,7 @@ public class DebugView extends InitializableView<GridPane, Void> {
                         MakerSetLockTime.class,
 
                         //SellerAsMakerProcessDepositTxMessage.class,
-                        MakerRemoveOpenOffer.class,
+                        RemoveOffer.class,
 
                         //SellerSendsDepositTxAndDelayedPayoutTxMessage.class,
                         SellerPublishDepositTx.class,

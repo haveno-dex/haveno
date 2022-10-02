@@ -292,7 +292,7 @@ class TakeOfferDataModel extends OfferDataModel {
             offerBook.removeOffer(checkNotNull(offer));
         }
 
-        //xmrWalletService.resetAddressEntriesForOpenOffer(offer.getId());  // TODO (woodser): this removes address entries for reserved trades before completion.  how doesn't this delete the multisig address entry in bisq before completion?
+        xmrWalletService.resetAddressEntriesForOpenOffer(offer.getId());
     }
 
 

@@ -138,4 +138,10 @@ public class SellerAsTakerProtocol extends SellerProtocol implements TakerProtoc
     protected void onTradeMessage(TradeMessage message, NodeAddress peer) {
         super.onTradeMessage(message, peer);
     }
+
+    @Override
+    protected void handleError(String errorMessage) {
+        trade.getXmrWalletService().resetAddressEntriesForOpenOffer(trade.getId());
+        super.handleError(errorMessage);
+    }
 }
