@@ -22,7 +22,6 @@ import bisq.core.monetary.Volume;
 import bisq.core.offer.Offer;
 import bisq.core.offer.OpenOffer;
 import bisq.core.provider.price.PriceFeedService;
-import bisq.core.trade.protocol.TradingPeer;
 import bisq.core.trade.statistics.TradeStatisticsManager;
 import bisq.core.user.Preferences;
 
@@ -192,10 +191,9 @@ public class ClosedTradableManager implements PersistedDataHost {
         if (isOpenOffer(tradable)) {
             return 0;
         }
-        NodeAddress addressInTrade = castToTradeModel(tradable).getTradingPeer().getNodeAddress();
+        NodeAddress addressInTrade = castToTradeModel(tradable).getTradingPeerNodeAddress();
         return (int) getTradeModelStream()
-                .map(Trade::getTradingPeer)
-                .map(TradingPeer::getNodeAddress)
+                .map(Trade::getTradingPeerNodeAddress)
                 .filter(Objects::nonNull)
                 .filter(address -> address.equals(addressInTrade))
                 .count();

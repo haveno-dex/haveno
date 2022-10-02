@@ -81,7 +81,7 @@ public final class TradeStatistics2 implements ProcessOncePersistableNetworkPayl
             extraDataMap.put(OfferPayload.REFERRAL_ID, referralId);
         }
 
-        NodeAddress arbitratorNodeAddress = trade.getArbitrator().getNodeAddress();
+        NodeAddress arbitratorNodeAddress = trade.getArbitratorNodeAddress();
         if (arbitratorNodeAddress != null) {
             // The first 4 chars are sufficient to identify a arbitrator.
             // For testing with regtest/localhost we use the full address as its localhost and would result in

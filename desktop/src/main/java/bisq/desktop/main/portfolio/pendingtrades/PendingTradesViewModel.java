@@ -372,9 +372,9 @@ public class PendingTradesViewModel extends ActivatableWithDataModel<PendingTrad
                 .filter(e -> {
                     if (e instanceof Trade) {
                         Trade t = (Trade) e;
-                        return t.getTradingPeer().getNodeAddress() != null &&
-                                trade.getTradingPeer().getNodeAddress() != null &&
-                                t.getTradingPeer().getNodeAddress().getFullAddress().equals(trade.getTradingPeer().getNodeAddress().getFullAddress());
+                        return t.getTradingPeerNodeAddress() != null &&
+                                trade.getTradingPeerNodeAddress() != null &&
+                                t.getTradingPeerNodeAddress().getFullAddress().equals(trade.getTradingPeerNodeAddress().getFullAddress());
                     } else
                         return false;
 
