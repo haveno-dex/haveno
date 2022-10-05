@@ -13,7 +13,7 @@ If it's the first time you are building Haveno, run the following commands to do
 ```
 git clone https://github.com/haveno-dex/haveno.git
 cd haveno
-git checkout v0.0.2
+git checkout v0.0.3
 make
 ```
 
@@ -23,7 +23,7 @@ If you are updating from a previous version, run from the root of the repository
 
 ```
 git fetch --tags
-git checkout v0.0.2
+git checkout v0.0.3
 make clean && make
 ```
 
