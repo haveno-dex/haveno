@@ -1,6 +1,6 @@
+bin/
 */docs
 */log
-*/bin
 */out
 .idea
 !.idea/copyright/bisq_Affero_GPLv3.xml
@@ -34,3 +34,4 @@ deploy
 /monitor/monitor-tor/*
 .java-version
 .localnet
+.vscode

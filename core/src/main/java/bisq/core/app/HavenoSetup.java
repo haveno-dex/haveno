@@ -23,6 +23,7 @@ import bisq.core.account.witness.AccountAgeWitnessService;
 import bisq.core.alert.Alert;
 import bisq.core.alert.AlertManager;
 import bisq.core.alert.PrivateNotificationPayload;
+import bisq.core.api.CoreMoneroNodeService;
 import bisq.core.btc.model.AddressEntry;
 import bisq.core.btc.nodes.LocalBitcoinNode;
 import bisq.core.btc.setup.WalletsSetup;
@@ -54,6 +55,7 @@ import bisq.common.app.Log;
 import bisq.common.app.Version;
 import bisq.common.config.BaseCurrencyNetwork;
 import bisq.common.config.Config;
+import bisq.common.file.FileUtil;
 import bisq.common.util.InvalidVersionException;
 import bisq.common.util.Utilities;
 
@@ -297,6 +299,7 @@ public class HavenoSetup {
     }
 
     private void step3() {
+        maybeInstallDependencies();
         startP2pNetworkAndWallet(this::step4);
     }
 
@@ -339,6 +342,29 @@ public class HavenoSetup {
                 });
         } else {
             nextStep.run();
+        }
+    }
+
+    private void maybeInstallDependencies() {
+        try {
+            File monerodFile = new File(CoreMoneroNodeService.MONEROD_PATH);
+            if (!monerodFile.exists()) {
+                log.info("Installing monerod");
+                monerodFile.getParentFile().mkdirs();
+                FileUtil.resourceToFile("bin/" + CoreMoneroNodeService.MONEROD_NAME, monerodFile);
+                monerodFile.setExecutable(true);
+            }
+
+            File moneroWalletFile = new File(XmrWalletService.MONERO_WALLET_RPC_PATH);
+            if (!moneroWalletFile.exists()) {
+                log.info("Installing monero-wallet-rpc");
+                moneroWalletFile.getParentFile().mkdirs();
+                FileUtil.resourceToFile("bin/" + XmrWalletService.MONERO_WALLET_RPC_NAME, moneroWalletFile);
+                moneroWalletFile.setExecutable(true);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            log.error(e.toString());
         }
     }
 
