@@ -21,6 +21,7 @@ import bisq.core.user.Preferences;
 import bisq.core.xmr.MoneroNodeSettings;
 import bisq.common.config.BaseCurrencyNetwork;
 import bisq.common.config.Config;
+import bisq.common.util.Utilities;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -43,8 +44,10 @@ import monero.daemon.MoneroDaemonRpc;
 public class CoreMoneroNodeService {
 
     private static final String MONERO_NETWORK_TYPE = Config.baseCurrencyNetwork().getNetwork().toLowerCase();
-    private static final String MONEROD_PATH = System.getProperty("user.dir") + File.separator + ".localnet" + File.separator + "monerod";
-    private static final String MONEROD_DATADIR =  Config.baseCurrencyNetwork() == BaseCurrencyNetwork.XMR_LOCAL ? System.getProperty("user.dir") + File.separator + ".localnet" + File.separator + Config.baseCurrencyNetwork().toString().toLowerCase() + File.separator + "node1" : null;
+    public static final String MONEROD_DIR = Config.baseCurrencyNetwork() == BaseCurrencyNetwork.XMR_LOCAL ? System.getProperty("user.dir") + File.separator + ".localnet" : Config.appDataDir().getAbsolutePath();
+    public static final String MONEROD_NAME = Utilities.isWindows() ? "monerod.exe" : "monerod";
+    public static final String MONEROD_PATH = MONEROD_DIR + File.separator + MONEROD_NAME;
+    private static final String MONEROD_DATADIR =  MONEROD_DIR + File.separator + Config.baseCurrencyNetwork().toString().toLowerCase() + File.separator + "node1";
 
     private final Preferences preferences;
     private final List<MoneroNodeServiceListener> listeners = new ArrayList<>();
