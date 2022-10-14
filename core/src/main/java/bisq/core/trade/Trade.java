@@ -362,8 +362,6 @@ public abstract class Trade implements Tradable, Model {
 
     // Added in v1.2.0
     @Nullable
-    transient private Transaction delayedPayoutTx;
-    @Nullable
     transient private Coin tradeAmount;
 
     transient private ObjectProperty<Coin> tradeAmountProperty;
@@ -379,10 +377,6 @@ public abstract class Trade implements Tradable, Model {
     @Getter
     @Setter
     private long lockTime;
-    @Nullable
-    @Getter
-    @Setter
-    private byte[] delayedPayoutTxBytes;
     @Getter
     @Nullable
     private RefundResultState refundResultState = RefundResultState.UNDEFINED_REFUND_RESULT;
@@ -554,7 +548,6 @@ public abstract class Trade implements Tradable, Model {
         Optional.ofNullable(refundResultState).ifPresent(e -> builder.setRefundResultState(RefundResultState.toProtoMessage(refundResultState)));
         Optional.ofNullable(payoutTxHex).ifPresent(e -> builder.setPayoutTxHex(payoutTxHex));
         Optional.ofNullable(payoutTxKey).ifPresent(e -> builder.setPayoutTxHex(payoutTxKey));
-        Optional.ofNullable(delayedPayoutTxBytes).ifPresent(e -> builder.setDelayedPayoutTxBytes(ByteString.copyFrom(delayedPayoutTxBytes)));
         Optional.ofNullable(counterCurrencyExtraData).ifPresent(e -> builder.setCounterCurrencyExtraData(counterCurrencyExtraData));
         Optional.ofNullable(assetTxProofResult).ifPresent(e -> builder.setAssetTxProofResult(assetTxProofResult.name()));
         return builder.build();
@@ -575,7 +568,6 @@ public abstract class Trade implements Tradable, Model {
         trade.setCounterCurrencyTxId(proto.getCounterCurrencyTxId().isEmpty() ? null : proto.getCounterCurrencyTxId());
         trade.setMediationResultState(MediationResultState.fromProto(proto.getMediationResultState()));
         trade.setRefundResultState(RefundResultState.fromProto(proto.getRefundResultState()));
-        trade.setDelayedPayoutTxBytes(ProtoUtil.byteArrayOrNullFromProto(proto.getDelayedPayoutTxBytes()));
         trade.setLockTime(proto.getLockTime());
         trade.setCounterCurrencyExtraData(ProtoUtil.stringOrNullFromProto(proto.getCounterCurrencyExtraData()));
 
@@ -955,15 +947,6 @@ public abstract class Trade implements Tradable, Model {
             log.error("Wallet is missing maker deposit tx " + depositTxHash);
             return null;
         }
-    }
-
-    public void applyDelayedPayoutTx(Transaction delayedPayoutTx) {
-        this.delayedPayoutTx = delayedPayoutTx;
-        this.delayedPayoutTxBytes = delayedPayoutTx.bitcoinSerialize();
-    }
-
-    public void applyDelayedPayoutTxBytes(byte[] delayedPayoutTxBytes) {
-        this.delayedPayoutTxBytes = delayedPayoutTxBytes;
     }
 
     public void addAndPersistChatMessage(ChatMessage chatMessage) {
@@ -1498,7 +1481,6 @@ public abstract class Trade implements Tradable, Model {
                 ",\n     disputeStateProperty=" + disputeStateProperty +
                 ",\n     tradePeriodStateProperty=" + tradePeriodStateProperty +
                 ",\n     errorMessageProperty=" + errorMessageProperty +
-                ",\n     delayedPayoutTx=" + delayedPayoutTx +
                 ",\n     payoutTx=" + payoutTx +
                 ",\n     tradeAmount=" + tradeAmount +
                 ",\n     tradeAmountProperty=" + tradeAmountProperty +
@@ -1506,7 +1488,6 @@ public abstract class Trade implements Tradable, Model {
                 ",\n     mediationResultState=" + mediationResultState +
                 ",\n     mediationResultStateProperty=" + mediationResultStateProperty +
                 ",\n     lockTime=" + lockTime +
-                ",\n     delayedPayoutTxBytes=" + Utilities.bytesAsHexString(delayedPayoutTxBytes) +
                 ",\n     refundResultState=" + refundResultState +
                 ",\n     refundResultStateProperty=" + refundResultStateProperty +
                 "\n}";

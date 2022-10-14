@@ -71,7 +71,6 @@ public class ClosedTradableManager implements PersistedDataHost {
     private final TradeStatisticsManager tradeStatisticsManager;
     private final PersistenceManager<TradableList<Tradable>> persistenceManager;
     private final CleanupMailboxMessagesService cleanupMailboxMessagesService;
-    private final DumpDelayedPayoutTx dumpDelayedPayoutTx;
 
     private final TradableList<Tradable> closedTradables = new TradableList<>();
 
@@ -81,14 +80,12 @@ public class ClosedTradableManager implements PersistedDataHost {
                                  Preferences preferences,
                                  TradeStatisticsManager tradeStatisticsManager,
                                  PersistenceManager<TradableList<Tradable>> persistenceManager,
-                                 CleanupMailboxMessagesService cleanupMailboxMessagesService,
-                                 DumpDelayedPayoutTx dumpDelayedPayoutTx) {
+                                 CleanupMailboxMessagesService cleanupMailboxMessagesService) {
         this.keyRing = keyRing;
         this.priceFeedService = priceFeedService;
         this.preferences = preferences;
         this.tradeStatisticsManager = tradeStatisticsManager;
         this.cleanupMailboxMessagesService = cleanupMailboxMessagesService;
-        this.dumpDelayedPayoutTx = dumpDelayedPayoutTx;
         this.persistenceManager = persistenceManager;
 
         this.persistenceManager.initialize(closedTradables, "ClosedTrades", PersistenceManager.Source.PRIVATE);
@@ -101,7 +98,6 @@ public class ClosedTradableManager implements PersistedDataHost {
                     closedTradables.stream()
                             .filter(tradable -> tradable.getOffer() != null)
                             .forEach(tradable -> tradable.getOffer().setPriceFeedService(priceFeedService));
-                    dumpDelayedPayoutTx.maybeDumpDelayedPayoutTxs(closedTradables, "delayed_payout_txs_closed");
                     completeHandler.run();
                 },
                 completeHandler);
