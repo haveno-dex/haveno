@@ -1709,7 +1709,7 @@ message Trade {
 
     Offer offer = 1;
     ProcessModel process_model = 2;
-    string taker_fee_tx_id = 3;
+    string taker_fee_tx_id = 3 [deprecated = true];
     reserved 4;
     string payout_tx_id = 5;
     string payout_tx_hex = 6;

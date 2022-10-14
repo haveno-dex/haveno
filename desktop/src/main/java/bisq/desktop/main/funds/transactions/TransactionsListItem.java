@@ -90,7 +90,7 @@ class TransactionsListItem {
         this.formatter = formatter;
         this.memo = tx.getNote();
         this.txId = tx.getHash();
-        
+
         Optional<Tradable> optionalTradable = Optional.ofNullable(transactionAwareTradable)
                 .map(TransactionAwareTradable::asTradable);
 
@@ -123,48 +123,45 @@ class TransactionsListItem {
                 details = Res.get("funds.tx.createOfferFee", tradeId);
             } else if (tradable instanceof Trade) {
                 Trade trade = (Trade) tradable;
-                if (trade.getTakerFeeTxId() != null && trade.getTakerFeeTxId().equals(txId)) {
-                    details = Res.get("funds.tx.takeOfferFee", tradeId);
-                } else {
-                    Offer offer = trade.getOffer();
-                    String offerFeePaymentTxID = offer.getOfferFeePaymentTxId();
-                    if (offerFeePaymentTxID != null && offerFeePaymentTxID.equals(txId)) {
-                        details = Res.get("funds.tx.createOfferFee", tradeId);
-                    } else if (trade.getSelf().getDepositTxHash() != null &&
-                            trade.getSelf().getDepositTxHash().equals(txId)) {
-                        details = Res.get("funds.tx.multiSigDeposit", tradeId);
-                    } else if (trade.getPayoutTxId() != null &&
-                            trade.getPayoutTxId().equals(txId)) {
-                        details = Res.get("funds.tx.multiSigPayout", tradeId);
-                      if (amountAsCoin.isZero()) {
+
+                Offer offer = trade.getOffer();
+                String offerFeePaymentTxID = offer.getOfferFeePaymentTxId();
+                if (offerFeePaymentTxID != null && offerFeePaymentTxID.equals(txId)) {
+                    details = Res.get("funds.tx.createOfferFee", tradeId);
+                } else if (trade.getSelf().getDepositTxHash() != null &&
+                        trade.getSelf().getDepositTxHash().equals(txId)) {
+                    details = Res.get("funds.tx.multiSigDeposit", tradeId);
+                } else if (trade.getPayoutTxId() != null &&
+                        trade.getPayoutTxId().equals(txId)) {
+                    details = Res.get("funds.tx.multiSigPayout", tradeId);
+                    if (amountAsCoin.isZero()) {
                         initialTxConfidenceVisibility = false;
-                      }
-                    } else {
-                        Trade.DisputeState disputeState = trade.getDisputeState();
-                        if (disputeState == Trade.DisputeState.DISPUTE_CLOSED) {
-                            if (valueSentToMe.isPositive()) {
-                                details = Res.get("funds.tx.disputePayout", tradeId);
-                            } else {
-                                details = Res.get("funds.tx.disputeLost", tradeId);
-                            }
-                        } else if (disputeState == Trade.DisputeState.REFUND_REQUEST_CLOSED ||
-                                disputeState == Trade.DisputeState.REFUND_REQUESTED ||
-                                disputeState == Trade.DisputeState.REFUND_REQUEST_STARTED_BY_PEER) {
-                            if (valueSentToMe.isPositive()) {
-                                details = Res.get("funds.tx.refund", tradeId);
-                            } else {
-                                // We have spent the deposit tx outputs to the Bisq donation address to enable
-                                // the refund process (refund agent -> reimbursement). As the funds have left our wallet
-                                // already when funding the deposit tx we show 0 BTC as amount.
-                                // Confirmation is not known from the BitcoinJ side (not 100% clear why) as no funds
-                                // left our wallet nor we received funds. So we set indicator invisible.
-                                amountAsCoin = Coin.ZERO;
-                                details = Res.get("funds.tx.collateralForRefund", tradeId);
-                                initialTxConfidenceVisibility = false;
-                            }
+                    }
+                } else {
+                    Trade.DisputeState disputeState = trade.getDisputeState();
+                    if (disputeState == Trade.DisputeState.DISPUTE_CLOSED) {
+                        if (valueSentToMe.isPositive()) {
+                            details = Res.get("funds.tx.disputePayout", tradeId);
                         } else {
-                            details = Res.get("funds.tx.unknown", tradeId);
+                            details = Res.get("funds.tx.disputeLost", tradeId);
                         }
+                    } else if (disputeState == Trade.DisputeState.REFUND_REQUEST_CLOSED ||
+                            disputeState == Trade.DisputeState.REFUND_REQUESTED ||
+                            disputeState == Trade.DisputeState.REFUND_REQUEST_STARTED_BY_PEER) {
+                        if (valueSentToMe.isPositive()) {
+                            details = Res.get("funds.tx.refund", tradeId);
+                        } else {
+                            // We have spent the deposit tx outputs to the Bisq donation address to enable
+                            // the refund process (refund agent -> reimbursement). As the funds have left our wallet
+                            // already when funding the deposit tx we show 0 BTC as amount.
+                            // Confirmation is not known from the BitcoinJ side (not 100% clear why) as no funds
+                            // left our wallet nor we received funds. So we set indicator invisible.
+                            amountAsCoin = Coin.ZERO;
+                            details = Res.get("funds.tx.collateralForRefund", tradeId);
+                            initialTxConfidenceVisibility = false;
+                        }
+                    } else {
+                        details = Res.get("funds.tx.unknown", tradeId);
                     }
                 }
             }
@@ -183,7 +180,7 @@ class TransactionsListItem {
         if (isDustAttackTx) {
             details = Res.get("funds.tx.dustAttackTx");
         }
-        
+
         // confidence
         lazyFieldsSupplier = Suppliers.memoize(() -> new LazyFields() {{
             txConfidenceIndicator = new TxConfidenceIndicator();

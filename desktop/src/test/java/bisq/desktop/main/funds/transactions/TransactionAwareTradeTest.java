@@ -64,12 +64,6 @@ public class TransactionAwareTradeTest {
     }
 
     @Test
-    public void testIsRelatedToTransactionWhenTakerOfferFeeTx() {
-        when(delegate.getTakerFeeTxId()).thenReturn(XID.toString());
-        assertTrue(trade.isRelatedToTransaction(transaction));
-    }
-
-    @Test
     public void testIsRelatedToTransactionWhenPayoutTx() {
         when(delegate.getPayoutTx().getHash()).thenReturn(XID.toString());
         assertTrue(trade.isRelatedToTransaction(transaction));

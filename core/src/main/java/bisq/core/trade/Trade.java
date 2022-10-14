@@ -310,10 +310,6 @@ public abstract class Trade implements Tradable, Model {
     @Nullable
     @Getter
     @Setter
-    private String takerFeeTxId;
-    @Nullable
-    @Getter
-    @Setter
     private long amountAsLong;
     @Setter
     private long price;
@@ -548,7 +544,6 @@ public abstract class Trade implements Tradable, Model {
                 .setLockTime(lockTime)
                 .setUid(uid);
 
-        Optional.ofNullable(takerFeeTxId).ifPresent(builder::setTakerFeeTxId);
         Optional.ofNullable(payoutTxId).ifPresent(builder::setPayoutTxId);
         Optional.ofNullable(contract).ifPresent(e -> builder.setContract(contract.toProtoMessage()));
         Optional.ofNullable(contractAsJson).ifPresent(builder::setContractAsJson);
@@ -570,7 +565,6 @@ public abstract class Trade implements Tradable, Model {
         trade.setState(State.fromProto(proto.getState()));
         trade.setDisputeState(DisputeState.fromProto(proto.getDisputeState()));
         trade.setPeriodState(TradePeriodState.fromProto(proto.getPeriodState()));
-        trade.setTakerFeeTxId(ProtoUtil.stringOrNullFromProto(proto.getTakerFeeTxId()));
         trade.setPayoutTxId(ProtoUtil.stringOrNullFromProto(proto.getPayoutTxId()));
         trade.setPayoutTxHex(ProtoUtil.stringOrNullFromProto(proto.getPayoutTxHex()));
         trade.setPayoutTxKey(ProtoUtil.stringOrNullFromProto(proto.getPayoutTxKey()));
@@ -1482,7 +1476,6 @@ public abstract class Trade implements Tradable, Model {
                 ",\n     takerFeeAsLong=" + takerFeeAsLong +
                 ",\n     takeOfferDate=" + takeOfferDate +
                 ",\n     processModel=" + processModel +
-                ",\n     takerFeeTxId='" + takerFeeTxId + '\'' +
                 ",\n     payoutTxId='" + payoutTxId + '\'' +
                 ",\n     tradeAmountAsLong=" + amountAsLong +
                 ",\n     tradePrice=" + price +

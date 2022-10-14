@@ -279,9 +279,6 @@ public class FailedTradesView extends ActivatableViewAndModel<VBox, FailedTrades
 
             Trade trade = item.getTrade();
 
-            if (trade.getTakerFeeTxId() != null && trade.getTakerFeeTxId().contains(filterString)) {
-                return true;
-            }
             if (trade.getMaker().getDepositTxHash() != null && trade.getMaker().getDepositTxHash().contains(filterString)) {
                 return true;
             }
