@@ -731,7 +731,7 @@ service Trades {
     }
     rpc ConfirmPaymentReceived (ConfirmPaymentReceivedRequest) returns (ConfirmPaymentReceivedReply) {
     }
-    rpc KeepFunds (KeepFundsRequest) returns (KeepFundsReply) {
+    rpc CompleteTrade (CompleteTradeRequest) returns (CompleteTradeReply) {
     }
     rpc WithdrawFunds (WithdrawFundsRequest) returns (WithdrawFundsReply) {
     }
@@ -787,11 +787,11 @@ message GetTradesReply {
     repeated TradeInfo trades = 1;
 }
 
-message KeepFundsRequest {
+message CompleteTradeRequest {
     string trade_id = 1;
 }
 
-message KeepFundsReply {
+message CompleteTradeReply {
 }
 
 message WithdrawFundsRequest {

@@ -478,7 +478,7 @@ public class PendingTradesViewModel extends ActivatableWithDataModel<PendingTrad
                 buyerState.set(BuyerState.STEP4);
                 break;
 
-            case WITHDRAW_COMPLETED:
+            case TRADE_COMPLETED:
                 sellerState.set(UNDEFINED);
                 buyerState.set(BuyerState.UNDEFINED);
                 break;

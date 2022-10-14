@@ -830,7 +830,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
     // If trade was completed (closed without fault but might be closed by a dispute) we move it to the closed trades
     public void onTradeCompleted(Trade trade) {
         closedTradableManager.add(trade);
-        trade.setState(Trade.State.WITHDRAW_COMPLETED);
+        trade.setState(Trade.State.TRADE_COMPLETED);
         maybeRemoveTrade(trade);
 
         // TODO The address entry should have been removed already. Check and if its the case remove that.

@@ -1670,7 +1670,7 @@ message Trade {
         BUYER_RECEIVED_PAYOUT_TX_PUBLISHED_MSG = 32;
         BUYER_PUBLISHED_PAYOUT_TX = 33;
         PAYOUT_TX_SEEN_IN_NETWORK = 34;
-        WITHDRAW_COMPLETED = 35;
+        TRADE_COMPLETED = 35;
     }
 
     enum Phase {
@@ -1683,7 +1683,7 @@ message Trade {
         PAYMENT_SENT = 6;
         PAYMENT_RECEIVED = 7;
         PAYOUT_PUBLISHED = 8;
-        WITHDRAWN = 9;
+        COMPLETED = 9;
     }
 
     enum DisputeState {

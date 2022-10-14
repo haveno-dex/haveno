@@ -165,7 +165,7 @@ public abstract class Trade implements Tradable, Model {
         PAYOUT_TX_SEEN_IN_NETWORK(Phase.PAYOUT_PUBLISHED),
 
         // trade completed
-        WITHDRAW_COMPLETED(Phase.WITHDRAWN);
+        TRADE_COMPLETED(Phase.COMPLETED);
 
         @NotNull
         public Phase getPhase() {
@@ -206,7 +206,7 @@ public abstract class Trade implements Tradable, Model {
         PAYMENT_SENT,
         PAYMENT_RECEIVED,
         PAYOUT_PUBLISHED,
-        WITHDRAWN;
+        COMPLETED;
 
         public static Trade.Phase fromProto(protobuf.Trade.Phase phase) {
             return ProtoUtil.enumFromProto(Trade.Phase.class, phase.name());
@@ -761,7 +761,7 @@ public abstract class Trade implements Tradable, Model {
         // submit payout tx
         if (publish) {
             multisigWallet.submitMultisigTxHex(payoutTxHex);
-            setState(isArbitrator() ? Trade.State.WITHDRAW_COMPLETED : isBuyer() ? Trade.State.BUYER_PUBLISHED_PAYOUT_TX : Trade.State.SELLER_PUBLISHED_PAYOUT_TX);
+            setState(isArbitrator() ? Trade.State.TRADE_COMPLETED : isBuyer() ? Trade.State.BUYER_PUBLISHED_PAYOUT_TX : Trade.State.SELLER_PUBLISHED_PAYOUT_TX);
         }
         walletService.closeMultisigWallet(getId());
     }
@@ -1328,7 +1328,7 @@ public abstract class Trade implements Tradable, Model {
     }
 
     public boolean isWithdrawn() {
-        return getState().getPhase().ordinal() == Phase.WITHDRAWN.ordinal();
+        return getState().getPhase().ordinal() == Phase.COMPLETED.ordinal();
     }
 
     public ReadOnlyObjectProperty<State> stateProperty() {

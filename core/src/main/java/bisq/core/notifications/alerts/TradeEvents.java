@@ -88,7 +88,7 @@ public class TradeEvents {
                         if (trade.getContract() != null && pubKeyRingProvider.get().equals(trade.getContract().getBuyerPubKeyRing()))
                             msg = Res.get("account.notifications.trade.message.msg.completed", shortId);
                         break;
-                    case WITHDRAWN:
+                    case COMPLETED:
                         break;
                 }
                 if (msg != null) {
