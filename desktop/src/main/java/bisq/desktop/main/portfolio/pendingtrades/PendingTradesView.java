@@ -412,16 +412,6 @@ public class PendingTradesView extends ActivatableViewAndModel<VBox, PendingTrad
             return Res.get("portfolio.pending.failedTrade.missingContract");
         }
 
-        PubKeyRing myPubKeyRing = model.dataModel.getPubKeyRingProvider().get();
-        boolean isMyRoleBuyer = contract.isMyRoleBuyer(myPubKeyRing);
-        boolean isMyRoleMaker = contract.isMyRoleMaker(myPubKeyRing);
-
-        if (trade.getTakerFeeTxId() == null) {
-            return isMyRoleMaker ?
-                    Res.get("portfolio.pending.failedTrade.maker.missingTakerFeeTx") :
-                    Res.get("portfolio.pending.failedTrade.taker.missingTakerFeeTx");
-        }
-
         if (trade.getMakerDepositTx() == null) {
             return Res.get("portfolio.pending.failedTrade.missingDepositTx");
         }

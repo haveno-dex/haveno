@@ -359,7 +359,7 @@ public abstract class Trade implements Tradable, Model {
     transient final private ObjectProperty<DisputeState> disputeStateProperty = new SimpleObjectProperty<>(disputeState);
     transient final private ObjectProperty<TradePeriodState> tradePeriodStateProperty = new SimpleObjectProperty<>(periodState);
     transient final private StringProperty errorMessageProperty = new SimpleStringProperty();
-    
+
     //  Mutable
     @Getter
     transient private boolean isInitialized;
@@ -458,11 +458,11 @@ public abstract class Trade implements Tradable, Model {
         this.takerFeeAsLong = takerFee.value;
         this.takeOfferDate = new Date().getTime();
         this.tradeListeners = new ArrayList<TradeListener>();
-        
+
         getMaker().setNodeAddress(makerNodeAddress);
         getTaker().setNodeAddress(takerNodeAddress);
         getArbitrator().setNodeAddress(arbitratorNodeAddress);
-        
+
         setAmount(tradeAmount);
     }
 
@@ -626,7 +626,7 @@ public abstract class Trade implements Tradable, Model {
 
     /**
      * Create a contract based on the current state.
-     * 
+     *
      * @param trade is the trade to create the contract from
      * @return the contract
      */
@@ -659,7 +659,7 @@ public abstract class Trade implements Tradable, Model {
 
     /**
      * Create the payout tx.
-     * 
+     *
      * @return MoneroTxWallet the payout tx when the trade is successfully completed
      */
     public MoneroTxWallet createPayoutTx() {
@@ -711,7 +711,7 @@ public abstract class Trade implements Tradable, Model {
 
     /**
      * Verify a payout tx.
-     * 
+     *
      * @param payoutTxHex is the payout tx hex to verify
      * @param sign signs the payout tx if true
      * @param publish publishes the signed payout tx if true
@@ -782,7 +782,7 @@ public abstract class Trade implements Tradable, Model {
 
     /**
      * Decrypt the peer's payment account payload using the given key.
-     * 
+     *
      * @param paymentAccountKey is the key to decrypt the payment account payload
      */
     public void decryptPeersPaymentAccountPayload(byte[] paymentAccountKey) {
@@ -808,7 +808,7 @@ public abstract class Trade implements Tradable, Model {
 
     /**
      * Listen for deposit transactions to unlock and then apply the transactions.
-     * 
+     *
      * TODO: adopt for general purpose scheduling
      * TODO: check and notify if deposits are dropped due to re-org
      */
@@ -1043,7 +1043,7 @@ public abstract class Trade implements Tradable, Model {
         listener.onVerifiedTradeMessage(message, sender);
       }
     }
-    
+
     // notified from TradeProtocol of ack messages
     public void onAckMessage(AckMessage ackMessage, NodeAddress sender) {
       for (TradeListener listener : new ArrayList<TradeListener>(tradeListeners)) {  // copy array to allow listener invocation to unregister listener without concurrent modification exception
@@ -1179,7 +1179,7 @@ public abstract class Trade implements Tradable, Model {
 
     /**
      * Get the taker if maker, maker if taker, null if arbitrator.
-     * 
+     *
      * @return the trade peer
      */
     public TradingPeer getTradingPeer() {
@@ -1188,12 +1188,12 @@ public abstract class Trade implements Tradable, Model {
       else if (this instanceof ArbitratorTrade) return null;
       else throw new RuntimeException("Unknown trade type: " + getClass().getName());
     }
-    
+
     /**
      * Get the peer with the given address which can be self.
-     * 
+     *
      * TODO (woodser): this naming convention is confusing
-     * 
+     *
      * @param address is the address of the peer to get
      * @return the trade peer
      */
@@ -1438,10 +1438,8 @@ public abstract class Trade implements Tradable, Model {
 
     public boolean isTxChainInvalid() {
         return offer.getOfferFeePaymentTxId() == null ||
-                getTakerFeeTxId() == null ||
                 processModel.getMaker().getDepositTxHash() == null ||
-                processModel.getMaker().getDepositTxHash() == null ||
-                getDelayedPayoutTxBytes() == null;
+                processModel.getTaker().getDepositTxHash() == null;
     }
 
 
