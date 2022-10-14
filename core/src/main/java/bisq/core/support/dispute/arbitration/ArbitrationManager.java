@@ -301,7 +301,7 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
                 log.trace("We don't publish the tx as we are not the winning party.");
                 // Clean up tangling trades
                 if (dispute.disputeResultProperty().get() != null && dispute.isClosed()) {
-                    updateTradeOrOpenOfferManager(tradeId);
+                    closeTradeOrOffer(tradeId);
                 }
             }
         }
@@ -324,7 +324,7 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
 
             // We prefer to close the dispute in that case. If there was no deposit tx and a random tx was used
             // we get a TransactionVerificationException. No reason to keep that dispute open...
-            updateTradeOrOpenOfferManager(tradeId); // TODO (woodser): only close in case of verification exception?
+            closeTradeOrOffer(tradeId); // TODO (woodser): only close in case of verification exception?
 
             throw new RuntimeException(errorMessage);
         } finally {
@@ -397,6 +397,7 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
     }
 
     // Arbitrator receives updated multisig hex from dispute opener's peer (if co-signer) and returns updated payout tx to be signed and published
+    // TODO: this should be invoked from mailbox message and send mailbox message response to support offline arbitrator
     private void onArbitratorPayoutTxRequest(ArbitratorPayoutTxRequest request) {
       log.info("{}.onArbitratorPayoutTxRequest()", getClass().getSimpleName());
       String tradeId = request.getTradeId();
@@ -457,6 +458,9 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
               new SendDirectMessageListener() {
                   @Override
                   public void onArrived() {
+
+                      // close arbitrator trade
+                      tradeManager.onTradeCompleted(trade);
                       log.info("{} arrived at peer {}. tradeId={}, uid={}",
                               response.getClass().getSimpleName(), request.getSenderNodeAddress(), dispute.getTradeId(), response.getUid());
                   }
@@ -578,7 +582,7 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
       trade.setState(Trade.State.SELLER_PUBLISHED_PAYOUT_TX);
       dispute.setDisputePayoutTxId(txSet.getTxs().get(0).getHash());
       sendPeerPublishedPayoutTxMessage(multisigWallet.exportMultisigHex(), txSet.getMultisigTxHex(), dispute, contract);
-      updateTradeOrOpenOfferManager(tradeId);
+      closeTradeOrOffer(tradeId);
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -623,7 +627,7 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
         );
     }
 
-    private void updateTradeOrOpenOfferManager(String tradeId) {
+    public void closeTradeOrOffer(String tradeId) {
         // set state after payout as we call swapTradeEntryToAvailableEntry
         if (tradeManager.getOpenTrade(tradeId).isPresent()) {
             tradeManager.closeDisputedTrade(tradeId, Trade.DisputeState.DISPUTE_CLOSED);
@@ -632,7 +636,6 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
             openOfferOptional.ifPresent(openOffer -> openOfferManager.closeOpenOffer(openOffer.getOffer()));
         }
     }
-
     // dispute opener's peer signs payout tx by sending updated multisig hex to arbitrator who returns updated payout tx
     private void sendArbitratorPayoutTxRequest(String updatedMultisigHex, Dispute dispute, Contract contract) {
         ArbitratorPayoutTxRequest request = new ArbitratorPayoutTxRequest(

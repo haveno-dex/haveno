@@ -556,7 +556,6 @@ public class HavenoSetup {
         return null;
     }
 
-    @Nullable
     public static boolean getResyncSpvSemaphore() {
         File resyncSpvSemaphore = new File(Config.appDataDir(), RESYNC_SPV_FILE_NAME);
         return resyncSpvSemaphore.exists();

@@ -23,6 +23,7 @@ import bisq.core.trade.Trade;
 import bisq.core.trade.messages.PayoutTxPublishedMessage;
 import lombok.extern.slf4j.Slf4j;
 
+// TODO: this class is not currently used, should dispute opener send arbitrator PayoutTxPublishedMessage?
 @Slf4j
 public class ArbitratorProcessPayoutTxPublishedMessage extends TradeTask {
 
