@@ -1709,34 +1709,32 @@ message Trade {
 
     Offer offer = 1;
     ProcessModel process_model = 2;
-    reserved 4;
-    string payout_tx_id = 5;
-    string payout_tx_hex = 6;
-    string payout_tx_key = 7;
-    int64 amount_as_long = 8;
-    int64 tx_fee_as_long = 9;
-    int64 taker_fee_as_long = 10;
-    int64 take_offer_date = 11;
-    int64 price = 12;
-    State state = 13;
-    DisputeState dispute_state = 14;
-    TradePeriodState period_state = 15;
-    Contract contract = 16;
-    string contract_as_json = 17;
-    bytes contract_hash = 18;
-    NodeAddress arbitrator_node_address = 19;
-    NodeAddress mediator_node_address = 20;
-    string error_message = 21;
-    string counter_currency_tx_id = 22;
-    repeated ChatMessage chat_message = 23;
-    MediationResultState mediation_result_state = 24;
-    int64 lock_time = 25;
-    NodeAddress refund_agent_node_address = 27;
-    RefundResultState refund_result_state = 28;
-    int64 last_refresh_request_date = 29 [deprecated = true];
-    string counter_currency_extra_data = 30;
-    string asset_tx_proof_result = 31; // name of AssetTxProofResult enum
-    string uid = 32;
+    string payout_tx_id = 3;
+    string payout_tx_hex = 4;
+    string payout_tx_key = 5;
+    int64 amount_as_long = 6;
+    int64 tx_fee_as_long = 7;
+    int64 taker_fee_as_long = 8;
+    int64 take_offer_date = 9;
+    int64 price = 10;
+    State state = 11;
+    DisputeState dispute_state = 12;
+    TradePeriodState period_state = 13;
+    Contract contract = 14;
+    string contract_as_json = 15;
+    bytes contract_hash = 16;
+    NodeAddress arbitrator_node_address = 17;
+    NodeAddress mediator_node_address = 18;
+    string error_message = 19;
+    string counter_currency_tx_id = 20;
+    repeated ChatMessage chat_message = 21;
+    MediationResultState mediation_result_state = 22;
+    int64 lock_time = 23;
+    NodeAddress refund_agent_node_address = 24;
+    RefundResultState refund_result_state = 25;
+    string counter_currency_extra_data = 26;
+    string asset_tx_proof_result = 27; // name of AssetTxProofResult enum
+    string uid = 28;
 }
 
 message BuyerAsMakerTrade {
