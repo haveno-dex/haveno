@@ -1709,7 +1709,6 @@ message Trade {
 
     Offer offer = 1;
     ProcessModel process_model = 2;
-    string taker_fee_tx_id = 3 [deprecated = true];
     reserved 4;
     string payout_tx_id = 5;
     string payout_tx_hex = 6;
@@ -1732,7 +1731,6 @@ message Trade {
     repeated ChatMessage chat_message = 23;
     MediationResultState mediation_result_state = 24;
     int64 lock_time = 25;
-    bytes delayed_payout_tx_bytes = 26 [deprecated = true];
     NodeAddress refund_agent_node_address = 27;
     RefundResultState refund_result_state = 28;
     int64 last_refresh_request_date = 29 [deprecated = true];
