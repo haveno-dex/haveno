@@ -60,14 +60,13 @@ class TransactionAwareTrade implements TransactionAwareTradable {
     public boolean isRelatedToTransaction(MoneroTxWallet transaction) {
         String txId = transaction.getHash();
 
-        boolean isTakerOfferFeeTx = txId.equals(trade.getTakerFeeTxId());
         boolean isOfferFeeTx = isOfferFeeTx(txId);
         boolean isMakerDepositTx = isMakerDepositTx(txId);
         boolean isTakerDepositTx = isTakerDepositTx(txId);
         boolean isPayoutTx = isPayoutTx(txId);
         boolean isDisputedPayoutTx = isDisputedPayoutTx(txId);
 
-        return isTakerOfferFeeTx || isOfferFeeTx || isMakerDepositTx || isTakerDepositTx ||
+        return isOfferFeeTx || isMakerDepositTx || isTakerDepositTx ||
                 isPayoutTx || isDisputedPayoutTx;
     }
 

@@ -107,8 +107,6 @@ public class Config {
     public static final String USE_ALL_PROVIDED_NODES = "useAllProvidedNodes";
     public static final String USER_AGENT = "userAgent";
     public static final String NUM_CONNECTIONS_FOR_BTC = "numConnectionsForBtc";
-    public static final String DUMP_DELAYED_PAYOUT_TXS = "dumpDelayedPayoutTxs";
-    public static final String ALLOW_FAULTY_DELAYED_TXS = "allowFaultyDelayedTxs";
     public static final String API_PASSWORD = "apiPassword";
     public static final String API_PORT = "apiPort";
     public static final String PREVENT_PERIODIC_SHUTDOWN_AT_SEED_NODE = "preventPeriodicShutdownAtSeedNode";
@@ -192,8 +190,6 @@ public class Config {
     public final boolean useAllProvidedNodes;
     public final String userAgent;
     public final int numConnectionsForBtc;
-    public final boolean dumpDelayedPayoutTxs;
-    public final boolean allowFaultyDelayedTxs;
     public final String apiPassword;
     public final int apiPort;
     public final boolean preventPeriodicShutdownAtSeedNode;
@@ -559,19 +555,6 @@ public class Config {
                         .ofType(int.class)
                         .defaultsTo(DEFAULT_NUM_CONNECTIONS_FOR_BTC);
 
-        ArgumentAcceptingOptionSpec<Boolean> dumpDelayedPayoutTxsOpt =
-                parser.accepts(DUMP_DELAYED_PAYOUT_TXS, "Dump delayed payout transactions to file")
-                        .withRequiredArg()
-                        .ofType(boolean.class)
-                        .defaultsTo(false);
-
-        ArgumentAcceptingOptionSpec<Boolean> allowFaultyDelayedTxsOpt =
-                parser.accepts(ALLOW_FAULTY_DELAYED_TXS, "Allow completion of trades with faulty delayed " +
-                        "payout transactions")
-                        .withRequiredArg()
-                        .ofType(boolean.class)
-                        .defaultsTo(false);
-
         ArgumentAcceptingOptionSpec<String> apiPasswordOpt =
                 parser.accepts(API_PASSWORD, "gRPC API password")
                         .withRequiredArg()
@@ -714,8 +697,6 @@ public class Config {
             this.userAgent = options.valueOf(userAgentOpt);
             this.numConnectionsForBtc = options.valueOf(numConnectionsForBtcOpt);
 
-            this.dumpDelayedPayoutTxs = options.valueOf(dumpDelayedPayoutTxsOpt);
-            this.allowFaultyDelayedTxs = options.valueOf(allowFaultyDelayedTxsOpt);
             this.apiPassword = options.valueOf(apiPasswordOpt);
             this.apiPort = options.valueOf(apiPortOpt);
             this.preventPeriodicShutdownAtSeedNode = options.valueOf(preventPeriodicShutdownAtSeedNodeOpt);

@@ -52,13 +52,11 @@ public class TakerReserveTradeFunds extends TradeTask {
             // collect reserved key images // TODO (woodser): switch to proof of reserve?
             List<String> reservedKeyImages = new ArrayList<String>();
             for (MoneroOutput input : reserveTx.getInputs()) reservedKeyImages.add(input.getKeyImage().getHex());
-            
+
             // save process state
-            // TODO (woodser): persist
             processModel.setReserveTx(reserveTx);
             processModel.getTaker().setReserveTxKeyImages(reservedKeyImages);
-            trade.setTakerFeeTxId(reserveTx.getHash()); // TODO (woodser): this should be multisig deposit tx id? how is it used?
-            //trade.setState(Trade.State.TAKER_PUBLISHED_TAKER_FEE_TX); // TODO (woodser): fee tx is not broadcast separate, update states
+
             complete();
         } catch (Throwable t) {
             trade.setErrorMessage("An error occurred.\n" +

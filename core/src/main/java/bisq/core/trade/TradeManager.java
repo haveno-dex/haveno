@@ -155,9 +155,6 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
     @Getter
     private final LongProperty numPendingTrades = new SimpleLongProperty();
     private final ReferralIdService referralIdService;
-    private final DumpDelayedPayoutTx dumpDelayedPayoutTx;
-    @Getter
-    private final boolean allowFaultyDelayedTxs;
 
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -183,9 +180,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
                         ProcessModelServiceProvider processModelServiceProvider,
                         ClockWatcher clockWatcher,
                         PersistenceManager<TradableList<Trade>> persistenceManager,
-                        ReferralIdService referralIdService,
-                        DumpDelayedPayoutTx dumpDelayedPayoutTx,
-                        @Named(Config.ALLOW_FAULTY_DELAYED_TXS) boolean allowFaultyDelayedTxs) {
+                        ReferralIdService referralIdService) {
         this.user = user;
         this.keyRing = keyRing;
         this.xmrWalletService = xmrWalletService;
@@ -204,8 +199,6 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
         this.processModelServiceProvider = processModelServiceProvider;
         this.clockWatcher = clockWatcher;
         this.referralIdService = referralIdService;
-        this.dumpDelayedPayoutTx = dumpDelayedPayoutTx;
-        this.allowFaultyDelayedTxs = allowFaultyDelayedTxs;
         this.persistenceManager = persistenceManager;
 
         this.persistenceManager.initialize(tradableList, "PendingTrades", PersistenceManager.Source.PRIVATE);
@@ -227,7 +220,6 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
                     tradableList.stream()
                             .filter(trade -> trade.getOffer() != null)
                             .forEach(trade -> trade.getOffer().setPriceFeedService(priceFeedService));
-                    dumpDelayedPayoutTx.maybeDumpDelayedPayoutTxs(tradableList, "delayed_payout_txs_pending");
                     completeHandler.run();
                 },
                 completeHandler);
@@ -338,7 +330,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     private void initPersistedTrades() {
-        
+
         // open trades in parallel since each may open a multisig wallet
         List<Trade> trades = tradableList.getList();
         if (!trades.isEmpty()) {
@@ -359,7 +351,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
                 throw new RuntimeException(e);
             }
         }
-        
+
         persistedTradesInitialized.set(true);
 
         // We do not include failed trades as they should not be counted anyway in the trade statistics
@@ -1037,7 +1029,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
         else
             return offer.getDirection() == OfferDirection.SELL;
     }
-    
+
     // TODO (woodser): make Optional<Trade> versus Trade return types consistent
     public Trade getTrade(String tradeId) {
         return getOpenTrade(tradeId).orElseGet(() -> getClosedTrade(tradeId).orElseGet(() -> null));
@@ -1062,23 +1054,23 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
         log.info("TradeManager.maybeRemoveTrade()");
         synchronized(tradableList) {
             if (!tradableList.contains(trade)) return;
-            
+
             // delete trade if not possibly funded
             if (trade.getPhase().ordinal() < Trade.Phase.DEPOSIT_REQUESTED.ordinal() || trade.getPhase().ordinal() >= Trade.Phase.PAYOUT_PUBLISHED.ordinal()) { // TODO: delete after payout unlocked
-                
+
                 // remove trade
                 tradableList.remove(trade);
-                
+
                 // unreserve trade key images
                 if (trade instanceof TakerTrade && trade.getSelf().getReserveTxKeyImages() != null) {
                     for (String keyImage : trade.getSelf().getReserveTxKeyImages()) {
                         xmrWalletService.getWallet().thawOutput(keyImage);
                     }
                 }
-                
+
                 // delete multisig wallet
                 deleteTradeWallet(trade);
-                
+
                 // unregister and persist
                 p2PService.removeDecryptedDirectMessageListener(getTradeProtocol(trade));
                 requestPersistence();

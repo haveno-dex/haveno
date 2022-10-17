@@ -310,10 +310,6 @@ public abstract class Trade implements Tradable, Model {
     @Nullable
     @Getter
     @Setter
-    private String takerFeeTxId;
-    @Nullable
-    @Getter
-    @Setter
     private long amountAsLong;
     @Setter
     private long price;
@@ -359,14 +355,12 @@ public abstract class Trade implements Tradable, Model {
     transient final private ObjectProperty<DisputeState> disputeStateProperty = new SimpleObjectProperty<>(disputeState);
     transient final private ObjectProperty<TradePeriodState> tradePeriodStateProperty = new SimpleObjectProperty<>(periodState);
     transient final private StringProperty errorMessageProperty = new SimpleStringProperty();
-    
+
     //  Mutable
     @Getter
     transient private boolean isInitialized;
 
     // Added in v1.2.0
-    @Nullable
-    transient private Transaction delayedPayoutTx;
     @Nullable
     transient private Coin tradeAmount;
 
@@ -383,10 +377,6 @@ public abstract class Trade implements Tradable, Model {
     @Getter
     @Setter
     private long lockTime;
-    @Nullable
-    @Getter
-    @Setter
-    private byte[] delayedPayoutTxBytes;
     @Getter
     @Nullable
     private RefundResultState refundResultState = RefundResultState.UNDEFINED_REFUND_RESULT;
@@ -458,11 +448,11 @@ public abstract class Trade implements Tradable, Model {
         this.takerFeeAsLong = takerFee.value;
         this.takeOfferDate = new Date().getTime();
         this.tradeListeners = new ArrayList<TradeListener>();
-        
+
         getMaker().setNodeAddress(makerNodeAddress);
         getTaker().setNodeAddress(takerNodeAddress);
         getArbitrator().setNodeAddress(arbitratorNodeAddress);
-        
+
         setAmount(tradeAmount);
     }
 
@@ -548,7 +538,6 @@ public abstract class Trade implements Tradable, Model {
                 .setLockTime(lockTime)
                 .setUid(uid);
 
-        Optional.ofNullable(takerFeeTxId).ifPresent(builder::setTakerFeeTxId);
         Optional.ofNullable(payoutTxId).ifPresent(builder::setPayoutTxId);
         Optional.ofNullable(contract).ifPresent(e -> builder.setContract(contract.toProtoMessage()));
         Optional.ofNullable(contractAsJson).ifPresent(builder::setContractAsJson);
@@ -559,7 +548,6 @@ public abstract class Trade implements Tradable, Model {
         Optional.ofNullable(refundResultState).ifPresent(e -> builder.setRefundResultState(RefundResultState.toProtoMessage(refundResultState)));
         Optional.ofNullable(payoutTxHex).ifPresent(e -> builder.setPayoutTxHex(payoutTxHex));
         Optional.ofNullable(payoutTxKey).ifPresent(e -> builder.setPayoutTxHex(payoutTxKey));
-        Optional.ofNullable(delayedPayoutTxBytes).ifPresent(e -> builder.setDelayedPayoutTxBytes(ByteString.copyFrom(delayedPayoutTxBytes)));
         Optional.ofNullable(counterCurrencyExtraData).ifPresent(e -> builder.setCounterCurrencyExtraData(counterCurrencyExtraData));
         Optional.ofNullable(assetTxProofResult).ifPresent(e -> builder.setAssetTxProofResult(assetTxProofResult.name()));
         return builder.build();
@@ -570,7 +558,6 @@ public abstract class Trade implements Tradable, Model {
         trade.setState(State.fromProto(proto.getState()));
         trade.setDisputeState(DisputeState.fromProto(proto.getDisputeState()));
         trade.setPeriodState(TradePeriodState.fromProto(proto.getPeriodState()));
-        trade.setTakerFeeTxId(ProtoUtil.stringOrNullFromProto(proto.getTakerFeeTxId()));
         trade.setPayoutTxId(ProtoUtil.stringOrNullFromProto(proto.getPayoutTxId()));
         trade.setPayoutTxHex(ProtoUtil.stringOrNullFromProto(proto.getPayoutTxHex()));
         trade.setPayoutTxKey(ProtoUtil.stringOrNullFromProto(proto.getPayoutTxKey()));
@@ -581,7 +568,6 @@ public abstract class Trade implements Tradable, Model {
         trade.setCounterCurrencyTxId(proto.getCounterCurrencyTxId().isEmpty() ? null : proto.getCounterCurrencyTxId());
         trade.setMediationResultState(MediationResultState.fromProto(proto.getMediationResultState()));
         trade.setRefundResultState(RefundResultState.fromProto(proto.getRefundResultState()));
-        trade.setDelayedPayoutTxBytes(ProtoUtil.byteArrayOrNullFromProto(proto.getDelayedPayoutTxBytes()));
         trade.setLockTime(proto.getLockTime());
         trade.setCounterCurrencyExtraData(ProtoUtil.stringOrNullFromProto(proto.getCounterCurrencyExtraData()));
 
@@ -626,7 +612,7 @@ public abstract class Trade implements Tradable, Model {
 
     /**
      * Create a contract based on the current state.
-     * 
+     *
      * @param trade is the trade to create the contract from
      * @return the contract
      */
@@ -659,7 +645,7 @@ public abstract class Trade implements Tradable, Model {
 
     /**
      * Create the payout tx.
-     * 
+     *
      * @return MoneroTxWallet the payout tx when the trade is successfully completed
      */
     public MoneroTxWallet createPayoutTx() {
@@ -711,7 +697,7 @@ public abstract class Trade implements Tradable, Model {
 
     /**
      * Verify a payout tx.
-     * 
+     *
      * @param payoutTxHex is the payout tx hex to verify
      * @param sign signs the payout tx if true
      * @param publish publishes the signed payout tx if true
@@ -782,7 +768,7 @@ public abstract class Trade implements Tradable, Model {
 
     /**
      * Decrypt the peer's payment account payload using the given key.
-     * 
+     *
      * @param paymentAccountKey is the key to decrypt the payment account payload
      */
     public void decryptPeersPaymentAccountPayload(byte[] paymentAccountKey) {
@@ -808,7 +794,7 @@ public abstract class Trade implements Tradable, Model {
 
     /**
      * Listen for deposit transactions to unlock and then apply the transactions.
-     * 
+     *
      * TODO: adopt for general purpose scheduling
      * TODO: check and notify if deposits are dropped due to re-org
      */
@@ -963,15 +949,6 @@ public abstract class Trade implements Tradable, Model {
         }
     }
 
-    public void applyDelayedPayoutTx(Transaction delayedPayoutTx) {
-        this.delayedPayoutTx = delayedPayoutTx;
-        this.delayedPayoutTxBytes = delayedPayoutTx.bitcoinSerialize();
-    }
-
-    public void applyDelayedPayoutTxBytes(byte[] delayedPayoutTxBytes) {
-        this.delayedPayoutTxBytes = delayedPayoutTxBytes;
-    }
-
     public void addAndPersistChatMessage(ChatMessage chatMessage) {
         if (!chatMessages.contains(chatMessage)) {
             chatMessages.add(chatMessage);
@@ -1043,7 +1020,7 @@ public abstract class Trade implements Tradable, Model {
         listener.onVerifiedTradeMessage(message, sender);
       }
     }
-    
+
     // notified from TradeProtocol of ack messages
     public void onAckMessage(AckMessage ackMessage, NodeAddress sender) {
       for (TradeListener listener : new ArrayList<TradeListener>(tradeListeners)) {  // copy array to allow listener invocation to unregister listener without concurrent modification exception
@@ -1179,7 +1156,7 @@ public abstract class Trade implements Tradable, Model {
 
     /**
      * Get the taker if maker, maker if taker, null if arbitrator.
-     * 
+     *
      * @return the trade peer
      */
     public TradingPeer getTradingPeer() {
@@ -1188,12 +1165,12 @@ public abstract class Trade implements Tradable, Model {
       else if (this instanceof ArbitratorTrade) return null;
       else throw new RuntimeException("Unknown trade type: " + getClass().getName());
     }
-    
+
     /**
      * Get the peer with the given address which can be self.
-     * 
+     *
      * TODO (woodser): this naming convention is confusing
-     * 
+     *
      * @param address is the address of the peer to get
      * @return the trade peer
      */
@@ -1438,10 +1415,8 @@ public abstract class Trade implements Tradable, Model {
 
     public boolean isTxChainInvalid() {
         return offer.getOfferFeePaymentTxId() == null ||
-                getTakerFeeTxId() == null ||
                 processModel.getMaker().getDepositTxHash() == null ||
-                processModel.getMaker().getDepositTxHash() == null ||
-                getDelayedPayoutTxBytes() == null;
+                processModel.getTaker().getDepositTxHash() == null;
     }
 
 
@@ -1484,7 +1459,6 @@ public abstract class Trade implements Tradable, Model {
                 ",\n     takerFeeAsLong=" + takerFeeAsLong +
                 ",\n     takeOfferDate=" + takeOfferDate +
                 ",\n     processModel=" + processModel +
-                ",\n     takerFeeTxId='" + takerFeeTxId + '\'' +
                 ",\n     payoutTxId='" + payoutTxId + '\'' +
                 ",\n     tradeAmountAsLong=" + amountAsLong +
                 ",\n     tradePrice=" + price +
@@ -1507,7 +1481,6 @@ public abstract class Trade implements Tradable, Model {
                 ",\n     disputeStateProperty=" + disputeStateProperty +
                 ",\n     tradePeriodStateProperty=" + tradePeriodStateProperty +
                 ",\n     errorMessageProperty=" + errorMessageProperty +
-                ",\n     delayedPayoutTx=" + delayedPayoutTx +
                 ",\n     payoutTx=" + payoutTx +
                 ",\n     tradeAmount=" + tradeAmount +
                 ",\n     tradeAmountProperty=" + tradeAmountProperty +
@@ -1515,7 +1488,6 @@ public abstract class Trade implements Tradable, Model {
                 ",\n     mediationResultState=" + mediationResultState +
                 ",\n     mediationResultStateProperty=" + mediationResultStateProperty +
                 ",\n     lockTime=" + lockTime +
-                ",\n     delayedPayoutTxBytes=" + Utilities.bytesAsHexString(delayedPayoutTxBytes) +
                 ",\n     refundResultState=" + refundResultState +
                 ",\n     refundResultStateProperty=" + refundResultStateProperty +
                 "\n}";

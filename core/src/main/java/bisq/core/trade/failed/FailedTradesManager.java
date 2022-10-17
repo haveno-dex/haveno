@@ -22,7 +22,6 @@ import bisq.core.btc.wallet.XmrWalletService;
 import bisq.core.offer.Offer;
 import bisq.core.provider.price.PriceFeedService;
 import bisq.core.trade.CleanupMailboxMessages;
-import bisq.core.trade.DumpDelayedPayoutTx;
 import bisq.core.trade.TradableList;
 import bisq.core.trade.Trade;
 import bisq.core.trade.TradeUtil;
@@ -52,7 +51,6 @@ public class FailedTradesManager implements PersistedDataHost {
     private final CleanupMailboxMessages cleanupMailboxMessages;
     private final PersistenceManager<TradableList<Trade>> persistenceManager;
     private final TradeUtil tradeUtil;
-    private final DumpDelayedPayoutTx dumpDelayedPayoutTx;
     @Setter
     private Function<Trade, Boolean> unFailTradeCallback;
 
@@ -62,13 +60,11 @@ public class FailedTradesManager implements PersistedDataHost {
                                XmrWalletService xmrWalletService,
                                PersistenceManager<TradableList<Trade>> persistenceManager,
                                TradeUtil tradeUtil,
-                               CleanupMailboxMessages cleanupMailboxMessages,
-                               DumpDelayedPayoutTx dumpDelayedPayoutTx) {
+                               CleanupMailboxMessages cleanupMailboxMessages) {
         this.keyRing = keyRing;
         this.priceFeedService = priceFeedService;
         this.xmrWalletService = xmrWalletService;
         this.cleanupMailboxMessages = cleanupMailboxMessages;
-        this.dumpDelayedPayoutTx = dumpDelayedPayoutTx;
         this.persistenceManager = persistenceManager;
         this.tradeUtil = tradeUtil;
 
@@ -82,7 +78,6 @@ public class FailedTradesManager implements PersistedDataHost {
                     failedTrades.stream()
                             .filter(trade -> trade.getOffer() != null)
                             .forEach(trade -> trade.getOffer().setPriceFeedService(priceFeedService));
-                    dumpDelayedPayoutTx.maybeDumpDelayedPayoutTxs(failedTrades, "delayed_payout_txs_failed");
                     completeHandler.run();
                 },
                 completeHandler);

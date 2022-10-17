@@ -255,7 +255,7 @@ public class WalletAppSetup {
                                     if (txId.equals(trade.getTaker().getDepositTxHash())) {
                                       details = Res.get("popup.warning.trade.txRejected.deposit");
                                   }
-                                    if (txId.equals(trade.getOffer().getOfferFeePaymentTxId()) || txId.equals(trade.getTakerFeeTxId())) {
+                                    if (txId.equals(trade.getOffer().getOfferFeePaymentTxId())) {
                                         details = Res.get("popup.warning.trade.txRejected.tradeFee");
                                     }
 

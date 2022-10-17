@@ -445,16 +445,11 @@ class TakeOfferViewModel extends ActivatableWithDataModel<TakeOfferDataModel> im
 
     private void applyTradeState() {
         if (trade.isTakerFeePublished()) {
-            if (trade.getTakerFeeTxId() != null) {
-                if (takeOfferResultHandler != null)
-                    takeOfferResultHandler.run();
+            if (takeOfferResultHandler != null)
+                takeOfferResultHandler.run();
 
-                showTransactionPublishedScreen.set(true);
-                updateSpinnerInfo();
-            } else {
-                final String msg = "trade.getTakerFeeTxId() must not be null.";
-                DevEnv.logErrorAndThrowIfDevMode(msg);
-            }
+            showTransactionPublishedScreen.set(true);
+            updateSpinnerInfo();
         }
     }
 

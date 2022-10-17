@@ -107,15 +107,12 @@ public class FailedTradesView extends ActivatableViewAndModel<VBox, FailedTrades
     private EventHandler<KeyEvent> keyEventEventHandler;
     private ChangeListener<String> filterTextFieldListener;
     private Scene scene;
-    private final boolean allowFaultyDelayedTxs;
 
     @Inject
     public FailedTradesView(FailedTradesViewModel model,
-                            TradeDetailsWindow tradeDetailsWindow,
-                            @Named(Config.ALLOW_FAULTY_DELAYED_TXS) boolean allowFaultyDelayedTxs) {
+                            TradeDetailsWindow tradeDetailsWindow) {
         super(model);
         this.tradeDetailsWindow = tradeDetailsWindow;
-        this.allowFaultyDelayedTxs = allowFaultyDelayedTxs;
     }
 
     @Override
@@ -279,9 +276,6 @@ public class FailedTradesView extends ActivatableViewAndModel<VBox, FailedTrades
 
             Trade trade = item.getTrade();
 
-            if (trade.getTakerFeeTxId() != null && trade.getTakerFeeTxId().contains(filterString)) {
-                return true;
-            }
             if (trade.getMaker().getDepositTxHash() != null && trade.getMaker().getDepositTxHash().contains(filterString)) {
                 return true;
             }
@@ -325,12 +319,6 @@ public class FailedTradesView extends ActivatableViewAndModel<VBox, FailedTrades
         if (trade.getMakerDepositTx() == null || trade.getTakerDepositTx() == null) {
             log.info("Check unfail found no deposit tx(s) for trade {}", trade.getId());
             return Res.get("portfolio.failed.depositTxNull");
-        }
-        if (trade.getDelayedPayoutTxBytes() == null) {
-            log.info("Check unfail found no delayedPayoutTxBytes for trade {}", trade.getId());
-            if (!allowFaultyDelayedTxs) {
-                return Res.get("portfolio.failed.delayedPayoutTxNull");
-            }
         }
         return "";
     }

@@ -68,7 +68,6 @@ public class TradeInfo implements Payload {
     private final String role;
     private final long txFeeAsLong;
     private final long takerFeeAsLong;
-    private final String takerFeeTxId;
     private final String makerDepositTxId;
     private final String takerDepositTxId;
     private final String payoutTxId;
@@ -97,7 +96,6 @@ public class TradeInfo implements Payload {
         this.role = builder.getRole();
         this.txFeeAsLong = builder.getTxFeeAsLong();
         this.takerFeeAsLong = builder.getTakerFeeAsLong();
-        this.takerFeeTxId = builder.getTakerFeeTxId();
         this.makerDepositTxId = builder.getMakerDepositTxId();
         this.takerDepositTxId = builder.getTakerDepositTxId();
         this.payoutTxId = builder.getPayoutTxId();
@@ -141,7 +139,7 @@ public class TradeInfo implements Payload {
         } else {
             contractInfo = ContractInfo.emptyContract.get();
         }
-        
+
         return new TradeInfoV1Builder()
                 .withTradeId(trade.getId())
                 .withShortId(trade.getShortId())
@@ -149,7 +147,6 @@ public class TradeInfo implements Payload {
                 .withRole(role == null ? "" : role)
                 .withTxFeeAsLong(trade.getTxFeeAsLong())
                 .withTakerFeeAsLong(trade.getTakerFeeAsLong())
-                .withTakerFeeTxId(trade.getTakerFeeTxId())
                 .withMakerDepositTxId(trade.getMaker().getDepositTxHash())
                 .withTakerDepositTxId(trade.getTaker().getDepositTxHash())
                 .withPayoutTxId(trade.getPayoutTxId())
@@ -187,7 +184,6 @@ public class TradeInfo implements Payload {
                 .setRole(role)
                 .setTxFeeAsLong(txFeeAsLong)
                 .setTakerFeeAsLong(takerFeeAsLong)
-                .setTakerFeeTxId(takerFeeTxId == null ? "" : takerFeeTxId)
                 .setMakerDepositTxId(makerDepositTxId == null ? "" : makerDepositTxId)
                 .setTakerDepositTxId(takerDepositTxId == null ? "" : takerDepositTxId)
                 .setPayoutTxId(payoutTxId == null ? "" : payoutTxId)
@@ -219,7 +215,6 @@ public class TradeInfo implements Payload {
                 .withRole(proto.getRole())
                 .withTxFeeAsLong(proto.getTxFeeAsLong())
                 .withTakerFeeAsLong(proto.getTakerFeeAsLong())
-                .withTakerFeeTxId(proto.getTakerFeeTxId())
                 .withMakerDepositTxId(proto.getMakerDepositTxId())
                 .withTakerDepositTxId(proto.getTakerDepositTxId())
                 .withPayoutTxId(proto.getPayoutTxId())
@@ -251,7 +246,6 @@ public class TradeInfo implements Payload {
                 ", role='" + role + '\'' + "\n" +
                 ", txFeeAsLong='" + txFeeAsLong + '\'' + "\n" +
                 ", takerFeeAsLong='" + takerFeeAsLong + '\'' + "\n" +
-                ", takerFeeTxId='" + takerFeeTxId + '\'' + "\n" +
                 ", makerDepositTxId='" + makerDepositTxId + '\'' + "\n" +
                 ", takerDepositTxId='" + takerDepositTxId + '\'' + "\n" +
                 ", payoutTxId='" + payoutTxId + '\'' + "\n" +

@@ -40,7 +40,6 @@ public final class TradeInfoV1Builder {
     private boolean isCurrencyForTakerFeeBtc;
     private long txFeeAsLong;
     private long takerFeeAsLong;
-    private String takerFeeTxId;
     private String makerDepositTxId;
     private String takerDepositTxId;
     private String payoutTxId;
@@ -99,11 +98,6 @@ public final class TradeInfoV1Builder {
 
     public TradeInfoV1Builder withTakerFeeAsLong(long takerFeeAsLong) {
         this.takerFeeAsLong = takerFeeAsLong;
-        return this;
-    }
-
-    public TradeInfoV1Builder withTakerFeeTxId(String takerFeeTxId) {
-        this.takerFeeTxId = takerFeeTxId;
         return this;
     }
 

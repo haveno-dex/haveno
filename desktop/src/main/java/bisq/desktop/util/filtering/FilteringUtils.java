@@ -38,9 +38,6 @@ public class FilteringUtils {
         if (trade == null) {
             return false;
         }
-        if (trade.getTakerFeeTxId() != null && StringUtils.containsIgnoreCase(trade.getTakerFeeTxId(), filterString)) {
-            return true;
-        }
         if (trade.getMaker().getDepositTxHash() != null && StringUtils.containsIgnoreCase(trade.getMaker().getDepositTxHash(), filterString)) {
             return true;
         }
@@ -50,7 +47,7 @@ public class FilteringUtils {
         if (trade.getPayoutTxId() != null && StringUtils.containsIgnoreCase(trade.getPayoutTxId(), filterString)) {
             return true;
         }
-        
+
         // match contract
         boolean isBuyerOnion = false;
         boolean isSellerOnion = false;
