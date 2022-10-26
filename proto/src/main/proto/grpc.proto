@@ -731,7 +731,7 @@ service Trades {
     }
     rpc ConfirmPaymentReceived (ConfirmPaymentReceivedRequest) returns (ConfirmPaymentReceivedReply) {
     }
-    rpc KeepFunds (KeepFundsRequest) returns (KeepFundsReply) {
+    rpc CompleteTrade (CompleteTradeRequest) returns (CompleteTradeReply) {
     }
     rpc WithdrawFunds (WithdrawFundsRequest) returns (WithdrawFundsReply) {
     }
@@ -787,11 +787,11 @@ message GetTradesReply {
     repeated TradeInfo trades = 1;
 }
 
-message KeepFundsRequest {
+message CompleteTradeRequest {
     string trade_id = 1;
 }
 
-message KeepFundsReply {
+message CompleteTradeReply {
 }
 
 message WithdrawFundsRequest {
@@ -837,15 +837,16 @@ message TradeInfo {
     string state = 16;
     string phase = 17;
     string period_state = 18;
-    bool is_deposit_published = 19;
-    bool is_deposit_unlocked = 20;
-    bool is_payment_sent = 21;
-    bool is_payment_received = 22;
-    bool is_payout_published = 23;
-    bool is_completed = 24;
-    string contract_as_json = 25;
-    ContractInfo contract = 26;
-    string trade_volume = 27;
+    string payout_state = 19;
+    bool is_deposit_published = 20;
+    bool is_deposit_unlocked = 21;
+    bool is_payment_sent = 22;
+    bool is_payment_received = 23;
+    bool is_payout_published = 24;
+    bool is_completed = 25;
+    string contract_as_json = 26;
+    ContractInfo contract = 27;
+    string trade_volume = 28;
 
     string maker_deposit_tx_id = 100;
     string taker_deposit_tx_id = 101;

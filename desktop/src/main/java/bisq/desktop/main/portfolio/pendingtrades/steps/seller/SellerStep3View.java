@@ -123,8 +123,6 @@ public class SellerStep3View extends TradeStepView {
                             busyAnimation.play();
                             statusLabel.setText(Res.get("Confirming payment received. This can take up to a few minutes. Please wait..."));
                             break;
-                        case SELLER_PUBLISHED_PAYOUT_TX:
-                        case SELLER_SENT_PAYOUT_TX_PUBLISHED_MSG:
                         case SELLER_SENT_PAYMENT_RECEIVED_MSG:
                             busyAnimation.play();
                             statusLabel.setText(Res.get("shared.sendingConfirmation"));
@@ -135,16 +133,14 @@ public class SellerStep3View extends TradeStepView {
                             }, 10);
                             break;
                         case SELLER_SAW_ARRIVED_PAYMENT_RECEIVED_MSG:
-                        case SELLER_SAW_ARRIVED_PAYOUT_TX_PUBLISHED_MSG:
                             busyAnimation.stop();
                             statusLabel.setText(Res.get("shared.messageArrived"));
                             break;
                         case SELLER_STORED_IN_MAILBOX_PAYMENT_RECEIVED_MSG:
-                        case SELLER_STORED_IN_MAILBOX_PAYOUT_TX_PUBLISHED_MSG:
                             busyAnimation.stop();
                             statusLabel.setText(Res.get("shared.messageStoredInMailbox"));
                             break;
-                        case SELLER_SEND_FAILED_PAYOUT_TX_PUBLISHED_MSG:
+                        case SELLER_SEND_FAILED_PAYMENT_RECEIVED_MSG:
                             // We get a popup and the trade closed, so we dont need to show anything here
                             busyAnimation.stop();
                             statusLabel.setText("");
@@ -464,7 +460,7 @@ public class SellerStep3View extends TradeStepView {
         busyAnimation.play();
         statusLabel.setText(Res.get("shared.sendingConfirmation"));
 
-        model.dataModel.onFiatPaymentReceived(() -> {
+        model.dataModel.onPaymentReceived(() -> {
         }, errorMessage -> {
             busyAnimation.stop();
             new Popup().warning(Res.get("popup.warning.sendMsgFailed")).show();

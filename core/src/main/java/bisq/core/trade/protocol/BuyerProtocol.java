@@ -17,35 +17,23 @@
 
 package bisq.core.trade.protocol;
 
-import bisq.common.UserThread;
 import bisq.common.handlers.ErrorMessageHandler;
 import bisq.common.handlers.ResultHandler;
 import bisq.core.trade.BuyerTrade;
 import bisq.core.trade.Trade;
-import bisq.core.trade.messages.PaymentAccountKeyResponse;
-import bisq.core.trade.messages.PaymentReceivedMessage;
 import bisq.core.trade.messages.SignContractResponse;
 import bisq.core.trade.messages.TradeMessage;
-import bisq.core.trade.protocol.FluentProtocol.Condition;
 import bisq.core.trade.protocol.tasks.ApplyFilter;
 import bisq.core.trade.protocol.tasks.BuyerPreparePaymentSentMessage;
-import bisq.core.trade.protocol.tasks.BuyerProcessPaymentAccountKeyResponse;
-import bisq.core.trade.protocol.tasks.BuyerProcessPaymentReceivedMessage;
-import bisq.core.trade.protocol.tasks.BuyerSendPaymentAccountKeyRequestToArbitrator;
 import bisq.core.trade.protocol.tasks.BuyerSendPaymentSentMessage;
-import bisq.core.trade.protocol.tasks.BuyerSendPayoutTxPublishedMessage;
-import bisq.core.trade.protocol.tasks.SetupDepositTxsListener;
-import bisq.core.trade.protocol.tasks.SetupPayoutTxListener;
-import bisq.core.util.Validator;
+import bisq.core.trade.protocol.tasks.SendDepositsConfirmedMessageToArbitrator;
+import bisq.core.trade.protocol.tasks.TradeTask;
 import bisq.network.p2p.NodeAddress;
 import lombok.extern.slf4j.Slf4j;
-import org.fxmisc.easybind.EasyBind;
 
 @Slf4j
-public abstract class BuyerProtocol extends DisputeProtocol {
+public class BuyerProtocol extends DisputeProtocol {
     
-    private boolean listeningToSendPaymentAccountKey;
-    private boolean paymentAccountPayloadKeyRequestSent;
     enum BuyerEvent implements FluentProtocol.Event {
         STARTUP,
         DEPOSIT_TXS_CONFIRMED,
@@ -66,23 +54,8 @@ public abstract class BuyerProtocol extends DisputeProtocol {
 
         // TODO: run with trade lock and latch, otherwise getting invalid transition warnings on startup after offline trades
         
-        // request key to decrypt seller's payment account payload after first confirmation
-        sendPaymentAccountKeyRequestIfWhenNeeded(BuyerEvent.STARTUP, false);
-
-        // listen for deposit txs
-        given(anyPhase(Trade.Phase.DEPOSIT_REQUESTED, Trade.Phase.DEPOSITS_PUBLISHED, Trade.Phase.DEPOSITS_CONFIRMED)
-                .with(BuyerEvent.STARTUP))
-                .setup(tasks(SetupDepositTxsListener.class))
-                .executeTasks();
-
-        // listen for payout tx
-        given(anyPhase(Trade.Phase.PAYMENT_SENT, Trade.Phase.PAYMENT_RECEIVED)
-                .with(BuyerEvent.STARTUP))
-                .setup(tasks(SetupPayoutTxListener.class))
-                .executeTasks();
-
         // send payment sent message
-        given(anyPhase(Trade.Phase.PAYMENT_SENT, Trade.Phase.PAYMENT_RECEIVED) // TODO: remove payment received phase?
+        given(anyPhase(Trade.Phase.PAYMENT_SENT)
                 .anyState(Trade.State.BUYER_STORED_IN_MAILBOX_PAYMENT_SENT_MSG, Trade.State.BUYER_SEND_FAILED_PAYMENT_SENT_MSG)
                 .with(BuyerEvent.STARTUP))
                 .setup(tasks(BuyerSendPaymentSentMessage.class))
@@ -92,49 +65,16 @@ public abstract class BuyerProtocol extends DisputeProtocol {
     @Override
     protected void onTradeMessage(TradeMessage message, NodeAddress peer) {
         super.onTradeMessage(message, peer);
-        if (message instanceof PaymentReceivedMessage) {
-            handle((PaymentReceivedMessage) message, peer);
-        } if (message instanceof PaymentAccountKeyResponse) {
-            handle((PaymentAccountKeyResponse) message, peer);
-        }
     }
 
     @Override
     public void onMailboxMessage(TradeMessage message, NodeAddress peer) {
         super.onMailboxMessage(message, peer);
-        if (message instanceof PaymentReceivedMessage) {
-            handle((PaymentReceivedMessage) message, peer);
-        } else if (message instanceof PaymentAccountKeyResponse) {
-            handle((PaymentAccountKeyResponse) message, peer);
-        }
     }
 
     @Override
     public void handleSignContractResponse(SignContractResponse response, NodeAddress sender) {
         super.handleSignContractResponse(response, sender);
-        sendPaymentAccountKeyRequestIfWhenNeeded(BuyerEvent.DEPOSIT_TXS_CONFIRMED, true);
-    }
-
-    public void handle(PaymentAccountKeyResponse response, NodeAddress sender) {
-        System.out.println(getClass().getCanonicalName() + ".handlePaymentAccountKeyResponse()");
-        new Thread(() -> {
-            synchronized (trade) {
-                latchTrade();
-                expect(new Condition(trade)
-                        .with(response)
-                        .from(sender))
-                        .setup(tasks(BuyerProcessPaymentAccountKeyResponse.class)
-                        .using(new TradeTaskRunner(trade,
-                                () -> {
-                                    handleTaskRunnerSuccess(sender, response);
-                                },
-                                errorMessage -> {
-                                    handleTaskRunnerFault(sender, response, errorMessage);
-                                })))
-                        .executeTasks();
-                awaitTradeLatch();
-            }
-        }).start();
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -177,84 +117,9 @@ public abstract class BuyerProtocol extends DisputeProtocol {
         }).start();
     }
 
-    ///////////////////////////////////////////////////////////////////////////////////////////
-    // Incoming message Payout tx
-    ///////////////////////////////////////////////////////////////////////////////////////////
-
-    protected void handle(PaymentReceivedMessage message, NodeAddress peer) {
-        System.out.println("BuyerProtocol.handle(PaymentReceivedMessage)");
-        new Thread(() -> {
-            synchronized (trade) {
-                latchTrade();
-                Validator.checkTradeId(processModel.getOfferId(), message);
-                processModel.setTradeMessage(message);
-                expect(anyPhase(Trade.Phase.PAYMENT_SENT, Trade.Phase.PAYMENT_RECEIVED)
-                    .with(message)
-                    .from(peer))
-                    .setup(tasks(
-                        BuyerProcessPaymentReceivedMessage.class,
-                        BuyerSendPayoutTxPublishedMessage.class)
-                        .using(new TradeTaskRunner(trade,
-                            () -> {
-                                handleTaskRunnerSuccess(peer, message);
-                            },
-                            errorMessage -> {
-                                handleTaskRunnerFault(peer, message, errorMessage);
-                            })))
-                    .executeTasks(true);
-                awaitTradeLatch();
-            }
-        }).start();
-    }
-
-    private void sendPaymentAccountKeyRequestIfWhenNeeded(BuyerEvent event, boolean waitForSellerOnConfirm) {
-
-        // skip if payment account payload already decrypted or not enough progress
-        if (trade.getSeller().getPaymentAccountPayload() != null) return;
-        if (trade.getPhase().ordinal() < Trade.Phase.DEPOSIT_REQUESTED.ordinal()) return;
-
-        // if confirmed and waiting for seller, recheck later
-        if (trade.getState() == Trade.State.DEPOSIT_TXS_CONFIRMED_IN_BLOCKCHAIN && waitForSellerOnConfirm) {
-            UserThread.runAfter(() -> {
-                sendPaymentAccountKeyRequestIfWhenNeeded(event, false);
-            }, TRADE_TIMEOUT);
-            return;
-        }
-
-        // else if confirmed send request and return
-        else if (trade.getState().ordinal() >= Trade.State.DEPOSIT_TXS_CONFIRMED_IN_BLOCKCHAIN.ordinal()) {
-            sendPaymentAccountKeyRequest(event);
-            return;
-        }
-
-        // register for state changes once
-        if (!listeningToSendPaymentAccountKey) {
-            listeningToSendPaymentAccountKey = true;
-            EasyBind.subscribe(trade.stateProperty(), state -> {
-                sendPaymentAccountKeyRequestIfWhenNeeded(event, waitForSellerOnConfirm);
-            });
-        }
-    }
-
-    private void sendPaymentAccountKeyRequest(BuyerEvent event) {
-        new Thread(() -> {
-            synchronized (trade) {
-                if (paymentAccountPayloadKeyRequestSent) return;
-                if (trade.getSeller().getPaymentAccountPayload() != null) return; // skip if initialized
-                latchTrade();
-                expect(new Condition(trade))
-                        .setup(tasks(BuyerSendPaymentAccountKeyRequestToArbitrator.class)
-                        .using(new TradeTaskRunner(trade,
-                                () -> {
-                                    handleTaskRunnerSuccess(event);
-                                },
-                                (errorMessage) -> {
-                                    handleTaskRunnerFault(event, errorMessage);
-                                })))
-                        .executeTasks(true);
-                awaitTradeLatch();
-                paymentAccountPayloadKeyRequestSent = true;
-            }
-        }).start();
+    @SuppressWarnings("unchecked")
+    @Override
+    public Class<? extends TradeTask>[] getDepsitsConfirmedTasks() {
+        return new Class[] { SendDepositsConfirmedMessageToArbitrator.class };
     }
 }

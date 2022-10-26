@@ -36,7 +36,7 @@ import bisq.core.support.dispute.arbitration.arbitrator.ArbitratorManager;
 import bisq.core.support.dispute.mediation.mediator.MediatorManager;
 import bisq.core.trade.ClosedTradableManager;
 import bisq.core.trade.TradableList;
-import bisq.core.trade.TradeUtils;
+import bisq.core.trade.HavenoUtils;
 import bisq.core.trade.handlers.TransactionResultHandler;
 import bisq.core.trade.statistics.TradeStatisticsManager;
 import bisq.core.user.Preferences;
@@ -564,6 +564,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
         Offer offer = openOffer.getOffer();
         if (offer.getOfferPayload().getReserveTxKeyImages() != null) {
             for (String frozenKeyImage : offer.getOfferPayload().getReserveTxKeyImages()) xmrWalletService.getWallet().thawOutput(frozenKeyImage);
+            xmrWalletService.getWallet().save();
         }
         offer.setState(Offer.State.REMOVED);
         openOffer.setState(OpenOffer.State.CANCELED);
@@ -634,7 +635,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                     latch.countDown();
                     errorMessages.add(errorMessage);
                 });
-                TradeUtils.awaitLatch(latch);
+                HavenoUtils.awaitLatch(latch);
             }
             requestPersistence();
             if (errorMessages.size() > 0) errorMessageHandler.handleErrorMessage(errorMessages.toString());

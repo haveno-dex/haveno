@@ -36,7 +36,6 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import monero.daemon.model.MoneroTx;
-import monero.wallet.model.MoneroTxWallet;
 import javax.annotation.Nullable;
 
 // Fields marked as transient are only used during protocol execution which are based on directMessages so we do not

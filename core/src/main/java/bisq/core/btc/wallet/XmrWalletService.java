@@ -20,8 +20,10 @@ import bisq.core.trade.MakerTrade;
 import bisq.core.trade.SellerTrade;
 import bisq.core.trade.Trade;
 import bisq.core.trade.TradeManager;
-import bisq.core.trade.TradeUtils;
+import bisq.core.trade.HavenoUtils;
 import bisq.core.util.ParsingUtils;
+
+import com.google.common.collect.TreeMultimap;
 import com.google.common.util.concurrent.Service.State;
 import com.google.inject.name.Named;
 import common.utils.JsonUtils;
@@ -29,6 +31,7 @@ import java.io.File;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -47,6 +50,7 @@ import monero.common.MoneroRpcConnection;
 import monero.common.MoneroRpcError;
 import monero.common.MoneroUtils;
 import monero.daemon.MoneroDaemonRpc;
+import monero.daemon.model.MoneroKeyImageSpentStatus;
 import monero.daemon.model.MoneroNetworkType;
 import monero.daemon.model.MoneroOutput;
 import monero.daemon.model.MoneroSubmitTxResult;
@@ -97,6 +101,7 @@ public class XmrWalletService {
     private TradeManager tradeManager;
     private MoneroWalletRpc wallet;
     private Map<String, MoneroWallet> multisigWallets;
+    private Map<String, Object> walletLocks = new HashMap<String, Object>();
     private final Map<String, Optional<MoneroTx>> txCache = new HashMap<String, Optional<MoneroTx>>();
 
     @Inject
@@ -182,29 +187,40 @@ public class XmrWalletService {
         return accountService.getPassword() == null ? MONERO_WALLET_RPC_DEFAULT_PASSWORD : accountService.getPassword();
     }
 
-    public boolean multisigWalletExists(String tradeId) {
-        return walletExists(MONERO_MULTISIG_WALLET_PREFIX + tradeId);
+    private synchronized void initWalletLock(String id) {
+        if (!walletLocks.containsKey(id)) walletLocks.put(id, new Object());
     }
 
-    // TODO (woodser): test retaking failed trade. create new multisig wallet or replace? cannot reuse
+    public boolean multisigWalletExists(String tradeId) {
+        initWalletLock(tradeId);
+        synchronized(walletLocks.get(tradeId)) {
+            return walletExists(MONERO_MULTISIG_WALLET_PREFIX + tradeId);
+        }
+    }
+
     public MoneroWallet createMultisigWallet(String tradeId) {
-        log.info("{}.createMultisigWallet({})", getClass().getSimpleName(), tradeId);
-        if (multisigWallets.containsKey(tradeId)) return multisigWallets.get(tradeId);
-        String path = MONERO_MULTISIG_WALLET_PREFIX + tradeId;
-        MoneroWallet multisigWallet = createWallet(new MoneroWalletConfig().setPath(path).setPassword(getWalletPassword()), null, false); // auto-assign port
-        multisigWallets.put(tradeId, multisigWallet);
-        return multisigWallet;
+        initWalletLock(tradeId);
+        synchronized(walletLocks.get(tradeId)) {
+            log.info("{}.createMultisigWallet({})", getClass().getSimpleName(), tradeId);
+            if (multisigWallets.containsKey(tradeId)) return multisigWallets.get(tradeId);
+            String path = MONERO_MULTISIG_WALLET_PREFIX + tradeId;
+            MoneroWallet multisigWallet = createWallet(new MoneroWalletConfig().setPath(path).setPassword(getWalletPassword()), null, true); // auto-assign port
+            multisigWallets.put(tradeId, multisigWallet);
+            return multisigWallet;
+        }
     }
 
     // TODO (woodser): provide progress notifications during open?
     public MoneroWallet getMultisigWallet(String tradeId) {
-        log.info("{}.getMultisigWallet({})", getClass().getSimpleName(), tradeId);
-        if (multisigWallets.containsKey(tradeId)) return multisigWallets.get(tradeId);
-        String path = MONERO_MULTISIG_WALLET_PREFIX + tradeId;
-        if (!walletExists(path)) throw new RuntimeException("Multisig wallet does not exist for trade " + tradeId);
-        MoneroWallet multisigWallet = openWallet(new MoneroWalletConfig().setPath(path).setPassword(getWalletPassword()), null);
-        multisigWallets.put(tradeId, multisigWallet);
-        return multisigWallet;
+        initWalletLock(tradeId);
+        synchronized(walletLocks.get(tradeId)) {
+            if (multisigWallets.containsKey(tradeId)) return multisigWallets.get(tradeId);
+            String path = MONERO_MULTISIG_WALLET_PREFIX + tradeId;
+            if (!walletExists(path)) throw new RuntimeException("Multisig wallet does not exist for trade " + tradeId);
+            MoneroWallet multisigWallet = openWallet(new MoneroWalletConfig().setPath(path).setPassword(getWalletPassword()), null);
+            multisigWallets.put(tradeId, multisigWallet);
+            return multisigWallet;
+        }
     }
 
     public void saveWallet(MoneroWallet wallet) {
@@ -213,19 +229,25 @@ public class XmrWalletService {
     }
 
     public void closeMultisigWallet(String tradeId) {
-        log.info("{}.closeMultisigWallet({})", getClass().getSimpleName(), tradeId);
-        if (!multisigWallets.containsKey(tradeId)) throw new RuntimeException("Multisig wallet to close was not previously opened for trade " + tradeId);
-        MoneroWallet wallet = multisigWallets.remove(tradeId);
-        closeWallet(wallet, true);
+        initWalletLock(tradeId);
+        synchronized(walletLocks.get(tradeId)) {
+            log.info("{}.closeMultisigWallet({})", getClass().getSimpleName(), tradeId);
+            if (!multisigWallets.containsKey(tradeId)) throw new RuntimeException("Multisig wallet to close was not previously opened for trade " + tradeId);
+            MoneroWallet wallet = multisigWallets.remove(tradeId);
+            closeWallet(wallet, true);
+        }
     }
 
     public boolean deleteMultisigWallet(String tradeId) {
-        log.info("{}.deleteMultisigWallet({})", getClass().getSimpleName(), tradeId);
-        String walletName = MONERO_MULTISIG_WALLET_PREFIX + tradeId;
-        if (!walletExists(walletName)) return false;
-        if (multisigWallets.containsKey(tradeId)) closeMultisigWallet(tradeId); // TODO: synchronize
-        deleteWallet(walletName);
-        return true;
+        initWalletLock(tradeId);
+        synchronized(walletLocks.get(tradeId)) {
+            log.info("{}.deleteMultisigWallet({})", getClass().getSimpleName(), tradeId);
+            String walletName = MONERO_MULTISIG_WALLET_PREFIX + tradeId;
+            if (!walletExists(walletName)) return false;
+            if (multisigWallets.containsKey(tradeId)) closeMultisigWallet(tradeId);
+            deleteWallet(walletName);
+            return true;
+        }
     }
 
     public MoneroTxWallet createTx(List<MoneroDestination> destinations) {
@@ -254,21 +276,20 @@ public class XmrWalletService {
             // get expected mining fee
             MoneroTxWallet miningFeeTx = wallet.createTx(new MoneroTxConfig()
                     .setAccountIndex(0)
-                    .addDestination(TradeUtils.getTradeFeeAddress(), tradeFee)
+                    .addDestination(HavenoUtils.getTradeFeeAddress(), tradeFee)
                     .addDestination(returnAddress, depositAmount));
             BigInteger miningFee = miningFeeTx.getFee();
 
             // create reserve tx
             MoneroTxWallet reserveTx = wallet.createTx(new MoneroTxConfig()
                     .setAccountIndex(0)
-                    .addDestination(TradeUtils.getTradeFeeAddress(), tradeFee)
+                    .addDestination(HavenoUtils.getTradeFeeAddress(), tradeFee)
                     .addDestination(returnAddress, depositAmount.add(miningFee.multiply(BigInteger.valueOf(3l))))); // add thrice the mining fee // TODO (woodser): really require more funds on top of security deposit?
 
             // freeze inputs
             if (freezeInputs) {
-                for (MoneroOutput input : reserveTx.getInputs()) {
-                    wallet.freezeOutput(input.getKeyImage().getHex());
-                }
+                for (MoneroOutput input : reserveTx.getInputs()) wallet.freezeOutput(input.getKeyImage().getHex());
+                wallet.save();
             }
 
             return reserveTx;
@@ -291,13 +312,12 @@ public class XmrWalletService {
             // create deposit tx
             MoneroTxWallet depositTx = wallet.createTx(new MoneroTxConfig()
                     .setAccountIndex(0)
-                    .addDestination(TradeUtils.getTradeFeeAddress(), tradeFee)
+                    .addDestination(HavenoUtils.getTradeFeeAddress(), tradeFee)
                     .addDestination(multisigAddress, depositAmount));
 
             // freeze deposit inputs
-            for (MoneroOutput input : depositTx.getInputs()) {
-                wallet.freezeOutput(input.getKeyImage().getHex());
-            }
+            for (MoneroOutput input : depositTx.getInputs()) wallet.freezeOutput(input.getKeyImage().getHex());
+            wallet.save();
 
             return depositTx;
         }
@@ -342,7 +362,7 @@ public class XmrWalletService {
             if (tx.getUnlockHeight() != 0) throw new RuntimeException("Unlock height must be 0");
 
             // verify trade fee
-            String feeAddress = TradeUtils.getTradeFeeAddress();
+            String feeAddress = HavenoUtils.getTradeFeeAddress();
             MoneroCheckTx check = wallet.checkTxKey(txHash, txKey, feeAddress);
             if (!check.isGood()) throw new RuntimeException("Invalid proof of trade fee");
             if (!check.getReceivedAmount().equals(tradeFee)) throw new RuntimeException("Trade fee is incorrect amount, expected " + tradeFee + " but was " + check.getReceivedAmount());
@@ -435,10 +455,8 @@ public class XmrWalletService {
         // initialize main wallet if connected or previously created
         maybeInitMainWallet();
 
-        // update wallet connections on change
-        connectionsService.addListener(newConnection -> {
-            setWalletDaemonConnections(newConnection);
-        });
+        // set and listen to daemon connection
+        connectionsService.addListener(newConnection -> setDaemonConnection(newConnection));
     }
 
     private boolean walletExists(String walletName) {
@@ -580,16 +598,12 @@ public class XmrWalletService {
         return MONERO_WALLET_RPC_MANAGER.startInstance(cmd);
     }
 
-    private void setWalletDaemonConnections(MoneroRpcConnection connection) {
+    private void setDaemonConnection(MoneroRpcConnection connection) {
         log.info("Setting wallet daemon connection: " + (connection == null ? null : connection.getUri()));
         if (wallet == null) maybeInitMainWallet();
         if (wallet != null) {
             wallet.setDaemonConnection(connection);
             wallet.startSyncing(connectionsService.getDefaultRefreshPeriodMs());
-        }
-        for (MoneroWallet multisigWallet : multisigWallets.values()) {
-            multisigWallet.setDaemonConnection(connection);
-            multisigWallet.startSyncing(connectionsService.getDefaultRefreshPeriodMs()); // TODO: optimize when multisig wallets are open and syncing
         }
     }
 
@@ -663,7 +677,7 @@ public class XmrWalletService {
         if (!new File(path).delete()) throw new RuntimeException("Failed to delete wallet file: " + path);
         if (!new File(path + ".keys").delete()) throw new RuntimeException("Failed to delete wallet file: " + path);
         if (!new File(path + ".address.txt").delete()) throw new RuntimeException("Failed to delete wallet file: " + path);
-        deleteBackupWallets(walletName);
+        deleteBackupWallets(walletName); // TODO: retain backup for some time?
     }
 
     private void closeAllWallets() {
@@ -675,30 +689,16 @@ public class XmrWalletService {
             openWallets.add(multisigWallets.get(multisigWalletKey));
         }
 
-        // done if no open wallets
-        if (openWallets.isEmpty()) return;
-
-        // close all wallets in parallel
-        ExecutorService pool = Executors.newFixedThreadPool(Math.min(10, openWallets.size()));
-        for (MoneroWallet openWallet : openWallets) {
-            pool.submit(new Runnable() {
-                @Override
-                public void run() {
-                    try {
-                        closeWallet(openWallet, true);
-                    } catch (Exception e) {
-                        log.warn("Error closing monero-wallet-rpc subprocess. Was Haveno stopped manually with ctrl+c?");
-                    }
-                }
-            });
-        }
-        pool.shutdown();
-        try {
-            if (!pool.awaitTermination(60000, TimeUnit.SECONDS)) pool.shutdownNow();
-        } catch (InterruptedException e) {
-            pool.shutdownNow();
-            throw new RuntimeException(e);
-        }
+        // close wallets in parallel
+        Set<Runnable> tasks = new HashSet<Runnable>();
+        for (MoneroWallet wallet : openWallets) tasks.add(() -> {
+            try {
+                closeWallet(wallet, true);
+            } catch (Exception e) {
+                log.warn("Error closing monero-wallet-rpc subprocess. Was Haveno stopped manually with ctrl+c?");
+            }
+        });
+        HavenoUtils.awaitTasks(tasks);
 
         // clear wallets
         wallet = null;

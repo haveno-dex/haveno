@@ -74,17 +74,11 @@ message NetworkEnvelope {
         SignContractResponse sign_contract_response = 1006;
         DepositRequest deposit_request = 1007;
         DepositResponse deposit_response = 1008;
-        PaymentAccountKeyRequest payment_account_key_request = 1009;
-        PaymentAccountKeyResponse payment_account_key_response = 1010;
-        PaymentSentMessage payment_sent_message = 1011;
-        PaymentReceivedMessage payment_received_message = 1012;
-        PayoutTxPublishedMessage payout_tx_published_message = 1013;
-        ArbitratorPayoutTxRequest arbitrator_payout_tx_request = 1016;
-        ArbitratorPayoutTxResponse arbitrator_payout_tx_response = 1017;
-
-        // TODO: delete these
-        UpdateMultisigRequest update_multisig_request = 1018;
-        UpdateMultisigResponse update_multisig_response = 1019;
+        DepositsConfirmedMessage deposits_confirmed_message = 1009;
+        PaymentSentMessage payment_sent_message = 1010;
+        PaymentReceivedMessage payment_received_message = 1011;
+        ArbitratorPayoutTxRequest arbitrator_payout_tx_request = 1012;
+        ArbitratorPayoutTxResponse arbitrator_payout_tx_response = 1013;
     }
 }
 
@@ -355,37 +349,12 @@ message DepositResponse {
     int64 current_date = 5;
 }
 
-message PaymentAccountKeyRequest {
+message DepositsConfirmedMessage {
     string trade_id = 1;
     NodeAddress sender_node_address = 2;
     PubKeyRing pub_key_ring = 3;
     string uid = 4;
-}
-
-message PaymentAccountKeyResponse {
-    string trade_id = 1;
-    NodeAddress sender_node_address = 2;
-    PubKeyRing pub_key_ring = 3;
-    string uid = 4;
-    bytes payment_account_key = 5;
-    string updated_multisig_hex = 6;
-}
-
-message UpdateMultisigRequest {
-    string trade_id = 1;
-    NodeAddress sender_node_address = 2;
-    PubKeyRing pub_key_ring = 3;
-    string uid = 4;
-    int64 current_date = 5;
-    string updated_multisig_hex = 6;
-}
-
-message UpdateMultisigResponse {
-    string trade_id = 1;
-    NodeAddress sender_node_address = 2;
-    PubKeyRing pub_key_ring = 3;
-    string uid = 4;
-    int64 current_date = 5;
+    bytes seller_payment_account_key = 5;
     string updated_multisig_hex = 6;
 }
 
@@ -454,16 +423,10 @@ message PaymentReceivedMessage {
     NodeAddress sender_node_address = 2;
     string uid = 3;
     SignedWitness signed_witness = 4; // Added in v1.4.0
-    string payout_tx_hex = 5;
-}
-
-message PayoutTxPublishedMessage {
-    string trade_id = 1;
-    NodeAddress sender_node_address = 2;
-    bool is_maker = 3;
-    string uid = 4;
-    SignedWitness signed_witness = 5;
+    string unsigned_payout_tx_hex = 5;
     string signed_payout_tx_hex = 6;
+    string updated_multisig_hex = 7;
+    bool saw_arrived_payment_received_msg = 8;
 }
 
 message ArbitratorPayoutTxRequest {
@@ -1644,33 +1607,24 @@ message Trade {
         CONTRACT_SIGNATURE_REQUESTED = 6;
         CONTRACT_SIGNED = 7;
         SENT_PUBLISH_DEPOSIT_TX_REQUEST = 8;
-        SAW_ARRIVED_PUBLISH_DEPOSIT_TX_REQUEST = 9;
-        STORED_IN_MAILBOX_PUBLISH_DEPOSIT_TX_REQUEST = 10;
-        SEND_FAILED_PUBLISH_DEPOSIT_TX_REQUEST = 11;
-        ARBITRATOR_PUBLISHED_DEPOSIT_TXS = 12;
-        DEPOSIT_TXS_SEEN_IN_NETWORK = 13;
-        DEPOSIT_TXS_CONFIRMED_IN_BLOCKCHAIN = 14;
-        DEPOSIT_TXS_UNLOCKED_IN_BLOCKCHAIN = 15;
-        BUYER_CONFIRMED_IN_UI_PAYMENT_SENT = 16;
-        BUYER_SENT_PAYMENT_SENT_MSG = 17;
-        BUYER_SAW_ARRIVED_PAYMENT_SENT_MSG = 18;
-        BUYER_STORED_IN_MAILBOX_PAYMENT_SENT_MSG = 19;
-        BUYER_SEND_FAILED_PAYMENT_SENT_MSG = 20;
-        SELLER_RECEIVED_PAYMENT_SENT_MSG = 21;
-        SELLER_CONFIRMED_IN_UI_PAYMENT_RECEIPT = 22;
-        SELLER_SENT_PAYMENT_RECEIVED_MSG = 23;
-        SELLER_SAW_ARRIVED_PAYMENT_RECEIVED_MSG = 24;
-        SELLER_STORED_IN_MAILBOX_PAYMENT_RECEIVED_MSG = 25;
-        SELLER_SEND_FAILED_PAYMENT_RECEIVED_MSG = 26;
-        SELLER_PUBLISHED_PAYOUT_TX = 27;
-        SELLER_SENT_PAYOUT_TX_PUBLISHED_MSG = 28;
-        SELLER_SAW_ARRIVED_PAYOUT_TX_PUBLISHED_MSG = 29;
-        SELLER_STORED_IN_MAILBOX_PAYOUT_TX_PUBLISHED_MSG = 30;
-        SELLER_SEND_FAILED_PAYOUT_TX_PUBLISHED_MSG = 31;
-        BUYER_RECEIVED_PAYOUT_TX_PUBLISHED_MSG = 32;
-        BUYER_PUBLISHED_PAYOUT_TX = 33;
-        PAYOUT_TX_SEEN_IN_NETWORK = 34;
-        WITHDRAW_COMPLETED = 35;
+        SEND_FAILED_PUBLISH_DEPOSIT_TX_REQUEST = 9;
+        SAW_ARRIVED_PUBLISH_DEPOSIT_TX_REQUEST = 10;
+        ARBITRATOR_PUBLISHED_DEPOSIT_TXS = 11;
+        DEPOSIT_TXS_SEEN_IN_NETWORK = 12;
+        DEPOSIT_TXS_CONFIRMED_IN_BLOCKCHAIN = 13;
+        DEPOSIT_TXS_UNLOCKED_IN_BLOCKCHAIN = 14;
+        BUYER_CONFIRMED_IN_UI_PAYMENT_SENT = 15;
+        BUYER_SENT_PAYMENT_SENT_MSG = 16;
+        BUYER_SEND_FAILED_PAYMENT_SENT_MSG = 17;
+        BUYER_STORED_IN_MAILBOX_PAYMENT_SENT_MSG = 18;
+        BUYER_SAW_ARRIVED_PAYMENT_SENT_MSG = 19;
+        SELLER_RECEIVED_PAYMENT_SENT_MSG = 20;
+        SELLER_CONFIRMED_IN_UI_PAYMENT_RECEIPT = 21;
+        SELLER_SENT_PAYMENT_RECEIVED_MSG = 22;
+        SELLER_SEND_FAILED_PAYMENT_RECEIVED_MSG = 23;
+        SELLER_STORED_IN_MAILBOX_PAYMENT_RECEIVED_MSG = 24;
+        SELLER_SAW_ARRIVED_PAYMENT_RECEIVED_MSG = 25;
+        TRADE_COMPLETED = 26;
     }
 
     enum Phase {
@@ -1682,8 +1636,14 @@ message Trade {
         DEPOSITS_UNLOCKED = 5;
         PAYMENT_SENT = 6;
         PAYMENT_RECEIVED = 7;
-        PAYOUT_PUBLISHED = 8;
-        WITHDRAWN = 9;
+        COMPLETED = 8;
+    }
+
+    enum PayoutState {
+        UNPUBLISHED = 0;
+        PUBLISHED = 1;
+        CONFIRMED = 2;
+        UNLOCKED = 3;
     }
 
     enum DisputeState {
@@ -1718,23 +1678,24 @@ message Trade {
     int64 take_offer_date = 9;
     int64 price = 10;
     State state = 11;
-    DisputeState dispute_state = 12;
-    TradePeriodState period_state = 13;
-    Contract contract = 14;
-    string contract_as_json = 15;
-    bytes contract_hash = 16;
-    NodeAddress arbitrator_node_address = 17;
-    NodeAddress mediator_node_address = 18;
-    string error_message = 19;
-    string counter_currency_tx_id = 20;
-    repeated ChatMessage chat_message = 21;
-    MediationResultState mediation_result_state = 22;
-    int64 lock_time = 23;
-    NodeAddress refund_agent_node_address = 24;
-    RefundResultState refund_result_state = 25;
-    string counter_currency_extra_data = 26;
-    string asset_tx_proof_result = 27; // name of AssetTxProofResult enum
-    string uid = 28;
+    PayoutState payout_state = 12;
+    DisputeState dispute_state = 13;
+    TradePeriodState period_state = 14;
+    Contract contract = 15;
+    string contract_as_json = 16;
+    bytes contract_hash = 17;
+    NodeAddress arbitrator_node_address = 18;
+    NodeAddress mediator_node_address = 19;
+    string error_message = 20;
+    string counter_currency_tx_id = 21;
+    repeated ChatMessage chat_message = 22;
+    MediationResultState mediation_result_state = 23;
+    int64 lock_time = 24;
+    NodeAddress refund_agent_node_address = 25;
+    RefundResultState refund_result_state = 26;
+    string counter_currency_extra_data = 27;
+    string asset_tx_proof_result = 28; // name of AssetTxProofResult enum
+    string uid = 29;
 }
 
 message BuyerAsMakerTrade {

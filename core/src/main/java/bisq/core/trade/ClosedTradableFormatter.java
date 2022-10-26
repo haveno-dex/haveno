@@ -158,7 +158,7 @@ public class ClosedTradableFormatter {
 
         if (isBisqV1Trade(tradable)) {
             Trade trade = castToTrade(tradable);
-            if (trade.isWithdrawn() || trade.isPayoutPublished()) {
+            if (trade.isCompleted() || trade.isPayoutPublished()) {
                 return Res.get("portfolio.closed.completed");
             } else if (trade.getDisputeState() == DISPUTE_CLOSED) {
                 return Res.get("portfolio.closed.ticketClosed");

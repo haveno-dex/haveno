@@ -424,8 +424,7 @@ class TakeOfferViewModel extends ActivatableWithDataModel<TakeOfferDataModel> im
                 case PAYMENT_RECEIVED:
                     appendMsg = Res.get("takeOffer.error.depositPublished");
                     break;
-                case PAYOUT_PUBLISHED:
-                case WITHDRAWN:
+                case COMPLETED:
                     appendMsg = Res.get("takeOffer.error.payoutPublished");
                     break;
                 default:
@@ -444,7 +443,7 @@ class TakeOfferViewModel extends ActivatableWithDataModel<TakeOfferDataModel> im
     }
 
     private void applyTradeState() {
-        if (trade.isTakerFeePublished()) {
+        if (trade.isDepositRequested()) {
             if (takeOfferResultHandler != null)
                 takeOfferResultHandler.run();
 

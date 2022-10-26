@@ -21,6 +21,8 @@ import bisq.core.account.sign.SignedWitness;
 import bisq.core.trade.Trade;
 import bisq.core.trade.messages.PaymentReceivedMessage;
 import bisq.core.trade.messages.TradeMailboxMessage;
+import bisq.network.p2p.NodeAddress;
+import bisq.common.crypto.PubKeyRing;
 import bisq.common.taskrunner.TaskRunner;
 
 import lombok.EqualsAndHashCode;
@@ -30,12 +32,16 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 @EqualsAndHashCode(callSuper = true)
 @Slf4j
-public class SellerSendPaymentReceivedMessage extends SendMailboxMessageTask {
+public abstract class SellerSendPaymentReceivedMessage extends SendMailboxMessageTask {
     SignedWitness signedWitness = null;
 
     public SellerSendPaymentReceivedMessage(TaskRunner<Trade> taskHandler, Trade trade) {
         super(taskHandler, trade);
     }
+
+    protected abstract NodeAddress getReceiverNodeAddress();
+
+    protected abstract PubKeyRing getReceiverPubKeyRing();
 
     @Override
     protected void run() {
@@ -55,47 +61,52 @@ public class SellerSendPaymentReceivedMessage extends SendMailboxMessageTask {
     }
 
     @Override
-    protected TradeMailboxMessage getTradeMailboxMessage(String id) {
+    protected TradeMailboxMessage getTradeMailboxMessage(String tradeId) {
         checkNotNull(trade.getPayoutTxHex(), "Payout tx must not be null");
+
+        // TODO: sign witness
+        // AccountAgeWitnessService accountAgeWitnessService = processModel.getAccountAgeWitnessService();
+        // if (accountAgeWitnessService.isSignWitnessTrade(trade)) {
+        //     // Broadcast is done in accountAgeWitness domain.
+        //     accountAgeWitnessService.traderSignAndPublishPeersAccountAgeWitness(trade).ifPresent(witness -> signedWitness = witness);
+        // }
+
         return new PaymentReceivedMessage(
-                id,
+                tradeId,
                 processModel.getMyNodeAddress(),
                 signedWitness,
-                trade.getPayoutTxHex()
+                trade.isPayoutPublished() ? null : trade.getPayoutTxHex(), // unsigned
+                trade.isPayoutPublished() ? trade.getPayoutTxHex() : null, // signed
+                trade.getSelf().getUpdatedMultisigHex(),
+                trade.getState().ordinal() >= Trade.State.SELLER_SAW_ARRIVED_PAYMENT_RECEIVED_MSG.ordinal() // informs to expect payout
         );
     }
 
-    // TODO: using PAYOUT_TX_PUBLISHED_MSG to represent PAYMENT_RECEIVED_MSG after payout, but PAYOUT_TX_PUBLISHED_MSG is specifically for arbitrator. delete *PAYOUT_TX_PUBLISHED* messages and check payout field manually?
-
     @Override
     protected void setStateSent() {
-        trade.setState(trade.getState().ordinal() >= Trade.State.SELLER_PUBLISHED_PAYOUT_TX.ordinal() ? Trade.State.SELLER_SENT_PAYOUT_TX_PUBLISHED_MSG : Trade.State.SELLER_SENT_PAYMENT_RECEIVED_MSG);
-        log.info("Sent SellerReceivedPaymentMessage: tradeId={} at peer {} SignedWitness {}",
-                trade.getId(), trade.getTradingPeer().getNodeAddress(), signedWitness);
-        processModel.getTradeManager().requestPersistence();
-    }
-
-    @Override
-    protected void setStateArrived() {
-        trade.setState(trade.getState().ordinal() >= Trade.State.SELLER_PUBLISHED_PAYOUT_TX.ordinal() ? Trade.State.SELLER_SAW_ARRIVED_PAYOUT_TX_PUBLISHED_MSG : Trade.State.SELLER_SAW_ARRIVED_PAYMENT_RECEIVED_MSG);
-        log.info("Seller's PaymentReceivedMessage arrived: tradeId={} at peer {} SignedWitness {}",
-                trade.getId(), trade.getTradingPeer().getNodeAddress(), signedWitness);
-        processModel.getTradeManager().requestPersistence();
-    }
-
-    @Override
-    protected void setStateStoredInMailbox() {
-        trade.setState(trade.getState().ordinal() >= Trade.State.SELLER_PUBLISHED_PAYOUT_TX.ordinal() ? Trade.State.SELLER_STORED_IN_MAILBOX_PAYOUT_TX_PUBLISHED_MSG : Trade.State.SELLER_STORED_IN_MAILBOX_PAYMENT_RECEIVED_MSG);
-        log.info("Seller's PaymentReceivedMessage stored in mailbox: tradeId={} at peer {} SignedWitness {}",
-                trade.getId(), trade.getTradingPeer().getNodeAddress(), signedWitness);
+        trade.setStateIfProgress(Trade.State.SELLER_SENT_PAYMENT_RECEIVED_MSG);
+        log.info("{} sent: tradeId={} at peer {} SignedWitness {}", getClass().getSimpleName(), trade.getId(), getReceiverNodeAddress(), signedWitness);
         processModel.getTradeManager().requestPersistence();
     }
 
     @Override
     protected void setStateFault() {
-        trade.setState(trade.getState().ordinal() >= Trade.State.SELLER_PUBLISHED_PAYOUT_TX.ordinal() ? Trade.State.SELLER_SEND_FAILED_PAYOUT_TX_PUBLISHED_MSG : Trade.State.SELLER_SEND_FAILED_PAYMENT_RECEIVED_MSG);
-        log.error("SellerReceivedPaymentMessage failed: tradeId={} at peer {} SignedWitness {}",
-                trade.getId(), trade.getTradingPeer().getNodeAddress(), signedWitness);
+        trade.setStateIfProgress(Trade.State.SELLER_SEND_FAILED_PAYMENT_RECEIVED_MSG);
+        log.error("{} failed: tradeId={} at peer {} SignedWitness {}", getClass().getSimpleName(), trade.getId(), getReceiverNodeAddress(), signedWitness);
+        processModel.getTradeManager().requestPersistence();
+    }
+
+    @Override
+    protected void setStateStoredInMailbox() {
+        trade.setStateIfProgress(Trade.State.SELLER_STORED_IN_MAILBOX_PAYMENT_RECEIVED_MSG);
+        log.info("{} stored in mailbox: tradeId={} at peer {} SignedWitness {}", getClass().getSimpleName(), trade.getId(), getReceiverNodeAddress(), signedWitness);
+        processModel.getTradeManager().requestPersistence();
+    }
+
+    @Override
+    protected void setStateArrived() {
+        trade.setStateIfProgress(Trade.State.SELLER_SAW_ARRIVED_PAYMENT_RECEIVED_MSG);
+        log.info("{} arrived: tradeId={} at peer {} SignedWitness {}", getClass().getSimpleName(), trade.getId(), getReceiverNodeAddress(), signedWitness);
         processModel.getTradeManager().requestPersistence();
     }
 }

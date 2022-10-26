@@ -22,7 +22,7 @@ import bisq.core.filter.FilterManager;
 import bisq.core.payment.PaymentAccount;
 import bisq.core.payment.PaymentAccountUtil;
 import bisq.core.support.dispute.arbitration.arbitrator.Arbitrator;
-import bisq.core.trade.TradeUtils;
+import bisq.core.trade.HavenoUtils;
 import bisq.core.user.Preferences;
 import bisq.core.user.User;
 
@@ -224,6 +224,6 @@ public class OfferFilterService {
     public boolean hasValidSignature(Offer offer) {
         Arbitrator arbitrator = user.getAcceptedArbitratorByAddress(offer.getOfferPayload().getArbitratorSigner());
         if (arbitrator == null) return false; // invalid arbitrator
-        return TradeUtils.isArbitratorSignatureValid(offer, arbitrator);
+        return HavenoUtils.isArbitratorSignatureValid(offer, arbitrator);
     }
 }

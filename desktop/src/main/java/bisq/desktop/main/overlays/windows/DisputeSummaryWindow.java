@@ -590,7 +590,7 @@ public class DisputeSummaryWindow extends Overlay<DisputeSummaryWindow> {
       Button cancelButton = tuple.second;
 
       closeTicketButton.setOnAction(e -> {
-          disputesService.resolveDisputePayout(dispute, disputeResult, contract);
+          disputesService.applyDisputePayout(dispute, disputeResult, contract);
           doClose(closeTicketButton);
 
 //          if (dispute.getDepositTxSerialized() == null) {

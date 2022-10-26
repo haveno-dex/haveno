@@ -22,25 +22,20 @@ import bisq.core.trade.Trade;
 import bisq.core.trade.messages.PaymentSentMessage;
 import bisq.core.trade.messages.SignContractResponse;
 import bisq.core.trade.messages.TradeMessage;
-import bisq.core.trade.protocol.BuyerProtocol.BuyerEvent;
-import bisq.core.trade.protocol.FluentProtocol.Condition;
 import bisq.core.trade.protocol.tasks.ApplyFilter;
-import bisq.core.trade.protocol.tasks.SellerMaybeSendPayoutTxPublishedMessage;
 import bisq.core.trade.protocol.tasks.SellerPreparePaymentReceivedMessage;
 import bisq.core.trade.protocol.tasks.SellerProcessPaymentSentMessage;
-import bisq.core.trade.protocol.tasks.SellerSendPaymentReceivedMessage;
-import bisq.core.trade.protocol.tasks.SellerSendPaymentAccountPayloadKey;
-import bisq.core.trade.protocol.tasks.SetupDepositTxsListener;
-import bisq.core.trade.protocol.tasks.SetupPayoutTxListener;
+import bisq.core.trade.protocol.tasks.SellerSendPaymentReceivedMessageToArbitrator;
+import bisq.core.trade.protocol.tasks.SendDepositsConfirmedMessageToBuyer;
+import bisq.core.trade.protocol.tasks.SellerSendPaymentReceivedMessageToBuyer;
+import bisq.core.trade.protocol.tasks.TradeTask;
 import bisq.network.p2p.NodeAddress;
 import bisq.common.handlers.ErrorMessageHandler;
 import bisq.common.handlers.ResultHandler;
-
 import lombok.extern.slf4j.Slf4j;
-import org.fxmisc.easybind.EasyBind;
 
 @Slf4j
-public abstract class SellerProtocol extends DisputeProtocol {
+public class SellerProtocol extends DisputeProtocol {
     enum SellerEvent implements FluentProtocol.Event {
         STARTUP,
         DEPOSIT_TXS_CONFIRMED,
@@ -54,25 +49,6 @@ public abstract class SellerProtocol extends DisputeProtocol {
     @Override
     protected void onInitialized() {
         super.onInitialized();
-        
-        // TODO: run with trade lock and latch, otherwise getting invalid transition warnings on startup after offline trades
-        
-        // send payment account payload key when trade state is confirmed
-        if (trade.getPhase() == Trade.Phase.DEPOSIT_REQUESTED || trade.getPhase() == Trade.Phase.DEPOSITS_PUBLISHED) {
-            sendPaymentAccountPayloadKeyWhenConfirmed(SellerEvent.STARTUP);
-        }
-
-        // listen for deposit txs
-        given(anyPhase(Trade.Phase.DEPOSIT_REQUESTED, Trade.Phase.DEPOSITS_PUBLISHED, Trade.Phase.DEPOSITS_CONFIRMED)
-                .with(SellerEvent.STARTUP))
-                .setup(tasks(SetupDepositTxsListener.class))
-                .executeTasks();
-
-        // listen for payout tx
-        given(anyPhase(Trade.Phase.PAYMENT_SENT, Trade.Phase.PAYMENT_RECEIVED)
-                .with(BuyerEvent.STARTUP))
-                .setup(tasks(SetupPayoutTxListener.class))
-                .executeTasks();
     }
 
     @Override
@@ -94,7 +70,6 @@ public abstract class SellerProtocol extends DisputeProtocol {
 
     @Override
     public void handleSignContractResponse(SignContractResponse response, NodeAddress sender) {
-        sendPaymentAccountPayloadKeyWhenConfirmed(SellerEvent.DEPOSIT_TXS_CONFIRMED);
         super.handleSignContractResponse(response, sender);
     }
 
@@ -163,8 +138,8 @@ public abstract class SellerProtocol extends DisputeProtocol {
                             .setup(tasks(
                                     ApplyFilter.class,
                                     SellerPreparePaymentReceivedMessage.class,
-                                    SellerMaybeSendPayoutTxPublishedMessage.class,
-                                    SellerSendPaymentReceivedMessage.class)
+                                    SellerSendPaymentReceivedMessageToBuyer.class,
+                                    SellerSendPaymentReceivedMessageToArbitrator.class)
                             .using(new TradeTaskRunner(trade, () -> {
                                 this.errorMessageHandler = null;
                                 handleTaskRunnerSuccess(event);
@@ -183,26 +158,9 @@ public abstract class SellerProtocol extends DisputeProtocol {
         }).start();
     }
 
-    private void sendPaymentAccountPayloadKeyWhenConfirmed(SellerEvent event) {
-        EasyBind.subscribe(trade.stateProperty(), state -> {
-            if (state == Trade.State.DEPOSIT_TXS_CONFIRMED_IN_BLOCKCHAIN) {
-                new Thread(() -> {
-                    synchronized (trade) {
-                        latchTrade();
-                        expect(new Condition(trade))
-                                .setup(tasks(SellerSendPaymentAccountPayloadKey.class)
-                                .using(new TradeTaskRunner(trade,
-                                        () -> {
-                                            handleTaskRunnerSuccess(event);
-                                        },
-                                        (errorMessage) -> {
-                                            handleTaskRunnerFault(event, errorMessage);
-                                        })))
-                                .executeTasks(true);
-                        awaitTradeLatch();
-                    }
-                }).start();
-            }
-        });
+    @SuppressWarnings("unchecked")
+    @Override
+    public Class<? extends TradeTask>[] getDepsitsConfirmedTasks() {
+        return new Class[] { SendDepositsConfirmedMessageToBuyer.class };
     }
 }

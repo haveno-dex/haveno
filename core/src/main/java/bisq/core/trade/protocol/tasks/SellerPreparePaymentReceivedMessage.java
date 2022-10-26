@@ -17,11 +17,16 @@
 
 package bisq.core.trade.protocol.tasks;
 
+import bisq.core.btc.wallet.XmrWalletService;
 import bisq.core.trade.Trade;
+
+import java.util.ArrayList;
+import java.util.List;
+
 import bisq.common.taskrunner.TaskRunner;
 
 import lombok.extern.slf4j.Slf4j;
-
+import monero.wallet.MoneroWallet;
 import monero.wallet.model.MoneroTxWallet;
 
 @Slf4j
@@ -37,25 +42,35 @@ public class SellerPreparePaymentReceivedMessage extends TradeTask {
         try {
             runInterceptHook();
 
+            // import multisig hex
+            MoneroWallet multisigWallet = trade.getWallet();
+            List<String> updatedMultisigHexes = new ArrayList<String>();
+            if (trade.getBuyer().getUpdatedMultisigHex() != null) updatedMultisigHexes.add(trade.getBuyer().getUpdatedMultisigHex());
+            if (trade.getArbitrator().getUpdatedMultisigHex() != null) updatedMultisigHexes.add(trade.getArbitrator().getUpdatedMultisigHex());
+            if (!updatedMultisigHexes.isEmpty()) {
+                multisigWallet.importMultisigHex(updatedMultisigHexes.toArray(new String[0]));
+                trade.saveWallet();
+            }
+
             // verify, sign, and publish payout tx if given. otherwise create payout tx
             if (trade.getPayoutTxHex() != null) {
-                log.info("Seller verifying, signing, and publishing payout tx");
+                log.info("Seller verifying, signing, and publishing payout tx for trade {}", trade.getId());
                 trade.verifyPayoutTx(trade.getPayoutTxHex(), true, true);
-
-                // mark address entries as available
-                processModel.getXmrWalletService().resetAddressEntriesForPendingTrade(trade.getId());
             } else {
 
                 // create unsigned payout tx
-                log.info("Seller creating unsigned payout tx");
+                log.info("Seller creating unsigned payout tx for trade {}", trade.getId());
                 MoneroTxWallet payoutTx = trade.createPayoutTx();
-                System.out.println("created payout tx: " + payoutTx);
                 trade.setPayoutTx(payoutTx);
                 trade.setPayoutTxHex(payoutTx.getTxSet().getMultisigTxHex());
 
-                // start listening for published payout tx
-                trade.listenForPayoutTx();
+                // export multisig hex once
+                if (trade.getSelf().getUpdatedMultisigHex() == null) {
+                    trade.getSelf().setUpdatedMultisigHex(multisigWallet.exportMultisigHex());
+                }
             }
+
+            processModel.getTradeManager().requestPersistence();
             complete();
         } catch (Throwable t) {
             failed(t);

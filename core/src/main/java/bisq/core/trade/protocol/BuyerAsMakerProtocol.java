@@ -22,7 +22,7 @@ import bisq.core.trade.Trade;
 import bisq.core.trade.messages.DepositResponse;
 import bisq.core.trade.messages.InitMultisigRequest;
 import bisq.core.trade.messages.InitTradeRequest;
-import bisq.core.trade.messages.PaymentAccountKeyResponse;
+import bisq.core.trade.messages.DepositsConfirmedMessage;
 import bisq.core.trade.messages.PaymentReceivedMessage;
 import bisq.core.trade.messages.SignContractRequest;
 import bisq.core.trade.messages.SignContractResponse;
@@ -31,7 +31,7 @@ import bisq.core.trade.protocol.tasks.ProcessInitTradeRequest;
 import bisq.network.p2p.NodeAddress;
 import bisq.common.handlers.ErrorMessageHandler;
 import bisq.common.handlers.ResultHandler;
-
+import bisq.common.taskrunner.Task;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -102,7 +102,7 @@ public class BuyerAsMakerProtocol extends BuyerProtocol implements MakerProtocol
     }
 
     @Override
-    public void handle(PaymentAccountKeyResponse request, NodeAddress sender) {
+    public void handle(DepositsConfirmedMessage request, NodeAddress sender) {
         super.handle(request, sender);
     }
 

@@ -20,7 +20,7 @@ package bisq.core.offer.placeoffer.tasks;
 import bisq.core.offer.Offer;
 import bisq.core.offer.placeoffer.PlaceOfferModel;
 import bisq.core.support.dispute.arbitration.arbitrator.Arbitrator;
-import bisq.core.trade.TradeUtils;
+import bisq.core.trade.HavenoUtils;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
@@ -42,7 +42,7 @@ public class MakerProcessSignOfferResponse extends Task<PlaceOfferModel> {
             Arbitrator arbitrator = checkNotNull(model.getUser().getAcceptedArbitratorByAddress(offer.getOfferPayload().getArbitratorSigner()), "user.getAcceptedArbitratorByAddress(arbitratorSigner) must not be null");
             
             // validate arbitrator signature
-            if (!TradeUtils.isArbitratorSignatureValid(new Offer(model.getSignOfferResponse().getSignedOfferPayload()), arbitrator)) {
+            if (!HavenoUtils.isArbitratorSignatureValid(new Offer(model.getSignOfferResponse().getSignedOfferPayload()), arbitrator)) {
                 throw new RuntimeException("Offer payload has invalid arbitrator signature");
             }
             

@@ -52,8 +52,8 @@ public final class PaymentSentMessage extends TradeMailboxMessage {
                                                  @Nullable String counterCurrencyTxId,
                                                  @Nullable String counterCurrencyExtraData,
                                                  String uid,
-                                                 String signedPayoutTxHex,
-                                                 String updatedMultisigHex,
+                                                 @Nullable String signedPayoutTxHex,
+                                                 @Nullable String updatedMultisigHex,
                                                  @Nullable byte[] paymentAccountKey) {
         this(tradeId,
                 senderNodeAddress,

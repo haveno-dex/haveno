@@ -24,7 +24,7 @@ import bisq.core.trade.Trade;
 import bisq.core.trade.handlers.TradeResultHandler;
 import bisq.core.trade.messages.DepositResponse;
 import bisq.core.trade.messages.InitMultisigRequest;
-import bisq.core.trade.messages.PaymentAccountKeyResponse;
+import bisq.core.trade.messages.DepositsConfirmedMessage;
 import bisq.core.trade.messages.PaymentReceivedMessage;
 import bisq.core.trade.messages.SignContractRequest;
 import bisq.core.trade.messages.SignContractResponse;
@@ -113,7 +113,7 @@ public class BuyerAsTakerProtocol extends BuyerProtocol implements TakerProtocol
     }
 
     @Override
-    public void handle(PaymentAccountKeyResponse request, NodeAddress sender) {
+    public void handle(DepositsConfirmedMessage request, NodeAddress sender) {
         super.handle(request, sender);
     }
 

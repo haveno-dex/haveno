@@ -18,24 +18,24 @@
 package bisq.core.trade;
 
 import bisq.common.config.Config;
-import bisq.common.crypto.KeyRing;
 import bisq.common.crypto.PubKeyRing;
 import bisq.common.crypto.Sig;
-import bisq.common.util.Tuple2;
-import bisq.core.btc.wallet.XmrWalletService;
 import bisq.core.offer.Offer;
 import bisq.core.offer.OfferPayload;
 import bisq.core.support.dispute.arbitration.arbitrator.Arbitrator;
 import bisq.core.trade.messages.InitTradeRequest;
 import bisq.core.util.JsonUtil;
 import java.net.URI;
-import java.util.Objects;
+import java.util.Collection;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 /**
- * Collection of utilities for trading.
+ * Collection of utilities.
  */
-public class TradeUtils {
+public class HavenoUtils {
 
     public static final String LOOPBACK_HOST = "127.0.0.1"; // local loopback address to host Monero node
     public static final String LOCALHOST = "localhost";
@@ -148,66 +148,24 @@ public class TradeUtils {
             return false;
         }
     }
-    
-    // TODO (woodser): remove the following utitilites?
-
-    // Returns <MULTI_SIG, TRADE_PAYOUT> if both are AVAILABLE, otherwise null
-    static Tuple2<String, String> getAvailableAddresses(Trade trade, XmrWalletService xmrWalletService,
-                                                        KeyRing keyRing) {
-        var addresses = getTradeAddresses(trade, xmrWalletService, keyRing);
-        if (addresses == null)
-            return null;
-
-        if (xmrWalletService.getAvailableAddressEntries().stream()
-                .noneMatch(e -> Objects.equals(e.getAddressString(), addresses.first)))
-            return null;
-        if (xmrWalletService.getAvailableAddressEntries().stream()
-                .noneMatch(e -> Objects.equals(e.getAddressString(), addresses.second)))
-            return null;
-
-        return new Tuple2<>(addresses.first, addresses.second);
-    }
-
-    // Returns <MULTI_SIG, TRADE_PAYOUT> addresses as strings if they're known by the wallet
-    public static Tuple2<String, String> getTradeAddresses(Trade trade, XmrWalletService xmrWalletService,
-                                                           KeyRing keyRing) {
-        var contract = trade.getContract();
-        if (contract == null)
-            return null;
-
-        // TODO (woodser): xmr multisig does not use pub key
-        throw new RuntimeException("need to replace btc multisig pub key with xmr");
-
-        // Get multisig address
-//        var isMyRoleBuyer = contract.isMyRoleBuyer(keyRing.getPubKeyRing());
-//        var multiSigPubKey = isMyRoleBuyer ? contract.getBuyerMultiSigPubKey() : contract.getSellerMultiSigPubKey();
-//        if (multiSigPubKey == null)
-//            return null;
-//        var multiSigPubKeyString = Utilities.bytesAsHexString(multiSigPubKey);
-//        var multiSigAddress = xmrWalletService.getAddressEntryListAsImmutableList().stream()
-//                .filter(e -> e.getKeyPair().getPublicKeyAsHex().equals(multiSigPubKeyString))
-//                .findAny()
-//                .orElse(null);
-//        if (multiSigAddress == null)
-//            return null;
-//
-//        // Get payout address
-//        var payoutAddress = isMyRoleBuyer ?
-//                contract.getBuyerPayoutAddressString() : contract.getSellerPayoutAddressString();
-//        var payoutAddressEntry = xmrWalletService.getAddressEntryListAsImmutableList().stream()
-//                .filter(e -> Objects.equals(e.getAddressString(), payoutAddress))
-//                .findAny()
-//                .orElse(null);
-//        if (payoutAddressEntry == null)
-//            return null;
-//
-//        return new Tuple2<>(multiSigAddress.getAddressString(), payoutAddress);
-    }
 
     public static void awaitLatch(CountDownLatch latch) {
         try {
             latch.await();
         } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+    }
+    
+    public static void awaitTasks(Collection<Runnable> tasks) {
+        if (tasks.isEmpty()) return;
+        ExecutorService pool = Executors.newFixedThreadPool(tasks.size());
+        for (Runnable task : tasks) pool.submit(task);
+        pool.shutdown();
+        try {
+            if (!pool.awaitTermination(60000, TimeUnit.SECONDS)) pool.shutdownNow();
+        } catch (InterruptedException e) {
+            pool.shutdownNow();
             throw new RuntimeException(e);
         }
     }

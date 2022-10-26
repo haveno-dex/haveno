@@ -200,7 +200,7 @@ public class PendingTradesDataModel extends ActivatableDataModel {
         ((BuyerProtocol) tradeManager.getTradeProtocol(trade)).onPaymentStarted(resultHandler, errorMessageHandler);
     }
 
-    public void onFiatPaymentReceived(ResultHandler resultHandler, ErrorMessageHandler errorMessageHandler) {
+    public void onPaymentReceived(ResultHandler resultHandler, ErrorMessageHandler errorMessageHandler) {
         Trade trade = getTrade();
         checkNotNull(trade, "trade must not be null");
         checkArgument(trade instanceof SellerTrade, "Trade must be instance of SellerTrade");
@@ -466,7 +466,6 @@ public class PendingTradesDataModel extends ActivatableDataModel {
       String payoutTxHashAsString = null;
       MoneroWallet multisigWallet = xmrWalletService.getMultisigWallet(trade.getId());
       String updatedMultisigHex = multisigWallet.exportMultisigHex();
-      xmrWalletService.closeMultisigWallet(trade.getId()); // close multisig wallet
       if (trade.getPayoutTxId() != null) {
 //          payoutTxSerialized = payoutTx.bitcoinSerialize(); // TODO (woodser): no need to pass serialized txs for xmr
 //          payoutTxHashAsString = payoutTx.getHashAsString();

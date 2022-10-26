@@ -28,7 +28,7 @@ import bisq.core.offer.placeoffer.tasks.MakerReserveOfferFunds;
 import bisq.core.offer.placeoffer.tasks.ValidateOffer;
 import bisq.core.trade.protocol.tasks.ApplyFilter;
 import bisq.core.trade.protocol.tasks.BuyerPreparePaymentSentMessage;
-import bisq.core.trade.protocol.tasks.BuyerProcessPaymentReceivedMessage;
+import bisq.core.trade.protocol.tasks.ProcessPaymentReceivedMessage;
 import bisq.core.trade.protocol.tasks.BuyerSendPaymentSentMessage;
 import bisq.core.trade.protocol.tasks.MakerSetLockTime;
 import bisq.core.trade.protocol.tasks.RemoveOffer;
@@ -36,8 +36,7 @@ import bisq.core.trade.protocol.tasks.SellerPreparePaymentReceivedMessage;
 import bisq.core.trade.protocol.tasks.SellerProcessPaymentSentMessage;
 import bisq.core.trade.protocol.tasks.SellerPublishDepositTx;
 import bisq.core.trade.protocol.tasks.SellerPublishTradeStatistics;
-import bisq.core.trade.protocol.tasks.SellerSendPaymentReceivedMessage;
-import bisq.core.trade.protocol.tasks.SetupPayoutTxListener;
+import bisq.core.trade.protocol.tasks.SellerSendPaymentReceivedMessageToBuyer;
 import bisq.core.trade.protocol.tasks.TakerVerifyMakerFeePayment;
 import bisq.core.trade.protocol.tasks.VerifyPeersAccountAgeWitness;
 import bisq.common.taskrunner.Task;
@@ -109,7 +108,7 @@ public class DebugView extends InitializableView<GridPane, Void> {
                         TakerVerifyMakerFeePayment.class,
                         SellerPreparePaymentReceivedMessage.class,
                         //SellerBroadcastPayoutTx.class, // TODO (woodser): removed from main pipeline; debug view?
-                        SellerSendPaymentReceivedMessage.class
+                        SellerSendPaymentReceivedMessageToBuyer.class
 
                         )
                 ));
@@ -123,10 +122,9 @@ public class DebugView extends InitializableView<GridPane, Void> {
 
                         ApplyFilter.class,
                         BuyerPreparePaymentSentMessage.class,
-                        SetupPayoutTxListener.class,
                         BuyerSendPaymentSentMessage.class,
 
-                        BuyerProcessPaymentReceivedMessage.class
+                        ProcessPaymentReceivedMessage.class
                         )
                 ));
 
@@ -142,10 +140,9 @@ public class DebugView extends InitializableView<GridPane, Void> {
                         ApplyFilter.class,
                         TakerVerifyMakerFeePayment.class,
                         BuyerPreparePaymentSentMessage.class,
-                        SetupPayoutTxListener.class,
                         BuyerSendPaymentSentMessage.class,
 
-                        BuyerProcessPaymentReceivedMessage.class)
+                        ProcessPaymentReceivedMessage.class)
                 ));
         addGroup("SellerAsMakerProtocol",
                 FXCollections.observableArrayList(Arrays.asList(
@@ -166,7 +163,7 @@ public class DebugView extends InitializableView<GridPane, Void> {
                         ApplyFilter.class,
                         SellerPreparePaymentReceivedMessage.class,
                         //SellerBroadcastPayoutTx.class, // TODO (woodser): removed from main pipeline; debug view?
-                        SellerSendPaymentReceivedMessage.class
+                        SellerSendPaymentReceivedMessageToBuyer.class
                         )
                 ));
     }

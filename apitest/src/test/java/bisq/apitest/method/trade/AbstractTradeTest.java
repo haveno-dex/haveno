@@ -16,7 +16,7 @@ import org.junit.jupiter.api.TestInfo;
 import static bisq.cli.table.builder.TableType.TRADE_DETAIL_TBL;
 import static bisq.core.trade.Trade.Phase.DEPOSITS_UNLOCKED;
 import static bisq.core.trade.Trade.Phase.PAYMENT_SENT;
-import static bisq.core.trade.Trade.Phase.PAYOUT_PUBLISHED;
+import static bisq.core.trade.Trade.Phase.PAYMENT_RECEIVED;
 import static bisq.core.trade.Trade.State.BUYER_SAW_ARRIVED_PAYMENT_SENT_MSG;
 import static bisq.core.trade.Trade.State.DEPOSIT_TXS_UNLOCKED_IN_BLOCKCHAIN;
 import static bisq.core.trade.Trade.State.SELLER_RECEIVED_PAYMENT_SENT_MSG;
@@ -150,7 +150,7 @@ public class AbstractTradeTest extends AbstractOfferTest {
                                                                   String tradeId) {
         Predicate<TradeInfo> isTradeInPaymentReceiptConfirmedStateAndPhase = (t) ->
                 t.getState().equals(SELLER_RECEIVED_PAYMENT_SENT_MSG.name()) &&
-                        (t.getPhase().equals(PAYOUT_PUBLISHED.name()) || t.getPhase().equals(PAYMENT_SENT.name()));
+                        t.getPhase().equals(PAYMENT_SENT.name());
         String userName = toUserName.apply(grpcClient);
         for (int i = 1; i <= maxTradeStateAndPhaseChecks.get(); i++) {
             TradeInfo trade = grpcClient.getTrade(tradeId);

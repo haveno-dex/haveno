@@ -333,13 +333,10 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
             if (isAgent(dispute)) {
 
                 // update arbitrator's multisig wallet
-                MoneroWallet multisigWallet = xmrWalletService.getMultisigWallet(dispute.getTradeId());
-                multisigWallet.importMultisigHex(openNewDisputeMessage.getUpdatedMultisigHex());
+                trade.syncWallet();
+                trade.getWallet().importMultisigHex(openNewDisputeMessage.getUpdatedMultisigHex());
+                trade.saveWallet();
                 log.info("Arbitrator multisig wallet updated on new dispute message for trade " + dispute.getTradeId());
-                
-                // close multisig wallet
-                xmrWalletService.closeMultisigWallet(dispute.getTradeId());
-
                 synchronized (disputeList) {
                     if (!disputeList.contains(dispute)) {
                         Optional<Dispute> storedDisputeOptional = findDispute(dispute);
@@ -747,6 +744,15 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
                                 disputeResultMessage.getClass().getSimpleName(), peersNodeAddress,
                                 disputeResultMessage.getTradeId(), disputeResultMessage.getUid(),
                                 chatMessage.getUid());
+
+                        // TODO: hack to sync wallet after dispute message received in order to detect payout published
+                        Trade trade = tradeManager.getTrade(dispute.getTradeId());
+                        long defaultRefreshPeriod = xmrWalletService.getConnectionsService().getDefaultRefreshPeriodMs();
+                        for (int i = 0; i < 3; i++) {
+                            UserThread.runAfter(() -> {
+                                if (!trade.isPayoutUnlocked()) trade.syncWallet();
+                            }, defaultRefreshPeriod / 1000 * (i + 1));
+                        }
 
                         // We use the chatMessage wrapped inside the disputeResultMessage for
                         // the state, as that is displayed to the user and we only persist that msg
