@@ -24,6 +24,8 @@ import bisq.network.p2p.NodeAddress;
 import com.google.protobuf.ByteString;
 import java.util.Optional;
 import javax.annotation.Nullable;
+
+import bisq.common.app.Version;
 import bisq.common.crypto.PubKeyRing;
 import bisq.common.proto.ProtoUtil;
 import lombok.EqualsAndHashCode;
@@ -31,25 +33,24 @@ import lombok.Value;
 
 @EqualsAndHashCode(callSuper = true)
 @Value
-public final class PaymentAccountKeyResponse extends TradeMailboxMessage implements DirectMessage {
+public final class DepositsConfirmedMessage extends TradeMailboxMessage implements DirectMessage {
     private final NodeAddress senderNodeAddress;
     private final PubKeyRing pubKeyRing;
     @Nullable
-    private final byte[] paymentAccountKey;
+    private final byte[] sellerPaymentAccountKey;
     @Nullable
     private final String updatedMultisigHex;
 
-    public PaymentAccountKeyResponse(String tradeId,
+    public DepositsConfirmedMessage(String tradeId,
                                      NodeAddress senderNodeAddress,
                                      PubKeyRing pubKeyRing,
                                      String uid,
-                                     String messageVersion,
-                                     @Nullable byte[] paymentAccountKey,
+                                     @Nullable byte[] sellerPaymentAccountKey,
                                      @Nullable String updatedMultisigHex) {
-        super(messageVersion, tradeId, uid);
+        super(Version.getP2PMessageVersion(), tradeId, uid);
         this.senderNodeAddress = senderNodeAddress;
         this.pubKeyRing = pubKeyRing;
-        this.paymentAccountKey = paymentAccountKey;
+        this.sellerPaymentAccountKey = sellerPaymentAccountKey;
         this.updatedMultisigHex = updatedMultisigHex;
     }
 
@@ -60,34 +61,34 @@ public final class PaymentAccountKeyResponse extends TradeMailboxMessage impleme
 
     @Override
     public protobuf.NetworkEnvelope toProtoNetworkEnvelope() {
-        protobuf.PaymentAccountKeyResponse.Builder builder = protobuf.PaymentAccountKeyResponse.newBuilder()
+        protobuf.DepositsConfirmedMessage.Builder builder = protobuf.DepositsConfirmedMessage.newBuilder()
                 .setTradeId(tradeId)
                 .setSenderNodeAddress(senderNodeAddress.toProtoMessage())
                 .setPubKeyRing(pubKeyRing.toProtoMessage())
                 .setUid(uid);
-        Optional.ofNullable(paymentAccountKey).ifPresent(e -> builder.setPaymentAccountKey(ByteString.copyFrom(e)));
+        Optional.ofNullable(sellerPaymentAccountKey).ifPresent(e -> builder.setSellerPaymentAccountKey(ByteString.copyFrom(e)));
         Optional.ofNullable(updatedMultisigHex).ifPresent(e -> builder.setUpdatedMultisigHex(updatedMultisigHex));
-        return getNetworkEnvelopeBuilder().setPaymentAccountKeyResponse(builder).build();
+        return getNetworkEnvelopeBuilder().setDepositsConfirmedMessage(builder).build();
     }
 
-    public static PaymentAccountKeyResponse fromProto(protobuf.PaymentAccountKeyResponse proto,
+    public static DepositsConfirmedMessage fromProto(protobuf.DepositsConfirmedMessage proto,
                                                       CoreProtoResolver coreProtoResolver,
                                                       String messageVersion) {
-        return new PaymentAccountKeyResponse(proto.getTradeId(),
+        return new DepositsConfirmedMessage(proto.getTradeId(),
                 NodeAddress.fromProto(proto.getSenderNodeAddress()),
                 PubKeyRing.fromProto(proto.getPubKeyRing()),
                 proto.getUid(),
-                messageVersion,
-                ProtoUtil.byteArrayOrNullFromProto(proto.getPaymentAccountKey()),
+                ProtoUtil.byteArrayOrNullFromProto(proto.getSellerPaymentAccountKey()),
                 ProtoUtil.stringOrNullFromProto(proto.getUpdatedMultisigHex()));
     }
 
     @Override
     public String toString() {
-        return "PaymentAccountKeyResponse {" +
+        return "DepositsConfirmedMessage {" +
                 "\n     senderNodeAddress=" + senderNodeAddress +
                 ",\n     pubKeyRing=" + pubKeyRing +
-                ",\n     paymentAccountKey=" + paymentAccountKey +
+                ",\n     sellerPaymentAccountKey=" + sellerPaymentAccountKey +
+                ",\n     updatedMultisigHex=" + (updatedMultisigHex == null ? null : updatedMultisigHex.substring(0, Math.max(updatedMultisigHex.length(), 1000))) +
                 "\n} " + super.toString();
     }
 }

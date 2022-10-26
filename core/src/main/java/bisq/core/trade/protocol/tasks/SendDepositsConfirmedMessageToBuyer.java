@@ -17,26 +17,30 @@
 
 package bisq.core.trade.protocol.tasks;
 
-import bisq.common.taskrunner.TaskRunner;
 import bisq.core.trade.Trade;
+import bisq.network.p2p.NodeAddress;
+import bisq.common.crypto.PubKeyRing;
+import bisq.common.taskrunner.TaskRunner;
+
 import lombok.extern.slf4j.Slf4j;
 
+/**
+ * Send message on first confirmation to decrypt peer payment account and update multisig hex.
+ */
 @Slf4j
-public class SetupDepositTxsListener extends TradeTask {
+public class SendDepositsConfirmedMessageToBuyer extends SendDepositsConfirmedMessage {
 
-    @SuppressWarnings({ "unused" })
-    public SetupDepositTxsListener(TaskRunner taskHandler, Trade trade) {
+    public SendDepositsConfirmedMessageToBuyer(TaskRunner<Trade> taskHandler, Trade trade) {
         super(taskHandler, trade);
     }
 
     @Override
-    protected void run() {
-        try {
-            runInterceptHook();
-            trade.listenForDepositTxs();
-            complete();
-        } catch (Throwable t) {
-            failed(t);
-        }
+    public NodeAddress getReceiverNodeAddress() {
+        return trade.getBuyer().getNodeAddress();
+    }
+
+    @Override
+    public PubKeyRing getReceiverPubKeyRing() {
+        return trade.getBuyer().getPubKeyRing();
     }
 }

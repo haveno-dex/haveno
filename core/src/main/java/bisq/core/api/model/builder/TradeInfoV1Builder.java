@@ -51,6 +51,7 @@ public final class TradeInfoV1Builder {
     private String state;
     private String phase;
     private String periodState;
+    private String payoutState;
     private boolean isDepositPublished;
     private boolean isDepositUnlocked;
     private boolean isPaymentSent;
@@ -130,12 +131,7 @@ public final class TradeInfoV1Builder {
         this.volume = volume;
         return this;
     }
-
-    public TradeInfoV1Builder withPeriodState(String periodState) {
-        this.periodState = periodState;
-        return this;
-    }
-
+    
     public TradeInfoV1Builder withState(String state) {
         this.state = state;
         return this;
@@ -143,6 +139,16 @@ public final class TradeInfoV1Builder {
 
     public TradeInfoV1Builder withPhase(String phase) {
         this.phase = phase;
+        return this;
+    }
+
+    public TradeInfoV1Builder withPeriodState(String periodState) {
+        this.periodState = periodState;
+        return this;
+    }
+
+    public TradeInfoV1Builder withPayoutState(String payoutState) {
+        this.payoutState = payoutState;
         return this;
     }
 

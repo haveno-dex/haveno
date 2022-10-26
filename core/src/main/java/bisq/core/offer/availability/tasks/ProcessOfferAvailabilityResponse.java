@@ -21,7 +21,7 @@ import bisq.core.offer.AvailabilityResult;
 import bisq.core.offer.Offer;
 import bisq.core.offer.availability.OfferAvailabilityModel;
 import bisq.core.offer.messages.OfferAvailabilityResponse;
-import bisq.core.trade.TradeUtils;
+import bisq.core.trade.HavenoUtils;
 import bisq.common.taskrunner.Task;
 import bisq.common.taskrunner.TaskRunner;
 
@@ -54,7 +54,7 @@ public class ProcessOfferAvailabilityResponse extends Task<OfferAvailabilityMode
             }
             
             // verify maker signature for trade request
-            if (!TradeUtils.isMakerSignatureValid(model.getTradeRequest(), offerAvailabilityResponse.getMakerSignature(), offer.getPubKeyRing())) {
+            if (!HavenoUtils.isMakerSignatureValid(model.getTradeRequest(), offerAvailabilityResponse.getMakerSignature(), offer.getPubKeyRing())) {
                 offer.setState(Offer.State.NOT_AVAILABLE);
                 failed("Take offer attempt failed because maker signature is invalid");
                 return;

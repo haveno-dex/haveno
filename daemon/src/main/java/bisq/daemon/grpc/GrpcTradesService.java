@@ -31,8 +31,8 @@ import bisq.proto.grpc.GetTradeReply;
 import bisq.proto.grpc.GetTradeRequest;
 import bisq.proto.grpc.GetTradesReply;
 import bisq.proto.grpc.GetTradesRequest;
-import bisq.proto.grpc.KeepFundsReply;
-import bisq.proto.grpc.KeepFundsRequest;
+import bisq.proto.grpc.CompleteTradeReply;
+import bisq.proto.grpc.CompleteTradeRequest;
 import bisq.proto.grpc.SendChatMessageReply;
 import bisq.proto.grpc.SendChatMessageRequest;
 import bisq.proto.grpc.TakeOfferReply;
@@ -176,13 +176,13 @@ class GrpcTradesService extends TradesImplBase {
         }
     }
 
-    // TODO: rename KeepFundsRequest to CloseTradeRequest
+    // TODO: rename CompleteTradeRequest to CloseTradeRequest
     @Override
-    public void keepFunds(KeepFundsRequest req,
-                          StreamObserver<KeepFundsReply> responseObserver) {
+    public void completeTrade(CompleteTradeRequest req,
+                          StreamObserver<CompleteTradeReply> responseObserver) {
         try {
             coreApi.closeTrade(req.getTradeId());
-            var reply = KeepFundsReply.newBuilder().build();
+            var reply = CompleteTradeReply.newBuilder().build();
             responseObserver.onNext(reply);
             responseObserver.onCompleted();
         } catch (Throwable cause) {
@@ -244,12 +244,12 @@ class GrpcTradesService extends TradesImplBase {
         return getCustomRateMeteringInterceptor(coreApi.getConfig().appDataDir, this.getClass())
                 .or(() -> Optional.of(CallRateMeteringInterceptor.valueOf(
                         new HashMap<>() {{
-                            put(getGetTradeMethod().getFullMethodName(), new GrpcCallRateMeter(10, SECONDS));
+                            put(getGetTradeMethod().getFullMethodName(), new GrpcCallRateMeter(20, SECONDS));
                             put(getGetTradesMethod().getFullMethodName(), new GrpcCallRateMeter(10, SECONDS));
                             put(getTakeOfferMethod().getFullMethodName(), new GrpcCallRateMeter(10, SECONDS));
                             put(getConfirmPaymentStartedMethod().getFullMethodName(), new GrpcCallRateMeter(10, SECONDS));
                             put(getConfirmPaymentReceivedMethod().getFullMethodName(), new GrpcCallRateMeter(10, SECONDS));
-                            put(getKeepFundsMethod().getFullMethodName(), new GrpcCallRateMeter(1, MINUTES));
+                            put(getCompleteTradeMethod().getFullMethodName(), new GrpcCallRateMeter(10, SECONDS));
                             put(getWithdrawFundsMethod().getFullMethodName(), new GrpcCallRateMeter(1, MINUTES));
                             put(getGetChatMessagesMethod().getFullMethodName(), new GrpcCallRateMeter(10, SECONDS));
                             put(getSendChatMessageMethod().getFullMethodName(), new GrpcCallRateMeter(10, SECONDS));

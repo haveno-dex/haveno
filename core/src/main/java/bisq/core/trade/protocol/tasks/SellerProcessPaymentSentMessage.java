@@ -20,12 +20,10 @@ package bisq.core.trade.protocol.tasks;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import bisq.common.taskrunner.TaskRunner;
-import bisq.core.btc.wallet.XmrWalletService;
 import bisq.core.trade.Trade;
 import bisq.core.trade.messages.PaymentSentMessage;
 import bisq.core.util.Validator;
 import lombok.extern.slf4j.Slf4j;
-import monero.wallet.MoneroWallet;
 
 @Slf4j
 public class SellerProcessPaymentSentMessage extends TradeTask {
@@ -47,18 +45,10 @@ public class SellerProcessPaymentSentMessage extends TradeTask {
             trade.getBuyer().setUpdatedMultisigHex(message.getUpdatedMultisigHex());
 
             // decrypt buyer's payment account payload
-            trade.decryptPeersPaymentAccountPayload(message.getPaymentAccountKey());
-
-            // sync and update multisig wallet
-            if (trade.getBuyer().getUpdatedMultisigHex() != null) {
-                XmrWalletService walletService = processModel.getProvider().getXmrWalletService();
-                MoneroWallet multisigWallet = walletService.getMultisigWallet(trade.getId()); // TODO: ensure sync() always called before importMultisigHex()
-                multisigWallet.importMultisigHex(trade.getBuyer().getUpdatedMultisigHex());
-                walletService.closeMultisigWallet(trade.getId());
-            }
+            trade.decryptPeerPaymentAccountPayload(message.getPaymentAccountKey());
 
             // update latest peer address
-            trade.getTradingPeer().setNodeAddress(processModel.getTempTradingPeerNodeAddress());
+            trade.getBuyer().setNodeAddress(processModel.getTempTradingPeerNodeAddress());
 
             String counterCurrencyTxId = message.getCounterCurrencyTxId();
             if (counterCurrencyTxId != null && counterCurrencyTxId.length() < 100) {
@@ -73,7 +63,6 @@ public class SellerProcessPaymentSentMessage extends TradeTask {
             trade.setState(Trade.State.SELLER_RECEIVED_PAYMENT_SENT_MSG);
 
             processModel.getTradeManager().requestPersistence();
-
             complete();
         } catch (Throwable t) {
             failed(t);

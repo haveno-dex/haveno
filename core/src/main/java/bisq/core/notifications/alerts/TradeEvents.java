@@ -82,13 +82,11 @@ public class TradeEvents {
                             msg = Res.get("account.notifications.trade.message.msg.started", shortId);
                         break;
                     case PAYMENT_RECEIVED:
-                        break;
-                    case PAYOUT_PUBLISHED:
                         // We only notify the buyer
                         if (trade.getContract() != null && pubKeyRingProvider.get().equals(trade.getContract().getBuyerPubKeyRing()))
                             msg = Res.get("account.notifications.trade.message.msg.completed", shortId);
                         break;
-                    case WITHDRAWN:
+                    case COMPLETED:
                         break;
                 }
                 if (msg != null) {

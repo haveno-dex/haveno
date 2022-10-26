@@ -42,7 +42,7 @@ import bisq.core.offer.Offer;
 import bisq.core.offer.OfferDirection;
 import bisq.core.offer.OpenOfferManager;
 import bisq.core.provider.price.PriceFeedService;
-import bisq.core.trade.TradeUtils;
+import bisq.core.trade.HavenoUtils;
 import bisq.core.user.Preferences;
 import bisq.core.util.VolumeUtil;
 

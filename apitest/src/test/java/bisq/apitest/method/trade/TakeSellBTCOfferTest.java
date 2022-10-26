@@ -32,10 +32,10 @@ import org.junit.jupiter.api.TestMethodOrder;
 
 import static bisq.apitest.config.ApiTestConfig.BTC;
 import static bisq.apitest.config.ApiTestConfig.USD;
-import static bisq.core.trade.Trade.Phase.PAYOUT_PUBLISHED;
-import static bisq.core.trade.Trade.Phase.WITHDRAWN;
-import static bisq.core.trade.Trade.State.SELLER_SAW_ARRIVED_PAYOUT_TX_PUBLISHED_MSG;
-import static bisq.core.trade.Trade.State.WITHDRAW_COMPLETED;
+import static bisq.core.trade.Trade.Phase.PAYMENT_RECEIVED;
+import static bisq.core.trade.Trade.Phase.COMPLETED;
+import static bisq.core.trade.Trade.State.SELLER_SAW_ARRIVED_PAYMENT_RECEIVED_MSG;
+import static bisq.core.trade.Trade.State.TRADE_COMPLETED;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
@@ -119,8 +119,8 @@ public class TakeSellBTCOfferTest extends AbstractTradeTest {
             sleep(3_000);
             trade = aliceClient.getTrade(tradeId);
             assertEquals(OFFER_FEE_RESERVED.name(), trade.getOffer().getState());
-            EXPECTED_PROTOCOL_STATUS.setState(SELLER_SAW_ARRIVED_PAYOUT_TX_PUBLISHED_MSG)
-                    .setPhase(PAYOUT_PUBLISHED)
+            EXPECTED_PROTOCOL_STATUS.setState(SELLER_SAW_ARRIVED_PAYMENT_RECEIVED_MSG)
+                    .setPhase(PAYMENT_RECEIVED)
                     .setPayoutPublished(true)
                     .setPaymentReceivedMessageSent(true);
             verifyExpectedProtocolStatus(trade);

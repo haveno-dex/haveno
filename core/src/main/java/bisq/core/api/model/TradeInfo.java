@@ -79,12 +79,13 @@ public class TradeInfo implements Payload {
     private final String state;
     private final String phase;
     private final String periodState;
+    private final String payoutState;
     private final boolean isDepositPublished;
     private final boolean isDepositUnlocked;
     private final boolean isPaymentSent;
     private final boolean isPaymentReceived;
-    private final boolean isPayoutPublished;
     private final boolean isCompleted;
+    private final boolean isPayoutPublished;
     private final String contractAsJson;
     private final ContractInfo contract;
 
@@ -107,6 +108,7 @@ public class TradeInfo implements Payload {
         this.state = builder.getState();
         this.phase = builder.getPhase();
         this.periodState = builder.getPeriodState();
+        this.payoutState = builder.getPayoutState();
         this.isDepositPublished = builder.isDepositPublished();
         this.isDepositUnlocked = builder.isDepositUnlocked();
         this.isPaymentSent = builder.isPaymentSent();
@@ -158,6 +160,7 @@ public class TradeInfo implements Payload {
                 .withState(trade.getState().name())
                 .withPhase(trade.getPhase().name())
                 .withPeriodState(trade.getPeriodState().name())
+                .withPayoutState(trade.getPayoutState().name())
                 .withIsDepositPublished(trade.isDepositPublished())
                 .withIsDepositUnlocked(trade.isDepositUnlocked())
                 .withIsPaymentSent(trade.isPaymentSent())
@@ -195,12 +198,13 @@ public class TradeInfo implements Payload {
                 .setState(state)
                 .setPhase(phase)
                 .setPeriodState(periodState)
+                .setPayoutState(payoutState)
                 .setIsDepositPublished(isDepositPublished)
                 .setIsDepositUnlocked(isDepositUnlocked)
                 .setIsPaymentSent(isPaymentSent)
                 .setIsPaymentReceived(isPaymentReceived)
+                .setIsCompleted(isCompleted)
                 .setIsPayoutPublished(isPayoutPublished)
-                .setIsPayoutPublished(isCompleted)
                 .setContractAsJson(contractAsJson == null ? "" : contractAsJson)
                 .setContract(contract.toProtoMessage())
                 .build();
@@ -222,6 +226,7 @@ public class TradeInfo implements Payload {
                 .withPrice(proto.getPrice())
                 .withVolume(proto.getTradeVolume())
                 .withPeriodState(proto.getPeriodState())
+                .withPayoutState(proto.getPayoutState())
                 .withState(proto.getState())
                 .withPhase(proto.getPhase())
                 .withArbitratorNodeAddress(proto.getArbitratorNodeAddress())
@@ -230,8 +235,8 @@ public class TradeInfo implements Payload {
                 .withIsDepositUnlocked(proto.getIsDepositUnlocked())
                 .withIsPaymentSent(proto.getIsPaymentSent())
                 .withIsPaymentReceived(proto.getIsPaymentReceived())
-                .withIsPayoutPublished(proto.getIsPayoutPublished())
                 .withIsCompleted(proto.getIsCompleted())
+                .withIsPayoutPublished(proto.getIsPayoutPublished())
                 .withContractAsJson(proto.getContractAsJson())
                 .withContract((ContractInfo.fromProto(proto.getContract())))
                 .build();
@@ -256,12 +261,13 @@ public class TradeInfo implements Payload {
                 ", state='" + state + '\'' + "\n" +
                 ", phase='" + phase + '\'' + "\n" +
                 ", periodState='" + periodState + '\'' + "\n" +
+                ", payoutState='" + payoutState + '\'' + "\n" +
                 ", isDepositPublished=" + isDepositPublished + "\n" +
                 ", isDepositConfirmed=" + isDepositUnlocked + "\n" +
                 ", isPaymentSent=" + isPaymentSent + "\n" +
                 ", isPaymentReceived=" + isPaymentReceived + "\n" +
-                ", isPayoutPublished=" + isPayoutPublished + "\n" +
                 ", isCompleted=" + isCompleted + "\n" +
+                ", isPayoutPublished=" + isPayoutPublished + "\n" +
                 ", offer=" + offer + "\n" +
                 ", contractAsJson=" + contractAsJson + "\n" +
                 ", contract=" + contract + "\n" +

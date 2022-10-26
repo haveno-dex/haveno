@@ -22,7 +22,7 @@ import bisq.core.offer.Offer;
 import bisq.core.trade.ArbitratorTrade;
 import bisq.core.trade.MakerTrade;
 import bisq.core.trade.Trade;
-import bisq.core.trade.TradeUtils;
+import bisq.core.trade.HavenoUtils;
 import bisq.core.trade.messages.InitTradeRequest;
 import bisq.core.trade.protocol.TradingPeer;
 
@@ -71,7 +71,7 @@ public class ProcessInitTradeRequest extends TradeTask {
                     if (!trade.getTaker().getNodeAddress().equals(request.getTakerNodeAddress())) throw new RuntimeException("Init trade requests from maker and taker do not agree");
                     if (trade.getTaker().getPubKeyRing() != null) throw new RuntimeException("Pub key ring should not be initialized before processing InitTradeRequest");
                     trade.getTaker().setPubKeyRing(request.getPubKeyRing());
-                    if (!TradeUtils.isMakerSignatureValid(request, request.getMakerSignature(), offer.getPubKeyRing())) throw new RuntimeException("Maker signature is invalid for the trade request"); // verify maker signature
+                    if (!HavenoUtils.isMakerSignatureValid(request, request.getMakerSignature(), offer.getPubKeyRing())) throw new RuntimeException("Maker signature is invalid for the trade request"); // verify maker signature
 
                     // check trade price
                     try {

@@ -72,9 +72,6 @@ public class ProcessSignContractResponse extends TradeTask {
             // send deposit request when all contract signatures received
             if (processModel.getArbitrator().getContractSignature() != null && processModel.getMaker().getContractSignature() != null && processModel.getTaker().getContractSignature() != null) {
 
-                // start listening for deposit txs
-                trade.listenForDepositTxs();
-
                 // create request for arbitrator to deposit funds to multisig
                 DepositRequest request = new DepositRequest(
                         trade.getOffer().getId(),

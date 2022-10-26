@@ -183,12 +183,11 @@ public class NotificationCenter {
 
     private void onTradePhaseChanged(Trade trade, Trade.Phase phase) {
         String message = null;
-        if (trade.isPayoutPublished() && !trade.isWithdrawn()) {
+        if (trade.isPayoutPublished() && !trade.isCompleted()) {
             message = Res.get("notification.trade.completed");
         } else {
             if (trade instanceof MakerTrade &&
-                    phase.ordinal() == Trade.Phase.DEPOSITS_PUBLISHED.ordinal() ||
-                    phase.ordinal() == Trade.Phase.DEPOSITS_CONFIRMED.ordinal()) {
+                    phase.ordinal() == Trade.Phase.DEPOSITS_PUBLISHED.ordinal()) {
                 final String role = trade instanceof BuyerTrade ? Res.get("shared.seller") : Res.get("shared.buyer");
                 message = Res.get("notification.trade.accepted", role);
             }

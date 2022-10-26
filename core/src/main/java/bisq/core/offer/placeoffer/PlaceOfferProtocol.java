@@ -62,7 +62,7 @@ public class PlaceOfferProtocol {
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     public void placeOffer() {
-        log.debug("placeOffer() " + model.getOffer().getId());
+        log.info("{}.placeOffer() {}", getClass().getSimpleName(), model.getOffer().getId());
 
         timeoutTimer = UserThread.runAfter(() -> {
             handleError(Res.get("createOffer.timeoutAtPublishing"));

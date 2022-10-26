@@ -74,7 +74,7 @@ public class MaybeSendSignContractRequest extends TradeTask {
 
           // create deposit tx and freeze inputs
           MoneroTxWallet depositTx = trade.getXmrWalletService().createDepositTx(trade);
-          
+
           // TODO (woodser): save frozen key images and unfreeze if trade fails before deposited to multisig
 
           // save process state

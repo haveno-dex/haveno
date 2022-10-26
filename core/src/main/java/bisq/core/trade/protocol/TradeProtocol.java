@@ -18,24 +18,30 @@
 package bisq.core.trade.protocol;
 
 import bisq.core.offer.Offer;
+import bisq.core.trade.ArbitratorTrade;
+import bisq.core.trade.BuyerTrade;
 import bisq.core.trade.Trade;
 import bisq.core.trade.TradeManager;
-import bisq.core.trade.TradeUtils;
+import bisq.core.trade.HavenoUtils;
 import bisq.core.trade.handlers.TradeResultHandler;
 import bisq.core.trade.messages.PaymentSentMessage;
 import bisq.core.trade.messages.DepositResponse;
+import bisq.core.trade.messages.DepositsConfirmedMessage;
 import bisq.core.trade.messages.InitMultisigRequest;
+import bisq.core.trade.messages.PaymentReceivedMessage;
 import bisq.core.trade.messages.SignContractRequest;
 import bisq.core.trade.messages.SignContractResponse;
 import bisq.core.trade.messages.TradeMessage;
-import bisq.core.trade.messages.UpdateMultisigRequest;
 import bisq.core.trade.protocol.tasks.RemoveOffer;
+import bisq.core.trade.protocol.tasks.TradeTask;
+import bisq.core.trade.protocol.FluentProtocol.Condition;
 import bisq.core.trade.protocol.tasks.MaybeSendSignContractRequest;
 import bisq.core.trade.protocol.tasks.ProcessDepositResponse;
+import bisq.core.trade.protocol.tasks.ProcessDepositsConfirmedMessage;
 import bisq.core.trade.protocol.tasks.ProcessInitMultisigRequest;
+import bisq.core.trade.protocol.tasks.ProcessPaymentReceivedMessage;
 import bisq.core.trade.protocol.tasks.ProcessSignContractRequest;
 import bisq.core.trade.protocol.tasks.ProcessSignContractResponse;
-import bisq.core.trade.protocol.tasks.ProcessUpdateMultisigRequest;
 import bisq.core.util.Validator;
 
 import bisq.network.p2p.AckMessage;
@@ -47,7 +53,6 @@ import bisq.network.p2p.SendMailboxMessageListener;
 import bisq.network.p2p.mailbox.MailboxMessage;
 import bisq.network.p2p.mailbox.MailboxMessageService;
 import bisq.network.p2p.messaging.DecryptedMailboxListener;
-
 import bisq.common.Timer;
 import bisq.common.UserThread;
 import bisq.common.crypto.PubKeyRing;
@@ -58,7 +63,6 @@ import bisq.common.taskrunner.Task;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
 
 import lombok.extern.slf4j.Slf4j;
 import org.fxmisc.easybind.EasyBind;
@@ -93,10 +97,20 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
 
     protected void onTradeMessage(TradeMessage message, NodeAddress peerNodeAddress) {
         log.info("Received {} as TradeMessage from {} with tradeId {} and uid {}", message.getClass().getSimpleName(), peerNodeAddress, message.getTradeId(), message.getUid());
+        if (message instanceof DepositsConfirmedMessage) {
+            handle((DepositsConfirmedMessage) message, peerNodeAddress);
+        } else if (message instanceof PaymentReceivedMessage) {
+            handle((PaymentReceivedMessage) message, peerNodeAddress);
+        }
     }
 
     protected void onMailboxMessage(TradeMessage message, NodeAddress peerNodeAddress) {
         log.info("Received {} as MailboxMessage from {} with tradeId {} and uid {}", message.getClass().getSimpleName(), peerNodeAddress, message.getTradeId(), message.getUid());
+        if (message instanceof DepositsConfirmedMessage) {
+            handle((DepositsConfirmedMessage) message, peerNodeAddress);
+        } else if (message instanceof PaymentReceivedMessage) {
+            handle((PaymentReceivedMessage) message, peerNodeAddress);
+        }
     }
 
 
@@ -110,20 +124,22 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
     }
 
     protected void onInitialized() {
-        if (!trade.isWithdrawn()) {
+        if (!trade.isCompleted()) {
             processModel.getP2PService().addDecryptedDirectMessageListener(this);
         }
 
+        // handle trade events
+        EasyBind.subscribe(trade.stateProperty(), state -> {
+            if (state == Trade.State.DEPOSIT_TXS_CONFIRMED_IN_BLOCKCHAIN) sendDepositsConfirmedMessage();
+        });
+
+        // initialize trade
+        trade.initialize(processModel.getProvider());
+
+        // process mailbox messages
         MailboxMessageService mailboxMessageService = processModel.getP2PService().getMailboxMessageService();
-        // We delay a bit here as the trade gets updated from the wallet to update the trade
-        // state (deposit confirmed) and that happens after our method is called.
-        // TODO To fix that in a better way we would need to change the order of some routines
-        // from the TradeManager, but as we are close to a release I dont want to risk a bigger
-        // change and leave that for a later PR
-        UserThread.runAfter(() -> {
-            mailboxMessageService.addDecryptedMailboxListener(this);
-            handleMailboxCollection(mailboxMessageService.getMyDecryptedMailboxMessages());
-        }, 100, TimeUnit.MILLISECONDS);
+        mailboxMessageService.addDecryptedMailboxListener(this);
+        handleMailboxCollection(mailboxMessageService.getMyDecryptedMailboxMessages());
     }
 
     public void onWithdrawCompleted() {
@@ -196,7 +212,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
             TradeMessage tradeMessage = (TradeMessage) mailboxMessage;
             // We only remove here if we have already completed the trade.
             // Otherwise removal is done after successfully applied the task runner.
-            if (trade.isWithdrawn()) {
+            if (trade.isCompleted()) {
                 processModel.getP2PService().getMailboxMessageService().removeMailboxMsg(mailboxMessage);
                 log.info("Remove {} from the P2P network as trade is already completed.",
                         tradeMessage.getClass().getSimpleName());
@@ -205,7 +221,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
             onMailboxMessage(tradeMessage, mailboxMessage.getSenderNodeAddress());
         } else if (mailboxMessage instanceof AckMessage) {
             AckMessage ackMessage = (AckMessage) mailboxMessage;
-            if (!trade.isWithdrawn()) {
+            if (!trade.isCompleted()) {
                 // We only apply the msg if we have not already completed the trade
                 onAckMessage(ackMessage, mailboxMessage.getSenderNodeAddress());
             }
@@ -227,8 +243,10 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
     // Abstract
     ///////////////////////////////////////////////////////////////////////////////////////////
 
+    public abstract Class<? extends TradeTask>[] getDepsitsConfirmedTasks();
+
     public void handleInitMultisigRequest(InitMultisigRequest request, NodeAddress sender) {
-        System.out.println(getClass().getCanonicalName() + ".handleInitMultisigRequest()");
+        System.out.println(getClass().getSimpleName() + ".handleInitMultisigRequest()");
         new Thread(() -> {
             synchronized (trade) {
                 latchTrade();
@@ -256,7 +274,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
     }
 
     public void handleSignContractRequest(SignContractRequest message, NodeAddress sender) {
-        System.out.println(getClass().getCanonicalName() + ".handleSignContractRequest() " + trade.getId());
+        System.out.println(getClass().getSimpleName() + ".handleSignContractRequest() " + trade.getId());
         new Thread(() -> {
             synchronized (trade) {
                 Validator.checkTradeId(processModel.getOfferId(), message);
@@ -292,7 +310,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
     }
 
     public void handleSignContractResponse(SignContractResponse message, NodeAddress sender) {
-        System.out.println(getClass().getCanonicalName() + ".handleSignContractResponse() " + trade.getId());
+        System.out.println(getClass().getSimpleName() + ".handleSignContractResponse() " + trade.getId());
         new Thread(() -> {
             synchronized (trade) {
                 Validator.checkTradeId(processModel.getOfferId(), message);
@@ -329,7 +347,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
     }
 
     public void handleDepositResponse(DepositResponse response, NodeAddress sender) {
-        System.out.println(getClass().getCanonicalName() + ".handleDepositResponse()");
+        System.out.println(getClass().getSimpleName() + ".handleDepositResponse()");
         new Thread(() -> {
             synchronized (trade) {
                 latchTrade();
@@ -358,25 +376,55 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
         }).start();
     }
 
-    // TODO (woodser): update to use fluent for consistency
-    public void handleUpdateMultisigRequest(UpdateMultisigRequest message, NodeAddress peer, ErrorMessageHandler errorMessageHandler) {
-        latchTrade();
-        Validator.checkTradeId(processModel.getOfferId(), message);
-        processModel.setTradeMessage(message);
-        TradeTaskRunner taskRunner = new TradeTaskRunner(trade,
-                () -> {
-                    stopTimeout();
-                    handleTaskRunnerSuccess(peer, message, "handleUpdateMultisigRequest");
-                },
-                errorMessage -> {
-                    handleTaskRunnerFault(peer, message, errorMessage);
-                });
-        taskRunner.addTasks(
-                ProcessUpdateMultisigRequest.class
-        );
-        startTimeout(TRADE_TIMEOUT);
-        taskRunner.run();
-        awaitTradeLatch();
+    public void handle(DepositsConfirmedMessage response, NodeAddress sender) {
+        System.out.println(getClass().getSimpleName() + ".handle(DepositsConfirmedMessage)");
+        new Thread(() -> {
+            synchronized (trade) {
+                latchTrade();
+                expect(new Condition(trade)
+                        .with(response)
+                        .from(sender))
+                        .setup(tasks(ProcessDepositsConfirmedMessage.class)
+                        .using(new TradeTaskRunner(trade,
+                                () -> {
+                                    handleTaskRunnerSuccess(sender, response);
+                                },
+                                errorMessage -> {
+                                    handleTaskRunnerFault(sender, response, errorMessage);
+                                })))
+                        .executeTasks();
+                awaitTradeLatch();
+            }
+        }).start();
+    }
+
+    // received by buyer and arbitrator
+    protected void handle(PaymentReceivedMessage message, NodeAddress peer) {
+        System.out.println(getClass().getSimpleName() + ".handle(PaymentReceivedMessage)");
+        if (!(trade instanceof BuyerTrade || trade instanceof ArbitratorTrade)) {
+            log.warn("Ignoring PaymentReceivedMessage since not buyer or arbitrator");
+            return;
+        }
+        if (trade instanceof ArbitratorTrade && !trade.isPayoutUnlocked()) trade.syncWallet(); // arbitrator syncs slowly after deposits confirmed
+        synchronized (trade) {
+            latchTrade();
+            Validator.checkTradeId(processModel.getOfferId(), message);
+            processModel.setTradeMessage(message);
+            expect(anyPhase(trade instanceof ArbitratorTrade ? new Trade.Phase[] { Trade.Phase.DEPOSITS_UNLOCKED } : new Trade.Phase[] { Trade.Phase.PAYMENT_SENT, Trade.Phase.PAYMENT_RECEIVED  })
+                .with(message)
+                .from(peer))
+                .setup(tasks(
+                    ProcessPaymentReceivedMessage.class)
+                    .using(new TradeTaskRunner(trade,
+                        () -> {
+                            handleTaskRunnerSuccess(peer, message);
+                        },
+                        errorMessage -> {
+                            handleTaskRunnerFault(peer, message, errorMessage);
+                        })))
+                .executeTasks(true);
+            awaitTradeLatch();
+        }
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -591,7 +639,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
     // Private
     ///////////////////////////////////////////////////////////////////////////////////////////
 
-    private void handleTaskRunnerSuccess(NodeAddress sender, @Nullable TradeMessage message, String source) {
+    protected void handleTaskRunnerSuccess(NodeAddress sender, @Nullable TradeMessage message, String source) {
         log.info("TaskRunner successfully completed. Triggered from {}, tradeId={}", source, trade.getId());
         if (message != null) {
             sendAckMessage(sender, message, true, null);
@@ -638,7 +686,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
 
     protected void awaitTradeLatch() {
         if (tradeLatch == null) return;
-        TradeUtils.awaitLatch(tradeLatch);
+        HavenoUtils.awaitLatch(tradeLatch);
     }
 
     private boolean isMyMessage(NetworkEnvelope message) {
@@ -652,5 +700,24 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
         } else {
             return false;
         }
+    }
+
+    private void sendDepositsConfirmedMessage() {
+        new Thread(() -> {
+            synchronized (trade) {
+                latchTrade();
+                expect(new Condition(trade))
+                        .setup(tasks(getDepsitsConfirmedTasks())
+                        .using(new TradeTaskRunner(trade,
+                                () -> {
+                                    handleTaskRunnerSuccess(null, null, "SendDepositsConfirmedMessages");
+                                },
+                                (errorMessage) -> {
+                                    handleTaskRunnerFault(null, null, errorMessage);
+                                })))
+                        .executeTasks(true);
+                awaitTradeLatch();
+            }
+        }).start();
     }
 }

@@ -21,7 +21,6 @@ import bisq.core.proto.CoreProtoResolver;
 
 import bisq.network.p2p.DirectMessage;
 import bisq.network.p2p.NodeAddress;
-import com.google.protobuf.ByteString;
 import bisq.common.crypto.PubKeyRing;
 
 import lombok.EqualsAndHashCode;

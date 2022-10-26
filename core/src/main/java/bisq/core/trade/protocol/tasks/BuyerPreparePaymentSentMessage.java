@@ -63,24 +63,25 @@ public class BuyerPreparePaymentSentMessage extends TradeTask {
             XmrWalletService walletService = processModel.getProvider().getXmrWalletService();
             MoneroWallet multisigWallet = walletService.getMultisigWallet(trade.getId());
 
-            // create payout tx if we have seller's updated multisig hex
-            if (trade.getTradingPeer().getUpdatedMultisigHex() != null) {
+            // import multisig hex
+            List<String> updatedMultisigHexes = new ArrayList<String>();
+            if (trade.getSeller().getUpdatedMultisigHex() != null) updatedMultisigHexes.add(trade.getSeller().getUpdatedMultisigHex());
+            if (trade.getArbitrator().getUpdatedMultisigHex() != null) updatedMultisigHexes.add(trade.getArbitrator().getUpdatedMultisigHex());
+            if (!updatedMultisigHexes.isEmpty()) { 
+              multisigWallet.importMultisigHex(updatedMultisigHexes.toArray(new String[0])); // TODO (monero-project): fails if multisig hex imported individually
+              trade.saveWallet();
+            }
 
-                // create payout tx
+            // create payout tx if we have seller's updated multisig hex
+            if (trade.getSeller().getUpdatedMultisigHex() != null) {
+
+              // create payout tx
                 log.info("Buyer creating unsigned payout tx");
-                multisigWallet.importMultisigHex(trade.getTradingPeer().getUpdatedMultisigHex());
                 MoneroTxWallet payoutTx = trade.createPayoutTx();
                 trade.setPayoutTx(payoutTx);
                 trade.setPayoutTxHex(payoutTx.getTxSet().getMultisigTxHex());
-
-                // start listening for published payout tx
-                trade.listenForPayoutTx();
-            } else {
-                if (trade.getSelf().getUpdatedMultisigHex() == null) trade.getSelf().setUpdatedMultisigHex(multisigWallet.exportMultisigHex()); // only export multisig hex once
             }
 
-            // close multisig wallet
-            walletService.closeMultisigWallet(trade.getId());
             complete();
         } catch (Throwable t) {
             failed(t);

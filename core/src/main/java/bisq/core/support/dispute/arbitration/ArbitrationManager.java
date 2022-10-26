@@ -301,7 +301,7 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
                 log.trace("We don't publish the tx as we are not the winning party.");
                 // Clean up tangling trades
                 if (dispute.disputeResultProperty().get() != null && dispute.isClosed()) {
-                    updateTradeOrOpenOfferManager(tradeId);
+                    closeTradeOrOffer(tradeId);
                 }
             }
         }
@@ -324,7 +324,7 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
 
             // We prefer to close the dispute in that case. If there was no deposit tx and a random tx was used
             // we get a TransactionVerificationException. No reason to keep that dispute open...
-            updateTradeOrOpenOfferManager(tradeId); // TODO (woodser): only close in case of verification exception?
+            closeTradeOrOffer(tradeId); // TODO (woodser): only close in case of verification exception?
 
             throw new RuntimeException(errorMessage);
         } finally {
@@ -338,7 +338,6 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
                 synchronized (trade) {
                     MoneroWallet multisigWallet = xmrWalletService.getMultisigWallet(tradeId); // TODO (woodser): this is closed after sending ArbitratorPayoutTxRequest to arbitrator which opens and syncs multisig and responds with signed dispute tx. more efficient way is to include with arbitrator-signed dispute tx with dispute result?
                     sendArbitratorPayoutTxRequest(multisigWallet.exportMultisigHex(), dispute, contract);
-                    xmrWalletService.closeMultisigWallet(tradeId);
                 }
             }
         }
@@ -376,12 +375,13 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
 
             cleanupRetryMap(uid);
 
-            // update multisig wallet
-            if (xmrWalletService.multisigWalletExists(tradeId)) { // TODO: multisig wallet may already be deleted if peer completed trade with arbitrator. refactor trade completion?
-                MoneroWallet multisigWallet = xmrWalletService.getMultisigWallet(dispute.getTradeId());
-                multisigWallet.importMultisigHex(peerPublishedDisputePayoutTxMessage.getUpdatedMultisigHex());
-                MoneroTxWallet parsedPayoutTx = multisigWallet.describeTxSet(new MoneroTxSet().setMultisigTxHex(peerPublishedDisputePayoutTxMessage.getPayoutTxHex())).getTxs().get(0);
-                xmrWalletService.closeMultisigWallet(tradeId);
+            // update trade wallet
+            MoneroWallet wallet = trade.getWallet();
+            if (wallet != null) { // TODO: multisig wallet may already be deleted if peer completed trade with arbitrator. refactor trade completion?
+                trade.syncWallet();
+                wallet.importMultisigHex(peerPublishedDisputePayoutTxMessage.getUpdatedMultisigHex());
+                trade.saveWallet();
+                MoneroTxWallet parsedPayoutTx = wallet.describeTxSet(new MoneroTxSet().setMultisigTxHex(peerPublishedDisputePayoutTxMessage.getPayoutTxHex())).getTxs().get(0);
                 dispute.setDisputePayoutTxId(parsedPayoutTx.getHash());
                 XmrWalletService.printTxs("Disputed payoutTx received from peer", parsedPayoutTx);
             }
@@ -397,6 +397,7 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
     }
 
     // Arbitrator receives updated multisig hex from dispute opener's peer (if co-signer) and returns updated payout tx to be signed and published
+    // TODO: this should be invoked from mailbox message and send mailbox message response to support offline arbitrator
     private void onArbitratorPayoutTxRequest(ArbitratorPayoutTxRequest request) {
       log.info("{}.onArbitratorPayoutTxRequest()", getClass().getSimpleName());
       String tradeId = request.getTradeId();
@@ -426,9 +427,11 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
           }
 
           // update arbitrator's multisig wallet with co-signer's multisig hex
-          MoneroWallet multisigWallet = xmrWalletService.getMultisigWallet(dispute.getTradeId());
+          trade.syncWallet();
+          MoneroWallet multisigWallet = trade.getWallet();
           try {
             multisigWallet.importMultisigHex(request.getUpdatedMultisigHex());
+            trade.saveWallet();
           } catch (Exception e) {
             log.warn("Failed to import multisig hex from payout co-signer for trade id " + tradeId);
             return;
@@ -439,9 +442,6 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
           System.out.println("Arbitrator created updated payout tx for co-signer!!!");
           System.out.println(payoutTx);
           
-          // close multisig wallet
-          xmrWalletService.closeMultisigWallet(tradeId);
-
           // send updated payout tx to sender
           PubKeyRing senderPubKeyRing = contract.getBuyerNodeAddress().equals(request.getSenderNodeAddress()) ? contract.getBuyerPubKeyRing() : contract.getSellerPubKeyRing();
           ArbitratorPayoutTxResponse response = new ArbitratorPayoutTxResponse(
@@ -455,10 +455,19 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
               senderPubKeyRing,
               response,
               new SendDirectMessageListener() {
-                  @Override
+                @Override
                   public void onArrived() {
                       log.info("{} arrived at peer {}. tradeId={}, uid={}",
                               response.getClass().getSimpleName(), request.getSenderNodeAddress(), dispute.getTradeId(), response.getUid());
+
+                      // TODO: hack to sync wallet after dispute message received in order to detect payout published
+                      Trade trade = tradeManager.getTrade(dispute.getTradeId());
+                      long defaultRefreshPeriod = xmrWalletService.getConnectionsService().getDefaultRefreshPeriodMs();
+                      for (int i = 0; i < 3; i++) {
+                        UserThread.runAfter(() -> {
+                            if (!trade.isPayoutUnlocked()) trade.syncWallet();
+                        }, defaultRefreshPeriod / 1000 * (i + 1));
+                      }
                   }
 
                   @Override
@@ -546,6 +555,7 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
 
       // update multisig wallet from arbitrator
       multisigWallet.importMultisigHex(disputeResult.getArbitratorUpdatedMultisigHex());
+      xmrWalletService.saveWallet(multisigWallet);
 
       // sign arbitrator-signed payout tx
       MoneroMultisigSignResult result = multisigWallet.signMultisigTxHex(payoutTxHex);
@@ -575,10 +585,10 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
       // update state
       trade.setPayoutTx(txSet.getTxs().get(0));   // TODO (woodser): is trade.payoutTx() mutually exclusive from dispute payout tx?
       trade.setPayoutTxId(txSet.getTxs().get(0).getHash());
-      trade.setState(Trade.State.SELLER_PUBLISHED_PAYOUT_TX);
+      trade.setPayoutState(Trade.PayoutState.PUBLISHED);
       dispute.setDisputePayoutTxId(txSet.getTxs().get(0).getHash());
       sendPeerPublishedPayoutTxMessage(multisigWallet.exportMultisigHex(), txSet.getMultisigTxHex(), dispute, contract);
-      updateTradeOrOpenOfferManager(tradeId);
+      closeTradeOrOffer(tradeId);
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -623,7 +633,7 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
         );
     }
 
-    private void updateTradeOrOpenOfferManager(String tradeId) {
+    public void closeTradeOrOffer(String tradeId) {
         // set state after payout as we call swapTradeEntryToAvailableEntry
         if (tradeManager.getOpenTrade(tradeId).isPresent()) {
             tradeManager.closeDisputedTrade(tradeId, Trade.DisputeState.DISPUTE_CLOSED);
@@ -632,7 +642,6 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
             openOfferOptional.ifPresent(openOffer -> openOfferManager.closeOpenOffer(openOffer.getOffer()));
         }
     }
-
     // dispute opener's peer signs payout tx by sending updated multisig hex to arbitrator who returns updated payout tx
     private void sendArbitratorPayoutTxRequest(String updatedMultisigHex, Dispute dispute, Contract contract) {
         ArbitratorPayoutTxRequest request = new ArbitratorPayoutTxRequest(

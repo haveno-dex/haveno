@@ -22,6 +22,7 @@ import bisq.core.account.sign.SignedWitness;
 import bisq.network.p2p.NodeAddress;
 
 import bisq.common.app.Version;
+import bisq.common.proto.ProtoUtil;
 import bisq.common.proto.network.NetworkEnvelope;
 
 import java.util.Optional;
@@ -38,7 +39,12 @@ import javax.annotation.Nullable;
 @Value
 public final class PaymentReceivedMessage extends TradeMailboxMessage {
     private final NodeAddress senderNodeAddress;
-    private final String payoutTxHex;
+    @Nullable
+    private final String unsignedPayoutTxHex;
+    @Nullable
+    private final String signedPayoutTxHex;
+    private final String updatedMultisigHex;
+    private final boolean sawArrivedPaymentReceivedMsg;
 
     // Added in v1.4.0
     @Nullable
@@ -47,13 +53,19 @@ public final class PaymentReceivedMessage extends TradeMailboxMessage {
     public PaymentReceivedMessage(String tradeId,
                                     NodeAddress senderNodeAddress,
                                     @Nullable SignedWitness signedWitness,
-                                    String signedPayoutTxHex) {
+                                    String unsignedPayoutTxHex,
+                                    String signedPayoutTxHex,
+                                    String updatedMultisigHex,
+                                    boolean sawArrivedPaymentReceivedMsg) {
         this(tradeId,
                 senderNodeAddress,
                 signedWitness,
                 UUID.randomUUID().toString(),
                 Version.getP2PMessageVersion(),
-                signedPayoutTxHex);
+                unsignedPayoutTxHex,
+                signedPayoutTxHex,
+                updatedMultisigHex,
+                sawArrivedPaymentReceivedMsg);
     }
 
 
@@ -66,11 +78,17 @@ public final class PaymentReceivedMessage extends TradeMailboxMessage {
                                      @Nullable SignedWitness signedWitness,
                                      String uid,
                                      String messageVersion,
-                                     String signedPayoutTxHex) {
+                                     String unsignedPayoutTxHex,
+                                     String signedPayoutTxHex,
+                                     String updatedMultisigHex,
+                                     boolean sawArrivedPaymentReceivedMsg) {
         super(messageVersion, tradeId, uid);
         this.senderNodeAddress = senderNodeAddress;
         this.signedWitness = signedWitness;
-        this.payoutTxHex = signedPayoutTxHex;
+        this.unsignedPayoutTxHex = unsignedPayoutTxHex;
+        this.signedPayoutTxHex = signedPayoutTxHex;
+        this.updatedMultisigHex = updatedMultisigHex;
+        this.sawArrivedPaymentReceivedMsg = sawArrivedPaymentReceivedMsg;
     }
 
     @Override
@@ -79,8 +97,11 @@ public final class PaymentReceivedMessage extends TradeMailboxMessage {
                 .setTradeId(tradeId)
                 .setSenderNodeAddress(senderNodeAddress.toProtoMessage())
                 .setUid(uid)
-                .setPayoutTxHex(payoutTxHex);
+                .setSawArrivedPaymentReceivedMsg(sawArrivedPaymentReceivedMsg);
         Optional.ofNullable(signedWitness).ifPresent(signedWitness -> builder.setSignedWitness(signedWitness.toProtoSignedWitness()));
+        Optional.ofNullable(updatedMultisigHex).ifPresent(e -> builder.setUpdatedMultisigHex(updatedMultisigHex));
+        Optional.ofNullable(unsignedPayoutTxHex).ifPresent(e -> builder.setUnsignedPayoutTxHex(unsignedPayoutTxHex));
+        Optional.ofNullable(signedPayoutTxHex).ifPresent(e -> builder.setSignedPayoutTxHex(signedPayoutTxHex));
         return getNetworkEnvelopeBuilder().setPaymentReceivedMessage(builder).build();
     }
 
@@ -96,7 +117,10 @@ public final class PaymentReceivedMessage extends TradeMailboxMessage {
                 signedWitness,
                 proto.getUid(),
                 messageVersion,
-                proto.getPayoutTxHex());
+                ProtoUtil.stringOrNullFromProto(proto.getUnsignedPayoutTxHex()),
+                ProtoUtil.stringOrNullFromProto(proto.getSignedPayoutTxHex()),
+                ProtoUtil.stringOrNullFromProto(proto.getUpdatedMultisigHex()),
+                proto.getSawArrivedPaymentReceivedMsg());
     }
 
     @Override
@@ -104,7 +128,10 @@ public final class PaymentReceivedMessage extends TradeMailboxMessage {
         return "SellerReceivedPaymentMessage{" +
                 "\n     senderNodeAddress=" + senderNodeAddress +
                 ",\n     signedWitness=" + signedWitness +
-                ",\n     payoutTxHex=" + payoutTxHex +
+                ",\n     unsignedPayoutTxHex=" + unsignedPayoutTxHex +
+                ",\n     signedPayoutTxHex=" + signedPayoutTxHex +
+                ",\n     updatedMultisigHex=" + (updatedMultisigHex == null ? null : updatedMultisigHex.substring(0, Math.max(updatedMultisigHex.length(), 1000))) +
+                ",\n     sawArrivedPaymentReceivedMsg=" + sawArrivedPaymentReceivedMsg +
                 "\n} " + super.toString();
     }
 }

@@ -18,23 +18,25 @@
 package bisq.core.trade.protocol.tasks;
 
 import bisq.core.btc.wallet.XmrWalletService;
+import bisq.core.trade.BuyerTrade;
 import bisq.core.trade.Trade;
-import bisq.core.trade.messages.PaymentAccountKeyResponse;
+import bisq.core.trade.messages.DepositsConfirmedMessage;
 import bisq.core.trade.messages.TradeMailboxMessage;
-import bisq.common.app.Version;
+import bisq.network.p2p.NodeAddress;
+import bisq.common.crypto.PubKeyRing;
 import bisq.common.taskrunner.TaskRunner;
 
 import lombok.extern.slf4j.Slf4j;
 import monero.wallet.MoneroWallet;
 
 /**
- * Allow sender's payment account info to be decrypted when trade state is confirmed.
+ * Send message on first confirmation to decrypt peer payment account and update multisig hex.
  */
 @Slf4j
-public class SellerSendPaymentAccountPayloadKey extends SendMailboxMessageTask {
-    private PaymentAccountKeyResponse message;
+public abstract class SendDepositsConfirmedMessage extends SendMailboxMessageTask {
+    private DepositsConfirmedMessage message;
 
-    public SellerSendPaymentAccountPayloadKey(TaskRunner<Trade> taskHandler, Trade trade) {
+    public SendDepositsConfirmedMessage(TaskRunner<Trade> taskHandler, Trade trade) {
         super(taskHandler, trade);
     }
 
@@ -47,16 +49,22 @@ public class SellerSendPaymentAccountPayloadKey extends SendMailboxMessageTask {
             failed(t);
         }
     }
-    
+
+    @Override
+    protected abstract NodeAddress getReceiverNodeAddress();
+
+    @Override
+    protected abstract PubKeyRing getReceiverPubKeyRing();
+
     @Override
     protected TradeMailboxMessage getTradeMailboxMessage(String tradeId) {
         if (message == null) {
 
-            // get updated multisig hex
+            // export multisig hex once
             if (trade.getSelf().getUpdatedMultisigHex() == null) {
                 XmrWalletService walletService = processModel.getProvider().getXmrWalletService();
                 MoneroWallet multisigWallet = walletService.getMultisigWallet(tradeId);
-                trade.getSelf().setUpdatedMultisigHex(multisigWallet.exportMultisigHex()); // only export multisig hex once
+                trade.getSelf().setUpdatedMultisigHex(multisigWallet.exportMultisigHex());
             }
 
             // We do not use a real unique ID here as we want to be able to re-send the exact same message in case the
@@ -64,13 +72,12 @@ public class SellerSendPaymentAccountPayloadKey extends SendMailboxMessageTask {
             // messages where only the one which gets processed by the peer would be removed we use the same uid. All
             // other data stays the same when we re-send the message at any time later.
             String deterministicId = tradeId + processModel.getMyNodeAddress().getFullAddress();
-            message = new PaymentAccountKeyResponse(
+            message = new DepositsConfirmedMessage(
                     trade.getOffer().getId(),
                     processModel.getMyNodeAddress(),
                     processModel.getPubKeyRing(),
                     deterministicId,
-                    Version.getP2PMessageVersion(),
-                    trade.getSelf().getPaymentAccountKey(),
+                    getReceiverNodeAddress().equals(trade.getBuyer().getNodeAddress()) ? trade.getSeller().getPaymentAccountKey() : null, // buyer receives seller's payment account decryption key
                     trade.getSelf().getUpdatedMultisigHex());
         }
         return message;

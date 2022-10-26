@@ -29,11 +29,10 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInfo;
 import org.junit.jupiter.api.TestMethodOrder;
 
-import static bisq.apitest.config.ApiTestConfig.BTC;
 import static bisq.apitest.config.ApiTestConfig.XMR;
 import static bisq.cli.table.builder.TableType.OFFER_TBL;
-import static bisq.core.trade.Trade.Phase.PAYOUT_PUBLISHED;
-import static bisq.core.trade.Trade.State.SELLER_SAW_ARRIVED_PAYOUT_TX_PUBLISHED_MSG;
+import static bisq.core.trade.Trade.Phase.PAYMENT_RECEIVED;
+import static bisq.core.trade.Trade.State.SELLER_SAW_ARRIVED_PAYMENT_RECEIVED_MSG;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.fail;
 import static protobuf.Offer.State.OFFER_FEE_RESERVED;
@@ -130,8 +129,8 @@ public class TakeBuyXMROfferTest extends AbstractTradeTest {
 
             trade = aliceClient.getTrade(tradeId);
             assertEquals(OFFER_FEE_RESERVED.name(), trade.getOffer().getState());
-            EXPECTED_PROTOCOL_STATUS.setState(SELLER_SAW_ARRIVED_PAYOUT_TX_PUBLISHED_MSG)
-                    .setPhase(PAYOUT_PUBLISHED)
+            EXPECTED_PROTOCOL_STATUS.setState(SELLER_SAW_ARRIVED_PAYMENT_RECEIVED_MSG)
+                    .setPhase(PAYMENT_RECEIVED)
                     .setPayoutPublished(true)
                     .setPaymentReceivedMessageSent(true);
             verifyExpectedProtocolStatus(trade);
