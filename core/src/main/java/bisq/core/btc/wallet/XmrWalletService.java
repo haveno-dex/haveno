@@ -392,7 +392,7 @@ public class XmrWalletService {
 
     // TODO (woodser): fee estimates are too high, use more accurate estimate
     public BigInteger getFeeEstimate(String txHex) {
-        return getDaemon().getFeeEstimate().multiply(BigInteger.valueOf(txHex.length()));
+        return getDaemon().getFeeEstimate().getFee().multiply(BigInteger.valueOf(txHex.length()));
     }
 
     public MoneroTx getTx(String txHash) {
