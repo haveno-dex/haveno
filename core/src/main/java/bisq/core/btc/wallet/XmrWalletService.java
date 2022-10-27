@@ -23,7 +23,6 @@ import bisq.core.trade.TradeManager;
 import bisq.core.trade.HavenoUtils;
 import bisq.core.util.ParsingUtils;
 
-import com.google.common.collect.TreeMultimap;
 import com.google.common.util.concurrent.Service.State;
 import com.google.inject.name.Named;
 import common.utils.JsonUtils;
@@ -31,7 +30,6 @@ import java.io.File;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -50,7 +48,7 @@ import monero.common.MoneroRpcConnection;
 import monero.common.MoneroRpcError;
 import monero.common.MoneroUtils;
 import monero.daemon.MoneroDaemonRpc;
-import monero.daemon.model.MoneroKeyImageSpentStatus;
+import monero.daemon.model.MoneroFeeEstimate;
 import monero.daemon.model.MoneroNetworkType;
 import monero.daemon.model.MoneroOutput;
 import monero.daemon.model.MoneroSubmitTxResult;
@@ -87,6 +85,8 @@ public class XmrWalletService {
     private static final String MONERO_WALLET_RPC_DEFAULT_PASSWORD = "password"; // only used if account password is null
     private static final String MONERO_WALLET_NAME = "haveno_XMR";
     private static final String MONERO_MULTISIG_WALLET_PREFIX = "xmr_multisig_trade_";
+    private static final int MINER_FEE_PADDING_MULTIPLIER = 2; // extra padding for miner fees = estimated fee * multiplier
+    private static final double MINER_FEE_TOLERANCE = 0.25; // miner fee must be within percent of expected fee
 
     private final CoreAccountService accountService;
     private final CoreMoneroConnectionsService connectionsService;
@@ -265,32 +265,40 @@ public class XmrWalletService {
      * to the sender's payout address. Additional funds are reserved to allow
      * fluctuations in the mining fee.
      *
-     * @param tradeFee is the trade fee
-     * @param depositAmount the amount needed for the trade minus the trade fee
+     * @param tradeFee - trade fee
+     * @param depositAmount - amount needed for the trade minus the trade fee
+     * @param returnAddress - return address for deposit amount
+     * @param addPadding - reserve extra padding for miner fee fluctuations
      * @return a transaction to reserve a trade
      */
-    public MoneroTxWallet createReserveTx(BigInteger tradeFee, String returnAddress, BigInteger depositAmount, boolean freezeInputs) {
+    public MoneroTxWallet createReserveTx(BigInteger tradeFee, String returnAddress, BigInteger depositAmount, boolean addPadding) {
         MoneroWallet wallet = getWallet();
         synchronized (wallet) {
 
-            // get expected mining fee
-            MoneroTxWallet miningFeeTx = wallet.createTx(new MoneroTxConfig()
-                    .setAccountIndex(0)
-                    .addDestination(HavenoUtils.getTradeFeeAddress(), tradeFee)
-                    .addDestination(returnAddress, depositAmount));
-            BigInteger miningFee = miningFeeTx.getFee();
+            // add miner fee padding to deposit amount
+            if (addPadding) {
+
+                // get expected mining fee
+                MoneroTxWallet feeEstimateTx = wallet.createTx(new MoneroTxConfig()
+                        .setAccountIndex(0)
+                        .addDestination(HavenoUtils.getTradeFeeAddress(), tradeFee)
+                        .addDestination(returnAddress, depositAmount));
+                BigInteger feeEstimate = feeEstimateTx.getFee();
+
+                // add extra padding to deposit amount
+                BigInteger minerFeePadding = feeEstimate.multiply(BigInteger.valueOf(MINER_FEE_PADDING_MULTIPLIER));
+                depositAmount = depositAmount.add(minerFeePadding);
+            }
 
             // create reserve tx
             MoneroTxWallet reserveTx = wallet.createTx(new MoneroTxConfig()
-                    .setAccountIndex(0)
-                    .addDestination(HavenoUtils.getTradeFeeAddress(), tradeFee)
-                    .addDestination(returnAddress, depositAmount.add(miningFee.multiply(BigInteger.valueOf(3l))))); // add thrice the mining fee // TODO (woodser): really require more funds on top of security deposit?
+                .setAccountIndex(0)
+                .addDestination(HavenoUtils.getTradeFeeAddress(), tradeFee)
+                .addDestination(returnAddress, depositAmount));
 
             // freeze inputs
-            if (freezeInputs) {
-                for (MoneroOutput input : reserveTx.getInputs()) wallet.freezeOutput(input.getKeyImage().getHex());
-                wallet.save();
-            }
+            for (MoneroOutput input : reserveTx.getInputs()) wallet.freezeOutput(input.getKeyImage().getHex());
+            wallet.save();
 
             return reserveTx;
         }
@@ -368,18 +376,15 @@ public class XmrWalletService {
             if (!check.getReceivedAmount().equals(tradeFee)) throw new RuntimeException("Trade fee is incorrect amount, expected " + tradeFee + " but was " + check.getReceivedAmount());
 
             // verify mining fee
-            BigInteger feeEstimate = getFeeEstimate(txHex);
-            BigInteger feeThreshold = feeEstimate.multiply(BigInteger.valueOf(1l)).divide(BigInteger.valueOf(2l)); // must be at least 50% of estimated fee
-            if (tx.getFee().compareTo(feeThreshold) < 0) {
-                throw new RuntimeException("Mining fee is not enough, needed " + feeThreshold + " but was " + tx.getFee());
-            }
+            BigInteger feeEstimate = getFeeEstimate(tx.getWeight());
+            double feeDiff = tx.getFee().subtract(feeEstimate).abs().doubleValue() / feeEstimate.doubleValue();
+            if (feeDiff > MINER_FEE_TOLERANCE) throw new Error("Mining fee is not within " + (MINER_FEE_TOLERANCE * 100) + "% of estimated fee, expected " + feeEstimate + " but was " + tx.getFee());
 
             // verify deposit amount
             check = wallet.checkTxKey(txHash, txKey, depositAddress);
             if (!check.isGood()) throw new RuntimeException("Invalid proof of deposit amount");
-            BigInteger depositThreshold = depositAmount;
-            if (miningFeePadding) depositThreshold  = depositThreshold.add(feeThreshold.multiply(BigInteger.valueOf(3l))); // prove reserve of at least deposit amount + (3 * min mining fee)
-            if (check.getReceivedAmount().compareTo(depositThreshold) < 0) throw new RuntimeException("Deposit amount is not enough, needed " + depositThreshold + " but was " + check.getReceivedAmount());
+            if (miningFeePadding) depositAmount = depositAmount.add(feeEstimate.multiply(BigInteger.valueOf(MINER_FEE_PADDING_MULTIPLIER))); // prove reserve of at least deposit amount + miner fee padding
+            if (check.getReceivedAmount().compareTo(depositAmount) < 0) throw new RuntimeException("Deposit amount is not enough, needed " + depositAmount + " but was " + check.getReceivedAmount());
         } finally {
             try {
                 daemon.flushTxPool(txHash); // flush tx from pool
@@ -390,9 +395,27 @@ public class XmrWalletService {
         }
     }
 
-    // TODO (woodser): fee estimates are too high, use more accurate estimate
-    public BigInteger getFeeEstimate(String txHex) {
-        return getDaemon().getFeeEstimate().getFee().multiply(BigInteger.valueOf(txHex.length()));
+    /**
+     * Get the tx fee estimate based on its weight.
+     * 
+     * @param txWeight - the tx weight
+     * @return the tx fee estimate
+     */
+    public BigInteger getFeeEstimate(long txWeight) {
+
+        // get fee estimates per kB from daemon
+        MoneroFeeEstimate feeEstimates = getDaemon().getFeeEstimate();
+        BigInteger baseFeeRate = feeEstimates.getFee(); // get normal fee per kB
+        BigInteger qmask = feeEstimates.getQuantizationMask();
+
+        // get tx base fee
+        BigInteger baseFee = baseFeeRate.multiply(BigInteger.valueOf(txWeight));
+
+        // round up to multiple of quantization mask
+        BigInteger[] quotientAndRemainder = baseFee.divideAndRemainder(qmask);
+        BigInteger feeEstimate = qmask.multiply(quotientAndRemainder[0]);
+        if (quotientAndRemainder[1].compareTo(BigInteger.valueOf(0)) > 0) feeEstimate = feeEstimate.add(qmask);
+        return feeEstimate;
     }
 
     public MoneroTx getTx(String txHash) {

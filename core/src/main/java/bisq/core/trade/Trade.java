@@ -716,9 +716,9 @@ public abstract class Trade implements Tradable, Model {
      */
     public MoneroTxWallet createPayoutTx() {
 
-        // gather relevant info
+        // gather info
         XmrWalletService walletService = processModel.getProvider().getXmrWalletService();
-        MoneroWallet multisigWallet = walletService.getMultisigWallet(this.getId());
+        MoneroWallet multisigWallet = getWallet();
         if (multisigWallet.isMultisigImportNeeded()) throw new RuntimeException("Cannot create payout tx because multisig import is needed");
         String sellerPayoutAddress = this.getSeller().getPayoutAddressString();
         String buyerPayoutAddress = this.getBuyer().getPayoutAddressString();
