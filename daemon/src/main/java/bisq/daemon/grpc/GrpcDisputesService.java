@@ -65,7 +65,7 @@ public class GrpcDisputesService extends DisputesImplBase {
                     },
                     (errorMessage, throwable) -> {
                         log.info("Error in openDispute" + errorMessage);
-                        exceptionHandler.handleException(log, throwable, responseObserver);
+                        exceptionHandler.handleErrorMessage(log, errorMessage, responseObserver);
                     });
         } catch (Throwable cause) {
             exceptionHandler.handleException(log, cause, responseObserver);
@@ -82,7 +82,7 @@ public class GrpcDisputesService extends DisputesImplBase {
             responseObserver.onNext(reply);
             responseObserver.onCompleted();
         } catch (Throwable cause) {
-            exceptionHandler.handleException(log, cause, responseObserver);
+            exceptionHandler.handleExceptionAsWarning(log, getClass().getName() + ".getDispute", cause, responseObserver);
         }
     }
 
@@ -115,7 +115,7 @@ public class GrpcDisputesService extends DisputesImplBase {
             responseObserver.onNext(reply);
             responseObserver.onCompleted();
         } catch (Throwable cause) {
-            exceptionHandler.handleException(log, cause, responseObserver);
+            exceptionHandler.handleExceptionAsWarning(log, getClass().getName() + ".resolveDispute", cause, responseObserver);
         }
     }
 
@@ -149,7 +149,7 @@ public class GrpcDisputesService extends DisputesImplBase {
                             put(getGetDisputesMethod().getFullMethodName(), new GrpcCallRateMeter(10, SECONDS));
                             put(getResolveDisputeMethod().getFullMethodName(), new GrpcCallRateMeter(10, SECONDS));
                             put(getOpenDisputeMethod().getFullMethodName(), new GrpcCallRateMeter(10, SECONDS));
-                            put(getSendDisputeChatMessageMethod().getFullMethodName(), new GrpcCallRateMeter(10, SECONDS));
+                            put(getSendDisputeChatMessageMethod().getFullMethodName(), new GrpcCallRateMeter(20, SECONDS));
                         }}
                 )));
     }

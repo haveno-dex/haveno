@@ -20,8 +20,10 @@ package bisq.core.support.dispute.messages;
 import bisq.core.proto.CoreProtoResolver;
 import bisq.core.support.SupportType;
 import bisq.core.support.dispute.Dispute;
-
+import bisq.core.trade.messages.PaymentSentMessage;
 import bisq.network.p2p.NodeAddress;
+
+import java.util.Optional;
 
 import bisq.common.app.Version;
 
@@ -30,22 +32,25 @@ import lombok.Value;
 
 @EqualsAndHashCode(callSuper = true)
 @Value
-public final class OpenNewDisputeMessage extends DisputeMessage {
+public final class DisputeOpenedMessage extends DisputeMessage {
     private final Dispute dispute;
     private final NodeAddress senderNodeAddress;
     private final String updatedMultisigHex;
+    private final PaymentSentMessage paymentSentMessage;
 
-    public OpenNewDisputeMessage(Dispute dispute,
+    public DisputeOpenedMessage(Dispute dispute,
                                  NodeAddress senderNodeAddress,
                                  String uid,
                                  SupportType supportType,
-                                 String updatedMultisigHex) {
+                                 String updatedMultisigHex,
+                                 PaymentSentMessage paymentSentMessage) {
         this(dispute,
                 senderNodeAddress,
                 uid,
                 Version.getP2PMessageVersion(),
                 supportType,
-                updatedMultisigHex);
+                updatedMultisigHex,
+                paymentSentMessage);
     }
 
 
@@ -53,39 +58,42 @@ public final class OpenNewDisputeMessage extends DisputeMessage {
     // PROTO BUFFER
     ///////////////////////////////////////////////////////////////////////////////////////////
 
-    private OpenNewDisputeMessage(Dispute dispute,
+    private DisputeOpenedMessage(Dispute dispute,
                                   NodeAddress senderNodeAddress,
                                   String uid,
                                   String messageVersion,
                                   SupportType supportType,
-                                  String updatedMultisigHex) {
+                                  String updatedMultisigHex,
+                                  PaymentSentMessage paymentSentMessage) {
         super(messageVersion, uid, supportType);
         this.dispute = dispute;
         this.senderNodeAddress = senderNodeAddress;
         this.updatedMultisigHex = updatedMultisigHex;
+        this.paymentSentMessage = paymentSentMessage;
     }
 
     @Override
     public protobuf.NetworkEnvelope toProtoNetworkEnvelope() {
-        return getNetworkEnvelopeBuilder()
-                .setOpenNewDisputeMessage(protobuf.OpenNewDisputeMessage.newBuilder()
-                        .setUid(uid)
-                        .setDispute(dispute.toProtoMessage())
-                        .setSenderNodeAddress(senderNodeAddress.toProtoMessage())
-                        .setType(SupportType.toProtoMessage(supportType))
-                        .setUpdatedMultisigHex(updatedMultisigHex))
-                .build();
+        protobuf.DisputeOpenedMessage.Builder builder = protobuf.DisputeOpenedMessage.newBuilder()
+                .setUid(uid)
+                .setDispute(dispute.toProtoMessage())
+                .setSenderNodeAddress(senderNodeAddress.toProtoMessage())
+                .setType(SupportType.toProtoMessage(supportType))
+                .setUpdatedMultisigHex(updatedMultisigHex);
+        Optional.ofNullable(paymentSentMessage).ifPresent(e -> builder.setPaymentSentMessage(paymentSentMessage.toProtoNetworkEnvelope().getPaymentSentMessage()));
+        return getNetworkEnvelopeBuilder().setDisputeOpenedMessage(builder).build();
     }
 
-    public static OpenNewDisputeMessage fromProto(protobuf.OpenNewDisputeMessage proto,
+    public static DisputeOpenedMessage fromProto(protobuf.DisputeOpenedMessage proto,
                                                   CoreProtoResolver coreProtoResolver,
                                                   String messageVersion) {
-        return new OpenNewDisputeMessage(Dispute.fromProto(proto.getDispute(), coreProtoResolver),
+        return new DisputeOpenedMessage(Dispute.fromProto(proto.getDispute(), coreProtoResolver),
                 NodeAddress.fromProto(proto.getSenderNodeAddress()),
                 proto.getUid(),
                 messageVersion,
                 SupportType.fromProto(proto.getType()),
-                proto.getUpdatedMultisigHex());
+                proto.getUpdatedMultisigHex(),
+                proto.hasPaymentSentMessage() ? PaymentSentMessage.fromProto(proto.getPaymentSentMessage(), messageVersion) : null);
     }
 
     @Override
@@ -95,13 +103,14 @@ public final class OpenNewDisputeMessage extends DisputeMessage {
 
     @Override
     public String toString() {
-        return "OpenNewDisputeMessage{" +
+        return "DisputeOpenedMessage{" +
                 "\n     dispute=" + dispute +
                 ",\n     senderNodeAddress=" + senderNodeAddress +
-                ",\n     OpenNewDisputeMessage.uid='" + uid + '\'' +
+                ",\n     DisputeOpenedMessage.uid='" + uid + '\'' +
                 ",\n     messageVersion=" + messageVersion +
                 ",\n     supportType=" + supportType +
                 ",\n     updatedMultisigHex=" + updatedMultisigHex +
+                ",\n     paymentSentMessage=" + paymentSentMessage +
                 "\n} " + super.toString();
     }
 }

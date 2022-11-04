@@ -47,7 +47,7 @@ public class PaymentAccountUtil {
 
     public static boolean isAnyPaymentAccountValidForOffer(Offer offer,
                                                            Collection<PaymentAccount> paymentAccounts) {
-        for (PaymentAccount paymentAccount : paymentAccounts) {
+        for (PaymentAccount paymentAccount : new ArrayList<PaymentAccount>(paymentAccounts)) {
             if (isPaymentAccountValidForOffer(offer, paymentAccount))
                 return true;
         }

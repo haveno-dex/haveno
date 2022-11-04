@@ -43,6 +43,7 @@ public class TradeEvents {
     private final PubKeyRingProvider pubKeyRingProvider;
     private final TradeManager tradeManager;
     private final MobileNotificationService mobileNotificationService;
+    private boolean isInitialized = false;
 
     @Inject
     public TradeEvents(TradeManager tradeManager, PubKeyRingProvider pubKeyRingProvider, MobileNotificationService mobileNotificationService) {
@@ -59,10 +60,11 @@ public class TradeEvents {
             }
         });
         tradeManager.getObservableList().forEach(this::setTradePhaseListener);
+        isInitialized = true;
     }
 
     private void setTradePhaseListener(Trade trade) {
-        log.info("We got a new trade. id={}", trade.getId());
+        if (isInitialized) log.info("We got a new trade. id={}", trade.getId());
         if (!trade.isPayoutPublished()) {
             trade.statePhaseProperty().addListener((observable, oldValue, newValue) -> {
                 String msg = null;

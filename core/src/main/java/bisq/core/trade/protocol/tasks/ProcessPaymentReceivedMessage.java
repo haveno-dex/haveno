@@ -18,8 +18,8 @@
 package bisq.core.trade.protocol.tasks;
 
 import bisq.core.account.sign.SignedWitness;
-import bisq.core.btc.wallet.XmrWalletService;
 import bisq.core.trade.ArbitratorTrade;
+import bisq.core.trade.HavenoUtils;
 import bisq.core.trade.Trade;
 import bisq.core.trade.messages.PaymentReceivedMessage;
 import bisq.core.util.Validator;
@@ -27,10 +27,12 @@ import common.utils.GenUtils;
 import bisq.common.taskrunner.TaskRunner;
 
 import lombok.extern.slf4j.Slf4j;
-import monero.wallet.MoneroWallet;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
+
+import java.util.ArrayList;
+import java.util.List;
 
 @Slf4j
 public class ProcessPaymentReceivedMessage extends TradeTask {
@@ -48,26 +50,34 @@ public class ProcessPaymentReceivedMessage extends TradeTask {
             checkNotNull(message);
             checkArgument(message.getUnsignedPayoutTxHex() != null || message.getSignedPayoutTxHex() != null, "No payout tx hex provided");
 
+            // verify signature of payment received message
+            HavenoUtils.verifyPaymentReceivedMessage(trade, message);
+            trade.getSeller().setUpdatedMultisigHex(message.getUpdatedMultisigHex());
+            trade.getBuyer().setUpdatedMultisigHex(message.getPaymentSentMessage().getUpdatedMultisigHex());
+
             // update to the latest peer address of our peer if the message is correct
             trade.getSeller().setNodeAddress(processModel.getTempTradingPeerNodeAddress());
-            if (trade.getSeller().getNodeAddress().equals(trade.getBuyer().getNodeAddress())) trade.getBuyer().setNodeAddress(null); // tests sometimes reuse addresses
+            if (trade.getSeller().getNodeAddress().equals(trade.getBuyer().getNodeAddress())) trade.getBuyer().setNodeAddress(null); // tests can reuse addresses
+
+            // import multisig hex
+            List<String> updatedMultisigHexes = new ArrayList<String>();
+            if (trade.getSeller().getUpdatedMultisigHex() != null) updatedMultisigHexes.add(trade.getSeller().getUpdatedMultisigHex());
+            if (trade.getArbitrator().getUpdatedMultisigHex() != null) updatedMultisigHexes.add(trade.getArbitrator().getUpdatedMultisigHex());
+            if (!updatedMultisigHexes.isEmpty()) trade.getWallet().importMultisigHex(updatedMultisigHexes.toArray(new String[0])); // TODO (monero-project): fails if multisig hex imported individually
+
+            // sync and save wallet
+            trade.syncWallet();
+            trade.saveWallet();
 
             // handle if payout tx not published
             if (!trade.isPayoutPublished()) {
 
-                // import multisig hex
-                MoneroWallet multisigWallet = trade.getWallet();
-                if (message.getUpdatedMultisigHex() != null) {
-                    multisigWallet.importMultisigHex(message.getUpdatedMultisigHex());
-                    trade.saveWallet();
-                }
-
-                // arbitrator waits for buyer to sign and broadcast payout tx if message arrived
+                // wait to sign and publish payout tx if defer flag set (seller recently saw payout tx arrive at buyer)
                 boolean isSigned = message.getSignedPayoutTxHex() != null;
-                if (trade instanceof ArbitratorTrade && !isSigned && message.isSawArrivedPaymentReceivedMsg()) {
-                    log.info("{} waiting for buyer to sign and broadcast payout tx", trade.getClass().getSimpleName());
-                    GenUtils.waitFor(30000);
-                    multisigWallet.rescanSpent();
+                if (trade instanceof ArbitratorTrade && !isSigned && message.isDeferPublishPayout()) {
+                    log.info("Deferring signing and publishing payout tx for {} {}", trade.getClass().getSimpleName(), trade.getId());
+                    GenUtils.waitFor(Trade.DEFER_PUBLISH_MS);
+                    trade.syncWallet();
                 }
 
                 // verify and publish payout tx
@@ -77,11 +87,16 @@ public class ProcessPaymentReceivedMessage extends TradeTask {
                         trade.verifyPayoutTx(message.getSignedPayoutTxHex(), false, true);
                     } else {
                         log.info("{} verifying, signing, and publishing seller's payout tx", trade.getClass().getSimpleName());
-                        trade.verifyPayoutTx(message.getUnsignedPayoutTxHex(), true, true);
+                        try {
+                            trade.verifyPayoutTx(message.getUnsignedPayoutTxHex(), true, true);
+                        } catch (Exception e) {
+                            if (trade.isPayoutPublished()) log.info("Payout tx already published for {} {}", trade.getClass().getName(), trade.getId());
+                            else throw e;
+                        }
                     }
                 }
             } else {
-                log.info("We got the payout tx already set from the payout listener and do nothing here. trade ID={}", trade.getId());
+                log.info("Payout tx already published for {} {}", trade.getClass().getSimpleName(), trade.getId());
             }
 
             SignedWitness signedWitness = message.getSignedWitness();
@@ -93,7 +108,7 @@ public class ProcessPaymentReceivedMessage extends TradeTask {
             }
 
             // complete
-            if (!trade.isArbitrator()) trade.setStateIfValidTransitionTo(Trade.State.SELLER_SENT_PAYMENT_RECEIVED_MSG); // arbitrator trade completes on payout published
+            trade.setStateIfProgress(Trade.State.SELLER_SENT_PAYMENT_RECEIVED_MSG); // arbitrator auto completes when payout published
             processModel.getTradeManager().requestPersistence();
             complete();
         } catch (Throwable t) {

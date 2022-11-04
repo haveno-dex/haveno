@@ -23,7 +23,6 @@ import bisq.common.crypto.PubKeyRing;
 import bisq.common.handlers.FaultHandler;
 import bisq.common.handlers.ResultHandler;
 
-import org.bitcoinj.core.AddressFormatException;
 import org.bitcoinj.core.Coin;
 
 import com.google.inject.name.Named;
@@ -40,8 +39,6 @@ import lombok.extern.slf4j.Slf4j;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static java.lang.String.format;
 
-import monero.wallet.MoneroWallet;
-import monero.wallet.model.MoneroTxWallet;
 
 @Singleton
 @Slf4j
@@ -101,9 +98,7 @@ public class CoreDisputesService {
 
             // Sends the openNewDisputeMessage to arbitrator, who will then create 2 disputes
             // one for the opener, the other for the peer, see sendPeerOpenedDisputeMessage.
-            MoneroWallet multisigWallet = xmrWalletService.getMultisigWallet(trade.getId());
-            String updatedMultisigHex = multisigWallet.exportMultisigHex();
-            disputeManager.sendOpenNewDisputeMessage(dispute, false, updatedMultisigHex, resultHandler, faultHandler);
+            disputeManager.sendDisputeOpenedMessage(dispute, false, trade.getSelf().getUpdatedMultisigHex(), resultHandler, faultHandler);
             tradeManager.requestPersistence();
         }
     }
@@ -141,26 +136,26 @@ public class CoreDisputesService {
                     isSupportTicket,
                     SupportType.ARBITRATION);
 
-            trade.setDisputeState(Trade.DisputeState.DISPUTE_REQUESTED);
-
             return dispute;
         }
     }
 
     public void resolveDispute(String tradeId, DisputeResult.Winner winner, DisputeResult.Reason reason, String summaryNotes, long customWinnerAmount) {
         try {
-            var disputeOptional = arbitrationManager.getDisputesAsObservableList().stream() // TODO (woodser): use getDispute()
-                    .filter(d -> tradeId.equals(d.getTradeId()))
-                    .findFirst();
-            Dispute dispute;
-            if (disputeOptional.isPresent()) dispute = disputeOptional.get();
-            else throw new IllegalStateException(format("dispute for tradeId '%s' not found", tradeId));
-            
+
+            // get winning dispute
+            Dispute winningDispute;
             Trade trade = tradeManager.getTrade(tradeId);
+            var winningDisputeOptional = arbitrationManager.getDisputesAsObservableList().stream() // TODO (woodser): use getDispute()
+                    .filter(d -> tradeId.equals(d.getTradeId()))
+                    .filter(d -> trade.getTradingPeer(d.getTraderPubKeyRing()) == (winner == DisputeResult.Winner.BUYER ? trade.getBuyer() : trade.getSeller()))
+                    .findFirst();
+            if (winningDisputeOptional.isPresent()) winningDispute = winningDisputeOptional.get();
+            else throw new IllegalStateException(format("dispute for tradeId '%s' not found", tradeId));
+
             synchronized (trade) {
                 var closeDate = new Date();
-                var disputeResult = createDisputeResult(dispute, winner, reason, summaryNotes, closeDate);
-                var contract = dispute.getContract();
+                var disputeResult = createDisputeResult(winningDispute, winner, reason, summaryNotes, closeDate);
 
                 DisputePayout payout;
                 if (customWinnerAmount > 0) {
@@ -172,30 +167,28 @@ public class CoreDisputesService {
                 } else {
                     throw new IllegalStateException("Unexpected DisputeResult.Winner: " + winner);
                 }
-                applyPayoutAmountsToDisputeResult(payout, dispute, disputeResult, customWinnerAmount);
-
-                // apply dispute payout
-                applyDisputePayout(dispute, disputeResult, contract);
+                applyPayoutAmountsToDisputeResult(payout, winningDispute, disputeResult, customWinnerAmount);
 
                 // close dispute ticket
-                closeDispute(arbitrationManager, dispute, disputeResult, false);
+                closeDisputeTicket(arbitrationManager, winningDispute, disputeResult, () -> {
+                    arbitrationManager.requestPersistence();
 
-                // close dispute ticket for peer
-                var peersDisputeOptional = arbitrationManager.getDisputesAsObservableList().stream()
-                        .filter(d -> tradeId.equals(d.getTradeId()) && dispute.getTraderId() != d.getTraderId())
-                        .findFirst();
-                if (peersDisputeOptional.isPresent()) {
-                    var peerDispute = peersDisputeOptional.get();
-                    var peerDisputeResult = createDisputeResult(peerDispute, winner, reason, summaryNotes, closeDate);
-                    peerDisputeResult.setBuyerPayoutAmount(disputeResult.getBuyerPayoutAmount());
-                    peerDisputeResult.setSellerPayoutAmount(disputeResult.getSellerPayoutAmount());
-                    peerDisputeResult.setLoserPublisher(disputeResult.isLoserPublisher());
-                    applyDisputePayout(peerDispute, peerDisputeResult, peerDispute.getContract());
-                    closeDispute(arbitrationManager, peerDispute, peerDisputeResult, false);
-                } else {
-                    throw new IllegalStateException("could not find peer dispute");
-                }
-                arbitrationManager.requestPersistence();
+                    // close peer's dispute ticket
+                    var peersDisputeOptional = arbitrationManager.getDisputesAsObservableList().stream()
+                            .filter(d -> tradeId.equals(d.getTradeId()) && winningDispute.getTraderId() != d.getTraderId())
+                            .findFirst();
+                    if (peersDisputeOptional.isPresent()) {
+                        var peerDispute = peersDisputeOptional.get();
+                        var peerDisputeResult = createDisputeResult(peerDispute, winner, reason, summaryNotes, closeDate);
+                        peerDisputeResult.setBuyerPayoutAmount(disputeResult.getBuyerPayoutAmount());
+                        peerDisputeResult.setSellerPayoutAmount(disputeResult.getSellerPayoutAmount());
+                        closeDisputeTicket(arbitrationManager, peerDispute, peerDisputeResult, () -> {
+                            arbitrationManager.requestPersistence();
+                        });
+                    } else {
+                        throw new IllegalStateException("could not find peer dispute");
+                    }
+                });
             }
         } catch (Exception e) {
             throw new IllegalStateException(e);
@@ -246,49 +239,13 @@ public class CoreDisputesService {
         }
     }
 
-    public void applyDisputePayout(Dispute dispute, DisputeResult disputeResult, Contract contract) {
-        // TODO (woodser): create disputed payout tx after showing payout tx confirmation, within doCloseIfValid() (see upstream/master)
-        if (!dispute.isMediationDispute()) {
-            try {
-                synchronized (tradeManager.getTrade(dispute.getTradeId())) {
-                    System.out.println(disputeResult);
-                    //dispute.getContract().getArbitratorPubKeyRing();  // TODO: support arbitrator pub key ring in contract?
-                    //disputeResult.setArbitratorPubKey(arbitratorAddressEntry.getPubKey());
-
-                    // determine if dispute is in context of publisher
-                    boolean isOpener = dispute.isOpener();
-                    boolean isWinner = (contract.getBuyerPubKeyRing().equals(dispute.getTraderPubKeyRing()) && disputeResult.getWinner() == DisputeResult.Winner.BUYER) || (contract.getSellerPubKeyRing().equals(dispute.getTraderPubKeyRing()) && disputeResult.getWinner() == DisputeResult.Winner.SELLER);
-                    boolean isPublisher = disputeResult.isLoserPublisher() ? !isWinner : isWinner;
-
-                    // open multisig wallet
-                    MoneroWallet multisigWallet = xmrWalletService.getMultisigWallet(dispute.getTradeId());
-
-                    // if dispute is in context of opener, arbitrator has multisig hex to create and validate payout tx
-                    if (isOpener) {
-                        MoneroTxWallet arbitratorPayoutTx = ArbitrationManager.arbitratorCreatesDisputedPayoutTx(contract, dispute, disputeResult, multisigWallet);
-                        System.out.println("Created arbitrator-signed payout tx: " + arbitratorPayoutTx);
-
-                        // if opener is publisher, include signed payout tx in dispute result, otherwise publisher must request payout tx by providing updated multisig hex
-                        if (isPublisher) disputeResult.setArbitratorSignedPayoutTxHex(arbitratorPayoutTx.getTxSet().getMultisigTxHex());
-                    }
-
-                    // send arbitrator's updated multisig hex with dispute result
-                    disputeResult.setArbitratorUpdatedMultisigHex(multisigWallet.exportMultisigHex());
-                }
-            } catch (AddressFormatException e2) {
-                log.error("Error at close dispute", e2);
-                return;
-            }
-        }
-    }
-
     // From DisputeSummaryWindow.java
-    public void closeDispute(DisputeManager disputeManager, Dispute dispute, DisputeResult disputeResult, boolean isRefundAgent) {
+    public void closeDisputeTicket(DisputeManager disputeManager, Dispute dispute, DisputeResult disputeResult, ResultHandler resultHandler) {
         dispute.setDisputeResult(disputeResult);
         dispute.setIsClosed();
         DisputeResult.Reason reason = disputeResult.getReason();
 
-        String role = isRefundAgent ? Res.get("shared.refundAgent") : Res.get("shared.mediator");
+        String role = Res.get("shared.arbitrator");
         String agentNodeAddress = checkNotNull(disputeManager.getAgentNodeAddress(dispute)).getFullAddress();
         Contract contract = dispute.getContract();
         String currencyCode = contract.getOfferPayload().getCurrencyCode();
@@ -314,13 +271,8 @@ public class CoreDisputesService {
         }
 
         String summaryText = DisputeSummaryVerification.signAndApply(disputeManager, disputeResult, textToSign);
-
-        if (isRefundAgent) {
-            summaryText += Res.get("disputeSummaryWindow.close.nextStepsForRefundAgentArbitration");
-        } else {
-            summaryText += Res.get("disputeSummaryWindow.close.nextStepsForMediation");
-        }
-        disputeManager.sendDisputeResultMessage(disputeResult, dispute, summaryText);
+        summaryText += Res.get("disputeSummaryWindow.close.nextStepsForRefundAgentArbitration");
+        disputeManager.closeDisputeTicket(disputeResult, dispute, summaryText, resultHandler);
     }
 
     public void sendDisputeChatMessage(String disputeId, String message, ArrayList<Attachment> attachments) {

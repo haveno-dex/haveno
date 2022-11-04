@@ -206,7 +206,7 @@ class GrpcOffersService extends OffersImplBase {
                             put(getGetMyOfferMethod().getFullMethodName(), new GrpcCallRateMeter(10, SECONDS));
                             put(getGetOffersMethod().getFullMethodName(), new GrpcCallRateMeter(20, SECONDS));
                             put(getGetMyOffersMethod().getFullMethodName(), new GrpcCallRateMeter(20, SECONDS));
-                            put(getCreateOfferMethod().getFullMethodName(), new GrpcCallRateMeter(10, SECONDS));
+                            put(getCreateOfferMethod().getFullMethodName(), new GrpcCallRateMeter(20, SECONDS));
                             put(getCancelOfferMethod().getFullMethodName(), new GrpcCallRateMeter(10, SECONDS));
                         }}
                 )));

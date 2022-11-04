@@ -86,7 +86,7 @@ public class XmrWalletService {
     private static final String MONERO_WALLET_NAME = "haveno_XMR";
     private static final String MONERO_MULTISIG_WALLET_PREFIX = "xmr_multisig_trade_";
     private static final int MINER_FEE_PADDING_MULTIPLIER = 2; // extra padding for miner fees = estimated fee * multiplier
-    private static final double MINER_FEE_TOLERANCE = 0.25; // miner fee must be within percent of expected fee
+    private static final double MINER_FEE_TOLERANCE = 0.25; // miner fee must be within percent of estimated fee
 
     private final CoreAccountService accountService;
     private final CoreMoneroConnectionsService connectionsService;
@@ -103,6 +103,7 @@ public class XmrWalletService {
     private Map<String, MoneroWallet> multisigWallets;
     private Map<String, Object> walletLocks = new HashMap<String, Object>();
     private final Map<String, Optional<MoneroTx>> txCache = new HashMap<String, Optional<MoneroTx>>();
+    private boolean isShutDown = false;
 
     @Inject
     XmrWalletService(CoreAccountService accountService,
@@ -193,15 +194,15 @@ public class XmrWalletService {
 
     public boolean multisigWalletExists(String tradeId) {
         initWalletLock(tradeId);
-        synchronized(walletLocks.get(tradeId)) {
+        synchronized (walletLocks.get(tradeId)) {
             return walletExists(MONERO_MULTISIG_WALLET_PREFIX + tradeId);
         }
     }
 
     public MoneroWallet createMultisigWallet(String tradeId) {
+        log.info("{}.createMultisigWallet({})", getClass().getSimpleName(), tradeId);
         initWalletLock(tradeId);
-        synchronized(walletLocks.get(tradeId)) {
-            log.info("{}.createMultisigWallet({})", getClass().getSimpleName(), tradeId);
+        synchronized (walletLocks.get(tradeId)) {
             if (multisigWallets.containsKey(tradeId)) return multisigWallets.get(tradeId);
             String path = MONERO_MULTISIG_WALLET_PREFIX + tradeId;
             MoneroWallet multisigWallet = createWallet(new MoneroWalletConfig().setPath(path).setPassword(getWalletPassword()), null, true); // auto-assign port
@@ -212,8 +213,9 @@ public class XmrWalletService {
 
     // TODO (woodser): provide progress notifications during open?
     public MoneroWallet getMultisigWallet(String tradeId) {
+        if (isShutDown) throw new RuntimeException(getClass().getName() + " is shut down");
         initWalletLock(tradeId);
-        synchronized(walletLocks.get(tradeId)) {
+        synchronized (walletLocks.get(tradeId)) {
             if (multisigWallets.containsKey(tradeId)) return multisigWallets.get(tradeId);
             String path = MONERO_MULTISIG_WALLET_PREFIX + tradeId;
             if (!walletExists(path)) throw new RuntimeException("Multisig wallet does not exist for trade " + tradeId);
@@ -229,9 +231,9 @@ public class XmrWalletService {
     }
 
     public void closeMultisigWallet(String tradeId) {
+        log.info("{}.closeMultisigWallet({})", getClass().getSimpleName(), tradeId);
         initWalletLock(tradeId);
-        synchronized(walletLocks.get(tradeId)) {
-            log.info("{}.closeMultisigWallet({})", getClass().getSimpleName(), tradeId);
+        synchronized (walletLocks.get(tradeId)) {
             if (!multisigWallets.containsKey(tradeId)) throw new RuntimeException("Multisig wallet to close was not previously opened for trade " + tradeId);
             MoneroWallet wallet = multisigWallets.remove(tradeId);
             closeWallet(wallet, true);
@@ -239,9 +241,9 @@ public class XmrWalletService {
     }
 
     public boolean deleteMultisigWallet(String tradeId) {
+        log.info("{}.deleteMultisigWallet({})", getClass().getSimpleName(), tradeId);
         initWalletLock(tradeId);
-        synchronized(walletLocks.get(tradeId)) {
-            log.info("{}.deleteMultisigWallet({})", getClass().getSimpleName(), tradeId);
+        synchronized (walletLocks.get(tradeId)) {
             String walletName = MONERO_MULTISIG_WALLET_PREFIX + tradeId;
             if (!walletExists(walletName)) return false;
             if (multisigWallets.containsKey(tradeId)) closeMultisigWallet(tradeId);
@@ -253,7 +255,7 @@ public class XmrWalletService {
     public MoneroTxWallet createTx(List<MoneroDestination> destinations) {
         try {
             MoneroTxWallet tx = wallet.createTx(new MoneroTxConfig().setAccountIndex(0).setDestinations(destinations).setRelay(false).setCanSplit(false));
-            printTxs("XmrWalletService.createTx", tx);
+            //printTxs("XmrWalletService.createTx", tx);
             return tx;
         } catch (Exception e) {
             throw e;
@@ -268,7 +270,7 @@ public class XmrWalletService {
      * @param tradeFee - trade fee
      * @param depositAmount - amount needed for the trade minus the trade fee
      * @param returnAddress - return address for deposit amount
-     * @param addPadding - reserve extra padding for miner fee fluctuations
+     * @param addPadding - reserve additional padding to cover future mining fee
      * @return a transaction to reserve a trade
      */
     public MoneroTxWallet createReserveTx(BigInteger tradeFee, String returnAddress, BigInteger depositAmount, boolean addPadding) {
@@ -278,14 +280,26 @@ public class XmrWalletService {
             // add miner fee padding to deposit amount
             if (addPadding) {
 
-                // get expected mining fee
+                // get estimated mining fee with deposit amount
                 MoneroTxWallet feeEstimateTx = wallet.createTx(new MoneroTxConfig()
                         .setAccountIndex(0)
                         .addDestination(HavenoUtils.getTradeFeeAddress(), tradeFee)
                         .addDestination(returnAddress, depositAmount));
                 BigInteger feeEstimate = feeEstimateTx.getFee();
 
-                // add extra padding to deposit amount
+                BigInteger daemonFeeEstimate = getFeeEstimate(feeEstimateTx.getWeight());
+                log.info("createReserveTx() 1st feeEstimateTx with weight {} has fee {} versus daemon fee estimate of {} (diff={})", feeEstimateTx.getWeight(), feeEstimateTx.getFee(), daemonFeeEstimate, (feeEstimateTx.getFee().subtract(daemonFeeEstimate)));
+
+                // get estimated mining fee with deposit amount + previous estimated mining fee for better accuracy
+                feeEstimateTx = wallet.createTx(new MoneroTxConfig()
+                        .setAccountIndex(0)
+                        .addDestination(HavenoUtils.getTradeFeeAddress(), tradeFee)
+                        .addDestination(returnAddress, depositAmount.add(feeEstimate.multiply(BigInteger.valueOf(MINER_FEE_PADDING_MULTIPLIER)))));
+                feeEstimate = feeEstimateTx.getFee();
+
+                log.info("createReserveTx() 2nd feeEstimateTx with weight {} has fee {} versus daemon fee estimate of {} (diff={})", feeEstimateTx.getWeight(), feeEstimateTx.getFee(), daemonFeeEstimate, (feeEstimateTx.getFee().subtract(daemonFeeEstimate)));
+
+                // add padding to deposit amount
                 BigInteger minerFeePadding = feeEstimate.multiply(BigInteger.valueOf(MINER_FEE_PADDING_MULTIPLIER));
                 depositAmount = depositAmount.add(minerFeePadding);
             }
@@ -295,11 +309,11 @@ public class XmrWalletService {
                 .setAccountIndex(0)
                 .addDestination(HavenoUtils.getTradeFeeAddress(), tradeFee)
                 .addDestination(returnAddress, depositAmount));
+            log.info("Reserve tx weight={}, fee={}, depositAmount={}", reserveTx.getWeight(), reserveTx.getFee(), depositAmount);
 
             // freeze inputs
             for (MoneroOutput input : reserveTx.getInputs()) wallet.freezeOutput(input.getKeyImage().getHex());
             wallet.save();
-
             return reserveTx;
         }
     }
@@ -343,12 +357,13 @@ public class XmrWalletService {
      * @param txHex is the transaction hex
      * @param txKey is the transaction key
      * @param keyImages are expected key images of inputs, ignored if null
-     * @param miningFeePadding verifies depositAmount has additional funds to cover mining fee increase
+     * @param addPadding verifies depositAmount has additional padding to cover future mining fee
      */
-    public void verifyTradeTx(String depositAddress, BigInteger depositAmount, BigInteger tradeFee, String txHash, String txHex, String txKey, List<String> keyImages, boolean miningFeePadding) {
+    public void verifyTradeTx(String depositAddress, BigInteger depositAmount, BigInteger tradeFee, String txHash, String txHex, String txKey, List<String> keyImages, boolean addPadding) {
         MoneroDaemonRpc daemon = getDaemon();
         MoneroWallet wallet = getWallet();
         try {
+            log.info("Verifying trade tx with deposit amount={}", depositAmount);
 
             // verify tx not submitted to pool
             MoneroTx tx = daemon.getTx(txHash);
@@ -379,12 +394,18 @@ public class XmrWalletService {
             BigInteger feeEstimate = getFeeEstimate(tx.getWeight());
             double feeDiff = tx.getFee().subtract(feeEstimate).abs().doubleValue() / feeEstimate.doubleValue();
             if (feeDiff > MINER_FEE_TOLERANCE) throw new Error("Mining fee is not within " + (MINER_FEE_TOLERANCE * 100) + "% of estimated fee, expected " + feeEstimate + " but was " + tx.getFee());
+            log.info("Trade tx fee {} is within tolerance, diff%={}", tx.getFee(), feeDiff);
 
             // verify deposit amount
             check = wallet.checkTxKey(txHash, txKey, depositAddress);
             if (!check.isGood()) throw new RuntimeException("Invalid proof of deposit amount");
-            if (miningFeePadding) depositAmount = depositAmount.add(feeEstimate.multiply(BigInteger.valueOf(MINER_FEE_PADDING_MULTIPLIER))); // prove reserve of at least deposit amount + miner fee padding
-            if (check.getReceivedAmount().compareTo(depositAmount) < 0) throw new RuntimeException("Deposit amount is not enough, needed " + depositAmount + " but was " + check.getReceivedAmount());
+            if (addPadding) {
+                BigInteger minPadding = BigInteger.valueOf((long) (tx.getFee().multiply(BigInteger.valueOf(MINER_FEE_PADDING_MULTIPLIER)).doubleValue() * (1.0 - MINER_FEE_TOLERANCE)));
+                BigInteger actualPadding = check.getReceivedAmount().subtract(depositAmount);
+                if (actualPadding.compareTo(minPadding) < 0) throw new RuntimeException("Deposit amount is not enough, needed " + depositAmount.add(minPadding) + " (with padding) but was " + check.getReceivedAmount());
+            } else if (check.getReceivedAmount().compareTo(depositAmount) < 0) {
+                throw new RuntimeException("Deposit amount is not enough, needed " + depositAmount + " but was " + check.getReceivedAmount());
+            }
         } finally {
             try {
                 daemon.flushTxPool(txHash); // flush tx from pool
@@ -405,11 +426,12 @@ public class XmrWalletService {
 
         // get fee estimates per kB from daemon
         MoneroFeeEstimate feeEstimates = getDaemon().getFeeEstimate();
-        BigInteger baseFeeRate = feeEstimates.getFee(); // get normal fee per kB
+        BigInteger baseFeeEstimate = feeEstimates.getFee(); // get normal fee per kB
         BigInteger qmask = feeEstimates.getQuantizationMask();
+        log.info("Monero base fee estimate={}, qmask={}: " + baseFeeEstimate, qmask);
 
         // get tx base fee
-        BigInteger baseFee = baseFeeRate.multiply(BigInteger.valueOf(txWeight));
+        BigInteger baseFee = baseFeeEstimate.multiply(BigInteger.valueOf(txWeight));
 
         // round up to multiple of quantization mask
         BigInteger[] quotientAndRemainder = baseFee.divideAndRemainder(qmask);
@@ -468,6 +490,7 @@ public class XmrWalletService {
     }
 
     public void shutDown() {
+        this.isShutDown = true;
         closeAllWallets();
     }
 
@@ -573,7 +596,7 @@ public class XmrWalletService {
 
             // start syncing wallet in background
             new Thread(() -> {
-                log.info("Syncing wallet " + config.getPath() + " in background");
+                log.info("Starting background syncing for wallet " + config.getPath());
                 walletRpc.startSyncing(connectionsService.getDefaultRefreshPeriodMs());
                 log.info("Done starting background sync for wallet " + config.getPath());
             }).start();
@@ -645,47 +668,41 @@ public class XmrWalletService {
     }
 
     private void changeWalletPasswords(String oldPassword, String newPassword) {
-        List<String> tradeIds = tradeManager.getOpenTrades().stream().map(Trade::getId).collect(Collectors.toList());
-        ExecutorService pool = Executors.newFixedThreadPool(Math.min(10, 1 + tradeIds.size()));
-        pool.submit(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    wallet.changePassword(oldPassword, newPassword);
-                    saveWallet(wallet);
-                } catch (Exception e) {
-                    e.printStackTrace();
-                    throw e;
-                }
+
+        // create task to change main wallet password
+        List<Runnable> tasks = new ArrayList<Runnable>();
+        tasks.add(() -> {
+            try {
+                wallet.changePassword(oldPassword, newPassword);
+                saveWallet(wallet);
+            } catch (Exception e) {
+                e.printStackTrace();
+                throw e;
             }
         });
+
+        // create tasks to change multisig wallet passwords
+        List<String> tradeIds = tradeManager.getOpenTrades().stream().map(Trade::getId).collect(Collectors.toList());
         for (String tradeId : tradeIds) {
-            pool.submit(new Runnable() {
-                @Override
-                public void run() {
-                    MoneroWallet multisigWallet = getMultisigWallet(tradeId); // TODO (woodser): this unnecessarily connects and syncs unopen wallets and leaves open
-                    if (multisigWallet == null) return;
-                    multisigWallet.changePassword(oldPassword, newPassword);
-                    saveWallet(multisigWallet);
-                }
+            tasks.add(() -> {
+                MoneroWallet multisigWallet = getMultisigWallet(tradeId); // TODO (woodser): this unnecessarily connects and syncs unopen wallets and leaves open
+                if (multisigWallet == null) return;
+                multisigWallet.changePassword(oldPassword, newPassword);
+                saveWallet(multisigWallet);
             });
         }
-        pool.shutdown();
-        try {
-            if (!pool.awaitTermination(60000, TimeUnit.SECONDS)) pool.shutdownNow();
-        } catch (InterruptedException e) {
-            try { pool.shutdownNow(); }
-            catch (Exception e2) { }
-            throw new RuntimeException(e);
-        }
+
+        // excute tasks in parallel
+        HavenoUtils.executeTasks(tasks, Math.min(10, 1 + tradeIds.size()));
     }
 
     private void closeWallet(MoneroWallet walletRpc, boolean save) {
         log.info("{}.closeWallet({}, {})", getClass().getSimpleName(), walletRpc.getPath(), save);
         MoneroError err = null;
         try {
-            if (save) saveWallet(walletRpc);
-            walletRpc.close();
+            String path = walletRpc.getPath();
+            walletRpc.close(save);
+            if (save) backupWallet(path);
         } catch (MoneroError e) {
             err = e;
         }
@@ -721,7 +738,7 @@ public class XmrWalletService {
                 log.warn("Error closing monero-wallet-rpc subprocess. Was Haveno stopped manually with ctrl+c?");
             }
         });
-        HavenoUtils.awaitTasks(tasks);
+        HavenoUtils.executeTasks(tasks);
 
         // clear wallets
         wallet = null;

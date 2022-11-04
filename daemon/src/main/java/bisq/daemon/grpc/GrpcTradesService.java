@@ -244,9 +244,9 @@ class GrpcTradesService extends TradesImplBase {
         return getCustomRateMeteringInterceptor(coreApi.getConfig().appDataDir, this.getClass())
                 .or(() -> Optional.of(CallRateMeteringInterceptor.valueOf(
                         new HashMap<>() {{
-                            put(getGetTradeMethod().getFullMethodName(), new GrpcCallRateMeter(20, SECONDS));
+                            put(getGetTradeMethod().getFullMethodName(), new GrpcCallRateMeter(30, SECONDS));
                             put(getGetTradesMethod().getFullMethodName(), new GrpcCallRateMeter(10, SECONDS));
-                            put(getTakeOfferMethod().getFullMethodName(), new GrpcCallRateMeter(10, SECONDS));
+                            put(getTakeOfferMethod().getFullMethodName(), new GrpcCallRateMeter(20, SECONDS));
                             put(getConfirmPaymentStartedMethod().getFullMethodName(), new GrpcCallRateMeter(10, SECONDS));
                             put(getConfirmPaymentReceivedMethod().getFullMethodName(), new GrpcCallRateMeter(10, SECONDS));
                             put(getCompleteTradeMethod().getFullMethodName(), new GrpcCallRateMeter(10, SECONDS));

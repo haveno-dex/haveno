@@ -33,7 +33,7 @@ import bisq.core.trade.protocol.tasks.BuyerSendPaymentSentMessage;
 import bisq.core.trade.protocol.tasks.MakerSetLockTime;
 import bisq.core.trade.protocol.tasks.RemoveOffer;
 import bisq.core.trade.protocol.tasks.SellerPreparePaymentReceivedMessage;
-import bisq.core.trade.protocol.tasks.SellerProcessPaymentSentMessage;
+import bisq.core.trade.protocol.tasks.ProcessPaymentSentMessage;
 import bisq.core.trade.protocol.tasks.SellerPublishDepositTx;
 import bisq.core.trade.protocol.tasks.SellerPublishTradeStatistics;
 import bisq.core.trade.protocol.tasks.SellerSendPaymentReceivedMessageToBuyer;
@@ -100,7 +100,7 @@ public class DebugView extends InitializableView<GridPane, Void> {
                         SellerPublishDepositTx.class,
                         SellerPublishTradeStatistics.class,
 
-                        SellerProcessPaymentSentMessage.class,
+                        ProcessPaymentSentMessage.class,
                         ApplyFilter.class,
                         TakerVerifyMakerFeePayment.class,
 
@@ -157,7 +157,7 @@ public class DebugView extends InitializableView<GridPane, Void> {
                         SellerPublishDepositTx.class,
                         SellerPublishTradeStatistics.class,
 
-                        SellerProcessPaymentSentMessage.class,
+                        ProcessPaymentSentMessage.class,
                         ApplyFilter.class,
 
                         ApplyFilter.class,

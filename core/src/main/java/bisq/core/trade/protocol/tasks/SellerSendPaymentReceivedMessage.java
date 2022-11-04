@@ -21,8 +21,10 @@ import bisq.core.account.sign.SignedWitness;
 import bisq.core.trade.Trade;
 import bisq.core.trade.messages.PaymentReceivedMessage;
 import bisq.core.trade.messages.TradeMailboxMessage;
+import bisq.core.util.JsonUtil;
 import bisq.network.p2p.NodeAddress;
 import bisq.common.crypto.PubKeyRing;
+import bisq.common.crypto.Sig;
 import bisq.common.taskrunner.TaskRunner;
 
 import lombok.EqualsAndHashCode;
@@ -30,10 +32,13 @@ import lombok.extern.slf4j.Slf4j;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-@EqualsAndHashCode(callSuper = true)
+import com.google.common.base.Charsets;
+
 @Slf4j
+@EqualsAndHashCode(callSuper = true)
 public abstract class SellerSendPaymentReceivedMessage extends SendMailboxMessageTask {
     SignedWitness signedWitness = null;
+    PaymentReceivedMessage message = null;
 
     public SellerSendPaymentReceivedMessage(TaskRunner<Trade> taskHandler, Trade trade) {
         super(taskHandler, trade);
@@ -47,13 +52,6 @@ public abstract class SellerSendPaymentReceivedMessage extends SendMailboxMessag
     protected void run() {
         try {
             runInterceptHook();
-
-            if (trade.getPayoutTxHex() == null) {
-                log.error("Payout tx is null");
-                failed("Payout tx is null");
-                return;
-            }
-
             super.run();
         } catch (Throwable t) {
             failed(t);
@@ -63,23 +61,37 @@ public abstract class SellerSendPaymentReceivedMessage extends SendMailboxMessag
     @Override
     protected TradeMailboxMessage getTradeMailboxMessage(String tradeId) {
         checkNotNull(trade.getPayoutTxHex(), "Payout tx must not be null");
+        if (message == null) {
 
-        // TODO: sign witness
-        // AccountAgeWitnessService accountAgeWitnessService = processModel.getAccountAgeWitnessService();
-        // if (accountAgeWitnessService.isSignWitnessTrade(trade)) {
-        //     // Broadcast is done in accountAgeWitness domain.
-        //     accountAgeWitnessService.traderSignAndPublishPeersAccountAgeWitness(trade).ifPresent(witness -> signedWitness = witness);
-        // }
+            // TODO: sign witness
+            // AccountAgeWitnessService accountAgeWitnessService = processModel.getAccountAgeWitnessService();
+            // if (accountAgeWitnessService.isSignWitnessTrade(trade)) {
+            //     // Broadcast is done in accountAgeWitness domain.
+            //     accountAgeWitnessService.traderSignAndPublishPeersAccountAgeWitness(trade).ifPresent(witness -> signedWitness = witness);
+            // }
 
-        return new PaymentReceivedMessage(
-                tradeId,
-                processModel.getMyNodeAddress(),
-                signedWitness,
-                trade.isPayoutPublished() ? null : trade.getPayoutTxHex(), // unsigned
-                trade.isPayoutPublished() ? trade.getPayoutTxHex() : null, // signed
-                trade.getSelf().getUpdatedMultisigHex(),
-                trade.getState().ordinal() >= Trade.State.SELLER_SAW_ARRIVED_PAYMENT_RECEIVED_MSG.ordinal() // informs to expect payout
-        );
+            // TODO: create with deterministic id like BuyerSendPaymentSentMessage
+            message = new PaymentReceivedMessage(
+                    tradeId,
+                    processModel.getMyNodeAddress(),
+                    signedWitness,
+                    trade.isPayoutPublished() ? null : trade.getPayoutTxHex(), // unsigned
+                    trade.isPayoutPublished() ? trade.getPayoutTxHex() : null, // signed
+                    trade.getSelf().getUpdatedMultisigHex(),
+                    trade.getState().ordinal() >= Trade.State.SELLER_SAW_ARRIVED_PAYMENT_RECEIVED_MSG.ordinal(), // informs to expect payout
+                    trade.getBuyer().getPaymentSentMessage()
+            );
+
+            // sign message
+            try {
+                String messageAsJson = JsonUtil.objectToJson(message);
+                byte[] sig = Sig.sign(processModel.getP2PService().getKeyRing().getSignatureKeyPair().getPrivate(), messageAsJson.getBytes(Charsets.UTF_8));
+                message.setSellerSignature(sig);
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        }
+        return message;
     }
 
     @Override

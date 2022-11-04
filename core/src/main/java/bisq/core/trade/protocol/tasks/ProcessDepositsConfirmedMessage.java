@@ -35,34 +35,33 @@ public class ProcessDepositsConfirmedMessage extends TradeTask {
     @Override
     protected void run() {
         try {
-          runInterceptHook();
+            runInterceptHook();
 
-          // get sender based on the pub key
-          // TODO: trade.getTradingPeer(PubKeyRing)
-          DepositsConfirmedMessage request = (DepositsConfirmedMessage) processModel.getTradeMessage();
-          TradingPeer sender;
-          if (trade.getArbitrator().getPubKeyRing().equals(request.getPubKeyRing())) sender = trade.getArbitrator();
-          else if (trade.getBuyer().getPubKeyRing().equals(request.getPubKeyRing())) sender = trade.getBuyer();
-          else if (trade.getSeller().getPubKeyRing().equals(request.getPubKeyRing())) sender = trade.getSeller();
-          else throw new RuntimeException("Pub key ring is not from arbitrator, buyer, or seller");
-          
-          // update peer node address
-          sender.setNodeAddress(processModel.getTempTradingPeerNodeAddress());
+            // get peer
+            DepositsConfirmedMessage request = (DepositsConfirmedMessage) processModel.getTradeMessage();
+            TradingPeer sender = trade.getTradingPeer(request.getPubKeyRing());
+            if (sender == null) throw new RuntimeException("Pub key ring is not from arbitrator, buyer, or seller");
+              
+            // update peer node address
+            sender.setNodeAddress(processModel.getTempTradingPeerNodeAddress());
+            if (sender.getNodeAddress().equals(trade.getBuyer().getNodeAddress()) && sender != trade.getBuyer()) trade.getBuyer().setNodeAddress(null); // tests can reuse addresses
+            if (sender.getNodeAddress().equals(trade.getSeller().getNodeAddress()) && sender != trade.getSeller()) trade.getSeller().setNodeAddress(null);
+            if (sender.getNodeAddress().equals(trade.getArbitrator().getNodeAddress()) && sender != trade.getArbitrator()) trade.getArbitrator().setNodeAddress(null);
 
-          // decrypt seller payment account payload if key given
-          if (request.getSellerPaymentAccountKey() != null && trade.getTradingPeer().getPaymentAccountPayload() == null) {
-              log.info(trade.getClass().getSimpleName() + " decryping using seller payment account key: " + request.getSellerPaymentAccountKey());
-              trade.decryptPeerPaymentAccountPayload(request.getSellerPaymentAccountKey());
+            // store updated multisig hex for processing on payment sent
+            sender.setUpdatedMultisigHex(request.getUpdatedMultisigHex());
+
+            // decrypt seller payment account payload if key given
+            if (request.getSellerPaymentAccountKey() != null && trade.getTradingPeer().getPaymentAccountPayload() == null) {
+                log.info(trade.getClass().getSimpleName() + " decryping using seller payment account key: " + request.getSellerPaymentAccountKey());
+                trade.decryptPeerPaymentAccountPayload(request.getSellerPaymentAccountKey());
+            }
+
+            // persist and complete
+            processModel.getTradeManager().requestPersistence();
+            complete();
+          } catch (Throwable t) {
+              failed(t);
           }
-
-          // store updated multisig hex for processing on payment sent
-          sender.setUpdatedMultisigHex(request.getUpdatedMultisigHex());
-
-          // persist and complete
-          processModel.getTradeManager().requestPersistence();
-          complete();
-        } catch (Throwable t) {
-          failed(t);
-        }
     }
 }

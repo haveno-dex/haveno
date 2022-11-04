@@ -75,7 +75,7 @@ public class BuyerPreparePaymentSentMessage extends TradeTask {
             // create payout tx if we have seller's updated multisig hex
             if (trade.getSeller().getUpdatedMultisigHex() != null) {
 
-              // create payout tx
+                // create payout tx
                 log.info("Buyer creating unsigned payout tx");
                 MoneroTxWallet payoutTx = trade.createPayoutTx();
                 trade.setPayoutTx(payoutTx);

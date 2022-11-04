@@ -62,7 +62,6 @@ public class PlaceOfferProtocol {
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     public void placeOffer() {
-        log.info("{}.placeOffer() {}", getClass().getSimpleName(), model.getOffer().getId());
 
         timeoutTimer = UserThread.runAfter(() -> {
             handleError(Res.get("createOffer.timeoutAtPublishing"));
@@ -96,10 +95,12 @@ public class PlaceOfferProtocol {
 
       // ignore if timer already stopped
       if (timeoutTimer == null) {
-          log.warn("Ignoring sign offer response from arbitrator because timeout has expired");
+          log.warn("Ignoring sign offer response from arbitrator because timeout has expired for offer " + model.getOffer().getId());
           return;
       }
 
+      // reset timer
+      stopTimeoutTimer();
       timeoutTimer = UserThread.runAfter(() -> {
           handleError(Res.get("createOffer.timeoutAtPublishing"));
       }, TradeProtocol.TRADE_TIMEOUT);

@@ -19,11 +19,8 @@ package bisq.core.trade.protocol.tasks;
 
 import bisq.core.offer.availability.DisputeAgentSelection;
 import bisq.core.support.dispute.arbitration.arbitrator.Arbitrator;
-import bisq.core.support.dispute.arbitration.arbitrator.ArbitratorManager;
-import bisq.core.support.dispute.mediation.mediator.Mediator;
 import bisq.core.trade.Trade;
 import bisq.core.trade.messages.InitTradeRequest;
-import bisq.core.trade.statistics.TradeStatisticsManager;
 import bisq.network.p2p.NodeAddress;
 import bisq.network.p2p.SendDirectMessageListener;
 import java.util.HashSet;

@@ -23,12 +23,15 @@ import bisq.core.btc.model.XmrAddressEntry;
 import bisq.core.offer.Offer;
 import bisq.core.offer.placeoffer.PlaceOfferModel;
 import bisq.core.util.ParsingUtils;
+import lombok.extern.slf4j.Slf4j;
+
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.List;
 import monero.daemon.model.MoneroOutput;
 import monero.wallet.model.MoneroTxWallet;
 
+@Slf4j
 public class MakerReserveOfferFunds extends Task<PlaceOfferModel> {
 
     public MakerReserveOfferFunds(TaskRunner taskHandler, PlaceOfferModel model) {
@@ -47,6 +50,7 @@ public class MakerReserveOfferFunds extends Task<PlaceOfferModel> {
             String returnAddress = model.getXmrWalletService().getOrCreateAddressEntry(offer.getId(), XmrAddressEntry.Context.TRADE_PAYOUT).getAddressString();
             BigInteger makerFee = ParsingUtils.coinToAtomicUnits(offer.getMakerFee());
             BigInteger depositAmount = ParsingUtils.coinToAtomicUnits(model.getReservedFundsForOffer());
+            log.info("Maker creating reserve tx with maker fee={} and depositAmount={}", makerFee, depositAmount);
             MoneroTxWallet reserveTx = model.getXmrWalletService().createReserveTx(makerFee, returnAddress, depositAmount, true);
 
             // collect reserved key images // TODO (woodser): switch to proof of reserve?

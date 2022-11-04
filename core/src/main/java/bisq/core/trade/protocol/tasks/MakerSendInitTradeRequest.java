@@ -53,7 +53,7 @@ public class MakerSendInitTradeRequest extends TradeTask {
             checkNotNull(makerRequest);
             checkTradeId(processModel.getOfferId(), makerRequest);
 
-            // maker signs offer id as nonce to avoid challenge protocol // TODO (woodser): is this necessary?
+            // maker signs offer id as nonce to avoid challenge protocol // TODO: how is this used?
             Offer offer = processModel.getOffer();
             byte[] sig = Sig.sign(processModel.getKeyRing().getSignatureKeyPair().getPrivate(), offer.getId().getBytes(Charsets.UTF_8));
 

@@ -93,60 +93,6 @@ public class BuyerAsTakerProtocol extends BuyerProtocol implements TakerProtocol
     }
 
     @Override
-    public void handleInitMultisigRequest(InitMultisigRequest request, NodeAddress sender) {
-        super.handleInitMultisigRequest(request, sender);
-    }
-
-    @Override
-    public void handleSignContractRequest(SignContractRequest message, NodeAddress sender) {
-        super.handleSignContractRequest(message, sender);
-    }
-
-    @Override
-    public void handleSignContractResponse(SignContractResponse message, NodeAddress sender) {
-        super.handleSignContractResponse(message, sender);
-    }
-
-    @Override
-    public void handleDepositResponse(DepositResponse response, NodeAddress sender) {
-        super.handleDepositResponse(response, sender);
-    }
-
-    @Override
-    public void handle(DepositsConfirmedMessage request, NodeAddress sender) {
-        super.handle(request, sender);
-    }
-
-    ///////////////////////////////////////////////////////////////////////////////////////////
-    // User interaction
-    ///////////////////////////////////////////////////////////////////////////////////////////
-
-    // We keep the handler here in as well to make it more transparent which events we expect
-    @Override
-    public void onPaymentStarted(ResultHandler resultHandler, ErrorMessageHandler errorMessageHandler) {
-        super.onPaymentStarted(resultHandler, errorMessageHandler);
-    }
-
-    ///////////////////////////////////////////////////////////////////////////////////////////
-    // Incoming message Payout tx
-    ///////////////////////////////////////////////////////////////////////////////////////////
-
-    // We keep the handler here in as well to make it more transparent which messages we expect
-    @Override
-    protected void handle(PaymentReceivedMessage message, NodeAddress peer) {
-        super.handle(message, peer);
-    }
-
-    ///////////////////////////////////////////////////////////////////////////////////////////
-    // Message dispatcher
-    ///////////////////////////////////////////////////////////////////////////////////////////
-
-    @Override
-    protected void onTradeMessage(TradeMessage message, NodeAddress peer) {
-        super.onTradeMessage(message, peer);
-    }
-
-    @Override
     protected void handleError(String errorMessage) {
         trade.getXmrWalletService().resetAddressEntriesForOpenOffer(trade.getId());
         super.handleError(errorMessage);

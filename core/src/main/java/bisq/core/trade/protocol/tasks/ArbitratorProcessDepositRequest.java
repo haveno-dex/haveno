@@ -48,83 +48,87 @@ public class ArbitratorProcessDepositRequest extends TradeTask {
     @Override
     protected void run() {
         try {
-          runInterceptHook();
+            runInterceptHook();
+  
+            // get contract and signature
+            String contractAsJson = trade.getContractAsJson();
+            DepositRequest request = (DepositRequest) processModel.getTradeMessage(); // TODO (woodser): verify response
+            String signature = request.getContractSignature();
+  
+            // get peer info
+            TradingPeer peer = trade.getTradingPeer(request.getSenderNodeAddress());
+           if (peer == null) throw new RuntimeException(request.getClass().getSimpleName() + " is not from maker, taker, or arbitrator");
+            PubKeyRing peerPubKeyRing = peer.getPubKeyRing();
+  
+            // verify signature
+            if (!Sig.verify(peerPubKeyRing.getSignaturePubKey(), contractAsJson, signature)) throw new RuntimeException("Peer's contract signature is invalid");
 
-          // get contract and signature
-          String contractAsJson = trade.getContractAsJson();
-          DepositRequest request = (DepositRequest) processModel.getTradeMessage(); // TODO (woodser): verify response
-          String signature = request.getContractSignature();
+            // set peer's signature
+            peer.setContractSignature(signature);
 
-          // get peer info
-          TradingPeer peer = trade.getTradingPeer(request.getSenderNodeAddress());
-          if (peer == null) throw new RuntimeException(request.getClass().getSimpleName() + " is not from maker, taker, or arbitrator");
-          PubKeyRing peerPubKeyRing = peer.getPubKeyRing();
+            // collect expected values of deposit tx
+            Offer offer = trade.getOffer();
+            boolean isFromTaker = request.getSenderNodeAddress().equals(trade.getTaker().getNodeAddress());
+            boolean isFromBuyer = isFromTaker ? offer.getDirection() == OfferDirection.SELL : offer.getDirection() == OfferDirection.BUY;
+            BigInteger depositAmount = ParsingUtils.coinToAtomicUnits(isFromBuyer ? offer.getBuyerSecurityDeposit() : offer.getAmount().add(offer.getSellerSecurityDeposit()));
+            String depositAddress = processModel.getMultisigAddress();
+            BigInteger tradeFee;
+            TradingPeer trader = trade.getTradingPeer(request.getSenderNodeAddress());
+            if (trader == processModel.getMaker()) tradeFee = ParsingUtils.coinToAtomicUnits(trade.getOffer().getMakerFee());
+            else if (trader == processModel.getTaker()) tradeFee = ParsingUtils.coinToAtomicUnits(trade.getTakerFee());
+            else throw new RuntimeException("DepositRequest is not from maker or taker");
 
-          // verify signature
-          if (!Sig.verify(peerPubKeyRing.getSignaturePubKey(), contractAsJson, signature)) throw new RuntimeException("Peer's contract signature is invalid");
+            // verify deposit tx
+            try {
+                trade.getXmrWalletService().verifyTradeTx(depositAddress,
+                    depositAmount,
+                    tradeFee,
+                    trader.getDepositTxHash(),
+                    request.getDepositTxHex(),
+                    request.getDepositTxKey(),
+                    null,
+                    false);
+            } catch (Exception e) {
+                throw new RuntimeException("Error processing deposit tx from " + (isFromTaker ? "taker " : "maker ") + request.getSenderNodeAddress() + ", offerId=" + offer.getId() + ": " + e.getMessage());
+            }
 
-          // set peer's signature
-          peer.setContractSignature(signature);
+            // set deposit info
+            trader.setDepositTxHex(request.getDepositTxHex());
+            trader.setDepositTxKey(request.getDepositTxKey());
+            if (request.getPaymentAccountKey() != null) trader.setPaymentAccountKey(request.getPaymentAccountKey());
 
-          // collect expected values of deposit tx
-          Offer offer = trade.getOffer();
-          boolean isFromTaker = request.getSenderNodeAddress().equals(trade.getTaker().getNodeAddress());
-          boolean isFromBuyer = isFromTaker ? offer.getDirection() == OfferDirection.SELL : offer.getDirection() == OfferDirection.BUY;
-          BigInteger depositAmount = ParsingUtils.coinToAtomicUnits(isFromBuyer ? offer.getBuyerSecurityDeposit() : offer.getAmount().add(offer.getSellerSecurityDeposit()));
-          String depositAddress = processModel.getMultisigAddress();
-          BigInteger tradeFee;
-          TradingPeer trader = trade.getTradingPeer(request.getSenderNodeAddress());
-          if (trader == processModel.getMaker()) tradeFee = ParsingUtils.coinToAtomicUnits(trade.getOffer().getMakerFee());
-          else if (trader == processModel.getTaker()) tradeFee = ParsingUtils.coinToAtomicUnits(trade.getTakerFee());
-          else throw new RuntimeException("DepositRequest is not from maker or taker");
+            // relay deposit txs when both available
+            // TODO (woodser): add small delay so tx has head start against double spend attempts?
+            if (processModel.getMaker().getDepositTxHex() != null && processModel.getTaker().getDepositTxHex() != null) {
 
-          // verify deposit tx
-          trade.getXmrWalletService().verifyTradeTx(depositAddress,
-                  depositAmount,
-                  tradeFee,
-                  trader.getDepositTxHash(),
-                  request.getDepositTxHex(),
-                  request.getDepositTxKey(),
-                  null,
-                  false);
-
-          // set deposit info
-          trader.setDepositTxHex(request.getDepositTxHex());
-          trader.setDepositTxKey(request.getDepositTxKey());
-          if (request.getPaymentAccountKey() != null) trader.setPaymentAccountKey(request.getPaymentAccountKey());
-
-          // relay deposit txs when both available
-          // TODO (woodser): add small delay so tx has head start against double spend attempts?
-          if (processModel.getMaker().getDepositTxHex() != null && processModel.getTaker().getDepositTxHex() != null) {
-
-              // relay txs
-              MoneroDaemon daemon = trade.getXmrWalletService().getDaemon();
-              daemon.submitTxHex(processModel.getMaker().getDepositTxHex()); // TODO (woodser): check that result is good. will need to release funds if one is submitted
-              daemon.submitTxHex(processModel.getTaker().getDepositTxHex());
+                // relay txs
+                MoneroDaemon daemon = trade.getXmrWalletService().getDaemon();
+               daemon.submitTxHex(processModel.getMaker().getDepositTxHex()); // TODO (woodser): check that result is good. will need to release funds if one is submitted
+                daemon.submitTxHex(processModel.getTaker().getDepositTxHex());
               
-              // update trade state
-              log.info("Arbitrator submitted deposit txs for trade " + trade.getId());
-              trade.setState(Trade.State.ARBITRATOR_PUBLISHED_DEPOSIT_TXS);
+                // update trade state
+                log.info("Arbitrator submitted deposit txs for trade " + trade.getId());
+                trade.setState(Trade.State.ARBITRATOR_PUBLISHED_DEPOSIT_TXS);
               
-              // create deposit response
-              DepositResponse response = new DepositResponse(
-                      trade.getOffer().getId(),
-                      processModel.getMyNodeAddress(),
-                      processModel.getPubKeyRing(),
-                      UUID.randomUUID().toString(),
-                      Version.getP2PMessageVersion(),
-                      new Date().getTime());
+                // create deposit response
+                DepositResponse response = new DepositResponse(
+                        trade.getOffer().getId(),
+                        processModel.getMyNodeAddress(),
+                        processModel.getPubKeyRing(),
+                        UUID.randomUUID().toString(),
+                        Version.getP2PMessageVersion(),
+                        new Date().getTime());
               
-              // send deposit response to maker and taker
-              sendDepositResponse(trade.getMaker().getNodeAddress(), trade.getMaker().getPubKeyRing(), response);
-              sendDepositResponse(trade.getTaker().getNodeAddress(), trade.getTaker().getPubKeyRing(), response);
-          } else {
-              if (processModel.getMaker().getDepositTxHex() == null) log.info("Arbitrator waiting for deposit request from maker for trade " + trade.getId());
-              if (processModel.getTaker().getDepositTxHex() == null) log.info("Arbitrator waiting for deposit request from taker for trade " + trade.getId());
-          }
+                // send deposit response to maker and taker
+                sendDepositResponse(trade.getMaker().getNodeAddress(), trade.getMaker().getPubKeyRing(), response);
+                sendDepositResponse(trade.getTaker().getNodeAddress(), trade.getTaker().getPubKeyRing(), response);
+            } else {
+                if (processModel.getMaker().getDepositTxHex() == null) log.info("Arbitrator waiting for deposit request from maker for trade " + trade.getId());
+                if (processModel.getTaker().getDepositTxHex() == null) log.info("Arbitrator waiting for deposit request from taker for trade " + trade.getId());
+            }
 
-          // TODO (woodser): request persistence?
-          complete();
+            // TODO (woodser): request persistence?
+            complete();
         } catch (Throwable t) {
           failed(t);
         }

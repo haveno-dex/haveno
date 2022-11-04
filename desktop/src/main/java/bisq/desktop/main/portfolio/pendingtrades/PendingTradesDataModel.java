@@ -465,7 +465,6 @@ public class PendingTradesDataModel extends ActivatableDataModel {
       byte[] payoutTxSerialized = null;
       String payoutTxHashAsString = null;
       MoneroWallet multisigWallet = xmrWalletService.getMultisigWallet(trade.getId());
-      String updatedMultisigHex = multisigWallet.exportMultisigHex();
       if (trade.getPayoutTxId() != null) {
 //          payoutTxSerialized = payoutTx.bitcoinSerialize(); // TODO (woodser): no need to pass serialized txs for xmr
 //          payoutTxHashAsString = payoutTx.getHashAsString();
@@ -477,9 +476,9 @@ public class PendingTradesDataModel extends ActivatableDataModel {
       // If mediation is not activated we use arbitration
       if (false) {  // TODO (woodser): use mediation for xmr? if (MediationManager.isMediationActivated()) {
           // In case we re-open a dispute we allow Trade.DisputeState.MEDIATION_REQUESTED or
-          useMediation = disputeState == Trade.DisputeState.NO_DISPUTE || disputeState == Trade.DisputeState.MEDIATION_REQUESTED;
+          useMediation = disputeState == Trade.DisputeState.NO_DISPUTE || disputeState == Trade.DisputeState.MEDIATION_REQUESTED || disputeState == Trade.DisputeState.DISPUTE_OPENED;
           // in case of arbitration disputeState == Trade.DisputeState.ARBITRATION_REQUESTED
-          useArbitration = disputeState == Trade.DisputeState.MEDIATION_CLOSED || disputeState == Trade.DisputeState.DISPUTE_REQUESTED;
+          useArbitration = disputeState == Trade.DisputeState.MEDIATION_CLOSED || disputeState == Trade.DisputeState.DISPUTE_REQUESTED || disputeState == Trade.DisputeState.DISPUTE_OPENED;
       } else {
           useMediation = false;
           useArbitration = true;
@@ -549,27 +548,27 @@ public class PendingTradesDataModel extends ActivatableDataModel {
             dispute.setExtraData("counterCurrencyExtraData", trade.getCounterCurrencyExtraData());
 
             trade.setDisputeState(Trade.DisputeState.MEDIATION_REQUESTED);
-            sendOpenNewDisputeMessage(dispute, false, disputeManager, updatedMultisigHex);
+            sendDisputeOpenedMessage(dispute, false, disputeManager, trade.getSelf().getUpdatedMultisigHex());
             tradeManager.requestPersistence();
         } else if (useArbitration) {
           // Only if we have completed mediation we allow arbitration
           disputeManager = arbitrationManager;
           Dispute dispute = disputesService.createDisputeForTrade(trade, offer, pubKeyRingProvider.get(), isMaker, isSupportTicket);
-          sendOpenNewDisputeMessage(dispute, false, disputeManager, updatedMultisigHex);
+          sendDisputeOpenedMessage(dispute, false, disputeManager, trade.getSelf().getUpdatedMultisigHex());
           tradeManager.requestPersistence();
         } else {
             log.warn("Invalid dispute state {}", disputeState.name());
         }
     }
 
-    private void sendOpenNewDisputeMessage(Dispute dispute, boolean reOpen, DisputeManager<? extends DisputeList<Dispute>> disputeManager, String senderMultisigHex) {
-        disputeManager.sendOpenNewDisputeMessage(dispute, reOpen, senderMultisigHex,
+    private void sendDisputeOpenedMessage(Dispute dispute, boolean reOpen, DisputeManager<? extends DisputeList<Dispute>> disputeManager, String senderMultisigHex) {
+        disputeManager.sendDisputeOpenedMessage(dispute, reOpen, senderMultisigHex,
                 () -> navigation.navigateTo(MainView.class, SupportView.class, ArbitrationClientView.class), (errorMessage, throwable) -> {
                     if ((throwable instanceof DisputeAlreadyOpenException)) {
                         errorMessage += "\n\n" + Res.get("portfolio.pending.openAgainDispute.msg");
                         new Popup().warning(errorMessage)
                                 .actionButtonText(Res.get("portfolio.pending.openAgainDispute.button"))
-                                .onAction(() -> sendOpenNewDisputeMessage(dispute, true, disputeManager, senderMultisigHex))
+                                .onAction(() -> sendDisputeOpenedMessage(dispute, true, disputeManager, senderMultisigHex))
                                 .closeButtonText(Res.get("shared.cancel")).show();
                     } else {
                         new Popup().warning(errorMessage).show();

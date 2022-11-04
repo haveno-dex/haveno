@@ -511,7 +511,7 @@ public class PendingTradesViewModel extends ActivatableWithDataModel<PendingTrad
         if (trade instanceof ArbitratorTrade) return;
 
         switch (payoutState) {
-            case PUBLISHED:
+            case PAYOUT_PUBLISHED:
                 sellerState.set(SellerState.STEP4);
                 buyerState.set(BuyerState.STEP4);
                 break;

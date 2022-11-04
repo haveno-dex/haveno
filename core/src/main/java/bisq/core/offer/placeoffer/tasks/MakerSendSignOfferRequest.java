@@ -79,8 +79,7 @@ public class MakerSendSignOfferRequest extends Task<PlaceOfferModel> {
             sendSignOfferRequests(request, () -> {
                 complete();
             }, (errorMessage) -> {
-                log.warn("Error signing offer: " + errorMessage);
-                appendToErrorMessage("Error signing offer: " + errorMessage);
+                appendToErrorMessage("Error signing offer " + request.getOfferId() + ": " + errorMessage);
                 failed(errorMessage);
             });
         } catch (Throwable t) {
@@ -94,7 +93,7 @@ public class MakerSendSignOfferRequest extends Task<PlaceOfferModel> {
     private void sendSignOfferRequests(SignOfferRequest request, ResultHandler resultHandler, ErrorMessageHandler errorMessageHandler) {
         Arbitrator leastUsedArbitrator = DisputeAgentSelection.getLeastUsedArbitrator(model.getTradeStatisticsManager(), model.getArbitratorManager());
         if (leastUsedArbitrator == null) {
-            errorMessageHandler.handleErrorMessage("Could not get least used arbitrator");
+            errorMessageHandler.handleErrorMessage("Could not get least used arbitrator to send " + request.getClass().getSimpleName() + " for offer " + request.getOfferId());
             return;
         }
         sendSignOfferRequests(request, leastUsedArbitrator.getNodeAddress(), new HashSet<NodeAddress>(), resultHandler, errorMessageHandler);
@@ -102,7 +101,7 @@ public class MakerSendSignOfferRequest extends Task<PlaceOfferModel> {
 
     private void sendSignOfferRequests(SignOfferRequest request, NodeAddress arbitratorNodeAddress, Set<NodeAddress> excludedArbitrators,  ResultHandler resultHandler, ErrorMessageHandler errorMessageHandler) {
         
-        // complete on successful ack message
+        // complete on successful ack message, fail on first nack
         DecryptedDirectMessageListener ackListener = new DecryptedDirectMessageListener() {
             @Override
             public void onDirectMessage(DecryptedMessageWithPubKey decryptedMessageWithPubKey, NodeAddress sender) {
@@ -117,8 +116,7 @@ public class MakerSendSignOfferRequest extends Task<PlaceOfferModel> {
                     model.getOffer().setState(Offer.State.OFFER_FEE_RESERVED);
                     resultHandler.handleResult();
                  } else {
-                     log.warn("Arbitrator nacked request: {}", errorMessage);
-                     handleArbitratorFailure(request, arbitratorNodeAddress, excludedArbitrators, resultHandler, errorMessageHandler);
+                     errorMessageHandler.handleErrorMessage("Arbitrator nacked SignOfferRequest for offer " + request.getOfferId() + ": " + ackMessage.getErrorMessage());
                  }
             }
         };
@@ -135,7 +133,14 @@ public class MakerSendSignOfferRequest extends Task<PlaceOfferModel> {
             @Override
             public void onFault(String errorMessage) {
                 log.warn("Arbitrator unavailable: {}", errorMessage);
-                handleArbitratorFailure(request, arbitratorNodeAddress, excludedArbitrators, resultHandler, errorMessageHandler);
+                excludedArbitrators.add(arbitratorNodeAddress);
+                Arbitrator altArbitrator = DisputeAgentSelection.getLeastUsedArbitrator(model.getTradeStatisticsManager(), model.getArbitratorManager(), excludedArbitrators);
+                if (altArbitrator == null) {
+                    errorMessageHandler.handleErrorMessage("Offer " + request.getOfferId() + " could not be signed by any arbitrator");
+                    return;
+                }
+                log.info("Using alternative arbitrator {}", altArbitrator.getNodeAddress());
+                sendSignOfferRequests(request, altArbitrator.getNodeAddress(), excludedArbitrators, resultHandler, errorMessageHandler);
             }
         });
     }
@@ -155,16 +160,5 @@ public class MakerSendSignOfferRequest extends Task<PlaceOfferModel> {
                 request,
                 listener
         );
-    }
-
-    private void handleArbitratorFailure(SignOfferRequest request, NodeAddress arbitratorNodeAddress, Set<NodeAddress> excludedArbitrators,  ResultHandler resultHandler, ErrorMessageHandler errorMessageHandler) {
-        excludedArbitrators.add(arbitratorNodeAddress);
-        Arbitrator altArbitrator = DisputeAgentSelection.getLeastUsedArbitrator(model.getTradeStatisticsManager(), model.getArbitratorManager(), excludedArbitrators);
-        if (altArbitrator == null) {
-            errorMessageHandler.handleErrorMessage("Offer could not be signed by any arbitrator");
-            return;
-        }
-        log.info("Using alternative arbitrator {}", altArbitrator.getNodeAddress());
-        sendSignOfferRequests(request, altArbitrator.getNodeAddress(), excludedArbitrators, resultHandler, errorMessageHandler);
     }
 }

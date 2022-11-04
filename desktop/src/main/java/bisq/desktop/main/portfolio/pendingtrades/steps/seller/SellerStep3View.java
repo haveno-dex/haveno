@@ -145,6 +145,11 @@ public class SellerStep3View extends TradeStepView {
                             busyAnimation.stop();
                             statusLabel.setText("");
                             break;
+                        case TRADE_COMPLETED:
+                            if (!trade.isPayoutPublished()) log.warn("Payout is expected to be published for {} {} state {}", trade.getClass().getSimpleName(), trade.getId(), trade.getState());
+                            busyAnimation.stop();
+                            statusLabel.setText("");
+                            break;
                         default:
                             log.warn("Unexpected case: State={}, tradeId={} " + state.name(), trade.getId());
                             busyAnimation.stop();

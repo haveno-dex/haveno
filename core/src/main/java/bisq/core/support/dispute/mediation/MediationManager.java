@@ -29,9 +29,8 @@ import bisq.core.support.SupportType;
 import bisq.core.support.dispute.Dispute;
 import bisq.core.support.dispute.DisputeManager;
 import bisq.core.support.dispute.DisputeResult;
-import bisq.core.support.dispute.messages.DisputeResultMessage;
-import bisq.core.support.dispute.messages.OpenNewDisputeMessage;
-import bisq.core.support.dispute.messages.PeerOpenedDisputeMessage;
+import bisq.core.support.dispute.messages.DisputeClosedMessage;
+import bisq.core.support.dispute.messages.DisputeOpenedMessage;
 import bisq.core.support.messages.ChatMessage;
 import bisq.core.support.messages.SupportMessage;
 import bisq.core.trade.ClosedTradableManager;
@@ -107,23 +106,16 @@ public final class MediationManager extends DisputeManager<MediationDisputeList>
             log.info("Received {} with tradeId {} and uid {}",
                     message.getClass().getSimpleName(), message.getTradeId(), message.getUid());
 
-            if (message instanceof OpenNewDisputeMessage) {
-                onOpenNewDisputeMessage((OpenNewDisputeMessage) message);
-            } else if (message instanceof PeerOpenedDisputeMessage) {
-                onPeerOpenedDisputeMessage((PeerOpenedDisputeMessage) message);
+            if (message instanceof DisputeOpenedMessage) {
+                handleDisputeOpenedMessage((DisputeOpenedMessage) message);
             } else if (message instanceof ChatMessage) {
-                onChatMessage((ChatMessage) message);
-            } else if (message instanceof DisputeResultMessage) {
-                onDisputeResultMessage((DisputeResultMessage) message);
+                handleChatMessage((ChatMessage) message);
+            } else if (message instanceof DisputeClosedMessage) {
+                handleDisputeClosedMessage((DisputeClosedMessage) message);
             } else {
                 log.warn("Unsupported message at dispatchMessage. message={}", message);
             }
         }
-    }
-
-    @Override
-    protected Trade.DisputeState getDisputeStateStartedByPeer() {
-        return Trade.DisputeState.MEDIATION_STARTED_BY_PEER;
     }
 
     @Override
@@ -164,7 +156,7 @@ public final class MediationManager extends DisputeManager<MediationDisputeList>
 
     @Override
     // We get that message at both peers. The dispute object is in context of the trader
-    public void onDisputeResultMessage(DisputeResultMessage disputeResultMessage) {
+    public void handleDisputeClosedMessage(DisputeClosedMessage disputeResultMessage) {
         DisputeResult disputeResult = disputeResultMessage.getDisputeResult();
         String tradeId = disputeResult.getTradeId();
         ChatMessage chatMessage = disputeResult.getChatMessage();
@@ -177,7 +169,7 @@ public final class MediationManager extends DisputeManager<MediationDisputeList>
                     "We try again after 2 sec. to apply the disputeResultMessage. TradeId = " + tradeId);
             if (!delayMsgMap.containsKey(uid)) {
                 // We delay 2 sec. to be sure the comm. msg gets added first
-                Timer timer = UserThread.runAfter(() -> onDisputeResultMessage(disputeResultMessage), 2);
+                Timer timer = UserThread.runAfter(() -> handleDisputeClosedMessage(disputeResultMessage), 2);
                 delayMsgMap.put(uid, timer);
             } else {
                 log.warn("We got a dispute result msg after we already repeated to apply the message after a delay. " +

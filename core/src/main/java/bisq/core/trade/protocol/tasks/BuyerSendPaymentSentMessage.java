@@ -21,11 +21,18 @@ import bisq.core.network.MessageState;
 import bisq.core.trade.Trade;
 import bisq.core.trade.messages.PaymentSentMessage;
 import bisq.core.trade.messages.TradeMailboxMessage;
+import bisq.core.util.JsonUtil;
+import bisq.network.p2p.NodeAddress;
+
+import com.google.common.base.Charsets;
+
 import bisq.common.Timer;
+import bisq.common.crypto.PubKeyRing;
+import bisq.common.crypto.Sig;
 import bisq.common.taskrunner.TaskRunner;
 
 import javafx.beans.value.ChangeListener;
-
+import lombok.EqualsAndHashCode;
 import lombok.extern.slf4j.Slf4j;
 
 /**
@@ -38,8 +45,8 @@ import lombok.extern.slf4j.Slf4j;
  * online he will process it.
  */
 @Slf4j
-public class BuyerSendPaymentSentMessage extends SendMailboxMessageTask {
-    private PaymentSentMessage message;
+@EqualsAndHashCode(callSuper = true)
+public abstract class BuyerSendPaymentSentMessage extends SendMailboxMessageTask {
     private ChangeListener<MessageState> listener;
     private Timer timer;
 
@@ -47,16 +54,34 @@ public class BuyerSendPaymentSentMessage extends SendMailboxMessageTask {
         super(taskHandler, trade);
     }
 
+    protected abstract NodeAddress getReceiverNodeAddress();
+
+    protected abstract PubKeyRing getReceiverPubKeyRing();
+
+    @Override
+    protected void run() {
+        try {
+            runInterceptHook();
+            super.run();
+        } catch (Throwable t) {
+            failed(t);
+        } finally {
+            cleanup();
+        }
+    }
+
     @Override
     protected TradeMailboxMessage getTradeMailboxMessage(String tradeId) {
-        if (message == null) {
+        if (trade.getSelf().getPaymentSentMessage() == null) {
 
             // We do not use a real unique ID here as we want to be able to re-send the exact same message in case the
             // peer does not respond with an ACK msg in a certain time interval. To avoid that we get dangling mailbox
             // messages where only the one which gets processed by the peer would be removed we use the same uid. All
             // other data stays the same when we re-send the message at any time later.
             String deterministicId = tradeId + processModel.getMyNodeAddress().getFullAddress();
-            message = new PaymentSentMessage(
+
+            // create payment sent message
+            PaymentSentMessage message = new PaymentSentMessage(
                     tradeId,
                     processModel.getMyNodeAddress(),
                     trade.getCounterCurrencyTxId(),
@@ -66,8 +91,18 @@ public class BuyerSendPaymentSentMessage extends SendMailboxMessageTask {
                     trade.getSelf().getUpdatedMultisigHex(),
                     trade.getSelf().getPaymentAccountKey()
             );
+
+            // sign message
+            try {
+                String messageAsJson = JsonUtil.objectToJson(message);
+                byte[] sig = Sig.sign(processModel.getP2PService().getKeyRing().getSignatureKeyPair().getPrivate(), messageAsJson.getBytes(Charsets.UTF_8));
+                message.setBuyerSignature(sig);
+                trade.getSelf().setPaymentSentMessage(message);
+            } catch (Exception e) {
+                throw new RuntimeException (e);
+            }
         }
-        return message;
+        return trade.getSelf().getPaymentSentMessage();
     }
 
     @Override
@@ -94,18 +129,6 @@ public class BuyerSendPaymentSentMessage extends SendMailboxMessageTask {
     protected void setStateFault() {
         trade.setStateIfValidTransitionTo(Trade.State.BUYER_SEND_FAILED_PAYMENT_SENT_MSG);
         processModel.getTradeManager().requestPersistence();
-    }
-
-    @Override
-    protected void run() {
-        try {
-            runInterceptHook();
-            super.run();
-        } catch (Throwable t) {
-            failed(t);
-        } finally {
-            cleanup();
-        }
     }
 
     private void cleanup() {

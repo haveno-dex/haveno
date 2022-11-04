@@ -99,7 +99,6 @@ public final class OfferAvailabilityRequest extends OfferMessage implements Supp
                 .setTakersTradePrice(takersTradePrice)
                 .setIsTakerApiUser(isTakerApiUser)
                 .setTradeRequest(tradeRequest.toProtoNetworkEnvelope().getInitTradeRequest());
-
         Optional.ofNullable(supportedCapabilities).ifPresent(e -> builder.addAllSupportedCapabilities(Capabilities.toIntList(supportedCapabilities)));
         Optional.ofNullable(uid).ifPresent(e -> builder.setUid(uid));
 
