@@ -63,6 +63,7 @@ public abstract class SendMailboxMessageTask extends TradeTask {
             log.info("Send {} to peer {}. tradeId={}, uid={}",
                     message.getClass().getSimpleName(), peersNodeAddress, message.getTradeId(), message.getUid());
 
+            TradeTask task = this;
             processModel.getP2PService().getMailboxMessageService().sendEncryptedMailboxMessage(
                     peersNodeAddress,
                     getReceiverPubKeyRing(),
@@ -72,7 +73,7 @@ public abstract class SendMailboxMessageTask extends TradeTask {
                         public void onArrived() {
                             log.info("{} arrived at peer {}. tradeId={}, uid={}", message.getClass().getSimpleName(), peersNodeAddress, message.getTradeId(), message.getUid());
                             setStateArrived();
-                            complete();
+                            if (!task.isCompleted()) complete();
                         }
 
                         @Override
@@ -95,7 +96,7 @@ public abstract class SendMailboxMessageTask extends TradeTask {
 
     protected void onStoredInMailbox() {
         setStateStoredInMailbox();
-        complete();
+        if (!isCompleted()) complete();
     }
 
     protected void onFault(String errorMessage, TradeMessage message) {

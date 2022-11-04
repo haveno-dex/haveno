@@ -17,6 +17,7 @@
 
 package bisq.core.presentation;
 
+import bisq.common.UserThread;
 import bisq.core.btc.Balances;
 
 import javax.inject.Inject;
@@ -43,13 +44,13 @@ public class BalancePresentation {
     @Inject
     public BalancePresentation(Balances balances) {
         balances.getAvailableBalance().addListener((observable, oldValue, newValue) -> {
-            availableBalance.set(longToXmr(newValue.value));
+            UserThread.execute(() -> availableBalance.set(longToXmr(newValue.value)));
         });
         balances.getPendingBalance().addListener((observable, oldValue, newValue) -> {
-            pendingBalance.set(longToXmr(newValue.value));
+            UserThread.execute(() -> pendingBalance.set(longToXmr(newValue.value)));
         });
         balances.getReservedBalance().addListener((observable, oldValue, newValue) -> {
-            reservedBalance.set(longToXmr(newValue.value));
+            UserThread.execute(() -> reservedBalance.set(longToXmr(newValue.value)));
         });
     }
 

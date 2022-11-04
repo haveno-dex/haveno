@@ -73,7 +73,11 @@ public abstract class SellerTrade extends Trade {
                 return true;
 
             case DISPUTE_REQUESTED:
-            case DISPUTE_STARTED_BY_PEER:
+            case DISPUTE_OPENED:
+            case ARBITRATOR_SENT_DISPUTE_CLOSED_MSG:
+            case ARBITRATOR_SEND_FAILED_DISPUTE_CLOSED_MSG:
+            case ARBITRATOR_STORED_IN_MAILBOX_DISPUTE_CLOSED_MSG:
+            case ARBITRATOR_SAW_ARRIVED_DISPUTE_CLOSED_MSG:
             case DISPUTE_CLOSED:
             case MEDIATION_REQUESTED:
             case MEDIATION_STARTED_BY_PEER:

@@ -40,31 +40,29 @@ message NetworkEnvelope {
         InputsForDepositTxResponse inputs_for_deposit_tx_response = 18;
         DepositTxMessage deposit_tx_message = 19;
 
-        OpenNewDisputeMessage open_new_dispute_message = 20;
-        PeerOpenedDisputeMessage peer_opened_dispute_message = 21;
+        DisputeOpenedMessage dispute_opened_message = 20;
+        DisputeClosedMessage dispute_closed_message = 21;
         ChatMessage chat_message = 22;
-        DisputeResultMessage dispute_result_message = 23;
-        PeerPublishedDisputePayoutTxMessage peer_published_dispute_payout_tx_message = 24;
 
-        PrivateNotificationMessage private_notification_message = 25;
+        PrivateNotificationMessage private_notification_message = 23;
 
-        AddPersistableNetworkPayloadMessage add_persistable_network_payload_message = 26;
-        AckMessage ack_message = 27;
+        AddPersistableNetworkPayloadMessage add_persistable_network_payload_message = 24;
+        AckMessage ack_message = 25;
 
-        BundleOfEnvelopes bundle_of_envelopes = 28;
-        MediatedPayoutTxSignatureMessage mediated_payout_tx_signature_message = 29;
-        MediatedPayoutTxPublishedMessage mediated_payout_tx_published_message = 30;
+        BundleOfEnvelopes bundle_of_envelopes = 26;
+        MediatedPayoutTxSignatureMessage mediated_payout_tx_signature_message = 27;
+        MediatedPayoutTxPublishedMessage mediated_payout_tx_published_message = 28;
 
-        DelayedPayoutTxSignatureRequest delayed_payout_tx_signature_request = 31;
-        DelayedPayoutTxSignatureResponse delayed_payout_tx_signature_response = 32;
-        DepositTxAndDelayedPayoutTxMessage deposit_tx_and_delayed_payout_tx_message = 33;
-        PeerPublishedDelayedPayoutTxMessage peer_published_delayed_payout_tx_message = 34;
+        DelayedPayoutTxSignatureRequest delayed_payout_tx_signature_request = 29;
+        DelayedPayoutTxSignatureResponse delayed_payout_tx_signature_response = 30;
+        DepositTxAndDelayedPayoutTxMessage deposit_tx_and_delayed_payout_tx_message = 31;
+        PeerPublishedDelayedPayoutTxMessage peer_published_delayed_payout_tx_message = 32;
 
-        RefreshTradeStateRequest refresh_trade_state_request = 35 [deprecated = true];
-        TraderSignedWitnessMessage trader_signed_witness_message = 36 [deprecated = true];
+        RefreshTradeStateRequest refresh_trade_state_request = 33 [deprecated = true];
+        TraderSignedWitnessMessage trader_signed_witness_message = 34 [deprecated = true];
 
-        GetInventoryRequest get_inventory_request = 37;
-        GetInventoryResponse get_inventory_response = 38;
+        GetInventoryRequest get_inventory_request = 35;
+        GetInventoryResponse get_inventory_response = 36;
 
         SignOfferRequest sign_offer_request = 1001;
         SignOfferResponse sign_offer_response = 1002;
@@ -77,8 +75,6 @@ message NetworkEnvelope {
         DepositsConfirmedMessage deposits_confirmed_message = 1009;
         PaymentSentMessage payment_sent_message = 1010;
         PaymentReceivedMessage payment_received_message = 1011;
-        ArbitratorPayoutTxRequest arbitrator_payout_tx_request = 1012;
-        ArbitratorPayoutTxResponse arbitrator_payout_tx_response = 1013;
     }
 }
 
@@ -399,14 +395,6 @@ message PeerPublishedDelayedPayoutTxMessage {
     NodeAddress sender_node_address = 3;
 }
 
-message FinalizePayoutTxRequest {
-    string trade_id = 1;
-    bytes seller_signature = 2;
-    string seller_payout_address = 3;
-    NodeAddress sender_node_address = 4;
-    string uid = 5;
-}
-
 message PaymentSentMessage {
     string trade_id = 1;
     NodeAddress sender_node_address = 2;
@@ -416,6 +404,7 @@ message PaymentSentMessage {
     string payout_tx_hex = 6;
     string updated_multisig_hex = 7;
     bytes payment_account_key = 8;
+    bytes buyer_signature = 9;
 }
 
 message PaymentReceivedMessage {
@@ -426,23 +415,9 @@ message PaymentReceivedMessage {
     string unsigned_payout_tx_hex = 5;
     string signed_payout_tx_hex = 6;
     string updated_multisig_hex = 7;
-    bool saw_arrived_payment_received_msg = 8;
-}
-
-message ArbitratorPayoutTxRequest {
-    Dispute dispute = 1;    // TODO (woodser): replace with trade id
-    NodeAddress sender_node_address = 2;
-    string uid = 3;
-    SupportType type = 4;
-    string updated_multisig_hex = 5;
-}
-
-message ArbitratorPayoutTxResponse {
-    string trade_id = 1;
-    NodeAddress sender_node_address = 2;
-    string uid = 3;
-    SupportType type = 4;
-    string arbitrator_signed_payout_tx_hex = 5;
+    bool defer_publish_payout = 8;
+    PaymentSentMessage payment_sent_message = 9;
+    bytes seller_signature = 10;
 }
 
 message MediatedPayoutTxPublishedMessage {
@@ -474,30 +449,6 @@ message TraderSignedWitnessMessage {
     SignedWitness signed_witness = 4 [deprecated = true];
 }
 
-// dispute
-
-enum SupportType {
-    ARBITRATION = 0;
-    MEDIATION = 1;
-    TRADE = 2;
-    REFUND = 3;
-}
-
-message OpenNewDisputeMessage {
-    Dispute dispute = 1;
-    NodeAddress sender_node_address = 2;
-    string uid = 3;
-    SupportType type = 4;
-    string updated_multisig_hex = 5;
-}
-
-message PeerOpenedDisputeMessage {
-    Dispute dispute = 1;
-    NodeAddress sender_node_address = 2;
-    string uid = 3;
-    SupportType type = 4;
-}
-
 message ChatMessage {
     int64 date = 1;
     string trade_id = 2;
@@ -517,21 +468,32 @@ message ChatMessage {
     bool was_displayed = 16;
 }
 
-message DisputeResultMessage {
+// dispute
+
+enum SupportType {
+    ARBITRATION = 0;
+    MEDIATION = 1;
+    TRADE = 2;
+    REFUND = 3;
+}
+
+message DisputeOpenedMessage {
+    Dispute dispute = 1;
+    NodeAddress sender_node_address = 2;
+    string uid = 3;
+    SupportType type = 4;
+    string updated_multisig_hex = 5;
+    PaymentSentMessage payment_sent_message = 6;
+}
+
+message DisputeClosedMessage {
     string uid = 1;
     DisputeResult dispute_result = 2;
     NodeAddress sender_node_address = 3;
     SupportType type = 4;
-}
-
-message PeerPublishedDisputePayoutTxMessage {
-    string uid = 1;
-    reserved 2; // was bytes transaction = 2;
-    string trade_id = 3;
-    NodeAddress sender_node_address = 4;
-    SupportType type = 5;
-    string updated_multisig_hex = 6;
-    string payout_tx_hex = 7;
+    string updated_multisig_hex = 5;
+    string unsigned_payout_tx_hex = 6;
+    bool defer_publish_payout = 7;
 }
 
 message PrivateNotificationMessage {
@@ -944,8 +906,6 @@ message DisputeResult {
     bytes arbitrator_pub_key = 13;
     int64 close_date = 14;
     bool is_loser_publisher = 15;
-    string arbitrator_signed_payout_tx_hex = 16;
-    string arbitrator_updated_multisig_hex = 17;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////
@@ -1640,24 +1600,28 @@ message Trade {
     }
 
     enum PayoutState {
-        UNPUBLISHED = 0;
-        PUBLISHED = 1;
-        CONFIRMED = 2;
-        UNLOCKED = 3;
+        PAYOUT_UNPUBLISHED = 0;
+        PAYOUT_PUBLISHED = 1;
+        PAYOUT_CONFIRMED = 2;
+        PAYOUT_UNLOCKED = 3;
     }
 
     enum DisputeState {
         PB_ERROR_DISPUTE_STATE = 0;
         NO_DISPUTE = 1;
-        DISPUTE_REQUESTED = 2; // arbitration  We use the enum name for resolving enums so it cannot be renamed
-        DISPUTE_STARTED_BY_PEER = 3; // arbitration  We use the enum name for resolving enums so it cannot be renamed
-        DISPUTE_CLOSED = 4; // arbitration  We use the enum name for resolving enums so it cannot be renamed
-        MEDIATION_REQUESTED = 5;
-        MEDIATION_STARTED_BY_PEER = 6;
-        MEDIATION_CLOSED = 7;
-        REFUND_REQUESTED = 8;
-        REFUND_REQUEST_STARTED_BY_PEER = 9;
-        REFUND_REQUEST_CLOSED = 10;
+        DISPUTE_REQUESTED = 2;
+        DISPUTE_OPENED = 3;
+        ARBITRATOR_SENT_DISPUTE_CLOSED_MSG = 4;
+        ARBITRATOR_SEND_FAILED_DISPUTE_CLOSED_MSG = 5;
+        ARBITRATOR_STORED_IN_MAILBOX_DISPUTE_CLOSED_MSG = 6;
+        ARBITRATOR_SAW_ARRIVED_DISPUTE_CLOSED_MSG = 7;
+        DISPUTE_CLOSED = 8;
+        MEDIATION_REQUESTED = 9;
+        MEDIATION_STARTED_BY_PEER = 10;
+        MEDIATION_CLOSED = 11;
+        REFUND_REQUESTED = 12;
+        REFUND_REQUEST_STARTED_BY_PEER = 13;
+        REFUND_REQUEST_CLOSED = 14;
     }
 
     enum TradePeriodState {
@@ -1782,6 +1746,7 @@ message TradingPeer {
     string deposit_tx_hex = 1009;
     string deposit_tx_key = 1010;
     string updated_multisig_hex = 1011;
+    PaymentSentMessage payment_sent_message = 1012;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////

@@ -189,9 +189,7 @@ class GrpcWalletsService extends WalletsImplBase {
                     .stream()
                     .map(s -> new MoneroDestination(s.getAddress(), new BigInteger(s.getAmount())))
                     .collect(Collectors.toList()));
-            log.info("Successfully created XMR tx: hash {}, metadata {}",
-                    tx.getHash(),
-                    tx.getMetadata());
+            log.info("Successfully created XMR tx: hash {}", tx.getHash());
             var reply = CreateXmrTxReply.newBuilder()
                     .setTx(toXmrTx(tx).toProtoMessage())
                     .build();

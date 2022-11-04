@@ -241,7 +241,6 @@ public final class CoreMoneroConnectionsService {
         else {
             boolean isLocal = HavenoUtils.isLocalHost(daemon.getRpcConnection().getUri());
             if (isLocal) {
-                updateDaemonInfo();
                 if (lastInfo != null && (lastInfo.isBusySyncing() || (lastInfo.getHeightWithoutBootstrap() != null && lastInfo.getHeightWithoutBootstrap() > 0 && lastInfo.getHeightWithoutBootstrap() < lastInfo.getHeight()))) return REFRESH_PERIOD_REMOTE_MS; // refresh slower if syncing or bootstrapped
                 else return REFRESH_PERIOD_LOCAL_MS; // TODO: announce faster refresh after done syncing
             } else {
@@ -410,6 +409,7 @@ public final class CoreMoneroConnectionsService {
 
     private void startPollingDaemon() {
         if (updateDaemonLooper != null) updateDaemonLooper.stop();
+        updateDaemonInfo();
         updateDaemonLooper = new TaskLooper(() -> {
             updateDaemonInfo();
         });

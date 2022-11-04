@@ -52,11 +52,15 @@ public final class TradeInfoV1Builder {
     private String phase;
     private String periodState;
     private String payoutState;
+    private String disputeState;
     private boolean isDepositPublished;
+    private boolean isDepositConfirmed;
     private boolean isDepositUnlocked;
     private boolean isPaymentSent;
     private boolean isPaymentReceived;
     private boolean isPayoutPublished;
+    private boolean isPayoutConfirmed;
+    private boolean isPayoutUnlocked;
     private boolean isCompleted;
     private String contractAsJson;
     private ContractInfo contract;
@@ -152,6 +156,11 @@ public final class TradeInfoV1Builder {
         return this;
     }
 
+    public TradeInfoV1Builder withDisputeState(String disputeState) {
+        this.disputeState = disputeState;
+        return this;
+    }
+
     public TradeInfoV1Builder withArbitratorNodeAddress(String arbitratorNodeAddress) {
         this.arbitratorNodeAddress = arbitratorNodeAddress;
         return this;
@@ -164,6 +173,11 @@ public final class TradeInfoV1Builder {
 
     public TradeInfoV1Builder withIsDepositPublished(boolean isDepositPublished) {
         this.isDepositPublished = isDepositPublished;
+        return this;
+    }
+
+    public TradeInfoV1Builder withIsDepositConfirmed(boolean isDepositConfirmed) {
+        this.isDepositConfirmed = isDepositConfirmed;
         return this;
     }
 
@@ -184,6 +198,16 @@ public final class TradeInfoV1Builder {
 
     public TradeInfoV1Builder withIsPayoutPublished(boolean isPayoutPublished) {
         this.isPayoutPublished = isPayoutPublished;
+        return this;
+    }
+
+    public TradeInfoV1Builder withIsPayoutConfirmed(boolean isPayoutConfirmed) {
+        this.isPayoutConfirmed = isPayoutConfirmed;
+        return this;
+    }
+
+    public TradeInfoV1Builder withIsPayoutUnlocked(boolean isPayoutUnlocked) {
+        this.isPayoutUnlocked = isPayoutUnlocked;
         return this;
     }
 

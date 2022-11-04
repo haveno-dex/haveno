@@ -68,9 +68,21 @@ public class MoneroWalletRpcManager {
               int numAttempts = 0;
               while (numAttempts < NUM_ALLOWED_ATTEMPTS) {
                   int port = -1;
+                  ServerSocket socket = null;
                   try {
                       numAttempts++;
-                      port = registerPort();
+
+                      // get port
+                      if (startPort != null) port = registerNextPort();
+                      else {
+                        socket = new ServerSocket(0);
+                        port = socket.getLocalPort();
+                        synchronized (registeredPorts) {
+                            registeredPorts.put(port, null);
+                        }
+                      }
+
+                      // start monero-wallet-rpc
                       List<String> cmdCopy = new ArrayList<>(cmd); // preserve original cmd
                       cmdCopy.add(RPC_BIND_PORT_ARGUMENT);
                       cmdCopy.add("" + port);
@@ -84,6 +96,8 @@ public class MoneroWalletRpcManager {
                           log.error("Unable to start monero-wallet-rpc instance after {} attempts", NUM_ALLOWED_ATTEMPTS);
                           throw e;
                       }
+                  } finally {
+                      if (socket != null) socket.close(); // close socket if used
                   }
               }
               throw new MoneroError("Failed to start monero-wallet-rpc instance after " + NUM_ALLOWED_ATTEMPTS + " attempts"); // should never reach here
@@ -121,23 +135,12 @@ public class MoneroWalletRpcManager {
       walletRpc.stopProcess();
   }
 
-  private int registerPort() throws IOException {
+  private int registerNextPort() throws IOException {
       synchronized (registeredPorts) {
-
-          // register next consecutive port
-          if (startPort != null) {
             int port = startPort;
             while (registeredPorts.containsKey(port)) port++;
             registeredPorts.put(port, null);
             return port;
-          }
-
-          // register auto-assigned port
-          else {
-            int port = getLocalPort();
-            registeredPorts.put(port, null);
-            return port;
-          }
       }
   }
   
@@ -145,12 +148,5 @@ public class MoneroWalletRpcManager {
       synchronized (registeredPorts) {
           registeredPorts.remove(port);
       }
-  }
-  
-  private int getLocalPort() throws IOException {
-      ServerSocket socket = new ServerSocket(0); // use socket to get available port
-      int port = socket.getLocalPort();
-      socket.close();
-      return port;
   }
 }

@@ -190,7 +190,7 @@ public class BuyerStep2View extends TradeStepView {
                             model.setMessageStateProperty(MessageState.FAILED);
                             break;
                         default:
-                            log.warn("Unexpected case: State={}, tradeId={} " + state.name(), trade.getId());
+                            log.warn("Unexpected case: State={}, tradeId={} ", state.name(), trade.getId());
                             busyAnimation.stop();
                             statusLabel.setText(Res.get("shared.sendingConfirmationAgain"));
                             break;
@@ -607,12 +607,6 @@ public class BuyerStep2View extends TradeStepView {
     private void confirmPaymentStarted() {
         busyAnimation.play();
         statusLabel.setText(Res.get("shared.sendingConfirmation"));
-
-        //TODO seems this was a hack to enable repeated confirm???
-        if (trade.isPaymentSent()) {
-            trade.setState(Trade.State.DEPOSIT_TXS_UNLOCKED_IN_BLOCKCHAIN);
-            model.dataModel.getTradeManager().requestPersistence();
-        }
 
         model.dataModel.onPaymentStarted(() -> {
         }, errorMessage -> {

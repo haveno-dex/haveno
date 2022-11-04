@@ -675,6 +675,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
 
                 // handle unscheduled offer
                 if (openOffer.getScheduledTxHashes() == null) {
+                    log.info("Scheduling offer " + openOffer.getId());
 
                     // check for sufficient balance - scheduled offers amount
                     if (xmrWalletService.getWallet().getBalance(0).subtract(getScheduledAmount()).compareTo(offerReserveAmount) < 0) {
@@ -743,6 +744,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                                   Coin offerReserveAmount, // TODO: switch to BigInteger
                                   boolean useSavingsWallet, // TODO: remove this
                                   TransactionResultHandler resultHandler, ErrorMessageHandler errorMessageHandler) {
+        log.info("Signing and posting offer " + openOffer.getId());
 
         // create model
         PlaceOfferModel model = new PlaceOfferModel(openOffer.getOffer(),

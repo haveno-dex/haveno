@@ -20,14 +20,15 @@ package bisq.core.trade.protocol.tasks;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import bisq.common.taskrunner.TaskRunner;
+import bisq.core.trade.HavenoUtils;
 import bisq.core.trade.Trade;
 import bisq.core.trade.messages.PaymentSentMessage;
 import bisq.core.util.Validator;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public class SellerProcessPaymentSentMessage extends TradeTask {
-    public SellerProcessPaymentSentMessage(TaskRunner<Trade> taskHandler, Trade trade) {
+public class ProcessPaymentSentMessage extends TradeTask {
+    public ProcessPaymentSentMessage(TaskRunner<Trade> taskHandler, Trade trade) {
         super(taskHandler, trade);
     }
 
@@ -40,28 +41,26 @@ public class SellerProcessPaymentSentMessage extends TradeTask {
             Validator.checkTradeId(processModel.getOfferId(), message);
             checkNotNull(message);
 
-            // store buyer info
+            // verify signature of payment sent message
+            HavenoUtils.verifyPaymentSentMessage(trade, message);
+
+            // update buyer info
             trade.setPayoutTxHex(message.getPayoutTxHex());
             trade.getBuyer().setUpdatedMultisigHex(message.getUpdatedMultisigHex());
+            trade.getBuyer().setPaymentSentMessage(message);
 
-            // decrypt buyer's payment account payload
-            trade.decryptPeerPaymentAccountPayload(message.getPaymentAccountKey());
+            // if seller, decrypt buyer's payment account payload
+            if (trade.isSeller()) trade.decryptPeerPaymentAccountPayload(message.getPaymentAccountKey());
 
             // update latest peer address
             trade.getBuyer().setNodeAddress(processModel.getTempTradingPeerNodeAddress());
 
+            // set state
             String counterCurrencyTxId = message.getCounterCurrencyTxId();
-            if (counterCurrencyTxId != null && counterCurrencyTxId.length() < 100) {
-                trade.setCounterCurrencyTxId(counterCurrencyTxId);
-            }
-
+            if (counterCurrencyTxId != null && counterCurrencyTxId.length() < 100) trade.setCounterCurrencyTxId(counterCurrencyTxId);
             String counterCurrencyExtraData = message.getCounterCurrencyExtraData();
-            if (counterCurrencyExtraData != null && counterCurrencyExtraData.length() < 100) {
-                trade.setCounterCurrencyExtraData(counterCurrencyExtraData);
-            }
-
-            trade.setState(Trade.State.SELLER_RECEIVED_PAYMENT_SENT_MSG);
-
+            if (counterCurrencyExtraData != null && counterCurrencyExtraData.length() < 100) trade.setCounterCurrencyExtraData(counterCurrencyExtraData);
+            trade.setStateIfProgress(trade.isSeller() ? Trade.State.SELLER_RECEIVED_PAYMENT_SENT_MSG : Trade.State.BUYER_SENT_PAYMENT_SENT_MSG);
             processModel.getTradeManager().requestPersistence();
             complete();
         } catch (Throwable t) {

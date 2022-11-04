@@ -63,11 +63,6 @@ public class SellerPreparePaymentReceivedMessage extends TradeTask {
                 MoneroTxWallet payoutTx = trade.createPayoutTx();
                 trade.setPayoutTx(payoutTx);
                 trade.setPayoutTxHex(payoutTx.getTxSet().getMultisigTxHex());
-
-                // export multisig hex once
-                if (trade.getSelf().getUpdatedMultisigHex() == null) {
-                    trade.getSelf().setUpdatedMultisigHex(multisigWallet.exportMultisigHex());
-                }
             }
 
             processModel.getTradeManager().requestPersistence();

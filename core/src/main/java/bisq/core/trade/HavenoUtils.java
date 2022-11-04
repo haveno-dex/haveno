@@ -24,7 +24,11 @@ import bisq.core.offer.Offer;
 import bisq.core.offer.OfferPayload;
 import bisq.core.support.dispute.arbitration.arbitrator.Arbitrator;
 import bisq.core.trade.messages.InitTradeRequest;
+import bisq.core.trade.messages.PaymentReceivedMessage;
+import bisq.core.trade.messages.PaymentSentMessage;
 import bisq.core.util.JsonUtil;
+import lombok.extern.slf4j.Slf4j;
+
 import java.net.URI;
 import java.util.Collection;
 import java.util.concurrent.CountDownLatch;
@@ -32,9 +36,12 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
+import com.google.common.base.Charsets;
+
 /**
  * Collection of utilities.
  */
+@Slf4j
 public class HavenoUtils {
 
     public static final String LOOPBACK_HOST = "127.0.0.1"; // local loopback address to host Monero node
@@ -73,10 +80,10 @@ public class HavenoUtils {
     }
 
     /**
-     * Check if the arbitrator signature for an offer is valid.
+     * Check if the arbitrator signature is valid for an offer.
      * 
      * @param offer is a signed offer with payload
-     * @param arbitrator is the possible original arbitrator
+     * @param arbitrator is the original signing arbitrator
      * @return true if the arbitrator's signature is valid for the offer
      */
     public static boolean isArbitratorSignatureValid(Offer offer, Arbitrator arbitrator) {
@@ -92,15 +99,11 @@ public class HavenoUtils {
         String unsignedOfferAsJson = JsonUtil.objectToJson(offerPayloadCopy);
         
         // verify arbitrator signature
-        boolean isValid = true;
         try {
-            isValid = Sig.verify(arbitrator.getPubKeyRing().getSignaturePubKey(), unsignedOfferAsJson, signature);
+            return Sig.verify(arbitrator.getPubKeyRing().getSignaturePubKey(), unsignedOfferAsJson, signature);
         } catch (Exception e) {
-            isValid = false;
+            return false;
         }
-        
-        // return result
-        return isValid;
     }
     
     /**
@@ -149,6 +152,71 @@ public class HavenoUtils {
         }
     }
 
+    /**
+     * Verify the buyer signature for a PaymentSentMessage.
+     * 
+     * @param trade - the trade to verify
+     * @param message - signed payment sent message to verify
+     * @return true if the buyer's signature is valid for the message
+     */
+    public static void verifyPaymentSentMessage(Trade trade, PaymentSentMessage message) {
+
+        // remove signature from message
+        byte[] signature = message.getBuyerSignature();
+        message.setBuyerSignature(null);
+
+        // get unsigned message as json string
+        String unsignedMessageAsJson = JsonUtil.objectToJson(message);
+
+        // replace signature
+        message.setBuyerSignature(signature);
+        
+        // verify signature
+        String errMessage = "The buyer signature is invalid for the " + message.getClass().getSimpleName() + " for trade " + trade.getId();
+        try {
+            if (!Sig.verify(trade.getBuyer().getPubKeyRing().getSignaturePubKey(), unsignedMessageAsJson.getBytes(Charsets.UTF_8), signature)) throw new RuntimeException(errMessage);
+        } catch (Exception e) {
+            throw new RuntimeException(errMessage);
+        }
+
+        // verify trade id
+        if (!trade.getId().equals(message.getTradeId())) throw new RuntimeException("The " + message.getClass().getSimpleName() + " has the wrong trade id, expected " + trade.getId() + " but was " + message.getTradeId());
+    }
+
+    /**
+     * Verify the seller signature for a PaymentReceivedMessage.
+     * 
+     * @param trade - the trade to verify
+     * @param message - signed payment received message to verify
+     * @return true if the seller's signature is valid for the message
+     */
+    public static void verifyPaymentReceivedMessage(Trade trade, PaymentReceivedMessage message) {
+
+        // remove signature from message
+        byte[] signature = message.getSellerSignature();
+        message.setSellerSignature(null);
+
+        // get unsigned message as json string
+        String unsignedMessageAsJson = JsonUtil.objectToJson(message);
+
+        // replace signature
+        message.setSellerSignature(signature);
+        
+        // verify signature
+        String errMessage = "The seller signature is invalid for the " + message.getClass().getSimpleName() + " for trade " + trade.getId();
+        try {
+            if (!Sig.verify(trade.getSeller().getPubKeyRing().getSignaturePubKey(), unsignedMessageAsJson.getBytes(Charsets.UTF_8), signature)) throw new RuntimeException(errMessage);
+        } catch (Exception e) {
+            throw new RuntimeException(errMessage);
+        }
+
+        // verify trade id
+        if (!trade.getId().equals(message.getTradeId())) throw new RuntimeException("The " + message.getClass().getSimpleName() + " has the wrong trade id, expected " + trade.getId() + " but was " + message.getTradeId());
+
+        // verify buyer signature of payment sent message
+        verifyPaymentSentMessage(trade, message.getPaymentSentMessage());
+    }
+
     public static void awaitLatch(CountDownLatch latch) {
         try {
             latch.await();
@@ -156,14 +224,18 @@ public class HavenoUtils {
             throw new RuntimeException(e);
         }
     }
-    
-    public static void awaitTasks(Collection<Runnable> tasks) {
+
+    public static void executeTasks(Collection<Runnable> tasks) {
+        executeTasks(tasks, tasks.size());
+    }
+
+    public static void executeTasks(Collection<Runnable> tasks, int poolSize) {
         if (tasks.isEmpty()) return;
-        ExecutorService pool = Executors.newFixedThreadPool(tasks.size());
+        ExecutorService pool = Executors.newFixedThreadPool(poolSize);
         for (Runnable task : tasks) pool.submit(task);
         pool.shutdown();
         try {
-            if (!pool.awaitTermination(60000, TimeUnit.SECONDS)) pool.shutdownNow();
+            if (!pool.awaitTermination(60, TimeUnit.SECONDS)) pool.shutdownNow();
         } catch (InterruptedException e) {
             pool.shutdownNow();
             throw new RuntimeException(e);

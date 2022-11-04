@@ -24,10 +24,10 @@ import bisq.core.trade.messages.SignContractResponse;
 import bisq.core.trade.messages.TradeMessage;
 import bisq.core.trade.protocol.tasks.ApplyFilter;
 import bisq.core.trade.protocol.tasks.SellerPreparePaymentReceivedMessage;
-import bisq.core.trade.protocol.tasks.SellerProcessPaymentSentMessage;
 import bisq.core.trade.protocol.tasks.SellerSendPaymentReceivedMessageToArbitrator;
 import bisq.core.trade.protocol.tasks.SendDepositsConfirmedMessageToBuyer;
 import bisq.core.trade.protocol.tasks.SellerSendPaymentReceivedMessageToBuyer;
+import bisq.core.trade.protocol.tasks.SendDepositsConfirmedMessageToArbitrator;
 import bisq.core.trade.protocol.tasks.TradeTask;
 import bisq.network.p2p.NodeAddress;
 import bisq.common.handlers.ErrorMessageHandler;
@@ -54,18 +54,11 @@ public class SellerProtocol extends DisputeProtocol {
     @Override
     protected void onTradeMessage(TradeMessage message, NodeAddress peer) {
         super.onTradeMessage(message, peer);
-        if (message instanceof PaymentSentMessage) {
-            handle((PaymentSentMessage) message, peer);
-        }
     }
 
     @Override
     public void onMailboxMessage(TradeMessage message, NodeAddress peerNodeAddress) {
         super.onMailboxMessage(message, peerNodeAddress);
-
-        if (message instanceof PaymentSentMessage) {
-            handle((PaymentSentMessage) message, peerNodeAddress);
-        }
     }
 
     @Override
@@ -73,52 +66,6 @@ public class SellerProtocol extends DisputeProtocol {
         super.handleSignContractResponse(response, sender);
     }
 
-
-    ///////////////////////////////////////////////////////////////////////////////////////////
-    // Incoming message when buyer has clicked payment started button
-    ///////////////////////////////////////////////////////////////////////////////////////////
-
-    protected void handle(PaymentSentMessage message, NodeAddress peer) {
-        log.info("SellerProtocol.handle(PaymentSentMessage)");
-        new Thread(() -> {
-            // We are more tolerant with expected phase and allow also DEPOSITS_PUBLISHED as it can be the case
-            // that the wallet is still syncing and so the DEPOSITS_CONFIRMED state to yet triggered when we received
-            // a mailbox message with PaymentSentMessage.
-            // TODO A better fix would be to add a listener for the wallet sync state and process
-            // the mailbox msg once wallet is ready and trade state set.
-            synchronized (trade) {
-                if (trade.getPhase().ordinal() >= Trade.Phase.PAYMENT_SENT.ordinal()) {
-                    log.warn("Ignoring PaymentSentMessage which was already processed");
-                    return;
-                }
-                latchTrade();
-                expect(anyPhase(Trade.Phase.DEPOSITS_CONFIRMED, Trade.Phase.DEPOSITS_UNLOCKED)
-                        .with(message)
-                        .from(peer)
-                        .preCondition(trade.getPayoutTx() == null,
-                                () -> {
-                                    log.warn("We received a PaymentSentMessage but we have already created the payout tx " +
-                                            "so we ignore the message. This can happen if the ACK message to the peer did not " +
-                                            "arrive and the peer repeats sending us the message. We send another ACK msg.");
-                                    sendAckMessage(peer, message, true, null);
-                                    removeMailboxMessageAfterProcessing(message);
-                                }))
-                        .setup(tasks(
-                                ApplyFilter.class,
-                                SellerProcessPaymentSentMessage.class)
-                        .using(new TradeTaskRunner(trade,
-                                () -> {
-                                    handleTaskRunnerSuccess(peer, message);
-                                },
-                                (errorMessage) -> {
-                                    stopTimeout();
-                                    handleTaskRunnerFault(peer, message, errorMessage);
-                                })))
-                        .executeTasks(true);
-                awaitTradeLatch();
-            }
-        }).start();
-    }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // User interaction
@@ -160,7 +107,7 @@ public class SellerProtocol extends DisputeProtocol {
 
     @SuppressWarnings("unchecked")
     @Override
-    public Class<? extends TradeTask>[] getDepsitsConfirmedTasks() {
-        return new Class[] { SendDepositsConfirmedMessageToBuyer.class };
+    public Class<? extends TradeTask>[] getDepositsConfirmedTasks() {
+        return new Class[] { SendDepositsConfirmedMessageToArbitrator.class, SendDepositsConfirmedMessageToBuyer.class };
     }
 }

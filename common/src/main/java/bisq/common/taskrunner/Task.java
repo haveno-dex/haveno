@@ -17,8 +17,6 @@
 
 package bisq.common.taskrunner;
 
-import java.io.PrintWriter;
-import java.io.StringWriter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -58,6 +56,10 @@ public abstract class Task<T extends Model> {
     protected void complete() {
         completed = true;
         taskHandler.handleComplete();
+    }
+
+    public boolean isCompleted() {
+        return completed;
     }
 
     protected void failed(String message) {

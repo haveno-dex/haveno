@@ -29,13 +29,9 @@ import bisq.core.offer.messages.SignOfferRequest;
 import bisq.core.offer.messages.SignOfferResponse;
 import bisq.core.proto.CoreProtoResolver;
 import bisq.core.support.dispute.arbitration.arbitrator.Arbitrator;
-import bisq.core.support.dispute.arbitration.messages.PeerPublishedDisputePayoutTxMessage;
 import bisq.core.support.dispute.mediation.mediator.Mediator;
-import bisq.core.support.dispute.messages.ArbitratorPayoutTxRequest;
-import bisq.core.support.dispute.messages.ArbitratorPayoutTxResponse;
-import bisq.core.support.dispute.messages.DisputeResultMessage;
-import bisq.core.support.dispute.messages.OpenNewDisputeMessage;
-import bisq.core.support.dispute.messages.PeerOpenedDisputeMessage;
+import bisq.core.support.dispute.messages.DisputeClosedMessage;
+import bisq.core.support.dispute.messages.DisputeOpenedMessage;
 import bisq.core.support.dispute.refund.refundagent.RefundAgent;
 import bisq.core.support.messages.ChatMessage;
 import bisq.core.trade.messages.PaymentSentMessage;
@@ -170,20 +166,12 @@ public class CoreNetworkProtoResolver extends CoreProtoResolver implements Netwo
                 case MEDIATED_PAYOUT_TX_PUBLISHED_MESSAGE:
                     return MediatedPayoutTxPublishedMessage.fromProto(proto.getMediatedPayoutTxPublishedMessage(), messageVersion);
 
-                case OPEN_NEW_DISPUTE_MESSAGE:
-                    return OpenNewDisputeMessage.fromProto(proto.getOpenNewDisputeMessage(), this, messageVersion);
-                case PEER_OPENED_DISPUTE_MESSAGE:
-                    return PeerOpenedDisputeMessage.fromProto(proto.getPeerOpenedDisputeMessage(), this, messageVersion);
+                case DISPUTE_OPENED_MESSAGE:
+                    return DisputeOpenedMessage.fromProto(proto.getDisputeOpenedMessage(), this, messageVersion);
+                case DISPUTE_CLOSED_MESSAGE:
+                    return DisputeClosedMessage.fromProto(proto.getDisputeClosedMessage(), messageVersion);
                 case CHAT_MESSAGE:
                     return ChatMessage.fromProto(proto.getChatMessage(), messageVersion);
-                case DISPUTE_RESULT_MESSAGE:
-                    return DisputeResultMessage.fromProto(proto.getDisputeResultMessage(), messageVersion);
-                case PEER_PUBLISHED_DISPUTE_PAYOUT_TX_MESSAGE:
-                    return PeerPublishedDisputePayoutTxMessage.fromProto(proto.getPeerPublishedDisputePayoutTxMessage(), messageVersion);
-                case ARBITRATOR_PAYOUT_TX_REQUEST:
-                    return ArbitratorPayoutTxRequest.fromProto(proto.getArbitratorPayoutTxRequest(), this, messageVersion);
-                case ARBITRATOR_PAYOUT_TX_RESPONSE:
-                  return ArbitratorPayoutTxResponse.fromProto(proto.getArbitratorPayoutTxResponse(), this, messageVersion);
 
                 case PRIVATE_NOTIFICATION_MESSAGE:
                     return PrivateNotificationMessage.fromProto(proto.getPrivateNotificationMessage(), messageVersion);

@@ -20,18 +20,11 @@ package bisq.core.trade.protocol;
 
 import bisq.core.trade.SellerAsMakerTrade;
 import bisq.core.trade.Trade;
-import bisq.core.trade.messages.PaymentSentMessage;
-import bisq.core.trade.messages.SignContractRequest;
-import bisq.core.trade.messages.SignContractResponse;
-import bisq.core.trade.messages.DepositResponse;
-import bisq.core.trade.messages.InitMultisigRequest;
 import bisq.core.trade.messages.InitTradeRequest;
-import bisq.core.trade.messages.TradeMessage;
 import bisq.core.trade.protocol.tasks.MakerSendInitTradeRequest;
 import bisq.core.trade.protocol.tasks.ProcessInitTradeRequest;
 import bisq.network.p2p.NodeAddress;
 import bisq.common.handlers.ErrorMessageHandler;
-import bisq.common.handlers.ResultHandler;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -80,54 +73,5 @@ public class SellerAsMakerProtocol extends SellerProtocol implements MakerProtoc
                 awaitTradeLatch();
             }
         }).start();
-    }
-
-    @Override
-    public void handleInitMultisigRequest(InitMultisigRequest request, NodeAddress sender) {
-        super.handleInitMultisigRequest(request, sender);
-    }
-
-    @Override
-    public void handleSignContractRequest(SignContractRequest message, NodeAddress sender) {
-        super.handleSignContractRequest(message, sender);
-    }
-
-    @Override
-    public void handleSignContractResponse(SignContractResponse message, NodeAddress sender) {
-        super.handleSignContractResponse(message, sender);
-    }
-
-    @Override
-    public void handleDepositResponse(DepositResponse response, NodeAddress sender) {
-        super.handleDepositResponse(response, sender);
-    }
-
-    ///////////////////////////////////////////////////////////////////////////////////////////
-    // User interaction
-    ///////////////////////////////////////////////////////////////////////////////////////////
-
-    // We keep the handler here in as well to make it more transparent which events we expect
-    @Override
-    public void onPaymentReceived(ResultHandler resultHandler, ErrorMessageHandler errorMessageHandler) {
-        super.onPaymentReceived(resultHandler, errorMessageHandler);
-    }
-
-    ///////////////////////////////////////////////////////////////////////////////////////////
-    // Massage dispatcher
-    ///////////////////////////////////////////////////////////////////////////////////////////
-
-    @Override
-    protected void onTradeMessage(TradeMessage message, NodeAddress peer) {
-        super.onTradeMessage(message, peer);
-    }
-
-    ///////////////////////////////////////////////////////////////////////////////////////////
-    // Incoming message when buyer has clicked payment started button
-    ///////////////////////////////////////////////////////////////////////////////////////////
-
-    // We keep the handler here in as well to make it more transparent which messages we expect
-    @Override
-    protected void handle(PaymentSentMessage message, NodeAddress peer) {
-        super.handle(message, peer);
     }
 }

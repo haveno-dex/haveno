@@ -95,17 +95,14 @@ public class Balances {
     }
 
     private void updatedBalances() {
-        // Need to delay a bit to get the balances correct
-        UserThread.execute(() -> { // TODO (woodser): running on user thread because JFX properties updated for legacy app
-            updateAvailableBalance();
-            updatePendingBalance();
-            updateReservedOfferBalance();
-            updateReservedTradeBalance();
-            updateReservedBalance();
-        });
+        updateAvailableBalance();
+        updatePendingBalance();
+        updateReservedOfferBalance();
+        updateReservedTradeBalance();
+        updateReservedBalance();
     }
 
-    // TODO (woodser): balances being set as Coin from BigInteger.longValue(), which can lose precision. should be in centineros for consistency with the rest of the application
+    // TODO (woodser): converting to long should generally be avoided since can lose precision, but in practice these amounts are below max value
 
     private void updateAvailableBalance() {
         availableBalance.set(Coin.valueOf(xmrWalletService.getWallet() == null ? 0 : xmrWalletService.getWallet().getUnlockedBalance(0).longValueExact()));

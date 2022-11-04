@@ -80,12 +80,16 @@ public class TradeInfo implements Payload {
     private final String phase;
     private final String periodState;
     private final String payoutState;
+    private final String disputeState;
     private final boolean isDepositPublished;
+    private final boolean isDepositConfirmed;
     private final boolean isDepositUnlocked;
     private final boolean isPaymentSent;
     private final boolean isPaymentReceived;
-    private final boolean isCompleted;
     private final boolean isPayoutPublished;
+    private final boolean isPayoutConfirmed;
+    private final boolean isPayoutUnlocked;
+    private final boolean isCompleted;
     private final String contractAsJson;
     private final ContractInfo contract;
 
@@ -109,11 +113,15 @@ public class TradeInfo implements Payload {
         this.phase = builder.getPhase();
         this.periodState = builder.getPeriodState();
         this.payoutState = builder.getPayoutState();
+        this.disputeState = builder.getDisputeState();
         this.isDepositPublished = builder.isDepositPublished();
+        this.isDepositConfirmed = builder.isDepositConfirmed();
         this.isDepositUnlocked = builder.isDepositUnlocked();
         this.isPaymentSent = builder.isPaymentSent();
         this.isPaymentReceived = builder.isPaymentReceived();
         this.isPayoutPublished = builder.isPayoutPublished();
+        this.isPayoutConfirmed = builder.isPayoutConfirmed();
+        this.isPayoutUnlocked = builder.isPayoutUnlocked();
         this.isCompleted = builder.isCompleted();
         this.contractAsJson = builder.getContractAsJson();
         this.contract = builder.getContract();
@@ -161,11 +169,15 @@ public class TradeInfo implements Payload {
                 .withPhase(trade.getPhase().name())
                 .withPeriodState(trade.getPeriodState().name())
                 .withPayoutState(trade.getPayoutState().name())
+                .withDisputeState(trade.getDisputeState().name())
                 .withIsDepositPublished(trade.isDepositPublished())
+                .withIsDepositConfirmed(trade.isDepositConfirmed())
                 .withIsDepositUnlocked(trade.isDepositUnlocked())
                 .withIsPaymentSent(trade.isPaymentSent())
                 .withIsPaymentReceived(trade.isPaymentReceived())
                 .withIsPayoutPublished(trade.isPayoutPublished())
+                .withIsPayoutConfirmed(trade.isPayoutConfirmed())
+                .withIsPayoutUnlocked(trade.isPayoutUnlocked())
                 .withIsCompleted(trade.isCompleted())
                 .withContractAsJson(trade.getContractAsJson())
                 .withContract(contractInfo)
@@ -199,12 +211,16 @@ public class TradeInfo implements Payload {
                 .setPhase(phase)
                 .setPeriodState(periodState)
                 .setPayoutState(payoutState)
+                .setDisputeState(disputeState)
                 .setIsDepositPublished(isDepositPublished)
+                .setIsDepositConfirmed(isDepositConfirmed)
                 .setIsDepositUnlocked(isDepositUnlocked)
                 .setIsPaymentSent(isPaymentSent)
                 .setIsPaymentReceived(isPaymentReceived)
                 .setIsCompleted(isCompleted)
                 .setIsPayoutPublished(isPayoutPublished)
+                .setIsPayoutConfirmed(isPayoutConfirmed)
+                .setIsPayoutUnlocked(isPayoutUnlocked)
                 .setContractAsJson(contractAsJson == null ? "" : contractAsJson)
                 .setContract(contract.toProtoMessage())
                 .build();
@@ -227,16 +243,20 @@ public class TradeInfo implements Payload {
                 .withVolume(proto.getTradeVolume())
                 .withPeriodState(proto.getPeriodState())
                 .withPayoutState(proto.getPayoutState())
+                .withDisputeState(proto.getDisputeState())
                 .withState(proto.getState())
                 .withPhase(proto.getPhase())
                 .withArbitratorNodeAddress(proto.getArbitratorNodeAddress())
                 .withTradingPeerNodeAddress(proto.getTradingPeerNodeAddress())
                 .withIsDepositPublished(proto.getIsDepositPublished())
+                .withIsDepositConfirmed(proto.getIsDepositConfirmed())
                 .withIsDepositUnlocked(proto.getIsDepositUnlocked())
                 .withIsPaymentSent(proto.getIsPaymentSent())
                 .withIsPaymentReceived(proto.getIsPaymentReceived())
                 .withIsCompleted(proto.getIsCompleted())
                 .withIsPayoutPublished(proto.getIsPayoutPublished())
+                .withIsPayoutConfirmed(proto.getIsPayoutConfirmed())
+                .withIsPayoutUnlocked(proto.getIsPayoutUnlocked())
                 .withContractAsJson(proto.getContractAsJson())
                 .withContract((ContractInfo.fromProto(proto.getContract())))
                 .build();
@@ -262,12 +282,16 @@ public class TradeInfo implements Payload {
                 ", phase='" + phase + '\'' + "\n" +
                 ", periodState='" + periodState + '\'' + "\n" +
                 ", payoutState='" + payoutState + '\'' + "\n" +
+                ", disputeState='" + disputeState + '\'' + "\n" +
                 ", isDepositPublished=" + isDepositPublished + "\n" +
-                ", isDepositConfirmed=" + isDepositUnlocked + "\n" +
+                ", isDepositConfirmed=" + isDepositConfirmed + "\n" +
+                ", isDepositUnlocked=" + isDepositUnlocked + "\n" +
                 ", isPaymentSent=" + isPaymentSent + "\n" +
                 ", isPaymentReceived=" + isPaymentReceived + "\n" +
-                ", isCompleted=" + isCompleted + "\n" +
                 ", isPayoutPublished=" + isPayoutPublished + "\n" +
+                ", isPayoutConfirmed=" + isPayoutConfirmed + "\n" +
+                ", isPayoutUnlocked=" + isPayoutUnlocked + "\n" +
+                ", isCompleted=" + isCompleted + "\n" +
                 ", offer=" + offer + "\n" +
                 ", contractAsJson=" + contractAsJson + "\n" +
                 ", contract=" + contract + "\n" +

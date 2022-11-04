@@ -212,13 +212,10 @@ public class AccountAgeWitnessServiceTest {
                 "summary",
                 null,
                 null,
-                null,
-                null,
                 100000,
                 0,
                 null,
-                now - 1,
-                false));
+                now - 1));
 
         // Filtermanager says nothing is filtered
         when(filterManager.isNodeAddressBanned(any())).thenReturn(false);

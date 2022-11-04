@@ -25,12 +25,13 @@ import bisq.common.proto.ProtoUtil;
 import java.util.Optional;
 
 import lombok.EqualsAndHashCode;
-import lombok.Value;
+import lombok.Getter;
+import lombok.Setter;
 
 import javax.annotation.Nullable;
 
 @EqualsAndHashCode(callSuper = true)
-@Value
+@Getter
 public final class PaymentSentMessage extends TradeMailboxMessage {
     private final NodeAddress senderNodeAddress;
     @Nullable
@@ -41,6 +42,9 @@ public final class PaymentSentMessage extends TradeMailboxMessage {
     private final String updatedMultisigHex;
     @Nullable
     private final byte[] paymentAccountKey;
+    @Setter
+    @Nullable
+    private byte[] buyerSignature;
 
     // Added after v1.3.7
     // We use that for the XMR txKey but want to keep it generic to be flexible for data of other payment methods or assets.
@@ -101,13 +105,14 @@ public final class PaymentSentMessage extends TradeMailboxMessage {
         Optional.ofNullable(payoutTxHex).ifPresent(e -> builder.setPayoutTxHex(payoutTxHex));
         Optional.ofNullable(updatedMultisigHex).ifPresent(e -> builder.setUpdatedMultisigHex(updatedMultisigHex));
         Optional.ofNullable(paymentAccountKey).ifPresent(e -> builder.setPaymentAccountKey(ByteString.copyFrom(e)));
+        Optional.ofNullable(buyerSignature).ifPresent(e -> builder.setBuyerSignature(ByteString.copyFrom(e)));
 
         return getNetworkEnvelopeBuilder().setPaymentSentMessage(builder).build();
     }
 
     public static PaymentSentMessage fromProto(protobuf.PaymentSentMessage proto,
                                                                   String messageVersion) {
-        return new PaymentSentMessage(proto.getTradeId(),
+        PaymentSentMessage message = new PaymentSentMessage(proto.getTradeId(),
                 NodeAddress.fromProto(proto.getSenderNodeAddress()),
                 ProtoUtil.stringOrNullFromProto(proto.getCounterCurrencyTxId()),
                 ProtoUtil.stringOrNullFromProto(proto.getCounterCurrencyExtraData()),
@@ -117,6 +122,8 @@ public final class PaymentSentMessage extends TradeMailboxMessage {
                 ProtoUtil.stringOrNullFromProto(proto.getUpdatedMultisigHex()),
                 ProtoUtil.byteArrayOrNullFromProto(proto.getPaymentAccountKey())
         );
+        message.setBuyerSignature(ProtoUtil.byteArrayOrNullFromProto(proto.getBuyerSignature()));
+        return message;
     }
 
 
@@ -130,6 +137,7 @@ public final class PaymentSentMessage extends TradeMailboxMessage {
                 ",\n     payoutTxHex=" + payoutTxHex +
                 ",\n     updatedMultisigHex=" + updatedMultisigHex +
                 ",\n     paymentAccountKey=" + paymentAccountKey +
+                ",\n     buyerSignature=" + buyerSignature +
                 "\n} " + super.toString();
     }
 }

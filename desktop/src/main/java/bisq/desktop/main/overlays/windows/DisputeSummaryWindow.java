@@ -92,10 +92,7 @@ public class DisputeSummaryWindow extends Overlay<DisputeSummaryWindow> {
     private final CoinFormatter formatter;
     private final ArbitrationManager arbitrationManager;
     private final MediationManager mediationManager;
-    private final XmrWalletService walletService;
-    private final TradeWalletService tradeWalletService;  // TODO (woodser): remove for xmr or adapt to get/create multisig wallets for tx creation utils
-    private final CoreDisputesService disputesService;
-    private Dispute dispute;
+    private final CoreDisputesService disputesService;    private Dispute dispute;
     private ToggleGroup tradeAmountToggleGroup, reasonToggleGroup;
     private DisputeResult disputeResult;
     private RadioButton buyerGetsTradeAmountRadioButton, sellerGetsTradeAmountRadioButton,
@@ -115,7 +112,6 @@ public class DisputeSummaryWindow extends Overlay<DisputeSummaryWindow> {
     private ChangeListener<Toggle> reasonToggleSelectionListener;
     private InputTextField buyerPayoutAmountInputTextField, sellerPayoutAmountInputTextField;
     private ChangeListener<String> buyerPayoutAmountListener, sellerPayoutAmountListener;
-    private CheckBox isLoserPublisherCheckBox;
     private ChangeListener<Toggle> tradeAmountToggleGroupListener;
 
 
@@ -134,8 +130,6 @@ public class DisputeSummaryWindow extends Overlay<DisputeSummaryWindow> {
         this.formatter = formatter;
         this.arbitrationManager = arbitrationManager;
         this.mediationManager = mediationManager;
-        this.walletService = walletService;
-        this.tradeWalletService = tradeWalletService;
         this.disputesService = disputesService;
 
         type = Type.Confirmation;
@@ -220,7 +214,6 @@ public class DisputeSummaryWindow extends Overlay<DisputeSummaryWindow> {
             disputeResult.setBuyerPayoutAmount(peersDisputeResult.getBuyerPayoutAmount());
             disputeResult.setSellerPayoutAmount(peersDisputeResult.getSellerPayoutAmount());
             disputeResult.setWinner(peersDisputeResult.getWinner());
-            disputeResult.setLoserPublisher(peersDisputeResult.isLoserPublisher());
             disputeResult.setReason(peersDisputeResult.getReason());
             disputeResult.setSummaryNotes(peersDisputeResult.summaryNotesProperty().get());
 
@@ -248,13 +241,8 @@ public class DisputeSummaryWindow extends Overlay<DisputeSummaryWindow> {
             reasonWasPeerWasLateRadioButton.setDisable(true);
             reasonWasTradeAlreadySettledRadioButton.setDisable(true);
 
-            isLoserPublisherCheckBox.setDisable(true);
-            isLoserPublisherCheckBox.setSelected(peersDisputeResult.isLoserPublisher());
-
             applyPayoutAmounts(tradeAmountToggleGroup.selectedToggleProperty().get());
             applyTradeAmountRadioButtonStates();
-        } else {
-            isLoserPublisherCheckBox.setSelected(false);
         }
 
         setReasonRadioButtonState();
@@ -426,11 +414,9 @@ public class DisputeSummaryWindow extends Overlay<DisputeSummaryWindow> {
         sellerPayoutAmountInputTextField.setPromptText(Res.get("disputeSummaryWindow.payoutAmount.seller"));
         sellerPayoutAmountInputTextField.setEditable(false);
 
-        isLoserPublisherCheckBox = new AutoTooltipCheckBox(Res.get("disputeSummaryWindow.payoutAmount.invert"));
-
         VBox vBox = new VBox();
         vBox.setSpacing(15);
-        vBox.getChildren().addAll(buyerPayoutAmountInputTextField, sellerPayoutAmountInputTextField, isLoserPublisherCheckBox);
+        vBox.getChildren().addAll(buyerPayoutAmountInputTextField, sellerPayoutAmountInputTextField);
         GridPane.setMargin(vBox, new Insets(Layout.FIRST_ROW_AND_GROUP_DISTANCE, 0, 0, 0));
         GridPane.setRowIndex(vBox, rowIndex);
         GridPane.setColumnIndex(vBox, 1);
@@ -590,7 +576,6 @@ public class DisputeSummaryWindow extends Overlay<DisputeSummaryWindow> {
       Button cancelButton = tuple.second;
 
       closeTicketButton.setOnAction(e -> {
-          disputesService.applyDisputePayout(dispute, disputeResult, contract);
           doClose(closeTicketButton);
 
 //          if (dispute.getDepositTxSerialized() == null) {
@@ -763,19 +748,14 @@ public class DisputeSummaryWindow extends Overlay<DisputeSummaryWindow> {
 
         summaryNotesTextArea.textProperty().unbindBidirectional(disputeResult.summaryNotesProperty());
 
-        boolean isRefundAgent = disputeManager instanceof RefundManager;
-        disputeResult.setLoserPublisher(isLoserPublisherCheckBox.isSelected());
         disputeResult.setCloseDate(new Date());
-        disputesService.closeDispute(disputeManager, dispute, disputeResult, isRefundAgent);
+        disputesService.closeDisputeTicket(disputeManager, dispute, disputeResult, () -> {
+            if (peersDisputeOptional.isPresent() && !peersDisputeOptional.get().isClosed() && !DevEnv.isDevMode()) {
+                new Popup().attention(Res.get("disputeSummaryWindow.close.closePeer")).show();
+            }
+            disputeManager.requestPersistence();
+        });
 
-        if (peersDisputeOptional.isPresent() && !peersDisputeOptional.get().isClosed() && !DevEnv.isDevMode()) {
-            UserThread.runAfter(() -> new Popup()
-                            .attention(Res.get("disputeSummaryWindow.close.closePeer"))
-                            .show(),
-                    200, TimeUnit.MILLISECONDS);
-        }
-
-        disputeManager.requestPersistence();
         closeTicketButton.disableProperty().unbind();
         hide();
     }

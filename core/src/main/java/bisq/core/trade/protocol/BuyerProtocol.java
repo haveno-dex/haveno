@@ -25,7 +25,8 @@ import bisq.core.trade.messages.SignContractResponse;
 import bisq.core.trade.messages.TradeMessage;
 import bisq.core.trade.protocol.tasks.ApplyFilter;
 import bisq.core.trade.protocol.tasks.BuyerPreparePaymentSentMessage;
-import bisq.core.trade.protocol.tasks.BuyerSendPaymentSentMessage;
+import bisq.core.trade.protocol.tasks.BuyerSendPaymentSentMessageToArbitrator;
+import bisq.core.trade.protocol.tasks.BuyerSendPaymentSentMessageToSeller;
 import bisq.core.trade.protocol.tasks.SendDepositsConfirmedMessageToArbitrator;
 import bisq.core.trade.protocol.tasks.TradeTask;
 import bisq.network.p2p.NodeAddress;
@@ -58,7 +59,9 @@ public class BuyerProtocol extends DisputeProtocol {
         given(anyPhase(Trade.Phase.PAYMENT_SENT)
                 .anyState(Trade.State.BUYER_STORED_IN_MAILBOX_PAYMENT_SENT_MSG, Trade.State.BUYER_SEND_FAILED_PAYMENT_SENT_MSG)
                 .with(BuyerEvent.STARTUP))
-                .setup(tasks(BuyerSendPaymentSentMessage.class))
+                .setup(tasks(
+                    BuyerSendPaymentSentMessageToSeller.class,
+                    BuyerSendPaymentSentMessageToArbitrator.class))
                 .executeTasks();
     }
 
@@ -93,10 +96,9 @@ public class BuyerProtocol extends DisputeProtocol {
                             .with(event)
                             .preCondition(trade.confirmPermitted()))
                             .setup(tasks(ApplyFilter.class,
-                                    //UpdateMultisigWithTradingPeer.class, // TODO (woodser): can use this to test protocol with updated multisig from peer. peer should attempt to send updated multisig hex earlier as part of protocol. cannot use with countdown latch because response comes back in a separate thread and blocks on trade
                                     BuyerPreparePaymentSentMessage.class,
-                                    //BuyerSetupPayoutTxListener.class,
-                                    BuyerSendPaymentSentMessage.class) // don't latch trade because this blocks and runs in background
+                                    BuyerSendPaymentSentMessageToSeller.class,
+                                    BuyerSendPaymentSentMessageToArbitrator.class)
                             .using(new TradeTaskRunner(trade,
                                     () -> {
                                         this.errorMessageHandler = null;
@@ -119,7 +121,7 @@ public class BuyerProtocol extends DisputeProtocol {
 
     @SuppressWarnings("unchecked")
     @Override
-    public Class<? extends TradeTask>[] getDepsitsConfirmedTasks() {
+    public Class<? extends TradeTask>[] getDepositsConfirmedTasks() {
         return new Class[] { SendDepositsConfirmedMessageToArbitrator.class };
     }
 }

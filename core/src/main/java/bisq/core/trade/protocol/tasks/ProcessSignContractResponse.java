@@ -107,7 +107,7 @@ public class ProcessSignContractResponse extends TradeTask {
                 trade.setState(Trade.State.SENT_PUBLISH_DEPOSIT_TX_REQUEST);
                 processModel.getTradeManager().requestPersistence();
             } else {
-                log.info("Waiting for more contract signatures to send deposit request");
+                log.info("Waiting for another contract signatures to send deposit request");
                 complete(); // does not yet have needed signatures
             }
         } catch (Throwable t) {

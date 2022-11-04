@@ -55,9 +55,6 @@ public class ProcessInitTradeRequest extends TradeTask {
             checkNotNull(request);
             checkTradeId(processModel.getOfferId(), request);
 
-            System.out.println("PROCESS INIT TRADE REQUEST");
-            System.out.println(request);
-            
             // handle request as arbitrator
             TradingPeer multisigParticipant;
             if (trade instanceof ArbitratorTrade) {

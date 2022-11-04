@@ -31,6 +31,7 @@ import bisq.core.locale.Res;
 import bisq.core.support.dispute.Dispute;
 import bisq.core.support.dispute.DisputeResult;
 import bisq.core.support.dispute.mediation.MediationResultState;
+import bisq.core.trade.ArbitratorTrade;
 import bisq.core.trade.Contract;
 import bisq.core.trade.MakerTrade;
 import bisq.core.trade.TakerTrade;
@@ -480,31 +481,25 @@ public abstract class TradeStepView extends AnchorPane {
         switch (disputeState) {
             case NO_DISPUTE:
                 break;
+
             case DISPUTE_REQUESTED:
+            case DISPUTE_OPENED:
                 if (tradeStepInfo != null) {
                     tradeStepInfo.setFirstHalfOverWarnTextSupplier(this::getFirstHalfOverWarnText);
                 }
                 applyOnDisputeOpened();
 
+                // update trade view unless arbitrator
+                if (trade instanceof ArbitratorTrade) break;
                 ownDispute = model.dataModel.arbitrationManager.findDispute(trade.getId());
                 ownDispute.ifPresent(dispute -> {
-                    if (tradeStepInfo != null)
-                        tradeStepInfo.setState(TradeStepInfo.State.IN_ARBITRATION_SELF_REQUESTED);
-                });
-
-                break;
-            case DISPUTE_STARTED_BY_PEER:
-                if (tradeStepInfo != null) {
-                    tradeStepInfo.setFirstHalfOverWarnTextSupplier(this::getFirstHalfOverWarnText);
-                }
-                applyOnDisputeOpened();
-
-                ownDispute = model.dataModel.arbitrationManager.findDispute(trade.getId());
-                ownDispute.ifPresent(dispute -> {
-                    if (tradeStepInfo != null)
-                        tradeStepInfo.setState(TradeStepInfo.State.IN_ARBITRATION_PEER_REQUESTED);
+                    if (tradeStepInfo != null) {
+                        boolean isOpener = dispute.isDisputeOpenerIsBuyer() ? trade.isBuyer() : trade.isSeller();
+                        tradeStepInfo.setState(isOpener ? TradeStepInfo.State.IN_ARBITRATION_SELF_REQUESTED : TradeStepInfo.State.IN_ARBITRATION_PEER_REQUESTED);
+                    }
                 });
                 break;
+
             case DISPUTE_CLOSED:
                 break;
             case MEDIATION_REQUESTED:

@@ -117,14 +117,14 @@ public class CreateOfferService {
                                    double buyerSecurityDepositAsDouble,
                                    PaymentAccount paymentAccount) {
 
-        log.info("create and get offer with offerId={}, \n" +
-                        "currencyCode={}, \n" +
-                        "direction={}, \n" +
-                        "price={}, \n" +
-                        "useMarketBasedPrice={}, \n" +
-                        "marketPriceMargin={}, \n" +
-                        "amount={}, \n" +
-                        "minAmount={}, \n" +
+        log.info("create and get offer with offerId={}, " +
+                        "currencyCode={}, " +
+                        "direction={}, " +
+                        "price={}, " +
+                        "useMarketBasedPrice={}, " +
+                        "marketPriceMargin={}, " +
+                        "amount={}, " +
+                        "minAmount={}, " +
                         "buyerSecurityDeposit={}",
                 offerId,
                 currencyCode,

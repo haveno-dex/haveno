@@ -19,7 +19,6 @@ package bisq.core.trade.messages;
 
 import bisq.core.proto.CoreProtoResolver;
 
-import bisq.network.p2p.DirectMessage;
 import bisq.network.p2p.NodeAddress;
 import com.google.protobuf.ByteString;
 import java.util.Optional;
@@ -33,7 +32,7 @@ import lombok.Value;
 
 @EqualsAndHashCode(callSuper = true)
 @Value
-public final class DepositsConfirmedMessage extends TradeMailboxMessage implements DirectMessage {
+public final class DepositsConfirmedMessage extends TradeMailboxMessage {
     private final NodeAddress senderNodeAddress;
     private final PubKeyRing pubKeyRing;
     @Nullable
