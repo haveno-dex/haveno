@@ -424,7 +424,6 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
                                     handleTaskRunnerSuccess(peer, message);
                                 },
                                 (errorMessage) -> {
-                                    stopTimeout();
                                     handleTaskRunnerFault(peer, message, errorMessage);
                                 })))
                         .executeTasks(true);
@@ -589,14 +588,14 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
     // Timeout
     ///////////////////////////////////////////////////////////////////////////////////////////
 
-    protected void startTimeout(long timeoutSec) {
+    protected synchronized void startTimeout(long timeoutSec) {
         stopTimeout();
         timeoutTimer = UserThread.runAfter(() -> {
             handleError("Timeout reached. Protocol did not complete in " + timeoutSec + " sec. TradeID=" + trade.getId() + ", state=" + trade.stateProperty().get());
         }, timeoutSec);
     }
 
-    protected void stopTimeout() {
+    protected synchronized void stopTimeout() {
         if (timeoutTimer != null) {
             timeoutTimer.stop();
             timeoutTimer = null;
