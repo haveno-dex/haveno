@@ -18,7 +18,6 @@
 package bisq.core.trade.protocol.tasks;
 
 import bisq.core.btc.wallet.XmrWalletService;
-import bisq.core.trade.BuyerTrade;
 import bisq.core.trade.Trade;
 import bisq.core.trade.messages.DepositsConfirmedMessage;
 import bisq.core.trade.messages.TradeMailboxMessage;

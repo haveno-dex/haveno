@@ -82,7 +82,7 @@ public class MakerSendInitTradeRequest extends TradeTask {
                     null);
 
             // send request to arbitrator
-            log.info("Sending {} with offerId {} and uid {} to arbitrator {} with pub key ring {}", arbitratorRequest.getClass().getSimpleName(), arbitratorRequest.getTradeId(), arbitratorRequest.getUid(), trade.getArbitrator().getNodeAddress(), trade.getArbitrator().getPubKeyRing());
+            log.info("Sending {} with offerId {} and uid {} to arbitrator {}", arbitratorRequest.getClass().getSimpleName(), arbitratorRequest.getTradeId(), arbitratorRequest.getUid(), trade.getArbitrator().getNodeAddress());
             processModel.getP2PService().sendEncryptedDirectMessage(
                     trade.getArbitrator().getNodeAddress(),
                     trade.getArbitrator().getPubKeyRing(),

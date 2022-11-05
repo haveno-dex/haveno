@@ -569,23 +569,21 @@ public class GUIUtil {
     public static void updateConfidence(MoneroTx tx,
                                         Tooltip tooltip,
                                         TxConfidenceIndicator txConfidenceIndicator) {
-        if (tx != null) {
-            if (!tx.isRelayed()) {
-                tooltip.setText(Res.get("confidence.unknown"));
-                txConfidenceIndicator.setProgress(0);
-            } else if (tx.isFailed()) {
-                tooltip.setText(Res.get("confidence.invalid"));
-                txConfidenceIndicator.setProgress(0);
-            } else if (tx.isConfirmed()) {
-                tooltip.setText(Res.get("confidence.confirmed", tx.getNumConfirmations()));
-                txConfidenceIndicator.setProgress(Math.min(1, tx.getNumConfirmations() / (double) XmrWalletService.NUM_BLOCKS_UNLOCK));
-            } else {
-                tooltip.setText(Res.get("confidence.seen", 0)); // TODO: replace with numBroadcastPeers
-                txConfidenceIndicator.setProgress(-1.0);
-            }
-
-            txConfidenceIndicator.setPrefSize(24, 24);
+        if (tx != null && !tx.isRelayed()) {
+            tooltip.setText(Res.get("confidence.unknown"));
+            txConfidenceIndicator.setProgress(0);
+        } else if (tx != null && tx.isFailed()) {
+            tooltip.setText(Res.get("confidence.invalid"));
+            txConfidenceIndicator.setProgress(0);
+        } else if (tx != null && tx.isConfirmed()) {
+            tooltip.setText(Res.get("confidence.confirmed", tx.getNumConfirmations()));
+            txConfidenceIndicator.setProgress((double) tx.getNumConfirmations() / (double) XmrWalletService.NUM_BLOCKS_UNLOCK);
+        } else {
+            tooltip.setText(Res.get("confidence.seen", 0)); // TODO: replace with numBroadcastPeers
+            txConfidenceIndicator.setProgress(-1.0);
         }
+
+        txConfidenceIndicator.setPrefSize(24, 24);
     }
 
     public static void openWebPage(String target) {

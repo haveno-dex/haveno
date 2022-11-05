@@ -376,18 +376,18 @@ public class PendingTradesDataModel extends ActivatableDataModel {
                     return;
                 }
 
-                MoneroTx makerDepositTx = selectedTrade.getMakerDepositTx();
-                MoneroTx takerDepositTx = selectedTrade.getTakerDepositTx();
                 String tradeId = selectedTrade.getId();
                 tradeStateChangeListener = (observable, oldValue, newValue) -> {
-                    if (makerDepositTx != null && takerDepositTx != null) { // TODO (woodser): this treats separate deposit ids as one unit, being both available or unavailable
-                        makerTxId.set(makerDepositTx.getHash());
-                        takerTxId.set(takerDepositTx.getHash());
+                    String makerDepositTxHash = selectedTrade.getMaker().getDepositTxHash();
+                    String takerDepositTxHash = selectedTrade.getTaker().getDepositTxHash();
+                    if (makerDepositTxHash != null && takerDepositTxHash != null) { // TODO (woodser): this treats separate deposit ids as one unit, being both available or unavailable
+                        makerTxId.set(makerDepositTxHash);
+                        takerTxId.set(takerDepositTxHash);
                         notificationCenter.setSelectedTradeId(tradeId);
                         selectedTrade.stateProperty().removeListener(tradeStateChangeListener);
                     } else {
-                      makerTxId.set("");
-                      takerTxId.set("");
+                        makerTxId.set("");
+                        takerTxId.set("");
                     }
                 };
                 selectedTrade.stateProperty().addListener(tradeStateChangeListener);
@@ -399,9 +399,11 @@ public class PendingTradesDataModel extends ActivatableDataModel {
                 }
 
                 isMaker = tradeManager.isMyOffer(offer);
-                if (makerDepositTx != null && takerDepositTx != null) {
-                  makerTxId.set(makerDepositTx.getHash());
-                  takerTxId.set(takerDepositTx.getHash());
+                String makerDepositTxHash = selectedTrade.getMaker().getDepositTxHash();
+                String takerDepositTxHash = selectedTrade.getTaker().getDepositTxHash();
+                if (makerDepositTxHash != null && takerDepositTxHash != null) {
+                    makerTxId.set(makerDepositTxHash);
+                    takerTxId.set(takerDepositTxHash);
                 } else {
                     makerTxId.set("");
                     takerTxId.set("");

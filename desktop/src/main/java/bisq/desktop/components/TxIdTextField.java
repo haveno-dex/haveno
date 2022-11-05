@@ -30,7 +30,6 @@ import bisq.common.util.Utilities;
 
 import de.jensd.fx.fontawesome.AwesomeDude;
 import de.jensd.fx.fontawesome.AwesomeIcon;
-import java.math.BigInteger;
 import com.jfoenix.controls.JFXTextField;
 
 import javafx.scene.control.Label;
@@ -135,17 +134,13 @@ public class TxIdTextField extends AnchorPane {
         // TODO: this only listens for new blocks, listen for double spend
         txUpdater = new MoneroWalletListener() {
             @Override
-            public void onNewBlock(long height) {
-                updateConfidence(txId);
-            }
-            @Override
-            public void onBalancesChanged(BigInteger newBalance, BigInteger newUnlockedBalance) {
-                updateConfidence(txId);
+            public void onNewBlock(long lastBlockHeight) {
+                updateConfidence(txId, false, lastBlockHeight + 1);
             }
         };
         xmrWalletService.addWalletListener(txUpdater);
 
-        updateConfidence(txId);
+        updateConfidence(txId, true, null);
 
         textField.setText(txId);
         textField.setOnMouseClicked(mouseEvent -> openBlockExplorer(txId));
@@ -175,31 +170,22 @@ public class TxIdTextField extends AnchorPane {
         }
     }
 
-    private void updateConfidence(String txId) {
+    private void updateConfidence(String txId, boolean useCache, Long height) {
         MoneroTx tx = null;
         try {
-            tx = xmrWalletService.getTxWithCache(txId);
-            tx.setNumConfirmations(tx.isConfirmed() ? xmrWalletService.getConnectionsService().getLastInfo().getHeight() - tx.getHeight() : 0l); // TODO: use tx.getNumConfirmations() when MoneroDaemonRpc supports it
+            tx = useCache ? xmrWalletService.getTxWithCache(txId) : xmrWalletService.getTx(txId);
+            tx.setNumConfirmations(tx.isConfirmed() ? (height == null ? xmrWalletService.getConnectionsService().getLastInfo().getHeight() : height) - tx.getHeight(): 0l); // TODO: don't set if tx.getNumConfirmations() works reliably on non-local testnet
         } catch (Exception e) {
             // do nothing
         }
         GUIUtil.updateConfidence(tx, progressIndicatorTooltip, txConfidenceIndicator);
-        if (tx != null) {
-            if (txConfidenceIndicator.getProgress() != 0) {
-                txConfidenceIndicator.setVisible(true);
-                AnchorPane.setRightAnchor(txConfidenceIndicator, 0.0);
-            }
-            if (txConfidenceIndicator.getProgress() >= 1.0 && txUpdater != null) {
-                xmrWalletService.removeWalletListener(txUpdater); // unregister listener
-                txUpdater = null;
-            }
-        } else {
-            //TODO we should show some placeholder in case of a tx which we are not aware of but which can be
-            // confirmed already. This is for instance the case of the other peers trade fee tx, as it is not related
-            // to our wallet we don't have a confidence object but we should show that it is in an unknown state instead
-            // of not showing anything which causes confusion that the tx was not broadcasted. Best would be to request
-            // it from a block explorer service but that is a bit too heavy for that use case...
-            // Maybe a question mark with a tooltip explaining why we don't know about the confidence might be ok...
+        if (txConfidenceIndicator.getProgress() != 0) {
+            txConfidenceIndicator.setVisible(true);
+            AnchorPane.setRightAnchor(txConfidenceIndicator, 0.0);
+        }
+        if (txConfidenceIndicator.getProgress() >= 1.0 && txUpdater != null) {
+            xmrWalletService.removeWalletListener(txUpdater); // unregister listener
+            txUpdater = null;
         }
     }
 }
