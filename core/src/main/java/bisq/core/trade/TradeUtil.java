@@ -180,19 +180,14 @@ public class TradeUtil {
      * @return String describing a trader's role for a given trade
      */
     public String getRole(Trade trade) {
-        Contract contract = trade.getContract();
-        if (contract == null)
-            throw new IllegalStateException(format("could not get role because no contract was found for trade '%s'",
-                    trade.getShortId()));
-
         Offer offer = trade.getOffer();
         if (offer == null)
             throw new IllegalStateException(format("could not get role because no offer was found for trade '%s'",
                     trade.getShortId()));
-
-        return getRole(contract.isBuyerMakerAndSellerTaker(),
-                offer.isMyOffer(keyRing),
-                offer.getCurrencyCode());
+        return (trade.isArbitrator() ? "Arbitrator for " : "") + // TODO: use Res.get()
+                getRole(trade.getBuyer() == trade.getMaker(),
+                        trade.isArbitrator() ? true : trade.isMaker(), // arbitrator role in context of maker
+                        offer.getCurrencyCode());
     }
 
     /**

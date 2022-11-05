@@ -191,7 +191,7 @@ public abstract class TradeStepView extends AnchorPane {
             if (peerTxIdSubscription != null)
                 peerTxIdSubscription.unsubscribe();
 
-            selfTxIdSubscription = EasyBind.subscribe(model.dataModel.isMaker() ? model.dataModel.takerTxId : model.dataModel.makerTxId, id -> {
+            peerTxIdSubscription = EasyBind.subscribe(model.dataModel.isMaker() ? model.dataModel.takerTxId : model.dataModel.makerTxId, id -> {
                 if (!id.isEmpty())
                     peerTxIdTextField.setup(id);
                 else

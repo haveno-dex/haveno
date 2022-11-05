@@ -85,7 +85,7 @@ public class ArbitratorSendInitTradeOrMultisigRequests extends TradeTask {
                         null);
 
                 // send request to maker
-                log.info("Send {} with offerId {} and uid {} to maker {} with pub key ring", makerRequest.getClass().getSimpleName(), makerRequest.getTradeId(), makerRequest.getUid(), trade.getMaker().getNodeAddress(), trade.getMaker().getPubKeyRing());
+                log.info("Send {} with offerId {} and uid {} to maker {}", makerRequest.getClass().getSimpleName(), makerRequest.getTradeId(), makerRequest.getUid(), trade.getMaker().getNodeAddress());
                 processModel.getP2PService().sendEncryptedDirectMessage(
                         trade.getMaker().getNodeAddress(), // TODO (woodser): maker's address might be different from original owner address if they disconnect and reconnect, need to validate and update address when requests received
                         trade.getMaker().getPubKeyRing(),

@@ -340,7 +340,6 @@ public class XmrWalletService {
             // freeze deposit inputs
             for (MoneroOutput input : depositTx.getInputs()) wallet.freezeOutput(input.getKeyImage().getHex());
             wallet.save();
-
             return depositTx;
         }
     }
@@ -441,10 +440,8 @@ public class XmrWalletService {
     }
 
     public MoneroTx getTx(String txHash) {
-        synchronized (txCache) {
-            List<MoneroTx> txs = getTxs(Arrays.asList(txHash));
-            return txs.isEmpty() ? null : txs.get(0);
-        }
+        List<MoneroTx> txs = getTxs(Arrays.asList(txHash));
+        return txs.isEmpty() ? null : txs.get(0);
     }
 
     public List<MoneroTx> getTxs(List<String> txHashes) {
@@ -461,16 +458,14 @@ public class XmrWalletService {
                 synchronized (txCache) {
                     for (MoneroTx tx : txs) txCache.remove(tx.getHash());
                 }
-            }, connectionsService.getDefaultRefreshPeriodMs());
+            }, connectionsService.getDefaultRefreshPeriodMs() / 1000);
             return txs;
         }
     }
 
     public MoneroTx getTxWithCache(String txHash) {
-        synchronized (txCache) {
-            List<MoneroTx> cachedTxs = getTxsWithCache(Arrays.asList(txHash));
-            return cachedTxs.isEmpty() ? null : cachedTxs.get(0);
-        }
+        List<MoneroTx> cachedTxs = getTxsWithCache(Arrays.asList(txHash));
+        return cachedTxs.isEmpty() ? null : cachedTxs.get(0);
     }
 
     public List<MoneroTx> getTxsWithCache(List<String> txHashes) {

@@ -103,7 +103,7 @@ public class ArbitratorProcessDepositRequest extends TradeTask {
 
                 // relay txs
                 MoneroDaemon daemon = trade.getXmrWalletService().getDaemon();
-               daemon.submitTxHex(processModel.getMaker().getDepositTxHex()); // TODO (woodser): check that result is good. will need to release funds if one is submitted
+                daemon.submitTxHex(processModel.getMaker().getDepositTxHex()); // TODO (woodser): check that result is good. will need to release funds if one is submitted
                 daemon.submitTxHex(processModel.getTaker().getDepositTxHex());
               
                 // update trade state

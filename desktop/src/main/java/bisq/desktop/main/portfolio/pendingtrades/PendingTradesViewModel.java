@@ -299,18 +299,7 @@ public class PendingTradesViewModel extends ActivatableWithDataModel<PendingTrad
     //
 
     String getMyRole(PendingTradesListItem item) {
-        Trade trade = item.getTrade();
-        Contract contract = trade.getContract();
-        if (contract != null) {
-            Offer offer = trade.getOffer();
-            checkNotNull(offer);
-            checkNotNull(offer.getCurrencyCode());
-            return tradeUtil.getRole(contract.isBuyerMakerAndSellerTaker(),
-                    dataModel.isMaker(offer),
-                    offer.getCurrencyCode());
-        } else {
-            return "";
-        }
+        return tradeUtil.getRole(item.getTrade());
     }
 
     String getPaymentMethod(PendingTradesListItem item) {
@@ -425,7 +414,8 @@ public class PendingTradesViewModel extends ActivatableWithDataModel<PendingTrad
         }
 
         switch (tradeState) {
-            // preparation
+
+            // initialization
             case PREPARATION:
             case MULTISIG_PREPARED:
             case MULTISIG_MADE:
@@ -433,16 +423,13 @@ public class PendingTradesViewModel extends ActivatableWithDataModel<PendingTrad
             case MULTISIG_COMPLETED:
             case CONTRACT_SIGNATURE_REQUESTED:
             case CONTRACT_SIGNED:
-                sellerState.set(UNDEFINED);
-                buyerState.set(BuyerState.UNDEFINED);
-                break;
-
-            // deposit requested
             case SENT_PUBLISH_DEPOSIT_TX_REQUEST:
             case SEND_FAILED_PUBLISH_DEPOSIT_TX_REQUEST:
             case SAW_ARRIVED_PUBLISH_DEPOSIT_TX_REQUEST:
+                sellerState.set(UNDEFINED); // TODO: show view while trade initializes?
+                buyerState.set(BuyerState.UNDEFINED);
+                break;
 
-            // deposit published
             case ARBITRATOR_PUBLISHED_DEPOSIT_TXS:
             case DEPOSIT_TXS_SEEN_IN_NETWORK:
             case DEPOSIT_TXS_CONFIRMED_IN_BLOCKCHAIN: // TODO: separate step to wait for first confirmation
@@ -451,7 +438,7 @@ public class PendingTradesViewModel extends ActivatableWithDataModel<PendingTrad
                 break;
 
             // buyer and seller step 2
-            // deposit unlocked
+            // deposits unlocked
             case DEPOSIT_TXS_UNLOCKED_IN_BLOCKCHAIN:
                 sellerState.set(SellerState.STEP2);
                 buyerState.set(BuyerState.STEP2);
