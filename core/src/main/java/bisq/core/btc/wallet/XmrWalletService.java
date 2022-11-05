@@ -37,9 +37,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArraySet;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.inject.Inject;
@@ -57,6 +54,7 @@ import monero.wallet.MoneroWallet;
 import monero.wallet.MoneroWalletRpc;
 import monero.wallet.model.MoneroCheckTx;
 import monero.wallet.model.MoneroDestination;
+import monero.wallet.model.MoneroOutputQuery;
 import monero.wallet.model.MoneroOutputWallet;
 import monero.wallet.model.MoneroSubaddress;
 import monero.wallet.model.MoneroTransferQuery;
@@ -784,8 +782,9 @@ public class XmrWalletService {
             return addressEntry.get();
         } else {
             // We try to use available and not yet used entries
+            List<MoneroTxWallet> incomingTxs = getIncomingTxs(null); // pre-fetch all incoming txs to avoid query per subaddress
             Optional<XmrAddressEntry> emptyAvailableAddressEntry = getAddressEntryListAsImmutableList().stream().filter(e -> XmrAddressEntry.Context.AVAILABLE == e.getContext())
-                    .filter(e -> isSubaddressUnused(e.getSubaddressIndex())).findAny();
+                    .filter(e -> isSubaddressUnused(e.getSubaddressIndex(), incomingTxs)).findAny();
             if (emptyAvailableAddressEntry.isPresent()) {
                 return xmrAddressEntryList.swapAvailableToAddressEntryWithOfferId(emptyAvailableAddressEntry.get(), context, offerId);
             } else {
@@ -890,7 +889,33 @@ public class XmrWalletService {
     }
 
     public boolean isSubaddressUnused(int subaddressIndex) {
-        return getNumTxOutputsForSubaddress(subaddressIndex) == 0;
+        return isSubaddressUnused(subaddressIndex, null);
+    }
+
+    private boolean isSubaddressUnused(int subaddressIndex, List<MoneroTxWallet> incomingTxs) {
+        return getNumTxOutputsForSubaddress(subaddressIndex, incomingTxs) == 0;
+    }
+
+    public int getNumTxOutputsForSubaddress(int subaddressIndex) {
+        return getNumTxOutputsForSubaddress(subaddressIndex, null);
+    }
+
+    private int getNumTxOutputsForSubaddress(int subaddressIndex, List<MoneroTxWallet> incomingTxs) {
+        if (incomingTxs == null) incomingTxs = getIncomingTxs(subaddressIndex);
+        int numUnspentOutputs = 0;
+        for (MoneroTxWallet tx : incomingTxs) {
+            numUnspentOutputs += tx.isConfirmed() ? tx.getOutputsWallet(new MoneroOutputQuery().setSubaddressIndex(subaddressIndex)).size() : 1; // TODO: monero-project does not provide outputs for unconfirmed txs
+        }
+        return numUnspentOutputs;
+    }
+
+    private List<MoneroTxWallet> getIncomingTxs(Integer subaddressIndex) {
+        return wallet.getTxs(new MoneroTxQuery()
+                .setTransferQuery((new MoneroTransferQuery()
+                        .setAccountIndex(0)
+                        .setSubaddressIndex(subaddressIndex)
+                        .setIsIncoming(true)))
+                .setIncludeOutputs(true));
     }
 
     public Coin getBalanceForAddress(String address) {
@@ -915,24 +940,6 @@ public class XmrWalletService {
         System.out.println("Returning balance for subaddress " + subaddressIndex + ": " + balance.longValueExact());
 
         return Coin.valueOf(balance.longValueExact());
-    }
-
-    public int getNumTxOutputsForSubaddress(int subaddressIndex) {
-
-        // get txs with transfers to the subaddress
-        List<MoneroTxWallet> txs = wallet.getTxs(new MoneroTxQuery()
-                .setTransferQuery((new MoneroTransferQuery()
-                        .setAccountIndex(0)
-                        .setSubaddressIndex(subaddressIndex)
-                        .setIsIncoming(true)))
-                .setIncludeOutputs(true));
-
-        // count num outputs
-        int numUnspentOutputs = 0;
-        for (MoneroTxWallet tx : txs) {
-            numUnspentOutputs += tx.isConfirmed() ? tx.getOutputs().size() : 1; // TODO: monero-project does not provide outputs for unconfirmed txs
-        }
-        return numUnspentOutputs;
     }
 
     public Coin getAvailableConfirmedBalance() {
