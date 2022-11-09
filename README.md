@@ -39,7 +39,7 @@ Main repositories:
 
 If you wish to help, take a look at the repositories above and look for open issues. We run a bounty program to incentivize development. See [Bounties](#bounties)
 
-The project is lead by a core Team formed of 2 people: ErCiccione and Woodser. The PGP keys of the core team members are in `gpg_keys/`.
+The PGP keys of the core team members are in `gpg_keys/`.
 
 ## Keep in touch and help out!
 
