@@ -18,8 +18,6 @@
 package bisq.desktop.main.overlays.windows;
 
 import bisq.desktop.components.HavenoTextArea;
-import bisq.desktop.components.TextFieldWithCopyIcon;
-import bisq.desktop.components.TxIdTextField;
 import bisq.desktop.main.MainView;
 import bisq.desktop.main.overlays.Overlay;
 import bisq.desktop.util.DisplayUtils;
@@ -33,9 +31,9 @@ import bisq.core.offer.Offer;
 import bisq.core.payment.payload.PaymentAccountPayload;
 import bisq.core.support.dispute.agent.DisputeAgentLookupMap;
 import bisq.core.support.dispute.arbitration.ArbitrationManager;
-import bisq.core.trade.TradeManager;
 import bisq.core.trade.Contract;
 import bisq.core.trade.Trade;
+import bisq.core.trade.TradeManager;
 import bisq.core.trade.txproof.AssetTxProofResult;
 import bisq.core.util.FormattingUtils;
 import bisq.core.util.VolumeUtil;
@@ -45,9 +43,6 @@ import bisq.network.p2p.NodeAddress;
 
 import bisq.common.UserThread;
 import bisq.common.util.Tuple3;
-
-import org.bitcoinj.core.Transaction;
-import org.bitcoinj.core.Utils;
 
 import javax.inject.Inject;
 import javax.inject.Named;
@@ -273,13 +268,11 @@ public class TradeDetailsWindow extends Overlay<TradeDetailsWindow> {
                         Res.get(contract.getPaymentMethodId()));
         }
 
-        addLabelTxIdTextField(gridPane, ++rowIndex, Res.get("shared.makerFeeTxId"), offer.getOfferFeePaymentTxId());
-
         if (trade.getMakerDepositTx() != null)
-            addLabelTxIdTextField(gridPane, ++rowIndex, Res.get("shared.depositTransactionId"), // TODO (woodser): separate UI labels for deposit tx ids
+            addLabelTxIdTextField(gridPane, ++rowIndex, Res.get("shared.makerDepositTransactionId"),
                     trade.getMakerDepositTx().getHash());
           if (trade.getTakerDepositTx() != null)
-            addLabelTxIdTextField(gridPane, ++rowIndex, Res.get("shared.depositTransactionId"), // TODO (woodser): separate UI labels for deposit tx ids
+            addLabelTxIdTextField(gridPane, ++rowIndex, Res.get("shared.takerDepositTransactionId"),
                     trade.getTakerDepositTx().getHash());
 
         if (trade.getPayoutTxId() != null)

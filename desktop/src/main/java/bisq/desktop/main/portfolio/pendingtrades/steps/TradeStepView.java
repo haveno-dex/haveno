@@ -335,8 +335,7 @@ public abstract class TradeStepView extends AnchorPane {
 
         // self's deposit tx id
         final Tuple3<Label, TxIdTextField, VBox> labelSelfTxIdTextFieldVBoxTuple3 =
-                addTopLabelTxIdTextField(gridPane, gridRow,
-                        "Your " + Res.get("shared.depositTransactionId").toLowerCase(),
+                addTopLabelTxIdTextField(gridPane, gridRow, Res.get("shared.yourDepositTransactionId"),
                         Layout.COMPACT_FIRST_ROW_DISTANCE);
 
         GridPane.setColumnSpan(labelSelfTxIdTextFieldVBoxTuple3.third, 2);
@@ -350,8 +349,7 @@ public abstract class TradeStepView extends AnchorPane {
 
         // peer's deposit tx id
         final Tuple3<Label, TxIdTextField, VBox> labelPeerTxIdTextFieldVBoxTuple3 =
-                addTopLabelTxIdTextField(gridPane, ++gridRow,
-                        "Peer's " + Res.get("shared.depositTransactionId").toLowerCase(),
+                addTopLabelTxIdTextField(gridPane, ++gridRow, Res.get("shared.peerDepositTransactionId"),
                         -Layout.GROUP_DISTANCE_WITHOUT_SEPARATOR);
 
         GridPane.setColumnSpan(labelPeerTxIdTextFieldVBoxTuple3.third, 2);
@@ -644,7 +642,7 @@ public abstract class TradeStepView extends AnchorPane {
         }
 
         Optional<Dispute> optionalDispute = model.dataModel.mediationManager.findDispute(trade.getId());
-        if (!optionalDispute.isPresent()) {
+        if (optionalDispute.isEmpty()) {
             return;
         }
 
@@ -656,14 +654,14 @@ public abstract class TradeStepView extends AnchorPane {
           log.error("trade.getMakerDepositTx() was null at openMediationResultPopup. " +
                   "We add the trade to failed trades. TradeId={}", trade.getId());
           //model.dataModel.addTradeToFailedTrades(); // TODO (woodser): new way to move trade to failed trades?
-          model.dataModel.onMoveInvalidTradeToFailedTrades(trade);;
+          model.dataModel.onMoveInvalidTradeToFailedTrades(trade);
           new Popup().warning(Res.get("portfolio.pending.mediationResult.error.depositTxNull")).show(); // TODO (woodser): separate error messages for maker/taker
           return;
         } else if (trade instanceof TakerTrade && trade.getTakerDepositTx() == null) {
           log.error("trade.getTakerDepositTx() was null at openMediationResultPopup. " +
                   "We add the trade to failed trades. TradeId={}", trade.getId());
           //model.dataModel.addTradeToFailedTrades();
-          model.dataModel.onMoveInvalidTradeToFailedTrades(trade);;
+          model.dataModel.onMoveInvalidTradeToFailedTrades(trade);
           new Popup().warning(Res.get("portfolio.pending.mediationResult.error.depositTxNull")).show();
           return;
         }
