@@ -262,13 +262,8 @@ public class ContractWindow extends Overlay<ContractWindow> {
             }
         }
 
-        addLabelTxIdTextField(gridPane, ++rowIndex, Res.get("shared.makerFeeTxId"), offer.getOfferFeePaymentTxId());
-        addLabelTxIdTextField(gridPane, ++rowIndex, Res.get("shared.takerFeeTxId"), "TAKER FEE TX ID NOT PART OF CONTRACT");  // TODO (woodser): should taker fee tx id be part of contract?
-
-        if (dispute.getDepositTxSerialized() != null) {
-            addLabelTxIdTextField(gridPane, ++rowIndex, Res.get("shared.makerDepositTransactionId"), contract.getMakerDepositTxHash());
-            addLabelTxIdTextField(gridPane, ++rowIndex, Res.get("shared.takerDepositTransactionId"), contract.getTakerDepositTxHash());
-        }
+        addLabelTxIdTextField(gridPane, ++rowIndex, Res.get("shared.makerDepositTransactionId"), contract.getMakerDepositTxHash());
+        addLabelTxIdTextField(gridPane, ++rowIndex, Res.get("shared.takerDepositTransactionId"), contract.getTakerDepositTxHash());
 
         if (dispute.getDelayedPayoutTxId() != null)
             addLabelTxIdTextField(gridPane, ++rowIndex, Res.get("shared.delayedPayoutTxId"), dispute.getDelayedPayoutTxId());
