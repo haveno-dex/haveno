@@ -19,7 +19,6 @@ package bisq.core.api;
 
 import bisq.core.account.witness.AccountAgeWitnessService;
 import bisq.core.api.model.PaymentAccountForm;
-import bisq.core.api.model.PaymentAccountForm;
 import bisq.core.api.model.PaymentAccountFormField;
 import bisq.core.locale.CryptoCurrency;
 import bisq.core.locale.CurrencyUtil;
@@ -31,6 +30,10 @@ import bisq.core.payment.PaymentAccount;
 import bisq.core.payment.PaymentAccountFactory;
 import bisq.core.payment.payload.PaymentMethod;
 import bisq.core.user.User;
+
+import bisq.asset.Asset;
+import bisq.asset.AssetRegistry;
+
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
@@ -44,6 +47,8 @@ import java.util.stream.Collectors;
 
 import lombok.extern.slf4j.Slf4j;
 
+import static bisq.common.config.Config.baseCurrencyNetwork;
+import static bisq.core.locale.CurrencyUtil.findAsset;
 import static bisq.core.locale.CurrencyUtil.getCryptoCurrency;
 import static java.lang.String.format;
 
@@ -77,7 +82,7 @@ class CorePaymentAccountsService {
                 paymentAccount.getPaymentAccountPayload().getPaymentMethodId());
         return paymentAccount;
     }
-    
+
     private static void setSelectedTradeCurrency(PaymentAccount paymentAccount) {
         TradeCurrency singleTradeCurrency = paymentAccount.getSingleTradeCurrency();
         List<TradeCurrency> tradeCurrencies = paymentAccount.getTradeCurrencies();
@@ -122,16 +127,15 @@ class CorePaymentAccountsService {
                                                       String address,
                                                       boolean tradeInstant) {
         accountService.checkAccountOpen();
-        if (currencyCode == null) throw new RuntimeException("Cryptocurrency code is null");
-        var cryptoCurrencyAccount = tradeInstant
+        verifyCryptoCurrencyAddress(currencyCode.toUpperCase(), address);
+        AssetAccount cryptoCurrencyAccount = tradeInstant
                 ? (InstantCryptoCurrencyAccount) PaymentAccountFactory.getPaymentAccount(PaymentMethod.BLOCK_CHAINS_INSTANT)
                 : (CryptoCurrencyAccount) PaymentAccountFactory.getPaymentAccount(PaymentMethod.BLOCK_CHAINS);
         cryptoCurrencyAccount.init();
         cryptoCurrencyAccount.setAccountName(accountName);
         cryptoCurrencyAccount.setAddress(address);
         Optional<CryptoCurrency> cryptoCurrency = getCryptoCurrency(currencyCode.toUpperCase());
-        if (!cryptoCurrency.isPresent()) throw new RuntimeException("Unsupported cryptocurrency code: " + currencyCode.toUpperCase());
-        cryptoCurrencyAccount.setSingleTradeCurrency(cryptoCurrency.get());
+        cryptoCurrency.ifPresent(cryptoCurrencyAccount::setSingleTradeCurrency);
         user.addPaymentAccount(cryptoCurrencyAccount);
         if (!(cryptoCurrencyAccount instanceof AssetAccount)) accountAgeWitnessService.publishMyAccountAgeWitness(cryptoCurrencyAccount.getPaymentAccountPayload()); // TODO (woodser): applies to Haveno?
         log.info("Saved crypto payment account with id {} and payment method {}.",
@@ -159,6 +163,25 @@ class CorePaymentAccountsService {
         // validate field with empty payment account
         PaymentAccount paymentAccount = PaymentAccountFactory.getPaymentAccount(PaymentMethod.getPaymentMethod(formId.toString()));
         paymentAccount.validateFormField(form, fieldId, value);
+    }
+
+    private void verifyCryptoCurrencyAddress(String cryptoCurrencyCode, String address) {
+        Asset asset = getAsset(cryptoCurrencyCode);
+
+        if (!asset.validateAddress(address).isValid())
+            throw new IllegalArgumentException(
+                    format("%s is not a valid %s address",
+                            address,
+                            cryptoCurrencyCode.toLowerCase()));
+    }
+
+    private Asset getAsset(String cryptoCurrencyCode) {
+        return findAsset(new AssetRegistry(),
+                cryptoCurrencyCode,
+                baseCurrencyNetwork())
+                .orElseThrow(() -> new IllegalStateException(
+                        format("crypto currency with code '%s' not found",
+                                cryptoCurrencyCode.toLowerCase())));
     }
 
     private void verifyPaymentAccountHasRequiredFields(PaymentAccount paymentAccount) {
