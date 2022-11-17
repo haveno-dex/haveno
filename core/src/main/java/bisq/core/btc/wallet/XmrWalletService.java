@@ -412,7 +412,7 @@ public class XmrWalletService {
 
     /**
      * Get the tx fee estimate based on its weight.
-     * 
+     *
      * @param txWeight - the tx weight
      * @return the tx fee estimate
      */
@@ -726,9 +726,9 @@ public class XmrWalletService {
     }
 
     private void backupWallet(String walletName) {
-        FileUtil.rollingBackup(walletDir, walletName, 20);
-        FileUtil.rollingBackup(walletDir, walletName + ".keys", 20);
-        FileUtil.rollingBackup(walletDir, walletName + ".address.txt", 20);
+        FileUtil.rollingBackup(walletDir, walletName, 10);
+        FileUtil.rollingBackup(walletDir, walletName + ".keys", 10);
+        FileUtil.rollingBackup(walletDir, walletName + ".address.txt", 10);
     }
 
     private void deleteBackupWallets(String walletName) {
