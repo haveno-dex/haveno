@@ -8,7 +8,7 @@ On Ubuntu: `sudo apt install make wget git openjdk-11-jdk`. The Monero binaries 
 
 ## Build Haveno
 
-If it's the first time you are building Haveno, run the following commands to download the repository, the needed dependencies, and build the latest release: 
+If it's the first time you are building Haveno, run the following commands to download the repository, the needed dependencies, and build the latest release:
 
 ```
 git clone https://github.com/haveno-dex/haveno.git
@@ -68,6 +68,8 @@ If you don't use *screen*, open 4 terminal windows and run in each one of them:
   1. `make seednode-local`
   2. `make user1-desktop-local` or if you want to run user1 as a daemon: `make user1-daemon-local`
   3. `make user2-desktop-local` or if you want to run user2 as a daemon: `make user2-daemon-local`
+  4. `make arbitrator-desktop-local` or if you want to run arbitrator as a daemon: `make arbitrator-daemon-local`
+  5. Optionally run a [local price node](https://github.com/haveno-dex/haveno-pricenode/blob/main/README.md)
 
 If this is the first time launching the arbitrator desktop application, register the arbitrator after the interface opens. Go to the *Account* tab and press `cmd+r`. Confirm the registration of the arbitrator.
 
