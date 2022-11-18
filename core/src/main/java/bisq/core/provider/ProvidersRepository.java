@@ -23,7 +23,6 @@ import com.google.inject.Inject;
 
 import javax.inject.Named;
 
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -35,7 +34,7 @@ import javax.annotation.Nullable;
 
 @Slf4j
 public class ProvidersRepository {
-    private static final List<String> DEFAULT_NODES = Arrays.asList(
+    private static final List<String> DEFAULT_NODES = List.of(
             "http://gbmks3wzvdzu5xq6gnqpj2qz3262tcr36iltagk37udcbwzsbfazq3yd.onion/" // Haveno
     );
 
@@ -104,8 +103,8 @@ public class ProvidersRepository {
             if (useLocalhostForP2P) {
                 // If we run in localhost mode we don't have the tor node running, so we need a clearnet host
                 // Use localhost for using a locally running provider
-                // providers = Collections.singletonList("http://localhost:8078");
-                providers = Collections.singletonList("https://price.haveno.network/"); // Haveno
+
+                providers = List.of("http://localhost:8078/", "https://price.haveno.network/");
             } else {
                 providers = DEFAULT_NODES;
             }

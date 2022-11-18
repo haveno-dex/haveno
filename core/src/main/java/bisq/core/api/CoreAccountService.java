@@ -92,14 +92,14 @@ public class CoreAccountService {
         if (accountExists()) throw new IllegalStateException("Cannot create account if account already exists");
         keyRing.generateKeys(password);
         this.password = password;
-        for (AccountServiceListener listener : listeners) listener.onAccountCreated();
+        for (AccountServiceListener listener : new ArrayList<AccountServiceListener>(listeners)) listener.onAccountCreated();
     }
 
     public void openAccount(String password) throws IncorrectPasswordException {
         if (!accountExists()) throw new IllegalStateException("Cannot open account if account does not exist");
         if (keyRing.unlockKeys(password, false)) {
             this.password = password;
-            for (AccountServiceListener listener : listeners) listener.onAccountOpened();
+            for (AccountServiceListener listener : new ArrayList<AccountServiceListener>(listeners)) listener.onAccountOpened();
         } else {
             throw new IllegalStateException("keyRing.unlockKeys() returned false, that should never happen");
         }
@@ -110,13 +110,13 @@ public class CoreAccountService {
         String oldPassword = this.password;
         keyStorage.saveKeyRing(keyRing, oldPassword, password);
         this.password = password;
-        for (AccountServiceListener listener : listeners) listener.onPasswordChanged(oldPassword, password);
+        for (AccountServiceListener listener : new ArrayList<AccountServiceListener>(listeners)) listener.onPasswordChanged(oldPassword, password);
     }
 
     public void closeAccount() {
         if (!isAccountOpen()) throw new IllegalStateException("Cannot close unopened account");
         keyRing.lockKeys(); // closed account means the keys are locked
-        for (AccountServiceListener listener : listeners) listener.onAccountClosed();
+        for (AccountServiceListener listener : new ArrayList<AccountServiceListener>(listeners)) listener.onAccountClosed();
     }
 
     public void backupAccount(int bufferSize, Consumer<InputStream> consume, Consumer<Exception> error) {
