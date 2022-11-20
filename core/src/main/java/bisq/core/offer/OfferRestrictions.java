@@ -37,7 +37,7 @@ public class OfferRestrictions {
         return new Date().after(REQUIRE_TOR_NODE_ADDRESS_V3_DATE) && Config.baseCurrencyNetwork().isMainnet();
     }
 
-    public static Coin TOLERATED_SMALL_TRADE_AMOUNT = Coin.parseCoin("1.0");
+    public static Coin TOLERATED_SMALL_TRADE_AMOUNT = Coin.parseCoin("2.0");
 
     static boolean hasOfferMandatoryCapability(Offer offer, Capability mandatoryCapability) {
         Map<String, String> extraDataMap = offer.getExtraDataMap();
