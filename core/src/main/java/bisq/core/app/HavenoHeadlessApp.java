@@ -96,7 +96,7 @@ public class HavenoHeadlessApp implements HeadlessApp {
         bisqSetup.setQubesOSInfoHandler(() -> log.info("setQubesOSInfoHandler"));
         bisqSetup.setDownGradePreventionHandler(lastVersion -> log.info("Downgrade from version {} to version {} is not supported",
                 lastVersion, Version.VERSION));
-
+        bisqSetup.setTorAddressUpgradeHandler(() -> log.info("setTorAddressUpgradeHandler"));
         corruptedStorageFileHandler.getFiles().ifPresent(files -> log.warn("getCorruptedDatabaseFiles. files={}", files));
         tradeManager.setTakeOfferRequestErrorMessageHandler(errorMessage -> log.error("Error taking offer: " + errorMessage));
     }

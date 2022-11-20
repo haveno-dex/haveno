@@ -22,6 +22,7 @@ import bisq.core.account.sign.SignedWitnessStorageService;
 import bisq.core.account.witness.AccountAgeWitnessService;
 import bisq.core.alert.Alert;
 import bisq.core.alert.AlertManager;
+import bisq.core.alert.PrivateNotificationManager;
 import bisq.core.alert.PrivateNotificationPayload;
 import bisq.core.api.CoreMoneroNodeService;
 import bisq.core.btc.model.AddressEntry;
@@ -37,6 +38,10 @@ import bisq.core.payment.AmazonGiftCardAccount;
 import bisq.core.payment.PaymentAccount;
 import bisq.core.payment.RevolutAccount;
 import bisq.core.payment.payload.PaymentMethod;
+import bisq.core.support.dispute.Dispute;
+import bisq.core.support.dispute.arbitration.ArbitrationManager;
+import bisq.core.support.dispute.mediation.MediationManager;
+import bisq.core.support.dispute.refund.RefundManager;
 import bisq.core.trade.TradeManager;
 import bisq.core.trade.TradeTxException;
 import bisq.core.user.Preferences;
@@ -45,8 +50,10 @@ import bisq.core.util.FormattingUtils;
 import bisq.core.util.coin.CoinFormatter;
 
 import bisq.network.Socks5ProxyProvider;
+import bisq.network.p2p.NodeAddress;
 import bisq.network.p2p.P2PService;
 import bisq.network.p2p.storage.payload.PersistableNetworkPayload;
+import bisq.network.utils.Utils;
 
 import bisq.common.Timer;
 import bisq.common.UserThread;
@@ -86,6 +93,8 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
+import java.util.Random;
 import java.util.Scanner;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
@@ -106,19 +115,6 @@ public class HavenoSetup {
     private static final String VERSION_FILE_NAME = "version";
     private static final String RESYNC_SPV_FILE_NAME = "resyncSpv";
 
-    public interface HavenoSetupListener {
-        default void onInitP2pNetwork() {
-        }
-
-        default void onInitWallet() {
-        }
-
-        default void onRequestWalletPassword() {
-        }
-
-        void onSetupComplete();
-    }
-
     private static final long STARTUP_TIMEOUT_MINUTES = 4;
 
     private final DomainInitialisation domainInitialisation;
@@ -129,6 +125,7 @@ public class HavenoSetup {
     private final BtcWalletService btcWalletService;
     private final XmrWalletService xmrWalletService;
     private final P2PService p2PService;
+    private final PrivateNotificationManager privateNotificationManager;
     private final SignedWitnessStorageService signedWitnessStorageService;
     private final TradeManager tradeManager;
     private final OpenOfferManager openOfferManager;
@@ -141,7 +138,9 @@ public class HavenoSetup {
     private final CoinFormatter formatter;
     private final LocalBitcoinNode localBitcoinNode;
     private final AppStartupState appStartupState;
-
+    private final MediationManager mediationManager;
+    private final RefundManager refundManager;
+    private final ArbitrationManager arbitrationManager;
     @Setter
     @Nullable
     private Consumer<Runnable> displayTacHandler;
@@ -188,8 +187,10 @@ public class HavenoSetup {
     private Runnable qubesOSInfoHandler;
     @Setter
     @Nullable
+    private Runnable torAddressUpgradeHandler;
+    @Setter
+    @Nullable
     private Consumer<String> downGradePreventionHandler;
-
     @Getter
     final BooleanProperty newVersionAvailableProperty = new SimpleBooleanProperty(false);
     private BooleanProperty p2pNetworkReady;
@@ -198,6 +199,19 @@ public class HavenoSetup {
     @SuppressWarnings("FieldCanBeLocal")
     private MonadicBinding<Boolean> p2pNetworkAndWalletInitialized;
     private final List<HavenoSetupListener> havenoSetupListeners = new ArrayList<>();
+
+    public interface HavenoSetupListener {
+        default void onInitP2pNetwork() {
+        }
+
+        default void onInitWallet() {
+        }
+
+        default void onRequestWalletPassword() {
+        }
+
+        void onSetupComplete();
+    }
 
     @Inject
     public HavenoSetup(DomainInitialisation domainInitialisation,
@@ -208,6 +222,7 @@ public class HavenoSetup {
                      XmrWalletService xmrWalletService,
                      BtcWalletService btcWalletService,
                      P2PService p2PService,
+                     PrivateNotificationManager privateNotificationManager,
                      SignedWitnessStorageService signedWitnessStorageService,
                      TradeManager tradeManager,
                      OpenOfferManager openOfferManager,
@@ -220,7 +235,10 @@ public class HavenoSetup {
                      @Named(FormattingUtils.BTC_FORMATTER_KEY) CoinFormatter formatter,
                      LocalBitcoinNode localBitcoinNode,
                      AppStartupState appStartupState,
-                     Socks5ProxyProvider socks5ProxyProvider) {
+                     Socks5ProxyProvider socks5ProxyProvider,
+                     MediationManager mediationManager,
+                     RefundManager refundManager,
+                     ArbitrationManager arbitrationManager) {
         this.domainInitialisation = domainInitialisation;
         this.p2PNetworkSetup = p2PNetworkSetup;
         this.walletAppSetup = walletAppSetup;
@@ -229,6 +247,7 @@ public class HavenoSetup {
         this.xmrWalletService = xmrWalletService;
         this.btcWalletService = btcWalletService;
         this.p2PService = p2PService;
+        this.privateNotificationManager = privateNotificationManager;
         this.signedWitnessStorageService = signedWitnessStorageService;
         this.tradeManager = tradeManager;
         this.openOfferManager = openOfferManager;
@@ -241,6 +260,9 @@ public class HavenoSetup {
         this.formatter = formatter;
         this.localBitcoinNode = localBitcoinNode;
         this.appStartupState = appStartupState;
+        this.mediationManager = mediationManager;
+        this.refundManager = refundManager;
+        this.arbitrationManager = arbitrationManager;
 
         MemPoolSpaceTxBroadcaster.init(socks5ProxyProvider, preferences, localBitcoinNode);
     }
@@ -313,6 +335,8 @@ public class HavenoSetup {
         maybeShowSecurityRecommendation();
         maybeShowLocalhostRunningInfo();
         maybeShowAccountSigningStateInfo();
+        maybeShowTorAddressUpgradeInformation();
+        checkInboundConnections();
     }
 
 
@@ -663,6 +687,37 @@ public class HavenoSetup {
         }
     }
 
+    /**
+     * Check if we have inbound connections.  If not, try to ping ourselves.
+     * If Haveno cannot connect to its own onion address through Tor, display
+     * an informative message to let the user know to configure their firewall else
+     * their offers will not be reachable.
+     * Repeat this test hourly.
+     */
+    private void checkInboundConnections() {
+        NodeAddress onionAddress = p2PService.getNetworkNode().nodeAddressProperty().get();
+        if (onionAddress == null || !onionAddress.getFullAddress().contains("onion")) {
+            return;
+        }
+
+        if (p2PService.getNetworkNode().upTime() > TimeUnit.HOURS.toMillis(1) &&
+                p2PService.getNetworkNode().getInboundConnectionCount() == 0) {
+            // we've been online a while and did not find any inbound connections; lets try the self-ping check
+            log.info("no recent inbound connections found, starting the self-ping test");
+            privateNotificationManager.sendPing(onionAddress, stringResult -> {
+                log.info(stringResult);
+                if (stringResult.contains("failed")) {
+                    getP2PNetworkStatusIconId().set("flashing:image-yellow_circle");
+                }
+            });
+        }
+
+        // schedule another inbound connection check for later
+        int nextCheckInMinutes = 30 + new Random().nextInt(30);
+        log.debug("next inbound connections check in {} minutes", nextCheckInMinutes);
+        UserThread.runAfter(this::checkInboundConnections, nextCheckInMinutes, TimeUnit.MINUTES);
+    }
+
     private void maybeShowSecurityRecommendation() {
         if (user.getPaymentAccountsAsObservable() == null) return;
         String key = "remindPasswordAndBackup";
@@ -733,6 +788,30 @@ public class HavenoSetup {
         }
     }
 
+    private void maybeShowTorAddressUpgradeInformation() {
+        if (Config.baseCurrencyNetwork().isTestnet() ||
+                Utils.isV3Address(Objects.requireNonNull(p2PService.getNetworkNode().getNodeAddress()).getHostName())) {
+            return;
+        }
+
+        maybeRunTorNodeAddressUpgradeHandler();
+
+        tradeManager.getNumPendingTrades().addListener((observable, oldValue, newValue) -> {
+            long numPendingTrades = (long) newValue;
+            if (numPendingTrades == 0) {
+                maybeRunTorNodeAddressUpgradeHandler();
+            }
+        });
+    }
+
+    private void maybeRunTorNodeAddressUpgradeHandler() {
+        if (mediationManager.getDisputesAsObservableList().stream().allMatch(Dispute::isClosed) &&
+                refundManager.getDisputesAsObservableList().stream().allMatch(Dispute::isClosed) &&
+                arbitrationManager.getDisputesAsObservableList().stream().allMatch(Dispute::isClosed) &&
+                tradeManager.getNumPendingTrades().isEqualTo(0).get()) {
+            Objects.requireNonNull(torAddressUpgradeHandler).run();
+        }
+    }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Getters
@@ -774,6 +853,10 @@ public class HavenoSetup {
 
     public StringProperty getP2PNetworkIconId() {
         return p2PNetworkSetup.getP2PNetworkIconId();
+    }
+
+    public StringProperty getP2PNetworkStatusIconId() {
+        return p2PNetworkSetup.getP2PNetworkStatusIconId();
     }
 
     public BooleanProperty getUpdatedDataReceived() {
