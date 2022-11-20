@@ -17,9 +17,12 @@
 
 package bisq.desktop.main;
 
+import bisq.desktop.Navigation;
 import bisq.desktop.app.HavenoApp;
 import bisq.desktop.common.model.ViewModel;
 import bisq.desktop.components.TxIdTextField;
+import bisq.desktop.main.account.AccountView;
+import bisq.desktop.main.account.content.backup.BackupView;
 import bisq.desktop.main.overlays.Overlay;
 import bisq.desktop.main.overlays.notifications.NotificationCenter;
 import bisq.desktop.main.overlays.popups.Popup;
@@ -133,6 +136,7 @@ public class MainViewModel implements ViewModel, HavenoSetup.HavenoSetupListener
     @Getter
     private final TorNetworkSettingsWindow torNetworkSettingsWindow;
     private final CorruptedStorageFileHandler corruptedStorageFileHandler;
+    private final Navigation navigation;
 
     @Getter
     private final BooleanProperty showAppScreen = new SimpleBooleanProperty();
@@ -175,7 +179,8 @@ public class MainViewModel implements ViewModel, HavenoSetup.HavenoSetupListener
                          LocalBitcoinNode localBitcoinNode,
                          AccountAgeWitnessService accountAgeWitnessService,
                          TorNetworkSettingsWindow torNetworkSettingsWindow,
-                         CorruptedStorageFileHandler corruptedStorageFileHandler) {
+                         CorruptedStorageFileHandler corruptedStorageFileHandler,
+                         Navigation navigation) {
         this.bisqSetup = bisqSetup;
         this.connectionService = connectionService;
         this.user = user;
@@ -199,6 +204,7 @@ public class MainViewModel implements ViewModel, HavenoSetup.HavenoSetupListener
         this.accountAgeWitnessService = accountAgeWitnessService;
         this.torNetworkSettingsWindow = torNetworkSettingsWindow;
         this.corruptedStorageFileHandler = corruptedStorageFileHandler;
+        this.navigation = navigation;
 
         TxIdTextField.setPreferences(preferences);
 
@@ -411,6 +417,12 @@ public class MainViewModel implements ViewModel, HavenoSetup.HavenoSetupListener
                     .show();
         });
 
+        bisqSetup.setTorAddressUpgradeHandler(() -> new Popup().information(Res.get("popup.info.torMigration.msg"))
+                .actionButtonTextWithGoTo("navigation.account.backup")
+                .onAction(() -> {
+                    navigation.setReturnPath(navigation.getCurrentPath());
+                    navigation.navigateTo(MainView.class, AccountView.class, BackupView.class);
+                }).show());
 
         corruptedStorageFileHandler.getFiles().ifPresent(files -> new Popup()
                 .warning(Res.get("popup.warning.incompatibleDB", files.toString(), config.appDataDir))
@@ -704,6 +716,10 @@ public class MainViewModel implements ViewModel, HavenoSetup.HavenoSetupListener
         return bisqSetup.getP2PNetworkIconId();
     }
 
+    StringProperty getP2PNetworkStatusIconId() {
+        return bisqSetup.getP2PNetworkStatusIconId();
+    }
+
     BooleanProperty getUpdatedDataReceived() {
         return bisqSetup.getUpdatedDataReceived();
     }
@@ -766,5 +782,11 @@ public class MainViewModel implements ViewModel, HavenoSetup.HavenoSetupListener
             });
             overlay.show();
         }
+    }
+
+    public String getP2pConnectionSummary() {
+        return Res.get("mainView.status.connections",
+                p2PService.getNetworkNode().getInboundConnectionCount(),
+                p2PService.getNetworkNode().getOutboundConnectionCount());
     }
 }

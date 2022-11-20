@@ -39,12 +39,12 @@ import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.ReadOnlyObjectProperty;
 import javafx.beans.property.SimpleObjectProperty;
 
-import java.net.ConnectException;
 import java.net.ServerSocket;
 import java.net.Socket;
 
 import java.io.IOException;
 
+import java.util.Date;
 import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
@@ -127,10 +127,10 @@ public abstract class NetworkNode implements MessageListener {
                 Thread.currentThread().setName("NetworkNode:SendMessage-to-" + peersNodeAddress.getFullAddress());
 
                 if (peersNodeAddress.equals(getNodeAddress())) {
-                    throw new ConnectException("We do not send a message to ourselves");
+                    log.warn("We are sending a message to ourselves");
                 }
 
-                OutboundConnection outboundConnection = null;
+                OutboundConnection outboundConnection;
                 try {
                     // can take a while when using tor
                     long startTs = System.currentTimeMillis();
@@ -145,7 +145,7 @@ public abstract class NetworkNode implements MessageListener {
                     if (duration > CREATE_SOCKET_TIMEOUT)
                         throw new TimeoutException("A timeout occurred when creating a socket.");
 
-                    // Tor needs sometimes quite long to create a connection. To avoid that we get too many double
+                    // Tor needs sometimes quite long to create a connection. To avoid that we get too many double-
                     // sided connections we check again if we still don't have any connection for that node address.
                     Connection existingConnection = getInboundConnection(peersNodeAddress);
                     if (existingConnection == null)
@@ -212,9 +212,7 @@ public abstract class NetworkNode implements MessageListener {
                         return outboundConnection;
                     }
                 } catch (Throwable throwable) {
-                    if (!(throwable instanceof ConnectException ||
-                            throwable instanceof IOException ||
-                            throwable instanceof TimeoutException)) {
+                    if (!(throwable instanceof IOException || throwable instanceof TimeoutException)) {
                         log.warn("Executing task failed. " + throwable.getMessage());
                     }
                     throw throwable;
@@ -389,7 +387,7 @@ public abstract class NetworkNode implements MessageListener {
 
     @Override
     public void onMessage(NetworkEnvelope networkEnvelope, Connection connection) {
-        messageListeners.stream().forEach(e -> e.onMessage(networkEnvelope, connection));
+        messageListeners.forEach(e -> e.onMessage(networkEnvelope, connection));
     }
 
 
@@ -441,7 +439,7 @@ public abstract class NetworkNode implements MessageListener {
                 if (!connection.isStopped()) {
                     inBoundConnections.add((InboundConnection) connection);
                     printInboundConnections();
-                    connectionListeners.stream().forEach(e -> e.onConnection(connection));
+                    connectionListeners.forEach(e -> e.onConnection(connection));
                 }
             }
 
@@ -451,13 +449,13 @@ public abstract class NetworkNode implements MessageListener {
                 //noinspection SuspiciousMethodCalls
                 inBoundConnections.remove(connection);
                 printInboundConnections();
-                connectionListeners.stream().forEach(e -> e.onDisconnect(closeConnectionReason, connection));
+                connectionListeners.forEach(e -> e.onDisconnect(closeConnectionReason, connection));
             }
 
             @Override
             public void onError(Throwable throwable) {
                 log.error("server.ConnectionListener.onError " + throwable.getMessage());
-                connectionListeners.stream().forEach(e -> e.onError(throwable));
+                connectionListeners.forEach(e -> e.onError(throwable));
             }
         };
         server = new Server(serverSocket,
@@ -479,7 +477,7 @@ public abstract class NetworkNode implements MessageListener {
     private void printOutBoundConnections() {
         StringBuilder sb = new StringBuilder("outBoundConnections size()=")
                 .append(outBoundConnections.size()).append("\n\toutBoundConnections=");
-        outBoundConnections.stream().forEach(e -> sb.append(e).append("\n\t"));
+        outBoundConnections.forEach(e -> sb.append(e).append("\n\t"));
         log.debug(sb.toString());
     }
 
@@ -494,7 +492,7 @@ public abstract class NetworkNode implements MessageListener {
     private void printInboundConnections() {
         StringBuilder sb = new StringBuilder("inBoundConnections size()=")
                 .append(inBoundConnections.size()).append("\n\tinBoundConnections=");
-        inBoundConnections.stream().forEach(e -> sb.append(e).append("\n\t"));
+        inBoundConnections.forEach(e -> sb.append(e).append("\n\t"));
         log.debug(sb.toString());
     }
 
@@ -511,5 +509,23 @@ public abstract class NetworkNode implements MessageListener {
                 .filter(c -> c.getPeersNodeAddressProperty().get().equals(nodeAddress))
                 .map(Connection::getCapabilities)
                 .findAny();
+    }
+
+    public long upTime() {
+        // how long Haveno has been running with at least one connection
+        // uptime is relative to last all connections lost event
+        long earliestConnection = new Date().getTime();
+        for (Connection connection : outBoundConnections) {
+            earliestConnection = Math.min(earliestConnection, connection.getStatistic().getCreationDate().getTime());
+        }
+        return new Date().getTime() - earliestConnection;
+    }
+
+    public int getInboundConnectionCount() {
+        return inBoundConnections.size();
+    }
+
+    public int getOutboundConnectionCount() {
+        return outBoundConnections.size();
     }
 }
