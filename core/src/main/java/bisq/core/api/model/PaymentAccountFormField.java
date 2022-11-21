@@ -40,6 +40,7 @@ import javax.annotation.concurrent.Immutable;
 public final class PaymentAccountFormField implements PersistablePayload {
 
     public enum FieldId {
+        ADDRESS,
         ACCEPTED_COUNTRY_CODES,
         ACCOUNT_ID,
         ACCOUNT_NAME,
@@ -96,8 +97,7 @@ public final class PaymentAccountFormField implements PersistablePayload {
         SPECIAL_INSTRUCTIONS,
         STATE,
         TRADE_CURRENCIES,
-        USER_NAME,
-        VIRTUAL_PAYMENT_ADDRESS;
+        USER_NAME;
 
         public static PaymentAccountFormField.FieldId fromProto(protobuf.PaymentAccountFormField.FieldId fieldId) {
             return ProtoUtil.enumFromProto(PaymentAccountFormField.FieldId.class, fieldId.name());

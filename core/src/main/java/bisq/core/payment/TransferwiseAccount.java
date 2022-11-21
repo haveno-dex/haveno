@@ -25,7 +25,6 @@ import bisq.core.payment.payload.PaymentMethod;
 import bisq.core.payment.payload.TransferwiseAccountPayload;
 
 import java.util.List;
-import java.util.Map;
 import lombok.EqualsAndHashCode;
 import lombok.NonNull;
 

@@ -33,7 +33,7 @@ import lombok.extern.slf4j.Slf4j;
 @Setter
 @Getter
 @Slf4j
-public final class InstantCryptoCurrencyPayload extends AssetsAccountPayload {
+public final class InstantCryptoCurrencyPayload extends AssetAccountPayload {
 
     public InstantCryptoCurrencyPayload(String paymentMethod, String id) {
         super(paymentMethod, id);

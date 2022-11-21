@@ -21,8 +21,10 @@ import bisq.core.api.CoreApi;
 import bisq.core.api.model.PaymentAccountForm;
 import bisq.core.api.model.PaymentAccountFormField;
 import bisq.core.payment.PaymentAccount;
+import bisq.core.payment.PaymentAccountFactory;
+import bisq.core.payment.payload.PaymentAccountPayload;
 import bisq.core.payment.payload.PaymentMethod;
-
+import bisq.core.proto.CoreProtoResolver;
 import bisq.proto.grpc.CreateCryptoCurrencyPaymentAccountReply;
 import bisq.proto.grpc.CreateCryptoCurrencyPaymentAccountRequest;
 import bisq.proto.grpc.CreatePaymentAccountReply;
@@ -104,7 +106,7 @@ class GrpcPaymentAccountsService extends PaymentAccountsImplBase {
     public void getPaymentMethods(GetPaymentMethodsRequest req,
                                   StreamObserver<GetPaymentMethodsReply> responseObserver) {
         try {
-            var paymentMethods = coreApi.getFiatPaymentMethods().stream()
+            var paymentMethods = coreApi.getPaymentMethods().stream()
                     .map(PaymentMethod::toProtoMessage)
                     .collect(Collectors.toList());
             var reply = GetPaymentMethodsReply.newBuilder()
@@ -120,7 +122,16 @@ class GrpcPaymentAccountsService extends PaymentAccountsImplBase {
     public void getPaymentAccountForm(GetPaymentAccountFormRequest req,
                                       StreamObserver<GetPaymentAccountFormReply> responseObserver) {
         try {
-            var form = coreApi.getPaymentAccountForm(req.getPaymentMethodId());
+            PaymentAccountForm form = null;
+            if (req.getPaymentMethodId().isEmpty()) {
+                PaymentAccount account = PaymentAccountFactory.getPaymentAccount(PaymentMethod.getPaymentMethod(req.getPaymentAccountPayload().getPaymentMethodId()));
+                account.setAccountName("tmp");
+                account.init(PaymentAccountPayload.fromProto(req.getPaymentAccountPayload(), new CoreProtoResolver()));
+                account.setAccountName(null);
+                form = coreApi.getPaymentAccountForm(account);
+            } else {
+                form = coreApi.getPaymentAccountForm(req.getPaymentMethodId());
+            }
             var reply = GetPaymentAccountFormReply.newBuilder()
                     .setPaymentAccountForm(form.toProtoMessage())
                     .build();

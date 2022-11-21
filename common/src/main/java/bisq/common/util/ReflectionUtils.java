@@ -96,7 +96,7 @@ public class ReflectionUtils {
     }
 
     public static boolean isSetterOnClass(Method setter, Class<?> clazz) {
-        return clazz.equals(setter.getDeclaringClass());
+        return setter.getDeclaringClass().isAssignableFrom(clazz);
     }
 
     public static String getVisibilityModifierAsString(Field field) {

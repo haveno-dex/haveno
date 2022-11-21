@@ -23,7 +23,6 @@ import bisq.core.payment.payload.CountryBasedPaymentAccountPayload;
 import bisq.core.payment.payload.PaymentMethod;
 import java.util.List;
 import lombok.EqualsAndHashCode;
-import lombok.NonNull;
 import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nullable;
@@ -35,16 +34,13 @@ public abstract class CountryBasedPaymentAccount extends PaymentAccount {
     @Nullable
     protected List<Country> acceptedCountries;
 
-
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Constructor
     ///////////////////////////////////////////////////////////////////////////////////////////
 
-
     protected CountryBasedPaymentAccount(PaymentMethod paymentMethod) {
         super(paymentMethod);
     }
-
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Getter, Setter

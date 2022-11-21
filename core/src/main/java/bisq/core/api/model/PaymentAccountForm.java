@@ -17,7 +17,6 @@
 
 package bisq.core.api.model;
 
-import static bisq.core.payment.payload.PaymentMethod.getPaymentMethod;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static java.lang.String.format;
 import static java.lang.System.getProperty;
@@ -28,15 +27,14 @@ import bisq.common.proto.persistable.PersistablePayload;
 import bisq.core.payment.PaymentAccount;
 import bisq.core.payment.PaymentAccountFactory;
 import bisq.core.payment.payload.PaymentMethod;
+import bisq.core.trade.HavenoUtils;
+
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.CaseFormat;
 import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
-import java.lang.reflect.Type;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.file.Files;
@@ -60,11 +58,8 @@ import org.apache.commons.lang3.StringUtils;
 @Slf4j
 public final class PaymentAccountForm implements PersistablePayload {
     
-    private static final GsonBuilder gsonBuilder = new GsonBuilder()
-            .setPrettyPrinting()
-            .serializeNulls();
-    
     public enum FormId {
+        BLOCK_CHAINS,
         REVOLUT,
         SEPA,
         SEPA_INSTANT,
@@ -113,6 +108,10 @@ public final class PaymentAccountForm implements PersistablePayload {
         return new PaymentAccountForm(FormId.fromProto(proto.getId()), fields);
     }
 
+    public void addField(PaymentAccountFormField field) {
+        fields.add(field);
+    }
+
     public String getValue(PaymentAccountFormField.FieldId fieldId) {
         for (PaymentAccountFormField field : fields) {
             if (field.getId() == fieldId) {
@@ -123,21 +122,13 @@ public final class PaymentAccountForm implements PersistablePayload {
     }
 
     /**
-     * Get a structured form for the given payment method.
-     */
-    public static PaymentAccountForm getForm(String paymentMethodId) {
-        PaymentAccount paymentAccount = PaymentAccountFactory.getPaymentAccount(PaymentMethod.getPaymentMethod(paymentMethodId));
-        return paymentAccount.toForm();
-    }
-
-    /**
      * Convert this form to a PaymentAccount json string.
      */
     public String toPaymentAccountJsonString() {
         Map<String, Object> formMap = new HashMap<String, Object>();
         formMap.put("paymentMethodId", getId().toString());
         for (PaymentAccountFormField field : getFields()) {
-            formMap.put(toCamelCase(field.getId().toString()), field.getValue());
+            formMap.put(HavenoUtils.toCamelCase(field.getId().toString()), field.getValue());
         }
         return new Gson().toJson(formMap);
     }
@@ -146,19 +137,15 @@ public final class PaymentAccountForm implements PersistablePayload {
      * Convert this form to a PaymentAccount.
      */
     public PaymentAccount toPaymentAccount() {
-        return toPaymentAccount(toPaymentAccountJsonString());
+        return PaymentAccount.fromJson(toPaymentAccountJsonString());
     }
 
     /**
-     * De-serialize a PaymentAccount json string into a new PaymentAccount instance.
-     *
-     * @param paymentAccountJsonString The json data representing a new payment account form.
-     * @return A populated PaymentAccount subclass instance.
+     * Get a structured form for the given payment method.
      */
-    public static PaymentAccount toPaymentAccount(String paymentAccountJsonString) {
-        Class<? extends PaymentAccount> clazz = getPaymentAccountClassFromJson(paymentAccountJsonString);
-        Gson gson = gsonBuilder.registerTypeAdapter(clazz, new PaymentAccountTypeAdapter(clazz)).create();
-        return gson.fromJson(paymentAccountJsonString, clazz);
+    public static PaymentAccountForm getForm(String paymentMethodId) {
+        PaymentAccount paymentAccount = PaymentAccountFactory.getPaymentAccount(PaymentMethod.getPaymentMethod(paymentMethodId));
+        return paymentAccount.toForm();
     }
 
     // ----------------------------- OLD FORM API -----------------------------
@@ -170,7 +157,7 @@ public final class PaymentAccountForm implements PersistablePayload {
      * @return A uniquely named tmp file used to define new payment account details.
      */
     public static File getPaymentAccountForm(String paymentMethodId) {
-        PaymentMethod paymentMethod = getPaymentMethod(paymentMethodId);
+        PaymentMethod paymentMethod = PaymentMethod.getPaymentMethod(paymentMethodId);
         File file = getTmpJsonFile(paymentMethodId);
         try (OutputStreamWriter outputStreamWriter = new OutputStreamWriter(new FileOutputStream(checkNotNull(file), false), UTF_8)) {
             PaymentAccount paymentAccount = PaymentAccountFactory.getPaymentAccount(paymentMethod);
@@ -193,8 +180,7 @@ public final class PaymentAccountForm implements PersistablePayload {
     @SuppressWarnings("unused")
     @VisibleForTesting
     public static PaymentAccount toPaymentAccount(File jsonForm) {
-        String jsonString = toJsonString(jsonForm);
-        return toPaymentAccount(jsonString);
+        return PaymentAccount.fromJson(toJsonString(jsonForm));
     }
 
     public static String toJsonString(File jsonFile) {
@@ -242,23 +228,5 @@ public final class PaymentAccountForm implements PersistablePayload {
             throw new IllegalStateException(errMsg);
         }
         return file;
-    }
-
-    // -------------------------------- HELPERS -------------------------------
-
-    private static String toCamelCase(String underscore) {
-        return CaseFormat.UPPER_UNDERSCORE.to(CaseFormat.LOWER_CAMEL, underscore);
-    }
-
-    private static Class<? extends PaymentAccount> getPaymentAccountClassFromJson(String json) {
-        Map<String, Object> jsonMap = gsonBuilder.create().fromJson(json, (Type) Object.class);
-        String paymentMethodId = checkNotNull((String) jsonMap.get("paymentMethodId"),
-                format("cannot not find a paymentMethodId in json string: %s", json));
-        return getPaymentAccountClass(paymentMethodId);
-    }
-
-    private static Class<? extends PaymentAccount> getPaymentAccountClass(String paymentMethodId) {
-        PaymentMethod paymentMethod = getPaymentMethod(paymentMethodId);
-        return PaymentAccountFactory.getPaymentAccount(paymentMethod).getClass();
     }
 }

@@ -595,6 +595,7 @@ message GetPaymentMethodsReply {
 
 message GetPaymentAccountFormRequest {
     string payment_method_id = 1;
+    PaymentAccountPayload payment_account_payload = 2;
 }
 
 message GetPaymentAccountFormReply {
@@ -864,20 +865,13 @@ message ContractInfo {
     bool is_buyer_maker_and_seller_taker = 5;
     string maker_account_id = 6;
     string taker_account_id = 7;
-    PaymentAccountPayloadInfo maker_payment_account_payload = 8;
-    PaymentAccountPayloadInfo taker_payment_account_payload = 9;
+    PaymentAccountPayload maker_payment_account_payload = 8;
+    PaymentAccountPayload taker_payment_account_payload = 9;
     string maker_payout_address_string = 10;
     string taker_payout_address_string = 11;
     uint64 lock_time = 12;
 
     string arbitrator_node_address = 100;
-}
-
-message PaymentAccountPayloadInfo {
-    string id = 1;
-    string payment_method_id = 2;
-    string address = 3;
-    string payment_details = 4;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////

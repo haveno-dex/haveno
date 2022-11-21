@@ -331,6 +331,7 @@ public final class PaymentMethod implements PersistablePayload, Comparable<Payme
     // TODO: delete this override method, which overrides the paymentMethods variable, when all payment methods supported using structured form api, and make paymentMethods private
     public static final List<PaymentMethod> getPaymentMethods() {
         List<String> paymentMethodIds = List.of(
+                BLOCK_CHAINS_ID,
                 REVOLUT_ID,
                 SEPA_ID,
                 SEPA_INSTANT_ID,

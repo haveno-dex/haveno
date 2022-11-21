@@ -34,10 +34,10 @@ import lombok.extern.slf4j.Slf4j;
 @Setter
 @Getter
 @Slf4j
-public abstract class AssetsAccountPayload extends PaymentAccountPayload {
+public abstract class AssetAccountPayload extends PaymentAccountPayload {
     protected String address = "";
 
-    protected AssetsAccountPayload(String paymentMethod, String id) {
+    protected AssetAccountPayload(String paymentMethod, String id) {
         super(paymentMethod, id);
     }
 
@@ -46,7 +46,7 @@ public abstract class AssetsAccountPayload extends PaymentAccountPayload {
     // PROTO BUFFER
     ///////////////////////////////////////////////////////////////////////////////////////////
 
-    protected AssetsAccountPayload(String paymentMethod,
+    protected AssetAccountPayload(String paymentMethod,
                                    String id,
                                    String address,
                                    long maxTradePeriod,

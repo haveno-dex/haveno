@@ -17,7 +17,7 @@
 
 package bisq.core.payment;
 
-import bisq.core.payment.payload.AssetsAccountPayload;
+import bisq.core.payment.payload.AssetAccountPayload;
 import bisq.core.payment.payload.PaymentMethod;
 
 public abstract class AssetAccount extends PaymentAccount {
@@ -26,10 +26,10 @@ public abstract class AssetAccount extends PaymentAccount {
     }
 
     public void setAddress(String address) {
-        ((AssetsAccountPayload) paymentAccountPayload).setAddress(address);
+        ((AssetAccountPayload) paymentAccountPayload).setAddress(address);
     }
 
     public String getAddress() {
-        return ((AssetsAccountPayload) paymentAccountPayload).getAddress();
+        return ((AssetAccountPayload) paymentAccountPayload).getAddress();
     }
 }

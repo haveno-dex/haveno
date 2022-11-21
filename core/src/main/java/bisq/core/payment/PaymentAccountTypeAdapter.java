@@ -15,7 +15,7 @@
  * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.core.api.model;
+package bisq.core.payment;
 
 
 import bisq.core.locale.Country;
@@ -23,9 +23,6 @@ import bisq.core.locale.CountryUtil;
 import bisq.core.locale.FiatCurrency;
 import bisq.core.locale.Res;
 import bisq.core.locale.TradeCurrency;
-import bisq.core.payment.CountryBasedPaymentAccount;
-import bisq.core.payment.MoneyGramAccount;
-import bisq.core.payment.PaymentAccount;
 import bisq.core.payment.payload.PaymentAccountPayload;
 
 import com.google.gson.TypeAdapter;
@@ -156,13 +153,10 @@ class PaymentAccountTypeAdapter extends TypeAdapter<PaymentAccount> {
                             field.getType().getSimpleName(),
                             field.getName(),
                             value);
-
                     String fieldName = field.getName();
                     out.name(fieldName);
-                    if (fieldName.equals("country"))
-                        out.value("your two letter country code");
-                    else
-                        out.value("your " + fieldName.toLowerCase());
+                    if (fieldName.equals("country")) out.value("your two letter country code");
+                    else out.value("your " + fieldName.toLowerCase());
                 }
             } catch (Exception ex) {
                 String errMsg = format("cannot create a new %s json form",

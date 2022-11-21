@@ -24,7 +24,6 @@ import bisq.desktop.components.indicator.TxConfidenceIndicator;
 import bisq.desktop.main.overlays.popups.Popup;
 import bisq.desktop.main.portfolio.pendingtrades.PendingTradesViewModel;
 import bisq.desktop.main.portfolio.pendingtrades.steps.TradeStepView;
-import bisq.desktop.util.DisplayUtils;
 import bisq.desktop.util.GUIUtil;
 import bisq.desktop.util.Layout;
 
@@ -32,7 +31,7 @@ import bisq.core.locale.Res;
 import bisq.core.payment.PaymentAccount;
 import bisq.core.payment.PaymentAccountUtil;
 import bisq.core.payment.payload.AmazonGiftCardAccountPayload;
-import bisq.core.payment.payload.AssetsAccountPayload;
+import bisq.core.payment.payload.AssetAccountPayload;
 import bisq.core.payment.payload.BankAccountPayload;
 import bisq.core.payment.payload.CashByMailAccountPayload;
 import bisq.core.payment.payload.CashDepositAccountPayload;
@@ -226,13 +225,13 @@ public class SellerStep3View extends TradeStepView {
                     .map(PaymentAccount::getAccountName)
                     .orElse("");
 
-            if (myPaymentAccountPayload instanceof AssetsAccountPayload) {
+            if (myPaymentAccountPayload instanceof AssetAccountPayload) {
                 if (myPaymentDetails.isEmpty()) {
                     // Not expected
-                    myPaymentDetails = ((AssetsAccountPayload) myPaymentAccountPayload).getAddress();
+                    myPaymentDetails = ((AssetAccountPayload) myPaymentAccountPayload).getAddress();
                 }
                 peersPaymentDetails = peersPaymentAccountPayload != null ?
-                        ((AssetsAccountPayload) peersPaymentAccountPayload).getAddress() : "NA";
+                        ((AssetAccountPayload) peersPaymentAccountPayload).getAddress() : "NA";
                 myTitle = Res.get("portfolio.pending.step3_seller.yourAddress", currencyName);
                 peersTitle = Res.get("portfolio.pending.step3_seller.buyersAddress", currencyName);
             } else {
@@ -374,7 +373,7 @@ public class SellerStep3View extends TradeStepView {
             if (!DevEnv.isDevMode() && DontShowAgainLookup.showAgain(key)) {
                 PaymentAccountPayload paymentAccountPayload = model.dataModel.getSellersPaymentAccountPayload();
                 String message = Res.get("portfolio.pending.step3_seller.onPaymentReceived.part1", getCurrencyName(trade));
-                if (!(paymentAccountPayload instanceof AssetsAccountPayload)) {
+                if (!(paymentAccountPayload instanceof AssetAccountPayload)) {
                     Optional<String> optionalHolderName = getOptionalHolderName();
                     if (optionalHolderName.isPresent()) {
                         message += Res.get("portfolio.pending.step3_seller.onPaymentReceived.name", optionalHolderName.get());
@@ -406,8 +405,8 @@ public class SellerStep3View extends TradeStepView {
         String tradeVolumeWithCode = VolumeUtil.formatVolumeWithCode(trade.getVolume());
         String currencyName = getCurrencyName(trade);
         String part1 = Res.get("portfolio.pending.step3_seller.part", currencyName);
-        if (paymentAccountPayload instanceof AssetsAccountPayload) {
-            String address = ((AssetsAccountPayload) paymentAccountPayload).getAddress();
+        if (paymentAccountPayload instanceof AssetAccountPayload) {
+            String address = ((AssetAccountPayload) paymentAccountPayload).getAddress();
             String explorerOrWalletString = isXmrTrade() ?
                     Res.get("portfolio.pending.step3_seller.altcoin.wallet", currencyName) :
                     Res.get("portfolio.pending.step3_seller.altcoin.explorer", currencyName);

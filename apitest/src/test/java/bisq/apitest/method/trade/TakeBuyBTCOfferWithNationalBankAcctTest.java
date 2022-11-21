@@ -157,15 +157,15 @@ public class TakeBuyBTCOfferWithNationalBankAcctTest extends AbstractTradeTest {
         assertNotNull(bobsPaymentAccount);
 
         var alicesTrade = aliceClient.getTrade(tradeId);
-        assertNotEquals("", alicesTrade.getContract().getMakerPaymentAccountPayload().getPaymentDetails());
-        assertNotEquals("", alicesTrade.getContract().getTakerPaymentAccountPayload().getPaymentDetails());
+        assertNotEquals(null, alicesTrade.getContract().getMakerPaymentAccountPayload());
+        assertNotEquals(null, alicesTrade.getContract().getTakerPaymentAccountPayload());
         var alicesContractJson = alicesTrade.getContractAsJson();
         verifyJsonContractIncludesBankAccountDetails(alicesContractJson, alicesPaymentAccount);
         verifyJsonContractIncludesBankAccountDetails(alicesContractJson, bobsPaymentAccount);
 
         var bobsTrade = bobClient.getTrade(tradeId);
-        assertNotEquals("", bobsTrade.getContract().getMakerPaymentAccountPayload().getPaymentDetails());
-        assertNotEquals("", bobsTrade.getContract().getTakerPaymentAccountPayload().getPaymentDetails());
+        assertNotEquals(null, bobsTrade.getContract().getMakerPaymentAccountPayload());
+        assertNotEquals(null, bobsTrade.getContract().getTakerPaymentAccountPayload());
         var bobsContractJson = bobsTrade.getContractAsJson();
         verifyJsonContractIncludesBankAccountDetails(bobsContractJson, alicesPaymentAccount);
         verifyJsonContractIncludesBankAccountDetails(bobsContractJson, bobsPaymentAccount);

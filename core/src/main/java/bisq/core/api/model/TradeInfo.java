@@ -28,7 +28,6 @@ import lombok.EqualsAndHashCode;
 import lombok.Getter;
 
 import static bisq.core.api.model.OfferInfo.toOfferInfo;
-import static bisq.core.api.model.PaymentAccountPayloadInfo.toPaymentAccountPayloadInfo;
 import static bisq.core.util.PriceUtil.reformatMarketPrice;
 import static bisq.core.util.VolumeUtil.formatVolume;
 import static java.util.Objects.requireNonNull;
@@ -141,8 +140,8 @@ public class TradeInfo implements Payload {
                     contract.isBuyerMakerAndSellerTaker(),
                     contract.getMakerAccountId(),
                     contract.getTakerAccountId(),
-                    toPaymentAccountPayloadInfo(trade.getMaker().getPaymentAccountPayload()),
-                    toPaymentAccountPayloadInfo(trade.getTaker().getPaymentAccountPayload()),
+                    trade.getMaker().getPaymentAccountPayload(),
+                    trade.getTaker().getPaymentAccountPayload(),
                     contract.getMakerPayoutAddressString(),
                     contract.getTakerPayoutAddressString(),
                     contract.getLockTime());
