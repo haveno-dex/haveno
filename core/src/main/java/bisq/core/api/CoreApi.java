@@ -502,12 +502,16 @@ public class CoreApi {
         return paymentAccountsService.getPaymentAccounts();
     }
 
-    public List<PaymentMethod> getFiatPaymentMethods() {
-        return paymentAccountsService.getFiatPaymentMethods();
+    public List<PaymentMethod> getPaymentMethods() {
+        return paymentAccountsService.getPaymentMethods();
     }
 
     public PaymentAccountForm getPaymentAccountForm(String paymentMethodId) {
         return paymentAccountsService.getPaymentAccountForm(paymentMethodId);
+    }
+
+    public PaymentAccountForm getPaymentAccountForm(PaymentAccount paymentAccount) {
+        return paymentAccountsService.getPaymentAccountForm(paymentAccount);
     }
 
     public PaymentAccount createCryptoCurrencyPaymentAccount(String accountName,

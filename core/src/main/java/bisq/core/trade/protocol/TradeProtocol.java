@@ -750,7 +750,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
                                     handleTaskRunnerSuccess(null, null, "SendDepositsConfirmedMessages");
                                 },
                                 (errorMessage) -> {
-                                    handleTaskRunnerFault(null, null, errorMessage);
+                                    handleTaskRunnerFault(null, null, "SendDepositsConfirmedMessages", errorMessage);
                                 })))
                         .executeTasks(true);
                 awaitTradeLatch();

@@ -24,7 +24,6 @@ import bisq.core.payment.payload.PaymentAccountPayload;
 import bisq.core.payment.payload.PaymentMethod;
 import bisq.core.payment.payload.RevolutAccountPayload;
 import java.util.List;
-import java.util.stream.Collectors;
 import lombok.EqualsAndHashCode;
 import lombok.NonNull;
 

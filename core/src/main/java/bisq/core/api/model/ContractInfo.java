@@ -18,12 +18,12 @@
 package bisq.core.api.model;
 
 import bisq.common.Payload;
+import bisq.core.payment.payload.PaymentAccountPayload;
+import bisq.core.proto.CoreProtoResolver;
 
 import java.util.function.Supplier;
 
 import lombok.Getter;
-
-import static bisq.core.api.model.PaymentAccountPayloadInfo.emptyPaymentAccountPayload;
 
 /**
  * A lightweight Trade Contract constructed from a trade's json contract.
@@ -38,8 +38,8 @@ public class ContractInfo implements Payload {
     private final boolean isBuyerMakerAndSellerTaker;
     private final String makerAccountId;
     private final String takerAccountId;
-    private final PaymentAccountPayloadInfo makerPaymentAccountPayload;
-    private final PaymentAccountPayloadInfo takerPaymentAccountPayload;
+    private final PaymentAccountPayload makerPaymentAccountPayload;
+    private final PaymentAccountPayload takerPaymentAccountPayload;
     private final String makerPayoutAddressString;
     private final String takerPayoutAddressString;
     private final long lockTime;
@@ -50,8 +50,8 @@ public class ContractInfo implements Payload {
                         boolean isBuyerMakerAndSellerTaker,
                         String makerAccountId,
                         String takerAccountId,
-                        PaymentAccountPayloadInfo makerPaymentAccountPayload,
-                        PaymentAccountPayloadInfo takerPaymentAccountPayload,
+                        PaymentAccountPayload makerPaymentAccountPayload,
+                        PaymentAccountPayload takerPaymentAccountPayload,
                         String makerPayoutAddressString,
                         String takerPayoutAddressString,
                         long lockTime) {
@@ -77,8 +77,8 @@ public class ContractInfo implements Payload {
                     false,
                     "",
                     "",
-                    emptyPaymentAccountPayload.get(),
-                    emptyPaymentAccountPayload.get(),
+                    null,
+                    null,
                     "",
                     "",
                     0);
@@ -88,14 +88,15 @@ public class ContractInfo implements Payload {
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     public static ContractInfo fromProto(bisq.proto.grpc.ContractInfo proto) {
+        CoreProtoResolver coreProtoResolver = new CoreProtoResolver();
         return new ContractInfo(proto.getBuyerNodeAddress(),
                 proto.getSellerNodeAddress(),
                 proto.getArbitratorNodeAddress(),
                 proto.getIsBuyerMakerAndSellerTaker(),
                 proto.getMakerAccountId(),
                 proto.getTakerAccountId(),
-                proto.getMakerPaymentAccountPayload() == null ? null : PaymentAccountPayloadInfo.fromProto(proto.getMakerPaymentAccountPayload()),
-                proto.getTakerPaymentAccountPayload() == null ? null : PaymentAccountPayloadInfo.fromProto(proto.getTakerPaymentAccountPayload()),
+                proto.getMakerPaymentAccountPayload() == null ? null : PaymentAccountPayload.fromProto(proto.getMakerPaymentAccountPayload(), coreProtoResolver),
+                proto.getTakerPaymentAccountPayload() == null ? null : PaymentAccountPayload.fromProto(proto.getTakerPaymentAccountPayload(), coreProtoResolver),
                 proto.getMakerPayoutAddressString(),
                 proto.getTakerPayoutAddressString(),
                 proto.getLockTime());
@@ -113,8 +114,8 @@ public class ContractInfo implements Payload {
                 .setMakerPayoutAddressString(makerPayoutAddressString)
                 .setTakerPayoutAddressString(takerPayoutAddressString)
                 .setLockTime(lockTime);
-       if (makerPaymentAccountPayload != null) builder.setMakerPaymentAccountPayload(makerPaymentAccountPayload.toProtoMessage());
-       if (takerPaymentAccountPayload != null) builder.setTakerPaymentAccountPayload(takerPaymentAccountPayload.toProtoMessage());
+       if (makerPaymentAccountPayload != null) builder.setMakerPaymentAccountPayload((protobuf.PaymentAccountPayload) makerPaymentAccountPayload.toProtoMessage());
+       if (takerPaymentAccountPayload != null) builder.setTakerPaymentAccountPayload((protobuf.PaymentAccountPayload) takerPaymentAccountPayload.toProtoMessage());
        return builder.build();
     }
 }

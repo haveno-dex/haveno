@@ -19,7 +19,6 @@ package bisq.core.api;
 
 import bisq.core.account.witness.AccountAgeWitnessService;
 import bisq.core.api.model.PaymentAccountForm;
-import bisq.core.api.model.PaymentAccountForm;
 import bisq.core.api.model.PaymentAccountFormField;
 import bisq.core.locale.CryptoCurrency;
 import bisq.core.locale.CurrencyUtil;
@@ -64,8 +63,6 @@ class CorePaymentAccountsService {
         this.user = user;
     }
 
-    // Fiat Currency Accounts
-
     PaymentAccount createPaymentAccount(PaymentAccountForm form) {
         PaymentAccount paymentAccount = form.toPaymentAccount();
         setSelectedTradeCurrency(paymentAccount); // TODO: selected trade currency is function of offer, not payment account payload
@@ -81,12 +78,15 @@ class CorePaymentAccountsService {
     private static void setSelectedTradeCurrency(PaymentAccount paymentAccount) {
         TradeCurrency singleTradeCurrency = paymentAccount.getSingleTradeCurrency();
         List<TradeCurrency> tradeCurrencies = paymentAccount.getTradeCurrencies();
-        if (singleTradeCurrency != null) return;
-        else if (tradeCurrencies != null && !tradeCurrencies.isEmpty()) {
-            if (tradeCurrencies.contains(CurrencyUtil.getDefaultTradeCurrency()))
+        if (singleTradeCurrency != null) {
+            paymentAccount.setSelectedTradeCurrency(singleTradeCurrency);
+            return;
+        } else if (tradeCurrencies != null && !tradeCurrencies.isEmpty()) {
+            if (tradeCurrencies.contains(CurrencyUtil.getDefaultTradeCurrency())) {
                 paymentAccount.setSelectedTradeCurrency(CurrencyUtil.getDefaultTradeCurrency());
-            else
+            } else {
                 paymentAccount.setSelectedTradeCurrency(tradeCurrencies.get(0));
+            }
         }
     }
 
@@ -94,15 +94,18 @@ class CorePaymentAccountsService {
         return user.getPaymentAccounts();
     }
 
-    List<PaymentMethod> getFiatPaymentMethods() {
+    List<PaymentMethod> getPaymentMethods() {
         return PaymentMethod.getPaymentMethods().stream()
-                .filter(paymentMethod -> !paymentMethod.isBlockchain())
                 .sorted(Comparator.comparing(PaymentMethod::getId))
                 .collect(Collectors.toList());
     }
 
     PaymentAccountForm getPaymentAccountForm(String paymentMethodId) {
         return PaymentAccountForm.getForm(paymentMethodId);
+    }
+
+    PaymentAccountForm getPaymentAccountForm(PaymentAccount paymentAccount) {
+        return paymentAccount.toForm();
     }
 
     String getPaymentAccountFormAsString(String paymentMethodId) {

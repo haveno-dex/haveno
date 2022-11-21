@@ -36,6 +36,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
+import com.google.common.base.CaseFormat;
 import com.google.common.base.Charsets;
 
 /**
@@ -225,6 +226,7 @@ public class HavenoUtils {
         }
     }
 
+    // TODO: replace with GenUtils.executeTasks()
     public static void executeTasks(Collection<Runnable> tasks) {
         executeTasks(tasks, tasks.size());
     }
@@ -240,5 +242,9 @@ public class HavenoUtils {
             pool.shutdownNow();
             throw new RuntimeException(e);
         }
+    }
+
+    public static String toCamelCase(String underscore) {
+        return CaseFormat.UPPER_UNDERSCORE.to(CaseFormat.LOWER_CAMEL, underscore);
     }
 }

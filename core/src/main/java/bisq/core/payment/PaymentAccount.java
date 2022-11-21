@@ -19,11 +19,12 @@ package bisq.core.payment;
 
 import bisq.core.api.model.PaymentAccountForm;
 import bisq.core.api.model.PaymentAccountFormField;
+import bisq.core.api.model.PaymentAccountFormField.Component;
+import bisq.core.api.model.PaymentAccountFormField.FieldId;
 import bisq.core.locale.BankUtil;
 import bisq.core.locale.Country;
 import bisq.core.locale.CountryUtil;
 import bisq.core.locale.CurrencyUtil;
-import bisq.core.locale.Res;
 import bisq.core.locale.TradeCurrency;
 import bisq.core.payment.payload.PaymentAccountPayload;
 import bisq.core.payment.payload.PaymentMethod;
@@ -35,6 +36,7 @@ import bisq.core.payment.validation.EmailValidator;
 import bisq.core.payment.validation.IBANValidator;
 import bisq.core.payment.validation.LengthValidator;
 import bisq.core.proto.CoreProtoResolver;
+import bisq.core.trade.HavenoUtils;
 import bisq.core.util.validation.InputValidator;
 import bisq.core.util.validation.InputValidator.ValidationResult;
 import bisq.common.proto.ProtoUtil;
@@ -43,7 +45,9 @@ import bisq.common.util.Utilities;
 
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Function;
@@ -59,11 +63,16 @@ import lombok.extern.slf4j.Slf4j;
 
 import javax.annotation.Nullable;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+
 import static bisq.core.payment.payload.PaymentMethod.TRANSFERWISE_ID;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static java.util.Arrays.stream;
 import static java.util.Collections.singletonList;
 import static java.util.stream.Collectors.toList;
+
+import java.lang.reflect.Type;
 
 @EqualsAndHashCode
 @ToString
@@ -89,6 +98,10 @@ public abstract class PaymentAccount implements PersistablePayload {
     @Nullable
     protected TradeCurrency selectedTradeCurrency;
 
+    private static final GsonBuilder gsonBuilder = new GsonBuilder()
+            .setPrettyPrinting()
+            .serializeNulls();
+
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Constructor
@@ -104,6 +117,12 @@ public abstract class PaymentAccount implements PersistablePayload {
         paymentAccountPayload = createPayload();
     }
 
+    public void init(PaymentAccountPayload payload) {
+        id = payload.getId();
+        creationDate = new Date().getTime();
+        paymentAccountPayload = payload;
+    }
+
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // PROTO BUFFER
@@ -117,6 +136,19 @@ public abstract class PaymentAccount implements PersistablePayload {
                 .setId(id)
                 .setCreationDate(creationDate)
                 .setPaymentAccountPayload((protobuf.PaymentAccountPayload) paymentAccountPayload.toProtoMessage())
+                .setAccountName(accountName)
+                .addAllTradeCurrencies(ProtoUtil.collectionToProto(tradeCurrencies, protobuf.TradeCurrency.class));
+        Optional.ofNullable(selectedTradeCurrency).ifPresent(selectedTradeCurrency -> builder.setSelectedTradeCurrency((protobuf.TradeCurrency) selectedTradeCurrency.toProtoMessage()));
+        return builder.build();
+    }
+
+    public protobuf.PaymentAccount toProtoMessage(protobuf.PaymentAccountPayload paymentAccountPayload) {
+        checkNotNull(accountName, "accountName must not be null");
+        protobuf.PaymentAccount.Builder builder = protobuf.PaymentAccount.newBuilder()
+                .setPaymentMethod(paymentMethod.toProtoMessage())
+                .setId(id)
+                .setCreationDate(creationDate)
+                .setPaymentAccountPayload(paymentAccountPayload)
                 .setAccountName(accountName)
                 .addAllTradeCurrencies(ProtoUtil.collectionToProto(tradeCurrencies, protobuf.TradeCurrency.class));
         Optional.ofNullable(selectedTradeCurrency).ifPresent(selectedTradeCurrency -> builder.setSelectedTradeCurrency((protobuf.TradeCurrency) selectedTradeCurrency.toProtoMessage()));
@@ -286,15 +318,56 @@ public abstract class PaymentAccount implements PersistablePayload {
     @NonNull
     public abstract List<TradeCurrency> getSupportedCurrencies();
 
+    // ---------------------------- SERIALIZATION -----------------------------
+
+    public String toJson() {
+        Map<String, Object> jsonMap = new HashMap<String, Object>();
+        if (paymentAccountPayload != null) jsonMap.putAll(gsonBuilder.create().fromJson(paymentAccountPayload.toJson(), (Type) Object.class));
+        jsonMap.put("accountName", getAccountName());
+        jsonMap.put("accountId", getId());
+        if (paymentAccountPayload != null) jsonMap.put("salt", getSaltAsHex());
+        return gsonBuilder.create().toJson(jsonMap);
+    }
+
+    /**
+     * Deserialize a PaymentAccount json string into a new PaymentAccount instance.
+     *
+     * @param paymentAccountJsonString The json data representing a new payment account form.
+     * @return A populated PaymentAccount subclass instance.
+     */
+    public static PaymentAccount fromJson(String paymentAccountJsonString) {
+        Class<? extends PaymentAccount> clazz = getPaymentAccountClassFromJson(paymentAccountJsonString);
+        Gson gson = gsonBuilder.registerTypeAdapter(clazz, new PaymentAccountTypeAdapter(clazz)).create();
+        return gson.fromJson(paymentAccountJsonString, clazz);
+    }
+
+    private static Class<? extends PaymentAccount> getPaymentAccountClassFromJson(String json) {
+        Map<String, Object> jsonMap = gsonBuilder.create().fromJson(json, (Type) Object.class);
+        String paymentMethodId = checkNotNull((String) jsonMap.get("paymentMethodId"),
+                String.format("cannot not find a paymentMethodId in json string: %s", json));
+        return getPaymentAccountClass(paymentMethodId);
+    }
+
+    private static Class<? extends PaymentAccount> getPaymentAccountClass(String paymentMethodId) {
+        PaymentMethod paymentMethod = PaymentMethod.getPaymentMethod(paymentMethodId);
+        return PaymentAccountFactory.getPaymentAccount(paymentMethod).getClass();
+    }
+
     // ------------------------- PAYMENT ACCOUNT FORM -------------------------
 
     @NonNull
     public abstract List<PaymentAccountFormField.FieldId> getInputFieldIds();
 
     public PaymentAccountForm toForm() {
+
+        // convert to json map
+        Map<String, Object> jsonMap = gsonBuilder.create().fromJson(toJson(), (Type) Object.class);
+
+        // build form
         PaymentAccountForm form = new PaymentAccountForm(PaymentAccountForm.FormId.valueOf(paymentMethod.getId()));
         for (PaymentAccountFormField.FieldId fieldId : getInputFieldIds()) {
             PaymentAccountFormField field = getEmptyFormField(fieldId);
+            field.setValue((String) jsonMap.get(HavenoUtils.toCamelCase(field.getId().toString())));
             form.getFields().add(field);
         }
         return form;
@@ -463,8 +536,9 @@ public abstract class PaymentAccount implements PersistablePayload {
         case USER_NAME:
             processValidationResult(new LengthValidator(3, 100).validate(value));
             break;
-        case VIRTUAL_PAYMENT_ADDRESS:
-            throw new IllegalArgumentException("Not implemented");
+        case ADDRESS:
+            processValidationResult(new LengthValidator(10, 150).validate(value)); // TODO: validate crypto address
+            break;
         default:
             throw new RuntimeException("Unhandled form field: " + fieldId);
         }
@@ -673,8 +747,12 @@ public abstract class PaymentAccount implements PersistablePayload {
             field.setMinLength(3);
             field.setMaxLength(100);
             break;
-        case VIRTUAL_PAYMENT_ADDRESS:
-            throw new IllegalArgumentException("Not implemented");
+        case ADDRESS:
+            field.setComponent(PaymentAccountFormField.Component.TEXT);
+            field.setLabel("Address");
+            field.setMinLength(10);
+            field.setMaxLength(150);
+            break;
         default:
             throw new RuntimeException("Unhandled form field: " + field);
         }

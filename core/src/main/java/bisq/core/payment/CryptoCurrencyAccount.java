@@ -33,6 +33,13 @@ import lombok.NonNull;
 @EqualsAndHashCode(callSuper = true)
 public final class CryptoCurrencyAccount extends AssetAccount {
 
+    private static final List<PaymentAccountFormField.FieldId> INPUT_FIELD_IDS = List.of(
+        PaymentAccountFormField.FieldId.ACCOUNT_NAME,
+        PaymentAccountFormField.FieldId.TRADE_CURRENCIES,
+        PaymentAccountFormField.FieldId.ADDRESS,
+        PaymentAccountFormField.FieldId.SALT
+    );
+
     public static final List<TradeCurrency> SUPPORTED_CURRENCIES = new ArrayList<>(CurrencyUtil.getAllSortedCryptoCurrencies());
 
     public CryptoCurrencyAccount() {
@@ -51,6 +58,13 @@ public final class CryptoCurrencyAccount extends AssetAccount {
 
     @Override
     public @NonNull List<PaymentAccountFormField.FieldId> getInputFieldIds() {
-        throw new RuntimeException("Not implemented");
+        return INPUT_FIELD_IDS;
+    }
+
+    @Override
+    protected PaymentAccountFormField getEmptyFormField(PaymentAccountFormField.FieldId fieldId) {
+        var field = super.getEmptyFormField(fieldId);
+        if (field.getId() == PaymentAccountFormField.FieldId.TRADE_CURRENCIES) field.setComponent(PaymentAccountFormField.Component.SELECT_ONE);
+        return field;
     }
 }

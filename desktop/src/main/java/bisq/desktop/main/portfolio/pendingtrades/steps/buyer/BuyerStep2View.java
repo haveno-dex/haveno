@@ -87,7 +87,7 @@ import bisq.core.network.MessageState;
 import bisq.core.offer.Offer;
 import bisq.core.payment.PaymentAccount;
 import bisq.core.payment.PaymentAccountUtil;
-import bisq.core.payment.payload.AssetsAccountPayload;
+import bisq.core.payment.payload.AssetAccountPayload;
 import bisq.core.payment.payload.CashByMailAccountPayload;
 import bisq.core.payment.payload.CashDepositAccountPayload;
 import bisq.core.payment.payload.F2FAccountPayload;
@@ -548,7 +548,7 @@ public class BuyerStep2View extends TradeStepView {
             } else {
                 showConfirmPaymentStartedPopup();
             }
-        } else if (sellersPaymentAccountPayload instanceof AssetsAccountPayload && isXmrTrade()) {
+        } else if (sellersPaymentAccountPayload instanceof AssetAccountPayload && isXmrTrade()) {
             SetXmrTxKeyWindow setXmrTxKeyWindow = new SetXmrTxKeyWindow();
             setXmrTxKeyWindow
                     .actionButtonText(Res.get("portfolio.pending.step2_buyer.confirmStart.headline"))
@@ -623,7 +623,7 @@ public class BuyerStep2View extends TradeStepView {
             String fees = Res.get("portfolio.pending.step2_buyer.fees");
             String id = trade.getShortId();
             String amount = VolumeUtil.formatVolumeWithCode(trade.getVolume());
-            if (paymentAccountPayload instanceof AssetsAccountPayload) {
+            if (paymentAccountPayload instanceof AssetAccountPayload) {
                 message += Res.get("portfolio.pending.step2_buyer.altcoin",
                         getCurrencyName(trade),
                         amount);

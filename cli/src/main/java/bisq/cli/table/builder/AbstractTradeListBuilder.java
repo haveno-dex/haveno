@@ -246,8 +246,8 @@ abstract class AbstractTradeListBuilder extends AbstractTableBuilder {
             ContractInfo contract = t.getContract();
             boolean isBuyerMakerAndSellerTaker = contract.getIsBuyerMakerAndSellerTaker();
             return isBuyerMakerAndSellerTaker  // (is BTC buyer / maker)
-                    ? contract.getTakerPaymentAccountPayload().getAddress()
-                    : contract.getMakerPaymentAccountPayload().getAddress();
+                    ? contract.getTakerPaymentAccountPayload().getCryptoCurrencyAccountPayload().getAddress()
+                    : contract.getMakerPaymentAccountPayload().getCryptoCurrencyAccountPayload().getAddress();
         } else {
             return "";
         }

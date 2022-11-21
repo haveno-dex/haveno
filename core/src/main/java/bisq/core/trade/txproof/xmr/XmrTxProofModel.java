@@ -18,15 +18,13 @@
 package bisq.core.trade.txproof.xmr;
 
 import bisq.core.monetary.Volume;
-import bisq.core.payment.payload.AssetsAccountPayload;
+import bisq.core.payment.payload.AssetAccountPayload;
 import bisq.core.payment.payload.PaymentAccountPayload;
 import bisq.core.trade.Trade;
 import bisq.core.trade.txproof.AssetTxProofModel;
 import bisq.core.user.AutoConfirmSettings;
 
 import bisq.common.app.DevEnv;
-
-import org.bitcoinj.core.Coin;
 
 import com.google.common.annotations.VisibleForTesting;
 
@@ -67,7 +65,7 @@ public class XmrTxProofModel implements AssetTxProofModel {
         PaymentAccountPayload sellersPaymentAccountPayload = checkNotNull(trade.getSeller().getPaymentAccountPayload());
         recipientAddress = DevEnv.isDevMode() ?
                 XmrTxProofModel.DEV_ADDRESS : // For dev testing we need to add the matching address to the dev tx key and dev view key
-                ((AssetsAccountPayload) sellersPaymentAccountPayload).getAddress();
+                ((AssetAccountPayload) sellersPaymentAccountPayload).getAddress();
         txHash = trade.getCounterCurrencyTxId();
         txKey = trade.getCounterCurrencyExtraData();
         tradeDate = trade.getDate();

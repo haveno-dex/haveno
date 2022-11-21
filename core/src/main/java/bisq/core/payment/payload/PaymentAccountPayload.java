@@ -23,8 +23,11 @@ import bisq.common.crypto.Hash;
 import bisq.common.proto.network.NetworkPayload;
 import bisq.common.util.JsonExclude;
 import bisq.common.util.Utilities;
+import bisq.core.proto.CoreProtoResolver;
 
 import org.apache.commons.lang3.ArrayUtils;
+
+import com.google.gson.GsonBuilder;
 
 import java.nio.charset.StandardCharsets;
 
@@ -65,6 +68,10 @@ public abstract class PaymentAccountPayload implements NetworkPayload, UsedForTr
     // fail the contract verification.
     @JsonExclude
     protected final Map<String, String> excludeFromJsonDataMap;
+
+    private static final GsonBuilder gsonBuilder = new GsonBuilder()
+            .setPrettyPrinting()
+            .serializeNulls();
 
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -109,10 +116,17 @@ public abstract class PaymentAccountPayload implements NetworkPayload, UsedForTr
         return builder;
     }
 
+    public static PaymentAccountPayload fromProto(protobuf.PaymentAccountPayload proto, CoreProtoResolver coreProtoResolver) {
+        return coreProtoResolver.fromProto(proto);
+    }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // API
     ///////////////////////////////////////////////////////////////////////////////////////////
+
+    public String toJson() {
+        return gsonBuilder.create().toJson(this);
+    }
 
     public abstract String getPaymentDetails();
 
