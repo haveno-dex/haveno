@@ -816,7 +816,7 @@ public abstract class Trade implements Tradable, Model {
         // submit payout tx
         if (publish) {
             multisigWallet.submitMultisigTxHex(payoutTxHex);
-            setPayoutState(Trade.PayoutState.PAYOUT_PUBLISHED);
+            pollWallet();
         }
     }
 
@@ -1447,7 +1447,7 @@ public abstract class Trade implements Tradable, Model {
                     }
                 }
 
-                // check for outgoing txs (appears on payout confirmed)
+                // check for outgoing txs (appears after wallet submits payout tx or on payout confirmed)
                 List<MoneroTxWallet> outgoingTxs = getWallet().getTxs(new MoneroTxQuery().setIsOutgoing(true));
                 if (!outgoingTxs.isEmpty()) {
                     MoneroTxWallet payoutTx = outgoingTxs.get(0);
