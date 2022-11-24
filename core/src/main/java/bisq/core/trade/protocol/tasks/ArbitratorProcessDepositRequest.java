@@ -31,11 +31,15 @@ import bisq.core.trade.protocol.TradingPeer;
 import bisq.core.util.ParsingUtils;
 import bisq.network.p2p.NodeAddress;
 import bisq.network.p2p.SendDirectMessageListener;
+import common.utils.JsonUtils;
+
 import java.math.BigInteger;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
 import monero.daemon.MoneroDaemon;
+import monero.daemon.model.MoneroSubmitTxResult;
 
 @Slf4j
 public class ArbitratorProcessDepositRequest extends TradeTask {
@@ -103,8 +107,11 @@ public class ArbitratorProcessDepositRequest extends TradeTask {
 
                 // relay txs
                 MoneroDaemon daemon = trade.getXmrWalletService().getDaemon();
-                daemon.submitTxHex(processModel.getMaker().getDepositTxHex()); // TODO (woodser): check that result is good. will need to release funds if one is submitted
-                daemon.submitTxHex(processModel.getTaker().getDepositTxHex());
+                MoneroSubmitTxResult makerResult = daemon.submitTxHex(processModel.getMaker().getDepositTxHex(), true);
+                MoneroSubmitTxResult takerResult = daemon.submitTxHex(processModel.getTaker().getDepositTxHex(), true);
+                if (!makerResult.isGood()) throw new RuntimeException("Error submitting maker deposit tx: " + JsonUtils.serialize(makerResult));
+                if (!takerResult.isGood()) throw new RuntimeException("Error submitting taker deposit tx: " + JsonUtils.serialize(takerResult));
+                daemon.relayTxsByHash(Arrays.asList(processModel.getMaker().getDepositTxHash(), processModel.getTaker().getDepositTxHash()));
               
                 // update trade state
                 log.info("Arbitrator submitted deposit txs for trade " + trade.getId());
