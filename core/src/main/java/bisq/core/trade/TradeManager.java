@@ -482,7 +482,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
 
           ((ArbitratorProtocol) getTradeProtocol(trade)).handleInitTradeRequest(request, sender, errorMessage -> {
               log.warn("Arbitrator error during trade initialization for trade {}: {}", trade.getId(), errorMessage);
-              removeTrade(trade);
+              removeTradeOnError(trade);
               if (takeOfferRequestErrorMessageHandler != null) takeOfferRequestErrorMessageHandler.handleErrorMessage(errorMessage);
           });
 
@@ -567,7 +567,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
 
           ((MakerProtocol) getTradeProtocol(trade)).handleInitTradeRequest(request, sender, errorMessage -> {
               log.warn("Maker error during trade initialization: " + errorMessage);
-              removeTrade(trade);
+              removeTradeOnError(trade);
               openOfferManager.unreserveOpenOffer(openOffer); // offer remains available // TODO: only unreserve if funds not deposited to multisig
               if (takeOfferRequestErrorMessageHandler != null) takeOfferRequestErrorMessageHandler.handleErrorMessage(errorMessage);
           });
@@ -750,7 +750,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
                             requestPersistence();
                         }, errorMessage -> {
                             log.warn("Taker error during trade initialization: " + errorMessage);
-                            removeTrade(trade);
+                            removeTradeOnError(trade);
                             errorMessageHandler.handleErrorMessage(errorMessage);
                             if (takeOfferRequestErrorMessageHandler != null) takeOfferRequestErrorMessageHandler.handleErrorMessage(errorMessage);
                         });
@@ -875,7 +875,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
     // If trade is in already in critical state (if taker role: taker fee; both roles: after deposit published)
     // we move the trade to failedTradesManager
     public void onMoveInvalidTradeToFailedTrades(Trade trade) {
-        removeTrade(trade);
+        removeTradeOnError(trade);
         failedTradesManager.add(trade);
     }
 
@@ -1028,6 +1028,14 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
         return closedTradableManager.getClosedTrades().stream().filter(e -> e.getId().equals(tradeId)).findFirst();
     }
 
+    private void addTrade(Trade trade) {
+        synchronized(tradableList) {
+            if (tradableList.add(trade)) {
+                requestPersistence();
+            }
+        }
+    }
+
     private synchronized void removeTrade(Trade trade) {
         log.info("TradeManager.removeTrade() " + trade.getId());
         synchronized(tradableList) {
@@ -1036,28 +1044,34 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
             // remove trade
             tradableList.remove(trade);
 
-            // unreserve trade key images
-            if (trade instanceof TakerTrade && trade.getSelf().getReserveTxKeyImages() != null) {
-                for (String keyImage : trade.getSelf().getReserveTxKeyImages()) xmrWalletService.getWallet().thawOutput(keyImage);
-                xmrWalletService.getWallet().save();
-            }
-
-            // delete trade wallet if before funded
-            if (xmrWalletService.multisigWalletExists(trade.getId()) && !trade.isDepositRequested()) {
-                trade.deleteWallet();
-            }
-
             // unregister and persist
             p2PService.removeDecryptedDirectMessageListener(getTradeProtocol(trade));
             requestPersistence();
         }
     }
 
-    private void addTrade(Trade trade) {
+    private synchronized void removeTradeOnError(Trade trade) {
+        log.info("TradeManager.removeTradeOnError() " + trade.getId());
         synchronized(tradableList) {
-            if (tradableList.add(trade)) {
-                requestPersistence();
+            if (!tradableList.contains(trade)) return;
+
+            // skip if trade wallet possibly funded
+            if (xmrWalletService.multisigWalletExists(trade.getId()) && trade.isDepositRequested()) {
+                log.warn("Not removing trade {} because trade wallet could be funded", trade.getId());
+                return;
             }
+
+            // delete trade wallet
+            trade.deleteWallet();
+
+            // unreserve key images
+            if (trade instanceof TakerTrade && trade.getSelf().getReserveTxKeyImages() != null) {
+                for (String keyImage : trade.getSelf().getReserveTxKeyImages()) xmrWalletService.getWallet().thawOutput(keyImage);
+                xmrWalletService.getWallet().save();
+            }
+
+            // remove trade
+            removeTrade(trade);
         }
     }
 
