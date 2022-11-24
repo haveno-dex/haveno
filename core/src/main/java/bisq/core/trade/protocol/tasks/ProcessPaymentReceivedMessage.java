@@ -60,11 +60,7 @@ public class ProcessPaymentReceivedMessage extends TradeTask {
             if (trade.getSeller().getNodeAddress().equals(trade.getBuyer().getNodeAddress())) trade.getBuyer().setNodeAddress(null); // tests can reuse addresses
 
             // process payout tx unless already unlocked
-            if (!trade.isPayoutUnlocked()) {
-                processPayoutTx(message);
-                complete();
-                return;
-            }
+            if (!trade.isPayoutUnlocked()) processPayoutTx(message);
 
             SignedWitness signedWitness = message.getSignedWitness();
             if (signedWitness != null) {
