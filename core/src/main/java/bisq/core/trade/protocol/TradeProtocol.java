@@ -17,7 +17,8 @@
 
 package bisq.core.trade.protocol;
 
-import bisq.core.offer.Offer;
+import bisq.core.support.dispute.messages.DisputeClosedMessage;
+import bisq.core.support.dispute.messages.DisputeOpenedMessage;
 import bisq.core.trade.ArbitratorTrade;
 import bisq.core.trade.BuyerTrade;
 import bisq.core.trade.Trade;
@@ -63,8 +64,11 @@ import bisq.common.handlers.ErrorMessageHandler;
 import bisq.common.proto.network.NetworkEnvelope;
 import bisq.common.taskrunner.Task;
 
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
 import java.util.concurrent.CountDownLatch;
 
 import lombok.extern.slf4j.Slf4j;
@@ -168,7 +172,24 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
                 .filter(this::isMyMessage)
                 .filter(e -> e instanceof MailboxMessage)
                 .map(e -> (MailboxMessage) e)
+                .sorted(new MailboxMessageComparator())
                 .forEach(this::handleMailboxMessage);
+    }
+
+    private static class MailboxMessageComparator implements Comparator<MailboxMessage> {
+        private static List<Class<? extends MailboxMessage>> messageOrder = Arrays.asList(
+            DepositsConfirmedMessage.class,
+            PaymentSentMessage.class,
+            PaymentReceivedMessage.class,
+            DisputeOpenedMessage.class,
+            DisputeClosedMessage.class);
+
+        @Override
+        public int compare(MailboxMessage m1, MailboxMessage m2) {
+            int idx1 = messageOrder.indexOf(m1.getClass());
+            int idx2 = messageOrder.indexOf(m2.getClass());
+            return idx1 - idx2;
+        }
     }
 
     private void handleMailboxMessage(MailboxMessage mailboxMessage) {
@@ -209,8 +230,8 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
 
     public abstract Class<? extends TradeTask>[] getDepositsConfirmedTasks();
 
-    public void initialize(ProcessModelServiceProvider serviceProvider, TradeManager tradeManager, Offer offer) {
-        processModel.applyTransient(serviceProvider, tradeManager, offer);
+    public void initialize(ProcessModelServiceProvider serviceProvider, TradeManager tradeManager) {
+        processModel.applyTransient(serviceProvider, tradeManager, trade.getOffer());
         onInitialized();
     }
 

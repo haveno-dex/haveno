@@ -381,7 +381,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
     }
 
     private void initTradeAndProtocol(Trade trade, TradeProtocol tradeProtocol) {
-        tradeProtocol.initialize(processModelServiceProvider, this, trade.getOffer());
+        tradeProtocol.initialize(processModelServiceProvider, this);
         requestPersistence(); // TODO requesting persistence twice with initPersistedTrade()
     }
 
