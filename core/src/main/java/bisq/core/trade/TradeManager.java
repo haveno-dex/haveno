@@ -227,19 +227,21 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
     @Override
     public void onDirectMessage(DecryptedMessageWithPubKey message, NodeAddress peer) {
         NetworkEnvelope networkEnvelope = message.getNetworkEnvelope();
-        if (networkEnvelope instanceof InitTradeRequest) {
-            handleInitTradeRequest((InitTradeRequest) networkEnvelope, peer);
-        } else if (networkEnvelope instanceof InitMultisigRequest) {
-            handleInitMultisigRequest((InitMultisigRequest) networkEnvelope, peer);
-        } else if (networkEnvelope instanceof SignContractRequest) {
-            handleSignContractRequest((SignContractRequest) networkEnvelope, peer);
-        } else if (networkEnvelope instanceof SignContractResponse) {
-            handleSignContractResponse((SignContractResponse) networkEnvelope, peer);
-        } else if (networkEnvelope instanceof DepositRequest) {
-            handleDepositRequest((DepositRequest) networkEnvelope, peer);
-        } else if (networkEnvelope instanceof DepositResponse) {
-            handleDepositResponse((DepositResponse) networkEnvelope, peer);
-        }
+        new Thread(() -> {
+            if (networkEnvelope instanceof InitTradeRequest) {
+                handleInitTradeRequest((InitTradeRequest) networkEnvelope, peer);
+            } else if (networkEnvelope instanceof InitMultisigRequest) {
+                handleInitMultisigRequest((InitMultisigRequest) networkEnvelope, peer);
+            } else if (networkEnvelope instanceof SignContractRequest) {
+                handleSignContractRequest((SignContractRequest) networkEnvelope, peer);
+            } else if (networkEnvelope instanceof SignContractResponse) {
+                handleSignContractResponse((SignContractResponse) networkEnvelope, peer);
+            } else if (networkEnvelope instanceof DepositRequest) {
+                handleDepositRequest((DepositRequest) networkEnvelope, peer);
+            } else if (networkEnvelope instanceof DepositResponse) {
+                handleDepositResponse((DepositResponse) networkEnvelope, peer);
+            }
+        }).start();
     }
 
 
