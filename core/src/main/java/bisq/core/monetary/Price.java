@@ -140,8 +140,8 @@ public class Price extends MonetaryWrapper implements Comparable<Price> {
 
     public String toFriendlyString() {
         return monetary instanceof Altcoin ?
-                ((Altcoin) monetary).toFriendlyString() + "/BTC" :
-                ((Fiat) monetary).toFriendlyString().replace(((Fiat) monetary).currencyCode, "") + "BTC/" + ((Fiat) monetary).currencyCode;
+                ((Altcoin) monetary).toFriendlyString() + "/XMR" :
+                ((Fiat) monetary).toFriendlyString().replace(((Fiat) monetary).currencyCode, "") + "XMR/" + ((Fiat) monetary).currencyCode;
     }
 
     public String toPlainString() {

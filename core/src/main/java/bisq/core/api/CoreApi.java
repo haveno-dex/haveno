@@ -438,7 +438,7 @@ public class CoreApi {
         return coreOffersService.getMyOpenOffer(id);
     }
 
-    public void createAnPlaceOffer(String currencyCode,
+    public void postOffer(String currencyCode,
                                    String directionAsString,
                                    String priceAsString,
                                    boolean useMarketBasedPrice,
@@ -450,7 +450,7 @@ public class CoreApi {
                                    String paymentAccountId,
                                    Consumer<Offer> resultHandler,
                                    ErrorMessageHandler errorMessageHandler) {
-        coreOffersService.createAndPlaceOffer(currencyCode,
+        coreOffersService.postOffer(currencyCode,
                 directionAsString,
                 priceAsString,
                 useMarketBasedPrice,
