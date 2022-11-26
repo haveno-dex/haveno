@@ -118,6 +118,7 @@ import monero.wallet.model.MoneroOutputQuery;
 public class TradeManager implements PersistedDataHost, DecryptedDirectMessageListener {
     private static final Logger log = LoggerFactory.getLogger(TradeManager.class);
 
+    private boolean isShutDown;
     private final User user;
     @Getter
     private final KeyRing keyRing;
@@ -271,6 +272,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
     }
 
     public void shutDown() {
+        isShutDown = true;
 
         // collect trades to shutdown
         Set<Trade> trades = new HashSet<Trade>();
@@ -360,6 +362,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
         HavenoUtils.executeTasks(tasks, threadPoolSize);
 
         // reset any available address entries
+        if (isShutDown) return;
         xmrWalletService.getAddressEntriesForAvailableBalanceStream()
                 .filter(addressEntry -> addressEntry.getOfferId() != null)
                 .forEach(addressEntry -> {
@@ -378,6 +381,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
     }
 
     private void initPersistedTrade(Trade trade) {
+        if (isShutDown) return;
         initTradeAndProtocol(trade, getTradeProtocol(trade));
         requestPersistence();
     }
