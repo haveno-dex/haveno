@@ -212,7 +212,7 @@ public class CoreOffersService {
     }
 
     // Create and place new offer.
-    void createAndPlaceOffer(String currencyCode,
+    void postOffer(String currencyCode,
                              String directionAsString,
                              String priceAsString,
                              boolean useMarketBasedPrice,
@@ -234,7 +234,7 @@ public class CoreOffersService {
         String upperCaseCurrencyCode = currencyCode.toUpperCase();
         String offerId = createOfferService.getRandomOfferId();
         OfferDirection direction = OfferDirection.valueOf(directionAsString.toUpperCase());
-        Price price = Price.valueOf(upperCaseCurrencyCode, priceStringToLong(priceAsString, upperCaseCurrencyCode));
+        Price price = priceAsString.isEmpty() ? null : Price.valueOf(upperCaseCurrencyCode, priceStringToLong(priceAsString, upperCaseCurrencyCode));
         Coin amount = Coin.valueOf(amountAsLong);
         Coin minAmount = Coin.valueOf(minAmountAsLong);
         Coin useDefaultTxFee = Coin.ZERO;

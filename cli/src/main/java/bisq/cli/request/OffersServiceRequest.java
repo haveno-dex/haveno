@@ -18,7 +18,7 @@
 package bisq.cli.request;
 
 import bisq.proto.grpc.CancelOfferRequest;
-import bisq.proto.grpc.CreateOfferRequest;
+import bisq.proto.grpc.PostOfferRequest;
 import bisq.proto.grpc.GetMyOfferRequest;
 import bisq.proto.grpc.GetMyOffersRequest;
 import bisq.proto.grpc.GetOfferRequest;
@@ -76,7 +76,7 @@ public class OffersServiceRequest {
                                  double securityDepositPct,
                                  String paymentAcctId,
                                  String triggerPrice) {
-        var request = CreateOfferRequest.newBuilder()
+        var request = PostOfferRequest.newBuilder()
                 .setDirection(direction)
                 .setCurrencyCode(currencyCode)
                 .setAmount(amount)
@@ -88,7 +88,7 @@ public class OffersServiceRequest {
                 .setPaymentAccountId(paymentAcctId)
                 .setTriggerPrice(triggerPrice)
                 .build();
-        return grpcStubs.offersService.createOffer(request).getOffer();
+        return grpcStubs.offersService.postOffer(request).getOffer();
     }
 
     public void cancelOffer(String offerId) {

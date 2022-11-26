@@ -129,7 +129,7 @@ public class CreateOfferService {
                 offerId,
                 currencyCode,
                 direction,
-                price.getValue(),
+                price == null ? null : price.getValue(),
                 useMarketBasedPrice,
                 marketPriceMargin,
                 amount.value,
@@ -138,11 +138,17 @@ public class CreateOfferService {
 
         long creationTime = new Date().getTime();
         NodeAddress makerAddress = p2PService.getAddress();
-        boolean useMarketBasedPriceValue = useMarketBasedPrice &&
+        boolean useMarketBasedPriceValue = price == null &&
+                useMarketBasedPrice &&
                 isMarketPriceAvailable(currencyCode) &&
                 !paymentAccount.hasPaymentMethodWithId(HAL_CASH_ID);
 
-        long priceAsLong = price != null && !useMarketBasedPriceValue ? price.getValue() : 0L;
+        // verify price
+        if (price == null && !useMarketBasedPriceValue) {
+            throw new IllegalArgumentException("Must provide fixed price because market price is unavailable");
+        }
+
+        long priceAsLong = price != null ? price.getValue() : 0L;
         double marketPriceMarginParam = useMarketBasedPriceValue ? marketPriceMargin : 0;
         long amountAsLong = amount != null ? amount.getValue() : 0L;
         long minAmountAsLong = minAmount != null ? minAmount.getValue() : 0L;

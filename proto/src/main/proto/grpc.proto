@@ -446,7 +446,7 @@ service Offers {
     }
     rpc GetMyOffers (GetMyOffersRequest) returns (GetMyOffersReply) {
     }
-    rpc CreateOffer (CreateOfferRequest) returns (CreateOfferReply) {
+    rpc PostOffer (PostOfferRequest) returns (PostOfferReply) {
     }
     rpc CancelOffer (CancelOfferRequest) returns (CancelOfferReply) {
     }
@@ -486,7 +486,7 @@ message GetMyOffersReply {
     repeated OfferInfo offers = 1;
 }
 
-message CreateOfferRequest {
+message PostOfferRequest {
     string currency_code = 1;
     string direction = 2;
     string price = 3;
@@ -499,7 +499,7 @@ message CreateOfferRequest {
     string payment_account_id = 10;
 }
 
-message CreateOfferReply {
+message PostOfferReply {
     OfferInfo offer = 1;
 }
 

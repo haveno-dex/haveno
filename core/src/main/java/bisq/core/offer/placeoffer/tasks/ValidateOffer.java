@@ -70,8 +70,8 @@ public class ValidateOffer extends Task<PlaceOfferModel> {
             checkArgument(offer.getAmount().compareTo(offer.getMinAmount()) >= 0, "MinAmount is larger than Amount");
 
             checkNotNull(offer.getPrice(), "Price is null");
-            checkArgument(offer.getPrice().isPositive(),
-                    "Price must be positive. price=" + offer.getPrice().toFriendlyString());
+            if (!offer.isUseMarketBasedPrice()) checkArgument(offer.getPrice().isPositive(),
+                    "Price must be positive unless using market based price. price=" + offer.getPrice().toFriendlyString());
 
             checkArgument(offer.getDate().getTime() > 0,
                     "Date must not be 0. date=" + offer.getDate().toString());

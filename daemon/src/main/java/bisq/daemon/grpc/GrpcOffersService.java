@@ -24,8 +24,8 @@ import bisq.core.offer.OpenOffer;
 import bisq.core.util.ParsingUtils;
 import bisq.proto.grpc.CancelOfferReply;
 import bisq.proto.grpc.CancelOfferRequest;
-import bisq.proto.grpc.CreateOfferReply;
-import bisq.proto.grpc.CreateOfferRequest;
+import bisq.proto.grpc.PostOfferReply;
+import bisq.proto.grpc.PostOfferRequest;
 import bisq.proto.grpc.GetMyOfferReply;
 import bisq.proto.grpc.GetMyOfferRequest;
 import bisq.proto.grpc.GetMyOffersReply;
@@ -140,15 +140,15 @@ class GrpcOffersService extends OffersImplBase {
     }
 
     @Override
-    public void createOffer(CreateOfferRequest req,
-                            StreamObserver<CreateOfferReply> responseObserver) {
+    public void postOffer(PostOfferRequest req,
+                            StreamObserver<PostOfferReply> responseObserver) {
         GrpcErrorMessageHandler errorMessageHandler =
-                new GrpcErrorMessageHandler(getCreateOfferMethod().getFullMethodName(),
+                new GrpcErrorMessageHandler(getPostOfferMethod().getFullMethodName(),
                         responseObserver,
                         exceptionHandler,
                         log);
         try {
-            coreApi.createAnPlaceOffer(
+            coreApi.postOffer(
                     req.getCurrencyCode(),
                     req.getDirection(),
                     req.getPrice(),
@@ -164,7 +164,7 @@ class GrpcOffersService extends OffersImplBase {
                         // the new offer to the gRPC client after async placement is done.
                         OpenOffer openOffer = coreApi.getMyOpenOffer(offer.getId());
                         OfferInfo offerInfo = OfferInfo.toMyOfferInfo(openOffer);
-                        CreateOfferReply reply = CreateOfferReply.newBuilder()
+                        PostOfferReply reply = PostOfferReply.newBuilder()
                                 .setOffer(offerInfo.toProtoMessage())
                                 .build();
                         responseObserver.onNext(reply);
@@ -206,7 +206,7 @@ class GrpcOffersService extends OffersImplBase {
                             put(getGetMyOfferMethod().getFullMethodName(), new GrpcCallRateMeter(10, SECONDS));
                             put(getGetOffersMethod().getFullMethodName(), new GrpcCallRateMeter(20, SECONDS));
                             put(getGetMyOffersMethod().getFullMethodName(), new GrpcCallRateMeter(20, SECONDS));
-                            put(getCreateOfferMethod().getFullMethodName(), new GrpcCallRateMeter(20, SECONDS));
+                            put(getPostOfferMethod().getFullMethodName(), new GrpcCallRateMeter(20, SECONDS));
                             put(getCancelOfferMethod().getFullMethodName(), new GrpcCallRateMeter(10, SECONDS));
                         }}
                 )));
