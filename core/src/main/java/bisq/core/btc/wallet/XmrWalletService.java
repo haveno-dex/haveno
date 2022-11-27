@@ -162,12 +162,16 @@ public class XmrWalletService {
 
     public MoneroWallet getWallet() {
         State state = walletsSetup.getWalletConfig().state();
-        checkState(state == State.STARTING || state == State.RUNNING, "Cannot call until startup is complete, but state is: " + state);
+        checkState(state == State.STARTING || state == State.RUNNING, "Cannot call until startup is complete and running, but state is: " + state);
         return wallet;
     }
 
     public boolean isWalletReady() {
-        return getWallet() != null;
+        try {
+            return getWallet() != null;
+        } catch (Exception e) {
+            return false;
+        }
     }
 
     public boolean isWalletEncrypted() {
