@@ -17,7 +17,6 @@
 
 package bisq.core.btc;
 
-import bisq.common.UserThread;
 import bisq.core.btc.listeners.XmrBalanceListener;
 import bisq.core.btc.wallet.XmrWalletService;
 import bisq.core.offer.OfferPayload;
@@ -51,8 +50,6 @@ public class Balances {
     private final TradeManager tradeManager;
     private final XmrWalletService xmrWalletService;
     private final OpenOfferManager openOfferManager;
-    private final ClosedTradableManager closedTradableManager;
-    private final FailedTradesManager failedTradesManager;
     private final RefundManager refundManager;
 
     @Getter
@@ -76,8 +73,6 @@ public class Balances {
         this.tradeManager = tradeManager;
         this.xmrWalletService = xmrWalletService;
         this.openOfferManager = openOfferManager;
-        this.closedTradableManager = closedTradableManager;
-        this.failedTradesManager = failedTradesManager;
         this.refundManager = refundManager;
     }
 
@@ -95,6 +90,7 @@ public class Balances {
     }
 
     private void updatedBalances() {
+        if (!xmrWalletService.isWalletReady()) return;
         updateAvailableBalance();
         updatePendingBalance();
         updateReservedOfferBalance();
