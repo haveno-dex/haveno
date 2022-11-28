@@ -75,6 +75,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
 
 import lombok.Getter;
@@ -373,7 +374,7 @@ public abstract class Trade implements Tradable, Model {
     transient final private StringProperty errorMessageProperty = new SimpleStringProperty();
     transient private Subscription tradePhaseSubscription;
     transient private Subscription payoutStateSubscription;
-    transient private TaskLooper tradeTxsLooper;
+    transient private TaskLooper txPollLooper;
     transient private Long walletRefreshPeriod;
     transient private Long syncNormalStartTime;
     private static final long IDLE_SYNC_PERIOD_MS = 3600000; // 1 hour
@@ -585,10 +586,7 @@ public abstract class Trade implements Tradable, Model {
         // handle trade state events
         tradePhaseSubscription = EasyBind.subscribe(phaseProperty, newValue -> {
             if (!isInitialized) return;
-            if (isDepositPublished() && !isPayoutUnlocked()) {
-                updateWalletRefreshPeriod();
-                listenToTradeTxs();
-            }
+            if (isDepositPublished() && !isPayoutUnlocked()) updateWalletRefreshPeriod();
             if (isCompleted()) {
                 UserThread.execute(() -> {
                     if (tradePhaseSubscription != null) {
@@ -620,9 +618,9 @@ public abstract class Trade implements Tradable, Model {
             if (newValue == Trade.PayoutState.PAYOUT_UNLOCKED) {
                 log.info("Payout unlocked for {} {}, deleting multisig wallet", getClass().getSimpleName(), getId()); // TODO: retain backup for some time?
                 deleteWallet();
-                if (tradeTxsLooper != null) {
-                    tradeTxsLooper.stop();
-                    tradeTxsLooper = null;
+                if (txPollLooper != null) {
+                    txPollLooper.stop();
+                    txPollLooper = null;
                 }
                 UserThread.execute(() -> {
                     if (payoutStateSubscription != null) {
@@ -637,8 +635,7 @@ public abstract class Trade implements Tradable, Model {
 
         // start listening to trade wallet
         if (isDepositPublished()) {
-            updateWalletRefreshPeriod();
-            listenToTradeTxs();
+            updateSyncing();
 
             // allow state notifications to process before returning
             CountDownLatch latch = new CountDownLatch(1);
@@ -914,10 +911,15 @@ public abstract class Trade implements Tradable, Model {
             log.warn("Cannot sync multisig wallet because it doesn't exist for {}, {}", getClass().getSimpleName(), getId());
             return;
         }
+        if (getWallet().getDaemonConnection() == null) {
+            log.warn("Cannot sync multisig wallet because it's not connected to a Monero daemon for {}, {}", getClass().getSimpleName(), getId());
+            return;
+        }
         log.info("Syncing wallet for {} {}", getClass().getSimpleName(), getId());
         getWallet().sync();
         pollWallet();
         log.info("Done syncing wallet for {} {}", getClass().getSimpleName(), getId());
+        updateWalletRefreshPeriod();
     }
 
     public void syncWalletNormallyForMs(long syncNormalDuration) {
@@ -939,9 +941,9 @@ public abstract class Trade implements Tradable, Model {
 
     public void shutDown() {
         isInitialized = false;
-        if (tradeTxsLooper != null) {
-            tradeTxsLooper.stop();
-            tradeTxsLooper = null;
+        if (txPollLooper != null) {
+            txPollLooper.stop();
+            txPollLooper = null;
         }
         if (tradePhaseSubscription != null) tradePhaseSubscription.unsubscribe();
         if (payoutStateSubscription != null) payoutStateSubscription.unsubscribe();
@@ -1397,14 +1399,44 @@ public abstract class Trade implements Tradable, Model {
         return tradeVolumeProperty;
     }
 
-    private void listenToTradeTxs() {
-        if (tradeTxsLooper != null) return;
-        log.info("Listening for payout tx for {} {}", getClass().getSimpleName(), getId());
+    private void setDaemonConnection(MoneroRpcConnection connection) {
+        if (getWallet() == null) return;
+        log.info("Setting daemon connection for trade wallet {}: {}: ", getId() , connection == null ? null : connection.getUri());
+        if (getWallet() != null) getWallet().setDaemonConnection(connection);
+        updateSyncing();
+    }
 
-        // poll wallet for tx state
-        pollWallet();
-        tradeTxsLooper = new TaskLooper(() -> { pollWallet(); });
-        tradeTxsLooper.start(walletRefreshPeriod);
+    private void updateSyncing() {
+        if (!isIdling()) syncWallet();
+        else {
+            long startSyncingInMs = ThreadLocalRandom.current().nextLong(0, getWalletRefreshPeriod()); // random time to start syncing
+            UserThread.runAfter(() -> {
+                if (isInitialized) syncWallet();
+            }, startSyncingInMs / 1000l);
+        }
+    }
+
+    private void updateWalletRefreshPeriod() {
+        setWalletRefreshPeriod(getWalletRefreshPeriod());
+    }
+
+    private void setWalletRefreshPeriod(long walletRefreshPeriod) {
+        if (this.walletRefreshPeriod != null && this.walletRefreshPeriod == walletRefreshPeriod) return;
+        log.info("Setting wallet refresh rate for {} {} to {}", getClass().getSimpleName(), getId(), walletRefreshPeriod);
+        this.walletRefreshPeriod = walletRefreshPeriod;
+        getWallet().startSyncing(getWalletRefreshPeriod()); // TODO (monero-project): wallet rpc waits until last sync period finishes before starting new sync period
+        if (txPollLooper != null) {
+            txPollLooper.stop();
+            txPollLooper = null;
+        }
+        startPolling();
+    }
+
+    private void startPolling() {
+        if (txPollLooper != null) return;
+        log.info("Listening for payout tx for {} {}", getClass().getSimpleName(), getId());
+        txPollLooper = new TaskLooper(() -> { pollWallet(); });
+        txPollLooper.start(walletRefreshPeriod);
     }
 
     private void pollWallet() {
@@ -1462,32 +1494,14 @@ public abstract class Trade implements Tradable, Model {
         }
     }
 
-    private void setDaemonConnection(MoneroRpcConnection connection) {
-        if (getWallet() == null) return;
-        log.info("Setting daemon connection for trade wallet {}: {}: ", getId() , connection == null ? null : connection.getUri());
-        getWallet().setDaemonConnection(connection);
-        updateWalletRefreshPeriod();
-    }
-
-    private void updateWalletRefreshPeriod() {
-        setWalletRefreshPeriod(getWalletRefreshPeriod());
-    }
-
-    private void setWalletRefreshPeriod(long walletRefreshPeriod) {
-        if (this.walletRefreshPeriod != null && this.walletRefreshPeriod == walletRefreshPeriod) return;
-        log.info("Setting wallet refresh rate for {} {} to {}", getClass().getSimpleName(), getId(), walletRefreshPeriod);
-        this.walletRefreshPeriod = walletRefreshPeriod;
-        getWallet().startSyncing(getWalletRefreshPeriod()); // TODO (monero-project): wallet rpc waits until last sync period finishes before starting new sync period
-        if (tradeTxsLooper != null) {
-            tradeTxsLooper.stop();
-            tradeTxsLooper = null;
-            listenToTradeTxs();
-        }
-    }
 
     private long getWalletRefreshPeriod() {
-        if (this instanceof ArbitratorTrade && isDepositConfirmed()) return IDLE_SYNC_PERIOD_MS; // slow arbitrator trade wallet after deposits confirm
-        return xmrWalletService.getConnectionsService().getDefaultRefreshPeriodMs(); // else sync at default rate
+        if (isIdling()) return IDLE_SYNC_PERIOD_MS;
+        return xmrWalletService.getConnectionsService().getDefaultRefreshPeriodMs();
+    }
+
+    private boolean isIdling() {
+        return this instanceof ArbitratorTrade && isDepositConfirmed(); // arbitrator idles after deposits confirm
     }
 
     private void setStateDepositsPublished() {
