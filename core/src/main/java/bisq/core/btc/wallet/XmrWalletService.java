@@ -517,6 +517,7 @@ public class XmrWalletService {
         if (wallet != null) {
             try {
                 wallet.sync(); // blocking
+                wallet.startSyncing(connectionsService.getDefaultRefreshPeriodMs()); // start syncing wallet in background
                 connectionsService.doneDownload(); // TODO: using this to signify both daemon and wallet synced, refactor sync handling of both
                 saveWallet(wallet);
             } catch (Exception e) {
@@ -548,11 +549,11 @@ public class XmrWalletService {
         // must be connected to daemon
         MoneroRpcConnection connection = connectionsService.getConnection();
         if (connection == null || !Boolean.TRUE.equals(connection.isConnected())) throw new RuntimeException("Must be connected to daemon before creating wallet");
+        config.setServer(connection);
 
         // create wallet
         try {
             log.info("Creating wallet " + config.getPath());
-            MoneroRpcConnection daemonConnection = config.getServer();
             if (!sync) config.setServer(null);
             walletRpc.createWallet(config);
             if (sync) {
@@ -560,7 +561,7 @@ public class XmrWalletService {
                 walletRpc.startSyncing(connectionsService.getDefaultRefreshPeriodMs());
                 log.info("Done starting background sync for wallet " + config.getPath());
             } else {
-                walletRpc.setDaemonConnection(daemonConnection);
+                walletRpc.setDaemonConnection(connection);
             }
             log.info("Done creating wallet " + config.getPath());
             return walletRpc;
@@ -578,21 +579,9 @@ public class XmrWalletService {
 
         // open wallet
         try {
-            // open wallet
             log.info("Opening wallet " + config.getPath());
             walletRpc.openWallet(config);
-
-            // sync wallet
-            log.info("Syncing wallet " + config.getPath());
-            walletRpc.sync();
-            log.info("Done syncing wallet " + config.getPath());
-
-            // start syncing wallet in background
-            new Thread(() -> {
-                log.info("Starting background syncing for wallet " + config.getPath());
-                walletRpc.startSyncing(connectionsService.getDefaultRefreshPeriodMs());
-                log.info("Done starting background sync for wallet " + config.getPath());
-            }).start();
+            walletRpc.setDaemonConnection(connectionsService.getConnection());
             return walletRpc;
         } catch (Exception e) {
             e.printStackTrace();
