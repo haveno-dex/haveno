@@ -48,12 +48,15 @@ public class QRCodeWindow extends Overlay<QRCodeWindow> {
         this.bitcoinURI = bitcoinURI;
         final byte[] imageBytes = QRCode
                 .from(bitcoinURI)
-                .withSize(250, 250)
+                .withSize(300, 300)
                 .to(ImageType.PNG)
                 .stream()
                 .toByteArray();
         Image qrImage = new Image(new ByteArrayInputStream(imageBytes));
         qrCodeImageView = new ImageView(qrImage);
+        qrCodeImageView.setFitHeight(250);
+        qrCodeImageView.setFitWidth(250);
+        qrCodeImageView.getStyleClass().add("qr-code");
 
         type = Type.Information;
         width = 468;

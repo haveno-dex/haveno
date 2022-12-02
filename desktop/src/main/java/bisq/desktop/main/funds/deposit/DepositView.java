@@ -165,6 +165,8 @@ public class DepositView extends ActivatableView<VBox, Void> {
         titledGroupBg.getStyleClass().add("last");
 
         qrCodeImageView = new ImageView();
+        qrCodeImageView.setFitHeight(150);
+        qrCodeImageView.setFitWidth(150);
         qrCodeImageView.getStyleClass().add("qr-code");
         Tooltip.install(qrCodeImageView, new Tooltip(Res.get("shared.openLargeQRWindow")));
         qrCodeImageView.setOnMouseClicked(e -> UserThread.runAfter(
@@ -275,7 +277,7 @@ public class DepositView extends ActivatableView<VBox, Void> {
         if (addressTextField.getAddress() != null && !addressTextField.getAddress().isEmpty()) {
             final byte[] imageBytes = QRCode
                     .from(getPaymentUri())
-                    .withSize(150, 150) // code has 41 elements 8 px is border with 150 we get 3x scale and min. border
+                    .withSize(300, 300)
                     .to(ImageType.PNG)
                     .stream()
                     .toByteArray();
