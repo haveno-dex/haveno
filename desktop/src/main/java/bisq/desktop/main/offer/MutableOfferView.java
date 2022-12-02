@@ -765,7 +765,7 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
             if (!newValue.toString().equals("")) {
                 final byte[] imageBytes = QRCode
                         .from(getMoneroURI())
-                        .withSize(98, 98) // code has 41 elements 8 px is border with 98 we get double scale and min. border
+                        .withSize(300, 300)
                         .to(ImageType.PNG)
                         .stream()
                         .toByteArray();
