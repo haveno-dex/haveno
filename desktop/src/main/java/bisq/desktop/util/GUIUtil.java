@@ -42,11 +42,13 @@ import bisq.core.payment.PaymentAccount;
 import bisq.core.payment.PaymentAccountList;
 import bisq.core.payment.payload.PaymentMethod;
 import bisq.core.provider.fee.FeeService;
+import bisq.core.trade.HavenoUtils;
 import bisq.core.trade.txproof.AssetTxProofResult;
 import bisq.core.user.DontShowAgainLookup;
 import bisq.core.user.Preferences;
 import bisq.core.user.User;
 import bisq.core.util.FormattingUtils;
+import bisq.core.util.ParsingUtils;
 import bisq.core.util.coin.CoinFormatter;
 
 import bisq.network.p2p.P2PService;
@@ -135,6 +137,9 @@ import java.util.function.Consumer;
 
 import lombok.extern.slf4j.Slf4j;
 import monero.daemon.model.MoneroTx;
+import monero.wallet.MoneroWallet;
+import monero.wallet.model.MoneroTxConfig;
+
 import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nullable;
@@ -188,19 +193,6 @@ public class GUIUtil {
                 node.requestFocus();
             }
         });
-    }
-
-    public static void showFeeInfoBeforeExecute(Runnable runnable) {
-        String key = "miningFeeInfo";
-        if (!DevEnv.isDevMode() && DontShowAgainLookup.showAgain(key)) {
-            new Popup().attention(Res.get("guiUtil.miningFeeInfo", String.valueOf(GUIUtil.feeService.getTxFeePerVbyte().value)))
-                    .onClose(runnable)
-                    .useIUnderstandButton()
-                    .show();
-            DontShowAgainLookup.dontShowAgain(key, true);
-        } else {
-            runnable.run();
-        }
     }
 
     public static void exportAccounts(ArrayList<PaymentAccount> accounts,
@@ -713,6 +705,13 @@ public class GUIUtil {
                 })
                 .dontShowAgainId(key)
                 .show();
+    }
+
+    public static String getMoneroURI(String address, Coin amount, String label, MoneroWallet wallet) {
+        return wallet.getPaymentUri(new MoneroTxConfig()
+                .setAddress(address)
+                .setAmount(HavenoUtils.coinToAtomicUnits(amount))
+                .setNote(label));
     }
 
     public static String getBitcoinURI(String address, Coin amount, String label) {

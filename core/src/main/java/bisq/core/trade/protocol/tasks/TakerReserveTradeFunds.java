@@ -19,11 +19,15 @@ package bisq.core.trade.protocol.tasks;
 
 import bisq.common.taskrunner.TaskRunner;
 import bisq.core.btc.model.XmrAddressEntry;
+import bisq.core.offer.OfferDirection;
+import bisq.core.trade.HavenoUtils;
 import bisq.core.trade.Trade;
-import bisq.core.util.ParsingUtils;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.List;
+
+import org.bitcoinj.core.Coin;
+
 import monero.daemon.model.MoneroOutput;
 import monero.wallet.model.MoneroTxWallet;
 
@@ -38,11 +42,12 @@ public class TakerReserveTradeFunds extends TradeTask {
         try {
             runInterceptHook();
 
-            // create reserve tx without padding
+            // create reserve tx
+            BigInteger takerFee = HavenoUtils.coinToAtomicUnits(trade.getTakerFee());
+            BigInteger peerAmount = HavenoUtils.coinToAtomicUnits(trade.getOffer().getDirection() == OfferDirection.BUY ? trade.getOffer().getAmount() : Coin.ZERO);
+            BigInteger securityDeposit = HavenoUtils.coinToAtomicUnits(trade.getOffer().getDirection() == OfferDirection.BUY ? trade.getOffer().getSellerSecurityDeposit() : trade.getOffer().getBuyerSecurityDeposit());
             String returnAddress = model.getXmrWalletService().getOrCreateAddressEntry(trade.getOffer().getId(), XmrAddressEntry.Context.TRADE_PAYOUT).getAddressString();
-            BigInteger takerFee = ParsingUtils.coinToAtomicUnits(trade.getTakerFee());
-            BigInteger depositAmount = ParsingUtils.centinerosToAtomicUnits(processModel.getFundsNeededForTradeAsLong());
-            MoneroTxWallet reserveTx = model.getXmrWalletService().createReserveTx(takerFee, returnAddress, depositAmount, true);
+            MoneroTxWallet reserveTx = model.getXmrWalletService().createReserveTx(takerFee, peerAmount, securityDeposit, returnAddress);
 
             // collect reserved key images
             List<String> reservedKeyImages = new ArrayList<String>();
@@ -51,7 +56,7 @@ public class TakerReserveTradeFunds extends TradeTask {
             // save process state
             processModel.setReserveTx(reserveTx);
             processModel.getTaker().setReserveTxKeyImages(reservedKeyImages);
-
+            processModel.getTradeManager().requestPersistence();
             complete();
         } catch (Throwable t) {
             trade.setErrorMessage("An error occurred.\n" +

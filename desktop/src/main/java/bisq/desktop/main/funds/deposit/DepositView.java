@@ -34,6 +34,7 @@ import bisq.core.btc.listeners.XmrBalanceListener;
 import bisq.core.btc.model.XmrAddressEntry;
 import bisq.core.btc.wallet.XmrWalletService;
 import bisq.core.locale.Res;
+import bisq.core.trade.HavenoUtils;
 import bisq.core.user.Preferences;
 import bisq.core.util.FormattingUtils;
 import bisq.core.util.ParsingUtils;
@@ -166,10 +167,9 @@ public class DepositView extends ActivatableView<VBox, Void> {
         qrCodeImageView = new ImageView();
         qrCodeImageView.getStyleClass().add("qr-code");
         Tooltip.install(qrCodeImageView, new Tooltip(Res.get("shared.openLargeQRWindow")));
-        qrCodeImageView.setOnMouseClicked(e -> GUIUtil.showFeeInfoBeforeExecute(
-                () -> UserThread.runAfter(
+        qrCodeImageView.setOnMouseClicked(e -> UserThread.runAfter(
                         () -> new QRCodeWindow(getPaymentUri()).show(),
-                        200, TimeUnit.MILLISECONDS)));
+                        200, TimeUnit.MILLISECONDS));
         GridPane.setRowIndex(qrCodeImageView, gridRow);
         GridPane.setRowSpan(qrCodeImageView, 4);
         GridPane.setColumnIndex(qrCodeImageView, 1);
@@ -308,7 +308,7 @@ public class DepositView extends ActivatableView<VBox, Void> {
     private String getPaymentUri() {
         return xmrWalletService.getWallet().getPaymentUri(new MoneroTxConfig()
                 .setAddress(addressTextField.getAddress())
-                .setAmount(ParsingUtils.coinToAtomicUnits(getAmountAsCoin()))
+                .setAmount(HavenoUtils.coinToAtomicUnits(getAmountAsCoin()))
                 .setNote(paymentLabelString));
     }
 

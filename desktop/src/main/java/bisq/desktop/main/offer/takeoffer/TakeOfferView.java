@@ -23,7 +23,6 @@ import bisq.desktop.common.view.FxmlView;
 import bisq.desktop.components.AddressTextField;
 import bisq.desktop.components.AutoTooltipButton;
 import bisq.desktop.components.AutoTooltipLabel;
-import bisq.desktop.components.AutoTooltipSlideToggleButton;
 import bisq.desktop.components.BalanceTextField;
 import bisq.desktop.components.BusyAnimation;
 import bisq.desktop.components.FundsTextField;
@@ -88,7 +87,6 @@ import javafx.scene.control.Tooltip;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.AnchorPane;
-import javafx.scene.layout.ColumnConstraints;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
@@ -455,8 +453,7 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
                     model.getTotalToPayInfo(),
                     tradeAmountText,
                     model.getSecurityDepositInfo(),
-                    model.getTradeFee(),
-                    model.getTxFee()
+                    model.getTradeFee()
             );
             String key = "takeOfferFundWalletInfo";
             new Popup().headLine(Res.get("takeOffer.takeOfferFundWalletInfo.headline"))
@@ -477,7 +474,7 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
         balanceTextField.setVisible(true);
 
         totalToPayTextField.setFundsStructure(Res.get("takeOffer.fundsBox.fundsStructure",
-                model.getSecurityDepositWithCode(), model.getTakerFeePercentage(), model.getTxFeePercentage()));
+                model.getSecurityDepositWithCode(), model.getTakerFeePercentage()));
         totalToPayTextField.setContentForInfoPopOver(createInfoPopover());
 
         if (model.dataModel.getIsBtcWalletFunded().get()) {
@@ -491,7 +488,7 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
         }
 
         final byte[] imageBytes = QRCode
-                .from(getBitcoinURI())
+                .from(getMoneroURI())
                 .withSize(98, 98) // code has 41 elements 8 px is border with 98 we get double scale and min. border
                 .to(ImageType.PNG)
                 .stream()
@@ -861,10 +858,9 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
         qrCodeImageView.setFitWidth(150);
         qrCodeImageView.getStyleClass().add("qr-code");
         Tooltip.install(qrCodeImageView, new Tooltip(Res.get("shared.openLargeQRWindow")));
-        qrCodeImageView.setOnMouseClicked(e -> GUIUtil.showFeeInfoBeforeExecute(
-                () -> UserThread.runAfter(
-                        () -> new QRCodeWindow(getBitcoinURI()).show(),
-                        200, TimeUnit.MILLISECONDS)));
+        qrCodeImageView.setOnMouseClicked(e -> UserThread.runAfter(
+                        () -> new QRCodeWindow(getMoneroURI()).show(),
+                        200, TimeUnit.MILLISECONDS));
         GridPane.setRowIndex(qrCodeImageView, gridRow);
         GridPane.setColumnIndex(qrCodeImageView, 1);
         GridPane.setRowSpan(qrCodeImageView, 3);
@@ -890,7 +886,7 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
         label.setPadding(new Insets(5, 0, 0, 0));
         Button fundFromExternalWalletButton = new AutoTooltipButton(Res.get("shared.fundFromExternalWalletButton"));
         fundFromExternalWalletButton.setDefaultButton(false);
-        fundFromExternalWalletButton.setOnAction(e -> GUIUtil.showFeeInfoBeforeExecute(this::openWallet));
+        fundFromExternalWalletButton.setOnAction(e -> openWallet());
         waitingForFundsBusyAnimation = new BusyAnimation(false);
         waitingForFundsLabel = new AutoTooltipLabel();
         waitingForFundsLabel.setPadding(new Insets(5, 0, 0, 0));
@@ -955,7 +951,7 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
 
     private void openWallet() {
         try {
-            Utilities.openURI(URI.create(getBitcoinURI()));
+            Utilities.openURI(URI.create(getMoneroURI()));
         } catch (Exception ex) {
             log.warn(ex.getMessage());
             new Popup().warning(Res.get("shared.openDefaultWalletFailed")).show();
@@ -963,11 +959,12 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
     }
 
     @NotNull
-    private String getBitcoinURI() {
-        return "TODO";
-//        return GUIUtil.getBitcoinURI(model.dataModel.getAddressEntry().getAddressString(),
-//                model.dataModel.getMissingCoin().get(),
-//                model.getPaymentLabel());
+    private String getMoneroURI() {
+        return GUIUtil.getMoneroURI(
+                model.dataModel.getAddressEntry().getAddressString(),
+                model.dataModel.getMissingCoin().get(),
+                model.getPaymentLabel(),
+                model.dataModel.getXmrWalletService().getWallet());
     }
 
     private void addAmountPriceFields() {
@@ -1165,7 +1162,6 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
 
         addPayInfoEntry(infoGridPane, i++, Res.getWithCol("shared.yourSecurityDeposit"), model.getSecurityDepositInfo());
         addPayInfoEntry(infoGridPane, i++, Res.get("takeOffer.fundsBox.offerFee"), model.getTradeFee());
-        addPayInfoEntry(infoGridPane, i++, Res.get("takeOffer.fundsBox.networkFee"), model.getTxFee());
         Separator separator = new Separator();
         separator.setOrientation(Orientation.HORIZONTAL);
         separator.getStyleClass().add("offer-separator");

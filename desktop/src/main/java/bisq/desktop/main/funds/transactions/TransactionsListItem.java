@@ -21,9 +21,9 @@ import bisq.core.btc.wallet.XmrWalletService;
 import bisq.core.locale.Res;
 import bisq.core.offer.Offer;
 import bisq.core.offer.OpenOffer;
+import bisq.core.trade.HavenoUtils;
 import bisq.core.trade.Tradable;
 import bisq.core.trade.Trade;
-import bisq.core.util.ParsingUtils;
 import bisq.core.util.coin.CoinFormatter;
 import bisq.desktop.components.indicator.TxConfidenceIndicator;
 import bisq.desktop.util.DisplayUtils;
@@ -94,8 +94,8 @@ class TransactionsListItem {
         Optional<Tradable> optionalTradable = Optional.ofNullable(transactionAwareTradable)
                 .map(TransactionAwareTradable::asTradable);
 
-        Coin valueSentToMe = ParsingUtils.atomicUnitsToCoin(tx.getIncomingAmount() == null ? new BigInteger("0") : tx.getIncomingAmount());
-        Coin valueSentFromMe = ParsingUtils.atomicUnitsToCoin(tx.getOutgoingAmount() == null ? new BigInteger("0") : tx.getOutgoingAmount());
+        Coin valueSentToMe = HavenoUtils.atomicUnitsToCoin(tx.getIncomingAmount() == null ? new BigInteger("0") : tx.getIncomingAmount());
+        Coin valueSentFromMe = HavenoUtils.atomicUnitsToCoin(tx.getOutgoingAmount() == null ? new BigInteger("0") : tx.getOutgoingAmount());
 
         if (tx.getTransfers().get(0).isIncoming()) {
             addressString = ((MoneroIncomingTransfer) tx.getTransfers().get(0)).getAddress();

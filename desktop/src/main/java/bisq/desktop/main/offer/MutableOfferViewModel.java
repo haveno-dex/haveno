@@ -648,6 +648,7 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
     }
 
     void onShowPayFundsScreen(Runnable actionHandler) {
+        actionHandler.run();
         showPayFundsScreenDisplayed.set(true);
         updateSpinnerInfo();
     }
@@ -1015,22 +1016,8 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
     public String getFundsStructure() {
         String fundsStructure;
         fundsStructure = Res.get("createOffer.fundsBox.fundsStructure",
-                getSecurityDepositWithCode(), getMakerFeePercentage(), getTxFeePercentage());
+                getSecurityDepositWithCode(), getMakerFeePercentage());
         return fundsStructure;
-    }
-
-    public String getTxFee() {
-        return OfferViewModelUtil.getTradeFeeWithFiatEquivalentAndPercentage(offerUtil,
-                dataModel.getTxFee(),
-                dataModel.getAmount().get(),
-                btcFormatter,
-                Coin.ZERO
-        );
-    }
-
-    public String getTxFeePercentage() {
-        Coin txFeeAsCoin = dataModel.getTxFee();
-        return GUIUtil.getPercentage(txFeeAsCoin, dataModel.getAmount().get());
     }
 
     public PaymentAccount getPaymentAccount() {

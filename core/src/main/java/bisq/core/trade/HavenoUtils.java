@@ -29,12 +29,16 @@ import bisq.core.trade.messages.PaymentSentMessage;
 import bisq.core.util.JsonUtil;
 import lombok.extern.slf4j.Slf4j;
 
+import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.net.URI;
 import java.util.Collection;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+
+import org.bitcoinj.core.Coin;
 
 import com.google.common.base.CaseFormat;
 import com.google.common.base.Charsets;
@@ -47,6 +51,50 @@ public class HavenoUtils {
 
     public static final String LOOPBACK_HOST = "127.0.0.1"; // local loopback address to host Monero node
     public static final String LOCALHOST = "localhost";
+
+    // multipliers to convert units
+    private static BigInteger CENTINEROS_AU_MULTIPLIER = new BigInteger("10000");
+    private static BigInteger XMR_AU_MULTIPLIER = new BigInteger("1000000000000");
+
+    public static BigInteger coinToAtomicUnits(Coin coin) {
+        return centinerosToAtomicUnits(coin.value);
+    }
+
+    public static double coinToXmr(Coin coin) {
+        return atomicUnitsToXmr(coinToAtomicUnits(coin));
+    }
+
+    public static BigInteger centinerosToAtomicUnits(long centineros) {
+        return BigInteger.valueOf(centineros).multiply(CENTINEROS_AU_MULTIPLIER);
+    }
+
+    public static double centinerosToXmr(long centineros) {
+        return atomicUnitsToXmr(centinerosToAtomicUnits(centineros));
+    }
+
+    public static long atomicUnitsToCentineros(long atomicUnits) { // TODO: atomic units should be BigInteger; remove this?
+        return atomicUnits / CENTINEROS_AU_MULTIPLIER.longValue();
+    }
+
+    public static long atomicUnitsToCentineros(BigInteger atomicUnits) {
+        return atomicUnits.divide(CENTINEROS_AU_MULTIPLIER).longValueExact();
+    }
+
+    public static Coin atomicUnitsToCoin(BigInteger atomicUnits) {
+        return Coin.valueOf(atomicUnitsToCentineros(atomicUnits));
+    }
+
+    public static double atomicUnitsToXmr(BigInteger atomicUnits) {
+        return new BigDecimal(atomicUnits).divide(new BigDecimal(XMR_AU_MULTIPLIER)).doubleValue();
+    }
+
+    public static BigInteger xmrToAtomicUnits(double xmr) {
+        return BigDecimal.valueOf(xmr).multiply(new BigDecimal(XMR_AU_MULTIPLIER)).toBigInteger();
+    }
+
+    public static long xmrToCentineros(double xmr) {
+        return atomicUnitsToCentineros(xmrToAtomicUnits(xmr));
+    }
 
     /**
      * Get address to collect trade fees.

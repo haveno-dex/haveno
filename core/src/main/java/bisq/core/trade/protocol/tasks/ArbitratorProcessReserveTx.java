@@ -20,11 +20,14 @@ package bisq.core.trade.protocol.tasks;
 import bisq.common.taskrunner.TaskRunner;
 import bisq.core.offer.Offer;
 import bisq.core.offer.OfferDirection;
+import bisq.core.trade.HavenoUtils;
 import bisq.core.trade.Trade;
 import bisq.core.trade.messages.InitTradeRequest;
 import bisq.core.trade.protocol.TradingPeer;
-import bisq.core.util.ParsingUtils;
 import java.math.BigInteger;
+
+import org.bitcoinj.core.Coin;
+
 import lombok.extern.slf4j.Slf4j;
 
 /**
@@ -52,18 +55,19 @@ public class ArbitratorProcessReserveTx extends TradeTask {
             // TODO (woodser): if signer online, should never be called by maker
             
             // process reserve tx with expected terms
-            BigInteger tradeFee = ParsingUtils.coinToAtomicUnits(isFromTaker ? trade.getTakerFee() : offer.getMakerFee());
-            BigInteger depositAmount = ParsingUtils.coinToAtomicUnits(isFromBuyer ? offer.getBuyerSecurityDeposit() : offer.getAmount().add(offer.getSellerSecurityDeposit()));
+            BigInteger tradeFee = HavenoUtils.coinToAtomicUnits(isFromTaker ? trade.getTakerFee() : offer.getMakerFee());
+            BigInteger peerAmount =  HavenoUtils.coinToAtomicUnits(isFromBuyer ? Coin.ZERO : offer.getAmount());
+            BigInteger securityDeposit = HavenoUtils.coinToAtomicUnits(isFromBuyer ? offer.getBuyerSecurityDeposit() : offer.getSellerSecurityDeposit());
             try {
                 trade.getXmrWalletService().verifyTradeTx(
-                    request.getPayoutAddress(),
-                    depositAmount,
                     tradeFee,
+                    peerAmount,
+                    securityDeposit,
+                    request.getPayoutAddress(),
                     request.getReserveTxHash(),
                     request.getReserveTxHex(),
                     request.getReserveTxKey(),
-                    null,
-                    true);
+                    null);
             } catch (Exception e) {
                 throw new RuntimeException("Error processing reserve tx from " + (isFromTaker ? "taker " : "maker ") + request.getSenderNodeAddress() + ", offerId=" + offer.getId() + ": " + e.getMessage());
             }

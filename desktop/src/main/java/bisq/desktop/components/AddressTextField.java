@@ -71,8 +71,7 @@ public class AddressTextField extends AnchorPane {
 
         textField.setOnMousePressed(event -> wasPrimaryButtonDown = event.isPrimaryButtonDown());
         textField.setOnMouseReleased(event -> {
-            if (wasPrimaryButtonDown)
-                GUIUtil.showFeeInfoBeforeExecute(AddressTextField.this::openWallet);
+            if (wasPrimaryButtonDown) openWallet();
 
             wasPrimaryButtonDown = false;
         });
@@ -83,17 +82,17 @@ public class AddressTextField extends AnchorPane {
         extWalletIcon.getStyleClass().addAll("icon", "highlight");
         extWalletIcon.setTooltip(new Tooltip(tooltipText));
         AwesomeDude.setIcon(extWalletIcon, AwesomeIcon.SIGNIN);
-        extWalletIcon.setOnMouseClicked(e -> GUIUtil.showFeeInfoBeforeExecute(this::openWallet));
+        extWalletIcon.setOnMouseClicked(e -> openWallet());
 
         Label copyIcon = new Label();
         copyIcon.setLayoutY(3);
         copyIcon.getStyleClass().addAll("icon", "highlight");
         Tooltip.install(copyIcon, new Tooltip(Res.get("addressTextField.copyToClipboard")));
         AwesomeDude.setIcon(copyIcon, AwesomeIcon.COPY);
-        copyIcon.setOnMouseClicked(e -> GUIUtil.showFeeInfoBeforeExecute(() -> {
+        copyIcon.setOnMouseClicked(e -> {
             if (address.get() != null && address.get().length() > 0)
                 Utilities.copyToClipboard(address.get());
-        }));
+        });
 
         AnchorPane.setRightAnchor(copyIcon, 30.0);
         AnchorPane.setRightAnchor(extWalletIcon, 5.0);

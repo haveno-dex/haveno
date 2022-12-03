@@ -68,7 +68,7 @@ import bisq.core.payment.UpiAccount;
 import bisq.core.payment.VerseAccount;
 import bisq.core.payment.WeChatPayAccount;
 import bisq.core.payment.WesternUnionAccount;
-import bisq.core.util.ParsingUtils;
+import bisq.core.trade.HavenoUtils;
 import bisq.core.locale.CurrencyUtil;
 import bisq.core.locale.Res;
 import bisq.core.locale.TradeCurrency;
@@ -490,8 +490,8 @@ public final class PaymentMethod implements PersistablePayload, Comparable<Payme
         // TODO: remove this when trade credits supported
         boolean isFiat = CurrencyUtil.isFiatCurrency(currencyCode);
         boolean isStagenet = Config.baseCurrencyNetwork() == BaseCurrencyNetwork.XMR_STAGENET;
-        if (isFiat && isStagenet && ParsingUtils.centinerosToXmr(riskBasedTradeLimit) > MAX_FIAT_STAGENET_XMR) {
-            riskBasedTradeLimit = ParsingUtils.xmrToCentineros(MAX_FIAT_STAGENET_XMR);
+        if (isFiat && isStagenet && HavenoUtils.centinerosToXmr(riskBasedTradeLimit) > MAX_FIAT_STAGENET_XMR) {
+            riskBasedTradeLimit = HavenoUtils.xmrToCentineros(MAX_FIAT_STAGENET_XMR);
         }
         return Coin.valueOf(riskBasedTradeLimit);
     }

@@ -41,6 +41,7 @@ import static bisq.core.util.coin.CoinUtil.minCoin;
  * needed in that UI element.
  */
 public abstract class OfferDataModel extends ActivatableDataModel {
+    @Getter
     protected final XmrWalletService xmrWalletService;
     protected final OfferUtil offerUtil;
 

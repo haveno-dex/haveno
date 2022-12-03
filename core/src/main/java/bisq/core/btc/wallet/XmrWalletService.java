@@ -17,16 +17,16 @@ import bisq.core.btc.setup.MoneroWalletRpcManager;
 import bisq.core.btc.setup.WalletsSetup;
 import bisq.core.offer.Offer;
 import bisq.core.trade.MakerTrade;
-import bisq.core.trade.SellerTrade;
 import bisq.core.trade.Trade;
 import bisq.core.trade.TradeManager;
+import bisq.core.trade.BuyerTrade;
 import bisq.core.trade.HavenoUtils;
-import bisq.core.util.ParsingUtils;
 
 import com.google.common.util.concurrent.Service.State;
 import com.google.inject.name.Named;
 import common.utils.JsonUtils;
 import java.io.File;
+import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -83,8 +83,8 @@ public class XmrWalletService {
     private static final String MONERO_WALLET_RPC_DEFAULT_PASSWORD = "password"; // only used if account password is null
     private static final String MONERO_WALLET_NAME = "haveno_XMR";
     private static final String MONERO_MULTISIG_WALLET_PREFIX = "xmr_multisig_trade_";
-    private static final int MINER_FEE_PADDING_MULTIPLIER = 2; // extra padding for miner fees = estimated fee * multiplier
-    private static final double MINER_FEE_TOLERANCE = 0.25; // miner fee must be within percent of estimated fee
+    public static final double MINER_FEE_TOLERANCE = 0.25; // miner fee must be within percent of estimated fee
+    private static final double SECURITY_DEPOSIT_TOLERANCE = Config.baseCurrencyNetwork() == BaseCurrencyNetwork.XMR_LOCAL ? 0.25 : 0.05; // security deposit absorbs miner fee up to percent
 
     private final CoreAccountService accountService;
     private final CoreMoneroConnectionsService connectionsService;
@@ -265,106 +265,86 @@ public class XmrWalletService {
     }
 
     /**
-     * Create the reserve tx and freeze its inputs. The deposit amount is returned
-     * to the sender's payout address. Additional funds are reserved to allow
-     * fluctuations in the mining fee.
+     * Create the reserve tx and freeze its inputs. The full amount is returned
+     * to the sender's payout address less the trade fee.
      *
-     * @param tradeFee - trade fee
-     * @param depositAmount - amount needed for the trade minus the trade fee
-     * @param returnAddress - return address for deposit amount
-     * @param addPadding - reserve additional padding to cover future mining fee
+     * @param returnAddress return address for reserved funds
+     * @param tradeFee trade fee
+     * @param peerAmount amount to give peer
+     * @param securityDeposit security deposit amount
      * @return a transaction to reserve a trade
      */
-    public MoneroTxWallet createReserveTx(BigInteger tradeFee, String returnAddress, BigInteger depositAmount, boolean addPadding) {
-        MoneroWallet wallet = getWallet();
-        synchronized (wallet) {
-
-            // add miner fee padding to deposit amount
-            if (addPadding) {
-
-                // get estimated mining fee with deposit amount
-                MoneroTxWallet feeEstimateTx = wallet.createTx(new MoneroTxConfig()
-                        .setAccountIndex(0)
-                        .addDestination(HavenoUtils.getTradeFeeAddress(), tradeFee)
-                        .addDestination(returnAddress, depositAmount));
-                BigInteger feeEstimate = feeEstimateTx.getFee();
-
-                BigInteger daemonFeeEstimate = getFeeEstimate(feeEstimateTx.getWeight());
-                log.info("createReserveTx() 1st feeEstimateTx with weight {} has fee {} versus daemon fee estimate of {} (diff={})", feeEstimateTx.getWeight(), feeEstimateTx.getFee(), daemonFeeEstimate, (feeEstimateTx.getFee().subtract(daemonFeeEstimate)));
-
-                // get estimated mining fee with deposit amount + previous estimated mining fee for better accuracy
-                feeEstimateTx = wallet.createTx(new MoneroTxConfig()
-                        .setAccountIndex(0)
-                        .addDestination(HavenoUtils.getTradeFeeAddress(), tradeFee)
-                        .addDestination(returnAddress, depositAmount.add(feeEstimate.multiply(BigInteger.valueOf(MINER_FEE_PADDING_MULTIPLIER)))));
-                feeEstimate = feeEstimateTx.getFee();
-
-                log.info("createReserveTx() 2nd feeEstimateTx with weight {} has fee {} versus daemon fee estimate of {} (diff={})", feeEstimateTx.getWeight(), feeEstimateTx.getFee(), daemonFeeEstimate, (feeEstimateTx.getFee().subtract(daemonFeeEstimate)));
-
-                // add padding to deposit amount
-                BigInteger minerFeePadding = feeEstimate.multiply(BigInteger.valueOf(MINER_FEE_PADDING_MULTIPLIER));
-                depositAmount = depositAmount.add(minerFeePadding);
-            }
-
-            // create reserve tx
-            MoneroTxWallet reserveTx = wallet.createTx(new MoneroTxConfig()
-                .setAccountIndex(0)
-                .addDestination(HavenoUtils.getTradeFeeAddress(), tradeFee)
-                .addDestination(returnAddress, depositAmount));
-            log.info("Reserve tx weight={}, fee={}, depositAmount={}", reserveTx.getWeight(), reserveTx.getFee(), depositAmount);
-
-            // freeze inputs
-            for (MoneroOutput input : reserveTx.getInputs()) wallet.freezeOutput(input.getKeyImage().getHex());
-            wallet.save();
-            return reserveTx;
-        }
+    public MoneroTxWallet createReserveTx(BigInteger tradeFee, BigInteger peerAmount, BigInteger securityDeposit, String returnAddress) {
+        log.info("Creating reserve tx with fee={}, peerAmount={}, securityDeposit={}", tradeFee, peerAmount, securityDeposit);
+        return createTradeTx(tradeFee, peerAmount, securityDeposit, returnAddress);
     }
 
     /**
      * Create the multisig deposit tx and freeze its inputs.
      *
+     * @param trade the trade to create a deposit tx from
      * @return MoneroTxWallet the multisig deposit tx
      */
     public MoneroTxWallet createDepositTx(Trade trade) {
-        BigInteger tradeFee = ParsingUtils.coinToAtomicUnits(trade instanceof MakerTrade ? trade.getOffer().getMakerFee() : trade.getTakerFee());
         Offer offer = trade.getProcessModel().getOffer();
-        BigInteger depositAmount = ParsingUtils.coinToAtomicUnits(trade instanceof SellerTrade ? offer.getAmount().add(offer.getSellerSecurityDeposit()) : offer.getBuyerSecurityDeposit());
         String multisigAddress = trade.getProcessModel().getMultisigAddress();
+        BigInteger tradeFee = HavenoUtils.coinToAtomicUnits(trade instanceof MakerTrade ? trade.getOffer().getMakerFee() : trade.getTakerFee());
+        BigInteger peerAmount = HavenoUtils.coinToAtomicUnits(trade instanceof BuyerTrade ? Coin.ZERO : offer.getAmount());
+        BigInteger securityDeposit = HavenoUtils.coinToAtomicUnits(trade instanceof BuyerTrade ? offer.getBuyerSecurityDeposit() : offer.getSellerSecurityDeposit());
+        log.info("Creating deposit tx with fee={}, peerAmount={}, securityDeposit={}", tradeFee, peerAmount, securityDeposit);
+        return createTradeTx(tradeFee, peerAmount, securityDeposit, multisigAddress);
+    }
+
+    private MoneroTxWallet createTradeTx(BigInteger tradeFee, BigInteger peerAmount, BigInteger securityDeposit, String address) {
         MoneroWallet wallet = getWallet();
         synchronized (wallet) {
 
-            // create deposit tx
-            MoneroTxWallet depositTx = wallet.createTx(new MoneroTxConfig()
-                    .setAccountIndex(0)
-                    .addDestination(HavenoUtils.getTradeFeeAddress(), tradeFee)
-                    .addDestination(multisigAddress, depositAmount));
+            // binary search to maximize security deposit, thereby minimizing potential dust
+            MoneroTxWallet tradeTx = null;
+            double appliedTolerance = 0.0; // percent of tolerance to apply, thereby decreasing security deposit
+            double searchDiff = 1.0; // difference for next binary search
+            BigInteger maxAmount = peerAmount.add(securityDeposit);
+            for (int i = 0; i < 10; i++) {
+                try {
+                    BigInteger amount = new BigDecimal(maxAmount).multiply(new BigDecimal(1.0 - SECURITY_DEPOSIT_TOLERANCE * appliedTolerance)).toBigInteger();
+                    tradeTx = wallet.createTx(new MoneroTxConfig()
+                            .setAccountIndex(0)
+                            .addDestination(HavenoUtils.getTradeFeeAddress(), tradeFee)
+                            .addDestination(address, amount));
+                    appliedTolerance -= searchDiff; // apply less tolerance to increase security deposit
+                    if (appliedTolerance < 0.0) break; // can send full security deposit
+                } catch (MoneroError e) {
+                    appliedTolerance += searchDiff; // apply more tolerance to decrease security deposit
+                    if (appliedTolerance > 1.0) throw e; // not enough money
+                }
+                searchDiff /= 2;
+            }
 
-            // freeze deposit inputs
-            for (MoneroOutput input : depositTx.getInputs()) wallet.freezeOutput(input.getKeyImage().getHex());
+            // freeze inputs
+            for (MoneroOutput input : tradeTx.getInputs()) wallet.freezeOutput(input.getKeyImage().getHex());
             wallet.save();
-            return depositTx;
+            return tradeTx;
         }
     }
 
     /**
-     * Verify a reserve or deposit transaction used during trading.
-     * Checks double spends, deposit amount and destination, trade fee, and mining fee.
-     * The transaction is submitted but not relayed to the pool then flushed.
+     * Verify a reserve or deposit transaction.
+     * Checks double spends, trade fee, deposit amount and destination, and miner fee.
+     * The transaction is submitted to the pool then flushed without relaying.
      *
-     * @param depositAddress is the expected destination address for the deposit amount
-     * @param depositAmount is the expected amount deposited to multisig
-     * @param tradeFee is the expected fee for trading
-     * @param txHash is the transaction hash
-     * @param txHex is the transaction hex
-     * @param txKey is the transaction key
-     * @param keyImages are expected key images of inputs, ignored if null
-     * @param addPadding verifies depositAmount has additional padding to cover future mining fee
+     * @param tradeFee trade fee
+     * @param peerAmount amount to give peer
+     * @param securityDeposit security deposit amount
+     * @param address expected destination address for the deposit amount
+     * @param txHash transaction hash
+     * @param txHex transaction hex
+     * @param txKey transaction key
+     * @param keyImages expected key images of inputs, ignored if null
      */
-    public void verifyTradeTx(String depositAddress, BigInteger depositAmount, BigInteger tradeFee, String txHash, String txHex, String txKey, List<String> keyImages, boolean addPadding) {
+    public void verifyTradeTx(BigInteger tradeFee, BigInteger peerAmount, BigInteger securityDeposit, String address, String txHash, String txHex, String txKey, List<String> keyImages) {
         MoneroDaemonRpc daemon = getDaemon();
         MoneroWallet wallet = getWallet();
         try {
-            log.info("Verifying trade tx with deposit amount={}", depositAmount);
 
             // verify tx not submitted to pool
             MoneroTx tx = daemon.getTx(txHash);
@@ -375,14 +355,14 @@ public class XmrWalletService {
             if (!result.isGood()) throw new RuntimeException("Failed to submit tx to daemon: " + JsonUtils.serialize(result));
             tx = getTx(txHash);
 
-            // verify reserved key images
+            // verify key images
             if (keyImages != null) {
                 Set<String> txKeyImages = new HashSet<String>();
                 for (MoneroOutput input : tx.getInputs()) txKeyImages.add(input.getKeyImage().getHex());
-                if (!txKeyImages.equals(new HashSet<String>(keyImages))) throw new Error("Reserve tx's inputs do not match claimed key images");
+                if (!txKeyImages.equals(new HashSet<String>(keyImages))) throw new Error("Tx inputs do not match claimed key images");
             }
 
-            // verify the unlock height
+            // verify unlock height
             if (tx.getUnlockHeight() != 0) throw new RuntimeException("Unlock height must be 0");
 
             // verify trade fee
@@ -391,22 +371,17 @@ public class XmrWalletService {
             if (!check.isGood()) throw new RuntimeException("Invalid proof of trade fee");
             if (!check.getReceivedAmount().equals(tradeFee)) throw new RuntimeException("Trade fee is incorrect amount, expected " + tradeFee + " but was " + check.getReceivedAmount());
 
-            // verify mining fee
+            // verify miner fee
             BigInteger feeEstimate = getFeeEstimate(tx.getWeight());
-            double feeDiff = tx.getFee().subtract(feeEstimate).abs().doubleValue() / feeEstimate.doubleValue();
-            if (feeDiff > MINER_FEE_TOLERANCE) throw new Error("Mining fee is not within " + (MINER_FEE_TOLERANCE * 100) + "% of estimated fee, expected " + feeEstimate + " but was " + tx.getFee());
+            double feeDiff = tx.getFee().subtract(feeEstimate).abs().doubleValue() / feeEstimate.doubleValue(); // TODO: use BigDecimal?
+            if (feeDiff > MINER_FEE_TOLERANCE) throw new Error("Miner fee is not within " + (MINER_FEE_TOLERANCE * 100) + "% of estimated fee, expected " + feeEstimate + " but was " + tx.getFee());
             log.info("Trade tx fee {} is within tolerance, diff%={}", tx.getFee(), feeDiff);
 
             // verify deposit amount
-            check = wallet.checkTxKey(txHash, txKey, depositAddress);
+            check = wallet.checkTxKey(txHash, txKey, address);
             if (!check.isGood()) throw new RuntimeException("Invalid proof of deposit amount");
-            if (addPadding) {
-                BigInteger minPadding = BigInteger.valueOf((long) (tx.getFee().multiply(BigInteger.valueOf(MINER_FEE_PADDING_MULTIPLIER)).doubleValue() * (1.0 - MINER_FEE_TOLERANCE)));
-                BigInteger actualPadding = check.getReceivedAmount().subtract(depositAmount);
-                if (actualPadding.compareTo(minPadding) < 0) throw new RuntimeException("Deposit amount is not enough, needed " + depositAmount.add(minPadding) + " (with padding) but was " + check.getReceivedAmount());
-            } else if (check.getReceivedAmount().compareTo(depositAmount) < 0) {
-                throw new RuntimeException("Deposit amount is not enough, needed " + depositAmount + " but was " + check.getReceivedAmount());
-            }
+            BigInteger minAmount = new BigDecimal(peerAmount.add(securityDeposit)).multiply(new BigDecimal(1.0 - SECURITY_DEPOSIT_TOLERANCE)).toBigInteger();
+            if (check.getReceivedAmount().compareTo(minAmount) < 0) throw new RuntimeException("Deposit amount is not enough, needed " + minAmount + " but was " + check.getReceivedAmount());
         } finally {
             try {
                 daemon.flushTxPool(txHash); // flush tx from pool
@@ -915,7 +890,6 @@ public class XmrWalletService {
         return getBalanceForSubaddress(wallet.getAddressIndex(address).getIndex());
     }
 
-    // TODO: Coin represents centineros everywhere, but here it's atomic units. reconcile
     public Coin getBalanceForSubaddress(int subaddressIndex) {
 
         // get subaddress balance
@@ -931,12 +905,11 @@ public class XmrWalletService {
 //    }
 
         System.out.println("Returning balance for subaddress " + subaddressIndex + ": " + balance.longValueExact());
-
-        return Coin.valueOf(balance.longValueExact());
+        return HavenoUtils.atomicUnitsToCoin(balance);
     }
 
     public Coin getAvailableConfirmedBalance() {
-        return wallet != null ? Coin.valueOf(wallet.getUnlockedBalance(0).longValueExact()) : Coin.ZERO;
+        return wallet != null ? HavenoUtils.atomicUnitsToCoin(wallet.getUnlockedBalance(0)) : Coin.ZERO;
     }
 
     public Coin getSavingWalletBalance() {

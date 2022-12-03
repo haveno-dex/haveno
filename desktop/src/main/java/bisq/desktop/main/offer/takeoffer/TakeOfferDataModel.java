@@ -454,12 +454,11 @@ class TakeOfferDataModel extends OfferDataModel {
         // The mining fee for the takeOfferFee tx is deducted from the createOfferFee and not visible to the trader
         final Coin takerFee = getTakerFee();
         if (offer != null && amount.get() != null && takerFee != null) {
-            Coin feeAndSecDeposit = getTotalTxFee().add(securityDeposit).add(takerFee);
+            Coin feeAndSecDeposit = securityDeposit.add(takerFee);
             if (isBuyOffer())
                 totalToPayAsCoin.set(feeAndSecDeposit.add(amount.get()));
             else
                 totalToPayAsCoin.set(feeAndSecDeposit);
-
             updateBalance();
             log.debug("totalToPayAsCoin {}", totalToPayAsCoin.get().toFriendlyString());
         }
@@ -554,10 +553,6 @@ class TakeOfferDataModel extends OfferDataModel {
 
     public String getCurrencyNameAndCode() {
         return CurrencyUtil.getNameByCode(offer.getCurrencyCode());
-    }
-
-    public Coin getTotalTxFee() {
-        return txFeeFromFeeService.add(getTxFeeForDepositTx()).add(getTxFeeForPayoutTx());
     }
 
     @NotNull

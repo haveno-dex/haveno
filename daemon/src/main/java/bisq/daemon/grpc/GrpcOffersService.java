@@ -21,7 +21,7 @@ import bisq.core.api.CoreApi;
 import bisq.core.api.model.OfferInfo;
 import bisq.core.offer.Offer;
 import bisq.core.offer.OpenOffer;
-import bisq.core.util.ParsingUtils;
+import bisq.core.trade.HavenoUtils;
 import bisq.proto.grpc.CancelOfferReply;
 import bisq.proto.grpc.CancelOfferRequest;
 import bisq.proto.grpc.PostOfferReply;
@@ -154,8 +154,8 @@ class GrpcOffersService extends OffersImplBase {
                     req.getPrice(),
                     req.getUseMarketBasedPrice(),
                     req.getMarketPriceMarginPct(),
-                    ParsingUtils.atomicUnitsToCentineros(req.getAmount()), // scale atomic unit to centineros for consistency TODO switch base to atomic units?
-                    ParsingUtils.atomicUnitsToCentineros(req.getMinAmount()),
+                    HavenoUtils.atomicUnitsToCentineros(req.getAmount()), // scale atomic unit to centineros for consistency TODO switch base to atomic units?
+                    HavenoUtils.atomicUnitsToCentineros(req.getMinAmount()),
                     req.getBuyerSecurityDepositPct(),
                     req.getTriggerPrice(),
                     req.getPaymentAccountId(),

@@ -35,9 +35,9 @@ import bisq.core.support.messages.ChatMessage;
 import bisq.core.support.messages.SupportMessage;
 import bisq.core.trade.ClosedTradableManager;
 import bisq.core.trade.Contract;
+import bisq.core.trade.HavenoUtils;
 import bisq.core.trade.Trade;
 import bisq.core.trade.TradeManager;
-import bisq.core.util.ParsingUtils;
 
 import bisq.network.p2p.AckMessageSourceType;
 import bisq.network.p2p.NodeAddress;
@@ -318,12 +318,12 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
         BigInteger destinationSum = (buyerPayoutDestination == null ? BigInteger.ZERO : buyerPayoutDestination.getAmount()).add(sellerPayoutDestination == null ? BigInteger.ZERO : sellerPayoutDestination.getAmount());
         if (!arbitratorSignedPayoutTx.getOutputSum().equals(destinationSum.add(arbitratorSignedPayoutTx.getChangeAmount()))) throw new RuntimeException("Sum of outputs != destination amounts + change amount");
 
-        // TODO (woodser): verify fee is reasonable (e.g. within 2x of fee estimate tx)
+        // TODO: verify miner fee is within expected range
 
         // verify winner and loser payout amounts
         BigInteger txCost = arbitratorSignedPayoutTx.getFee().add(arbitratorSignedPayoutTx.getChangeAmount()); // fee + lost dust change
-        BigInteger expectedWinnerAmount = ParsingUtils.coinToAtomicUnits(disputeResult.getWinner() == Winner.BUYER ? disputeResult.getBuyerPayoutAmount() : disputeResult.getSellerPayoutAmount());
-        BigInteger expectedLoserAmount = ParsingUtils.coinToAtomicUnits(disputeResult.getWinner() == Winner.BUYER ? disputeResult.getSellerPayoutAmount() : disputeResult.getBuyerPayoutAmount());
+        BigInteger expectedWinnerAmount = HavenoUtils.coinToAtomicUnits(disputeResult.getWinner() == Winner.BUYER ? disputeResult.getBuyerPayoutAmount() : disputeResult.getSellerPayoutAmount());
+        BigInteger expectedLoserAmount = HavenoUtils.coinToAtomicUnits(disputeResult.getWinner() == Winner.BUYER ? disputeResult.getSellerPayoutAmount() : disputeResult.getBuyerPayoutAmount());
         if (expectedLoserAmount.equals(BigInteger.ZERO)) expectedWinnerAmount = expectedWinnerAmount.subtract(txCost); // winner only pays tx cost if loser gets 0
         else expectedLoserAmount = expectedLoserAmount.subtract(txCost); // loser pays tx cost
         BigInteger actualWinnerAmount = disputeResult.getWinner() == Winner.BUYER ? buyerPayoutDestination.getAmount() : sellerPayoutDestination.getAmount();
