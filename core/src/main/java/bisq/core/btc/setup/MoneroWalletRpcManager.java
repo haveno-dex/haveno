@@ -67,16 +67,16 @@ public class MoneroWalletRpcManager {
           else {
               int numAttempts = 0;
               while (numAttempts < NUM_ALLOWED_ATTEMPTS) {
-                  int port = -1;
-                  ServerSocket socket = null;
+                  int port;
                   try {
                       numAttempts++;
 
                       // get port
                       if (startPort != null) port = registerNextPort();
                       else {
-                        socket = new ServerSocket(0);
+                        ServerSocket socket = new ServerSocket(0);
                         port = socket.getLocalPort();
+                        socket.close();
                         synchronized (registeredPorts) {
                             registeredPorts.put(port, null);
                         }
@@ -96,8 +96,6 @@ public class MoneroWalletRpcManager {
                           log.error("Unable to start monero-wallet-rpc instance after {} attempts", NUM_ALLOWED_ATTEMPTS);
                           throw e;
                       }
-                  } finally {
-                      if (socket != null) socket.close(); // close socket if used
                   }
               }
               throw new MoneroError("Failed to start monero-wallet-rpc instance after " + NUM_ALLOWED_ATTEMPTS + " attempts"); // should never reach here
@@ -143,7 +141,7 @@ public class MoneroWalletRpcManager {
             return port;
       }
   }
-  
+
   private void unregisterPort(int port) {
       synchronized (registeredPorts) {
           registeredPorts.remove(port);
