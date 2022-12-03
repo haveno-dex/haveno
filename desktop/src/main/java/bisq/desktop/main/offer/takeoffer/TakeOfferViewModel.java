@@ -51,7 +51,6 @@ import bisq.network.p2p.network.CloseConnectionReason;
 import bisq.network.p2p.network.Connection;
 import bisq.network.p2p.network.ConnectionListener;
 import bisq.common.UserThread;
-import bisq.common.app.DevEnv;
 
 import org.bitcoinj.core.Coin;
 
@@ -704,20 +703,6 @@ class TakeOfferViewModel extends ActivatableWithDataModel<TakeOfferDataModel> im
     public String getTotalToPayInfo() {
         final String totalToPay = this.totalToPay.get();
         return totalToPay;
-    }
-
-    public String getTxFee() {
-        return OfferViewModelUtil.getTradeFeeWithFiatEquivalentAndPercentage(offerUtil,
-                dataModel.getTotalTxFee(),
-                dataModel.getAmount().get(),
-                btcFormatter,
-                Coin.ZERO
-        );
-    }
-
-    public String getTxFeePercentage() {
-        Coin txFeeAsCoin = dataModel.getTotalTxFee();
-        return GUIUtil.getPercentage(txFeeAsCoin, dataModel.getAmount().get());
     }
 
     ObservableList<PaymentAccount> getPossiblePaymentAccounts() {

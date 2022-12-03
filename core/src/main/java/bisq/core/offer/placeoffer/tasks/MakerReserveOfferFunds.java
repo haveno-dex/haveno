@@ -21,13 +21,17 @@ import bisq.common.taskrunner.Task;
 import bisq.common.taskrunner.TaskRunner;
 import bisq.core.btc.model.XmrAddressEntry;
 import bisq.core.offer.Offer;
+import bisq.core.offer.OfferDirection;
 import bisq.core.offer.placeoffer.PlaceOfferModel;
-import bisq.core.util.ParsingUtils;
+import bisq.core.trade.HavenoUtils;
 import lombok.extern.slf4j.Slf4j;
 
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.List;
+
+import org.bitcoinj.core.Coin;
+
 import monero.daemon.model.MoneroOutput;
 import monero.wallet.model.MoneroTxWallet;
 
@@ -46,19 +50,18 @@ public class MakerReserveOfferFunds extends Task<PlaceOfferModel> {
         try {
             runInterceptHook();
 
-            // create reserve tx with padding
+            // create reserve tx
+            BigInteger makerFee = HavenoUtils.coinToAtomicUnits(offer.getMakerFee());
+            BigInteger peerAmount = HavenoUtils.coinToAtomicUnits(offer.getDirection() == OfferDirection.BUY ? Coin.ZERO : offer.getAmount());
+            BigInteger securityDeposit = HavenoUtils.coinToAtomicUnits(offer.getDirection() == OfferDirection.BUY ? offer.getBuyerSecurityDeposit() : offer.getSellerSecurityDeposit());
             String returnAddress = model.getXmrWalletService().getOrCreateAddressEntry(offer.getId(), XmrAddressEntry.Context.TRADE_PAYOUT).getAddressString();
-            BigInteger makerFee = ParsingUtils.coinToAtomicUnits(offer.getMakerFee());
-            BigInteger depositAmount = ParsingUtils.coinToAtomicUnits(model.getReservedFundsForOffer());
-            log.info("Maker creating reserve tx with maker fee={} and depositAmount={}", makerFee, depositAmount);
-            MoneroTxWallet reserveTx = model.getXmrWalletService().createReserveTx(makerFee, returnAddress, depositAmount, true);
+            MoneroTxWallet reserveTx = model.getXmrWalletService().createReserveTx(makerFee, peerAmount, securityDeposit, returnAddress);
 
-            // collect reserved key images // TODO (woodser): switch to proof of reserve?
+            // collect reserved key images
             List<String> reservedKeyImages = new ArrayList<String>();
             for (MoneroOutput input : reserveTx.getInputs()) reservedKeyImages.add(input.getKeyImage().getHex());
 
             // save offer state
-            // TODO (woodser): persist
             model.setReserveTx(reserveTx);
             offer.getOfferPayload().setReserveTxKeyImages(reservedKeyImages);
             offer.setOfferFeePaymentTxId(reserveTx.getHash()); // TODO (woodser): don't use this field

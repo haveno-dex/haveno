@@ -260,10 +260,6 @@ public abstract class MutableOfferDataModel extends OfferDataModel {
 
         priceFeedService.setCurrencyCode(tradeCurrencyCode.get());
 
-        // Set the default values (in rare cases if the fee request was not done yet we get the hard coded default values)
-        // But offer creation happens usually after that so we should have already the value from the estimation service.
-        txFeeFromFeeService = feeService.getTxFee(feeTxVsize);
-
         calculateVolume();
         calculateTotalToPay();
         updateBalance();
@@ -557,8 +553,7 @@ public abstract class MutableOfferDataModel extends OfferDataModel {
         // The mining fee for the createOfferFee tx is deducted from the createOfferFee and not visible to the trader
         final Coin makerFee = getMakerFee();
         if (direction != null && amount.get() != null && makerFee != null) {
-            Coin feeAndSecDeposit = getTxFee().add(getSecurityDeposit());
-            feeAndSecDeposit = feeAndSecDeposit.add(makerFee);
+            Coin feeAndSecDeposit = getSecurityDeposit().add(makerFee);
             Coin total = isBuyOffer() ? feeAndSecDeposit : feeAndSecDeposit.add(amount.get());
             totalToPayAsCoin.set(total);
             updateBalance();
@@ -567,10 +562,6 @@ public abstract class MutableOfferDataModel extends OfferDataModel {
 
     Coin getSecurityDeposit() {
         return isBuyOffer() ? getBuyerSecurityDepositAsCoin() : getSellerSecurityDepositAsCoin();
-    }
-
-    public Coin getTxFee() {
-        return txFeeFromFeeService;
     }
 
     void swapTradeToSavings() {

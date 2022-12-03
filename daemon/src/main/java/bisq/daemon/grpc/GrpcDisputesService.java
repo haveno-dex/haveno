@@ -3,7 +3,7 @@ package bisq.daemon.grpc;
 import bisq.core.api.CoreApi;
 import bisq.core.support.dispute.Attachment;
 import bisq.core.support.dispute.DisputeResult;
-import bisq.core.util.ParsingUtils;
+import bisq.core.trade.HavenoUtils;
 
 import bisq.common.proto.ProtoUtil;
 
@@ -109,7 +109,7 @@ public class GrpcDisputesService extends DisputesImplBase {
             var winner = ProtoUtil.enumFromProto(DisputeResult.Winner.class, req.getWinner().name());
             var reason = ProtoUtil.enumFromProto(DisputeResult.Reason.class, req.getReason().name());
             // scale atomic unit to centineros for consistency TODO switch base to atomic units?
-            var customPayoutAmount = ParsingUtils.atomicUnitsToCentineros(req.getCustomPayoutAmount());
+            var customPayoutAmount = HavenoUtils.atomicUnitsToCentineros(req.getCustomPayoutAmount());
             coreApi.resolveDispute(req.getTradeId(), winner, reason, req.getSummaryNotes(), customPayoutAmount);
             var reply = ResolveDisputeReply.newBuilder().build();
             responseObserver.onNext(reply);

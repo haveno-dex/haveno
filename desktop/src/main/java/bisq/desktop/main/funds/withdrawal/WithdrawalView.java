@@ -32,6 +32,7 @@ import bisq.core.btc.setup.WalletsSetup;
 import bisq.core.btc.wallet.XmrWalletService;
 import bisq.core.locale.Res;
 import bisq.core.provider.fee.FeeService;
+import bisq.core.trade.HavenoUtils;
 import bisq.core.trade.Trade;
 import bisq.core.trade.TradeManager;
 import bisq.core.user.DontShowAgainLookup;
@@ -191,12 +192,12 @@ public class WithdrawalView extends ActivatableView<VBox, Void> {
                 // create tx
                 MoneroTxWallet tx = xmrWalletService.getWallet().createTx(new MoneroTxConfig()
                         .setAccountIndex(0)
-                        .setAmount(ParsingUtils.coinToAtomicUnits(receiverAmount)) // TODO: rename to centinerosToAtomicUnits()?
+                        .setAmount(HavenoUtils.coinToAtomicUnits(receiverAmount)) // TODO: rename to centinerosToAtomicUnits()?
                         .setAddress(withdrawToAddress)
                         .setNote(withdrawMemoTextField.getText()));
 
                 // create confirmation message
-                Coin fee = ParsingUtils.atomicUnitsToCoin(tx.getFee());
+                Coin fee = HavenoUtils.atomicUnitsToCoin(tx.getFee());
                 Coin sendersAmount = receiverAmount.add(fee);
                 String messageText = Res.get("shared.sendFundsDetailsWithFee",
                         formatter.formatCoinWithCode(sendersAmount),

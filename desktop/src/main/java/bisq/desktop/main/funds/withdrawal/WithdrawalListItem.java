@@ -72,8 +72,7 @@ class WithdrawalListItem {
     }
 
     private void updateBalance() {
-        balance = walletService.getBalanceForSubaddress(addressEntry.getSubaddressIndex()); // TODO: Coin represents centineros everywhere, but here it's atomic units. reconcile
-        balance = Coin.valueOf(ParsingUtils.atomicUnitsToCentineros(balance.longValue())); // in centineros
+        balance = walletService.getBalanceForSubaddress(addressEntry.getSubaddressIndex());
         if (balance != null)
             balanceLabel.setText(formatter.formatCoin(this.balance));
     }

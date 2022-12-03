@@ -710,7 +710,7 @@ public abstract class Trade implements Tradable, Model {
         Preconditions.checkNotNull(buyerPayoutAddress, "Buyer payout address must not be null");
         BigInteger sellerDepositAmount = multisigWallet.getTx(this.getSeller().getDepositTxHash()).getIncomingAmount();
         BigInteger buyerDepositAmount = multisigWallet.getTx(this.getBuyer().getDepositTxHash()).getIncomingAmount();
-        BigInteger tradeAmount = ParsingUtils.coinToAtomicUnits(this.getAmount());
+        BigInteger tradeAmount = HavenoUtils.coinToAtomicUnits(this.getAmount());
         BigInteger buyerPayoutAmount = buyerDepositAmount.add(tradeAmount);
         BigInteger sellerPayoutAmount = sellerDepositAmount.subtract(tradeAmount);
 
@@ -763,7 +763,7 @@ public abstract class Trade implements Tradable, Model {
         Contract contract = getContract();
         BigInteger sellerDepositAmount = multisigWallet.getTx(getSeller().getDepositTxHash()).getIncomingAmount();   // TODO (woodser): redundancy of processModel.getPreparedDepositTxId() vs this.getDepositTxId() necessary or avoidable?
         BigInteger buyerDepositAmount = multisigWallet.getTx(getBuyer().getDepositTxHash()).getIncomingAmount();
-        BigInteger tradeAmount = ParsingUtils.coinToAtomicUnits(getAmount());
+        BigInteger tradeAmount = HavenoUtils.coinToAtomicUnits(getAmount());
 
         // describe payout tx
         MoneroTxSet describedTxSet = multisigWallet.describeTxSet(new MoneroTxSet().setMultisigTxHex(payoutTxHex));

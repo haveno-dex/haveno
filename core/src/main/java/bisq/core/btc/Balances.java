@@ -25,10 +25,10 @@ import bisq.core.offer.OpenOfferManager;
 import bisq.core.support.dispute.Dispute;
 import bisq.core.support.dispute.refund.RefundManager;
 import bisq.core.trade.ClosedTradableManager;
+import bisq.core.trade.HavenoUtils;
 import bisq.core.trade.Trade;
 import bisq.core.trade.TradeManager;
 import bisq.core.trade.failed.FailedTradesManager;
-import bisq.core.util.ParsingUtils;
 import bisq.network.p2p.P2PService;
 import java.math.BigInteger;
 import java.util.List;
@@ -137,7 +137,7 @@ public class Balances {
             } else {
                 reservedAmt = trade.getContract().isMyRoleBuyer(tradeManager.getKeyRing().getPubKeyRing()) ? offerPayload.getBuyerSecurityDeposit() : offerPayload.getAmount() + offerPayload.getSellerSecurityDeposit();
             }
-            sum = sum.add(Coin.valueOf(ParsingUtils.centinerosToAtomicUnits(reservedAmt).longValueExact()));
+            sum = sum.add(Coin.valueOf(HavenoUtils.centinerosToAtomicUnits(reservedAmt).longValueExact()));
         }
         reservedTradeBalance.set(sum);
     }

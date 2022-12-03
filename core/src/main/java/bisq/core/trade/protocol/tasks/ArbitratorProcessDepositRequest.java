@@ -24,11 +24,11 @@ import bisq.common.crypto.Sig;
 import bisq.common.taskrunner.TaskRunner;
 import bisq.core.offer.Offer;
 import bisq.core.offer.OfferDirection;
+import bisq.core.trade.HavenoUtils;
 import bisq.core.trade.Trade;
 import bisq.core.trade.messages.DepositRequest;
 import bisq.core.trade.messages.DepositResponse;
 import bisq.core.trade.protocol.TradingPeer;
-import bisq.core.util.ParsingUtils;
 import bisq.network.p2p.NodeAddress;
 import bisq.network.p2p.SendDirectMessageListener;
 import common.utils.JsonUtils;
@@ -37,6 +37,9 @@ import java.math.BigInteger;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.UUID;
+
+import org.bitcoinj.core.Coin;
+
 import lombok.extern.slf4j.Slf4j;
 import monero.daemon.MoneroDaemon;
 import monero.daemon.model.MoneroSubmitTxResult;
@@ -70,28 +73,30 @@ public class ArbitratorProcessDepositRequest extends TradeTask {
             // set peer's signature
             peer.setContractSignature(signature);
 
-            // collect expected values of deposit tx
+            // collect expected values
             Offer offer = trade.getOffer();
             boolean isFromTaker = request.getSenderNodeAddress().equals(trade.getTaker().getNodeAddress());
             boolean isFromBuyer = isFromTaker ? offer.getDirection() == OfferDirection.SELL : offer.getDirection() == OfferDirection.BUY;
-            BigInteger depositAmount = ParsingUtils.coinToAtomicUnits(isFromBuyer ? offer.getBuyerSecurityDeposit() : offer.getAmount().add(offer.getSellerSecurityDeposit()));
+            BigInteger peerAmount =  HavenoUtils.coinToAtomicUnits(isFromBuyer ? Coin.ZERO : offer.getAmount());
+            BigInteger securityDeposit = HavenoUtils.coinToAtomicUnits(isFromBuyer ? offer.getBuyerSecurityDeposit() : offer.getSellerSecurityDeposit());
             String depositAddress = processModel.getMultisigAddress();
             BigInteger tradeFee;
             TradingPeer trader = trade.getTradingPeer(request.getSenderNodeAddress());
-            if (trader == processModel.getMaker()) tradeFee = ParsingUtils.coinToAtomicUnits(trade.getOffer().getMakerFee());
-            else if (trader == processModel.getTaker()) tradeFee = ParsingUtils.coinToAtomicUnits(trade.getTakerFee());
+            if (trader == processModel.getMaker()) tradeFee = HavenoUtils.coinToAtomicUnits(trade.getOffer().getMakerFee());
+            else if (trader == processModel.getTaker()) tradeFee = HavenoUtils.coinToAtomicUnits(trade.getTakerFee());
             else throw new RuntimeException("DepositRequest is not from maker or taker");
 
             // verify deposit tx
             try {
-                trade.getXmrWalletService().verifyTradeTx(depositAddress,
-                    depositAmount,
+                trade.getXmrWalletService().verifyTradeTx(
                     tradeFee,
+                    peerAmount,
+                    securityDeposit,
+                    depositAddress,
                     trader.getDepositTxHash(),
                     request.getDepositTxHex(),
                     request.getDepositTxKey(),
-                    null,
-                    false);
+                    null);
             } catch (Exception e) {
                 throw new RuntimeException("Error processing deposit tx from " + (isFromTaker ? "taker " : "maker ") + request.getSenderNodeAddress() + ", offerId=" + offer.getId() + ": " + e.getMessage());
             }

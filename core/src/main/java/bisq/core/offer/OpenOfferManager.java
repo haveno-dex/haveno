@@ -42,7 +42,6 @@ import bisq.core.trade.statistics.TradeStatisticsManager;
 import bisq.core.user.Preferences;
 import bisq.core.user.User;
 import bisq.core.util.JsonUtil;
-import bisq.core.util.ParsingUtils;
 import bisq.core.util.Validator;
 
 import bisq.network.p2p.AckMessage;
@@ -626,14 +625,15 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                                        ErrorMessageHandler errorMessageHandler) {
         new Thread(() -> {
             List<String> errorMessages = new ArrayList<String>();
-            for (OpenOffer scheduledOffer : openOffers.getObservableList()) {
+            for (OpenOffer scheduledOffer : new ArrayList<OpenOffer>(openOffers.getObservableList())) {
                 if (scheduledOffer.getState() != OpenOffer.State.SCHEDULED) continue;
                 CountDownLatch latch = new CountDownLatch(1);
                 processUnpostedOffer(scheduledOffer, (transaction) -> {
                     latch.countDown();
                 }, errorMessage -> {
-                    latch.countDown();
+                    onRemoved(scheduledOffer);
                     errorMessages.add(errorMessage);
+                    latch.countDown();
                 });
                 HavenoUtils.awaitLatch(latch);
             }
@@ -655,7 +655,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
 
                 // get offer reserve amount
                 Coin offerReserveAmountCoin = openOffer.getOffer().getReserveAmount();
-                BigInteger offerReserveAmount = ParsingUtils.centinerosToAtomicUnits(offerReserveAmountCoin.value);
+                BigInteger offerReserveAmount = HavenoUtils.centinerosToAtomicUnits(offerReserveAmountCoin.value);
 
                 // handle sufficient available balance
                 if (xmrWalletService.getWallet().getUnlockedBalance(0).compareTo(offerReserveAmount) >= 0) {
@@ -773,6 +773,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
 
                     // set offer state
                     openOffer.setState(OpenOffer.State.AVAILABLE);
+                    requestPersistence();
 
                     resultHandler.handleResult(transaction);
                     if (!stopped) {
@@ -832,17 +833,18 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
             
             // verify maker's reserve tx (double spend, trade fee, trade amount, mining fee)
             Offer offer = new Offer(request.getOfferPayload());
-            BigInteger tradeFee = ParsingUtils.coinToAtomicUnits(offer.getMakerFee());
-            BigInteger depositAmount = ParsingUtils.coinToAtomicUnits(offer.getDirection() == OfferDirection.BUY ? offer.getBuyerSecurityDeposit() : offer.getAmount().add(offer.getSellerSecurityDeposit()));
+            BigInteger tradeFee = HavenoUtils.coinToAtomicUnits(offer.getMakerFee());
+            BigInteger peerAmount =  HavenoUtils.coinToAtomicUnits(offer.getDirection() == OfferDirection.BUY ? Coin.ZERO : offer.getAmount());
+            BigInteger securityDeposit = HavenoUtils.coinToAtomicUnits(offer.getDirection() == OfferDirection.BUY ? offer.getBuyerSecurityDeposit() : offer.getSellerSecurityDeposit());
             xmrWalletService.verifyTradeTx(
-                    request.getPayoutAddress(),
-                    depositAmount,
                     tradeFee,
+                    peerAmount,
+                    securityDeposit,
+                    request.getPayoutAddress(),
                     request.getReserveTxHash(),
                     request.getReserveTxHex(),
                     request.getReserveTxKey(),
-                    request.getReserveTxKeyImages(),
-                    true);
+                    request.getReserveTxKeyImages());
 
             // arbitrator signs offer to certify they have valid reserve tx
             String offerPayloadAsJson = JsonUtil.objectToJson(request.getOfferPayload());

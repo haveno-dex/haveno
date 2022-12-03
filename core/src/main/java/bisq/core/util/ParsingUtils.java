@@ -9,57 +9,11 @@ import org.bitcoinj.core.Coin;
 import org.bitcoinj.utils.MonetaryFormat;
 
 import org.apache.commons.lang3.StringUtils;
-import java.math.BigDecimal;
-import java.math.BigInteger;
 
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class ParsingUtils {
-
-    // multipliers to convert units
-    private static BigInteger CENTINEROS_AU_MULTIPLIER = new BigInteger("10000");
-    private static BigInteger XMR_AU_MULTIPLIER = new BigInteger("1000000000000");
-
-    public static BigInteger coinToAtomicUnits(Coin coin) {
-        return centinerosToAtomicUnits(coin.value);
-    }
-
-    public static double coinToXmr(Coin coin) {
-        return atomicUnitsToXmr(coinToAtomicUnits(coin));
-    }
-
-    public static BigInteger centinerosToAtomicUnits(long centineros) {
-        return BigInteger.valueOf(centineros).multiply(ParsingUtils.CENTINEROS_AU_MULTIPLIER);
-    }
-
-    public static double centinerosToXmr(long centineros) {
-        return atomicUnitsToXmr(centinerosToAtomicUnits(centineros));
-    }
-
-    public static long atomicUnitsToCentineros(long atomicUnits) { // TODO: atomic units should be BigInteger; remove this?
-      return atomicUnits / CENTINEROS_AU_MULTIPLIER.longValue();
-    }
-
-    public static long atomicUnitsToCentineros(BigInteger atomicUnits) {
-        return atomicUnits.divide(CENTINEROS_AU_MULTIPLIER).longValueExact();
-    }
-
-    public static Coin atomicUnitsToCoin(BigInteger atomicUnits) {
-        return Coin.valueOf(atomicUnitsToCentineros(atomicUnits));
-    }
-
-    public static double atomicUnitsToXmr(BigInteger atomicUnits) {
-      return new BigDecimal(atomicUnits).divide(new BigDecimal(XMR_AU_MULTIPLIER)).doubleValue();
-    }
-
-    public static BigInteger xmrToAtomicUnits(double xmr) {
-        return BigDecimal.valueOf(xmr).multiply(new BigDecimal(XMR_AU_MULTIPLIER)).toBigInteger();
-    }
-
-    public static long xmrToCentineros(double xmr) {
-        return atomicUnitsToCentineros(xmrToAtomicUnits(xmr));
-    }
 
     public static Coin parseToCoin(String input, CoinFormatter coinFormatter) {
         return parseToCoin(input, coinFormatter.getMonetaryFormat());

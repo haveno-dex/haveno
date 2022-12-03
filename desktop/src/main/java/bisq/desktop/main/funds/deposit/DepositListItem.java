@@ -21,7 +21,7 @@ import bisq.core.btc.listeners.XmrBalanceListener;
 import bisq.core.btc.model.XmrAddressEntry;
 import bisq.core.btc.wallet.XmrWalletService;
 import bisq.core.locale.Res;
-import bisq.core.util.ParsingUtils;
+import bisq.core.trade.HavenoUtils;
 import bisq.core.util.coin.CoinFormatter;
 import bisq.desktop.components.indicator.TxConfidenceIndicator;
 import bisq.desktop.util.GUIUtil;
@@ -66,15 +66,14 @@ class DepositListItem {
         balanceListener = new XmrBalanceListener(addressEntry.getSubaddressIndex()) {
             @Override
             public void onBalanceChanged(BigInteger balance) {
-                DepositListItem.this.balanceAsCoin = ParsingUtils.atomicUnitsToCoin(balance);
+                DepositListItem.this.balanceAsCoin = HavenoUtils.atomicUnitsToCoin(balance);
                 DepositListItem.this.balance.set(formatter.formatCoin(balanceAsCoin));
                 updateUsage(addressEntry.getSubaddressIndex());
             }
         };
         xmrWalletService.addBalanceListener(balanceListener);
 
-        balanceAsCoin = xmrWalletService.getBalanceForSubaddress(addressEntry.getSubaddressIndex()); // TODO: Coin represents centineros everywhere, but here it's atomic units. reconcile
-        balanceAsCoin = Coin.valueOf(ParsingUtils.atomicUnitsToCentineros(balanceAsCoin.longValue())); // in centineros
+        balanceAsCoin = xmrWalletService.getBalanceForSubaddress(addressEntry.getSubaddressIndex());
         balance.set(formatter.formatCoin(balanceAsCoin));
 
         updateUsage(addressEntry.getSubaddressIndex());
