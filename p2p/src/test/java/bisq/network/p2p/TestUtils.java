@@ -45,7 +45,7 @@ public class TestUtils {
     public static KeyPair generateKeyPair() throws NoSuchAlgorithmException {
         long ts = System.currentTimeMillis();
         final KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("DSA");
-        keyPairGenerator.initialize(1024);
+        keyPairGenerator.initialize(2048);
         KeyPair keyPair = keyPairGenerator.genKeyPair();
         log.trace("Generate storageSignatureKeyPair needed {} ms", System.currentTimeMillis() - ts);
         return keyPair;

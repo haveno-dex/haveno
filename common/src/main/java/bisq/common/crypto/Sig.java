@@ -59,7 +59,7 @@ public class Sig {
         long ts = System.currentTimeMillis();
         try {
             KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance(KEY_ALGO);
-            keyPairGenerator.initialize(1024);
+            keyPairGenerator.initialize(2048);
             return keyPairGenerator.genKeyPair();
         } catch (NoSuchAlgorithmException e) {
             log.error("Could not create key.", e);
