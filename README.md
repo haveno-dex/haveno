@@ -5,7 +5,7 @@
   ![GitHub Workflow Status](https://img.shields.io/github/workflow/status/haveno-dex/haveno/CI)
   [![GitHub issues with bounty](https://img.shields.io/github/issues-search/haveno-dex/haveno?color=%23fef2c0&label=Issues%20with%20bounties&query=project%3Ahaveno-dex%2F2)](https://github.com/orgs/haveno-dex/projects/2) | 
   [![Twitter Follow](https://img.shields.io/twitter/follow/HavenoDEX?style=social)](https://twitter.com/havenodex)
-  [![Matrix rooms](https://img.shields.io/badge/Matrix%20room-%23haveno-blue)](https://matrix.to/#/#haveno:haveno.network) [![Contributor Covenant](https://img.shields.io/badge/Contributor%20Covenant-2.1-4baaaa.svg)](https://github.com/haveno-dex/.github/blob/master/CODE_OF_CONDUCT.md) 
+  [![Matrix rooms](https://img.shields.io/badge/Matrix%20room-%23haveno-blue)](https://matrix.to/#/#haveno:monero.social) [![Contributor Covenant](https://img.shields.io/badge/Contributor%20Covenant-2.1-4baaaa.svg)](https://github.com/haveno-dex/.github/blob/master/CODE_OF_CONDUCT.md) 
 </div>
 
 ## What is Haveno?
@@ -45,8 +45,8 @@ The PGP keys of the core team members are in `gpg_keys/`.
 
 Haveno is a community-driven project. For it to be successful it's fundamental to have the support and help of the community. Join the community rooms on our Matrix server:
 
-- General discussions: **Haveno** ([#haveno:haveno.network](https://matrix.to/#/#haveno:haveno.network)) relayed on IRC/Libera (`#haveno`)
-- Development discussions: **Haveno Development** ([#haveno-dev:haveno.network](https://matrix.to/#/#haveno-dev:haveno.network)) relayed on IRC/Libera (`#haveno-dev`)
+- General discussions: **Haveno** ([#haveno:monero.social](https://matrix.to/#/#haveno:monero.social)) relayed on IRC/Libera (`#haveno`)
+- Development discussions: **Haveno Development** ([#haveno-dev:monero.social](https://matrix.to/#/#haveno-dev:monero.social)) relayed on IRC/Libera (`#haveno-dev`)
 
 Email: contact@haveno.exchange
 Website: [haveno.exchange](https://haveno.exchange)
@@ -75,12 +75,12 @@ To bring Haveno to life, we need resources. If you have the possibility, please 
 
 `42sjokkT9FmiWPqVzrWPFE5NCJXwt96bkBozHf4vgLR9hXyJDqKHEHKVscAARuD7in5wV1meEcSTJTanCTDzidTe2cFXS1F`
 
-![Qr code](https://raw.githubusercontent.com/haveno-dex/haveno/master/media/qrhaveno.png)
+<!-- ![Qr code](https://raw.githubusercontent.com/haveno-dex/haveno/master/media/qrhaveno.png) -->
 
-If you are using a wallet that supports Openalias (like the 'official' CLI and GUI wallets), you can simply put `fund@haveno.exchange` as the "receiver" address.
+If you are using a wallet that supports OpenAlias (like the 'official' CLI and GUI wallets), you can simply put `fund@haveno.exchange` as the "receiver" address.
 
 ### Bitcoin
 
-`bc1q4j5a9hfjxltfvv66gnfaw6478hagzpmjx3zkam`
+`1AKq3CE1yBAnxGmHXbNFfNYStcByNDc5gQ`
 
-![Qr code](https://raw.githubusercontent.com/haveno-dex/haveno/master/media/qrbtc.png)
+<!-- ![Qr code](https://raw.githubusercontent.com/haveno-dex/haveno/master/media/qrbtc.png) -->
