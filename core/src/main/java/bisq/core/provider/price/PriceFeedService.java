@@ -338,8 +338,7 @@ public class PriceFeedService {
      */
     public Map<String, MarketPrice> requestAllPrices() throws ExecutionException, InterruptedException, TimeoutException, CancellationException {
         return new PriceRequest().requestAllPrices(priceProvider)
-                .get(20, TimeUnit.SECONDS)
-                .second;
+                .get(20, TimeUnit.SECONDS);
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -406,10 +405,10 @@ public class PriceFeedService {
         }
 
         priceRequest = new PriceRequest();
-        SettableFuture<Tuple2<Map<String, Long>, Map<String, MarketPrice>>> future = priceRequest.requestAllPrices(provider);
+        SettableFuture<Map<String, MarketPrice>> future = priceRequest.requestAllPrices(provider);
         Futures.addCallback(future, new FutureCallback<>() {
             @Override
-            public void onSuccess(@Nullable Tuple2<Map<String, Long>, Map<String, MarketPrice>> result) {
+            public void onSuccess(@Nullable Map<String, MarketPrice> result) {
                 UserThread.execute(() -> {
                     checkNotNull(result, "Result must not be null at requestAllPrices");
                     // Each currency rate has a different timestamp, depending on when
@@ -417,7 +416,7 @@ public class PriceFeedService {
                     // However, the request timestamp is when the pricenode was queried
                     epochInMillisAtLastRequest = System.currentTimeMillis();
 
-                    Map<String, MarketPrice> priceMap = result.second;
+                    Map<String, MarketPrice> priceMap = result;
 
                     cache.putAll(priceMap);
 
