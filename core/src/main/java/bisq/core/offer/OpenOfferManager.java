@@ -610,11 +610,11 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
     }
 
     public Optional<OpenOffer> getOpenOfferById(String offerId) {
-        return openOffers.getObservableList().stream().filter(e -> e.getId().equals(offerId)).findFirst();
+        return new ArrayList<>(openOffers.getObservableList()).stream().filter(e -> e.getId().equals(offerId)).findFirst();
     }
     
     public Optional<SignedOffer> getSignedOfferById(String offerId) {
-        return signedOffers.getObservableList().stream().filter(e -> e.getOfferId().equals(offerId)).findFirst();
+        return new ArrayList<>(signedOffers.getObservableList()).stream().filter(e -> e.getOfferId().equals(offerId)).findFirst();
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////

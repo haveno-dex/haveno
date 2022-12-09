@@ -166,6 +166,10 @@ public class XmrWalletService {
         return wallet;
     }
 
+    public void saveWallet() {
+        saveWallet(getWallet());
+    }
+
     public boolean isWalletReady() {
         try {
             return getWallet() != null;
@@ -227,7 +231,21 @@ public class XmrWalletService {
         }
     }
 
-    public void saveWallet(MoneroWallet wallet) {
+    public void saveMultisigWallet(String tradeId) {
+        log.info("{}.saveMultisigWallet({})", getClass().getSimpleName(), tradeId);
+        initWalletLock(tradeId);
+        synchronized (walletLocks.get(tradeId)) {
+            String walletName = MONERO_MULTISIG_WALLET_PREFIX + tradeId;
+            if (!walletExists(walletName)) {
+                log.warn("Multisig wallet for trade {} does not exist");
+                return;
+            }
+            if (!multisigWallets.containsKey(tradeId)) throw new RuntimeException("Multisig wallet to save was not previously opened for trade " + tradeId);
+            saveWallet(multisigWallets.get(tradeId));
+        }
+    }
+
+    private void saveWallet(MoneroWallet wallet) {
         wallet.save();
         backupWallet(wallet.getPath());
     }
