@@ -33,7 +33,6 @@ import bisq.core.offer.OpenOfferManager;
 import bisq.core.offer.TriggerPriceService;
 import bisq.core.payment.AmazonGiftCardAccount;
 import bisq.core.payment.RevolutAccount;
-import bisq.core.provider.fee.FeeService;
 import bisq.core.provider.mempool.MempoolService;
 import bisq.core.provider.price.PriceFeedService;
 import bisq.core.support.dispute.arbitration.ArbitrationManager;
@@ -88,7 +87,6 @@ public class DomainInitialisation {
     private final RefundAgentManager refundAgentManager;
     private final PrivateNotificationManager privateNotificationManager;
     private final P2PService p2PService;
-    private final FeeService feeService;
     private final TradeStatisticsManager tradeStatisticsManager;
     private final AccountAgeWitnessService accountAgeWitnessService;
     private final SignedWitnessService signedWitnessService;
@@ -122,7 +120,6 @@ public class DomainInitialisation {
                                 RefundAgentManager refundAgentManager,
                                 PrivateNotificationManager privateNotificationManager,
                                 P2PService p2PService,
-                                FeeService feeService,
                                 TradeStatisticsManager tradeStatisticsManager,
                                 AccountAgeWitnessService accountAgeWitnessService,
                                 SignedWitnessService signedWitnessService,
@@ -154,7 +151,6 @@ public class DomainInitialisation {
         this.refundAgentManager = refundAgentManager;
         this.privateNotificationManager = privateNotificationManager;
         this.p2PService = p2PService;
-        this.feeService = feeService;
         this.tradeStatisticsManager = tradeStatisticsManager;
         this.accountAgeWitnessService = accountAgeWitnessService;
         this.signedWitnessService = signedWitnessService;
@@ -206,9 +202,6 @@ public class DomainInitialisation {
         });
 
         p2PService.onAllServicesInitialized();
-
-        feeService.onAllServicesInitialized();
-
 
         tradeStatisticsManager.onAllServicesInitialized();
 

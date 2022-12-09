@@ -29,7 +29,6 @@ import bisq.core.offer.OpenOffer;
 import bisq.core.offer.OpenOfferManager;
 import bisq.core.offer.SignedOffer;
 import bisq.core.offer.availability.OfferAvailabilityModel;
-import bisq.core.provider.fee.FeeService;
 import bisq.core.provider.price.PriceFeedService;
 import bisq.core.support.dispute.arbitration.arbitrator.Arbitrator;
 import bisq.core.support.dispute.arbitration.arbitrator.ArbitratorManager;
@@ -458,8 +457,8 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
               }
 
               // compute expected taker fee
-              Coin feePerBtc = CoinUtil.getFeePerBtc(FeeService.getTakerFeePerBtc(), Coin.valueOf(offer.getOfferPayload().getAmount()));
-              Coin takerFee = CoinUtil.maxCoin(feePerBtc, FeeService.getMinTakerFee());
+              Coin feePerBtc = CoinUtil.getFeePerBtc(HavenoUtils.getTakerFeePerBtc(), Coin.valueOf(offer.getOfferPayload().getAmount()));
+              Coin takerFee = CoinUtil.maxCoin(feePerBtc, HavenoUtils.getMinTakerFee());
 
               // create arbitrator trade
               trade = new ArbitratorTrade(offer,
@@ -691,7 +690,6 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
 
     // First we check if offer is still available then we create the trade with the protocol
     public void onTakeOffer(Coin amount,
-                            Coin txFee,
                             Coin takerFee,
                             Coin fundsNeededForTrade,
                             Offer offer,

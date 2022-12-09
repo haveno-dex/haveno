@@ -17,8 +17,6 @@
 
 package bisq.cli;
 
-import bisq.proto.grpc.TxFeeRateInfo;
-
 import com.google.common.annotations.VisibleForTesting;
 
 import java.text.DecimalFormat;
@@ -74,18 +72,6 @@ public class CurrencyFormat {
     @SuppressWarnings("BigDecimalMethodWithoutRoundingCalled")
     public static String formatBsq(long sats) {
         return BSQ_FORMAT.format(new BigDecimal(sats).divide(BSQ_SATOSHI_DIVISOR));
-    }
-
-    public static String formatTxFeeRateInfo(TxFeeRateInfo txFeeRateInfo) {
-        if (txFeeRateInfo.getUseCustomTxFeeRate())
-            return format("custom tx fee rate: %s sats/byte, network rate: %s sats/byte, min network rate: %s sats/byte",
-                    formatFeeSatoshis(txFeeRateInfo.getCustomTxFeeRate()),
-                    formatFeeSatoshis(txFeeRateInfo.getFeeServiceRate()),
-                    formatFeeSatoshis(txFeeRateInfo.getMinFeeServiceRate()));
-        else
-            return format("tx fee rate: %s sats/byte, min tx fee rate: %s sats/byte",
-                    formatFeeSatoshis(txFeeRateInfo.getFeeServiceRate()),
-                    formatFeeSatoshis(txFeeRateInfo.getMinFeeServiceRate()));
     }
 
     public static String formatInternalFiatPrice(BigDecimal price) {

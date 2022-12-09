@@ -23,7 +23,6 @@ import bisq.core.api.model.MarketDepthInfo;
 import bisq.core.api.model.MarketPriceInfo;
 import bisq.core.api.model.PaymentAccountForm;
 import bisq.core.api.model.PaymentAccountFormField;
-import bisq.core.api.model.TxFeeRateInfo;
 import bisq.core.app.AppStartupState;
 import bisq.core.monetary.Price;
 import bisq.core.offer.Offer;
@@ -313,24 +312,6 @@ public class CoreApi {
                         String memo,
                         FutureCallback<Transaction> callback) {
         walletsService.sendBtc(address, amount, txFeeRate, memo, callback);
-    }
-
-
-    public void getTxFeeRate(ResultHandler resultHandler) {
-        walletsService.getTxFeeRate(resultHandler);
-    }
-
-    public void setTxFeeRatePreference(long txFeeRate,
-                                       ResultHandler resultHandler) {
-        walletsService.setTxFeeRatePreference(txFeeRate, resultHandler);
-    }
-
-    public void unsetTxFeeRatePreference(ResultHandler resultHandler) {
-        walletsService.unsetTxFeeRatePreference(resultHandler);
-    }
-
-    public TxFeeRateInfo getMostRecentTxFeeRateInfo() {
-        return walletsService.getMostRecentTxFeeRateInfo();
     }
 
     public Transaction getTransaction(String txId) {

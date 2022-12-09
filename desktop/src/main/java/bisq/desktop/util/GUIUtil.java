@@ -41,7 +41,6 @@ import bisq.core.locale.TradeCurrency;
 import bisq.core.payment.PaymentAccount;
 import bisq.core.payment.PaymentAccountList;
 import bisq.core.payment.payload.PaymentMethod;
-import bisq.core.provider.fee.FeeService;
 import bisq.core.trade.HavenoUtils;
 import bisq.core.trade.txproof.AssetTxProofResult;
 import bisq.core.user.DontShowAgainLookup;
@@ -160,14 +159,9 @@ public class GUIUtil {
     public final static int AMOUNT_DECIMALS_WITH_ZEROS = 3;
     public final static int AMOUNT_DECIMALS = 4;
 
-    private static FeeService feeService;
     private static Preferences preferences;
     
     public static TradeCurrency TOP_ALTCOIN = CurrencyUtil.getTradeCurrency("ETH").get();
-
-    public static void setFeeService(FeeService feeService) {
-        GUIUtil.feeService = feeService;
-    }
 
     public static void setPreferences(Preferences preferences) {
         GUIUtil.preferences = preferences;

@@ -27,6 +27,7 @@ import bisq.core.trade.messages.InitTradeRequest;
 import bisq.core.trade.messages.PaymentReceivedMessage;
 import bisq.core.trade.messages.PaymentSentMessage;
 import bisq.core.util.JsonUtil;
+import bisq.core.util.ParsingUtils;
 import lombok.extern.slf4j.Slf4j;
 
 import java.math.BigDecimal;
@@ -39,7 +40,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 import org.bitcoinj.core.Coin;
-
+import org.bitcoinj.utils.MonetaryFormat;
 import com.google.common.base.CaseFormat;
 import com.google.common.base.Charsets;
 
@@ -95,11 +96,28 @@ public class HavenoUtils {
     public static long xmrToCentineros(double xmr) {
         return atomicUnitsToCentineros(xmrToAtomicUnits(xmr));
     }
+    
+    private static final MonetaryFormat xmrCoinFormat = Config.baseCurrencyNetworkParameters().getMonetaryFormat();
+
+
+    public static Coin getMakerFeePerBtc() {
+         return ParsingUtils.parseToCoin("0.001", xmrCoinFormat);
+    }
+
+    public static Coin getMinMakerFee() {
+         return ParsingUtils.parseToCoin("0.00005", xmrCoinFormat);
+    }
+
+    public static Coin getTakerFeePerBtc() {
+         return ParsingUtils.parseToCoin("0.003", xmrCoinFormat);
+    }
+
+    public static Coin getMinTakerFee() {
+         return ParsingUtils.parseToCoin("0.00005", xmrCoinFormat);
+    }
 
     /**
      * Get address to collect trade fees.
-     * 
-     * TODO: move to config constants?
      * 
      * @return the address which collects trade fees
      */

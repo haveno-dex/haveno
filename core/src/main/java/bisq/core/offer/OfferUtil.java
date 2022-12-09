@@ -27,9 +27,9 @@ import bisq.core.monetary.Volume;
 import bisq.core.payment.CashByMailAccount;
 import bisq.core.payment.F2FAccount;
 import bisq.core.payment.PaymentAccount;
-import bisq.core.provider.fee.FeeService;
 import bisq.core.provider.price.MarketPrice;
 import bisq.core.provider.price.PriceFeedService;
+import bisq.core.trade.HavenoUtils;
 import bisq.core.trade.statistics.ReferralIdService;
 import bisq.core.user.AutoConfirmSettings;
 import bisq.core.user.Preferences;
@@ -191,8 +191,8 @@ public class OfferUtil {
     @Nullable
     public Coin getTakerFee(@Nullable Coin amount) {
         if (amount != null) {
-            Coin feePerBtc = CoinUtil.getFeePerBtc(FeeService.getTakerFeePerBtc(), amount);
-            return CoinUtil.maxCoin(feePerBtc, FeeService.getMinTakerFee());
+            Coin feePerBtc = CoinUtil.getFeePerBtc(HavenoUtils.getTakerFeePerBtc(), amount);
+            return CoinUtil.maxCoin(feePerBtc, HavenoUtils.getMinTakerFee());
         } else {
             return null;
         }

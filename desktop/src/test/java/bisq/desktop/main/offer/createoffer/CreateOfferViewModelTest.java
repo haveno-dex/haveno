@@ -32,7 +32,6 @@ import bisq.core.payment.PaymentAccount;
 import bisq.core.payment.payload.PaymentMethod;
 import bisq.core.payment.validation.BtcValidator;
 import bisq.core.payment.validation.SecurityDepositValidator;
-import bisq.core.provider.fee.FeeService;
 import bisq.core.provider.price.MarketPrice;
 import bisq.core.provider.price.PriceFeedService;
 import bisq.core.trade.statistics.TradeStatisticsManager;
@@ -84,7 +83,6 @@ public class CreateOfferViewModelTest {
         final AltcoinValidator altcoinValidator = new AltcoinValidator();
         final FiatPriceValidator fiatPriceValidator = new FiatPriceValidator();
 
-        FeeService feeService = mock(FeeService.class);
         XmrAddressEntry addressEntry = mock(XmrAddressEntry.class);
         XmrWalletService xmrWalletService = mock(XmrWalletService.class);
         PriceFeedService priceFeedService = mock(PriceFeedService.class);
@@ -105,7 +103,6 @@ public class CreateOfferViewModelTest {
                         12684.0450,
                         Instant.now().getEpochSecond(),
                         true));
-        when(feeService.getTxFee(anyInt())).thenReturn(Coin.valueOf(1000L));
         when(user.findFirstPaymentAccountWithCurrency(any())).thenReturn(paymentAccount);
         when(paymentAccount.getPaymentMethod()).thenReturn(mock(PaymentMethod.class));
         when(user.getPaymentAccountsAsObservable()).thenReturn(FXCollections.observableSet());
@@ -124,7 +121,6 @@ public class CreateOfferViewModelTest {
             null,
             priceFeedService,
             accountAgeWitnessService,
-            feeService,
             coinFormatter,
             tradeStats,
             null);

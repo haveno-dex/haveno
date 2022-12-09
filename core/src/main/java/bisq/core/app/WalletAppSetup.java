@@ -25,7 +25,6 @@ import bisq.core.btc.setup.WalletsSetup;
 import bisq.core.btc.wallet.WalletsManager;
 import bisq.core.locale.Res;
 import bisq.core.offer.OpenOfferManager;
-import bisq.core.provider.fee.FeeService;
 import bisq.core.trade.TradeManager;
 import bisq.core.user.Preferences;
 import bisq.core.util.FormattingUtils;
@@ -69,7 +68,6 @@ public class WalletAppSetup {
     private final WalletsManager walletsManager;
     private final WalletsSetup walletsSetup;
     private final CoreMoneroConnectionsService connectionService;
-    private final FeeService feeService;
     private final Config config;
     private final Preferences preferences;
 
@@ -94,14 +92,12 @@ public class WalletAppSetup {
                           WalletsManager walletsManager,
                           WalletsSetup walletsSetup,
                           CoreMoneroConnectionsService connectionService,
-                          FeeService feeService,
                           Config config,
                           Preferences preferences) {
         this.coreContext = coreContext;
         this.walletsManager = walletsManager;
         this.walletsSetup = walletsSetup;
         this.connectionService = connectionService;
-        this.feeService = feeService;
         this.config = config;
         this.preferences = preferences;
         this.useTorForBTC.set(preferences.getUseTorForBitcoinJ());
@@ -121,9 +117,8 @@ public class WalletAppSetup {
         ObjectProperty<Throwable> walletServiceException = new SimpleObjectProperty<>();
         btcInfoBinding = EasyBind.combine(connectionService.downloadPercentageProperty(), // TODO (woodser): update to XMR
                 connectionService.chainHeightProperty(),
-                feeService.feeUpdateCounterProperty(),
                 walletServiceException,
-                (downloadPercentage, chainHeight, feeUpdate, exception) -> {
+                (downloadPercentage, chainHeight, exception) -> {
                     String result;
                     if (exception == null) {
                         double percentage = (double) downloadPercentage;

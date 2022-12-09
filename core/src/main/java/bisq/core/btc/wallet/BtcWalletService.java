@@ -25,7 +25,6 @@ import bisq.core.btc.model.AddressEntry;
 import bisq.core.btc.model.AddressEntryList;
 import bisq.core.btc.setup.WalletsSetup;
 import bisq.core.btc.wallet.http.MemPoolSpaceTxBroadcaster;
-import bisq.core.provider.fee.FeeService;
 import bisq.core.user.Preferences;
 
 import bisq.common.handlers.ErrorMessageHandler;
@@ -88,11 +87,9 @@ public class BtcWalletService extends WalletService {
     @Inject
     public BtcWalletService(WalletsSetup walletsSetup,
                             AddressEntryList addressEntryList,
-                            Preferences preferences,
-                            FeeService feeService) {
+                            Preferences preferences) {
         super(walletsSetup,
-                preferences,
-                feeService);
+                preferences);
 
         this.addressEntryList = addressEntryList;
 
@@ -573,6 +570,10 @@ public class BtcWalletService extends WalletService {
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Withdrawal Fee calculation
     ///////////////////////////////////////////////////////////////////////////////////////////
+
+    public Coin getTxFeeForWithdrawalPerVbyte() {
+        throw new RuntimeException("BTC fee estimation removed");
+    }
 
     public Transaction getFeeEstimationTransaction(String fromAddress,
                                                    String toAddress,

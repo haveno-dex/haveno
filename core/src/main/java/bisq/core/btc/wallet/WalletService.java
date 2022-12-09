@@ -24,7 +24,6 @@ import bisq.core.btc.listeners.BalanceListener;
 import bisq.core.btc.listeners.TxConfidenceListener;
 import bisq.core.btc.setup.WalletsSetup;
 import bisq.core.btc.wallet.http.MemPoolSpaceTxBroadcaster;
-import bisq.core.provider.fee.FeeService;
 import bisq.core.user.Preferences;
 
 import bisq.common.config.Config;
@@ -117,7 +116,6 @@ import monero.wallet.model.MoneroTxWallet;
 public abstract class WalletService {
     protected final WalletsSetup walletsSetup;
     protected final Preferences preferences;
-    protected final FeeService feeService;
     protected final NetworkParameters params;
     private final BisqWalletListener walletEventListener = new BisqWalletListener();
     private final CopyOnWriteArraySet<AddressConfidenceListener> addressConfidenceListeners = new CopyOnWriteArraySet<>();
@@ -140,11 +138,9 @@ public abstract class WalletService {
 
     @Inject
     WalletService(WalletsSetup walletsSetup,
-                  Preferences preferences,
-                  FeeService feeService) {
+                  Preferences preferences) {
         this.walletsSetup = walletsSetup;
         this.preferences = preferences;
-        this.feeService = feeService;
 
         params = walletsSetup.getParams();
 
@@ -519,14 +515,6 @@ public abstract class WalletService {
         return getBalanceForAddress(getAddressFromOutput(output));
     }
 
-    public Coin getTxFeeForWithdrawalPerVbyte() {
-        Coin fee = (preferences.isUseCustomWithdrawalTxFee()) ?
-                Coin.valueOf(preferences.getWithdrawalTxFeeInVbytes()) :
-                feeService.getTxFeePerVbyte();
-        log.info("tx fee = " + fee.toFriendlyString());
-        return fee;
-    }
-
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Tx outputs
@@ -578,7 +566,6 @@ public abstract class WalletService {
             throws InsufficientMoneyException, AddressFormatException {
         SendRequest sendRequest = SendRequest.emptyWallet(Address.fromString(params, toAddress));
         sendRequest.fee = Coin.ZERO;
-        sendRequest.feePerKb = getTxFeeForWithdrawalPerVbyte().multiply(1000);
         sendRequest.aesKey = aesKey;
         Wallet.SendResult sendResult = wallet.sendCoins(sendRequest);
         printTx("empty btc wallet", sendResult.tx);

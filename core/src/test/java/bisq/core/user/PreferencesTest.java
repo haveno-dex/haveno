@@ -61,7 +61,7 @@ public class PreferencesTest {
         Config config = new Config();
         LocalBitcoinNode localBitcoinNode = new LocalBitcoinNode(config);
         preferences = new Preferences(
-                persistenceManager, config, null, localBitcoinNode, null);
+                persistenceManager, config, localBitcoinNode, null);
     }
 
     @Test

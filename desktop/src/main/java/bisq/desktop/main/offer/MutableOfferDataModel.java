@@ -22,7 +22,6 @@ import bisq.desktop.util.DisplayUtils;
 import bisq.desktop.util.GUIUtil;
 
 import bisq.core.account.witness.AccountAgeWitnessService;
-import bisq.core.btc.TxFeeEstimationService;
 import bisq.core.btc.listeners.XmrBalanceListener;
 import bisq.core.btc.model.XmrAddressEntry;
 import bisq.core.btc.wallet.Restrictions;
@@ -37,7 +36,6 @@ import bisq.core.offer.OfferDirection;
 import bisq.core.offer.OfferUtil;
 import bisq.core.offer.OpenOfferManager;
 import bisq.core.payment.PaymentAccount;
-import bisq.core.provider.fee.FeeService;
 import bisq.core.provider.price.PriceFeedService;
 import bisq.core.trade.handlers.TransactionResultHandler;
 import bisq.core.trade.statistics.TradeStatistics3;
@@ -104,7 +102,6 @@ public abstract class MutableOfferDataModel extends OfferDataModel {
     protected final PriceFeedService priceFeedService;
     final String shortOfferId;
     private final AccountAgeWitnessService accountAgeWitnessService;
-    private final FeeService feeService;
     private final CoinFormatter btcFormatter;
     private final Navigation navigation;
     private final String offerId;
@@ -132,7 +129,6 @@ public abstract class MutableOfferDataModel extends OfferDataModel {
     private Coin txFeeFromFeeService = Coin.ZERO;
     @Getter
     private boolean marketPriceAvailable;
-    private int feeTxVsize = TxFeeEstimationService.TYPICAL_TX_WITH_1_INPUT_VSIZE;
     protected boolean allowAmountUpdate = true;
     private final TradeStatisticsManager tradeStatisticsManager;
 
@@ -157,7 +153,6 @@ public abstract class MutableOfferDataModel extends OfferDataModel {
                                  P2PService p2PService,
                                  PriceFeedService priceFeedService,
                                  AccountAgeWitnessService accountAgeWitnessService,
-                                 FeeService feeService,
                                  @Named(FormattingUtils.BTC_FORMATTER_KEY) CoinFormatter btcFormatter,
                                  TradeStatisticsManager tradeStatisticsManager,
                                  Navigation navigation) {
@@ -171,7 +166,6 @@ public abstract class MutableOfferDataModel extends OfferDataModel {
         this.p2PService = p2PService;
         this.priceFeedService = priceFeedService;
         this.accountAgeWitnessService = accountAgeWitnessService;
-        this.feeService = feeService;
         this.btcFormatter = btcFormatter;
         this.navigation = navigation;
         this.tradeStatisticsManager = tradeStatisticsManager;
