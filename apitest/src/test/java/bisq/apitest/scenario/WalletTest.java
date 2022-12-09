@@ -36,7 +36,6 @@ import static bisq.apitest.config.HavenoAppConfig.seednode;
 
 
 import bisq.apitest.method.MethodTest;
-import bisq.apitest.method.wallet.BtcTxFeeRateTest;
 import bisq.apitest.method.wallet.BtcWalletTest;
 import bisq.apitest.method.wallet.WalletProtectionTest;
 
@@ -66,7 +65,6 @@ public class WalletTest extends MethodTest {
 
         btcWalletTest.testInitialBtcBalances(testInfo);
         btcWalletTest.testFundAlicesBtcWallet(testInfo);
-        btcWalletTest.testAliceSendBTCToBob(testInfo);
     }
 
     @Test
@@ -84,17 +82,6 @@ public class WalletTest extends MethodTest {
         walletProtectionTest.testSetNewWalletPassword();
         walletProtectionTest.testSetNewWalletPasswordWithIncorrectNewPasswordShouldThrowException();
         walletProtectionTest.testRemoveNewWalletPassword();
-    }
-
-    @Test
-    @Order(4)
-    public void testTxFeeRateMethods(final TestInfo testInfo) {
-        BtcTxFeeRateTest test = new BtcTxFeeRateTest();
-
-        test.testGetTxFeeRate(testInfo);
-        test.testSetInvalidTxFeeRateShouldThrowException(testInfo);
-        test.testSetValidTxFeeRate(testInfo);
-        test.testUnsetTxFeeRate(testInfo);
     }
 
     @AfterAll

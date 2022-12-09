@@ -39,9 +39,9 @@ import bisq.core.offer.OfferUtil;
 import bisq.core.payment.PaymentAccount;
 import bisq.core.payment.PaymentAccountUtil;
 import bisq.core.payment.payload.PaymentMethod;
-import bisq.core.provider.fee.FeeService;
 import bisq.core.provider.mempool.MempoolService;
 import bisq.core.provider.price.PriceFeedService;
+import bisq.core.trade.HavenoUtils;
 import bisq.core.trade.TradeManager;
 import bisq.core.trade.handlers.TradeResultHandler;
 import bisq.core.user.Preferences;
@@ -86,7 +86,6 @@ class TakeOfferDataModel extends OfferDataModel {
     private final TradeManager tradeManager;
     private final OfferBook offerBook;
     private final User user;
-    private final FeeService feeService;
     private final MempoolService mempoolService;
     private final FilterManager filterManager;
     final Preferences preferences;
@@ -95,9 +94,7 @@ class TakeOfferDataModel extends OfferDataModel {
     private final Navigation navigation;
     private final P2PService p2PService;
 
-    private Coin txFeeFromFeeService;
     private Coin securityDeposit;
-    // Coin feeFromFundingTx = Coin.NEGATIVE_SATOSHI;
 
     private Offer offer;
 
@@ -110,10 +107,6 @@ class TakeOfferDataModel extends OfferDataModel {
     private PaymentAccount paymentAccount;
     private boolean isTabSelected;
     Price tradePrice;
-    // Use an average of a typical trade fee tx with 1 input, deposit tx and payout tx.
-    private int feeTxVsize = 192;  // (175+233+169)/3
-    private boolean freezeFee;
-    private Coin txFeePerVbyteFromFeeService;
     @Getter
     protected final IntegerProperty mempoolStatus = new SimpleIntegerProperty();
     @Getter
@@ -130,7 +123,7 @@ class TakeOfferDataModel extends OfferDataModel {
                        OfferBook offerBook,
                        OfferUtil offerUtil,
                        XmrWalletService xmrWalletService,
-                       User user, FeeService feeService,
+                       User user,
                        MempoolService mempoolService,
                        FilterManager filterManager,
                        Preferences preferences,
@@ -144,7 +137,6 @@ class TakeOfferDataModel extends OfferDataModel {
         this.tradeManager = tradeManager;
         this.offerBook = offerBook;
         this.user = user;
-        this.feeService = feeService;
         this.mempoolService = mempoolService;
         this.filterManager = filterManager;
         this.preferences = preferences;
@@ -212,39 +204,6 @@ class TakeOfferDataModel extends OfferDataModel {
                 getBuyerSecurityDeposit() :
                 getSellerSecurityDeposit();
 
-        // Taker pays 3 times the tx fee (taker fee, deposit, payout) because the mining fee might be different when maker created the offer
-        // and reserved his funds. Taker creates at least taker fee and deposit tx at nearly the same moment. Just the payout will
-        // be later and still could lead to issues if the required fee changed a lot in the meantime. using RBF and/or
-        // multiple batch-signed payout tx with different fees might be an option but RBF is not supported yet in BitcoinJ
-        // and batched txs would add more complexity to the trade protocol.
-
-        // A typical trade fee tx has about 175 vbytes (if one input). The trade txs has about 169-263 vbytes.
-        // We use 192 as average value.
-
-        // trade fee tx: 175 vbytes (1 input)
-        // deposit tx: 233 vbytes (1 MS output+ OP_RETURN) - 263 vbytes (1 MS output + OP_RETURN + change in case of smaller trade amount)
-        // payout tx: 169 vbytes
-        // disputed payout tx: 139 vbytes
-
-        // Set the default values (in rare cases if the fee request was not done yet we get the hard coded default values)
-        // But the "take offer" happens usually after that so we should have already the value from the estimation service.
-        txFeePerVbyteFromFeeService = feeService.getTxFeePerVbyte();
-        txFeeFromFeeService = getTxFeeByVsize(feeTxVsize);
-
-        // We request to get the actual estimated fee
-        log.info("Start requestTxFee: txFeeFromFeeService={}", txFeeFromFeeService);
-        feeService.requestFees(() -> {
-            if (!freezeFee) {
-                txFeePerVbyteFromFeeService = feeService.getTxFeePerVbyte();
-                txFeeFromFeeService = getTxFeeByVsize(feeTxVsize);
-                calculateTotalToPay();
-                log.info("Completed requestTxFee: txFeeFromFeeService={}", txFeeFromFeeService);
-            } else {
-                log.debug("We received the tx fee response after we have shown the funding screen and ignore that " +
-                        "to avoid that the total funds to pay changes due changed tx fees.");
-            }
-        });
-
         mempoolStatus.setValue(-1);
         mempoolService.validateOfferMakerTx(offer.getOfferPayload(), (txValidator -> {
             mempoolStatus.setValue(txValidator.isFail() ? 0 : 1);
@@ -271,7 +230,6 @@ class TakeOfferDataModel extends OfferDataModel {
 
     // We don't want that the fee gets updated anymore after we show the funding screen.
     void onShowPayFundsScreen() {
-        freezeFee = true;
         calculateTotalToPay();
     }
 
@@ -303,7 +261,6 @@ class TakeOfferDataModel extends OfferDataModel {
     // errorMessageHandler is used only in the check availability phase. As soon we have a trade we write the error msg in the trade object as we want to
     // have it persisted as well.
     void onTakeOffer(TradeResultHandler tradeResultHandler, ErrorMessageHandler errorMessageHandler) {
-        checkNotNull(txFeeFromFeeService, "txFeeFromFeeService must not be null");
         checkNotNull(getTakerFee(), "takerFee must not be null");
 
         Coin fundsNeededForTrade = getFundsNeededForTrade();
@@ -324,7 +281,6 @@ class TakeOfferDataModel extends OfferDataModel {
             new Popup().warning(Res.get("offerbook.warning.offerWasAlreadyUsedInTrade")).show();
         } else {
             tradeManager.onTakeOffer(amount.get(),
-                    txFeeFromFeeService,
                     getTakerFee(),
                     fundsNeededForTrade,
                     offer,
@@ -481,8 +437,8 @@ class TakeOfferDataModel extends OfferDataModel {
         Coin amount = this.amount.get();
         if (amount != null) {
             // TODO write unit test for that
-            Coin feePerBtc = CoinUtil.getFeePerBtc(FeeService.getTakerFeePerBtc(), amount);
-            return CoinUtil.maxCoin(feePerBtc, FeeService.getMinTakerFee());
+            Coin feePerBtc = CoinUtil.getFeePerBtc(HavenoUtils.getTakerFeePerBtc(), amount);
+            return CoinUtil.maxCoin(feePerBtc, HavenoUtils.getMinTakerFee());
         } else {
             return null;
         }
@@ -491,18 +447,6 @@ class TakeOfferDataModel extends OfferDataModel {
     public void swapTradeToSavings() {
         log.debug("swapTradeToSavings, offerId={}", offer.getId());
         xmrWalletService.resetAddressEntriesForOpenOffer(offer.getId());
-    }
-
-    // We use the sum of the vsize of the trade fee and the deposit tx to get an average.
-    // Miners will take the trade fee tx if the total fee of both dependent txs are good enough.
-    // With that we avoid that we overpay in case that the trade fee has many inputs and we would apply that fee for the
-    // other 2 txs as well. We still might overpay a bit for the payout tx.
-    private int getAverageVsize(int txVsize) {
-        return (txVsize + 233) / 2;
-    }
-
-    private Coin getTxFeeByVsize(int vsizeInVbytes) {
-        return txFeePerVbyteFromFeeService.multiply(getAverageVsize(vsizeInVbytes));
     }
 
   /*  private void setFeeFromFundingTx(Coin fee) {
@@ -557,23 +501,7 @@ class TakeOfferDataModel extends OfferDataModel {
 
     @NotNull
     private Coin getFundsNeededForTrade() {
-        return getSecurityDeposit().add(getTxFeeForDepositTx()).add(getTxFeeForPayoutTx());
-    }
-
-    private Coin getTxFeeForDepositTx() {
-        //TODO fix with new trade protocol!
-        // Unfortunately we cannot change that to the correct fees as it would break backward compatibility
-        // We still might find a way with offer version or app version checks so lets keep that commented out
-        // code as that shows how it should be.
-        return txFeeFromFeeService; //feeService.getTxFee(233);
-    }
-
-    private Coin getTxFeeForPayoutTx() {
-        //TODO fix with new trade protocol!
-        // Unfortunately we cannot change that to the correct fees as it would break backward compatibility
-        // We still might find a way with offer version or app version checks so lets keep that commented out
-        // code as that shows how it should be.
-        return txFeeFromFeeService; //feeService.getTxFee(169);
+        return getSecurityDeposit();
     }
 
     public XmrAddressEntry getAddressEntry() {

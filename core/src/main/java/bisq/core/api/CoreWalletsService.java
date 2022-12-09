@@ -20,7 +20,6 @@ package bisq.core.api;
 import bisq.core.api.model.AddressBalanceInfo;
 import bisq.core.api.model.BalancesInfo;
 import bisq.core.api.model.BtcBalanceInfo;
-import bisq.core.api.model.TxFeeRateInfo;
 import bisq.core.api.model.XmrBalanceInfo;
 import bisq.core.app.AppStartupState;
 import bisq.core.btc.Balances;
@@ -31,15 +30,12 @@ import bisq.core.btc.setup.WalletsSetup;
 import bisq.core.btc.wallet.BtcWalletService;
 import bisq.core.btc.wallet.WalletsManager;
 import bisq.core.btc.wallet.XmrWalletService;
-import bisq.core.provider.fee.FeeService;
 import bisq.core.user.Preferences;
 import bisq.core.util.FormattingUtils;
 import bisq.core.util.coin.CoinFormatter;
 
 import bisq.common.Timer;
 import bisq.common.UserThread;
-import bisq.common.handlers.ResultHandler;
-import bisq.common.util.Utilities;
 
 import org.bitcoinj.core.Address;
 import org.bitcoinj.core.Coin;
@@ -57,10 +53,6 @@ import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 import com.google.common.util.concurrent.FutureCallback;
-import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.ListenableFuture;
-import com.google.common.util.concurrent.ListeningExecutorService;
-import com.google.common.util.concurrent.MoreExecutors;
 
 import org.bouncycastle.crypto.params.KeyParameter;
 
@@ -97,16 +89,12 @@ class CoreWalletsService {
     private final BtcWalletService btcWalletService;
     private final XmrWalletService xmrWalletService;
     private final CoinFormatter btcFormatter;
-    private final FeeService feeService;
-    private final Preferences preferences;
 
     @Nullable
     private Timer lockTimer;
 
     @Nullable
     private KeyParameter tempAesKey;
-
-    private final ListeningExecutorService executor = Utilities.getSingleThreadListeningExecutor("CoreWalletsService");
 
     @Inject
     public CoreWalletsService(AppStartupState appStartupState,
@@ -118,7 +106,6 @@ class CoreWalletsService {
                               BtcWalletService btcWalletService,
                               XmrWalletService xmrWalletService,
                               @Named(FormattingUtils.BTC_FORMATTER_KEY) CoinFormatter btcFormatter,
-                              FeeService feeService,
                               Preferences preferences) {
         this.appStartupState = appStartupState;
         this.coreContext = coreContext;
@@ -129,8 +116,6 @@ class CoreWalletsService {
         this.btcWalletService = btcWalletService;
         this.xmrWalletService = xmrWalletService;
         this.btcFormatter = btcFormatter;
-        this.feeService = feeService;
-        this.preferences = preferences;
     }
 
     @Nullable
@@ -309,58 +294,6 @@ class CoreWalletsService {
             log.error("", ex);
             throw new IllegalStateException("cannot send btc due to insufficient funds", ex);
         }
-    }
-
-
-    void getTxFeeRate(ResultHandler resultHandler) {
-        try {
-            @SuppressWarnings({"unchecked", "Convert2MethodRef"})
-            ListenableFuture<Void> future =
-                    (ListenableFuture<Void>) executor.submit(() -> feeService.requestFees());
-            Futures.addCallback(future, new FutureCallback<>() {
-                @Override
-                public void onSuccess(@Nullable Void ignored) {
-                    resultHandler.handleResult();
-                }
-
-                @Override
-                public void onFailure(Throwable t) {
-                    log.error("", t);
-                    throw new IllegalStateException("could not request fees from fee service", t);
-                }
-            }, MoreExecutors.directExecutor());
-
-        } catch (Exception ex) {
-            log.error("", ex);
-            throw new IllegalStateException("could not request fees from fee service", ex);
-        }
-    }
-
-    void setTxFeeRatePreference(long txFeeRate,
-                                ResultHandler resultHandler) {
-        long minFeePerVbyte = feeService.getMinFeePerVByte();
-        if (txFeeRate < minFeePerVbyte)
-            throw new IllegalStateException(
-                    format("tx fee rate preference must be >= %d sats/byte", minFeePerVbyte));
-
-        preferences.setUseCustomWithdrawalTxFee(true);
-        Coin satsPerByte = Coin.valueOf(txFeeRate);
-        preferences.setWithdrawalTxFeeInVbytes(satsPerByte.value);
-        getTxFeeRate(resultHandler);
-    }
-
-    void unsetTxFeeRatePreference(ResultHandler resultHandler) {
-        preferences.setUseCustomWithdrawalTxFee(false);
-        getTxFeeRate(resultHandler);
-    }
-
-    TxFeeRateInfo getMostRecentTxFeeRateInfo() {
-        return new TxFeeRateInfo(
-                preferences.isUseCustomWithdrawalTxFee(),
-                preferences.getWithdrawalTxFeeInVbytes(),
-                feeService.getMinFeePerVByte(),
-                feeService.getTxFeePerVbyte().value,
-                feeService.getLastRequest());
     }
 
     Transaction getTransaction(String txId) {

@@ -59,7 +59,6 @@ import bisq.core.payment.RevolutAccount;
 import bisq.core.presentation.BalancePresentation;
 import bisq.core.presentation.SupportTicketsPresentation;
 import bisq.core.presentation.TradePresentation;
-import bisq.core.provider.fee.FeeService;
 import bisq.core.provider.price.PriceFeedService;
 import bisq.core.trade.TradeManager;
 import bisq.core.user.DontShowAgainLookup;
@@ -173,7 +172,6 @@ public class MainViewModel implements ViewModel, HavenoSetup.HavenoSetupListener
                          WalletPasswordWindow walletPasswordWindow,
                          NotificationCenter notificationCenter,
                          TacWindow tacWindow,
-                         FeeService feeService,
                          PriceFeedService priceFeedService,
                          Config config,
                          LocalBitcoinNode localBitcoinNode,
@@ -210,7 +208,6 @@ public class MainViewModel implements ViewModel, HavenoSetup.HavenoSetupListener
 
         TxIdTextField.setXmrWalletService(xmrWalletService);
 
-        GUIUtil.setFeeService(feeService);
         GUIUtil.setPreferences(preferences);
 
         setupHandlers();

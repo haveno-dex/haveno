@@ -12,7 +12,6 @@ import bisq.core.offer.OfferUtil;
 import bisq.core.payment.ClearXchangeAccount;
 import bisq.core.payment.PaymentAccount;
 import bisq.core.payment.RevolutAccount;
-import bisq.core.provider.fee.FeeService;
 import bisq.core.provider.price.PriceFeedService;
 import bisq.core.trade.statistics.TradeStatisticsManager;
 import bisq.core.user.Preferences;
@@ -50,7 +49,6 @@ public class CreateOfferDataModelTest {
         XmrAddressEntry addressEntry = mock(XmrAddressEntry.class);
         XmrWalletService btcWalletService = mock(XmrWalletService.class);
         PriceFeedService priceFeedService = mock(PriceFeedService.class);
-        FeeService feeService = mock(FeeService.class);
         CreateOfferService createOfferService = mock(CreateOfferService.class);
         preferences = mock(Preferences.class);
         offerUtil = mock(OfferUtil.class);
@@ -72,7 +70,6 @@ public class CreateOfferDataModelTest {
                 null,
                 priceFeedService,
                 null,
-                feeService,
                 null,
                 tradeStats,
                 null);

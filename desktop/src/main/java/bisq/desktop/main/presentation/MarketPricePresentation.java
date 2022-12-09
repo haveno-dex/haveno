@@ -25,7 +25,6 @@ import bisq.core.btc.wallet.XmrWalletService;
 import bisq.core.locale.CurrencyUtil;
 import bisq.core.locale.Res;
 import bisq.core.locale.TradeCurrency;
-import bisq.core.provider.fee.FeeService;
 import bisq.core.provider.price.MarketPrice;
 import bisq.core.provider.price.PriceFeedService;
 import bisq.core.user.Preferences;
@@ -88,17 +87,13 @@ public class MarketPricePresentation {
     @Inject
     public MarketPricePresentation(XmrWalletService xmrWalletService,
                                    PriceFeedService priceFeedService,
-                                   Preferences preferences,
-                                   FeeService feeService) {
+                                   Preferences preferences) {
         this.priceFeedService = priceFeedService;
         this.preferences = preferences;
 
         TxIdTextField.setPreferences(preferences);
 
-        // TODO
         TxIdTextField.setXmrWalletService(xmrWalletService);
-
-        GUIUtil.setFeeService(feeService);
     }
 
     public void setup() {

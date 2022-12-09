@@ -23,18 +23,12 @@ import bisq.proto.grpc.BtcBalanceInfo;
 import bisq.proto.grpc.GetAddressBalanceRequest;
 import bisq.proto.grpc.GetBalancesRequest;
 import bisq.proto.grpc.GetFundingAddressesRequest;
-import bisq.proto.grpc.GetTransactionRequest;
-import bisq.proto.grpc.GetTxFeeRateRequest;
 import bisq.proto.grpc.LockWalletRequest;
 import bisq.proto.grpc.MarketPriceRequest;
 import bisq.proto.grpc.RemoveWalletPasswordRequest;
 import bisq.proto.grpc.SendBtcRequest;
-import bisq.proto.grpc.SetTxFeeRatePreferenceRequest;
 import bisq.proto.grpc.SetWalletPasswordRequest;
-import bisq.proto.grpc.TxFeeRateInfo;
-import bisq.proto.grpc.TxInfo;
 import bisq.proto.grpc.UnlockWalletRequest;
-import bisq.proto.grpc.UnsetTxFeeRatePreferenceRequest;
 
 import java.util.List;
 
@@ -93,40 +87,6 @@ public class WalletsServiceRequest {
                 .findFirst()
                 .get()
                 .getAddress();
-    }
-
-    public TxInfo sendBtc(String address, String amount, String txFeeRate, String memo) {
-        var request = SendBtcRequest.newBuilder()
-                .setAddress(address)
-                .setAmount(amount)
-                .setTxFeeRate(txFeeRate)
-                .setMemo(memo)
-                .build();
-        return grpcStubs.walletsService.sendBtc(request).getTxInfo();
-    }
-
-    public TxFeeRateInfo getTxFeeRate() {
-        var request = GetTxFeeRateRequest.newBuilder().build();
-        return grpcStubs.walletsService.getTxFeeRate(request).getTxFeeRateInfo();
-    }
-
-    public TxFeeRateInfo setTxFeeRate(long txFeeRate) {
-        var request = SetTxFeeRatePreferenceRequest.newBuilder()
-                .setTxFeeRatePreference(txFeeRate)
-                .build();
-        return grpcStubs.walletsService.setTxFeeRatePreference(request).getTxFeeRateInfo();
-    }
-
-    public TxFeeRateInfo unsetTxFeeRate() {
-        var request = UnsetTxFeeRatePreferenceRequest.newBuilder().build();
-        return grpcStubs.walletsService.unsetTxFeeRatePreference(request).getTxFeeRateInfo();
-    }
-
-    public TxInfo getTransaction(String txId) {
-        var request = GetTransactionRequest.newBuilder()
-                .setTxId(txId)
-                .build();
-        return grpcStubs.walletsService.getTransaction(request).getTxInfo();
     }
 
     public void lockWallet() {

@@ -103,12 +103,10 @@ class CoreTradesService {
             var useSavingsWallet = true;
 
             // synchronize access to take offer model // TODO (woodser): to avoid synchronizing, don't use stateful model
-            Coin txFeeFromFeeService; // TODO (woodser): remove this and other unused fields
             Coin takerFee;
             Coin fundsNeededForTrade;
             synchronized (takeOfferModel) {
                 takeOfferModel.initModel(offer, paymentAccount, useSavingsWallet);
-                txFeeFromFeeService = takeOfferModel.getTxFeeFromFeeService();
                 takerFee = takeOfferModel.getTakerFee();
                 fundsNeededForTrade = takeOfferModel.getFundsNeededForTrade();
                 log.info("Initiating take {} offer, {}", offer.isBuyOffer() ? "buy" : "sell", takeOfferModel);
@@ -116,7 +114,6 @@ class CoreTradesService {
 
             // take offer
             tradeManager.onTakeOffer(offer.getAmount(),
-                    txFeeFromFeeService,
                     takerFee,
                     fundsNeededForTrade,
                     offer,
@@ -127,6 +124,7 @@ class CoreTradesService {
                     errorMessageHandler
             );
         } catch (Exception e) {
+            e.printStackTrace();
             errorMessageHandler.handleErrorMessage(e.getMessage());
         }
     }

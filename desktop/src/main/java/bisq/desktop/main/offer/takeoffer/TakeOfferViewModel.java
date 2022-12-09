@@ -38,7 +38,7 @@ import bisq.core.offer.OfferUtil;
 import bisq.core.payment.PaymentAccount;
 import bisq.core.payment.payload.PaymentMethod;
 import bisq.core.payment.validation.BtcValidator;
-import bisq.core.provider.fee.FeeService;
+import bisq.core.trade.HavenoUtils;
 import bisq.core.trade.Trade;
 import bisq.core.util.FormattingUtils;
 import bisq.core.util.VolumeUtil;
@@ -692,7 +692,7 @@ class TakeOfferViewModel extends ActivatableWithDataModel<TakeOfferDataModel> im
                     dataModel.getTakerFeeInBtc(),
                     dataModel.getAmount().get(),
                     btcFormatter,
-                    FeeService.getMinMakerFee());
+                    HavenoUtils.getMinMakerFee());
     }
 
     public String getTakerFeePercentage() {

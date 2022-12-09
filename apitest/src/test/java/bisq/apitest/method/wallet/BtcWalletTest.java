@@ -1,7 +1,6 @@
 package bisq.apitest.method.wallet;
 
 import bisq.proto.grpc.BtcBalanceInfo;
-import bisq.proto.grpc.TxInfo;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -94,49 +93,6 @@ public class BtcWalletTest extends MethodTest {
         log.debug("{} -> Alice's BTC Balances After Sending 2.5 BTC -> \n{}",
                 testName(testInfo),
                 new TableBuilder(BTC_BALANCE_TBL, btcBalanceInfo).build());
-    }
-
-    @Test
-    @Order(3)
-    public void testAliceSendBTCToBob(TestInfo testInfo) {
-        String bobsBtcAddress = bobClient.getUnusedBtcAddress();
-        log.debug("Sending 5.5 BTC From Alice to Bob @ {}", bobsBtcAddress);
-
-        TxInfo txInfo = aliceClient.sendBtc(bobsBtcAddress,
-                "5.50",
-                "100",
-                TX_MEMO);
-        assertTrue(txInfo.getIsPending());
-
-        // Note that the memo is not set on the tx yet.
-        assertTrue(txInfo.getMemo().isEmpty());
-        genBtcBlocksThenWait(1, 1000);
-
-        // Fetch the tx and check for confirmation and memo.
-        txInfo = aliceClient.getTransaction(txInfo.getTxId());
-        assertFalse(txInfo.getIsPending());
-        assertEquals(TX_MEMO, txInfo.getMemo());
-
-        BtcBalanceInfo alicesBalances = aliceClient.getBtcBalances();
-        log.debug("{} Alice's BTC Balances:\n{}",
-                testName(testInfo),
-                new TableBuilder(BTC_BALANCE_TBL, alicesBalances).build());
-        bisq.core.api.model.BtcBalanceInfo alicesExpectedBalances =
-                bisq.core.api.model.BtcBalanceInfo.valueOf(700000000,
-                        0,
-                        700000000,
-                        0);
-        verifyBtcBalances(alicesExpectedBalances, alicesBalances);
-
-        BtcBalanceInfo bobsBalances = bobClient.getBtcBalances();
-        log.debug("{} Bob's BTC Balances:\n{}",
-                testName(testInfo),
-                new TableBuilder(BTC_BALANCE_TBL, bobsBalances).build());
-        // The sendbtc tx weight and size randomly varies between two distinct values
-        // (876 wu, 219 bytes, OR 880 wu, 220 bytes) from test run to test run, hence
-        // the assertion of an available balance range [1549978000, 1549978100].
-        assertTrue(bobsBalances.getAvailableBalance() >= 1549978000);
-        assertTrue(bobsBalances.getAvailableBalance() <= 1549978100);
     }
 
     @AfterAll

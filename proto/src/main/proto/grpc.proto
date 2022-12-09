@@ -874,27 +874,6 @@ message ContractInfo {
     string arbitrator_node_address = 100;
 }
 
-///////////////////////////////////////////////////////////////////////////////////////////
-// Transactions
-///////////////////////////////////////////////////////////////////////////////////////////
-
-message TxFeeRateInfo {
-    bool use_custom_tx_fee_rate = 1;
-    uint64 custom_tx_fee_rate = 2;
-    uint64 fee_service_rate = 3;
-    uint64 last_fee_service_request_ts = 4;
-    uint64 min_fee_service_rate = 5;
-}
-
-message TxInfo {
-    string tx_id = 1;
-    uint64 input_sum = 2;
-    uint64 output_sum = 3;
-    uint64 fee = 4;
-    int32 size = 5;
-    bool is_pending = 6;
-    string memo = 7;
-}
 
 ///////////////////////////////////////////////////////////////////////////////////////////
 // Wallets
@@ -916,16 +895,6 @@ service Wallets {
     rpc relayXmrTx (RelayXmrTxRequest) returns (RelayXmrTxReply) {
     }
     rpc GetAddressBalance (GetAddressBalanceRequest) returns (GetAddressBalanceReply) {
-    }
-    rpc SendBtc (SendBtcRequest) returns (SendBtcReply) {
-    }
-    rpc GetTxFeeRate (GetTxFeeRateRequest) returns (GetTxFeeRateReply) {
-    }
-    rpc SetTxFeeRatePreference (SetTxFeeRatePreferenceRequest) returns (SetTxFeeRatePreferenceReply) {
-    }
-    rpc UnsetTxFeeRatePreference (UnsetTxFeeRatePreferenceRequest) returns (UnsetTxFeeRatePreferenceReply) {
-    }
-    rpc GetTransaction (GetTransactionRequest) returns (GetTransactionReply) {
     }
     rpc GetFundingAddresses (GetFundingAddressesRequest) returns (GetFundingAddressesReply) {
     }
@@ -1036,40 +1005,6 @@ message SendBtcRequest {
     string amount = 2;
     string tx_fee_rate = 3;
     string memo = 4;
-}
-
-message SendBtcReply {
-    TxInfo tx_info = 1;
-}
-
-message GetTxFeeRateRequest {
-}
-
-message GetTxFeeRateReply {
-    TxFeeRateInfo tx_fee_rate_info = 1;
-}
-
-message SetTxFeeRatePreferenceRequest {
-    uint64 tx_fee_rate_preference = 1;
-}
-
-message SetTxFeeRatePreferenceReply {
-    TxFeeRateInfo tx_fee_rate_info = 1;
-}
-
-message UnsetTxFeeRatePreferenceRequest {
-}
-
-message UnsetTxFeeRatePreferenceReply {
-    TxFeeRateInfo tx_fee_rate_info = 1;
-}
-
-message GetTransactionRequest {
-    string tx_id = 1;
-}
-
-message GetTransactionReply {
-    TxInfo tx_info = 1;
 }
 
 message GetFundingAddressesRequest {

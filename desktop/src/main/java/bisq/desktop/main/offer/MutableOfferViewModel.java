@@ -44,9 +44,9 @@ import bisq.core.payment.payload.PaymentMethod;
 import bisq.core.payment.validation.BtcValidator;
 import bisq.core.payment.validation.FiatVolumeValidator;
 import bisq.core.payment.validation.SecurityDepositValidator;
-import bisq.core.provider.fee.FeeService;
 import bisq.core.provider.price.MarketPrice;
 import bisq.core.provider.price.PriceFeedService;
+import bisq.core.trade.HavenoUtils;
 import bisq.core.user.Preferences;
 import bisq.core.util.FormattingUtils;
 import bisq.core.util.ParsingUtils;
@@ -999,7 +999,7 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
                 dataModel.getMakerFeeInBtc(),
                 dataModel.getAmount().get(),
                 btcFormatter,
-                FeeService.getMinMakerFee());
+                HavenoUtils.getMinMakerFee());
     }
 
     public String getMakerFeePercentage() {

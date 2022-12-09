@@ -27,8 +27,6 @@ import bisq.proto.grpc.OfferInfo;
 import bisq.proto.grpc.RegisterDisputeAgentRequest;
 import bisq.proto.grpc.StopRequest;
 import bisq.proto.grpc.TradeInfo;
-import bisq.proto.grpc.TxFeeRateInfo;
-import bisq.proto.grpc.TxInfo;
 
 import protobuf.PaymentAccount;
 import protobuf.PaymentAccountForm;
@@ -96,26 +94,6 @@ public final class GrpcClient {
 
     public String getUnusedBtcAddress() {
         return walletsServiceRequest.getUnusedBtcAddress();
-    }
-
-    public TxInfo sendBtc(String address, String amount, String txFeeRate, String memo) {
-        return walletsServiceRequest.sendBtc(address, amount, txFeeRate, memo);
-    }
-
-    public TxFeeRateInfo getTxFeeRate() {
-        return walletsServiceRequest.getTxFeeRate();
-    }
-
-    public TxFeeRateInfo setTxFeeRate(long txFeeRate) {
-        return walletsServiceRequest.setTxFeeRate(txFeeRate);
-    }
-
-    public TxFeeRateInfo unsetTxFeeRate() {
-        return walletsServiceRequest.unsetTxFeeRate();
-    }
-
-    public TxInfo getTransaction(String txId) {
-        return walletsServiceRequest.getTransaction(txId);
     }
 
     public OfferInfo createFixedPricedOffer(String direction,

@@ -28,12 +28,12 @@ import bisq.core.btc.wallet.Restrictions;
 import bisq.core.network.MessageState;
 import bisq.core.offer.Offer;
 import bisq.core.offer.OfferUtil;
-import bisq.core.provider.fee.FeeService;
 import bisq.core.provider.mempool.MempoolService;
 import bisq.core.trade.ArbitratorTrade;
 import bisq.core.trade.BuyerTrade;
 import bisq.core.trade.ClosedTradableManager;
 import bisq.core.trade.Contract;
+import bisq.core.trade.HavenoUtils;
 import bisq.core.trade.SellerTrade;
 import bisq.core.trade.Trade;
 import bisq.core.trade.TradeUtil;
@@ -338,8 +338,8 @@ public class PendingTradesViewModel extends ActivatableWithDataModel<PendingTrad
             Coin tradeFeeInBTC = dataModel.getTradeFeeInBTC();
 
             Coin minTradeFee = dataModel.isMaker() ?
-                    FeeService.getMinMakerFee() :
-                    FeeService.getMinTakerFee();
+                    HavenoUtils.getMinMakerFee() :
+                    HavenoUtils.getMinTakerFee();
 
             String percentage = GUIUtil.getPercentageOfTradeAmount(tradeFeeInBTC, trade.getAmount(),
                     minTradeFee);

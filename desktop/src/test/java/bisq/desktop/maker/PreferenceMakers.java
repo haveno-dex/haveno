@@ -18,7 +18,6 @@
 package bisq.desktop.maker;
 
 import bisq.core.btc.nodes.LocalBitcoinNode;
-import bisq.core.provider.fee.FeeService;
 import bisq.core.user.Preferences;
 
 import bisq.common.config.Config;
@@ -35,7 +34,6 @@ public class PreferenceMakers {
 
     public static final Property<Preferences, PersistenceManager> storage = new Property<>();
     public static final Property<Preferences, Config> config = new Property<>();
-    public static final Property<Preferences, FeeService> feeService = new Property<>();
     public static final Property<Preferences, LocalBitcoinNode> localBitcoinNode = new Property<>();
     public static final Property<Preferences, String> useTorFlagFromOptions = new Property<>();
     public static final Property<Preferences, String> referralID = new Property<>();
@@ -43,7 +41,6 @@ public class PreferenceMakers {
     public static final Instantiator<Preferences> Preferences = lookup -> new Preferences(
             lookup.valueOf(storage, new SameValueDonor<PersistenceManager>(null)),
             lookup.valueOf(config, new SameValueDonor<Config>(null)),
-            lookup.valueOf(feeService, new SameValueDonor<FeeService>(null)),
             lookup.valueOf(localBitcoinNode, new SameValueDonor<LocalBitcoinNode>(null)),
             lookup.valueOf(useTorFlagFromOptions, new SameValueDonor<String>(null))
             );

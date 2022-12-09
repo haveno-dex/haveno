@@ -41,7 +41,6 @@ import java.util.List;
 import lombok.extern.slf4j.Slf4j;
 
 import static bisq.cli.CurrencyFormat.formatInternalFiatPrice;
-import static bisq.cli.CurrencyFormat.formatTxFeeRateInfo;
 import static bisq.cli.CurrencyFormat.toSatoshis;
 import static bisq.cli.Method.*;
 import static bisq.cli.opts.OptLabel.*;
@@ -228,51 +227,7 @@ public class CliMain {
 
                     var memo = opts.getMemo();
 
-                    var txInfo = client.sendBtc(address, amount, txFeeRate, memo);
-                    out.printf("%s btc sent to %s in tx %s%n",
-                            amount,
-                            address,
-                            txInfo.getTxId());
-                    return;
-                }
-                case gettxfeerate: {
-                    if (new SimpleMethodOptionParser(args).parse().isForHelp()) {
-                        out.println(client.getMethodHelp(method));
-                        return;
-                    }
-                    var txFeeRate = client.getTxFeeRate();
-                    out.println(formatTxFeeRateInfo(txFeeRate));
-                    return;
-                }
-                case settxfeerate: {
-                    var opts = new SetTxFeeRateOptionParser(args).parse();
-                    if (opts.isForHelp()) {
-                        out.println(client.getMethodHelp(method));
-                        return;
-                    }
-                    var txFeeRate = client.setTxFeeRate(toLong(opts.getFeeRate()));
-                    out.println(formatTxFeeRateInfo(txFeeRate));
-                    return;
-                }
-                case unsettxfeerate: {
-                    if (new SimpleMethodOptionParser(args).parse().isForHelp()) {
-                        out.println(client.getMethodHelp(method));
-                        return;
-                    }
-                    var txFeeRate = client.unsetTxFeeRate();
-                    out.println(formatTxFeeRateInfo(txFeeRate));
-                    return;
-                }
-                case gettransaction: {
-                    var opts = new GetTransactionOptionParser(args).parse();
-                    if (opts.isForHelp()) {
-                        out.println(client.getMethodHelp(method));
-                        return;
-                    }
-                    var txId = opts.getTxId();
-                    var tx = client.getTransaction(txId);
-                    new TableBuilder(TRANSACTION_TBL, tx).build().print(out);
-                    return;
+                    throw new RuntimeException("Send BTC not implemented");
                 }
                 case createoffer: {
                     var opts = new CreateOfferOptionParser(args).parse();

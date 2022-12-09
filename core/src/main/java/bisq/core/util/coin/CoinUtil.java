@@ -20,8 +20,7 @@ package bisq.core.util.coin;
 import bisq.core.btc.wallet.Restrictions;
 import bisq.core.monetary.Price;
 import bisq.core.monetary.Volume;
-import bisq.core.provider.fee.FeeService;
-
+import bisq.core.trade.HavenoUtils;
 import bisq.common.util.MathUtils;
 
 import org.bitcoinj.core.Coin;
@@ -98,8 +97,8 @@ public class CoinUtil {
     @Nullable
     public static Coin getMakerFee(@Nullable Coin amount) {
         if (amount != null) {
-            Coin feePerBtc = getFeePerBtc(FeeService.getMakerFeePerBtc(), amount);
-            return maxCoin(feePerBtc, FeeService.getMinMakerFee());
+            Coin feePerBtc = getFeePerBtc(HavenoUtils.getMakerFeePerBtc(), amount);
+            return maxCoin(feePerBtc, HavenoUtils.getMinMakerFee());
         } else {
             return null;
         }

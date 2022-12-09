@@ -27,7 +27,6 @@ import bisq.core.offer.Offer;
 import bisq.core.offer.OfferUtil;
 import bisq.core.payment.PaymentAccount;
 import bisq.core.payment.payload.PaymentMethod;
-import bisq.core.provider.fee.FeeService;
 import bisq.core.provider.price.PriceFeedService;
 
 import bisq.common.taskrunner.Model;
@@ -37,8 +36,6 @@ import org.bitcoinj.core.Coin;
 import javax.inject.Inject;
 
 import java.util.Objects;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
 
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
@@ -60,7 +57,6 @@ public class TakeOfferModel implements Model {
     // Immutable
     private final AccountAgeWitnessService accountAgeWitnessService;
     private final XmrWalletService xmrWalletService;
-    private final FeeService feeService;
     private final OfferUtil offerUtil;
     private final PriceFeedService priceFeedService;
 
@@ -75,11 +71,6 @@ public class TakeOfferModel implements Model {
     private Coin securityDeposit;
     private boolean useSavingsWallet;
 
-    // Use an average of a typical trade fee tx with 1 input, deposit tx and payout tx.
-    private final int feeTxVsize = 192;  // (175+233+169)/3
-    private Coin txFeePerVbyteFromFeeService;
-    @Getter
-    private Coin txFeeFromFeeService;
     @Getter
     private Coin takerFee;
     @Getter
@@ -98,12 +89,10 @@ public class TakeOfferModel implements Model {
     @Inject
     public TakeOfferModel(AccountAgeWitnessService accountAgeWitnessService,
                           XmrWalletService xmrWalletService,
-                          FeeService feeService,
                           OfferUtil offerUtil,
                           PriceFeedService priceFeedService) {
         this.accountAgeWitnessService = accountAgeWitnessService;
         this.xmrWalletService = xmrWalletService;
-        this.feeService = feeService;
         this.offerUtil = offerUtil;
         this.priceFeedService = priceFeedService;
     }
@@ -124,7 +113,6 @@ public class TakeOfferModel implements Model {
                 : offer.getSellerSecurityDeposit();
         this.takerFee = offerUtil.getTakerFee(amount);
 
-        calculateTxFees();
         calculateVolume();
         calculateTotalToPay();
         offer.resetState();
@@ -137,46 +125,12 @@ public class TakeOfferModel implements Model {
         // empty
     }
 
-    private void calculateTxFees() {
-        // Taker pays 3 times the tx fee (taker fee, deposit, payout) because the mining
-        // fee might be different when maker created the offer and reserved his funds.
-        // Taker creates at least taker fee and deposit tx at nearly the same moment.
-        // Just the payout will be later and still could lead to issues if the required
-        // fee changed a lot in the meantime. using RBF and/or multiple batch-signed
-        // payout tx with different fees might be an option but RBF is not supported yet
-        // in BitcoinJ and batched txs would add more complexity to the trade protocol.
-
-        // A typical trade fee tx has about 175 vbytes (if one input). The trade txs has
-        // about 169-263 vbytes. We use 192 as a average value.
-
-        // Fee calculations:
-        // Trade fee tx: 175 vbytes (1 input)
-        // Deposit tx: 233 vbytes (1 MS output+ OP_RETURN) - 263 vbytes
-        //     (1 MS output + OP_RETURN + change in case of smaller trade amount)
-        // Payout tx: 169 vbytes
-        // Disputed payout tx: 139 vbytes
-
-        txFeePerVbyteFromFeeService = getTxFeePerVbyte();
-        txFeeFromFeeService = offerUtil.getTxFeeByVsize(txFeePerVbyteFromFeeService, feeTxVsize);
-        log.info("{} txFeePerVbyte = {}", feeService.getClass().getSimpleName(), txFeePerVbyteFromFeeService);
-    }
-
-    private Coin getTxFeePerVbyte() {
-        try {
-            CompletableFuture<Void> feeRequestFuture = CompletableFuture.runAsync(feeService::requestFees);
-            feeRequestFuture.get();  // Block until async fee request is complete.
-            return feeService.getTxFeePerVbyte();
-        } catch (InterruptedException | ExecutionException e) {
-            throw new IllegalStateException("Could not request fees from fee service.", e);
-        }
-    }
-
     private void calculateTotalToPay() {
         // Taker pays 2 times the tx fee because the mining fee might be different when
         // maker created the offer and reserved his funds, so that would not work well
         // with dynamic fees.  The mining fee for the takeOfferFee tx is deducted from
         // the createOfferFee and not visible to the trader.
-        Coin feeAndSecDeposit = getTotalTxFee().add(securityDeposit).add(takerFee);
+        Coin feeAndSecDeposit = securityDeposit.add(takerFee);
 
         totalToPayAsCoin = offer.isBuyOffer()
                 ? feeAndSecDeposit.add(amount)
@@ -212,35 +166,10 @@ public class TakeOfferModel implements Model {
                 offer.getMirroredDirection());
     }
 
-    public Coin getTotalTxFee() {
-        return txFeeFromFeeService.add(getTxFeeForDepositTx()).add(getTxFeeForPayoutTx());
-    }
-
     @NotNull
     public Coin getFundsNeededForTrade() {
         // If taking a buy offer, taker needs to reserve the offer.amt too.
-        return securityDeposit
-                .add(getTxFeeForDepositTx())
-                .add(getTxFeeForPayoutTx())
-                .add(offer.isBuyOffer() ? amount : ZERO);
-    }
-
-    private Coin getTxFeeForDepositTx() {
-        // TODO fix with new trade protocol!
-        // Unfortunately we cannot change that to the correct fees as it would break
-        // backward compatibility.  We still might find a way with offer version or app
-        // version checks so lets keep that commented out code as that shows how it
-        // should be.
-        return txFeeFromFeeService;
-    }
-
-    private Coin getTxFeeForPayoutTx() {
-        // TODO fix with new trade protocol!
-        // Unfortunately we cannot change that to the correct fees as it would break
-        // backward compatibility.  We still might find a way with offer version or app
-        // version checks so lets keep that commented out code as that shows how it
-        // should be.
-        return txFeeFromFeeService;
+        return securityDeposit.add(offer.isBuyOffer() ? amount : ZERO);
     }
 
     private void validateModelInputs() {
@@ -264,8 +193,6 @@ public class TakeOfferModel implements Model {
         this.takerFee = null;
         this.totalAvailableBalance = null;
         this.totalToPayAsCoin = null;
-        this.txFeeFromFeeService = null;
-        this.txFeePerVbyteFromFeeService = null;
         this.useSavingsWallet = true;
         this.volume = null;
     }
@@ -281,9 +208,6 @@ public class TakeOfferModel implements Model {
                 ", addressEntry=" + addressEntry + "\n" +
                 ", amount=" + amount + "\n" +
                 ", securityDeposit=" + securityDeposit + "\n" +
-                ", feeTxVsize=" + feeTxVsize + "\n" +
-                ", txFeePerVbyteFromFeeService=" + txFeePerVbyteFromFeeService + "\n" +
-                ", txFeeFromFeeService=" + txFeeFromFeeService + "\n" +
                 ", takerFee=" + takerFee + "\n" +
                 ", totalToPayAsCoin=" + totalToPayAsCoin + "\n" +
                 ", missingCoin=" + missingCoin + "\n" +

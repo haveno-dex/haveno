@@ -17,7 +17,6 @@
 
 package bisq.core.offer;
 
-import bisq.core.btc.TxFeeEstimationService;
 import bisq.core.btc.wallet.Restrictions;
 import bisq.core.btc.wallet.XmrWalletService;
 import bisq.core.locale.CurrencyUtil;
@@ -38,7 +37,6 @@ import bisq.network.p2p.P2PService;
 
 import bisq.common.app.Version;
 import bisq.common.crypto.PubKeyRingProvider;
-import bisq.common.util.Tuple2;
 import bisq.common.util.Utilities;
 
 import org.bitcoinj.core.Coin;
@@ -59,7 +57,6 @@ import static bisq.core.payment.payload.PaymentMethod.HAL_CASH_ID;
 @Singleton
 public class CreateOfferService {
     private final OfferUtil offerUtil;
-    private final TxFeeEstimationService txFeeEstimationService;
     private final PriceFeedService priceFeedService;
     private final P2PService p2PService;
     private final PubKeyRingProvider pubKeyRingProvider;
@@ -75,7 +72,6 @@ public class CreateOfferService {
 
     @Inject
     public CreateOfferService(OfferUtil offerUtil,
-                              TxFeeEstimationService txFeeEstimationService,
                               PriceFeedService priceFeedService,
                               P2PService p2PService,
                               PubKeyRingProvider pubKeyRingProvider,
@@ -84,7 +80,6 @@ public class CreateOfferService {
                               TradeStatisticsManager tradeStatisticsManager,
                               ArbitratorManager arbitratorManager) {
         this.offerUtil = offerUtil;
-        this.txFeeEstimationService = txFeeEstimationService;
         this.priceFeedService = priceFeedService;
         this.p2PService = p2PService;
         this.pubKeyRingProvider = pubKeyRingProvider;
@@ -225,18 +220,6 @@ public class CreateOfferService {
         Offer offer = new Offer(offerPayload);
         offer.setPriceFeedService(priceFeedService);
         return offer;
-    }
-
-    public Tuple2<Coin, Integer> getEstimatedFeeAndTxVsize(Coin amount,
-                                                           OfferDirection direction,
-                                                           double buyerSecurityDeposit,
-                                                           double sellerSecurityDeposit) {
-        Coin reservedFundsForOffer = getReservedFundsForOffer(direction,
-                amount,
-                buyerSecurityDeposit,
-                sellerSecurityDeposit);
-        return txFeeEstimationService.getEstimatedFeeAndTxVsizeForMaker(reservedFundsForOffer,
-                offerUtil.getMakerFee(amount));
     }
 
     public Coin getReservedFundsForOffer(OfferDirection direction,

@@ -17,8 +17,6 @@
 
 package bisq.cli.table.builder;
 
-import bisq.proto.grpc.TxInfo;
-
 import java.util.List;
 
 import javax.annotation.Nullable;
@@ -61,25 +59,22 @@ class TransactionTableBuilder extends AbstractTableBuilder {
     public Table build() {
         // TODO Add 'gettransactions' api method & show multiple tx in the console.
         //  For now, a tx tbl is only one row.
-        TxInfo tx = (TxInfo) protos.get(0);
 
         // Declare the columns derived from tx info.
 
         @Nullable
-        Column<String> colMemo = tx.getMemo().isEmpty()
-                ? null
-                : new StringColumn(COL_HEADER_TX_MEMO);
+        Column<String> colMemo = null;
 
         // Populate columns with tx info.
 
-        colTxId.addRow(tx.getTxId());
-        colIsConfirmed.addRow(!tx.getIsPending());
-        colInputSum.addRow(tx.getInputSum());
-        colOutputSum.addRow(tx.getOutputSum());
-        colTxFee.addRow(tx.getFee());
-        colTxSize.addRow((long) tx.getSize());
+        colTxId.addRow(null);
+        colIsConfirmed.addRow(null);
+        colInputSum.addRow(null);
+        colOutputSum.addRow(null);
+        colTxFee.addRow(null);
+        colTxSize.addRow(null);
         if (colMemo != null)
-            colMemo.addRow(tx.getMemo());
+            colMemo.addRow(null);
 
         // Define and return the table instance with populated columns.
 

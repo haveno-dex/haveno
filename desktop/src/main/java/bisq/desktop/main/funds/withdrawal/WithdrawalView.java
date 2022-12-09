@@ -31,7 +31,6 @@ import bisq.core.btc.model.XmrAddressEntry;
 import bisq.core.btc.setup.WalletsSetup;
 import bisq.core.btc.wallet.XmrWalletService;
 import bisq.core.locale.Res;
-import bisq.core.provider.fee.FeeService;
 import bisq.core.trade.HavenoUtils;
 import bisq.core.trade.Trade;
 import bisq.core.trade.TradeManager;
@@ -97,8 +96,7 @@ public class WithdrawalView extends ActivatableView<VBox, Void> {
                            WalletsSetup walletsSetup,
                            @Named(FormattingUtils.BTC_FORMATTER_KEY) CoinFormatter formatter,
                            BtcAddressValidator btcAddressValidator,
-                           WalletPasswordWindow walletPasswordWindow,
-                           FeeService feeService) {
+                           WalletPasswordWindow walletPasswordWindow) {
         this.xmrWalletService = xmrWalletService;
         this.tradeManager = tradeManager;
         this.p2PService = p2PService;

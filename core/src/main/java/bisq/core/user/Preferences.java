@@ -29,7 +29,6 @@ import bisq.core.locale.GlobalSettings;
 import bisq.core.locale.TradeCurrency;
 import bisq.core.payment.PaymentAccount;
 import bisq.core.payment.PaymentAccountUtil;
-import bisq.core.provider.fee.FeeService;
 import bisq.core.xmr.MoneroNodeSettings;
 
 import bisq.network.p2p.network.BridgeAddressProvider;
@@ -162,7 +161,6 @@ public final class Preferences implements PersistedDataHost, BridgeAddressProvid
 
     private final PersistenceManager<PreferencesPayload> persistenceManager;
     private final Config config;
-    private final FeeService feeService;
     private final LocalBitcoinNode localBitcoinNode;
     private final String btcNodesFromOptions;
     @Getter
@@ -175,13 +173,11 @@ public final class Preferences implements PersistedDataHost, BridgeAddressProvid
     @Inject
     public Preferences(PersistenceManager<PreferencesPayload> persistenceManager,
                        Config config,
-                       FeeService feeService,
                        LocalBitcoinNode localBitcoinNode,
                        @Named(Config.BTC_NODES) String btcNodesFromOptions) {
 
         this.persistenceManager = persistenceManager;
         this.config = config;
-        this.feeService = feeService;
         this.localBitcoinNode = localBitcoinNode;
         this.btcNodesFromOptions = btcNodesFromOptions;
 
@@ -835,11 +831,6 @@ public final class Preferences implements PersistedDataHost, BridgeAddressProvid
     @Nullable
     public List<String> getBridgeAddresses() {
         return prefPayload.getBridgeAddresses();
-    }
-
-    public long getWithdrawalTxFeeInVbytes() {
-        return Math.max(prefPayload.getWithdrawalTxFeeInVbytes(),
-                feeService.getMinFeePerVByte());
     }
 
     public List<String> getDefaultXmrTxProofServices() {

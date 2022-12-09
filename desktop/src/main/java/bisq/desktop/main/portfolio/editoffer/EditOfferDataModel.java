@@ -35,7 +35,6 @@ import bisq.core.offer.OpenOffer;
 import bisq.core.offer.OpenOfferManager;
 import bisq.core.payment.PaymentAccount;
 import bisq.core.proto.persistable.CorePersistenceProtoResolver;
-import bisq.core.provider.fee.FeeService;
 import bisq.core.provider.price.PriceFeedService;
 import bisq.core.trade.statistics.TradeStatisticsManager;
 import bisq.core.user.Preferences;
@@ -72,7 +71,6 @@ class EditOfferDataModel extends MutableOfferDataModel {
                        P2PService p2PService,
                        PriceFeedService priceFeedService,
                        AccountAgeWitnessService accountAgeWitnessService,
-                       FeeService feeService,
                        @Named(FormattingUtils.BTC_FORMATTER_KEY) CoinFormatter btcFormatter,
                        CorePersistenceProtoResolver corePersistenceProtoResolver,
                        TradeStatisticsManager tradeStatisticsManager,
@@ -87,7 +85,6 @@ class EditOfferDataModel extends MutableOfferDataModel {
                 p2PService,
                 priceFeedService,
                 accountAgeWitnessService,
-                feeService,
                 btcFormatter,
                 tradeStatisticsManager,
                 navigation);
