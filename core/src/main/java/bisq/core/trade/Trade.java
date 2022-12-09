@@ -931,7 +931,7 @@ public abstract class Trade implements Tradable, Model {
     }
 
     public void saveWallet() {
-        xmrWalletService.saveWallet(getWallet());
+        xmrWalletService.saveMultisigWallet(getId());
     }
 
     public void deleteWallet() {

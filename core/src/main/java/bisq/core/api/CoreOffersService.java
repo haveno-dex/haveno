@@ -106,7 +106,7 @@ public class CoreOffersService {
     }
 
     Offer getOffer(String id) {
-        return offerBookService.getOffers().stream()
+        return new ArrayList<>(offerBookService.getOffers()).stream()
                 .filter(o -> o.getId().equals(id))
                 .filter(o -> !o.isMyOffer(keyRing))
                 .filter(o -> {
@@ -120,7 +120,7 @@ public class CoreOffersService {
     }
 
     Offer getMyOffer(String id) {
-        return openOfferManager.getObservableList().stream()
+        return new ArrayList<>(openOfferManager.getObservableList()).stream()
                 .map(OpenOffer::getOffer)
                 .filter(o -> o.getId().equals(id))
                 .filter(o -> o.isMyOffer(keyRing))
@@ -129,7 +129,7 @@ public class CoreOffersService {
     }
 
     List<Offer> getOffers(String direction, String currencyCode) {
-        List<Offer> offers = offerBookService.getOffers().stream()
+        List<Offer> offers = new ArrayList<>(offerBookService.getOffers()).stream()
                 .filter(o -> !o.isMyOffer(keyRing))
                 .filter(o -> offerMatchesDirectionAndCurrency(o, direction, currencyCode))
                 .filter(o -> {
@@ -145,7 +145,7 @@ public class CoreOffersService {
     List<Offer> getMyOffers(String direction, String currencyCode) {
         
         // get my open offers
-        List<Offer> offers = openOfferManager.getObservableList().stream()
+        List<Offer> offers = new ArrayList<>(openOfferManager.getObservableList()).stream()
                 .map(OpenOffer::getOffer)
                 .filter(o -> o.isMyOffer(keyRing))
                 .filter(o -> offerMatchesDirectionAndCurrency(o, direction, currencyCode))

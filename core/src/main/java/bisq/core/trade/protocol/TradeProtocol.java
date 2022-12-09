@@ -84,6 +84,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
     protected final Trade trade;
     protected CountDownLatch tradeLatch; // to synchronize on trade
     private Timer timeoutTimer;
+    private Object timeoutTimerLock = new Object();
     protected TradeResultHandler tradeResultHandler;
     protected ErrorMessageHandler errorMessageHandler;
 
@@ -357,7 +358,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
             latchTrade();
             Validator.checkTradeId(processModel.getOfferId(), response);
             processModel.setTradeMessage(response);
-            expect(anyState(Trade.State.SAW_ARRIVED_PUBLISH_DEPOSIT_TX_REQUEST, Trade.State.ARBITRATOR_PUBLISHED_DEPOSIT_TXS, Trade.State.DEPOSIT_TXS_SEEN_IN_NETWORK)
+            expect(anyState(Trade.State.SENT_PUBLISH_DEPOSIT_TX_REQUEST, Trade.State.SAW_ARRIVED_PUBLISH_DEPOSIT_TX_REQUEST, Trade.State.ARBITRATOR_PUBLISHED_DEPOSIT_TXS, Trade.State.DEPOSIT_TXS_SEEN_IN_NETWORK)
                     .with(response)
                     .from(sender)) // TODO (woodser): ensure this asserts sender == response.getSenderNodeAddress()
                     .setup(tasks(
@@ -600,16 +601,20 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     protected synchronized void startTimeout(long timeoutSec) {
-        stopTimeout();
-        timeoutTimer = UserThread.runAfter(() -> {
-            handleError("Timeout reached. Protocol did not complete in " + timeoutSec + " sec. TradeID=" + trade.getId() + ", state=" + trade.stateProperty().get());
-        }, timeoutSec);
+        synchronized (timeoutTimerLock) {
+            stopTimeout();
+            timeoutTimer = UserThread.runAfter(() -> {
+                handleError("Timeout reached. Protocol did not complete in " + timeoutSec + " sec. TradeID=" + trade.getId() + ", state=" + trade.stateProperty().get());
+            }, timeoutSec);
+        }
     }
 
     protected synchronized void stopTimeout() {
-        if (timeoutTimer != null) {
-            timeoutTimer.stop();
-            timeoutTimer = null;
+        synchronized (timeoutTimerLock) {
+            if (timeoutTimer != null) {
+                timeoutTimer.stop();
+                timeoutTimer = null;
+            }
         }
     }
 

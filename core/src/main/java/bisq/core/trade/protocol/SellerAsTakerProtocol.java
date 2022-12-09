@@ -54,7 +54,7 @@ public class SellerAsTakerProtocol extends SellerProtocol implements TakerProtoc
     @Override
     public void onTakeOffer(TradeResultHandler tradeResultHandler,
                             ErrorMessageHandler errorMessageHandler) {
-      System.out.println(getClass().getCanonicalName() + ".onTakeOffer()");
+      System.out.println(getClass().getSimpleName() + ".onTakeOffer()");
       new Thread(() -> {
           synchronized (trade) {
               latchTrade();
