@@ -489,7 +489,7 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
     private void updateMarketPriceLabel(Label label) {
         if (model.getIsPriceAvailable().get()) {
             if (model.getIsExternallyProvidedPrice().get()) {
-                label.setText(Res.get("mainView.marketPriceWithProvider.label", "Bisq Price Index"));
+                label.setText(Res.get("mainView.marketPriceWithProvider.label", "Haveno Price Index"));
                 label.setTooltip(new Tooltip(getPriceProviderTooltipString()));
             } else {
                 label.setText(Res.get("mainView.marketPrice.bisqInternalPrice"));
@@ -509,7 +509,7 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
         MarketPrice selectedMarketPrice = model.getPriceFeedService().getMarketPrice(selectedCurrencyCode);
 
         return Res.get("mainView.marketPrice.tooltip",
-                "Bisq Price Index for " + selectedCurrencyCode,
+                "Haveno Price Index for " + selectedCurrencyCode,
                 "",
                 selectedMarketPrice != null ? DisplayUtils.formatTime(new Date(selectedMarketPrice.getTimestampSec())) : Res.get("shared.na"),
                 model.getPriceFeedService().getProviderNodeAddress());
