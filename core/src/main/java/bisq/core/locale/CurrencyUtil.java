@@ -24,7 +24,6 @@ import bisq.asset.AssetRegistry;
 import bisq.asset.Coin;
 import bisq.asset.Token;
 
-import bisq.common.app.DevEnv;
 import bisq.common.config.BaseCurrencyNetwork;
 import bisq.common.config.Config;
 
