@@ -17,6 +17,7 @@
 
 package bisq.core.offer.placeoffer;
 
+import bisq.core.account.witness.AccountAgeWitnessService;
 import bisq.core.btc.wallet.BtcWalletService;
 import bisq.core.btc.wallet.TradeWalletService;
 import bisq.core.btc.wallet.XmrWalletService;
@@ -63,6 +64,8 @@ public class PlaceOfferModel implements Model {
     private final KeyRing keyRing;
     @Getter
     private final FilterManager filterManager;
+    @Getter
+    private final AccountAgeWitnessService accountAgeWitnessService;
 
     // Mutable
     @Setter
@@ -87,7 +90,8 @@ public class PlaceOfferModel implements Model {
                            TradeStatisticsManager tradeStatisticsManager,
                            User user,
                            KeyRing keyRing,
-                           FilterManager filterManager) {
+                           FilterManager filterManager,
+                           AccountAgeWitnessService accountAgeWitnessService) {
         this.offer = offer;
         this.reservedFundsForOffer = reservedFundsForOffer;
         this.useSavingsWallet = useSavingsWallet;
@@ -102,6 +106,7 @@ public class PlaceOfferModel implements Model {
         this.user = user;
         this.keyRing = keyRing;
         this.filterManager = filterManager;
+        this.accountAgeWitnessService = accountAgeWitnessService;
     }
 
     @Override

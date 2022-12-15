@@ -38,7 +38,6 @@ import bisq.core.trade.protocol.TradeListener;
 import bisq.core.trade.protocol.TradeProtocol;
 import bisq.core.trade.protocol.TradingPeer;
 import bisq.core.trade.txproof.AssetTxProofResult;
-import bisq.core.util.ParsingUtils;
 import bisq.core.util.VolumeUtil;
 import bisq.network.p2p.AckMessage;
 import bisq.network.p2p.NodeAddress;
@@ -701,7 +700,6 @@ public abstract class Trade implements Tradable, Model {
     public MoneroTxWallet createPayoutTx() {
 
         // gather info
-        XmrWalletService walletService = processModel.getProvider().getXmrWalletService();
         MoneroWallet multisigWallet = getWallet();
         if (multisigWallet.isMultisigImportNeeded()) throw new RuntimeException("Cannot create payout tx because multisig import is needed");
         String sellerPayoutAddress = this.getSeller().getPayoutAddressString();

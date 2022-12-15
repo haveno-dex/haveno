@@ -96,6 +96,10 @@ class CorePaymentAccountsService {
         }
     }
 
+    PaymentAccount getPaymentAccount(String paymentAccountId) {
+        return user.getPaymentAccount(paymentAccountId);
+    }
+
     Set<PaymentAccount> getPaymentAccounts() {
         return user.getPaymentAccounts();
     }

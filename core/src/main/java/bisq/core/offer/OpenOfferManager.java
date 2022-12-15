@@ -17,6 +17,7 @@
 
 package bisq.core.offer;
 
+import bisq.core.account.witness.AccountAgeWitnessService;
 import bisq.core.api.CoreContext;
 import bisq.core.api.CoreMoneroConnectionsService;
 import bisq.core.btc.wallet.BtcWalletService;
@@ -136,6 +137,8 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
     private Timer periodicRepublishOffersTimer, periodicRefreshOffersTimer, retryRepublishOffersTimer;
     @Getter
     private final ObservableList<Tuple2<OpenOffer, String>> invalidOffers = FXCollections.observableArrayList();
+    @Getter
+    private final AccountAgeWitnessService accountAgeWitnessService;
 
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -161,7 +164,8 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                             FilterManager filterManager,
                             Broadcaster broadcaster,
                             PersistenceManager<TradableList<OpenOffer>> persistenceManager,
-                            PersistenceManager<SignedOfferList> signedOfferPersistenceManager) {
+                            PersistenceManager<SignedOfferList> signedOfferPersistenceManager,
+                            AccountAgeWitnessService accountAgeWitnessService) {
         this.coreContext = coreContext;
         this.keyRing = keyRing;
         this.user = user;
@@ -181,6 +185,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
         this.broadcaster = broadcaster;
         this.persistenceManager = persistenceManager;
         this.signedOfferPersistenceManager = signedOfferPersistenceManager;
+        this.accountAgeWitnessService = accountAgeWitnessService;
 
         this.persistenceManager.initialize(openOffers, "OpenOffers", PersistenceManager.Source.PRIVATE);
         this.signedOfferPersistenceManager.initialize(signedOffers, "SignedOffers", PersistenceManager.Source.PRIVATE); // arbitrator stores reserve tx for signed offers
@@ -741,7 +746,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
     }
 
     private void signAndPostOffer(OpenOffer openOffer,
-                                  Coin offerReserveAmount, // TODO: switch to BigInteger
+                                  Coin offerReserveAmount,
                                   boolean useSavingsWallet, // TODO: remove this
                                   TransactionResultHandler resultHandler, ErrorMessageHandler errorMessageHandler) {
         log.info("Signing and posting offer " + openOffer.getId());
@@ -760,7 +765,8 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                 tradeStatisticsManager,
                 user,
                 keyRing,
-                filterManager);
+                filterManager,
+                accountAgeWitnessService);
 
         // create protocol
         PlaceOfferProtocol placeOfferProtocol = new PlaceOfferProtocol(model,
