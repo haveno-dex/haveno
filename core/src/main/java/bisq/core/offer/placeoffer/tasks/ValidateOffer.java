@@ -19,6 +19,7 @@ package bisq.core.offer.placeoffer.tasks;
 
 import bisq.core.offer.Offer;
 import bisq.core.offer.placeoffer.PlaceOfferModel;
+import bisq.core.trade.HavenoUtils;
 import bisq.core.trade.messages.TradeMessage;
 
 import bisq.common.taskrunner.Task;
@@ -65,8 +66,9 @@ public class ValidateOffer extends Task<PlaceOfferModel> {
             /*checkArgument(offer.getMinAmount().compareTo(ProposalConsensus.getMinTradeAmount()) >= 0,
                 "MinAmount is less than " + ProposalConsensus.getMinTradeAmount().toFriendlyString());*/
 
-            checkArgument(offer.getAmount().compareTo(offer.getPaymentMethod().getMaxTradeLimitAsCoin(offer.getCurrencyCode())) <= 0,
-                    "Amount is larger than " + offer.getPaymentMethod().getMaxTradeLimitAsCoin(offer.getCurrencyCode()).toFriendlyString());
+            long maxAmount = model.getAccountAgeWitnessService().getMyTradeLimit(model.getUser().getPaymentAccount(offer.getMakerPaymentAccountId()), offer.getCurrencyCode(), offer.getDirection());
+            checkArgument(offer.getAmount().longValue() <= maxAmount, 
+                    "Amount is larger than " + HavenoUtils.coinToXmr(offer.getPaymentMethod().getMaxTradeLimitAsCoin(offer.getCurrencyCode())) + " XMR");
             checkArgument(offer.getAmount().compareTo(offer.getMinAmount()) >= 0, "MinAmount is larger than Amount");
 
             checkNotNull(offer.getPrice(), "Price is null");
@@ -89,7 +91,6 @@ public class ValidateOffer extends Task<PlaceOfferModel> {
                     "maxTradePeriod must be positive. maxTradePeriod=" + offer.getMaxTradePeriod());
             // TODO check upper and lower bounds for fiat
             // TODO check rest of new parameters
-            // TODO check for account age witness base tradeLimit is missing
 
             complete();
         } catch (Exception e) {
