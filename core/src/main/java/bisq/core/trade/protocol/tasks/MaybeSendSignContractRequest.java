@@ -135,7 +135,6 @@ public class MaybeSendSignContractRequest extends TradeTask {
     private void completeAux() {
         trade.setState(State.CONTRACT_SIGNATURE_REQUESTED);
         processModel.getTradeManager().requestPersistence();
-        processModel.getXmrWalletService().saveWallet();
         complete();
     }
 }

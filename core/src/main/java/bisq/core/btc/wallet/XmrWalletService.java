@@ -85,6 +85,7 @@ public class XmrWalletService {
     private static final String MONERO_MULTISIG_WALLET_PREFIX = "xmr_multisig_trade_";
     public static final double MINER_FEE_TOLERANCE = 0.25; // miner fee must be within percent of estimated fee
     private static final double SECURITY_DEPOSIT_TOLERANCE = Config.baseCurrencyNetwork() == BaseCurrencyNetwork.XMR_LOCAL ? 0.25 : 0.05; // security deposit absorbs miner fee up to percent
+    private static final int NUM_MAX_BACKUP_WALLETS = 10;
 
     private final CoreAccountService accountService;
     private final CoreMoneroConnectionsService connectionsService;
@@ -166,8 +167,12 @@ public class XmrWalletService {
         return wallet;
     }
 
-    public void saveWallet() {
-        saveWallet(getWallet());
+    public void saveMainWallet() {
+        saveMainWallet(true);
+    }
+
+    public void saveMainWallet(boolean backup) {
+        saveWallet(getWallet(), backup);
     }
 
     public boolean isWalletReady() {
@@ -241,13 +246,13 @@ public class XmrWalletService {
                 return;
             }
             if (!multisigWallets.containsKey(tradeId)) throw new RuntimeException("Multisig wallet to save was not previously opened for trade " + tradeId);
-            saveWallet(multisigWallets.get(tradeId));
+            saveWallet(multisigWallets.get(tradeId), true);
         }
     }
 
-    private void saveWallet(MoneroWallet wallet) {
+    private void saveWallet(MoneroWallet wallet, boolean backup) {
         wallet.save();
-        backupWallet(wallet.getPath());
+        if (backup) backupWallet(wallet.getPath());
     }
 
     public void closeMultisigWallet(String tradeId) {
@@ -340,7 +345,7 @@ public class XmrWalletService {
 
             // freeze inputs
             for (MoneroOutput input : tradeTx.getInputs()) wallet.freezeOutput(input.getKeyImage().getHex());
-            wallet.save();
+            saveMainWallet();
             return tradeTx;
         }
     }
@@ -516,7 +521,7 @@ public class XmrWalletService {
                 wallet.sync(); // blocking
                 wallet.startSyncing(connectionsService.getDefaultRefreshPeriodMs()); // start syncing wallet in background
                 connectionsService.doneDownload(); // TODO: using this to signify both daemon and wallet synced, refactor sync handling of both
-                saveWallet(wallet);
+                saveMainWallet(false); // skip backup on open
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -653,7 +658,7 @@ public class XmrWalletService {
         tasks.add(() -> {
             try {
                 wallet.changePassword(oldPassword, newPassword);
-                saveWallet(wallet);
+                saveMainWallet();
             } catch (Exception e) {
                 e.printStackTrace();
                 throw e;
@@ -667,7 +672,7 @@ public class XmrWalletService {
                 MoneroWallet multisigWallet = getMultisigWallet(tradeId); // TODO (woodser): this unnecessarily connects and syncs unopen wallets and leaves open
                 if (multisigWallet == null) return;
                 multisigWallet.changePassword(oldPassword, newPassword);
-                saveWallet(multisigWallet);
+                saveMultisigWallet(tradeId);
             });
         }
 
@@ -726,9 +731,9 @@ public class XmrWalletService {
     }
 
     private void backupWallet(String walletName) {
-        FileUtil.rollingBackup(walletDir, walletName, 10);
-        FileUtil.rollingBackup(walletDir, walletName + ".keys", 10);
-        FileUtil.rollingBackup(walletDir, walletName + ".address.txt", 10);
+        FileUtil.rollingBackup(walletDir, walletName, NUM_MAX_BACKUP_WALLETS);
+        FileUtil.rollingBackup(walletDir, walletName + ".keys", NUM_MAX_BACKUP_WALLETS);
+        FileUtil.rollingBackup(walletDir, walletName + ".address.txt", NUM_MAX_BACKUP_WALLETS);
     }
 
     private void deleteBackupWallets(String walletName) {

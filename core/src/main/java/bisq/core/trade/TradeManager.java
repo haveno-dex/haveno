@@ -317,7 +317,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
             log.info("Thawing output which is not reserved for offer or trade: " + unreservedFrozenKeyImage);
             xmrWalletService.getWallet().thawOutput(unreservedFrozenKeyImage);
         }
-        xmrWalletService.getWallet().save();
+        if (!frozenKeyImages.isEmpty()) xmrWalletService.saveMainWallet();
     }
 
     public TradeProtocol getTradeProtocol(Trade trade) {
@@ -1071,7 +1071,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
             // unreserve key images
             if (trade instanceof TakerTrade && trade.getSelf().getReserveTxKeyImages() != null) {
                 for (String keyImage : trade.getSelf().getReserveTxKeyImages()) xmrWalletService.getWallet().thawOutput(keyImage);
-                xmrWalletService.getWallet().save();
+                xmrWalletService.saveMainWallet();
             }
 
             // remove trade

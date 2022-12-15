@@ -139,7 +139,7 @@ public class KeyStorage {
      * @param secretKey  The symmetric key that protects the key entry file
      */
     public KeyPair loadKeyPair(KeyEntry keyEntry, SecretKey secretKey) {
-        FileUtil.rollingBackup(storageDir, keyEntry.getFileName() + ".key", 10);
+        FileUtil.rollingBackup(storageDir, keyEntry.getFileName() + ".key", 20);
         try {
             KeyFactory keyFactory = KeyFactory.getInstance(keyEntry.getAlgorithm());
             byte[] encodedPrivateKey = loadKeyBytes(keyEntry, secretKey);
