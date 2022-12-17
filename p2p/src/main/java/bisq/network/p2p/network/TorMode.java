@@ -78,7 +78,7 @@ public abstract class TorMode {
      * Do a rolling backup of the "private_key" file.
      */
     protected void doRollingBackup() {
-        FileUtil.rollingBackup(new File(torDir, HIDDEN_SERVICE_DIRECTORY), "private_key", 20);
+        FileUtil.rollingBackup(new File(torDir, HIDDEN_SERVICE_DIRECTORY), "private_key", 10);
     }
 
 }
