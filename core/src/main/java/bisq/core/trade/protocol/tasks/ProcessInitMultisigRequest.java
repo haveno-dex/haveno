@@ -122,7 +122,7 @@ public class ProcessInitMultisigRequest extends TradeTask {
             log.info("Importing exchanged multisig hex for trade {}", trade.getId());
             MoneroMultisigInitResult result = multisigWallet.exchangeMultisigKeys(Arrays.asList(peers[0].getExchangedMultisigHex(), peers[1].getExchangedMultisigHex()), xmrWalletService.getWalletPassword());
             processModel.setMultisigAddress(result.getAddress());
-            processModel.getProvider().getXmrWalletService().saveMultisigWallet(trade.getId()); // save multisig wallet once it's created
+            trade.saveWallet(); // save multisig wallet on completion
             trade.setStateIfValidTransitionTo(Trade.State.MULTISIG_COMPLETED);
           }
 
