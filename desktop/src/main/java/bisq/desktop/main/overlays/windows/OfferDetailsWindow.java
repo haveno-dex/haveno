@@ -307,11 +307,7 @@ public class OfferDetailsWindow extends Overlay<OfferDetailsWindow> {
         if (!isF2F)
             rows++;
 
-        // At create offer we do not show the makerFeeTxId
-        if (!placeOfferHandlerOptional.isPresent()) {
-            rows++;
-        }
-
+        addTitledGroupBg(gridPane, ++rowIndex, rows, Res.get("shared.details"), Layout.GROUP_DISTANCE);
         addConfirmationLabelTextFieldWithCopyIcon(gridPane, rowIndex, Res.get("shared.offerId"), offer.getId(),
                 Layout.TWICE_FIRST_ROW_AND_GROUP_DISTANCE);
         addConfirmationLabelTextFieldWithCopyIcon(gridPane, ++rowIndex, Res.get("offerDetailsWindow.makersOnion"),
