@@ -140,7 +140,6 @@ public final class CoreMoneroConnectionsService {
 
     public void addListener(MoneroConnectionManagerListener listener) {
         synchronized (lock) {
-            accountService.checkAccountOpen();
             connectionManager.addListener(listener);
         }
     }
@@ -236,11 +235,14 @@ public final class CoreMoneroConnectionsService {
         }
     }
 
+    public boolean isConnectionLocal() {
+        return getConnection() != null && HavenoUtils.isLocalHost(getConnection().getUri());
+    }
+
     public long getDefaultRefreshPeriodMs() {
         if (daemon == null) return REFRESH_PERIOD_LOCAL_MS;
         else {
-            boolean isLocal = HavenoUtils.isLocalHost(daemon.getRpcConnection().getUri());
-            if (isLocal) {
+            if (isConnectionLocal()) {
                 if (lastInfo != null && (lastInfo.isBusySyncing() || (lastInfo.getHeightWithoutBootstrap() != null && lastInfo.getHeightWithoutBootstrap() > 0 && lastInfo.getHeightWithoutBootstrap() < lastInfo.getHeight()))) return REFRESH_PERIOD_REMOTE_MS; // refresh slower if syncing or bootstrapped
                 else return REFRESH_PERIOD_LOCAL_MS; // TODO: announce faster refresh after done syncing
             } else {

@@ -112,6 +112,11 @@ public class Offer implements NetworkPayload, PersistablePayload {
     @JsonExclude
     transient private String currencyCode;
 
+    @JsonExclude
+    @Getter
+    @Setter
+    transient private boolean isReservedFundsSpent;
+
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Constructor

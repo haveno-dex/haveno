@@ -25,6 +25,7 @@ import bisq.core.btc.wallet.TradeWalletService;
 import bisq.core.btc.wallet.XmrWalletService;
 import bisq.core.exceptions.TradePriceOutOfToleranceException;
 import bisq.core.filter.FilterManager;
+import bisq.core.offer.OfferBookService.OfferBookChangedListener;
 import bisq.core.offer.messages.OfferAvailabilityRequest;
 import bisq.core.offer.messages.OfferAvailabilityResponse;
 import bisq.core.offer.messages.SignOfferRequest;
@@ -189,6 +190,21 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
 
         this.persistenceManager.initialize(openOffers, "OpenOffers", PersistenceManager.Source.PRIVATE);
         this.signedOfferPersistenceManager.initialize(signedOffers, "SignedOffers", PersistenceManager.Source.PRIVATE); // arbitrator stores reserve tx for signed offers
+
+        // remove open offer if reserved funds spent
+        offerBookService.addOfferBookChangedListener(new OfferBookChangedListener() {
+            @Override
+            public void onAdded(Offer offer) {
+                Optional<OpenOffer> openOfferOptional = getOpenOfferById(offer.getId());
+                if (openOfferOptional.isPresent() && offer.isReservedFundsSpent()) {
+                    removeOpenOffer(openOfferOptional.get(), null);
+                }
+            }
+            @Override
+            public void onRemoved(Offer offer) {
+                // nothing to do
+            }
+        });
     }
 
     @Override
@@ -299,6 +315,10 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
 
     public void removeAllOpenOffers(@Nullable Runnable completeHandler) {
         removeOpenOffers(getObservableList(), completeHandler);
+    }
+
+    public void removeOpenOffer(OpenOffer openOffer, @Nullable Runnable completeHandler) {
+        removeOpenOffers(List.of(openOffer), completeHandler);
     }
 
     public void removeOpenOffers(List<OpenOffer> openOffers, @Nullable Runnable completeHandler) {

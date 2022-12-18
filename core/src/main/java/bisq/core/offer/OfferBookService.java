@@ -17,6 +17,9 @@
 
 package bisq.core.offer;
 
+import bisq.core.api.CoreMoneroConnectionsService;
+import bisq.core.btc.wallet.MoneroKeyImageListener;
+import bisq.core.btc.wallet.MoneroKeyImagePoller;
 import bisq.core.filter.FilterManager;
 import bisq.core.locale.Res;
 import bisq.core.provider.price.PriceFeedService;
@@ -25,13 +28,15 @@ import bisq.network.p2p.BootstrapListener;
 import bisq.network.p2p.P2PService;
 import bisq.network.p2p.storage.HashMapChangedListener;
 import bisq.network.p2p.storage.payload.ProtectedStorageEntry;
-
+import common.utils.GenUtils;
+import monero.common.MoneroConnectionManagerListener;
+import monero.common.MoneroRpcConnection;
+import monero.daemon.model.MoneroKeyImageSpentStatus;
 import bisq.common.UserThread;
 import bisq.common.config.Config;
 import bisq.common.file.JsonFileManager;
 import bisq.common.handlers.ErrorMessageHandler;
 import bisq.common.handlers.ResultHandler;
-import bisq.common.util.Utilities;
 
 import javax.inject.Inject;
 import javax.inject.Named;
@@ -41,6 +46,7 @@ import java.io.File;
 import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
@@ -56,18 +62,22 @@ import javax.annotation.Nullable;
 public class OfferBookService {
     private static final Logger log = LoggerFactory.getLogger(OfferBookService.class);
 
-    public interface OfferBookChangedListener {
-        void onAdded(Offer offer);
-
-        void onRemoved(Offer offer);
-    }
-
     private final P2PService p2PService;
     private final PriceFeedService priceFeedService;
     private final List<OfferBookChangedListener> offerBookChangedListeners = new LinkedList<>();
     private final FilterManager filterManager;
     private final JsonFileManager jsonFileManager;
+    private final CoreMoneroConnectionsService connectionsService;
 
+    private MoneroKeyImagePoller keyImagePoller;
+    private static final long KEY_IMAGE_REFRESH_PERIOD_MS_LOCAL = 20000; // 20 seconds
+    private static final long KEY_IMAGE_REFRESH_PERIOD_MS_REMOTE = 300000; // 5 minutes
+
+    public interface OfferBookChangedListener {
+        void onAdded(Offer offer);
+
+        void onRemoved(Offer offer);
+    }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Constructor
@@ -77,21 +87,36 @@ public class OfferBookService {
     public OfferBookService(P2PService p2PService,
                             PriceFeedService priceFeedService,
                             FilterManager filterManager,
+                            CoreMoneroConnectionsService connectionsService,
                             @Named(Config.STORAGE_DIR) File storageDir,
                             @Named(Config.DUMP_STATISTICS) boolean dumpStatistics) {
         this.p2PService = p2PService;
         this.priceFeedService = priceFeedService;
         this.filterManager = filterManager;
+        this.connectionsService = connectionsService;
         jsonFileManager = new JsonFileManager(storageDir);
 
+        // listen for monero connection changes
+        connectionsService.addListener(new MoneroConnectionManagerListener() {
+            @Override
+            public void onConnectionChanged(MoneroRpcConnection connection) {
+                keyImagePoller.setDaemon(connectionsService.getDaemon());
+                keyImagePoller.setRefreshPeriodMs(getKeyImageRefreshPeriodMs());
+            }
+        });
+
+        // listen for offers
         p2PService.addHashSetChangedListener(new HashMapChangedListener() {
             @Override
             public void onAdded(Collection<ProtectedStorageEntry> protectedStorageEntries) {
                 protectedStorageEntries.forEach(protectedStorageEntry -> offerBookChangedListeners.forEach(listener -> {
                     if (protectedStorageEntry.getProtectedStoragePayload() instanceof OfferPayload) {
+                        maybeInitializeKeyImagePoller();
                         OfferPayload offerPayload = (OfferPayload) protectedStorageEntry.getProtectedStoragePayload();
+                        keyImagePoller.addKeyImages(offerPayload.getReserveTxKeyImages());
                         Offer offer = new Offer(offerPayload);
                         offer.setPriceFeedService(priceFeedService);
+                        setReservedFundsSpent(offer);
                         listener.onAdded(offer);
                     }
                 }));
@@ -101,9 +126,12 @@ public class OfferBookService {
             public void onRemoved(Collection<ProtectedStorageEntry> protectedStorageEntries) {
                 protectedStorageEntries.forEach(protectedStorageEntry -> offerBookChangedListeners.forEach(listener -> {
                     if (protectedStorageEntry.getProtectedStoragePayload() instanceof OfferPayload) {
+                        maybeInitializeKeyImagePoller();
                         OfferPayload offerPayload = (OfferPayload) protectedStorageEntry.getProtectedStoragePayload();
+                        keyImagePoller.removeKeyImages(offerPayload.getReserveTxKeyImages());
                         Offer offer = new Offer(offerPayload);
                         offer.setPriceFeedService(priceFeedService);
+                        setReservedFundsSpent(offer);
                         listener.onRemoved(offer);
                     }
                 }));
@@ -197,6 +225,7 @@ public class OfferBookService {
                     OfferPayload offerPayload = (OfferPayload) data.getProtectedStoragePayload();
                     Offer offer = new Offer(offerPayload);
                     offer.setPriceFeedService(priceFeedService);
+                    setReservedFundsSpent(offer);
                     return offer;
                 })
                 .collect(Collectors.toList());
@@ -224,6 +253,52 @@ public class OfferBookService {
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Private
     ///////////////////////////////////////////////////////////////////////////////////////////
+
+    private void maybeInitializeKeyImagePoller() {
+        synchronized (this) {
+            if (keyImagePoller != null) return;
+            keyImagePoller = new MoneroKeyImagePoller(connectionsService.getDaemon(), getKeyImageRefreshPeriodMs());
+            keyImagePoller.addListener(new MoneroKeyImageListener() {
+                @Override
+                public void onSpentStatusChanged(Map<String, MoneroKeyImageSpentStatus> spentStatuses) {
+                    for (String keyImage : spentStatuses.keySet()) {
+                        updateAffectedOffers(keyImage);
+                    }
+                }
+            });
+    
+            // first poll after 5s
+            new Thread(() -> {
+                GenUtils.waitFor(5000);
+                keyImagePoller.poll();
+            });
+        }
+    }
+
+    private long getKeyImageRefreshPeriodMs() {
+        return connectionsService.isConnectionLocal() ? KEY_IMAGE_REFRESH_PERIOD_MS_LOCAL : KEY_IMAGE_REFRESH_PERIOD_MS_REMOTE;
+    }
+
+    private void updateAffectedOffers(String keyImage) {
+        for (Offer offer : getOffers()) {
+            if (offer.getOfferPayload().getReserveTxKeyImages().contains(keyImage)) {
+                offerBookChangedListeners.forEach(listener -> {
+                    listener.onRemoved(offer);
+                    listener.onAdded(offer);
+                });
+            }
+        }
+    }
+
+    private void setReservedFundsSpent(Offer offer) {
+        if (keyImagePoller == null) return;
+        for (String keyImage : offer.getOfferPayload().getReserveTxKeyImages()) {
+            if (Boolean.TRUE.equals(keyImagePoller.isSpent(keyImage))) {
+                log.warn("Reserved funds spent for offer {}", offer.getId());
+                offer.setReservedFundsSpent(true);
+            }
+        }
+    }
 
     private void doDumpStatistics() {
         // We filter the case that it is a MarketBasedPrice but the price is not available
