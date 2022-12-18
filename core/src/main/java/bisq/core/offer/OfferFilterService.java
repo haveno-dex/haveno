@@ -83,7 +83,8 @@ public class OfferFilterService {
         IS_INSUFFICIENT_COUNTERPARTY_TRADE_LIMIT,
         IS_MY_INSUFFICIENT_TRADE_LIMIT,
         ARBITRATOR_NOT_VALIDATED,
-        SIGNATURE_NOT_VALIDATED;
+        SIGNATURE_NOT_VALIDATED,
+        RESERVE_FUNDS_SPENT;
 
         @Getter
         private final boolean isValid;
@@ -133,6 +134,9 @@ public class OfferFilterService {
         }
         if (!hasValidSignature(offer)) {
             return Result.SIGNATURE_NOT_VALIDATED;
+        }
+        if (isReservedFundsSpent(offer)) {
+            return Result.RESERVE_FUNDS_SPENT;
         }
         if (!isAnyPaymentAccountValidForOffer(offer)) {
             return Result.HAS_NO_PAYMENT_ACCOUNT_VALID_FOR_OFFER;
@@ -225,5 +229,9 @@ public class OfferFilterService {
         Arbitrator arbitrator = user.getAcceptedArbitratorByAddress(offer.getOfferPayload().getArbitratorSigner());
         if (arbitrator == null) return false; // invalid arbitrator
         return HavenoUtils.isArbitratorSignatureValid(offer, arbitrator);
+    }
+
+    public boolean isReservedFundsSpent(Offer offer) {
+        return offer.isReservedFundsSpent();
     }
 }

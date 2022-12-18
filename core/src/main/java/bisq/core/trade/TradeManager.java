@@ -1065,8 +1065,8 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
                 return;
             }
 
-            // delete trade wallet
-            trade.deleteWallet();
+            // delete trade wallet if exists
+            if (xmrWalletService.multisigWalletExists(trade.getId())) trade.deleteWallet();
 
             // unreserve key images
             if (trade instanceof TakerTrade && trade.getSelf().getReserveTxKeyImages() != null) {

@@ -17,7 +17,6 @@
 
 package bisq.core.api;
 
-import bisq.core.btc.wallet.XmrWalletService;
 import bisq.core.monetary.Altcoin;
 import bisq.core.monetary.Price;
 import bisq.core.offer.CreateOfferService;
@@ -52,7 +51,6 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import lombok.extern.slf4j.Slf4j;
-import monero.daemon.model.MoneroKeyImageSpentStatus;
 
 import static bisq.common.util.MathUtils.exactMultiply;
 import static bisq.common.util.MathUtils.roundDoubleToLong;
@@ -81,8 +79,7 @@ public class CoreOffersService {
     private final OfferFilterService offerFilter;
     private final OpenOfferManager openOfferManager;
     private final User user;
-    private final XmrWalletService xmrWalletService;
-
+    
     @Inject
     public CoreOffersService(CoreContext coreContext,
                              KeyRing keyRing,
@@ -92,8 +89,7 @@ public class CoreOffersService {
                              OfferFilterService offerFilter,
                              OpenOfferManager openOfferManager,
                              OfferUtil offerUtil,
-                             User user,
-                             XmrWalletService xmrWalletService) {
+                             User user) {
         this.coreContext = coreContext;
         this.keyRing = keyRing;
         this.coreWalletsService = coreWalletsService;
@@ -102,116 +98,66 @@ public class CoreOffersService {
         this.offerFilter = offerFilter;
         this.openOfferManager = openOfferManager;
         this.user = user;
-        this.xmrWalletService = xmrWalletService;
     }
 
-    Offer getOffer(String id) {
-        return new ArrayList<>(offerBookService.getOffers()).stream()
-                .filter(o -> o.getId().equals(id))
-                .filter(o -> !o.isMyOffer(keyRing))
-                .filter(o -> {
-                    Result result = offerFilter.canTakeOffer(o, coreContext.isApiUser());
-                    boolean valid = result.isValid() || result == Result.HAS_NO_PAYMENT_ACCOUNT_VALID_FOR_OFFER;
-                    if (!valid) log.warn("Cannot take offer " + o.getId() + " with invalid state : " + result);
-                    return valid;
-                })
-                .findAny().orElseThrow(() ->
-                        new IllegalStateException(format("offer with id '%s' not found", id)));
-    }
-
-    Offer getMyOffer(String id) {
-        return new ArrayList<>(openOfferManager.getObservableList()).stream()
-                .map(OpenOffer::getOffer)
-                .filter(o -> o.getId().equals(id))
-                .filter(o -> o.isMyOffer(keyRing))
-                .findAny().orElseThrow(() ->
-                        new IllegalStateException(format("offer with id '%s' not found", id)));
-    }
-
-    List<Offer> getOffers(String direction, String currencyCode) {
+    // excludes my offers
+    List<Offer> getOffers() {
         List<Offer> offers = new ArrayList<>(offerBookService.getOffers()).stream()
                 .filter(o -> !o.isMyOffer(keyRing))
-                .filter(o -> offerMatchesDirectionAndCurrency(o, direction, currencyCode))
                 .filter(o -> {
                     Result result = offerFilter.canTakeOffer(o, coreContext.isApiUser());
                     return result.isValid() || result == Result.HAS_NO_PAYMENT_ACCOUNT_VALID_FOR_OFFER;
                 })
-                .sorted(priceComparator(direction))
                 .collect(Collectors.toList());
-        offers.removeAll(getUnreservedOffers(offers));
+        offers.removeAll(getOffersWithDuplicateKeyImages(offers));
         return offers;
     }
 
-    List<Offer> getMyOffers(String direction, String currencyCode) {
-        
-        // get my open offers
-        List<Offer> offers = new ArrayList<>(openOfferManager.getObservableList()).stream()
-                .map(OpenOffer::getOffer)
-                .filter(o -> o.isMyOffer(keyRing))
+    List<Offer> getOffers(String direction, String currencyCode) {
+        return getOffers().stream()
                 .filter(o -> offerMatchesDirectionAndCurrency(o, direction, currencyCode))
                 .sorted(priceComparator(direction))
                 .collect(Collectors.toList());
-
-        // remove unreserved offers
-        Set<Offer> unreservedOffers = getUnreservedOffers(offers); // TODO (woodser): optimize performance, probably don't call here
-        offers.removeAll(unreservedOffers);
-
-        // remove my unreserved offers from offer manager
-        List<OpenOffer> unreservedOpenOffers = new ArrayList<OpenOffer>();
-        for (Offer unreservedOffer : unreservedOffers) {
-          unreservedOpenOffers.add(openOfferManager.getOpenOfferById(unreservedOffer.getId()).get());
-        }
-        openOfferManager.removeOpenOffers(unreservedOpenOffers, null);
-
-        return offers;
     }
-    
-    private Set<Offer> getUnreservedOffers(List<Offer> offers) {
-        Set<Offer> unreservedOffers = new HashSet<Offer>();
-        
-        // collect reserved key images and check for duplicate funds
-        List<String> allKeyImages = new ArrayList<String>();
-        for (Offer offer : offers) {
-          if (offer.getOfferPayload().getReserveTxKeyImages() == null) continue;
-          for (String keyImage : offer.getOfferPayload().getReserveTxKeyImages()) {
-            if (!allKeyImages.add(keyImage)) {
-                log.warn("Key image {} belongs to another offer, removing offer {}", keyImage, offer.getId()); // TODO (woodser): this is list, not set, so not checking for duplicates
-                unreservedOffers.add(offer);
-            }
-          }
-        }
-        
-        // get spent key images
-        // TODO (woodser): paginate offers and only check key images of current page
-        List<String> spentKeyImages = new ArrayList<String>();
-        List<MoneroKeyImageSpentStatus> spentStatuses = allKeyImages.isEmpty() ? new ArrayList<MoneroKeyImageSpentStatus>() : xmrWalletService.getDaemon().getKeyImageSpentStatuses(allKeyImages);
-        for (int i = 0; i < spentStatuses.size(); i++) {
-          if (spentStatuses.get(i) != MoneroKeyImageSpentStatus.NOT_SPENT) spentKeyImages.add(allKeyImages.get(i));
-        }
-        
-        // check for offers with spent key images
-        for (Offer offer : offers) {
-          if (offer.getOfferPayload().getReserveTxKeyImages() == null) continue;
-          if (unreservedOffers.contains(offer)) continue;
-          for (String keyImage : offer.getOfferPayload().getReserveTxKeyImages()) {
-            if (spentKeyImages.contains(keyImage)) {
-                log.warn("Offer {} reserved funds have already been spent with key image {}", offer.getId(), keyImage);
-                unreservedOffers.add(offer);
-            }
-          }
-        }
-        
-        return unreservedOffers;
+
+    Offer getOffer(String id) {
+        return getOffers().stream()
+                .filter(o -> o.getId().equals(id))
+                .findAny().orElseThrow(() ->
+                        new IllegalStateException(format("offer with id '%s' not found", id)));
+    }
+
+    List<Offer> getMyOffers() {
+        List<Offer> offers = new ArrayList<>(openOfferManager.getObservableList()).stream()
+                .map(OpenOffer::getOffer)
+                .filter(o -> o.isMyOffer(keyRing))
+                .collect(Collectors.toList());
+        offers.removeAll(getOffersWithDuplicateKeyImages(offers));
+        return offers;
+    };
+
+    List<Offer> getMyOffers(String direction, String currencyCode) {
+        return getMyOffers().stream()
+                .filter(o -> offerMatchesDirectionAndCurrency(o, direction, currencyCode))
+                .sorted(priceComparator(direction))
+                .collect(Collectors.toList());
+    }
+
+    Offer getMyOffer(String id) {
+        return getMyOffers().stream()
+                .filter(o -> o.getId().equals(id))
+                .findAny().orElseThrow(() ->
+                        new IllegalStateException(format("offer with id '%s' not found", id)));
     }
 
     OpenOffer getMyOpenOffer(String id) {
+        getMyOffer(id); // ensure offer is valid
         return openOfferManager.getOpenOfferById(id)
                 .filter(open -> open.getOffer().isMyOffer(keyRing))
                 .orElseThrow(() ->
                         new IllegalStateException(format("openoffer with id '%s' not found", id)));
     }
 
-    // Create and place new offer.
     void postOffer(String currencyCode,
                              String directionAsString,
                              String priceAsString,
@@ -262,7 +208,6 @@ public class CoreOffersService {
                 errorMessageHandler);
     }
 
-    // Edit a placed offer.
     Offer editOffer(String offerId,
                     String currencyCode,
                     OfferDirection direction,
@@ -295,6 +240,27 @@ public class CoreOffersService {
                 errorMessage -> {
                     throw new IllegalStateException(errorMessage);
                 });
+    }
+
+    // -------------------------- PRIVATE HELPERS -----------------------------
+
+    private Set<Offer> getOffersWithDuplicateKeyImages(List<Offer> offers) {
+        Set<Offer> duplicateFundedOffers = new HashSet<Offer>();
+        Set<String> seenKeyImages = new HashSet<String>();
+        for (Offer offer : offers) {
+            if (offer.getOfferPayload().getReserveTxKeyImages() == null) continue;
+            for (String keyImage : offer.getOfferPayload().getReserveTxKeyImages()) {
+                if (!seenKeyImages.add(keyImage)) {
+                    for (Offer offer2 : offers) {
+                        if (offer2.getOfferPayload().getReserveTxKeyImages().contains(keyImage)) {
+                            log.warn("Key image {} belongs to multiple offers, removing offer {}", keyImage, offer2.getId());
+                            duplicateFundedOffers.add(offer2);
+                        }
+                    }
+                }
+            }
+        }
+        return duplicateFundedOffers;
     }
 
     private void verifyPaymentAccountIsValidForNewOffer(Offer offer, PaymentAccount paymentAccount) {
