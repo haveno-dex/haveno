@@ -32,16 +32,21 @@ import bisq.core.offer.Offer;
 import bisq.core.offer.OfferDirection;
 import bisq.core.payment.PaymentAccount;
 import bisq.core.payment.payload.PaymentMethod;
+import bisq.core.trade.Trade;
+import bisq.core.trade.TradeManager;
+import bisq.core.trade.Trade.State;
 import bisq.core.user.User;
 import bisq.core.util.FormattingUtils;
 import bisq.core.util.VolumeUtil;
 import bisq.core.util.coin.CoinFormatter;
-
+import bisq.common.UserThread;
 import bisq.common.crypto.KeyRing;
 import bisq.common.util.Tuple2;
 import bisq.common.util.Tuple4;
 
 import org.bitcoinj.core.Coin;
+import org.fxmisc.easybind.EasyBind;
+import org.fxmisc.easybind.Subscription;
 
 import javax.inject.Inject;
 import javax.inject.Named;
@@ -80,7 +85,8 @@ public class OfferDetailsWindow extends Overlay<OfferDetailsWindow> {
     private Optional<Runnable> placeOfferHandlerOptional = Optional.empty();
     private Optional<Runnable> takeOfferHandlerOptional = Optional.empty();
     private BusyAnimation busyAnimation;
-
+    private TradeManager tradeManager;
+    private Subscription tradeStateSubscription;
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Public API
@@ -90,11 +96,13 @@ public class OfferDetailsWindow extends Overlay<OfferDetailsWindow> {
     public OfferDetailsWindow(@Named(FormattingUtils.BTC_FORMATTER_KEY) CoinFormatter formatter,
                               User user,
                               KeyRing keyRing,
-                              Navigation navigation) {
+                              Navigation navigation,
+                              TradeManager tradeManager) {
         this.formatter = formatter;
         this.user = user;
         this.keyRing = keyRing;
         this.navigation = navigation;
+        this.tradeManager = tradeManager;
         type = Type.Confirmation;
     }
 
@@ -395,13 +403,29 @@ public class OfferDetailsWindow extends Overlay<OfferDetailsWindow> {
                 button.setDisable(true);
                 cancelButton.setDisable(true);
                 // temporarily disabled due to high CPU usage (per issue #4649)
-                //  busyAnimation.play();
+                // busyAnimation.play();
                 if (isPlaceOffer) {
                     spinnerInfoLabel.setText(Res.get("createOffer.fundsBox.placeOfferSpinnerInfo"));
                     placeOfferHandlerOptional.ifPresent(Runnable::run);
                 } else {
-                    spinnerInfoLabel.setText(Res.get("takeOffer.fundsBox.takeOfferSpinnerInfo"));
+                    State lastState = Trade.State.ARBITRATOR_PUBLISHED_DEPOSIT_TXS;
+                    spinnerInfoLabel.setText(Res.get("takeOffer.fundsBox.takeOfferSpinnerInfo") + " 1/" + (lastState.ordinal()));
                     takeOfferHandlerOptional.ifPresent(Runnable::run);
+
+                    // update trade state progress
+                    UserThread.runAfter(() -> {
+                        Trade trade = tradeManager.getTrade(offer.getId());
+                        tradeStateSubscription = EasyBind.subscribe(trade.stateProperty(), newState -> {
+                            String progress = (newState.ordinal() + 1) + "/" + (lastState.ordinal());
+                            spinnerInfoLabel.setText(Res.get("takeOffer.fundsBox.takeOfferSpinnerInfo") + " " + progress);
+
+                            // unsubscribe when done
+                            if (newState == lastState) {
+                                tradeStateSubscription.unsubscribe();
+                                tradeStateSubscription = null;
+                            }
+                        });
+                    }, 1);
                 }
             }
         });
