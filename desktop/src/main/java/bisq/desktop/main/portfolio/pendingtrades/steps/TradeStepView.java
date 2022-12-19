@@ -273,8 +273,12 @@ public abstract class TradeStepView extends AnchorPane {
     }
 
     private void openSupportTicket() {
-        applyOnDisputeOpened();
-        model.dataModel.onOpenDispute();
+        if (trade.getPhase().ordinal() < Trade.Phase.DEPOSITS_UNLOCKED.ordinal()) {
+            new Popup().warning(Res.get("portfolio.pending.error.depositTxNotConfirmed")).show();
+        } else {
+            applyOnDisputeOpened();
+            model.dataModel.onOpenDispute();
+        }
     }
 
     private void openChat() {
