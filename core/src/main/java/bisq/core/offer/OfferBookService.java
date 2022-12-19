@@ -294,7 +294,6 @@ public class OfferBookService {
         if (keyImagePoller == null) return;
         for (String keyImage : offer.getOfferPayload().getReserveTxKeyImages()) {
             if (Boolean.TRUE.equals(keyImagePoller.isSpent(keyImage))) {
-                log.warn("Reserved funds spent for offer {}", offer.getId());
                 offer.setReservedFundsSpent(true);
             }
         }

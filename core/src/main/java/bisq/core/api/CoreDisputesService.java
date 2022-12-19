@@ -257,10 +257,10 @@ public class CoreDisputesService {
                 agentNodeAddress,
                 dispute.getShortTradeId(),
                 currencyCode,
+                Res.get("disputeSummaryWindow.reason." + reason.name()),
                 amount,
                 formatter.formatCoinWithCode(disputeResult.getBuyerPayoutAmount()),
                 formatter.formatCoinWithCode(disputeResult.getSellerPayoutAmount()),
-                Res.get("disputeSummaryWindow.reason." + reason.name()),
                 disputeResult.summaryNotesProperty().get()
         );
 
