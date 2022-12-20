@@ -565,8 +565,8 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
                 disputeFromOpener.getTradeId(),
                 pubKeyRing.hashCode(),
                 false,
-                !disputeFromOpener.isDisputeOpenerIsBuyer(),
-                !disputeFromOpener.isDisputeOpenerIsMaker(),
+                disputeFromOpener.isDisputeOpenerIsBuyer(),
+                disputeFromOpener.isDisputeOpenerIsMaker(),
                 pubKeyRing,
                 disputeFromOpener.getTradeDate().getTime(),
                 disputeFromOpener.getTradePeriodEnd().getTime(),
@@ -626,8 +626,8 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
 
         // We mirrored dispute already!
         Contract contract = dispute.getContract();
-        PubKeyRing peersPubKeyRing = dispute.isDisputeOpenerIsBuyer() ? contract.getBuyerPubKeyRing() : contract.getSellerPubKeyRing();
-        NodeAddress peersNodeAddress = dispute.isDisputeOpenerIsBuyer() ? contract.getBuyerNodeAddress() : contract.getSellerNodeAddress();
+        PubKeyRing peersPubKeyRing = dispute.isDisputeOpenerIsBuyer() ? contract.getSellerPubKeyRing() : contract.getBuyerPubKeyRing();
+        NodeAddress peersNodeAddress = dispute.isDisputeOpenerIsBuyer() ? contract.getSellerNodeAddress() : contract.getBuyerNodeAddress();
         DisputeOpenedMessage peerOpenedDisputeMessage = new DisputeOpenedMessage(dispute,
                 p2PService.getAddress(),
                 UUID.randomUUID().toString(),
