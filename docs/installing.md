@@ -13,7 +13,7 @@ If it's the first time you are building Haveno, run the following commands to do
 ```
 git clone https://github.com/haveno-dex/haveno.git
 cd haveno
-git checkout v0.0.3
+git checkout master
 make
 ```
 
