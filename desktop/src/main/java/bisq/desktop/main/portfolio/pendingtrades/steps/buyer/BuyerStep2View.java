@@ -222,8 +222,6 @@ public class BuyerStep2View extends TradeStepView {
     @Override
     protected void onPendingTradesInitialized() {
         super.onPendingTradesInitialized();
-        //validatePayoutTx(); // TODO (woodser): no payout tx in xmr integration, do something else?
-        model.checkTakerFeeTx(trade);
     }
 
 

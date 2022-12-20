@@ -223,32 +223,6 @@ public class PendingTradesViewModel extends ActivatableWithDataModel<PendingTrad
         messageStateProperty.set(messageState);
     }
 
-    public void checkTakerFeeTx(Trade trade) {
-        log.warn("PendingTradesViewModel.checkTakerFeeTx() needs adapted to XMR");
-        return; // TODO (woodser): PendingTradesViewModel.checkTakerFeeTx() needs adapted to XMR, use common TradeDataValidation utility
-//        mempoolStatus.setValue(-1);
-//        mempoolService.validateOfferTakerTx(trade, (txValidator -> {
-//            mempoolStatus.setValue(txValidator.isFail() ? 0 : 1);
-//            if (txValidator.isFail()) {
-//                String errorMessage = "Validation of Taker Tx returned: " + txValidator.toString();
-//                log.warn(errorMessage);
-//                // prompt user to open mediation
-//                if (trade.getDisputeState() == Trade.DisputeState.NO_DISPUTE) {
-//                    UserThread.runAfter(() -> {
-//                        Popup popup = new Popup();
-//                        popup.headLine(Res.get("portfolio.pending.openSupportTicket.headline"))
-//                                .message(Res.get("portfolio.pending.invalidTx", errorMessage))
-//                                .actionButtonText(Res.get("portfolio.pending.openSupportTicket.headline"))
-//                                .onAction(dataModel::onOpenSupportTicket)
-//                                .closeButtonText(Res.get("shared.cancel"))
-//                                .onClose(popup::hide)
-//                                .show();
-//                    }, 100, TimeUnit.MILLISECONDS);
-//                }
-//            }
-//        }));
-    }
-
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Getters
     ///////////////////////////////////////////////////////////////////////////////////////////
