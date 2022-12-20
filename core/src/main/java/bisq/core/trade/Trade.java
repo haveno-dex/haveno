@@ -1072,6 +1072,7 @@ public abstract class Trade implements Tradable, Model {
     public void setPayoutTx(MoneroTxWallet payoutTx) {
         this.payoutTx = payoutTx;
         payoutTxId = payoutTx.getHash();
+        if ("".equals(payoutTxId)) payoutTxId = null; // tx hash is empty until signed
         payoutTxKey = payoutTx.getKey();
     }
 

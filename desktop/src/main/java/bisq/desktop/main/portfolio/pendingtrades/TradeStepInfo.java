@@ -114,20 +114,20 @@ public class TradeStepInfo {
                 button.getStyleClass().remove("action-button");
                 button.setDisable(false);
                 break;
-            case IN_MEDIATION_SELF_REQUESTED:
+            case IN_ARBITRATION_SELF_REQUESTED:
                 // red button
-                titledGroupBg.setText(Res.get("portfolio.pending.mediationRequested"));
-                label.updateContent(Res.get("portfolio.pending.disputeOpenedMyUser", Res.get("portfolio.pending.communicateWithMediator")));
-                button.setText(Res.get("portfolio.pending.mediationRequested").toUpperCase());
+                titledGroupBg.setText(Res.get("portfolio.pending.arbitrationRequested"));
+                label.updateContent(Res.get("portfolio.pending.disputeOpenedByUser", Res.get("portfolio.pending.communicateWithArbitrator")));
+                button.setText(Res.get("portfolio.pending.arbitrationRequested").toUpperCase());
                 button.setId("open-dispute-button");
                 button.getStyleClass().remove("action-button");
                 button.setDisable(true);
                 break;
-            case IN_MEDIATION_PEER_REQUESTED:
+            case IN_ARBITRATION_PEER_REQUESTED:
                 // red button
-                titledGroupBg.setText(Res.get("portfolio.pending.mediationRequested"));
-                label.updateContent(Res.get("portfolio.pending.disputeOpenedByPeer", Res.get("portfolio.pending.communicateWithMediator")));
-                button.setText(Res.get("portfolio.pending.mediationRequested").toUpperCase());
+                titledGroupBg.setText(Res.get("portfolio.pending.arbitrationRequested"));
+                label.updateContent(Res.get("portfolio.pending.disputeOpenedByPeer", Res.get("portfolio.pending.communicateWithArbitrator")));
+                button.setText(Res.get("portfolio.pending.arbitrationRequested").toUpperCase());
                 button.setId("open-dispute-button");
                 button.getStyleClass().remove("action-button");
                 button.setDisable(true);
@@ -162,7 +162,7 @@ public class TradeStepInfo {
             case IN_REFUND_REQUEST_SELF_REQUESTED:
                 // red button
                 titledGroupBg.setText(Res.get("portfolio.pending.refundRequested"));
-                label.updateContent(Res.get("portfolio.pending.disputeOpenedMyUser", Res.get("portfolio.pending.communicateWithArbitrator")));
+                label.updateContent(Res.get("portfolio.pending.disputeOpenedByUser", Res.get("portfolio.pending.communicateWithArbitrator")));
                 button.setText(Res.get("portfolio.pending.refundRequested").toUpperCase());
                 button.setId("open-dispute-button");
                 button.getStyleClass().remove("action-button");
