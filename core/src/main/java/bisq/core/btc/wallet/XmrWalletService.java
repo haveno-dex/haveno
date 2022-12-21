@@ -937,21 +937,7 @@ public class XmrWalletService {
     }
 
     public Coin getBalanceForSubaddress(int subaddressIndex) {
-
-        // get subaddress balance
-        BigInteger balance = wallet.getBalance(0, subaddressIndex);
-
-//    // balance from xmr wallet does not include unconfirmed funds, so add them  // TODO: support lower in stack?
-//    for (MoneroTxWallet unconfirmedTx : wallet.getTxs(new MoneroTxQuery().setIsConfirmed(false))) {
-//      for (MoneroTransfer transfer : unconfirmedTx.getTransfers()) {
-//        if (transfer.getAccountIndex() == subaddressIndex) {
-//          balance = transfer.isIncoming() ? balance.add(transfer.getAmount()) : balance.subtract(transfer.getAmount());
-//        }
-//      }
-//    }
-
-        System.out.println("Returning balance for subaddress " + subaddressIndex + ": " + balance.longValueExact());
-        return HavenoUtils.atomicUnitsToCoin(balance);
+        return HavenoUtils.atomicUnitsToCoin(wallet.getBalance(0, subaddressIndex));
     }
 
     public Coin getAvailableConfirmedBalance() {
