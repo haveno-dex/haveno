@@ -101,9 +101,10 @@ public final class PaymentMethod implements PersistablePayload, Comparable<Payme
     // Static
     ///////////////////////////////////////////////////////////////////////////////////////////
 
-    // time in blocks (average 10 min for one block confirmation
-    //private static final long DAY = TimeUnit.HOURS.toMillis(24);
-    private static final long DAY = TimeUnit.MINUTES.toMillis(1);	// TODO (woodser): changed to 1 minute for development, move to config?
+    // time in ms for 1 day (mainnet), 30m (stagenet) or 1 minute (local)
+    private static final long DAY = Config.baseCurrencyNetwork() == BaseCurrencyNetwork.XMR_LOCAL ? TimeUnit.MINUTES.toMillis(1) :
+                                    Config.baseCurrencyNetwork() == BaseCurrencyNetwork.XMR_STAGENET ? TimeUnit.MINUTES.toMillis(30) :
+                                    TimeUnit.DAYS.toMillis(1);
 
     // Default trade limits.
     // We initialize very early before reading persisted data. We will apply later the limit from
