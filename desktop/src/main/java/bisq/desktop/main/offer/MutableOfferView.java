@@ -124,7 +124,7 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
     protected final Navigation navigation;
     private final Preferences preferences;
     private final OfferDetailsWindow offerDetailsWindow;
-    private final CoinFormatter btcFormatter;
+    private final CoinFormatter xmrFormatter;
 
     private ScrollPane scrollPane;
     protected GridPane gridPane;
@@ -190,7 +190,7 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
         this.navigation = navigation;
         this.preferences = preferences;
         this.offerDetailsWindow = offerDetailsWindow;
-        this.btcFormatter = btcFormatter;
+        this.xmrFormatter = btcFormatter;
     }
 
     @Override
@@ -565,11 +565,11 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
         buyerSecurityDepositInputTextField.validationResultProperty().bind(model.buyerSecurityDepositValidationResult);
 
         // funding
-        fundingHBox.visibleProperty().bind(model.getDataModel().getIsBtcWalletFunded().not().and(model.showPayFundsScreenDisplayed));
-        fundingHBox.managedProperty().bind(model.getDataModel().getIsBtcWalletFunded().not().and(model.showPayFundsScreenDisplayed));
+        fundingHBox.visibleProperty().bind(model.getDataModel().getIsXmrWalletFunded().not().and(model.showPayFundsScreenDisplayed));
+        fundingHBox.managedProperty().bind(model.getDataModel().getIsXmrWalletFunded().not().and(model.showPayFundsScreenDisplayed));
         waitingForFundsLabel.textProperty().bind(model.waitingForFundsText);
-        placeOfferBox.visibleProperty().bind(model.getDataModel().getIsBtcWalletFunded().and(model.showPayFundsScreenDisplayed));
-        placeOfferBox.managedProperty().bind(model.getDataModel().getIsBtcWalletFunded().and(model.showPayFundsScreenDisplayed));
+        placeOfferBox.visibleProperty().bind(model.getDataModel().getIsXmrWalletFunded().and(model.showPayFundsScreenDisplayed));
+        placeOfferBox.managedProperty().bind(model.getDataModel().getIsXmrWalletFunded().and(model.showPayFundsScreenDisplayed));
         placeOfferButton.disableProperty().bind(model.isPlaceOfferButtonDisabled);
         cancelButton2.disableProperty().bind(model.cancelButtonDisabled);
 
@@ -736,7 +736,7 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
             if (newValue) {
                 Notification walletFundedNotification = new Notification()
                         .headLine(Res.get("notification.walletUpdate.headline"))
-                        .notification(Res.get("notification.walletUpdate.msg", btcFormatter.formatCoinWithCode(model.getDataModel().getTotalToPayAsCoin().get())))
+                        .notification(Res.get("notification.walletUpdate.msg", xmrFormatter.formatCoinWithCode(model.getDataModel().getTotalToPayAsCoin().get())))
                         .autoClose();
 
                 walletFundedNotification.show();
@@ -1149,7 +1149,7 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
 
         cancelButton2.setOnAction(e -> {
             String key = "CreateOfferCancelAndFunded";
-            if (model.getDataModel().getIsBtcWalletFunded().get() &&
+            if (model.getDataModel().getIsXmrWalletFunded().get() &&
                     preferences.showAgain(key)) {
                 new Popup().backgroundInfo(Res.get("createOffer.warnCancelOffer"))
                         .closeButtonText(Res.get("shared.no"))

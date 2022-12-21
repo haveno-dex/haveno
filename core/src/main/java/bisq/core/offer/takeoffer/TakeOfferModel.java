@@ -80,7 +80,7 @@ public class TakeOfferModel implements Model {
     @Getter
     private Coin totalAvailableBalance;
     @Getter
-    private Coin balance;
+    private Coin availableBalance;
     @Getter
     private boolean isXmrWalletFunded;
     @Getter
@@ -154,10 +154,10 @@ public class TakeOfferModel implements Model {
     }
 
     private void updateBalance() {
-        totalAvailableBalance = xmrWalletService.getSavingWalletBalance();
-        if (totalToPayAsCoin != null) balance = minCoin(totalToPayAsCoin, totalAvailableBalance);
-        missingCoin = offerUtil.getBalanceShortage(totalToPayAsCoin, balance);
-        isXmrWalletFunded = offerUtil.isBalanceSufficient(totalToPayAsCoin, balance);
+        totalAvailableBalance = xmrWalletService.getAvailableBalance();
+        if (totalToPayAsCoin != null) availableBalance = minCoin(totalToPayAsCoin, totalAvailableBalance);
+        missingCoin = offerUtil.getBalanceShortage(totalToPayAsCoin, availableBalance);
+        isXmrWalletFunded = offerUtil.isBalanceSufficient(totalToPayAsCoin, availableBalance);
     }
 
     private long getMaxTradeLimit() {
@@ -184,7 +184,7 @@ public class TakeOfferModel implements Model {
     private void clearModel() {
         this.addressEntry = null;
         this.amount = null;
-        this.balance = null;
+        this.availableBalance = null;
         this.isXmrWalletFunded = false;
         this.missingCoin = ZERO;
         this.offer = null;
@@ -212,7 +212,7 @@ public class TakeOfferModel implements Model {
                 ", totalToPayAsCoin=" + totalToPayAsCoin + "\n" +
                 ", missingCoin=" + missingCoin + "\n" +
                 ", totalAvailableBalance=" + totalAvailableBalance + "\n" +
-                ", balance=" + balance + "\n" +
+                ", availableBalance=" + availableBalance + "\n" +
                 ", volume=" + volume + "\n" +
                 ", fundsNeededForTrade=" + getFundsNeededForTrade() + "\n" +
                 ", isXmrWalletFunded=" + isXmrWalletFunded + "\n" +

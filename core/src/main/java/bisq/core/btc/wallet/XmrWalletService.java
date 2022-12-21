@@ -664,7 +664,7 @@ public class XmrWalletService {
         for (XmrBalanceListener balanceListener : balanceListeners) {
             Coin balance;
             if (balanceListener.getSubaddressIndex() != null && balanceListener.getSubaddressIndex() != 0) balance = getBalanceForSubaddress(balanceListener.getSubaddressIndex());
-            else balance = getAvailableConfirmedBalance();
+            else balance = getAvailableBalance();
             UserThread.execute(new Runnable() { // TODO (woodser): don't execute on UserThread
                 @Override
                 public void run() {
@@ -940,12 +940,16 @@ public class XmrWalletService {
         return HavenoUtils.atomicUnitsToCoin(wallet.getBalance(0, subaddressIndex));
     }
 
-    public Coin getAvailableConfirmedBalance() {
-        return wallet != null ? HavenoUtils.atomicUnitsToCoin(wallet.getUnlockedBalance(0)) : Coin.ZERO;
+    public Coin getAvailableBalanceForSubaddress(int subaddressIndex) {
+        return HavenoUtils.atomicUnitsToCoin(wallet.getUnlockedBalance(0, subaddressIndex));
     }
 
-    public Coin getSavingWalletBalance() {
-        return wallet != null ? Coin.valueOf(wallet.getBalance(0).longValueExact()) : Coin.ZERO;
+    public Coin getBalance() {
+        return wallet != null ? HavenoUtils.atomicUnitsToCoin(wallet.getBalance(0)) : Coin.ZERO;
+    }
+
+    public Coin getAvailableBalance() {
+        return wallet != null ? HavenoUtils.atomicUnitsToCoin(wallet.getUnlockedBalance(0)) : Coin.ZERO;
     }
 
     public Stream<XmrAddressEntry> getAddressEntriesForAvailableBalanceStream() {
