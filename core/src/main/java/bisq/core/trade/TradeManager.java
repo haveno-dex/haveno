@@ -306,18 +306,18 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
         }
 
         // thaw unreserved outputs
-        Set<String> frozenKeyImages = xmrWalletService.getWallet().getOutputs(new MoneroOutputQuery()
+        Set<String> unreservedFrozenKeyImages = xmrWalletService.getWallet().getOutputs(new MoneroOutputQuery()
                 .setIsFrozen(true)
                 .setIsSpent(false))
                 .stream()
                 .map(output -> output.getKeyImage().getHex())
                 .collect(Collectors.toSet());
-        frozenKeyImages.removeAll(reservedKeyImages);
-        for (String unreservedFrozenKeyImage : frozenKeyImages) {
-            log.info("Thawing output which is not reserved for offer or trade: " + unreservedFrozenKeyImage);
-            xmrWalletService.getWallet().thawOutput(unreservedFrozenKeyImage);
+        unreservedFrozenKeyImages.removeAll(reservedKeyImages);
+        if (!unreservedFrozenKeyImages.isEmpty()) {
+            log.info("Thawing outputs which are not reserved for offer or trade: " + unreservedFrozenKeyImages);
+            xmrWalletService.thawOutputs(unreservedFrozenKeyImages);
+            xmrWalletService.saveMainWallet();
         }
-        if (!frozenKeyImages.isEmpty()) xmrWalletService.saveMainWallet();
     }
 
     public TradeProtocol getTradeProtocol(Trade trade) {
@@ -1059,20 +1059,21 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
         synchronized(tradableList) {
             if (!tradableList.contains(trade)) return;
 
-            // skip if trade wallet possibly funded
+            // unreserve key images
+            if (trade instanceof TakerTrade && trade.getSelf().getReserveTxKeyImages() != null) {
+                xmrWalletService.thawOutputs(trade.getSelf().getReserveTxKeyImages());
+                xmrWalletService.saveMainWallet();
+                trade.getSelf().setReserveTxKeyImages(null);
+            }
+
+            // stop if trade wallet possibly funded
             if (xmrWalletService.multisigWalletExists(trade.getId()) && trade.isDepositRequested()) {
-                log.warn("Not removing trade {} because trade wallet could be funded", trade.getId());
+                log.warn("Refusing to delete {} {} because trade wallet could be funded", trade.getClass().getSimpleName(), trade.getId());
                 return;
             }
 
             // delete trade wallet if exists
             if (xmrWalletService.multisigWalletExists(trade.getId())) trade.deleteWallet();
-
-            // unreserve key images
-            if (trade instanceof TakerTrade && trade.getSelf().getReserveTxKeyImages() != null) {
-                for (String keyImage : trade.getSelf().getReserveTxKeyImages()) xmrWalletService.getWallet().thawOutput(keyImage);
-                xmrWalletService.saveMainWallet();
-            }
 
             // remove trade
             removeTrade(trade);

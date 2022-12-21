@@ -30,6 +30,7 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -288,6 +289,17 @@ public class XmrWalletService {
     }
 
     /**
+     * Thaw the given outputs with a lock on the wallet.
+     * 
+     * @param keyImages the key images to thaw
+     */
+    public void thawOutputs(Collection<String> keyImages) {
+        synchronized (getWallet()) {
+            for (String keyImage : keyImages) wallet.thawOutput(keyImage);
+        }
+    }
+
+    /**
      * Create the reserve tx and freeze its inputs. The full amount is returned
      * to the sender's payout address less the trade fee.
      *
@@ -314,8 +326,19 @@ public class XmrWalletService {
         BigInteger tradeFee = HavenoUtils.coinToAtomicUnits(trade instanceof MakerTrade ? trade.getOffer().getMakerFee() : trade.getTakerFee());
         BigInteger peerAmount = HavenoUtils.coinToAtomicUnits(trade instanceof BuyerTrade ? Coin.ZERO : offer.getAmount());
         BigInteger securityDeposit = HavenoUtils.coinToAtomicUnits(trade instanceof BuyerTrade ? offer.getBuyerSecurityDeposit() : offer.getSellerSecurityDeposit());
-        log.info("Creating deposit tx with fee={}, peerAmount={}, securityDeposit={}", tradeFee, peerAmount, securityDeposit);
-        return createTradeTx(tradeFee, peerAmount, securityDeposit, multisigAddress);
+
+        // thaw reserved outputs then create deposit tx
+        MoneroWallet wallet = getWallet();
+        synchronized (wallet) {
+
+            // thaw reserved outputs
+            if (trade.getSelf().getReserveTxKeyImages() != null) {
+                thawOutputs(trade.getSelf().getReserveTxKeyImages());
+            }
+
+            log.info("Creating deposit tx with fee={}, peerAmount={}, securityDeposit={}", tradeFee, peerAmount, securityDeposit);
+            return createTradeTx(tradeFee, peerAmount, securityDeposit, multisigAddress);
+        }
     }
 
     private MoneroTxWallet createTradeTx(BigInteger tradeFee, BigInteger peerAmount, BigInteger securityDeposit, String address) {
