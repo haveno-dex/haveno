@@ -72,6 +72,7 @@ import bisq.core.trade.HavenoUtils;
 import bisq.core.locale.CurrencyUtil;
 import bisq.core.locale.Res;
 import bisq.core.locale.TradeCurrency;
+import bisq.core.offer.OfferRestrictions;
 import bisq.common.config.BaseCurrencyNetwork;
 import bisq.common.config.Config;
 import bisq.common.proto.persistable.PersistablePayload;
@@ -115,7 +116,6 @@ public final class PaymentMethod implements PersistablePayload, Comparable<Payme
     private static final Coin DEFAULT_TRADE_LIMIT_LOW_RISK = Coin.parseCoin("50");
     private static final Coin DEFAULT_TRADE_LIMIT_MID_RISK = Coin.parseCoin("25");
     private static final Coin DEFAULT_TRADE_LIMIT_HIGH_RISK = Coin.parseCoin("12.5");
-    private static final double MAX_FIAT_STAGENET_XMR = 1.0; // denominated in XMR
 
     public static final String UPHOLD_ID = "UPHOLD";
     public static final String MONEY_BEAM_ID = "MONEY_BEAM";
@@ -486,12 +486,11 @@ public final class PaymentMethod implements PersistablePayload, Comparable<Payme
         long maxTradeLimit = tradeLimits.getMaxTradeLimit().value;
         long riskBasedTradeLimit = tradeLimits.getRoundedRiskBasedTradeLimit(maxTradeLimit, riskFactor); // as centineros
 
-        // if fiat and stagenet, cap offer amounts before trade credits supported
-        // TODO: remove this when trade credits supported
+        // if fiat and stagenet, cap offer amounts to avoid offers which cannot be taken
         boolean isFiat = CurrencyUtil.isFiatCurrency(currencyCode);
         boolean isStagenet = Config.baseCurrencyNetwork() == BaseCurrencyNetwork.XMR_STAGENET;
-        if (isFiat && isStagenet && HavenoUtils.centinerosToXmr(riskBasedTradeLimit) > MAX_FIAT_STAGENET_XMR) {
-            riskBasedTradeLimit = HavenoUtils.xmrToCentineros(MAX_FIAT_STAGENET_XMR);
+        if (isFiat && isStagenet && HavenoUtils.centinerosToXmr(riskBasedTradeLimit) > OfferRestrictions.TOLERATED_SMALL_TRADE_AMOUNT.value) {
+            riskBasedTradeLimit = HavenoUtils.xmrToCentineros(OfferRestrictions.TOLERATED_SMALL_TRADE_AMOUNT.value);
         }
         return Coin.valueOf(riskBasedTradeLimit);
     }
