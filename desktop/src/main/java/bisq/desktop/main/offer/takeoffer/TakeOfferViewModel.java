@@ -85,7 +85,7 @@ class TakeOfferViewModel extends ActivatableWithDataModel<TakeOfferDataModel> im
     private final P2PService p2PService;
     private final AccountAgeWitnessService accountAgeWitnessService;
     private final Navigation navigation;
-    private final CoinFormatter btcFormatter;
+    private final CoinFormatter xmrFormatter;
 
     private String amountRange;
     private String paymentLabel;
@@ -148,7 +148,7 @@ class TakeOfferViewModel extends ActivatableWithDataModel<TakeOfferDataModel> im
         this.p2PService = p2PService;
         this.accountAgeWitnessService = accountAgeWitnessService;
         this.navigation = navigation;
-        this.btcFormatter = btcFormatter;
+        this.xmrFormatter = btcFormatter;
         createListeners();
     }
 
@@ -168,7 +168,7 @@ class TakeOfferViewModel extends ActivatableWithDataModel<TakeOfferDataModel> im
             volumeDescriptionLabel.set(Res.get(sellVolumeDescriptionKey, dataModel.getCurrencyCode()));
         }
 
-        amount.set(btcFormatter.formatCoin(dataModel.getAmount().get()));
+        amount.set(xmrFormatter.formatCoin(dataModel.getAmount().get()));
         showTransactionPublishedScreen.set(false);
 
         // when getting back to an open screen we want to re-check again
@@ -209,7 +209,7 @@ class TakeOfferViewModel extends ActivatableWithDataModel<TakeOfferDataModel> im
                 ? Res.get(buyAmountDescriptionKey)
                 : Res.get(sellAmountDescriptionKey);
 
-        amountRange = btcFormatter.formatCoin(offer.getMinAmount()) + " - " + btcFormatter.formatCoin(offer.getAmount());
+        amountRange = xmrFormatter.formatCoin(offer.getMinAmount()) + " - " + xmrFormatter.formatCoin(offer.getAmount());
         price = FormattingUtils.formatPrice(dataModel.tradePrice);
         marketPriceMargin = FormattingUtils.formatToPercent(offer.getMarketPriceMarginPct());
         paymentLabel = Res.get("takeOffer.fundsBox.paymentLabel", offer.getShortId());
@@ -260,13 +260,13 @@ class TakeOfferViewModel extends ActivatableWithDataModel<TakeOfferDataModel> im
 
     boolean fundFromSavingsWallet() {
         dataModel.fundFromSavingsWallet();
-        if (dataModel.getIsBtcWalletFunded().get()) {
+        if (dataModel.getIsXmrWalletFunded().get()) {
             updateButtonDisableState();
             return true;
         } else {
             new Popup().warning(Res.get("shared.notEnoughFunds",
-                    btcFormatter.formatCoinWithCode(dataModel.getTotalToPayAsCoin().get()),
-                    btcFormatter.formatCoinWithCode(dataModel.getTotalAvailableBalance())))
+                    xmrFormatter.formatCoinWithCode(dataModel.getTotalToPayAsCoin().get()),
+                    xmrFormatter.formatCoinWithCode(dataModel.getTotalAvailableBalance())))
                     .actionButtonTextWithGoTo("navigation.funds.depositFunds")
                     .onAction(() -> navigation.navigateTo(MainView.class, FundsView.class, DepositView.class))
                     .show();
@@ -285,7 +285,7 @@ class TakeOfferViewModel extends ActivatableWithDataModel<TakeOfferDataModel> im
         tradeFee.set(getFormatterForTakerFee().formatCoin(takerFeeAsCoin));
         tradeFeeInBtcWithFiat.set(OfferViewModelUtil.getTradeFeeWithFiatEquivalent(offerUtil,
                 dataModel.getTakerFeeInBtc(),
-                btcFormatter));
+                xmrFormatter));
     }
 
 
@@ -299,11 +299,11 @@ class TakeOfferViewModel extends ActivatableWithDataModel<TakeOfferDataModel> im
             InputValidator.ValidationResult result = isBtcInputValid(amount.get());
             amountValidationResult.set(result);
             if (result.isValid) {
-                showWarningInvalidBtcDecimalPlaces.set(!DisplayUtils.hasBtcValidDecimals(userInput, btcFormatter));
+                showWarningInvalidBtcDecimalPlaces.set(!DisplayUtils.hasBtcValidDecimals(userInput, xmrFormatter));
                 // only allow max 4 decimal places for btc values
                 setAmountToModel();
                 // reformat input
-                amount.set(btcFormatter.formatCoin(dataModel.getAmount().get()));
+                amount.set(xmrFormatter.formatCoin(dataModel.getAmount().get()));
 
                 calculateVolume();
 
@@ -314,7 +314,7 @@ class TakeOfferViewModel extends ActivatableWithDataModel<TakeOfferDataModel> im
                             tradePrice,
                             maxTradeLimit);
                     dataModel.applyAmount(adjustedAmountForHalCash);
-                    amount.set(btcFormatter.formatCoin(dataModel.getAmount().get()));
+                    amount.set(xmrFormatter.formatCoin(dataModel.getAmount().get()));
                 } else if (dataModel.getOffer().isFiatOffer()) {
                     if (!isAmountEqualMinAmount(dataModel.getAmount().get()) && (!isAmountEqualMaxAmount(dataModel.getAmount().get()))) {
                         // We only apply the rounding if the amount is variable (minAmount is lower as amount).
@@ -323,7 +323,7 @@ class TakeOfferViewModel extends ActivatableWithDataModel<TakeOfferDataModel> im
                                 maxTradeLimit);
                         dataModel.applyAmount(roundedAmount);
                     }
-                    amount.set(btcFormatter.formatCoin(dataModel.getAmount().get()));
+                    amount.set(xmrFormatter.formatCoin(dataModel.getAmount().get()));
                 }
 
                 if (!dataModel.isMinAmountLessOrEqualAmount())
@@ -340,13 +340,13 @@ class TakeOfferViewModel extends ActivatableWithDataModel<TakeOfferDataModel> im
             } else if (btcValidator.getMaxTradeLimit() != null && btcValidator.getMaxTradeLimit().value == OfferRestrictions.TOLERATED_SMALL_TRADE_AMOUNT.value) {
                 if (dataModel.getDirection() == OfferDirection.BUY) {
                     new Popup().information(Res.get("popup.warning.tradeLimitDueAccountAgeRestriction.seller",
-                            btcFormatter.formatCoinWithCode(OfferRestrictions.TOLERATED_SMALL_TRADE_AMOUNT),
+                            xmrFormatter.formatCoinWithCode(OfferRestrictions.TOLERATED_SMALL_TRADE_AMOUNT),
                             Res.get("offerbook.warning.newVersionAnnouncement")))
                             .width(900)
                             .show();
                 } else {
                     new Popup().information(Res.get("popup.warning.tradeLimitDueAccountAgeRestriction.buyer",
-                            btcFormatter.formatCoinWithCode(OfferRestrictions.TOLERATED_SMALL_TRADE_AMOUNT),
+                            xmrFormatter.formatCoinWithCode(OfferRestrictions.TOLERATED_SMALL_TRADE_AMOUNT),
                             Res.get("offerbook.warning.newVersionAnnouncement")))
                             .width(900)
                             .show();
@@ -459,7 +459,7 @@ class TakeOfferViewModel extends ActivatableWithDataModel<TakeOfferDataModel> im
                 && isOfferAvailable.get()
                 && !dataModel.wouldCreateDustForMaker();
         isNextButtonDisabled.set(!inputDataValid);
-        isTakeOfferButtonDisabled.set(takeOfferRequested || !inputDataValid || !dataModel.getIsBtcWalletFunded().get());
+        isTakeOfferButtonDisabled.set(takeOfferRequested || !inputDataValid || !dataModel.getIsXmrWalletFunded().get());
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -468,7 +468,7 @@ class TakeOfferViewModel extends ActivatableWithDataModel<TakeOfferDataModel> im
 
     private void addBindings() {
         volume.bind(createStringBinding(() -> VolumeUtil.formatVolume(dataModel.volume.get()), dataModel.volume));
-        totalToPay.bind(createStringBinding(() -> btcFormatter.formatCoinWithCode(dataModel.getTotalToPayAsCoin().get()), dataModel.getTotalToPayAsCoin()));
+        totalToPay.bind(createStringBinding(() -> xmrFormatter.formatCoinWithCode(dataModel.getTotalToPayAsCoin().get()), dataModel.getTotalToPayAsCoin()));
     }
 
 
@@ -489,7 +489,7 @@ class TakeOfferViewModel extends ActivatableWithDataModel<TakeOfferDataModel> im
             updateButtonDisableState();
         };
         amountAsCoinListener = (ov, oldValue, newValue) -> {
-            amount.set(btcFormatter.formatCoin(newValue));
+            amount.set(xmrFormatter.formatCoin(newValue));
             applyTakerFee();
         };
         isWalletFundedListener = (ov, oldValue, newValue) -> updateButtonDisableState();
@@ -530,7 +530,7 @@ class TakeOfferViewModel extends ActivatableWithDataModel<TakeOfferDataModel> im
                     errorMessage.get() != null ||
                     showTransactionPublishedScreen.get()) {
                 spinnerInfoText.set("");
-            } else if (dataModel.getIsBtcWalletFunded().get()) {
+            } else if (dataModel.getIsXmrWalletFunded().get()) {
                 spinnerInfoText.set("");
                /* if (dataModel.isFeeFromFundingTxSufficient.get()) {
                     spinnerInfoText.set("");
@@ -553,7 +553,7 @@ class TakeOfferViewModel extends ActivatableWithDataModel<TakeOfferDataModel> im
         // Binding with Bindings.createObjectBinding does not work because of bi-directional binding
         dataModel.getAmount().addListener(amountAsCoinListener);
 
-        dataModel.getIsBtcWalletFunded().addListener(isWalletFundedListener);
+        dataModel.getIsXmrWalletFunded().addListener(isWalletFundedListener);
         dataModel.getMempoolStatus().addListener(getMempoolStatusListener);
         p2PService.getNetworkNode().addConnectionListener(connectionListener);
        /* isFeeSufficientSubscription = EasyBind.subscribe(dataModel.isFeeFromFundingTxSufficient, newValue -> {
@@ -569,7 +569,7 @@ class TakeOfferViewModel extends ActivatableWithDataModel<TakeOfferDataModel> im
         dataModel.getAmount().removeListener(amountAsCoinListener);
         dataModel.getMempoolStatus().removeListener(getMempoolStatusListener);
 
-        dataModel.getIsBtcWalletFunded().removeListener(isWalletFundedListener);
+        dataModel.getIsXmrWalletFunded().removeListener(isWalletFundedListener);
         if (offer != null) {
             offer.stateProperty().removeListener(offerStateListener);
         }
@@ -592,7 +592,7 @@ class TakeOfferViewModel extends ActivatableWithDataModel<TakeOfferDataModel> im
 
     private void setAmountToModel() {
         if (amount.get() != null && !amount.get().isEmpty()) {
-            Coin amount = DisplayUtils.parseToCoinWith4Decimals(this.amount.get(), btcFormatter);
+            Coin amount = DisplayUtils.parseToCoinWith4Decimals(this.amount.get(), xmrFormatter);
             long maxTradeLimit = dataModel.getMaxTradeLimit();
             Price price = dataModel.tradePrice;
             if (price != null) {
@@ -621,8 +621,8 @@ class TakeOfferViewModel extends ActivatableWithDataModel<TakeOfferDataModel> im
     // Getters
     ///////////////////////////////////////////////////////////////////////////////////////////
 
-    CoinFormatter getBtcFormatter() {
-        return btcFormatter;
+    CoinFormatter getXmrFormatter() {
+        return xmrFormatter;
     }
 
     boolean isSeller() {
@@ -671,27 +671,27 @@ class TakeOfferViewModel extends ActivatableWithDataModel<TakeOfferDataModel> im
     String getTradeAmount() {
         return OfferViewModelUtil.getTradeFeeWithFiatEquivalent(offerUtil,
                 dataModel.getAmount().get(),
-                btcFormatter);
+                xmrFormatter);
     }
 
     public String getSecurityDepositInfo() {
         return OfferViewModelUtil.getTradeFeeWithFiatEquivalentAndPercentage(offerUtil,
                 dataModel.getSecurityDeposit(),
                 dataModel.getAmount().get(),
-                btcFormatter,
+                xmrFormatter,
                 Restrictions.getMinBuyerSecurityDepositAsCoin()
         );
     }
 
     public String getSecurityDepositWithCode() {
-        return btcFormatter.formatCoinWithCode(dataModel.getSecurityDeposit());
+        return xmrFormatter.formatCoinWithCode(dataModel.getSecurityDeposit());
     }
 
     public String getTradeFee() {
             return OfferViewModelUtil.getTradeFeeWithFiatEquivalentAndPercentage(offerUtil,
                     dataModel.getTakerFeeInBtc(),
                     dataModel.getAmount().get(),
-                    btcFormatter,
+                    xmrFormatter,
                     HavenoUtils.getMinMakerFee());
     }
 
@@ -726,7 +726,7 @@ class TakeOfferViewModel extends ActivatableWithDataModel<TakeOfferDataModel> im
     }
 
     private CoinFormatter getFormatterForTakerFee() {
-        return btcFormatter;
+        return xmrFormatter;
     }
 
     public Callback<ListView<PaymentAccount>, ListCell<PaymentAccount>> getPaymentAccountListCellFactory(

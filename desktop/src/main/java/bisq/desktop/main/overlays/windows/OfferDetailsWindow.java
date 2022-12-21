@@ -415,6 +415,7 @@ public class OfferDetailsWindow extends Overlay<OfferDetailsWindow> {
                     // update trade state progress
                     UserThread.runAfter(() -> {
                         Trade trade = tradeManager.getTrade(offer.getId());
+                        if (trade == null) return;
                         tradeStateSubscription = EasyBind.subscribe(trade.stateProperty(), newState -> {
                             String progress = (newState.ordinal() + 1) + "/" + (lastState.ordinal());
                             spinnerInfoLabel.setText(Res.get("takeOffer.fundsBox.takeOfferSpinnerInfo") + " " + progress);

@@ -153,7 +153,7 @@ class TakeOfferDataModel extends OfferDataModel {
 
         addListeners();
 
-        updateBalance();
+        updateAvailableBalance();
 
         // TODO In case that we have funded but restarted, or canceled but took again the offer we would need to
         // store locally the result when we received the funding tx(s).
@@ -219,7 +219,7 @@ class TakeOfferDataModel extends OfferDataModel {
         balanceListener = new XmrBalanceListener(addressEntry.getSubaddressIndex()) {
             @Override
             public void onBalanceChanged(BigInteger balance) {
-                updateBalance();
+                updateAvailableBalance();
             }
         };
 
@@ -309,10 +309,10 @@ class TakeOfferDataModel extends OfferDataModel {
 
     void fundFromSavingsWallet() {
         useSavingsWallet = true;
-        updateBalance();
-        if (!isBtcWalletFunded.get()) {
+        updateAvailableBalance();
+        if (!isXmrWalletFunded.get()) {
             this.useSavingsWallet = false;
-            updateBalance();
+            updateAvailableBalance();
         }
     }
 
@@ -394,7 +394,7 @@ class TakeOfferDataModel extends OfferDataModel {
 
             volume.set(volumeByAmount);
 
-            updateBalance();
+            updateAvailableBalance();
         }
     }
 
@@ -415,7 +415,7 @@ class TakeOfferDataModel extends OfferDataModel {
                 totalToPayAsCoin.set(feeAndSecDeposit.add(amount.get()));
             else
                 totalToPayAsCoin.set(feeAndSecDeposit);
-            updateBalance();
+            updateAvailableBalance();
             log.debug("totalToPayAsCoin {}", totalToPayAsCoin.get().toFriendlyString());
         }
     }

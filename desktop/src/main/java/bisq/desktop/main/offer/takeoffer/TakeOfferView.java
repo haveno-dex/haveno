@@ -197,7 +197,7 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
         addOfferAvailabilityLabel();
         addFundingGroup();
 
-        balanceTextField.setFormatter(model.getBtcFormatter());
+        balanceTextField.setFormatter(model.getXmrFormatter());
 
         amountFocusedListener = (o, oldValue, newValue) -> {
             model.onFocusOutAmountTextField(oldValue, newValue, amountTextField.getText());
@@ -359,8 +359,8 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
 
     // Called from parent as the view does not get notified when the tab is closed
     public void onClose() {
-        Coin balance = model.dataModel.getBalance().get();
-        if (balance != null && balance.isPositive() && !model.takeOfferCompleted.get() && !DevEnv.isDevMode()) {
+        Coin availableBalance = model.dataModel.getAvailableBalance().get();
+        if (availableBalance != null && availableBalance.isPositive() && !model.takeOfferCompleted.get() && !DevEnv.isDevMode()) {
             model.dataModel.swapTradeToSavings();
         }
     }
@@ -477,7 +477,7 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
                 model.getSecurityDepositWithCode(), model.getTakerFeePercentage()));
         totalToPayTextField.setContentForInfoPopOver(createInfoPopover());
 
-        if (model.dataModel.getIsBtcWalletFunded().get()) {
+        if (model.dataModel.getIsXmrWalletFunded().get()) {
             if (walletFundedNotification == null) {
                 walletFundedNotification = new Notification()
                         .headLine(Res.get("notification.walletUpdate.headline"))
@@ -554,11 +554,11 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
         tradeFeeDescriptionLabel.managedProperty().bind(tradeFeeDescriptionLabel.visibleProperty());
 
         // funding
-        fundingHBox.visibleProperty().bind(model.dataModel.getIsBtcWalletFunded().not().and(model.showPayFundsScreenDisplayed));
-        fundingHBox.managedProperty().bind(model.dataModel.getIsBtcWalletFunded().not().and(model.showPayFundsScreenDisplayed));
+        fundingHBox.visibleProperty().bind(model.dataModel.getIsXmrWalletFunded().not().and(model.showPayFundsScreenDisplayed));
+        fundingHBox.managedProperty().bind(model.dataModel.getIsXmrWalletFunded().not().and(model.showPayFundsScreenDisplayed));
         waitingForFundsLabel.textProperty().bind(model.spinnerInfoText);
-        takeOfferBox.visibleProperty().bind(model.dataModel.getIsBtcWalletFunded().and(model.showPayFundsScreenDisplayed));
-        takeOfferBox.managedProperty().bind(model.dataModel.getIsBtcWalletFunded().and(model.showPayFundsScreenDisplayed));
+        takeOfferBox.visibleProperty().bind(model.dataModel.getIsXmrWalletFunded().and(model.showPayFundsScreenDisplayed));
+        takeOfferBox.managedProperty().bind(model.dataModel.getIsXmrWalletFunded().and(model.showPayFundsScreenDisplayed));
         takeOfferButton.disableProperty().bind(model.isTakeOfferButtonDisabled);
     }
 
@@ -674,7 +674,7 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
             }
         });
 
-        balanceSubscription = EasyBind.subscribe(model.dataModel.getBalance(), balanceTextField::setBalance);
+        balanceSubscription = EasyBind.subscribe(model.dataModel.getAvailableBalance(), balanceTextField::setBalance);
     }
 
     private void removeSubscriptions() {
@@ -929,7 +929,7 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
 
         cancelButton2.setOnAction(e -> {
             String key = "CreateOfferCancelAndFunded";
-            if (model.dataModel.getIsBtcWalletFunded().get() &&
+            if (model.dataModel.getIsXmrWalletFunded().get() &&
                     model.dataModel.preferences.showAgain(key)) {
                 new Popup().backgroundInfo(Res.get("takeOffer.alreadyFunded.askCancel"))
                         .closeButtonText(Res.get("shared.no"))

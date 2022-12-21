@@ -536,7 +536,7 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
         dataModel.getBuyerSecurityDeposit().addListener(securityDepositAsDoubleListener);
 
         // dataModel.feeFromFundingTxProperty.addListener(feeFromFundingTxListener);
-        dataModel.getIsBtcWalletFunded().addListener(isWalletFundedListener);
+        dataModel.getIsXmrWalletFunded().addListener(isWalletFundedListener);
 
         priceFeedService.updateCounterProperty().addListener(currenciesUpdateListener);
     }
@@ -558,7 +558,7 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
         dataModel.getBuyerSecurityDeposit().removeListener(securityDepositAsDoubleListener);
 
         //dataModel.feeFromFundingTxProperty.removeListener(feeFromFundingTxListener);
-        dataModel.getIsBtcWalletFunded().removeListener(isWalletFundedListener);
+        dataModel.getIsXmrWalletFunded().removeListener(isWalletFundedListener);
 
         if (offer != null && errorMessageListener != null)
             offer.getErrorMessageProperty().removeListener(errorMessageListener);
@@ -655,12 +655,12 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
 
     void fundFromSavingsWallet() {
         dataModel.fundFromSavingsWallet();
-        if (dataModel.getIsBtcWalletFunded().get()) {
+        if (dataModel.getIsXmrWalletFunded().get()) {
             updateButtonDisableState();
         } else {
             new Popup().warning(Res.get("shared.notEnoughFunds",
                             btcFormatter.formatCoinWithCode(dataModel.totalToPayAsCoinProperty().get()),
-                            btcFormatter.formatCoinWithCode(dataModel.getTotalAvailableBalance())))
+                            btcFormatter.formatCoinWithCode(dataModel.getTotalBalance())))
                     .actionButtonTextWithGoTo("navigation.funds.depositFunds")
                     .onAction(() -> navigation.navigateTo(MainView.class, FundsView.class, DepositView.class))
                     .show();
@@ -1205,7 +1205,7 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
                 errorMessage.get() != null ||
                 showTransactionPublishedScreen.get()) {
             waitingForFundsText.set("");
-        } else if (dataModel.getIsBtcWalletFunded().get()) {
+        } else if (dataModel.getIsXmrWalletFunded().get()) {
             waitingForFundsText.set("");
         } else {
             waitingForFundsText.set(Res.get("shared.waitingForFunds"));
@@ -1246,7 +1246,7 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
         }
 
         isNextButtonDisabled.set(!inputDataValid);
-        isPlaceOfferButtonDisabled.set(createOfferRequested || !inputDataValid || !dataModel.getIsBtcWalletFunded().get());
+        isPlaceOfferButtonDisabled.set(createOfferRequested || !inputDataValid || !dataModel.getIsXmrWalletFunded().get());
     }
 
     private CoinFormatter getFormatterForMakerFee() {

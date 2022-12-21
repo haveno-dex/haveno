@@ -403,7 +403,7 @@ public abstract class MutableOfferDataModel extends OfferDataModel {
     void fundFromSavingsWallet() {
         this.useSavingsWallet = true;
         updateBalance();
-        if (!isBtcWalletFunded.get()) {
+        if (!isXmrWalletFunded.get()) {
             this.useSavingsWallet = false;
             updateBalance();
         }
