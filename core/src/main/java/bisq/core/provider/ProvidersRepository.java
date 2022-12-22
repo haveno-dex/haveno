@@ -35,7 +35,7 @@ import javax.annotation.Nullable;
 @Slf4j
 public class ProvidersRepository {
     private static final List<String> DEFAULT_NODES = List.of(
-            "http://gbmks3wzvdzu5xq6gnqpj2qz3262tcr36iltagk37udcbwzsbfazq3yd.onion/" // Haveno
+            "http://a66ulzwhhudtqy6k2efnhodj2n6wnc5mnzjs3ocqtf47lwtcuo4wxyqd.onion/" // Haveno
     );
 
     private final Config config;
@@ -103,8 +103,10 @@ public class ProvidersRepository {
             if (useLocalhostForP2P) {
                 // If we run in localhost mode we don't have the tor node running, so we need a clearnet host
                 // Use localhost for using a locally running provider
-
-                providers = List.of("http://localhost:8078/", "https://price.haveno.network/");
+                providers = List.of(
+                    "http://localhost:8078/",
+                    "https://price.haveno.network/",
+                    "http://173.230.142.36:8080/");
             } else {
                 providers = DEFAULT_NODES;
             }
