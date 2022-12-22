@@ -29,15 +29,16 @@ import static bisq.desktop.util.FormBuilder.*;
 
 public class TxDetails extends Overlay<TxDetails> {
 
-    protected String txId, address, amount, note;
+    protected String txId, address, amount, fee, memo;
     protected TxIdTextField txIdTextField;
 
-    public TxDetails(String txId, String address, String amount) {
+    public TxDetails(String txId, String address, String amount, String fee, String memo) {
         type = Type.Attention;
         this.txId = txId;
         this.address = address;
         this.amount = amount;
-        this.note = Res.get("txDetailsWindow.btc.note");
+        this.fee = fee;
+        this.memo = memo;
     }
 
     public void show() {
@@ -57,12 +58,14 @@ public class TxDetails extends Overlay<TxDetails> {
 
     protected void addContent() {
         GridPane.setColumnSpan(
-                addMultilineLabel(gridPane, ++rowIndex, note, 0), 2);
+                addMultilineLabel(gridPane, ++rowIndex, Res.get("txDetailsWindow.xmr.note"), 0), 2);
         Region spacer = new Region();
         spacer.setMinHeight(20);
         gridPane.add(spacer, 0, ++rowIndex);
-        addConfirmationLabelLabel(gridPane, ++rowIndex, Res.get("shared.amount"), amount);
         addConfirmationLabelTextFieldWithCopyIcon(gridPane, ++rowIndex, Res.get("txDetailsWindow.sentTo"), address);
+        addConfirmationLabelLabel(gridPane, ++rowIndex, Res.get("shared.amount"), amount);
+        addConfirmationLabelLabel(gridPane, ++rowIndex, Res.get("shared.txFee"), fee);
+        if (memo != null && !"".equals(memo)) addConfirmationLabelLabel(gridPane, ++rowIndex, Res.get("funds.withdrawal.memoLabel"), memo);
         txIdTextField = addLabelTxIdTextField(gridPane, ++rowIndex, Res.get("txDetailsWindow.txId"), txId).second;
     }
 }
