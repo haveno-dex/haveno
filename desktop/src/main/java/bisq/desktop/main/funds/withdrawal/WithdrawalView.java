@@ -109,6 +109,9 @@ public class WithdrawalView extends ActivatableView<VBox, Void> {
         final TitledGroupBg titledGroupBg = addTitledGroupBg(gridPane, rowIndex, 4, Res.get("funds.deposit.withdrawFromWallet"));
         titledGroupBg.getStyleClass().add("last");
 
+        withdrawToTextField = addTopLabelInputTextField(gridPane, ++rowIndex,
+        Res.get("funds.withdrawal.toLabel", Res.getBaseCurrencyCode())).second;
+
         final Tuple2<Label, InputTextField> amountTuple3 = addTopLabelInputTextField(gridPane, ++rowIndex,
                 Res.get("funds.withdrawal.receiverAmount", Res.getBaseCurrencyCode()),
                 Layout.COMPACT_FIRST_ROW_DISTANCE);
@@ -116,9 +119,6 @@ public class WithdrawalView extends ActivatableView<VBox, Void> {
         amountLabel = amountTuple3.first;
         amountTextField = amountTuple3.second;
         amountTextField.setMinWidth(180);
-
-        withdrawToTextField = addTopLabelInputTextField(gridPane, ++rowIndex,
-                Res.get("funds.withdrawal.toLabel", Res.getBaseCurrencyCode())).second;
 
         withdrawMemoTextField = addTopLabelInputTextField(gridPane, ++rowIndex,
                 Res.get("funds.withdrawal.memoLabel", Res.getBaseCurrencyCode())).second;
@@ -191,12 +191,11 @@ public class WithdrawalView extends ActivatableView<VBox, Void> {
                 MoneroTxWallet tx = xmrWalletService.getWallet().createTx(new MoneroTxConfig()
                         .setAccountIndex(0)
                         .setAmount(HavenoUtils.coinToAtomicUnits(receiverAmount)) // TODO: rename to centinerosToAtomicUnits()?
-                        .setAddress(withdrawToAddress)
-                        .setNote(withdrawMemoTextField.getText()));
+                        .setAddress(withdrawToAddress));
 
                 // create confirmation message
+                Coin sendersAmount = receiverAmount;
                 Coin fee = HavenoUtils.atomicUnitsToCoin(tx.getFee());
-                Coin sendersAmount = receiverAmount.add(fee);
                 String messageText = Res.get("shared.sendFundsDetailsWithFee",
                         formatter.formatCoinWithCode(sendersAmount),
                         withdrawToAddress,
@@ -212,9 +211,10 @@ public class WithdrawalView extends ActivatableView<VBox, Void> {
                             // relay tx
                             try {
                                 xmrWalletService.getWallet().relayTx(tx);
+                                xmrWalletService.getWallet().setTxNote(tx.getHash(), withdrawMemoTextField.getText()); // TODO (monero-java): tx note does not persist when tx created then relayed
                                 String key = "showTransactionSent";
                                 if (DontShowAgainLookup.showAgain(key)) {
-                                    new TxDetails(tx.getHash(), withdrawToAddress, formatter.formatCoinWithCode(sendersAmount))
+                                    new TxDetails(tx.getHash(), withdrawToAddress, formatter.formatCoinWithCode(sendersAmount), formatter.formatCoinWithCode(fee), xmrWalletService.getWallet().getTxNote(tx.getHash()))
                                             .dontShowAgainId(key)
                                             .show();
                                 }
