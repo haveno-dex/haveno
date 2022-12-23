@@ -102,6 +102,9 @@ public final class CoreMoneroConnectionsService {
         this.connectionManager = connectionManager;
         this.connectionList = connectionList;
 
+        // initialize immediately if monerod configured
+        if (!"".equals(config.xmrNode)) initialize();
+
         // initialize after account open and basic setup
         walletsSetup.addSetupTaskHandler(() -> { // TODO: use something better than legacy WalletSetup for notification to initialize
 

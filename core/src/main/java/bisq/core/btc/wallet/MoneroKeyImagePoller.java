@@ -232,7 +232,6 @@ public class MoneroKeyImagePoller {
                 }
             } catch (Exception e) {
                 log.warn("Error polling key images: " + e.getMessage());
-                e.printStackTrace();
             }
         }
     }
