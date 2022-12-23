@@ -22,16 +22,15 @@ import bisq.core.locale.TradeCurrency;
 import bisq.core.monetary.Price;
 import bisq.core.provider.PriceHttpClient;
 import bisq.core.provider.ProvidersRepository;
+import bisq.core.trade.HavenoUtils;
 import bisq.core.trade.statistics.TradeStatistics3;
 import bisq.core.user.Preferences;
 
 import bisq.network.http.HttpClient;
-
 import bisq.common.Timer;
 import bisq.common.UserThread;
 import bisq.common.handlers.FaultHandler;
 import bisq.common.util.MathUtils;
-import bisq.common.util.Tuple2;
 
 import com.google.inject.Inject;
 
@@ -45,6 +44,7 @@ import javafx.beans.property.ReadOnlyIntegerProperty;
 import javafx.beans.property.SimpleIntegerProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
+import javafx.beans.value.ChangeListener;
 
 import java.time.Instant;
 
@@ -57,8 +57,8 @@ import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.CancellationException;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Consumer;
 
@@ -88,14 +88,16 @@ public class PriceFeedService {
     private final StringProperty currencyCodeProperty = new SimpleStringProperty();
     private final IntegerProperty updateCounter = new SimpleIntegerProperty(0);
     private long epochInMillisAtLastRequest;
-    private long retryDelay = 1;
+    private long retryDelay = 0;
     private long requestTs;
+    private long lastLoopTs = System.currentTimeMillis();
     @Nullable
     private String baseUrlOfRespondingProvider;
     @Nullable
     private Timer requestTimer;
     @Nullable
     private PriceRequest priceRequest;
+    private String requestAllPricesError = null;
 
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -236,25 +238,33 @@ public class PriceFeedService {
     }
 
     private void retryWithNewProvider() {
-        // We increase retry delay each time until we reach PERIOD_SEC to not exceed requests.
+        long thisRetryDelay = 0;
+        String oldBaseUrl = priceProvider.getBaseUrl();
+        boolean looped = setNewPriceProvider();
+        if (looped) {
+            if (System.currentTimeMillis() - lastLoopTs < PERIOD_SEC * 1000) {
+                retryDelay = Math.min(retryDelay + 5, PERIOD_SEC);
+            } else {
+                retryDelay = 0;
+            }
+            lastLoopTs = System.currentTimeMillis();
+            thisRetryDelay = retryDelay;
+        }
+        log.warn("We received an error at the request from provider {}. " +
+                "We select the new provider {} and use that for a new request in {} sec.", oldBaseUrl, priceProvider.getBaseUrl(), thisRetryDelay);
         UserThread.runAfter(() -> {
-            retryDelay = Math.min(retryDelay + 5, PERIOD_SEC);
-
-            String oldBaseUrl = priceProvider.getBaseUrl();
-            setNewPriceProvider();
-            log.warn("We received an error at the request from provider {}. " +
-                    "We select the new provider {} and use that for a new request. retryDelay was {} sec.", oldBaseUrl, priceProvider.getBaseUrl(), retryDelay);
-
             request(true);
-        }, retryDelay);
+        }, thisRetryDelay);
     }
 
-    private void setNewPriceProvider() {
-        providersRepository.selectNextProviderBaseUrl();
+    // returns true if provider selection loops back to beginning
+    private boolean setNewPriceProvider() {
+        boolean looped = providersRepository.selectNextProviderBaseUrl();
         if (!providersRepository.getBaseUrl().isEmpty())
             priceProvider = new PriceProvider(httpClient, providersRepository.getBaseUrl());
         else
             log.warn("We cannot create a new priceProvider because new base url is empty.");
+            return looped;
     }
 
     @Nullable
@@ -333,12 +343,25 @@ public class PriceFeedService {
     /**
      * Returns prices for all available currencies.
      * For crypto currencies the value is XMR price for 1 unit of given crypto currency (e.g. 1 DOGE = X XMR).
-     * For fiat currencies the value is price in the given fiiat currency per 1 XMR (e.g.  1 XMR = X USD).
-     * Does not update PriceFeedService internal state (cache, epochInMillisAtLastRequest)
+     * For fiat currencies the value is price in the given fiat currency per 1 XMR (e.g. 1 XMR = X USD).
+     * 
+     * TODO: instrument requestPrices() result and fault handlers instead of using CountDownLatch and timeout
      */
-    public Map<String, MarketPrice> requestAllPrices() throws ExecutionException, InterruptedException, TimeoutException, CancellationException {
-        return new PriceRequest().requestAllPrices(priceProvider)
-                .get(20, TimeUnit.SECONDS);
+    public synchronized Map<String, MarketPrice> requestAllPrices() throws ExecutionException, InterruptedException, TimeoutException, CancellationException {
+        CountDownLatch latch = new CountDownLatch(1);
+        ChangeListener<? super Number> listener = (observable, oldValue, newValue) -> { latch.countDown(); };
+        updateCounter.addListener(listener);
+        requestAllPricesError = null;
+        requestPrices();
+        UserThread.runAfter(() -> {
+            if (latch.getCount() == 0) return;
+            requestAllPricesError = "Timeout fetching market prices within 20 seconds";
+            latch.countDown();
+        }, 20);
+        HavenoUtils.awaitLatch(latch);
+        updateCounter.removeListener(listener);
+        if (requestAllPricesError != null) throw new RuntimeException(requestAllPricesError);
+        return cache;
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -350,6 +373,7 @@ public class PriceFeedService {
         String errorMessage = null;
         if (currencyCode != null) {
             String baseUrl = priceProvider.getBaseUrl();
+            httpClient.setBaseUrl(baseUrl);
             if (cache.containsKey(currencyCode)) {
                 try {
                     MarketPrice marketPrice = cache.get(currencyCode);

@@ -80,10 +80,14 @@ public class ProvidersRepository {
         }
     }
 
-    public void selectNextProviderBaseUrl() {
+    // returns true if provider selection loops to beginning
+    public boolean selectNextProviderBaseUrl() {
+        boolean looped = false;
         if (!providerList.isEmpty()) {
-            if (index >= providerList.size())
+            if (index >= providerList.size()) {
                 index = 0;
+                looped = true;
+            }
 
             baseUrl = providerList.get(index);
             index++;
@@ -95,6 +99,7 @@ public class ProvidersRepository {
             log.warn("We do not have any providers. That can be if all providers are filtered or providersFromProgramArgs is set but empty. " +
                     "bannedNodes={}. providersFromProgramArgs={}", bannedNodes, providersFromProgramArgs);
         }
+        return looped;
     }
 
     private void fillProviderList() {

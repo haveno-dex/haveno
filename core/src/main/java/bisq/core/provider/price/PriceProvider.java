@@ -17,7 +17,6 @@
 
 package bisq.core.provider.price;
 
-import bisq.core.locale.CurrencyUtil;
 import bisq.core.provider.HttpClientProvider;
 
 import bisq.network.http.HttpClient;
@@ -25,7 +24,6 @@ import bisq.network.p2p.P2PService;
 
 import bisq.common.app.Version;
 import bisq.common.util.MathUtils;
-import bisq.common.util.Tuple2;
 
 import com.google.gson.Gson;
 import com.google.gson.internal.LinkedTreeMap;
