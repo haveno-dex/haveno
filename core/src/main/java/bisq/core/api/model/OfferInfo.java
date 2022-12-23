@@ -21,6 +21,7 @@ import bisq.core.api.model.builder.OfferInfoBuilder;
 import bisq.core.monetary.Price;
 import bisq.core.offer.Offer;
 import bisq.core.offer.OpenOffer;
+import bisq.core.trade.HavenoUtils;
 import bisq.common.Payload;
 import bisq.common.proto.ProtoUtil;
 import java.util.Optional;
@@ -150,15 +151,15 @@ public class OfferInfo implements Payload {
                 .withPrice(preciseOfferPrice)
                 .withUseMarketBasedPrice(offer.isUseMarketBasedPrice())
                 .withMarketPriceMarginPct(marketPriceMarginAsPctLiteral)
-                .withAmount(offer.getAmount().value)
-                .withMinAmount(offer.getMinAmount().value)
+                .withAmount(HavenoUtils.centinerosToAtomicUnits(offer.getAmount().value).longValueExact())
+                .withMinAmount(HavenoUtils.centinerosToAtomicUnits(offer.getMinAmount().value).longValueExact())
                 .withVolume(roundedVolume)
                 .withMinVolume(roundedMinVolume)
-                .withMakerFee(offer.getMakerFee().value)
-                .withTxFee(offer.getTxFee().value)
+                .withMakerFee(HavenoUtils.centinerosToAtomicUnits(offer.getMakerFee().value).longValueExact())
+                .withTxFee(HavenoUtils.centinerosToAtomicUnits(offer.getTxFee().value).longValueExact())
                 .withOfferFeePaymentTxId(offer.getOfferFeePaymentTxId())
-                .withBuyerSecurityDeposit(offer.getBuyerSecurityDeposit().value)
-                .withSellerSecurityDeposit(offer.getSellerSecurityDeposit().value)
+                .withBuyerSecurityDeposit(HavenoUtils.centinerosToAtomicUnits(offer.getBuyerSecurityDeposit().value).longValueExact())
+                .withSellerSecurityDeposit(HavenoUtils.centinerosToAtomicUnits(offer.getSellerSecurityDeposit().value).longValueExact())
                 .withPaymentAccountId(offer.getMakerPaymentAccountId())
                 .withPaymentMethodId(offer.getPaymentMethod().getId())
                 .withPaymentMethodShortName(offer.getPaymentMethod().getShortName())
