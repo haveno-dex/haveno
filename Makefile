@@ -100,6 +100,7 @@ seednode-local:
 		--useDevPrivilegeKeys=true \
 		--nodePort=2002 \
 		--appName=haveno-XMR_LOCAL_Seed_2002 \
+		--xmrNode=http://localhost:28081 \
 
 arbitrator-daemon-local:
 	# Arbitrator needs to be registered before making trades
