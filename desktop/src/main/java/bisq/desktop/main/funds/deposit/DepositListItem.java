@@ -59,7 +59,7 @@ class DepositListItem {
         return lazyFieldsSupplier.get();
     }
 
-    DepositListItem(XmrAddressEntry addressEntry, XmrWalletService xmrWalletService, CoinFormatter formatter) {
+    DepositListItem(XmrAddressEntry addressEntry, XmrWalletService xmrWalletService, CoinFormatter formatter, List<MoneroTxWallet> cachedTxs) {
         this.xmrWalletService = xmrWalletService;
         this.addressEntry = addressEntry;
 
@@ -68,7 +68,7 @@ class DepositListItem {
             public void onBalanceChanged(BigInteger balance) {
                 DepositListItem.this.balanceAsCoin = HavenoUtils.atomicUnitsToCoin(balance);
                 DepositListItem.this.balance.set(formatter.formatCoin(balanceAsCoin));
-                updateUsage(addressEntry.getSubaddressIndex());
+                updateUsage(addressEntry.getSubaddressIndex(), null);
             }
         };
         xmrWalletService.addBalanceListener(balanceListener);
@@ -76,7 +76,7 @@ class DepositListItem {
         balanceAsCoin = xmrWalletService.getBalanceForSubaddress(addressEntry.getSubaddressIndex());
         balance.set(formatter.formatCoin(balanceAsCoin));
 
-        updateUsage(addressEntry.getSubaddressIndex());
+        updateUsage(addressEntry.getSubaddressIndex(), cachedTxs);
 
         // confidence
         lazyFieldsSupplier = Suppliers.memoize(() -> new LazyFields() {{
@@ -95,8 +95,8 @@ class DepositListItem {
         }});
     }
 
-    private void updateUsage(int subaddressIndex) {
-        numTxOutputs = xmrWalletService.getNumTxOutputsForSubaddress(addressEntry.getSubaddressIndex());
+    private void updateUsage(int subaddressIndex, List<MoneroTxWallet> cachedTxs) {
+        numTxOutputs = xmrWalletService.getNumTxOutputsForSubaddress(addressEntry.getSubaddressIndex(), cachedTxs);
         usage = numTxOutputs == 0 ? Res.get("funds.deposit.unused") : Res.get("funds.deposit.usedInTx", numTxOutputs);
     }
 

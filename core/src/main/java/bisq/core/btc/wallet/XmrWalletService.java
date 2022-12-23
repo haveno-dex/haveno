@@ -914,16 +914,21 @@ public class XmrWalletService {
         return getNumTxOutputsForSubaddress(subaddressIndex, null);
     }
 
-    private int getNumTxOutputsForSubaddress(int subaddressIndex, List<MoneroTxWallet> incomingTxs) {
+    public int getNumTxOutputsForSubaddress(int subaddressIndex, List<MoneroTxWallet> incomingTxs) {
         if (incomingTxs == null) incomingTxs = getIncomingTxs(subaddressIndex);
         int numUnspentOutputs = 0;
         for (MoneroTxWallet tx : incomingTxs) {
+            if (tx.getTransfers(new MoneroTransferQuery().setSubaddressIndex(subaddressIndex)).isEmpty()) continue;
             numUnspentOutputs += tx.isConfirmed() ? tx.getOutputsWallet(new MoneroOutputQuery().setSubaddressIndex(subaddressIndex)).size() : 1; // TODO: monero-project does not provide outputs for unconfirmed txs
         }
         return numUnspentOutputs;
     }
 
-    private List<MoneroTxWallet> getIncomingTxs(Integer subaddressIndex) {
+    public List<MoneroTxWallet> getIncomingTxs() {
+        return getIncomingTxs(null);
+    }
+
+    public List<MoneroTxWallet> getIncomingTxs(Integer subaddressIndex) {
         return wallet.getTxs(new MoneroTxQuery()
                 .setTransferQuery((new MoneroTransferQuery()
                         .setAccountIndex(0)
@@ -970,7 +975,7 @@ public class XmrWalletService {
 
     // TODO (woodser): update balance and other listening
     public void addBalanceListener(XmrBalanceListener listener) {
-        balanceListeners.add(listener);
+        if (!balanceListeners.contains(listener)) balanceListeners.add(listener);
     }
 
     public void removeBalanceListener(XmrBalanceListener listener) {
