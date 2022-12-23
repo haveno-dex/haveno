@@ -52,6 +52,7 @@ import net.glxn.qrgen.image.ImageType;
 import javax.inject.Inject;
 import javax.inject.Named;
 import monero.wallet.model.MoneroTxConfig;
+import monero.wallet.model.MoneroTxWallet;
 import javafx.fxml.FXML;
 
 import javafx.scene.control.Button;
@@ -83,6 +84,7 @@ import javafx.util.Callback;
 import java.io.ByteArrayInputStream;
 import java.math.BigInteger;
 import java.util.Comparator;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import org.jetbrains.annotations.NotNull;
@@ -298,8 +300,10 @@ public class DepositView extends ActivatableView<VBox, Void> {
     private void updateList() {
         observableList.forEach(DepositListItem::cleanup);
         observableList.clear();
+
+        List<MoneroTxWallet> incomingTxs = xmrWalletService.getIncomingTxs(); // cache incoming txs for performance
         xmrWalletService.getAvailableAddressEntries()
-                .forEach(e -> observableList.add(new DepositListItem(e, xmrWalletService, formatter)));
+                .forEach(e -> observableList.add(new DepositListItem(e, xmrWalletService, formatter, incomingTxs)));
     }
 
     private Coin getAmountAsCoin() {
