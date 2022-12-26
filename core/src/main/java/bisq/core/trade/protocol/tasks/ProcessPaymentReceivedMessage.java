@@ -18,6 +18,7 @@
 package bisq.core.trade.protocol.tasks;
 
 import bisq.core.account.sign.SignedWitness;
+import bisq.core.support.dispute.Dispute;
 import bisq.core.trade.ArbitratorTrade;
 import bisq.core.trade.HavenoUtils;
 import bisq.core.trade.Trade;
@@ -55,9 +56,17 @@ public class ProcessPaymentReceivedMessage extends TradeTask {
             trade.getSeller().setUpdatedMultisigHex(message.getUpdatedMultisigHex());
             trade.getBuyer().setUpdatedMultisigHex(message.getPaymentSentMessage().getUpdatedMultisigHex());
 
-            // update to the latest peer address of our peer if the message is correct
+            // update to the latest peer address of our peer if message is correct
             trade.getSeller().setNodeAddress(processModel.getTempTradingPeerNodeAddress());
             if (trade.getSeller().getNodeAddress().equals(trade.getBuyer().getNodeAddress())) trade.getBuyer().setNodeAddress(null); // tests can reuse addresses
+
+            // close open disputes
+            if (trade.getDisputeState().ordinal() >= Trade.DisputeState.DISPUTE_OPENED.ordinal()) {
+                trade.setDisputeStateIfProgress(Trade.DisputeState.DISPUTE_CLOSED);
+                for (Dispute dispute : trade.getDisputes()) {
+                    dispute.setIsClosed();
+                }
+            }
 
             // process payout tx unless already unlocked
             if (!trade.isPayoutUnlocked()) processPayoutTx(message);

@@ -28,6 +28,7 @@ import bisq.core.payment.payload.PaymentAccountPayload;
 import bisq.core.payment.payload.PaymentMethod;
 import bisq.core.proto.CoreProtoResolver;
 import bisq.core.proto.network.CoreNetworkProtoResolver;
+import bisq.core.support.dispute.Dispute;
 import bisq.core.support.dispute.mediation.MediationResultState;
 import bisq.core.support.dispute.refund.RefundResultState;
 import bisq.core.support.messages.ChatMessage;
@@ -1045,6 +1046,10 @@ public abstract class Trade implements Tradable, Model {
 
     public void setDisputeStateIfProgress(DisputeState disputeState) {
         if (disputeState.ordinal() > getDisputeState().ordinal()) setDisputeState(disputeState);
+    }
+
+    public List<Dispute> getDisputes() {
+        return HavenoUtils.arbitrationManager.findDisputes(getId());
     }
 
     public void setMediationResultState(MediationResultState mediationResultState) {
