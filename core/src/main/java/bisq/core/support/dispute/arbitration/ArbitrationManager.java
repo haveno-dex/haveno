@@ -92,6 +92,7 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
                               PriceFeedService priceFeedService) {
         super(p2PService, tradeWalletService, walletService, connectionService, notificationService, tradeManager, closedTradableManager,
                 openOfferManager, keyRing, arbitrationDisputeListService, config, priceFeedService);
+        HavenoUtils.arbitrationManager = this; // store static reference
     }
 
 

@@ -928,6 +928,14 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
                 .findAny();
     }
 
+    public List<Dispute> findDisputes(String tradeId) {
+        T disputeList = getDisputeList();
+        if (disputeList == null) return new ArrayList<Dispute>();
+        return disputeList.stream()
+                .filter(e -> e.getTradeId().equals(tradeId))
+                .collect(Collectors.toList());
+    }
+
     public Optional<Dispute> findDisputeById(String disputeId) {
         T disputeList = getDisputeList();
         if (disputeList == null) {

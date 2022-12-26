@@ -22,6 +22,7 @@ import bisq.common.crypto.PubKeyRing;
 import bisq.common.crypto.Sig;
 import bisq.core.offer.Offer;
 import bisq.core.offer.OfferPayload;
+import bisq.core.support.dispute.arbitration.ArbitrationManager;
 import bisq.core.support.dispute.arbitration.arbitrator.Arbitrator;
 import bisq.core.trade.messages.InitTradeRequest;
 import bisq.core.trade.messages.PaymentReceivedMessage;
@@ -59,6 +60,9 @@ public class HavenoUtils {
     // multipliers to convert units
     private static BigInteger CENTINEROS_AU_MULTIPLIER = new BigInteger("10000");
     private static BigInteger XMR_AU_MULTIPLIER = new BigInteger("1000000000000");
+
+    // TODO: better way to share reference?
+    public static ArbitrationManager arbitrationManager;
 
     public static BigInteger coinToAtomicUnits(Coin coin) {
         return centinerosToAtomicUnits(coin.value);
