@@ -52,10 +52,10 @@ public class MakerReserveOfferFunds extends Task<PlaceOfferModel> {
 
             // create reserve tx
             BigInteger makerFee = HavenoUtils.coinToAtomicUnits(offer.getMakerFee());
-            BigInteger peerAmount = HavenoUtils.coinToAtomicUnits(offer.getDirection() == OfferDirection.BUY ? Coin.ZERO : offer.getAmount());
+            BigInteger sendAmount = HavenoUtils.coinToAtomicUnits(offer.getDirection() == OfferDirection.BUY ? Coin.ZERO : offer.getAmount());
             BigInteger securityDeposit = HavenoUtils.coinToAtomicUnits(offer.getDirection() == OfferDirection.BUY ? offer.getBuyerSecurityDeposit() : offer.getSellerSecurityDeposit());
             String returnAddress = model.getXmrWalletService().getOrCreateAddressEntry(offer.getId(), XmrAddressEntry.Context.TRADE_PAYOUT).getAddressString();
-            MoneroTxWallet reserveTx = model.getXmrWalletService().createReserveTx(makerFee, peerAmount, securityDeposit, returnAddress);
+            MoneroTxWallet reserveTx = model.getXmrWalletService().createReserveTx(makerFee, sendAmount, securityDeposit, returnAddress);
 
             // collect reserved key images
             List<String> reservedKeyImages = new ArrayList<String>();

@@ -27,6 +27,7 @@ import bisq.core.payment.PaymentAccountUtil;
 import bisq.core.provider.price.MarketPrice;
 import bisq.core.provider.price.PriceFeedService;
 import bisq.core.support.dispute.arbitration.arbitrator.ArbitratorManager;
+import bisq.core.trade.HavenoUtils;
 import bisq.core.trade.statistics.TradeStatisticsManager;
 import bisq.core.user.Preferences;
 import bisq.core.user.User;
@@ -155,7 +156,7 @@ public class CreateOfferService {
         String bankId = PaymentAccountUtil.getBankId(paymentAccount);
         List<String> acceptedBanks = PaymentAccountUtil.getAcceptedBanks(paymentAccount);
         double sellerSecurityDeposit = getSellerSecurityDepositAsDouble(buyerSecurityDepositAsDouble);
-        Coin makerFeeAsCoin = offerUtil.getMakerFee(amount);
+        Coin makerFeeAsCoin = HavenoUtils.getMakerFee(amount);
         Coin buyerSecurityDepositAsCoin = getBuyerSecurityDeposit(amount, buyerSecurityDepositAsDouble);
         Coin sellerSecurityDepositAsCoin = getSellerSecurityDeposit(amount, sellerSecurityDeposit);
         long maxTradeLimit = offerUtil.getMaxTradeLimit(paymentAccount, currencyCode, direction);

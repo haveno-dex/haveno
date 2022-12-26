@@ -547,7 +547,7 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
         priceCurrencyLabel.textProperty().bind(createStringBinding(() -> CurrencyUtil.getCounterCurrency(model.dataModel.getCurrencyCode())));
         priceAsPercentageLabel.prefWidthProperty().bind(priceCurrencyLabel.widthProperty());
         nextButton.disableProperty().bind(model.isNextButtonDisabled);
-        tradeFeeInBtcLabel.textProperty().bind(model.tradeFeeInBtcWithFiat);
+        tradeFeeInBtcLabel.textProperty().bind(model.tradeFeeInXmrWithFiat);
         tradeFeeDescriptionLabel.textProperty().bind(model.tradeFeeDescription);
         tradeFeeInBtcLabel.visibleProperty().bind(model.isTradeFeeVisible);
         tradeFeeDescriptionLabel.visibleProperty().bind(model.isTradeFeeVisible);

@@ -24,6 +24,7 @@ import bisq.core.offer.Offer;
 import bisq.core.offer.OfferUtil;
 import bisq.core.offer.availability.OfferAvailabilityModel;
 import bisq.core.offer.messages.OfferAvailabilityRequest;
+import bisq.core.trade.HavenoUtils;
 import bisq.core.trade.messages.InitTradeRequest;
 import bisq.core.user.User;
 import bisq.network.p2p.P2PService;
@@ -55,7 +56,6 @@ public class SendOfferAvailabilityRequest extends Task<OfferAvailabilityModel> {
             User user = model.getUser();
             P2PService p2PService = model.getP2PService();
             XmrWalletService walletService = model.getXmrWalletService();
-            OfferUtil offerUtil = model.getOfferUtil();
             String paymentAccountId = model.getPaymentAccountId();
             String paymentMethodId = user.getPaymentAccount(paymentAccountId).getPaymentAccountPayload().getPaymentMethodId();
             String payoutAddress = walletService.getOrCreateAddressEntry(offer.getId(), XmrAddressEntry.Context.TRADE_PAYOUT).getAddressString(); // reserve new payout address
@@ -74,7 +74,7 @@ public class SendOfferAvailabilityRequest extends Task<OfferAvailabilityModel> {
                     p2PService.getKeyRing().getPubKeyRing(),
                     offer.getAmount().value,
                     price.getValue(),
-                    offerUtil.getTakerFee(offer.getAmount()).value,
+                    HavenoUtils.getTakerFee(offer.getAmount()).value,
                     user.getAccountId(),
                     paymentAccountId,
                     paymentMethodId,

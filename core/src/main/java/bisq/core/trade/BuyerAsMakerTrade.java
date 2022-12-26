@@ -32,8 +32,6 @@ import java.util.UUID;
 
 import lombok.extern.slf4j.Slf4j;
 
-import javax.annotation.Nullable;
-
 @Slf4j
 public final class BuyerAsMakerTrade extends BuyerTrade implements MakerTrade {
 

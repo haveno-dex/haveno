@@ -55,7 +55,6 @@ import bisq.core.trade.statistics.ReferralIdService;
 import bisq.core.trade.statistics.TradeStatisticsManager;
 import bisq.core.user.User;
 import bisq.core.util.Validator;
-import bisq.core.util.coin.CoinUtil;
 import bisq.network.p2p.BootstrapListener;
 import bisq.network.p2p.DecryptedDirectMessageListener;
 import bisq.network.p2p.DecryptedMessageWithPubKey;
@@ -456,9 +455,8 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
                   return;
               }
 
-              // compute expected taker fee
-              Coin feePerBtc = CoinUtil.getFeePerBtc(HavenoUtils.getTakerFeePerBtc(), Coin.valueOf(offer.getOfferPayload().getAmount()));
-              Coin takerFee = CoinUtil.maxCoin(feePerBtc, HavenoUtils.getMinTakerFee());
+              // get expected taker fee
+              Coin takerFee = HavenoUtils.getTakerFee(Coin.valueOf(offer.getOfferPayload().getAmount()));
 
               // create arbitrator trade
               trade = new ArbitratorTrade(offer,
@@ -522,13 +520,17 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
               return;
           }
 
+          // reserve open offer
           openOfferManager.reserveOpenOffer(openOffer); // TODO (woodser): reserve offer if arbitrator? probably. or, arbitrator does not have open offer?
+
+          // get expected taker fee
+          Coin takerFee = HavenoUtils.getTakerFee(Coin.valueOf(offer.getOfferPayload().getAmount()));
 
           Trade trade;
           if (offer.isBuyOffer())
               trade = new BuyerAsMakerTrade(offer,
                       Coin.valueOf(offer.getOfferPayload().getAmount()),
-                      Coin.valueOf(offer.getOfferPayload().getMakerFee()), // TODO (woodser): this is maker fee, but Trade calls it taker fee, why not have both?
+                      takerFee,
                       offer.getOfferPayload().getPrice(),
                       xmrWalletService,
                       getNewProcessModel(offer),
@@ -539,7 +541,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
           else
               trade = new SellerAsMakerTrade(offer,
                       Coin.valueOf(offer.getOfferPayload().getAmount()),
-                      Coin.valueOf(offer.getOfferPayload().getMakerFee()),
+                      takerFee,
                       offer.getOfferPayload().getPrice(),
                       xmrWalletService,
                       getNewProcessModel(offer),
