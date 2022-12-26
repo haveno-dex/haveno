@@ -37,6 +37,7 @@ import bisq.core.offer.OfferUtil;
 import bisq.core.offer.OpenOfferManager;
 import bisq.core.payment.PaymentAccount;
 import bisq.core.provider.price.PriceFeedService;
+import bisq.core.trade.HavenoUtils;
 import bisq.core.trade.handlers.TransactionResultHandler;
 import bisq.core.trade.statistics.TradeStatistics3;
 import bisq.core.trade.statistics.TradeStatisticsManager;
@@ -674,11 +675,7 @@ public abstract class MutableOfferDataModel extends OfferDataModel {
     }
 
     public Coin getMakerFee() {
-        return offerUtil.getMakerFee(amount.get());
-    }
-
-    public Coin getMakerFeeInBtc() {
-        return CoinUtil.getMakerFee(amount.get());
+        return HavenoUtils.getMakerFee(amount.get());
     }
 
     boolean canPlaceOffer() {

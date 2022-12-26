@@ -28,6 +28,7 @@ import bisq.core.trade.messages.PaymentReceivedMessage;
 import bisq.core.trade.messages.PaymentSentMessage;
 import bisq.core.util.JsonUtil;
 import bisq.core.util.ParsingUtils;
+import bisq.core.util.coin.CoinUtil;
 import lombok.extern.slf4j.Slf4j;
 
 import java.math.BigDecimal;
@@ -38,6 +39,8 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+
+import javax.annotation.Nullable;
 
 import org.bitcoinj.core.Coin;
 import org.bitcoinj.utils.MonetaryFormat;
@@ -99,8 +102,27 @@ public class HavenoUtils {
     
     private static final MonetaryFormat xmrCoinFormat = Config.baseCurrencyNetworkParameters().getMonetaryFormat();
 
+    @Nullable
+    public static Coin getMakerFee(@Nullable Coin amount) {
+        if (amount != null) {
+            Coin feePerXmr = getFeePerXmr(HavenoUtils.getMakerFeePerXmr(), amount);
+            return CoinUtil.maxCoin(feePerXmr, HavenoUtils.getMinMakerFee());
+        } else {
+            return null;
+        }
+    }
 
-    public static Coin getMakerFeePerBtc() {
+    @Nullable
+    public static Coin getTakerFee(@Nullable Coin amount) {
+        if (amount != null) {
+            Coin feePerXmr = HavenoUtils.getFeePerXmr(HavenoUtils.getTakerFeePerXmr(), amount);
+            return CoinUtil.maxCoin(feePerXmr, HavenoUtils.getMinTakerFee());
+        } else {
+            return null;
+        }
+    }
+
+    private static Coin getMakerFeePerXmr() {
          return ParsingUtils.parseToCoin("0.001", xmrCoinFormat);
     }
 
@@ -108,12 +130,20 @@ public class HavenoUtils {
          return ParsingUtils.parseToCoin("0.00005", xmrCoinFormat);
     }
 
-    public static Coin getTakerFeePerBtc() {
+    private static Coin getTakerFeePerXmr() {
          return ParsingUtils.parseToCoin("0.003", xmrCoinFormat);
     }
 
     public static Coin getMinTakerFee() {
          return ParsingUtils.parseToCoin("0.00005", xmrCoinFormat);
+    }
+
+    public static Coin getFeePerXmr(Coin feePerXmr, Coin amount) {
+        double feePerBtcAsDouble = feePerXmr != null ? (double) feePerXmr.value : 0;
+        double amountAsDouble = amount != null ? (double) amount.value : 0;
+        double btcAsDouble = (double) Coin.COIN.value;
+        double fact = amountAsDouble / btcAsDouble;
+        return Coin.valueOf(Math.round(feePerBtcAsDouble * fact));
     }
 
     /**

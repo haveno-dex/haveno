@@ -29,12 +29,10 @@ import bisq.core.payment.F2FAccount;
 import bisq.core.payment.PaymentAccount;
 import bisq.core.provider.price.MarketPrice;
 import bisq.core.provider.price.PriceFeedService;
-import bisq.core.trade.HavenoUtils;
 import bisq.core.trade.statistics.ReferralIdService;
 import bisq.core.user.AutoConfirmSettings;
 import bisq.core.user.Preferences;
 import bisq.core.util.coin.CoinFormatter;
-import bisq.core.util.coin.CoinUtil;
 
 import bisq.network.p2p.P2PService;
 
@@ -57,8 +55,6 @@ import java.util.Optional;
 import java.util.UUID;
 
 import lombok.extern.slf4j.Slf4j;
-
-import javax.annotation.Nullable;
 
 import static bisq.common.util.MathUtils.roundDoubleToLong;
 import static bisq.common.util.MathUtils.scaleUpByPowerOf10;
@@ -161,41 +157,6 @@ public class OfferUtil {
 
     public double calculateMarketPriceMarginPct(double manualPrice, double marketPrice) {
         return MathUtils.roundDouble(manualPrice / marketPrice, 4);
-    }
-
-    /**
-     * Returns the makerFee as Coin, this can be priced in BTC.
-     *
-     * @param amount           the amount of BTC to trade
-     * @return the maker fee for the given trade amount, or {@code null} if the amount
-     * is {@code null}
-     */
-    @Nullable
-    public Coin getMakerFee(@Nullable Coin amount) {
-        return CoinUtil.getMakerFee(amount);
-    }
-
-    public Coin getTxFeeByVsize(Coin txFeePerVbyteFromFeeService, int vsizeInVbytes) {
-        return txFeePerVbyteFromFeeService.multiply(getAverageTakerFeeTxVsize(vsizeInVbytes));
-    }
-
-    // We use the sum of the size of the trade fee and the deposit tx to get an average.
-    // Miners will take the trade fee tx if the total fee of both dependent txs are good
-    // enough.  With that we avoid that we overpay in case that the trade fee has many
-    // inputs and we would apply that fee for the other 2 txs as well. We still might
-    // overpay a bit for the payout tx.
-    public int getAverageTakerFeeTxVsize(int txVsize) {
-        return (txVsize + 233) / 2;
-    }
-
-    @Nullable
-    public Coin getTakerFee(@Nullable Coin amount) {
-        if (amount != null) {
-            Coin feePerBtc = CoinUtil.getFeePerBtc(HavenoUtils.getTakerFeePerBtc(), amount);
-            return CoinUtil.maxCoin(feePerBtc, HavenoUtils.getMinTakerFee());
-        } else {
-            return null;
-        }
     }
 
     public boolean isBlockChainPaymentMethod(Offer offer) {

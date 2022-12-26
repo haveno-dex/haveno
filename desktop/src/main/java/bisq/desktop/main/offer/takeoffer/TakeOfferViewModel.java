@@ -103,7 +103,7 @@ class TakeOfferViewModel extends ActivatableWithDataModel<TakeOfferDataModel> im
     final StringProperty offerWarning = new SimpleStringProperty();
     final StringProperty spinnerInfoText = new SimpleStringProperty("");
     final StringProperty tradeFee = new SimpleStringProperty();
-    final StringProperty tradeFeeInBtcWithFiat = new SimpleStringProperty();
+    final StringProperty tradeFeeInXmrWithFiat = new SimpleStringProperty();
     final StringProperty tradeFeeDescription = new SimpleStringProperty();
     final BooleanProperty isTradeFeeVisible = new SimpleBooleanProperty(false);
 
@@ -283,8 +283,8 @@ class TakeOfferViewModel extends ActivatableWithDataModel<TakeOfferDataModel> im
 
         isTradeFeeVisible.setValue(true);
         tradeFee.set(getFormatterForTakerFee().formatCoin(takerFeeAsCoin));
-        tradeFeeInBtcWithFiat.set(OfferViewModelUtil.getTradeFeeWithFiatEquivalent(offerUtil,
-                dataModel.getTakerFeeInBtc(),
+        tradeFeeInXmrWithFiat.set(OfferViewModelUtil.getTradeFeeWithFiatEquivalent(offerUtil,
+                dataModel.getTakerFee(),
                 xmrFormatter));
     }
 
@@ -689,7 +689,7 @@ class TakeOfferViewModel extends ActivatableWithDataModel<TakeOfferDataModel> im
 
     public String getTradeFee() {
             return OfferViewModelUtil.getTradeFeeWithFiatEquivalentAndPercentage(offerUtil,
-                    dataModel.getTakerFeeInBtc(),
+                    dataModel.getTakerFee(),
                     dataModel.getAmount().get(),
                     xmrFormatter,
                     HavenoUtils.getMinMakerFee());

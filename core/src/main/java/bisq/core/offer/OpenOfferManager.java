@@ -856,15 +856,23 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                 sendAckMessage(request.getClass(), peer, request.getPubKeyRing(), request.getOfferId(), request.getUid(), false, errorMessage);
                 return;
             }
+
+            // verify maker's trade fee
+            Offer offer = new Offer(request.getOfferPayload());
+            BigInteger tradeFee = HavenoUtils.coinToAtomicUnits(HavenoUtils.getMakerFee(offer.getAmount()));
+            if (!tradeFee.equals(HavenoUtils.coinToAtomicUnits(offer.getMakerFee()))) {
+                errorMessage = "Wrong trade fee for offer " + request.offerId;
+                log.info(errorMessage);
+                sendAckMessage(request.getClass(), peer, request.getPubKeyRing(), request.getOfferId(), request.getUid(), false, errorMessage);
+                return;
+            }
             
             // verify maker's reserve tx (double spend, trade fee, trade amount, mining fee)
-            Offer offer = new Offer(request.getOfferPayload());
-            BigInteger tradeFee = HavenoUtils.coinToAtomicUnits(offer.getMakerFee());
-            BigInteger peerAmount =  HavenoUtils.coinToAtomicUnits(offer.getDirection() == OfferDirection.BUY ? Coin.ZERO : offer.getAmount());
+            BigInteger sendAmount =  HavenoUtils.coinToAtomicUnits(offer.getDirection() == OfferDirection.BUY ? Coin.ZERO : offer.getAmount());
             BigInteger securityDeposit = HavenoUtils.coinToAtomicUnits(offer.getDirection() == OfferDirection.BUY ? offer.getBuyerSecurityDeposit() : offer.getSellerSecurityDeposit());
             xmrWalletService.verifyTradeTx(
                     tradeFee,
-                    peerAmount,
+                    sendAmount,
                     securityDeposit,
                     request.getPayoutAddress(),
                     request.getReserveTxHash(),

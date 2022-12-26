@@ -18,6 +18,7 @@
 package bisq.core.util.coin;
 
 import bisq.core.monetary.Price;
+import bisq.core.trade.HavenoUtils;
 
 import org.bitcoinj.core.Coin;
 
@@ -30,10 +31,10 @@ public class CoinUtilTest {
 
     @Test
     public void testGetFeePerBtc() {
-        assertEquals(Coin.parseCoin("1"), CoinUtil.getFeePerBtc(Coin.parseCoin("1"), Coin.parseCoin("1")));
-        assertEquals(Coin.parseCoin("0.1"), CoinUtil.getFeePerBtc(Coin.parseCoin("0.1"), Coin.parseCoin("1")));
-        assertEquals(Coin.parseCoin("0.01"), CoinUtil.getFeePerBtc(Coin.parseCoin("0.1"), Coin.parseCoin("0.1")));
-        assertEquals(Coin.parseCoin("0.015"), CoinUtil.getFeePerBtc(Coin.parseCoin("0.3"), Coin.parseCoin("0.05")));
+        assertEquals(Coin.parseCoin("1"), HavenoUtils.getFeePerXmr(Coin.parseCoin("1"), Coin.parseCoin("1")));
+        assertEquals(Coin.parseCoin("0.1"), HavenoUtils.getFeePerXmr(Coin.parseCoin("0.1"), Coin.parseCoin("1")));
+        assertEquals(Coin.parseCoin("0.01"), HavenoUtils.getFeePerXmr(Coin.parseCoin("0.1"), Coin.parseCoin("0.1")));
+        assertEquals(Coin.parseCoin("0.015"), HavenoUtils.getFeePerXmr(Coin.parseCoin("0.3"), Coin.parseCoin("0.05")));
     }
 
     @Test

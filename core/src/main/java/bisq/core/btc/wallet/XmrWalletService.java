@@ -305,13 +305,13 @@ public class XmrWalletService {
      *
      * @param returnAddress return address for reserved funds
      * @param tradeFee trade fee
-     * @param peerAmount amount to give peer
+     * @param sendAmount amount to give peer
      * @param securityDeposit security deposit amount
      * @return a transaction to reserve a trade
      */
-    public MoneroTxWallet createReserveTx(BigInteger tradeFee, BigInteger peerAmount, BigInteger securityDeposit, String returnAddress) {
-        log.info("Creating reserve tx with fee={}, peerAmount={}, securityDeposit={}", tradeFee, peerAmount, securityDeposit);
-        return createTradeTx(tradeFee, peerAmount, securityDeposit, returnAddress);
+    public MoneroTxWallet createReserveTx(BigInteger tradeFee, BigInteger sendAmount, BigInteger securityDeposit, String returnAddress) {
+        log.info("Creating reserve tx with fee={}, sendAmount={}, securityDeposit={}", tradeFee, sendAmount, securityDeposit);
+        return createTradeTx(tradeFee, sendAmount, securityDeposit, returnAddress);
     }
 
     /**
@@ -324,7 +324,7 @@ public class XmrWalletService {
         Offer offer = trade.getProcessModel().getOffer();
         String multisigAddress = trade.getProcessModel().getMultisigAddress();
         BigInteger tradeFee = HavenoUtils.coinToAtomicUnits(trade instanceof MakerTrade ? trade.getOffer().getMakerFee() : trade.getTakerFee());
-        BigInteger peerAmount = HavenoUtils.coinToAtomicUnits(trade instanceof BuyerTrade ? Coin.ZERO : offer.getAmount());
+        BigInteger sendAmount = HavenoUtils.coinToAtomicUnits(trade instanceof BuyerTrade ? Coin.ZERO : offer.getAmount());
         BigInteger securityDeposit = HavenoUtils.coinToAtomicUnits(trade instanceof BuyerTrade ? offer.getBuyerSecurityDeposit() : offer.getSellerSecurityDeposit());
 
         // thaw reserved outputs then create deposit tx
@@ -336,12 +336,12 @@ public class XmrWalletService {
                 thawOutputs(trade.getSelf().getReserveTxKeyImages());
             }
 
-            log.info("Creating deposit tx with fee={}, peerAmount={}, securityDeposit={}", tradeFee, peerAmount, securityDeposit);
-            return createTradeTx(tradeFee, peerAmount, securityDeposit, multisigAddress);
+            log.info("Creating deposit tx with fee={}, sendAmount={}, securityDeposit={}", tradeFee, sendAmount, securityDeposit);
+            return createTradeTx(tradeFee, sendAmount, securityDeposit, multisigAddress);
         }
     }
 
-    private MoneroTxWallet createTradeTx(BigInteger tradeFee, BigInteger peerAmount, BigInteger securityDeposit, String address) {
+    private MoneroTxWallet createTradeTx(BigInteger tradeFee, BigInteger sendAmount, BigInteger securityDeposit, String address) {
         MoneroWallet wallet = getWallet();
         synchronized (wallet) {
 
@@ -349,7 +349,7 @@ public class XmrWalletService {
             MoneroTxWallet tradeTx = null;
             double appliedTolerance = 0.0; // percent of tolerance to apply, thereby decreasing security deposit
             double searchDiff = 1.0; // difference for next binary search
-            BigInteger maxAmount = peerAmount.add(securityDeposit);
+            BigInteger maxAmount = sendAmount.add(securityDeposit);
             for (int i = 0; i < 10; i++) {
                 try {
                     BigInteger amount = new BigDecimal(maxAmount).multiply(new BigDecimal(1.0 - SECURITY_DEPOSIT_TOLERANCE * appliedTolerance)).toBigInteger();
@@ -379,7 +379,7 @@ public class XmrWalletService {
      * The transaction is submitted to the pool then flushed without relaying.
      *
      * @param tradeFee trade fee
-     * @param peerAmount amount to give peer
+     * @param sendAmount amount to give peer
      * @param securityDeposit security deposit amount
      * @param address expected destination address for the deposit amount
      * @param txHash transaction hash
@@ -387,7 +387,7 @@ public class XmrWalletService {
      * @param txKey transaction key
      * @param keyImages expected key images of inputs, ignored if null
      */
-    public void verifyTradeTx(BigInteger tradeFee, BigInteger peerAmount, BigInteger securityDeposit, String address, String txHash, String txHex, String txKey, List<String> keyImages) {
+    public void verifyTradeTx(BigInteger tradeFee, BigInteger sendAmount, BigInteger securityDeposit, String address, String txHash, String txHex, String txKey, List<String> keyImages) {
         MoneroDaemonRpc daemon = getDaemon();
         MoneroWallet wallet = getWallet();
         try {
@@ -426,7 +426,7 @@ public class XmrWalletService {
             // verify deposit amount
             check = wallet.checkTxKey(txHash, txKey, address);
             if (!check.isGood()) throw new RuntimeException("Invalid proof of deposit amount");
-            BigInteger minAmount = new BigDecimal(peerAmount.add(securityDeposit)).multiply(new BigDecimal(1.0 - SECURITY_DEPOSIT_TOLERANCE)).toBigInteger();
+            BigInteger minAmount = new BigDecimal(sendAmount.add(securityDeposit)).multiply(new BigDecimal(1.0 - SECURITY_DEPOSIT_TOLERANCE)).toBigInteger();
             if (check.getReceivedAmount().compareTo(minAmount) < 0) throw new RuntimeException("Deposit amount is not enough, needed " + minAmount + " but was " + check.getReceivedAmount());
         } finally {
             try {

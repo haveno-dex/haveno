@@ -434,14 +434,7 @@ class TakeOfferDataModel extends OfferDataModel {
 
     @Nullable
     Coin getTakerFee() {
-        Coin amount = this.amount.get();
-        if (amount != null) {
-            // TODO write unit test for that
-            Coin feePerBtc = CoinUtil.getFeePerBtc(HavenoUtils.getTakerFeePerBtc(), amount);
-            return CoinUtil.maxCoin(feePerBtc, HavenoUtils.getMinTakerFee());
-        } else {
-            return null;
-        }
+        return HavenoUtils.getTakerFee(this.amount.get());
     }
 
     public void swapTradeToSavings() {
@@ -522,9 +515,5 @@ class TakeOfferDataModel extends OfferDataModel {
 
     public boolean isUsingHalCashAccount() {
         return paymentAccount.hasPaymentMethodWithId(HAL_CASH_ID);
-    }
-
-    public Coin getTakerFeeInBtc() {
-        return offerUtil.getTakerFee(amount.get());
     }
 }

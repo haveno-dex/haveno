@@ -54,14 +54,14 @@ public class ArbitratorProcessReserveTx extends TradeTask {
             
             // TODO (woodser): if signer online, should never be called by maker
             
-            // process reserve tx with expected terms
-            BigInteger tradeFee = HavenoUtils.coinToAtomicUnits(isFromTaker ? trade.getTakerFee() : offer.getMakerFee());
-            BigInteger peerAmount =  HavenoUtils.coinToAtomicUnits(isFromBuyer ? Coin.ZERO : offer.getAmount());
+            // process reserve tx with expected values
+            BigInteger tradeFee = HavenoUtils.coinToAtomicUnits(isFromTaker ? trade.getTakerFee() : trade.getMakerFee());
+            BigInteger sendAmount =  HavenoUtils.coinToAtomicUnits(isFromBuyer ? Coin.ZERO : offer.getAmount());
             BigInteger securityDeposit = HavenoUtils.coinToAtomicUnits(isFromBuyer ? offer.getBuyerSecurityDeposit() : offer.getSellerSecurityDeposit());
             try {
                 trade.getXmrWalletService().verifyTradeTx(
                     tradeFee,
-                    peerAmount,
+                    sendAmount,
                     securityDeposit,
                     request.getPayoutAddress(),
                     request.getReserveTxHash(),

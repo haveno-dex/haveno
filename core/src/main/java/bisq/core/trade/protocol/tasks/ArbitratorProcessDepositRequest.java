@@ -75,22 +75,19 @@ public class ArbitratorProcessDepositRequest extends TradeTask {
 
             // collect expected values
             Offer offer = trade.getOffer();
-            boolean isFromTaker = request.getSenderNodeAddress().equals(trade.getTaker().getNodeAddress());
-            boolean isFromBuyer = isFromTaker ? offer.getDirection() == OfferDirection.SELL : offer.getDirection() == OfferDirection.BUY;
-            BigInteger peerAmount =  HavenoUtils.coinToAtomicUnits(isFromBuyer ? Coin.ZERO : offer.getAmount());
+            TradingPeer trader = trade.getTradingPeer(request.getSenderNodeAddress());
+            boolean isFromTaker = trader == trade.getTaker();
+            boolean isFromBuyer = trader == trade.getBuyer();
+            BigInteger tradeFee = HavenoUtils.coinToAtomicUnits(isFromTaker ? trade.getTakerFee() : trade.getMakerFee());
+            BigInteger sendAmount =  HavenoUtils.coinToAtomicUnits(isFromBuyer ? Coin.ZERO : offer.getAmount());
             BigInteger securityDeposit = HavenoUtils.coinToAtomicUnits(isFromBuyer ? offer.getBuyerSecurityDeposit() : offer.getSellerSecurityDeposit());
             String depositAddress = processModel.getMultisigAddress();
-            BigInteger tradeFee;
-            TradingPeer trader = trade.getTradingPeer(request.getSenderNodeAddress());
-            if (trader == processModel.getMaker()) tradeFee = HavenoUtils.coinToAtomicUnits(trade.getOffer().getMakerFee());
-            else if (trader == processModel.getTaker()) tradeFee = HavenoUtils.coinToAtomicUnits(trade.getTakerFee());
-            else throw new RuntimeException("DepositRequest is not from maker or taker");
 
             // verify deposit tx
             try {
                 trade.getXmrWalletService().verifyTradeTx(
                     tradeFee,
-                    peerAmount,
+                    sendAmount,
                     securityDeposit,
                     depositAddress,
                     trader.getDepositTxHash(),

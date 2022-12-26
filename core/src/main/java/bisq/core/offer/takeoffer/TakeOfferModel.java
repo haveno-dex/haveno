@@ -28,7 +28,7 @@ import bisq.core.offer.OfferUtil;
 import bisq.core.payment.PaymentAccount;
 import bisq.core.payment.payload.PaymentMethod;
 import bisq.core.provider.price.PriceFeedService;
-
+import bisq.core.trade.HavenoUtils;
 import bisq.common.taskrunner.Model;
 
 import org.bitcoinj.core.Coin;
@@ -111,7 +111,7 @@ public class TakeOfferModel implements Model {
         this.securityDeposit = offer.getDirection() == SELL
                 ? offer.getBuyerSecurityDeposit()
                 : offer.getSellerSecurityDeposit();
-        this.takerFee = offerUtil.getTakerFee(amount);
+        this.takerFee = HavenoUtils.getTakerFee(amount);
 
         calculateVolume();
         calculateTotalToPay();

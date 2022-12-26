@@ -506,7 +506,7 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
         isTradeFeeVisible.setValue(true);
         tradeFee.set(getFormatterForMakerFee().formatCoin(makerFeeAsCoin));
         tradeFeeInBtcWithFiat.set(OfferViewModelUtil.getTradeFeeWithFiatEquivalent(offerUtil,
-                dataModel.getMakerFeeInBtc(),
+                dataModel.getMakerFee(),
                 btcFormatter));
     }
 
@@ -996,7 +996,7 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
 
     public String getTradeFee() {
         return OfferViewModelUtil.getTradeFeeWithFiatEquivalentAndPercentage(offerUtil,
-                dataModel.getMakerFeeInBtc(),
+                dataModel.getMakerFee(),
                 dataModel.getAmount().get(),
                 btcFormatter,
                 HavenoUtils.getMinMakerFee());

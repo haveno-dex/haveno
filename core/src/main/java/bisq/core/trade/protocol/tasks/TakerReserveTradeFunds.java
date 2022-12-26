@@ -44,10 +44,10 @@ public class TakerReserveTradeFunds extends TradeTask {
 
             // create reserve tx
             BigInteger takerFee = HavenoUtils.coinToAtomicUnits(trade.getTakerFee());
-            BigInteger peerAmount = HavenoUtils.coinToAtomicUnits(trade.getOffer().getDirection() == OfferDirection.BUY ? trade.getOffer().getAmount() : Coin.ZERO);
+            BigInteger sendAmount = HavenoUtils.coinToAtomicUnits(trade.getOffer().getDirection() == OfferDirection.BUY ? trade.getOffer().getAmount() : Coin.ZERO);
             BigInteger securityDeposit = HavenoUtils.coinToAtomicUnits(trade.getOffer().getDirection() == OfferDirection.BUY ? trade.getOffer().getSellerSecurityDeposit() : trade.getOffer().getBuyerSecurityDeposit());
             String returnAddress = model.getXmrWalletService().getOrCreateAddressEntry(trade.getOffer().getId(), XmrAddressEntry.Context.TRADE_PAYOUT).getAddressString();
-            MoneroTxWallet reserveTx = model.getXmrWalletService().createReserveTx(takerFee, peerAmount, securityDeposit, returnAddress);
+            MoneroTxWallet reserveTx = model.getXmrWalletService().createReserveTx(takerFee, sendAmount, securityDeposit, returnAddress);
 
             // collect reserved key images
             List<String> reservedKeyImages = new ArrayList<String>();
