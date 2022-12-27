@@ -135,8 +135,7 @@ public final class TradingPeer implements PersistablePayload {
     @Override
     public Message toProtoMessage() {
         final protobuf.TradingPeer.Builder builder = protobuf.TradingPeer.newBuilder()
-                .setChangeOutputValue(changeOutputValue)
-                .addAllReserveTxKeyImages(reserveTxKeyImages);
+                .setChangeOutputValue(changeOutputValue);
         Optional.ofNullable(nodeAddress).ifPresent(e -> builder.setNodeAddress(nodeAddress.toProtoMessage()));
         Optional.ofNullable(pubKeyRing).ifPresent(e -> builder.setPubKeyRing(pubKeyRing.toProtoMessage()));
         Optional.ofNullable(accountId).ifPresent(builder::setAccountId);
@@ -160,6 +159,7 @@ public final class TradingPeer implements PersistablePayload {
         Optional.ofNullable(reserveTxHash).ifPresent(e -> builder.setReserveTxHash(reserveTxHash));
         Optional.ofNullable(reserveTxHex).ifPresent(e -> builder.setReserveTxHex(reserveTxHex));
         Optional.ofNullable(reserveTxKey).ifPresent(e -> builder.setReserveTxKey(reserveTxKey));
+        Optional.ofNullable(reserveTxKeyImages).ifPresent(e -> builder.addAllReserveTxKeyImages(reserveTxKeyImages));
         Optional.ofNullable(preparedMultisigHex).ifPresent(e -> builder.setPreparedMultisigHex(preparedMultisigHex));
         Optional.ofNullable(madeMultisigHex).ifPresent(e -> builder.setMadeMultisigHex(madeMultisigHex));
         Optional.ofNullable(exchangedMultisigHex).ifPresent(e -> builder.setExchangedMultisigHex(exchangedMultisigHex));
