@@ -715,6 +715,10 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
             return;
         }
 
+        // sync and save wallet
+        trade.syncWallet();
+        trade.saveWallet();
+
         // create unsigned dispute payout tx if not already published and arbitrator has trader's updated multisig info
         TradingPeer receiver = trade.getTradingPeer(dispute.getTraderPubKeyRing());
         if (!trade.isPayoutPublished() && receiver.getUpdatedMultisigHex() != null) {
@@ -726,9 +730,11 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
             if (trade.getSeller().getUpdatedMultisigHex() != null) updatedMultisigHexes.add(trade.getSeller().getUpdatedMultisigHex());
             if (!updatedMultisigHexes.isEmpty()) {
                 multisigWallet.importMultisigHex(updatedMultisigHexes.toArray(new String[0])); // TODO (monero-project): fails if multisig hex imported individually
-                trade.syncWallet();
-                trade.saveWallet();
             }
+
+            // sync and save wallet
+            trade.syncWallet();
+            trade.saveWallet();
 
             // create unsigned dispute payout tx
             if (!trade.isPayoutPublished()) {

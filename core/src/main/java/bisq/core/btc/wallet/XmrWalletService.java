@@ -280,9 +280,11 @@ public class XmrWalletService {
 
     public MoneroTxWallet createTx(List<MoneroDestination> destinations) {
         try {
-            MoneroTxWallet tx = wallet.createTx(new MoneroTxConfig().setAccountIndex(0).setDestinations(destinations).setRelay(false).setCanSplit(false));
-            //printTxs("XmrWalletService.createTx", tx);
-            return tx;
+            synchronized (wallet) {
+                MoneroTxWallet tx = wallet.createTx(new MoneroTxConfig().setAccountIndex(0).setDestinations(destinations).setRelay(false).setCanSplit(false));
+                //printTxs("XmrWalletService.createTx", tx);
+                return tx;
+            }
         } catch (Exception e) {
             throw e;
         }

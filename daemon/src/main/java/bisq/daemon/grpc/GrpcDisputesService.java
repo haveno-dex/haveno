@@ -145,7 +145,7 @@ public class GrpcDisputesService extends DisputesImplBase {
         return getCustomRateMeteringInterceptor(coreApi.getConfig().appDataDir, this.getClass())
                 .or(() -> Optional.of(CallRateMeteringInterceptor.valueOf(
                         new HashMap<>() {{
-                            put(getGetDisputeMethod().getFullMethodName(), new GrpcCallRateMeter(10, SECONDS));
+                            put(getGetDisputeMethod().getFullMethodName(), new GrpcCallRateMeter(20, SECONDS));
                             put(getGetDisputesMethod().getFullMethodName(), new GrpcCallRateMeter(10, SECONDS));
                             put(getResolveDisputeMethod().getFullMethodName(), new GrpcCallRateMeter(10, SECONDS));
                             put(getOpenDisputeMethod().getFullMethodName(), new GrpcCallRateMeter(10, SECONDS));
