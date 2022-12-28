@@ -43,7 +43,6 @@ import bisq.core.trade.Trade;
 import bisq.core.trade.TradeDataValidation;
 import bisq.core.trade.TradeManager;
 import bisq.core.trade.protocol.TradingPeer;
-import bisq.core.util.ParsingUtils;
 import bisq.network.p2p.BootstrapListener;
 import bisq.network.p2p.NodeAddress;
 import bisq.network.p2p.P2PService;
@@ -740,7 +739,7 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
             if (!trade.isPayoutPublished()) {
                 log.info("Arbitrator creating unsigned dispute payout tx for trade {}", trade.getId());
                 try {
-                    MoneroTxWallet payoutTx = createDisputePayoutTx(trade, dispute, disputeResult, multisigWallet);
+                    MoneroTxWallet payoutTx = createDisputePayoutTx(trade, dispute, disputeResult);
                     trade.setPayoutTx(payoutTx);
                     trade.setPayoutTxHex(payoutTx.getTxSet().getMultisigTxHex());
                 } catch (Exception e) {
@@ -829,10 +828,10 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
     // Utils
     ///////////////////////////////////////////////////////////////////////////////////////////
 
-    private MoneroTxWallet createDisputePayoutTx(Trade trade, Dispute dispute, DisputeResult disputeResult, MoneroWallet multisigWallet) {
+    private MoneroTxWallet createDisputePayoutTx(Trade trade, Dispute dispute, DisputeResult disputeResult) {
 
-        // multisig wallet must be synced
-        if (multisigWallet.isMultisigImportNeeded()) throw new RuntimeException("Arbitrator's wallet needs updated multisig hex to create payout tx which means a trader must have already broadcast the payout tx for trade " + dispute.getTradeId());
+        // trade wallet must be synced
+        if (trade.getWallet().isMultisigImportNeeded()) throw new RuntimeException("Arbitrator's wallet needs updated multisig hex to create payout tx which means a trader must have already broadcast the payout tx for trade " + dispute.getTradeId());
 
         // collect winner and loser payout address and amounts
         Contract contract = dispute.getContract();
@@ -847,7 +846,7 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
         MoneroTxConfig txConfig = new MoneroTxConfig().setAccountIndex(0).setRelay(false);
         if (winnerPayoutAmount.compareTo(BigInteger.ZERO) > 0) txConfig.addDestination(winnerPayoutAddress, winnerPayoutAmount.multiply(BigInteger.valueOf(9)).divide(BigInteger.valueOf(10))); // reduce payment amount to get fee of similar tx
         if (loserPayoutAmount.compareTo(BigInteger.ZERO) > 0) txConfig.addDestination(loserPayoutAddress, loserPayoutAmount.multiply(BigInteger.valueOf(9)).divide(BigInteger.valueOf(10)));
-        MoneroTxWallet feeEstimateTx = multisigWallet.createTx(txConfig);
+        MoneroTxWallet feeEstimateTx = trade.getWallet().createTx(txConfig);
 
         // create payout tx by increasing estimated fee until successful
         MoneroTxWallet payoutTx = null;
@@ -862,7 +861,7 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
           }
           numAttempts++;
           try {
-            payoutTx = multisigWallet.createTx(txConfig);
+            payoutTx = trade.getWallet().createTx(txConfig);
           } catch (MoneroError e) {
             // exception expected // TODO: better way of estimating fee?
           }
@@ -871,7 +870,7 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
         log.info("Dispute payout transaction generated on attempt {}", numAttempts);
 
         // save updated multisig hex
-        trade.getSelf().setUpdatedMultisigHex(multisigWallet.exportMultisigHex());
+        trade.getSelf().setUpdatedMultisigHex(trade.getWallet().exportMultisigHex());
         return payoutTx;
     }
 

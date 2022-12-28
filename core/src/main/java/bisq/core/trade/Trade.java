@@ -67,6 +67,7 @@ import javafx.beans.property.StringProperty;
 
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+
 import java.math.BigInteger;
 import java.time.Clock;
 import java.util.ArrayList;
@@ -887,7 +888,7 @@ public abstract class Trade implements Tradable, Model {
         // by mediators and we keep the confirm disabled to avoid that the seller can complete the trade
         // without the penalty.
         long payoutAmountFromMediation = processModel.getSellerPayoutAmountFromMediation();
-        long normalPayoutAmount = offer.getSellerSecurityDeposit().value;
+        long normalPayoutAmount = getSellerSecurityDeposit().value;
         return payoutAmountFromMediation < normalPayoutAmount;
     }
 
@@ -1359,6 +1360,14 @@ public abstract class Trade implements Tradable, Model {
 
     public Coin getMakerFee() {
         return offer.getMakerFee();
+    }
+
+    public Coin getBuyerSecurityDeposit() {
+        return HavenoUtils.atomicUnitsToCoin(getWallet().getTx(this.getBuyer().getDepositTxHash()).getIncomingAmount());
+    }
+
+    public Coin getSellerSecurityDeposit() {
+        return HavenoUtils.atomicUnitsToCoin(getWallet().getTx(this.getSeller().getDepositTxHash()).getIncomingAmount()).subtract(getAmount());
     }
 
     @Nullable
