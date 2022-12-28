@@ -10,6 +10,7 @@ import bisq.proto.grpc.SendNotificationReply;
 import bisq.proto.grpc.SendNotificationRequest;
 import io.grpc.Context;
 import io.grpc.ServerInterceptor;
+import io.grpc.stub.ServerCallStreamObserver;
 import io.grpc.stub.StreamObserver;
 
 import javax.inject.Inject;
@@ -80,7 +81,9 @@ class GrpcNotificationsService extends NotificationsImplBase {
 
         @Override
         public void onMessage(@NonNull NotificationMessage message) {
-            responseObserver.onNext(message);
+            if (!((ServerCallStreamObserver<NotificationMessage>) responseObserver).isCancelled()) {
+                responseObserver.onNext(message);
+            }
         }
     }
 
