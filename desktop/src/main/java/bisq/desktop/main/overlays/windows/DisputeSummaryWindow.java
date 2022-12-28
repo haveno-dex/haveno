@@ -17,7 +17,6 @@
 
 package bisq.desktop.main.overlays.windows;
 
-import bisq.desktop.components.AutoTooltipCheckBox;
 import bisq.desktop.components.AutoTooltipRadioButton;
 import bisq.desktop.components.HavenoTextArea;
 import bisq.desktop.components.InputTextField;
@@ -31,7 +30,6 @@ import bisq.desktop.util.Layout;
 import bisq.core.btc.wallet.TradeWalletService;
 import bisq.core.btc.wallet.XmrWalletService;
 import bisq.core.locale.Res;
-import bisq.core.offer.Offer;
 import bisq.core.support.dispute.Dispute;
 import bisq.core.support.dispute.DisputeList;
 import bisq.core.support.dispute.DisputeManager;
@@ -40,6 +38,8 @@ import bisq.core.support.dispute.arbitration.ArbitrationManager;
 import bisq.core.support.dispute.mediation.MediationManager;
 import bisq.core.support.dispute.refund.RefundManager;
 import bisq.core.trade.Contract;
+import bisq.core.trade.Trade;
+import bisq.core.trade.TradeManager;
 import bisq.core.util.FormattingUtils;
 import bisq.core.util.ParsingUtils;
 import bisq.core.util.VolumeUtil;
@@ -58,7 +58,6 @@ import com.google.inject.name.Named;
 
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
-import javafx.scene.control.CheckBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.RadioButton;
 import javafx.scene.control.TextArea;
@@ -77,7 +76,6 @@ import javafx.beans.value.ChangeListener;
 
 import java.util.Date;
 import java.util.Optional;
-import java.util.concurrent.TimeUnit;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -90,9 +88,13 @@ import static com.google.common.base.Preconditions.checkNotNull;
 @Slf4j
 public class DisputeSummaryWindow extends Overlay<DisputeSummaryWindow> {
     private final CoinFormatter formatter;
+    private final TradeManager tradeManager;
     private final ArbitrationManager arbitrationManager;
     private final MediationManager mediationManager;
-    private final CoreDisputesService disputesService;    private Dispute dispute;
+    private final CoreDisputesService disputesService;
+
+    private Dispute dispute;
+    private Trade trade;
     private ToggleGroup tradeAmountToggleGroup, reasonToggleGroup;
     private DisputeResult disputeResult;
     private RadioButton buyerGetsTradeAmountRadioButton, sellerGetsTradeAmountRadioButton,
@@ -121,6 +123,7 @@ public class DisputeSummaryWindow extends Overlay<DisputeSummaryWindow> {
 
     @Inject
     public DisputeSummaryWindow(@Named(FormattingUtils.BTC_FORMATTER_KEY) CoinFormatter formatter,
+                                TradeManager tradeManager,
                                 ArbitrationManager arbitrationManager,
                                 MediationManager mediationManager,
                                 XmrWalletService walletService,
@@ -128,6 +131,7 @@ public class DisputeSummaryWindow extends Overlay<DisputeSummaryWindow> {
                                 CoreDisputesService disputesService) {
 
         this.formatter = formatter;
+        this.tradeManager = tradeManager;
         this.arbitrationManager = arbitrationManager;
         this.mediationManager = mediationManager;
         this.disputesService = disputesService;
@@ -137,6 +141,7 @@ public class DisputeSummaryWindow extends Overlay<DisputeSummaryWindow> {
 
     public void show(Dispute dispute) {
         this.dispute = dispute;
+        this.trade = tradeManager.getTrade(dispute.getTradeId());
 
         rowIndex = -1;
         width = 1150;
@@ -277,11 +282,11 @@ public class DisputeSummaryWindow extends Overlay<DisputeSummaryWindow> {
             VolumeUtil.formatVolumeWithCode(contract.getTradeVolume()));
         String securityDeposit = Res.getWithColAndCap("shared.buyer") +
                 " " +
-                formatter.formatCoinWithCode(contract.getOfferPayload().getBuyerSecurityDeposit()) +
+                formatter.formatCoinWithCode(trade.getBuyerSecurityDeposit()) +
                 " / " +
                 Res.getWithColAndCap("shared.seller") +
                 " " +
-                formatter.formatCoinWithCode(contract.getOfferPayload().getSellerSecurityDeposit());
+                formatter.formatCoinWithCode(trade.getSellerSecurityDeposit());
         addConfirmationLabelLabel(gridPane, ++rowIndex, Res.get("shared.securityDeposit"), securityDeposit);
     }
 
@@ -345,10 +350,9 @@ public class DisputeSummaryWindow extends Overlay<DisputeSummaryWindow> {
         Coin sellerAmount = ParsingUtils.parseToCoin(sellerPayoutAmountInputTextField.getText(), formatter);
         Contract contract = dispute.getContract();
         Coin tradeAmount = contract.getTradeAmount();
-        Offer offer = new Offer(contract.getOfferPayload());
         Coin available = tradeAmount
-                .add(offer.getBuyerSecurityDeposit())
-                .add(offer.getSellerSecurityDeposit());
+                .add(trade.getBuyerSecurityDeposit())
+                .add(trade.getSellerSecurityDeposit());
         Coin totalAmount = buyerAmount.add(sellerAmount);
 
         boolean isRefundAgent = getDisputeManager(dispute) instanceof RefundManager;
@@ -372,10 +376,9 @@ public class DisputeSummaryWindow extends Overlay<DisputeSummaryWindow> {
 //        }
 
         Contract contract = dispute.getContract();
-        Offer offer = new Offer(contract.getOfferPayload());
         Coin available = contract.getTradeAmount()
-                .add(offer.getBuyerSecurityDeposit())
-                .add(offer.getSellerSecurityDeposit());
+                .add(trade.getBuyerSecurityDeposit())
+                .add(trade.getSellerSecurityDeposit());
         Coin enteredAmount = ParsingUtils.parseToCoin(inputTextField.getText(), formatter);
         if (enteredAmount.compareTo(available) > 0) {
             enteredAmount = available;
@@ -801,9 +804,8 @@ public class DisputeSummaryWindow extends Overlay<DisputeSummaryWindow> {
 
     private void applyTradeAmountRadioButtonStates() {
         Contract contract = dispute.getContract();
-        Offer offer = new Offer(contract.getOfferPayload());
-        Coin buyerSecurityDeposit = offer.getBuyerSecurityDeposit();
-        Coin sellerSecurityDeposit = offer.getSellerSecurityDeposit();
+        Coin buyerSecurityDeposit = trade.getBuyerSecurityDeposit();
+        Coin sellerSecurityDeposit = trade.getSellerSecurityDeposit();
         Coin tradeAmount = contract.getTradeAmount();
 
         Coin buyerPayoutAmount = disputeResult.getBuyerPayoutAmount();

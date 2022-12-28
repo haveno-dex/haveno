@@ -211,9 +211,9 @@ public class CoreDisputesService {
      */
     public void applyPayoutAmountsToDisputeResult(DisputePayout payout, Dispute dispute, DisputeResult disputeResult, long customWinnerAmount) {
         Contract contract = dispute.getContract();
-        Offer offer = new Offer(contract.getOfferPayload());
-        Coin buyerSecurityDeposit = offer.getBuyerSecurityDeposit();
-        Coin sellerSecurityDeposit = offer.getSellerSecurityDeposit();
+        Trade trade = tradeManager.getTrade(dispute.getTradeId());
+        Coin buyerSecurityDeposit = trade.getBuyerSecurityDeposit();
+        Coin sellerSecurityDeposit = trade.getSellerSecurityDeposit();
         Coin tradeAmount = contract.getTradeAmount();
         if (payout == DisputePayout.BUYER_GETS_TRADE_AMOUNT) {
             disputeResult.setBuyerPayoutAmount(tradeAmount.add(buyerSecurityDeposit));

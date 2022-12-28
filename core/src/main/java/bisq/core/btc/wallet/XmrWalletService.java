@@ -347,7 +347,7 @@ public class XmrWalletService {
         MoneroWallet wallet = getWallet();
         synchronized (wallet) {
 
-            // binary search to maximize security deposit, thereby minimizing potential dust
+            // binary search to maximize security deposit and minimize potential dust
             MoneroTxWallet tradeTx = null;
             double appliedTolerance = 0.0; // percent of tolerance to apply, thereby decreasing security deposit
             double searchDiff = 1.0; // difference for next binary search
