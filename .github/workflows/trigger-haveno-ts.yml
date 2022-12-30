@@ -1,0 +1,59 @@
+name: Trigger e2e haveno-ts tests
+
+on:
+  pull_request:
+    paths-ignore:
+      - '**/README.md'
+  workflow_dispatch:
+    inputs:
+      haveno-owner:
+        description: 'Owner of the haveno repository.'
+        required: false
+        default: 'haveno-dex'
+      haveno-branch:
+        description: 'Haveno branch to run haveno-ts against.'
+        required: false
+        default: 'master'
+      haveno-ts-owner:
+        description: 'Owner of the haveno-ts repository.'
+        required: false
+        default: 'haveno-dex'
+      haveno-ts-branch:
+        description: 'Haveno-ts branch to use.'
+        required: false
+        default: 'master'
+
+jobs:
+  dispatch_haveno_e2e_tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Haveno TS e2e tests
+        uses: actions/github-script@v6
+        with:
+          github-token: ${{ secrets.HAVENO_TS_PAT }}
+          script: |
+            if (github.event_name !== 'pull_request') {
+              // manual trigger
+              github.rest.actions.createWorkflowDispatch({
+                owner: '${{ github.event.inputs.haveno-ts-owner }}',
+                repo: 'haveno-ts',
+                workflow_id: 'build.yml',
+                ref: '${{ github.event.inputs.haveno-ts-branch }}',
+                inputs: {
+                  "owner": "${{ github.event.inputs.haveno-owner }}",
+                  "branch": "${{ github.event.inputs.haveno-branch }}",
+                },
+              })
+            } else {
+              // pull request with default values
+              github.rest.actions.createWorkflowDispatch({
+                owner: 'haveno-dex',
+                repo: 'haveno-ts',
+                workflow_id: 'build.yml',
+                ref: 'master',
+                inputs: {
+                  "owner": "haveno-dex",
+                  "branch": "master",
+                },
+              })
+            }
