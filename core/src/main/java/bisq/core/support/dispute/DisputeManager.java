@@ -689,30 +689,118 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
     }
 
     // arbitrator sends result to trader when their dispute is closed
-    public void closeDisputeTicket(DisputeResult disputeResult, Dispute dispute, String summaryText, ResultHandler resultHandler) {
-        T disputeList = getDisputeList();
-        if (disputeList == null) {
-            log.warn("disputes is null");
-            return;
-        }
+    public void closeDisputeTicket(DisputeResult disputeResult, Dispute dispute, String summaryText, MoneroTxWallet payoutTx, ResultHandler resultHandler, FaultHandler faultHandler) {
+        try {
 
-        ChatMessage chatMessage = new ChatMessage(
+            // get trade
+            Trade trade = tradeManager.getTrade(dispute.getTradeId());
+            if (trade == null) throw new RuntimeException("Dispute trade " + dispute.getTradeId() + " does not exist");
+
+            // create dispute payout tx if not given
+            if (payoutTx == null) payoutTx = createDisputePayoutTx(trade, dispute, disputeResult); // can be null if already published or we don't have receiver's multisig hex
+
+            // persist result in dispute's chat message
+            ChatMessage chatMessage = new ChatMessage(
                 getSupportType(),
                 dispute.getTradeId(),
                 dispute.getTraderPubKeyRing().hashCode(),
                 false,
                 summaryText,
                 p2PService.getAddress());
+            disputeResult.setChatMessage(chatMessage);
+            dispute.addAndPersistChatMessage(chatMessage);
 
-        disputeResult.setChatMessage(chatMessage);
-        dispute.addAndPersistChatMessage(chatMessage);
+            // create dispute closed message
+            TradingPeer receiver = trade.getTradingPeer(dispute.getTraderPubKeyRing());
+            String unsignedPayoutTxHex = payoutTx == null ? null : payoutTx.getTxSet().getMultisigTxHex();
+            TradingPeer receiverPeer = receiver == trade.getBuyer() ? trade.getSeller() : trade.getBuyer();
+            boolean deferPublishPayout = unsignedPayoutTxHex != null && receiverPeer.getUpdatedMultisigHex() != null && trade.getDisputeState().ordinal() >= Trade.DisputeState.ARBITRATOR_SAW_ARRIVED_DISPUTE_CLOSED_MSG.ordinal() ;
+            DisputeClosedMessage disputeClosedMessage = new DisputeClosedMessage(disputeResult,
+                    p2PService.getAddress(),
+                    UUID.randomUUID().toString(),
+                    getSupportType(),
+                    trade.getSelf().getUpdatedMultisigHex(),
+                    trade.isPayoutPublished() ? null : unsignedPayoutTxHex, // include dispute payout tx if unpublished and arbitrator has their updated multisig info
+                    deferPublishPayout); // instruct trader to defer publishing payout tx because peer is expected to publish imminently
 
-        // get trade
-        Trade trade = tradeManager.getTrade(dispute.getTradeId());
-        if (trade == null) {
-            log.warn("Dispute trade {} does not exist", dispute.getTradeId());
-            return;
+            // send dispute closed message
+            log.info("Send {} to trader {}. tradeId={}, {}.uid={}, chatMessage.uid={}",
+                    disputeClosedMessage.getClass().getSimpleName(), receiver.getNodeAddress(),
+                    disputeClosedMessage.getClass().getSimpleName(), disputeClosedMessage.getTradeId(),
+                    disputeClosedMessage.getUid(), chatMessage.getUid());
+            mailboxMessageService.sendEncryptedMailboxMessage(receiver.getNodeAddress(),
+                    dispute.getTraderPubKeyRing(),
+                    disputeClosedMessage,
+                    new SendMailboxMessageListener() {
+                        @Override
+                        public void onArrived() {
+                            log.info("{} arrived at trader {}. tradeId={}, disputeClosedMessage.uid={}, " +
+                                            "chatMessage.uid={}",
+                                    disputeClosedMessage.getClass().getSimpleName(), receiver.getNodeAddress(),
+                                    disputeClosedMessage.getTradeId(), disputeClosedMessage.getUid(),
+                                    chatMessage.getUid());
+
+                            // We use the chatMessage wrapped inside the DisputeClosedMessage for
+                            // the state, as that is displayed to the user and we only persist that msg
+                            chatMessage.setArrived(true);
+                            trade.setDisputeStateIfProgress(Trade.DisputeState.ARBITRATOR_SAW_ARRIVED_DISPUTE_CLOSED_MSG);
+                            trade.syncWalletNormallyForMs(30000);
+                            requestPersistence();
+                            resultHandler.handleResult();
+                        }
+
+                        @Override
+                        public void onStoredInMailbox() {
+                            log.info("{} stored in mailbox for trader {}. tradeId={}, DisputeClosedMessage.uid={}, " +
+                                            "chatMessage.uid={}",
+                                    disputeClosedMessage.getClass().getSimpleName(), receiver.getNodeAddress(),
+                                    disputeClosedMessage.getTradeId(), disputeClosedMessage.getUid(),
+                                    chatMessage.getUid());
+
+                            // We use the chatMessage wrapped inside the DisputeClosedMessage for
+                            // the state, as that is displayed to the user and we only persist that msg
+                            chatMessage.setStoredInMailbox(true);
+                            Trade trade = tradeManager.getTrade(dispute.getTradeId());
+                            trade.setDisputeStateIfProgress(Trade.DisputeState.ARBITRATOR_STORED_IN_MAILBOX_DISPUTE_CLOSED_MSG);
+                            requestPersistence();
+                            resultHandler.handleResult();
+                        }
+
+                        @Override
+                        public void onFault(String errorMessage) {
+                            log.error("{} failed: Trader {}. tradeId={}, DisputeClosedMessage.uid={}, " +
+                                            "chatMessage.uid={}, errorMessage={}",
+                                    disputeClosedMessage.getClass().getSimpleName(), receiver.getNodeAddress(),
+                                    disputeClosedMessage.getTradeId(), disputeClosedMessage.getUid(),
+                                    chatMessage.getUid(), errorMessage);
+
+                            // We use the chatMessage wrapped inside the DisputeClosedMessage for
+                            // the state, as that is displayed to the user and we only persist that msg
+                            chatMessage.setSendMessageError(errorMessage);
+                            trade.setDisputeStateIfProgress(Trade.DisputeState.ARBITRATOR_SEND_FAILED_DISPUTE_CLOSED_MSG);
+                            requestPersistence();
+                            faultHandler.handleFault(errorMessage, new RuntimeException(errorMessage));
+                        }
+                    }
+            );
+
+            // save state
+            if (payoutTx != null) {
+                trade.setPayoutTx(payoutTx);
+                trade.setPayoutTxHex(payoutTx.getTxSet().getMultisigTxHex());
+            }
+            trade.setDisputeStateIfProgress(Trade.DisputeState.ARBITRATOR_SENT_DISPUTE_CLOSED_MSG);
+            requestPersistence();
+        } catch (Exception e) {
+            faultHandler.handleFault(e.getMessage(), e);
         }
+    }
+
+    ///////////////////////////////////////////////////////////////////////////////////////////
+    // Utils
+    ///////////////////////////////////////////////////////////////////////////////////////////
+
+    public MoneroTxWallet createDisputePayoutTx(Trade trade, Dispute dispute, DisputeResult disputeResult) {
 
         // sync and save wallet
         trade.syncWallet();
@@ -739,139 +827,55 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
             if (!trade.isPayoutPublished()) {
                 log.info("Arbitrator creating unsigned dispute payout tx for trade {}", trade.getId());
                 try {
-                    MoneroTxWallet payoutTx = createDisputePayoutTx(trade, dispute, disputeResult);
-                    trade.setPayoutTx(payoutTx);
-                    trade.setPayoutTxHex(payoutTx.getTxSet().getMultisigTxHex());
+
+                    // trade wallet must be synced
+                    if (trade.getWallet().isMultisigImportNeeded()) throw new RuntimeException("Arbitrator's wallet needs updated multisig hex to create payout tx which means a trader must have already broadcast the payout tx for trade " + dispute.getTradeId());
+
+                    // collect winner and loser payout address and amounts
+                    Contract contract = dispute.getContract();
+                    String winnerPayoutAddress = disputeResult.getWinner() == Winner.BUYER ?
+                            (contract.isBuyerMakerAndSellerTaker() ? contract.getMakerPayoutAddressString() : contract.getTakerPayoutAddressString()) :
+                            (contract.isBuyerMakerAndSellerTaker() ? contract.getTakerPayoutAddressString() : contract.getMakerPayoutAddressString());
+                    String loserPayoutAddress = winnerPayoutAddress.equals(contract.getMakerPayoutAddressString()) ? contract.getTakerPayoutAddressString() : contract.getMakerPayoutAddressString();
+                    BigInteger winnerPayoutAmount = HavenoUtils.coinToAtomicUnits(disputeResult.getWinner() == Winner.BUYER ? disputeResult.getBuyerPayoutAmount() : disputeResult.getSellerPayoutAmount());
+                    BigInteger loserPayoutAmount = HavenoUtils.coinToAtomicUnits(disputeResult.getWinner() == Winner.BUYER ? disputeResult.getSellerPayoutAmount() : disputeResult.getBuyerPayoutAmount());
+
+                    // create transaction to get fee estimate
+                    MoneroTxConfig txConfig = new MoneroTxConfig().setAccountIndex(0).setRelay(false);
+                    if (winnerPayoutAmount.compareTo(BigInteger.ZERO) > 0) txConfig.addDestination(winnerPayoutAddress, winnerPayoutAmount.multiply(BigInteger.valueOf(9)).divide(BigInteger.valueOf(10))); // reduce payment amount to get fee of similar tx
+                    if (loserPayoutAmount.compareTo(BigInteger.ZERO) > 0) txConfig.addDestination(loserPayoutAddress, loserPayoutAmount.multiply(BigInteger.valueOf(9)).divide(BigInteger.valueOf(10)));
+                    MoneroTxWallet feeEstimateTx = trade.getWallet().createTx(txConfig);
+
+                    // create payout tx by increasing estimated fee until successful
+                    MoneroTxWallet payoutTx = null;
+                    int numAttempts = 0;
+                    while (payoutTx == null && numAttempts < 50) {
+                        BigInteger feeEstimate = feeEstimateTx.getFee().add(feeEstimateTx.getFee().multiply(BigInteger.valueOf(numAttempts)).divide(BigInteger.valueOf(10))); // add 1/10th of fee until tx is successful
+                        txConfig = new MoneroTxConfig().setAccountIndex(0).setRelay(false);
+                        if (winnerPayoutAmount.compareTo(BigInteger.ZERO) > 0) txConfig.addDestination(winnerPayoutAddress, winnerPayoutAmount.subtract(loserPayoutAmount.equals(BigInteger.ZERO) ? feeEstimate : BigInteger.ZERO)); // winner only pays fee if loser gets 0
+                        if (loserPayoutAmount.compareTo(BigInteger.ZERO) > 0) {
+                            if (loserPayoutAmount.compareTo(feeEstimate) < 0) throw new RuntimeException("Loser payout is too small to cover the mining fee");
+                            if (loserPayoutAmount.compareTo(feeEstimate) > 0) txConfig.addDestination(loserPayoutAddress, loserPayoutAmount.subtract(feeEstimate)); // loser pays fee
+                        }
+                        numAttempts++;
+                        try {
+                            payoutTx = trade.getWallet().createTx(txConfig);
+                        } catch (MoneroError e) {
+                            // exception expected // TODO: better way of estimating fee?
+                        }
+                    }
+                    if (payoutTx == null) throw new RuntimeException("Failed to generate dispute payout tx after " + numAttempts + " attempts");
+                    log.info("Dispute payout transaction generated on attempt {}", numAttempts);
+
+                    // save updated multisig hex
+                    trade.getSelf().setUpdatedMultisigHex(trade.getWallet().exportMultisigHex());
+                    return payoutTx;
                 } catch (Exception e) {
                     if (!trade.isPayoutPublished()) throw e;
                 }
             }
         }
-
-        // create dispute closed message
-        String unsignedPayoutTxHex = receiver.getUpdatedMultisigHex() == null ? null : trade.getPayoutTxHex();
-        TradingPeer receiverPeer = receiver == trade.getBuyer() ? trade.getSeller() : trade.getBuyer();
-        boolean deferPublishPayout = unsignedPayoutTxHex != null && receiverPeer.getUpdatedMultisigHex() != null && trade.getDisputeState().ordinal() >= Trade.DisputeState.ARBITRATOR_SAW_ARRIVED_DISPUTE_CLOSED_MSG.ordinal() ;
-        DisputeClosedMessage disputeClosedMessage = new DisputeClosedMessage(disputeResult,
-                p2PService.getAddress(),
-                UUID.randomUUID().toString(),
-                getSupportType(),
-                trade.getSelf().getUpdatedMultisigHex(),
-                trade.isPayoutPublished() ? null : unsignedPayoutTxHex, // include dispute payout tx if unpublished and arbitrator has their updated multisig info
-                deferPublishPayout); // instruct trader to defer publishing payout tx because peer is expected to publish imminently
-
-        // send dispute closed message
-        log.info("Send {} to trader {}. tradeId={}, {}.uid={}, chatMessage.uid={}",
-                disputeClosedMessage.getClass().getSimpleName(), receiver.getNodeAddress(),
-                disputeClosedMessage.getClass().getSimpleName(), disputeClosedMessage.getTradeId(),
-                disputeClosedMessage.getUid(), chatMessage.getUid());
-        mailboxMessageService.sendEncryptedMailboxMessage(receiver.getNodeAddress(),
-                dispute.getTraderPubKeyRing(),
-                disputeClosedMessage,
-                new SendMailboxMessageListener() {
-                    @Override
-                    public void onArrived() {
-                        log.info("{} arrived at trader {}. tradeId={}, disputeClosedMessage.uid={}, " +
-                                        "chatMessage.uid={}",
-                                disputeClosedMessage.getClass().getSimpleName(), receiver.getNodeAddress(),
-                                disputeClosedMessage.getTradeId(), disputeClosedMessage.getUid(),
-                                chatMessage.getUid());
-
-                        // We use the chatMessage wrapped inside the DisputeClosedMessage for
-                        // the state, as that is displayed to the user and we only persist that msg
-                        chatMessage.setArrived(true);
-                        trade.setDisputeStateIfProgress(Trade.DisputeState.ARBITRATOR_SAW_ARRIVED_DISPUTE_CLOSED_MSG);
-                        trade.syncWalletNormallyForMs(30000);
-                        requestPersistence();
-                        resultHandler.handleResult();
-                    }
-
-                    @Override
-                    public void onStoredInMailbox() {
-                        log.info("{} stored in mailbox for trader {}. tradeId={}, DisputeClosedMessage.uid={}, " +
-                                        "chatMessage.uid={}",
-                                disputeClosedMessage.getClass().getSimpleName(), receiver.getNodeAddress(),
-                                disputeClosedMessage.getTradeId(), disputeClosedMessage.getUid(),
-                                chatMessage.getUid());
-
-                        // We use the chatMessage wrapped inside the DisputeClosedMessage for
-                        // the state, as that is displayed to the user and we only persist that msg
-                        chatMessage.setStoredInMailbox(true);
-                        Trade trade = tradeManager.getTrade(dispute.getTradeId());
-                        trade.setDisputeStateIfProgress(Trade.DisputeState.ARBITRATOR_STORED_IN_MAILBOX_DISPUTE_CLOSED_MSG);
-                        requestPersistence();
-                        resultHandler.handleResult();
-                    }
-
-                    @Override
-                    public void onFault(String errorMessage) {
-                        log.error("{} failed: Trader {}. tradeId={}, DisputeClosedMessage.uid={}, " +
-                                        "chatMessage.uid={}, errorMessage={}",
-                                disputeClosedMessage.getClass().getSimpleName(), receiver.getNodeAddress(),
-                                disputeClosedMessage.getTradeId(), disputeClosedMessage.getUid(),
-                                chatMessage.getUid(), errorMessage);
-
-                        // We use the chatMessage wrapped inside the DisputeClosedMessage for
-                        // the state, as that is displayed to the user and we only persist that msg
-                        chatMessage.setSendMessageError(errorMessage);
-                        trade.setDisputeStateIfProgress(Trade.DisputeState.ARBITRATOR_SEND_FAILED_DISPUTE_CLOSED_MSG);
-                        requestPersistence();
-                        resultHandler.handleResult();
-                    }
-                }
-        );
-        trade.setDisputeStateIfProgress(Trade.DisputeState.ARBITRATOR_SENT_DISPUTE_CLOSED_MSG);
-        requestPersistence();
-    }
-
-    ///////////////////////////////////////////////////////////////////////////////////////////
-    // Utils
-    ///////////////////////////////////////////////////////////////////////////////////////////
-
-    private MoneroTxWallet createDisputePayoutTx(Trade trade, Dispute dispute, DisputeResult disputeResult) {
-
-        // trade wallet must be synced
-        if (trade.getWallet().isMultisigImportNeeded()) throw new RuntimeException("Arbitrator's wallet needs updated multisig hex to create payout tx which means a trader must have already broadcast the payout tx for trade " + dispute.getTradeId());
-
-        // collect winner and loser payout address and amounts
-        Contract contract = dispute.getContract();
-        String winnerPayoutAddress = disputeResult.getWinner() == Winner.BUYER ?
-                (contract.isBuyerMakerAndSellerTaker() ? contract.getMakerPayoutAddressString() : contract.getTakerPayoutAddressString()) :
-                (contract.isBuyerMakerAndSellerTaker() ? contract.getTakerPayoutAddressString() : contract.getMakerPayoutAddressString());
-        String loserPayoutAddress = winnerPayoutAddress.equals(contract.getMakerPayoutAddressString()) ? contract.getTakerPayoutAddressString() : contract.getMakerPayoutAddressString();
-        BigInteger winnerPayoutAmount = HavenoUtils.coinToAtomicUnits(disputeResult.getWinner() == Winner.BUYER ? disputeResult.getBuyerPayoutAmount() : disputeResult.getSellerPayoutAmount());
-        BigInteger loserPayoutAmount = HavenoUtils.coinToAtomicUnits(disputeResult.getWinner() == Winner.BUYER ? disputeResult.getSellerPayoutAmount() : disputeResult.getBuyerPayoutAmount());
-
-        // create transaction to get fee estimate
-        MoneroTxConfig txConfig = new MoneroTxConfig().setAccountIndex(0).setRelay(false);
-        if (winnerPayoutAmount.compareTo(BigInteger.ZERO) > 0) txConfig.addDestination(winnerPayoutAddress, winnerPayoutAmount.multiply(BigInteger.valueOf(9)).divide(BigInteger.valueOf(10))); // reduce payment amount to get fee of similar tx
-        if (loserPayoutAmount.compareTo(BigInteger.ZERO) > 0) txConfig.addDestination(loserPayoutAddress, loserPayoutAmount.multiply(BigInteger.valueOf(9)).divide(BigInteger.valueOf(10)));
-        MoneroTxWallet feeEstimateTx = trade.getWallet().createTx(txConfig);
-
-        // create payout tx by increasing estimated fee until successful
-        MoneroTxWallet payoutTx = null;
-        int numAttempts = 0;
-        while (payoutTx == null && numAttempts < 50) {
-          BigInteger feeEstimate = feeEstimateTx.getFee().add(feeEstimateTx.getFee().multiply(BigInteger.valueOf(numAttempts)).divide(BigInteger.valueOf(10))); // add 1/10th of fee until tx is successful
-          txConfig = new MoneroTxConfig().setAccountIndex(0).setRelay(false);
-          if (winnerPayoutAmount.compareTo(BigInteger.ZERO) > 0) txConfig.addDestination(winnerPayoutAddress, winnerPayoutAmount.subtract(loserPayoutAmount.equals(BigInteger.ZERO) ? feeEstimate : BigInteger.ZERO)); // winner only pays fee if loser gets 0
-          if (loserPayoutAmount.compareTo(BigInteger.ZERO) > 0) {
-              if (loserPayoutAmount.compareTo(feeEstimate) < 0) throw new RuntimeException("Loser payout is too small to cover the mining fee");
-              if (loserPayoutAmount.compareTo(feeEstimate) > 0) txConfig.addDestination(loserPayoutAddress, loserPayoutAmount.subtract(feeEstimate)); // loser pays fee
-          }
-          numAttempts++;
-          try {
-            payoutTx = trade.getWallet().createTx(txConfig);
-          } catch (MoneroError e) {
-            // exception expected // TODO: better way of estimating fee?
-          }
-        }
-        if (payoutTx == null) throw new RuntimeException("Failed to generate dispute payout tx after " + numAttempts + " attempts");
-        log.info("Dispute payout transaction generated on attempt {}", numAttempts);
-
-        // save updated multisig hex
-        trade.getSelf().setUpdatedMultisigHex(trade.getWallet().exportMultisigHex());
-        return payoutTx;
+        return null; // can be null if already published or we don't have receiver's multisig hex
     }
 
     private Tuple2<NodeAddress, PubKeyRing> getNodeAddressPubKeyRingTuple(Dispute dispute) {

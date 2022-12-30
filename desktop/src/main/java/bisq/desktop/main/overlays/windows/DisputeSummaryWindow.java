@@ -30,6 +30,7 @@ import bisq.desktop.util.Layout;
 import bisq.core.btc.wallet.TradeWalletService;
 import bisq.core.btc.wallet.XmrWalletService;
 import bisq.core.locale.Res;
+import bisq.core.support.SupportType;
 import bisq.core.support.dispute.Dispute;
 import bisq.core.support.dispute.DisputeList;
 import bisq.core.support.dispute.DisputeManager;
@@ -38,6 +39,7 @@ import bisq.core.support.dispute.arbitration.ArbitrationManager;
 import bisq.core.support.dispute.mediation.MediationManager;
 import bisq.core.support.dispute.refund.RefundManager;
 import bisq.core.trade.Contract;
+import bisq.core.trade.HavenoUtils;
 import bisq.core.trade.Trade;
 import bisq.core.trade.TradeManager;
 import bisq.core.util.FormattingUtils;
@@ -78,6 +80,7 @@ import java.util.Date;
 import java.util.Optional;
 
 import lombok.extern.slf4j.Slf4j;
+import monero.wallet.model.MoneroTxWallet;
 
 import static bisq.desktop.util.FormBuilder.add2ButtonsWithBox;
 import static bisq.desktop.util.FormBuilder.addConfirmationLabelLabel;
@@ -113,7 +116,7 @@ public class DisputeSummaryWindow extends Overlay<DisputeSummaryWindow> {
     private ChangeListener<Boolean> customRadioButtonSelectedListener;
     private ChangeListener<Toggle> reasonToggleSelectionListener;
     private InputTextField buyerPayoutAmountInputTextField, sellerPayoutAmountInputTextField;
-    private ChangeListener<String> buyerPayoutAmountListener, sellerPayoutAmountListener;
+    private ChangeListener<Boolean> buyerPayoutAmountListener, sellerPayoutAmountListener;
     private ChangeListener<Toggle> tradeAmountToggleGroupListener;
 
 
@@ -319,16 +322,16 @@ public class DisputeSummaryWindow extends Overlay<DisputeSummaryWindow> {
         tradeAmountToggleGroupListener = (observable, oldValue, newValue) -> applyPayoutAmounts(newValue);
         tradeAmountToggleGroup.selectedToggleProperty().addListener(tradeAmountToggleGroupListener);
 
-        buyerPayoutAmountListener = (observable1, oldValue1, newValue1) -> applyCustomAmounts(buyerPayoutAmountInputTextField);
-        sellerPayoutAmountListener = (observable1, oldValue1, newValue1) -> applyCustomAmounts(sellerPayoutAmountInputTextField);
+        buyerPayoutAmountListener = (observable, oldValue, newValue) -> applyCustomAmounts(buyerPayoutAmountInputTextField, oldValue, newValue);
+        sellerPayoutAmountListener = (observable, oldValue, newValue) -> applyCustomAmounts(sellerPayoutAmountInputTextField, oldValue, newValue);
 
         customRadioButtonSelectedListener = (observable, oldValue, newValue) -> {
             buyerPayoutAmountInputTextField.setEditable(newValue);
             sellerPayoutAmountInputTextField.setEditable(newValue);
 
             if (newValue) {
-                buyerPayoutAmountInputTextField.textProperty().addListener(buyerPayoutAmountListener);
-                sellerPayoutAmountInputTextField.textProperty().addListener(sellerPayoutAmountListener);
+                buyerPayoutAmountInputTextField.focusedProperty().addListener(buyerPayoutAmountListener);
+                sellerPayoutAmountInputTextField.focusedProperty().addListener(sellerPayoutAmountListener);
             } else {
                 removePayoutAmountListeners();
             }
@@ -338,11 +341,10 @@ public class DisputeSummaryWindow extends Overlay<DisputeSummaryWindow> {
 
     private void removePayoutAmountListeners() {
         if (buyerPayoutAmountInputTextField != null && buyerPayoutAmountListener != null)
-            buyerPayoutAmountInputTextField.textProperty().removeListener(buyerPayoutAmountListener);
+            buyerPayoutAmountInputTextField.focusedProperty().removeListener(buyerPayoutAmountListener);
 
         if (sellerPayoutAmountInputTextField != null && sellerPayoutAmountListener != null)
-            sellerPayoutAmountInputTextField.textProperty().removeListener(sellerPayoutAmountListener);
-
+            sellerPayoutAmountInputTextField.focusedProperty().removeListener(sellerPayoutAmountListener);
     }
 
     private boolean isPayoutAmountValid() {
@@ -368,12 +370,12 @@ public class DisputeSummaryWindow extends Overlay<DisputeSummaryWindow> {
         }
     }
 
-    private void applyCustomAmounts(InputTextField inputTextField) {
-//        // We only apply adjustments at focus out, otherwise we cannot enter certain values if we update at each
-//        // keystroke.
-//        if (!oldFocusValue || newFocusValue) {
-//            return;
-//        }
+    private void applyCustomAmounts(InputTextField inputTextField, boolean oldFocusValue, boolean newFocusValue) {
+        // We only apply adjustments at focus out, otherwise we cannot enter certain values if we update at each
+        // keystroke.
+        if (!oldFocusValue || newFocusValue) {
+            return;
+        }
 
         Contract contract = dispute.getContract();
         Coin available = contract.getTradeAmount()
@@ -562,188 +564,89 @@ public class DisputeSummaryWindow extends Overlay<DisputeSummaryWindow> {
     }
 
     private void addButtons(Contract contract) {
-      Tuple3<Button, Button, HBox> tuple = add2ButtonsWithBox(gridPane, ++rowIndex,
-              Res.get("disputeSummaryWindow.close.button"),
-              Res.get("shared.cancel"), 15, true);
-      Button closeTicketButton = tuple.first;
-      closeTicketButton.disableProperty().bind(Bindings.createBooleanBinding(
-              () -> tradeAmountToggleGroup.getSelectedToggle() == null
-                      || summaryNotesTextArea.getText() == null
-                      || summaryNotesTextArea.getText().length() == 0
-                      || !isPayoutAmountValid(),
-              tradeAmountToggleGroup.selectedToggleProperty(),
-              summaryNotesTextArea.textProperty(),
-              buyerPayoutAmountInputTextField.textProperty(),
-              sellerPayoutAmountInputTextField.textProperty()));
+        Tuple3<Button, Button, HBox> tuple = add2ButtonsWithBox(gridPane, ++rowIndex,
+                Res.get("disputeSummaryWindow.close.button"),
+                Res.get("shared.cancel"), 15, true);
+        Button closeTicketButton = tuple.first;
+        closeTicketButton.disableProperty().bind(Bindings.createBooleanBinding(
+                () -> tradeAmountToggleGroup.getSelectedToggle() == null
+                        || summaryNotesTextArea.getText() == null
+                        || summaryNotesTextArea.getText().length() == 0
+                        || !isPayoutAmountValid(),
+            tradeAmountToggleGroup.selectedToggleProperty(),
+            summaryNotesTextArea.textProperty(),
+            buyerPayoutAmountInputTextField.textProperty(),
+            sellerPayoutAmountInputTextField.textProperty()));
 
-      Button cancelButton = tuple.second;
+        Button cancelButton = tuple.second;
 
-      closeTicketButton.setOnAction(e -> {
-          doClose(closeTicketButton);
+        closeTicketButton.setOnAction(e -> {
 
-//          if (dispute.getDepositTxSerialized() == null) {
-//              log.warn("dispute.getDepositTxSerialized is null");
-//              return;
-//          }
-//
-//          if (dispute.getSupportType() == SupportType.REFUND &&
-//                  peersDisputeOptional.isPresent() &&
-//                  !peersDisputeOptional.get().isClosed()) {
-//              showPayoutTxConfirmation(contract,
-//                      disputeResult,
-//                      () -> doCloseIfValid(closeTicketButton));
-//          } else {
-//              doCloseIfValid(closeTicketButton);
-//          }
-      });
+            // create payout tx
+            MoneroTxWallet payoutTx = arbitrationManager.createDisputePayoutTx(trade, dispute, disputeResult);
 
-      cancelButton.setOnAction(e -> {
-          dispute.setDisputeResult(disputeResult);
-          checkNotNull(getDisputeManager(dispute)).requestPersistence();
-          hide();
-      });
+            // show confirmation
+            if (dispute.getSupportType() == SupportType.ARBITRATION &&
+                    peersDisputeOptional.isPresent() &&
+                    !peersDisputeOptional.get().isClosed()) {
+                showPayoutTxConfirmation(contract,
+                        disputeResult,
+                        payoutTx,
+                        () -> doClose(closeTicketButton, payoutTx));
+            } else {
+                doClose(closeTicketButton, payoutTx);
+            }
+        });
+
+        cancelButton.setOnAction(e -> {
+            dispute.setDisputeResult(disputeResult);
+            checkNotNull(getDisputeManager(dispute)).requestPersistence();
+            hide();
+        });
     }
 
-    private void showPayoutTxConfirmation(Contract contract, DisputeResult disputeResult, ResultHandler resultHandler) {
-        throw new RuntimeException("DisputeSummaryWindow.showPayoutTxConfimration() needs updated for XMR");
-//        Coin buyerPayoutAmount = disputeResult.getBuyerPayoutAmount();
-//        String buyerPayoutAddressString = contract.getBuyerPayoutAddressString();
-//        Coin sellerPayoutAmount = disputeResult.getSellerPayoutAmount();
-//        String sellerPayoutAddressString = contract.getSellerPayoutAddressString();
-//        Coin outputAmount = buyerPayoutAmount.add(sellerPayoutAmount);
-//        Tuple2<Coin, Integer> feeTuple = txFeeEstimationService.getEstimatedFeeAndTxSize(outputAmount, feeService, btcWalletService);
-//        Coin fee = feeTuple.first;
-//        Integer txSize = feeTuple.second;
-//        double feePerByte = CoinUtil.getFeePerByte(fee, txSize);
-//        double kb = txSize / 1000d;
-//        Coin inputAmount = outputAmount.add(fee);
-//        String buyerDetails = "";
-//        if (buyerPayoutAmount.isPositive()) {
-//            buyerDetails = Res.get("disputeSummaryWindow.close.txDetails.buyer",
-//                    formatter.formatCoinWithCode(buyerPayoutAmount),
-//                    buyerPayoutAddressString);
-//        }
-//        String sellerDetails = "";
-//        if (sellerPayoutAmount.isPositive()) {
-//            sellerDetails = Res.get("disputeSummaryWindow.close.txDetails.seller",
-//                    formatter.formatCoinWithCode(sellerPayoutAmount),
-//                    sellerPayoutAddressString);
-//        }
-//        if (outputAmount.isPositive()) {
-//            new Popup().width(900)
-//                    .headLine(Res.get("disputeSummaryWindow.close.txDetails.headline"))
-//                    .confirmation(Res.get("disputeSummaryWindow.close.txDetails",
-//                            formatter.formatCoinWithCode(inputAmount),
-//                            buyerDetails,
-//                            sellerDetails,
-//                            formatter.formatCoinWithCode(fee),
-//                            feePerByte,
-//                            kb))
-//                    .actionButtonText(Res.get("shared.yes"))
-//                    .onAction(() -> {
-//                        doPayout(buyerPayoutAmount,
-//                                sellerPayoutAmount,
-//                                fee,
-//                                buyerPayoutAddressString,
-//                                sellerPayoutAddressString,
-//                                resultHandler);
-//                    })
-//                    .closeButtonText(Res.get("shared.cancel"))
-//                    .show();
-//        } else {
-//            // No payout will be made
-//            new Popup().headLine(Res.get("disputeSummaryWindow.close.noPayout.headline"))
-//                    .confirmation(Res.get("disputeSummaryWindow.close.noPayout.text"))
-//                    .actionButtonText(Res.get("shared.yes"))
-//                    .onAction(resultHandler::handleResult)
-//                    .closeButtonText(Res.get("shared.cancel"))
-//                    .show();
-//        }
+    private void showPayoutTxConfirmation(Contract contract, DisputeResult disputeResult, MoneroTxWallet payoutTx, ResultHandler resultHandler) {
+        Coin buyerPayoutAmount = disputeResult.getBuyerPayoutAmount();
+        String buyerPayoutAddressString = contract.getBuyerPayoutAddressString();
+        Coin sellerPayoutAmount = disputeResult.getSellerPayoutAmount();
+        String sellerPayoutAddressString = contract.getSellerPayoutAddressString();
+        Coin outputAmount = buyerPayoutAmount.add(sellerPayoutAmount);
+        String buyerDetails = "";
+        if (buyerPayoutAmount.isPositive()) {
+            buyerDetails = Res.get("disputeSummaryWindow.close.txDetails.buyer",
+                    formatter.formatCoinWithCode(buyerPayoutAmount),
+                    buyerPayoutAddressString);
+        }
+        String sellerDetails = "";
+        if (sellerPayoutAmount.isPositive()) {
+            sellerDetails = Res.get("disputeSummaryWindow.close.txDetails.seller",
+                    formatter.formatCoinWithCode(sellerPayoutAmount),
+                    sellerPayoutAddressString);
+        }
+        if (outputAmount.isPositive()) {
+            new Popup().width(900)
+                    .headLine(Res.get("disputeSummaryWindow.close.txDetails.headline"))
+                    .confirmation(Res.get("disputeSummaryWindow.close.txDetails",
+                            formatter.formatCoinWithCode(outputAmount),
+                            buyerDetails,
+                            sellerDetails,
+                            formatter.formatCoinWithCode(HavenoUtils.atomicUnitsToCoin(payoutTx.getFee()))))
+                    .actionButtonText(Res.get("shared.yes"))
+                    .onAction(() -> resultHandler.handleResult())
+                    .closeButtonText(Res.get("shared.cancel"))
+                    .show();
+        } else {
+            // No payout will be made
+            new Popup().headLine(Res.get("disputeSummaryWindow.close.noPayout.headline"))
+                    .confirmation(Res.get("disputeSummaryWindow.close.noPayout.text"))
+                    .actionButtonText(Res.get("shared.yes"))
+                    .onAction(resultHandler::handleResult)
+                    .closeButtonText(Res.get("shared.cancel"))
+                    .show();
+        }
     }
 
-    private void doPayout(Coin buyerPayoutAmount,
-                          Coin sellerPayoutAmount,
-                          Coin fee,
-                          String buyerPayoutAddressString,
-                          String sellerPayoutAddressString,
-                          ResultHandler resultHandler) {
-        throw new RuntimeException("DisputeSummaryWindow.doPayout() needs updated for XMR");
-//        try {
-//            Transaction tx = btcWalletService.createRefundPayoutTx(buyerPayoutAmount,
-//                    sellerPayoutAmount,
-//                    fee,
-//                    buyerPayoutAddressString,
-//                    sellerPayoutAddressString);
-//            tradeWalletService.broadcastTx(tx, new TxBroadcaster.Callback() {
-//                @Override
-//                public void onSuccess(Transaction transaction) {
-//                    resultHandler.handleResult();
-//                }
-//
-//                @Override
-//                public void onFailure(TxBroadcastException exception) {
-//                    log.error("TxBroadcastException at doPayout", exception);
-//                    new Popup().error(exception.toString()).show();
-//                }
-//            });
-//        } catch (InsufficientMoneyException | WalletException | TransactionVerificationException e) {
-//            log.error("Exception at doPayout", e);
-//            new Popup().error(e.toString()).show();
-//        }
-    }
-
-    private void doCloseIfValid(Button closeTicketButton) {
-        throw new RuntimeException("DisputeSummaryWindow.doCloseIfValid() needs updated for XMR");
-//        var disputeManager = checkNotNull(getDisputeManager(dispute));
-//        try {
-//            TradeDataValidation.validateDonationAddress(dispute.getDonationAddressOfDelayedPayoutTx());
-//            TradeDataValidation.testIfDisputeTriesReplay(dispute, disputeManager.getDisputesAsObservableList());
-//            doClose(closeTicketButton);
-//        } catch (TradeDataValidation.AddressException exception) {
-//            String addressAsString = dispute.getDonationAddressOfDelayedPayoutTx();
-//            String tradeId = dispute.getTradeId();
-//
-//            // For mediators we do not enforce that the case cannot be closed to stay flexible,
-//            // but for refund agents we do.
-//            if (disputeManager instanceof MediationManager) {
-//                new Popup().width(900)
-//                        .warning(Res.get("support.warning.disputesWithInvalidDonationAddress",
-//                                addressAsString,
-//                                tradeId,
-//                                Res.get("support.warning.disputesWithInvalidDonationAddress.mediator")))
-//                        .onAction(() -> {
-//                            doClose(closeTicketButton);
-//                        })
-//                        .actionButtonText(Res.get("shared.yes"))
-//                        .closeButtonText(Res.get("shared.no"))
-//                        .show();
-//            } else {
-//                new Popup().width(900)
-//                        .warning(Res.get("support.warning.disputesWithInvalidDonationAddress",
-//                                addressAsString,
-//                                tradeId,
-//                                Res.get("support.warning.disputesWithInvalidDonationAddress.refundAgent")))
-//                        .show();
-//            }
-//        } catch (TradeDataValidation.DisputeReplayException exception) {
-//            if (disputeManager instanceof MediationManager) {
-//                new Popup().width(900)
-//                        .warning(exception.getMessage())
-//                        .onAction(() -> {
-//                            doClose(closeTicketButton);
-//                        })
-//                        .actionButtonText(Res.get("shared.yes"))
-//                        .closeButtonText(Res.get("shared.no"))
-//                        .show();
-//            } else {
-//                new Popup().width(900)
-//                        .warning(exception.getMessage())
-//                        .show();
-//            }
-//        }
-    }
-
-    private void doClose(Button closeTicketButton) {
+    private void doClose(Button closeTicketButton, MoneroTxWallet payoutTx) {
         DisputeManager<? extends DisputeList<Dispute>> disputeManager = getDisputeManager(dispute);
         if (disputeManager == null) {
             return;
@@ -752,15 +655,17 @@ public class DisputeSummaryWindow extends Overlay<DisputeSummaryWindow> {
         summaryNotesTextArea.textProperty().unbindBidirectional(disputeResult.summaryNotesProperty());
 
         disputeResult.setCloseDate(new Date());
-        disputesService.closeDisputeTicket(disputeManager, dispute, disputeResult, () -> {
+        disputesService.closeDisputeTicket(disputeManager, dispute, disputeResult, payoutTx, () -> {
             if (peersDisputeOptional.isPresent() && !peersDisputeOptional.get().isClosed() && !DevEnv.isDevMode()) {
                 new Popup().attention(Res.get("disputeSummaryWindow.close.closePeer")).show();
             }
             disputeManager.requestPersistence();
+            closeTicketButton.disableProperty().unbind();
+            hide();
+        }, (errMessage, err) -> {
+            log.error(errMessage);
+            new Popup().error(err.toString()).show();
         });
-
-        closeTicketButton.disableProperty().unbind();
-        hide();
     }
 
     private DisputeManager<? extends DisputeList<Dispute>> getDisputeManager(Dispute dispute) {
@@ -818,7 +723,7 @@ public class DisputeSummaryWindow extends Overlay<DisputeSummaryWindow> {
                 sellerPayoutAmount.equals(sellerSecurityDeposit)) {
             buyerGetsTradeAmountRadioButton.setSelected(true);
         } else if (buyerPayoutAmount.equals(tradeAmount.add(buyerSecurityDeposit).add(sellerSecurityDeposit)) &&
-                sellerPayoutAmount.equals(Coin.ZERO)) { // TODO (woodser): apply min payout to incentivize loser (see post v1.1.7)
+                sellerPayoutAmount.equals(Coin.ZERO)) {
             buyerGetsAllRadioButton.setSelected(true);
         } else if (sellerPayoutAmount.equals(tradeAmount.add(sellerSecurityDeposit))
                 && buyerPayoutAmount.equals(buyerSecurityDeposit)) {
