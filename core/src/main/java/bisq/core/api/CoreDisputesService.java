@@ -35,6 +35,7 @@ import java.util.List;
 import java.util.Optional;
 
 import lombok.extern.slf4j.Slf4j;
+import monero.wallet.model.MoneroTxWallet;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static java.lang.String.format;
@@ -170,7 +171,7 @@ public class CoreDisputesService {
                 applyPayoutAmountsToDisputeResult(payout, winningDispute, disputeResult, customWinnerAmount);
 
                 // close dispute ticket
-                closeDisputeTicket(arbitrationManager, winningDispute, disputeResult, () -> {
+                closeDisputeTicket(arbitrationManager, winningDispute, disputeResult, null, () -> {
                     arbitrationManager.requestPersistence();
 
                     // close peer's dispute ticket
@@ -182,12 +183,16 @@ public class CoreDisputesService {
                         var peerDisputeResult = createDisputeResult(peerDispute, winner, reason, summaryNotes, closeDate);
                         peerDisputeResult.setBuyerPayoutAmount(disputeResult.getBuyerPayoutAmount());
                         peerDisputeResult.setSellerPayoutAmount(disputeResult.getSellerPayoutAmount());
-                        closeDisputeTicket(arbitrationManager, peerDispute, peerDisputeResult, () -> {
+                        closeDisputeTicket(arbitrationManager, peerDispute, peerDisputeResult, null, () -> {
                             arbitrationManager.requestPersistence();
+                        }, (errMessage, err) -> {
+                            throw new IllegalStateException(errMessage, err);
                         });
                     } else {
                         throw new IllegalStateException("could not find peer dispute");
                     }
+                }, (errMessage, err) -> {
+                    throw new IllegalStateException(errMessage, err);
                 });
             }
         } catch (Exception e) {
@@ -239,10 +244,7 @@ public class CoreDisputesService {
         }
     }
 
-    // From DisputeSummaryWindow.java
-    public void closeDisputeTicket(DisputeManager disputeManager, Dispute dispute, DisputeResult disputeResult, ResultHandler resultHandler) {
-        dispute.setDisputeResult(disputeResult);
-        dispute.setIsClosed();
+    public void closeDisputeTicket(DisputeManager disputeManager, Dispute dispute, DisputeResult disputeResult, MoneroTxWallet payoutTx, ResultHandler resultHandler, FaultHandler faultHandler) {
         DisputeResult.Reason reason = disputeResult.getReason();
 
         String role = Res.get("shared.arbitrator");
@@ -272,7 +274,12 @@ public class CoreDisputesService {
 
         String summaryText = DisputeSummaryVerification.signAndApply(disputeManager, disputeResult, textToSign);
         summaryText += Res.get("disputeSummaryWindow.close.nextStepsForRefundAgentArbitration");
-        disputeManager.closeDisputeTicket(disputeResult, dispute, summaryText, resultHandler);
+
+        disputeManager.closeDisputeTicket(disputeResult, dispute, summaryText, payoutTx, () -> {
+            dispute.setDisputeResult(disputeResult);
+            dispute.setIsClosed();
+            resultHandler.handleResult();
+        }, faultHandler);
     }
 
     public void sendDisputeChatMessage(String disputeId, String message, ArrayList<Attachment> attachments) {
