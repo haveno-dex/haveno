@@ -128,7 +128,7 @@ public class CoreOffersService {
     }
 
     List<Offer> getMyOffers() {
-        List<Offer> offers = new ArrayList<>(openOfferManager.getObservableList()).stream()
+        List<Offer> offers = openOfferManager.getOpenOffers().stream()
                 .map(OpenOffer::getOffer)
                 .filter(o -> o.isMyOffer(keyRing))
                 .collect(Collectors.toList());
