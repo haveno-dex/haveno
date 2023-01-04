@@ -218,8 +218,9 @@ public class CurrencyUtil {
      * contains 3 entries (CryptoCurrency, Fiat, Undefined).
      */
     public static boolean isCryptoCurrency(String currencyCode) {
-        if (currencyCode != null && isCryptoCurrencyMap.containsKey(currencyCode)) {
-            return isCryptoCurrencyMap.get(currencyCode);
+        if (currencyCode != null) currencyCode = currencyCode.toUpperCase();
+        if (currencyCode != null && isCryptoCurrencyMap.containsKey(currencyCode.toUpperCase())) {
+            return isCryptoCurrencyMap.get(currencyCode.toUpperCase());
         }
 
         boolean isCryptoCurrency;
