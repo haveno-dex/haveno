@@ -110,10 +110,8 @@ public abstract class DisputeAgentService<T extends DisputeAgent> {
         Map<NodeAddress, T> map = new HashMap<>();
         for (T disputeAgent : disputeAgentSet) {
             NodeAddress disputeAgentNodeAddress = disputeAgent.getNodeAddress();
-            if (!map.containsKey(disputeAgentNodeAddress))
-                map.put(disputeAgentNodeAddress, disputeAgent);
-            else
-                log.warn("disputeAgentAddress already exists in disputeAgent map. Seems a disputeAgent object is already registered with the same address.");
+            if (map.containsKey(disputeAgentNodeAddress)) log.warn("disputeAgentAddress already exists in disputeAgent map. Seems a disputeAgent object is already registered with the same address.");
+            map.put(disputeAgentNodeAddress, disputeAgent);
         }
         return map;
     }
