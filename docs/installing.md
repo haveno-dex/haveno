@@ -26,7 +26,7 @@ If it's the first time you are building Haveno, run the following commands to do
 ```
 git clone https://github.com/haveno-dex/haveno.git
 cd haveno
-git checkout v0.0.3
+git checkout master
 make
 ```
 
@@ -35,8 +35,8 @@ make
 If you are updating from a previous version, run from the root of the repository:
 
 ```
-git fetch --tags
-git checkout v0.0.3
+git checkout master
+git pull
 make clean && make
 ```
 
@@ -49,6 +49,9 @@ On **Mac**: remove everything inside `~/Library/Application\ Support/haveno-*/xm
 On **Windows**: remove everything inside `~\AppData\Roaming\haveno-*/xmr_stagenet/`, except the `wallet` folder.
 
 ## Join the public test network
+
+> **Note**
+> The public test network is currently offline. [Run a local test network](#run-a-local-test-network) instead.
 
 If you want to try Haveno in a live setup, launch a Haveno instance that will connect to other peers on our public test environment, which runs on Monero's stagenet (you won't need to download the blockchain locally). You'll be able to make test trades with other users and have a preview of Haveno's trade protocol in action. Note that development is very much ongoing. Things are slow and might break.
 
