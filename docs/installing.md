@@ -4,7 +4,20 @@ These are the steps needed to build Haveno and test it on our test network or lo
 
 ## Install dependencies
 
-On Ubuntu: `sudo apt install make wget git openjdk-11-jdk`. The Monero binaries will be downloaded and verified automatically in the next step.
+On Ubuntu: `sudo apt install make wget git openjdk-11-jdk`
+
+On Windows:
+
+  1. Download [Java JDK 11](https://download.java.net/java/GA/jdk11/9/GPL/openjdk-11.0.2_windows-x64_bin.zip) and extract to C:\Program Files\Java\jdk-11.0.2.
+  2. Add a new user environment variable called `JAVA_HOME` with value `C:\Program Files\Java\jdk-11.0.2` (Windows search > "Edit the system environment variables" > Environment variables...)
+  3. Install [MSYS2](https://www.msys2.org/).
+  4. Start MSYS2 MINGW64 or MSYS MINGW32 depending on your system. Use MSYS2 for all commands throughout this document.
+  5. Update pacman: `pacman -Syy`
+  6. Install dependencies:
+
+      64-bit: `pacman -S mingw-w64-x86_64-toolchain make mingw-w64-x86_64-cmake git`
+
+      32-bit: `pacman -S mingw-w64-i686-toolchain make mingw-w64-i686-cmake git`
 
 ## Build Haveno
 
@@ -32,6 +45,8 @@ Make sure to delete the folder with the local settings, as there are breaking ch
 On **Linux**: remove everything inside `~/.local/share/haveno-*/xmr_stagenet/`, except the `wallet` folder.
 
 On **Mac**: remove everything inside `~/Library/Application\ Support/haveno-*/xmr_stagenet/`, except the `wallet` folder.
+
+On **Windows**: remove everything inside `~\AppData\Roaming\haveno-*/xmr_stagenet/`, except the `wallet` folder.
 
 ## Join the public test network
 
