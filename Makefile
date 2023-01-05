@@ -93,8 +93,14 @@ funding-wallet-local:
 		--rpc-access-control-origins http://localhost:8080 \
 		--wallet-dir ./.localnet
 
+# use .bat extension for windows binaries
+APP_EXT :=
+ifeq ($(OS),Windows_NT)
+	APP_EXT := .bat
+endif
+
 seednode-local:
-	./haveno-seednode \
+	./haveno-seednode$(APP_EXT) \
 		--baseCurrencyNetwork=XMR_LOCAL \
 		--useLocalhostForP2P=true \
 		--useDevPrivilegeKeys=true \
@@ -104,7 +110,7 @@ seednode-local:
 
 arbitrator-daemon-local:
 	# Arbitrator needs to be registered before making trades
-	./haveno-daemon \
+	./haveno-daemon$(APP_EXT) \
 		--baseCurrencyNetwork=XMR_LOCAL \
 		--useLocalhostForP2P=true \
 		--useDevPrivilegeKeys=true \
@@ -116,7 +122,7 @@ arbitrator-daemon-local:
 
 arbitrator-desktop-local:
 	# Arbitrator needs to be registered before making trades
-	./haveno-desktop \
+	./haveno-desktop$(APP_EXT) \
 		--baseCurrencyNetwork=XMR_LOCAL \
 		--useLocalhostForP2P=true \
 		--useDevPrivilegeKeys=true \
@@ -127,7 +133,7 @@ arbitrator-desktop-local:
 
 arbitrator-desktop2-local:
 	# Arbitrator needs to be registered before making trades
-	./haveno-desktop \
+	./haveno-desktop$(APP_EXT) \
 		--baseCurrencyNetwork=XMR_LOCAL \
 		--useLocalhostForP2P=true \
 		--useDevPrivilegeKeys=true \
@@ -137,7 +143,7 @@ arbitrator-desktop2-local:
 		--apiPort=10001
 
 user1-daemon-local:
-	./haveno-daemon \
+	./haveno-daemon$(APP_EXT) \
 		--baseCurrencyNetwork=XMR_LOCAL \
 		--useLocalhostForP2P=true \
 		--useDevPrivilegeKeys=true \
@@ -149,7 +155,7 @@ user1-daemon-local:
 		--passwordRequired=false
 
 user1-desktop-local:
-	./haveno-desktop \
+	./haveno-desktop$(APP_EXT) \
 		--baseCurrencyNetwork=XMR_LOCAL \
 		--useLocalhostForP2P=true \
 		--useDevPrivilegeKeys=true \
@@ -160,7 +166,7 @@ user1-desktop-local:
 		--walletRpcBindPort=38091
 
 user2-desktop-local:
-	./haveno-desktop \
+	./haveno-desktop$(APP_EXT) \
 		--baseCurrencyNetwork=XMR_LOCAL \
 		--useLocalhostForP2P=true \
 		--useDevPrivilegeKeys=true \
@@ -171,7 +177,7 @@ user2-desktop-local:
 		--walletRpcBindPort=38092
 
 user2-daemon-local:
-	./haveno-daemon \
+	./haveno-daemon$(APP_EXT) \
 		--baseCurrencyNetwork=XMR_LOCAL \
 		--useLocalhostForP2P=true \
 		--useDevPrivilegeKeys=true \
@@ -191,7 +197,7 @@ monerod-stagenet:
 		--rpc-access-control-origins http://localhost:8080 \
 
 seednode-stagenet:
-	./haveno-seednode \
+	./haveno-seednode$(APP_EXT) \
 		--baseCurrencyNetwork=XMR_STAGENET \
 		--useLocalhostForP2P=false \
 		--useDevPrivilegeKeys=false \
@@ -200,7 +206,7 @@ seednode-stagenet:
 
 arbitrator-daemon-stagenet:
 	# Arbitrator needs to be registered before making trades
-	./haveno-daemon \
+	./haveno-daemon$(APP_EXT) \
 		--baseCurrencyNetwork=XMR_STAGENET \
 		--useLocalhostForP2P=false \
 		--useDevPrivilegeKeys=false \
@@ -212,7 +218,7 @@ arbitrator-daemon-stagenet:
 
 arbitrator-desktop-stagenet:
 	# Arbitrator needs to be registered before making trades
-	./haveno-desktop \
+	./haveno-desktop$(APP_EXT) \
 		--baseCurrencyNetwork=XMR_STAGENET \
 		--useLocalhostForP2P=false \
 		--useDevPrivilegeKeys=false \
@@ -222,7 +228,7 @@ arbitrator-desktop-stagenet:
 		--apiPort=9998
 
 user1-daemon-stagenet:
-	./haveno-daemon \
+	./haveno-daemon$(APP_EXT) \
 		--baseCurrencyNetwork=XMR_STAGENET \
 		--useLocalhostForP2P=false \
 		--useDevPrivilegeKeys=false \
@@ -234,7 +240,7 @@ user1-daemon-stagenet:
 		--passwordRequired=false
 
 user1-desktop-stagenet:
-	./haveno-desktop \
+	./haveno-desktop$(APP_EXT) \
 		--baseCurrencyNetwork=XMR_STAGENET \
 		--useLocalhostForP2P=false \
 		--useDevPrivilegeKeys=false \
@@ -245,7 +251,7 @@ user1-desktop-stagenet:
 		--walletRpcBindPort=38091
 
 user2-daemon-stagenet:
-	./haveno-daemon \
+	./haveno-daemon$(APP_EXT) \
 		--baseCurrencyNetwork=XMR_STAGENET \
 		--useLocalhostForP2P=false \
 		--useDevPrivilegeKeys=false \
@@ -257,7 +263,7 @@ user2-daemon-stagenet:
 		--passwordRequired=false
 
 user2-desktop-stagenet:
-	./haveno-desktop \
+	./haveno-desktop$(APP_EXT) \
 		--baseCurrencyNetwork=XMR_STAGENET \
 		--useLocalhostForP2P=false \
 		--useDevPrivilegeKeys=false \
@@ -268,7 +274,7 @@ user2-desktop-stagenet:
 		--walletRpcBindPort=38092
 
 user3-desktop-stagenet:
-	./haveno-desktop \
+	./haveno-desktop$(APP_EXT) \
 		--baseCurrencyNetwork=XMR_STAGENET \
 		--useLocalhostForP2P=false \
 		--useDevPrivilegeKeys=false \
