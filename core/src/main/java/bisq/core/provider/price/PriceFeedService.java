@@ -252,9 +252,14 @@ public class PriceFeedService {
         }
         log.warn("We received an error at the request from provider {}. " +
                 "We select the new provider {} and use that for a new request in {} sec.", oldBaseUrl, priceProvider.getBaseUrl(), thisRetryDelay);
-        UserThread.runAfter(() -> {
+        if (thisRetryDelay > 0) {
+            UserThread.runAfter(() -> {
+                log.warn("Running request!");
+                request(true);
+            }, thisRetryDelay);
+        } else {
             request(true);
-        }, thisRetryDelay);
+        }
     }
 
     // returns true if provider selection loops back to beginning
