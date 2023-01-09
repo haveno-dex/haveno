@@ -31,6 +31,7 @@ import com.google.protobuf.ByteString;
 import bisq.common.crypto.PubKeyRing;
 import bisq.common.proto.network.NetworkPayload;
 import bisq.common.util.JsonExclude;
+import bisq.common.util.Utilities;
 
 import org.bitcoinj.core.Coin;
 
@@ -289,8 +290,8 @@ public final class Contract implements NetworkPayload {
                 ",\n     takerAccountId='" + takerAccountId + '\'' +
                 ",\n     makerPaymentMethodId='" + makerPaymentMethodId + '\'' +
                 ",\n     takerPaymentMethodId='" + takerPaymentMethodId + '\'' +
-                ",\n     makerPaymentAccountPayloadHash=" + makerPaymentAccountPayloadHash +
-                ",\n     takerPaymentAccountPayloadHash=" + takerPaymentAccountPayloadHash +
+                ",\n     makerPaymentAccountPayloadHash=" + Utilities.bytesAsHexString(makerPaymentAccountPayloadHash) +
+                ",\n     takerPaymentAccountPayloadHash=" + Utilities.bytesAsHexString(takerPaymentAccountPayloadHash) +
                 ",\n     makerPubKeyRing=" + makerPubKeyRing +
                 ",\n     takerPubKeyRing=" + takerPubKeyRing +
                 ",\n     makerPayoutAddressString='" + makerPayoutAddressString + '\'' +

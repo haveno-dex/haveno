@@ -448,7 +448,7 @@ public class SellerStep3View extends TradeStepView {
             }
 
             if (model.dataModel.isSignWitnessTrade()) {
-                message += Res.get("portfolio.pending.step3_seller.onPaymentReceived.signer");
+                message += "\n\n" + Res.get("portfolio.pending.step3_seller.onPaymentReceived.signer");
             }
         }
         if (!DevEnv.isDevMode() && DontShowAgainLookup.showAgain(key)) {

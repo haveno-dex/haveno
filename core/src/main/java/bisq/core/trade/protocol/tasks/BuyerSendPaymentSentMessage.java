@@ -89,7 +89,8 @@ public abstract class BuyerSendPaymentSentMessage extends SendMailboxMessageTask
                     deterministicId,
                     trade.getPayoutTxHex(),
                     trade.getSelf().getUpdatedMultisigHex(),
-                    trade.getSelf().getPaymentAccountKey()
+                    trade.getSelf().getPaymentAccountKey(),
+                    trade.getTradingPeer().getAccountAgeWitness()
             );
 
             // sign message

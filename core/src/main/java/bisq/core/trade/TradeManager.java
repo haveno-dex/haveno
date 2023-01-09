@@ -1020,7 +1020,9 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
     }
 
     public Optional<Trade> getOpenTrade(String tradeId) {
-        return tradableList.stream().filter(e -> e.getId().equals(tradeId)).findFirst();
+        synchronized (tradableList) {
+            return tradableList.stream().filter(e -> e.getId().equals(tradeId)).findFirst();
+        }
     }
 
     public List<Trade> getOpenTrades() {

@@ -22,19 +22,10 @@ import bisq.core.offer.Offer;
 import bisq.core.trade.BuyerAsTakerTrade;
 import bisq.core.trade.Trade;
 import bisq.core.trade.handlers.TradeResultHandler;
-import bisq.core.trade.messages.DepositResponse;
-import bisq.core.trade.messages.InitMultisigRequest;
-import bisq.core.trade.messages.DepositsConfirmedMessage;
-import bisq.core.trade.messages.PaymentReceivedMessage;
-import bisq.core.trade.messages.SignContractRequest;
-import bisq.core.trade.messages.SignContractResponse;
-import bisq.core.trade.messages.TradeMessage;
 import bisq.core.trade.protocol.tasks.ApplyFilter;
 import bisq.core.trade.protocol.tasks.TakerReserveTradeFunds;
 import bisq.core.trade.protocol.tasks.TakerSendInitTradeRequestToArbitrator;
-import bisq.network.p2p.NodeAddress;
 import bisq.common.handlers.ErrorMessageHandler;
-import bisq.common.handlers.ResultHandler;
 
 import lombok.extern.slf4j.Slf4j;
 

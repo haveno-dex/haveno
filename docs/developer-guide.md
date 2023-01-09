@@ -34,6 +34,15 @@ Follow [instructions](https://github.com/haveno-dex/haveno-ts#run-tests) to run 
 9. Run the tests with `npm run test -- -t 'my test'` to run tests by name and `npm test` to run all tests together. Ensure all tests pass and there are no exception stacktraces in the terminals of Alice, Bob, or the arbitrator.
 10. Open pull requests to the haveno and haveno-ts projects for the backend and frontend implementations.
 
+## How to manually sign accounts as the arbitrator
+
+1. Open legacy UI as the arbitrator.
+2. Go to the 'Account' tab.
+3. Open Signing tab: `ctrl+i`
+    a. Sign payment account: `ctrl+s`, select payment accounts to sign (sourced from disputes).
+    b. Sign account age witness: `ctrl+p` then enter <witness hash>,<pub key hash> (from past trade details) and click the "Import unsigned account age witness" button.
+    c. Sign unsigned witness pub keys: `ctrl+o`
+
 ## How to rebase and squash your commits
 
 When submitting a pull request for review, please first rebase and squash your commits.

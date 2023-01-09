@@ -43,6 +43,7 @@ import bisq.network.p2p.NodeAddress;
 
 import bisq.common.UserThread;
 import bisq.common.util.Tuple3;
+import bisq.common.util.Utilities;
 
 import javax.inject.Inject;
 import javax.inject.Named;
@@ -313,6 +314,11 @@ public class TradeDetailsWindow extends Overlay<TradeDetailsWindow> {
         HBox.setHgrow(spacer, Priority.ALWAYS);
         hBox.getChildren().add(0, spacer);
 
+        String buyerWitnessHash = trade.getBuyer().getAccountAgeWitness() == null ? "null" : Utilities.bytesAsHexString(trade.getBuyer().getAccountAgeWitness().getHash());
+        String buyerPubKeyRingHash = Utilities.bytesAsHexString(trade.getBuyer().getPubKeyRing().getSignaturePubKeyBytes());
+        String sellerWitnessHash = trade.getSeller().getAccountAgeWitness() == null ? "null" : Utilities.bytesAsHexString(trade.getSeller().getAccountAgeWitness().getHash());
+        String sellerPubKeyRingHash = Utilities.bytesAsHexString(trade.getSeller().getPubKeyRing().getSignaturePubKeyBytes());
+
         if (contract != null) {
             viewContractButton.setOnAction(e -> {
                 TextArea textArea = new HavenoTextArea();
@@ -321,8 +327,10 @@ public class TradeDetailsWindow extends Overlay<TradeDetailsWindow> {
                 data += trade.getContractAsJson();
                 data += "\n\nOther detail data:";
                 if (offer.isFiatOffer()) {
-                    data += "\n\nBuyersAccountAge: " + buyersAccountAge;
-                    data += "\nSellersAccountAge: " + sellersAccountAge;
+                    data += "\n\nBuyers witness hash,pub key ring hash: " + buyerWitnessHash + "," + buyerPubKeyRingHash;
+                    data += "\nBuyers account age: " + buyersAccountAge;
+                    data += "\nSellers witness hash,pub key ring hash: " + sellerWitnessHash + "," + sellerPubKeyRingHash;
+                    data += "\nSellers account age: " + sellersAccountAge;
                 }
 
                 // TODO (woodser): include maker and taker deposit tx hex in contract?

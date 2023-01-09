@@ -21,9 +21,15 @@ import bisq.core.proto.CoreProtoResolver;
 
 import bisq.network.p2p.DirectMessage;
 import bisq.network.p2p.NodeAddress;
+
+import java.util.Optional;
+
+import javax.annotation.Nullable;
+
 import com.google.protobuf.ByteString;
 import bisq.common.crypto.PubKeyRing;
-
+import bisq.common.proto.ProtoUtil;
+import bisq.common.util.Utilities;
 import lombok.EqualsAndHashCode;
 import lombok.Value;
 
@@ -37,6 +43,7 @@ public final class SignContractRequest extends TradeMessage implements DirectMes
     private final byte[] paymentAccountPayloadHash;
     private final String payoutAddress;
     private final String depositTxHash;
+    private final byte[] accountAgeWitnessSignatureOfDepositHash;
 
     public SignContractRequest(String tradeId,
                                      NodeAddress senderNodeAddress,
@@ -47,7 +54,8 @@ public final class SignContractRequest extends TradeMessage implements DirectMes
                                      String accountId,
                                      byte[] paymentAccountPayloadHash,
                                      String payoutAddress,
-                                     String depositTxHash) {
+                                     String depositTxHash,
+                                     @Nullable byte[] accountAgeWitnessSignatureOfDepositHash) {
         super(messageVersion, tradeId, uid);
         this.senderNodeAddress = senderNodeAddress;
         this.pubKeyRing = pubKeyRing;
@@ -56,6 +64,7 @@ public final class SignContractRequest extends TradeMessage implements DirectMes
         this.paymentAccountPayloadHash = paymentAccountPayloadHash;
         this.payoutAddress = payoutAddress;
         this.depositTxHash = depositTxHash;
+        this.accountAgeWitnessSignatureOfDepositHash = accountAgeWitnessSignatureOfDepositHash;
     }
 
 
@@ -75,6 +84,7 @@ public final class SignContractRequest extends TradeMessage implements DirectMes
                 .setPayoutAddress(payoutAddress)
                 .setDepositTxHash(depositTxHash);
 
+        Optional.ofNullable(accountAgeWitnessSignatureOfDepositHash).ifPresent(e -> builder.setAccountAgeWitnessSignatureOfDepositHash(ByteString.copyFrom(e)));
         builder.setCurrentDate(currentDate);
 
         return getNetworkEnvelopeBuilder().setSignContractRequest(builder).build();
@@ -92,7 +102,8 @@ public final class SignContractRequest extends TradeMessage implements DirectMes
                 proto.getAccountId(),
                 proto.getPaymentAccountPayloadHash().toByteArray(),
                 proto.getPayoutAddress(),
-                proto.getDepositTxHash());
+                proto.getDepositTxHash(),
+                ProtoUtil.byteArrayOrNullFromProto(proto.getAccountAgeWitnessSignatureOfDepositHash()));
     }
 
     @Override
@@ -102,9 +113,10 @@ public final class SignContractRequest extends TradeMessage implements DirectMes
                 ",\n     pubKeyRing=" + pubKeyRing +
                 ",\n     currentDate=" + currentDate +
                 ",\n     accountId=" + accountId +
-                ",\n     paymentAccountPayloadHash='" + paymentAccountPayloadHash +
+                ",\n     paymentAccountPayloadHash='" + Utilities.bytesAsHexString(paymentAccountPayloadHash) +
                 ",\n     payoutAddress='" + payoutAddress +
                 ",\n     depositTxHash='" + depositTxHash +
+                ",\n     accountAgeWitnessSignatureOfDepositHash='" + Utilities.bytesAsHexString(accountAgeWitnessSignatureOfDepositHash) +
                 "\n} " + super.toString();
     }
 }

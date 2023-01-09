@@ -37,9 +37,13 @@ import bisq.core.trade.protocol.TradingPeer;
 import bisq.core.util.JsonUtil;
 import bisq.network.p2p.NodeAddress;
 import bisq.network.p2p.SendDirectMessageListener;
+
 import java.util.Date;
 import java.util.UUID;
 import javax.crypto.SecretKey;
+
+import com.google.common.base.Charsets;
+
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -66,6 +70,12 @@ public class ProcessSignContractRequest extends TradeTask {
           trader.setAccountId(request.getAccountId());
           trader.setPaymentAccountPayloadHash(request.getPaymentAccountPayloadHash());
           trader.setPayoutAddressString(request.getPayoutAddress());
+          
+          // maker sends witness signature of deposit tx hash
+          if (trader == trade.getMaker()) {
+            trader.setAccountAgeWitnessNonce(request.getDepositTxHash().getBytes(Charsets.UTF_8));
+            trader.setAccountAgeWitnessSignature(request.getAccountAgeWitnessSignatureOfDepositHash());
+          }
 
           // sign contract only when both deposit txs hashes known
           // TODO (woodser): remove makerDepositTxId and takerDepositTxId from Trade

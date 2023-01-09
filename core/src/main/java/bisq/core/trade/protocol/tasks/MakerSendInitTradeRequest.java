@@ -53,11 +53,8 @@ public class MakerSendInitTradeRequest extends TradeTask {
             checkNotNull(makerRequest);
             checkTradeId(processModel.getOfferId(), makerRequest);
 
-            // maker signs offer id as nonce to avoid challenge protocol // TODO: how is this used?
-            Offer offer = processModel.getOffer();
-            byte[] sig = Sig.sign(processModel.getKeyRing().getSignatureKeyPair().getPrivate(), offer.getId().getBytes(Charsets.UTF_8));
-
             // create request to arbitrator
+            Offer offer = processModel.getOffer();
             InitTradeRequest arbitratorRequest = new InitTradeRequest(
                     offer.getId(),
                     processModel.getMyNodeAddress(),
@@ -70,7 +67,7 @@ public class MakerSendInitTradeRequest extends TradeTask {
                     offer.getOfferPayload().getPaymentMethodId(),
                     UUID.randomUUID().toString(),
                     Version.getP2PMessageVersion(),
-                    sig,
+                    null,
                     makerRequest.getCurrentDate(),
                     trade.getMaker().getNodeAddress(),
                     trade.getTaker().getNodeAddress(),

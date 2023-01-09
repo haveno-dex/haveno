@@ -53,7 +53,7 @@ public class ProcessDepositsConfirmedMessage extends TradeTask {
 
             // decrypt seller payment account payload if key given
             if (request.getSellerPaymentAccountKey() != null && trade.getTradingPeer().getPaymentAccountPayload() == null) {
-                log.info(trade.getClass().getSimpleName() + " decryping using seller payment account key: " + request.getSellerPaymentAccountKey());
+                log.info(trade.getClass().getSimpleName() + " decrypting using seller payment account key");
                 trade.decryptPeerPaymentAccountPayload(request.getSellerPaymentAccountKey());
             }
 

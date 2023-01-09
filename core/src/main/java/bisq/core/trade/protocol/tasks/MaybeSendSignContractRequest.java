@@ -18,17 +18,21 @@
 package bisq.core.trade.protocol.tasks;
 
 import bisq.common.app.Version;
+import bisq.common.crypto.Sig;
 import bisq.common.taskrunner.TaskRunner;
 import bisq.core.btc.model.XmrAddressEntry;
 import bisq.core.trade.ArbitratorTrade;
+import bisq.core.trade.MakerTrade;
 import bisq.core.trade.Trade;
 import bisq.core.trade.Trade.State;
 import bisq.core.trade.messages.SignContractRequest;
 import bisq.network.p2p.SendDirectMessageListener;
 import java.util.Date;
 import java.util.UUID;
+
+import com.google.common.base.Charsets;
+
 import lombok.extern.slf4j.Slf4j;
-import monero.wallet.MoneroWallet;
 import monero.wallet.model.MoneroTxWallet;
 
 // TODO (woodser): separate classes for deposit tx creation and contract request, or combine into ProcessInitMultisigRequest
@@ -75,6 +79,12 @@ public class MaybeSendSignContractRequest extends TradeTask {
           trade.getSelf().setPayoutAddressString(trade.getXmrWalletService().getAddressEntry(processModel.getOffer().getId(), XmrAddressEntry.Context.TRADE_PAYOUT).get().getAddressString()); // TODO (woodser): allow custom payout address?
           trade.getSelf().setPaymentAccountPayload(trade.getProcessModel().getPaymentAccountPayload(trade));
 
+          // maker signs deposit hash nonce to avoid challenge protocol
+          byte[] sig = null;
+          if (trade instanceof MakerTrade) {
+            sig = Sig.sign(processModel.getP2PService().getKeyRing().getSignatureKeyPair().getPrivate(), depositTx.getHash().getBytes(Charsets.UTF_8));
+          }
+
           // create request for peer and arbitrator to sign contract
           SignContractRequest request = new SignContractRequest(
                   trade.getOffer().getId(),
@@ -86,7 +96,8 @@ public class MaybeSendSignContractRequest extends TradeTask {
                   trade.getProcessModel().getAccountId(),
                   trade.getSelf().getPaymentAccountPayload().getHash(),
                   trade.getSelf().getPayoutAddressString(),
-                  depositTx.getHash());
+                  depositTx.getHash(),
+                  sig);
 
           // send request to trading peer
           processModel.getP2PService().sendEncryptedDirectMessage(trade.getTradingPeer().getNodeAddress(), trade.getTradingPeer().getPubKeyRing(), request, new SendDirectMessageListener() {
