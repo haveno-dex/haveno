@@ -48,6 +48,7 @@ public class ProcessPaymentSentMessage extends TradeTask {
             trade.setPayoutTxHex(message.getPayoutTxHex());
             trade.getBuyer().setUpdatedMultisigHex(message.getUpdatedMultisigHex());
             trade.getBuyer().setPaymentSentMessage(message);
+            trade.getSeller().setAccountAgeWitness(message.getSellerAccountAgeWitness());
 
             // if seller, decrypt buyer's payment account payload
             if (trade.isSeller()) trade.decryptPeerPaymentAccountPayload(message.getPaymentAccountKey());

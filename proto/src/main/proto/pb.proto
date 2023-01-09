@@ -312,6 +312,7 @@ message SignContractRequest {
     bytes payment_account_payload_hash = 7;
     string payout_address = 8;;
     string deposit_tx_hash = 9;
+    bytes account_age_witness_signature_of_deposit_hash = 10;
 }
 
 message SignContractResponse {
@@ -404,20 +405,22 @@ message PaymentSentMessage {
     string payout_tx_hex = 6;
     string updated_multisig_hex = 7;
     bytes payment_account_key = 8;
-    bytes buyer_signature = 9;
+    AccountAgeWitness seller_account_age_witness = 9;
+    bytes buyer_signature = 10;
 }
 
 message PaymentReceivedMessage {
     string trade_id = 1;
     NodeAddress sender_node_address = 2;
     string uid = 3;
-    SignedWitness signed_witness = 4; // Added in v1.4.0
-    string unsigned_payout_tx_hex = 5;
-    string signed_payout_tx_hex = 6;
-    string updated_multisig_hex = 7;
-    bool defer_publish_payout = 8;
-    PaymentSentMessage payment_sent_message = 9;
-    bytes seller_signature = 10;
+    string unsigned_payout_tx_hex = 4;
+    string signed_payout_tx_hex = 5;
+    string updated_multisig_hex = 6;
+    bool defer_publish_payout = 7;
+    AccountAgeWitness buyer_account_age_witness = 8;
+    SignedWitness buyer_signed_witness = 9;
+    PaymentSentMessage payment_sent_message = 10;
+    bytes seller_signature = 11;
 }
 
 message MediatedPayoutTxPublishedMessage {
@@ -1732,8 +1735,9 @@ message TradingPeer {
     string change_output_address = 17;
     bytes account_age_witness_nonce = 18;
     bytes account_age_witness_signature = 19;
-    int64 current_date = 20;
-    bytes mediated_payout_tx_signature = 21;
+    AccountAgeWitness account_age_witness = 20;
+    int64 current_date = 21;
+    bytes mediated_payout_tx_signature = 22;
 
     string reserve_tx_hash = 1001;
     string reserve_tx_hex = 1002;

@@ -200,9 +200,7 @@ public class SignPaymentAccountsWindow extends Overlay<SignPaymentAccountsWindow
                         ++rowIndex, Res.get("popup.accountSigning.confirmSelectedAccounts.headline"));
         GridPane.setRowSpan(selectedPaymentAccountsTuple.third, 2);
         selectedPaymentAccountsList = selectedPaymentAccountsTuple.second;
-        ObservableList<Dispute> disputesAsObservableList = useDevPrivilegeKeys ?
-                mediationManager.getDisputesAsObservableList()
-                : arbitrationManager.getDisputesAsObservableList();
+        ObservableList<Dispute> disputesAsObservableList = arbitrationManager.getDisputesAsObservableList();
         long safeDate = datePicker.getValue().atStartOfDay().toEpochSecond(ZoneOffset.UTC) * 1000;
         List<TraderDataItem> traderDataItemList;
         StringBuilder sb = new StringBuilder("Summary for ").append(appName).append("\n");

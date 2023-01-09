@@ -18,7 +18,7 @@
 package bisq.core.trade.messages;
 
 import bisq.core.account.sign.SignedWitness;
-
+import bisq.core.account.witness.AccountAgeWitness;
 import bisq.network.p2p.NodeAddress;
 
 import bisq.common.app.Version;
@@ -31,7 +31,6 @@ import java.util.UUID;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
-import lombok.Value;
 import lombok.extern.slf4j.Slf4j;
 
 import javax.annotation.Nullable;
@@ -49,32 +48,34 @@ public final class PaymentReceivedMessage extends TradeMailboxMessage {
     private final String signedPayoutTxHex;
     private final String updatedMultisigHex;
     private final boolean deferPublishPayout;
+    @Nullable
+    private final AccountAgeWitness buyerAccountAgeWitness;
+    @Nullable
+    private final SignedWitness buyerSignedWitness;
     private final PaymentSentMessage paymentSentMessage;
     @Setter
     @Nullable
     private byte[] sellerSignature;
 
-    // Added in v1.4.0
-    @Nullable
-    private final SignedWitness signedWitness;
-
     public PaymentReceivedMessage(String tradeId,
                                     NodeAddress senderNodeAddress,
-                                    @Nullable SignedWitness signedWitness,
                                     String unsignedPayoutTxHex,
                                     String signedPayoutTxHex,
                                     String updatedMultisigHex,
                                     boolean deferPublishPayout,
+                                    AccountAgeWitness buyerAccountAgeWitness,
+                                    @Nullable SignedWitness buyerSignedWitness,
                                     PaymentSentMessage paymentSentMessage) {
         this(tradeId,
                 senderNodeAddress,
-                signedWitness,
                 UUID.randomUUID().toString(),
                 Version.getP2PMessageVersion(),
                 unsignedPayoutTxHex,
                 signedPayoutTxHex,
                 updatedMultisigHex,
                 deferPublishPayout,
+                buyerAccountAgeWitness,
+                buyerSignedWitness,
                 paymentSentMessage);
     }
 
@@ -85,22 +86,24 @@ public final class PaymentReceivedMessage extends TradeMailboxMessage {
 
     private PaymentReceivedMessage(String tradeId,
                                      NodeAddress senderNodeAddress,
-                                     @Nullable SignedWitness signedWitness,
                                      String uid,
                                      String messageVersion,
                                      String unsignedPayoutTxHex,
                                      String signedPayoutTxHex,
                                      String updatedMultisigHex,
                                      boolean deferPublishPayout,
+                                     AccountAgeWitness buyerAccountAgeWitness,
+                                     @Nullable SignedWitness buyerSignedWitness,
                                      PaymentSentMessage paymentSentMessage) {
         super(messageVersion, tradeId, uid);
         this.senderNodeAddress = senderNodeAddress;
-        this.signedWitness = signedWitness;
         this.unsignedPayoutTxHex = unsignedPayoutTxHex;
         this.signedPayoutTxHex = signedPayoutTxHex;
         this.updatedMultisigHex = updatedMultisigHex;
         this.deferPublishPayout = deferPublishPayout;
         this.paymentSentMessage = paymentSentMessage;
+        this.buyerAccountAgeWitness = buyerAccountAgeWitness;
+        this.buyerSignedWitness = buyerSignedWitness;
     }
 
     @Override
@@ -110,10 +113,11 @@ public final class PaymentReceivedMessage extends TradeMailboxMessage {
                 .setSenderNodeAddress(senderNodeAddress.toProtoMessage())
                 .setUid(uid)
                 .setDeferPublishPayout(deferPublishPayout);
-        Optional.ofNullable(signedWitness).ifPresent(signedWitness -> builder.setSignedWitness(signedWitness.toProtoSignedWitness()));
         Optional.ofNullable(updatedMultisigHex).ifPresent(e -> builder.setUpdatedMultisigHex(updatedMultisigHex));
         Optional.ofNullable(unsignedPayoutTxHex).ifPresent(e -> builder.setUnsignedPayoutTxHex(unsignedPayoutTxHex));
         Optional.ofNullable(signedPayoutTxHex).ifPresent(e -> builder.setSignedPayoutTxHex(signedPayoutTxHex));
+        Optional.ofNullable(buyerAccountAgeWitness).ifPresent(buyerAccountAgeWitness -> builder.setBuyerAccountAgeWitness(buyerAccountAgeWitness.toProtoAccountAgeWitness()));
+        Optional.ofNullable(buyerSignedWitness).ifPresent(buyerSignedWitness -> builder.setBuyerSignedWitness(buyerSignedWitness.toProtoSignedWitness()));
         Optional.ofNullable(paymentSentMessage).ifPresent(e -> builder.setPaymentSentMessage(paymentSentMessage.toProtoNetworkEnvelope().getPaymentSentMessage()));
         Optional.ofNullable(sellerSignature).ifPresent(e -> builder.setSellerSignature(ByteString.copyFrom(e)));
         return getNetworkEnvelopeBuilder().setPaymentReceivedMessage(builder).build();
@@ -121,20 +125,23 @@ public final class PaymentReceivedMessage extends TradeMailboxMessage {
 
     public static NetworkEnvelope fromProto(protobuf.PaymentReceivedMessage proto, String messageVersion) {
         // There is no method to check for a nullable non-primitive data type object but we know that all fields
-        // are empty/null, so we check for the signature to see if we got a valid signedWitness.
-        protobuf.SignedWitness protoSignedWitness = proto.getSignedWitness();
-        SignedWitness signedWitness = !protoSignedWitness.getSignature().isEmpty() ?
+        // are empty/null, so we check for the signature to see if we got a valid buyerSignedWitness.
+        protobuf.AccountAgeWitness protoAccountAgeWitness = proto.getBuyerAccountAgeWitness();
+        AccountAgeWitness buyerAccountAgeWitness = protoAccountAgeWitness.getHash().isEmpty() ? null : AccountAgeWitness.fromProto(protoAccountAgeWitness);
+        protobuf.SignedWitness protoSignedWitness = proto.getBuyerSignedWitness();
+        SignedWitness buyerSignedWitness = !protoSignedWitness.getSignature().isEmpty() ?
                 SignedWitness.fromProto(protoSignedWitness) :
                 null;
         PaymentReceivedMessage message = new PaymentReceivedMessage(proto.getTradeId(),
                 NodeAddress.fromProto(proto.getSenderNodeAddress()),
-                signedWitness,
                 proto.getUid(),
                 messageVersion,
                 ProtoUtil.stringOrNullFromProto(proto.getUnsignedPayoutTxHex()),
                 ProtoUtil.stringOrNullFromProto(proto.getSignedPayoutTxHex()),
                 ProtoUtil.stringOrNullFromProto(proto.getUpdatedMultisigHex()),
                 proto.getDeferPublishPayout(),
+                buyerAccountAgeWitness,
+                buyerSignedWitness,
                 proto.hasPaymentSentMessage() ? PaymentSentMessage.fromProto(proto.getPaymentSentMessage(), messageVersion) : null);
         message.setSellerSignature(ProtoUtil.byteArrayOrNullFromProto(proto.getSellerSignature()));
         return message;
@@ -144,7 +151,7 @@ public final class PaymentReceivedMessage extends TradeMailboxMessage {
     public String toString() {
         return "PaymentReceivedMessage{" +
                 "\n     senderNodeAddress=" + senderNodeAddress +
-                ",\n     signedWitness=" + signedWitness +
+                ",\n     buyerSignedWitness=" + buyerSignedWitness +
                 ",\n     unsignedPayoutTxHex=" + unsignedPayoutTxHex +
                 ",\n     signedPayoutTxHex=" + signedPayoutTxHex +
                 ",\n     updatedMultisigHex=" + (updatedMultisigHex == null ? null : updatedMultisigHex.substring(0, Math.max(updatedMultisigHex.length(), 1000))) +

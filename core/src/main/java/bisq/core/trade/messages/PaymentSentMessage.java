@@ -21,6 +21,7 @@ import bisq.network.p2p.NodeAddress;
 import com.google.protobuf.ByteString;
 import bisq.common.app.Version;
 import bisq.common.proto.ProtoUtil;
+import bisq.core.account.witness.AccountAgeWitness;
 
 import java.util.Optional;
 
@@ -42,6 +43,8 @@ public final class PaymentSentMessage extends TradeMailboxMessage {
     private final String updatedMultisigHex;
     @Nullable
     private final byte[] paymentAccountKey;
+    @Nullable
+    private AccountAgeWitness sellerAccountAgeWitness;
     @Setter
     @Nullable
     private byte[] buyerSignature;
@@ -58,7 +61,8 @@ public final class PaymentSentMessage extends TradeMailboxMessage {
                                                  String uid,
                                                  @Nullable String signedPayoutTxHex,
                                                  @Nullable String updatedMultisigHex,
-                                                 @Nullable byte[] paymentAccountKey) {
+                                                 @Nullable byte[] paymentAccountKey,
+                                                 AccountAgeWitness sellerAccountAgeWitness) {
         this(tradeId,
                 senderNodeAddress,
                 counterCurrencyTxId,
@@ -67,7 +71,8 @@ public final class PaymentSentMessage extends TradeMailboxMessage {
                 Version.getP2PMessageVersion(),
                 signedPayoutTxHex,
                 updatedMultisigHex,
-                paymentAccountKey);
+                paymentAccountKey,
+                sellerAccountAgeWitness);
     }
 
 
@@ -83,7 +88,8 @@ public final class PaymentSentMessage extends TradeMailboxMessage {
                                                   String messageVersion,
                                                   @Nullable String signedPayoutTxHex,
                                                   @Nullable String updatedMultisigHex,
-                                                  @Nullable byte[] paymentAccountKey) {
+                                                  @Nullable byte[] paymentAccountKey,
+                                                  AccountAgeWitness sellerAccountAgeWitness) {
         super(messageVersion, tradeId, uid);
         this.senderNodeAddress = senderNodeAddress;
         this.counterCurrencyTxId = counterCurrencyTxId;
@@ -91,6 +97,7 @@ public final class PaymentSentMessage extends TradeMailboxMessage {
         this.payoutTxHex = signedPayoutTxHex;
         this.updatedMultisigHex = updatedMultisigHex;
         this.paymentAccountKey = paymentAccountKey;
+        this.sellerAccountAgeWitness = sellerAccountAgeWitness;
     }
 
     @Override
@@ -106,12 +113,17 @@ public final class PaymentSentMessage extends TradeMailboxMessage {
         Optional.ofNullable(updatedMultisigHex).ifPresent(e -> builder.setUpdatedMultisigHex(updatedMultisigHex));
         Optional.ofNullable(paymentAccountKey).ifPresent(e -> builder.setPaymentAccountKey(ByteString.copyFrom(e)));
         Optional.ofNullable(buyerSignature).ifPresent(e -> builder.setBuyerSignature(ByteString.copyFrom(e)));
+        Optional.ofNullable(sellerAccountAgeWitness).ifPresent(e -> builder.setSellerAccountAgeWitness(sellerAccountAgeWitness.toProtoAccountAgeWitness()));
 
         return getNetworkEnvelopeBuilder().setPaymentSentMessage(builder).build();
     }
 
     public static PaymentSentMessage fromProto(protobuf.PaymentSentMessage proto,
                                                                   String messageVersion) {
+
+        protobuf.AccountAgeWitness protoAccountAgeWitness = proto.getSellerAccountAgeWitness();
+        AccountAgeWitness accountAgeWitness = protoAccountAgeWitness.getHash().isEmpty() ? null : AccountAgeWitness.fromProto(protoAccountAgeWitness);
+
         PaymentSentMessage message = new PaymentSentMessage(proto.getTradeId(),
                 NodeAddress.fromProto(proto.getSenderNodeAddress()),
                 ProtoUtil.stringOrNullFromProto(proto.getCounterCurrencyTxId()),
@@ -120,7 +132,8 @@ public final class PaymentSentMessage extends TradeMailboxMessage {
                 messageVersion,
                 ProtoUtil.stringOrNullFromProto(proto.getPayoutTxHex()),
                 ProtoUtil.stringOrNullFromProto(proto.getUpdatedMultisigHex()),
-                ProtoUtil.byteArrayOrNullFromProto(proto.getPaymentAccountKey())
+                ProtoUtil.byteArrayOrNullFromProto(proto.getPaymentAccountKey()),
+                accountAgeWitness
         );
         message.setBuyerSignature(ProtoUtil.byteArrayOrNullFromProto(proto.getBuyerSignature()));
         return message;

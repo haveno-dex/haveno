@@ -20,6 +20,7 @@ package bisq.core.trade.protocol.tasks;
 import bisq.core.account.sign.SignedWitness;
 import bisq.core.support.dispute.Dispute;
 import bisq.core.trade.ArbitratorTrade;
+import bisq.core.trade.BuyerTrade;
 import bisq.core.trade.HavenoUtils;
 import bisq.core.trade.Trade;
 import bisq.core.trade.messages.PaymentReceivedMessage;
@@ -55,6 +56,7 @@ public class ProcessPaymentReceivedMessage extends TradeTask {
             HavenoUtils.verifyPaymentReceivedMessage(trade, message);
             trade.getSeller().setUpdatedMultisigHex(message.getUpdatedMultisigHex());
             trade.getBuyer().setUpdatedMultisigHex(message.getPaymentSentMessage().getUpdatedMultisigHex());
+            trade.getBuyer().setAccountAgeWitness(message.getBuyerAccountAgeWitness());
 
             // update to the latest peer address of our peer if message is correct
             trade.getSeller().setNodeAddress(processModel.getTempTradingPeerNodeAddress());
@@ -71,8 +73,8 @@ public class ProcessPaymentReceivedMessage extends TradeTask {
             // process payout tx unless already unlocked
             if (!trade.isPayoutUnlocked()) processPayoutTx(message);
 
-            SignedWitness signedWitness = message.getSignedWitness();
-            if (signedWitness != null) {
+            SignedWitness signedWitness = message.getBuyerSignedWitness();
+            if (signedWitness != null && trade instanceof BuyerTrade) {
                 // We received the signedWitness from the seller and publish the data to the network.
                 // The signer has published it as well but we prefer to re-do it on our side as well to achieve higher
                 // resilience.

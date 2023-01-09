@@ -64,7 +64,7 @@ public class AccountAgeWitness implements ProcessOncePersistableNetworkPayload, 
         return protobuf.PersistableNetworkPayload.newBuilder().setAccountAgeWitness(builder).build();
     }
 
-    protobuf.AccountAgeWitness toProtoAccountAgeWitness() {
+    public protobuf.AccountAgeWitness toProtoAccountAgeWitness() {
         return toProtoMessage().getAccountAgeWitness();
     }
 

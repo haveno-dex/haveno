@@ -119,8 +119,10 @@ public class User implements PersistedDataHost {
             userPayload.getAcceptedLanguageLocaleCodes().add(english);
 
         paymentAccountsAsObservable.addListener((SetChangeListener<PaymentAccount>) change -> {
-            userPayload.setPaymentAccounts(new HashSet<>(paymentAccountsAsObservable));
-            requestPersistence();
+            synchronized (paymentAccountsAsObservable) {
+                userPayload.setPaymentAccounts(new HashSet<>(paymentAccountsAsObservable));
+                requestPersistence();
+            }
         });
         currentPaymentAccountProperty.addListener((ov) -> {
             userPayload.setCurrentPaymentAccount(currentPaymentAccountProperty.get());
@@ -212,28 +214,33 @@ public class User implements PersistedDataHost {
 
     public void addPaymentAccount(PaymentAccount paymentAccount) {
         paymentAccount.onAddToUser();
-
-        boolean changed = paymentAccountsAsObservable.add(paymentAccount);
-        setCurrentPaymentAccount(paymentAccount);
-        if (changed)
-            requestPersistence();
+        synchronized (paymentAccountsAsObservable) {
+            boolean changed = paymentAccountsAsObservable.add(paymentAccount);
+            setCurrentPaymentAccount(paymentAccount);
+            if (changed)
+                requestPersistence();
+        }
     }
 
     public void addImportedPaymentAccounts(Collection<PaymentAccount> paymentAccounts) {
-        isPaymentAccountImport = true;
+        synchronized (paymentAccountsAsObservable) {
+            isPaymentAccountImport = true;
 
-        boolean changed = paymentAccountsAsObservable.addAll(paymentAccounts);
-        paymentAccounts.stream().findFirst().ifPresent(this::setCurrentPaymentAccount);
-        if (changed)
-            requestPersistence();
-
-        isPaymentAccountImport = false;
+            boolean changed = paymentAccountsAsObservable.addAll(paymentAccounts);
+            paymentAccounts.stream().findFirst().ifPresent(this::setCurrentPaymentAccount);
+            if (changed)
+                requestPersistence();
+    
+            isPaymentAccountImport = false;
+        }
     }
 
     public void removePaymentAccount(PaymentAccount paymentAccount) {
-        boolean changed = paymentAccountsAsObservable.remove(paymentAccount);
-        if (changed)
-            requestPersistence();
+        synchronized (paymentAccountsAsObservable) {
+            boolean changed = paymentAccountsAsObservable.remove(paymentAccount);
+            if (changed)
+                requestPersistence();
+        }
     }
 
     public boolean addAcceptedArbitrator(Arbitrator arbitrator) {
@@ -513,7 +520,9 @@ public class User implements PersistedDataHost {
     }
 
     private boolean paymentAccountExists(PaymentAccount paymentAccount) {
-        return getPaymentAccountsAsObservable().stream().anyMatch(e -> e.equals(paymentAccount));
+        synchronized (paymentAccountsAsObservable) {
+            return getPaymentAccountsAsObservable().stream().anyMatch(e -> e.equals(paymentAccount));
+        }
     }
 
     public Cookie getCookie() {

@@ -37,6 +37,7 @@ import bisq.core.trade.messages.TradeMessage;
 import bisq.core.trade.protocol.tasks.RemoveOffer;
 import bisq.core.trade.protocol.tasks.ProcessPaymentSentMessage;
 import bisq.core.trade.protocol.tasks.TradeTask;
+import bisq.core.trade.protocol.tasks.VerifyPeersAccountAgeWitness;
 import bisq.core.trade.protocol.FluentProtocol.Condition;
 import bisq.core.trade.protocol.tasks.ApplyFilter;
 import bisq.core.trade.protocol.tasks.MaybeSendSignContractRequest;
@@ -387,7 +388,9 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
             expect(new Condition(trade)
                     .with(response)
                     .from(sender))
-                    .setup(tasks(ProcessDepositsConfirmedMessage.class)
+                    .setup(tasks(
+                        ProcessDepositsConfirmedMessage.class,
+                        VerifyPeersAccountAgeWitness.class)
                     .using(new TradeTaskRunner(trade,
                             () -> {
                                 handleTaskRunnerSuccess(sender, response);
@@ -431,7 +434,8 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
                             }))
                     .setup(tasks(
                             ApplyFilter.class,
-                            ProcessPaymentSentMessage.class)
+                            ProcessPaymentSentMessage.class,
+                            VerifyPeersAccountAgeWitness.class)
                     .using(new TradeTaskRunner(trade,
                             () -> {
                                 handleTaskRunnerSuccess(peer, message);

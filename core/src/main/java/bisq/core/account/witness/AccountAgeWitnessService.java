@@ -531,6 +531,15 @@ public class AccountAgeWitnessService {
                                            byte[] nonce,
                                            byte[] signature,
                                            ErrorMessageHandler errorMessageHandler) {
+
+        log.info("Verifying account age witness for {} {}, payment account payload hash={}, peers current date={}, nonce={}, signature={}",
+                trade.getClass().getSimpleName(),
+                trade.getId(),
+                Utilities.bytesAsHexString(peersPaymentAccountPayload.getHash()),
+                peersCurrentDate,
+                Utilities.bytesAsHexString(nonce),
+                Utilities.bytesAsHexString(signature));
+
         final Optional<AccountAgeWitness> accountAgeWitnessOptional =
                 findWitness(peersPaymentAccountPayload, peersPubKeyRing);
         // If we don't find a stored witness data we create a new dummy object which makes is easier to reuse the

@@ -54,9 +54,6 @@ public class ArbitratorSendInitTradeOrMultisigRequests extends TradeTask {
             runInterceptHook();
             InitTradeRequest request = (InitTradeRequest) processModel.getTradeMessage();
 
-            // arbitrator signs offer id as nonce to avoid challenge protocol
-            byte[] sig = Sig.sign(processModel.getKeyRing().getSignatureKeyPair().getPrivate(), processModel.getOfferId().getBytes(Charsets.UTF_8));
-            
             // handle request from taker
             if (request.getSenderNodeAddress().equals(trade.getTaker().getNodeAddress())) {
 
@@ -73,7 +70,7 @@ public class ArbitratorSendInitTradeOrMultisigRequests extends TradeTask {
                         request.getPaymentMethodId(),
                         UUID.randomUUID().toString(),
                         Version.getP2PMessageVersion(),
-                        sig,
+                        request.getAccountAgeWitnessSignatureOfOfferId(),
                         new Date().getTime(),
                         trade.getMaker().getNodeAddress(),
                         trade.getTaker().getNodeAddress(),

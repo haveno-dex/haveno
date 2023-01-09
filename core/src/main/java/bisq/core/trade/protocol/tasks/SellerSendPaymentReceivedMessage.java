@@ -18,6 +18,7 @@
 package bisq.core.trade.protocol.tasks;
 
 import bisq.core.account.sign.SignedWitness;
+import bisq.core.account.witness.AccountAgeWitnessService;
 import bisq.core.trade.Trade;
 import bisq.core.trade.messages.PaymentReceivedMessage;
 import bisq.core.trade.messages.TradeMailboxMessage;
@@ -63,22 +64,23 @@ public abstract class SellerSendPaymentReceivedMessage extends SendMailboxMessag
         checkNotNull(trade.getPayoutTxHex(), "Payout tx must not be null");
         if (message == null) {
 
-            // TODO: sign witness
-            // AccountAgeWitnessService accountAgeWitnessService = processModel.getAccountAgeWitnessService();
-            // if (accountAgeWitnessService.isSignWitnessTrade(trade)) {
-            //     // Broadcast is done in accountAgeWitness domain.
-            //     accountAgeWitnessService.traderSignAndPublishPeersAccountAgeWitness(trade).ifPresent(witness -> signedWitness = witness);
-            // }
+            // sign account witness
+            AccountAgeWitnessService accountAgeWitnessService = processModel.getAccountAgeWitnessService();
+            if (accountAgeWitnessService.isSignWitnessTrade(trade)) {
+                accountAgeWitnessService.traderSignAndPublishPeersAccountAgeWitness(trade).ifPresent(witness -> signedWitness = witness);
+                log.info("{} {} signed and published peers account age witness", trade.getClass().getSimpleName(), trade.getId());
+            }
 
             // TODO: create with deterministic id like BuyerSendPaymentSentMessage
             message = new PaymentReceivedMessage(
                     tradeId,
                     processModel.getMyNodeAddress(),
-                    signedWitness,
                     trade.isPayoutPublished() ? null : trade.getPayoutTxHex(), // unsigned
                     trade.isPayoutPublished() ? trade.getPayoutTxHex() : null, // signed
                     trade.getSelf().getUpdatedMultisigHex(),
                     trade.getState().ordinal() >= Trade.State.SELLER_SAW_ARRIVED_PAYMENT_RECEIVED_MSG.ordinal(), // informs to expect payout
+                    trade.getTradingPeer().getAccountAgeWitness(),
+                    signedWitness,
                     trade.getBuyer().getPaymentSentMessage()
             );
 

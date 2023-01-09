@@ -21,6 +21,7 @@ import bisq.core.account.witness.AccountAgeWitnessService;
 import bisq.core.locale.CurrencyUtil;
 import bisq.core.offer.Offer;
 import bisq.core.payment.payload.PaymentAccountPayload;
+import bisq.core.trade.ArbitratorTrade;
 import bisq.core.trade.Trade;
 import bisq.core.trade.protocol.TradingPeer;
 
@@ -46,14 +47,27 @@ public class VerifyPeersAccountAgeWitness extends TradeTask {
         try {
             runInterceptHook();
 
+            // only verify fiat offer
             Offer offer = checkNotNull(trade.getOffer());
             if (CurrencyUtil.isCryptoCurrency(offer.getCurrencyCode())) {
                 complete();
                 return;
             }
 
-            AccountAgeWitnessService accountAgeWitnessService = processModel.getAccountAgeWitnessService();
+            // skip if arbitrator
+            if (trade instanceof ArbitratorTrade) {
+                complete();
+                return;
+            }
+
+            // skip if payment account payload is null
             TradingPeer tradingPeer = trade.getTradingPeer();
+            if (tradingPeer.getPaymentAccountPayload() == null) {
+                complete();
+                return;
+            }
+
+            AccountAgeWitnessService accountAgeWitnessService = processModel.getAccountAgeWitnessService();
             PaymentAccountPayload peersPaymentAccountPayload = checkNotNull(tradingPeer.getPaymentAccountPayload(),
                     "Peers peersPaymentAccountPayload must not be null");
             PubKeyRing peersPubKeyRing = checkNotNull(tradingPeer.getPubKeyRing(), "peersPubKeyRing must not be null");
@@ -71,6 +85,8 @@ public class VerifyPeersAccountAgeWitness extends TradeTask {
                     signature,
                     errorMsg::set);
             if (isValid) {
+                trade.getTradingPeer().setAccountAgeWitness(processModel.getAccountAgeWitnessService().findWitness(trade.getTradingPeer().getPaymentAccountPayload(), trade.getTradingPeer().getPubKeyRing()).orElse(null));
+                log.info("{} {} verified witness data of peer {}", trade.getClass().getSimpleName(), trade.getId(), tradingPeer.getNodeAddress());
                 complete();
             } else {
                 failed(errorMsg.get());

@@ -17,6 +17,7 @@
 
 package bisq.core.trade.protocol;
 
+import bisq.core.account.witness.AccountAgeWitness;
 import bisq.core.btc.model.RawTransactionInput;
 import bisq.core.payment.payload.PaymentAccountPayload;
 import bisq.core.proto.CoreProtoResolver;
@@ -97,6 +98,10 @@ public final class TradingPeer implements PersistablePayload {
     private byte[] accountAgeWitnessNonce;
     @Nullable
     private byte[] accountAgeWitnessSignature;
+    @Getter
+    @Setter
+    @Nullable
+    private AccountAgeWitness accountAgeWitness;
     private long currentDate;
 
     // Added in v.1.1.6
@@ -155,6 +160,7 @@ public final class TradingPeer implements PersistablePayload {
         Optional.ofNullable(changeOutputAddress).ifPresent(builder::setChangeOutputAddress);
         Optional.ofNullable(accountAgeWitnessNonce).ifPresent(e -> builder.setAccountAgeWitnessNonce(ByteString.copyFrom(e)));
         Optional.ofNullable(accountAgeWitnessSignature).ifPresent(e -> builder.setAccountAgeWitnessSignature(ByteString.copyFrom(e)));
+        Optional.ofNullable(accountAgeWitness).ifPresent(e -> builder.setAccountAgeWitness(accountAgeWitness.toProtoAccountAgeWitness()));
         Optional.ofNullable(mediatedPayoutTxSignature).ifPresent(e -> builder.setMediatedPayoutTxSignature(ByteString.copyFrom(e)));
         Optional.ofNullable(reserveTxHash).ifPresent(e -> builder.setReserveTxHash(reserveTxHash));
         Optional.ofNullable(reserveTxHex).ifPresent(e -> builder.setReserveTxHex(reserveTxHex));
@@ -203,6 +209,8 @@ public final class TradingPeer implements PersistablePayload {
             tradingPeer.setChangeOutputAddress(ProtoUtil.stringOrNullFromProto(proto.getChangeOutputAddress()));
             tradingPeer.setAccountAgeWitnessNonce(ProtoUtil.byteArrayOrNullFromProto(proto.getAccountAgeWitnessNonce()));
             tradingPeer.setAccountAgeWitnessSignature(ProtoUtil.byteArrayOrNullFromProto(proto.getAccountAgeWitnessSignature()));
+            protobuf.AccountAgeWitness protoAccountAgeWitness = proto.getAccountAgeWitness();
+            tradingPeer.setAccountAgeWitness(protoAccountAgeWitness.getHash().isEmpty() ? null : AccountAgeWitness.fromProto(protoAccountAgeWitness));
             tradingPeer.setCurrentDate(proto.getCurrentDate());
             tradingPeer.setMediatedPayoutTxSignature(ProtoUtil.byteArrayOrNullFromProto(proto.getMediatedPayoutTxSignature()));
             tradingPeer.setReserveTxHash(ProtoUtil.stringOrNullFromProto(proto.getReserveTxHash()));

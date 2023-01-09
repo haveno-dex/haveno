@@ -523,7 +523,7 @@ public class PopOver extends PopupControl {
                         skinNode);
                 fadeOut.setFromValue(skinNode.getOpacity());
                 fadeOut.setToValue(0);
-                fadeOut.setOnFinished(evt -> super.hide());
+                fadeOut.setOnFinished(evt -> { if (super.isShowing()) super.hide(); });
                 fadeOut.play();
             } else {
                 super.hide();
