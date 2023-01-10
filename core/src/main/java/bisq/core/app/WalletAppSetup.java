@@ -172,7 +172,7 @@ public class WalletAppSetup {
         walletsSetup.initialize(null,
                 () -> {
                     // We only check one wallet as we apply encryption to all or none
-                    if (walletsManager.areWalletsEncrypted() && !coreContext.isApiUser()) {
+                    if (walletsManager.areWalletsEncrypted() && !coreContext.isApiUser()) { // TODO: disable invoking password handler here, use popup in loginAccount() to collect password 
                         walletPasswordHandler.run();
                     } else {
                         if (isSpvResyncRequested && !coreContext.isApiUser()) {

@@ -26,13 +26,14 @@ import bisq.desktop.main.overlays.Overlay;
 import bisq.desktop.main.overlays.popups.Popup;
 import bisq.desktop.util.Layout;
 import bisq.desktop.util.Transitions;
-
+import bisq.core.api.CoreAccountService;
 import bisq.core.btc.wallet.WalletsManager;
 import bisq.core.locale.Res;
 import bisq.core.offer.OpenOfferManager;
 
 import bisq.common.UserThread;
 import bisq.common.config.Config;
+import bisq.common.crypto.IncorrectPasswordException;
 import bisq.common.crypto.ScryptUtil;
 import bisq.common.util.Tuple2;
 
@@ -88,6 +89,7 @@ import static javafx.beans.binding.Bindings.createBooleanBinding;
 
 @Slf4j
 public class WalletPasswordWindow extends Overlay<WalletPasswordWindow> {
+    private final CoreAccountService accountService;
     private final WalletsManager walletsManager;
     private final OpenOfferManager openOfferManager;
     private File storageDir;
@@ -116,9 +118,11 @@ public class WalletPasswordWindow extends Overlay<WalletPasswordWindow> {
     }
 
     @Inject
-    private WalletPasswordWindow(WalletsManager walletsManager,
+    private WalletPasswordWindow(CoreAccountService accountService,
+                                 WalletsManager walletsManager,
                                  OpenOfferManager openOfferManager,
                                  @Named(Config.STORAGE_DIR) File storageDir) {
+        this.accountService = accountService;
         this.walletsManager = walletsManager;
         this.openOfferManager = openOfferManager;
         this.storageDir = storageDir;
@@ -213,28 +217,41 @@ public class WalletPasswordWindow extends Overlay<WalletPasswordWindow> {
         unlockButton.setOnAction(e -> {
             String password = passwordTextField.getText();
             checkArgument(password.length() < 500, Res.get("password.tooLong"));
-            KeyCrypterScrypt keyCrypterScrypt = walletsManager.getKeyCrypterScrypt();
-            if (keyCrypterScrypt != null) {
-                busyAnimation.play();
-                deriveStatusLabel.setText(Res.get("password.deriveKey"));
-                ScryptUtil.deriveKeyWithScrypt(keyCrypterScrypt, password, aesKey -> {
-                    if (walletsManager.checkAESKey(aesKey)) {
-                        if (aesKeyHandler != null)
-                            aesKeyHandler.onAesKey(aesKey);
 
-                        hide();
-                    } else {
-                        busyAnimation.stop();
-                        deriveStatusLabel.setText("");
+            try {
+                accountService.openAccount(password);
+                hide();
+            } catch (IncorrectPasswordException e1) {
+                busyAnimation.stop();
+                deriveStatusLabel.setText("");
 
-                        UserThread.runAfter(() -> new Popup()
-                                .warning(Res.get("password.wrongPw"))
-                                .onClose(this::blurAgain).show(), Transitions.DEFAULT_DURATION, TimeUnit.MILLISECONDS);
-                    }
-                });
-            } else {
-                log.error("wallet.getKeyCrypter() is null, that must not happen.");
+                UserThread.runAfter(() -> new Popup()
+                        .warning(Res.get("password.wrongPw"))
+                        .onClose(this::blurAgain).show(), Transitions.DEFAULT_DURATION, TimeUnit.MILLISECONDS);
             }
+
+            // KeyCrypterScrypt keyCrypterScrypt = walletsManager.getKeyCrypterScrypt();
+            // if (keyCrypterScrypt != null) {
+            //     busyAnimation.play();
+            //     deriveStatusLabel.setText(Res.get("password.deriveKey"));
+            //     ScryptUtil.deriveKeyWithScrypt(keyCrypterScrypt, password, aesKey -> {
+            //         if (walletsManager.checkAESKey(aesKey)) {
+            //             if (aesKeyHandler != null)
+            //                 aesKeyHandler.onAesKey(aesKey);
+
+            //             hide();
+            //         } else {
+            //             busyAnimation.stop();
+            //             deriveStatusLabel.setText("");
+
+            //             UserThread.runAfter(() -> new Popup()
+            //                     .warning(Res.get("password.wrongPw"))
+            //                     .onClose(this::blurAgain).show(), Transitions.DEFAULT_DURATION, TimeUnit.MILLISECONDS);
+            //         }
+            //     });
+            // } else {
+            //     log.error("wallet.getKeyCrypter() is null, that must not happen.");
+            // }
         });
 
         forgotPasswordButton = new AutoTooltipButton(Res.get("password.forgotPassword"));

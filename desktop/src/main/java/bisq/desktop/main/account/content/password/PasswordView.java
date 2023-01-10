@@ -31,7 +31,9 @@ import bisq.desktop.main.account.content.seedwords.SeedWordsView;
 import bisq.desktop.main.overlays.popups.Popup;
 import bisq.desktop.util.Layout;
 import bisq.desktop.util.validation.PasswordValidator;
+import bisq.core.api.CoreAccountService;
 import bisq.core.btc.wallet.WalletsManager;
+import bisq.core.btc.wallet.XmrWalletService;
 import bisq.core.locale.Res;
 import bisq.common.crypto.ScryptUtil;
 import bisq.common.util.Tuple4;
@@ -61,6 +63,7 @@ public class PasswordView extends ActivatableView<GridPane, Void> {
     private final WalletsManager walletsManager;
     private final PasswordValidator passwordValidator;
     private final Navigation navigation;
+    private final CoreAccountService accountService;
 
     private PasswordTextField passwordField;
     private PasswordTextField repeatedPasswordField;
@@ -77,10 +80,11 @@ public class PasswordView extends ActivatableView<GridPane, Void> {
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     @Inject
-    private PasswordView(WalletsManager walletsManager, PasswordValidator passwordValidator, Navigation navigation) {
+    private PasswordView(CoreAccountService accountService, WalletsManager walletsManager, PasswordValidator passwordValidator, Navigation navigation) {
         this.walletsManager = walletsManager;
         this.passwordValidator = passwordValidator;
         this.navigation = navigation;
+        this.accountService = accountService;
     }
 
     @Override
@@ -141,41 +145,75 @@ public class PasswordView extends ActivatableView<GridPane, Void> {
         deriveStatusLabel.setText(Res.get("password.deriveKey"));
         busyAnimation.play();
 
-        KeyCrypterScrypt keyCrypterScrypt = walletsManager.getKeyCrypterScrypt();
-        ScryptUtil.deriveKeyWithScrypt(keyCrypterScrypt, password, aesKey -> {
-            deriveStatusLabel.setText("");
-            busyAnimation.stop();
+        if (walletsManager.areWalletsEncrypted()) {
+            System.out.println("Setting null account password");
+            accountService.changePassword(null);
+            new Popup()
+                    .feedback(Res.get("password.walletDecrypted"))
+                    .show();
+            backupWalletAndResetFields();
 
-            if (walletsManager.areWalletsEncrypted()) {
-                if (walletsManager.checkAESKey(aesKey)) {
-                    walletsManager.decryptWallets(aesKey);
-                    new Popup()
-                            .feedback(Res.get("password.walletDecrypted"))
-                            .show();
-                    backupWalletAndResetFields();
-                } else {
-                    pwButton.setDisable(false);
-                    new Popup()
-                            .warning(Res.get("password.wrongPw"))
-                            .show();
-                }
-            } else {
-                try {
-                    walletsManager.encryptWallets(keyCrypterScrypt, aesKey);
-                    new Popup()
-                            .feedback(Res.get("password.walletEncrypted"))
-                            .show();
-                    backupWalletAndResetFields();
-                    walletsManager.clearBackup();
-                } catch (Throwable t) {
-                    new Popup()
-                            .warning(Res.get("password.walletEncryptionFailed"))
-                            .show();
-                }
+            // TODO: verify if password is correct
+            // pwButton.setDisable(false);
+            //     new Popup()
+            //             .warning(Res.get("password.wrongPw"))
+            //             .show();
+
+        } else {
+            try {
+                accountService.changePassword(password);
+                new Popup()
+                        .feedback(Res.get("password.walletEncrypted"))
+                        .show();
+                backupWalletAndResetFields();
+                walletsManager.clearBackup();
+            } catch (Throwable t) {
+                new Popup()
+                        .warning(Res.get("password.walletEncryptionFailed"))
+                        .show();
             }
-            setText();
-            updatePasswordListeners();
-        });
+        }
+        setText();
+        updatePasswordListeners();
+
+        deriveStatusLabel.setText("");
+        busyAnimation.stop();
+
+        // KeyCrypterScrypt keyCrypterScrypt = walletsManager.getKeyCrypterScrypt();
+        // ScryptUtil.deriveKeyWithScrypt(keyCrypterScrypt, password, aesKey -> {
+        //     deriveStatusLabel.setText("");
+        //     busyAnimation.stop();
+
+        //     if (walletsManager.areWalletsEncrypted()) {
+        //         if (walletsManager.checkAESKey(aesKey)) {
+        //             walletsManager.decryptWallets(aesKey);
+        //             new Popup()
+        //                     .feedback(Res.get("password.walletDecrypted"))
+        //                     .show();
+        //             backupWalletAndResetFields();
+        //         } else {
+        //             pwButton.setDisable(false);
+        //             new Popup()
+        //                     .warning(Res.get("password.wrongPw"))
+        //                     .show();
+        //         }
+        //     } else {
+        //         try {
+        //             walletsManager.encryptWallets(keyCrypterScrypt, aesKey);
+        //             new Popup()
+        //                     .feedback(Res.get("password.walletEncrypted"))
+        //                     .show();
+        //             backupWalletAndResetFields();
+        //             walletsManager.clearBackup();
+        //         } catch (Throwable t) {
+        //             new Popup()
+        //                     .warning(Res.get("password.walletEncryptionFailed"))
+        //                     .show();
+        //         }
+        //     }
+        //     setText();
+        //     updatePasswordListeners();
+        // });
     }
 
     private void backupWalletAndResetFields() {
