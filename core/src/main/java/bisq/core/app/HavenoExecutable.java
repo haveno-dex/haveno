@@ -181,11 +181,19 @@ public abstract class HavenoExecutable implements GracefulShutDownHandler, Haven
      */
     protected boolean loginAccount() {
         if (accountService.accountExists()) {
-            log.info("Account already exists, attempting to open");
+            log.info("Account already exists, attempting to open without password");
             try {
                 accountService.openAccount(null);
             } catch (IncorrectPasswordException ipe) {
                 log.info("Account password protected, password required");
+
+                // // TODO: collect password from ui popup
+                // try {
+                //     accountService.openAccount("abctesting123");
+                // } catch (IncorrectPasswordException e) {
+                //     log.warn("Still could not open account with hardcoded test password...");
+                //     throw new IllegalArgumentException(e);
+                // }
             }
         } else if (!config.passwordRequired) {
             log.info("Creating Haveno account with null password");

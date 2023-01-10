@@ -139,4 +139,10 @@ public class HavenoAppMain extends HavenoExecutable {
         // Therefore, calling this as part of onApplicationStarted()
         log.info("Using JavaFX {}", System.getProperty("javafx.version"));
     }
+
+    @Override
+    protected boolean loginAccount() {
+        log.warn("TODO: override loginAccount() to collect account password by opening popup");
+        return super.loginAccount();
+    }
 }
