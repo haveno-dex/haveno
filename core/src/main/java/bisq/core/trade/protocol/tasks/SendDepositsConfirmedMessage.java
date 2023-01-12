@@ -18,6 +18,7 @@
 package bisq.core.trade.protocol.tasks;
 
 import bisq.core.btc.wallet.XmrWalletService;
+import bisq.core.trade.HavenoUtils;
 import bisq.core.trade.Trade;
 import bisq.core.trade.messages.DepositsConfirmedMessage;
 import bisq.core.trade.messages.TradeMailboxMessage;
@@ -71,13 +72,13 @@ public abstract class SendDepositsConfirmedMessage extends SendMailboxMessageTas
             // peer does not respond with an ACK msg in a certain time interval. To avoid that we get dangling mailbox
             // messages where only the one which gets processed by the peer would be removed we use the same uid. All
             // other data stays the same when we re-send the message at any time later.
-            String deterministicId = tradeId + processModel.getMyNodeAddress().getFullAddress();
+            String deterministicId = HavenoUtils.getDeterministicId(trade, DepositsConfirmedMessage.class, getReceiverNodeAddress());
             message = new DepositsConfirmedMessage(
                     trade.getOffer().getId(),
                     processModel.getMyNodeAddress(),
                     processModel.getPubKeyRing(),
                     deterministicId,
-                    getReceiverNodeAddress().equals(trade.getBuyer().getNodeAddress()) ? trade.getSeller().getPaymentAccountKey() : null, // buyer receives seller's payment account decryption key
+                    trade.getBuyer() == trade.getTradingPeer(getReceiverNodeAddress()) ?  trade.getSeller().getPaymentAccountKey() : null, // buyer receives seller's payment account decryption key
                     trade.getSelf().getUpdatedMultisigHex());
         }
         return message;

@@ -1167,6 +1167,20 @@ public abstract class Trade implements Tradable, Model {
         return null;
     }
 
+    public String getRole() {
+        if (isBuyer()) return "Buyer";
+        if (isSeller()) return "Seller";
+        if (isArbitrator()) return "Arbitrator";
+        throw new IllegalArgumentException("Trade is not buyer, seller, or arbitrator");
+    }
+
+    public String getPeerRole(TradingPeer peer) {
+        if (peer == getBuyer()) return "Buyer";
+        if (peer == getSeller()) return "Seller";
+        if (peer == getArbitrator()) return "Arbitrator";
+        throw new IllegalArgumentException("Peer is not buyer, seller, or arbitrator");
+    }
+
     public Date getTakeOfferDate() {
         return new Date(takeOfferDate);
     }

@@ -18,6 +18,7 @@
 package bisq.core.trade.protocol.tasks;
 
 import bisq.core.network.MessageState;
+import bisq.core.trade.HavenoUtils;
 import bisq.core.trade.Trade;
 import bisq.core.trade.messages.PaymentSentMessage;
 import bisq.core.trade.messages.TradeMailboxMessage;
@@ -78,7 +79,7 @@ public abstract class BuyerSendPaymentSentMessage extends SendMailboxMessageTask
             // peer does not respond with an ACK msg in a certain time interval. To avoid that we get dangling mailbox
             // messages where only the one which gets processed by the peer would be removed we use the same uid. All
             // other data stays the same when we re-send the message at any time later.
-            String deterministicId = tradeId + processModel.getMyNodeAddress().getFullAddress();
+            String deterministicId = HavenoUtils.getDeterministicId(trade, PaymentSentMessage.class, getReceiverNodeAddress());
 
             // create payment sent message
             PaymentSentMessage message = new PaymentSentMessage(

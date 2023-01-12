@@ -19,6 +19,7 @@ package bisq.core.trade.protocol.tasks;
 
 import bisq.core.account.sign.SignedWitness;
 import bisq.core.account.witness.AccountAgeWitnessService;
+import bisq.core.trade.HavenoUtils;
 import bisq.core.trade.Trade;
 import bisq.core.trade.messages.PaymentReceivedMessage;
 import bisq.core.trade.messages.TradeMailboxMessage;
@@ -71,10 +72,15 @@ public abstract class SellerSendPaymentReceivedMessage extends SendMailboxMessag
                 log.info("{} {} signed and published peers account age witness", trade.getClass().getSimpleName(), trade.getId());
             }
 
-            // TODO: create with deterministic id like BuyerSendPaymentSentMessage
+            // We do not use a real unique ID here as we want to be able to re-send the exact same message in case the
+            // peer does not respond with an ACK msg in a certain time interval. To avoid that we get dangling mailbox
+            // messages where only the one which gets processed by the peer would be removed we use the same uid. All
+            // other data stays the same when we re-send the message at any time later.
+            String deterministicId = HavenoUtils.getDeterministicId(trade, PaymentReceivedMessage.class, getReceiverNodeAddress());
             message = new PaymentReceivedMessage(
                     tradeId,
                     processModel.getMyNodeAddress(),
+                    deterministicId,
                     trade.isPayoutPublished() ? null : trade.getPayoutTxHex(), // unsigned
                     trade.isPayoutPublished() ? trade.getPayoutTxHex() : null, // signed
                     trade.getSelf().getUpdatedMultisigHex(),

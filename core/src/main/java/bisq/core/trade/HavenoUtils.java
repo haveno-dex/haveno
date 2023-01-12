@@ -18,8 +18,10 @@
 package bisq.core.trade;
 
 import bisq.common.config.Config;
+import bisq.common.crypto.Hash;
 import bisq.common.crypto.PubKeyRing;
 import bisq.common.crypto.Sig;
+import bisq.common.util.Utilities;
 import bisq.core.offer.Offer;
 import bisq.core.offer.OfferPayload;
 import bisq.core.support.dispute.arbitration.ArbitrationManager;
@@ -30,6 +32,7 @@ import bisq.core.trade.messages.PaymentSentMessage;
 import bisq.core.util.JsonUtil;
 import bisq.core.util.ParsingUtils;
 import bisq.core.util.coin.CoinUtil;
+import bisq.network.p2p.NodeAddress;
 import lombok.extern.slf4j.Slf4j;
 
 import java.math.BigDecimal;
@@ -178,6 +181,19 @@ public class HavenoUtils {
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
+    }
+
+    /**
+     * Returns a unique deterministic id for sending a trade mailbox message.
+     * 
+     * @param trade the trade
+     * @param tradeMessageClass the trade message class
+     * @param receiver the receiver address
+     * @return a unique deterministic id for sending a trade mailbox message
+     */
+    public static String getDeterministicId(Trade trade, Class<?> tradeMessageClass, NodeAddress receiver) {
+        String uniqueId = trade.getId() + "_" + tradeMessageClass.getSimpleName() + "_" + trade.getRole() + "_to_" + trade.getPeerRole(trade.getTradingPeer(receiver));
+        return Utilities.bytesAsHexString(Hash.getSha256Ripemd160hash(uniqueId.getBytes(Charsets.UTF_8)));
     }
 
     /**

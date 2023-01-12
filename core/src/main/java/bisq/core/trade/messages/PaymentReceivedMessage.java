@@ -59,6 +59,7 @@ public final class PaymentReceivedMessage extends TradeMailboxMessage {
 
     public PaymentReceivedMessage(String tradeId,
                                     NodeAddress senderNodeAddress,
+                                    String uid,
                                     String unsignedPayoutTxHex,
                                     String signedPayoutTxHex,
                                     String updatedMultisigHex,
@@ -68,7 +69,7 @@ public final class PaymentReceivedMessage extends TradeMailboxMessage {
                                     PaymentSentMessage paymentSentMessage) {
         this(tradeId,
                 senderNodeAddress,
-                UUID.randomUUID().toString(),
+                uid,
                 Version.getP2PMessageVersion(),
                 unsignedPayoutTxHex,
                 signedPayoutTxHex,
