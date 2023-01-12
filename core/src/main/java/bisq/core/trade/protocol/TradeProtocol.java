@@ -80,6 +80,7 @@ import javax.annotation.Nullable;
 public abstract class TradeProtocol implements DecryptedDirectMessageListener, DecryptedMailboxListener {
 
     public static final int TRADE_TIMEOUT = 60;
+    private static final String TIMEOUT_REACHED = "Timeout reached.";
 
     protected final ProcessModel processModel;
     protected final Trade trade;
@@ -331,8 +332,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
                         .from(sender))
                         .setup(tasks(
                                 // TODO (woodser): validate request
-                                ProcessSignContractResponse.class,
-                                RemoveOffer.class)
+                                ProcessSignContractResponse.class)
                         .using(new TradeTaskRunner(trade,
                                 () -> {
                                     startTimeout(TRADE_TIMEOUT);
@@ -364,7 +364,8 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
                     .from(sender)) // TODO (woodser): ensure this asserts sender == response.getSenderNodeAddress()
                     .setup(tasks(
                             // TODO (woodser): validate request
-                            ProcessDepositResponse.class)
+                            ProcessDepositResponse.class,
+                            RemoveOffer.class)
                     .using(new TradeTaskRunner(trade,
                         () -> {
                             stopTimeout();
@@ -548,8 +549,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
             String err = "Received AckMessage with error state for " + ackMessage.getSourceMsgClassName() +
                     " from "+ peer + " with tradeId " + trade.getId() + " and errorMessage=" + ackMessage.getErrorMessage();
             log.warn(err);
-            stopTimeout();
-            if (errorMessageHandler != null) errorMessageHandler.handleErrorMessage(err);
+            handleError(err);
         }
     }
 
@@ -608,7 +608,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
         synchronized (timeoutTimerLock) {
             stopTimeout();
             timeoutTimer = UserThread.runAfter(() -> {
-                handleError("Timeout reached. Protocol did not complete in " + timeoutSec + " sec. TradeID=" + trade.getId() + ", state=" + trade.stateProperty().get());
+                handleError(TIMEOUT_REACHED + " Protocol did not complete in " + timeoutSec + " sec. TradeID=" + trade.getId() + ", state=" + trade.stateProperty().get());
             }, timeoutSec);
         }
     }
@@ -622,6 +622,9 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
         }
     }
 
+    public static boolean isTimeoutError(String errorMessage) {
+        return errorMessage != null && errorMessage.contains(TIMEOUT_REACHED);
+    }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Task runner

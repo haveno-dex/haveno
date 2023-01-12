@@ -344,6 +344,7 @@ message DepositResponse {
     PubKeyRing pub_key_ring = 3;
     string uid = 4;
     int64 current_date = 5;
+    string error_message = 6;
 }
 
 message DepositsConfirmedMessage {

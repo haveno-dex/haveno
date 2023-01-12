@@ -63,6 +63,7 @@ import bisq.network.p2p.P2PService;
 import bisq.network.p2p.network.TorNetworkNode;
 import com.google.common.collect.ImmutableList;
 import bisq.common.ClockWatcher;
+import bisq.common.UserThread;
 import bisq.common.crypto.KeyRing;
 import bisq.common.handlers.ErrorMessageHandler;
 import bisq.common.handlers.FaultHandler;
@@ -382,6 +383,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
         if (isShutDown) return;
         initTradeAndProtocol(trade, getTradeProtocol(trade));
         requestPersistence();
+        scheduleDeletionIfUnfunded(trade);
     }
 
     private void initTradeAndProtocol(Trade trade, TradeProtocol tradeProtocol) {
@@ -1063,24 +1065,50 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
         synchronized(tradableList) {
             if (!tradableList.contains(trade)) return;
 
-            // unreserve key images
+            // unreserve taker key images
             if (trade instanceof TakerTrade && trade.getSelf().getReserveTxKeyImages() != null) {
                 xmrWalletService.thawOutputs(trade.getSelf().getReserveTxKeyImages());
                 xmrWalletService.saveMainWallet();
                 trade.getSelf().setReserveTxKeyImages(null);
             }
 
-            // stop if trade wallet possibly funded
-            if (xmrWalletService.multisigWalletExists(trade.getId()) && trade.isDepositRequested()) {
-                log.warn("Refusing to delete {} {} because trade wallet could be funded", trade.getClass().getSimpleName(), trade.getId());
+            // remove trade if wallet deleted
+            if (!xmrWalletService.multisigWalletExists(trade.getId())) {
+                removeTrade(trade);
                 return;
             }
 
-            // delete trade wallet if exists
-            if (xmrWalletService.multisigWalletExists(trade.getId())) trade.deleteWallet();
+            // remove trade and wallet unless timeout after deposit requested
+            boolean isTimeoutError = TradeProtocol.isTimeoutError(trade.getErrorMessage());
+            if (!trade.isDepositRequested() || !isTimeoutError) {
+                removeTrade(trade);
+                if (xmrWalletService.multisigWalletExists(trade.getId())) trade.deleteWallet();
+            } else {
+                scheduleDeletionIfUnfunded(trade);
+            }
+        }
+    }
 
-            // remove trade
-            removeTrade(trade);
+    private void scheduleDeletionIfUnfunded(Trade trade) {
+        if (trade.isDepositRequested() && !trade.isDepositPublished()) {
+            log.warn("Scheduling to delete trade if unfunded for {} {}", trade.getClass().getSimpleName(), trade.getId());
+            UserThread.runAfter(() -> {
+                if (isShutDown) return;
+                    
+                // get trade's deposit txs from daemon
+                MoneroTx makerDepositTx = xmrWalletService.getDaemon().getTx(trade.getMaker().getDepositTxHash());
+                MoneroTx takerDepositTx = xmrWalletService.getDaemon().getTx(trade.getTaker().getDepositTxHash());
+        
+                // delete multisig trade wallet if neither deposit tx published
+                if ((makerDepositTx != null && makerDepositTx.isRelayed()) || (takerDepositTx != null && takerDepositTx.isRelayed())) {
+                    log.warn("Refusing to delete {} {} after protocol timeout because its wallet might be funded", trade.getClass().getSimpleName(), trade.getId());
+                } else {
+                    log.warn("Deleting {} {} after protocol timeout", trade.getClass().getSimpleName(), trade.getId());
+                    removeTrade(trade);
+                    failedTradesManager.removeTrade(trade);
+                    if (xmrWalletService.multisigWalletExists(trade.getId())) trade.deleteWallet();
+                }
+            }, 60);
         }
     }
 

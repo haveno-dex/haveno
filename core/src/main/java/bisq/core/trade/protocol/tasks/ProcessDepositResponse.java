@@ -20,6 +20,7 @@ package bisq.core.trade.protocol.tasks;
 
 import bisq.common.taskrunner.TaskRunner;
 import bisq.core.trade.Trade;
+import bisq.core.trade.messages.DepositResponse;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -34,6 +35,14 @@ public class ProcessDepositResponse extends TradeTask {
     protected void run() {
         try {
           runInterceptHook();
+
+          // throw if error
+          DepositResponse message = (DepositResponse) processModel.getTradeMessage();
+          if (message.getErrorMessage() != null) {
+            throw new RuntimeException(message.getErrorMessage());
+          }
+
+          // set success state
           trade.setStateIfValidTransitionTo(Trade.State.ARBITRATOR_PUBLISHED_DEPOSIT_TXS);
           processModel.getTradeManager().requestPersistence();
           complete();

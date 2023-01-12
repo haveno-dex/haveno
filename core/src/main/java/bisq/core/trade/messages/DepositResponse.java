@@ -21,8 +21,11 @@ import bisq.core.proto.CoreProtoResolver;
 
 import bisq.network.p2p.DirectMessage;
 import bisq.network.p2p.NodeAddress;
-import bisq.common.crypto.PubKeyRing;
 
+import java.util.Optional;
+
+import bisq.common.crypto.PubKeyRing;
+import bisq.common.proto.ProtoUtil;
 import lombok.EqualsAndHashCode;
 import lombok.Value;
 
@@ -32,17 +35,20 @@ public final class DepositResponse extends TradeMessage implements DirectMessage
     private final NodeAddress senderNodeAddress;
     private final PubKeyRing pubKeyRing;
     private final long currentDate;
+    private final String errorMessage;
 
     public DepositResponse(String tradeId,
                                      NodeAddress senderNodeAddress,
                                      PubKeyRing pubKeyRing,
                                      String uid,
                                      String messageVersion,
-                                     long currentDate) {
+                                     long currentDate,
+                                     String errorMessage) {
         super(messageVersion, tradeId, uid);
         this.senderNodeAddress = senderNodeAddress;
         this.pubKeyRing = pubKeyRing;
         this.currentDate = currentDate;
+        this.errorMessage = errorMessage;
     }
 
 
@@ -58,6 +64,7 @@ public final class DepositResponse extends TradeMessage implements DirectMessage
                 .setPubKeyRing(pubKeyRing.toProtoMessage())
                 .setUid(uid);
         builder.setCurrentDate(currentDate);
+        Optional.ofNullable(errorMessage).ifPresent(e -> builder.setErrorMessage(errorMessage));
 
         return getNetworkEnvelopeBuilder().setDepositResponse(builder).build();
     }
@@ -70,7 +77,8 @@ public final class DepositResponse extends TradeMessage implements DirectMessage
                 PubKeyRing.fromProto(proto.getPubKeyRing()),
                 proto.getUid(),
                 messageVersion,
-                proto.getCurrentDate());
+                proto.getCurrentDate(),
+                ProtoUtil.stringOrNullFromProto(proto.getErrorMessage()));
     }
 
     @Override
@@ -79,6 +87,7 @@ public final class DepositResponse extends TradeMessage implements DirectMessage
                 "\n     senderNodeAddress=" + senderNodeAddress +
                 ",\n     pubKeyRing=" + pubKeyRing +
                 ",\n     currentDate=" + currentDate +
+                ",\n     errorMessage=" + errorMessage +
                 "\n} " + super.toString();
     }
 }
