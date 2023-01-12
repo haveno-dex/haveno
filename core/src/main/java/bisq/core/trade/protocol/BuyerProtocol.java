@@ -54,11 +54,10 @@ public class BuyerProtocol extends DisputeProtocol {
         super.onInitialized();
 
         // re-send payment sent message if not arrived
-        if (trade.getState() == Trade.State.BUYER_STORED_IN_MAILBOX_PAYMENT_SENT_MSG || trade.getState() == Trade.State.BUYER_SEND_FAILED_PAYMENT_SENT_MSG) {
-            synchronized (trade) {
+        synchronized (trade) {
+            if (trade.getState().ordinal() >= Trade.State.BUYER_CONFIRMED_IN_UI_PAYMENT_SENT.ordinal() && trade.getState().ordinal() <= Trade.State.BUYER_SEND_FAILED_PAYMENT_SENT_MSG.ordinal()) {
                 latchTrade();
                 given(anyPhase(Trade.Phase.PAYMENT_SENT)
-                    .anyState(Trade.State.BUYER_STORED_IN_MAILBOX_PAYMENT_SENT_MSG, Trade.State.BUYER_SEND_FAILED_PAYMENT_SENT_MSG)
                     .with(BuyerEvent.STARTUP))
                     .setup(tasks(
                             BuyerSendPaymentSentMessageToSeller.class,
