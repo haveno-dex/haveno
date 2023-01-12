@@ -635,7 +635,7 @@ public abstract class Trade implements Tradable, Model {
         isInitialized = true;
 
         // start listening to trade wallet
-        if (isDepositPublished()) {
+        if (isDepositRequested()) {
             updateSyncing();
 
             // allow state notifications to process before returning
@@ -1462,9 +1462,14 @@ public abstract class Trade implements Tradable, Model {
             if (isDepositUnlocked()) getWallet().rescanSpent();
 
             // get txs with outputs
-            List<MoneroTxWallet> txs = getWallet().getTxs(new MoneroTxQuery()
-                    .setHashes(Arrays.asList(processModel.getMaker().getDepositTxHash(), processModel.getTaker().getDepositTxHash()))
-                    .setIncludeOutputs(true));
+            List<MoneroTxWallet> txs;
+            try {
+                txs = getWallet().getTxs(new MoneroTxQuery()
+                        .setHashes(Arrays.asList(processModel.getMaker().getDepositTxHash(), processModel.getTaker().getDepositTxHash()))
+                        .setIncludeOutputs(true));
+            } catch (Exception e) {
+                return;
+            }
 
             // check deposit txs
             if (!isDepositUnlocked()) {

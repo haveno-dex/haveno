@@ -22,14 +22,11 @@ import bisq.core.locale.Res;
 import bisq.core.monetary.Altcoin;
 import bisq.core.monetary.Volume;
 import bisq.core.offer.OpenOffer;
-import bisq.core.trade.Tradable;
-import bisq.core.trade.Trade;
 import bisq.core.util.FormattingUtils;
 import bisq.core.util.coin.CoinFormatter;
 
 import org.bitcoinj.core.Coin;
 import org.bitcoinj.core.Monetary;
-import org.bitcoinj.core.TransactionConfidence;
 import org.bitcoinj.utils.Fiat;
 
 import javax.inject.Inject;

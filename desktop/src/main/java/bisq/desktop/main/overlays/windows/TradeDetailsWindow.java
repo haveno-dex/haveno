@@ -269,12 +269,12 @@ public class TradeDetailsWindow extends Overlay<TradeDetailsWindow> {
                         Res.get(contract.getPaymentMethodId()));
         }
 
-        if (trade.getMakerDepositTx() != null)
+        if (trade.getMaker().getDepositTxHash() != null)
             addLabelTxIdTextField(gridPane, ++rowIndex, Res.get("shared.makerDepositTransactionId"),
-                    trade.getMakerDepositTx().getHash());
-          if (trade.getTakerDepositTx() != null)
+                    trade.getMaker().getDepositTxHash());
+          if (trade.getTaker().getDepositTxHash() != null)
             addLabelTxIdTextField(gridPane, ++rowIndex, Res.get("shared.takerDepositTransactionId"),
-                    trade.getTakerDepositTx().getHash());
+                    trade.getTaker().getDepositTxHash());
 
         if (trade.getPayoutTxId() != null && !trade.getPayoutTxId().isBlank())
             addLabelTxIdTextField(gridPane, ++rowIndex, Res.get("shared.payoutTxId"),

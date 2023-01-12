@@ -23,7 +23,6 @@ import bisq.common.crypto.PubKeyRing;
 import bisq.common.crypto.Sig;
 import bisq.common.taskrunner.TaskRunner;
 import bisq.core.offer.Offer;
-import bisq.core.offer.OfferDirection;
 import bisq.core.trade.HavenoUtils;
 import bisq.core.trade.Trade;
 import bisq.core.trade.messages.DepositRequest;
@@ -47,6 +46,8 @@ import monero.daemon.model.MoneroSubmitTxResult;
 @Slf4j
 public class ArbitratorProcessDepositRequest extends TradeTask {
 
+    private boolean depositTxsRelayed = false;
+
     @SuppressWarnings({"unused"})
     public ArbitratorProcessDepositRequest(TaskRunner taskHandler, Trade trade) {
         super(taskHandler, trade);
@@ -54,6 +55,7 @@ public class ArbitratorProcessDepositRequest extends TradeTask {
 
     @Override
     protected void run() {
+        MoneroDaemon daemon = trade.getXmrWalletService().getDaemon();
         try {
             runInterceptHook();
   
@@ -108,12 +110,12 @@ public class ArbitratorProcessDepositRequest extends TradeTask {
             if (processModel.getMaker().getDepositTxHex() != null && processModel.getTaker().getDepositTxHex() != null) {
 
                 // relay txs
-                MoneroDaemon daemon = trade.getXmrWalletService().getDaemon();
                 MoneroSubmitTxResult makerResult = daemon.submitTxHex(processModel.getMaker().getDepositTxHex(), true);
                 MoneroSubmitTxResult takerResult = daemon.submitTxHex(processModel.getTaker().getDepositTxHex(), true);
                 if (!makerResult.isGood()) throw new RuntimeException("Error submitting maker deposit tx: " + JsonUtils.serialize(makerResult));
                 if (!takerResult.isGood()) throw new RuntimeException("Error submitting taker deposit tx: " + JsonUtils.serialize(takerResult));
                 daemon.relayTxsByHash(Arrays.asList(processModel.getMaker().getDepositTxHash(), processModel.getTaker().getDepositTxHash()));
+                depositTxsRelayed = true;
               
                 // update trade state
                 log.info("Arbitrator submitted deposit txs for trade " + trade.getId());
@@ -126,7 +128,8 @@ public class ArbitratorProcessDepositRequest extends TradeTask {
                         processModel.getPubKeyRing(),
                         UUID.randomUUID().toString(),
                         Version.getP2PMessageVersion(),
-                        new Date().getTime());
+                        new Date().getTime(),
+                        null);
               
                 // send deposit response to maker and taker
                 sendDepositResponse(trade.getMaker().getNodeAddress(), trade.getMaker().getPubKeyRing(), response);
@@ -139,7 +142,30 @@ public class ArbitratorProcessDepositRequest extends TradeTask {
             // TODO (woodser): request persistence?
             complete();
         } catch (Throwable t) {
-          failed(t);
+
+            // handle error before deposits relayed
+            if (!depositTxsRelayed) {
+                try {
+                    daemon.flushTxPool(processModel.getMaker().getDepositTxHash(), processModel.getTaker().getDepositTxHash());
+                } catch (Exception e) { 
+                    e.printStackTrace();
+                }
+
+                // create deposit response with error
+                DepositResponse response = new DepositResponse(
+                    trade.getOffer().getId(),
+                    processModel.getMyNodeAddress(),
+                    processModel.getPubKeyRing(),
+                    UUID.randomUUID().toString(),
+                    Version.getP2PMessageVersion(),
+                    new Date().getTime(),
+                    t.getMessage());
+                          
+                // send deposit response to maker and taker
+                sendDepositResponse(trade.getMaker().getNodeAddress(), trade.getMaker().getPubKeyRing(), response);
+                sendDepositResponse(trade.getTaker().getNodeAddress(), trade.getTaker().getPubKeyRing(), response);
+            }
+            failed(t);
         }
     }
 
