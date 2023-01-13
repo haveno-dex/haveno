@@ -133,6 +133,7 @@ public abstract class Trade implements Tradable, Model {
         SENT_PUBLISH_DEPOSIT_TX_REQUEST(Phase.DEPOSIT_REQUESTED),
         SEND_FAILED_PUBLISH_DEPOSIT_TX_REQUEST(Phase.DEPOSIT_REQUESTED),
         SAW_ARRIVED_PUBLISH_DEPOSIT_TX_REQUEST(Phase.DEPOSIT_REQUESTED),
+        PUBLISH_DEPOSIT_TX_REQUEST_FAILED(Phase.DEPOSIT_REQUESTED),
 
         // deposit published
         ARBITRATOR_PUBLISHED_DEPOSIT_TXS(Phase.DEPOSITS_PUBLISHED),
@@ -935,8 +936,24 @@ public abstract class Trade implements Tradable, Model {
     }
 
     public void deleteWallet() {
-        if (xmrWalletService.multisigWalletExists(getId())) xmrWalletService.deleteMultisigWallet(getId());
-        else log.warn("Multisig wallet to delete for trade {} does not exist", getId());
+        if (xmrWalletService.multisigWalletExists(getId())) {
+
+            // delete trade wallet unless funded
+            if (isDepositPublished() && !isPayoutUnlocked()) {
+                log.warn("Refusing to delete wallet for {} {} because it could be funded", getClass().getSimpleName(), getId());
+                return;
+            }
+            xmrWalletService.deleteMultisigWallet(getId());
+
+            // delete trade wallet backups unless possibly funded
+            boolean possiblyFunded = isDepositRequested() && !isPayoutUnlocked();
+            if (possiblyFunded) {
+                log.warn("Refusing to delete backup wallet for {} {} in the small chance it becomes funded", getClass().getSimpleName(), getId());
+                return;
+            }
+        } else {
+            log.warn("Multisig wallet to delete for trade {} does not exist", getId());
+        }
     }
 
     public void shutDown() {
@@ -1264,6 +1281,10 @@ public abstract class Trade implements Tradable, Model {
 
     public boolean isDepositRequested() {
         return getState().getPhase().ordinal() >= Phase.DEPOSIT_REQUESTED.ordinal();
+    }
+
+    public boolean isDepositFailed() {
+        return getState() == Trade.State.PUBLISH_DEPOSIT_TX_REQUEST_FAILED;
     }
 
     public boolean isDepositPublished() {

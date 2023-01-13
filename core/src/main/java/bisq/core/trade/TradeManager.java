@@ -1078,9 +1078,8 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
                 return;
             }
 
-            // remove trade and wallet unless timeout after deposit requested
-            boolean isTimeoutError = TradeProtocol.isTimeoutError(trade.getErrorMessage());
-            if (!trade.isDepositRequested() || !isTimeoutError) {
+            // remove trade and wallet unless deposit requested without nack
+            if (!trade.isDepositRequested() || trade.isDepositFailed()) {
                 removeTrade(trade);
                 if (xmrWalletService.multisigWalletExists(trade.getId())) trade.deleteWallet();
             } else {
@@ -1100,13 +1099,13 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
                 MoneroTx takerDepositTx = xmrWalletService.getDaemon().getTx(trade.getTaker().getDepositTxHash());
         
                 // delete multisig trade wallet if neither deposit tx published
-                if ((makerDepositTx != null && makerDepositTx.isRelayed()) || (takerDepositTx != null && takerDepositTx.isRelayed())) {
-                    log.warn("Refusing to delete {} {} after protocol timeout because its wallet might be funded", trade.getClass().getSimpleName(), trade.getId());
-                } else {
+                if (makerDepositTx == null && takerDepositTx == null) {
                     log.warn("Deleting {} {} after protocol timeout", trade.getClass().getSimpleName(), trade.getId());
                     removeTrade(trade);
                     failedTradesManager.removeTrade(trade);
                     if (xmrWalletService.multisigWalletExists(trade.getId())) trade.deleteWallet();
+                } else {
+                    log.warn("Refusing to delete {} {} after protocol timeout because its wallet might be funded", trade.getClass().getSimpleName(), trade.getId());
                 }
             }, 60);
         }

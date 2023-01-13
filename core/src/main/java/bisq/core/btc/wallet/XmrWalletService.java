@@ -278,6 +278,15 @@ public class XmrWalletService {
         }
     }
 
+    public void deleteMultisigWalletBackups(String tradeId) {
+        log.info("{}.deleteMultisigWalletBackups({})", getClass().getSimpleName(), tradeId);
+        initWalletLock(tradeId);
+        synchronized (walletLocks.get(tradeId)) {
+            String walletName = MONERO_MULTISIG_WALLET_PREFIX + tradeId;
+            deleteWalletBackups(walletName);
+        }
+    }
+
     public MoneroTxWallet createTx(List<MoneroDestination> destinations) {
         try {
             synchronized (wallet) {
@@ -726,7 +735,6 @@ public class XmrWalletService {
         if (!new File(path).delete()) throw new RuntimeException("Failed to delete wallet file: " + path);
         if (!new File(path + ".keys").delete()) throw new RuntimeException("Failed to delete wallet file: " + path);
         if (!new File(path + ".address.txt").delete()) throw new RuntimeException("Failed to delete wallet file: " + path);
-        deleteBackupWallets(walletName); // TODO: retain backup for some time?
     }
 
     private void closeAllWallets() {
@@ -761,7 +769,7 @@ public class XmrWalletService {
         FileUtil.rollingBackup(walletDir, walletName + ".address.txt", NUM_MAX_BACKUP_WALLETS);
     }
 
-    private void deleteBackupWallets(String walletName) {
+    private void deleteWalletBackups(String walletName) {
         FileUtil.deleteRollingBackup(walletDir, walletName);
         FileUtil.deleteRollingBackup(walletDir, walletName + ".keys");
         FileUtil.deleteRollingBackup(walletDir, walletName + ".address.txt");
