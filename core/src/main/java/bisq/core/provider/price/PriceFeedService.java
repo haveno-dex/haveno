@@ -202,8 +202,8 @@ public class PriceFeedService {
                 String baseUrlOfFaultyRequest = ((PriceRequestException) throwable).priceProviderBaseUrl;
                 String baseUrlOfCurrentRequest = priceProvider.getBaseUrl();
                 if (baseUrlOfCurrentRequest.equals(baseUrlOfFaultyRequest)) {
-                    log.warn("We received an error: baseUrlOfCurrentRequest={}, baseUrlOfFaultyRequest={}, error={}",
-                            baseUrlOfCurrentRequest, baseUrlOfFaultyRequest, throwable.toString());
+                    log.info("We received an error requesting prices: baseUrlOfFaultyRequest={}, error={}",
+                            baseUrlOfFaultyRequest, throwable.toString());
                     retryWithNewProvider();
                 } else {
                     log.debug("We received an error from an earlier request. We have started a new request already so we ignore that error. " +
@@ -242,6 +242,7 @@ public class PriceFeedService {
         String oldBaseUrl = priceProvider.getBaseUrl();
         boolean looped = setNewPriceProvider();
         if (looped) {
+            log.warn("Exhausted price provider list, looping to beginning");
             if (System.currentTimeMillis() - lastLoopTs < PERIOD_SEC * 1000) {
                 retryDelay = Math.min(retryDelay + 5, PERIOD_SEC);
             } else {
@@ -250,11 +251,10 @@ public class PriceFeedService {
             lastLoopTs = System.currentTimeMillis();
             thisRetryDelay = retryDelay;
         }
-        log.warn("We received an error at the request from provider {}. " +
+        log.info("We received an error at the request from provider {}. " +
                 "We select the new provider {} and use that for a new request in {} sec.", oldBaseUrl, priceProvider.getBaseUrl(), thisRetryDelay);
         if (thisRetryDelay > 0) {
             UserThread.runAfter(() -> {
-                log.warn("Running request!");
                 request(true);
             }, thisRetryDelay);
         } else {
