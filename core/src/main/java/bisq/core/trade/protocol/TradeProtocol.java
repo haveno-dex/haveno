@@ -27,6 +27,7 @@ import bisq.core.trade.HavenoUtils;
 import bisq.core.trade.SellerTrade;
 import bisq.core.trade.handlers.TradeResultHandler;
 import bisq.core.trade.messages.PaymentSentMessage;
+import bisq.core.trade.messages.DepositRequest;
 import bisq.core.trade.messages.DepositResponse;
 import bisq.core.trade.messages.DepositsConfirmedMessage;
 import bisq.core.trade.messages.InitMultisigRequest;
@@ -549,6 +550,13 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
             String err = "Received AckMessage with error state for " + ackMessage.getSourceMsgClassName() +
                     " from "+ peer + " with tradeId " + trade.getId() + " and errorMessage=" + ackMessage.getErrorMessage();
             log.warn(err);
+
+            // set trade state on deposit request nack
+            if (ackMessage.getSourceMsgClassName().equals(DepositRequest.class.getSimpleName())) {
+                trade.setStateIfValidTransitionTo(Trade.State.PUBLISH_DEPOSIT_TX_REQUEST_FAILED);
+                processModel.getTradeManager().requestPersistence();
+            }
+
             handleError(err);
         }
     }

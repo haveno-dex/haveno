@@ -47,6 +47,7 @@ public class ProcessDepositResponse extends TradeTask {
           processModel.getTradeManager().requestPersistence();
           complete();
         } catch (Throwable t) {
+          trade.setStateIfValidTransitionTo(Trade.State.PUBLISH_DEPOSIT_TX_REQUEST_FAILED);
           failed(t);
         }
     }
