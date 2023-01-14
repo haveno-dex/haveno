@@ -172,6 +172,9 @@ public class ProcessModel implements Model, PersistablePayload {
     @Setter
     private String multisigAddress;
     @Nullable
+    @Getter
+    @Setter
+    private boolean isDepositsConfirmedMessagesDelivered;
 
     // We want to indicate the user the state of the message delivery of the
     // PaymentSentMessage. As well we do an automatic re-send in case it was not ACKed yet.

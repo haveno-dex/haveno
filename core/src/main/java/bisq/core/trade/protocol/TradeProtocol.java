@@ -72,6 +72,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
 import lombok.extern.slf4j.Slf4j;
 import org.fxmisc.easybind.EasyBind;
@@ -244,13 +245,6 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
             processModel.getP2PService().addDecryptedDirectMessageListener(this);
         }
 
-        // handle trade events
-        EasyBind.subscribe(trade.stateProperty(), state -> {
-            if (state == Trade.State.DEPOSIT_TXS_CONFIRMED_IN_BLOCKCHAIN) {
-                new Thread(() -> sendDepositsConfirmedMessage()).start();
-            }
-        });
-
         // initialize trade
         trade.initialize(processModel.getProvider());
 
@@ -258,6 +252,17 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
         MailboxMessageService mailboxMessageService = processModel.getP2PService().getMailboxMessageService();
         mailboxMessageService.addDecryptedMailboxListener(this);
         handleMailboxCollection(mailboxMessageService.getMyDecryptedMailboxMessages());
+
+        // send deposit confirmed message on startup or event
+        if (trade.getState().ordinal() >= Trade.State.DEPOSIT_TXS_CONFIRMED_IN_BLOCKCHAIN.ordinal()) {
+            new Thread(() -> sendDepositsConfirmedMessages()).start();
+        } else {
+            EasyBind.subscribe(trade.stateProperty(), state -> {
+                if (state == Trade.State.DEPOSIT_TXS_CONFIRMED_IN_BLOCKCHAIN) {
+                    new Thread(() -> sendDepositsConfirmedMessages()).start();
+                }
+            });
+        }
     }
 
     public void handleInitMultisigRequest(InitMultisigRequest request, NodeAddress sender) {
@@ -770,16 +775,24 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
         }
     }
 
-    private void sendDepositsConfirmedMessage() {
+    private void sendDepositsConfirmedMessages() {
         synchronized (trade) {
+            if (!trade.isInitialized()) return; // skip if shutting down
+            if (trade.getProcessModel().isDepositsConfirmedMessagesDelivered()) return; // skip if already delivered
             latchTrade();
             expect(new Condition(trade))
                     .setup(tasks(getDepositsConfirmedTasks())
                     .using(new TradeTaskRunner(trade,
                             () -> {
+                                trade.getProcessModel().setDepositsConfirmedMessagesDelivered(true);
                                 handleTaskRunnerSuccess(null, null, "SendDepositsConfirmedMessages");
                             },
                             (errorMessage) -> {
+
+                                // retry in 15 minutes
+                                UserThread.runAfter(() -> {
+                                    sendDepositsConfirmedMessages();
+                                }, 15, TimeUnit.MINUTES);
                                 handleTaskRunnerFault(null, null, "SendDepositsConfirmedMessages", errorMessage);
                             })))
                     .executeTasks(true);
