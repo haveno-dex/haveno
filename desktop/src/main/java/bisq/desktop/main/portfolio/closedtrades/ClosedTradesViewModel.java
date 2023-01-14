@@ -20,7 +20,6 @@ package bisq.desktop.main.portfolio.closedtrades;
 import bisq.desktop.common.model.ActivatableWithDataModel;
 import bisq.desktop.common.model.ViewModel;
 
-import bisq.core.monetary.Volume;
 import bisq.core.trade.ClosedTradableFormatter;
 
 import org.bitcoinj.core.Coin;

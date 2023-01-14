@@ -196,7 +196,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
             @Override
             public void onAdded(Offer offer) {
                 Optional<OpenOffer> openOfferOptional = getOpenOfferById(offer.getId());
-                if (openOfferOptional.isPresent() && offer.isReservedFundsSpent()) {
+                if (openOfferOptional.isPresent() && openOfferOptional.get().getState() != OpenOffer.State.RESERVED && offer.isReservedFundsSpent()) {
                     removeOpenOffer(openOfferOptional.get(), null);
                 }
             }
@@ -247,8 +247,8 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
 //                        .ifPresent(errorMsg -> invalidOffers.add(new Tuple2<>(openOffer, errorMsg))));
 
         // process unposted offers
-        processUnpostedOffers((transaction) -> {}, (errMessage) -> {
-            log.warn("Error processing unposted offers on new unlocked balance: " + errMessage);
+        processUnpostedOffers((transaction) -> {}, (errorMessage) -> {
+            log.warn("Error processing unposted offers on new unlocked balance: " + errorMessage);
         });
 
         // register to process unposted offers when unlocked balance increases
@@ -257,8 +257,8 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
             @Override
             public void onBalancesChanged(BigInteger newBalance, BigInteger newUnlockedBalance) {
                 if (lastUnlockedBalance == null || lastUnlockedBalance.compareTo(newUnlockedBalance) < 0) {
-                    processUnpostedOffers((transaction) -> {}, (errMessage) -> {
-                        log.warn("Error processing unposted offers on new unlocked balance: " + errMessage);
+                    processUnpostedOffers((transaction) -> {}, (errorMessage) -> {
+                        log.warn("Error processing unposted offers on new unlocked balance: " + errorMessage);
                     });
                 }
                 lastUnlockedBalance = newUnlockedBalance;
@@ -327,6 +327,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
         List<OpenOffer> openOffersList = new ArrayList<>(openOffers);
         openOffersList.forEach(openOffer -> removeOpenOffer(openOffer, () -> {
         }, errorMessage -> {
+            log.warn("Error removing open offer: " + errorMessage);
         }));
         if (completeHandler != null)
             UserThread.runAfter(completeHandler, size * 200 + 500, TimeUnit.MILLISECONDS);
@@ -448,10 +449,11 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
             addOpenOffer(openOffer);
             requestPersistence();
             resultHandler.handleResult(transaction);
-        }, (errMessage) -> {
+        }, (errorMessage) -> {
+            log.warn("Error processing unposted offer {}: {}", openOffer.getId(), errorMessage);
             onRemoved(openOffer);
-            offer.setErrorMessage(errMessage);
-            errorMessageHandler.handleErrorMessage(errMessage);
+            offer.setErrorMessage(errorMessage);
+            errorMessageHandler.handleErrorMessage(errorMessage);
         });
     }
 
@@ -691,6 +693,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                 processUnpostedOffer(openOffers, scheduledOffer, (transaction) -> {
                     latch.countDown();
                 }, errorMessage -> {
+                    log.warn("Error processing unposted offer {}: {}", scheduledOffer.getId(), errorMessage);
                     onRemoved(scheduledOffer);
                     errorMessages.add(errorMessage);
                     latch.countDown();
