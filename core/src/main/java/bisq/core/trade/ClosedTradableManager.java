@@ -151,6 +151,10 @@ public class ClosedTradableManager implements PersistedDataHost {
         return closedTradables.stream().filter(e -> e.getId().equals(id)).findFirst();
     }
 
+    public Optional<Tradable> getTradeById(String id) {
+        return closedTradables.stream().filter(e -> e instanceof Trade && e.getId().equals(id)).findFirst();
+    }
+
     public void maybeClearSensitiveData() {
         log.info("checking closed trades eligibility for having sensitive data cleared");
         closedTradables.stream()

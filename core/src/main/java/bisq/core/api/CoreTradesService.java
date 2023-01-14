@@ -225,7 +225,7 @@ class CoreTradesService {
     }
 
     private Optional<Trade> getClosedTrade(String tradeId) {
-        Optional<Tradable> tradable = closedTradableManager.getTradableById(tradeId);
+        Optional<Tradable> tradable = closedTradableManager.getTradeById(tradeId);
         return tradable.filter((t) -> t instanceof Trade).map(value -> (Trade) value);
     }
 

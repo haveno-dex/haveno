@@ -895,58 +895,62 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
     }
 
     public Stream<Trade> getTradesStreamWithFundsLockedIn() {
-        return getObservableList().stream().filter(Trade::isFundsLockedIn);
+        synchronized (tradableList) {
+            return getObservableList().stream().filter(Trade::isFundsLockedIn);
+        }
     }
 
     public Set<String> getSetOfFailedOrClosedTradeIdsFromLockedInFunds() throws TradeTxException {
         AtomicReference<TradeTxException> tradeTxException = new AtomicReference<>();
-        Set<String> tradesIdSet = getTradesStreamWithFundsLockedIn()
-                .filter(Trade::hasFailed)
-                .map(Trade::getId)
-                .collect(Collectors.toSet());
-        tradesIdSet.addAll(failedTradesManager.getTradesStreamWithFundsLockedIn()
-                .filter(trade -> trade.getMakerDepositTx() != null || trade.getTakerDepositTx() != null)
-                .map(trade -> {
-                    log.warn("We found a failed trade with locked up funds. " +
-                            "That should never happen. trade ID=" + trade.getId());
+        synchronized (tradableList) {
+            Set<String> tradesIdSet = getTradesStreamWithFundsLockedIn()
+                    .filter(Trade::hasFailed)
+                    .map(Trade::getId)
+                    .collect(Collectors.toSet());
+            tradesIdSet.addAll(failedTradesManager.getTradesStreamWithFundsLockedIn()
+                    .filter(trade -> trade.getMakerDepositTx() != null || trade.getTakerDepositTx() != null)
+                    .map(trade -> {
+                        log.warn("We found a failed trade with locked up funds. " +
+                                "That should never happen. trade ID=" + trade.getId());
+                        return trade.getId();
+                    })
+                    .collect(Collectors.toSet()));
+            tradesIdSet.addAll(closedTradableManager.getTradesStreamWithFundsLockedIn()
+                    .map(trade -> {
+                    MoneroTx makerDepositTx = trade.getMakerDepositTx();
+                    if (makerDepositTx != null) {
+                        if (!makerDepositTx.isConfirmed()) {
+                            tradeTxException.set(new TradeTxException(Res.get("error.closedTradeWithUnconfirmedDepositTx", trade.getShortId()))); // TODO (woodser): rename to closedTradeWithLockedDepositTx
+                        } else {
+                            log.warn("We found a closed trade with locked up funds. " +
+                                    "That should never happen. {} ID={}, state={}, payoutState={}, disputeState={}", trade.getId(), trade.getClass().getSimpleName(), trade.getId(), trade.getState(), trade.getPayoutState(), trade.getDisputeState());
+                        }
+                    } else {
+                        log.warn("Closed trade with locked up funds missing maker deposit tx. {} ID={}, state={}, payoutState={}, disputeState={}", trade.getId(), trade.getClass().getSimpleName(), trade.getId(), trade.getState(), trade.getPayoutState(), trade.getDisputeState());
+                        tradeTxException.set(new TradeTxException(Res.get("error.closedTradeWithNoDepositTx", trade.getShortId())));
+                    }
+
+                    MoneroTx takerDepositTx = trade.getTakerDepositTx();
+                    if (takerDepositTx != null) {
+                        if (!takerDepositTx.isConfirmed()) {
+                            tradeTxException.set(new TradeTxException(Res.get("error.closedTradeWithUnconfirmedDepositTx", trade.getShortId())));
+                        } else {
+                            log.warn("We found a closed trade with locked up funds. " +
+                                    "That should never happen. trade ID={} ID={}, state={}, payoutState={}, disputeState={}", trade.getId(), trade.getClass().getSimpleName(), trade.getId(), trade.getState(), trade.getPayoutState(), trade.getDisputeState());
+                        }
+                    } else {
+                        log.warn("Closed trade with locked up funds missing taker deposit tx. {} ID={}, state={}, payoutState={}, disputeState={}", trade.getId(), trade.getClass().getSimpleName(), trade.getId(), trade.getState(), trade.getPayoutState(), trade.getDisputeState());
+                        tradeTxException.set(new TradeTxException(Res.get("error.closedTradeWithNoDepositTx", trade.getShortId())));
+                    }
                     return trade.getId();
-                })
-                .collect(Collectors.toSet()));
-        tradesIdSet.addAll(closedTradableManager.getTradesStreamWithFundsLockedIn()
-                .map(trade -> {
-                  MoneroTx makerDepositTx = trade.getMakerDepositTx();
-                  if (makerDepositTx != null) {
-                      if (!makerDepositTx.isConfirmed()) {
-                        tradeTxException.set(new TradeTxException(Res.get("error.closedTradeWithUnconfirmedDepositTx", trade.getShortId()))); // TODO (woodser): rename to closedTradeWithLockedDepositTx
-                      } else {
-                        log.warn("We found a closed trade with locked up funds. " +
-                                "That should never happen. {} ID={}, state={}, payoutState={}, disputeState={}", trade.getId(), trade.getClass().getSimpleName(), trade.getId(), trade.getState(), trade.getPayoutState(), trade.getDisputeState());
-                      }
-                  } else {
-                      log.warn("Closed trade with locked up funds missing maker deposit tx. {} ID={}, state={}, payoutState={}, disputeState={}", trade.getId(), trade.getClass().getSimpleName(), trade.getId(), trade.getState(), trade.getPayoutState(), trade.getDisputeState());
-                      tradeTxException.set(new TradeTxException(Res.get("error.closedTradeWithNoDepositTx", trade.getShortId())));
-                  }
+                    })
+                    .collect(Collectors.toSet()));
 
-                  MoneroTx takerDepositTx = trade.getTakerDepositTx();
-                  if (takerDepositTx != null) {
-                      if (!takerDepositTx.isConfirmed()) {
-                        tradeTxException.set(new TradeTxException(Res.get("error.closedTradeWithUnconfirmedDepositTx", trade.getShortId())));
-                      } else {
-                        log.warn("We found a closed trade with locked up funds. " +
-                                "That should never happen. trade ID={} ID={}, state={}, payoutState={}, disputeState={}", trade.getId(), trade.getClass().getSimpleName(), trade.getId(), trade.getState(), trade.getPayoutState(), trade.getDisputeState());
-                      }
-                  } else {
-                      log.warn("Closed trade with locked up funds missing taker deposit tx. {} ID={}, state={}, payoutState={}, disputeState={}", trade.getId(), trade.getClass().getSimpleName(), trade.getId(), trade.getState(), trade.getPayoutState(), trade.getDisputeState());
-                      tradeTxException.set(new TradeTxException(Res.get("error.closedTradeWithNoDepositTx", trade.getShortId())));
-                  }
-                  return trade.getId();
-                })
-                .collect(Collectors.toSet()));
+            if (tradeTxException.get() != null)
+                throw tradeTxException.get();
 
-        if (tradeTxException.get() != null)
-            throw tradeTxException.get();
-
-        return tradesIdSet;
+            return tradesIdSet;
+        }
     }
 
     // If trade still has funds locked up it might come back from failed trades
@@ -1028,10 +1032,12 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
     }
 
     public List<Trade> getOpenTrades() {
-        return ImmutableList.copyOf(getObservableList().stream()
-                .filter(e -> e instanceof Trade)
-                .map(e -> e)
-                .collect(Collectors.toList()));
+        synchronized (tradableList) {
+            return ImmutableList.copyOf(getObservableList().stream()
+                    .filter(e -> e instanceof Trade)
+                    .map(e -> e)
+                    .collect(Collectors.toList()));
+        }
     }
 
     public Optional<Trade> getClosedTrade(String tradeId) {
