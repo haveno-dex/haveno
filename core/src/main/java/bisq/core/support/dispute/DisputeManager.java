@@ -174,9 +174,11 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
 
     @Override
     public List<ChatMessage> getAllChatMessages() {
-        return getDisputeList().stream()
-                .flatMap(dispute -> dispute.getChatMessages().stream())
-                .collect(Collectors.toList());
+        synchronized (getDisputeList()) {
+            return getDisputeList().stream()
+                    .flatMap(dispute -> dispute.getChatMessages().stream())
+                    .collect(Collectors.toList());
+        }
     }
 
     @Override
@@ -294,12 +296,14 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
     }
 
     public Optional<Dispute> findOwnDispute(String tradeId) {
-        T disputeList = getDisputeList();
-        if (disputeList == null) {
-            log.warn("disputes is null");
-            return Optional.empty();
+        synchronized (getDisputeList()) {
+            T disputeList = getDisputeList();
+            if (disputeList == null) {
+                log.warn("disputes is null");
+                return Optional.empty();
+            }
+            return disputeList.stream().filter(e -> e.getTradeId().equals(tradeId)).findAny();
         }
-        return disputeList.stream().filter(e -> e.getTradeId().equals(tradeId)).findAny();
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////

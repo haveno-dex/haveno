@@ -28,7 +28,9 @@ import bisq.core.support.SupportType;
 import bisq.core.support.dispute.Dispute;
 import bisq.core.support.dispute.DisputeManager;
 import bisq.core.support.dispute.DisputeResult;
+import bisq.core.support.dispute.DisputeSummaryVerification;
 import bisq.core.support.dispute.DisputeResult.Winner;
+import bisq.core.support.dispute.arbitration.arbitrator.ArbitratorManager;
 import bisq.core.support.dispute.messages.DisputeClosedMessage;
 import bisq.core.support.dispute.messages.DisputeOpenedMessage;
 import bisq.core.support.messages.ChatMessage;
@@ -73,6 +75,8 @@ import monero.wallet.model.MoneroTxWallet;
 @Singleton
 public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeList> {
 
+    private final ArbitratorManager arbitratorManager;
+
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Constructor
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -83,6 +87,7 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
                               XmrWalletService walletService,
                               CoreMoneroConnectionsService connectionService,
                               CoreNotificationService notificationService,
+                              ArbitratorManager arbitratorManager,
                               TradeManager tradeManager,
                               ClosedTradableManager closedTradableManager,
                               OpenOfferManager openOfferManager,
@@ -92,7 +97,8 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
                               PriceFeedService priceFeedService) {
         super(p2PService, tradeWalletService, walletService, connectionService, notificationService, tradeManager, closedTradableManager,
                 openOfferManager, keyRing, arbitrationDisputeListService, config, priceFeedService);
-        HavenoUtils.arbitrationManager = this; // store static reference
+        this.arbitratorManager = arbitratorManager;
+        HavenoUtils.arbitrationManager = this; // TODO: storing static reference, better way?
     }
 
 
@@ -180,6 +186,10 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
         }
 
         log.info("Processing {} for {} {}", disputeClosedMessage.getClass().getSimpleName(), trade.getClass().getSimpleName(), disputeResult.getTradeId());
+
+        // verify arbitrator signature
+        String summaryText = chatMessage.getMessage();
+        DisputeSummaryVerification.verifySignature(summaryText, arbitratorManager);
 
         // get dispute
         Optional<Dispute> disputeOptional = findDispute(disputeResult);

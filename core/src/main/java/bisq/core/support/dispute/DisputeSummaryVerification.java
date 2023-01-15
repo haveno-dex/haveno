@@ -19,8 +19,7 @@ package bisq.core.support.dispute;
 
 import bisq.core.locale.Res;
 import bisq.core.support.dispute.agent.DisputeAgent;
-import bisq.core.support.dispute.mediation.mediator.MediatorManager;
-import bisq.core.support.dispute.refund.refundagent.RefundAgentManager;
+import bisq.core.support.dispute.arbitration.arbitrator.ArbitratorManager;
 
 import bisq.network.p2p.NodeAddress;
 
@@ -64,18 +63,14 @@ public class DisputeSummaryVerification {
                 SEPARATOR2);
     }
 
-    public static String verifySignature(String input,
-                                         MediatorManager mediatorManager,
-                                         RefundAgentManager refundAgentManager) {
+    public static void verifySignature(String input,
+                                         ArbitratorManager arbitratorMediator) {
         try {
             String[] parts = input.split(SEPARATOR1);
             String textToSign = parts[0];
             String fullAddress = textToSign.split("\n")[1].split(": ")[1];
             NodeAddress nodeAddress = new NodeAddress(fullAddress);
-            DisputeAgent disputeAgent = mediatorManager.getDisputeAgentByNodeAddress(nodeAddress).orElse(null);
-            if (disputeAgent == null) {
-                disputeAgent = refundAgentManager.getDisputeAgentByNodeAddress(nodeAddress).orElse(null);
-            }
+            DisputeAgent disputeAgent = arbitratorMediator.getDisputeAgentByNodeAddress(nodeAddress).orElse(null);
             checkNotNull(disputeAgent);
             PublicKey pubKey = disputeAgent.getPubKeyRing().getSignaturePubKey();
 
@@ -85,15 +80,15 @@ public class DisputeSummaryVerification {
             try {
                 boolean result = Sig.verify(pubKey, hash, sig);
                 if (result) {
-                    return Res.get("support.sigCheck.popup.success");
+                    return;
                 } else {
-                    return Res.get("support.sigCheck.popup.failed");
+                    throw new IllegalArgumentException(Res.get("support.sigCheck.popup.failed"));
                 }
             } catch (CryptoException e) {
-                return Res.get("support.sigCheck.popup.failed");
+                throw new IllegalArgumentException(Res.get("support.sigCheck.popup.failed"));
             }
         } catch (Throwable e) {
-            return Res.get("support.sigCheck.popup.invalidFormat");
+            throw new IllegalArgumentException(Res.get("support.sigCheck.popup.invalidFormat"));
         }
     }
 }

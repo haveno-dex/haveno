@@ -30,10 +30,9 @@ import bisq.core.locale.Res;
 import bisq.core.support.SupportType;
 import bisq.core.support.dispute.Dispute;
 import bisq.core.support.dispute.DisputeSession;
-import bisq.core.support.dispute.mediation.mediator.MediatorManager;
+import bisq.core.support.dispute.arbitration.arbitrator.ArbitratorManager;
 import bisq.core.support.dispute.refund.RefundManager;
 import bisq.core.support.dispute.refund.RefundSession;
-import bisq.core.support.dispute.refund.refundagent.RefundAgentManager;
 import bisq.core.trade.TradeManager;
 import bisq.core.user.Preferences;
 import bisq.core.util.FormattingUtils;
@@ -59,8 +58,7 @@ public class RefundAgentView extends DisputeAgentView {
                            ContractWindow contractWindow,
                            TradeDetailsWindow tradeDetailsWindow,
                            AccountAgeWitnessService accountAgeWitnessService,
-                           MediatorManager mediatorManager,
-                           RefundAgentManager refundAgentManager,
+                           ArbitratorManager arbitratorService,
                            @Named(Config.USE_DEV_PRIVILEGE_KEYS) boolean useDevPrivilegeKeys) {
         super(refundManager,
                 keyRing,
@@ -72,8 +70,7 @@ public class RefundAgentView extends DisputeAgentView {
                 contractWindow,
                 tradeDetailsWindow,
                 accountAgeWitnessService,
-                mediatorManager,
-                refundAgentManager,
+                arbitratorService,
                 useDevPrivilegeKeys);
     }
 
