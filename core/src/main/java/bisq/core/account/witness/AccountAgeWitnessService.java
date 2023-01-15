@@ -526,17 +526,15 @@ public class AccountAgeWitnessService {
 
     public boolean verifyAccountAgeWitness(Trade trade,
                                            PaymentAccountPayload peersPaymentAccountPayload,
-                                           Date peersCurrentDate,
                                            PubKeyRing peersPubKeyRing,
                                            byte[] nonce,
                                            byte[] signature,
                                            ErrorMessageHandler errorMessageHandler) {
 
-        log.info("Verifying account age witness for {} {}, payment account payload hash={}, peers current date={}, nonce={}, signature={}",
+        log.info("Verifying account age witness for {} {}, payment account payload hash={}, nonce={}, signature={}",
                 trade.getClass().getSimpleName(),
                 trade.getId(),
                 Utilities.bytesAsHexString(peersPaymentAccountPayload.getHash()),
-                peersCurrentDate,
                 Utilities.bytesAsHexString(nonce),
                 Utilities.bytesAsHexString(signature));
 
@@ -558,10 +556,6 @@ public class AccountAgeWitnessService {
         if (!isDateAfterReleaseDate(peersWitness.getDate(), RELEASE, errorMessageHandler))
             return false;
 
-        // Check if peer current date is in tolerance range
-        if (!verifyPeersCurrentDate(peersCurrentDate, errorMessageHandler))
-            return false;
-
         final byte[] peersAccountInputDataWithSalt = Utilities.concatenateByteArrays(
                 peersPaymentAccountPayload.getAgeWitnessInputData(), peersPaymentAccountPayload.getSalt());
         byte[] hash = Hash.getSha256Ripemd160hash(Utilities.concatenateByteArrays(peersAccountInputDataWithSalt,
@@ -573,8 +567,7 @@ public class AccountAgeWitnessService {
             return false;
 
         // Check if the peers trade limit is not less than the trade amount
-        if (!verifyPeersTradeLimit(trade.getOffer(), trade.getAmount(), peersWitness, peersCurrentDate,
-                errorMessageHandler)) {
+        if (!verifyPeersTradeLimit(trade.getOffer(), trade.getAmount(), peersWitness, new Date(), errorMessageHandler)) {
             log.error("verifyPeersTradeLimit failed: peersPaymentAccountPayload {}", peersPaymentAccountPayload);
             return false;
         }
@@ -619,13 +612,12 @@ public class AccountAgeWitnessService {
         return result;
     }
 
-    private boolean verifyPeersCurrentDate(Date peersCurrentDate, ErrorMessageHandler errorMessageHandler) {
+    public boolean verifyPeersCurrentDate(Date peersCurrentDate) {
         boolean result = Math.abs(peersCurrentDate.getTime() - new Date().getTime()) <= TimeUnit.DAYS.toMillis(1);
         if (!result) {
             String msg = "Peers current date is further than 1 day off to our current date. " +
                     "PeersCurrentDate=" + peersCurrentDate + "; myCurrentDate=" + new Date();
-            log.warn(msg);
-            errorMessageHandler.handleErrorMessage(msg);
+            throw new RuntimeException(msg);
         }
         return result;
     }
