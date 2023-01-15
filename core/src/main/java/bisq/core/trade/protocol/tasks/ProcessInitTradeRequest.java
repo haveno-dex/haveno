@@ -38,6 +38,8 @@ import static bisq.core.util.Validator.nonEmptyStringOf;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import java.util.Date;
+
 @Slf4j
 public class ProcessInitTradeRequest extends TradeTask {
     @SuppressWarnings({"unused"})
@@ -127,6 +129,9 @@ public class ProcessInitTradeRequest extends TradeTask {
             multisigParticipant.setAccountAgeWitnessNonce(trade.getId().getBytes(Charsets.UTF_8));
             multisigParticipant.setAccountAgeWitnessSignature(request.getAccountAgeWitnessSignatureOfOfferId());
             multisigParticipant.setCurrentDate(request.getCurrentDate());
+
+            // check peer's current date
+            processModel.getAccountAgeWitnessService().verifyPeersCurrentDate(new Date(multisigParticipant.getCurrentDate()));
 
             // check trade amount
             checkArgument(request.getTradeAmount() > 0);

@@ -74,12 +74,8 @@ public class VerifyPeersAccountAgeWitness extends TradeTask {
             byte[] nonce = checkNotNull(tradingPeer.getAccountAgeWitnessNonce());
             byte[] signature = checkNotNull(tradingPeer.getAccountAgeWitnessSignature());
             AtomicReference<String> errorMsg = new AtomicReference<>();
-            long currentDateAsLong = tradingPeer.getCurrentDate();
-            // In case the peer has an older version we get 0, so we use our time instead
-            Date peersCurrentDate = currentDateAsLong > 0 ? new Date(currentDateAsLong) : new Date();
             boolean isValid = accountAgeWitnessService.verifyAccountAgeWitness(trade,
                     peersPaymentAccountPayload,
-                    peersCurrentDate,
                     peersPubKeyRing,
                     nonce,
                     signature,
