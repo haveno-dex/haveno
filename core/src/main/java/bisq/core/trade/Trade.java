@@ -716,7 +716,6 @@ public abstract class Trade implements Tradable, Model {
         BigInteger sellerPayoutAmount = sellerDepositAmount.subtract(tradeAmount);
 
         // create transaction to get fee estimate
-        if (multisigWallet.isMultisigImportNeeded()) throw new RuntimeException("Cannot create payout tx because multisig import is needed");
         MoneroTxWallet feeEstimateTx = multisigWallet.createTx(new MoneroTxConfig()
                 .setAccountIndex(0)
                 .addDestination(buyerPayoutAddress, buyerPayoutAmount.multiply(BigInteger.valueOf(9)).divide(BigInteger.valueOf(10))) // reduce payment amount to compute fee of similar tx
@@ -798,17 +797,34 @@ public abstract class Trade implements Tradable, Model {
         BigInteger expectedSellerPayout = sellerDepositAmount.subtract(tradeAmount).subtract(txCost.divide(BigInteger.valueOf(2)));
         if (!sellerPayoutDestination.getAmount().equals(expectedSellerPayout)) throw new RuntimeException("Seller destination amount is not deposit amount - trade amount - 1/2 tx costs, " + sellerPayoutDestination.getAmount() + " vs " + expectedSellerPayout);
 
-        // TODO (woodser): verify fee is reasonable (e.g. within 2x of fee estimate tx)
-
-        // sign payout tx
+        // handle tx signing
         if (sign) {
+
+            // sign tx
             MoneroMultisigSignResult result = multisigWallet.signMultisigTxHex(payoutTxHex);
             if (result.getSignedMultisigTxHex() == null) throw new RuntimeException("Error signing payout tx");
             payoutTxHex = result.getSignedMultisigTxHex();
+            describedTxSet = multisigWallet.describeMultisigTxSet(payoutTxHex); // update described set
+            payoutTx = describedTxSet.getTxs().get(0);
+
+            // verify fee is within tolerance by recreating payout tx
+            // TODO (monero-project): creating tx will require exchanging updated multisig hex if message needs reprocessed. provide weight with describe_transfer so fee can be estimated?
+            MoneroTxWallet feeEstimateTx = null;
+            try {
+                feeEstimateTx = createPayoutTx();
+            } catch (Exception e) {
+                log.warn("Could not recreate payout tx to verify fee: " + e.getMessage());
+            }
+            if (feeEstimateTx != null) {
+                BigInteger feeEstimate = feeEstimateTx.getFee();
+                double feeDiff = payoutTx.getFee().subtract(feeEstimate).abs().doubleValue() / feeEstimate.doubleValue(); // TODO: use BigDecimal?
+                if (feeDiff > XmrWalletService.MINER_FEE_TOLERANCE) throw new RuntimeException("Miner fee is not within " + (XmrWalletService.MINER_FEE_TOLERANCE * 100) + "% of estimated fee, expected " + feeEstimate + " but was " + payoutTx.getFee());
+                log.info("Payout tx fee {} is within tolerance, diff %={}", payoutTx.getFee(), feeDiff);
+            }
         }
 
         // update trade state
-        setPayoutTx(describedTxSet.getTxs().get(0));
+        setPayoutTx(payoutTx);
         setPayoutTxHex(payoutTxHex);
 
         // submit payout tx

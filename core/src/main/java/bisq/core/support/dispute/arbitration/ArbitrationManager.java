@@ -319,8 +319,6 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
         BigInteger destinationSum = (buyerPayoutDestination == null ? BigInteger.ZERO : buyerPayoutDestination.getAmount()).add(sellerPayoutDestination == null ? BigInteger.ZERO : sellerPayoutDestination.getAmount());
         if (!arbitratorSignedPayoutTx.getOutputSum().equals(destinationSum.add(arbitratorSignedPayoutTx.getChangeAmount()))) throw new RuntimeException("Sum of outputs != destination amounts + change amount");
 
-        // TODO: verify miner fee is within expected range
-
         // verify winner and loser payout amounts
         BigInteger txCost = arbitratorSignedPayoutTx.getFee().add(arbitratorSignedPayoutTx.getChangeAmount()); // fee + lost dust change
         BigInteger expectedWinnerAmount = HavenoUtils.coinToAtomicUnits(disputeResult.getWinner() == Winner.BUYER ? disputeResult.getBuyerPayoutAmount() : disputeResult.getSellerPayoutAmount());
@@ -337,6 +335,21 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
         if (result.getSignedMultisigTxHex() == null) throw new RuntimeException("Error signing arbitrator-signed payout tx");
         String signedMultisigTxHex = result.getSignedMultisigTxHex();
         signedTxSet.setMultisigTxHex(signedMultisigTxHex);
+
+        // verify mining fee is within tolerance by recreating payout tx
+        // TODO (monero-project): creating tx will require exchanging updated multisig hex if message needs reprocessed. provide weight with describe_transfer so fee can be estimated?
+        MoneroTxWallet feeEstimateTx = null;
+        try {
+            feeEstimateTx = createDisputePayoutTx(trade, dispute, disputeResult, true);
+        } catch (Exception e) {
+            log.warn("Could not recreate dispute payout tx to verify fee: " + e.getMessage());
+        }
+        if (feeEstimateTx != null) {
+            BigInteger feeEstimate = feeEstimateTx.getFee();
+            double feeDiff = arbitratorSignedPayoutTx.getFee().subtract(feeEstimate).abs().doubleValue() / feeEstimate.doubleValue(); // TODO: use BigDecimal?
+            if (feeDiff > XmrWalletService.MINER_FEE_TOLERANCE) throw new RuntimeException("Miner fee is not within " + (XmrWalletService.MINER_FEE_TOLERANCE * 100) + "% of estimated fee, expected " + feeEstimate + " but was " + arbitratorSignedPayoutTx.getFee());
+            log.info("Payout tx fee {} is within tolerance, diff %={}", arbitratorSignedPayoutTx.getFee(), feeDiff);
+        }
 
         // submit fully signed payout tx to the network
         List<String> txHashes = multisigWallet.submitMultisigTxHex(signedTxSet.getMultisigTxHex());
