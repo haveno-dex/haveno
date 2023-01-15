@@ -28,10 +28,9 @@ import bisq.core.alert.PrivateNotificationManager;
 import bisq.core.support.SupportType;
 import bisq.core.support.dispute.Dispute;
 import bisq.core.support.dispute.DisputeSession;
-import bisq.core.support.dispute.mediation.mediator.MediatorManager;
+import bisq.core.support.dispute.arbitration.arbitrator.ArbitratorManager;
 import bisq.core.support.dispute.refund.RefundManager;
 import bisq.core.support.dispute.refund.RefundSession;
-import bisq.core.support.dispute.refund.refundagent.RefundAgentManager;
 import bisq.core.trade.Contract;
 import bisq.core.trade.TradeManager;
 import bisq.core.user.Preferences;
@@ -59,12 +58,11 @@ public class RefundClientView extends DisputeClientView {
                             ContractWindow contractWindow,
                             TradeDetailsWindow tradeDetailsWindow,
                             AccountAgeWitnessService accountAgeWitnessService,
-                            MediatorManager mediatorManager,
-                            RefundAgentManager refundAgentManager,
+                            ArbitratorManager arbitratorManager,
                             @Named(Config.USE_DEV_PRIVILEGE_KEYS) boolean useDevPrivilegeKeys) {
         super(refundManager, keyRing, tradeManager, formatter, preferences, disputeSummaryWindow,
                 privateNotificationManager, contractWindow, tradeDetailsWindow, accountAgeWitnessService,
-                mediatorManager, refundAgentManager, useDevPrivilegeKeys);
+                arbitratorManager, useDevPrivilegeKeys);
     }
 
     @Override

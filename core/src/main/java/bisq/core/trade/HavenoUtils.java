@@ -289,7 +289,7 @@ public class HavenoUtils {
         message.setBuyerSignature(signature);
         
         // verify signature
-        String errMessage = "The buyer signature is invalid for the " + message.getClass().getSimpleName() + " for trade " + trade.getId();
+        String errMessage = "The buyer signature is invalid for the " + message.getClass().getSimpleName() + " for " + trade.getClass().getSimpleName() + " " + trade.getId();
         try {
             if (!Sig.verify(trade.getBuyer().getPubKeyRing().getSignaturePubKey(), unsignedMessageAsJson.getBytes(Charsets.UTF_8), signature)) throw new RuntimeException(errMessage);
         } catch (Exception e) {
@@ -320,7 +320,7 @@ public class HavenoUtils {
         message.setSellerSignature(signature);
         
         // verify signature
-        String errMessage = "The seller signature is invalid for the " + message.getClass().getSimpleName() + " for trade " + trade.getId();
+        String errMessage = "The seller signature is invalid for the " + message.getClass().getSimpleName() + " for " + trade.getClass().getSimpleName() + " " + trade.getId();
         try {
             if (!Sig.verify(trade.getSeller().getPubKeyRing().getSignaturePubKey(), unsignedMessageAsJson.getBytes(Charsets.UTF_8), signature)) throw new RuntimeException(errMessage);
         } catch (Exception e) {

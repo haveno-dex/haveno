@@ -44,9 +44,8 @@ import bisq.core.support.dispute.DisputeManager;
 import bisq.core.support.dispute.DisputeResult;
 import bisq.core.support.dispute.DisputeSession;
 import bisq.core.support.dispute.agent.DisputeAgentLookupMap;
+import bisq.core.support.dispute.arbitration.arbitrator.ArbitratorManager;
 import bisq.core.support.dispute.mediation.MediationManager;
-import bisq.core.support.dispute.mediation.mediator.MediatorManager;
-import bisq.core.support.dispute.refund.refundagent.RefundAgentManager;
 import bisq.core.support.messages.ChatMessage;
 import bisq.core.trade.Contract;
 import bisq.core.trade.Trade;
@@ -157,8 +156,7 @@ public abstract class DisputeView extends ActivatableView<VBox, Void> {
     private final TradeDetailsWindow tradeDetailsWindow;
 
     private final AccountAgeWitnessService accountAgeWitnessService;
-    private final MediatorManager mediatorManager;
-    private final RefundAgentManager refundAgentManager;
+    private final ArbitratorManager arbitratorManager;
     private final boolean useDevPrivilegeKeys;
 
     protected TableView<Dispute> tableView;
@@ -198,8 +196,7 @@ public abstract class DisputeView extends ActivatableView<VBox, Void> {
                        ContractWindow contractWindow,
                        TradeDetailsWindow tradeDetailsWindow,
                        AccountAgeWitnessService accountAgeWitnessService,
-                       MediatorManager mediatorManager,
-                       RefundAgentManager refundAgentManager,
+                       ArbitratorManager arbitratorManager,
                        boolean useDevPrivilegeKeys) {
         this.disputeManager = disputeManager;
         this.keyRing = keyRing;
@@ -211,8 +208,7 @@ public abstract class DisputeView extends ActivatableView<VBox, Void> {
         this.contractWindow = contractWindow;
         this.tradeDetailsWindow = tradeDetailsWindow;
         this.accountAgeWitnessService = accountAgeWitnessService;
-        this.mediatorManager = mediatorManager;
-        this.refundAgentManager = refundAgentManager;
+        this.arbitratorManager = arbitratorManager;
         this.useDevPrivilegeKeys = useDevPrivilegeKeys;
         DisputeChatPopup.ChatCallback chatCallback = this::handleOnProcessDispute;
         chatPopup = new DisputeChatPopup(disputeManager, formatter, preferences, chatCallback);
@@ -286,7 +282,7 @@ public abstract class DisputeView extends ActivatableView<VBox, Void> {
         sigCheckButton = new AutoTooltipButton(Res.get("support.sigCheck.button"));
         HBox.setHgrow(sigCheckButton, Priority.NEVER);
         sigCheckButton.setOnAction(e -> {
-            new VerifyDisputeResultSignatureWindow(mediatorManager, refundAgentManager).show();
+            new VerifyDisputeResultSignatureWindow(arbitratorManager).show();
         });
 
         Pane spacer = new Pane();

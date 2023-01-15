@@ -21,8 +21,7 @@ import bisq.desktop.main.overlays.Overlay;
 
 import bisq.core.locale.Res;
 import bisq.core.support.dispute.DisputeSummaryVerification;
-import bisq.core.support.dispute.mediation.mediator.MediatorManager;
-import bisq.core.support.dispute.refund.refundagent.RefundAgentManager;
+import bisq.core.support.dispute.arbitration.arbitrator.ArbitratorManager;
 
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
@@ -43,12 +42,10 @@ import static bisq.desktop.util.FormBuilder.addTopLabelTextField;
 public class VerifyDisputeResultSignatureWindow extends Overlay<VerifyDisputeResultSignatureWindow> {
     private TextArea textArea;
     private TextField resultTextField;
-    private final MediatorManager mediatorManager;
-    private final RefundAgentManager refundAgentManager;
+    private final ArbitratorManager arbitratorManager;
 
-    public VerifyDisputeResultSignatureWindow(MediatorManager mediatorManager, RefundAgentManager refundAgentManager) {
-        this.mediatorManager = mediatorManager;
-        this.refundAgentManager = refundAgentManager;
+    public VerifyDisputeResultSignatureWindow(ArbitratorManager arbitratorManager) {
+        this.arbitratorManager = arbitratorManager;
 
         type = Type.Attention;
     }
@@ -68,9 +65,12 @@ public class VerifyDisputeResultSignatureWindow extends Overlay<VerifyDisputeRes
         display();
 
         textArea.textProperty().addListener((observable, oldValue, newValue) -> {
-            resultTextField.setText(DisputeSummaryVerification.verifySignature(newValue,
-                    mediatorManager,
-                    refundAgentManager));
+            try {
+                DisputeSummaryVerification.verifySignature(newValue, arbitratorManager);
+                resultTextField.setText(Res.get("support.sigCheck.popup.success"));
+            } catch (Exception e) {
+                resultTextField.setText(e.getMessage());
+            }
         });
     }
 

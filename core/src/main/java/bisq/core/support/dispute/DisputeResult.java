@@ -25,6 +25,8 @@ import bisq.common.util.Utilities;
 
 import org.bitcoinj.core.Coin;
 
+import com.google.protobuf.ByteString;
+
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleStringProperty;
@@ -159,6 +161,8 @@ public final class DisputeResult implements NetworkPayload {
                 .setSellerPayoutAmount(sellerPayoutAmount)
                 .setCloseDate(closeDate);
 
+        Optional.ofNullable(arbitratorSignature).ifPresent(arbitratorSignature -> builder.setArbitratorSignature(ByteString.copyFrom(arbitratorSignature)));
+        Optional.ofNullable(arbitratorPubKey).ifPresent(arbitratorPubKey -> builder.setArbitratorPubKey(ByteString.copyFrom(arbitratorPubKey)));
         Optional.ofNullable(winner).ifPresent(result -> builder.setWinner(protobuf.DisputeResult.Winner.valueOf(winner.name())));
         Optional.ofNullable(chatMessage).ifPresent(chatMessage ->
                 builder.setChatMessage(chatMessage.toProtoNetworkEnvelope().getChatMessage()));
