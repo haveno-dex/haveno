@@ -583,7 +583,7 @@ public class DisputeSummaryWindow extends Overlay<DisputeSummaryWindow> {
         closeTicketButton.setOnAction(e -> {
 
             // create payout tx
-            MoneroTxWallet payoutTx = arbitrationManager.createDisputePayoutTx(trade, dispute, disputeResult);
+            MoneroTxWallet payoutTx = arbitrationManager.createDisputePayoutTx(trade, dispute, disputeResult, false);
 
             // show confirmation
             if (dispute.getSupportType() == SupportType.ARBITRATION &&

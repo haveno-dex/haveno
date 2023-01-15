@@ -698,6 +698,7 @@ public class TradeWalletService {
      * @throws TransactionVerificationException if there was an unexpected problem with the payout tx or its signatures
      * @throws WalletException if the seller's wallet is null or structurally inconsistent
      */
+    @Deprecated
     public Transaction sellerSignsAndFinalizesPayoutTx(Transaction depositTx,
                                                        byte[] buyerSignature,
                                                        Coin buyerPayoutAmount,

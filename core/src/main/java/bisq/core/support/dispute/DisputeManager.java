@@ -701,7 +701,7 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
             if (trade == null) throw new RuntimeException("Dispute trade " + dispute.getTradeId() + " does not exist");
 
             // create dispute payout tx if not given
-            if (payoutTx == null) payoutTx = createDisputePayoutTx(trade, dispute, disputeResult); // can be null if already published or we don't have receiver's multisig hex
+            if (payoutTx == null) payoutTx = createDisputePayoutTx(trade, dispute, disputeResult, false); // can be null if already published or we don't have receiver's multisig hex
 
             // persist result in dispute's chat message
             ChatMessage chatMessage = new ChatMessage(
@@ -804,7 +804,7 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
     // Utils
     ///////////////////////////////////////////////////////////////////////////////////////////
 
-    public MoneroTxWallet createDisputePayoutTx(Trade trade, Dispute dispute, DisputeResult disputeResult) {
+    public MoneroTxWallet createDisputePayoutTx(Trade trade, Dispute dispute, DisputeResult disputeResult, boolean skipMultisigImport) {
 
         // sync and save wallet
         trade.syncWallet();
@@ -813,14 +813,16 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
         // create unsigned dispute payout tx if not already published and arbitrator has trader's updated multisig info
         TradingPeer receiver = trade.getTradingPeer(dispute.getTraderPubKeyRing());
         if (!trade.isPayoutPublished() && receiver.getUpdatedMultisigHex() != null) {
+            MoneroWallet multisigWallet = trade.getWallet();
 
             // import multisig hex
-            MoneroWallet multisigWallet = trade.getWallet();
-            List<String> updatedMultisigHexes = new ArrayList<String>();
-            if (trade.getBuyer().getUpdatedMultisigHex() != null) updatedMultisigHexes.add(trade.getBuyer().getUpdatedMultisigHex());
-            if (trade.getSeller().getUpdatedMultisigHex() != null) updatedMultisigHexes.add(trade.getSeller().getUpdatedMultisigHex());
-            if (!updatedMultisigHexes.isEmpty()) {
-                multisigWallet.importMultisigHex(updatedMultisigHexes.toArray(new String[0])); // TODO (monero-project): fails if multisig hex imported individually
+            if (!skipMultisigImport) {
+                List<String> updatedMultisigHexes = new ArrayList<String>();
+                if (trade.getBuyer().getUpdatedMultisigHex() != null) updatedMultisigHexes.add(trade.getBuyer().getUpdatedMultisigHex());
+                if (trade.getSeller().getUpdatedMultisigHex() != null) updatedMultisigHexes.add(trade.getSeller().getUpdatedMultisigHex());
+                if (!updatedMultisigHexes.isEmpty()) {
+                    multisigWallet.importMultisigHex(updatedMultisigHexes.toArray(new String[0])); // TODO (monero-project): fails if multisig hex imported individually
+                }
             }
 
             // sync and save wallet
