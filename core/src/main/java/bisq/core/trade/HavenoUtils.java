@@ -61,7 +61,7 @@ public class HavenoUtils {
     public static final String LOCALHOST = "localhost";
 
     // multipliers to convert units
-    private static BigInteger CENTINEROS_AU_MULTIPLIER = new BigInteger("10000");
+    public static BigInteger CENTINEROS_AU_MULTIPLIER = new BigInteger("10000");
     private static BigInteger XMR_AU_MULTIPLIER = new BigInteger("1000000000000");
 
     // TODO: better way to share reference?

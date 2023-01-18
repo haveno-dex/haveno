@@ -85,7 +85,8 @@ public class XmrWalletService {
     private static final String MONERO_WALLET_NAME = "haveno_XMR";
     private static final String MONERO_MULTISIG_WALLET_PREFIX = "xmr_multisig_trade_";
     public static final double MINER_FEE_TOLERANCE = 0.25; // miner fee must be within percent of estimated fee
-    private static final double SECURITY_DEPOSIT_TOLERANCE = Config.baseCurrencyNetwork() == BaseCurrencyNetwork.XMR_LOCAL ? 0.25 : 0.05; // security deposit absorbs miner fee up to percent
+    private static final double SECURITY_DEPOSIT_TOLERANCE = Config.baseCurrencyNetwork() == BaseCurrencyNetwork.XMR_LOCAL ? 0.25 : 0.05; // security deposit can abosrb miner fee up to percent
+    private static final double DUST_TOLERANCE = 0.01; // max dust as percent of mining fee
     private static final int NUM_MAX_BACKUP_WALLETS = 10;
 
     private final CoreAccountService accountService;
@@ -360,10 +361,10 @@ public class XmrWalletService {
             MoneroTxWallet tradeTx = null;
             double appliedTolerance = 0.0; // percent of tolerance to apply, thereby decreasing security deposit
             double searchDiff = 1.0; // difference for next binary search
-            BigInteger maxAmount = sendAmount.add(securityDeposit);
             for (int i = 0; i < 10; i++) {
                 try {
-                    BigInteger amount = new BigDecimal(maxAmount).multiply(new BigDecimal(1.0 - SECURITY_DEPOSIT_TOLERANCE * appliedTolerance)).toBigInteger();
+                    BigInteger appliedSecurityDeposit = new BigDecimal(securityDeposit).multiply(new BigDecimal(1.0 - SECURITY_DEPOSIT_TOLERANCE * appliedTolerance)).toBigInteger();
+                    BigInteger amount = sendAmount.add(appliedSecurityDeposit);
                     tradeTx = wallet.createTx(new MoneroTxConfig()
                             .setAccountIndex(0)
                             .addDestination(HavenoUtils.getTradeFeeAddress(), tradeFee)
@@ -434,11 +435,17 @@ public class XmrWalletService {
             if (feeDiff > MINER_FEE_TOLERANCE) throw new Error("Miner fee is not within " + (MINER_FEE_TOLERANCE * 100) + "% of estimated fee, expected " + feeEstimate + " but was " + tx.getFee());
             log.info("Trade tx fee {} is within tolerance, diff%={}", tx.getFee(), feeDiff);
 
-            // verify deposit amount
+            // verify sufficient security deposit
             check = wallet.checkTxKey(txHash, txKey, address);
             if (!check.isGood()) throw new RuntimeException("Invalid proof of deposit amount");
-            BigInteger minAmount = new BigDecimal(sendAmount.add(securityDeposit)).multiply(new BigDecimal(1.0 - SECURITY_DEPOSIT_TOLERANCE)).toBigInteger();
-            if (check.getReceivedAmount().compareTo(minAmount) < 0) throw new RuntimeException("Deposit amount is not enough, needed " + minAmount + " but was " + check.getReceivedAmount());
+            BigInteger minSecurityDeposit = new BigDecimal(securityDeposit).multiply(new BigDecimal(1.0 - SECURITY_DEPOSIT_TOLERANCE)).toBigInteger();
+            BigInteger actualSecurityDeposit = check.getReceivedAmount().subtract(sendAmount);
+            if (actualSecurityDeposit.compareTo(minSecurityDeposit) < 0) throw new RuntimeException("Security deposit amount is not enough, needed " + minSecurityDeposit + " but was " + actualSecurityDeposit);
+
+            // verify deposit amount + miner fee within dust tolerance
+            BigInteger minDepositAndFee = sendAmount.add(securityDeposit).subtract(new BigDecimal(tx.getFee()).multiply(new BigDecimal(1.0 - DUST_TOLERANCE)).toBigInteger());
+            BigInteger actualDepositAndFee = check.getReceivedAmount().add(tx.getFee());
+            if (actualDepositAndFee.compareTo(minDepositAndFee) < 0) throw new RuntimeException("Deposit amount + fee is not enough, needed " + minDepositAndFee + " but was " + actualDepositAndFee);
         } finally {
             try {
                 daemon.flushTxPool(txHash); // flush tx from pool

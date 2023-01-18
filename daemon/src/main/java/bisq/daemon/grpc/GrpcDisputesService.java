@@ -115,6 +115,7 @@ public class GrpcDisputesService extends DisputesImplBase {
             responseObserver.onNext(reply);
             responseObserver.onCompleted();
         } catch (Throwable cause) {
+            cause.printStackTrace();
             exceptionHandler.handleExceptionAsWarning(log, getClass().getName() + ".resolveDispute", cause, responseObserver);
         }
     }

@@ -13,6 +13,7 @@ import bisq.core.support.dispute.DisputeSummaryVerification;
 import bisq.core.support.dispute.arbitration.ArbitrationManager;
 import bisq.core.support.messages.ChatMessage;
 import bisq.core.trade.Contract;
+import bisq.core.trade.HavenoUtils;
 import bisq.core.trade.Trade;
 import bisq.core.trade.TradeManager;
 import bisq.core.util.FormattingUtils;
@@ -238,6 +239,9 @@ public class CoreDisputesService {
                     .add(buyerSecurityDeposit));
         } else if (payout == DisputePayout.CUSTOM) {
             Coin winnerAmount = Coin.valueOf(customWinnerAmount);
+            if (winnerAmount.compareTo(HavenoUtils.atomicUnitsToCoin(trade.getWallet().getBalance())) > 0) {
+                throw new RuntimeException("The custom winner payout amount is more than the trade wallet's balance");
+            }
             Coin loserAmount = tradeAmount.add(buyerSecurityDeposit).add(sellerSecurityDeposit).minus(winnerAmount);
             disputeResult.setBuyerPayoutAmount(disputeResult.getWinner() == DisputeResult.Winner.BUYER ? winnerAmount : loserAmount);
             disputeResult.setSellerPayoutAmount(disputeResult.getWinner() == DisputeResult.Winner.BUYER ? loserAmount : winnerAmount);

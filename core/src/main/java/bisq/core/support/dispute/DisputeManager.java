@@ -846,6 +846,16 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
                     BigInteger winnerPayoutAmount = HavenoUtils.coinToAtomicUnits(disputeResult.getWinner() == Winner.BUYER ? disputeResult.getBuyerPayoutAmount() : disputeResult.getSellerPayoutAmount());
                     BigInteger loserPayoutAmount = HavenoUtils.coinToAtomicUnits(disputeResult.getWinner() == Winner.BUYER ? disputeResult.getSellerPayoutAmount() : disputeResult.getBuyerPayoutAmount());
 
+                    // check sufficient balance
+                    if (winnerPayoutAmount.compareTo(BigInteger.ZERO) < 0) throw new RuntimeException("Winner payout cannot be negative");
+                    if (loserPayoutAmount.compareTo(BigInteger.ZERO) < 0) throw new RuntimeException("Loser payout cannot be negative");
+                    if (winnerPayoutAmount.add(loserPayoutAmount).compareTo(trade.getWallet().getUnlockedBalance()) > 0) {
+                        throw new RuntimeException("The payout amounts are more than the wallet's unlocked balance");
+                    }
+
+                    // add any loss of precision to winner payout
+                    winnerPayoutAmount = winnerPayoutAmount.add(trade.getWallet().getUnlockedBalance().subtract(winnerPayoutAmount.add(loserPayoutAmount)));
+
                     // create transaction to get fee estimate
                     MoneroTxConfig txConfig = new MoneroTxConfig().setAccountIndex(0).setRelay(false);
                     if (winnerPayoutAmount.compareTo(BigInteger.ZERO) > 0) txConfig.addDestination(winnerPayoutAddress, winnerPayoutAmount.multiply(BigInteger.valueOf(9)).divide(BigInteger.valueOf(10))); // reduce payment amount to get fee of similar tx
