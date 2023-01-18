@@ -27,6 +27,7 @@ import javax.annotation.Nullable;
 import bisq.common.app.Version;
 import bisq.common.crypto.PubKeyRing;
 import bisq.common.proto.ProtoUtil;
+import bisq.common.util.Utilities;
 import lombok.EqualsAndHashCode;
 import lombok.Value;
 
@@ -86,7 +87,7 @@ public final class DepositsConfirmedMessage extends TradeMailboxMessage {
         return "DepositsConfirmedMessage {" +
                 "\n     senderNodeAddress=" + senderNodeAddress +
                 ",\n     pubKeyRing=" + pubKeyRing +
-                ",\n     sellerPaymentAccountKey=" + sellerPaymentAccountKey +
+                ",\n     sellerPaymentAccountKey=" + Utilities.bytesAsHexString(sellerPaymentAccountKey) +
                 ",\n     updatedMultisigHex=" + (updatedMultisigHex == null ? null : updatedMultisigHex.substring(0, Math.max(updatedMultisigHex.length(), 1000))) +
                 "\n} " + super.toString();
     }
