@@ -71,6 +71,8 @@ public class TradeInfo implements Payload {
     private final String takerDepositTxId;
     private final String payoutTxId;
     private final long amountAsLong;
+    private final long buyerSecurityDeposit;
+    private final long sellerSecurityDeposit;
     private final String price;
     private final String volume;
     private final String arbitratorNodeAddress;
@@ -104,6 +106,8 @@ public class TradeInfo implements Payload {
         this.takerDepositTxId = builder.getTakerDepositTxId();
         this.payoutTxId = builder.getPayoutTxId();
         this.amountAsLong = builder.getAmountAsLong();
+        this.buyerSecurityDeposit = builder.getBuyerSecurityDeposit();
+        this.sellerSecurityDeposit = builder.getSellerSecurityDeposit();
         this.price = builder.getPrice();
         this.volume = builder.getVolume();
         this.arbitratorNodeAddress = builder.getArbitratorNodeAddress();
@@ -160,6 +164,8 @@ public class TradeInfo implements Payload {
                 .withTakerDepositTxId(trade.getTaker().getDepositTxHash())
                 .withPayoutTxId(trade.getPayoutTxId())
                 .withAmountAsLong(trade.getAmountAsLong())
+                .withBuyerSecurityDeposit(trade.getBuyerSecurityDeposit() == null ? -1 : trade.getBuyerSecurityDeposit().value)
+                .withSellerSecurityDeposit(trade.getSellerSecurityDeposit() == null ? -1 : trade.getSellerSecurityDeposit().value)
                 .withPrice(toPreciseTradePrice.apply(trade))
                 .withVolume(toRoundedVolume.apply(trade))
                 .withArbitratorNodeAddress(toArbitratorNodeAddress.apply(trade))
@@ -202,6 +208,8 @@ public class TradeInfo implements Payload {
                 .setTakerDepositTxId(takerDepositTxId == null ? "" : takerDepositTxId)
                 .setPayoutTxId(payoutTxId == null ? "" : payoutTxId)
                 .setAmountAsLong(amountAsLong)
+                .setBuyerSecurityDeposit(buyerSecurityDeposit)
+                .setSellerSecurityDeposit(sellerSecurityDeposit)
                 .setPrice(price)
                 .setTradeVolume(volume)
                 .setArbitratorNodeAddress(arbitratorNodeAddress)
@@ -238,6 +246,8 @@ public class TradeInfo implements Payload {
                 .withTakerDepositTxId(proto.getTakerDepositTxId())
                 .withPayoutTxId(proto.getPayoutTxId())
                 .withAmountAsLong(proto.getAmountAsLong())
+                .withBuyerSecurityDeposit(proto.getBuyerSecurityDeposit())
+                .withSellerSecurityDeposit(proto.getSellerSecurityDeposit())
                 .withPrice(proto.getPrice())
                 .withVolume(proto.getTradeVolume())
                 .withPeriodState(proto.getPeriodState())
@@ -274,6 +284,8 @@ public class TradeInfo implements Payload {
                 ", takerDepositTxId='" + takerDepositTxId + '\'' + "\n" +
                 ", payoutTxId='" + payoutTxId + '\'' + "\n" +
                 ", amountAsLong='" + amountAsLong + '\'' + "\n" +
+                ", buyerSecurityDeposit='" + buyerSecurityDeposit + '\'' + "\n" +
+                ", sellerSecurityDeposit='" + sellerSecurityDeposit + '\'' + "\n" +
                 ", price='" + price + '\'' + "\n" +
                 ", arbitratorNodeAddress='" + arbitratorNodeAddress + '\'' + "\n" +
                 ", tradingPeerNodeAddress='" + tradingPeerNodeAddress + '\'' + "\n" +
