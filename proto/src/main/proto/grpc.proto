@@ -829,32 +829,32 @@ message TradeInfo {
     uint64 tx_fee_as_long = 7;
     uint64 taker_fee_as_long = 8;
     string taker_fee_tx_id = 9;
-    reserved 10; // was depositTxId
-    string payout_tx_id = 11;
-    uint64 amount_as_long = 12;
-    string price = 13;
-    string arbitrator_node_address = 14;
-    string trading_peer_node_address = 15;
-    string state = 16;
-    string phase = 17;
-    string period_state = 18;
-    string payout_state = 19;
-    string dispute_state = 20;
-    bool is_deposit_published = 21;
-    bool is_deposit_confirmed = 22;
-    bool is_deposit_unlocked = 23;
-    bool is_payment_sent = 24;
-    bool is_payment_received = 25;
-    bool is_payout_published = 26;
-    bool is_payout_confirmed = 27;
-    bool is_payout_unlocked = 28;
-    bool is_completed = 29;
-    string contract_as_json = 30;
-    ContractInfo contract = 31;
-    string trade_volume = 32;
-
-    string maker_deposit_tx_id = 100;
-    string taker_deposit_tx_id = 101;
+    string payout_tx_id = 10;
+    uint64 amount_as_long = 11;
+    uint64 buyer_security_deposit = 12;
+    uint64 seller_security_deposit = 13;
+    string price = 14;
+    string arbitrator_node_address = 15;
+    string trading_peer_node_address = 16;
+    string state = 17;
+    string phase = 18;
+    string period_state = 19;
+    string payout_state = 20;
+    string dispute_state = 21;
+    bool is_deposit_published = 22;
+    bool is_deposit_confirmed = 23;
+    bool is_deposit_unlocked = 24;
+    bool is_payment_sent = 25;
+    bool is_payment_received = 26;
+    bool is_payout_published = 27;
+    bool is_payout_confirmed = 28;
+    bool is_payout_unlocked = 29;
+    bool is_completed = 30;
+    string contract_as_json = 31;
+    ContractInfo contract = 32;
+    string trade_volume = 33;
+    string maker_deposit_tx_id = 34;
+    string taker_deposit_tx_id = 35;
 }
 
 message ContractInfo {

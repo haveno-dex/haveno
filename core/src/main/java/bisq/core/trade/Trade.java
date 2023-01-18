@@ -1414,11 +1414,23 @@ public abstract class Trade implements Tradable, Model {
     }
 
     public Coin getBuyerSecurityDeposit() {
-        return HavenoUtils.atomicUnitsToCoin(getWallet().getTx(this.getBuyer().getDepositTxHash()).getIncomingAmount());
+        if (this.getBuyer().getDepositTxHash() == null) return null;
+        try {
+            MoneroTxWallet depositTx = getWallet().getTx(this.getBuyer().getDepositTxHash()); // TODO (monero-java): return null if tx id not found instead of throw exception
+            return HavenoUtils.atomicUnitsToCoin(depositTx.getIncomingAmount());
+        } catch (Exception e) {
+            return null;
+        }
     }
 
     public Coin getSellerSecurityDeposit() {
-        return HavenoUtils.atomicUnitsToCoin(getWallet().getTx(this.getSeller().getDepositTxHash()).getIncomingAmount()).subtract(getAmount());
+        if (this.getSeller().getDepositTxHash() == null) return null;
+        try {
+            MoneroTxWallet depositTx = getWallet().getTx(this.getSeller().getDepositTxHash()); // TODO (monero-java): return null if tx id not found instead of throw exception
+            return HavenoUtils.atomicUnitsToCoin(depositTx.getIncomingAmount()).subtract(getAmount());
+        } catch (Exception e) {
+            return null;
+        }
     }
 
     @Nullable
