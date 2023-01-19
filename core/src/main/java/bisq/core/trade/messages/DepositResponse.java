@@ -32,21 +32,15 @@ import lombok.Value;
 @EqualsAndHashCode(callSuper = true)
 @Value
 public final class DepositResponse extends TradeMessage implements DirectMessage {
-    private final NodeAddress senderNodeAddress;
-    private final PubKeyRing pubKeyRing;
     private final long currentDate;
     private final String errorMessage;
 
     public DepositResponse(String tradeId,
-                                     NodeAddress senderNodeAddress,
-                                     PubKeyRing pubKeyRing,
                                      String uid,
                                      String messageVersion,
                                      long currentDate,
                                      String errorMessage) {
         super(messageVersion, tradeId, uid);
-        this.senderNodeAddress = senderNodeAddress;
-        this.pubKeyRing = pubKeyRing;
         this.currentDate = currentDate;
         this.errorMessage = errorMessage;
     }
@@ -60,8 +54,6 @@ public final class DepositResponse extends TradeMessage implements DirectMessage
     public protobuf.NetworkEnvelope toProtoNetworkEnvelope() {
         protobuf.DepositResponse.Builder builder = protobuf.DepositResponse.newBuilder()
                 .setTradeId(tradeId)
-                .setSenderNodeAddress(senderNodeAddress.toProtoMessage())
-                .setPubKeyRing(pubKeyRing.toProtoMessage())
                 .setUid(uid);
         builder.setCurrentDate(currentDate);
         Optional.ofNullable(errorMessage).ifPresent(e -> builder.setErrorMessage(errorMessage));
@@ -73,8 +65,6 @@ public final class DepositResponse extends TradeMessage implements DirectMessage
                                                       CoreProtoResolver coreProtoResolver,
                                                       String messageVersion) {
         return new DepositResponse(proto.getTradeId(),
-                NodeAddress.fromProto(proto.getSenderNodeAddress()),
-                PubKeyRing.fromProto(proto.getPubKeyRing()),
                 proto.getUid(),
                 messageVersion,
                 proto.getCurrentDate(),
@@ -84,8 +74,6 @@ public final class DepositResponse extends TradeMessage implements DirectMessage
     @Override
     public String toString() {
         return "DepositResponse {" +
-                "\n     senderNodeAddress=" + senderNodeAddress +
-                ",\n     pubKeyRing=" + pubKeyRing +
                 ",\n     currentDate=" + currentDate +
                 ",\n     errorMessage=" + errorMessage +
                 "\n} " + super.toString();

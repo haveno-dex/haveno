@@ -67,16 +67,8 @@ public class ProcessInitMultisigRequest extends TradeTask {
           checkTradeId(processModel.getOfferId(), request);
           XmrWalletService xmrWalletService = processModel.getProvider().getXmrWalletService();
 
-          // TODO (woodser): verify request including sender's signature in previous pipeline task
-          // TODO (woodser): run in separate thread to not block UI thread?
-          // TODO (woodser): validate message has expected sender in previous step
-
           // get peer multisig participant
-          TradingPeer multisigParticipant;
-          if (request.getSenderNodeAddress().equals(trade.getMaker().getNodeAddress())) multisigParticipant = processModel.getMaker();
-          else if (request.getSenderNodeAddress().equals(trade.getTaker().getNodeAddress())) multisigParticipant = processModel.getTaker();
-          else if (request.getSenderNodeAddress().equals(trade.getArbitrator().getNodeAddress())) multisigParticipant = processModel.getArbitrator();
-          else throw new RuntimeException("Invalid sender to process init trade message: " + trade.getClass().getName());
+          TradingPeer multisigParticipant = trade.getTradingPeer(processModel.getTempTradingPeerNodeAddress());
 
           // reconcile peer's established multisig hex with message
           if (multisigParticipant.getPreparedMultisigHex() == null) multisigParticipant.setPreparedMultisigHex(request.getPreparedMultisigHex());
@@ -215,8 +207,6 @@ public class ProcessInitMultisigRequest extends TradeTask {
         // create multisig message with current multisig hex
         InitMultisigRequest request = new InitMultisigRequest(
                 processModel.getOffer().getId(),
-                processModel.getMyNodeAddress(),
-                processModel.getPubKeyRing(),
                 UUID.randomUUID().toString(),
                 Version.getP2PMessageVersion(),
                 new Date().getTime(),

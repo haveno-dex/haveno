@@ -36,8 +36,6 @@ import lombok.Value;
 @EqualsAndHashCode(callSuper = true)
 @Value
 public final class SignContractRequest extends TradeMessage implements DirectMessage {
-    private final NodeAddress senderNodeAddress;
-    private final PubKeyRing pubKeyRing;
     private final long currentDate;
     private final String accountId;
     private final byte[] paymentAccountPayloadHash;
@@ -46,8 +44,6 @@ public final class SignContractRequest extends TradeMessage implements DirectMes
     private final byte[] accountAgeWitnessSignatureOfDepositHash;
 
     public SignContractRequest(String tradeId,
-                                     NodeAddress senderNodeAddress,
-                                     PubKeyRing pubKeyRing,
                                      String uid,
                                      String messageVersion,
                                      long currentDate,
@@ -57,8 +53,6 @@ public final class SignContractRequest extends TradeMessage implements DirectMes
                                      String depositTxHash,
                                      @Nullable byte[] accountAgeWitnessSignatureOfDepositHash) {
         super(messageVersion, tradeId, uid);
-        this.senderNodeAddress = senderNodeAddress;
-        this.pubKeyRing = pubKeyRing;
         this.currentDate = currentDate;
         this.accountId = accountId;
         this.paymentAccountPayloadHash = paymentAccountPayloadHash;
@@ -76,8 +70,6 @@ public final class SignContractRequest extends TradeMessage implements DirectMes
     public protobuf.NetworkEnvelope toProtoNetworkEnvelope() {
         protobuf.SignContractRequest.Builder builder = protobuf.SignContractRequest.newBuilder()
                 .setTradeId(tradeId)
-                .setSenderNodeAddress(senderNodeAddress.toProtoMessage())
-                .setPubKeyRing(pubKeyRing.toProtoMessage())
                 .setUid(uid)
                 .setAccountId(accountId)
                 .setPaymentAccountPayloadHash(ByteString.copyFrom(paymentAccountPayloadHash))
@@ -94,8 +86,6 @@ public final class SignContractRequest extends TradeMessage implements DirectMes
                                                       CoreProtoResolver coreProtoResolver,
                                                       String messageVersion) {
         return new SignContractRequest(proto.getTradeId(),
-                NodeAddress.fromProto(proto.getSenderNodeAddress()),
-                PubKeyRing.fromProto(proto.getPubKeyRing()),
                 proto.getUid(),
                 messageVersion,
                 proto.getCurrentDate(),
@@ -109,8 +99,6 @@ public final class SignContractRequest extends TradeMessage implements DirectMes
     @Override
     public String toString() {
         return "SignContractRequest {" +
-                "\n     senderNodeAddress=" + senderNodeAddress +
-                ",\n     pubKeyRing=" + pubKeyRing +
                 ",\n     currentDate=" + currentDate +
                 ",\n     accountId=" + accountId +
                 ",\n     paymentAccountPayloadHash='" + Utilities.bytesAsHexString(paymentAccountPayloadHash) +

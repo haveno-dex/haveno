@@ -22,7 +22,10 @@ import bisq.common.taskrunner.TaskRunner;
 import bisq.core.trade.Trade;
 import bisq.core.trade.messages.DepositsConfirmedMessage;
 import bisq.core.trade.protocol.TradingPeer;
+import bisq.core.util.Validator;
 import lombok.extern.slf4j.Slf4j;
+
+import static com.google.common.base.Preconditions.checkNotNull;
 
 @Slf4j
 public class ProcessDepositsConfirmedMessage extends TradeTask {
@@ -39,6 +42,8 @@ public class ProcessDepositsConfirmedMessage extends TradeTask {
 
             // get peer
             DepositsConfirmedMessage request = (DepositsConfirmedMessage) processModel.getTradeMessage();
+            checkNotNull(request);
+            Validator.checkTradeId(processModel.getOfferId(), request);
             TradingPeer sender = trade.getTradingPeer(request.getPubKeyRing());
             if (sender == null) throw new RuntimeException("Pub key ring is not from arbitrator, buyer, or seller");
               

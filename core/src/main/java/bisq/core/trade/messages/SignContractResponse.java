@@ -33,16 +33,12 @@ import lombok.Value;
 @EqualsAndHashCode(callSuper = true)
 @Value
 public final class SignContractResponse extends TradeMessage implements DirectMessage {
-    private final NodeAddress senderNodeAddress;
-    private final PubKeyRing pubKeyRing;
     private final long currentDate;
     private final String contractAsJson;
     private final String contractSignature;
     private final byte[] encryptedPaymentAccountPayload;
 
     public SignContractResponse(String tradeId,
-                                     NodeAddress senderNodeAddress,
-                                     PubKeyRing pubKeyRing,
                                      String uid,
                                      String messageVersion,
                                      long currentDate,
@@ -50,8 +46,6 @@ public final class SignContractResponse extends TradeMessage implements DirectMe
                                      String contractSignature,
                                      @Nullable byte[] encryptedPaymentAccountPayload) {
         super(messageVersion, tradeId, uid);
-        this.senderNodeAddress = senderNodeAddress;
-        this.pubKeyRing = pubKeyRing;
         this.currentDate = currentDate;
         this.contractAsJson = contractAsJson;
         this.contractSignature = contractSignature;
@@ -67,8 +61,6 @@ public final class SignContractResponse extends TradeMessage implements DirectMe
     public protobuf.NetworkEnvelope toProtoNetworkEnvelope() {
         protobuf.SignContractResponse.Builder builder = protobuf.SignContractResponse.newBuilder()
                 .setTradeId(tradeId)
-                .setSenderNodeAddress(senderNodeAddress.toProtoMessage())
-                .setPubKeyRing(pubKeyRing.toProtoMessage())
                 .setUid(uid);
 
         Optional.ofNullable(contractAsJson).ifPresent(e -> builder.setContractAsJson(contractAsJson));
@@ -84,8 +76,6 @@ public final class SignContractResponse extends TradeMessage implements DirectMe
                                                       CoreProtoResolver coreProtoResolver,
                                                       String messageVersion) {
         return new SignContractResponse(proto.getTradeId(),
-                NodeAddress.fromProto(proto.getSenderNodeAddress()),
-                PubKeyRing.fromProto(proto.getPubKeyRing()),
                 proto.getUid(),
                 messageVersion,
                 proto.getCurrentDate(),
@@ -97,8 +87,6 @@ public final class SignContractResponse extends TradeMessage implements DirectMe
     @Override
     public String toString() {
         return "SignContractResponse {" +
-                "\n     senderNodeAddress=" + senderNodeAddress +
-                ",\n     pubKeyRing=" + pubKeyRing +
                 ",\n     currentDate=" + currentDate +
                 ",\n     contractAsJson='" + contractAsJson +
                 ",\n     contractSignature='" + contractSignature +

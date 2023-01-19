@@ -63,21 +63,20 @@ public class ArbitratorProcessDepositRequest extends TradeTask {
             String contractAsJson = trade.getContractAsJson();
             DepositRequest request = (DepositRequest) processModel.getTradeMessage(); // TODO (woodser): verify response
             String signature = request.getContractSignature();
-  
-            // get peer info
-            TradingPeer peer = trade.getTradingPeer(request.getSenderNodeAddress());
-           if (peer == null) throw new RuntimeException(request.getClass().getSimpleName() + " is not from maker, taker, or arbitrator");
-            PubKeyRing peerPubKeyRing = peer.getPubKeyRing();
+
+            // get trader info
+            TradingPeer trader = trade.getTradingPeer(processModel.getTempTradingPeerNodeAddress());
+            if (trader == null) throw new RuntimeException(request.getClass().getSimpleName() + " is not from maker, taker, or arbitrator");
+            PubKeyRing peerPubKeyRing = trader.getPubKeyRing();
   
             // verify signature
             if (!Sig.verify(peerPubKeyRing.getSignaturePubKey(), contractAsJson, signature)) throw new RuntimeException("Peer's contract signature is invalid");
 
             // set peer's signature
-            peer.setContractSignature(signature);
+            trader.setContractSignature(signature);
 
             // collect expected values
             Offer offer = trade.getOffer();
-            TradingPeer trader = trade.getTradingPeer(request.getSenderNodeAddress());
             boolean isFromTaker = trader == trade.getTaker();
             boolean isFromBuyer = trader == trade.getBuyer();
             BigInteger tradeFee = HavenoUtils.coinToAtomicUnits(isFromTaker ? trade.getTakerFee() : trade.getMakerFee());
@@ -97,7 +96,7 @@ public class ArbitratorProcessDepositRequest extends TradeTask {
                     request.getDepositTxKey(),
                     null);
             } catch (Exception e) {
-                throw new RuntimeException("Error processing deposit tx from " + (isFromTaker ? "taker " : "maker ") + request.getSenderNodeAddress() + ", offerId=" + offer.getId() + ": " + e.getMessage());
+                throw new RuntimeException("Error processing deposit tx from " + (isFromTaker ? "taker " : "maker ") + trader.getNodeAddress() + ", offerId=" + offer.getId() + ": " + e.getMessage());
             }
 
             // set deposit info
@@ -124,8 +123,6 @@ public class ArbitratorProcessDepositRequest extends TradeTask {
                 // create deposit response
                 DepositResponse response = new DepositResponse(
                         trade.getOffer().getId(),
-                        processModel.getMyNodeAddress(),
-                        processModel.getPubKeyRing(),
                         UUID.randomUUID().toString(),
                         Version.getP2PMessageVersion(),
                         new Date().getTime(),
@@ -154,8 +151,6 @@ public class ArbitratorProcessDepositRequest extends TradeTask {
                 // create deposit response with error
                 DepositResponse response = new DepositResponse(
                     trade.getOffer().getId(),
-                    processModel.getMyNodeAddress(),
-                    processModel.getPubKeyRing(),
                     UUID.randomUUID().toString(),
                     Version.getP2PMessageVersion(),
                     new Date().getTime(),

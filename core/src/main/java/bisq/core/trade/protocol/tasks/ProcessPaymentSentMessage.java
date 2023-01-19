@@ -38,8 +38,8 @@ public class ProcessPaymentSentMessage extends TradeTask {
             runInterceptHook();
             log.debug("current trade state " + trade.getState());
             PaymentSentMessage message = (PaymentSentMessage) processModel.getTradeMessage();
-            Validator.checkTradeId(processModel.getOfferId(), message);
             checkNotNull(message);
+            Validator.checkTradeId(processModel.getOfferId(), message);
 
             // verify signature of payment sent message
             HavenoUtils.verifyPaymentSentMessage(trade, message);

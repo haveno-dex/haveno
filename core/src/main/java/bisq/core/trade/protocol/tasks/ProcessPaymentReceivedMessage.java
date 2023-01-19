@@ -48,8 +48,8 @@ public class ProcessPaymentReceivedMessage extends TradeTask {
             runInterceptHook();
             log.debug("current trade state " + trade.getState());
             PaymentReceivedMessage message = (PaymentReceivedMessage) processModel.getTradeMessage();
-            Validator.checkTradeId(processModel.getOfferId(), message);
             checkNotNull(message);
+            Validator.checkTradeId(processModel.getOfferId(), message);
             checkArgument(message.getUnsignedPayoutTxHex() != null || message.getSignedPayoutTxHex() != null, "No payout tx hex provided");
 
             // verify signature of payment received message

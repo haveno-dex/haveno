@@ -61,8 +61,7 @@ public class ProcessInitTradeRequest extends TradeTask {
             TradingPeer multisigParticipant;
             if (trade instanceof ArbitratorTrade) {
                 trade.getMaker().setPubKeyRing((trade.getOffer().getPubKeyRing()));
-                trade.getArbitrator().setPubKeyRing(processModel.getPubKeyRing());
-                processModel.getArbitrator().setPubKeyRing(processModel.getPubKeyRing()); // TODO (woodser): why duplicating field in process model
+                trade.getArbitrator().setPubKeyRing(processModel.getPubKeyRing()); // TODO (woodser): why duplicating field in process model
                 
                 // handle request from taker
                 if (request.getSenderNodeAddress().equals(request.getTakerNodeAddress())) {

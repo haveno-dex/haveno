@@ -132,8 +132,6 @@ public class ArbitratorSendInitTradeOrMultisigRequests extends TradeTask {
         // create message to initialize multisig
         InitMultisigRequest initMultisigRequest = new InitMultisigRequest(
                 processModel.getOffer().getId(),
-                processModel.getMyNodeAddress(),
-                processModel.getPubKeyRing(),
                 UUID.randomUUID().toString(),
                 Version.getP2PMessageVersion(),
                 new Date().getTime(),
