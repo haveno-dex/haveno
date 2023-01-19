@@ -29,8 +29,6 @@ import bisq.common.handlers.ErrorMessageHandler;
 
 import lombok.extern.slf4j.Slf4j;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-
 @Slf4j
 public class BuyerAsTakerProtocol extends BuyerProtocol implements TakerProtocol {
     
@@ -40,11 +38,6 @@ public class BuyerAsTakerProtocol extends BuyerProtocol implements TakerProtocol
 
     public BuyerAsTakerProtocol(BuyerAsTakerTrade trade) {
         super(trade);
-        Offer offer = checkNotNull(trade.getOffer());
-        trade.getTradingPeer().setPubKeyRing(offer.getPubKeyRing());
-        trade.getMaker().setPubKeyRing(offer.getPubKeyRing());
-
-       // TODO (woodser): setup deposit and payout listeners on construction for startup like before rebase?
     }
 
 

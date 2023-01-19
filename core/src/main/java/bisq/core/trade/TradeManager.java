@@ -738,6 +738,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
                         trade.getProcessModel().setMakerSignature(model.getMakerSignature());
                         trade.getProcessModel().setUseSavingsWallet(useSavingsWallet);
                         trade.getProcessModel().setFundsNeededForTradeAsLong(fundsNeededForTrade.value);
+                        trade.getMaker().setPubKeyRing(trade.getOffer().getPubKeyRing());
                         trade.getTaker().setPubKeyRing(model.getPubKeyRing());
                         trade.getTaker().setPaymentAccountId(paymentAccountId);
 

@@ -293,58 +293,48 @@ message InitTradeRequest {
 
 message InitMultisigRequest {
     string trade_id = 1;
-    NodeAddress sender_node_address = 2;
-    PubKeyRing pub_key_ring = 3;
-    string uid = 4;
-    int64 current_date = 5;
-    string prepared_multisig_hex = 6;
-    string made_multisig_hex = 7;
-    string exchanged_multisig_hex = 8;
+    string uid = 2;
+    int64 current_date = 3;
+    string prepared_multisig_hex = 4;
+    string made_multisig_hex = 5;
+    string exchanged_multisig_hex = 6;
 }
 
 message SignContractRequest {
     string trade_id = 1;
-    NodeAddress sender_node_address = 2;
-    PubKeyRing pub_key_ring = 3;
-    string uid = 4;
-    int64 current_date = 5;
-    string account_id = 6;
-    bytes payment_account_payload_hash = 7;
-    string payout_address = 8;;
-    string deposit_tx_hash = 9;
-    bytes account_age_witness_signature_of_deposit_hash = 10;
+    string uid = 2;
+    int64 current_date = 3;
+    string account_id = 4;
+    bytes payment_account_payload_hash = 5;
+    string payout_address = 6;
+    string deposit_tx_hash = 7;
+    bytes account_age_witness_signature_of_deposit_hash = 8;
 }
 
 message SignContractResponse {
     string trade_id = 1;
-    NodeAddress sender_node_address = 2;
-    PubKeyRing pub_key_ring = 3;
-    string uid = 4;
-    int64 current_date = 5;
-    string contract_as_json = 6;
-    string contract_signature = 7;
-    bytes encrypted_payment_account_payload = 8;
+    string uid = 2;
+    int64 current_date = 3;
+    string contract_as_json = 4;
+    string contract_signature = 5;
+    bytes encrypted_payment_account_payload = 6;
 }
 
 message DepositRequest {
     string trade_id = 1;
-    NodeAddress sender_node_address = 2;
-    PubKeyRing pub_key_ring = 3;
-    string uid = 4;
-    int64 current_date = 5;
-    string contract_signature = 6;
-    string deposit_tx_hex = 7;
-    string deposit_tx_key = 8;
-    bytes payment_account_key = 9;
+    string uid = 2;
+    int64 current_date = 3;
+    string contract_signature = 4;
+    string deposit_tx_hex = 5;
+    string deposit_tx_key = 6;
+    bytes payment_account_key = 7;
 }
 
 message DepositResponse {
     string trade_id = 1;
-    NodeAddress sender_node_address = 2;
-    PubKeyRing pub_key_ring = 3;
-    string uid = 4;
-    int64 current_date = 5;
-    string error_message = 6;
+    string uid = 2;
+    int64 current_date = 3;
+    string error_message = 4;
 }
 
 message DepositsConfirmedMessage {

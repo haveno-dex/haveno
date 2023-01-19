@@ -20,11 +20,9 @@ package bisq.core.trade.messages;
 import bisq.core.proto.CoreProtoResolver;
 
 import bisq.network.p2p.DirectMessage;
-import bisq.network.p2p.NodeAddress;
 import com.google.protobuf.ByteString;
 import java.util.Optional;
 import javax.annotation.Nullable;
-import bisq.common.crypto.PubKeyRing;
 import bisq.common.proto.ProtoUtil;
 import lombok.EqualsAndHashCode;
 import lombok.Value;
@@ -32,8 +30,6 @@ import lombok.Value;
 @EqualsAndHashCode(callSuper = true)
 @Value
 public final class DepositRequest extends TradeMessage implements DirectMessage {
-    private final NodeAddress senderNodeAddress;
-    private final PubKeyRing pubKeyRing;
     private final long currentDate;
     private final String contractSignature;
     private final String depositTxHex;
@@ -42,8 +38,6 @@ public final class DepositRequest extends TradeMessage implements DirectMessage 
     private final byte[] paymentAccountKey;
 
     public DepositRequest(String tradeId,
-                                     NodeAddress senderNodeAddress,
-                                     PubKeyRing pubKeyRing,
                                      String uid,
                                      String messageVersion,
                                      long currentDate,
@@ -52,8 +46,6 @@ public final class DepositRequest extends TradeMessage implements DirectMessage 
                                      String depositTxKey,
                                      @Nullable byte[] paymentAccountKey) {
         super(messageVersion, tradeId, uid);
-        this.senderNodeAddress = senderNodeAddress;
-        this.pubKeyRing = pubKeyRing;
         this.currentDate = currentDate;
         this.contractSignature = contractSignature;
         this.depositTxHex = depositTxHex;
@@ -70,8 +62,6 @@ public final class DepositRequest extends TradeMessage implements DirectMessage 
     public protobuf.NetworkEnvelope toProtoNetworkEnvelope() {
         protobuf.DepositRequest.Builder builder = protobuf.DepositRequest.newBuilder()
                 .setTradeId(tradeId)
-                .setSenderNodeAddress(senderNodeAddress.toProtoMessage())
-                .setPubKeyRing(pubKeyRing.toProtoMessage())
                 .setUid(uid)
                 .setContractSignature(contractSignature)
                 .setDepositTxHex(depositTxHex)
@@ -86,8 +76,6 @@ public final class DepositRequest extends TradeMessage implements DirectMessage 
                                                       CoreProtoResolver coreProtoResolver,
                                                       String messageVersion) {
         return new DepositRequest(proto.getTradeId(),
-                NodeAddress.fromProto(proto.getSenderNodeAddress()),
-                PubKeyRing.fromProto(proto.getPubKeyRing()),
                 proto.getUid(),
                 messageVersion,
                 proto.getCurrentDate(),
@@ -100,8 +88,6 @@ public final class DepositRequest extends TradeMessage implements DirectMessage 
     @Override
     public String toString() {
         return "DepositRequest {" +
-                "\n     senderNodeAddress=" + senderNodeAddress +
-                ",\n     pubKeyRing=" + pubKeyRing +
                 ",\n     currentDate=" + currentDate +
                 ",\n     contractSignature=" + contractSignature +
                 ",\n     depositTxHex='" + depositTxHex +

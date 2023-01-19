@@ -54,7 +54,7 @@ public class ProcessSignContractResponse extends TradeTask {
             }
 
             // get peer info
-            TradingPeer peer = trade.getTradingPeer(response.getSenderNodeAddress());
+            TradingPeer peer = trade.getTradingPeer(processModel.getTempTradingPeerNodeAddress());
             PubKeyRing peerPubKeyRing = peer.getPubKeyRing();
 
             // save peer's encrypted payment account payload
@@ -75,8 +75,6 @@ public class ProcessSignContractResponse extends TradeTask {
                 // create request for arbitrator to deposit funds to multisig
                 DepositRequest request = new DepositRequest(
                         trade.getOffer().getId(),
-                        processModel.getMyNodeAddress(),
-                        processModel.getPubKeyRing(),
                         UUID.randomUUID().toString(),
                         Version.getP2PMessageVersion(),
                         new Date().getTime(),

@@ -18,7 +18,6 @@
 package bisq.core.trade.protocol;
 
 
-import bisq.core.offer.Offer;
 import bisq.core.trade.SellerAsTakerTrade;
 import bisq.core.trade.Trade;
 import bisq.core.trade.handlers.TradeResultHandler;
@@ -28,8 +27,6 @@ import bisq.core.trade.protocol.tasks.TakerSendInitTradeRequestToArbitrator;
 import bisq.common.handlers.ErrorMessageHandler;
 
 import lombok.extern.slf4j.Slf4j;
-
-import static com.google.common.base.Preconditions.checkNotNull;
 
 // TODO (woodser): remove unused request handling
 @Slf4j
@@ -41,9 +38,6 @@ public class SellerAsTakerProtocol extends SellerProtocol implements TakerProtoc
 
     public SellerAsTakerProtocol(SellerAsTakerTrade trade) {
         super(trade);
-        Offer offer = checkNotNull(trade.getOffer());
-        trade.getTradingPeer().setPubKeyRing(offer.getPubKeyRing());
-        trade.getMaker().setPubKeyRing(offer.getPubKeyRing());
     }
 
 

@@ -88,8 +88,6 @@ public class MaybeSendSignContractRequest extends TradeTask {
           // create request for peer and arbitrator to sign contract
           SignContractRequest request = new SignContractRequest(
                   trade.getOffer().getId(),
-                  processModel.getMyNodeAddress(),
-                  processModel.getPubKeyRing(),
                   UUID.randomUUID().toString(),
                   Version.getP2PMessageVersion(),
                   new Date().getTime(),
