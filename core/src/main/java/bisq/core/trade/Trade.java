@@ -613,12 +613,14 @@ public abstract class Trade implements Tradable, Model {
 
                 // complete arbitrator trade
                 if (isArbitrator() && !isCompleted()) processModel.getTradeManager().onTradeCompleted(this);
+
+                // reset address entries
                 processModel.getXmrWalletService().resetAddressEntriesForPendingTrade(getId());
             }
 
             // cleanup when payout unlocks
             if (newValue == Trade.PayoutState.PAYOUT_UNLOCKED) {
-                log.info("Payout unlocked for {} {}, deleting multisig wallet", getClass().getSimpleName(), getId()); // TODO: retain backup for some time?
+                log.info("Payout unlocked for {} {}, deleting multisig wallet", getClass().getSimpleName(), getId());
                 deleteWallet();
                 if (txPollLooper != null) {
                     txPollLooper.stop();
@@ -967,6 +969,7 @@ public abstract class Trade implements Tradable, Model {
                 log.warn("Refusing to delete backup wallet for {} {} in the small chance it becomes funded", getClass().getSimpleName(), getId());
                 return;
             }
+            xmrWalletService.deleteMultisigWalletBackups(getId());
         } else {
             log.warn("Multisig wallet to delete for trade {} does not exist", getId());
         }
@@ -1582,7 +1585,7 @@ public abstract class Trade implements Tradable, Model {
     }
 
     private boolean isIdling() {
-        return this instanceof ArbitratorTrade && isDepositConfirmed(); // arbitrator idles after deposits confirm
+        return this instanceof ArbitratorTrade && isDepositConfirmed(); // arbitrator idles trade after deposits confirm
     }
 
     private void setStateDepositsPublished() {
