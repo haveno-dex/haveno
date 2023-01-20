@@ -142,6 +142,7 @@ public class CoreDisputesService {
         }
     }
 
+    // TODO: does not wait for success or error response
     public void resolveDispute(String tradeId, DisputeResult.Winner winner, DisputeResult.Reason reason, String summaryNotes, long customWinnerAmount) {
         try {
 
@@ -174,24 +175,21 @@ public class CoreDisputesService {
                 // close dispute ticket
                 closeDisputeTicket(arbitrationManager, winningDispute, disputeResult, null, () -> {
                     arbitrationManager.requestPersistence();
+                }, (errMessage, err) -> {
+                    throw new IllegalStateException(errMessage, err);
+                });
 
-                    // close peer's dispute ticket
-                    var peersDisputeOptional = arbitrationManager.getDisputesAsObservableList().stream()
-                            .filter(d -> tradeId.equals(d.getTradeId()) && winningDispute.getTraderId() != d.getTraderId())
-                            .findFirst();
-                    if (peersDisputeOptional.isPresent()) {
-                        var peerDispute = peersDisputeOptional.get();
-                        var peerDisputeResult = createDisputeResult(peerDispute, winner, reason, summaryNotes, closeDate);
-                        peerDisputeResult.setBuyerPayoutAmount(disputeResult.getBuyerPayoutAmount());
-                        peerDisputeResult.setSellerPayoutAmount(disputeResult.getSellerPayoutAmount());
-                        closeDisputeTicket(arbitrationManager, peerDispute, peerDisputeResult, null, () -> {
-                            arbitrationManager.requestPersistence();
-                        }, (errMessage, err) -> {
-                            throw new IllegalStateException(errMessage, err);
-                        });
-                    } else {
-                        throw new IllegalStateException("could not find peer dispute");
-                    }
+                // close peer's dispute ticket
+                var peersDisputeOptional = arbitrationManager.getDisputesAsObservableList().stream()
+                        .filter(d -> tradeId.equals(d.getTradeId()) && winningDispute.getTraderId() != d.getTraderId())
+                        .findFirst();
+                if (!peersDisputeOptional.isPresent()) throw new IllegalStateException("could not find peer dispute");
+                var peerDispute = peersDisputeOptional.get();
+                var peerDisputeResult = createDisputeResult(peerDispute, winner, reason, summaryNotes, closeDate);
+                peerDisputeResult.setBuyerPayoutAmount(disputeResult.getBuyerPayoutAmount());
+                peerDisputeResult.setSellerPayoutAmount(disputeResult.getSellerPayoutAmount());
+                closeDisputeTicket(arbitrationManager, peerDispute, peerDisputeResult, null, () -> {
+                    arbitrationManager.requestPersistence();
                 }, (errMessage, err) -> {
                     throw new IllegalStateException(errMessage, err);
                 });
