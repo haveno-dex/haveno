@@ -152,6 +152,8 @@ public class XmrWalletService {
                 @Override
                 public void onPasswordChanged(String oldPassword, String newPassword) {
                     log.info(getClass() + "accountservice.onPasswordChanged()");
+                    if (oldPassword == null) oldPassword = MONERO_WALLET_RPC_DEFAULT_PASSWORD;
+                    if (newPassword == null) newPassword = MONERO_WALLET_RPC_DEFAULT_PASSWORD;
                     changeWalletPasswords(oldPassword, newPassword);
                 }
             });
