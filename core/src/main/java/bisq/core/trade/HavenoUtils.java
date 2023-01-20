@@ -38,10 +38,13 @@ import lombok.extern.slf4j.Slf4j;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.net.URI;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Nullable;
@@ -350,12 +353,20 @@ public class HavenoUtils {
     public static void executeTasks(Collection<Runnable> tasks, int poolSize) {
         if (tasks.isEmpty()) return;
         ExecutorService pool = Executors.newFixedThreadPool(poolSize);
-        for (Runnable task : tasks) pool.submit(task);
+        List<Future<?>> futures = new ArrayList<Future<?>>();
+        for (Runnable task : tasks) futures.add(pool.submit(task));
         pool.shutdown();
         try {
             if (!pool.awaitTermination(60, TimeUnit.SECONDS)) pool.shutdownNow();
         } catch (InterruptedException e) {
             pool.shutdownNow();
+            throw new RuntimeException(e);
+        }
+
+        // throw exception from any tasks
+        try {
+            for (Future<?> future : futures) future.get();
+        } catch (Exception e) {
             throw new RuntimeException(e);
         }
     }
