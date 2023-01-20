@@ -252,7 +252,6 @@ public class WalletConfig extends AbstractIdleService {
 
     @Override
     protected void shutDown() throws Exception {
-        
     }
 
     public NetworkParameters params() {

@@ -113,13 +113,15 @@ public class MoneroWalletRpcManager {
   public void stopInstance(MoneroWalletRpc walletRpc) {
 
       // unregister port
+      int port = -1;
       synchronized (registeredPorts) {
           boolean found = false;
           for (Map.Entry<Integer, MoneroWalletRpc> entry : registeredPorts.entrySet()) {
               if (walletRpc == entry.getValue()) {
                   found = true;
                   try {
-                      unregisterPort(entry.getKey());
+                      port = entry.getKey();
+                      unregisterPort(port);
                   } catch (Exception e) {
                       throw new MoneroError(e);
                   }
@@ -130,6 +132,8 @@ public class MoneroWalletRpcManager {
       }
 
       // stop process
+      String pid = walletRpc.getProcess() == null ? null : String.valueOf(walletRpc.getProcess().pid());
+      log.info("Stopping MoneroWalletRpc port: {} pid: {}", port, pid);
       walletRpc.stopProcess();
   }
 
