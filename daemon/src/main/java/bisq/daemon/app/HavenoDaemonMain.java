@@ -17,6 +17,7 @@
 
 package bisq.daemon.app;
 
+import bisq.core.app.ConsoleInput;
 import bisq.core.app.HavenoHeadlessAppMain;
 import bisq.core.app.HavenoSetup;
 import bisq.core.api.AccountServiceListener;
@@ -26,6 +27,7 @@ import bisq.common.UserThread;
 import bisq.common.app.AppModule;
 import bisq.common.crypto.IncorrectPasswordException;
 import bisq.common.handlers.ResultHandler;
+import bisq.common.persistence.PersistenceManager;
 
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
@@ -34,6 +36,7 @@ import java.util.concurrent.CancellationException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -45,7 +48,28 @@ public class HavenoDaemonMain extends HavenoHeadlessAppMain implements HavenoSet
     private GrpcServer grpcServer;
 
     public static void main(String[] args) {
-        new HavenoDaemonMain().execute(args);
+        var keepRunning = true;
+        while (keepRunning) {
+            keepRunning = false;
+            var daemon = new HavenoDaemonMain();
+            var ret = daemon.execute(args);
+            if (ret == EXIT_SUCCESS) {
+                UserThread.execute(() -> daemon.gracefulShutDown(() -> {}));
+            } else if (ret == EXIT_RESTART) {
+                AtomicBoolean shuttingDown = new AtomicBoolean(true);
+                UserThread.execute(() -> daemon.gracefulShutDown(() -> shuttingDown.set(false), false));
+                keepRunning = true;
+                // wait for graceful shutdown
+                try {
+                    while (shuttingDown.get()) {
+                        Thread.sleep(1000);
+                    }
+                    PersistenceManager.reset();
+                } catch (InterruptedException e) {
+                    System.out.println("interrupted!");
+                }
+            }
+        }
     }
 
     /////////////////////////////////////////////////////////////////////////////////////
@@ -106,8 +130,8 @@ public class HavenoDaemonMain extends HavenoHeadlessAppMain implements HavenoSet
     }
 
     @Override
-    public void gracefulShutDown(ResultHandler resultHandler) {
-        super.gracefulShutDown(resultHandler);
+    public void gracefulShutDown(ResultHandler resultHandler, boolean exit) {
+        super.gracefulShutDown(resultHandler, exit);
         if (grpcServer != null) grpcServer.shutdown(); // could be null if application attempted to shutdown early
     }
 
@@ -120,7 +144,6 @@ public class HavenoDaemonMain extends HavenoHeadlessAppMain implements HavenoSet
 
         // Start rpc server in case login is coming in from rpc
         grpcServer = injector.getInstance(GrpcServer.class);
-        grpcServer.start();
 
         if (!opened) {
             // Nonblocking, we need to stop if the login occurred through rpc.
@@ -129,7 +152,6 @@ public class HavenoDaemonMain extends HavenoHeadlessAppMain implements HavenoSet
             Thread t = new Thread(() -> {
                 interactiveLogin(reader);
             });
-            t.start();
 
             // Handle asynchronous account opens.
             // Will need to also close and reopen account.
@@ -143,10 +165,14 @@ public class HavenoDaemonMain extends HavenoHeadlessAppMain implements HavenoSet
             };
             accountService.addListener(accountListener);
 
+            // start server after the listener is registered
+            grpcServer.start();
+
             try {
                 // Wait until interactive login or rpc. Check one more time if account is open to close race condition.
                 if (!accountService.isAccountOpen()) {
                     log.info("Interactive login required");
+                    t.start();
                     t.join();
                 }
             } catch (InterruptedException e) {
@@ -155,6 +181,8 @@ public class HavenoDaemonMain extends HavenoHeadlessAppMain implements HavenoSet
 
             accountService.removeListener(accountListener);
             opened = accountService.isAccountOpen();
+        } else {
+            grpcServer.start();
         }
 
         return opened;

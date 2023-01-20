@@ -108,6 +108,15 @@ public class PersistenceManager<T extends PersistableEnvelope> {
         flushAllDataToDisk(completeHandler, true);
     }
 
+    /**
+     * Resets the static members of PersistenceManager to restart the application.
+     */
+    public static void reset() {
+        ALL_PERSISTENCE_MANAGERS.clear();
+        flushAtShutdownCalled = false;
+        allServicesInitialized.set(false);
+    }
+
     // We require being called only once from the global shutdown routine. As the shutdown routine has a timeout
     // and error condition where we call the method as well beside the standard path and it could be that those
     // alternative code paths call our method after it was called already, so it is a valid but rare case.

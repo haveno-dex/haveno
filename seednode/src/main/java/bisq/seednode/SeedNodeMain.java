@@ -60,12 +60,12 @@ public class SeedNodeMain extends ExecutableForAppWithP2p {
     }
 
     @Override
-    protected void doExecute() {
+    protected int doExecute() {
         super.doExecute();
 
         checkMemory(config, this);
 
-        keepRunning();
+        return keepRunning();
     }
 
     @Override

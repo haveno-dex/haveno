@@ -146,7 +146,7 @@ public class XmrWalletService {
                 @Override
                 public void onAccountClosed() {
                     log.info(getClass() + ".accountService.onAccountClosed()");
-                    closeAllWallets();
+                    closeAllWallets(true);
                 }
 
                 @Override
@@ -302,7 +302,7 @@ public class XmrWalletService {
 
     /**
      * Thaw the given outputs with a lock on the wallet.
-     * 
+     *
      * @param keyImages the key images to thaw
      */
     public void thawOutputs(Collection<String> keyImages) {
@@ -525,9 +525,9 @@ public class XmrWalletService {
         }
     }
 
-    public void shutDown() {
+    public void shutDown(boolean save) {
         this.isShutDown = true;
-        closeAllWallets();
+        closeAllWallets(save);
     }
 
     // ------------------------------ PRIVATE HELPERS -------------------------
@@ -744,7 +744,7 @@ public class XmrWalletService {
         if (!new File(path + ".address.txt").delete()) throw new RuntimeException("Failed to delete wallet file: " + path);
     }
 
-    private void closeAllWallets() {
+    private void closeAllWallets(boolean save) {
 
         // collect wallets to shutdown
         List<MoneroWallet> openWallets = new ArrayList<MoneroWallet>();

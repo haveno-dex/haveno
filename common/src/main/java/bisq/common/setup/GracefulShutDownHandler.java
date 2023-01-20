@@ -21,4 +21,5 @@ import bisq.common.handlers.ResultHandler;
 
 public interface GracefulShutDownHandler {
     void gracefulShutDown(ResultHandler resultHandler);
+    void gracefulShutDown(ResultHandler resultHandler, boolean systemExit);
 }
