@@ -97,7 +97,7 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
     protected final TradeManager tradeManager;
     protected final ClosedTradableManager closedTradableManager;
     protected final OpenOfferManager openOfferManager;
-    protected final PubKeyRing pubKeyRing;
+    protected final KeyRing keyRing;
     protected final DisputeListService<T> disputeListService;
     private final Config config;
     private final PriceFeedService priceFeedService;
@@ -105,9 +105,6 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
     @Getter
     protected final ObservableList<TradeDataValidation.ValidationException> validationExceptions =
             FXCollections.observableArrayList();
-    @Getter
-    private final KeyPair signatureKeyPair;
-
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Constructor
@@ -132,17 +129,19 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
         this.tradeManager = tradeManager;
         this.closedTradableManager = closedTradableManager;
         this.openOfferManager = openOfferManager;
-        this.pubKeyRing = keyRing.getPubKeyRing();
-        signatureKeyPair = keyRing.getSignatureKeyPair();
+        this.keyRing = keyRing;
         this.disputeListService = disputeListService;
         this.config = config;
         this.priceFeedService = priceFeedService;
     }
 
-
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Implement template methods
     ///////////////////////////////////////////////////////////////////////////////////////////
+
+    public KeyPair getSignatureKeyPair() {
+        return keyRing.getSignatureKeyPair();
+    }
 
     @Override
     public void requestPersistence() {
@@ -204,7 +203,7 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
     // Abstract methods
     ///////////////////////////////////////////////////////////////////////////////////////////
 
-    // We get that message at both peers. The dispute object is in context of the trader
+    // We get this message at both peers. The dispute object is in context of the trader
     public abstract void handleDisputeClosedMessage(DisputeClosedMessage disputeClosedMessage);
 
     public abstract NodeAddress getAgentNodeAddress(Dispute dispute);
@@ -292,7 +291,7 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
     }
 
     public boolean isTrader(Dispute dispute) {
-        return pubKeyRing.equals(dispute.getTraderPubKeyRing());
+        return keyRing.getPubKeyRing().equals(dispute.getTraderPubKeyRing());
     }
 
     public Optional<Dispute> findOwnDispute(String tradeId) {
@@ -352,7 +351,7 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
                 ChatMessage chatMessage = new ChatMessage(
                         getSupportType(),
                         dispute.getTradeId(),
-                        pubKeyRing.hashCode(),
+                        keyRing.getPubKeyRing().hashCode(),
                         false,
                         Res.get("support.systemMsg", sysMsg),
                         p2PService.getAddress());
@@ -389,7 +388,7 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
                                 // We use the chatMessage wrapped inside the openNewDisputeMessage for
                                 // the state, as that is displayed to the user and we only persist that msg
                                 chatMessage.setArrived(true);
-                                trade.setDisputeState(Trade.DisputeState.DISPUTE_OPENED);
+                                trade.setDisputeStateIfProgress(Trade.DisputeState.DISPUTE_OPENED);
                                 requestPersistence();
                                 resultHandler.handleResult();
                             }
@@ -405,7 +404,7 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
                                 // We use the chatMessage wrapped inside the openNewDisputeMessage for
                                 // the state, as that is displayed to the user and we only persist that msg
                                 chatMessage.setStoredInMailbox(true);
-                                trade.setDisputeState(Trade.DisputeState.DISPUTE_OPENED);
+                                trade.setDisputeStateIfProgress(Trade.DisputeState.DISPUTE_OPENED);
                                 requestPersistence();
                                 resultHandler.handleResult();
                             }
@@ -507,7 +506,7 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
                 Optional<Dispute> storedDisputeOptional = findDispute(dispute);
                 if (!storedDisputeOptional.isPresent()) {
                     disputeList.add(dispute);
-                    trade.setDisputeState(Trade.DisputeState.DISPUTE_OPENED);
+                    trade.setDisputeStateIfProgress(Trade.DisputeState.DISPUTE_OPENED);
 
                     // send dispute opened message to peer if arbitrator
                     if (trade.isArbitrator()) sendDisputeOpenedMessageToPeer(dispute, contract, dispute.isDisputeOpenerIsBuyer() ? contract.getSellerPubKeyRing() : contract.getBuyerPubKeyRing(), trade.getSelf().getUpdatedMultisigHex());
@@ -703,22 +702,25 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
             // create dispute payout tx if not given
             if (payoutTx == null) payoutTx = createDisputePayoutTx(trade, dispute, disputeResult, false); // can be null if already published or we don't have receiver's multisig hex
 
-            // persist result in dispute's chat message
-            ChatMessage chatMessage = new ChatMessage(
-                getSupportType(),
-                dispute.getTradeId(),
-                dispute.getTraderPubKeyRing().hashCode(),
-                false,
-                summaryText,
-                p2PService.getAddress());
-            disputeResult.setChatMessage(chatMessage);
-            dispute.addAndPersistChatMessage(chatMessage);
+            // persist result in dispute's chat message once
+            boolean resending = disputeResult.getChatMessage() != null;
+            if (!resending) {
+                ChatMessage chatMessage = new ChatMessage(
+                    getSupportType(),
+                    dispute.getTradeId(),
+                    dispute.getTraderPubKeyRing().hashCode(),
+                    false,
+                    summaryText,
+                    p2PService.getAddress());
+                disputeResult.setChatMessage(chatMessage);
+                dispute.addAndPersistChatMessage(chatMessage);
+            }
 
             // create dispute closed message
             TradingPeer receiver = trade.getTradingPeer(dispute.getTraderPubKeyRing());
             String unsignedPayoutTxHex = payoutTx == null ? null : payoutTx.getTxSet().getMultisigTxHex();
             TradingPeer receiverPeer = receiver == trade.getBuyer() ? trade.getSeller() : trade.getBuyer();
-            boolean deferPublishPayout = unsignedPayoutTxHex != null && receiverPeer.getUpdatedMultisigHex() != null && trade.getDisputeState().ordinal() >= Trade.DisputeState.ARBITRATOR_SAW_ARRIVED_DISPUTE_CLOSED_MSG.ordinal() ;
+            boolean deferPublishPayout = !resending && unsignedPayoutTxHex != null && receiverPeer.getUpdatedMultisigHex() != null && trade.getDisputeState().ordinal() >= Trade.DisputeState.ARBITRATOR_SAW_ARRIVED_DISPUTE_CLOSED_MSG.ordinal() ;
             DisputeClosedMessage disputeClosedMessage = new DisputeClosedMessage(disputeResult,
                     p2PService.getAddress(),
                     UUID.randomUUID().toString(),
@@ -731,7 +733,7 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
             log.info("Send {} to trader {}. tradeId={}, {}.uid={}, chatMessage.uid={}",
                     disputeClosedMessage.getClass().getSimpleName(), receiver.getNodeAddress(),
                     disputeClosedMessage.getClass().getSimpleName(), disputeClosedMessage.getTradeId(),
-                    disputeClosedMessage.getUid(), chatMessage.getUid());
+                    disputeClosedMessage.getUid(), disputeResult.getChatMessage().getUid());
             mailboxMessageService.sendEncryptedMailboxMessage(receiver.getNodeAddress(),
                     dispute.getTraderPubKeyRing(),
                     disputeClosedMessage,
@@ -742,11 +744,11 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
                                             "chatMessage.uid={}",
                                     disputeClosedMessage.getClass().getSimpleName(), receiver.getNodeAddress(),
                                     disputeClosedMessage.getTradeId(), disputeClosedMessage.getUid(),
-                                    chatMessage.getUid());
+                                    disputeResult.getChatMessage().getUid());
 
                             // We use the chatMessage wrapped inside the DisputeClosedMessage for
                             // the state, as that is displayed to the user and we only persist that msg
-                            chatMessage.setArrived(true);
+                            disputeResult.getChatMessage().setArrived(true);
                             trade.setDisputeStateIfProgress(Trade.DisputeState.ARBITRATOR_SAW_ARRIVED_DISPUTE_CLOSED_MSG);
                             trade.syncWalletNormallyForMs(30000);
                             requestPersistence();
@@ -759,11 +761,11 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
                                             "chatMessage.uid={}",
                                     disputeClosedMessage.getClass().getSimpleName(), receiver.getNodeAddress(),
                                     disputeClosedMessage.getTradeId(), disputeClosedMessage.getUid(),
-                                    chatMessage.getUid());
+                                    disputeResult.getChatMessage().getUid());
 
                             // We use the chatMessage wrapped inside the DisputeClosedMessage for
                             // the state, as that is displayed to the user and we only persist that msg
-                            chatMessage.setStoredInMailbox(true);
+                            disputeResult.getChatMessage().setStoredInMailbox(true);
                             Trade trade = tradeManager.getTrade(dispute.getTradeId());
                             trade.setDisputeStateIfProgress(Trade.DisputeState.ARBITRATOR_STORED_IN_MAILBOX_DISPUTE_CLOSED_MSG);
                             requestPersistence();
@@ -776,11 +778,11 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
                                             "chatMessage.uid={}, errorMessage={}",
                                     disputeClosedMessage.getClass().getSimpleName(), receiver.getNodeAddress(),
                                     disputeClosedMessage.getTradeId(), disputeClosedMessage.getUid(),
-                                    chatMessage.getUid(), errorMessage);
+                                    disputeResult.getChatMessage().getUid(), errorMessage);
 
                             // We use the chatMessage wrapped inside the DisputeClosedMessage for
                             // the state, as that is displayed to the user and we only persist that msg
-                            chatMessage.setSendMessageError(errorMessage);
+                            disputeResult.getChatMessage().setSendMessageError(errorMessage);
                             trade.setDisputeStateIfProgress(Trade.DisputeState.ARBITRATOR_SEND_FAILED_DISPUTE_CLOSED_MSG);
                             requestPersistence();
                             faultHandler.handleFault(errorMessage, new RuntimeException(errorMessage));
@@ -914,7 +916,7 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
     }
 
     private boolean isAgent(Dispute dispute) {
-        return pubKeyRing.equals(dispute.getAgentPubKeyRing());
+        return keyRing.getPubKeyRing().equals(dispute.getAgentPubKeyRing());
     }
 
     private Optional<Dispute> findDispute(Dispute dispute) {
@@ -987,7 +989,7 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
             ChatMessage mediatorsDisputeClosedMessage = new ChatMessage(
                     getSupportType(),
                     dispute.getTradeId(),
-                    pubKeyRing.hashCode(),
+                    keyRing.getPubKeyRing().hashCode(),
                     false,
                     mediatorsDisputeResult,
                     p2PService.getAddress());
@@ -1074,7 +1076,7 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
         ChatMessage priceInfoMessage = new ChatMessage(
                 getSupportType(),
                 dispute.getTradeId(),
-                pubKeyRing.hashCode(),
+                keyRing.getPubKeyRing().hashCode(),
                 false,
                 priceInfoText,
                 p2PService.getAddress());

@@ -211,7 +211,7 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
         Dispute dispute = disputeOptional.get();
 
         // verify that arbitrator does not get DisputeClosedMessage
-        if (pubKeyRing.equals(dispute.getAgentPubKeyRing())) {
+        if (keyRing.getPubKeyRing().equals(dispute.getAgentPubKeyRing())) {
             log.error("Arbitrator received disputeResultMessage. That should never happen.");
             return;
         }
@@ -225,8 +225,7 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
         }
         dispute.setIsClosed();
         if (dispute.disputeResultProperty().get() != null) {
-            log.warn("We already got a dispute result. That should only happen if a dispute needs to be closed " +
-                    "again because the first close did not succeed. TradeId = " + tradeId);
+            log.info("We already got a dispute result, indicating the message was resent after updating multisig info. TradeId = " + tradeId);
         }
         dispute.setDisputeResult(disputeResult);
 

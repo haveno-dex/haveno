@@ -176,6 +176,10 @@ public class DomainInitialisation {
 
         PersistenceManager.onAllServicesInitialized();
 
+        arbitratorManager.onAllServicesInitialized();
+        mediatorManager.onAllServicesInitialized();
+        refundAgentManager.onAllServicesInitialized();
+
         tradeManager.onAllServicesInitialized();
         arbitrationManager.onAllServicesInitialized();
         mediationManager.onAllServicesInitialized();
@@ -191,10 +195,6 @@ public class DomainInitialisation {
         balances.onAllServicesInitialized();
 
         walletAppSetup.setRejectedTxErrorMessageHandler(rejectedTxErrorMessageHandler, openOfferManager, tradeManager);
-
-        arbitratorManager.onAllServicesInitialized();
-        mediatorManager.onAllServicesInitialized();
-        refundAgentManager.onAllServicesInitialized();
 
         privateNotificationManager.privateNotificationProperty().addListener((observable, oldValue, newValue) -> {
             if (displayPrivateNotificationHandler != null)
