@@ -41,6 +41,7 @@ import bisq.core.trade.protocol.tasks.TradeTask;
 import bisq.core.trade.protocol.tasks.VerifyPeersAccountAgeWitness;
 import bisq.core.trade.protocol.FluentProtocol.Condition;
 import bisq.core.trade.protocol.tasks.ApplyFilter;
+import bisq.core.trade.protocol.tasks.ResendDisputeClosedMessageWithPayout;
 import bisq.core.trade.protocol.tasks.MaybeSendSignContractRequest;
 import bisq.core.trade.protocol.tasks.ProcessDepositResponse;
 import bisq.core.trade.protocol.tasks.ProcessDepositsConfirmedMessage;
@@ -73,6 +74,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 import lombok.extern.slf4j.Slf4j;
 import org.fxmisc.easybind.EasyBind;
@@ -162,6 +164,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
 
     // TODO (woodser): this method only necessary because isPubKeyValid not called with sender argument, so it's validated before
     private void handleMailboxCollectionSkipValidation(Collection<DecryptedMessageWithPubKey> collection) {
+        log.warn("TradeProtocol.handleMailboxCollectionSkipValidation");
         collection.stream()
                 .map(DecryptedMessageWithPubKey::getNetworkEnvelope)
                 .filter(this::isMyMessage)
@@ -181,8 +184,9 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
                 .forEach(this::handleMailboxMessage);
     }
 
-    private static class MailboxMessageComparator implements Comparator<MailboxMessage> {
+    public static class MailboxMessageComparator implements Comparator<MailboxMessage> {
         private static List<Class<? extends MailboxMessage>> messageOrder = Arrays.asList(
+            AckMessage.class,
             DepositsConfirmedMessage.class,
             PaymentSentMessage.class,
             PaymentReceivedMessage.class,
@@ -397,7 +401,8 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
                     .from(sender))
                     .setup(tasks(
                         ProcessDepositsConfirmedMessage.class,
-                        VerifyPeersAccountAgeWitness.class)
+                        VerifyPeersAccountAgeWitness.class,
+                        ResendDisputeClosedMessageWithPayout.class)
                     .using(new TradeTaskRunner(trade,
                             () -> {
                                 handleTaskRunnerSuccess(sender, response);

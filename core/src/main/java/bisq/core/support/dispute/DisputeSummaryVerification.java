@@ -88,6 +88,7 @@ public class DisputeSummaryVerification {
                 throw new IllegalArgumentException(Res.get("support.sigCheck.popup.failed"));
             }
         } catch (Throwable e) {
+            e.printStackTrace();
             throw new IllegalArgumentException(Res.get("support.sigCheck.popup.invalidFormat"));
         }
     }

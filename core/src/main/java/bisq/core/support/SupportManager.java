@@ -22,13 +22,15 @@ import bisq.core.api.CoreNotificationService;
 import bisq.core.locale.Res;
 import bisq.core.support.messages.ChatMessage;
 import bisq.core.support.messages.SupportMessage;
-
+import bisq.core.trade.protocol.TradeProtocol;
+import bisq.core.trade.protocol.TradeProtocol.MailboxMessageComparator;
 import bisq.network.p2p.AckMessage;
 import bisq.network.p2p.AckMessageSourceType;
 import bisq.network.p2p.DecryptedMessageWithPubKey;
 import bisq.network.p2p.NodeAddress;
 import bisq.network.p2p.P2PService;
 import bisq.network.p2p.SendMailboxMessageListener;
+import bisq.network.p2p.mailbox.MailboxMessage;
 import bisq.network.p2p.mailbox.MailboxMessageService;
 
 import bisq.common.Timer;
@@ -36,6 +38,7 @@ import bisq.common.UserThread;
 import bisq.common.crypto.PubKeyRing;
 import bisq.common.proto.network.NetworkEnvelope;
 
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -322,9 +325,27 @@ public abstract class SupportManager {
 
     private void applyMessages() {
         synchronized (lock) {
-            decryptedDirectMessageWithPubKeys.forEach(decryptedMessageWithPubKey -> applyDirectMessage(decryptedMessageWithPubKey));
+
+            // apply non-mailbox messages
+            decryptedDirectMessageWithPubKeys.stream()
+                .filter(e -> !(e.getNetworkEnvelope() instanceof MailboxMessage))
+                .forEach(decryptedMessageWithPubKey -> applyDirectMessage(decryptedMessageWithPubKey));
+            decryptedMailboxMessageWithPubKeys.stream()
+                .filter(e -> !(e.getNetworkEnvelope() instanceof MailboxMessage))
+                .forEach(decryptedMessageWithPubKey -> applyMailboxMessage(decryptedMessageWithPubKey));
+
+            // apply mailbox messages in order
+            decryptedDirectMessageWithPubKeys.stream()
+                .filter(e -> (e.getNetworkEnvelope() instanceof MailboxMessage))
+                .sorted(new DecryptedMessageWithPubKeyComparator())
+                .forEach(decryptedMessageWithPubKey -> applyDirectMessage(decryptedMessageWithPubKey));
+            decryptedMailboxMessageWithPubKeys.stream()
+                .filter(e -> (e.getNetworkEnvelope() instanceof MailboxMessage))
+                .sorted(new DecryptedMessageWithPubKeyComparator())
+                .forEach(decryptedMessageWithPubKey -> applyMailboxMessage(decryptedMessageWithPubKey));
+
+            // clear messages
             decryptedDirectMessageWithPubKeys.clear();
-            decryptedMailboxMessageWithPubKeys.forEach(decryptedMessageWithPubKey -> applyMailboxMessage(decryptedMessageWithPubKey));
             decryptedMailboxMessageWithPubKeys.clear();
         }
     }
@@ -349,6 +370,24 @@ public abstract class SupportManager {
             AckMessage ackMessage = (AckMessage) networkEnvelope;
             onAckMessage(ackMessage);
             mailboxMessageService.removeMailboxMsg(ackMessage);
+        }
+    }
+
+    private static class DecryptedMessageWithPubKeyComparator implements Comparator<DecryptedMessageWithPubKey> {
+
+        MailboxMessageComparator mailboxMessageComparator;
+        public DecryptedMessageWithPubKeyComparator() {
+            mailboxMessageComparator = new TradeProtocol.MailboxMessageComparator();
+        }
+
+        @Override
+        public int compare(DecryptedMessageWithPubKey m1, DecryptedMessageWithPubKey m2) {
+            if (m1.getNetworkEnvelope() instanceof MailboxMessage) {
+                if (m2.getNetworkEnvelope() instanceof MailboxMessage) return mailboxMessageComparator.compare((MailboxMessage) m1.getNetworkEnvelope(), (MailboxMessage) m2.getNetworkEnvelope());
+                else return 1;
+            } else {
+                return m2.getNetworkEnvelope() instanceof MailboxMessage ? -1 : 0;
+            }
         }
     }
 }
