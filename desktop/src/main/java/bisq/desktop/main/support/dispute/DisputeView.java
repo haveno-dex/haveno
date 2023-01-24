@@ -445,11 +445,11 @@ public abstract class DisputeView extends ActivatableView<VBox, Void> {
             return FilterResult.SELLER_NODE_ADDRESS;
         }
 
-        if (dispute.getBuyerPaymentAccountPayload().getPaymentDetails().toLowerCase().contains(filter)) {
+        if (dispute.getBuyerPaymentAccountPayload() != null && dispute.getBuyerPaymentAccountPayload().getPaymentDetails().toLowerCase().contains(filter)) {
             return FilterResult.BUYER_ACCOUNT_DETAILS;
         }
 
-        if (dispute.getSellerPaymentAccountPayload().getPaymentDetails().toLowerCase().contains(filter)) {
+        if (dispute.getSellerPaymentAccountPayload() != null && dispute.getSellerPaymentAccountPayload().getPaymentDetails().toLowerCase().contains(filter)) {
             return FilterResult.SELLER_ACCOUNT_DETAILS;
         }
 
