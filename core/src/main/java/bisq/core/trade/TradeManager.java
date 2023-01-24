@@ -487,7 +487,11 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
 
           ((ArbitratorProtocol) getTradeProtocol(trade)).handleInitTradeRequest(request, sender, errorMessage -> {
               log.warn("Arbitrator error during trade initialization for trade {}: {}", trade.getId(), errorMessage);
-              removeTradeOnError(trade);
+              if (trade.getMaker().getReserveTxHash() != null || trade.getTaker().getReserveTxHash() != null) {
+                onMoveInvalidTradeToFailedTrades(trade); // arbitrator retains failed trades for analysis and penalty
+              } else {
+                removeTradeOnError(trade);
+              }
               if (takeOfferRequestErrorMessageHandler != null) takeOfferRequestErrorMessageHandler.handleErrorMessage(errorMessage);
           });
 
