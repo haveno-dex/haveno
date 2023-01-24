@@ -319,63 +319,66 @@ public class TradeDetailsWindow extends Overlay<TradeDetailsWindow> {
         String sellerWitnessHash = trade.getSeller().getAccountAgeWitness() == null ? "null" : Utilities.bytesAsHexString(trade.getSeller().getAccountAgeWitness().getHash());
         String sellerPubKeyRingHash = Utilities.bytesAsHexString(trade.getSeller().getPubKeyRing().getSignaturePubKeyBytes());
 
-        if (contract != null) {
-            viewContractButton.setOnAction(e -> {
-                TextArea textArea = new HavenoTextArea();
-                textArea.setText(trade.getContractAsJson());
-                String data = "Contract as json:\n";
-                data += trade.getContractAsJson();
-                data += "\n\nOther detail data:";
-                if (offer.isFiatOffer()) {
-                    data += "\n\nBuyers witness hash,pub key ring hash: " + buyerWitnessHash + "," + buyerPubKeyRingHash;
-                    data += "\nBuyers account age: " + buyersAccountAge;
-                    data += "\nSellers witness hash,pub key ring hash: " + sellerWitnessHash + "," + sellerPubKeyRingHash;
-                    data += "\nSellers account age: " + sellersAccountAge;
-                }
+        viewContractButton.setOnAction(e -> {
+            TextArea textArea = new HavenoTextArea();
+            textArea.setText(trade.getContractAsJson());
+            String data = "Contract as json:\n";
+            data += trade.getContractAsJson();
+            data += "\n\nOther detail data:";
+            if (!trade.isDepositPublished()) {
+                data += "\n\n" + (trade.getMaker() == trade.getBuyer() ? "Buyer" : "Seller") + " as maker reserve tx hex: " + trade.getMaker().getReserveTxHex();
+                data += "\n\n" + (trade.getTaker() == trade.getBuyer() ? "Buyer" : "Seller") + " as taker reserve tx hex: " + trade.getTaker().getReserveTxHex();
+            }
+            if (offer.isFiatOffer()) {
+                data += "\n\nBuyers witness hash,pub key ring hash: " + buyerWitnessHash + "," + buyerPubKeyRingHash;
+                data += "\nBuyers account age: " + buyersAccountAge;
+                data += "\nSellers witness hash,pub key ring hash: " + sellerWitnessHash + "," + sellerPubKeyRingHash;
+                data += "\nSellers account age: " + sellersAccountAge;
+            }
 
-                // TODO (woodser): include maker and taker deposit tx hex in contract?
+            // TODO (woodser): include maker and taker deposit tx hex in contract?
 //              if (depositTx != null) {
 //                  String depositTxAsHex = Utils.HEX.encode(depositTx.bitcoinSerialize(true));
 //                  data += "\n\nRaw deposit transaction as hex:\n" + depositTxAsHex;
 //              }
 
-                data += "\n\nSelected arbitrator: " + DisputeAgentLookupMap.getMatrixUserName(contract.getArbitratorNodeAddress().getFullAddress());
 
-                textArea.setText(data);
-                textArea.setPrefHeight(50);
-                textArea.setEditable(false);
-                textArea.setWrapText(true);
-                textArea.setPrefSize(800, 600);
+            data += "\n\nSelected arbitrator: " + trade.getArbitrator().getNodeAddress();
 
-                Scene viewContractScene = new Scene(textArea);
-                Stage viewContractStage = new Stage();
-                viewContractStage.setTitle(Res.get("shared.contract.title", trade.getShortId()));
-                viewContractStage.setScene(viewContractScene);
-                if (owner == null)
-                    owner = MainView.getRootContainer();
-                Scene rootScene = owner.getScene();
-                viewContractStage.initOwner(rootScene.getWindow());
-                viewContractStage.initModality(Modality.NONE);
-                viewContractStage.initStyle(StageStyle.UTILITY);
-                viewContractStage.setOpacity(0);
-                viewContractStage.show();
+            textArea.setText(data);
+            textArea.setPrefHeight(50);
+            textArea.setEditable(false);
+            textArea.setWrapText(true);
+            textArea.setPrefSize(800, 600);
 
-                Window window = rootScene.getWindow();
-                double titleBarHeight = window.getHeight() - rootScene.getHeight();
-                viewContractStage.setX(Math.round(window.getX() + (owner.getWidth() - viewContractStage.getWidth()) / 2) + 200);
-                viewContractStage.setY(Math.round(window.getY() + titleBarHeight + (owner.getHeight() - viewContractStage.getHeight()) / 2) + 50);
-                // Delay display to next render frame to avoid that the popup is first quickly displayed in default position
-                // and after a short moment in the correct position
-                UserThread.execute(() -> viewContractStage.setOpacity(1));
+            Scene viewContractScene = new Scene(textArea);
+            Stage viewContractStage = new Stage();
+            viewContractStage.setTitle(Res.get("shared.contract.title", trade.getShortId()));
+            viewContractStage.setScene(viewContractScene);
+            if (owner == null)
+                owner = MainView.getRootContainer();
+            Scene rootScene = owner.getScene();
+            viewContractStage.initOwner(rootScene.getWindow());
+            viewContractStage.initModality(Modality.NONE);
+            viewContractStage.initStyle(StageStyle.UTILITY);
+            viewContractStage.setOpacity(0);
+            viewContractStage.show();
 
-                viewContractScene.setOnKeyPressed(ev -> {
-                    if (ev.getCode() == KeyCode.ESCAPE) {
-                        ev.consume();
-                        viewContractStage.hide();
-                    }
-                });
+            Window window = rootScene.getWindow();
+            double titleBarHeight = window.getHeight() - rootScene.getHeight();
+            viewContractStage.setX(Math.round(window.getX() + (owner.getWidth() - viewContractStage.getWidth()) / 2) + 200);
+            viewContractStage.setY(Math.round(window.getY() + titleBarHeight + (owner.getHeight() - viewContractStage.getHeight()) / 2) + 50);
+            // Delay display to next render frame to avoid that the popup is first quickly displayed in default position
+            // and after a short moment in the correct position
+            UserThread.execute(() -> viewContractStage.setOpacity(1));
+
+            viewContractScene.setOnKeyPressed(ev -> {
+                if (ev.getCode() == KeyCode.ESCAPE) {
+                    ev.consume();
+                    viewContractStage.hide();
+                }
             });
-        }
+        });
 
         closeButton.setOnAction(e -> {
             closeHandlerOptional.ifPresent(Runnable::run);
