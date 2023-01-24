@@ -1509,10 +1509,12 @@ message SignedOfferList {
 }
 
 message SignedOffer {
-    string offer_id = 1;
-    string reserve_tx_hash = 2;
-    string reserve_tx_hex = 3;
-    string arbitrator_signature = 4;
+    int64 time_stamp = 1;
+    string offer_id = 2;
+    string reserve_tx_hash = 3;
+    string reserve_tx_hex = 4;
+    repeated string reserve_tx_key_images = 5;
+    string arbitrator_signature = 6;
 }
 
 message OpenOffer {
