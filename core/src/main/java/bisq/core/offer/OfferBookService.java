@@ -100,6 +100,7 @@ public class OfferBookService {
         connectionsService.addListener(new MoneroConnectionManagerListener() {
             @Override
             public void onConnectionChanged(MoneroRpcConnection connection) {
+                if (keyImagePoller == null) return;
                 keyImagePoller.setDaemon(connectionsService.getDaemon());
                 keyImagePoller.setRefreshPeriodMs(getKeyImageRefreshPeriodMs());
             }

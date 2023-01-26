@@ -925,7 +925,13 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
             signedOfferPayload.setArbitratorSignature(signature);
             
             // create record of signed offer
-            SignedOffer signedOffer = new SignedOffer(signedOfferPayload.getId(), request.getReserveTxHash(), request.getReserveTxHex(), signature); // TODO (woodser): no need for signature to be part of SignedOffer?
+            SignedOffer signedOffer = new SignedOffer(
+                    System.currentTimeMillis(),
+                     signedOfferPayload.getId(),
+                     request.getReserveTxHash(),
+                     request.getReserveTxHex(),
+                     request.getReserveTxKeyImages(),
+                     signature); // TODO (woodser): no need for signature to be part of SignedOffer?
             addSignedOffer(signedOffer);
             requestPersistence();
 

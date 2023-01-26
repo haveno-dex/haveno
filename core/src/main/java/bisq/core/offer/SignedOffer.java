@@ -17,6 +17,8 @@
 
 package bisq.core.offer;
 
+import java.util.List;
+
 import bisq.common.proto.persistable.PersistablePayload;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -27,18 +29,24 @@ import lombok.extern.slf4j.Slf4j;
 public final class SignedOffer implements PersistablePayload {
     
     @Getter
+    private final long timeStamp;
+    @Getter
     private final String offerId;
     @Getter
     private final String reserveTxHash;
     @Getter
     private final String reserveTxHex;
     @Getter
+    private final List<String> reserveTxKeyImages;
+    @Getter
     private final String arbitratorSignature;
     
-    public SignedOffer(String offerId, String reserveTxHash, String reserveTxHex, String arbitratorSignature) {
+    public SignedOffer(long timeStamp, String offerId, String reserveTxHash, String reserveTxHex, List<String> reserveTxKeyImages, String arbitratorSignature) {
+        this.timeStamp = timeStamp;
         this.offerId = offerId;
         this.reserveTxHash = reserveTxHash;
         this.reserveTxHex = reserveTxHex;
+        this.reserveTxKeyImages = reserveTxKeyImages;
         this.arbitratorSignature = arbitratorSignature;
     }
 
@@ -49,16 +57,17 @@ public final class SignedOffer implements PersistablePayload {
     @Override
     public protobuf.SignedOffer toProtoMessage() {
         protobuf.SignedOffer.Builder builder = protobuf.SignedOffer.newBuilder()
+                .setTimeStamp(timeStamp)
                 .setOfferId(offerId)
                 .setReserveTxHash(reserveTxHash)
                 .setReserveTxHex(reserveTxHex)
+                .addAllReserveTxKeyImages(reserveTxKeyImages)
                 .setArbitratorSignature(arbitratorSignature);
-        
         return builder.build();
     }
 
     public static SignedOffer fromProto(protobuf.SignedOffer proto) {
-        return new SignedOffer(proto.getOfferId(), proto.getReserveTxHash(), proto.getReserveTxHex(), proto.getArbitratorSignature());
+        return new SignedOffer(proto.getTimeStamp(), proto.getOfferId(), proto.getReserveTxHash(), proto.getReserveTxHex(), proto.getReserveTxKeyImagesList(), proto.getArbitratorSignature());
     }
 
 
@@ -69,9 +78,11 @@ public final class SignedOffer implements PersistablePayload {
     @Override
     public String toString() {
         return "SignedOffer{" +
+                ",\n     timeStamp=" + timeStamp +
                 ",\n     offerId=" + offerId +
                 ",\n     reserveTxHash=" + reserveTxHash +
                 ",\n     reserveTxHex=" + reserveTxHex +
+                ",\n     reserveTxKeyImages=" + reserveTxKeyImages +
                 ",\n     arbitratorSignature=" + arbitratorSignature +
                 "\n}";
     }
