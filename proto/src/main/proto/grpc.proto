@@ -841,9 +841,9 @@ message TradeInfo {
     string period_state = 19;
     string payout_state = 20;
     string dispute_state = 21;
-    bool is_deposit_published = 22;
-    bool is_deposit_confirmed = 23;
-    bool is_deposit_unlocked = 24;
+    bool is_deposits_published = 22;
+    bool is_deposits_confirmed = 23;
+    bool is_deposits_unlocked = 24;
     bool is_payment_sent = 25;
     bool is_payment_received = 26;
     bool is_payout_published = 27;

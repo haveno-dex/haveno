@@ -65,8 +65,8 @@ class TradeDetailTableBuilder extends AbstractTradeListBuilder {
         colAmount.addRow(toTradeAmount.apply(trade));
         colMinerTxFee.addRow(toMyMinerTxFee.apply(trade));
         colBisqTradeFee.addRow(toMyMakerOrTakerFee.apply(trade));
-        colIsDepositPublished.addRow(trade.getIsDepositPublished());
-        colIsDepositConfirmed.addRow(trade.getIsDepositUnlocked());
+        colIsDepositPublished.addRow(trade.getIsDepositsPublished());
+        colIsDepositConfirmed.addRow(trade.getIsDepositsUnlocked());
         colTradeCost.addRow(toTradeVolumeAsString.apply(trade));
         colIsPaymentStartedMessageSent.addRow(trade.getIsPaymentSent());
         colIsPaymentReceivedMessageSent.addRow(trade.getIsPaymentReceived());

@@ -51,7 +51,7 @@ public class SellerProtocol extends DisputeProtocol {
 
         // re-send payment received message if not arrived
         synchronized (trade) {
-            if (trade.getState().ordinal() >= Trade.State.SELLER_CONFIRMED_IN_UI_PAYMENT_RECEIPT.ordinal() && trade.getState().ordinal() <= Trade.State.SELLER_SEND_FAILED_PAYMENT_RECEIVED_MSG.ordinal()) {
+            if (trade.getState().ordinal() >= Trade.State.SELLER_SENT_PAYMENT_RECEIVED_MSG.ordinal() && trade.getState().ordinal() <= Trade.State.SELLER_SEND_FAILED_PAYMENT_RECEIVED_MSG.ordinal()) {
                 latchTrade();
                 given(anyPhase(Trade.Phase.PAYMENT_RECEIVED)
                     .with(SellerEvent.STARTUP))

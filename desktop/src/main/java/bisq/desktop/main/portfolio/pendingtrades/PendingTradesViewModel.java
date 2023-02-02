@@ -32,7 +32,6 @@ import bisq.core.provider.mempool.MempoolService;
 import bisq.core.trade.ArbitratorTrade;
 import bisq.core.trade.BuyerTrade;
 import bisq.core.trade.ClosedTradableManager;
-import bisq.core.trade.Contract;
 import bisq.core.trade.HavenoUtils;
 import bisq.core.trade.SellerTrade;
 import bisq.core.trade.Trade;
@@ -433,21 +432,19 @@ public class PendingTradesViewModel extends ActivatableWithDataModel<PendingTrad
                 buyerState.set(BuyerState.STEP2);
                 break;
 
-            // seller step 3
-            case SELLER_RECEIVED_PAYMENT_SENT_MSG: // PAYMENT_SENT_MSG received
-                sellerState.set(SellerState.STEP3);
-                break;
-
-            // seller step 4
-            case SELLER_CONFIRMED_IN_UI_PAYMENT_RECEIPT: // UI action
+            // payment received
             case SELLER_SENT_PAYMENT_RECEIVED_MSG:
                 if (trade instanceof BuyerTrade) buyerState.set(BuyerState.STEP4);
-                else if (trade instanceof SellerTrade) sellerState.set(SellerState.STEP3);
+                else if (trade instanceof SellerTrade) sellerState.set(trade.isPayoutPublished() ? SellerState.STEP4 : SellerState.STEP3);
                 break;
-            case SELLER_SAW_ARRIVED_PAYMENT_RECEIVED_MSG:
-            case SELLER_STORED_IN_MAILBOX_PAYMENT_RECEIVED_MSG:
+
+            // seller step 3
+            case SELLER_RECEIVED_PAYMENT_SENT_MSG: // PAYMENT_SENT_MSG received
+            case SELLER_CONFIRMED_IN_UI_PAYMENT_RECEIPT:
             case SELLER_SEND_FAILED_PAYMENT_RECEIVED_MSG:
-                sellerState.set(SellerState.STEP4);
+            case SELLER_STORED_IN_MAILBOX_PAYMENT_RECEIVED_MSG:
+            case SELLER_SAW_ARRIVED_PAYMENT_RECEIVED_MSG:
+                sellerState.set(trade.isPayoutPublished() ? SellerState.STEP4 : SellerState.STEP3);
                 break;
 
             case TRADE_COMPLETED:

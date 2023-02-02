@@ -1008,7 +1008,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
         }
 
         // Don't allow trade start if Monero node is not fully synced
-        if (!connectionService.isChainHeightSyncedWithinTolerance()) {
+        if (!connectionService.isSyncedWithinTolerance()) {
             errorMessage = "We got a handleOfferAvailabilityRequest but our chain is not synced.";
             log.info(errorMessage);
             sendAckMessage(request.getClass(), peer, request.getPubKeyRing(), request.getOfferId(), request.getUid(), false, errorMessage);

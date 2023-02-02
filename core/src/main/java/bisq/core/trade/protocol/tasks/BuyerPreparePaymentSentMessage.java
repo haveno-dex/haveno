@@ -52,6 +52,13 @@ public class BuyerPreparePaymentSentMessage extends TradeTask {
         try {
             runInterceptHook();
 
+            // skip if already created
+            if (processModel.getPaymentSentMessage() != null) {
+              log.warn("Skipping preparation of payment sent message since it's already created for {} {}", trade.getClass().getSimpleName(), trade.getId());
+              complete();
+              return;
+            }
+
             // validate state
             Preconditions.checkNotNull(trade.getSeller().getPaymentAccountPayload(), "Seller's payment account payload is null");
             Preconditions.checkNotNull(trade.getAmount(), "trade.getTradeAmount() must not be null");
@@ -67,7 +74,7 @@ public class BuyerPreparePaymentSentMessage extends TradeTask {
             List<String> updatedMultisigHexes = new ArrayList<String>();
             if (trade.getSeller().getUpdatedMultisigHex() != null) updatedMultisigHexes.add(trade.getSeller().getUpdatedMultisigHex());
             if (trade.getArbitrator().getUpdatedMultisigHex() != null) updatedMultisigHexes.add(trade.getArbitrator().getUpdatedMultisigHex());
-            if (!updatedMultisigHexes.isEmpty()) { 
+            if (!updatedMultisigHexes.isEmpty()) {
               multisigWallet.importMultisigHex(updatedMultisigHexes.toArray(new String[0])); // TODO (monero-project): fails if multisig hex imported individually
               trade.saveWallet();
             }

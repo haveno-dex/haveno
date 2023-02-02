@@ -44,10 +44,10 @@ public class ProcessPaymentSentMessage extends TradeTask {
             // verify signature of payment sent message
             HavenoUtils.verifyPaymentSentMessage(trade, message);
 
-            // update buyer info
+            // set state
+            processModel.setPaymentSentMessage(message);
             trade.setPayoutTxHex(message.getPayoutTxHex());
             trade.getBuyer().setUpdatedMultisigHex(message.getUpdatedMultisigHex());
-            trade.getBuyer().setPaymentSentMessage(message);
             trade.getSeller().setAccountAgeWitness(message.getSellerAccountAgeWitness());
 
             // if seller, decrypt buyer's payment account payload
@@ -62,7 +62,7 @@ public class ProcessPaymentSentMessage extends TradeTask {
             String counterCurrencyExtraData = message.getCounterCurrencyExtraData();
             if (counterCurrencyExtraData != null && counterCurrencyExtraData.length() < 100) trade.setCounterCurrencyExtraData(counterCurrencyExtraData);
             trade.setStateIfProgress(trade.isSeller() ? Trade.State.SELLER_RECEIVED_PAYMENT_SENT_MSG : Trade.State.BUYER_SENT_PAYMENT_SENT_MSG);
-            processModel.getTradeManager().requestPersistence();
+            trade.requestPersistence();
             complete();
         } catch (Throwable t) {
             failed(t);

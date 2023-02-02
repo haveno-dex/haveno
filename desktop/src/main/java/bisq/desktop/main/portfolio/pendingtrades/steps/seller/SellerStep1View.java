@@ -37,7 +37,7 @@ public class SellerStep1View extends TradeStepView {
         super.onPendingTradesInitialized();
         //validateDepositInputs();
         log.warn("Need to validate fee and/or deposit txs in SellerStep1View for XMR?"); // TODO (woodser): need to validate fee and/or deposit txs in SellerStep1View?
-        checkForTimeout();
+        checkForUnconfirmedTimeout();
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////

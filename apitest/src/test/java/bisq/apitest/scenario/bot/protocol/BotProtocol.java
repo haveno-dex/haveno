@@ -301,10 +301,10 @@ public abstract class BotProtocol {
     }
 
     private final Predicate<TradeInfo> isDepositFeeTxStepComplete = (trade) -> {
-        if (currentProtocolStep.equals(WAIT_FOR_TAKER_DEPOSIT_TX_PUBLISHED) && trade.getIsDepositPublished()) {
+        if (currentProtocolStep.equals(WAIT_FOR_TAKER_DEPOSIT_TX_PUBLISHED) && trade.getIsDepositsPublished()) {
             log.info("Taker deposit fee tx {} has been published.", trade.getTakerDepositTxId());
             return true;
-        } else if (currentProtocolStep.equals(WAIT_FOR_TAKER_DEPOSIT_TX_CONFIRMED) && trade.getIsDepositUnlocked()) {
+        } else if (currentProtocolStep.equals(WAIT_FOR_TAKER_DEPOSIT_TX_CONFIRMED) && trade.getIsDepositsUnlocked()) {
             log.info("Taker deposit fee tx {} has been confirmed.", trade.getTakerDepositTxId());
             return true;
         } else {

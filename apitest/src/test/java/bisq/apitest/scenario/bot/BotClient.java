@@ -231,7 +231,7 @@ public class BotClient {
      * @return boolean
      */
     public boolean isTakerDepositFeeTxConfirmed(String tradeId) {
-        return grpcClient.getTrade(tradeId).getIsDepositUnlocked();
+        return grpcClient.getTrade(tradeId).getIsDepositsUnlocked();
     }
 
     /**

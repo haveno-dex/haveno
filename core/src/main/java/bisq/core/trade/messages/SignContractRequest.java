@@ -20,14 +20,12 @@ package bisq.core.trade.messages;
 import bisq.core.proto.CoreProtoResolver;
 
 import bisq.network.p2p.DirectMessage;
-import bisq.network.p2p.NodeAddress;
 
 import java.util.Optional;
 
 import javax.annotation.Nullable;
 
 import com.google.protobuf.ByteString;
-import bisq.common.crypto.PubKeyRing;
 import bisq.common.proto.ProtoUtil;
 import bisq.common.util.Utilities;
 import lombok.EqualsAndHashCode;

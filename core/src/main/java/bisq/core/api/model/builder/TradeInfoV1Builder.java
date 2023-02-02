@@ -55,9 +55,9 @@ public final class TradeInfoV1Builder {
     private String periodState;
     private String payoutState;
     private String disputeState;
-    private boolean isDepositPublished;
-    private boolean isDepositConfirmed;
-    private boolean isDepositUnlocked;
+    private boolean isDepositsPublished;
+    private boolean isDepositsConfirmed;
+    private boolean isDepositsUnlocked;
     private boolean isPaymentSent;
     private boolean isPaymentReceived;
     private boolean isPayoutPublished;
@@ -183,18 +183,18 @@ public final class TradeInfoV1Builder {
         return this;
     }
 
-    public TradeInfoV1Builder withIsDepositPublished(boolean isDepositPublished) {
-        this.isDepositPublished = isDepositPublished;
+    public TradeInfoV1Builder withIsDepositsPublished(boolean isDepositsPublished) {
+        this.isDepositsPublished = isDepositsPublished;
         return this;
     }
 
-    public TradeInfoV1Builder withIsDepositConfirmed(boolean isDepositConfirmed) {
-        this.isDepositConfirmed = isDepositConfirmed;
+    public TradeInfoV1Builder withIsDepositsConfirmed(boolean isDepositsConfirmed) {
+        this.isDepositsConfirmed = isDepositsConfirmed;
         return this;
     }
 
-    public TradeInfoV1Builder withIsDepositUnlocked(boolean isDepositUnlocked) {
-        this.isDepositUnlocked = isDepositUnlocked;
+    public TradeInfoV1Builder withIsDepositsUnlocked(boolean isDepositsUnlocked) {
+        this.isDepositsUnlocked = isDepositsUnlocked;
         return this;
     }
 

@@ -50,6 +50,7 @@ import bisq.core.support.messages.ChatMessage;
 import bisq.core.trade.Contract;
 import bisq.core.trade.Trade;
 import bisq.core.trade.TradeManager;
+import bisq.core.trade.Trade.DisputeState;
 import bisq.core.user.Preferences;
 import bisq.core.util.FormattingUtils;
 import bisq.core.util.coin.CoinFormatter;
@@ -1341,18 +1342,21 @@ public abstract class DisputeView extends ActivatableView<VBox, Void> {
 
                             ReadOnlyBooleanProperty closedProperty;
                             ChangeListener<Boolean> listener;
+                            Subscription subscription;
 
                             @Override
                             public void updateItem(final Dispute item, boolean empty) {
                                 super.updateItem(item, empty);
                                 UserThread.execute(() -> {
                                     if (item != null && !empty) {
-                                        if (closedProperty != null) {
-                                            closedProperty.removeListener(listener);
+                                        if (closedProperty != null) closedProperty.removeListener(listener);
+                                        if (subscription != null)  {
+                                            subscription.unsubscribe();
+                                            subscription = null;
                                         }
 
                                         listener = (observable, oldValue, newValue) -> {
-                                            setText(newValue ? Res.get("support.closed") : Res.get("support.open"));
+                                            setText(getDisputeStateText(item));
                                             if (getTableRow() != null)
                                                 getTableRow().setOpacity(newValue && item.getBadgeCountProperty().get() == 0 ? 0.4 : 1);
                                             if (item.isClosed() && item == chatPopup.getSelectedDispute())
@@ -1361,13 +1365,22 @@ public abstract class DisputeView extends ActivatableView<VBox, Void> {
                                         closedProperty = item.isClosedProperty();
                                         closedProperty.addListener(listener);
                                         boolean isClosed = item.isClosed();
-                                        setText(isClosed ? Res.get("support.closed") : Res.get("support.open"));
+                                        setText(getDisputeStateText(item));
                                         if (getTableRow() != null)
                                             getTableRow().setOpacity(isClosed && item.getBadgeCountProperty().get() == 0  ? 0.4 : 1);
+
+                                        // subscribe to trade's dispute state
+                                        Trade trade = tradeManager.getTrade(item.getTradeId());
+                                        if (trade == null) log.warn("Dispute's trade is null for trade {}", item.getTradeId());
+                                        else subscription = EasyBind.subscribe(trade.disputeStateProperty(), disputeState -> setText(getDisputeStateText(disputeState)));
                                     } else {
                                         if (closedProperty != null) {
                                             closedProperty.removeListener(listener);
                                             closedProperty = null;
+                                        }
+                                        if (subscription != null)  {
+                                            subscription.unsubscribe();
+                                            subscription = null;
                                         }
                                         setText("");
                                     }
@@ -1377,6 +1390,33 @@ public abstract class DisputeView extends ActivatableView<VBox, Void> {
                     }
                 });
         return column;
+    }
+
+    private String getDisputeStateText(DisputeState disputeState) {
+        switch (disputeState) {
+            case DISPUTE_REQUESTED:
+                return Res.get("support.requested");
+            case DISPUTE_CLOSED:
+                return Res.get("support.closed");
+            default:
+                return Res.get("support.open");
+        }
+    }
+
+    private String getDisputeStateText(Dispute dispute) {
+        Trade trade = tradeManager.getTrade(dispute.getTradeId());
+        if (trade == null) {
+            log.warn("Dispute's trade is null for trade {}", dispute.getTradeId());
+            return Res.get("support.closed");
+        }
+        switch (trade.getDisputeState()) {
+            case DISPUTE_REQUESTED:
+                return Res.get("support.requested");
+            case DISPUTE_CLOSED:
+                return Res.get("support.closed");
+            default:
+                return Res.get("support.open");
+        }
     }
 
     private void openChat(Dispute dispute) {

@@ -31,10 +31,13 @@ import bisq.core.payment.payload.PaymentAccountPayload;
 import bisq.core.proto.CoreProtoResolver;
 import bisq.core.support.dispute.arbitration.arbitrator.ArbitratorManager;
 import bisq.core.support.dispute.mediation.mediator.MediatorManager;
+import bisq.core.support.dispute.messages.DisputeClosedMessage;
 import bisq.core.support.dispute.refund.refundagent.RefundAgentManager;
 import bisq.core.trade.MakerTrade;
 import bisq.core.trade.Trade;
 import bisq.core.trade.TradeManager;
+import bisq.core.trade.messages.PaymentReceivedMessage;
+import bisq.core.trade.messages.PaymentSentMessage;
 import bisq.core.trade.messages.TradeMessage;
 import bisq.core.trade.statistics.ReferralIdService;
 import bisq.core.trade.statistics.TradeStatisticsManager;
@@ -43,7 +46,7 @@ import bisq.core.user.User;
 import bisq.network.p2p.AckMessage;
 import bisq.network.p2p.NodeAddress;
 import bisq.network.p2p.P2PService;
-
+import bisq.common.app.Version;
 import bisq.common.crypto.KeyRing;
 import bisq.common.crypto.PubKeyRing;
 import bisq.common.proto.ProtoUtil;
@@ -175,6 +178,18 @@ public class ProcessModel implements Model, PersistablePayload {
     @Getter
     @Setter
     private boolean isDepositsConfirmedMessagesDelivered;
+    @Nullable
+    @Setter
+    @Getter
+    private PaymentSentMessage paymentSentMessage;
+    @Nullable
+    @Setter
+    @Getter
+    private PaymentReceivedMessage paymentReceivedMessage;
+    @Nullable
+    @Setter
+    @Getter
+    private DisputeClosedMessage disputeClosedMessage;
 
     // We want to indicate the user the state of the message delivery of the
     // PaymentSentMessage. As well we do an automatic re-send in case it was not ACKed yet.
@@ -233,6 +248,9 @@ public class ProcessModel implements Model, PersistablePayload {
         Optional.ofNullable(tempTradingPeerNodeAddress).ifPresent(e -> builder.setTempTradingPeerNodeAddress(tempTradingPeerNodeAddress.toProtoMessage()));
         Optional.ofNullable(makerSignature).ifPresent(e -> builder.setMakerSignature(makerSignature));
         Optional.ofNullable(multisigAddress).ifPresent(e -> builder.setMultisigAddress(multisigAddress));
+        Optional.ofNullable(paymentSentMessage).ifPresent(e -> builder.setPaymentSentMessage(paymentSentMessage.toProtoNetworkEnvelope().getPaymentSentMessage()));
+        Optional.ofNullable(paymentReceivedMessage).ifPresent(e -> builder.setPaymentReceivedMessage(paymentReceivedMessage.toProtoNetworkEnvelope().getPaymentReceivedMessage()));
+        Optional.ofNullable(disputeClosedMessage).ifPresent(e -> builder.setDisputeClosedMessage(disputeClosedMessage.toProtoNetworkEnvelope().getDisputeClosedMessage()));
         return builder.build();
     }
 
@@ -267,6 +285,9 @@ public class ProcessModel implements Model, PersistablePayload {
         MessageState paymentStartedMessageState = ProtoUtil.enumFromProto(MessageState.class, paymentStartedMessageStateString);
         processModel.setPaymentStartedMessageState(paymentStartedMessageState);
 
+        processModel.setPaymentSentMessage(proto.hasPaymentSentMessage() ? PaymentSentMessage.fromProto(proto.getPaymentSentMessage(), Version.getP2PMessageVersion()) : null);
+        processModel.setPaymentReceivedMessage(proto.hasPaymentReceivedMessage() ? PaymentReceivedMessage.fromProto(proto.getPaymentReceivedMessage(), Version.getP2PMessageVersion()) : null);
+        processModel.setDisputeClosedMessage(proto.hasDisputeClosedMessage() ? DisputeClosedMessage.fromProto(proto.getDisputeClosedMessage(), Version.getP2PMessageVersion()) : null);
         return processModel;
     }
 

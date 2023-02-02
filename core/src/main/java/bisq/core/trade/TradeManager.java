@@ -369,6 +369,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
                     xmrWalletService.swapTradeEntryToAvailableEntry(addressEntry.getOfferId(), addressEntry.getContext());
                 });
 
+        // notify that persisted trades initialized
         persistedTradesInitialized.set(true);
 
         // We do not include failed trades as they should not be counted anyway in the trade statistics
@@ -1100,7 +1101,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
     }
 
     private void scheduleDeletionIfUnfunded(Trade trade) {
-        if (trade.isDepositRequested() && !trade.isDepositPublished()) {
+        if (trade.isDepositRequested() && !trade.isDepositsPublished()) {
             log.warn("Scheduling to delete trade if unfunded for {} {}", trade.getClass().getSimpleName(), trade.getId());
             UserThread.runAfter(() -> {
                 if (isShutDown) return;
