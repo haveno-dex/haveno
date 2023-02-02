@@ -21,9 +21,7 @@ import bisq.core.account.witness.AccountAgeWitness;
 import bisq.core.btc.model.RawTransactionInput;
 import bisq.core.payment.payload.PaymentAccountPayload;
 import bisq.core.proto.CoreProtoResolver;
-import bisq.core.trade.messages.PaymentSentMessage;
 import bisq.network.p2p.NodeAddress;
-import bisq.common.app.Version;
 import bisq.common.crypto.PubKeyRing;
 import bisq.common.proto.ProtoUtil;
 import bisq.common.proto.persistable.PersistablePayload;
@@ -131,8 +129,6 @@ public final class TradingPeer implements PersistablePayload {
     private String depositTxKey;
     @Nullable
     private String updatedMultisigHex;
-    @Nullable
-    private PaymentSentMessage paymentSentMessage;
     
     public TradingPeer() {
     }
@@ -173,7 +169,6 @@ public final class TradingPeer implements PersistablePayload {
         Optional.ofNullable(depositTxHex).ifPresent(e -> builder.setDepositTxHex(depositTxHex));
         Optional.ofNullable(depositTxKey).ifPresent(e -> builder.setDepositTxKey(depositTxKey));
         Optional.ofNullable(updatedMultisigHex).ifPresent(e -> builder.setUpdatedMultisigHex(updatedMultisigHex));
-        Optional.ofNullable(paymentSentMessage).ifPresent(e -> builder.setPaymentSentMessage(paymentSentMessage.toProtoNetworkEnvelope().getPaymentSentMessage()));
 
         builder.setCurrentDate(currentDate);
         return builder.build();
@@ -224,7 +219,6 @@ public final class TradingPeer implements PersistablePayload {
             tradingPeer.setDepositTxHex(ProtoUtil.stringOrNullFromProto(proto.getDepositTxHex()));
             tradingPeer.setDepositTxKey(ProtoUtil.stringOrNullFromProto(proto.getDepositTxKey()));
             tradingPeer.setUpdatedMultisigHex(ProtoUtil.stringOrNullFromProto(proto.getUpdatedMultisigHex()));
-            tradingPeer.setPaymentSentMessage(proto.hasPaymentSentMessage() ? PaymentSentMessage.fromProto(proto.getPaymentSentMessage(), Version.getP2PMessageVersion()) : null);
             return tradingPeer;
         }
     }

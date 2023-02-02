@@ -73,7 +73,7 @@ public abstract class BuyerSendPaymentSentMessage extends SendMailboxMessageTask
 
     @Override
     protected TradeMailboxMessage getTradeMailboxMessage(String tradeId) {
-        if (trade.getSelf().getPaymentSentMessage() == null) {
+        if (processModel.getPaymentSentMessage() == null) {
 
             // We do not use a real unique ID here as we want to be able to re-send the exact same message in case the
             // peer does not respond with an ACK msg in a certain time interval. To avoid that we get dangling mailbox
@@ -99,12 +99,13 @@ public abstract class BuyerSendPaymentSentMessage extends SendMailboxMessageTask
                 String messageAsJson = JsonUtil.objectToJson(message);
                 byte[] sig = Sig.sign(processModel.getP2PService().getKeyRing().getSignatureKeyPair().getPrivate(), messageAsJson.getBytes(Charsets.UTF_8));
                 message.setBuyerSignature(sig);
-                trade.getSelf().setPaymentSentMessage(message);
+                processModel.setPaymentSentMessage(message);
+                trade.requestPersistence();
             } catch (Exception e) {
                 throw new RuntimeException (e);
             }
         }
-        return trade.getSelf().getPaymentSentMessage();
+        return processModel.getPaymentSentMessage();
     }
 
     @Override

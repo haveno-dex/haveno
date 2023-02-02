@@ -294,13 +294,13 @@ public class HavenoUtils {
         // verify signature
         String errMessage = "The buyer signature is invalid for the " + message.getClass().getSimpleName() + " for " + trade.getClass().getSimpleName() + " " + trade.getId();
         try {
-            if (!Sig.verify(trade.getBuyer().getPubKeyRing().getSignaturePubKey(), unsignedMessageAsJson.getBytes(Charsets.UTF_8), signature)) throw new RuntimeException(errMessage);
+            if (!Sig.verify(trade.getBuyer().getPubKeyRing().getSignaturePubKey(), unsignedMessageAsJson.getBytes(Charsets.UTF_8), signature)) throw new IllegalArgumentException(errMessage);
         } catch (Exception e) {
-            throw new RuntimeException(errMessage);
+            throw new IllegalArgumentException(errMessage);
         }
 
         // verify trade id
-        if (!trade.getId().equals(message.getTradeId())) throw new RuntimeException("The " + message.getClass().getSimpleName() + " has the wrong trade id, expected " + trade.getId() + " but was " + message.getTradeId());
+        if (!trade.getId().equals(message.getTradeId())) throw new IllegalArgumentException("The " + message.getClass().getSimpleName() + " has the wrong trade id, expected " + trade.getId() + " but was " + message.getTradeId());
     }
 
     /**
@@ -325,13 +325,13 @@ public class HavenoUtils {
         // verify signature
         String errMessage = "The seller signature is invalid for the " + message.getClass().getSimpleName() + " for " + trade.getClass().getSimpleName() + " " + trade.getId();
         try {
-            if (!Sig.verify(trade.getSeller().getPubKeyRing().getSignaturePubKey(), unsignedMessageAsJson.getBytes(Charsets.UTF_8), signature)) throw new RuntimeException(errMessage);
+            if (!Sig.verify(trade.getSeller().getPubKeyRing().getSignaturePubKey(), unsignedMessageAsJson.getBytes(Charsets.UTF_8), signature)) throw new IllegalArgumentException(errMessage);
         } catch (Exception e) {
-            throw new RuntimeException(errMessage);
+            throw new IllegalArgumentException(errMessage);
         }
 
         // verify trade id
-        if (!trade.getId().equals(message.getTradeId())) throw new RuntimeException("The " + message.getClass().getSimpleName() + " has the wrong trade id, expected " + trade.getId() + " but was " + message.getTradeId());
+        if (!trade.getId().equals(message.getTradeId())) throw new IllegalArgumentException("The " + message.getClass().getSimpleName() + " has the wrong trade id, expected " + trade.getId() + " but was " + message.getTradeId());
 
         // verify buyer signature of payment sent message
         verifyPaymentSentMessage(trade, message.getPaymentSentMessage());

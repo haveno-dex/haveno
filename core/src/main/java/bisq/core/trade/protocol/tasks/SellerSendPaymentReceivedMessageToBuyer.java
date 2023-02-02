@@ -18,6 +18,8 @@
 package bisq.core.trade.protocol.tasks;
 
 import bisq.core.trade.Trade;
+import bisq.core.trade.messages.PaymentReceivedMessage;
+import bisq.core.trade.messages.TradeMailboxMessage;
 import bisq.core.trade.messages.TradeMessage;
 import bisq.network.p2p.NodeAddress;
 import bisq.common.crypto.PubKeyRing;
@@ -32,6 +34,15 @@ public class SellerSendPaymentReceivedMessageToBuyer extends SellerSendPaymentRe
 
     public SellerSendPaymentReceivedMessageToBuyer(TaskRunner<Trade> taskHandler, Trade trade) {
         super(taskHandler, trade);
+    }
+
+
+    @Override
+    protected TradeMailboxMessage getTradeMailboxMessage(String tradeId) {
+        if (processModel.getPaymentReceivedMessage() == null) {
+            processModel.setPaymentReceivedMessage((PaymentReceivedMessage) super.getTradeMailboxMessage(tradeId)); // save payment received message for buyer
+        }
+        return processModel.getPaymentReceivedMessage();
     }
 
     protected NodeAddress getReceiverNodeAddress() {

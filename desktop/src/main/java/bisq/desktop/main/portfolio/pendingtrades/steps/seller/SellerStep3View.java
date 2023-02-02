@@ -306,11 +306,16 @@ public class SellerStep3View extends TradeStepView {
         HBox hBox = tuple.fourth;
         GridPane.setColumnSpan(tuple.fourth, 2);
         confirmButton = tuple.first;
+        confirmButton.setDisable(!confirmPaymentReceivedPermitted());
         confirmButton.setOnAction(e -> onPaymentReceived());
         busyAnimation = tuple.second;
         statusLabel = tuple.third;
     }
 
+    private boolean confirmPaymentReceivedPermitted() {
+        if (!trade.confirmPermitted()) return false;
+        return trade.getState().ordinal() >= Trade.State.BUYER_SENT_PAYMENT_SENT_MSG.ordinal() && trade.getState().ordinal() < Trade.State.SELLER_SENT_PAYMENT_RECEIVED_MSG.ordinal(); // TODO: test that can resen with same payout tx hex if delivery failed
+    }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Info
@@ -357,7 +362,7 @@ public class SellerStep3View extends TradeStepView {
     protected void updateDisputeState(Trade.DisputeState disputeState) {
         super.updateDisputeState(disputeState);
 
-        confirmButton.setDisable(!trade.confirmPermitted());
+        confirmButton.setDisable(!confirmPaymentReceivedPermitted());
     }
 
 
@@ -463,11 +468,14 @@ public class SellerStep3View extends TradeStepView {
         log.info("User pressed the [Confirm payment receipt] button for Trade {}", trade.getShortId());
         busyAnimation.play();
         statusLabel.setText(Res.get("shared.sendingConfirmation"));
+        confirmButton.setDisable(true);
 
         model.dataModel.onPaymentReceived(() -> {
         }, errorMessage -> {
             busyAnimation.stop();
             new Popup().warning(Res.get("popup.warning.sendMsgFailed")).show();
+            confirmButton.setDisable(!confirmPaymentReceivedPermitted());
+            UserThread.execute(() -> statusLabel.setText("Error confirming payment received."));
         });
     }
 

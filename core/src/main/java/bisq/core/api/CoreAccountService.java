@@ -164,7 +164,7 @@ public class CoreAccountService {
 
     public void deleteAccount(Runnable onShutdown) {
         try {
-            keyRing.lockKeys();
+            if (isAccountOpen()) closeAccount();
             synchronized (listeners) {
                 for (AccountServiceListener listener : listeners) listener.onAccountDeleted(onShutdown);
             }

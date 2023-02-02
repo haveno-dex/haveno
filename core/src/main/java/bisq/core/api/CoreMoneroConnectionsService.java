@@ -254,9 +254,12 @@ public final class CoreMoneroConnectionsService {
         }
     }
 
-    // ----------------------------- APP METHODS ------------------------------
+    public void verifyConnection() {
+        if (daemon == null) throw new RuntimeException("No connection to Monero node");
+        if (!isSyncedWithinTolerance()) throw new RuntimeException("Monero node is not synced");
+    }
 
-    public boolean isChainHeightSyncedWithinTolerance() {
+    public boolean isSyncedWithinTolerance() {
         if (daemon == null) return false;
         Long targetHeight = lastInfo.getTargetHeight(); // the last time the node thought it was behind the network and was in active sync mode to catch up
         if (targetHeight == 0) return true; // monero-daemon-rpc sync_info's target_height returns 0 when node is fully synced
@@ -267,6 +270,8 @@ public final class CoreMoneroConnectionsService {
         log.warn("Our chain height: {} is out of sync with peer nodes chain height: {}", chainHeight.get(), targetHeight);
         return false;
     }
+
+    // ----------------------------- APP METHODS ------------------------------
 
     public ReadOnlyIntegerProperty numPeersProperty() {
         return numPeers;

@@ -17,7 +17,6 @@
 
 package bisq.desktop.main.portfolio.pendingtrades.steps.buyer;
 
-import bisq.desktop.components.AutoTooltipButton;
 import bisq.desktop.components.BusyAnimation;
 import bisq.desktop.components.TextFieldWithCopyIcon;
 import bisq.desktop.components.TitledGroupBg;
@@ -155,7 +154,7 @@ public class BuyerStep2View extends TradeStepView {
                 if (timeoutTimer != null)
                     timeoutTimer.stop();
 
-                if (trade.isDepositUnlocked() && !trade.isPaymentSent()) {
+                if (trade.isDepositsUnlocked() && !trade.isPaymentSent()) {
                     showPopup();
                 } else if (state.ordinal() <= Trade.State.BUYER_SEND_FAILED_PAYMENT_SENT_MSG.ordinal()) {
                     if (!trade.hasFailed()) {
@@ -478,6 +477,10 @@ public class BuyerStep2View extends TradeStepView {
 
     private void onPaymentStarted() {
         if (!model.dataModel.isBootstrappedOrShowPopup()) {
+            return;
+        }
+
+        if (!model.dataModel.isReadyForTxBroadcast()) {
             return;
         }
 

@@ -1652,11 +1652,12 @@ message Trade {
     repeated ChatMessage chat_message = 22;
     MediationResultState mediation_result_state = 23;
     int64 lock_time = 24;
-    NodeAddress refund_agent_node_address = 25;
-    RefundResultState refund_result_state = 26;
-    string counter_currency_extra_data = 27;
-    string asset_tx_proof_result = 28; // name of AssetTxProofResult enum
-    string uid = 29;
+    int64 start_time = 25;
+    NodeAddress refund_agent_node_address = 26;
+    RefundResultState refund_result_state = 27;
+    string counter_currency_extra_data = 28;
+    string asset_tx_proof_result = 29; // name of AssetTxProofResult enum
+    string uid = 30;
 }
 
 message BuyerAsMakerTrade {
@@ -1708,6 +1709,10 @@ message ProcessModel {
     TradingPeer arbitrator = 1004;
     NodeAddress temp_trading_peer_node_address = 1005;
     string multisig_address = 1006;
+
+    PaymentSentMessage payment_sent_message = 1012;
+    PaymentReceivedMessage payment_received_message = 1013;
+    DisputeClosedMessage dispute_closed_message = 1014;
 }
 
 message TradingPeer {
@@ -1745,7 +1750,6 @@ message TradingPeer {
     string deposit_tx_hex = 1009;
     string deposit_tx_key = 1010;
     string updated_multisig_hex = 1011;
-    PaymentSentMessage payment_sent_message = 1012;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////

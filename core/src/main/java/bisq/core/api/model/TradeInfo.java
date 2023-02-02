@@ -82,9 +82,9 @@ public class TradeInfo implements Payload {
     private final String periodState;
     private final String payoutState;
     private final String disputeState;
-    private final boolean isDepositPublished;
-    private final boolean isDepositConfirmed;
-    private final boolean isDepositUnlocked;
+    private final boolean isDepositsPublished;
+    private final boolean isDepositsConfirmed;
+    private final boolean isDepositsUnlocked;
     private final boolean isPaymentSent;
     private final boolean isPaymentReceived;
     private final boolean isPayoutPublished;
@@ -117,9 +117,9 @@ public class TradeInfo implements Payload {
         this.periodState = builder.getPeriodState();
         this.payoutState = builder.getPayoutState();
         this.disputeState = builder.getDisputeState();
-        this.isDepositPublished = builder.isDepositPublished();
-        this.isDepositConfirmed = builder.isDepositConfirmed();
-        this.isDepositUnlocked = builder.isDepositUnlocked();
+        this.isDepositsPublished = builder.isDepositsPublished();
+        this.isDepositsConfirmed = builder.isDepositsConfirmed();
+        this.isDepositsUnlocked = builder.isDepositsUnlocked();
         this.isPaymentSent = builder.isPaymentSent();
         this.isPaymentReceived = builder.isPaymentReceived();
         this.isPayoutPublished = builder.isPayoutPublished();
@@ -175,9 +175,9 @@ public class TradeInfo implements Payload {
                 .withPeriodState(trade.getPeriodState().name())
                 .withPayoutState(trade.getPayoutState().name())
                 .withDisputeState(trade.getDisputeState().name())
-                .withIsDepositPublished(trade.isDepositPublished())
-                .withIsDepositConfirmed(trade.isDepositConfirmed())
-                .withIsDepositUnlocked(trade.isDepositUnlocked())
+                .withIsDepositsPublished(trade.isDepositsPublished())
+                .withIsDepositsConfirmed(trade.isDepositsConfirmed())
+                .withIsDepositsUnlocked(trade.isDepositsUnlocked())
                 .withIsPaymentSent(trade.isPaymentSent())
                 .withIsPaymentReceived(trade.isPaymentReceived())
                 .withIsPayoutPublished(trade.isPayoutPublished())
@@ -219,9 +219,9 @@ public class TradeInfo implements Payload {
                 .setPeriodState(periodState)
                 .setPayoutState(payoutState)
                 .setDisputeState(disputeState)
-                .setIsDepositPublished(isDepositPublished)
-                .setIsDepositConfirmed(isDepositConfirmed)
-                .setIsDepositUnlocked(isDepositUnlocked)
+                .setIsDepositsPublished(isDepositsPublished)
+                .setIsDepositsConfirmed(isDepositsConfirmed)
+                .setIsDepositsUnlocked(isDepositsUnlocked)
                 .setIsPaymentSent(isPaymentSent)
                 .setIsPaymentReceived(isPaymentReceived)
                 .setIsCompleted(isCompleted)
@@ -257,9 +257,9 @@ public class TradeInfo implements Payload {
                 .withPhase(proto.getPhase())
                 .withArbitratorNodeAddress(proto.getArbitratorNodeAddress())
                 .withTradingPeerNodeAddress(proto.getTradingPeerNodeAddress())
-                .withIsDepositPublished(proto.getIsDepositPublished())
-                .withIsDepositConfirmed(proto.getIsDepositConfirmed())
-                .withIsDepositUnlocked(proto.getIsDepositUnlocked())
+                .withIsDepositsPublished(proto.getIsDepositsPublished())
+                .withIsDepositsConfirmed(proto.getIsDepositsConfirmed())
+                .withIsDepositsUnlocked(proto.getIsDepositsUnlocked())
                 .withIsPaymentSent(proto.getIsPaymentSent())
                 .withIsPaymentReceived(proto.getIsPaymentReceived())
                 .withIsCompleted(proto.getIsCompleted())
@@ -294,9 +294,9 @@ public class TradeInfo implements Payload {
                 ", periodState='" + periodState + '\'' + "\n" +
                 ", payoutState='" + payoutState + '\'' + "\n" +
                 ", disputeState='" + disputeState + '\'' + "\n" +
-                ", isDepositPublished=" + isDepositPublished + "\n" +
-                ", isDepositConfirmed=" + isDepositConfirmed + "\n" +
-                ", isDepositUnlocked=" + isDepositUnlocked + "\n" +
+                ", isDepositsPublished=" + isDepositsPublished + "\n" +
+                ", isDepositsConfirmed=" + isDepositsConfirmed + "\n" +
+                ", isDepositsUnlocked=" + isDepositsUnlocked + "\n" +
                 ", isPaymentSent=" + isPaymentSent + "\n" +
                 ", isPaymentReceived=" + isPaymentReceived + "\n" +
                 ", isPayoutPublished=" + isPayoutPublished + "\n" +

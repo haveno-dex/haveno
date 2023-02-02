@@ -491,6 +491,7 @@ public class XmrWalletService {
         synchronized (txCache) {
 
             // fetch txs
+            if (getDaemon() == null) connectionsService.verifyConnection(); // will throw
             List<MoneroTx> txs = getDaemon().getTxs(txHashes, true);
 
             // store to cache
@@ -549,6 +550,7 @@ public class XmrWalletService {
     }
 
     private void maybeInitMainWallet() {
+        if (wallet != null) throw new RuntimeException("Main wallet is already initialized");
 
         // open or create wallet
         MoneroWalletConfig walletConfig = new MoneroWalletConfig().setPath(MONERO_WALLET_NAME).setPassword(getWalletPassword());
@@ -560,14 +562,9 @@ public class XmrWalletService {
 
         // wallet is not initialized until connected to a daemon
         if (wallet != null) {
-            try {
-                wallet.sync(); // blocking
-                wallet.startSyncing(connectionsService.getDefaultRefreshPeriodMs()); // start syncing wallet in background
-                connectionsService.doneDownload(); // TODO: using this to signify both daemon and wallet synced, refactor sync handling of both
-                saveMainWallet(false); // skip backup on open
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
+
+            // sync wallet which updates app startup state
+            trySyncMainWallet();
 
             if (connectionsService.getDaemon() == null) System.out.println("Daemon: null");
             else {
@@ -671,12 +668,25 @@ public class XmrWalletService {
         return MONERO_WALLET_RPC_MANAGER.startInstance(cmd);
     }
 
+    private void trySyncMainWallet() {
+        try {
+            log.info("Syncing main wallet");
+            wallet.startSyncing(connectionsService.getDefaultRefreshPeriodMs()); // start syncing wallet in background
+            wallet.sync(); // blocking
+            connectionsService.doneDownload(); // TODO: using this to signify both daemon and wallet synced, refactor sync handling of both
+            log.info("Done syncing main wallet");
+            saveMainWallet(false); // skip backup on open
+        } catch (Exception e) {
+            log.warn("Error syncing main wallet: {}", e.getMessage());
+        }
+    }
+
     private void setDaemonConnection(MoneroRpcConnection connection) {
         log.info("Setting wallet daemon connection: " + (connection == null ? null : connection.getUri()));
         if (wallet == null) maybeInitMainWallet();
-        if (wallet != null) {
+        else {
             wallet.setDaemonConnection(connection);
-            wallet.startSyncing(connectionsService.getDefaultRefreshPeriodMs());
+            if (connection != null) new Thread(() -> trySyncMainWallet()).start();
         }
     }
 

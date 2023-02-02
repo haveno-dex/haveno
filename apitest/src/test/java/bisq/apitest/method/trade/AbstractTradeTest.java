@@ -109,7 +109,7 @@ public class AbstractTradeTest extends AbstractOfferTest {
     }
 
     protected final void verifyTakerDepositConfirmed(TradeInfo trade) {
-        if (!trade.getIsDepositUnlocked()) {
+        if (!trade.getIsDepositsUnlocked()) {
             fail(format("INVALID_PHASE for trade %s in STATE=%s PHASE=%s, deposit tx never unlocked.",
                     trade.getShortId(),
                     trade.getState(),
@@ -182,9 +182,9 @@ public class AbstractTradeTest extends AbstractOfferTest {
         assertEquals(EXPECTED_PROTOCOL_STATUS.phase.name(), trade.getPhase());
 
         if (!isLongRunningTest)
-            assertEquals(EXPECTED_PROTOCOL_STATUS.isDepositPublished, trade.getIsDepositPublished());
+            assertEquals(EXPECTED_PROTOCOL_STATUS.isDepositPublished, trade.getIsDepositsPublished());
 
-        assertEquals(EXPECTED_PROTOCOL_STATUS.isDepositConfirmed, trade.getIsDepositUnlocked());
+        assertEquals(EXPECTED_PROTOCOL_STATUS.isDepositConfirmed, trade.getIsDepositsUnlocked());
         assertEquals(EXPECTED_PROTOCOL_STATUS.isPaymentStartedMessageSent, trade.getIsPaymentSent());
         assertEquals(EXPECTED_PROTOCOL_STATUS.isPaymentReceivedMessageSent, trade.getIsPaymentReceived());
         assertEquals(EXPECTED_PROTOCOL_STATUS.isPayoutPublished, trade.getIsPayoutPublished());
