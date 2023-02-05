@@ -17,6 +17,8 @@
 
 package bisq.core.trade;
 
+import bisq.core.api.AccountServiceListener;
+import bisq.core.api.CoreAccountService;
 import bisq.core.api.CoreNotificationService;
 import bisq.core.btc.model.XmrAddressEntry;
 import bisq.core.btc.wallet.XmrWalletService;
@@ -121,6 +123,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
     private final User user;
     @Getter
     private final KeyRing keyRing;
+    private final CoreAccountService accountService;
     private final XmrWalletService xmrWalletService;
     private final CoreNotificationService notificationService;
     private final OfferBookService offerBookService;
@@ -158,6 +161,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
     @Inject
     public TradeManager(User user,
                         KeyRing keyRing,
+                        CoreAccountService accountService,
                         XmrWalletService xmrWalletService,
                         CoreNotificationService notificationService,
                         OfferBookService offerBookService,
@@ -177,6 +181,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
                         ReferralIdService referralIdService) {
         this.user = user;
         this.keyRing = keyRing;
+        this.accountService = accountService;
         this.xmrWalletService = xmrWalletService;
         this.notificationService = notificationService;
         this.offerBookService = offerBookService;
@@ -250,6 +255,39 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     public void onAllServicesInitialized() {
+
+        // initialize
+        initialize();
+
+        // listen for account updates
+        accountService.addListener(new AccountServiceListener() {
+
+            @Override
+            public void onAccountCreated() {
+                log.info(getClass().getSimpleName() + ".accountService.onAccountCreated()");
+                initialize();
+            }
+
+            @Override
+            public void onAccountOpened() {
+                log.info(getClass().getSimpleName() + ".accountService.onAccountOpened()");
+                initialize();
+            }
+
+            @Override
+            public void onAccountClosed() {
+                log.info(getClass().getSimpleName() + ".accountService.onAccountClosed()");
+                closeAllTrades();
+            }
+
+            @Override
+            public void onPasswordChanged(String oldPassword, String newPassword) {
+                // handled in XmrWalletService
+            }
+        });
+    }
+
+    private void initialize() {
         if (p2PService.isBootstrapped()) {
             new Thread(() -> initPersistedTrades()).start(); // initialize trades off main thread
         } else {
@@ -272,6 +310,10 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
 
     public void shutDown() {
         isShutDown = true;
+        closeAllTrades();
+    }
+
+    private void closeAllTrades() {
 
         // collect trades to shutdown
         Set<Trade> trades = new HashSet<Trade>();
@@ -341,11 +383,8 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
 
     private void initPersistedTrades() {
 
-        // get all trades // TODO: getAllTrades()
-        List<Trade> trades = new ArrayList<Trade>();
-        trades.addAll(tradableList.getList());
-        trades.addAll(closedTradableManager.getClosedTrades());
-        trades.addAll(failedTradesManager.getObservableList());
+        // get all trades
+        List<Trade> trades = getAllTrades();
 
         // open trades in parallel since each may open a multisig wallet
         int threadPoolSize = 10;
@@ -1037,6 +1076,14 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
         }
     }
 
+    public List<Trade> getAllTrades() {
+        List<Trade> trades = new ArrayList<Trade>();
+        trades.addAll(tradableList.getList());
+        trades.addAll(closedTradableManager.getClosedTrades());
+        trades.addAll(failedTradesManager.getObservableList());
+        return trades;
+    }
+
     public List<Trade> getOpenTrades() {
         synchronized (tradableList) {
             return ImmutableList.copyOf(getObservableList().stream()
@@ -1085,7 +1132,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
             }
 
             // remove trade if wallet deleted
-            if (!xmrWalletService.multisigWalletExists(trade.getId())) {
+            if (!trade.walletExists()) {
                 removeTrade(trade);
                 return;
             }
@@ -1093,7 +1140,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
             // remove trade and wallet unless deposit requested without nack
             if (!trade.isDepositRequested() || trade.isDepositFailed()) {
                 removeTrade(trade);
-                if (xmrWalletService.multisigWalletExists(trade.getId())) trade.deleteWallet();
+                if (trade.walletExists()) trade.deleteWallet();
             } else {
                 scheduleDeletionIfUnfunded(trade);
             }
@@ -1115,7 +1162,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
                     log.warn("Deleting {} {} after protocol timeout", trade.getClass().getSimpleName(), trade.getId());
                     removeTrade(trade);
                     failedTradesManager.removeTrade(trade);
-                    if (xmrWalletService.multisigWalletExists(trade.getId())) trade.deleteWallet();
+                    if (trade.walletExists()) trade.deleteWallet();
                 } else {
                     log.warn("Refusing to delete {} {} after protocol timeout because its wallet might be funded", trade.getClass().getSimpleName(), trade.getId());
                 }

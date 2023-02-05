@@ -1749,7 +1749,8 @@ message TradePeer {
     string deposit_tx_hash = 1008;
     string deposit_tx_hex = 1009;
     string deposit_tx_key = 1010;
-    string updated_multisig_hex = 1011;
+    int64 security_deposit = 1011;
+    string updated_multisig_hex = 1012;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////

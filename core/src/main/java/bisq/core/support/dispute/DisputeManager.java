@@ -445,7 +445,7 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
         PubKeyRing senderPubKeyRing = null;
         try {
     
-            // intialize
+            // initialize
             T disputeList = getDisputeList();
             if (disputeList == null) {
                 log.warn("disputes is null");

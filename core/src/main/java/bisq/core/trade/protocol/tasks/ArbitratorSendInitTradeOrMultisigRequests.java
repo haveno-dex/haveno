@@ -19,16 +19,11 @@ package bisq.core.trade.protocol.tasks;
 
 
 import bisq.common.app.Version;
-import bisq.common.crypto.Sig;
 import bisq.common.taskrunner.TaskRunner;
 import bisq.core.trade.Trade;
 import bisq.core.trade.messages.InitMultisigRequest;
 import bisq.core.trade.messages.InitTradeRequest;
-import bisq.core.trade.protocol.TradeListener;
-import bisq.network.p2p.AckMessage;
-import bisq.network.p2p.NodeAddress;
 import bisq.network.p2p.SendDirectMessageListener;
-import com.google.common.base.Charsets;
 import java.util.Date;
 import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
@@ -123,7 +118,7 @@ public class ArbitratorSendInitTradeOrMultisigRequests extends TradeTask {
         }
 
         // create wallet for multisig
-        MoneroWallet multisigWallet = processModel.getXmrWalletService().createMultisigWallet(trade.getId());
+        MoneroWallet multisigWallet = trade.createWallet();
 
         // prepare multisig
         String preparedHex = multisigWallet.prepareMultisig();

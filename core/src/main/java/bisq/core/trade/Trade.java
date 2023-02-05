@@ -115,6 +115,10 @@ import monero.wallet.model.MoneroWalletListener;
 @Slf4j
 public abstract class Trade implements Tradable, Model {
 
+    private static final String MONERO_TRADE_WALLET_PREFIX = "xmr_trade_";
+    private MoneroWallet wallet; // trade wallet
+    private Object walletLock = new Object();
+
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Enums
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -412,7 +416,6 @@ public abstract class Trade implements Tradable, Model {
     @Getter
     @Setter
     private long lockTime;
-    @Getter
     @Setter
     private long startTime; // added for haveno
     @Getter
@@ -583,7 +586,7 @@ public abstract class Trade implements Tradable, Model {
 
 
     ///////////////////////////////////////////////////////////////////////////////////////////
-    // API
+    // INITIALIZATION
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     public void initialize(ProcessModelServiceProvider serviceProvider) {
@@ -680,11 +683,42 @@ public abstract class Trade implements Tradable, Model {
         return getArbitrator() == null ? null : getArbitrator().getNodeAddress();
     }
 
+    ///////////////////////////////////////////////////////////////////////////////////////////
+    // WALLET MANAGEMENT
+    ///////////////////////////////////////////////////////////////////////////////////////////
+
+    public boolean walletExists() {
+        synchronized (walletLock) {
+            return xmrWalletService.walletExists(MONERO_TRADE_WALLET_PREFIX + getId());
+        }
+    }
+
+    public MoneroWallet createWallet() {
+        synchronized (walletLock) {
+            if (walletExists()) throw new RuntimeException("Cannot create trade wallet because it already exists");
+            wallet = xmrWalletService.createWallet(getWalletName());
+            return wallet;
+        }
+    }
+
+    public MoneroWallet getWallet() {
+        synchronized (walletLock) {
+            if (wallet != null) return wallet;
+            if (!walletExists()) return null;
+            if (isInitialized) wallet = xmrWalletService.openWallet(getWalletName());
+            return wallet;
+        }
+    }
+
+    private String getWalletName() {
+        return MONERO_TRADE_WALLET_PREFIX + getId();
+    }
+
     public void checkWalletConnection() {
         CoreMoneroConnectionsService connectionService = xmrWalletService.getConnectionsService();
         connectionService.checkConnection();
         connectionService.verifyConnection();
-        if (!getWallet().isConnectedToDaemon()) throw new RuntimeException("Wallet is not connected to a Monero node");
+        if (!getWallet().isConnectedToDaemon()) throw new RuntimeException("Trade wallet is not connected to a Monero node");
     }
 
     public boolean isWalletConnected() {
@@ -695,6 +729,88 @@ public abstract class Trade implements Tradable, Model {
             return false;
         }
     }
+
+    public void syncWallet() {
+        if (getWallet() == null) throw new RuntimeException("Cannot sync trade wallet because it doesn't exist for " + getClass().getSimpleName() + ", " + getId());
+        if (getWallet().getDaemonConnection() == null) throw new RuntimeException("Cannot sync trade wallet because it's not connected to a Monero daemon for " + getClass().getSimpleName() + ", " + getId());
+        log.info("Syncing wallet for {} {}", getClass().getSimpleName(), getId());
+        getWallet().sync();
+        pollWallet();
+        log.info("Done syncing wallet for {} {}", getClass().getSimpleName(), getId());
+        updateWalletRefreshPeriod();
+    }
+
+    private void trySyncWallet() {
+        try {
+            syncWallet();
+        } catch (Exception e) {
+            if (isInitialized) {
+                log.warn("Error syncing trade wallet for {} {}: {}", getClass().getSimpleName(), getId(), e.getMessage());
+                e.printStackTrace();
+            }
+        }
+    }
+
+    public void syncWalletNormallyForMs(long syncNormalDuration) {
+        syncNormalStartTime = System.currentTimeMillis();
+        setWalletRefreshPeriod(xmrWalletService.getConnectionsService().getDefaultRefreshPeriodMs());
+        UserThread.runAfter(() -> {
+            if (isInitialized && System.currentTimeMillis() >= syncNormalStartTime + syncNormalDuration) updateWalletRefreshPeriod();
+        }, syncNormalDuration);
+    }
+
+    public void changeWalletPassword(String oldPassword, String newPassword) {
+        synchronized (walletLock) {
+            getWallet().changePassword(oldPassword, newPassword);
+            saveWallet();
+        }
+    }
+
+    public void saveWallet() {
+        synchronized (walletLock) {
+            if (wallet == null) throw new RuntimeException("Trade wallet is not open for trade " + getId());
+            xmrWalletService.saveWallet(wallet, true);
+        }
+    }
+
+    private void closeWallet() {
+        synchronized (walletLock) {
+            if (wallet == null) throw new RuntimeException("Trade wallet to close was not previously opened for trade " + getId());
+            if (wallet.getPath() == null) log.warn("HOW DID PATH BECOME NULL?");
+            xmrWalletService.closeWallet(wallet, true);
+            wallet = null;
+        }
+    }
+
+    public void deleteWallet() {
+        synchronized (walletLock) {
+            if (walletExists()) {
+
+                // check if funds deposited but payout not unlocked
+                if (isDepositsPublished() && !isPayoutUnlocked()) {
+                    log.warn("Refusing to delete wallet for {} {} because it could be funded", getClass().getSimpleName(), getId());
+                    return;
+                }
+
+                // close and delete trade wallet
+                if (wallet != null) closeWallet();
+                xmrWalletService.deleteWallet(getWalletName());
+    
+                // delete trade wallet backups unless deposits requested and payouts not unlocked
+                if (isDepositRequested() && !isPayoutUnlocked()) {
+                    log.warn("Refusing to delete backup wallet for {} {} in the small chance it becomes funded", getClass().getSimpleName(), getId());
+                    return;
+                }
+                xmrWalletService.deleteWalletBackups(getWalletName());
+            } else {
+                log.warn("Multisig wallet to delete for trade {} does not exist", getId());
+            }
+        }
+    }
+
+    ///////////////////////////////////////////////////////////////////////////////////////////
+    // PROTOCOL API
+    ///////////////////////////////////////////////////////////////////////////////////////////
 
     /**
      * Create a contract based on the current state.
@@ -959,70 +1075,17 @@ public abstract class Trade implements Tradable, Model {
         }
     }
 
-    public MoneroWallet getWallet() {
-        return xmrWalletService.multisigWalletExists(getId()) ? xmrWalletService.getMultisigWallet(getId()) : null;
-    }
-
-    public void syncWallet() {
-        if (getWallet() == null) throw new RuntimeException("Cannot sync multisig wallet because it doesn't exist for " + getClass().getSimpleName() + ", " + getId());
-        if (getWallet().getDaemonConnection() == null) throw new RuntimeException("Cannot sync multisig wallet because it's not connected to a Monero daemon for " + getClass().getSimpleName() + ", " + getId());
-        log.info("Syncing wallet for {} {}", getClass().getSimpleName(), getId());
-        getWallet().sync();
-        pollWallet();
-        log.info("Done syncing wallet for {} {}", getClass().getSimpleName(), getId());
-        updateWalletRefreshPeriod();
-    }
-
-    private void trySyncWallet() {
-        try {
-            syncWallet();
-        } catch (Exception e) {
-            if (isInitialized) log.warn("Error syncing wallet for {} {}: {}", getClass().getSimpleName(), getId(), e.getMessage());
-        }
-    }
-
-    public void syncWalletNormallyForMs(long syncNormalDuration) {
-        syncNormalStartTime = System.currentTimeMillis();
-        setWalletRefreshPeriod(xmrWalletService.getConnectionsService().getDefaultRefreshPeriodMs());
-        UserThread.runAfter(() -> {
-            if (isInitialized && System.currentTimeMillis() >= syncNormalStartTime + syncNormalDuration) updateWalletRefreshPeriod();
-        }, syncNormalDuration);
-    }
-
-    public void saveWallet() {
-        xmrWalletService.saveMultisigWallet(getId());
-    }
-
-    public void deleteWallet() {
-        if (xmrWalletService.multisigWalletExists(getId())) {
-
-            // delete trade wallet unless funded
-            if (isDepositsPublished() && !isPayoutUnlocked()) {
-                log.warn("Refusing to delete wallet for {} {} because it could be funded", getClass().getSimpleName(), getId());
-                return;
-            }
-            xmrWalletService.deleteMultisigWallet(getId());
-
-            // delete trade wallet backups unless possibly funded
-            boolean possiblyFunded = isDepositRequested() && !isPayoutUnlocked();
-            if (possiblyFunded) {
-                log.warn("Refusing to delete backup wallet for {} {} in the small chance it becomes funded", getClass().getSimpleName(), getId());
-                return;
-            }
-            xmrWalletService.deleteMultisigWalletBackups(getId());
-        } else {
-            log.warn("Multisig wallet to delete for trade {} does not exist", getId());
-        }
-    }
-
     public void shutDown() {
-        isInitialized = false;
-        if (txPollLooper != null) {
-            txPollLooper.stop();
-            txPollLooper = null;
+        synchronized (walletLock) {
+            isInitialized = false;
+            if (wallet != null) closeWallet();
+            if (txPollLooper != null) {
+                txPollLooper.stop();
+                txPollLooper = null;
+            }
+            if (tradePhaseSubscription != null) tradePhaseSubscription.unsubscribe();
+            if (payoutStateSubscription != null) payoutStateSubscription.unsubscribe();
         }
-        if (tradePhaseSubscription != null) tradePhaseSubscription.unsubscribe();
-        if (payoutStateSubscription != null) payoutStateSubscription.unsubscribe();
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -1458,23 +1521,13 @@ public abstract class Trade implements Tradable, Model {
     }
 
     public Coin getBuyerSecurityDeposit() {
-        if (this.getBuyer().getDepositTxHash() == null) return null;
-        try {
-            MoneroTxWallet depositTx = getWallet().getTx(this.getBuyer().getDepositTxHash()); // TODO (monero-java): return null if tx id not found instead of throw exception
-            return HavenoUtils.atomicUnitsToCoin(depositTx.getIncomingAmount());
-        } catch (Exception e) {
-            return null;
-        }
+        if (getBuyer().getDepositTxHash() == null) return null;
+        return HavenoUtils.centinerosToCoin(getBuyer().getSecurityDeposit());
     }
 
     public Coin getSellerSecurityDeposit() {
-        if (this.getSeller().getDepositTxHash() == null) return null;
-        try {
-            MoneroTxWallet depositTx = getWallet().getTx(this.getSeller().getDepositTxHash()); // TODO (monero-java): return null if tx id not found instead of throw exception
-            return HavenoUtils.atomicUnitsToCoin(depositTx.getIncomingAmount()).subtract(getAmount());
-        } catch (Exception e) {
-            return null;
-        }
+        if (getSeller().getDepositTxHash() == null) return null;
+        return HavenoUtils.centinerosToCoin(getSeller().getSecurityDeposit());
     }
 
     @Nullable
@@ -1603,10 +1656,22 @@ public abstract class Trade implements Tradable, Model {
             // check deposit txs
             if (!isDepositsUnlocked()) {
                 if (txs.size() == 2) {
-                    setStateDepositsPublished();
+
+                    // update trader state
                     boolean makerFirst = txs.get(0).getHash().equals(processModel.getMaker().getDepositTxHash());
                     getMaker().setDepositTx(makerFirst ? txs.get(0) : txs.get(1));
                     getTaker().setDepositTx(makerFirst ? txs.get(1) : txs.get(0));
+
+                    // set security deposits
+                    if (getBuyer().getSecurityDeposit() == 0) {
+                        BigInteger buyerSecurityDeposit = ((MoneroTxWallet) getBuyer().getDepositTx()).getIncomingAmount();
+                        BigInteger sellerSecurityDeposit = ((MoneroTxWallet) getSeller().getDepositTx()).getIncomingAmount().subtract(HavenoUtils.coinToAtomicUnits(getAmount()));
+                        getBuyer().setSecurityDeposit(HavenoUtils.atomicUnitsToCentineros(buyerSecurityDeposit));
+                        getSeller().setSecurityDeposit(HavenoUtils.atomicUnitsToCentineros(sellerSecurityDeposit));
+                    }
+
+                    // set deposits published state
+                    setStateDepositsPublished();
 
                     // check if deposit txs confirmed
                     if (txs.get(0).isConfirmed() && txs.get(1).isConfirmed()) setStateDepositsConfirmed();
