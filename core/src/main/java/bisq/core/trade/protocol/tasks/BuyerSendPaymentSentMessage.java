@@ -91,7 +91,7 @@ public abstract class BuyerSendPaymentSentMessage extends SendMailboxMessageTask
                     trade.getPayoutTxHex(),
                     trade.getSelf().getUpdatedMultisigHex(),
                     trade.getSelf().getPaymentAccountKey(),
-                    trade.getTradingPeer().getAccountAgeWitness()
+                    trade.getTradePeer().getAccountAgeWitness()
             );
 
             // sign message
@@ -139,7 +139,7 @@ public abstract class BuyerSendPaymentSentMessage extends SendMailboxMessageTask
             timer.stop();
         }
         if (listener != null) {
-            processModel.getPaymentStartedMessageStateProperty().removeListener(listener);
+            processModel.getPaymentSentMessageStateProperty().removeListener(listener);
         }
     }
 }

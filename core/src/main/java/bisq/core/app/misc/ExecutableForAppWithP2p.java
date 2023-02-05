@@ -97,7 +97,7 @@ public abstract class ExecutableForAppWithP2p extends HavenoExecutable {
                         });
                     });
                     injector.getInstance(WalletsSetup.class).shutDown();
-                    injector.getInstance(XmrWalletService.class).shutDown(true); // TODO (woodser): this is not actually called, perhaps because WalletsSetup.class completes too quick so its listener calls System.exit(0)
+                    injector.getInstance(XmrWalletService.class).shutDown(true);
                     injector.getInstance(BtcWalletService.class).shutDown();
                 }));
                 // we wait max 5 sec.

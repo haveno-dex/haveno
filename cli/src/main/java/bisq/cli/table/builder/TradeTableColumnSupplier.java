@@ -204,7 +204,7 @@ class TradeTableColumnSupplier {
                     ? t.getOffer().getCounterCurrencyCode()
                     : t.getOffer().getBaseCurrencyCode();
 
-    final Supplier<Column<Boolean>> paymentStartedMessageSentColumn = () -> {
+    final Supplier<Column<Boolean>> paymentSentMessageSentColumn = () -> {
         if (isTradeDetailTblBuilder.get()) {
             String headerCurrencyCode = toPaymentCurrencyCode.apply(firstRow.get());
             String colHeader = format(COL_HEADER_TRADE_PAYMENT_SENT, headerCurrencyCode);

@@ -201,7 +201,7 @@ public class PendingTradesViewModel extends ActivatableWithDataModel<PendingTrad
             payoutStateSubscription = EasyBind.subscribe(trade.payoutStateProperty(), state -> {
                 UserThread.execute(() -> onPayoutStateChanged(state));
             });
-            messageStateSubscription = EasyBind.subscribe(trade.getProcessModel().getPaymentStartedMessageStateProperty(), this::onMessageStateChanged);
+            messageStateSubscription = EasyBind.subscribe(trade.getProcessModel().getPaymentSentMessageStateProperty(), this::onMessageStateChanged);
         }
     }
 
@@ -215,7 +215,7 @@ public class PendingTradesViewModel extends ActivatableWithDataModel<PendingTrad
         }
 
         if (trade != null)
-            trade.getProcessModel().setPaymentStartedMessageState(messageState);
+            trade.getProcessModel().setPaymentSentMessageState(messageState);
     }
 
     private void onMessageStateChanged(MessageState messageState) {
@@ -352,9 +352,9 @@ public class PendingTradesViewModel extends ActivatableWithDataModel<PendingTrad
                 .filter(e -> {
                     if (e instanceof Trade) {
                         Trade t = (Trade) e;
-                        return t.getTradingPeerNodeAddress() != null &&
-                                trade.getTradingPeerNodeAddress() != null &&
-                                t.getTradingPeerNodeAddress().getFullAddress().equals(trade.getTradingPeerNodeAddress().getFullAddress());
+                        return t.getTradePeerNodeAddress() != null &&
+                                trade.getTradePeerNodeAddress() != null &&
+                                t.getTradePeerNodeAddress().getFullAddress().equals(trade.getTradePeerNodeAddress().getFullAddress());
                     } else
                         return false;
 

@@ -54,14 +54,14 @@ public class ProcessPaymentSentMessage extends TradeTask {
             if (trade.isSeller()) trade.decryptPeerPaymentAccountPayload(message.getPaymentAccountKey());
 
             // update latest peer address
-            trade.getBuyer().setNodeAddress(processModel.getTempTradingPeerNodeAddress());
+            trade.getBuyer().setNodeAddress(processModel.getTempTradePeerNodeAddress());
 
             // set state
             String counterCurrencyTxId = message.getCounterCurrencyTxId();
             if (counterCurrencyTxId != null && counterCurrencyTxId.length() < 100) trade.setCounterCurrencyTxId(counterCurrencyTxId);
             String counterCurrencyExtraData = message.getCounterCurrencyExtraData();
             if (counterCurrencyExtraData != null && counterCurrencyExtraData.length() < 100) trade.setCounterCurrencyExtraData(counterCurrencyExtraData);
-            trade.setStateIfProgress(trade.isSeller() ? Trade.State.SELLER_RECEIVED_PAYMENT_SENT_MSG : Trade.State.BUYER_SENT_PAYMENT_SENT_MSG);
+            trade.advanceState(trade.isSeller() ? Trade.State.SELLER_RECEIVED_PAYMENT_SENT_MSG : Trade.State.BUYER_SENT_PAYMENT_SENT_MSG);
             trade.requestPersistence();
             complete();
         } catch (Throwable t) {

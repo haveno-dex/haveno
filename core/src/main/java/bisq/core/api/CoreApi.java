@@ -541,10 +541,10 @@ public class CoreApi {
         coreTradesService.takeOffer(offer, paymentAccountId, resultHandler, errorMessageHandler);
     }
 
-    public void confirmPaymentStarted(String tradeId,
+    public void confirmPaymentSent(String tradeId,
                                       ResultHandler resultHandler,
                                       ErrorMessageHandler errorMessageHandler) {
-        coreTradesService.confirmPaymentStarted(tradeId, resultHandler, errorMessageHandler);
+        coreTradesService.confirmPaymentSent(tradeId, resultHandler, errorMessageHandler);
     }
 
     public void confirmPaymentReceived(String tradeId,

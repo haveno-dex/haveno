@@ -603,9 +603,9 @@ abstract class OfferBookViewModel extends ActivatableViewModel {
         return closedTradableManager.getTradableList().stream()
                 .filter(e -> e instanceof Trade)    // weed out canceled offers
                 .filter(e -> {
-                    final Optional<NodeAddress> tradingPeerNodeAddress = e.getOptionalTradingPeerNodeAddress();
-                    return tradingPeerNodeAddress.isPresent() &&
-                            tradingPeerNodeAddress.get().getFullAddress().equals(offer.getMakerNodeAddress().getFullAddress());
+                    final Optional<NodeAddress> tradePeerNodeAddress = e.getOptionalTradePeerNodeAddress();
+                    return tradePeerNodeAddress.isPresent() &&
+                            tradePeerNodeAddress.get().getFullAddress().equals(offer.getMakerNodeAddress().getFullAddress());
                 })
                 .collect(Collectors.toSet())
                 .size();

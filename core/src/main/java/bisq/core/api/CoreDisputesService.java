@@ -151,7 +151,7 @@ public class CoreDisputesService {
             Trade trade = tradeManager.getTrade(tradeId);
             var winningDisputeOptional = arbitrationManager.getDisputesAsObservableList().stream() // TODO (woodser): use getDispute()
                     .filter(d -> tradeId.equals(d.getTradeId()))
-                    .filter(d -> trade.getTradingPeer(d.getTraderPubKeyRing()) == (winner == DisputeResult.Winner.BUYER ? trade.getBuyer() : trade.getSeller()))
+                    .filter(d -> trade.getTradePeer(d.getTraderPubKeyRing()) == (winner == DisputeResult.Winner.BUYER ? trade.getBuyer() : trade.getSeller()))
                     .findFirst();
             if (winningDisputeOptional.isPresent()) winningDispute = winningDisputeOptional.get();
             else throw new IllegalStateException(format("dispute for tradeId '%s' not found", tradeId));

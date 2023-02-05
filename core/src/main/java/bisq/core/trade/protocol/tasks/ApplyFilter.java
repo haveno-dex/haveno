@@ -18,17 +18,12 @@
 package bisq.core.trade.protocol.tasks;
 
 import bisq.core.filter.FilterManager;
-import bisq.core.payment.payload.PaymentAccountPayload;
-import bisq.core.trade.ArbitratorTrade;
 import bisq.core.trade.Trade;
-import bisq.core.trade.messages.InitTradeRequest;
 import bisq.network.p2p.NodeAddress;
 
 import bisq.common.taskrunner.TaskRunner;
 
 import lombok.extern.slf4j.Slf4j;
-
-import javax.annotation.Nullable;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
@@ -43,12 +38,12 @@ public class ApplyFilter extends TradeTask {
         try {
             runInterceptHook();
 
-            NodeAddress nodeAddress = checkNotNull(processModel.getTempTradingPeerNodeAddress());
+            NodeAddress nodeAddress = checkNotNull(processModel.getTempTradePeerNodeAddress());
             
             FilterManager filterManager = processModel.getFilterManager();
             if (filterManager.isNodeAddressBanned(nodeAddress)) {
                 failed("Other trader is banned by their node address.\n" +
-                        "tradingPeerNodeAddress=" + nodeAddress);
+                        "tradePeerNodeAddress=" + nodeAddress);
             } else if (filterManager.isOfferIdBanned(trade.getId())) {
                 failed("Offer ID is banned.\n" +
                         "Offer ID=" + trade.getId());

@@ -501,9 +501,9 @@ public class ClosedTradesView extends ActivatableViewAndModel<VBox, ClosedTrades
                                 if (!empty && item != null && item.getTradable() instanceof Trade) {
                                     Trade tradeModel = (Trade) item.getTradable();
                                     int numPastTrades = item.getNumPastTrades();
-                                    NodeAddress tradingPeerNodeAddress = tradeModel.getTradingPeerNodeAddress();
+                                    NodeAddress tradePeerNodeAddress = tradeModel.getTradePeerNodeAddress();
                                     String role = Res.get("peerInfoIcon.tooltip.tradePeer");
-                                    Node peerInfoIcon = new PeerInfoIconTrading(tradingPeerNodeAddress,
+                                    Node peerInfoIcon = new PeerInfoIconTrading(tradePeerNodeAddress,
                                             role,
                                             numPastTrades,
                                             privateNotificationManager,

@@ -11,7 +11,7 @@ public class ExpectedProtocolStatus {
     Trade.Phase phase;
     boolean isDepositPublished;
     boolean isDepositConfirmed;
-    boolean isPaymentStartedMessageSent;
+    boolean isPaymentSentMessageSent;
     boolean isPaymentReceivedMessageSent;
     boolean isPayoutPublished;
     boolean isCompleted;
@@ -36,8 +36,8 @@ public class ExpectedProtocolStatus {
         return this;
     }
 
-    public ExpectedProtocolStatus setPaymentStartedMessageSent(boolean paymentStartedMessageSent) {
-        isPaymentStartedMessageSent = paymentStartedMessageSent;
+    public ExpectedProtocolStatus setPaymentSentMessageSent(boolean paymentSentMessageSent) {
+        isPaymentSentMessageSent = paymentSentMessageSent;
         return this;
     }
 
@@ -61,7 +61,7 @@ public class ExpectedProtocolStatus {
         phase = null;
         isDepositPublished = false;
         isDepositConfirmed = false;
-        isPaymentStartedMessageSent = false;
+        isPaymentSentMessageSent = false;
         isPaymentReceivedMessageSent = false;
         isPayoutPublished = false;
         isCompleted = false;

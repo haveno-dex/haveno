@@ -21,7 +21,7 @@ package bisq.core.trade.protocol.tasks;
 import bisq.common.taskrunner.TaskRunner;
 import bisq.core.trade.Trade;
 import bisq.core.trade.messages.DepositsConfirmedMessage;
-import bisq.core.trade.protocol.TradingPeer;
+import bisq.core.trade.protocol.TradePeer;
 import bisq.core.util.Validator;
 import lombok.extern.slf4j.Slf4j;
 
@@ -44,11 +44,11 @@ public class ProcessDepositsConfirmedMessage extends TradeTask {
             DepositsConfirmedMessage request = (DepositsConfirmedMessage) processModel.getTradeMessage();
             checkNotNull(request);
             Validator.checkTradeId(processModel.getOfferId(), request);
-            TradingPeer sender = trade.getTradingPeer(request.getPubKeyRing());
+            TradePeer sender = trade.getTradePeer(request.getPubKeyRing());
             if (sender == null) throw new RuntimeException("Pub key ring is not from arbitrator, buyer, or seller");
               
             // update peer node address
-            sender.setNodeAddress(processModel.getTempTradingPeerNodeAddress());
+            sender.setNodeAddress(processModel.getTempTradePeerNodeAddress());
             if (sender.getNodeAddress().equals(trade.getBuyer().getNodeAddress()) && sender != trade.getBuyer()) trade.getBuyer().setNodeAddress(null); // tests can reuse addresses
             if (sender.getNodeAddress().equals(trade.getSeller().getNodeAddress()) && sender != trade.getSeller()) trade.getSeller().setNodeAddress(null);
             if (sender.getNodeAddress().equals(trade.getArbitrator().getNodeAddress()) && sender != trade.getArbitrator()) trade.getArbitrator().setNodeAddress(null);
@@ -57,7 +57,7 @@ public class ProcessDepositsConfirmedMessage extends TradeTask {
             sender.setUpdatedMultisigHex(request.getUpdatedMultisigHex());
 
             // decrypt seller payment account payload if key given
-            if (request.getSellerPaymentAccountKey() != null && trade.getTradingPeer().getPaymentAccountPayload() == null) {
+            if (request.getSellerPaymentAccountKey() != null && trade.getTradePeer().getPaymentAccountPayload() == null) {
                 log.info(trade.getClass().getSimpleName() + " decrypting using seller payment account key");
                 trade.decryptPeerPaymentAccountPayload(request.getSellerPaymentAccountKey());
             }

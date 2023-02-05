@@ -52,8 +52,8 @@ public class TakerBotProtocol extends BotProtocol {
 
         var takerIsSeller = trade.getOffer().getDirection().equalsIgnoreCase(BUY);
         Function<TradeInfo, TradeInfo> completeFiatTransaction = takerIsSeller
-                ? waitForPaymentStartedMessage.andThen(sendPaymentReceivedMessage)
-                : sendPaymentStartedMessage.andThen(waitForPaymentReceivedConfirmation);
+                ? waitForPaymentSentMessage.andThen(sendPaymentReceivedMessage)
+                : sendPaymentSentMessage.andThen(waitForPaymentReceivedConfirmation);
         completeFiatTransaction.apply(trade);
 
         currentProtocolStep = DONE;

@@ -95,8 +95,8 @@ public class BuyerProtocol extends DisputeProtocol {
     // User interaction
     ///////////////////////////////////////////////////////////////////////////////////////////
 
-    public void onPaymentStarted(ResultHandler resultHandler, ErrorMessageHandler errorMessageHandler) {
-        System.out.println("BuyerProtocol.onPaymentStarted()");
+    public void onPaymentSent(ResultHandler resultHandler, ErrorMessageHandler errorMessageHandler) {
+        System.out.println("BuyerProtocol.onPaymentSent()");
         new Thread(() -> {
             synchronized (trade) {
                 latchTrade();

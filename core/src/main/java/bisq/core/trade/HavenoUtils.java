@@ -195,7 +195,7 @@ public class HavenoUtils {
      * @return a unique deterministic id for sending a trade mailbox message
      */
     public static String getDeterministicId(Trade trade, Class<?> tradeMessageClass, NodeAddress receiver) {
-        String uniqueId = trade.getId() + "_" + tradeMessageClass.getSimpleName() + "_" + trade.getRole() + "_to_" + trade.getPeerRole(trade.getTradingPeer(receiver));
+        String uniqueId = trade.getId() + "_" + tradeMessageClass.getSimpleName() + "_" + trade.getRole() + "_to_" + trade.getPeerRole(trade.getTradePeer(receiver));
         return Utilities.bytesAsHexString(Hash.getSha256Ripemd160hash(uniqueId.getBytes(Charsets.UTF_8)));
     }
 

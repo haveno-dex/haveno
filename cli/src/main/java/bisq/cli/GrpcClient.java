@@ -211,8 +211,8 @@ public final class GrpcClient {
         return tradesServiceRequest.getTradeHistory(category);
     }
 
-    public void confirmPaymentStarted(String tradeId) {
-        tradesServiceRequest.confirmPaymentStarted(tradeId);
+    public void confirmPaymentSent(String tradeId) {
+        tradesServiceRequest.confirmPaymentSent(tradeId);
     }
 
     public void confirmPaymentReceived(String tradeId) {

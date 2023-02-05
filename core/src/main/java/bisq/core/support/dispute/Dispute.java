@@ -451,9 +451,9 @@ public final class Dispute implements NetworkPayload, PersistablePayload {
     public String getRoleString() {
         if (disputeOpenerIsMaker) {
             if (disputeOpenerIsBuyer)
-                return Res.get("support.buyerOfferer");
+                return Res.get("support.buyerMaker");
             else
-                return Res.get("support.sellerOfferer");
+                return Res.get("support.sellerMaker");
         } else {
             if (disputeOpenerIsBuyer)
                 return Res.get("support.buyerTaker");

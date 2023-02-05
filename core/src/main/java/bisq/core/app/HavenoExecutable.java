@@ -19,7 +19,6 @@ package bisq.core.app;
 
 import bisq.core.api.AccountServiceListener;
 import bisq.core.api.CoreAccountService;
-import bisq.core.api.CoreMoneroConnectionsService;
 import bisq.core.btc.setup.WalletsSetup;
 import bisq.core.btc.wallet.BtcWalletService;
 import bisq.core.btc.wallet.XmrWalletService;
@@ -317,11 +316,11 @@ public abstract class HavenoExecutable implements GracefulShutDownHandler, Haven
             injector.getInstance(XmrTxProofService.class).shutDown();
             injector.getInstance(AvoidStandbyModeService.class).shutDown();
             injector.getInstance(TradeManager.class).shutDown();
-            injector.getInstance(XmrWalletService.class).shutDown(!isReadOnly); // TODO: why not shut down BtcWalletService, etc? shutdown CoreMoneroConnectionsService
             log.info("OpenOfferManager shutdown started");
             injector.getInstance(OpenOfferManager.class).shutDown(() -> {
                 log.info("OpenOfferManager shutdown completed");
 
+                injector.getInstance(XmrWalletService.class).shutDown(!isReadOnly);
                 injector.getInstance(BtcWalletService.class).shutDown();
 
                 // We need to shutdown BitcoinJ before the P2PService as it uses Tor.

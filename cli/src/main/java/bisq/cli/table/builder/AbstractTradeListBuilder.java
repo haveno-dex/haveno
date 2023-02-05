@@ -94,7 +94,7 @@ abstract class AbstractTradeListBuilder extends AbstractTableBuilder {
     @Nullable
     protected final Column<String> colTradeCost;
     @Nullable
-    protected final Column<Boolean> colIsPaymentStartedMessageSent;
+    protected final Column<Boolean> colIsPaymentSentMessageSent;
     @Nullable
     protected final Column<Boolean> colIsPaymentReceivedMessageSent;
     @Nullable
@@ -132,7 +132,7 @@ abstract class AbstractTradeListBuilder extends AbstractTableBuilder {
         this.colIsCompleted = colSupplier.fundsWithdrawnColumn.get();
         this.colBisqTradeFee = colSupplier.bisqTradeDetailFeeColumn.get();
         this.colTradeCost = colSupplier.tradeCostColumn.get();
-        this.colIsPaymentStartedMessageSent = colSupplier.paymentStartedMessageSentColumn.get();
+        this.colIsPaymentSentMessageSent = colSupplier.paymentSentMessageSentColumn.get();
         this.colIsPaymentReceivedMessageSent = colSupplier.paymentReceivedMessageSentColumn.get();
         //noinspection ConstantConditions
         this.colAltcoinReceiveAddressColumn = colSupplier.altcoinReceiveAddressColumn.get();

@@ -37,7 +37,7 @@ public class SignMediatedPayoutTx extends TradeTask {
             runInterceptHook();
             throw new RuntimeException("SignMediatedPayoutTx not implemented for xmr");
 
-//            TradingPeer tradingPeer = trade.getTradingPeer();
+//            TradePeer tradePeer = trade.getTradePeer();
 //            if (processModel.getMediatedPayoutTxSignature() != null) {
 //                log.warn("processModel.getTxSignatureFromMediation is already set");
 //            }
@@ -60,12 +60,12 @@ public class SignMediatedPayoutTx extends TradeTask {
 //            boolean isMyRoleBuyer = contract.isMyRoleBuyer(processModel.getPubKeyRing());
 //
 //            String myPayoutAddressString = walletService.getOrCreateAddressEntry(tradeId, AddressEntry.Context.TRADE_PAYOUT).getAddressString();
-//            String peersPayoutAddressString = tradingPeer.getPayoutAddressString();
+//            String peersPayoutAddressString = tradePeer.getPayoutAddressString();
 //            String buyerPayoutAddressString = isMyRoleBuyer ? myPayoutAddressString : peersPayoutAddressString;
 //            String sellerPayoutAddressString = isMyRoleBuyer ? peersPayoutAddressString : myPayoutAddressString;
 //
 //            byte[] myMultiSigPubKey = processModel.getMyMultiSigPubKey();
-//            byte[] peersMultiSigPubKey = tradingPeer.getMultiSigPubKey();
+//            byte[] peersMultiSigPubKey = tradePeer.getMultiSigPubKey();
 //            byte[] buyerMultiSigPubKey = isMyRoleBuyer ? myMultiSigPubKey : peersMultiSigPubKey;
 //            byte[] sellerMultiSigPubKey = isMyRoleBuyer ? peersMultiSigPubKey : myMultiSigPubKey;
 //

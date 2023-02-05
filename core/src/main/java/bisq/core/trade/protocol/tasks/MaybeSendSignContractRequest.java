@@ -98,16 +98,16 @@ public class MaybeSendSignContractRequest extends TradeTask {
                   sig);
 
           // send request to trading peer
-          processModel.getP2PService().sendEncryptedDirectMessage(trade.getTradingPeer().getNodeAddress(), trade.getTradingPeer().getPubKeyRing(), request, new SendDirectMessageListener() {
+          processModel.getP2PService().sendEncryptedDirectMessage(trade.getTradePeer().getNodeAddress(), trade.getTradePeer().getPubKeyRing(), request, new SendDirectMessageListener() {
               @Override
               public void onArrived() {
-                  log.info("{} arrived: trading peer={}; offerId={}; uid={}", request.getClass().getSimpleName(), trade.getTradingPeer().getNodeAddress(), trade.getId());
+                  log.info("{} arrived: trading peer={}; offerId={}; uid={}", request.getClass().getSimpleName(), trade.getTradePeer().getNodeAddress(), trade.getId());
                   ack1 = true;
                   if (ack1 && ack2) completeAux();
               }
               @Override
               public void onFault(String errorMessage) {
-                  log.error("Sending {} failed: uid={}; peer={}; error={}", request.getClass().getSimpleName(), trade.getTradingPeer().getNodeAddress(), trade.getId(), errorMessage);
+                  log.error("Sending {} failed: uid={}; peer={}; error={}", request.getClass().getSimpleName(), trade.getTradePeer().getNodeAddress(), trade.getId(), errorMessage);
                   appendToErrorMessage("Sending message failed: message=" + request + "\nerrorMessage=" + errorMessage);
                   failed();
               }

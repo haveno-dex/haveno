@@ -42,7 +42,7 @@ import bisq.core.trade.HavenoUtils;
 import bisq.core.trade.Trade;
 import bisq.core.trade.TradeDataValidation;
 import bisq.core.trade.TradeManager;
-import bisq.core.trade.protocol.TradingPeer;
+import bisq.core.trade.protocol.TradePeer;
 import bisq.network.p2p.BootstrapListener;
 import bisq.network.p2p.NodeAddress;
 import bisq.network.p2p.P2PService;
@@ -387,7 +387,7 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
                                 // We use the chatMessage wrapped inside the openNewDisputeMessage for
                                 // the state, as that is displayed to the user and we only persist that msg
                                 chatMessage.setArrived(true);
-                                trade.setDisputeStateIfProgress(Trade.DisputeState.DISPUTE_REQUESTED);
+                                trade.advanceDisputeState(Trade.DisputeState.DISPUTE_REQUESTED);
                                 requestPersistence();
                                 resultHandler.handleResult();
                             }
@@ -403,7 +403,7 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
                                 // We use the chatMessage wrapped inside the openNewDisputeMessage for
                                 // the state, as that is displayed to the user and we only persist that msg
                                 chatMessage.setStoredInMailbox(true);
-                                trade.setDisputeStateIfProgress(Trade.DisputeState.DISPUTE_REQUESTED);
+                                trade.advanceDisputeState(Trade.DisputeState.DISPUTE_REQUESTED);
                                 requestPersistence();
                                 resultHandler.handleResult();
                             }
@@ -478,7 +478,7 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
     
             // get sender
             senderPubKeyRing = trade.isArbitrator() ? (dispute.isDisputeOpenerIsBuyer() ? contract.getBuyerPubKeyRing() : contract.getSellerPubKeyRing()) : trade.getArbitrator().getPubKeyRing();
-            TradingPeer sender = trade.getTradingPeer(senderPubKeyRing);
+            TradePeer sender = trade.getTradePeer(senderPubKeyRing);
             if (sender == null) throw new RuntimeException("Pub key ring is not from arbitrator, buyer, or seller");
 
             // message to trader is expected from arbitrator
@@ -490,7 +490,7 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
             if (trade.isArbitrator() && message.getPaymentSentMessage() != null) {
                 HavenoUtils.verifyPaymentSentMessage(trade, message.getPaymentSentMessage());
                 trade.getBuyer().setUpdatedMultisigHex(message.getPaymentSentMessage().getUpdatedMultisigHex());
-                trade.setStateIfProgress(sender == trade.getBuyer() ? Trade.State.BUYER_SENT_PAYMENT_SENT_MSG : Trade.State.SELLER_RECEIVED_PAYMENT_SENT_MSG);
+                trade.advanceState(sender == trade.getBuyer() ? Trade.State.BUYER_SENT_PAYMENT_SENT_MSG : Trade.State.SELLER_RECEIVED_PAYMENT_SENT_MSG);
             }
     
             // update multisig hex
@@ -509,7 +509,7 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
                     Optional<Dispute> storedDisputeOptional = findDispute(dispute);
                     if (!storedDisputeOptional.isPresent()) {
                         disputeList.add(dispute);
-                        trade.setDisputeStateIfProgress(Trade.DisputeState.DISPUTE_OPENED);
+                        trade.advanceDisputeState(Trade.DisputeState.DISPUTE_OPENED);
     
                         // send dispute opened message to peer if arbitrator
                         if (trade.isArbitrator()) sendDisputeOpenedMessageToPeer(dispute, contract, dispute.isDisputeOpenerIsBuyer() ? contract.getSellerPubKeyRing() : contract.getBuyerPubKeyRing(), trade.getSelf().getUpdatedMultisigHex());
@@ -724,9 +724,9 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
             }
 
             // create dispute closed message
-            TradingPeer receiver = trade.getTradingPeer(dispute.getTraderPubKeyRing());
+            TradePeer receiver = trade.getTradePeer(dispute.getTraderPubKeyRing());
             String unsignedPayoutTxHex = payoutTx == null ? null : payoutTx.getTxSet().getMultisigTxHex();
-            TradingPeer receiverPeer = receiver == trade.getBuyer() ? trade.getSeller() : trade.getBuyer();
+            TradePeer receiverPeer = receiver == trade.getBuyer() ? trade.getSeller() : trade.getBuyer();
             boolean deferPublishPayout = !resending && unsignedPayoutTxHex != null && receiverPeer.getUpdatedMultisigHex() != null && trade.getDisputeState().ordinal() >= Trade.DisputeState.ARBITRATOR_SAW_ARRIVED_DISPUTE_CLOSED_MSG.ordinal() ;
             DisputeClosedMessage disputeClosedMessage = new DisputeClosedMessage(disputeResult,
                     p2PService.getAddress(),
@@ -756,7 +756,7 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
                             // We use the chatMessage wrapped inside the DisputeClosedMessage for
                             // the state, as that is displayed to the user and we only persist that msg
                             disputeResult.getChatMessage().setArrived(true);
-                            trade.setDisputeStateIfProgress(Trade.DisputeState.ARBITRATOR_SAW_ARRIVED_DISPUTE_CLOSED_MSG);
+                            trade.advanceDisputeState(Trade.DisputeState.ARBITRATOR_SAW_ARRIVED_DISPUTE_CLOSED_MSG);
                             trade.syncWalletNormallyForMs(30000);
                             requestPersistence();
                             resultHandler.handleResult();
@@ -774,7 +774,7 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
                             // the state, as that is displayed to the user and we only persist that msg
                             disputeResult.getChatMessage().setStoredInMailbox(true);
                             Trade trade = tradeManager.getTrade(dispute.getTradeId());
-                            trade.setDisputeStateIfProgress(Trade.DisputeState.ARBITRATOR_STORED_IN_MAILBOX_DISPUTE_CLOSED_MSG);
+                            trade.advanceDisputeState(Trade.DisputeState.ARBITRATOR_STORED_IN_MAILBOX_DISPUTE_CLOSED_MSG);
                             requestPersistence();
                             resultHandler.handleResult();
                         }
@@ -790,7 +790,7 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
                             // We use the chatMessage wrapped inside the DisputeClosedMessage for
                             // the state, as that is displayed to the user and we only persist that msg
                             disputeResult.getChatMessage().setSendMessageError(errorMessage);
-                            trade.setDisputeStateIfProgress(Trade.DisputeState.ARBITRATOR_SEND_FAILED_DISPUTE_CLOSED_MSG);
+                            trade.advanceDisputeState(Trade.DisputeState.ARBITRATOR_SEND_FAILED_DISPUTE_CLOSED_MSG);
                             requestPersistence();
                             faultHandler.handleFault(errorMessage, new RuntimeException(errorMessage));
                         }
@@ -802,7 +802,7 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
                 trade.setPayoutTx(payoutTx);
                 trade.setPayoutTxHex(payoutTx.getTxSet().getMultisigTxHex());
             }
-            trade.setDisputeStateIfProgress(Trade.DisputeState.ARBITRATOR_SENT_DISPUTE_CLOSED_MSG);
+            trade.advanceDisputeState(Trade.DisputeState.ARBITRATOR_SENT_DISPUTE_CLOSED_MSG);
             requestPersistence();
         } catch (Exception e) {
             faultHandler.handleFault(e.getMessage(), e);
@@ -820,7 +820,7 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
         trade.saveWallet();
 
         // create unsigned dispute payout tx if not already published and arbitrator has trader's updated multisig info
-        TradingPeer receiver = trade.getTradingPeer(dispute.getTraderPubKeyRing());
+        TradePeer receiver = trade.getTradePeer(dispute.getTraderPubKeyRing());
         if (!trade.isPayoutPublished() && receiver.getUpdatedMultisigHex() != null) {
             MoneroWallet multisigWallet = trade.getWallet();
 

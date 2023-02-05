@@ -508,7 +508,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
                             log.warn("Error processing payment received message: " + errorMessage);
                             processModel.getTradeManager().requestPersistence();
 
-                            // reprocess message depending on error
+                            // schedule to reprocess message unless deleted
                             if (trade.getProcessModel().getPaymentReceivedMessage() != null) {
                                 UserThread.runAfter(() -> {
                                     reprocessPaymentReceivedMessageCount++;
@@ -583,8 +583,8 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
     private void onAckMessage(AckMessage ackMessage, NodeAddress peer) {
         // We handle the ack for PaymentSentMessage and DepositTxAndDelayedPayoutTxMessage
         // as we support automatic re-send of the msg in case it was not ACKed after a certain time
-        if (ackMessage.getSourceMsgClassName().equals(PaymentSentMessage.class.getSimpleName()) && trade.getTradingPeer(peer) == trade.getSeller()) {
-            processModel.setPaymentStartedAckMessage(ackMessage);
+        if (ackMessage.getSourceMsgClassName().equals(PaymentSentMessage.class.getSimpleName()) && trade.getTradePeer(peer) == trade.getSeller()) {
+            processModel.setPaymentSentAckMessage(ackMessage);
         }
 
         if (ackMessage.isSuccess()) {
@@ -705,7 +705,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
 
     private PubKeyRing getPeersPubKeyRing(NodeAddress address) {
       trade.setMyNodeAddress(); // TODO: this is a hack to update my node address before verifying the message
-      TradingPeer peer = trade.getTradingPeer(address);
+      TradePeer peer = trade.getTradePeer(address);
       if (peer == null) {
         log.warn("Cannot get peer's pub key ring because peer is not maker, taker, or arbitrator. Their address might have changed: " + peer);
         return null;
@@ -733,13 +733,13 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
         } else {
 
             // valid if arbitrator or peer unknown
-            if (trade.getArbitrator().getPubKeyRing() == null || (trade.getTradingPeer() == null || trade.getTradingPeer().getPubKeyRing() == null)) return true;
+            if (trade.getArbitrator().getPubKeyRing() == null || (trade.getTradePeer() == null || trade.getTradePeer().getPubKeyRing() == null)) return true;
 
             // valid if arbitrator's pub key ring
             if (message.getSignaturePubKey().equals(trade.getArbitrator().getPubKeyRing().getSignaturePubKey())) return true;
 
             // valid if peer's pub key ring
-            if (message.getSignaturePubKey().equals(trade.getTradingPeer().getPubKeyRing().getSignaturePubKey())) return true;
+            if (message.getSignaturePubKey().equals(trade.getTradePeer().getPubKeyRing().getSignaturePubKey())) return true;
         }
         
         // invalid

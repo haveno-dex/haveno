@@ -374,14 +374,14 @@ public class CliMain {
                     }
                     return;
                 }
-                case confirmpaymentstarted: {
+                case confirmpaymentsent: {
                     var opts = new GetTradeOptionParser(args).parse();
                     if (opts.isForHelp()) {
                         out.println(client.getMethodHelp(method));
                         return;
                     }
                     var tradeId = opts.getTradeId();
-                    client.confirmPaymentStarted(tradeId);
+                    client.confirmPaymentSent(tradeId);
                     out.printf("trade %s payment started message sent%n", tradeId);
                     return;
                 }
@@ -700,7 +700,7 @@ public class CliMain {
             stream.println();
             stream.format(rowFormat, gettrades.name(), "[--category=<open|closed|failed>]", "Get open (default), closed, or failed trades");
             stream.println();
-            stream.format(rowFormat, confirmpaymentstarted.name(), "--trade-id=<trade-id>", "Confirm payment started");
+            stream.format(rowFormat, confirmpaymentsent.name(), "--trade-id=<trade-id>", "Confirm payment started");
             stream.println();
             stream.format(rowFormat, confirmpaymentreceived.name(), "--trade-id=<trade-id>", "Confirm payment received");
             stream.println();

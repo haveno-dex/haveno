@@ -41,9 +41,9 @@ public class TradeInfo implements Payload {
     // view and interact with trades.
 
     private static final Function<Trade, String> toPeerNodeAddress = (trade) ->
-            trade.getTradingPeerNodeAddress() == null
+            trade.getTradePeerNodeAddress() == null
                     ? ""
-                    : trade.getTradingPeerNodeAddress().getFullAddress();
+                    : trade.getTradePeerNodeAddress().getFullAddress();
 
     private static final Function<Trade, String> toArbitratorNodeAddress = (trade) ->
             trade.getArbitratorNodeAddress() == null
@@ -76,7 +76,7 @@ public class TradeInfo implements Payload {
     private final String price;
     private final String volume;
     private final String arbitratorNodeAddress;
-    private final String tradingPeerNodeAddress;
+    private final String tradePeerNodeAddress;
     private final String state;
     private final String phase;
     private final String periodState;
@@ -111,7 +111,7 @@ public class TradeInfo implements Payload {
         this.price = builder.getPrice();
         this.volume = builder.getVolume();
         this.arbitratorNodeAddress = builder.getArbitratorNodeAddress();
-        this.tradingPeerNodeAddress = builder.getTradingPeerNodeAddress();
+        this.tradePeerNodeAddress = builder.getTradePeerNodeAddress();
         this.state = builder.getState();
         this.phase = builder.getPhase();
         this.periodState = builder.getPeriodState();
@@ -169,7 +169,7 @@ public class TradeInfo implements Payload {
                 .withPrice(toPreciseTradePrice.apply(trade))
                 .withVolume(toRoundedVolume.apply(trade))
                 .withArbitratorNodeAddress(toArbitratorNodeAddress.apply(trade))
-                .withTradingPeerNodeAddress(toPeerNodeAddress.apply(trade))
+                .withTradePeerNodeAddress(toPeerNodeAddress.apply(trade))
                 .withState(trade.getState().name())
                 .withPhase(trade.getPhase().name())
                 .withPeriodState(trade.getPeriodState().name())
@@ -213,7 +213,7 @@ public class TradeInfo implements Payload {
                 .setPrice(price)
                 .setTradeVolume(volume)
                 .setArbitratorNodeAddress(arbitratorNodeAddress)
-                .setTradingPeerNodeAddress(tradingPeerNodeAddress)
+                .setTradePeerNodeAddress(tradePeerNodeAddress)
                 .setState(state)
                 .setPhase(phase)
                 .setPeriodState(periodState)
@@ -256,7 +256,7 @@ public class TradeInfo implements Payload {
                 .withState(proto.getState())
                 .withPhase(proto.getPhase())
                 .withArbitratorNodeAddress(proto.getArbitratorNodeAddress())
-                .withTradingPeerNodeAddress(proto.getTradingPeerNodeAddress())
+                .withTradePeerNodeAddress(proto.getTradePeerNodeAddress())
                 .withIsDepositsPublished(proto.getIsDepositsPublished())
                 .withIsDepositsConfirmed(proto.getIsDepositsConfirmed())
                 .withIsDepositsUnlocked(proto.getIsDepositsUnlocked())
@@ -288,7 +288,7 @@ public class TradeInfo implements Payload {
                 ", sellerSecurityDeposit='" + sellerSecurityDeposit + '\'' + "\n" +
                 ", price='" + price + '\'' + "\n" +
                 ", arbitratorNodeAddress='" + arbitratorNodeAddress + '\'' + "\n" +
-                ", tradingPeerNodeAddress='" + tradingPeerNodeAddress + '\'' + "\n" +
+                ", tradePeerNodeAddress='" + tradePeerNodeAddress + '\'' + "\n" +
                 ", state='" + state + '\'' + "\n" +
                 ", phase='" + phase + '\'' + "\n" +
                 ", periodState='" + periodState + '\'' + "\n" +

@@ -129,13 +129,13 @@ class CoreTradesService {
         }
     }
 
-    void confirmPaymentStarted(String tradeId,
+    void confirmPaymentSent(String tradeId,
                                ResultHandler resultHandler,
                                ErrorMessageHandler errorMessageHandler) {
         var trade = getTrade(tradeId);
         if (isFollowingBuyerProtocol(trade)) {
             var tradeProtocol = tradeManager.getTradeProtocol(trade);
-            ((BuyerProtocol) tradeProtocol).onPaymentStarted(resultHandler, errorMessageHandler);
+            ((BuyerProtocol) tradeProtocol).onPaymentSent(resultHandler, errorMessageHandler);
         } else {
             throw new IllegalStateException("you are the seller and not sending payment");
         }

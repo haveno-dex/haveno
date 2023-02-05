@@ -78,7 +78,7 @@ public abstract class SendDepositsConfirmedMessage extends SendMailboxMessageTas
                     processModel.getMyNodeAddress(),
                     processModel.getPubKeyRing(),
                     deterministicId,
-                    trade.getBuyer() == trade.getTradingPeer(getReceiverNodeAddress()) ?  trade.getSeller().getPaymentAccountKey() : null, // buyer receives seller's payment account decryption key
+                    trade.getBuyer() == trade.getTradePeer(getReceiverNodeAddress()) ?  trade.getSeller().getPaymentAccountKey() : null, // buyer receives seller's payment account decryption key
                     trade.getSelf().getUpdatedMultisigHex());
         }
         return message;
