@@ -86,6 +86,10 @@ public class HavenoUtils {
         return atomicUnitsToXmr(centinerosToAtomicUnits(centineros));
     }
 
+    public static Coin centinerosToCoin(long centineros) {
+        return atomicUnitsToCoin(centinerosToAtomicUnits(centineros));
+    }
+
     public static long atomicUnitsToCentineros(long atomicUnits) { // TODO: atomic units should be BigInteger; remove this?
         return atomicUnits / CENTINEROS_AU_MULTIPLIER.longValue();
     }

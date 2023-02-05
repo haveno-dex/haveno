@@ -27,6 +27,7 @@ import bisq.core.provider.price.PriceFeedService;
 import bisq.core.setup.CorePersistedDataHost;
 import bisq.core.setup.CoreSetup;
 import bisq.core.support.dispute.arbitration.arbitrator.ArbitratorManager;
+import bisq.core.trade.HavenoUtils;
 import bisq.core.trade.TradeManager;
 import bisq.core.trade.statistics.TradeStatisticsManager;
 import bisq.core.trade.txproof.xmr.XmrTxProofService;
@@ -50,7 +51,7 @@ import com.google.inject.Guice;
 import com.google.inject.Injector;
 
 import java.io.Console;
-
+import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -315,12 +316,14 @@ public abstract class HavenoExecutable implements GracefulShutDownHandler, Haven
             injector.getInstance(TradeStatisticsManager.class).shutDown();
             injector.getInstance(XmrTxProofService.class).shutDown();
             injector.getInstance(AvoidStandbyModeService.class).shutDown();
-            injector.getInstance(TradeManager.class).shutDown();
+            log.info("TradeManager and XmrWalletService shutdown started");
+            HavenoUtils.executeTasks(Arrays.asList( // shut down trade and main wallets at same time
+                    () -> injector.getInstance(TradeManager.class).shutDown(),
+                    () -> injector.getInstance(XmrWalletService.class).shutDown(!isReadOnly)));
             log.info("OpenOfferManager shutdown started");
             injector.getInstance(OpenOfferManager.class).shutDown(() -> {
                 log.info("OpenOfferManager shutdown completed");
 
-                injector.getInstance(XmrWalletService.class).shutDown(!isReadOnly);
                 injector.getInstance(BtcWalletService.class).shutDown();
 
                 // We need to shutdown BitcoinJ before the P2PService as it uses Tor.

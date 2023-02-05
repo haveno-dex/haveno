@@ -17,7 +17,6 @@
 
 package bisq.core.trade.protocol.tasks;
 
-import bisq.core.btc.wallet.XmrWalletService;
 import bisq.core.trade.Trade;
 import bisq.common.taskrunner.TaskRunner;
 
@@ -67,8 +66,7 @@ public class BuyerPreparePaymentSentMessage extends TradeTask {
             checkNotNull(trade.getOffer(), "offer must not be null");
 
             // get multisig wallet
-            XmrWalletService walletService = processModel.getProvider().getXmrWalletService();
-            MoneroWallet multisigWallet = walletService.getMultisigWallet(trade.getId());
+            MoneroWallet multisigWallet = trade.getWallet();
 
             // import multisig hex
             List<String> updatedMultisigHexes = new ArrayList<String>();

@@ -82,12 +82,12 @@ public class ProcessInitMultisigRequest extends TradeTask {
           boolean updateParticipants = false;
           if (trade.getSelf().getPreparedMultisigHex() == null) {
             log.info("Preparing multisig wallet for trade {}", trade.getId());
-            multisigWallet = xmrWalletService.createMultisigWallet(trade.getId());
+            multisigWallet = trade.createWallet();
             trade.getSelf().setPreparedMultisigHex(multisigWallet.prepareMultisig());
             trade.setStateIfValidTransitionTo(Trade.State.MULTISIG_PREPARED);
             updateParticipants = true;
           } else if (processModel.getMultisigAddress() == null) {
-            multisigWallet = xmrWalletService.getMultisigWallet(trade.getId());
+            multisigWallet = trade.getWallet();
           }
 
           // make multisig if applicable
