@@ -728,7 +728,7 @@ service Trades {
     }
     rpc TakeOffer (TakeOfferRequest) returns (TakeOfferReply) {
     }
-    rpc ConfirmPaymentStarted (ConfirmPaymentStartedRequest) returns (ConfirmPaymentStartedReply) {
+    rpc ConfirmPaymentSent (ConfirmPaymentSentRequest) returns (ConfirmPaymentSentReply) {
     }
     rpc ConfirmPaymentReceived (ConfirmPaymentReceivedRequest) returns (ConfirmPaymentReceivedReply) {
     }
@@ -752,11 +752,11 @@ message TakeOfferReply {
     AvailabilityResultWithDescription failure_reason = 2;
 }
 
-message ConfirmPaymentStartedRequest {
+message ConfirmPaymentSentRequest {
     string trade_id = 1;
 }
 
-message ConfirmPaymentStartedReply {
+message ConfirmPaymentSentReply {
 }
 
 message ConfirmPaymentReceivedRequest {
@@ -835,7 +835,7 @@ message TradeInfo {
     uint64 seller_security_deposit = 13;
     string price = 14;
     string arbitrator_node_address = 15;
-    string trading_peer_node_address = 16;
+    string trade_peer_node_address = 16;
     string state = 17;
     string phase = 18;
     string period_state = 19;

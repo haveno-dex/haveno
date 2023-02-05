@@ -68,7 +68,7 @@ class TradeDetailTableBuilder extends AbstractTradeListBuilder {
         colIsDepositPublished.addRow(trade.getIsDepositsPublished());
         colIsDepositConfirmed.addRow(trade.getIsDepositsUnlocked());
         colTradeCost.addRow(toTradeVolumeAsString.apply(trade));
-        colIsPaymentStartedMessageSent.addRow(trade.getIsPaymentSent());
+        colIsPaymentSentMessageSent.addRow(trade.getIsPaymentSent());
         colIsPaymentReceivedMessageSent.addRow(trade.getIsPaymentReceived());
         colIsPayoutPublished.addRow(trade.getIsPayoutPublished());
         colIsCompleted.addRow(trade.getIsCompleted());
@@ -91,7 +91,7 @@ class TradeDetailTableBuilder extends AbstractTradeListBuilder {
             add(colIsDepositPublished.asStringColumn());
             add(colIsDepositConfirmed.asStringColumn());
             add(colTradeCost.justify());
-            add(colIsPaymentStartedMessageSent.asStringColumn());
+            add(colIsPaymentSentMessageSent.asStringColumn());
             add(colIsPaymentReceivedMessageSent.asStringColumn());
             add(colIsPayoutPublished.asStringColumn());
             add(colIsCompleted.asStringColumn());

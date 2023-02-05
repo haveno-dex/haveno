@@ -38,7 +38,7 @@ import bisq.core.trade.protocol.ProcessModel;
 import bisq.core.trade.protocol.ProcessModelServiceProvider;
 import bisq.core.trade.protocol.TradeListener;
 import bisq.core.trade.protocol.TradeProtocol;
-import bisq.core.trade.protocol.TradingPeer;
+import bisq.core.trade.protocol.TradePeer;
 import bisq.core.trade.txproof.AssetTxProofResult;
 import bisq.core.util.VolumeUtil;
 import bisq.network.p2p.AckMessage;
@@ -672,8 +672,8 @@ public abstract class Trade implements Tradable, Model {
         getSelf().setNodeAddress(P2PService.getMyNodeAddress());
     }
 
-    public NodeAddress getTradingPeerNodeAddress() {
-        return getTradingPeer() == null ? null : getTradingPeer().getNodeAddress();
+    public NodeAddress getTradePeerNodeAddress() {
+        return getTradePeer() == null ? null : getTradePeer().getNodeAddress();
     }
 
     public NodeAddress getArbitratorNodeAddress() {
@@ -883,9 +883,9 @@ public abstract class Trade implements Tradable, Model {
         try {
 
             // decrypt payment account payload
-            getTradingPeer().setPaymentAccountKey(paymentAccountKey);
-            SecretKey sk = Encryption.getSecretKeyFromBytes(getTradingPeer().getPaymentAccountKey());
-            byte[] decryptedPaymentAccountPayload = Encryption.decrypt(getTradingPeer().getEncryptedPaymentAccountPayload(), sk);
+            getTradePeer().setPaymentAccountKey(paymentAccountKey);
+            SecretKey sk = Encryption.getSecretKeyFromBytes(getTradePeer().getPaymentAccountKey());
+            byte[] decryptedPaymentAccountPayload = Encryption.decrypt(getTradePeer().getEncryptedPaymentAccountPayload(), sk);
             CoreNetworkProtoResolver resolver = new CoreNetworkProtoResolver(Clock.systemDefaultZone()); // TODO: reuse resolver from elsewhere?
             PaymentAccountPayload paymentAccountPayload = resolver.fromProto(protobuf.PaymentAccountPayload.parseFrom(decryptedPaymentAccountPayload));
 
@@ -894,7 +894,7 @@ public abstract class Trade implements Tradable, Model {
             if (!Arrays.equals(paymentAccountPayload.getHash(), peerPaymentAccountPayloadHash)) throw new RuntimeException("Hash of peer's payment account payload does not match contract");
 
             // set payment account payload
-            getTradingPeer().setPaymentAccountPayload(paymentAccountPayload);
+            getTradePeer().setPaymentAccountPayload(paymentAccountPayload);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -977,7 +977,7 @@ public abstract class Trade implements Tradable, Model {
         try {
             syncWallet();
         } catch (Exception e) {
-            log.warn("Error syncing wallet for {} {}: {}", getClass().getSimpleName(), getId(), e.getMessage());
+            if (isInitialized) log.warn("Error syncing wallet for {} {}: {}", getClass().getSimpleName(), getId(), e.getMessage());
         }
     }
 
@@ -1074,7 +1074,7 @@ public abstract class Trade implements Tradable, Model {
         });
     }
 
-    public void setStateIfProgress(State state) {
+    public void advanceState(State state) {
         if (state.ordinal() > getState().ordinal()) setState(state);
     }
 
@@ -1121,7 +1121,7 @@ public abstract class Trade implements Tradable, Model {
         });
     }
 
-    public void setDisputeStateIfProgress(DisputeState disputeState) {
+    public void advanceDisputeState(DisputeState disputeState) {
         if (disputeState.ordinal() > getDisputeState().ordinal()) setDisputeState(disputeState);
     }
 
@@ -1193,35 +1193,35 @@ public abstract class Trade implements Tradable, Model {
         return this instanceof TakerTrade;
     }
 
-    public TradingPeer getSelf() {
+    public TradePeer getSelf() {
         if (this instanceof MakerTrade) return processModel.getMaker();
         if (this instanceof TakerTrade) return processModel.getTaker();
         if (this instanceof ArbitratorTrade) return processModel.getArbitrator();
         throw new RuntimeException("Trade is not maker, taker, or arbitrator");
     }
 
-    public TradingPeer getArbitrator() {
+    public TradePeer getArbitrator() {
         return processModel.getArbitrator();
     }
 
-    public TradingPeer getMaker() {
+    public TradePeer getMaker() {
         return processModel.getMaker();
     }
 
-    public TradingPeer getTaker() {
+    public TradePeer getTaker() {
         return processModel.getTaker();
     }
 
-    public TradingPeer getBuyer() {
+    public TradePeer getBuyer() {
         return offer.getDirection() == OfferDirection.BUY ? processModel.getMaker() : processModel.getTaker();
     }
 
-    public TradingPeer getSeller() {
+    public TradePeer getSeller() {
         return offer.getDirection() == OfferDirection.BUY ? processModel.getTaker() : processModel.getMaker();
     }
 
     // get the taker if maker, maker if taker, null if arbitrator
-    public TradingPeer getTradingPeer() {
+    public TradePeer getTradePeer() {
         if (this instanceof MakerTrade) return processModel.getTaker();
         else if (this instanceof TakerTrade) return processModel.getMaker();
         else if (this instanceof ArbitratorTrade) return null;
@@ -1229,14 +1229,14 @@ public abstract class Trade implements Tradable, Model {
     }
 
     // TODO (woodser): this naming convention is confusing
-    public TradingPeer getTradingPeer(NodeAddress address) {
+    public TradePeer getTradePeer(NodeAddress address) {
         if (address.equals(getMaker().getNodeAddress())) return processModel.getMaker();
         if (address.equals(getTaker().getNodeAddress())) return processModel.getTaker();
         if (address.equals(getArbitrator().getNodeAddress())) return processModel.getArbitrator();
         return null;
     }
 
-    public TradingPeer getTradingPeer(PubKeyRing pubKeyRing) {
+    public TradePeer getTradePeer(PubKeyRing pubKeyRing) {
         if (getMaker() != null && getMaker().getPubKeyRing().equals(pubKeyRing)) return getMaker();
         if (getTaker() != null && getTaker().getPubKeyRing().equals(pubKeyRing)) return getTaker();
         if (getArbitrator() != null && getArbitrator().getPubKeyRing().equals(pubKeyRing)) return getArbitrator();
@@ -1250,7 +1250,7 @@ public abstract class Trade implements Tradable, Model {
         throw new IllegalArgumentException("Trade is not buyer, seller, or arbitrator");
     }
 
-    public String getPeerRole(TradingPeer peer) {
+    public String getPeerRole(TradePeer peer) {
         if (peer == getBuyer()) return "Buyer";
         if (peer == getSeller()) return "Seller";
         if (peer == getArbitrator()) return "Arbitrator";
@@ -1637,7 +1637,7 @@ public abstract class Trade implements Tradable, Model {
                 }
             }
         } catch (Exception e) {
-            if (isInitialized && getWallet() != null) log.warn("Error polling trade wallet {}: {}", getId(), e.getMessage()); // TODO (monero-java): poller.isPolling() and then don't need to use isInitialized here as shutdown flag
+            if (isInitialized && getWallet() != null && isWalletConnected()) log.warn("Error polling trade wallet {}: {}", getId(), e.getMessage()); // TODO (monero-java): poller.isPolling() and then don't need to use isInitialized here as shutdown flag
         }
     }
 

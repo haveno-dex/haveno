@@ -122,7 +122,7 @@ public class CleanupMailboxMessagesService {
     private boolean isPubKeyValid(DecryptedMessageWithPubKey decryptedMessageWithPubKey, Trade trade) {
         // We can only validate the peers pubKey if we have it already. If we are the taker we get it from the offer
         // Otherwise it depends on the state of the trade protocol if we have received the peers pubKeyRing already.
-        PubKeyRing peersPubKeyRing = trade.getTradingPeer().getPubKeyRing();
+        PubKeyRing peersPubKeyRing = trade.getTradePeer().getPubKeyRing();
         boolean isValid = true;
         if (peersPubKeyRing != null &&
                 !decryptedMessageWithPubKey.getSignaturePubKey().equals(peersPubKeyRing.getSignaturePubKey())) {

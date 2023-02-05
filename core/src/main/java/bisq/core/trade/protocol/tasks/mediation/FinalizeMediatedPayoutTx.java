@@ -39,7 +39,7 @@ public class FinalizeMediatedPayoutTx extends TradeTask {
 
 //            Transaction depositTx = checkNotNull(trade.getDepositTx());
 //            String tradeId = trade.getId();
-//            TradingPeer tradingPeer = trade.getTradingPeer();
+//            TradePeer tradePeer = trade.getTradePeer();
 //            BtcWalletService walletService = processModel.getBtcWalletService();
 //            Offer offer = checkNotNull(trade.getOffer(), "offer must not be null");
 //            Coin tradeAmount = checkNotNull(trade.getTradeAmount(), "tradeAmount must not be null");
@@ -50,8 +50,8 @@ public class FinalizeMediatedPayoutTx extends TradeTask {
 //
 //            byte[] mySignature = checkNotNull(processModel.getMediatedPayoutTxSignature(),
 //                    "processModel.getTxSignatureFromMediation must not be null");
-//            byte[] peersSignature = checkNotNull(tradingPeer.getMediatedPayoutTxSignature(),
-//                    "tradingPeer.getTxSignatureFromMediation must not be null");
+//            byte[] peersSignature = checkNotNull(tradePeer.getMediatedPayoutTxSignature(),
+//                    "tradePeer.getTxSignatureFromMediation must not be null");
 //
 //            boolean isMyRoleBuyer = contract.isMyRoleBuyer(processModel.getPubKeyRing());
 //            byte[] buyerSignature = isMyRoleBuyer ? mySignature : peersSignature;
@@ -65,12 +65,12 @@ public class FinalizeMediatedPayoutTx extends TradeTask {
 //                            "; sellerPayoutAmount=" + sellerPayoutAmount);
 //
 //            String myPayoutAddressString = walletService.getOrCreateAddressEntry(tradeId, AddressEntry.Context.TRADE_PAYOUT).getAddressString();
-//            String peersPayoutAddressString = tradingPeer.getPayoutAddressString();
+//            String peersPayoutAddressString = tradePeer.getPayoutAddressString();
 //            String buyerPayoutAddressString = isMyRoleBuyer ? myPayoutAddressString : peersPayoutAddressString;
 //            String sellerPayoutAddressString = isMyRoleBuyer ? peersPayoutAddressString : myPayoutAddressString;
 //
 //            byte[] myMultiSigPubKey = processModel.getMyMultiSigPubKey();
-//            byte[] peersMultiSigPubKey = tradingPeer.getMultiSigPubKey();
+//            byte[] peersMultiSigPubKey = tradePeer.getMultiSigPubKey();
 //            byte[] buyerMultiSigPubKey = isMyRoleBuyer ? myMultiSigPubKey : peersMultiSigPubKey;
 //            byte[] sellerMultiSigPubKey = isMyRoleBuyer ? peersMultiSigPubKey : myMultiSigPubKey;
 //

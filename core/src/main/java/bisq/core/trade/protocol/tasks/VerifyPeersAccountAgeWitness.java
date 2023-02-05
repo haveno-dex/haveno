@@ -23,7 +23,7 @@ import bisq.core.offer.Offer;
 import bisq.core.payment.payload.PaymentAccountPayload;
 import bisq.core.trade.ArbitratorTrade;
 import bisq.core.trade.Trade;
-import bisq.core.trade.protocol.TradingPeer;
+import bisq.core.trade.protocol.TradePeer;
 
 import bisq.common.crypto.PubKeyRing;
 import bisq.common.taskrunner.TaskRunner;
@@ -61,18 +61,18 @@ public class VerifyPeersAccountAgeWitness extends TradeTask {
             }
 
             // skip if payment account payload is null
-            TradingPeer tradingPeer = trade.getTradingPeer();
-            if (tradingPeer.getPaymentAccountPayload() == null) {
+            TradePeer tradePeer = trade.getTradePeer();
+            if (tradePeer.getPaymentAccountPayload() == null) {
                 complete();
                 return;
             }
 
             AccountAgeWitnessService accountAgeWitnessService = processModel.getAccountAgeWitnessService();
-            PaymentAccountPayload peersPaymentAccountPayload = checkNotNull(tradingPeer.getPaymentAccountPayload(),
+            PaymentAccountPayload peersPaymentAccountPayload = checkNotNull(tradePeer.getPaymentAccountPayload(),
                     "Peers peersPaymentAccountPayload must not be null");
-            PubKeyRing peersPubKeyRing = checkNotNull(tradingPeer.getPubKeyRing(), "peersPubKeyRing must not be null");
-            byte[] nonce = checkNotNull(tradingPeer.getAccountAgeWitnessNonce());
-            byte[] signature = checkNotNull(tradingPeer.getAccountAgeWitnessSignature());
+            PubKeyRing peersPubKeyRing = checkNotNull(tradePeer.getPubKeyRing(), "peersPubKeyRing must not be null");
+            byte[] nonce = checkNotNull(tradePeer.getAccountAgeWitnessNonce());
+            byte[] signature = checkNotNull(tradePeer.getAccountAgeWitnessSignature());
             AtomicReference<String> errorMsg = new AtomicReference<>();
             boolean isValid = accountAgeWitnessService.verifyAccountAgeWitness(trade,
                     peersPaymentAccountPayload,
@@ -81,8 +81,8 @@ public class VerifyPeersAccountAgeWitness extends TradeTask {
                     signature,
                     errorMsg::set);
             if (isValid) {
-                trade.getTradingPeer().setAccountAgeWitness(processModel.getAccountAgeWitnessService().findWitness(trade.getTradingPeer().getPaymentAccountPayload(), trade.getTradingPeer().getPubKeyRing()).orElse(null));
-                log.info("{} {} verified witness data of peer {}", trade.getClass().getSimpleName(), trade.getId(), tradingPeer.getNodeAddress());
+                trade.getTradePeer().setAccountAgeWitness(processModel.getAccountAgeWitnessService().findWitness(trade.getTradePeer().getPaymentAccountPayload(), trade.getTradePeer().getPubKeyRing()).orElse(null));
+                log.info("{} {} verified witness data of peer {}", trade.getClass().getSimpleName(), trade.getId(), tradePeer.getNodeAddress());
                 complete();
             } else {
                 failed(errorMsg.get());

@@ -173,11 +173,11 @@ public class TakeBuyBTCOfferWithNationalBankAcctTest extends AbstractTradeTest {
 
     @Test
     @Order(3)
-    public void testAlicesConfirmPaymentStarted(final TestInfo testInfo) {
+    public void testAlicesConfirmPaymentSent(final TestInfo testInfo) {
         try {
             var trade = aliceClient.getTrade(tradeId);
             waitForDepositUnlocked(log, testInfo, aliceClient, trade.getTradeId());
-            aliceClient.confirmPaymentStarted(trade.getTradeId());
+            aliceClient.confirmPaymentSent(trade.getTradeId());
             sleep(6_000);
             waitForBuyerSeesPaymentInitiatedMessage(log, testInfo, aliceClient, tradeId);
             trade = aliceClient.getTrade(tradeId);

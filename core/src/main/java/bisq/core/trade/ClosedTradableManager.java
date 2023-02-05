@@ -191,9 +191,9 @@ public class ClosedTradableManager implements PersistedDataHost {
         if (isOpenOffer(tradable)) {
             return 0;
         }
-        NodeAddress addressInTrade = castToTradeModel(tradable).getTradingPeerNodeAddress();
+        NodeAddress addressInTrade = castToTradeModel(tradable).getTradePeerNodeAddress();
         return (int) getTradeModelStream()
-                .map(Trade::getTradingPeerNodeAddress)
+                .map(Trade::getTradePeerNodeAddress)
                 .filter(Objects::nonNull)
                 .filter(address -> address.equals(addressInTrade))
                 .count();

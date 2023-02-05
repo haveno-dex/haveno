@@ -1697,17 +1697,17 @@ message ProcessModel {
     int64 funds_needed_for_trade_as_long = 14;
     bytes my_multi_sig_pub_key = 15;
     reserved 16;	 // Not used anymore
-    string payment_started_message_state = 17;
+    string payment_sent_message_state = 17;
     bytes mediated_payout_tx_signature = 18;
     int64 buyer_payout_amount_from_mediation = 19;
     int64 seller_payout_amount_from_mediation = 20;
     bool deposits_confirmed_messages_delivered = 21;
 
     string maker_signature = 1001;
-    TradingPeer maker = 1002;
-    TradingPeer taker = 1003;
-    TradingPeer arbitrator = 1004;
-    NodeAddress temp_trading_peer_node_address = 1005;
+    TradePeer maker = 1002;
+    TradePeer taker = 1003;
+    TradePeer arbitrator = 1004;
+    NodeAddress temp_trade_peer_node_address = 1005;
     string multisig_address = 1006;
 
     PaymentSentMessage payment_sent_message = 1012;
@@ -1715,7 +1715,7 @@ message ProcessModel {
     DisputeClosedMessage dispute_closed_message = 1014;
 }
 
-message TradingPeer {
+message TradePeer {
     NodeAddress node_address = 1;
     PubKeyRing pub_key_ring = 2;
     string account_id = 3;

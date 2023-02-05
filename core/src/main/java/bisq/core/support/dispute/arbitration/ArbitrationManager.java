@@ -260,7 +260,7 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
     
                     // import multisig hex
                     List<String> updatedMultisigHexes = new ArrayList<String>();
-                    if (trade.getTradingPeer().getUpdatedMultisigHex() != null) updatedMultisigHexes.add(trade.getTradingPeer().getUpdatedMultisigHex());
+                    if (trade.getTradePeer().getUpdatedMultisigHex() != null) updatedMultisigHexes.add(trade.getTradePeer().getUpdatedMultisigHex());
                     if (trade.getArbitrator().getUpdatedMultisigHex() != null) updatedMultisigHexes.add(trade.getArbitrator().getUpdatedMultisigHex());
                     if (!updatedMultisigHexes.isEmpty()) trade.getWallet().importMultisigHex(updatedMultisigHexes.toArray(new String[0])); // TODO (monero-project): fails if multisig hex imported individually
             
@@ -315,7 +315,7 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
                     throw e;
                 }
     
-                // reprocess on error   
+                // schedule to reprocess message unless deleted
                 if (trade.getProcessModel().getDisputeClosedMessage() != null) {
                     if (!reprocessDisputeClosedMessageCounts.containsKey(trade.getId())) reprocessDisputeClosedMessageCounts.put(trade.getId(), 0);
                     UserThread.runAfter(() -> {

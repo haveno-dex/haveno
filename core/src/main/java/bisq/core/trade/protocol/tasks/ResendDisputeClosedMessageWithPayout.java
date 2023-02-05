@@ -23,7 +23,7 @@ import bisq.core.support.dispute.Dispute;
 import bisq.core.trade.HavenoUtils;
 import bisq.core.trade.Trade;
 import bisq.core.trade.messages.DepositsConfirmedMessage;
-import bisq.core.trade.protocol.TradingPeer;
+import bisq.core.trade.protocol.TradePeer;
 import bisq.core.util.Validator;
 import lombok.extern.slf4j.Slf4j;
 
@@ -48,7 +48,7 @@ public class ResendDisputeClosedMessageWithPayout extends TradeTask {
             DepositsConfirmedMessage request = (DepositsConfirmedMessage) processModel.getTradeMessage();
             checkNotNull(request);
             Validator.checkTradeId(processModel.getOfferId(), request);
-            TradingPeer sender = trade.getTradingPeer(request.getPubKeyRing());
+            TradePeer sender = trade.getTradePeer(request.getPubKeyRing());
             if (sender == null) throw new RuntimeException("Pub key ring is not from arbitrator, buyer, or seller");
               
             // arbitrator resends DisputeClosedMessage with payout tx when updated multisig info received

@@ -204,7 +204,7 @@ public class TradeDetailsWindow extends Overlay<TradeDetailsWindow> {
             rows++;
         if (trade.hasFailed())
             rows += 2;
-        if (trade.getTradingPeerNodeAddress() != null)
+        if (trade.getTradePeerNodeAddress() != null)
             rows++;
         if (showXmrProofResult)
             rows++;
@@ -235,12 +235,12 @@ public class TradeDetailsWindow extends Overlay<TradeDetailsWindow> {
                     arbitratorNodeAddress.getFullAddress());
         }
 
-        if (trade.getTradingPeerNodeAddress() != null)
-            addConfirmationLabelTextField(gridPane, ++rowIndex, Res.get("tradeDetailsWindow.tradingPeersOnion"),
-                    trade.getTradingPeerNodeAddress().getFullAddress());
+        if (trade.getTradePeerNodeAddress() != null)
+            addConfirmationLabelTextField(gridPane, ++rowIndex, Res.get("tradeDetailsWindow.tradePeersOnion"),
+                    trade.getTradePeerNodeAddress().getFullAddress());
 
         if (showXmrProofResult) {
-            // As the window is already overloaded we replace the tradingPeersPubKeyHash field with the auto-conf state
+            // As the window is already overloaded we replace the tradePeersPubKeyHash field with the auto-conf state
             // if XMR is the currency
             addConfirmationLabelTextField(gridPane, ++rowIndex,
                     Res.get("portfolio.pending.step3_seller.autoConf.status.label"),

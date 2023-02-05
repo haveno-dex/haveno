@@ -196,7 +196,7 @@ public abstract class SupportManager {
                     for (Dispute dispute : trade.getDisputes()) {
                         for (ChatMessage chatMessage : dispute.getChatMessages()) {
                             if (chatMessage.getUid().equals(ackMessage.getSourceUid())) {
-                                trade.setDisputeStateIfProgress(Trade.DisputeState.DISPUTE_OPENED);
+                                trade.advanceDisputeState(Trade.DisputeState.DISPUTE_OPENED);
                             }
                         }
                     }

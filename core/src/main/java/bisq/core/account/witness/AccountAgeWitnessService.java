@@ -34,7 +34,7 @@ import bisq.core.support.dispute.DisputeResult;
 import bisq.core.support.dispute.arbitration.TraderDataItem;
 import bisq.core.trade.ArbitratorTrade;
 import bisq.core.trade.Trade;
-import bisq.core.trade.protocol.TradingPeer;
+import bisq.core.trade.protocol.TradePeer;
 import bisq.core.user.User;
 
 import bisq.network.p2p.BootstrapListener;
@@ -308,12 +308,12 @@ public class AccountAgeWitnessService {
 
     private Optional<AccountAgeWitness> findTradePeerWitness(Trade trade) {
         if (trade instanceof ArbitratorTrade) return Optional.empty();  // TODO (woodser): arbitrator trade has two peers
-        TradingPeer tradingPeer = trade.getTradingPeer();
-        return (tradingPeer == null ||
-                tradingPeer.getPaymentAccountPayload() == null ||
-                tradingPeer.getPubKeyRing() == null) ?
+        TradePeer tradePeer = trade.getTradePeer();
+        return (tradePeer == null ||
+                tradePeer.getPaymentAccountPayload() == null ||
+                tradePeer.getPubKeyRing() == null) ?
                 Optional.empty() :
-                findWitness(tradingPeer.getPaymentAccountPayload(), tradingPeer.getPubKeyRing());
+                findWitness(tradePeer.getPaymentAccountPayload(), tradePeer.getPubKeyRing());
     }
 
     private Optional<AccountAgeWitness> getWitnessByHash(byte[] hash) {
@@ -732,8 +732,8 @@ public class AccountAgeWitnessService {
     public Optional<SignedWitness> traderSignAndPublishPeersAccountAgeWitness(Trade trade) {
         AccountAgeWitness peersWitness = findTradePeerWitness(trade).orElse(null);
         Coin tradeAmount = trade.getAmount();
-        checkNotNull(trade.getTradingPeer().getPubKeyRing(), "Peer must have a keyring");
-        PublicKey peersPubKey = trade.getTradingPeer().getPubKeyRing().getSignaturePubKey();
+        checkNotNull(trade.getTradePeer().getPubKeyRing(), "Peer must have a keyring");
+        PublicKey peersPubKey = trade.getTradePeer().getPubKeyRing().getSignaturePubKey();
         checkNotNull(peersWitness, "Not able to find peers witness, unable to sign for trade {}",
                 trade.toString());
         checkNotNull(tradeAmount, "Trade amount must not be null");

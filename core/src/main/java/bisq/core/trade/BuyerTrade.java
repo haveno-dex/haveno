@@ -63,6 +63,6 @@ public abstract class BuyerTrade extends Trade {
 
     @Override
     public boolean confirmPermitted() {
-        return !getDisputeState().isArbitrated();
+        return true;
     }
 }

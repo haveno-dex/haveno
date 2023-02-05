@@ -136,7 +136,7 @@ public class AbstractTradeTest extends AbstractOfferTest {
                 // it might be AVAILABLE, not OFFER_FEE_RESERVED.
                 EXPECTED_PROTOCOL_STATUS.setState(BUYER_SAW_ARRIVED_PAYMENT_SENT_MSG)
                         .setPhase(PAYMENT_SENT)
-                        .setPaymentStartedMessageSent(true);
+                        .setPaymentSentMessageSent(true);
                 verifyExpectedProtocolStatus(trade);
                 logTrade(log, testInfo, userName + "'s view after confirming trade payment sent", trade);
                 break;
@@ -185,7 +185,7 @@ public class AbstractTradeTest extends AbstractOfferTest {
             assertEquals(EXPECTED_PROTOCOL_STATUS.isDepositPublished, trade.getIsDepositsPublished());
 
         assertEquals(EXPECTED_PROTOCOL_STATUS.isDepositConfirmed, trade.getIsDepositsUnlocked());
-        assertEquals(EXPECTED_PROTOCOL_STATUS.isPaymentStartedMessageSent, trade.getIsPaymentSent());
+        assertEquals(EXPECTED_PROTOCOL_STATUS.isPaymentSentMessageSent, trade.getIsPaymentSent());
         assertEquals(EXPECTED_PROTOCOL_STATUS.isPaymentReceivedMessageSent, trade.getIsPaymentReceived());
         assertEquals(EXPECTED_PROTOCOL_STATUS.isPayoutPublished, trade.getIsPayoutPublished());
         assertEquals(EXPECTED_PROTOCOL_STATUS.isCompleted, trade.getIsCompleted());

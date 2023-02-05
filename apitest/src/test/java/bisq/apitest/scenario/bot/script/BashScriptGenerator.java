@@ -140,34 +140,34 @@ public class BashScriptGenerator {
                 getTradeCmd);
     }
 
-    public File createPaymentStartedScript(TradeInfo trade) {
-        String paymentStartedCmd = format("%s confirmpaymentstarted --trade-id=%s",
+    public File createPaymentSentScript(TradeInfo trade) {
+        String paymentSentCmd = format("%s confirmpaymentsent --trade-id=%s",
                 cliBase,
                 trade.getTradeId());
         String getTradeCmd = format("%s gettrade --trade-id=%s", cliBase, trade.getTradeId());
-        return createCliScript("confirmpaymentstarted.sh",
-                paymentStartedCmd,
+        return createCliScript("confirmpaymentsent.sh",
+                paymentSentCmd,
                 "sleep 2",
                 getTradeCmd);
     }
 
     public File createPaymentReceivedScript(TradeInfo trade) {
-        String paymentStartedCmd = format("%s confirmpaymentreceived --trade-id=%s",
+        String paymentSentCmd = format("%s confirmpaymentreceived --trade-id=%s",
                 cliBase,
                 trade.getTradeId());
         String getTradeCmd = format("%s gettrade --trade-id=%s", cliBase, trade.getTradeId());
         return createCliScript("confirmpaymentreceived.sh",
-                paymentStartedCmd,
+                paymentSentCmd,
                 "sleep 2",
                 getTradeCmd);
     }
 
     public File createKeepFundsScript(TradeInfo trade) {
-        String paymentStartedCmd = format("%s closetrade --trade-id=%s", cliBase, trade.getTradeId());
+        String paymentSentCmd = format("%s closetrade --trade-id=%s", cliBase, trade.getTradeId());
         String getTradeCmd = format("%s gettrade --trade-id=%s", cliBase, trade.getTradeId());
         String getBalanceCmd = format("%s getbalance", cliBase);
         return createCliScript("closetrade.sh",
-                paymentStartedCmd,
+                paymentSentCmd,
                 "sleep 2",
                 getTradeCmd,
                 getBalanceCmd);

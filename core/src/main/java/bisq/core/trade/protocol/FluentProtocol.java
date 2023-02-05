@@ -109,7 +109,7 @@ public class FluentProtocol {
 
         NodeAddress peer = condition.getPeer();
         if (peer != null) {
-            tradeProtocol.processModel.setTempTradingPeerNodeAddress(peer); // TODO (woodser): node has multiple peers (arbitrator and maker or taker), but fluent protocol assumes only one
+            tradeProtocol.processModel.setTempTradePeerNodeAddress(peer); // TODO (woodser): node has multiple peers (arbitrator and maker or taker), but fluent protocol assumes only one
             tradeProtocol.processModel.getTradeManager().requestPersistence();
         }
 

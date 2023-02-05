@@ -68,12 +68,12 @@ public class ProcessPaymentReceivedMessage extends TradeTask {
             trade.getBuyer().setAccountAgeWitness(message.getBuyerAccountAgeWitness());
 
             // update to the latest peer address of our peer if message is correct
-            trade.getSeller().setNodeAddress(processModel.getTempTradingPeerNodeAddress());
+            trade.getSeller().setNodeAddress(processModel.getTempTradePeerNodeAddress());
             if (trade.getSeller().getNodeAddress().equals(trade.getBuyer().getNodeAddress())) trade.getBuyer().setNodeAddress(null); // tests can reuse addresses
 
             // close open disputes
             if (trade.getDisputeState().ordinal() >= Trade.DisputeState.DISPUTE_REQUESTED.ordinal()) {
-                trade.setDisputeStateIfProgress(Trade.DisputeState.DISPUTE_CLOSED);
+                trade.advanceDisputeState(Trade.DisputeState.DISPUTE_CLOSED);
                 for (Dispute dispute : trade.getDisputes()) {
                     dispute.setIsClosed();
                 }
@@ -94,7 +94,7 @@ public class ProcessPaymentReceivedMessage extends TradeTask {
             }
 
             // complete
-            trade.setStateIfProgress(Trade.State.SELLER_SENT_PAYMENT_RECEIVED_MSG); // arbitrator auto completes when payout published
+            trade.advanceState(Trade.State.SELLER_SENT_PAYMENT_RECEIVED_MSG); // arbitrator auto completes when payout published
             trade.requestPersistence();
             complete();
         } catch (Throwable t) {

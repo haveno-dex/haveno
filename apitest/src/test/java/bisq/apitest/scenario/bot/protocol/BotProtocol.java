@@ -124,10 +124,10 @@ public abstract class BotProtocol {
         return trade;
     };
 
-    protected final Function<TradeInfo, TradeInfo> waitForPaymentStartedMessage = (trade) -> {
-        initProtocolStep.accept(WAIT_FOR_PAYMENT_STARTED_MESSAGE);
+    protected final Function<TradeInfo, TradeInfo> waitForPaymentSentMessage = (trade) -> {
+        initProtocolStep.accept(WAIT_FOR_PAYMENT_SENT_MESSAGE);
         try {
-            createPaymentStartedScript(trade);
+            createPaymentSentScript(trade);
             log.info("  Waiting for a 'payment started' message from buyer for trade with id {}.", trade.getTradeId());
             while (isWithinProtocolStepTimeLimit()) {
                 checkIfShutdownCalled("Interrupted before checking if 'payment started' message has been sent.");
@@ -152,10 +152,10 @@ public abstract class BotProtocol {
         }
     };
 
-    protected final Function<TradeInfo, TradeInfo> sendPaymentStartedMessage = (trade) -> {
-        initProtocolStep.accept(SEND_PAYMENT_STARTED_MESSAGE);
+    protected final Function<TradeInfo, TradeInfo> sendPaymentSentMessage = (trade) -> {
+        initProtocolStep.accept(SEND_PAYMENT_SENT_MESSAGE);
         checkIfShutdownCalled("Interrupted before sending 'payment started' message.");
-        this.getBotClient().sendConfirmPaymentStartedMessage(trade.getTradeId());
+        this.getBotClient().sendConfirmPaymentSentMessage(trade.getTradeId());
         return trade;
     };
 
@@ -222,8 +222,8 @@ public abstract class BotProtocol {
         }
     };
 
-    protected void createPaymentStartedScript(TradeInfo trade) {
-        File script = bashScriptGenerator.createPaymentStartedScript(trade);
+    protected void createPaymentSentScript(TradeInfo trade) {
+        File script = bashScriptGenerator.createPaymentSentScript(trade);
         printCliHintAndOrScript(script, "The manual CLI side can send a 'payment started' message");
     }
 

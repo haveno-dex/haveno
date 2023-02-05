@@ -108,9 +108,9 @@ public class ProcessModel implements Model, PersistablePayload {
     transient private Transaction depositTx; // TODO (woodser): remove and rename depositTxBtc with depositTx
 
     // Persistable Immutable (private setter only used by PB method)
-    private TradingPeer maker = new TradingPeer();
-    private TradingPeer taker = new TradingPeer();
-    private TradingPeer arbitrator = new TradingPeer();
+    private TradePeer maker = new TradePeer();
+    private TradePeer taker = new TradePeer();
+    private TradePeer arbitrator = new TradePeer();
     private String offerId;
     private String accountId;
     private PubKeyRing pubKeyRing;
@@ -141,10 +141,10 @@ public class ProcessModel implements Model, PersistablePayload {
     @Setter
     private byte[] myMultiSigPubKey;
     // that is used to store temp. the peers address when we get an incoming message before the message is verified.
-    // After successful verified we copy that over to the trade.tradingPeerAddress
+    // After successful verified we copy that over to the trade.tradePeerAddress
     @Nullable
     @Setter
-    private NodeAddress tempTradingPeerNodeAddress; // TODO (woodser): remove entirely?
+    private NodeAddress tempTradePeerNodeAddress; // TODO (woodser): remove entirely?
 
     // Added in v.1.1.6
     @Nullable
@@ -195,20 +195,20 @@ public class ProcessModel implements Model, PersistablePayload {
     // PaymentSentMessage. As well we do an automatic re-send in case it was not ACKed yet.
     // To enable that even after restart we persist the state.
     @Setter
-    private ObjectProperty<MessageState> paymentStartedMessageStateProperty = new SimpleObjectProperty<>(MessageState.UNDEFINED);
+    private ObjectProperty<MessageState> paymentSentMessageStateProperty = new SimpleObjectProperty<>(MessageState.UNDEFINED);
 
     public ProcessModel(String offerId, String accountId, PubKeyRing pubKeyRing) {
-        this(offerId, accountId, pubKeyRing, new TradingPeer(), new TradingPeer(), new TradingPeer());
+        this(offerId, accountId, pubKeyRing, new TradePeer(), new TradePeer(), new TradePeer());
     }
 
-    public ProcessModel(String offerId, String accountId, PubKeyRing pubKeyRing, TradingPeer arbitrator, TradingPeer maker, TradingPeer taker) {
+    public ProcessModel(String offerId, String accountId, PubKeyRing pubKeyRing, TradePeer arbitrator, TradePeer maker, TradePeer taker) {
         this.offerId = offerId;
         this.accountId = accountId;
         this.pubKeyRing = pubKeyRing;
-        // If tradingPeer was null in persisted data from some error cases we set a new one to not cause nullPointers
-        this.arbitrator = arbitrator != null ? arbitrator : new TradingPeer();
-        this.maker = maker != null ? maker : new TradingPeer();
-        this.taker = taker != null ? taker : new TradingPeer();
+        // If tradePeer was null in persisted data from some error cases we set a new one to not cause nullPointers
+        this.arbitrator = arbitrator != null ? arbitrator : new TradePeer();
+        this.maker = maker != null ? maker : new TradePeer();
+        this.taker = taker != null ? taker : new TradePeer();
     }
 
     public void applyTransient(ProcessModelServiceProvider provider,
@@ -233,19 +233,19 @@ public class ProcessModel implements Model, PersistablePayload {
                 .setChangeOutputValue(changeOutputValue)
                 .setUseSavingsWallet(useSavingsWallet)
                 .setFundsNeededForTradeAsLong(fundsNeededForTradeAsLong)
-                .setPaymentStartedMessageState(paymentStartedMessageStateProperty.get().name())
+                .setPaymentSentMessageState(paymentSentMessageStateProperty.get().name())
                 .setBuyerPayoutAmountFromMediation(buyerPayoutAmountFromMediation)
                 .setSellerPayoutAmountFromMediation(sellerPayoutAmountFromMediation)
                 .setDepositsConfirmedMessagesDelivered(isDepositsConfirmedMessagesDelivered);
-        Optional.ofNullable(maker).ifPresent(e -> builder.setMaker((protobuf.TradingPeer) maker.toProtoMessage()));
-        Optional.ofNullable(taker).ifPresent(e -> builder.setTaker((protobuf.TradingPeer) taker.toProtoMessage()));
-        Optional.ofNullable(arbitrator).ifPresent(e -> builder.setArbitrator((protobuf.TradingPeer) arbitrator.toProtoMessage()));
+        Optional.ofNullable(maker).ifPresent(e -> builder.setMaker((protobuf.TradePeer) maker.toProtoMessage()));
+        Optional.ofNullable(taker).ifPresent(e -> builder.setTaker((protobuf.TradePeer) taker.toProtoMessage()));
+        Optional.ofNullable(arbitrator).ifPresent(e -> builder.setArbitrator((protobuf.TradePeer) arbitrator.toProtoMessage()));
         Optional.ofNullable(takeOfferFeeTxId).ifPresent(builder::setTakeOfferFeeTxId);
         Optional.ofNullable(payoutTxSignature).ifPresent(e -> builder.setPayoutTxSignature(ByteString.copyFrom(payoutTxSignature)));
         Optional.ofNullable(rawTransactionInputs).ifPresent(e -> builder.addAllRawTransactionInputs(ProtoUtil.collectionToProto(rawTransactionInputs, protobuf.RawTransactionInput.class)));
         Optional.ofNullable(changeOutputAddress).ifPresent(builder::setChangeOutputAddress);
         Optional.ofNullable(myMultiSigPubKey).ifPresent(e -> builder.setMyMultiSigPubKey(ByteString.copyFrom(myMultiSigPubKey)));
-        Optional.ofNullable(tempTradingPeerNodeAddress).ifPresent(e -> builder.setTempTradingPeerNodeAddress(tempTradingPeerNodeAddress.toProtoMessage()));
+        Optional.ofNullable(tempTradePeerNodeAddress).ifPresent(e -> builder.setTempTradePeerNodeAddress(tempTradePeerNodeAddress.toProtoMessage()));
         Optional.ofNullable(makerSignature).ifPresent(e -> builder.setMakerSignature(makerSignature));
         Optional.ofNullable(multisigAddress).ifPresent(e -> builder.setMultisigAddress(multisigAddress));
         Optional.ofNullable(paymentSentMessage).ifPresent(e -> builder.setPaymentSentMessage(paymentSentMessage.toProtoNetworkEnvelope().getPaymentSentMessage()));
@@ -255,9 +255,9 @@ public class ProcessModel implements Model, PersistablePayload {
     }
 
     public static ProcessModel fromProto(protobuf.ProcessModel proto, CoreProtoResolver coreProtoResolver) {
-        TradingPeer arbitrator = TradingPeer.fromProto(proto.getArbitrator(), coreProtoResolver);
-        TradingPeer maker = TradingPeer.fromProto(proto.getMaker(), coreProtoResolver);
-        TradingPeer taker = TradingPeer.fromProto(proto.getTaker(), coreProtoResolver);
+        TradePeer arbitrator = TradePeer.fromProto(proto.getArbitrator(), coreProtoResolver);
+        TradePeer maker = TradePeer.fromProto(proto.getMaker(), coreProtoResolver);
+        TradePeer taker = TradePeer.fromProto(proto.getTaker(), coreProtoResolver);
         PubKeyRing pubKeyRing = PubKeyRing.fromProto(proto.getPubKeyRing());
         ProcessModel processModel = new ProcessModel(proto.getOfferId(), proto.getAccountId(), pubKeyRing, arbitrator, maker, taker);
         processModel.setChangeOutputValue(proto.getChangeOutputValue());
@@ -276,14 +276,14 @@ public class ProcessModel implements Model, PersistablePayload {
         processModel.setRawTransactionInputs(rawTransactionInputs);
         processModel.setChangeOutputAddress(ProtoUtil.stringOrNullFromProto(proto.getChangeOutputAddress()));
         processModel.setMyMultiSigPubKey(ProtoUtil.byteArrayOrNullFromProto(proto.getMyMultiSigPubKey()));
-        processModel.setTempTradingPeerNodeAddress(proto.hasTempTradingPeerNodeAddress() ? NodeAddress.fromProto(proto.getTempTradingPeerNodeAddress()) : null);
+        processModel.setTempTradePeerNodeAddress(proto.hasTempTradePeerNodeAddress() ? NodeAddress.fromProto(proto.getTempTradePeerNodeAddress()) : null);
         processModel.setMediatedPayoutTxSignature(ProtoUtil.byteArrayOrNullFromProto(proto.getMediatedPayoutTxSignature()));
         processModel.setMakerSignature(proto.getMakerSignature());
         processModel.setMultisigAddress(ProtoUtil.stringOrNullFromProto(proto.getMultisigAddress()));
 
-        String paymentStartedMessageStateString = ProtoUtil.stringOrNullFromProto(proto.getPaymentStartedMessageState());
-        MessageState paymentStartedMessageState = ProtoUtil.enumFromProto(MessageState.class, paymentStartedMessageStateString);
-        processModel.setPaymentStartedMessageState(paymentStartedMessageState);
+        String paymentSentMessageStateString = ProtoUtil.stringOrNullFromProto(proto.getPaymentSentMessageState());
+        MessageState paymentSentMessageState = ProtoUtil.enumFromProto(MessageState.class, paymentSentMessageStateString);
+        processModel.setPaymentSentMessageState(paymentSentMessageState);
 
         processModel.setPaymentSentMessage(proto.hasPaymentSentMessage() ? PaymentSentMessage.fromProto(proto.getPaymentSentMessage(), Version.getP2PMessageVersion()) : null);
         processModel.setPaymentReceivedMessage(proto.hasPaymentReceivedMessage() ? PaymentReceivedMessage.fromProto(proto.getPaymentReceivedMessage(), Version.getP2PMessageVersion()) : null);
@@ -330,15 +330,15 @@ public class ProcessModel implements Model, PersistablePayload {
         return getP2PService().getAddress();
     }
 
-    void setPaymentStartedAckMessage(AckMessage ackMessage) {
+    void setPaymentSentAckMessage(AckMessage ackMessage) {
         MessageState messageState = ackMessage.isSuccess() ?
                 MessageState.ACKNOWLEDGED :
                 MessageState.FAILED;
-        setPaymentStartedMessageState(messageState);
+        setPaymentSentMessageState(messageState);
     }
 
-    public void setPaymentStartedMessageState(MessageState paymentStartedMessageStateProperty) {
-        this.paymentStartedMessageStateProperty.set(paymentStartedMessageStateProperty);
+    public void setPaymentSentMessageState(MessageState paymentSentMessageStateProperty) {
+        this.paymentSentMessageStateProperty.set(paymentSentMessageStateProperty);
         if (tradeManager != null) {
             tradeManager.requestPersistence();
         }

@@ -45,7 +45,7 @@ import javax.annotation.Nullable;
 @Slf4j
 @Getter
 @Setter
-public final class TradingPeer implements PersistablePayload {
+public final class TradePeer implements PersistablePayload {
     // Transient/Mutable
     // Added in v1.2.0
     @Setter
@@ -130,12 +130,12 @@ public final class TradingPeer implements PersistablePayload {
     @Nullable
     private String updatedMultisigHex;
     
-    public TradingPeer() {
+    public TradePeer() {
     }
 
     @Override
     public Message toProtoMessage() {
-        final protobuf.TradingPeer.Builder builder = protobuf.TradingPeer.newBuilder()
+        final protobuf.TradePeer.Builder builder = protobuf.TradePeer.newBuilder()
                 .setChangeOutputValue(changeOutputValue);
         Optional.ofNullable(nodeAddress).ifPresent(e -> builder.setNodeAddress(nodeAddress.toProtoMessage()));
         Optional.ofNullable(pubKeyRing).ifPresent(e -> builder.setPubKeyRing(pubKeyRing.toProtoMessage()));
@@ -174,52 +174,52 @@ public final class TradingPeer implements PersistablePayload {
         return builder.build();
     }
 
-    public static TradingPeer fromProto(protobuf.TradingPeer proto, CoreProtoResolver coreProtoResolver) {
+    public static TradePeer fromProto(protobuf.TradePeer proto, CoreProtoResolver coreProtoResolver) {
         if (proto.getDefaultInstanceForType().equals(proto)) {
             return null;
         } else {
-            TradingPeer tradingPeer = new TradingPeer();
-            tradingPeer.setNodeAddress(proto.hasNodeAddress() ? NodeAddress.fromProto(proto.getNodeAddress()) : null);
-            tradingPeer.setPubKeyRing(proto.hasPubKeyRing() ? PubKeyRing.fromProto(proto.getPubKeyRing()) : null);
-            tradingPeer.setChangeOutputValue(proto.getChangeOutputValue());
-            tradingPeer.setAccountId(ProtoUtil.stringOrNullFromProto(proto.getAccountId()));
-            tradingPeer.setPaymentAccountId(ProtoUtil.stringOrNullFromProto(proto.getPaymentAccountId()));
-            tradingPeer.setPaymentMethodId(ProtoUtil.stringOrNullFromProto(proto.getPaymentMethodId()));
-            tradingPeer.setPaymentAccountPayloadHash(proto.getPaymentAccountPayloadHash().toByteArray());
-            tradingPeer.setEncryptedPaymentAccountPayload(proto.getEncryptedPaymentAccountPayload().toByteArray());
-            tradingPeer.setPaymentAccountKey(ProtoUtil.byteArrayOrNullFromProto(proto.getPaymentAccountKey()));
-            tradingPeer.setPaymentAccountPayload(proto.hasPaymentAccountPayload() ? coreProtoResolver.fromProto(proto.getPaymentAccountPayload()) : null);
-            tradingPeer.setPayoutAddressString(ProtoUtil.stringOrNullFromProto(proto.getPayoutAddressString()));
-            tradingPeer.setContractAsJson(ProtoUtil.stringOrNullFromProto(proto.getContractAsJson()));
-            tradingPeer.setContractSignature(ProtoUtil.stringOrNullFromProto(proto.getContractSignature()));
-            tradingPeer.setSignature(ProtoUtil.byteArrayOrNullFromProto(proto.getSignature()));
-            tradingPeer.setPubKeyRing(proto.hasPubKeyRing() ? PubKeyRing.fromProto(proto.getPubKeyRing()) : null);
-            tradingPeer.setMultiSigPubKey(ProtoUtil.byteArrayOrNullFromProto(proto.getMultiSigPubKey()));
+            TradePeer tradePeer = new TradePeer();
+            tradePeer.setNodeAddress(proto.hasNodeAddress() ? NodeAddress.fromProto(proto.getNodeAddress()) : null);
+            tradePeer.setPubKeyRing(proto.hasPubKeyRing() ? PubKeyRing.fromProto(proto.getPubKeyRing()) : null);
+            tradePeer.setChangeOutputValue(proto.getChangeOutputValue());
+            tradePeer.setAccountId(ProtoUtil.stringOrNullFromProto(proto.getAccountId()));
+            tradePeer.setPaymentAccountId(ProtoUtil.stringOrNullFromProto(proto.getPaymentAccountId()));
+            tradePeer.setPaymentMethodId(ProtoUtil.stringOrNullFromProto(proto.getPaymentMethodId()));
+            tradePeer.setPaymentAccountPayloadHash(proto.getPaymentAccountPayloadHash().toByteArray());
+            tradePeer.setEncryptedPaymentAccountPayload(proto.getEncryptedPaymentAccountPayload().toByteArray());
+            tradePeer.setPaymentAccountKey(ProtoUtil.byteArrayOrNullFromProto(proto.getPaymentAccountKey()));
+            tradePeer.setPaymentAccountPayload(proto.hasPaymentAccountPayload() ? coreProtoResolver.fromProto(proto.getPaymentAccountPayload()) : null);
+            tradePeer.setPayoutAddressString(ProtoUtil.stringOrNullFromProto(proto.getPayoutAddressString()));
+            tradePeer.setContractAsJson(ProtoUtil.stringOrNullFromProto(proto.getContractAsJson()));
+            tradePeer.setContractSignature(ProtoUtil.stringOrNullFromProto(proto.getContractSignature()));
+            tradePeer.setSignature(ProtoUtil.byteArrayOrNullFromProto(proto.getSignature()));
+            tradePeer.setPubKeyRing(proto.hasPubKeyRing() ? PubKeyRing.fromProto(proto.getPubKeyRing()) : null);
+            tradePeer.setMultiSigPubKey(ProtoUtil.byteArrayOrNullFromProto(proto.getMultiSigPubKey()));
             List<RawTransactionInput> rawTransactionInputs = proto.getRawTransactionInputsList().isEmpty() ?
                     null :
                     proto.getRawTransactionInputsList().stream()
                             .map(RawTransactionInput::fromProto)
                             .collect(Collectors.toList());
-            tradingPeer.setRawTransactionInputs(rawTransactionInputs);
-            tradingPeer.setChangeOutputAddress(ProtoUtil.stringOrNullFromProto(proto.getChangeOutputAddress()));
-            tradingPeer.setAccountAgeWitnessNonce(ProtoUtil.byteArrayOrNullFromProto(proto.getAccountAgeWitnessNonce()));
-            tradingPeer.setAccountAgeWitnessSignature(ProtoUtil.byteArrayOrNullFromProto(proto.getAccountAgeWitnessSignature()));
+            tradePeer.setRawTransactionInputs(rawTransactionInputs);
+            tradePeer.setChangeOutputAddress(ProtoUtil.stringOrNullFromProto(proto.getChangeOutputAddress()));
+            tradePeer.setAccountAgeWitnessNonce(ProtoUtil.byteArrayOrNullFromProto(proto.getAccountAgeWitnessNonce()));
+            tradePeer.setAccountAgeWitnessSignature(ProtoUtil.byteArrayOrNullFromProto(proto.getAccountAgeWitnessSignature()));
             protobuf.AccountAgeWitness protoAccountAgeWitness = proto.getAccountAgeWitness();
-            tradingPeer.setAccountAgeWitness(protoAccountAgeWitness.getHash().isEmpty() ? null : AccountAgeWitness.fromProto(protoAccountAgeWitness));
-            tradingPeer.setCurrentDate(proto.getCurrentDate());
-            tradingPeer.setMediatedPayoutTxSignature(ProtoUtil.byteArrayOrNullFromProto(proto.getMediatedPayoutTxSignature()));
-            tradingPeer.setReserveTxHash(ProtoUtil.stringOrNullFromProto(proto.getReserveTxHash()));
-            tradingPeer.setReserveTxHex(ProtoUtil.stringOrNullFromProto(proto.getReserveTxHex()));
-            tradingPeer.setReserveTxKey(ProtoUtil.stringOrNullFromProto(proto.getReserveTxKey()));
-            tradingPeer.setReserveTxKeyImages(proto.getReserveTxKeyImagesList());
-            tradingPeer.setPreparedMultisigHex(ProtoUtil.stringOrNullFromProto(proto.getPreparedMultisigHex()));
-            tradingPeer.setMadeMultisigHex(ProtoUtil.stringOrNullFromProto(proto.getMadeMultisigHex()));
-            tradingPeer.setExchangedMultisigHex(ProtoUtil.stringOrNullFromProto(proto.getExchangedMultisigHex()));
-            tradingPeer.setDepositTxHash(ProtoUtil.stringOrNullFromProto(proto.getDepositTxHash()));
-            tradingPeer.setDepositTxHex(ProtoUtil.stringOrNullFromProto(proto.getDepositTxHex()));
-            tradingPeer.setDepositTxKey(ProtoUtil.stringOrNullFromProto(proto.getDepositTxKey()));
-            tradingPeer.setUpdatedMultisigHex(ProtoUtil.stringOrNullFromProto(proto.getUpdatedMultisigHex()));
-            return tradingPeer;
+            tradePeer.setAccountAgeWitness(protoAccountAgeWitness.getHash().isEmpty() ? null : AccountAgeWitness.fromProto(protoAccountAgeWitness));
+            tradePeer.setCurrentDate(proto.getCurrentDate());
+            tradePeer.setMediatedPayoutTxSignature(ProtoUtil.byteArrayOrNullFromProto(proto.getMediatedPayoutTxSignature()));
+            tradePeer.setReserveTxHash(ProtoUtil.stringOrNullFromProto(proto.getReserveTxHash()));
+            tradePeer.setReserveTxHex(ProtoUtil.stringOrNullFromProto(proto.getReserveTxHex()));
+            tradePeer.setReserveTxKey(ProtoUtil.stringOrNullFromProto(proto.getReserveTxKey()));
+            tradePeer.setReserveTxKeyImages(proto.getReserveTxKeyImagesList());
+            tradePeer.setPreparedMultisigHex(ProtoUtil.stringOrNullFromProto(proto.getPreparedMultisigHex()));
+            tradePeer.setMadeMultisigHex(ProtoUtil.stringOrNullFromProto(proto.getMadeMultisigHex()));
+            tradePeer.setExchangedMultisigHex(ProtoUtil.stringOrNullFromProto(proto.getExchangedMultisigHex()));
+            tradePeer.setDepositTxHash(ProtoUtil.stringOrNullFromProto(proto.getDepositTxHash()));
+            tradePeer.setDepositTxHex(ProtoUtil.stringOrNullFromProto(proto.getDepositTxHex()));
+            tradePeer.setDepositTxKey(ProtoUtil.stringOrNullFromProto(proto.getDepositTxKey()));
+            tradePeer.setUpdatedMultisigHex(ProtoUtil.stringOrNullFromProto(proto.getUpdatedMultisigHex()));
+            return tradePeer;
         }
     }
 }
