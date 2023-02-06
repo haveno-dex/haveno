@@ -69,6 +69,7 @@ public class OfferBookService {
     private final JsonFileManager jsonFileManager;
     private final CoreMoneroConnectionsService connectionsService;
 
+    // poll key images of offers
     private MoneroKeyImagePoller keyImagePoller;
     private static final long KEY_IMAGE_REFRESH_PERIOD_MS_LOCAL = 20000; // 20 seconds
     private static final long KEY_IMAGE_REFRESH_PERIOD_MS_REMOTE = 300000; // 5 minutes
@@ -96,7 +97,7 @@ public class OfferBookService {
         this.connectionsService = connectionsService;
         jsonFileManager = new JsonFileManager(storageDir);
 
-        // listen for monero connection changes
+        // listen for connection changes to monerod
         connectionsService.addListener(new MoneroConnectionManagerListener() {
             @Override
             public void onConnectionChanged(MoneroRpcConnection connection) {
@@ -255,25 +256,25 @@ public class OfferBookService {
     // Private
     ///////////////////////////////////////////////////////////////////////////////////////////
 
-    private void maybeInitializeKeyImagePoller() {
-        synchronized (this) {
-            if (keyImagePoller != null) return;
-            keyImagePoller = new MoneroKeyImagePoller(connectionsService.getDaemon(), getKeyImageRefreshPeriodMs());
-            keyImagePoller.addListener(new MoneroKeyImageListener() {
-                @Override
-                public void onSpentStatusChanged(Map<String, MoneroKeyImageSpentStatus> spentStatuses) {
-                    for (String keyImage : spentStatuses.keySet()) {
-                        updateAffectedOffers(keyImage);
-                    }
+    private synchronized void maybeInitializeKeyImagePoller() {
+        if (keyImagePoller != null) return;
+        keyImagePoller = new MoneroKeyImagePoller(connectionsService.getDaemon(), getKeyImageRefreshPeriodMs());
+
+        // handle when key images spent
+        keyImagePoller.addListener(new MoneroKeyImageListener() {
+            @Override
+            public void onSpentStatusChanged(Map<String, MoneroKeyImageSpentStatus> spentStatuses) {
+                for (String keyImage : spentStatuses.keySet()) {
+                    updateAffectedOffers(keyImage);
                 }
-            });
-    
-            // first poll after 5s
-            new Thread(() -> {
-                GenUtils.waitFor(5000);
-                keyImagePoller.poll();
-            });
-        }
+            }
+        });
+
+        // first poll after 5s
+        new Thread(() -> {
+            GenUtils.waitFor(5000);
+            keyImagePoller.poll();
+        });
     }
 
     private long getKeyImageRefreshPeriodMs() {

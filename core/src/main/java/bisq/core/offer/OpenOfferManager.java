@@ -21,6 +21,8 @@ import bisq.core.account.witness.AccountAgeWitnessService;
 import bisq.core.api.CoreContext;
 import bisq.core.api.CoreMoneroConnectionsService;
 import bisq.core.btc.wallet.BtcWalletService;
+import bisq.core.btc.wallet.MoneroKeyImageListener;
+import bisq.core.btc.wallet.MoneroKeyImagePoller;
 import bisq.core.btc.wallet.TradeWalletService;
 import bisq.core.btc.wallet.XmrWalletService;
 import bisq.core.exceptions.TradePriceOutOfToleranceException;
@@ -56,6 +58,7 @@ import bisq.network.p2p.P2PService;
 import bisq.network.p2p.SendDirectMessageListener;
 import bisq.network.p2p.peers.Broadcaster;
 import bisq.network.p2p.peers.PeerManager;
+import common.utils.GenUtils;
 import bisq.common.Timer;
 import bisq.common.UserThread;
 import bisq.common.app.Capabilities;
@@ -84,6 +87,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.Map.Entry;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -92,6 +96,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import lombok.Getter;
+import monero.common.MoneroConnectionManagerListener;
+import monero.common.MoneroRpcConnection;
+import monero.daemon.model.MoneroKeyImageSpentStatus;
 import monero.wallet.model.MoneroIncomingTransfer;
 import monero.wallet.model.MoneroTxQuery;
 import monero.wallet.model.MoneroTxWallet;
@@ -114,7 +121,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
     private final KeyRing keyRing;
     private final User user;
     private final P2PService p2PService;
-    private final CoreMoneroConnectionsService connectionService;
+    private final CoreMoneroConnectionsService connectionsService;
     private final BtcWalletService btcWalletService;
     private final XmrWalletService xmrWalletService;
     private final TradeWalletService tradeWalletService;
@@ -141,6 +148,11 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
     @Getter
     private final AccountAgeWitnessService accountAgeWitnessService;
 
+    // poll key images of signed offers
+    private MoneroKeyImagePoller signedOfferKeyImagePoller;
+    private static final long KEY_IMAGE_REFRESH_PERIOD_MS_LOCAL = 20000; // 20 seconds
+    private static final long KEY_IMAGE_REFRESH_PERIOD_MS_REMOTE = 300000; // 5 minutes
+
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Constructor, Initialization
@@ -151,7 +163,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                             KeyRing keyRing,
                             User user,
                             P2PService p2PService,
-                            CoreMoneroConnectionsService connectionService,
+                            CoreMoneroConnectionsService connectionsService,
                             BtcWalletService btcWalletService,
                             XmrWalletService xmrWalletService,
                             TradeWalletService tradeWalletService,
@@ -171,7 +183,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
         this.keyRing = keyRing;
         this.user = user;
         this.p2PService = p2PService;
-        this.connectionService = connectionService;
+        this.connectionsService = connectionsService;
         this.btcWalletService = btcWalletService;
         this.xmrWalletService = xmrWalletService;
         this.tradeWalletService = tradeWalletService;
@@ -190,6 +202,16 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
 
         this.persistenceManager.initialize(openOffers, "OpenOffers", PersistenceManager.Source.PRIVATE);
         this.signedOfferPersistenceManager.initialize(signedOffers, "SignedOffers", PersistenceManager.Source.PRIVATE); // arbitrator stores reserve tx for signed offers
+
+        // listen for connection changes to monerod
+        connectionsService.addListener(new MoneroConnectionManagerListener() {
+            @Override
+            public void onConnectionChanged(MoneroRpcConnection connection) {
+                maybeInitializeKeyImagePoller();
+                signedOfferKeyImagePoller.setDaemon(connectionsService.getDaemon());
+                signedOfferKeyImagePoller.setRefreshPeriodMs(getKeyImageRefreshPeriodMs());
+            }
+        });
 
         // remove open offer if reserved funds spent
         offerBookService.addOfferBookChangedListener(new OfferBookChangedListener() {
@@ -214,7 +236,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
         persistenceManager.readPersisted(persisted -> {
                     openOffers.setAll(persisted.getList());
                     openOffers.forEach(openOffer -> openOffer.getOffer().setPriceFeedService(priceFeedService));
-                    
+
                     // read signed offers
                     signedOfferPersistenceManager.readPersisted(signedOfferPersisted -> {
                         signedOffers.setAll(signedOfferPersisted.getList());
@@ -223,6 +245,33 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                     completeHandler);
                 },
                 completeHandler);
+    }
+
+    private synchronized void maybeInitializeKeyImagePoller() {
+        if (signedOfferKeyImagePoller != null) return;
+        signedOfferKeyImagePoller = new MoneroKeyImagePoller(connectionsService.getDaemon(), getKeyImageRefreshPeriodMs());
+
+        // handle when key images confirmed spent
+        signedOfferKeyImagePoller.addListener(new MoneroKeyImageListener() {
+            @Override
+            public void onSpentStatusChanged(Map<String, MoneroKeyImageSpentStatus> spentStatuses) {
+                for (Entry<String, MoneroKeyImageSpentStatus> entry : spentStatuses.entrySet()) {
+                    if (entry.getValue() == MoneroKeyImageSpentStatus.CONFIRMED) {
+                        removeSignedOffers(entry.getKey());
+                    }
+                }
+            }
+        });
+
+        // first poll in 5s
+        new Thread(() -> {
+            GenUtils.waitFor(5000);
+            signedOfferKeyImagePoller.poll();
+        });
+    }
+
+    private long getKeyImageRefreshPeriodMs() {
+        return connectionsService.isConnectionLocal() ? KEY_IMAGE_REFRESH_PERIOD_MS_LOCAL : KEY_IMAGE_REFRESH_PERIOD_MS_REMOTE;
     }
 
     public void onAllServicesInitialized() {
@@ -264,6 +313,14 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                 lastUnlockedBalance = newUnlockedBalance;
             }
         });
+
+        // initialize key image poller for signed offers
+        maybeInitializeKeyImagePoller();
+
+        // poll spent status of key images
+        for (SignedOffer signedOffer : signedOffers.getList()) {
+            signedOfferKeyImagePoller.addKeyImages(signedOffer.getReserveTxKeyImages());
+        }
     }
 
     private void cleanUpAddressEntries() {
@@ -672,9 +729,27 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
         }
     }
 
-    private void addSignedOffer(SignedOffer openOffer) {
+    private void addSignedOffer(SignedOffer signedOffer) {
+        log.info("Adding SignedOffer offer for offer {}", signedOffer.getOfferId());
         synchronized (signedOffers) {
-            signedOffers.add(openOffer);
+            signedOffers.add(signedOffer);
+            signedOfferKeyImagePoller.addKeyImages(signedOffer.getReserveTxKeyImages());
+        }
+    }
+
+    private void removeSignedOffer(SignedOffer signedOffer) {
+        log.info("Removing SignedOffer for offer {}", signedOffer.getOfferId());
+        synchronized (signedOffers) {
+            signedOffers.remove(signedOffer);
+            signedOfferKeyImagePoller.removeKeyImages(signedOffer.getReserveTxKeyImages());
+        }
+    }
+
+    private void removeSignedOffers(String keyImage) {
+        for (SignedOffer signedOffer : new ArrayList<SignedOffer>(signedOffers.getList())) {
+            if (signedOffer.getReserveTxKeyImages().contains(keyImage)) {
+                removeSignedOffer(signedOffer);
+            }
         }
     }
 
@@ -1008,7 +1083,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
         }
 
         // Don't allow trade start if Monero node is not fully synced
-        if (!connectionService.isSyncedWithinTolerance()) {
+        if (!connectionsService.isSyncedWithinTolerance()) {
             errorMessage = "We got a handleOfferAvailabilityRequest but our chain is not synced.";
             log.info(errorMessage);
             sendAckMessage(request.getClass(), peer, request.getPubKeyRing(), request.getOfferId(), request.getUid(), false, errorMessage);
