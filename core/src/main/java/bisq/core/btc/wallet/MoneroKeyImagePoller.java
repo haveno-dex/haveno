@@ -17,6 +17,8 @@ import monero.daemon.model.MoneroKeyImageSpentStatus;
 
 /**
  * Poll for changes to the spent status of key images.
+ * 
+ * TODO: move to monero-java?
  */
 @Slf4j
 public class MoneroKeyImagePoller {
@@ -240,7 +242,7 @@ public class MoneroKeyImagePoller {
         setIsPolling(keyImages.size() > 0 && listeners.size() > 0);
     }
 
-    private void setIsPolling(boolean enabled) {
+    private synchronized void setIsPolling(boolean enabled) {
         if (enabled) {
             if (!isPolling) {
                 isPolling = true; // TODO monero-java: looper.isPolling()
