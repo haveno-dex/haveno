@@ -11,5 +11,6 @@
     </root>
 
     <logger name="io.grpc.netty" level="WARN"/>
+    <logger name="org.apache" level="WARN" />
 
 </configuration>
