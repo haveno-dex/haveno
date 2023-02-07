@@ -964,9 +964,7 @@ public class XmrWalletService {
     // -------------------------------- HELPERS -------------------------------
 
     /**
-     * Processes internally before notifying external listeners.
-     *
-     * TODO: no longer neccessary to execute on user thread?
+     * Relays wallet notifications to external listeners.
      */
     private class XmrWalletListener extends MoneroWalletListener {
 

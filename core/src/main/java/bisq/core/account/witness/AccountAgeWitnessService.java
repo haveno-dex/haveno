@@ -244,7 +244,9 @@ public class AccountAgeWitnessService {
 
     @VisibleForTesting
     public void addToMap(AccountAgeWitness accountAgeWitness) {
-        accountAgeWitnessMap.putIfAbsent(accountAgeWitness.getHashAsByteArray(), accountAgeWitness);
+        synchronized (this) {
+            accountAgeWitnessMap.putIfAbsent(accountAgeWitness.getHashAsByteArray(), accountAgeWitness);
+        }
     }
 
 
@@ -253,17 +255,19 @@ public class AccountAgeWitnessService {
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     public void publishMyAccountAgeWitness(PaymentAccountPayload paymentAccountPayload) {
-        AccountAgeWitness accountAgeWitness = getMyWitness(paymentAccountPayload);
-        P2PDataStorage.ByteArray hash = accountAgeWitness.getHashAsByteArray();
-
-        // We use first our fast lookup cache. If its in accountAgeWitnessCache it is also in accountAgeWitnessMap
-        // and we do not publish.
-        if (accountAgeWitnessCache.containsKey(hash)) {
-            return;
-        }
-
-        if (!accountAgeWitnessMap.containsKey(hash)) {
-            p2PService.addPersistableNetworkPayload(accountAgeWitness, false);
+        synchronized (this) {
+            AccountAgeWitness accountAgeWitness = getMyWitness(paymentAccountPayload);
+            P2PDataStorage.ByteArray hash = accountAgeWitness.getHashAsByteArray();
+    
+            // We use first our fast lookup cache. If its in accountAgeWitnessCache it is also in accountAgeWitnessMap
+            // and we do not publish.
+            if (accountAgeWitnessCache.containsKey(hash)) {
+                return;
+            }
+    
+            if (!accountAgeWitnessMap.containsKey(hash)) {
+                p2PService.addPersistableNetworkPayload(accountAgeWitness, false);
+            }
         }
     }
 
@@ -318,22 +322,24 @@ public class AccountAgeWitnessService {
 
     private Optional<AccountAgeWitness> getWitnessByHash(byte[] hash) {
         P2PDataStorage.ByteArray hashAsByteArray = new P2PDataStorage.ByteArray(hash);
+        synchronized (this) {
 
-        // First we look up in our fast lookup cache
-        if (accountAgeWitnessCache.containsKey(hashAsByteArray)) {
-            return Optional.of(accountAgeWitnessCache.get(hashAsByteArray));
+            // First we look up in our fast lookup cache
+            if (accountAgeWitnessCache.containsKey(hashAsByteArray)) {
+                return Optional.of(accountAgeWitnessCache.get(hashAsByteArray));
+            }
+
+            if (accountAgeWitnessMap.containsKey(hashAsByteArray)) {
+                AccountAgeWitness accountAgeWitness = accountAgeWitnessMap.get(hashAsByteArray);
+
+                // We add it to our fast lookup cache
+                accountAgeWitnessCache.put(hashAsByteArray, accountAgeWitness);
+
+                return Optional.of(accountAgeWitness);
+            }
+
+            return Optional.empty();
         }
-
-        if (accountAgeWitnessMap.containsKey(hashAsByteArray)) {
-            AccountAgeWitness accountAgeWitness = accountAgeWitnessMap.get(hashAsByteArray);
-
-            // We add it to our fast lookup cache
-            accountAgeWitnessCache.put(hashAsByteArray, accountAgeWitness);
-
-            return Optional.of(accountAgeWitness);
-        }
-
-        return Optional.empty();
     }
 
     private Optional<AccountAgeWitness> getWitnessByHashAsHex(String hashAsHex) {
@@ -548,8 +554,8 @@ public class AccountAgeWitnessService {
         if (accountAgeWitnessOptional.isPresent()) {
             peersWitness = accountAgeWitnessOptional.get();
         } else {
-            peersWitness = getNewWitness(peersPaymentAccountPayload, peersPubKeyRing);
             log.warn("We did not find the peers witness data. That is expected with peers using an older version.");
+            peersWitness = getNewWitness(peersPaymentAccountPayload, peersPubKeyRing);
         }
 
         // Check if date in witness is not older than the release date of that feature (was added in v0.6)

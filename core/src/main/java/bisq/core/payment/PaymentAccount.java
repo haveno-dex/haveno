@@ -19,8 +19,6 @@ package bisq.core.payment;
 
 import bisq.core.api.model.PaymentAccountForm;
 import bisq.core.api.model.PaymentAccountFormField;
-import bisq.core.api.model.PaymentAccountFormField.Component;
-import bisq.core.api.model.PaymentAccountFormField.FieldId;
 import bisq.core.locale.BankUtil;
 import bisq.core.locale.Country;
 import bisq.core.locale.CountryUtil;
@@ -335,7 +333,7 @@ public abstract class PaymentAccount implements PersistablePayload {
      * @param paymentAccountJsonString The json data representing a new payment account form.
      * @return A populated PaymentAccount subclass instance.
      */
-    public static PaymentAccount fromJson(String paymentAccountJsonString) {
+    public static synchronized PaymentAccount fromJson(String paymentAccountJsonString) {
         Class<? extends PaymentAccount> clazz = getPaymentAccountClassFromJson(paymentAccountJsonString);
         Gson gson = gsonBuilder.registerTypeAdapter(clazz, new PaymentAccountTypeAdapter(clazz)).create();
         return gson.fromJson(paymentAccountJsonString, clazz);

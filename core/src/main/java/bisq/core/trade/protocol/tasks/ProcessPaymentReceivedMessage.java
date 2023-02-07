@@ -79,9 +79,6 @@ public class ProcessPaymentReceivedMessage extends TradeTask {
                 }
             }
 
-            // ensure connected to monero network
-            trade.checkWalletConnection();
-
             // process payout tx unless already unlocked
             if (!trade.isPayoutUnlocked()) processPayoutTx(message);
 
