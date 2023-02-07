@@ -10,4 +10,6 @@
         <appender-ref ref="CONSOLE_APPENDER"/>
     </root>
 
+    <logger name="org.apache" level="WARN" />
+
 </configuration>
