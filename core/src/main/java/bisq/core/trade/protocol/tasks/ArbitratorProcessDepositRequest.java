@@ -119,6 +119,7 @@ public class ArbitratorProcessDepositRequest extends TradeTask {
                 // update trade state
                 log.info("Arbitrator submitted deposit txs for trade " + trade.getId());
                 trade.setState(Trade.State.ARBITRATOR_PUBLISHED_DEPOSIT_TXS);
+                processModel.getTradeManager().requestPersistence();
               
                 // create deposit response
                 DepositResponse response = new DepositResponse(
@@ -136,8 +137,8 @@ public class ArbitratorProcessDepositRequest extends TradeTask {
                 if (processModel.getTaker().getDepositTxHex() == null) log.info("Arbitrator waiting for deposit request from taker for trade " + trade.getId());
             }
 
-            // TODO (woodser): request persistence?
             complete();
+            processModel.getTradeManager().requestPersistence();
         } catch (Throwable t) {
 
             // handle error before deposits relayed

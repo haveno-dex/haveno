@@ -390,8 +390,10 @@ public abstract class Trade implements Tradable, Model {
     transient private TaskLooper txPollLooper;
     transient private Long walletRefreshPeriod;
     transient private Long syncNormalStartTime;
-    private static final long IDLE_SYNC_PERIOD_MS = 3600000; // 1 hour
+
     public static final long DEFER_PUBLISH_MS = 25000; // 25 seconds
+    private static final long IDLE_SYNC_PERIOD_MS = 3600000; // 1 hour
+    private static final long MAX_REPROCESS_DELAY_SECONDS = 7200; // max delay to reprocess messages (once per 2 hours)
     
     //  Mutable
     @Getter
@@ -457,9 +459,9 @@ public abstract class Trade implements Tradable, Model {
     @Getter
     @Setter
     private String payoutTxKey;
+    private Long payoutHeight;
+    private IdlePayoutSyncer idlePayoutSyncer;
 
-    private static final long MAX_REPROCESS_DELAY_SECONDS = 7200; // max delay to reprocess messages (once per 2 hours)
-    
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Constructors
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -587,6 +589,8 @@ public abstract class Trade implements Tradable, Model {
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     public void initialize(ProcessModelServiceProvider serviceProvider) {
+        isInitialized = true;
+
         serviceProvider.getArbitratorManager().getDisputeAgentByNodeAddress(getArbitratorNodeAddress()).ifPresent(arbitrator -> {
             getArbitrator().setPubKeyRing(arbitrator.getPubKeyRing());
         });
@@ -595,7 +599,10 @@ public abstract class Trade implements Tradable, Model {
         xmrWalletService.getConnectionsService().addListener(newConnection -> setDaemonConnection(newConnection));
 
         // check if done
-        if (isPayoutUnlocked()) return;
+        if (isPayoutUnlocked()) {
+            if (walletExists()) deleteWallet();
+            return;
+        }
 
         // handle trade state events
         tradePhaseSubscription = EasyBind.subscribe(phaseProperty, newValue -> {
@@ -638,6 +645,10 @@ public abstract class Trade implements Tradable, Model {
                     txPollLooper.stop();
                     txPollLooper = null;
                 }
+                if (idlePayoutSyncer != null) {
+                    xmrWalletService.removeWalletListener(idlePayoutSyncer);
+                    idlePayoutSyncer = null;
+                }
                 UserThread.execute(() -> {
                     if (payoutStateSubscription != null) {
                         payoutStateSubscription.unsubscribe();
@@ -647,10 +658,15 @@ public abstract class Trade implements Tradable, Model {
             }
         });
 
-        isInitialized = true;
+        // arbitrator syncs idle wallet when payout unlock expected
+        if (this instanceof ArbitratorTrade) {
+            idlePayoutSyncer = new IdlePayoutSyncer();
+            xmrWalletService.addWalletListener(idlePayoutSyncer);
+        }
 
-        // start listening to trade wallet
         if (isDepositRequested()) {
+
+            // start syncing and polling trade wallet
             updateSyncing();
 
             // allow state notifications to process before returning
@@ -782,23 +798,37 @@ public abstract class Trade implements Tradable, Model {
     public void deleteWallet() {
         synchronized (walletLock) {
             if (walletExists()) {
+                try {
 
-                // check if funds deposited but payout not unlocked
-                if (isDepositsPublished() && !isPayoutUnlocked()) {
-                    log.warn("Refusing to delete wallet for {} {} because it could be funded", getClass().getSimpleName(), getId());
-                    return;
-                }
+                    // check if funds deposited but payout not unlocked
+                    if (isDepositsPublished() && !isPayoutUnlocked()) {
+                        throw new RuntimeException("Refusing to delete wallet for " + getClass().getSimpleName() + " " + getId() + " because the deposit txs have been published but payout tx has not unlocked");
+                    }
 
-                // close and delete trade wallet
-                if (wallet != null) closeWallet();
-                xmrWalletService.deleteWallet(getWalletName());
-    
-                // delete trade wallet backups unless deposits requested and payouts not unlocked
-                if (isDepositRequested() && !isPayoutUnlocked()) {
-                    log.warn("Refusing to delete backup wallet for {} {} in the small chance it becomes funded", getClass().getSimpleName(), getId());
-                    return;
+                    // check if wallet balance > dust
+                    // TODO (monero-java): use getMakerDepositTx() but fee is not returned from daemon txs
+                    BigInteger maxBalance = isDepositsPublished()
+                            ? getWallet().getTx(getMaker().getDepositTxHash()).getFee().min(getWallet().getTx(getTaker().getDepositTxHash()).getFee())
+                            : BigInteger.ZERO;
+                    if (getWallet().getBalance().compareTo(maxBalance) > 0) {
+                        throw new RuntimeException("Refusing to delete wallet for " + getClass().getSimpleName() + " " + getId() + " because its balance is more than dust");
+                    }
+
+                    // close and delete trade wallet
+                    if (wallet != null) closeWallet();
+                    log.info("Deleting wallet for {} {}", getClass().getSimpleName(), getId());
+                    xmrWalletService.deleteWallet(getWalletName());
+        
+                    // delete trade wallet backups unless deposits requested and payouts not unlocked
+                    if (isDepositRequested() && !isPayoutUnlocked()) {
+                        throw new RuntimeException("Refusing to delete backup wallet for " + getClass().getSimpleName() + " " + getId() + " in the small chance it becomes funded");
+                    }
+                    xmrWalletService.deleteWalletBackups(getWalletName());
+                } catch (Exception e) {
+                    log.warn(e.getMessage());
+                    e.printStackTrace();
+                    setErrorMessage(e.getMessage());
                 }
-                xmrWalletService.deleteWalletBackups(getWalletName());
             } else {
                 log.warn("Multisig wallet to delete for trade {} does not exist", getId());
             }
@@ -1082,6 +1112,10 @@ public abstract class Trade implements Tradable, Model {
             }
             if (tradePhaseSubscription != null) tradePhaseSubscription.unsubscribe();
             if (payoutStateSubscription != null) payoutStateSubscription.unsubscribe();
+            if (idlePayoutSyncer != null) {
+                xmrWalletService.removeWalletListener(idlePayoutSyncer);
+                idlePayoutSyncer = null;
+            }
         }
     }
 
@@ -1739,6 +1773,54 @@ public abstract class Trade implements Tradable, Model {
 
     private void setPayoutStateUnlocked() {
         if (!isPayoutUnlocked()) setPayoutState(PayoutState.PAYOUT_UNLOCKED);
+    }
+
+    /**
+     * Listen to block notifications from the main wallet in order to sync
+     * idling trade wallets awaiting the payout to confirm or unlock.
+     */
+    private class IdlePayoutSyncer extends MoneroWalletListener {
+
+        boolean processing = false;
+
+        @Override
+        public void onNewBlock(long height) {
+            HavenoUtils.submitTask(() -> { // allow rapid notifications
+
+                // skip rapid succession blocks
+                synchronized (this) {
+                    if (processing) return;
+                    processing = true;
+                }
+
+                // skip if not idling and not waiting for payout to unlock
+                if (!isIdling() || !isPayoutPublished() || isPayoutUnlocked())  {
+                    processing = false;
+                    return; 
+                }
+
+                try {
+
+                    // get payout height if unknown
+                    if (payoutHeight == null && getPayoutTxId() != null) {
+                        MoneroTx tx = xmrWalletService.getDaemon().getTx(getPayoutTxId());
+                        if (tx.isConfirmed()) payoutHeight = tx.getHeight();
+                    }
+
+                    // sync wallet if confirm or unlock expected
+                    long currentHeight = xmrWalletService.getDaemon().getHeight();
+                    if (!isPayoutConfirmed() || (payoutHeight != null && currentHeight >= payoutHeight + XmrWalletService.NUM_BLOCKS_UNLOCK)) {
+                        log.info("Syncing idle trade wallet to update payout tx, tradeId={}", getId());
+                        syncWallet();
+                    }
+                    processing = false;
+                } catch (Exception e) {
+                    processing = false;
+                    e.printStackTrace();
+                    if (isInitialized && !isWalletConnected()) throw e;
+                }
+            });
+        }
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
