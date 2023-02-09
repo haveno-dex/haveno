@@ -67,6 +67,10 @@ public class HavenoUtils {
     public static BigInteger CENTINEROS_AU_MULTIPLIER = new BigInteger("10000");
     private static BigInteger XMR_AU_MULTIPLIER = new BigInteger("1000000000000");
 
+    // global thread pool
+    private static final int POOL_SIZE = 10;
+    private static final ExecutorService POOL = Executors.newFixedThreadPool(POOL_SIZE);
+
     // TODO: better way to share reference?
     public static ArbitrationManager arbitrationManager;
 
@@ -349,14 +353,28 @@ public class HavenoUtils {
         }
     }
 
-    // TODO: replace with GenUtils.executeTasks()
+    /**
+     * Submit tasks to a global thread pool.
+     */
+    public static Future<?> submitTask(Runnable task) {
+        return POOL.submit(task);
+    }
+
+    public static List<Future<?>> submitTasks(List<Runnable> tasks) {
+        List<Future<?>> futures = new ArrayList<Future<?>>();
+        for (Runnable task : tasks) futures.add(submitTask(task));
+        return futures;
+    }
+
+    // TODO: replace with GenUtils.executeTasks() once monero-java updated
+
     public static void executeTasks(Collection<Runnable> tasks) {
         executeTasks(tasks, tasks.size());
     }
 
-    public static void executeTasks(Collection<Runnable> tasks, int poolSize) {
+    public static void executeTasks(Collection<Runnable> tasks, int maxConcurrency) {
         if (tasks.isEmpty()) return;
-        ExecutorService pool = Executors.newFixedThreadPool(poolSize);
+        ExecutorService pool = Executors.newFixedThreadPool(maxConcurrency);
         List<Future<?>> futures = new ArrayList<Future<?>>();
         for (Runnable task : tasks) futures.add(pool.submit(task));
         pool.shutdown();
