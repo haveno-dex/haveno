@@ -743,6 +743,10 @@ public abstract class Trade implements Tradable, Model {
         }
     }
 
+    public boolean isIdling() {
+        return this instanceof ArbitratorTrade && isDepositsConfirmed() && walletExists(); // arbitrator idles trade after deposits confirm
+    }
+
     public void syncWallet() {
         if (getWallet() == null) throw new RuntimeException("Cannot sync trade wallet because it doesn't exist for " + getClass().getSimpleName() + ", " + getId());
         if (getWallet().getDaemonConnection() == null) throw new RuntimeException("Cannot sync trade wallet because it's not connected to a Monero daemon for " + getClass().getSimpleName() + ", " + getId());
@@ -750,7 +754,6 @@ public abstract class Trade implements Tradable, Model {
         getWallet().sync();
         pollWallet();
         log.info("Done syncing wallet for {} {}", getClass().getSimpleName(), getId());
-        updateWalletRefreshPeriod();
     }
 
     private void trySyncWallet() {
@@ -1634,11 +1637,16 @@ public abstract class Trade implements Tradable, Model {
     }
 
     private void updateSyncing() {
-        if (!isIdling()) trySyncWallet();
-        else {
+        if (!isIdling()) {
+            trySyncWallet();
+            updateWalletRefreshPeriod();
+        }  else {
             long startSyncingInMs = ThreadLocalRandom.current().nextLong(0, getWalletRefreshPeriod()); // random time to start syncing
             UserThread.runAfter(() -> {
-                if (isInitialized) trySyncWallet();
+                if (isInitialized) {
+                    trySyncWallet();
+                    updateWalletRefreshPeriod();
+                }
             }, startSyncingInMs / 1000l);
         }
     }
@@ -1742,10 +1750,6 @@ public abstract class Trade implements Tradable, Model {
     private long getWalletRefreshPeriod() {
         if (isIdling()) return IDLE_SYNC_PERIOD_MS;
         return xmrWalletService.getConnectionsService().getDefaultRefreshPeriodMs();
-    }
-
-    private boolean isIdling() {
-        return this instanceof ArbitratorTrade && isDepositsConfirmed(); // arbitrator idles trade after deposits confirm
     }
 
     private void setStateDepositsPublished() {
