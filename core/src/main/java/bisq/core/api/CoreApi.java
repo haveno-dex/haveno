@@ -67,7 +67,6 @@ import java.util.concurrent.TimeoutException;
 import java.util.function.Consumer;
 
 import lombok.Getter;
-import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 
 
@@ -345,10 +344,6 @@ public class CoreApi {
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Notifications
     ///////////////////////////////////////////////////////////////////////////////////////////
-
-    public interface NotificationListener {
-        void onMessage(@NonNull NotificationMessage message);
-    }
 
     public void addNotificationListener(NotificationListener listener) {
         notificationService.addListener(listener);

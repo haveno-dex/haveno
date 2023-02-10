@@ -255,10 +255,11 @@ message RegisterNotificationListenerRequest {
 
 message NotificationMessage {
     enum NotificationType {
-        APP_INITIALIZED = 0;
-        KEEP_ALIVE = 1;
-        TRADE_UPDATE = 2;
-        CHAT_MESSAGE = 3;
+        ERROR = 0;
+        APP_INITIALIZED = 1;
+        KEEP_ALIVE = 2;
+        TRADE_UPDATE = 3;
+        CHAT_MESSAGE = 4;
     }
 
     string id = 1;

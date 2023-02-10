@@ -19,6 +19,7 @@ package bisq.desktop.main.overlays.notifications;
 
 import bisq.desktop.Navigation;
 import bisq.desktop.main.MainView;
+import bisq.desktop.main.overlays.popups.Popup;
 import bisq.desktop.main.portfolio.PortfolioView;
 import bisq.desktop.main.portfolio.pendingtrades.PendingTradesView;
 import bisq.desktop.main.support.SupportView;
@@ -27,7 +28,9 @@ import bisq.desktop.main.support.dispute.agent.arbitration.ArbitratorView;
 import bisq.desktop.main.support.dispute.client.arbitration.ArbitrationClientView;
 import bisq.desktop.main.support.dispute.client.mediation.MediationClientView;
 import bisq.desktop.main.support.dispute.client.refund.RefundClientView;
-
+import bisq.proto.grpc.NotificationMessage;
+import bisq.proto.grpc.NotificationMessage.NotificationType;
+import bisq.core.api.NotificationListener;
 import bisq.core.locale.Res;
 import bisq.core.support.dispute.Dispute;
 import bisq.core.support.dispute.arbitration.ArbitrationManager;
@@ -58,6 +61,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
 
+import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 
 import javax.annotation.Nullable;
@@ -165,6 +169,16 @@ public class NotificationCenter {
                     tradePhaseSubscriptionsMap.put(tradeId, tradePhaseSubscription);
                 }
         );
+
+        // show popup for error notifications
+        tradeManager.getNotificationService().addListener(new NotificationListener() {
+            @Override
+            public void onMessage(@NonNull NotificationMessage message) {
+                if (message.getType() == NotificationType.ERROR) {
+                    new Popup().warning(message.getMessage()).show();
+                }
+            }
+        });
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -319,5 +333,4 @@ public class NotificationCenter {
             notification.show();
         }
     }
-
 }
