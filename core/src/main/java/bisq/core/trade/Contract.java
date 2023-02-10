@@ -257,6 +257,15 @@ public final class Contract implements NetworkPayload {
         return isBuyerMakerAndSellerTaker() == isMyRoleBuyer(myPubKeyRing);
     }
 
+    public boolean maybeClearSensitiveData() {
+        return false; // TODO: anything to clear?
+    }
+
+    // edits a contract json string
+    public static String sanitizeContractAsJson(String contractAsJson) {
+        return contractAsJson; // TODO: anything to sanitize?
+    }
+
     public void printDiff(@Nullable String peersContractAsJson) {
         String json = JsonUtil.objectToJson(this);
         String diff = StringUtils.difference(json, peersContractAsJson);
