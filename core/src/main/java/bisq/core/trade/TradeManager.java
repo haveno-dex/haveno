@@ -417,6 +417,13 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
         String referralId = referralIdService.getOptionalReferralId().orElse(null);
         boolean isTorNetworkNode = p2PService.getNetworkNode() instanceof TorNetworkNode;
         tradeStatisticsManager.maybeRepublishTradeStatistics(nonFailedTrades, referralId, isTorNetworkNode);
+
+        // sync idle trades once in background after active trades
+        for (Trade trade : trades) {
+            if (trade.isIdling())  {
+                HavenoUtils.submitTask(() -> trade.syncWallet());
+            }
+        }
     }
 
     private void initPersistedTrade(Trade trade) {
