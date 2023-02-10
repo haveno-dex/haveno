@@ -297,11 +297,6 @@ public class Offer implements NetworkPayload, PersistablePayload {
         return reserveAmount;
     }
 
-    // converted payload properties
-    public Coin getTxFee() {
-        return Coin.valueOf(offerPayload.getTxFee());
-    }
-
     public Coin getMakerFee() {
         return Coin.valueOf(offerPayload.getMakerFee());
     }

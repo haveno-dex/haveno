@@ -596,12 +596,10 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
                       request.getTakerNodeAddress(),
                       request.getArbitratorNodeAddress());
 
-          //System.out.println("TradeManager trade.getTradePeer().setNodeAddress(): " + sender);
-          //trade.getTradePeer().setNodeAddress(sender);
-          // TODO (woodser): what if maker's address changes while offer open, or taker's address changes after multisig deposit available? need to verify and update. see OpenOfferManager.maybeUpdatePersistedOffers()
           trade.getArbitrator().setPubKeyRing(arbitrator.getPubKeyRing());
           trade.getMaker().setPubKeyRing(trade.getOffer().getPubKeyRing());
           initTradeAndProtocol(trade, getTradeProtocol(trade));
+          trade.getSelf().setPaymentAccountId(offer.getOfferPayload().getMakerPaymentAccountId());
           trade.getSelf().setReserveTxHash(openOffer.getReserveTxHash()); // TODO (woodser): initialize in initTradeAndProtocol?
           trade.getSelf().setReserveTxHex(openOffer.getReserveTxHex());
           trade.getSelf().setReserveTxKey(openOffer.getReserveTxKey());
@@ -783,8 +781,8 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
                         trade.getProcessModel().setUseSavingsWallet(useSavingsWallet);
                         trade.getProcessModel().setFundsNeededForTradeAsLong(fundsNeededForTrade.value);
                         trade.getMaker().setPubKeyRing(trade.getOffer().getPubKeyRing());
-                        trade.getTaker().setPubKeyRing(model.getPubKeyRing());
-                        trade.getTaker().setPaymentAccountId(paymentAccountId);
+                        trade.getSelf().setPubKeyRing(model.getPubKeyRing());
+                        trade.getSelf().setPaymentAccountId(paymentAccountId);
 
                         TradeProtocol tradeProtocol = TradeProtocolFactory.getNewTradeProtocol(trade);
                         TradeProtocol prev = tradeProtocolByTradeId.put(trade.getUid(), tradeProtocol);

@@ -204,7 +204,6 @@ class EditOfferDataModel extends MutableOfferDataModel {
                 newOfferPayload.getAcceptedBankIds(),
                 offerPayload.getVersionNr(),
                 offerPayload.getBlockHeightAtOfferCreation(),
-                offerPayload.getTxFee(),
                 offerPayload.getMakerFee(),
                 offerPayload.getBuyerSecurityDeposit(),
                 offerPayload.getSellerSecurityDeposit(),

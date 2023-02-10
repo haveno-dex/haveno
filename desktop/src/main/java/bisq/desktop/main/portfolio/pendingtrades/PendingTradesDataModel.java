@@ -294,26 +294,6 @@ public class PendingTradesDataModel extends ActivatableDataModel {
         }
     }
 
-    Coin getTxFee() {
-        Trade trade = getTrade();
-        if (trade != null) {
-            if (isMaker()) {
-                Offer offer = trade.getOffer();
-                if (offer != null) {
-                    return offer.getTxFee();
-                } else {
-                    log.error("offer is null");
-                    return Coin.ZERO;
-                }
-            } else {
-                return trade.getTxFee().multiply(3);
-            }
-        } else {
-            log.error("Trade is null at getTotalFees");
-            return Coin.ZERO;
-        }
-    }
-
     @Nullable
     public PaymentAccountPayload getSellersPaymentAccountPayload() {
         if (getTrade() == null) return null;

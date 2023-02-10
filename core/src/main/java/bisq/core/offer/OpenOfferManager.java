@@ -1321,7 +1321,6 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                         originalOfferPayload.getAcceptedBankIds(),
                         originalOfferPayload.getVersionNr(),
                         originalOfferPayload.getBlockHeightAtOfferCreation(),
-                        originalOfferPayload.getTxFee(),
                         originalOfferPayload.getMakerFee(),
                         originalOfferPayload.getBuyerSecurityDeposit(),
                         originalOfferPayload.getSellerSecurityDeposit(),

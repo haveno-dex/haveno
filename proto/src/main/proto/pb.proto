@@ -59,7 +59,6 @@ message NetworkEnvelope {
         PeerPublishedDelayedPayoutTxMessage peer_published_delayed_payout_tx_message = 32;
 
         RefreshTradeStateRequest refresh_trade_state_request = 33 [deprecated = true];
-        TraderSignedWitnessMessage trader_signed_witness_message = 34 [deprecated = true];
 
         GetInventoryRequest get_inventory_request = 35;
         GetInventoryResponse get_inventory_response = 36;
@@ -435,14 +434,6 @@ message RefreshTradeStateRequest {
     NodeAddress sender_node_address = 3 [deprecated = true];
 }
 
-// Deprecated since 1.4.0
-message TraderSignedWitnessMessage {
-    string uid = 1 [deprecated = true];
-    string trade_id = 2 [deprecated = true];
-    NodeAddress sender_node_address = 3 [deprecated = true];
-    SignedWitness signed_witness = 4 [deprecated = true];
-}
-
 message ChatMessage {
     int64 date = 1;
     string trade_id = 2;
@@ -762,20 +753,19 @@ message OfferPayload {
     repeated string accepted_bank_ids = 19;
     string version_nr = 20;
     int64 block_height_at_offer_creation = 21;
-    int64 tx_fee = 22;
-    int64 maker_fee = 23;
-    int64 buyer_security_deposit = 24;
-    int64 seller_security_deposit = 25;
-    int64 max_trade_limit = 26;
-    int64 max_trade_period = 27;
-    bool use_auto_close = 28;
-    bool use_re_open_after_auto_close = 29;
-    int64 lower_close_price = 30;
-    int64 upper_close_price = 31;
-    bool is_private_offer = 32;
-    string hash_of_challenge = 33;
-    map<string, string> extra_data = 34;
-    int32 protocol_version = 35;
+    int64 maker_fee = 22;
+    int64 buyer_security_deposit = 23;
+    int64 seller_security_deposit = 24;
+    int64 max_trade_limit = 25;
+    int64 max_trade_period = 26;
+    bool use_auto_close = 27;
+    bool use_re_open_after_auto_close = 28;
+    int64 lower_close_price = 29;
+    int64 upper_close_price = 30;
+    bool is_private_offer = 31;
+    string hash_of_challenge = 32;
+    map<string, string> extra_data = 33;
+    int32 protocol_version = 34;
 
     NodeAddress arbitrator_signer = 1001;
     string arbitrator_signature = 1002;
@@ -1634,7 +1624,6 @@ message Trade {
     string payout_tx_hex = 4;
     string payout_tx_key = 5;
     int64 amount_as_long = 6;
-    int64 tx_fee_as_long = 7;
     int64 taker_fee_as_long = 8;
     int64 take_offer_date = 9;
     int64 price = 10;
