@@ -40,7 +40,6 @@ import bisq.core.trade.ClosedTradableManager;
 import bisq.core.trade.Contract;
 import bisq.core.trade.HavenoUtils;
 import bisq.core.trade.Trade;
-import bisq.core.trade.TradeDataValidation;
 import bisq.core.trade.TradeManager;
 import bisq.core.trade.protocol.TradePeer;
 import bisq.network.p2p.BootstrapListener;
@@ -67,6 +66,7 @@ import javafx.collections.ObservableList;
 
 import java.math.BigInteger;
 import java.security.KeyPair;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -101,7 +101,7 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
     private final PriceFeedService priceFeedService;
 
     @Getter
-    protected final ObservableList<TradeDataValidation.ValidationException> validationExceptions =
+    protected final ObservableList<DisputeValidation.ValidationException> validationExceptions =
             FXCollections.observableArrayList();
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -272,21 +272,14 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
         List<Dispute> disputes = getDisputeList().getList();
         disputes.forEach(dispute -> {
             try {
-                TradeDataValidation.validateDonationAddress(dispute, dispute.getDonationAddressOfDelayedPayoutTx());
-                TradeDataValidation.validateNodeAddress(dispute, dispute.getContract().getBuyerNodeAddress(), config);
-                TradeDataValidation.validateNodeAddress(dispute, dispute.getContract().getSellerNodeAddress(), config);
-            } catch (TradeDataValidation.AddressException | TradeDataValidation.NodeAddressException e) {
+                DisputeValidation.validateNodeAddresses(dispute, config);
+            } catch (DisputeValidation.ValidationException e) {
                 log.error(e.toString());
                 validationExceptions.add(e);
             }
         });
 
-        // TODO (woodser): disabled for xmr, needed?
-//        TradeDataValidation.testIfAnyDisputeTriedReplay(disputes,
-//                disputeReplayException -> {
-//                    log.error(disputeReplayException.toString());
-//                    validationExceptions.add(disputeReplayException);
-//                });
+        maybeClearSensitiveData();
     }
 
     public boolean isTrader(Dispute dispute) {
@@ -302,6 +295,16 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
             }
             return disputeList.stream().filter(e -> e.getTradeId().equals(tradeId)).findAny();
         }
+    }
+
+    public void maybeClearSensitiveData() {
+        log.info("{} checking closed disputes eligibility for having sensitive data cleared", super.getClass().getSimpleName());
+        Instant safeDate = closedTradableManager.getSafeDateForSensitiveDataClearing();
+        getDisputeList().getList().stream()
+                .filter(e -> e.isClosed())
+                .filter(e -> e.getOpeningDate().toInstant().isBefore(safeDate))
+                .forEach(Dispute::maybeClearSensitiveData);
+        requestPersistence();
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -457,14 +460,12 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
     
             // validate dispute
             try {
-                TradeDataValidation.validatePaymentAccountPayload(dispute);
-                TradeDataValidation.validateDonationAddress(dispute.getDonationAddressOfDelayedPayoutTx());
-                //TradeDataValidation.testIfDisputeTriesReplay(dispute, disputeList.getList()); // TODO (woodser): disabled for xmr, needed?
-                TradeDataValidation.validateNodeAddress(dispute, contract.getBuyerNodeAddress(), config);
-                TradeDataValidation.validateNodeAddress(dispute, contract.getSellerNodeAddress(), config);
-            } catch (TradeDataValidation.AddressException |
-                    TradeDataValidation.NodeAddressException |
-                    TradeDataValidation.InvalidPaymentAccountPayloadException e) {
+                DisputeValidation.validateDisputeData(dispute);
+                DisputeValidation.validateNodeAddresses(dispute, config);
+                DisputeValidation.validateSenderNodeAddress(dispute, message.getSenderNodeAddress());
+                DisputeValidation.validatePaymentAccountPayload(dispute);
+                //DisputeValidation.testIfDisputeTriesReplay(dispute, disputeList.getList());
+            } catch (DisputeValidation.ValidationException e) {
                 validationExceptions.add(e);
                 throw e;
             }
