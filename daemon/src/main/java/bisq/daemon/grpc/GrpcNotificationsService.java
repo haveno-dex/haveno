@@ -1,8 +1,7 @@
 package bisq.daemon.grpc;
 
 import bisq.core.api.CoreApi;
-import bisq.core.api.CoreApi.NotificationListener;
-
+import bisq.core.api.NotificationListener;
 import bisq.proto.grpc.NotificationMessage;
 import bisq.proto.grpc.NotificationsGrpc.NotificationsImplBase;
 import bisq.proto.grpc.RegisterNotificationListenerRequest;

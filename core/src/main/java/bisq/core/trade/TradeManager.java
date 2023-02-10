@@ -125,6 +125,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
     private final KeyRing keyRing;
     private final CoreAccountService accountService;
     private final XmrWalletService xmrWalletService;
+    @Getter
     private final CoreNotificationService notificationService;
     private final OfferBookService offerBookService;
     private final OpenOfferManager openOfferManager;
@@ -328,7 +329,6 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
                 trade.shutDown();
             } catch (Exception e) {
                 log.warn("Error closing trade subprocess. Was Haveno stopped manually with ctrl+c?");
-                e.printStackTrace();
             }
         });
         HavenoUtils.executeTasks(tasks);

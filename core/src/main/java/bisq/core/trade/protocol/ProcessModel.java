@@ -33,7 +33,6 @@ import bisq.core.support.dispute.arbitration.arbitrator.ArbitratorManager;
 import bisq.core.support.dispute.mediation.mediator.MediatorManager;
 import bisq.core.support.dispute.messages.DisputeClosedMessage;
 import bisq.core.support.dispute.refund.refundagent.RefundAgentManager;
-import bisq.core.trade.MakerTrade;
 import bisq.core.trade.Trade;
 import bisq.core.trade.TradeManager;
 import bisq.core.trade.messages.PaymentReceivedMessage;

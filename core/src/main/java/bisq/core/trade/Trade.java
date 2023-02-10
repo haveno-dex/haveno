@@ -831,6 +831,7 @@ public abstract class Trade implements Tradable, Model {
                     log.warn(e.getMessage());
                     e.printStackTrace();
                     setErrorMessage(e.getMessage());
+                    processModel.getTradeManager().getNotificationService().sendErrorNotification("Error", e.getMessage());
                 }
             } else {
                 log.warn("Multisig wallet to delete for trade {} does not exist", getId());
