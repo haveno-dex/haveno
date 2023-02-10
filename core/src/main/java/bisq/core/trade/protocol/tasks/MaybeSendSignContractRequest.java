@@ -87,7 +87,7 @@ public class MaybeSendSignContractRequest extends TradeTask {
           trade.getSelf().setDepositTxHash(depositTx.getHash());
           trade.getSelf().setReserveTxKeyImages(reservedKeyImages);
           trade.getSelf().setPayoutAddressString(trade.getXmrWalletService().getAddressEntry(processModel.getOffer().getId(), XmrAddressEntry.Context.TRADE_PAYOUT).get().getAddressString()); // TODO (woodser): allow custom payout address?
-          trade.getSelf().setPaymentAccountPayload(trade.getProcessModel().getPaymentAccountPayload(trade));
+          trade.getSelf().setPaymentAccountPayload(trade.getProcessModel().getPaymentAccountPayload(trade.getSelf().getPaymentAccountId()));
 
           // maker signs deposit hash nonce to avoid challenge protocol
           byte[] sig = null;

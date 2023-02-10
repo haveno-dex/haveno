@@ -325,8 +325,6 @@ public abstract class Trade implements Tradable, Model {
     @Getter
     private final Offer offer;
     @Getter
-    private final long txFeeAsLong;
-    @Getter
     private final long takerFeeAsLong;
 
     // Added in 1.5.1
@@ -486,7 +484,6 @@ public abstract class Trade implements Tradable, Model {
         this.processModel = processModel;
         this.uid = uid;
 
-        this.txFeeAsLong = txFee.value;
         this.takerFeeAsLong = takerFee.value;
         this.takeOfferDate = new Date().getTime();
         this.tradeListeners = new ArrayList<TradeListener>();
@@ -830,10 +827,10 @@ public abstract class Trade implements Tradable, Model {
                 isBuyerMakerAndSellerTaker,
                 this instanceof MakerTrade ? processModel.getAccountId() : getMaker().getAccountId(), // maker account id
                 this instanceof TakerTrade ? processModel.getAccountId() : getTaker().getAccountId(), // taker account id
-                checkNotNull(this instanceof MakerTrade ? processModel.getPaymentAccountPayload(this).getPaymentMethodId() : getOffer().getOfferPayload().getPaymentMethodId()), // maker payment method id
-                checkNotNull(this instanceof TakerTrade ? processModel.getPaymentAccountPayload(this).getPaymentMethodId() : getTaker().getPaymentMethodId()), // taker payment method id
-                this instanceof MakerTrade ? processModel.getPaymentAccountPayload(this).getHash() : getMaker().getPaymentAccountPayloadHash(), // maker payment account payload hash
-                this instanceof TakerTrade ? processModel.getPaymentAccountPayload(this).getHash() : getTaker().getPaymentAccountPayloadHash(), // maker payment account payload hash
+                checkNotNull(this instanceof MakerTrade ? getMaker().getPaymentAccountPayload().getPaymentMethodId() : getOffer().getOfferPayload().getPaymentMethodId()),
+                checkNotNull(this instanceof TakerTrade ? getTaker().getPaymentAccountPayload().getPaymentMethodId() : getTaker().getPaymentMethodId()),
+                this instanceof MakerTrade ? getMaker().getPaymentAccountPayload().getHash() : getMaker().getPaymentAccountPayloadHash(),
+                this instanceof TakerTrade ? getTaker().getPaymentAccountPayload().getHash() : getTaker().getPaymentAccountPayloadHash(),
                 getMaker().getPubKeyRing(),
                 getTaker().getPubKeyRing(),
                 this instanceof MakerTrade ? xmrWalletService.getAddressEntry(getId(), XmrAddressEntry.Context.TRADE_PAYOUT).get().getAddressString() : getMaker().getPayoutAddressString(), // maker payout address
@@ -1219,6 +1216,7 @@ public abstract class Trade implements Tradable, Model {
         payoutTxId = payoutTx.getHash();
         if ("".equals(payoutTxId)) payoutTxId = null; // tx hash is empty until signed
         payoutTxKey = payoutTx.getKey();
+        for (Dispute dispute : getDisputes()) dispute.setDisputePayoutTxId(payoutTxId);
     }
 
     public void setErrorMessage(String errorMessage) {
@@ -1751,7 +1749,6 @@ public abstract class Trade implements Tradable, Model {
     public Message toProtoMessage() {
         protobuf.Trade.Builder builder = protobuf.Trade.newBuilder()
                 .setOffer(offer.toProtoMessage())
-                .setTxFeeAsLong(txFeeAsLong)
                 .setTakerFeeAsLong(takerFeeAsLong)
                 .setTakeOfferDate(takeOfferDate)
                 .setProcessModel(processModel.toProtoMessage())
@@ -1821,7 +1818,6 @@ public abstract class Trade implements Tradable, Model {
     public String toString() {
         return "Trade{" +
                 "\n     offer=" + offer +
-                ",\n     txFeeAsLong=" + txFeeAsLong +
                 ",\n     takerFeeAsLong=" + takerFeeAsLong +
                 ",\n     takeOfferDate=" + takeOfferDate +
                 ",\n     processModel=" + processModel +

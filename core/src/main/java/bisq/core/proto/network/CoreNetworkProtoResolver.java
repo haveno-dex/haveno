@@ -46,7 +46,6 @@ import bisq.core.trade.messages.PaymentReceivedMessage;
 import bisq.core.trade.messages.RefreshTradeStateRequest;
 import bisq.core.trade.messages.SignContractRequest;
 import bisq.core.trade.messages.SignContractResponse;
-import bisq.core.trade.messages.TraderSignedWitnessMessage;
 
 import bisq.network.p2p.AckMessage;
 import bisq.network.p2p.BundleOfEnvelopes;
@@ -157,9 +156,6 @@ public class CoreNetworkProtoResolver extends CoreProtoResolver implements Netwo
                     return PaymentSentMessage.fromProto(proto.getPaymentSentMessage(), messageVersion);
                 case PAYMENT_RECEIVED_MESSAGE:
                     return PaymentReceivedMessage.fromProto(proto.getPaymentReceivedMessage(), messageVersion);
-
-                case TRADER_SIGNED_WITNESS_MESSAGE:
-                    return TraderSignedWitnessMessage.fromProto(proto.getTraderSignedWitnessMessage(), messageVersion);
 
                 case MEDIATED_PAYOUT_TX_SIGNATURE_MESSAGE:
                     return MediatedPayoutTxSignatureMessage.fromProto(proto.getMediatedPayoutTxSignatureMessage(), messageVersion);

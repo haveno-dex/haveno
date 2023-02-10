@@ -292,18 +292,6 @@ public class PendingTradesViewModel extends ActivatableWithDataModel<PendingTrad
                 : "";
     }
 
-    public String getTxFee() {
-        if (trade != null && trade.getAmount() != null) {
-            Coin txFee = dataModel.getTxFee();
-            String percentage = GUIUtil.getPercentageOfTradeAmount(txFee,
-                    trade.getAmount(),
-                    Coin.ZERO);
-            return btcFormatter.formatCoinWithCode(txFee) + percentage;
-        } else {
-            return "";
-        }
-    }
-
     public String getTradeFee() {
         if (trade != null && dataModel.getOffer() != null && trade.getAmount() != null) {
             checkNotNull(dataModel.getTrade());

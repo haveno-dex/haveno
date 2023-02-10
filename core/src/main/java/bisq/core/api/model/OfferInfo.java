@@ -156,7 +156,6 @@ public class OfferInfo implements Payload {
                 .withVolume(roundedVolume)
                 .withMinVolume(roundedMinVolume)
                 .withMakerFee(HavenoUtils.centinerosToAtomicUnits(offer.getMakerFee().value).longValueExact())
-                .withTxFee(HavenoUtils.centinerosToAtomicUnits(offer.getTxFee().value).longValueExact())
                 .withOfferFeePaymentTxId(offer.getOfferFeePaymentTxId())
                 .withBuyerSecurityDeposit(HavenoUtils.centinerosToAtomicUnits(offer.getBuyerSecurityDeposit().value).longValueExact())
                 .withSellerSecurityDeposit(HavenoUtils.centinerosToAtomicUnits(offer.getSellerSecurityDeposit().value).longValueExact())

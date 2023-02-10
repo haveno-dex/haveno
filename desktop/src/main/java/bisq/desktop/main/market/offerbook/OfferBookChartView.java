@@ -204,7 +204,7 @@ public class OfferBookChartView extends ActivatableViewAndModel<VBox, OfferBookC
             CurrencyListItem selectedItem = currencyComboBox.getSelectionModel().getSelectedItem();
             if (selectedItem != null) {
                 model.onSetTradeCurrency(selectedItem.tradeCurrency);
-                updateChartData();
+                UserThread.execute(() -> updateChartData());
             }
         });
 
@@ -290,7 +290,7 @@ public class OfferBookChartView extends ActivatableViewAndModel<VBox, OfferBookC
     }
 
     private void createListener() {
-        changeListener = c -> updateChartData();
+        changeListener = c -> UserThread.execute(() -> updateChartData());
 
         currencyListItemsListener = c -> {
             if (model.getSelectedCurrencyListItem().isPresent())
@@ -353,17 +353,15 @@ public class OfferBookChartView extends ActivatableViewAndModel<VBox, OfferBookC
         chartPane.getChildren().add(areaChart);
     }
 
-    private void updateChartData() {
-        UserThread.execute(() -> {
-            seriesBuy.getData().clear();
-            seriesSell.getData().clear();
-            areaChart.getData().clear();
+    private synchronized void updateChartData() {
+        seriesBuy.getData().clear();
+        seriesSell.getData().clear();
+        areaChart.getData().clear();
 
-            seriesBuy.getData().addAll(filterOutliersBuy(model.getBuyData()));
-            seriesSell.getData().addAll(filterOutliersSell(model.getSellData()));
+        seriesBuy.getData().addAll(filterOutliersBuy(model.getBuyData()));
+        seriesSell.getData().addAll(filterOutliersSell(model.getSellData()));
 
-            areaChart.getData().addAll(List.of(seriesBuy, seriesSell));
-        });
+        areaChart.getData().addAll(List.of(seriesBuy, seriesSell));
     }
 
     List<XYChart.Data<Number, Number>> filterOutliersBuy(List<XYChart.Data<Number, Number>> buy) {

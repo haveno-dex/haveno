@@ -65,7 +65,6 @@ public class TradeInfo implements Payload {
     private final String shortId;
     private final long date;
     private final String role;
-    private final long txFeeAsLong;
     private final long takerFeeAsLong;
     private final String makerDepositTxId;
     private final String takerDepositTxId;
@@ -100,7 +99,6 @@ public class TradeInfo implements Payload {
         this.shortId = builder.getShortId();
         this.date = builder.getDate();
         this.role = builder.getRole();
-        this.txFeeAsLong = builder.getTxFeeAsLong();
         this.takerFeeAsLong = builder.getTakerFeeAsLong();
         this.makerDepositTxId = builder.getMakerDepositTxId();
         this.takerDepositTxId = builder.getTakerDepositTxId();
@@ -158,7 +156,6 @@ public class TradeInfo implements Payload {
                 .withShortId(trade.getShortId())
                 .withDate(trade.getDate().getTime())
                 .withRole(role == null ? "" : role)
-                .withTxFeeAsLong(trade.getTxFeeAsLong())
                 .withTakerFeeAsLong(trade.getTakerFeeAsLong())
                 .withMakerDepositTxId(trade.getMaker().getDepositTxHash())
                 .withTakerDepositTxId(trade.getTaker().getDepositTxHash())
@@ -202,7 +199,6 @@ public class TradeInfo implements Payload {
                 .setShortId(shortId)
                 .setDate(date)
                 .setRole(role)
-                .setTxFeeAsLong(txFeeAsLong)
                 .setTakerFeeAsLong(takerFeeAsLong)
                 .setMakerDepositTxId(makerDepositTxId == null ? "" : makerDepositTxId)
                 .setTakerDepositTxId(takerDepositTxId == null ? "" : takerDepositTxId)
@@ -240,7 +236,6 @@ public class TradeInfo implements Payload {
                 .withShortId(proto.getShortId())
                 .withDate(proto.getDate())
                 .withRole(proto.getRole())
-                .withTxFeeAsLong(proto.getTxFeeAsLong())
                 .withTakerFeeAsLong(proto.getTakerFeeAsLong())
                 .withMakerDepositTxId(proto.getMakerDepositTxId())
                 .withTakerDepositTxId(proto.getTakerDepositTxId())
@@ -278,7 +273,6 @@ public class TradeInfo implements Payload {
                 ", shortId='" + shortId + '\'' + "\n" +
                 ", date='" + date + '\'' + "\n" +
                 ", role='" + role + '\'' + "\n" +
-                ", txFeeAsLong='" + txFeeAsLong + '\'' + "\n" +
                 ", takerFeeAsLong='" + takerFeeAsLong + '\'' + "\n" +
                 ", makerDepositTxId='" + makerDepositTxId + '\'' + "\n" +
                 ", takerDepositTxId='" + takerDepositTxId + '\'' + "\n" +

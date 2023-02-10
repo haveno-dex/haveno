@@ -98,7 +98,6 @@ public class OfferMaker {
                     null,
                     "2",
                     lookup.valueOf(blockHeight, 700000L),
-                    lookup.valueOf(txFee, 250L),
                     lookup.valueOf(makerFee, 1000L),
                     lookup.valueOf(buyerSecurityDeposit, 10000L),
                     lookup.valueOf(sellerSecurityDeposit, 10000L),

@@ -43,7 +43,6 @@ class ClosedTradeTableBuilder extends AbstractTradeListBuilder {
                 colAmount.asStringColumn(),
                 colMixedAmount.justify(),
                 colCurrency,
-                colMinerTxFee.asStringColumn(),
                 colMixedTradeFee.asStringColumn(),
                 colBuyerDeposit.asStringColumn(),
                 colSellerDeposit.asStringColumn(),
@@ -61,7 +60,6 @@ class ClosedTradeTableBuilder extends AbstractTradeListBuilder {
             colAmount.addRow(t.getAmountAsLong());
             colMixedAmount.addRow(t.getTradeVolume());
             colCurrency.addRow(toPaymentCurrencyCode.apply(t));
-            colMinerTxFee.addRow(toMyMinerTxFee.apply(t));
 
             colMixedTradeFee.addRow(toTradeFeeBtc.apply(t), false);
 

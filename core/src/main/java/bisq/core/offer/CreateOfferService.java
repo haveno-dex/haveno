@@ -201,7 +201,6 @@ public class CreateOfferService {
                 acceptedBanks,
                 Version.VERSION,
                 xmrWalletService.getWallet().getHeight(),
-                0, // todo: remove txFeeToUse from data model
                 makerFeeAsCoin.value,
                 buyerSecurityDepositAsCoin.value,
                 sellerSecurityDepositAsCoin.value,

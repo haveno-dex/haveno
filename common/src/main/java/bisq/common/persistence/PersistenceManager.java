@@ -457,7 +457,7 @@ public class PersistenceManager<T extends PersistableEnvelope> {
         persistNow(completeHandler, false);
     }
 
-    private void persistNow(@Nullable Runnable completeHandler, boolean force) {
+    private synchronized void persistNow(@Nullable Runnable completeHandler, boolean force) {
         long ts = System.currentTimeMillis();
         try {
             // The serialisation is done on the user thread to avoid threading issue with potential mutations of the

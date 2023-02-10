@@ -223,11 +223,6 @@ public class TradeDetailsWindow extends Overlay<TradeDetailsWindow> {
                 formatter.formatCoinWithCode(offer.getSellerSecurityDeposit());
         addConfirmationLabelTextField(gridPane, ++rowIndex, Res.get("shared.securityDeposit"), securityDeposit);
 
-        String txFee = Res.get("shared.makerTxFee", formatter.formatCoinWithCode(offer.getTxFee())) +
-                " / " +
-                Res.get("shared.takerTxFee", formatter.formatCoinWithCode(trade.getTxFee().multiply(3)));
-        addConfirmationLabelTextField(gridPane, ++rowIndex, Res.get("tradeDetailsWindow.txFee"), txFee);
-
         NodeAddress arbitratorNodeAddress = trade.getArbitratorNodeAddress();
         if (arbitratorNodeAddress != null) {
             addConfirmationLabelTextField(gridPane, ++rowIndex,
