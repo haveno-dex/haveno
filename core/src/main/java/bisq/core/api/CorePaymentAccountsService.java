@@ -86,7 +86,6 @@ class CorePaymentAccountsService {
         List<TradeCurrency> tradeCurrencies = paymentAccount.getTradeCurrencies();
         if (singleTradeCurrency != null) {
             paymentAccount.setSelectedTradeCurrency(singleTradeCurrency);
-            return;
         } else if (tradeCurrencies != null && !tradeCurrencies.isEmpty()) {
             if (tradeCurrencies.contains(CurrencyUtil.getDefaultTradeCurrency())) {
                 paymentAccount.setSelectedTradeCurrency(CurrencyUtil.getDefaultTradeCurrency());
@@ -135,6 +134,7 @@ class CorePaymentAccountsService {
                                                       String address,
                                                       boolean tradeInstant) {
         accountService.checkAccountOpen();
+        verifyAccountNameUnique(accountName);
         verifyCryptoCurrencyAddress(currencyCode.toUpperCase(), address);
         AssetAccount cryptoCurrencyAccount = tradeInstant
                 ? (InstantCryptoCurrencyAccount) PaymentAccountFactory.getPaymentAccount(PaymentMethod.BLOCK_CHAINS_INSTANT)
@@ -145,7 +145,6 @@ class CorePaymentAccountsService {
         Optional<CryptoCurrency> cryptoCurrency = getCryptoCurrency(currencyCode.toUpperCase());
         cryptoCurrency.ifPresent(cryptoCurrencyAccount::setSingleTradeCurrency);
         user.addPaymentAccount(cryptoCurrencyAccount);
-        if (!(cryptoCurrencyAccount instanceof AssetAccount)) accountAgeWitnessService.publishMyAccountAgeWitness(cryptoCurrencyAccount.getPaymentAccountPayload()); // TODO (woodser): applies to Haveno?
         log.info("Saved crypto payment account with id {} and payment method {}.",
                 cryptoCurrencyAccount.getId(),
                 cryptoCurrencyAccount.getPaymentAccountPayload().getPaymentMethodId());
@@ -171,6 +170,12 @@ class CorePaymentAccountsService {
         // validate field with empty payment account
         PaymentAccount paymentAccount = PaymentAccountFactory.getPaymentAccount(PaymentMethod.getPaymentMethod(formId.toString()));
         paymentAccount.validateFormField(form, fieldId, value);
+    }
+
+    private void verifyAccountNameUnique(String accountName) {
+        if (getPaymentAccounts().stream().anyMatch(e -> e.getAccountName() != null &&
+                e.getAccountName().equals(accountName)))
+            throw new IllegalArgumentException(format("Account '%s' is already taken", accountName));
     }
 
     private void verifyCryptoCurrencyAddress(String cryptoCurrencyCode, String address) {
