@@ -27,9 +27,35 @@ import bisq.core.app.HavenoExecutable;
 import bisq.common.UserThread;
 import bisq.common.app.AppModule;
 import bisq.common.app.Version;
+import bisq.common.crypto.IncorrectPasswordException;
 
 import javafx.application.Application;
 import javafx.application.Platform;
+
+import javafx.stage.Modality;
+import javafx.stage.Stage;
+
+import javafx.scene.Scene;
+import javafx.scene.control.Alert;
+import javafx.scene.control.Button;
+import javafx.scene.control.ButtonType;
+import javafx.scene.control.Label;
+import javafx.scene.control.PasswordField;
+import javafx.scene.control.TextInputDialog;
+import javafx.scene.layout.VBox;
+
+import javafx.geometry.Insets;
+
+import javafx.util.Callback;
+
+import java.util.Optional;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.Callable;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.FutureTask;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -39,6 +65,8 @@ public class HavenoAppMain extends HavenoExecutable {
     public static final String DEFAULT_APP_NAME = "Haveno";
 
     private HavenoApp application;
+
+    protected CompletableFuture<String> completableFuture = new CompletableFuture<>();
 
     public HavenoAppMain() {
         super("Bisq Desktop", "bisq-desktop", DEFAULT_APP_NAME, Version.VERSION);
@@ -141,8 +169,20 @@ public class HavenoAppMain extends HavenoExecutable {
     }
 
     @Override
-    protected boolean loginAccount() {
-        log.warn("TODO: override loginAccount() to collect account password by opening popup");
-        return super.loginAccount();
+    public CompletableFuture<String> handlePasswordDialogLogin() {
+        // create the password dialog
+        TextInputDialog passwordDialog = new TextInputDialog();
+        passwordDialog.setTitle("Enter Password");
+        passwordDialog.setHeaderText("Please enter your password:");
+
+        // wait for the user to enter a password
+        Optional<String> result = passwordDialog.showAndWait();
+        if (result.isPresent()) {
+            // if the user entered a password, return it in a completed CompletableFuture
+            return CompletableFuture.completedFuture(result.get());
+        } else {
+            // if the user cancelled the dialog, return an exceptionally completed CompletableFuture
+            return CompletableFuture.failedFuture(new Exception("Password dialog cancelled"));
+        }
     }
 }

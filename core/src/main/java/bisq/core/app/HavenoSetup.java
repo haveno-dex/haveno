@@ -215,30 +215,30 @@ public class HavenoSetup {
 
     @Inject
     public HavenoSetup(DomainInitialisation domainInitialisation,
-                     P2PNetworkSetup p2PNetworkSetup,
-                     WalletAppSetup walletAppSetup,
-                     WalletsManager walletsManager,
-                     WalletsSetup walletsSetup,
-                     XmrWalletService xmrWalletService,
-                     BtcWalletService btcWalletService,
-                     P2PService p2PService,
-                     PrivateNotificationManager privateNotificationManager,
-                     SignedWitnessStorageService signedWitnessStorageService,
-                     TradeManager tradeManager,
-                     OpenOfferManager openOfferManager,
-                     Preferences preferences,
-                     User user,
-                     AlertManager alertManager,
-                     Config config,
-                     AccountAgeWitnessService accountAgeWitnessService,
-                     TorSetup torSetup,
-                     @Named(FormattingUtils.BTC_FORMATTER_KEY) CoinFormatter formatter,
-                     LocalBitcoinNode localBitcoinNode,
-                     AppStartupState appStartupState,
-                     Socks5ProxyProvider socks5ProxyProvider,
-                     MediationManager mediationManager,
-                     RefundManager refundManager,
-                     ArbitrationManager arbitrationManager) {
+                       P2PNetworkSetup p2PNetworkSetup,
+                       WalletAppSetup walletAppSetup,
+                       WalletsManager walletsManager,
+                       WalletsSetup walletsSetup,
+                       XmrWalletService xmrWalletService,
+                       BtcWalletService btcWalletService,
+                       P2PService p2PService,
+                       PrivateNotificationManager privateNotificationManager,
+                       SignedWitnessStorageService signedWitnessStorageService,
+                       TradeManager tradeManager,
+                       OpenOfferManager openOfferManager,
+                       Preferences preferences,
+                       User user,
+                       AlertManager alertManager,
+                       Config config,
+                       AccountAgeWitnessService accountAgeWitnessService,
+                       TorSetup torSetup,
+                       @Named(FormattingUtils.BTC_FORMATTER_KEY) CoinFormatter formatter,
+                       LocalBitcoinNode localBitcoinNode,
+                       AppStartupState appStartupState,
+                       Socks5ProxyProvider socks5ProxyProvider,
+                       MediationManager mediationManager,
+                       RefundManager refundManager,
+                       ArbitrationManager arbitrationManager) {
         this.domainInitialisation = domainInitialisation;
         this.p2PNetworkSetup = p2PNetworkSetup;
         this.walletAppSetup = walletAppSetup;
@@ -302,6 +302,7 @@ public class HavenoSetup {
     }
 
     public void start() {
+        log.info("HavenoSetup started...");
         // If user tried to downgrade we require a shutdown
         if (Config.baseCurrencyNetwork() == BaseCurrencyNetwork.XMR_MAINNET &&
                 hasDowngraded(downGradePreventionHandler)) {
@@ -454,11 +455,12 @@ public class HavenoSetup {
         log.info("Init wallet");
         havenoSetupListeners.forEach(HavenoSetupListener::onInitWallet);
         Runnable walletPasswordHandler = () -> {
-            log.info("Wallet password required");
+            log.info("To have gotten here, wallet password already acquired");
             havenoSetupListeners.forEach(HavenoSetupListener::onRequestWalletPassword);
             if (p2pNetworkReady.get())
                 p2PNetworkSetup.setSplashP2PNetworkAnimationVisible(true);
 
+            log.info("requestWalletPasswordHandler={}", requestWalletPasswordHandler);
             if (requestWalletPasswordHandler != null) {
                 requestWalletPasswordHandler.accept(aesKey -> {
                     walletsManager.setAesKey(aesKey);

@@ -50,11 +50,17 @@ import bisq.common.util.Utilities;
 import com.google.inject.Guice;
 import com.google.inject.Injector;
 
+import javafx.util.Callback;
+
 import java.io.Console;
 
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.FutureTask;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Supplier;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -82,12 +88,16 @@ public abstract class HavenoExecutable implements GracefulShutDownHandler, Haven
     private AtomicInteger keepRunningResult = new AtomicInteger(EXIT_SUCCESS);
     private Runnable shutdownCompletedHandler;
 
+    protected boolean isLoggedIn;
+
     public HavenoExecutable(String fullName, String scriptName, String appName, String version) {
         this.fullName = fullName;
         this.scriptName = scriptName;
         this.appName = appName;
         this.version = version;
     }
+
+    protected abstract CompletableFuture<String> handlePasswordDialogLogin();
 
     public int execute(String[] args) {
         try {
@@ -135,6 +145,9 @@ public abstract class HavenoExecutable implements GracefulShutDownHandler, Haven
     // thread the application is running and we don't run into thread interference.
     protected abstract void launchApplication();
 
+    private void loadAllPersistenceAndStartApplication() {
+        readAllPersisted(this::startApplication);
+    }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // If application is a JavaFX application we need wait for onApplicationLaunched
@@ -165,11 +178,13 @@ public abstract class HavenoExecutable implements GracefulShutDownHandler, Haven
         });
 
         // Attempt to login, subclasses should implement interactive login and or rpc login.
-        if (!isReadOnly && loginAccount()) {
-            readAllPersisted(this::startApplication);
-        } else {
+        isLoggedIn = loginAccount();
+        if (isReadOnly && !isLoggedIn) {
             log.warn("Running application in readonly mode");
             startApplication();
+        } else {
+            log.info("We are supposed to call readAllPersisted here");
+            readAllPersisted(this::startApplication);
         }
     }
 
@@ -200,20 +215,26 @@ public abstract class HavenoExecutable implements GracefulShutDownHandler, Haven
      * @return true if account is opened successfully.
      */
     protected boolean loginAccount() {
+
         if (accountService.accountExists()) {
-            log.info("Account already exists, attempting to open without password");
+            log.info("Account already exists, attempting to open");
             try {
                 accountService.openAccount(null);
             } catch (IncorrectPasswordException ipe) {
                 log.info("Account password protected, password required");
+                CompletableFuture<String> passwordFuture = handlePasswordDialogLogin();
 
-                // // TODO: collect password from ui popup
-                // try {
-                //     accountService.openAccount("abctesting123");
-                // } catch (IncorrectPasswordException e) {
-                //     log.warn("Still could not open account with hardcoded test password...");
-                //     throw new IllegalArgumentException(e);
-                // }
+                // wait for the password to be entered
+                String password;
+                try {
+                    password = passwordFuture.get();
+                    log.info("...password acquired: ******************");
+                    accountService.openAccount(password);
+                    log.info("Logged in with password");
+                } catch (InterruptedException | ExecutionException | IncorrectPasswordException e) {
+                    // handle any exceptions that may occur while waiting for the password
+                    return false;
+                }
             }
         } else if (!config.passwordRequired) {
             log.info("Creating Haveno account with null password");
@@ -243,6 +264,7 @@ public abstract class HavenoExecutable implements GracefulShutDownHandler, Haven
     }
 
     protected void readAllPersisted(Runnable completeHandler) {
+        log.info("Reading all persistence: readAllPersisted");
         readAllPersisted(null, completeHandler);
     }
 
@@ -273,6 +295,7 @@ public abstract class HavenoExecutable implements GracefulShutDownHandler, Haven
     }
 
     protected void runHavenoSetup() {
+        log.info("Running HavenoSetup...");
         HavenoSetup havenoSetup = injector.getInstance(HavenoSetup.class);
         havenoSetup.addHavenoSetupListener(this);
         havenoSetup.start();
