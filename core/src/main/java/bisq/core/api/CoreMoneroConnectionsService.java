@@ -1,5 +1,6 @@
 package bisq.core.api;
 
+import bisq.common.app.DevEnv;
 import bisq.common.config.BaseCurrencyNetwork;
 import bisq.common.config.Config;
 import bisq.core.btc.model.EncryptedConnectionList;
@@ -442,6 +443,7 @@ public final class CoreMoneroConnectionsService {
             numPeers.set(peers.get().size());
         } catch (Exception e) {
             log.warn("Could not update daemon info: " + e.getMessage());
+            if (DevEnv.isDevMode()) e.printStackTrace();
             if (connectionManager.getAutoSwitch()) connectionManager.setConnection(connectionManager.getBestAvailableConnection());
         }
     }
