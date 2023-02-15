@@ -29,6 +29,7 @@ import bisq.desktop.main.offer.offerbook.TopAltcoinOfferBookView;
 import bisq.desktop.main.overlays.popups.Popup;
 import bisq.desktop.util.GUIUtil;
 
+import bisq.core.btc.wallet.XmrWalletService;
 import bisq.core.locale.CryptoCurrency;
 import bisq.core.locale.CurrencyUtil;
 import bisq.core.locale.Res;
@@ -40,6 +41,7 @@ import bisq.common.UserThread;
 import bisq.common.util.Tuple2;
 
 import javafx.scene.control.Label;
+import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
@@ -54,9 +56,16 @@ import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 
+import lombok.extern.slf4j.Slf4j;
+
 import org.jetbrains.annotations.NotNull;
 
+
+
+import monero.daemon.model.MoneroSubmitTxResult;
+
 // Shared utils for Views
+@Slf4j
 public class OfferViewUtil {
 
     public static Label createPopOverLabel(String text) {
@@ -165,5 +174,19 @@ public class OfferViewUtil {
     public static Stream<CryptoCurrency> getMainCryptoCurrencies() {
         return CurrencyUtil.getMainCryptoCurrencies().stream().filter(cryptoCurrency ->
                 !Objects.equals(cryptoCurrency.getCode(), GUIUtil.TOP_ALTCOIN.getCode()));
+    }
+
+    public static void submitTransactionHex(XmrWalletService xmrWalletService,
+                                             TableView tableView,
+                                             String reserveTxHex) {
+        MoneroSubmitTxResult result = xmrWalletService.getDaemon().submitTxHex(reserveTxHex);
+        log.debug("submitTransactionHex: reserveTxHex={} result={}", result);
+        tableView.refresh();
+
+        if(result.isGood()) {
+            new Popup().information(Res.get("support.result.success")).show();
+        } else {
+            new Popup().attention(result.getReason()).show();
+        }
     }
 }

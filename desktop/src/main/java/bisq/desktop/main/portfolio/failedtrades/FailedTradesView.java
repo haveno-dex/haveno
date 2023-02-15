@@ -23,23 +23,26 @@ import bisq.desktop.components.AutoTooltipButton;
 import bisq.desktop.components.AutoTooltipLabel;
 import bisq.desktop.components.HyperlinkWithIcon;
 import bisq.desktop.components.InputTextField;
+import bisq.desktop.main.offer.OfferViewUtil;
 import bisq.desktop.main.overlays.popups.Popup;
 import bisq.desktop.main.overlays.windows.TradeDetailsWindow;
 import bisq.desktop.util.FormBuilder;
 import bisq.desktop.util.GUIUtil;
 
+import bisq.core.btc.wallet.XmrWalletService;
 import bisq.core.locale.Res;
 import bisq.core.offer.Offer;
 import bisq.core.trade.Contract;
+import bisq.core.trade.HavenoUtils;
 import bisq.core.trade.Trade;
 
-import bisq.common.config.Config;
 import bisq.common.util.Utilities;
+
+import org.bitcoinj.core.Coin;
 
 import com.googlecode.jcsv.writer.CSVEntryConverter;
 
 import javax.inject.Inject;
-import javax.inject.Named;
 
 import de.jensd.fx.fontawesome.AwesomeIcon;
 
@@ -50,9 +53,12 @@ import javafx.fxml.FXML;
 import javafx.stage.Stage;
 
 import javafx.scene.Scene;
+import javafx.scene.control.ContextMenu;
 import javafx.scene.control.Label;
+import javafx.scene.control.MenuItem;
 import javafx.scene.control.TableCell;
 import javafx.scene.control.TableColumn;
+import javafx.scene.control.TableRow;
 import javafx.scene.control.TableView;
 import javafx.scene.control.Tooltip;
 import javafx.scene.input.KeyCode;
@@ -107,12 +113,16 @@ public class FailedTradesView extends ActivatableViewAndModel<VBox, FailedTrades
     private EventHandler<KeyEvent> keyEventEventHandler;
     private ChangeListener<String> filterTextFieldListener;
     private Scene scene;
+    private XmrWalletService xmrWalletService;
+    private ContextMenu contextMenu;
 
     @Inject
     public FailedTradesView(FailedTradesViewModel model,
-                            TradeDetailsWindow tradeDetailsWindow) {
+                            TradeDetailsWindow tradeDetailsWindow,
+                            XmrWalletService xmrWalletService) {
         super(model);
         this.tradeDetailsWindow = tradeDetailsWindow;
+        this.xmrWalletService = xmrWalletService;
     }
 
     @Override
@@ -195,6 +205,38 @@ public class FailedTradesView extends ActivatableViewAndModel<VBox, FailedTrades
         sortedList.comparatorProperty().bind(tableView.comparatorProperty());
         tableView.setItems(sortedList);
 
+
+        contextMenu = new ContextMenu();
+        MenuItem item1 = new MenuItem(Res.get("support.contextmenu.penalize.msg", Res.get("shared.maker")));
+        MenuItem item2 = new MenuItem(Res.get("support.contextmenu.penalize.msg", Res.get("shared.taker")));
+        contextMenu.getItems().addAll(item1, item2);
+
+        tableView.setRowFactory(tv -> {
+            TableRow<FailedTradesListItem> row = new TableRow<>();
+            row.setOnContextMenuRequested(event -> {
+                contextMenu.show(row, event.getScreenX(), event.getScreenY());
+            });
+            return row;
+        });
+
+        item1.setOnAction(event -> {
+            Trade selectedFailedTrade = tableView.getSelectionModel().getSelectedItem().getTrade();
+            handleContextMenu("portfolio.failed.penalty.msg",
+                    "shared.maker",
+                    selectedFailedTrade.getMakerFee(),
+                    selectedFailedTrade.getMaker().getReserveTxHash(),
+                    selectedFailedTrade.getMaker().getReserveTxHex());
+        });
+
+        item2.setOnAction(event -> {
+            Trade selectedFailedTrade = tableView.getSelectionModel().getSelectedItem().getTrade();
+            handleContextMenu("portfolio.failed.penalty.msg",
+                    "shared.taker",
+                    selectedFailedTrade.getTakerFee(),
+                    selectedFailedTrade.getTaker().getReserveTxHash(),
+                    selectedFailedTrade.getTaker().getReserveTxHex());
+        });
+
         numItems.setText(Res.get("shared.numItemsLabel", sortedList.size()));
         exportButton.setOnAction(event -> {
             ObservableList<TableColumn<FailedTradesListItem, ?>> tableColumns = tableView.getColumns();
@@ -228,6 +270,22 @@ public class FailedTradesView extends ActivatableViewAndModel<VBox, FailedTrades
 
         filterTextField.textProperty().addListener(filterTextFieldListener);
         applyFilteredListPredicate(filterTextField.getText());
+    }
+
+    private void handleContextMenu(String msgKey, String takerOrMaker, Coin fee, String reserveTxHash, String reserveTxHex) {
+        final Trade failedTrade = tableView.getSelectionModel().getSelectedItem().getTrade();
+        log.debug("Found {} matching trade.", (failedTrade != null ? failedTrade.getId() : null));
+        if(failedTrade != null) {
+            new Popup().warning(Res.get(msgKey,
+                    HavenoUtils.formatToXmr(fee),//traderFee
+                    HavenoUtils.formatToXmr(failedTrade.getAmount().subtract(fee)),
+                    HavenoUtils.formatToXmr(failedTrade.getTxFee()),
+                    reserveTxHash,
+                    takerOrMaker)
+            ).onAction(() -> OfferViewUtil.submitTransactionHex(xmrWalletService, tableView, reserveTxHex)).show();
+        } else {
+            new Popup().error(Res.get("portfolio.failed.error.msg")).show();
+        }
     }
 
     @Override
