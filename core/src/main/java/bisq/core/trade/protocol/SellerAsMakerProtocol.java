@@ -21,6 +21,7 @@ package bisq.core.trade.protocol;
 import bisq.core.trade.SellerAsMakerTrade;
 import bisq.core.trade.Trade;
 import bisq.core.trade.messages.InitTradeRequest;
+import bisq.core.trade.protocol.tasks.ApplyFilter;
 import bisq.core.trade.protocol.tasks.MakerSendInitTradeRequest;
 import bisq.core.trade.protocol.tasks.ProcessInitTradeRequest;
 import bisq.network.p2p.NodeAddress;
@@ -56,9 +57,8 @@ public class SellerAsMakerProtocol extends SellerProtocol implements MakerProtoc
                         .with(message)
                         .from(peer))
                         .setup(tasks(
+                                ApplyFilter.class,
                                 ProcessInitTradeRequest.class,
-                                //ApplyFilter.class, // TODO (woodser): these checks apply when maker signs availability request, but not here
-                                //VerifyPeersAccountAgeWitness.class, // TODO (woodser): these checks apply after in multisig, means if rejected need to reimburse other's fee
                                 MakerSendInitTradeRequest.class)
                         .using(new TradeTaskRunner(trade,
                                 () -> {

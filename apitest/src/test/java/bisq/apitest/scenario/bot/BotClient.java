@@ -231,7 +231,7 @@ public class BotClient {
      * @return boolean
      */
     public boolean isTakerDepositFeeTxConfirmed(String tradeId) {
-        return grpcClient.getTrade(tradeId).getIsDepositUnlocked();
+        return grpcClient.getTrade(tradeId).getIsDepositsUnlocked();
     }
 
     /**
@@ -239,7 +239,7 @@ public class BotClient {
      * @param tradeId a valid trade id
      * @return boolean
      */
-    public boolean isTradePaymentStartedSent(String tradeId) {
+    public boolean isTradePaymentSentSent(String tradeId) {
         return grpcClient.getTrade(tradeId).getIsPaymentSent();
     }
 
@@ -266,8 +266,8 @@ public class BotClient {
      * or throws an exception.
      * @param tradeId
      */
-    public void sendConfirmPaymentStartedMessage(String tradeId) {
-        grpcClient.confirmPaymentStarted(tradeId);
+    public void sendConfirmPaymentSentMessage(String tradeId) {
+        grpcClient.confirmPaymentSent(tradeId);
     }
 
     /**

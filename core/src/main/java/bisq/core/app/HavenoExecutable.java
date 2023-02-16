@@ -19,7 +19,6 @@ package bisq.core.app;
 
 import bisq.core.api.AccountServiceListener;
 import bisq.core.api.CoreAccountService;
-import bisq.core.api.CoreMoneroConnectionsService;
 import bisq.core.btc.setup.WalletsSetup;
 import bisq.core.btc.wallet.BtcWalletService;
 import bisq.core.btc.wallet.XmrWalletService;
@@ -28,6 +27,7 @@ import bisq.core.provider.price.PriceFeedService;
 import bisq.core.setup.CorePersistedDataHost;
 import bisq.core.setup.CoreSetup;
 import bisq.core.support.dispute.arbitration.arbitrator.ArbitratorManager;
+import bisq.core.trade.HavenoUtils;
 import bisq.core.trade.TradeManager;
 import bisq.core.trade.statistics.TradeStatisticsManager;
 import bisq.core.trade.txproof.xmr.XmrTxProofService;
@@ -53,7 +53,7 @@ import com.google.inject.Injector;
 import javafx.util.Callback;
 
 import java.io.Console;
-
+import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
@@ -347,8 +347,10 @@ public abstract class HavenoExecutable implements GracefulShutDownHandler, Haven
             injector.getInstance(TradeStatisticsManager.class).shutDown();
             injector.getInstance(XmrTxProofService.class).shutDown();
             injector.getInstance(AvoidStandbyModeService.class).shutDown();
-            injector.getInstance(TradeManager.class).shutDown();
-            injector.getInstance(XmrWalletService.class).shutDown(!isReadOnly); // TODO: why not shut down BtcWalletService, etc? shutdown CoreMoneroConnectionsService
+            log.info("TradeManager and XmrWalletService shutdown started");
+            HavenoUtils.executeTasks(Arrays.asList( // shut down trade and main wallets at same time
+                    () -> injector.getInstance(TradeManager.class).shutDown(),
+                    () -> injector.getInstance(XmrWalletService.class).shutDown(!isReadOnly)));
             log.info("OpenOfferManager shutdown started");
             injector.getInstance(OpenOfferManager.class).shutDown(() -> {
                 log.info("OpenOfferManager shutdown completed");

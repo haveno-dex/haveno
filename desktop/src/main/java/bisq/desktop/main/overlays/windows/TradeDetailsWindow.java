@@ -204,7 +204,7 @@ public class TradeDetailsWindow extends Overlay<TradeDetailsWindow> {
             rows++;
         if (trade.hasFailed())
             rows += 2;
-        if (trade.getTradingPeerNodeAddress() != null)
+        if (trade.getTradePeerNodeAddress() != null)
             rows++;
         if (showXmrProofResult)
             rows++;
@@ -223,11 +223,6 @@ public class TradeDetailsWindow extends Overlay<TradeDetailsWindow> {
                 formatter.formatCoinWithCode(offer.getSellerSecurityDeposit());
         addConfirmationLabelTextField(gridPane, ++rowIndex, Res.get("shared.securityDeposit"), securityDeposit);
 
-        String txFee = Res.get("shared.makerTxFee", formatter.formatCoinWithCode(offer.getTxFee())) +
-                " / " +
-                Res.get("shared.takerTxFee", formatter.formatCoinWithCode(trade.getTxFee().multiply(3)));
-        addConfirmationLabelTextField(gridPane, ++rowIndex, Res.get("tradeDetailsWindow.txFee"), txFee);
-
         NodeAddress arbitratorNodeAddress = trade.getArbitratorNodeAddress();
         if (arbitratorNodeAddress != null) {
             addConfirmationLabelTextField(gridPane, ++rowIndex,
@@ -235,12 +230,12 @@ public class TradeDetailsWindow extends Overlay<TradeDetailsWindow> {
                     arbitratorNodeAddress.getFullAddress());
         }
 
-        if (trade.getTradingPeerNodeAddress() != null)
-            addConfirmationLabelTextField(gridPane, ++rowIndex, Res.get("tradeDetailsWindow.tradingPeersOnion"),
-                    trade.getTradingPeerNodeAddress().getFullAddress());
+        if (trade.getTradePeerNodeAddress() != null)
+            addConfirmationLabelTextField(gridPane, ++rowIndex, Res.get("tradeDetailsWindow.tradePeersOnion"),
+                    trade.getTradePeerNodeAddress().getFullAddress());
 
         if (showXmrProofResult) {
-            // As the window is already overloaded we replace the tradingPeersPubKeyHash field with the auto-conf state
+            // As the window is already overloaded we replace the tradePeersPubKeyHash field with the auto-conf state
             // if XMR is the currency
             addConfirmationLabelTextField(gridPane, ++rowIndex,
                     Res.get("portfolio.pending.step3_seller.autoConf.status.label"),
@@ -299,7 +294,7 @@ public class TradeDetailsWindow extends Overlay<TradeDetailsWindow> {
             textArea.scrollTopProperty().addListener(changeListener);
             textArea.setScrollTop(30);
 
-            addConfirmationLabelTextField(gridPane, ++rowIndex, Res.get("tradeDetailsWindow.tradeState"), trade.getPhase().name());
+            addConfirmationLabelTextField(gridPane, ++rowIndex, Res.get("tradeDetailsWindow.tradePhase"), trade.getPhase().name());
         }
 
         Tuple3<Button, Button, HBox> tuple = add2ButtonsWithBox(gridPane, ++rowIndex,
@@ -322,10 +317,13 @@ public class TradeDetailsWindow extends Overlay<TradeDetailsWindow> {
         viewContractButton.setOnAction(e -> {
             TextArea textArea = new HavenoTextArea();
             textArea.setText(trade.getContractAsJson());
-            String data = "Contract as json:\n";
+            String data = "Trade state: " + trade.getState();
+            data += "\nTrade payout state: " + trade.getPayoutState();
+            data += "\nTrade dispute state: " + trade.getDisputeState();
+            data += "\n\nContract as json:\n";
             data += trade.getContractAsJson();
             data += "\n\nOther detail data:";
-            if (!trade.isDepositPublished()) {
+            if (!trade.isDepositsPublished()) {
                 data += "\n\n" + (trade.getMaker() == trade.getBuyer() ? "Buyer" : "Seller") + " as maker reserve tx hex: " + trade.getMaker().getReserveTxHex();
                 data += "\n\n" + (trade.getTaker() == trade.getBuyer() ? "Buyer" : "Seller") + " as taker reserve tx hex: " + trade.getTaker().getReserveTxHex();
             }

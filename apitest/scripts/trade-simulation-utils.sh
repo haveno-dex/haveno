@@ -418,7 +418,7 @@ waitfortradepaymentreceived() {
     done
 }
 
-delayconfirmpaymentstarted() {
+delayconfirmpaymentsent() {
     # Confirm payment started after a random delay.  This should be run in the background
     # while the payee polls the trade status, waiting for the message before confirming
     # payment has been received.
@@ -428,11 +428,11 @@ delayconfirmpaymentstarted() {
     RANDOM_WAIT=$(echo $[$RANDOM % 5 + 1])
     printdate "$PAYER:  Sending 'payment sent' message to seller in $RANDOM_WAIT seconds..."
     sleeptraced "$RANDOM_WAIT"
-    CMD="$CLI_BASE --port=$PORT confirmpaymentstarted --trade-id=$OFFER_ID"
+    CMD="$CLI_BASE --port=$PORT confirmpaymentsent --trade-id=$OFFER_ID"
     printdate "$PAYER_CLI: $CMD"
     SENT_MSG=$($CMD)
-    commandalert $? "Could not send confirmpaymentstarted message."
-    # Print the confirmpaymentstarted command's console output.
+    commandalert $? "Could not send confirmpaymentsent message."
+    # Print the confirmpaymentsent command's console output.
     printdate "$SENT_MSG"
     printbreak
 }
@@ -450,8 +450,8 @@ delayconfirmpaymentreceived() {
     CMD="$CLI_BASE --port=$PORT confirmpaymentreceived --trade-id=$OFFER_ID"
     printdate "$PAYEE_CLI: $CMD"
     RCVD_MSG=$($CMD)
-    commandalert $? "Could not send confirmpaymentstarted message."
-    # Print the confirmpaymentstarted command's console output.
+    commandalert $? "Could not send confirmpaymentsent message."
+    # Print the confirmpaymentsent command's console output.
     printdate "$RCVD_MSG"
     printbreak
 }
@@ -505,7 +505,7 @@ executetrade() {
     fi
 
     # Asynchronously send a confirm payment started message after a random delay.
-    delayconfirmpaymentstarted "$PAYER" "$PAYER_PORT" "$OFFER_ID" &
+    delayconfirmpaymentsent "$PAYER" "$PAYER_PORT" "$OFFER_ID" &
 
     if [ "$DIRECTION" = "BUY" ]
     then

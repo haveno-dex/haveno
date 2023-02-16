@@ -50,6 +50,9 @@ public class MakerReserveOfferFunds extends Task<PlaceOfferModel> {
         try {
             runInterceptHook();
 
+            // verify monero connection
+            model.getXmrWalletService().getConnectionsService().verifyConnection();
+            
             // create reserve tx
             BigInteger makerFee = HavenoUtils.coinToAtomicUnits(offer.getMakerFee());
             BigInteger sendAmount = HavenoUtils.coinToAtomicUnits(offer.getDirection() == OfferDirection.BUY ? Coin.ZERO : offer.getAmount());

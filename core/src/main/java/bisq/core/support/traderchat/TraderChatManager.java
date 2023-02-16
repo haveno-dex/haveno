@@ -47,7 +47,6 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @Singleton
 public class TraderChatManager extends SupportManager {
-    private final TradeManager tradeManager;
     private final PubKeyRingProvider pubKeyRingProvider;
 
 
@@ -61,8 +60,7 @@ public class TraderChatManager extends SupportManager {
                              CoreNotificationService notificationService,
                              TradeManager tradeManager,
                              PubKeyRingProvider pubKeyRingProvider) {
-        super(p2PService, connectionService, notificationService);
-        this.tradeManager = tradeManager;
+        super(p2PService, connectionService, notificationService, tradeManager);
         this.pubKeyRingProvider = pubKeyRingProvider;
     }
 

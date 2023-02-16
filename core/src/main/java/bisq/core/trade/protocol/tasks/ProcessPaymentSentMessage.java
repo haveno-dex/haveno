@@ -44,25 +44,25 @@ public class ProcessPaymentSentMessage extends TradeTask {
             // verify signature of payment sent message
             HavenoUtils.verifyPaymentSentMessage(trade, message);
 
-            // update buyer info
+            // set state
+            processModel.setPaymentSentMessage(message);
             trade.setPayoutTxHex(message.getPayoutTxHex());
             trade.getBuyer().setUpdatedMultisigHex(message.getUpdatedMultisigHex());
-            trade.getBuyer().setPaymentSentMessage(message);
             trade.getSeller().setAccountAgeWitness(message.getSellerAccountAgeWitness());
 
             // if seller, decrypt buyer's payment account payload
             if (trade.isSeller()) trade.decryptPeerPaymentAccountPayload(message.getPaymentAccountKey());
 
             // update latest peer address
-            trade.getBuyer().setNodeAddress(processModel.getTempTradingPeerNodeAddress());
+            trade.getBuyer().setNodeAddress(processModel.getTempTradePeerNodeAddress());
 
             // set state
             String counterCurrencyTxId = message.getCounterCurrencyTxId();
             if (counterCurrencyTxId != null && counterCurrencyTxId.length() < 100) trade.setCounterCurrencyTxId(counterCurrencyTxId);
             String counterCurrencyExtraData = message.getCounterCurrencyExtraData();
             if (counterCurrencyExtraData != null && counterCurrencyExtraData.length() < 100) trade.setCounterCurrencyExtraData(counterCurrencyExtraData);
-            trade.setStateIfProgress(trade.isSeller() ? Trade.State.SELLER_RECEIVED_PAYMENT_SENT_MSG : Trade.State.BUYER_SENT_PAYMENT_SENT_MSG);
-            processModel.getTradeManager().requestPersistence();
+            trade.advanceState(trade.isSeller() ? Trade.State.SELLER_RECEIVED_PAYMENT_SENT_MSG : Trade.State.BUYER_SENT_PAYMENT_SENT_MSG);
+            trade.requestPersistence();
             complete();
         } catch (Throwable t) {
             failed(t);

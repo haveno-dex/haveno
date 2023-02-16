@@ -91,11 +91,15 @@ public class Balances {
 
     private void updatedBalances() {
         if (!xmrWalletService.isWalletReady()) return;
-        updateAvailableBalance();
-        updatePendingBalance();
-        updateReservedOfferBalance();
-        updateReservedTradeBalance();
-        updateReservedBalance();
+        try {
+            updateAvailableBalance();
+            updatePendingBalance();
+            updateReservedOfferBalance();
+            updateReservedTradeBalance();
+            updateReservedBalance();
+        } catch (Exception e) {
+            if (xmrWalletService.isWalletReady()) throw e; // ignore exception if wallet isn't ready
+        }
     }
 
     // TODO (woodser): converting to long should generally be avoided since can lose precision, but in practice these amounts are below max value

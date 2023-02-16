@@ -96,11 +96,11 @@ public class TakeSellBTCOfferTest extends AbstractTradeTest {
 
     @Test
     @Order(2)
-    public void testBobsConfirmPaymentStarted(final TestInfo testInfo) {
+    public void testBobsConfirmPaymentSent(final TestInfo testInfo) {
         try {
             var trade = bobClient.getTrade(tradeId);
             verifyTakerDepositConfirmed(trade);
-            bobClient.confirmPaymentStarted(tradeId);
+            bobClient.confirmPaymentSent(tradeId);
             sleep(6_000);
             waitForBuyerSeesPaymentInitiatedMessage(log, testInfo, bobClient, tradeId);
         } catch (StatusRuntimeException e) {

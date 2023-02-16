@@ -56,7 +56,7 @@ public class BuyerAsTakerProtocol extends BuyerProtocol implements TakerProtocol
               this.errorMessageHandler = errorMessageHandler;
               expect(phase(Trade.Phase.INIT)
                       .with(TakerEvent.TAKE_OFFER)
-                      .from(trade.getTradingPeer().getNodeAddress()))
+                      .from(trade.getTradePeer().getNodeAddress()))
                       .setup(tasks(
                               ApplyFilter.class,
                               TakerReserveTradeFunds.class,

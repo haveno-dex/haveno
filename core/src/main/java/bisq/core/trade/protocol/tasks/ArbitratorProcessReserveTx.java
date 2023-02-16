@@ -23,7 +23,7 @@ import bisq.core.offer.OfferDirection;
 import bisq.core.trade.HavenoUtils;
 import bisq.core.trade.Trade;
 import bisq.core.trade.messages.InitTradeRequest;
-import bisq.core.trade.protocol.TradingPeer;
+import bisq.core.trade.protocol.TradePeer;
 import java.math.BigInteger;
 
 import org.bitcoinj.core.Coin;
@@ -73,7 +73,7 @@ public class ArbitratorProcessReserveTx extends TradeTask {
             }
             
             // save reserve tx to model
-            TradingPeer trader = isFromTaker ? processModel.getTaker() : processModel.getMaker();
+            TradePeer trader = isFromTaker ? processModel.getTaker() : processModel.getMaker();
             trader.setReserveTxHash(request.getReserveTxHash());
             trader.setReserveTxHex(request.getReserveTxHex());
             trader.setReserveTxKey(request.getReserveTxKey());

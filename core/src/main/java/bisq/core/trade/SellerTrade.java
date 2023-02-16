@@ -63,35 +63,7 @@ public abstract class SellerTrade extends Trade {
 
     @Override
     public boolean confirmPermitted() {
-        // For altcoin there is no reason to delay BTC release as no chargeback risk
-        if (CurrencyUtil.isCryptoCurrency(getOffer().getCurrencyCode())) {
-            return true;
-        }
-
-        switch (getDisputeState()) {
-            case NO_DISPUTE:
-                return true;
-
-            case DISPUTE_REQUESTED:
-            case DISPUTE_OPENED:
-            case ARBITRATOR_SENT_DISPUTE_CLOSED_MSG:
-            case ARBITRATOR_SEND_FAILED_DISPUTE_CLOSED_MSG:
-            case ARBITRATOR_STORED_IN_MAILBOX_DISPUTE_CLOSED_MSG:
-            case ARBITRATOR_SAW_ARRIVED_DISPUTE_CLOSED_MSG:
-            case DISPUTE_CLOSED:
-            case MEDIATION_REQUESTED:
-            case MEDIATION_STARTED_BY_PEER:
-                return false;
-
-            case MEDIATION_CLOSED:
-                return !mediationResultAppliedPenaltyToSeller();
-
-            case REFUND_REQUESTED:
-            case REFUND_REQUEST_STARTED_BY_PEER:
-            case REFUND_REQUEST_CLOSED:
-            default:
-                return false;
-        }
+        return true;
     }
 }
 

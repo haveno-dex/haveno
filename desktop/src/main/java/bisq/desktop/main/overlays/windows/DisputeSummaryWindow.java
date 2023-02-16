@@ -267,9 +267,9 @@ public class DisputeSummaryWindow extends Overlay<DisputeSummaryWindow> {
         addConfirmationLabelLabel(gridPane, ++rowIndex, Res.get("disputeSummaryWindow.openDate"), DisplayUtils.formatDateTime(dispute.getOpeningDate()));
         if (dispute.isDisputeOpenerIsMaker()) {
             if (dispute.isDisputeOpenerIsBuyer())
-                role = Res.get("support.buyerOfferer");
+                role = Res.get("support.buyerMaker");
             else
-                role = Res.get("support.sellerOfferer");
+                role = Res.get("support.sellerMaker");
         } else {
             if (dispute.isDisputeOpenerIsBuyer())
                 role = Res.get("support.buyerTaker");
@@ -283,6 +283,14 @@ public class DisputeSummaryWindow extends Overlay<DisputeSummaryWindow> {
             FormattingUtils.formatPrice(contract.getPrice()));
         addConfirmationLabelLabel(gridPane, ++rowIndex, Res.get("shared.tradeVolume"),
             VolumeUtil.formatVolumeWithCode(contract.getTradeVolume()));
+        String tradeFee = Res.getWithColAndCap("shared.buyer") +
+                " " +
+                formatter.formatCoinWithCode(trade.getBuyer() == trade.getMaker() ? trade.getMakerFee() : trade.getTakerFee()) +
+                " / " +
+                Res.getWithColAndCap("shared.seller") +
+                " " +
+                formatter.formatCoinWithCode(trade.getSeller() == trade.getMaker() ? trade.getMakerFee() : trade.getTakerFee());
+        addConfirmationLabelLabel(gridPane, ++rowIndex, Res.get("shared.tradeFee"), tradeFee);
         String securityDeposit = Res.getWithColAndCap("shared.buyer") +
                 " " +
                 formatter.formatCoinWithCode(trade.getBuyerSecurityDeposit()) +

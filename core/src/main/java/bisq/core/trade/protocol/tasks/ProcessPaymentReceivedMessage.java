@@ -36,6 +36,8 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.commons.lang3.StringUtils;
+
 @Slf4j
 public class ProcessPaymentReceivedMessage extends TradeTask {
     public ProcessPaymentReceivedMessage(TaskRunner<Trade> taskHandler, Trade trade) {
@@ -46,6 +48,7 @@ public class ProcessPaymentReceivedMessage extends TradeTask {
     protected void run() {
         try {
             runInterceptHook();
+
             log.debug("current trade state " + trade.getState());
             PaymentReceivedMessage message = (PaymentReceivedMessage) processModel.getTradeMessage();
             checkNotNull(message);
@@ -54,17 +57,23 @@ public class ProcessPaymentReceivedMessage extends TradeTask {
 
             // verify signature of payment received message
             HavenoUtils.verifyPaymentReceivedMessage(trade, message);
+
+            // save message for reprocessing
+            processModel.setPaymentReceivedMessage(message);
+            trade.requestPersistence();
+
+            // set state
             trade.getSeller().setUpdatedMultisigHex(message.getUpdatedMultisigHex());
             trade.getBuyer().setUpdatedMultisigHex(message.getPaymentSentMessage().getUpdatedMultisigHex());
             trade.getBuyer().setAccountAgeWitness(message.getBuyerAccountAgeWitness());
 
             // update to the latest peer address of our peer if message is correct
-            trade.getSeller().setNodeAddress(processModel.getTempTradingPeerNodeAddress());
+            trade.getSeller().setNodeAddress(processModel.getTempTradePeerNodeAddress());
             if (trade.getSeller().getNodeAddress().equals(trade.getBuyer().getNodeAddress())) trade.getBuyer().setNodeAddress(null); // tests can reuse addresses
 
             // close open disputes
-            if (trade.getDisputeState().ordinal() >= Trade.DisputeState.DISPUTE_OPENED.ordinal()) {
-                trade.setDisputeStateIfProgress(Trade.DisputeState.DISPUTE_CLOSED);
+            if (trade.getDisputeState().ordinal() >= Trade.DisputeState.DISPUTE_REQUESTED.ordinal()) {
+                trade.advanceDisputeState(Trade.DisputeState.DISPUTE_CLOSED);
                 for (Dispute dispute : trade.getDisputes()) {
                     dispute.setIsClosed();
                 }
@@ -82,25 +91,32 @@ public class ProcessPaymentReceivedMessage extends TradeTask {
             }
 
             // complete
-            trade.setStateIfProgress(Trade.State.SELLER_SENT_PAYMENT_RECEIVED_MSG); // arbitrator auto completes when payout published
-            processModel.getTradeManager().requestPersistence();
+            trade.advanceState(Trade.State.SELLER_SENT_PAYMENT_RECEIVED_MSG); // arbitrator auto completes when payout published
+            trade.requestPersistence();
             complete();
         } catch (Throwable t) {
+
+            // do not reprocess illegal argument
+            if (t instanceof IllegalArgumentException) {
+                processModel.setPaymentReceivedMessage(null); // do not reprocess
+                trade.requestPersistence();
+            }
+
             failed(t);
         }
     }
 
     private void processPayoutTx(PaymentReceivedMessage message) {
 
+        // sync and save wallet
+        trade.syncWallet();
+        trade.saveWallet();
+
         // import multisig hex
         List<String> updatedMultisigHexes = new ArrayList<String>();
         if (trade.getSeller().getUpdatedMultisigHex() != null) updatedMultisigHexes.add(trade.getSeller().getUpdatedMultisigHex());
         if (trade.getArbitrator().getUpdatedMultisigHex() != null) updatedMultisigHexes.add(trade.getArbitrator().getUpdatedMultisigHex());
         if (!updatedMultisigHexes.isEmpty()) trade.getWallet().importMultisigHex(updatedMultisigHexes.toArray(new String[0])); // TODO (monero-project): fails if multisig hex imported individually
-
-        // sync and save wallet
-        trade.syncWallet();
-        trade.saveWallet();
 
         // handle if payout tx not published
         if (!trade.isPayoutPublished()) {
@@ -110,18 +126,23 @@ public class ProcessPaymentReceivedMessage extends TradeTask {
             if (trade instanceof ArbitratorTrade && !isSigned && message.isDeferPublishPayout()) {
                 log.info("Deferring signing and publishing payout tx for {} {}", trade.getClass().getSimpleName(), trade.getId());
                 GenUtils.waitFor(Trade.DEFER_PUBLISH_MS);
-                trade.syncWallet();
+                if (!trade.isPayoutUnlocked()) trade.syncWallet();
             }
 
             // verify and publish payout tx
             if (!trade.isPayoutPublished()) {
                 if (isSigned) {
-                    log.info("{} publishing signed payout tx from seller", trade.getClass().getSimpleName());
+                    log.info("{} {} publishing signed payout tx from seller", trade.getClass().getSimpleName(), trade.getId());
                     trade.verifyPayoutTx(message.getSignedPayoutTxHex(), false, true);
                 } else {
-                    log.info("{} verifying, signing, and publishing seller's payout tx", trade.getClass().getSimpleName());
                     try {
-                        trade.verifyPayoutTx(message.getUnsignedPayoutTxHex(), true, true);
+                        if (StringUtils.equals(trade.getPayoutTxHex(), trade.getProcessModel().getPaymentSentMessage().getPayoutTxHex())) { // unsigned
+                            log.info("{} {} verifying, signing, and publishing seller's payout tx", trade.getClass().getSimpleName(), trade.getId());
+                            trade.verifyPayoutTx(message.getUnsignedPayoutTxHex(), true, true);
+                        } else {
+                            log.info("{} {} re-verifying and publishing payout tx", trade.getClass().getSimpleName(), trade.getId());
+                            trade.verifyPayoutTx(trade.getPayoutTxHex(), false, true);
+                        }
                     } catch (Exception e) {
                         if (trade.isPayoutPublished()) log.info("Payout tx already published for {} {}", trade.getClass().getName(), trade.getId());
                         else throw e;

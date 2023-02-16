@@ -255,10 +255,11 @@ message RegisterNotificationListenerRequest {
 
 message NotificationMessage {
     enum NotificationType {
-        APP_INITIALIZED = 0;
-        KEEP_ALIVE = 1;
-        TRADE_UPDATE = 2;
-        CHAT_MESSAGE = 3;
+        ERROR = 0;
+        APP_INITIALIZED = 1;
+        KEEP_ALIVE = 2;
+        TRADE_UPDATE = 3;
+        CHAT_MESSAGE = 4;
     }
 
     string id = 1;
@@ -728,7 +729,7 @@ service Trades {
     }
     rpc TakeOffer (TakeOfferRequest) returns (TakeOfferReply) {
     }
-    rpc ConfirmPaymentStarted (ConfirmPaymentStartedRequest) returns (ConfirmPaymentStartedReply) {
+    rpc ConfirmPaymentSent (ConfirmPaymentSentRequest) returns (ConfirmPaymentSentReply) {
     }
     rpc ConfirmPaymentReceived (ConfirmPaymentReceivedRequest) returns (ConfirmPaymentReceivedReply) {
     }
@@ -752,11 +753,11 @@ message TakeOfferReply {
     AvailabilityResultWithDescription failure_reason = 2;
 }
 
-message ConfirmPaymentStartedRequest {
+message ConfirmPaymentSentRequest {
     string trade_id = 1;
 }
 
-message ConfirmPaymentStartedReply {
+message ConfirmPaymentSentReply {
 }
 
 message ConfirmPaymentReceivedRequest {
@@ -826,35 +827,34 @@ message TradeInfo {
     string short_id = 3;
     uint64 date = 4;
     string role = 5;
-    uint64 tx_fee_as_long = 7;
-    uint64 taker_fee_as_long = 8;
-    string taker_fee_tx_id = 9;
-    string payout_tx_id = 10;
-    uint64 amount_as_long = 11;
-    uint64 buyer_security_deposit = 12;
-    uint64 seller_security_deposit = 13;
-    string price = 14;
-    string arbitrator_node_address = 15;
-    string trading_peer_node_address = 16;
-    string state = 17;
-    string phase = 18;
-    string period_state = 19;
-    string payout_state = 20;
-    string dispute_state = 21;
-    bool is_deposit_published = 22;
-    bool is_deposit_confirmed = 23;
-    bool is_deposit_unlocked = 24;
-    bool is_payment_sent = 25;
-    bool is_payment_received = 26;
-    bool is_payout_published = 27;
-    bool is_payout_confirmed = 28;
-    bool is_payout_unlocked = 29;
-    bool is_completed = 30;
-    string contract_as_json = 31;
-    ContractInfo contract = 32;
-    string trade_volume = 33;
-    string maker_deposit_tx_id = 34;
-    string taker_deposit_tx_id = 35;
+    uint64 taker_fee_as_long = 6;
+    string taker_fee_tx_id = 7;
+    string payout_tx_id = 8;
+    uint64 amount_as_long = 9;
+    uint64 buyer_security_deposit = 10;
+    uint64 seller_security_deposit = 11;
+    string price = 12;
+    string arbitrator_node_address = 13;
+    string trade_peer_node_address = 14;
+    string state = 15;
+    string phase = 16;
+    string period_state = 17;
+    string payout_state = 18;
+    string dispute_state = 19;
+    bool is_deposits_published = 20;
+    bool is_deposits_confirmed = 21;
+    bool is_deposits_unlocked = 22;
+    bool is_payment_sent = 23;
+    bool is_payment_received = 24;
+    bool is_payout_published = 25;
+    bool is_payout_confirmed = 26;
+    bool is_payout_unlocked = 27;
+    bool is_completed = 28;
+    string contract_as_json = 29;
+    ContractInfo contract = 30;
+    string trade_volume = 31;
+    string maker_deposit_tx_id = 32;
+    string taker_deposit_tx_id = 33;
 }
 
 message ContractInfo {

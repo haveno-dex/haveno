@@ -127,7 +127,7 @@ public class ClosedTradesView extends ActivatableViewAndModel<VBox, ClosedTrades
     TableView<ClosedTradesListItem> tableView;
     @FXML
     TableColumn<ClosedTradesListItem, ClosedTradesListItem> priceColumn, deviationColumn, amountColumn, volumeColumn,
-            txFeeColumn, tradeFeeColumn, buyerSecurityDepositColumn, sellerSecurityDepositColumn,
+            tradeFeeColumn, buyerSecurityDepositColumn, sellerSecurityDepositColumn,
             marketColumn, directionColumn, dateColumn, tradeIdColumn, stateColumn,
             duplicateColumn, avatarColumn;
     @FXML
@@ -171,7 +171,6 @@ public class ClosedTradesView extends ActivatableViewAndModel<VBox, ClosedTrades
     @Override
     public void initialize() {
         widthListener = (observable, oldValue, newValue) -> onWidthChange((double) newValue);
-        txFeeColumn.setGraphic(new AutoTooltipLabel(ColumnNames.TX_FEE.toString()));
         tradeFeeColumn.setGraphic(new AutoTooltipLabel(ColumnNames.TRADE_FEE_BTC.toString().replace(" BTC", "")));
         buyerSecurityDepositColumn.setGraphic(new AutoTooltipLabel(ColumnNames.BUYER_SEC.toString()));
         sellerSecurityDepositColumn.setGraphic(new AutoTooltipLabel(ColumnNames.SELLER_SEC.toString()));
@@ -194,7 +193,6 @@ public class ClosedTradesView extends ActivatableViewAndModel<VBox, ClosedTrades
         setTradeIdColumnCellFactory();
         setDirectionColumnCellFactory();
         setAmountColumnCellFactory();
-        setTxFeeColumnCellFactory();
         setTradeFeeColumnCellFactory();
         setBuyerSecurityDepositColumnCellFactory();
         setSellerSecurityDepositColumnCellFactory();
@@ -218,10 +216,6 @@ public class ClosedTradesView extends ActivatableViewAndModel<VBox, ClosedTrades
         volumeColumn.setComparator(nullsFirstComparingAsTrade(Trade::getVolume));
         amountColumn.setComparator(Comparator.comparing(ClosedTradesListItem::getAmount, Comparator.nullsFirst(Comparator.naturalOrder())));
         avatarColumn.setComparator(Comparator.comparing(ClosedTradesListItem::getNumPastTrades, Comparator.nullsFirst(Comparator.naturalOrder())));
-        txFeeColumn.setComparator(nullsFirstComparing(o ->
-                o.getTradable() instanceof Trade ? ((Trade) o.getTradable()).getTxFee() : o.getTradable().getOffer().getTxFee()
-        ));
-        txFeeColumn.setComparator(Comparator.comparing(ClosedTradesListItem::getTxFeeAsString, Comparator.nullsFirst(Comparator.naturalOrder())));
 
         //
         tradeFeeColumn.setComparator(Comparator.comparing(item -> {
@@ -342,8 +336,6 @@ public class ClosedTradesView extends ActivatableViewAndModel<VBox, ClosedTrades
     }
 
     private void onWidthChange(double width) {
-        txFeeColumn.setVisible(width > 1200);
-        tradeFeeColumn.setVisible(width > 1300);
         buyerSecurityDepositColumn.setVisible(width > 1400);
         sellerSecurityDepositColumn.setVisible(width > 1500);
     }
@@ -501,9 +493,9 @@ public class ClosedTradesView extends ActivatableViewAndModel<VBox, ClosedTrades
                                 if (!empty && item != null && item.getTradable() instanceof Trade) {
                                     Trade tradeModel = (Trade) item.getTradable();
                                     int numPastTrades = item.getNumPastTrades();
-                                    NodeAddress tradingPeerNodeAddress = tradeModel.getTradingPeerNodeAddress();
+                                    NodeAddress tradePeerNodeAddress = tradeModel.getTradePeerNodeAddress();
                                     String role = Res.get("peerInfoIcon.tooltip.tradePeer");
-                                    Node peerInfoIcon = new PeerInfoIconTrading(tradingPeerNodeAddress,
+                                    Node peerInfoIcon = new PeerInfoIconTrading(tradePeerNodeAddress,
                                             role,
                                             numPastTrades,
                                             privateNotificationManager,
@@ -623,28 +615,6 @@ public class ClosedTradesView extends ActivatableViewAndModel<VBox, ClosedTrades
                                 super.updateItem(item, empty);
                                 if (item != null && !empty) {
                                     setGraphic(new AutoTooltipLabel(item.getDirectionLabel()));
-                                } else {
-                                    setGraphic(null);
-                                }
-                            }
-                        };
-                    }
-                });
-    }
-
-    private void setTxFeeColumnCellFactory() {
-        txFeeColumn.setCellValueFactory((item) -> new ReadOnlyObjectWrapper<>(item.getValue()));
-        txFeeColumn.setCellFactory(
-                new Callback<>() {
-                    @Override
-                    public TableCell<ClosedTradesListItem, ClosedTradesListItem> call(
-                            TableColumn<ClosedTradesListItem, ClosedTradesListItem> column) {
-                        return new TableCell<>() {
-                            @Override
-                            public void updateItem(final ClosedTradesListItem item, boolean empty) {
-                                super.updateItem(item, empty);
-                                if (item != null && !empty) {
-                                    setGraphic(new AutoTooltipLabel(item.getTxFeeAsString()));
                                 } else {
                                     setGraphic(null);
                                 }

@@ -25,7 +25,7 @@ import bisq.common.taskrunner.TaskRunner;
 import bisq.core.trade.Trade;
 import bisq.core.trade.messages.DepositRequest;
 import bisq.core.trade.messages.SignContractResponse;
-import bisq.core.trade.protocol.TradingPeer;
+import bisq.core.trade.protocol.TradePeer;
 import bisq.network.p2p.SendDirectMessageListener;
 import java.util.Date;
 import java.util.UUID;
@@ -54,7 +54,7 @@ public class ProcessSignContractResponse extends TradeTask {
             }
 
             // get peer info
-            TradingPeer peer = trade.getTradingPeer(processModel.getTempTradingPeerNodeAddress());
+            TradePeer peer = trade.getTradePeer(processModel.getTempTradePeerNodeAddress());
             PubKeyRing peerPubKeyRing = peer.getPubKeyRing();
 
             // save peer's encrypted payment account payload

@@ -58,7 +58,6 @@ public class CoreDisputesService {
     private final CoinFormatter formatter;
     private final KeyRing keyRing;
     private final TradeManager tradeManager;
-    private final XmrWalletService xmrWalletService;
 
     @Inject
     public CoreDisputesService(ArbitrationManager arbitrationManager,
@@ -70,7 +69,6 @@ public class CoreDisputesService {
         this.formatter = formatter;
         this.keyRing = keyRing;
         this.tradeManager = tradeManager;
-        this.xmrWalletService = xmrWalletService;
     }
 
     public List<Dispute> getDisputes() {
@@ -144,19 +142,19 @@ public class CoreDisputesService {
 
     // TODO: does not wait for success or error response
     public void resolveDispute(String tradeId, DisputeResult.Winner winner, DisputeResult.Reason reason, String summaryNotes, long customWinnerAmount) {
-        try {
 
-            // get winning dispute
-            Dispute winningDispute;
-            Trade trade = tradeManager.getTrade(tradeId);
-            var winningDisputeOptional = arbitrationManager.getDisputesAsObservableList().stream() // TODO (woodser): use getDispute()
-                    .filter(d -> tradeId.equals(d.getTradeId()))
-                    .filter(d -> trade.getTradingPeer(d.getTraderPubKeyRing()) == (winner == DisputeResult.Winner.BUYER ? trade.getBuyer() : trade.getSeller()))
-                    .findFirst();
-            if (winningDisputeOptional.isPresent()) winningDispute = winningDisputeOptional.get();
-            else throw new IllegalStateException(format("dispute for tradeId '%s' not found", tradeId));
+        // get winning dispute
+        Dispute winningDispute;
+        Trade trade = tradeManager.getTrade(tradeId);
+        var winningDisputeOptional = arbitrationManager.getDisputesAsObservableList().stream() // TODO (woodser): use getDispute()
+                .filter(d -> tradeId.equals(d.getTradeId()))
+                .filter(d -> trade.getTradePeer(d.getTraderPubKeyRing()) == (winner == DisputeResult.Winner.BUYER ? trade.getBuyer() : trade.getSeller()))
+                .findFirst();
+        if (winningDisputeOptional.isPresent()) winningDispute = winningDisputeOptional.get();
+        else throw new IllegalStateException(format("dispute for tradeId '%s' not found", tradeId));
 
-            synchronized (trade) {
+        synchronized (trade) {
+            try {
                 var closeDate = new Date();
                 var disputeResult = createDisputeResult(winningDispute, winner, reason, summaryNotes, closeDate);
 
@@ -193,9 +191,10 @@ public class CoreDisputesService {
                 }, (errMessage, err) -> {
                     throw new IllegalStateException(errMessage, err);
                 });
+            } catch (Exception e) {
+                e.printStackTrace();
+                throw new IllegalStateException(e.getMessage() == null ? ("Error resolving dispute for trade " + trade.getId()) : e.getMessage());
             }
-        } catch (Exception e) {
-            throw new IllegalStateException(e);
         }
     }
 

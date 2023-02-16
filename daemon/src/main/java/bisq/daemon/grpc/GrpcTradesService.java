@@ -23,8 +23,8 @@ import bisq.core.trade.Trade;
 
 import bisq.proto.grpc.ConfirmPaymentReceivedReply;
 import bisq.proto.grpc.ConfirmPaymentReceivedRequest;
-import bisq.proto.grpc.ConfirmPaymentStartedReply;
-import bisq.proto.grpc.ConfirmPaymentStartedRequest;
+import bisq.proto.grpc.ConfirmPaymentSentReply;
+import bisq.proto.grpc.ConfirmPaymentSentRequest;
 import bisq.proto.grpc.GetChatMessagesReply;
 import bisq.proto.grpc.GetChatMessagesRequest;
 import bisq.proto.grpc.GetTradeReply;
@@ -138,13 +138,13 @@ class GrpcTradesService extends TradesImplBase {
     }
 
     @Override
-    public void confirmPaymentStarted(ConfirmPaymentStartedRequest req,
-                                      StreamObserver<ConfirmPaymentStartedReply> responseObserver) {
-        GrpcErrorMessageHandler errorMessageHandler = new GrpcErrorMessageHandler(getConfirmPaymentStartedMethod().getFullMethodName(), responseObserver, exceptionHandler, log);
+    public void confirmPaymentSent(ConfirmPaymentSentRequest req,
+                                      StreamObserver<ConfirmPaymentSentReply> responseObserver) {
+        GrpcErrorMessageHandler errorMessageHandler = new GrpcErrorMessageHandler(getConfirmPaymentSentMethod().getFullMethodName(), responseObserver, exceptionHandler, log);
         try {
-            coreApi.confirmPaymentStarted(req.getTradeId(),
+            coreApi.confirmPaymentSent(req.getTradeId(),
                     () -> {
-                        var reply = ConfirmPaymentStartedReply.newBuilder().build();
+                        var reply = ConfirmPaymentSentReply.newBuilder().build();
                         responseObserver.onNext(reply);
                         responseObserver.onCompleted();
                     },
@@ -248,7 +248,7 @@ class GrpcTradesService extends TradesImplBase {
                             put(getGetTradeMethod().getFullMethodName(), new GrpcCallRateMeter(30, SECONDS));
                             put(getGetTradesMethod().getFullMethodName(), new GrpcCallRateMeter(10, SECONDS));
                             put(getTakeOfferMethod().getFullMethodName(), new GrpcCallRateMeter(20, SECONDS));
-                            put(getConfirmPaymentStartedMethod().getFullMethodName(), new GrpcCallRateMeter(10, SECONDS));
+                            put(getConfirmPaymentSentMethod().getFullMethodName(), new GrpcCallRateMeter(10, SECONDS));
                             put(getConfirmPaymentReceivedMethod().getFullMethodName(), new GrpcCallRateMeter(10, SECONDS));
                             put(getCompleteTradeMethod().getFullMethodName(), new GrpcCallRateMeter(10, SECONDS));
                             put(getWithdrawFundsMethod().getFullMethodName(), new GrpcCallRateMeter(1, MINUTES));

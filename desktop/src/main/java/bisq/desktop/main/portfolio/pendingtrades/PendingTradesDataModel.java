@@ -89,9 +89,6 @@ import javax.inject.Named;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import monero.daemon.model.MoneroTx;
-import monero.wallet.MoneroWallet;
-
 public class PendingTradesDataModel extends ActivatableDataModel {
     @Getter
     public final TradeManager tradeManager;
@@ -193,11 +190,11 @@ public class PendingTradesDataModel extends ActivatableDataModel {
         doSelectItem(item);
     }
 
-    public void onPaymentStarted(ResultHandler resultHandler, ErrorMessageHandler errorMessageHandler) {
+    public void onPaymentSent(ResultHandler resultHandler, ErrorMessageHandler errorMessageHandler) {
         Trade trade = getTrade();
         checkNotNull(trade, "trade must not be null");
         checkArgument(trade instanceof BuyerTrade, "Check failed: trade instanceof BuyerTrade. Was: " + trade.getClass().getSimpleName());
-        ((BuyerProtocol) tradeManager.getTradeProtocol(trade)).onPaymentStarted(resultHandler, errorMessageHandler);
+        ((BuyerProtocol) tradeManager.getTradeProtocol(trade)).onPaymentSent(resultHandler, errorMessageHandler);
     }
 
     public void onPaymentReceived(ResultHandler resultHandler, ErrorMessageHandler errorMessageHandler) {
@@ -290,26 +287,6 @@ public class PendingTradesDataModel extends ActivatableDataModel {
                 }
             } else {
                 return trade.getTakerFee();
-            }
-        } else {
-            log.error("Trade is null at getTotalFees");
-            return Coin.ZERO;
-        }
-    }
-
-    Coin getTxFee() {
-        Trade trade = getTrade();
-        if (trade != null) {
-            if (isMaker()) {
-                Offer offer = trade.getOffer();
-                if (offer != null) {
-                    return offer.getTxFee();
-                } else {
-                    log.error("offer is null");
-                    return Coin.ZERO;
-                }
-            } else {
-                return trade.getTxFee().multiply(3);
             }
         } else {
             log.error("Trade is null at getTotalFees");
@@ -466,7 +443,6 @@ public class PendingTradesDataModel extends ActivatableDataModel {
 
       byte[] payoutTxSerialized = null;
       String payoutTxHashAsString = null;
-      MoneroWallet multisigWallet = xmrWalletService.getMultisigWallet(trade.getId());
       if (trade.getPayoutTxId() != null) {
 //          payoutTxSerialized = payoutTx.bitcoinSerialize(); // TODO (woodser): no need to pass serialized txs for xmr
 //          payoutTxHashAsString = payoutTx.getHashAsString();

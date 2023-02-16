@@ -637,7 +637,7 @@ public abstract class TradeStepView extends AnchorPane {
     }
 
     private boolean peerAccepted() {
-        return trade.getTradingPeer().getMediatedPayoutTxSignature() != null;
+        return trade.getTradePeer().getMediatedPayoutTxSignature() != null;
     }
 
     private void openMediationResultPopup(String headLine) {
@@ -801,8 +801,9 @@ public abstract class TradeStepView extends AnchorPane {
 //        }
 //    }
 
-    protected void checkForTimeout() {
-        long unconfirmedHours = Duration.between(trade.getTakeOfferDate().toInstant(), Instant.now()).toHours();
+    protected void checkForUnconfirmedTimeout() {
+        if (trade.isDepositsConfirmed()) return;
+        long unconfirmedHours = Duration.between(trade.getDate().toInstant(), Instant.now()).toHours();
         if (unconfirmedHours >= 3 && !trade.hasFailed()) {
             String key = "tradeUnconfirmedTooLong_" + trade.getShortId();
             if (DontShowAgainLookup.showAgain(key)) {

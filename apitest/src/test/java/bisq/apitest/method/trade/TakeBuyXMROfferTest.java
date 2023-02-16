@@ -95,13 +95,13 @@ public class TakeBuyXMROfferTest extends AbstractTradeTest {
 
     @Test
     @Order(2)
-    public void testBobsConfirmPaymentStarted(final TestInfo testInfo) {
+    public void testBobsConfirmPaymentSent(final TestInfo testInfo) {
         try {
             var trade = bobClient.getTrade(tradeId);
 
             verifyTakerDepositConfirmed(trade);
             log.debug("Bob sends XMR payment to Alice for trade {}", trade.getTradeId());
-            bobClient.confirmPaymentStarted(trade.getTradeId());
+            bobClient.confirmPaymentSent(trade.getTradeId());
             sleep(3500);
             waitForBuyerSeesPaymentInitiatedMessage(log, testInfo, bobClient, tradeId);
 

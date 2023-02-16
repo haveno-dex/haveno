@@ -33,7 +33,7 @@ import bisq.core.trade.Trade;
 import bisq.core.trade.Trade.State;
 import bisq.core.trade.messages.SignContractRequest;
 import bisq.core.trade.messages.SignContractResponse;
-import bisq.core.trade.protocol.TradingPeer;
+import bisq.core.trade.protocol.TradePeer;
 import bisq.core.util.JsonUtil;
 import bisq.network.p2p.NodeAddress;
 import bisq.network.p2p.SendDirectMessageListener;
@@ -65,7 +65,7 @@ public class ProcessSignContractRequest extends TradeTask {
           // extract fields from request
           // TODO (woodser): verify request and from maker or taker
           SignContractRequest request = (SignContractRequest) processModel.getTradeMessage();
-          TradingPeer trader = trade.getTradingPeer(processModel.getTempTradingPeerNodeAddress());
+          TradePeer trader = trade.getTradePeer(processModel.getTempTradePeerNodeAddress());
           trader.setDepositTxHash(request.getDepositTxHash());
           trader.setAccountId(request.getAccountId());
           trader.setPaymentAccountPayloadHash(request.getPaymentAccountPayloadHash());
@@ -120,8 +120,8 @@ public class ProcessSignContractRequest extends TradeTask {
                   encryptedPaymentAccountPayload);
 
           // get response recipients. only arbitrator sends response to both peers
-          NodeAddress recipient1 = trade instanceof ArbitratorTrade ? trade.getMaker().getNodeAddress() : trade.getTradingPeer().getNodeAddress();
-          PubKeyRing recipient1PubKey = trade instanceof ArbitratorTrade ? trade.getMaker().getPubKeyRing() : trade.getTradingPeer().getPubKeyRing();
+          NodeAddress recipient1 = trade instanceof ArbitratorTrade ? trade.getMaker().getNodeAddress() : trade.getTradePeer().getNodeAddress();
+          PubKeyRing recipient1PubKey = trade instanceof ArbitratorTrade ? trade.getMaker().getPubKeyRing() : trade.getTradePeer().getPubKeyRing();
           NodeAddress recipient2 = trade instanceof ArbitratorTrade ? trade.getTaker().getNodeAddress() : null;
           PubKeyRing recipient2PubKey = trade instanceof ArbitratorTrade ? trade.getTaker().getPubKeyRing() : null;
 

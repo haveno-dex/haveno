@@ -39,8 +39,8 @@ import com.google.common.base.Charsets;
 @Slf4j
 @EqualsAndHashCode(callSuper = true)
 public abstract class SellerSendPaymentReceivedMessage extends SendMailboxMessageTask {
-    SignedWitness signedWitness = null;
     PaymentReceivedMessage message = null;
+    SignedWitness signedWitness = null;
 
     public SellerSendPaymentReceivedMessage(TaskRunner<Trade> taskHandler, Trade trade) {
         super(taskHandler, trade);
@@ -85,9 +85,9 @@ public abstract class SellerSendPaymentReceivedMessage extends SendMailboxMessag
                     trade.isPayoutPublished() ? trade.getPayoutTxHex() : null, // signed
                     trade.getSelf().getUpdatedMultisigHex(),
                     trade.getState().ordinal() >= Trade.State.SELLER_SAW_ARRIVED_PAYMENT_RECEIVED_MSG.ordinal(), // informs to expect payout
-                    trade.getTradingPeer().getAccountAgeWitness(),
+                    trade.getTradePeer().getAccountAgeWitness(),
                     signedWitness,
-                    trade.getBuyer().getPaymentSentMessage()
+                    processModel.getPaymentSentMessage()
             );
 
             // sign message
@@ -95,6 +95,8 @@ public abstract class SellerSendPaymentReceivedMessage extends SendMailboxMessag
                 String messageAsJson = JsonUtil.objectToJson(message);
                 byte[] sig = Sig.sign(processModel.getP2PService().getKeyRing().getSignatureKeyPair().getPrivate(), messageAsJson.getBytes(Charsets.UTF_8));
                 message.setSellerSignature(sig);
+                processModel.setPaymentReceivedMessage(message);
+                trade.requestPersistence();
             } catch (Exception e) {
                 throw new RuntimeException(e);
             }
@@ -104,28 +106,28 @@ public abstract class SellerSendPaymentReceivedMessage extends SendMailboxMessag
 
     @Override
     protected void setStateSent() {
-        trade.setStateIfProgress(Trade.State.SELLER_SENT_PAYMENT_RECEIVED_MSG);
+        trade.advanceState(Trade.State.SELLER_SENT_PAYMENT_RECEIVED_MSG);
         log.info("{} sent: tradeId={} at peer {} SignedWitness {}", getClass().getSimpleName(), trade.getId(), getReceiverNodeAddress(), signedWitness);
         processModel.getTradeManager().requestPersistence();
     }
 
     @Override
     protected void setStateFault() {
-        trade.setStateIfProgress(Trade.State.SELLER_SEND_FAILED_PAYMENT_RECEIVED_MSG);
+        trade.advanceState(Trade.State.SELLER_SEND_FAILED_PAYMENT_RECEIVED_MSG);
         log.error("{} failed: tradeId={} at peer {} SignedWitness {}", getClass().getSimpleName(), trade.getId(), getReceiverNodeAddress(), signedWitness);
         processModel.getTradeManager().requestPersistence();
     }
 
     @Override
     protected void setStateStoredInMailbox() {
-        trade.setStateIfProgress(Trade.State.SELLER_STORED_IN_MAILBOX_PAYMENT_RECEIVED_MSG);
+        trade.advanceState(Trade.State.SELLER_STORED_IN_MAILBOX_PAYMENT_RECEIVED_MSG);
         log.info("{} stored in mailbox: tradeId={} at peer {} SignedWitness {}", getClass().getSimpleName(), trade.getId(), getReceiverNodeAddress(), signedWitness);
         processModel.getTradeManager().requestPersistence();
     }
 
     @Override
     protected void setStateArrived() {
-        trade.setStateIfProgress(Trade.State.SELLER_SAW_ARRIVED_PAYMENT_RECEIVED_MSG);
+        trade.advanceState(Trade.State.SELLER_SAW_ARRIVED_PAYMENT_RECEIVED_MSG);
         log.info("{} arrived: tradeId={} at peer {} SignedWitness {}", getClass().getSimpleName(), trade.getId(), getReceiverNodeAddress(), signedWitness);
         processModel.getTradeManager().requestPersistence();
     }

@@ -1,3 +1,8 @@
+package bisq.core.api;
+
+import bisq.proto.grpc.NotificationMessage;
+import lombok.NonNull;
+
 /*
  * This file is part of Haveno.
  *
@@ -15,22 +20,6 @@
  * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.price.spot.providers;
-
-import bisq.price.AbstractExchangeRateProviderTest;
-
-import org.springframework.core.env.StandardEnvironment;
-
-import lombok.extern.slf4j.Slf4j;
-
-import org.junit.jupiter.api.Test;
-
-@Slf4j
-public class ParibuTest extends AbstractExchangeRateProviderTest {
-
-    @Test
-    public void doGet_successfulCall() {
-        doGet_successfulCall(new Paribu(new StandardEnvironment()));
-    }
-
+public interface NotificationListener {
+    void onMessage(@NonNull NotificationMessage message);
 }

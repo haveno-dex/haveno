@@ -59,7 +59,6 @@ message NetworkEnvelope {
         PeerPublishedDelayedPayoutTxMessage peer_published_delayed_payout_tx_message = 32;
 
         RefreshTradeStateRequest refresh_trade_state_request = 33 [deprecated = true];
-        TraderSignedWitnessMessage trader_signed_witness_message = 34 [deprecated = true];
 
         GetInventoryRequest get_inventory_request = 35;
         GetInventoryResponse get_inventory_response = 36;
@@ -435,14 +434,6 @@ message RefreshTradeStateRequest {
     NodeAddress sender_node_address = 3 [deprecated = true];
 }
 
-// Deprecated since 1.4.0
-message TraderSignedWitnessMessage {
-    string uid = 1 [deprecated = true];
-    string trade_id = 2 [deprecated = true];
-    NodeAddress sender_node_address = 3 [deprecated = true];
-    SignedWitness signed_witness = 4 [deprecated = true];
-}
-
 message ChatMessage {
     int64 date = 1;
     string trade_id = 2;
@@ -762,20 +753,19 @@ message OfferPayload {
     repeated string accepted_bank_ids = 19;
     string version_nr = 20;
     int64 block_height_at_offer_creation = 21;
-    int64 tx_fee = 22;
-    int64 maker_fee = 23;
-    int64 buyer_security_deposit = 24;
-    int64 seller_security_deposit = 25;
-    int64 max_trade_limit = 26;
-    int64 max_trade_period = 27;
-    bool use_auto_close = 28;
-    bool use_re_open_after_auto_close = 29;
-    int64 lower_close_price = 30;
-    int64 upper_close_price = 31;
-    bool is_private_offer = 32;
-    string hash_of_challenge = 33;
-    map<string, string> extra_data = 34;
-    int32 protocol_version = 35;
+    int64 maker_fee = 22;
+    int64 buyer_security_deposit = 23;
+    int64 seller_security_deposit = 24;
+    int64 max_trade_limit = 25;
+    int64 max_trade_period = 26;
+    bool use_auto_close = 27;
+    bool use_re_open_after_auto_close = 28;
+    int64 lower_close_price = 29;
+    int64 upper_close_price = 30;
+    bool is_private_offer = 31;
+    string hash_of_challenge = 32;
+    map<string, string> extra_data = 33;
+    int32 protocol_version = 34;
 
     NodeAddress arbitrator_signer = 1001;
     string arbitrator_signature = 1002;
@@ -1634,7 +1624,6 @@ message Trade {
     string payout_tx_hex = 4;
     string payout_tx_key = 5;
     int64 amount_as_long = 6;
-    int64 tx_fee_as_long = 7;
     int64 taker_fee_as_long = 8;
     int64 take_offer_date = 9;
     int64 price = 10;
@@ -1652,11 +1641,12 @@ message Trade {
     repeated ChatMessage chat_message = 22;
     MediationResultState mediation_result_state = 23;
     int64 lock_time = 24;
-    NodeAddress refund_agent_node_address = 25;
-    RefundResultState refund_result_state = 26;
-    string counter_currency_extra_data = 27;
-    string asset_tx_proof_result = 28; // name of AssetTxProofResult enum
-    string uid = 29;
+    int64 start_time = 25;
+    NodeAddress refund_agent_node_address = 26;
+    RefundResultState refund_result_state = 27;
+    string counter_currency_extra_data = 28;
+    string asset_tx_proof_result = 29; // name of AssetTxProofResult enum
+    string uid = 30;
 }
 
 message BuyerAsMakerTrade {
@@ -1696,21 +1686,25 @@ message ProcessModel {
     int64 funds_needed_for_trade_as_long = 14;
     bytes my_multi_sig_pub_key = 15;
     reserved 16;	 // Not used anymore
-    string payment_started_message_state = 17;
+    string payment_sent_message_state = 17;
     bytes mediated_payout_tx_signature = 18;
     int64 buyer_payout_amount_from_mediation = 19;
     int64 seller_payout_amount_from_mediation = 20;
     bool deposits_confirmed_messages_delivered = 21;
 
     string maker_signature = 1001;
-    TradingPeer maker = 1002;
-    TradingPeer taker = 1003;
-    TradingPeer arbitrator = 1004;
-    NodeAddress temp_trading_peer_node_address = 1005;
+    TradePeer maker = 1002;
+    TradePeer taker = 1003;
+    TradePeer arbitrator = 1004;
+    NodeAddress temp_trade_peer_node_address = 1005;
     string multisig_address = 1006;
+
+    PaymentSentMessage payment_sent_message = 1012;
+    PaymentReceivedMessage payment_received_message = 1013;
+    DisputeClosedMessage dispute_closed_message = 1014;
 }
 
-message TradingPeer {
+message TradePeer {
     NodeAddress node_address = 1;
     PubKeyRing pub_key_ring = 2;
     string account_id = 3;
@@ -1744,8 +1738,8 @@ message TradingPeer {
     string deposit_tx_hash = 1008;
     string deposit_tx_hex = 1009;
     string deposit_tx_key = 1010;
-    string updated_multisig_hex = 1011;
-    PaymentSentMessage payment_sent_message = 1012;
+    int64 security_deposit = 1011;
+    string updated_multisig_hex = 1012;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////

@@ -24,7 +24,7 @@ import bisq.core.trade.MakerTrade;
 import bisq.core.trade.Trade;
 import bisq.core.trade.HavenoUtils;
 import bisq.core.trade.messages.InitTradeRequest;
-import bisq.core.trade.protocol.TradingPeer;
+import bisq.core.trade.protocol.TradePeer;
 
 import bisq.common.taskrunner.TaskRunner;
 import org.bitcoinj.core.Coin;
@@ -58,7 +58,7 @@ public class ProcessInitTradeRequest extends TradeTask {
             checkTradeId(processModel.getOfferId(), request);
 
             // handle request as arbitrator
-            TradingPeer multisigParticipant;
+            TradePeer multisigParticipant;
             if (trade instanceof ArbitratorTrade) {
                 trade.getMaker().setPubKeyRing((trade.getOffer().getPubKeyRing()));
                 trade.getArbitrator().setPubKeyRing(processModel.getPubKeyRing()); // TODO (woodser): why duplicating field in process model

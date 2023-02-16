@@ -20,8 +20,11 @@ package bisq.core.support;
 import bisq.core.api.CoreMoneroConnectionsService;
 import bisq.core.api.CoreNotificationService;
 import bisq.core.locale.Res;
+import bisq.core.support.dispute.Dispute;
 import bisq.core.support.messages.ChatMessage;
 import bisq.core.support.messages.SupportMessage;
+import bisq.core.trade.Trade;
+import bisq.core.trade.TradeManager;
 import bisq.core.trade.protocol.TradeProtocol;
 import bisq.core.trade.protocol.TradeProtocol.MailboxMessageComparator;
 import bisq.network.p2p.AckMessage;
@@ -51,6 +54,7 @@ import javax.annotation.Nullable;
 @Slf4j
 public abstract class SupportManager {
     protected final P2PService p2PService;
+    protected final TradeManager tradeManager;
     protected final CoreMoneroConnectionsService connectionService;
     protected final CoreNotificationService notificationService;
     protected final Map<String, Timer> delayMsgMap = new HashMap<>();
@@ -65,11 +69,15 @@ public abstract class SupportManager {
     // Constructor
     ///////////////////////////////////////////////////////////////////////////////////////////
 
-    public SupportManager(P2PService p2PService, CoreMoneroConnectionsService connectionService, CoreNotificationService notificationService) {
+    public SupportManager(P2PService p2PService,
+                          CoreMoneroConnectionsService connectionService,
+                          CoreNotificationService notificationService,
+                          TradeManager tradeManager) {
         this.p2PService = p2PService;
         this.connectionService = connectionService;
         this.mailboxMessageService = p2PService.getMailboxMessageService();
         this.notificationService = notificationService;
+        this.tradeManager = tradeManager;
 
         // We get first the message handler called then the onBootstrapped
         p2PService.addDecryptedDirectMessageListener((decryptedMessageWithPubKey, senderAddress) -> {
@@ -181,6 +189,18 @@ public abstract class SupportManager {
             if (ackMessage.isSuccess()) {
                 log.info("Received AckMessage for {} with tradeId {} and uid {}",
                         ackMessage.getSourceMsgClassName(), ackMessage.getSourceId(), ackMessage.getSourceUid());
+
+                // dispute is opened by ack on chat message
+                if (ackMessage.getSourceMsgClassName().equals(ChatMessage.class.getSimpleName())) {
+                    Trade trade = tradeManager.getTrade(ackMessage.getSourceId());
+                    for (Dispute dispute : trade.getDisputes()) {
+                        for (ChatMessage chatMessage : dispute.getChatMessages()) {
+                            if (chatMessage.getUid().equals(ackMessage.getSourceUid())) {
+                                trade.advanceDisputeState(Trade.DisputeState.DISPUTE_OPENED);
+                            }
+                        }
+                    }
+                }
             } else {
                 log.warn("Received AckMessage with error state for {} with tradeId {} and errorMessage={}",
                         ackMessage.getSourceMsgClassName(), ackMessage.getSourceId(), ackMessage.getErrorMessage());

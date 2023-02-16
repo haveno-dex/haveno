@@ -35,9 +35,7 @@ public class SellerStep1View extends TradeStepView {
     @Override
     protected void onPendingTradesInitialized() {
         super.onPendingTradesInitialized();
-        //validateDepositInputs();
-        log.warn("Need to validate fee and/or deposit txs in SellerStep1View for XMR?"); // TODO (woodser): need to validate fee and/or deposit txs in SellerStep1View?
-        checkForTimeout();
+        checkForUnconfirmedTimeout();
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -71,21 +69,6 @@ public class SellerStep1View extends TradeStepView {
     protected String getPeriodOverWarnText() {
         return Res.get("portfolio.pending.step1.openForDispute");
     }
-
-    ///////////////////////////////////////////////////////////////////////////////////////////
-    // Private
-    ///////////////////////////////////////////////////////////////////////////////////////////
-
-//    // Verify that deposit tx inputs are matching the trade fee txs outputs.
-//    private void validateDepositInputs() {
-//        try {
-//            TradeDataValidation.validateDepositInputs(trade);
-//        } catch (TradeDataValidation.ValidationException e) {
-//            if (!model.dataModel.tradeManager.isAllowFaultyDelayedTxs()) {
-//                new Popup().warning(Res.get("portfolio.pending.invalidTx", e.getMessage())).show();
-//            }
-//        }
-//    }
 }
 
 

@@ -50,7 +50,7 @@ public class TradeTest extends AbstractTradeTest {
     public void testTakeBuyBTCOffer(final TestInfo testInfo) {
         TakeBuyBTCOfferTest test = new TakeBuyBTCOfferTest();
         test.testTakeAlicesBuyOffer(testInfo);
-        test.testAlicesConfirmPaymentStarted(testInfo);
+        test.testAlicesConfirmPaymentSent(testInfo);
         test.testBobsConfirmPaymentReceived(testInfo);
     }
 
@@ -59,7 +59,7 @@ public class TradeTest extends AbstractTradeTest {
     public void testTakeSellBTCOffer(final TestInfo testInfo) {
         TakeSellBTCOfferTest test = new TakeSellBTCOfferTest();
         test.testTakeAlicesSellOffer(testInfo);
-        test.testBobsConfirmPaymentStarted(testInfo);
+        test.testBobsConfirmPaymentSent(testInfo);
         test.testAlicesConfirmPaymentReceived(testInfo);
     }
 
@@ -69,7 +69,7 @@ public class TradeTest extends AbstractTradeTest {
         TakeBuyBTCOfferWithNationalBankAcctTest test = new TakeBuyBTCOfferWithNationalBankAcctTest();
         test.testTakeAlicesBuyOffer(testInfo);
         test.testBankAcctDetailsIncludedInContracts(testInfo);
-        test.testAlicesConfirmPaymentStarted(testInfo);
+        test.testAlicesConfirmPaymentSent(testInfo);
         test.testBobsConfirmPaymentReceived(testInfo);
     }
 
@@ -79,7 +79,7 @@ public class TradeTest extends AbstractTradeTest {
         TakeBuyXMROfferTest test = new TakeBuyXMROfferTest();
         TakeBuyXMROfferTest.createXmrPaymentAccounts();
         test.testTakeAlicesSellBTCForXMROffer(testInfo);
-        test.testBobsConfirmPaymentStarted(testInfo);
+        test.testBobsConfirmPaymentSent(testInfo);
         test.testAlicesConfirmPaymentReceived(testInfo);
     }
 
@@ -89,7 +89,7 @@ public class TradeTest extends AbstractTradeTest {
         TakeSellXMROfferTest test = new TakeSellXMROfferTest();
         TakeBuyXMROfferTest.createXmrPaymentAccounts();
         test.testTakeAlicesBuyBTCForXMROffer(testInfo);
-        test.testAlicesConfirmPaymentStarted(testInfo);
+        test.testAlicesConfirmPaymentSent(testInfo);
         test.testBobsConfirmPaymentReceived(testInfo);
     }
 }

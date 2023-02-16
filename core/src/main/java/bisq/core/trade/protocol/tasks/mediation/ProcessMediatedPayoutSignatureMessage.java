@@ -44,10 +44,10 @@ public class ProcessMediatedPayoutSignatureMessage extends TradeTask {
             Validator.checkTradeId(processModel.getOfferId(), message);
             checkNotNull(message);
 
-            trade.getTradingPeer().setMediatedPayoutTxSignature(checkNotNull(message.getTxSignature()));
+            trade.getTradePeer().setMediatedPayoutTxSignature(checkNotNull(message.getTxSignature()));
 
             // update to the latest peer address of our peer if the message is correct
-            trade.getTradingPeer().setNodeAddress(processModel.getTempTradingPeerNodeAddress());
+            trade.getTradePeer().setNodeAddress(processModel.getTempTradePeerNodeAddress());
 
             trade.setMediationResultState(MediationResultState.RECEIVED_SIG_MSG);
 

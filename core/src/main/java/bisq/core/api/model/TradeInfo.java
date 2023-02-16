@@ -41,9 +41,9 @@ public class TradeInfo implements Payload {
     // view and interact with trades.
 
     private static final Function<Trade, String> toPeerNodeAddress = (trade) ->
-            trade.getTradingPeerNodeAddress() == null
+            trade.getTradePeerNodeAddress() == null
                     ? ""
-                    : trade.getTradingPeerNodeAddress().getFullAddress();
+                    : trade.getTradePeerNodeAddress().getFullAddress();
 
     private static final Function<Trade, String> toArbitratorNodeAddress = (trade) ->
             trade.getArbitratorNodeAddress() == null
@@ -65,7 +65,6 @@ public class TradeInfo implements Payload {
     private final String shortId;
     private final long date;
     private final String role;
-    private final long txFeeAsLong;
     private final long takerFeeAsLong;
     private final String makerDepositTxId;
     private final String takerDepositTxId;
@@ -76,15 +75,15 @@ public class TradeInfo implements Payload {
     private final String price;
     private final String volume;
     private final String arbitratorNodeAddress;
-    private final String tradingPeerNodeAddress;
+    private final String tradePeerNodeAddress;
     private final String state;
     private final String phase;
     private final String periodState;
     private final String payoutState;
     private final String disputeState;
-    private final boolean isDepositPublished;
-    private final boolean isDepositConfirmed;
-    private final boolean isDepositUnlocked;
+    private final boolean isDepositsPublished;
+    private final boolean isDepositsConfirmed;
+    private final boolean isDepositsUnlocked;
     private final boolean isPaymentSent;
     private final boolean isPaymentReceived;
     private final boolean isPayoutPublished;
@@ -100,7 +99,6 @@ public class TradeInfo implements Payload {
         this.shortId = builder.getShortId();
         this.date = builder.getDate();
         this.role = builder.getRole();
-        this.txFeeAsLong = builder.getTxFeeAsLong();
         this.takerFeeAsLong = builder.getTakerFeeAsLong();
         this.makerDepositTxId = builder.getMakerDepositTxId();
         this.takerDepositTxId = builder.getTakerDepositTxId();
@@ -111,15 +109,15 @@ public class TradeInfo implements Payload {
         this.price = builder.getPrice();
         this.volume = builder.getVolume();
         this.arbitratorNodeAddress = builder.getArbitratorNodeAddress();
-        this.tradingPeerNodeAddress = builder.getTradingPeerNodeAddress();
+        this.tradePeerNodeAddress = builder.getTradePeerNodeAddress();
         this.state = builder.getState();
         this.phase = builder.getPhase();
         this.periodState = builder.getPeriodState();
         this.payoutState = builder.getPayoutState();
         this.disputeState = builder.getDisputeState();
-        this.isDepositPublished = builder.isDepositPublished();
-        this.isDepositConfirmed = builder.isDepositConfirmed();
-        this.isDepositUnlocked = builder.isDepositUnlocked();
+        this.isDepositsPublished = builder.isDepositsPublished();
+        this.isDepositsConfirmed = builder.isDepositsConfirmed();
+        this.isDepositsUnlocked = builder.isDepositsUnlocked();
         this.isPaymentSent = builder.isPaymentSent();
         this.isPaymentReceived = builder.isPaymentReceived();
         this.isPayoutPublished = builder.isPayoutPublished();
@@ -158,7 +156,6 @@ public class TradeInfo implements Payload {
                 .withShortId(trade.getShortId())
                 .withDate(trade.getDate().getTime())
                 .withRole(role == null ? "" : role)
-                .withTxFeeAsLong(trade.getTxFeeAsLong())
                 .withTakerFeeAsLong(trade.getTakerFeeAsLong())
                 .withMakerDepositTxId(trade.getMaker().getDepositTxHash())
                 .withTakerDepositTxId(trade.getTaker().getDepositTxHash())
@@ -169,15 +166,15 @@ public class TradeInfo implements Payload {
                 .withPrice(toPreciseTradePrice.apply(trade))
                 .withVolume(toRoundedVolume.apply(trade))
                 .withArbitratorNodeAddress(toArbitratorNodeAddress.apply(trade))
-                .withTradingPeerNodeAddress(toPeerNodeAddress.apply(trade))
+                .withTradePeerNodeAddress(toPeerNodeAddress.apply(trade))
                 .withState(trade.getState().name())
                 .withPhase(trade.getPhase().name())
                 .withPeriodState(trade.getPeriodState().name())
                 .withPayoutState(trade.getPayoutState().name())
                 .withDisputeState(trade.getDisputeState().name())
-                .withIsDepositPublished(trade.isDepositPublished())
-                .withIsDepositConfirmed(trade.isDepositConfirmed())
-                .withIsDepositUnlocked(trade.isDepositUnlocked())
+                .withIsDepositsPublished(trade.isDepositsPublished())
+                .withIsDepositsConfirmed(trade.isDepositsConfirmed())
+                .withIsDepositsUnlocked(trade.isDepositsUnlocked())
                 .withIsPaymentSent(trade.isPaymentSent())
                 .withIsPaymentReceived(trade.isPaymentReceived())
                 .withIsPayoutPublished(trade.isPayoutPublished())
@@ -202,7 +199,6 @@ public class TradeInfo implements Payload {
                 .setShortId(shortId)
                 .setDate(date)
                 .setRole(role)
-                .setTxFeeAsLong(txFeeAsLong)
                 .setTakerFeeAsLong(takerFeeAsLong)
                 .setMakerDepositTxId(makerDepositTxId == null ? "" : makerDepositTxId)
                 .setTakerDepositTxId(takerDepositTxId == null ? "" : takerDepositTxId)
@@ -213,15 +209,15 @@ public class TradeInfo implements Payload {
                 .setPrice(price)
                 .setTradeVolume(volume)
                 .setArbitratorNodeAddress(arbitratorNodeAddress)
-                .setTradingPeerNodeAddress(tradingPeerNodeAddress)
+                .setTradePeerNodeAddress(tradePeerNodeAddress)
                 .setState(state)
                 .setPhase(phase)
                 .setPeriodState(periodState)
                 .setPayoutState(payoutState)
                 .setDisputeState(disputeState)
-                .setIsDepositPublished(isDepositPublished)
-                .setIsDepositConfirmed(isDepositConfirmed)
-                .setIsDepositUnlocked(isDepositUnlocked)
+                .setIsDepositsPublished(isDepositsPublished)
+                .setIsDepositsConfirmed(isDepositsConfirmed)
+                .setIsDepositsUnlocked(isDepositsUnlocked)
                 .setIsPaymentSent(isPaymentSent)
                 .setIsPaymentReceived(isPaymentReceived)
                 .setIsCompleted(isCompleted)
@@ -240,7 +236,6 @@ public class TradeInfo implements Payload {
                 .withShortId(proto.getShortId())
                 .withDate(proto.getDate())
                 .withRole(proto.getRole())
-                .withTxFeeAsLong(proto.getTxFeeAsLong())
                 .withTakerFeeAsLong(proto.getTakerFeeAsLong())
                 .withMakerDepositTxId(proto.getMakerDepositTxId())
                 .withTakerDepositTxId(proto.getTakerDepositTxId())
@@ -256,10 +251,10 @@ public class TradeInfo implements Payload {
                 .withState(proto.getState())
                 .withPhase(proto.getPhase())
                 .withArbitratorNodeAddress(proto.getArbitratorNodeAddress())
-                .withTradingPeerNodeAddress(proto.getTradingPeerNodeAddress())
-                .withIsDepositPublished(proto.getIsDepositPublished())
-                .withIsDepositConfirmed(proto.getIsDepositConfirmed())
-                .withIsDepositUnlocked(proto.getIsDepositUnlocked())
+                .withTradePeerNodeAddress(proto.getTradePeerNodeAddress())
+                .withIsDepositsPublished(proto.getIsDepositsPublished())
+                .withIsDepositsConfirmed(proto.getIsDepositsConfirmed())
+                .withIsDepositsUnlocked(proto.getIsDepositsUnlocked())
                 .withIsPaymentSent(proto.getIsPaymentSent())
                 .withIsPaymentReceived(proto.getIsPaymentReceived())
                 .withIsCompleted(proto.getIsCompleted())
@@ -278,7 +273,6 @@ public class TradeInfo implements Payload {
                 ", shortId='" + shortId + '\'' + "\n" +
                 ", date='" + date + '\'' + "\n" +
                 ", role='" + role + '\'' + "\n" +
-                ", txFeeAsLong='" + txFeeAsLong + '\'' + "\n" +
                 ", takerFeeAsLong='" + takerFeeAsLong + '\'' + "\n" +
                 ", makerDepositTxId='" + makerDepositTxId + '\'' + "\n" +
                 ", takerDepositTxId='" + takerDepositTxId + '\'' + "\n" +
@@ -288,15 +282,15 @@ public class TradeInfo implements Payload {
                 ", sellerSecurityDeposit='" + sellerSecurityDeposit + '\'' + "\n" +
                 ", price='" + price + '\'' + "\n" +
                 ", arbitratorNodeAddress='" + arbitratorNodeAddress + '\'' + "\n" +
-                ", tradingPeerNodeAddress='" + tradingPeerNodeAddress + '\'' + "\n" +
+                ", tradePeerNodeAddress='" + tradePeerNodeAddress + '\'' + "\n" +
                 ", state='" + state + '\'' + "\n" +
                 ", phase='" + phase + '\'' + "\n" +
                 ", periodState='" + periodState + '\'' + "\n" +
                 ", payoutState='" + payoutState + '\'' + "\n" +
                 ", disputeState='" + disputeState + '\'' + "\n" +
-                ", isDepositPublished=" + isDepositPublished + "\n" +
-                ", isDepositConfirmed=" + isDepositConfirmed + "\n" +
-                ", isDepositUnlocked=" + isDepositUnlocked + "\n" +
+                ", isDepositsPublished=" + isDepositsPublished + "\n" +
+                ", isDepositsConfirmed=" + isDepositsConfirmed + "\n" +
+                ", isDepositsUnlocked=" + isDepositsUnlocked + "\n" +
                 ", isPaymentSent=" + isPaymentSent + "\n" +
                 ", isPaymentReceived=" + isPaymentReceived + "\n" +
                 ", isPayoutPublished=" + isPayoutPublished + "\n" +

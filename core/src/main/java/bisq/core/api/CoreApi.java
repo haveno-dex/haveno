@@ -67,7 +67,6 @@ import java.util.concurrent.TimeoutException;
 import java.util.function.Consumer;
 
 import lombok.Getter;
-import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 
 
@@ -346,10 +345,6 @@ public class CoreApi {
     // Notifications
     ///////////////////////////////////////////////////////////////////////////////////////////
 
-    public interface NotificationListener {
-        void onMessage(@NonNull NotificationMessage message);
-    }
-
     public void addNotificationListener(NotificationListener listener) {
         notificationService.addListener(listener);
     }
@@ -541,10 +536,10 @@ public class CoreApi {
         coreTradesService.takeOffer(offer, paymentAccountId, resultHandler, errorMessageHandler);
     }
 
-    public void confirmPaymentStarted(String tradeId,
+    public void confirmPaymentSent(String tradeId,
                                       ResultHandler resultHandler,
                                       ErrorMessageHandler errorMessageHandler) {
-        coreTradesService.confirmPaymentStarted(tradeId, resultHandler, errorMessageHandler);
+        coreTradesService.confirmPaymentSent(tradeId, resultHandler, errorMessageHandler);
     }
 
     public void confirmPaymentReceived(String tradeId,

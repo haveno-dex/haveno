@@ -84,7 +84,6 @@ public class ValidateOffer extends Task<PlaceOfferModel> {
             checkNotNull(offer.getPubKeyRing(), "pubKeyRing is null");
             checkNotNull(offer.getMinAmount(), "MinAmount is null");
             checkNotNull(offer.getPrice(), "Price is null");
-            checkNotNull(offer.getTxFee(), "txFee is null");
             checkNotNull(offer.getMakerFee(), "MakerFee is null");
             checkNotNull(offer.getVersionNr(), "VersionNr is null");
             checkArgument(offer.getMaxTradePeriod() > 0,

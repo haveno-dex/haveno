@@ -23,10 +23,8 @@ import bisq.network.p2p.NodeAddress;
 
 import bisq.common.app.Version;
 import bisq.common.proto.ProtoUtil;
-import bisq.common.proto.network.NetworkEnvelope;
 
 import java.util.Optional;
-import java.util.UUID;
 
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -124,7 +122,7 @@ public final class PaymentReceivedMessage extends TradeMailboxMessage {
         return getNetworkEnvelopeBuilder().setPaymentReceivedMessage(builder).build();
     }
 
-    public static NetworkEnvelope fromProto(protobuf.PaymentReceivedMessage proto, String messageVersion) {
+    public static PaymentReceivedMessage fromProto(protobuf.PaymentReceivedMessage proto, String messageVersion) {
         // There is no method to check for a nullable non-primitive data type object but we know that all fields
         // are empty/null, so we check for the signature to see if we got a valid buyerSignedWitness.
         protobuf.AccountAgeWitness protoAccountAgeWitness = proto.getBuyerAccountAgeWitness();

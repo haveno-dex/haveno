@@ -24,7 +24,7 @@ public enum Method {
     canceloffer,
     closetrade,
     confirmpaymentreceived,
-    confirmpaymentstarted,
+    confirmpaymentsent,
     createoffer,
     editoffer,
     createpaymentacct,

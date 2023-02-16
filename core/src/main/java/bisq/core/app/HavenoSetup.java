@@ -502,7 +502,7 @@ public class HavenoSetup {
                 revolutAccountsUpdateHandler,
                 amazonGiftCardAccountsUpdateHandler);
 
-        if (walletsSetup.downloadPercentageProperty().get() == 1) {
+        if (walletsSetup.downloadPercentageProperty().get() == 1) { // TODO: update for XMR
             checkForLockedUpFunds();
             checkForInvalidMakerFeeTxs();
         }

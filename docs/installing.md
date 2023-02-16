@@ -13,7 +13,7 @@ On Windows:
   3. Install [MSYS2](https://www.msys2.org/).
   4. Start MSYS2 MINGW64 or MSYS MINGW32 depending on your system. Use MSYS2 for all commands throughout this document.
   5. Update pacman: `pacman -Syy`
-  6. Install dependencies:
+  6. Install dependencies. During installation, use default=all by leaving the input blank and pressing enter.
 
       64-bit: `pacman -S mingw-w64-x86_64-toolchain make mingw-w64-x86_64-cmake git`
 

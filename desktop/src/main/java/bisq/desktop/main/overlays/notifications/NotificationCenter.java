@@ -19,14 +19,21 @@ package bisq.desktop.main.overlays.notifications;
 
 import bisq.desktop.Navigation;
 import bisq.desktop.main.MainView;
+import bisq.desktop.main.overlays.popups.Popup;
 import bisq.desktop.main.portfolio.PortfolioView;
 import bisq.desktop.main.portfolio.pendingtrades.PendingTradesView;
 import bisq.desktop.main.support.SupportView;
-import bisq.desktop.main.support.dispute.client.DisputeClientView;
+import bisq.desktop.main.support.dispute.DisputeView;
+import bisq.desktop.main.support.dispute.agent.arbitration.ArbitratorView;
+import bisq.desktop.main.support.dispute.client.arbitration.ArbitrationClientView;
 import bisq.desktop.main.support.dispute.client.mediation.MediationClientView;
 import bisq.desktop.main.support.dispute.client.refund.RefundClientView;
-
+import bisq.proto.grpc.NotificationMessage;
+import bisq.proto.grpc.NotificationMessage.NotificationType;
+import bisq.core.api.NotificationListener;
 import bisq.core.locale.Res;
+import bisq.core.support.dispute.Dispute;
+import bisq.core.support.dispute.arbitration.ArbitrationManager;
 import bisq.core.support.dispute.mediation.MediationManager;
 import bisq.core.support.dispute.refund.RefundManager;
 import bisq.core.trade.BuyerTrade;
@@ -54,6 +61,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
 
+import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 
 import javax.annotation.Nullable;
@@ -81,6 +89,7 @@ public class NotificationCenter {
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     private final TradeManager tradeManager;
+    private final ArbitrationManager arbitrationManager;
     private final MediationManager mediationManager;
     private final RefundManager refundManager;
     private final Navigation navigation;
@@ -96,11 +105,13 @@ public class NotificationCenter {
 
     @Inject
     public NotificationCenter(TradeManager tradeManager,
+                              ArbitrationManager arbitrationManager,
                               MediationManager mediationManager,
                               RefundManager refundManager,
                               Preferences preferences,
                               Navigation navigation) {
         this.tradeManager = tradeManager;
+        this.arbitrationManager = arbitrationManager;
         this.mediationManager = mediationManager;
         this.refundManager = refundManager;
         this.navigation = navigation;
@@ -158,6 +169,16 @@ public class NotificationCenter {
                     tradePhaseSubscriptionsMap.put(tradeId, tradePhaseSubscription);
                 }
         );
+
+        // show popup for error notifications
+        tradeManager.getNotificationService().addListener(new NotificationListener() {
+            @Override
+            public void onMessage(@NonNull NotificationMessage message) {
+                if (message.getType() == NotificationType.ERROR) {
+                    new Popup().warning(message.getMessage()).show();
+                }
+            }
+        });
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -195,7 +216,7 @@ public class NotificationCenter {
             if (trade instanceof BuyerTrade && phase.ordinal() == Trade.Phase.DEPOSITS_UNLOCKED.ordinal())
                 message = Res.get("notification.trade.unlocked");
             else if (trade instanceof SellerTrade && phase.ordinal() == Trade.Phase.PAYMENT_SENT.ordinal())
-                message = Res.get("notification.trade.paymentStarted");
+                message = Res.get("notification.trade.paymentSent");
         }
 
         if (message != null) {
@@ -228,7 +249,29 @@ public class NotificationCenter {
 
     private void onDisputeStateChanged(Trade trade, Trade.DisputeState disputeState) {
         String message = null;
-        if (refundManager.findDispute(trade.getId()).isPresent()) {
+        if (arbitrationManager.findDispute(trade.getId()).isPresent()) {
+            Dispute dispute = arbitrationManager.findDispute(trade.getId()).get();
+            String disputeOrTicket = dispute.isSupportTicket() ?
+                    Res.get("shared.supportTicket") :
+                    Res.get("shared.dispute");
+            switch (disputeState) {
+                case NO_DISPUTE:
+                    break;
+                case DISPUTE_OPENED:
+                    // notify if arbitrator or dispute opener (arbitrator's disputes are in context of each trader, so isOpener() doesn't apply)
+                    if (trade.isArbitrator() || !dispute.isOpener()) message = Res.get("notification.trade.peerOpenedDispute", disputeOrTicket);
+                    break;
+                case DISPUTE_CLOSED:
+                    // skip notifying arbitrator
+                    if (!trade.isArbitrator()) message = Res.get("notification.trade.disputeClosed", disputeOrTicket);
+                    break;
+                default:
+                    break;
+            }
+            if (message != null) {
+                goToSupport(trade, message, trade.isArbitrator() ? ArbitratorView.class : ArbitrationClientView.class);
+            }
+        }else if (refundManager.findDispute(trade.getId()).isPresent()) {
             String disputeOrTicket = refundManager.findDispute(trade.getId()).get().isSupportTicket() ?
                     Res.get("shared.supportTicket") :
                     Res.get("shared.dispute");
@@ -251,7 +294,7 @@ public class NotificationCenter {
                     break;
             }
             if (message != null) {
-                goToSupport(trade, message, false);
+                goToSupport(trade, message, RefundClientView.class);
             }
         } else if (mediationManager.findDispute(trade.getId()).isPresent()) {
             String disputeOrTicket = mediationManager.findDispute(trade.getId()).get().isSupportTicket() ?
@@ -275,16 +318,13 @@ public class NotificationCenter {
                     break;
             }
             if (message != null) {
-                goToSupport(trade, message, true);
+                goToSupport(trade, message, MediationClientView.class);
             }
         }
     }
 
-    private void goToSupport(Trade trade, String message, boolean isMediation) {
+    private void goToSupport(Trade trade, String message, Class<? extends DisputeView> viewClass) {
         Notification notification = new Notification().disputeHeadLine(trade.getShortId()).message(message);
-        Class<? extends DisputeClientView> viewClass = isMediation ?
-                MediationClientView.class :
-                RefundClientView.class;
         if (navigation.getCurrentPath() != null && !navigation.getCurrentPath().contains(viewClass)) {
             notification.actionButtonTextWithGoTo("navigation.support")
                     .onAction(() -> navigation.navigateTo(MainView.class, SupportView.class, viewClass))
@@ -293,5 +333,4 @@ public class NotificationCenter {
             notification.show();
         }
     }
-
 }

@@ -69,7 +69,7 @@ public class LongRunningTradesTest extends AbstractTradeTest {
         TakeBuyBTCOfferTest test = new TakeBuyBTCOfferTest();
         setLongRunningTest(true);
         test.testTakeAlicesBuyOffer(testInfo);
-        test.testAlicesConfirmPaymentStarted(testInfo);
+        test.testAlicesConfirmPaymentSent(testInfo);
         test.testBobsConfirmPaymentReceived(testInfo);
     }
 
@@ -77,7 +77,7 @@ public class LongRunningTradesTest extends AbstractTradeTest {
         TakeSellBTCOfferTest test = new TakeSellBTCOfferTest();
         setLongRunningTest(true);
         test.testTakeAlicesSellOffer(testInfo);
-        test.testBobsConfirmPaymentStarted(testInfo);
+        test.testBobsConfirmPaymentSent(testInfo);
         test.testAlicesConfirmPaymentReceived(testInfo);
     }
 

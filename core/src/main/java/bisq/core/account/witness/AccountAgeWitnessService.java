@@ -34,7 +34,7 @@ import bisq.core.support.dispute.DisputeResult;
 import bisq.core.support.dispute.arbitration.TraderDataItem;
 import bisq.core.trade.ArbitratorTrade;
 import bisq.core.trade.Trade;
-import bisq.core.trade.protocol.TradingPeer;
+import bisq.core.trade.protocol.TradePeer;
 import bisq.core.user.User;
 
 import bisq.network.p2p.BootstrapListener;
@@ -244,7 +244,9 @@ public class AccountAgeWitnessService {
 
     @VisibleForTesting
     public void addToMap(AccountAgeWitness accountAgeWitness) {
-        accountAgeWitnessMap.putIfAbsent(accountAgeWitness.getHashAsByteArray(), accountAgeWitness);
+        synchronized (this) {
+            accountAgeWitnessMap.putIfAbsent(accountAgeWitness.getHashAsByteArray(), accountAgeWitness);
+        }
     }
 
 
@@ -253,17 +255,19 @@ public class AccountAgeWitnessService {
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     public void publishMyAccountAgeWitness(PaymentAccountPayload paymentAccountPayload) {
-        AccountAgeWitness accountAgeWitness = getMyWitness(paymentAccountPayload);
-        P2PDataStorage.ByteArray hash = accountAgeWitness.getHashAsByteArray();
-
-        // We use first our fast lookup cache. If its in accountAgeWitnessCache it is also in accountAgeWitnessMap
-        // and we do not publish.
-        if (accountAgeWitnessCache.containsKey(hash)) {
-            return;
-        }
-
-        if (!accountAgeWitnessMap.containsKey(hash)) {
-            p2PService.addPersistableNetworkPayload(accountAgeWitness, false);
+        synchronized (this) {
+            AccountAgeWitness accountAgeWitness = getMyWitness(paymentAccountPayload);
+            P2PDataStorage.ByteArray hash = accountAgeWitness.getHashAsByteArray();
+    
+            // We use first our fast lookup cache. If its in accountAgeWitnessCache it is also in accountAgeWitnessMap
+            // and we do not publish.
+            if (accountAgeWitnessCache.containsKey(hash)) {
+                return;
+            }
+    
+            if (!accountAgeWitnessMap.containsKey(hash)) {
+                p2PService.addPersistableNetworkPayload(accountAgeWitness, false);
+            }
         }
     }
 
@@ -308,32 +312,34 @@ public class AccountAgeWitnessService {
 
     private Optional<AccountAgeWitness> findTradePeerWitness(Trade trade) {
         if (trade instanceof ArbitratorTrade) return Optional.empty();  // TODO (woodser): arbitrator trade has two peers
-        TradingPeer tradingPeer = trade.getTradingPeer();
-        return (tradingPeer == null ||
-                tradingPeer.getPaymentAccountPayload() == null ||
-                tradingPeer.getPubKeyRing() == null) ?
+        TradePeer tradePeer = trade.getTradePeer();
+        return (tradePeer == null ||
+                tradePeer.getPaymentAccountPayload() == null ||
+                tradePeer.getPubKeyRing() == null) ?
                 Optional.empty() :
-                findWitness(tradingPeer.getPaymentAccountPayload(), tradingPeer.getPubKeyRing());
+                findWitness(tradePeer.getPaymentAccountPayload(), tradePeer.getPubKeyRing());
     }
 
     private Optional<AccountAgeWitness> getWitnessByHash(byte[] hash) {
         P2PDataStorage.ByteArray hashAsByteArray = new P2PDataStorage.ByteArray(hash);
+        synchronized (this) {
 
-        // First we look up in our fast lookup cache
-        if (accountAgeWitnessCache.containsKey(hashAsByteArray)) {
-            return Optional.of(accountAgeWitnessCache.get(hashAsByteArray));
+            // First we look up in our fast lookup cache
+            if (accountAgeWitnessCache.containsKey(hashAsByteArray)) {
+                return Optional.of(accountAgeWitnessCache.get(hashAsByteArray));
+            }
+
+            if (accountAgeWitnessMap.containsKey(hashAsByteArray)) {
+                AccountAgeWitness accountAgeWitness = accountAgeWitnessMap.get(hashAsByteArray);
+
+                // We add it to our fast lookup cache
+                accountAgeWitnessCache.put(hashAsByteArray, accountAgeWitness);
+
+                return Optional.of(accountAgeWitness);
+            }
+
+            return Optional.empty();
         }
-
-        if (accountAgeWitnessMap.containsKey(hashAsByteArray)) {
-            AccountAgeWitness accountAgeWitness = accountAgeWitnessMap.get(hashAsByteArray);
-
-            // We add it to our fast lookup cache
-            accountAgeWitnessCache.put(hashAsByteArray, accountAgeWitness);
-
-            return Optional.of(accountAgeWitness);
-        }
-
-        return Optional.empty();
     }
 
     private Optional<AccountAgeWitness> getWitnessByHashAsHex(String hashAsHex) {
@@ -548,8 +554,8 @@ public class AccountAgeWitnessService {
         if (accountAgeWitnessOptional.isPresent()) {
             peersWitness = accountAgeWitnessOptional.get();
         } else {
-            peersWitness = getNewWitness(peersPaymentAccountPayload, peersPubKeyRing);
             log.warn("We did not find the peers witness data. That is expected with peers using an older version.");
+            peersWitness = getNewWitness(peersPaymentAccountPayload, peersPubKeyRing);
         }
 
         // Check if date in witness is not older than the release date of that feature (was added in v0.6)
@@ -732,8 +738,8 @@ public class AccountAgeWitnessService {
     public Optional<SignedWitness> traderSignAndPublishPeersAccountAgeWitness(Trade trade) {
         AccountAgeWitness peersWitness = findTradePeerWitness(trade).orElse(null);
         Coin tradeAmount = trade.getAmount();
-        checkNotNull(trade.getTradingPeer().getPubKeyRing(), "Peer must have a keyring");
-        PublicKey peersPubKey = trade.getTradingPeer().getPubKeyRing().getSignaturePubKey();
+        checkNotNull(trade.getTradePeer().getPubKeyRing(), "Peer must have a keyring");
+        PublicKey peersPubKey = trade.getTradePeer().getPubKeyRing().getSignaturePubKey();
         checkNotNull(peersWitness, "Not able to find peers witness, unable to sign for trade {}",
                 trade.toString());
         checkNotNull(tradeAmount, "Trade amount must not be null");

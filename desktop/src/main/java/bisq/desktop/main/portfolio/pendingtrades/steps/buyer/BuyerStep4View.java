@@ -108,10 +108,6 @@ public class BuyerStep4View extends TradeStepView {
             addCompactTopLabelTextField(gridPane, ++gridRow, getFiatTradeAmountLabel(), model.getFiatVolume());
             addCompactTopLabelTextField(gridPane, ++gridRow, Res.get("portfolio.pending.step5_buyer.refunded"), model.getSecurityDeposit());
             addCompactTopLabelTextField(gridPane, ++gridRow, Res.get("portfolio.pending.step5_buyer.tradeFee"), model.getTradeFee());
-            final String miningFee = model.dataModel.isMaker() ?
-                    Res.get("portfolio.pending.step5_buyer.makersMiningFee") :
-                    Res.get("portfolio.pending.step5_buyer.takersMiningFee");
-            addCompactTopLabelTextField(gridPane, ++gridRow, miningFee, model.getTxFee());
         }
 
         closeButton = new AutoTooltipButton(Res.get("shared.close"));

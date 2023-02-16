@@ -23,7 +23,7 @@ import bisq.core.trade.MakerTrade;
 import bisq.core.trade.TakerTrade;
 import bisq.core.trade.Trade;
 import bisq.core.trade.messages.InitMultisigRequest;
-import bisq.core.trade.protocol.TradingPeer;
+import bisq.core.trade.protocol.TradePeer;
 import bisq.network.p2p.NodeAddress;
 import bisq.network.p2p.SendDirectMessageListener;
 
@@ -68,7 +68,7 @@ public class ProcessInitMultisigRequest extends TradeTask {
           XmrWalletService xmrWalletService = processModel.getProvider().getXmrWalletService();
 
           // get peer multisig participant
-          TradingPeer multisigParticipant = trade.getTradingPeer(processModel.getTempTradingPeerNodeAddress());
+          TradePeer multisigParticipant = trade.getTradePeer(processModel.getTempTradePeerNodeAddress());
 
           // reconcile peer's established multisig hex with message
           if (multisigParticipant.getPreparedMultisigHex() == null) multisigParticipant.setPreparedMultisigHex(request.getPreparedMultisigHex());
@@ -82,16 +82,16 @@ public class ProcessInitMultisigRequest extends TradeTask {
           boolean updateParticipants = false;
           if (trade.getSelf().getPreparedMultisigHex() == null) {
             log.info("Preparing multisig wallet for trade {}", trade.getId());
-            multisigWallet = xmrWalletService.createMultisigWallet(trade.getId());
+            multisigWallet = trade.createWallet();
             trade.getSelf().setPreparedMultisigHex(multisigWallet.prepareMultisig());
             trade.setStateIfValidTransitionTo(Trade.State.MULTISIG_PREPARED);
             updateParticipants = true;
           } else if (processModel.getMultisigAddress() == null) {
-            multisigWallet = xmrWalletService.getMultisigWallet(trade.getId());
+            multisigWallet = trade.getWallet();
           }
 
           // make multisig if applicable
-          TradingPeer[] peers = getMultisigPeers();
+          TradePeer[] peers = getMultisigPeers();
           if (trade.getSelf().getMadeMultisigHex() == null && peers[0].getPreparedMultisigHex() != null && peers[1].getPreparedMultisigHex() != null) {
             log.info("Making multisig wallet for trade {}", trade.getId());
             String multisigHex = multisigWallet.makeMultisig(Arrays.asList(peers[0].getPreparedMultisigHex(), peers[1].getPreparedMultisigHex()), 2, xmrWalletService.getWalletPassword()); // TODO (woodser): xmrWalletService.makeMultisig(tradeId, multisigHexes, threshold)?
@@ -187,8 +187,8 @@ public class ProcessInitMultisigRequest extends TradeTask {
       }
     }
 
-    private TradingPeer[] getMultisigPeers() {
-      TradingPeer[] peers = new TradingPeer[2];
+    private TradePeer[] getMultisigPeers() {
+      TradePeer[] peers = new TradePeer[2];
       if (trade instanceof TakerTrade) {
         peers[0] = processModel.getArbitrator();
         peers[1] = processModel.getMaker();

@@ -18,7 +18,7 @@
 package bisq.cli.request;
 
 import bisq.proto.grpc.ConfirmPaymentReceivedRequest;
-import bisq.proto.grpc.ConfirmPaymentStartedRequest;
+import bisq.proto.grpc.ConfirmPaymentSentRequest;
 import bisq.proto.grpc.GetTradeRequest;
 import bisq.proto.grpc.GetTradesRequest;
 import bisq.proto.grpc.TakeOfferReply;
@@ -82,12 +82,12 @@ public class TradesServiceRequest {
         return grpcStubs.tradesService.getTrades(request).getTradesList();
     }
 
-    public void confirmPaymentStarted(String tradeId) {
-        var request = ConfirmPaymentStartedRequest.newBuilder()
+    public void confirmPaymentSent(String tradeId) {
+        var request = ConfirmPaymentSentRequest.newBuilder()
                 .setTradeId(tradeId)
                 .build();
         //noinspection ResultOfMethodCallIgnored
-        grpcStubs.tradesService.confirmPaymentStarted(request);
+        grpcStubs.tradesService.confirmPaymentSent(request);
     }
 
     public void confirmPaymentReceived(String tradeId) {

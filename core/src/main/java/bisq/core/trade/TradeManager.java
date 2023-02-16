@@ -17,6 +17,8 @@
 
 package bisq.core.trade;
 
+import bisq.core.api.AccountServiceListener;
+import bisq.core.api.CoreAccountService;
 import bisq.core.api.CoreNotificationService;
 import bisq.core.btc.model.XmrAddressEntry;
 import bisq.core.btc.wallet.XmrWalletService;
@@ -121,7 +123,9 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
     private final User user;
     @Getter
     private final KeyRing keyRing;
+    private final CoreAccountService accountService;
     private final XmrWalletService xmrWalletService;
+    @Getter
     private final CoreNotificationService notificationService;
     private final OfferBookService offerBookService;
     private final OpenOfferManager openOfferManager;
@@ -158,6 +162,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
     @Inject
     public TradeManager(User user,
                         KeyRing keyRing,
+                        CoreAccountService accountService,
                         XmrWalletService xmrWalletService,
                         CoreNotificationService notificationService,
                         OfferBookService offerBookService,
@@ -177,6 +182,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
                         ReferralIdService referralIdService) {
         this.user = user;
         this.keyRing = keyRing;
+        this.accountService = accountService;
         this.xmrWalletService = xmrWalletService;
         this.notificationService = notificationService;
         this.offerBookService = offerBookService;
@@ -250,6 +256,39 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     public void onAllServicesInitialized() {
+
+        // initialize
+        initialize();
+
+        // listen for account updates
+        accountService.addListener(new AccountServiceListener() {
+
+            @Override
+            public void onAccountCreated() {
+                log.info(getClass().getSimpleName() + ".accountService.onAccountCreated()");
+                initialize();
+            }
+
+            @Override
+            public void onAccountOpened() {
+                log.info(getClass().getSimpleName() + ".accountService.onAccountOpened()");
+                initialize();
+            }
+
+            @Override
+            public void onAccountClosed() {
+                log.info(getClass().getSimpleName() + ".accountService.onAccountClosed()");
+                closeAllTrades();
+            }
+
+            @Override
+            public void onPasswordChanged(String oldPassword, String newPassword) {
+                // handled in XmrWalletService
+            }
+        });
+    }
+
+    private void initialize() {
         if (p2PService.isBootstrapped()) {
             new Thread(() -> initPersistedTrades()).start(); // initialize trades off main thread
         } else {
@@ -272,6 +311,10 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
 
     public void shutDown() {
         isShutDown = true;
+        closeAllTrades();
+    }
+
+    private void closeAllTrades() {
 
         // collect trades to shutdown
         Set<Trade> trades = new HashSet<Trade>();
@@ -286,7 +329,6 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
                 trade.shutDown();
             } catch (Exception e) {
                 log.warn("Error closing trade subprocess. Was Haveno stopped manually with ctrl+c?");
-                e.printStackTrace();
             }
         });
         HavenoUtils.executeTasks(tasks);
@@ -341,11 +383,8 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
 
     private void initPersistedTrades() {
 
-        // get all trades // TODO: getAllTrades()
-        List<Trade> trades = new ArrayList<Trade>();
-        trades.addAll(tradableList.getList());
-        trades.addAll(closedTradableManager.getClosedTrades());
-        trades.addAll(failedTradesManager.getObservableList());
+        // get all trades
+        List<Trade> trades = getAllTrades();
 
         // open trades in parallel since each may open a multisig wallet
         int threadPoolSize = 10;
@@ -369,6 +408,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
                     xmrWalletService.swapTradeEntryToAvailableEntry(addressEntry.getOfferId(), addressEntry.getContext());
                 });
 
+        // notify that persisted trades initialized
         persistedTradesInitialized.set(true);
 
         // We do not include failed trades as they should not be counted anyway in the trade statistics
@@ -377,6 +417,13 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
         String referralId = referralIdService.getOptionalReferralId().orElse(null);
         boolean isTorNetworkNode = p2PService.getNetworkNode() instanceof TorNetworkNode;
         tradeStatisticsManager.maybeRepublishTradeStatistics(nonFailedTrades, referralId, isTorNetworkNode);
+
+        // sync idle trades once in background after active trades
+        for (Trade trade : trades) {
+            if (trade.isIdling())  {
+                HavenoUtils.submitTask(() -> trade.syncWallet());
+            }
+        }
     }
 
     private void initPersistedTrade(Trade trade) {
@@ -556,12 +603,10 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
                       request.getTakerNodeAddress(),
                       request.getArbitratorNodeAddress());
 
-          //System.out.println("TradeManager trade.getTradingPeer().setNodeAddress(): " + sender);
-          //trade.getTradingPeer().setNodeAddress(sender);
-          // TODO (woodser): what if maker's address changes while offer open, or taker's address changes after multisig deposit available? need to verify and update. see OpenOfferManager.maybeUpdatePersistedOffers()
           trade.getArbitrator().setPubKeyRing(arbitrator.getPubKeyRing());
           trade.getMaker().setPubKeyRing(trade.getOffer().getPubKeyRing());
           initTradeAndProtocol(trade, getTradeProtocol(trade));
+          trade.getSelf().setPaymentAccountId(offer.getOfferPayload().getMakerPaymentAccountId());
           trade.getSelf().setReserveTxHash(openOffer.getReserveTxHash()); // TODO (woodser): initialize in initTradeAndProtocol?
           trade.getSelf().setReserveTxHex(openOffer.getReserveTxHex());
           trade.getSelf().setReserveTxKey(openOffer.getReserveTxKey());
@@ -743,8 +788,8 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
                         trade.getProcessModel().setUseSavingsWallet(useSavingsWallet);
                         trade.getProcessModel().setFundsNeededForTradeAsLong(fundsNeededForTrade.value);
                         trade.getMaker().setPubKeyRing(trade.getOffer().getPubKeyRing());
-                        trade.getTaker().setPubKeyRing(model.getPubKeyRing());
-                        trade.getTaker().setPaymentAccountId(paymentAccountId);
+                        trade.getSelf().setPubKeyRing(model.getPubKeyRing());
+                        trade.getSelf().setPaymentAccountId(paymentAccountId);
 
                         TradeProtocol tradeProtocol = TradeProtocolFactory.getNewTradeProtocol(trade);
                         TradeProtocol prev = tradeProtocolByTradeId.put(trade.getUid(), tradeProtocol);
@@ -1036,6 +1081,14 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
         }
     }
 
+    public List<Trade> getAllTrades() {
+        List<Trade> trades = new ArrayList<Trade>();
+        trades.addAll(tradableList.getList());
+        trades.addAll(closedTradableManager.getClosedTrades());
+        trades.addAll(failedTradesManager.getObservableList());
+        return trades;
+    }
+
     public List<Trade> getOpenTrades() {
         synchronized (tradableList) {
             return ImmutableList.copyOf(getObservableList().stream()
@@ -1084,7 +1137,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
             }
 
             // remove trade if wallet deleted
-            if (!xmrWalletService.multisigWalletExists(trade.getId())) {
+            if (!trade.walletExists()) {
                 removeTrade(trade);
                 return;
             }
@@ -1092,7 +1145,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
             // remove trade and wallet unless deposit requested without nack
             if (!trade.isDepositRequested() || trade.isDepositFailed()) {
                 removeTrade(trade);
-                if (xmrWalletService.multisigWalletExists(trade.getId())) trade.deleteWallet();
+                if (trade.walletExists()) trade.deleteWallet();
             } else {
                 scheduleDeletionIfUnfunded(trade);
             }
@@ -1100,7 +1153,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
     }
 
     private void scheduleDeletionIfUnfunded(Trade trade) {
-        if (trade.isDepositRequested() && !trade.isDepositPublished()) {
+        if (trade.isDepositRequested() && !trade.isDepositsPublished()) {
             log.warn("Scheduling to delete trade if unfunded for {} {}", trade.getClass().getSimpleName(), trade.getId());
             UserThread.runAfter(() -> {
                 if (isShutDown) return;
@@ -1114,7 +1167,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
                     log.warn("Deleting {} {} after protocol timeout", trade.getClass().getSimpleName(), trade.getId());
                     removeTrade(trade);
                     failedTradesManager.removeTrade(trade);
-                    if (xmrWalletService.multisigWalletExists(trade.getId())) trade.deleteWallet();
+                    if (trade.walletExists()) trade.deleteWallet();
                 } else {
                     log.warn("Refusing to delete {} {} after protocol timeout because its wallet might be funded", trade.getClass().getSimpleName(), trade.getId());
                 }

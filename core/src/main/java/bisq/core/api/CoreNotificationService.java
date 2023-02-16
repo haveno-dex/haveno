@@ -1,6 +1,5 @@
 package bisq.core.api;
 
-import bisq.core.api.CoreApi.NotificationListener;
 import bisq.core.api.model.TradeInfo;
 import bisq.core.trade.Trade;
 import bisq.core.support.messages.ChatMessage;
@@ -55,7 +54,8 @@ public class CoreNotificationService {
                 .setTrade(TradeInfo.toTradeInfo(trade).toProtoMessage())
                 .setTimestamp(System.currentTimeMillis())
                 .setTitle(title)
-                .setMessage(message).build());
+                .setMessage(message)
+                .build());
     }
 
     public void sendChatNotification(ChatMessage chatMessage) {
@@ -63,6 +63,15 @@ public class CoreNotificationService {
                 .setType(NotificationType.CHAT_MESSAGE)
                 .setTimestamp(System.currentTimeMillis())
                 .setChatMessage(chatMessage.toProtoChatMessageBuilder())
+                .build());
+    }
+
+    public void sendErrorNotification(String title, String errorMessage) {
+        sendNotification(NotificationMessage.newBuilder()
+                .setType(NotificationType.ERROR)
+                .setTimestamp(System.currentTimeMillis())
+                .setTitle(title)
+                .setMessage(errorMessage)
                 .build());
     }
 }

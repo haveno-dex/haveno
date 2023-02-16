@@ -67,6 +67,10 @@ public class HavenoUtils {
     public static BigInteger CENTINEROS_AU_MULTIPLIER = new BigInteger("10000");
     private static BigInteger XMR_AU_MULTIPLIER = new BigInteger("1000000000000");
 
+    // global thread pool
+    private static final int POOL_SIZE = 10;
+    private static final ExecutorService POOL = Executors.newFixedThreadPool(POOL_SIZE);
+
     // TODO: better way to share reference?
     public static ArbitrationManager arbitrationManager;
 
@@ -84,6 +88,10 @@ public class HavenoUtils {
 
     public static double centinerosToXmr(long centineros) {
         return atomicUnitsToXmr(centinerosToAtomicUnits(centineros));
+    }
+
+    public static Coin centinerosToCoin(long centineros) {
+        return atomicUnitsToCoin(centinerosToAtomicUnits(centineros));
     }
 
     public static long atomicUnitsToCentineros(long atomicUnits) { // TODO: atomic units should be BigInteger; remove this?
@@ -195,7 +203,7 @@ public class HavenoUtils {
      * @return a unique deterministic id for sending a trade mailbox message
      */
     public static String getDeterministicId(Trade trade, Class<?> tradeMessageClass, NodeAddress receiver) {
-        String uniqueId = trade.getId() + "_" + tradeMessageClass.getSimpleName() + "_" + trade.getRole() + "_to_" + trade.getPeerRole(trade.getTradingPeer(receiver));
+        String uniqueId = trade.getId() + "_" + tradeMessageClass.getSimpleName() + "_" + trade.getRole() + "_to_" + trade.getPeerRole(trade.getTradePeer(receiver));
         return Utilities.bytesAsHexString(Hash.getSha256Ripemd160hash(uniqueId.getBytes(Charsets.UTF_8)));
     }
 
@@ -294,13 +302,13 @@ public class HavenoUtils {
         // verify signature
         String errMessage = "The buyer signature is invalid for the " + message.getClass().getSimpleName() + " for " + trade.getClass().getSimpleName() + " " + trade.getId();
         try {
-            if (!Sig.verify(trade.getBuyer().getPubKeyRing().getSignaturePubKey(), unsignedMessageAsJson.getBytes(Charsets.UTF_8), signature)) throw new RuntimeException(errMessage);
+            if (!Sig.verify(trade.getBuyer().getPubKeyRing().getSignaturePubKey(), unsignedMessageAsJson.getBytes(Charsets.UTF_8), signature)) throw new IllegalArgumentException(errMessage);
         } catch (Exception e) {
-            throw new RuntimeException(errMessage);
+            throw new IllegalArgumentException(errMessage);
         }
 
         // verify trade id
-        if (!trade.getId().equals(message.getTradeId())) throw new RuntimeException("The " + message.getClass().getSimpleName() + " has the wrong trade id, expected " + trade.getId() + " but was " + message.getTradeId());
+        if (!trade.getId().equals(message.getTradeId())) throw new IllegalArgumentException("The " + message.getClass().getSimpleName() + " has the wrong trade id, expected " + trade.getId() + " but was " + message.getTradeId());
     }
 
     /**
@@ -325,13 +333,13 @@ public class HavenoUtils {
         // verify signature
         String errMessage = "The seller signature is invalid for the " + message.getClass().getSimpleName() + " for " + trade.getClass().getSimpleName() + " " + trade.getId();
         try {
-            if (!Sig.verify(trade.getSeller().getPubKeyRing().getSignaturePubKey(), unsignedMessageAsJson.getBytes(Charsets.UTF_8), signature)) throw new RuntimeException(errMessage);
+            if (!Sig.verify(trade.getSeller().getPubKeyRing().getSignaturePubKey(), unsignedMessageAsJson.getBytes(Charsets.UTF_8), signature)) throw new IllegalArgumentException(errMessage);
         } catch (Exception e) {
-            throw new RuntimeException(errMessage);
+            throw new IllegalArgumentException(errMessage);
         }
 
         // verify trade id
-        if (!trade.getId().equals(message.getTradeId())) throw new RuntimeException("The " + message.getClass().getSimpleName() + " has the wrong trade id, expected " + trade.getId() + " but was " + message.getTradeId());
+        if (!trade.getId().equals(message.getTradeId())) throw new IllegalArgumentException("The " + message.getClass().getSimpleName() + " has the wrong trade id, expected " + trade.getId() + " but was " + message.getTradeId());
 
         // verify buyer signature of payment sent message
         verifyPaymentSentMessage(trade, message.getPaymentSentMessage());
@@ -345,14 +353,28 @@ public class HavenoUtils {
         }
     }
 
-    // TODO: replace with GenUtils.executeTasks()
+    /**
+     * Submit tasks to a global thread pool.
+     */
+    public static Future<?> submitTask(Runnable task) {
+        return POOL.submit(task);
+    }
+
+    public static List<Future<?>> submitTasks(List<Runnable> tasks) {
+        List<Future<?>> futures = new ArrayList<Future<?>>();
+        for (Runnable task : tasks) futures.add(submitTask(task));
+        return futures;
+    }
+
+    // TODO: replace with GenUtils.executeTasks() once monero-java updated
+
     public static void executeTasks(Collection<Runnable> tasks) {
         executeTasks(tasks, tasks.size());
     }
 
-    public static void executeTasks(Collection<Runnable> tasks, int poolSize) {
+    public static void executeTasks(Collection<Runnable> tasks, int maxConcurrency) {
         if (tasks.isEmpty()) return;
-        ExecutorService pool = Executors.newFixedThreadPool(poolSize);
+        ExecutorService pool = Executors.newFixedThreadPool(maxConcurrency);
         List<Future<?>> futures = new ArrayList<Future<?>>();
         for (Runnable task : tasks) futures.add(pool.submit(task));
         pool.shutdown();

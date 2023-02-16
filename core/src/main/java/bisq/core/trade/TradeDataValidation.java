@@ -19,14 +19,7 @@ package bisq.core.trade;
 
 import bisq.core.btc.wallet.BtcWalletService;
 import bisq.core.offer.Offer;
-import bisq.core.support.SupportType;
 import bisq.core.support.dispute.Dispute;
-import bisq.core.util.validation.RegexValidatorFactory;
-
-import bisq.network.p2p.NodeAddress;
-
-import bisq.common.config.Config;
-import bisq.common.util.Tuple3;
 
 import org.bitcoinj.core.Address;
 import org.bitcoinj.core.Coin;
@@ -35,12 +28,6 @@ import org.bitcoinj.core.Transaction;
 import org.bitcoinj.core.TransactionInput;
 import org.bitcoinj.core.TransactionOutPoint;
 import org.bitcoinj.core.TransactionOutput;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
 import java.util.function.Consumer;
 
 import lombok.Getter;
@@ -54,153 +41,6 @@ import static com.google.common.base.Preconditions.checkNotNull;
 @Slf4j
 public class TradeDataValidation {
     
-    public static void validatePaymentAccountPayload(Dispute dispute) throws InvalidPaymentAccountPayloadException {
-        if (dispute.getSellerPaymentAccountPayload() == null) throw new InvalidPaymentAccountPayloadException(dispute, "Seller's payment account payload is null in dispute opened for trade " + dispute.getTradeId());
-        if (!Arrays.equals(dispute.getSellerPaymentAccountPayload().getHash(), dispute.getContract().getSellerPaymentAccountPayloadHash())) throw new InvalidPaymentAccountPayloadException(dispute, "Hash of maker's payment account payload does not match contract");
-    }
-
-    public static void validateDonationAddress(String addressAsString)
-            throws AddressException {
-        validateDonationAddress(null, addressAsString);
-    }
-
-    public static void validateNodeAddress(Dispute dispute, NodeAddress nodeAddress, Config config)
-            throws NodeAddressException {
-        if (!config.useLocalhostForP2P && !RegexValidatorFactory.onionAddressRegexValidator().validate(nodeAddress.getFullAddress()).isValid) {
-            String msg = "Node address " + nodeAddress.getFullAddress() + " at dispute with trade ID " +
-                    dispute.getShortTradeId() + " is not a valid address";
-            log.error(msg);
-            throw new NodeAddressException(dispute, msg);
-        }
-    }
-
-    public static void validateDonationAddress(@Nullable Dispute dispute, String addressAsString)
-            throws AddressException {
-
-        if (addressAsString == null) {
-            log.debug("address is null at validateDonationAddress. This is expected in case of an not updated trader.");
-            return;
-        }
-    }
-
-    public static void testIfAnyDisputeTriedReplay(List<Dispute> disputeList,
-                                                   Consumer<DisputeReplayException> exceptionHandler) {
-        var tuple = getTestReplayHashMaps(disputeList);
-        Map<String, Set<String>> disputesPerTradeId = tuple.first;
-        Map<String, Set<String>> disputesPerDelayedPayoutTxId = tuple.second;
-        Map<String, Set<String>> disputesPerDepositTxId = tuple.third;
-
-        disputeList.forEach(disputeToTest -> {
-            try {
-                testIfDisputeTriesReplay(disputeToTest,
-                        disputesPerTradeId,
-                        disputesPerDelayedPayoutTxId,
-                        disputesPerDepositTxId);
-
-            } catch (DisputeReplayException e) {
-                exceptionHandler.accept(e);
-            }
-        });
-    }
-
-
-    public static void testIfDisputeTriesReplay(Dispute dispute,
-                                                List<Dispute> disputeList) throws DisputeReplayException {
-        var tuple = TradeDataValidation.getTestReplayHashMaps(disputeList);
-        Map<String, Set<String>> disputesPerTradeId = tuple.first;
-        Map<String, Set<String>> disputesPerDelayedPayoutTxId = tuple.second;
-        Map<String, Set<String>> disputesPerDepositTxId = tuple.third;
-
-        testIfDisputeTriesReplay(dispute,
-                disputesPerTradeId,
-                disputesPerDelayedPayoutTxId,
-                disputesPerDepositTxId);
-    }
-
-
-    private static Tuple3<Map<String, Set<String>>, Map<String, Set<String>>, Map<String, Set<String>>> getTestReplayHashMaps(
-            List<Dispute> disputeList) {
-        Map<String, Set<String>> disputesPerTradeId = new HashMap<>();
-        Map<String, Set<String>> disputesPerDelayedPayoutTxId = new HashMap<>();
-        Map<String, Set<String>> disputesPerDepositTxId = new HashMap<>();
-        disputeList.forEach(dispute -> {
-            String uid = dispute.getUid();
-
-            String tradeId = dispute.getTradeId();
-            disputesPerTradeId.putIfAbsent(tradeId, new HashSet<>());
-            Set<String> set = disputesPerTradeId.get(tradeId);
-            set.add(uid);
-
-            String delayedPayoutTxId = dispute.getDelayedPayoutTxId();
-            if (delayedPayoutTxId != null) {
-                disputesPerDelayedPayoutTxId.putIfAbsent(delayedPayoutTxId, new HashSet<>());
-                set = disputesPerDelayedPayoutTxId.get(delayedPayoutTxId);
-                set.add(uid);
-            }
-
-            String depositTxId = dispute.getDepositTxId();
-            if (depositTxId != null) {
-                disputesPerDepositTxId.putIfAbsent(depositTxId, new HashSet<>());
-                set = disputesPerDepositTxId.get(depositTxId);
-                set.add(uid);
-            }
-        });
-
-        return new Tuple3<>(disputesPerTradeId, disputesPerDelayedPayoutTxId, disputesPerDepositTxId);
-    }
-
-    private static void testIfDisputeTriesReplay(Dispute disputeToTest,
-                                                 Map<String, Set<String>> disputesPerTradeId,
-                                                 Map<String, Set<String>> disputesPerDelayedPayoutTxId,
-                                                 Map<String, Set<String>> disputesPerDepositTxId)
-            throws DisputeReplayException {
-
-        try {
-            String disputeToTestTradeId = disputeToTest.getTradeId();
-            String disputeToTestDelayedPayoutTxId = disputeToTest.getDelayedPayoutTxId();
-            String disputeToTestDepositTxId = disputeToTest.getDepositTxId();
-            String disputeToTestUid = disputeToTest.getUid();
-
-            // For pre v1.4.0 we do not get the delayed payout tx sent in mediation cases but in refund agent case we do.
-            // So until all users have updated to 1.4.0 we only check in refund agent case. With 1.4.0 we send the
-            // delayed payout tx also in mediation cases and that if check can be removed.
-            if (disputeToTest.getSupportType() == SupportType.REFUND) {
-                checkNotNull(disputeToTestDelayedPayoutTxId,
-                        "Delayed payout transaction ID is null. " +
-                                "Trade ID: " + disputeToTestTradeId);
-            }
-            checkNotNull(disputeToTestDepositTxId,
-                    "depositTxId must not be null. Trade ID: " + disputeToTestTradeId);
-            checkNotNull(disputeToTestUid,
-                    "agentsUid must not be null. Trade ID: " + disputeToTestTradeId);
-
-            Set<String> disputesPerTradeIdItems = disputesPerTradeId.get(disputeToTestTradeId);
-            checkArgument(disputesPerTradeIdItems != null && disputesPerTradeIdItems.size() <= 2,
-                    "We found more then 2 disputes with the same trade ID. " +
-                            "Trade ID: " + disputeToTestTradeId);
-            if (!disputesPerDelayedPayoutTxId.isEmpty()) {
-                Set<String> disputesPerDelayedPayoutTxIdItems = disputesPerDelayedPayoutTxId.get(disputeToTestDelayedPayoutTxId);
-                checkArgument(disputesPerDelayedPayoutTxIdItems != null && disputesPerDelayedPayoutTxIdItems.size() <= 2,
-                        "We found more then 2 disputes with the same delayedPayoutTxId. " +
-                                "Trade ID: " + disputeToTestTradeId);
-            }
-            if (!disputesPerDepositTxId.isEmpty()) {
-                Set<String> disputesPerDepositTxIdItems = disputesPerDepositTxId.get(disputeToTestDepositTxId);
-                checkArgument(disputesPerDepositTxIdItems != null && disputesPerDepositTxIdItems.size() <= 2,
-                        "We found more then 2 disputes with the same depositTxId. " +
-                                "Trade ID: " + disputeToTestTradeId);
-            }
-        } catch (IllegalArgumentException e) {
-            throw new DisputeReplayException(disputeToTest, e.getMessage());
-        } catch (NullPointerException e) {
-            log.error("NullPointerException at testIfDisputeTriesReplay: " +
-                            "disputeToTest={}, disputesPerTradeId={}, disputesPerDelayedPayoutTxId={}, " +
-                            "disputesPerDepositTxId={}",
-                    disputeToTest, disputesPerTradeId, disputesPerDelayedPayoutTxId, disputesPerDepositTxId);
-            throw new DisputeReplayException(disputeToTest, e.toString() + " at dispute " + disputeToTest.toString());
-        }
-    }
-
     public static void validateDelayedPayoutTx(Trade trade,
                                                Transaction delayedPayoutTx,
                                                BtcWalletService btcWalletService)
@@ -315,8 +155,6 @@ public class TradeDataValidation {
             addressConsumer.accept(addressAsString);
         }
 
-        validateDonationAddress(addressAsString);
-
         if (dispute != null) {
             // Verify that address in the dispute matches the one in the trade.
             String donationAddressOfDelayedPayoutTx = dispute.getDonationAddressOfDelayedPayoutTx();
@@ -341,28 +179,6 @@ public class TradeDataValidation {
                     "Delayed payout tx=" + delayedPayoutTx + "\n" +
                     "Deposit tx=" + depositTx);
         }
-    }
-
-    public static void validateDepositInputs(Trade trade) throws InvalidTxException {
-        throw new RuntimeException("TradeDataValidation.validateDepositInputs() needs updated for XMR");
-//        // assumption: deposit tx always has 2 inputs, the maker and taker
-//        if (trade == null || trade.getDepositTx() == null || trade.getDepositTx().getInputs().size() != 2) {
-//            throw new InvalidTxException("Deposit transaction is null or has unexpected input count");
-//        }
-//        Transaction depositTx = trade.getDepositTx();
-//        String txIdInput0 = depositTx.getInput(0).getOutpoint().getHash().toString();
-//        String txIdInput1 = depositTx.getInput(1).getOutpoint().getHash().toString();
-//        String contractMakerTxId = trade.getContract().getOfferPayload().getOfferFeePaymentTxId();
-//        String contractTakerTxId = trade.getContract().getTakerFeeTxID();
-//        boolean makerFirstMatch = contractMakerTxId.equalsIgnoreCase(txIdInput0) && contractTakerTxId.equalsIgnoreCase(txIdInput1);
-//        boolean takerFirstMatch = contractMakerTxId.equalsIgnoreCase(txIdInput1) && contractTakerTxId.equalsIgnoreCase(txIdInput0);
-//        if (!makerFirstMatch && !takerFirstMatch) {
-//            String errMsg = "Maker/Taker txId in contract does not match deposit tx input";
-//            log.error(errMsg +
-//                "\nContract Maker tx=" + contractMakerTxId + " Contract Taker tx=" + contractTakerTxId +
-//                "\nDeposit Input0=" + txIdInput0 + " Deposit Input1=" + txIdInput1);
-//            throw new InvalidTxException(errMsg);
-//        }
     }
 
 

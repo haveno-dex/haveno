@@ -32,7 +32,6 @@ import bisq.core.provider.mempool.MempoolService;
 import bisq.core.trade.ArbitratorTrade;
 import bisq.core.trade.BuyerTrade;
 import bisq.core.trade.ClosedTradableManager;
-import bisq.core.trade.Contract;
 import bisq.core.trade.HavenoUtils;
 import bisq.core.trade.SellerTrade;
 import bisq.core.trade.Trade;
@@ -202,7 +201,7 @@ public class PendingTradesViewModel extends ActivatableWithDataModel<PendingTrad
             payoutStateSubscription = EasyBind.subscribe(trade.payoutStateProperty(), state -> {
                 UserThread.execute(() -> onPayoutStateChanged(state));
             });
-            messageStateSubscription = EasyBind.subscribe(trade.getProcessModel().getPaymentStartedMessageStateProperty(), this::onMessageStateChanged);
+            messageStateSubscription = EasyBind.subscribe(trade.getProcessModel().getPaymentSentMessageStateProperty(), this::onMessageStateChanged);
         }
     }
 
@@ -216,7 +215,7 @@ public class PendingTradesViewModel extends ActivatableWithDataModel<PendingTrad
         }
 
         if (trade != null)
-            trade.getProcessModel().setPaymentStartedMessageState(messageState);
+            trade.getProcessModel().setPaymentSentMessageState(messageState);
     }
 
     private void onMessageStateChanged(MessageState messageState) {
@@ -293,18 +292,6 @@ public class PendingTradesViewModel extends ActivatableWithDataModel<PendingTrad
                 : "";
     }
 
-    public String getTxFee() {
-        if (trade != null && trade.getAmount() != null) {
-            Coin txFee = dataModel.getTxFee();
-            String percentage = GUIUtil.getPercentageOfTradeAmount(txFee,
-                    trade.getAmount(),
-                    Coin.ZERO);
-            return btcFormatter.formatCoinWithCode(txFee) + percentage;
-        } else {
-            return "";
-        }
-    }
-
     public String getTradeFee() {
         if (trade != null && dataModel.getOffer() != null && trade.getAmount() != null) {
             checkNotNull(dataModel.getTrade());
@@ -353,9 +340,9 @@ public class PendingTradesViewModel extends ActivatableWithDataModel<PendingTrad
                 .filter(e -> {
                     if (e instanceof Trade) {
                         Trade t = (Trade) e;
-                        return t.getTradingPeerNodeAddress() != null &&
-                                trade.getTradingPeerNodeAddress() != null &&
-                                t.getTradingPeerNodeAddress().getFullAddress().equals(trade.getTradingPeerNodeAddress().getFullAddress());
+                        return t.getTradePeerNodeAddress() != null &&
+                                trade.getTradePeerNodeAddress() != null &&
+                                t.getTradePeerNodeAddress().getFullAddress().equals(trade.getTradePeerNodeAddress().getFullAddress());
                     } else
                         return false;
 
@@ -433,21 +420,19 @@ public class PendingTradesViewModel extends ActivatableWithDataModel<PendingTrad
                 buyerState.set(BuyerState.STEP2);
                 break;
 
-            // seller step 3
-            case SELLER_RECEIVED_PAYMENT_SENT_MSG: // PAYMENT_SENT_MSG received
-                sellerState.set(SellerState.STEP3);
-                break;
-
-            // seller step 4
-            case SELLER_CONFIRMED_IN_UI_PAYMENT_RECEIPT: // UI action
+            // payment received
             case SELLER_SENT_PAYMENT_RECEIVED_MSG:
                 if (trade instanceof BuyerTrade) buyerState.set(BuyerState.STEP4);
-                else if (trade instanceof SellerTrade) sellerState.set(SellerState.STEP3);
+                else if (trade instanceof SellerTrade) sellerState.set(trade.isPayoutPublished() ? SellerState.STEP4 : SellerState.STEP3);
                 break;
-            case SELLER_SAW_ARRIVED_PAYMENT_RECEIVED_MSG:
-            case SELLER_STORED_IN_MAILBOX_PAYMENT_RECEIVED_MSG:
+
+            // seller step 3
+            case SELLER_RECEIVED_PAYMENT_SENT_MSG: // PAYMENT_SENT_MSG received
+            case SELLER_CONFIRMED_IN_UI_PAYMENT_RECEIPT:
             case SELLER_SEND_FAILED_PAYMENT_RECEIVED_MSG:
-                sellerState.set(SellerState.STEP4);
+            case SELLER_STORED_IN_MAILBOX_PAYMENT_RECEIVED_MSG:
+            case SELLER_SAW_ARRIVED_PAYMENT_RECEIVED_MSG:
+                sellerState.set(trade.isPayoutPublished() ? SellerState.STEP4 : SellerState.STEP3);
                 break;
 
             case TRADE_COMPLETED:

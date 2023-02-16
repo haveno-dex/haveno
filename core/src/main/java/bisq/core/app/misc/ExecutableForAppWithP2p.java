@@ -92,6 +92,7 @@ public abstract class ExecutableForAppWithP2p extends HavenoExecutable {
             if (injector != null) {
                 JsonFileManager.shutDownAllInstances();
                 injector.getInstance(ArbitratorManager.class).shutDown();
+                injector.getInstance(XmrWalletService.class).shutDown(true);
                 injector.getInstance(OpenOfferManager.class).shutDown(() -> injector.getInstance(P2PService.class).shutDown(() -> {
                     injector.getInstance(WalletsSetup.class).shutDownComplete.addListener((ov, o, n) -> {
                         module.close(injector);
@@ -103,7 +104,6 @@ public abstract class ExecutableForAppWithP2p extends HavenoExecutable {
                         });
                     });
                     injector.getInstance(WalletsSetup.class).shutDown();
-                    injector.getInstance(XmrWalletService.class).shutDown(true); // TODO (woodser): this is not actually called, perhaps because WalletsSetup.class completes too quick so its listener calls System.exit(0)
                     injector.getInstance(BtcWalletService.class).shutDown();
                 }));
                 // we wait max 5 sec.

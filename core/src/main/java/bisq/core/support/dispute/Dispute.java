@@ -104,7 +104,7 @@ public final class Dispute implements NetworkPayload, PersistablePayload {
     private final String depositTxId;
     @Nullable
     private final String payoutTxId;
-    private final String contractAsJson;
+    private String contractAsJson;
     @Nullable
     private final String makerContractSignature;
     @Nullable
@@ -351,6 +351,39 @@ public final class Dispute implements NetworkPayload, PersistablePayload {
         return !chatMessages.isEmpty() && chatMessages.get(0).getSupportType() == SupportType.MEDIATION;
     }
 
+    public boolean removeAllChatMessages() {
+        if (chatMessages.size() > 1) {
+            // removes all chat except the initial guidelines message.
+            String firstMessageUid = chatMessages.get(0).getUid();
+            chatMessages.removeIf((msg) -> !msg.getUid().equals(firstMessageUid));
+            return true;
+        }
+        return false;
+    }
+
+    public void maybeClearSensitiveData() {
+        String change = "";
+        if (contract.maybeClearSensitiveData()) {
+            change += "contract;";
+        }
+        String edited = Contract.sanitizeContractAsJson(contractAsJson);
+        if (!edited.equals(contractAsJson)) {
+            contractAsJson = edited;
+            change += "contractAsJson;";
+        }
+        if (removeAllChatMessages()) {
+            change += "chat messages;";
+        }
+        if (change.length() > 0) {
+            log.info("cleared sensitive data from {} of dispute for trade {}", change, Utilities.getShortId(getTradeId()));
+        }
+    }
+
+    // sanitizes a contract json string
+    public static String sanitizeContractAsJson(String contractAsJson) {
+        return contractAsJson;
+    }
+
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Setters
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -451,9 +484,9 @@ public final class Dispute implements NetworkPayload, PersistablePayload {
     public String getRoleString() {
         if (disputeOpenerIsMaker) {
             if (disputeOpenerIsBuyer)
-                return Res.get("support.buyerOfferer");
+                return Res.get("support.buyerMaker");
             else
-                return Res.get("support.sellerOfferer");
+                return Res.get("support.sellerMaker");
         } else {
             if (disputeOpenerIsBuyer)
                 return Res.get("support.buyerTaker");

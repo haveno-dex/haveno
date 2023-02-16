@@ -738,11 +738,18 @@ public class GUIUtil {
             return false;
         }
 
+        try {
+            connectionService.verifyConnection();
+        } catch (Exception e) {
+            new Popup().information(e.getMessage()).show();
+            return false;
+        }
+
         return true;
     }
 
     public static boolean isChainHeightSyncedWithinToleranceOrShowPopup(CoreMoneroConnectionsService connectionService) {
-        if (!connectionService.isChainHeightSyncedWithinTolerance()) {
+        if (!connectionService.isSyncedWithinTolerance()) {
             new Popup().information(Res.get("popup.warning.chainNotSynced")).show();
             return false;
         }

@@ -27,12 +27,16 @@ import bisq.core.trade.Trade;
 import bisq.core.trade.Trade.State;
 import bisq.core.trade.messages.SignContractRequest;
 import bisq.network.p2p.SendDirectMessageListener;
+
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 import java.util.UUID;
 
 import com.google.common.base.Charsets;
 
 import lombok.extern.slf4j.Slf4j;
+import monero.daemon.model.MoneroOutput;
 import monero.wallet.model.MoneroTxWallet;
 
 // TODO (woodser): separate classes for deposit tx creation and contract request, or combine into ProcessInitMultisigRequest
@@ -73,11 +77,17 @@ public class MaybeSendSignContractRequest extends TradeTask {
           // create deposit tx and freeze inputs
           MoneroTxWallet depositTx = trade.getXmrWalletService().createDepositTx(trade);
 
+          // collect reserved key images
+          List<String> reservedKeyImages = new ArrayList<String>();
+          for (MoneroOutput input : depositTx.getInputs()) reservedKeyImages.add(input.getKeyImage().getHex());
+
           // save process state
-          processModel.setDepositTxXmr(depositTx); // TODO: trade.getSelf().setDepositTx()
+          processModel.setDepositTxXmr(depositTx); // TODO: redundant with trade.getSelf().setDepositTx(), remove?
+          trade.getSelf().setDepositTx(depositTx);
           trade.getSelf().setDepositTxHash(depositTx.getHash());
+          trade.getSelf().setReserveTxKeyImages(reservedKeyImages);
           trade.getSelf().setPayoutAddressString(trade.getXmrWalletService().getAddressEntry(processModel.getOffer().getId(), XmrAddressEntry.Context.TRADE_PAYOUT).get().getAddressString()); // TODO (woodser): allow custom payout address?
-          trade.getSelf().setPaymentAccountPayload(trade.getProcessModel().getPaymentAccountPayload(trade));
+          trade.getSelf().setPaymentAccountPayload(trade.getProcessModel().getPaymentAccountPayload(trade.getSelf().getPaymentAccountId()));
 
           // maker signs deposit hash nonce to avoid challenge protocol
           byte[] sig = null;
@@ -98,16 +108,16 @@ public class MaybeSendSignContractRequest extends TradeTask {
                   sig);
 
           // send request to trading peer
-          processModel.getP2PService().sendEncryptedDirectMessage(trade.getTradingPeer().getNodeAddress(), trade.getTradingPeer().getPubKeyRing(), request, new SendDirectMessageListener() {
+          processModel.getP2PService().sendEncryptedDirectMessage(trade.getTradePeer().getNodeAddress(), trade.getTradePeer().getPubKeyRing(), request, new SendDirectMessageListener() {
               @Override
               public void onArrived() {
-                  log.info("{} arrived: trading peer={}; offerId={}; uid={}", request.getClass().getSimpleName(), trade.getTradingPeer().getNodeAddress(), trade.getId());
+                  log.info("{} arrived: trading peer={}; offerId={}; uid={}", request.getClass().getSimpleName(), trade.getTradePeer().getNodeAddress(), trade.getId());
                   ack1 = true;
                   if (ack1 && ack2) completeAux();
               }
               @Override
               public void onFault(String errorMessage) {
-                  log.error("Sending {} failed: uid={}; peer={}; error={}", request.getClass().getSimpleName(), trade.getTradingPeer().getNodeAddress(), trade.getId(), errorMessage);
+                  log.error("Sending {} failed: uid={}; peer={}; error={}", request.getClass().getSimpleName(), trade.getTradePeer().getNodeAddress(), trade.getId(), errorMessage);
                   appendToErrorMessage("Sending message failed: message=" + request + "\nerrorMessage=" + errorMessage);
                   failed();
               }

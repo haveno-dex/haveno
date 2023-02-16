@@ -63,8 +63,6 @@ abstract class AbstractTradeListBuilder extends AbstractTableBuilder {
     @Nullable
     protected final Column<String> colMixedAmount;
     @Nullable
-    protected final Column<Long> colMinerTxFee;
-    @Nullable
     protected final MixedTradeFeeColumn colMixedTradeFee;
     @Nullable
     protected final Column<Long> colBuyerDeposit;
@@ -94,7 +92,7 @@ abstract class AbstractTradeListBuilder extends AbstractTableBuilder {
     @Nullable
     protected final Column<String> colTradeCost;
     @Nullable
-    protected final Column<Boolean> colIsPaymentStartedMessageSent;
+    protected final Column<Boolean> colIsPaymentSentMessageSent;
     @Nullable
     protected final Column<Boolean> colIsPaymentReceivedMessageSent;
     @Nullable
@@ -115,7 +113,6 @@ abstract class AbstractTradeListBuilder extends AbstractTableBuilder {
         this.colCurrency = colSupplier.currencyColumn.get();
         this.colAmount = colSupplier.amountColumn.get();
         this.colMixedAmount = colSupplier.mixedAmountColumn.get();
-        this.colMinerTxFee = colSupplier.minerTxFeeColumn.get();
         this.colMixedTradeFee = colSupplier.mixedTradeFeeColumn.get();
         this.colBuyerDeposit = colSupplier.toSecurityDepositColumn.apply(COL_HEADER_BUYER_DEPOSIT);
         this.colSellerDeposit = colSupplier.toSecurityDepositColumn.apply(COL_HEADER_SELLER_DEPOSIT);
@@ -132,7 +129,7 @@ abstract class AbstractTradeListBuilder extends AbstractTableBuilder {
         this.colIsCompleted = colSupplier.fundsWithdrawnColumn.get();
         this.colBisqTradeFee = colSupplier.bisqTradeDetailFeeColumn.get();
         this.colTradeCost = colSupplier.tradeCostColumn.get();
-        this.colIsPaymentStartedMessageSent = colSupplier.paymentStartedMessageSentColumn.get();
+        this.colIsPaymentSentMessageSent = colSupplier.paymentSentMessageSentColumn.get();
         this.colIsPaymentReceivedMessageSent = colSupplier.paymentReceivedMessageSentColumn.get();
         //noinspection ConstantConditions
         this.colAltcoinReceiveAddressColumn = colSupplier.altcoinReceiveAddressColumn.get();
@@ -193,12 +190,6 @@ abstract class AbstractTradeListBuilder extends AbstractTableBuilder {
             t.getOffer().getUseMarketBasedPrice()
                     ? format("%.2f%s", t.getOffer().getMarketPriceMarginPct(), "%")
                     : "N/A";
-
-    protected final Function<TradeInfo, Long> toMyMinerTxFee = (t) -> {
-        return isTaker.test(t)
-                ? t.getTxFeeAsLong()
-                : t.getOffer().getTxFee();
-    };
 
     protected final Function<TradeInfo, Long> toTradeFeeBtc = (t) -> {
         var isMyOffer = t.getOffer().getIsMyOffer();

@@ -131,7 +131,6 @@ public final class OfferPayload implements ProtectedStoragePayload, ExpirablePay
     @Nullable
     private final List<String> acceptedBankIds;
     private final long blockHeightAtOfferCreation;
-    private final long txFee;
     private final long makerFee;
     private final long buyerSecurityDeposit;
     private final long sellerSecurityDeposit;
@@ -179,7 +178,6 @@ public final class OfferPayload implements ProtectedStoragePayload, ExpirablePay
                         @Nullable List<String> acceptedBankIds,
                         String versionNr,
                         long blockHeightAtOfferCreation,
-                        long txFee,
                         long makerFee,
                         long buyerSecurityDeposit,
                         long sellerSecurityDeposit,
@@ -222,7 +220,6 @@ public final class OfferPayload implements ProtectedStoragePayload, ExpirablePay
         this.bankId = bankId;
         this.acceptedBankIds = acceptedBankIds;
         this.blockHeightAtOfferCreation = blockHeightAtOfferCreation;
-        this.txFee = txFee;
         this.makerFee = makerFee;
         this.buyerSecurityDeposit = buyerSecurityDeposit;
         this.sellerSecurityDeposit = sellerSecurityDeposit;
@@ -287,7 +284,6 @@ public final class OfferPayload implements ProtectedStoragePayload, ExpirablePay
                 .setMakerPaymentAccountId(makerPaymentAccountId)
                 .setVersionNr(versionNr)
                 .setBlockHeightAtOfferCreation(blockHeightAtOfferCreation)
-                .setTxFee(txFee)
                 .setMakerFee(makerFee)
                 .setBuyerSecurityDeposit(buyerSecurityDeposit)
                 .setSellerSecurityDeposit(sellerSecurityDeposit)
@@ -343,7 +339,6 @@ public final class OfferPayload implements ProtectedStoragePayload, ExpirablePay
                 acceptedBankIds,
                 proto.getVersionNr(),
                 proto.getBlockHeightAtOfferCreation(),
-                proto.getTxFee(),
                 proto.getMakerFee(),
                 proto.getBuyerSecurityDeposit(),
                 proto.getSellerSecurityDeposit(),
@@ -392,7 +387,6 @@ public final class OfferPayload implements ProtectedStoragePayload, ExpirablePay
                 ",\r\n     bankId='" + bankId + '\'' +
                 ",\r\n     acceptedBankIds=" + acceptedBankIds +
                 ",\r\n     blockHeightAtOfferCreation=" + blockHeightAtOfferCreation +
-                ",\r\n     txFee=" + txFee +
                 ",\r\n     makerFee=" + makerFee +
                 ",\r\n     buyerSecurityDeposit=" + buyerSecurityDeposit +
                 ",\r\n     sellerSecurityDeposit=" + sellerSecurityDeposit +
@@ -432,7 +426,6 @@ public final class OfferPayload implements ProtectedStoragePayload, ExpirablePay
             object.add("offerFeePaymentTxId", context.serialize(offerPayload.getOfferFeePaymentTxId()));
             object.add("versionNr", context.serialize(offerPayload.getVersionNr()));
             object.add("blockHeightAtOfferCreation", context.serialize(offerPayload.getBlockHeightAtOfferCreation()));
-            object.add("txFee", context.serialize(offerPayload.getTxFee()));
             object.add("makerFee", context.serialize(offerPayload.getMakerFee()));
             object.add("buyerSecurityDeposit", context.serialize(offerPayload.getBuyerSecurityDeposit()));
             object.add("sellerSecurityDeposit", context.serialize(offerPayload.getSellerSecurityDeposit()));

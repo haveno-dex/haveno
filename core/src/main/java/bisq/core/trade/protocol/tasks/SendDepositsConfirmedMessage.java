@@ -17,7 +17,6 @@
 
 package bisq.core.trade.protocol.tasks;
 
-import bisq.core.btc.wallet.XmrWalletService;
 import bisq.core.trade.HavenoUtils;
 import bisq.core.trade.Trade;
 import bisq.core.trade.messages.DepositsConfirmedMessage;
@@ -27,7 +26,6 @@ import bisq.common.crypto.PubKeyRing;
 import bisq.common.taskrunner.TaskRunner;
 
 import lombok.extern.slf4j.Slf4j;
-import monero.wallet.MoneroWallet;
 
 /**
  * Send message on first confirmation to decrypt peer payment account and update multisig hex.
@@ -62,9 +60,7 @@ public abstract class SendDepositsConfirmedMessage extends SendMailboxMessageTas
 
             // export multisig hex once
             if (trade.getSelf().getUpdatedMultisigHex() == null) {
-                XmrWalletService walletService = processModel.getProvider().getXmrWalletService();
-                MoneroWallet multisigWallet = walletService.getMultisigWallet(tradeId);
-                trade.getSelf().setUpdatedMultisigHex(multisigWallet.exportMultisigHex());
+                trade.getSelf().setUpdatedMultisigHex(trade.getWallet().exportMultisigHex());
                 processModel.getTradeManager().requestPersistence();
             }
 
@@ -78,7 +74,7 @@ public abstract class SendDepositsConfirmedMessage extends SendMailboxMessageTas
                     processModel.getMyNodeAddress(),
                     processModel.getPubKeyRing(),
                     deterministicId,
-                    trade.getBuyer() == trade.getTradingPeer(getReceiverNodeAddress()) ?  trade.getSeller().getPaymentAccountKey() : null, // buyer receives seller's payment account decryption key
+                    trade.getBuyer() == trade.getTradePeer(getReceiverNodeAddress()) ?  trade.getSeller().getPaymentAccountKey() : null, // buyer receives seller's payment account decryption key
                     trade.getSelf().getUpdatedMultisigHex());
         }
         return message;
