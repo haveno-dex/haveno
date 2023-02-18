@@ -29,6 +29,7 @@ import bisq.desktop.main.overlays.windows.OfferDetailsWindow;
 import bisq.desktop.util.DisplayUtils;
 import bisq.desktop.util.GUIUtil;
 
+import bisq.core.api.CoreApi;
 import bisq.core.btc.wallet.XmrWalletService;
 import bisq.core.locale.Res;
 import bisq.core.offer.Offer;
@@ -38,6 +39,9 @@ import bisq.core.trade.HavenoUtils;
 import bisq.core.trade.Trade;
 import bisq.core.trade.TradeManager;
 
+
+import org.bitcoinj.core.Coin;
+import org.bitcoinj.core.Transaction;
 
 import javax.inject.Inject;
 
@@ -110,13 +114,17 @@ public class SignedOfferView extends ActivatableView<VBox, Void> {
 
     private OfferDetailsWindow offerDetailsWindow;
 
+    private CoreApi coreApi;
+
     @Inject
     public SignedOfferView(OpenOfferManager openOfferManager, XmrWalletService xmrWalletService,
-                           TradeManager tradeManager, OfferDetailsWindow offerDetailsWindow) {
+                           TradeManager tradeManager, OfferDetailsWindow offerDetailsWindow,
+                           CoreApi coreApi) {
         this.openOfferManager = openOfferManager;
         this.xmrWalletService = xmrWalletService;
         this.tradeManager = tradeManager;
         this.offerDetailsWindow = offerDetailsWindow;
+        this.coreApi = coreApi;
     }
 
     private Offer fetchOffer(SignedOffer signedOffer) {
@@ -176,10 +184,14 @@ public class SignedOfferView extends ActivatableView<VBox, Void> {
             Offer offer = fetchOffer(selectedSignedOffer);
             log.debug("Found {} matching signed offer.", (offer != null ? offer.getId() : null));
             if(offer != null) {
+                Transaction tx = null;
+                if(offer.getOfferFeePaymentTxId() != null) {
+                    tx = coreApi.getTransaction(offer.getOfferFeePaymentTxId());//Digging up the mining fee
+                }
                 new Popup().warning(Res.get("support.prompt.signedOffer.penalty.msg",
                         HavenoUtils.formatToXmr(offer.getMakerFee()),
                         HavenoUtils.formatToXmr(offer.getAmount().subtract(offer.getMakerFee())),
-                        HavenoUtils.formatToXmr(offer.getMakerFee()),//TODO Where do we get transaction fee from?
+                        HavenoUtils.formatToXmr(tx != null ? tx.getFee() : Coin.ZERO),
                         selectedSignedOffer.getReserveTxHash(),
                         selectedSignedOffer.getReserveTxKeyImages())
                 ).onAction(() -> OfferViewUtil.submitTransactionHex(xmrWalletService, tableView,
