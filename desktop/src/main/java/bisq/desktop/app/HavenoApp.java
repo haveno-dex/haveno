@@ -149,7 +149,7 @@ public class HavenoApp extends Application implements UncaughtExceptionHandler {
                     .show();
             new Thread(() -> {
                 gracefulShutDownHandler.gracefulShutDown(() -> {
-                    log.debug("App shutdown complete");
+                    log.info("App shutdown complete");
                 });
             }).start();
             shutDownRequested = true;

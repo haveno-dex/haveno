@@ -66,8 +66,6 @@ public class HavenoAppMain extends HavenoExecutable {
 
     private HavenoApp application;
 
-    protected CompletableFuture<String> completableFuture = new CompletableFuture<>();
-
     public HavenoAppMain() {
         super("Bisq Desktop", "bisq-desktop", DEFAULT_APP_NAME, Version.VERSION);
     }
@@ -153,6 +151,7 @@ public class HavenoAppMain extends HavenoExecutable {
 
     @Override
     protected void startApplication() {
+        log.info("Running startApplication...");
         // We need to be in user thread! We mapped at launchApplication already.  Once
         // the UI is ready we get onApplicationStarted called and start the setup there.
         application.startApplication(this::onApplicationStarted);
@@ -170,19 +169,27 @@ public class HavenoAppMain extends HavenoExecutable {
 
     @Override
     public CompletableFuture<String> handlePasswordDialogLogin() {
-        // create the password dialog
-        TextInputDialog passwordDialog = new TextInputDialog();
-        passwordDialog.setTitle("Enter Password");
-        passwordDialog.setHeaderText("Please enter your password:");
+        CompletableFuture<String> passwordFuture = new CompletableFuture<>();
 
-        // wait for the user to enter a password
-        Optional<String> result = passwordDialog.showAndWait();
-        if (result.isPresent()) {
-            // if the user entered a password, return it in a completed CompletableFuture
-            return CompletableFuture.completedFuture(result.get());
-        } else {
-            // if the user cancelled the dialog, return an exceptionally completed CompletableFuture
-            return CompletableFuture.failedFuture(new Exception("Password dialog cancelled"));
-        }
+        Platform.setImplicitExit(false);
+        Platform.runLater(() -> {
+            // create the password dialog
+            TextInputDialog passwordDialog = new TextInputDialog();
+            passwordDialog.setTitle("Enter Password");
+            passwordDialog.setHeaderText("Please enter your password:");
+
+            // wait for the user to enter a password
+            Optional<String> result = passwordDialog.showAndWait();
+            if (result.isPresent()) {
+                // if the user entered a password, complete the passwordFuture with the password
+                passwordFuture.complete(result.get());
+            } else {
+                // if the user cancelled the dialog, complete the passwordFuture exceptionally
+                passwordFuture.completeExceptionally(new Exception("Password dialog cancelled"));
+            }
+        });
+
+        return passwordFuture;
     }
+
 }

@@ -455,12 +455,10 @@ public class HavenoSetup {
         log.info("Init wallet");
         havenoSetupListeners.forEach(HavenoSetupListener::onInitWallet);
         Runnable walletPasswordHandler = () -> {
-            log.info("To have gotten here, wallet password already acquired");
             havenoSetupListeners.forEach(HavenoSetupListener::onRequestWalletPassword);
             if (p2pNetworkReady.get())
                 p2PNetworkSetup.setSplashP2PNetworkAnimationVisible(true);
 
-            log.info("requestWalletPasswordHandler={}", requestWalletPasswordHandler);
             if (requestWalletPasswordHandler != null) {
                 requestWalletPasswordHandler.accept(aesKey -> {
                     walletsManager.setAesKey(aesKey);
@@ -478,6 +476,8 @@ public class HavenoSetup {
                 });
             }
         };
+        log.info("walletPasswordHandler={}", walletPasswordHandler);
+        log.info("requestWalletPasswordHandler={}", requestWalletPasswordHandler);
         walletAppSetup.init(chainFileLockedExceptionHandler,
                 spvFileCorruptedHandler,
                 getResyncSpvSemaphore(),
