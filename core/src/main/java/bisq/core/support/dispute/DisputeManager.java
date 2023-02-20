@@ -734,7 +734,7 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
                     UUID.randomUUID().toString(),
                     getSupportType(),
                     trade.getSelf().getUpdatedMultisigHex(),
-                    trade.isPayoutPublished() ? null : unsignedPayoutTxHex, // include dispute payout tx if unpublished and arbitrator has their updated multisig info
+                    unsignedPayoutTxHex, // include dispute payout tx if arbitrator has their updated multisig info
                     deferPublishPayout); // instruct trader to defer publishing payout tx because peer is expected to publish imminently
 
             // send dispute closed message
@@ -835,70 +835,65 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
                 }
             }
 
-            // sync and save wallet
-            trade.syncWallet();
-            trade.saveWallet();
-
             // create unsigned dispute payout tx
-            if (!trade.isPayoutPublished()) {
-                log.info("Arbitrator creating unsigned dispute payout tx for trade {}", trade.getId());
-                try {
+            log.info("Arbitrator creating unsigned dispute payout tx for trade {}", trade.getId());
+            try {
 
-                    // trade wallet must be synced
-                    if (trade.getWallet().isMultisigImportNeeded()) throw new RuntimeException("Arbitrator's wallet needs updated multisig hex to create payout tx which means a trader must have already broadcast the payout tx for trade " + dispute.getTradeId());
+                // trade wallet must be synced
+                if (trade.getWallet().isMultisigImportNeeded()) throw new RuntimeException("Arbitrator's wallet needs updated multisig hex to create payout tx which means a trader must have already broadcast the payout tx for trade " + dispute.getTradeId());
 
-                    // collect winner and loser payout address and amounts
-                    Contract contract = dispute.getContract();
-                    String winnerPayoutAddress = disputeResult.getWinner() == Winner.BUYER ?
-                            (contract.isBuyerMakerAndSellerTaker() ? contract.getMakerPayoutAddressString() : contract.getTakerPayoutAddressString()) :
-                            (contract.isBuyerMakerAndSellerTaker() ? contract.getTakerPayoutAddressString() : contract.getMakerPayoutAddressString());
-                    String loserPayoutAddress = winnerPayoutAddress.equals(contract.getMakerPayoutAddressString()) ? contract.getTakerPayoutAddressString() : contract.getMakerPayoutAddressString();
-                    BigInteger winnerPayoutAmount = HavenoUtils.coinToAtomicUnits(disputeResult.getWinner() == Winner.BUYER ? disputeResult.getBuyerPayoutAmount() : disputeResult.getSellerPayoutAmount());
-                    BigInteger loserPayoutAmount = HavenoUtils.coinToAtomicUnits(disputeResult.getWinner() == Winner.BUYER ? disputeResult.getSellerPayoutAmount() : disputeResult.getBuyerPayoutAmount());
+                // collect winner and loser payout address and amounts
+                Contract contract = dispute.getContract();
+                String winnerPayoutAddress = disputeResult.getWinner() == Winner.BUYER ?
+                        (contract.isBuyerMakerAndSellerTaker() ? contract.getMakerPayoutAddressString() : contract.getTakerPayoutAddressString()) :
+                        (contract.isBuyerMakerAndSellerTaker() ? contract.getTakerPayoutAddressString() : contract.getMakerPayoutAddressString());
+                String loserPayoutAddress = winnerPayoutAddress.equals(contract.getMakerPayoutAddressString()) ? contract.getTakerPayoutAddressString() : contract.getMakerPayoutAddressString();
+                BigInteger winnerPayoutAmount = HavenoUtils.coinToAtomicUnits(disputeResult.getWinner() == Winner.BUYER ? disputeResult.getBuyerPayoutAmount() : disputeResult.getSellerPayoutAmount());
+                BigInteger loserPayoutAmount = HavenoUtils.coinToAtomicUnits(disputeResult.getWinner() == Winner.BUYER ? disputeResult.getSellerPayoutAmount() : disputeResult.getBuyerPayoutAmount());
 
-                    // check sufficient balance
-                    if (winnerPayoutAmount.compareTo(BigInteger.ZERO) < 0) throw new RuntimeException("Winner payout cannot be negative");
-                    if (loserPayoutAmount.compareTo(BigInteger.ZERO) < 0) throw new RuntimeException("Loser payout cannot be negative");
-                    if (winnerPayoutAmount.add(loserPayoutAmount).compareTo(trade.getWallet().getUnlockedBalance()) > 0) {
-                        throw new RuntimeException("The payout amounts are more than the wallet's unlocked balance");
-                    }
-
-                    // add any loss of precision to winner payout
-                    winnerPayoutAmount = winnerPayoutAmount.add(trade.getWallet().getUnlockedBalance().subtract(winnerPayoutAmount.add(loserPayoutAmount)));
-
-                    // create transaction to get fee estimate
-                    MoneroTxConfig txConfig = new MoneroTxConfig().setAccountIndex(0).setRelay(false);
-                    if (winnerPayoutAmount.compareTo(BigInteger.ZERO) > 0) txConfig.addDestination(winnerPayoutAddress, winnerPayoutAmount.multiply(BigInteger.valueOf(9)).divide(BigInteger.valueOf(10))); // reduce payment amount to get fee of similar tx
-                    if (loserPayoutAmount.compareTo(BigInteger.ZERO) > 0) txConfig.addDestination(loserPayoutAddress, loserPayoutAmount.multiply(BigInteger.valueOf(9)).divide(BigInteger.valueOf(10)));
-                    MoneroTxWallet feeEstimateTx = trade.getWallet().createTx(txConfig);
-
-                    // create payout tx by increasing estimated fee until successful
-                    MoneroTxWallet payoutTx = null;
-                    int numAttempts = 0;
-                    while (payoutTx == null && numAttempts < 50) {
-                        BigInteger feeEstimate = feeEstimateTx.getFee().add(feeEstimateTx.getFee().multiply(BigInteger.valueOf(numAttempts)).divide(BigInteger.valueOf(10))); // add 1/10th of fee until tx is successful
-                        txConfig = new MoneroTxConfig().setAccountIndex(0).setRelay(false);
-                        if (winnerPayoutAmount.compareTo(BigInteger.ZERO) > 0) txConfig.addDestination(winnerPayoutAddress, winnerPayoutAmount.subtract(loserPayoutAmount.equals(BigInteger.ZERO) ? feeEstimate : BigInteger.ZERO)); // winner only pays fee if loser gets 0
-                        if (loserPayoutAmount.compareTo(BigInteger.ZERO) > 0) {
-                            if (loserPayoutAmount.compareTo(feeEstimate) < 0) throw new RuntimeException("Loser payout is too small to cover the mining fee");
-                            if (loserPayoutAmount.compareTo(feeEstimate) > 0) txConfig.addDestination(loserPayoutAddress, loserPayoutAmount.subtract(feeEstimate)); // loser pays fee
-                        }
-                        numAttempts++;
-                        try {
-                            payoutTx = trade.getWallet().createTx(txConfig);
-                        } catch (MoneroError e) {
-                            // exception expected // TODO: better way of estimating fee?
-                        }
-                    }
-                    if (payoutTx == null) throw new RuntimeException("Failed to generate dispute payout tx after " + numAttempts + " attempts");
-                    log.info("Dispute payout transaction generated on attempt {}", numAttempts);
-
-                    // save updated multisig hex
-                    trade.getSelf().setUpdatedMultisigHex(trade.getWallet().exportMultisigHex());
-                    return payoutTx;
-                } catch (Exception e) {
-                    if (!trade.isPayoutPublished()) throw e;
+                // check sufficient balance
+                if (winnerPayoutAmount.compareTo(BigInteger.ZERO) < 0) throw new RuntimeException("Winner payout cannot be negative");
+                if (loserPayoutAmount.compareTo(BigInteger.ZERO) < 0) throw new RuntimeException("Loser payout cannot be negative");
+                if (winnerPayoutAmount.add(loserPayoutAmount).compareTo(trade.getWallet().getUnlockedBalance()) > 0) {
+                    throw new RuntimeException("The payout amounts are more than the wallet's unlocked balance");
                 }
+
+                // add any loss of precision to winner payout
+                winnerPayoutAmount = winnerPayoutAmount.add(trade.getWallet().getUnlockedBalance().subtract(winnerPayoutAmount.add(loserPayoutAmount)));
+
+                // create transaction to get fee estimate
+                MoneroTxConfig txConfig = new MoneroTxConfig().setAccountIndex(0).setRelay(false);
+                if (winnerPayoutAmount.compareTo(BigInteger.ZERO) > 0) txConfig.addDestination(winnerPayoutAddress, winnerPayoutAmount.multiply(BigInteger.valueOf(9)).divide(BigInteger.valueOf(10))); // reduce payment amount to get fee of similar tx
+                if (loserPayoutAmount.compareTo(BigInteger.ZERO) > 0) txConfig.addDestination(loserPayoutAddress, loserPayoutAmount.multiply(BigInteger.valueOf(9)).divide(BigInteger.valueOf(10)));
+                MoneroTxWallet feeEstimateTx = trade.getWallet().createTx(txConfig);
+
+                // create payout tx by increasing estimated fee until successful
+                MoneroTxWallet payoutTx = null;
+                int numAttempts = 0;
+                while (payoutTx == null && numAttempts < 50) {
+                    BigInteger feeEstimate = feeEstimateTx.getFee().add(feeEstimateTx.getFee().multiply(BigInteger.valueOf(numAttempts)).divide(BigInteger.valueOf(10))); // add 1/10th of fee until tx is successful
+                    txConfig = new MoneroTxConfig().setAccountIndex(0).setRelay(false);
+                    if (winnerPayoutAmount.compareTo(BigInteger.ZERO) > 0) txConfig.addDestination(winnerPayoutAddress, winnerPayoutAmount.subtract(loserPayoutAmount.equals(BigInteger.ZERO) ? feeEstimate : BigInteger.ZERO)); // winner only pays fee if loser gets 0
+                    if (loserPayoutAmount.compareTo(BigInteger.ZERO) > 0) {
+                        if (loserPayoutAmount.compareTo(feeEstimate) < 0) throw new RuntimeException("Loser payout is too small to cover the mining fee");
+                        if (loserPayoutAmount.compareTo(feeEstimate) > 0) txConfig.addDestination(loserPayoutAddress, loserPayoutAmount.subtract(feeEstimate)); // loser pays fee
+                    }
+                    numAttempts++;
+                    try {
+                        payoutTx = trade.getWallet().createTx(txConfig);
+                    } catch (MoneroError e) {
+                        // exception expected // TODO: better way of estimating fee?
+                    }
+                }
+                if (payoutTx == null) throw new RuntimeException("Failed to generate dispute payout tx after " + numAttempts + " attempts");
+                log.info("Dispute payout transaction generated on attempt {}", numAttempts);
+
+                // save updated multisig hex
+                trade.getSelf().setUpdatedMultisigHex(trade.getWallet().exportMultisigHex());
+                return payoutTx;
+            } catch (Exception e) {
+                trade.syncWallet();
+                if (!trade.isPayoutPublished()) throw e;
             }
         }
         return null; // can be null if already published or we don't have receiver's multisig hex

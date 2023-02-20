@@ -251,22 +251,19 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
                     log.info("We already got a dispute result, indicating the message was resent after updating multisig info. TradeId = " + tradeId);
                 }
                 dispute.setDisputeResult(disputeResult);
+
+                // sync and save wallet
+                trade.syncWallet();
+                trade.saveWallet();
         
                 // attempt to sign and publish dispute payout tx if given and not already published
                 if (disputeClosedMessage.getUnsignedPayoutTxHex() != null && !trade.isPayoutPublished()) {
 
-                    // check wallet connection
-                    trade.checkWalletConnection();
-    
                     // import multisig hex
                     List<String> updatedMultisigHexes = new ArrayList<String>();
                     if (trade.getTradePeer().getUpdatedMultisigHex() != null) updatedMultisigHexes.add(trade.getTradePeer().getUpdatedMultisigHex());
                     if (trade.getArbitrator().getUpdatedMultisigHex() != null) updatedMultisigHexes.add(trade.getArbitrator().getUpdatedMultisigHex());
                     if (!updatedMultisigHexes.isEmpty()) trade.getWallet().importMultisigHex(updatedMultisigHexes.toArray(new String[0])); // TODO (monero-project): fails if multisig hex imported individually
-            
-                    // sync and save wallet
-                    trade.syncWallet();
-                    trade.saveWallet();
     
                     // wait to sign and publish payout tx if defer flag set
                     if (disputeClosedMessage.isDeferPublishPayout()) {
