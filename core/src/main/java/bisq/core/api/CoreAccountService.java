@@ -35,6 +35,9 @@ import java.util.List;
 import java.util.function.Consumer;
 import javax.inject.Inject;
 import javax.inject.Singleton;
+
+import org.apache.commons.lang3.StringUtils;
+
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
@@ -111,13 +114,13 @@ public class CoreAccountService {
         }
     }
 
-    public void changePassword(String password) {
+    public void changePassword(String oldPassword, String newPassword) {
         if (!isAccountOpen()) throw new IllegalStateException("Cannot change password on unopened account");
-        String oldPassword = this.password;
-        keyStorage.saveKeyRing(keyRing, oldPassword, password);
-        this.password = password;
+        if (!StringUtils.equals(this.password, oldPassword)) throw new IllegalStateException("Incorrect password");
+        keyStorage.saveKeyRing(keyRing, oldPassword, newPassword);
+        this.password = newPassword;
         synchronized (listeners) {
-            for (AccountServiceListener listener : listeners) listener.onPasswordChanged(oldPassword, password);
+            for (AccountServiceListener listener : listeners) listener.onPasswordChanged(oldPassword, newPassword);
         }
     }
 
