@@ -40,8 +40,6 @@ import bisq.common.handlers.ResultHandler;
 import com.google.inject.Key;
 import com.google.inject.name.Names;
 
-import java.util.function.Supplier;
-
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j

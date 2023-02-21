@@ -31,13 +31,14 @@ import bisq.core.trade.HavenoUtils;
 import bisq.core.trade.TradeManager;
 import bisq.core.trade.statistics.TradeStatisticsManager;
 import bisq.core.trade.txproof.xmr.XmrTxProofService;
+
 import bisq.network.p2p.P2PService;
 
 import bisq.common.UserThread;
 import bisq.common.app.AppModule;
-import bisq.common.config.HavenoHelpFormatter;
 import bisq.common.config.Config;
 import bisq.common.config.ConfigException;
+import bisq.common.config.HavenoHelpFormatter;
 import bisq.common.crypto.IncorrectPasswordException;
 import bisq.common.handlers.ResultHandler;
 import bisq.common.persistence.PersistenceManager;
@@ -50,17 +51,14 @@ import bisq.common.util.Utilities;
 import com.google.inject.Guice;
 import com.google.inject.Injector;
 
-import javafx.util.Callback;
-
 import java.io.Console;
+
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.FutureTask;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.Supplier;
 
 import lombok.extern.slf4j.Slf4j;
 

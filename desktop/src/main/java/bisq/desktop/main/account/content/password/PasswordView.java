@@ -27,18 +27,15 @@ import bisq.desktop.components.TitledGroupBg;
 import bisq.desktop.main.MainView;
 import bisq.desktop.main.account.AccountView;
 import bisq.desktop.main.account.content.backup.BackupView;
-import bisq.desktop.main.account.content.seedwords.SeedWordsView;
 import bisq.desktop.main.overlays.popups.Popup;
 import bisq.desktop.util.Layout;
 import bisq.desktop.util.validation.PasswordValidator;
+
 import bisq.core.api.CoreAccountService;
 import bisq.core.btc.wallet.WalletsManager;
-import bisq.core.btc.wallet.XmrWalletService;
 import bisq.core.locale.Res;
-import bisq.common.crypto.ScryptUtil;
-import bisq.common.util.Tuple4;
 
-import org.bitcoinj.crypto.KeyCrypterScrypt;
+import bisq.common.util.Tuple4;
 
 import javax.inject.Inject;
 

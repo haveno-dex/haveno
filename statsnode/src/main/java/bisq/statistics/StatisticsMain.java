@@ -23,8 +23,6 @@ import bisq.core.app.misc.ModuleForAppWithP2p;
 import bisq.common.UserThread;
 import bisq.common.app.AppModule;
 
-import java.util.function.Supplier;
-
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j

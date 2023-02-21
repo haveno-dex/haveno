@@ -17,11 +17,11 @@
 
 package bisq.daemon.app;
 
+import bisq.core.api.AccountServiceListener;
 import bisq.core.app.ConsoleInput;
+import bisq.core.app.CoreModule;
 import bisq.core.app.HavenoHeadlessAppMain;
 import bisq.core.app.HavenoSetup;
-import bisq.core.api.AccountServiceListener;
-import bisq.core.app.CoreModule;
 
 import bisq.common.UserThread;
 import bisq.common.app.AppModule;
@@ -32,6 +32,7 @@ import bisq.common.persistence.PersistenceManager;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
 import java.io.Console;
+
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
@@ -41,6 +42,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import lombok.extern.slf4j.Slf4j;
+
+
 
 import bisq.daemon.grpc.GrpcServer;
 
