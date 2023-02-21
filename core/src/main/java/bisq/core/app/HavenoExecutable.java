@@ -149,7 +149,6 @@ public abstract class HavenoExecutable implements GracefulShutDownHandler, Haven
 
     // Headless versions can call inside launchApplication the onApplicationLaunched() manually
     protected void onApplicationLaunched() {
-        log.info("onApplicationLaunched called...");
         configUserThread();
         CommonSetup.printSystemLoadPeriodically(10);
         // As the handler method might be overwritten by subclasses and they use the application as handler
@@ -182,7 +181,6 @@ public abstract class HavenoExecutable implements GracefulShutDownHandler, Haven
             }
             try {
                 if (!isReadOnly && loginFuture.get()) {
-                    log.info("We are supposed to call readAllPersisted here");
                     readAllPersisted(this::startApplication);
                 } else {
                     log.warn("Running application in readonly mode");
@@ -226,22 +224,14 @@ public abstract class HavenoExecutable implements GracefulShutDownHandler, Haven
         return CompletableFuture.supplyAsync(() -> {
             CompletableFuture<Boolean> result = new CompletableFuture<>();
             if (accountService.accountExists()) {
-                log.info("Account already exists, attempting to open");
                 try {
                     accountService.openAccount(null);
                     result.complete(accountService.isAccountOpen());
                 } catch (IncorrectPasswordException ipe) {
-                    log.info("Account password protected, password required");
-
-                    //TODO The pause caused by the login dialog interferes with the triggered method calls onXXXXX
-                    // wait for the password to be entered
-
                     CompletableFuture<String> passwordFuture = handlePasswordDialogLogin();
                     passwordFuture.thenAccept(password -> {
-                        log.info("...password acquired: ******************");
                         try {
                             accountService.openAccount(password);
-                            log.info("Logged in with password");
                             result.complete(accountService.isAccountOpen());
                         } catch (IncorrectPasswordException e) {
                             result.completeExceptionally(e);
@@ -281,7 +271,6 @@ public abstract class HavenoExecutable implements GracefulShutDownHandler, Haven
     }
 
     protected void readAllPersisted(Runnable completeHandler) {
-        log.info("Reading all persistence: readAllPersisted");
         readAllPersisted(null, completeHandler);
     }
 
@@ -308,12 +297,10 @@ public abstract class HavenoExecutable implements GracefulShutDownHandler, Haven
 
     // Once the application is ready we get that callback and we start the setup
     protected void onApplicationStarted() {
-        log.info("Preparing to run HavenoSetup...in onApplicationStarted()");
         runHavenoSetup();
     }
 
     protected void runHavenoSetup() {
-        log.info("Running HavenoSetup...");
         HavenoSetup havenoSetup = injector.getInstance(HavenoSetup.class);
         havenoSetup.addHavenoSetupListener(this);
         havenoSetup.start();

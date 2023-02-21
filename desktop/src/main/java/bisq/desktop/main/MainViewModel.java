@@ -109,7 +109,7 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class MainViewModel implements ViewModel, HavenoSetup.HavenoSetupListener {
-    private final HavenoSetup bisqSetup;
+    private final HavenoSetup havenoSetup;
     private final CoreMoneroConnectionsService connectionService;
     private final User user;
     private final BalancePresentation balancePresentation;
@@ -154,7 +154,7 @@ public class MainViewModel implements ViewModel, HavenoSetup.HavenoSetupListener
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     @Inject
-    public MainViewModel(HavenoSetup bisqSetup,
+    public MainViewModel(HavenoSetup havenoSetup,
                          CoreMoneroConnectionsService connectionService,
                          XmrWalletService xmrWalletService,
                          User user,
@@ -179,7 +179,7 @@ public class MainViewModel implements ViewModel, HavenoSetup.HavenoSetupListener
                          TorNetworkSettingsWindow torNetworkSettingsWindow,
                          CorruptedStorageFileHandler corruptedStorageFileHandler,
                          Navigation navigation) {
-        this.bisqSetup = bisqSetup;
+        this.havenoSetup = havenoSetup;
         this.connectionService = connectionService;
         this.user = user;
         this.balancePresentation = balancePresentation;
@@ -211,7 +211,7 @@ public class MainViewModel implements ViewModel, HavenoSetup.HavenoSetupListener
         GUIUtil.setPreferences(preferences);
 
         setupHandlers();
-        bisqSetup.addHavenoSetupListener(this);
+        havenoSetup.addHavenoSetupListener(this);
     }
 
 
@@ -303,7 +303,7 @@ public class MainViewModel implements ViewModel, HavenoSetup.HavenoSetupListener
     }
 
     void onOpenDownloadWindow() {
-        bisqSetup.displayAlertIfPresent(user.getDisplayedAlert(), true);
+        havenoSetup.displayAlertIfPresent(user.getDisplayedAlert(), true);
     }
 
     void setPriceFeedComboBoxItem(PriceFeedComboBoxItem item) {
@@ -316,34 +316,35 @@ public class MainViewModel implements ViewModel, HavenoSetup.HavenoSetupListener
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     private void setupHandlers() {
-        bisqSetup.setDisplayTacHandler(acceptedHandler -> UserThread.runAfter(() -> {
+        havenoSetup.setDisplayTacHandler(acceptedHandler -> UserThread.runAfter(() -> {
             //noinspection FunctionalExpressionCanBeFolded
             tacWindow.onAction(acceptedHandler::run).show();
         }, 1));
 
-        bisqSetup.setDisplayTorNetworkSettingsHandler(show -> {
+        havenoSetup.setDisplayTorNetworkSettingsHandler(show -> {
             if (show) {
                 torNetworkSettingsWindow.show();
             } else if (torNetworkSettingsWindow.isDisplayed()) {
                 torNetworkSettingsWindow.hide();
             }
         });
-        bisqSetup.setSpvFileCorruptedHandler(msg -> new Popup().warning(msg)
+        havenoSetup.setSpvFileCorruptedHandler(msg -> new Popup().warning(msg)
                 .actionButtonText(Res.get("settings.net.reSyncSPVChainButton"))
                 .onAction(() -> GUIUtil.reSyncSPVChain(preferences))
                 .show());
 
-        bisqSetup.setChainFileLockedExceptionHandler(msg -> new Popup().warning(msg)
+        havenoSetup.setChainFileLockedExceptionHandler(msg -> new Popup().warning(msg)
                 .useShutDownButton()
                 .show());
-        bisqSetup.setLockedUpFundsHandler(msg -> new Popup().width(850).warning(msg).show());
-        bisqSetup.setShowFirstPopupIfResyncSPVRequestedHandler(this::showFirstPopupIfResyncSPVRequested);
-        bisqSetup.setRequestWalletPasswordHandler(aesKeyHandler -> walletPasswordWindow
+        havenoSetup.setLockedUpFundsHandler(msg -> new Popup().width(850).warning(msg).show());
+        havenoSetup.setShowFirstPopupIfResyncSPVRequestedHandler(this::showFirstPopupIfResyncSPVRequested);
+        //TODO (niyid) Do not display the overlay if accountService.accountOpen() is true
+        havenoSetup.setRequestWalletPasswordHandler(aesKeyHandler -> walletPasswordWindow
                 .onAesKey(aesKeyHandler::accept)
                 .onClose(() -> HavenoApp.getShutDownHandler().run())
                 .show());
 
-        bisqSetup.setDisplayUpdateHandler((alert, key) -> new DisplayUpdateDownloadWindow(alert, config)
+        havenoSetup.setDisplayUpdateHandler((alert, key) -> new DisplayUpdateDownloadWindow(alert, config)
                 .actionButtonText(Res.get("displayUpdateDownloadWindow.button.downloadLater"))
                 .onAction(() -> {
                     preferences.dontShowAgain(key, false); // update later
@@ -353,19 +354,19 @@ public class MainViewModel implements ViewModel, HavenoSetup.HavenoSetupListener
                     preferences.dontShowAgain(key, true); // ignore update
                 })
                 .show());
-        bisqSetup.setDisplayAlertHandler(alert -> new DisplayAlertMessageWindow()
+        havenoSetup.setDisplayAlertHandler(alert -> new DisplayAlertMessageWindow()
                 .alertMessage(alert)
                 .closeButtonText(Res.get("shared.close"))
                 .onClose(() -> user.setDisplayedAlert(alert))
                 .show());
-        bisqSetup.setDisplayPrivateNotificationHandler(privateNotification ->
+        havenoSetup.setDisplayPrivateNotificationHandler(privateNotification ->
                 new Popup().headLine(Res.get("popup.privateNotification.headline"))
                         .attention(privateNotification.getMessage())
                         .onClose(privateNotificationManager::removePrivateNotification)
                         .useIUnderstandButton()
                         .show());
-        bisqSetup.setDisplaySecurityRecommendationHandler(key -> {});
-        bisqSetup.setDisplayLocalhostHandler(key -> {
+        havenoSetup.setDisplaySecurityRecommendationHandler(key -> {});
+        havenoSetup.setDisplayLocalhostHandler(key -> {
             if (!DevEnv.isDevMode()) {
                 Popup popup = new Popup().backgroundInfo(Res.get("popup.bitcoinLocalhostNode.msg"))
                         .dontShowAgainId(key);
@@ -373,31 +374,31 @@ public class MainViewModel implements ViewModel, HavenoSetup.HavenoSetupListener
                 popupQueue.add(popup);
             }
         });
-        bisqSetup.setDisplaySignedByArbitratorHandler(key -> accountPresentation.showOneTimeAccountSigningPopup(
+        havenoSetup.setDisplaySignedByArbitratorHandler(key -> accountPresentation.showOneTimeAccountSigningPopup(
                 key, "popup.accountSigning.signedByArbitrator"));
-        bisqSetup.setDisplaySignedByPeerHandler(key -> accountPresentation.showOneTimeAccountSigningPopup(
+        havenoSetup.setDisplaySignedByPeerHandler(key -> accountPresentation.showOneTimeAccountSigningPopup(
                 key, "popup.accountSigning.signedByPeer", String.valueOf(SignedWitnessService.SIGNER_AGE_DAYS)));
-        bisqSetup.setDisplayPeerLimitLiftedHandler(key -> accountPresentation.showOneTimeAccountSigningPopup(
+        havenoSetup.setDisplayPeerLimitLiftedHandler(key -> accountPresentation.showOneTimeAccountSigningPopup(
                 key, "popup.accountSigning.peerLimitLifted"));
-        bisqSetup.setDisplayPeerSignerHandler(key -> accountPresentation.showOneTimeAccountSigningPopup(
+        havenoSetup.setDisplayPeerSignerHandler(key -> accountPresentation.showOneTimeAccountSigningPopup(
                 key, "popup.accountSigning.peerSigner"));
 
-        bisqSetup.setWrongOSArchitectureHandler(msg -> new Popup().warning(msg).show());
+        havenoSetup.setWrongOSArchitectureHandler(msg -> new Popup().warning(msg).show());
 
-        bisqSetup.setRejectedTxErrorMessageHandler(msg -> new Popup().width(850).warning(msg).show());
+        havenoSetup.setRejectedTxErrorMessageHandler(msg -> new Popup().width(850).warning(msg).show());
 
-        bisqSetup.setShowPopupIfInvalidBtcConfigHandler(this::showPopupIfInvalidBtcConfig);
+        havenoSetup.setShowPopupIfInvalidBtcConfigHandler(this::showPopupIfInvalidBtcConfig);
 
-        bisqSetup.setRevolutAccountsUpdateHandler(revolutAccountList -> {
+        havenoSetup.setRevolutAccountsUpdateHandler(revolutAccountList -> {
             // We copy the array as we will mutate it later
             showRevolutAccountUpdateWindow(new ArrayList<>(revolutAccountList));
         });
-        bisqSetup.setAmazonGiftCardAccountsUpdateHandler(amazonGiftCardAccountList -> {
+        havenoSetup.setAmazonGiftCardAccountsUpdateHandler(amazonGiftCardAccountList -> {
             // We copy the array as we will mutate it later
             showAmazonGiftCardAccountUpdateWindow(new ArrayList<>(amazonGiftCardAccountList));
         });
-        bisqSetup.setOsxKeyLoggerWarningHandler(() -> { });
-        bisqSetup.setQubesOSInfoHandler(() -> {
+        havenoSetup.setOsxKeyLoggerWarningHandler(() -> { });
+        havenoSetup.setQubesOSInfoHandler(() -> {
             String key = "qubesOSSetupInfo";
             if (preferences.showAgain(key)) {
                 new Popup().information(Res.get("popup.info.qubesOSSetupInfo"))
@@ -407,14 +408,14 @@ public class MainViewModel implements ViewModel, HavenoSetup.HavenoSetupListener
             }
         });
 
-        bisqSetup.setDownGradePreventionHandler(lastVersion -> {
+        havenoSetup.setDownGradePreventionHandler(lastVersion -> {
             new Popup().warning(Res.get("popup.warn.downGradePrevention", lastVersion, Version.VERSION))
                     .useShutDownButton()
                     .hideCloseButton()
                     .show();
         });
 
-        bisqSetup.setTorAddressUpgradeHandler(() -> new Popup().information(Res.get("popup.info.torMigration.msg"))
+        havenoSetup.setTorAddressUpgradeHandler(() -> new Popup().information(Res.get("popup.info.torMigration.msg"))
                 .actionButtonTextWithGoTo("navigation.account.backup")
                 .onAction(() -> {
                     navigation.setReturnPath(navigation.getCurrentPath());
@@ -430,9 +431,9 @@ public class MainViewModel implements ViewModel, HavenoSetup.HavenoSetupListener
                 .warning(Res.get("popup.error.takeOfferRequestFailed", errorMessage))
                 .show());
 
-        bisqSetup.getBtcSyncProgress().addListener((observable, oldValue, newValue) -> updateBtcSyncProgress());
+        havenoSetup.getBtcSyncProgress().addListener((observable, oldValue, newValue) -> updateBtcSyncProgress());
 
-        bisqSetup.setFilterWarningHandler(warning -> new Popup().warning(warning).show());
+        havenoSetup.setFilterWarningHandler(warning -> new Popup().warning(warning).show());
 
         this.footerVersionInfo.setValue("v" + Version.VERSION);
         this.getNewVersionAvailableProperty().addListener((observable, oldValue, newValue) -> {
@@ -538,10 +539,10 @@ public class MainViewModel implements ViewModel, HavenoSetup.HavenoSetupListener
     private void showFirstPopupIfResyncSPVRequested() {
         Popup firstPopup = new Popup();
         firstPopup.information(Res.get("settings.net.reSyncSPVAfterRestart")).show();
-        if (bisqSetup.getBtcSyncProgress().get() == 1) {
+        if (havenoSetup.getBtcSyncProgress().get() == 1) {
             showSecondPopupIfResyncSPVRequested(firstPopup);
         } else {
-            bisqSetup.getBtcSyncProgress().addListener((observable, oldValue, newValue) -> {
+            havenoSetup.getBtcSyncProgress().addListener((observable, oldValue, newValue) -> {
                 if ((double) newValue == 1)
                     showSecondPopupIfResyncSPVRequested(firstPopup);
             });
@@ -596,7 +597,7 @@ public class MainViewModel implements ViewModel, HavenoSetup.HavenoSetupListener
     }
 
     private void updateBtcSyncProgress() {
-        final DoubleProperty btcSyncProgress = bisqSetup.getBtcSyncProgress();
+        final DoubleProperty btcSyncProgress = havenoSetup.getBtcSyncProgress();
 
             combinedSyncProgress.set(btcSyncProgress.doubleValue());
     }
@@ -635,7 +636,7 @@ public class MainViewModel implements ViewModel, HavenoSetup.HavenoSetupListener
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     BooleanProperty getNewVersionAvailableProperty() {
-        return bisqSetup.getNewVersionAvailableProperty();
+        return havenoSetup.getNewVersionAvailableProperty();
     }
 
     StringProperty getNumOpenSupportTickets() {
@@ -670,7 +671,7 @@ public class MainViewModel implements ViewModel, HavenoSetup.HavenoSetupListener
     // Wallet
     StringProperty getBtcInfo() {
         final StringProperty combinedInfo = new SimpleStringProperty();
-        combinedInfo.bind(bisqSetup.getBtcInfo());
+        combinedInfo.bind(havenoSetup.getBtcInfo());
         return combinedInfo;
     }
 
@@ -685,44 +686,44 @@ public class MainViewModel implements ViewModel, HavenoSetup.HavenoSetupListener
     }
 
     StringProperty getWalletServiceErrorMsg() {
-        return bisqSetup.getWalletServiceErrorMsg();
+        return havenoSetup.getWalletServiceErrorMsg();
     }
 
     StringProperty getBtcSplashSyncIconId() {
-        return bisqSetup.getBtcSplashSyncIconId();
+        return havenoSetup.getBtcSplashSyncIconId();
     }
 
     BooleanProperty getUseTorForBTC() {
-        return bisqSetup.getUseTorForBTC();
+        return havenoSetup.getUseTorForBTC();
     }
 
     // P2P
     StringProperty getP2PNetworkInfo() {
-        return bisqSetup.getP2PNetworkInfo();
+        return havenoSetup.getP2PNetworkInfo();
     }
 
     BooleanProperty getSplashP2PNetworkAnimationVisible() {
-        return bisqSetup.getSplashP2PNetworkAnimationVisible();
+        return havenoSetup.getSplashP2PNetworkAnimationVisible();
     }
 
     StringProperty getP2pNetworkWarnMsg() {
-        return bisqSetup.getP2pNetworkWarnMsg();
+        return havenoSetup.getP2pNetworkWarnMsg();
     }
 
     StringProperty getP2PNetworkIconId() {
-        return bisqSetup.getP2PNetworkIconId();
+        return havenoSetup.getP2PNetworkIconId();
     }
 
     StringProperty getP2PNetworkStatusIconId() {
-        return bisqSetup.getP2PNetworkStatusIconId();
+        return havenoSetup.getP2PNetworkStatusIconId();
     }
 
     BooleanProperty getUpdatedDataReceived() {
-        return bisqSetup.getUpdatedDataReceived();
+        return havenoSetup.getUpdatedDataReceived();
     }
 
     StringProperty getP2pNetworkLabelId() {
-        return bisqSetup.getP2pNetworkLabelId();
+        return havenoSetup.getP2pNetworkLabelId();
     }
 
     // marketPricePresentation

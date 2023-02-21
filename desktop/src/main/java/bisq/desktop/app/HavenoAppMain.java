@@ -20,6 +20,7 @@ package bisq.desktop.app;
 import bisq.desktop.common.UITimer;
 import bisq.desktop.common.view.guice.InjectorViewFactory;
 import bisq.desktop.setup.DesktopPersistedDataHost;
+import bisq.desktop.util.ImageUtil;
 
 import bisq.core.app.AvoidStandbyModeService;
 import bisq.core.app.HavenoExecutable;
@@ -27,35 +28,23 @@ import bisq.core.app.HavenoExecutable;
 import bisq.common.UserThread;
 import bisq.common.app.AppModule;
 import bisq.common.app.Version;
-import bisq.common.crypto.IncorrectPasswordException;
 
 import javafx.application.Application;
 import javafx.application.Platform;
 
-import javafx.stage.Modality;
 import javafx.stage.Stage;
 
-import javafx.scene.Scene;
-import javafx.scene.control.Alert;
-import javafx.scene.control.Button;
+import javafx.scene.control.ButtonBar;
 import javafx.scene.control.ButtonType;
-import javafx.scene.control.Label;
+import javafx.scene.control.Dialog;
 import javafx.scene.control.PasswordField;
-import javafx.scene.control.TextInputDialog;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
 import javafx.scene.layout.VBox;
 
-import javafx.geometry.Insets;
-
-import javafx.util.Callback;
-
+import java.util.Objects;
 import java.util.Optional;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.FutureTask;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.function.Consumer;
-import java.util.function.Supplier;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -174,7 +163,7 @@ public class HavenoAppMain extends HavenoExecutable {
         Platform.setImplicitExit(false);
         Platform.runLater(() -> {
             // create the password dialog
-            TextInputDialog passwordDialog = new TextInputDialog();
+            PasswordDialog passwordDialog = new PasswordDialog();
             passwordDialog.setTitle("Enter Password");
             passwordDialog.setHeaderText("Please enter your password:");
 
@@ -192,4 +181,39 @@ public class HavenoAppMain extends HavenoExecutable {
         return passwordFuture;
     }
 
+    public class PasswordDialog extends Dialog<String> {
+
+        public PasswordDialog() {
+            setTitle("Password Dialog");
+            setHeaderText("Please enter your password:");
+
+            // Create the password field
+            PasswordField passwordField = new PasswordField();
+            passwordField.setPromptText("Password");
+
+            // Add an icon to the dialog
+            Stage stage = (Stage) getDialogPane().getScene().getWindow();
+            stage.getIcons().add(ImageUtil.getImageByName("lock.png"));
+
+            // Set the dialog content
+            VBox vbox = new VBox(10);
+            vbox.getChildren().addAll(new ImageView(ImageUtil.getImageByName("password.png")), passwordField);
+            getDialogPane().setContent(vbox);
+
+            // Add OK and Cancel buttons
+            ButtonType okButton = new ButtonType("OK", ButtonBar.ButtonData.OK_DONE);
+            ButtonType cancelButton = new ButtonType("Cancel", ButtonBar.ButtonData.CANCEL_CLOSE);
+            getDialogPane().getButtonTypes().addAll(okButton, cancelButton);
+
+            // Convert the result to a string when the OK button is clicked
+            setResultConverter(buttonType -> {
+                if (buttonType == okButton) {
+                    return passwordField.getText();
+                } else {
+                    new Thread(() -> HavenoApp.getShutDownHandler().run()).start();
+                    return null;
+                }
+            });
+        }
+    }
 }

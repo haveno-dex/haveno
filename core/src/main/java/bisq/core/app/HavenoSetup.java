@@ -264,6 +264,8 @@ public class HavenoSetup {
         this.refundManager = refundManager;
         this.arbitrationManager = arbitrationManager;
 
+        xmrWalletService.setHavenoSetup(this);
+
         MemPoolSpaceTxBroadcaster.init(socks5ProxyProvider, preferences, localBitcoinNode);
     }
 
@@ -302,7 +304,6 @@ public class HavenoSetup {
     }
 
     public void start() {
-        log.info("HavenoSetup started...");
         // If user tried to downgrade we require a shutdown
         if (Config.baseCurrencyNetwork() == BaseCurrencyNetwork.XMR_MAINNET &&
                 hasDowngraded(downGradePreventionHandler)) {
@@ -399,6 +400,7 @@ public class HavenoSetup {
     }
 
     private void startP2pNetworkAndWallet(Runnable nextStep) {
+        log.info("Wallets are encrypted? {}", walletsManager.areWalletsEncrypted());
         ChangeListener<Boolean> walletInitializedListener = (observable, oldValue, newValue) -> {
             // TODO that seems to be called too often if Tor takes longer to start up...
             if (newValue && !p2pNetworkReady.get() && displayTorNetworkSettingsHandler != null)
@@ -412,9 +414,10 @@ public class HavenoSetup {
                 return;
             }
             log.warn("startupTimeout called");
-            if (walletsManager.areWalletsEncrypted())
-                walletInitialized.addListener(walletInitializedListener);
-            else if (displayTorNetworkSettingsHandler != null)
+            //TODO (niyid) This has a part to play in the display of the password prompt
+//            if (walletsManager.areWalletsEncrypted())
+//                walletInitialized.addListener(walletInitializedListener);
+            if (displayTorNetworkSettingsHandler != null)
                 displayTorNetworkSettingsHandler.accept(true);
 
             log.info("Set log level for org.berndpruenster.netlayer classes to DEBUG to show more details for " +
@@ -459,25 +462,26 @@ public class HavenoSetup {
             if (p2pNetworkReady.get())
                 p2PNetworkSetup.setSplashP2PNetworkAnimationVisible(true);
 
-            if (requestWalletPasswordHandler != null) {
-                requestWalletPasswordHandler.accept(aesKey -> {
-                    walletsManager.setAesKey(aesKey);
-                    walletsSetup.getWalletConfig().maybeAddSegwitKeychain(walletsSetup.getWalletConfig().btcWallet(),
-                            aesKey);
-                    if (getResyncSpvSemaphore()) {
-                        if (showFirstPopupIfResyncSPVRequestedHandler != null)
-                            showFirstPopupIfResyncSPVRequestedHandler.run();
-                    } else {
-                        // TODO no guarantee here that the wallet is really fully initialized
-                        // We would need a new walletInitializedButNotEncrypted state to track
-                        // Usually init is fast and we have our wallet initialized at that state though.
-                        walletInitialized.set(true);
-                    }
-                });
-            }
+
+//            if (requestWalletPasswordHandler != null) {
+//                log.info("Displaying password window to accept...");
+//                requestWalletPasswordHandler.accept(aesKey -> {
+//                    walletsManager.setAesKey(aesKey);
+//                    walletsSetup.getWalletConfig().maybeAddSegwitKeychain(walletsSetup.getWalletConfig().btcWallet(),
+//                            aesKey);
+//                    if (getResyncSpvSemaphore()) {
+//                        if (showFirstPopupIfResyncSPVRequestedHandler != null)
+//                            showFirstPopupIfResyncSPVRequestedHandler.run();
+//                    } else {
+//                        // TODO no guarantee here that the wallet is really fully initialized
+//                        // We would need a new walletInitializedButNotEncrypted state to track
+//                        // Usually init is fast and we have our wallet initialized at that state though.
+//                        walletInitialized.set(true);
+//                    }
+//                });
+//            }
         };
-        log.info("walletPasswordHandler={}", walletPasswordHandler);
-        log.info("requestWalletPasswordHandler={}", requestWalletPasswordHandler);
+
         walletAppSetup.init(chainFileLockedExceptionHandler,
                 spvFileCorruptedHandler,
                 getResyncSpvSemaphore(),
@@ -869,5 +873,7 @@ public class HavenoSetup {
         return p2PNetworkSetup.getP2pNetworkLabelId();
     }
 
-
+    public BooleanProperty getWalletInitialized() {
+        return walletInitialized;
+    }
 }

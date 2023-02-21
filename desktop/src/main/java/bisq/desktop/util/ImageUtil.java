@@ -70,6 +70,10 @@ public class ImageUtil {
         }
     }
 
+    public static Image getImageByName(String imageName) {
+        return getImageByUrl("/images/" + imageName);
+    }
+
     // determine if this is a MacOS retina display
     // https://stackoverflow.com/questions/20767708/how-do-you-detect-a-retina-display-in-java#20767802
     public static boolean isRetina() {
