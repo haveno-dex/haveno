@@ -170,7 +170,6 @@ public abstract class HavenoExecutable implements GracefulShutDownHandler, Haven
         });
 
         // Attempt to login, subclasses should implement interactive login and or rpc login.
-        //TODO Find a way to move this into startApplication
         CompletableFuture<Boolean> loginFuture = loginAccount();
         loginFuture.whenComplete((result, throwable) -> {
             if (throwable != null) {
@@ -184,10 +183,9 @@ public abstract class HavenoExecutable implements GracefulShutDownHandler, Haven
                     log.warn("Running application in readonly mode");
                     startApplication();
                 }
-            } catch (InterruptedException e) {
-                throw new RuntimeException(e);
-            } catch (ExecutionException e) {
-                throw new RuntimeException(e);
+            } catch (InterruptedException | ExecutionException e) {
+                log.error("An error occurred: {}", e.getMessage());
+                e.printStackTrace();
             }
         });
     }

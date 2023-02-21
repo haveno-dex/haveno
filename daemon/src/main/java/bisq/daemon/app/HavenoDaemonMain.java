@@ -191,7 +191,7 @@ public class HavenoDaemonMain extends HavenoHeadlessAppMain implements HavenoSet
                 grpcServer.start();
             }
         } catch (InterruptedException | ExecutionException e) {
-            log.info("Problem with loginAccount: {}", e.getMessage());
+            log.error("Problem with loginAccount: {}", e.getMessage());
             e.printStackTrace();
         }
 
