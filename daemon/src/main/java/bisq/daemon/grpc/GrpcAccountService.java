@@ -145,7 +145,7 @@ public class GrpcAccountService extends AccountImplBase {
     @Override
     public void changePassword(ChangePasswordRequest req, StreamObserver<ChangePasswordReply> responseObserver) {
         try {
-            coreApi.changePassword(req.getPassword());
+            coreApi.changePassword(req.getOldPassword(), req.getNewPassword());
             var reply = ChangePasswordReply.newBuilder().build();
             responseObserver.onNext(reply);
             responseObserver.onCompleted();

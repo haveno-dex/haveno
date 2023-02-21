@@ -119,7 +119,8 @@ message IsAppInitializedReply {
 }
 
 message ChangePasswordRequest {
-    string password = 1;
+    string old_password = 1;
+    string new_password = 2;
 }
 
 message ChangePasswordReply {
