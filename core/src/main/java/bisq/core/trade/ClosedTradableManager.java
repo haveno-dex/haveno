@@ -109,15 +109,19 @@ public class ClosedTradableManager implements PersistedDataHost {
     }
 
     public void add(Tradable tradable) {
-        if (closedTradables.add(tradable)) {
-            maybeClearSensitiveData();
-            requestPersistence();
+        synchronized (closedTradables) {
+            if (closedTradables.add(tradable)) {
+                maybeClearSensitiveData();
+                requestPersistence();
+            }
         }
     }
 
     public void remove(Tradable tradable) {
-        if (closedTradables.remove(tradable)) {
-            requestPersistence();
+        synchronized (closedTradables) {
+            if (closedTradables.remove(tradable)) {
+                requestPersistence();
+            }
         }
     }
 
@@ -126,7 +130,9 @@ public class ClosedTradableManager implements PersistedDataHost {
     }
 
     public ObservableList<Tradable> getObservableList() {
-        return closedTradables.getObservableList();
+        synchronized (closedTradables) {
+            return closedTradables.getObservableList();
+        }
     }
 
     public List<Tradable> getTradableList() {
@@ -134,43 +140,55 @@ public class ClosedTradableManager implements PersistedDataHost {
     }
 
     public List<Trade> getClosedTrades() {
-        return ImmutableList.copyOf(getObservableList().stream()
-                .filter(e -> e instanceof Trade)
-                .map(e -> (Trade) e)
-                .collect(Collectors.toList()));
+        synchronized (closedTradables) {
+            return ImmutableList.copyOf(getObservableList().stream()
+                    .filter(e -> e instanceof Trade)
+                    .map(e -> (Trade) e)
+                    .collect(Collectors.toList()));
+        }
     }
 
     public List<OpenOffer> getCanceledOpenOffers() {
-        return ImmutableList.copyOf(getObservableList().stream()
-                .filter(e -> (e instanceof OpenOffer) && ((OpenOffer) e).getState().equals(CANCELED))
-                .map(e -> (OpenOffer) e)
-                .collect(Collectors.toList()));
+        synchronized (closedTradables) {
+            return ImmutableList.copyOf(getObservableList().stream()
+                    .filter(e -> (e instanceof OpenOffer) && ((OpenOffer) e).getState().equals(CANCELED))
+                    .map(e -> (OpenOffer) e)
+                    .collect(Collectors.toList()));
+        }
     }
 
     public Optional<Tradable> getTradableById(String id) {
-        return closedTradables.stream().filter(e -> e.getId().equals(id)).findFirst();
+        synchronized (closedTradables) {
+            return closedTradables.stream().filter(e -> e.getId().equals(id)).findFirst();
+        }
     }
 
     public Optional<Tradable> getTradeById(String id) {
-        return closedTradables.stream().filter(e -> e instanceof Trade && e.getId().equals(id)).findFirst();
+        synchronized (closedTradables) {
+            return closedTradables.stream().filter(e -> e instanceof Trade && e.getId().equals(id)).findFirst();
+        }
     }
 
     public void maybeClearSensitiveData() {
-        log.info("checking closed trades eligibility for having sensitive data cleared");
-        closedTradables.stream()
+        synchronized (closedTradables) {
+            log.info("checking closed trades eligibility for having sensitive data cleared");
+            closedTradables.stream()
                 .filter(e -> e instanceof Trade)
                 .map(e -> (Trade) e)
                 .filter(e -> canTradeHaveSensitiveDataCleared(e.getId()))
                 .forEach(Trade::maybeClearSensitiveData);
-        requestPersistence();
+            requestPersistence();
+        }
     }
 
     public boolean canTradeHaveSensitiveDataCleared(String tradeId) {
         Instant safeDate = getSafeDateForSensitiveDataClearing();
-        return closedTradables.stream()
-                .filter(e -> e.getId().equals(tradeId))
-                .filter(e -> e.getDate().toInstant().isBefore(safeDate))
-                .count() > 0;
+        synchronized (closedTradables) {
+            return closedTradables.stream()
+            .filter(e -> e.getId().equals(tradeId))
+            .filter(e -> e.getDate().toInstant().isBefore(safeDate))
+            .count() > 0;
+        }
     }
 
     public Instant getSafeDateForSensitiveDataClearing() {
