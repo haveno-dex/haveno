@@ -170,14 +170,17 @@ public class CoreDisputesService {
                 }
                 applyPayoutAmountsToDisputeResult(payout, winningDispute, disputeResult, customWinnerAmount);
 
-                // close dispute ticket
-                closeDisputeTicket(arbitrationManager, winningDispute, disputeResult, null, () -> {
+                // create dispute payout tx
+                MoneroTxWallet disputePayoutTx = arbitrationManager.createDisputePayoutTx(trade, winningDispute.getContract(), disputeResult, false);
+
+                // close winning dispute ticket
+                closeDisputeTicket(arbitrationManager, winningDispute, disputeResult, disputePayoutTx, () -> {
                     arbitrationManager.requestPersistence();
                 }, (errMessage, err) -> {
                     throw new IllegalStateException(errMessage, err);
                 });
 
-                // close peer's dispute ticket
+                // close loser's dispute ticket
                 var peersDisputeOptional = arbitrationManager.getDisputesAsObservableList().stream()
                         .filter(d -> tradeId.equals(d.getTradeId()) && winningDispute.getTraderId() != d.getTraderId())
                         .findFirst();
@@ -186,7 +189,7 @@ public class CoreDisputesService {
                 var peerDisputeResult = createDisputeResult(peerDispute, winner, reason, summaryNotes, closeDate);
                 peerDisputeResult.setBuyerPayoutAmount(disputeResult.getBuyerPayoutAmount());
                 peerDisputeResult.setSellerPayoutAmount(disputeResult.getSellerPayoutAmount());
-                closeDisputeTicket(arbitrationManager, peerDispute, peerDisputeResult, null, () -> {
+                closeDisputeTicket(arbitrationManager, peerDispute, peerDisputeResult, disputePayoutTx, () -> {
                     arbitrationManager.requestPersistence();
                 }, (errMessage, err) -> {
                     throw new IllegalStateException(errMessage, err);

@@ -708,7 +708,7 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
             if (trade == null) throw new RuntimeException("Dispute trade " + dispute.getTradeId() + " does not exist");
 
             // create dispute payout tx if not given
-            if (payoutTx == null) payoutTx = createDisputePayoutTx(trade, dispute, disputeResult, false); // can be null if already published or we don't have receiver's multisig hex
+            if (payoutTx == null) payoutTx = createDisputePayoutTx(trade, dispute.getContract(), disputeResult, false); // can be null if already published or we don't have receiver's multisig hex
 
             // persist result in dispute's chat message once
             boolean resending = disputeResult.getChatMessage() != null;
@@ -814,15 +814,14 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
     // Utils
     ///////////////////////////////////////////////////////////////////////////////////////////
 
-    public MoneroTxWallet createDisputePayoutTx(Trade trade, Dispute dispute, DisputeResult disputeResult, boolean skipMultisigImport) {
+    public MoneroTxWallet createDisputePayoutTx(Trade trade, Contract contract, DisputeResult disputeResult, boolean skipMultisigImport) {
 
         // sync and save wallet
         trade.syncWallet();
         trade.saveWallet();
 
-        // create unsigned dispute payout tx if not already published and arbitrator has trader's updated multisig info
-        TradePeer receiver = trade.getTradePeer(dispute.getTraderPubKeyRing());
-        if (!trade.isPayoutPublished() && receiver.getUpdatedMultisigHex() != null) {
+        // create unsigned dispute payout tx if not already published
+        if (!trade.isPayoutPublished()) {
             MoneroWallet multisigWallet = trade.getWallet();
 
             // import multisig hex
@@ -840,10 +839,9 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
             try {
 
                 // trade wallet must be synced
-                if (trade.getWallet().isMultisigImportNeeded()) throw new RuntimeException("Arbitrator's wallet needs updated multisig hex to create payout tx which means a trader must have already broadcast the payout tx for trade " + dispute.getTradeId());
+                if (trade.getWallet().isMultisigImportNeeded()) throw new RuntimeException("Arbitrator's wallet needs updated multisig hex to create payout tx which means a trader must have already broadcast the payout tx for trade " + trade.getId());
 
                 // collect winner and loser payout address and amounts
-                Contract contract = dispute.getContract();
                 String winnerPayoutAddress = disputeResult.getWinner() == Winner.BUYER ?
                         (contract.isBuyerMakerAndSellerTaker() ? contract.getMakerPayoutAddressString() : contract.getTakerPayoutAddressString()) :
                         (contract.isBuyerMakerAndSellerTaker() ? contract.getTakerPayoutAddressString() : contract.getMakerPayoutAddressString());
