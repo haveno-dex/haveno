@@ -1059,7 +1059,7 @@ public abstract class Trade implements Tradable, Model {
     private MoneroTx getDepositTx(TradePeer trader) {
         String depositId = trader.getDepositTxHash();
         try {
-            if (trader == null || !trader.getDepositTx().isConfirmed()) {
+            if (trader.getDepositTx() == null || !trader.getDepositTx().isConfirmed()) {
                 trader.setDepositTx(getTxFromWalletOrDaemon(depositId));
             }
             return trader.getDepositTx();
@@ -1578,8 +1578,7 @@ public abstract class Trade implements Tradable, Model {
 
     @Nullable
     public MoneroTxWallet getPayoutTx() {
-        if (payoutTx == null)
-            payoutTx = payoutTxId != null ? xmrWalletService.getWallet().getTx(payoutTxId) : null;
+        if (payoutTx == null) payoutTx = payoutTxId == null ? null : xmrWalletService.getWallet().getTx(payoutTxId);
         return payoutTx;
     }
 
