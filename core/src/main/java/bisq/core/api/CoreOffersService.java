@@ -288,9 +288,11 @@ public class CoreOffersService {
     private boolean offerMatchesDirectionAndCurrency(Offer offer,
                                                      String direction,
                                                      String currencyCode) {
-        var offerOfWantedDirection = offer.getDirection().name().equalsIgnoreCase(direction);
+        if ("".equals(direction)) direction = null;
+        if ("".equals(currencyCode)) currencyCode = null;
+        var offerOfWantedDirection = direction == null || offer.getDirection().name().equalsIgnoreCase(direction);
         var counterAssetCode = isCryptoCurrency(currencyCode) ? offer.getOfferPayload().getBaseCurrencyCode() : offer.getOfferPayload().getCounterCurrencyCode(); // TODO: crypto pairs invert base and counter currencies
-        var offerInWantedCurrency = counterAssetCode.equalsIgnoreCase(currencyCode);
+        var offerInWantedCurrency = currencyCode == null || counterAssetCode.equalsIgnoreCase(currencyCode);
         return offerOfWantedDirection && offerInWantedCurrency;
     }
 
