@@ -253,8 +253,10 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
                 dispute.setDisputeResult(disputeResult);
 
                 // sync and save wallet
-                trade.syncWallet();
-                trade.saveWallet();
+                if (!trade.isPayoutPublished()) {
+                    trade.syncWallet();
+                    trade.saveWallet();
+                }
         
                 // attempt to sign and publish dispute payout tx if given and not already published
                 if (disputeClosedMessage.getUnsignedPayoutTxHex() != null && !trade.isPayoutPublished()) {
