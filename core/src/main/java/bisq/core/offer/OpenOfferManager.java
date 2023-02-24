@@ -1387,7 +1387,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
         synchronized (openOffers) {
             contained = openOffers.contains(openOffer);
         }
-        if (contained && !openOffer.isDeactivated()) {
+        if (contained && !openOffer.isDeactivated() && openOffer.getOffer().getOfferPayload().getReserveTxKeyImages() != null) {
             // TODO It is not clear yet if it is better for the node and the network to send out all add offer
             //  messages in one go or to spread it over a delay. With power users who have 100-200 offers that can have
             //  some significant impact to user experience and the network
