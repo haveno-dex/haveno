@@ -284,7 +284,7 @@ public class FailedTradesView extends ActivatableViewAndModel<VBox, FailedTrades
                     takerOrMaker)
             ).onAction(() -> OfferViewUtil.submitTransactionHex(xmrWalletService, tableView, reserveTxHex)).show();
         } else {
-            new Popup().error(Res.get("portfolio.failed.noSignedOffer.error.msg")).show();
+            new Popup().error(Res.get("portfolio.failed.error.msg")).show();
         }
     }
 
@@ -470,21 +470,125 @@ public class FailedTradesView extends ActivatableViewAndModel<VBox, FailedTrades
                 new Callback<>() {
                     @Override
                     public TableCell<FailedTradesListItem, FailedTradesListItem> call(
-                            TableColumn<FailedTradesListItem, FailedTradesListItem	>•
-%l§rÂ-/÷bîQwÇ50ÈT‡ê*ªĞÑÕ¼Kì	(oŒW]ï“•kvÚ–úÔl}Ãè%1?,ö¤ŞNN ørhÀ^Ê?,ö¤ŞNN ørhî„iÂ ¶]"é\L5˜©óÓ/şûÒÙ.n6hêÖ‘*Æ»ÿFŸ|tF6ÃËßoûT™ÌĞ(Ô<rŠìv"tF=Ç:YPørhî„iÂ?,ö¤ŞNN ørhî„iÂ?,ö¤ŞNN ørhî„iÂ?,ö¤ŞNN ørhî„iÂ?,ö¤ŞNN ørhî„iÂ?,ö¤ŞNN ørhî„iÂ]||5BËD»Ãú©äD*´Qw?Ç50ÈT‡ê*ªĞÑÕ¼Kì	(oŒW]R÷‰â‚Â·Ö¼¾R„ªd?,ö¤ŞNN ørhÀ^Ê?,ö¤ŞNN ørhî„iÂÊõgüAdò–ÚôSÈŸÜÊ"øÇşºÛ¨ZÇºôÍç—f%µÑ	×ËÄzLÄm·Ğµ<rŠìv"tF=Ç:YPørhî„iÂ?,ö¤ŞNN ørhî„iÂ?,ö¤ŞNN ørhî„iÂ?,ö¤ŞNN ørhî„iÂ?,ö¤ŞNN ørhî„iÂ?,ö¤ŞNN ørhî„iÂLËo½ËÅÓ;S ihsQwÇ50ÈT‡ê*ªĞÑÕ¼Kì	(oŒW]Òü_#Ä>.1{˜iŠ²ĞŠB?,ö¤ŞNN ørhÀ^Ê?,ö¤ŞNN ørhî„iÂaavÑNØºf©á¿µÄmnÔ}0?cB† ª¨ò4û\¼pd!ÿ¥KuÁô’|4ÍĞ«ß<rŠìv"tF=Ç:YPørhî„iÂ?,ö¤ŞNN ørhî„iÂ?,ö¤ŞNN ørhî„iÂ?,ö¤ŞNN ørhî„iÂ?,ö¤ŞNN ørhî„iÂ?,ö¤ŞNN ørhî„iÂLËo½ËÅÓ;S ihsQwÇ50ÈT‡ê*ªĞÑÕ¼Kì	(oŒW]Ôå {æõ=Q;8´êEº?,ö¤ŞNN ørhÀ^Ê?,ö¤ŞNN ørhî„iÂqvèT£ËA„øŸõB¹Ãx·ë•(X5ëXTnERl­Ml$ÎS)İÎea_øtXC“RĞ\†<rŠìv"tF=Ç:YPørhî„iÂ?,ö¤ŞNN ørhî„iÂ?,ö¤ŞNN ørhî„iÂ?,ö¤ŞNN ørhî„iÂ?,ö¤ŞNN ørhî„iÂ?,ö¤ŞNN ørhî„iÂ«€Øˆë;vŞòjQw Ç50ÈT‡ê*ªĞÑÕ¼Kì	(oŒW]<ÍY,kDîCúp“•m?,ö¤ŞNN ørhÀ^Ê?,ö¤ŞNN ørhî„iÂõß—Oiqá—ğµØZ0Å®—³Ô}W1SïäCêŠG"Ór´Ïó 5’_–JÚ12ĞiĞ<rŠìv"tF=Ç:YPørhî„iÂ?,ö¤ŞNN ørhî„iÂ?,ö¤ŞNN ørhî„iÂ?,ö¤ŞNN ørhî„iÂ?,ö¤ŞNN ørhî„iÂ?,ö¤ŞNN ørhî„iÂ0¿•Åú±A¤'³R
-Z:Qw“Æ50ÈT‡ê*ªĞÑÕ¼Kì	(oŒW] ªşÁ×ıùjTÑÕ?,ö¤ŞNN ørhîÁ^Ê?,ö¤ŞNN ørhî„iÂÑ¾ËÄH’«e„o4‰;×ScÒ‹†E€â‡¸}çª¼b[0Î¢-¢ŞA£¢†8‚di8Óˆíh¼ëÇ€
-DÇ†wQørhî„iÂ?,ö¤ŞNN ørhî„iÂ?,ö¤ŞNN ørhî„iÂ?,ö¤ŞNN ørhî„iÂ?,ö¤ŞNN ørhî„iÂ?,ö¤ŞNN ørhî„iÂdiwÔÈKÆóºõ™şLQwùÆ50ÈT‡ê*ªĞÑÕ¼Kì	(oŒW]B’™—P(µ°4¼¦Œ0?,ö¤ŞNN ørhïÁ^Ê?,ö¤ŞNN ørhî„iÂ!Ã ¤pë˜6)L¿Gÿvc®ıÜû‚ø•¼Z&m¬Ió'ãïùÍ›ÍhRì±T?TL†8A6i8Óˆíh¼ëÇ€
-DÇ†wQørhî„iÂ?,ö¤ŞNN ørhî„iÂ?,ö¤ŞNN ørhî„iÂ?,ö¤ŞNN ørhî„iÂ?,ö¤ŞNN ørhî„iÂ?,ö¤ŞNN ørhî„iÂŞøzT_ëKîìeöW»ØQwİÆ50ÈT‡ê*ªĞÑÕ¼Kì	(oŒW]h[i§gÿ_òÉ]EÏ?,ö¤ŞNN ørhìÁ^Ê?,ö¤ŞNN ørhî„iÂõ}€eÃg²kÖ£/Cs+	ÌˆÆy:q´äTúı°‘ĞzK(’“ıTÎj‡€He®¨R†8r.i8Óˆíh¼ëÇ€
-DÇ†wQørhî„iÂ?,ö¤ŞNN ørhî„iÂ?,ö¤ŞNN ørhî„iÂ?,ö¤ŞNN ørhî„iÂ?,ö¤ŞNN ørhî„iÂ?,ö¤ŞNN ørhî„iÂ	ûêß§ùZ¯˜Ò´÷Òï1QwpÇ50ÈT‡ê*ªĞÑÕ¼Kì	(oŒW]BühEa,´Dn¥U«í?,ö¤ŞNN ørhíÁ^Ê?,ö¤ŞNN ørhî„iÂ¯$¦ólÆAwÔª%Ğ‡bÅºÃ‘g%PT ó«Û¬9z7ÑS-eş½ÓXÜ¶†8úPi8Óˆíh¼ëÇ€
-DÇ†wQørhî„iÂ?,ö¤ŞNN ørhî„iÂ?,ö¤ŞNN ørhî„iÂ?,ö¤ŞNN ørhî„iÂ?,ö¤ŞNN ørhî„iÂ?,ö¤ŞNN ørhî„iÂÃxşv±Å‡ ×ŒQwxÇ50ÈT‡ê*ªĞÑÕ¼Kì	(oŒW]QË³¹ç\<éàÖTõ“?,ö¤ŞNN ørhêÁ^Ê?,ö¤ŞNN ørhî„iÂyPd£ĞYh[8î0¨O¯6Rq'—
-}r½›±Ç‹%õÛ`¥ûŸJ©ª½>“UÂ†8¡i8Óˆíh¼ëÇ€
-DÇ†wQørhî„iÂ?,ö¤ŞNN ørhî„iÂ?,ö¤ŞNN ørhî„iÂ?,ö¤ŞNN ørhî„iÂ?,ö¤ŞNN ørhî„iÂ?,ö¤ŞNN ørhî„iÂ1|ì+^ÉC$5<½é +QwéÆ50ÈT‡ê*ªĞÑÕ¼Kì	(oŒW]"ÖõYèP*¢ -í:DüÀ?,ö¤ŞNN ørhëÁ^Ê?,ö¤ŞNN ørhî„iÂ ‘¸û
-h›¢ÈÂKÍÁÙAaê®8E]u0yü‡®äôrbëÊ‡¹Œâ<­r.q%Ã†8Åei8Óˆíh¼ëÇ€
-DÇ†wQørhî„iÂ?,ö¤ŞNN ørhî„iÂ?,ö¤ŞNN ørhî„iÂ?,ö¤ŞNN ørhî„iÂ?,ö¤ŞNN ørhî„iÂ?,ö¤ŞNN ørhî„iÂş_Ò¾ãön÷ÕÉp…[QwÆ50ÈT‡ê*ªĞÑÕ¼Kì	(oŒW]È2Lôuãõ!F¡ì“QıG™?,ö¤ŞNN ørhèÁ^Ê?,ö¤ŞNN ørhî„iÂ—_­ˆÚ•º¡šO\ıÇhÜ NRÃ2èÎm~È/t9ÒûåÏ30õPsC­m¿Ç@¿†8(i8Óˆíh¼ëÇ€
-DÇ†wQørhî„iÂ?,ö¤ŞNN ørhî„iÂ?,ö¤ŞNN ørhî„iÂ?,ö¤ŞNN ørhî„iÂ?,ö¤ŞNN ørhî„iÂ?,ö¤ŞNN ørhî„iÂ Ò¨&Lœh­È•ãÍ{Qw>Æ50ÈT‡ê*ªĞÑÕ¼Kì	(oŒW]ñÑÿË¼ƒ„º¿ëÅrûÿ?,ö¤ŞNN ørhéÁ^Ê?,ö¤ŞNN ørhî„iÂ*"©Ù<Åîô=üiÂMş1]í¦#í¨¥Yqp|„mNe4G%kkô&9²/†8ˆxi8Óˆíh¼ëÇ€
-DÇ†wQørhî„iÂ?,ö¤ŞNN ørhî„iÂ?,ö¤ŞNN ørhî„iÂ?,ö¤ŞNN ørhî„iÂ?,ö¤ŞNN ørhî„iÂ?,ö¤ŞNN ørhî„iÂ§ùF¢JÎ¾¨_fİ&Qw¯Æ50ÈT‡ê*ªĞÑÕ¼Kì	(oŒW]Úr.§Ÿéšç…„E]¥§?,ö¤ŞNN ørhæÁ^Ê?,ö¤ŞNN ørhî„iÂlM¨é6uØÕF¨”…Ë;EÌ%×u)†’ˆ`JeÚ›x¯Ë,¶Nô÷•çÖû²¸g†8ê8i8Óˆíh¼ëÇ€
-DÇ†wQørhî„iÂ?,ö¤ŞNN ørhî„iÂ?,ö¤ŞNN ørhî„iÂ?,ö¤ŞNN ørhî„iÂ?,ö¤ŞNN ørhî„iÂ?,ö¤ŞNN ørhî„iÂ]||5BËD»Ãú©äD*´Qw?Ç50ÈT‡ê*ªĞÑÕ¼Kì	(oŒW]fèÖ|·±¢Wã ß"@?,ö¤ŞNN ørhçÁ^Ê?,ö¤ŞNN ørhî„iÂ¹*ªcJC%Ÿü\?÷!tH527G9Q?§:…ü$íÒyb¬7Wc×•d¯†8i8Óˆíh¼ëÇ€
-DÇ†wQørhî„iÂ?,ö¤ŞNN ørhî„iÂ?,ö¤ŞNN ørhî„iÂ?,ö¤ŞNN ørhî„iÂ?,ö¤ŞNN ørhî„iÂ?,ö¤ŞNN ørhî„iÂ÷ªJ·ºk£É¦œ;'ViQw9Ç50ÈT‡ê*ªĞÑÕ¼Kì	(oŒW]3¨iÃˆô_ŞÛ&”–ívœ?,ö¤ŞNN ørhäÁ^Ê?,ö¤ŞNN ørhî„iÂçÈÊ’ËğT¸j;áT÷:i¡éº"Œ‡¶”64:³¿»êı'£ç¼zQeR $&¨ëd†8ªíi8Óˆíh¼ëÇ€
-DÇ†wQørhî„iÂ?,ö¤ŞNN ørhî„iÂ?,ö¤ŞNN ørhî„iÂ?,ö¤ŞNN ørhî„iÂ?,ö¤ŞNN ørhî„iÂ?,ö¤ŞNN ørhî„iÂëÿKnÂªE=l}‘v%ù—‹FÄT0û¿ïŒµu‹¤&–ÑÕ¼Kì	(o¬W]DÊw•Y=?Lbû?,ö¤ŞNN <ørh4ÒË?,ö¤ŞNN ørhî„iÂQ¨-ö”"/Œü©±<°)’1’çÕ.ùú(äO€ñÄÅº	
-ï,«q¨¥Q2˜}#Œ›ş¯Y^ Ü:Çn9êuørhî„iÂ?,ö¤ŞNN ørhî„iÂ?,ö¤ŞNN ørhî„iÂ?,ö¤ŞNN ørhî„iÂ?,ö¤ŞNN ørhî„iÂ?,ö¤ŞNN ørhî„iÂ˜TÇ{âêà\ñÏFßóş¹K*=‹Ó ô\£õ¼>)èÅ$ê!“`¦1\âv¯Ã?,ö¤ßNN _™ ‹„iÂ?,ö¤ŞNN ørhî„iÂ?,ö¤ŞNN ørhî„iÂÉÅvy;Üêñìµ¶'Ÿ&ŸòœY§%¶çŠúÃx¶rS‚`}ò'	LokQMşºÉRÀÙ£œ‹hZI«Ç~ôÂwørhî„iÂ?,ö¤ŞNN ørhî„iÂ?,ö¤ŞNN ørhî„iÂ?,ö¤ŞNN ørhî„iÂ?,ö¤ŞNN ørhî„iÂ?,ö¤ŞNN ørhî„iÂUh1‚|VÅ2¨6´W9^*=‹Ó ô\£õ¼YÊ˜ça‰;mv+½¤,øeUt6½
-ç]ÚÆGSZ´Á¬"'Nørhî„iÂ?,ö¤ŞNN ørhî„iÂÚw´Æi-Rà˜G~¢Ù›öÁ k8Cy2ğIY¡`Ù¿Ğ@”±™i'|İ-p¯öµ3ŒÍÉRHãÙ£œ‹hZI«Ç~ôÂwørhî„iÂ?,ö¤ŞNN ørhî„iÂ?,ö¤ŞNN ørhî„iÂ?,ö¤ŞNN ørhî„iÂ?,ö¤ŞNN ørhî„iÂ?,ö¤ŞNN ørhî„iÂS‹ µŠ“}yšÆc•^_*=‹Ó ô\£õ¼•ùëFúë™kÂ¦ò™Ùå&éÆCœÛºMƒòLµsıÛ^·Æ·*$Awørhî„iÂ?,ö¤ŞNN ørhî„iÂ¾“(øiÿ­ùËM[«ôc’U&ás3“…šÌEmX—>üS3ÊtLenZõ!’ÉR+Ù£œ‹hZI«Ç~ôÂwørhî„iÂ?,ö¤ŞNN ørhî„iÂ?,ö¤ŞNN ørhî„iÂ?,ö¤ŞNN ørhî„iÂ?,ö¤ŞNN ørhî„iÂ?,ö¤ŞNN ørhî„iÂS‹ µŠ“}yšÆc•^_*=‹Ó ô\£õ¼•ùëFúë™kÂ¦ò™Ùå&éÆCœÛºMƒòLµsıÛ^·Æ·*$Awørhî„iÂ?,ö¤ŞNN ørhî„iÂH"æÖÀNŒù7íC—UÔ™‹²å.ÇÒÍÍÄÄ%Nzÿ€ªé 73„°S;-/ÑkÉR}Ù£œ‹hZI«Ç~ôÂwørhî„iÂ?,ö¤ŞNN ørhî„iÂ?,ö¤ŞNN ørhî„iÂ?,ö¤ŞNN ørhî„iÂ?,ö¤ŞNN ørhî„iÂ?,ö¤ŞNN ørhî„iÂtî™¬v ±J­Á7ÏNîùH*=‹Ó ô\£õ¼äÆªjÏşõ>ÿµRõBï?,ö¤ßNN J‹ıiÂ?,ö¤ŞNN ørhî„iÂ?,ö¤ŞNN ørhî„iÂ÷›æ#åoÿnğßş –®3yùù9äã~³äÜ§í)•ÒÀ=ó:MÕ5ğ«9ÉR¸Õ‚#Ÿ‹hV;}¨Ç~ôÂwørhî„iÂ?,ö¤ŞNN ørhî„iÂ?,ö¤ŞNN ørhî„iÂ?,ö¤ŞNN ørhî„iÂ?,ö¤ŞNN ørhî„iÂ?,ö¤ŞNN ørhî„iÂtî™¬v ±J­Á7ÏNîùH*=‹Ó ô\£õ¼äÆªjÏşõ>ÿµRõBï?,ö¤ßNN J‹ıiÂ?,ö¤ŞNN ørhî„iÂ?,ö¤ŞNN ørhî„iÂ¨ş]SœõÅæóÍ¡1;‡p<LÛ´“Ÿğ9“—#@%¹±qäk¢%”MFÉRñİÕ‚#Ÿ‹hV;}¨Ç~ôÂwørhî„iÂ?,ö¤ŞNN ørhî„iÂ?,ö¤ŞNN ørhî„iÂ?,ö¤ŞNN ørhî„iÂ?,ö¤ŞNN ørhî„iÂ?,ö¤ŞNN ørhî„iÂtî™¬v ±J­Á7ÏNîùH*=‹Ó ô\£õ¼œiZÁ€hK²!ì~³nŸ9û?,ö¤ßNN Q—	œğiÂ?,ö¤ŞNN ørhî„iÂ?,ö¤ŞNN ørhî„
+                            TableColumn<FailedTradesListItem, FailedTradesListItem> column) {
+                        return new TableCell<>() {
+                            @Override
+                            public void updateItem(final FailedTradesListItem item, boolean empty) {
+                                super.updateItem(item, empty);
+                                if (item != null)
+                                    setGraphic(new AutoTooltipLabel(model.getState(item)));
+                                else
+                                    setGraphic(null);
+                            }
+                        };
+                    }
+                });
+    }
+
+
+    private void setAmountColumnCellFactory() {
+        amountColumn.setCellValueFactory((trade) -> new ReadOnlyObjectWrapper<>(trade.getValue()));
+        amountColumn.setCellFactory(
+                new Callback<>() {
+                    @Override
+                    public TableCell<FailedTradesListItem, FailedTradesListItem> call(
+                            TableColumn<FailedTradesListItem, FailedTradesListItem> column) {
+                        return new TableCell<>() {
+                            @Override
+                            public void updateItem(final FailedTradesListItem item, boolean empty) {
+                                super.updateItem(item, empty);
+                                setGraphic(new AutoTooltipLabel(model.getAmount(item)));
+                            }
+                        };
+                    }
+                });
+    }
+
+    private void setPriceColumnCellFactory() {
+        priceColumn.setCellValueFactory((trade) -> new ReadOnlyObjectWrapper<>(trade.getValue()));
+        priceColumn.setCellFactory(
+                new Callback<>() {
+                    @Override
+                    public TableCell<FailedTradesListItem, FailedTradesListItem> call(
+                            TableColumn<FailedTradesListItem, FailedTradesListItem> column) {
+                        return new TableCell<>() {
+                            @Override
+                            public void updateItem(final FailedTradesListItem item, boolean empty) {
+                                super.updateItem(item, empty);
+                                setGraphic(new AutoTooltipLabel(model.getPrice(item)));
+                            }
+                        };
+                    }
+                });
+    }
+
+    private void setVolumeColumnCellFactory() {
+        volumeColumn.setCellValueFactory((trade) -> new ReadOnlyObjectWrapper<>(trade.getValue()));
+        volumeColumn.setCellFactory(
+                new Callback<>() {
+                    @Override
+                    public TableCell<FailedTradesListItem, FailedTradesListItem> call(
+                            TableColumn<FailedTradesListItem, FailedTradesListItem> column) {
+                        return new TableCell<>() {
+                            @Override
+                            public void updateItem(final FailedTradesListItem item, boolean empty) {
+                                super.updateItem(item, empty);
+                                if (item != null)
+                                    setGraphic(new AutoTooltipLabel(model.getVolume(item)));
+                                else
+                                    setGraphic(null);
+                            }
+                        };
+                    }
+                });
+    }
+
+    private void setDirectionColumnCellFactory() {
+        directionColumn.setCellValueFactory((trade) -> new ReadOnlyObjectWrapper<>(trade.getValue()));
+        directionColumn.setCellFactory(
+                new Callback<>() {
+                    @Override
+                    public TableCell<FailedTradesListItem, FailedTradesListItem> call(
+                            TableColumn<FailedTradesListItem, FailedTradesListItem> column) {
+                        return new TableCell<>() {
+                            @Override
+                            public void updateItem(final FailedTradesListItem item, boolean empty) {
+                                super.updateItem(item, empty);
+                                setGraphic(new AutoTooltipLabel(model.getDirectionLabel(item)));
+                            }
+                        };
+                    }
+                });
+    }
+
+    private TableColumn<FailedTradesListItem, FailedTradesListItem> setRemoveTradeColumnCellFactory() {
+        removeTradeColumn.setCellValueFactory((trade) -> new ReadOnlyObjectWrapper<>(trade.getValue()));
+        removeTradeColumn.setCellFactory(
+                new Callback<>() {
+                    @Override
+                    public TableCell<FailedTradesListItem, FailedTradesListItem> call(TableColumn<FailedTradesListItem,
+                            FailedTradesListItem> column) {
+                        return new TableCell<>() {
+
+                            @Override
+                            public void updateItem(FailedTradesListItem newItem, boolean empty) {
+                                super.updateItem(newItem, empty);
+                                if (!empty && newItem != null) {
+                                    Label icon = FormBuilder.getIcon(AwesomeIcon.UNDO);
+                                    JFXButton iconButton = new JFXButton("", icon);
+                                    iconButton.setStyle("-fx-cursor: hand;");
+                                    iconButton.getStyleClass().add("hidden-icon-button");
+                                    iconButton.setTooltip(new Tooltip(Res.get("portfolio.failed.revertToPending")));
+                                    iconButton.setOnAction(e -> onRevertTrade(newItem.getTrade()));
+                                    setGraphic(iconButton);
+                                } else {
+                                    setGraphic(null);
+                                }
+                            }
+                        };
+                    }
+                });
+        return removeTradeColumn;
+    }
+}
+
