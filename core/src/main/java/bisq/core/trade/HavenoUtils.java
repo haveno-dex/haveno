@@ -54,7 +54,9 @@ import org.bitcoinj.utils.MonetaryFormat;
 import com.google.common.base.CaseFormat;
 import com.google.common.base.Charsets;
 
+import java.text.DateFormat;
 import java.text.DecimalFormat;
+import java.text.SimpleDateFormat;
 
 /**
  * Collection of utilities.
@@ -69,7 +71,9 @@ public class HavenoUtils {
     public static final BigInteger CENTINEROS_AU_MULTIPLIER = new BigInteger("10000");
     private static final BigInteger XMR_AU_MULTIPLIER = new BigInteger("1000000000000");
 
-    private static final DecimalFormat XMR_FORMATTER = new DecimalFormat("0.000000000000");
+    public static final DecimalFormat XMR_FORMATTER = new DecimalFormat("0.000000000000");
+
+    public static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("dd-MM-yyyy HH:mm:ss");
 
     // global thread pool
     private static final int POOL_SIZE = 10;
@@ -110,10 +114,6 @@ public class HavenoUtils {
         return new BigDecimal(atomicUnits).divide(new BigDecimal(XMR_AU_MULTIPLIER)).doubleValue();
     }
 
-    public static String formatToXmr(Coin xmrAmount) {
-        return XMR_FORMATTER.format(coinToXmr(xmrAmount));
-    }
-
     public static BigInteger xmrToAtomicUnits(double xmr) {
         return BigDecimal.valueOf(xmr).multiply(new BigDecimal(XMR_AU_MULTIPLIER)).toBigInteger();
     }
@@ -123,6 +123,10 @@ public class HavenoUtils {
     }
     public static double coinToXmr(Coin coin) {
         return atomicUnitsToXmr(coinToAtomicUnits(coin));
+    }
+
+    public static String formatToXmr(Coin xmrAmount) {
+        return XMR_FORMATTER.format(coinToXmr(xmrAmount));
     }
     private static final MonetaryFormat xmrCoinFormat = Config.baseCurrencyNetworkParameters().getMonetaryFormat();
 
@@ -402,4 +406,5 @@ public class HavenoUtils {
     public static String toCamelCase(String underscore) {
         return CaseFormat.UPPER_UNDERSCORE.to(CaseFormat.LOWER_CAMEL, underscore);
     }
+
 }
