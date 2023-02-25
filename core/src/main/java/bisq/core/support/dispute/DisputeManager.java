@@ -79,7 +79,6 @@ import java.util.stream.Collectors;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import monero.common.MoneroError;
-import monero.wallet.MoneroWallet;
 import monero.wallet.model.MoneroTxConfig;
 import monero.wallet.model.MoneroTxWallet;
 
@@ -496,6 +495,7 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
         
                 // update multisig hex
                 if (message.getUpdatedMultisigHex() != null) sender.setUpdatedMultisigHex(message.getUpdatedMultisigHex());
+                trade.importMultisigHex();
         
                 // update peer node address
                 // TODO: tests can reuse the same addresses so nullify equal peer
@@ -820,23 +820,15 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
 
     public MoneroTxWallet createDisputePayoutTx(Trade trade, Contract contract, DisputeResult disputeResult, boolean skipMultisigImport) {
 
+        // import multisig hex
+        trade.importMultisigHex();
+
         // sync and save wallet
         trade.syncWallet();
         trade.saveWallet();
 
         // create unsigned dispute payout tx if not already published
         if (!trade.isPayoutPublished()) {
-            MoneroWallet multisigWallet = trade.getWallet();
-
-            // import multisig hex
-            if (!skipMultisigImport) {
-                List<String> updatedMultisigHexes = new ArrayList<String>();
-                if (trade.getBuyer().getUpdatedMultisigHex() != null) updatedMultisigHexes.add(trade.getBuyer().getUpdatedMultisigHex());
-                if (trade.getSeller().getUpdatedMultisigHex() != null) updatedMultisigHexes.add(trade.getSeller().getUpdatedMultisigHex());
-                if (!updatedMultisigHexes.isEmpty()) {
-                    multisigWallet.importMultisigHex(updatedMultisigHexes.toArray(new String[0])); // TODO (monero-project): fails if multisig hex imported individually
-                }
-            }
 
             // create unsigned dispute payout tx
             log.info("Arbitrator creating unsigned dispute payout tx for trade {}", trade.getId());

@@ -777,6 +777,14 @@ public abstract class Trade implements Tradable, Model {
         }, syncNormalDuration);
     }
 
+    public void importMultisigHex() {
+        List<String> multisigHexes = new ArrayList<String>();
+        if (getBuyer().getUpdatedMultisigHex() != null) multisigHexes.add(getBuyer().getUpdatedMultisigHex());
+        if (getSeller().getUpdatedMultisigHex() != null) multisigHexes.add(getSeller().getUpdatedMultisigHex());
+        if (getArbitrator().getUpdatedMultisigHex() != null) multisigHexes.add(getArbitrator().getUpdatedMultisigHex());
+        if (!multisigHexes.isEmpty()) getWallet().importMultisigHex(multisigHexes.toArray(new String[0]));
+    }
+
     public void changeWalletPassword(String oldPassword, String newPassword) {
         synchronized (walletLock) {
             getWallet().changePassword(oldPassword, newPassword);
@@ -882,9 +890,15 @@ public abstract class Trade implements Tradable, Model {
      */
     public MoneroTxWallet createPayoutTx() {
 
+        // check connection to monero daemon
+        checkWalletConnection();
+
+        // import multisig hex
+        importMultisigHex();
+        if (getWallet().isMultisigImportNeeded()) throw new RuntimeException("Cannot create payout tx because multisig import is needed");
+
         // gather info
         MoneroWallet multisigWallet = getWallet();
-        if (multisigWallet.isMultisigImportNeeded()) throw new RuntimeException("Cannot create payout tx because multisig import is needed");
         String sellerPayoutAddress = this.getSeller().getPayoutAddressString();
         String buyerPayoutAddress = this.getBuyer().getPayoutAddressString();
         Preconditions.checkNotNull(sellerPayoutAddress, "Seller payout address must not be null");
@@ -894,9 +908,6 @@ public abstract class Trade implements Tradable, Model {
         BigInteger tradeAmount = HavenoUtils.coinToAtomicUnits(this.getAmount());
         BigInteger buyerPayoutAmount = buyerDepositAmount.add(tradeAmount);
         BigInteger sellerPayoutAmount = sellerDepositAmount.subtract(tradeAmount);
-
-        // check connection to monero daemon
-        checkWalletConnection();
 
         // create transaction to get fee estimate
         MoneroTxWallet feeEstimateTx = multisigWallet.createTx(new MoneroTxConfig()
