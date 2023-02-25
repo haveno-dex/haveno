@@ -113,22 +113,14 @@ public class CoreAccountService {
             throw new IllegalStateException("keyRing.unlockKeys() returned false, that should never happen");
         }
     }
-
+    
     public void changePassword(String oldPassword, String newPassword) {
         if (!isAccountOpen()) throw new IllegalStateException("Cannot change password on unopened account");
-        if ("".equals(oldPassword)) oldPassword = null; // normalize to null
         if (!StringUtils.equals(this.password, oldPassword)) throw new IllegalStateException("Incorrect password");
-        //if (newPassword != null && newPassword.length() < 8) throw new IllegalStateException("Password must be at least 8 characters"); // TODO: this will break tests
         keyStorage.saveKeyRing(keyRing, oldPassword, newPassword);
         this.password = newPassword;
         synchronized (listeners) {
             for (AccountServiceListener listener : listeners) listener.onPasswordChanged(oldPassword, newPassword);
-        }
-    }
-
-    public void verifyPassword(String password) throws IncorrectPasswordException {
-        if (!StringUtils.equals(this.password, password)) {
-            throw new IncorrectPasswordException("Incorrect password");
         }
     }
 

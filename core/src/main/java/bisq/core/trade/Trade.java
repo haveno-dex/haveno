@@ -811,10 +811,7 @@ public abstract class Trade implements Tradable, Model {
                     }
 
                     // check if wallet balance > dust
-                    // TODO (monero-java): use getMakerDepositTx() but fee is not returned from daemon txs
-                    BigInteger maxBalance = isDepositsPublished()
-                            ? getWallet().getTx(getMaker().getDepositTxHash()).getFee().min(getWallet().getTx(getTaker().getDepositTxHash()).getFee())
-                            : BigInteger.ZERO;
+                    BigInteger maxBalance = isDepositsPublished() ? getMakerDepositTx().getFee().min(getTakerDepositTx().getFee()) : BigInteger.ZERO;
                     if (getWallet().getBalance().compareTo(maxBalance) > 0) {
                         throw new RuntimeException("Refusing to delete wallet for " + getClass().getSimpleName() + " " + getId() + " because its balance is more than dust");
                     }
@@ -1051,26 +1048,35 @@ public abstract class Trade implements Tradable, Model {
 
     @Nullable
     public MoneroTx getTakerDepositTx() {
-        String depositTxHash = getProcessModel().getTaker().getDepositTxHash();
-        try {
-            if (getTaker().getDepositTx() == null || !getTaker().getDepositTx().isConfirmed()) getTaker().setDepositTx(depositTxHash == null ? null : getXmrWalletService().getTxWithCache(depositTxHash));
-            return getTaker().getDepositTx();
-        } catch (MoneroError e) {
-            log.error("Wallet is missing taker deposit tx " + depositTxHash);
-            return null;
-        }
+        return getDepositTx(getTaker());
     }
 
     @Nullable
     public MoneroTx getMakerDepositTx() {
-        String depositTxHash = getProcessModel().getMaker().getDepositTxHash();
+        return getDepositTx(getMaker());
+    }
+
+    private MoneroTx getDepositTx(TradePeer trader) {
+        String depositId = trader.getDepositTxHash();
         try {
-            if (getMaker().getDepositTx() == null || !getMaker().getDepositTx().isConfirmed()) getMaker().setDepositTx(depositTxHash == null ? null : getXmrWalletService().getTxWithCache(depositTxHash));
-            return getMaker().getDepositTx();
+            if (trader.getDepositTx() == null || !trader.getDepositTx().isConfirmed()) {
+                trader.setDepositTx(getTxFromWalletOrDaemon(depositId));
+            }
+            return trader.getDepositTx();
         } catch (MoneroError e) {
-            log.error("Wallet is missing maker deposit tx " + depositTxHash);
+            log.error("Error getting {} deposit tx {}: {}", getPeerRole(trader), depositId, e.getMessage()); // TODO: peer.getRole()
             return null;
         }
+    }
+
+    private MoneroTx getTxFromWalletOrDaemon(String txId) {
+        MoneroTx tx = null;
+        if (getWallet() != null) {
+            try { tx = getWallet().getTx(txId); } // TODO monero-java: return null if tx not found
+            catch (Exception e) { }
+        }
+        if (tx == null) tx = getXmrWalletService().getTxWithCache(txId);
+        return tx;
     }
 
     public void addAndPersistChatMessage(ChatMessage chatMessage) {
@@ -1572,8 +1578,7 @@ public abstract class Trade implements Tradable, Model {
 
     @Nullable
     public MoneroTxWallet getPayoutTx() {
-        if (payoutTx == null)
-            payoutTx = payoutTxId != null ? xmrWalletService.getWallet().getTx(payoutTxId) : null;
+        if (payoutTx == null) payoutTx = payoutTxId == null ? null : xmrWalletService.getWallet().getTx(payoutTxId);
         return payoutTx;
     }
 
@@ -1749,7 +1754,7 @@ public abstract class Trade implements Tradable, Model {
                 }
             }
         } catch (Exception e) {
-            if (!isShutDown && getWallet() != null && isWalletConnected()) log.warn("Error polling trade wallet {}: {}", getId(), e.getMessage()); // TODO (monero-java): poller.isPolling()?
+            if (!isShutDown && getWallet() != null && isWalletConnected()) log.warn("Error polling trade wallet {}: {}", getId(), e.getMessage());
         }
     }
 

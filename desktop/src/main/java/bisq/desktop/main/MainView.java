@@ -50,6 +50,8 @@ import bisq.core.provider.price.MarketPrice;
 import bisq.common.HavenoException;
 import bisq.common.Timer;
 import bisq.common.UserThread;
+import bisq.common.config.BaseCurrencyNetwork;
+import bisq.common.config.Config;
 import bisq.common.util.Tuple2;
 import bisq.common.util.Utilities;
 
@@ -522,8 +524,7 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
         vBox.setId("splash");
 
         ImageView logo = new ImageView();
-        logo.setId("image-splash-logo");
-
+        logo.setId(Config.baseCurrencyNetwork() == BaseCurrencyNetwork.XMR_MAINNET ? "image-splash-logo" : "image-splash-testnet-logo");
 
         // createBitcoinInfoBox
         btcSplashInfo = new AutoTooltipLabel();
