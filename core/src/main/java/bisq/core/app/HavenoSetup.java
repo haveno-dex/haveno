@@ -83,8 +83,6 @@ import javafx.beans.value.ChangeListener;
 
 import javafx.collections.SetChangeListener;
 
-import org.bouncycastle.crypto.params.KeyParameter;
-
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileWriter;
@@ -158,9 +156,6 @@ public class HavenoSetup {
     @Setter
     @Nullable
     private Runnable showFirstPopupIfResyncSPVRequestedHandler;
-    @Setter
-    @Nullable
-    private Consumer<Consumer<KeyParameter>> requestWalletPasswordHandler;
     @Setter
     @Nullable
     private Consumer<Alert> displayAlertHandler;
@@ -400,7 +395,6 @@ public class HavenoSetup {
     }
 
     private void startP2pNetworkAndWallet(Runnable nextStep) {
-        log.info("Wallets are encrypted? {}", walletsManager.areWalletsEncrypted());
         ChangeListener<Boolean> walletInitializedListener = (observable, oldValue, newValue) -> {
             // TODO that seems to be called too often if Tor takes longer to start up...
             if (newValue && !p2pNetworkReady.get() && displayTorNetworkSettingsHandler != null)
@@ -457,37 +451,11 @@ public class HavenoSetup {
     private void initWallet() {
         log.info("Init wallet");
         havenoSetupListeners.forEach(HavenoSetupListener::onInitWallet);
-        Runnable walletPasswordHandler = () -> {
-            havenoSetupListeners.forEach(HavenoSetupListener::onRequestWalletPassword);
-            if (p2pNetworkReady.get())
-                p2PNetworkSetup.setSplashP2PNetworkAnimationVisible(true);
-
-
-//            if (requestWalletPasswordHandler != null) {
-//                log.info("Displaying password window to accept...");
-//                requestWalletPasswordHandler.accept(aesKey -> {
-//                    walletsManager.setAesKey(aesKey);
-//                    walletsSetup.getWalletConfig().maybeAddSegwitKeychain(walletsSetup.getWalletConfig().btcWallet(),
-//                            aesKey);
-//                    if (getResyncSpvSemaphore()) {
-//                        if (showFirstPopupIfResyncSPVRequestedHandler != null)
-//                            showFirstPopupIfResyncSPVRequestedHandler.run();
-//                    } else {
-//                        // TODO no guarantee here that the wallet is really fully initialized
-//                        // We would need a new walletInitializedButNotEncrypted state to track
-//                        // Usually init is fast and we have our wallet initialized at that state though.
-//                        walletInitialized.set(true);
-//                    }
-//                });
-//            }
-        };
-
         walletAppSetup.init(chainFileLockedExceptionHandler,
                 spvFileCorruptedHandler,
                 getResyncSpvSemaphore(),
                 showFirstPopupIfResyncSPVRequestedHandler,
                 showPopupIfInvalidBtcConfigHandler,
-                walletPasswordHandler,
                 () -> {
                     if (allBasicServicesInitialized) {
                         checkForLockedUpFunds();

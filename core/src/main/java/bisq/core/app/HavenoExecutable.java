@@ -93,8 +93,6 @@ public abstract class HavenoExecutable implements GracefulShutDownHandler, Haven
         this.version = version;
     }
 
-    protected abstract CompletableFuture<String> handlePasswordDialogLogin();
-
     public int execute(String[] args) {
         try {
             config = new Config(appName, Utilities.getUserDataDir(), args);
@@ -174,6 +172,7 @@ public abstract class HavenoExecutable implements GracefulShutDownHandler, Haven
         loginFuture.whenComplete((result, throwable) -> {
             if (throwable != null) {
                 log.error("Error logging in to account", throwable);
+                shutDownNoPersist(null, false);
                 return;
             }
             try {
@@ -217,34 +216,26 @@ public abstract class HavenoExecutable implements GracefulShutDownHandler, Haven
      * @return true if account is opened successfully.
      */
     protected CompletableFuture<Boolean> loginAccount() {
-        return CompletableFuture.supplyAsync(() -> {
-            CompletableFuture<Boolean> result = new CompletableFuture<>();
-            if (accountService.accountExists()) {
-                try {
-                    accountService.openAccount(null);
-                    result.complete(accountService.isAccountOpen());
-                } catch (IncorrectPasswordException ipe) {
-                    CompletableFuture<String> passwordFuture = handlePasswordDialogLogin();
-                    passwordFuture.thenAccept(password -> {
-                        try {
-                            accountService.openAccount(password);
-                            result.complete(accountService.isAccountOpen());
-                        } catch (IncorrectPasswordException e) {
-                            result.completeExceptionally(e);
-                        }
-                    });
-                }
-            } else if (!config.passwordRequired) {
-                log.info("Creating Haveno account with null password");
-                accountService.createAccount(null);
+        CompletableFuture<Boolean> result = new CompletableFuture<>();
+        if (accountService.accountExists()) {
+            log.info("Account already exists, attempting to open");
+            try {
+                accountService.openAccount(null);
                 result.complete(accountService.isAccountOpen());
-            } else {
-                result.completeExceptionally(new IllegalStateException("Account does not exist and password is required"));
+            } catch (IncorrectPasswordException ipe) {
+                log.info("Account password protected, password required");
+                result.complete(false);
             }
-            return result.join();
-        });
+        } else if (!config.passwordRequired) {
+            log.info("Creating Haveno account with null password");
+            accountService.createAccount(null);
+            result.complete(accountService.isAccountOpen());
+        } else {
+            log.info("Account does not exist and password is required");
+            result.complete(false);
+        }
+        return result;
     }
-
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // We continue with a series of synchronous execution tasks

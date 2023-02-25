@@ -28,7 +28,7 @@ import bisq.core.app.HavenoExecutable;
 import bisq.common.UserThread;
 import bisq.common.app.AppModule;
 import bisq.common.app.Version;
-
+import bisq.common.crypto.IncorrectPasswordException;
 import javafx.application.Application;
 import javafx.application.Platform;
 
@@ -37,12 +37,15 @@ import javafx.stage.Stage;
 import javafx.scene.control.ButtonBar;
 import javafx.scene.control.ButtonType;
 import javafx.scene.control.Dialog;
+import javafx.scene.control.Label;
 import javafx.scene.control.PasswordField;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.VBox;
+import javafx.scene.paint.Color;
 
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -138,7 +141,6 @@ public class HavenoAppMain extends HavenoExecutable {
 
     @Override
     protected void startApplication() {
-        log.info("Running startApplication...");
         // We need to be in user thread! We mapped at launchApplication already.  Once
         // the UI is ready we get onApplicationStarted called and start the setup there.
         application.startApplication(this::onApplicationStarted);
@@ -155,47 +157,68 @@ public class HavenoAppMain extends HavenoExecutable {
     }
 
     @Override
-    public CompletableFuture<String> handlePasswordDialogLogin() {
-        CompletableFuture<String> passwordFuture = new CompletableFuture<>();
+    protected CompletableFuture<Boolean> loginAccount() {
 
+        // attempt default login
+        CompletableFuture<Boolean> result = super.loginAccount();
+        try {
+            if (result.get()) return result;
+        } catch (InterruptedException | ExecutionException e) {
+            throw new IllegalStateException(e);
+        }
+
+        // login using dialog
+        CompletableFuture<Boolean> dialogResult = new CompletableFuture<>();
         Platform.setImplicitExit(false);
         Platform.runLater(() -> {
-            // create the password dialog
-            PasswordDialog passwordDialog = new PasswordDialog();
-            passwordDialog.setTitle("Enter Password");
-            passwordDialog.setHeaderText("Please enter your password:");
 
-            // wait for the user to enter a password
-            Optional<String> result = passwordDialog.showAndWait();
-            if (result.isPresent()) {
-                // if the user entered a password, complete the passwordFuture with the password
-                passwordFuture.complete(result.get());
-            } else {
-                // if the user cancelled the dialog, complete the passwordFuture exceptionally
-                passwordFuture.completeExceptionally(new Exception("Password dialog cancelled"));
+            // show password dialog until account open
+            String errorMessage = null;
+            while (!accountService.isAccountOpen()) {
+
+                // create the password dialog
+                PasswordDialog passwordDialog = new PasswordDialog(errorMessage);
+
+                // wait for user to enter password
+                Optional<String> passwordResult = passwordDialog.showAndWait();
+                if (passwordResult.isPresent()) {
+                    try {
+                        accountService.openAccount(passwordResult.get());
+                        dialogResult.complete(accountService.isAccountOpen());
+                    } catch (IncorrectPasswordException e) {
+                        errorMessage = "Incorrect password";
+                    }
+                } else {
+                    // if the user cancelled the dialog, complete the passwordFuture exceptionally
+                    dialogResult.completeExceptionally(new Exception("Password dialog cancelled"));
+                    break;
+                }
             }
         });
-
-        return passwordFuture;
+        return dialogResult;
     }
 
-    public class PasswordDialog extends Dialog<String> {
+    private class PasswordDialog extends Dialog<String> {
 
-        public PasswordDialog() {
-            setTitle("Password Dialog");
-            setHeaderText("Please enter your password:");
+        public PasswordDialog(String errorMessage) {
+            setTitle("Enter Password");
+            setHeaderText("Please enter Haveno your password:");
+
+            // Add an icon to the dialog
+            Stage stage = (Stage) getDialogPane().getScene().getWindow();
+            stage.getIcons().add(ImageUtil.getImageByPath("lock.png"));
 
             // Create the password field
             PasswordField passwordField = new PasswordField();
             passwordField.setPromptText("Password");
 
-            // Add an icon to the dialog
-            Stage stage = (Stage) getDialogPane().getScene().getWindow();
-            stage.getIcons().add(ImageUtil.getImageByName("lock.png"));
+            // Create the error message field
+            Label errorMessageField = new Label(errorMessage);
+            errorMessageField.setTextFill(Color.color(1, 0, 0));
 
             // Set the dialog content
             VBox vbox = new VBox(10);
-            vbox.getChildren().addAll(new ImageView(ImageUtil.getImageByName("password.png")), passwordField);
+            vbox.getChildren().addAll(new ImageView(ImageUtil.getImageByPath("logo_splash.png")), passwordField, errorMessageField);
             getDialogPane().setContent(vbox);
 
             // Add OK and Cancel buttons

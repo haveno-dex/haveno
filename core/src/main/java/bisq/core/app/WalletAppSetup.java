@@ -108,7 +108,6 @@ public class WalletAppSetup {
               boolean isSpvResyncRequested,
               @Nullable Runnable showFirstPopupIfResyncSPVRequestedHandler,
               @Nullable Runnable showPopupIfInvalidBtcConfigHandler,
-              Runnable walletPasswordHandler,
               Runnable downloadCompleteHandler,
               Runnable walletInitializedHandler) {
         log.info("Initialize WalletAppSetup with BitcoinJ version {} and hash of BitcoinJ commit {}",
@@ -171,17 +170,7 @@ public class WalletAppSetup {
 
         walletsSetup.initialize(null,
                 () -> {
-                    // We only check one wallet as we apply encryption to all or none
-                    if (walletsManager.areWalletsEncrypted() && !coreContext.isApiUser()) { // TODO: disable invoking password handler here, use popup in loginAccount() to collect password 
-                        walletPasswordHandler.run();
-                    } else {
-                        if (isSpvResyncRequested && !coreContext.isApiUser()) {
-                            if (showFirstPopupIfResyncSPVRequestedHandler != null)
-                                showFirstPopupIfResyncSPVRequestedHandler.run();
-                        } else {
-                            walletInitializedHandler.run();
-                        }
-                    }
+                    walletInitializedHandler.run();
                 },
                 exception -> {
                     if (exception instanceof InvalidHostException && showPopupIfInvalidBtcConfigHandler != null) {

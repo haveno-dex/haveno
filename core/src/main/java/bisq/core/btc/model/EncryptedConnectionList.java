@@ -307,7 +307,7 @@ public class EncryptedConnectionList implements PersistableEnvelope, PersistedDa
         try {
             return Encryption.decrypt(encrypted, secret);
         } catch (CryptoException e) {
-            throw new IllegalArgumentException("Wrong password", e);
+            throw new IllegalArgumentException("Incorrect password", e);
         }
     }
 

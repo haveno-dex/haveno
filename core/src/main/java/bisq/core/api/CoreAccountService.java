@@ -35,6 +35,9 @@ import java.util.List;
 import java.util.function.Consumer;
 import javax.inject.Inject;
 import javax.inject.Singleton;
+
+import org.apache.commons.lang3.StringUtils;
+
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
@@ -111,13 +114,21 @@ public class CoreAccountService {
         }
     }
 
-    public void changePassword(String password) {
+    public void changePassword(String oldPassword, String newPassword) {
         if (!isAccountOpen()) throw new IllegalStateException("Cannot change password on unopened account");
-        String oldPassword = this.password;
-        keyStorage.saveKeyRing(keyRing, oldPassword, password);
-        this.password = password;
+        if ("".equals(oldPassword)) oldPassword = null; // normalize to null
+        if (!StringUtils.equals(this.password, oldPassword)) throw new IllegalStateException("Incorrect password");
+        //if (newPassword != null && newPassword.length() < 8) throw new IllegalStateException("Password must be at least 8 characters"); // TODO: this will break tests
+        keyStorage.saveKeyRing(keyRing, oldPassword, newPassword);
+        this.password = newPassword;
         synchronized (listeners) {
-            for (AccountServiceListener listener : listeners) listener.onPasswordChanged(oldPassword, password);
+            for (AccountServiceListener listener : listeners) listener.onPasswordChanged(oldPassword, newPassword);
+        }
+    }
+
+    public void verifyPassword(String password) throws IncorrectPasswordException {
+        if (!StringUtils.equals(this.password, password)) {
+            throw new IncorrectPasswordException("Incorrect password");
         }
     }
 

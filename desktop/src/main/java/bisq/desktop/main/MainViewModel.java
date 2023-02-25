@@ -18,7 +18,6 @@
 package bisq.desktop.main;
 
 import bisq.desktop.Navigation;
-import bisq.desktop.app.HavenoApp;
 import bisq.desktop.common.model.ViewModel;
 import bisq.desktop.components.TxIdTextField;
 import bisq.desktop.main.account.AccountView;
@@ -338,11 +337,6 @@ public class MainViewModel implements ViewModel, HavenoSetup.HavenoSetupListener
                 .show());
         havenoSetup.setLockedUpFundsHandler(msg -> new Popup().width(850).warning(msg).show());
         havenoSetup.setShowFirstPopupIfResyncSPVRequestedHandler(this::showFirstPopupIfResyncSPVRequested);
-        //TODO (niyid) Do not display the overlay if accountService.accountOpen() is true
-        havenoSetup.setRequestWalletPasswordHandler(aesKeyHandler -> walletPasswordWindow
-                .onAesKey(aesKeyHandler::accept)
-                .onClose(() -> HavenoApp.getShutDownHandler().run())
-                .show());
 
         havenoSetup.setDisplayUpdateHandler((alert, key) -> new DisplayUpdateDownloadWindow(alert, config)
                 .actionButtonText(Res.get("displayUpdateDownloadWindow.button.downloadLater"))

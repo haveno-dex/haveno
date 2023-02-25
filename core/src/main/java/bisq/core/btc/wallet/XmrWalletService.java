@@ -152,8 +152,8 @@ public class XmrWalletService {
                 @Override
                 public void onPasswordChanged(String oldPassword, String newPassword) {
                     log.info(getClass() + "accountservice.onPasswordChanged()");
-                    if (oldPassword == null) oldPassword = MONERO_WALLET_RPC_DEFAULT_PASSWORD;
-                    if (newPassword == null) newPassword = MONERO_WALLET_RPC_DEFAULT_PASSWORD;
+                    if (oldPassword == null || oldPassword.isEmpty()) oldPassword = MONERO_WALLET_RPC_DEFAULT_PASSWORD;
+                    if (newPassword == null || newPassword.isEmpty()) newPassword = MONERO_WALLET_RPC_DEFAULT_PASSWORD;
                     changeWalletPasswords(oldPassword, newPassword);
                 }
             });
@@ -562,9 +562,8 @@ public class XmrWalletService {
             System.out.println("Monero wallet balance: " + wallet.getBalance(0));
             System.out.println("Monero wallet unlocked balance: " + wallet.getUnlockedBalance(0));
 
-            //Here we are certain wallet is initialized
-            //TODO (niyid) Maybe change to listener pattern?
-            havenoSetup.getWalletInitialized().set(true);
+            // notify setup that main wallet is initialized
+            havenoSetup.getWalletInitialized().set(true); // TODO: change to listener pattern?
 
             // register internal listener to notify external listeners
             wallet.addListener(new XmrWalletListener());

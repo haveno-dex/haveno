@@ -46,7 +46,6 @@ import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
@@ -63,11 +62,6 @@ public abstract class ExecutableForAppWithP2p extends HavenoExecutable {
 
     public ExecutableForAppWithP2p(String fullName, String scriptName, String appName, String version) {
         super(fullName, scriptName, appName, version);
-    }
-
-    @Override
-    protected CompletableFuture<String> handlePasswordDialogLogin() {
-        return null;
     }
 
     @Override

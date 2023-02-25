@@ -143,22 +143,21 @@ public class PasswordView extends ActivatableView<GridPane, Void> {
         busyAnimation.play();
 
         if (walletsManager.areWalletsEncrypted()) {
-            System.out.println("Setting null account password");
-            accountService.changePassword(null);
-            new Popup()
-                    .feedback(Res.get("password.walletDecrypted"))
-                    .show();
-            backupWalletAndResetFields();
-
-            // TODO: verify if password is correct
-            // pwButton.setDisable(false);
-            //     new Popup()
-            //             .warning(Res.get("password.wrongPw"))
-            //             .show();
-
+            try {
+                accountService.changePassword(password, null);
+                new Popup()
+                        .feedback(Res.get("password.walletDecrypted"))
+                        .show();
+                backupWalletAndResetFields();
+            } catch (Throwable t) {
+                pwButton.setDisable(false);
+                new Popup()
+                        .warning(Res.get("password.wrongPw"))
+                        .show();
+            }
         } else {
             try {
-                accountService.changePassword(password);
+                accountService.changePassword(accountService.getPassword(), password);
                 new Popup()
                         .feedback(Res.get("password.walletEncrypted"))
                         .show();
@@ -175,42 +174,6 @@ public class PasswordView extends ActivatableView<GridPane, Void> {
 
         deriveStatusLabel.setText("");
         busyAnimation.stop();
-
-        // KeyCrypterScrypt keyCrypterScrypt = walletsManager.getKeyCrypterScrypt();
-        // ScryptUtil.deriveKeyWithScrypt(keyCrypterScrypt, password, aesKey -> {
-        //     deriveStatusLabel.setText("");
-        //     busyAnimation.stop();
-
-        //     if (walletsManager.areWalletsEncrypted()) {
-        //         if (walletsManager.checkAESKey(aesKey)) {
-        //             walletsManager.decryptWallets(aesKey);
-        //             new Popup()
-        //                     .feedback(Res.get("password.walletDecrypted"))
-        //                     .show();
-        //             backupWalletAndResetFields();
-        //         } else {
-        //             pwButton.setDisable(false);
-        //             new Popup()
-        //                     .warning(Res.get("password.wrongPw"))
-        //                     .show();
-        //         }
-        //     } else {
-        //         try {
-        //             walletsManager.encryptWallets(keyCrypterScrypt, aesKey);
-        //             new Popup()
-        //                     .feedback(Res.get("password.walletEncrypted"))
-        //                     .show();
-        //             backupWalletAndResetFields();
-        //             walletsManager.clearBackup();
-        //         } catch (Throwable t) {
-        //             new Popup()
-        //                     .warning(Res.get("password.walletEncryptionFailed"))
-        //                     .show();
-        //         }
-        //     }
-        //     setText();
-        //     updatePasswordListeners();
-        // });
     }
 
     private void backupWalletAndResetFields() {

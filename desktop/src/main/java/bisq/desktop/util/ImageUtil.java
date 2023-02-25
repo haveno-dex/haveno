@@ -70,8 +70,8 @@ public class ImageUtil {
         }
     }
 
-    public static Image getImageByName(String imageName) {
-        return getImageByUrl("/images/" + imageName);
+    public static Image getImageByPath(String imagePath) {
+        return getImageByUrl("/images/" + imagePath);
     }
 
     // determine if this is a MacOS retina display
