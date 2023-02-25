@@ -169,6 +169,9 @@ public class ProcessModel implements Model, PersistablePayload {
     @Getter
     @Setter
     transient private MoneroTxWallet depositTxXmr;
+    @Getter
+    @Setter
+    transient private MoneroTxWallet unsignedPayoutTx;
     @Nullable
     @Getter
     @Setter
