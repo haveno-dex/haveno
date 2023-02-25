@@ -40,9 +40,6 @@ import bisq.core.trade.Trade;
 import bisq.core.trade.TradeManager;
 
 
-import org.bitcoinj.core.Coin;
-import org.bitcoinj.core.Transaction;
-
 import javax.inject.Inject;
 
 import javafx.fxml.FXML;
@@ -72,8 +69,6 @@ import javafx.collections.transformation.SortedList;
 
 import javafx.util.Callback;
 import javafx.util.Duration;
-
-import java.text.DateFormat;
 
 import java.util.Comparator;
 import java.util.Date;
@@ -116,17 +111,13 @@ public class SignedOfferView extends ActivatableView<VBox, Void> {
 
     private OfferDetailsWindow offerDetailsWindow;
 
-    private CoreApi coreApi;
-
     @Inject
     public SignedOfferView(OpenOfferManager openOfferManager, XmrWalletService xmrWalletService,
-                           TradeManager tradeManager, OfferDetailsWindow offerDetailsWindow,
-                           CoreApi coreApi) {
+                           TradeManager tradeManager, OfferDetailsWindow offerDetailsWindow) {
         this.openOfferManager = openOfferManager;
         this.xmrWalletService = xmrWalletService;
         this.tradeManager = tradeManager;
         this.offerDetailsWindow = offerDetailsWindow;
-        this.coreApi = coreApi;
     }
 
     private Offer fetchOffer(SignedOffer signedOffer) {

@@ -54,7 +54,6 @@ import org.bitcoinj.utils.MonetaryFormat;
 import com.google.common.base.CaseFormat;
 import com.google.common.base.Charsets;
 
-import java.text.DateFormat;
 import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
 
