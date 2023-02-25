@@ -33,9 +33,6 @@ import lombok.extern.slf4j.Slf4j;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import java.util.ArrayList;
-import java.util.List;
-
 import org.apache.commons.lang3.StringUtils;
 
 @Slf4j
@@ -108,15 +105,10 @@ public class ProcessPaymentReceivedMessage extends TradeTask {
 
     private void processPayoutTx(PaymentReceivedMessage message) {
 
-        // sync and save wallet
+        // update wallet
+        trade.importMultisigHex();
         trade.syncWallet();
         trade.saveWallet();
-
-        // import multisig hex
-        List<String> updatedMultisigHexes = new ArrayList<String>();
-        if (trade.getSeller().getUpdatedMultisigHex() != null) updatedMultisigHexes.add(trade.getSeller().getUpdatedMultisigHex());
-        if (trade.getArbitrator().getUpdatedMultisigHex() != null) updatedMultisigHexes.add(trade.getArbitrator().getUpdatedMultisigHex());
-        if (!updatedMultisigHexes.isEmpty()) trade.getWallet().importMultisigHex(updatedMultisigHexes.toArray(new String[0])); // TODO (monero-project): fails if multisig hex imported individually
 
         // handle if payout tx not published
         if (!trade.isPayoutPublished()) {

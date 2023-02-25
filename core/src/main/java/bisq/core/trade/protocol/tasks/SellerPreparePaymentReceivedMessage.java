@@ -19,13 +19,9 @@ package bisq.core.trade.protocol.tasks;
 
 import bisq.core.trade.Trade;
 
-import java.util.ArrayList;
-import java.util.List;
-
 import bisq.common.taskrunner.TaskRunner;
 
 import lombok.extern.slf4j.Slf4j;
-import monero.wallet.MoneroWallet;
 import monero.wallet.model.MoneroTxWallet;
 
 @Slf4j
@@ -48,14 +44,7 @@ public class SellerPreparePaymentReceivedMessage extends TradeTask {
             if (processModel.getPaymentReceivedMessage() == null) {
 
                 // import multisig hex
-                MoneroWallet multisigWallet = trade.getWallet();
-                List<String> updatedMultisigHexes = new ArrayList<String>();
-                if (trade.getBuyer().getUpdatedMultisigHex() != null) updatedMultisigHexes.add(trade.getBuyer().getUpdatedMultisigHex());
-                if (trade.getArbitrator().getUpdatedMultisigHex() != null) updatedMultisigHexes.add(trade.getArbitrator().getUpdatedMultisigHex());
-                if (!updatedMultisigHexes.isEmpty()) {
-                    multisigWallet.importMultisigHex(updatedMultisigHexes.toArray(new String[0]));
-                    trade.saveWallet();
-                }
+                trade.importMultisigHex();
 
                 // verify, sign, and publish payout tx if given. otherwise create payout tx
                 if (trade.getPayoutTxHex() != null) {
