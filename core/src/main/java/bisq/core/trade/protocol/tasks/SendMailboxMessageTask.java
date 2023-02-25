@@ -60,7 +60,7 @@ public abstract class SendMailboxMessageTask extends TradeTask {
             TradeMailboxMessage message = getTradeMailboxMessage(id);
             setStateSent();
             NodeAddress peersNodeAddress = getReceiverNodeAddress();
-            log.info("Send {} to peer {}. tradeId={}, uid={}",
+            log.info("Send {} to peer {} for {} {}", trade.getClass().getSimpleName(), trade.getId(),
                     message.getClass().getSimpleName(), peersNodeAddress, message.getTradeId(), message.getUid());
 
             TradeTask task = this;

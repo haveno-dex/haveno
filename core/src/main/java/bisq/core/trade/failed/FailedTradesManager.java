@@ -88,14 +88,18 @@ public class FailedTradesManager implements PersistedDataHost {
     }
 
     public void add(Trade trade) {
-        if (failedTrades.add(trade)) {
-            requestPersistence();
+        synchronized (failedTrades) {
+            if (failedTrades.add(trade)) {
+                requestPersistence();
+            }
         }
     }
 
     public void removeTrade(Trade trade) {
-        if (failedTrades.remove(trade)) {
-            requestPersistence();
+        synchronized (failedTrades) {
+            if (failedTrades.remove(trade)) {
+                requestPersistence();
+            }
         }
     }
 
@@ -104,26 +108,34 @@ public class FailedTradesManager implements PersistedDataHost {
     }
 
     public ObservableList<Trade> getObservableList() {
-        return failedTrades.getObservableList();
+        synchronized (failedTrades) {
+            return failedTrades.getObservableList();
+        }
     }
 
     public Optional<Trade> getTradeById(String id) {
-        return failedTrades.stream().filter(e -> e.getId().equals(id)).findFirst();
+        synchronized (failedTrades) {
+            return failedTrades.stream().filter(e -> e.getId().equals(id)).findFirst();
+        }
     }
 
     public Stream<Trade> getTradesStreamWithFundsLockedIn() {
-        return failedTrades.stream()
-                .filter(Trade::isFundsLockedIn);
+        synchronized (failedTrades) {
+            return failedTrades.stream()
+                    .filter(Trade::isFundsLockedIn);
+        }
     }
 
     public void unFailTrade(Trade trade) {
-        if (unFailTradeCallback == null)
-            return;
+        synchronized (failedTrades) {
+            if (unFailTradeCallback == null)
+                return;
 
-        if (unFailTradeCallback.apply(trade)) {
-            log.info("Unfailing trade {}", trade.getId());
-            if (failedTrades.remove(trade)) {
-                requestPersistence();
+            if (unFailTradeCallback.apply(trade)) {
+                log.info("Unfailing trade {}", trade.getId());
+                if (failedTrades.remove(trade)) {
+                    requestPersistence();
+                }
             }
         }
     }
