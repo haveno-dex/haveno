@@ -1501,10 +1501,13 @@ message SignedOfferList {
 message SignedOffer {
     int64 time_stamp = 1;
     string offer_id = 2;
-    string reserve_tx_hash = 3;
-    string reserve_tx_hex = 4;
-    repeated string reserve_tx_key_images = 5;
-    string arbitrator_signature = 6;
+    uint64 trade_amount = 3;
+    uint64 maker_trade_fee = 4;
+    string reserve_tx_hash = 5;
+    string reserve_tx_hex = 6;
+    repeated string reserve_tx_key_images = 7;
+    uint64 reserve_tx_miner_fee = 8;
+    string arbitrator_signature = 9;
 }
 
 message OpenOffer {

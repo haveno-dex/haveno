@@ -33,20 +33,37 @@ public final class SignedOffer implements PersistablePayload {
     @Getter
     private final String offerId;
     @Getter
+    private final long tradeAmount;
+    @Getter
+    private final long makerTradeFee;
+    @Getter
     private final String reserveTxHash;
     @Getter
     private final String reserveTxHex;
     @Getter
     private final List<String> reserveTxKeyImages;
     @Getter
+    private final long reserveTxMinerFee;
+    @Getter
     private final String arbitratorSignature;
     
-    public SignedOffer(long timeStamp, String offerId, String reserveTxHash, String reserveTxHex, List<String> reserveTxKeyImages, String arbitratorSignature) {
+    public SignedOffer(long timeStamp,
+                       String offerId,
+                       long tradeAmount,
+                       long makerTradeFee,
+                       String reserveTxHash,
+                       String reserveTxHex,
+                       List<String> reserveTxKeyImages,
+                       long reserveTxMinerFee,
+                       String arbitratorSignature) {
         this.timeStamp = timeStamp;
         this.offerId = offerId;
+        this.tradeAmount = tradeAmount;
+        this.makerTradeFee = makerTradeFee;
         this.reserveTxHash = reserveTxHash;
         this.reserveTxHex = reserveTxHex;
         this.reserveTxKeyImages = reserveTxKeyImages;
+        this.reserveTxMinerFee = reserveTxMinerFee;
         this.arbitratorSignature = arbitratorSignature;
     }
 
@@ -59,15 +76,26 @@ public final class SignedOffer implements PersistablePayload {
         protobuf.SignedOffer.Builder builder = protobuf.SignedOffer.newBuilder()
                 .setTimeStamp(timeStamp)
                 .setOfferId(offerId)
+                .setTradeAmount(tradeAmount)
+                .setMakerTradeFee(makerTradeFee)
                 .setReserveTxHash(reserveTxHash)
                 .setReserveTxHex(reserveTxHex)
                 .addAllReserveTxKeyImages(reserveTxKeyImages)
+                .setReserveTxMinerFee(reserveTxMinerFee)
                 .setArbitratorSignature(arbitratorSignature);
         return builder.build();
     }
 
     public static SignedOffer fromProto(protobuf.SignedOffer proto) {
-        return new SignedOffer(proto.getTimeStamp(), proto.getOfferId(), proto.getReserveTxHash(), proto.getReserveTxHex(), proto.getReserveTxKeyImagesList(), proto.getArbitratorSignature());
+        return new SignedOffer(proto.getTimeStamp(),
+                               proto.getOfferId(),
+                               proto.getTradeAmount(),
+                               proto.getMakerTradeFee(),
+                               proto.getReserveTxHash(),
+                               proto.getReserveTxHex(),
+                               proto.getReserveTxKeyImagesList(),
+                               proto.getReserveTxMinerFee(),
+                               proto.getArbitratorSignature());
     }
 
 
@@ -80,9 +108,12 @@ public final class SignedOffer implements PersistablePayload {
         return "SignedOffer{" +
                 ",\n     timeStamp=" + timeStamp +
                 ",\n     offerId=" + offerId +
+                ",\n     tradeAmount=" + tradeAmount +
+                ",\n     makerTradeFee=" + makerTradeFee +
                 ",\n     reserveTxHash=" + reserveTxHash +
                 ",\n     reserveTxHex=" + reserveTxHex +
                 ",\n     reserveTxKeyImages=" + reserveTxKeyImages +
+                ",\n     reserveTxMinerFee=" + reserveTxMinerFee +
                 ",\n     arbitratorSignature=" + arbitratorSignature +
                 "\n}";
     }
