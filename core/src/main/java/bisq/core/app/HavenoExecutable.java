@@ -31,13 +31,14 @@ import bisq.core.trade.HavenoUtils;
 import bisq.core.trade.TradeManager;
 import bisq.core.trade.statistics.TradeStatisticsManager;
 import bisq.core.trade.txproof.xmr.XmrTxProofService;
+
 import bisq.network.p2p.P2PService;
 
 import bisq.common.UserThread;
 import bisq.common.app.AppModule;
-import bisq.common.config.HavenoHelpFormatter;
 import bisq.common.config.Config;
 import bisq.common.config.ConfigException;
+import bisq.common.config.HavenoHelpFormatter;
 import bisq.common.crypto.IncorrectPasswordException;
 import bisq.common.handlers.ResultHandler;
 import bisq.common.persistence.PersistenceManager;
@@ -51,8 +52,11 @@ import com.google.inject.Guice;
 import com.google.inject.Injector;
 
 import java.io.Console;
+
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -135,7 +139,6 @@ public abstract class HavenoExecutable implements GracefulShutDownHandler, Haven
     // thread the application is running and we don't run into thread interference.
     protected abstract void launchApplication();
 
-
     ///////////////////////////////////////////////////////////////////////////////////////////
     // If application is a JavaFX application we need wait for onApplicationLaunched
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -165,12 +168,25 @@ public abstract class HavenoExecutable implements GracefulShutDownHandler, Haven
         });
 
         // Attempt to login, subclasses should implement interactive login and or rpc login.
-        if (!isReadOnly && loginAccount()) {
-            readAllPersisted(this::startApplication);
-        } else {
-            log.warn("Running application in readonly mode");
-            startApplication();
-        }
+        CompletableFuture<Boolean> loginFuture = loginAccount();
+        loginFuture.whenComplete((result, throwable) -> {
+            if (throwable != null) {
+                log.error("Error logging in to account", throwable);
+                shutDownNoPersist(null, false);
+                return;
+            }
+            try {
+                if (!isReadOnly && loginFuture.get()) {
+                    readAllPersisted(this::startApplication);
+                } else {
+                    log.warn("Running application in readonly mode");
+                    startApplication();
+                }
+            } catch (InterruptedException | ExecutionException e) {
+                log.error("An error occurred: {}", e.getMessage());
+                e.printStackTrace();
+            }
+        });
     }
 
     /**
@@ -199,19 +215,26 @@ public abstract class HavenoExecutable implements GracefulShutDownHandler, Haven
      *
      * @return true if account is opened successfully.
      */
-    protected boolean loginAccount() {
+    protected CompletableFuture<Boolean> loginAccount() {
+        CompletableFuture<Boolean> result = new CompletableFuture<>();
         if (accountService.accountExists()) {
             log.info("Account already exists, attempting to open");
             try {
                 accountService.openAccount(null);
+                result.complete(accountService.isAccountOpen());
             } catch (IncorrectPasswordException ipe) {
                 log.info("Account password protected, password required");
+                result.complete(false);
             }
         } else if (!config.passwordRequired) {
             log.info("Creating Haveno account with null password");
             accountService.createAccount(null);
+            result.complete(accountService.isAccountOpen());
+        } else {
+            log.info("Account does not exist and password is required");
+            result.complete(false);
         }
-        return accountService.isAccountOpen();
+        return result;
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////

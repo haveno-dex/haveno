@@ -218,7 +218,7 @@ public class SeedWordsView extends ActivatableView<GridPane, Void> {
     }
 
     private void askForPassword() {
-        walletPasswordWindow.headLine(Res.get("account.seed.enterPw")).onAesKey(aesKey -> {
+        walletPasswordWindow.headLine(Res.get("account.seed.enterPw")).onSuccess(() -> {
             initSeedWords(xmrWalletService.getWallet().getMnemonic());
             showSeedScreen();
         }).hideForgotPasswordButton().show();

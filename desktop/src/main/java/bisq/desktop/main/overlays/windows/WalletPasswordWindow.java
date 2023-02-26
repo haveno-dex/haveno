@@ -25,18 +25,15 @@ import bisq.desktop.main.SharedPresentation;
 import bisq.desktop.main.overlays.Overlay;
 import bisq.desktop.main.overlays.popups.Popup;
 import bisq.desktop.util.Layout;
-import bisq.desktop.util.Transitions;
-
+import bisq.core.api.CoreAccountService;
 import bisq.core.btc.wallet.WalletsManager;
 import bisq.core.locale.Res;
 import bisq.core.offer.OpenOfferManager;
 
-import bisq.common.UserThread;
 import bisq.common.config.Config;
-import bisq.common.crypto.ScryptUtil;
+import bisq.common.crypto.IncorrectPasswordException;
 import bisq.common.util.Tuple2;
 
-import org.bitcoinj.crypto.KeyCrypterScrypt;
 import org.bitcoinj.crypto.MnemonicCode;
 import org.bitcoinj.crypto.MnemonicException;
 import org.bitcoinj.wallet.DeterministicSeed;
@@ -65,8 +62,6 @@ import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.value.ChangeListener;
 
-import org.bouncycastle.crypto.params.KeyParameter;
-
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
@@ -74,8 +69,6 @@ import java.time.ZoneOffset;
 
 import java.io.File;
 import java.io.IOException;
-
-import java.util.concurrent.TimeUnit;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -88,12 +81,13 @@ import static javafx.beans.binding.Bindings.createBooleanBinding;
 
 @Slf4j
 public class WalletPasswordWindow extends Overlay<WalletPasswordWindow> {
+    private final CoreAccountService accountService;
     private final WalletsManager walletsManager;
     private final OpenOfferManager openOfferManager;
     private File storageDir;
 
     private Button unlockButton;
-    private AesKeyHandler aesKeyHandler;
+    private WalletPasswordHandler passwordHandler;
     private PasswordTextField passwordTextField;
     private Button forgotPasswordButton;
     private Button restoreButton;
@@ -111,14 +105,16 @@ public class WalletPasswordWindow extends Overlay<WalletPasswordWindow> {
     // Interface
     ///////////////////////////////////////////////////////////////////////////////////////////
 
-    public interface AesKeyHandler {
-        void onAesKey(KeyParameter aesKey);
+    public interface WalletPasswordHandler {
+        void onSuccess();
     }
 
     @Inject
-    private WalletPasswordWindow(WalletsManager walletsManager,
+    private WalletPasswordWindow(CoreAccountService accountService,
+                                 WalletsManager walletsManager,
                                  OpenOfferManager openOfferManager,
                                  @Named(Config.STORAGE_DIR) File storageDir) {
+        this.accountService = accountService;
         this.walletsManager = walletsManager;
         this.openOfferManager = openOfferManager;
         this.storageDir = storageDir;
@@ -149,8 +145,8 @@ public class WalletPasswordWindow extends Overlay<WalletPasswordWindow> {
         display();
     }
 
-    public WalletPasswordWindow onAesKey(AesKeyHandler aesKeyHandler) {
-        this.aesKeyHandler = aesKeyHandler;
+    public WalletPasswordWindow onSuccess(WalletPasswordHandler passwordHandler) {
+        this.passwordHandler = passwordHandler;
         return this;
     }
 
@@ -213,27 +209,16 @@ public class WalletPasswordWindow extends Overlay<WalletPasswordWindow> {
         unlockButton.setOnAction(e -> {
             String password = passwordTextField.getText();
             checkArgument(password.length() < 500, Res.get("password.tooLong"));
-            KeyCrypterScrypt keyCrypterScrypt = walletsManager.getKeyCrypterScrypt();
-            if (keyCrypterScrypt != null) {
-                busyAnimation.play();
-                deriveStatusLabel.setText(Res.get("password.deriveKey"));
-                ScryptUtil.deriveKeyWithScrypt(keyCrypterScrypt, password, aesKey -> {
-                    if (walletsManager.checkAESKey(aesKey)) {
-                        if (aesKeyHandler != null)
-                            aesKeyHandler.onAesKey(aesKey);
-
-                        hide();
-                    } else {
-                        busyAnimation.stop();
-                        deriveStatusLabel.setText("");
-
-                        UserThread.runAfter(() -> new Popup()
-                                .warning(Res.get("password.wrongPw"))
-                                .onClose(this::blurAgain).show(), Transitions.DEFAULT_DURATION, TimeUnit.MILLISECONDS);
-                    }
-                });
-            } else {
-                log.error("wallet.getKeyCrypter() is null, that must not happen.");
+            try {
+                accountService.verifyPassword(password);
+                if (passwordHandler != null) passwordHandler.onSuccess();
+                hide();
+            } catch (IncorrectPasswordException e2) {
+                busyAnimation.stop();
+                deriveStatusLabel.setText("");
+                new Popup()
+                        .warning(Res.get("password.wrongPw"))
+                        .onClose(this::blurAgain).show();
             }
         });
 

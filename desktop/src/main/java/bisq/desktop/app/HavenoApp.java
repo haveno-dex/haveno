@@ -67,8 +67,8 @@ import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.StackPane;
 
-import javafx.geometry.Rectangle2D;
 import javafx.geometry.BoundingBox;
+import javafx.geometry.Rectangle2D;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -128,6 +128,7 @@ public class HavenoApp extends Application implements UncaughtExceptionHandler {
     }
 
     public void startApplication(Runnable onApplicationStartedHandler) {
+        log.info("Running startApplication...");
         try {
             mainView = loadMainView(injector);
             mainView.setOnApplicationStartedHandler(onApplicationStartedHandler);
@@ -149,7 +150,7 @@ public class HavenoApp extends Application implements UncaughtExceptionHandler {
                     .show();
             new Thread(() -> {
                 gracefulShutDownHandler.gracefulShutDown(() -> {
-                    log.debug("App shutdown complete");
+                    log.info("App shutdown complete");
                 });
             }).start();
             shutDownRequested = true;

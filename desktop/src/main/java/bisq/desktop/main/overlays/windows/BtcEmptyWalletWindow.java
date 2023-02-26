@@ -121,14 +121,7 @@ public final class BtcEmptyWalletWindow extends Overlay<BtcEmptyWalletWindow> {
         emptyWalletButton.setDisable(!isBalanceSufficient && addressInputTextField.getText().length() > 0);
         emptyWalletButton.setOnAction(e -> {
             if (addressInputTextField.getText().length() > 0 && isBalanceSufficient) {
-                if (btcWalletService.isEncrypted()) {
-                    walletPasswordWindow
-                            .onAesKey(this::doEmptyWallet)
-                            .onClose(this::blurAgain)
-                            .show();
-                } else {
-                    doEmptyWallet(null);
-                }
+                log.warn(getClass().getSimpleName() + ".addContent() needs updated for XMR");
             }
         });
 
