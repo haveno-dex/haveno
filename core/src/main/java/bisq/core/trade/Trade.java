@@ -1648,13 +1648,15 @@ public abstract class Trade implements Tradable, Model {
         wallet.setDaemonConnection(connection);
 
         // sync and reprocess messages on new thread
-        HavenoUtils.submitTask(() -> {
-            updateSyncing();
-
-            // reprocess pending payout messages
-            this.getProtocol().maybeReprocessPaymentReceivedMessage(false);
-            HavenoUtils.arbitrationManager.maybeReprocessDisputeClosedMessage(this, false);
-        });
+        if (connection != null && !Boolean.FALSE.equals(connection.isConnected())) {
+            HavenoUtils.submitTask(() -> {
+                updateSyncing();
+    
+                // reprocess pending payout messages
+                this.getProtocol().maybeReprocessPaymentReceivedMessage(false);
+                HavenoUtils.arbitrationManager.maybeReprocessDisputeClosedMessage(this, false);
+            });
+        }
     }
 
     private void updateSyncing() {

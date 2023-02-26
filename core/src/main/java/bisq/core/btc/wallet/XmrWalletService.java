@@ -670,7 +670,7 @@ public class XmrWalletService {
         if (wallet == null) maybeInitMainWallet();
         else {
             wallet.setDaemonConnection(connection);
-            if (connection != null) new Thread(() -> trySyncMainWallet()).start();
+            if (connection != null && !Boolean.FALSE.equals(connection.isConnected())) new Thread(() -> trySyncMainWallet()).start();
         }
     }
 
