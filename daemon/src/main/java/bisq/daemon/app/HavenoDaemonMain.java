@@ -17,11 +17,10 @@
 
 package bisq.daemon.app;
 
-import bisq.core.app.ConsoleInput;
-import bisq.core.app.HavenoHeadlessAppMain;
-import bisq.core.app.HavenoSetup;
 import bisq.core.api.AccountServiceListener;
+import bisq.core.app.ConsoleInput;
 import bisq.core.app.CoreModule;
+import bisq.core.app.HavenoHeadlessAppMain;
 
 import bisq.common.UserThread;
 import bisq.common.app.AppModule;
@@ -32,7 +31,10 @@ import bisq.common.persistence.PersistenceManager;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
 import java.io.Console;
+
 import java.util.concurrent.CancellationException;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
@@ -43,7 +45,7 @@ import lombok.extern.slf4j.Slf4j;
 import bisq.daemon.grpc.GrpcServer;
 
 @Slf4j
-public class HavenoDaemonMain extends HavenoHeadlessAppMain implements HavenoSetup.HavenoSetupListener {
+public class HavenoDaemonMain extends HavenoHeadlessAppMain {
 
     private GrpcServer grpcServer;
 
@@ -139,53 +141,60 @@ public class HavenoDaemonMain extends HavenoHeadlessAppMain implements HavenoSet
      * Start the grpcServer to allow logging in remotely.
      */
     @Override
-    protected boolean loginAccount() {
-        boolean opened = super.loginAccount();
+    protected CompletableFuture<Boolean> loginAccount() {
+        CompletableFuture<Boolean> opened = super.loginAccount();
 
         // Start rpc server in case login is coming in from rpc
         grpcServer = injector.getInstance(GrpcServer.class);
 
-        if (!opened) {
-            // Nonblocking, we need to stop if the login occurred through rpc.
-            // TODO: add a mode to mask password
-            ConsoleInput reader = new ConsoleInput(Integer.MAX_VALUE, Integer.MAX_VALUE, TimeUnit.MILLISECONDS);
-            Thread t = new Thread(() -> {
-                interactiveLogin(reader);
-            });
+        CompletableFuture<Boolean> inputResult = new CompletableFuture<Boolean>();
+        try {
+            if (opened.get()) {
+                grpcServer.start();
+                return opened;
+            } else {
 
-            // Handle asynchronous account opens.
-            // Will need to also close and reopen account.
-            AccountServiceListener accountListener = new AccountServiceListener() {
-                @Override public void onAccountCreated() { onLogin(); }
-                @Override public void onAccountOpened() { onLogin(); }
-                private void onLogin() {
-                    log.info("Logged in successfully");
-                    reader.cancel(); // closing the reader will stop all read attempts and end the interactive login thread
+                // Nonblocking, we need to stop if the login occurred through rpc.
+                // TODO: add a mode to mask password
+                ConsoleInput reader = new ConsoleInput(Integer.MAX_VALUE, Integer.MAX_VALUE, TimeUnit.MILLISECONDS);
+                Thread t = new Thread(() -> {
+                    interactiveLogin(reader);
+                });
+
+                // Handle asynchronous account opens.
+                // Will need to also close and reopen account.
+                AccountServiceListener accountListener = new AccountServiceListener() {
+                    @Override public void onAccountCreated() { onLogin(); }
+                    @Override public void onAccountOpened() { onLogin(); }
+                    private void onLogin() {
+                        log.info("Logged in successfully");
+                        reader.cancel(); // closing the reader will stop all read attempts and end the interactive login thread
+                    }
+                };
+                accountService.addListener(accountListener);
+
+                // start server after the listener is registered
+                grpcServer.start();
+
+                try {
+                    // Wait until interactive login or rpc. Check one more time if account is open to close race condition.
+                    if (!accountService.isAccountOpen()) {
+                        log.info("Interactive login required");
+                        t.start();
+                        t.join();
+                    }
+                } catch (InterruptedException e) {
+                    // expected
                 }
-            };
-            accountService.addListener(accountListener);
 
-            // start server after the listener is registered
-            grpcServer.start();
-
-            try {
-                // Wait until interactive login or rpc. Check one more time if account is open to close race condition.
-                if (!accountService.isAccountOpen()) {
-                    log.info("Interactive login required");
-                    t.start();
-                    t.join();
-                }
-            } catch (InterruptedException e) {
-                // expected
+                accountService.removeListener(accountListener);
+                inputResult.complete(accountService.isAccountOpen());
             }
-
-            accountService.removeListener(accountListener);
-            opened = accountService.isAccountOpen();
-        } else {
-            grpcServer.start();
+        } catch (InterruptedException | ExecutionException e) {
+            inputResult.completeExceptionally(e);
         }
 
-        return opened;
+        return inputResult;
     }
 
     /**

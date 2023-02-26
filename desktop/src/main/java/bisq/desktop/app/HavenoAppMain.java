@@ -20,6 +20,7 @@ package bisq.desktop.app;
 import bisq.desktop.common.UITimer;
 import bisq.desktop.common.view.guice.InjectorViewFactory;
 import bisq.desktop.setup.DesktopPersistedDataHost;
+import bisq.desktop.util.ImageUtil;
 
 import bisq.core.app.AvoidStandbyModeService;
 import bisq.core.app.HavenoExecutable;
@@ -27,9 +28,24 @@ import bisq.core.app.HavenoExecutable;
 import bisq.common.UserThread;
 import bisq.common.app.AppModule;
 import bisq.common.app.Version;
-
+import bisq.common.crypto.IncorrectPasswordException;
 import javafx.application.Application;
 import javafx.application.Platform;
+
+import javafx.stage.Stage;
+
+import javafx.scene.control.ButtonBar;
+import javafx.scene.control.ButtonType;
+import javafx.scene.control.Dialog;
+import javafx.scene.control.Label;
+import javafx.scene.control.PasswordField;
+import javafx.scene.image.ImageView;
+import javafx.scene.layout.VBox;
+import javafx.scene.paint.Color;
+
+import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -138,5 +154,87 @@ public class HavenoAppMain extends HavenoExecutable {
         // This can only be called after JavaFX is initialized, otherwise the version logged will be null
         // Therefore, calling this as part of onApplicationStarted()
         log.info("Using JavaFX {}", System.getProperty("javafx.version"));
+    }
+
+    @Override
+    protected CompletableFuture<Boolean> loginAccount() {
+
+        // attempt default login
+        CompletableFuture<Boolean> result = super.loginAccount();
+        try {
+            if (result.get()) return result;
+        } catch (InterruptedException | ExecutionException e) {
+            throw new IllegalStateException(e);
+        }
+
+        // login using dialog
+        CompletableFuture<Boolean> dialogResult = new CompletableFuture<>();
+        Platform.setImplicitExit(false);
+        Platform.runLater(() -> {
+
+            // show password dialog until account open
+            String errorMessage = null;
+            while (!accountService.isAccountOpen()) {
+
+                // create the password dialog
+                PasswordDialog passwordDialog = new PasswordDialog(errorMessage);
+
+                // wait for user to enter password
+                Optional<String> passwordResult = passwordDialog.showAndWait();
+                if (passwordResult.isPresent()) {
+                    try {
+                        accountService.openAccount(passwordResult.get());
+                        dialogResult.complete(accountService.isAccountOpen());
+                    } catch (IncorrectPasswordException e) {
+                        errorMessage = "Incorrect password";
+                    }
+                } else {
+                    // if the user cancelled the dialog, complete the passwordFuture exceptionally
+                    dialogResult.completeExceptionally(new Exception("Password dialog cancelled"));
+                    break;
+                }
+            }
+        });
+        return dialogResult;
+    }
+
+    private class PasswordDialog extends Dialog<String> {
+
+        public PasswordDialog(String errorMessage) {
+            setTitle("Enter Password");
+            setHeaderText("Please enter your Haveno password:");
+
+            // Add an icon to the dialog
+            Stage stage = (Stage) getDialogPane().getScene().getWindow();
+            stage.getIcons().add(ImageUtil.getImageByPath("lock.png"));
+
+            // Create the password field
+            PasswordField passwordField = new PasswordField();
+            passwordField.setPromptText("Password");
+
+            // Create the error message field
+            Label errorMessageField = new Label(errorMessage);
+            errorMessageField.setTextFill(Color.color(1, 0, 0));
+
+            // Set the dialog content
+            VBox vbox = new VBox(10);
+            vbox.getChildren().addAll(new ImageView(ImageUtil.getImageByPath("logo_splash.png")), passwordField, errorMessageField);
+            getDialogPane().setContent(vbox);
+
+            // Add OK and Cancel buttons
+            ButtonType okButton = new ButtonType("OK", ButtonBar.ButtonData.OK_DONE);
+            ButtonType cancelButton = new ButtonType("Cancel", ButtonBar.ButtonData.CANCEL_CLOSE);
+            getDialogPane().getButtonTypes().addAll(okButton, cancelButton);
+
+            // Convert the result to a string when the OK button is clicked
+            setResultConverter(buttonType -> {
+                if (buttonType == okButton) {
+                    return passwordField.getText();
+                } else {
+                    new Thread(() -> HavenoApp.getShutDownHandler().run()).start();
+                    return null;
+                }
+            });
+        }
     }
 }
