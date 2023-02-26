@@ -99,6 +99,7 @@ import lombok.Getter;
 import monero.common.MoneroConnectionManagerListener;
 import monero.common.MoneroRpcConnection;
 import monero.daemon.model.MoneroKeyImageSpentStatus;
+import monero.daemon.model.MoneroTx;
 import monero.wallet.model.MoneroIncomingTransfer;
 import monero.wallet.model.MoneroTxQuery;
 import monero.wallet.model.MoneroTxWallet;
@@ -983,7 +984,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
             // verify maker's reserve tx (double spend, trade fee, trade amount, mining fee)
             BigInteger sendAmount =  HavenoUtils.coinToAtomicUnits(offer.getDirection() == OfferDirection.BUY ? Coin.ZERO : offer.getAmount());
             BigInteger securityDeposit = HavenoUtils.coinToAtomicUnits(offer.getDirection() == OfferDirection.BUY ? offer.getBuyerSecurityDeposit() : offer.getSellerSecurityDeposit());
-            xmrWalletService.verifyTradeTx(
+            MoneroTx reserveTx = xmrWalletService.verifyTradeTx(
                     tradeFee,
                     sendAmount,
                     securityDeposit,
@@ -1002,11 +1003,14 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
             // create record of signed offer
             SignedOffer signedOffer = new SignedOffer(
                     System.currentTimeMillis(),
-                     signedOfferPayload.getId(),
-                     request.getReserveTxHash(),
-                     request.getReserveTxHex(),
-                     request.getReserveTxKeyImages(),
-                     signature); // TODO (woodser): no need for signature to be part of SignedOffer?
+                    signedOfferPayload.getId(),
+                    offer.getAmount().longValue(),
+                    HavenoUtils.getMakerFee(offer.getAmount()).longValue(), // TODO: these values are centineros, whereas reserve tx mining fee is BigInteger
+                    request.getReserveTxHash(),
+                    request.getReserveTxHex(),
+                    request.getReserveTxKeyImages(),
+                    reserveTx.getFee().longValueExact(),
+                    signature); // TODO (woodser): no need for signature to be part of SignedOffer?
             addSignedOffer(signedOffer);
             requestPersistence();
 

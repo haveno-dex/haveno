@@ -373,15 +373,17 @@ public class XmrWalletService {
      * @param txHex transaction hex
      * @param txKey transaction key
      * @param keyImages expected key images of inputs, ignored if null
+     * @return the verified tx
      */
-    public void verifyTradeTx(BigInteger tradeFee, BigInteger sendAmount, BigInteger securityDeposit, String address, String txHash, String txHex, String txKey, List<String> keyImages) {
+    public MoneroTx verifyTradeTx(BigInteger tradeFee, BigInteger sendAmount, BigInteger securityDeposit, String address, String txHash, String txHex, String txKey, List<String> keyImages) {
         MoneroDaemonRpc daemon = getDaemon();
         MoneroWallet wallet = getWallet();
+        MoneroTx tx = null;
         synchronized (daemon) {
             try {
 
                 // verify tx not submitted to pool
-                MoneroTx tx = daemon.getTx(txHash);
+                tx = daemon.getTx(txHash);
                 if (tx != null) throw new RuntimeException("Tx is already submitted");
     
                 // submit tx to pool
@@ -430,6 +432,7 @@ public class XmrWalletService {
                     throw err.getCode() == -32601 ? new RuntimeException("Failed to flush tx from pool. Arbitrator must use trusted, unrestricted daemon") : err;
                 }
             }
+            return tx;
         }
     }
 
