@@ -205,7 +205,6 @@ public class FailedTradesView extends ActivatableViewAndModel<VBox, FailedTrades
         sortedList.comparatorProperty().bind(tableView.comparatorProperty());
         tableView.setItems(sortedList);
 
-
         contextMenu = new ContextMenu();
         MenuItem item1 = new MenuItem(Res.get("support.contextmenu.penalize.msg", Res.get("shared.maker")));
         MenuItem item2 = new MenuItem(Res.get("support.contextmenu.penalize.msg", Res.get("shared.taker")));
