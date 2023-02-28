@@ -126,6 +126,7 @@ public class HavenoUtils {
     public static long xmrToCentineros(double xmr) {
         return atomicUnitsToCentineros(xmrToAtomicUnits(xmr));
     }
+
     public static double coinToXmr(Coin coin) {
         return atomicUnitsToXmr(coinToAtomicUnits(coin));
     }
