@@ -134,6 +134,7 @@ public class HavenoUtils {
     public static String formatToXmr(Coin xmrAmount) {
         return XMR_FORMATTER.format(coinToXmr(xmrAmount)).concat(" ").concat("XMR");
     }
+
     private static final MonetaryFormat xmrCoinFormat = Config.baseCurrencyNetworkParameters().getMonetaryFormat();
 
     @Nullable
