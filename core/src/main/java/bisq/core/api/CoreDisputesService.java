@@ -36,7 +36,6 @@ import java.util.List;
 import java.util.Optional;
 
 import lombok.extern.slf4j.Slf4j;
-import monero.wallet.model.MoneroTxWallet;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static java.lang.String.format;
@@ -171,25 +170,25 @@ public class CoreDisputesService {
                 applyPayoutAmountsToDisputeResult(payout, winningDispute, disputeResult, customWinnerAmount);
 
                 // create dispute payout tx
-                MoneroTxWallet disputePayoutTx = arbitrationManager.createDisputePayoutTx(trade, winningDispute.getContract(), disputeResult, false);
+                trade.getProcessModel().setUnsignedPayoutTx(arbitrationManager.createDisputePayoutTx(trade, winningDispute.getContract(), disputeResult, false));
 
                 // close winning dispute ticket
-                closeDisputeTicket(arbitrationManager, winningDispute, disputeResult, disputePayoutTx, () -> {
+                closeDisputeTicket(arbitrationManager, winningDispute, disputeResult, () -> {
                     arbitrationManager.requestPersistence();
                 }, (errMessage, err) -> {
                     throw new IllegalStateException(errMessage, err);
                 });
 
                 // close loser's dispute ticket
-                var peersDisputeOptional = arbitrationManager.getDisputesAsObservableList().stream()
+                var loserDisputeOptional = arbitrationManager.getDisputesAsObservableList().stream()
                         .filter(d -> tradeId.equals(d.getTradeId()) && winningDispute.getTraderId() != d.getTraderId())
                         .findFirst();
-                if (!peersDisputeOptional.isPresent()) throw new IllegalStateException("could not find peer dispute");
-                var peerDispute = peersDisputeOptional.get();
-                var peerDisputeResult = createDisputeResult(peerDispute, winner, reason, summaryNotes, closeDate);
-                peerDisputeResult.setBuyerPayoutAmount(disputeResult.getBuyerPayoutAmount());
-                peerDisputeResult.setSellerPayoutAmount(disputeResult.getSellerPayoutAmount());
-                closeDisputeTicket(arbitrationManager, peerDispute, peerDisputeResult, disputePayoutTx, () -> {
+                if (!loserDisputeOptional.isPresent()) throw new IllegalStateException("could not find peer dispute");
+                var loserDispute = loserDisputeOptional.get();
+                var loserDisputeResult = createDisputeResult(loserDispute, winner, reason, summaryNotes, closeDate);
+                loserDisputeResult.setBuyerPayoutAmount(disputeResult.getBuyerPayoutAmount());
+                loserDisputeResult.setSellerPayoutAmount(disputeResult.getSellerPayoutAmount());
+                closeDisputeTicket(arbitrationManager, loserDispute, loserDisputeResult, () -> {
                     arbitrationManager.requestPersistence();
                 }, (errMessage, err) -> {
                     throw new IllegalStateException(errMessage, err);
@@ -248,7 +247,7 @@ public class CoreDisputesService {
         }
     }
 
-    public void closeDisputeTicket(DisputeManager disputeManager, Dispute dispute, DisputeResult disputeResult, MoneroTxWallet payoutTx, ResultHandler resultHandler, FaultHandler faultHandler) {
+    public void closeDisputeTicket(DisputeManager disputeManager, Dispute dispute, DisputeResult disputeResult, ResultHandler resultHandler, FaultHandler faultHandler) {
         DisputeResult.Reason reason = disputeResult.getReason();
 
         String role = Res.get("shared.arbitrator");
@@ -279,7 +278,7 @@ public class CoreDisputesService {
         String summaryText = DisputeSummaryVerification.signAndApply(disputeManager, disputeResult, textToSign);
         summaryText += Res.get("disputeSummaryWindow.close.nextStepsForRefundAgentArbitration");
 
-        disputeManager.closeDisputeTicket(disputeResult, dispute, summaryText, payoutTx, () -> {
+        disputeManager.closeDisputeTicket(disputeResult, dispute, summaryText, () -> {
             dispute.setDisputeResult(disputeResult);
             dispute.setIsClosed();
             resultHandler.handleResult();

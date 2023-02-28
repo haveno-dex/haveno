@@ -590,8 +590,13 @@ public class DisputeSummaryWindow extends Overlay<DisputeSummaryWindow> {
 
         closeTicketButton.setOnAction(e -> {
 
-            // get or create payout tx
-            MoneroTxWallet payoutTx = trade.isPayoutPublished() ? trade.getPayoutTx() : arbitrationManager.createDisputePayoutTx(trade, dispute.getContract(), disputeResult, false);
+            // get or create dispute payout tx
+            MoneroTxWallet payoutTx = null;
+            if (trade.isPayoutPublished()) payoutTx = trade.getPayoutTx();
+            else {
+                payoutTx = arbitrationManager.createDisputePayoutTx(trade, dispute.getContract(), disputeResult, false);
+                trade.getProcessModel().setUnsignedPayoutTx(payoutTx);
+            }
 
             // show confirmation
             if (dispute.getSupportType() == SupportType.ARBITRATION &&
@@ -600,9 +605,9 @@ public class DisputeSummaryWindow extends Overlay<DisputeSummaryWindow> {
                 showPayoutTxConfirmation(contract,
                         disputeResult,
                         payoutTx,
-                        () -> doClose(closeTicketButton, payoutTx));
+                        () -> doClose(closeTicketButton));
             } else {
-                doClose(closeTicketButton, payoutTx);
+                doClose(closeTicketButton);
             }
         });
 
@@ -654,7 +659,7 @@ public class DisputeSummaryWindow extends Overlay<DisputeSummaryWindow> {
         }
     }
 
-    private void doClose(Button closeTicketButton, MoneroTxWallet payoutTx) {
+    private void doClose(Button closeTicketButton) {
         DisputeManager<? extends DisputeList<Dispute>> disputeManager = getDisputeManager(dispute);
         if (disputeManager == null) {
             return;
@@ -663,7 +668,7 @@ public class DisputeSummaryWindow extends Overlay<DisputeSummaryWindow> {
         summaryNotesTextArea.textProperty().unbindBidirectional(disputeResult.summaryNotesProperty());
 
         disputeResult.setCloseDate(new Date());
-        disputesService.closeDisputeTicket(disputeManager, dispute, disputeResult, payoutTx, () -> {
+        disputesService.closeDisputeTicket(disputeManager, dispute, disputeResult, () -> {
             if (peersDisputeOptional.isPresent() && !peersDisputeOptional.get().isClosed() && !DevEnv.isDevMode()) {
                 new Popup().attention(Res.get("disputeSummaryWindow.close.closePeer")).show();
             }

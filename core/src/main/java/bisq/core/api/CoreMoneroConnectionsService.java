@@ -42,6 +42,8 @@ public final class CoreMoneroConnectionsService {
     private static final int MIN_BROADCAST_CONNECTIONS = 0; // TODO: 0 for stagenet, 5+ for mainnet
     private static final long REFRESH_PERIOD_LOCAL_MS = 5000; // refresh period when connected to local node
     private static final long REFRESH_PERIOD_REMOTE_MS = 20000; // refresh period when connected to remote node
+    private static final long MIN_ERROR_LOG_PERIOD_MS = 300000; // minimum period between logging errors fetching daemon info
+    private static Long lastErrorTimestamp;
 
     // default Monero nodes
     private static final Map<BaseCurrencyNetwork, List<MoneroRpcConnection>> DEFAULT_CONNECTIONS;
@@ -441,9 +443,16 @@ public final class CoreMoneroConnectionsService {
                 peers.set(new ArrayList<MoneroPeer>()); // TODO: peers unknown due to restricted RPC call
             }
             numPeers.set(peers.get().size());
+            if (lastErrorTimestamp != null) {
+                log.info("Successfully fetched daemon info after previous error");
+                lastErrorTimestamp = null;
+            }
         } catch (Exception e) {
-            log.warn("Could not update daemon info: " + e.getMessage());
-            if (DevEnv.isDevMode()) e.printStackTrace();
+            if (lastErrorTimestamp == null || System.currentTimeMillis() - lastErrorTimestamp > MIN_ERROR_LOG_PERIOD_MS) {
+                lastErrorTimestamp = System.currentTimeMillis();
+                log.warn("Could not update daemon info: " + e.getMessage());
+                if (DevEnv.isDevMode()) e.printStackTrace();
+            }
             if (connectionManager.getAutoSwitch()) connectionManager.setConnection(connectionManager.getBestAvailableConnection());
         }
     }

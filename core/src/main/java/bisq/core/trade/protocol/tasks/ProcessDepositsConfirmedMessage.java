@@ -53,8 +53,9 @@ public class ProcessDepositsConfirmedMessage extends TradeTask {
             if (sender.getNodeAddress().equals(trade.getSeller().getNodeAddress()) && sender != trade.getSeller()) trade.getSeller().setNodeAddress(null);
             if (sender.getNodeAddress().equals(trade.getArbitrator().getNodeAddress()) && sender != trade.getArbitrator()) trade.getArbitrator().setNodeAddress(null);
 
-            // store updated multisig hex for processing on payment sent
+            // update multisig hex
             sender.setUpdatedMultisigHex(request.getUpdatedMultisigHex());
+            trade.importMultisigHex();
 
             // decrypt seller payment account payload if key given
             if (request.getSellerPaymentAccountKey() != null && trade.getTradePeer().getPaymentAccountPayload() == null) {

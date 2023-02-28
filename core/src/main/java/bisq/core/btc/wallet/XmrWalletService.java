@@ -10,6 +10,7 @@ import bisq.common.util.Utilities;
 import bisq.core.api.AccountServiceListener;
 import bisq.core.api.CoreAccountService;
 import bisq.core.api.CoreMoneroConnectionsService;
+import bisq.core.app.HavenoSetup;
 import bisq.core.btc.listeners.XmrBalanceListener;
 import bisq.core.btc.model.XmrAddressEntry;
 import bisq.core.btc.model.XmrAddressEntryList;
@@ -92,6 +93,7 @@ public class XmrWalletService {
     private final CoreMoneroConnectionsService connectionsService;
     private final XmrAddressEntryList xmrAddressEntryList;
     private final WalletsSetup walletsSetup;
+
     private final File walletDir;
     private final File xmrWalletFile;
     private final int rpcBindPort;
@@ -102,6 +104,8 @@ public class XmrWalletService {
     private MoneroWalletRpc wallet;
     private final Map<String, Optional<MoneroTx>> txCache = new HashMap<String, Optional<MoneroTx>>();
     private boolean isShutDown = false;
+
+    private HavenoSetup havenoSetup;
 
     @Inject
     XmrWalletService(CoreAccountService accountService,
@@ -148,8 +152,8 @@ public class XmrWalletService {
                 @Override
                 public void onPasswordChanged(String oldPassword, String newPassword) {
                     log.info(getClass() + "accountservice.onPasswordChanged()");
-                    if (oldPassword == null) oldPassword = MONERO_WALLET_RPC_DEFAULT_PASSWORD;
-                    if (newPassword == null) newPassword = MONERO_WALLET_RPC_DEFAULT_PASSWORD;
+                    if (oldPassword == null || oldPassword.isEmpty()) oldPassword = MONERO_WALLET_RPC_DEFAULT_PASSWORD;
+                    if (newPassword == null || newPassword.isEmpty()) newPassword = MONERO_WALLET_RPC_DEFAULT_PASSWORD;
                     changeWalletPasswords(oldPassword, newPassword);
                 }
             });
@@ -373,51 +377,53 @@ public class XmrWalletService {
      * @param txHex transaction hex
      * @param txKey transaction key
      * @param keyImages expected key images of inputs, ignored if null
+     * @return the verified tx
      */
-    public void verifyTradeTx(BigInteger tradeFee, BigInteger sendAmount, BigInteger securityDeposit, String address, String txHash, String txHex, String txKey, List<String> keyImages) {
+    public MoneroTx verifyTradeTx(BigInteger tradeFee, BigInteger sendAmount, BigInteger securityDeposit, String address, String txHash, String txHex, String txKey, List<String> keyImages) {
         MoneroDaemonRpc daemon = getDaemon();
         MoneroWallet wallet = getWallet();
+        MoneroTx tx = null;
         synchronized (daemon) {
             try {
 
                 // verify tx not submitted to pool
-                MoneroTx tx = daemon.getTx(txHash);
+                tx = daemon.getTx(txHash);
                 if (tx != null) throw new RuntimeException("Tx is already submitted");
-    
+
                 // submit tx to pool
                 MoneroSubmitTxResult result = daemon.submitTxHex(txHex, true); // TODO (woodser): invert doNotRelay flag to relay for library consistency?
                 if (!result.isGood()) throw new RuntimeException("Failed to submit tx to daemon: " + JsonUtils.serialize(result));
                 tx = getTx(txHash);
-    
+
                 // verify key images
                 if (keyImages != null) {
                     Set<String> txKeyImages = new HashSet<String>();
                     for (MoneroOutput input : tx.getInputs()) txKeyImages.add(input.getKeyImage().getHex());
                     if (!txKeyImages.equals(new HashSet<String>(keyImages))) throw new Error("Tx inputs do not match claimed key images");
                 }
-    
+
                 // verify unlock height
                 if (tx.getUnlockHeight() != 0) throw new RuntimeException("Unlock height must be 0");
-    
+
                 // verify trade fee
                 String feeAddress = HavenoUtils.getTradeFeeAddress();
                 MoneroCheckTx check = wallet.checkTxKey(txHash, txKey, feeAddress);
                 if (!check.isGood()) throw new RuntimeException("Invalid proof of trade fee");
                 if (!check.getReceivedAmount().equals(tradeFee)) throw new RuntimeException("Trade fee is incorrect amount, expected " + tradeFee + " but was " + check.getReceivedAmount());
-    
+
                 // verify miner fee
                 BigInteger feeEstimate = getFeeEstimate(tx.getWeight());
                 double feeDiff = tx.getFee().subtract(feeEstimate).abs().doubleValue() / feeEstimate.doubleValue(); // TODO: use BigDecimal?
                 if (feeDiff > MINER_FEE_TOLERANCE) throw new Error("Miner fee is not within " + (MINER_FEE_TOLERANCE * 100) + "% of estimated fee, expected " + feeEstimate + " but was " + tx.getFee());
                 log.info("Trade tx fee {} is within tolerance, diff%={}", tx.getFee(), feeDiff);
-    
+
                 // verify sufficient security deposit
                 check = wallet.checkTxKey(txHash, txKey, address);
                 if (!check.isGood()) throw new RuntimeException("Invalid proof of deposit amount");
                 BigInteger minSecurityDeposit = new BigDecimal(securityDeposit).multiply(new BigDecimal(1.0 - SECURITY_DEPOSIT_TOLERANCE)).toBigInteger();
                 BigInteger actualSecurityDeposit = check.getReceivedAmount().subtract(sendAmount);
                 if (actualSecurityDeposit.compareTo(minSecurityDeposit) < 0) throw new RuntimeException("Security deposit amount is not enough, needed " + minSecurityDeposit + " but was " + actualSecurityDeposit);
-    
+
                 // verify deposit amount + miner fee within dust tolerance
                 BigInteger minDepositAndFee = sendAmount.add(securityDeposit).subtract(new BigDecimal(tx.getFee()).multiply(new BigDecimal(1.0 - DUST_TOLERANCE)).toBigInteger());
                 BigInteger actualDepositAndFee = check.getReceivedAmount().add(tx.getFee());
@@ -430,6 +436,7 @@ public class XmrWalletService {
                     throw err.getCode() == -32601 ? new RuntimeException("Failed to flush tx from pool. Arbitrator must use trusted, unrestricted daemon") : err;
                 }
             }
+            return tx;
         }
     }
 
@@ -558,6 +565,9 @@ public class XmrWalletService {
             System.out.println("Monero wallet balance: " + wallet.getBalance(0));
             System.out.println("Monero wallet unlocked balance: " + wallet.getUnlockedBalance(0));
 
+            // notify setup that main wallet is initialized
+            havenoSetup.getWalletInitialized().set(true); // TODO: change to listener pattern?
+
             // register internal listener to notify external listeners
             wallet.addListener(new XmrWalletListener());
         }
@@ -667,7 +677,7 @@ public class XmrWalletService {
         if (wallet == null) maybeInitMainWallet();
         else {
             wallet.setDaemonConnection(connection);
-            if (connection != null) new Thread(() -> trySyncMainWallet()).start();
+            if (connection != null && !Boolean.FALSE.equals(connection.isConnected())) new Thread(() -> trySyncMainWallet()).start();
         }
     }
 
@@ -959,6 +969,10 @@ public class XmrWalletService {
         StringBuilder sb = new StringBuilder();
         for (MoneroTxWallet tx : txs) sb.append('\n' + tx.toString());
         log.info("\n" + tracePrefix + ":" + sb.toString());
+    }
+
+    public void setHavenoSetup(HavenoSetup havenoSetup) {
+        this.havenoSetup = havenoSetup;
     }
 
     // -------------------------------- HELPERS -------------------------------

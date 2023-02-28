@@ -55,7 +55,6 @@ import com.google.inject.Inject;
 import com.google.inject.Singleton;
 
 import java.math.BigInteger;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -252,6 +251,10 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
                 }
                 dispute.setDisputeResult(disputeResult);
 
+                // import multisig hex
+                if (disputeClosedMessage.getUpdatedMultisigHex() != null) trade.getArbitrator().setUpdatedMultisigHex(disputeClosedMessage.getUpdatedMultisigHex());
+                trade.importMultisigHex();
+
                 // sync and save wallet
                 if (!trade.isPayoutPublished()) {
                     trade.syncWallet();
@@ -261,12 +264,6 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
                 // attempt to sign and publish dispute payout tx if given and not already published
                 if (disputeClosedMessage.getUnsignedPayoutTxHex() != null && !trade.isPayoutPublished()) {
 
-                    // import multisig hex
-                    List<String> updatedMultisigHexes = new ArrayList<String>();
-                    if (trade.getTradePeer().getUpdatedMultisigHex() != null) updatedMultisigHexes.add(trade.getTradePeer().getUpdatedMultisigHex());
-                    if (trade.getArbitrator().getUpdatedMultisigHex() != null) updatedMultisigHexes.add(trade.getArbitrator().getUpdatedMultisigHex());
-                    if (!updatedMultisigHexes.isEmpty()) trade.getWallet().importMultisigHex(updatedMultisigHexes.toArray(new String[0])); // TODO (monero-project): fails if multisig hex imported individually
-    
                     // wait to sign and publish payout tx if defer flag set
                     if (disputeClosedMessage.isDeferPublishPayout()) {
                         log.info("Deferring signing and publishing dispute payout tx for {} {}", trade.getClass().getSimpleName(), trade.getId());

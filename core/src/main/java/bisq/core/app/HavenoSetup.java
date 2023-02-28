@@ -83,8 +83,6 @@ import javafx.beans.value.ChangeListener;
 
 import javafx.collections.SetChangeListener;
 
-import org.bouncycastle.crypto.params.KeyParameter;
-
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileWriter;
@@ -160,9 +158,6 @@ public class HavenoSetup {
     private Runnable showFirstPopupIfResyncSPVRequestedHandler;
     @Setter
     @Nullable
-    private Consumer<Consumer<KeyParameter>> requestWalletPasswordHandler;
-    @Setter
-    @Nullable
     private Consumer<Alert> displayAlertHandler;
     @Setter
     @Nullable
@@ -215,30 +210,30 @@ public class HavenoSetup {
 
     @Inject
     public HavenoSetup(DomainInitialisation domainInitialisation,
-                     P2PNetworkSetup p2PNetworkSetup,
-                     WalletAppSetup walletAppSetup,
-                     WalletsManager walletsManager,
-                     WalletsSetup walletsSetup,
-                     XmrWalletService xmrWalletService,
-                     BtcWalletService btcWalletService,
-                     P2PService p2PService,
-                     PrivateNotificationManager privateNotificationManager,
-                     SignedWitnessStorageService signedWitnessStorageService,
-                     TradeManager tradeManager,
-                     OpenOfferManager openOfferManager,
-                     Preferences preferences,
-                     User user,
-                     AlertManager alertManager,
-                     Config config,
-                     AccountAgeWitnessService accountAgeWitnessService,
-                     TorSetup torSetup,
-                     @Named(FormattingUtils.BTC_FORMATTER_KEY) CoinFormatter formatter,
-                     LocalBitcoinNode localBitcoinNode,
-                     AppStartupState appStartupState,
-                     Socks5ProxyProvider socks5ProxyProvider,
-                     MediationManager mediationManager,
-                     RefundManager refundManager,
-                     ArbitrationManager arbitrationManager) {
+                       P2PNetworkSetup p2PNetworkSetup,
+                       WalletAppSetup walletAppSetup,
+                       WalletsManager walletsManager,
+                       WalletsSetup walletsSetup,
+                       XmrWalletService xmrWalletService,
+                       BtcWalletService btcWalletService,
+                       P2PService p2PService,
+                       PrivateNotificationManager privateNotificationManager,
+                       SignedWitnessStorageService signedWitnessStorageService,
+                       TradeManager tradeManager,
+                       OpenOfferManager openOfferManager,
+                       Preferences preferences,
+                       User user,
+                       AlertManager alertManager,
+                       Config config,
+                       AccountAgeWitnessService accountAgeWitnessService,
+                       TorSetup torSetup,
+                       @Named(FormattingUtils.BTC_FORMATTER_KEY) CoinFormatter formatter,
+                       LocalBitcoinNode localBitcoinNode,
+                       AppStartupState appStartupState,
+                       Socks5ProxyProvider socks5ProxyProvider,
+                       MediationManager mediationManager,
+                       RefundManager refundManager,
+                       ArbitrationManager arbitrationManager) {
         this.domainInitialisation = domainInitialisation;
         this.p2PNetworkSetup = p2PNetworkSetup;
         this.walletAppSetup = walletAppSetup;
@@ -263,6 +258,8 @@ public class HavenoSetup {
         this.mediationManager = mediationManager;
         this.refundManager = refundManager;
         this.arbitrationManager = arbitrationManager;
+
+        xmrWalletService.setHavenoSetup(this);
 
         MemPoolSpaceTxBroadcaster.init(socks5ProxyProvider, preferences, localBitcoinNode);
     }
@@ -411,9 +408,10 @@ public class HavenoSetup {
                 return;
             }
             log.warn("startupTimeout called");
-            if (walletsManager.areWalletsEncrypted())
-                walletInitialized.addListener(walletInitializedListener);
-            else if (displayTorNetworkSettingsHandler != null)
+            //TODO (niyid) This has a part to play in the display of the password prompt
+//            if (walletsManager.areWalletsEncrypted())
+//                walletInitialized.addListener(walletInitializedListener);
+            if (displayTorNetworkSettingsHandler != null)
                 displayTorNetworkSettingsHandler.accept(true);
 
             log.info("Set log level for org.berndpruenster.netlayer classes to DEBUG to show more details for " +
@@ -453,35 +451,11 @@ public class HavenoSetup {
     private void initWallet() {
         log.info("Init wallet");
         havenoSetupListeners.forEach(HavenoSetupListener::onInitWallet);
-        Runnable walletPasswordHandler = () -> {
-            log.info("Wallet password required");
-            havenoSetupListeners.forEach(HavenoSetupListener::onRequestWalletPassword);
-            if (p2pNetworkReady.get())
-                p2PNetworkSetup.setSplashP2PNetworkAnimationVisible(true);
-
-            if (requestWalletPasswordHandler != null) {
-                requestWalletPasswordHandler.accept(aesKey -> {
-                    walletsManager.setAesKey(aesKey);
-                    walletsSetup.getWalletConfig().maybeAddSegwitKeychain(walletsSetup.getWalletConfig().btcWallet(),
-                            aesKey);
-                    if (getResyncSpvSemaphore()) {
-                        if (showFirstPopupIfResyncSPVRequestedHandler != null)
-                            showFirstPopupIfResyncSPVRequestedHandler.run();
-                    } else {
-                        // TODO no guarantee here that the wallet is really fully initialized
-                        // We would need a new walletInitializedButNotEncrypted state to track
-                        // Usually init is fast and we have our wallet initialized at that state though.
-                        walletInitialized.set(true);
-                    }
-                });
-            }
-        };
         walletAppSetup.init(chainFileLockedExceptionHandler,
                 spvFileCorruptedHandler,
                 getResyncSpvSemaphore(),
                 showFirstPopupIfResyncSPVRequestedHandler,
                 showPopupIfInvalidBtcConfigHandler,
-                walletPasswordHandler,
                 () -> {
                     if (allBasicServicesInitialized) {
                         checkForLockedUpFunds();
@@ -867,5 +841,7 @@ public class HavenoSetup {
         return p2PNetworkSetup.getP2pNetworkLabelId();
     }
 
-
+    public BooleanProperty getWalletInitialized() {
+        return walletInitialized;
+    }
 }

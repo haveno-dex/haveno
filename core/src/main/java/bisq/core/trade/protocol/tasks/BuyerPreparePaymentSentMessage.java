@@ -65,18 +65,6 @@ public class BuyerPreparePaymentSentMessage extends TradeTask {
             Preconditions.checkNotNull(trade.getTakerDepositTx(), "trade.getTakerDepositTx() must not be null");
             checkNotNull(trade.getOffer(), "offer must not be null");
 
-            // get multisig wallet
-            MoneroWallet multisigWallet = trade.getWallet();
-
-            // import multisig hex
-            List<String> updatedMultisigHexes = new ArrayList<String>();
-            if (trade.getSeller().getUpdatedMultisigHex() != null) updatedMultisigHexes.add(trade.getSeller().getUpdatedMultisigHex());
-            if (trade.getArbitrator().getUpdatedMultisigHex() != null) updatedMultisigHexes.add(trade.getArbitrator().getUpdatedMultisigHex());
-            if (!updatedMultisigHexes.isEmpty()) {
-              multisigWallet.importMultisigHex(updatedMultisigHexes.toArray(new String[0])); // TODO (monero-project): fails if multisig hex imported individually
-              trade.saveWallet();
-            }
-
             // create payout tx if we have seller's updated multisig hex
             if (trade.getSeller().getUpdatedMultisigHex() != null) {
 

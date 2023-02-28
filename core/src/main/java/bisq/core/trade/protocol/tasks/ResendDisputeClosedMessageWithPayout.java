@@ -58,7 +58,8 @@ public class ResendDisputeClosedMessageWithPayout extends TradeTask {
                 for (Dispute dispute : disputes) {
                     if (!dispute.isClosed()) continue; // dispute must be closed
                     if (sender.getPubKeyRing().equals(dispute.getTraderPubKeyRing())) {
-                        HavenoUtils.arbitrationManager.closeDisputeTicket(dispute.getDisputeResultProperty().get(), dispute, dispute.getDisputeResultProperty().get().summaryNotesProperty().get(), null, () -> {
+                        log.info("Arbitrator resending DisputeClosedMessage for trade {} after receiving updated multisig hex", trade.getId());
+                        HavenoUtils.arbitrationManager.closeDisputeTicket(dispute.getDisputeResultProperty().get(), dispute, dispute.getDisputeResultProperty().get().summaryNotesProperty().get(), () -> {
                             completeAux();
                         }, (errMessage, err) -> {
                             err.printStackTrace();
