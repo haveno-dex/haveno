@@ -92,9 +92,11 @@ public class SignedOfferView extends ActivatableView<VBox, Void> {
     @FXML
     TableColumn<SignedOffer, SignedOffer> arbitratorSignatureColumn;
     @FXML
-    InputTextField filterTextField;
+    TableColumn<SignedOffer, SignedOffer> reserveTxMinerFeeColumn;
     @FXML
-    Pane searchBoxSpacer;
+    TableColumn<SignedOffer, SignedOffer> makerTradeFeeColumn;
+    @FXML
+    InputTextField filterTextField;
     @FXML
     Label numItems;
     @FXML
@@ -117,6 +119,12 @@ public class SignedOfferView extends ActivatableView<VBox, Void> {
         this.xmrWalletService = xmrWalletService;
         this.tradeManager = tradeManager;
         this.offerDetailsWindow = offerDetailsWindow;
+    }
+
+    private Offer fetchOffer(SignedOffer signedOffer) {
+        Trade trade = tradeManager.getTrade(signedOffer.getOfferId());
+
+        return trade != null ? trade.getOffer() : null;
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -167,10 +175,11 @@ public class SignedOfferView extends ActivatableView<VBox, Void> {
 
         item1.setOnAction(event -> {
             selectedSignedOffer = tableView.getSelectionModel().getSelectedItem();
-            if(offer != null) {
+            if(selectedSignedOffer != null) {
                 new Popup().warning(Res.get("support.prompt.signedOffer.penalty.msg",
                         selectedSignedOffer.getOfferId(),
-                        HavenoUtils.DATE_FORMAT.format(new Date(selectedSignedOffer.getTimeStamp())),
+                        HavenoUtils.formatToXmr(HavenoUtils.centinerosToCoin(selectedSignedOffer.getMakerTradeFee())),
+                        HavenoUtils.formatToXmr(HavenoUtils.centinerosToCoin(selectedSignedOffer.getReserveTxMinerFee())),
                         selectedSignedOffer.getReserveTxHash(),
                         selectedSignedOffer.getReserveTxKeyImages())
                 ).onAction(() -> OfferViewUtil.submitTransactionHex(xmrWalletService, tableView,
@@ -219,6 +228,12 @@ public class SignedOfferView extends ActivatableView<VBox, Void> {
 
         arbitratorSignatureColumn = getArbitratorSignatureColumn();
         tableView.getColumns().add(arbitratorSignatureColumn);
+
+        makerTradeFeeColumn = getMakerTradeFeeColumn();
+        tableView.getColumns().add(makerTradeFeeColumn);
+
+        reserveTxMinerFeeColumn = getReserveTxMinerFeeColumn();
+        tableView.getColumns().add(reserveTxMinerFeeColumn);
 
         offerIdColumn.setComparator(Comparator.comparing(SignedOffer::getOfferId));
         dateColumn.setComparator(Comparator.comparing(SignedOffer::getTimeStamp));
@@ -391,6 +406,58 @@ public class SignedOfferView extends ActivatableView<VBox, Void> {
                                 super.updateItem(item, empty);
                                 if (item != null && !empty)
                                     setText(item.getArbitratorSignature());
+                                else
+                                    setText("");
+                            }
+                        };
+                    }
+                });
+        return column;
+    }
+
+    private TableColumn<SignedOffer, SignedOffer> getMakerTradeFeeColumn() {
+        TableColumn<SignedOffer, SignedOffer> column = new AutoTooltipTableColumn<>(Res.get("support.maker.trade.fee")) {
+            {
+                setMinWidth(160);
+            }
+        };
+        column.setCellValueFactory((signedOffer) -> new ReadOnlyObjectWrapper<>(signedOffer.getValue()));
+        column.setCellFactory(
+                new Callback<>() {
+                    @Override
+                    public TableCell<SignedOffer, SignedOffer> call(TableColumn<SignedOffer, SignedOffer> column) {
+                        return new TableCell<>() {
+                            @Override
+                            public void updateItem(final SignedOffer item, boolean empty) {
+                                super.updateItem(item, empty);
+                                if (item != null && !empty)
+                                    setText(HavenoUtils.formatToXmr(HavenoUtils.centinerosToCoin(item.getMakerTradeFee())));
+                                else
+                                    setText("");
+                            }
+                        };
+                    }
+                });
+        return column;
+    }
+
+    private TableColumn<SignedOffer, SignedOffer> getReserveTxMinerFeeColumn() {
+        TableColumn<SignedOffer, SignedOffer> column = new AutoTooltipTableColumn<>(Res.get("support.tx.miner.fee")) {
+            {
+                setMinWidth(160);
+            }
+        };
+        column.setCellValueFactory((signedOffer) -> new ReadOnlyObjectWrapper<>(signedOffer.getValue()));
+        column.setCellFactory(
+                new Callback<>() {
+                    @Override
+                    public TableCell<SignedOffer, SignedOffer> call(TableColumn<SignedOffer, SignedOffer> column) {
+                        return new TableCell<>() {
+                            @Override
+                            public void updateItem(final SignedOffer item, boolean empty) {
+                                super.updateItem(item, empty);
+                                if (item != null && !empty)
+                                    setText(HavenoUtils.formatToXmr(HavenoUtils.centinerosToCoin(item.getReserveTxMinerFee())));
                                 else
                                     setText("");
                             }

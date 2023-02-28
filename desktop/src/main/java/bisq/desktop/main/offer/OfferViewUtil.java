@@ -180,13 +180,13 @@ public class OfferViewUtil {
                                              TableView tableView,
                                              String reserveTxHex) {
         MoneroSubmitTxResult result = xmrWalletService.getDaemon().submitTxHex(reserveTxHex);
-        log.debug("submitTransactionHex: reserveTxHex={} result={}", result);
+        log.info("submitTransactionHex: reserveTxHex={} result={}", result);
         tableView.refresh();
 
         if(result.isGood()) {
             new Popup().information(Res.get("support.result.success")).show();
         } else {
-            new Popup().attention(result.getReason()).show();
+            new Popup().attention(result.toString()).show();
         }
     }
 }

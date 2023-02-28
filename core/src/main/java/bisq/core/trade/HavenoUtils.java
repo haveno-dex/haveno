@@ -22,6 +22,8 @@ import bisq.common.crypto.Hash;
 import bisq.common.crypto.PubKeyRing;
 import bisq.common.crypto.Sig;
 import bisq.common.util.Utilities;
+
+import bisq.core.locale.CurrencyUtil;
 import bisq.core.offer.Offer;
 import bisq.core.offer.OfferPayload;
 import bisq.core.support.dispute.arbitration.ArbitrationManager;
@@ -125,7 +127,7 @@ public class HavenoUtils {
     }
 
     public static String formatToXmr(Coin xmrAmount) {
-        return XMR_FORMATTER.format(coinToXmr(xmrAmount));
+        return XMR_FORMATTER.format(coinToXmr(xmrAmount)).concat(" ").concat("XMR");
     }
     private static final MonetaryFormat xmrCoinFormat = Config.baseCurrencyNetworkParameters().getMonetaryFormat();
 
