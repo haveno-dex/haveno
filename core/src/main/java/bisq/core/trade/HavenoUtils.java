@@ -17,13 +17,6 @@
 
 package bisq.core.trade;
 
-import bisq.common.config.Config;
-import bisq.common.crypto.Hash;
-import bisq.common.crypto.PubKeyRing;
-import bisq.common.crypto.Sig;
-import bisq.common.util.Utilities;
-
-import bisq.core.locale.CurrencyUtil;
 import bisq.core.offer.Offer;
 import bisq.core.offer.OfferPayload;
 import bisq.core.support.dispute.arbitration.ArbitrationManager;
@@ -34,12 +27,29 @@ import bisq.core.trade.messages.PaymentSentMessage;
 import bisq.core.util.JsonUtil;
 import bisq.core.util.ParsingUtils;
 import bisq.core.util.coin.CoinUtil;
+
 import bisq.network.p2p.NodeAddress;
-import lombok.extern.slf4j.Slf4j;
+
+import bisq.common.config.Config;
+import bisq.common.crypto.Hash;
+import bisq.common.crypto.PubKeyRing;
+import bisq.common.crypto.Sig;
+import bisq.common.util.Utilities;
+
+import org.bitcoinj.core.Coin;
+import org.bitcoinj.utils.MonetaryFormat;
+
+import com.google.common.base.CaseFormat;
+import com.google.common.base.Charsets;
+
+import java.text.DecimalFormat;
+import java.text.SimpleDateFormat;
+
+import java.net.URI;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
-import java.net.URI;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -49,15 +59,9 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
+import lombok.extern.slf4j.Slf4j;
+
 import javax.annotation.Nullable;
-
-import org.bitcoinj.core.Coin;
-import org.bitcoinj.utils.MonetaryFormat;
-import com.google.common.base.CaseFormat;
-import com.google.common.base.Charsets;
-
-import java.text.DecimalFormat;
-import java.text.SimpleDateFormat;
 
 /**
  * Collection of utilities.
