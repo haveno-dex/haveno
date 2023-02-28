@@ -119,12 +119,6 @@ public class SignedOfferView extends ActivatableView<VBox, Void> {
         this.offerDetailsWindow = offerDetailsWindow;
     }
 
-    private Offer fetchOffer(SignedOffer signedOffer) {
-        Trade trade = tradeManager.getTrade(signedOffer.getOfferId());
-
-        return trade != null ? trade.getOffer() : null;
-    }
-
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Life cycle
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -173,8 +167,6 @@ public class SignedOfferView extends ActivatableView<VBox, Void> {
 
         item1.setOnAction(event -> {
             selectedSignedOffer = tableView.getSelectionModel().getSelectedItem();
-            Offer offer = fetchOffer(selectedSignedOffer);
-            log.debug("Found {} matching signed offer.", (offer != null ? offer.getId() : null));
             if(offer != null) {
                 new Popup().warning(Res.get("support.prompt.signedOffer.penalty.msg",
                         selectedSignedOffer.getOfferId(),
