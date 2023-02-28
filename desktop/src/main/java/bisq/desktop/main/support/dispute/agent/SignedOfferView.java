@@ -112,6 +112,8 @@ public class SignedOfferView extends ActivatableView<VBox, Void> {
 
     private OfferDetailsWindow offerDetailsWindow;
 
+    private final ListChangeListener<SignedOffer> signedOfferListChangeListener;
+
     @Inject
     public SignedOfferView(OpenOfferManager openOfferManager, XmrWalletService xmrWalletService,
                            TradeManager tradeManager, OfferDetailsWindow offerDetailsWindow) {
@@ -119,6 +121,16 @@ public class SignedOfferView extends ActivatableView<VBox, Void> {
         this.xmrWalletService = xmrWalletService;
         this.tradeManager = tradeManager;
         this.offerDetailsWindow = offerDetailsWindow;
+
+        signedOfferListChangeListener = change -> applyList();
+    }
+
+    private void applyList() {
+        SortedList<SignedOffer> sortedList = new SortedList<>(openOfferManager.getObservableSignedOffersList());
+        sortedList.comparatorProperty().bind(tableView.comparatorProperty());
+        tableView.setItems(sortedList);
+
+        numItems.setText(Res.get("shared.numItemsLabel", sortedList.size()));
     }
 
     private Offer fetchOffer(SignedOffer signedOffer) {
@@ -152,14 +164,8 @@ public class SignedOfferView extends ActivatableView<VBox, Void> {
     protected void activate() {
         super.activate();
 
-        ObservableList<SignedOffer> observableList = FXCollections.observableArrayList();
-        observableList.addAll(openOfferManager.getSignedOffers());
-
-        SortedList<SignedOffer> sortedList = new SortedList<>(observableList);
-        sortedList.comparatorProperty().bind(tableView.comparatorProperty());
-        sortedList.addListener((ListChangeListener<SignedOffer>) c -> tableView.refresh());
-        tableView.setItems(sortedList);
-
+        applyList();
+        openOfferManager.getObservableSignedOffersList().addListener(signedOfferListChangeListener);
         contextMenu = new ContextMenu();
         MenuItem item1 = new MenuItem(Res.get("support.contextmenu.penalize.msg",
                 Res.get("shared.maker")));
@@ -188,8 +194,6 @@ public class SignedOfferView extends ActivatableView<VBox, Void> {
                 new Popup().error(Res.get("support.prompt.signedOffer.error.msg")).show();
             }
         });
-
-        numItems.setText(Res.get("shared.numItemsLabel", sortedList.size()));
 
         GUIUtil.requestFocus(tableView);
     }

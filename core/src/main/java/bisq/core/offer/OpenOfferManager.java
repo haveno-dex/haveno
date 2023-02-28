@@ -232,7 +232,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
 
     @Override
     public void readPersisted(Runnable completeHandler) {
-        
+
         // read open offers
         persistenceManager.readPersisted(persisted -> {
                     openOffers.setAll(persisted.getList());
@@ -496,12 +496,12 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
         checkNotNull(offer.getMakerFee(), "makerFee must not be null");
 
         boolean autoSplit = false; // TODO: support in api
-        
+
         // TODO (woodser): validate offer
-        
+
         // create open offer
         OpenOffer openOffer = new OpenOffer(offer, triggerPrice, autoSplit);
-        
+
         // process open offer to schedule or post
         processUnpostedOffer(getOpenOffers(), openOffer, (transaction) -> {
             addOpenOffer(openOffer);
@@ -702,6 +702,13 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
         }
     }
 
+
+    public ObservableList<SignedOffer> getObservableSignedOffersList() {
+        synchronized (signedOffers) {
+            return signedOffers.getObservableList();
+        }
+    }
+
     public ObservableList<OpenOffer> getObservableList() {
         return openOffers.getObservableList();
     }
@@ -711,7 +718,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
             return openOffers.stream().filter(e -> e.getId().equals(offerId)).findFirst();
         }
     }
-    
+
     public Optional<SignedOffer> getSignedOfferById(String offerId) {
         synchronized (signedOffers) {
             return signedOffers.stream().filter(e -> e.getOfferId().equals(offerId)).findFirst();
@@ -939,11 +946,11 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
     private void handleSignOfferRequest(SignOfferRequest request, NodeAddress peer) {
         log.info("Received SignOfferRequest from {} with offerId {} and uid {}",
                 peer, request.getOfferId(), request.getUid());
-        
+
         boolean result = false;
         String errorMessage = null;
         try {
-            
+
             // verify this node is an arbitrator
             Arbitrator thisArbitrator = user.getRegisteredArbitrator();
             NodeAddress thisAddress = p2PService.getNetworkNode().getNodeAddress();
@@ -953,7 +960,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
               sendAckMessage(request.getClass(), peer, request.getPubKeyRing(), request.getOfferId(), request.getUid(), false, errorMessage);
               return;
             }
-            
+
             // verify arbitrator is signer of offer payload
             if (!thisAddress.equals(request.getOfferPayload().getArbitratorSigner())) {
                 errorMessage = "Cannot sign offer because offer payload is for a different arbitrator";
@@ -961,7 +968,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                 sendAckMessage(request.getClass(), peer, request.getPubKeyRing(), request.getOfferId(), request.getUid(), false, errorMessage);
                 return;
             }
-            
+
             // verify offer not seen before
             Optional<OpenOffer> openOfferOptional = getOpenOfferById(request.offerId);
             if (openOfferOptional.isPresent()) {
@@ -980,7 +987,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                 sendAckMessage(request.getClass(), peer, request.getPubKeyRing(), request.getOfferId(), request.getUid(), false, errorMessage);
                 return;
             }
-            
+
             // verify maker's reserve tx (double spend, trade fee, trade amount, mining fee)
             BigInteger sendAmount =  HavenoUtils.coinToAtomicUnits(offer.getDirection() == OfferDirection.BUY ? Coin.ZERO : offer.getAmount());
             BigInteger securityDeposit = HavenoUtils.coinToAtomicUnits(offer.getDirection() == OfferDirection.BUY ? offer.getBuyerSecurityDeposit() : offer.getSellerSecurityDeposit());
@@ -999,7 +1006,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
             String signature = Sig.sign(keyRing.getSignatureKeyPair().getPrivate(), offerPayloadAsJson);
             OfferPayload signedOfferPayload = request.getOfferPayload();
             signedOfferPayload.setArbitratorSignature(signature);
-            
+
             // create record of signed offer
             SignedOffer signedOffer = new SignedOffer(
                     System.currentTimeMillis(),
@@ -1049,7 +1056,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
             sendAckMessage(request.getClass(), peer, request.getPubKeyRing(), request.getOfferId(), request.getUid(), result, errorMessage);
         }
     }
-    
+
     private void handleSignOfferResponse(SignOfferResponse response, NodeAddress peer) {
         log.info("Received SignOfferResponse from {} with offerId {} and uid {}",
                 peer, response.getOfferId(), response.getUid());
@@ -1122,7 +1129,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                         if (openOffer.getState() == OpenOffer.State.AVAILABLE) {
                             Offer offer = openOffer.getOffer();
                             if (preferences.getIgnoreTradersList().stream().noneMatch(fullAddress -> fullAddress.equals(peer.getFullAddress()))) {
-                                
+
                                 // maker signs taker's request
                                 String tradeRequestAsJson = JsonUtil.objectToJson(request.getTradeRequest());
                                 makerSignature = Sig.sign(keyRing.getSignatureKeyPair().getPrivate(), tradeRequestAsJson);
@@ -1204,7 +1211,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
     private boolean apiUserDeniedByOffer(OfferAvailabilityRequest request) {
         return preferences.isDenyApiTaker() && request.isTakerApiUser();
     }
-    
+
     private boolean takerDeniedByMaker(OfferAvailabilityRequest request) {
         if (request.getTradeRequest() == null) return true;
         return false; // TODO (woodser): implement taker verification here, doing work of ApplyFilter and VerifyPeersAccountAgeWitness
@@ -1251,7 +1258,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Update persisted offer if a new capability is required after a software update
     ///////////////////////////////////////////////////////////////////////////////////////////
-    
+
     // TODO (woodser): arbitrator signature will be invalid if offer updated (exclude updateable fields from signature? re-sign?)
 
     private void maybeUpdatePersistedOffers() {
