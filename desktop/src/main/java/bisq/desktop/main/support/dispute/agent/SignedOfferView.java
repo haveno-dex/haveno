@@ -25,18 +25,14 @@ import bisq.desktop.components.HyperlinkWithIcon;
 import bisq.desktop.components.InputTextField;
 import bisq.desktop.main.offer.OfferViewUtil;
 import bisq.desktop.main.overlays.popups.Popup;
-import bisq.desktop.main.overlays.windows.OfferDetailsWindow;
 import bisq.desktop.util.DisplayUtils;
 import bisq.desktop.util.GUIUtil;
 
 import bisq.core.btc.wallet.XmrWalletService;
 import bisq.core.locale.Res;
-import bisq.core.offer.Offer;
 import bisq.core.offer.OpenOfferManager;
 import bisq.core.offer.SignedOffer;
 import bisq.core.trade.HavenoUtils;
-import bisq.core.trade.Trade;
-import bisq.core.trade.TradeManager;
 
 import javax.inject.Inject;
 
@@ -102,21 +98,14 @@ public class SignedOfferView extends ActivatableView<VBox, Void> {
 
     private XmrWalletService xmrWalletService;
 
-    private TradeManager tradeManager;
-
     private ContextMenu contextMenu;
-
-    private OfferDetailsWindow offerDetailsWindow;
 
     private final ListChangeListener<SignedOffer> signedOfferListChangeListener;
 
     @Inject
-    public SignedOfferView(OpenOfferManager openOfferManager, XmrWalletService xmrWalletService,
-                           TradeManager tradeManager, OfferDetailsWindow offerDetailsWindow) {
+    public SignedOfferView(OpenOfferManager openOfferManager, XmrWalletService xmrWalletService) {
         this.openOfferManager = openOfferManager;
         this.xmrWalletService = xmrWalletService;
-        this.tradeManager = tradeManager;
-        this.offerDetailsWindow = offerDetailsWindow;
 
         signedOfferListChangeListener = change -> applyList();
     }
