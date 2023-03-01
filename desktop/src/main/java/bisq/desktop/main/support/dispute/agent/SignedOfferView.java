@@ -129,12 +129,6 @@ public class SignedOfferView extends ActivatableView<VBox, Void> {
         numItems.setText(Res.get("shared.numItemsLabel", sortedList.size()));
     }
 
-    private Offer fetchOffer(SignedOffer signedOffer) {
-        Trade trade = tradeManager.getTrade(signedOffer.getOfferId());
-
-        return trade != null ? trade.getOffer() : null;
-    }
-
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Life cycle
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -287,16 +281,7 @@ public class SignedOfferView extends ActivatableView<VBox, Void> {
                                 super.updateItem(item, empty);
 
                                 if (item != null && !empty) {
-                                    Offer offer = fetchOffer(item);
-
-                                    if (offer != null) {
-                                        field = new HyperlinkWithIcon(item.getOfferId());
-                                        field.setMouseTransparent(false);
-                                        field.setTooltip(new Tooltip(Res.get("tooltip.openPopupForDetails")));
-                                        field.setOnAction(event -> offerDetailsWindow.show(offer));
-                                    } else {
-                                        setText(item.getOfferId());
-                                    }
+                                    setText(item.getOfferId());
                                     setGraphic(field);
                                 } else {
                                     setGraphic(null);
