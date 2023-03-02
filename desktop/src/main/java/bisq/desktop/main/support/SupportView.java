@@ -25,6 +25,7 @@ import bisq.desktop.common.view.View;
 import bisq.desktop.common.view.ViewLoader;
 import bisq.desktop.main.MainView;
 import bisq.desktop.main.overlays.popups.Popup;
+import bisq.desktop.main.support.dispute.agent.SignedOfferView;
 import bisq.desktop.main.support.dispute.agent.arbitration.ArbitratorView;
 import bisq.desktop.main.support.dispute.agent.mediation.MediatorView;
 import bisq.desktop.main.support.dispute.agent.refund.RefundAgentView;
@@ -69,7 +70,8 @@ public class SupportView extends ActivatableView<TabPane, Void> {
     private Tab mediatorTab, refundAgentTab;
     @Nullable
     private Tab arbitratorTab;
-
+    @Nullable
+    private Tab signedOfferTab;
     private final Navigation navigation;
     private final ArbitratorManager arbitratorManager;
     private final MediatorManager mediatorManager;
@@ -77,6 +79,7 @@ public class SupportView extends ActivatableView<TabPane, Void> {
     private final ArbitrationManager arbitrationManager;
     private final MediationManager mediationManager;
     private final RefundManager refundManager;
+
     private final KeyRing keyRing;
 
     private Navigation.Listener navigationListener;
@@ -143,6 +146,8 @@ public class SupportView extends ActivatableView<TabPane, Void> {
                 navigation.navigateTo(MainView.class, SupportView.class, RefundClientView.class);
             else if (newValue == arbitratorTab)
                 navigation.navigateTo(MainView.class, SupportView.class, ArbitratorView.class);
+            else if (newValue == signedOfferTab)
+                navigation.navigateTo(MainView.class, SupportView.class, SignedOfferView.class);
             else if (newValue == mediatorTab)
                 navigation.navigateTo(MainView.class, SupportView.class, MediatorView.class);
             else if (newValue == refundAgentTab)
@@ -161,15 +166,14 @@ public class SupportView extends ActivatableView<TabPane, Void> {
         if (hasArbitrationCases) {
             boolean isActiveArbitrator = arbitratorManager.getObservableMap().values().stream()
                     .anyMatch(e -> e.getPubKeyRing() != null && e.getPubKeyRing().equals(myPubKeyRing));
-            if (arbitratorTab == null) {
-                // In case a arbitrator has become inactive he still might get disputes from pending trades
-                boolean hasDisputesAsArbitrator = arbitrationManager.getDisputesAsObservableList().stream()
-                        .anyMatch(d -> d.getAgentPubKeyRing().equals(myPubKeyRing));
-                if (isActiveArbitrator || hasDisputesAsArbitrator) {
-                    arbitratorTab = new Tab();
-                    arbitratorTab.setClosable(false);
-                    root.getTabs().add(arbitratorTab);
-                }
+
+            // In case a arbitrator has become inactive he still might get disputes from pending trades
+            boolean hasDisputesAsArbitrator = arbitrationManager.getDisputesAsObservableList().stream()
+                    .anyMatch(d -> d.getAgentPubKeyRing().equals(myPubKeyRing));
+            if (arbitratorTab == null && (isActiveArbitrator || hasDisputesAsArbitrator)) {
+                arbitratorTab = new Tab();
+                arbitratorTab.setClosable(false);
+                root.getTabs().add(arbitratorTab);
             }
         }
 
@@ -184,6 +188,12 @@ public class SupportView extends ActivatableView<TabPane, Void> {
                 mediatorTab.setClosable(false);
                 root.getTabs().add(mediatorTab);
             }
+        }
+
+        if (signedOfferTab == null) {
+            signedOfferTab = new Tab();
+            signedOfferTab.setClosable(false);
+            root.getTabs().add(signedOfferTab);
         }
 
         boolean isActiveRefundAgent = refundAgentManager.getObservableMap().values().stream()
@@ -202,6 +212,9 @@ public class SupportView extends ActivatableView<TabPane, Void> {
         // We might get that method called before we have the map is filled in the arbitratorManager
         if (arbitratorTab != null) {
             arbitratorTab.setText(Res.get("support.tab.ArbitratorsSupportTickets", Res.get("shared.arbitrator")).toUpperCase());
+        }
+        if (signedOfferTab != null) {
+            signedOfferTab.setText(Res.get("support.tab.SignedOffers").toUpperCase());
         }
         if (mediatorTab != null) {
             mediatorTab.setText(Res.get("support.tab.ArbitratorsSupportTickets", Res.get("shared.mediator")).toUpperCase());
@@ -235,6 +248,8 @@ public class SupportView extends ActivatableView<TabPane, Void> {
             navigation.navigateTo(MainView.class, SupportView.class, RefundClientView.class);
         } else if (arbitratorTab != null) {
             navigation.navigateTo(MainView.class, SupportView.class, ArbitratorView.class);
+        } else if (signedOfferTab != null) {
+            navigation.navigateTo(MainView.class, SupportView.class, SignedOfferView.class);
         } else if (mediatorTab != null) {
             navigation.navigateTo(MainView.class, SupportView.class, MediatorView.class);
         } else if (refundAgentTab != null) {
@@ -275,6 +290,8 @@ public class SupportView extends ActivatableView<TabPane, Void> {
             currentTab = tradersRefundDisputesTab;
         } else if (view instanceof ArbitratorView) {
             currentTab = arbitratorTab;
+        } else if (view instanceof SignedOfferView) {
+            currentTab = signedOfferTab;
         } else if (view instanceof MediatorView) {
             currentTab = mediatorTab;
         } else if (view instanceof RefundAgentView) {

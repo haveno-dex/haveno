@@ -17,11 +17,6 @@
 
 package bisq.core.trade;
 
-import bisq.common.config.Config;
-import bisq.common.crypto.Hash;
-import bisq.common.crypto.PubKeyRing;
-import bisq.common.crypto.Sig;
-import bisq.common.util.Utilities;
 import bisq.core.offer.Offer;
 import bisq.core.offer.OfferPayload;
 import bisq.core.support.dispute.arbitration.ArbitrationManager;
@@ -33,11 +28,27 @@ import bisq.core.util.JsonUtil;
 import bisq.core.util.ParsingUtils;
 import bisq.core.util.coin.CoinUtil;
 import bisq.network.p2p.NodeAddress;
-import lombok.extern.slf4j.Slf4j;
+
+import bisq.common.config.Config;
+import bisq.common.crypto.Hash;
+import bisq.common.crypto.PubKeyRing;
+import bisq.common.crypto.Sig;
+import bisq.common.util.Utilities;
+
+import org.bitcoinj.core.Coin;
+import org.bitcoinj.utils.MonetaryFormat;
+
+import com.google.common.base.CaseFormat;
+import com.google.common.base.Charsets;
+
+import java.text.DecimalFormat;
+import java.text.SimpleDateFormat;
+
+import java.net.URI;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
-import java.net.URI;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -47,12 +58,9 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
-import javax.annotation.Nullable;
+import lombok.extern.slf4j.Slf4j;
 
-import org.bitcoinj.core.Coin;
-import org.bitcoinj.utils.MonetaryFormat;
-import com.google.common.base.CaseFormat;
-import com.google.common.base.Charsets;
+import javax.annotation.Nullable;
 
 /**
  * Collection of utilities.
@@ -62,24 +70,17 @@ public class HavenoUtils {
 
     public static final String LOOPBACK_HOST = "127.0.0.1"; // local loopback address to host Monero node
     public static final String LOCALHOST = "localhost";
-
-    // multipliers to convert units
-    public static BigInteger CENTINEROS_AU_MULTIPLIER = new BigInteger("10000");
-    private static BigInteger XMR_AU_MULTIPLIER = new BigInteger("1000000000000");
-
-    // global thread pool
+    public static final BigInteger CENTINEROS_AU_MULTIPLIER = new BigInteger("10000");
+    private static final BigInteger XMR_AU_MULTIPLIER = new BigInteger("1000000000000");
+    public static final DecimalFormat XMR_FORMATTER = new DecimalFormat("0.000000000000");
+    public static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("dd-MM-yyyy HH:mm:ss");
     private static final int POOL_SIZE = 10;
     private static final ExecutorService POOL = Executors.newFixedThreadPool(POOL_SIZE);
-
-    // TODO: better way to share reference?
-    public static ArbitrationManager arbitrationManager;
+    
+    public static ArbitrationManager arbitrationManager; // TODO: better way to share reference?
 
     public static BigInteger coinToAtomicUnits(Coin coin) {
         return centinerosToAtomicUnits(coin.value);
-    }
-
-    public static double coinToXmr(Coin coin) {
-        return atomicUnitsToXmr(coinToAtomicUnits(coin));
     }
 
     public static BigInteger centinerosToAtomicUnits(long centineros) {
@@ -102,8 +103,16 @@ public class HavenoUtils {
         return atomicUnits.divide(CENTINEROS_AU_MULTIPLIER).longValueExact();
     }
 
-    public static Coin atomicUnitsToCoin(BigInteger atomicUnits) {
+    public static Coin atomicUnitsToCoin(long atomicUnits) {
         return Coin.valueOf(atomicUnitsToCentineros(atomicUnits));
+    }
+
+    public static Coin atomicUnitsToCoin(BigInteger atomicUnits) {
+        return atomicUnitsToCoin(atomicUnits.longValueExact());
+    }
+
+    public static double atomicUnitsToXmr(long atomicUnits) {
+        return atomicUnitsToXmr(BigInteger.valueOf(atomicUnits));
     }
 
     public static double atomicUnitsToXmr(BigInteger atomicUnits) {
@@ -117,7 +126,27 @@ public class HavenoUtils {
     public static long xmrToCentineros(double xmr) {
         return atomicUnitsToCentineros(xmrToAtomicUnits(xmr));
     }
-    
+
+    public static double coinToXmr(Coin coin) {
+        return atomicUnitsToXmr(coinToAtomicUnits(coin));
+    }
+
+    public static String formatXmrWithCode(Coin coin) {
+        return formatXmrWithCode(coinToAtomicUnits(coin).longValueExact());
+    }
+
+    public static String formatXmrWithCode(long atomicUnits) {
+        String formatted = XMR_FORMATTER.format(atomicUnitsToXmr(atomicUnits));
+
+        // strip trailing 0s
+        if (formatted.contains(".")) {
+            while (formatted.length() > 3 && formatted.charAt(formatted.length() - 1) == '0') {
+                formatted = formatted.substring(0, formatted.length() - 1);
+            }
+        }
+        return formatted.concat(" ").concat("XMR");
+    }
+
     private static final MonetaryFormat xmrCoinFormat = Config.baseCurrencyNetworkParameters().getMonetaryFormat();
 
     @Nullable
@@ -166,7 +195,7 @@ public class HavenoUtils {
 
     /**
      * Get address to collect trade fees.
-     * 
+     *
      * @return the address which collects trade fees
      */
     public static String getTradeFeeAddress() {
@@ -196,7 +225,7 @@ public class HavenoUtils {
 
     /**
      * Returns a unique deterministic id for sending a trade mailbox message.
-     * 
+     *
      * @param trade the trade
      * @param tradeMessageClass the trade message class
      * @param receiver the receiver address
@@ -209,23 +238,23 @@ public class HavenoUtils {
 
     /**
      * Check if the arbitrator signature is valid for an offer.
-     * 
+     *
      * @param offer is a signed offer with payload
      * @param arbitrator is the original signing arbitrator
      * @return true if the arbitrator's signature is valid for the offer
      */
     public static boolean isArbitratorSignatureValid(Offer offer, Arbitrator arbitrator) {
-        
+
         // copy offer payload
         OfferPayload offerPayloadCopy = OfferPayload.fromProto(offer.toProtoMessage().getOfferPayload());
-        
+
         // remove arbitrator signature from signed payload
         String signature = offerPayloadCopy.getArbitratorSignature();
         offerPayloadCopy.setArbitratorSignature(null);
-        
+
         // get unsigned offer payload as json string
         String unsignedOfferAsJson = JsonUtil.objectToJson(offerPayloadCopy);
-        
+
         // verify arbitrator signature
         try {
             return Sig.verify(arbitrator.getPubKeyRing().getSignaturePubKey(), unsignedOfferAsJson, signature);
@@ -233,15 +262,15 @@ public class HavenoUtils {
             return false;
         }
     }
-    
+
     /**
      * Check if the maker signature for a trade request is valid.
-     * 
+     *
      * @param request is the trade request to check
      * @return true if the maker's signature is valid for the trade request
      */
     public static boolean isMakerSignatureValid(InitTradeRequest request, String signature, PubKeyRing makerPubKeyRing) {
-        
+
         // re-create trade request with signed fields
         InitTradeRequest signedRequest = new InitTradeRequest(
                 request.getTradeId(),
@@ -266,10 +295,10 @@ public class HavenoUtils {
                 request.getPayoutAddress(),
                 null
                 );
-        
+
         // get trade request as string
         String tradeRequestAsJson = JsonUtil.objectToJson(signedRequest);
-        
+
         // verify maker signature
         try {
             return Sig.verify(makerPubKeyRing.getSignaturePubKey(),
@@ -282,7 +311,7 @@ public class HavenoUtils {
 
     /**
      * Verify the buyer signature for a PaymentSentMessage.
-     * 
+     *
      * @param trade - the trade to verify
      * @param message - signed payment sent message to verify
      * @return true if the buyer's signature is valid for the message
@@ -298,7 +327,7 @@ public class HavenoUtils {
 
         // replace signature
         message.setBuyerSignature(signature);
-        
+
         // verify signature
         String errMessage = "The buyer signature is invalid for the " + message.getClass().getSimpleName() + " for " + trade.getClass().getSimpleName() + " " + trade.getId();
         try {
@@ -313,7 +342,7 @@ public class HavenoUtils {
 
     /**
      * Verify the seller signature for a PaymentReceivedMessage.
-     * 
+     *
      * @param trade - the trade to verify
      * @param message - signed payment received message to verify
      * @return true if the seller's signature is valid for the message
@@ -329,7 +358,7 @@ public class HavenoUtils {
 
         // replace signature
         message.setSellerSignature(signature);
-        
+
         // verify signature
         String errMessage = "The seller signature is invalid for the " + message.getClass().getSimpleName() + " for " + trade.getClass().getSimpleName() + " " + trade.getId();
         try {
