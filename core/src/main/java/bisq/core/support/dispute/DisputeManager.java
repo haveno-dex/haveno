@@ -222,7 +222,9 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
     }
 
     public ObservableList<Dispute> getDisputesAsObservableList() {
-        return disputeListService.getObservableList();
+        synchronized(disputeListService.getDisputeList()) {
+            return disputeListService.getObservableList();
+        }
     }
 
     public String getNrOfDisputes(boolean isBuyer, Contract contract) {

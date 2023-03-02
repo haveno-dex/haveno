@@ -71,7 +71,7 @@ public class CoreDisputesService {
     }
 
     public List<Dispute> getDisputes() {
-        return arbitrationManager.getDisputesAsObservableList();
+        return new ArrayList<>(arbitrationManager.getDisputesAsObservableList());
     }
 
     public Dispute getDispute(String tradeId) {
