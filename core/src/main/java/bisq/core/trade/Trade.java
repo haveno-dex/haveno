@@ -831,7 +831,7 @@ public abstract class Trade implements Tradable, Model {
         
                     // delete trade wallet backups unless deposits requested and payouts not unlocked
                     if (isDepositRequested() && !isPayoutUnlocked()) {
-                        throw new RuntimeException("Refusing to delete backup wallet for " + getClass().getSimpleName() + " " + getId() + " in the small chance it becomes funded");
+                        log.warn("Refusing to delete backup wallet for " + getClass().getSimpleName() + " " + getId() + " in the small chance it becomes funded");
                     }
                     xmrWalletService.deleteWalletBackups(getWalletName());
                 } catch (Exception e) {
