@@ -17,6 +17,7 @@
 
 package bisq.core.util.coin;
 
+import bisq.core.btc.wallet.Restrictions;
 import bisq.core.monetary.Price;
 import bisq.core.trade.HavenoUtils;
 
@@ -66,7 +67,7 @@ public class CoinUtilTest {
                 1);
         assertEquals(
                 "Minimum trade amount allowed should be adjusted to the smallest trade allowed.",
-                "0.001 XMR",
+                HavenoUtils.formatToXmrWithCode(Restrictions.MIN_TRADE_AMOUNT),
                 HavenoUtils.formatToXmrWithCode(result)
         );
 
@@ -86,24 +87,24 @@ public class CoinUtilTest {
         }
 
         result = CoinUtil.getAdjustedAmount(
-                HavenoUtils.xmrToAtomicUnits(0.01),
+                HavenoUtils.xmrToAtomicUnits(0.1),
                 Price.valueOf("USD", 1000_0000),
                 HavenoUtils.xmrToAtomicUnits(0.2).longValueExact(),
                 1);
         assertEquals(
                 "Minimum allowed trade amount should not be adjusted.",
-                "0.01 XMR",
+                "0.10 XMR",
                 HavenoUtils.formatToXmrWithCode(result)
         );
 
         result = CoinUtil.getAdjustedAmount(
-                HavenoUtils.xmrToAtomicUnits(0.001),
+                HavenoUtils.xmrToAtomicUnits(0.1),
                 Price.valueOf("USD", 1000_0000),
-                HavenoUtils.xmrToAtomicUnits(0.1).longValueExact(),
+                HavenoUtils.xmrToAtomicUnits(0.25).longValueExact(),
                 1);
         assertEquals(
                 "Minimum trade amount allowed should respect maxTradeLimit and factor, if possible.",
-                "0.001 XMR",
+                "0.10 XMR",
                 HavenoUtils.formatToXmrWithCode(result)
         );
 

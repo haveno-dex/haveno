@@ -25,11 +25,11 @@ import java.math.BigInteger;
 import org.bitcoinj.core.Coin;
 
 public class Restrictions {
-    private static BigInteger MIN_TRADE_AMOUNT;
-    private static BigInteger MIN_BUYER_SECURITY_DEPOSIT;
+    public static BigInteger MIN_TRADE_AMOUNT = HavenoUtils.xmrToAtomicUnits(0.1);
+    public static BigInteger MIN_BUYER_SECURITY_DEPOSIT = HavenoUtils.xmrToAtomicUnits(0.1);
     // For the seller we use a fixed one as there is no way the seller can cancel the trade
     // To make it editable would just increase complexity.
-    private static BigInteger SELLER_SECURITY_DEPOSIT;
+    public static BigInteger SELLER_SECURITY_DEPOSIT = MIN_BUYER_SECURITY_DEPOSIT;
     // At mediation we require a min. payout to the losing party to keep incentive for the trader to accept the
     // mediated payout. For Refund agent cases we do not have that restriction.
     private static BigInteger MIN_REFUND_AT_MEDIATED_DISPUTE;
@@ -51,8 +51,6 @@ public class Restrictions {
     }
 
     public static BigInteger getMinTradeAmount() {
-        if (MIN_TRADE_AMOUNT == null)
-            MIN_TRADE_AMOUNT = HavenoUtils.centinerosToAtomicUnits(10000); // TODO: increase for xmr
         return MIN_TRADE_AMOUNT;
     }
 
@@ -71,8 +69,6 @@ public class Restrictions {
     // We use MIN_BUYER_SECURITY_DEPOSIT as well as lower bound in case of small trade amounts.
     // So 0.0005 BTC is the min. buyer security deposit even with amount of 0.0001 BTC and 0.05% percentage value.
     public static BigInteger getMinBuyerSecurityDeposit() {
-        if (MIN_BUYER_SECURITY_DEPOSIT == null)
-            MIN_BUYER_SECURITY_DEPOSIT = HavenoUtils.xmrToAtomicUnits(0.001); // TODO: increase for xmr
         return MIN_BUYER_SECURITY_DEPOSIT;
     }
 
@@ -82,8 +78,6 @@ public class Restrictions {
     }
 
     public static BigInteger getMinSellerSecurityDeposit() {
-        if (SELLER_SECURITY_DEPOSIT == null)
-            SELLER_SECURITY_DEPOSIT = HavenoUtils.xmrToAtomicUnits(0.001);
         return SELLER_SECURITY_DEPOSIT;
     }
 
