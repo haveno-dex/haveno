@@ -4,8 +4,7 @@ import bisq.core.account.witness.AccountAgeWitness;
 import bisq.core.support.dispute.arbitration.TraderDataItem;
 import bisq.core.payment.payload.PaymentAccountPayload;
 
-import org.bitcoinj.core.Coin;
-
+import java.math.BigInteger;
 import java.security.PublicKey;
 
 import org.junit.Before;
@@ -44,11 +43,11 @@ public class TraderDataItemTest {
     public void setup() {
         accountAgeWitness1 = new AccountAgeWitness(hash1, 123);
         accountAgeWitness2 = new AccountAgeWitness(hash2, 124);
-        traderDataItem1 = new TraderDataItem(mock(PaymentAccountPayload.class), accountAgeWitness1, Coin.valueOf(546),
+        traderDataItem1 = new TraderDataItem(mock(PaymentAccountPayload.class), accountAgeWitness1, BigInteger.valueOf(546),
                 mock(PublicKey.class));
-        traderDataItem2 = new TraderDataItem(mock(PaymentAccountPayload.class), accountAgeWitness1, Coin.valueOf(547),
+        traderDataItem2 = new TraderDataItem(mock(PaymentAccountPayload.class), accountAgeWitness1, BigInteger.valueOf(547),
                 mock(PublicKey.class));
-        traderDataItem3 = new TraderDataItem(mock(PaymentAccountPayload.class), accountAgeWitness2, Coin.valueOf(548),
+        traderDataItem3 = new TraderDataItem(mock(PaymentAccountPayload.class), accountAgeWitness2, BigInteger.valueOf(548),
                 mock(PublicKey.class));
     }
 

@@ -34,7 +34,8 @@ import bisq.common.taskrunner.Model;
 
 import bisq.network.p2p.P2PService;
 
-import org.bitcoinj.core.Coin;
+import java.math.BigInteger;
+
 import org.bitcoinj.core.Transaction;
 
 import lombok.Getter;
@@ -50,7 +51,7 @@ import monero.wallet.model.MoneroTxWallet;
 public class PlaceOfferModel implements Model {
     // Immutable
     private final Offer offer;
-    private final Coin reservedFundsForOffer;
+    private final BigInteger reservedFundsForOffer;
     private final boolean useSavingsWallet;
     private final P2PService p2PService;
     private final BtcWalletService walletService;
@@ -78,7 +79,7 @@ public class PlaceOfferModel implements Model {
     private SignOfferResponse signOfferResponse;
 
     public PlaceOfferModel(Offer offer,
-                           Coin reservedFundsForOffer,
+                           BigInteger reservedFundsForOffer,
                            boolean useSavingsWallet,
                            P2PService p2PService,
                            BtcWalletService walletService,

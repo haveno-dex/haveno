@@ -37,14 +37,13 @@ import monero.daemon.model.MoneroTx;
 import monero.wallet.model.MoneroTransferQuery;
 import monero.wallet.model.MoneroTxQuery;
 import monero.wallet.model.MoneroTxWallet;
-import org.bitcoinj.core.Coin;
 
 @Slf4j
 class DepositListItem {
     private final StringProperty balance = new SimpleStringProperty();
     private final XmrAddressEntry addressEntry;
     private final XmrWalletService xmrWalletService;
-    private Coin balanceAsCoin;
+    private BigInteger balanceAsBI;
     private String usage = "-";
     private XmrBalanceListener balanceListener;
     private int numTxOutputs = 0;
@@ -66,15 +65,15 @@ class DepositListItem {
         balanceListener = new XmrBalanceListener(addressEntry.getSubaddressIndex()) {
             @Override
             public void onBalanceChanged(BigInteger balance) {
-                DepositListItem.this.balanceAsCoin = HavenoUtils.atomicUnitsToCoin(balance);
-                DepositListItem.this.balance.set(formatter.formatCoin(balanceAsCoin));
+                DepositListItem.this.balanceAsBI = balance;
+                DepositListItem.this.balance.set(HavenoUtils.formatToXmr(balanceAsBI));
                 updateUsage(addressEntry.getSubaddressIndex(), null);
             }
         };
         xmrWalletService.addBalanceListener(balanceListener);
 
-        balanceAsCoin = xmrWalletService.getBalanceForSubaddress(addressEntry.getSubaddressIndex());
-        balance.set(formatter.formatCoin(balanceAsCoin));
+        balanceAsBI = xmrWalletService.getBalanceForSubaddress(addressEntry.getSubaddressIndex());
+        balance.set(HavenoUtils.formatToXmr(balanceAsBI));
 
         updateUsage(addressEntry.getSubaddressIndex(), cachedTxs);
 
@@ -124,8 +123,8 @@ class DepositListItem {
         return balance.get();
     }
 
-    public Coin getBalanceAsCoin() {
-        return balanceAsCoin;
+    public BigInteger getBalanceAsBI() {
+        return balanceAsBI;
     }
 
     public int getNumTxOutputs() {

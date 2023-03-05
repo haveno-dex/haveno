@@ -61,6 +61,7 @@ import bisq.core.offer.OfferRestrictions;
 import bisq.core.offer.OpenOffer;
 import bisq.core.payment.PaymentAccount;
 import bisq.core.payment.payload.PaymentMethod;
+import bisq.core.trade.HavenoUtils;
 import bisq.core.user.DontShowAgainLookup;
 import bisq.core.util.coin.CoinFormatter;
 
@@ -110,6 +111,8 @@ import javafx.collections.ListChangeListener;
 import javafx.util.Callback;
 import javafx.util.StringConverter;
 
+import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.util.Comparator;
 import java.util.Map;
 import java.util.Optional;
@@ -299,15 +302,15 @@ abstract public class OfferBookView<R extends GridPane, M extends OfferBookViewM
         avatarColumn.setComparator(Comparator.comparing(o -> model.getNumTrades(o.getOffer())));
         depositColumn.setComparator(Comparator.comparing(item -> {
             boolean isSellOffer = item.getOffer().getDirection() == OfferDirection.SELL;
-            Coin deposit = isSellOffer ?
+            BigInteger deposit = isSellOffer ?
                     item.getOffer().getBuyerSecurityDeposit() :
                     item.getOffer().getSellerSecurityDeposit();
 
-            double amountValue = item.getOffer().getAmount().getValue();
+            long amountValue = item.getOffer().getAmount().longValueExact();
             if ((deposit == null || amountValue == 0)) {
                 return 0d;
             } else {
-                return deposit.getValue() / amountValue;
+                return BigDecimal.valueOf(deposit.longValueExact()).divide(BigDecimal.valueOf(amountValue)).doubleValue();
             }
 
         }, Comparator.nullsFirst(Comparator.naturalOrder())));
@@ -715,7 +718,7 @@ abstract public class OfferBookView<R extends GridPane, M extends OfferBookViewM
         if (model.isBootstrappedOrShowPopup()) {
             String key = "RemoveOfferWarning";
             if (DontShowAgainLookup.showAgain(key)) {
-                String message = offer.getMakerFee().isPositive() ?
+                String message = offer.getMakerFee().compareTo(BigInteger.valueOf(0)) > 0 ?
                         Res.get("popup.warning.removeOffer", model.getMakerFeeAsString(offer)) :
                         Res.get("popup.warning.removeNoFeeOffer");
                 new Popup().warning(message)
@@ -1034,7 +1037,7 @@ abstract public class OfferBookView<R extends GridPane, M extends OfferBookViewM
                                     } else {
                                         setText("");
                                         setGraphic(new ColoredDecimalPlacesWithZerosText(model.formatDepositString(
-                                                deposit, item.getOffer().getAmount().getValue()),
+                                                deposit, item.getOffer().getAmount().longValueExact()),
                                                 GUIUtil.AMOUNT_DECIMALS_WITH_ZEROS));
                                     }
                                 } else {
@@ -1186,7 +1189,7 @@ abstract public class OfferBookView<R extends GridPane, M extends OfferBookViewM
                 Res.get("offerbook.timeSinceSigning"),
                 Res.get("offerbook.timeSinceSigning.help",
                         SignedWitnessService.SIGNER_AGE_DAYS,
-                        formatter.formatCoinWithCode(OfferRestrictions.TOLERATED_SMALL_TRADE_AMOUNT))) {
+                        HavenoUtils.formatToXmrWithCode(OfferRestrictions.TOLERATED_SMALL_TRADE_AMOUNT))) {
             {
                 setMinWidth(60);
                 setSortable(true);
@@ -1206,7 +1209,7 @@ abstract public class OfferBookView<R extends GridPane, M extends OfferBookViewM
                         if (item != null && !empty) {
                             var witnessAgeData = item.getWitnessAgeData(accountAgeWitnessService, signedWitnessService);
                             var label = witnessAgeData.isSigningRequired()
-                                    ? new AccountStatusTooltipLabel(witnessAgeData, formatter)
+                                    ? new AccountStatusTooltipLabel(witnessAgeData)
                                     : new InfoAutoTooltipLabel(witnessAgeData.getDisplayString(), witnessAgeData.getIcon(), ContentDisplay.RIGHT, witnessAgeData.getInfo());
                             setGraphic(label);
                         } else {

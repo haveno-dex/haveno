@@ -35,18 +35,12 @@ import bisq.core.trade.HavenoUtils;
 import bisq.core.trade.Trade;
 import bisq.core.trade.TradeManager;
 import bisq.core.user.DontShowAgainLookup;
-import bisq.core.util.FormattingUtils;
-import bisq.core.util.ParsingUtils;
-import bisq.core.util.coin.CoinFormatter;
 import bisq.core.util.validation.BtcAddressValidator;
 
 import bisq.network.p2p.P2PService;
 import bisq.common.util.Tuple2;
 
-import org.bitcoinj.core.Coin;
-
 import javax.inject.Inject;
-import javax.inject.Named;
 import monero.wallet.model.MoneroTxConfig;
 import monero.wallet.model.MoneroTxWallet;
 
@@ -78,9 +72,8 @@ public class WithdrawalView extends ActivatableView<VBox, Void> {
     private final XmrWalletService xmrWalletService;
     private final TradeManager tradeManager;
     private final P2PService p2PService;
-    private final CoinFormatter formatter;
     private XmrBalanceListener balanceListener;
-    private Coin amountAsCoin = Coin.ZERO;
+    private BigInteger amount = BigInteger.valueOf(0);
     private ChangeListener<String> amountListener;
     private ChangeListener<Boolean> amountFocusListener;
     private int rowIndex = 0;
@@ -94,13 +87,11 @@ public class WithdrawalView extends ActivatableView<VBox, Void> {
                            TradeManager tradeManager,
                            P2PService p2PService,
                            WalletsSetup walletsSetup,
-                           @Named(FormattingUtils.BTC_FORMATTER_KEY) CoinFormatter formatter,
                            BtcAddressValidator btcAddressValidator,
                            WalletPasswordWindow walletPasswordWindow) {
         this.xmrWalletService = xmrWalletService;
         this.tradeManager = tradeManager;
         this.p2PService = p2PService;
-        this.formatter = formatter;
     }
 
     @Override
@@ -136,7 +127,7 @@ public class WithdrawalView extends ActivatableView<VBox, Void> {
         amountListener = (observable, oldValue, newValue) -> {
             if (amountTextField.focusedProperty().get()) {
                 try {
-                    amountAsCoin = ParsingUtils.parseToCoin(amountTextField.getText(), formatter);
+                    amount = HavenoUtils.parseXmr(amountTextField.getText());
                 } catch (Throwable t) {
                     log.error("Error at amountTextField input. " + t.toString());
                 }
@@ -144,8 +135,8 @@ public class WithdrawalView extends ActivatableView<VBox, Void> {
         };
         amountFocusListener = (observable, oldValue, newValue) -> {
             if (oldValue && !newValue) {
-                if (amountAsCoin.isPositive())
-                    amountTextField.setText(formatter.formatCoin(amountAsCoin));
+                if (amount.compareTo(BigInteger.valueOf(0)) > 0)
+                    amountTextField.setText(HavenoUtils.formatToXmr(amount));
                 else
                     amountTextField.setText("");
             }
@@ -184,23 +175,23 @@ public class WithdrawalView extends ActivatableView<VBox, Void> {
                 final String withdrawToAddress = withdrawToTextField.getText();
 
                 // get receiver amount
-                Coin receiverAmount = amountAsCoin;
-                if (!receiverAmount.isPositive()) throw new RuntimeException(Res.get("portfolio.pending.step5_buyer.amountTooLow"));
+                BigInteger receiverAmount = amount;
+                if (receiverAmount.compareTo(BigInteger.valueOf(0)) <= 0) throw new RuntimeException(Res.get("portfolio.pending.step5_buyer.amountTooLow"));
 
                 // create tx
                 MoneroTxWallet tx = xmrWalletService.getWallet().createTx(new MoneroTxConfig()
                         .setAccountIndex(0)
-                        .setAmount(HavenoUtils.coinToAtomicUnits(receiverAmount)) // TODO: rename to centinerosToAtomicUnits()?
+                        .setAmount(receiverAmount)
                         .setAddress(withdrawToAddress));
 
                 // create confirmation message
-                Coin sendersAmount = receiverAmount;
-                Coin fee = HavenoUtils.atomicUnitsToCoin(tx.getFee());
+                BigInteger sendersAmount = receiverAmount;
+                BigInteger fee = tx.getFee();
                 String messageText = Res.get("shared.sendFundsDetailsWithFee",
-                        formatter.formatCoinWithCode(sendersAmount),
+                        HavenoUtils.formatToXmrWithCode(sendersAmount),
                         withdrawToAddress,
-                        formatter.formatCoinWithCode(fee),
-                        formatter.formatCoinWithCode(receiverAmount));
+                        HavenoUtils.formatToXmrWithCode(fee),
+                        HavenoUtils.formatToXmrWithCode(receiverAmount));
 
                 // popup confirmation message
                 new Popup().headLine(Res.get("funds.withdrawal.confirmWithdrawalRequest"))
@@ -214,7 +205,7 @@ public class WithdrawalView extends ActivatableView<VBox, Void> {
                                 xmrWalletService.getWallet().setTxNote(tx.getHash(), withdrawMemoTextField.getText()); // TODO (monero-java): tx note does not persist when tx created then relayed
                                 String key = "showTransactionSent";
                                 if (DontShowAgainLookup.showAgain(key)) {
-                                    new TxDetails(tx.getHash(), withdrawToAddress, formatter.formatCoinWithCode(sendersAmount), formatter.formatCoinWithCode(fee), xmrWalletService.getWallet().getTxNote(tx.getHash()))
+                                    new TxDetails(tx.getHash(), withdrawToAddress, HavenoUtils.formatToXmrWithCode(sendersAmount), HavenoUtils.formatToXmrWithCode(fee), xmrWalletService.getWallet().getTxNote(tx.getHash()))
                                             .dontShowAgainId(key)
                                             .show();
                                 }
@@ -225,7 +216,7 @@ public class WithdrawalView extends ActivatableView<VBox, Void> {
                                         .filter(Trade::isPayoutPublished)
                                         .forEach(trade -> xmrWalletService.getAddressEntry(trade.getId(), XmrAddressEntry.Context.TRADE_PAYOUT)
                                                 .ifPresent(addressEntry -> {
-                                                    if (xmrWalletService.getBalanceForAddress(addressEntry.getAddressString()).isZero())
+                                                    if (xmrWalletService.getBalanceForAddress(addressEntry.getAddressString()).compareTo(BigInteger.valueOf(0)) == 0)
                                                         tradeManager.onTradeCompleted(trade);
                                                 }));
                             } catch (Exception e) {
@@ -251,7 +242,7 @@ public class WithdrawalView extends ActivatableView<VBox, Void> {
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     private void reset() {
-        amountAsCoin = Coin.ZERO;
+        amount = BigInteger.valueOf(0);
         amountTextField.setText("");
         amountTextField.setPromptText(Res.get("funds.withdrawal.setAmount"));
 

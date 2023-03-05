@@ -45,6 +45,7 @@ import org.bitcoinj.core.Coin;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
+import java.math.BigInteger;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
@@ -104,8 +105,8 @@ public class CreateOfferService {
     public Offer createAndGetOffer(String offerId,
                                    OfferDirection direction,
                                    String currencyCode,
-                                   Coin amount,
-                                   Coin minAmount,
+                                   BigInteger amount,
+                                   BigInteger minAmount,
                                    Price price,
                                    Coin txFee,
                                    boolean useMarketBasedPrice,
@@ -128,8 +129,8 @@ public class CreateOfferService {
                 price == null ? null : price.getValue(),
                 useMarketBasedPrice,
                 marketPriceMargin,
-                amount.value,
-                minAmount.value,
+                amount,
+                minAmount,
                 buyerSecurityDepositAsDouble);
 
         long creationTime = new Date().getTime();
@@ -146,8 +147,8 @@ public class CreateOfferService {
 
         long priceAsLong = price != null ? price.getValue() : 0L;
         double marketPriceMarginParam = useMarketBasedPriceValue ? marketPriceMargin : 0;
-        long amountAsLong = amount != null ? amount.getValue() : 0L;
-        long minAmountAsLong = minAmount != null ? minAmount.getValue() : 0L;
+        long amountAsLong = amount != null ? amount.longValueExact() : 0L;
+        long minAmountAsLong = minAmount != null ? minAmount.longValueExact() : 0L;
         boolean isCryptoCurrency = CurrencyUtil.isCryptoCurrency(currencyCode);
         String baseCurrencyCode = isCryptoCurrency ? currencyCode : Res.getBaseCurrencyCode();
         String counterCurrencyCode = isCryptoCurrency ? Res.getBaseCurrencyCode() : currencyCode;
@@ -155,10 +156,10 @@ public class CreateOfferService {
         List<String> acceptedCountryCodes = PaymentAccountUtil.getAcceptedCountryCodes(paymentAccount);
         String bankId = PaymentAccountUtil.getBankId(paymentAccount);
         List<String> acceptedBanks = PaymentAccountUtil.getAcceptedBanks(paymentAccount);
-        double sellerSecurityDeposit = getSellerSecurityDepositAsDouble(buyerSecurityDepositAsDouble);
-        Coin makerFeeAsCoin = HavenoUtils.getMakerFee(amount);
-        Coin buyerSecurityDepositAsCoin = getBuyerSecurityDeposit(amount, buyerSecurityDepositAsDouble);
-        Coin sellerSecurityDepositAsCoin = getSellerSecurityDeposit(amount, sellerSecurityDeposit);
+        double sellerSecurityDepositAsDouble = getSellerSecurityDepositAsDouble(buyerSecurityDepositAsDouble);
+        BigInteger makerFee = HavenoUtils.getMakerFee(amount);
+        BigInteger buyerSecurityDeposit = getBuyerSecurityDeposit(amount, buyerSecurityDepositAsDouble);
+        BigInteger sellerSecurityDeposit = getSellerSecurityDeposit(amount, sellerSecurityDepositAsDouble);
         long maxTradeLimit = offerUtil.getMaxTradeLimit(paymentAccount, currencyCode, direction);
         long maxTradePeriod = paymentAccount.getMaxTradePeriod();
 
@@ -178,7 +179,7 @@ public class CreateOfferService {
                 buyerSecurityDepositAsDouble,
                 paymentAccount,
                 currencyCode,
-                makerFeeAsCoin);
+                makerFee);
 
         OfferPayload offerPayload = new OfferPayload(offerId,
                 creationTime,
@@ -201,9 +202,9 @@ public class CreateOfferService {
                 acceptedBanks,
                 Version.VERSION,
                 xmrWalletService.getWallet().getHeight(),
-                makerFeeAsCoin.value,
-                buyerSecurityDepositAsCoin.value,
-                sellerSecurityDepositAsCoin.value,
+                makerFee.longValueExact(),
+                buyerSecurityDeposit.longValueExact(),
+                sellerSecurityDeposit.longValueExact(),
                 maxTradeLimit,
                 maxTradePeriod,
                 useAutoClose,
@@ -222,12 +223,12 @@ public class CreateOfferService {
         return offer;
     }
 
-    public Coin getReservedFundsForOffer(OfferDirection direction,
-                                         Coin amount,
+    public BigInteger getReservedFundsForOffer(OfferDirection direction,
+                                         BigInteger amount,
                                          double buyerSecurityDeposit,
                                          double sellerSecurityDeposit) {
 
-        Coin reservedFundsForOffer = getSecurityDeposit(direction,
+        BigInteger reservedFundsForOffer = getSecurityDeposit(direction,
                 amount,
                 buyerSecurityDeposit,
                 sellerSecurityDeposit);
@@ -237,8 +238,8 @@ public class CreateOfferService {
         return reservedFundsForOffer;
     }
 
-    public Coin getSecurityDeposit(OfferDirection direction,
-                                   Coin amount,
+    public BigInteger getSecurityDeposit(OfferDirection direction,
+                                   BigInteger amount,
                                    double buyerSecurityDeposit,
                                    double sellerSecurityDeposit) {
         return offerUtil.isBuyOffer(direction) ?
@@ -260,26 +261,25 @@ public class CreateOfferService {
         return marketPrice != null && marketPrice.isExternallyProvidedPrice();
     }
 
-    private Coin getBuyerSecurityDeposit(Coin amount, double buyerSecurityDeposit) {
-        Coin percentOfAmountAsCoin = CoinUtil.getPercentOfAmountAsCoin(buyerSecurityDeposit, amount);
-        return getBoundedBuyerSecurityDeposit(percentOfAmountAsCoin);
+    private BigInteger getBuyerSecurityDeposit(BigInteger amount, double buyerSecurityDeposit) {
+        BigInteger percentOfAmount = CoinUtil.getPercentOfAmount(buyerSecurityDeposit, amount);
+        return getBoundedBuyerSecurityDeposit(percentOfAmount);
     }
 
-    private Coin getSellerSecurityDeposit(Coin amount, double sellerSecurityDeposit) {
-        Coin amountAsCoin = (amount == null) ? Coin.ZERO : amount;
-        Coin percentOfAmountAsCoin = CoinUtil.getPercentOfAmountAsCoin(sellerSecurityDeposit, amountAsCoin);
-        return getBoundedSellerSecurityDeposit(percentOfAmountAsCoin);
+    private BigInteger getSellerSecurityDeposit(BigInteger amount, double sellerSecurityDeposit) {
+        BigInteger percentOfAmount = CoinUtil.getPercentOfAmount(sellerSecurityDeposit, amount);
+        return getBoundedSellerSecurityDeposit(percentOfAmount);
     }
 
-    private Coin getBoundedBuyerSecurityDeposit(Coin value) {
+    private BigInteger getBoundedBuyerSecurityDeposit(BigInteger value) {
         // We need to ensure that for small amount values we don't get a too low BTC amount. We limit it with using the
-        // MinBuyerSecurityDepositAsCoin from Restrictions.
-        return Coin.valueOf(Math.max(Restrictions.getMinBuyerSecurityDepositAsCoin().value, value.value));
+        // MinBuyerSecurityDeposit from Restrictions.
+        return Restrictions.getMinBuyerSecurityDeposit().max(value);
     }
 
-    private Coin getBoundedSellerSecurityDeposit(Coin value) {
+    private BigInteger getBoundedSellerSecurityDeposit(BigInteger value) {
         // We need to ensure that for small amount values we don't get a too low BTC amount. We limit it with using the
-        // MinSellerSecurityDepositAsCoin from Restrictions.
-        return Coin.valueOf(Math.max(Restrictions.getMinSellerSecurityDepositAsCoin().value, value.value));
+        // MinSellerSecurityDeposit from Restrictions.
+        return Restrictions.getMinSellerSecurityDeposit().max(value);
     }
 }

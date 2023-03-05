@@ -41,6 +41,7 @@ import javax.inject.Inject;
 import javax.inject.Singleton;
 
 import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashSet;
@@ -181,8 +182,8 @@ public class CoreOffersService {
         String offerId = createOfferService.getRandomOfferId();
         OfferDirection direction = OfferDirection.valueOf(directionAsString.toUpperCase());
         Price price = priceAsString.isEmpty() ? null : Price.valueOf(upperCaseCurrencyCode, priceStringToLong(priceAsString, upperCaseCurrencyCode));
-        Coin amount = Coin.valueOf(amountAsLong);
-        Coin minAmount = Coin.valueOf(minAmountAsLong);
+        BigInteger amount = BigInteger.valueOf(amountAsLong);
+        BigInteger minAmount = BigInteger.valueOf(minAmountAsLong);
         Coin useDefaultTxFee = Coin.ZERO;
         Offer offer = createOfferService.createAndGetOffer(offerId,
                 direction,
@@ -214,8 +215,8 @@ public class CoreOffersService {
                     Price price,
                     boolean useMarketBasedPrice,
                     double marketPriceMargin,
-                    Coin amount,
-                    Coin minAmount,
+                    BigInteger amount,
+                    BigInteger minAmount,
                     double buyerSecurityDeposit,
                     PaymentAccount paymentAccount) {
         Coin useDefaultTxFee = Coin.ZERO;

@@ -168,7 +168,7 @@ public class TradeStatisticsConverter {
         byte[] hash = tradeStatistics2.getHash();
         return new TradeStatistics3(tradeStatistics2.getCurrencyCode(),
                 tradeStatistics2.getPrice().getValue(),
-                tradeStatistics2.getTradeAmount().getValue(),
+                tradeStatistics2.getTradeAmount().longValueExact(),
                 tradeStatistics2.getOfferPaymentMethod(),
                 time,
                 mediator,

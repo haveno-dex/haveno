@@ -31,6 +31,7 @@ import bisq.core.offer.Offer;
 import bisq.core.payment.payload.PaymentAccountPayload;
 import bisq.core.support.dispute.arbitration.ArbitrationManager;
 import bisq.core.trade.Contract;
+import bisq.core.trade.HavenoUtils;
 import bisq.core.trade.Trade;
 import bisq.core.trade.TradeManager;
 import bisq.core.trade.txproof.AssetTxProofResult;
@@ -162,7 +163,7 @@ public class TradeDetailsWindow extends Overlay<TradeDetailsWindow> {
         }
 
         addConfirmationLabelTextField(gridPane, ++rowIndex, Res.get("shared.btcAmount") + btcDirectionInfo,
-                formatter.formatCoinWithCode(trade.getAmount()));
+                HavenoUtils.formatToXmrWithCode(trade.getAmount()));
         addConfirmationLabelTextField(gridPane, ++rowIndex,
                 VolumeUtil.formatVolumeLabel(offer.getCurrencyCode()) + fiatDirectionInfo,
                 VolumeUtil.formatVolumeWithCode(trade.getVolume()));
@@ -215,11 +216,11 @@ public class TradeDetailsWindow extends Overlay<TradeDetailsWindow> {
                 DisplayUtils.formatDateTime(trade.getDate()));
         String securityDeposit = Res.getWithColAndCap("shared.buyer") +
                 " " +
-                formatter.formatCoinWithCode(offer.getBuyerSecurityDeposit()) +
+                HavenoUtils.formatToXmrWithCode(offer.getBuyerSecurityDeposit()) +
                 " / " +
                 Res.getWithColAndCap("shared.seller") +
                 " " +
-                formatter.formatCoinWithCode(offer.getSellerSecurityDeposit());
+                HavenoUtils.formatToXmrWithCode(offer.getSellerSecurityDeposit());
         addConfirmationLabelTextField(gridPane, ++rowIndex, Res.get("shared.securityDeposit"), securityDeposit);
 
         NodeAddress arbitratorNodeAddress = trade.getArbitratorNodeAddress();

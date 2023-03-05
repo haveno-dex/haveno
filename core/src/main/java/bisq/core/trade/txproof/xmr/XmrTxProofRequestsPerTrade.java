@@ -22,6 +22,7 @@ import bisq.core.locale.Res;
 import bisq.core.support.dispute.Dispute;
 import bisq.core.support.dispute.mediation.MediationManager;
 import bisq.core.support.dispute.refund.RefundManager;
+import bisq.core.trade.HavenoUtils;
 import bisq.core.trade.Trade;
 import bisq.core.trade.txproof.AssetTxProofRequestsPerTrade;
 import bisq.core.trade.txproof.AssetTxProofResult;
@@ -31,13 +32,12 @@ import bisq.network.Socks5ProxyProvider;
 
 import bisq.common.handlers.FaultHandler;
 
-import org.bitcoinj.core.Coin;
-
 import javafx.beans.value.ChangeListener;
 
 import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
 
+import java.math.BigInteger;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -327,11 +327,11 @@ class XmrTxProofRequestsPerTrade implements AssetTxProofRequestsPerTrade {
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     private boolean isTradeAmountAboveLimit(Trade trade) {
-        Coin tradeAmount = trade.getAmount();
-        Coin tradeLimit = Coin.valueOf(autoConfirmSettings.getTradeLimit());
-        if (tradeAmount != null && tradeAmount.isGreaterThan(tradeLimit)) {
+        BigInteger tradeAmount = trade.getAmount();
+        BigInteger tradeLimit = BigInteger.valueOf(autoConfirmSettings.getTradeLimit());
+        if (tradeAmount != null && tradeAmount.compareTo(tradeLimit) > 0) {
             log.warn("Trade amount {} is higher than limit from auto-conf setting {}.",
-                    tradeAmount.toFriendlyString(), tradeLimit.toFriendlyString());
+                    HavenoUtils.formatToXmrWithCode(tradeAmount), HavenoUtils.formatToXmrWithCode(tradeLimit));
             return true;
         }
         return false;

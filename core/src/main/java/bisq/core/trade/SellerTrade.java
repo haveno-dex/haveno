@@ -18,13 +18,10 @@
 package bisq.core.trade;
 
 import bisq.core.btc.wallet.XmrWalletService;
-import bisq.core.locale.CurrencyUtil;
 import bisq.core.offer.Offer;
 import bisq.core.trade.protocol.ProcessModel;
 
 import bisq.network.p2p.NodeAddress;
-
-import org.bitcoinj.core.Coin;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -32,11 +29,13 @@ import javax.annotation.Nullable;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import java.math.BigInteger;
+
 @Slf4j
 public abstract class SellerTrade extends Trade {
     SellerTrade(Offer offer,
-                Coin tradeAmount,
-                Coin takerFee,
+                BigInteger tradeAmount,
+                BigInteger takerFee,
                 long tradePrice,
                 XmrWalletService xmrWalletService,
                 ProcessModel processModel,
@@ -57,7 +56,7 @@ public abstract class SellerTrade extends Trade {
     }
 
     @Override
-    public Coin getPayoutAmount() {
+    public BigInteger getPayoutAmount() {
         return checkNotNull(getOffer()).getSellerSecurityDeposit();
     }
 

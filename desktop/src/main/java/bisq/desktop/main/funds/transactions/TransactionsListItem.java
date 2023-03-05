@@ -24,7 +24,6 @@ import bisq.core.offer.OpenOffer;
 import bisq.core.trade.HavenoUtils;
 import bisq.core.trade.Tradable;
 import bisq.core.trade.Trade;
-import bisq.core.util.coin.CoinFormatter;
 import bisq.desktop.components.indicator.TxConfidenceIndicator;
 import bisq.desktop.util.DisplayUtils;
 import bisq.desktop.util.GUIUtil;
@@ -41,11 +40,9 @@ import monero.wallet.model.MoneroIncomingTransfer;
 import monero.wallet.model.MoneroOutgoingTransfer;
 import monero.wallet.model.MoneroTxWallet;
 import monero.wallet.model.MoneroWalletListener;
-import org.bitcoinj.core.Coin;
 
 @Slf4j
 class TransactionsListItem {
-    private final CoinFormatter formatter;
     private String dateString;
     private final Date date;
     private final String txId;
@@ -56,11 +53,10 @@ class TransactionsListItem {
     private String direction = "";
     private boolean received;
     private boolean detailsAvailable;
-    private Coin amountAsCoin = Coin.ZERO;
+    private BigInteger amount = BigInteger.valueOf(0);
     private String memo = "";
     private long confirmations = 0;
     @Getter
-    private final boolean isDustAttackTx;
     private boolean initialTxConfidenceVisibility = true;
     private final Supplier<LazyFields> lazyFieldsSupplier;
 
@@ -77,25 +73,20 @@ class TransactionsListItem {
     TransactionsListItem() {
         date = null;
         txId = null;
-        formatter = null;
-        isDustAttackTx = false;
         lazyFieldsSupplier = null;
     }
 
     TransactionsListItem(MoneroTxWallet tx,
                          XmrWalletService xmrWalletService,
-                         TransactionAwareTradable transactionAwareTradable,
-                         CoinFormatter formatter,
-                         long ignoreDustThreshold) {
-        this.formatter = formatter;
+                         TransactionAwareTradable transactionAwareTradable) {
         this.memo = tx.getNote();
         this.txId = tx.getHash();
 
         Optional<Tradable> optionalTradable = Optional.ofNullable(transactionAwareTradable)
                 .map(TransactionAwareTradable::asTradable);
 
-        Coin valueSentToMe = HavenoUtils.atomicUnitsToCoin(tx.getIncomingAmount() == null ? new BigInteger("0") : tx.getIncomingAmount());
-        Coin valueSentFromMe = HavenoUtils.atomicUnitsToCoin(tx.getOutgoingAmount() == null ? new BigInteger("0") : tx.getOutgoingAmount());
+        BigInteger valueSentToMe = tx.getIncomingAmount() == null ? new BigInteger("0") : tx.getIncomingAmount();
+        BigInteger valueSentFromMe = tx.getOutgoingAmount() == null ? new BigInteger("0") : tx.getOutgoingAmount();
 
         if (tx.getTransfers().get(0).isIncoming()) {
             addressString = ((MoneroIncomingTransfer) tx.getTransfers().get(0)).getAddress();
@@ -105,12 +96,12 @@ class TransactionsListItem {
             else addressString = "unavailable";
         }
 
-        if (valueSentFromMe.isZero()) {
-            amountAsCoin = valueSentToMe;
+        if (valueSentFromMe.compareTo(BigInteger.valueOf(0)) == 0) {
+            amount = valueSentToMe;
             direction = Res.get("funds.tx.direction.receivedWith");
             received = true;
         } else {
-            amountAsCoin = valueSentFromMe.multiply(-1);
+            amount = valueSentFromMe.multiply(BigInteger.valueOf(-1));
             received = false;
             direction = Res.get("funds.tx.direction.sentTo");
         }
@@ -134,13 +125,13 @@ class TransactionsListItem {
                 } else if (trade.getPayoutTxId() != null &&
                         trade.getPayoutTxId().equals(txId)) {
                     details = Res.get("funds.tx.multiSigPayout", tradeId);
-                    if (amountAsCoin.isZero()) {
+                    if (amount.compareTo(BigInteger.valueOf(0)) == 0) {
                         initialTxConfidenceVisibility = false;
                     }
                 } else {
                     Trade.DisputeState disputeState = trade.getDisputeState();
                     if (disputeState == Trade.DisputeState.DISPUTE_CLOSED) {
-                        if (valueSentToMe.isPositive()) {
+                        if (valueSentToMe.compareTo(BigInteger.valueOf(0)) > 0) {
                             details = Res.get("funds.tx.disputePayout", tradeId);
                         } else {
                             details = Res.get("funds.tx.disputeLost", tradeId);
@@ -148,7 +139,7 @@ class TransactionsListItem {
                     } else if (disputeState == Trade.DisputeState.REFUND_REQUEST_CLOSED ||
                             disputeState == Trade.DisputeState.REFUND_REQUESTED ||
                             disputeState == Trade.DisputeState.REFUND_REQUEST_STARTED_BY_PEER) {
-                        if (valueSentToMe.isPositive()) {
+                        if (valueSentToMe.compareTo(BigInteger.valueOf(0)) > 0) {
                             details = Res.get("funds.tx.refund", tradeId);
                         } else {
                             // We have spent the deposit tx outputs to the Bisq donation address to enable
@@ -156,7 +147,7 @@ class TransactionsListItem {
                             // already when funding the deposit tx we show 0 BTC as amount.
                             // Confirmation is not known from the BitcoinJ side (not 100% clear why) as no funds
                             // left our wallet nor we received funds. So we set indicator invisible.
-                            amountAsCoin = Coin.ZERO;
+                            amount = BigInteger.valueOf(0);
                             details = Res.get("funds.tx.collateralForRefund", tradeId);
                             initialTxConfidenceVisibility = false;
                         }
@@ -166,7 +157,7 @@ class TransactionsListItem {
                 }
             }
         } else {
-            if (amountAsCoin.isZero()) {
+            if (amount.compareTo(BigInteger.valueOf(0)) == 0) {
                 details = Res.get("funds.tx.noFundsFromDispute");
             }
         }
@@ -175,11 +166,6 @@ class TransactionsListItem {
         Long timestamp = tx.getBlock() == null ? System.currentTimeMillis() : tx.getBlock().getTimestamp() * 1000l;
         this.date = new Date(timestamp);
         dateString = DisplayUtils.formatDateTime(date);
-
-        isDustAttackTx = received && valueSentToMe.value < ignoreDustThreshold;
-        if (isDustAttackTx) {
-            details = Res.get("funds.tx.dustAttackTx");
-        }
 
         // confidence
         lazyFieldsSupplier = Suppliers.memoize(() -> new LazyFields() {{
@@ -217,15 +203,13 @@ class TransactionsListItem {
         return dateString;
     }
 
-
-    public String getAmount() {
-        return formatter.formatCoin(amountAsCoin);
+    public String getAmountStr() {
+        return HavenoUtils.formatToXmr(amount);
     }
 
-    public Coin getAmountAsCoin() {
-        return amountAsCoin;
+    public BigInteger getAmount() {
+        return amount;
     }
-
 
     public String getAddressString() {
         return addressString;

@@ -26,8 +26,7 @@ import bisq.network.p2p.NodeAddress;
 
 import bisq.common.proto.ProtoUtil;
 
-import org.bitcoinj.core.Coin;
-
+import java.math.BigInteger;
 import java.util.UUID;
 
 import lombok.extern.slf4j.Slf4j;
@@ -40,8 +39,8 @@ public final class BuyerAsMakerTrade extends BuyerTrade implements MakerTrade {
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     public BuyerAsMakerTrade(Offer offer,
-                             Coin tradeAmount,
-                             Coin takeOfferFee,
+                             BigInteger tradeAmount,
+                             BigInteger takeOfferFee,
                              long tradePrice,
                              XmrWalletService xmrWalletService,
                              ProcessModel processModel,
@@ -84,8 +83,8 @@ public final class BuyerAsMakerTrade extends BuyerTrade implements MakerTrade {
         }
         BuyerAsMakerTrade trade = new BuyerAsMakerTrade(
                 Offer.fromProto(proto.getOffer()),
-                Coin.valueOf(proto.getAmountAsLong()),
-                Coin.valueOf(proto.getTakerFeeAsLong()),
+                BigInteger.valueOf(proto.getAmountAsLong()),
+                BigInteger.valueOf(proto.getTakerFeeAsLong()),
                 proto.getPrice(),
                 xmrWalletService,
                 processModel,

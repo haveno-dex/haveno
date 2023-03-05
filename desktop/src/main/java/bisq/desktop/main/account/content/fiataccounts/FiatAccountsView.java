@@ -115,6 +115,7 @@ import bisq.core.payment.validation.TransferwiseValidator;
 import bisq.core.payment.validation.USPostalMoneyOrderValidator;
 import bisq.core.payment.validation.UpholdValidator;
 import bisq.core.payment.validation.WeChatPayValidator;
+import bisq.core.trade.HavenoUtils;
 import bisq.core.util.FormattingUtils;
 import bisq.core.util.coin.CoinFormatter;
 
@@ -122,8 +123,6 @@ import bisq.common.config.Config;
 import bisq.common.util.Tuple2;
 import bisq.common.util.Tuple3;
 import bisq.common.util.Utilities;
-
-import org.bitcoinj.core.Coin;
 
 import javax.inject.Inject;
 import javax.inject.Named;
@@ -142,6 +141,7 @@ import javafx.collections.ObservableList;
 
 import javafx.util.StringConverter;
 
+import java.math.BigInteger;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -257,9 +257,9 @@ public class FiatAccountsView extends PaymentAccountsView<GridPane, FiatAccounts
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     private void onSaveNewAccount(PaymentAccount paymentAccount) {
-        Coin maxTradeLimitAsCoin = paymentAccount.getPaymentMethod().getMaxTradeLimitAsCoin("USD");
-        Coin maxTradeLimitSecondMonth = maxTradeLimitAsCoin.divide(2L);
-        Coin maxTradeLimitFirstMonth = maxTradeLimitAsCoin.divide(4L);
+        BigInteger maxTradeLimit = paymentAccount.getPaymentMethod().getMaxTradeLimit("USD");
+        BigInteger maxTradeLimitSecondMonth = maxTradeLimit.divide(BigInteger.valueOf(2L));
+        BigInteger maxTradeLimitFirstMonth = maxTradeLimit.divide(BigInteger.valueOf(4L));
         if (paymentAccount instanceof F2FAccount) {
             new Popup().information(Res.get("payment.f2f.info"))
                     .width(700)
@@ -287,17 +287,17 @@ public class FiatAccountsView extends PaymentAccountsView<GridPane, FiatAccounts
         } else {
 
             String limitsInfoKey = "payment.limits.info";
-            String initialLimit = formatter.formatCoinWithCode(maxTradeLimitFirstMonth);
+            String initialLimit = HavenoUtils.formatToXmrWithCode(maxTradeLimitFirstMonth);
 
             if (PaymentMethod.hasChargebackRisk(paymentAccount.getPaymentMethod(), paymentAccount.getTradeCurrencies())) {
                 limitsInfoKey = "payment.limits.info.withSigning";
-                initialLimit = formatter.formatCoinWithCode(OfferRestrictions.TOLERATED_SMALL_TRADE_AMOUNT);
+                initialLimit = HavenoUtils.formatToXmrWithCode(OfferRestrictions.TOLERATED_SMALL_TRADE_AMOUNT);
             }
 
             new Popup().information(Res.get(limitsInfoKey,
                     initialLimit,
-                    formatter.formatCoinWithCode(maxTradeLimitSecondMonth),
-                    formatter.formatCoinWithCode(maxTradeLimitAsCoin)))
+                    HavenoUtils.formatToXmrWithCode(maxTradeLimitSecondMonth),
+                    HavenoUtils.formatToXmrWithCode(maxTradeLimit)))
                     .width(700)
                     .closeButtonText(Res.get("shared.cancel"))
                     .actionButtonText(Res.get("shared.iUnderstand"))

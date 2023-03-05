@@ -31,10 +31,9 @@ import bisq.core.provider.price.PriceFeedService;
 import bisq.core.trade.HavenoUtils;
 import bisq.common.taskrunner.Model;
 
-import org.bitcoinj.core.Coin;
-
 import javax.inject.Inject;
 
+import java.math.BigInteger;
 import java.util.Objects;
 
 import lombok.Getter;
@@ -46,11 +45,8 @@ import static bisq.core.btc.model.XmrAddressEntry.Context.OFFER_FUNDING;
 import static bisq.core.offer.OfferDirection.SELL;
 import static bisq.core.util.VolumeUtil.getAdjustedVolumeForHalCash;
 import static bisq.core.util.VolumeUtil.getRoundedFiatVolume;
-import static bisq.core.util.coin.CoinUtil.minCoin;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
-import static org.bitcoinj.core.Coin.ZERO;
-import static org.bitcoinj.core.Coin.valueOf;
 
 @Slf4j
 public class TakeOfferModel implements Model {
@@ -64,23 +60,23 @@ public class TakeOfferModel implements Model {
     @Getter
     private XmrAddressEntry addressEntry;
     @Getter
-    private Coin amount;
+    private BigInteger amount;
     private Offer offer;
     private PaymentAccount paymentAccount;
     @Getter
-    private Coin securityDeposit;
+    private BigInteger securityDeposit;
     private boolean useSavingsWallet;
 
     @Getter
-    private Coin takerFee;
+    private BigInteger takerFee;
     @Getter
-    private Coin totalToPayAsCoin;
+    private BigInteger totalToPay;
     @Getter
-    private Coin missingCoin = ZERO;
+    private BigInteger missingCoin = BigInteger.valueOf(0);
     @Getter
-    private Coin totalAvailableBalance;
+    private BigInteger totalAvailableBalance;
     @Getter
-    private Coin availableBalance;
+    private BigInteger availableBalance;
     @Getter
     private boolean isXmrWalletFunded;
     @Getter
@@ -107,7 +103,7 @@ public class TakeOfferModel implements Model {
         validateModelInputs();
 
         this.useSavingsWallet = useSavingsWallet;
-        this.amount = valueOf(Math.min(offer.getAmount().value, getMaxTradeLimit()));
+        this.amount = offer.getAmount().min(BigInteger.valueOf(getMaxTradeLimit()));
         this.securityDeposit = offer.getDirection() == SELL
                 ? offer.getBuyerSecurityDeposit()
                 : offer.getSellerSecurityDeposit();
@@ -130,9 +126,9 @@ public class TakeOfferModel implements Model {
         // maker created the offer and reserved his funds, so that would not work well
         // with dynamic fees.  The mining fee for the takeOfferFee tx is deducted from
         // the createOfferFee and not visible to the trader.
-        Coin feeAndSecDeposit = securityDeposit.add(takerFee);
+        BigInteger feeAndSecDeposit = securityDeposit.add(takerFee);
 
-        totalToPayAsCoin = offer.isBuyOffer()
+        totalToPay = offer.isBuyOffer()
                 ? feeAndSecDeposit.add(amount)
                 : feeAndSecDeposit;
 
@@ -155,9 +151,9 @@ public class TakeOfferModel implements Model {
 
     private void updateBalance() {
         totalAvailableBalance = xmrWalletService.getAvailableBalance();
-        if (totalToPayAsCoin != null) availableBalance = minCoin(totalToPayAsCoin, totalAvailableBalance);
-        missingCoin = offerUtil.getBalanceShortage(totalToPayAsCoin, availableBalance);
-        isXmrWalletFunded = offerUtil.isBalanceSufficient(totalToPayAsCoin, availableBalance);
+        if (totalToPay != null) availableBalance = totalToPay.min(totalAvailableBalance);
+        missingCoin = offerUtil.getBalanceShortage(totalToPay, availableBalance);
+        isXmrWalletFunded = offerUtil.isBalanceSufficient(totalToPay, availableBalance);
     }
 
     private long getMaxTradeLimit() {
@@ -167,15 +163,15 @@ public class TakeOfferModel implements Model {
     }
 
     @NotNull
-    public Coin getFundsNeededForTrade() {
+    public BigInteger getFundsNeededForTrade() {
         // If taking a buy offer, taker needs to reserve the offer.amt too.
-        return securityDeposit.add(offer.isBuyOffer() ? amount : ZERO);
+        return securityDeposit.add(offer.isBuyOffer() ? amount : BigInteger.valueOf(0));
     }
 
     private void validateModelInputs() {
         checkNotNull(offer, "offer must not be null");
         checkNotNull(offer.getAmount(), "offer amount must not be null");
-        checkArgument(offer.getAmount().value > 0, "offer amount must not be zero");
+        checkArgument(offer.getAmount().longValueExact() > 0, "offer amount must not be zero");
         checkNotNull(offer.getPrice(), "offer price must not be null");
         checkNotNull(paymentAccount, "payment account must not be null");
         checkNotNull(addressEntry, "address entry must not be null");
@@ -186,13 +182,13 @@ public class TakeOfferModel implements Model {
         this.amount = null;
         this.availableBalance = null;
         this.isXmrWalletFunded = false;
-        this.missingCoin = ZERO;
+        this.missingCoin = BigInteger.valueOf(0);
         this.offer = null;
         this.paymentAccount = null;
         this.securityDeposit = null;
         this.takerFee = null;
         this.totalAvailableBalance = null;
-        this.totalToPayAsCoin = null;
+        this.totalToPay = null;
         this.useSavingsWallet = true;
         this.volume = null;
     }
@@ -209,7 +205,7 @@ public class TakeOfferModel implements Model {
                 ", amount=" + amount + "\n" +
                 ", securityDeposit=" + securityDeposit + "\n" +
                 ", takerFee=" + takerFee + "\n" +
-                ", totalToPayAsCoin=" + totalToPayAsCoin + "\n" +
+                ", totalToPay=" + totalToPay + "\n" +
                 ", missingCoin=" + missingCoin + "\n" +
                 ", totalAvailableBalance=" + totalAvailableBalance + "\n" +
                 ", availableBalance=" + availableBalance + "\n" +

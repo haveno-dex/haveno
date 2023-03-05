@@ -157,7 +157,7 @@ public class DepositView extends ActivatableView<VBox, Void> {
         setConfidenceColumnCellFactory();
 
         addressColumn.setComparator(Comparator.comparing(DepositListItem::getAddressString));
-        balanceColumn.setComparator(Comparator.comparing(DepositListItem::getBalanceAsCoin));
+        balanceColumn.setComparator(Comparator.comparing(DepositListItem::getBalanceAsBI));
         confirmationsColumn.setComparator(Comparator.comparingLong(o -> o.getNumConfirmationsSinceFirstUsed()));
         usageColumn.setComparator(Comparator.comparingInt(DepositListItem::getNumTxOutputs));
         tableView.getSortOrder().add(usageColumn);
@@ -237,7 +237,7 @@ public class DepositView extends ActivatableView<VBox, Void> {
 
         xmrWalletService.addBalanceListener(balanceListener);
         amountTextFieldSubscription = EasyBind.subscribe(amountTextField.textProperty(), t -> {
-            addressTextField.setAmountAsCoin(ParsingUtils.parseToCoin(t, formatter));
+            addressTextField.setAmount(HavenoUtils.parseXmr(t));
             updateQRCode();
         });
 
@@ -306,7 +306,7 @@ public class DepositView extends ActivatableView<VBox, Void> {
                 .forEach(e -> observableList.add(new DepositListItem(e, xmrWalletService, formatter, incomingTxs)));
     }
 
-    private Coin getAmountAsCoin() {
+    private Coin getAmount() {
         return ParsingUtils.parseToCoin(amountTextField.getText(), formatter);
     }
 
@@ -314,7 +314,7 @@ public class DepositView extends ActivatableView<VBox, Void> {
     private String getPaymentUri() {
         return xmrWalletService.getWallet().getPaymentUri(new MoneroTxConfig()
                 .setAddress(addressTextField.getAddress())
-                .setAmount(HavenoUtils.coinToAtomicUnits(getAmountAsCoin()))
+                .setAmount(HavenoUtils.coinToAtomicUnits(getAmount()))
                 .setNote(paymentLabelString));
     }
 

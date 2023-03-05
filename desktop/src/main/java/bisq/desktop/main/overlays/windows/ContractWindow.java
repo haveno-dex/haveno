@@ -25,10 +25,8 @@ import bisq.desktop.util.Layout;
 
 import bisq.core.account.witness.AccountAgeWitnessService;
 import bisq.core.locale.CountryUtil;
-import bisq.core.locale.CurrencyUtil;
 import bisq.core.locale.Res;
 import bisq.core.offer.Offer;
-import bisq.core.payment.payload.PaymentAccountPayload;
 import bisq.core.payment.payload.PaymentMethod;
 import bisq.core.support.dispute.Dispute;
 import bisq.core.support.dispute.DisputeList;
@@ -37,19 +35,17 @@ import bisq.core.support.dispute.arbitration.ArbitrationManager;
 import bisq.core.support.dispute.mediation.MediationManager;
 import bisq.core.support.dispute.refund.RefundManager;
 import bisq.core.trade.Contract;
+import bisq.core.trade.HavenoUtils;
 import bisq.core.util.FormattingUtils;
 import bisq.core.util.VolumeUtil;
-import bisq.core.util.coin.CoinFormatter;
 
 import bisq.network.p2p.NodeAddress;
 
 import bisq.common.UserThread;
-import bisq.common.crypto.PubKeyRing;
 
 import org.bitcoinj.core.Utils;
 
 import javax.inject.Inject;
-import javax.inject.Named;
 
 import com.google.common.base.Joiner;
 
@@ -80,7 +76,6 @@ public class ContractWindow extends Overlay<ContractWindow> {
     private final MediationManager mediationManager;
     private final RefundManager refundManager;
     private final AccountAgeWitnessService accountAgeWitnessService;
-    private final CoinFormatter formatter;
     private Dispute dispute;
 
 
@@ -92,13 +87,11 @@ public class ContractWindow extends Overlay<ContractWindow> {
     public ContractWindow(ArbitrationManager arbitrationManager,
                           MediationManager mediationManager,
                           RefundManager refundManager,
-                          AccountAgeWitnessService accountAgeWitnessService,
-                          @Named(FormattingUtils.BTC_FORMATTER_KEY) CoinFormatter formatter) {
+                          AccountAgeWitnessService accountAgeWitnessService) {
         this.arbitrationManager = arbitrationManager;
         this.mediationManager = mediationManager;
         this.refundManager = refundManager;
         this.accountAgeWitnessService = accountAgeWitnessService;
-        this.formatter = formatter;
         type = Type.Confirmation;
     }
 
@@ -160,18 +153,18 @@ public class ContractWindow extends Overlay<ContractWindow> {
         addConfirmationLabelTextField(gridPane, ++rowIndex, Res.get("shared.tradePrice"),
                 FormattingUtils.formatPrice(contract.getPrice()));
         addConfirmationLabelTextField(gridPane, ++rowIndex, Res.get("shared.tradeAmount"),
-                formatter.formatCoinWithCode(contract.getTradeAmount()));
+                HavenoUtils.formatToXmrWithCode(contract.getTradeAmount()));
         addConfirmationLabelTextField(gridPane,
                 ++rowIndex,
                 VolumeUtil.formatVolumeLabel(currencyCode, ":"),
                 VolumeUtil.formatVolumeWithCode(contract.getTradeVolume()));
         String securityDeposit = Res.getWithColAndCap("shared.buyer") +
                 " " +
-                formatter.formatCoinWithCode(offer.getBuyerSecurityDeposit()) +
+                HavenoUtils.formatToXmrWithCode(offer.getBuyerSecurityDeposit()) +
                 " / " +
                 Res.getWithColAndCap("shared.seller") +
                 " " +
-                formatter.formatCoinWithCode(offer.getSellerSecurityDeposit());
+                HavenoUtils.formatToXmrWithCode(offer.getSellerSecurityDeposit());
         addConfirmationLabelTextField(gridPane, ++rowIndex, Res.get("shared.securityDeposit"), securityDeposit);
         addConfirmationLabelTextField(gridPane,
                 ++rowIndex,

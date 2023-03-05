@@ -29,10 +29,10 @@ import bisq.core.trade.ClosedTradableFormatter;
 import bisq.core.trade.ClosedTradableManager;
 import bisq.core.trade.Tradable;
 import bisq.core.trade.Trade;
-import org.bitcoinj.core.Coin;
 
 import org.apache.commons.lang3.StringUtils;
 
+import java.math.BigInteger;
 import java.util.Date;
 
 import lombok.Getter;
@@ -57,7 +57,7 @@ public class ClosedTradesListItem implements FilterableListItem {
         return tradable.getShortId();
     }
 
-    public Coin getAmount() {
+    public BigInteger getAmount() {
         return tradable.getOptionalAmount().orElse(null);
     }
 

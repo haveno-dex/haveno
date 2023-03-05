@@ -32,7 +32,6 @@ import bisq.desktop.util.CurrencyList;
 import bisq.desktop.util.CurrencyListItem;
 import bisq.desktop.util.DisplayUtils;
 import bisq.desktop.util.GUIUtil;
-import bisq.common.UserThread;
 import bisq.core.account.witness.AccountAgeWitnessService;
 import bisq.core.locale.CurrencyUtil;
 import bisq.core.locale.GlobalSettings;
@@ -67,7 +66,6 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.concurrent.CountDownLatch;
 import java.util.stream.Collectors;
 
 class OfferBookChartViewModel extends ActivatableViewModel {
@@ -402,7 +400,7 @@ class OfferBookChartViewModel extends ActivatableViewModel {
         for (Offer offer : sortedList) {
             Price price = offer.getPrice();
             if (price != null) {
-                double amount = (double) offer.getAmount().value / LongMath.pow(10, offer.getAmount().smallestUnitExponent());
+                double amount = (double) offer.getAmount().longValueExact() / LongMath.pow(10, HavenoUtils.XMR_SMALLEST_UNIT_EXPONENT);
                 accumulatedAmount += amount;
                 offerTableListTemp.add(new OfferListItem(offer, accumulatedAmount));
 

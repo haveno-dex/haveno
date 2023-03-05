@@ -375,7 +375,7 @@ public abstract class Trade implements Tradable, Model {
     @Getter
     transient final private Coin txFee;
     @Getter
-    transient final private Coin takerFee;
+    transient final private BigInteger takerFee;
     @Getter
     transient final private XmrWalletService xmrWalletService;
 
@@ -402,9 +402,9 @@ public abstract class Trade implements Tradable, Model {
 
     // Added in v1.2.0
     @Nullable
-    transient private Coin tradeAmount;
+    transient private BigInteger tradeAmount;
 
-    transient private ObjectProperty<Coin> tradeAmountProperty;
+    transient private ObjectProperty<BigInteger> tradeAmountProperty;
     transient private ObjectProperty<Volume> tradeVolumeProperty;
 
     // Added in v1.1.6
@@ -469,8 +469,8 @@ public abstract class Trade implements Tradable, Model {
 
     // maker
     protected Trade(Offer offer,
-                    Coin tradeAmount,
-                    Coin takerFee, // TODO (woodser): makerFee, takerFee, but not given one during construction
+                    BigInteger tradeAmount,
+                    BigInteger takerFee,
                     long tradePrice,
                     XmrWalletService xmrWalletService,
                     ProcessModel processModel,
@@ -487,7 +487,7 @@ public abstract class Trade implements Tradable, Model {
         this.processModel = processModel;
         this.uid = uid;
 
-        this.takerFeeAsLong = takerFee.value;
+        this.takerFeeAsLong = takerFee.longValueExact();
         this.takeOfferDate = new Date().getTime();
         this.tradeListeners = new ArrayList<TradeListener>();
 
@@ -503,9 +503,9 @@ public abstract class Trade implements Tradable, Model {
     // taker
     @SuppressWarnings("NullableProblems")
     protected Trade(Offer offer,
-                    Coin tradeAmount,
-                    Coin txFee,
-                    Coin takerFee,
+                    BigInteger tradeAmount,
+                    BigInteger txFee,
+                    BigInteger takerFee,
                     long tradePrice,
                     @Nullable NodeAddress mediatorNodeAddress, // TODO (woodser): remove mediator, refund agent from trade
                     @Nullable NodeAddress refundAgentNodeAddress,
@@ -532,9 +532,9 @@ public abstract class Trade implements Tradable, Model {
     // arbitrator
     @SuppressWarnings("NullableProblems")
     protected Trade(Offer offer,
-                    Coin tradeAmount,
+                    BigInteger tradeAmount,
                     Coin txFee,
-                    Coin takerFee,
+                    BigInteger takerFee,
                     long tradePrice,
                     NodeAddress makerNodeAddress,
                     NodeAddress takerNodeAddress,
@@ -860,7 +860,7 @@ public abstract class Trade implements Tradable, Model {
         boolean isBuyerMakerAndSellerTaker = getOffer().getDirection() == OfferDirection.BUY;
         Contract contract = new Contract(
                 getOffer().getOfferPayload(),
-                checkNotNull(getAmount()).value,
+                checkNotNull(getAmount()).longValueExact(),
                 getPrice().getValue(),
                 (isBuyerMakerAndSellerTaker ? getMaker() : getTaker()).getNodeAddress(), // buyer node address // TODO (woodser): use maker and taker node address instead of buyer and seller node address for consistency
                 (isBuyerMakerAndSellerTaker ? getTaker() : getMaker()).getNodeAddress(), // seller node address
@@ -905,7 +905,7 @@ public abstract class Trade implements Tradable, Model {
         Preconditions.checkNotNull(buyerPayoutAddress, "Buyer payout address must not be null");
         BigInteger sellerDepositAmount = multisigWallet.getTx(this.getSeller().getDepositTxHash()).getIncomingAmount();
         BigInteger buyerDepositAmount = multisigWallet.getTx(this.getBuyer().getDepositTxHash()).getIncomingAmount();
-        BigInteger tradeAmount = HavenoUtils.coinToAtomicUnits(this.getAmount());
+        BigInteger tradeAmount = getAmount();
         BigInteger buyerPayoutAmount = buyerDepositAmount.add(tradeAmount);
         BigInteger sellerPayoutAmount = sellerDepositAmount.subtract(tradeAmount);
 
@@ -956,7 +956,7 @@ public abstract class Trade implements Tradable, Model {
         Contract contract = getContract();
         BigInteger sellerDepositAmount = wallet.getTx(getSeller().getDepositTxHash()).getIncomingAmount();   // TODO (woodser): redundancy of processModel.getPreparedDepositTxId() vs this.getDepositTxId() necessary or avoidable?
         BigInteger buyerDepositAmount = wallet.getTx(getBuyer().getDepositTxHash()).getIncomingAmount();
-        BigInteger tradeAmount = HavenoUtils.coinToAtomicUnits(getAmount());
+        BigInteger tradeAmount = getAmount();
 
         // describe payout tx
         MoneroTxSet describedTxSet = wallet.describeTxSet(new MoneroTxSet().setMultisigTxHex(payoutTxHex));
@@ -1111,7 +1111,7 @@ public abstract class Trade implements Tradable, Model {
         // by mediators and we keep the confirm disabled to avoid that the seller can complete the trade
         // without the penalty.
         long payoutAmountFromMediation = processModel.getSellerPayoutAmountFromMediation();
-        long normalPayoutAmount = getSellerSecurityDeposit().value;
+        long normalPayoutAmount = getSellerSecurityDeposit().longValueExact();
         return payoutAmountFromMediation < normalPayoutAmount;
     }
 
@@ -1157,7 +1157,7 @@ public abstract class Trade implements Tradable, Model {
     // Abstract
     ///////////////////////////////////////////////////////////////////////////////////////////
 
-    public abstract Coin getPayoutAmount();
+    public abstract BigInteger getPayoutAmount();
 
     public abstract boolean confirmPermitted();
 
@@ -1263,9 +1263,9 @@ public abstract class Trade implements Tradable, Model {
         tradePeriodStateProperty.set(tradePeriodState);
     }
 
-    public void setAmount(Coin tradeAmount) {
+    public void setAmount(BigInteger tradeAmount) {
         this.tradeAmount = tradeAmount;
-        amountAsLong = tradeAmount.value;
+        amountAsLong = tradeAmount.longValueExact();
         getAmountProperty().set(tradeAmount);
         getVolumeProperty().set(getVolume());
     }
@@ -1535,7 +1535,7 @@ public abstract class Trade implements Tradable, Model {
         return tradePeriodStateProperty;
     }
 
-    public ReadOnlyObjectProperty<Coin> tradeAmountProperty() {
+    public ReadOnlyObjectProperty<BigInteger> tradeAmountProperty() {
         return tradeAmountProperty;
     }
 
@@ -1567,24 +1567,24 @@ public abstract class Trade implements Tradable, Model {
     }
 
     @Nullable
-    public Coin getAmount() {
+    public BigInteger getAmount() {
         if (tradeAmount == null)
-            tradeAmount = Coin.valueOf(amountAsLong);
+            tradeAmount = BigInteger.valueOf(amountAsLong);
         return tradeAmount;
     }
 
-    public Coin getMakerFee() {
+    public BigInteger getMakerFee() {
         return offer.getMakerFee();
     }
 
-    public Coin getBuyerSecurityDeposit() {
+    public BigInteger getBuyerSecurityDeposit() {
         if (getBuyer().getDepositTxHash() == null) return null;
-        return HavenoUtils.centinerosToCoin(getBuyer().getSecurityDeposit());
+        return BigInteger.valueOf(getBuyer().getSecurityDeposit());
     }
 
-    public Coin getSellerSecurityDeposit() {
+    public BigInteger getSellerSecurityDeposit() {
         if (getSeller().getDepositTxHash() == null) return null;
-        return HavenoUtils.centinerosToCoin(getSeller().getSecurityDeposit());
+        return BigInteger.valueOf(getSeller().getSecurityDeposit());
     }
 
     @Nullable
@@ -1627,7 +1627,7 @@ public abstract class Trade implements Tradable, Model {
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     // lazy initialization
-    private ObjectProperty<Coin> getAmountProperty() {
+    private ObjectProperty<BigInteger> getAmountProperty() {
         if (tradeAmountProperty == null)
             tradeAmountProperty = getAmount() != null ? new SimpleObjectProperty<>(getAmount()) : new SimpleObjectProperty<>();
 
@@ -1730,9 +1730,9 @@ public abstract class Trade implements Tradable, Model {
                     // set security deposits
                     if (getBuyer().getSecurityDeposit() == 0) {
                         BigInteger buyerSecurityDeposit = ((MoneroTxWallet) getBuyer().getDepositTx()).getIncomingAmount();
-                        BigInteger sellerSecurityDeposit = ((MoneroTxWallet) getSeller().getDepositTx()).getIncomingAmount().subtract(HavenoUtils.coinToAtomicUnits(getAmount()));
-                        getBuyer().setSecurityDeposit(HavenoUtils.atomicUnitsToCentineros(buyerSecurityDeposit));
-                        getSeller().setSecurityDeposit(HavenoUtils.atomicUnitsToCentineros(sellerSecurityDeposit));
+                        BigInteger sellerSecurityDeposit = ((MoneroTxWallet) getSeller().getDepositTx()).getIncomingAmount().subtract(getAmount());
+                        getBuyer().setSecurityDeposit(buyerSecurityDeposit.longValueExact());
+                        getSeller().setSecurityDeposit(sellerSecurityDeposit.longValueExact());
                     }
 
                     // set deposits published state

@@ -24,7 +24,6 @@ import bisq.desktop.components.AutoTooltipButton;
 import bisq.desktop.components.AutoTooltipLabel;
 import bisq.desktop.components.ExternalHyperlink;
 import bisq.desktop.components.HyperlinkWithIcon;
-import bisq.desktop.main.overlays.popups.Popup;
 import bisq.desktop.main.overlays.windows.OfferDetailsWindow;
 import bisq.desktop.main.overlays.windows.TradeDetailsWindow;
 import bisq.desktop.util.GUIUtil;
@@ -168,7 +167,7 @@ public class TransactionsView extends ActivatableView<VBox, Void> {
         });
         addressColumn.setComparator(Comparator.comparing(item -> item.getDirection() + item.getAddressString()));
         transactionColumn.setComparator(Comparator.comparing(TransactionsListItem::getTxId));
-        amountColumn.setComparator(Comparator.comparing(TransactionsListItem::getAmountAsCoin));
+        amountColumn.setComparator(Comparator.comparing(TransactionsListItem::getAmount));
         confidenceColumn.setComparator(Comparator.comparingLong(item -> item.getNumConfirmations()));
         memoColumn.setComparator(Comparator.comparing(TransactionsListItem::getMemo));
 
@@ -221,7 +220,7 @@ public class TransactionsView extends ActivatableView<VBox, Void> {
                 columns[1] = item.getDetails();
                 columns[2] = item.getDirection() + " " + item.getAddressString();
                 columns[3] = item.getTxId();
-                columns[4] = item.getAmount();
+                columns[4] = item.getAmountStr();
                 columns[5] = item.getMemo() == null ? "" : item.getMemo();
                 columns[6] = String.valueOf(item.getNumConfirmations());
                 return columns;
@@ -320,13 +319,7 @@ public class TransactionsView extends ActivatableView<VBox, Void> {
                                         setGraphic(hyperlinkWithIcon);
                                         // If details are available its a trade tx and we don't expect any dust attack tx
                                     } else {
-                                        if (item.isDustAttackTx()) {
-                                            hyperlinkWithIcon = new HyperlinkWithIcon(item.getDetails(), AwesomeIcon.WARNING_SIGN);
-                                            hyperlinkWithIcon.setOnAction(event -> new Popup().warning(Res.get("funds.tx.dustAttackTx.popup")).show());
-                                            setGraphic(hyperlinkWithIcon);
-                                        } else {
-                                            setGraphic(new AutoTooltipLabel(item.getDetails()));
-                                        }
+                                        setGraphic(new AutoTooltipLabel(item.getDetails()));
                                     }
                                 } else {
                                     setGraphic(null);
@@ -423,7 +416,7 @@ public class TransactionsView extends ActivatableView<VBox, Void> {
                                 super.updateItem(item, empty);
 
                                 if (item != null && !empty) {
-                                    setGraphic(new AutoTooltipLabel(item.getAmount()));
+                                    setGraphic(new AutoTooltipLabel(item.getAmountStr()));
                                 } else {
                                     setGraphic(null);
                                 }

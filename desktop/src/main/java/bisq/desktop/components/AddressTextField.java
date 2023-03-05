@@ -21,10 +21,8 @@ import bisq.desktop.main.overlays.popups.Popup;
 import bisq.desktop.util.GUIUtil;
 
 import bisq.core.locale.Res;
-
+import bisq.core.trade.HavenoUtils;
 import bisq.common.util.Utilities;
-
-import org.bitcoinj.core.Coin;
 
 import de.jensd.fx.fontawesome.AwesomeDude;
 import de.jensd.fx.fontawesome.AwesomeIcon;
@@ -40,6 +38,7 @@ import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
 
+import java.math.BigInteger;
 import java.net.URI;
 
 import org.slf4j.Logger;
@@ -50,7 +49,7 @@ public class AddressTextField extends AnchorPane {
 
     private final StringProperty address = new SimpleStringProperty();
     private final StringProperty paymentLabel = new SimpleStringProperty();
-    private final ObjectProperty<Coin> amountAsCoin = new SimpleObjectProperty<>(Coin.ZERO);
+    private final ObjectProperty<BigInteger> amount = new SimpleObjectProperty<>(BigInteger.ZERO);
     private boolean wasPrimaryButtonDown;
 
 
@@ -128,16 +127,16 @@ public class AddressTextField extends AnchorPane {
         return address;
     }
 
-    public Coin getAmountAsCoin() {
-        return amountAsCoin.get();
+    public BigInteger getAmount() {
+        return amount.get();
     }
 
-    public ObjectProperty<Coin> amountAsCoinProperty() {
-        return amountAsCoin;
+    public ObjectProperty<BigInteger> amountAsProperty() {
+        return amount;
     }
 
-    public void setAmountAsCoin(Coin amountAsCoin) {
-        this.amountAsCoin.set(amountAsCoin);
+    public void setAmount(BigInteger amount) {
+        this.amount.set(amount);
     }
 
     public String getPaymentLabel() {
@@ -158,11 +157,11 @@ public class AddressTextField extends AnchorPane {
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     private String getBitcoinURI() {
-        if (amountAsCoin.get().isNegative()) {
+        if (amount.get().compareTo(BigInteger.valueOf(0)) < 0) {
             log.warn("Amount must not be negative");
-            setAmountAsCoin(Coin.ZERO);
+            setAmount(BigInteger.valueOf(0));
         }
-        return GUIUtil.getBitcoinURI(address.get(), amountAsCoin.get(),
+        return GUIUtil.getBitcoinURI(address.get(), HavenoUtils.atomicUnitsToCoin(amount.get()),
                 paymentLabel.get());
     }
 }

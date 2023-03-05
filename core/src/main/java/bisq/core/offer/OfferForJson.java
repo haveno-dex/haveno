@@ -22,14 +22,14 @@ import bisq.core.locale.Res;
 import bisq.core.monetary.Price;
 import bisq.core.monetary.Volume;
 import bisq.core.payment.payload.PaymentMethod;
-
+import bisq.core.trade.HavenoUtils;
 import bisq.common.util.MathUtils;
 
-import org.bitcoinj.core.Coin;
 import org.bitcoinj.utils.MonetaryFormat;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
+import java.math.BigInteger;
 import java.util.Date;
 
 import org.slf4j.Logger;
@@ -77,8 +77,8 @@ public class OfferForJson {
 
     public OfferForJson(OfferDirection direction,
                         String currencyCode,
-                        Coin minAmount,
-                        Coin amount,
+                        BigInteger minAmount,
+                        BigInteger amount,
                         @Nullable Price price,
                         Date date,
                         String id,
@@ -88,8 +88,8 @@ public class OfferForJson {
 
         this.direction = direction;
         this.currencyCode = currencyCode;
-        this.minAmount = minAmount.value;
-        this.amount = amount.value;
+        this.minAmount = minAmount.longValueExact();
+        this.amount = amount.longValueExact();
         this.price = price.getValue();
         this.date = date.getTime();
         this.id = id;
@@ -114,21 +114,21 @@ public class OfferForJson {
                 priceDisplayString = altcoinFormat.noCode().format(price.getMonetary()).toString();
                 primaryMarketMinAmountDisplayString = altcoinFormat.noCode().format(getMinVolume().getMonetary()).toString();
                 primaryMarketAmountDisplayString = altcoinFormat.noCode().format(getVolume().getMonetary()).toString();
-                primaryMarketMinVolumeDisplayString = coinFormat.noCode().format(getMinAmountAsCoin()).toString();
-                primaryMarketVolumeDisplayString = coinFormat.noCode().format(getAmountAsCoin()).toString();
+                primaryMarketMinVolumeDisplayString = HavenoUtils.formatToXmr(getMinAmount()).toString();
+                primaryMarketVolumeDisplayString = HavenoUtils.formatToXmr(getAmount()).toString();
 
                 primaryMarketPrice = price.getValue();
                 primaryMarketMinAmount = getMinVolume().getValue();
                 primaryMarketAmount = getVolume().getValue();
-                primaryMarketMinVolume = getMinAmountAsCoin().getValue();
-                primaryMarketVolume = getAmountAsCoin().getValue();
+                primaryMarketMinVolume = getMinAmount().longValueExact();
+                primaryMarketVolume = getAmount().longValueExact();
             } else {
                 primaryMarketDirection = direction;
                 currencyPair = Res.getBaseCurrencyCode() + "/" + currencyCode;
 
                 priceDisplayString = fiatFormat.noCode().format(price.getMonetary()).toString();
-                primaryMarketMinAmountDisplayString = coinFormat.noCode().format(getMinAmountAsCoin()).toString();
-                primaryMarketAmountDisplayString = coinFormat.noCode().format(getAmountAsCoin()).toString();
+                primaryMarketMinAmountDisplayString = HavenoUtils.formatToXmr(getMinAmount()).toString();
+                primaryMarketAmountDisplayString = HavenoUtils.formatToXmr(getAmount()).toString();
                 primaryMarketMinVolumeDisplayString = fiatFormat.noCode().format(getMinVolume().getMonetary()).toString();
                 primaryMarketVolumeDisplayString = fiatFormat.noCode().format(getVolume().getMonetary()).toString();
 
@@ -137,8 +137,8 @@ public class OfferForJson {
                 primaryMarketMinVolume = (long) MathUtils.scaleUpByPowerOf10(getMinVolume().getValue(), 4);
                 primaryMarketVolume = (long) MathUtils.scaleUpByPowerOf10(getVolume().getValue(), 4);
 
-                primaryMarketMinAmount = getMinAmountAsCoin().getValue();
-                primaryMarketAmount = getAmountAsCoin().getValue();
+                primaryMarketMinAmount = getMinAmount().longValueExact();
+                primaryMarketAmount = getAmount().longValueExact();
             }
 
         } catch (Throwable t) {
@@ -150,19 +150,19 @@ public class OfferForJson {
         return Price.valueOf(currencyCode, price);
     }
 
-    private Coin getAmountAsCoin() {
-        return Coin.valueOf(amount);
+    private BigInteger getAmount() {
+        return BigInteger.valueOf(amount);
     }
 
-    private Coin getMinAmountAsCoin() {
-        return Coin.valueOf(minAmount);
+    private BigInteger getMinAmount() {
+        return BigInteger.valueOf(minAmount);
     }
 
     private Volume getVolume() {
-        return getPrice().getVolumeByAmount(getAmountAsCoin());
+        return getPrice().getVolumeByAmount(getAmount());
     }
 
     private Volume getMinVolume() {
-        return getPrice().getVolumeByAmount(getMinAmountAsCoin());
+        return getPrice().getVolumeByAmount(getMinAmount());
     }
 }

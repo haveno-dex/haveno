@@ -26,11 +26,10 @@ import bisq.core.locale.GlobalSettings;
 import bisq.core.locale.Res;
 import bisq.core.offer.CreateOfferService;
 import bisq.core.offer.OfferDirection;
-import bisq.core.offer.OfferPayload;
 import bisq.core.offer.OfferUtil;
 import bisq.core.payment.PaymentAccount;
 import bisq.core.payment.payload.PaymentMethod;
-import bisq.core.payment.validation.BtcValidator;
+import bisq.core.payment.validation.XmrValidator;
 import bisq.core.payment.validation.SecurityDepositValidator;
 import bisq.core.provider.price.MarketPrice;
 import bisq.core.provider.price.PriceFeedService;
@@ -45,12 +44,11 @@ import bisq.core.util.validation.InputValidator;
 
 import bisq.common.config.Config;
 
-import org.bitcoinj.core.Coin;
-
 import javafx.beans.property.SimpleIntegerProperty;
 
 import javafx.collections.FXCollections;
 
+import java.math.BigInteger;
 import java.time.Instant;
 
 import java.util.UUID;
@@ -62,7 +60,6 @@ import static bisq.desktop.maker.PreferenceMakers.empty;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -79,7 +76,7 @@ public class CreateOfferViewModelTest {
         GlobalSettings.setDefaultTradeCurrency(btc);
         Res.setup();
 
-        final BtcValidator btcValidator = new BtcValidator(coinFormatter);
+        final XmrValidator btcValidator = new XmrValidator();
         final AltcoinValidator altcoinValidator = new AltcoinValidator();
         final FiatPriceValidator fiatPriceValidator = new FiatPriceValidator();
 
@@ -96,7 +93,7 @@ public class CreateOfferViewModelTest {
         var tradeStats = mock(TradeStatisticsManager.class);
 
         when(xmrWalletService.getOrCreateAddressEntry(anyString(), any())).thenReturn(addressEntry);
-        when(xmrWalletService.getBalanceForSubaddress(any(Integer.class))).thenReturn(Coin.valueOf(1000L));
+        when(xmrWalletService.getBalanceForSubaddress(any(Integer.class))).thenReturn(BigInteger.valueOf(10000000L));
         when(priceFeedService.updateCounterProperty()).thenReturn(new SimpleIntegerProperty());
         when(priceFeedService.getMarketPrice(anyString())).thenReturn(
                 new MarketPrice("USD",

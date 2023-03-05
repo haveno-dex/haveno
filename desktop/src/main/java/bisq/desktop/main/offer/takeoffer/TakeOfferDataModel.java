@@ -26,7 +26,6 @@ import bisq.common.handlers.ErrorMessageHandler;
 import bisq.core.account.witness.AccountAgeWitnessService;
 import bisq.core.btc.listeners.XmrBalanceListener;
 import bisq.core.btc.model.XmrAddressEntry;
-import bisq.core.btc.wallet.Restrictions;
 import bisq.core.btc.wallet.XmrWalletService;
 import bisq.core.filter.FilterManager;
 import bisq.core.locale.CurrencyUtil;
@@ -47,11 +46,8 @@ import bisq.core.trade.handlers.TradeResultHandler;
 import bisq.core.user.Preferences;
 import bisq.core.user.User;
 import bisq.core.util.VolumeUtil;
-import bisq.core.util.coin.CoinUtil;
 
 import bisq.network.p2p.P2PService;
-
-import org.bitcoinj.core.Coin;
 
 import com.google.inject.Inject;
 
@@ -94,13 +90,13 @@ class TakeOfferDataModel extends OfferDataModel {
     private final Navigation navigation;
     private final P2PService p2PService;
 
-    private Coin securityDeposit;
+    private BigInteger securityDeposit;
 
     private Offer offer;
 
     // final BooleanProperty isFeeFromFundingTxSufficient = new SimpleBooleanProperty();
     // final BooleanProperty isMainNet = new SimpleBooleanProperty();
-    private final ObjectProperty<Coin> amount = new SimpleObjectProperty<>();
+    private final ObjectProperty<BigInteger> amount = new SimpleObjectProperty<>();
     final ObjectProperty<Volume> volume = new SimpleObjectProperty<>();
 
     private XmrBalanceListener balanceListener;
@@ -198,7 +194,7 @@ class TakeOfferDataModel extends OfferDataModel {
         checkArgument(!possiblePaymentAccounts.isEmpty(), "possiblePaymentAccounts.isEmpty()");
         paymentAccount = getLastSelectedPaymentAccount();
 
-        this.amount.set(Coin.valueOf(Math.min(offer.getAmount().value, getMaxTradeLimit())));
+        this.amount.set(offer.getAmount().min(BigInteger.valueOf(getMaxTradeLimit())));
 
         securityDeposit = offer.getDirection() == OfferDirection.SELL ?
                 getBuyerSecurityDeposit() :
@@ -263,7 +259,7 @@ class TakeOfferDataModel extends OfferDataModel {
     void onTakeOffer(TradeResultHandler tradeResultHandler, ErrorMessageHandler errorMessageHandler) {
         checkNotNull(getTakerFee(), "takerFee must not be null");
 
-        Coin fundsNeededForTrade = getFundsNeededForTrade();
+        BigInteger fundsNeededForTrade = getFundsNeededForTrade();
         if (isBuyOffer())
             fundsNeededForTrade = fundsNeededForTrade.add(amount.get());
 
@@ -301,7 +297,7 @@ class TakeOfferDataModel extends OfferDataModel {
             this.paymentAccount = paymentAccount;
 
             long myLimit = getMaxTradeLimit();
-            this.amount.set(Coin.valueOf(Math.max(offer.getMinAmount().value, Math.min(amount.get().value, myLimit))));
+            this.amount.set(offer.getMinAmount().max(amount.get().min(BigInteger.valueOf(myLimit))));
 
             preferences.setTakeOfferSelectedPaymentAccountId(paymentAccount.getId());
         }
@@ -385,7 +381,7 @@ class TakeOfferDataModel extends OfferDataModel {
     void calculateVolume() {
         if (tradePrice != null && offer != null &&
                 amount.get() != null &&
-                !amount.get().isZero()) {
+                amount.get().compareTo(BigInteger.valueOf(0)) != 0) {
             Volume volumeByAmount = tradePrice.getVolumeByAmount(amount.get());
             if (offer.getPaymentMethod().getId().equals(PaymentMethod.HAL_CASH_ID))
                 volumeByAmount = VolumeUtil.getAdjustedVolumeForHalCash(volumeByAmount);
@@ -398,8 +394,8 @@ class TakeOfferDataModel extends OfferDataModel {
         }
     }
 
-    void applyAmount(Coin amount) {
-        this.amount.set(Coin.valueOf(Math.min(amount.value, getMaxTradeLimit())));
+    void applyAmount(BigInteger amount) {
+        this.amount.set(amount.min(BigInteger.valueOf(getMaxTradeLimit())));
 
         calculateTotalToPay();
     }
@@ -408,15 +404,15 @@ class TakeOfferDataModel extends OfferDataModel {
         // Taker pays 2 times the tx fee because the mining fee might be different when maker created the offer
         // and reserved his funds, so that would not work well with dynamic fees.
         // The mining fee for the takeOfferFee tx is deducted from the createOfferFee and not visible to the trader
-        final Coin takerFee = getTakerFee();
+        final BigInteger takerFee = getTakerFee();
         if (offer != null && amount.get() != null && takerFee != null) {
-            Coin feeAndSecDeposit = securityDeposit.add(takerFee);
+            BigInteger feeAndSecDeposit = securityDeposit.add(takerFee);
             if (isBuyOffer())
-                totalToPayAsCoin.set(feeAndSecDeposit.add(amount.get()));
+                totalToPay.set(feeAndSecDeposit.add(amount.get()));
             else
-                totalToPayAsCoin.set(feeAndSecDeposit);
+                totalToPay.set(feeAndSecDeposit);
             updateAvailableBalance();
-            log.debug("totalToPayAsCoin {}", totalToPayAsCoin.get().toFriendlyString());
+            log.debug("totalToPay {}", totalToPay.get());
         }
     }
 
@@ -433,7 +429,7 @@ class TakeOfferDataModel extends OfferDataModel {
     }
 
     @Nullable
-    Coin getTakerFee() {
+    BigInteger getTakerFee() {
         return HavenoUtils.getTakerFee(this.amount.get());
     }
 
@@ -450,33 +446,22 @@ class TakeOfferDataModel extends OfferDataModel {
     boolean isMinAmountLessOrEqualAmount() {
         //noinspection SimplifiableIfStatement
         if (offer != null && amount.get() != null)
-            return !offer.getMinAmount().isGreaterThan(amount.get());
+            return offer.getMinAmount().compareTo(amount.get()) <= 0;
         return true;
     }
 
     boolean isAmountLargerThanOfferAmount() {
         //noinspection SimplifiableIfStatement
         if (amount.get() != null && offer != null)
-            return amount.get().isGreaterThan(offer.getAmount());
+            return amount.get().compareTo(offer.getAmount()) > 0;
         return true;
     }
 
     boolean wouldCreateDustForMaker() {
-        //noinspection SimplifiableIfStatement
-        boolean result;
-        if (amount.get() != null && offer != null) {
-            Coin customAmount = offer.getAmount().subtract(amount.get());
-            result = customAmount.isPositive() && customAmount.isLessThan(Restrictions.getMinNonDustOutput());
-
-            if (result)
-                log.info("would create dust for maker, customAmount={},  Restrictions.getMinNonDustOutput()={}", customAmount, Restrictions.getMinNonDustOutput());
-        } else {
-            result = true;
-        }
-        return result;
+        return false; // TODO: update for XMR?
     }
 
-    ReadOnlyObjectProperty<Coin> getAmount() {
+    ReadOnlyObjectProperty<BigInteger> getAmount() {
         return amount;
     }
 
@@ -493,7 +478,7 @@ class TakeOfferDataModel extends OfferDataModel {
     }
 
     @NotNull
-    private Coin getFundsNeededForTrade() {
+    private BigInteger getFundsNeededForTrade() {
         return getSecurityDeposit();
     }
 
@@ -501,15 +486,15 @@ class TakeOfferDataModel extends OfferDataModel {
         return addressEntry;
     }
 
-    public Coin getSecurityDeposit() {
+    public BigInteger getSecurityDeposit() {
         return securityDeposit;
     }
 
-    public Coin getBuyerSecurityDeposit() {
+    public BigInteger getBuyerSecurityDeposit() {
         return offer.getBuyerSecurityDeposit();
     }
 
-    public Coin getSellerSecurityDeposit() {
+    public BigInteger getSellerSecurityDeposit() {
         return offer.getSellerSecurityDeposit();
     }
 

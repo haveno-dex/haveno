@@ -24,10 +24,7 @@ import bisq.core.trade.messages.InitTradeRequest;
 import bisq.network.p2p.SendDirectMessageListener;
 
 import bisq.common.app.Version;
-import bisq.common.crypto.Sig;
 import bisq.common.taskrunner.TaskRunner;
-
-import com.google.common.base.Charsets;
 
 import java.util.UUID;
 
@@ -59,9 +56,9 @@ public class MakerSendInitTradeRequest extends TradeTask {
                     offer.getId(),
                     processModel.getMyNodeAddress(),
                     processModel.getPubKeyRing(),
-                    offer.getAmount().value,
+                    offer.getAmount().longValueExact(),
                     trade.getPrice().getValue(),
-                    offer.getMakerFee().value,
+                    offer.getMakerFee().longValueExact(),
                     trade.getProcessModel().getAccountId(),
                     offer.getMakerPaymentAccountId(),
                     offer.getOfferPayload().getPaymentMethodId(),

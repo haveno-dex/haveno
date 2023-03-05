@@ -56,7 +56,6 @@ import bisq.common.handlers.ResultHandler;
 import bisq.common.util.MathUtils;
 import bisq.common.util.Tuple2;
 
-import org.bitcoinj.core.Coin;
 import org.bitcoinj.utils.Fiat;
 
 import javafx.beans.property.IntegerProperty;
@@ -844,8 +843,8 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
                         (contract.isBuyerMakerAndSellerTaker() ? contract.getMakerPayoutAddressString() : contract.getTakerPayoutAddressString()) :
                         (contract.isBuyerMakerAndSellerTaker() ? contract.getTakerPayoutAddressString() : contract.getMakerPayoutAddressString());
                 String loserPayoutAddress = winnerPayoutAddress.equals(contract.getMakerPayoutAddressString()) ? contract.getTakerPayoutAddressString() : contract.getMakerPayoutAddressString();
-                BigInteger winnerPayoutAmount = HavenoUtils.coinToAtomicUnits(disputeResult.getWinner() == Winner.BUYER ? disputeResult.getBuyerPayoutAmount() : disputeResult.getSellerPayoutAmount());
-                BigInteger loserPayoutAmount = HavenoUtils.coinToAtomicUnits(disputeResult.getWinner() == Winner.BUYER ? disputeResult.getSellerPayoutAmount() : disputeResult.getBuyerPayoutAmount());
+                BigInteger winnerPayoutAmount = disputeResult.getWinner() == Winner.BUYER ? disputeResult.getBuyerPayoutAmount() : disputeResult.getSellerPayoutAmount();
+                BigInteger loserPayoutAmount = disputeResult.getWinner() == Winner.BUYER ? disputeResult.getSellerPayoutAmount() : disputeResult.getBuyerPayoutAmount();
 
                 // check sufficient balance
                 if (winnerPayoutAmount.compareTo(BigInteger.ZERO) < 0) throw new RuntimeException("Winner payout cannot be negative");
@@ -1039,26 +1038,26 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
         }
 
         // The amount we would get if we do a new trade with current price
-        Coin potentialAmountAtDisputeOpening = priceAtDisputeOpening.getAmountByVolume(contract.getTradeVolume());
-        Coin buyerSecurityDeposit = Coin.valueOf(offerPayload.getBuyerSecurityDeposit());
-        Coin minRefundAtMediatedDispute = Restrictions.getMinRefundAtMediatedDispute();
+        BigInteger potentialAmountAtDisputeOpening = priceAtDisputeOpening.getAmountByVolume(contract.getTradeVolume());
+        BigInteger buyerSecurityDeposit = BigInteger.valueOf(offerPayload.getBuyerSecurityDeposit());
+        BigInteger minRefundAtMediatedDispute = Restrictions.getMinRefundAtMediatedDispute();
         // minRefundAtMediatedDispute is always larger as buyerSecurityDeposit at mediated payout, we ignore refund agent case here as there it can be 0.
-        Coin maxLossSecDeposit = buyerSecurityDeposit.subtract(minRefundAtMediatedDispute);
-        Coin tradeAmount = contract.getTradeAmount();
-        Coin potentialGain = potentialAmountAtDisputeOpening.subtract(tradeAmount).subtract(maxLossSecDeposit);
+        BigInteger maxLossSecDeposit = buyerSecurityDeposit.subtract(minRefundAtMediatedDispute);
+        BigInteger tradeAmount = contract.getTradeAmount();
+        BigInteger potentialGain = potentialAmountAtDisputeOpening.subtract(tradeAmount).subtract(maxLossSecDeposit);
         String optionTradeDetails;
         // We don't translate those strings (yet) as it is only displayed to mediators/arbitrators.
         String headline;
-        if (potentialGain.isPositive()) {
+        if (potentialGain.compareTo(BigInteger.valueOf(0)) > 0) {
             headline = "This might be a potential option trade!";
-            optionTradeDetails = "\nBTC amount calculated with price at dispute opening: " + potentialAmountAtDisputeOpening.toFriendlyString() +
-                    "\nMax loss of security deposit is: " + maxLossSecDeposit.toFriendlyString() +
-                    "\nPossible gain from an option trade is: " + potentialGain.toFriendlyString();
+            optionTradeDetails = "\nBTC amount calculated with price at dispute opening: " + HavenoUtils.formatToXmrWithCode(potentialAmountAtDisputeOpening) +
+                    "\nMax loss of security deposit is: " + HavenoUtils.formatToXmrWithCode(maxLossSecDeposit) +
+                    "\nPossible gain from an option trade is: " + HavenoUtils.formatToXmrWithCode(potentialGain);
         } else {
             headline = "It does not appear to be an option trade.";
-            optionTradeDetails = "\nBTC amount calculated with price at dispute opening: " + potentialAmountAtDisputeOpening.toFriendlyString() +
-                    "\nMax loss of security deposit is: " + maxLossSecDeposit.toFriendlyString() +
-                    "\nPossible loss from an option trade is: " + potentialGain.multiply(-1).toFriendlyString();
+            optionTradeDetails = "\nBTC amount calculated with price at dispute opening: " + HavenoUtils.formatToXmrWithCode(potentialAmountAtDisputeOpening) +
+                    "\nMax loss of security deposit is: " + HavenoUtils.formatToXmrWithCode(maxLossSecDeposit) +
+                    "\nPossible loss from an option trade is: " + HavenoUtils.formatToXmrWithCode(potentialGain.multiply(BigInteger.valueOf(-1)));
         }
 
         String percentagePriceDetails = offerPayload.isUseMarketBasedPrice() ?
@@ -1067,7 +1066,7 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
 
         String priceInfoText = "System message: " + headline +
                 "\n\nTrade price: " + contract.getPrice().toFriendlyString() + percentagePriceDetails +
-                "\nTrade amount: " + tradeAmount.toFriendlyString() +
+                "\nTrade amount: " + HavenoUtils.formatToXmrWithCode(tradeAmount) +
                 "\nPrice at dispute opening: " + priceAtDisputeOpening.toFriendlyString() +
                 optionTradeDetails;
 

@@ -40,7 +40,6 @@ import bisq.common.app.Capabilities;
 import bisq.common.app.Version;
 import bisq.common.util.MathUtils;
 import bisq.common.util.Utilities;
-import org.bitcoinj.core.Coin;
 import org.bitcoinj.core.Transaction;
 import org.bitcoinj.core.TransactionInput;
 import org.bitcoinj.core.TransactionOutput;
@@ -49,6 +48,7 @@ import org.bitcoinj.utils.Fiat;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
+import java.math.BigInteger;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -129,7 +129,7 @@ public class OfferUtil {
      * @param balance a wallet balance
      * @return true if balance >= cost
      */
-    public boolean isBalanceSufficient(Coin cost, Coin balance) {
+    public boolean isBalanceSufficient(BigInteger cost, BigInteger balance) {
         return cost != null && balance.compareTo(cost) >= 0;
     }
 
@@ -141,15 +141,14 @@ public class OfferUtil {
      * @param balance a wallet balance
      * @return the wallet balance shortage for the given cost, else zero.
      */
-    public Coin getBalanceShortage(Coin cost, Coin balance) {
+    public BigInteger getBalanceShortage(BigInteger cost, BigInteger balance) {
         if (cost != null) {
-            Coin shortage = cost.subtract(balance);
-            return shortage.isNegative() ? Coin.ZERO : shortage;
+            BigInteger shortage = cost.subtract(balance);
+            return shortage.compareTo(BigInteger.valueOf(0)) < 0 ? BigInteger.valueOf(0) : shortage;
         } else {
-            return Coin.ZERO;
+            return BigInteger.valueOf(0);
         }
     }
-
 
     public double calculateManualPrice(double volumeAsDouble, double amountAsDouble) {
         return volumeAsDouble / amountAsDouble;
@@ -163,7 +162,7 @@ public class OfferUtil {
         return offer != null && offer.getPaymentMethod().isBlockchain();
     }
 
-    public Optional<Volume> getFeeInUserFiatCurrency(Coin makerFee,
+    public Optional<Volume> getFeeInUserFiatCurrency(BigInteger makerFee,
                                                      CoinFormatter formatter) {
         String userCurrencyCode = preferences.getPreferredTradeCurrency().getCode();
         if (CurrencyUtil.isCryptoCurrency(userCurrencyCode)) {
@@ -216,8 +215,8 @@ public class OfferUtil {
     public void validateOfferData(double buyerSecurityDeposit,
                                   PaymentAccount paymentAccount,
                                   String currencyCode,
-                                  Coin makerFeeAsCoin) {
-        checkNotNull(makerFeeAsCoin, "makerFee must not be null");
+                                  BigInteger makerFee) {
+        checkNotNull(makerFee, "makerFee must not be null");
         checkNotNull(p2PService.getAddress(), "Address must not be null");
         checkArgument(buyerSecurityDeposit <= getMaxBuyerSecurityDepositAsPercent(),
                 "securityDeposit must not exceed " +
@@ -231,7 +230,7 @@ public class OfferUtil {
                 Res.get("offerbook.warning.paymentMethodBanned"));
     }
 
-    private Optional<Volume> getFeeInUserFiatCurrency(Coin makerFee, String userCurrencyCode, CoinFormatter formatter) {
+    private Optional<Volume> getFeeInUserFiatCurrency(BigInteger makerFee, String userCurrencyCode, CoinFormatter formatter) {
         MarketPrice marketPrice = priceFeedService.getMarketPrice(userCurrencyCode);
         if (marketPrice != null && makerFee != null) {
             long marketPriceAsLong = roundDoubleToLong(scaleUpByPowerOf10(marketPrice.getPrice(), Fiat.SMALLEST_UNIT_EXPONENT));

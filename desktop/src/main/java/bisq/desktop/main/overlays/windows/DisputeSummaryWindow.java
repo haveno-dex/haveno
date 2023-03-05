@@ -43,7 +43,6 @@ import bisq.core.trade.HavenoUtils;
 import bisq.core.trade.Trade;
 import bisq.core.trade.TradeManager;
 import bisq.core.util.FormattingUtils;
-import bisq.core.util.ParsingUtils;
 import bisq.core.util.VolumeUtil;
 import bisq.core.util.coin.CoinFormatter;
 
@@ -76,6 +75,7 @@ import javafx.geometry.Insets;
 import javafx.beans.binding.Bindings;
 import javafx.beans.value.ChangeListener;
 
+import java.math.BigInteger;
 import java.util.Date;
 import java.util.Optional;
 
@@ -278,26 +278,26 @@ public class DisputeSummaryWindow extends Overlay<DisputeSummaryWindow> {
         }
         addConfirmationLabelLabel(gridPane, ++rowIndex, Res.get("disputeSummaryWindow.role"), role);
         addConfirmationLabelLabel(gridPane, ++rowIndex, Res.get("shared.tradeAmount"),
-                formatter.formatCoinWithCode(contract.getTradeAmount()));
+                HavenoUtils.formatToXmrWithCode(contract.getTradeAmount()));
         addConfirmationLabelLabel(gridPane, ++rowIndex, Res.get("shared.tradePrice"),
             FormattingUtils.formatPrice(contract.getPrice()));
         addConfirmationLabelLabel(gridPane, ++rowIndex, Res.get("shared.tradeVolume"),
             VolumeUtil.formatVolumeWithCode(contract.getTradeVolume()));
         String tradeFee = Res.getWithColAndCap("shared.buyer") +
                 " " +
-                formatter.formatCoinWithCode(trade.getBuyer() == trade.getMaker() ? trade.getMakerFee() : trade.getTakerFee()) +
+                HavenoUtils.formatToXmrWithCode(trade.getBuyer() == trade.getMaker() ? trade.getMakerFee() : trade.getTakerFee()) +
                 " / " +
                 Res.getWithColAndCap("shared.seller") +
                 " " +
-                formatter.formatCoinWithCode(trade.getSeller() == trade.getMaker() ? trade.getMakerFee() : trade.getTakerFee());
+                HavenoUtils.formatToXmrWithCode(trade.getSeller() == trade.getMaker() ? trade.getMakerFee() : trade.getTakerFee());
         addConfirmationLabelLabel(gridPane, ++rowIndex, Res.get("shared.tradeFee"), tradeFee);
         String securityDeposit = Res.getWithColAndCap("shared.buyer") +
                 " " +
-                formatter.formatCoinWithCode(trade.getBuyerSecurityDeposit()) +
+                HavenoUtils.formatToXmrWithCode(trade.getBuyerSecurityDeposit()) +
                 " / " +
                 Res.getWithColAndCap("shared.seller") +
                 " " +
-                formatter.formatCoinWithCode(trade.getSellerSecurityDeposit());
+                HavenoUtils.formatToXmrWithCode(trade.getSellerSecurityDeposit());
         addConfirmationLabelLabel(gridPane, ++rowIndex, Res.get("shared.securityDeposit"), securityDeposit);
     }
 
@@ -356,14 +356,14 @@ public class DisputeSummaryWindow extends Overlay<DisputeSummaryWindow> {
     }
 
     private boolean isPayoutAmountValid() {
-        Coin buyerAmount = ParsingUtils.parseToCoin(buyerPayoutAmountInputTextField.getText(), formatter);
-        Coin sellerAmount = ParsingUtils.parseToCoin(sellerPayoutAmountInputTextField.getText(), formatter);
+        BigInteger buyerAmount = HavenoUtils.parseXmr(buyerPayoutAmountInputTextField.getText());
+        BigInteger sellerAmount = HavenoUtils.parseXmr(sellerPayoutAmountInputTextField.getText());
         Contract contract = dispute.getContract();
-        Coin tradeAmount = contract.getTradeAmount();
-        Coin available = tradeAmount
+        BigInteger tradeAmount = contract.getTradeAmount();
+        BigInteger available = tradeAmount
                 .add(trade.getBuyerSecurityDeposit())
                 .add(trade.getSellerSecurityDeposit());
-        Coin totalAmount = buyerAmount.add(sellerAmount);
+        BigInteger totalAmount = buyerAmount.add(sellerAmount);
 
         boolean isRefundAgent = getDisputeManager(dispute) instanceof RefundManager;
         if (isRefundAgent) {
@@ -371,7 +371,7 @@ public class DisputeSummaryWindow extends Overlay<DisputeSummaryWindow> {
             // be made
             return totalAmount.compareTo(available) <= 0;
         } else {
-            if (!totalAmount.isPositive()) {
+            if (totalAmount.compareTo(BigInteger.valueOf(0)) <= 0) {
                 return false;
             }
             return totalAmount.compareTo(available) == 0;
@@ -386,26 +386,26 @@ public class DisputeSummaryWindow extends Overlay<DisputeSummaryWindow> {
         }
 
         Contract contract = dispute.getContract();
-        Coin available = contract.getTradeAmount()
+        BigInteger available = contract.getTradeAmount()
                 .add(trade.getBuyerSecurityDeposit())
                 .add(trade.getSellerSecurityDeposit());
-        Coin enteredAmount = ParsingUtils.parseToCoin(inputTextField.getText(), formatter);
+        BigInteger enteredAmount = HavenoUtils.parseXmr(inputTextField.getText());
         if (enteredAmount.compareTo(available) > 0) {
             enteredAmount = available;
-            Coin finalEnteredAmount = enteredAmount;
-            inputTextField.setText(formatter.formatCoin(finalEnteredAmount));
+            BigInteger finalEnteredAmount = enteredAmount;
+            inputTextField.setText(HavenoUtils.formatToXmr(finalEnteredAmount));
         }
-        Coin counterPartAsCoin = available.subtract(enteredAmount);
-        String formattedCounterPartAmount = formatter.formatCoin(counterPartAsCoin);
-        Coin buyerAmount;
-        Coin sellerAmount;
+        BigInteger counterPart = available.subtract(enteredAmount);
+        String formattedCounterPartAmount = HavenoUtils.formatToXmr(counterPart);
+        BigInteger buyerAmount;
+        BigInteger sellerAmount;
         if (inputTextField == buyerPayoutAmountInputTextField) {
             buyerAmount = enteredAmount;
-            sellerAmount = counterPartAsCoin;
+            sellerAmount = counterPart;
             sellerPayoutAmountInputTextField.setText(formattedCounterPartAmount);
         } else {
             sellerAmount = enteredAmount;
-            buyerAmount = counterPartAsCoin;
+            buyerAmount = counterPart;
             buyerPayoutAmountInputTextField.setText(formattedCounterPartAmount);
         }
 
@@ -619,28 +619,28 @@ public class DisputeSummaryWindow extends Overlay<DisputeSummaryWindow> {
     }
 
     private void showPayoutTxConfirmation(Contract contract, DisputeResult disputeResult, MoneroTxWallet payoutTx, ResultHandler resultHandler) {
-        Coin buyerPayoutAmount = disputeResult.getBuyerPayoutAmount();
+        BigInteger buyerPayoutAmount = disputeResult.getBuyerPayoutAmount();
         String buyerPayoutAddressString = contract.getBuyerPayoutAddressString();
-        Coin sellerPayoutAmount = disputeResult.getSellerPayoutAmount();
+        BigInteger sellerPayoutAmount = disputeResult.getSellerPayoutAmount();
         String sellerPayoutAddressString = contract.getSellerPayoutAddressString();
-        Coin outputAmount = buyerPayoutAmount.add(sellerPayoutAmount);
+        BigInteger outputAmount = buyerPayoutAmount.add(sellerPayoutAmount);
         String buyerDetails = "";
-        if (buyerPayoutAmount.isPositive()) {
+        if (buyerPayoutAmount.compareTo(BigInteger.valueOf(0)) > 0) {
             buyerDetails = Res.get("disputeSummaryWindow.close.txDetails.buyer",
-                    formatter.formatCoinWithCode(buyerPayoutAmount),
+                    HavenoUtils.formatToXmrWithCode(buyerPayoutAmount),
                     buyerPayoutAddressString);
         }
         String sellerDetails = "";
-        if (sellerPayoutAmount.isPositive()) {
+        if (sellerPayoutAmount.compareTo(BigInteger.valueOf(0)) > 0) {
             sellerDetails = Res.get("disputeSummaryWindow.close.txDetails.seller",
-                    formatter.formatCoinWithCode(sellerPayoutAmount),
+                    HavenoUtils.formatToXmrWithCode(sellerPayoutAmount),
                     sellerPayoutAddressString);
         }
-        if (outputAmount.isPositive()) {
+        if (outputAmount.compareTo(BigInteger.valueOf(0)) > 0) {
             new Popup().width(900)
                     .headLine(Res.get("disputeSummaryWindow.close.txDetails.headline"))
                     .confirmation(Res.get("disputeSummaryWindow.close.txDetails",
-                            formatter.formatCoinWithCode(outputAmount),
+                            HavenoUtils.formatToXmrWithCode(outputAmount),
                             buyerDetails,
                             sellerDetails,
                             formatter.formatCoinWithCode(HavenoUtils.atomicUnitsToCoin(payoutTx.getFee()))))
@@ -716,21 +716,21 @@ public class DisputeSummaryWindow extends Overlay<DisputeSummaryWindow> {
             throw new IllegalStateException("Unknown radio button");
         }
         disputesService.applyPayoutAmountsToDisputeResult(payout, dispute, disputeResult, -1);
-        buyerPayoutAmountInputTextField.setText(formatter.formatCoin(disputeResult.getBuyerPayoutAmount()));
-        sellerPayoutAmountInputTextField.setText(formatter.formatCoin(disputeResult.getSellerPayoutAmount()));
+        buyerPayoutAmountInputTextField.setText(HavenoUtils.formatToXmr(disputeResult.getBuyerPayoutAmount()));
+        sellerPayoutAmountInputTextField.setText(HavenoUtils.formatToXmr(disputeResult.getSellerPayoutAmount()));
     }
 
     private void applyTradeAmountRadioButtonStates() {
         Contract contract = dispute.getContract();
-        Coin buyerSecurityDeposit = trade.getBuyerSecurityDeposit();
-        Coin sellerSecurityDeposit = trade.getSellerSecurityDeposit();
-        Coin tradeAmount = contract.getTradeAmount();
+        BigInteger buyerSecurityDeposit = trade.getBuyerSecurityDeposit();
+        BigInteger sellerSecurityDeposit = trade.getSellerSecurityDeposit();
+        BigInteger tradeAmount = contract.getTradeAmount();
 
-        Coin buyerPayoutAmount = disputeResult.getBuyerPayoutAmount();
-        Coin sellerPayoutAmount = disputeResult.getSellerPayoutAmount();
+        BigInteger buyerPayoutAmount = disputeResult.getBuyerPayoutAmount();
+        BigInteger sellerPayoutAmount = disputeResult.getSellerPayoutAmount();
 
-        buyerPayoutAmountInputTextField.setText(formatter.formatCoin(buyerPayoutAmount));
-        sellerPayoutAmountInputTextField.setText(formatter.formatCoin(sellerPayoutAmount));
+        buyerPayoutAmountInputTextField.setText(HavenoUtils.formatToXmr(buyerPayoutAmount));
+        sellerPayoutAmountInputTextField.setText(HavenoUtils.formatToXmr(sellerPayoutAmount));
 
         if (buyerPayoutAmount.equals(tradeAmount.add(buyerSecurityDeposit)) &&
                 sellerPayoutAmount.equals(sellerSecurityDeposit)) {

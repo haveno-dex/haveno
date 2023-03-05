@@ -23,19 +23,17 @@ import bisq.desktop.util.GUIUtil;
 import bisq.core.locale.Res;
 import bisq.core.monetary.Volume;
 import bisq.core.offer.OfferUtil;
+import bisq.core.trade.HavenoUtils;
 import bisq.core.util.VolumeUtil;
 import bisq.core.util.coin.CoinFormatter;
 
-import bisq.common.app.DevEnv;
-
-import org.bitcoinj.core.Coin;
-
+import java.math.BigInteger;
 import java.util.Optional;
 
 // Shared utils for ViewModels
 public class OfferViewModelUtil {
     public static String getTradeFeeWithFiatEquivalent(OfferUtil offerUtil,
-                                                       Coin tradeFee,
+                                                       BigInteger tradeFee,
                                                        CoinFormatter formatter) {
 
         Optional<Volume> optionalBtcFeeInFiat = offerUtil.getFeeInUserFiatCurrency(tradeFee,
@@ -45,13 +43,13 @@ public class OfferViewModelUtil {
     }
 
     public static String getTradeFeeWithFiatEquivalentAndPercentage(OfferUtil offerUtil,
-                                                                    Coin tradeFee,
-                                                                    Coin tradeAmount,
+                                                                    BigInteger tradeFee,
+                                                                    BigInteger tradeAmount,
                                                                     CoinFormatter formatter,
-                                                                    Coin minTradeFee) {
-        String feeAsBtc = formatter.formatCoinWithCode(tradeFee);
+                                                                    BigInteger minTradeFee) {
+        String feeAsBtc = HavenoUtils.formatToXmrWithCode(tradeFee);
         String percentage;
-        if (!tradeFee.isGreaterThan(minTradeFee)) {
+        if (tradeFee.compareTo(minTradeFee) <= 0) {
             percentage = Res.get("guiUtil.requiredMinimum")
                     .replace("(", "")
                     .replace(")", "");

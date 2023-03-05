@@ -23,14 +23,12 @@ import bisq.core.btc.model.XmrAddressEntry;
 import bisq.core.offer.Offer;
 import bisq.core.offer.OfferDirection;
 import bisq.core.offer.placeoffer.PlaceOfferModel;
-import bisq.core.trade.HavenoUtils;
 import lombok.extern.slf4j.Slf4j;
 
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.bitcoinj.core.Coin;
 
 import monero.daemon.model.MoneroOutput;
 import monero.wallet.model.MoneroTxWallet;
@@ -54,9 +52,9 @@ public class MakerReserveOfferFunds extends Task<PlaceOfferModel> {
             model.getXmrWalletService().getConnectionsService().verifyConnection();
             
             // create reserve tx
-            BigInteger makerFee = HavenoUtils.coinToAtomicUnits(offer.getMakerFee());
-            BigInteger sendAmount = HavenoUtils.coinToAtomicUnits(offer.getDirection() == OfferDirection.BUY ? Coin.ZERO : offer.getAmount());
-            BigInteger securityDeposit = HavenoUtils.coinToAtomicUnits(offer.getDirection() == OfferDirection.BUY ? offer.getBuyerSecurityDeposit() : offer.getSellerSecurityDeposit());
+            BigInteger makerFee = offer.getMakerFee();
+            BigInteger sendAmount = offer.getDirection() == OfferDirection.BUY ? BigInteger.valueOf(0) : offer.getAmount();
+            BigInteger securityDeposit = offer.getDirection() == OfferDirection.BUY ? offer.getBuyerSecurityDeposit() : offer.getSellerSecurityDeposit();
             String returnAddress = model.getXmrWalletService().getOrCreateAddressEntry(offer.getId(), XmrAddressEntry.Context.TRADE_PAYOUT).getAddressString();
             MoneroTxWallet reserveTx = model.getXmrWalletService().createReserveTx(makerFee, sendAmount, securityDeposit, returnAddress);
 

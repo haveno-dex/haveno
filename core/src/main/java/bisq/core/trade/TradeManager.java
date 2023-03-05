@@ -88,6 +88,8 @@ import javafx.collections.ObservableList;
 
 import org.bouncycastle.crypto.params.KeyParameter;
 import org.fxmisc.easybind.EasyBind;
+
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
@@ -505,11 +507,11 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
               }
 
               // get expected taker fee
-              Coin takerFee = HavenoUtils.getTakerFee(Coin.valueOf(offer.getOfferPayload().getAmount()));
+              BigInteger takerFee = HavenoUtils.getTakerFee(BigInteger.valueOf(offer.getOfferPayload().getAmount()));
 
               // create arbitrator trade
               trade = new ArbitratorTrade(offer,
-                      Coin.valueOf(offer.getOfferPayload().getAmount()),
+                      BigInteger.valueOf(offer.getOfferPayload().getAmount()),
                       takerFee,
                       offer.getOfferPayload().getPrice(),
                       xmrWalletService,
@@ -577,12 +579,12 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
           openOfferManager.reserveOpenOffer(openOffer); // TODO (woodser): reserve offer if arbitrator? probably. or, arbitrator does not have open offer?
 
           // get expected taker fee
-          Coin takerFee = HavenoUtils.getTakerFee(Coin.valueOf(offer.getOfferPayload().getAmount()));
+          BigInteger takerFee = HavenoUtils.getTakerFee(BigInteger.valueOf(offer.getOfferPayload().getAmount()));
 
           Trade trade;
           if (offer.isBuyOffer())
               trade = new BuyerAsMakerTrade(offer,
-                      Coin.valueOf(offer.getOfferPayload().getAmount()),
+                      BigInteger.valueOf(offer.getOfferPayload().getAmount()),
                       takerFee,
                       offer.getOfferPayload().getPrice(),
                       xmrWalletService,
@@ -593,7 +595,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
                       request.getArbitratorNodeAddress());
           else
               trade = new SellerAsMakerTrade(offer,
-                      Coin.valueOf(offer.getOfferPayload().getAmount()),
+                      BigInteger.valueOf(offer.getOfferPayload().getAmount()),
                       takerFee,
                       offer.getOfferPayload().getPrice(),
                       xmrWalletService,
@@ -742,9 +744,9 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
     }
 
     // First we check if offer is still available then we create the trade with the protocol
-    public void onTakeOffer(Coin amount,
-                            Coin takerFee,
-                            Coin fundsNeededForTrade,
+    public void onTakeOffer(BigInteger amount,
+                            BigInteger takerFee,
+                            BigInteger fundsNeededForTrade,
                             Offer offer,
                             String paymentAccountId,
                             boolean useSavingsWallet,
@@ -786,7 +788,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
                         trade.getProcessModel().setTradeMessage(model.getTradeRequest());
                         trade.getProcessModel().setMakerSignature(model.getMakerSignature());
                         trade.getProcessModel().setUseSavingsWallet(useSavingsWallet);
-                        trade.getProcessModel().setFundsNeededForTradeAsLong(fundsNeededForTrade.value);
+                        trade.getProcessModel().setFundsNeededForTradeAsLong(fundsNeededForTrade.longValueExact());
                         trade.getMaker().setPubKeyRing(trade.getOffer().getPubKeyRing());
                         trade.getSelf().setPubKeyRing(model.getPubKeyRing());
                         trade.getSelf().setPaymentAccountId(paymentAccountId);

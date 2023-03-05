@@ -26,6 +26,7 @@ import bisq.common.proto.persistable.PersistablePayload;
 
 import org.bitcoinj.core.Coin;
 
+import java.math.BigInteger;
 import java.util.Date;
 import java.util.Optional;
 
@@ -54,7 +55,7 @@ public interface Tradable extends PersistablePayload {
         return asTradeModel().map(Trade::getPrice).or(() -> Optional.ofNullable(getOffer().getPrice()));
     }
 
-    default Optional<Coin> getOptionalAmount() {
+    default Optional<BigInteger> getOptionalAmount() {
         return asTradeModel().map(Trade::getAmount);
     }
 
@@ -66,11 +67,11 @@ public interface Tradable extends PersistablePayload {
         return asTradeModel().map(Trade::getTxFee);
     }
 
-    default Optional<Coin> getOptionalTakerFee() {
+    default Optional<BigInteger> getOptionalTakerFee() {
         return asTradeModel().map(Trade::getTakerFee);
     }
 
-    default Optional<Coin> getOptionalMakerFee() {
+    default Optional<BigInteger> getOptionalMakerFee() {
         return asTradeModel().map(Trade::getOffer).map(Offer::getMakerFee).or(() -> Optional.ofNullable(getOffer().getMakerFee()));
     }
 

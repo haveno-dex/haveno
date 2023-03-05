@@ -21,9 +21,9 @@ import bisq.common.app.Capabilities;
 import bisq.common.app.Capability;
 import bisq.common.config.Config;
 import bisq.common.util.Utilities;
+import bisq.core.trade.HavenoUtils;
 
-import org.bitcoinj.core.Coin;
-
+import java.math.BigInteger;
 import java.util.Date;
 import java.util.GregorianCalendar;
 import java.util.Map;
@@ -37,7 +37,7 @@ public class OfferRestrictions {
         return new Date().after(REQUIRE_TOR_NODE_ADDRESS_V3_DATE) && Config.baseCurrencyNetwork().isMainnet();
     }
 
-    public static Coin TOLERATED_SMALL_TRADE_AMOUNT = Coin.parseCoin("2.0");
+    public static BigInteger TOLERATED_SMALL_TRADE_AMOUNT = HavenoUtils.xmrToAtomicUnits(2.0);
 
     static boolean hasOfferMandatoryCapability(Offer offer, Capability mandatoryCapability) {
         Map<String, String> extraDataMap = offer.getExtraDataMap();

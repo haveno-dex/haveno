@@ -24,11 +24,11 @@ import bisq.core.monetary.Volume;
 
 import bisq.common.util.MathUtils;
 
-import org.bitcoinj.core.Coin;
-
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
+
+import java.math.BigInteger;
 
 import javax.annotation.concurrent.Immutable;
 
@@ -65,12 +65,12 @@ public final class TradeStatisticsForJson {
                 primaryMarketTradeAmount = getTradeVolume() != null ?
                         getTradeVolume().getValue() :
                         0;
-                primaryMarketTradeVolume = getTradeAmount().getValue();
+                primaryMarketTradeVolume = getTradeAmount().longValueExact();
             } else {
                 currencyPair = Res.getBaseCurrencyCode() + "/" + currency;
                 // we use precision 4 for fiat based price but on the markets api we use precision 8 so we scale up by 10000
                 primaryMarketTradePrice = (long) MathUtils.scaleUpByPowerOf10(tradePrice.getValue(), 4);
-                primaryMarketTradeAmount = getTradeAmount().getValue();
+                primaryMarketTradeAmount = getTradeAmount().longValueExact();
                 // we use precision 4 for fiat but on the markets api we use precision 8 so we scale up by 10000
                 primaryMarketTradeVolume = getTradeVolume() != null ?
                         (long) MathUtils.scaleUpByPowerOf10(getTradeVolume().getValue(), 4) :
@@ -86,8 +86,8 @@ public final class TradeStatisticsForJson {
         return Price.valueOf(currency, tradePrice);
     }
 
-    public Coin getTradeAmount() {
-        return Coin.valueOf(tradeAmount);
+    public BigInteger getTradeAmount() {
+        return BigInteger.valueOf(tradeAmount);
     }
 
     public Volume getTradeVolume() {

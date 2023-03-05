@@ -31,11 +31,11 @@ import bisq.common.crypto.KeyRing;
 import bisq.common.crypto.Sig;
 import bisq.common.util.Utilities;
 
-import org.bitcoinj.core.Coin;
 import org.bitcoinj.core.ECKey;
 
 import com.google.common.base.Charsets;
 
+import java.math.BigInteger;
 import java.security.KeyPair;
 
 import java.time.Instant;
@@ -354,7 +354,7 @@ public class SignedWitnessServiceTest {
         when(keyRing.getSignatureKeyPair()).thenReturn(signerKeyPair);
 
         AccountAgeWitness accountAgeWitness = new AccountAgeWitness(account1DataHash, accountCreationTime);
-        signedWitnessService.signAndPublishAccountAgeWitness(Coin.ZERO, accountAgeWitness, peerKeyPair.getPublic());
+        signedWitnessService.signAndPublishAccountAgeWitness(BigInteger.valueOf(0), accountAgeWitness, peerKeyPair.getPublic());
 
         verify(p2pService, never()).addPersistableNetworkPayload(any(PersistableNetworkPayload.class), anyBoolean());
     }

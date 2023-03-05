@@ -27,6 +27,7 @@ import bisq.core.locale.Res;
 import bisq.core.monetary.Price;
 import bisq.core.offer.Offer;
 import bisq.core.offer.OpenOffer;
+import bisq.core.trade.HavenoUtils;
 import bisq.core.util.FormattingUtils;
 import bisq.core.util.PriceUtil;
 import bisq.core.util.VolumeUtil;
@@ -163,7 +164,7 @@ class OpenOffersViewModel extends ActivatableWithDataModel<OpenOffersDataModel> 
 
     public String getMakerFeeAsString(OpenOffer openOffer) {
         Offer offer = openOffer.getOffer();
-        return btcFormatter.formatCoinWithCode(offer.getMakerFee());
+        return HavenoUtils.formatToXmrWithCode(offer.getMakerFee());
     }
 
     String getTriggerPrice(OpenOfferListItem item) {

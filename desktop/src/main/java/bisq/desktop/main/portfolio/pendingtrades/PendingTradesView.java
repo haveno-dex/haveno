@@ -41,6 +41,7 @@ import bisq.core.support.messages.ChatMessage;
 import bisq.core.support.traderchat.TradeChatSession;
 import bisq.core.support.traderchat.TraderChatManager;
 import bisq.core.trade.Contract;
+import bisq.core.trade.HavenoUtils;
 import bisq.core.trade.Trade;
 import bisq.core.user.Preferences;
 import bisq.core.util.FormattingUtils;
@@ -699,7 +700,7 @@ public class PendingTradesView extends ActivatableViewAndModel<VBox, PendingTrad
                             public void updateItem(final PendingTradesListItem item, boolean empty) {
                                 super.updateItem(item, empty);
                                 if (item != null && !empty)
-                                    setGraphic(new AutoTooltipLabel(formatter.formatCoin(item.getTrade().getAmount())));
+                                    setGraphic(new AutoTooltipLabel(HavenoUtils.formatToXmr(item.getTrade().getAmount())));
                                 else
                                     setGraphic(null);
                             }

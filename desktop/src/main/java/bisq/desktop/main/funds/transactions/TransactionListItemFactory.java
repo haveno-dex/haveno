@@ -51,8 +51,6 @@ public class TransactionListItemFactory {
     TransactionsListItem create(MoneroTxWallet transaction, @Nullable TransactionAwareTradable tradable) {
         return new TransactionsListItem(transaction,
                 xmrWalletService,
-                tradable,
-                formatter,
-                preferences.getIgnoreDustThreshold());
+                tradable);
     }
 }

@@ -23,10 +23,8 @@ import bisq.core.btc.listeners.XmrBalanceListener;
 import bisq.core.btc.model.XmrAddressEntry;
 import bisq.core.btc.wallet.XmrWalletService;
 import bisq.core.locale.Res;
-import bisq.core.util.ParsingUtils;
+import bisq.core.trade.HavenoUtils;
 import bisq.core.util.coin.CoinFormatter;
-
-import org.bitcoinj.core.Coin;
 
 import javafx.scene.control.Label;
 
@@ -41,7 +39,7 @@ class WithdrawalListItem {
     private final XmrAddressEntry addressEntry;
     private final XmrWalletService walletService;
     private final CoinFormatter formatter;
-    private Coin balance;
+    private BigInteger balance;
     private final String addressString;
     @Setter
     @Getter
@@ -74,7 +72,7 @@ class WithdrawalListItem {
     private void updateBalance() {
         balance = walletService.getBalanceForSubaddress(addressEntry.getSubaddressIndex());
         if (balance != null)
-            balanceLabel.setText(formatter.formatCoin(this.balance));
+            balanceLabel.setText(HavenoUtils.formatToXmr(this.balance));
     }
 
     public final String getLabel() {
@@ -111,7 +109,7 @@ class WithdrawalListItem {
         return balanceLabel;
     }
 
-    public Coin getBalance() {
+    public BigInteger getBalance() {
         return balance;
     }
 

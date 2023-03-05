@@ -41,12 +41,11 @@ import bisq.core.util.coin.CoinUtil;
 
 import bisq.network.p2p.P2PService;
 
-import org.bitcoinj.core.Coin;
-
 import com.google.inject.Inject;
 
 import javax.inject.Named;
 
+import java.math.BigInteger;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -100,7 +99,7 @@ class DuplicateOfferDataModel extends MutableOfferDataModel {
     }
 
     private double getBuyerSecurityAsPercent(Offer offer) {
-        Coin offerBuyerSecurityDeposit = getBoundedBuyerSecurityDepositAsCoin(offer.getBuyerSecurityDeposit());
+        BigInteger offerBuyerSecurityDeposit = getBoundedBuyerSecurityDeposit(offer.getBuyerSecurityDeposit());
         double offerBuyerSecurityDepositAsPercent = CoinUtil.getAsPercentPerBtc(offerBuyerSecurityDeposit,
                 offer.getAmount());
         return Math.min(offerBuyerSecurityDepositAsPercent,

@@ -37,8 +37,6 @@ import bisq.proto.grpc.SendChatMessageReply;
 import bisq.proto.grpc.SendChatMessageRequest;
 import bisq.proto.grpc.TakeOfferReply;
 import bisq.proto.grpc.TakeOfferRequest;
-import bisq.proto.grpc.WithdrawFundsReply;
-import bisq.proto.grpc.WithdrawFundsRequest;
 import io.grpc.ServerInterceptor;
 import io.grpc.stub.StreamObserver;
 
@@ -184,19 +182,6 @@ class GrpcTradesService extends TradesImplBase {
         try {
             coreApi.closeTrade(req.getTradeId());
             var reply = CompleteTradeReply.newBuilder().build();
-            responseObserver.onNext(reply);
-            responseObserver.onCompleted();
-        } catch (Throwable cause) {
-            exceptionHandler.handleException(log, cause, responseObserver);
-        }
-    }
-
-    @Override
-    public void withdrawFunds(WithdrawFundsRequest req,
-                              StreamObserver<WithdrawFundsReply> responseObserver) {
-        try {
-            coreApi.withdrawFunds(req.getTradeId(), req.getAddress(), req.getMemo());
-            var reply = WithdrawFundsReply.newBuilder().build();
             responseObserver.onNext(reply);
             responseObserver.onCompleted();
         } catch (Throwable cause) {

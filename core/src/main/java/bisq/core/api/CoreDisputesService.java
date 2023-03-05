@@ -24,8 +24,6 @@ import bisq.common.crypto.PubKeyRing;
 import bisq.common.handlers.FaultHandler;
 import bisq.common.handlers.ResultHandler;
 
-import org.bitcoinj.core.Coin;
-
 import com.google.inject.name.Named;
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -39,6 +37,8 @@ import lombok.extern.slf4j.Slf4j;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static java.lang.String.format;
+
+import java.math.BigInteger;
 
 
 @Singleton
@@ -217,33 +217,32 @@ public class CoreDisputesService {
     public void applyPayoutAmountsToDisputeResult(DisputePayout payout, Dispute dispute, DisputeResult disputeResult, long customWinnerAmount) {
         Contract contract = dispute.getContract();
         Trade trade = tradeManager.getTrade(dispute.getTradeId());
-        Coin buyerSecurityDeposit = trade.getBuyerSecurityDeposit();
-        Coin sellerSecurityDeposit = trade.getSellerSecurityDeposit();
-        Coin tradeAmount = contract.getTradeAmount();
+        BigInteger buyerSecurityDeposit = trade.getBuyerSecurityDeposit();
+        BigInteger sellerSecurityDeposit = trade.getSellerSecurityDeposit();
+        BigInteger tradeAmount = contract.getTradeAmount();
         if (payout == DisputePayout.BUYER_GETS_TRADE_AMOUNT) {
             disputeResult.setBuyerPayoutAmount(tradeAmount.add(buyerSecurityDeposit));
             disputeResult.setSellerPayoutAmount(sellerSecurityDeposit);
         } else if (payout == DisputePayout.BUYER_GETS_ALL) {
             disputeResult.setBuyerPayoutAmount(tradeAmount
                     .add(buyerSecurityDeposit)
-                    .add(sellerSecurityDeposit)); // TODO (woodser): apply min payout to incentivize loser (see post v1.1.7)
-            disputeResult.setSellerPayoutAmount(Coin.ZERO);
+                    .add(sellerSecurityDeposit)); // TODO (woodser): apply min payout to incentivize loser? (see post v1.1.7)
+            disputeResult.setSellerPayoutAmount(BigInteger.valueOf(0));
         } else if (payout == DisputePayout.SELLER_GETS_TRADE_AMOUNT) {
             disputeResult.setBuyerPayoutAmount(buyerSecurityDeposit);
             disputeResult.setSellerPayoutAmount(tradeAmount.add(sellerSecurityDeposit));
         } else if (payout == DisputePayout.SELLER_GETS_ALL) {
-            disputeResult.setBuyerPayoutAmount(Coin.ZERO);
+            disputeResult.setBuyerPayoutAmount(BigInteger.valueOf(0));
             disputeResult.setSellerPayoutAmount(tradeAmount
                     .add(sellerSecurityDeposit)
                     .add(buyerSecurityDeposit));
         } else if (payout == DisputePayout.CUSTOM) {
-            Coin winnerAmount = Coin.valueOf(customWinnerAmount);
-            if (winnerAmount.compareTo(HavenoUtils.atomicUnitsToCoin(trade.getWallet().getBalance())) > 0) {
+            if (customWinnerAmount > trade.getWallet().getBalance().longValueExact()) {
                 throw new RuntimeException("The custom winner payout amount is more than the trade wallet's balance");
             }
-            Coin loserAmount = tradeAmount.add(buyerSecurityDeposit).add(sellerSecurityDeposit).minus(winnerAmount);
-            disputeResult.setBuyerPayoutAmount(disputeResult.getWinner() == DisputeResult.Winner.BUYER ? winnerAmount : loserAmount);
-            disputeResult.setSellerPayoutAmount(disputeResult.getWinner() == DisputeResult.Winner.BUYER ? loserAmount : winnerAmount);
+            long loserAmount = tradeAmount.add(buyerSecurityDeposit).add(sellerSecurityDeposit).subtract(BigInteger.valueOf(customWinnerAmount)).longValueExact();
+            disputeResult.setBuyerPayoutAmount(BigInteger.valueOf(disputeResult.getWinner() == DisputeResult.Winner.BUYER ? customWinnerAmount : loserAmount));
+            disputeResult.setSellerPayoutAmount(BigInteger.valueOf(disputeResult.getWinner() == DisputeResult.Winner.BUYER ? loserAmount : customWinnerAmount));
         }
     }
 
@@ -254,7 +253,7 @@ public class CoreDisputesService {
         String agentNodeAddress = checkNotNull(disputeManager.getAgentNodeAddress(dispute)).getFullAddress();
         Contract contract = dispute.getContract();
         String currencyCode = contract.getOfferPayload().getCurrencyCode();
-        String amount = formatter.formatCoinWithCode(contract.getTradeAmount());
+        String amount = HavenoUtils.formatToXmrWithCode(contract.getTradeAmount());
 
         String textToSign = Res.get("disputeSummaryWindow.close.msg",
                 FormattingUtils.formatDateTime(disputeResult.getCloseDate(), true),
@@ -264,8 +263,8 @@ public class CoreDisputesService {
                 currencyCode,
                 Res.get("disputeSummaryWindow.reason." + reason.name()),
                 amount,
-                formatter.formatCoinWithCode(disputeResult.getBuyerPayoutAmount()),
-                formatter.formatCoinWithCode(disputeResult.getSellerPayoutAmount()),
+                HavenoUtils.formatToXmrWithCode(disputeResult.getBuyerPayoutAmount()),
+                HavenoUtils.formatToXmrWithCode(disputeResult.getSellerPayoutAmount()),
                 disputeResult.summaryNotesProperty().get()
         );
 

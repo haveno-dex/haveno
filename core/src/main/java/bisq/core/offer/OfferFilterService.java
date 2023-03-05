@@ -208,7 +208,7 @@ public class OfferFilterService {
                 .map(paymentAccount -> accountAgeWitnessService.getMyTradeLimit(paymentAccount,
                         offer.getCurrencyCode(), offer.getMirroredDirection()))
                 .orElse(0L);
-        long offerMinAmount = offer.getMinAmount().value;
+        long offerMinAmount = offer.getMinAmount().longValueExact();
         log.debug("isInsufficientTradeLimit accountOptional={}, myTradeLimit={}, offerMinAmount={}, ",
                 accountOptional.isPresent() ? accountOptional.get().getAccountName() : "null",
                 Coin.valueOf(myTradeLimit).toFriendlyString(),

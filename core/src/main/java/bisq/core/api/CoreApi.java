@@ -48,7 +48,6 @@ import bisq.common.handlers.ResultHandler;
 
 import bisq.proto.grpc.NotificationMessage;
 
-import org.bitcoinj.core.Coin;
 import org.bitcoinj.core.Transaction;
 
 import javax.inject.Inject;
@@ -58,7 +57,7 @@ import com.google.common.util.concurrent.FutureCallback;
 
 import java.io.IOException;
 import java.io.InputStream;
-
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -446,8 +445,8 @@ public class CoreApi {
                            Price price,
                            boolean useMarketBasedPrice,
                            double marketPriceMargin,
-                           Coin amount,
-                           Coin minAmount,
+                           BigInteger amount,
+                           BigInteger minAmount,
                            double buyerSecurityDeposit,
                            PaymentAccount paymentAccount) {
         return coreOffersService.editOffer(offerId,
@@ -550,10 +549,6 @@ public class CoreApi {
 
     public void closeTrade(String tradeId) {
         coreTradesService.closeTrade(tradeId);
-    }
-
-    public void withdrawFunds(String tradeId, String address, String memo) {
-        coreTradesService.withdrawFunds(tradeId, address, memo);
     }
 
     public Trade getTrade(String tradeId) {

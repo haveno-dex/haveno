@@ -47,6 +47,7 @@ import bisq.core.payment.PaymentAccountUtil;
 import bisq.core.payment.payload.PaymentMethod;
 import bisq.core.provider.price.PriceFeedService;
 import bisq.core.trade.ClosedTradableManager;
+import bisq.core.trade.HavenoUtils;
 import bisq.core.trade.Trade;
 import bisq.core.user.Preferences;
 import bisq.core.user.User;
@@ -60,8 +61,6 @@ import bisq.network.p2p.P2PService;
 
 import bisq.common.handlers.ErrorMessageHandler;
 import bisq.common.handlers.ResultHandler;
-
-import org.bitcoinj.core.Coin;
 
 import com.google.common.base.Joiner;
 
@@ -78,6 +77,8 @@ import javafx.collections.ObservableList;
 import javafx.collections.transformation.FilteredList;
 import javafx.collections.transformation.SortedList;
 
+import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.text.DecimalFormat;
 
 import java.util.Comparator;
@@ -181,7 +182,7 @@ abstract class OfferBookViewModel extends ActivatableViewModel {
 
         filterItemsListener = c -> {
             final Optional<OfferBookListItem> highestAmountOffer = filteredItems.stream()
-                    .max(Comparator.comparingLong(o -> o.getOffer().getAmount().getValue()));
+                    .max(Comparator.comparingLong(o -> o.getOffer().getAmount().longValueExact()));
 
             final boolean containsRangeAmount = filteredItems.stream().anyMatch(o -> o.getOffer().isRange());
 
@@ -196,7 +197,6 @@ abstract class OfferBookViewModel extends ActivatableViewModel {
                     maxPlacesForAmount.set(formatAmount(item.getOffer(), false).length());
                     maxPlacesForVolume.set(formatVolume(item.getOffer(), false).length());
                 }
-
             }
 
             final Optional<OfferBookListItem> highestPriceOffer = filteredItems.stream()
@@ -627,7 +627,7 @@ abstract class OfferBookViewModel extends ActivatableViewModel {
     }
 
     public String getMakerFeeAsString(Offer offer) {
-        return btcFormatter.formatCoinWithCode(offer.getMakerFee());
+        return HavenoUtils.formatToXmrWithCode(offer.getMakerFee());
     }
 
     private static String getDirectionWithCodeDetailed(OfferDirection direction, String currencyCode) {
@@ -637,9 +637,9 @@ abstract class OfferBookViewModel extends ActivatableViewModel {
             return (direction == OfferDirection.SELL) ? Res.get("shared.buyingCurrency", currencyCode) : Res.get("shared.sellingCurrency", currencyCode);
     }
 
-    public String formatDepositString(Coin deposit, long amount) {
-        var percentage = FormattingUtils.formatToRoundedPercentWithSymbol(deposit.getValue() / (double) amount);
-        return btcFormatter.formatCoin(deposit) + " (" + percentage + ")";
+    public String formatDepositString(BigInteger deposit, long amount) {
+        var percentage = FormattingUtils.formatToRoundedPercentWithSymbol(BigDecimal.valueOf(deposit.longValueExact()).divide(BigDecimal.valueOf(amount)).doubleValue());
+        return HavenoUtils.formatToXmr(deposit) + " (" + percentage + ")";
     }
 
     PaymentMethod getShowAllEntryForPaymentMethod() {

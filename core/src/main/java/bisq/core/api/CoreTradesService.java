@@ -50,6 +50,8 @@ import lombok.extern.slf4j.Slf4j;
 import static bisq.core.btc.model.AddressEntry.Context.TRADE_PAYOUT;
 import static java.lang.String.format;
 
+import java.math.BigInteger;
+
 @Singleton
 @Slf4j
 class CoreTradesService {
@@ -103,8 +105,8 @@ class CoreTradesService {
             var useSavingsWallet = true;
 
             // synchronize access to take offer model // TODO (woodser): to avoid synchronizing, don't use stateful model
-            Coin takerFee;
-            Coin fundsNeededForTrade;
+            BigInteger takerFee;
+            BigInteger fundsNeededForTrade;
             synchronized (takeOfferModel) {
                 takeOfferModel.initModel(offer, paymentAccount, useSavingsWallet);
                 takerFee = takeOfferModel.getTakerFee();
@@ -162,47 +164,6 @@ class CoreTradesService {
                 new IllegalArgumentException(format("trade with id '%s' not found", tradeId)));
         log.info("Keeping funds received from trade {}", tradeId);
         tradeManager.onTradeCompleted(trade);
-    }
-
-    void withdrawFunds(String tradeId, String toAddress, String memo) {
-        coreWalletsService.verifyWalletsAreAvailable();
-        coreWalletsService.verifyEncryptedWalletIsUnlocked();
-
-        verifyTradeIsNotClosed(tradeId);
-        var trade = getOpenTrade(tradeId).orElseThrow(() ->
-                new IllegalArgumentException(format("trade with id '%s' not found", tradeId)));
-
-        verifyIsValidBTCAddress(toAddress);
-
-        var fromAddressEntry = btcWalletService.getOrCreateAddressEntry(trade.getId(), TRADE_PAYOUT);
-        verifyFundsNotWithdrawn(fromAddressEntry);
-
-        var amount = trade.getPayoutAmount();
-        var fee = getEstimatedTxFee(fromAddressEntry.getAddressString(), toAddress, amount);
-        var receiverAmount = amount.subtract(fee);
-
-        log.info(format("Withdrawing funds received from trade %s:"
-                        + "%n From %s%n To %s%n Amt %s%n Tx Fee %s%n Receiver Amt %s%n Memo %s%n",
-                tradeId,
-                fromAddressEntry.getAddressString(),
-                toAddress,
-                amount.toFriendlyString(),
-                fee.toFriendlyString(),
-                receiverAmount.toFriendlyString(),
-                memo));
-        tradeManager.onWithdrawRequest(
-                toAddress,
-                amount,
-                fee,
-                coreWalletsService.getKey(),
-                trade,
-                memo.isEmpty() ? null : memo,
-                () -> {
-                },
-                (errorMessage, throwable) -> {
-                    log.error(errorMessage, throwable);
-                    throw new IllegalStateException(errorMessage, throwable);
-                });
     }
 
     String getTradeRole(String tradeId) {

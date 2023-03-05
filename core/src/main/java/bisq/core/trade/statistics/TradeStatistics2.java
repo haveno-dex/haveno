@@ -24,6 +24,7 @@ import bisq.core.monetary.Volume;
 import bisq.core.offer.Offer;
 import bisq.core.offer.OfferDirection;
 import bisq.core.offer.OfferPayload;
+import bisq.core.trade.HavenoUtils;
 import bisq.core.trade.Trade;
 import bisq.core.util.JsonUtil;
 import bisq.core.util.VolumeUtil;
@@ -44,12 +45,12 @@ import bisq.common.util.Utilities;
 
 import com.google.protobuf.ByteString;
 
-import org.bitcoinj.core.Coin;
 import org.bitcoinj.utils.ExchangeRate;
 import org.bitcoinj.utils.Fiat;
 
 import com.google.common.base.Charsets;
 
+import java.math.BigInteger;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
@@ -144,7 +145,7 @@ public final class TradeStatistics2 implements ProcessOncePersistableNetworkPayl
 
     public TradeStatistics2(OfferPayload offerPayload,
                             Price tradePrice,
-                            Coin tradeAmount,
+                            BigInteger tradeAmount,
                             Date tradeDate,
                             String makerDepositTxId,
                             String takerDepositTxId,
@@ -160,7 +161,7 @@ public final class TradeStatistics2 implements ProcessOncePersistableNetworkPayl
                 offerPayload.getMinAmount(),
                 offerPayload.getId(),
                 tradePrice.getValue(),
-                tradeAmount.value,
+                tradeAmount.longValueExact(),
                 tradeDate.getTime(),
                 makerDepositTxId,
                 takerDepositTxId,
@@ -312,15 +313,15 @@ public final class TradeStatistics2 implements ProcessOncePersistableNetworkPayl
         return baseCurrency.equals("XMR") ? counterCurrency : baseCurrency;
     }
 
-    public Coin getTradeAmount() {
-        return Coin.valueOf(tradeAmount);
+    public BigInteger getTradeAmount() {
+        return BigInteger.valueOf(tradeAmount);
     }
 
     public Volume getTradeVolume() {
         if (getPrice().getMonetary() instanceof Altcoin) {
-            return new Volume(new AltcoinExchangeRate((Altcoin) getPrice().getMonetary()).coinToAltcoin(getTradeAmount()));
+            return new Volume(new AltcoinExchangeRate((Altcoin) getPrice().getMonetary()).coinToAltcoin(HavenoUtils.atomicUnitsToCoin(getTradeAmount())));
         } else {
-            Volume volume = new Volume(new ExchangeRate((Fiat) getPrice().getMonetary()).coinToFiat(getTradeAmount()));
+            Volume volume = new Volume(new ExchangeRate((Fiat) getPrice().getMonetary()).coinToFiat(HavenoUtils.atomicUnitsToCoin(getTradeAmount())));
             return VolumeUtil.getRoundedFiatVolume(volume);
         }
     }

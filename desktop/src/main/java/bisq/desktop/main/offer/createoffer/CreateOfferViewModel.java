@@ -22,7 +22,7 @@ import bisq.desktop.common.model.ViewModel;
 import bisq.desktop.main.offer.MutableOfferViewModel;
 import bisq.core.account.witness.AccountAgeWitnessService;
 import bisq.core.offer.OfferUtil;
-import bisq.core.payment.validation.BtcValidator;
+import bisq.core.payment.validation.XmrValidator;
 import bisq.core.payment.validation.FiatVolumeValidator;
 import bisq.core.payment.validation.SecurityDepositValidator;
 import bisq.core.provider.price.PriceFeedService;
@@ -42,7 +42,7 @@ class CreateOfferViewModel extends MutableOfferViewModel<CreateOfferDataModel> i
                                 FiatVolumeValidator fiatVolumeValidator,
                                 FiatPriceValidator fiatPriceValidator,
                                 AltcoinValidator altcoinValidator,
-                                BtcValidator btcValidator,
+                                XmrValidator btcValidator,
                                 SecurityDepositValidator securityDepositValidator,
                                 PriceFeedService priceFeedService,
                                 AccountAgeWitnessService accountAgeWitnessService,

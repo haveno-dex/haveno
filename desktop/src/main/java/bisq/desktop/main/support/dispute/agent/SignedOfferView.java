@@ -164,8 +164,8 @@ public class SignedOfferView extends ActivatableView<VBox, Void> {
             if(selectedSignedOffer != null) {
                 new Popup().warning(Res.get("support.prompt.signedOffer.penalty.msg",
                         selectedSignedOffer.getOfferId(),
-                        HavenoUtils.formatXmrWithCode(selectedSignedOffer.getMakerTradeFee()),
-                        HavenoUtils.formatXmrWithCode(selectedSignedOffer.getReserveTxMinerFee()),
+                        HavenoUtils.formatToXmrWithCode(selectedSignedOffer.getMakerTradeFee()),
+                        HavenoUtils.formatToXmrWithCode(selectedSignedOffer.getReserveTxMinerFee()),
                         selectedSignedOffer.getReserveTxHash(),
                         selectedSignedOffer.getReserveTxKeyImages())
                 ).onAction(() -> OfferViewUtil.submitTransactionHex(xmrWalletService, tableView,
@@ -406,7 +406,7 @@ public class SignedOfferView extends ActivatableView<VBox, Void> {
                             public void updateItem(final SignedOffer item, boolean empty) {
                                 super.updateItem(item, empty);
                                 if (item != null && !empty)
-                                    setText(HavenoUtils.formatXmrWithCode(item.getMakerTradeFee()));
+                                    setText(HavenoUtils.formatToXmrWithCode(item.getMakerTradeFee()));
                                 else
                                     setText("");
                             }
@@ -432,7 +432,7 @@ public class SignedOfferView extends ActivatableView<VBox, Void> {
                             public void updateItem(final SignedOffer item, boolean empty) {
                                 super.updateItem(item, empty);
                                 if (item != null && !empty)
-                                    setText(HavenoUtils.formatXmrWithCode(item.getReserveTxMinerFee()));
+                                    setText(HavenoUtils.formatToXmrWithCode(item.getReserveTxMinerFee()));
                                 else
                                     setText("");
                             }

@@ -53,7 +53,6 @@ import bisq.common.util.MathUtils;
 import bisq.common.util.Tuple2;
 import bisq.common.util.Utilities;
 
-import org.bitcoinj.core.Coin;
 import org.bitcoinj.core.ECKey;
 import org.bitcoinj.core.Utils;
 
@@ -61,6 +60,7 @@ import javax.inject.Inject;
 
 import com.google.common.annotations.VisibleForTesting;
 
+import java.math.BigInteger;
 import java.security.PublicKey;
 
 import java.time.Clock;
@@ -423,7 +423,7 @@ public class AccountAgeWitnessService {
     // Non fiat always has max limit
     // Account types that can get signed will use time since signing, other methods use time since account age creation
     // when measuring account age
-    private long getTradeLimit(Coin maxTradeLimit,
+    private BigInteger getTradeLimit(BigInteger maxTradeLimit,
                                String currencyCode,
                                AccountAgeWitness accountAgeWitness,
                                AccountAge accountAgeCategory,
@@ -432,17 +432,17 @@ public class AccountAgeWitnessService {
         if (CurrencyUtil.isCryptoCurrency(currencyCode) ||
                 !PaymentMethod.hasChargebackRisk(paymentMethod, currencyCode) ||
                 direction == OfferDirection.SELL) {
-            return maxTradeLimit.value;
+            return maxTradeLimit;
         }
 
-        long limit = OfferRestrictions.TOLERATED_SMALL_TRADE_AMOUNT.value;
+        BigInteger limit = OfferRestrictions.TOLERATED_SMALL_TRADE_AMOUNT;
         var factor = signedBuyFactor(accountAgeCategory);
         if (factor > 0) {
-            limit = MathUtils.roundDoubleToLong(maxTradeLimit.value * factor);
+            limit = BigInteger.valueOf(MathUtils.roundDoubleToLong(maxTradeLimit.longValueExact() * factor));
         }
 
         log.debug("limit={}, factor={}, accountAgeWitnessHash={}",
-                Coin.valueOf(limit).toFriendlyString(),
+                limit,
                 factor,
                 Utilities.bytesAsHexString(accountAgeWitness.getHash()));
         return limit;
@@ -511,9 +511,9 @@ public class AccountAgeWitnessService {
             return 0;
 
         AccountAgeWitness accountAgeWitness = getMyWitness(paymentAccount.getPaymentAccountPayload());
-        Coin maxTradeLimit = paymentAccount.getPaymentMethod().getMaxTradeLimitAsCoin(currencyCode);
+        BigInteger maxTradeLimit = paymentAccount.getPaymentMethod().getMaxTradeLimit(currencyCode);
         if (hasTradeLimitException(accountAgeWitness)) {
-            return maxTradeLimit.value;
+            return maxTradeLimit.longValueExact();
         }
         final long accountSignAge = getWitnessSignAge(accountAgeWitness, new Date());
         AccountAge accountAgeCategory = getAccountAgeCategory(accountSignAge);
@@ -523,7 +523,7 @@ public class AccountAgeWitnessService {
                 accountAgeWitness,
                 accountAgeCategory,
                 direction,
-                paymentAccount.getPaymentMethod());
+                paymentAccount.getPaymentMethod()).longValueExact();
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -582,7 +582,7 @@ public class AccountAgeWitnessService {
     }
 
     public boolean verifyPeersTradeAmount(Offer offer,
-                                          Coin tradeAmount,
+                                          BigInteger tradeAmount,
                                           ErrorMessageHandler errorMessageHandler) {
         checkNotNull(offer);
 
@@ -593,8 +593,8 @@ public class AccountAgeWitnessService {
                 .orElse(isToleratedSmalleAmount(tradeAmount));
     }
 
-    private boolean isToleratedSmalleAmount(Coin tradeAmount) {
-        return tradeAmount.value <= OfferRestrictions.TOLERATED_SMALL_TRADE_AMOUNT.value;
+    private boolean isToleratedSmalleAmount(BigInteger tradeAmount) {
+        return tradeAmount.longValueExact() <= OfferRestrictions.TOLERATED_SMALL_TRADE_AMOUNT.longValueExact();
     }
 
 
@@ -642,14 +642,14 @@ public class AccountAgeWitnessService {
     }
 
     private boolean verifyPeersTradeLimit(Offer offer,
-                                          Coin tradeAmount,
+                                          BigInteger tradeAmount,
                                           AccountAgeWitness peersWitness,
                                           Date peersCurrentDate,
                                           ErrorMessageHandler errorMessageHandler) {
         checkNotNull(offer);
         final String currencyCode = offer.getCurrencyCode();
-        final Coin defaultMaxTradeLimit = offer.getPaymentMethod().getMaxTradeLimitAsCoin(currencyCode);
-        long peersCurrentTradeLimit = defaultMaxTradeLimit.value;
+        final BigInteger defaultMaxTradeLimit = offer.getPaymentMethod().getMaxTradeLimit(currencyCode);
+        BigInteger peersCurrentTradeLimit = defaultMaxTradeLimit;
         if (!hasTradeLimitException(peersWitness)) {
             final long accountSignAge = getWitnessSignAge(peersWitness, peersCurrentDate);
             AccountAge accountAgeCategory = getPeersAccountAgeCategory(accountSignAge);
@@ -659,11 +659,11 @@ public class AccountAgeWitnessService {
                     accountAgeCategory, direction, offer.getPaymentMethod());
         }
         // Makers current trade limit cannot be smaller than that in the offer
-        boolean result = tradeAmount.value <= peersCurrentTradeLimit;
+        boolean result = tradeAmount.longValueExact() <= peersCurrentTradeLimit.longValueExact();
         if (!result) {
             String msg = "The peers trade limit is less than the traded amount.\n" +
-                    "tradeAmount=" + tradeAmount.toFriendlyString() +
-                    "\nPeers trade limit=" + Coin.valueOf(peersCurrentTradeLimit).toFriendlyString() +
+                    "tradeAmount=" + tradeAmount +
+                    "\nPeers trade limit=" + peersCurrentTradeLimit +
                     "\nOffer ID=" + offer.getShortId() +
                     "\nPaymentMethod=" + offer.getPaymentMethod().getId() +
                     "\nCurrencyCode=" + offer.getCurrencyCode();
@@ -698,7 +698,7 @@ public class AccountAgeWitnessService {
     // Witness signing
     ///////////////////////////////////////////////////////////////////////////////////////////
 
-    public void arbitratorSignAccountAgeWitness(Coin tradeAmount,
+    public void arbitratorSignAccountAgeWitness(BigInteger tradeAmount,
                                                 AccountAgeWitness accountAgeWitness,
                                                 ECKey key,
                                                 PublicKey peersPubKey) {
@@ -737,7 +737,7 @@ public class AccountAgeWitnessService {
 
     public Optional<SignedWitness> traderSignAndPublishPeersAccountAgeWitness(Trade trade) {
         AccountAgeWitness peersWitness = findTradePeerWitness(trade).orElse(null);
-        Coin tradeAmount = trade.getAmount();
+        BigInteger tradeAmount = trade.getAmount();
         checkNotNull(trade.getTradePeer().getPubKeyRing(), "Peer must have a keyring");
         PublicKey peersPubKey = trade.getTradePeer().getPubKeyRing().getSignaturePubKey();
         checkNotNull(peersWitness, "Not able to find peers witness, unable to sign for trade {}",
@@ -800,7 +800,7 @@ public class AccountAgeWitnessService {
     }
 
     private Stream<TraderDataItem> getTraderData(Dispute dispute) {
-        Coin tradeAmount = dispute.getContract().getTradeAmount();
+        BigInteger tradeAmount = dispute.getContract().getTradeAmount();
 
         PubKeyRing buyerPubKeyRing = dispute.getContract().getBuyerPubKeyRing();
         PubKeyRing sellerPubKeyRing = dispute.getContract().getSellerPubKeyRing();
@@ -841,7 +841,7 @@ public class AccountAgeWitnessService {
         return signedWitnessService.isSignerAccountAgeWitness(accountAgeWitness);
     }
 
-    public boolean tradeAmountIsSufficient(Coin tradeAmount) {
+    public boolean tradeAmountIsSufficient(BigInteger tradeAmount) {
         return signedWitnessService.isSufficientTradeAmountForSigning(tradeAmount);
     }
 

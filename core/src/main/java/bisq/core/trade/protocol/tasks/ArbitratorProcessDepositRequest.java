@@ -23,7 +23,6 @@ import bisq.common.crypto.PubKeyRing;
 import bisq.common.crypto.Sig;
 import bisq.common.taskrunner.TaskRunner;
 import bisq.core.offer.Offer;
-import bisq.core.trade.HavenoUtils;
 import bisq.core.trade.Trade;
 import bisq.core.trade.messages.DepositRequest;
 import bisq.core.trade.messages.DepositResponse;
@@ -36,8 +35,6 @@ import java.math.BigInteger;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.UUID;
-
-import org.bitcoinj.core.Coin;
 
 import lombok.extern.slf4j.Slf4j;
 import monero.daemon.MoneroDaemon;
@@ -79,9 +76,9 @@ public class ArbitratorProcessDepositRequest extends TradeTask {
             Offer offer = trade.getOffer();
             boolean isFromTaker = trader == trade.getTaker();
             boolean isFromBuyer = trader == trade.getBuyer();
-            BigInteger tradeFee = HavenoUtils.coinToAtomicUnits(isFromTaker ? trade.getTakerFee() : trade.getMakerFee());
-            BigInteger sendAmount =  HavenoUtils.coinToAtomicUnits(isFromBuyer ? Coin.ZERO : offer.getAmount());
-            BigInteger securityDeposit = HavenoUtils.coinToAtomicUnits(isFromBuyer ? offer.getBuyerSecurityDeposit() : offer.getSellerSecurityDeposit());
+            BigInteger tradeFee = isFromTaker ? trade.getTakerFee() : trade.getMakerFee();
+            BigInteger sendAmount =  isFromBuyer ? BigInteger.valueOf(0) : offer.getAmount();
+            BigInteger securityDeposit = isFromBuyer ? offer.getBuyerSecurityDeposit() : offer.getSellerSecurityDeposit();
             String depositAddress = processModel.getMultisigAddress();
 
             // verify deposit tx

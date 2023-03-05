@@ -46,8 +46,8 @@ public class OfferBookListItemMaker {
     public static final Instantiator<OfferBookListItem> OfferBookListItem = lookup ->
             new OfferBookListItem(make(xmrUsdOffer.but(
                     MakeItEasy.with(OfferMaker.price, lookup.valueOf(price, 100000L)),
-                    with(OfferMaker.amount, lookup.valueOf(amount, 100000L)),
-                    with(OfferMaker.minAmount, lookup.valueOf(amount, 100000L)),
+                    with(OfferMaker.amount, lookup.valueOf(amount, 1000000000L)),
+                    with(OfferMaker.minAmount, lookup.valueOf(amount, 1000000000L)),
                     with(OfferMaker.direction, lookup.valueOf(direction, OfferDirection.BUY)),
                     with(OfferMaker.useMarketBasedPrice, lookup.valueOf(useMarketBasedPrice, false)),
                     with(OfferMaker.marketPriceMargin, lookup.valueOf(marketPriceMargin, 0.0)),
@@ -59,8 +59,8 @@ public class OfferBookListItemMaker {
     public static final Instantiator<OfferBookListItem> OfferBookListItemWithRange = lookup ->
             new OfferBookListItem(make(xmrUsdOffer.but(
                     MakeItEasy.with(OfferMaker.price, lookup.valueOf(price, 100000L)),
-                    with(OfferMaker.minAmount, lookup.valueOf(minAmount, 100000L)),
-                    with(OfferMaker.amount, lookup.valueOf(amount, 200000L)))));
+                    with(OfferMaker.minAmount, lookup.valueOf(minAmount, 1000000000L)),
+                    with(OfferMaker.amount, lookup.valueOf(amount, 2000000000L)))));
 
     public static final Maker<OfferBookListItem> xmrBuyItem = a(OfferBookListItem);
     public static final Maker<OfferBookListItem> xmrSellItem = a(OfferBookListItem, with(direction, OfferDirection.SELL));

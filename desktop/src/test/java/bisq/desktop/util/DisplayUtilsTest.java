@@ -11,8 +11,7 @@ import bisq.core.util.coin.ImmutableCoinFormatter;
 
 import bisq.common.config.Config;
 
-import org.bitcoinj.core.Coin;
-
+import java.math.BigInteger;
 import java.util.Locale;
 import java.util.concurrent.TimeUnit;
 
@@ -91,8 +90,8 @@ public class DisplayUtilsTest {
     @Test
     public void testFormatSameAmount() {
         Offer offer = mock(Offer.class);
-        when(offer.getMinAmount()).thenReturn(Coin.valueOf(10000000));
-        when(offer.getAmount()).thenReturn(Coin.valueOf(10000000));
+        when(offer.getMinAmount()).thenReturn(BigInteger.valueOf(100000000000L));
+        when(offer.getAmount()).thenReturn(BigInteger.valueOf(100000000000L));
 
         assertEquals("0.10", DisplayUtils.formatAmount(offer, formatter));
     }
@@ -101,8 +100,8 @@ public class DisplayUtilsTest {
     public void testFormatDifferentAmount() {
         OfferPayload offerPayload = mock(OfferPayload.class);
         Offer offer = new Offer(offerPayload);
-        when(offerPayload.getMinAmount()).thenReturn(10000000L);
-        when(offerPayload.getAmount()).thenReturn(20000000L);
+        when(offerPayload.getMinAmount()).thenReturn(100000000000L);
+        when(offerPayload.getAmount()).thenReturn(200000000000L);
 
         assertEquals("0.10 - 0.20", DisplayUtils.formatAmount(offer, formatter));
     }
@@ -111,8 +110,8 @@ public class DisplayUtilsTest {
     public void testFormatAmountWithAlignmenWithDecimals() {
         OfferPayload offerPayload = mock(OfferPayload.class);
         Offer offer = new Offer(offerPayload);
-        when(offerPayload.getMinAmount()).thenReturn(10000000L);
-        when(offerPayload.getAmount()).thenReturn(20000000L);
+        when(offerPayload.getMinAmount()).thenReturn(100000000000L);
+        when(offerPayload.getAmount()).thenReturn(200000000000L);
 
         assertEquals("0.1000 - 0.2000", DisplayUtils.formatAmount(offer, 4, true, 15, formatter));
     }
@@ -121,8 +120,8 @@ public class DisplayUtilsTest {
     public void testFormatAmountWithAlignmenWithDecimalsNoRange() {
         OfferPayload offerPayload = mock(OfferPayload.class);
         Offer offer = new Offer(offerPayload);
-        when(offerPayload.getMinAmount()).thenReturn(10000000L);
-        when(offerPayload.getAmount()).thenReturn(10000000L);
+        when(offerPayload.getMinAmount()).thenReturn(100000000000L);
+        when(offerPayload.getAmount()).thenReturn(100000000000L);
 
         assertEquals("0.1000", DisplayUtils.formatAmount(offer, 4, true, 15, formatter));
     }

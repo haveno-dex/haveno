@@ -68,7 +68,7 @@ public class SpreadViewModelTest {
         SpreadViewModel model = new SpreadViewModel(offerBook, null, coinFormatter);
         model.activate();
         assertEquals(6, model.maxPlacesForAmount.intValue()); // 0.001
-        offerBookListItems.addAll(make(xmrBuyItem.but(with(OfferBookListItemMaker.amount, 1403000000L))));
+        offerBookListItems.addAll(make(xmrBuyItem.but(with(OfferBookListItemMaker.amount, 14030000000000L))));
         assertEquals(7, model.maxPlacesForAmount.intValue()); //14.0300
     }
 

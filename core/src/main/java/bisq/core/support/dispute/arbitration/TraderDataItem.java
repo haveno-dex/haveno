@@ -20,8 +20,7 @@ package bisq.core.support.dispute.arbitration;
 import bisq.core.account.witness.AccountAgeWitness;
 import bisq.core.payment.payload.PaymentAccountPayload;
 
-import org.bitcoinj.core.Coin;
-
+import java.math.BigInteger;
 import java.security.PublicKey;
 
 import lombok.EqualsAndHashCode;
@@ -34,12 +33,12 @@ public class TraderDataItem {
     private final PaymentAccountPayload paymentAccountPayload;
     @EqualsAndHashCode.Include
     private final AccountAgeWitness accountAgeWitness;
-    private final Coin tradeAmount;
+    private final BigInteger tradeAmount;
     private final PublicKey peersPubKey;
 
     public TraderDataItem(PaymentAccountPayload paymentAccountPayload,
                           AccountAgeWitness accountAgeWitness,
-                          Coin tradeAmount,
+                          BigInteger tradeAmount,
                           PublicKey peersPubKey) {
         this.paymentAccountPayload = paymentAccountPayload;
         this.accountAgeWitness = accountAgeWitness;

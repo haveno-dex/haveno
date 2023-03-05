@@ -25,7 +25,7 @@ import bisq.desktop.util.GUIUtil;
 import bisq.core.account.sign.SignedWitnessService;
 import bisq.core.locale.Res;
 import bisq.core.offer.OfferRestrictions;
-import bisq.core.util.coin.CoinFormatter;
+import bisq.core.trade.HavenoUtils;
 
 import bisq.common.UserThread;
 
@@ -54,14 +54,13 @@ public class AccountStatusTooltipLabel extends AutoTooltipLabel {
     private PopOver popOver;
     private boolean keepPopOverVisible = false;
 
-    public AccountStatusTooltipLabel(OfferBookListItem.WitnessAgeData witnessAgeData,
-                                     CoinFormatter formatter) {
+    public AccountStatusTooltipLabel(OfferBookListItem.WitnessAgeData witnessAgeData) {
         super(witnessAgeData.getDisplayString());
         this.witnessAgeData = witnessAgeData;
         this.textIcon = FormBuilder.getIcon(witnessAgeData.getIcon());
         this.popupTitle = witnessAgeData.isLimitLifted()
                 ? Res.get("offerbook.timeSinceSigning.tooltip.accountLimitLifted")
-                : Res.get("offerbook.timeSinceSigning.tooltip.accountLimit", formatter.formatCoinWithCode(OfferRestrictions.TOLERATED_SMALL_TRADE_AMOUNT));
+                : Res.get("offerbook.timeSinceSigning.tooltip.accountLimit", HavenoUtils.formatToXmrWithCode(OfferRestrictions.TOLERATED_SMALL_TRADE_AMOUNT));
 
         positionAndActivateIcon();
     }

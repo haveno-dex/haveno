@@ -20,17 +20,14 @@ package bisq.desktop.util;
 import bisq.core.locale.GlobalSettings;
 import bisq.core.locale.Res;
 import bisq.core.locale.TradeCurrency;
-import bisq.core.monetary.Price;
-import bisq.core.provider.price.MarketPrice;
-import bisq.core.provider.price.PriceFeedService;
+import bisq.core.trade.HavenoUtils;
 import bisq.core.user.DontShowAgainLookup;
 import bisq.core.user.Preferences;
 
-import org.bitcoinj.core.Coin;
-import org.bitcoinj.core.CoinMaker;
 
 import javafx.util.StringConverter;
 
+import java.math.BigInteger;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
@@ -40,11 +37,6 @@ import org.junit.Test;
 
 import static bisq.desktop.maker.TradeCurrencyMakers.monero;
 import static bisq.desktop.maker.TradeCurrencyMakers.euro;
-import static com.natpryce.makeiteasy.MakeItEasy.a;
-import static com.natpryce.makeiteasy.MakeItEasy.make;
-import static com.natpryce.makeiteasy.MakeItEasy.with;
-import static org.bitcoinj.core.CoinMaker.oneBitcoin;
-import static org.bitcoinj.core.CoinMaker.satoshis;
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -116,28 +108,28 @@ public class GUIUtilTest {
     @Test
     public void percentageOfTradeAmount_higherFeeAsMin() {
 
-        Coin fee = make(a(CoinMaker.Coin).but(with(satoshis, 20000L)));
-        Coin min = make(a(CoinMaker.Coin).but(with(satoshis, 10000L)));
+        BigInteger fee = BigInteger.valueOf(200000000L);
+        BigInteger min = BigInteger.valueOf(100000000L);
 
-        assertEquals(" (0.02% of trade amount)", GUIUtil.getPercentageOfTradeAmount(fee, oneBitcoin, min));
+        assertEquals(" (0.02% of trade amount)", GUIUtil.getPercentageOfTradeAmount(fee, HavenoUtils.xmrToAtomicUnits(1.0), min));
     }
 
     @Test
     public void percentageOfTradeAmount_minFee() {
 
-        Coin fee = make(a(CoinMaker.Coin).but(with(satoshis, 10000L)));
-        Coin min = make(a(CoinMaker.Coin).but(with(satoshis, 10000L)));
+        BigInteger fee = BigInteger.valueOf(100000000L);
+        BigInteger min = BigInteger.valueOf(100000000L);
 
         assertEquals(" (required minimum)",
-                GUIUtil.getPercentageOfTradeAmount(fee, oneBitcoin, min));
+                GUIUtil.getPercentageOfTradeAmount(fee, HavenoUtils.xmrToAtomicUnits(1.0), min));
     }
 
     @Test
     public void percentageOfTradeAmount_minFeeZERO() {
 
-        Coin fee = make(a(CoinMaker.Coin).but(with(satoshis, 10000L)));
+        BigInteger fee = BigInteger.valueOf(100000000L);
 
         assertEquals(" (0.01% of trade amount)",
-                GUIUtil.getPercentageOfTradeAmount(fee, oneBitcoin, Coin.ZERO));
+                GUIUtil.getPercentageOfTradeAmount(fee, HavenoUtils.xmrToAtomicUnits(1.0), BigInteger.valueOf(0)));
     }
 }

@@ -22,12 +22,13 @@ import bisq.core.offer.Offer;
 import bisq.core.support.dispute.Dispute;
 
 import org.bitcoinj.core.Address;
-import org.bitcoinj.core.Coin;
 import org.bitcoinj.core.NetworkParameters;
 import org.bitcoinj.core.Transaction;
 import org.bitcoinj.core.TransactionInput;
 import org.bitcoinj.core.TransactionOutPoint;
 import org.bitcoinj.core.TransactionOutput;
+
+import java.math.BigInteger;
 import java.util.function.Consumer;
 
 import lombok.Getter;
@@ -130,7 +131,7 @@ public class TradeDataValidation {
         // Check amount
         TransactionOutput output = delayedPayoutTx.getOutput(0);
         Offer offer = checkNotNull(trade.getOffer());
-        Coin msOutputAmount = offer.getBuyerSecurityDeposit()
+        BigInteger msOutputAmount = offer.getBuyerSecurityDeposit()
                 .add(offer.getSellerSecurityDeposit())
                 .add(checkNotNull(trade.getAmount()));
 

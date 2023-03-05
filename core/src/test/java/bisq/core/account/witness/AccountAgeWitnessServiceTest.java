@@ -32,7 +32,7 @@ import bisq.core.support.dispute.DisputeResult;
 import bisq.core.support.dispute.arbitration.TraderDataItem;
 import bisq.core.support.dispute.arbitration.arbitrator.ArbitratorManager;
 import bisq.core.trade.Contract;
-
+import bisq.core.trade.HavenoUtils;
 import bisq.network.p2p.P2PService;
 import bisq.network.p2p.storage.persistence.AppendOnlyDataStoreService;
 
@@ -44,7 +44,6 @@ import bisq.common.crypto.PubKeyRing;
 import bisq.common.crypto.Sig;
 import bisq.common.util.Utilities;
 
-import org.bitcoinj.core.Coin;
 import org.bitcoinj.core.ECKey;
 
 import java.security.KeyPair;
@@ -52,7 +51,6 @@ import java.security.PublicKey;
 
 import java.io.File;
 import java.io.IOException;
-
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
@@ -227,7 +225,7 @@ public class AccountAgeWitnessServiceTest {
         when(chargeBackRisk.hasChargebackRisk(any(), any())).thenReturn(true);
 
         when(contract.getPaymentMethodId()).thenReturn(PaymentMethod.SEPA_ID);
-        when(contract.getTradeAmount()).thenReturn(Coin.parseCoin("0.01"));
+        when(contract.getTradeAmount()).thenReturn(HavenoUtils.xmrToAtomicUnits(0.01));
         when(contract.getBuyerPubKeyRing()).thenReturn(buyerPubKeyRing);
         when(contract.getSellerPubKeyRing()).thenReturn(sellerPubKeyRing);
         when(contract.getOfferPayload()).thenReturn(mock(OfferPayload.class));
@@ -357,7 +355,7 @@ public class AccountAgeWitnessServiceTest {
                 signerKeyRing.getSignatureKeyPair().getPublic().getEncoded(),
                 witnessOwnerPubKey.getEncoded(),
                 time,
-                SignedWitnessService.MINIMUM_TRADE_AMOUNT_FOR_SIGNING.value);
+                SignedWitnessService.MINIMUM_TRADE_AMOUNT_FOR_SIGNING.longValueExact());
         signedWitnessService.addToMap(signedWitness);
     }
 

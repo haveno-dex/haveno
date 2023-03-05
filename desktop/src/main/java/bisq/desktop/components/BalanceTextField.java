@@ -17,9 +17,8 @@
 
 package bisq.desktop.components;
 
+import bisq.core.trade.HavenoUtils;
 import bisq.core.util.coin.CoinFormatter;
-
-import org.bitcoinj.core.Coin;
 
 import com.jfoenix.controls.JFXTextField;
 
@@ -29,17 +28,19 @@ import javafx.scene.effect.Effect;
 import javafx.scene.layout.AnchorPane;
 import javafx.scene.paint.Color;
 
+import java.math.BigInteger;
+
 import javax.annotation.Nullable;
 
 public class BalanceTextField extends AnchorPane {
 
-    private Coin targetAmount;
+    private BigInteger targetAmount;
     private final JFXTextField textField;
     private final Effect fundedEffect = new DropShadow(BlurType.THREE_PASS_BOX, Color.GREEN, 4, 0.0, 0, 0);
     private final Effect notFundedEffect = new DropShadow(BlurType.THREE_PASS_BOX, Color.ORANGERED, 4, 0.0, 0, 0);
     private CoinFormatter formatter;
     @Nullable
-    private Coin balance;
+    private BigInteger balance;
 
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -64,13 +65,13 @@ public class BalanceTextField extends AnchorPane {
         this.formatter = formatter;
     }
 
-    public void setBalance(Coin balance) {
+    public void setBalance(BigInteger balance) {
         this.balance = balance;
 
         updateBalance(balance);
     }
 
-    public void setTargetAmount(Coin targetAmount) {
+    public void setTargetAmount(BigInteger targetAmount) {
         this.targetAmount = targetAmount;
 
         if (this.balance != null)
@@ -81,9 +82,9 @@ public class BalanceTextField extends AnchorPane {
     // Private methods
     ///////////////////////////////////////////////////////////////////////////////////////////
 
-    private void updateBalance(Coin balance) {
+    private void updateBalance(BigInteger balance) {
         if (formatter != null)
-            textField.setText(formatter.formatCoinWithCode(balance));
+            textField.setText(HavenoUtils.formatToXmrWithCode(balance));
 
         //TODO: replace with new validation logic
 //        if (targetAmount != null) {
