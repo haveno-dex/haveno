@@ -21,7 +21,6 @@ import bisq.core.api.model.builder.OfferInfoBuilder;
 import bisq.core.monetary.Price;
 import bisq.core.offer.Offer;
 import bisq.core.offer.OpenOffer;
-import bisq.core.trade.HavenoUtils;
 import bisq.common.Payload;
 import bisq.common.proto.ProtoUtil;
 import java.util.Optional;
@@ -151,14 +150,14 @@ public class OfferInfo implements Payload {
                 .withPrice(preciseOfferPrice)
                 .withUseMarketBasedPrice(offer.isUseMarketBasedPrice())
                 .withMarketPriceMarginPct(marketPriceMarginAsPctLiteral)
-                .withAmount(HavenoUtils.centinerosToAtomicUnits(offer.getAmount().value).longValueExact())
-                .withMinAmount(HavenoUtils.centinerosToAtomicUnits(offer.getMinAmount().value).longValueExact())
+                .withAmount(offer.getAmount().longValueExact())
+                .withMinAmount(offer.getMinAmount().longValueExact())
                 .withVolume(roundedVolume)
                 .withMinVolume(roundedMinVolume)
-                .withMakerFee(HavenoUtils.centinerosToAtomicUnits(offer.getMakerFee().value).longValueExact())
+                .withMakerFee(offer.getMakerFee().longValueExact())
                 .withOfferFeePaymentTxId(offer.getOfferFeePaymentTxId())
-                .withBuyerSecurityDeposit(HavenoUtils.centinerosToAtomicUnits(offer.getBuyerSecurityDeposit().value).longValueExact())
-                .withSellerSecurityDeposit(HavenoUtils.centinerosToAtomicUnits(offer.getSellerSecurityDeposit().value).longValueExact())
+                .withBuyerSecurityDeposit(offer.getBuyerSecurityDeposit().longValueExact())
+                .withSellerSecurityDeposit(offer.getSellerSecurityDeposit().longValueExact())
                 .withPaymentAccountId(offer.getMakerPaymentAccountId())
                 .withPaymentMethodId(offer.getPaymentMethod().getId())
                 .withPaymentMethodShortName(offer.getPaymentMethod().getShortName())

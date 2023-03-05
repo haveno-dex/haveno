@@ -30,10 +30,10 @@ import bisq.core.offer.Offer;
 import bisq.core.offer.OfferDirection;
 import bisq.core.provider.price.MarketPrice;
 import bisq.core.provider.price.PriceFeedService;
+import bisq.core.trade.HavenoUtils;
 import bisq.core.util.FormattingUtils;
 import bisq.core.util.coin.CoinFormatter;
 
-import org.bitcoinj.core.Coin;
 import org.bitcoinj.utils.Fiat;
 
 import com.google.inject.Inject;
@@ -48,6 +48,7 @@ import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
 
 import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.math.RoundingMode;
 
 import java.util.ArrayList;
@@ -135,7 +136,7 @@ class SpreadViewModel extends ActivatableViewModel {
         }
         spreadItems.clear();
 
-        Coin totalAmount = null;
+        BigInteger totalAmount = BigInteger.valueOf(0);
 
         for (String key : offersByCurrencyMap.keySet()) {
             List<Offer> offers = offersByCurrencyMap.get(key);
@@ -235,7 +236,7 @@ class SpreadViewModel extends ActivatableViewModel {
                 }
             }
 
-            totalAmount = Coin.valueOf(offers.stream().mapToLong(offer -> offer.getAmount().getValue()).sum());
+            for (Offer offer : offers) totalAmount = totalAmount.add(offer.getAmount());
             spreadItems.add(new SpreadItem(key, buyOffers.size(), sellOffers.size(),
                     uniqueOffers.size(), spread, percentage, percentageValue, totalAmount));
         }
@@ -243,11 +244,11 @@ class SpreadViewModel extends ActivatableViewModel {
         maxPlacesForAmount.set(formatAmount(totalAmount, false).length());
     }
 
-    public String getAmount(Coin amount) {
+    public String getAmount(BigInteger amount) {
         return formatAmount(amount, true);
     }
 
-    private String formatAmount(Coin amount, boolean decimalAligned) {
-        return formatter.formatCoin(amount, GUIUtil.AMOUNT_DECIMALS, decimalAligned, maxPlacesForAmount.get());
+    private String formatAmount(BigInteger amount, boolean decimalAligned) {
+        return formatter.formatCoin(HavenoUtils.atomicUnitsToCoin(amount), GUIUtil.AMOUNT_DECIMALS, decimalAligned, maxPlacesForAmount.get());
     }
 }

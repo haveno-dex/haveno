@@ -33,8 +33,6 @@ import bisq.common.proto.network.NetworkPayload;
 import bisq.common.util.JsonExclude;
 import bisq.common.util.Utilities;
 
-import org.bitcoinj.core.Coin;
-
 import org.apache.commons.lang3.StringUtils;
 
 import lombok.Value;
@@ -43,6 +41,8 @@ import lombok.extern.slf4j.Slf4j;
 import javax.annotation.Nullable;
 
 import static com.google.common.base.Preconditions.checkArgument;
+
+import java.math.BigInteger;
 
 @Slf4j
 @Value
@@ -209,8 +209,8 @@ public final class Contract implements NetworkPayload {
         return makerPaymentMethodId;
     }
 
-    public Coin getTradeAmount() {
-        return Coin.valueOf(tradeAmount);
+    public BigInteger getTradeAmount() {
+        return BigInteger.valueOf(tradeAmount);
     }
 
     public Volume getTradeVolume() {

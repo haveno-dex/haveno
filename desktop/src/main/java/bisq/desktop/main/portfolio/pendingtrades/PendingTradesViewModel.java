@@ -48,8 +48,6 @@ import bisq.common.ClockWatcher;
 import bisq.common.UserThread;
 import bisq.common.app.DevEnv;
 
-import org.bitcoinj.core.Coin;
-
 import com.google.inject.Inject;
 
 import javax.inject.Named;
@@ -63,6 +61,7 @@ import javafx.beans.property.ReadOnlyObjectProperty;
 import javafx.beans.property.SimpleIntegerProperty;
 import javafx.beans.property.SimpleObjectProperty;
 
+import java.math.BigInteger;
 import java.util.Date;
 import java.util.stream.Collectors;
 
@@ -236,7 +235,7 @@ public class PendingTradesViewModel extends ActivatableWithDataModel<PendingTrad
 
     public String getPayoutAmount() {
         return dataModel.getTrade() != null
-                ? btcFormatter.formatCoinWithCode(dataModel.getTrade().getPayoutAmount())
+                ? HavenoUtils.formatToXmrWithCode(dataModel.getTrade().getPayoutAmount())
                 : "";
     }
 
@@ -282,7 +281,7 @@ public class PendingTradesViewModel extends ActivatableWithDataModel<PendingTrad
     // summary
     public String getTradeVolume() {
         return dataModel.getTrade() != null
-                ? btcFormatter.formatCoinWithCode(dataModel.getTrade().getAmount())
+                ? HavenoUtils.formatToXmrWithCode(dataModel.getTrade().getAmount())
                 : "";
     }
 
@@ -296,15 +295,15 @@ public class PendingTradesViewModel extends ActivatableWithDataModel<PendingTrad
         if (trade != null && dataModel.getOffer() != null && trade.getAmount() != null) {
             checkNotNull(dataModel.getTrade());
 
-            Coin tradeFeeInBTC = dataModel.getTradeFeeInBTC();
+            BigInteger tradeFeeInBTC = dataModel.getTradeFeeInBTC();
 
-            Coin minTradeFee = dataModel.isMaker() ?
+            BigInteger minTradeFee = dataModel.isMaker() ?
                     HavenoUtils.getMinMakerFee() :
                     HavenoUtils.getMinTakerFee();
 
             String percentage = GUIUtil.getPercentageOfTradeAmount(tradeFeeInBTC, trade.getAmount(),
                     minTradeFee);
-            return btcFormatter.formatCoinWithCode(tradeFeeInBTC) + percentage;
+            return HavenoUtils.formatToXmrWithCode(tradeFeeInBTC) + percentage;
         } else {
             return "";
         }
@@ -314,18 +313,18 @@ public class PendingTradesViewModel extends ActivatableWithDataModel<PendingTrad
         Offer offer = dataModel.getOffer();
         Trade trade = dataModel.getTrade();
         if (offer != null && trade != null && trade.getAmount() != null) {
-            Coin securityDeposit = dataModel.isBuyer() ?
+            BigInteger securityDeposit = dataModel.isBuyer() ?
                     offer.getBuyerSecurityDeposit()
                     : offer.getSellerSecurityDeposit();
 
-            Coin minSecurityDeposit = dataModel.isBuyer() ?
-                    Restrictions.getMinBuyerSecurityDepositAsCoin() :
-                    Restrictions.getMinSellerSecurityDepositAsCoin();
+            BigInteger minSecurityDeposit = dataModel.isBuyer() ?
+                    Restrictions.getMinBuyerSecurityDeposit() :
+                    Restrictions.getMinSellerSecurityDeposit();
 
             String percentage = GUIUtil.getPercentageOfTradeAmount(securityDeposit,
                     trade.getAmount(),
                     minSecurityDeposit);
-            return btcFormatter.formatCoinWithCode(securityDeposit) + percentage;
+            return HavenoUtils.formatToXmrWithCode(securityDeposit) + percentage;
         } else {
             return "";
         }

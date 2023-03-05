@@ -78,6 +78,7 @@ import javafx.collections.ObservableList;
 
 import org.bouncycastle.crypto.params.KeyParameter;
 
+import java.math.BigInteger;
 import java.util.Date;
 import java.util.stream.Collectors;
 
@@ -274,7 +275,7 @@ public class PendingTradesDataModel extends ActivatableDataModel {
         return isMaker;
     }
 
-    Coin getTradeFeeInBTC() {
+    BigInteger getTradeFeeInBTC() {
         Trade trade = getTrade();
         if (trade != null) {
             Offer offer = trade.getOffer();
@@ -283,14 +284,14 @@ public class PendingTradesDataModel extends ActivatableDataModel {
                     return offer.getMakerFee();
                 } else {
                     log.error("offer is null");
-                    return Coin.ZERO;
+                    return BigInteger.valueOf(0);
                 }
             } else {
                 return trade.getTakerFee();
             }
         } else {
             log.error("Trade is null at getTotalFees");
-            return Coin.ZERO;
+            return BigInteger.valueOf(0);
         }
     }
 

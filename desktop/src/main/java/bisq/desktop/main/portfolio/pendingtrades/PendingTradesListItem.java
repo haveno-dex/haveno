@@ -20,6 +20,7 @@ package bisq.desktop.main.portfolio.pendingtrades;
 import bisq.desktop.util.filtering.FilterableListItem;
 
 import bisq.core.monetary.Price;
+import bisq.core.trade.HavenoUtils;
 import bisq.core.trade.Trade;
 import bisq.core.util.FormattingUtils;
 import bisq.core.util.coin.CoinFormatter;
@@ -57,7 +58,7 @@ public class PendingTradesListItem implements FilterableListItem {
     }
 
     public String getAmountAsString() {
-        return btcFormatter.formatCoin(trade.getAmount());
+        return HavenoUtils.formatToXmr(trade.getAmount());
     }
 
     public String getPaymentMethod() {

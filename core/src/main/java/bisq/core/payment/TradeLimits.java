@@ -18,8 +18,7 @@
 package bisq.core.payment;
 
 import bisq.common.util.MathUtils;
-
-import org.bitcoinj.core.Coin;
+import bisq.core.trade.HavenoUtils;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -29,12 +28,14 @@ import com.google.common.annotations.VisibleForTesting;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
+import java.math.BigInteger;
+
 import javax.annotation.Nullable;
 
 @Slf4j
 @Singleton
 public class TradeLimits {
-    private static final Coin MAX_TRADE_LIMIT = Coin.parseCoin("20"); // max trade limit for lowest risk payment method. Others will get derived from that.
+    private static final BigInteger MAX_TRADE_LIMIT = HavenoUtils.xmrToAtomicUnits(20.0); // max trade limit for lowest risk payment method. Others will get derived from that.
     @Nullable
     @Getter
     private static TradeLimits INSTANCE;
@@ -57,7 +58,7 @@ public class TradeLimits {
      * @see bisq.core.payment.payload.PaymentMethod
      * @return the maximum trade limit
      */
-    public Coin getMaxTradeLimit() {
+    public BigInteger getMaxTradeLimit() {
        return MAX_TRADE_LIMIT;
     }
 

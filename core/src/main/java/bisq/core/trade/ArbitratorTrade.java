@@ -9,8 +9,7 @@ import bisq.network.p2p.NodeAddress;
 
 import bisq.common.proto.ProtoUtil;
 
-import org.bitcoinj.core.Coin;
-
+import java.math.BigInteger;
 import java.util.UUID;
 
 import lombok.extern.slf4j.Slf4j;
@@ -22,8 +21,8 @@ import lombok.extern.slf4j.Slf4j;
 public class ArbitratorTrade extends Trade {
     
   public ArbitratorTrade(Offer offer,
-          Coin tradeAmount,
-          Coin takerFee,
+          BigInteger tradeAmount,
+          BigInteger takerFee,
           long tradePrice,
           XmrWalletService xmrWalletService,
           ProcessModel processModel,
@@ -35,7 +34,7 @@ public class ArbitratorTrade extends Trade {
   }
 
   @Override
-  public Coin getPayoutAmount() {
+  public BigInteger getPayoutAmount() {
     throw new RuntimeException("Arbitrator does not have a payout amount");
   }
 
@@ -62,8 +61,8 @@ public class ArbitratorTrade extends Trade {
       }
       return fromProto(new ArbitratorTrade(
                       Offer.fromProto(proto.getOffer()),
-                      Coin.valueOf(proto.getAmountAsLong()),
-                      Coin.valueOf(proto.getTakerFeeAsLong()),
+                      BigInteger.valueOf(proto.getAmountAsLong()),
+                      BigInteger.valueOf(proto.getTakerFeeAsLong()),
                       proto.getPrice(),
                       xmrWalletService,
                       processModel,

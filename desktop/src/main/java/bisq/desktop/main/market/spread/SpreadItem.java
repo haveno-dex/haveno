@@ -19,10 +19,10 @@ package bisq.desktop.main.market.spread;
 
 import bisq.core.monetary.Price;
 
-import org.bitcoinj.core.Coin;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.math.BigInteger;
 
 import javax.annotation.Nullable;
 
@@ -36,10 +36,10 @@ public class SpreadItem {
     public final Price priceSpread;
     public final String percentage;
     public final double percentageValue;
-    public final Coin totalAmount;
+    public final BigInteger totalAmount;
 
     public SpreadItem(String currencyCode, int numberOfBuyOffers, int numberOfSellOffers, int numberOfOffers,
-                      @Nullable Price priceSpread, String percentage, double percentageValue, Coin totalAmount) {
+                      @Nullable Price priceSpread, String percentage, double percentageValue, BigInteger totalAmount) {
         this.currencyCode = currencyCode;
         this.numberOfBuyOffers = numberOfBuyOffers;
         this.numberOfSellOffers = numberOfSellOffers;

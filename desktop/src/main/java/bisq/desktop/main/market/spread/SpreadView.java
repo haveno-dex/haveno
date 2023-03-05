@@ -26,10 +26,9 @@ import bisq.desktop.util.GUIUtil;
 import bisq.common.UserThread;
 import bisq.core.locale.CurrencyUtil;
 import bisq.core.locale.Res;
+import bisq.core.trade.HavenoUtils;
 import bisq.core.util.FormattingUtils;
 import bisq.core.util.coin.CoinFormatter;
-
-import org.bitcoinj.core.Coin;
 
 import javax.inject.Inject;
 import javax.inject.Named;
@@ -48,6 +47,7 @@ import javafx.collections.transformation.SortedList;
 
 import javafx.util.Callback;
 
+import java.math.BigInteger;
 import java.util.Comparator;
 
 @FxmlView
@@ -127,7 +127,10 @@ public class SpreadView extends ActivatableViewAndModel<GridPane, SpreadViewMode
         int numberOfOffers = sortedList.stream().mapToInt(item -> item.numberOfOffers).sum();
         int numberOfBuyOffers = sortedList.stream().mapToInt(item -> item.numberOfBuyOffers).sum();
         int numberOfSellOffers = sortedList.stream().mapToInt(item -> item.numberOfSellOffers).sum();
-        String total = formatter.formatCoin(Coin.valueOf(sortedList.stream().mapToLong(item -> item.totalAmount.value).sum()));
+
+        BigInteger totalAmount = BigInteger.valueOf(0);
+        for (SpreadItem item : sortedList) totalAmount = totalAmount.add(item.totalAmount);
+        String total = HavenoUtils.formatToXmr(totalAmount);
 
         UserThread.execute(() -> {
             numberOfOffersColumn.setGraphic(new AutoTooltipLabel(Res.get("market.spread.numberOfOffersColumn", numberOfOffers)));

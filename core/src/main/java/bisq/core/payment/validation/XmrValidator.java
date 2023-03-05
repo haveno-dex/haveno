@@ -17,46 +17,38 @@
 
 package bisq.core.payment.validation;
 
-import bisq.core.btc.wallet.Restrictions;
 import bisq.core.locale.Res;
-import bisq.core.util.FormattingUtils;
-import bisq.core.util.coin.CoinFormatter;
+import bisq.core.trade.HavenoUtils;
 import bisq.core.util.validation.NumberValidator;
 
-import org.bitcoinj.core.Coin;
-
 import javax.inject.Inject;
-import javax.inject.Named;
 
 import java.math.BigDecimal;
+import java.math.BigInteger;
 
 import lombok.Getter;
 import lombok.Setter;
 
 import javax.annotation.Nullable;
 
-public class BtcValidator extends NumberValidator {
-
-    protected final CoinFormatter formatter;
+public class XmrValidator extends NumberValidator {
 
     @Nullable
     @Setter
-    protected Coin minValue;
+    protected BigInteger minValue;
 
     @Nullable
     @Setter
-    protected Coin maxValue;
+    protected BigInteger maxValue;
 
     @Nullable
     @Setter
     @Getter
-    protected Coin maxTradeLimit;
+    protected BigInteger maxTradeLimit;
 
     @Inject
-    public BtcValidator(@Named(FormattingUtils.BTC_FORMATTER_KEY) CoinFormatter formatter) {
-        this.formatter = formatter;
+    public XmrValidator() {
     }
-
 
     @Override
     public ValidationResult validate(String input) {
@@ -70,34 +62,20 @@ public class BtcValidator extends NumberValidator {
             result = result.andValidation(input,
                     this::validateIfNotZero,
                     this::validateIfNotNegative,
-                    this::validateIfNotFractionalBtcValue,
+                    this::validateIfNotFractionalXmrValue,
                     this::validateIfNotExceedsMaxTradeLimit,
-                    this::validateIfNotExceedsMaxBtcValue,
-                    this::validateIfNotUnderMinValue,
-                    this::validateIfAboveDust);
+                    this::validateIfNotExceedsMaxValue,
+                    this::validateIfNotUnderMinValue);
         }
 
         return result;
     }
 
-    protected ValidationResult validateIfAboveDust(String input) {
-        try {
-            final Coin coin = Coin.parseCoin(input);
-            if (Restrictions.isAboveDust(coin))
-                return new ValidationResult(true);
-            else
-                return new ValidationResult(false, Res.get("validation.amountBelowDust",
-                        formatter.formatCoinWithCode(Restrictions.getMinNonDustOutput())));
-        } catch (Throwable t) {
-            return new ValidationResult(false, Res.get("validation.invalidInput", t.getMessage()));
-        }
-    }
-
-    protected ValidationResult validateIfNotFractionalBtcValue(String input) {
+    protected ValidationResult validateIfNotFractionalXmrValue(String input) {
         try {
             BigDecimal bd = new BigDecimal(input);
-            final BigDecimal satoshis = bd.movePointRight(8);
-            if (satoshis.scale() > 0)
+            final BigDecimal atomicUnits = bd.movePointRight(HavenoUtils.XMR_SMALLEST_UNIT_EXPONENT);
+            if (atomicUnits.scale() > 0)
                 return new ValidationResult(false, Res.get("validation.btc.fraction"));
             else
                 return new ValidationResult(true);
@@ -106,11 +84,11 @@ public class BtcValidator extends NumberValidator {
         }
     }
 
-    protected ValidationResult validateIfNotExceedsMaxBtcValue(String input) {
+    protected ValidationResult validateIfNotExceedsMaxValue(String input) {
         try {
-            final Coin coin = Coin.parseCoin(input);
-            if (maxValue != null && coin.compareTo(maxValue) > 0)
-                return new ValidationResult(false, Res.get("validation.btc.toLarge", formatter.formatCoinWithCode(maxValue)));
+            final BigInteger amount = HavenoUtils.parseXmr(input);
+            if (maxValue != null && amount.compareTo(maxValue) > 0)
+                return new ValidationResult(false, Res.get("validation.btc.toLarge", HavenoUtils.formatToXmrWithCode(maxValue)));
             else
                 return new ValidationResult(true);
         } catch (Throwable t) {
@@ -120,9 +98,9 @@ public class BtcValidator extends NumberValidator {
 
     protected ValidationResult validateIfNotExceedsMaxTradeLimit(String input) {
         try {
-            final Coin coin = Coin.parseCoin(input);
-            if (maxTradeLimit != null && coin.compareTo(maxTradeLimit) > 0)
-                return new ValidationResult(false, Res.get("validation.btc.exceedsMaxTradeLimit", formatter.formatCoinWithCode(maxTradeLimit)));
+            final BigInteger amount = HavenoUtils.parseXmr(input);
+            if (maxTradeLimit != null && amount.compareTo(maxTradeLimit) > 0)
+                return new ValidationResult(false, Res.get("validation.btc.exceedsMaxTradeLimit", HavenoUtils.formatToXmrWithCode(maxTradeLimit)));
             else
                 return new ValidationResult(true);
         } catch (Throwable t) {
@@ -132,9 +110,9 @@ public class BtcValidator extends NumberValidator {
 
     protected ValidationResult validateIfNotUnderMinValue(String input) {
         try {
-            final Coin coin = Coin.parseCoin(input);
-            if (minValue != null && coin.compareTo(minValue) < 0)
-                return new ValidationResult(false, Res.get("validation.btc.toSmall", formatter.formatCoinWithCode(minValue)));
+            final BigInteger amount = HavenoUtils.parseXmr(input);
+            if (minValue != null && amount.compareTo(minValue) < 0)
+                return new ValidationResult(false, Res.get("validation.btc.toSmall", HavenoUtils.formatToXmr(minValue)));
             else
                 return new ValidationResult(true);
         } catch (Throwable t) {

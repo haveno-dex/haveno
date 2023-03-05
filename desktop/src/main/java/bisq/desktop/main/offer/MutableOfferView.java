@@ -48,6 +48,7 @@ import bisq.core.offer.OfferDirection;
 import bisq.core.payment.FasterPaymentsAccount;
 import bisq.core.payment.PaymentAccount;
 import bisq.core.payment.payload.PaymentMethod;
+import bisq.core.trade.HavenoUtils;
 import bisq.core.user.DontShowAgainLookup;
 import bisq.core.user.Preferences;
 import bisq.core.util.coin.CoinFormatter;
@@ -57,8 +58,6 @@ import bisq.common.app.DevEnv;
 import bisq.common.util.Tuple2;
 import bisq.common.util.Tuple3;
 import bisq.common.util.Utilities;
-
-import org.bitcoinj.core.Coin;
 
 import net.glxn.qrgen.QRCode;
 import net.glxn.qrgen.image.ImageType;
@@ -105,7 +104,7 @@ import javafx.util.StringConverter;
 import java.net.URI;
 
 import java.io.ByteArrayInputStream;
-
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -157,7 +156,7 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
             buyerSecurityDepositFocusedListener, priceFocusedListener, placeOfferCompletedListener,
             priceAsPercentageFocusedListener, getShowWalletFundedNotificationListener,
             isMinBuyerSecurityDepositListener, triggerPriceFocusedListener;
-    private ChangeListener<Coin> missingCoinListener;
+    private ChangeListener<BigInteger> missingCoinListener;
     private ChangeListener<String> tradeCurrencyCodeListener, errorMessageListener,
             marketPriceMarginListener, volumeListener, buyerSecurityDepositInBTCListener;
     private ChangeListener<Number> marketPriceAvailableListener;
@@ -248,7 +247,7 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
 
             onPaymentAccountsComboBoxSelected();
 
-            balanceTextField.setTargetAmount(model.getDataModel().totalToPayAsCoinProperty().get());
+            balanceTextField.setTargetAmount(model.getDataModel().totalToPayAsProperty().get());
             updatePriceToggle();
 
             Label popOverLabel = OfferViewUtil.createPopOverLabel(Res.get("createOffer.triggerPrice.tooltip"));
@@ -331,7 +330,7 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
     // called from parent as the view does not get notified when the tab is closed
     public void onClose() {
         // we use model.placeOfferCompleted to not react on close which was triggered by a successful placeOffer
-        if (model.getDataModel().getBalance().get().isPositive() && !model.placeOfferCompleted.get()) {
+        if (model.getDataModel().getBalance().get().compareTo(BigInteger.valueOf(0)) > 0 && !model.placeOfferCompleted.get()) {
             model.getDataModel().swapTradeToSavings();
         }
     }
@@ -411,7 +410,7 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
             triggerPriceVBox.setVisible(false);
         }
 
-        balanceTextField.setTargetAmount(model.getDataModel().totalToPayAsCoinProperty().get());
+        balanceTextField.setTargetAmount(model.getDataModel().totalToPayAsProperty().get());
 
         // temporarily disabled due to high CPU usage (per issue #4649)
         // waitingForFundsSpinner.play();
@@ -550,7 +549,7 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
         volumeTextField.textProperty().bindBidirectional(model.volume);
         volumeTextField.promptTextProperty().bind(model.volumePromptLabel);
         totalToPayTextField.textProperty().bind(model.totalToPay);
-        addressTextField.amountAsCoinProperty().bind(model.getDataModel().getMissingCoin());
+        addressTextField.amountAsProperty().bind(model.getDataModel().getMissingCoin());
         buyerSecurityDepositInputTextField.textProperty().bindBidirectional(model.buyerSecurityDeposit);
         buyerSecurityDepositLabel.textProperty().bind(model.buyerSecurityDepositLabel);
         tradeFeeInBtcLabel.textProperty().bind(model.tradeFeeInBtcWithFiat);
@@ -598,7 +597,7 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
         volumeTextField.textProperty().unbindBidirectional(model.volume);
         volumeTextField.promptTextProperty().unbindBidirectional(model.volume);
         totalToPayTextField.textProperty().unbind();
-        addressTextField.amountAsCoinProperty().unbind();
+        addressTextField.amountAsProperty().unbind();
         buyerSecurityDepositInputTextField.textProperty().unbindBidirectional(model.buyerSecurityDeposit);
         buyerSecurityDepositLabel.textProperty().unbind();
         tradeFeeInBtcLabel.textProperty().unbind();
@@ -736,7 +735,7 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
             if (newValue) {
                 Notification walletFundedNotification = new Notification()
                         .headLine(Res.get("notification.walletUpdate.headline"))
-                        .notification(Res.get("notification.walletUpdate.msg", xmrFormatter.formatCoinWithCode(model.getDataModel().getTotalToPayAsCoin().get())))
+                        .notification(Res.get("notification.walletUpdate.msg", HavenoUtils.formatToXmrWithCode(model.getDataModel().getTotalToPay().get())))
                         .autoClose();
 
                 walletFundedNotification.show();

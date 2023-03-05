@@ -38,8 +38,6 @@ import bisq.core.trade.Trade;
 
 import bisq.common.util.Utilities;
 
-import org.bitcoinj.core.Coin;
-
 import com.googlecode.jcsv.writer.CSVEntryConverter;
 
 import javax.inject.Inject;
@@ -82,6 +80,7 @@ import javafx.collections.transformation.SortedList;
 
 import javafx.util.Callback;
 
+import java.math.BigInteger;
 import java.util.Comparator;
 
 @FxmlView
@@ -273,14 +272,14 @@ public class FailedTradesView extends ActivatableViewAndModel<VBox, FailedTrades
         applyFilteredListPredicate(filterTextField.getText());
     }
 
-    private void handleContextMenu(String msgKey, String buyerOrSeller, String makerOrTaker, Coin fee, String reserveTxHash, String reserveTxHex) {
+    private void handleContextMenu(String msgKey, String buyerOrSeller, String makerOrTaker, BigInteger fee, String reserveTxHash, String reserveTxHex) {
         final Trade failedTrade = tableView.getSelectionModel().getSelectedItem().getTrade();
         log.debug("Found {} matching trade.", (failedTrade != null ? failedTrade.getId() : null));
         if(failedTrade != null) {
             new Popup().warning(Res.get(msgKey,
                     buyerOrSeller,
                     makerOrTaker,
-                    HavenoUtils.formatXmrWithCode(fee),
+                    HavenoUtils.formatToXmrWithCode(fee),
                     "todo", // TODO: set reserve tx miner fee when verified
                     reserveTxHash
                     )

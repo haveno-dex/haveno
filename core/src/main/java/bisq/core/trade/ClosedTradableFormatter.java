@@ -48,8 +48,6 @@ import static bisq.core.util.FormattingUtils.formatPercentagePrice;
 import static bisq.core.util.FormattingUtils.formatToPercentWithSymbol;
 import static bisq.core.util.VolumeUtil.formatVolume;
 import static bisq.core.util.VolumeUtil.formatVolumeWithCode;
-import static org.bitcoinj.core.TransactionConfidence.ConfidenceType.BUILDING;
-import static org.bitcoinj.core.TransactionConfidence.ConfidenceType.PENDING;
 
 @Slf4j
 @Singleton
@@ -59,7 +57,6 @@ public class ClosedTradableFormatter {
     private static final String I18N_KEY_TOTAL_AMOUNT = "closedTradesSummaryWindow.totalAmount.value";
     private static final String I18N_KEY_TOTAL_TX_FEE = "closedTradesSummaryWindow.totalMinerFee.value";
     private static final String I18N_KEY_TOTAL_TRADE_FEE_BTC = "closedTradesSummaryWindow.totalTradeFeeInBtc.value";
-    private static final String I18N_KEY_TOTAL_TRADE_FEE_BSQ = "closedTradesSummaryWindow.totalTradeFeeInBsq.value";
 
     private final CoinFormatter btcFormatter;
     private final ClosedTradableManager closedTradableManager;
@@ -72,7 +69,7 @@ public class ClosedTradableFormatter {
     }
 
     public String getAmountAsString(Tradable tradable) {
-        return tradable.getOptionalAmount().map(btcFormatter::formatCoin).orElse("");
+        return tradable.getOptionalAmount().map(HavenoUtils::formatToXmr).orElse("");
     }
 
     public String getTotalAmountWithVolumeAsString(Coin totalTradeAmount, Volume volume) {
@@ -93,11 +90,11 @@ public class ClosedTradableFormatter {
     }
 
     public String getBuyerSecurityDepositAsString(Tradable tradable) {
-        return btcFormatter.formatCoin(tradable.getOffer().getBuyerSecurityDeposit());
+        return HavenoUtils.formatToXmr(tradable.getOffer().getBuyerSecurityDeposit());
     }
 
     public String getSellerSecurityDepositAsString(Tradable tradable) {
-        return btcFormatter.formatCoin(tradable.getOffer().getSellerSecurityDeposit());
+        return HavenoUtils.formatToXmr(tradable.getOffer().getSellerSecurityDeposit());
     }
 
     public String getTradeFeeAsString(Tradable tradable, boolean appendCode) {

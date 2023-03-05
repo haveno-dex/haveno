@@ -10,6 +10,7 @@ import bisq.core.monetary.Volume;
 import bisq.core.offer.Offer;
 import bisq.core.payment.payload.PaymentAccountPayload;
 import bisq.core.payment.payload.PaymentMethod;
+import bisq.core.trade.HavenoUtils;
 import bisq.core.util.FormattingUtils;
 import bisq.core.offer.OfferDirection;
 import bisq.core.payment.PaymentAccount;
@@ -28,6 +29,7 @@ import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 
 import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.math.RoundingMode;
 
 import java.util.Date;
@@ -193,8 +195,8 @@ public class DisplayUtils {
 
     public static String formatAmount(Offer offer, CoinFormatter coinFormatter) {
         return offer.isRange()
-                ? coinFormatter.formatCoin(offer.getMinAmount()) + FormattingUtils.RANGE_SEPARATOR + coinFormatter.formatCoin(offer.getAmount())
-                : coinFormatter.formatCoin(offer.getAmount());
+                ? HavenoUtils.formatToXmr(offer.getMinAmount()) + FormattingUtils.RANGE_SEPARATOR + HavenoUtils.formatToXmr(offer.getAmount())
+                : HavenoUtils.formatToXmr(offer.getAmount());
     }
 
     public static String formatAmount(Offer offer,
@@ -203,8 +205,8 @@ public class DisplayUtils {
                                       int maxPlaces,
                                       CoinFormatter coinFormatter) {
         String formattedAmount = offer.isRange()
-                ? coinFormatter.formatCoin(offer.getMinAmount(), decimalPlaces) + FormattingUtils.RANGE_SEPARATOR + coinFormatter.formatCoin(offer.getAmount(), decimalPlaces)
-                : coinFormatter.formatCoin(offer.getAmount(), decimalPlaces);
+                ? HavenoUtils.formatToXmr(offer.getMinAmount(), decimalPlaces) + FormattingUtils.RANGE_SEPARATOR + HavenoUtils.formatToXmr(offer.getAmount(), decimalPlaces)
+                : HavenoUtils.formatToXmr(offer.getAmount(), decimalPlaces);
 
         if (decimalAligned) {
             formattedAmount = FormattingUtils.fillUpPlacesWithEmptyStrings(formattedAmount, maxPlaces);
@@ -225,15 +227,15 @@ public class DisplayUtils {
         return formattedPrice;
     }
 
-    public static String getFeeWithFiatAmount(Coin makerFeeAsCoin,
+    public static String getFeeWithFiatAmount(BigInteger makerFee,
                                               Optional<Volume> optionalFeeInFiat,
                                               CoinFormatter formatter) {
-        String feeInBtc = makerFeeAsCoin != null ? formatter.formatCoinWithCode(makerFeeAsCoin) : Res.get("shared.na");
+        String feeInXmr = makerFee != null ? HavenoUtils.formatToXmrWithCode(makerFee) : Res.get("shared.na");
         if (optionalFeeInFiat != null && optionalFeeInFiat.isPresent()) {
             String feeInFiat = VolumeUtil.formatAverageVolumeWithCode(optionalFeeInFiat.get());
-            return Res.get("feeOptionWindow.fee", feeInBtc, feeInFiat);
+            return Res.get("feeOptionWindow.fee", feeInXmr, feeInFiat);
         } else {
-            return feeInBtc;
+            return feeInXmr;
         }
     }
 

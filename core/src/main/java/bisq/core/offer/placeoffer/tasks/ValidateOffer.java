@@ -30,6 +30,8 @@ import org.bitcoinj.core.Coin;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import java.math.BigInteger;
+
 public class ValidateOffer extends Task<PlaceOfferModel> {
     public ValidateOffer(TaskRunner<PlaceOfferModel> taskHandler, PlaceOfferModel model) {
         super(taskHandler, model);
@@ -42,13 +44,13 @@ public class ValidateOffer extends Task<PlaceOfferModel> {
             runInterceptHook();
 
             // Coins
-            checkCoinNotNullOrZero(offer.getAmount(), "Amount");
-            checkCoinNotNullOrZero(offer.getMinAmount(), "MinAmount");
-            checkCoinNotNullOrZero(offer.getMakerFee(), "MakerFee");
-            checkCoinNotNullOrZero(offer.getBuyerSecurityDeposit(), "buyerSecurityDeposit");
-            checkCoinNotNullOrZero(offer.getSellerSecurityDeposit(), "sellerSecurityDeposit");
+            checkBINotNullOrZero(offer.getAmount(), "Amount");
+            checkBINotNullOrZero(offer.getMinAmount(), "MinAmount");
+            checkBINotNullOrZero(offer.getMakerFee(), "MakerFee");
+            checkBINotNullOrZero(offer.getBuyerSecurityDeposit(), "buyerSecurityDeposit");
+            checkBINotNullOrZero(offer.getSellerSecurityDeposit(), "sellerSecurityDeposit");
             //checkCoinNotNullOrZero(offer.getTxFee(), "txFee"); // TODO: remove from data model
-            checkCoinNotNullOrZero(offer.getMaxTradeLimit(), "MaxTradeLimit");
+            checkBINotNullOrZero(offer.getMaxTradeLimit(), "MaxTradeLimit");
 
             // We remove those checks to be more flexible with future changes.
             /*checkArgument(offer.getMakerFee().value >= FeeService.getMinMakerFee(offer.isCurrencyForMakerFeeBtc()).value,
@@ -67,8 +69,8 @@ public class ValidateOffer extends Task<PlaceOfferModel> {
                 "MinAmount is less than " + ProposalConsensus.getMinTradeAmount().toFriendlyString());*/
 
             long maxAmount = model.getAccountAgeWitnessService().getMyTradeLimit(model.getUser().getPaymentAccount(offer.getMakerPaymentAccountId()), offer.getCurrencyCode(), offer.getDirection());
-            checkArgument(offer.getAmount().longValue() <= maxAmount, 
-                    "Amount is larger than " + HavenoUtils.coinToXmr(offer.getPaymentMethod().getMaxTradeLimitAsCoin(offer.getCurrencyCode())) + " XMR");
+            checkArgument(offer.getAmount().longValueExact() <= maxAmount,
+                    "Amount is larger than " + HavenoUtils.atomicUnitsToXmr(offer.getPaymentMethod().getMaxTradeLimit(offer.getCurrencyCode())) + " XMR");
             checkArgument(offer.getAmount().compareTo(offer.getMinAmount()) >= 0, "MinAmount is larger than Amount");
 
             checkNotNull(offer.getPrice(), "Price is null");
@@ -98,6 +100,12 @@ public class ValidateOffer extends Task<PlaceOfferModel> {
                     + e.getMessage());
             failed(e);
         }
+    }
+
+    public static void checkBINotNullOrZero(BigInteger value, String name) {
+        checkNotNull(value, name + " is null");
+        checkArgument(value.compareTo(BigInteger.valueOf(0)) > 0,
+                name + " must be positive. " + name + "=" + value);
     }
 
     public static void checkCoinNotNullOrZero(Coin value, String name) {

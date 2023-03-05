@@ -41,6 +41,7 @@ import com.google.common.collect.ImmutableList;
 
 import javafx.collections.ObservableList;
 
+import java.math.BigInteger;
 import java.time.Instant;
 
 import java.util.ArrayList;
@@ -229,8 +230,8 @@ public class ClosedTradableManager implements PersistedDataHost {
 
     public long getBtcTradeFee(Tradable tradable) {
         return isMaker(tradable) ?
-                tradable.getOptionalMakerFee().orElse(Coin.ZERO).value :
-                tradable.getOptionalTakerFee().orElse(Coin.ZERO).value;
+                tradable.getOptionalMakerFee().orElse(BigInteger.valueOf(0)).longValueExact() :
+                tradable.getOptionalTakerFee().orElse(BigInteger.valueOf(0)).longValueExact();
     }
 
     public boolean isMaker(Tradable tradable) {

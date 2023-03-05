@@ -40,7 +40,6 @@ import bisq.common.util.JsonExclude;
 import bisq.common.util.MathUtils;
 import bisq.common.util.Utilities;
 
-import org.bitcoinj.core.Coin;
 import org.bitcoinj.utils.Fiat;
 
 import javafx.beans.property.ObjectProperty;
@@ -49,6 +48,7 @@ import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
 
+import java.math.BigInteger;
 import java.security.PublicKey;
 
 import java.util.Date;
@@ -246,7 +246,7 @@ public class Offer implements NetworkPayload, PersistablePayload {
     }
 
     @Nullable
-    public Volume getVolumeByAmount(Coin amount) {
+    public Volume getVolumeByAmount(BigInteger amount) {
         Price price = getPrice();
         if (price == null || amount == null) {
             return null;
@@ -291,34 +291,34 @@ public class Offer implements NetworkPayload, PersistablePayload {
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     // get the amount needed for the maker to reserve the offer
-    public Coin getReserveAmount() {
-        Coin reserveAmount = getDirection() == OfferDirection.BUY ? getBuyerSecurityDeposit() : getSellerSecurityDeposit();
+    public BigInteger getReserveAmount() {
+        BigInteger reserveAmount = getDirection() == OfferDirection.BUY ? getBuyerSecurityDeposit() : getSellerSecurityDeposit();
         if (getDirection() == OfferDirection.SELL) reserveAmount = reserveAmount.add(getAmount());
         return reserveAmount;
     }
 
-    public Coin getMakerFee() {
-        return Coin.valueOf(offerPayload.getMakerFee());
+    public BigInteger getMakerFee() {
+        return BigInteger.valueOf(offerPayload.getMakerFee());
     }
 
-    public Coin getBuyerSecurityDeposit() {
-        return Coin.valueOf(offerPayload.getBuyerSecurityDeposit());
+    public BigInteger getBuyerSecurityDeposit() {
+        return BigInteger.valueOf(offerPayload.getBuyerSecurityDeposit());
     }
 
-    public Coin getSellerSecurityDeposit() {
-        return Coin.valueOf(offerPayload.getSellerSecurityDeposit());
+    public BigInteger getSellerSecurityDeposit() {
+        return BigInteger.valueOf(offerPayload.getSellerSecurityDeposit());
     }
 
-    public Coin getMaxTradeLimit() {
-        return Coin.valueOf(offerPayload.getMaxTradeLimit());
+    public BigInteger getMaxTradeLimit() {
+        return BigInteger.valueOf(offerPayload.getMaxTradeLimit());
     }
 
-    public Coin getAmount() {
-        return Coin.valueOf(offerPayload.getAmount());
+    public BigInteger getAmount() {
+        return BigInteger.valueOf(offerPayload.getAmount());
     }
 
-    public Coin getMinAmount() {
-        return Coin.valueOf(offerPayload.getMinAmount());
+    public BigInteger getMinAmount() {
+        return BigInteger.valueOf(offerPayload.getMinAmount());
     }
 
     public boolean isRange() {

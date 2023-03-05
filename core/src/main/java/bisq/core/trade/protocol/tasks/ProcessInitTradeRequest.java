@@ -27,7 +27,6 @@ import bisq.core.trade.messages.InitTradeRequest;
 import bisq.core.trade.protocol.TradePeer;
 
 import bisq.common.taskrunner.TaskRunner;
-import org.bitcoinj.core.Coin;
 
 import com.google.common.base.Charsets;
 
@@ -38,6 +37,7 @@ import static bisq.core.util.Validator.nonEmptyStringOf;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import java.math.BigInteger;
 import java.util.Date;
 
 @Slf4j
@@ -134,7 +134,7 @@ public class ProcessInitTradeRequest extends TradeTask {
 
             // check trade amount
             checkArgument(request.getTradeAmount() > 0);
-            trade.setAmount(Coin.valueOf(request.getTradeAmount()));
+            trade.setAmount(BigInteger.valueOf(request.getTradeAmount()));
 
             // persist trade
             processModel.getTradeManager().requestPersistence();

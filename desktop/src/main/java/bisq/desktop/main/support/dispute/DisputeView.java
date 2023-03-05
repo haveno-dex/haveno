@@ -48,6 +48,7 @@ import bisq.core.support.dispute.arbitration.arbitrator.ArbitratorManager;
 import bisq.core.support.dispute.mediation.MediationManager;
 import bisq.core.support.messages.ChatMessage;
 import bisq.core.trade.Contract;
+import bisq.core.trade.HavenoUtils;
 import bisq.core.trade.Trade;
 import bisq.core.trade.TradeManager;
 import bisq.core.trade.Trade.DisputeState;
@@ -659,8 +660,8 @@ public abstract class DisputeView extends ActivatableView<VBox, Void> {
                 DisputeResult disputeResult = firstDispute.getDisputeResultProperty().get();
                 String winner = disputeResult != null &&
                         disputeResult.getWinner() == DisputeResult.Winner.BUYER ? "Buyer" : "Seller";
-                String buyerPayoutAmount = disputeResult != null ? disputeResult.getBuyerPayoutAmount().toFriendlyString() : "";
-                String sellerPayoutAmount = disputeResult != null ? disputeResult.getSellerPayoutAmount().toFriendlyString() : "";
+                String buyerPayoutAmount = disputeResult != null ? HavenoUtils.formatToXmrWithCode(disputeResult.getBuyerPayoutAmount()) : "";
+                String sellerPayoutAmount = disputeResult != null ? HavenoUtils.formatToXmrWithCode(disputeResult.getSellerPayoutAmount()) : "";
 
                 int index = disputeIndex.incrementAndGet();
                 String tradeDateString = dateFormatter.format(firstDispute.getTradeDate());
@@ -707,7 +708,7 @@ public abstract class DisputeView extends ActivatableView<VBox, Void> {
 
                 String paymentMethod = Res.get(contract.getPaymentMethodId());
                 String currency = CurrencyUtil.getNameAndCode(contract.getOfferPayload().getCurrencyCode());
-                String tradeAmount = contract.getTradeAmount().toFriendlyString();
+                String tradeAmount = HavenoUtils.formatToXmrWithCode(contract.getTradeAmount());
                 String buyerDeposit = Coin.valueOf(contract.getOfferPayload().getBuyerSecurityDeposit()).toFriendlyString();
                 String sellerDeposit = Coin.valueOf(contract.getOfferPayload().getSellerSecurityDeposit()).toFriendlyString();
                 stringBuilder.append("Payment method: ")

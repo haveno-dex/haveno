@@ -32,6 +32,7 @@ import bisq.core.offer.Offer;
 import bisq.core.offer.OfferDirection;
 import bisq.core.payment.PaymentAccount;
 import bisq.core.payment.payload.PaymentMethod;
+import bisq.core.trade.HavenoUtils;
 import bisq.core.trade.Trade;
 import bisq.core.trade.TradeManager;
 import bisq.core.trade.Trade.State;
@@ -44,7 +45,6 @@ import bisq.common.crypto.KeyRing;
 import bisq.common.util.Tuple2;
 import bisq.common.util.Tuple4;
 
-import org.bitcoinj.core.Coin;
 import org.fxmisc.easybind.EasyBind;
 import org.fxmisc.easybind.Subscription;
 
@@ -64,6 +64,7 @@ import javafx.scene.layout.HBox;
 import javafx.geometry.HPos;
 import javafx.geometry.Insets;
 
+import java.math.BigInteger;
 import java.util.List;
 import java.util.Optional;
 
@@ -80,7 +81,7 @@ public class OfferDetailsWindow extends Overlay<OfferDetailsWindow> {
     private final KeyRing keyRing;
     private final Navigation navigation;
     private Offer offer;
-    private Coin tradeAmount;
+    private BigInteger tradeAmount;
     private Price tradePrice;
     private Optional<Runnable> placeOfferHandlerOptional = Optional.empty();
     private Optional<Runnable> takeOfferHandlerOptional = Optional.empty();
@@ -106,7 +107,7 @@ public class OfferDetailsWindow extends Overlay<OfferDetailsWindow> {
         type = Type.Confirmation;
     }
 
-    public void show(Offer offer, Coin tradeAmount, Price tradePrice) {
+    public void show(Offer offer, BigInteger tradeAmount, Price tradePrice) {
         this.offer = offer;
         this.tradeAmount = tradeAmount;
         this.tradePrice = tradePrice;
@@ -208,14 +209,14 @@ public class OfferDetailsWindow extends Overlay<OfferDetailsWindow> {
         String btcAmount = Res.get("shared.btcAmount");
         if (takeOfferHandlerOptional.isPresent()) {
             addConfirmationLabelLabel(gridPane, ++rowIndex, btcAmount + btcDirectionInfo,
-                    formatter.formatCoinWithCode(tradeAmount));
+                    HavenoUtils.formatToXmrWithCode(tradeAmount));
             addConfirmationLabelLabel(gridPane, ++rowIndex, VolumeUtil.formatVolumeLabel(currencyCode) + fiatDirectionInfo,
                     VolumeUtil.formatVolumeWithCode(offer.getVolumeByAmount(tradeAmount)));
         } else {
             addConfirmationLabelLabel(gridPane, ++rowIndex, btcAmount + btcDirectionInfo,
-                    formatter.formatCoinWithCode(offer.getAmount()));
+                    HavenoUtils.formatToXmrWithCode(offer.getAmount()));
             addConfirmationLabelLabel(gridPane, ++rowIndex, Res.get("offerDetailsWindow.minBtcAmount"),
-                    formatter.formatCoinWithCode(offer.getMinAmount()));
+                    HavenoUtils.formatToXmrWithCode(offer.getMinAmount()));
             String volume = VolumeUtil.formatVolumeWithCode(offer.getVolume());
             String minVolume = "";
             if (offer.getVolume() != null && offer.getMinVolume() != null &&
@@ -324,11 +325,11 @@ public class OfferDetailsWindow extends Overlay<OfferDetailsWindow> {
                 DisplayUtils.formatDateTime(offer.getDate()));
         String value = Res.getWithColAndCap("shared.buyer") +
                 " " +
-                formatter.formatCoinWithCode(offer.getBuyerSecurityDeposit()) +
+                HavenoUtils.formatToXmrWithCode(offer.getBuyerSecurityDeposit()) +
                 " / " +
                 Res.getWithColAndCap("shared.seller") +
                 " " +
-                formatter.formatCoinWithCode(offer.getSellerSecurityDeposit());
+                HavenoUtils.formatToXmrWithCode(offer.getSellerSecurityDeposit());
         addConfirmationLabelLabel(gridPane, ++rowIndex, Res.get("shared.securityDeposit"), value);
 
         if (countryCode != null && !isF2F)

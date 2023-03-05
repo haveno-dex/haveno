@@ -18,11 +18,12 @@
 package bisq.core.monetary;
 
 import bisq.core.locale.CurrencyUtil;
+import bisq.core.trade.HavenoUtils;
 import bisq.core.util.ParsingUtils;
 
 import java.math.BigDecimal;
+import java.math.BigInteger;
 
-import org.bitcoinj.core.Coin;
 import org.bitcoinj.core.Monetary;
 import org.bitcoinj.utils.ExchangeRate;
 import org.bitcoinj.utils.Fiat;
@@ -33,7 +34,7 @@ import org.slf4j.LoggerFactory;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * Bitcoin price value with variable precision.
+ * Monero price value with variable precision.
  * <p>
  * <br/>
  * We wrap an object implementing the {@link Monetary} interface from bitcoinj. We respect the
@@ -82,23 +83,23 @@ public class Price extends MonetaryWrapper implements Comparable<Price> {
         }
     }
 
-    public Volume getVolumeByAmount(Coin amount) {
+    public Volume getVolumeByAmount(BigInteger amount) {
         if (monetary instanceof Fiat)
-            return new Volume(new ExchangeRate((Fiat) monetary).coinToFiat(amount));
+            return new Volume(new ExchangeRate((Fiat) monetary).coinToFiat(HavenoUtils.atomicUnitsToCoin(amount)));
         else if (monetary instanceof Altcoin)
-            return new Volume(new AltcoinExchangeRate((Altcoin) monetary).coinToAltcoin(amount));
+            return new Volume(new AltcoinExchangeRate((Altcoin) monetary).coinToAltcoin(HavenoUtils.atomicUnitsToCoin(amount)));
         else
             throw new IllegalStateException("Monetary must be either of type Fiat or Altcoin");
     }
 
-    public Coin getAmountByVolume(Volume volume) {
+    public BigInteger getAmountByVolume(Volume volume) {
         Monetary monetary = volume.getMonetary();
         if (monetary instanceof Fiat && this.monetary instanceof Fiat)
-            return new ExchangeRate((Fiat) this.monetary).fiatToCoin((Fiat) monetary);
+            return HavenoUtils.coinToAtomicUnits(new ExchangeRate((Fiat) this.monetary).fiatToCoin((Fiat) monetary));
         else if (monetary instanceof Altcoin && this.monetary instanceof Altcoin)
-            return new AltcoinExchangeRate((Altcoin) this.monetary).altcoinToCoin((Altcoin) monetary);
+            return HavenoUtils.coinToAtomicUnits(new AltcoinExchangeRate((Altcoin) this.monetary).altcoinToCoin((Altcoin) monetary));
         else
-            return Coin.ZERO;
+            return BigInteger.valueOf(0);
     }
 
     public String getCurrencyCode() {

@@ -73,7 +73,6 @@ import bisq.common.persistence.PersistenceManager;
 import bisq.common.proto.network.NetworkEnvelope;
 import bisq.common.proto.persistable.PersistedDataHost;
 import bisq.common.util.Tuple2;
-import org.bitcoinj.core.Coin;
 
 import javax.inject.Inject;
 
@@ -800,8 +799,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                 }
 
                 // get offer reserve amount
-                Coin offerReserveAmountCoin = openOffer.getOffer().getReserveAmount();
-                BigInteger offerReserveAmount = HavenoUtils.centinerosToAtomicUnits(offerReserveAmountCoin.value);
+                BigInteger offerReserveAmount = openOffer.getOffer().getReserveAmount();
 
                 // handle sufficient available balance
                 if (xmrWalletService.getWallet().getUnlockedBalance(0).compareTo(offerReserveAmount) >= 0) {
@@ -814,7 +812,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
 
                     // otherwise sign and post offer
                     else {
-                        signAndPostOffer(openOffer, offerReserveAmountCoin, true, resultHandler, errorMessageHandler);
+                        signAndPostOffer(openOffer, offerReserveAmount, true, resultHandler, errorMessageHandler);
                     }
                     return;
                 }
@@ -887,7 +885,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
     }
 
     private void signAndPostOffer(OpenOffer openOffer,
-                                  Coin offerReserveAmount,
+                                  BigInteger offerReserveAmount,
                                   boolean useSavingsWallet, // TODO: remove this
                                   TransactionResultHandler resultHandler, ErrorMessageHandler errorMessageHandler) {
         log.info("Signing and posting offer " + openOffer.getId());
@@ -980,8 +978,8 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
 
             // verify maker's trade fee
             Offer offer = new Offer(request.getOfferPayload());
-            BigInteger tradeFee = HavenoUtils.coinToAtomicUnits(HavenoUtils.getMakerFee(offer.getAmount()));
-            if (!tradeFee.equals(HavenoUtils.coinToAtomicUnits(offer.getMakerFee()))) {
+            BigInteger tradeFee = HavenoUtils.getMakerFee(offer.getAmount());
+            if (!tradeFee.equals(offer.getMakerFee())) {
                 errorMessage = "Wrong trade fee for offer " + request.offerId;
                 log.info(errorMessage);
                 sendAckMessage(request.getClass(), peer, request.getPubKeyRing(), request.getOfferId(), request.getUid(), false, errorMessage);
@@ -989,8 +987,8 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
             }
 
             // verify maker's reserve tx (double spend, trade fee, trade amount, mining fee)
-            BigInteger sendAmount =  HavenoUtils.coinToAtomicUnits(offer.getDirection() == OfferDirection.BUY ? Coin.ZERO : offer.getAmount());
-            BigInteger securityDeposit = HavenoUtils.coinToAtomicUnits(offer.getDirection() == OfferDirection.BUY ? offer.getBuyerSecurityDeposit() : offer.getSellerSecurityDeposit());
+            BigInteger sendAmount =  offer.getDirection() == OfferDirection.BUY ? BigInteger.valueOf(0) : offer.getAmount();
+            BigInteger securityDeposit = offer.getDirection() == OfferDirection.BUY ? offer.getBuyerSecurityDeposit() : offer.getSellerSecurityDeposit();
             MoneroTx reserveTx = xmrWalletService.verifyTradeTx(
                     tradeFee,
                     sendAmount,
@@ -1011,8 +1009,8 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
             SignedOffer signedOffer = new SignedOffer(
                     System.currentTimeMillis(),
                     signedOfferPayload.getId(),
-                    HavenoUtils.coinToAtomicUnits(offer.getAmount()).longValueExact(),
-                    HavenoUtils.coinToAtomicUnits(HavenoUtils.getMakerFee(offer.getAmount())).longValueExact(),
+                    offer.getAmount().longValueExact(),
+                    HavenoUtils.getMakerFee(offer.getAmount()).longValueExact(),
                     request.getReserveTxHash(),
                     request.getReserveTxHex(),
                     request.getReserveTxKeyImages(),

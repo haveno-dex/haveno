@@ -54,6 +54,7 @@ import bisq.core.offer.Offer;
 import bisq.core.payment.FasterPaymentsAccount;
 import bisq.core.payment.PaymentAccount;
 import bisq.core.payment.payload.PaymentMethod;
+import bisq.core.trade.HavenoUtils;
 import bisq.core.user.DontShowAgainLookup;
 import bisq.core.util.FormattingUtils;
 import bisq.core.util.coin.CoinFormatter;
@@ -64,8 +65,6 @@ import bisq.common.util.Tuple2;
 import bisq.common.util.Tuple3;
 import bisq.common.util.Tuple4;
 import bisq.common.util.Utilities;
-
-import org.bitcoinj.core.Coin;
 
 import net.glxn.qrgen.QRCode;
 import net.glxn.qrgen.image.ImageType;
@@ -108,6 +107,7 @@ import javafx.beans.value.ChangeListener;
 import java.net.URI;
 
 import java.io.ByteArrayInputStream;
+import java.math.BigInteger;
 import java.util.HashMap;
 import java.util.concurrent.TimeUnit;
 
@@ -208,7 +208,7 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
             if (newValue) {
                 Notification walletFundedNotification = new Notification()
                         .headLine(Res.get("notification.walletUpdate.headline"))
-                        .notification(Res.get("notification.walletUpdate.msg", formatter.formatCoinWithCode(model.dataModel.getTotalToPayAsCoin().get())))
+                        .notification(Res.get("notification.walletUpdate.msg", HavenoUtils.formatToXmrWithCode(model.dataModel.getTotalToPay().get())))
                         .autoClose();
 
                 walletFundedNotification.show();
@@ -262,7 +262,7 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
             model.onPaymentAccountSelected(lastPaymentAccount);
         }
 
-        balanceTextField.setTargetAmount(model.dataModel.getTotalToPayAsCoin().get());
+        balanceTextField.setTargetAmount(model.dataModel.getTotalToPay().get());
 
         maybeShowTakeOfferFromUnsignedAccountWarning(model.dataModel.getOffer());
         maybeShowClearXchangeWarning(lastPaymentAccount);
@@ -359,8 +359,8 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
 
     // Called from parent as the view does not get notified when the tab is closed
     public void onClose() {
-        Coin availableBalance = model.dataModel.getAvailableBalance().get();
-        if (availableBalance != null && availableBalance.isPositive() && !model.takeOfferCompleted.get() && !DevEnv.isDevMode()) {
+        BigInteger availableBalance = model.dataModel.getAvailableBalance().get();
+        if (availableBalance != null && availableBalance.compareTo(BigInteger.valueOf(0)) > 0 && !model.takeOfferCompleted.get() && !DevEnv.isDevMode()) {
             model.dataModel.swapTradeToSavings();
         }
     }
@@ -445,7 +445,7 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
 
         updateOfferElementsStyle();
 
-        balanceTextField.setTargetAmount(model.dataModel.getTotalToPayAsCoin().get());
+        balanceTextField.setTargetAmount(model.dataModel.getTotalToPay().get());
 
         if (!DevEnv.isDevMode()) {
             String tradeAmountText = model.isSeller() ? Res.get("takeOffer.takeOfferFundWalletInfo.tradeAmount", model.getTradeAmount()) : "";
@@ -481,7 +481,7 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
             if (walletFundedNotification == null) {
                 walletFundedNotification = new Notification()
                         .headLine(Res.get("notification.walletUpdate.headline"))
-                        .notification(Res.get("notification.takeOffer.walletUpdate.msg", formatter.formatCoinWithCode(model.dataModel.getTotalToPayAsCoin().get())))
+                        .notification(Res.get("notification.takeOffer.walletUpdate.msg", HavenoUtils.formatToXmrWithCode(model.dataModel.getTotalToPay().get())))
                         .autoClose();
                 walletFundedNotification.show();
             }
@@ -542,7 +542,7 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
         amountTextField.textProperty().bindBidirectional(model.amount);
         volumeTextField.textProperty().bindBidirectional(model.volume);
         totalToPayTextField.textProperty().bind(model.totalToPay);
-        addressTextField.amountAsCoinProperty().bind(model.dataModel.getMissingCoin());
+        addressTextField.amountAsProperty().bind(model.dataModel.getMissingCoin());
         amountTextField.validationResultProperty().bind(model.amountValidationResult);
         priceCurrencyLabel.textProperty().bind(createStringBinding(() -> CurrencyUtil.getCounterCurrency(model.dataModel.getCurrencyCode())));
         priceAsPercentageLabel.prefWidthProperty().bind(priceCurrencyLabel.widthProperty());
@@ -566,7 +566,7 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
         amountTextField.textProperty().unbindBidirectional(model.amount);
         volumeTextField.textProperty().unbindBidirectional(model.volume);
         totalToPayTextField.textProperty().unbind();
-        addressTextField.amountAsCoinProperty().unbind();
+        addressTextField.amountAsProperty().unbind();
         amountTextField.validationResultProperty().unbind();
         priceCurrencyLabel.textProperty().unbind();
         priceAsPercentageLabel.prefWidthProperty().unbind();

@@ -25,6 +25,7 @@ import bisq.core.offer.Offer;
 import bisq.core.offer.OfferBookService;
 import bisq.core.offer.OfferDirection;
 import bisq.core.provider.price.PriceFeedService;
+import bisq.core.trade.HavenoUtils;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -111,7 +112,7 @@ class CorePriceService {
         for(Offer offer: buyOffers) {
             Price price = offer.getPrice();
             if (price != null) {
-                double amount = (double) offer.getAmount().value / LongMath.pow(10, offer.getAmount().smallestUnitExponent());
+                double amount = (double) offer.getAmount().longValueExact() / LongMath.pow(10, HavenoUtils.XMR_SMALLEST_UNIT_EXPONENT);
                 accumulatedAmount += amount;
                 double priceAsDouble = (double) price.getValue() / LongMath.pow(10, price.smallestUnitExponent());
                 buyTM.put(mapPriceFeedServicePrice(priceAsDouble, currencyCode), accumulatedAmount);
@@ -124,7 +125,7 @@ class CorePriceService {
         for(Offer offer: sellOffers){
             Price price = offer.getPrice();
             if (price != null) {
-                double amount = (double) offer.getAmount().value / LongMath.pow(10, offer.getAmount().smallestUnitExponent());
+                double amount = (double) offer.getAmount().longValueExact() / LongMath.pow(10, HavenoUtils.XMR_SMALLEST_UNIT_EXPONENT);
                 accumulatedAmount += amount;
                 double priceAsDouble = (double) price.getValue() / LongMath.pow(10, price.smallestUnitExponent());
                 sellTM.put(mapPriceFeedServicePrice(priceAsDouble, currencyCode), accumulatedAmount);

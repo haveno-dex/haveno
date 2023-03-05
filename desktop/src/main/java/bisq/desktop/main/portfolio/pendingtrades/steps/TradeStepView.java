@@ -33,6 +33,7 @@ import bisq.core.support.dispute.DisputeResult;
 import bisq.core.support.dispute.mediation.MediationResultState;
 import bisq.core.trade.ArbitratorTrade;
 import bisq.core.trade.Contract;
+import bisq.core.trade.HavenoUtils;
 import bisq.core.trade.MakerTrade;
 import bisq.core.trade.TakerTrade;
 import bisq.core.trade.Trade;
@@ -673,8 +674,8 @@ public abstract class TradeStepView extends AnchorPane {
         DisputeResult disputeResult = optionalDispute.get().getDisputeResultProperty().get();
         Contract contract = checkNotNull(trade.getContract(), "contract must not be null");
         boolean isMyRoleBuyer = contract.isMyRoleBuyer(model.dataModel.getPubKeyRingProvider().get());
-        String buyerPayoutAmount = model.btcFormatter.formatCoinWithCode(disputeResult.getBuyerPayoutAmount());
-        String sellerPayoutAmount = model.btcFormatter.formatCoinWithCode(disputeResult.getSellerPayoutAmount());
+        String buyerPayoutAmount = HavenoUtils.formatToXmrWithCode(disputeResult.getBuyerPayoutAmount());
+        String sellerPayoutAmount = HavenoUtils.formatToXmrWithCode(disputeResult.getSellerPayoutAmount());
         String myPayoutAmount = isMyRoleBuyer ? buyerPayoutAmount : sellerPayoutAmount;
         String peersPayoutAmount = isMyRoleBuyer ? sellerPayoutAmount : buyerPayoutAmount;
 

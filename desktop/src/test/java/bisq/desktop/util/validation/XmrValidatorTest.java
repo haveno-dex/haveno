@@ -19,14 +19,10 @@ package bisq.desktop.util.validation;
 
 import bisq.common.config.BaseCurrencyNetwork;
 import bisq.common.config.Config;
-
 import bisq.core.locale.CurrencyUtil;
 import bisq.core.locale.Res;
-import bisq.core.payment.validation.BtcValidator;
-import bisq.core.util.coin.CoinFormatter;
-import bisq.core.util.coin.ImmutableCoinFormatter;
-
-import org.bitcoinj.core.Coin;
+import bisq.core.payment.validation.XmrValidator;
+import bisq.core.trade.HavenoUtils;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -34,9 +30,7 @@ import org.junit.Test;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
-public class BtcValidatorTest {
-
-    private final CoinFormatter coinFormatter = new ImmutableCoinFormatter(Config.baseCurrencyNetworkParameters().getMonetaryFormat());
+public class XmrValidatorTest {
 
     @Before
     public void setup() {
@@ -49,7 +43,7 @@ public class BtcValidatorTest {
 
     @Test
     public void testIsValid() {
-        BtcValidator validator = new BtcValidator(coinFormatter);
+        XmrValidator validator = new XmrValidator();
 
         assertTrue(validator.validate("1").isValid);
         assertTrue(validator.validate("0,1").isValid);
@@ -57,7 +51,9 @@ public class BtcValidatorTest {
         assertTrue(validator.validate(",1").isValid);
         assertTrue(validator.validate(".1").isValid);
         assertTrue(validator.validate("0.12345678").isValid);
-        assertFalse(validator.validate(Coin.SATOSHI.toPlainString()).isValid); // below dust
+        assertTrue(validator.validate("0.0000001").isValid);
+        validator.setMinValue(HavenoUtils.xmrToAtomicUnits(0.0001));
+        assertFalse(validator.validate("0.0000001").isValid); // below minimum
 
         assertFalse(validator.validate(null).isValid);
         assertFalse(validator.validate("").isValid);
@@ -67,9 +63,8 @@ public class BtcValidatorTest {
         assertFalse(validator.validate("0.1.1").isValid);
         assertFalse(validator.validate("0,000.1").isValid);
         assertFalse(validator.validate("0.000,1").isValid);
-        assertFalse(validator.validate("0.123456789").isValid);
+        assertFalse(validator.validate("0.123456789123456").isValid);
         assertFalse(validator.validate("-1").isValid);
         // assertFalse(validator.validate(NetworkParameters.MAX_MONEY.toPlainString()).isValid);
     }
-
 }

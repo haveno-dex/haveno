@@ -77,8 +77,7 @@ import bisq.common.config.BaseCurrencyNetwork;
 import bisq.common.config.Config;
 import bisq.common.proto.persistable.PersistablePayload;
 
-import org.bitcoinj.core.Coin;
-
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -113,10 +112,10 @@ public final class PaymentMethod implements PersistablePayload, Comparable<Payme
     // risk factor so the relation between the risk categories stays the same as with the default values.
     // We must not change those values as it could lead to invalid offers if amount becomes lower then new trade limit.
     // Increasing might be ok, but needs more thought as well...
-    private static final Coin DEFAULT_TRADE_LIMIT_VERY_LOW_RISK = Coin.parseCoin("100");
-    private static final Coin DEFAULT_TRADE_LIMIT_LOW_RISK = Coin.parseCoin("50");
-    private static final Coin DEFAULT_TRADE_LIMIT_MID_RISK = Coin.parseCoin("25");
-    private static final Coin DEFAULT_TRADE_LIMIT_HIGH_RISK = Coin.parseCoin("12.5");
+    private static final BigInteger DEFAULT_TRADE_LIMIT_VERY_LOW_RISK = HavenoUtils.xmrToAtomicUnits(100);
+    private static final BigInteger DEFAULT_TRADE_LIMIT_LOW_RISK = HavenoUtils.xmrToAtomicUnits(50);
+    private static final BigInteger DEFAULT_TRADE_LIMIT_MID_RISK = HavenoUtils.xmrToAtomicUnits(25);
+    private static final BigInteger DEFAULT_TRADE_LIMIT_HIGH_RISK = HavenoUtils.xmrToAtomicUnits(12.5);
 
     public static final String UPHOLD_ID = "UPHOLD";
     public static final String MONEY_BEAM_ID = "MONEY_BEAM";
@@ -291,19 +290,19 @@ public final class PaymentMethod implements PersistablePayload, Comparable<Payme
             TRANSFERWISE_USD = new PaymentMethod(TRANSFERWISE_USD_ID, 4 * DAY, DEFAULT_TRADE_LIMIT_HIGH_RISK, getAssetCodes(TransferwiseUsdAccount.SUPPORTED_CURRENCIES)),
             PAYSERA = new PaymentMethod(PAYSERA_ID, DAY, DEFAULT_TRADE_LIMIT_HIGH_RISK, getAssetCodes(PayseraAccount.SUPPORTED_CURRENCIES)),
             PAXUM = new PaymentMethod(PAXUM_ID, DAY, DEFAULT_TRADE_LIMIT_HIGH_RISK, getAssetCodes(PaxumAccount.SUPPORTED_CURRENCIES)),
-            NEFT = new PaymentMethod(NEFT_ID, DAY, Coin.parseCoin("0.02"), getAssetCodes(NeftAccount.SUPPORTED_CURRENCIES)),
+            NEFT = new PaymentMethod(NEFT_ID, DAY, HavenoUtils.xmrToAtomicUnits(0.02), getAssetCodes(NeftAccount.SUPPORTED_CURRENCIES)),
             RTGS = new PaymentMethod(RTGS_ID, DAY, DEFAULT_TRADE_LIMIT_HIGH_RISK, getAssetCodes(RtgsAccount.SUPPORTED_CURRENCIES)),
             IMPS = new PaymentMethod(IMPS_ID, DAY, DEFAULT_TRADE_LIMIT_HIGH_RISK, getAssetCodes(ImpsAccount.SUPPORTED_CURRENCIES)),
-            UPI = new PaymentMethod(UPI_ID, DAY, Coin.parseCoin("0.05"), getAssetCodes(UpiAccount.SUPPORTED_CURRENCIES)),
-            PAYTM = new PaymentMethod(PAYTM_ID, DAY, Coin.parseCoin("0.05"), getAssetCodes(PaytmAccount.SUPPORTED_CURRENCIES)),
+            UPI = new PaymentMethod(UPI_ID, DAY, HavenoUtils.xmrToAtomicUnits(0.05), getAssetCodes(UpiAccount.SUPPORTED_CURRENCIES)),
+            PAYTM = new PaymentMethod(PAYTM_ID, DAY, HavenoUtils.xmrToAtomicUnits(0.05), getAssetCodes(PaytmAccount.SUPPORTED_CURRENCIES)),
             NEQUI = new PaymentMethod(NEQUI_ID, DAY, DEFAULT_TRADE_LIMIT_HIGH_RISK, getAssetCodes(NequiAccount.SUPPORTED_CURRENCIES)),
-            BIZUM = new PaymentMethod(BIZUM_ID, DAY, Coin.parseCoin("0.04"), getAssetCodes(BizumAccount.SUPPORTED_CURRENCIES)),
+            BIZUM = new PaymentMethod(BIZUM_ID, DAY, HavenoUtils.xmrToAtomicUnits(0.04), getAssetCodes(BizumAccount.SUPPORTED_CURRENCIES)),
             PIX = new PaymentMethod(PIX_ID, DAY, DEFAULT_TRADE_LIMIT_HIGH_RISK, getAssetCodes(PixAccount.SUPPORTED_CURRENCIES)),
             CAPITUAL = new PaymentMethod(CAPITUAL_ID, DAY, DEFAULT_TRADE_LIMIT_HIGH_RISK, getAssetCodes(CapitualAccount.SUPPORTED_CURRENCIES)),
             CELPAY = new PaymentMethod(CELPAY_ID, DAY, DEFAULT_TRADE_LIMIT_HIGH_RISK, getAssetCodes(CelPayAccount.SUPPORTED_CURRENCIES)),
             MONESE = new PaymentMethod(MONESE_ID, DAY, DEFAULT_TRADE_LIMIT_HIGH_RISK, getAssetCodes(MoneseAccount.SUPPORTED_CURRENCIES)),
             SATISPAY = new PaymentMethod(SATISPAY_ID, DAY, DEFAULT_TRADE_LIMIT_HIGH_RISK, getAssetCodes(SatispayAccount.SUPPORTED_CURRENCIES)),
-            TIKKIE = new PaymentMethod(TIKKIE_ID, DAY, Coin.parseCoin("0.05"), getAssetCodes(TikkieAccount.SUPPORTED_CURRENCIES)),
+            TIKKIE = new PaymentMethod(TIKKIE_ID, DAY, HavenoUtils.xmrToAtomicUnits(0.05), getAssetCodes(TikkieAccount.SUPPORTED_CURRENCIES)),
             VERSE = new PaymentMethod(VERSE_ID, DAY, DEFAULT_TRADE_LIMIT_HIGH_RISK, getAssetCodes(VerseAccount.SUPPORTED_CURRENCIES)),
             STRIKE = new PaymentMethod(STRIKE_ID, DAY, DEFAULT_TRADE_LIMIT_HIGH_RISK, getAssetCodes(StrikeAccount.SUPPORTED_CURRENCIES)),
             SWIFT = new PaymentMethod(SWIFT_ID, 7 * DAY, DEFAULT_TRADE_LIMIT_MID_RISK, getAssetCodes(SwiftAccount.SUPPORTED_CURRENCIES)),
@@ -365,7 +364,7 @@ public final class PaymentMethod implements PersistablePayload, Comparable<Payme
     }
 
     public static PaymentMethod getDummyPaymentMethod(String id) {
-        return new PaymentMethod(id, 0, Coin.ZERO, Arrays.asList());
+        return new PaymentMethod(id, 0, BigInteger.valueOf(0), Arrays.asList());
     }
 
 
@@ -405,16 +404,16 @@ public final class PaymentMethod implements PersistablePayload, Comparable<Payme
      * @param maxTradeLimit  The max. allowed trade amount in Bitcoin for that payment method (depending on charge back risk)
      * @param supportedAssetCodes Supported asset codes.
      */
-    private PaymentMethod(String id, long maxTradePeriod, Coin maxTradeLimit, List<String> supportedAssetCodes) {
+    private PaymentMethod(String id, long maxTradePeriod, BigInteger maxTradeLimit, List<String> supportedAssetCodes) {
         this.id = id;
         this.maxTradePeriod = maxTradePeriod;
-        this.maxTradeLimit = maxTradeLimit.value;
+        this.maxTradeLimit = maxTradeLimit.longValueExact();
         this.supportedAssetCodes = supportedAssetCodes;
     }
 
     // Used for dummy entries in payment methods list (SHOW_ALL)
     private PaymentMethod(String id) {
-        this(id, 0, Coin.ZERO, new ArrayList<String>());
+        this(id, 0, BigInteger.valueOf(0), new ArrayList<String>());
     }
 
 
@@ -435,7 +434,7 @@ public final class PaymentMethod implements PersistablePayload, Comparable<Payme
     public static PaymentMethod fromProto(protobuf.PaymentMethod proto) {
         return new PaymentMethod(proto.getId(),
                 proto.getMaxTradePeriod(),
-                Coin.valueOf(proto.getMaxTradeLimit()),
+                BigInteger.valueOf(proto.getMaxTradeLimit()),
                 proto.getSupportedAssetCodesList());
     }
 
@@ -456,44 +455,43 @@ public final class PaymentMethod implements PersistablePayload, Comparable<Payme
                 .findFirst();
     }
 
-    public Coin getMaxTradeLimitAsCoin(String currencyCode) {
+    public BigInteger getMaxTradeLimit(String currencyCode) {
         // Hack for SF as the smallest unit is 1 SF ;-( and price is about 3 BTC!
         if (currencyCode.equals("SF"))
-            return Coin.parseCoin("4");
+            return HavenoUtils.xmrToAtomicUnits(4);
         // payment methods which define their own trade limits
         if (id.equals(NEFT_ID) || id.equals(UPI_ID) || id.equals(PAYTM_ID) || id.equals(BIZUM_ID) || id.equals(TIKKIE_ID)) {
-            return Coin.valueOf(maxTradeLimit);
+            return BigInteger.valueOf(maxTradeLimit);
         }
 
         // We use the class field maxTradeLimit only for mapping the risk factor.
         long riskFactor;
-        if (maxTradeLimit == DEFAULT_TRADE_LIMIT_VERY_LOW_RISK.value)
+        if (maxTradeLimit == DEFAULT_TRADE_LIMIT_VERY_LOW_RISK.longValueExact())
             riskFactor = 1;
-        else if (maxTradeLimit == DEFAULT_TRADE_LIMIT_LOW_RISK.value)
+        else if (maxTradeLimit == DEFAULT_TRADE_LIMIT_LOW_RISK.longValueExact())
             riskFactor = 2;
-        else if (maxTradeLimit == DEFAULT_TRADE_LIMIT_MID_RISK.value)
+        else if (maxTradeLimit == DEFAULT_TRADE_LIMIT_MID_RISK.longValueExact())
             riskFactor = 4;
-        else if (maxTradeLimit == DEFAULT_TRADE_LIMIT_HIGH_RISK.value)
+        else if (maxTradeLimit == DEFAULT_TRADE_LIMIT_HIGH_RISK.longValueExact())
             riskFactor = 8;
         else {
             riskFactor = 8;
             log.warn("maxTradeLimit is not matching one of our default values. We use highest risk factor. " +
-                            "maxTradeLimit={}. PaymentMethod={}",
-                    Coin.valueOf(maxTradeLimit).toFriendlyString(), this);
+                            "maxTradeLimit={}. PaymentMethod={}", maxTradeLimit, this);
         }
 
         // get risk based trade limit
         TradeLimits tradeLimits = new TradeLimits();
-        long maxTradeLimit = tradeLimits.getMaxTradeLimit().value;
-        long riskBasedTradeLimit = tradeLimits.getRoundedRiskBasedTradeLimit(maxTradeLimit, riskFactor); // as centineros
+        long maxTradeLimit = tradeLimits.getMaxTradeLimit().longValueExact();
+        long riskBasedTradeLimit = tradeLimits.getRoundedRiskBasedTradeLimit(maxTradeLimit, riskFactor);
 
         // if fiat and stagenet, cap offer amounts to avoid offers which cannot be taken
         boolean isFiat = CurrencyUtil.isFiatCurrency(currencyCode);
         boolean isStagenet = Config.baseCurrencyNetwork() == BaseCurrencyNetwork.XMR_STAGENET;
-        if (isFiat && isStagenet && HavenoUtils.centinerosToXmr(riskBasedTradeLimit) > OfferRestrictions.TOLERATED_SMALL_TRADE_AMOUNT.value) {
-            riskBasedTradeLimit = HavenoUtils.xmrToCentineros(OfferRestrictions.TOLERATED_SMALL_TRADE_AMOUNT.value);
+        if (isFiat && isStagenet && riskBasedTradeLimit > OfferRestrictions.TOLERATED_SMALL_TRADE_AMOUNT.longValueExact()) {
+            riskBasedTradeLimit = OfferRestrictions.TOLERATED_SMALL_TRADE_AMOUNT.longValueExact();
         }
-        return Coin.valueOf(riskBasedTradeLimit);
+        return BigInteger.valueOf(riskBasedTradeLimit);
     }
 
     public String getShortName() {

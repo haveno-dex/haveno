@@ -25,8 +25,6 @@ import bisq.core.trade.messages.InitTradeRequest;
 import bisq.core.trade.messages.PaymentReceivedMessage;
 import bisq.core.trade.messages.PaymentSentMessage;
 import bisq.core.util.JsonUtil;
-import bisq.core.util.ParsingUtils;
-import bisq.core.util.coin.CoinUtil;
 import bisq.network.p2p.NodeAddress;
 
 import bisq.common.config.Config;
@@ -36,7 +34,6 @@ import bisq.common.crypto.Sig;
 import bisq.common.util.Utilities;
 
 import org.bitcoinj.core.Coin;
-import org.bitcoinj.utils.MonetaryFormat;
 
 import com.google.common.base.CaseFormat;
 import com.google.common.base.Charsets;
@@ -68,9 +65,10 @@ import javax.annotation.Nullable;
 @Slf4j
 public class HavenoUtils {
 
+    public static int XMR_SMALLEST_UNIT_EXPONENT = 12;
     public static final String LOOPBACK_HOST = "127.0.0.1"; // local loopback address to host Monero node
     public static final String LOCALHOST = "localhost";
-    public static final BigInteger CENTINEROS_AU_MULTIPLIER = new BigInteger("10000");
+    private static final long CENTINEROS_AU_MULTIPLIER = 10000;
     private static final BigInteger XMR_AU_MULTIPLIER = new BigInteger("1000000000000");
     public static final DecimalFormat XMR_FORMATTER = new DecimalFormat("0.000000000000");
     public static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("dd-MM-yyyy HH:mm:ss");
@@ -79,12 +77,15 @@ public class HavenoUtils {
     
     public static ArbitrationManager arbitrationManager; // TODO: better way to share reference?
 
+
+    // ----------------------- CONVERSION UTILS -------------------------------
+
     public static BigInteger coinToAtomicUnits(Coin coin) {
         return centinerosToAtomicUnits(coin.value);
     }
 
     public static BigInteger centinerosToAtomicUnits(long centineros) {
-        return BigInteger.valueOf(centineros).multiply(CENTINEROS_AU_MULTIPLIER);
+        return BigInteger.valueOf(centineros).multiply(BigInteger.valueOf(CENTINEROS_AU_MULTIPLIER));
     }
 
     public static double centinerosToXmr(long centineros) {
@@ -95,12 +96,12 @@ public class HavenoUtils {
         return atomicUnitsToCoin(centinerosToAtomicUnits(centineros));
     }
 
-    public static long atomicUnitsToCentineros(long atomicUnits) { // TODO: atomic units should be BigInteger; remove this?
-        return atomicUnits / CENTINEROS_AU_MULTIPLIER.longValue();
+    public static long atomicUnitsToCentineros(long atomicUnits) {
+        return atomicUnits / CENTINEROS_AU_MULTIPLIER;
     }
 
     public static long atomicUnitsToCentineros(BigInteger atomicUnits) {
-        return atomicUnits.divide(CENTINEROS_AU_MULTIPLIER).longValueExact();
+        return atomicUnits.divide(BigInteger.valueOf(CENTINEROS_AU_MULTIPLIER)).longValueExact();
     }
 
     public static Coin atomicUnitsToCoin(long atomicUnits) {
@@ -131,11 +132,19 @@ public class HavenoUtils {
         return atomicUnitsToXmr(coinToAtomicUnits(coin));
     }
 
-    public static String formatXmrWithCode(Coin coin) {
-        return formatXmrWithCode(coinToAtomicUnits(coin).longValueExact());
+
+    // ------------------------- FORMAT UTILS ---------------------------------
+
+    public static String formatToXmr(BigInteger atomicUnits) {
+        if (atomicUnits == null) return "";
+        return formatToXmr(atomicUnits.longValueExact());
     }
 
-    public static String formatXmrWithCode(long atomicUnits) {
+    public static String formatToXmr(BigInteger atomicUnits, int decimalPlaces) {
+        return applyDecimals(formatToXmr(atomicUnits), decimalPlaces);
+    }
+
+    public static String formatToXmr(long atomicUnits) {
         String formatted = XMR_FORMATTER.format(atomicUnitsToXmr(atomicUnits));
 
         // strip trailing 0s
@@ -144,54 +153,86 @@ public class HavenoUtils {
                 formatted = formatted.substring(0, formatted.length() - 1);
             }
         }
-        return formatted.concat(" ").concat("XMR");
+        return applyDecimals(formatted, 2);
     }
 
-    private static final MonetaryFormat xmrCoinFormat = Config.baseCurrencyNetworkParameters().getMonetaryFormat();
+    private static String applyDecimals(String decimalStr, int decimalPlaces) {
+        if (decimalStr.contains(".")) return decimalStr + getNumZeros(decimalPlaces - (decimalStr.length() - decimalStr.indexOf(".") - 1));
+        else return decimalStr + "." + getNumZeros(decimalPlaces);
+    }
+
+    private static String getNumZeros(int numZeros) {
+        String zeros = "";
+        for (int i = 0; i < numZeros; i++) zeros += "0";
+        return zeros;
+    }
+
+    public static String formatToXmrWithCode(BigInteger atomicUnits) {
+        if (atomicUnits == null) return "";
+        return formatToXmrWithCode(atomicUnits.longValueExact());
+    }
+
+    public static String formatToXmrWithCode(long atomicUnits) {
+        return formatToXmr(atomicUnits).concat(" XMR");
+    }
+
+    public static BigInteger parseXmr(String input) {
+        if (input == null || input.length() == 0) return BigInteger.valueOf(0);
+        try {
+            return xmrToAtomicUnits(new BigDecimal(input).doubleValue());
+        } catch (Exception e) {
+            log.warn("Exception at parseXmr: " + e.toString());
+            return BigInteger.valueOf(0);
+        }
+    }
+
+    // ------------------------------ FEE UTILS -------------------------------
 
     @Nullable
-    public static Coin getMakerFee(@Nullable Coin amount) {
+    public static BigInteger getMakerFee(@Nullable BigInteger amount) {
         if (amount != null) {
-            Coin feePerXmr = getFeePerXmr(HavenoUtils.getMakerFeePerXmr(), amount);
-            return CoinUtil.maxCoin(feePerXmr, HavenoUtils.getMinMakerFee());
+            BigInteger feePerXmr = getFeePerXmr(HavenoUtils.getMakerFeePerXmr(), amount);
+            return feePerXmr.max(HavenoUtils.getMinMakerFee());
         } else {
             return null;
         }
     }
 
     @Nullable
-    public static Coin getTakerFee(@Nullable Coin amount) {
+    public static BigInteger getTakerFee(@Nullable BigInteger amount) {
         if (amount != null) {
-            Coin feePerXmr = HavenoUtils.getFeePerXmr(HavenoUtils.getTakerFeePerXmr(), amount);
-            return CoinUtil.maxCoin(feePerXmr, HavenoUtils.getMinTakerFee());
+            BigInteger feePerXmr = HavenoUtils.getFeePerXmr(HavenoUtils.getTakerFeePerXmr(), amount);
+            return feePerXmr.max(HavenoUtils.getMinTakerFee());
         } else {
             return null;
         }
     }
 
-    private static Coin getMakerFeePerXmr() {
-         return ParsingUtils.parseToCoin("0.001", xmrCoinFormat);
+    private static BigInteger getMakerFeePerXmr() {
+        return HavenoUtils.xmrToAtomicUnits(0.001);
     }
 
-    public static Coin getMinMakerFee() {
-         return ParsingUtils.parseToCoin("0.00005", xmrCoinFormat);
+    public static BigInteger getMinMakerFee() {
+        return HavenoUtils.xmrToAtomicUnits(0.00005);
     }
 
-    private static Coin getTakerFeePerXmr() {
-         return ParsingUtils.parseToCoin("0.003", xmrCoinFormat);
+    private static BigInteger getTakerFeePerXmr() {
+        return HavenoUtils.xmrToAtomicUnits(0.003);
     }
 
-    public static Coin getMinTakerFee() {
-         return ParsingUtils.parseToCoin("0.00005", xmrCoinFormat);
+    public static BigInteger getMinTakerFee() {
+        return HavenoUtils.xmrToAtomicUnits(0.00005);
     }
 
-    public static Coin getFeePerXmr(Coin feePerXmr, Coin amount) {
-        double feePerBtcAsDouble = feePerXmr != null ? (double) feePerXmr.value : 0;
-        double amountAsDouble = amount != null ? (double) amount.value : 0;
-        double btcAsDouble = (double) Coin.COIN.value;
-        double fact = amountAsDouble / btcAsDouble;
-        return Coin.valueOf(Math.round(feePerBtcAsDouble * fact));
+    public static BigInteger getFeePerXmr(BigInteger feePerXmr, BigInteger amount) {
+        BigDecimal feePerXmrAsDecimal = feePerXmr == null ? BigDecimal.valueOf(0) : new BigDecimal(feePerXmr);
+        BigDecimal amountAsDecimal = amount == null ? BigDecimal.valueOf(0) : new BigDecimal(amount);
+        BigDecimal xmrAsDecimal = new BigDecimal(HavenoUtils.xmrToAtomicUnits(1.0));
+        return feePerXmrAsDecimal.multiply(amountAsDecimal.divide(xmrAsDecimal)).toBigInteger();
     }
+
+
+    // ----------------------------- OTHER UTILS ------------------------------
 
     /**
      * Get address to collect trade fees.

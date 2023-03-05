@@ -51,11 +51,10 @@ import bisq.common.crypto.KeyRing;
 import bisq.common.handlers.ErrorMessageHandler;
 import bisq.common.handlers.ResultHandler;
 
-import org.bitcoinj.core.Coin;
-
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 
+import java.math.BigInteger;
 import java.util.Optional;
 
 import lombok.extern.slf4j.Slf4j;
@@ -194,8 +193,8 @@ public final class MediationManager extends DisputeManager<MediationDisputeList>
             Trade trade = tradeOptional.get();
             if (trade.getDisputeState() == Trade.DisputeState.MEDIATION_REQUESTED ||
                     trade.getDisputeState() == Trade.DisputeState.MEDIATION_STARTED_BY_PEER) {
-                trade.getProcessModel().setBuyerPayoutAmountFromMediation(disputeResult.getBuyerPayoutAmount().value);
-                trade.getProcessModel().setSellerPayoutAmountFromMediation(disputeResult.getSellerPayoutAmount().value);
+                trade.getProcessModel().setBuyerPayoutAmountFromMediation(disputeResult.getBuyerPayoutAmount().longValueExact());
+                trade.getProcessModel().setSellerPayoutAmountFromMediation(disputeResult.getSellerPayoutAmount().longValueExact());
 
                 trade.setDisputeState(Trade.DisputeState.MEDIATION_CLOSED);
 
@@ -228,11 +227,11 @@ public final class MediationManager extends DisputeManager<MediationDisputeList>
         Optional<Dispute> optionalDispute = findDispute(tradeId);
         checkArgument(optionalDispute.isPresent(), "dispute must be present");
         DisputeResult disputeResult = optionalDispute.get().getDisputeResultProperty().get();
-        Coin buyerPayoutAmount = disputeResult.getBuyerPayoutAmount();
-        Coin sellerPayoutAmount = disputeResult.getSellerPayoutAmount();
+        BigInteger buyerPayoutAmount = disputeResult.getBuyerPayoutAmount();
+        BigInteger sellerPayoutAmount = disputeResult.getSellerPayoutAmount();
         ProcessModel processModel = trade.getProcessModel();
-        processModel.setBuyerPayoutAmountFromMediation(buyerPayoutAmount.value);
-        processModel.setSellerPayoutAmountFromMediation(sellerPayoutAmount.value);
+        processModel.setBuyerPayoutAmountFromMediation(buyerPayoutAmount.longValueExact());
+        processModel.setSellerPayoutAmountFromMediation(sellerPayoutAmount.longValueExact());
         DisputeProtocol tradeProtocol = (DisputeProtocol) tradeManager.getTradeProtocol(trade);
 
         trade.setMediationResultState(MediationResultState.MEDIATION_RESULT_ACCEPTED);

@@ -21,7 +21,6 @@ import bisq.core.btc.model.XmrAddressEntry;
 import bisq.core.btc.wallet.XmrWalletService;
 import bisq.core.monetary.Price;
 import bisq.core.offer.Offer;
-import bisq.core.offer.OfferUtil;
 import bisq.core.offer.availability.OfferAvailabilityModel;
 import bisq.core.offer.messages.OfferAvailabilityRequest;
 import bisq.core.trade.HavenoUtils;
@@ -72,9 +71,9 @@ public class SendOfferAvailabilityRequest extends Task<OfferAvailabilityModel> {
                     offer.getId(),
                     P2PService.getMyNodeAddress(),
                     p2PService.getKeyRing().getPubKeyRing(),
-                    offer.getAmount().value,
+                    offer.getAmount().longValueExact(),
                     price.getValue(),
-                    HavenoUtils.getTakerFee(offer.getAmount()).value,
+                    HavenoUtils.getTakerFee(offer.getAmount()).longValueExact(),
                     user.getAccountId(),
                     paymentAccountId,
                     paymentMethodId,

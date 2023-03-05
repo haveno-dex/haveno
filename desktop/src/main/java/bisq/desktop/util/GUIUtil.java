@@ -41,19 +41,16 @@ import bisq.core.locale.TradeCurrency;
 import bisq.core.payment.PaymentAccount;
 import bisq.core.payment.PaymentAccountList;
 import bisq.core.payment.payload.PaymentMethod;
-import bisq.core.trade.HavenoUtils;
 import bisq.core.trade.txproof.AssetTxProofResult;
 import bisq.core.user.DontShowAgainLookup;
 import bisq.core.user.Preferences;
 import bisq.core.user.User;
 import bisq.core.util.FormattingUtils;
-import bisq.core.util.ParsingUtils;
 import bisq.core.util.coin.CoinFormatter;
 
 import bisq.network.p2p.P2PService;
 
 import bisq.common.UserThread;
-import bisq.common.app.DevEnv;
 import bisq.common.config.Config;
 import bisq.common.crypto.KeyRing;
 import bisq.common.file.CorruptedStorageFileHandler;
@@ -123,7 +120,8 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
-
+import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -650,19 +648,19 @@ public class GUIUtil {
         }
     }
 
-    public static String getPercentageOfTradeAmount(Coin fee, Coin tradeAmount, Coin minFee) {
+    public static String getPercentageOfTradeAmount(BigInteger fee, BigInteger tradeAmount, BigInteger minFee) {
         String result = " (" + getPercentage(fee, tradeAmount) +
                 " " + Res.get("guiUtil.ofTradeAmount") + ")";
 
-        if (!fee.isGreaterThan(minFee)) {
+        if (fee.compareTo(minFee) <= 0) {
             result = " " + Res.get("guiUtil.requiredMinimum");
         }
 
         return result;
     }
 
-    public static String getPercentage(Coin part, Coin total) {
-        return FormattingUtils.formatToPercentWithSymbol((double) part.value / (double) total.value);
+    public static String getPercentage(BigInteger part, BigInteger total) {
+        return FormattingUtils.formatToPercentWithSymbol(new BigDecimal(part).divide(new BigDecimal(total)).doubleValue());
     }
 
     public static <T> T getParentOfType(Node node, Class<T> t) {
@@ -701,10 +699,10 @@ public class GUIUtil {
                 .show();
     }
 
-    public static String getMoneroURI(String address, Coin amount, String label, MoneroWallet wallet) {
+    public static String getMoneroURI(String address, BigInteger amount, String label, MoneroWallet wallet) {
         return wallet.getPaymentUri(new MoneroTxConfig()
                 .setAddress(address)
-                .setAmount(HavenoUtils.coinToAtomicUnits(amount))
+                .setAmount(amount)
                 .setNote(label));
     }
 

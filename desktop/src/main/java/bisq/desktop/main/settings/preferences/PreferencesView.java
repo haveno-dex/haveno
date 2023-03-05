@@ -42,7 +42,8 @@ import bisq.core.locale.Res;
 import bisq.core.locale.TradeCurrency;
 import bisq.core.payment.PaymentAccount;
 import bisq.core.payment.payload.PaymentMethod;
-import bisq.core.payment.validation.BtcValidator;
+import bisq.core.payment.validation.XmrValidator;
+import bisq.core.trade.HavenoUtils;
 import bisq.core.user.Preferences;
 import bisq.core.user.User;
 import bisq.core.util.FormattingUtils;
@@ -94,7 +95,7 @@ import javafx.util.Callback;
 import javafx.util.StringConverter;
 
 import java.io.File;
-
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -537,7 +538,7 @@ public class PreferencesView extends ActivatableViewAndModel<GridPane, Preferenc
         autoConfRequiredConfirmationsTf.setValidator(new IntegerValidator(1, DevEnv.isDevMode() ? 100000000 : 1000));
 
         autoConfTradeLimitTf = addInputTextField(autoConfirmGridPane, ++localRowIndex, Res.get("setting.preferences.autoConfirmMaxTradeSize"));
-        autoConfTradeLimitTf.setValidator(new BtcValidator(formatter));
+        autoConfTradeLimitTf.setValidator(new XmrValidator());
 
         autoConfServiceAddressTf = addInputTextField(autoConfirmGridPane, ++localRowIndex, Res.get("setting.preferences.autoConfirmServiceAddresses"));
         GridPane.setHgrow(autoConfServiceAddressTf, Priority.ALWAYS);
@@ -585,8 +586,8 @@ public class PreferencesView extends ActivatableViewAndModel<GridPane, Preferenc
 
         autoConfTradeLimitListener = (observable, oldValue, newValue) -> {
             if (!newValue.equals(oldValue) && autoConfTradeLimitTf.getValidator().validate(newValue).isValid) {
-                Coin amountAsCoin = ParsingUtils.parseToCoin(newValue, formatter);
-                preferences.setAutoConfTradeLimit("XMR", amountAsCoin.value);
+                BigInteger amount = HavenoUtils.parseXmr(newValue);
+                preferences.setAutoConfTradeLimit("XMR", amount.longValueExact());
             }
         };
 

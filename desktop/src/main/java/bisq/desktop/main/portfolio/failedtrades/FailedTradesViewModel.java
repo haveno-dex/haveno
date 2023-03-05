@@ -23,6 +23,7 @@ import bisq.desktop.util.DisplayUtils;
 
 import bisq.core.locale.CurrencyUtil;
 import bisq.core.locale.Res;
+import bisq.core.trade.HavenoUtils;
 import bisq.core.util.FormattingUtils;
 import bisq.core.util.VolumeUtil;
 import bisq.core.util.coin.CoinFormatter;
@@ -54,7 +55,7 @@ class FailedTradesViewModel extends ActivatableWithDataModel<FailedTradesDataMod
 
     String getAmount(FailedTradesListItem item) {
         if (item != null && item.getTrade() != null)
-            return formatter.formatCoin(item.getTrade().getAmount());
+            return HavenoUtils.formatToXmr(item.getTrade().getAmount());
         else
             return "";
     }

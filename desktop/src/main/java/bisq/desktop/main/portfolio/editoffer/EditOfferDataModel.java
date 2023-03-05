@@ -101,7 +101,7 @@ class EditOfferDataModel extends MutableOfferDataModel {
         price.set(null);
         volume.set(null);
         minVolume.set(null);
-        buyerSecurityDeposit.set(0);
+        buyerSecurityDepositPct.set(0);
         paymentAccounts.clear();
         paymentAccount = null;
         marketPriceMargin = 0;
@@ -133,10 +133,10 @@ class EditOfferDataModel extends MutableOfferDataModel {
         // creation, so just use the default value as it doesn't matter anyway.
         double buyerSecurityDepositPercent = CoinUtil.getAsPercentPerBtc(offer.getBuyerSecurityDeposit(), offer.getAmount());
         if (buyerSecurityDepositPercent > Restrictions.getMaxBuyerSecurityDepositAsPercent()
-                && offer.getBuyerSecurityDeposit().value == Restrictions.getMinBuyerSecurityDepositAsCoin().value)
-            buyerSecurityDeposit.set(Restrictions.getDefaultBuyerSecurityDepositAsPercent());
+                && offer.getBuyerSecurityDeposit().equals(Restrictions.getMinBuyerSecurityDeposit()))
+            buyerSecurityDepositPct.set(Restrictions.getDefaultBuyerSecurityDepositAsPercent());
         else
-            buyerSecurityDeposit.set(buyerSecurityDepositPercent);
+            buyerSecurityDepositPct.set(buyerSecurityDepositPercent);
 
         allowAmountUpdate = false;
     }

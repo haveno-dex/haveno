@@ -20,13 +20,10 @@ package bisq.core.trade.protocol.tasks;
 import bisq.common.taskrunner.TaskRunner;
 import bisq.core.offer.Offer;
 import bisq.core.offer.OfferDirection;
-import bisq.core.trade.HavenoUtils;
 import bisq.core.trade.Trade;
 import bisq.core.trade.messages.InitTradeRequest;
 import bisq.core.trade.protocol.TradePeer;
 import java.math.BigInteger;
-
-import org.bitcoinj.core.Coin;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -55,9 +52,9 @@ public class ArbitratorProcessReserveTx extends TradeTask {
             // TODO (woodser): if signer online, should never be called by maker
             
             // process reserve tx with expected values
-            BigInteger tradeFee = HavenoUtils.coinToAtomicUnits(isFromTaker ? trade.getTakerFee() : trade.getMakerFee());
-            BigInteger sendAmount =  HavenoUtils.coinToAtomicUnits(isFromBuyer ? Coin.ZERO : offer.getAmount());
-            BigInteger securityDeposit = HavenoUtils.coinToAtomicUnits(isFromBuyer ? offer.getBuyerSecurityDeposit() : offer.getSellerSecurityDeposit());
+            BigInteger tradeFee = isFromTaker ? trade.getTakerFee() : trade.getMakerFee();
+            BigInteger sendAmount =  isFromBuyer ? BigInteger.valueOf(0) : offer.getAmount();
+            BigInteger securityDeposit = isFromBuyer ? offer.getBuyerSecurityDeposit() : offer.getSellerSecurityDeposit();
             try {
                 trade.getXmrWalletService().verifyTradeTx(
                     tradeFee,

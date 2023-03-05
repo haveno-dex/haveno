@@ -238,7 +238,7 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
 
         Tuple2<Label, VBox> availableBalanceBox = getBalanceBox(Res.get("mainView.balance.available"));
         availableBalanceBox.first.textProperty().bind(model.getAvailableBalance());
-        availableBalanceBox.first.setPrefWidth(100);
+        availableBalanceBox.first.setPrefWidth(105);
         availableBalanceBox.first.tooltipProperty().bind(new ObjectBinding<>() {
             {
                 bind(model.getAvailableBalance());

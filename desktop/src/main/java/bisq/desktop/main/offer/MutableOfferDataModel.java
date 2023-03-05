@@ -113,27 +113,26 @@ public abstract class MutableOfferDataModel extends OfferDataModel {
     protected TradeCurrency tradeCurrency;
     protected final StringProperty tradeCurrencyCode = new SimpleStringProperty();
     protected final BooleanProperty useMarketBasedPrice = new SimpleBooleanProperty();
-    protected final ObjectProperty<Coin> amount = new SimpleObjectProperty<>();
-    protected final ObjectProperty<Coin> minAmount = new SimpleObjectProperty<>();
+    protected final ObjectProperty<BigInteger> amount = new SimpleObjectProperty<>();
+    protected final ObjectProperty<BigInteger> minAmount = new SimpleObjectProperty<>();
     protected final ObjectProperty<Price> price = new SimpleObjectProperty<>();
     protected final ObjectProperty<Volume> volume = new SimpleObjectProperty<>();
     protected final ObjectProperty<Volume> minVolume = new SimpleObjectProperty<>();
 
     // Percentage value of buyer security deposit. E.g. 0.01 means 1% of trade amount
-    protected final DoubleProperty buyerSecurityDeposit = new SimpleDoubleProperty();
+    protected final DoubleProperty buyerSecurityDepositPct = new SimpleDoubleProperty();
 
     protected final ObservableList<PaymentAccount> paymentAccounts = FXCollections.observableArrayList();
 
     protected PaymentAccount paymentAccount;
     boolean isTabSelected;
     protected double marketPriceMargin = 0;
-    private Coin txFeeFromFeeService = Coin.ZERO;
     @Getter
     private boolean marketPriceAvailable;
     protected boolean allowAmountUpdate = true;
     private final TradeStatisticsManager tradeStatisticsManager;
 
-    private final Predicate<ObjectProperty<Coin>> isNonZeroAmount = (c) -> c.get() != null && !c.get().isZero();
+    private final Predicate<ObjectProperty<BigInteger>> isNonZeroAmount = (c) -> c.get() != null && c.get().compareTo(BigInteger.valueOf(0)) != 0;
     private final Predicate<ObjectProperty<Price>> isNonZeroPrice = (p) -> p.get() != null && !p.get().isZero();
     private final Predicate<ObjectProperty<Volume>> isNonZeroVolume = (v) -> v.get() != null && !v.get().isZero();
     @Getter
@@ -176,7 +175,7 @@ public abstract class MutableOfferDataModel extends OfferDataModel {
         addressEntry = xmrWalletService.getOrCreateAddressEntry(offerId, XmrAddressEntry.Context.OFFER_FUNDING);
 
         useMarketBasedPrice.set(preferences.isUsePercentageBasedPrice());
-        buyerSecurityDeposit.set(Restrictions.getMinBuyerSecurityDepositAsPercent());
+        buyerSecurityDepositPct.set(Restrictions.getMinBuyerSecurityDepositAsPercent());
 
         xmrBalanceListener = new XmrBalanceListener(getAddressEntry().getSubaddressIndex()) {
             @Override
@@ -295,10 +294,10 @@ public abstract class MutableOfferDataModel extends OfferDataModel {
                 amount.get(),
                 minAmount.get(),
                 price.get(),
-                txFeeFromFeeService,
+                Coin.ZERO,
                 useMarketBasedPrice.get(),
                 marketPriceMargin,
-                buyerSecurityDeposit.get(),
+                buyerSecurityDepositPct.get(),
                 paymentAccount);
     }
 
@@ -319,7 +318,7 @@ public abstract class MutableOfferDataModel extends OfferDataModel {
             setSuggestedSecurityDeposit(getPaymentAccount());
 
             if (amount.get() != null && this.allowAmountUpdate)
-                this.amount.set(Coin.valueOf(Math.min(amount.get().value, getMaxTradeLimit())));
+                this.amount.set(amount.get().min(BigInteger.valueOf(getMaxTradeLimit())));
         }
     }
 
@@ -356,10 +355,10 @@ public abstract class MutableOfferDataModel extends OfferDataModel {
             // Suggested deposit is double the trade range over the previous lock time period, bounded by min/max deposit
             var suggestedSecurityDeposit =
                     Math.min(2 * (max - min) / max, Restrictions.getMaxBuyerSecurityDepositAsPercent());
-            buyerSecurityDeposit.set(Math.max(suggestedSecurityDeposit, minSecurityDeposit));
+            buyerSecurityDepositPct.set(Math.max(suggestedSecurityDeposit, minSecurityDeposit));
         } catch (Throwable t) {
             log.error(t.toString());
-            buyerSecurityDeposit.set(minSecurityDeposit);
+            buyerSecurityDepositPct.set(minSecurityDeposit);
         }
     }
 
@@ -421,7 +420,7 @@ public abstract class MutableOfferDataModel extends OfferDataModel {
     boolean isMinAmountLessOrEqualAmount() {
         //noinspection SimplifiableIfStatement
         if (minAmount.get() != null && amount.get() != null)
-            return !minAmount.get().isGreaterThan(amount.get());
+            return minAmount.get().compareTo(amount.get()) <= 0;
         return true;
     }
 
@@ -512,7 +511,7 @@ public abstract class MutableOfferDataModel extends OfferDataModel {
         }
     }
 
-    private Volume calculateVolumeForAmount(ObjectProperty<Coin> minAmount) {
+    private Volume calculateVolumeForAmount(ObjectProperty<BigInteger> minAmount) {
         Volume volumeByAmount = price.get().getVolumeByAmount(minAmount.get());
 
         // For HalCash we want multiple of 10 EUR
@@ -526,7 +525,7 @@ public abstract class MutableOfferDataModel extends OfferDataModel {
     void calculateAmount() {
         if (isNonZeroPrice.test(price) && isNonZeroVolume.test(volume) && allowAmountUpdate) {
             try {
-                Coin value = DisplayUtils.reduceTo4Decimals(price.get().getAmountByVolume(volume.get()), btcFormatter);
+                BigInteger value = HavenoUtils.coinToAtomicUnits(DisplayUtils.reduceTo4Decimals(HavenoUtils.atomicUnitsToCoin(price.get().getAmountByVolume(volume.get())), btcFormatter));
                 if (isUsingHalCashAccount())
                     value = CoinUtil.getAdjustedAmountForHalCash(value, price.get(), getMaxTradeLimit());
                 else if (CurrencyUtil.isFiatCurrency(tradeCurrencyCode.get()))
@@ -546,17 +545,17 @@ public abstract class MutableOfferDataModel extends OfferDataModel {
         // Maker does not pay the mining fee for the trade txs because the mining fee might be different when maker
         // created the offer and reserved his funds, so that would not work well with dynamic fees.
         // The mining fee for the createOfferFee tx is deducted from the createOfferFee and not visible to the trader
-        final Coin makerFee = getMakerFee();
+        final BigInteger makerFee = getMakerFee();
         if (direction != null && amount.get() != null && makerFee != null) {
-            Coin feeAndSecDeposit = getSecurityDeposit().add(makerFee);
-            Coin total = isBuyOffer() ? feeAndSecDeposit : feeAndSecDeposit.add(amount.get());
-            totalToPayAsCoin.set(total);
+            BigInteger feeAndSecDeposit = getSecurityDeposit().add(makerFee);
+            BigInteger total = isBuyOffer() ? feeAndSecDeposit : feeAndSecDeposit.add(amount.get());
+            totalToPay.set(total);
             updateBalance();
         }
     }
 
-    Coin getSecurityDeposit() {
-        return isBuyOffer() ? getBuyerSecurityDepositAsCoin() : getSellerSecurityDepositAsCoin();
+    BigInteger getSecurityDeposit() {
+        return isBuyOffer() ? getBuyerSecurityDeposit() : getSellerSecurityDeposit();
     }
 
     void swapTradeToSavings() {
@@ -571,7 +570,7 @@ public abstract class MutableOfferDataModel extends OfferDataModel {
 
     protected abstract Set<PaymentAccount> getUserPaymentAccounts();
 
-    protected void setAmount(Coin amount) {
+    protected void setAmount(BigInteger amount) {
         this.amount.set(amount);
     }
 
@@ -584,18 +583,18 @@ public abstract class MutableOfferDataModel extends OfferDataModel {
     }
 
     protected void setBuyerSecurityDeposit(double value) {
-        this.buyerSecurityDeposit.set(value);
+        this.buyerSecurityDepositPct.set(value);
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Getters
     ///////////////////////////////////////////////////////////////////////////////////////////
 
-    protected ReadOnlyObjectProperty<Coin> getAmount() {
+    protected ReadOnlyObjectProperty<BigInteger> getAmount() {
         return amount;
     }
 
-    protected ReadOnlyObjectProperty<Coin> getMinAmount() {
+    protected ReadOnlyObjectProperty<BigInteger> getMinAmount() {
         return minAmount;
     }
 
@@ -611,7 +610,7 @@ public abstract class MutableOfferDataModel extends OfferDataModel {
         return minVolume;
     }
 
-    protected void setMinAmount(Coin minAmount) {
+    protected void setMinAmount(BigInteger minAmount) {
         this.minAmount.set(minAmount);
     }
 
@@ -635,46 +634,46 @@ public abstract class MutableOfferDataModel extends OfferDataModel {
         return useMarketBasedPrice;
     }
 
-    ReadOnlyDoubleProperty getBuyerSecurityDeposit() {
-        return buyerSecurityDeposit;
+    ReadOnlyDoubleProperty getBuyerSecurityDepositPct() {
+        return buyerSecurityDepositPct;
     }
 
-    protected Coin getBuyerSecurityDepositAsCoin() {
-        Coin percentOfAmountAsCoin = CoinUtil.getPercentOfAmountAsCoin(buyerSecurityDeposit.get(), amount.get());
-        return getBoundedBuyerSecurityDepositAsCoin(percentOfAmountAsCoin);
+    protected BigInteger getBuyerSecurityDeposit() {
+        BigInteger percentOfAmount = CoinUtil.getPercentOfAmount(buyerSecurityDepositPct.get(), amount.get());
+        return getBoundedBuyerSecurityDeposit(percentOfAmount);
     }
 
-    private Coin getSellerSecurityDepositAsCoin() {
-        Coin amountAsCoin = this.amount.get();
-        if (amountAsCoin == null)
-            amountAsCoin = Coin.ZERO;
+    private BigInteger getSellerSecurityDeposit() {
+        BigInteger amount = this.amount.get();
+        if (amount == null)
+            amount = BigInteger.valueOf(0);
 
-        Coin percentOfAmountAsCoin = CoinUtil.getPercentOfAmountAsCoin(
-                createOfferService.getSellerSecurityDepositAsDouble(buyerSecurityDeposit.get()), amountAsCoin);
-        return getBoundedSellerSecurityDepositAsCoin(percentOfAmountAsCoin);
+        BigInteger percentOfAmount = CoinUtil.getPercentOfAmount(
+                createOfferService.getSellerSecurityDepositAsDouble(buyerSecurityDepositPct.get()), amount);
+        return getBoundedSellerSecurityDeposit(percentOfAmount);
     }
 
-    protected Coin getBoundedBuyerSecurityDepositAsCoin(Coin value) {
+    protected BigInteger getBoundedBuyerSecurityDeposit(BigInteger value) {
         // We need to ensure that for small amount values we don't get a too low BTC amount. We limit it with using the
-        // MinBuyerSecurityDepositAsCoin from Restrictions.
-        return Coin.valueOf(Math.max(Restrictions.getMinBuyerSecurityDepositAsCoin().value, value.value));
+        // MinBuyerSecurityDeposit from Restrictions.
+        return Restrictions.getMinBuyerSecurityDeposit().max(value);
     }
 
-    private Coin getBoundedSellerSecurityDepositAsCoin(Coin value) {
+    private BigInteger getBoundedSellerSecurityDeposit(BigInteger value) {
         // We need to ensure that for small amount values we don't get a too low BTC amount. We limit it with using the
-        // MinSellerSecurityDepositAsCoin from Restrictions.
-        return Coin.valueOf(Math.max(Restrictions.getMinSellerSecurityDepositAsCoin().value, value.value));
+        // MinSellerSecurityDeposit from Restrictions.
+        return Restrictions.getMinSellerSecurityDeposit().max(value);
     }
 
-    ReadOnlyObjectProperty<Coin> totalToPayAsCoinProperty() {
-        return totalToPayAsCoin;
+    ReadOnlyObjectProperty<BigInteger> totalToPayAsProperty() {
+        return totalToPay;
     }
 
     public void setMarketPriceAvailable(boolean marketPriceAvailable) {
         this.marketPriceAvailable = marketPriceAvailable;
     }
 
-    public Coin getMakerFee() {
+    public BigInteger getMakerFee() {
         return HavenoUtils.getMakerFee(amount.get());
     }
 
@@ -684,7 +683,7 @@ public abstract class MutableOfferDataModel extends OfferDataModel {
     }
 
     public boolean isMinBuyerSecurityDeposit() {
-        return !getBuyerSecurityDepositAsCoin().isGreaterThan(Restrictions.getMinBuyerSecurityDepositAsCoin());
+        return getBuyerSecurityDeposit().compareTo(Restrictions.getMinBuyerSecurityDeposit()) <= 0;
     }
 
     public void setTriggerPrice(long triggerPrice) {

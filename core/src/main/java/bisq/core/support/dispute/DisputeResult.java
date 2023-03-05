@@ -23,8 +23,6 @@ import bisq.common.proto.ProtoUtil;
 import bisq.common.proto.network.NetworkPayload;
 import bisq.common.util.Utilities;
 
-import org.bitcoinj.core.Coin;
-
 import com.google.protobuf.ByteString;
 
 import javafx.beans.property.BooleanProperty;
@@ -32,6 +30,7 @@ import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
 
+import java.math.BigInteger;
 import java.util.Date;
 import java.util.Optional;
 
@@ -206,20 +205,20 @@ public final class DisputeResult implements NetworkPayload {
         return summaryNotesProperty;
     }
 
-    public void setBuyerPayoutAmount(Coin buyerPayoutAmount) {
-        this.buyerPayoutAmount = buyerPayoutAmount.value;
+    public void setBuyerPayoutAmount(BigInteger buyerPayoutAmount) {
+        this.buyerPayoutAmount = buyerPayoutAmount.longValueExact();
     }
 
-    public Coin getBuyerPayoutAmount() {
-        return Coin.valueOf(buyerPayoutAmount);
+    public BigInteger getBuyerPayoutAmount() {
+        return BigInteger.valueOf(buyerPayoutAmount);
     }
 
-    public void setSellerPayoutAmount(Coin sellerPayoutAmount) {
-        this.sellerPayoutAmount = sellerPayoutAmount.value;
+    public void setSellerPayoutAmount(BigInteger sellerPayoutAmount) {
+        this.sellerPayoutAmount = sellerPayoutAmount.longValueExact();
     }
 
-    public Coin getSellerPayoutAmount() {
-        return Coin.valueOf(sellerPayoutAmount);
+    public BigInteger getSellerPayoutAmount() {
+        return BigInteger.valueOf(sellerPayoutAmount);
     }
 
     public void setCloseDate(Date closeDate) {

@@ -66,7 +66,6 @@ import monero.wallet.model.MoneroTxWallet;
 import monero.wallet.model.MoneroWalletConfig;
 import monero.wallet.model.MoneroWalletListener;
 import monero.wallet.model.MoneroWalletListenerI;
-import org.bitcoinj.core.Coin;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -314,9 +313,9 @@ public class XmrWalletService {
     public MoneroTxWallet createDepositTx(Trade trade) {
         Offer offer = trade.getProcessModel().getOffer();
         String multisigAddress = trade.getProcessModel().getMultisigAddress();
-        BigInteger tradeFee = HavenoUtils.coinToAtomicUnits(trade instanceof MakerTrade ? trade.getOffer().getMakerFee() : trade.getTakerFee());
-        BigInteger sendAmount = HavenoUtils.coinToAtomicUnits(trade instanceof BuyerTrade ? Coin.ZERO : offer.getAmount());
-        BigInteger securityDeposit = HavenoUtils.coinToAtomicUnits(trade instanceof BuyerTrade ? offer.getBuyerSecurityDeposit() : offer.getSellerSecurityDeposit());
+        BigInteger tradeFee = trade instanceof MakerTrade ? trade.getOffer().getMakerFee() : trade.getTakerFee();
+        BigInteger sendAmount = trade instanceof BuyerTrade ? BigInteger.valueOf(0) : offer.getAmount();
+        BigInteger securityDeposit = trade instanceof BuyerTrade ? offer.getBuyerSecurityDeposit() : offer.getSellerSecurityDeposit();
 
         // thaw reserved outputs then create deposit tx
         MoneroWallet wallet = getWallet();
@@ -683,13 +682,13 @@ public class XmrWalletService {
 
     private void notifyBalanceListeners() {
         for (XmrBalanceListener balanceListener : balanceListeners) {
-            Coin balance;
+            BigInteger balance;
             if (balanceListener.getSubaddressIndex() != null && balanceListener.getSubaddressIndex() != 0) balance = getBalanceForSubaddress(balanceListener.getSubaddressIndex());
             else balance = getAvailableBalance();
             UserThread.execute(new Runnable() { // TODO (woodser): don't execute on UserThread
                 @Override
                 public void run() {
-                    balanceListener.onBalanceChanged(BigInteger.valueOf(balance.value));
+                    balanceListener.onBalanceChanged(balance);
                 }
             });
         }
@@ -847,7 +846,7 @@ public class XmrWalletService {
     }
 
     public List<XmrAddressEntry> getFundedAvailableAddressEntries() {
-        return getAvailableAddressEntries().stream().filter(addressEntry -> getBalanceForSubaddress(addressEntry.getSubaddressIndex()).isPositive()).collect(Collectors.toList());
+        return getAvailableAddressEntries().stream().filter(addressEntry -> getBalanceForSubaddress(addressEntry.getSubaddressIndex()).compareTo(BigInteger.valueOf(0)) > 0).collect(Collectors.toList());
     }
 
     public List<XmrAddressEntry> getAddressEntryListAsImmutableList() {
@@ -895,31 +894,31 @@ public class XmrWalletService {
                 .setIncludeOutputs(true));
     }
 
-    public Coin getBalanceForAddress(String address) {
+    public BigInteger getBalanceForAddress(String address) {
         return getBalanceForSubaddress(wallet.getAddressIndex(address).getIndex());
     }
 
-    public Coin getBalanceForSubaddress(int subaddressIndex) {
-        return HavenoUtils.atomicUnitsToCoin(wallet.getBalance(0, subaddressIndex));
+    public BigInteger getBalanceForSubaddress(int subaddressIndex) {
+        return wallet.getBalance(0, subaddressIndex);
     }
 
-    public Coin getAvailableBalanceForSubaddress(int subaddressIndex) {
-        return HavenoUtils.atomicUnitsToCoin(wallet.getUnlockedBalance(0, subaddressIndex));
+    public BigInteger getAvailableBalanceForSubaddress(int subaddressIndex) {
+        return wallet.getUnlockedBalance(0, subaddressIndex);
     }
 
-    public Coin getBalance() {
-        return wallet != null ? HavenoUtils.atomicUnitsToCoin(wallet.getBalance(0)) : Coin.ZERO;
+    public BigInteger getBalance() {
+        return wallet != null ? wallet.getBalance(0) : BigInteger.valueOf(0);
     }
 
-    public Coin getAvailableBalance() {
-        return wallet != null ? HavenoUtils.atomicUnitsToCoin(wallet.getUnlockedBalance(0)) : Coin.ZERO;
+    public BigInteger getAvailableBalance() {
+        return wallet != null ? wallet.getUnlockedBalance(0) : BigInteger.valueOf(0);
     }
 
     public Stream<XmrAddressEntry> getAddressEntriesForAvailableBalanceStream() {
         Stream<XmrAddressEntry> availableAndPayout = Stream.concat(getAddressEntries(XmrAddressEntry.Context.TRADE_PAYOUT).stream(), getFundedAvailableAddressEntries().stream());
         Stream<XmrAddressEntry> available = Stream.concat(availableAndPayout, getAddressEntries(XmrAddressEntry.Context.ARBITRATOR).stream());
         available = Stream.concat(available, getAddressEntries(XmrAddressEntry.Context.OFFER_FUNDING).stream());
-        return available.filter(addressEntry -> getBalanceForSubaddress(addressEntry.getSubaddressIndex()).isPositive());
+        return available.filter(addressEntry -> getBalanceForSubaddress(addressEntry.getSubaddressIndex()).compareTo(BigInteger.valueOf(0)) > 0);
     }
 
     public void addWalletListener(MoneroWalletListenerI listener) {

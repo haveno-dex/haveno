@@ -386,13 +386,13 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
 
         // verify payouts sum to unlocked balance within loss of precision due to conversion to centineros
         BigInteger txCost = arbitratorSignedPayoutTx.getFee().add(arbitratorSignedPayoutTx.getChangeAmount()); // fee + lost dust change
-        if (trade.getWallet().getUnlockedBalance().subtract(actualWinnerAmount.add(actualLoserAmount).add(txCost)).compareTo(HavenoUtils.CENTINEROS_AU_MULTIPLIER) > 0) {
+        if (trade.getWallet().getUnlockedBalance().subtract(actualWinnerAmount.add(actualLoserAmount).add(txCost)).compareTo(BigInteger.valueOf(0)) > 0) {
             throw new RuntimeException("The dispute payout amounts do not sum to the wallet's unlocked balance while verifying the dispute payout tx, unlocked balance=" + trade.getWallet().getUnlockedBalance() + " vs sum payout amount=" + actualWinnerAmount.add(actualLoserAmount) + ", winner payout=" + actualWinnerAmount + ", loser payout=" + actualLoserAmount);
         }
 
         // get expected payout amounts
-        BigInteger expectedWinnerAmount = HavenoUtils.coinToAtomicUnits(disputeResult.getWinner() == Winner.BUYER ? disputeResult.getBuyerPayoutAmount() : disputeResult.getSellerPayoutAmount());
-        BigInteger expectedLoserAmount = HavenoUtils.coinToAtomicUnits(disputeResult.getWinner() == Winner.BUYER ? disputeResult.getSellerPayoutAmount() : disputeResult.getBuyerPayoutAmount());
+        BigInteger expectedWinnerAmount = disputeResult.getWinner() == Winner.BUYER ? disputeResult.getBuyerPayoutAmount() : disputeResult.getSellerPayoutAmount();
+        BigInteger expectedLoserAmount = disputeResult.getWinner() == Winner.BUYER ? disputeResult.getSellerPayoutAmount() : disputeResult.getBuyerPayoutAmount();
 
         // add any loss of precision to winner amount
         expectedWinnerAmount = expectedWinnerAmount.add(trade.getWallet().getUnlockedBalance().subtract(expectedWinnerAmount.add(expectedLoserAmount))); 
