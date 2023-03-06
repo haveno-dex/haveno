@@ -133,6 +133,12 @@ public class CreateOfferService {
                 minAmount,
                 buyerSecurityDepositAsDouble);
 
+        // verify fixed price xor market price with margin
+        if (price != null) {
+            if (useMarketBasedPrice) throw new IllegalArgumentException("Can create offer with fixed price or floating market price but not both");
+            if (marketPriceMargin != 0) throw new IllegalArgumentException("Cannot set market price margin with fixed price");
+        }
+
         long creationTime = new Date().getTime();
         NodeAddress makerAddress = p2PService.getAddress();
         boolean useMarketBasedPriceValue = price == null &&
