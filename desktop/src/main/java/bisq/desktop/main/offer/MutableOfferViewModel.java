@@ -676,11 +676,8 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
     // On focus out we do validation and apply the data to the model
     void onFocusOutAmountTextField(boolean oldValue, boolean newValue) {
         if (oldValue && !newValue) {
-            System.out.println("Checking if input valid: " + amount.get());
             InputValidator.ValidationResult result = isXmrInputValid(amount.get());
             amountValidationResult.set(result);
-            System.out.println("Result is valid: " + result.isValid);
-            System.out.println("Result error: " + result.errorMessage);
             if (result.isValid) {
                 setAmountToModel();
                 ignoreAmountStringListener = true;

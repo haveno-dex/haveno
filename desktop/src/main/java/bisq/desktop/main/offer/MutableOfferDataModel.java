@@ -293,7 +293,7 @@ public abstract class MutableOfferDataModel extends OfferDataModel {
                 tradeCurrencyCode.get(),
                 amount.get(),
                 minAmount.get(),
-                price.get(),
+                useMarketBasedPrice.get() ? null : price.get(),
                 Coin.ZERO,
                 useMarketBasedPrice.get(),
                 marketPriceMargin,
