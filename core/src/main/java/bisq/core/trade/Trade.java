@@ -605,7 +605,6 @@ public abstract class Trade implements Tradable, Model {
 
         // handle trade state events
         tradePhaseSubscription = EasyBind.subscribe(phaseProperty, newValue -> {
-            if (!isInitialized) return;
             if (isDepositsPublished() && !isPayoutUnlocked()) updateWalletRefreshPeriod();
             if (isCompleted()) {
                 UserThread.execute(() -> {
@@ -619,7 +618,6 @@ public abstract class Trade implements Tradable, Model {
 
         // handle payout state events
         payoutStateSubscription = EasyBind.subscribe(payoutStateProperty, newValue -> {
-            if (!isInitialized) return;
             if (isPayoutPublished()) updateWalletRefreshPeriod();
 
             // cleanup when payout published
