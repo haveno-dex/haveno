@@ -14,4 +14,4 @@ Returns a list of receiving BTC addresses.
 
 EXAMPLES
 --------
-$ ./bisq-cli --password=xyz --port=9998 getfundingaddresses
+$ ./haveno-cli --password=xyz --port=9998 getfundingaddresses

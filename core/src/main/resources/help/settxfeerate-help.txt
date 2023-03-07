@@ -16,4 +16,4 @@ Sets the user's custom transaction fee rate preference.
 EXAMPLES
 --------
 Set custom transaction fee rate to 25 sats/byte:
-$ ./bisq-cli --password=xyz --port=9998 settxfeerate --tx-fee-rate=25
+$ ./haveno-cli --password=xyz --port=9998 settxfeerate --tx-fee-rate=25

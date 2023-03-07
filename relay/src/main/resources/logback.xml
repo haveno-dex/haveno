@@ -10,6 +10,6 @@
         <appender-ref ref="CONSOLE_APPENDER"/>
     </root>
 
-    <logger name="bisq" level="INFO"/>
+    <logger name="haveno" level="INFO"/>
 
 </configuration>

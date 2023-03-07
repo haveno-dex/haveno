@@ -14,7 +14,7 @@ sendbtc
 
 DESCRIPTION
 -----------
-Send BTC from your Bisq wallet to an external BTC address.
+Send BTC from your Haveno wallet to an external BTC address.
 
 OPTIONS
 -------
@@ -37,15 +37,15 @@ EXAMPLES
 --------
 Send 0.10 BTC to address bcrt1qygvsqmyt8jyhtp7l3zwqm7s7v3nar6vkc2luz3 with a default
 transaction fee rate:
-$ ./bisq-cli --password=xyz --port=9998 sendbtc --address=bcrt1qygvsqmyt8jyhtp7l3zwqm7s7v3nar6vkc2luz3 --amount=0.10
+$ ./haveno-cli --password=xyz --port=9998 sendbtc --address=bcrt1qygvsqmyt8jyhtp7l3zwqm7s7v3nar6vkc2luz3 --amount=0.10
 
 Send 0.05 BTC to address bcrt1qygvsqmyt8jyhtp7l3zwqm7s7v3nar6vkc2luz3 with a transaction
 fee rate of 10 sats/byte:
-$ ./bisq-cli --password=xyz --port=9998 sendbtc --address=bcrt1qygvsqmyt8jyhtp7l3zwqm7s7v3nar6vkc2luz3 --amount=0.05 \
+$ ./haveno-cli --password=xyz --port=9998 sendbtc --address=bcrt1qygvsqmyt8jyhtp7l3zwqm7s7v3nar6vkc2luz3 --amount=0.05 \
     --tx-fee-rate=10
 
 Send 0.005 BTC to address bcrt1qygvsqmyt8jyhtp7l3zwqm7s7v3nar6vkc2luz3 with a transaction
 fee rate of 40 sats/byte, and save a memo with the send transaction:
-$ ./bisq-cli --password=xyz --port=9998 sendbtc --address=bcrt1qygvsqmyt8jyhtp7l3zwqm7s7v3nar6vkc2luz3 --amount=0.005 \
+$ ./haveno-cli --password=xyz --port=9998 sendbtc --address=bcrt1qygvsqmyt8jyhtp7l3zwqm7s7v3nar6vkc2luz3 --amount=0.005 \
     --tx-fee-rate=40 \
     --memo="note to self"

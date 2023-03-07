@@ -11,7 +11,7 @@ createpaymentacct
 
 DESCRIPTION
 -----------
-Create a Bisq trading account with a payment account form.
+Create a Haveno trading account with a payment account form.
 
 The details of the payment account are defined in a manually edited json file generated
 by a getpaymentacctform command, e.g.,
@@ -34,13 +34,13 @@ by a getpaymentacctform command, e.g.,
 EXAMPLES
 --------
 To create a new SEPA payment account, find the payment-method-id for the getpaymentacctform command:
-$ ./bisq-cli --password=xyz --port=9998 getpaymentmethods
+$ ./haveno-cli --password=xyz --port=9998 getpaymentmethods
 
 Get a new, blank SEPA payment account form:
-$ ./bisq-cli --password=xyz --port=9998 getpaymentacctform --payment-method-id=SEPA
+$ ./haveno-cli --password=xyz --port=9998 getpaymentacctform --payment-method-id=SEPA
 
 The previous command created a json file named sepa_1610817857085.json.  The timestamp
 in the file name is to ensure each generated file is uniquely named (you can rename the file).
 
 Manually edit the json file, and pass the file's path to the createpaymentacct command:
-$ ./bisq-cli --password=xyz --port=9998 createpaymentacct --payment-account-form=sepa_1610817857085.json
+$ ./haveno-cli --password=xyz --port=9998 createpaymentacct --payment-account-form=sepa_1610817857085.json

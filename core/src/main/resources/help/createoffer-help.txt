@@ -50,7 +50,7 @@ OPTIONS
 		The percentage of the BTC amount being traded for the security deposit, e.g., 60.0 (60%).
 
 --fee-currency
-		The wallet currency used to pay the Bisq trade maker fee (BTC).  Default is BTC
+		The wallet currency used to pay the Haveno trade maker fee (BTC).  Default is BTC
 
 EXAMPLES
 --------
@@ -59,8 +59,8 @@ To create a BUY 0.125 BTC with EUR offer
 	at the current market price,
 	using a payment account with ID 7413d263-225a-4f1b-837a-1e3094dc0d77,
 	putting up a 30 percent security deposit,
-	and paying the Bisq maker trading fee in BTC:
-$ ./bisq-cli --password=xyz --port=9998 createoffer --payment-account=7413d263-225a-4f1b-837a-1e3094dc0d77 \
+	and paying the Haveno maker trading fee in BTC:
+$ ./haveno-cli --password=xyz --port=9998 createoffer --payment-account=7413d263-225a-4f1b-837a-1e3094dc0d77 \
     --direction=buy \
     --currency-code=eur \
     --amount=0.125 \
@@ -72,8 +72,8 @@ To create a SELL 0.006 BTC for USD offer
 	at a fixed price of 40,000 USD,
 	using a payment account with ID 7413d263-225a-4f1b-837a-1e3094dc0d77,
 	putting up a 25 percent security deposit,
-	and paying the Bisq maker trading fee in BTC:
-$ ./bisq-cli --password=xyz --port=9998 createoffer --payment-account=7413d263-225a-4f1b-837a-1e3094dc0d77 \
+	and paying the Haveno maker trading fee in BTC:
+$ ./haveno-cli --password=xyz --port=9998 createoffer --payment-account=7413d263-225a-4f1b-837a-1e3094dc0d77 \
     --direction=sell \
     --currency-code=usd \
     --amount=0.006 \

@@ -1,9 +1,0 @@
-# All assets available for trading on the Bisq network.
-# Contents are sorted according to the output of `sort --ignore-case --dictionary-order`.
-# See bisq.asset.Asset and bisq.asset.AssetRegistry for further details.
-# See https://bisq.network/list-asset for complete instructions.
-bisq.asset.coins.Bitcoin$Mainnet
-bisq.asset.coins.BitcoinCash
-bisq.asset.coins.Ether
-bisq.asset.coins.Litecoin
-bisq.asset.coins.Monero

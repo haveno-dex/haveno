@@ -44,7 +44,7 @@ grant {
   permission "java.util.PropertyPermission" "priceFeedProviders", "read";
   permission "java.util.PropertyPermission" "maxMemory", "read";
 
-  /* Why ??? no permission exceptions, no dependency in bisq nor in bitcoinj. Local problem? */
+  /* Why ??? no permission exceptions, no dependency in haveno nor in bitcoinj. Local problem? */
   permission "java.util.PropertyPermission" "com.google.appengine.runtime.environment", "read";
 
   permission "java.lang.RuntimePermission" "accessDeclaredMembers";
@@ -93,15 +93,15 @@ grant {
 
   /* user data dir for Mac, Linux, Windows */
   permission "java.io.FilePermission" "${user.home}${/}Library${/}Application Support${/}-", "read,write,delete";
-  permission "java.io.FilePermission" "${user.home}${/}.local${/}share${/}bisq-", "read,write,delete";
-  permission "java.io.FilePermission" "${appdata}${/}bisq-", "read,write,delete";
+  permission "java.io.FilePermission" "${user.home}${/}.local${/}share${/}haveno-", "read,write,delete";
+  permission "java.io.FilePermission" "${appdata}${/}haveno-", "read,write,delete";
 
   /* temp dir Mac, Linux, Windows TODO */
   permission "java.io.FilePermission" "/var/folders/-", "read,write,delete";
 
   /* only for dev
   permission "java.io.FilePermission" "${user.home}${/}.m2${/}-", "read";
-  permission "java.io.FilePermission" "/Users/me/dev/bitcoin_projects/bisq/-", "read";
+  permission "java.io.FilePermission" "/Users/me/dev/bitcoin_projects/haveno/-", "read";
   permission "java.lang.reflect.ReflectPermission" "suppressAccessChecks";
 */
 

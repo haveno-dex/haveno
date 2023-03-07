@@ -16,12 +16,12 @@ DESCRIPTION
 A BTC buyer completes the final step in the trade protocol by sending received BTC to
 an external BTC wallet.
 
-The alternative way to close out the trade is to keep the received BTC in the Bisq wallet,
+The alternative way to close out the trade is to keep the received BTC in the Haveno wallet,
 using the keepfunds command.
 
 The buyer needs to complete the trade protocol using the keepfunds or withdrawfunds or command.
 This step may not seem necessary from the buyer's perspective, but it is necessary for correct
-transition of a trade's state to CLOSED, within the Bisq server.
+transition of a trade's state to CLOSED, within the Haveno server.
 
 OPTIONS
 -------
@@ -40,11 +40,11 @@ EXAMPLES
 A BTC seller has informed the buyer that fiat payment has been received for trade with ID
 83e8b2e2-51b6-4f39-a748-3ebd29c22aea, and locked BTC has been released to the buyer.
 The BTC buyer closes out the trade by sending the received BTC to an external BTC wallet:
-$ ./bisq-cli --password=xyz --port=9998 withdrawfunds --trade-id=83e8b2e2-51b6-4f39-a748-3ebd29c22aea \
+$ ./haveno-cli --password=xyz --port=9998 withdrawfunds --trade-id=83e8b2e2-51b6-4f39-a748-3ebd29c22aea \
     --address=2N5J6MyjAsWnashimGiNwoRzUXThsQzRmbv               (bitcoin regtest address)
 
 
 A seller sends a trade's BTC proceeds to an external wallet, and includes an optional memo:
-$ ./bisq-cli --password=xyz --port=9998 withdrawfunds --trade-id=83e8b2e2-51b6-4f39-a748-3ebd29c22aea \
+$ ./haveno-cli --password=xyz --port=9998 withdrawfunds --trade-id=83e8b2e2-51b6-4f39-a748-3ebd29c22aea \
     --address=2N5J6MyjAsWnashimGiNwoRzUXThsQzRmbv \
     --memo="note to self"

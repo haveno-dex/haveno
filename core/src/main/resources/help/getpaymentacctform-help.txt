@@ -32,13 +32,13 @@ EXAMPLES
 --------
 To create a new CLEAR_X_CHANGE (Zelle) payment account,  find the payment-method-id for
 the getpaymentacctform command:
-$ ./bisq-cli --password=xyz --port=9998 getpaymentmethods
+$ ./haveno-cli --password=xyz --port=9998 getpaymentmethods
 
 Get a new, blank CLEAR_X_CHANGE (Zelle) payment account form:
-$ ./bisq-cli --password=xyz --port=9998 getpaymentacctform --payment-method-id=CLEAR_X_CHANGE_ID
+$ ./haveno-cli --password=xyz --port=9998 getpaymentacctform --payment-method-id=CLEAR_X_CHANGE_ID
 
 The previous command created a json file named clear_x_change_1610818248040.json.  The timestamp
 in the file name is to ensure each generated file is uniquely named (you can rename the file).
 
 Manually edit the json file, and pass the file's path to the createpaymentacct command:
-$ ./bisq-cli --password=xyz --port=9998 createpaymentacct --payment-account-form=clear_x_change_1610818248040.json
+$ ./haveno-cli --password=xyz --port=9998 createpaymentacct --payment-account-form=clear_x_change_1610818248040.json

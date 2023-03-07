@@ -25,9 +25,9 @@ OPTIONS
 EXAMPLES
 --------
 List all of your existing BUY offers for BRL:
-$ ./bisq-cli --password=xyz --port=9998 getmyoffers --direction=buy --currency-code=brl
+$ ./haveno-cli --password=xyz --port=9998 getmyoffers --direction=buy --currency-code=brl
 
 List all of your existing SELL offers for EUR:
-$ ./bisq-cli --password=xyz --port=9998 getmyoffers --direction=sell --currency-code=eur
+$ ./haveno-cli --password=xyz --port=9998 getmyoffers --direction=sell --currency-code=eur
 
 

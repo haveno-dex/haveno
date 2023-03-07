@@ -244,7 +244,7 @@ task packageInstallers {
 
                         // Options for creating the application launcher
                         " --main-jar ${mainJarName}" +
-                        " --main-class bisq.desktop.app.HavenoAppMain" +
+                        " --main-class haveno.desktop.app.HavenoAppMain" +
                         " --java-options -Xss1280k" +
                         " --java-options -XX:MaxRAM=4g" +
                         " --java-options -Djava.net.preferIPv4Stack=true" +

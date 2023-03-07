@@ -20,10 +20,10 @@ Error: Invalid or unsupported type: [rpm]
 On Ubuntu, resolve by running `sudo apt install rpm`. For deb, ensure dpkg is installed.
 
 ```
-Exception in thread "main" java.io.IOException: Failed to rename /tmp/Bisq-stripped15820156885694375398.tmp to /storage/src/haveno/desktop/build/libs/fatJar/desktop-1.0.0-SNAPSHOT-all.jar
-	at bisq.tools.Utils.renameFile(Utils.java:36)
+Exception in thread "main" java.io.IOException: Failed to rename /tmp/Haveno-stripped15820156885694375398.tmp to /storage/src/haveno/desktop/build/libs/fatJar/desktop-1.0.0-SNAPSHOT-all.jar
+	at haveno.tools.Utils.renameFile(Utils.java:36)
 	at io.github.zlika.reproducible.StipZipFile.strip(StipZipFile.java:35)
-	at bisq.tools.DeterministicBuildTool.main(DeterministicBuildTool.java:24)
+	at haveno.tools.DeterministicBuildTool.main(DeterministicBuildTool.java:24)
 
 ```
 

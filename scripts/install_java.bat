@@ -1,4 +1,4 @@
-:: This script will download and install the appropriate JDK for use with Bisq development.
+:: This script will download and install the appropriate JDK for use with Haveno development.
 :: It will also configure it as the default system JDK.
 :: If you need to change to another default JDK for another purpose later, you just need to
 :: change the JAVA_HOME environment variable. For example, use the following command:

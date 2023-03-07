@@ -2,7 +2,7 @@
 
 # This file must be sourced by the main driver.
 
-export CLI_BASE="./bisq-cli --password=xyz"
+export CLI_BASE="./haveno-cli --password=xyz"
 export ARBITRATOR_PORT=9997
 export ALICE_PORT=9998
 export BOB_PORT=9999
@@ -38,7 +38,7 @@ checksetup() {
         echo "Bob & Alice daemons, and bitcoin-core's bitcoin-cli must be in the system PATH."
         echo ""
         echo "From the project's root dir, start all supporting nodes from a terminal:"
-        echo "./bisq-apitest --apiPassword=xyz --supportingApps=bitcoind,seednode,arbdaemon,alicedaemon,bobdaemon  --shutdownAfterTests=false"
+        echo "./haveno-apitest --apiPassword=xyz --supportingApps=bitcoind,seednode,arbdaemon,alicedaemon,bobdaemon  --shutdownAfterTests=false"
         exit 1;
     }
     printdate "Checking $APP_HOME for some expected directories and files."
@@ -48,16 +48,16 @@ checksetup() {
         printdate "Error:  Subproject apitest not found, maybe because you are not running the script from the project root dir."
         exit 1
     fi
-    if [ -f "$APP_HOME/bisq-cli" ]; then
-        printdate "The bisq-cli script exists.";
+    if [ -f "$APP_HOME/haveno-cli" ]; then
+        printdate "The haveno-cli script exists.";
     else
-        printdate "Error:  The bisq-cli script not found, maybe because you are not running the script from the project root dir."
+        printdate "Error:  The haveno-cli script not found, maybe because you are not running the script from the project root dir."
         exit 1
     fi
     printdate "Checking to see local bitcoind is running, and bitcoin-cli is in PATH."
     checkbitcoindrunning
     checkbitcoincliinpath
-    printdate "Checking to see bisq servers are running."
+    printdate "Checking to see haveno servers are running."
     checkseednoderunning
     checkarbnoderunning
     checkalicenoderunning
@@ -205,7 +205,7 @@ checkbitcoincliinpath() {
 
 checkseednoderunning() {
     if [[ "$LINUX" == "TRUE" ]]; then
-        if pgrep -f "bisq.seednode.SeedNodeMain" > /dev/null ; then
+        if pgrep -f "haveno.seednode.SeedNodeMain" > /dev/null ; then
             printdate "The seed node is running on host."
         else
             printdate "Error:  seed node is not running on host, exiting."
@@ -226,14 +226,14 @@ checkseednoderunning() {
 
 checkarbnoderunning() {
     if [[ "$LINUX" == "TRUE" ]]; then
-        if pgrep -f "bisq.daemon.app.HavenoDaemonMain --appName=bisq-XMR_STAGENET_Arb" > /dev/null ; then
+        if pgrep -f "haveno.daemon.app.HavenoDaemonMain --appName=haveno-XMR_STAGENET_Arb" > /dev/null ; then
             printdate "The arbitration node is running on host."
         else
             printdate "Error:  arbitration node is not running on host, exiting."
             apitestusage
         fi
     elif [[ "$DARWIN" == "TRUE" ]]; then
-        if ps -A | awk '/[b]isq.daemon.app.HavenoDaemonMain --appName=bisq-XMR_STAGENET_Arb/ {print $1}' > /dev/null ; then
+        if ps -A | awk '/[b]isq.daemon.app.HavenoDaemonMain --appName=haveno-XMR_STAGENET_Arb/ {print $1}' > /dev/null ; then
             printdate "The arbitration node is running on host."
         else
             printdate "Error:  arbitration node is not running on host, exiting."
@@ -247,14 +247,14 @@ checkarbnoderunning() {
 
 checkalicenoderunning() {
     if [[ "$LINUX" == "TRUE" ]]; then
-        if pgrep -f "bisq.daemon.app.HavenoDaemonMain --appName=bisq-XMR_STAGENET_Alice" > /dev/null ; then
+        if pgrep -f "haveno.daemon.app.HavenoDaemonMain --appName=haveno-XMR_STAGENET_Alice" > /dev/null ; then
             printdate "Alice's node is running on host."
         else
             printdate "Error:  Alice's node is not running on host, exiting."
             apitestusage
         fi
     elif [[ "$DARWIN" == "TRUE" ]]; then
-        if ps -A | awk '/[b]isq.daemon.app.HavenoDaemonMain --appName=bisq-XMR_STAGENET_Alice/ {print $1}' > /dev/null ; then
+        if ps -A | awk '/[b]isq.daemon.app.HavenoDaemonMain --appName=haveno-XMR_STAGENET_Alice/ {print $1}' > /dev/null ; then
             printdate "Alice's node node is running on host."
         else
             printdate "Error:  Alice's node is not running on host, exiting."
@@ -268,14 +268,14 @@ checkalicenoderunning() {
 
 checkbobnoderunning() {
     if [[ "$LINUX" == "TRUE" ]]; then
-        if pgrep -f "bisq.daemon.app.HavenoDaemonMain --appName=bisq-XMR_STAGENET_Alice" > /dev/null ; then
+        if pgrep -f "haveno.daemon.app.HavenoDaemonMain --appName=haveno-XMR_STAGENET_Alice" > /dev/null ; then
             printdate "Bob's node is running on host."
         else
             printdate "Error:  Bob's node is not running on host, exiting."
             apitestusage
         fi
     elif [[ "$DARWIN" == "TRUE" ]]; then
-        if ps -A | awk '/[b]isq.daemon.app.HavenoDaemonMain --appName=bisq-XMR_STAGENET_Alice/ {print $1}' > /dev/null ; then
+        if ps -A | awk '/[b]isq.daemon.app.HavenoDaemonMain --appName=haveno-XMR_STAGENET_Alice/ {print $1}' > /dev/null ; then
             printdate "Bob's node node is running on host."
         else
             printdate "Error:  Bob's node is not running on host, exiting."

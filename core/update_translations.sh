@@ -3,7 +3,7 @@
 cd $(dirname $0)
 tx pull -l de,es,ja,pt,ru,zh_CN,zh_TW,vi,th_TH,fa,fr,pt_BR,it,cs
 
-translations="translations/bisq-desktop.displaystringsproperties"
+translations="translations/haveno-desktop.displaystringsproperties"
 i18n="src/main/resources/i18n"
 
 mv "$translations/de.properties" "$i18n/displayStrings_de.properties"

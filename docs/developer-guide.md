@@ -10,7 +10,7 @@ This document is a guide for Haveno development.
 
 Follow [instructions](https://github.com/haveno-dex/haveno-ts#run-in-a-browser) to run Haveno's UI proof of concept in a browser.
 
-This proof of concept demonstrates using Haveno's gRPC server with a web frontend (react and typescript) instead of Bisq's JFX application.
+This proof of concept demonstrates using Haveno's gRPC server with a web frontend (react and typescript) instead of Haveno's JFX application.
 
 ## Importing Haveno into development environment
 
@@ -26,7 +26,7 @@ Follow [instructions](https://github.com/haveno-dex/haveno-ts#run-tests) to run 
 2. Define the new service or message in Haveno's [protobuf definition](../proto/src/main/proto/grpc.proto).
 3. Clean and build Haveno after modifying the protobuf definition: `make clean && make`
 4. Implement the new service in Haveno's backend, following existing patterns.<br>
-   For example, the gRPC function to get offers is implemented by [`GrpcServer`](https://github.com/haveno-dex/haveno/blob/master/daemon/src/main/java/bisq/daemon/grpc/GrpcServer.java) > [`GrpcOffersService.getOffers(...)`](https://github.com/haveno-dex/haveno/blob/b761dbfd378faf49d95090c126318b419af7926b/daemon/src/main/java/bisq/daemon/grpc/GrpcOffersService.java#L104) > [`CoreApi.getOffers(...)`](https://github.com/haveno-dex/haveno/blob/b761dbfd378faf49d95090c126318b419af7926b/core/src/main/java/bisq/core/api/CoreApi.java#L128) > [`CoreOffersService.getOffers(...)`](https://github.com/haveno-dex/haveno/blob/b761dbfd378faf49d95090c126318b419af7926b/core/src/main/java/bisq/core/api/CoreOffersService.java#L126) > [`OfferBookService.getOffers()`](https://github.com/haveno-dex/haveno/blob/b761dbfd378faf49d95090c126318b419af7926b/core/src/main/java/bisq/core/offer/OfferBookService.java#L193).
+   For example, the gRPC function to get offers is implemented by [`GrpcServer`](https://github.com/haveno-dex/haveno/blob/master/daemon/src/main/java/haveno/daemon/grpc/GrpcServer.java) > [`GrpcOffersService.getOffers(...)`](https://github.com/haveno-dex/haveno/blob/b761dbfd378faf49d95090c126318b419af7926b/daemon/src/main/java/haveno/daemon/grpc/GrpcOffersService.java#L104) > [`CoreApi.getOffers(...)`](https://github.com/haveno-dex/haveno/blob/b761dbfd378faf49d95090c126318b419af7926b/core/src/main/java/haveno/core/api/CoreApi.java#L128) > [`CoreOffersService.getOffers(...)`](https://github.com/haveno-dex/haveno/blob/b761dbfd378faf49d95090c126318b419af7926b/core/src/main/java/haveno/core/api/CoreOffersService.java#L126) > [`OfferBookService.getOffers()`](https://github.com/haveno-dex/haveno/blob/b761dbfd378faf49d95090c126318b419af7926b/core/src/main/java/haveno/core/offer/OfferBookService.java#L193).
 5. Build Haveno: `make`
 6. Update the gRPC client in haveno-ts: `npm install`
 7. Add the corresponding typescript method(s) to [haveno.ts](https://github.com/haveno-dex/haveno-ts/blob/master/src/haveno.ts) with clear and concise documentation.

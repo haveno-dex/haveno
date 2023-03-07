@@ -22,9 +22,9 @@ OPTIONS
 EXAMPLES
 --------
 Get the current BTC market price in Euros:
-$ ./bisq-cli --password=xyz --port=9998 getbtcprice --currency-code=eur
+$ ./haveno-cli --password=xyz --port=9998 getbtcprice --currency-code=eur
 
 Get the current BTC market price in Brazilian Reais:
-$ ./bisq-cli --password=xyz --port=9998 getbtcprice --currency-code=brl
+$ ./haveno-cli --password=xyz --port=9998 getbtcprice --currency-code=brl
 
 
