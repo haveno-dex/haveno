@@ -19,20 +19,18 @@ package bisq.core.presentation;
 
 import bisq.common.UserThread;
 import bisq.core.btc.Balances;
+import bisq.core.trade.HavenoUtils;
 
 import javax.inject.Inject;
 
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
 
-import java.math.BigInteger;
-
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class BalancePresentation {
-    private static final BigInteger AU_PER_XMR = new BigInteger("1000000000000");
 
     @Getter
     private final StringProperty availableBalance = new SimpleStringProperty();
@@ -44,22 +42,13 @@ public class BalancePresentation {
     @Inject
     public BalancePresentation(Balances balances) {
         balances.getAvailableBalance().addListener((observable, oldValue, newValue) -> {
-            UserThread.execute(() -> availableBalance.set(longToXmr(newValue.value)));
+            UserThread.execute(() -> availableBalance.set(HavenoUtils.formatToXmrWithCode(newValue)));
         });
         balances.getPendingBalance().addListener((observable, oldValue, newValue) -> {
-            UserThread.execute(() -> pendingBalance.set(longToXmr(newValue.value)));
+            UserThread.execute(() -> pendingBalance.set(HavenoUtils.formatToXmrWithCode(newValue)));
         });
         balances.getReservedBalance().addListener((observable, oldValue, newValue) -> {
-            UserThread.execute(() -> reservedBalance.set(longToXmr(newValue.value)));
+            UserThread.execute(() -> reservedBalance.set(HavenoUtils.formatToXmrWithCode(newValue)));
         });
-    }
-
-    // TODO: truncate full precision with ellipses to not break layout?
-    // TODO (woodser): formatting utils in monero-java
-    private static String longToXmr(long amt) {
-      BigInteger auAmt = BigInteger.valueOf(amt);
-      BigInteger[] quotientAndRemainder = auAmt.divideAndRemainder(AU_PER_XMR);
-      double decimalRemainder = quotientAndRemainder[1].doubleValue() / AU_PER_XMR.doubleValue();
-      return quotientAndRemainder[0].doubleValue() + decimalRemainder + " XMR";
     }
 }

@@ -831,7 +831,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
 
                     // get earliest unscheduled txs with sufficient incoming amount
                     List<String> scheduledTxHashes = new ArrayList<String>();
-                    BigInteger scheduledAmount = new BigInteger("0");
+                    BigInteger scheduledAmount = BigInteger.valueOf(0);
                     for (MoneroTxWallet lockedTx : lockedTxs) {
                         if (isTxScheduled(openOffers, lockedTx.getHash())) continue;
                         if (lockedTx.getIncomingTransfers() == null || lockedTx.getIncomingTransfers().isEmpty()) continue;
@@ -859,7 +859,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
     }
 
     private BigInteger getScheduledAmount(List<OpenOffer> openOffers) {
-        BigInteger scheduledAmount = new BigInteger("0");
+        BigInteger scheduledAmount = BigInteger.valueOf(0);
         for (OpenOffer openOffer : openOffers) {
             if (openOffer.getState() != OpenOffer.State.SCHEDULED) continue;
             if (openOffer.getScheduledTxHashes() == null) continue;

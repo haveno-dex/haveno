@@ -85,8 +85,8 @@ class TransactionsListItem {
         Optional<Tradable> optionalTradable = Optional.ofNullable(transactionAwareTradable)
                 .map(TransactionAwareTradable::asTradable);
 
-        BigInteger valueSentToMe = tx.getIncomingAmount() == null ? new BigInteger("0") : tx.getIncomingAmount();
-        BigInteger valueSentFromMe = tx.getOutgoingAmount() == null ? new BigInteger("0") : tx.getOutgoingAmount();
+        BigInteger valueSentToMe = tx.getIncomingAmount() == null ? BigInteger.valueOf(0) : tx.getIncomingAmount();
+        BigInteger valueSentFromMe = tx.getOutgoingAmount() == null ? BigInteger.valueOf(0) : tx.getOutgoingAmount();
 
         if (tx.getTransfers().get(0).isIncoming()) {
             addressString = ((MoneroIncomingTransfer) tx.getTransfers().get(0)).getAddress();

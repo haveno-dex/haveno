@@ -25,7 +25,6 @@ import bisq.core.offer.OpenOfferManager;
 import bisq.core.support.dispute.Dispute;
 import bisq.core.support.dispute.refund.RefundManager;
 import bisq.core.trade.ClosedTradableManager;
-import bisq.core.trade.HavenoUtils;
 import bisq.core.trade.Trade;
 import bisq.core.trade.TradeManager;
 import bisq.core.trade.failed.FailedTradesManager;
@@ -43,7 +42,6 @@ import monero.common.MoneroError;
 import monero.wallet.model.MoneroOutputQuery;
 import monero.wallet.model.MoneroOutputWallet;
 import monero.wallet.model.MoneroTxWallet;
-import org.bitcoinj.core.Coin;
 
 @Slf4j
 public class Balances {
@@ -53,15 +51,15 @@ public class Balances {
     private final RefundManager refundManager;
 
     @Getter
-    private final ObjectProperty<Coin> availableBalance = new SimpleObjectProperty<>();
+    private final ObjectProperty<BigInteger> availableBalance = new SimpleObjectProperty<>();
     @Getter
-    private final ObjectProperty<Coin> pendingBalance = new SimpleObjectProperty<>();
+    private final ObjectProperty<BigInteger> pendingBalance = new SimpleObjectProperty<>();
     @Getter
-    private final ObjectProperty<Coin> reservedOfferBalance = new SimpleObjectProperty<>();
+    private final ObjectProperty<BigInteger> reservedOfferBalance = new SimpleObjectProperty<>();
     @Getter
-    private final ObjectProperty<Coin> reservedTradeBalance = new SimpleObjectProperty<>();
+    private final ObjectProperty<BigInteger> reservedTradeBalance = new SimpleObjectProperty<>();
     @Getter
-    private final ObjectProperty<Coin> reservedBalance = new SimpleObjectProperty<>(); // TODO (woodser): this balance is sum of reserved funds for offers and trade multisigs; remove?
+    private final ObjectProperty<BigInteger> reservedBalance = new SimpleObjectProperty<>(); // TODO (woodser): this balance is sum of reserved funds for offers and trade multisigs; remove?
 
     @Inject
     public Balances(TradeManager tradeManager,
@@ -105,26 +103,26 @@ public class Balances {
     // TODO (woodser): converting to long should generally be avoided since can lose precision, but in practice these amounts are below max value
 
     private void updateAvailableBalance() {
-        availableBalance.set(Coin.valueOf(xmrWalletService.getWallet() == null ? 0 : xmrWalletService.getWallet().getUnlockedBalance(0).longValueExact()));
+        availableBalance.set(xmrWalletService.getWallet() == null ? BigInteger.valueOf(0) : xmrWalletService.getWallet().getUnlockedBalance(0));
     }
     
     private void updatePendingBalance() {
-        BigInteger balance = xmrWalletService.getWallet() == null ? new BigInteger("0") : xmrWalletService.getWallet().getBalance(0);
-        BigInteger unlockedBalance = xmrWalletService.getWallet() == null ? new BigInteger("0") : xmrWalletService.getWallet().getUnlockedBalance(0);
-        pendingBalance.set(Coin.valueOf(balance.subtract(unlockedBalance).longValueExact()));
+        BigInteger balance = xmrWalletService.getWallet() == null ? BigInteger.valueOf(0) : xmrWalletService.getWallet().getBalance(0);
+        BigInteger unlockedBalance = xmrWalletService.getWallet() == null ? BigInteger.valueOf(0) : xmrWalletService.getWallet().getUnlockedBalance(0);
+        pendingBalance.set(balance.subtract(unlockedBalance));
     }
     
     private void updateReservedOfferBalance() {
-        Coin sum = Coin.valueOf(0);
+        BigInteger sum = BigInteger.valueOf(0);
         if (xmrWalletService.getWallet() != null) {
             List<MoneroOutputWallet> frozenOutputs = xmrWalletService.getWallet().getOutputs(new MoneroOutputQuery().setIsFrozen(true).setIsSpent(false));
-            for (MoneroOutputWallet frozenOutput : frozenOutputs) sum = sum.add(Coin.valueOf(frozenOutput.getAmount().longValueExact()));
+            for (MoneroOutputWallet frozenOutput : frozenOutputs) sum = sum.add(frozenOutput.getAmount());
         }
         reservedOfferBalance.set(sum);
     }
     
     private void updateReservedTradeBalance() {
-        Coin sum = Coin.valueOf(0);
+        BigInteger sum = BigInteger.valueOf(0);
         List<Trade> openTrades = tradeManager.getTradesStreamWithFundsLockedIn().collect(Collectors.toList());
         for (Trade trade : openTrades) {
             try {
@@ -141,7 +139,7 @@ public class Balances {
             } else {
                 reservedAmt = trade.getContract().isMyRoleBuyer(tradeManager.getKeyRing().getPubKeyRing()) ? offerPayload.getBuyerSecurityDeposit() : offerPayload.getAmount() + offerPayload.getSellerSecurityDeposit();
             }
-            sum = sum.add(Coin.valueOf(HavenoUtils.centinerosToAtomicUnits(reservedAmt).longValueExact()));
+            sum = sum.add(BigInteger.valueOf(reservedAmt));
         }
         reservedTradeBalance.set(sum);
     }
