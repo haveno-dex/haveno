@@ -51,7 +51,7 @@ class OpenTradeTableBuilder extends AbstractTradeListBuilder {
             colCreateDate.addRow(t.getDate());
             colMarket.addRow(toMarket.apply(t));
             colPrice.addRow(t.getPrice());
-            colAmount.addRow(t.getAmountAsLong());
+            colAmount.addRow(t.getAmount());
             colMixedAmount.addRow(t.getTradeVolume());
             colCurrency.addRow(toPaymentCurrencyCode.apply(t));
             colPaymentMethod.addRow(t.getOffer().getPaymentMethodShortName());

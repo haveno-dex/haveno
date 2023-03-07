@@ -324,8 +324,7 @@ public abstract class Trade implements Tradable, Model {
     private final ProcessModel processModel;
     @Getter
     private final Offer offer;
-    @Getter
-    private final long takerFeeAsLong;
+    private final long takerFee;
 
     // Added in 1.5.1
     @Getter
@@ -335,9 +334,7 @@ public abstract class Trade implements Tradable, Model {
     private long takeOfferDate;
 
     //  Mutable
-    @Getter
-    @Setter
-    private long amountAsLong;
+    private long amount;
     @Setter
     private long price;
     @Nullable
@@ -373,9 +370,7 @@ public abstract class Trade implements Tradable, Model {
     // Transient
     // Immutable
     @Getter
-    transient final private Coin txFee;
-    @Getter
-    transient final private BigInteger takerFee;
+    transient final private BigInteger totalTxFee;
     @Getter
     transient final private XmrWalletService xmrWalletService;
 
@@ -401,9 +396,6 @@ public abstract class Trade implements Tradable, Model {
     transient private boolean isShutDown;
 
     // Added in v1.2.0
-    @Nullable
-    transient private BigInteger tradeAmount;
-
     transient private ObjectProperty<BigInteger> tradeAmountProperty;
     transient private ObjectProperty<Volume> tradeVolumeProperty;
 
@@ -479,15 +471,13 @@ public abstract class Trade implements Tradable, Model {
                     @Nullable NodeAddress takerNodeAddress,
                     @Nullable NodeAddress arbitratorNodeAddress) {
         this.offer = offer;
-        this.tradeAmount = tradeAmount;
-        this.txFee = Coin.valueOf(0);   // TODO (woodser): remove this field
-        this.takerFee = takerFee;
+        this.amount = tradeAmount.longValueExact();
+        this.takerFee = takerFee.longValueExact();
+        this.totalTxFee = BigInteger.valueOf(0); // TODO: sum tx fees
         this.price = tradePrice;
         this.xmrWalletService = xmrWalletService;
         this.processModel = processModel;
         this.uid = uid;
-
-        this.takerFeeAsLong = takerFee.longValueExact();
         this.takeOfferDate = new Date().getTime();
         this.tradeListeners = new ArrayList<TradeListener>();
 
@@ -1262,9 +1252,8 @@ public abstract class Trade implements Tradable, Model {
     }
 
     public void setAmount(BigInteger tradeAmount) {
-        this.tradeAmount = tradeAmount;
-        amountAsLong = tradeAmount.longValueExact();
-        getAmountProperty().set(tradeAmount);
+        this.amount = tradeAmount.longValueExact();
+        getAmountProperty().set(getAmount());
         getVolumeProperty().set(getVolume());
     }
 
@@ -1566,13 +1555,15 @@ public abstract class Trade implements Tradable, Model {
 
     @Nullable
     public BigInteger getAmount() {
-        if (tradeAmount == null)
-            tradeAmount = BigInteger.valueOf(amountAsLong);
-        return tradeAmount;
+        return BigInteger.valueOf(amount);
     }
 
     public BigInteger getMakerFee() {
         return offer.getMakerFee();
+    }
+
+    public BigInteger getTakerFee() {
+        return BigInteger.valueOf(takerFee);
     }
 
     public BigInteger getBuyerSecurityDeposit() {
@@ -1858,10 +1849,10 @@ public abstract class Trade implements Tradable, Model {
     public Message toProtoMessage() {
         protobuf.Trade.Builder builder = protobuf.Trade.newBuilder()
                 .setOffer(offer.toProtoMessage())
-                .setTakerFeeAsLong(takerFeeAsLong)
+                .setTakerFee(takerFee)
                 .setTakeOfferDate(takeOfferDate)
                 .setProcessModel(processModel.toProtoMessage())
-                .setAmountAsLong(amountAsLong)
+                .setAmount(amount)
                 .setPrice(price)
                 .setState(Trade.State.toProtoMessage(state))
                 .setPayoutState(Trade.PayoutState.toProtoMessage(payoutState))
@@ -1927,11 +1918,11 @@ public abstract class Trade implements Tradable, Model {
     public String toString() {
         return "Trade{" +
                 "\n     offer=" + offer +
-                ",\n     takerFeeAsLong=" + takerFeeAsLong +
+                ",\n     takerFee=" + takerFee +
                 ",\n     takeOfferDate=" + takeOfferDate +
                 ",\n     processModel=" + processModel +
                 ",\n     payoutTxId='" + payoutTxId + '\'' +
-                ",\n     tradeAmountAsLong=" + amountAsLong +
+                ",\n     amount=" + amount +
                 ",\n     tradePrice=" + price +
                 ",\n     state=" + state +
                 ",\n     payoutState=" + payoutState +
@@ -1945,7 +1936,7 @@ public abstract class Trade implements Tradable, Model {
                 ",\n     counterCurrencyExtraData='" + counterCurrencyExtraData + '\'' +
                 ",\n     assetTxProofResult='" + assetTxProofResult + '\'' +
                 ",\n     chatMessages=" + chatMessages +
-                ",\n     txFee=" + txFee +
+                ",\n     totalTxFee=" + totalTxFee +
                 ",\n     takerFee=" + takerFee +
                 ",\n     xmrWalletService=" + xmrWalletService +
                 ",\n     stateProperty=" + stateProperty +
@@ -1954,7 +1945,7 @@ public abstract class Trade implements Tradable, Model {
                 ",\n     tradePeriodStateProperty=" + tradePeriodStateProperty +
                 ",\n     errorMessageProperty=" + errorMessageProperty +
                 ",\n     payoutTx=" + payoutTx +
-                ",\n     tradeAmount=" + tradeAmount +
+                ",\n     amount=" + amount +
                 ",\n     tradeAmountProperty=" + tradeAmountProperty +
                 ",\n     tradeVolumeProperty=" + tradeVolumeProperty +
                 ",\n     mediationResultState=" + mediationResultState +

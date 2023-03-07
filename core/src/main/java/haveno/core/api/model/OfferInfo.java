@@ -52,7 +52,6 @@ public class OfferInfo implements Payload {
     private final long minAmount;
     private final String volume;
     private final String minVolume;
-    private final long txFee;
     private final long makerFee;
     @Nullable
     private final String offerFeePaymentTxId;
@@ -87,7 +86,6 @@ public class OfferInfo implements Payload {
         this.minAmount = builder.getMinAmount();
         this.volume = builder.getVolume();
         this.minVolume = builder.getMinVolume();
-        this.txFee = builder.getTxFee();
         this.makerFee = builder.getMakerFee();
         this.offerFeePaymentTxId = builder.getOfferFeePaymentTxId();
         this.buyerSecurityDeposit = builder.getBuyerSecurityDeposit();
@@ -189,7 +187,6 @@ public class OfferInfo implements Payload {
                 .setVolume(volume)
                 .setMinVolume(minVolume)
                 .setMakerFee(makerFee)
-                .setTxFee(txFee)
                 .setBuyerSecurityDeposit(buyerSecurityDeposit)
                 .setSellerSecurityDeposit(sellerSecurityDeposit)
                 .setTriggerPrice(triggerPrice == null ? "0" : triggerPrice)
@@ -224,7 +221,6 @@ public class OfferInfo implements Payload {
                 .withVolume(proto.getVolume())
                 .withMinVolume(proto.getMinVolume())
                 .withMakerFee(proto.getMakerFee())
-                .withTxFee(proto.getTxFee())
                 .withOfferFeePaymentTxId(ProtoUtil.stringOrNullFromProto(proto.getOfferFeePaymentTxId()))
                 .withBuyerSecurityDeposit(proto.getBuyerSecurityDeposit())
                 .withSellerSecurityDeposit(proto.getSellerSecurityDeposit())

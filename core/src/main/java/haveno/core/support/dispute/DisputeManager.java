@@ -1049,14 +1049,14 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
         String headline;
         if (potentialGain.compareTo(BigInteger.valueOf(0)) > 0) {
             headline = "This might be a potential option trade!";
-            optionTradeDetails = "\nBTC amount calculated with price at dispute opening: " + HavenoUtils.formatToXmrWithCode(potentialAmountAtDisputeOpening) +
-                    "\nMax loss of security deposit is: " + HavenoUtils.formatToXmrWithCode(maxLossSecDeposit) +
-                    "\nPossible gain from an option trade is: " + HavenoUtils.formatToXmrWithCode(potentialGain);
+            optionTradeDetails = "\nBTC amount calculated with price at dispute opening: " + HavenoUtils.formatXmr(potentialAmountAtDisputeOpening, true) +
+                    "\nMax loss of security deposit is: " + HavenoUtils.formatXmr(maxLossSecDeposit, true) +
+                    "\nPossible gain from an option trade is: " + HavenoUtils.formatXmr(potentialGain, true);
         } else {
             headline = "It does not appear to be an option trade.";
-            optionTradeDetails = "\nBTC amount calculated with price at dispute opening: " + HavenoUtils.formatToXmrWithCode(potentialAmountAtDisputeOpening) +
-                    "\nMax loss of security deposit is: " + HavenoUtils.formatToXmrWithCode(maxLossSecDeposit) +
-                    "\nPossible loss from an option trade is: " + HavenoUtils.formatToXmrWithCode(potentialGain.multiply(BigInteger.valueOf(-1)));
+            optionTradeDetails = "\nBTC amount calculated with price at dispute opening: " + HavenoUtils.formatXmr(potentialAmountAtDisputeOpening, true) +
+                    "\nMax loss of security deposit is: " + HavenoUtils.formatXmr(maxLossSecDeposit, true) +
+                    "\nPossible loss from an option trade is: " + HavenoUtils.formatXmr(potentialGain.multiply(BigInteger.valueOf(-1)), true);
         }
 
         String percentagePriceDetails = offerPayload.isUseMarketBasedPrice() ?
@@ -1065,7 +1065,7 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
 
         String priceInfoText = "System message: " + headline +
                 "\n\nTrade price: " + contract.getPrice().toFriendlyString() + percentagePriceDetails +
-                "\nTrade amount: " + HavenoUtils.formatToXmrWithCode(tradeAmount) +
+                "\nTrade amount: " + HavenoUtils.formatXmr(tradeAmount, true) +
                 "\nPrice at dispute opening: " + priceAtDisputeOpening.toFriendlyString() +
                 optionTradeDetails;
 

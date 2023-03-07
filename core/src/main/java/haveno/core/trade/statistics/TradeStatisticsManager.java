@@ -20,7 +20,6 @@ package haveno.core.trade.statistics;
 import com.google.inject.Inject;
 import haveno.common.config.Config;
 import haveno.common.file.JsonFileManager;
-import haveno.common.util.Utilities;
 import haveno.core.locale.CurrencyTuple;
 import haveno.core.locale.CurrencyUtil;
 import haveno.core.locale.Res;
@@ -57,7 +56,6 @@ public class TradeStatisticsManager {
     private final P2PService p2PService;
     private final PriceFeedService priceFeedService;
     private final TradeStatistics3StorageService tradeStatistics3StorageService;
-    private final TradeStatisticsConverter tradeStatisticsConverter;
     private final File storageDir;
     private final boolean dumpStatistics;
     private final ObservableSet<TradeStatistics3> observableTradeStatisticsSet = FXCollections.observableSet();
@@ -68,13 +66,11 @@ public class TradeStatisticsManager {
                                   PriceFeedService priceFeedService,
                                   TradeStatistics3StorageService tradeStatistics3StorageService,
                                   AppendOnlyDataStoreService appendOnlyDataStoreService,
-                                  TradeStatisticsConverter tradeStatisticsConverter,
                                   @Named(Config.STORAGE_DIR) File storageDir,
                                   @Named(Config.DUMP_STATISTICS) boolean dumpStatistics) {
         this.p2PService = p2PService;
         this.priceFeedService = priceFeedService;
         this.tradeStatistics3StorageService = tradeStatistics3StorageService;
-        this.tradeStatisticsConverter = tradeStatisticsConverter;
         this.storageDir = storageDir;
         this.dumpStatistics = dumpStatistics;
 
@@ -83,7 +79,6 @@ public class TradeStatisticsManager {
     }
 
     public void shutDown() {
-        tradeStatisticsConverter.shutDown();
         if (jsonFileManager != null) {
             jsonFileManager.shutDown();
         }
@@ -180,17 +175,6 @@ public class TradeStatisticsManager {
             boolean hasTradeStatistics3 = hashes.contains(new P2PDataStorage.ByteArray(tradeStatistics3.getHash()));
             if (hasTradeStatistics3) {
                 log.debug("Trade: {}. We have already a tradeStatistics matching the hash of tradeStatistics3.",
-                        trade.getShortId());
-                return;
-            }
-
-            // If we did not find a TradeStatistics3 we look up if we find a TradeStatistics3 converted from
-            // TradeStatistics2 where we used the original hash, which is not the native hash of the
-            // TradeStatistics3 but of TradeStatistics2.
-            TradeStatistics2 tradeStatistics2 = TradeStatistics2.from(trade, referralId, isTorNetworkNode);
-            boolean hasTradeStatistics2 = hashes.contains(new P2PDataStorage.ByteArray(tradeStatistics2.getHash()));
-            if (hasTradeStatistics2) {
-                log.debug("Trade: {}. We have already a tradeStatistics matching the hash of tradeStatistics2. ",
                         trade.getShortId());
                 return;
             }

@@ -163,8 +163,8 @@ public class SignedOfferView extends ActivatableView<VBox, Void> {
             if(selectedSignedOffer != null) {
                 new Popup().warning(Res.get("support.prompt.signedOffer.penalty.msg",
                         selectedSignedOffer.getOfferId(),
-                        HavenoUtils.formatToXmrWithCode(selectedSignedOffer.getMakerTradeFee()),
-                        HavenoUtils.formatToXmrWithCode(selectedSignedOffer.getReserveTxMinerFee()),
+                        HavenoUtils.formatXmr(selectedSignedOffer.getMakerTradeFee(), true),
+                        HavenoUtils.formatXmr(selectedSignedOffer.getReserveTxMinerFee(), true),
                         selectedSignedOffer.getReserveTxHash(),
                         selectedSignedOffer.getReserveTxKeyImages())
                 ).onAction(() -> OfferViewUtil.submitTransactionHex(xmrWalletService, tableView,
@@ -405,7 +405,7 @@ public class SignedOfferView extends ActivatableView<VBox, Void> {
                             public void updateItem(final SignedOffer item, boolean empty) {
                                 super.updateItem(item, empty);
                                 if (item != null && !empty)
-                                    setText(HavenoUtils.formatToXmrWithCode(item.getMakerTradeFee()));
+                                    setText(HavenoUtils.formatXmr(item.getMakerTradeFee(), true));
                                 else
                                     setText("");
                             }
@@ -431,7 +431,7 @@ public class SignedOfferView extends ActivatableView<VBox, Void> {
                             public void updateItem(final SignedOffer item, boolean empty) {
                                 super.updateItem(item, empty);
                                 if (item != null && !empty)
-                                    setText(HavenoUtils.formatToXmrWithCode(item.getReserveTxMinerFee()));
+                                    setText(HavenoUtils.formatXmr(item.getReserveTxMinerFee(), true));
                                 else
                                     setText("");
                             }

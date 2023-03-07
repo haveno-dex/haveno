@@ -251,7 +251,7 @@ public class CoreDisputesService {
         String agentNodeAddress = checkNotNull(disputeManager.getAgentNodeAddress(dispute)).getFullAddress();
         Contract contract = dispute.getContract();
         String currencyCode = contract.getOfferPayload().getCurrencyCode();
-        String amount = HavenoUtils.formatToXmrWithCode(contract.getTradeAmount());
+        String amount = HavenoUtils.formatXmr(contract.getTradeAmount(), true);
 
         String textToSign = Res.get("disputeSummaryWindow.close.msg",
                 FormattingUtils.formatDateTime(disputeResult.getCloseDate(), true),
@@ -261,8 +261,8 @@ public class CoreDisputesService {
                 currencyCode,
                 Res.get("disputeSummaryWindow.reason." + reason.name()),
                 amount,
-                HavenoUtils.formatToXmrWithCode(disputeResult.getBuyerPayoutAmount()),
-                HavenoUtils.formatToXmrWithCode(disputeResult.getSellerPayoutAmount()),
+                HavenoUtils.formatXmr(disputeResult.getBuyerPayoutAmount(), true),
+                HavenoUtils.formatXmr(disputeResult.getSellerPayoutAmount(), true),
                 disputeResult.summaryNotesProperty().get()
         );
 

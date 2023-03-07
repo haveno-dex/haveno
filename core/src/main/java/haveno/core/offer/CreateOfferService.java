@@ -39,7 +39,6 @@ import haveno.core.user.User;
 import haveno.core.util.coin.CoinUtil;
 import haveno.network.p2p.NodeAddress;
 import haveno.network.p2p.P2PService;
-import org.bitcoinj.core.Coin;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -105,7 +104,6 @@ public class CreateOfferService {
                                    BigInteger amount,
                                    BigInteger minAmount,
                                    Price price,
-                                   Coin txFee,
                                    boolean useMarketBasedPrice,
                                    double marketPriceMargin,
                                    double buyerSecurityDepositAsDouble,

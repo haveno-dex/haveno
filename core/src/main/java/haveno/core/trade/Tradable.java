@@ -22,7 +22,6 @@ import haveno.core.monetary.Price;
 import haveno.core.monetary.Volume;
 import haveno.core.offer.Offer;
 import haveno.network.p2p.NodeAddress;
-import org.bitcoinj.core.Coin;
 
 import java.math.BigInteger;
 import java.util.Date;
@@ -57,12 +56,8 @@ public interface Tradable extends PersistablePayload {
         return asTradeModel().map(Trade::getAmount);
     }
 
-    default Optional<Long> getOptionalAmountAsLong() {
-        return asTradeModel().map(Trade::getAmountAsLong);
-    }
-
-    default Optional<Coin> getOptionalTxFee() {
-        return asTradeModel().map(Trade::getTxFee);
+    default BigInteger getTotalTxFee() {
+        return asTradeModel().map(Trade::getTotalTxFee).get();
     }
 
     default Optional<BigInteger> getOptionalTakerFee() {

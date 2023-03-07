@@ -45,10 +45,10 @@ public class IntegerValidator extends InputValidator {
             return new ValidationResult(false, Res.get("validation.notAnInteger"));
 
         if (isBelowMinValue(intValue))
-            return new ValidationResult(false, Res.get("validation.btc.toSmall", minValue));
+            return new ValidationResult(false, Res.get("validation.xmr.tooSmall", minValue));
 
         if (isAboveMaxValue(intValue))
-            return new ValidationResult(false, Res.get("validation.btc.toLarge", maxValue));
+            return new ValidationResult(false, Res.get("validation.xmr.tooLarge", maxValue));
 
         return validationResult;
     }

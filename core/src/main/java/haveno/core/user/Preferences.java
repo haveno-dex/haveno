@@ -912,7 +912,7 @@ public final class Preferences implements PersistedDataHost, BridgeAddressProvid
 
         void setSelectedPaymentAccountForCreateOffer(@Nullable PaymentAccount paymentAccount);
 
-        void setPayFeeInBtc(boolean payFeeInBtc);
+        void setPayFeeInXmr(boolean payFeeInXmr);
 
         void setFiatCurrencies(List<FiatCurrency> currencies);
 

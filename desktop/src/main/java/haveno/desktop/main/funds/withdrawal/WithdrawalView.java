@@ -134,7 +134,7 @@ public class WithdrawalView extends ActivatableView<VBox, Void> {
         amountFocusListener = (observable, oldValue, newValue) -> {
             if (oldValue && !newValue) {
                 if (amount.compareTo(BigInteger.valueOf(0)) > 0)
-                    amountTextField.setText(HavenoUtils.formatToXmr(amount));
+                    amountTextField.setText(HavenoUtils.formatXmr(amount));
                 else
                     amountTextField.setText("");
             }
@@ -186,10 +186,10 @@ public class WithdrawalView extends ActivatableView<VBox, Void> {
                 BigInteger sendersAmount = receiverAmount;
                 BigInteger fee = tx.getFee();
                 String messageText = Res.get("shared.sendFundsDetailsWithFee",
-                        HavenoUtils.formatToXmrWithCode(sendersAmount),
+                        HavenoUtils.formatXmr(sendersAmount, true),
                         withdrawToAddress,
-                        HavenoUtils.formatToXmrWithCode(fee),
-                        HavenoUtils.formatToXmrWithCode(receiverAmount));
+                        HavenoUtils.formatXmr(fee, true),
+                        HavenoUtils.formatXmr(receiverAmount, true));
 
                 // popup confirmation message
                 new Popup().headLine(Res.get("funds.withdrawal.confirmWithdrawalRequest"))
@@ -203,7 +203,7 @@ public class WithdrawalView extends ActivatableView<VBox, Void> {
                                 xmrWalletService.getWallet().setTxNote(tx.getHash(), withdrawMemoTextField.getText()); // TODO (monero-java): tx note does not persist when tx created then relayed
                                 String key = "showTransactionSent";
                                 if (DontShowAgainLookup.showAgain(key)) {
-                                    new TxDetails(tx.getHash(), withdrawToAddress, HavenoUtils.formatToXmrWithCode(sendersAmount), HavenoUtils.formatToXmrWithCode(fee), xmrWalletService.getWallet().getTxNote(tx.getHash()))
+                                    new TxDetails(tx.getHash(), withdrawToAddress, HavenoUtils.formatXmr(sendersAmount, true), HavenoUtils.formatXmr(fee, true), xmrWalletService.getWallet().getTxNote(tx.getHash()))
                                             .dontShowAgainId(key)
                                             .show();
                                 }

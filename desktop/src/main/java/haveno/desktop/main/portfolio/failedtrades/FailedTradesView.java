@@ -275,7 +275,7 @@ public class FailedTradesView extends ActivatableViewAndModel<VBox, FailedTrades
             new Popup().warning(Res.get(msgKey,
                     buyerOrSeller,
                     makerOrTaker,
-                    HavenoUtils.formatToXmrWithCode(fee),
+                    HavenoUtils.formatXmr(fee, true),
                     "todo", // TODO: set reserve tx miner fee when verified
                     reserveTxHash
                     )

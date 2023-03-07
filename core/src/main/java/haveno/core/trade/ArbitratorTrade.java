@@ -58,8 +58,8 @@ public class ArbitratorTrade extends Trade {
       }
       return fromProto(new ArbitratorTrade(
                       Offer.fromProto(proto.getOffer()),
-                      BigInteger.valueOf(proto.getAmountAsLong()),
-                      BigInteger.valueOf(proto.getTakerFeeAsLong()),
+                      BigInteger.valueOf(proto.getAmount()),
+                      BigInteger.valueOf(proto.getTakerFee()),
                       proto.getPrice(),
                       xmrWalletService,
                       processModel,

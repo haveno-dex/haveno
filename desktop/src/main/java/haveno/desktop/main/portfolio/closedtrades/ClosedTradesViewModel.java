@@ -17,12 +17,12 @@
 
 package haveno.desktop.main.portfolio.closedtrades;
 
-import org.bitcoinj.core.Coin;
-
 import com.google.inject.Inject;
 import haveno.core.trade.ClosedTradableFormatter;
 import haveno.desktop.common.model.ActivatableWithDataModel;
 import haveno.desktop.common.model.ViewModel;
+
+import java.math.BigInteger;
 import java.util.Map;
 
 public class ClosedTradesViewModel extends ActivatableWithDataModel<ClosedTradesDataModel> implements ViewModel {
@@ -39,11 +39,11 @@ public class ClosedTradesViewModel extends ActivatableWithDataModel<ClosedTrades
     // Used in ClosedTradesSummaryWindow
     ///////////////////////////////////////////////////////////////////////////////////////////
 
-    public Coin getTotalTradeAmount() {
+    public BigInteger getTotalTradeAmount() {
         return dataModel.getTotalAmount();
     }
 
-    public String getTotalAmountWithVolume(Coin totalTradeAmount) {
+    public String getTotalAmountWithVolume(BigInteger totalTradeAmount) {
         return dataModel.getVolumeInUserFiatCurrency(totalTradeAmount)
                 .map(volume -> closedTradableFormatter.getTotalAmountWithVolumeAsString(totalTradeAmount, volume))
                 .orElse("");
@@ -53,13 +53,13 @@ public class ClosedTradesViewModel extends ActivatableWithDataModel<ClosedTrades
         return closedTradableFormatter.getTotalVolumeByCurrencyAsString(dataModel.getListAsTradables());
     }
 
-    public String getTotalTxFee(Coin totalTradeAmount) {
-        Coin totalTxFee = dataModel.getTotalTxFee();
+    public String getTotalTxFee(BigInteger totalTradeAmount) {
+        BigInteger totalTxFee = dataModel.getTotalTxFee();
         return closedTradableFormatter.getTotalTxFeeAsString(totalTradeAmount, totalTxFee);
     }
 
-    public String getTotalTradeFeeInBtc(Coin totalTradeAmount) {
-        Coin totalTradeFee = dataModel.getTotalTradeFee();
-        return closedTradableFormatter.getTotalTradeFeeInBtcAsString(totalTradeAmount, totalTradeFee);
+    public String getTotalTradeFee(BigInteger totalTradeAmount) {
+        BigInteger totalTradeFee = dataModel.getTotalTradeFee();
+        return closedTradableFormatter.getTotalTradeFeeAsString(totalTradeAmount, totalTradeFee);
     }
 }

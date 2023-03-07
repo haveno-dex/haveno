@@ -54,9 +54,9 @@ public class VolumeBar extends Group {
 
     public void update(double height, double candleWidth, CandleData candleData) {
         bar.resizeRelocate(-candleWidth / 2, 0, candleWidth, height);
-        String volumeInBtc = volumeStringConverter.toString(candleData.accumulatedAmount);
+        String volumeInXmr = volumeStringConverter.toString(candleData.accumulatedAmount);
         String volumeInUsd = VolumeUtil.formatLargeFiat(candleData.volumeInUsd, "USD");
-        tooltip.setText(Res.get("market.trades.tooltip.volumeBar", volumeInBtc, volumeInUsd, candleData.numTrades, candleData.date));
+        tooltip.setText(Res.get("market.trades.tooltip.volumeBar", volumeInXmr, volumeInUsd, candleData.numTrades, candleData.date));
     }
 
     private void updateStyleClasses() {

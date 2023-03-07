@@ -67,8 +67,8 @@ public class CoinUtilTest {
                 1);
         assertEquals(
                 "Minimum trade amount allowed should be adjusted to the smallest trade allowed.",
-                HavenoUtils.formatToXmrWithCode(Restrictions.MIN_TRADE_AMOUNT),
-                HavenoUtils.formatToXmrWithCode(result)
+                HavenoUtils.formatXmr(Restrictions.MIN_TRADE_AMOUNT, true),
+                HavenoUtils.formatXmr(result, true)
         );
 
         try {
@@ -94,7 +94,7 @@ public class CoinUtilTest {
         assertEquals(
                 "Minimum allowed trade amount should not be adjusted.",
                 "0.10 XMR",
-                HavenoUtils.formatToXmrWithCode(result)
+                HavenoUtils.formatXmr(result, true)
         );
 
         result = CoinUtil.getAdjustedAmount(
@@ -105,7 +105,7 @@ public class CoinUtilTest {
         assertEquals(
                 "Minimum trade amount allowed should respect maxTradeLimit and factor, if possible.",
                 "0.10 XMR",
-                HavenoUtils.formatToXmrWithCode(result)
+                HavenoUtils.formatXmr(result, true)
         );
 
         // TODO(chirhonul): The following seems like it should raise an exception or otherwise fail.
@@ -121,7 +121,7 @@ public class CoinUtilTest {
         assertEquals(
                 "Minimum trade amount allowed with low maxTradeLimit should still respect that limit, even if result does not respect the factor specified.",
                 "0.00005 XMR",
-                HavenoUtils.formatToXmrWithCode(result)
+                HavenoUtils.formatXmr(result, true)
         );
     }
 }

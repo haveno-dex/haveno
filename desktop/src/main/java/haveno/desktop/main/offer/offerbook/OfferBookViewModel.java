@@ -622,7 +622,7 @@ abstract class OfferBookViewModel extends ActivatableViewModel {
     }
 
     public String getMakerFeeAsString(Offer offer) {
-        return HavenoUtils.formatToXmrWithCode(offer.getMakerFee());
+        return HavenoUtils.formatXmr(offer.getMakerFee(), true);
     }
 
     private static String getDirectionWithCodeDetailed(OfferDirection direction, String currencyCode) {
@@ -634,7 +634,7 @@ abstract class OfferBookViewModel extends ActivatableViewModel {
 
     public String formatDepositString(BigInteger deposit, long amount) {
         var percentage = FormattingUtils.formatToRoundedPercentWithSymbol(BigDecimal.valueOf(deposit.longValueExact()).divide(BigDecimal.valueOf(amount)).doubleValue());
-        return HavenoUtils.formatToXmr(deposit) + " (" + percentage + ")";
+        return HavenoUtils.formatXmr(deposit) + " (" + percentage + ")";
     }
 
     PaymentMethod getShowAllEntryForPaymentMethod() {

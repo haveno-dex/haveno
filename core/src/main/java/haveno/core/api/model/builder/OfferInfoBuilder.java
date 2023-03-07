@@ -38,7 +38,6 @@ public final class OfferInfoBuilder {
     private long minAmount;
     private String volume;
     private String minVolume;
-    private long txFee;
     private long makerFee;
     private String offerFeePaymentTxId;
     private long buyerSecurityDeposit;
@@ -104,11 +103,6 @@ public final class OfferInfoBuilder {
 
     public OfferInfoBuilder withMinVolume(String minVolume) {
         this.minVolume = minVolume;
-        return this;
-    }
-
-    public OfferInfoBuilder withTxFee(long txFee) {
-        this.txFee = txFee;
         return this;
     }
 

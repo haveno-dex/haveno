@@ -230,7 +230,7 @@ public class PendingTradesViewModel extends ActivatableWithDataModel<PendingTrad
 
     public String getPayoutAmount() {
         return dataModel.getTrade() != null
-                ? HavenoUtils.formatToXmrWithCode(dataModel.getTrade().getPayoutAmount())
+                ? HavenoUtils.formatXmr(dataModel.getTrade().getPayoutAmount(), true)
                 : "";
     }
 
@@ -276,7 +276,7 @@ public class PendingTradesViewModel extends ActivatableWithDataModel<PendingTrad
     // summary
     public String getTradeVolume() {
         return dataModel.getTrade() != null
-                ? HavenoUtils.formatToXmrWithCode(dataModel.getTrade().getAmount())
+                ? HavenoUtils.formatXmr(dataModel.getTrade().getAmount(), true)
                 : "";
     }
 
@@ -290,15 +290,15 @@ public class PendingTradesViewModel extends ActivatableWithDataModel<PendingTrad
         if (trade != null && dataModel.getOffer() != null && trade.getAmount() != null) {
             checkNotNull(dataModel.getTrade());
 
-            BigInteger tradeFeeInBTC = dataModel.getTradeFeeInBTC();
+            BigInteger tradeFeeInXmr = dataModel.getTradeFee();
 
             BigInteger minTradeFee = dataModel.isMaker() ?
                     HavenoUtils.getMinMakerFee() :
                     HavenoUtils.getMinTakerFee();
 
-            String percentage = GUIUtil.getPercentageOfTradeAmount(tradeFeeInBTC, trade.getAmount(),
+            String percentage = GUIUtil.getPercentageOfTradeAmount(tradeFeeInXmr, trade.getAmount(),
                     minTradeFee);
-            return HavenoUtils.formatToXmrWithCode(tradeFeeInBTC) + percentage;
+            return HavenoUtils.formatXmr(tradeFeeInXmr, true) + percentage;
         } else {
             return "";
         }
@@ -319,7 +319,7 @@ public class PendingTradesViewModel extends ActivatableWithDataModel<PendingTrad
             String percentage = GUIUtil.getPercentageOfTradeAmount(securityDeposit,
                     trade.getAmount(),
                     minSecurityDeposit);
-            return HavenoUtils.formatToXmrWithCode(securityDeposit) + percentage;
+            return HavenoUtils.formatXmr(securityDeposit, true) + percentage;
         } else {
             return "";
         }

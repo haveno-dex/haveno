@@ -70,7 +70,7 @@ class WithdrawalListItem {
     private void updateBalance() {
         balance = walletService.getBalanceForSubaddress(addressEntry.getSubaddressIndex());
         if (balance != null)
-            balanceLabel.setText(HavenoUtils.formatToXmr(this.balance));
+            balanceLabel.setText(HavenoUtils.formatXmr(this.balance));
     }
 
     public final String getLabel() {

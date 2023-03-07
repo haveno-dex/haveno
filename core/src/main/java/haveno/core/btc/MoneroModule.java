@@ -44,9 +44,9 @@ import static haveno.common.config.Config.PROVIDERS;
 import static haveno.common.config.Config.WALLET_DIR;
 import static haveno.common.config.Config.WALLET_RPC_BIND_PORT;
 
-public class BitcoinModule extends AppModule {
+public class MoneroModule extends AppModule {
 
-    public BitcoinModule(Config config) {
+    public MoneroModule(Config config) {
         super(config);
     }
 

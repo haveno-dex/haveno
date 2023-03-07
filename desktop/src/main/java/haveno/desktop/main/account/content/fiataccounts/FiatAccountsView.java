@@ -285,17 +285,17 @@ public class FiatAccountsView extends PaymentAccountsView<GridPane, FiatAccounts
         } else {
 
             String limitsInfoKey = "payment.limits.info";
-            String initialLimit = HavenoUtils.formatToXmrWithCode(maxTradeLimitFirstMonth);
+            String initialLimit = HavenoUtils.formatXmr(maxTradeLimitFirstMonth, true);
 
             if (PaymentMethod.hasChargebackRisk(paymentAccount.getPaymentMethod(), paymentAccount.getTradeCurrencies())) {
                 limitsInfoKey = "payment.limits.info.withSigning";
-                initialLimit = HavenoUtils.formatToXmrWithCode(OfferRestrictions.TOLERATED_SMALL_TRADE_AMOUNT);
+                initialLimit = HavenoUtils.formatXmr(OfferRestrictions.TOLERATED_SMALL_TRADE_AMOUNT, true);
             }
 
             new Popup().information(Res.get(limitsInfoKey,
                     initialLimit,
-                    HavenoUtils.formatToXmrWithCode(maxTradeLimitSecondMonth),
-                    HavenoUtils.formatToXmrWithCode(maxTradeLimit)))
+                    HavenoUtils.formatXmr(maxTradeLimitSecondMonth, true),
+                    HavenoUtils.formatXmr(maxTradeLimit, true)))
                     .width(700)
                     .closeButtonText(Res.get("shared.cancel"))
                     .actionButtonText(Res.get("shared.iUnderstand"))

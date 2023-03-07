@@ -166,7 +166,7 @@ class TakeOfferViewModel extends ActivatableWithDataModel<TakeOfferDataModel> im
             volumeDescriptionLabel.set(Res.get(sellVolumeDescriptionKey, dataModel.getCurrencyCode()));
         }
 
-        amount.set(HavenoUtils.formatToXmr(dataModel.getAmount().get()));
+        amount.set(HavenoUtils.formatXmr(dataModel.getAmount().get()));
         showTransactionPublishedScreen.set(false);
 
         // when getting back to an open screen we want to re-check again
@@ -207,7 +207,7 @@ class TakeOfferViewModel extends ActivatableWithDataModel<TakeOfferDataModel> im
                 ? Res.get(buyAmountDescriptionKey)
                 : Res.get(sellAmountDescriptionKey);
 
-        amountRange = HavenoUtils.formatToXmr(offer.getMinAmount()) + " - " + HavenoUtils.formatToXmr(offer.getAmount());
+        amountRange = HavenoUtils.formatXmr(offer.getMinAmount()) + " - " + HavenoUtils.formatXmr(offer.getAmount());
         price = FormattingUtils.formatPrice(dataModel.tradePrice);
         marketPriceMargin = FormattingUtils.formatToPercent(offer.getMarketPriceMarginPct());
         paymentLabel = Res.get("takeOffer.fundsBox.paymentLabel", offer.getShortId());
@@ -263,8 +263,8 @@ class TakeOfferViewModel extends ActivatableWithDataModel<TakeOfferDataModel> im
             return true;
         } else {
             new Popup().warning(Res.get("shared.notEnoughFunds",
-                    HavenoUtils.formatToXmrWithCode(dataModel.getTotalToPay().get()),
-                    HavenoUtils.formatToXmrWithCode(dataModel.getTotalAvailableBalance())))
+                    HavenoUtils.formatXmr(dataModel.getTotalToPay().get(), true),
+                    HavenoUtils.formatXmr(dataModel.getTotalAvailableBalance(), true)))
                     .actionButtonTextWithGoTo("navigation.funds.depositFunds")
                     .onAction(() -> navigation.navigateTo(MainView.class, FundsView.class, DepositView.class))
                     .show();
@@ -280,7 +280,7 @@ class TakeOfferViewModel extends ActivatableWithDataModel<TakeOfferDataModel> im
         }
 
         isTradeFeeVisible.setValue(true);
-        tradeFee.set(HavenoUtils.formatToXmr(takerFee));
+        tradeFee.set(HavenoUtils.formatXmr(takerFee));
         tradeFeeInXmrWithFiat.set(OfferViewModelUtil.getTradeFeeWithFiatEquivalent(offerUtil,
                 dataModel.getTakerFee(),
                 xmrFormatter));
@@ -301,7 +301,7 @@ class TakeOfferViewModel extends ActivatableWithDataModel<TakeOfferDataModel> im
                 // only allow max 4 decimal places for btc values
                 setAmountToModel();
                 // reformat input
-                amount.set(HavenoUtils.formatToXmr(dataModel.getAmount().get()));
+                amount.set(HavenoUtils.formatXmr(dataModel.getAmount().get()));
 
                 calculateVolume();
 
@@ -312,7 +312,7 @@ class TakeOfferViewModel extends ActivatableWithDataModel<TakeOfferDataModel> im
                             tradePrice,
                             maxTradeLimit);
                     dataModel.applyAmount(adjustedAmountForHalCash);
-                    amount.set(HavenoUtils.formatToXmr(dataModel.getAmount().get()));
+                    amount.set(HavenoUtils.formatXmr(dataModel.getAmount().get()));
                 } else if (dataModel.getOffer().isFiatOffer()) {
                     if (!isAmountEqualMinAmount(dataModel.getAmount().get()) && (!isAmountEqualMaxAmount(dataModel.getAmount().get()))) {
                         // We only apply the rounding if the amount is variable (minAmount is lower as amount).
@@ -321,7 +321,7 @@ class TakeOfferViewModel extends ActivatableWithDataModel<TakeOfferDataModel> im
                                 maxTradeLimit);
                         dataModel.applyAmount(roundedAmount);
                     }
-                    amount.set(HavenoUtils.formatToXmr(dataModel.getAmount().get()));
+                    amount.set(HavenoUtils.formatXmr(dataModel.getAmount().get()));
                 }
 
                 if (!dataModel.isMinAmountLessOrEqualAmount())
@@ -338,13 +338,13 @@ class TakeOfferViewModel extends ActivatableWithDataModel<TakeOfferDataModel> im
             } else if (btcValidator.getMaxTradeLimit() != null && btcValidator.getMaxTradeLimit().equals(OfferRestrictions.TOLERATED_SMALL_TRADE_AMOUNT)) {
                 if (dataModel.getDirection() == OfferDirection.BUY) {
                     new Popup().information(Res.get("popup.warning.tradeLimitDueAccountAgeRestriction.seller",
-                            HavenoUtils.formatToXmrWithCode(OfferRestrictions.TOLERATED_SMALL_TRADE_AMOUNT),
+                            HavenoUtils.formatXmr(OfferRestrictions.TOLERATED_SMALL_TRADE_AMOUNT, true),
                             Res.get("offerbook.warning.newVersionAnnouncement")))
                             .width(900)
                             .show();
                 } else {
                     new Popup().information(Res.get("popup.warning.tradeLimitDueAccountAgeRestriction.buyer",
-                            HavenoUtils.formatToXmrWithCode(OfferRestrictions.TOLERATED_SMALL_TRADE_AMOUNT),
+                            HavenoUtils.formatXmr(OfferRestrictions.TOLERATED_SMALL_TRADE_AMOUNT, true),
                             Res.get("offerbook.warning.newVersionAnnouncement")))
                             .width(900)
                             .show();
@@ -466,7 +466,7 @@ class TakeOfferViewModel extends ActivatableWithDataModel<TakeOfferDataModel> im
 
     private void addBindings() {
         volume.bind(createStringBinding(() -> VolumeUtil.formatVolume(dataModel.volume.get()), dataModel.volume));
-        totalToPay.bind(createStringBinding(() -> HavenoUtils.formatToXmrWithCode(dataModel.getTotalToPay().get()), dataModel.getTotalToPay()));
+        totalToPay.bind(createStringBinding(() -> HavenoUtils.formatXmr(dataModel.getTotalToPay().get(), true), dataModel.getTotalToPay()));
     }
 
 
@@ -487,7 +487,7 @@ class TakeOfferViewModel extends ActivatableWithDataModel<TakeOfferDataModel> im
             updateButtonDisableState();
         };
         amountListener = (ov, oldValue, newValue) -> {
-            amount.set(HavenoUtils.formatToXmr(newValue));
+            amount.set(HavenoUtils.formatXmr(newValue));
             applyTakerFee();
         };
         isWalletFundedListener = (ov, oldValue, newValue) -> updateButtonDisableState();
@@ -682,7 +682,7 @@ class TakeOfferViewModel extends ActivatableWithDataModel<TakeOfferDataModel> im
     }
 
     public String getSecurityDepositWithCode() {
-        return HavenoUtils.formatToXmrWithCode(dataModel.getSecurityDeposit());
+        return HavenoUtils.formatXmr(dataModel.getSecurityDeposit(), true);
     }
 
     public String getTradeFee() {

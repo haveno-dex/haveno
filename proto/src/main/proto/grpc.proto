@@ -533,7 +533,6 @@ message OfferInfo {
     string state = 18;
     uint64 seller_security_deposit = 19 [jstype = JS_STRING];
     string offer_fee_payment_tx_id = 20;
-    uint64 tx_fee = 21 [jstype = JS_STRING];
     uint64 maker_fee = 22 [jstype = JS_STRING];
     bool is_activated = 23;
     bool is_my_offer = 24;
@@ -828,10 +827,10 @@ message TradeInfo {
     string short_id = 3;
     uint64 date = 4;
     string role = 5;
-    uint64 taker_fee_as_long = 6 [jstype = JS_STRING];
+    uint64 taker_fee = 6 [jstype = JS_STRING];
     string taker_fee_tx_id = 7;
     string payout_tx_id = 8;
-    uint64 amount_as_long = 9 [jstype = JS_STRING];
+    uint64 amount = 9 [jstype = JS_STRING];
     uint64 buyer_security_deposit = 10 [jstype = JS_STRING];
     uint64 seller_security_deposit = 11 [jstype = JS_STRING];
     string price = 12;

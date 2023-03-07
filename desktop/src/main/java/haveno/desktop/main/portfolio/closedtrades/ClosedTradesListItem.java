@@ -84,7 +84,7 @@ public class ClosedTradesListItem implements FilterableListItem {
     }
 
     public String getTxFeeAsString() {
-        return closedTradableFormatter.getTxFeeAsString(tradable);
+        return closedTradableFormatter.getTotalTxFeeAsString(tradable);
     }
 
     public String getTradeFeeAsString(boolean appendCode) {

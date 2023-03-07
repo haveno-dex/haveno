@@ -89,9 +89,6 @@ public final class PreferencesPayload implements PersistableEnvelope {
     private List<String> ignoreTradersList = new ArrayList<>();
     private String directoryChooserPath;
 
-    @Deprecated // Superseded by buyerSecurityDepositAsPercent
-    private long buyerSecurityDepositAsLong;
-
     private boolean useAnimations;
     private int cssTheme;
     @Nullable
@@ -178,7 +175,6 @@ public final class PreferencesPayload implements PersistableEnvelope {
                 .setBitcoinNodes(bitcoinNodes)
                 .addAllIgnoreTradersList(ignoreTradersList)
                 .setDirectoryChooserPath(directoryChooserPath)
-                .setBuyerSecurityDepositAsLong(buyerSecurityDepositAsLong)
                 .setUseAnimations(useAnimations)
                 .setCssTheme(cssTheme)
                 .setBridgeOptionOrdinal(bridgeOptionOrdinal)
@@ -268,7 +264,6 @@ public final class PreferencesPayload implements PersistableEnvelope {
                 proto.getBitcoinNodes(),
                 proto.getIgnoreTradersListList(),
                 proto.getDirectoryChooserPath(),
-                proto.getBuyerSecurityDepositAsLong(),
                 proto.getUseAnimations(),
                 proto.getCssTheme(),
                 paymentAccount,

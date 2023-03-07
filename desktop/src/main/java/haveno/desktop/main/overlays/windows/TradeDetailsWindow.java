@@ -159,7 +159,7 @@ public class TradeDetailsWindow extends Overlay<TradeDetailsWindow> {
         }
 
         addConfirmationLabelTextField(gridPane, ++rowIndex, Res.get("shared.btcAmount") + btcDirectionInfo,
-                HavenoUtils.formatToXmrWithCode(trade.getAmount()));
+                HavenoUtils.formatXmr(trade.getAmount(), true));
         addConfirmationLabelTextField(gridPane, ++rowIndex,
                 VolumeUtil.formatVolumeLabel(offer.getCurrencyCode()) + fiatDirectionInfo,
                 VolumeUtil.formatVolumeWithCode(trade.getVolume()));
@@ -212,11 +212,11 @@ public class TradeDetailsWindow extends Overlay<TradeDetailsWindow> {
                 DisplayUtils.formatDateTime(trade.getDate()));
         String securityDeposit = Res.getWithColAndCap("shared.buyer") +
                 " " +
-                HavenoUtils.formatToXmrWithCode(offer.getBuyerSecurityDeposit()) +
+                HavenoUtils.formatXmr(offer.getBuyerSecurityDeposit(), true) +
                 " / " +
                 Res.getWithColAndCap("shared.seller") +
                 " " +
-                HavenoUtils.formatToXmrWithCode(offer.getSellerSecurityDeposit());
+                HavenoUtils.formatXmr(offer.getSellerSecurityDeposit(), true);
         addConfirmationLabelTextField(gridPane, ++rowIndex, Res.get("shared.securityDeposit"), securityDeposit);
 
         NodeAddress arbitratorNodeAddress = trade.getArbitratorNodeAddress();

@@ -136,7 +136,7 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
     private FundsTextField totalToPayTextField;
     private Label amountDescriptionLabel, priceCurrencyLabel, priceDescriptionLabel, volumeDescriptionLabel,
             waitingForFundsLabel, marketBasedPriceLabel, percentagePriceDescriptionLabel, tradeFeeDescriptionLabel,
-            resultLabel, tradeFeeInBtcLabel, xLabel, fakeXLabel, buyerSecurityDepositLabel,
+            resultLabel, tradeFeeInXmrLabel, xLabel, fakeXLabel, buyerSecurityDepositLabel,
             buyerSecurityDepositPercentageLabel, triggerPriceCurrencyLabel, triggerPriceDescriptionLabel;
     protected Label amountBtcLabel, volumeCurrencyLabel, minAmountBtcLabel;
     private ComboBox<PaymentAccount> paymentAccountsComboBox;
@@ -548,7 +548,7 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
         addressTextField.amountAsProperty().bind(model.getDataModel().getMissingCoin());
         buyerSecurityDepositInputTextField.textProperty().bindBidirectional(model.buyerSecurityDeposit);
         buyerSecurityDepositLabel.textProperty().bind(model.buyerSecurityDepositLabel);
-        tradeFeeInBtcLabel.textProperty().bind(model.tradeFeeInBtcWithFiat);
+        tradeFeeInXmrLabel.textProperty().bind(model.tradeFeeInXmrWithFiat);
         tradeFeeDescriptionLabel.textProperty().bind(model.tradeFeeDescription);
 
         // Validation
@@ -596,9 +596,9 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
         addressTextField.amountAsProperty().unbind();
         buyerSecurityDepositInputTextField.textProperty().unbindBidirectional(model.buyerSecurityDeposit);
         buyerSecurityDepositLabel.textProperty().unbind();
-        tradeFeeInBtcLabel.textProperty().unbind();
+        tradeFeeInXmrLabel.textProperty().unbind();
         tradeFeeDescriptionLabel.textProperty().unbind();
-        tradeFeeInBtcLabel.visibleProperty().unbind();
+        tradeFeeInXmrLabel.visibleProperty().unbind();
         tradeFeeDescriptionLabel.visibleProperty().unbind();
 
         // Validation
@@ -731,7 +731,7 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
             if (newValue) {
                 Notification walletFundedNotification = new Notification()
                         .headLine(Res.get("notification.walletUpdate.headline"))
-                        .notification(Res.get("notification.walletUpdate.msg", HavenoUtils.formatToXmrWithCode(model.getDataModel().getTotalToPay().get())))
+                        .notification(Res.get("notification.walletUpdate.msg", HavenoUtils.formatXmr(model.getDataModel().getTotalToPay().get(), true)))
                         .autoClose();
 
                 walletFundedNotification.show();
@@ -1347,14 +1347,14 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
     }
 
     private VBox getTradeFeeFieldsBox() {
-        tradeFeeInBtcLabel = new Label();
-        tradeFeeInBtcLabel.setMouseTransparent(true);
-        tradeFeeInBtcLabel.setId("trade-fee-textfield");
+        tradeFeeInXmrLabel = new Label();
+        tradeFeeInXmrLabel.setMouseTransparent(true);
+        tradeFeeInXmrLabel.setId("trade-fee-textfield");
         VBox vBox = new VBox();
         vBox.setSpacing(6);
         vBox.setMaxWidth(300);
         vBox.setAlignment(Pos.CENTER_LEFT);
-        vBox.getChildren().addAll(tradeFeeInBtcLabel);
+        vBox.getChildren().addAll(tradeFeeInXmrLabel);
 
         HBox hBox = new HBox();
         hBox.getChildren().addAll(vBox);

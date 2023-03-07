@@ -82,7 +82,7 @@ public class BalanceTextField extends AnchorPane {
 
     private void updateBalance(BigInteger balance) {
         if (formatter != null)
-            textField.setText(HavenoUtils.formatToXmrWithCode(balance));
+            textField.setText(HavenoUtils.formatXmr(balance, true));
 
         //TODO: replace with new validation logic
 //        if (targetAmount != null) {
