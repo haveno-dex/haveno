@@ -19,10 +19,10 @@ package haveno.core.trade.protocol.tasks;
 
 import haveno.common.app.Version;
 import haveno.common.taskrunner.TaskRunner;
-import haveno.core.btc.model.XmrAddressEntry;
 import haveno.core.offer.Offer;
 import haveno.core.trade.Trade;
 import haveno.core.trade.messages.InitTradeRequest;
+import haveno.core.xmr.model.XmrAddressEntry;
 import haveno.network.p2p.SendDirectMessageListener;
 import java.util.UUID;
 

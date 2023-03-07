@@ -18,7 +18,6 @@
 package haveno.desktop.main.presentation;
 
 import haveno.common.UserThread;
-import haveno.core.btc.wallet.XmrWalletService;
 import haveno.core.locale.CurrencyUtil;
 import haveno.core.locale.Res;
 import haveno.core.locale.TradeCurrency;
@@ -26,6 +25,7 @@ import haveno.core.provider.price.MarketPrice;
 import haveno.core.provider.price.PriceFeedService;
 import haveno.core.user.Preferences;
 import haveno.core.util.FormattingUtils;
+import haveno.core.xmr.wallet.XmrWalletService;
 import haveno.desktop.components.TxIdTextField;
 import haveno.desktop.main.shared.PriceFeedComboBoxItem;
 import haveno.desktop.util.GUIUtil;

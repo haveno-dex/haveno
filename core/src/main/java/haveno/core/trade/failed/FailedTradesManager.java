@@ -21,14 +21,14 @@ import com.google.inject.Inject;
 import haveno.common.crypto.KeyRing;
 import haveno.common.persistence.PersistenceManager;
 import haveno.common.proto.persistable.PersistedDataHost;
-import haveno.core.btc.model.XmrAddressEntry;
-import haveno.core.btc.wallet.XmrWalletService;
 import haveno.core.offer.Offer;
 import haveno.core.provider.price.PriceFeedService;
 import haveno.core.trade.CleanupMailboxMessages;
 import haveno.core.trade.TradableList;
 import haveno.core.trade.Trade;
 import haveno.core.trade.TradeUtil;
+import haveno.core.xmr.model.XmrAddressEntry;
+import haveno.core.xmr.wallet.XmrWalletService;
 import javafx.collections.ObservableList;
 
 import java.util.Optional;

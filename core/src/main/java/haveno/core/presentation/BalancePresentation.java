@@ -18,9 +18,8 @@
 package haveno.core.presentation;
 
 import haveno.common.UserThread;
-import haveno.core.btc.Balances;
 import haveno.core.trade.HavenoUtils;
-
+import haveno.core.xmr.Balances;
 import javax.inject.Inject;
 
 import javafx.beans.property.SimpleStringProperty;

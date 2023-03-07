@@ -22,8 +22,6 @@ import static haveno.core.payment.payload.PaymentMethod.HAL_CASH_ID;
 import haveno.common.app.Version;
 import haveno.common.crypto.PubKeyRingProvider;
 import haveno.common.util.Utilities;
-import haveno.core.btc.wallet.Restrictions;
-import haveno.core.btc.wallet.XmrWalletService;
 import haveno.core.locale.CurrencyUtil;
 import haveno.core.locale.Res;
 import haveno.core.monetary.Price;
@@ -37,6 +35,8 @@ import haveno.core.trade.statistics.TradeStatisticsManager;
 import haveno.core.user.Preferences;
 import haveno.core.user.User;
 import haveno.core.util.coin.CoinUtil;
+import haveno.core.xmr.wallet.Restrictions;
+import haveno.core.xmr.wallet.XmrWalletService;
 import haveno.network.p2p.NodeAddress;
 import haveno.network.p2p.P2PService;
 

@@ -19,10 +19,10 @@ package haveno.core.offer.placeoffer.tasks;
 
 import haveno.common.taskrunner.Task;
 import haveno.common.taskrunner.TaskRunner;
-import haveno.core.btc.model.XmrAddressEntry;
 import haveno.core.offer.Offer;
 import haveno.core.offer.OfferDirection;
 import haveno.core.offer.placeoffer.PlaceOfferModel;
+import haveno.core.xmr.model.XmrAddressEntry;
 import lombok.extern.slf4j.Slf4j;
 
 import java.math.BigInteger;

@@ -19,13 +19,13 @@ package haveno.desktop.main.funds.transactions;
 
 import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
-import haveno.core.btc.wallet.XmrWalletService;
 import haveno.core.locale.Res;
 import haveno.core.offer.Offer;
 import haveno.core.offer.OpenOffer;
 import haveno.core.trade.HavenoUtils;
 import haveno.core.trade.Tradable;
 import haveno.core.trade.Trade;
+import haveno.core.xmr.wallet.XmrWalletService;
 import haveno.desktop.components.indicator.TxConfidenceIndicator;
 import haveno.desktop.util.DisplayUtils;
 import haveno.desktop.util.GUIUtil;

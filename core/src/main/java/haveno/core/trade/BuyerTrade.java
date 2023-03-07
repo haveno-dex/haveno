@@ -17,9 +17,9 @@
 
 package haveno.core.trade;
 
-import haveno.core.btc.wallet.XmrWalletService;
 import haveno.core.offer.Offer;
 import haveno.core.trade.protocol.ProcessModel;
+import haveno.core.xmr.wallet.XmrWalletService;
 import haveno.network.p2p.NodeAddress;
 import lombok.extern.slf4j.Slf4j;
 

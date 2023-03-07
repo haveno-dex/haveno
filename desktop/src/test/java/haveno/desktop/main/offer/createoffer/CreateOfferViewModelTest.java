@@ -19,8 +19,6 @@ package haveno.desktop.main.offer.createoffer;
 
 import haveno.common.config.Config;
 import haveno.core.account.witness.AccountAgeWitnessService;
-import haveno.core.btc.model.XmrAddressEntry;
-import haveno.core.btc.wallet.XmrWalletService;
 import haveno.core.locale.Country;
 import haveno.core.locale.CryptoCurrency;
 import haveno.core.locale.GlobalSettings;
@@ -42,6 +40,8 @@ import haveno.core.util.coin.ImmutableCoinFormatter;
 import haveno.core.util.validation.AltcoinValidator;
 import haveno.core.util.validation.FiatPriceValidator;
 import haveno.core.util.validation.InputValidator;
+import haveno.core.xmr.model.XmrAddressEntry;
+import haveno.core.xmr.wallet.XmrWalletService;
 import haveno.desktop.main.offer.createoffer.CreateOfferDataModel;
 import haveno.desktop.main.offer.createoffer.CreateOfferViewModel;
 import javafx.beans.property.SimpleIntegerProperty;

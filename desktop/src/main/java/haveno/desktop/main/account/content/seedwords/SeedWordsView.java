@@ -26,11 +26,11 @@ import javax.inject.Named;
 
 import com.google.common.base.Splitter;
 import haveno.common.config.Config;
-import haveno.core.btc.wallet.WalletsManager;
-import haveno.core.btc.wallet.XmrWalletService;
 import haveno.core.locale.Res;
 import haveno.core.offer.OpenOfferManager;
 import haveno.core.user.DontShowAgainLookup;
+import haveno.core.xmr.wallet.WalletsManager;
+import haveno.core.xmr.wallet.XmrWalletService;
 import haveno.desktop.common.view.ActivatableView;
 import haveno.desktop.common.view.FxmlView;
 import haveno.desktop.main.SharedPresentation;

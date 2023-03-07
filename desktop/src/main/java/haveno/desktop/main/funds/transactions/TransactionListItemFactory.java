@@ -20,10 +20,10 @@ package haveno.desktop.main.funds.transactions;
 import javax.inject.Inject;
 import javax.inject.Named;
 import javax.inject.Singleton;
-import haveno.core.btc.wallet.XmrWalletService;
 import haveno.core.user.Preferences;
 import haveno.core.util.FormattingUtils;
 import haveno.core.util.coin.CoinFormatter;
+import haveno.core.xmr.wallet.XmrWalletService;
 import javax.annotation.Nullable;
 
 

@@ -17,12 +17,12 @@
 
 package haveno.desktop.main.funds.reserved;
 
-import haveno.core.btc.listeners.BalanceListener;
-import haveno.core.btc.model.AddressEntry;
-import haveno.core.btc.wallet.BtcWalletService;
 import haveno.core.locale.Res;
 import haveno.core.offer.OpenOffer;
 import haveno.core.util.coin.CoinFormatter;
+import haveno.core.xmr.listeners.BalanceListener;
+import haveno.core.xmr.model.AddressEntry;
+import haveno.core.xmr.wallet.BtcWalletService;
 import haveno.desktop.components.AutoTooltipLabel;
 import haveno.desktop.util.DisplayUtils;
 import org.bitcoinj.core.Address;

@@ -18,13 +18,13 @@
 package haveno.desktop.main.funds.transactions;
 
 import haveno.common.crypto.PubKeyRing;
-import haveno.core.btc.wallet.XmrWalletService;
 import haveno.core.offer.Offer;
 import haveno.core.support.dispute.Dispute;
 import haveno.core.support.dispute.arbitration.ArbitrationManager;
 import haveno.core.support.dispute.refund.RefundManager;
 import haveno.core.trade.Tradable;
 import haveno.core.trade.Trade;
+import haveno.core.xmr.wallet.XmrWalletService;
 import javafx.collections.ObservableList;
 
 import java.util.Optional;

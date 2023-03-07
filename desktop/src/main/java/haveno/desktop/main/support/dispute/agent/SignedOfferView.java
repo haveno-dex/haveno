@@ -18,11 +18,11 @@
 package haveno.desktop.main.support.dispute.agent;
 
 import haveno.common.UserThread;
-import haveno.core.btc.wallet.XmrWalletService;
 import haveno.core.locale.Res;
 import haveno.core.offer.OpenOfferManager;
 import haveno.core.offer.SignedOffer;
 import haveno.core.trade.HavenoUtils;
+import haveno.core.xmr.wallet.XmrWalletService;
 import haveno.desktop.common.view.ActivatableView;
 import haveno.desktop.common.view.FxmlView;
 import haveno.desktop.components.AutoTooltipLabel;

@@ -19,9 +19,9 @@ package haveno.desktop.main;
 
 import haveno.common.UserThread;
 import haveno.common.file.FileUtil;
-import haveno.core.btc.wallet.WalletsManager;
 import haveno.core.locale.Res;
 import haveno.core.offer.OpenOfferManager;
+import haveno.core.xmr.wallet.WalletsManager;
 import haveno.desktop.app.HavenoApp;
 import haveno.desktop.main.overlays.popups.Popup;
 import org.bitcoinj.wallet.DeterministicSeed;

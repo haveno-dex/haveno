@@ -18,13 +18,13 @@
 package haveno.desktop.main.account.content.walletinfo;
 
 import haveno.common.config.Config;
-import haveno.core.btc.listeners.BalanceListener;
-import haveno.core.btc.wallet.BtcWalletService;
-import haveno.core.btc.wallet.WalletService;
-import haveno.core.btc.wallet.WalletsManager;
 import haveno.core.locale.Res;
 import haveno.core.util.FormattingUtils;
 import haveno.core.util.coin.CoinFormatter;
+import haveno.core.xmr.listeners.BalanceListener;
+import haveno.core.xmr.wallet.BtcWalletService;
+import haveno.core.xmr.wallet.WalletService;
+import haveno.core.xmr.wallet.WalletsManager;
 import haveno.desktop.common.view.ActivatableView;
 import haveno.desktop.common.view.FxmlView;
 import haveno.desktop.main.overlays.popups.Popup;

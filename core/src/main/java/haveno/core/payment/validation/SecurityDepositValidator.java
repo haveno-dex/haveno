@@ -17,12 +17,12 @@
 
 package haveno.core.payment.validation;
 
-import haveno.core.btc.wallet.Restrictions;
 import haveno.core.locale.Res;
 import haveno.core.payment.PaymentAccount;
 import haveno.core.util.FormattingUtils;
 import haveno.core.util.ParsingUtils;
 import haveno.core.util.validation.NumberValidator;
+import haveno.core.xmr.wallet.Restrictions;
 import javax.inject.Inject;
 
 public class SecurityDepositValidator extends NumberValidator {

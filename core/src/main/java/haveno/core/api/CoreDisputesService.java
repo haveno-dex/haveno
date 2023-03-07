@@ -5,7 +5,6 @@ import haveno.common.crypto.KeyRing;
 import haveno.common.crypto.PubKeyRing;
 import haveno.common.handlers.FaultHandler;
 import haveno.common.handlers.ResultHandler;
-import haveno.core.btc.wallet.XmrWalletService;
 import haveno.core.locale.Res;
 import haveno.core.offer.Offer;
 import haveno.core.offer.OfferDirection;
@@ -23,6 +22,7 @@ import haveno.core.trade.Trade;
 import haveno.core.trade.TradeManager;
 import haveno.core.util.FormattingUtils;
 import haveno.core.util.coin.CoinFormatter;
+import haveno.core.xmr.wallet.XmrWalletService;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 

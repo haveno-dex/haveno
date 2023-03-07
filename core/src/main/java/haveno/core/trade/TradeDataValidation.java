@@ -35,9 +35,9 @@ import javax.annotation.Nullable;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import haveno.core.btc.wallet.BtcWalletService;
 import haveno.core.offer.Offer;
 import haveno.core.support.dispute.Dispute;
+import haveno.core.xmr.wallet.BtcWalletService;
 
 @Slf4j
 public class TradeDataValidation {

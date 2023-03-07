@@ -20,8 +20,6 @@ package haveno.desktop.main.portfolio.duplicateoffer;
 
 import com.google.inject.Inject;
 import haveno.core.account.witness.AccountAgeWitnessService;
-import haveno.core.btc.wallet.Restrictions;
-import haveno.core.btc.wallet.XmrWalletService;
 import haveno.core.locale.CurrencyUtil;
 import haveno.core.locale.TradeCurrency;
 import haveno.core.offer.CreateOfferService;
@@ -36,6 +34,8 @@ import haveno.core.user.User;
 import haveno.core.util.FormattingUtils;
 import haveno.core.util.coin.CoinFormatter;
 import haveno.core.util.coin.CoinUtil;
+import haveno.core.xmr.wallet.Restrictions;
+import haveno.core.xmr.wallet.XmrWalletService;
 import haveno.desktop.Navigation;
 import haveno.desktop.main.offer.MutableOfferDataModel;
 import haveno.network.p2p.P2PService;

@@ -28,7 +28,7 @@ import haveno.core.payment.PaymentAccount;
 import haveno.core.proto.CoreProtoResolver;
 import haveno.core.xmr.MoneroNodeSettings;
 
-import static haveno.core.btc.wallet.Restrictions.getDefaultBuyerSecurityDepositAsPercent;
+import static haveno.core.xmr.wallet.Restrictions.getDefaultBuyerSecurityDepositAsPercent;
 
 import com.google.common.collect.Maps;
 

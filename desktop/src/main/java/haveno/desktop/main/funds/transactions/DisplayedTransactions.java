@@ -17,8 +17,8 @@
 
 package haveno.desktop.main.funds.transactions;
 
-import haveno.core.btc.wallet.XmrWalletService;
 import haveno.core.trade.Tradable;
+import haveno.core.xmr.wallet.XmrWalletService;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;

@@ -19,7 +19,6 @@ package haveno.desktop.main.offer.takeoffer;
 
 import haveno.common.UserThread;
 import haveno.core.account.witness.AccountAgeWitnessService;
-import haveno.core.btc.wallet.Restrictions;
 import haveno.core.locale.Res;
 import haveno.core.monetary.Price;
 import haveno.core.offer.Offer;
@@ -36,6 +35,7 @@ import haveno.core.util.VolumeUtil;
 import haveno.core.util.coin.CoinFormatter;
 import haveno.core.util.coin.CoinUtil;
 import haveno.core.util.validation.InputValidator;
+import haveno.core.xmr.wallet.Restrictions;
 import haveno.desktop.Navigation;
 import haveno.desktop.common.model.ActivatableWithDataModel;
 import haveno.desktop.common.model.ViewModel;

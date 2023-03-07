@@ -17,7 +17,6 @@
 
 package haveno.core.proto;
 
-import haveno.core.btc.model.AddressEntry;
 import haveno.core.offer.AvailabilityResult;
 import haveno.core.offer.Offer;
 import haveno.core.offer.OfferDirection;
@@ -25,6 +24,7 @@ import haveno.core.offer.OfferPayload;
 import haveno.core.offer.OpenOffer;
 import haveno.core.support.dispute.DisputeResult;
 import haveno.core.trade.Trade;
+import haveno.core.xmr.model.AddressEntry;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j

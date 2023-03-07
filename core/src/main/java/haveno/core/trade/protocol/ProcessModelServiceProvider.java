@@ -19,9 +19,6 @@ package haveno.core.trade.protocol;
 
 import haveno.common.crypto.KeyRing;
 import haveno.core.account.witness.AccountAgeWitnessService;
-import haveno.core.btc.wallet.BtcWalletService;
-import haveno.core.btc.wallet.TradeWalletService;
-import haveno.core.btc.wallet.XmrWalletService;
 import haveno.core.filter.FilterManager;
 import haveno.core.offer.OpenOfferManager;
 import haveno.core.support.dispute.arbitration.arbitrator.ArbitratorManager;
@@ -30,6 +27,9 @@ import haveno.core.support.dispute.refund.refundagent.RefundAgentManager;
 import haveno.core.trade.statistics.ReferralIdService;
 import haveno.core.trade.statistics.TradeStatisticsManager;
 import haveno.core.user.User;
+import haveno.core.xmr.wallet.BtcWalletService;
+import haveno.core.xmr.wallet.TradeWalletService;
+import haveno.core.xmr.wallet.XmrWalletService;
 import haveno.network.p2p.P2PService;
 import javax.inject.Inject;
 

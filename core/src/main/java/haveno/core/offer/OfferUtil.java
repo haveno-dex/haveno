@@ -22,7 +22,6 @@ import haveno.common.app.Version;
 import haveno.common.util.MathUtils;
 import haveno.common.util.Utilities;
 import haveno.core.account.witness.AccountAgeWitnessService;
-import haveno.core.btc.wallet.BtcWalletService;
 import haveno.core.filter.FilterManager;
 import haveno.core.locale.CurrencyUtil;
 import haveno.core.locale.Res;
@@ -37,6 +36,7 @@ import haveno.core.trade.statistics.ReferralIdService;
 import haveno.core.user.AutoConfirmSettings;
 import haveno.core.user.Preferences;
 import haveno.core.util.coin.CoinFormatter;
+import haveno.core.xmr.wallet.BtcWalletService;
 import haveno.network.p2p.P2PService;
 import org.bitcoinj.core.Transaction;
 import org.bitcoinj.core.TransactionInput;
@@ -58,9 +58,9 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static haveno.common.util.MathUtils.roundDoubleToLong;
 import static haveno.common.util.MathUtils.scaleUpByPowerOf10;
-import static haveno.core.btc.wallet.Restrictions.getMaxBuyerSecurityDepositAsPercent;
-import static haveno.core.btc.wallet.Restrictions.getMinBuyerSecurityDepositAsPercent;
 import static haveno.core.offer.OfferPayload.*;
+import static haveno.core.xmr.wallet.Restrictions.getMaxBuyerSecurityDepositAsPercent;
+import static haveno.core.xmr.wallet.Restrictions.getMinBuyerSecurityDepositAsPercent;
 
 /**
  * This class holds utility methods for creating, editing and taking an Offer.

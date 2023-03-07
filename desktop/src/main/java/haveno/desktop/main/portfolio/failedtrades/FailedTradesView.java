@@ -23,12 +23,12 @@ import javax.inject.Inject;
 
 import de.jensd.fx.fontawesome.AwesomeIcon;
 import haveno.common.util.Utilities;
-import haveno.core.btc.wallet.XmrWalletService;
 import haveno.core.locale.Res;
 import haveno.core.offer.Offer;
 import haveno.core.trade.Contract;
 import haveno.core.trade.HavenoUtils;
 import haveno.core.trade.Trade;
+import haveno.core.xmr.wallet.XmrWalletService;
 import haveno.desktop.common.view.ActivatableViewAndModel;
 import haveno.desktop.common.view.FxmlView;
 import haveno.desktop.components.AutoTooltipButton;
