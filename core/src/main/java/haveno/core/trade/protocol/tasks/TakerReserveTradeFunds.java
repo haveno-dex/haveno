@@ -18,9 +18,9 @@
 package haveno.core.trade.protocol.tasks;
 
 import haveno.common.taskrunner.TaskRunner;
-import haveno.core.btc.model.XmrAddressEntry;
 import haveno.core.offer.OfferDirection;
 import haveno.core.trade.Trade;
+import haveno.core.xmr.model.XmrAddressEntry;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.List;

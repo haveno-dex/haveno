@@ -47,7 +47,7 @@ import javax.annotation.Nullable;
 import static haveno.apitest.config.ApiTestConfig.BTC;
 import static haveno.apitest.config.ApiTestRateMeterInterceptorConfig.getTestRateMeterInterceptorConfig;
 import static haveno.cli.table.builder.TableType.BTC_BALANCE_TBL;
-import static haveno.core.btc.wallet.Restrictions.getDefaultBuyerSecurityDepositAsPercent;
+import static haveno.core.xmr.wallet.Restrictions.getDefaultBuyerSecurityDepositAsPercent;
 import static java.lang.String.format;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Arrays.stream;

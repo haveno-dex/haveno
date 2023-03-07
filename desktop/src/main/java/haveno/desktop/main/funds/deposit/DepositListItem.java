@@ -19,12 +19,12 @@ package haveno.desktop.main.funds.deposit;
 
 import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
-import haveno.core.btc.listeners.XmrBalanceListener;
-import haveno.core.btc.model.XmrAddressEntry;
-import haveno.core.btc.wallet.XmrWalletService;
 import haveno.core.locale.Res;
 import haveno.core.trade.HavenoUtils;
 import haveno.core.util.coin.CoinFormatter;
+import haveno.core.xmr.listeners.XmrBalanceListener;
+import haveno.core.xmr.model.XmrAddressEntry;
+import haveno.core.xmr.wallet.XmrWalletService;
 import haveno.desktop.components.indicator.TxConfidenceIndicator;
 import haveno.desktop.util.GUIUtil;
 import java.math.BigInteger;

@@ -24,10 +24,10 @@ import org.junit.Test;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
-import haveno.core.btc.wallet.Restrictions;
 import haveno.core.monetary.Price;
 import haveno.core.trade.HavenoUtils;
 import haveno.core.util.coin.CoinUtil;
+import haveno.core.xmr.wallet.Restrictions;
 import java.math.BigInteger;
 
 public class CoinUtilTest {

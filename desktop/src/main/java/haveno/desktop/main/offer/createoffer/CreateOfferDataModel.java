@@ -19,7 +19,6 @@ package haveno.desktop.main.offer.createoffer;
 
 import com.google.inject.Inject;
 import haveno.core.account.witness.AccountAgeWitnessService;
-import haveno.core.btc.wallet.XmrWalletService;
 import haveno.core.offer.CreateOfferService;
 import haveno.core.offer.OfferUtil;
 import haveno.core.offer.OpenOfferManager;
@@ -30,6 +29,7 @@ import haveno.core.user.Preferences;
 import haveno.core.user.User;
 import haveno.core.util.FormattingUtils;
 import haveno.core.util.coin.CoinFormatter;
+import haveno.core.xmr.wallet.XmrWalletService;
 import haveno.desktop.Navigation;
 import haveno.desktop.main.offer.MutableOfferDataModel;
 import haveno.network.p2p.P2PService;

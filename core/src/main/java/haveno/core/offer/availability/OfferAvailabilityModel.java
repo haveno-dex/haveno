@@ -19,7 +19,6 @@ package haveno.core.offer.availability;
 
 import haveno.common.crypto.PubKeyRing;
 import haveno.common.taskrunner.Model;
-import haveno.core.btc.wallet.XmrWalletService;
 import haveno.core.offer.Offer;
 import haveno.core.offer.OfferUtil;
 import haveno.core.offer.messages.OfferAvailabilityResponse;
@@ -27,6 +26,7 @@ import haveno.core.support.dispute.mediation.mediator.MediatorManager;
 import haveno.core.trade.messages.InitTradeRequest;
 import haveno.core.trade.statistics.TradeStatisticsManager;
 import haveno.core.user.User;
+import haveno.core.xmr.wallet.XmrWalletService;
 import haveno.network.p2p.NodeAddress;
 import haveno.network.p2p.P2PService;
 import lombok.Getter;

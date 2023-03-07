@@ -19,10 +19,10 @@ package haveno.desktop.main.account.register.arbitrator;
 
 import com.google.inject.Inject;
 import haveno.common.crypto.KeyRing;
-import haveno.core.btc.wallet.XmrWalletService;
 import haveno.core.support.dispute.arbitration.arbitrator.Arbitrator;
 import haveno.core.support.dispute.arbitration.arbitrator.ArbitratorManager;
 import haveno.core.user.User;
+import haveno.core.xmr.wallet.XmrWalletService;
 import haveno.desktop.main.account.register.AgentRegistrationViewModel;
 import haveno.network.p2p.P2PService;
 import java.util.ArrayList;

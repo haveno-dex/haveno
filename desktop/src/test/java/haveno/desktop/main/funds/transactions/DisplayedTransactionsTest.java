@@ -18,7 +18,7 @@
 package haveno.desktop.main.funds.transactions;
 
 import com.google.common.collect.Lists;
-import haveno.core.btc.wallet.XmrWalletService;
+import haveno.core.xmr.wallet.XmrWalletService;
 import haveno.desktop.main.funds.transactions.DisplayedTransactions;
 import haveno.desktop.main.funds.transactions.TradableRepository;
 import haveno.desktop.main.funds.transactions.TransactionAwareTradable;

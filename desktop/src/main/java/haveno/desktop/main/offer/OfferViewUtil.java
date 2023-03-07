@@ -19,13 +19,13 @@ package haveno.desktop.main.offer;
 
 import haveno.common.UserThread;
 import haveno.common.util.Tuple2;
-import haveno.core.btc.wallet.XmrWalletService;
 import haveno.core.locale.CryptoCurrency;
 import haveno.core.locale.CurrencyUtil;
 import haveno.core.locale.Res;
 import haveno.core.locale.TradeCurrency;
 import haveno.core.offer.Offer;
 import haveno.core.offer.OfferDirection;
+import haveno.core.xmr.wallet.XmrWalletService;
 import haveno.desktop.Navigation;
 import haveno.desktop.components.AutoTooltipButton;
 import haveno.desktop.components.AutoTooltipLabel;

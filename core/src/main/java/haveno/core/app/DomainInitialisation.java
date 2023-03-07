@@ -24,7 +24,6 @@ import haveno.core.account.sign.SignedWitnessService;
 import haveno.core.account.witness.AccountAgeWitnessService;
 import haveno.core.alert.PrivateNotificationManager;
 import haveno.core.alert.PrivateNotificationPayload;
-import haveno.core.btc.Balances;
 import haveno.core.filter.FilterManager;
 import haveno.core.notifications.MobileNotificationService;
 import haveno.core.notifications.alerts.DisputeMsgEvents;
@@ -51,6 +50,7 @@ import haveno.core.trade.failed.FailedTradesManager;
 import haveno.core.trade.statistics.TradeStatisticsManager;
 import haveno.core.trade.txproof.xmr.XmrTxProofService;
 import haveno.core.user.User;
+import haveno.core.xmr.Balances;
 import haveno.network.p2p.P2PService;
 import javax.inject.Inject;
 

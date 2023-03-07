@@ -14,8 +14,6 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import haveno.core.btc.model.XmrAddressEntry;
-import haveno.core.btc.wallet.XmrWalletService;
 import haveno.core.locale.CryptoCurrency;
 import haveno.core.locale.FiatCurrency;
 import haveno.core.locale.GlobalSettings;
@@ -30,6 +28,8 @@ import haveno.core.provider.price.PriceFeedService;
 import haveno.core.trade.statistics.TradeStatisticsManager;
 import haveno.core.user.Preferences;
 import haveno.core.user.User;
+import haveno.core.xmr.model.XmrAddressEntry;
+import haveno.core.xmr.wallet.XmrWalletService;
 import haveno.desktop.main.offer.createoffer.CreateOfferDataModel;
 
 public class CreateOfferDataModelTest {

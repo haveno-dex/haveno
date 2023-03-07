@@ -19,8 +19,8 @@ package haveno.core.trade.protocol.tasks;
 
 import haveno.common.config.Config;
 import haveno.common.taskrunner.TaskRunner;
-import haveno.core.btc.wallet.Restrictions;
 import haveno.core.trade.Trade;
+import haveno.core.xmr.wallet.Restrictions;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j

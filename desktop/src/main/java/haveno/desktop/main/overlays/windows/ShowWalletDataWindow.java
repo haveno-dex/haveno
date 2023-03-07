@@ -22,8 +22,8 @@ import static haveno.desktop.util.FormBuilder.addTopLabelTextArea;
 
 import haveno.common.util.Tuple2;
 import haveno.common.util.Utilities;
-import haveno.core.btc.wallet.WalletsManager;
 import haveno.core.locale.Res;
+import haveno.core.xmr.wallet.WalletsManager;
 import haveno.desktop.main.overlays.Overlay;
 import javafx.scene.Scene;
 import javafx.scene.control.CheckBox;

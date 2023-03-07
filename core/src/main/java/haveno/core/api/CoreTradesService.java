@@ -19,8 +19,6 @@ package haveno.core.api;
 
 import haveno.common.handlers.ErrorMessageHandler;
 import haveno.common.handlers.ResultHandler;
-import haveno.core.btc.model.AddressEntry;
-import haveno.core.btc.wallet.BtcWalletService;
 import haveno.core.offer.Offer;
 import haveno.core.offer.takeoffer.TakeOfferModel;
 import haveno.core.support.messages.ChatMessage;
@@ -35,6 +33,8 @@ import haveno.core.trade.protocol.BuyerProtocol;
 import haveno.core.trade.protocol.SellerProtocol;
 import haveno.core.user.User;
 import haveno.core.util.validation.BtcAddressValidator;
+import haveno.core.xmr.model.AddressEntry;
+import haveno.core.xmr.wallet.BtcWalletService;
 import org.bitcoinj.core.Coin;
 
 import javax.inject.Inject;
@@ -46,7 +46,7 @@ import java.util.function.Consumer;
 
 import lombok.extern.slf4j.Slf4j;
 
-import static haveno.core.btc.model.AddressEntry.Context.TRADE_PAYOUT;
+import static haveno.core.xmr.model.AddressEntry.Context.TRADE_PAYOUT;
 import static java.lang.String.format;
 
 import java.math.BigInteger;

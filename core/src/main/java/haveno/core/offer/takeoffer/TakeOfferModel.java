@@ -17,15 +17,13 @@
 
 package haveno.core.offer.takeoffer;
 
-import static haveno.core.btc.model.XmrAddressEntry.Context.OFFER_FUNDING;
 import static haveno.core.offer.OfferDirection.SELL;
 import static haveno.core.util.VolumeUtil.getAdjustedVolumeForHalCash;
 import static haveno.core.util.VolumeUtil.getRoundedFiatVolume;
+import static haveno.core.xmr.model.XmrAddressEntry.Context.OFFER_FUNDING;
 
 import haveno.common.taskrunner.Model;
 import haveno.core.account.witness.AccountAgeWitnessService;
-import haveno.core.btc.model.XmrAddressEntry;
-import haveno.core.btc.wallet.XmrWalletService;
 import haveno.core.locale.CurrencyUtil;
 import haveno.core.monetary.Price;
 import haveno.core.monetary.Volume;
@@ -35,6 +33,8 @@ import haveno.core.payment.PaymentAccount;
 import haveno.core.payment.payload.PaymentMethod;
 import haveno.core.provider.price.PriceFeedService;
 import haveno.core.trade.HavenoUtils;
+import haveno.core.xmr.model.XmrAddressEntry;
+import haveno.core.xmr.wallet.XmrWalletService;
 import javax.inject.Inject;
 
 import java.math.BigInteger;

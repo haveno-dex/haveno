@@ -19,7 +19,6 @@ package haveno.core.user;
 
 import haveno.common.config.Config;
 import haveno.common.persistence.PersistenceManager;
-import haveno.core.btc.nodes.LocalBitcoinNode;
 import haveno.core.locale.CountryUtil;
 import haveno.core.locale.CryptoCurrency;
 import haveno.core.locale.CurrencyUtil;
@@ -28,6 +27,7 @@ import haveno.core.locale.GlobalSettings;
 import haveno.core.locale.Res;
 import haveno.core.user.Preferences;
 import haveno.core.user.PreferencesPayload;
+import haveno.core.xmr.nodes.LocalBitcoinNode;
 import javafx.collections.ObservableList;
 
 import java.util.ArrayList;

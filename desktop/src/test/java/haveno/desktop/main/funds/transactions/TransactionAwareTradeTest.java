@@ -31,11 +31,11 @@ import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import haveno.core.btc.wallet.XmrWalletService;
 import haveno.core.support.dispute.Dispute;
 import haveno.core.support.dispute.arbitration.ArbitrationManager;
 import haveno.core.support.dispute.refund.RefundManager;
 import haveno.core.trade.Trade;
+import haveno.core.xmr.wallet.XmrWalletService;
 import haveno.desktop.main.funds.transactions.TransactionAwareTradable;
 import haveno.desktop.main.funds.transactions.TransactionAwareTrade;
 import monero.wallet.model.MoneroTxWallet;

@@ -20,9 +20,9 @@ package haveno.core.trade;
 import haveno.common.crypto.KeyRing;
 import haveno.common.util.Tuple2;
 import haveno.common.util.Utilities;
-import haveno.core.btc.wallet.BtcWalletService;
 import haveno.core.locale.Res;
 import haveno.core.offer.Offer;
+import haveno.core.xmr.wallet.BtcWalletService;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 

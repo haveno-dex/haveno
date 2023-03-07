@@ -22,8 +22,8 @@ import com.natpryce.makeiteasy.Property;
 import com.natpryce.makeiteasy.SameValueDonor;
 import haveno.common.config.Config;
 import haveno.common.persistence.PersistenceManager;
-import haveno.core.btc.nodes.LocalBitcoinNode;
 import haveno.core.user.Preferences;
+import haveno.core.xmr.nodes.LocalBitcoinNode;
 
 import static com.natpryce.makeiteasy.MakeItEasy.a;
 import static com.natpryce.makeiteasy.MakeItEasy.make;

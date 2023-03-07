@@ -40,17 +40,17 @@ import haveno.core.api.model.BalancesInfo;
 import haveno.core.api.model.BtcBalanceInfo;
 import haveno.core.api.model.XmrBalanceInfo;
 import haveno.core.app.AppStartupState;
-import haveno.core.btc.Balances;
-import haveno.core.btc.exceptions.AddressEntryException;
-import haveno.core.btc.exceptions.InsufficientFundsException;
-import haveno.core.btc.model.AddressEntry;
-import haveno.core.btc.setup.WalletsSetup;
-import haveno.core.btc.wallet.BtcWalletService;
-import haveno.core.btc.wallet.WalletsManager;
-import haveno.core.btc.wallet.XmrWalletService;
 import haveno.core.user.Preferences;
 import haveno.core.util.FormattingUtils;
 import haveno.core.util.coin.CoinFormatter;
+import haveno.core.xmr.Balances;
+import haveno.core.xmr.exceptions.AddressEntryException;
+import haveno.core.xmr.exceptions.InsufficientFundsException;
+import haveno.core.xmr.model.AddressEntry;
+import haveno.core.xmr.setup.WalletsSetup;
+import haveno.core.xmr.wallet.BtcWalletService;
+import haveno.core.xmr.wallet.WalletsManager;
+import haveno.core.xmr.wallet.XmrWalletService;
 import org.bouncycastle.crypto.params.KeyParameter;
 
 import java.util.List;
@@ -63,8 +63,8 @@ import lombok.extern.slf4j.Slf4j;
 
 import javax.annotation.Nullable;
 
-import static haveno.core.btc.wallet.Restrictions.getMinNonDustOutput;
 import static haveno.core.util.ParsingUtils.parseToCoin;
+import static haveno.core.xmr.wallet.Restrictions.getMinNonDustOutput;
 import static java.lang.String.format;
 import static java.util.concurrent.TimeUnit.SECONDS;
 

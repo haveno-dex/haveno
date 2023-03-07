@@ -17,9 +17,9 @@
 
 package haveno.desktop.main.offer;
 
-import haveno.core.btc.model.XmrAddressEntry;
-import haveno.core.btc.wallet.XmrWalletService;
 import haveno.core.offer.OfferUtil;
+import haveno.core.xmr.model.XmrAddressEntry;
+import haveno.core.xmr.wallet.XmrWalletService;
 import haveno.desktop.common.model.ActivatableDataModel;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.ObjectProperty;

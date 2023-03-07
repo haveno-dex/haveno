@@ -1,10 +1,10 @@
 package haveno.core.trade;
 
 import haveno.common.proto.ProtoUtil;
-import haveno.core.btc.wallet.XmrWalletService;
 import haveno.core.offer.Offer;
 import haveno.core.proto.CoreProtoResolver;
 import haveno.core.trade.protocol.ProcessModel;
+import haveno.core.xmr.wallet.XmrWalletService;
 import haveno.network.p2p.NodeAddress;
 import java.math.BigInteger;
 import java.util.UUID;

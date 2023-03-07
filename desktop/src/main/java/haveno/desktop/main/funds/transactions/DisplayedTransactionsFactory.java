@@ -17,7 +17,7 @@
 
 package haveno.desktop.main.funds.transactions;
 
-import haveno.core.btc.wallet.XmrWalletService;
+import haveno.core.xmr.wallet.XmrWalletService;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
