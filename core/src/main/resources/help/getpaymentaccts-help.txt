@@ -14,4 +14,4 @@ Returns the list of user payment accounts.
 
 EXAMPLES
 --------
-$ ./bisq-cli --password=xyz --port=9998 getpaymentaccts
+$ ./haveno-cli --password=xyz --port=9998 getpaymentaccts

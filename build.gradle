@@ -514,7 +514,7 @@ configure(project(':core')) {
 }
 
 configure(project(':cli')) {
-    mainClassName = 'bisq.cli.CliMain'
+    mainClassName = 'haveno.cli.CliMain'
 
     dependencies {
         implementation project(':proto')
@@ -562,7 +562,7 @@ configure(project(':desktop')) {
         "Implementation-Title": project.name,
         "Implementation-Version": version)
 
-    mainClassName = 'bisq.desktop.app.HavenoAppMain'
+    mainClassName = 'haveno.desktop.app.HavenoAppMain'
 
     tasks.withType(AbstractArchiveTask) {
         preserveFileTimestamps = false
@@ -634,7 +634,7 @@ configure(project(':desktop')) {
 
 
 configure(project(':monitor')) {
-    mainClassName = 'bisq.monitor.Monitor'
+    mainClassName = 'haveno.monitor.Monitor'
 
     test {
         useJUnitPlatform()
@@ -676,7 +676,7 @@ configure(project(':monitor')) {
 
 
 configure(project(':relay')) {
-    mainClassName = 'bisq.relay.RelayMain'
+    mainClassName = 'haveno.relay.RelayMain'
 
     dependencies {
         implementation project(':common')
@@ -699,7 +699,7 @@ configure(project(':relay')) {
 configure(project(':seednode')) {
     apply plugin: 'com.github.johnrengelman.shadow'
 
-    mainClassName = 'bisq.seednode.SeedNodeMain'
+    mainClassName = 'haveno.seednode.SeedNodeMain'
 
     dependencies {
         implementation project(':common')
@@ -718,7 +718,7 @@ configure(project(':seednode')) {
 
 
 configure(project(':statsnode')) {
-    mainClassName = 'bisq.statistics.StatisticsMain'
+    mainClassName = 'haveno.statistics.StatisticsMain'
 
     dependencies {
         implementation project(':common')
@@ -734,7 +734,7 @@ configure(project(':statsnode')) {
 }
 
 configure(project(':daemon')) {
-    mainClassName = 'bisq.daemon.app.HavenoDaemonMain'
+    mainClassName = 'haveno.daemon.app.HavenoDaemonMain'
 
     dependencies {
         implementation project(':proto')
@@ -797,7 +797,7 @@ configure(project(':daemon')) {
 configure(project(':inventory')) {
     apply plugin: 'com.github.johnrengelman.shadow'
 
-    mainClassName = 'bisq.inventory.InventoryMonitorMain'
+    mainClassName = 'haveno.inventory.InventoryMonitorMain'
 
     dependencies {
         implementation project(':common')
@@ -817,7 +817,7 @@ configure(project(':inventory')) {
 }
 
 configure(project(':apitest')) {
-    mainClassName = 'bisq.apitest.ApiTestMain'
+    mainClassName = 'haveno.apitest.ApiTestMain'
 
     // We have to disable the :apitest 'test' task by default because we do not want
     // to interfere with normal builds.  To run JUnit tests in this subproject:

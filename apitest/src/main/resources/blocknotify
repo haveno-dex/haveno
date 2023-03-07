@@ -2,7 +2,7 @@
 
 # Regtest ports start with 512*
 
-# To avoid pesky bitcoind io errors, do not specify ports Bisq is not listening to.
+# To avoid pesky bitcoind io errors, do not specify ports Haveno is not listening to.
 
 # SeedNode listens on port 5120
 echo $1 | nc -w 1 127.0.0.1 5120

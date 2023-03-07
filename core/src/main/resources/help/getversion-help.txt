@@ -10,8 +10,8 @@ getversion
 
 DESCRIPTION
 -----------
-Returns the Bisq server version.
+Returns the Haveno server version.
 
 EXAMPLES
 --------
-$ ./bisq-cli --password=xyz --port=9998 getversion
+$ ./haveno-cli --password=xyz --port=9998 getversion

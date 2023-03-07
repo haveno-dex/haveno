@@ -535,7 +535,7 @@ executetrade() {
     printbreak
 
     # Complete the trade on both sides
-    printdate "BOB $BOB_ROLE:  Closing trade and keeping funds in Bisq wallet."
+    printdate "BOB $BOB_ROLE:  Closing trade and keeping funds in Haveno wallet."
     CMD="$CLI_BASE --port=$BOB_PORT closetrade --trade-id=$OFFER_ID"
     printdate "BOB CLI: $CMD"
     KEEP_FUNDS_MSG=$($CMD)
@@ -545,7 +545,7 @@ executetrade() {
     sleeptraced 3
     printbreak
 
-    printdate "ALICE (taker):  Closing trade and keeping funds in Bisq wallet."
+    printdate "ALICE (taker):  Closing trade and keeping funds in Haveno wallet."
     CMD="$CLI_BASE --port=$ALICE_PORT closetrade --trade-id=$OFFER_ID"
     printdate "ALICE CLI: $CMD"
     KEEP_FUNDS_MSG=$($CMD)

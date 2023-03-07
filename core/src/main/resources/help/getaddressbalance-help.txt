@@ -11,7 +11,7 @@ getaddressbalance
 
 DESCRIPTION
 -----------
-Returns the balance of a BTC address in the Bisq server's wallet.
+Returns the balance of a BTC address in the Haveno server's wallet.
 
 OPTIONS
 -------
@@ -20,4 +20,4 @@ OPTIONS
 
 EXAMPLES
 --------
-$ ./bisq-cli --password=xyz --port=9998 getaddressbalance --address=bcrt1qygvsqmyt8jyhtp7l3zwqm7s7v3nar6vkc2luz3
+$ ./haveno-cli --password=xyz --port=9998 getaddressbalance --address=bcrt1qygvsqmyt8jyhtp7l3zwqm7s7v3nar6vkc2luz3

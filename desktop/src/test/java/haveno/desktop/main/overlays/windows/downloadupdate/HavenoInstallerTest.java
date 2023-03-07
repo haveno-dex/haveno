@@ -1,0 +1,88 @@
+/*
+ * This file is part of Haveno.
+ *
+ * Haveno is free software: you can redistribute it and/or modify it
+ * under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or (at
+ * your option) any later version.
+ *
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
+ * License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
+ */
+
+package haveno.desktop.main.overlays.windows.downloadupdate;
+
+import com.google.common.collect.Lists;
+import haveno.desktop.main.overlays.windows.downloadupdate.HavenoInstaller;
+import haveno.desktop.main.overlays.windows.downloadupdate.HavenoInstaller.FileDescriptor;
+import java.net.URL;
+
+import java.io.File;
+
+import java.util.List;
+
+import lombok.extern.slf4j.Slf4j;
+
+import org.junit.Test;
+
+import static org.junit.Assert.assertEquals;
+
+@Slf4j
+public class HavenoInstallerTest {
+    @Test
+    public void call() throws Exception {
+    }
+
+    @Test
+    public void verifySignature() throws Exception {
+        URL url = this.getClass().getResource("/downloadUpdate/test.txt");
+        File dataFile = new File(url.toURI().getPath());
+        url = this.getClass().getResource("/downloadUpdate/test.txt.asc");
+        File sigFile = new File(url.toURI().getPath());
+        url = this.getClass().getResource("/downloadUpdate/F379A1C6.asc");
+        File pubKeyFile = new File(url.toURI().getPath());
+
+        assertEquals(HavenoInstaller.VerifyStatusEnum.OK, HavenoInstaller.verifySignature(pubKeyFile, sigFile, dataFile));
+
+        url = this.getClass().getResource("/downloadUpdate/test_bad.txt");
+        dataFile = new File(url.toURI().getPath());
+        url = this.getClass().getResource("/downloadUpdate/test_bad.txt.asc");
+        sigFile = new File(url.toURI().getPath());
+        url = this.getClass().getResource("/downloadUpdate/F379A1C6.asc");
+        pubKeyFile = new File(url.toURI().getPath());
+
+        HavenoInstaller.verifySignature(pubKeyFile, sigFile, dataFile);
+        assertEquals(HavenoInstaller.VerifyStatusEnum.FAIL, HavenoInstaller.verifySignature(pubKeyFile, sigFile, dataFile));
+    }
+
+    @Test
+    public void getFileName() throws Exception {
+    }
+
+    @Test
+    public void getDownloadType() throws Exception {
+    }
+
+    @Test
+    public void getIndex() throws Exception {
+    }
+
+    @Test
+    public void getSigFileDescriptors() throws Exception {
+        HavenoInstaller havenoInstaller = new HavenoInstaller();
+        FileDescriptor installerFileDescriptor = FileDescriptor.builder().fileName("filename.txt").id("filename").loadUrl("url://filename.txt").build();
+        FileDescriptor key1 = FileDescriptor.builder().fileName("key1").id("key1").loadUrl("").build();
+        FileDescriptor key2 = FileDescriptor.builder().fileName("key2").id("key2").loadUrl("").build();
+        List<FileDescriptor> sigFileDescriptors = havenoInstaller.getSigFileDescriptors(installerFileDescriptor, Lists.newArrayList(key1));
+        assertEquals(1, sigFileDescriptors.size());
+        sigFileDescriptors = havenoInstaller.getSigFileDescriptors(installerFileDescriptor, Lists.newArrayList(key1, key2));
+        assertEquals(2, sigFileDescriptors.size());
+        log.info("test");
+
+    }
+}

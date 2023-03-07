@@ -1,10 +1,10 @@
-# Tor upgrade in Bisq
+# Tor upgrade in Haveno
 
-This guide describes the steps necessary to upgrade the tor dependencies used by Bisq.
+This guide describes the steps necessary to upgrade the tor dependencies used by Haveno.
 
 ## Background
 
-Bisq uses two libraries for tor: [netlayer][1] and [tor-binary][2].
+Haveno uses two libraries for tor: [netlayer][1] and [tor-binary][2].
 
 As per the project's authors, `netlayer` is _"essentially a wrapper around the official Tor releases, pre-packaged for
 easy use and convenient integration into Kotlin/Java projects"_.
@@ -12,7 +12,7 @@ easy use and convenient integration into Kotlin/Java projects"_.
 Similarly, `tor-binary` is _"[the] Tor binary packaged in a way that can be used for java projects"_. The project
 unpacks the tor browser binaries to extract and repackage the tor binaries themselves.
 
-Therefore, upgrading tor in Bisq comes down to upgrading these two artefacts.
+Therefore, upgrading tor in Haveno comes down to upgrading these two artefacts.
 
 
 ## Upgrade steps
@@ -20,8 +20,8 @@ Therefore, upgrading tor in Bisq comes down to upgrading these two artefacts.
 
 ### 1. Decide if upgrade necessary
 
- - Find out which tor version Bisq currently uses
-   - Find out the current `netlayer` version (see `netlayerVersion` in `bisq/build.gradle`)
+ - Find out which tor version Haveno currently uses
+   - Find out the current `netlayer` version (see `netlayerVersion` in `haveno/build.gradle`)
    - Find that release on the project's [releases page][3]
    - The release description says which tor version it includes
 - Find out the latest available tor release
@@ -96,13 +96,13 @@ git push origin 0.7.0
 ```
 
 
-### 4. Update dependency in Bisq
+### 4. Update dependency in Haveno
 
-Create a Bisq PR with the following changes:
+Create a Haveno PR with the following changes:
 
- - In `bisq/build.gradle` update `netlayerVersion` to the `netlayer` commit ID from above
+ - In `haveno/build.gradle` update `netlayerVersion` to the `netlayer` commit ID from above
  - Update the gradle dependency checksums
-   - See instructions in `bisq/gradle/witness/gradle-witness.gradle`
+   - See instructions in `haveno/gradle/witness/gradle-witness.gradle`
 
 
 
