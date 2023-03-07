@@ -133,16 +133,14 @@ class CoreWalletsService {
         verifyWalletCurrencyCodeIsValid(currencyCode);
         verifyWalletsAreAvailable();
         verifyEncryptedWalletIsUnlocked();
-        if (balances.getAvailableBalance().get() == null)
-            throw new IllegalStateException("balance is not yet available");
+        if (balances.getAvailableBalance().get() == null) throw new IllegalStateException("balance is not yet available");
 
         switch (currencyCode.trim().toUpperCase()) {
-            case "BTC":
-                return new BalancesInfo(getBtcBalances(), XmrBalanceInfo.EMPTY);
+            case "":
             case "XMR":
                 return new BalancesInfo(BtcBalanceInfo.EMPTY, getXmrBalances());
             default:
-                return new BalancesInfo(getBtcBalances(), getXmrBalances());
+                throw new IllegalStateException("Unsupported currency code: " + currencyCode.trim().toUpperCase());
         }
     }
 
@@ -470,30 +468,6 @@ class CoreWalletsService {
             walletsManager.setAesKey(aesKey);
             walletsSetup.getWalletConfig().maybeAddSegwitKeychain(walletsSetup.getWalletConfig().btcWallet(), aesKey);
         }
-    }
-
-
-    // TODO (woodser): delete this since it's serving XMR balances
-    private BtcBalanceInfo getBtcBalances() {
-        verifyWalletsAreAvailable();
-        verifyEncryptedWalletIsUnlocked();
-
-        var availableBalance = balances.getAvailableBalance().get();
-        if (availableBalance == null)
-            throw new IllegalStateException("balance is not yet available");
-
-        var reservedBalance = balances.getReservedBalance().get();
-        if (reservedBalance == null)
-            throw new IllegalStateException("reserved balance is not yet available");
-
-        var pendingBalance = balances.getPendingBalance().get();
-        if (pendingBalance == null)
-            throw new IllegalStateException("locked balance is not yet available");
-
-        return new BtcBalanceInfo(availableBalance.value,
-                reservedBalance.value,
-                availableBalance.add(reservedBalance).value,
-                pendingBalance.value);
     }
 
     private XmrBalanceInfo getXmrBalances() {
