@@ -273,26 +273,26 @@ public class DisputeSummaryWindow extends Overlay<DisputeSummaryWindow> {
         }
         addConfirmationLabelLabel(gridPane, ++rowIndex, Res.get("disputeSummaryWindow.role"), role);
         addConfirmationLabelLabel(gridPane, ++rowIndex, Res.get("shared.tradeAmount"),
-                HavenoUtils.formatToXmrWithCode(contract.getTradeAmount()));
+                HavenoUtils.formatXmr(contract.getTradeAmount(), true));
         addConfirmationLabelLabel(gridPane, ++rowIndex, Res.get("shared.tradePrice"),
             FormattingUtils.formatPrice(contract.getPrice()));
         addConfirmationLabelLabel(gridPane, ++rowIndex, Res.get("shared.tradeVolume"),
             VolumeUtil.formatVolumeWithCode(contract.getTradeVolume()));
         String tradeFee = Res.getWithColAndCap("shared.buyer") +
                 " " +
-                HavenoUtils.formatToXmrWithCode(trade.getBuyer() == trade.getMaker() ? trade.getMakerFee() : trade.getTakerFee()) +
+                HavenoUtils.formatXmr(trade.getBuyer() == trade.getMaker() ? trade.getMakerFee() : trade.getTakerFee(), true) +
                 " / " +
                 Res.getWithColAndCap("shared.seller") +
                 " " +
-                HavenoUtils.formatToXmrWithCode(trade.getSeller() == trade.getMaker() ? trade.getMakerFee() : trade.getTakerFee());
+                HavenoUtils.formatXmr(trade.getSeller() == trade.getMaker() ? trade.getMakerFee() : trade.getTakerFee(), true);
         addConfirmationLabelLabel(gridPane, ++rowIndex, Res.get("shared.tradeFee"), tradeFee);
         String securityDeposit = Res.getWithColAndCap("shared.buyer") +
                 " " +
-                HavenoUtils.formatToXmrWithCode(trade.getBuyerSecurityDeposit()) +
+                HavenoUtils.formatXmr(trade.getBuyerSecurityDeposit(), true) +
                 " / " +
                 Res.getWithColAndCap("shared.seller") +
                 " " +
-                HavenoUtils.formatToXmrWithCode(trade.getSellerSecurityDeposit());
+                HavenoUtils.formatXmr(trade.getSellerSecurityDeposit(), true);
         addConfirmationLabelLabel(gridPane, ++rowIndex, Res.get("shared.securityDeposit"), securityDeposit);
     }
 
@@ -388,10 +388,10 @@ public class DisputeSummaryWindow extends Overlay<DisputeSummaryWindow> {
         if (enteredAmount.compareTo(available) > 0) {
             enteredAmount = available;
             BigInteger finalEnteredAmount = enteredAmount;
-            inputTextField.setText(HavenoUtils.formatToXmr(finalEnteredAmount));
+            inputTextField.setText(HavenoUtils.formatXmr(finalEnteredAmount));
         }
         BigInteger counterPart = available.subtract(enteredAmount);
-        String formattedCounterPartAmount = HavenoUtils.formatToXmr(counterPart);
+        String formattedCounterPartAmount = HavenoUtils.formatXmr(counterPart);
         BigInteger buyerAmount;
         BigInteger sellerAmount;
         if (inputTextField == buyerPayoutAmountInputTextField) {
@@ -622,20 +622,20 @@ public class DisputeSummaryWindow extends Overlay<DisputeSummaryWindow> {
         String buyerDetails = "";
         if (buyerPayoutAmount.compareTo(BigInteger.valueOf(0)) > 0) {
             buyerDetails = Res.get("disputeSummaryWindow.close.txDetails.buyer",
-                    HavenoUtils.formatToXmrWithCode(buyerPayoutAmount),
+                    HavenoUtils.formatXmr(buyerPayoutAmount, true),
                     buyerPayoutAddressString);
         }
         String sellerDetails = "";
         if (sellerPayoutAmount.compareTo(BigInteger.valueOf(0)) > 0) {
             sellerDetails = Res.get("disputeSummaryWindow.close.txDetails.seller",
-                    HavenoUtils.formatToXmrWithCode(sellerPayoutAmount),
+                    HavenoUtils.formatXmr(sellerPayoutAmount, true),
                     sellerPayoutAddressString);
         }
         if (outputAmount.compareTo(BigInteger.valueOf(0)) > 0) {
             new Popup().width(900)
                     .headLine(Res.get("disputeSummaryWindow.close.txDetails.headline"))
                     .confirmation(Res.get("disputeSummaryWindow.close.txDetails",
-                            HavenoUtils.formatToXmrWithCode(outputAmount),
+                            HavenoUtils.formatXmr(outputAmount, true),
                             buyerDetails,
                             sellerDetails,
                             formatter.formatCoinWithCode(HavenoUtils.atomicUnitsToCoin(payoutTx.getFee()))))
@@ -711,8 +711,8 @@ public class DisputeSummaryWindow extends Overlay<DisputeSummaryWindow> {
             throw new IllegalStateException("Unknown radio button");
         }
         disputesService.applyPayoutAmountsToDisputeResult(payout, dispute, disputeResult, -1);
-        buyerPayoutAmountInputTextField.setText(HavenoUtils.formatToXmr(disputeResult.getBuyerPayoutAmount()));
-        sellerPayoutAmountInputTextField.setText(HavenoUtils.formatToXmr(disputeResult.getSellerPayoutAmount()));
+        buyerPayoutAmountInputTextField.setText(HavenoUtils.formatXmr(disputeResult.getBuyerPayoutAmount()));
+        sellerPayoutAmountInputTextField.setText(HavenoUtils.formatXmr(disputeResult.getSellerPayoutAmount()));
     }
 
     private void applyTradeAmountRadioButtonStates() {
@@ -724,8 +724,8 @@ public class DisputeSummaryWindow extends Overlay<DisputeSummaryWindow> {
         BigInteger buyerPayoutAmount = disputeResult.getBuyerPayoutAmount();
         BigInteger sellerPayoutAmount = disputeResult.getSellerPayoutAmount();
 
-        buyerPayoutAmountInputTextField.setText(HavenoUtils.formatToXmr(buyerPayoutAmount));
-        sellerPayoutAmountInputTextField.setText(HavenoUtils.formatToXmr(sellerPayoutAmount));
+        buyerPayoutAmountInputTextField.setText(HavenoUtils.formatXmr(buyerPayoutAmount));
+        sellerPayoutAmountInputTextField.setText(HavenoUtils.formatXmr(sellerPayoutAmount));
 
         if (buyerPayoutAmount.equals(tradeAmount.add(buyerSecurityDeposit)) &&
                 sellerPayoutAmount.equals(sellerSecurityDeposit)) {

@@ -129,7 +129,7 @@ public class SpreadView extends ActivatableViewAndModel<GridPane, SpreadViewMode
 
         BigInteger totalAmount = BigInteger.valueOf(0);
         for (SpreadItem item : sortedList) totalAmount = totalAmount.add(item.totalAmount);
-        String total = HavenoUtils.formatToXmr(totalAmount);
+        String total = HavenoUtils.formatXmr(totalAmount);
 
         UserThread.execute(() -> {
             numberOfOffersColumn.setGraphic(new AutoTooltipLabel(Res.get("market.spread.numberOfOffersColumn", numberOfOffers)));

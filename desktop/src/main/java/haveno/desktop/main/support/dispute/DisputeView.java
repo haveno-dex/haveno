@@ -655,8 +655,8 @@ public abstract class DisputeView extends ActivatableView<VBox, Void> {
                 DisputeResult disputeResult = firstDispute.getDisputeResultProperty().get();
                 String winner = disputeResult != null &&
                         disputeResult.getWinner() == DisputeResult.Winner.BUYER ? "Buyer" : "Seller";
-                String buyerPayoutAmount = disputeResult != null ? HavenoUtils.formatToXmrWithCode(disputeResult.getBuyerPayoutAmount()) : "";
-                String sellerPayoutAmount = disputeResult != null ? HavenoUtils.formatToXmrWithCode(disputeResult.getSellerPayoutAmount()) : "";
+                String buyerPayoutAmount = disputeResult != null ? HavenoUtils.formatXmr(disputeResult.getBuyerPayoutAmount(), true) : "";
+                String sellerPayoutAmount = disputeResult != null ? HavenoUtils.formatXmr(disputeResult.getSellerPayoutAmount(), true) : "";
 
                 int index = disputeIndex.incrementAndGet();
                 String tradeDateString = dateFormatter.format(firstDispute.getTradeDate());
@@ -703,7 +703,7 @@ public abstract class DisputeView extends ActivatableView<VBox, Void> {
 
                 String paymentMethod = Res.get(contract.getPaymentMethodId());
                 String currency = CurrencyUtil.getNameAndCode(contract.getOfferPayload().getCurrencyCode());
-                String tradeAmount = HavenoUtils.formatToXmrWithCode(contract.getTradeAmount());
+                String tradeAmount = HavenoUtils.formatXmr(contract.getTradeAmount(), true);
                 String buyerDeposit = Coin.valueOf(contract.getOfferPayload().getBuyerSecurityDeposit()).toFriendlyString();
                 String sellerDeposit = Coin.valueOf(contract.getOfferPayload().getSellerSecurityDeposit()).toFriendlyString();
                 stringBuilder.append("Payment method: ")

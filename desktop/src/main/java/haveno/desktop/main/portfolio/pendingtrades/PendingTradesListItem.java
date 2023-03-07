@@ -56,7 +56,7 @@ public class PendingTradesListItem implements FilterableListItem {
     }
 
     public String getAmountAsString() {
-        return HavenoUtils.formatToXmr(trade.getAmount());
+        return HavenoUtils.formatXmr(trade.getAmount());
     }
 
     public String getPaymentMethod() {

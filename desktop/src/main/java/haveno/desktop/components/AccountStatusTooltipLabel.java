@@ -56,7 +56,7 @@ public class AccountStatusTooltipLabel extends AutoTooltipLabel {
         this.textIcon = FormBuilder.getIcon(witnessAgeData.getIcon());
         this.popupTitle = witnessAgeData.isLimitLifted()
                 ? Res.get("offerbook.timeSinceSigning.tooltip.accountLimitLifted")
-                : Res.get("offerbook.timeSinceSigning.tooltip.accountLimit", HavenoUtils.formatToXmrWithCode(OfferRestrictions.TOLERATED_SMALL_TRADE_AMOUNT));
+                : Res.get("offerbook.timeSinceSigning.tooltip.accountLimit", HavenoUtils.formatXmr(OfferRestrictions.TOLERATED_SMALL_TRADE_AMOUNT, true));
 
         positionAndActivateIcon();
     }

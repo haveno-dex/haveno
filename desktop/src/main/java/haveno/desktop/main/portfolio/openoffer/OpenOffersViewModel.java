@@ -159,7 +159,7 @@ class OpenOffersViewModel extends ActivatableWithDataModel<OpenOffersDataModel> 
 
     public String getMakerFeeAsString(OpenOffer openOffer) {
         Offer offer = openOffer.getOffer();
-        return HavenoUtils.formatToXmrWithCode(offer.getMakerFee());
+        return HavenoUtils.formatXmr(offer.getMakerFee(), true);
     }
 
     String getTriggerPrice(OpenOfferListItem item) {

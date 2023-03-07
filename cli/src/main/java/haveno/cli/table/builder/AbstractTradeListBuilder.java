@@ -161,7 +161,7 @@ abstract class AbstractTradeListBuilder extends AbstractTableBuilder {
     protected final Function<TradeInfo, String> toTradeVolumeAsString = (t) ->
             isFiatTrade.test(t)
                     ? t.getTradeVolume()
-                    : formatSatoshis(t.getAmountAsLong());
+                    : formatSatoshis(t.getAmount());
 
     protected final Function<TradeInfo, Long> toTradeVolumeAsLong = (t) ->
             isFiatTrade.test(t)
@@ -170,7 +170,7 @@ abstract class AbstractTradeListBuilder extends AbstractTableBuilder {
 
     protected final Function<TradeInfo, Long> toTradeAmount = (t) ->
             isFiatTrade.test(t)
-                    ? t.getAmountAsLong()
+                    ? t.getAmount()
                     : toTradeVolumeAsLong.apply(t);
 
     protected final Function<TradeInfo, String> toMarket = (t) ->
@@ -192,13 +192,13 @@ abstract class AbstractTradeListBuilder extends AbstractTableBuilder {
         if (isMyOffer) {
             return t.getOffer().getMakerFee();
         } else {
-            return t.getTakerFeeAsLong();
+            return t.getTakerFee();
         }
     };
 
     protected final Function<TradeInfo, Long> toMyMakerOrTakerFee = (t) -> {
         return isTaker.test(t)
-                ? t.getTakerFeeAsLong()
+                ? t.getTakerFee()
                 : t.getOffer().getMakerFee();
     };
 

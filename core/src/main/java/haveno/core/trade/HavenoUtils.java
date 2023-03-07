@@ -132,16 +132,32 @@ public class HavenoUtils {
 
     // ------------------------- FORMAT UTILS ---------------------------------
 
-    public static String formatToXmr(BigInteger atomicUnits) {
+    public static String formatXmr(BigInteger atomicUnits) {
+        return formatXmr(atomicUnits, false);
+    }
+
+    public static String formatXmr(BigInteger atomicUnits, int decimalPlaces) {
+        return formatXmr(atomicUnits, false, decimalPlaces);
+    }
+
+    public static String formatXmr(BigInteger atomicUnits, boolean appendCode) {
+        return formatXmr(atomicUnits, appendCode, 0);
+    }
+
+    public static String formatXmr(BigInteger atomicUnits, boolean appendCode, int decimalPlaces) {
         if (atomicUnits == null) return "";
-        return formatToXmr(atomicUnits.longValueExact());
+        return formatXmr(atomicUnits.longValueExact(), appendCode, decimalPlaces);
     }
 
-    public static String formatToXmr(BigInteger atomicUnits, int decimalPlaces) {
-        return applyDecimals(formatToXmr(atomicUnits), decimalPlaces);
+    public static String formatXmr(long atomicUnits) {
+        return formatXmr(atomicUnits, false, 0);
     }
 
-    public static String formatToXmr(long atomicUnits) {
+    public static String formatXmr(long atomicUnits, boolean appendCode) {
+        return formatXmr(atomicUnits, appendCode, 0);
+    }
+
+    public static String formatXmr(long atomicUnits, boolean appendCode, int decimalPlaces) {
         String formatted = XMR_FORMATTER.format(atomicUnitsToXmr(atomicUnits));
 
         // strip trailing 0s
@@ -150,7 +166,7 @@ public class HavenoUtils {
                 formatted = formatted.substring(0, formatted.length() - 1);
             }
         }
-        return applyDecimals(formatted, 2);
+        return applyDecimals(formatted, Math.max(2, decimalPlaces)) + (appendCode ? " XMR" : "");
     }
 
     private static String applyDecimals(String decimalStr, int decimalPlaces) {
@@ -162,15 +178,6 @@ public class HavenoUtils {
         String zeros = "";
         for (int i = 0; i < numZeros; i++) zeros += "0";
         return zeros;
-    }
-
-    public static String formatToXmrWithCode(BigInteger atomicUnits) {
-        if (atomicUnits == null) return "";
-        return formatToXmrWithCode(atomicUnits.longValueExact());
-    }
-
-    public static String formatToXmrWithCode(long atomicUnits) {
-        return formatToXmr(atomicUnits).concat(" XMR");
     }
 
     public static BigInteger parseXmr(String input) {

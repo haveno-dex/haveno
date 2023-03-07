@@ -52,7 +52,7 @@ class FailedTradesViewModel extends ActivatableWithDataModel<FailedTradesDataMod
 
     String getAmount(FailedTradesListItem item) {
         if (item != null && item.getTrade() != null)
-            return HavenoUtils.formatToXmr(item.getTrade().getAmount());
+            return HavenoUtils.formatXmr(item.getTrade().getAmount());
         else
             return "";
     }

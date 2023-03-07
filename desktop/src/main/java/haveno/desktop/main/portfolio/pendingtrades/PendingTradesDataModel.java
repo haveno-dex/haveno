@@ -272,7 +272,7 @@ public class PendingTradesDataModel extends ActivatableDataModel {
         return isMaker;
     }
 
-    BigInteger getTradeFeeInBTC() {
+    BigInteger getTradeFee() {
         Trade trade = getTrade();
         if (trade != null) {
             Offer offer = trade.getOffer();

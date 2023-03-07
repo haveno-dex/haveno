@@ -17,19 +17,16 @@
 
 package haveno.core.trade;
 
-import org.bitcoinj.core.Coin;
 import org.bitcoinj.core.Monetary;
 import org.bitcoinj.utils.Fiat;
 
 import javax.inject.Inject;
-import javax.inject.Named;
 import javax.inject.Singleton;
 
 import static haveno.core.trade.ClosedTradableUtil.*;
 import static haveno.core.trade.Trade.DisputeState.DISPUTE_CLOSED;
 import static haveno.core.trade.Trade.DisputeState.MEDIATION_CLOSED;
 import static haveno.core.trade.Trade.DisputeState.REFUND_REQUEST_CLOSED;
-import static haveno.core.util.FormattingUtils.BTC_FORMATTER_KEY;
 import static haveno.core.util.FormattingUtils.formatPercentagePrice;
 import static haveno.core.util.FormattingUtils.formatToPercentWithSymbol;
 import static haveno.core.util.VolumeUtil.formatVolume;
@@ -41,7 +38,9 @@ import haveno.core.monetary.Altcoin;
 import haveno.core.monetary.Volume;
 import haveno.core.offer.OpenOffer;
 import haveno.core.util.FormattingUtils;
-import haveno.core.util.coin.CoinFormatter;
+
+import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -55,56 +54,53 @@ public class ClosedTradableFormatter {
     // having "generic-enough" property values to be referenced in the core layer.
     private static final String I18N_KEY_TOTAL_AMOUNT = "closedTradesSummaryWindow.totalAmount.value";
     private static final String I18N_KEY_TOTAL_TX_FEE = "closedTradesSummaryWindow.totalMinerFee.value";
-    private static final String I18N_KEY_TOTAL_TRADE_FEE_BTC = "closedTradesSummaryWindow.totalTradeFeeInBtc.value";
+    private static final String I18N_KEY_TOTAL_TRADE_FEE_BTC = "closedTradesSummaryWindow.totalTradeFeeInXmr.value";
 
-    private final CoinFormatter btcFormatter;
     private final ClosedTradableManager closedTradableManager;
 
     @Inject
-    public ClosedTradableFormatter(ClosedTradableManager closedTradableManager,
-                                   @Named(BTC_FORMATTER_KEY) CoinFormatter btcFormatter) {
+    public ClosedTradableFormatter(ClosedTradableManager closedTradableManager) {
         this.closedTradableManager = closedTradableManager;
-        this.btcFormatter = btcFormatter;
     }
 
     public String getAmountAsString(Tradable tradable) {
-        return tradable.getOptionalAmount().map(HavenoUtils::formatToXmr).orElse("");
+        return tradable.getOptionalAmount().map(HavenoUtils::formatXmr).orElse("");
     }
 
-    public String getTotalAmountWithVolumeAsString(Coin totalTradeAmount, Volume volume) {
+    public String getTotalAmountWithVolumeAsString(BigInteger totalTradeAmount, Volume volume) {
         return Res.get(I18N_KEY_TOTAL_AMOUNT,
-                btcFormatter.formatCoin(totalTradeAmount, true),
+                HavenoUtils.formatXmr(totalTradeAmount, true),
                 formatVolumeWithCode(volume));
     }
 
-    public String getTxFeeAsString(Tradable tradable) {
-        return btcFormatter.formatCoin(getTxFee(tradable));
+    public String getTotalTxFeeAsString(Tradable tradable) {
+        return HavenoUtils.formatXmr(getTotalTxFee(tradable));
     }
 
-    public String getTotalTxFeeAsString(Coin totalTradeAmount, Coin totalTxFee) {
-        double percentage = ((double) totalTxFee.value) / totalTradeAmount.value;
+    public String getTotalTxFeeAsString(BigInteger totalTradeAmount, BigInteger totalTxFee) {
+        double percentage = new BigDecimal(totalTxFee).divide(new BigDecimal(totalTradeAmount)).doubleValue();
         return Res.get(I18N_KEY_TOTAL_TX_FEE,
-                btcFormatter.formatCoin(totalTxFee, true),
+                HavenoUtils.formatXmr(totalTxFee, true),
                 formatToPercentWithSymbol(percentage));
     }
 
     public String getBuyerSecurityDepositAsString(Tradable tradable) {
-        return HavenoUtils.formatToXmr(tradable.getOffer().getBuyerSecurityDeposit());
+        return HavenoUtils.formatXmr(tradable.getOffer().getBuyerSecurityDeposit());
     }
 
     public String getSellerSecurityDepositAsString(Tradable tradable) {
-        return HavenoUtils.formatToXmr(tradable.getOffer().getSellerSecurityDeposit());
+        return HavenoUtils.formatXmr(tradable.getOffer().getSellerSecurityDeposit());
     }
 
     public String getTradeFeeAsString(Tradable tradable, boolean appendCode) {
-        closedTradableManager.getBtcTradeFee(tradable);
-        return btcFormatter.formatCoin(Coin.valueOf(closedTradableManager.getBtcTradeFee(tradable)), appendCode);
+        BigInteger tradeFee = closedTradableManager.getXmrTradeFee(tradable);
+        return HavenoUtils.formatXmr(tradeFee, appendCode);
     }
 
-    public String getTotalTradeFeeInBtcAsString(Coin totalTradeAmount, Coin totalTradeFee) {
-        double percentage = ((double) totalTradeFee.value) / totalTradeAmount.value;
+    public String getTotalTradeFeeAsString(BigInteger totalTradeAmount, BigInteger totalTradeFee) {
+        double percentage = new BigDecimal(totalTradeFee).divide(new BigDecimal(totalTradeAmount)).doubleValue();
         return Res.get(I18N_KEY_TOTAL_TRADE_FEE_BTC,
-                btcFormatter.formatCoin(totalTradeFee, true),
+                HavenoUtils.formatXmr(totalTradeFee, true),
                 formatToPercentWithSymbol(percentage));
     }
 

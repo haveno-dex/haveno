@@ -204,7 +204,7 @@ class TransactionsListItem {
     }
 
     public String getAmountStr() {
-        return HavenoUtils.formatToXmr(amount);
+        return HavenoUtils.formatXmr(amount);
     }
 
     public BigInteger getAmount() {

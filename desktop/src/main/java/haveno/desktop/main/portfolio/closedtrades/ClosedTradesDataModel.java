@@ -17,8 +17,6 @@
 
 package haveno.desktop.main.portfolio.closedtrades;
 
-import org.bitcoinj.core.Coin;
-
 import com.google.inject.Inject;
 import haveno.core.account.witness.AccountAgeWitnessService;
 import haveno.core.monetary.Price;
@@ -37,6 +35,7 @@ import javafx.collections.FXCollections;
 import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
 
+import java.math.BigInteger;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -85,15 +84,15 @@ class ClosedTradesDataModel extends ActivatableDataModel {
         return list.stream().map(ClosedTradesListItem::getTradable).collect(Collectors.toList());
     }
 
-    Coin getTotalAmount() {
+    BigInteger getTotalAmount() {
         return ClosedTradableUtil.getTotalAmount(getListAsTradables());
     }
 
-    Optional<Volume> getVolumeInUserFiatCurrency(Coin amount) {
+    Optional<Volume> getVolumeInUserFiatCurrency(BigInteger amount) {
         return getVolume(amount, preferences.getPreferredTradeCurrency().getCode());
     }
 
-    Optional<Volume> getVolume(Coin amount, String currencyCode) {
+    Optional<Volume> getVolume(BigInteger amount, String currencyCode) {
         MarketPrice marketPrice = priceFeedService.getMarketPrice(currencyCode);
         if (marketPrice == null) {
             return Optional.empty();
@@ -103,15 +102,11 @@ class ClosedTradesDataModel extends ActivatableDataModel {
         return Optional.of(VolumeUtil.getVolume(amount, price));
     }
 
-    Volume getBsqVolumeInUsdWithAveragePrice(Coin amount) {
-        return closedTradableManager.getBsqVolumeInUsdWithAveragePrice(amount);
-    }
-
-    Coin getTotalTxFee() {
+    BigInteger getTotalTxFee() {
         return ClosedTradableUtil.getTotalTxFee(getListAsTradables());
     }
 
-    Coin getTotalTradeFee() {
+    BigInteger getTotalTradeFee() {
         return closedTradableManager.getTotalTradeFee(getListAsTradables());
     }
 

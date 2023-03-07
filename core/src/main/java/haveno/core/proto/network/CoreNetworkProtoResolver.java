@@ -48,7 +48,6 @@ import haveno.core.trade.messages.MediatedPayoutTxPublishedMessage;
 import haveno.core.trade.messages.MediatedPayoutTxSignatureMessage;
 import haveno.core.trade.messages.PaymentReceivedMessage;
 import haveno.core.trade.messages.PaymentSentMessage;
-import haveno.core.trade.messages.RefreshTradeStateRequest;
 import haveno.core.trade.messages.SignContractRequest;
 import haveno.core.trade.messages.SignContractResponse;
 import haveno.network.p2p.AckMessage;
@@ -131,9 +130,6 @@ public class CoreNetworkProtoResolver extends CoreProtoResolver implements Netwo
                 case PREFIXED_SEALED_AND_SIGNED_MESSAGE:
                     return PrefixedSealedAndSignedMessage.fromProto(proto.getPrefixedSealedAndSignedMessage(), messageVersion);
 
-                // trade protocol messages
-                case REFRESH_TRADE_STATE_REQUEST:
-                    return RefreshTradeStateRequest.fromProto(proto.getRefreshTradeStateRequest(), messageVersion);
                 case INIT_TRADE_REQUEST:
                   return InitTradeRequest.fromProto(proto.getInitTradeRequest(), this, messageVersion);
                 case INIT_MULTISIG_REQUEST:

@@ -27,7 +27,7 @@ import haveno.common.proto.network.NetworkProtoResolver;
 import haveno.common.proto.persistable.PersistenceProtoResolver;
 import haveno.core.alert.AlertModule;
 import haveno.core.app.TorSetup;
-import haveno.core.btc.BitcoinModule;
+import haveno.core.btc.MoneroModule;
 import haveno.core.filter.FilterModule;
 import haveno.core.network.CoreNetworkFilter;
 import haveno.core.network.p2p.seed.DefaultSeedNodeRepository;
@@ -85,7 +85,7 @@ public class ModuleForAppWithP2p extends AppModule {
         install(new EncryptionServiceModule(config));
         install(new OfferModule(config));
         install(new P2PModule(config));
-        install(new BitcoinModule(config));
+        install(new MoneroModule(config));
         install(new AlertModule(config));
         install(new FilterModule(config));
         install(new MoneroConnectionModule(config));

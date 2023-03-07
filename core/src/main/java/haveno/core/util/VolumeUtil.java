@@ -28,6 +28,9 @@ import haveno.core.monetary.AltcoinExchangeRate;
 import haveno.core.monetary.Price;
 import haveno.core.monetary.Volume;
 import haveno.core.offer.Offer;
+import haveno.core.trade.HavenoUtils;
+
+import java.math.BigInteger;
 import java.text.DecimalFormat;
 import java.text.NumberFormat;
 
@@ -64,11 +67,12 @@ public class VolumeUtil {
         return Volume.parse(String.valueOf(roundedVolume), volumeByAmount.getCurrencyCode());
     }
 
-    public static Volume getVolume(Coin amount, Price price) {
+    public static Volume getVolume(BigInteger amount, Price price) {
+        // TODO: conversion to Coin loses precision
         if (price.getMonetary() instanceof Altcoin) {
-            return new Volume(new AltcoinExchangeRate((Altcoin) price.getMonetary()).coinToAltcoin(amount));
+            return new Volume(new AltcoinExchangeRate((Altcoin) price.getMonetary()).coinToAltcoin(HavenoUtils.atomicUnitsToCoin(amount)));
         } else {
-            return new Volume(new ExchangeRate((Fiat) price.getMonetary()).coinToFiat(amount));
+            return new Volume(new ExchangeRate((Fiat) price.getMonetary()).coinToFiat(HavenoUtils.atomicUnitsToCoin(amount)));
         }
     }
 

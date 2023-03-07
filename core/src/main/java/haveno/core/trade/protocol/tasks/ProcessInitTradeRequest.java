@@ -131,7 +131,7 @@ public class ProcessInitTradeRequest extends TradeTask {
 
             // check trade amount
             checkArgument(request.getTradeAmount() > 0);
-            trade.setAmount(BigInteger.valueOf(request.getTradeAmount()));
+            checkArgument(request.getTradeAmount() == trade.getAmount().longValueExact(), "Trade amount does not match request's trade amount");
 
             // persist trade
             processModel.getTradeManager().requestPersistence();

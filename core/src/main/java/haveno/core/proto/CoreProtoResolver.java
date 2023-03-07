@@ -79,7 +79,6 @@ import haveno.core.payment.payload.VenmoAccountPayload;
 import haveno.core.payment.payload.VerseAccountPayload;
 import haveno.core.payment.payload.WeChatPayAccountPayload;
 import haveno.core.payment.payload.WesternUnionAccountPayload;
-import haveno.core.trade.statistics.TradeStatistics2;
 import haveno.core.trade.statistics.TradeStatistics3;
 import java.time.Clock;
 
@@ -250,8 +249,6 @@ public class CoreProtoResolver implements ProtoResolver {
             switch (proto.getMessageCase()) {
                 case ACCOUNT_AGE_WITNESS:
                     return AccountAgeWitness.fromProto(proto.getAccountAgeWitness());
-                case TRADE_STATISTICS2:
-                    return TradeStatistics2.fromProto(proto.getTradeStatistics2());
                 case SIGNED_WITNESS:
                     return SignedWitness.fromProto(proto.getSignedWitness());
                 case TRADE_STATISTICS3:

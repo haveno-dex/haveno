@@ -121,7 +121,7 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
     public final StringProperty price = new SimpleStringProperty();
     public final StringProperty triggerPrice = new SimpleStringProperty("");
     final StringProperty tradeFee = new SimpleStringProperty();
-    final StringProperty tradeFeeInBtcWithFiat = new SimpleStringProperty();
+    final StringProperty tradeFeeInXmrWithFiat = new SimpleStringProperty();
     final StringProperty tradeFeeCurrencyCode = new SimpleStringProperty();
     final StringProperty tradeFeeDescription = new SimpleStringProperty();
     final BooleanProperty isTradeFeeVisible = new SimpleBooleanProperty(false);
@@ -271,10 +271,10 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
                 () -> Res.get("createOffer.volume.prompt", dataModel.getTradeCurrencyCode().get()),
                 dataModel.getTradeCurrencyCode()));
 
-        totalToPay.bind(createStringBinding(() -> HavenoUtils.formatToXmrWithCode(dataModel.totalToPayAsProperty().get()),
+        totalToPay.bind(createStringBinding(() -> HavenoUtils.formatXmr(dataModel.totalToPayAsProperty().get(), true),
                 dataModel.totalToPayAsProperty()));
 
-        tradeAmount.bind(createStringBinding(() -> HavenoUtils.formatToXmrWithCode(dataModel.getAmount().get()),
+        tradeAmount.bind(createStringBinding(() -> HavenoUtils.formatXmr(dataModel.getAmount().get(), true),
                 dataModel.getAmount()));
 
         tradeCurrencyCode.bind(dataModel.getTradeCurrencyCode());
@@ -433,8 +433,8 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
 
         amountListener = (ov, oldValue, newValue) -> {
             if (newValue != null) {
-                amount.set(HavenoUtils.formatToXmr(newValue));
-                buyerSecurityDepositInBTC.set(HavenoUtils.formatToXmrWithCode(dataModel.getBuyerSecurityDeposit()));
+                amount.set(HavenoUtils.formatXmr(newValue));
+                buyerSecurityDepositInBTC.set(HavenoUtils.formatXmr(dataModel.getBuyerSecurityDeposit(), true));
             } else {
                 amount.set("");
                 buyerSecurityDepositInBTC.set("");
@@ -444,7 +444,7 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
         };
         minAmountListener = (ov, oldValue, newValue) -> {
             if (newValue != null)
-                minAmount.set(HavenoUtils.formatToXmr(newValue));
+                minAmount.set(HavenoUtils.formatXmr(newValue));
             else
                 minAmount.set("");
         };
@@ -473,7 +473,7 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
             if (newValue != null) {
                 buyerSecurityDeposit.set(FormattingUtils.formatToPercent((double) newValue));
                 if (dataModel.getAmount().get() != null) {
-                    buyerSecurityDepositInBTC.set(HavenoUtils.formatToXmrWithCode(dataModel.getBuyerSecurityDeposit()));
+                    buyerSecurityDepositInBTC.set(HavenoUtils.formatXmr(dataModel.getBuyerSecurityDeposit(), true));
                 }
                 updateBuyerSecurityDeposit();
             } else {
@@ -504,8 +504,8 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
         }
 
         isTradeFeeVisible.setValue(true);
-        tradeFee.set(HavenoUtils.formatToXmr(makerFee));
-        tradeFeeInBtcWithFiat.set(OfferViewModelUtil.getTradeFeeWithFiatEquivalent(offerUtil,
+        tradeFee.set(HavenoUtils.formatXmr(makerFee));
+        tradeFeeInXmrWithFiat.set(OfferViewModelUtil.getTradeFeeWithFiatEquivalent(offerUtil,
                 dataModel.getMakerFee(),
                 btcFormatter));
     }
@@ -659,8 +659,8 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
             updateButtonDisableState();
         } else {
             new Popup().warning(Res.get("shared.notEnoughFunds",
-                            HavenoUtils.formatToXmrWithCode(dataModel.totalToPayAsProperty().get()),
-                            HavenoUtils.formatToXmrWithCode(dataModel.getTotalBalance())))
+                            HavenoUtils.formatXmr(dataModel.totalToPayAsProperty().get(), true),
+                            HavenoUtils.formatXmr(dataModel.getTotalBalance(), true)))
                     .actionButtonTextWithGoTo("navigation.funds.depositFunds")
                     .onAction(() -> navigation.navigateTo(MainView.class, FundsView.class, DepositView.class))
                     .show();
@@ -680,7 +680,7 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
             if (result.isValid) {
                 setAmountToModel();
                 ignoreAmountStringListener = true;
-                amount.set(HavenoUtils.formatToXmr(dataModel.getAmount().get()));
+                amount.set(HavenoUtils.formatXmr(dataModel.getAmount().get()));
                 ignoreAmountStringListener = false;
                 dataModel.calculateVolume();
 
@@ -692,10 +692,10 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
                 if (minAmount.get() != null)
                     minAmountValidationResult.set(isXmrInputValid(minAmount.get()));
             } else if (amount.get() != null && xmrValidator.getMaxTradeLimit() != null && xmrValidator.getMaxTradeLimit().longValueExact() == OfferRestrictions.TOLERATED_SMALL_TRADE_AMOUNT.longValueExact()) {
-                amount.set(HavenoUtils.formatToXmr(xmrValidator.getMaxTradeLimit()));
+                amount.set(HavenoUtils.formatXmr(xmrValidator.getMaxTradeLimit()));
                 boolean isBuy = dataModel.getDirection() == OfferDirection.BUY;
                 new Popup().information(Res.get(isBuy ? "popup.warning.tradeLimitDueAccountAgeRestriction.buyer" : "popup.warning.tradeLimitDueAccountAgeRestriction.seller",
-                        HavenoUtils.formatToXmrWithCode(OfferRestrictions.TOLERATED_SMALL_TRADE_AMOUNT),
+                        HavenoUtils.formatXmr(OfferRestrictions.TOLERATED_SMALL_TRADE_AMOUNT, true),
                         Res.get("offerbook.warning.newVersionAnnouncement")))
                         .width(900)
                         .show();
@@ -732,7 +732,7 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
                     updateButtonDisableState();
                 }
 
-                this.minAmount.set(HavenoUtils.formatToXmr(minAmount));
+                this.minAmount.set(HavenoUtils.formatXmr(minAmount));
 
                 if (!dataModel.isMinAmountLessOrEqualAmount()) {
                     this.amount.set(this.minAmount.get());
@@ -990,7 +990,7 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
     }
 
     public String getSecurityDepositWithCode() {
-        return HavenoUtils.formatToXmrWithCode(dataModel.getSecurityDeposit());
+        return HavenoUtils.formatXmr(dataModel.getSecurityDeposit(), true);
     }
 
 
@@ -1219,7 +1219,7 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
 
         if (dataModel.isMinBuyerSecurityDeposit()) {
             buyerSecurityDepositLabel.set(Res.get("createOffer.minSecurityDepositUsed"));
-            buyerSecurityDeposit.set(HavenoUtils.formatToXmr(Restrictions.getMinBuyerSecurityDeposit()));
+            buyerSecurityDeposit.set(HavenoUtils.formatXmr(Restrictions.getMinBuyerSecurityDeposit()));
         } else {
             buyerSecurityDepositLabel.set(getSecurityDepositLabel());
             buyerSecurityDeposit.set(FormattingUtils.formatToPercent(dataModel.getBuyerSecurityDepositPct().get()));

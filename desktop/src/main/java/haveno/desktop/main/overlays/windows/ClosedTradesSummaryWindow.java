@@ -24,12 +24,12 @@ import haveno.core.locale.Res;
 import haveno.desktop.main.overlays.Overlay;
 import haveno.desktop.main.portfolio.closedtrades.ClosedTradesViewModel;
 import haveno.desktop.util.Layout;
-import org.bitcoinj.core.Coin;
 
 import javax.inject.Inject;
 
 import javafx.geometry.Insets;
 
+import java.math.BigInteger;
 import java.util.Map;
 
 public class ClosedTradesSummaryWindow extends Overlay<ClosedTradesSummaryWindow> {
@@ -66,7 +66,7 @@ public class ClosedTradesSummaryWindow extends Overlay<ClosedTradesSummaryWindow
         Map<String, String> totalVolumeByCurrency = model.getTotalVolumeByCurrency();
         int rowSpan = totalVolumeByCurrency.size() + 4;
         addTitledGroupBg(gridPane, rowIndex, rowSpan, Res.get("closedTradesSummaryWindow.headline"));
-        Coin totalTradeAmount = model.getTotalTradeAmount();
+        BigInteger totalTradeAmount = model.getTotalTradeAmount();
         addConfirmationLabelLabel(gridPane, rowIndex,
                 Res.get("closedTradesSummaryWindow.totalAmount.title"),
                 model.getTotalAmountWithVolume(totalTradeAmount), Layout.TWICE_FIRST_ROW_DISTANCE);
@@ -78,7 +78,7 @@ public class ClosedTradesSummaryWindow extends Overlay<ClosedTradesSummaryWindow
                 Res.get("closedTradesSummaryWindow.totalMinerFee.title"),
                 model.getTotalTxFee(totalTradeAmount));
         addConfirmationLabelLabel(gridPane, ++rowIndex,
-                Res.get("closedTradesSummaryWindow.totalTradeFeeInBtc.title"),
-                model.getTotalTradeFeeInBtc(totalTradeAmount));
+                Res.get("closedTradesSummaryWindow.totalTradeFeeInXmr.title"),
+                model.getTotalTradeFee(totalTradeAmount));
     }
 }

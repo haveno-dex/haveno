@@ -206,14 +206,14 @@ public class OfferDetailsWindow extends Overlay<OfferDetailsWindow> {
         String btcAmount = Res.get("shared.btcAmount");
         if (takeOfferHandlerOptional.isPresent()) {
             addConfirmationLabelLabel(gridPane, ++rowIndex, btcAmount + btcDirectionInfo,
-                    HavenoUtils.formatToXmrWithCode(tradeAmount));
+                    HavenoUtils.formatXmr(tradeAmount, true));
             addConfirmationLabelLabel(gridPane, ++rowIndex, VolumeUtil.formatVolumeLabel(currencyCode) + fiatDirectionInfo,
                     VolumeUtil.formatVolumeWithCode(offer.getVolumeByAmount(tradeAmount)));
         } else {
             addConfirmationLabelLabel(gridPane, ++rowIndex, btcAmount + btcDirectionInfo,
-                    HavenoUtils.formatToXmrWithCode(offer.getAmount()));
+                    HavenoUtils.formatXmr(offer.getAmount(), true));
             addConfirmationLabelLabel(gridPane, ++rowIndex, Res.get("offerDetailsWindow.minBtcAmount"),
-                    HavenoUtils.formatToXmrWithCode(offer.getMinAmount()));
+                    HavenoUtils.formatXmr(offer.getMinAmount(), true));
             String volume = VolumeUtil.formatVolumeWithCode(offer.getVolume());
             String minVolume = "";
             if (offer.getVolume() != null && offer.getMinVolume() != null &&
@@ -322,11 +322,11 @@ public class OfferDetailsWindow extends Overlay<OfferDetailsWindow> {
                 DisplayUtils.formatDateTime(offer.getDate()));
         String value = Res.getWithColAndCap("shared.buyer") +
                 " " +
-                HavenoUtils.formatToXmrWithCode(offer.getBuyerSecurityDeposit()) +
+                HavenoUtils.formatXmr(offer.getBuyerSecurityDeposit(), true) +
                 " / " +
                 Res.getWithColAndCap("shared.seller") +
                 " " +
-                HavenoUtils.formatToXmrWithCode(offer.getSellerSecurityDeposit());
+                HavenoUtils.formatXmr(offer.getSellerSecurityDeposit(), true);
         addConfirmationLabelLabel(gridPane, ++rowIndex, Res.get("shared.securityDeposit"), value);
 
         if (countryCode != null && !isF2F)

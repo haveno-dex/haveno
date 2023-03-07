@@ -134,7 +134,7 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
             priceCurrencyLabel, priceAsPercentageLabel,
             volumeCurrencyLabel, priceDescriptionLabel, volumeDescriptionLabel,
             waitingForFundsLabel, offerAvailabilityLabel, priceAsPercentageDescription,
-            tradeFeeDescriptionLabel, resultLabel, tradeFeeInBtcLabel, xLabel,
+            tradeFeeDescriptionLabel, resultLabel, tradeFeeInXmrLabel, xLabel,
             fakeXLabel;
     private InputTextField amountTextField;
     private TextField paymentMethodTextField, currencyTextField, priceTextField, priceAsPercentageTextField,
@@ -204,7 +204,7 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
             if (newValue) {
                 Notification walletFundedNotification = new Notification()
                         .headLine(Res.get("notification.walletUpdate.headline"))
-                        .notification(Res.get("notification.walletUpdate.msg", HavenoUtils.formatToXmrWithCode(model.dataModel.getTotalToPay().get())))
+                        .notification(Res.get("notification.walletUpdate.msg", HavenoUtils.formatXmr(model.dataModel.getTotalToPay().get(), true)))
                         .autoClose();
 
                 walletFundedNotification.show();
@@ -477,7 +477,7 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
             if (walletFundedNotification == null) {
                 walletFundedNotification = new Notification()
                         .headLine(Res.get("notification.walletUpdate.headline"))
-                        .notification(Res.get("notification.takeOffer.walletUpdate.msg", HavenoUtils.formatToXmrWithCode(model.dataModel.getTotalToPay().get())))
+                        .notification(Res.get("notification.takeOffer.walletUpdate.msg", HavenoUtils.formatXmr(model.dataModel.getTotalToPay().get(), true)))
                         .autoClose();
                 walletFundedNotification.show();
             }
@@ -543,9 +543,9 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
         priceCurrencyLabel.textProperty().bind(createStringBinding(() -> CurrencyUtil.getCounterCurrency(model.dataModel.getCurrencyCode())));
         priceAsPercentageLabel.prefWidthProperty().bind(priceCurrencyLabel.widthProperty());
         nextButton.disableProperty().bind(model.isNextButtonDisabled);
-        tradeFeeInBtcLabel.textProperty().bind(model.tradeFeeInXmrWithFiat);
+        tradeFeeInXmrLabel.textProperty().bind(model.tradeFeeInXmrWithFiat);
         tradeFeeDescriptionLabel.textProperty().bind(model.tradeFeeDescription);
-        tradeFeeInBtcLabel.visibleProperty().bind(model.isTradeFeeVisible);
+        tradeFeeInXmrLabel.visibleProperty().bind(model.isTradeFeeVisible);
         tradeFeeDescriptionLabel.visibleProperty().bind(model.isTradeFeeVisible);
         tradeFeeDescriptionLabel.managedProperty().bind(tradeFeeDescriptionLabel.visibleProperty());
 
@@ -567,9 +567,9 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
         priceCurrencyLabel.textProperty().unbind();
         priceAsPercentageLabel.prefWidthProperty().unbind();
         nextButton.disableProperty().unbind();
-        tradeFeeInBtcLabel.textProperty().unbind();
+        tradeFeeInXmrLabel.textProperty().unbind();
         tradeFeeDescriptionLabel.textProperty().unbind();
-        tradeFeeInBtcLabel.visibleProperty().unbind();
+        tradeFeeInXmrLabel.visibleProperty().unbind();
         tradeFeeDescriptionLabel.visibleProperty().unbind();
         tradeFeeDescriptionLabel.managedProperty().unbind();
 
@@ -1057,15 +1057,15 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
     }
 
     private VBox getTradeFeeFieldsBox() {
-        tradeFeeInBtcLabel = new Label();
-        tradeFeeInBtcLabel.setMouseTransparent(true);
-        tradeFeeInBtcLabel.setId("trade-fee-textfield");
+        tradeFeeInXmrLabel = new Label();
+        tradeFeeInXmrLabel.setMouseTransparent(true);
+        tradeFeeInXmrLabel.setId("trade-fee-textfield");
 
         VBox vBox = new VBox();
         vBox.setSpacing(6);
         vBox.setMaxWidth(300);
         vBox.setAlignment(Pos.CENTER_LEFT);
-        vBox.getChildren().addAll(tradeFeeInBtcLabel);
+        vBox.getChildren().addAll(tradeFeeInXmrLabel);
         
         HBox hBox = new HBox();
         hBox.getChildren().addAll(vBox);

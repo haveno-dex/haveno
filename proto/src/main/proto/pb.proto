@@ -36,44 +36,34 @@ message NetworkEnvelope {
         CloseConnectionMessage close_connection_message = 15;
         PrefixedSealedAndSignedMessage prefixed_sealed_and_signed_message = 16;
 
-        InputsForDepositTxRequest inputs_for_deposit_tx_request = 17;
-        InputsForDepositTxResponse inputs_for_deposit_tx_response = 18;
-        DepositTxMessage deposit_tx_message = 19;
+        PrivateNotificationMessage private_notification_message = 17;
 
-        DisputeOpenedMessage dispute_opened_message = 20;
-        DisputeClosedMessage dispute_closed_message = 21;
-        ChatMessage chat_message = 22;
+        AddPersistableNetworkPayloadMessage add_persistable_network_payload_message = 18;
+        AckMessage ack_message = 19;
 
-        PrivateNotificationMessage private_notification_message = 23;
+        BundleOfEnvelopes bundle_of_envelopes = 20;
 
-        AddPersistableNetworkPayloadMessage add_persistable_network_payload_message = 24;
-        AckMessage ack_message = 25;
+        GetInventoryRequest get_inventory_request = 21;
+        GetInventoryResponse get_inventory_response = 22;
 
-        BundleOfEnvelopes bundle_of_envelopes = 26;
-        MediatedPayoutTxSignatureMessage mediated_payout_tx_signature_message = 27;
-        MediatedPayoutTxPublishedMessage mediated_payout_tx_published_message = 28;
+        SignOfferRequest sign_offer_request = 23;
+        SignOfferResponse sign_offer_response = 24;
+        InitTradeRequest init_trade_request = 25;
+        InitMultisigRequest init_multisig_request = 26;
+        SignContractRequest sign_contract_request = 27;
+        SignContractResponse sign_contract_response = 28;
+        DepositRequest deposit_request = 29;
+        DepositResponse deposit_response = 30;
+        DepositsConfirmedMessage deposits_confirmed_message = 31;
+        PaymentSentMessage payment_sent_message = 32;
+        PaymentReceivedMessage payment_received_message = 33;
 
-        DelayedPayoutTxSignatureRequest delayed_payout_tx_signature_request = 29;
-        DelayedPayoutTxSignatureResponse delayed_payout_tx_signature_response = 30;
-        DepositTxAndDelayedPayoutTxMessage deposit_tx_and_delayed_payout_tx_message = 31;
-        PeerPublishedDelayedPayoutTxMessage peer_published_delayed_payout_tx_message = 32;
+        DisputeOpenedMessage dispute_opened_message = 34;
+        DisputeClosedMessage dispute_closed_message = 35;
+        ChatMessage chat_message = 36;
 
-        RefreshTradeStateRequest refresh_trade_state_request = 33 [deprecated = true];
-
-        GetInventoryRequest get_inventory_request = 35;
-        GetInventoryResponse get_inventory_response = 36;
-
-        SignOfferRequest sign_offer_request = 1001;
-        SignOfferResponse sign_offer_response = 1002;
-        InitTradeRequest init_trade_request = 1003;
-        InitMultisigRequest init_multisig_request = 1004;
-        SignContractRequest sign_contract_request = 1005;
-        SignContractResponse sign_contract_response = 1006;
-        DepositRequest deposit_request = 1007;
-        DepositResponse deposit_response = 1008;
-        DepositsConfirmedMessage deposits_confirmed_message = 1009;
-        PaymentSentMessage payment_sent_message = 1010;
-        PaymentReceivedMessage payment_received_message = 1011;
+        MediatedPayoutTxSignatureMessage mediated_payout_tx_signature_message = 37;
+        MediatedPayoutTxPublishedMessage mediated_payout_tx_published_message = 38;
     }
 }
 
@@ -223,50 +213,6 @@ message PrefixedSealedAndSignedMessage {
     string uid = 4;
 }
 
-message InputsForDepositTxRequest {
-    string trade_id = 1;
-    NodeAddress sender_node_address = 2;
-    int64 trade_amount = 3;
-    int64 trade_price = 4;
-    int64 tx_fee = 5;
-    int64 taker_fee = 6;
-    repeated RawTransactionInput raw_transaction_inputs = 7;
-    int64 change_output_value = 8;
-    string change_output_address = 9;
-    bytes taker_multi_sig_pub_key = 10;
-    string taker_payout_address_string = 11;
-    PubKeyRing taker_pub_key_ring = 12;
-    PaymentAccountPayload taker_payment_account_payload = 13;
-    string taker_account_id = 14;
-    string taker_fee_tx_id = 15;
-    repeated NodeAddress accepted_arbitrator_node_addresses = 16;
-    repeated NodeAddress accepted_mediator_node_addresses = 17;
-    NodeAddress arbitrator_node_address = 18;
-    NodeAddress mediator_node_address = 29;
-    string uid = 20;
-    bytes account_age_witness_signature_of_offer_id = 21;
-    int64 current_date = 22;
-    repeated NodeAddress accepted_refund_agent_node_addresses = 23;
-    NodeAddress refund_agent_node_address = 24;
-}
-
-message InputsForDepositTxResponse {
-    string trade_id = 1;
-    PaymentAccountPayload maker_payment_account_payload = 2;
-    string maker_account_id = 3;
-    string maker_contract_as_json = 4;
-    string maker_contract_signature = 5;
-    string maker_payout_address_string = 6;
-    bytes prepared_deposit_tx = 7;
-    repeated RawTransactionInput maker_inputs = 8;
-    bytes maker_multi_sig_pub_key = 9;
-    NodeAddress sender_node_address = 10;
-    string uid = 11;
-    bytes account_age_witness_signature_of_prepared_deposit_tx = 12;
-    int64 current_date = 13;
-    int64 lock_time = 14;
-}
-
 message InitTradeRequest {
     string trade_id = 1;
     NodeAddress sender_node_address = 2;
@@ -345,47 +291,6 @@ message DepositsConfirmedMessage {
     string updated_multisig_hex = 6;
 }
 
-message DelayedPayoutTxSignatureRequest {
-    string uid = 1;
-    string trade_id = 2;
-    NodeAddress sender_node_address = 3;
-    bytes delayed_payout_tx = 4;
-    bytes delayed_payout_tx_seller_signature = 5;
-}
-
-message DelayedPayoutTxSignatureResponse {
-    string uid = 1;
-    string trade_id = 2;
-    NodeAddress sender_node_address = 3;
-    bytes delayed_payout_tx_buyer_signature = 4;
-    bytes deposit_tx = 5;
-}
-
-message DepositTxAndDelayedPayoutTxMessage {
-    string uid = 1;
-    string trade_id = 2;
-    NodeAddress sender_node_address = 3;
-    bytes deposit_tx = 4;
-    bytes delayed_payout_tx = 5;
-}
-
-message DepositTxMessage {
-    string uid = 1;
-    string trade_id = 2;
-    NodeAddress sender_node_address = 3;
-    bytes deposit_tx_without_witnesses = 4;
-    PubKeyRing pub_key_ring = 100;
-    reserved 5; // WAS: bytes deposit_tx = 101;
-    string trade_fee_tx_id = 102;
-    string deposit_tx_id = 103;
-}
-
-message PeerPublishedDelayedPayoutTxMessage {
-    string uid = 1;
-    string trade_id = 2;
-    NodeAddress sender_node_address = 3;
-}
-
 message PaymentSentMessage {
     string trade_id = 1;
     NodeAddress sender_node_address = 2;
@@ -425,13 +330,6 @@ message MediatedPayoutTxSignatureMessage {
     string trade_id = 3;
     bytes tx_signature = 2;
     NodeAddress sender_node_address = 4;
-}
-
-// Deprecated since 1.4.0
-message RefreshTradeStateRequest {
-    string uid = 1 [deprecated = true];
-    string trade_id = 2 [deprecated = true];
-    NodeAddress sender_node_address = 3 [deprecated = true];
 }
 
 message ChatMessage {
@@ -507,7 +405,6 @@ message Peer {
 message PubKeyRing {
     bytes signature_pub_key_bytes = 1;
     bytes encryption_pub_key_bytes = 2;
-    reserved 3; // WAS: string pgp_pub_key_as_pem = 3;
 }
 
 message SealedAndSigned {
@@ -525,21 +422,17 @@ message StoragePayload {
         Arbitrator arbitrator = 2;
         Mediator mediator = 3;
         Filter filter = 4;
-
-        // TradeStatistics trade_statistics = 5 [deprecated = true]; Removed in v.1.4.0
-
-        MailboxStoragePayload mailbox_storage_payload = 6;
-        OfferPayload offer_payload = 7;
-        RefundAgent refund_agent = 8;
+        MailboxStoragePayload mailbox_storage_payload = 5;
+        OfferPayload offer_payload = 6;
+        RefundAgent refund_agent = 7;
     }
 }
 
 message PersistableNetworkPayload {
     oneof message {
         AccountAgeWitness account_age_witness = 1;
-        TradeStatistics2 trade_statistics2 = 2 [deprecated = true];
-        SignedWitness signed_witness = 3;
-        TradeStatistics3 trade_statistics3 = 4;
+        SignedWitness signed_witness = 2;
+        TradeStatistics3 trade_statistics3 = 3;
     }
 }
 
@@ -686,42 +579,17 @@ message Filter {
     bool disable_mempool_validation = 26;
 }
 
-// Deprecated
-message TradeStatistics2 {
-    string base_currency = 1 [deprecated = true];
-    string counter_currency = 2 [deprecated = true];
-    OfferDirection direction = 3 [deprecated = true];
-    int64 trade_price = 4 [deprecated = true];
-    int64 trade_amount = 5 [deprecated = true];
-    int64 trade_date = 6 [deprecated = true];
-    string payment_method_id = 7 [deprecated = true];
-    int64 offer_date = 8 [deprecated = true];
-    bool offer_use_market_based_price = 9 [deprecated = true];
-    double offer_market_price_margin = 10 [deprecated = true];
-    int64 offer_amount = 11 [deprecated = true];
-    int64 offer_min_amount = 12 [deprecated = true];
-    string offer_id = 13 [deprecated = true];
-    string deposit_tx_id = 14 [deprecated = true];
-    bytes hash = 15 [deprecated = true];
-    map<string, string> extra_data = 16 [deprecated = true];
-    string maker_deposit_tx_id = 100;
-    string taker_deposit_tx_id = 101;
-}
-
 message TradeStatistics3 {
     string currency = 1;
     int64 price = 2;
     int64 amount = 3;
     string payment_method = 4;
     int64 date = 5;
-    reserved 6; // was string mediator = 6;
-    reserved 7; // was string refund_agent = 7;
-    bytes hash = 8;
-    map<string, string> extra_data = 9;
-
-    string arbitrator = 100;
-    string maker_deposit_tx_id = 101;
-    string taker_deposit_tx_id = 102;
+    string arbitrator = 6;
+    bytes hash = 7;
+    string maker_deposit_tx_id = 8;
+    string taker_deposit_tx_id = 9;
+    map<string, string> extra_data = 10;
 }
 
 message MailboxStoragePayload {
@@ -900,25 +768,23 @@ message Contract {
     OfferPayload offer_payload = 1;
     int64 trade_amount = 2;
     int64 trade_price = 3;
-    reserved 4;	// WAS: taker_fee_tx_id
-    reserved 5; // WAS: arbitrator_node_address
-    bool is_buyer_maker_and_seller_taker = 6;
-    string maker_account_id = 7;
-    string taker_account_id = 8;
-    string maker_payment_method_id = 9;
-    string taker_payment_method_id = 10;
-    bytes maker_payment_account_payload_hash = 11;
-    bytes taker_payment_account_payload_hash = 12;
-    PubKeyRing maker_pub_key_ring = 13;
-    PubKeyRing taker_pub_key_ring = 14;
-    NodeAddress buyer_node_address = 15;
-    NodeAddress seller_node_address = 16;
-    string maker_payout_address_string = 17;
-    string taker_payout_address_string = 18;
-    NodeAddress arbitrator_node_address = 19;
+    NodeAddress arbitrator_node_address = 4;
+    bool is_buyer_maker_and_seller_taker = 5;
+    string maker_account_id = 6;
+    string taker_account_id = 7;
+    string maker_payment_method_id = 8;
+    string taker_payment_method_id = 9;
+    bytes maker_payment_account_payload_hash = 10;
+    bytes taker_payment_account_payload_hash = 11;
+    PubKeyRing maker_pub_key_ring = 12;
+    PubKeyRing taker_pub_key_ring = 13;
+    NodeAddress buyer_node_address = 14;
+    NodeAddress seller_node_address = 15;
+    string maker_payout_address_string = 16;
+    string taker_payout_address_string = 17;
+    string maker_deposit_tx_hash = 18;
+    string taker_deposit_tx_hash = 19;
     int64 lock_time = 20;
-    string maker_deposit_tx_hash = 21;
-    string taker_deposit_tx_hash = 22;
 }
 
 message RawTransactionInput {
@@ -953,19 +819,20 @@ enum AvailabilityResult {
 message PaymentAccountPayload {
     string id = 1;
     string payment_method_id = 2;
-    int64 max_trade_period = 3 [deprecated = true]; // not used anymore but we need to keep it in PB for backward compatibility
+    int64 max_trade_period = 3; // not used
+    map<string, string> exclude_from_json_data = 4;
     oneof message {
-        AliPayAccountPayload ali_pay_account_payload = 4;
-        ChaseQuickPayAccountPayload chase_quick_pay_account_payload = 5;
-        ClearXchangeAccountPayload clear_xchange_account_payload = 6;
-        CountryBasedPaymentAccountPayload country_based_payment_account_payload = 7;
-        CryptoCurrencyAccountPayload crypto_currency_account_payload = 8;
-        FasterPaymentsAccountPayload faster_payments_account_payload = 9;
-        InteracETransferAccountPayload interac_e_transfer_account_payload = 10;
-        OKPayAccountPayload o_k_pay_account_payload = 11 [deprecated = true];
-        PerfectMoneyAccountPayload perfect_money_account_payload = 12;
-        SwishAccountPayload swish_account_payload = 13;
-        USPostalMoneyOrderAccountPayload u_s_postal_money_order_account_payload = 14;
+        AliPayAccountPayload ali_pay_account_payload = 5;
+        ChaseQuickPayAccountPayload chase_quick_pay_account_payload = 6;
+        ClearXchangeAccountPayload clear_xchange_account_payload = 7;
+        CountryBasedPaymentAccountPayload country_based_payment_account_payload = 8;
+        CryptoCurrencyAccountPayload crypto_currency_account_payload = 9;
+        FasterPaymentsAccountPayload faster_payments_account_payload = 10;
+        InteracETransferAccountPayload interac_e_transfer_account_payload = 11;
+        OKPayAccountPayload o_k_pay_account_payload = 12 [deprecated = true];
+        PerfectMoneyAccountPayload perfect_money_account_payload = 13;
+        SwishAccountPayload swish_account_payload = 14;
+        USPostalMoneyOrderAccountPayload u_s_postal_money_order_account_payload = 15;
         UpholdAccountPayload uphold_account_payload = 16;
         CashAppAccountPayload cash_app_account_payload = 17 [deprecated = true];
         MoneyBeamAccountPayload money_beam_account_payload = 18;
@@ -991,7 +858,6 @@ message PaymentAccountPayload {
         MoneseAccountPayload monese_account_payload = 38;
         VerseAccountPayload verse_account_payload = 39;
     }
-    map<string, string> exclude_from_json_data = 15;
 }
 
 message AliPayAccountPayload {
@@ -1339,33 +1205,27 @@ message SwiftAccountPayload {
 message PersistableEnvelope {
     oneof message {
         SequenceNumberMap sequence_number_map = 1;
-        PersistedEntryMap persisted_entry_map = 2 [deprecated = true];
-        PeerList peer_list = 3;
-        AddressEntryList address_entry_list = 4;
-        NavigationPath navigation_path = 5;
+        PeerList peer_list = 2;
+        AddressEntryList address_entry_list = 3;
+        NavigationPath navigation_path = 4;
 
-        TradableList tradable_list = 6;
+        TradableList tradable_list = 5;
 
-        // TradeStatisticsList trade_statistics_list = 7; Deprecated, Was used in pre v0.6.0 version. Not used anymore.
+        ArbitrationDisputeList arbitration_dispute_list = 6;
 
-        ArbitrationDisputeList arbitration_dispute_list = 8;
+        PreferencesPayload preferences_payload = 7;
+        UserPayload user_payload = 8;
+        PaymentAccountList payment_account_list = 9;
 
-        PreferencesPayload preferences_payload = 9;
-        UserPayload user_payload = 10;
-        PaymentAccountList payment_account_list = 11;
+        AccountAgeWitnessStore account_age_witness_store = 10;
 
-        AccountAgeWitnessStore account_age_witness_store = 12;
-        TradeStatistics2Store trade_statistics2_store = 13 [deprecated = true];
-
-        // PersistableNetworkPayloadList persistable_network_payload_list = 14; // long deprecated & migration away from it is already done
-
-        SignedWitnessStore signed_witness_store = 15;
-        MediationDisputeList mediation_dispute_list = 16;
-        RefundDisputeList refund_dispute_list = 17;
-        TradeStatistics3Store trade_statistics3_store = 18;
-        MailboxMessageList mailbox_message_list = 19;
-        IgnoredMailboxMap ignored_mailbox_map = 20;
-        RemovedPayloadsMap removed_payloads_map = 21;
+        SignedWitnessStore signed_witness_store = 11;
+        MediationDisputeList mediation_dispute_list = 12;
+        RefundDisputeList refund_dispute_list = 13;
+        TradeStatistics3Store trade_statistics3_store = 14;
+        MailboxMessageList mailbox_message_list = 15;
+        IgnoredMailboxMap ignored_mailbox_map = 16;
+        RemovedPayloadsMap removed_payloads_map = 17;
 
         XmrAddressEntryList xmr_address_entry_list = 1001;
         SignedOfferList signed_offer_list = 1002;
@@ -1391,11 +1251,6 @@ message MapValue {
     int64 time_stamp = 2;
 }
 
-// deprecated. Not used anymore.
-message PersistedEntryMap {
-    map<string, ProtectedStorageEntry> persisted_entry_map = 1;
-}
-
 // We use a list not a hash map to save disc space. The hash can be calculated from the payload anyway
 message AccountAgeWitnessStore {
     repeated AccountAgeWitness items = 1;
@@ -1403,12 +1258,6 @@ message AccountAgeWitnessStore {
 
 message SignedWitnessStore {
     repeated SignedWitness items = 1;
-}
-
-// We use a list not a hash map to save disc space. The hash can be calculated from the payload anyway
-// Deprecated
-message TradeStatistics2Store {
-    repeated TradeStatistics2 items = 1 [deprecated = true];
 }
 
 message TradeStatistics3Store {
@@ -1626,8 +1475,8 @@ message Trade {
     string payout_tx_id = 3;
     string payout_tx_hex = 4;
     string payout_tx_key = 5;
-    int64 amount_as_long = 6;
-    int64 taker_fee_as_long = 8;
+    int64 amount = 6;
+    int64 taker_fee = 8;
     int64 take_offer_date = 9;
     int64 price = 10;
     State state = 11;
@@ -1673,38 +1522,27 @@ message ArbitratorTrade {
 }
 
 message ProcessModel {
-    reserved 1;	 // Not used anymore
-    string offer_id = 2;
-    string account_id = 3;
-    PubKeyRing pub_key_ring = 4;
-    string take_offer_fee_tx_id = 5;
-    bytes payout_tx_signature = 6;
-    reserved 7; // Not used anymore
-    reserved 8; // Not used anymore
-    reserved 9;	// Not used anymore
-    repeated RawTransactionInput raw_transaction_inputs = 10;
-    int64 change_output_value = 11;
-    string change_output_address = 12;
-    bool use_savings_wallet = 13;
-    int64 funds_needed_for_trade_as_long = 14;
-    bytes my_multi_sig_pub_key = 15;
-    reserved 16;	 // Not used anymore
-    string payment_sent_message_state = 17;
-    bytes mediated_payout_tx_signature = 18;
-    int64 buyer_payout_amount_from_mediation = 19;
-    int64 seller_payout_amount_from_mediation = 20;
-    bool deposits_confirmed_messages_delivered = 21;
-
-    string maker_signature = 1001;
-    TradePeer maker = 1002;
-    TradePeer taker = 1003;
-    TradePeer arbitrator = 1004;
-    NodeAddress temp_trade_peer_node_address = 1005;
-    string multisig_address = 1006;
-
-    PaymentSentMessage payment_sent_message = 1012;
-    PaymentReceivedMessage payment_received_message = 1013;
-    DisputeClosedMessage dispute_closed_message = 1014;
+    string offer_id = 1;
+    string account_id = 2;
+    PubKeyRing pub_key_ring = 3;
+    string take_offer_fee_tx_id = 4;
+    bytes payout_tx_signature = 5;
+    bool use_savings_wallet = 6;
+    int64 funds_needed_for_trade = 7;
+    string payment_sent_message_state = 8;
+    bool deposits_confirmed_messages_delivered = 9;
+    string maker_signature = 10;
+    TradePeer maker = 11;
+    TradePeer taker = 12;
+    TradePeer arbitrator = 13;
+    NodeAddress temp_trade_peer_node_address = 14;
+    string multisig_address = 15;
+    PaymentSentMessage payment_sent_message = 16;
+    PaymentReceivedMessage payment_received_message = 17;
+    DisputeClosedMessage dispute_closed_message = 18;
+    bytes mediated_payout_tx_signature = 19; // placeholder if mediation used in future
+    int64 buyer_payout_amount_from_mediation = 20;
+    int64 seller_payout_amount_from_mediation = 21;
 }
 
 message TradePeer {
@@ -1839,40 +1677,39 @@ message PreferencesPayload {
     string bitcoin_nodes = 26;
     repeated string ignore_traders_list = 27;
     string directory_chooser_path = 28;
-    int64 buyer_security_deposit_as_long = 29 [deprecated = true]; // Superseded by buyerSecurityDepositAsPercent
-    bool use_animations = 30;
-    PaymentAccount selectedPayment_account_for_createOffer = 31;
-    repeated string bridge_addresses = 32;
-    int32 bridge_option_ordinal = 33;
-    int32 tor_transport_ordinal = 34;
-    string custom_bridges = 35;
-    int32 bitcoin_nodes_option_ordinal = 36;
-    string referral_id = 37;
-    string phone_key_and_token = 38;
-    bool use_sound_for_mobile_notifications = 39;
-    bool use_trade_notifications = 40;
-    bool use_market_notifications = 41;
-    bool use_price_notifications = 42;
-    bool use_standby_mode = 43;
-    string rpc_user = 44;
-    string rpc_pw = 45;
-    string take_offer_selected_payment_account_id = 46;
-    double buyer_security_deposit_as_percent = 47;
-    int32 ignore_dust_threshold = 48;
-    double buyer_security_deposit_as_percent_for_crypto = 49;
-    int32 block_notify_port = 50;
-    int32 css_theme = 51;
-    bool tac_accepted_v120 = 52;
-    repeated AutoConfirmSettings auto_confirm_settings = 53;
-    double bsq_average_trim_threshold = 54;
-    bool hide_non_account_payment_methods = 55;
-    bool show_offers_matching_my_accounts = 56;
-    bool deny_api_taker = 57;
-    bool notify_on_pre_release = 58;
-    MoneroNodeSettings monero_node_settings = 59;
-    int32 clear_data_after_days = 60;
-    string buy_screen_crypto_currency_code = 61;
-    string sell_screen_crypto_currency_code = 62;
+    bool use_animations = 29;
+    PaymentAccount selectedPayment_account_for_createOffer = 30;
+    repeated string bridge_addresses = 31;
+    int32 bridge_option_ordinal = 32;
+    int32 tor_transport_ordinal = 33;
+    string custom_bridges = 34;
+    int32 bitcoin_nodes_option_ordinal = 35;
+    string referral_id = 36;
+    string phone_key_and_token = 37;
+    bool use_sound_for_mobile_notifications = 38;
+    bool use_trade_notifications = 39;
+    bool use_market_notifications = 40;
+    bool use_price_notifications = 41;
+    bool use_standby_mode = 42;
+    string rpc_user = 43;
+    string rpc_pw = 44;
+    string take_offer_selected_payment_account_id = 45;
+    double buyer_security_deposit_as_percent = 46;
+    int32 ignore_dust_threshold = 47;
+    double buyer_security_deposit_as_percent_for_crypto = 48;
+    int32 block_notify_port = 49;
+    int32 css_theme = 50;
+    bool tac_accepted_v120 = 51;
+    repeated AutoConfirmSettings auto_confirm_settings = 52;
+    double bsq_average_trim_threshold = 53;
+    bool hide_non_account_payment_methods = 54;
+    bool show_offers_matching_my_accounts = 55;
+    bool deny_api_taker = 56;
+    bool notify_on_pre_release = 57;
+    MoneroNodeSettings monero_node_settings = 58;
+    int32 clear_data_after_days = 59;
+    string buy_screen_crypto_currency_code = 60;
+    string sell_screen_crypto_currency_code = 61;
 }
 
 message AutoConfirmSettings {

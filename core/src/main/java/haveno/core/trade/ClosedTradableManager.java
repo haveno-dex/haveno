@@ -214,20 +214,20 @@ public class ClosedTradableManager implements PersistedDataHost {
                 .count();
     }
 
-    public Coin getTotalTradeFee(List<Tradable> tradableList) {
-        return Coin.valueOf(tradableList.stream()
-                .mapToLong(tradable -> getTradeFee(tradable))
+    public BigInteger getTotalTradeFee(List<Tradable> tradableList) {
+        return BigInteger.valueOf(tradableList.stream()
+                .mapToLong(tradable -> getTradeFee(tradable).longValueExact())
                 .sum());
     }
 
-    private long getTradeFee(Tradable tradable) {
-        return getBtcTradeFee(tradable);
+    private BigInteger getTradeFee(Tradable tradable) {
+        return getXmrTradeFee(tradable);
     }
 
-    public long getBtcTradeFee(Tradable tradable) {
+    public BigInteger getXmrTradeFee(Tradable tradable) {
         return isMaker(tradable) ?
-                tradable.getOptionalMakerFee().orElse(BigInteger.valueOf(0)).longValueExact() :
-                tradable.getOptionalTakerFee().orElse(BigInteger.valueOf(0)).longValueExact();
+                tradable.getOptionalMakerFee().orElse(BigInteger.valueOf(0)) :
+                tradable.getOptionalTakerFee().orElse(BigInteger.valueOf(0));
     }
 
     public boolean isMaker(Tradable tradable) {

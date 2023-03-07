@@ -45,7 +45,7 @@ public class OfferViewModelUtil {
                                                                     BigInteger tradeAmount,
                                                                     CoinFormatter formatter,
                                                                     BigInteger minTradeFee) {
-        String feeAsBtc = HavenoUtils.formatToXmrWithCode(tradeFee);
+        String feeAsBtc = HavenoUtils.formatXmr(tradeFee, true);
         String percentage;
         if (tradeFee.compareTo(minTradeFee) <= 0) {
             percentage = Res.get("guiUtil.requiredMinimum")

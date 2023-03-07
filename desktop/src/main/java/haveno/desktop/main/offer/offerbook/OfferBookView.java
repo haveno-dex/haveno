@@ -1185,7 +1185,7 @@ abstract public class OfferBookView<R extends GridPane, M extends OfferBookViewM
                 Res.get("offerbook.timeSinceSigning"),
                 Res.get("offerbook.timeSinceSigning.help",
                         SignedWitnessService.SIGNER_AGE_DAYS,
-                        HavenoUtils.formatToXmrWithCode(OfferRestrictions.TOLERATED_SMALL_TRADE_AMOUNT))) {
+                        HavenoUtils.formatXmr(OfferRestrictions.TOLERATED_SMALL_TRADE_AMOUNT, true))) {
             {
                 setMinWidth(60);
                 setSortable(true);

@@ -33,7 +33,6 @@ import haveno.core.offer.OfferFilterService.Result;
 import haveno.core.payment.PaymentAccount;
 import haveno.core.user.User;
 import haveno.core.util.PriceUtil;
-import org.bitcoinj.core.Coin;
 import org.bitcoinj.core.Transaction;
 import org.bitcoinj.utils.Fiat;
 
@@ -184,14 +183,12 @@ public class CoreOffersService {
         Price price = priceAsString.isEmpty() ? null : Price.valueOf(upperCaseCurrencyCode, priceStringToLong(priceAsString, upperCaseCurrencyCode));
         BigInteger amount = BigInteger.valueOf(amountAsLong);
         BigInteger minAmount = BigInteger.valueOf(minAmountAsLong);
-        Coin useDefaultTxFee = Coin.ZERO;
         Offer offer = createOfferService.createAndGetOffer(offerId,
                 direction,
                 upperCaseCurrencyCode,
                 amount,
                 minAmount,
                 price,
-                useDefaultTxFee,
                 useMarketBasedPrice,
                 exactMultiply(marketPriceMargin, 0.01),
                 buyerSecurityDeposit,
@@ -219,14 +216,12 @@ public class CoreOffersService {
                     BigInteger minAmount,
                     double buyerSecurityDeposit,
                     PaymentAccount paymentAccount) {
-        Coin useDefaultTxFee = Coin.ZERO;
         return createOfferService.createAndGetOffer(offerId,
                 direction,
                 currencyCode.toUpperCase(),
                 amount,
                 minAmount,
                 price,
-                useDefaultTxFee,
                 useMarketBasedPrice,
                 exactMultiply(marketPriceMargin, 0.01),
                 buyerSecurityDeposit,

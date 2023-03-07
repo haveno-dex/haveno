@@ -54,7 +54,7 @@ class ClosedTradeTableBuilder extends AbstractTradeListBuilder {
             colMarket.addRow(toMarket.apply(t));
             colPrice.addRow(t.getPrice());
             colPriceDeviation.addRow(toPriceDeviation.apply(t));
-            colAmount.addRow(t.getAmountAsLong());
+            colAmount.addRow(t.getAmount());
             colMixedAmount.addRow(t.getTradeVolume());
             colCurrency.addRow(toPaymentCurrencyCode.apply(t));
 

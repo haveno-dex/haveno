@@ -37,14 +37,14 @@ public final class TradeInfoV1Builder {
     private long date;
     private String role;
     private boolean isCurrencyForTakerFeeBtc;
-    private long txFeeAsLong;
-    private long takerFeeAsLong;
+    private long totalTxFee;
+    private long takerFee;
     private long buyerSecurityDeposit;
     private long sellerSecurityDeposit;
     private String makerDepositTxId;
     private String takerDepositTxId;
     private String payoutTxId;
-    private long amountAsLong;
+    private long amount;
     private String price;
     private String volume;
     private String arbitratorNodeAddress;
@@ -97,13 +97,13 @@ public final class TradeInfoV1Builder {
         return this;
     }
 
-    public TradeInfoV1Builder withTxFeeAsLong(long txFeeAsLong) {
-        this.txFeeAsLong = txFeeAsLong;
+    public TradeInfoV1Builder withTotalTxFee(long totalTxFee) {
+        this.totalTxFee = totalTxFee;
         return this;
     }
 
-    public TradeInfoV1Builder withTakerFeeAsLong(long takerFeeAsLong) {
-        this.takerFeeAsLong = takerFeeAsLong;
+    public TradeInfoV1Builder withTakerFee(long takerFee) {
+        this.takerFee = takerFee;
         return this;
     }
 
@@ -132,8 +132,8 @@ public final class TradeInfoV1Builder {
         return this;
     }
 
-    public TradeInfoV1Builder withAmountAsLong(long amountAsLong) {
-        this.amountAsLong = amountAsLong;
+    public TradeInfoV1Builder withAmount(long amount) {
+        this.amount = amount;
         return this;
     }
 

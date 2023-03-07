@@ -66,14 +66,14 @@ class DepositListItem {
             @Override
             public void onBalanceChanged(BigInteger balance) {
                 DepositListItem.this.balanceAsBI = balance;
-                DepositListItem.this.balance.set(HavenoUtils.formatToXmr(balanceAsBI));
+                DepositListItem.this.balance.set(HavenoUtils.formatXmr(balanceAsBI));
                 updateUsage(addressEntry.getSubaddressIndex(), null);
             }
         };
         xmrWalletService.addBalanceListener(balanceListener);
 
         balanceAsBI = xmrWalletService.getBalanceForSubaddress(addressEntry.getSubaddressIndex());
-        balance.set(HavenoUtils.formatToXmr(balanceAsBI));
+        balance.set(HavenoUtils.formatXmr(balanceAsBI));
 
         updateUsage(addressEntry.getSubaddressIndex(), cachedTxs);
 

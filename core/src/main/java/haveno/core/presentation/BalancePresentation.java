@@ -42,13 +42,13 @@ public class BalancePresentation {
     @Inject
     public BalancePresentation(Balances balances) {
         balances.getAvailableBalance().addListener((observable, oldValue, newValue) -> {
-            UserThread.execute(() -> availableBalance.set(HavenoUtils.formatToXmrWithCode(newValue)));
+            UserThread.execute(() -> availableBalance.set(HavenoUtils.formatXmr(newValue, true)));
         });
         balances.getPendingBalance().addListener((observable, oldValue, newValue) -> {
-            UserThread.execute(() -> pendingBalance.set(HavenoUtils.formatToXmrWithCode(newValue)));
+            UserThread.execute(() -> pendingBalance.set(HavenoUtils.formatXmr(newValue, true)));
         });
         balances.getReservedBalance().addListener((observable, oldValue, newValue) -> {
-            UserThread.execute(() -> reservedBalance.set(HavenoUtils.formatToXmrWithCode(newValue)));
+            UserThread.execute(() -> reservedBalance.set(HavenoUtils.formatXmr(newValue, true)));
         });
     }
 }

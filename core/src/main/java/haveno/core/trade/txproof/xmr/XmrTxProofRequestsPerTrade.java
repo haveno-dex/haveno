@@ -328,7 +328,7 @@ class XmrTxProofRequestsPerTrade implements AssetTxProofRequestsPerTrade {
         BigInteger tradeLimit = BigInteger.valueOf(autoConfirmSettings.getTradeLimit());
         if (tradeAmount != null && tradeAmount.compareTo(tradeLimit) > 0) {
             log.warn("Trade amount {} is higher than limit from auto-conf setting {}.",
-                    HavenoUtils.formatToXmrWithCode(tradeAmount), HavenoUtils.formatToXmrWithCode(tradeLimit));
+                    HavenoUtils.formatXmr(tradeAmount, true), HavenoUtils.formatXmr(tradeLimit, true));
             return true;
         }
         return false;

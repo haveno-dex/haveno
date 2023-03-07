@@ -17,7 +17,6 @@
 
 package haveno.desktop.main.offer;
 
-import org.bitcoinj.core.Coin;
 import org.jetbrains.annotations.NotNull;
 import com.google.inject.Inject;
 import haveno.common.handlers.ErrorMessageHandler;
@@ -290,7 +289,6 @@ public abstract class MutableOfferDataModel extends OfferDataModel {
                 amount.get(),
                 minAmount.get(),
                 useMarketBasedPrice.get() ? null : price.get(),
-                Coin.ZERO,
                 useMarketBasedPrice.get(),
                 marketPriceMargin,
                 buyerSecurityDepositPct.get(),

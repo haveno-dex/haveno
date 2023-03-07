@@ -74,7 +74,7 @@ public class XmrValidator extends NumberValidator {
             BigDecimal bd = new BigDecimal(input);
             final BigDecimal atomicUnits = bd.movePointRight(HavenoUtils.XMR_SMALLEST_UNIT_EXPONENT);
             if (atomicUnits.scale() > 0)
-                return new ValidationResult(false, Res.get("validation.btc.fraction"));
+                return new ValidationResult(false, Res.get("validation.xmr.fraction"));
             else
                 return new ValidationResult(true);
         } catch (Throwable t) {
@@ -86,7 +86,7 @@ public class XmrValidator extends NumberValidator {
         try {
             final BigInteger amount = HavenoUtils.parseXmr(input);
             if (maxValue != null && amount.compareTo(maxValue) > 0)
-                return new ValidationResult(false, Res.get("validation.btc.toLarge", HavenoUtils.formatToXmrWithCode(maxValue)));
+                return new ValidationResult(false, Res.get("validation.xmr.tooLarge", HavenoUtils.formatXmr(maxValue, true)));
             else
                 return new ValidationResult(true);
         } catch (Throwable t) {
@@ -98,7 +98,7 @@ public class XmrValidator extends NumberValidator {
         try {
             final BigInteger amount = HavenoUtils.parseXmr(input);
             if (maxTradeLimit != null && amount.compareTo(maxTradeLimit) > 0)
-                return new ValidationResult(false, Res.get("validation.btc.exceedsMaxTradeLimit", HavenoUtils.formatToXmrWithCode(maxTradeLimit)));
+                return new ValidationResult(false, Res.get("validation.btc.exceedsMaxTradeLimit", HavenoUtils.formatXmr(maxTradeLimit, true)));
             else
                 return new ValidationResult(true);
         } catch (Throwable t) {
@@ -110,7 +110,7 @@ public class XmrValidator extends NumberValidator {
         try {
             final BigInteger amount = HavenoUtils.parseXmr(input);
             if (minValue != null && amount.compareTo(minValue) < 0)
-                return new ValidationResult(false, Res.get("validation.btc.toSmall", HavenoUtils.formatToXmr(minValue)));
+                return new ValidationResult(false, Res.get("validation.xmr.tooSmall", HavenoUtils.formatXmr(minValue)));
             else
                 return new ValidationResult(true);
         } catch (Throwable t) {

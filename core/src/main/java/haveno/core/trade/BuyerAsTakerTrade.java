@@ -83,8 +83,8 @@ public final class BuyerAsTakerTrade extends BuyerTrade implements TakerTrade {
         }
         return fromProto(new BuyerAsTakerTrade(
                         Offer.fromProto(proto.getOffer()),
-                        BigInteger.valueOf(proto.getAmountAsLong()),
-                        BigInteger.valueOf(proto.getTakerFeeAsLong()),
+                        BigInteger.valueOf(proto.getAmount()),
+                        BigInteger.valueOf(proto.getTakerFee()),
                         proto.getPrice(),
                         xmrWalletService,
                         processModel,

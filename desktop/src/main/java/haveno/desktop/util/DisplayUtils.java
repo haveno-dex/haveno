@@ -193,8 +193,8 @@ public class DisplayUtils {
 
     public static String formatAmount(Offer offer, CoinFormatter coinFormatter) {
         return offer.isRange()
-                ? HavenoUtils.formatToXmr(offer.getMinAmount()) + FormattingUtils.RANGE_SEPARATOR + HavenoUtils.formatToXmr(offer.getAmount())
-                : HavenoUtils.formatToXmr(offer.getAmount());
+                ? HavenoUtils.formatXmr(offer.getMinAmount()) + FormattingUtils.RANGE_SEPARATOR + HavenoUtils.formatXmr(offer.getAmount())
+                : HavenoUtils.formatXmr(offer.getAmount());
     }
 
     public static String formatAmount(Offer offer,
@@ -203,8 +203,8 @@ public class DisplayUtils {
                                       int maxPlaces,
                                       CoinFormatter coinFormatter) {
         String formattedAmount = offer.isRange()
-                ? HavenoUtils.formatToXmr(offer.getMinAmount(), decimalPlaces) + FormattingUtils.RANGE_SEPARATOR + HavenoUtils.formatToXmr(offer.getAmount(), decimalPlaces)
-                : HavenoUtils.formatToXmr(offer.getAmount(), decimalPlaces);
+                ? HavenoUtils.formatXmr(offer.getMinAmount(), decimalPlaces) + FormattingUtils.RANGE_SEPARATOR + HavenoUtils.formatXmr(offer.getAmount(), decimalPlaces)
+                : HavenoUtils.formatXmr(offer.getAmount(), decimalPlaces);
 
         if (decimalAligned) {
             formattedAmount = FormattingUtils.fillUpPlacesWithEmptyStrings(formattedAmount, maxPlaces);
@@ -228,7 +228,7 @@ public class DisplayUtils {
     public static String getFeeWithFiatAmount(BigInteger makerFee,
                                               Optional<Volume> optionalFeeInFiat,
                                               CoinFormatter formatter) {
-        String feeInXmr = makerFee != null ? HavenoUtils.formatToXmrWithCode(makerFee) : Res.get("shared.na");
+        String feeInXmr = makerFee != null ? HavenoUtils.formatXmr(makerFee, true) : Res.get("shared.na");
         if (optionalFeeInFiat != null && optionalFeeInFiat.isPresent()) {
             String feeInFiat = VolumeUtil.formatAverageVolumeWithCode(optionalFeeInFiat.get());
             return Res.get("feeOptionWindow.fee", feeInXmr, feeInFiat);

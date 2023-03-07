@@ -17,25 +17,24 @@
 
 package haveno.core.trade;
 
-import org.bitcoinj.core.Coin;
 import haveno.core.offer.OpenOffer;
-import haveno.core.trade.Tradable;
-import haveno.core.trade.Trade;
+
+import java.math.BigInteger;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 public class ClosedTradableUtil {
-    public static Coin getTotalAmount(List<Tradable> tradableList) {
-        return Coin.valueOf(tradableList.stream()
-                .flatMap(tradable -> tradable.getOptionalAmountAsLong().stream())
-                .mapToLong(value -> value)
+    public static BigInteger getTotalAmount(List<Tradable> tradableList) {
+        return BigInteger.valueOf(tradableList.stream()
+                .flatMap(tradable -> tradable.getOptionalAmount().stream())
+                .mapToLong(value -> value.longValueExact())
                 .sum());
     }
 
-    public static Coin getTotalTxFee(List<Tradable> tradableList) {
-        return Coin.valueOf(tradableList.stream()
-                .mapToLong(tradable -> getTxFee(tradable).getValue())
+    public static BigInteger getTotalTxFee(List<Tradable> tradableList) {
+        return BigInteger.valueOf(tradableList.stream()
+                .mapToLong(tradable -> getTotalTxFee(tradable).longValueExact())
                 .sum());
     }
 
@@ -51,8 +50,8 @@ public class ClosedTradableUtil {
         return map;
     }
 
-    public static Coin getTxFee(Tradable tradable) {
-        return tradable.getOptionalTxFee().orElse(Coin.ZERO);
+    public static BigInteger getTotalTxFee(Tradable tradable) {
+        return tradable.getTotalTxFee();
     }
 
     public static boolean isOpenOffer(Tradable tradable) {

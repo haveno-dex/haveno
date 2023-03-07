@@ -112,8 +112,8 @@ public class OfferForJson {
                 priceDisplayString = altcoinFormat.noCode().format(price.getMonetary()).toString();
                 primaryMarketMinAmountDisplayString = altcoinFormat.noCode().format(getMinVolume().getMonetary()).toString();
                 primaryMarketAmountDisplayString = altcoinFormat.noCode().format(getVolume().getMonetary()).toString();
-                primaryMarketMinVolumeDisplayString = HavenoUtils.formatToXmr(getMinAmount()).toString();
-                primaryMarketVolumeDisplayString = HavenoUtils.formatToXmr(getAmount()).toString();
+                primaryMarketMinVolumeDisplayString = HavenoUtils.formatXmr(getMinAmount()).toString();
+                primaryMarketVolumeDisplayString = HavenoUtils.formatXmr(getAmount()).toString();
 
                 primaryMarketPrice = price.getValue();
                 primaryMarketMinAmount = getMinVolume().getValue();
@@ -125,8 +125,8 @@ public class OfferForJson {
                 currencyPair = Res.getBaseCurrencyCode() + "/" + currencyCode;
 
                 priceDisplayString = fiatFormat.noCode().format(price.getMonetary()).toString();
-                primaryMarketMinAmountDisplayString = HavenoUtils.formatToXmr(getMinAmount()).toString();
-                primaryMarketAmountDisplayString = HavenoUtils.formatToXmr(getAmount()).toString();
+                primaryMarketMinAmountDisplayString = HavenoUtils.formatXmr(getMinAmount()).toString();
+                primaryMarketAmountDisplayString = HavenoUtils.formatXmr(getAmount()).toString();
                 primaryMarketMinVolumeDisplayString = fiatFormat.noCode().format(getMinVolume().getMonetary()).toString();
                 primaryMarketVolumeDisplayString = fiatFormat.noCode().format(getVolume().getMonetary()).toString();
 
