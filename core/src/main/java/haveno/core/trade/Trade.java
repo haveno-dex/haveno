@@ -699,7 +699,9 @@ public abstract class Trade implements Tradable, Model {
     public MoneroWallet createWallet() {
         synchronized (walletLock) {
             if (walletExists()) throw new RuntimeException("Cannot create trade wallet because it already exists");
+            long time = System.currentTimeMillis();
             wallet = xmrWalletService.createWallet(getWalletName());
+            log.info("{} {} created multisig wallet in {} ms", getClass().getSimpleName(), getId(), System.currentTimeMillis() - time);
             return wallet;
         }
     }

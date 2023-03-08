@@ -287,8 +287,16 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
     public void handleInitMultisigRequest(InitMultisigRequest request, NodeAddress sender) {
         System.out.println(getClass().getSimpleName() + ".handleInitMultisigRequest()");
         synchronized (trade) {
-            latchTrade();
+
+            // check trade
+            if (trade.hasFailed()) {
+                log.warn("{} {} ignoring {} from {} because trade failed with previous error: {}", trade.getClass().getSimpleName(), trade.getId(), request.getClass().getSimpleName(), sender, trade.getErrorMessage());
+                return;
+            }
             Validator.checkTradeId(processModel.getOfferId(), request);
+
+            // proocess message
+            latchTrade();
             processModel.setTradeMessage(request);
             expect(anyPhase(Trade.Phase.INIT)
                     .with(request)
@@ -313,7 +321,15 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
     public void handleSignContractRequest(SignContractRequest message, NodeAddress sender) {
         System.out.println(getClass().getSimpleName() + ".handleSignContractRequest() " + trade.getId());
         synchronized (trade) {
+
+            // check trade
+            if (trade.hasFailed()) {
+                log.warn("{} {} ignoring {} from {} because trade failed with previous error: {}", trade.getClass().getSimpleName(), trade.getId(), message.getClass().getSimpleName(), sender, trade.getErrorMessage());
+                return;
+            }
             Validator.checkTradeId(processModel.getOfferId(), message);
+
+            // process message
             if (trade.getState() == Trade.State.MULTISIG_COMPLETED || trade.getState() == Trade.State.CONTRACT_SIGNATURE_REQUESTED) {
                 latchTrade();
                 Validator.checkTradeId(processModel.getOfferId(), message);
@@ -347,7 +363,15 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
     public void handleSignContractResponse(SignContractResponse message, NodeAddress sender) {
         System.out.println(getClass().getSimpleName() + ".handleSignContractResponse() " + trade.getId());
         synchronized (trade) {
+        
+            // check trade
+            if (trade.hasFailed()) {
+                log.warn("{} {} ignoring {} from {} because trade failed with previous error: {}", trade.getClass().getSimpleName(), trade.getId(), message.getClass().getSimpleName(), sender, trade.getErrorMessage());
+                return;
+            }
             Validator.checkTradeId(processModel.getOfferId(), message);
+
+            // process message
             if (trade.getState() == Trade.State.CONTRACT_SIGNED) {
                 latchTrade();
                 Validator.checkTradeId(processModel.getOfferId(), message);
@@ -381,8 +405,16 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
     public void handleDepositResponse(DepositResponse response, NodeAddress sender) {
         System.out.println(getClass().getSimpleName() + ".handleDepositResponse()");
         synchronized (trade) {
-            latchTrade();
+
+            // check trade
+            if (trade.hasFailed()) {
+                log.warn("{} {} ignoring {} from {} because trade failed with previous error: {}", trade.getClass().getSimpleName(), trade.getId(), response.getClass().getSimpleName(), sender, trade.getErrorMessage());
+                return;
+            }
             Validator.checkTradeId(processModel.getOfferId(), response);
+
+            // process message
+            latchTrade();
             processModel.setTradeMessage(response);
             expect(anyState(Trade.State.SENT_PUBLISH_DEPOSIT_TX_REQUEST, Trade.State.SAW_ARRIVED_PUBLISH_DEPOSIT_TX_REQUEST, Trade.State.ARBITRATOR_PUBLISHED_DEPOSIT_TXS, Trade.State.DEPOSIT_TXS_SEEN_IN_NETWORK)
                     .with(response)

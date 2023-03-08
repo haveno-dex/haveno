@@ -574,7 +574,7 @@ public class XmrWalletService {
     private MoneroWalletRpc createWallet(MoneroWalletConfig config, Integer port, boolean sync) {
 
         // start monero-wallet-rpc instance
-        MoneroWalletRpc walletRpc = startWalletRpcInstance(port, sync);
+        MoneroWalletRpc walletRpc = startWalletRpcInstance(port, false);
 
         // must be connected to daemon
         MoneroRpcConnection connection = connectionsService.getConnection();
