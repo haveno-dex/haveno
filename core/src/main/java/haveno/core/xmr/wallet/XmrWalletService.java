@@ -9,6 +9,7 @@ import haveno.common.UserThread;
 import haveno.common.config.BaseCurrencyNetwork;
 import haveno.common.config.Config;
 import haveno.common.file.FileUtil;
+import haveno.common.util.Tuple2;
 import haveno.common.util.Utilities;
 import haveno.core.api.AccountServiceListener;
 import haveno.core.api.CoreAccountService;
@@ -300,7 +301,7 @@ public class XmrWalletService {
      */
     public MoneroTxWallet createReserveTx(BigInteger tradeFee, BigInteger sendAmount, BigInteger securityDeposit, String returnAddress) {
         log.info("Creating reserve tx with fee={}, sendAmount={}, securityDeposit={}", tradeFee, sendAmount, securityDeposit);
-        return createTradeTx(tradeFee, sendAmount, securityDeposit, returnAddress);
+        return createTradeTx(tradeFee, sendAmount, securityDeposit, returnAddress, true);
     }
 
     /**
@@ -326,11 +327,11 @@ public class XmrWalletService {
             }
 
             log.info("Creating deposit tx with fee={}, sendAmount={}, securityDeposit={}", tradeFee, sendAmount, securityDeposit);
-            return createTradeTx(tradeFee, sendAmount, securityDeposit, multisigAddress);
+            return createTradeTx(tradeFee, sendAmount, securityDeposit, multisigAddress, false);
         }
     }
 
-    private MoneroTxWallet createTradeTx(BigInteger tradeFee, BigInteger sendAmount, BigInteger securityDeposit, String address) {
+    private MoneroTxWallet createTradeTx(BigInteger tradeFee, BigInteger sendAmount, BigInteger securityDeposit, String address, boolean isReserveTx) {
         MoneroWallet wallet = getWallet();
         synchronized (wallet) {
 
@@ -341,10 +342,10 @@ public class XmrWalletService {
             for (int i = 0; i < 10; i++) {
                 try {
                     BigInteger appliedSecurityDeposit = new BigDecimal(securityDeposit).multiply(new BigDecimal(1.0 - SECURITY_DEPOSIT_TOLERANCE * appliedTolerance)).toBigInteger();
-                    BigInteger amount = sendAmount.add(appliedSecurityDeposit);
+                    BigInteger amount = sendAmount.add(isReserveTx ? tradeFee : appliedSecurityDeposit);
                     tradeTx = wallet.createTx(new MoneroTxConfig()
                             .setAccountIndex(0)
-                            .addDestination(HavenoUtils.getTradeFeeAddress(), tradeFee)
+                            .addDestination(HavenoUtils.getTradeFeeAddress(), isReserveTx ? appliedSecurityDeposit : tradeFee) // reserve tx charges security deposit if published
                             .addDestination(address, amount));
                     appliedTolerance -= searchDiff; // apply less tolerance to increase security deposit
                     if (appliedTolerance < 0.0) break; // can send full security deposit
@@ -375,12 +376,13 @@ public class XmrWalletService {
      * @param txHex transaction hex
      * @param txKey transaction key
      * @param keyImages expected key images of inputs, ignored if null
-     * @return the verified tx
+     * @return tuple with the verified tx and its actual security deposit
      */
-    public MoneroTx verifyTradeTx(BigInteger tradeFee, BigInteger sendAmount, BigInteger securityDeposit, String address, String txHash, String txHex, String txKey, List<String> keyImages) {
+    public Tuple2<MoneroTx, BigInteger> verifyTradeTx(BigInteger tradeFee, BigInteger sendAmount, BigInteger securityDeposit, String address, String txHash, String txHex, String txKey, List<String> keyImages, boolean isReserveTx) {
         MoneroDaemonRpc daemon = getDaemon();
         MoneroWallet wallet = getWallet();
         MoneroTx tx = null;
+        BigInteger actualSecurityDeposit = null;
         synchronized (daemon) {
             try {
 
@@ -403,28 +405,36 @@ public class XmrWalletService {
                 // verify unlock height
                 if (tx.getUnlockHeight() != 0) throw new RuntimeException("Unlock height must be 0");
 
-                // verify trade fee
-                String feeAddress = HavenoUtils.getTradeFeeAddress();
-                MoneroCheckTx check = wallet.checkTxKey(txHash, txKey, feeAddress);
-                if (!check.isGood()) throw new RuntimeException("Invalid proof of trade fee");
-                if (!check.getReceivedAmount().equals(tradeFee)) throw new RuntimeException("Trade fee is incorrect amount, expected " + tradeFee + " but was " + check.getReceivedAmount());
-
                 // verify miner fee
                 BigInteger feeEstimate = getFeeEstimate(tx.getWeight());
                 double feeDiff = tx.getFee().subtract(feeEstimate).abs().doubleValue() / feeEstimate.doubleValue(); // TODO: use BigDecimal?
                 if (feeDiff > MINER_FEE_TOLERANCE) throw new Error("Miner fee is not within " + (MINER_FEE_TOLERANCE * 100) + "% of estimated fee, expected " + feeEstimate + " but was " + tx.getFee());
                 log.info("Trade tx fee {} is within tolerance, diff%={}", tx.getFee(), feeDiff);
+                
+                // verify transfer proof to fee address
+                String feeAddress = HavenoUtils.getTradeFeeAddress();
+                MoneroCheckTx feeCheck = wallet.checkTxKey(txHash, txKey, feeAddress);
+                if (!feeCheck.isGood()) throw new RuntimeException("Invalid proof of trade fee");
+
+                // verify transfer proof to return address
+                MoneroCheckTx returnCheck = wallet.checkTxKey(txHash, txKey, address);
+                if (!returnCheck.isGood()) throw new RuntimeException("Invalid proof of return funds");
+
+                // collect actual trade fee, send amount, and security deposit
+                BigInteger actualTradeFee = isReserveTx ? returnCheck.getReceivedAmount().subtract(sendAmount) : feeCheck.getReceivedAmount();
+                actualSecurityDeposit = isReserveTx ? feeCheck.getReceivedAmount() : returnCheck.getReceivedAmount().subtract(sendAmount);
+                BigInteger actualSendAmount = returnCheck.getReceivedAmount().subtract(isReserveTx ? actualTradeFee : actualSecurityDeposit);
+                
+                // verify trade fee
+                if (!tradeFee.equals(actualTradeFee)) throw new RuntimeException("Trade fee is incorrect amount, expected " + tradeFee + " but was " + actualTradeFee);
 
                 // verify sufficient security deposit
-                check = wallet.checkTxKey(txHash, txKey, address);
-                if (!check.isGood()) throw new RuntimeException("Invalid proof of deposit amount");
                 BigInteger minSecurityDeposit = new BigDecimal(securityDeposit).multiply(new BigDecimal(1.0 - SECURITY_DEPOSIT_TOLERANCE)).toBigInteger();
-                BigInteger actualSecurityDeposit = check.getReceivedAmount().subtract(sendAmount);
                 if (actualSecurityDeposit.compareTo(minSecurityDeposit) < 0) throw new RuntimeException("Security deposit amount is not enough, needed " + minSecurityDeposit + " but was " + actualSecurityDeposit);
 
                 // verify deposit amount + miner fee within dust tolerance
                 BigInteger minDepositAndFee = sendAmount.add(securityDeposit).subtract(new BigDecimal(tx.getFee()).multiply(new BigDecimal(1.0 - DUST_TOLERANCE)).toBigInteger());
-                BigInteger actualDepositAndFee = check.getReceivedAmount().add(tx.getFee());
+                BigInteger actualDepositAndFee = actualSendAmount.add(actualSecurityDeposit).add(tx.getFee());
                 if (actualDepositAndFee.compareTo(minDepositAndFee) < 0) throw new RuntimeException("Deposit amount + fee is not enough, needed " + minDepositAndFee + " but was " + actualDepositAndFee);
             } finally {
                 try {
@@ -434,7 +444,7 @@ public class XmrWalletService {
                     throw err.getCode() == -32601 ? new RuntimeException("Failed to flush tx from pool. Arbitrator must use trusted, unrestricted daemon") : err;
                 }
             }
-            return tx;
+            return new Tuple2<>(tx, actualSecurityDeposit);
         }
     }
 

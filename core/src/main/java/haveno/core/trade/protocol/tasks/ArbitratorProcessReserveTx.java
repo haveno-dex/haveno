@@ -18,6 +18,7 @@
 package haveno.core.trade.protocol.tasks;
 
 import haveno.common.taskrunner.TaskRunner;
+import haveno.common.util.Tuple2;
 import haveno.core.offer.Offer;
 import haveno.core.offer.OfferDirection;
 import haveno.core.trade.Trade;
@@ -26,6 +27,7 @@ import haveno.core.trade.protocol.TradePeer;
 import java.math.BigInteger;
 
 import lombok.extern.slf4j.Slf4j;
+import monero.daemon.model.MoneroTx;
 
 /**
  * Arbitrator verifies reserve tx from maker or taker.
@@ -55,8 +57,9 @@ public class ArbitratorProcessReserveTx extends TradeTask {
             BigInteger tradeFee = isFromTaker ? trade.getTakerFee() : trade.getMakerFee();
             BigInteger sendAmount =  isFromBuyer ? BigInteger.valueOf(0) : offer.getAmount();
             BigInteger securityDeposit = isFromBuyer ? offer.getBuyerSecurityDeposit() : offer.getSellerSecurityDeposit();
+            Tuple2<MoneroTx, BigInteger> txResult;
             try {
-                trade.getXmrWalletService().verifyTradeTx(
+                txResult = trade.getXmrWalletService().verifyTradeTx(
                     tradeFee,
                     sendAmount,
                     securityDeposit,
@@ -64,7 +67,8 @@ public class ArbitratorProcessReserveTx extends TradeTask {
                     request.getReserveTxHash(),
                     request.getReserveTxHex(),
                     request.getReserveTxKey(),
-                    null);
+                    null,
+                    true);
             } catch (Exception e) {
                 throw new RuntimeException("Error processing reserve tx from " + (isFromTaker ? "taker " : "maker ") + request.getSenderNodeAddress() + ", offerId=" + offer.getId() + ": " + e.getMessage());
             }
@@ -74,6 +78,7 @@ public class ArbitratorProcessReserveTx extends TradeTask {
             trader.setReserveTxHash(request.getReserveTxHash());
             trader.setReserveTxHex(request.getReserveTxHex());
             trader.setReserveTxKey(request.getReserveTxKey());
+            trader.setSecurityDeposit(txResult.second);
             
             // persist trade
             processModel.getTradeManager().requestPersistence();

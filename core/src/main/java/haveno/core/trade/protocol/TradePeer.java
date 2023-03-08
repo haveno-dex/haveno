@@ -27,6 +27,8 @@ import haveno.core.payment.payload.PaymentAccountPayload;
 import haveno.core.proto.CoreProtoResolver;
 import haveno.core.xmr.model.RawTransactionInput;
 import haveno.network.p2p.NodeAddress;
+
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -133,6 +135,14 @@ public final class TradePeer implements PersistablePayload {
     public TradePeer() {
     }
 
+    public BigInteger getSecurityDeposit() {
+        return BigInteger.valueOf(securityDeposit);
+    }
+
+    public void setSecurityDeposit(BigInteger securityDeposit) {
+        this.securityDeposit = securityDeposit.longValueExact();
+    }
+
     @Override
     public Message toProtoMessage() {
         final protobuf.TradePeer.Builder builder = protobuf.TradePeer.newBuilder()
@@ -219,7 +229,7 @@ public final class TradePeer implements PersistablePayload {
             tradePeer.setDepositTxHash(ProtoUtil.stringOrNullFromProto(proto.getDepositTxHash()));
             tradePeer.setDepositTxHex(ProtoUtil.stringOrNullFromProto(proto.getDepositTxHex()));
             tradePeer.setDepositTxKey(ProtoUtil.stringOrNullFromProto(proto.getDepositTxKey()));
-            tradePeer.setSecurityDeposit(proto.getSecurityDeposit());
+            tradePeer.setSecurityDeposit(BigInteger.valueOf(proto.getSecurityDeposit()));
             tradePeer.setUpdatedMultisigHex(ProtoUtil.stringOrNullFromProto(proto.getUpdatedMultisigHex()));
             return tradePeer;
         }
