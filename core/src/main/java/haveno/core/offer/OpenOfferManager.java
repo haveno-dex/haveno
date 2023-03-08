@@ -987,7 +987,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
             // verify maker's reserve tx (double spend, trade fee, trade amount, mining fee)
             BigInteger sendAmount =  offer.getDirection() == OfferDirection.BUY ? BigInteger.valueOf(0) : offer.getAmount();
             BigInteger securityDeposit = offer.getDirection() == OfferDirection.BUY ? offer.getBuyerSecurityDeposit() : offer.getSellerSecurityDeposit();
-            MoneroTx reserveTx = xmrWalletService.verifyTradeTx(
+            Tuple2<MoneroTx, BigInteger> txResult = xmrWalletService.verifyTradeTx(
                     tradeFee,
                     sendAmount,
                     securityDeposit,
@@ -995,7 +995,8 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                     request.getReserveTxHash(),
                     request.getReserveTxHex(),
                     request.getReserveTxKey(),
-                    request.getReserveTxKeyImages());
+                    request.getReserveTxKeyImages(),
+                    true);
 
             // arbitrator signs offer to certify they have valid reserve tx
             String offerPayloadAsJson = JsonUtil.objectToJson(request.getOfferPayload());
@@ -1008,11 +1009,11 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                     System.currentTimeMillis(),
                     signedOfferPayload.getId(),
                     offer.getAmount().longValueExact(),
-                    HavenoUtils.getMakerFee(offer.getAmount()).longValueExact(),
+                    txResult.second.longValueExact(),
                     request.getReserveTxHash(),
                     request.getReserveTxHex(),
                     request.getReserveTxKeyImages(),
-                    reserveTx.getFee().longValueExact(),
+                    txResult.first.getFee().longValueExact(),
                     signature); // TODO (woodser): no need for signature to be part of SignedOffer?
             addSignedOffer(signedOffer);
             requestPersistence();

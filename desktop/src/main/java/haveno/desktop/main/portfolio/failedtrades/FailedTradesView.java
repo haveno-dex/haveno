@@ -218,7 +218,7 @@ public class FailedTradesView extends ActivatableViewAndModel<VBox, FailedTrades
             handleContextMenu("portfolio.failed.penalty.msg",
                     Res.get(selectedFailedTrade.getMaker() == selectedFailedTrade.getBuyer() ? "shared.buyer" : "shared.seller"),
                     Res.get("shared.maker"),
-                    selectedFailedTrade.getMakerFee(),
+                    selectedFailedTrade.getMaker().getSecurityDeposit(),
                     selectedFailedTrade.getMaker().getReserveTxHash(),
                     selectedFailedTrade.getMaker().getReserveTxHex());
         });
@@ -228,7 +228,7 @@ public class FailedTradesView extends ActivatableViewAndModel<VBox, FailedTrades
             handleContextMenu("portfolio.failed.penalty.msg",
                     Res.get(selectedFailedTrade.getTaker() == selectedFailedTrade.getBuyer() ? "shared.buyer" : "shared.seller"),
                     Res.get("shared.taker"),
-                    selectedFailedTrade.getTakerFee(),
+                    selectedFailedTrade.getTaker().getSecurityDeposit(),
                     selectedFailedTrade.getTaker().getReserveTxHash(),
                     selectedFailedTrade.getTaker().getReserveTxHex());
         });

@@ -85,7 +85,7 @@ public class SignedOfferView extends ActivatableView<VBox, Void> {
     @FXML
     TableColumn<SignedOffer, SignedOffer> reserveTxMinerFeeColumn;
     @FXML
-    TableColumn<SignedOffer, SignedOffer> makerTradeFeeColumn;
+    TableColumn<SignedOffer, SignedOffer> makerPenaltyFeeColumn;
     @FXML
     InputTextField filterTextField;
     @FXML
@@ -163,7 +163,7 @@ public class SignedOfferView extends ActivatableView<VBox, Void> {
             if(selectedSignedOffer != null) {
                 new Popup().warning(Res.get("support.prompt.signedOffer.penalty.msg",
                         selectedSignedOffer.getOfferId(),
-                        HavenoUtils.formatXmr(selectedSignedOffer.getMakerTradeFee(), true),
+                        HavenoUtils.formatXmr(selectedSignedOffer.getPenaltyAmount(), true),
                         HavenoUtils.formatXmr(selectedSignedOffer.getReserveTxMinerFee(), true),
                         selectedSignedOffer.getReserveTxHash(),
                         selectedSignedOffer.getReserveTxKeyImages())
@@ -212,8 +212,8 @@ public class SignedOfferView extends ActivatableView<VBox, Void> {
         arbitratorSignatureColumn = getArbitratorSignatureColumn();
         tableView.getColumns().add(arbitratorSignatureColumn);
 
-        makerTradeFeeColumn = getMakerTradeFeeColumn();
-        tableView.getColumns().add(makerTradeFeeColumn);
+        makerPenaltyFeeColumn = getMakerPenaltyFeeColumn();
+        tableView.getColumns().add(makerPenaltyFeeColumn);
 
         reserveTxMinerFeeColumn = getReserveTxMinerFeeColumn();
         tableView.getColumns().add(reserveTxMinerFeeColumn);
@@ -389,8 +389,8 @@ public class SignedOfferView extends ActivatableView<VBox, Void> {
         return column;
     }
 
-    private TableColumn<SignedOffer, SignedOffer> getMakerTradeFeeColumn() {
-        TableColumn<SignedOffer, SignedOffer> column = new AutoTooltipTableColumn<>(Res.get("support.maker.trade.fee")) {
+    private TableColumn<SignedOffer, SignedOffer> getMakerPenaltyFeeColumn() {
+        TableColumn<SignedOffer, SignedOffer> column = new AutoTooltipTableColumn<>(Res.get("support.maker.penalty.fee")) {
             {
                 setMinWidth(160);
             }
@@ -405,7 +405,7 @@ public class SignedOfferView extends ActivatableView<VBox, Void> {
                             public void updateItem(final SignedOffer item, boolean empty) {
                                 super.updateItem(item, empty);
                                 if (item != null && !empty)
-                                    setText(HavenoUtils.formatXmr(item.getMakerTradeFee(), true));
+                                    setText(HavenoUtils.formatXmr(item.getPenaltyAmount(), true));
                                 else
                                     setText("");
                             }

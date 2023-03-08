@@ -1570,12 +1570,12 @@ public abstract class Trade implements Tradable, Model {
 
     public BigInteger getBuyerSecurityDeposit() {
         if (getBuyer().getDepositTxHash() == null) return null;
-        return BigInteger.valueOf(getBuyer().getSecurityDeposit());
+        return getBuyer().getSecurityDeposit();
     }
 
     public BigInteger getSellerSecurityDeposit() {
         if (getSeller().getDepositTxHash() == null) return null;
-        return BigInteger.valueOf(getSeller().getSecurityDeposit());
+        return getSeller().getSecurityDeposit();
     }
 
     @Nullable
@@ -1719,11 +1719,11 @@ public abstract class Trade implements Tradable, Model {
                     getTaker().setDepositTx(makerFirst ? txs.get(1) : txs.get(0));
 
                     // set security deposits
-                    if (getBuyer().getSecurityDeposit() == 0) {
+                    if (getBuyer().getSecurityDeposit().longValueExact() == 0) {
                         BigInteger buyerSecurityDeposit = ((MoneroTxWallet) getBuyer().getDepositTx()).getIncomingAmount();
                         BigInteger sellerSecurityDeposit = ((MoneroTxWallet) getSeller().getDepositTx()).getIncomingAmount().subtract(getAmount());
-                        getBuyer().setSecurityDeposit(buyerSecurityDeposit.longValueExact());
-                        getSeller().setSecurityDeposit(sellerSecurityDeposit.longValueExact());
+                        getBuyer().setSecurityDeposit(buyerSecurityDeposit);
+                        getSeller().setSecurityDeposit(sellerSecurityDeposit);
                     }
 
                     // set deposits published state

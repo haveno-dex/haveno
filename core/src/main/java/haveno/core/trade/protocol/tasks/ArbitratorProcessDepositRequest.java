@@ -90,7 +90,8 @@ public class ArbitratorProcessDepositRequest extends TradeTask {
                     trader.getDepositTxHash(),
                     request.getDepositTxHex(),
                     request.getDepositTxKey(),
-                    null);
+                    null,
+                    false);
             } catch (Exception e) {
                 throw new RuntimeException("Error processing deposit tx from " + (isFromTaker ? "taker " : "maker ") + trader.getNodeAddress() + ", offerId=" + offer.getId() + ": " + e.getMessage());
             }

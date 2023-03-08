@@ -34,7 +34,7 @@ public final class SignedOffer implements PersistablePayload {
     @Getter
     private final long tradeAmount;
     @Getter
-    private final long makerTradeFee;
+    private final long penaltyAmount;
     @Getter
     private final String reserveTxHash;
     @Getter
@@ -49,7 +49,7 @@ public final class SignedOffer implements PersistablePayload {
     public SignedOffer(long timeStamp,
                        String offerId,
                        long tradeAmount,
-                       long makerTradeFee,
+                       long penaltyAmount,
                        String reserveTxHash,
                        String reserveTxHex,
                        List<String> reserveTxKeyImages,
@@ -58,7 +58,7 @@ public final class SignedOffer implements PersistablePayload {
         this.timeStamp = timeStamp;
         this.offerId = offerId;
         this.tradeAmount = tradeAmount;
-        this.makerTradeFee = makerTradeFee;
+        this.penaltyAmount = penaltyAmount;
         this.reserveTxHash = reserveTxHash;
         this.reserveTxHex = reserveTxHex;
         this.reserveTxKeyImages = reserveTxKeyImages;
@@ -76,7 +76,7 @@ public final class SignedOffer implements PersistablePayload {
                 .setTimeStamp(timeStamp)
                 .setOfferId(offerId)
                 .setTradeAmount(tradeAmount)
-                .setMakerTradeFee(makerTradeFee)
+                .setPenaltyAmount(penaltyAmount)
                 .setReserveTxHash(reserveTxHash)
                 .setReserveTxHex(reserveTxHex)
                 .addAllReserveTxKeyImages(reserveTxKeyImages)
@@ -89,7 +89,7 @@ public final class SignedOffer implements PersistablePayload {
         return new SignedOffer(proto.getTimeStamp(),
                                proto.getOfferId(),
                                proto.getTradeAmount(),
-                               proto.getMakerTradeFee(),
+                               proto.getPenaltyAmount(),
                                proto.getReserveTxHash(),
                                proto.getReserveTxHex(),
                                proto.getReserveTxKeyImagesList(),
@@ -108,7 +108,7 @@ public final class SignedOffer implements PersistablePayload {
                 ",\n     timeStamp=" + timeStamp +
                 ",\n     offerId=" + offerId +
                 ",\n     tradeAmount=" + tradeAmount +
-                ",\n     makerTradeFee=" + makerTradeFee +
+                ",\n     penaltyAmount=" + penaltyAmount +
                 ",\n     reserveTxHash=" + reserveTxHash +
                 ",\n     reserveTxHex=" + reserveTxHex +
                 ",\n     reserveTxKeyImages=" + reserveTxKeyImages +

@@ -1351,7 +1351,7 @@ message SignedOffer {
     int64 time_stamp = 1;
     string offer_id = 2;
     uint64 trade_amount = 3;
-    uint64 maker_trade_fee = 4;
+    uint64 penalty_amount = 4;
     string reserve_tx_hash = 5;
     string reserve_tx_hex = 6;
     repeated string reserve_tx_key_images = 7;
