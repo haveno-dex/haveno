@@ -34,7 +34,6 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static haveno.core.util.Validator.checkTradeId;
 import static haveno.core.util.Validator.nonEmptyStringOf;
 
-import java.math.BigInteger;
 import java.util.Date;
 
 @Slf4j

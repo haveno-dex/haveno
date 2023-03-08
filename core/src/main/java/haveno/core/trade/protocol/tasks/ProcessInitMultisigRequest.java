@@ -77,7 +77,7 @@ public class ProcessInitMultisigRequest extends TradeTask {
           // prepare multisig if applicable
           boolean updateParticipants = false;
           if (trade.getSelf().getPreparedMultisigHex() == null) {
-            log.info("Preparing multisig wallet for trade {}", trade.getId());
+            log.info("Preparing multisig wallet for {} {}", trade.getClass().getSimpleName(), trade.getId());
             multisigWallet = trade.createWallet();
             trade.getSelf().setPreparedMultisigHex(multisigWallet.prepareMultisig());
             trade.setStateIfValidTransitionTo(Trade.State.MULTISIG_PREPARED);
@@ -89,7 +89,7 @@ public class ProcessInitMultisigRequest extends TradeTask {
           // make multisig if applicable
           TradePeer[] peers = getMultisigPeers();
           if (trade.getSelf().getMadeMultisigHex() == null && peers[0].getPreparedMultisigHex() != null && peers[1].getPreparedMultisigHex() != null) {
-            log.info("Making multisig wallet for trade {}", trade.getId());
+            log.info("Making multisig wallet for {} {}", trade.getClass().getSimpleName(), trade.getId());
             String multisigHex = multisigWallet.makeMultisig(Arrays.asList(peers[0].getPreparedMultisigHex(), peers[1].getPreparedMultisigHex()), 2, xmrWalletService.getWalletPassword()); // TODO (woodser): xmrWalletService.makeMultisig(tradeId, multisigHexes, threshold)?
             trade.getSelf().setMadeMultisigHex(multisigHex);
             trade.setStateIfValidTransitionTo(Trade.State.MULTISIG_MADE);
@@ -98,7 +98,7 @@ public class ProcessInitMultisigRequest extends TradeTask {
 
           // import made multisig keys if applicable
           if (trade.getSelf().getExchangedMultisigHex() == null && peers[0].getMadeMultisigHex() != null && peers[1].getMadeMultisigHex() != null) {
-            log.info("Importing made multisig hex for trade {}", trade.getId());
+            log.info("Importing made multisig hex for {} {}", trade.getClass().getSimpleName(), trade.getId());
             MoneroMultisigInitResult result = multisigWallet.exchangeMultisigKeys(Arrays.asList(peers[0].getMadeMultisigHex(), peers[1].getMadeMultisigHex()), xmrWalletService.getWalletPassword());
             trade.getSelf().setExchangedMultisigHex(result.getMultisigHex());
             trade.setStateIfValidTransitionTo(Trade.State.MULTISIG_EXCHANGED);
@@ -143,6 +143,8 @@ public class ProcessInitMultisigRequest extends TradeTask {
             if (peer1PubKeyRing == null) throw new RuntimeException("Peer1 pub key ring is null");
             if (peer2Address == null) throw new RuntimeException("Peer2 address is null");
             if (peer2PubKeyRing == null) throw new RuntimeException("Peer2 pub key ring null");
+
+            log.info("{} {} sending InitMultisigRequests", trade.getClass().getSimpleName(), trade.getId());
 
             // send to peer 1
             sendInitMultisigRequest(peer1Address, peer1PubKeyRing, new SendDirectMessageListener() {

@@ -111,7 +111,7 @@ public class ArbitratorSendInitTradeOrMultisigRequests extends TradeTask {
     }
     
     private void sendInitMultisigRequests() {
-        
+
         // ensure arbitrator has maker's reserve tx
         if (processModel.getMaker().getReserveTxHash() == null) {
             throw new RuntimeException("Arbitrator does not have maker's reserve tx after initializing trade");
