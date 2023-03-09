@@ -72,7 +72,6 @@ import javafx.collections.ObservableList;
 import javafx.collections.transformation.FilteredList;
 import javafx.collections.transformation.SortedList;
 
-import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.text.DecimalFormat;
 
@@ -633,7 +632,7 @@ abstract class OfferBookViewModel extends ActivatableViewModel {
     }
 
     public String formatDepositString(BigInteger deposit, long amount) {
-        var percentage = FormattingUtils.formatToRoundedPercentWithSymbol(BigDecimal.valueOf(deposit.longValueExact()).divide(BigDecimal.valueOf(amount)).doubleValue());
+        var percentage = FormattingUtils.formatToRoundedPercentWithSymbol(HavenoUtils.divide(deposit, BigInteger.valueOf(amount)));
         return HavenoUtils.formatXmr(deposit) + " (" + percentage + ")";
     }
 

@@ -129,6 +129,9 @@ public class HavenoUtils {
         return atomicUnitsToXmr(coinToAtomicUnits(coin));
     }
 
+    public static double divide(BigInteger auDividend, BigInteger auDivisor) {
+        return (double) atomicUnitsToCentineros(auDividend) / (double) atomicUnitsToCentineros(auDivisor);
+    }
 
     // ------------------------- FORMAT UTILS ---------------------------------
 
@@ -230,9 +233,8 @@ public class HavenoUtils {
 
     public static BigInteger getFeePerXmr(BigInteger feePerXmr, BigInteger amount) {
         BigDecimal feePerXmrAsDecimal = feePerXmr == null ? BigDecimal.valueOf(0) : new BigDecimal(feePerXmr);
-        BigDecimal amountAsDecimal = amount == null ? BigDecimal.valueOf(0) : new BigDecimal(amount);
-        BigDecimal xmrAsDecimal = new BigDecimal(HavenoUtils.xmrToAtomicUnits(1.0));
-        return feePerXmrAsDecimal.multiply(amountAsDecimal.divide(xmrAsDecimal)).toBigInteger();
+        BigDecimal amountMultiplier = BigDecimal.valueOf(divide(amount == null ? BigInteger.valueOf(0) : amount, HavenoUtils.xmrToAtomicUnits(1.0)));
+        return feePerXmrAsDecimal.multiply(amountMultiplier).toBigInteger();
     }
 
 
