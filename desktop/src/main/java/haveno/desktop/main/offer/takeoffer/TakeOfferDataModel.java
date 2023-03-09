@@ -202,7 +202,7 @@ class TakeOfferDataModel extends OfferDataModel {
             mempoolStatus.setValue(txValidator.isFail() ? 0 : 1);
             if (txValidator.isFail()) {
                 mempoolStatusText = txValidator.toString();
-                log.info("Mempool check of OfferFeePaymentTxId returned errors: [{}]", mempoolStatusText);
+                log.info("Mempool check of OfferFeeTxId returned errors: [{}]", mempoolStatusText);
             }
         }));
 

@@ -67,9 +67,6 @@ public final class Contract implements NetworkPayload {
     private final String makerDepositTxHash;
     private final String takerDepositTxHash;
 
-    // Added in v1.2.0
-    private long lockTime;
-
     public Contract(OfferPayload offerPayload,
                     long tradeAmount,
                     long tradePrice,
@@ -87,7 +84,6 @@ public final class Contract implements NetworkPayload {
                     PubKeyRing takerPubKeyRing,
                     String makerPayoutAddressString,
                     String takerPayoutAddressString,
-                    long lockTime,
                     String makerDepositTxHash,
                     String takerDepositTxHash) {
         this.offerPayload = offerPayload;
@@ -107,7 +103,6 @@ public final class Contract implements NetworkPayload {
         this.takerPubKeyRing = takerPubKeyRing;
         this.makerPayoutAddressString = makerPayoutAddressString;
         this.takerPayoutAddressString = takerPayoutAddressString;
-        this.lockTime = lockTime;
         this.makerDepositTxHash = makerDepositTxHash;
         this.takerDepositTxHash = takerDepositTxHash;
 
@@ -143,7 +138,6 @@ public final class Contract implements NetworkPayload {
                 PubKeyRing.fromProto(proto.getTakerPubKeyRing()),
                 proto.getMakerPayoutAddressString(),
                 proto.getTakerPayoutAddressString(),
-                proto.getLockTime(),
                 proto.getMakerDepositTxHash(),
                 proto.getTakerDepositTxHash());
     }
@@ -168,7 +162,6 @@ public final class Contract implements NetworkPayload {
                 .setTakerPubKeyRing(takerPubKeyRing.toProtoMessage())
                 .setMakerPayoutAddressString(makerPayoutAddressString)
                 .setTakerPayoutAddressString(takerPayoutAddressString)
-                .setLockTime(lockTime)
                 .setMakerDepositTxHash(makerDepositTxHash)
                 .setTakerDepositTxHash(takerDepositTxHash)
                 .build();
@@ -303,7 +296,6 @@ public final class Contract implements NetworkPayload {
                 ",\n     takerPubKeyRing=" + takerPubKeyRing +
                 ",\n     makerPayoutAddressString='" + makerPayoutAddressString + '\'' +
                 ",\n     takerPayoutAddressString='" + takerPayoutAddressString + '\'' +
-                ",\n     lockTime=" + lockTime +
                 ",\n     makerDepositTxHash='" + makerDepositTxHash + '\'' +
                 ",\n     takerDepositTxHash='" + takerDepositTxHash + '\'' +
                 "\n}";

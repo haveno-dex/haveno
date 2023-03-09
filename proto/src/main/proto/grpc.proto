@@ -532,7 +532,7 @@ message OfferInfo {
     uint64 date = 17;
     string state = 18;
     uint64 seller_security_deposit = 19 [jstype = JS_STRING];
-    string offer_fee_payment_tx_id = 20;
+    string offer_fee_tx_id = 20;
     uint64 maker_fee = 22 [jstype = JS_STRING];
     bool is_activated = 23;
     bool is_my_offer = 24;

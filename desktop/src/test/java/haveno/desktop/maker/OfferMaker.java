@@ -45,7 +45,7 @@ public class OfferMaker {
     public static final Property<Offer, String> id = newProperty();
     public static final Property<Offer, String> paymentMethodId = newProperty();
     public static final Property<Offer, String> paymentAccountId = newProperty();
-    public static final Property<Offer, String> offerFeePaymentTxId = newProperty();
+    public static final Property<Offer, String> offerFeeTxId = newProperty();
     public static final Property<Offer, String> countryCode = newProperty();
     public static final Property<Offer, List<String>> countryCodes = newProperty();
     public static final Property<Offer, Long> date = newProperty();
@@ -86,7 +86,7 @@ public class OfferMaker {
                     lookup.valueOf(counterCurrencyCode, "USD"),
                     lookup.valueOf(paymentMethodId, "SEPA"),
                     lookup.valueOf(paymentAccountId, "00002c4d-1ffc-4208-8ff3-e669817b0000"),
-                    lookup.valueOf(offerFeePaymentTxId, "0000dcd1d388b95714c96ce13f5cb000090c41a1faf89e4ce7680938cc170000"),
+                    lookup.valueOf(offerFeeTxId, "0000dcd1d388b95714c96ce13f5cb000090c41a1faf89e4ce7680938cc170000"),
                     lookup.valueOf(countryCode, "FR"),
                     lookup.valueOf(countryCodes, new ArrayList<>() {{
                         add("FR");

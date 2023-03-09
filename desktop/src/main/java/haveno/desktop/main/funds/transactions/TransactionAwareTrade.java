@@ -91,7 +91,7 @@ class TransactionAwareTrade implements TransactionAwareTradable {
 
     private boolean isOfferFeeTx(String txId) {
         return Optional.ofNullable(trade.getOffer())
-                .map(Offer::getOfferFeePaymentTxId)
+                .map(Offer::getOfferFeeTxId)
                 .map(paymentTxId -> paymentTxId.equals(txId))
                 .orElse(false);
     }

@@ -31,7 +31,7 @@ class TransactionAwareOpenOffer implements TransactionAwareTradable {
 
     public boolean isRelatedToTransaction(MoneroTxWallet transaction) {
         Offer offer = delegate.getOffer();
-        String paymentTxId = offer.getOfferFeePaymentTxId();
+        String paymentTxId = offer.getOfferFeeTxId();
 
         String txId = transaction.getHash();
 

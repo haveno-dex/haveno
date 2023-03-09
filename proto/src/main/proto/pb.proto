@@ -614,7 +614,7 @@ message OfferPayload {
     string counter_currency_code = 12;
     string payment_method_id = 13;
     string maker_payment_account_id = 14;
-    string offer_fee_payment_tx_id = 15;
+    string offer_fee_tx_id = 15;
     string country_code = 16;
     repeated string accepted_country_codes = 17;
     string bank_id = 18;
@@ -784,7 +784,6 @@ message Contract {
     string taker_payout_address_string = 17;
     string maker_deposit_tx_hash = 18;
     string taker_deposit_tx_hash = 19;
-    int64 lock_time = 20;
 }
 
 message RawTransactionInput {
@@ -1558,11 +1557,6 @@ message TradePeer {
     string payout_address_string = 10;
     string contract_as_json = 11;
     string contract_signature = 12;
-    bytes signature = 13;	// TODO (woodser): remove unused fields? this was buyer-signed payout tx as bytes
-    bytes multi_sig_pub_key = 14;
-    repeated RawTransactionInput raw_transaction_inputs = 15;
-    int64 change_output_value = 16;
-    string change_output_address = 17;
     bytes account_age_witness_nonce = 18;
     bytes account_age_witness_signature = 19;
     AccountAgeWitness account_age_witness = 20;

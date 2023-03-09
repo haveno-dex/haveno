@@ -18,7 +18,6 @@
 package haveno.desktop.util.filtering;
 
 import haveno.core.offer.Offer;
-import haveno.core.trade.Contract;
 import haveno.core.trade.Trade;
 import org.apache.commons.lang3.StringUtils;
 
@@ -30,7 +29,7 @@ public class FilteringUtils {
         if (StringUtils.containsIgnoreCase(offer.getPaymentMethod().getDisplayString(), filterString)) {
             return true;
         }
-        return offer.getOfferFeePaymentTxId() != null && StringUtils.containsIgnoreCase(offer.getOfferFeePaymentTxId(), filterString);
+        return offer.getOfferFeeTxId() != null && StringUtils.containsIgnoreCase(offer.getOfferFeeTxId(), filterString);
     }
 
     public static boolean match(Trade trade, String filterString) {

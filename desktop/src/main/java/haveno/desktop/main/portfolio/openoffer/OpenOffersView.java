@@ -344,7 +344,7 @@ public class OpenOffersView extends ActivatableViewAndModel<VBox, OpenOffersView
             if (model.getDirectionLabel(item).contains(filterString)) {
                 return true;
             }
-            if (offer.getOfferFeePaymentTxId().contains(filterString)) {
+            if (offer.getOfferFeeTxId() != null && offer.getOfferFeeTxId().contains(filterString)) {
                 return true;
             }
             return false;

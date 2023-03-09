@@ -275,8 +275,8 @@ public class Offer implements NetworkPayload, PersistablePayload {
         return stateProperty;
     }
 
-    public void setOfferFeePaymentTxId(String offerFeePaymentTxID) {
-        offerPayload.setOfferFeePaymentTxId(offerFeePaymentTxID);
+    public void setOfferFeeTxId(String offerFeeTxId) {
+        offerPayload.setOfferFeeTxId(offerFeeTxId);
     }
 
     public void setErrorMessage(String errorMessage) {
@@ -483,8 +483,8 @@ public class Offer implements NetworkPayload, PersistablePayload {
         return offerPayload.getMakerPaymentAccountId();
     }
 
-    public String getOfferFeePaymentTxId() {
-        return offerPayload.getOfferFeePaymentTxId();
+    public String getOfferFeeTxId() {
+        return offerPayload.getOfferFeeTxId();
     }
 
     public String getVersionNr() {

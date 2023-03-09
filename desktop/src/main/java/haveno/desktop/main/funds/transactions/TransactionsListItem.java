@@ -116,8 +116,8 @@ class TransactionsListItem {
                 Trade trade = (Trade) tradable;
 
                 Offer offer = trade.getOffer();
-                String offerFeePaymentTxID = offer.getOfferFeePaymentTxId();
-                if (offerFeePaymentTxID != null && offerFeePaymentTxID.equals(txId)) {
+                String offerFeeTxId = offer.getOfferFeeTxId();
+                if (offerFeeTxId != null && offerFeeTxId.equals(txId)) {
                     details = Res.get("funds.tx.createOfferFee", tradeId);
                 } else if (trade.getSelf().getDepositTxHash() != null &&
                         trade.getSelf().getDepositTxHash().equals(txId)) {
