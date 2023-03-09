@@ -290,7 +290,7 @@ public abstract class MutableOfferDataModel extends OfferDataModel {
                 minAmount.get(),
                 useMarketBasedPrice.get() ? null : price.get(),
                 useMarketBasedPrice.get(),
-                marketPriceMargin,
+                useMarketBasedPrice.get() ? marketPriceMargin : 0,
                 buyerSecurityDepositPct.get(),
                 paymentAccount);
     }
