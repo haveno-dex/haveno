@@ -64,9 +64,7 @@ public class CoinUtil {
      * @return The percentage value as double (e.g. 1% is 0.01)
      */
     public static double getAsPercentPerBtc(BigInteger part, BigInteger total) {
-        BigDecimal partDecimal = part == null ? BigDecimal.valueOf(0) : new BigDecimal(part);
-        BigDecimal totalDecimal = total == null ? BigDecimal.valueOf(1) : new BigDecimal(total);
-        return MathUtils.roundDouble(partDecimal.divide(totalDecimal).doubleValue(), 4);
+        return MathUtils.roundDouble(HavenoUtils.divide(part == null ? BigInteger.valueOf(0) : part, total == null ? BigInteger.valueOf(1) : total), 4);
     }
 
     /**

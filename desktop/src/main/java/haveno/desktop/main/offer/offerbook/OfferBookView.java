@@ -109,7 +109,6 @@ import javafx.collections.ListChangeListener;
 import javafx.util.Callback;
 import javafx.util.StringConverter;
 
-import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.Comparator;
 import java.util.Map;
@@ -306,7 +305,7 @@ abstract public class OfferBookView<R extends GridPane, M extends OfferBookViewM
             if ((deposit == null || amountValue == 0)) {
                 return 0d;
             } else {
-                return BigDecimal.valueOf(deposit.longValueExact()).divide(BigDecimal.valueOf(amountValue)).doubleValue();
+                return HavenoUtils.divide(deposit, BigInteger.valueOf(amountValue));
             }
 
         }, Comparator.nullsFirst(Comparator.naturalOrder())));

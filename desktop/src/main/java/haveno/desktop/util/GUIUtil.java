@@ -57,6 +57,7 @@ import haveno.core.locale.TradeCurrency;
 import haveno.core.payment.PaymentAccount;
 import haveno.core.payment.PaymentAccountList;
 import haveno.core.payment.payload.PaymentMethod;
+import haveno.core.trade.HavenoUtils;
 import haveno.core.trade.txproof.AssetTxProofResult;
 import haveno.core.user.DontShowAgainLookup;
 import haveno.core.user.Preferences;
@@ -655,7 +656,7 @@ public class GUIUtil {
     }
 
     public static String getPercentage(BigInteger part, BigInteger total) {
-        return FormattingUtils.formatToPercentWithSymbol(new BigDecimal(part).divide(new BigDecimal(total)).doubleValue());
+        return FormattingUtils.formatToPercentWithSymbol(HavenoUtils.divide(part, total));
     }
 
     public static <T> T getParentOfType(Node node, Class<T> t) {

@@ -78,7 +78,7 @@ public class ClosedTradableFormatter {
     }
 
     public String getTotalTxFeeAsString(BigInteger totalTradeAmount, BigInteger totalTxFee) {
-        double percentage = new BigDecimal(totalTxFee).divide(new BigDecimal(totalTradeAmount)).doubleValue();
+        double percentage = HavenoUtils.divide(totalTxFee, totalTradeAmount);
         return Res.get(I18N_KEY_TOTAL_TX_FEE,
                 HavenoUtils.formatXmr(totalTxFee, true),
                 formatToPercentWithSymbol(percentage));
@@ -98,7 +98,7 @@ public class ClosedTradableFormatter {
     }
 
     public String getTotalTradeFeeAsString(BigInteger totalTradeAmount, BigInteger totalTradeFee) {
-        double percentage = new BigDecimal(totalTradeFee).divide(new BigDecimal(totalTradeAmount)).doubleValue();
+        double percentage = HavenoUtils.divide(totalTradeFee, totalTradeAmount);
         return Res.get(I18N_KEY_TOTAL_TRADE_FEE_BTC,
                 HavenoUtils.formatXmr(totalTradeFee, true),
                 formatToPercentWithSymbol(percentage));
