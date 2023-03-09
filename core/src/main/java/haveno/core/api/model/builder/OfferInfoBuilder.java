@@ -39,7 +39,7 @@ public final class OfferInfoBuilder {
     private String volume;
     private String minVolume;
     private long makerFee;
-    private String offerFeePaymentTxId;
+    private String offerFeeTxId;
     private long buyerSecurityDeposit;
     private long sellerSecurityDeposit;
     private String triggerPrice;
@@ -111,8 +111,8 @@ public final class OfferInfoBuilder {
         return this;
     }
 
-    public OfferInfoBuilder withOfferFeePaymentTxId(String offerFeePaymentTxId) {
-        this.offerFeePaymentTxId = offerFeePaymentTxId;
+    public OfferInfoBuilder withOfferFeeTxId(String offerFeeTxId) {
+        this.offerFeeTxId = offerFeeTxId;
         return this;
     }
 

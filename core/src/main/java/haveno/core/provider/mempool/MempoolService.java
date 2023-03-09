@@ -80,7 +80,7 @@ public class MempoolService {
     }
 
     public void validateOfferMakerTx(OfferPayload offerPayload, Consumer<TxValidator> resultHandler) {
-        validateOfferMakerTx(new TxValidator( offerPayload.getOfferFeePaymentTxId(), Coin.valueOf(offerPayload.getAmount())), resultHandler);
+        validateOfferMakerTx(new TxValidator( offerPayload.getOfferFeeTxId(), Coin.valueOf(offerPayload.getAmount())), resultHandler);
     }
 
     public void validateOfferMakerTx(TxValidator txValidator, Consumer<TxValidator> resultHandler) {

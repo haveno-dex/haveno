@@ -41,7 +41,6 @@ public class ContractInfo implements Payload {
     private final PaymentAccountPayload takerPaymentAccountPayload;
     private final String makerPayoutAddressString;
     private final String takerPayoutAddressString;
-    private final long lockTime;
 
     public ContractInfo(String buyerNodeAddress,
                         String sellerNodeAddress,
@@ -52,8 +51,7 @@ public class ContractInfo implements Payload {
                         PaymentAccountPayload makerPaymentAccountPayload,
                         PaymentAccountPayload takerPaymentAccountPayload,
                         String makerPayoutAddressString,
-                        String takerPayoutAddressString,
-                        long lockTime) {
+                        String takerPayoutAddressString) {
         this.buyerNodeAddress = buyerNodeAddress;
         this.sellerNodeAddress = sellerNodeAddress;
         this.arbitratorNodeAddress = arbitratorNodeAddress;
@@ -64,7 +62,6 @@ public class ContractInfo implements Payload {
         this.takerPaymentAccountPayload = takerPaymentAccountPayload;
         this.makerPayoutAddressString = makerPayoutAddressString;
         this.takerPayoutAddressString = takerPayoutAddressString;
-        this.lockTime = lockTime;
     }
 
 
@@ -79,8 +76,7 @@ public class ContractInfo implements Payload {
                     null,
                     null,
                     "",
-                    "",
-                    0);
+                    "");
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // PROTO BUFFER
@@ -97,8 +93,7 @@ public class ContractInfo implements Payload {
                 proto.getMakerPaymentAccountPayload() == null ? null : PaymentAccountPayload.fromProto(proto.getMakerPaymentAccountPayload(), coreProtoResolver),
                 proto.getTakerPaymentAccountPayload() == null ? null : PaymentAccountPayload.fromProto(proto.getTakerPaymentAccountPayload(), coreProtoResolver),
                 proto.getMakerPayoutAddressString(),
-                proto.getTakerPayoutAddressString(),
-                proto.getLockTime());
+                proto.getTakerPayoutAddressString());
     }
 
     @Override
@@ -111,8 +106,7 @@ public class ContractInfo implements Payload {
                 .setMakerAccountId(makerAccountId)
                 .setTakerAccountId(takerAccountId)
                 .setMakerPayoutAddressString(makerPayoutAddressString)
-                .setTakerPayoutAddressString(takerPayoutAddressString)
-                .setLockTime(lockTime);
+                .setTakerPayoutAddressString(takerPayoutAddressString);
        if (makerPaymentAccountPayload != null) builder.setMakerPaymentAccountPayload((protobuf.PaymentAccountPayload) makerPaymentAccountPayload.toProtoMessage());
        if (takerPaymentAccountPayload != null) builder.setTakerPaymentAccountPayload((protobuf.PaymentAccountPayload) takerPaymentAccountPayload.toProtoMessage());
        return builder.build();

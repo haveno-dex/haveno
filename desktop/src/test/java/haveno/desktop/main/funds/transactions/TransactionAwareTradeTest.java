@@ -82,7 +82,7 @@ public class TransactionAwareTradeTest {
 
     @Test
     public void testIsRelatedToTransactionWhenOfferFeeTx() {
-        when(delegate.getOffer().getOfferFeePaymentTxId()).thenReturn(XID.toString());
+        when(delegate.getOffer().getOfferFeeTxId()).thenReturn(XID.toString());
         assertTrue(trade.isRelatedToTransaction(transaction));
     }
 

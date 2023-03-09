@@ -212,7 +212,7 @@ public class WalletAppSetup {
                     UserThread.runAfter(() -> {
                         String txId = newValue.getTxId();
                         openOfferManager.getObservableList().stream()
-                                .filter(openOffer -> txId.equals(openOffer.getOffer().getOfferFeePaymentTxId()))
+                                .filter(openOffer -> txId.equals(openOffer.getOffer().getOfferFeeTxId()))
                                 .forEach(openOffer -> {
                                     // We delay to avoid concurrent modification exceptions
                                     UserThread.runAfter(() -> {
@@ -237,7 +237,7 @@ public class WalletAppSetup {
                                     if (txId.equals(trade.getTaker().getDepositTxHash())) {
                                       details = Res.get("popup.warning.trade.txRejected.deposit");
                                   }
-                                    if (txId.equals(trade.getOffer().getOfferFeePaymentTxId())) {
+                                    if (txId.equals(trade.getOffer().getOfferFeeTxId())) {
                                         details = Res.get("popup.warning.trade.txRejected.tradeFee");
                                     }
 

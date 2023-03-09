@@ -866,7 +866,6 @@ public abstract class Trade implements Tradable, Model {
                 getTaker().getPubKeyRing(),
                 this instanceof MakerTrade ? xmrWalletService.getAddressEntry(getId(), XmrAddressEntry.Context.TRADE_PAYOUT).get().getAddressString() : getMaker().getPayoutAddressString(), // maker payout address
                 this instanceof TakerTrade ? xmrWalletService.getAddressEntry(getId(), XmrAddressEntry.Context.TRADE_PAYOUT).get().getAddressString() : getTaker().getPayoutAddressString(), // taker payout address
-                getLockTime(),
                 getMaker().getDepositTxHash(),
                 getTaker().getDepositTxHash()
         );
@@ -1594,9 +1593,7 @@ public abstract class Trade implements Tradable, Model {
     }
 
     public boolean isTxChainInvalid() {
-        return offer.getOfferFeePaymentTxId() == null ||
-                processModel.getMaker().getDepositTxHash() == null ||
-                processModel.getTaker().getDepositTxHash() == null;
+        return processModel.getMaker().getDepositTxHash() == null || processModel.getTaker().getDepositTxHash() == null;
     }
 
     /**

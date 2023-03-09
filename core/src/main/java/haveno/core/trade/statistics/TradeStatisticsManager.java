@@ -91,8 +91,10 @@ public class TradeStatisticsManager {
                 if (!tradeStatistics.isValid()) {
                     return;
                 }
-                observableTradeStatisticsSet.add(tradeStatistics);
-                priceFeedService.applyLatestHavenoMarketPrice(observableTradeStatisticsSet);
+                synchronized (observableTradeStatisticsSet) {
+                    observableTradeStatisticsSet.add(tradeStatistics);
+                    priceFeedService.applyLatestHavenoMarketPrice(observableTradeStatisticsSet);
+                }
                 maybeDumpStatistics();
             }
         });
@@ -102,8 +104,10 @@ public class TradeStatisticsManager {
                 .map(e -> (TradeStatistics3) e)
                 .filter(TradeStatistics3::isValid)
                 .collect(Collectors.toSet());
-        observableTradeStatisticsSet.addAll(set);
-        priceFeedService.applyLatestHavenoMarketPrice(observableTradeStatisticsSet);
+        synchronized (observableTradeStatisticsSet) {
+            observableTradeStatisticsSet.addAll(set);
+            priceFeedService.applyLatestHavenoMarketPrice(observableTradeStatisticsSet);
+        }
         maybeDumpStatistics();
     }
 

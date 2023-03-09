@@ -120,7 +120,7 @@ public final class OfferPayload implements ProtectedStoragePayload, ExpirablePay
     // Mutable property. Has to be set before offer is saved in P2P network as it changes the payload hash!
     @Setter
     @Nullable
-    private String offerFeePaymentTxId;
+    private String offerFeeTxId;
     @Nullable
     private final String countryCode;
     @Nullable
@@ -170,7 +170,7 @@ public final class OfferPayload implements ProtectedStoragePayload, ExpirablePay
                         String counterCurrencyCode,
                         String paymentMethodId,
                         String makerPaymentAccountId,
-                        @Nullable String offerFeePaymentTxId,
+                        @Nullable String offerFeeTxId,
                         @Nullable String countryCode,
                         @Nullable List<String> acceptedCountryCodes,
                         @Nullable String bankId,
@@ -213,7 +213,7 @@ public final class OfferPayload implements ProtectedStoragePayload, ExpirablePay
         this.reserveTxKeyImages = reserveTxKeyImages;
         this.marketPriceMarginPct = marketPriceMarginPct;
         this.useMarketBasedPrice = useMarketBasedPrice;
-        this.offerFeePaymentTxId = offerFeePaymentTxId;
+        this.offerFeeTxId = offerFeeTxId;
         this.countryCode = countryCode;
         this.acceptedCountryCodes = acceptedCountryCodes;
         this.bankId = bankId;
@@ -233,8 +233,8 @@ public final class OfferPayload implements ProtectedStoragePayload, ExpirablePay
     }
 
     public byte[] getHash() {
-        if (this.hash == null && this.offerFeePaymentTxId != null) {
-            // A proto message can be created only after the offerFeePaymentTxId is
+        if (this.hash == null && this.offerFeeTxId != null) {
+            // A proto message can be created only after the offerFeeTxId is
             // set to a non-null value;  now is the time to cache the payload hash.
             this.hash = Hash.getSha256Hash(this.toProtoMessage().toByteArray());
         }
@@ -295,7 +295,7 @@ public final class OfferPayload implements ProtectedStoragePayload, ExpirablePay
                 .setIsPrivateOffer(isPrivateOffer)
                 .setProtocolVersion(protocolVersion);
         Optional.ofNullable(arbitratorSigner).ifPresent(e -> builder.setArbitratorSigner(arbitratorSigner.toProtoMessage()));
-        Optional.ofNullable(offerFeePaymentTxId).ifPresent(builder::setOfferFeePaymentTxId);
+        Optional.ofNullable(offerFeeTxId).ifPresent(builder::setOfferFeeTxId);
         Optional.ofNullable(countryCode).ifPresent(builder::setCountryCode);
         Optional.ofNullable(bankId).ifPresent(builder::setBankId);
         Optional.ofNullable(acceptedBankIds).ifPresent(builder::addAllAcceptedBankIds);
@@ -331,7 +331,7 @@ public final class OfferPayload implements ProtectedStoragePayload, ExpirablePay
                 proto.getCounterCurrencyCode(),
                 proto.getPaymentMethodId(),
                 proto.getMakerPaymentAccountId(),
-                proto.getOfferFeePaymentTxId(),
+                ProtoUtil.stringOrNullFromProto(proto.getOfferFeeTxId()),
                 ProtoUtil.stringOrNullFromProto(proto.getCountryCode()),
                 acceptedCountryCodes,
                 ProtoUtil.stringOrNullFromProto(proto.getBankId()),
@@ -380,7 +380,7 @@ public final class OfferPayload implements ProtectedStoragePayload, ExpirablePay
                 ",\r\n     reserveTxKeyImages=" + reserveTxKeyImages +
                 ",\r\n     marketPriceMargin=" + marketPriceMarginPct +
                 ",\r\n     useMarketBasedPrice=" + useMarketBasedPrice +
-                ",\r\n     offerFeePaymentTxId='" + offerFeePaymentTxId + '\'' +
+                ",\r\n     offerFeeTxId='" + offerFeeTxId + '\'' +
                 ",\r\n     countryCode='" + countryCode + '\'' +
                 ",\r\n     acceptedCountryCodes=" + acceptedCountryCodes +
                 ",\r\n     bankId='" + bankId + '\'' +
@@ -422,7 +422,7 @@ public final class OfferPayload implements ProtectedStoragePayload, ExpirablePay
             object.add("counterCurrencyCode", context.serialize(offerPayload.getCounterCurrencyCode()));
             object.add("paymentMethodId", context.serialize(offerPayload.getPaymentMethodId()));
             object.add("makerPaymentAccountId", context.serialize(offerPayload.getMakerPaymentAccountId()));
-            object.add("offerFeePaymentTxId", context.serialize(offerPayload.getOfferFeePaymentTxId()));
+            object.add("offerFeeTxId", context.serialize(offerPayload.getOfferFeeTxId()));
             object.add("versionNr", context.serialize(offerPayload.getVersionNr()));
             object.add("blockHeightAtOfferCreation", context.serialize(offerPayload.getBlockHeightAtOfferCreation()));
             object.add("makerFee", context.serialize(offerPayload.getMakerFee()));

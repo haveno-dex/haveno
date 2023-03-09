@@ -521,10 +521,10 @@ public class HavenoSetup {
         // resync.
         // TODO (woodser): check for invalid maker fee txs with xmr?
 //        openOfferManager.getObservableList().forEach(e -> {
-//            String offerFeePaymentTxId = e.getOffer().getOfferFeePaymentTxId();
-//            if (btcWalletService.getConfidenceForTxId(offerFeePaymentTxId) == null) { // TODO (woodser): verify xmr maker fee tx
+//            String offerFeeTxId = e.getOffer().getOfferFeeTxId();
+//            if (btcWalletService.getConfidenceForTxId(offerFeeTxId) == null) { // TODO (woodser): verify xmr maker fee tx
 //                String message = Res.get("popup.warning.openOfferWithInvalidMakerFeeTx",
-//                        e.getOffer().getShortId(), offerFeePaymentTxId);
+//                        e.getOffer().getShortId(), offerFeeTxId);
 //                log.warn(message);
 //                if (lockedUpFundsHandler != null) {
 //                    lockedUpFundsHandler.accept(message);
