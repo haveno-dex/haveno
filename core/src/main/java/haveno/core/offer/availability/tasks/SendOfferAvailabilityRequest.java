@@ -17,9 +17,7 @@
 
 package haveno.core.offer.availability.tasks;
 
-import com.google.common.base.Charsets;
 import haveno.common.app.Version;
-import haveno.common.crypto.Sig;
 import haveno.common.taskrunner.Task;
 import haveno.common.taskrunner.TaskRunner;
 import haveno.core.monetary.Price;
@@ -59,7 +57,7 @@ public class SendOfferAvailabilityRequest extends Task<OfferAvailabilityModel> {
             String payoutAddress = walletService.getOrCreateAddressEntry(offer.getId(), XmrAddressEntry.Context.TRADE_PAYOUT).getAddressString(); // reserve new payout address
 
             // taker signs offer using offer id as nonce to avoid challenge protocol
-            byte[] sig = Sig.sign(model.getP2PService().getKeyRing().getSignatureKeyPair().getPrivate(), offer.getId().getBytes(Charsets.UTF_8));
+            byte[] sig = HavenoUtils.sign(model.getP2PService().getKeyRing(), offer.getId());
 
             // get price
             Price price = offer.getPrice();

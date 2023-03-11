@@ -17,10 +17,14 @@
 
 package haveno.core.offer;
 
+import haveno.common.proto.ProtoUtil;
 import haveno.common.proto.persistable.PersistablePayload;
 import haveno.core.util.JsonUtil;
 
 import java.util.List;
+
+import com.google.protobuf.ByteString;
+
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
@@ -48,7 +52,7 @@ public final class SignedOffer implements PersistablePayload {
     @Getter
     private final long reserveTxMinerFee;
     @Getter
-    private final String arbitratorSignature;
+    private final byte[] arbitratorSignature;
     
     public SignedOffer(long timeStamp,
                        int traderId,
@@ -59,7 +63,7 @@ public final class SignedOffer implements PersistablePayload {
                        String reserveTxHex,
                        List<String> reserveTxKeyImages,
                        long reserveTxMinerFee,
-                       String arbitratorSignature) {
+                       byte[] arbitratorSignature) {
         this.timeStamp = timeStamp;
         this.traderId = traderId;
         this.offerId = offerId;
@@ -88,7 +92,7 @@ public final class SignedOffer implements PersistablePayload {
                 .setReserveTxHex(reserveTxHex)
                 .addAllReserveTxKeyImages(reserveTxKeyImages)
                 .setReserveTxMinerFee(reserveTxMinerFee)
-                .setArbitratorSignature(arbitratorSignature);
+                .setArbitratorSignature(ByteString.copyFrom(arbitratorSignature));
         return builder.build();
     }
 
@@ -102,7 +106,7 @@ public final class SignedOffer implements PersistablePayload {
                                proto.getReserveTxHex(),
                                proto.getReserveTxKeyImagesList(),
                                proto.getReserveTxMinerFee(),
-                               proto.getArbitratorSignature());
+                               ProtoUtil.byteArrayOrNullFromProto(proto.getArbitratorSignature()));
     }
 
 

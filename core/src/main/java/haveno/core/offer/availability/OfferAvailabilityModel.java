@@ -61,7 +61,7 @@ public class OfferAvailabilityModel implements Model {
     @Nullable
     @Setter
     @Getter
-    private String makerSignature;
+    private byte[] makerSignature;
 
     // Added in v1.5.5
     @Getter

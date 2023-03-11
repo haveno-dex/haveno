@@ -62,7 +62,7 @@ public final class InitTradeRequest extends TradeMessage implements DirectMessag
     @Nullable
     private final String payoutAddress;
     @Nullable
-    private final String makerSignature;
+    private final byte[] makerSignature;
 
     public InitTradeRequest(String tradeId,
                                      NodeAddress senderNodeAddress,
@@ -84,7 +84,7 @@ public final class InitTradeRequest extends TradeMessage implements DirectMessag
                                      @Nullable String reserveTxHex,
                                      @Nullable String reserveTxKey,
                                      @Nullable String payoutAddress,
-                                     @Nullable String makerSignature) {
+                                     @Nullable byte[] makerSignature) {
         super(messageVersion, tradeId, uid);
         this.senderNodeAddress = senderNodeAddress;
         this.pubKeyRing = pubKeyRing;
@@ -133,7 +133,7 @@ public final class InitTradeRequest extends TradeMessage implements DirectMessag
         Optional.ofNullable(reserveTxKey).ifPresent(e -> builder.setReserveTxKey(reserveTxKey));
         Optional.ofNullable(payoutAddress).ifPresent(e -> builder.setPayoutAddress(payoutAddress));
         Optional.ofNullable(accountAgeWitnessSignatureOfOfferId).ifPresent(e -> builder.setAccountAgeWitnessSignatureOfOfferId(ByteString.copyFrom(e)));
-        Optional.ofNullable(makerSignature).ifPresent(e -> builder.setMakerSignature(makerSignature));
+        Optional.ofNullable(makerSignature).ifPresent(e -> builder.setMakerSignature(ByteString.copyFrom(e)));
         builder.setCurrentDate(currentDate);
 
         return getNetworkEnvelopeBuilder().setInitTradeRequest(builder).build();
@@ -162,7 +162,7 @@ public final class InitTradeRequest extends TradeMessage implements DirectMessag
                 ProtoUtil.stringOrNullFromProto(proto.getReserveTxHex()),
                 ProtoUtil.stringOrNullFromProto(proto.getReserveTxKey()),
                 ProtoUtil.stringOrNullFromProto(proto.getPayoutAddress()),
-                ProtoUtil.stringOrNullFromProto(proto.getMakerSignature()));
+                ProtoUtil.byteArrayOrNullFromProto(proto.getMakerSignature()));
     }
 
     @Override
@@ -183,7 +183,7 @@ public final class InitTradeRequest extends TradeMessage implements DirectMessag
                 ",\n     reserveTxHex=" + reserveTxHex +
                 ",\n     reserveTxKey=" + reserveTxKey +
                 ",\n     payoutAddress=" + payoutAddress +
-                ",\n     makerSignature=" + makerSignature +
+                ",\n     makerSignature=" + Utilities.byteArrayToInteger(makerSignature) +
                 "\n} " + super.toString();
     }
 }

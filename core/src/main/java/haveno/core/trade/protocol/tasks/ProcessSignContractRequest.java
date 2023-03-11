@@ -30,10 +30,10 @@ import haveno.common.crypto.Encryption;
 import haveno.common.crypto.Hash;
 import haveno.common.crypto.PubKeyRing;
 import haveno.common.crypto.ScryptUtil;
-import haveno.common.crypto.Sig;
 import haveno.common.taskrunner.TaskRunner;
 import haveno.core.trade.ArbitratorTrade;
 import haveno.core.trade.Contract;
+import haveno.core.trade.HavenoUtils;
 import haveno.core.trade.Trade;
 import haveno.core.trade.Trade.State;
 import haveno.core.trade.messages.SignContractRequest;
@@ -85,7 +85,7 @@ public class ProcessSignContractRequest extends TradeTask {
           // create and sign contract
           Contract contract = trade.createContract();
           String contractAsJson = JsonUtil.objectToJson(contract);
-          String signature = Sig.sign(processModel.getKeyRing().getSignatureKeyPair().getPrivate(), contractAsJson);
+          byte[] signature = HavenoUtils.sign(processModel.getKeyRing(), contractAsJson);
 
           // save contract and signature
           trade.setContract(contract);

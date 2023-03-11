@@ -165,7 +165,7 @@ message OfferAvailabilityResponse {
     AvailabilityResult availability_result = 2;
     repeated int32 supported_capabilities = 3;
     string uid = 4;
-    string maker_signature = 5;
+    bytes maker_signature = 5;
 }
 
 message RefreshOfferMessage {
@@ -233,7 +233,7 @@ message InitTradeRequest {
     string reserve_tx_hex = 17;
     string reserve_tx_key = 18;
     string payout_address = 19;
-    string maker_signature = 20;
+    bytes maker_signature = 20;
 }
 
 message InitMultisigRequest {
@@ -261,7 +261,7 @@ message SignContractResponse {
     string uid = 2;
     int64 current_date = 3;
     string contract_as_json = 4;
-    string contract_signature = 5;
+    bytes contract_signature = 5;
     bytes encrypted_payment_account_payload = 6;
 }
 
@@ -269,7 +269,7 @@ message DepositRequest {
     string trade_id = 1;
     string uid = 2;
     int64 current_date = 3;
-    string contract_signature = 4;
+    bytes contract_signature = 4;
     string deposit_tx_hex = 5;
     string deposit_tx_key = 6;
     bytes payment_account_key = 7;
@@ -636,7 +636,7 @@ message OfferPayload {
     int32 protocol_version = 34;
 
     NodeAddress arbitrator_signer = 1001;
-    string arbitrator_signature = 1002;
+    bytes arbitrator_signature = 1002;
     repeated string reserve_tx_key_images = 1003;
 }
 
@@ -696,8 +696,8 @@ message Dispute {
     string deposit_tx_id = 14;
     string payout_tx_id = 15;
     string contract_as_json = 16;
-    string maker_contract_signature = 17;
-    string taker_contract_signature = 18;
+    bytes maker_contract_signature = 17;
+    bytes taker_contract_signature = 18;
     PaymentAccountPayload maker_payment_account_payload = 19;
     PaymentAccountPayload taker_payment_account_payload = 20;
     PubKeyRing agent_pub_key_ring = 21;
@@ -1356,7 +1356,7 @@ message SignedOffer {
     string reserve_tx_hex = 7;
     repeated string reserve_tx_key_images = 8;
     uint64 reserve_tx_miner_fee = 9;
-    string arbitrator_signature = 10;
+    bytes arbitrator_signature = 10;
 }
 
 message OpenOffer {
@@ -1531,7 +1531,7 @@ message ProcessModel {
     int64 funds_needed_for_trade = 7;
     string payment_sent_message_state = 8;
     bool deposits_confirmed_messages_delivered = 9;
-    string maker_signature = 10;
+    bytes maker_signature = 10;
     TradePeer maker = 11;
     TradePeer taker = 12;
     TradePeer arbitrator = 13;
@@ -1557,7 +1557,7 @@ message TradePeer {
     PaymentAccountPayload payment_account_payload = 9;
     string payout_address_string = 10;
     string contract_as_json = 11;
-    string contract_signature = 12;
+    bytes contract_signature = 12;
     bytes account_age_witness_nonce = 18;
     bytes account_age_witness_signature = 19;
     AccountAgeWitness account_age_witness = 20;

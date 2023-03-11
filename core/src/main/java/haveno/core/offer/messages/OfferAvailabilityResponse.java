@@ -31,6 +31,8 @@ import lombok.Value;
 
 import javax.annotation.Nullable;
 
+import com.google.protobuf.ByteString;
+
 // We add here the SupportedCapabilitiesMessage interface as that message always predates a direct connection
 // to the trading peer
 @EqualsAndHashCode(callSuper = true)
@@ -41,11 +43,11 @@ public final class OfferAvailabilityResponse extends OfferMessage implements Sup
     private final Capabilities supportedCapabilities;
 
     @Nullable
-    private final String makerSignature;
+    private byte[] makerSignature;
 
     public OfferAvailabilityResponse(String offerId,
                                      AvailabilityResult availabilityResult,
-                                     String makerSignature) {
+                                     @Nullable byte[] makerSignature) {
         this(offerId,
                 availabilityResult,
                 Capabilities.app,
@@ -64,7 +66,7 @@ public final class OfferAvailabilityResponse extends OfferMessage implements Sup
                                       @Nullable Capabilities supportedCapabilities,
                                       String messageVersion,
                                       @Nullable String uid,
-                                      String makerSignature) {
+                                      byte[] makerSignature) {
         super(messageVersion, offerId, uid);
         this.availabilityResult = availabilityResult;
         this.supportedCapabilities = supportedCapabilities;
@@ -79,7 +81,7 @@ public final class OfferAvailabilityResponse extends OfferMessage implements Sup
 
         Optional.ofNullable(supportedCapabilities).ifPresent(e -> builder.addAllSupportedCapabilities(Capabilities.toIntList(supportedCapabilities)));
         Optional.ofNullable(uid).ifPresent(e -> builder.setUid(uid));
-        Optional.ofNullable(makerSignature).ifPresent(e -> builder.setMakerSignature(makerSignature));
+        Optional.ofNullable(makerSignature).ifPresent(e -> builder.setMakerSignature(ByteString.copyFrom(e)));
 
         return getNetworkEnvelopeBuilder()
                 .setOfferAvailabilityResponse(builder)
@@ -92,6 +94,6 @@ public final class OfferAvailabilityResponse extends OfferMessage implements Sup
                 Capabilities.fromIntList(proto.getSupportedCapabilitiesList()),
                 messageVersion,
                 proto.getUid().isEmpty() ? null : proto.getUid(),
-                proto.getMakerSignature().isEmpty() ? null : proto.getMakerSignature());
+                ProtoUtil.byteArrayOrNullFromProto(proto.getMakerSignature()));
     }
 }
