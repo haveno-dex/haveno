@@ -407,7 +407,7 @@ public class OfferDetailsWindow extends Overlay<OfferDetailsWindow> {
                     placeOfferHandlerOptional.ifPresent(Runnable::run);
                 } else {
                     State lastState = Trade.State.ARBITRATOR_PUBLISHED_DEPOSIT_TXS;
-                    spinnerInfoLabel.setText(Res.get("takeOffer.fundsBox.takeOfferSpinnerInfo") + " 1/" + (lastState.ordinal() + 1));
+                    spinnerInfoLabel.setText(Res.get("takeOffer.fundsBox.takeOfferSpinnerInfo") + " " + getPercentString(0, lastState.ordinal()));
                     takeOfferHandlerOptional.ifPresent(Runnable::run);
 
                     // update trade state progress
@@ -415,7 +415,7 @@ public class OfferDetailsWindow extends Overlay<OfferDetailsWindow> {
                         Trade trade = tradeManager.getTrade(offer.getId());
                         if (trade == null) return;
                         tradeStateSubscription = EasyBind.subscribe(trade.stateProperty(), newState -> {
-                            String progress = (newState.ordinal() + 1) + "/" + (lastState.ordinal() + 1);
+                            String progress = getPercentString(newState.ordinal(), lastState.ordinal());
                             spinnerInfoLabel.setText(Res.get("takeOffer.fundsBox.takeOfferSpinnerInfo") + " " + progress);
 
                             // unsubscribe when done
@@ -428,5 +428,9 @@ public class OfferDetailsWindow extends Overlay<OfferDetailsWindow> {
                 }
             }
         });
+    }
+
+    private static String getPercentString(int newOrdinal, int lastOrdinal) {
+        return (int) ((double) newOrdinal / (double) lastOrdinal * 100) + "%";
     }
 }
