@@ -18,6 +18,8 @@
 package haveno.core.offer;
 
 import haveno.common.proto.persistable.PersistablePayload;
+import haveno.core.util.JsonUtil;
+
 import java.util.List;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -29,6 +31,8 @@ public final class SignedOffer implements PersistablePayload {
     
     @Getter
     private final long timeStamp;
+    @Getter
+    private int traderId;
     @Getter
     private final String offerId;
     @Getter
@@ -47,6 +51,7 @@ public final class SignedOffer implements PersistablePayload {
     private final String arbitratorSignature;
     
     public SignedOffer(long timeStamp,
+                       int traderId,
                        String offerId,
                        long tradeAmount,
                        long penaltyAmount,
@@ -56,6 +61,7 @@ public final class SignedOffer implements PersistablePayload {
                        long reserveTxMinerFee,
                        String arbitratorSignature) {
         this.timeStamp = timeStamp;
+        this.traderId = traderId;
         this.offerId = offerId;
         this.tradeAmount = tradeAmount;
         this.penaltyAmount = penaltyAmount;
@@ -74,6 +80,7 @@ public final class SignedOffer implements PersistablePayload {
     public protobuf.SignedOffer toProtoMessage() {
         protobuf.SignedOffer.Builder builder = protobuf.SignedOffer.newBuilder()
                 .setTimeStamp(timeStamp)
+                .setTraderId(traderId)
                 .setOfferId(offerId)
                 .setTradeAmount(tradeAmount)
                 .setPenaltyAmount(penaltyAmount)
@@ -87,6 +94,7 @@ public final class SignedOffer implements PersistablePayload {
 
     public static SignedOffer fromProto(protobuf.SignedOffer proto) {
         return new SignedOffer(proto.getTimeStamp(),
+                               proto.getTraderId(),
                                proto.getOfferId(),
                                proto.getTradeAmount(),
                                proto.getPenaltyAmount(),
@@ -102,10 +110,15 @@ public final class SignedOffer implements PersistablePayload {
     // Getters
     ///////////////////////////////////////////////////////////////////////////////////////////
 
+    public String toJson() {
+        return JsonUtil.objectToJson(this);
+    }
+
     @Override
     public String toString() {
         return "SignedOffer{" +
                 ",\n     timeStamp=" + timeStamp +
+                ",\n     traderId=" + traderId +
                 ",\n     offerId=" + offerId +
                 ",\n     tradeAmount=" + tradeAmount +
                 ",\n     penaltyAmount=" + penaltyAmount +

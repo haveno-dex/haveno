@@ -1007,6 +1007,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
             // create record of signed offer
             SignedOffer signedOffer = new SignedOffer(
                     System.currentTimeMillis(),
+                    signedOfferPayload.getPubKeyRing().hashCode(), // trader id
                     signedOfferPayload.getId(),
                     offer.getAmount().longValueExact(),
                     txResult.second.longValueExact(),
