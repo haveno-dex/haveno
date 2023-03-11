@@ -188,7 +188,6 @@ public class HavenoUtils {
         try {
             return xmrToAtomicUnits(new BigDecimal(input).doubleValue());
         } catch (Exception e) {
-            log.warn("Exception at parseXmr: " + e.toString());
             return BigInteger.valueOf(0);
         }
     }
