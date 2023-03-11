@@ -1348,14 +1348,15 @@ message SignedOfferList {
 
 message SignedOffer {
     int64 time_stamp = 1;
-    string offer_id = 2;
-    uint64 trade_amount = 3;
-    uint64 penalty_amount = 4;
-    string reserve_tx_hash = 5;
-    string reserve_tx_hex = 6;
-    repeated string reserve_tx_key_images = 7;
-    uint64 reserve_tx_miner_fee = 8;
-    string arbitrator_signature = 9;
+    int32 trader_id = 2;
+    string offer_id = 3;
+    uint64 trade_amount = 4;
+    uint64 penalty_amount = 5;
+    string reserve_tx_hash = 6;
+    string reserve_tx_hex = 7;
+    repeated string reserve_tx_key_images = 8;
+    uint64 reserve_tx_miner_fee = 9;
+    string arbitrator_signature = 10;
 }
 
 message OpenOffer {
