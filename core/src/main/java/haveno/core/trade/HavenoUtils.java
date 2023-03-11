@@ -23,6 +23,7 @@ import com.google.common.base.CaseFormat;
 import com.google.common.base.Charsets;
 import haveno.common.config.Config;
 import haveno.common.crypto.Hash;
+import haveno.common.crypto.KeyRing;
 import haveno.common.crypto.PubKeyRing;
 import haveno.common.crypto.Sig;
 import haveno.common.util.Utilities;
@@ -39,7 +40,7 @@ import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
 
 import java.net.URI;
-
+import java.security.PrivateKey;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 
@@ -236,6 +237,170 @@ public class HavenoUtils {
         return feePerXmrAsDecimal.multiply(amountMultiplier).toBigInteger();
     }
 
+    // ------------------------ SIGNING AND VERIFYING -------------------------
+
+    public static byte[] sign(KeyRing keyRing, String message) {
+        return sign(keyRing.getSignatureKeyPair().getPrivate(), message);
+    }
+
+    public static byte[] sign(PrivateKey privateKey, String message) {
+        return sign(privateKey, message.getBytes(Charsets.UTF_8));
+    }
+
+    public static byte[] sign(PrivateKey privateKey, byte[] bytes) {
+        try {
+            return Sig.sign(privateKey, bytes);
+        } catch (Exception e) {
+            throw new IllegalArgumentException(e);
+        }
+    }
+
+    public static void verifySignature(PubKeyRing pubKeyRing, String message, byte[] signature) {
+        verifySignature(pubKeyRing, message.getBytes(Charsets.UTF_8), signature);
+    }
+
+    public static void verifySignature(PubKeyRing pubKeyRing, byte[] bytes, byte[] signature) {
+        try {
+            Sig.verify(pubKeyRing.getSignaturePubKey(), bytes, signature);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public static boolean isSignatureValid(PubKeyRing pubKeyRing, String message, byte[] signature) {
+        return isSignatureValid(pubKeyRing, message.getBytes(Charsets.UTF_8), signature);
+    }
+
+    public static boolean isSignatureValid(PubKeyRing pubKeyRing, byte[] bytes, byte[] signature) {
+        try {
+            verifySignature(pubKeyRing, bytes, signature);
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    /**
+     * Check if the arbitrator signature is valid for an offer.
+     *
+     * @param offer is a signed offer with payload
+     * @param arbitrator is the original signing arbitrator
+     * @return true if the arbitrator's signature is valid for the offer
+     */
+    public static boolean isArbitratorSignatureValid(Offer offer, Arbitrator arbitrator) {
+
+        // copy offer payload
+        OfferPayload offerPayloadCopy = OfferPayload.fromProto(offer.toProtoMessage().getOfferPayload());
+
+        // remove arbitrator signature from signed payload
+        byte[] signature = offerPayloadCopy.getArbitratorSignature();
+        offerPayloadCopy.setArbitratorSignature(null);
+
+        // get unsigned offer payload as json string
+        String unsignedOfferAsJson = JsonUtil.objectToJson(offerPayloadCopy);
+
+        // verify signature
+        return isSignatureValid(arbitrator.getPubKeyRing(), unsignedOfferAsJson, signature);
+    }
+
+    /**
+     * Check if the maker signature for a trade request is valid.
+     *
+     * @param request is the trade request to check
+     * @return true if the maker's signature is valid for the trade request
+     */
+    public static boolean isMakerSignatureValid(InitTradeRequest request, byte[] signature, PubKeyRing makerPubKeyRing) {
+
+        // re-create trade request with signed fields
+        InitTradeRequest signedRequest = new InitTradeRequest(
+                request.getTradeId(),
+                request.getSenderNodeAddress(),
+                request.getPubKeyRing(),
+                request.getTradeAmount(),
+                request.getTradePrice(),
+                request.getTradeFee(),
+                request.getAccountId(),
+                request.getPaymentAccountId(),
+                request.getPaymentMethodId(),
+                request.getUid(),
+                request.getMessageVersion(),
+                request.getAccountAgeWitnessSignatureOfOfferId(),
+                request.getCurrentDate(),
+                request.getMakerNodeAddress(),
+                request.getTakerNodeAddress(),
+                null,
+                null,
+                null,
+                null,
+                request.getPayoutAddress(),
+                null
+                );
+
+        // get trade request as string
+        String tradeRequestAsJson = JsonUtil.objectToJson(signedRequest);
+
+        // verify maker signature
+        return isSignatureValid(makerPubKeyRing, tradeRequestAsJson, signature);
+    }
+
+    /**
+     * Verify the buyer signature for a PaymentSentMessage.
+     *
+     * @param trade - the trade to verify
+     * @param message - signed payment sent message to verify
+     * @return true if the buyer's signature is valid for the message
+     */
+    public static void verifyPaymentSentMessage(Trade trade, PaymentSentMessage message) {
+
+        // remove signature from message
+        byte[] signature = message.getBuyerSignature();
+        message.setBuyerSignature(null);
+
+        // get unsigned message as json string
+        String unsignedMessageAsJson = JsonUtil.objectToJson(message);
+
+        // replace signature
+        message.setBuyerSignature(signature);
+
+        // verify signature
+        if (!isSignatureValid(trade.getBuyer().getPubKeyRing(), unsignedMessageAsJson, signature)) {
+            throw new IllegalArgumentException("The buyer signature is invalid for the " + message.getClass().getSimpleName() + " for " + trade.getClass().getSimpleName() + " " + trade.getId());
+        }
+
+        // verify trade id
+        if (!trade.getId().equals(message.getTradeId())) throw new IllegalArgumentException("The " + message.getClass().getSimpleName() + " has the wrong trade id, expected " + trade.getId() + " but was " + message.getTradeId());
+    }
+
+    /**
+     * Verify the seller signature for a PaymentReceivedMessage.
+     *
+     * @param trade - the trade to verify
+     * @param message - signed payment received message to verify
+     * @return true if the seller's signature is valid for the message
+     */
+    public static void verifyPaymentReceivedMessage(Trade trade, PaymentReceivedMessage message) {
+
+        // remove signature from message
+        byte[] signature = message.getSellerSignature();
+        message.setSellerSignature(null);
+
+        // get unsigned message as json string
+        String unsignedMessageAsJson = JsonUtil.objectToJson(message);
+
+        // replace signature
+        message.setSellerSignature(signature);
+
+        // verify signature
+        if (!isSignatureValid(trade.getSeller().getPubKeyRing(), unsignedMessageAsJson, signature)) {
+            throw new IllegalArgumentException("The seller signature is invalid for the " + message.getClass().getSimpleName() + " for " + trade.getClass().getSimpleName() + " " + trade.getId());
+        }
+
+        // verify trade id
+        if (!trade.getId().equals(message.getTradeId())) throw new IllegalArgumentException("The " + message.getClass().getSimpleName() + " has the wrong trade id, expected " + trade.getId() + " but was " + message.getTradeId());
+
+        // verify buyer signature of payment sent message
+        verifyPaymentSentMessage(trade, message.getPaymentSentMessage());
+    }
 
     // ----------------------------- OTHER UTILS ------------------------------
 
@@ -280,144 +445,6 @@ public class HavenoUtils {
     public static String getDeterministicId(Trade trade, Class<?> tradeMessageClass, NodeAddress receiver) {
         String uniqueId = trade.getId() + "_" + tradeMessageClass.getSimpleName() + "_" + trade.getRole() + "_to_" + trade.getPeerRole(trade.getTradePeer(receiver));
         return Utilities.bytesAsHexString(Hash.getSha256Ripemd160hash(uniqueId.getBytes(Charsets.UTF_8)));
-    }
-
-    /**
-     * Check if the arbitrator signature is valid for an offer.
-     *
-     * @param offer is a signed offer with payload
-     * @param arbitrator is the original signing arbitrator
-     * @return true if the arbitrator's signature is valid for the offer
-     */
-    public static boolean isArbitratorSignatureValid(Offer offer, Arbitrator arbitrator) {
-
-        // copy offer payload
-        OfferPayload offerPayloadCopy = OfferPayload.fromProto(offer.toProtoMessage().getOfferPayload());
-
-        // remove arbitrator signature from signed payload
-        String signature = offerPayloadCopy.getArbitratorSignature();
-        offerPayloadCopy.setArbitratorSignature(null);
-
-        // get unsigned offer payload as json string
-        String unsignedOfferAsJson = JsonUtil.objectToJson(offerPayloadCopy);
-
-        // verify arbitrator signature
-        try {
-            return Sig.verify(arbitrator.getPubKeyRing().getSignaturePubKey(), unsignedOfferAsJson, signature);
-        } catch (Exception e) {
-            return false;
-        }
-    }
-
-    /**
-     * Check if the maker signature for a trade request is valid.
-     *
-     * @param request is the trade request to check
-     * @return true if the maker's signature is valid for the trade request
-     */
-    public static boolean isMakerSignatureValid(InitTradeRequest request, String signature, PubKeyRing makerPubKeyRing) {
-
-        // re-create trade request with signed fields
-        InitTradeRequest signedRequest = new InitTradeRequest(
-                request.getTradeId(),
-                request.getSenderNodeAddress(),
-                request.getPubKeyRing(),
-                request.getTradeAmount(),
-                request.getTradePrice(),
-                request.getTradeFee(),
-                request.getAccountId(),
-                request.getPaymentAccountId(),
-                request.getPaymentMethodId(),
-                request.getUid(),
-                request.getMessageVersion(),
-                request.getAccountAgeWitnessSignatureOfOfferId(),
-                request.getCurrentDate(),
-                request.getMakerNodeAddress(),
-                request.getTakerNodeAddress(),
-                null,
-                null,
-                null,
-                null,
-                request.getPayoutAddress(),
-                null
-                );
-
-        // get trade request as string
-        String tradeRequestAsJson = JsonUtil.objectToJson(signedRequest);
-
-        // verify maker signature
-        try {
-            return Sig.verify(makerPubKeyRing.getSignaturePubKey(),
-                    tradeRequestAsJson,
-                    signature);
-        } catch (Exception e) {
-            return false;
-        }
-    }
-
-    /**
-     * Verify the buyer signature for a PaymentSentMessage.
-     *
-     * @param trade - the trade to verify
-     * @param message - signed payment sent message to verify
-     * @return true if the buyer's signature is valid for the message
-     */
-    public static void verifyPaymentSentMessage(Trade trade, PaymentSentMessage message) {
-
-        // remove signature from message
-        byte[] signature = message.getBuyerSignature();
-        message.setBuyerSignature(null);
-
-        // get unsigned message as json string
-        String unsignedMessageAsJson = JsonUtil.objectToJson(message);
-
-        // replace signature
-        message.setBuyerSignature(signature);
-
-        // verify signature
-        String errMessage = "The buyer signature is invalid for the " + message.getClass().getSimpleName() + " for " + trade.getClass().getSimpleName() + " " + trade.getId();
-        try {
-            if (!Sig.verify(trade.getBuyer().getPubKeyRing().getSignaturePubKey(), unsignedMessageAsJson.getBytes(Charsets.UTF_8), signature)) throw new IllegalArgumentException(errMessage);
-        } catch (Exception e) {
-            throw new IllegalArgumentException(errMessage);
-        }
-
-        // verify trade id
-        if (!trade.getId().equals(message.getTradeId())) throw new IllegalArgumentException("The " + message.getClass().getSimpleName() + " has the wrong trade id, expected " + trade.getId() + " but was " + message.getTradeId());
-    }
-
-    /**
-     * Verify the seller signature for a PaymentReceivedMessage.
-     *
-     * @param trade - the trade to verify
-     * @param message - signed payment received message to verify
-     * @return true if the seller's signature is valid for the message
-     */
-    public static void verifyPaymentReceivedMessage(Trade trade, PaymentReceivedMessage message) {
-
-        // remove signature from message
-        byte[] signature = message.getSellerSignature();
-        message.setSellerSignature(null);
-
-        // get unsigned message as json string
-        String unsignedMessageAsJson = JsonUtil.objectToJson(message);
-
-        // replace signature
-        message.setSellerSignature(signature);
-
-        // verify signature
-        String errMessage = "The seller signature is invalid for the " + message.getClass().getSimpleName() + " for " + trade.getClass().getSimpleName() + " " + trade.getId();
-        try {
-            if (!Sig.verify(trade.getSeller().getPubKeyRing().getSignaturePubKey(), unsignedMessageAsJson.getBytes(Charsets.UTF_8), signature)) throw new IllegalArgumentException(errMessage);
-        } catch (Exception e) {
-            throw new IllegalArgumentException(errMessage);
-        }
-
-        // verify trade id
-        if (!trade.getId().equals(message.getTradeId())) throw new IllegalArgumentException("The " + message.getClass().getSimpleName() + " has the wrong trade id, expected " + trade.getId() + " but was " + message.getTradeId());
-
-        // verify buyer signature of payment sent message
-        verifyPaymentSentMessage(trade, message.getPaymentSentMessage());
     }
 
     public static void awaitLatch(CountDownLatch latch) {

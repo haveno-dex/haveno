@@ -18,6 +18,7 @@
 package haveno.desktop.main.support.dispute.agent;
 
 import haveno.common.UserThread;
+import haveno.common.util.Utilities;
 import haveno.core.locale.Res;
 import haveno.core.offer.OpenOfferManager;
 import haveno.core.offer.SignedOffer;
@@ -379,7 +380,7 @@ public class SignedOfferView extends ActivatableView<VBox, Void> {
                             public void updateItem(final SignedOffer item, boolean empty) {
                                 super.updateItem(item, empty);
                                 if (item != null && !empty)
-                                    setText(item.getArbitratorSignature());
+                                    setText(Utilities.bytesAsHexString(item.getArbitratorSignature()));
                                 else
                                     setText("");
                             }

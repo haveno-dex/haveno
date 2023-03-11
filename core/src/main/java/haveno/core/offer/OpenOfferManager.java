@@ -25,7 +25,6 @@ import haveno.common.app.Capability;
 import haveno.common.app.Version;
 import haveno.common.crypto.KeyRing;
 import haveno.common.crypto.PubKeyRing;
-import haveno.common.crypto.Sig;
 import haveno.common.handlers.ErrorMessageHandler;
 import haveno.common.handlers.ResultHandler;
 import haveno.common.persistence.PersistenceManager;
@@ -1000,7 +999,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
 
             // arbitrator signs offer to certify they have valid reserve tx
             String offerPayloadAsJson = JsonUtil.objectToJson(request.getOfferPayload());
-            String signature = Sig.sign(keyRing.getSignatureKeyPair().getPrivate(), offerPayloadAsJson);
+            byte[] signature = HavenoUtils.sign(keyRing, offerPayloadAsJson);
             OfferPayload signedOfferPayload = request.getOfferPayload();
             signedOfferPayload.setArbitratorSignature(signature);
 
@@ -1119,7 +1118,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
         try {
             Optional<OpenOffer> openOfferOptional = getOpenOfferById(request.offerId);
             AvailabilityResult availabilityResult;
-            String makerSignature = null;
+            byte[] makerSignature = null;
             if (openOfferOptional.isPresent()) {
                 OpenOffer openOffer = openOfferOptional.get();
                 if (!apiUserDeniedByOffer(request)) {
@@ -1130,7 +1129,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
 
                                 // maker signs taker's request
                                 String tradeRequestAsJson = JsonUtil.objectToJson(request.getTradeRequest());
-                                makerSignature = Sig.sign(keyRing.getSignatureKeyPair().getPrivate(), tradeRequestAsJson);
+                                makerSignature = HavenoUtils.sign(keyRing, tradeRequestAsJson);
 
                                 try {
                                     // Check also tradePrice to avoid failures after taker fee is paid caused by a too big difference

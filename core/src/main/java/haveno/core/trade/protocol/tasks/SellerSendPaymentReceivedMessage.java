@@ -22,9 +22,7 @@ import lombok.extern.slf4j.Slf4j;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import com.google.common.base.Charsets;
 import haveno.common.crypto.PubKeyRing;
-import haveno.common.crypto.Sig;
 import haveno.common.taskrunner.TaskRunner;
 import haveno.core.account.sign.SignedWitness;
 import haveno.core.account.witness.AccountAgeWitnessService;
@@ -92,7 +90,7 @@ public abstract class SellerSendPaymentReceivedMessage extends SendMailboxMessag
             // sign message
             try {
                 String messageAsJson = JsonUtil.objectToJson(message);
-                byte[] sig = Sig.sign(processModel.getP2PService().getKeyRing().getSignatureKeyPair().getPrivate(), messageAsJson.getBytes(Charsets.UTF_8));
+                byte[] sig = HavenoUtils.sign(processModel.getP2PService().getKeyRing(), messageAsJson);
                 message.setSellerSignature(sig);
                 processModel.setPaymentReceivedMessage(message);
                 trade.requestPersistence();

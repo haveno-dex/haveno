@@ -17,10 +17,8 @@
 
 package haveno.core.trade.protocol.tasks;
 
-import com.google.common.base.Charsets;
 import haveno.common.Timer;
 import haveno.common.crypto.PubKeyRing;
-import haveno.common.crypto.Sig;
 import haveno.common.taskrunner.TaskRunner;
 import haveno.core.network.MessageState;
 import haveno.core.trade.HavenoUtils;
@@ -94,7 +92,7 @@ public abstract class BuyerSendPaymentSentMessage extends SendMailboxMessageTask
             // sign message
             try {
                 String messageAsJson = JsonUtil.objectToJson(message);
-                byte[] sig = Sig.sign(processModel.getP2PService().getKeyRing().getSignatureKeyPair().getPrivate(), messageAsJson.getBytes(Charsets.UTF_8));
+                byte[] sig = HavenoUtils.sign(processModel.getP2PService().getKeyRing(), messageAsJson);
                 message.setBuyerSignature(sig);
                 processModel.setPaymentSentMessage(message);
                 trade.requestPersistence();

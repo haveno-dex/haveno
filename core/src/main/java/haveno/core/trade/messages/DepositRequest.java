@@ -19,6 +19,7 @@ package haveno.core.trade.messages;
 
 import com.google.protobuf.ByteString;
 import haveno.common.proto.ProtoUtil;
+import haveno.common.util.Utilities;
 import haveno.core.proto.CoreProtoResolver;
 import haveno.network.p2p.DirectMessage;
 import java.util.Optional;
@@ -30,7 +31,7 @@ import lombok.Value;
 @Value
 public final class DepositRequest extends TradeMessage implements DirectMessage {
     private final long currentDate;
-    private final String contractSignature;
+    private final byte[] contractSignature;
     private final String depositTxHex;
     private final String depositTxKey;
     @Nullable
@@ -40,7 +41,7 @@ public final class DepositRequest extends TradeMessage implements DirectMessage 
                                      String uid,
                                      String messageVersion,
                                      long currentDate,
-                                     String contractSignature,
+                                     byte[] contractSignature,
                                      String depositTxHex,
                                      String depositTxKey,
                                      @Nullable byte[] paymentAccountKey) {
@@ -62,11 +63,11 @@ public final class DepositRequest extends TradeMessage implements DirectMessage 
         protobuf.DepositRequest.Builder builder = protobuf.DepositRequest.newBuilder()
                 .setTradeId(tradeId)
                 .setUid(uid)
-                .setContractSignature(contractSignature)
                 .setDepositTxHex(depositTxHex)
                 .setDepositTxKey(depositTxKey);
         builder.setCurrentDate(currentDate);
         Optional.ofNullable(paymentAccountKey).ifPresent(e -> builder.setPaymentAccountKey(ByteString.copyFrom(e)));
+        Optional.ofNullable(contractSignature).ifPresent(e -> builder.setContractSignature(ByteString.copyFrom(e)));
 
         return getNetworkEnvelopeBuilder().setDepositRequest(builder).build();
     }
@@ -78,7 +79,7 @@ public final class DepositRequest extends TradeMessage implements DirectMessage 
                 proto.getUid(),
                 messageVersion,
                 proto.getCurrentDate(),
-                proto.getContractSignature(),
+                ProtoUtil.byteArrayOrNullFromProto(proto.getContractSignature()),
                 proto.getDepositTxHex(),
                 proto.getDepositTxKey(),
                 ProtoUtil.byteArrayOrNullFromProto(proto.getPaymentAccountKey()));
@@ -88,7 +89,7 @@ public final class DepositRequest extends TradeMessage implements DirectMessage 
     public String toString() {
         return "DepositRequest {" +
                 ",\n     currentDate=" + currentDate +
-                ",\n     contractSignature=" + contractSignature +
+                ",\n     contractSignature=" + Utilities.bytesAsHexString(contractSignature) +
                 ",\n     depositTxHex='" + depositTxHex +
                 ",\n     depositTxKey='" + depositTxKey +
                 ",\n     paymentAccountKey='" + paymentAccountKey +

@@ -18,12 +18,11 @@
 package haveno.core.support.dispute;
 
 import haveno.common.config.Config;
-import haveno.common.crypto.CryptoException;
 import haveno.common.crypto.Hash;
-import haveno.common.crypto.Sig;
 import haveno.common.util.Tuple3;
 import haveno.core.support.SupportType;
 import haveno.core.trade.Contract;
+import haveno.core.trade.HavenoUtils;
 import haveno.core.trade.Trade;
 import haveno.core.util.JsonUtil;
 import haveno.core.util.validation.RegexValidatorFactory;
@@ -64,23 +63,11 @@ public class DisputeValidation {
             checkArgument(Arrays.equals(Objects.requireNonNull(dispute.getContractHash()), Hash.getSha256Hash(checkNotNull(dispute.getContractAsJson()))),
                     "Invalid contractHash");
  
-            try {
-                // Only the dispute opener has set the signature
-                String makerContractSignature = dispute.getMakerContractSignature();
-                if (makerContractSignature != null) {
-                    Sig.verify(contract.getMakerPubKeyRing().getSignaturePubKey(),
-                            dispute.getContractAsJson(),
-                            makerContractSignature);
-                }
-                String takerContractSignature = dispute.getTakerContractSignature();
-                if (takerContractSignature != null) {
-                    Sig.verify(contract.getTakerPubKeyRing().getSignaturePubKey(),
-                            dispute.getContractAsJson(),
-                            takerContractSignature);
-                }
-            } catch (CryptoException e) {
-                throw new ValidationException(dispute, e.getMessage());
-            }
+            // Only the dispute opener has set the signature
+            byte[] makerContractSignature = dispute.getMakerContractSignature();
+            if (makerContractSignature != null) HavenoUtils.verifySignature(contract.getMakerPubKeyRing(),  dispute.getContractAsJson(), makerContractSignature);
+            byte[] takerContractSignature = dispute.getTakerContractSignature();
+            if (takerContractSignature != null) HavenoUtils.verifySignature(contract.getTakerPubKeyRing(),  dispute.getContractAsJson(), takerContractSignature);
         } catch (Throwable t) {
             throw new ValidationException(dispute, t.getMessage());
         }

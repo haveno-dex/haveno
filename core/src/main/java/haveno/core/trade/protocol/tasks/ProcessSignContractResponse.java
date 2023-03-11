@@ -20,8 +20,8 @@ package haveno.core.trade.protocol.tasks;
 
 import haveno.common.app.Version;
 import haveno.common.crypto.PubKeyRing;
-import haveno.common.crypto.Sig;
 import haveno.common.taskrunner.TaskRunner;
+import haveno.core.trade.HavenoUtils;
 import haveno.core.trade.Trade;
 import haveno.core.trade.messages.DepositRequest;
 import haveno.core.trade.messages.SignContractResponse;
@@ -63,8 +63,8 @@ public class ProcessSignContractResponse extends TradeTask {
 
             // verify signature
             // TODO (woodser): transfer contract for convenient comparison?
-            String signature = response.getContractSignature();
-            if (!Sig.verify(peerPubKeyRing.getSignaturePubKey(), contractAsJson, signature)) throw new RuntimeException("Peer's contract signature is invalid");
+            byte[] signature = response.getContractSignature();
+            if (!HavenoUtils.isSignatureValid(peerPubKeyRing, contractAsJson, signature)) throw new RuntimeException("Peer's contract signature is invalid");
 
             // set peer's signature
             peer.setContractSignature(signature);

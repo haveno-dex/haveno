@@ -104,9 +104,9 @@ public final class Dispute implements NetworkPayload, PersistablePayload {
     private final String payoutTxId;
     private String contractAsJson;
     @Nullable
-    private final String makerContractSignature;
+    private final byte[] makerContractSignature;
     @Nullable
-    private final String takerContractSignature;
+    private final byte[] takerContractSignature;
     private final PubKeyRing agentPubKeyRing; // dispute agent
     private final boolean isSupportTicket;
     private final ObservableList<ChatMessage> chatMessages = FXCollections.observableArrayList();
@@ -179,8 +179,8 @@ public final class Dispute implements NetworkPayload, PersistablePayload {
                    @Nullable String depositTxId,
                    @Nullable String payoutTxId,
                    String contractAsJson,
-                   @Nullable String makerContractSignature,
-                   @Nullable String takerContractSignature,
+                   @Nullable byte[] makerContractSignature,
+                   @Nullable byte[] takerContractSignature,
                    @Nullable PaymentAccountPayload makerPaymentAccountPayload,
                    @Nullable PaymentAccountPayload takerPaymentAccountPayload,
                    PubKeyRing agentPubKeyRing,
@@ -251,8 +251,8 @@ public final class Dispute implements NetworkPayload, PersistablePayload {
         Optional.ofNullable(depositTxId).ifPresent(builder::setDepositTxId);
         Optional.ofNullable(payoutTxId).ifPresent(builder::setPayoutTxId);
         Optional.ofNullable(disputePayoutTxId).ifPresent(builder::setDisputePayoutTxId);
-        Optional.ofNullable(makerContractSignature).ifPresent(builder::setMakerContractSignature);
-        Optional.ofNullable(takerContractSignature).ifPresent(builder::setTakerContractSignature);
+        Optional.ofNullable(makerContractSignature).ifPresent(e -> builder.setMakerContractSignature(ByteString.copyFrom(e)));
+        Optional.ofNullable(takerContractSignature).ifPresent(e -> builder.setTakerContractSignature(ByteString.copyFrom(e)));
         Optional.ofNullable(makerPaymentAccountPayload).ifPresent(e -> builder.setMakerPaymentAccountPayload((protobuf.PaymentAccountPayload) makerPaymentAccountPayload.toProtoMessage()));
         Optional.ofNullable(takerPaymentAccountPayload).ifPresent(e -> builder.setTakerPaymentAccountPayload((protobuf.PaymentAccountPayload) takerPaymentAccountPayload.toProtoMessage()));
         Optional.ofNullable(disputeResultProperty.get()).ifPresent(result -> builder.setDisputeResult(disputeResultProperty.get().toProtoMessage()));
@@ -281,8 +281,8 @@ public final class Dispute implements NetworkPayload, PersistablePayload {
                 ProtoUtil.stringOrNullFromProto(proto.getDepositTxId()),
                 ProtoUtil.stringOrNullFromProto(proto.getPayoutTxId()),
                 proto.getContractAsJson(),
-                ProtoUtil.stringOrNullFromProto(proto.getMakerContractSignature()),
-                ProtoUtil.stringOrNullFromProto(proto.getTakerContractSignature()),
+                ProtoUtil.byteArrayOrNullFromProto(proto.getMakerContractSignature()),
+                ProtoUtil.byteArrayOrNullFromProto(proto.getTakerContractSignature()),
                 proto.hasMakerPaymentAccountPayload() ? coreProtoResolver.fromProto(proto.getMakerPaymentAccountPayload()) : null,
                 proto.hasTakerPaymentAccountPayload() ? coreProtoResolver.fromProto(proto.getTakerPaymentAccountPayload()) : null,
                 PubKeyRing.fromProto(proto.getAgentPubKeyRing()),
@@ -524,8 +524,8 @@ public final class Dispute implements NetworkPayload, PersistablePayload {
                 ",\n     depositTxId='" + depositTxId + '\'' +
                 ",\n     payoutTxId='" + payoutTxId + '\'' +
                 ",\n     contractAsJson='" + contractAsJson + '\'' +
-                ",\n     makerContractSignature='" + makerContractSignature + '\'' +
-                ",\n     takerContractSignature='" + takerContractSignature + '\'' +
+                ",\n     makerContractSignature='" + Utilities.bytesAsHexString(makerContractSignature) + '\'' +
+                ",\n     takerContractSignature='" + Utilities.bytesAsHexString(takerContractSignature) + '\'' +
                 ",\n     agentPubKeyRing=" + agentPubKeyRing +
                 ",\n     isSupportTicket=" + isSupportTicket +
                 ",\n     chatMessages=" + chatMessages +

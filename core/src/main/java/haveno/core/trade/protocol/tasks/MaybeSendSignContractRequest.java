@@ -22,11 +22,10 @@ import java.util.Date;
 import java.util.List;
 import java.util.UUID;
 
-import com.google.common.base.Charsets;
 import haveno.common.app.Version;
-import haveno.common.crypto.Sig;
 import haveno.common.taskrunner.TaskRunner;
 import haveno.core.trade.ArbitratorTrade;
+import haveno.core.trade.HavenoUtils;
 import haveno.core.trade.MakerTrade;
 import haveno.core.trade.Trade;
 import haveno.core.trade.Trade.State;
@@ -90,7 +89,7 @@ public class MaybeSendSignContractRequest extends TradeTask {
           // maker signs deposit hash nonce to avoid challenge protocol
           byte[] sig = null;
           if (trade instanceof MakerTrade) {
-            sig = Sig.sign(processModel.getP2PService().getKeyRing().getSignatureKeyPair().getPrivate(), depositTx.getHash().getBytes(Charsets.UTF_8));
+            sig = HavenoUtils.sign(processModel.getP2PService().getKeyRing(), depositTx.getHash());
           }
 
           // create request for peer and arbitrator to sign contract

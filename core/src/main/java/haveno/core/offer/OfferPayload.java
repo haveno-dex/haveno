@@ -20,12 +20,15 @@ package haveno.core.offer;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonSerializationContext;
+import com.google.protobuf.ByteString;
+
 import haveno.common.crypto.Hash;
 import haveno.common.crypto.PubKeyRing;
 import haveno.common.proto.ProtoUtil;
 import haveno.common.util.CollectionUtils;
 import haveno.common.util.Hex;
 import haveno.common.util.JsonExclude;
+import haveno.common.util.Utilities;
 import haveno.network.p2p.NodeAddress;
 import haveno.network.p2p.storage.payload.ExpirablePayload;
 import haveno.network.p2p.storage.payload.ProtectedStoragePayload;
@@ -81,7 +84,7 @@ public final class OfferPayload implements ProtectedStoragePayload, ExpirablePay
     protected NodeAddress arbitratorSigner;
     @Setter
     @Nullable
-    protected String arbitratorSignature;
+    protected byte[] arbitratorSignature;
     @Setter
     @Nullable
     protected List<String> reserveTxKeyImages;
@@ -191,7 +194,7 @@ public final class OfferPayload implements ProtectedStoragePayload, ExpirablePay
                         @Nullable Map<String, String> extraDataMap,
                         int protocolVersion,
                         @Nullable NodeAddress arbitratorSigner,
-                        @Nullable String arbitratorSignature,
+                        @Nullable byte[] arbitratorSignature,
                         @Nullable List<String> reserveTxKeyImages) {
         this.id = id;
         this.date = date;
@@ -302,7 +305,7 @@ public final class OfferPayload implements ProtectedStoragePayload, ExpirablePay
         Optional.ofNullable(acceptedCountryCodes).ifPresent(builder::addAllAcceptedCountryCodes);
         Optional.ofNullable(hashOfChallenge).ifPresent(builder::setHashOfChallenge);
         Optional.ofNullable(extraDataMap).ifPresent(builder::putAllExtraData);
-        Optional.ofNullable(arbitratorSignature).ifPresent(builder::setArbitratorSignature);
+        Optional.ofNullable(arbitratorSignature).ifPresent(e -> builder.setArbitratorSignature(ByteString.copyFrom(e)));
         Optional.ofNullable(reserveTxKeyImages).ifPresent(builder::addAllReserveTxKeyImages);
 
         return protobuf.StoragePayload.newBuilder().setOfferPayload(builder).build();
@@ -352,7 +355,7 @@ public final class OfferPayload implements ProtectedStoragePayload, ExpirablePay
                 extraDataMapMap,
                 proto.getProtocolVersion(),
                 proto.hasArbitratorSigner() ? NodeAddress.fromProto(proto.getArbitratorSigner()) : null,
-                ProtoUtil.stringOrNullFromProto(proto.getArbitratorSignature()),
+                ProtoUtil.byteArrayOrNullFromProto(proto.getArbitratorSignature()),
                 proto.getReserveTxKeyImagesList() == null ? null : new ArrayList<String>(proto.getReserveTxKeyImagesList()));
     }
 
@@ -375,8 +378,6 @@ public final class OfferPayload implements ProtectedStoragePayload, ExpirablePay
                 ",\r\n     pubKeyRing=" + pubKeyRing +
                 ",\r\n     hash=" + (hash != null ? Hex.encode(hash) : "null") +
                 ",\r\n     extraDataMap=" + extraDataMap +
-                ",\r\n     arbitratorSigner=" + arbitratorSigner +
-                ",\r\n     arbitratorSignature=" + arbitratorSignature +
                 ",\r\n     reserveTxKeyImages=" + reserveTxKeyImages +
                 ",\r\n     marketPriceMargin=" + marketPriceMarginPct +
                 ",\r\n     useMarketBasedPrice=" + useMarketBasedPrice +
@@ -398,7 +399,7 @@ public final class OfferPayload implements ProtectedStoragePayload, ExpirablePay
                 ",\r\n     isPrivateOffer=" + isPrivateOffer +
                 ",\r\n     hashOfChallenge='" + hashOfChallenge + '\'' +
                 ",\n     arbitratorSigner=" + arbitratorSigner +
-                ",\n     arbitratorSignature=" + arbitratorSignature +
+                ",\n     arbitratorSignature=" + Utilities.bytesAsHexString(arbitratorSignature) +
                 "\r\n} ";
     }
 

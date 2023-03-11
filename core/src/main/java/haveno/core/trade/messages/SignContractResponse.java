@@ -18,11 +18,10 @@
 package haveno.core.trade.messages;
 
 import com.google.protobuf.ByteString;
-import haveno.common.crypto.PubKeyRing;
 import haveno.common.proto.ProtoUtil;
+import haveno.common.util.Utilities;
 import haveno.core.proto.CoreProtoResolver;
 import haveno.network.p2p.DirectMessage;
-import haveno.network.p2p.NodeAddress;
 import java.util.Optional;
 import javax.annotation.Nullable;
 import lombok.EqualsAndHashCode;
@@ -33,7 +32,7 @@ import lombok.Value;
 public final class SignContractResponse extends TradeMessage implements DirectMessage {
     private final long currentDate;
     private final String contractAsJson;
-    private final String contractSignature;
+    private final byte[] contractSignature;
     private final byte[] encryptedPaymentAccountPayload;
 
     public SignContractResponse(String tradeId,
@@ -41,7 +40,7 @@ public final class SignContractResponse extends TradeMessage implements DirectMe
                                      String messageVersion,
                                      long currentDate,
                                      String contractAsJson,
-                                     String contractSignature,
+                                     byte[] contractSignature,
                                      @Nullable byte[] encryptedPaymentAccountPayload) {
         super(messageVersion, tradeId, uid);
         this.currentDate = currentDate;
@@ -62,7 +61,7 @@ public final class SignContractResponse extends TradeMessage implements DirectMe
                 .setUid(uid);
 
         Optional.ofNullable(contractAsJson).ifPresent(e -> builder.setContractAsJson(contractAsJson));
-        Optional.ofNullable(contractSignature).ifPresent(e -> builder.setContractSignature(contractSignature));
+        Optional.ofNullable(contractSignature).ifPresent(e -> builder.setContractSignature(ByteString.copyFrom(e)));
         Optional.ofNullable(encryptedPaymentAccountPayload).ifPresent(e -> builder.setEncryptedPaymentAccountPayload(ByteString.copyFrom(e)));
 
         builder.setCurrentDate(currentDate);
@@ -78,7 +77,7 @@ public final class SignContractResponse extends TradeMessage implements DirectMe
                 messageVersion,
                 proto.getCurrentDate(),
                 ProtoUtil.stringOrNullFromProto(proto.getContractAsJson()),
-                ProtoUtil.stringOrNullFromProto(proto.getContractSignature()),
+                ProtoUtil.byteArrayOrNullFromProto(proto.getContractSignature()),
                 proto.getEncryptedPaymentAccountPayload().toByteArray());
     }
 
@@ -87,7 +86,7 @@ public final class SignContractResponse extends TradeMessage implements DirectMe
         return "SignContractResponse {" +
                 ",\n     currentDate=" + currentDate +
                 ",\n     contractAsJson='" + contractAsJson +
-                ",\n     contractSignature='" + contractSignature +
+                ",\n     contractSignature='" + Utilities.bytesAsHexString(contractSignature) +
                 "\n} " + super.toString();
     }
 }

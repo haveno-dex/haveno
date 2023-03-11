@@ -24,6 +24,7 @@ import haveno.common.crypto.PubKeyRing;
 import haveno.common.crypto.Sig;
 import haveno.common.taskrunner.TaskRunner;
 import haveno.core.offer.Offer;
+import haveno.core.trade.HavenoUtils;
 import haveno.core.trade.Trade;
 import haveno.core.trade.messages.DepositRequest;
 import haveno.core.trade.messages.DepositResponse;
@@ -58,7 +59,7 @@ public class ArbitratorProcessDepositRequest extends TradeTask {
             // get contract and signature
             String contractAsJson = trade.getContractAsJson();
             DepositRequest request = (DepositRequest) processModel.getTradeMessage(); // TODO (woodser): verify response
-            String signature = request.getContractSignature();
+            byte[] signature = request.getContractSignature();
 
             // get trader info
             TradePeer trader = trade.getTradePeer(processModel.getTempTradePeerNodeAddress());
@@ -66,7 +67,9 @@ public class ArbitratorProcessDepositRequest extends TradeTask {
             PubKeyRing peerPubKeyRing = trader.getPubKeyRing();
   
             // verify signature
-            if (!Sig.verify(peerPubKeyRing.getSignaturePubKey(), contractAsJson, signature)) throw new RuntimeException("Peer's contract signature is invalid");
+            if (!HavenoUtils.isSignatureValid(peerPubKeyRing, contractAsJson, signature)) {
+                throw new RuntimeException("Peer's contract signature is invalid");
+            }
 
             // set peer's signature
             trader.setContractSignature(signature);
