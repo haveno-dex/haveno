@@ -146,8 +146,8 @@ public class P2PNetworkSetup {
                 bootstrapState.set(Res.get("mainView.bootstrapState.torNodeCreated"));
                 p2PNetworkIconId.set("image-connection-tor");
 
-                if (preferences.getUseTorForBitcoinJ())
-                    initWalletServiceHandler.run();
+                // invoke handler to initialize wallet
+                initWalletServiceHandler.run();
 
                 // We want to get early connected to the price relay so we call it already now
                 priceFeedService.setCurrencyCodeOnInit();
