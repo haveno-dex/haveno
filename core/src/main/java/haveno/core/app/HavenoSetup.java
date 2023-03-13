@@ -420,13 +420,6 @@ public class HavenoSetup {
         havenoSetupListeners.forEach(HavenoSetupListener::onInitP2pNetwork);
         p2pNetworkReady = p2PNetworkSetup.init(this::initWallet, displayTorNetworkSettingsHandler);
 
-        // We only init wallet service here if not using Tor for bitcoinj.
-        // When using Tor, wallet init must be deferred until Tor is ready.
-        // TODO encapsulate below conditional inside getUseTorForBitcoinJ
-        if (!preferences.getUseTorForBitcoinJ() || localBitcoinNode.shouldBeUsed()) {
-            initWallet();
-        }
-
         // need to store it to not get garbage collected
         p2pNetworkAndWalletInitialized = EasyBind.combine(walletInitialized, p2pNetworkReady,
                 (a, b) -> {
