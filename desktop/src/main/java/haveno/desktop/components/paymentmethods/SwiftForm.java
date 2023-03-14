@@ -36,6 +36,7 @@ import haveno.desktop.components.InputTextField;
 import haveno.desktop.main.overlays.windows.SwiftPaymentDetails;
 import haveno.desktop.util.GUIUtil;
 import haveno.desktop.util.Layout;
+import javafx.geometry.Insets;
 import javafx.scene.Node;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
@@ -43,12 +44,19 @@ import javafx.scene.control.TextArea;
 import javafx.scene.control.TitledPane;
 import javafx.scene.layout.GridPane;
 
-import javafx.geometry.Insets;
-
 import java.util.function.Consumer;
 
 import static haveno.common.util.Utilities.cleanString;
-import static haveno.core.payment.payload.SwiftAccountPayload.*;
+import static haveno.core.payment.payload.SwiftAccountPayload.ADDRESS;
+import static haveno.core.payment.payload.SwiftAccountPayload.BANKPOSTFIX;
+import static haveno.core.payment.payload.SwiftAccountPayload.BENEFICIARYPOSTFIX;
+import static haveno.core.payment.payload.SwiftAccountPayload.BRANCH;
+import static haveno.core.payment.payload.SwiftAccountPayload.COUNTRY;
+import static haveno.core.payment.payload.SwiftAccountPayload.INTERMEDIARYPOSTFIX;
+import static haveno.core.payment.payload.SwiftAccountPayload.PHONE;
+import static haveno.core.payment.payload.SwiftAccountPayload.SNAME;
+import static haveno.core.payment.payload.SwiftAccountPayload.SWIFT_ACCOUNT;
+import static haveno.core.payment.payload.SwiftAccountPayload.SWIFT_CODE;
 import static haveno.desktop.util.FormBuilder.addCompactTopLabelTextField;
 import static haveno.desktop.util.FormBuilder.addInputTextField;
 import static haveno.desktop.util.FormBuilder.addTopLabelTextArea;

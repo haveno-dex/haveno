@@ -26,17 +26,15 @@ import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
-
-import java.math.BigInteger;
-import java.util.Date;
-import java.util.Optional;
-
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 
 import javax.annotation.Nullable;
+import java.math.BigInteger;
+import java.util.Date;
+import java.util.Optional;
 
 @EqualsAndHashCode
 @Getter

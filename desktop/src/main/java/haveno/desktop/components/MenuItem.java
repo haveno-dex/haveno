@@ -20,23 +20,19 @@ package haveno.desktop.components;
 import com.jfoenix.controls.JFXButton;
 import haveno.desktop.Navigation;
 import haveno.desktop.common.view.View;
-import javafx.scene.control.Toggle;
-import javafx.scene.control.ToggleGroup;
-
-import javafx.geometry.Pos;
-
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.value.ChangeListener;
+import javafx.geometry.Pos;
+import javafx.scene.control.Toggle;
+import javafx.scene.control.ToggleGroup;
+import lombok.extern.slf4j.Slf4j;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
 import java.util.List;
-
-import lombok.extern.slf4j.Slf4j;
-
-import org.jetbrains.annotations.NotNull;
 
 @Slf4j
 public class MenuItem extends JFXButton implements Toggle {

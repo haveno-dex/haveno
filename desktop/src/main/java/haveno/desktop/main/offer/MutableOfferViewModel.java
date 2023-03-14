@@ -61,16 +61,6 @@ import haveno.desktop.main.settings.SettingsView;
 import haveno.desktop.main.settings.preferences.PreferencesView;
 import haveno.desktop.util.DisplayUtils;
 import haveno.desktop.util.GUIUtil;
-import org.bitcoinj.core.Coin;
-import org.bitcoinj.utils.Fiat;
-
-import javax.inject.Inject;
-import javax.inject.Named;
-
-import javafx.scene.control.ComboBox;
-import javafx.scene.control.ListCell;
-import javafx.scene.control.ListView;
-
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.IntegerProperty;
 import javafx.beans.property.ObjectProperty;
@@ -80,13 +70,18 @@ import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
 import javafx.beans.value.ChangeListener;
-
+import javafx.scene.control.ComboBox;
+import javafx.scene.control.ListCell;
+import javafx.scene.control.ListView;
 import javafx.util.Callback;
+import lombok.extern.slf4j.Slf4j;
+import org.bitcoinj.core.Coin;
+import org.bitcoinj.utils.Fiat;
 
+import javax.inject.Inject;
+import javax.inject.Named;
 import java.math.BigInteger;
 import java.util.concurrent.TimeUnit;
-
-import lombok.extern.slf4j.Slf4j;
 
 import static javafx.beans.binding.Bindings.createStringBinding;
 

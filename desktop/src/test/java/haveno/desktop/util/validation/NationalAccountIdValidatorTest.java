@@ -1,16 +1,15 @@
 package haveno.desktop.util.validation;
 
-import java.util.Locale;
-
+import haveno.core.locale.Res;
+import haveno.core.payment.validation.NationalAccountIdValidator;
 import org.junit.Before;
 import org.junit.Test;
+
+import java.util.Locale;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
-
-import haveno.core.locale.Res;
-import haveno.core.payment.validation.NationalAccountIdValidator;
 
 public class NationalAccountIdValidatorTest {
     @Before

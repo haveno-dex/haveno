@@ -25,9 +25,9 @@ import haveno.common.config.Config;
 import haveno.core.locale.CurrencyUtil;
 import haveno.core.locale.Res;
 import haveno.core.util.validation.InputValidator;
-import java.util.Optional;
-
 import lombok.extern.slf4j.Slf4j;
+
+import java.util.Optional;
 
 @Slf4j
 public final class AltCoinAddressValidator extends InputValidator {

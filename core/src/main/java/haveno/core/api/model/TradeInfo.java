@@ -21,9 +21,10 @@ import haveno.common.Payload;
 import haveno.core.api.model.builder.TradeInfoV1Builder;
 import haveno.core.trade.Contract;
 import haveno.core.trade.Trade;
-import java.util.function.Function;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
+
+import java.util.function.Function;
 
 import static haveno.core.api.model.OfferInfo.toOfferInfo;
 import static haveno.core.util.PriceUtil.reformatMarketPrice;

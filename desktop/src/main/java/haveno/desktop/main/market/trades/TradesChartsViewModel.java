@@ -36,19 +36,17 @@ import haveno.desktop.main.settings.preferences.PreferencesView;
 import haveno.desktop.util.CurrencyList;
 import haveno.desktop.util.CurrencyListItem;
 import haveno.desktop.util.GUIUtil;
-import javafx.scene.chart.XYChart;
-
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleObjectProperty;
-
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.collections.SetChangeListener;
-
+import javafx.scene.chart.XYChart;
 import javafx.util.Pair;
 
+import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
@@ -58,8 +56,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
-
-import javax.annotation.Nullable;
 
 class TradesChartsViewModel extends ActivatableViewModel {
     static final int MAX_TICKS = 90;

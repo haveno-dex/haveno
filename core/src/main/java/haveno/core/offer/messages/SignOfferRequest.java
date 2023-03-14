@@ -21,10 +21,11 @@ import haveno.common.crypto.PubKeyRing;
 import haveno.core.offer.OfferPayload;
 import haveno.network.p2p.DirectMessage;
 import haveno.network.p2p.NodeAddress;
-import java.util.ArrayList;
-import java.util.List;
 import lombok.EqualsAndHashCode;
 import lombok.Value;
+
+import java.util.ArrayList;
+import java.util.List;
 
 @EqualsAndHashCode(callSuper = true)
 @Value

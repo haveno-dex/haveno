@@ -17,14 +17,7 @@
 
 package haveno.core.trade;
 
-import static haveno.core.offer.OpenOffer.State.CANCELED;
-import static haveno.core.trade.ClosedTradableUtil.castToTradeModel;
-import static haveno.core.trade.ClosedTradableUtil.isOpenOffer;
-import static haveno.core.util.AveragePriceUtil.getAveragePriceTuple;
-
-import org.bitcoinj.core.Coin;
-import org.bitcoinj.utils.Fiat;
-
+import com.google.common.collect.ImmutableList;
 import com.google.inject.Inject;
 import haveno.common.crypto.KeyRing;
 import haveno.common.persistence.PersistenceManager;
@@ -38,13 +31,13 @@ import haveno.core.provider.price.PriceFeedService;
 import haveno.core.trade.statistics.TradeStatisticsManager;
 import haveno.core.user.Preferences;
 import haveno.network.p2p.NodeAddress;
-import com.google.common.collect.ImmutableList;
-
 import javafx.collections.ObservableList;
+import lombok.extern.slf4j.Slf4j;
+import org.bitcoinj.core.Coin;
+import org.bitcoinj.utils.Fiat;
 
 import java.math.BigInteger;
 import java.time.Instant;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -53,7 +46,10 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import lombok.extern.slf4j.Slf4j;
+import static haveno.core.offer.OpenOffer.State.CANCELED;
+import static haveno.core.trade.ClosedTradableUtil.castToTradeModel;
+import static haveno.core.trade.ClosedTradableUtil.isOpenOffer;
+import static haveno.core.util.AveragePriceUtil.getAveragePriceTuple;
 
 /**
  * Manages closed trades or offers.

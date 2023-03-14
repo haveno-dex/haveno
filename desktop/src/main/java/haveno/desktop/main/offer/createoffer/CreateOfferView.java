@@ -31,11 +31,12 @@ import haveno.desktop.main.offer.MutableOfferView;
 import haveno.desktop.main.offer.OfferView;
 import haveno.desktop.main.overlays.windows.OfferDetailsWindow;
 import haveno.desktop.util.GUIUtil;
-import java.util.Objects;
-import java.util.stream.Collectors;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+
 import javax.inject.Named;
+import java.util.Objects;
+import java.util.stream.Collectors;
 
 @FxmlView
 public class CreateOfferView extends MutableOfferView<CreateOfferViewModel> {
@@ -48,7 +49,7 @@ public class CreateOfferView extends MutableOfferView<CreateOfferViewModel> {
                             @Named(FormattingUtils.BTC_FORMATTER_KEY) CoinFormatter btcFormatter) {
         super(model, navigation, preferences, offerDetailsWindow, btcFormatter);
     }
-    
+
     @Override
     public void initWithData(OfferDirection direction,
                              TradeCurrency tradeCurrency,

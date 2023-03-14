@@ -17,10 +17,6 @@
 
 package haveno.desktop.components.paymentmethods;
 
-import static haveno.desktop.util.FormBuilder.addCompactTopLabelTextField;
-import static haveno.desktop.util.FormBuilder.addCompactTopLabelTextFieldWithCopyIcon;
-import static haveno.desktop.util.FormBuilder.addTopLabelTextField;
-
 import haveno.core.account.witness.AccountAgeWitnessService;
 import haveno.core.locale.CountryUtil;
 import haveno.core.locale.Res;
@@ -33,6 +29,10 @@ import haveno.core.util.validation.InputValidator;
 import haveno.desktop.components.InputTextField;
 import haveno.desktop.util.FormBuilder;
 import javafx.scene.layout.GridPane;
+
+import static haveno.desktop.util.FormBuilder.addCompactTopLabelTextField;
+import static haveno.desktop.util.FormBuilder.addCompactTopLabelTextFieldWithCopyIcon;
+import static haveno.desktop.util.FormBuilder.addTopLabelTextField;
 
 public class SatispayForm extends PaymentMethodForm {
     private final SatispayAccount account;

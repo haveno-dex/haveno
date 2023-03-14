@@ -17,17 +17,16 @@
 
 package haveno.common.crypto;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.protobuf.ByteString;
 import haveno.common.consensus.UsedForTradeContractJson;
 import haveno.common.proto.network.NetworkPayload;
 import haveno.common.util.Utilities;
-import com.google.common.annotations.VisibleForTesting;
-
-import java.security.PublicKey;
-
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
+
+import java.security.PublicKey;
 
 /**
  * Same as KeyRing but with public keys only.

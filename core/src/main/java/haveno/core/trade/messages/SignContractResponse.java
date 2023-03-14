@@ -22,10 +22,11 @@ import haveno.common.proto.ProtoUtil;
 import haveno.common.util.Utilities;
 import haveno.core.proto.CoreProtoResolver;
 import haveno.network.p2p.DirectMessage;
-import java.util.Optional;
-import javax.annotation.Nullable;
 import lombok.EqualsAndHashCode;
 import lombok.Value;
+
+import javax.annotation.Nullable;
+import java.util.Optional;
 
 @EqualsAndHashCode(callSuper = true)
 @Value

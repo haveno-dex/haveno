@@ -18,6 +18,8 @@
 package haveno.common.app;
 
 import com.google.common.base.Joiner;
+import lombok.EqualsAndHashCode;
+import lombok.extern.slf4j.Slf4j;
 
 import java.util.Arrays;
 import java.util.Collection;
@@ -27,9 +29,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
-
-import lombok.EqualsAndHashCode;
-import lombok.extern.slf4j.Slf4j;
 
 /**
  * hold a set of capabilities and offers appropriate comparison methods.

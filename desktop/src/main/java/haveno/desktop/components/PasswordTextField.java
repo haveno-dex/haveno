@@ -18,7 +18,6 @@
 package haveno.desktop.components;
 
 import com.jfoenix.controls.JFXPasswordField;
-
 import javafx.scene.control.Skin;
 
 public class PasswordTextField extends JFXPasswordField {

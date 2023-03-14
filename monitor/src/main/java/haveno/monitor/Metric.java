@@ -17,10 +17,10 @@
 
 package haveno.monitor;
 
-import static haveno.common.config.Config.BASE_CURRENCY_NETWORK;
-
 import haveno.common.app.Version;
 import haveno.common.util.Utilities;
+import lombok.extern.slf4j.Slf4j;
+
 import java.util.Properties;
 import java.util.Random;
 import java.util.concurrent.ScheduledExecutorService;
@@ -28,7 +28,7 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
-import lombok.extern.slf4j.Slf4j;
+import static haveno.common.config.Config.BASE_CURRENCY_NETWORK;
 
 /**
  * Starts a Metric (in its own {@link Thread}), manages its properties and shuts

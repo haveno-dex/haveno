@@ -17,11 +17,6 @@
 
 package haveno.core.account.witness;
 
-import org.bitcoinj.core.ECKey;
-import org.bitcoinj.core.Utils;
-
-import javax.inject.Inject;
-
 import com.google.common.annotations.VisibleForTesting;
 import haveno.common.UserThread;
 import haveno.common.crypto.CryptoException;
@@ -56,11 +51,15 @@ import haveno.network.p2p.BootstrapListener;
 import haveno.network.p2p.P2PService;
 import haveno.network.p2p.storage.P2PDataStorage;
 import haveno.network.p2p.storage.persistence.AppendOnlyDataStoreService;
+import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
+import org.bitcoinj.core.ECKey;
+import org.bitcoinj.core.Utils;
+
+import javax.inject.Inject;
 import java.math.BigInteger;
 import java.security.PublicKey;
-
 import java.time.Clock;
-
 import java.util.Arrays;
 import java.util.Date;
 import java.util.GregorianCalendar;
@@ -75,9 +74,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-
-import lombok.Getter;
-import lombok.extern.slf4j.Slf4j;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
@@ -254,13 +250,13 @@ public class AccountAgeWitnessService {
         synchronized (this) {
             AccountAgeWitness accountAgeWitness = getMyWitness(paymentAccountPayload);
             P2PDataStorage.ByteArray hash = accountAgeWitness.getHashAsByteArray();
-    
+
             // We use first our fast lookup cache. If its in accountAgeWitnessCache it is also in accountAgeWitnessMap
             // and we do not publish.
             if (accountAgeWitnessCache.containsKey(hash)) {
                 return;
             }
-    
+
             if (!accountAgeWitnessMap.containsKey(hash)) {
                 p2PService.addPersistableNetworkPayload(accountAgeWitness, false);
             }

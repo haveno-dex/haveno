@@ -21,19 +21,16 @@ import haveno.common.util.Tuple2;
 import haveno.desktop.common.model.ActivatableWithDataModel;
 import haveno.desktop.util.DisplayUtils;
 import javafx.scene.chart.XYChart;
-
 import javafx.util.StringConverter;
+import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
 
 import java.time.temporal.TemporalAdjuster;
-
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
-
-import lombok.Getter;
-import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public abstract class ChartViewModel<T extends ChartDataModel> extends ActivatableWithDataModel<T> {

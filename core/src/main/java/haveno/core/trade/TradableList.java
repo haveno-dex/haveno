@@ -24,11 +24,11 @@ import haveno.common.proto.persistable.PersistableListAsObservable;
 import haveno.core.offer.OpenOffer;
 import haveno.core.proto.CoreProtoResolver;
 import haveno.core.xmr.wallet.XmrWalletService;
+import lombok.extern.slf4j.Slf4j;
+
 import java.util.Collection;
 import java.util.List;
 import java.util.stream.Collectors;
-
-import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public final class TradableList<T extends Tradable> extends PersistableListAsObservable<T> {

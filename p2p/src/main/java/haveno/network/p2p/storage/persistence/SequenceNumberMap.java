@@ -19,13 +19,13 @@ package haveno.network.p2p.storage.persistence;
 
 import haveno.common.proto.persistable.PersistableEnvelope;
 import haveno.network.p2p.storage.P2PDataStorage;
+import lombok.Getter;
+import lombok.Setter;
+
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
-
-import lombok.Getter;
-import lombok.Setter;
 
 /**
  * This class was not generalized to HashMapPersistable (like we did with #ListPersistable) because

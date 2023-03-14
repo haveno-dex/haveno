@@ -19,11 +19,9 @@ package haveno.asset;
 
 import org.bitcoinj.core.Utils;
 
+import java.math.BigInteger;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
-
-import java.math.BigInteger;
-
 import java.util.Arrays;
 import java.util.Map;
 

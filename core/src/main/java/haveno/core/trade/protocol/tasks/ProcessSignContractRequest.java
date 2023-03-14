@@ -18,12 +18,6 @@
 package haveno.core.trade.protocol.tasks;
 
 
-import static com.google.common.base.Preconditions.checkNotNull;
-
-import java.util.Date;
-import java.util.UUID;
-import javax.crypto.SecretKey;
-
 import com.google.common.base.Charsets;
 import haveno.common.app.Version;
 import haveno.common.crypto.Encryption;
@@ -44,9 +38,15 @@ import haveno.network.p2p.NodeAddress;
 import haveno.network.p2p.SendDirectMessageListener;
 import lombok.extern.slf4j.Slf4j;
 
+import javax.crypto.SecretKey;
+import java.util.Date;
+import java.util.UUID;
+
+import static com.google.common.base.Preconditions.checkNotNull;
+
 @Slf4j
 public class ProcessSignContractRequest extends TradeTask {
-    
+
     private boolean ack1 = false;
     private boolean ack2 = false;
 
@@ -68,7 +68,7 @@ public class ProcessSignContractRequest extends TradeTask {
           trader.setAccountId(request.getAccountId());
           trader.setPaymentAccountPayloadHash(request.getPaymentAccountPayloadHash());
           trader.setPayoutAddressString(request.getPayoutAddress());
-          
+
           // maker sends witness signature of deposit tx hash
           if (trader == trade.getMaker()) {
             trader.setAccountAgeWitnessNonce(request.getDepositTxHash().getBytes(Charsets.UTF_8));

@@ -29,17 +29,18 @@ import haveno.core.xmr.wallet.XmrWalletService;
 import haveno.desktop.components.indicator.TxConfidenceIndicator;
 import haveno.desktop.util.DisplayUtils;
 import haveno.desktop.util.GUIUtil;
-import java.math.BigInteger;
-import java.util.Date;
-import java.util.Optional;
 import javafx.scene.control.Tooltip;
-import javax.annotation.Nullable;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import monero.wallet.model.MoneroIncomingTransfer;
 import monero.wallet.model.MoneroOutgoingTransfer;
 import monero.wallet.model.MoneroTxWallet;
 import monero.wallet.model.MoneroWalletListener;
+
+import javax.annotation.Nullable;
+import java.math.BigInteger;
+import java.util.Date;
+import java.util.Optional;
 
 @Slf4j
 class TransactionsListItem {

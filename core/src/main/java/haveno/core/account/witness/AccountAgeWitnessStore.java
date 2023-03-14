@@ -19,10 +19,10 @@ package haveno.core.account.witness;
 
 import com.google.protobuf.Message;
 import haveno.network.p2p.storage.persistence.PersistableNetworkPayloadStore;
+import lombok.extern.slf4j.Slf4j;
+
 import java.util.List;
 import java.util.stream.Collectors;
-
-import lombok.extern.slf4j.Slf4j;
 
 
 /**

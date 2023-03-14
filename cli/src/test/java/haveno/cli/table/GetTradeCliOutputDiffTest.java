@@ -1,13 +1,12 @@
 package haveno.cli.table;
 
+import haveno.cli.AbstractCliTest;
+import haveno.cli.GrpcClient;
+import haveno.cli.table.builder.TableBuilder;
 import lombok.extern.slf4j.Slf4j;
 
 import static haveno.cli.table.builder.TableType.TRADE_DETAIL_TBL;
 import static java.lang.System.out;
-
-import haveno.cli.AbstractCliTest;
-import haveno.cli.GrpcClient;
-import haveno.cli.table.builder.TableBuilder;
 
 @SuppressWarnings("unused")
 @Slf4j

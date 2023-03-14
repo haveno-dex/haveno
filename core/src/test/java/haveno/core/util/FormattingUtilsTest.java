@@ -1,20 +1,16 @@
 package haveno.core.util;
 
-import org.bitcoinj.utils.Fiat;
-
-import java.util.Locale;
-import java.util.concurrent.TimeUnit;
-
-import com.natpryce.makeiteasy.Instantiator;
 import com.natpryce.makeiteasy.Maker;
 import com.natpryce.makeiteasy.Property;
 import haveno.core.locale.GlobalSettings;
 import haveno.core.locale.Res;
-import haveno.core.monetary.Altcoin;
 import haveno.core.monetary.Price;
-import haveno.core.util.FormattingUtils;
+import org.bitcoinj.utils.Fiat;
 import org.junit.Before;
 import org.junit.Test;
+
+import java.util.Locale;
+import java.util.concurrent.TimeUnit;
 
 import static com.natpryce.makeiteasy.MakeItEasy.a;
 import static com.natpryce.makeiteasy.MakeItEasy.make;

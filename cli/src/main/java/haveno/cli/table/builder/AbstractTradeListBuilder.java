@@ -17,19 +17,18 @@
 
 package haveno.cli.table.builder;
 
-import haveno.proto.grpc.ContractInfo;
-import haveno.proto.grpc.TradeInfo;
 import haveno.cli.table.column.Column;
 import haveno.cli.table.column.MixedTradeFeeColumn;
-import java.math.BigDecimal;
+import haveno.proto.grpc.ContractInfo;
+import haveno.proto.grpc.TradeInfo;
 
+import javax.annotation.Nullable;
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
-
-import javax.annotation.Nullable;
 
 import static haveno.cli.CurrencyFormat.formatSatoshis;
 import static haveno.cli.table.builder.TableBuilderConstants.COL_HEADER_BUYER_DEPOSIT;

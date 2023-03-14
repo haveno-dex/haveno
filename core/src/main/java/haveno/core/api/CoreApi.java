@@ -17,13 +17,6 @@
 
 package haveno.core.api;
 
-import haveno.proto.grpc.NotificationMessage;
-
-import org.bitcoinj.core.Transaction;
-
-import javax.inject.Inject;
-import javax.inject.Singleton;
-
 import com.google.common.util.concurrent.FutureCallback;
 import haveno.common.app.Version;
 import haveno.common.config.Config;
@@ -52,6 +45,16 @@ import haveno.core.trade.Trade;
 import haveno.core.trade.statistics.TradeStatistics3;
 import haveno.core.trade.statistics.TradeStatisticsManager;
 import haveno.core.xmr.MoneroNodeSettings;
+import haveno.proto.grpc.NotificationMessage;
+import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
+import monero.common.MoneroRpcConnection;
+import monero.wallet.model.MoneroDestination;
+import monero.wallet.model.MoneroTxWallet;
+import org.bitcoinj.core.Transaction;
+
+import javax.inject.Inject;
+import javax.inject.Singleton;
 import java.io.IOException;
 import java.io.InputStream;
 import java.math.BigInteger;
@@ -61,14 +64,6 @@ import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Consumer;
-
-import lombok.Getter;
-import lombok.extern.slf4j.Slf4j;
-
-
-import monero.common.MoneroRpcConnection;
-import monero.wallet.model.MoneroDestination;
-import monero.wallet.model.MoneroTxWallet;
 
 /**
  * Provides high level interface to functionality of core Haveno features.
@@ -499,7 +494,7 @@ public class CoreApi {
     public List<PaymentMethod> getCryptoCurrencyPaymentMethods() {
         return paymentAccountsService.getCryptoCurrencyPaymentMethods();
     }
-    
+
     public void validateFormField(PaymentAccountForm form, PaymentAccountFormField.FieldId fieldId, String value) {
         paymentAccountsService.validateFormField(form, fieldId, value);
     }

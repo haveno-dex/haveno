@@ -17,11 +17,6 @@
 
 package haveno.desktop.main.portfolio.pendingtrades.steps.seller;
 
-import static haveno.desktop.util.FormBuilder.*;
-import static haveno.desktop.util.Layout.COMPACT_FIRST_ROW_AND_GROUP_DISTANCE;
-import static haveno.desktop.util.Layout.COMPACT_GROUP_DISTANCE;
-import static haveno.desktop.util.Layout.FLOATING_LABEL_DISTANCE;
-
 import haveno.common.Timer;
 import haveno.common.UserThread;
 import haveno.common.app.DevEnv;
@@ -57,6 +52,8 @@ import haveno.desktop.main.portfolio.pendingtrades.PendingTradesViewModel;
 import haveno.desktop.main.portfolio.pendingtrades.steps.TradeStepView;
 import haveno.desktop.util.GUIUtil;
 import haveno.desktop.util.Layout;
+import javafx.beans.value.ChangeListener;
+import javafx.geometry.Insets;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.Tooltip;
@@ -64,19 +61,21 @@ import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
-
-import javafx.geometry.Insets;
-
 import org.fxmisc.easybind.EasyBind;
 import org.fxmisc.easybind.Subscription;
 
-import javafx.beans.value.ChangeListener;
-
+import javax.annotation.Nullable;
 import java.util.Optional;
 
-import javax.annotation.Nullable;
-
 import static com.google.common.base.Preconditions.checkNotNull;
+import static haveno.desktop.util.FormBuilder.addButtonBusyAnimationLabelAfterGroup;
+import static haveno.desktop.util.FormBuilder.addCompactTopLabelTextFieldWithCopyIcon;
+import static haveno.desktop.util.FormBuilder.addTitledGroupBg;
+import static haveno.desktop.util.FormBuilder.addTopLabelTextFieldWithCopyIcon;
+import static haveno.desktop.util.FormBuilder.getTopLabelWithVBox;
+import static haveno.desktop.util.Layout.COMPACT_FIRST_ROW_AND_GROUP_DISTANCE;
+import static haveno.desktop.util.Layout.COMPACT_GROUP_DISTANCE;
+import static haveno.desktop.util.Layout.FLOATING_LABEL_DISTANCE;
 
 public class SellerStep3View extends TradeStepView {
 

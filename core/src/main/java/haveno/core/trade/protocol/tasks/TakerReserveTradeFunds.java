@@ -21,12 +21,12 @@ import haveno.common.taskrunner.TaskRunner;
 import haveno.core.offer.OfferDirection;
 import haveno.core.trade.Trade;
 import haveno.core.xmr.model.XmrAddressEntry;
+import monero.daemon.model.MoneroOutput;
+import monero.wallet.model.MoneroTxWallet;
+
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.List;
-
-import monero.daemon.model.MoneroOutput;
-import monero.wallet.model.MoneroTxWallet;
 
 public class TakerReserveTradeFunds extends TradeTask {
 

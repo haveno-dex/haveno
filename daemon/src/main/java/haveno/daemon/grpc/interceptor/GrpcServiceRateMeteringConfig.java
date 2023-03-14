@@ -17,20 +17,17 @@
 
 package haveno.daemon.grpc.interceptor;
 
-import io.grpc.ServerInterceptor;
-
+import com.google.common.annotations.VisibleForTesting;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-
-import com.google.common.annotations.VisibleForTesting;
-
-import java.nio.file.Paths;
+import io.grpc.ServerInterceptor;
+import lombok.extern.slf4j.Slf4j;
 
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
-
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -38,8 +35,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
-
-import lombok.extern.slf4j.Slf4j;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static haveno.common.file.FileUtil.deleteFileIfExists;

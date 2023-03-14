@@ -22,19 +22,15 @@ import haveno.common.proto.network.NetworkEnvelope;
 import haveno.common.proto.network.NetworkPayload;
 import haveno.common.proto.network.NetworkProtoResolver;
 import haveno.common.proto.persistable.PersistablePayload;
-import haveno.network.p2p.NodeAddress;
-import haveno.network.p2p.P2PServiceListener;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.NoSuchAlgorithmException;
-
 import java.time.Clock;
-
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 @SuppressWarnings("ALL")
 public class TestUtils {

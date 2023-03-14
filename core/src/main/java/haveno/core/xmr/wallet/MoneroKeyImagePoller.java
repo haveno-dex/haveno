@@ -1,5 +1,11 @@
 package haveno.core.xmr.wallet;
 
+import lombok.extern.slf4j.Slf4j;
+import monero.common.MoneroError;
+import monero.common.TaskLooper;
+import monero.daemon.MoneroDaemon;
+import monero.daemon.model.MoneroKeyImageSpentStatus;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -9,15 +15,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import lombok.extern.slf4j.Slf4j;
-import monero.common.MoneroError;
-import monero.common.TaskLooper;
-import monero.daemon.MoneroDaemon;
-import monero.daemon.model.MoneroKeyImageSpentStatus;
-
 /**
  * Poll for changes to the spent status of key images.
- * 
+ *
  * TODO: move to monero-java?
  */
 @Slf4j
@@ -33,7 +33,7 @@ public class MoneroKeyImagePoller {
 
     /**
      * Construct the listener.
-     * 
+     *
      * @param refreshPeriodMs - refresh period in milliseconds
      * @param keyImages - key images to listen to
      */
@@ -43,7 +43,7 @@ public class MoneroKeyImagePoller {
 
     /**
      * Construct the listener.
-     * 
+     *
      * @param refreshPeriodMs - refresh period in milliseconds
      * @param keyImages - key images to listen to
      */
@@ -56,17 +56,17 @@ public class MoneroKeyImagePoller {
 
     /**
      * Add a listener to receive notifications.
-     * 
+     *
      * @param listener - the listener to add
      */
     public void addListener(MoneroKeyImageListener listener) {
         listeners.add(listener);
         refreshPolling();
     }
-    
+
     /**
      * Remove a listener to receive notifications.
-     * 
+     *
      * @param listener - the listener to remove
      */
     public void removeListener(MoneroKeyImageListener listener) {
@@ -77,7 +77,7 @@ public class MoneroKeyImagePoller {
 
     /**
      * Set the Monero daemon to fetch key images from.
-     * 
+     *
      * @param daemon - the daemon to fetch key images from
      */
     public void setDaemon(MoneroDaemon daemon) {
@@ -86,7 +86,7 @@ public class MoneroKeyImagePoller {
 
     /**
      * Get the Monero daemon to fetch key images from.
-     * 
+     *
      * @return the daemon to fetch key images from
      */
     public MoneroDaemon getDaemon() {
@@ -95,7 +95,7 @@ public class MoneroKeyImagePoller {
 
     /**
      * Set the refresh period in milliseconds.
-     * 
+     *
      * @param refreshPeriodMs - the refresh period in milliseconds
      */
     public void setRefreshPeriodMs(long refreshPeriodMs) {
@@ -104,7 +104,7 @@ public class MoneroKeyImagePoller {
 
     /**
      * Get the refresh period in milliseconds
-     * 
+     *
      * @return the refresh period in milliseconds
      */
     public long getRefreshPeriodMs() {
@@ -113,7 +113,7 @@ public class MoneroKeyImagePoller {
 
     /**
      * Get a copy of the key images being listened to.
-     * 
+     *
      * @return the key images to listen to
      */
     public Collection<String> getKeyImages() {
@@ -122,7 +122,7 @@ public class MoneroKeyImagePoller {
 
     /**
      * Set the key images to listen to.
-     * 
+     *
      * @return the key images to listen to
      */
     public void setKeyImages(String... keyImages) {
@@ -134,7 +134,7 @@ public class MoneroKeyImagePoller {
 
     /**
      * Add a key image to listen to.
-     * 
+     *
      * @param keyImage - the key image to listen to
      */
     public void addKeyImage(String keyImage) {
@@ -143,7 +143,7 @@ public class MoneroKeyImagePoller {
 
     /**
      * Add key images to listen to.
-     * 
+     *
      * @param keyImages - key images to listen to
      */
     public void addKeyImages(String... keyImages) {
@@ -152,7 +152,7 @@ public class MoneroKeyImagePoller {
 
     /**
      * Add key images to listen to.
-     * 
+     *
      * @param keyImages - key images to listen to
      */
     public void addKeyImages(Collection<String> keyImages) {
@@ -164,7 +164,7 @@ public class MoneroKeyImagePoller {
 
     /**
      * Remove a key image to listen to.
-     * 
+     *
      * @param keyImage - the key image to unlisten to
      */
     public void removeKeyImage(String keyImage) {
@@ -173,7 +173,7 @@ public class MoneroKeyImagePoller {
 
     /**
      * Remove key images to listen to.
-     * 
+     *
      * @param keyImages - key images to unlisten to
      */
     public void removeKeyImages(String... keyImages) {
@@ -182,7 +182,7 @@ public class MoneroKeyImagePoller {
 
     /**
      * Remove key images to listen to.
-     * 
+     *
      * @param keyImages - key images to unlisten to
      */
     public void removeKeyImages(Collection<String> keyImages) {
@@ -197,7 +197,7 @@ public class MoneroKeyImagePoller {
 
     /**
      * Indicates if the given key image is spent.
-     * 
+     *
      * @param keyImage - the key image to check
      * @return true if the key is spent, false if unspent, null if unknown
      */
@@ -213,7 +213,7 @@ public class MoneroKeyImagePoller {
                 return;
             }
             try {
-                
+
                 // fetch spent statuses
                 List<MoneroKeyImageSpentStatus> spentStatuses = keyImages.isEmpty() ? new ArrayList<MoneroKeyImageSpentStatus>() : daemon.getKeyImageSpentStatuses(keyImages);
 

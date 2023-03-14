@@ -35,9 +35,9 @@ import haveno.desktop.common.model.ViewModel;
 import haveno.desktop.util.DisplayUtils;
 import haveno.desktop.util.GUIUtil;
 import haveno.network.p2p.P2PService;
-import javax.inject.Named;
-
 import javafx.collections.ObservableList;
+
+import javax.inject.Named;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 

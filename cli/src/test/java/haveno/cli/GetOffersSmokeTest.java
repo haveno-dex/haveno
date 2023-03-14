@@ -2,8 +2,6 @@ package haveno.cli;
 
 import static java.lang.System.out;
 
-import haveno.cli.CliMain;
-
 /**
  Smoke tests for getoffers method.  Useful for examining the format of the console output.
 

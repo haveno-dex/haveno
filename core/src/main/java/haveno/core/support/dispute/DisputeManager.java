@@ -55,13 +55,17 @@ import haveno.network.p2p.BootstrapListener;
 import haveno.network.p2p.NodeAddress;
 import haveno.network.p2p.P2PService;
 import haveno.network.p2p.SendMailboxMessageListener;
-import org.bitcoinj.utils.Fiat;
-
 import javafx.beans.property.IntegerProperty;
-
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
+import monero.common.MoneroError;
+import monero.wallet.model.MoneroTxConfig;
+import monero.wallet.model.MoneroTxWallet;
+import org.bitcoinj.utils.Fiat;
 
+import javax.annotation.Nullable;
 import java.math.BigInteger;
 import java.security.KeyPair;
 import java.time.Instant;
@@ -73,14 +77,6 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
-
-import lombok.Getter;
-import lombok.extern.slf4j.Slf4j;
-import monero.common.MoneroError;
-import monero.wallet.model.MoneroTxConfig;
-import monero.wallet.model.MoneroTxWallet;
-
-import javax.annotation.Nullable;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
@@ -367,7 +363,7 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
                         p2PService.getAddress(),
                         UUID.randomUUID().toString(),
                         getSupportType(),
-                        updatedMultisigHex, 
+                        updatedMultisigHex,
                         trade.getProcessModel().getPaymentSentMessage());
                 log.info("Send {} to peer {}. tradeId={}, openNewDisputeMessage.uid={}, " +
                         "chatMessage.uid={}",
@@ -453,7 +449,7 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
             String errorMessage = null;
             PubKeyRing senderPubKeyRing = null;
             try {
-        
+
                 // initialize
                 T disputeList = getDisputeList();
                 if (disputeList == null) {
@@ -463,7 +459,7 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
                 dispute.setSupportType(message.getSupportType());
                 dispute.setState(Dispute.State.NEW);
                 Contract contract = dispute.getContract();
-        
+
                 // validate dispute
                 try {
                     DisputeValidation.validateDisputeData(dispute);
@@ -475,35 +471,35 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
                     validationExceptions.add(e);
                     throw e;
                 }
-    
+
                 // get sender
                 senderPubKeyRing = trade.isArbitrator() ? (dispute.isDisputeOpenerIsBuyer() ? contract.getBuyerPubKeyRing() : contract.getSellerPubKeyRing()) : trade.getArbitrator().getPubKeyRing();
                 TradePeer sender = trade.getTradePeer(senderPubKeyRing);
                 if (sender == null) throw new RuntimeException("Pub key ring is not from arbitrator, buyer, or seller");
-    
+
                 // message to trader is expected from arbitrator
                 if (!trade.isArbitrator() && sender != trade.getArbitrator()) {
                     throw new RuntimeException(message.getClass().getSimpleName() + " to trader is expected only from arbitrator");
                 }
-        
+
                 // arbitrator verifies signature of payment sent message if given
                 if (trade.isArbitrator() && message.getPaymentSentMessage() != null) {
                     HavenoUtils.verifyPaymentSentMessage(trade, message.getPaymentSentMessage());
                     trade.getBuyer().setUpdatedMultisigHex(message.getPaymentSentMessage().getUpdatedMultisigHex());
                     trade.advanceState(sender == trade.getBuyer() ? Trade.State.BUYER_SENT_PAYMENT_SENT_MSG : Trade.State.SELLER_RECEIVED_PAYMENT_SENT_MSG);
                 }
-        
+
                 // update multisig hex
                 if (message.getUpdatedMultisigHex() != null) sender.setUpdatedMultisigHex(message.getUpdatedMultisigHex());
                 trade.importMultisigHex();
-        
+
                 // update peer node address
                 // TODO: tests can reuse the same addresses so nullify equal peer
                 sender.setNodeAddress(message.getSenderNodeAddress());
-        
+
                 // add chat message with price info
                 if (trade instanceof ArbitratorTrade) addPriceInfoMessage(dispute, 0);
-        
+
                 // add dispute
                 synchronized (disputeList) {
                     if (!disputeList.contains(dispute)) {
@@ -511,7 +507,7 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
                         if (!storedDisputeOptional.isPresent()) {
                             disputeList.add(dispute);
                             trade.advanceDisputeState(Trade.DisputeState.DISPUTE_OPENED);
-        
+
                             // send dispute opened message to peer if arbitrator
                             if (trade.isArbitrator()) sendDisputeOpenedMessageToPeer(dispute, contract, dispute.isDisputeOpenerIsBuyer() ? contract.getSellerPubKeyRing() : contract.getBuyerPubKeyRing(), trade.getSelf().getUpdatedMultisigHex());
                             tradeManager.requestPersistence();
@@ -521,7 +517,7 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
                             log.debug("We got a dispute already open for that trade and trading peer. TradeId = {}",
                                     dispute.getTradeId());
                         }
-    
+
                         // add chat message with mediation info if applicable
                         addMediationResultMessage(dispute);
                     } else {
@@ -533,14 +529,14 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
                 log.warn(errorMessage);
                 if (trade != null) trade.setErrorMessage(errorMessage);
             }
-    
+
             // use chat message instead of open dispute message for the ack
             ObservableList<ChatMessage> messages = message.getDispute().getChatMessages();
             if (!messages.isEmpty()) {
                 ChatMessage msg = messages.get(0);
                 sendAckMessage(msg, senderPubKeyRing, errorMessage == null, errorMessage);
             }
-    
+
             requestPersistence();
         }
     }

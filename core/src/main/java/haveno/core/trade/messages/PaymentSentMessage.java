@@ -22,13 +22,12 @@ import haveno.common.app.Version;
 import haveno.common.proto.ProtoUtil;
 import haveno.core.account.witness.AccountAgeWitness;
 import haveno.network.p2p.NodeAddress;
-import java.util.Optional;
-
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
 
 import javax.annotation.Nullable;
+import java.util.Optional;
 
 @EqualsAndHashCode(callSuper = true)
 @Getter

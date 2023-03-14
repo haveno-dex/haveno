@@ -17,8 +17,6 @@
 
 package haveno.desktop.components.paymentmethods;
 
-import static haveno.desktop.util.FormBuilder.*;
-
 import com.jfoenix.controls.JFXTextArea;
 import haveno.common.util.Tuple2;
 import haveno.core.account.witness.AccountAgeWitnessService;
@@ -42,6 +40,12 @@ import haveno.desktop.util.GUIUtil;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.TextArea;
 import javafx.scene.layout.GridPane;
+
+import static haveno.desktop.util.FormBuilder.addCompactTopLabelTextArea;
+import static haveno.desktop.util.FormBuilder.addCompactTopLabelTextField;
+import static haveno.desktop.util.FormBuilder.addCompactTopLabelTextFieldWithCopyIcon;
+import static haveno.desktop.util.FormBuilder.addInputTextField;
+import static haveno.desktop.util.FormBuilder.addTopLabelTextArea;
 
 public class F2FForm extends PaymentMethodForm {
     private final F2FAccount f2fAccount;

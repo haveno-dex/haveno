@@ -17,21 +17,18 @@
 
 package haveno.daemon.grpc.interceptor;
 
+import haveno.daemon.grpc.GrpcVersionService;
 import io.grpc.ServerInterceptor;
-
-import java.nio.file.Paths;
-
-import java.io.File;
-
-import java.util.Optional;
-import java.util.concurrent.TimeUnit;
-
 import lombok.extern.slf4j.Slf4j;
-
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
+
+import java.io.File;
+import java.nio.file.Paths;
+import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 
 import static haveno.daemon.grpc.interceptor.GrpcServiceRateMeteringConfig.getCustomRateMeteringInterceptor;
 import static java.lang.System.getProperty;
@@ -43,11 +40,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-
-import haveno.daemon.grpc.GrpcVersionService;
-import haveno.daemon.grpc.interceptor.CallRateMeteringInterceptor;
-import haveno.daemon.grpc.interceptor.GrpcCallRateMeter;
-import haveno.daemon.grpc.interceptor.GrpcServiceRateMeteringConfig;
 
 @Slf4j
 public class GrpcServiceRateMeteringConfigTest {

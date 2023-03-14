@@ -25,7 +25,6 @@ import haveno.core.util.VolumeUtil;
 import haveno.core.util.coin.CoinFormatter;
 import haveno.desktop.util.DisplayUtils;
 import lombok.experimental.Delegate;
-
 import org.jetbrains.annotations.Nullable;
 
 public class TradeStatistics3ListItem {

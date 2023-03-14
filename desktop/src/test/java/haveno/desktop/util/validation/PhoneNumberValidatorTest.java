@@ -1,5 +1,8 @@
 package haveno.desktop.util.validation;
 
+import haveno.core.locale.Res;
+import haveno.core.payment.validation.PhoneNumberValidator;
+import haveno.core.util.validation.InputValidator.ValidationResult;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -7,10 +10,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
-
-import haveno.core.locale.Res;
-import haveno.core.payment.validation.PhoneNumberValidator;
-import haveno.core.util.validation.InputValidator.ValidationResult;
 
 public class PhoneNumberValidatorTest {
     private PhoneNumberValidator validator;

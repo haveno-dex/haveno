@@ -19,7 +19,6 @@ package haveno.core.provider.fee;
 
 import com.google.gson.Gson;
 import com.google.gson.internal.LinkedTreeMap;
-
 import com.google.inject.Inject;
 import haveno.common.app.Version;
 import haveno.common.config.Config;
@@ -28,12 +27,11 @@ import haveno.core.provider.FeeHttpClient;
 import haveno.core.provider.HttpClientProvider;
 import haveno.core.provider.ProvidersRepository;
 import haveno.network.http.HttpClient;
-import java.io.IOException;
+import lombok.extern.slf4j.Slf4j;
 
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
-
-import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class FeeProvider extends HttpClientProvider {

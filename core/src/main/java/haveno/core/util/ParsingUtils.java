@@ -3,12 +3,10 @@ package haveno.core.util;
 import haveno.common.util.MathUtils;
 import haveno.core.monetary.Price;
 import haveno.core.util.coin.CoinFormatter;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.bitcoinj.core.Coin;
 import org.bitcoinj.utils.MonetaryFormat;
-
-import org.apache.commons.lang3.StringUtils;
-
-import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class ParsingUtils {

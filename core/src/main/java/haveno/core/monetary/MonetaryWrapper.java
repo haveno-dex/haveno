@@ -19,7 +19,6 @@ package haveno.core.monetary;
 
 import org.bitcoinj.core.Monetary;
 import org.bitcoinj.utils.MonetaryFormat;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

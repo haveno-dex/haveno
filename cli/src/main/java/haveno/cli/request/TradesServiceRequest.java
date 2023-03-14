@@ -17,6 +17,7 @@
 
 package haveno.cli.request;
 
+import haveno.cli.GrpcStubs;
 import haveno.proto.grpc.ConfirmPaymentReceivedRequest;
 import haveno.proto.grpc.ConfirmPaymentSentRequest;
 import haveno.proto.grpc.GetTradeRequest;
@@ -25,7 +26,7 @@ import haveno.proto.grpc.TakeOfferReply;
 import haveno.proto.grpc.TakeOfferRequest;
 import haveno.proto.grpc.TradeInfo;
 import haveno.proto.grpc.WithdrawFundsRequest;
-import haveno.cli.GrpcStubs;
+
 import java.util.List;
 
 import static haveno.proto.grpc.GetTradesRequest.Category.CLOSED;

@@ -31,9 +31,10 @@ import haveno.core.xmr.model.XmrAddressEntry;
 import haveno.core.xmr.wallet.XmrWalletService;
 import haveno.network.p2p.P2PService;
 import haveno.network.p2p.SendDirectMessageListener;
+import lombok.extern.slf4j.Slf4j;
+
 import java.util.Date;
 import java.util.UUID;
-import lombok.extern.slf4j.Slf4j;
 
 // TODO (woodser): rename to TakerSendOfferAvailabilityRequest and group with other taker tasks
 @Slf4j

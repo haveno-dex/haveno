@@ -18,7 +18,6 @@
 package haveno.desktop.components;
 
 import com.jfoenix.controls.JFXSpinner;
-
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.SimpleBooleanProperty;
 

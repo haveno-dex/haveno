@@ -20,10 +20,10 @@ package haveno.core.trade.statistics;
 import com.google.protobuf.Message;
 import haveno.network.p2p.storage.P2PDataStorage;
 import haveno.network.p2p.storage.persistence.PersistableNetworkPayloadStore;
+import lombok.extern.slf4j.Slf4j;
+
 import java.util.List;
 import java.util.stream.Collectors;
-
-import lombok.extern.slf4j.Slf4j;
 
 /**
  * We store only the payload in the PB file to save disc space. The hash of the payload can be created anyway and

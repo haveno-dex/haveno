@@ -17,10 +17,6 @@
 
 package haveno.desktop.main.market.trades;
 
-import org.bitcoinj.core.Coin;
-
-import static haveno.desktop.main.market.trades.TradesChartsViewModel.MAX_TICKS;
-
 import com.google.common.annotations.VisibleForTesting;
 import haveno.common.util.MathUtils;
 import haveno.core.locale.CurrencyUtil;
@@ -29,13 +25,13 @@ import haveno.core.trade.statistics.TradeStatistics3;
 import haveno.desktop.main.market.trades.charts.CandleData;
 import haveno.desktop.util.DisplayUtils;
 import javafx.scene.chart.XYChart;
-
 import javafx.util.Pair;
+import lombok.Getter;
+import org.bitcoinj.core.Coin;
 
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
-
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -49,7 +45,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
-import lombok.Getter;
+import static haveno.desktop.main.market.trades.TradesChartsViewModel.MAX_TICKS;
 
 public class ChartCalculations {
     static final ZoneId ZONE_ID = ZoneId.systemDefault();

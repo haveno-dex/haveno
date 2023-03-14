@@ -17,8 +17,14 @@
 
 package haveno.apitest.scenario;
 
+import haveno.apitest.config.ApiTestConfig;
+import haveno.apitest.method.BitcoinCliHelper;
+import haveno.apitest.scenario.bot.AbstractBotTest;
+import haveno.apitest.scenario.bot.BotClient;
+import haveno.apitest.scenario.bot.RobotBob;
+import haveno.apitest.scenario.bot.script.BashScriptGenerator;
+import haveno.apitest.scenario.bot.shutdown.ManualBotShutdownException;
 import lombok.extern.slf4j.Slf4j;
-
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -35,14 +41,6 @@ import static haveno.apitest.config.HavenoAppConfig.bobdaemon;
 import static haveno.apitest.config.HavenoAppConfig.seednode;
 import static haveno.apitest.scenario.bot.shutdown.ManualShutdown.startShutdownTimer;
 import static org.junit.jupiter.api.Assertions.fail;
-
-import haveno.apitest.config.ApiTestConfig;
-import haveno.apitest.method.BitcoinCliHelper;
-import haveno.apitest.scenario.bot.AbstractBotTest;
-import haveno.apitest.scenario.bot.BotClient;
-import haveno.apitest.scenario.bot.RobotBob;
-import haveno.apitest.scenario.bot.script.BashScriptGenerator;
-import haveno.apitest.scenario.bot.shutdown.ManualBotShutdownException;
 
 // The test case is enabled if AbstractBotTest#botScriptExists() returns true.
 @EnabledIf("botScriptExists")

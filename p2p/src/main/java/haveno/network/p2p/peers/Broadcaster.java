@@ -22,19 +22,17 @@ import haveno.common.UserThread;
 import haveno.network.p2p.NodeAddress;
 import haveno.network.p2p.network.NetworkNode;
 import haveno.network.p2p.storage.messages.BroadcastMessage;
-import javax.inject.Inject;
+import lombok.Value;
+import lombok.extern.slf4j.Slf4j;
+import org.jetbrains.annotations.Nullable;
 
+import javax.inject.Inject;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
-
-import lombok.Value;
-import lombok.extern.slf4j.Slf4j;
-
-import org.jetbrains.annotations.Nullable;
 
 @Slf4j
 public class Broadcaster implements BroadcastHandler.ResultHandler {

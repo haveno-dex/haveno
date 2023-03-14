@@ -18,12 +18,12 @@
 package haveno.cli.table.column;
 
 
-import static haveno.cli.table.column.Column.JUSTIFICATION.LEFT;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Predicate;
 import java.util.stream.IntStream;
+
+import static haveno.cli.table.column.Column.JUSTIFICATION.LEFT;
 
 /**
  * For displaying boolean values as YES, NO, or user's choice for 'true' and 'false'.

@@ -17,18 +17,15 @@
 
 package haveno.desktop.components;
 
+import com.jfoenix.controls.JFXTextField;
 import de.jensd.fx.fontawesome.AwesomeDude;
 import de.jensd.fx.fontawesome.AwesomeIcon;
 import haveno.common.UserThread;
-import com.jfoenix.controls.JFXTextField;
-
+import javafx.geometry.Pos;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.AnchorPane;
 import javafx.scene.text.TextAlignment;
-
-import javafx.geometry.Pos;
-
 import lombok.Getter;
 
 public class TextFieldWithIcon extends AnchorPane {

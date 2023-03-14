@@ -1,19 +1,16 @@
 package haveno.common.config;
 
+import org.junit.Before;
+import org.junit.Test;
+
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
-
-import org.junit.Before;
-import org.junit.Test;
 
 import static org.hamcrest.Matchers.contains;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
-
-import haveno.common.config.ConfigFileEditor;
-import haveno.common.config.ConfigFileReader;
 
 public class ConfigFileEditorTests {
 

@@ -17,14 +17,12 @@
 
 package haveno.desktop.main.overlays.windows;
 
-import static haveno.desktop.util.FormBuilder.addLabelCheckBox;
-import static haveno.desktop.util.FormBuilder.addTopLabelTextArea;
-
 import haveno.common.util.Tuple2;
 import haveno.common.util.Utilities;
 import haveno.core.locale.Res;
 import haveno.core.xmr.wallet.WalletsManager;
 import haveno.desktop.main.overlays.Overlay;
+import javafx.geometry.HPos;
 import javafx.scene.Scene;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.Label;
@@ -32,7 +30,8 @@ import javafx.scene.control.TextArea;
 import javafx.scene.input.KeyCode;
 import javafx.scene.layout.Priority;
 
-import javafx.geometry.HPos;
+import static haveno.desktop.util.FormBuilder.addLabelCheckBox;
+import static haveno.desktop.util.FormBuilder.addTopLabelTextArea;
 
 public class ShowWalletDataWindow extends Overlay<ShowWalletDataWindow> {
     private final WalletsManager walletsManager;

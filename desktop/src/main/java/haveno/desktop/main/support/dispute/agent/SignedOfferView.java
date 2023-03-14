@@ -34,10 +34,11 @@ import haveno.desktop.main.offer.OfferViewUtil;
 import haveno.desktop.main.overlays.popups.Popup;
 import haveno.desktop.util.DisplayUtils;
 import haveno.desktop.util.GUIUtil;
-import javax.inject.Inject;
-
+import javafx.beans.property.ReadOnlyObjectWrapper;
+import javafx.collections.ListChangeListener;
+import javafx.collections.transformation.SortedList;
 import javafx.fxml.FXML;
-
+import javafx.geometry.Insets;
 import javafx.scene.control.ContextMenu;
 import javafx.scene.control.Label;
 import javafx.scene.control.MenuItem;
@@ -50,17 +51,10 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
-
-import javafx.geometry.Insets;
-
-import javafx.beans.property.ReadOnlyObjectWrapper;
-
-import javafx.collections.ListChangeListener;
-import javafx.collections.transformation.SortedList;
-
 import javafx.util.Callback;
 import javafx.util.Duration;
 
+import javax.inject.Inject;
 import java.util.Comparator;
 import java.util.Date;
 

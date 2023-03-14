@@ -31,16 +31,14 @@ import haveno.core.proto.CoreProtoResolver;
 import haveno.core.util.JsonUtil;
 import haveno.core.util.VolumeUtil;
 import haveno.network.p2p.NodeAddress;
-import org.apache.commons.lang3.StringUtils;
-
 import lombok.Value;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 
 import javax.annotation.Nullable;
+import java.math.BigInteger;
 
 import static com.google.common.base.Preconditions.checkArgument;
-
-import java.math.BigInteger;
 
 @Slf4j
 @Value
@@ -195,7 +193,7 @@ public final class Contract implements NetworkPayload {
     public byte[] getSellerPaymentAccountPayloadHash() {
         return isBuyerMakerAndSellerTaker ? takerPaymentAccountPayloadHash : makerPaymentAccountPayloadHash;
     }
-    
+
     public String getPaymentMethodId() {
         return makerPaymentMethodId;
     }

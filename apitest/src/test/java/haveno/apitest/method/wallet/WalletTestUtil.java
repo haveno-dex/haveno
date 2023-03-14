@@ -1,7 +1,6 @@
 package haveno.apitest.method.wallet;
 
 import haveno.proto.grpc.BtcBalanceInfo;
-
 import lombok.extern.slf4j.Slf4j;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;

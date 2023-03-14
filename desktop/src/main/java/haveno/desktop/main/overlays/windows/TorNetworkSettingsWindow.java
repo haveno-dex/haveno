@@ -18,8 +18,6 @@
 
 package haveno.desktop.main.overlays.windows;
 
-import static haveno.desktop.util.FormBuilder.*;
-
 import haveno.common.UserThread;
 import haveno.common.util.Tuple2;
 import haveno.common.util.Tuple4;
@@ -35,9 +33,10 @@ import haveno.desktop.main.overlays.popups.Popup;
 import haveno.desktop.util.Layout;
 import haveno.network.p2p.network.DefaultPluggableTransports;
 import haveno.network.p2p.network.NetworkNode;
-import javax.inject.Inject;
-import javax.inject.Singleton;
-
+import javafx.collections.FXCollections;
+import javafx.geometry.HPos;
+import javafx.geometry.Insets;
+import javafx.geometry.VPos;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.ComboBox;
@@ -50,23 +49,22 @@ import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.Priority;
-
-import javafx.geometry.HPos;
-import javafx.geometry.Insets;
-import javafx.geometry.VPos;
-
-import javafx.collections.FXCollections;
-
 import javafx.util.StringConverter;
+import lombok.extern.slf4j.Slf4j;
 
-import java.net.URI;
-
+import javax.inject.Inject;
+import javax.inject.Singleton;
 import java.io.IOException;
-
+import java.net.URI;
 import java.util.Arrays;
 import java.util.concurrent.TimeUnit;
 
-import lombok.extern.slf4j.Slf4j;
+import static haveno.desktop.util.FormBuilder.addButtonBusyAnimationLabelAfterGroup;
+import static haveno.desktop.util.FormBuilder.addComboBox;
+import static haveno.desktop.util.FormBuilder.addLabel;
+import static haveno.desktop.util.FormBuilder.addRadioButton;
+import static haveno.desktop.util.FormBuilder.addTitledGroupBg;
+import static haveno.desktop.util.FormBuilder.addTopLabelTextArea;
 
 @Slf4j
 @Singleton

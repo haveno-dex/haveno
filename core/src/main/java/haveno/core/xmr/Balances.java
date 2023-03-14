@@ -29,19 +29,20 @@ import haveno.core.trade.failed.FailedTradesManager;
 import haveno.core.xmr.listeners.XmrBalanceListener;
 import haveno.core.xmr.wallet.XmrWalletService;
 import haveno.network.p2p.P2PService;
-import java.math.BigInteger;
-import java.util.List;
-import java.util.stream.Collectors;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.collections.ListChangeListener;
-import javax.inject.Inject;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import monero.common.MoneroError;
 import monero.wallet.model.MoneroOutputQuery;
 import monero.wallet.model.MoneroOutputWallet;
 import monero.wallet.model.MoneroTxWallet;
+
+import javax.inject.Inject;
+import java.math.BigInteger;
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Slf4j
 public class Balances {
@@ -105,13 +106,13 @@ public class Balances {
     private void updateAvailableBalance() {
         availableBalance.set(xmrWalletService.getWallet() == null ? BigInteger.valueOf(0) : xmrWalletService.getWallet().getUnlockedBalance(0));
     }
-    
+
     private void updatePendingBalance() {
         BigInteger balance = xmrWalletService.getWallet() == null ? BigInteger.valueOf(0) : xmrWalletService.getWallet().getBalance(0);
         BigInteger unlockedBalance = xmrWalletService.getWallet() == null ? BigInteger.valueOf(0) : xmrWalletService.getWallet().getUnlockedBalance(0);
         pendingBalance.set(balance.subtract(unlockedBalance));
     }
-    
+
     private void updateReservedOfferBalance() {
         BigInteger sum = BigInteger.valueOf(0);
         if (xmrWalletService.getWallet() != null) {
@@ -120,7 +121,7 @@ public class Balances {
         }
         reservedOfferBalance.set(sum);
     }
-    
+
     private void updateReservedTradeBalance() {
         BigInteger sum = BigInteger.valueOf(0);
         List<Trade> openTrades = tradeManager.getTradesStreamWithFundsLockedIn().collect(Collectors.toList());

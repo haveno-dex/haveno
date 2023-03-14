@@ -20,16 +20,15 @@ package haveno.core.payment.payload;
 import com.google.protobuf.Message;
 import haveno.common.util.CollectionUtils;
 import haveno.core.locale.Res;
-import java.nio.charset.StandardCharsets;
-
-import java.util.HashMap;
-import java.util.Map;
-
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
+
+import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
+import java.util.Map;
 
 @EqualsAndHashCode(callSuper = true)
 @ToString

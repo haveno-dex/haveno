@@ -17,11 +17,10 @@
 
 package haveno.apitest.scenario;
 
-import haveno.proto.grpc.OfferInfo;
 import haveno.apitest.method.offer.AbstractOfferTest;
 import haveno.core.payment.PaymentAccount;
+import haveno.proto.grpc.OfferInfo;
 import lombok.extern.slf4j.Slf4j;
-
 import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;

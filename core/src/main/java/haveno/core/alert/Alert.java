@@ -25,18 +25,16 @@ import haveno.common.util.ExtraDataMapValidator;
 import haveno.core.user.Preferences;
 import haveno.network.p2p.storage.payload.ExpirablePayload;
 import haveno.network.p2p.storage.payload.ProtectedStoragePayload;
-import java.security.PublicKey;
-
-import java.util.Map;
-import java.util.Optional;
-import java.util.concurrent.TimeUnit;
-
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
 
 import javax.annotation.Nullable;
+import java.security.PublicKey;
+import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 

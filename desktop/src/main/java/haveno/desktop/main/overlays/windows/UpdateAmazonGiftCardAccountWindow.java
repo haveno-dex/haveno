@@ -23,11 +23,9 @@ import haveno.core.locale.Res;
 import haveno.core.payment.AmazonGiftCardAccount;
 import haveno.core.user.User;
 import haveno.desktop.main.overlays.Overlay;
+import javafx.collections.FXCollections;
 import javafx.scene.Scene;
 import javafx.scene.control.ComboBox;
-
-import javafx.collections.FXCollections;
-
 import javafx.util.StringConverter;
 
 import java.util.ArrayList;

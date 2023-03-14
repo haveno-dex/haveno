@@ -23,16 +23,24 @@ import haveno.core.payment.payload.SwiftAccountPayload;
 import haveno.core.trade.Trade;
 import haveno.core.util.VolumeUtil;
 import haveno.desktop.main.overlays.Overlay;
-import javafx.scene.control.Label;
-
 import javafx.geometry.Insets;
+import javafx.scene.control.Label;
 
 import java.util.ArrayList;
 import java.util.List;
 
 import static haveno.common.util.Utilities.cleanString;
 import static haveno.common.util.Utilities.copyToClipboard;
-import static haveno.core.payment.payload.SwiftAccountPayload.*;
+import static haveno.core.payment.payload.SwiftAccountPayload.ADDRESS;
+import static haveno.core.payment.payload.SwiftAccountPayload.BANKPOSTFIX;
+import static haveno.core.payment.payload.SwiftAccountPayload.BENEFICIARYPOSTFIX;
+import static haveno.core.payment.payload.SwiftAccountPayload.BRANCH;
+import static haveno.core.payment.payload.SwiftAccountPayload.COUNTRY;
+import static haveno.core.payment.payload.SwiftAccountPayload.INTERMEDIARYPOSTFIX;
+import static haveno.core.payment.payload.SwiftAccountPayload.PHONE;
+import static haveno.core.payment.payload.SwiftAccountPayload.SNAME;
+import static haveno.core.payment.payload.SwiftAccountPayload.SWIFT_ACCOUNT;
+import static haveno.core.payment.payload.SwiftAccountPayload.SWIFT_CODE;
 import static haveno.desktop.util.FormBuilder.addConfirmationLabelLabel;
 import static haveno.desktop.util.FormBuilder.addTitledGroupBg;
 

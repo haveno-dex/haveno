@@ -29,20 +29,17 @@ import haveno.core.notifications.MobileNotificationService;
 import haveno.core.offer.Offer;
 import haveno.core.offer.OfferBookService;
 import haveno.core.offer.OfferDirection;
-import haveno.core.offer.OfferPayload;
 import haveno.core.provider.price.MarketPrice;
 import haveno.core.provider.price.PriceFeedService;
 import haveno.core.user.User;
 import haveno.core.util.FormattingUtils;
+import lombok.extern.slf4j.Slf4j;
 import org.bitcoinj.utils.Fiat;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
-
 import java.util.List;
 import java.util.UUID;
-
-import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Singleton

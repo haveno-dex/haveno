@@ -20,13 +20,12 @@ package haveno.network.p2p.peers.getdata.messages;
 import haveno.common.proto.network.NetworkEnvelope;
 import haveno.network.p2p.ExtendedDataSizePermission;
 import haveno.network.p2p.InitialDataRequest;
-import java.util.Set;
-
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.ToString;
 
 import javax.annotation.Nullable;
+import java.util.Set;
 
 @EqualsAndHashCode(callSuper = true)
 @Getter

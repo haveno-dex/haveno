@@ -17,9 +17,6 @@
 
 package haveno.monitor.metric;
 
-import org.berndpruenster.netlayer.tor.Tor;
-import org.berndpruenster.netlayer.tor.TorCtlException;
-
 import com.runjva.sourceforge.jsocks.protocol.Socks5Proxy;
 import com.runjva.sourceforge.jsocks.protocol.SocksSocket;
 import haveno.monitor.Metric;
@@ -27,8 +24,10 @@ import haveno.monitor.OnionParser;
 import haveno.monitor.Reporter;
 import haveno.monitor.StatisticsHelper;
 import haveno.network.p2p.NodeAddress;
-import java.io.IOException;
+import org.berndpruenster.netlayer.tor.Tor;
+import org.berndpruenster.netlayer.tor.TorCtlException;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 

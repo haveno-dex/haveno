@@ -28,16 +28,15 @@ import haveno.network.p2p.storage.payload.MailboxStoragePayload;
 import haveno.network.p2p.storage.payload.ProtectedMailboxStorageEntry;
 import haveno.network.p2p.storage.payload.ProtectedStorageEntry;
 import haveno.network.p2p.storage.payload.ProtectedStoragePayload;
-import java.security.KeyPair;
-import java.security.NoSuchAlgorithmException;
-
-import java.util.Optional;
-
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-import static haveno.network.p2p.storage.TestState.*;
+import java.security.KeyPair;
+import java.security.NoSuchAlgorithmException;
+import java.util.Optional;
+
+import static haveno.network.p2p.storage.TestState.SavedTestState;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 

@@ -50,22 +50,17 @@ import haveno.core.xmr.wallet.XmrWalletService;
 import haveno.network.p2p.AckMessage;
 import haveno.network.p2p.NodeAddress;
 import haveno.network.p2p.P2PService;
-import org.bitcoinj.core.Coin;
-import org.bitcoinj.core.Transaction;
-
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleObjectProperty;
-import java.util.Optional;
-
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
+import monero.wallet.model.MoneroTxWallet;
+import org.bitcoinj.core.Coin;
+import org.bitcoinj.core.Transaction;
 
 import javax.annotation.Nullable;
-
-
-
-import monero.wallet.model.MoneroTxWallet;
+import java.util.Optional;
 
 // Fields marked as transient are only used during protocol execution which are based on directMessages so we do not
 // persist them.
@@ -114,7 +109,7 @@ public class ProcessModel implements Model, PersistablePayload {
     private boolean useSavingsWallet;
     @Setter
     private long fundsNeededForTrade;
-    
+
     // that is used to store temp. the peers address when we get an incoming message before the message is verified.
     // After successful verified we copy that over to the trade.tradePeerAddress
     @Nullable
@@ -307,7 +302,7 @@ public class ProcessModel implements Model, PersistablePayload {
             tradeManager.requestPersistence();
         }
     }
-    
+
     void setDepositTxSentAckMessage(AckMessage ackMessage) {
         MessageState messageState = ackMessage.isSuccess() ?
                 MessageState.ACKNOWLEDGED :
@@ -330,7 +325,7 @@ public class ProcessModel implements Model, PersistablePayload {
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Delegates
     ///////////////////////////////////////////////////////////////////////////////////////////
-    
+
     public XmrWalletService getXmrWalletService() {
         return provider.getXmrWalletService();
     }

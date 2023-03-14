@@ -21,16 +21,6 @@ import de.jensd.fx.fontawesome.AwesomeIcon;
 import haveno.common.UserThread;
 import haveno.core.locale.Res;
 import haveno.desktop.util.FormBuilder;
-import javafx.scene.Parent;
-import javafx.scene.control.Hyperlink;
-import javafx.scene.control.Label;
-import javafx.scene.control.OverrunStyle;
-import javafx.scene.layout.GridPane;
-import javafx.scene.text.TextFlow;
-
-import javafx.geometry.Insets;
-import javafx.geometry.VPos;
-
 import javafx.beans.property.IntegerProperty;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleIntegerProperty;
@@ -38,9 +28,16 @@ import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
 import javafx.beans.value.ChangeListener;
-
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
+import javafx.geometry.Insets;
+import javafx.geometry.VPos;
+import javafx.scene.Parent;
+import javafx.scene.control.Hyperlink;
+import javafx.scene.control.Label;
+import javafx.scene.control.OverrunStyle;
+import javafx.scene.layout.GridPane;
+import javafx.scene.text.TextFlow;
 
 /**
  * Convenience Component for info icon, info text and link display in a GridPane.

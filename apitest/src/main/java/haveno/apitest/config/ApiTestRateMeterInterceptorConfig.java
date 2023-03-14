@@ -1,17 +1,17 @@
 package haveno.apitest.config;
 
+import haveno.daemon.grpc.GrpcVersionService;
+import haveno.daemon.grpc.interceptor.GrpcServiceRateMeteringConfig;
+
 import java.io.File;
 
+import static haveno.apitest.config.ApiTestConfig.CALL_RATE_METERING_CONFIG_PATH;
 import static haveno.proto.grpc.DisputeAgentsGrpc.getRegisterDisputeAgentMethod;
 import static haveno.proto.grpc.GetVersionGrpc.getGetVersionMethod;
-import static haveno.apitest.config.ApiTestConfig.CALL_RATE_METERING_CONFIG_PATH;
 import static java.lang.System.arraycopy;
 import static java.util.Arrays.stream;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
-
-import haveno.daemon.grpc.GrpcVersionService;
-import haveno.daemon.grpc.interceptor.GrpcServiceRateMeteringConfig;
 
 public class ApiTestRateMeterInterceptorConfig {
 

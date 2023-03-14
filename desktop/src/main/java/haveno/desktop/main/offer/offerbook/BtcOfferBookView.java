@@ -28,10 +28,10 @@ import haveno.core.util.coin.CoinFormatter;
 import haveno.desktop.Navigation;
 import haveno.desktop.common.view.FxmlView;
 import haveno.desktop.main.overlays.windows.OfferDetailsWindow;
+import javafx.scene.layout.GridPane;
+
 import javax.inject.Inject;
 import javax.inject.Named;
-
-import javafx.scene.layout.GridPane;
 
 @FxmlView
 public class BtcOfferBookView extends OfferBookView<GridPane, BtcOfferBookViewModel> {

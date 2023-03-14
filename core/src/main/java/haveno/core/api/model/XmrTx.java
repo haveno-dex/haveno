@@ -1,17 +1,18 @@
 package haveno.core.api.model;
 
-import static haveno.core.api.model.XmrIncomingTransfer.toXmrIncomingTransfer;
-import static haveno.core.api.model.XmrOutgoingTransfer.toXmrOutgoingTransfer;
-
 import haveno.common.Payload;
 import haveno.common.proto.ProtoUtil;
+import lombok.Getter;
+import monero.wallet.model.MoneroTxWallet;
+
+import javax.annotation.Nullable;
 import java.math.BigInteger;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
-import javax.annotation.Nullable;
-import lombok.Getter;
-import monero.wallet.model.MoneroTxWallet;
+
+import static haveno.core.api.model.XmrIncomingTransfer.toXmrIncomingTransfer;
+import static haveno.core.api.model.XmrOutgoingTransfer.toXmrOutgoingTransfer;
 
 @Getter
 public class XmrTx implements Payload {

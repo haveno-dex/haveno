@@ -18,14 +18,13 @@
 package haveno.core.network.p2p.inventory.model;
 
 import haveno.common.util.Tuple2;
+import lombok.Getter;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-
-import lombok.Getter;
-
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 public enum InventoryItem {
     // Percentage deviation

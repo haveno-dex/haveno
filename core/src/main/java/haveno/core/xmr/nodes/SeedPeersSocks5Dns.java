@@ -33,22 +33,18 @@
 
 package haveno.core.xmr.nodes;
 
+import com.runjva.sourceforge.jsocks.protocol.Socks5Proxy;
+import com.runjva.sourceforge.jsocks.protocol.SocksSocket;
 import org.bitcoinj.core.NetworkParameters;
 import org.bitcoinj.net.discovery.PeerDiscovery;
 import org.bitcoinj.net.discovery.PeerDiscoveryException;
-
-import com.runjva.sourceforge.jsocks.protocol.Socks5Proxy;
-import com.runjva.sourceforge.jsocks.protocol.SocksSocket;
-
-import java.net.InetAddress;
-import java.net.InetSocketAddress;
-
-import java.util.concurrent.TimeUnit;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
+import java.util.concurrent.TimeUnit;
 
 // TODO not used anymore. Not sure if it was replaced by something else or removed by accident.
 /**

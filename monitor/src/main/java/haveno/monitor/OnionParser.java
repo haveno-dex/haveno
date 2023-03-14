@@ -18,6 +18,7 @@
 package haveno.monitor;
 
 import haveno.network.p2p.NodeAddress;
+
 import java.net.MalformedURLException;
 import java.net.URL;
 

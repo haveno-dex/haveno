@@ -22,14 +22,12 @@ import haveno.common.handlers.ErrorMessageHandler;
 import haveno.common.handlers.ResultHandler;
 import haveno.core.offer.Offer;
 import haveno.core.offer.OfferDirection;
-import haveno.core.offer.OfferPayload;
 import haveno.core.offer.OpenOffer;
 import haveno.core.offer.OpenOfferManager;
 import haveno.core.offer.TriggerPriceService;
 import haveno.core.provider.price.PriceFeedService;
 import haveno.desktop.common.model.ActivatableDataModel;
 import javafx.beans.value.ChangeListener;
-
 import javafx.collections.FXCollections;
 import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;

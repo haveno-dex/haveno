@@ -21,16 +21,15 @@ import haveno.common.Timer;
 import haveno.common.UserThread;
 import haveno.common.proto.ProtoUtil;
 import haveno.core.trade.Tradable;
-import java.util.Date;
-import java.util.List;
-import java.util.Optional;
-
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 
 import javax.annotation.Nullable;
+import java.util.Date;
+import java.util.List;
+import java.util.Optional;
 
 @EqualsAndHashCode
 @Slf4j
@@ -75,7 +74,7 @@ public final class OpenOffer implements Tradable {
     @Setter
     @Getter
     private String reserveTxKey;
-    
+
 
     // Added in v1.5.3.
     // If market price reaches that trigger price the offer gets deactivated

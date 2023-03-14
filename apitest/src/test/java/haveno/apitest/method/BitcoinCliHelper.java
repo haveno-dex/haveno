@@ -17,13 +17,13 @@
 
 package haveno.apitest.method;
 
+import haveno.apitest.config.ApiTestConfig;
+import haveno.apitest.linux.BitcoinCli;
+
 import java.io.IOException;
 
 import static java.lang.String.format;
 import static org.junit.jupiter.api.Assertions.fail;
-
-import haveno.apitest.config.ApiTestConfig;
-import haveno.apitest.linux.BitcoinCli;
 
 public final class BitcoinCliHelper {
 

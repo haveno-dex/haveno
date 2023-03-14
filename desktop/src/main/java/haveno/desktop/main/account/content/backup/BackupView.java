@@ -17,11 +17,6 @@
 
 package haveno.desktop.main.account.content.backup;
 
-import static haveno.desktop.util.FormBuilder.add2Buttons;
-import static haveno.desktop.util.FormBuilder.add2ButtonsAfterGroup;
-import static haveno.desktop.util.FormBuilder.addInputTextField;
-import static haveno.desktop.util.FormBuilder.addTitledGroupBg;
-
 import haveno.common.config.Config;
 import haveno.common.file.FileUtil;
 import haveno.common.persistence.PersistenceManager;
@@ -33,26 +28,24 @@ import haveno.desktop.common.view.ActivatableView;
 import haveno.desktop.common.view.FxmlView;
 import haveno.desktop.main.overlays.popups.Popup;
 import haveno.desktop.util.Layout;
-import javax.inject.Inject;
-
-import javafx.stage.DirectoryChooser;
-
+import javafx.beans.value.ChangeListener;
 import javafx.scene.control.Button;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.GridPane;
-
-import javafx.beans.value.ChangeListener;
-
-import java.text.SimpleDateFormat;
-
-import java.nio.file.Paths;
-
-import java.io.File;
-import java.io.IOException;
-
-import java.util.Date;
+import javafx.stage.DirectoryChooser;
 
 import javax.annotation.Nullable;
+import javax.inject.Inject;
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Paths;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+
+import static haveno.desktop.util.FormBuilder.add2Buttons;
+import static haveno.desktop.util.FormBuilder.add2ButtonsAfterGroup;
+import static haveno.desktop.util.FormBuilder.addInputTextField;
+import static haveno.desktop.util.FormBuilder.addTitledGroupBg;
 
 @FxmlView
 public class BackupView extends ActivatableView<GridPane, Void> {

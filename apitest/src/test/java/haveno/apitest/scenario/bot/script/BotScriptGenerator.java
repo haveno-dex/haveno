@@ -23,14 +23,12 @@ import joptsimple.BuiltinHelpFormatter;
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 import joptsimple.OptionSpec;
-
-import java.io.File;
-import java.io.IOException;
-import java.io.PrintStream;
-
 import lombok.extern.slf4j.Slf4j;
 
 import javax.annotation.Nullable;
+import java.io.File;
+import java.io.IOException;
+import java.io.PrintStream;
 
 import static java.lang.System.err;
 import static java.lang.System.exit;

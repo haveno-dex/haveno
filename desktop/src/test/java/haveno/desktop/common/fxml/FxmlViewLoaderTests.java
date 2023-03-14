@@ -17,28 +17,25 @@
 
 package haveno.desktop.common.fxml;
 
+import haveno.desktop.common.ViewfxException;
+import haveno.desktop.common.view.AbstractView;
+import haveno.desktop.common.view.FxmlView;
+import haveno.desktop.common.view.View;
+import haveno.desktop.common.view.ViewFactory;
+import haveno.desktop.common.view.ViewLoader;
 import javafx.fxml.LoadException;
-
-import java.util.ResourceBundle;
-
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
+import java.util.ResourceBundle;
+
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.junit.Assert.assertThat;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
-
-import haveno.desktop.common.ViewfxException;
-import haveno.desktop.common.fxml.FxmlViewLoader;
-import haveno.desktop.common.view.AbstractView;
-import haveno.desktop.common.view.FxmlView;
-import haveno.desktop.common.view.View;
-import haveno.desktop.common.view.ViewFactory;
-import haveno.desktop.common.view.ViewLoader;
 
 // TODO Some refactorings seem to have broken those tests. Investigate and remove @Ignore as soon its fixed.
 @Ignore

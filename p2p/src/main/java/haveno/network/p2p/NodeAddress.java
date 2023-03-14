@@ -17,19 +17,18 @@
 
 package haveno.network.p2p;
 
-import java.util.regex.Pattern;
-
-import lombok.EqualsAndHashCode;
-import lombok.Getter;
-import lombok.extern.slf4j.Slf4j;
-
-import static com.google.common.base.Preconditions.checkArgument;
-
 import haveno.common.consensus.UsedForTradeContractJson;
 import haveno.common.crypto.Hash;
 import haveno.common.proto.network.NetworkPayload;
 import haveno.common.proto.persistable.PersistablePayload;
 import haveno.common.util.JsonExclude;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
+
+import java.util.regex.Pattern;
+
+import static com.google.common.base.Preconditions.checkArgument;
 
 @Getter
 @EqualsAndHashCode

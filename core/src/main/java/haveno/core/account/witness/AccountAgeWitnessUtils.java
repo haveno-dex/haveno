@@ -26,14 +26,13 @@ import haveno.core.account.sign.SignedWitnessService;
 import haveno.core.payment.payload.PaymentAccountPayload;
 import haveno.core.trade.Trade;
 import haveno.network.p2p.storage.P2PDataStorage;
+import lombok.extern.slf4j.Slf4j;
+
+import javax.annotation.Nullable;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Optional;
 import java.util.Stack;
-
-import lombok.extern.slf4j.Slf4j;
-
-import javax.annotation.Nullable;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 

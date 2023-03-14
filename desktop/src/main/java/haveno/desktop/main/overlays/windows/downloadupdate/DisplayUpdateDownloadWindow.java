@@ -18,7 +18,6 @@
 package haveno.desktop.main.overlays.windows.downloadupdate;
 
 import com.google.common.base.Joiner;
-
 import com.jfoenix.controls.JFXProgressBar;
 import haveno.common.config.Config;
 import haveno.common.util.Utilities;
@@ -29,6 +28,11 @@ import haveno.desktop.components.AutoTooltipLabel;
 import haveno.desktop.components.BusyAnimation;
 import haveno.desktop.main.overlays.Overlay;
 import haveno.desktop.main.overlays.popups.Popup;
+import javafx.beans.value.ChangeListener;
+import javafx.geometry.HPos;
+import javafx.geometry.Insets;
+import javafx.geometry.Orientation;
+import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
@@ -37,28 +41,18 @@ import javafx.scene.control.Separator;
 import javafx.scene.input.KeyCode;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
-
-import javafx.geometry.HPos;
-import javafx.geometry.Insets;
-import javafx.geometry.Orientation;
-import javafx.geometry.Pos;
-
-import javafx.beans.value.ChangeListener;
-
-import java.nio.file.Path;
-import java.nio.file.Paths;
+import lombok.extern.slf4j.Slf4j;
 
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.PrintWriter;
-
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.Scanner;
-
-import lombok.extern.slf4j.Slf4j;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static haveno.desktop.util.FormBuilder.addLabel;

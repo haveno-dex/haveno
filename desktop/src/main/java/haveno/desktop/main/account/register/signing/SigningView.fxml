@@ -16,8 +16,8 @@
   ~ along with Haveno. If not, see <http://www.gnu.org/licenses/>.
   -->
 
-<?import javafx.scene.layout.AnchorPane?>
 <?import javafx.geometry.Insets?>
+<?import javafx.scene.layout.AnchorPane?>
 <AnchorPane fx:id="root" fx:controller="haveno.desktop.main.account.register.signing.SigningView"
             xmlns:fx="http://javafx.com/fxml">
     <padding>

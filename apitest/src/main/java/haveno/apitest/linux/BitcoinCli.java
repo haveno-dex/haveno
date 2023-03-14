@@ -18,9 +18,9 @@
 package haveno.apitest.linux;
 
 import haveno.apitest.config.ApiTestConfig;
-import java.io.IOException;
-
 import lombok.extern.slf4j.Slf4j;
+
+import java.io.IOException;
 
 @Slf4j
 public class BitcoinCli extends AbstractLinuxProcess implements LinuxProcess {

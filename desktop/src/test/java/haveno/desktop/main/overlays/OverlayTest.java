@@ -17,8 +17,6 @@
 
 package haveno.desktop.main.overlays;
 
-import haveno.desktop.main.overlays.Overlay;
-import haveno.desktop.main.overlays.TabbedOverlay;
 import org.junit.Test;
 
 public class OverlayTest {

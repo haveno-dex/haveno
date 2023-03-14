@@ -1,5 +1,6 @@
-import java.time.LocalDateTime
 import org.apache.tools.ant.taskdefs.condition.Os
+
+import java.time.LocalDateTime
 
 task jpackageSanityChecks {
     description 'Interactive sanity checks on the version of the code that will be packaged'

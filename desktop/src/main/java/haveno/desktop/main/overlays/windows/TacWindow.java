@@ -17,21 +17,18 @@
 
 package haveno.desktop.main.overlays.windows;
 
-import static haveno.desktop.util.FormBuilder.addHyperlinkWithIcon;
-
 import com.google.inject.Inject;
 import haveno.core.locale.Res;
 import haveno.desktop.app.HavenoApp;
 import haveno.desktop.components.HyperlinkWithIcon;
 import haveno.desktop.main.overlays.Overlay;
-import javafx.stage.Screen;
-
-import javafx.scene.layout.GridPane;
-
 import javafx.geometry.Insets;
 import javafx.geometry.Rectangle2D;
-
+import javafx.scene.layout.GridPane;
+import javafx.stage.Screen;
 import lombok.extern.slf4j.Slf4j;
+
+import static haveno.desktop.util.FormBuilder.addHyperlinkWithIcon;
 
 @Slf4j
 public class TacWindow extends Overlay<TacWindow> {

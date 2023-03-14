@@ -25,10 +25,10 @@ import haveno.network.p2p.storage.messages.AddPersistableNetworkPayloadMessage;
 import haveno.network.p2p.storage.messages.BroadcastMessage;
 import haveno.network.p2p.storage.mocks.PersistableNetworkPayloadStub;
 import haveno.network.p2p.storage.payload.PersistableNetworkPayload;
-import java.util.Optional;
-
 import org.junit.Before;
 import org.junit.Test;
+
+import java.util.Optional;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;

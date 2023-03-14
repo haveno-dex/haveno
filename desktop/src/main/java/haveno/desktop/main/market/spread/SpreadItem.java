@@ -17,15 +17,12 @@
 
 package haveno.desktop.main.market.spread;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import haveno.core.monetary.Price;
-import java.math.BigInteger;
 
 import javax.annotation.Nullable;
+import java.math.BigInteger;
 
 public class SpreadItem {
-    private static final Logger log = LoggerFactory.getLogger(SpreadItem.class);
     public final String currencyCode;
     public final int numberOfBuyOffers;
     public final int numberOfSellOffers;

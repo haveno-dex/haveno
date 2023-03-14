@@ -17,15 +17,13 @@
 
 package haveno.common.util;
 
-import java.net.URI;
+import lombok.extern.slf4j.Slf4j;
 
 import java.io.File;
 import java.io.IOException;
-
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
-
-import lombok.extern.slf4j.Slf4j;
 
 // Taken form https://stackoverflow.com/questions/18004150/desktop-api-is-not-supported-on-the-current-platform,
 // originally net.mightypork.rpack.utils.DesktopApi

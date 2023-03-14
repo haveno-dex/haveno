@@ -25,13 +25,11 @@ import haveno.core.locale.TradeCurrency;
 import haveno.core.payment.payload.MoneyGramAccountPayload;
 import haveno.core.payment.payload.PaymentAccountPayload;
 import haveno.core.payment.payload.PaymentMethod;
-import java.util.List;
-
 import lombok.EqualsAndHashCode;
-
 import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nullable;
+import java.util.List;
 
 @EqualsAndHashCode(callSuper = true)
 public final class MoneyGramAccount extends PaymentAccount {

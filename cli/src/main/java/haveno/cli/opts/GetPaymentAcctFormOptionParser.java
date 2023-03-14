@@ -18,9 +18,9 @@
 package haveno.cli.opts;
 
 
-import static haveno.cli.opts.OptLabel.OPT_PAYMENT_METHOD_ID;
-
 import joptsimple.OptionSpec;
+
+import static haveno.cli.opts.OptLabel.OPT_PAYMENT_METHOD_ID;
 
 public class GetPaymentAcctFormOptionParser extends AbstractMethodOptionParser implements MethodOpts {
 

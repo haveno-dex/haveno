@@ -31,9 +31,9 @@ import haveno.core.xmr.wallet.BtcWalletService;
 import haveno.core.xmr.wallet.TradeWalletService;
 import haveno.core.xmr.wallet.XmrWalletService;
 import haveno.network.p2p.P2PService;
-import javax.inject.Inject;
-
 import lombok.Getter;
+
+import javax.inject.Inject;
 
 @Getter
 public class ProcessModelServiceProvider {

@@ -17,27 +17,22 @@
 
 package haveno.desktop.components;
 
+import com.jfoenix.controls.JFXTextField;
 import de.jensd.fx.fontawesome.AwesomeIcon;
 import de.jensd.fx.glyphs.materialdesignicons.MaterialDesignIcon;
 import haveno.desktop.components.controlsfx.control.PopOver;
-
-import static haveno.desktop.util.FormBuilder.getIcon;
-import static haveno.desktop.util.FormBuilder.getRegularIconForLabel;
-
-import com.jfoenix.controls.JFXTextField;
-
+import javafx.beans.property.SimpleStringProperty;
+import javafx.beans.property.StringProperty;
 import javafx.scene.Node;
 import javafx.scene.control.Label;
 import javafx.scene.layout.AnchorPane;
 import javafx.scene.text.Text;
-
-import javafx.beans.property.SimpleStringProperty;
-import javafx.beans.property.StringProperty;
-
+import lombok.Getter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import lombok.Getter;
+import static haveno.desktop.util.FormBuilder.getIcon;
+import static haveno.desktop.util.FormBuilder.getRegularIconForLabel;
 
 public class InfoTextField extends AnchorPane {
     public static final Logger log = LoggerFactory.getLogger(InfoTextField.class);

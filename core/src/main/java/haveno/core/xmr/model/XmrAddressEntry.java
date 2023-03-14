@@ -17,19 +17,17 @@
 
 package haveno.core.xmr.model;
 
-import org.bitcoinj.core.Coin;
 import haveno.common.proto.ProtoUtil;
 import haveno.common.proto.persistable.PersistablePayload;
 import haveno.common.util.Utilities;
-import java.util.Optional;
-
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
-
+import org.bitcoinj.core.Coin;
 import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nullable;
+import java.util.Optional;
 
 /**
  * Every trade uses a XmrAddressEntry with a dedicated address for all transactions related to the trade.

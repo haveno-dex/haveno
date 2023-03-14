@@ -17,9 +17,6 @@
 
 package haveno.desktop.main.market;
 
-import javax.inject.Inject;
-import javax.inject.Named;
-
 import com.google.common.base.Joiner;
 import haveno.common.util.Utilities;
 import haveno.core.locale.CurrencyUtil;
@@ -45,21 +42,19 @@ import haveno.desktop.main.offer.offerbook.OfferBook;
 import haveno.desktop.main.offer.offerbook.OfferBookListItem;
 import haveno.desktop.main.overlays.popups.Popup;
 import haveno.desktop.util.DisplayUtils;
-import org.apache.commons.lang3.StringUtils;
-
+import javafx.beans.value.ChangeListener;
+import javafx.event.EventHandler;
 import javafx.fxml.FXML;
-
 import javafx.scene.Scene;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.control.Tab;
 import javafx.scene.control.TabPane;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
+import org.apache.commons.lang3.StringUtils;
 
-import javafx.beans.value.ChangeListener;
-
-import javafx.event.EventHandler;
-
+import javax.inject.Inject;
+import javax.inject.Named;
 import java.util.List;
 import java.util.stream.Collectors;
 

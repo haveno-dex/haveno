@@ -1,14 +1,13 @@
 package haveno.desktop.util.validation;
 
-import java.util.Locale;
-
+import haveno.core.locale.Res;
+import haveno.core.payment.validation.AccountNrValidator;
 import org.junit.Before;
 import org.junit.Test;
 
-import static org.junit.Assert.assertTrue;
+import java.util.Locale;
 
-import haveno.core.locale.Res;
-import haveno.core.payment.validation.AccountNrValidator;
+import static org.junit.Assert.assertTrue;
 
 public class AccountNrValidatorTest {
 

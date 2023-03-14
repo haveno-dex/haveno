@@ -17,20 +17,17 @@
 
 package haveno.apitest.scenario.bot;
 
+import haveno.cli.GrpcClient;
 import haveno.proto.grpc.BalancesInfo;
 import haveno.proto.grpc.GetPaymentAccountsRequest;
 import haveno.proto.grpc.OfferInfo;
 import haveno.proto.grpc.TradeInfo;
-import haveno.cli.GrpcClient;
-import haveno.core.api.model.PaymentAccountForm;
+import lombok.extern.slf4j.Slf4j;
 import protobuf.PaymentAccount;
 
 import java.text.DecimalFormat;
-
 import java.util.List;
 import java.util.function.BiPredicate;
-
-import lombok.extern.slf4j.Slf4j;
 
 import static org.apache.commons.lang3.StringUtils.capitalize;
 

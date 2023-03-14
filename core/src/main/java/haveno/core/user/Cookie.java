@@ -18,11 +18,11 @@
 package haveno.core.user;
 
 import haveno.common.proto.ProtoUtil;
+
+import javax.annotation.Nullable;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
-
-import javax.annotation.Nullable;
 
 /**
  * Serves as flexible container for persisting UI states, layout,...

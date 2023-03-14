@@ -22,13 +22,11 @@ import haveno.common.file.FileUtil;
 import haveno.common.file.ResourceNotFoundException;
 import haveno.common.persistence.PersistenceManager;
 import haveno.common.proto.persistable.PersistableEnvelope;
-import java.nio.file.Paths;
+import lombok.extern.slf4j.Slf4j;
 
 import java.io.File;
-
+import java.nio.file.Paths;
 import java.util.function.Consumer;
-
-import lombok.extern.slf4j.Slf4j;
 
 /**
  * Base class for handling of persisted data.

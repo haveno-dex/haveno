@@ -20,8 +20,6 @@ package haveno.core.util;
 import haveno.common.proto.ProtoUtil;
 import haveno.core.offer.OfferDirection;
 import haveno.core.offer.OpenOffer;
-import protobuf.OfferPayload;
-
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;

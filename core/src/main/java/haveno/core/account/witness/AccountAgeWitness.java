@@ -23,13 +23,12 @@ import haveno.network.p2p.storage.P2PDataStorage;
 import haveno.network.p2p.storage.payload.DateTolerantPayload;
 import haveno.network.p2p.storage.payload.PersistableNetworkPayload;
 import haveno.network.p2p.storage.payload.ProcessOncePersistableNetworkPayload;
-import java.time.Clock;
-import java.time.Instant;
-
-import java.util.concurrent.TimeUnit;
-
 import lombok.Value;
 import lombok.extern.slf4j.Slf4j;
+
+import java.time.Clock;
+import java.time.Instant;
+import java.util.concurrent.TimeUnit;
 
 // Object has 28 raw bytes (33 bytes is size of ProtoBuffer object in storage list, 5 byte extra for list -> totalBytes = 5 + n*33)
 // With 1 000 000 entries we get about 33 MB of data. Old entries will be shipped with the resource file,

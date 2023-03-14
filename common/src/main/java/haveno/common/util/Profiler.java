@@ -18,9 +18,9 @@
 package haveno.common.util;
 
 import haveno.common.UserThread;
-import java.util.concurrent.TimeUnit;
-
 import lombok.extern.slf4j.Slf4j;
+
+import java.util.concurrent.TimeUnit;
 
 @Slf4j
 public class Profiler {

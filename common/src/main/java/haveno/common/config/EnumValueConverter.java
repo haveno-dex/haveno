@@ -17,11 +17,10 @@
 
 package haveno.common.config;
 
-import joptsimple.ValueConverter;
-
 import com.google.common.base.Enums;
 import com.google.common.base.Optional;
 import com.google.common.collect.Sets;
+import joptsimple.ValueConverter;
 
 import java.util.Set;
 

@@ -27,13 +27,14 @@ import haveno.core.trade.messages.DepositRequest;
 import haveno.core.trade.messages.SignContractResponse;
 import haveno.core.trade.protocol.TradePeer;
 import haveno.network.p2p.SendDirectMessageListener;
+import lombok.extern.slf4j.Slf4j;
+
 import java.util.Date;
 import java.util.UUID;
-import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class ProcessSignContractResponse extends TradeTask {
-    
+
     @SuppressWarnings({"unused"})
     public ProcessSignContractResponse(TaskRunner taskHandler, Trade trade) {
         super(taskHandler, trade);

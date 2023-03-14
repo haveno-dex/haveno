@@ -45,24 +45,20 @@ import haveno.desktop.common.model.ViewModel;
 import haveno.desktop.util.DisplayUtils;
 import haveno.desktop.util.GUIUtil;
 import haveno.network.p2p.P2PService;
-import javax.inject.Named;
-
-import org.fxmisc.easybind.EasyBind;
-import org.fxmisc.easybind.Subscription;
-
 import javafx.beans.property.IntegerProperty;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.ReadOnlyObjectProperty;
 import javafx.beans.property.SimpleIntegerProperty;
 import javafx.beans.property.SimpleObjectProperty;
+import lombok.Getter;
+import org.fxmisc.easybind.EasyBind;
+import org.fxmisc.easybind.Subscription;
 
+import javax.annotation.Nullable;
+import javax.inject.Named;
 import java.math.BigInteger;
 import java.util.Date;
 import java.util.stream.Collectors;
-
-import lombok.Getter;
-
-import javax.annotation.Nullable;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static haveno.desktop.main.portfolio.pendingtrades.PendingTradesViewModel.SellerState.UNDEFINED;
@@ -200,7 +196,7 @@ public class PendingTradesViewModel extends ActivatableWithDataModel<PendingTrad
     }
 
     public void setMessageStateProperty(MessageState messageState) {
-        
+
         // ARRIVED is set internally after ACKNOWLEDGED, otherwise warn if subsequent states received
         if ((messageStateProperty.get() == MessageState.ACKNOWLEDGED && messageState != MessageState.ARRIVED) || messageStateProperty.get() == MessageState.ARRIVED) {
             log.warn("We have already an ACKNOWLEDGED/ARRIVED message received. " +

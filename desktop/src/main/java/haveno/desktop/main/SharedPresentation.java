@@ -24,13 +24,11 @@ import haveno.core.offer.OpenOfferManager;
 import haveno.core.xmr.wallet.WalletsManager;
 import haveno.desktop.app.HavenoApp;
 import haveno.desktop.main.overlays.popups.Popup;
+import lombok.extern.slf4j.Slf4j;
 import org.bitcoinj.wallet.DeterministicSeed;
 
 import java.io.File;
-
 import java.util.concurrent.TimeUnit;
-
-import lombok.extern.slf4j.Slf4j;
 
 /**
  * This serves as shared space for static methods used from different views where no common parent view would fit as

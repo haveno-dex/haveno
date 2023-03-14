@@ -17,8 +17,6 @@
 
 package haveno.network.p2p.peers.peerexchange;
 
-import javax.inject.Inject;
-
 import com.google.common.base.Preconditions;
 import haveno.common.Timer;
 import haveno.common.UserThread;
@@ -32,6 +30,10 @@ import haveno.network.p2p.network.NetworkNode;
 import haveno.network.p2p.peers.PeerManager;
 import haveno.network.p2p.peers.peerexchange.messages.GetPeersRequest;
 import haveno.network.p2p.seed.SeedNodeRepository;
+import lombok.extern.slf4j.Slf4j;
+
+import javax.annotation.Nullable;
+import javax.inject.Inject;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -44,10 +46,6 @@ import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
-
-import lombok.extern.slf4j.Slf4j;
-
-import javax.annotation.Nullable;
 
 @Slf4j
 public class PeerExchangeManager implements MessageListener, ConnectionListener, PeerManager.Listener {

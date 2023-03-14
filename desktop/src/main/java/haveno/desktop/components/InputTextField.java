@@ -19,13 +19,11 @@ package haveno.desktop.components;
 
 
 import com.jfoenix.controls.JFXTextField;
-import haveno.core.locale.Res;
 import haveno.core.util.validation.InputValidator;
 import haveno.desktop.util.validation.JFXInputValidator;
-import javafx.scene.control.Skin;
-
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleObjectProperty;
+import javafx.scene.control.Skin;
 
 /**
  * TextField with validation support.

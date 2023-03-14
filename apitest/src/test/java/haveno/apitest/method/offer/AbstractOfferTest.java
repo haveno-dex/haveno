@@ -17,23 +17,20 @@
 
 package haveno.apitest.method.offer;
 
-import haveno.proto.grpc.OfferInfo;
 import haveno.apitest.method.MethodTest;
 import haveno.cli.CliMain;
 import haveno.cli.table.builder.TableBuilder;
+import haveno.proto.grpc.OfferInfo;
+import lombok.Setter;
+import lombok.extern.slf4j.Slf4j;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import protobuf.PaymentAccount;
 
 import java.math.BigDecimal;
 import java.math.MathContext;
-
 import java.util.List;
 import java.util.function.Function;
-
-import lombok.Setter;
-import lombok.extern.slf4j.Slf4j;
-
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
 
 import static haveno.apitest.Scaffold.BitcoinCoreApp.bitcoind;
 import static haveno.apitest.config.ApiTestConfig.XMR;

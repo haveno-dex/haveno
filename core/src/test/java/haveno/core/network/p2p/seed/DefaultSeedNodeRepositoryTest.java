@@ -18,7 +18,6 @@
 package haveno.core.network.p2p.seed;
 
 import haveno.common.config.Config;
-import haveno.core.network.p2p.seed.DefaultSeedNodeRepository;
 import haveno.network.p2p.NodeAddress;
 import org.junit.Assert;
 import org.junit.Test;

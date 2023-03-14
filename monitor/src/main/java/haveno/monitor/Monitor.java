@@ -30,23 +30,18 @@ import haveno.monitor.metric.TorRoundTripTime;
 import haveno.monitor.metric.TorStartupTime;
 import haveno.monitor.reporter.ConsoleReporter;
 import haveno.monitor.reporter.GraphiteReporter;
+import lombok.extern.slf4j.Slf4j;
 import org.berndpruenster.netlayer.tor.NativeTor;
 import org.berndpruenster.netlayer.tor.Tor;
+import sun.misc.Signal;
 
 import java.io.File;
 import java.io.FileInputStream;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
 
-import lombok.extern.slf4j.Slf4j;
-
 import static com.google.common.base.Preconditions.checkNotNull;
-
-
-
-import sun.misc.Signal;
 
 /**
  * Monitor executable for the Haveno network.

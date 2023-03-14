@@ -17,22 +17,20 @@
 
 package haveno.core.offer;
 
+import com.google.protobuf.ByteString;
 import haveno.common.proto.ProtoUtil;
 import haveno.common.proto.persistable.PersistablePayload;
 import haveno.core.util.JsonUtil;
-
-import java.util.List;
-
-import com.google.protobuf.ByteString;
-
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
+import java.util.List;
+
 @EqualsAndHashCode
 @Slf4j
 public final class SignedOffer implements PersistablePayload {
-    
+
     @Getter
     private final long timeStamp;
     @Getter
@@ -53,7 +51,7 @@ public final class SignedOffer implements PersistablePayload {
     private final long reserveTxMinerFee;
     @Getter
     private final byte[] arbitratorSignature;
-    
+
     public SignedOffer(long timeStamp,
                        int traderId,
                        String offerId,

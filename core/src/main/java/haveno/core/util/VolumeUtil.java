@@ -17,11 +17,6 @@
 
 package haveno.core.util;
 
-import org.bitcoinj.core.Coin;
-import org.bitcoinj.core.Monetary;
-import org.bitcoinj.utils.ExchangeRate;
-import org.bitcoinj.utils.Fiat;
-import org.bitcoinj.utils.MonetaryFormat;
 import haveno.core.locale.Res;
 import haveno.core.monetary.Altcoin;
 import haveno.core.monetary.AltcoinExchangeRate;
@@ -29,11 +24,14 @@ import haveno.core.monetary.Price;
 import haveno.core.monetary.Volume;
 import haveno.core.offer.Offer;
 import haveno.core.trade.HavenoUtils;
+import org.bitcoinj.core.Monetary;
+import org.bitcoinj.utils.ExchangeRate;
+import org.bitcoinj.utils.Fiat;
+import org.bitcoinj.utils.MonetaryFormat;
 
 import java.math.BigInteger;
 import java.text.DecimalFormat;
 import java.text.NumberFormat;
-
 import java.util.Locale;
 
 public class VolumeUtil {

@@ -20,21 +20,17 @@ package haveno.core.trade.protocol.tasks;
 import com.google.common.base.Preconditions;
 import haveno.common.taskrunner.TaskRunner;
 import haveno.core.trade.Trade;
-import java.math.BigInteger;
-
-import java.util.ArrayList;
-import java.util.List;
-
 import lombok.extern.slf4j.Slf4j;
-
-import static com.google.common.base.Preconditions.checkNotNull;
-
-
-
 import monero.wallet.MoneroWallet;
 import monero.wallet.model.MoneroAccount;
 import monero.wallet.model.MoneroSubaddress;
 import monero.wallet.model.MoneroTxWallet;
+
+import java.math.BigInteger;
+import java.util.ArrayList;
+import java.util.List;
+
+import static com.google.common.base.Preconditions.checkNotNull;
 
 @Slf4j
 public class BuyerPreparePaymentSentMessage extends TradeTask {
@@ -78,7 +74,7 @@ public class BuyerPreparePaymentSentMessage extends TradeTask {
             failed(t);
         }
     }
-    
+
     // TODO (woodser): move these to gen utils
 
     /**

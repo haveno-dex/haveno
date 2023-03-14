@@ -18,9 +18,7 @@
 package haveno.desktop.main.portfolio.failedtrades;
 
 import com.googlecode.jcsv.writer.CSVEntryConverter;
-
-import javax.inject.Inject;
-
+import com.jfoenix.controls.JFXButton;
 import de.jensd.fx.fontawesome.AwesomeIcon;
 import haveno.common.util.Utilities;
 import haveno.core.locale.Res;
@@ -40,12 +38,14 @@ import haveno.desktop.main.overlays.popups.Popup;
 import haveno.desktop.main.overlays.windows.TradeDetailsWindow;
 import haveno.desktop.util.FormBuilder;
 import haveno.desktop.util.GUIUtil;
-import com.jfoenix.controls.JFXButton;
-
+import javafx.beans.property.ReadOnlyObjectWrapper;
+import javafx.beans.value.ChangeListener;
+import javafx.collections.ObservableList;
+import javafx.collections.transformation.FilteredList;
+import javafx.collections.transformation.SortedList;
+import javafx.event.EventHandler;
 import javafx.fxml.FXML;
-
-import javafx.stage.Stage;
-
+import javafx.geometry.Insets;
 import javafx.scene.Scene;
 import javafx.scene.control.ContextMenu;
 import javafx.scene.control.Label;
@@ -62,20 +62,10 @@ import javafx.scene.layout.Pane;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
-
-import javafx.geometry.Insets;
-
-import javafx.beans.property.ReadOnlyObjectWrapper;
-import javafx.beans.value.ChangeListener;
-
-import javafx.event.EventHandler;
-
-import javafx.collections.ObservableList;
-import javafx.collections.transformation.FilteredList;
-import javafx.collections.transformation.SortedList;
-
+import javafx.stage.Stage;
 import javafx.util.Callback;
 
+import javax.inject.Inject;
 import java.math.BigInteger;
 import java.util.Comparator;
 

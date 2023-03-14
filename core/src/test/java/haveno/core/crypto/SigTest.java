@@ -17,25 +17,22 @@
 
 package haveno.core.crypto;
 
-import java.io.File;
-import java.io.IOException;
-
-import java.util.Random;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-
-import static org.junit.Assert.assertTrue;
-
 import haveno.common.crypto.CryptoException;
 import haveno.common.crypto.KeyRing;
 import haveno.common.crypto.KeyStorage;
 import haveno.common.crypto.Sig;
 import haveno.common.file.FileUtil;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.io.File;
+import java.io.IOException;
+import java.util.Random;
+
+import static org.junit.Assert.assertTrue;
 
 public class SigTest {
     private static final Logger log = LoggerFactory.getLogger(SigTest.class);

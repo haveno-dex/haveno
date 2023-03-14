@@ -17,19 +17,17 @@
 
 package haveno.apitest.method.offer;
 
-import haveno.proto.grpc.OfferInfo;
 import haveno.core.payment.PaymentAccount;
-import java.text.DecimalFormat;
-
-import java.math.BigDecimal;
-
+import haveno.proto.grpc.OfferInfo;
 import lombok.extern.slf4j.Slf4j;
-
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
+
+import java.math.BigDecimal;
+import java.text.DecimalFormat;
 
 import static haveno.apitest.config.ApiTestConfig.BTC;
 import static haveno.apitest.config.ApiTestConfig.USD;

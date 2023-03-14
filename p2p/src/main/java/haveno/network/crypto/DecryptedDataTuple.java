@@ -18,10 +18,10 @@
 package haveno.network.crypto;
 
 import haveno.common.proto.network.NetworkEnvelope;
-import java.security.PublicKey;
-
 import lombok.EqualsAndHashCode;
 import lombok.Value;
+
+import java.security.PublicKey;
 
 @EqualsAndHashCode
 @Value

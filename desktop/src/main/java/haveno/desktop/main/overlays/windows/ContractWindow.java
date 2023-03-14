@@ -17,13 +17,6 @@
 
 package haveno.desktop.main.overlays.windows;
 
-import static haveno.desktop.util.DisplayUtils.getAccountWitnessDescription;
-import static haveno.desktop.util.FormBuilder.*;
-
-import org.bitcoinj.core.Utils;
-
-import javax.inject.Inject;
-
 import com.google.common.base.Joiner;
 import haveno.common.UserThread;
 import haveno.core.account.witness.AccountAgeWitnessService;
@@ -47,23 +40,31 @@ import haveno.desktop.main.overlays.Overlay;
 import haveno.desktop.util.DisplayUtils;
 import haveno.desktop.util.Layout;
 import haveno.network.p2p.NodeAddress;
-import javafx.stage.Modality;
-import javafx.stage.Stage;
-import javafx.stage.StageStyle;
-import javafx.stage.Window;
-
+import javafx.geometry.Insets;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.Tooltip;
 import javafx.scene.input.KeyCode;
 import javafx.scene.layout.GridPane;
+import javafx.stage.Modality;
+import javafx.stage.Stage;
+import javafx.stage.StageStyle;
+import javafx.stage.Window;
+import lombok.extern.slf4j.Slf4j;
+import org.bitcoinj.core.Utils;
 
-import javafx.geometry.Insets;
-
+import javax.inject.Inject;
 import java.util.List;
 
-import lombok.extern.slf4j.Slf4j;
+import static haveno.desktop.util.DisplayUtils.getAccountWitnessDescription;
+import static haveno.desktop.util.FormBuilder.addButtonAfterGroup;
+import static haveno.desktop.util.FormBuilder.addConfirmationLabelButton;
+import static haveno.desktop.util.FormBuilder.addConfirmationLabelTextField;
+import static haveno.desktop.util.FormBuilder.addConfirmationLabelTextFieldWithCopyIcon;
+import static haveno.desktop.util.FormBuilder.addLabelExplorerAddressTextField;
+import static haveno.desktop.util.FormBuilder.addLabelTxIdTextField;
+import static haveno.desktop.util.FormBuilder.addTitledGroupBg;
 
 @Slf4j
 public class ContractWindow extends Overlay<ContractWindow> {

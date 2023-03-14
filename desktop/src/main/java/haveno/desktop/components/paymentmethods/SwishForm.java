@@ -17,10 +17,6 @@
 
 package haveno.desktop.components.paymentmethods;
 
-import static haveno.desktop.util.FormBuilder.addCompactTopLabelTextField;
-import static haveno.desktop.util.FormBuilder.addCompactTopLabelTextFieldWithCopyIcon;
-import static haveno.desktop.util.FormBuilder.addTopLabelTextField;
-
 import haveno.core.account.witness.AccountAgeWitnessService;
 import haveno.core.locale.Res;
 import haveno.core.locale.TradeCurrency;
@@ -35,8 +31,11 @@ import haveno.desktop.components.InputTextField;
 import haveno.desktop.util.FormBuilder;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.GridPane;
-
 import lombok.extern.slf4j.Slf4j;
+
+import static haveno.desktop.util.FormBuilder.addCompactTopLabelTextField;
+import static haveno.desktop.util.FormBuilder.addCompactTopLabelTextFieldWithCopyIcon;
+import static haveno.desktop.util.FormBuilder.addTopLabelTextField;
 
 @Slf4j
 public class SwishForm extends PaymentMethodForm {

@@ -25,6 +25,7 @@ import haveno.core.util.VolumeUtil;
 import haveno.core.util.coin.CoinFormatter;
 import haveno.desktop.util.DisplayUtils;
 import haveno.desktop.util.GUIUtil;
+
 import java.math.BigInteger;
 import java.util.Optional;
 

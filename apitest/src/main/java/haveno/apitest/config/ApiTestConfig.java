@@ -17,6 +17,7 @@
 
 package haveno.apitest.config;
 
+import haveno.common.config.CompositeOptionSet;
 import joptsimple.AbstractOptionSpec;
 import joptsimple.ArgumentAcceptingOptionSpec;
 import joptsimple.HelpFormatter;
@@ -24,23 +25,19 @@ import joptsimple.OptionException;
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 import joptsimple.OptionSpec;
-
-import java.net.InetAddress;
-
-import java.nio.file.Paths;
+import lombok.extern.slf4j.Slf4j;
 
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.UncheckedIOException;
-
+import java.net.InetAddress;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.Properties;
-
-import lombok.extern.slf4j.Slf4j;
 
 import static java.lang.String.format;
 import static java.lang.System.getProperty;
@@ -48,8 +45,6 @@ import static java.lang.System.getenv;
 import static java.util.Arrays.asList;
 import static java.util.Arrays.stream;
 import static joptsimple.internal.Strings.EMPTY;
-
-import haveno.common.config.CompositeOptionSet;
 
 @Slf4j
 public class ApiTestConfig {

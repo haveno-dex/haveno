@@ -17,14 +17,13 @@
 
 package haveno.network.p2p.storage.mocks;
 
-import org.apache.commons.lang3.NotImplementedException;
 import haveno.network.p2p.storage.payload.ExpirablePayload;
 import haveno.network.p2p.storage.payload.ProtectedStoragePayload;
-import java.security.PublicKey;
-
-import java.util.Map;
+import org.apache.commons.lang3.NotImplementedException;
 
 import javax.annotation.Nullable;
+import java.security.PublicKey;
+import java.util.Map;
 
 @SuppressWarnings("ALL")
 public class MockData implements ProtectedStoragePayload, ExpirablePayload {

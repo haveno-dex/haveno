@@ -23,13 +23,12 @@ import haveno.common.proto.network.NetworkPayload;
 import haveno.common.proto.persistable.PersistablePayload;
 import haveno.network.p2p.NodeAddress;
 import haveno.network.p2p.network.SupportedCapabilitiesListener;
-import java.util.Date;
-
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 
 import javax.annotation.Nullable;
+import java.util.Date;
 
 @Getter
 @Slf4j

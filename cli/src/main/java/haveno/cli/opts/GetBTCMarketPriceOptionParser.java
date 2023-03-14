@@ -18,9 +18,9 @@
 package haveno.cli.opts;
 
 
-import static haveno.cli.opts.OptLabel.OPT_CURRENCY_CODE;
-
 import joptsimple.OptionSpec;
+
+import static haveno.cli.opts.OptLabel.OPT_CURRENCY_CODE;
 
 public class GetBTCMarketPriceOptionParser extends AbstractMethodOptionParser implements MethodOpts {
 

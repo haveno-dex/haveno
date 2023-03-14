@@ -40,16 +40,13 @@ import haveno.desktop.main.offer.offerbook.TopAltcoinOfferBookView;
 import haveno.desktop.main.offer.takeoffer.TakeOfferView;
 import haveno.desktop.util.GUIUtil;
 import haveno.network.p2p.P2PService;
+import javafx.beans.value.ChangeListener;
 import javafx.scene.control.Tab;
 import javafx.scene.control.TabPane;
-
-import javafx.beans.value.ChangeListener;
-
-import java.util.Optional;
-
 import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nullable;
+import java.util.Optional;
 
 public abstract class OfferView extends ActivatableView<TabPane, Void> {
 

@@ -20,6 +20,7 @@ package haveno.core.payment;
 import com.google.common.collect.ImmutableMap;
 import com.google.inject.Inject;
 import haveno.core.user.Preferences;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -52,7 +53,7 @@ public class JapanBankData {
     JapanBankData(Preferences preferences) {
         userLanguage = preferences.getUserLanguage();
     }
-    
+
     /*
        Returns the main list of ~500 banks in Japan with bank codes,
        but since 90%+ of people will be using one of ~30 major banks,

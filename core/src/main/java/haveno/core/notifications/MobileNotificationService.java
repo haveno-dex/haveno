@@ -17,8 +17,12 @@
 
 package haveno.core.notifications;
 
+import com.google.common.util.concurrent.FutureCallback;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.ListeningExecutorService;
+import com.google.common.util.concurrent.MoreExecutors;
 import com.google.gson.Gson;
-
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import haveno.common.UserThread;
@@ -27,26 +31,16 @@ import haveno.common.config.Config;
 import haveno.common.util.Utilities;
 import haveno.core.user.Preferences;
 import haveno.network.http.HttpClient;
-import javax.inject.Named;
-
-import com.google.common.util.concurrent.FutureCallback;
-import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.ListenableFuture;
-import com.google.common.util.concurrent.ListeningExecutorService;
-import com.google.common.util.concurrent.MoreExecutors;
-
-import org.apache.commons.codec.binary.Hex;
-
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.SimpleBooleanProperty;
-
-import java.util.UUID;
-import java.util.function.Consumer;
-
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
-
+import org.apache.commons.codec.binary.Hex;
 import org.jetbrains.annotations.NotNull;
+
+import javax.inject.Named;
+import java.util.UUID;
+import java.util.function.Consumer;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;

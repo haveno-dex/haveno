@@ -25,13 +25,13 @@ import haveno.common.proto.network.NetworkEnvelope;
 import haveno.common.proto.network.NetworkProtoResolver;
 import haveno.network.p2p.storage.messages.BroadcastMessage;
 import haveno.network.p2p.storage.payload.CapabilityRequiringPayload;
+import lombok.EqualsAndHashCode;
+import lombok.Value;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
-
-import lombok.EqualsAndHashCode;
-import lombok.Value;
 
 @EqualsAndHashCode(callSuper = true)
 @Value

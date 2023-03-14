@@ -17,17 +17,15 @@
 
 package haveno.desktop.main.portfolio.pendingtrades.steps;
 
-import static haveno.desktop.util.FormBuilder.getBigIcon;
-
 import de.jensd.fx.glyphs.materialdesignicons.MaterialDesignIcon;
 import haveno.common.UserThread;
+import javafx.geometry.Pos;
 import javafx.scene.control.Label;
 import javafx.scene.layout.StackPane;
 import javafx.scene.text.Text;
-
-import javafx.geometry.Pos;
-
 import org.jetbrains.annotations.NotNull;
+
+import static haveno.desktop.util.FormBuilder.getBigIcon;
 
 public class TradeWizardItem extends Label {
     private final String iconLabel;

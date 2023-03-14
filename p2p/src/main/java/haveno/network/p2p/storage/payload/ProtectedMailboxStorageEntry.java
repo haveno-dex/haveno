@@ -21,13 +21,12 @@ import com.google.protobuf.ByteString;
 import haveno.common.crypto.Sig;
 import haveno.common.proto.network.NetworkProtoResolver;
 import haveno.common.util.Utilities;
-import java.security.PublicKey;
-
-import java.time.Clock;
-
 import lombok.EqualsAndHashCode;
 import lombok.Value;
 import lombok.extern.slf4j.Slf4j;
+
+import java.security.PublicKey;
+import java.time.Clock;
 
 @Slf4j
 @EqualsAndHashCode(callSuper = true)

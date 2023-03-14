@@ -17,23 +17,19 @@
 
 package haveno.apitest.method.offer;
 
+import haveno.core.payment.PaymentAccount;
 import io.grpc.StatusRuntimeException;
-
 import lombok.extern.slf4j.Slf4j;
-
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 
-import static haveno.apitest.config.ApiTestConfig.BTC;
 import static java.lang.String.format;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static protobuf.OfferDirection.BUY;
-
-import haveno.core.payment.PaymentAccount;
 
 @Disabled
 @Slf4j

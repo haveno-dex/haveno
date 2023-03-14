@@ -17,15 +17,14 @@
 
 package haveno.desktop.common.support;
 
+import haveno.desktop.common.view.AbstractView;
+import haveno.desktop.common.view.CachingViewLoader;
+import haveno.desktop.common.view.ViewLoader;
 import org.junit.Test;
 
 import static org.mockito.BDDMockito.then;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
-
-import haveno.desktop.common.view.AbstractView;
-import haveno.desktop.common.view.CachingViewLoader;
-import haveno.desktop.common.view.ViewLoader;
 
 public class CachingViewLoaderTests {
 

@@ -19,13 +19,13 @@ package haveno.common.proto.persistable;
 
 import com.google.protobuf.Message;
 import haveno.common.util.CollectionUtils;
-import java.util.List;
-
 import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+
+import java.util.List;
 
 @EqualsAndHashCode
 @AllArgsConstructor

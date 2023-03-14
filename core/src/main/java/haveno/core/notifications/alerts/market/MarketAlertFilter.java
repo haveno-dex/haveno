@@ -20,11 +20,11 @@ package haveno.core.notifications.alerts.market;
 import haveno.common.proto.persistable.PersistablePayload;
 import haveno.core.payment.PaymentAccount;
 import haveno.core.proto.CoreProtoResolver;
-import java.util.ArrayList;
-import java.util.List;
-
 import lombok.Value;
 import lombok.extern.slf4j.Slf4j;
+
+import java.util.ArrayList;
+import java.util.List;
 
 @Slf4j
 @Value

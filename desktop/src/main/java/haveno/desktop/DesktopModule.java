@@ -17,8 +17,6 @@
 
 package haveno.desktop;
 
-import static haveno.common.config.Config.APP_NAME;
-
 import com.google.inject.Singleton;
 import com.google.inject.name.Names;
 import haveno.common.app.AppModule;
@@ -28,7 +26,10 @@ import haveno.desktop.common.fxml.FxmlViewLoader;
 import haveno.desktop.common.view.ViewFactory;
 import haveno.desktop.common.view.ViewLoader;
 import haveno.desktop.common.view.guice.InjectorViewFactory;
+
 import java.util.ResourceBundle;
+
+import static haveno.common.config.Config.APP_NAME;
 
 public class DesktopModule extends AppModule {
 

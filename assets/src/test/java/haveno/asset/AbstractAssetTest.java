@@ -22,10 +22,6 @@ import org.junit.Test;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
 
-import haveno.asset.AddressValidationResult;
-import haveno.asset.Asset;
-import haveno.asset.AssetRegistry;
-
 /**
  * Abstract base class for all {@link Asset} unit tests. Subclasses must implement the
  * {@link #testValidAddresses()} and {@link #testInvalidAddresses()} methods, and are

@@ -17,11 +17,6 @@
 
 package haveno.core.xmr.wallet;
 
-import org.bitcoinj.core.PeerGroup;
-import org.bitcoinj.core.Transaction;
-import org.bitcoinj.core.Utils;
-import org.bitcoinj.wallet.Wallet;
-
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.MoreExecutors;
@@ -30,14 +25,16 @@ import haveno.common.UserThread;
 import haveno.core.xmr.exceptions.TxBroadcastException;
 import haveno.core.xmr.exceptions.TxBroadcastTimeoutException;
 import haveno.core.xmr.wallet.http.MemPoolSpaceTxBroadcaster;
-import java.util.HashMap;
-import java.util.Map;
-
 import lombok.extern.slf4j.Slf4j;
-
+import org.bitcoinj.core.PeerGroup;
+import org.bitcoinj.core.Transaction;
+import org.bitcoinj.core.Utils;
+import org.bitcoinj.wallet.Wallet;
 import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nullable;
+import java.util.HashMap;
+import java.util.Map;
 
 @Slf4j
 public class TxBroadcaster {

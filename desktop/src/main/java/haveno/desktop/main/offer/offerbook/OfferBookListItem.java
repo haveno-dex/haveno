@@ -28,15 +28,14 @@ import haveno.core.offer.Offer;
 import haveno.core.payment.payload.PaymentMethod;
 import haveno.desktop.util.GUIUtil;
 import haveno.network.p2p.storage.P2PDataStorage;
-import java.util.Date;
-import java.util.Optional;
-import java.util.concurrent.TimeUnit;
-
 import lombok.Getter;
 import lombok.Value;
 import lombok.extern.slf4j.Slf4j;
-
 import org.jetbrains.annotations.NotNull;
+
+import java.util.Date;
+import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 
 @Slf4j
 public class OfferBookListItem {

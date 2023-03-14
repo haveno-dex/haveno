@@ -17,16 +17,14 @@
 
 package haveno.core.xmr.nodes;
 
-import org.bitcoinj.core.PeerAddress;
-
 import com.runjva.sourceforge.jsocks.protocol.Socks5Proxy;
-import haveno.core.xmr.nodes.BtcNodeConverter;
 import haveno.core.xmr.nodes.BtcNodeConverter.Facade;
 import haveno.core.xmr.nodes.BtcNodes.BtcNode;
 import haveno.network.DnsLookupException;
-import java.net.InetAddress;
-
+import org.bitcoinj.core.PeerAddress;
 import org.junit.Test;
+
+import java.net.InetAddress;
 
 import static org.junit.Assert.assertEquals;
 import static org.mockito.ArgumentMatchers.any;

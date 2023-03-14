@@ -26,10 +26,9 @@ import haveno.core.payment.payload.PaymentAccountPayload;
 import haveno.core.trade.ArbitratorTrade;
 import haveno.core.trade.Trade;
 import haveno.core.trade.protocol.TradePeer;
-import java.util.Date;
-import java.util.concurrent.atomic.AtomicReference;
-
 import lombok.extern.slf4j.Slf4j;
+
+import java.util.concurrent.atomic.AtomicReference;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 

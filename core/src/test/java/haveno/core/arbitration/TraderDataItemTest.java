@@ -1,18 +1,17 @@
 package haveno.core.arbitration;
 
-import java.math.BigInteger;
-import java.security.PublicKey;
-
+import haveno.core.account.witness.AccountAgeWitness;
+import haveno.core.payment.payload.PaymentAccountPayload;
+import haveno.core.support.dispute.arbitration.TraderDataItem;
 import org.junit.Before;
 import org.junit.Test;
+
+import java.math.BigInteger;
+import java.security.PublicKey;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.mockito.Mockito.mock;
-
-import haveno.core.account.witness.AccountAgeWitness;
-import haveno.core.payment.payload.PaymentAccountPayload;
-import haveno.core.support.dispute.arbitration.TraderDataItem;
 
 /*
  * This file is part of Haveno.

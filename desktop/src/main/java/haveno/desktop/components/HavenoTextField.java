@@ -1,7 +1,6 @@
 package haveno.desktop.components;
 
 import com.jfoenix.controls.JFXTextField;
-
 import javafx.scene.control.Skin;
 
 public class HavenoTextField extends JFXTextField {

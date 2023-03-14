@@ -28,8 +28,11 @@ import haveno.core.network.p2p.inventory.model.InventoryItem;
 import haveno.core.network.p2p.inventory.model.RequestInfo;
 import haveno.core.util.FormattingUtils;
 import haveno.network.p2p.NodeAddress;
-import java.io.BufferedReader;
+import lombok.extern.slf4j.Slf4j;
+import org.jetbrains.annotations.Nullable;
+import spark.Spark;
 
+import java.io.BufferedReader;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
@@ -37,14 +40,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
-
-import lombok.extern.slf4j.Slf4j;
-
-import org.jetbrains.annotations.Nullable;
-
-
-
-import spark.Spark;
 
 @Slf4j
 public class InventoryWebServer {

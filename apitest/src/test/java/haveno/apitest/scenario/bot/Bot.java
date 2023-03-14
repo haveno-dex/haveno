@@ -4,9 +4,8 @@ import haveno.apitest.method.BitcoinCliHelper;
 import haveno.apitest.scenario.bot.script.BashScriptGenerator;
 import haveno.apitest.scenario.bot.script.BotScript;
 import haveno.core.locale.Country;
-import protobuf.PaymentAccount;
-
 import lombok.extern.slf4j.Slf4j;
+import protobuf.PaymentAccount;
 
 import static haveno.core.locale.CountryUtil.findCountryByCode;
 import static haveno.core.payment.payload.PaymentMethod.CLEAR_X_CHANGE_ID;

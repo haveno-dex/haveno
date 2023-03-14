@@ -20,17 +20,14 @@ package haveno.network.p2p.network;
 import haveno.common.UserThread;
 import haveno.common.proto.network.NetworkProtoResolver;
 import haveno.network.p2p.NodeAddress;
-import java.net.ServerSocket;
-import java.net.Socket;
-
-import java.io.IOException;
-
-import java.util.concurrent.TimeUnit;
-
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.jetbrains.annotations.Nullable;
+import java.io.IOException;
+import java.net.ServerSocket;
+import java.net.Socket;
+import java.util.concurrent.TimeUnit;
 
 // Run in UserThread
 public class LocalhostNetworkNode extends NetworkNode {

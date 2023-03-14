@@ -1,9 +1,10 @@
 package haveno.core.xmr.setup;
 
+import haveno.common.UserThread;
 import javafx.beans.property.DoubleProperty;
 import javafx.beans.property.ReadOnlyDoubleProperty;
 import javafx.beans.property.SimpleDoubleProperty;
-import haveno.common.UserThread;
+
 import java.util.Date;
 
 public class DownloadListener {

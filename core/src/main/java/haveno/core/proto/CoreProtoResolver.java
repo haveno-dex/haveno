@@ -80,10 +80,10 @@ import haveno.core.payment.payload.VerseAccountPayload;
 import haveno.core.payment.payload.WeChatPayAccountPayload;
 import haveno.core.payment.payload.WesternUnionAccountPayload;
 import haveno.core.trade.statistics.TradeStatistics3;
-import java.time.Clock;
-
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
+
+import java.time.Clock;
 
 @Slf4j
 public class CoreProtoResolver implements ProtoResolver {

@@ -43,10 +43,17 @@ import haveno.network.p2p.P2PModule;
 import haveno.network.p2p.network.BridgeAddressProvider;
 import haveno.network.p2p.network.NetworkFilter;
 import haveno.network.p2p.seed.SeedNodeRepository;
+
 import java.io.File;
 
 import static com.google.inject.name.Names.named;
-import static haveno.common.config.Config.*;
+import static haveno.common.config.Config.KEY_STORAGE_DIR;
+import static haveno.common.config.Config.PREVENT_PERIODIC_SHUTDOWN_AT_SEED_NODE;
+import static haveno.common.config.Config.REFERRAL_ID;
+import static haveno.common.config.Config.STORAGE_DIR;
+import static haveno.common.config.Config.USE_DEV_MODE;
+import static haveno.common.config.Config.USE_DEV_MODE_HEADER;
+import static haveno.common.config.Config.USE_DEV_PRIVILEGE_KEYS;
 
 public class ModuleForAppWithP2p extends AppModule {
 

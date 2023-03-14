@@ -17,19 +17,17 @@
 
 package haveno.network.p2p.network;
 
-import java.net.ServerSocket;
-import java.net.Socket;
-import java.net.SocketException;
 import haveno.common.proto.network.NetworkProtoResolver;
-import java.io.IOException;
-
-import java.util.Set;
-import java.util.concurrent.CopyOnWriteArraySet;
-
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.jetbrains.annotations.Nullable;
+import java.io.IOException;
+import java.net.ServerSocket;
+import java.net.Socket;
+import java.net.SocketException;
+import java.util.Set;
+import java.util.concurrent.CopyOnWriteArraySet;
 
 // Runs in UserThread
 class Server implements Runnable {

@@ -28,11 +28,10 @@ import haveno.core.trade.Trade;
 import haveno.core.trade.messages.PaymentReceivedMessage;
 import haveno.core.util.Validator;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
-
-import org.apache.commons.lang3.StringUtils;
 
 @Slf4j
 public class ProcessPaymentReceivedMessage extends TradeTask {

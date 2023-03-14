@@ -17,12 +17,10 @@
 
 package haveno.core.support.dispute;
 
-import haveno.common.crypto.PubKeyRing;
 import haveno.core.support.SupportSession;
 import haveno.core.support.messages.ChatMessage;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
-
 import lombok.extern.slf4j.Slf4j;
 
 import javax.annotation.Nullable;

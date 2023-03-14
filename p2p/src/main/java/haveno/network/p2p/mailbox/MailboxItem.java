@@ -22,13 +22,11 @@ import haveno.common.proto.network.NetworkProtoResolver;
 import haveno.common.proto.persistable.PersistablePayload;
 import haveno.network.p2p.DecryptedMessageWithPubKey;
 import haveno.network.p2p.storage.payload.ProtectedMailboxStorageEntry;
-import java.time.Clock;
-
-import java.util.Optional;
-
 import lombok.Value;
 
 import javax.annotation.Nullable;
+import java.time.Clock;
+import java.util.Optional;
 
 @Value
 public class MailboxItem implements PersistablePayload {

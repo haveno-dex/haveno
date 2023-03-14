@@ -19,6 +19,7 @@ package haveno.core.support.dispute.mediation;
 
 import haveno.common.persistence.PersistenceManager;
 import haveno.core.support.dispute.DisputeListService;
+
 import javax.inject.Inject;
 import javax.inject.Singleton;
 

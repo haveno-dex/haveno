@@ -20,13 +20,11 @@ package haveno.network.p2p.storage.mocks;
 import com.google.protobuf.Message;
 import haveno.common.crypto.Sig;
 import haveno.network.p2p.storage.payload.ProtectedStoragePayload;
-import java.security.PublicKey;
-
-import java.util.Map;
-
 import lombok.Getter;
 
 import javax.annotation.Nullable;
+import java.security.PublicKey;
+import java.util.Map;
 
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;

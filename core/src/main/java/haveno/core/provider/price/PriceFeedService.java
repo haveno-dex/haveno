@@ -17,6 +17,10 @@
 
 package haveno.core.provider.price;
 
+import com.google.common.util.concurrent.FutureCallback;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.MoreExecutors;
+import com.google.common.util.concurrent.SettableFuture;
 import com.google.inject.Inject;
 import haveno.common.Timer;
 import haveno.common.UserThread;
@@ -31,20 +35,17 @@ import haveno.core.trade.HavenoUtils;
 import haveno.core.trade.statistics.TradeStatistics3;
 import haveno.core.user.Preferences;
 import haveno.network.http.HttpClient;
-import com.google.common.util.concurrent.FutureCallback;
-import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.MoreExecutors;
-import com.google.common.util.concurrent.SettableFuture;
-
 import javafx.beans.property.IntegerProperty;
 import javafx.beans.property.ReadOnlyIntegerProperty;
 import javafx.beans.property.SimpleIntegerProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
 import javafx.beans.value.ChangeListener;
+import lombok.extern.slf4j.Slf4j;
+import org.jetbrains.annotations.NotNull;
 
+import javax.annotation.Nullable;
 import java.time.Instant;
-
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Date;
@@ -58,12 +59,6 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Consumer;
-
-import lombok.extern.slf4j.Slf4j;
-
-import org.jetbrains.annotations.NotNull;
-
-import javax.annotation.Nullable;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
@@ -346,7 +341,7 @@ public class PriceFeedService {
      * Returns prices for all available currencies.
      * For crypto currencies the value is XMR price for 1 unit of given crypto currency (e.g. 1 DOGE = X XMR).
      * For fiat currencies the value is price in the given fiat currency per 1 XMR (e.g. 1 XMR = X USD).
-     * 
+     *
      * TODO: instrument requestPrices() result and fault handlers instead of using CountDownLatch and timeout
      */
     public synchronized Map<String, MarketPrice> requestAllPrices() throws ExecutionException, InterruptedException, TimeoutException, CancellationException {

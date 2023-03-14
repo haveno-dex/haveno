@@ -3,9 +3,8 @@ package haveno.desktop.components;
 import com.jfoenix.controls.JFXBadge;
 import haveno.core.locale.Res;
 import haveno.core.user.Preferences;
-import javafx.scene.Node;
-
 import javafx.collections.MapChangeListener;
+import javafx.scene.Node;
 
 public class NewBadge extends JFXBadge {
 

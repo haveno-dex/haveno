@@ -22,9 +22,9 @@ import com.jfoenix.controls.JFXRippler;
 import com.jfoenix.transitions.JFXAnimationTimer;
 import com.jfoenix.transitions.JFXKeyFrame;
 import com.jfoenix.transitions.JFXKeyValue;
-
 import javafx.animation.Interpolator;
-
+import javafx.geometry.HPos;
+import javafx.geometry.VPos;
 import javafx.scene.Node;
 import javafx.scene.control.RadioButton;
 import javafx.scene.control.skin.RadioButtonSkin;
@@ -35,10 +35,6 @@ import javafx.scene.shape.Circle;
 import javafx.scene.shape.Rectangle;
 import javafx.scene.shape.StrokeType;
 import javafx.scene.text.Text;
-
-import javafx.geometry.HPos;
-import javafx.geometry.VPos;
-
 import javafx.util.Duration;
 
 /**

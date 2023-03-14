@@ -18,10 +18,10 @@
 package haveno.cli.opts;
 
 
+import joptsimple.OptionSpec;
+
 import static haveno.cli.opts.OptLabel.OPT_CURRENCY_CODE;
 import static haveno.cli.opts.OptLabel.OPT_DIRECTION;
-
-import joptsimple.OptionSpec;
 
 public class GetOffersOptionParser extends AbstractMethodOptionParser implements MethodOpts {
 

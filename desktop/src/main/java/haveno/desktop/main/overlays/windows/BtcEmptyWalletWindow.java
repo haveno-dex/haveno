@@ -1,13 +1,5 @@
 package haveno.desktop.main.overlays.windows;
 
-import static haveno.desktop.util.FormBuilder.addInputTextField;
-import static haveno.desktop.util.FormBuilder.addMultilineLabel;
-import static haveno.desktop.util.FormBuilder.addTopLabelTextField;
-
-import org.bitcoinj.core.AddressFormatException;
-import org.bitcoinj.core.Coin;
-import org.bitcoinj.core.InsufficientMoneyException;
-
 import com.google.inject.Inject;
 import haveno.common.UserThread;
 import haveno.core.api.CoreMoneroConnectionsService;
@@ -24,23 +16,26 @@ import haveno.desktop.main.overlays.popups.Popup;
 import haveno.desktop.util.GUIUtil;
 import haveno.desktop.util.Transitions;
 import haveno.network.p2p.P2PService;
-import javax.inject.Named;
-
+import javafx.geometry.Insets;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.TextField;
 import javafx.scene.input.KeyCode;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
-
-import javafx.geometry.Insets;
-
+import org.bitcoinj.core.AddressFormatException;
+import org.bitcoinj.core.Coin;
+import org.bitcoinj.core.InsufficientMoneyException;
 import org.bouncycastle.crypto.params.KeyParameter;
-
-import java.util.concurrent.TimeUnit;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import javax.inject.Named;
+import java.util.concurrent.TimeUnit;
+
+import static haveno.desktop.util.FormBuilder.addInputTextField;
+import static haveno.desktop.util.FormBuilder.addMultilineLabel;
+import static haveno.desktop.util.FormBuilder.addTopLabelTextField;
 
 public final class BtcEmptyWalletWindow extends Overlay<BtcEmptyWalletWindow> {
     protected static final Logger log = LoggerFactory.getLogger(BtcEmptyWalletWindow.class);

@@ -1,7 +1,8 @@
 package haveno.common.config;
 
-import java.nio.file.Files;
-import java.nio.file.Path;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.ExpectedException;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -9,12 +10,17 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.io.PrintWriter;
 import java.io.UncheckedIOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.ExpectedException;
-
-import static haveno.common.config.Config.*;
+import static haveno.common.config.Config.APP_DATA_DIR;
+import static haveno.common.config.Config.APP_NAME;
+import static haveno.common.config.Config.BANNED_BTC_NODES;
+import static haveno.common.config.Config.CONFIG_FILE;
+import static haveno.common.config.Config.DEFAULT_CONFIG_FILE_NAME;
+import static haveno.common.config.Config.HELP;
+import static haveno.common.config.Config.TORRC_FILE;
+import static haveno.common.config.Config.USER_DATA_DIR;
 import static java.lang.String.format;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
@@ -24,10 +30,6 @@ import static org.hamcrest.Matchers.isEmptyString;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
-
-import haveno.common.config.Config;
-import haveno.common.config.ConfigException;
-import haveno.common.config.ConfigFileOption;
 
 public class ConfigTests {
 

@@ -20,6 +20,7 @@ package haveno.desktop;
 import haveno.core.locale.CryptoCurrency;
 import haveno.core.locale.CurrencyUtil;
 import haveno.core.locale.FiatCurrency;
+
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.Locale;

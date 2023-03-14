@@ -26,6 +26,7 @@ import haveno.network.p2p.network.CloseConnectionReason;
 import haveno.network.p2p.network.Connection;
 import haveno.network.p2p.peers.keepalive.messages.Ping;
 import haveno.network.p2p.peers.keepalive.messages.Pong;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;

@@ -20,12 +20,12 @@ package haveno.core.payment;
 import com.google.protobuf.Message;
 import haveno.common.proto.persistable.PersistableList;
 import haveno.core.proto.CoreProtoResolver;
+import lombok.EqualsAndHashCode;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
-
-import lombok.EqualsAndHashCode;
 
 @EqualsAndHashCode(callSuper = true)
 public class PaymentAccountList extends PersistableList<PaymentAccount> {

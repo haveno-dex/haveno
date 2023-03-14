@@ -19,11 +19,9 @@ package haveno.desktop.util;
 
 import haveno.common.util.Utilities;
 import haveno.core.locale.Country;
-import javafx.stage.Screen;
-
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
-
+import javafx.stage.Screen;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

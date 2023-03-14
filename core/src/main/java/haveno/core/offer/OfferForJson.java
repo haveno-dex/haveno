@@ -17,8 +17,6 @@
 
 package haveno.core.offer;
 
-import org.bitcoinj.utils.MonetaryFormat;
-
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import haveno.common.util.MathUtils;
 import haveno.core.locale.CurrencyUtil;
@@ -27,13 +25,13 @@ import haveno.core.monetary.Price;
 import haveno.core.monetary.Volume;
 import haveno.core.payment.payload.PaymentMethod;
 import haveno.core.trade.HavenoUtils;
-import java.math.BigInteger;
-import java.util.Date;
-
+import org.bitcoinj.utils.MonetaryFormat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
+import java.math.BigInteger;
+import java.util.Date;
 
 public class OfferForJson {
     private static final Logger log = LoggerFactory.getLogger(OfferForJson.class);

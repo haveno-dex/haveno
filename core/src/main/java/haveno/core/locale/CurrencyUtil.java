@@ -25,6 +25,8 @@ import haveno.asset.Token;
 import haveno.common.config.BaseCurrencyNetwork;
 import haveno.common.config.Config;
 import haveno.core.filter.FilterManager;
+import lombok.extern.slf4j.Slf4j;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -41,8 +43,6 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-
-import lombok.extern.slf4j.Slf4j;
 
 import static java.lang.String.format;
 

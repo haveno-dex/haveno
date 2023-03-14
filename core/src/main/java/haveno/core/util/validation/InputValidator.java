@@ -18,8 +18,8 @@
 package haveno.core.util.validation;
 
 import haveno.core.locale.Res;
-import java.math.BigInteger;
 
+import java.math.BigInteger;
 import java.util.Objects;
 import java.util.function.Function;
 

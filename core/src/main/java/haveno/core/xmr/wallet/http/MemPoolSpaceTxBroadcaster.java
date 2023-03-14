@@ -17,9 +17,6 @@
 
 package haveno.core.xmr.wallet.http;
 
-import org.bitcoinj.core.Transaction;
-import org.bitcoinj.core.Utils;
-
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -32,14 +29,15 @@ import haveno.core.user.Preferences;
 import haveno.core.xmr.nodes.LocalBitcoinNode;
 import haveno.network.Socks5ProxyProvider;
 import haveno.network.http.HttpException;
+import lombok.extern.slf4j.Slf4j;
+import org.bitcoinj.core.Transaction;
+import org.bitcoinj.core.Utils;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
-
-import lombok.extern.slf4j.Slf4j;
-
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 

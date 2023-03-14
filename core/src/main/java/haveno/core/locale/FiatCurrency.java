@@ -19,13 +19,12 @@ package haveno.core.locale;
 
 
 import com.google.protobuf.Message;
-
-import java.util.Currency;
-import java.util.Locale;
-
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.ToString;
+
+import java.util.Currency;
+import java.util.Locale;
 
 @EqualsAndHashCode(callSuper = true)
 @ToString

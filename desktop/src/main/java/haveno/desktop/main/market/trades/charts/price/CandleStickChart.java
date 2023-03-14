@@ -49,8 +49,9 @@
 
 package haveno.desktop.main.market.trades.charts.price;
 
+import haveno.desktop.main.market.trades.charts.CandleData;
 import javafx.animation.FadeTransition;
-
+import javafx.event.ActionEvent;
 import javafx.scene.Node;
 import javafx.scene.chart.Axis;
 import javafx.scene.chart.NumberAxis;
@@ -58,12 +59,9 @@ import javafx.scene.chart.XYChart;
 import javafx.scene.shape.LineTo;
 import javafx.scene.shape.MoveTo;
 import javafx.scene.shape.Path;
-
-import javafx.event.ActionEvent;
-
 import javafx.util.Duration;
 import javafx.util.StringConverter;
-import haveno.desktop.main.market.trades.charts.CandleData;
+
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;

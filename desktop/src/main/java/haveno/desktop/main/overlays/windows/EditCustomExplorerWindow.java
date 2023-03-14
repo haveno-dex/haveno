@@ -27,6 +27,11 @@ import haveno.desktop.components.AutoTooltipLabel;
 import haveno.desktop.components.InputTextField;
 import haveno.desktop.main.overlays.Overlay;
 import haveno.desktop.util.Layout;
+import javafx.collections.FXCollections;
+import javafx.event.EventHandler;
+import javafx.geometry.Insets;
+import javafx.geometry.Pos;
+import javafx.geometry.VPos;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListCell;
@@ -37,20 +42,14 @@ import javafx.scene.layout.ColumnConstraints;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
-
-import javafx.geometry.Insets;
-import javafx.geometry.Pos;
-import javafx.geometry.VPos;
-
-import javafx.event.EventHandler;
-
-import javafx.collections.FXCollections;
-
 import javafx.util.Callback;
 
 import java.util.ArrayList;
 
-import static haveno.desktop.util.FormBuilder.*;
+import static haveno.desktop.util.FormBuilder.addInputTextField;
+import static haveno.desktop.util.FormBuilder.addMultilineLabel;
+import static haveno.desktop.util.FormBuilder.addTitledGroupBg;
+import static haveno.desktop.util.FormBuilder.getTopLabelWithVBox;
 import static javafx.beans.binding.Bindings.createBooleanBinding;
 
 public class EditCustomExplorerWindow extends Overlay<EditCustomExplorerWindow> {

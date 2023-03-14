@@ -17,20 +17,18 @@
 
 package haveno.desktop.main.overlays.windows;
 
-import static haveno.desktop.util.FormBuilder.addHyperlinkWithIcon;
-
 import com.google.inject.Inject;
 import haveno.core.locale.Res;
 import haveno.desktop.components.AutoTooltipLabel;
 import haveno.desktop.components.HyperlinkWithIcon;
 import haveno.desktop.main.overlays.Overlay;
-import javafx.scene.layout.GridPane;
-import javafx.scene.layout.Priority;
-
 import javafx.geometry.HPos;
 import javafx.geometry.Insets;
-
+import javafx.scene.layout.GridPane;
+import javafx.scene.layout.Priority;
 import lombok.extern.slf4j.Slf4j;
+
+import static haveno.desktop.util.FormBuilder.addHyperlinkWithIcon;
 
 @Slf4j
 public class TradeFeedbackWindow extends Overlay<TradeFeedbackWindow> {

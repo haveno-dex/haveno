@@ -17,15 +17,14 @@
 
 package haveno.network.p2p.network;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.Date;
-
+import lombok.extern.slf4j.Slf4j;
 import org.berndpruenster.netlayer.tor.ExternalTor;
 import org.berndpruenster.netlayer.tor.Tor;
 import org.berndpruenster.netlayer.tor.TorCtlException;
 
-import lombok.extern.slf4j.Slf4j;
+import java.io.File;
+import java.io.IOException;
+import java.util.Date;
 
 /**
  * This class creates a brand new instance of the Tor onion router.

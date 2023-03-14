@@ -19,11 +19,10 @@ package haveno.desktop.util;
 
 import haveno.common.util.Tuple2;
 import haveno.core.util.InlierUtil;
-import javafx.scene.chart.NumberAxis;
-import javafx.scene.chart.XYChart;
-
 import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
+import javafx.scene.chart.NumberAxis;
+import javafx.scene.chart.XYChart;
 
 import java.util.List;
 import java.util.stream.Collectors;

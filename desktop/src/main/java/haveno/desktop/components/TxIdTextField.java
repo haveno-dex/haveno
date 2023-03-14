@@ -17,6 +17,7 @@
 
 package haveno.desktop.components;
 
+import com.jfoenix.controls.JFXTextField;
 import de.jensd.fx.fontawesome.AwesomeDude;
 import de.jensd.fx.fontawesome.AwesomeIcon;
 import haveno.common.util.Utilities;
@@ -26,17 +27,15 @@ import haveno.core.user.Preferences;
 import haveno.core.xmr.wallet.XmrWalletService;
 import haveno.desktop.components.indicator.TxConfidenceIndicator;
 import haveno.desktop.util.GUIUtil;
-import com.jfoenix.controls.JFXTextField;
-
 import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
 import javafx.scene.control.Tooltip;
 import javafx.scene.layout.AnchorPane;
-
 import lombok.Getter;
 import lombok.Setter;
 import monero.daemon.model.MoneroTx;
 import monero.wallet.model.MoneroWalletListener;
+
 import javax.annotation.Nullable;
 
 public class TxIdTextField extends AnchorPane {
@@ -125,7 +124,7 @@ public class TxIdTextField extends AnchorPane {
             missingTxWarningIcon.setManaged(true);
             return;
         }
-        
+
         // listen for tx updates
         // TODO: this only listens for new blocks, listen for double spend
         txUpdater = new MoneroWalletListener() {

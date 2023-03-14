@@ -22,11 +22,11 @@ import haveno.common.app.Version;
 import haveno.common.crypto.SealedAndSigned;
 import haveno.common.proto.network.NetworkEnvelope;
 import haveno.network.p2p.mailbox.MailboxMessage;
-import java.util.UUID;
-import java.util.concurrent.TimeUnit;
-
 import lombok.EqualsAndHashCode;
 import lombok.Value;
+
+import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 

@@ -22,18 +22,18 @@ import haveno.network.p2p.storage.messages.AddPersistableNetworkPayloadMessage;
 import haveno.network.p2p.storage.mocks.DateTolerantPayloadStub;
 import haveno.network.p2p.storage.mocks.PersistableNetworkPayloadStub;
 import haveno.network.p2p.storage.payload.PersistableNetworkPayload;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.Optional;
-
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
-import static haveno.network.p2p.storage.TestState.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.Optional;
+
+import static haveno.network.p2p.storage.TestState.SavedTestState;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 

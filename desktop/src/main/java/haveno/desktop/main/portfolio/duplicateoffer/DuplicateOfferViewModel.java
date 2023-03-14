@@ -33,9 +33,9 @@ import haveno.core.util.validation.AltcoinValidator;
 import haveno.core.util.validation.FiatPriceValidator;
 import haveno.desktop.Navigation;
 import haveno.desktop.main.offer.MutableOfferViewModel;
-import javax.inject.Named;
-
 import lombok.extern.slf4j.Slf4j;
+
+import javax.inject.Named;
 
 @Slf4j
 class DuplicateOfferViewModel extends MutableOfferViewModel<DuplicateOfferDataModel> {

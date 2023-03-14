@@ -17,6 +17,11 @@
 
 package haveno.desktop.components.chart;
 
+import haveno.common.util.MathUtils;
+import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
+
+import java.math.RoundingMode;
 import java.time.DayOfWeek;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -24,14 +29,7 @@ import java.time.ZoneId;
 import java.time.temporal.TemporalAdjuster;
 import java.time.temporal.TemporalAdjusters;
 
-import java.math.RoundingMode;
-
-import lombok.Getter;
-import lombok.extern.slf4j.Slf4j;
-
 import static java.time.temporal.ChronoField.DAY_OF_YEAR;
-
-import haveno.common.util.MathUtils;
 
 @Slf4j
 public class TemporalAdjusterModel {

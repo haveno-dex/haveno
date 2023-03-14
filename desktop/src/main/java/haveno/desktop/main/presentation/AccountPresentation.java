@@ -22,13 +22,12 @@ import haveno.core.locale.Res;
 import haveno.core.user.DontShowAgainLookup;
 import haveno.core.user.Preferences;
 import haveno.desktop.main.overlays.popups.Popup;
-import javax.inject.Inject;
-import javax.inject.Singleton;
-
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.SimpleBooleanProperty;
-
 import javafx.collections.MapChangeListener;
+
+import javax.inject.Inject;
+import javax.inject.Singleton;
 
 
 @Singleton

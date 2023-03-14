@@ -19,13 +19,11 @@ package haveno.desktop.main.funds.transactions;
 
 import haveno.core.trade.Tradable;
 import haveno.core.xmr.wallet.XmrWalletService;
+import monero.wallet.model.MoneroTxWallet;
+
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
-
-
-
-import monero.wallet.model.MoneroTxWallet;
 
 class DisplayedTransactions extends ObservableListDecorator<TransactionsListItem> {
     private final XmrWalletService xmrWalletService;

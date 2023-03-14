@@ -17,15 +17,10 @@
 
 package haveno.monitor;
 
+import haveno.monitor.metric.TorRoundTripTime;
 import org.berndpruenster.netlayer.tor.NativeTor;
 import org.berndpruenster.netlayer.tor.Tor;
 import org.berndpruenster.netlayer.tor.TorCtlException;
-
-import java.io.File;
-
-import java.util.Map;
-import java.util.Properties;
-
 import org.junit.Assert;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -33,11 +28,11 @@ import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
-import static com.google.common.base.Preconditions.checkNotNull;
+import java.io.File;
+import java.util.Map;
+import java.util.Properties;
 
-import haveno.monitor.Metric;
-import haveno.monitor.Reporter;
-import haveno.monitor.metric.TorRoundTripTime;
+import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * Test the round trip time metric against the hidden service of tor project.org.

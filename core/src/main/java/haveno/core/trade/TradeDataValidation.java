@@ -17,6 +17,11 @@
 
 package haveno.core.trade;
 
+import haveno.core.offer.Offer;
+import haveno.core.support.dispute.Dispute;
+import haveno.core.xmr.wallet.BtcWalletService;
+import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
 import org.bitcoinj.core.Address;
 import org.bitcoinj.core.NetworkParameters;
 import org.bitcoinj.core.Transaction;
@@ -24,24 +29,16 @@ import org.bitcoinj.core.TransactionInput;
 import org.bitcoinj.core.TransactionOutPoint;
 import org.bitcoinj.core.TransactionOutput;
 
+import javax.annotation.Nullable;
 import java.math.BigInteger;
 import java.util.function.Consumer;
-
-import lombok.Getter;
-import lombok.extern.slf4j.Slf4j;
-
-import javax.annotation.Nullable;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import haveno.core.offer.Offer;
-import haveno.core.support.dispute.Dispute;
-import haveno.core.xmr.wallet.BtcWalletService;
-
 @Slf4j
 public class TradeDataValidation {
-    
+
     public static void validateDelayedPayoutTx(Trade trade,
                                                Transaction delayedPayoutTx,
                                                BtcWalletService btcWalletService)
@@ -201,7 +198,7 @@ public class TradeDataValidation {
             this.dispute = dispute;
         }
     }
-    
+
     public static class InvalidPaymentAccountPayloadException extends ValidationException {
         InvalidPaymentAccountPayloadException(@Nullable Dispute dispute, String msg) {
             super(dispute, msg);

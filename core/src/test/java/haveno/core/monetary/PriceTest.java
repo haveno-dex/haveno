@@ -17,7 +17,6 @@
 
 package haveno.core.monetary;
 
-import haveno.core.monetary.Price;
 import org.junit.Assert;
 import org.junit.Test;
 

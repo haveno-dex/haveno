@@ -26,8 +26,6 @@ import haveno.common.crypto.Sig;
 import haveno.common.util.Utilities;
 import haveno.core.account.sign.SignedWitness;
 import haveno.core.account.sign.SignedWitnessService;
-import haveno.core.account.witness.AccountAgeWitness;
-import haveno.core.account.witness.AccountAgeWitnessService;
 import haveno.core.filter.FilterManager;
 import haveno.core.locale.CountryUtil;
 import haveno.core.offer.OfferPayload;
@@ -45,23 +43,21 @@ import haveno.core.trade.HavenoUtils;
 import haveno.network.p2p.P2PService;
 import haveno.network.p2p.storage.persistence.AppendOnlyDataStoreService;
 import org.bitcoinj.core.ECKey;
-
-import java.security.KeyPair;
-import java.security.PublicKey;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Ignore;
+import org.junit.Test;
 
 import java.io.File;
 import java.io.IOException;
+import java.security.KeyPair;
+import java.security.PublicKey;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.GregorianCalendar;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
-
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Ignore;
-import org.junit.Test;
 
 import static haveno.core.payment.payload.PaymentMethod.getPaymentMethod;
 import static org.junit.Assert.assertEquals;

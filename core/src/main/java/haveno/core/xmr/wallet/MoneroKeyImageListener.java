@@ -1,11 +1,11 @@
 package haveno.core.xmr.wallet;
 
-import java.util.Map;
-
 import monero.daemon.model.MoneroKeyImageSpentStatus;
 
+import java.util.Map;
+
 public interface MoneroKeyImageListener {
-    
+
     /**
      * Called with changes to the spent status of key images.
      */

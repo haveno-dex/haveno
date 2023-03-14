@@ -24,20 +24,21 @@ import haveno.core.trade.Trade;
 import haveno.core.trade.messages.InitMultisigRequest;
 import haveno.core.trade.messages.InitTradeRequest;
 import haveno.network.p2p.SendDirectMessageListener;
-import java.util.Date;
-import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
 import monero.wallet.MoneroWallet;
+
+import java.util.Date;
+import java.util.UUID;
 
 /**
  * Arbitrator sends InitTradeRequest to maker after receiving InitTradeRequest
  * from taker and verifying taker reserve tx.
- * 
+ *
  * Arbitrator sends InitMultisigRequests after the maker acks.
  */
 @Slf4j
 public class ArbitratorSendInitTradeOrMultisigRequests extends TradeTask {
-    
+
     @SuppressWarnings({"unused"})
     public ArbitratorSendInitTradeOrMultisigRequests(TaskRunner taskHandler, Trade trade) {
         super(taskHandler, trade);
@@ -109,7 +110,7 @@ public class ArbitratorSendInitTradeOrMultisigRequests extends TradeTask {
             failed(t);
         }
     }
-    
+
     private void sendInitMultisigRequests() {
 
         // ensure arbitrator has maker's reserve tx

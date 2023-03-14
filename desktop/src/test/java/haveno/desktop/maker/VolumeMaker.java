@@ -17,13 +17,12 @@
 
 package haveno.desktop.maker;
 
-import org.bitcoinj.utils.Fiat;
-
 import com.natpryce.makeiteasy.Instantiator;
 import com.natpryce.makeiteasy.Maker;
 import com.natpryce.makeiteasy.Property;
 import haveno.core.monetary.Altcoin;
 import haveno.core.monetary.Volume;
+import org.bitcoinj.utils.Fiat;
 
 import static com.natpryce.makeiteasy.MakeItEasy.a;
 

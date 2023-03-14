@@ -1,22 +1,20 @@
 package haveno.apitest.scenario.bot.protocol;
 
-import haveno.proto.grpc.OfferInfo;
-import haveno.proto.grpc.TradeInfo;
 import haveno.apitest.method.BitcoinCliHelper;
 import haveno.apitest.scenario.bot.BotClient;
 import haveno.apitest.scenario.bot.RandomOffer;
 import haveno.apitest.scenario.bot.script.BashScriptGenerator;
 import haveno.apitest.scenario.bot.shutdown.ManualBotShutdownException;
 import haveno.cli.table.builder.TableBuilder;
+import haveno.proto.grpc.OfferInfo;
+import haveno.proto.grpc.TradeInfo;
+import lombok.extern.slf4j.Slf4j;
 import protobuf.PaymentAccount;
 
 import java.io.File;
-
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.function.Supplier;
-
-import lombok.extern.slf4j.Slf4j;
 
 import static haveno.apitest.scenario.bot.protocol.ProtocolStep.DONE;
 import static haveno.apitest.scenario.bot.protocol.ProtocolStep.WAIT_FOR_OFFER_TAKER;

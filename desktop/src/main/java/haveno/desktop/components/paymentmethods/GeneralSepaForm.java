@@ -1,9 +1,5 @@
 package haveno.desktop.components.paymentmethods;
 
-import org.apache.commons.lang3.StringUtils;
-
-import static haveno.desktop.util.FormBuilder.addTopLabelWithVBox;
-
 import com.jfoenix.controls.JFXComboBox;
 import com.jfoenix.controls.JFXTextField;
 import haveno.core.account.witness.AccountAgeWitnessService;
@@ -23,11 +19,13 @@ import javafx.scene.control.Tooltip;
 import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
-
 import javafx.util.StringConverter;
+import org.apache.commons.lang3.StringUtils;
 
 import java.util.List;
 import java.util.Objects;
+
+import static haveno.desktop.util.FormBuilder.addTopLabelWithVBox;
 
 public abstract class GeneralSepaForm extends PaymentMethodForm {
 

@@ -17,8 +17,6 @@
 
 package haveno.desktop.components.paymentmethods;
 
-import static haveno.desktop.util.FormBuilder.*;
-
 import com.jfoenix.controls.JFXTextArea;
 import haveno.core.account.witness.AccountAgeWitnessService;
 import haveno.core.locale.CurrencyUtil;
@@ -32,10 +30,15 @@ import haveno.core.util.coin.CoinFormatter;
 import haveno.core.util.validation.InputValidator;
 import haveno.desktop.components.InputTextField;
 import haveno.desktop.util.Layout;
+import javafx.collections.FXCollections;
 import javafx.scene.control.TextArea;
 import javafx.scene.layout.GridPane;
 
-import javafx.collections.FXCollections;
+import static haveno.desktop.util.FormBuilder.addCompactTopLabelTextArea;
+import static haveno.desktop.util.FormBuilder.addCompactTopLabelTextField;
+import static haveno.desktop.util.FormBuilder.addInputTextField;
+import static haveno.desktop.util.FormBuilder.addTopLabelTextArea;
+import static haveno.desktop.util.FormBuilder.addTopLabelTextFieldWithCopyIcon;
 
 public class CashByMailForm extends PaymentMethodForm {
     private final CashByMailAccount cashByMailAccount;

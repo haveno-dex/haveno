@@ -36,20 +36,24 @@ import haveno.core.xmr.nodes.BtcNodes;
 import haveno.core.xmr.nodes.LocalBitcoinNode;
 import haveno.core.xmr.wallet.Restrictions;
 import haveno.network.p2p.network.BridgeAddressProvider;
-import javax.inject.Inject;
-import javax.inject.Named;
-import javax.inject.Singleton;
-
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.IntegerProperty;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleIntegerProperty;
-
 import javafx.collections.FXCollections;
 import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
 import javafx.collections.ObservableMap;
+import lombok.Getter;
+import lombok.Setter;
+import lombok.experimental.Delegate;
+import lombok.extern.slf4j.Slf4j;
+import org.jetbrains.annotations.NotNull;
 
+import javax.annotation.Nullable;
+import javax.inject.Inject;
+import javax.inject.Named;
+import javax.inject.Singleton;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -57,15 +61,6 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
-
-import lombok.Getter;
-import lombok.Setter;
-import lombok.experimental.Delegate;
-import lombok.extern.slf4j.Slf4j;
-
-import org.jetbrains.annotations.NotNull;
-
-import javax.annotation.Nullable;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
@@ -233,7 +228,7 @@ public final class Preferences implements PersistedDataHost, BridgeAddressProvid
         setFiatCurrencies(prefPayload.getFiatCurrencies());
         setCryptoCurrencies(prefPayload.getCryptoCurrencies());
         GlobalSettings.setDefaultTradeCurrency(preferredTradeCurrency);
-        
+
         // If a user has updated and the field was not set and get set to 0 by protobuf
         // As there is no way to detect that a primitive value field was set we cannot apply
         // a "marker" value like -1 to it. We also do not want to wrap the value in a new

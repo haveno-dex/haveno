@@ -17,6 +17,7 @@
 
 package haveno.cli.request;
 
+import haveno.cli.GrpcStubs;
 import haveno.proto.grpc.AddressBalanceInfo;
 import haveno.proto.grpc.BalancesInfo;
 import haveno.proto.grpc.BtcBalanceInfo;
@@ -26,10 +27,9 @@ import haveno.proto.grpc.GetFundingAddressesRequest;
 import haveno.proto.grpc.LockWalletRequest;
 import haveno.proto.grpc.MarketPriceRequest;
 import haveno.proto.grpc.RemoveWalletPasswordRequest;
-import haveno.proto.grpc.SendBtcRequest;
 import haveno.proto.grpc.SetWalletPasswordRequest;
 import haveno.proto.grpc.UnlockWalletRequest;
-import haveno.cli.GrpcStubs;
+
 import java.util.List;
 
 public class WalletsServiceRequest {

@@ -23,11 +23,12 @@ import haveno.core.api.model.builder.OfferInfoBuilder;
 import haveno.core.monetary.Price;
 import haveno.core.offer.Offer;
 import haveno.core.offer.OpenOffer;
-import java.util.Optional;
-import javax.annotation.Nullable;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.ToString;
+
+import javax.annotation.Nullable;
+import java.util.Optional;
 
 import static haveno.common.util.MathUtils.exactMultiply;
 import static haveno.core.util.PriceUtil.reformatMarketPrice;

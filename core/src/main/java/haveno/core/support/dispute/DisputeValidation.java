@@ -27,11 +27,13 @@ import haveno.core.trade.Trade;
 import haveno.core.util.JsonUtil;
 import haveno.core.util.validation.RegexValidatorFactory;
 import haveno.network.p2p.NodeAddress;
+import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
 import org.bitcoinj.core.Address;
 import org.bitcoinj.core.NetworkParameters;
 import org.bitcoinj.core.Transaction;
 import org.bitcoinj.core.TransactionOutput;
- 
+
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -40,13 +42,10 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Consumer;
- 
-import lombok.Getter;
-import lombok.extern.slf4j.Slf4j;
- 
+
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
- 
+
 @Slf4j
 public class DisputeValidation {
 
@@ -62,7 +61,7 @@ public class DisputeValidation {
             checkArgument(dispute.getContractAsJson().equals(JsonUtil.objectToJson(contract)), "Invalid contractAsJson");
             checkArgument(Arrays.equals(Objects.requireNonNull(dispute.getContractHash()), Hash.getSha256Hash(checkNotNull(dispute.getContractAsJson()))),
                     "Invalid contractHash");
- 
+
             // Only the dispute opener has set the signature
             byte[] makerContractSignature = dispute.getMakerContractSignature();
             if (makerContractSignature != null) HavenoUtils.verifySignature(contract.getMakerPubKeyRing(),  dispute.getContractAsJson(), makerContractSignature);
@@ -72,19 +71,19 @@ public class DisputeValidation {
             throw new ValidationException(dispute, t.getMessage());
         }
     }
- 
+
     public static void validateTradeAndDispute(Dispute dispute, Trade trade)
             throws ValidationException {
         try {
             checkArgument(dispute.getContract().equals(trade.getContract()),
                     "contract must match contract from trade");
- 
+
         } catch (Throwable t) {
             throw new ValidationException(dispute, t.getMessage());
         }
     }
- 
- 
+
+
     public static void validateSenderNodeAddress(Dispute dispute,
                                                  NodeAddress senderNodeAddress) throws NodeAddressException {
         if (!senderNodeAddress.equals(dispute.getContract().getBuyerNodeAddress())
@@ -93,7 +92,7 @@ public class DisputeValidation {
             throw new NodeAddressException(dispute, "senderNodeAddress not matching any of the traders node addresses");
         }
     }
- 
+
     public static void validateNodeAddresses(Dispute dispute, Config config)
             throws NodeAddressException {
         if (!config.useLocalhostForP2P) {
@@ -101,7 +100,7 @@ public class DisputeValidation {
             validateNodeAddress(dispute, dispute.getContract().getSellerNodeAddress());
         }
     }
- 
+
     private static void validateNodeAddress(Dispute dispute, NodeAddress nodeAddress) throws NodeAddressException {
         if (!RegexValidatorFactory.onionAddressRegexValidator().validate(nodeAddress.getFullAddress()).isValid) {
             String msg = "Node address " + nodeAddress.getFullAddress() + " at dispute with trade ID " +
@@ -110,7 +109,7 @@ public class DisputeValidation {
             throw new NodeAddressException(dispute, msg);
         }
     }
- 
+
     public static void validateDonationAddress(Dispute dispute,
                                                Transaction delayedPayoutTx,
                                                NetworkParameters params)
@@ -123,7 +122,7 @@ public class DisputeValidation {
             log.error(delayedPayoutTx.toString());
             throw new DisputeValidation.AddressException(dispute, errorMsg);
         }
- 
+
         // Verify that address in the dispute matches the one in the trade.
         String delayedPayoutTxOutputAddress = address.toString();
         checkArgument(delayedPayoutTxOutputAddress.equals(dispute.getDonationAddressOfDelayedPayoutTx()),
@@ -131,40 +130,40 @@ public class DisputeValidation {
                         "delayedPayoutTxOutputAddress=" + delayedPayoutTxOutputAddress +
                         "; dispute.getDonationAddressOfDelayedPayoutTx()=" + dispute.getDonationAddressOfDelayedPayoutTx());
     }
- 
+
     public static void testIfAnyDisputeTriedReplay(List<Dispute> disputeList,
                                                    Consumer<DisputeReplayException> exceptionHandler) {
         var tuple = getTestReplayHashMaps(disputeList);
         Map<String, Set<String>> disputesPerTradeId = tuple.first;
         Map<String, Set<String>> disputesPerDelayedPayoutTxId = tuple.second;
         Map<String, Set<String>> disputesPerDepositTxId = tuple.third;
- 
+
         disputeList.forEach(disputeToTest -> {
             try {
                 testIfDisputeTriesReplay(disputeToTest,
                         disputesPerTradeId,
                         disputesPerDelayedPayoutTxId,
                         disputesPerDepositTxId);
- 
+
             } catch (DisputeReplayException e) {
                 exceptionHandler.accept(e);
             }
         });
     }
- 
+
     public static void testIfDisputeTriesReplay(Dispute dispute,
                                                 List<Dispute> disputeList) throws DisputeReplayException {
         var tuple = getTestReplayHashMaps(disputeList);
         Map<String, Set<String>> disputesPerTradeId = tuple.first;
         Map<String, Set<String>> disputesPerDelayedPayoutTxId = tuple.second;
         Map<String, Set<String>> disputesPerDepositTxId = tuple.third;
- 
+
         testIfDisputeTriesReplay(dispute,
                 disputesPerTradeId,
                 disputesPerDelayedPayoutTxId,
                 disputesPerDepositTxId);
     }
- 
+
     private static Tuple3<Map<String, Set<String>>, Map<String, Set<String>>, Map<String, Set<String>>> getTestReplayHashMaps(
             List<Dispute> disputeList) {
         Map<String, Set<String>> disputesPerTradeId = new HashMap<>();

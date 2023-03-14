@@ -20,14 +20,12 @@ package haveno.daemon.grpc;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
 import io.grpc.stub.StreamObserver;
+import org.slf4j.Logger;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
-
 import java.util.function.Function;
 import java.util.function.Predicate;
-
-import org.slf4j.Logger;
 
 import static io.grpc.Status.INVALID_ARGUMENT;
 import static io.grpc.Status.UNKNOWN;

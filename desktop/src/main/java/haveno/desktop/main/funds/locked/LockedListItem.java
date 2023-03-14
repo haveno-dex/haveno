@@ -24,12 +24,10 @@ import haveno.core.xmr.listeners.BalanceListener;
 import haveno.core.xmr.model.AddressEntry;
 import haveno.core.xmr.wallet.BtcWalletService;
 import haveno.desktop.util.DisplayUtils;
+import javafx.scene.control.Label;
+import lombok.Getter;
 import org.bitcoinj.core.Address;
 import org.bitcoinj.core.Coin;
-
-import javafx.scene.control.Label;
-
-import lombok.Getter;
 
 import javax.annotation.Nullable;
 

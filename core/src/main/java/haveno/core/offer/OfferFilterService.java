@@ -26,19 +26,16 @@ import haveno.core.support.dispute.arbitration.arbitrator.Arbitrator;
 import haveno.core.trade.HavenoUtils;
 import haveno.core.user.Preferences;
 import haveno.core.user.User;
+import javafx.collections.SetChangeListener;
+import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
 import org.bitcoinj.core.Coin;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
-
-import javafx.collections.SetChangeListener;
-
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
-
-import lombok.Getter;
-import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Singleton

@@ -24,9 +24,6 @@ import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import haveno.core.offer.Offer;
-import haveno.core.offer.OfferPayload;
-
 public class OfferTest {
 
     @Test

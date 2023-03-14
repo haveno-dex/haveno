@@ -65,16 +65,16 @@ import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleIntegerProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
-
 import javafx.collections.FXCollections;
 import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
 import javafx.collections.transformation.FilteredList;
 import javafx.collections.transformation.SortedList;
+import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
 
 import java.math.BigInteger;
 import java.text.DecimalFormat;
-
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -82,9 +82,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
-
-import lombok.Getter;
-import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 abstract class OfferBookViewModel extends ActivatableViewModel {

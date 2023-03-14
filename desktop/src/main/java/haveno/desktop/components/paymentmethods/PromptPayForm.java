@@ -17,10 +17,6 @@
 
 package haveno.desktop.components.paymentmethods;
 
-import static haveno.desktop.util.FormBuilder.addCompactTopLabelTextField;
-import static haveno.desktop.util.FormBuilder.addInputTextField;
-import static haveno.desktop.util.FormBuilder.addTopLabelTextField;
-
 import haveno.core.account.witness.AccountAgeWitnessService;
 import haveno.core.locale.Res;
 import haveno.core.locale.TradeCurrency;
@@ -34,6 +30,10 @@ import haveno.core.util.validation.InputValidator;
 import haveno.desktop.components.InputTextField;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.GridPane;
+
+import static haveno.desktop.util.FormBuilder.addCompactTopLabelTextField;
+import static haveno.desktop.util.FormBuilder.addInputTextField;
+import static haveno.desktop.util.FormBuilder.addTopLabelTextField;
 
 public class PromptPayForm extends PaymentMethodForm {
     private final PromptPayAccount promptPayAccount;

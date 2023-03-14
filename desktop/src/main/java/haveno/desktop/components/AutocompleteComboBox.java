@@ -17,19 +17,16 @@
 
 package haveno.desktop.components;
 
-import org.apache.commons.lang3.StringUtils;
-
 import com.jfoenix.controls.JFXComboBox;
 import com.jfoenix.skins.JFXComboBoxListViewSkin;
 import haveno.common.UserThread;
-import javafx.scene.input.KeyCode;
-import javafx.scene.input.KeyEvent;
-
-import javafx.event.Event;
-import javafx.event.EventHandler;
-
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+import javafx.event.Event;
+import javafx.event.EventHandler;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyEvent;
+import org.apache.commons.lang3.StringUtils;
 
 import java.util.ArrayList;
 import java.util.List;

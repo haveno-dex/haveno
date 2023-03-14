@@ -21,11 +21,10 @@ import haveno.common.persistence.PersistenceManager;
 import haveno.common.proto.persistable.PersistableEnvelope;
 import haveno.common.proto.persistable.PersistablePayload;
 import haveno.network.p2p.storage.P2PDataStorage;
-import java.io.File;
-
-import java.util.Map;
-
 import lombok.extern.slf4j.Slf4j;
+
+import java.io.File;
+import java.util.Map;
 
 /**
  * Handles persisted data which is stored in a map.

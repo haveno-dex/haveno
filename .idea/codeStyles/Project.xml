@@ -6,8 +6,9 @@
       <option name="HTML_ALIGN_ATTRIBUTES" value="false" />
     </HTMLCodeStyleSettings>
     <JavaCodeStyleSettings>
+      <option name="LAYOUT_STATIC_IMPORTS_SEPARATELY" value="false" />
       <option name="CLASS_COUNT_TO_USE_IMPORT_ON_DEMAND" value="99" />
-      <option name="NAMES_COUNT_TO_USE_IMPORT_ON_DEMAND" value="5" />
+      <option name="NAMES_COUNT_TO_USE_IMPORT_ON_DEMAND" value="99" />
       <option name="PACKAGES_TO_USE_IMPORT_ON_DEMAND">
         <value />
       </option>
@@ -169,7 +170,6 @@
           <emptyLine />
           <package name="org.junit" withSubpackages="true" static="false" />
           <emptyLine />
-          <package name="" withSubpackages="true" static="true" />
           <emptyLine />
           <emptyLine />
           <emptyLine />

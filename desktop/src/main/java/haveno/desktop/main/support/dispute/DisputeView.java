@@ -17,11 +17,7 @@
 
 package haveno.desktop.main.support.dispute;
 
-import static haveno.desktop.util.FormBuilder.getIconForLabel;
-import static haveno.desktop.util.FormBuilder.getRegularIconButton;
-
-import org.bitcoinj.core.Coin;
-
+import com.jfoenix.controls.JFXBadge;
 import de.jensd.fx.glyphs.materialdesignicons.MaterialDesignIcon;
 import haveno.common.UserThread;
 import haveno.common.crypto.KeyRing;
@@ -44,8 +40,8 @@ import haveno.core.support.messages.ChatMessage;
 import haveno.core.trade.Contract;
 import haveno.core.trade.HavenoUtils;
 import haveno.core.trade.Trade;
-import haveno.core.trade.TradeManager;
 import haveno.core.trade.Trade.DisputeState;
+import haveno.core.trade.TradeManager;
 import haveno.core.user.Preferences;
 import haveno.core.util.FormattingUtils;
 import haveno.core.util.coin.CoinFormatter;
@@ -65,8 +61,15 @@ import haveno.desktop.util.DisplayUtils;
 import haveno.desktop.util.FormBuilder;
 import haveno.desktop.util.GUIUtil;
 import haveno.network.p2p.NodeAddress;
-import com.jfoenix.controls.JFXBadge;
-
+import javafx.beans.property.ReadOnlyBooleanProperty;
+import javafx.beans.property.ReadOnlyObjectWrapper;
+import javafx.beans.value.ChangeListener;
+import javafx.collections.ListChangeListener;
+import javafx.collections.ObservableList;
+import javafx.collections.transformation.FilteredList;
+import javafx.collections.transformation.SortedList;
+import javafx.geometry.Insets;
+import javafx.geometry.Pos;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.TableCell;
@@ -79,27 +82,15 @@ import javafx.scene.layout.Pane;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
 import javafx.scene.text.Text;
-
-import javafx.geometry.Insets;
-import javafx.geometry.Pos;
-
+import javafx.util.Callback;
+import javafx.util.Duration;
+import lombok.Getter;
+import org.bitcoinj.core.Coin;
 import org.fxmisc.easybind.EasyBind;
 import org.fxmisc.easybind.Subscription;
 
-import javafx.beans.property.ReadOnlyBooleanProperty;
-import javafx.beans.property.ReadOnlyObjectWrapper;
-import javafx.beans.value.ChangeListener;
-
-import javafx.collections.ListChangeListener;
-import javafx.collections.ObservableList;
-import javafx.collections.transformation.FilteredList;
-import javafx.collections.transformation.SortedList;
-
-import javafx.util.Callback;
-import javafx.util.Duration;
-
+import javax.annotation.Nullable;
 import java.text.SimpleDateFormat;
-
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Date;
@@ -110,9 +101,8 @@ import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
-import lombok.Getter;
-
-import javax.annotation.Nullable;
+import static haveno.desktop.util.FormBuilder.getIconForLabel;
+import static haveno.desktop.util.FormBuilder.getRegularIconButton;
 
 public abstract class DisputeView extends ActivatableView<VBox, Void> {
     public enum FilterResult {

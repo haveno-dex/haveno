@@ -17,17 +17,21 @@
 
 package haveno.apitest.scenario;
 
-import java.io.File;
-import java.io.IOException;
-
+import haveno.apitest.method.CallRateMeteringInterceptorTest;
+import haveno.apitest.method.GetMethodHelpTest;
+import haveno.apitest.method.GetVersionTest;
+import haveno.apitest.method.MethodTest;
+import haveno.apitest.method.RegisterDisputeAgentsTest;
 import lombok.extern.slf4j.Slf4j;
-
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
+
+import java.io.File;
+import java.io.IOException;
 
 import static haveno.apitest.Scaffold.BitcoinCoreApp.bitcoind;
 import static haveno.apitest.config.ApiTestRateMeterInterceptorConfig.getTestRateMeterInterceptorConfig;
@@ -36,12 +40,6 @@ import static haveno.apitest.config.HavenoAppConfig.arbdaemon;
 import static haveno.apitest.config.HavenoAppConfig.seednode;
 import static haveno.common.file.FileUtil.deleteFileIfExists;
 import static org.junit.jupiter.api.Assertions.fail;
-
-import haveno.apitest.method.CallRateMeteringInterceptorTest;
-import haveno.apitest.method.GetMethodHelpTest;
-import haveno.apitest.method.GetVersionTest;
-import haveno.apitest.method.MethodTest;
-import haveno.apitest.method.RegisterDisputeAgentsTest;
 
 
 @Slf4j

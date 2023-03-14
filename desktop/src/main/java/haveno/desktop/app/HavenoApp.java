@@ -17,6 +17,9 @@
 
 package haveno.desktop.app;
 
+import ch.qos.logback.classic.Level;
+import ch.qos.logback.classic.Logger;
+import com.google.common.base.Joiner;
 import com.google.inject.Injector;
 import com.google.inject.Key;
 import com.google.inject.name.Names;
@@ -48,42 +51,32 @@ import haveno.desktop.main.overlays.windows.SendAlertMessageWindow;
 import haveno.desktop.main.overlays.windows.ShowWalletDataWindow;
 import haveno.desktop.util.CssTheme;
 import haveno.desktop.util.ImageUtil;
-import com.google.common.base.Joiner;
-
 import javafx.application.Application;
-
-import javafx.stage.Modality;
-import javafx.stage.Screen;
-import javafx.stage.Stage;
-import javafx.stage.StageStyle;
-
+import javafx.geometry.BoundingBox;
+import javafx.geometry.Rectangle2D;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.StackPane;
-
-import javafx.geometry.BoundingBox;
-import javafx.geometry.Rectangle2D;
+import javafx.stage.Modality;
+import javafx.stage.Screen;
+import javafx.stage.Stage;
+import javafx.stage.StageStyle;
+import lombok.Getter;
+import lombok.Setter;
+import lombok.extern.slf4j.Slf4j;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Consumer;
 
-import org.slf4j.LoggerFactory;
-
 import static haveno.desktop.util.Layout.INITIAL_WINDOW_HEIGHT;
 import static haveno.desktop.util.Layout.INITIAL_WINDOW_WIDTH;
 import static haveno.desktop.util.Layout.MIN_WINDOW_HEIGHT;
 import static haveno.desktop.util.Layout.MIN_WINDOW_WIDTH;
-
-import ch.qos.logback.classic.Level;
-import ch.qos.logback.classic.Logger;
-
-import lombok.Getter;
-import lombok.Setter;
-import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class HavenoApp extends Application implements UncaughtExceptionHandler {

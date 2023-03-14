@@ -32,17 +32,13 @@ import haveno.core.xmr.wallet.BtcWalletService;
 import haveno.core.xmr.wallet.TradeWalletService;
 import haveno.core.xmr.wallet.XmrWalletService;
 import haveno.network.p2p.P2PService;
-import java.math.BigInteger;
-
-import org.bitcoinj.core.Transaction;
-
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
-
-
-
 import monero.wallet.model.MoneroTxWallet;
+import org.bitcoinj.core.Transaction;
+
+import java.math.BigInteger;
 
 @Slf4j
 @Getter

@@ -17,6 +17,7 @@
 
 package haveno.core.xmr.setup;
 
+import com.google.common.collect.ImmutableList;
 import org.bitcoinj.crypto.ChildNumber;
 import org.bitcoinj.crypto.DeterministicKey;
 import org.bitcoinj.crypto.KeyCrypter;
@@ -26,8 +27,6 @@ import org.bitcoinj.wallet.DeterministicKeyChain;
 import org.bitcoinj.wallet.DeterministicSeed;
 import org.bitcoinj.wallet.KeyChainGroupStructure;
 import org.bitcoinj.wallet.Protos;
-
-import com.google.common.collect.ImmutableList;
 
 /**
  * Hack to convert bitcoinj 0.14 wallets to bitcoinj 0.15 format.

@@ -17,6 +17,7 @@
 
 package haveno.daemon.grpc.interceptor;
 
+import haveno.common.config.Config;
 import io.grpc.Metadata;
 import io.grpc.ServerCall;
 import io.grpc.ServerCallHandler;
@@ -29,8 +30,6 @@ import static io.grpc.Metadata.ASCII_STRING_MARSHALLER;
 import static io.grpc.Metadata.Key;
 import static io.grpc.Status.UNAUTHENTICATED;
 import static java.lang.String.format;
-
-import haveno.common.config.Config;
 
 /**
  * Authorizes rpc server calls by comparing the value of the caller's

@@ -17,8 +17,9 @@
 
 package haveno.monitor;
 
-import org.berndpruenster.netlayer.tor.Tor;
 import haveno.network.p2p.network.TorMode;
+import org.berndpruenster.netlayer.tor.Tor;
+
 import java.io.File;
 
 /**

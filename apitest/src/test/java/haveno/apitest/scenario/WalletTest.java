@@ -17,8 +17,10 @@
 
 package haveno.apitest.scenario;
 
+import haveno.apitest.method.MethodTest;
+import haveno.apitest.method.wallet.BtcWalletTest;
+import haveno.apitest.method.wallet.WalletProtectionTest;
 import lombok.extern.slf4j.Slf4j;
-
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.MethodOrderer;
@@ -32,10 +34,6 @@ import static haveno.apitest.config.HavenoAppConfig.alicedaemon;
 import static haveno.apitest.config.HavenoAppConfig.arbdaemon;
 import static haveno.apitest.config.HavenoAppConfig.bobdaemon;
 import static haveno.apitest.config.HavenoAppConfig.seednode;
-
-import haveno.apitest.method.MethodTest;
-import haveno.apitest.method.wallet.BtcWalletTest;
-import haveno.apitest.method.wallet.WalletProtectionTest;
 
 @Slf4j
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)

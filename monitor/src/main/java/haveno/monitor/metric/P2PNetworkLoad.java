@@ -40,10 +40,10 @@ import haveno.network.p2p.peers.PeerManager;
 import haveno.network.p2p.peers.keepalive.KeepAliveManager;
 import haveno.network.p2p.peers.peerexchange.PeerExchangeManager;
 import haveno.network.p2p.storage.messages.BroadcastMessage;
-import java.time.Clock;
+import lombok.extern.slf4j.Slf4j;
 
 import java.io.File;
-
+import java.time.Clock;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -52,8 +52,6 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-
-import lombok.extern.slf4j.Slf4j;
 
 /**
  * Contacts a list of hosts and asks them for all the data we do not have. The

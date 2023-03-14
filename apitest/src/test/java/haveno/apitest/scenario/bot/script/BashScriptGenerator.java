@@ -17,22 +17,19 @@
 
 package haveno.apitest.scenario.bot.script;
 
-import haveno.proto.grpc.OfferInfo;
-import haveno.proto.grpc.TradeInfo;
-
 import com.google.common.io.Files;
 import haveno.common.file.FileUtil;
-import java.nio.file.Paths;
+import haveno.proto.grpc.OfferInfo;
+import haveno.proto.grpc.TradeInfo;
+import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
 
 import java.io.File;
 import java.io.IOException;
-
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-
-import lombok.Getter;
-import lombok.extern.slf4j.Slf4j;
 
 import static com.google.common.io.FileWriteMode.APPEND;
 import static java.lang.String.format;

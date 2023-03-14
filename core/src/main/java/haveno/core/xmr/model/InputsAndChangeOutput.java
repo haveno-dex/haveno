@@ -17,9 +17,8 @@
 
 package haveno.core.xmr.model;
 
-import java.util.List;
-
 import javax.annotation.Nullable;
+import java.util.List;
 
 import static com.google.common.base.Preconditions.checkArgument;
 

@@ -27,9 +27,9 @@ import haveno.core.util.coin.CoinFormatter;
 import haveno.desktop.common.model.ActivatableWithDataModel;
 import haveno.desktop.common.model.ViewModel;
 import haveno.desktop.util.DisplayUtils;
-import javax.inject.Named;
-
 import javafx.collections.ObservableList;
+
+import javax.inject.Named;
 
 class FailedTradesViewModel extends ActivatableWithDataModel<FailedTradesDataModel> implements ViewModel {
     private final CoinFormatter formatter;

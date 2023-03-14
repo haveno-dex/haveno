@@ -17,7 +17,6 @@
 
 package haveno.desktop.main.account;
 
-import haveno.common.app.DevEnv;
 import haveno.common.util.Utilities;
 import haveno.core.locale.Res;
 import haveno.core.user.DontShowAgainLookup;
@@ -39,12 +38,11 @@ import haveno.desktop.main.account.register.arbitrator.ArbitratorRegistrationVie
 import haveno.desktop.main.account.register.mediator.MediatorRegistrationView;
 import haveno.desktop.main.account.register.refundagent.RefundAgentRegistrationView;
 import haveno.desktop.main.account.register.signing.SigningView;
-import haveno.desktop.main.overlays.popups.Popup;
 import haveno.desktop.main.presentation.AccountPresentation;
-import javax.inject.Inject;
-
+import javafx.beans.value.ChangeListener;
+import javafx.collections.ListChangeListener;
+import javafx.event.EventHandler;
 import javafx.fxml.FXML;
-
 import javafx.scene.Scene;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.control.Tab;
@@ -52,12 +50,7 @@ import javafx.scene.control.TabPane;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 
-import javafx.beans.value.ChangeListener;
-
-import javafx.event.EventHandler;
-
-import javafx.collections.ListChangeListener;
-
+import javax.inject.Inject;
 import java.util.List;
 
 @FxmlView

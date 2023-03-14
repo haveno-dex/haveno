@@ -17,18 +17,23 @@
 
 package haveno.cli.table.builder;
 
-import static haveno.cli.table.builder.TableBuilderConstants.*;
-import static haveno.cli.table.builder.TableType.TRANSACTION_TBL;
-
 import haveno.cli.table.Table;
 import haveno.cli.table.column.BooleanColumn;
 import haveno.cli.table.column.Column;
 import haveno.cli.table.column.LongColumn;
 import haveno.cli.table.column.SatoshiColumn;
 import haveno.cli.table.column.StringColumn;
-import java.util.List;
 
 import javax.annotation.Nullable;
+import java.util.List;
+
+import static haveno.cli.table.builder.TableBuilderConstants.COL_HEADER_TX_FEE;
+import static haveno.cli.table.builder.TableBuilderConstants.COL_HEADER_TX_ID;
+import static haveno.cli.table.builder.TableBuilderConstants.COL_HEADER_TX_INPUT_SUM;
+import static haveno.cli.table.builder.TableBuilderConstants.COL_HEADER_TX_IS_CONFIRMED;
+import static haveno.cli.table.builder.TableBuilderConstants.COL_HEADER_TX_OUTPUT_SUM;
+import static haveno.cli.table.builder.TableBuilderConstants.COL_HEADER_TX_SIZE;
+import static haveno.cli.table.builder.TableType.TRANSACTION_TBL;
 
 /**
  * Builds a {@code haveno.cli.table.Table} from a {@code haveno.proto.grpc.TxInfo} object.

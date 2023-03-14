@@ -21,7 +21,6 @@ package haveno.core.trade.protocol.tasks;
 import common.utils.JsonUtils;
 import haveno.common.app.Version;
 import haveno.common.crypto.PubKeyRing;
-import haveno.common.crypto.Sig;
 import haveno.common.taskrunner.TaskRunner;
 import haveno.core.offer.Offer;
 import haveno.core.trade.HavenoUtils;
@@ -31,14 +30,14 @@ import haveno.core.trade.messages.DepositResponse;
 import haveno.core.trade.protocol.TradePeer;
 import haveno.network.p2p.NodeAddress;
 import haveno.network.p2p.SendDirectMessageListener;
+import lombok.extern.slf4j.Slf4j;
+import monero.daemon.MoneroDaemon;
+import monero.daemon.model.MoneroSubmitTxResult;
+
 import java.math.BigInteger;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.UUID;
-
-import lombok.extern.slf4j.Slf4j;
-import monero.daemon.MoneroDaemon;
-import monero.daemon.model.MoneroSubmitTxResult;
 
 @Slf4j
 public class ArbitratorProcessDepositRequest extends TradeTask {
@@ -55,7 +54,7 @@ public class ArbitratorProcessDepositRequest extends TradeTask {
         MoneroDaemon daemon = trade.getXmrWalletService().getDaemon();
         try {
             runInterceptHook();
-  
+
             // get contract and signature
             String contractAsJson = trade.getContractAsJson();
             DepositRequest request = (DepositRequest) processModel.getTradeMessage(); // TODO (woodser): verify response
@@ -65,7 +64,7 @@ public class ArbitratorProcessDepositRequest extends TradeTask {
             TradePeer trader = trade.getTradePeer(processModel.getTempTradePeerNodeAddress());
             if (trader == null) throw new RuntimeException(request.getClass().getSimpleName() + " is not from maker, taker, or arbitrator");
             PubKeyRing peerPubKeyRing = trader.getPubKeyRing();
-  
+
             // verify signature
             if (!HavenoUtils.isSignatureValid(peerPubKeyRing, contractAsJson, signature)) {
                 throw new RuntimeException("Peer's contract signature is invalid");
@@ -115,12 +114,12 @@ public class ArbitratorProcessDepositRequest extends TradeTask {
                 if (!takerResult.isGood()) throw new RuntimeException("Error submitting taker deposit tx: " + JsonUtils.serialize(takerResult));
                 daemon.relayTxsByHash(Arrays.asList(processModel.getMaker().getDepositTxHash(), processModel.getTaker().getDepositTxHash()));
                 depositTxsRelayed = true;
-              
+
                 // update trade state
                 log.info("Arbitrator submitted deposit txs for trade " + trade.getId());
                 trade.setState(Trade.State.ARBITRATOR_PUBLISHED_DEPOSIT_TXS);
                 processModel.getTradeManager().requestPersistence();
-              
+
                 // create deposit response
                 DepositResponse response = new DepositResponse(
                         trade.getOffer().getId(),
@@ -128,7 +127,7 @@ public class ArbitratorProcessDepositRequest extends TradeTask {
                         Version.getP2PMessageVersion(),
                         new Date().getTime(),
                         null);
-              
+
                 // send deposit response to maker and taker
                 sendDepositResponse(trade.getMaker().getNodeAddress(), trade.getMaker().getPubKeyRing(), response);
                 sendDepositResponse(trade.getTaker().getNodeAddress(), trade.getTaker().getPubKeyRing(), response);
@@ -145,7 +144,7 @@ public class ArbitratorProcessDepositRequest extends TradeTask {
             if (!depositTxsRelayed) {
                 try {
                     daemon.flushTxPool(processModel.getMaker().getDepositTxHash(), processModel.getTaker().getDepositTxHash());
-                } catch (Exception e) { 
+                } catch (Exception e) {
                     e.printStackTrace();
                 }
 
@@ -156,7 +155,7 @@ public class ArbitratorProcessDepositRequest extends TradeTask {
                     Version.getP2PMessageVersion(),
                     new Date().getTime(),
                     t.getMessage());
-                          
+
                 // send deposit response to maker and taker
                 sendDepositResponse(trade.getMaker().getNodeAddress(), trade.getMaker().getPubKeyRing(), response);
                 sendDepositResponse(trade.getTaker().getNodeAddress(), trade.getTaker().getPubKeyRing(), response);

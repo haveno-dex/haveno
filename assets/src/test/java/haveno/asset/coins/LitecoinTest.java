@@ -18,7 +18,6 @@
 package haveno.asset.coins;
 
 import haveno.asset.AbstractAssetTest;
-import haveno.asset.coins.Litecoin;
 import org.junit.Test;
 
 public class LitecoinTest extends AbstractAssetTest {

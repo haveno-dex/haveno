@@ -17,18 +17,16 @@
 
 package haveno.apitest;
 
-import java.time.LocalDateTime;
+import haveno.apitest.linux.LinuxProcess;
+import lombok.extern.slf4j.Slf4j;
 
+import java.time.LocalDateTime;
 import java.util.Objects;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CountDownLatch;
 
-import lombok.extern.slf4j.Slf4j;
-
 import static java.lang.String.format;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
-
-import haveno.apitest.linux.LinuxProcess;
 
 @Slf4j
 public class SetupTask implements Callable<SetupTask.Status> {

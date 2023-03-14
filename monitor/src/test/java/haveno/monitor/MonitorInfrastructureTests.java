@@ -17,17 +17,16 @@
 
 package haveno.monitor;
 
-import haveno.monitor.Metric;
 import haveno.monitor.reporter.ConsoleReporter;
-import java.util.HashMap;
-import java.util.Properties;
-import java.util.concurrent.ExecutionException;
-
 import org.junit.Assert;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
+
+import java.util.HashMap;
+import java.util.Properties;
+import java.util.concurrent.ExecutionException;
 
 @Disabled
 public class MonitorInfrastructureTests {

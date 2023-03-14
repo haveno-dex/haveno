@@ -18,7 +18,6 @@
 package haveno.common.util;
 
 import java.io.Serializable;
-
 import java.util.Objects;
 
 public class Tuple2<A, B> implements Serializable {

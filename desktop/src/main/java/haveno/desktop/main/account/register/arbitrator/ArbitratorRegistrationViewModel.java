@@ -25,6 +25,7 @@ import haveno.core.user.User;
 import haveno.core.xmr.wallet.XmrWalletService;
 import haveno.desktop.main.account.register.AgentRegistrationViewModel;
 import haveno.network.p2p.P2PService;
+
 import java.util.ArrayList;
 import java.util.Date;
 

@@ -18,17 +18,13 @@
 package haveno.network.p2p.network;
 
 import haveno.network.p2p.TestUtils;
-import haveno.network.p2p.network.LocalhostNetworkNode;
-import haveno.network.p2p.network.SetupListener;
-import java.io.IOException;
-
-import java.util.concurrent.CountDownLatch;
-
+import org.junit.Ignore;
+import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.junit.Ignore;
-import org.junit.Test;
+import java.io.IOException;
+import java.util.concurrent.CountDownLatch;
 
 // TorNode created. Took 6 sec.
 // Hidden service created. Took 40-50 sec.

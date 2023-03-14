@@ -17,9 +17,10 @@
 
 package haveno.network.p2p.network;
 
+import haveno.common.file.FileUtil;
 import org.berndpruenster.netlayer.tor.Tor;
 import org.berndpruenster.netlayer.tor.TorCtlException;
-import haveno.common.file.FileUtil;
+
 import java.io.File;
 import java.io.IOException;
 

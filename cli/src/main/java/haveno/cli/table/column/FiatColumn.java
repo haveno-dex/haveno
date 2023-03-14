@@ -17,12 +17,12 @@
 
 package haveno.cli.table.column;
 
+import java.util.stream.IntStream;
+
 import static haveno.cli.CurrencyFormat.formatFiatVolume;
 import static haveno.cli.CurrencyFormat.formatPrice;
 import static haveno.cli.table.column.Column.JUSTIFICATION.RIGHT;
 import static haveno.cli.table.column.FiatColumn.DISPLAY_MODE.FIAT_PRICE;
-
-import java.util.stream.IntStream;
 
 /**
  * For displaying fiat volume or price with appropriate precision.

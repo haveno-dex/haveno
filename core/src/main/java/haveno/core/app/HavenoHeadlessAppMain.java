@@ -21,10 +21,10 @@ import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import haveno.common.UserThread;
 import haveno.common.app.AppModule;
 import haveno.common.app.Version;
+import lombok.extern.slf4j.Slf4j;
+
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
-
-import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class HavenoHeadlessAppMain extends HavenoExecutable {

@@ -17,6 +17,7 @@
 
 package haveno.core.filter;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.protobuf.ByteString;
 import haveno.common.crypto.Sig;
 import haveno.common.proto.ProtoUtil;
@@ -25,21 +26,17 @@ import haveno.common.util.ExtraDataMapValidator;
 import haveno.common.util.Utilities;
 import haveno.network.p2p.storage.payload.ExpirablePayload;
 import haveno.network.p2p.storage.payload.ProtectedStoragePayload;
-import com.google.common.annotations.VisibleForTesting;
+import lombok.Value;
+import lombok.extern.slf4j.Slf4j;
 
+import javax.annotation.Nullable;
 import java.security.PublicKey;
-
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
-
-import lombok.Value;
-import lombok.extern.slf4j.Slf4j;
-
-import javax.annotation.Nullable;
 
 @Slf4j
 @Value

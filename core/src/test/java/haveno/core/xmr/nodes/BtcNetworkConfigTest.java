@@ -17,17 +17,15 @@
 
 package haveno.core.xmr.nodes;
 
-import org.bitcoinj.core.NetworkParameters;
-import org.bitcoinj.core.PeerAddress;
-
 import com.runjva.sourceforge.jsocks.protocol.Socks5Proxy;
-import haveno.core.xmr.nodes.BtcNetworkConfig;
 import haveno.core.xmr.setup.WalletConfig;
 import haveno.network.Socks5MultiDiscovery;
-import java.util.Collections;
-
+import org.bitcoinj.core.NetworkParameters;
+import org.bitcoinj.core.PeerAddress;
 import org.junit.Before;
 import org.junit.Test;
+
+import java.util.Collections;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;

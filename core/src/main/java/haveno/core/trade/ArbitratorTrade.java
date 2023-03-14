@@ -6,17 +6,17 @@ import haveno.core.proto.CoreProtoResolver;
 import haveno.core.trade.protocol.ProcessModel;
 import haveno.core.xmr.wallet.XmrWalletService;
 import haveno.network.p2p.NodeAddress;
+import lombok.extern.slf4j.Slf4j;
+
 import java.math.BigInteger;
 import java.util.UUID;
-
-import lombok.extern.slf4j.Slf4j;
 
 /**
  * Trade in the context of an arbitrator.
  */
 @Slf4j
 public class ArbitratorTrade extends Trade {
-    
+
   public ArbitratorTrade(Offer offer,
           BigInteger tradeAmount,
           BigInteger takerFee,

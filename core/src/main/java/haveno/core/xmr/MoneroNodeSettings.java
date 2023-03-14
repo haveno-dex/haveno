@@ -17,11 +17,11 @@
 package haveno.core.xmr;
 
 import haveno.common.proto.persistable.PersistableEnvelope;
-import java.util.List;
-
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
+
+import java.util.List;
 
 @Slf4j
 @Data

@@ -24,20 +24,15 @@ import haveno.network.p2p.PrefixedSealedAndSignedMessage;
 import haveno.network.p2p.TestUtils;
 import haveno.network.p2p.storage.P2PDataStorage;
 import haveno.network.p2p.storage.mocks.ProtectedStoragePayloadStub;
-import haveno.network.p2p.storage.payload.MailboxStoragePayload;
-import haveno.network.p2p.storage.payload.PersistableNetworkPayload;
-import haveno.network.p2p.storage.payload.ProtectedStorageEntry;
-import haveno.network.p2p.storage.payload.ProtectedStoragePayload;
-import java.security.KeyPair;
-import java.security.NoSuchAlgorithmException;
-import java.security.PublicKey;
-
-import java.time.Clock;
-import java.time.Duration;
-
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+
+import java.security.KeyPair;
+import java.security.NoSuchAlgorithmException;
+import java.security.PublicKey;
+import java.time.Clock;
+import java.time.Duration;
 
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;

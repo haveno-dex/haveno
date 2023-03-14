@@ -20,12 +20,12 @@ package haveno.network.p2p.storage.persistence;
 import haveno.common.proto.persistable.PersistableEnvelope;
 import haveno.network.p2p.storage.P2PDataStorage;
 import haveno.network.p2p.storage.payload.PersistableNetworkPayload;
+import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
+
 import java.util.Collection;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-
-import lombok.Getter;
-import lombok.extern.slf4j.Slf4j;
 
 
 /**

@@ -18,7 +18,6 @@
 package haveno.desktop.main.shared;
 
 import com.google.common.io.ByteStreams;
-
 import de.jensd.fx.fontawesome.AwesomeDude;
 import de.jensd.fx.fontawesome.AwesomeIcon;
 import haveno.common.Timer;
@@ -40,8 +39,13 @@ import haveno.desktop.main.overlays.popups.Popup;
 import haveno.desktop.util.DisplayUtils;
 import haveno.desktop.util.GUIUtil;
 import haveno.network.p2p.network.Connection;
-import javafx.stage.FileChooser;
-
+import javafx.beans.property.ReadOnlyDoubleProperty;
+import javafx.beans.value.ChangeListener;
+import javafx.collections.ListChangeListener;
+import javafx.collections.ObservableList;
+import javafx.collections.transformation.SortedList;
+import javafx.event.EventHandler;
+import javafx.geometry.Insets;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListCell;
@@ -57,45 +61,28 @@ import javafx.scene.layout.Pane;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
 import javafx.scene.text.TextAlignment;
-
-import javafx.geometry.Insets;
-
+import javafx.stage.FileChooser;
+import javafx.util.Callback;
+import lombok.Getter;
+import lombok.Setter;
 import org.fxmisc.easybind.EasyBind;
 import org.fxmisc.easybind.Subscription;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import javafx.beans.property.ReadOnlyDoubleProperty;
-import javafx.beans.value.ChangeListener;
-
-import javafx.event.EventHandler;
-
-import javafx.collections.ListChangeListener;
-import javafx.collections.ObservableList;
-import javafx.collections.transformation.SortedList;
-
-import javafx.util.Callback;
-
-import java.net.MalformedURLException;
-import java.net.URL;
-
+import javax.annotation.Nullable;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import lombok.Getter;
-import lombok.Setter;
-
-import javax.annotation.Nullable;
 
 public class ChatView extends AnchorPane {
     public static final Logger log = LoggerFactory.getLogger(TextFieldWithIcon.class);

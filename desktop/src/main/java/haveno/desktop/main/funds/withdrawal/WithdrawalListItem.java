@@ -25,11 +25,10 @@ import haveno.core.xmr.model.XmrAddressEntry;
 import haveno.core.xmr.wallet.XmrWalletService;
 import haveno.desktop.components.AutoTooltipLabel;
 import javafx.scene.control.Label;
-
-import java.math.BigInteger;
-
 import lombok.Getter;
 import lombok.Setter;
+
+import java.math.BigInteger;
 
 class WithdrawalListItem {
     private final XmrBalanceListener balanceListener;

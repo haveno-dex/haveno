@@ -17,12 +17,11 @@
 
 package haveno.common;
 
-import java.time.Duration;
-
-import java.util.UUID;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.time.Duration;
+import java.util.UUID;
 
 /**
  * We simulate a global frame rate timer similar to FXTimer to avoid creation of threads for each timer call.

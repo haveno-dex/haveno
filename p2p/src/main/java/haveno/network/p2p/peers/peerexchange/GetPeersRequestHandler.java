@@ -29,12 +29,11 @@ import haveno.network.p2p.network.NetworkNode;
 import haveno.network.p2p.peers.PeerManager;
 import haveno.network.p2p.peers.peerexchange.messages.GetPeersRequest;
 import haveno.network.p2p.peers.peerexchange.messages.GetPeersResponse;
+import lombok.extern.slf4j.Slf4j;
+import org.jetbrains.annotations.NotNull;
+
 import java.util.HashSet;
 import java.util.concurrent.TimeUnit;
-
-import lombok.extern.slf4j.Slf4j;
-
-import org.jetbrains.annotations.NotNull;
 
 import static com.google.common.base.Preconditions.checkArgument;
 

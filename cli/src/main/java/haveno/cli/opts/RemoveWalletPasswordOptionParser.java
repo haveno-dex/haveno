@@ -18,9 +18,9 @@
 package haveno.cli.opts;
 
 
-import static haveno.cli.opts.OptLabel.OPT_WALLET_PASSWORD;
-
 import joptsimple.OptionSpec;
+
+import static haveno.cli.opts.OptLabel.OPT_WALLET_PASSWORD;
 
 public class RemoveWalletPasswordOptionParser extends AbstractMethodOptionParser implements MethodOpts {
 

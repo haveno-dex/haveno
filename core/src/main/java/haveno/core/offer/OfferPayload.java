@@ -21,7 +21,6 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonSerializationContext;
 import com.google.protobuf.ByteString;
-
 import haveno.common.crypto.Hash;
 import haveno.common.crypto.PubKeyRing;
 import haveno.common.proto.ProtoUtil;
@@ -33,19 +32,19 @@ import haveno.network.p2p.NodeAddress;
 import haveno.network.p2p.storage.payload.ExpirablePayload;
 import haveno.network.p2p.storage.payload.ProtectedStoragePayload;
 import haveno.network.p2p.storage.payload.RequiresOwnerIsOnlinePayload;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.concurrent.TimeUnit;
-import java.lang.reflect.Type;
-import java.security.PublicKey;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 
 import javax.annotation.Nullable;
+import java.lang.reflect.Type;
+import java.security.PublicKey;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 
 // OfferPayload has about 1.4 kb. We should look into options to make it smaller but will be hard to do it in a
 // backward compatible way. Maybe a candidate when segwit activation is done as hardfork?
@@ -77,7 +76,7 @@ public final class OfferPayload implements ProtectedStoragePayload, ExpirablePay
     protected transient byte[] hash;
     @Nullable
     protected final Map<String, String> extraDataMap;
-    
+
     // address and signature of signing arbitrator
     @Setter
     @Nullable
@@ -88,7 +87,7 @@ public final class OfferPayload implements ProtectedStoragePayload, ExpirablePay
     @Setter
     @Nullable
     protected List<String> reserveTxKeyImages;
-    
+
     // Keys for extra map
     // Only set for fiat offers
     public static final String ACCOUNT_AGE_WITNESS_HASH = "accountAgeWitnessHash";

@@ -17,18 +17,17 @@
 
 package haveno.core.util;
 
-import java.util.Locale;
-
-import org.junit.Before;
-import org.junit.Test;
-
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-
 import haveno.core.locale.GlobalSettings;
 import haveno.core.locale.Res;
 import haveno.core.util.validation.RegexValidator;
 import haveno.core.util.validation.RegexValidatorFactory;
+import org.junit.Before;
+import org.junit.Test;
+
+import java.util.Locale;
+
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 
 public class RegexValidatorTest {

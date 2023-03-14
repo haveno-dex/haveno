@@ -23,12 +23,11 @@ import haveno.core.proto.CoreProtoResolver;
 import haveno.core.trade.protocol.ProcessModel;
 import haveno.core.xmr.wallet.XmrWalletService;
 import haveno.network.p2p.NodeAddress;
-import java.math.BigInteger;
-import java.util.UUID;
-
 import lombok.extern.slf4j.Slf4j;
 
 import javax.annotation.Nullable;
+import java.math.BigInteger;
+import java.util.UUID;
 
 @Slf4j
 public final class BuyerAsTakerTrade extends BuyerTrade implements TakerTrade {

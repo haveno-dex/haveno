@@ -17,12 +17,6 @@
 
 package haveno.desktop.main.account.content.altcoinaccounts;
 
-import static haveno.desktop.components.paymentmethods.AssetsForm.INSTANT_TRADE_NEWS;
-import static haveno.desktop.util.FormBuilder.add2ButtonsAfterGroup;
-import static haveno.desktop.util.FormBuilder.add3ButtonsAfterGroup;
-import static haveno.desktop.util.FormBuilder.addTitledGroupBg;
-import static haveno.desktop.util.FormBuilder.addTopLabelListView;
-
 import haveno.asset.AltCoinAccountDisclaimer;
 import haveno.asset.Asset;
 import haveno.asset.coins.Monero;
@@ -50,20 +44,23 @@ import haveno.desktop.main.account.content.PaymentAccountsView;
 import haveno.desktop.main.overlays.popups.Popup;
 import haveno.desktop.util.FormBuilder;
 import haveno.desktop.util.Layout;
-import javax.inject.Inject;
-import javax.inject.Named;
-
-import javafx.stage.Stage;
-
+import javafx.collections.ObservableList;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListView;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.VBox;
+import javafx.stage.Stage;
 
-import javafx.collections.ObservableList;
-
+import javax.inject.Inject;
+import javax.inject.Named;
 import java.util.Optional;
+
+import static haveno.desktop.components.paymentmethods.AssetsForm.INSTANT_TRADE_NEWS;
+import static haveno.desktop.util.FormBuilder.add2ButtonsAfterGroup;
+import static haveno.desktop.util.FormBuilder.add3ButtonsAfterGroup;
+import static haveno.desktop.util.FormBuilder.addTitledGroupBg;
+import static haveno.desktop.util.FormBuilder.addTopLabelListView;
 
 @FxmlView
 public class AltCoinAccountsView extends PaymentAccountsView<GridPane, AltCoinAccountsViewModel> {

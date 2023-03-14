@@ -25,10 +25,10 @@ import haveno.core.trade.HavenoUtils;
 import haveno.core.trade.messages.TradeMessage;
 import org.bitcoinj.core.Coin;
 
+import java.math.BigInteger;
+
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
-
-import java.math.BigInteger;
 
 public class ValidateOffer extends Task<PlaceOfferModel> {
     public ValidateOffer(TaskRunner<PlaceOfferModel> taskHandler, PlaceOfferModel model) {

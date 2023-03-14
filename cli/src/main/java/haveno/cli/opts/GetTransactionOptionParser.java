@@ -18,9 +18,9 @@
 package haveno.cli.opts;
 
 
-import static haveno.cli.opts.OptLabel.OPT_TRANSACTION_ID;
-
 import joptsimple.OptionSpec;
+
+import static haveno.cli.opts.OptLabel.OPT_TRANSACTION_ID;
 
 public class GetTransactionOptionParser extends AbstractMethodOptionParser implements MethodOpts {
 

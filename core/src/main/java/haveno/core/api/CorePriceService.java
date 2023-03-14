@@ -17,9 +17,6 @@
 
 package haveno.core.api;
 
-import javax.inject.Inject;
-import javax.inject.Singleton;
-
 import com.google.common.math.LongMath;
 import haveno.core.api.model.MarketDepthInfo;
 import haveno.core.api.model.MarketPriceInfo;
@@ -30,14 +27,16 @@ import haveno.core.offer.OfferBookService;
 import haveno.core.offer.OfferDirection;
 import haveno.core.provider.price.PriceFeedService;
 import haveno.core.trade.HavenoUtils;
-import java.util.List;
+import lombok.extern.slf4j.Slf4j;
+
+import javax.inject.Inject;
+import javax.inject.Singleton;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
-
-import lombok.extern.slf4j.Slf4j;
 
 
 @Singleton
@@ -140,7 +139,7 @@ class CorePriceService {
 
         return new MarketDepthInfo(currencyCode, buyPrices, buyDepth, sellPrices, sellDepth);
     }
-    
+
     /**
      * PriceProvider returns different values for crypto and fiat,
      * e.g. 1 XMR = X USD

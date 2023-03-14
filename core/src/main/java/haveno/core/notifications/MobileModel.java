@@ -17,18 +17,15 @@
 
 package haveno.core.notifications;
 
-import javax.inject.Inject;
-import javax.inject.Singleton;
-
 import com.google.common.annotations.VisibleForTesting;
-
-import java.util.Arrays;
-
 import lombok.Data;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
 import javax.annotation.Nullable;
+import javax.inject.Inject;
+import javax.inject.Singleton;
+import java.util.Arrays;
 
 @Data
 @Slf4j

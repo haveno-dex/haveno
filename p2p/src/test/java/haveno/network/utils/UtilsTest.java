@@ -22,8 +22,6 @@ import org.junit.Test;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
-import haveno.network.utils.Utils;
-
 public class UtilsTest {
 
     @Test

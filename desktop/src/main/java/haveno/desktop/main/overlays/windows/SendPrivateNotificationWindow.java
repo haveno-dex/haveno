@@ -17,9 +17,6 @@
 
 package haveno.desktop.main.overlays.windows;
 
-import static haveno.desktop.util.FormBuilder.addInputTextField;
-import static haveno.desktop.util.FormBuilder.addTopLabelTextArea;
-
 import haveno.common.UserThread;
 import haveno.common.app.DevEnv;
 import haveno.common.crypto.PubKeyRing;
@@ -33,6 +30,8 @@ import haveno.desktop.main.overlays.Overlay;
 import haveno.desktop.main.overlays.popups.Popup;
 import haveno.network.p2p.NodeAddress;
 import haveno.network.p2p.SendMailboxMessageListener;
+import javafx.geometry.Insets;
+import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
@@ -40,14 +39,13 @@ import javafx.scene.control.TextArea;
 import javafx.scene.input.KeyCode;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
-
-import javafx.geometry.Insets;
-import javafx.geometry.Pos;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.concurrent.TimeUnit;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import static haveno.desktop.util.FormBuilder.addInputTextField;
+import static haveno.desktop.util.FormBuilder.addTopLabelTextArea;
 
 public class SendPrivateNotificationWindow extends Overlay<SendPrivateNotificationWindow> {
     private static final Logger log = LoggerFactory.getLogger(SendPrivateNotificationWindow.class);

@@ -23,14 +23,13 @@ import haveno.common.crypto.PubKeyRing;
 import haveno.core.proto.CoreProtoResolver;
 import haveno.core.trade.messages.InitTradeRequest;
 import haveno.network.p2p.SupportedCapabilitiesMessage;
-import java.util.Optional;
-import java.util.UUID;
-
 import lombok.EqualsAndHashCode;
 import lombok.Value;
 import lombok.extern.slf4j.Slf4j;
 
 import javax.annotation.Nullable;
+import java.util.Optional;
+import java.util.UUID;
 
 // Here we add the SupportedCapabilitiesMessage interface as that message always predates a direct connection
 // to the trading peer

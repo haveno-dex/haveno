@@ -23,6 +23,7 @@ import haveno.core.user.Preferences;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 
+import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -32,8 +33,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.BiFunction;
-
-import javax.annotation.Nullable;
 
 public class CurrencyList {
     private final CurrencyPredicates predicates;

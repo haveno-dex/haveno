@@ -17,9 +17,10 @@
 
 package haveno.core.util;
 
-import javafx.collections.FXCollections;
 import haveno.common.util.DoubleSummaryStatisticsWithStdDev;
 import haveno.common.util.Tuple2;
+import javafx.collections.FXCollections;
+
 import java.util.DoubleSummaryStatistics;
 import java.util.List;
 import java.util.stream.Collectors;

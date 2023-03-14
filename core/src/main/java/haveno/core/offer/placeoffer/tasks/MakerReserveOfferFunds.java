@@ -24,14 +24,12 @@ import haveno.core.offer.OfferDirection;
 import haveno.core.offer.placeoffer.PlaceOfferModel;
 import haveno.core.xmr.model.XmrAddressEntry;
 import lombok.extern.slf4j.Slf4j;
+import monero.daemon.model.MoneroOutput;
+import monero.wallet.model.MoneroTxWallet;
 
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.List;
-
-
-import monero.daemon.model.MoneroOutput;
-import monero.wallet.model.MoneroTxWallet;
 
 @Slf4j
 public class MakerReserveOfferFunds extends Task<PlaceOfferModel> {
@@ -50,7 +48,7 @@ public class MakerReserveOfferFunds extends Task<PlaceOfferModel> {
 
             // verify monero connection
             model.getXmrWalletService().getConnectionsService().verifyConnection();
-            
+
             // create reserve tx
             BigInteger makerFee = offer.getMakerFee();
             BigInteger sendAmount = offer.getDirection() == OfferDirection.BUY ? BigInteger.valueOf(0) : offer.getAmount();

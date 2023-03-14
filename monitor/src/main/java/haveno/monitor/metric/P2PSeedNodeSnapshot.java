@@ -23,26 +23,19 @@ import haveno.monitor.Reporter;
 import haveno.network.p2p.NodeAddress;
 import haveno.network.p2p.network.Connection;
 import haveno.network.p2p.peers.getdata.messages.GetDataResponse;
-import haveno.network.p2p.peers.getdata.messages.PreliminaryGetDataRequest;
 import haveno.network.p2p.storage.payload.ProtectedStorageEntry;
 import haveno.network.p2p.storage.payload.ProtectedStoragePayload;
+import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
+
 import java.net.MalformedURLException;
-
-import java.nio.ByteBuffer;
-
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-
-import lombok.Getter;
-import lombok.extern.slf4j.Slf4j;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 

@@ -24,27 +24,22 @@ import haveno.common.crypto.KeyStorage;
 import haveno.common.crypto.SealedAndSigned;
 import haveno.network.p2p.NodeAddress;
 import haveno.network.p2p.PrefixedSealedAndSignedMessage;
-import haveno.network.p2p.storage.messages.AddDataMessage;
 import haveno.network.p2p.storage.payload.MailboxStoragePayload;
 import haveno.network.p2p.storage.payload.ProtectedMailboxStorageEntry;
 import haveno.network.p2p.storage.payload.ProtectedStorageEntry;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.RandomUtils;
+import org.junit.Before;
+import org.junit.Test;
 
+import java.io.File;
+import java.io.IOException;
 import java.security.InvalidKeyException;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.SignatureException;
 import java.security.cert.CertificateException;
-
 import java.time.Clock;
-
-import java.io.File;
-import java.io.IOException;
-
-import lombok.extern.slf4j.Slf4j;
-
-import org.junit.Before;
-import org.junit.Test;
 
 @SuppressWarnings("UnusedAssignment")
 @Slf4j

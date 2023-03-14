@@ -18,17 +18,13 @@
 package haveno.desktop.main.overlays.windows.downloadupdate;
 
 import com.google.common.collect.Lists;
-import haveno.desktop.main.overlays.windows.downloadupdate.HavenoInstaller;
 import haveno.desktop.main.overlays.windows.downloadupdate.HavenoInstaller.FileDescriptor;
-import java.net.URL;
+import lombok.extern.slf4j.Slf4j;
+import org.junit.Test;
 
 import java.io.File;
-
+import java.net.URL;
 import java.util.List;
-
-import lombok.extern.slf4j.Slf4j;
-
-import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
 

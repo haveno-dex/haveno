@@ -17,23 +17,21 @@
 
 package haveno.network.p2p.peers.getdata.messages;
 
-import protobuf.NetworkEnvelope;
-
 import com.google.protobuf.ByteString;
 import haveno.common.app.Capabilities;
 import haveno.common.app.Version;
 import haveno.common.proto.ProtoUtil;
 import haveno.network.p2p.AnonymousMessage;
 import haveno.network.p2p.SupportedCapabilitiesMessage;
-import java.util.Optional;
-import java.util.Set;
-import java.util.stream.Collectors;
-
 import lombok.EqualsAndHashCode;
 import lombok.Value;
 import lombok.extern.slf4j.Slf4j;
+import protobuf.NetworkEnvelope;
 
 import javax.annotation.Nullable;
+import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Slf4j
 @EqualsAndHashCode(callSuper = true)

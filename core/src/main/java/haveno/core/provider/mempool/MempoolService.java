@@ -17,8 +17,10 @@
 
 package haveno.core.provider.mempool;
 
-import org.bitcoinj.core.Coin;
-
+import com.google.common.util.concurrent.FutureCallback;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.MoreExecutors;
+import com.google.common.util.concurrent.SettableFuture;
 import com.google.inject.Inject;
 import haveno.common.UserThread;
 import haveno.common.config.Config;
@@ -27,22 +29,16 @@ import haveno.core.offer.OfferPayload;
 import haveno.core.trade.Trade;
 import haveno.core.user.Preferences;
 import haveno.network.Socks5ProxyProvider;
+import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
+import org.bitcoinj.core.Coin;
+
+import javax.annotation.Nullable;
 import javax.inject.Singleton;
-
-import com.google.common.util.concurrent.FutureCallback;
-import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.MoreExecutors;
-import com.google.common.util.concurrent.SettableFuture;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Consumer;
-
-import lombok.Getter;
-import lombok.extern.slf4j.Slf4j;
-
-import javax.annotation.Nullable;
 
 @Slf4j
 @Singleton

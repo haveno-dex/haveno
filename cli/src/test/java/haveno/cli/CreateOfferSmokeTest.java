@@ -3,8 +3,6 @@ package haveno.cli;
 import static java.lang.System.out;
 import static java.util.Arrays.stream;
 
-import haveno.cli.CliMain;
-
 /**
  Smoke tests for createoffer method.  Useful for testing CLI command and examining the
  format of its console output.

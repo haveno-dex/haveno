@@ -17,16 +17,15 @@
 
 package haveno.apitest.linux;
 
-import java.io.IOException;
-
+import haveno.apitest.config.ApiTestConfig;
 import lombok.extern.slf4j.Slf4j;
+
+import java.io.IOException;
 
 import static haveno.apitest.linux.BashCommand.isAlive;
 import static java.lang.String.format;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static joptsimple.internal.Strings.EMPTY;
-
-import haveno.apitest.config.ApiTestConfig;
 
 @Slf4j
 public class BitcoinDaemon extends AbstractLinuxProcess implements LinuxProcess {

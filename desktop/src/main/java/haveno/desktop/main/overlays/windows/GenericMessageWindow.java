@@ -17,15 +17,14 @@
 
 package haveno.desktop.main.overlays.windows;
 
+import haveno.desktop.main.overlays.Overlay;
+import haveno.desktop.util.Layout;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextArea;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static haveno.desktop.util.FormBuilder.addMultilineLabel;
 import static haveno.desktop.util.FormBuilder.addTextArea;
-
-import haveno.desktop.main.overlays.Overlay;
-import haveno.desktop.util.Layout;
 
 public class GenericMessageWindow extends Overlay<GenericMessageWindow> {
     private String preamble;

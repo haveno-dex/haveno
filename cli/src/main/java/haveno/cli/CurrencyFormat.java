@@ -19,12 +19,10 @@ package haveno.cli;
 
 import com.google.common.annotations.VisibleForTesting;
 
+import java.math.BigDecimal;
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
 import java.text.NumberFormat;
-
-import java.math.BigDecimal;
-
 import java.util.Locale;
 
 import static java.lang.String.format;

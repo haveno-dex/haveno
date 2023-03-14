@@ -29,17 +29,16 @@ import haveno.core.trade.protocol.TradePeer;
 import haveno.core.xmr.wallet.XmrWalletService;
 import haveno.network.p2p.NodeAddress;
 import haveno.network.p2p.SendDirectMessageListener;
+import lombok.extern.slf4j.Slf4j;
+import monero.wallet.MoneroWallet;
+import monero.wallet.model.MoneroMultisigInitResult;
+
 import java.util.Arrays;
 import java.util.Date;
 import java.util.UUID;
 
-import lombok.extern.slf4j.Slf4j;
-
 import static com.google.common.base.Preconditions.checkNotNull;
 import static haveno.core.util.Validator.checkTradeId;
-
-import monero.wallet.MoneroWallet;
-import monero.wallet.model.MoneroMultisigInitResult;
 
 @Slf4j
 public class ProcessInitMultisigRequest extends TradeTask {

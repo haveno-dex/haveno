@@ -1,26 +1,24 @@
 package haveno.daemon.grpc;
 
+import haveno.core.api.CoreApi;
+import haveno.daemon.grpc.interceptor.CallRateMeteringInterceptor;
+import haveno.daemon.grpc.interceptor.GrpcCallRateMeter;
 import haveno.proto.grpc.RegisterDisputeAgentReply;
 import haveno.proto.grpc.RegisterDisputeAgentRequest;
 import haveno.proto.grpc.UnregisterDisputeAgentReply;
 import haveno.proto.grpc.UnregisterDisputeAgentRequest;
-import haveno.core.api.CoreApi;
-import haveno.daemon.grpc.interceptor.CallRateMeteringInterceptor;
-import haveno.daemon.grpc.interceptor.GrpcCallRateMeter;
 import io.grpc.ServerInterceptor;
 import io.grpc.stub.StreamObserver;
+import lombok.extern.slf4j.Slf4j;
 
 import javax.inject.Inject;
-
 import java.util.HashMap;
 import java.util.Optional;
 
-import lombok.extern.slf4j.Slf4j;
-
+import static haveno.daemon.grpc.interceptor.GrpcServiceRateMeteringConfig.getCustomRateMeteringInterceptor;
 import static haveno.proto.grpc.DisputeAgentsGrpc.DisputeAgentsImplBase;
 import static haveno.proto.grpc.DisputeAgentsGrpc.getRegisterDisputeAgentMethod;
 import static haveno.proto.grpc.DisputeAgentsGrpc.getUnregisterDisputeAgentMethod;
-import static haveno.daemon.grpc.interceptor.GrpcServiceRateMeteringConfig.getCustomRateMeteringInterceptor;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
 @Slf4j

@@ -17,6 +17,7 @@
 
 package haveno.desktop.main.portfolio.pendingtrades.steps;
 
+import com.jfoenix.controls.JFXProgressBar;
 import de.jensd.fx.fontawesome.AwesomeDude;
 import de.jensd.fx.fontawesome.AwesomeIcon;
 import haveno.common.ClockWatcher;
@@ -44,8 +45,10 @@ import haveno.desktop.main.portfolio.pendingtrades.TradeStepInfo;
 import haveno.desktop.main.portfolio.pendingtrades.TradeSubView;
 import haveno.desktop.util.Layout;
 import haveno.network.p2p.BootstrapListener;
-import com.jfoenix.controls.JFXProgressBar;
-
+import javafx.application.Platform;
+import javafx.beans.property.BooleanProperty;
+import javafx.beans.value.ChangeListener;
+import javafx.geometry.Insets;
 import javafx.scene.control.Label;
 import javafx.scene.control.ProgressBar;
 import javafx.scene.control.ScrollPane;
@@ -56,22 +59,14 @@ import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
-
-import javafx.geometry.Insets;
-
 import org.fxmisc.easybind.EasyBind;
 import org.fxmisc.easybind.Subscription;
-import javafx.application.Platform;
-import javafx.beans.property.BooleanProperty;
-import javafx.beans.value.ChangeListener;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.time.Duration;
 import java.time.Instant;
-
 import java.util.Optional;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static haveno.desktop.components.paymentmethods.PaymentMethodForm.addOpenTradeDuration;

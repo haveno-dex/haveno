@@ -31,15 +31,13 @@ import haveno.core.trade.TradeManager;
 import haveno.network.p2p.AckMessageSourceType;
 import haveno.network.p2p.NodeAddress;
 import haveno.network.p2p.P2PService;
+import javafx.collections.ObservableList;
+import lombok.extern.slf4j.Slf4j;
+
 import javax.inject.Inject;
 import javax.inject.Singleton;
-
-import javafx.collections.ObservableList;
-
 import java.util.List;
 import java.util.stream.Collectors;
-
-import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Singleton

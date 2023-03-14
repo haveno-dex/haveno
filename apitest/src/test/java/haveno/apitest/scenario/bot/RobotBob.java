@@ -17,14 +17,6 @@
 
 package haveno.apitest.scenario.bot;
 
-import lombok.Getter;
-import lombok.extern.slf4j.Slf4j;
-
-import static haveno.apitest.scenario.bot.protocol.ProtocolStep.DONE;
-import static haveno.apitest.scenario.bot.shutdown.ManualShutdown.isShutdownCalled;
-import static haveno.cli.table.builder.TableType.BTC_BALANCE_TBL;
-import static java.util.concurrent.TimeUnit.SECONDS;
-
 import haveno.apitest.method.BitcoinCliHelper;
 import haveno.apitest.scenario.bot.protocol.BotProtocol;
 import haveno.apitest.scenario.bot.protocol.MakerBotProtocol;
@@ -33,6 +25,13 @@ import haveno.apitest.scenario.bot.script.BashScriptGenerator;
 import haveno.apitest.scenario.bot.script.BotScript;
 import haveno.apitest.scenario.bot.shutdown.ManualBotShutdownException;
 import haveno.cli.table.builder.TableBuilder;
+import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
+
+import static haveno.apitest.scenario.bot.protocol.ProtocolStep.DONE;
+import static haveno.apitest.scenario.bot.shutdown.ManualShutdown.isShutdownCalled;
+import static haveno.cli.table.builder.TableType.BTC_BALANCE_TBL;
+import static java.util.concurrent.TimeUnit.SECONDS;
 
 @Slf4j
 public

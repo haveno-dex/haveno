@@ -16,10 +16,12 @@
  */
 package haveno.core.app;
 
-import java.io.*;
-import java.util.concurrent.Callable;
-
 import lombok.extern.slf4j.Slf4j;
+
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.util.concurrent.Callable;
 
 @Slf4j
 public class ConsoleInputReadTask implements Callable<String> {

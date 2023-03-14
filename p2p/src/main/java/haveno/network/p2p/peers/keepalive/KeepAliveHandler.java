@@ -30,15 +30,13 @@ import haveno.network.p2p.network.NetworkNode;
 import haveno.network.p2p.peers.PeerManager;
 import haveno.network.p2p.peers.keepalive.messages.Ping;
 import haveno.network.p2p.peers.keepalive.messages.Pong;
-import java.util.Random;
-import java.util.concurrent.TimeUnit;
-
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.jetbrains.annotations.NotNull;
-
 import javax.annotation.Nullable;
+import java.util.Random;
+import java.util.concurrent.TimeUnit;
 
 class KeepAliveHandler implements MessageListener {
     private static final Logger log = LoggerFactory.getLogger(KeepAliveHandler.class);

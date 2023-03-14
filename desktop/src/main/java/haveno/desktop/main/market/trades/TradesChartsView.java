@@ -17,17 +17,7 @@
 
 package haveno.desktop.main.market.trades;
 
-import org.bitcoinj.core.Coin;
-
-import static haveno.desktop.main.market.trades.TradesChartsViewModel.MAX_TICKS;
-import static haveno.desktop.util.FormBuilder.addTopLabelAutocompleteComboBox;
-import static haveno.desktop.util.FormBuilder.getTopLabelWithVBox;
-
 import com.googlecode.jcsv.writer.CSVEntryConverter;
-
-import javax.inject.Inject;
-import javax.inject.Named;
-
 import com.jfoenix.controls.JFXTabPane;
 import haveno.common.UserThread;
 import haveno.common.util.MathUtils;
@@ -55,8 +45,16 @@ import haveno.desktop.main.market.trades.charts.volume.VolumeChart;
 import haveno.desktop.util.CurrencyListItem;
 import haveno.desktop.util.DisplayUtils;
 import haveno.desktop.util.GUIUtil;
-import javafx.stage.Stage;
-
+import javafx.beans.property.ReadOnlyObjectWrapper;
+import javafx.beans.property.SimpleStringProperty;
+import javafx.beans.property.StringProperty;
+import javafx.beans.value.ChangeListener;
+import javafx.collections.FXCollections;
+import javafx.collections.ListChangeListener;
+import javafx.collections.ObservableList;
+import javafx.collections.transformation.SortedList;
+import javafx.geometry.Insets;
+import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.chart.NumberAxis;
 import javafx.scene.chart.XYChart;
@@ -77,36 +75,27 @@ import javafx.scene.layout.Pane;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
 import javafx.scene.text.Text;
-
-import javafx.geometry.Insets;
-import javafx.geometry.Pos;
-
+import javafx.stage.Stage;
+import javafx.util.Callback;
+import javafx.util.StringConverter;
+import org.bitcoinj.core.Coin;
 import org.fxmisc.easybind.EasyBind;
 import org.fxmisc.easybind.Subscription;
 import org.fxmisc.easybind.monadic.MonadicBinding;
+import org.jetbrains.annotations.NotNull;
 
-import javafx.beans.property.ReadOnlyObjectWrapper;
-import javafx.beans.property.SimpleStringProperty;
-import javafx.beans.property.StringProperty;
-import javafx.beans.value.ChangeListener;
-
-import javafx.collections.FXCollections;
-import javafx.collections.ListChangeListener;
-import javafx.collections.ObservableList;
-import javafx.collections.transformation.SortedList;
-
-import javafx.util.Callback;
-import javafx.util.StringConverter;
-
+import javax.inject.Inject;
+import javax.inject.Named;
 import java.text.DecimalFormat;
-
 import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
-import org.jetbrains.annotations.NotNull;
+import static haveno.desktop.main.market.trades.TradesChartsViewModel.MAX_TICKS;
+import static haveno.desktop.util.FormBuilder.addTopLabelAutocompleteComboBox;
+import static haveno.desktop.util.FormBuilder.getTopLabelWithVBox;
 
 @FxmlView
 public class TradesChartsView extends ActivatableViewAndModel<VBox, TradesChartsViewModel> {

@@ -17,28 +17,23 @@
 
 package haveno.desktop.main.funds.transactions;
 
-import org.bitcoinj.core.Sha256Hash;
-
-import javafx.collections.FXCollections;
-
-import java.util.Set;
-
-import org.junit.Before;
-import org.junit.Test;
-
-import static org.junit.Assert.assertTrue;
-import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
-
 import haveno.core.support.dispute.Dispute;
 import haveno.core.support.dispute.arbitration.ArbitrationManager;
 import haveno.core.support.dispute.refund.RefundManager;
 import haveno.core.trade.Trade;
 import haveno.core.xmr.wallet.XmrWalletService;
-import haveno.desktop.main.funds.transactions.TransactionAwareTradable;
-import haveno.desktop.main.funds.transactions.TransactionAwareTrade;
+import javafx.collections.FXCollections;
 import monero.wallet.model.MoneroTxWallet;
+import org.bitcoinj.core.Sha256Hash;
+import org.junit.Before;
+import org.junit.Test;
+
+import java.util.Set;
+
+import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class TransactionAwareTradeTest {
     private static final Sha256Hash XID = Sha256Hash.wrap("0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef");

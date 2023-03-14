@@ -17,8 +17,6 @@
 
 package haveno.desktop.main.overlays.windows;
 
-import static haveno.desktop.util.FormBuilder.*;
-
 import haveno.common.util.Tuple2;
 import haveno.common.util.Utilities;
 import haveno.core.account.witness.AccountAgeWitness;
@@ -30,20 +28,22 @@ import haveno.desktop.components.HavenoTextArea;
 import haveno.desktop.components.InputTextField;
 import haveno.desktop.main.overlays.Overlay;
 import haveno.desktop.main.overlays.popups.Popup;
+import javafx.geometry.VPos;
+import javafx.scene.control.TextArea;
+import javafx.scene.layout.GridPane;
+import javafx.scene.layout.Priority;
+import lombok.extern.slf4j.Slf4j;
 import org.bitcoinj.core.ECKey;
 import org.bitcoinj.core.Utils;
 
 import javax.inject.Inject;
-
-import javafx.scene.control.TextArea;
-import javafx.scene.layout.GridPane;
-import javafx.scene.layout.Priority;
-
-import javafx.geometry.VPos;
-
 import java.util.Date;
 
-import lombok.extern.slf4j.Slf4j;
+import static haveno.desktop.util.FormBuilder.add2ButtonsAfterGroup;
+import static haveno.desktop.util.FormBuilder.addInputTextField;
+import static haveno.desktop.util.FormBuilder.addMultilineLabel;
+import static haveno.desktop.util.FormBuilder.addTopLabelTextField;
+import static haveno.desktop.util.FormBuilder.removeRowsFromGridPane;
 
 @Slf4j
 public class SignSpecificWitnessWindow extends Overlay<SignSpecificWitnessWindow> {

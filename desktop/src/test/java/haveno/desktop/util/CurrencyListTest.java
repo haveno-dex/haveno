@@ -22,16 +22,13 @@ import haveno.core.locale.CryptoCurrency;
 import haveno.core.locale.FiatCurrency;
 import haveno.core.locale.TradeCurrency;
 import haveno.core.user.Preferences;
-import haveno.desktop.util.CurrencyList;
-import haveno.desktop.util.CurrencyListItem;
-import haveno.desktop.util.CurrencyPredicates;
+import org.junit.Before;
+import org.junit.Test;
+
 import java.util.ArrayList;
 import java.util.Currency;
 import java.util.List;
 import java.util.Locale;
-
-import org.junit.Before;
-import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.mock;

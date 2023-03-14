@@ -19,10 +19,10 @@ package haveno.core.support.dispute;
 
 import haveno.common.proto.persistable.PersistableListAsObservable;
 import haveno.common.proto.persistable.PersistablePayload;
-import java.util.Collection;
-
 import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
+
+import java.util.Collection;
 
 @Slf4j
 @ToString

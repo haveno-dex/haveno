@@ -17,6 +17,7 @@
 
 package haveno.desktop.components;
 
+import com.jfoenix.controls.JFXTextField;
 import de.jensd.fx.fontawesome.AwesomeDude;
 import de.jensd.fx.fontawesome.AwesomeIcon;
 import haveno.common.util.Utilities;
@@ -24,13 +25,10 @@ import haveno.core.locale.Res;
 import haveno.core.user.BlockChainExplorer;
 import haveno.core.user.Preferences;
 import haveno.desktop.util.GUIUtil;
-import com.jfoenix.controls.JFXTextField;
-
 import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
 import javafx.scene.control.Tooltip;
 import javafx.scene.layout.AnchorPane;
-
 import lombok.Getter;
 import lombok.Setter;
 

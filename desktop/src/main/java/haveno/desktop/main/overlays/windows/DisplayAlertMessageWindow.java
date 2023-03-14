@@ -17,8 +17,6 @@
 
 package haveno.desktop.main.overlays.windows;
 
-import static haveno.desktop.util.FormBuilder.addMultilineLabel;
-
 import haveno.core.alert.Alert;
 import haveno.core.locale.Res;
 import haveno.desktop.components.HyperlinkWithIcon;
@@ -28,6 +26,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static haveno.desktop.util.FormBuilder.addMultilineLabel;
 
 public class DisplayAlertMessageWindow extends Overlay<DisplayAlertMessageWindow> {
     private static final Logger log = LoggerFactory.getLogger(DisplayAlertMessageWindow.class);

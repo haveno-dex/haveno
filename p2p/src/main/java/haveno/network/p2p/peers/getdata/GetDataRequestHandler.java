@@ -29,12 +29,11 @@ import haveno.network.p2p.network.NetworkNode;
 import haveno.network.p2p.peers.getdata.messages.GetDataRequest;
 import haveno.network.p2p.peers.getdata.messages.GetDataResponse;
 import haveno.network.p2p.storage.P2PDataStorage;
+import lombok.extern.slf4j.Slf4j;
+import org.jetbrains.annotations.NotNull;
+
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
-
-import lombok.extern.slf4j.Slf4j;
-
-import org.jetbrains.annotations.NotNull;
 
 @Slf4j
 public class GetDataRequestHandler {

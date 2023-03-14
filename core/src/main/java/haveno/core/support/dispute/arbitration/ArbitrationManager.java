@@ -17,6 +17,8 @@
 
 package haveno.core.support.dispute.arbitration;
 
+import com.google.inject.Inject;
+import com.google.inject.Singleton;
 import common.utils.GenUtils;
 import haveno.common.Timer;
 import haveno.common.UserThread;
@@ -32,8 +34,8 @@ import haveno.core.support.SupportType;
 import haveno.core.support.dispute.Dispute;
 import haveno.core.support.dispute.DisputeManager;
 import haveno.core.support.dispute.DisputeResult;
-import haveno.core.support.dispute.DisputeSummaryVerification;
 import haveno.core.support.dispute.DisputeResult.Winner;
+import haveno.core.support.dispute.DisputeSummaryVerification;
 import haveno.core.support.dispute.arbitration.arbitrator.ArbitratorManager;
 import haveno.core.support.dispute.messages.DisputeClosedMessage;
 import haveno.core.support.dispute.messages.DisputeOpenedMessage;
@@ -49,8 +51,12 @@ import haveno.core.xmr.wallet.XmrWalletService;
 import haveno.network.p2p.AckMessageSourceType;
 import haveno.network.p2p.NodeAddress;
 import haveno.network.p2p.P2PService;
-import com.google.inject.Inject;
-import com.google.inject.Singleton;
+import lombok.extern.slf4j.Slf4j;
+import monero.wallet.MoneroWallet;
+import monero.wallet.model.MoneroDestination;
+import monero.wallet.model.MoneroMultisigSignResult;
+import monero.wallet.model.MoneroTxSet;
+import monero.wallet.model.MoneroTxWallet;
 
 import java.math.BigInteger;
 import java.util.HashMap;
@@ -60,17 +66,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
-import lombok.extern.slf4j.Slf4j;
-
 import static com.google.common.base.Preconditions.checkNotNull;
-
-
-
-import monero.wallet.MoneroWallet;
-import monero.wallet.model.MoneroDestination;
-import monero.wallet.model.MoneroMultisigSignResult;
-import monero.wallet.model.MoneroTxSet;
-import monero.wallet.model.MoneroTxWallet;
 
 @Slf4j
 @Singleton
@@ -199,17 +195,17 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
                 chatMessage = disputeResult.getChatMessage();
                 checkNotNull(chatMessage, "chatMessage must not be null");
                 String tradeId = disputeResult.getTradeId();
-        
+
                 log.info("Processing {} for {} {}", disputeClosedMessage.getClass().getSimpleName(), trade.getClass().getSimpleName(), disputeResult.getTradeId());
-        
+
                 // verify arbitrator signature
                 String summaryText = chatMessage.getMessage();
                 DisputeSummaryVerification.verifySignature(summaryText, arbitratorManager);
-        
+
                 // save dispute closed message for reprocessing
                 trade.getProcessModel().setDisputeClosedMessage(disputeClosedMessage);
                 requestPersistence();
-        
+
                 // get dispute
                 Optional<Dispute> disputeOptional = findDispute(disputeResult);
                 String uid = disputeClosedMessage.getUid();
@@ -228,14 +224,14 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
                     return;
                 }
                 dispute = disputeOptional.get();
-        
+
                 // verify that arbitrator does not get DisputeClosedMessage
                 if (keyRing.getPubKeyRing().equals(dispute.getAgentPubKeyRing())) {
                     log.error("Arbitrator received disputeResultMessage. That should never happen.");
                     trade.getProcessModel().setDisputeClosedMessage(null); // don't reprocess
                     return;
                 }
-        
+
                 // set dispute state
                 cleanupRetryMap(uid);
                 if (!dispute.getChatMessages().contains(chatMessage)) {
@@ -260,7 +256,7 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
                     if (disputeClosedMessage.getUpdatedMultisigHex() != null) trade.getArbitrator().setUpdatedMultisigHex(disputeClosedMessage.getUpdatedMultisigHex());
                     trade.importMultisigHex();
                 }
-        
+
                 // attempt to sign and publish dispute payout tx if given and not already published
                 if (disputeClosedMessage.getUnsignedPayoutTxHex() != null && !trade.isPayoutPublished()) {
 
@@ -270,14 +266,14 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
                         GenUtils.waitFor(Trade.DEFER_PUBLISH_MS);
                         if (!trade.isPayoutUnlocked()) trade.syncWallet();
                     }
-    
+
                     // sign and publish dispute payout tx if peer still has not published
                     if (!trade.isPayoutPublished()) {
                         try {
                             log.info("Signing and publishing dispute payout tx for {} {}", trade.getClass().getSimpleName(), trade.getId());
                             signAndPublishDisputePayoutTx(trade);
                         } catch (Exception e) {
-    
+
                             // check if payout published again
                             trade.syncWallet();
                             if (trade.isPayoutPublished()) {
@@ -293,7 +289,7 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
                     if (trade.isPayoutPublished()) log.info("Dispute payout tx already published for {} {}", trade.getClass().getSimpleName(), trade.getId());
                     else if (disputeClosedMessage.getUnsignedPayoutTxHex() == null) log.info("{} did not receive unsigned dispute payout tx for trade {} because the arbitrator did not have their updated multisig info (can happen if trader went offline after trade started)", trade.getClass().getSimpleName(), trade.getId());
                 }
-    
+
                 // We use the chatMessage as we only persist those not the DisputeClosedMessage.
                 // If we would use the DisputeClosedMessage we could not lookup for the msg when we receive the AckMessage.
                 sendAckMessage(chatMessage, dispute.getAgentPubKeyRing(), true, null);
@@ -302,7 +298,7 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
                 log.warn("Error processing dispute closed message: " + e.getMessage());
                 e.printStackTrace();
                 requestPersistence();
-    
+
                 // nack bad message and do not reprocess
                 if (e instanceof IllegalArgumentException) {
                     trade.getProcessModel().setPaymentReceivedMessage(null); // message is processed
@@ -310,7 +306,7 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
                     requestPersistence();
                     throw e;
                 }
-    
+
                 // schedule to reprocess message unless deleted
                 if (trade.getProcessModel().getDisputeClosedMessage() != null) {
                     if (!reprocessDisputeClosedMessageCounts.containsKey(trade.getId())) reprocessDisputeClosedMessageCounts.put(trade.getId(), 0);
@@ -393,7 +389,7 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
         BigInteger expectedLoserAmount = disputeResult.getWinner() == Winner.BUYER ? disputeResult.getSellerPayoutAmount() : disputeResult.getBuyerPayoutAmount();
 
         // add any loss of precision to winner amount
-        expectedWinnerAmount = expectedWinnerAmount.add(trade.getWallet().getUnlockedBalance().subtract(expectedWinnerAmount.add(expectedLoserAmount))); 
+        expectedWinnerAmount = expectedWinnerAmount.add(trade.getWallet().getUnlockedBalance().subtract(expectedWinnerAmount.add(expectedLoserAmount)));
 
         // winner pays cost if loser gets nothing, otherwise loser pays cost
         if (expectedLoserAmount.equals(BigInteger.ZERO)) expectedWinnerAmount = expectedWinnerAmount.subtract(txCost);
@@ -424,7 +420,7 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
             disputeTxSet.setMultisigTxHex(signedMultisigTxHex);
             trade.setPayoutTxHex(signedMultisigTxHex);
             requestPersistence();
-    
+
             // verify mining fee is within tolerance by recreating payout tx
             // TODO (monero-project): creating tx will require exchanging updated multisig hex if message needs reprocessed. provide weight with describe_transfer so fee can be estimated?
             MoneroTxWallet feeEstimateTx = null;

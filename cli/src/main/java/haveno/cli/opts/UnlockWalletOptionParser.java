@@ -18,10 +18,10 @@
 package haveno.cli.opts;
 
 
+import joptsimple.OptionSpec;
+
 import static haveno.cli.opts.OptLabel.OPT_TIMEOUT;
 import static haveno.cli.opts.OptLabel.OPT_WALLET_PASSWORD;
-
-import joptsimple.OptionSpec;
 
 public class UnlockWalletOptionParser extends AbstractMethodOptionParser implements MethodOpts {
 

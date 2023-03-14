@@ -20,10 +20,10 @@ package haveno.desktop.setup;
 import com.google.inject.Injector;
 import haveno.common.proto.persistable.PersistedDataHost;
 import haveno.desktop.Navigation;
+import lombok.extern.slf4j.Slf4j;
+
 import java.util.ArrayList;
 import java.util.List;
-
-import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class DesktopPersistedDataHost {

@@ -23,22 +23,19 @@ import haveno.network.p2p.NodeAddress;
 import haveno.network.p2p.TestUtils;
 import haveno.network.p2p.peers.getdata.messages.GetUpdatedDataRequest;
 import haveno.network.p2p.peers.getdata.messages.PreliminaryGetDataRequest;
-import haveno.network.p2p.storage.P2PDataStorage;
 import haveno.network.p2p.storage.mocks.PersistableNetworkPayloadStub;
 import haveno.network.p2p.storage.mocks.ProtectedStoragePayloadStub;
 import haveno.network.p2p.storage.payload.PersistableNetworkPayload;
 import haveno.network.p2p.storage.payload.ProtectedStorageEntry;
 import haveno.network.p2p.storage.payload.ProtectedStoragePayload;
-import java.security.KeyPair;
-import java.security.NoSuchAlgorithmException;
-
-import java.util.Set;
-
-import org.mockito.MockitoAnnotations;
-
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.MockitoAnnotations;
+
+import java.security.KeyPair;
+import java.security.NoSuchAlgorithmException;
+import java.util.Set;
 
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.mock;

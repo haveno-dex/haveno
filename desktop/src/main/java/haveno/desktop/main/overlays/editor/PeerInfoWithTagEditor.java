@@ -17,9 +17,6 @@
 
 package haveno.desktop.main.overlays.editor;
 
-import static haveno.desktop.util.FormBuilder.addCompactTopLabelTextField;
-import static haveno.desktop.util.FormBuilder.addInputTextField;
-
 import haveno.common.UserThread;
 import haveno.common.crypto.PubKeyRing;
 import haveno.common.util.Tuple3;
@@ -37,10 +34,12 @@ import javafx.animation.Interpolator;
 import javafx.animation.KeyFrame;
 import javafx.animation.KeyValue;
 import javafx.animation.Timeline;
-
-import javafx.stage.Modality;
-import javafx.stage.Window;
-
+import javafx.beans.value.ChangeListener;
+import javafx.collections.ObservableList;
+import javafx.event.EventHandler;
+import javafx.geometry.HPos;
+import javafx.geometry.Insets;
+import javafx.geometry.Point2D;
 import javafx.scene.Camera;
 import javafx.scene.PerspectiveCamera;
 import javafx.scene.Scene;
@@ -51,26 +50,18 @@ import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.transform.Rotate;
-
-import javafx.geometry.HPos;
-import javafx.geometry.Insets;
-import javafx.geometry.Point2D;
-
-import javafx.beans.value.ChangeListener;
-
-import javafx.event.EventHandler;
-
-import javafx.collections.ObservableList;
-
+import javafx.stage.Modality;
+import javafx.stage.Window;
 import javafx.util.Duration;
+import lombok.extern.slf4j.Slf4j;
 
+import javax.annotation.Nullable;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
-import lombok.extern.slf4j.Slf4j;
-
-import javax.annotation.Nullable;
+import static haveno.desktop.util.FormBuilder.addCompactTopLabelTextField;
+import static haveno.desktop.util.FormBuilder.addInputTextField;
 
 @Slf4j
 public class PeerInfoWithTagEditor extends Overlay<PeerInfoWithTagEditor> {

@@ -25,18 +25,15 @@ import haveno.core.locale.CurrencyUtil;
 import haveno.core.locale.FiatCurrency;
 import haveno.core.locale.GlobalSettings;
 import haveno.core.locale.Res;
-import haveno.core.user.Preferences;
-import haveno.core.user.PreferencesPayload;
 import haveno.core.xmr.nodes.LocalBitcoinNode;
 import javafx.collections.ObservableList;
+import org.junit.Before;
+import org.junit.Test;
 
 import java.util.ArrayList;
 import java.util.Currency;
 import java.util.List;
 import java.util.Locale;
-
-import org.junit.Before;
-import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
