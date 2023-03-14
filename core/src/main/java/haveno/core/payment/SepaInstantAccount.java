@@ -27,11 +27,11 @@ import haveno.core.payment.payload.PaymentAccountPayload;
 import haveno.core.payment.payload.PaymentMethod;
 import haveno.core.payment.payload.SepaInstantAccountPayload;
 import haveno.core.payment.validation.SepaIBANValidator;
-import java.util.List;
-import javax.annotation.Nullable;
 import lombok.EqualsAndHashCode;
-
 import org.jetbrains.annotations.NotNull;
+
+import javax.annotation.Nullable;
+import java.util.List;
 
 @EqualsAndHashCode(callSuper = true)
 public final class SepaInstantAccount extends CountryBasedPaymentAccount implements BankAccount {

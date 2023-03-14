@@ -17,8 +17,6 @@
 
 package haveno.core.payment.payload;
 
-import org.apache.commons.lang3.ArrayUtils;
-
 import com.google.gson.GsonBuilder;
 import haveno.common.consensus.UsedForTradeContractJson;
 import haveno.common.crypto.CryptoUtils;
@@ -27,15 +25,15 @@ import haveno.common.proto.network.NetworkPayload;
 import haveno.common.util.JsonExclude;
 import haveno.common.util.Utilities;
 import haveno.core.proto.CoreProtoResolver;
-import java.nio.charset.StandardCharsets;
-
-import java.util.HashMap;
-import java.util.Map;
-
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.ArrayUtils;
+
+import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
+import java.util.Map;
 
 import static com.google.common.base.Preconditions.checkArgument;
 

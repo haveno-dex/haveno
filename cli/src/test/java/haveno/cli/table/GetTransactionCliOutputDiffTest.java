@@ -1,11 +1,7 @@
 package haveno.cli.table;
 
-import lombok.extern.slf4j.Slf4j;
-
-import static haveno.cli.table.builder.TableType.TRANSACTION_TBL;
-
 import haveno.cli.AbstractCliTest;
-import haveno.cli.table.builder.TableBuilder;
+import lombok.extern.slf4j.Slf4j;
 
 @SuppressWarnings("unused")
 @Slf4j

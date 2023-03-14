@@ -17,6 +17,7 @@
 
 package haveno.core.payment;
 
+import haveno.core.offer.Offer;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -25,18 +26,11 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.Mockito.*;
-
-import haveno.core.offer.Offer;
-import haveno.core.payment.CountryBasedPaymentAccount;
-import haveno.core.payment.MoneyGramAccount;
-import haveno.core.payment.NationalBankAccount;
-import haveno.core.payment.PaymentAccount;
-import haveno.core.payment.ReceiptPredicates;
-import haveno.core.payment.ReceiptValidator;
-import haveno.core.payment.SameBankAccount;
-import haveno.core.payment.SpecificBanksAccount;
-import haveno.core.payment.WesternUnionAccount;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
+import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.StrictStubs.class)
 public class ReceiptValidatorTest {

@@ -22,15 +22,13 @@ import haveno.core.support.dispute.mediation.mediator.MediatorManager;
 import haveno.core.support.dispute.refund.refundagent.RefundAgent;
 import haveno.core.support.dispute.refund.refundagent.RefundAgentManager;
 import haveno.core.user.Preferences;
-import haveno.desktop.main.settings.preferences.PreferencesViewModel;
 import haveno.desktop.maker.PreferenceMakers;
 import haveno.network.p2p.NodeAddress;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableMap;
+import org.junit.Test;
 
 import java.util.ArrayList;
-
-import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;

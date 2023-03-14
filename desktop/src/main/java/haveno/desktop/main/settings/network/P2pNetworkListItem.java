@@ -26,14 +26,11 @@ import haveno.network.p2p.network.ConnectionState;
 import haveno.network.p2p.network.OutboundConnection;
 import haveno.network.p2p.network.PeerType;
 import haveno.network.p2p.network.Statistic;
-import org.apache.commons.lang3.time.DurationFormatUtils;
-
-import org.fxmisc.easybind.EasyBind;
-import org.fxmisc.easybind.Subscription;
-
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
-
+import org.apache.commons.lang3.time.DurationFormatUtils;
+import org.fxmisc.easybind.EasyBind;
+import org.fxmisc.easybind.Subscription;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

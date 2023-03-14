@@ -17,6 +17,7 @@
 
 package haveno.network.p2p.storage.payload;
 
+import com.google.common.base.Preconditions;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.Message;
 import haveno.common.crypto.CryptoException;
@@ -26,17 +27,13 @@ import haveno.common.proto.network.NetworkProtoResolver;
 import haveno.common.proto.persistable.PersistablePayload;
 import haveno.common.util.Utilities;
 import haveno.network.p2p.storage.P2PDataStorage;
-import com.google.common.base.Preconditions;
-
-import java.security.PublicKey;
-
-import java.time.Clock;
-
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
-
 import org.jetbrains.annotations.NotNull;
+
+import java.security.PublicKey;
+import java.time.Clock;
 
 @Getter
 @EqualsAndHashCode

@@ -17,6 +17,21 @@
 
 package haveno.core.xmr.wallet;
 
+import com.google.common.base.Preconditions;
+import com.google.common.util.concurrent.FutureCallback;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.MoreExecutors;
+import haveno.common.handlers.ErrorMessageHandler;
+import haveno.common.util.Tuple2;
+import haveno.core.user.Preferences;
+import haveno.core.xmr.exceptions.AddressEntryException;
+import haveno.core.xmr.exceptions.InsufficientFundsException;
+import haveno.core.xmr.exceptions.TransactionVerificationException;
+import haveno.core.xmr.exceptions.WalletException;
+import haveno.core.xmr.model.AddressEntry;
+import haveno.core.xmr.model.AddressEntryList;
+import haveno.core.xmr.setup.WalletsSetup;
+import haveno.core.xmr.wallet.http.MemPoolSpaceTxBroadcaster;
 import org.bitcoinj.core.Address;
 import org.bitcoinj.core.AddressFormatException;
 import org.bitcoinj.core.Coin;
@@ -34,39 +49,19 @@ import org.bitcoinj.script.Script;
 import org.bitcoinj.script.ScriptPattern;
 import org.bitcoinj.wallet.SendRequest;
 import org.bitcoinj.wallet.Wallet;
-
-import javax.inject.Inject;
-
-import com.google.common.base.Preconditions;
-import com.google.common.util.concurrent.FutureCallback;
-import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.MoreExecutors;
-import haveno.common.handlers.ErrorMessageHandler;
-import haveno.common.util.Tuple2;
-import haveno.core.user.Preferences;
-import haveno.core.xmr.exceptions.AddressEntryException;
-import haveno.core.xmr.exceptions.InsufficientFundsException;
-import haveno.core.xmr.exceptions.TransactionVerificationException;
-import haveno.core.xmr.exceptions.WalletException;
-import haveno.core.xmr.model.AddressEntry;
-import haveno.core.xmr.model.AddressEntryList;
-import haveno.core.xmr.setup.WalletsSetup;
-import haveno.core.xmr.wallet.http.MemPoolSpaceTxBroadcaster;
 import org.bouncycastle.crypto.params.KeyParameter;
+import org.jetbrains.annotations.NotNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import javax.annotation.Nullable;
+import javax.inject.Inject;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import org.jetbrains.annotations.NotNull;
-
-import javax.annotation.Nullable;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;

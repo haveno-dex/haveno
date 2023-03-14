@@ -19,12 +19,9 @@ package haveno.desktop.components;
 
 import javafx.scene.control.Label;
 import javafx.scene.text.Text;
-
 import org.junit.Ignore;
 
 import static org.junit.Assert.assertEquals;
-
-import haveno.desktop.components.ColoredDecimalPlacesWithZerosText;
 
 public class ColoredDecimalPlacesWithZerosTextTest {
 

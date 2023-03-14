@@ -17,8 +17,6 @@
 
 package haveno.core.trade;
 
-import org.bitcoinj.core.Coin;
-
 import com.google.common.base.CaseFormat;
 import com.google.common.base.Charsets;
 import haveno.common.config.Config;
@@ -36,14 +34,16 @@ import haveno.core.trade.messages.PaymentReceivedMessage;
 import haveno.core.trade.messages.PaymentSentMessage;
 import haveno.core.util.JsonUtil;
 import haveno.network.p2p.NodeAddress;
-import java.text.DecimalFormat;
-import java.text.SimpleDateFormat;
+import lombok.extern.slf4j.Slf4j;
+import org.bitcoinj.core.Coin;
 
-import java.net.URI;
-import java.security.PrivateKey;
+import javax.annotation.Nullable;
 import java.math.BigDecimal;
 import java.math.BigInteger;
-
+import java.net.URI;
+import java.security.PrivateKey;
+import java.text.DecimalFormat;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -52,10 +52,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
-
-import lombok.extern.slf4j.Slf4j;
-
-import javax.annotation.Nullable;
 
 /**
  * Collection of utilities.
@@ -72,7 +68,7 @@ public class HavenoUtils {
     public static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("dd-MM-yyyy HH:mm:ss");
     private static final int POOL_SIZE = 10;
     private static final ExecutorService POOL = Executors.newFixedThreadPool(POOL_SIZE);
-    
+
     public static ArbitrationManager arbitrationManager; // TODO: better way to share reference?
 
 

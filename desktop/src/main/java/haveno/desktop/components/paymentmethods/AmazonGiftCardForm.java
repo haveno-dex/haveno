@@ -17,8 +17,6 @@
 
 package haveno.desktop.components.paymentmethods;
 
-import static haveno.desktop.util.FormBuilder.*;
-
 import haveno.core.account.witness.AccountAgeWitnessService;
 import haveno.core.locale.Country;
 import haveno.core.locale.CountryUtil;
@@ -33,17 +31,20 @@ import haveno.core.util.coin.CoinFormatter;
 import haveno.core.util.validation.InputValidator;
 import haveno.desktop.components.InputTextField;
 import haveno.desktop.util.Layout;
+import javafx.collections.FXCollections;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.GridPane;
-
-import javafx.collections.FXCollections;
-
 import javafx.util.StringConverter;
+import lombok.extern.slf4j.Slf4j;
 
 import java.util.HashMap;
 
-import lombok.extern.slf4j.Slf4j;
+import static haveno.desktop.util.FormBuilder.addComboBox;
+import static haveno.desktop.util.FormBuilder.addCompactTopLabelTextField;
+import static haveno.desktop.util.FormBuilder.addCompactTopLabelTextFieldWithCopyIcon;
+import static haveno.desktop.util.FormBuilder.addInputTextField;
+import static haveno.desktop.util.FormBuilder.addTopLabelTextFieldWithCopyIcon;
 
 @Slf4j
 public class AmazonGiftCardForm extends PaymentMethodForm {

@@ -17,18 +17,14 @@
 
 package haveno.core.xmr.nodes;
 
-import org.bitcoinj.core.PeerAddress;
-
-import com.runjva.sourceforge.jsocks.protocol.Socks5Proxy;
-import haveno.core.xmr.nodes.BtcNodeConverter;
-import haveno.core.xmr.nodes.BtcNodesRepository;
-import haveno.core.xmr.nodes.BtcNodes.BtcNode;
 import com.google.common.collect.Lists;
+import com.runjva.sourceforge.jsocks.protocol.Socks5Proxy;
+import haveno.core.xmr.nodes.BtcNodes.BtcNode;
+import org.bitcoinj.core.PeerAddress;
+import org.junit.Test;
 
 import java.util.Collections;
 import java.util.List;
-
-import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;

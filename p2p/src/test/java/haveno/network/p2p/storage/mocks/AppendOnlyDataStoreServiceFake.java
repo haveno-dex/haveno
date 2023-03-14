@@ -20,6 +20,7 @@ package haveno.network.p2p.storage.mocks;
 import haveno.network.p2p.storage.P2PDataStorage;
 import haveno.network.p2p.storage.payload.PersistableNetworkPayload;
 import haveno.network.p2p.storage.persistence.AppendOnlyDataStoreService;
+
 import java.util.Map;
 
 /**

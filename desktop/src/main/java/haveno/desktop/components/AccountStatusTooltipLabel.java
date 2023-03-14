@@ -27,16 +27,15 @@ import haveno.desktop.components.controlsfx.control.PopOver;
 import haveno.desktop.main.offer.offerbook.OfferBookListItem;
 import haveno.desktop.util.FormBuilder;
 import haveno.desktop.util.GUIUtil;
+import javafx.geometry.Bounds;
+import javafx.geometry.Insets;
+import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.control.ContentDisplay;
 import javafx.scene.control.Hyperlink;
 import javafx.scene.control.Label;
 import javafx.scene.layout.VBox;
 import javafx.scene.text.Text;
-
-import javafx.geometry.Bounds;
-import javafx.geometry.Insets;
-import javafx.geometry.Pos;
 
 import java.util.concurrent.TimeUnit;
 

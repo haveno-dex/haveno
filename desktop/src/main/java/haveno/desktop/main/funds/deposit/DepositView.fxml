@@ -17,12 +17,12 @@
   ~ along with Haveno. If not, see <http://www.gnu.org/licenses/>.
   -->
 
+<?import javafx.geometry.Insets?>
 <?import javafx.scene.control.TableColumn?>
 <?import javafx.scene.control.TableView?>
 <?import javafx.scene.layout.ColumnConstraints?>
 <?import javafx.scene.layout.GridPane?>
 <?import javafx.scene.layout.VBox?>
-<?import javafx.geometry.Insets?>
 <VBox fx:id="root" fx:controller="haveno.desktop.main.funds.deposit.DepositView"
       spacing="10" xmlns:fx="http://javafx.com/fxml">
     <padding>

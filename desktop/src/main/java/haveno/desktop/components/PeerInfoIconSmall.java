@@ -6,6 +6,7 @@ import haveno.core.offer.Offer;
 import haveno.core.trade.Trade;
 import haveno.core.user.Preferences;
 import haveno.network.p2p.NodeAddress;
+
 import javax.annotation.Nullable;
 
 public class PeerInfoIconSmall extends PeerInfoIconTrading {

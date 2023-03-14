@@ -65,6 +65,10 @@ import haveno.network.p2p.SendMailboxMessageListener;
 import haveno.network.p2p.mailbox.MailboxMessage;
 import haveno.network.p2p.mailbox.MailboxMessageService;
 import haveno.network.p2p.messaging.DecryptedMailboxListener;
+import lombok.extern.slf4j.Slf4j;
+import org.fxmisc.easybind.EasyBind;
+
+import javax.annotation.Nullable;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -72,10 +76,6 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
-
-import lombok.extern.slf4j.Slf4j;
-import org.fxmisc.easybind.EasyBind;
-import javax.annotation.Nullable;
 
 @Slf4j
 public abstract class TradeProtocol implements DecryptedDirectMessageListener, DecryptedMailboxListener {
@@ -363,7 +363,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
     public void handleSignContractResponse(SignContractResponse message, NodeAddress sender) {
         System.out.println(getClass().getSimpleName() + ".handleSignContractResponse() " + trade.getId());
         synchronized (trade) {
-        
+
             // check trade
             if (trade.hasFailed()) {
                 log.warn("{} {} ignoring {} from {} because trade failed with previous error: {}", trade.getClass().getSimpleName(), trade.getId(), message.getClass().getSimpleName(), sender, trade.getErrorMessage());
@@ -511,7 +511,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
     protected void handle(PaymentReceivedMessage message, NodeAddress peer) {
         handle(message, peer, true);
     }
-    
+
     private void handle(PaymentReceivedMessage message, NodeAddress peer, boolean reprocessOnError) {
         System.out.println(getClass().getSimpleName() + ".handle(PaymentReceivedMessage)");
         if (!(trade instanceof BuyerTrade || trade instanceof ArbitratorTrade)) {
@@ -590,7 +590,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
     protected FluentProtocol.Condition anyPhase(Trade.Phase... expectedPhases) {
         return new FluentProtocol.Condition(trade).anyPhase(expectedPhases);
     }
-    
+
     protected FluentProtocol.Condition state(Trade.State expectedState) {
         return new FluentProtocol.Condition(trade).state(expectedState);
     }
@@ -757,7 +757,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
 
             // valid if maker pub key
             if (message.getSignaturePubKey().equals(trade.getMaker().getPubKeyRing().getSignaturePubKey())) return true;
-            
+
             // valid if taker pub key
             if (message.getSignaturePubKey().equals(trade.getTaker().getPubKeyRing().getSignaturePubKey())) return true;
         } else {
@@ -771,7 +771,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
             // valid if peer's pub key ring
             if (message.getSignaturePubKey().equals(trade.getTradePeer().getPubKeyRing().getSignaturePubKey())) return true;
         }
-        
+
         // invalid
         log.error("SignaturePubKey in message does not match the SignaturePubKey we have set for our arbitrator or trading peer.");
         return false;

@@ -18,6 +18,7 @@
 package haveno.core.trade.txproof;
 
 import haveno.common.handlers.FaultHandler;
+
 import java.util.function.Consumer;
 
 public interface AssetTxProofRequestsPerTrade {

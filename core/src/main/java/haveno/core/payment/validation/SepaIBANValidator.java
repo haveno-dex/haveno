@@ -3,6 +3,7 @@ package haveno.core.payment.validation;
 import haveno.core.locale.Country;
 import haveno.core.locale.CountryUtil;
 import haveno.core.locale.Res;
+
 import java.util.List;
 import java.util.Optional;
 

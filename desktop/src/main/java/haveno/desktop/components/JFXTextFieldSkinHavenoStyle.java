@@ -4,15 +4,13 @@ import com.jfoenix.adapters.ReflectionHelper;
 import com.jfoenix.controls.base.IFXLabelFloatControl;
 import com.jfoenix.skins.PromptLinesWrapper;
 import com.jfoenix.skins.ValidationPane;
-
+import javafx.beans.property.DoubleProperty;
+import javafx.beans.value.ObservableDoubleValue;
 import javafx.scene.Node;
 import javafx.scene.control.TextField;
 import javafx.scene.control.skin.TextFieldSkin;
 import javafx.scene.layout.Pane;
 import javafx.scene.text.Text;
-
-import javafx.beans.property.DoubleProperty;
-import javafx.beans.value.ObservableDoubleValue;
 
 import java.lang.reflect.Field;
 

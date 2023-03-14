@@ -24,10 +24,9 @@ import haveno.network.p2p.NodeAddress;
 import lombok.extern.slf4j.Slf4j;
 
 import javax.annotation.Nullable;
+import java.math.BigInteger;
 
 import static com.google.common.base.Preconditions.checkNotNull;
-
-import java.math.BigInteger;
 
 @Slf4j
 public abstract class SellerTrade extends Trade {

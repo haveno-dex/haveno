@@ -17,16 +17,10 @@
 
 package haveno.core.xmr.setup;
 
-import org.bitcoinj.core.Address;
-import org.bitcoinj.core.BlockChain;
-import org.bitcoinj.core.Context;
-import org.bitcoinj.core.NetworkParameters;
-import org.bitcoinj.core.PeerAddress;
-import org.bitcoinj.core.PeerGroup;
-import org.bitcoinj.utils.Threading;
-import org.bitcoinj.wallet.DeterministicSeed;
-import org.bitcoinj.wallet.Wallet;
-
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.util.concurrent.Service;
+import com.google.inject.Inject;
+import com.google.inject.name.Named;
 import com.runjva.sourceforge.jsocks.protocol.Socks5Proxy;
 import haveno.common.Timer;
 import haveno.common.UserThread;
@@ -41,20 +35,12 @@ import haveno.core.xmr.model.AddressEntry;
 import haveno.core.xmr.model.AddressEntryList;
 import haveno.core.xmr.nodes.BtcNetworkConfig;
 import haveno.core.xmr.nodes.BtcNodes;
+import haveno.core.xmr.nodes.BtcNodes.BtcNode;
 import haveno.core.xmr.nodes.BtcNodesRepository;
 import haveno.core.xmr.nodes.BtcNodesSetupPreferences;
 import haveno.core.xmr.nodes.LocalBitcoinNode;
-import haveno.core.xmr.nodes.BtcNodes.BtcNode;
 import haveno.network.Socks5MultiDiscovery;
 import haveno.network.Socks5ProxyProvider;
-import com.google.inject.Inject;
-import com.google.inject.name.Named;
-
-import com.google.common.annotations.VisibleForTesting;
-import com.google.common.util.concurrent.Service;
-
-import org.apache.commons.lang3.StringUtils;
-
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.IntegerProperty;
 import javafx.beans.property.LongProperty;
@@ -63,28 +49,32 @@ import javafx.beans.property.ReadOnlyIntegerProperty;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleIntegerProperty;
 import javafx.beans.property.SimpleLongProperty;
+import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
+import org.bitcoinj.core.Address;
+import org.bitcoinj.core.BlockChain;
+import org.bitcoinj.core.Context;
+import org.bitcoinj.core.NetworkParameters;
+import org.bitcoinj.core.PeerAddress;
+import org.bitcoinj.core.PeerGroup;
+import org.bitcoinj.utils.Threading;
+import org.bitcoinj.wallet.DeterministicSeed;
+import org.bitcoinj.wallet.Wallet;
+import org.jetbrains.annotations.NotNull;
 
-import java.net.InetAddress;
-import java.net.UnknownHostException;
-
-import java.nio.file.Paths;
-
+import javax.annotation.Nullable;
 import java.io.File;
 import java.io.IOException;
-
+import java.net.InetAddress;
+import java.net.UnknownHostException;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
-
-import lombok.Getter;
-import lombok.extern.slf4j.Slf4j;
-
-import org.jetbrains.annotations.NotNull;
-
-import javax.annotation.Nullable;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 

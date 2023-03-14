@@ -17,11 +17,10 @@
 
 package haveno.core.monetary;
 
+import lombok.extern.slf4j.Slf4j;
 import org.bitcoinj.core.Coin;
 
 import java.math.BigInteger;
-
-import lombok.extern.slf4j.Slf4j;
 
 import static com.google.common.base.Preconditions.checkArgument;
 

@@ -18,17 +18,15 @@
 package haveno.network.p2p.network;
 
 import haveno.common.proto.network.NetworkEnvelope;
-import java.io.OutputStream;
-
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.concurrent.ThreadSafe;
+import java.io.OutputStream;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 @ThreadSafe
 class SynchronizedProtoOutputStream extends ProtoOutputStream {

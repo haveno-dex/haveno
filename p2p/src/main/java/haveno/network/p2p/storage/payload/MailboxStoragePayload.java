@@ -23,20 +23,17 @@ import haveno.common.util.CollectionUtils;
 import haveno.common.util.ExtraDataMapValidator;
 import haveno.network.p2p.PrefixedSealedAndSignedMessage;
 import haveno.network.p2p.storage.messages.AddOncePayload;
-import java.security.PublicKey;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
+import org.jetbrains.annotations.NotNull;
 
+import javax.annotation.Nullable;
+import java.security.PublicKey;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
-
-import lombok.EqualsAndHashCode;
-import lombok.Getter;
-import lombok.extern.slf4j.Slf4j;
-
-import org.jetbrains.annotations.NotNull;
-
-import javax.annotation.Nullable;
 
 /**
  * Payload which supports a time to live and sender and receiver's pub keys for storage operations.

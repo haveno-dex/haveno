@@ -26,15 +26,12 @@ import haveno.core.payment.payload.PaymentMethod;
 import haveno.core.trade.Trade;
 import haveno.core.user.Preferences;
 import haveno.network.p2p.NodeAddress;
+import javafx.scene.paint.Color;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 
-import javafx.scene.paint.Color;
-
-import java.util.Date;
-
-import lombok.extern.slf4j.Slf4j;
-
 import javax.annotation.Nullable;
+import java.util.Date;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static haveno.desktop.util.Colors.AVATAR_BLUE;

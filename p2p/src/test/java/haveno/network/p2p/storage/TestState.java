@@ -23,8 +23,6 @@ import haveno.common.proto.persistable.PersistablePayload;
 import haveno.network.p2p.NodeAddress;
 import haveno.network.p2p.network.NetworkNode;
 import haveno.network.p2p.peers.Broadcaster;
-import haveno.network.p2p.storage.HashMapChangedListener;
-import haveno.network.p2p.storage.P2PDataStorage;
 import haveno.network.p2p.storage.messages.AddDataMessage;
 import haveno.network.p2p.storage.messages.AddPersistableNetworkPayloadMessage;
 import haveno.network.p2p.storage.messages.BroadcastMessage;
@@ -43,19 +41,24 @@ import haveno.network.p2p.storage.persistence.ProtectedDataStoreService;
 import haveno.network.p2p.storage.persistence.RemovedPayloadsService;
 import haveno.network.p2p.storage.persistence.ResourceDataStoreService;
 import haveno.network.p2p.storage.persistence.SequenceNumberMap;
-import java.security.PublicKey;
+import org.junit.Assert;
+import org.mockito.ArgumentCaptor;
 
+import java.security.PublicKey;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
-import org.mockito.ArgumentCaptor;
-
-import org.junit.Assert;
-
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.isNull;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.nullable;
+import static org.mockito.Mockito.reset;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 /**
  * Test object that stores a P2PDataStore instance as well as the mock objects necessary for state validation.

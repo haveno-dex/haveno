@@ -17,22 +17,21 @@
 
 package haveno.monitor.metric;
 
-import java.net.URL;
-import java.net.URLConnection;
 import haveno.monitor.Metric;
 import haveno.monitor.Reporter;
+import lombok.extern.slf4j.Slf4j;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
-
+import java.net.URL;
+import java.net.URLConnection;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
-import lombok.extern.slf4j.Slf4j;
 
 /**
  * Uses the markets API to retrieve market volume data.

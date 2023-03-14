@@ -19,6 +19,7 @@ package haveno.desktop.components;
 
 import haveno.common.UserThread;
 import haveno.desktop.components.controlsfx.control.PopOver;
+
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 

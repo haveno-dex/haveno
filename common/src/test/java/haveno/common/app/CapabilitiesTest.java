@@ -17,11 +17,11 @@
 
 package haveno.common.app;
 
+import org.junit.Test;
+
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
-
-import org.junit.Test;
 
 import static haveno.common.app.Capability.SEED_NODE;
 import static haveno.common.app.Capability.TRADE_STATISTICS;
@@ -29,9 +29,6 @@ import static haveno.common.app.Capability.TRADE_STATISTICS_2;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
-
-import haveno.common.app.Capabilities;
-import haveno.common.app.Capability;
 
 public class CapabilitiesTest {
 

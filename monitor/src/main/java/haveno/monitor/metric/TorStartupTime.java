@@ -17,15 +17,15 @@
 
 package haveno.monitor.metric;
 
+import haveno.monitor.Metric;
+import haveno.monitor.Reporter;
 import org.berndpruenster.netlayer.tor.NativeTor;
 import org.berndpruenster.netlayer.tor.Tor;
 import org.berndpruenster.netlayer.tor.TorCtlException;
 import org.berndpruenster.netlayer.tor.Torrc;
-import haveno.monitor.Metric;
-import haveno.monitor.Reporter;
+
 import java.io.File;
 import java.io.IOException;
-
 import java.util.LinkedHashMap;
 import java.util.Properties;
 

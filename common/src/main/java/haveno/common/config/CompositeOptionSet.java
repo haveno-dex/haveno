@@ -1,10 +1,9 @@
 package haveno.common.config;
 
+import com.google.common.annotations.VisibleForTesting;
 import joptsimple.ArgumentAcceptingOptionSpec;
 import joptsimple.OptionSet;
 import joptsimple.OptionSpec;
-
-import com.google.common.annotations.VisibleForTesting;
 
 import java.util.ArrayList;
 import java.util.List;

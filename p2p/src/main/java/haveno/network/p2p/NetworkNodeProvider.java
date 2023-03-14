@@ -27,13 +27,12 @@ import haveno.network.p2p.network.NewTor;
 import haveno.network.p2p.network.RunningTor;
 import haveno.network.p2p.network.TorMode;
 import haveno.network.p2p.network.TorNetworkNode;
+
+import javax.annotation.Nullable;
 import javax.inject.Inject;
 import javax.inject.Named;
 import javax.inject.Provider;
-
 import java.io.File;
-
-import javax.annotation.Nullable;
 
 public class NetworkNodeProvider implements Provider<NetworkNode> {
 

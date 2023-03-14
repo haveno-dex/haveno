@@ -26,16 +26,15 @@ import haveno.common.util.CollectionUtils;
 import haveno.core.support.dispute.agent.DisputeAgent;
 import haveno.network.p2p.NodeAddress;
 import haveno.network.p2p.storage.payload.CapabilityRequiringPayload;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
 import javax.annotation.Nullable;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 
 @EqualsAndHashCode(callSuper = true)
 @Slf4j

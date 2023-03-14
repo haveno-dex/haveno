@@ -1,17 +1,13 @@
 package haveno.core.locale;
 
-import java.util.Locale;
-
 import org.junit.Before;
 import org.junit.Test;
+
+import java.util.Locale;
 
 import static junit.framework.TestCase.assertTrue;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
-
-import haveno.core.locale.BankUtil;
-import haveno.core.locale.GlobalSettings;
-import haveno.core.locale.Res;
 
 public class BankUtilTest {
 

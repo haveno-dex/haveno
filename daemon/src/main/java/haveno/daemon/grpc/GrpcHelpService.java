@@ -17,24 +17,22 @@
 
 package haveno.daemon.grpc;
 
-import haveno.proto.grpc.GetMethodHelpReply;
-import haveno.proto.grpc.GetMethodHelpRequest;
 import haveno.core.api.CoreApi;
 import haveno.daemon.grpc.interceptor.CallRateMeteringInterceptor;
 import haveno.daemon.grpc.interceptor.GrpcCallRateMeter;
+import haveno.proto.grpc.GetMethodHelpReply;
+import haveno.proto.grpc.GetMethodHelpRequest;
 import io.grpc.ServerInterceptor;
 import io.grpc.stub.StreamObserver;
+import lombok.extern.slf4j.Slf4j;
 
 import javax.inject.Inject;
-
 import java.util.HashMap;
 import java.util.Optional;
 
-import lombok.extern.slf4j.Slf4j;
-
+import static haveno.daemon.grpc.interceptor.GrpcServiceRateMeteringConfig.getCustomRateMeteringInterceptor;
 import static haveno.proto.grpc.HelpGrpc.HelpImplBase;
 import static haveno.proto.grpc.HelpGrpc.getGetMethodHelpMethod;
-import static haveno.daemon.grpc.interceptor.GrpcServiceRateMeteringConfig.getCustomRateMeteringInterceptor;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
 @Slf4j

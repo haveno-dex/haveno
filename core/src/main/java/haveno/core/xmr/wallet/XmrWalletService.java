@@ -1,7 +1,5 @@
 package haveno.core.xmr.wallet;
 
-import static com.google.common.base.Preconditions.checkState;
-
 import com.google.common.util.concurrent.Service.State;
 import com.google.inject.name.Named;
 import common.utils.JsonUtils;
@@ -26,22 +24,6 @@ import haveno.core.xmr.model.XmrAddressEntry;
 import haveno.core.xmr.model.XmrAddressEntryList;
 import haveno.core.xmr.setup.MoneroWalletRpcManager;
 import haveno.core.xmr.setup.WalletsSetup;
-import java.io.File;
-import java.math.BigDecimal;
-import java.math.BigInteger;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.concurrent.CopyOnWriteArraySet;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-import javax.inject.Inject;
 import monero.common.MoneroError;
 import monero.common.MoneroRpcConnection;
 import monero.common.MoneroRpcError;
@@ -68,6 +50,25 @@ import monero.wallet.model.MoneroWalletListener;
 import monero.wallet.model.MoneroWalletListenerI;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import javax.inject.Inject;
+import java.io.File;
+import java.math.BigDecimal;
+import java.math.BigInteger;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.concurrent.CopyOnWriteArraySet;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
+import static com.google.common.base.Preconditions.checkState;
 
 public class XmrWalletService {
     private static final Logger log = LoggerFactory.getLogger(XmrWalletService.class);
@@ -410,7 +411,7 @@ public class XmrWalletService {
                 double feeDiff = tx.getFee().subtract(feeEstimate).abs().doubleValue() / feeEstimate.doubleValue(); // TODO: use BigDecimal?
                 if (feeDiff > MINER_FEE_TOLERANCE) throw new Error("Miner fee is not within " + (MINER_FEE_TOLERANCE * 100) + "% of estimated fee, expected " + feeEstimate + " but was " + tx.getFee());
                 log.info("Trade tx fee {} is within tolerance, diff%={}", tx.getFee(), feeDiff);
-                
+
                 // verify transfer proof to fee address
                 String feeAddress = HavenoUtils.getTradeFeeAddress();
                 MoneroCheckTx feeCheck = wallet.checkTxKey(txHash, txKey, feeAddress);
@@ -424,7 +425,7 @@ public class XmrWalletService {
                 BigInteger actualTradeFee = isReserveTx ? returnCheck.getReceivedAmount().subtract(sendAmount) : feeCheck.getReceivedAmount();
                 actualSecurityDeposit = isReserveTx ? feeCheck.getReceivedAmount() : returnCheck.getReceivedAmount().subtract(sendAmount);
                 BigInteger actualSendAmount = returnCheck.getReceivedAmount().subtract(isReserveTx ? actualTradeFee : actualSecurityDeposit);
-                
+
                 // verify trade fee
                 if (!tradeFee.equals(actualTradeFee)) throw new RuntimeException("Trade fee is incorrect amount, expected " + tradeFee + " but was " + actualTradeFee);
 

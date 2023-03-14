@@ -17,11 +17,6 @@
 
 package haveno.desktop.maker;
 
-import java.net.UnknownHostException;
-
-import java.util.ArrayList;
-import java.util.List;
-
 import com.natpryce.makeiteasy.Instantiator;
 import com.natpryce.makeiteasy.Maker;
 import com.natpryce.makeiteasy.Property;
@@ -32,6 +27,10 @@ import haveno.core.offer.Offer;
 import haveno.core.offer.OfferDirection;
 import haveno.core.offer.OfferPayload;
 import haveno.network.p2p.NodeAddress;
+
+import java.net.UnknownHostException;
+import java.util.ArrayList;
+import java.util.List;
 
 import static com.natpryce.makeiteasy.MakeItEasy.a;
 import static com.natpryce.makeiteasy.MakeItEasy.with;

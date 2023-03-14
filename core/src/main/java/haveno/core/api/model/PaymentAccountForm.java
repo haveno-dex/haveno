@@ -17,11 +17,6 @@
 
 package haveno.core.api.model;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-import static java.lang.String.format;
-import static java.lang.System.getProperty;
-import static java.nio.charset.StandardCharsets.UTF_8;
-
 import com.google.common.annotations.VisibleForTesting;
 import com.google.gson.Gson;
 import haveno.common.proto.ProtoUtil;
@@ -30,6 +25,13 @@ import haveno.core.payment.PaymentAccount;
 import haveno.core.payment.PaymentAccountFactory;
 import haveno.core.payment.payload.PaymentMethod;
 import haveno.core.trade.HavenoUtils;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.ToString;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
+
+import javax.annotation.concurrent.Immutable;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -43,12 +45,11 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
-import javax.annotation.concurrent.Immutable;
-import lombok.EqualsAndHashCode;
-import lombok.Getter;
-import lombok.ToString;
-import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.StringUtils;
+
+import static com.google.common.base.Preconditions.checkNotNull;
+import static java.lang.String.format;
+import static java.lang.System.getProperty;
+import static java.nio.charset.StandardCharsets.UTF_8;
 
 @Getter
 @Immutable
@@ -56,7 +57,7 @@ import org.apache.commons.lang3.StringUtils;
 @ToString
 @Slf4j
 public final class PaymentAccountForm implements PersistablePayload {
-    
+
     public enum FormId {
         BLOCK_CHAINS,
         REVOLUT,
@@ -80,10 +81,10 @@ public final class PaymentAccountForm implements PersistablePayload {
             return protobuf.PaymentAccountForm.FormId.valueOf(formId.name());
         }
     }
-    
+
     private final FormId id;
     private final List<PaymentAccountFormField> fields;
-    
+
     public PaymentAccountForm(FormId id) {
         this.id = id;
         this.fields = new ArrayList<PaymentAccountFormField>();

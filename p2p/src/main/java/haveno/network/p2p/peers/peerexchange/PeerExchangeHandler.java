@@ -32,15 +32,13 @@ import haveno.network.p2p.network.NetworkNode;
 import haveno.network.p2p.peers.PeerManager;
 import haveno.network.p2p.peers.peerexchange.messages.GetPeersRequest;
 import haveno.network.p2p.peers.peerexchange.messages.GetPeersResponse;
-import java.util.HashSet;
-import java.util.Random;
-import java.util.concurrent.TimeUnit;
-
 import lombok.extern.slf4j.Slf4j;
-
 import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nullable;
+import java.util.HashSet;
+import java.util.Random;
+import java.util.concurrent.TimeUnit;
 
 @Slf4j
 class PeerExchangeHandler implements MessageListener {

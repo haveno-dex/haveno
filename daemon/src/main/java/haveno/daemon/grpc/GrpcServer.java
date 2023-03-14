@@ -17,23 +17,19 @@
 
 package haveno.daemon.grpc;
 
-import io.grpc.Server;
-import io.grpc.ServerBuilder;
-
-import javax.inject.Inject;
-import javax.inject.Singleton;
-
-import java.io.IOException;
-import java.io.UncheckedIOException;
-
-import lombok.extern.slf4j.Slf4j;
-
-import static io.grpc.ServerInterceptors.interceptForward;
-
-import haveno.common.UserThread;
 import haveno.common.config.Config;
 import haveno.core.api.CoreContext;
 import haveno.daemon.grpc.interceptor.PasswordAuthInterceptor;
+import io.grpc.Server;
+import io.grpc.ServerBuilder;
+import lombok.extern.slf4j.Slf4j;
+
+import javax.inject.Inject;
+import javax.inject.Singleton;
+import java.io.IOException;
+import java.io.UncheckedIOException;
+
+import static io.grpc.ServerInterceptors.interceptForward;
 
 @Singleton
 @Slf4j

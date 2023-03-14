@@ -17,14 +17,14 @@
 
 package haveno.monitor.metric;
 
-import org.berndpruenster.netlayer.tor.HiddenServiceSocket;
 import haveno.monitor.Metric;
 import haveno.monitor.Monitor;
 import haveno.monitor.Reporter;
 import haveno.monitor.ThreadGate;
-import java.io.File;
-
 import lombok.extern.slf4j.Slf4j;
+import org.berndpruenster.netlayer.tor.HiddenServiceSocket;
+
+import java.io.File;
 
 /**
  * A Metric to measure the startup time of a Tor Hidden Service on a already

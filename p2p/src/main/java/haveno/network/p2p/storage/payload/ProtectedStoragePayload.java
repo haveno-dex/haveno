@@ -19,11 +19,10 @@ package haveno.network.p2p.storage.payload;
 
 import haveno.common.proto.network.NetworkPayload;
 import haveno.common.proto.network.NetworkProtoResolver;
-import java.security.PublicKey;
-
-import java.util.Map;
 
 import javax.annotation.Nullable;
+import java.security.PublicKey;
+import java.util.Map;
 
 /**
  * Messages which support ownership protection (using signatures) and a time to live

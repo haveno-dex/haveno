@@ -19,10 +19,9 @@ package haveno.desktop.components;
 
 import haveno.common.util.Tuple2;
 import haveno.core.util.FormattingUtils;
+import javafx.geometry.Pos;
 import javafx.scene.control.Label;
 import javafx.scene.layout.HBox;
-
-import javafx.geometry.Pos;
 
 public class ColoredDecimalPlacesWithZerosText extends HBox {
 

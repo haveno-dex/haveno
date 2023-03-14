@@ -22,11 +22,10 @@ import haveno.common.proto.network.NetworkEnvelope;
 import haveno.network.p2p.NodeAddress;
 import haveno.network.p2p.mailbox.MailboxMessage;
 import haveno.network.p2p.storage.payload.ExpirablePayload;
+import lombok.Getter;
 import org.apache.commons.lang3.NotImplementedException;
 
 import java.util.UUID;
-
-import lombok.Getter;
 
 @Getter
 public final class MockMailboxPayload extends NetworkEnvelope implements MailboxMessage, ExpirablePayload {

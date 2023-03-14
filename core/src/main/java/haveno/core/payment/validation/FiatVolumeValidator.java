@@ -18,6 +18,7 @@
 package haveno.core.payment.validation;
 
 import haveno.core.util.validation.MonetaryValidator;
+
 import javax.inject.Inject;
 
 public class FiatVolumeValidator extends MonetaryValidator {

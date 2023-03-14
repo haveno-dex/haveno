@@ -26,21 +26,19 @@ import haveno.network.p2p.storage.payload.PersistableNetworkPayload;
 import haveno.network.p2p.storage.payload.ProcessOncePersistableNetworkPayload;
 import haveno.network.p2p.storage.payload.ProtectedStorageEntry;
 import haveno.network.p2p.storage.payload.ProtectedStoragePayload;
+import org.junit.Before;
+import org.junit.Test;
+import org.mockito.MockitoAnnotations;
+
 import java.security.KeyPair;
 import java.security.NoSuchAlgorithmException;
-
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 
-import org.junit.Before;
-import org.junit.Test;
-
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
-
-import org.mockito.MockitoAnnotations;
 
 public class P2PDataStorageProcessGetDataResponse {
     private TestState testState;

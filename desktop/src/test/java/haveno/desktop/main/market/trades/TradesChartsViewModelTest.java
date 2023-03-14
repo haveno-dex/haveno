@@ -26,33 +26,26 @@ import haveno.core.trade.statistics.TradeStatistics3;
 import haveno.core.trade.statistics.TradeStatisticsManager;
 import haveno.core.user.Preferences;
 import haveno.desktop.Navigation;
-import haveno.desktop.main.market.trades.ChartCalculations;
-import haveno.desktop.main.market.trades.TradesChartsViewModel;
 import haveno.desktop.main.market.trades.charts.CandleData;
-import org.bitcoinj.core.Coin;
-import org.bitcoinj.utils.Fiat;
-
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableSet;
-
 import javafx.util.Pair;
-
-import java.text.DateFormat;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
+import org.bitcoinj.core.Coin;
+import org.bitcoinj.utils.Fiat;
+import org.junit.Before;
+import org.junit.Ignore;
+import org.junit.Test;
 
 import java.io.File;
 import java.io.IOException;
-
+import java.text.DateFormat;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-
-import org.junit.Before;
-import org.junit.Ignore;
-import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.mock;

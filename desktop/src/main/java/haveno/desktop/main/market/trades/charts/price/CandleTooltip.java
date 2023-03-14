@@ -53,13 +53,11 @@ import haveno.core.locale.Res;
 import haveno.desktop.components.AutoTooltipLabel;
 import haveno.desktop.main.market.trades.charts.CandleData;
 import haveno.desktop.util.Layout;
+import javafx.geometry.HPos;
 import javafx.scene.control.Label;
 import javafx.scene.layout.ColumnConstraints;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.Priority;
-
-import javafx.geometry.HPos;
-
 import javafx.util.StringConverter;
 
 /**

@@ -19,24 +19,21 @@ package haveno.desktop.util;
 
 import haveno.common.UserThread;
 import haveno.core.user.Preferences;
-import javax.inject.Inject;
-import javax.inject.Singleton;
-
 import javafx.animation.FadeTransition;
 import javafx.animation.Interpolator;
 import javafx.animation.KeyFrame;
 import javafx.animation.KeyValue;
 import javafx.animation.Timeline;
-
+import javafx.event.ActionEvent;
+import javafx.event.EventHandler;
 import javafx.scene.Node;
 import javafx.scene.effect.ColorAdjust;
 import javafx.scene.effect.GaussianBlur;
 import javafx.scene.layout.Pane;
-
-import javafx.event.ActionEvent;
-import javafx.event.EventHandler;
-
 import javafx.util.Duration;
+
+import javax.inject.Inject;
+import javax.inject.Singleton;
 
 @Singleton
 public class Transitions {

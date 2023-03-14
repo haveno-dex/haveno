@@ -27,8 +27,6 @@ import haveno.core.xmr.model.XmrAddressEntry;
 import haveno.core.xmr.wallet.XmrWalletService;
 import haveno.desktop.components.indicator.TxConfidenceIndicator;
 import haveno.desktop.util.GUIUtil;
-import java.math.BigInteger;
-import java.util.List;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
 import javafx.scene.control.Tooltip;
@@ -37,6 +35,9 @@ import monero.daemon.model.MoneroTx;
 import monero.wallet.model.MoneroTransferQuery;
 import monero.wallet.model.MoneroTxQuery;
 import monero.wallet.model.MoneroTxWallet;
+
+import java.math.BigInteger;
+import java.util.List;
 
 @Slf4j
 class DepositListItem {
@@ -135,16 +136,16 @@ class DepositListItem {
         MoneroTx tx = getTxWithFewestConfirmations();
         return tx == null ? 0 : tx.getNumConfirmations();
     }
-    
+
     private MoneroTxWallet getTxWithFewestConfirmations() {
-        
+
         // get txs with incoming transfers to subaddress
         List<MoneroTxWallet> txs = xmrWalletService.getWallet()
                 .getTxs(new MoneroTxQuery()
                         .setTransferQuery(new MoneroTransferQuery()
                                 .setIsIncoming(true)
                                 .setSubaddressIndex(addressEntry.getSubaddressIndex())));
-        
+
         // get tx with fewest confirmations
         MoneroTxWallet highestTx = null;
         for (MoneroTxWallet tx : txs) if (highestTx == null || tx.getNumConfirmations() < highestTx.getNumConfirmations()) highestTx = tx;

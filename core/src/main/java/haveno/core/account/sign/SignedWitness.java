@@ -28,15 +28,13 @@ import haveno.network.p2p.storage.payload.CapabilityRequiringPayload;
 import haveno.network.p2p.storage.payload.DateTolerantPayload;
 import haveno.network.p2p.storage.payload.PersistableNetworkPayload;
 import haveno.network.p2p.storage.payload.ProcessOncePersistableNetworkPayload;
+import lombok.Value;
+import lombok.extern.slf4j.Slf4j;
 import org.bitcoinj.core.Coin;
 
 import java.time.Clock;
 import java.time.Instant;
-
 import java.util.concurrent.TimeUnit;
-
-import lombok.Value;
-import lombok.extern.slf4j.Slf4j;
 
 // Supports signatures made from EC key (arbitrators) and signature created with DSA key.
 @Slf4j

@@ -29,12 +29,12 @@ import haveno.core.trade.messages.InitTradeRequest;
 import haveno.core.trade.protocol.TradePeer;
 import lombok.extern.slf4j.Slf4j;
 
+import java.util.Date;
+
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static haveno.core.util.Validator.checkTradeId;
 import static haveno.core.util.Validator.nonEmptyStringOf;
-
-import java.util.Date;
 
 @Slf4j
 public class ProcessInitTradeRequest extends TradeTask {
@@ -58,7 +58,7 @@ public class ProcessInitTradeRequest extends TradeTask {
             if (trade instanceof ArbitratorTrade) {
                 trade.getMaker().setPubKeyRing((trade.getOffer().getPubKeyRing()));
                 trade.getArbitrator().setPubKeyRing(processModel.getPubKeyRing()); // TODO (woodser): why duplicating field in process model
-                
+
                 // handle request from taker
                 if (request.getSenderNodeAddress().equals(request.getTakerNodeAddress())) {
                     multisigParticipant = processModel.getTaker();
@@ -78,7 +78,7 @@ public class ProcessInitTradeRequest extends TradeTask {
                         failed(e2);
                     }
                 }
-                
+
                 // handle request from maker
                 else if (request.getSenderNodeAddress().equals(request.getMakerNodeAddress())) {
                     multisigParticipant = processModel.getMaker();
@@ -91,7 +91,7 @@ public class ProcessInitTradeRequest extends TradeTask {
                     throw new RuntimeException("Sender is not trade's maker or taker");
                 }
             }
-            
+
             // handle request as maker
             else if (trade instanceof MakerTrade) {
                 multisigParticipant = processModel.getTaker();
@@ -109,7 +109,7 @@ public class ProcessInitTradeRequest extends TradeTask {
                     failed(e2);
                 }
             }
-            
+
             // handle invalid trade type
             else {
                 throw new RuntimeException("Invalid trade type to process init trade request: " + trade.getClass().getName());

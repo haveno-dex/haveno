@@ -1,16 +1,14 @@
 package haveno.core.account.sign;
 
-import org.bitcoinj.core.ECKey;
-import org.bitcoinj.core.Utils;
-
 import com.google.common.base.Charsets;
 import haveno.common.crypto.Sig;
 import haveno.common.util.Utilities;
-import haveno.core.account.sign.SignedWitness;
-import java.time.Instant;
-
+import org.bitcoinj.core.ECKey;
+import org.bitcoinj.core.Utils;
 import org.junit.Before;
 import org.junit.Test;
+
+import java.time.Instant;
 
 import static haveno.core.account.sign.SignedWitness.VerificationMethod.ARBITRATOR;
 import static haveno.core.account.sign.SignedWitness.VerificationMethod.TRADE;

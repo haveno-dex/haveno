@@ -17,17 +17,20 @@
 
 package haveno.core.locale;
 
+import haveno.common.UserThread;
+import haveno.common.app.DevEnv;
+import haveno.common.config.BaseCurrencyNetwork;
+import haveno.common.config.Config;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
-
-import java.text.MessageFormat;
-
-import java.net.URL;
-import java.net.URLConnection;
+import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-
+import java.net.URL;
+import java.net.URLConnection;
+import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -35,17 +38,8 @@ import java.util.MissingResourceException;
 import java.util.PropertyResourceBundle;
 import java.util.ResourceBundle;
 
-import lombok.extern.slf4j.Slf4j;
-
-import org.jetbrains.annotations.NotNull;
-
 import static haveno.common.util.Utilities.toListOfWrappedStrings;
 import static java.nio.charset.StandardCharsets.UTF_8;
-
-import haveno.common.UserThread;
-import haveno.common.app.DevEnv;
-import haveno.common.config.BaseCurrencyNetwork;
-import haveno.common.config.Config;
 
 @Slf4j
 public class Res {

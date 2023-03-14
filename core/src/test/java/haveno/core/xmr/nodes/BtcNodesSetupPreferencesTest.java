@@ -17,9 +17,11 @@
 
 package haveno.core.xmr.nodes;
 
-import java.util.List;
-
+import haveno.core.user.Preferences;
+import haveno.core.xmr.nodes.BtcNodes.BtcNode;
 import org.junit.Test;
+
+import java.util.List;
 
 import static haveno.core.xmr.nodes.BtcNodes.BitcoinNodesOption.CUSTOM;
 import static haveno.core.xmr.nodes.BtcNodes.BitcoinNodesOption.PUBLIC;
@@ -27,11 +29,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
-
-import haveno.core.user.Preferences;
-import haveno.core.xmr.nodes.BtcNodes;
-import haveno.core.xmr.nodes.BtcNodesSetupPreferences;
-import haveno.core.xmr.nodes.BtcNodes.BtcNode;
 
 public class BtcNodesSetupPreferencesTest {
     @Test

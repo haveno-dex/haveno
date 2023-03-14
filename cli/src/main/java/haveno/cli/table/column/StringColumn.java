@@ -18,13 +18,13 @@
 package haveno.cli.table.column;
 
 
-import static haveno.cli.table.column.Column.JUSTIFICATION.LEFT;
-import static haveno.cli.table.column.Column.JUSTIFICATION.RIGHT;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Predicate;
 import java.util.stream.IntStream;
+
+import static haveno.cli.table.column.Column.JUSTIFICATION.LEFT;
+import static haveno.cli.table.column.Column.JUSTIFICATION.RIGHT;
 
 /**
  * For displaying justified string values.

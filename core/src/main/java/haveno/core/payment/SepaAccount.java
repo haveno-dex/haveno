@@ -27,11 +27,11 @@ import haveno.core.payment.payload.PaymentAccountPayload;
 import haveno.core.payment.payload.PaymentMethod;
 import haveno.core.payment.payload.SepaAccountPayload;
 import haveno.core.payment.validation.SepaIBANValidator;
-import java.util.List;
-import javax.annotation.Nullable;
 import lombok.EqualsAndHashCode;
-
 import org.jetbrains.annotations.NotNull;
+
+import javax.annotation.Nullable;
+import java.util.List;
 
 @EqualsAndHashCode(callSuper = true)
 public final class SepaAccount extends CountryBasedPaymentAccount implements BankAccount {
@@ -91,7 +91,7 @@ public final class SepaAccount extends CountryBasedPaymentAccount implements Ban
     public List<String> getAcceptedCountryCodes() {
         return ((SepaAccountPayload) paymentAccountPayload).getAcceptedCountryCodes();
     }
-    
+
     public void setAcceptedCountryCodes(List<String> acceptedCountryCodes) {
         ((SepaAccountPayload) paymentAccountPayload).setAcceptedCountryCodes(acceptedCountryCodes);
     }
@@ -125,7 +125,7 @@ public final class SepaAccount extends CountryBasedPaymentAccount implements Ban
     public @NotNull List<TradeCurrency> getSupportedCurrencies() {
         return SUPPORTED_CURRENCIES;
     }
-    
+
     @Override
     @Nullable
     public List<Country> getSupportedCountries() {

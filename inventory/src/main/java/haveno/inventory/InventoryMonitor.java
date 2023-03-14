@@ -22,7 +22,6 @@ import haveno.common.UserThread;
 import haveno.common.config.BaseCurrencyNetwork;
 import haveno.common.file.JsonFileManager;
 import haveno.common.util.Tuple2;
-import haveno.common.util.Utilities;
 import haveno.core.app.TorSetup;
 import haveno.core.network.p2p.inventory.GetInventoryRequestManager;
 import haveno.core.network.p2p.inventory.model.Average;
@@ -36,10 +35,11 @@ import haveno.network.p2p.NetworkNodeProvider;
 import haveno.network.p2p.NodeAddress;
 import haveno.network.p2p.network.NetworkNode;
 import haveno.network.p2p.network.SetupListener;
-import java.time.Clock;
+import lombok.extern.slf4j.Slf4j;
+import org.jetbrains.annotations.Nullable;
 
 import java.io.File;
-
+import java.time.Clock;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -48,10 +48,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
-
-import lombok.extern.slf4j.Slf4j;
-
-import org.jetbrains.annotations.Nullable;
 
 @Slf4j
 public class InventoryMonitor implements SetupListener {

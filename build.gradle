@@ -27,6 +27,7 @@ configure(subprojects) {
     apply plugin: 'com.google.osdetector'
     // Apply the jacoco plugin to add support for test coverage
     apply plugin: 'jacoco'
+    apply plugin: 'checkstyle'
 
     sourceCompatibility = JavaVersion.VERSION_11
 
@@ -95,6 +96,12 @@ configure(subprojects) {
         options.encoding = 'UTF-8'
     }
 
+    checkstyle {
+        toolVersion = '10.8.1'
+        // https://raw.githubusercontent.com/checkstyle/checkstyle/checkstyle-10.8.1/src/main/resources/google_checks.xml
+        configFile = rootProject.file("${rootDir}/config/checkstyle.xml")
+    }
+
     jacocoTestReport {
         reports {
             xml.enabled true
@@ -104,7 +111,6 @@ configure(subprojects) {
     // Codacy report generated with every build at assets/build/reports/jacoco/test/jacocoTestReport.xml
     test.finalizedBy jacocoTestReport
 }
-
 
 configure([project(':cli'),
            project(':daemon'),

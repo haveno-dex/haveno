@@ -17,13 +17,6 @@
 
 package haveno.desktop.components.paymentmethods;
 
-import org.bitcoinj.core.Coin;
-
-import org.apache.commons.lang3.StringUtils;
-
-import static haveno.desktop.util.DisplayUtils.createAccountName;
-import static haveno.desktop.util.FormBuilder.*;
-
 import de.jensd.fx.glyphs.materialdesignicons.MaterialDesignIcon;
 import haveno.common.util.Tuple3;
 import haveno.common.util.Utilities;
@@ -48,6 +41,9 @@ import haveno.desktop.util.DisplayUtils;
 import haveno.desktop.util.FormBuilder;
 import haveno.desktop.util.GUIUtil;
 import haveno.desktop.util.Layout;
+import javafx.beans.property.BooleanProperty;
+import javafx.beans.property.SimpleBooleanProperty;
+import javafx.collections.FXCollections;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
@@ -57,18 +53,22 @@ import javafx.scene.control.Tooltip;
 import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.VBox;
-
-import javafx.beans.property.BooleanProperty;
-import javafx.beans.property.SimpleBooleanProperty;
-
-import javafx.collections.FXCollections;
-
 import javafx.util.StringConverter;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
+import org.bitcoinj.core.Coin;
 
 import java.util.Date;
 import java.util.concurrent.TimeUnit;
 
-import lombok.extern.slf4j.Slf4j;
+import static haveno.desktop.util.DisplayUtils.createAccountName;
+import static haveno.desktop.util.FormBuilder.addCompactTopLabelInfoTextField;
+import static haveno.desktop.util.FormBuilder.addCompactTopLabelTextField;
+import static haveno.desktop.util.FormBuilder.addCompactTopLabelTextFieldWithCopyIcon;
+import static haveno.desktop.util.FormBuilder.addInputTextField;
+import static haveno.desktop.util.FormBuilder.addTopLabelInfoTextField;
+import static haveno.desktop.util.FormBuilder.addTopLabelInputTextFieldSlideToggleButton;
+import static haveno.desktop.util.FormBuilder.addTopLabelTextField;
 
 @Slf4j
 public abstract class PaymentMethodForm {

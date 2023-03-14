@@ -17,9 +17,6 @@
 
 package haveno.cli.table.builder;
 
-import haveno.proto.grpc.ContractInfo;
-import haveno.proto.grpc.OfferInfo;
-import haveno.proto.grpc.TradeInfo;
 import haveno.cli.table.column.AltcoinVolumeColumn;
 import haveno.cli.table.column.BooleanColumn;
 import haveno.cli.table.column.BtcColumn;
@@ -28,17 +25,46 @@ import haveno.cli.table.column.Iso8601DateTimeColumn;
 import haveno.cli.table.column.MixedTradeFeeColumn;
 import haveno.cli.table.column.SatoshiColumn;
 import haveno.cli.table.column.StringColumn;
+import haveno.proto.grpc.ContractInfo;
+import haveno.proto.grpc.OfferInfo;
+import haveno.proto.grpc.TradeInfo;
+import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
+
+import javax.annotation.Nullable;
 import java.util.List;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 
-import lombok.Getter;
-import lombok.extern.slf4j.Slf4j;
-
-import javax.annotation.Nullable;
-
-import static haveno.cli.table.builder.TableBuilderConstants.*;
+import static haveno.cli.table.builder.TableBuilderConstants.COL_HEADER_AMOUNT;
+import static haveno.cli.table.builder.TableBuilderConstants.COL_HEADER_AMOUNT_IN_BTC;
+import static haveno.cli.table.builder.TableBuilderConstants.COL_HEADER_CURRENCY;
+import static haveno.cli.table.builder.TableBuilderConstants.COL_HEADER_DATE_TIME;
+import static haveno.cli.table.builder.TableBuilderConstants.COL_HEADER_DETAILED_AMOUNT;
+import static haveno.cli.table.builder.TableBuilderConstants.COL_HEADER_DETAILED_PRICE;
+import static haveno.cli.table.builder.TableBuilderConstants.COL_HEADER_DETAILED_PRICE_OF_ALTCOIN;
+import static haveno.cli.table.builder.TableBuilderConstants.COL_HEADER_DEVIATION;
+import static haveno.cli.table.builder.TableBuilderConstants.COL_HEADER_MARKET;
+import static haveno.cli.table.builder.TableBuilderConstants.COL_HEADER_OFFER_TYPE;
+import static haveno.cli.table.builder.TableBuilderConstants.COL_HEADER_PAYMENT_METHOD;
+import static haveno.cli.table.builder.TableBuilderConstants.COL_HEADER_PRICE;
+import static haveno.cli.table.builder.TableBuilderConstants.COL_HEADER_STATUS;
+import static haveno.cli.table.builder.TableBuilderConstants.COL_HEADER_TRADE_ALTCOIN_BUYER_ADDRESS;
+import static haveno.cli.table.builder.TableBuilderConstants.COL_HEADER_TRADE_BUYER_COST;
+import static haveno.cli.table.builder.TableBuilderConstants.COL_HEADER_TRADE_DEPOSIT_CONFIRMED;
+import static haveno.cli.table.builder.TableBuilderConstants.COL_HEADER_TRADE_DEPOSIT_PUBLISHED;
+import static haveno.cli.table.builder.TableBuilderConstants.COL_HEADER_TRADE_FEE;
+import static haveno.cli.table.builder.TableBuilderConstants.COL_HEADER_TRADE_ID;
+import static haveno.cli.table.builder.TableBuilderConstants.COL_HEADER_TRADE_MAKER_FEE;
+import static haveno.cli.table.builder.TableBuilderConstants.COL_HEADER_TRADE_PAYMENT_RECEIVED;
+import static haveno.cli.table.builder.TableBuilderConstants.COL_HEADER_TRADE_PAYMENT_SENT;
+import static haveno.cli.table.builder.TableBuilderConstants.COL_HEADER_TRADE_PAYOUT_PUBLISHED;
+import static haveno.cli.table.builder.TableBuilderConstants.COL_HEADER_TRADE_ROLE;
+import static haveno.cli.table.builder.TableBuilderConstants.COL_HEADER_TRADE_SHORT_ID;
+import static haveno.cli.table.builder.TableBuilderConstants.COL_HEADER_TRADE_TAKER_FEE;
+import static haveno.cli.table.builder.TableBuilderConstants.COL_HEADER_TRADE_WITHDRAWN;
+import static haveno.cli.table.builder.TableBuilderConstants.COL_HEADER_TX_FEE;
 import static haveno.cli.table.builder.TableType.CLOSED_TRADES_TBL;
 import static haveno.cli.table.builder.TableType.FAILED_TRADES_TBL;
 import static haveno.cli.table.builder.TableType.OPEN_TRADES_TBL;

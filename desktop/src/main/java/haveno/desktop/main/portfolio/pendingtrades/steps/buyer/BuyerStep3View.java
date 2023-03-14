@@ -17,10 +17,6 @@
 
 package haveno.desktop.main.portfolio.pendingtrades.steps.buyer;
 
-import static haveno.desktop.util.FormBuilder.addMultilineLabel;
-import static haveno.desktop.util.FormBuilder.addTitledGroupBg;
-import static haveno.desktop.util.FormBuilder.addTopLabelTextFieldWithIcon;
-
 import de.jensd.fx.fontawesome.AwesomeIcon;
 import haveno.core.locale.Res;
 import haveno.core.network.MessageState;
@@ -28,9 +24,12 @@ import haveno.desktop.components.TextFieldWithIcon;
 import haveno.desktop.main.portfolio.pendingtrades.PendingTradesViewModel;
 import haveno.desktop.main.portfolio.pendingtrades.steps.TradeStepView;
 import haveno.desktop.util.Layout;
+import javafx.beans.value.ChangeListener;
 import javafx.scene.control.Label;
 
-import javafx.beans.value.ChangeListener;
+import static haveno.desktop.util.FormBuilder.addMultilineLabel;
+import static haveno.desktop.util.FormBuilder.addTitledGroupBg;
+import static haveno.desktop.util.FormBuilder.addTopLabelTextFieldWithIcon;
 
 public class BuyerStep3View extends TradeStepView {
     private final ChangeListener<MessageState> messageStateChangeListener;

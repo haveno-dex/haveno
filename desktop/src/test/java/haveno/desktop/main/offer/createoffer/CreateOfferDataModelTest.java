@@ -1,19 +1,5 @@
 package haveno.desktop.main.offer.createoffer;
 
-import javafx.collections.FXCollections;
-
-import java.util.HashSet;
-import java.util.UUID;
-
-import org.junit.Before;
-import org.junit.Test;
-
-import static org.junit.Assert.assertEquals;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
-
 import haveno.core.locale.CryptoCurrency;
 import haveno.core.locale.FiatCurrency;
 import haveno.core.locale.GlobalSettings;
@@ -30,7 +16,18 @@ import haveno.core.user.Preferences;
 import haveno.core.user.User;
 import haveno.core.xmr.model.XmrAddressEntry;
 import haveno.core.xmr.wallet.XmrWalletService;
-import haveno.desktop.main.offer.createoffer.CreateOfferDataModel;
+import javafx.collections.FXCollections;
+import org.junit.Before;
+import org.junit.Test;
+
+import java.util.HashSet;
+import java.util.UUID;
+
+import static org.junit.Assert.assertEquals;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class CreateOfferDataModelTest {
 

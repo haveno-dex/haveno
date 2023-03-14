@@ -17,10 +17,9 @@
 
 package haveno.core.xmr.exceptions;
 
+import lombok.Getter;
 import org.bitcoinj.core.Transaction;
 import org.bitcoinj.wallet.Wallet;
-
-import lombok.Getter;
 
 import javax.annotation.Nullable;
 

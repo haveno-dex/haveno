@@ -26,17 +26,16 @@ import haveno.core.account.witness.AccountAgeWitness;
 import haveno.core.payment.payload.PaymentAccountPayload;
 import haveno.core.proto.CoreProtoResolver;
 import haveno.network.p2p.NodeAddress;
-
-import java.math.BigInteger;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
-
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import monero.daemon.model.MoneroTx;
+
 import javax.annotation.Nullable;
+import java.math.BigInteger;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
 
 // Fields marked as transient are only used during protocol execution which are based on directMessages so we do not
 // persist them.
@@ -120,7 +119,7 @@ public final class TradePeer implements PersistablePayload {
     private long securityDeposit;
     @Nullable
     private String updatedMultisigHex;
-    
+
     public TradePeer() {
     }
 

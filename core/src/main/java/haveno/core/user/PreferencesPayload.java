@@ -17,6 +17,7 @@
 
 package haveno.core.user;
 
+import com.google.common.collect.Maps;
 import com.google.protobuf.Message;
 import haveno.common.proto.ProtoUtil;
 import haveno.common.proto.persistable.PersistableEnvelope;
@@ -27,11 +28,11 @@ import haveno.core.locale.TradeCurrency;
 import haveno.core.payment.PaymentAccount;
 import haveno.core.proto.CoreProtoResolver;
 import haveno.core.xmr.MoneroNodeSettings;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.extern.slf4j.Slf4j;
 
-import static haveno.core.xmr.wallet.Restrictions.getDefaultBuyerSecurityDepositAsPercent;
-
-import com.google.common.collect.Maps;
-
+import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -39,11 +40,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.extern.slf4j.Slf4j;
-
-import javax.annotation.Nullable;
+import static haveno.core.xmr.wallet.Restrictions.getDefaultBuyerSecurityDepositAsPercent;
 
 @Slf4j
 @Data

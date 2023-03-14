@@ -18,9 +18,9 @@
 package haveno.core.notifications;
 
 import haveno.common.util.JsonExclude;
-import java.util.Date;
-
 import lombok.Value;
+
+import java.util.Date;
 
 @Value
 public class MobileMessage {

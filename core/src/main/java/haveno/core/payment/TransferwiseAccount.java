@@ -23,9 +23,10 @@ import haveno.core.locale.TradeCurrency;
 import haveno.core.payment.payload.PaymentAccountPayload;
 import haveno.core.payment.payload.PaymentMethod;
 import haveno.core.payment.payload.TransferwiseAccountPayload;
-import java.util.List;
 import lombok.EqualsAndHashCode;
 import lombok.NonNull;
+
+import java.util.List;
 
 @EqualsAndHashCode(callSuper = true)
 public final class TransferwiseAccount extends PaymentAccount {
@@ -109,7 +110,7 @@ public final class TransferwiseAccount extends PaymentAccount {
     public String getEmail() {
         return ((TransferwiseAccountPayload) paymentAccountPayload).getEmail();
     }
-    
+
     @Override
     protected PaymentAccountFormField getEmptyFormField(PaymentAccountFormField.FieldId fieldId) {
         var field = super.getEmptyFormField(fieldId);

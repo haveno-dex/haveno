@@ -9,13 +9,12 @@ import haveno.core.offer.OfferPayload;
 import haveno.core.util.VolumeUtil;
 import haveno.core.util.coin.CoinFormatter;
 import haveno.core.util.coin.ImmutableCoinFormatter;
-import haveno.desktop.util.DisplayUtils;
+import org.junit.Before;
+import org.junit.Test;
+
 import java.math.BigInteger;
 import java.util.Locale;
 import java.util.concurrent.TimeUnit;
-
-import org.junit.Before;
-import org.junit.Test;
 
 import static com.natpryce.makeiteasy.MakeItEasy.make;
 import static com.natpryce.makeiteasy.MakeItEasy.with;

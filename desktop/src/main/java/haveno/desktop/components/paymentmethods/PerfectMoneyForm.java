@@ -17,12 +17,6 @@
 
 package haveno.desktop.components.paymentmethods;
 
-import javafx.scene.layout.GridPane;
-
-import javafx.collections.FXCollections;
-
-import static haveno.desktop.util.FormBuilder.addCompactTopLabelTextFieldWithCopyIcon;
-
 import haveno.core.account.witness.AccountAgeWitnessService;
 import haveno.core.locale.FiatCurrency;
 import haveno.core.locale.Res;
@@ -33,6 +27,10 @@ import haveno.core.payment.payload.PerfectMoneyAccountPayload;
 import haveno.core.payment.validation.PerfectMoneyValidator;
 import haveno.core.util.coin.CoinFormatter;
 import haveno.core.util.validation.InputValidator;
+import javafx.collections.FXCollections;
+import javafx.scene.layout.GridPane;
+
+import static haveno.desktop.util.FormBuilder.addCompactTopLabelTextFieldWithCopyIcon;
 
 public class PerfectMoneyForm extends GeneralAccountNumberForm {
 

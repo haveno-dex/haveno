@@ -76,6 +76,12 @@ import haveno.core.payment.VerseAccount;
 import haveno.core.payment.WeChatPayAccount;
 import haveno.core.payment.WesternUnionAccount;
 import haveno.core.trade.HavenoUtils;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.ToString;
+import lombok.extern.slf4j.Slf4j;
+import org.jetbrains.annotations.NotNull;
+
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -83,12 +89,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
-import lombok.EqualsAndHashCode;
-import lombok.Getter;
-import lombok.ToString;
-import lombok.extern.slf4j.Slf4j;
-
-import org.jetbrains.annotations.NotNull;
 
 @EqualsAndHashCode(exclude = {"maxTradePeriod", "maxTradeLimit"})
 @ToString
@@ -246,8 +246,7 @@ public final class PaymentMethod implements PersistablePayload, Comparable<Payme
 
     // The limit and duration assignment must not be changed as that could break old offers (if amount would be higher
     // than new trade limit) and violate the maker expectation when he created the offer (duration).
-    @Getter
-    public final static List<PaymentMethod> paymentMethods = new ArrayList<>(Arrays.asList(
+    public final static List<PaymentMethod> paymentMethods = Arrays.asList(
             // EUR
             HAL_CASH = new PaymentMethod(HAL_CASH_ID, DAY, DEFAULT_TRADE_LIMIT_LOW_RISK, getAssetCodes(HalCashAccount.SUPPORTED_CURRENCIES)),
             SEPA = new PaymentMethod(SEPA_ID, 6 * DAY, DEFAULT_TRADE_LIMIT_HIGH_RISK, getAssetCodes(SepaAccount.SUPPORTED_CURRENCIES)),
@@ -325,10 +324,10 @@ public final class PaymentMethod implements PersistablePayload, Comparable<Payme
             BLOCK_CHAINS = new PaymentMethod(BLOCK_CHAINS_ID, DAY, DEFAULT_TRADE_LIMIT_VERY_LOW_RISK, Arrays.asList()),
             // Altcoins with 1 hour trade period
             BLOCK_CHAINS_INSTANT = new PaymentMethod(BLOCK_CHAINS_INSTANT_ID, TimeUnit.HOURS.toMillis(1), DEFAULT_TRADE_LIMIT_VERY_LOW_RISK, Arrays.asList())
-    ));
+    );
 
     // TODO: delete this override method, which overrides the paymentMethods variable, when all payment methods supported using structured form api, and make paymentMethods private
-    public static final List<PaymentMethod> getPaymentMethods() {
+    public static List<PaymentMethod> getPaymentMethods() {
         List<String> paymentMethodIds = List.of(
                 BLOCK_CHAINS_ID,
                 REVOLUT_ID,

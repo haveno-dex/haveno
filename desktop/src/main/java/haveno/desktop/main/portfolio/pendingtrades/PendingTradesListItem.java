@@ -17,8 +17,6 @@
 
 package haveno.desktop.main.portfolio.pendingtrades;
 
-import static haveno.core.locale.CurrencyUtil.getCurrencyPair;
-
 import haveno.core.monetary.Price;
 import haveno.core.trade.HavenoUtils;
 import haveno.core.trade.Trade;
@@ -26,9 +24,10 @@ import haveno.core.util.FormattingUtils;
 import haveno.core.util.coin.CoinFormatter;
 import haveno.desktop.util.filtering.FilterableListItem;
 import org.apache.commons.lang3.StringUtils;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import static haveno.core.locale.CurrencyUtil.getCurrencyPair;
 
 /**
  * We could remove that wrapper if it is not needed for additional UI only fields.

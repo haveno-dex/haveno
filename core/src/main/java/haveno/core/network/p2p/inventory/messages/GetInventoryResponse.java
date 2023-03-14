@@ -22,12 +22,12 @@ import com.google.common.base.Optional;
 import haveno.common.app.Version;
 import haveno.common.proto.network.NetworkEnvelope;
 import haveno.core.network.p2p.inventory.model.InventoryItem;
-import java.util.HashMap;
-import java.util.Map;
-
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.ToString;
+
+import java.util.HashMap;
+import java.util.Map;
 
 @Getter
 @EqualsAndHashCode(callSuper = false)

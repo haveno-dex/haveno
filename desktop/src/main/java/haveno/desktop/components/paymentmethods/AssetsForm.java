@@ -17,12 +17,6 @@
 
 package haveno.desktop.components.paymentmethods;
 
-import static haveno.desktop.util.DisplayUtils.createAssetsAccountName;
-import static haveno.desktop.util.FormBuilder.addCompactTopLabelTextField;
-import static haveno.desktop.util.FormBuilder.addCompactTopLabelTextFieldWithCopyIcon;
-import static haveno.desktop.util.FormBuilder.addLabelCheckBox;
-import static haveno.desktop.util.GUIUtil.getComboBoxButtonCell;
-
 import haveno.common.UserThread;
 import haveno.common.util.Tuple3;
 import haveno.core.account.witness.AccountAgeWitnessService;
@@ -43,15 +37,19 @@ import haveno.desktop.components.InputTextField;
 import haveno.desktop.main.overlays.popups.Popup;
 import haveno.desktop.util.FormBuilder;
 import haveno.desktop.util.Layout;
+import javafx.geometry.Insets;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.VBox;
-
-import javafx.geometry.Insets;
-
 import javafx.util.StringConverter;
+
+import static haveno.desktop.util.DisplayUtils.createAssetsAccountName;
+import static haveno.desktop.util.FormBuilder.addCompactTopLabelTextField;
+import static haveno.desktop.util.FormBuilder.addCompactTopLabelTextFieldWithCopyIcon;
+import static haveno.desktop.util.FormBuilder.addLabelCheckBox;
+import static haveno.desktop.util.GUIUtil.getComboBoxButtonCell;
 
 public class AssetsForm extends PaymentMethodForm {
     public static final String INSTANT_TRADE_NEWS = "instantTradeNews0.9.5";

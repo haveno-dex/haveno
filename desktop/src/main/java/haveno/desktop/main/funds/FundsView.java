@@ -28,14 +28,12 @@ import haveno.desktop.main.MainView;
 import haveno.desktop.main.funds.deposit.DepositView;
 import haveno.desktop.main.funds.transactions.TransactionsView;
 import haveno.desktop.main.funds.withdrawal.WithdrawalView;
-import javax.inject.Inject;
-
+import javafx.beans.value.ChangeListener;
 import javafx.fxml.FXML;
-
 import javafx.scene.control.Tab;
 import javafx.scene.control.TabPane;
 
-import javafx.beans.value.ChangeListener;
+import javax.inject.Inject;
 
 @FxmlView
 public class FundsView extends ActivatableView<TabPane, Void> {

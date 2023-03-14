@@ -21,17 +21,15 @@ import com.google.protobuf.Message;
 import haveno.common.util.JsonExclude;
 import haveno.common.util.Tuple2;
 import haveno.core.locale.Res;
-import java.nio.charset.StandardCharsets;
-
-import java.util.HashMap;
-import java.util.Map;
-
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
 
 import javax.annotation.Nullable;
+import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
+import java.util.Map;
 
 import static com.google.common.base.Preconditions.checkArgument;
 

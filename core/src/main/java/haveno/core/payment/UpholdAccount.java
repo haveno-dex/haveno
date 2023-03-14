@@ -23,11 +23,10 @@ import haveno.core.locale.TradeCurrency;
 import haveno.core.payment.payload.PaymentAccountPayload;
 import haveno.core.payment.payload.PaymentMethod;
 import haveno.core.payment.payload.UpholdAccountPayload;
-import java.util.List;
-
 import lombok.EqualsAndHashCode;
-
 import org.jetbrains.annotations.NotNull;
+
+import java.util.List;
 
 //TODO missing support for selected trade currency
 @EqualsAndHashCode(callSuper = true)

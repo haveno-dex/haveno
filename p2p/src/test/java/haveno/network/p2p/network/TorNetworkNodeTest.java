@@ -23,23 +23,16 @@ import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.SettableFuture;
 import haveno.network.p2p.TestUtils;
 import haveno.network.p2p.mocks.MockPayload;
-import haveno.network.p2p.network.Connection;
-import haveno.network.p2p.network.NewTor;
-import haveno.network.p2p.network.SetupListener;
-import haveno.network.p2p.network.TorNetworkNode;
-import java.io.File;
-import java.io.IOException;
-
-import java.util.ArrayList;
-import java.util.concurrent.CountDownLatch;
-
+import org.jetbrains.annotations.NotNull;
+import org.junit.Ignore;
+import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.jetbrains.annotations.NotNull;
-
-import org.junit.Ignore;
-import org.junit.Test;
+import java.io.File;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.concurrent.CountDownLatch;
 
 // TorNode created. Took 6 sec.
 // Hidden service created. Took 40-50 sec.

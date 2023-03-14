@@ -17,6 +17,9 @@
 
 package haveno.daemon.grpc;
 
+import haveno.core.api.CoreApi;
+import haveno.daemon.grpc.interceptor.CallRateMeteringInterceptor;
+import haveno.daemon.grpc.interceptor.GrpcCallRateMeter;
 import haveno.proto.grpc.AddConnectionReply;
 import haveno.proto.grpc.AddConnectionRequest;
 import haveno.proto.grpc.CheckConnectionReply;
@@ -40,23 +43,32 @@ import haveno.proto.grpc.StartCheckingConnectionsRequest;
 import haveno.proto.grpc.StopCheckingConnectionsReply;
 import haveno.proto.grpc.StopCheckingConnectionsRequest;
 import haveno.proto.grpc.UrlConnection;
-import haveno.core.api.CoreApi;
-import haveno.daemon.grpc.interceptor.CallRateMeteringInterceptor;
-import haveno.daemon.grpc.interceptor.GrpcCallRateMeter;
+import io.grpc.ServerInterceptor;
+import io.grpc.stub.StreamObserver;
+import lombok.extern.slf4j.Slf4j;
+import monero.common.MoneroRpcConnection;
+
+import javax.inject.Inject;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
-import javax.inject.Inject;
-import io.grpc.ServerInterceptor;
-import io.grpc.stub.StreamObserver;
-import lombok.extern.slf4j.Slf4j;
-import monero.common.MoneroRpcConnection;
 
-import static haveno.proto.grpc.MoneroConnectionsGrpc.*;
 import static haveno.daemon.grpc.interceptor.GrpcServiceRateMeteringConfig.getCustomRateMeteringInterceptor;
+import static haveno.proto.grpc.MoneroConnectionsGrpc.MoneroConnectionsImplBase;
+import static haveno.proto.grpc.MoneroConnectionsGrpc.getAddConnectionMethod;
+import static haveno.proto.grpc.MoneroConnectionsGrpc.getCheckConnectionMethod;
+import static haveno.proto.grpc.MoneroConnectionsGrpc.getCheckConnectionsMethod;
+import static haveno.proto.grpc.MoneroConnectionsGrpc.getGetBestAvailableConnectionMethod;
+import static haveno.proto.grpc.MoneroConnectionsGrpc.getGetConnectionMethod;
+import static haveno.proto.grpc.MoneroConnectionsGrpc.getGetConnectionsMethod;
+import static haveno.proto.grpc.MoneroConnectionsGrpc.getRemoveConnectionMethod;
+import static haveno.proto.grpc.MoneroConnectionsGrpc.getSetAutoSwitchMethod;
+import static haveno.proto.grpc.MoneroConnectionsGrpc.getSetConnectionMethod;
+import static haveno.proto.grpc.MoneroConnectionsGrpc.getStartCheckingConnectionsMethod;
+import static haveno.proto.grpc.MoneroConnectionsGrpc.getStopCheckingConnectionsMethod;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
 @Slf4j

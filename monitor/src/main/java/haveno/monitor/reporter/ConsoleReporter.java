@@ -20,6 +20,7 @@ package haveno.monitor.reporter;
 import haveno.common.app.Version;
 import haveno.common.config.BaseCurrencyNetwork;
 import haveno.monitor.Reporter;
+
 import java.util.HashMap;
 import java.util.Map;
 

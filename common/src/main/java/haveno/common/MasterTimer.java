@@ -17,12 +17,12 @@
 
 package haveno.common;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.Set;
 import java.util.TimerTask;
 import java.util.concurrent.CopyOnWriteArraySet;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 // Runs all listener objects periodically in a short interval.
 public class MasterTimer {

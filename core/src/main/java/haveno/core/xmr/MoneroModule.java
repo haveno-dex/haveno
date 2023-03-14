@@ -34,8 +34,8 @@ import haveno.core.xmr.wallet.BtcWalletService;
 import haveno.core.xmr.wallet.NonBsqCoinSelector;
 import haveno.core.xmr.wallet.TradeWalletService;
 import haveno.core.xmr.wallet.XmrWalletService;
-import java.io.File;
 
+import java.io.File;
 import java.util.Arrays;
 import java.util.List;
 

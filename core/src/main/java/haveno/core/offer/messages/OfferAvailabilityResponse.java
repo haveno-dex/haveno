@@ -18,20 +18,18 @@
 package haveno.core.offer.messages;
 
 
+import com.google.protobuf.ByteString;
 import haveno.common.app.Capabilities;
 import haveno.common.app.Version;
 import haveno.common.proto.ProtoUtil;
 import haveno.core.offer.AvailabilityResult;
 import haveno.network.p2p.SupportedCapabilitiesMessage;
-import java.util.Optional;
-import java.util.UUID;
-
 import lombok.EqualsAndHashCode;
 import lombok.Value;
 
 import javax.annotation.Nullable;
-
-import com.google.protobuf.ByteString;
+import java.util.Optional;
+import java.util.UUID;
 
 // We add here the SupportedCapabilitiesMessage interface as that message always predates a direct connection
 // to the trading peer

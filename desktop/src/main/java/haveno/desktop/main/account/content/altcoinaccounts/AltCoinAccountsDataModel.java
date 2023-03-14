@@ -33,11 +33,10 @@ import haveno.core.user.Preferences;
 import haveno.core.user.User;
 import haveno.desktop.common.model.ActivatableDataModel;
 import haveno.desktop.util.GUIUtil;
-import javafx.stage.Stage;
-
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.collections.SetChangeListener;
+import javafx.stage.Stage;
 
 import java.util.ArrayList;
 import java.util.Comparator;

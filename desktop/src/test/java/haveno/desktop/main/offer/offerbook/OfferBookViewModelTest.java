@@ -17,20 +17,6 @@
 
 package haveno.desktop.main.offer.offerbook;
 
-import javafx.beans.property.SimpleIntegerProperty;
-
-import javafx.collections.FXCollections;
-import javafx.collections.ObservableList;
-
-import java.time.Instant;
-
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.natpryce.makeiteasy.Maker;
 import haveno.common.config.Config;
 import haveno.core.locale.Country;
@@ -62,17 +48,29 @@ import haveno.core.user.User;
 import haveno.core.util.PriceUtil;
 import haveno.core.util.coin.CoinFormatter;
 import haveno.core.util.coin.ImmutableCoinFormatter;
-import haveno.desktop.main.offer.offerbook.BtcOfferBookViewModel;
-import haveno.desktop.main.offer.offerbook.OfferBook;
-import haveno.desktop.main.offer.offerbook.OfferBookListItem;
-import haveno.desktop.main.offer.offerbook.OfferBookViewModel;
+import javafx.beans.property.SimpleIntegerProperty;
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
 
 import static com.natpryce.makeiteasy.MakeItEasy.make;
 import static com.natpryce.makeiteasy.MakeItEasy.with;
-import static haveno.desktop.main.offer.offerbook.OfferBookListItemMaker.*;
+import static haveno.desktop.main.offer.offerbook.OfferBookListItemMaker.amount;
+import static haveno.desktop.main.offer.offerbook.OfferBookListItemMaker.marketPriceMargin;
+import static haveno.desktop.main.offer.offerbook.OfferBookListItemMaker.minAmount;
+import static haveno.desktop.main.offer.offerbook.OfferBookListItemMaker.price;
+import static haveno.desktop.main.offer.offerbook.OfferBookListItemMaker.useMarketBasedPrice;
+import static haveno.desktop.main.offer.offerbook.OfferBookListItemMaker.xmrBuyItem;
+import static haveno.desktop.main.offer.offerbook.OfferBookListItemMaker.xmrItemWithRange;
 import static haveno.desktop.maker.PreferenceMakers.empty;
 import static haveno.desktop.maker.TradeCurrencyMakers.usd;
 import static org.junit.Assert.assertEquals;

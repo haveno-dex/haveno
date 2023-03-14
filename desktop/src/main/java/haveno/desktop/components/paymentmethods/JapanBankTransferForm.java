@@ -17,9 +17,6 @@
 
 package haveno.desktop.components.paymentmethods;
 
-import static haveno.desktop.util.FormBuilder.*;
-import static haveno.desktop.util.GUIUtil.getComboBoxButtonCell;
-
 import haveno.common.util.Tuple2;
 import haveno.common.util.Tuple3;
 import haveno.common.util.Tuple4;
@@ -41,16 +38,21 @@ import haveno.core.util.validation.InputValidator;
 import haveno.core.util.validation.RegexValidator;
 import haveno.desktop.components.AutocompleteComboBox;
 import haveno.desktop.components.InputTextField;
-import org.apache.commons.lang3.StringUtils;
-
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.RadioButton;
 import javafx.scene.control.TextField;
 import javafx.scene.control.ToggleGroup;
 import javafx.scene.layout.GridPane;
-
 import javafx.util.StringConverter;
+import org.apache.commons.lang3.StringUtils;
+
+import static haveno.desktop.util.FormBuilder.addCompactTopLabelTextField;
+import static haveno.desktop.util.FormBuilder.addCompactTopLabelTextFieldWithCopyIcon;
+import static haveno.desktop.util.FormBuilder.addInputTextFieldInputTextField;
+import static haveno.desktop.util.FormBuilder.addTopLabelRadioButtonRadioButton;
+import static haveno.desktop.util.FormBuilder.addTopLabelTextFieldAutocompleteComboBox;
+import static haveno.desktop.util.GUIUtil.getComboBoxButtonCell;
 
 public class JapanBankTransferForm extends PaymentMethodForm {
     private final JapanBankAccount japanBankAccount;

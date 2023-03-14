@@ -17,10 +17,6 @@
 
 package haveno.desktop.components.paymentmethods;
 
-import javafx.scene.layout.GridPane;
-
-import static haveno.desktop.util.FormBuilder.addCompactTopLabelTextFieldWithCopyIcon;
-
 import haveno.core.account.witness.AccountAgeWitnessService;
 import haveno.core.locale.Res;
 import haveno.core.payment.PaymentAccount;
@@ -30,6 +26,9 @@ import haveno.core.payment.payload.WeChatPayAccountPayload;
 import haveno.core.payment.validation.WeChatPayValidator;
 import haveno.core.util.coin.CoinFormatter;
 import haveno.core.util.validation.InputValidator;
+import javafx.scene.layout.GridPane;
+
+import static haveno.desktop.util.FormBuilder.addCompactTopLabelTextFieldWithCopyIcon;
 
 public class WeChatPayForm extends GeneralAccountNumberForm {
 

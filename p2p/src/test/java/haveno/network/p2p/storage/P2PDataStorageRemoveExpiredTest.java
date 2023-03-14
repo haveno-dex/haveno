@@ -17,12 +17,9 @@
 
 package haveno.network.p2p.storage;
 
-import static haveno.network.p2p.storage.TestState.*;
-
 import haveno.common.app.Version;
 import haveno.common.crypto.CryptoException;
 import haveno.network.p2p.TestUtils;
-import haveno.network.p2p.storage.P2PDataStorage;
 import haveno.network.p2p.storage.mocks.ExpirableProtectedStoragePayloadStub;
 import haveno.network.p2p.storage.mocks.PersistableExpirableProtectedStoragePayloadStub;
 import haveno.network.p2p.storage.mocks.PersistableNetworkPayloadStub;
@@ -30,15 +27,18 @@ import haveno.network.p2p.storage.mocks.ProtectedStoragePayloadStub;
 import haveno.network.p2p.storage.payload.PersistableNetworkPayload;
 import haveno.network.p2p.storage.payload.ProtectedStorageEntry;
 import haveno.network.p2p.storage.payload.ProtectedStoragePayload;
-import java.security.KeyPair;
-import java.security.NoSuchAlgorithmException;
-
-import java.util.ArrayList;
-import java.util.concurrent.TimeUnit;
-
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+
+import java.security.KeyPair;
+import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
+import java.util.concurrent.TimeUnit;
+
+import static haveno.network.p2p.storage.TestState.MAX_SEQUENCE_NUMBER_MAP_SIZE_BEFORE_PURGE;
+import static haveno.network.p2p.storage.TestState.SavedTestState;
+import static haveno.network.p2p.storage.TestState.getTestNodeAddress;
 
 /**
  * Tests of the P2PDataStore behavior that expires old Entrys periodically.

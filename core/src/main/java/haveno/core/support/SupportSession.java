@@ -17,7 +17,6 @@
 
 package haveno.core.support;
 
-import haveno.common.crypto.PubKeyRing;
 import haveno.core.support.messages.ChatMessage;
 import javafx.collections.ObservableList;
 

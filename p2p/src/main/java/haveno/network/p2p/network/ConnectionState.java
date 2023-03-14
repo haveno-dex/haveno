@@ -24,11 +24,11 @@ import haveno.network.p2p.BundleOfEnvelopes;
 import haveno.network.p2p.InitialDataRequest;
 import haveno.network.p2p.InitialDataResponse;
 import haveno.network.p2p.PrefixedSealedAndSignedMessage;
-import java.util.concurrent.TimeUnit;
-
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
+
+import java.util.concurrent.TimeUnit;
 
 /**
  * Holds state of connection. Data is applied from message handlers which are called on UserThread, so that class

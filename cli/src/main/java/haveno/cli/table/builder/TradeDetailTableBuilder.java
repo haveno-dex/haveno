@@ -17,15 +17,14 @@
 
 package haveno.cli.table.builder;
 
-import haveno.proto.grpc.TradeInfo;
 import haveno.cli.table.Table;
 import haveno.cli.table.column.Column;
+import haveno.proto.grpc.TradeInfo;
+
 import java.util.ArrayList;
 import java.util.List;
-import java.util.function.Predicate;
 
 import static haveno.cli.table.builder.TableType.TRADE_DETAIL_TBL;
-import static java.lang.String.format;
 
 /**
  * Builds a {@code haveno.cli.table.Table} from a {@code haveno.proto.grpc.TradeInfo} object.

@@ -18,7 +18,6 @@
 package haveno.cli.table.column;
 
 import java.text.SimpleDateFormat;
-
 import java.util.Date;
 import java.util.stream.IntStream;
 

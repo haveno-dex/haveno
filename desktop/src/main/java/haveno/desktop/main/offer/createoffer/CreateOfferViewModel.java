@@ -32,6 +32,7 @@ import haveno.core.util.validation.FiatPriceValidator;
 import haveno.desktop.Navigation;
 import haveno.desktop.common.model.ViewModel;
 import haveno.desktop.main.offer.MutableOfferViewModel;
+
 import javax.inject.Named;
 
 class CreateOfferViewModel extends MutableOfferViewModel<CreateOfferDataModel> implements ViewModel {

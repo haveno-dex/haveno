@@ -24,9 +24,9 @@ import haveno.core.support.dispute.agent.DisputeAgent;
 import haveno.core.support.dispute.arbitration.arbitrator.ArbitratorManager;
 import haveno.core.trade.HavenoUtils;
 import haveno.network.p2p.NodeAddress;
-import java.security.KeyPair;
-
 import lombok.extern.slf4j.Slf4j;
+
+import java.security.KeyPair;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 

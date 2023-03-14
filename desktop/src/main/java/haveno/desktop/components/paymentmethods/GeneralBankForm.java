@@ -12,10 +12,8 @@ import haveno.core.payment.validation.NationalAccountIdValidator;
 import haveno.core.util.coin.CoinFormatter;
 import haveno.core.util.validation.InputValidator;
 import haveno.desktop.components.InputTextField;
-import org.apache.commons.lang3.StringUtils;
-
 import javafx.scene.layout.GridPane;
-
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

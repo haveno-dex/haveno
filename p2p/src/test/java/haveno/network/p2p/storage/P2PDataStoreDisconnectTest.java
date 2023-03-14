@@ -25,17 +25,17 @@ import haveno.network.p2p.network.Connection;
 import haveno.network.p2p.storage.mocks.ExpirableProtectedStoragePayloadStub;
 import haveno.network.p2p.storage.payload.ProtectedStorageEntry;
 import haveno.network.p2p.storage.payload.ProtectedStoragePayload;
-import java.security.KeyPair;
-import java.security.NoSuchAlgorithmException;
-
-import java.util.Optional;
-import java.util.concurrent.TimeUnit;
-
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-import static haveno.network.p2p.storage.TestState.*;
+import java.security.KeyPair;
+import java.security.NoSuchAlgorithmException;
+import java.util.Optional;
+import java.util.concurrent.TimeUnit;
+
+import static haveno.network.p2p.storage.TestState.SavedTestState;
+import static haveno.network.p2p.storage.TestState.getTestNodeAddress;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 

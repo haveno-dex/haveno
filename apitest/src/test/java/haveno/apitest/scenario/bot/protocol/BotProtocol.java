@@ -18,18 +18,18 @@
 package haveno.apitest.scenario.bot.protocol;
 
 
-import haveno.proto.grpc.TradeInfo;
 import haveno.apitest.method.BitcoinCliHelper;
 import haveno.apitest.scenario.bot.BotClient;
 import haveno.apitest.scenario.bot.script.BashScriptGenerator;
 import haveno.apitest.scenario.bot.shutdown.ManualBotShutdownException;
 import haveno.cli.table.builder.TableBuilder;
+import haveno.proto.grpc.TradeInfo;
+import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
 import protobuf.PaymentAccount;
 
-import java.security.SecureRandom;
-
 import java.io.File;
-
+import java.security.SecureRandom;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
@@ -38,10 +38,14 @@ import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
-import lombok.Getter;
-import lombok.extern.slf4j.Slf4j;
-
-import static haveno.apitest.scenario.bot.protocol.ProtocolStep.*;
+import static haveno.apitest.scenario.bot.protocol.ProtocolStep.SEND_PAYMENT_RECEIVED_CONFIRMATION_MESSAGE;
+import static haveno.apitest.scenario.bot.protocol.ProtocolStep.SEND_PAYMENT_SENT_MESSAGE;
+import static haveno.apitest.scenario.bot.protocol.ProtocolStep.START;
+import static haveno.apitest.scenario.bot.protocol.ProtocolStep.WAIT_FOR_PAYMENT_RECEIVED_CONFIRMATION_MESSAGE;
+import static haveno.apitest.scenario.bot.protocol.ProtocolStep.WAIT_FOR_PAYMENT_SENT_MESSAGE;
+import static haveno.apitest.scenario.bot.protocol.ProtocolStep.WAIT_FOR_PAYOUT_TX;
+import static haveno.apitest.scenario.bot.protocol.ProtocolStep.WAIT_FOR_TAKER_DEPOSIT_TX_CONFIRMED;
+import static haveno.apitest.scenario.bot.protocol.ProtocolStep.WAIT_FOR_TAKER_DEPOSIT_TX_PUBLISHED;
 import static haveno.apitest.scenario.bot.shutdown.ManualShutdown.checkIfShutdownCalled;
 import static haveno.cli.table.builder.TableType.TRADE_DETAIL_TBL;
 import static java.lang.String.format;

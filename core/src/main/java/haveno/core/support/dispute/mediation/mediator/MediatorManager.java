@@ -22,10 +22,9 @@ import haveno.core.filter.FilterManager;
 import haveno.core.support.dispute.agent.DisputeAgentManager;
 import haveno.core.user.User;
 import haveno.network.p2p.storage.payload.ProtectedStorageEntry;
-import javax.inject.Singleton;
 
 import javax.inject.Inject;
-
+import javax.inject.Singleton;
 import java.util.List;
 
 @Singleton

@@ -17,11 +17,6 @@
 
 package haveno.desktop.main.overlays.windows;
 
-import static haveno.desktop.util.FormBuilder.addInputTextField;
-import static haveno.desktop.util.FormBuilder.addLabelCheckBox;
-import static haveno.desktop.util.FormBuilder.addRadioButton;
-import static haveno.desktop.util.FormBuilder.addTopLabelTextArea;
-
 import com.google.inject.Inject;
 import haveno.common.app.DevEnv;
 import haveno.common.config.Config;
@@ -34,8 +29,8 @@ import haveno.desktop.components.InputTextField;
 import haveno.desktop.main.overlays.Overlay;
 import haveno.desktop.main.overlays.popups.Popup;
 import haveno.desktop.util.FormBuilder;
-import javax.inject.Named;
-
+import javafx.geometry.HPos;
+import javafx.geometry.Insets;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.CheckBox;
@@ -47,8 +42,12 @@ import javafx.scene.input.KeyCode;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 
-import javafx.geometry.HPos;
-import javafx.geometry.Insets;
+import javax.inject.Named;
+
+import static haveno.desktop.util.FormBuilder.addInputTextField;
+import static haveno.desktop.util.FormBuilder.addLabelCheckBox;
+import static haveno.desktop.util.FormBuilder.addRadioButton;
+import static haveno.desktop.util.FormBuilder.addTopLabelTextArea;
 
 public class SendAlertMessageWindow extends Overlay<SendAlertMessageWindow> {
     private final AlertManager alertManager;

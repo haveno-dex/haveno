@@ -17,10 +17,6 @@
 
 package haveno.desktop.components.paymentmethods;
 
-import javafx.scene.layout.GridPane;
-
-import static haveno.desktop.util.FormBuilder.addCompactTopLabelTextFieldWithCopyIcon;
-
 import haveno.core.account.witness.AccountAgeWitnessService;
 import haveno.core.locale.Res;
 import haveno.core.payment.AliPayAccount;
@@ -30,6 +26,9 @@ import haveno.core.payment.payload.PaymentAccountPayload;
 import haveno.core.payment.validation.AliPayValidator;
 import haveno.core.util.coin.CoinFormatter;
 import haveno.core.util.validation.InputValidator;
+import javafx.scene.layout.GridPane;
+
+import static haveno.desktop.util.FormBuilder.addCompactTopLabelTextFieldWithCopyIcon;
 
 public class AliPayForm extends GeneralAccountNumberForm {
 

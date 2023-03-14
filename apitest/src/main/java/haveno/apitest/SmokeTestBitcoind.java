@@ -17,14 +17,13 @@
 
 package haveno.apitest;
 
-import java.io.IOException;
-
-import lombok.extern.slf4j.Slf4j;
-
-import static java.lang.String.format;
-
 import haveno.apitest.config.ApiTestConfig;
 import haveno.apitest.linux.BitcoinCli;
+import lombok.extern.slf4j.Slf4j;
+
+import java.io.IOException;
+
+import static java.lang.String.format;
 
 @Slf4j
 class SmokeTestBitcoind {

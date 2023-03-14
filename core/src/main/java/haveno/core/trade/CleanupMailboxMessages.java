@@ -27,11 +27,10 @@ import haveno.network.p2p.DecryptedMessageWithPubKey;
 import haveno.network.p2p.P2PService;
 import haveno.network.p2p.mailbox.MailboxMessage;
 import haveno.network.p2p.mailbox.MailboxMessageService;
-import javax.inject.Inject;
-
-import java.util.List;
-
 import lombok.extern.slf4j.Slf4j;
+
+import javax.inject.Inject;
+import java.util.List;
 
 //TODO with the redesign of mailbox messages that is not required anymore. We leave it for now as we want to minimize
 // changes for the 1.5.0 release but we should clean up afterwards...

@@ -17,12 +17,11 @@
 
 package haveno.cli.table.column;
 
-import static haveno.cli.table.column.Column.JUSTIFICATION.RIGHT;
-
 import java.math.BigDecimal;
-
 import java.util.function.BiFunction;
 import java.util.stream.IntStream;
+
+import static haveno.cli.table.column.Column.JUSTIFICATION.RIGHT;
 
 /**
  * For displaying altcoin volume with appropriate precision.

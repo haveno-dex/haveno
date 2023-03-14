@@ -17,20 +17,6 @@
 
 package haveno.relay;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-
-import java.util.Scanner;
-import java.util.concurrent.ExecutionException;
-
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-
-
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.firebase.FirebaseApp;
 import com.google.firebase.FirebaseOptions;
@@ -44,6 +30,15 @@ import com.turo.pushy.apns.PushNotificationResponse;
 import com.turo.pushy.apns.util.ApnsPayloadBuilder;
 import com.turo.pushy.apns.util.SimpleApnsPushNotification;
 import com.turo.pushy.apns.util.concurrent.PushNotificationFuture;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.Scanner;
+import java.util.concurrent.ExecutionException;
 
 class RelayService {
     private static final Logger log = LoggerFactory.getLogger(RelayMain.class);

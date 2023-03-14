@@ -38,6 +38,7 @@ import haveno.core.user.Preferences;
 import haveno.core.util.coin.CoinFormatter;
 import haveno.core.xmr.wallet.BtcWalletService;
 import haveno.network.p2p.P2PService;
+import lombok.extern.slf4j.Slf4j;
 import org.bitcoinj.core.Transaction;
 import org.bitcoinj.core.TransactionInput;
 import org.bitcoinj.core.TransactionOutput;
@@ -45,20 +46,24 @@ import org.bitcoinj.utils.Fiat;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
-
 import java.math.BigInteger;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
-import lombok.extern.slf4j.Slf4j;
-
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static haveno.common.util.MathUtils.roundDoubleToLong;
 import static haveno.common.util.MathUtils.scaleUpByPowerOf10;
-import static haveno.core.offer.OfferPayload.*;
+import static haveno.core.offer.OfferPayload.ACCOUNT_AGE_WITNESS_HASH;
+import static haveno.core.offer.OfferPayload.CAPABILITIES;
+import static haveno.core.offer.OfferPayload.CASH_BY_MAIL_EXTRA_INFO;
+import static haveno.core.offer.OfferPayload.F2F_CITY;
+import static haveno.core.offer.OfferPayload.F2F_EXTRA_INFO;
+import static haveno.core.offer.OfferPayload.REFERRAL_ID;
+import static haveno.core.offer.OfferPayload.XMR_AUTO_CONF;
+import static haveno.core.offer.OfferPayload.XMR_AUTO_CONF_ENABLED_VALUE;
 import static haveno.core.xmr.wallet.Restrictions.getMaxBuyerSecurityDepositAsPercent;
 import static haveno.core.xmr.wallet.Restrictions.getMinBuyerSecurityDepositAsPercent;
 
@@ -90,7 +95,7 @@ public class OfferUtil {
         this.p2PService = p2PService;
         this.referralIdService = referralIdService;
     }
-    
+
     public static String getRandomOfferId() {
         return Utilities.getRandomPrefix(5, 8) + "-" +
                 UUID.randomUUID() + "-" +

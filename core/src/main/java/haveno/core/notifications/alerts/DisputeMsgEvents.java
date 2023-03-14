@@ -27,15 +27,13 @@ import haveno.core.support.dispute.mediation.MediationManager;
 import haveno.core.support.dispute.refund.RefundManager;
 import haveno.core.support.messages.ChatMessage;
 import haveno.network.p2p.P2PService;
-import javax.inject.Inject;
-import javax.inject.Singleton;
-
 import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
-
-import java.util.UUID;
-
 import lombok.extern.slf4j.Slf4j;
+
+import javax.inject.Inject;
+import javax.inject.Singleton;
+import java.util.UUID;
 
 @Slf4j
 @Singleton

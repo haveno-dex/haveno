@@ -28,8 +28,9 @@ import haveno.core.app.ConsoleInput;
 import haveno.core.app.CoreModule;
 import haveno.core.app.HavenoHeadlessAppMain;
 import haveno.daemon.grpc.GrpcServer;
-import java.io.Console;
+import lombok.extern.slf4j.Slf4j;
 
+import java.io.Console;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
@@ -37,8 +38,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
-
-import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class HavenoDaemonMain extends HavenoHeadlessAppMain {

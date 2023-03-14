@@ -46,16 +46,13 @@ import haveno.desktop.main.support.dispute.client.arbitration.ArbitrationClientV
 import haveno.desktop.main.support.dispute.client.mediation.MediationClientView;
 import haveno.desktop.main.support.dispute.client.refund.RefundClientView;
 import haveno.network.p2p.NodeAddress;
-import javax.inject.Inject;
-
+import javafx.beans.value.ChangeListener;
+import javafx.collections.MapChangeListener;
 import javafx.scene.control.Tab;
 import javafx.scene.control.TabPane;
 
-import javafx.beans.value.ChangeListener;
-
-import javafx.collections.MapChangeListener;
-
 import javax.annotation.Nullable;
+import javax.inject.Inject;
 
 @FxmlView
 public class SupportView extends ActivatableView<TabPane, Void> {

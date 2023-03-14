@@ -18,6 +18,7 @@
 package haveno.inventory;
 
 
+import ch.qos.logback.classic.Level;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import haveno.common.UserThread;
 import haveno.common.app.AsciiLogo;
@@ -26,21 +27,14 @@ import haveno.common.app.Version;
 import haveno.common.config.BaseCurrencyNetwork;
 import haveno.common.util.Utilities;
 import haveno.core.locale.Res;
-import java.nio.file.Paths;
+import lombok.extern.slf4j.Slf4j;
+import sun.misc.Signal;
 
 import java.io.File;
-
+import java.nio.file.Paths;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
-
-import ch.qos.logback.classic.Level;
-
-import lombok.extern.slf4j.Slf4j;
-
-
-
-import sun.misc.Signal;
 
 @Slf4j
 public class InventoryMonitorMain {

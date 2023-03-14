@@ -17,10 +17,8 @@
 
 package haveno.network.utils;
 
-import java.net.ServerSocket;
-
 import java.io.IOException;
-
+import java.net.ServerSocket;
 import java.util.Random;
 
 public class Utils {

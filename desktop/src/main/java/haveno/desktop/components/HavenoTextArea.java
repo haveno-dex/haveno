@@ -1,7 +1,6 @@
 package haveno.desktop.components;
 
 import com.jfoenix.controls.JFXTextArea;
-
 import javafx.scene.control.Skin;
 
 public class HavenoTextArea extends JFXTextArea {

@@ -17,6 +17,30 @@
 
 package haveno.core.xmr.wallet;
 
+import com.google.common.collect.ImmutableMultiset;
+import com.google.common.collect.ImmutableSetMultimap;
+import com.google.common.collect.Multiset;
+import com.google.common.collect.SetMultimap;
+import com.google.common.util.concurrent.FutureCallback;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.MoreExecutors;
+import haveno.common.config.Config;
+import haveno.common.handlers.ErrorMessageHandler;
+import haveno.common.handlers.ResultHandler;
+import haveno.core.user.Preferences;
+import haveno.core.xmr.exceptions.TransactionVerificationException;
+import haveno.core.xmr.exceptions.WalletException;
+import haveno.core.xmr.listeners.AddressConfidenceListener;
+import haveno.core.xmr.listeners.BalanceListener;
+import haveno.core.xmr.listeners.TxConfidenceListener;
+import haveno.core.xmr.setup.WalletsSetup;
+import haveno.core.xmr.wallet.http.MemPoolSpaceTxBroadcaster;
+import javafx.beans.property.IntegerProperty;
+import javafx.beans.property.SimpleIntegerProperty;
+import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
+import monero.wallet.MoneroWallet;
+import monero.wallet.model.MoneroTxWallet;
 import org.bitcoinj.core.Address;
 import org.bitcoinj.core.AddressFormatException;
 import org.bitcoinj.core.BlockChain;
@@ -55,32 +79,11 @@ import org.bitcoinj.wallet.listeners.WalletChangeEventListener;
 import org.bitcoinj.wallet.listeners.WalletCoinsReceivedEventListener;
 import org.bitcoinj.wallet.listeners.WalletCoinsSentEventListener;
 import org.bitcoinj.wallet.listeners.WalletReorganizeEventListener;
-
-import javax.inject.Inject;
-
-import com.google.common.collect.ImmutableMultiset;
-import com.google.common.collect.ImmutableSetMultimap;
-import com.google.common.collect.Multiset;
-import com.google.common.collect.SetMultimap;
-import com.google.common.util.concurrent.FutureCallback;
-import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.MoreExecutors;
-import haveno.common.config.Config;
-import haveno.common.handlers.ErrorMessageHandler;
-import haveno.common.handlers.ResultHandler;
-import haveno.core.user.Preferences;
-import haveno.core.xmr.exceptions.TransactionVerificationException;
-import haveno.core.xmr.exceptions.WalletException;
-import haveno.core.xmr.listeners.AddressConfidenceListener;
-import haveno.core.xmr.listeners.BalanceListener;
-import haveno.core.xmr.listeners.TxConfidenceListener;
-import haveno.core.xmr.setup.WalletsSetup;
-import haveno.core.xmr.wallet.http.MemPoolSpaceTxBroadcaster;
-import javafx.beans.property.IntegerProperty;
-import javafx.beans.property.SimpleIntegerProperty;
-
 import org.bouncycastle.crypto.params.KeyParameter;
+import org.jetbrains.annotations.NotNull;
 
+import javax.annotation.Nullable;
+import javax.inject.Inject;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -91,20 +94,8 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import lombok.Getter;
-import lombok.extern.slf4j.Slf4j;
-
-import org.jetbrains.annotations.NotNull;
-
-import javax.annotation.Nullable;
-
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
-
-
-
-import monero.wallet.MoneroWallet;
-import monero.wallet.model.MoneroTxWallet;
 
 /**
  * Abstract base class for BTC wallet. Provides all non-trade specific functionality.

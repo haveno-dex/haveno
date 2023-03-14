@@ -17,9 +17,6 @@
 
 package haveno.core.offer;
 
-import static haveno.common.util.MathUtils.roundDoubleToLong;
-import static haveno.common.util.MathUtils.scaleUpByPowerOf10;
-
 import haveno.common.util.MathUtils;
 import haveno.core.locale.CurrencyUtil;
 import haveno.core.monetary.Altcoin;
@@ -29,13 +26,12 @@ import haveno.core.provider.price.MarketPrice;
 import haveno.core.provider.price.PriceFeedService;
 import haveno.network.p2p.BootstrapListener;
 import haveno.network.p2p.P2PService;
+import javafx.collections.ListChangeListener;
+import lombok.extern.slf4j.Slf4j;
 import org.bitcoinj.utils.Fiat;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
-
-import javafx.collections.ListChangeListener;
-
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -43,7 +39,8 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
-import lombok.extern.slf4j.Slf4j;
+import static haveno.common.util.MathUtils.roundDoubleToLong;
+import static haveno.common.util.MathUtils.scaleUpByPowerOf10;
 
 @Slf4j
 @Singleton

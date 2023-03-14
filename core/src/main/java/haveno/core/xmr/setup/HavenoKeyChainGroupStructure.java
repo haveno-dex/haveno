@@ -17,11 +17,10 @@
 
 package haveno.core.xmr.setup;
 
+import com.google.common.collect.ImmutableList;
 import org.bitcoinj.crypto.ChildNumber;
 import org.bitcoinj.script.Script;
 import org.bitcoinj.wallet.KeyChainGroupStructure;
-
-import com.google.common.collect.ImmutableList;
 
 public class HavenoKeyChainGroupStructure implements KeyChainGroupStructure {
 

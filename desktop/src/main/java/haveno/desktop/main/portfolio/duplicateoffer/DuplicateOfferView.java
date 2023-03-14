@@ -30,6 +30,7 @@ import haveno.desktop.main.offer.MutableOfferView;
 import haveno.desktop.main.overlays.windows.OfferDetailsWindow;
 import javafx.collections.ObservableList;
 import javafx.geometry.Insets;
+
 import javax.inject.Named;
 
 @FxmlView

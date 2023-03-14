@@ -20,6 +20,7 @@ package haveno.core.payment.validation;
 import haveno.core.payment.JapanBankData;
 import haveno.core.util.validation.InputValidator;
 import haveno.core.util.validation.RegexValidator;
+
 import javax.inject.Inject;
 
 public final class JapanBankBranchNameValidator extends InputValidator

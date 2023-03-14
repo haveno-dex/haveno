@@ -25,10 +25,10 @@ import haveno.core.payment.payload.PaymentAccountPayload;
 import haveno.core.trade.Trade;
 import haveno.core.trade.txproof.AssetTxProofModel;
 import haveno.core.user.AutoConfirmSettings;
-import java.util.Date;
-
 import lombok.Value;
 import lombok.extern.slf4j.Slf4j;
+
+import java.util.Date;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 

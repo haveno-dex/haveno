@@ -53,10 +53,6 @@ import haveno.core.xmr.wallet.XmrWalletService;
 import haveno.network.p2p.AckMessage;
 import haveno.network.p2p.NodeAddress;
 import haveno.network.p2p.P2PService;
-import org.bitcoinj.core.Coin;
-import org.fxmisc.easybind.EasyBind;
-import org.fxmisc.easybind.Subscription;
-
 import javafx.beans.property.IntegerProperty;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.ReadOnlyObjectProperty;
@@ -65,34 +61,11 @@ import javafx.beans.property.SimpleIntegerProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
-
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
-
-import java.math.BigInteger;
-import java.time.Clock;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Date;
-import java.util.List;
-import java.util.Optional;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ThreadLocalRandom;
-import java.util.stream.Collectors;
-
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
-
-import org.jetbrains.annotations.NotNull;
-
-import javax.annotation.Nullable;
-import javax.crypto.SecretKey;
-
-import static com.google.common.base.Preconditions.checkNotNull;
-
-
-
 import monero.common.MoneroError;
 import monero.common.MoneroRpcConnection;
 import monero.common.TaskLooper;
@@ -107,6 +80,25 @@ import monero.wallet.model.MoneroTxQuery;
 import monero.wallet.model.MoneroTxSet;
 import monero.wallet.model.MoneroTxWallet;
 import monero.wallet.model.MoneroWalletListener;
+import org.bitcoinj.core.Coin;
+import org.fxmisc.easybind.EasyBind;
+import org.fxmisc.easybind.Subscription;
+import org.jetbrains.annotations.NotNull;
+
+import javax.annotation.Nullable;
+import javax.crypto.SecretKey;
+import java.math.BigInteger;
+import java.time.Clock;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Date;
+import java.util.List;
+import java.util.Optional;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ThreadLocalRandom;
+import java.util.stream.Collectors;
+
+import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * Holds all data which are relevant to the trade, but not those which are only needed in the trade process as shared data between tasks. Those data are
@@ -389,7 +381,7 @@ public abstract class Trade implements Tradable, Model {
     public static final long DEFER_PUBLISH_MS = 25000; // 25 seconds
     private static final long IDLE_SYNC_PERIOD_MS = 3600000; // 1 hour
     private static final long MAX_REPROCESS_DELAY_SECONDS = 7200; // max delay to reprocess messages (once per 2 hours)
-    
+
     //  Mutable
     @Getter
     transient private boolean isInitialized;
@@ -555,18 +547,18 @@ public abstract class Trade implements Tradable, Model {
     public void addListener(TradeListener listener) {
         tradeListeners.add(listener);
     }
-  
+
     public void removeListener(TradeListener listener) {
         if (!tradeListeners.remove(listener)) throw new RuntimeException("TradeMessageListener is not registered");
     }
-  
+
     // notified from TradeProtocol of verified trade messages
     public void onVerifiedTradeMessage(TradeMessage message, NodeAddress sender) {
         for (TradeListener listener : new ArrayList<TradeListener>(tradeListeners)) {  // copy array to allow listener invocation to unregister listener without concurrent modification exception
             listener.onVerifiedTradeMessage(message, sender);
         }
     }
-  
+
       // notified from TradeProtocol of ack messages
       public void onAckMessage(AckMessage ackMessage, NodeAddress sender) {
         for (TradeListener listener : new ArrayList<TradeListener>(tradeListeners)) {  // copy array to allow listener invocation to unregister listener without concurrent modification exception
@@ -818,7 +810,7 @@ public abstract class Trade implements Tradable, Model {
                     if (wallet != null) closeWallet();
                     log.info("Deleting wallet for {} {}", getClass().getSimpleName(), getId());
                     xmrWalletService.deleteWallet(getWalletName());
-        
+
                     // delete trade wallet backups unless deposits requested and payouts not unlocked
                     if (isDepositRequested() && !isPayoutUnlocked()) {
                         log.warn("Refusing to delete backup wallet for " + getClass().getSimpleName() + " " + getId() + " in the small chance it becomes funded");
@@ -1598,7 +1590,7 @@ public abstract class Trade implements Tradable, Model {
 
     /**
      * Get the duration to delay reprocessing a message based on its reprocess count.
-     * 
+     *
      * @return the duration to delay in seconds
      */
     public long getReprocessDelayInSeconds(int reprocessCount) {
@@ -1639,7 +1631,7 @@ public abstract class Trade implements Tradable, Model {
         if (connection != null && !Boolean.FALSE.equals(connection.isConnected())) {
             HavenoUtils.submitTask(() -> {
                 updateSyncing();
-    
+
                 // reprocess pending payout messages
                 this.getProtocol().maybeReprocessPaymentReceivedMessage(false);
                 HavenoUtils.arbitrationManager.maybeReprocessDisputeClosedMessage(this, false);
@@ -1813,7 +1805,7 @@ public abstract class Trade implements Tradable, Model {
                 // skip if not idling and not waiting for payout to unlock
                 if (!isIdling() || !isPayoutPublished() || isPayoutUnlocked())  {
                     processing = false;
-                    return; 
+                    return;
                 }
 
                 try {

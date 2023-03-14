@@ -21,10 +21,10 @@ import haveno.common.app.Version;
 import haveno.common.proto.network.NetworkEnvelope;
 import haveno.network.p2p.NodeAddress;
 import haveno.network.p2p.mailbox.MailboxMessage;
-import java.util.concurrent.TimeUnit;
-
 import lombok.EqualsAndHashCode;
 import lombok.Value;
+
+import java.util.concurrent.TimeUnit;
 
 @EqualsAndHashCode(callSuper = true)
 @Value

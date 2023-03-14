@@ -17,9 +17,10 @@
 
 package haveno.core.support.dispute.refund;
 
-import lombok.extern.slf4j.Slf4j;
 import haveno.core.support.dispute.Dispute;
 import haveno.core.support.dispute.DisputeSession;
+import lombok.extern.slf4j.Slf4j;
+
 import javax.annotation.Nullable;
 
 @Slf4j

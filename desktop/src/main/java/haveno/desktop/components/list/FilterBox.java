@@ -21,12 +21,11 @@ import haveno.core.locale.Res;
 import haveno.desktop.components.AutoTooltipLabel;
 import haveno.desktop.components.InputTextField;
 import haveno.desktop.util.filtering.FilterableListItem;
-import javafx.scene.control.TableView;
-import javafx.scene.layout.HBox;
-
-import javafx.geometry.Insets;
 import javafx.beans.value.ChangeListener;
 import javafx.collections.transformation.FilteredList;
+import javafx.geometry.Insets;
+import javafx.scene.control.TableView;
+import javafx.scene.layout.HBox;
 
 public class FilterBox extends HBox {
     private final InputTextField textField;

@@ -41,16 +41,14 @@ import haveno.desktop.Navigation;
 import haveno.desktop.main.offer.OfferViewUtil;
 import haveno.desktop.util.GUIUtil;
 import haveno.network.p2p.P2PService;
-import javax.inject.Named;
-
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+import org.jetbrains.annotations.NotNull;
 
+import javax.inject.Named;
 import java.util.List;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
-
-import org.jetbrains.annotations.NotNull;
 
 public class OtherOfferBookViewModel extends OfferBookViewModel {
 

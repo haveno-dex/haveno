@@ -6,15 +6,19 @@ import static haveno.cli.Method.canceloffer;
 import static haveno.cli.Method.createcryptopaymentacct;
 import static haveno.cli.Method.createoffer;
 import static haveno.cli.Method.createpaymentacct;
-import static haveno.cli.opts.OptLabel.*;
+import static haveno.cli.opts.OptLabel.OPT_ACCOUNT_NAME;
+import static haveno.cli.opts.OptLabel.OPT_ADDRESS;
+import static haveno.cli.opts.OptLabel.OPT_AMOUNT;
+import static haveno.cli.opts.OptLabel.OPT_CURRENCY_CODE;
+import static haveno.cli.opts.OptLabel.OPT_DIRECTION;
+import static haveno.cli.opts.OptLabel.OPT_MKT_PRICE_MARGIN;
+import static haveno.cli.opts.OptLabel.OPT_OFFER_ID;
+import static haveno.cli.opts.OptLabel.OPT_PASSWORD;
+import static haveno.cli.opts.OptLabel.OPT_PAYMENT_ACCOUNT_FORM;
+import static haveno.cli.opts.OptLabel.OPT_PAYMENT_ACCOUNT_ID;
+import static haveno.cli.opts.OptLabel.OPT_SECURITY_DEPOSIT;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-
-import haveno.cli.opts.CancelOfferOptionParser;
-import haveno.cli.opts.CreateCryptoCurrencyPaymentAcctOptionParser;
-import haveno.cli.opts.CreateOfferOptionParser;
-import haveno.cli.opts.CreatePaymentAcctOptionParser;
 
 
 public class OptionParsersTest {

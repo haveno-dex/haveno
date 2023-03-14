@@ -17,19 +17,19 @@
 
 package haveno.cli.table.builder;
 
+import haveno.cli.table.Table;
+import haveno.cli.table.column.Column;
+import haveno.cli.table.column.StringColumn;
 import protobuf.PaymentAccount;
+
+import java.util.List;
+import java.util.stream.Collectors;
 
 import static haveno.cli.table.builder.TableBuilderConstants.COL_HEADER_CURRENCY;
 import static haveno.cli.table.builder.TableBuilderConstants.COL_HEADER_NAME;
 import static haveno.cli.table.builder.TableBuilderConstants.COL_HEADER_PAYMENT_METHOD;
 import static haveno.cli.table.builder.TableBuilderConstants.COL_HEADER_UUID;
 import static haveno.cli.table.builder.TableType.PAYMENT_ACCOUNT_TBL;
-
-import haveno.cli.table.Table;
-import haveno.cli.table.column.Column;
-import haveno.cli.table.column.StringColumn;
-import java.util.List;
-import java.util.stream.Collectors;
 
 /**
  * Builds a {@code haveno.cli.table.Table} from a List of

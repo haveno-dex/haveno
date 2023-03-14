@@ -20,10 +20,9 @@ package haveno.core.locale;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.ReadOnlyObjectProperty;
 import javafx.beans.property.SimpleObjectProperty;
+import lombok.extern.slf4j.Slf4j;
 
 import java.util.Locale;
-
-import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class GlobalSettings {

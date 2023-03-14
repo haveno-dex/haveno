@@ -18,10 +18,10 @@
 package haveno.cli.opts;
 
 
+import joptsimple.OptionSpec;
+
 import static haveno.cli.opts.OptLabel.OPT_SHOW_CONTRACT;
 import static haveno.cli.opts.OptLabel.OPT_TRADE_ID;
-
-import joptsimple.OptionSpec;
 
 public class GetTradeOptionParser extends AbstractMethodOptionParser implements MethodOpts {
 

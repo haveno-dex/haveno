@@ -21,11 +21,11 @@ import haveno.core.locale.Country;
 import haveno.core.locale.CountryUtil;
 import haveno.core.payment.payload.CountryBasedPaymentAccountPayload;
 import haveno.core.payment.payload.PaymentMethod;
-import java.util.List;
 import lombok.EqualsAndHashCode;
 import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nullable;
+import java.util.List;
 
 @EqualsAndHashCode(callSuper = true)
 public abstract class CountryBasedPaymentAccount extends PaymentAccount {
@@ -59,7 +59,7 @@ public abstract class CountryBasedPaymentAccount extends PaymentAccount {
         this.country = country;
         ((CountryBasedPaymentAccountPayload) paymentAccountPayload).setCountryCode(country.code);
     }
-    
+
     @Nullable
     public List<Country> getAcceptedCountries() {
         if (acceptedCountries == null) {
@@ -68,7 +68,7 @@ public abstract class CountryBasedPaymentAccount extends PaymentAccount {
         }
         return acceptedCountries;
     }
-    
+
     public void setAcceptedCountries(List<Country> acceptedCountries) {
         this.acceptedCountries = acceptedCountries;
         ((CountryBasedPaymentAccountPayload) paymentAccountPayload).setAcceptedCountryCodes(CountryUtil.getCountryCodes(acceptedCountries));

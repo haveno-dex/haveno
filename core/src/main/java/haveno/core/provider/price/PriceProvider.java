@@ -24,14 +24,13 @@ import haveno.common.util.MathUtils;
 import haveno.core.provider.HttpClientProvider;
 import haveno.network.http.HttpClient;
 import haveno.network.p2p.P2PService;
-import java.io.IOException;
+import lombok.extern.slf4j.Slf4j;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
-import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class PriceProvider extends HttpClientProvider {

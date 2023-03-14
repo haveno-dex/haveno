@@ -23,10 +23,10 @@ import haveno.core.locale.TradeCurrency;
 import haveno.core.payment.payload.ChaseQuickPayAccountPayload;
 import haveno.core.payment.payload.PaymentAccountPayload;
 import haveno.core.payment.payload.PaymentMethod;
-import java.util.List;
-
 import lombok.EqualsAndHashCode;
 import lombok.NonNull;
+
+import java.util.List;
 
 // Removed due to QuickPay becoming Zelle
 // Cannot be deleted as it would break old trade history entries

@@ -41,10 +41,14 @@ import javafx.beans.property.ReadOnlyObjectProperty;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleIntegerProperty;
 import javafx.beans.property.SimpleObjectProperty;
-
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.Setter;
+import lombok.extern.slf4j.Slf4j;
 
+import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
@@ -53,13 +57,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
-
-import lombok.EqualsAndHashCode;
-import lombok.Getter;
-import lombok.Setter;
-import lombok.extern.slf4j.Slf4j;
-
-import javax.annotation.Nullable;
 
 @Slf4j
 @EqualsAndHashCode
@@ -140,7 +137,7 @@ public final class Dispute implements NetworkPayload, PersistablePayload {
     @Nullable
     @Setter
     private Map<String, String> extraDataMap;
-    
+
     // Added for XMR integration
     private boolean isOpener;
     @Nullable
@@ -492,7 +489,7 @@ public final class Dispute implements NetworkPayload, PersistablePayload {
                 return Res.get("support.sellerTaker");
         }
     }
-    
+
     @Nullable
     public PaymentAccountPayload getBuyerPaymentAccountPayload() {
         return contract.isBuyerMakerAndSellerTaker() ? makerPaymentAccountPayload : takerPaymentAccountPayload;

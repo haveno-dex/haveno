@@ -20,6 +20,7 @@ package haveno.common.app;
 import com.google.inject.AbstractModule;
 import com.google.inject.Injector;
 import haveno.common.config.Config;
+
 import java.util.ArrayList;
 import java.util.List;
 

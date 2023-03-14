@@ -17,12 +17,11 @@
 
 package haveno.common.config;
 
+import lombok.Getter;
 import org.bitcoinj.core.NetworkParameters;
 import org.bitcoinj.params.MainNetParams;
 import org.bitcoinj.params.RegTestParams;
 import org.bitcoinj.utils.MonetaryFormat;
-
-import lombok.Getter;
 
 public enum BaseCurrencyNetwork {
     XMR_MAINNET(new XmrMainNetParams(), "XMR", "MAINNET", "Monero"), // TODO (woodser): network params are part of bitcoinj and shouldn't be needed. only used to get MonetaryFormat? replace with MonetaryFormat if so

@@ -17,14 +17,13 @@
 
 package haveno.core.monetary;
 
-import org.bitcoinj.core.Monetary;
-import org.bitcoinj.utils.MonetaryFormat;
-
 import com.google.common.math.LongMath;
 import haveno.core.util.ParsingUtils;
-import java.math.BigDecimal;
-
+import org.bitcoinj.core.Monetary;
+import org.bitcoinj.utils.MonetaryFormat;
 import org.jetbrains.annotations.NotNull;
+
+import java.math.BigDecimal;
 
 import static com.google.common.base.Preconditions.checkArgument;
 

@@ -20,17 +20,15 @@ package haveno.core.monetary;
 import haveno.core.locale.CurrencyUtil;
 import haveno.core.trade.HavenoUtils;
 import haveno.core.util.ParsingUtils;
-import java.math.BigDecimal;
-import java.math.BigInteger;
-
 import org.bitcoinj.core.Monetary;
 import org.bitcoinj.utils.ExchangeRate;
 import org.bitcoinj.utils.Fiat;
-
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.jetbrains.annotations.NotNull;
+import java.math.BigDecimal;
+import java.math.BigInteger;
 
 /**
  * Monero price value with variable precision.

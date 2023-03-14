@@ -22,7 +22,6 @@ import haveno.common.crypto.CryptoException;
 import haveno.common.crypto.Sig;
 import haveno.network.p2p.TestUtils;
 import haveno.network.p2p.network.Connection;
-import haveno.network.p2p.storage.P2PDataStorage;
 import haveno.network.p2p.storage.messages.AddDataMessage;
 import haveno.network.p2p.storage.messages.RefreshOfferMessage;
 import haveno.network.p2p.storage.messages.RemoveDataMessage;
@@ -32,21 +31,20 @@ import haveno.network.p2p.storage.mocks.ProtectedStoragePayloadStub;
 import haveno.network.p2p.storage.payload.ProtectedMailboxStorageEntry;
 import haveno.network.p2p.storage.payload.ProtectedStorageEntry;
 import haveno.network.p2p.storage.payload.ProtectedStoragePayload;
-import java.security.KeyPair;
-import java.security.NoSuchAlgorithmException;
-
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+
+import java.security.KeyPair;
+import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 
 import static haveno.network.p2p.storage.TestState.SavedTestState;
 import static org.mockito.Mockito.any;

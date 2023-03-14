@@ -17,17 +17,14 @@
 
 package haveno.core.notifications;
 
+import haveno.common.util.Tuple2;
+import lombok.extern.slf4j.Slf4j;
+import org.junit.Test;
+
 import java.util.Arrays;
 import java.util.List;
 
-import lombok.extern.slf4j.Slf4j;
-
-import org.junit.Test;
-
 import static org.junit.Assert.assertEquals;
-
-import haveno.common.util.Tuple2;
-import haveno.core.notifications.MobileModel;
 
 @Slf4j
 public class MobileModelTest {

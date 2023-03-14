@@ -19,11 +19,11 @@ package haveno.core.support.dispute.arbitration;
 
 import haveno.core.account.witness.AccountAgeWitness;
 import haveno.core.payment.payload.PaymentAccountPayload;
-import java.math.BigInteger;
-import java.security.PublicKey;
-
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
+
+import java.math.BigInteger;
+import java.security.PublicKey;
 
 // TODO consider to move to signed witness domain
 @Getter

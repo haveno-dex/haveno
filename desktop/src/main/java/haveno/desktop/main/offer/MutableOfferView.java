@@ -17,9 +17,6 @@
 
 package haveno.desktop.main.offer;
 
-import net.glxn.qrgen.QRCode;
-import net.glxn.qrgen.image.ImageType;
-
 import de.jensd.fx.fontawesome.AwesomeIcon;
 import de.jensd.fx.glyphs.materialdesignicons.MaterialDesignIcon;
 import haveno.common.UserThread;
@@ -61,6 +58,16 @@ import haveno.desktop.main.portfolio.PortfolioView;
 import haveno.desktop.main.portfolio.openoffer.OpenOffersView;
 import haveno.desktop.util.GUIUtil;
 import haveno.desktop.util.Layout;
+import javafx.beans.value.ChangeListener;
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
+import javafx.event.ActionEvent;
+import javafx.event.EventHandler;
+import javafx.geometry.HPos;
+import javafx.geometry.Insets;
+import javafx.geometry.Orientation;
+import javafx.geometry.Pos;
+import javafx.geometry.VPos;
 import javafx.scene.Node;
 import javafx.scene.control.Button;
 import javafx.scene.control.ComboBox;
@@ -77,42 +84,37 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
 import javafx.scene.text.Text;
-
-import javafx.geometry.HPos;
-import javafx.geometry.Insets;
-import javafx.geometry.Orientation;
-import javafx.geometry.Pos;
-import javafx.geometry.VPos;
-
+import javafx.util.StringConverter;
+import lombok.Setter;
+import net.glxn.qrgen.QRCode;
+import net.glxn.qrgen.image.ImageType;
 import org.fxmisc.easybind.EasyBind;
 import org.fxmisc.easybind.Subscription;
-
-import javafx.beans.value.ChangeListener;
-
-import javafx.event.ActionEvent;
-import javafx.event.EventHandler;
-
-import javafx.collections.FXCollections;
-import javafx.collections.ObservableList;
-
-import javafx.util.StringConverter;
-
-import java.net.URI;
+import org.jetbrains.annotations.NotNull;
 
 import java.io.ByteArrayInputStream;
 import java.math.BigInteger;
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-import lombok.Setter;
-
-import org.jetbrains.annotations.NotNull;
-
 import static haveno.core.payment.payload.PaymentMethod.HAL_CASH_ID;
 import static haveno.desktop.main.offer.OfferViewUtil.addPayInfoEntry;
-import static haveno.desktop.util.FormBuilder.*;
+import static haveno.desktop.util.FormBuilder.add2ButtonsAfterGroup;
+import static haveno.desktop.util.FormBuilder.addAddressTextField;
+import static haveno.desktop.util.FormBuilder.addBalanceTextField;
+import static haveno.desktop.util.FormBuilder.addFundsTextfield;
+import static haveno.desktop.util.FormBuilder.addTitledGroupBg;
+import static haveno.desktop.util.FormBuilder.addTopLabelComboBox;
+import static haveno.desktop.util.FormBuilder.addTopLabelTextField;
+import static haveno.desktop.util.FormBuilder.getEditableValueBox;
+import static haveno.desktop.util.FormBuilder.getEditableValueBoxWithInfo;
+import static haveno.desktop.util.FormBuilder.getIconButton;
+import static haveno.desktop.util.FormBuilder.getIconForLabel;
+import static haveno.desktop.util.FormBuilder.getSmallIconForLabel;
+import static haveno.desktop.util.FormBuilder.getTradeInputBox;
 import static javafx.beans.binding.Bindings.createStringBinding;
 
 public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> extends ActivatableViewAndModel<AnchorPane, M> implements ClosableView, SelectableView {

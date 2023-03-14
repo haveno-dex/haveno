@@ -22,11 +22,10 @@ import haveno.core.locale.Res;
 import haveno.core.util.coin.CoinFormatter;
 import haveno.core.util.coin.ImmutableCoinFormatter;
 import org.bitcoinj.core.CoinMaker;
-
-import java.util.Locale;
-
 import org.junit.Before;
 import org.junit.Test;
+
+import java.util.Locale;
 
 import static com.natpryce.makeiteasy.MakeItEasy.a;
 import static com.natpryce.makeiteasy.MakeItEasy.make;

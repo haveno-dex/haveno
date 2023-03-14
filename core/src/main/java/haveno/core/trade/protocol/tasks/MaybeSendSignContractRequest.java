@@ -17,11 +17,6 @@
 
 package haveno.core.trade.protocol.tasks;
 
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-import java.util.UUID;
-
 import haveno.common.app.Version;
 import haveno.common.taskrunner.TaskRunner;
 import haveno.core.trade.ArbitratorTrade;
@@ -36,10 +31,15 @@ import lombok.extern.slf4j.Slf4j;
 import monero.daemon.model.MoneroOutput;
 import monero.wallet.model.MoneroTxWallet;
 
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
+import java.util.UUID;
+
 // TODO (woodser): separate classes for deposit tx creation and contract request, or combine into ProcessInitMultisigRequest
 @Slf4j
 public class MaybeSendSignContractRequest extends TradeTask {
-    
+
     private boolean ack1 = false; // TODO (woodser) these represent onArrived(), not the ack
     private boolean ack2 = false;
 
@@ -52,7 +52,7 @@ public class MaybeSendSignContractRequest extends TradeTask {
     protected void run() {
         try {
           runInterceptHook();
-          
+
           // skip if arbitrator
           if (trade instanceof ArbitratorTrade) {
               complete();
@@ -64,7 +64,7 @@ public class MaybeSendSignContractRequest extends TradeTask {
               complete();
               return;
           }
- 
+
           // skip if deposit tx already created
           if (processModel.getDepositTxXmr() != null) {
               complete();
@@ -119,7 +119,7 @@ public class MaybeSendSignContractRequest extends TradeTask {
                   failed();
               }
           });
-          
+
           // send request to arbitrator
           processModel.getP2PService().sendEncryptedDirectMessage(trade.getArbitrator().getNodeAddress(), trade.getArbitrator().getPubKeyRing(), request, new SendDirectMessageListener() {
               @Override
@@ -139,7 +139,7 @@ public class MaybeSendSignContractRequest extends TradeTask {
           failed(t);
         }
     }
-    
+
     private void completeAux() {
         trade.setState(State.CONTRACT_SIGNATURE_REQUESTED);
         processModel.getTradeManager().requestPersistence();

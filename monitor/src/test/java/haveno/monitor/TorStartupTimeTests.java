@@ -17,15 +17,13 @@
 
 package haveno.monitor;
 
-import haveno.monitor.Metric;
-import haveno.monitor.Reporter;
 import haveno.monitor.metric.TorStartupTime;
-import java.util.Map;
-import java.util.Properties;
-
 import org.junit.Assert;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
+
+import java.util.Map;
+import java.util.Properties;
 
 @Disabled // Ignore for normal test runs as the tests take lots of time
 public class TorStartupTimeTests {

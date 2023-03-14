@@ -18,10 +18,9 @@
 package haveno.cli.opts;
 
 
-import static haveno.cli.opts.OptLabel.OPT_FEE_CURRENCY;
-import static haveno.cli.opts.OptLabel.OPT_PAYMENT_ACCOUNT_ID;
-
 import joptsimple.OptionSpec;
+
+import static haveno.cli.opts.OptLabel.OPT_PAYMENT_ACCOUNT_ID;
 
 public class TakeOfferOptionParser extends OfferIdOptionParser implements MethodOpts {
 

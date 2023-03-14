@@ -24,14 +24,13 @@ import haveno.desktop.common.view.FxmlView;
 import haveno.desktop.main.overlays.windows.SignPaymentAccountsWindow;
 import haveno.desktop.main.overlays.windows.SignSpecificWitnessWindow;
 import haveno.desktop.main.overlays.windows.SignUnsignedPubKeysWindow;
-import javax.inject.Inject;
-
+import javafx.event.EventHandler;
 import javafx.scene.Scene;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.AnchorPane;
 
-import javafx.event.EventHandler;
+import javax.inject.Inject;
 
 @FxmlView
 public class SigningView extends ActivatableView<AnchorPane, Void> {

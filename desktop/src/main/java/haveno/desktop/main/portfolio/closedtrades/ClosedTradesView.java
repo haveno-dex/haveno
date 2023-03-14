@@ -17,12 +17,7 @@
 
 package haveno.desktop.main.portfolio.closedtrades;
 
-import static haveno.desktop.util.FormBuilder.getRegularIconButton;
-
 import com.googlecode.jcsv.writer.CSVEntryConverter;
-
-import javax.inject.Inject;
-import javax.inject.Named;
 import de.jensd.fx.glyphs.materialdesignicons.MaterialDesignIcon;
 import haveno.common.config.Config;
 import haveno.common.crypto.KeyRing;
@@ -50,10 +45,14 @@ import haveno.desktop.main.overlays.windows.TradeDetailsWindow;
 import haveno.desktop.main.portfolio.presentation.PortfolioUtil;
 import haveno.desktop.util.GUIUtil;
 import haveno.network.p2p.NodeAddress;
+import javafx.beans.binding.Bindings;
+import javafx.beans.property.ReadOnlyObjectWrapper;
+import javafx.beans.value.ChangeListener;
+import javafx.collections.transformation.FilteredList;
+import javafx.collections.transformation.SortedList;
+import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
-
-import javafx.stage.Stage;
-
+import javafx.geometry.Insets;
 import javafx.scene.Node;
 import javafx.scene.control.Button;
 import javafx.scene.control.ContextMenu;
@@ -68,22 +67,15 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
-
-import javafx.geometry.Insets;
-
-import javafx.beans.binding.Bindings;
-import javafx.beans.property.ReadOnlyObjectWrapper;
-import javafx.beans.value.ChangeListener;
-
-import javafx.event.ActionEvent;
-
-import javafx.collections.transformation.FilteredList;
-import javafx.collections.transformation.SortedList;
-
+import javafx.stage.Stage;
 import javafx.util.Callback;
 
+import javax.inject.Inject;
+import javax.inject.Named;
 import java.util.Comparator;
 import java.util.function.Function;
+
+import static haveno.desktop.util.FormBuilder.getRegularIconButton;
 
 @FxmlView
 public class ClosedTradesView extends ActivatableViewAndModel<VBox, ClosedTradesViewModel> {

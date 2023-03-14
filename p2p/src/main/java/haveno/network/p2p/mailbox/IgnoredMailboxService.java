@@ -20,6 +20,7 @@ package haveno.network.p2p.mailbox;
 import haveno.common.persistence.PersistenceManager;
 import haveno.common.proto.persistable.PersistedDataHost;
 import haveno.network.p2p.storage.payload.MailboxStoragePayload;
+
 import javax.inject.Inject;
 import javax.inject.Singleton;
 

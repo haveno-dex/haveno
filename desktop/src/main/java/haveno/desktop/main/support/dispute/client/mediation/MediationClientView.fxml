@@ -17,8 +17,8 @@
   ~ along with Haveno. If not, see <http://www.gnu.org/licenses/>.
   -->
 
-<?import javafx.scene.layout.VBox?>
 <?import javafx.geometry.Insets?>
+<?import javafx.scene.layout.VBox?>
 <VBox fx:id="root" fx:controller="haveno.desktop.main.support.dispute.client.mediation.MediationClientView"
       spacing="10"
       xmlns:fx="http://javafx.com/fxml">

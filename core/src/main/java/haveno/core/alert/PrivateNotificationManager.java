@@ -17,12 +17,6 @@
 
 package haveno.core.alert;
 
-import org.bitcoinj.core.ECKey;
-import org.bitcoinj.core.Utils;
-
-import javax.inject.Inject;
-import javax.inject.Named;
-
 import com.google.common.base.Charsets;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
@@ -46,21 +40,20 @@ import haveno.network.p2p.peers.keepalive.messages.Pong;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.ReadOnlyObjectProperty;
 import javafx.beans.property.SimpleObjectProperty;
-
-import java.security.SignatureException;
-
-import java.math.BigInteger;
-
-import java.util.Random;
-import java.util.UUID;
-import java.util.function.Consumer;
-
+import org.bitcoinj.core.ECKey;
+import org.bitcoinj.core.Utils;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.jetbrains.annotations.NotNull;
-
 import javax.annotation.Nullable;
+import javax.inject.Inject;
+import javax.inject.Named;
+import java.math.BigInteger;
+import java.security.SignatureException;
+import java.util.Random;
+import java.util.UUID;
+import java.util.function.Consumer;
 
 import static org.bitcoinj.core.Utils.HEX;
 

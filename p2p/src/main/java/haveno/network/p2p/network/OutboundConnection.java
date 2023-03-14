@@ -19,9 +19,9 @@ package haveno.network.p2p.network;
 
 import haveno.common.proto.network.NetworkProtoResolver;
 import haveno.network.p2p.NodeAddress;
-import java.net.Socket;
-
 import org.jetbrains.annotations.Nullable;
+
+import java.net.Socket;
 
 public class OutboundConnection extends Connection {
     public OutboundConnection(Socket socket,

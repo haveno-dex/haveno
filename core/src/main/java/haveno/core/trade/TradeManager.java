@@ -73,21 +73,24 @@ import haveno.network.p2p.DecryptedMessageWithPubKey;
 import haveno.network.p2p.NodeAddress;
 import haveno.network.p2p.P2PService;
 import haveno.network.p2p.network.TorNetworkNode;
-import org.bitcoinj.core.Coin;
-
-import javax.inject.Inject;
-
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.LongProperty;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleLongProperty;
-
 import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
-
+import lombok.Getter;
+import lombok.Setter;
+import monero.daemon.model.MoneroTx;
+import monero.wallet.model.MoneroOutputQuery;
+import org.bitcoinj.core.Coin;
 import org.bouncycastle.crypto.params.KeyParameter;
 import org.fxmisc.easybind.EasyBind;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import javax.annotation.Nullable;
+import javax.inject.Inject;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Date;
@@ -102,19 +105,8 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import lombok.Getter;
-import lombok.Setter;
-
-import javax.annotation.Nullable;
-
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
-
-import monero.daemon.model.MoneroTx;
-import monero.wallet.model.MoneroOutputQuery;
 
 
 public class TradeManager implements PersistedDataHost, DecryptedDirectMessageListener {
@@ -1158,11 +1150,11 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
             log.warn("Scheduling to delete trade if unfunded for {} {}", trade.getClass().getSimpleName(), trade.getId());
             UserThread.runAfter(() -> {
                 if (isShutDown) return;
-                    
+
                 // get trade's deposit txs from daemon
                 MoneroTx makerDepositTx = xmrWalletService.getDaemon().getTx(trade.getMaker().getDepositTxHash());
                 MoneroTx takerDepositTx = xmrWalletService.getDaemon().getTx(trade.getTaker().getDepositTxHash());
-        
+
                 // delete multisig trade wallet if neither deposit tx published
                 if (makerDepositTx == null && takerDepositTx == null) {
                     log.warn("Deleting {} {} after protocol timeout", trade.getClass().getSimpleName(), trade.getId());

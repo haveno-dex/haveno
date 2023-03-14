@@ -1,18 +1,15 @@
 package haveno.core.xmr.setup;
 
-import java.net.ServerSocket;
+import lombok.extern.slf4j.Slf4j;
+import monero.common.MoneroError;
+import monero.wallet.MoneroWalletRpc;
 
 import java.io.IOException;
-
+import java.net.ServerSocket;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
-import lombok.extern.slf4j.Slf4j;
-
-import monero.common.MoneroError;
-import monero.wallet.MoneroWalletRpc;
 
 /**
  * Manages monero-wallet-rpc processes bound to ports.

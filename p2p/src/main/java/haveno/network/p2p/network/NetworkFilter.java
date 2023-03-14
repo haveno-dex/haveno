@@ -18,6 +18,7 @@
 package haveno.network.p2p.network;
 
 import haveno.network.p2p.NodeAddress;
+
 import java.util.function.Function;
 
 public interface NetworkFilter {

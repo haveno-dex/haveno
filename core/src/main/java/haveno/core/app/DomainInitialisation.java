@@ -18,7 +18,6 @@
 package haveno.core.app;
 
 import haveno.common.ClockWatcher;
-import haveno.common.app.DevEnv;
 import haveno.common.persistence.PersistenceManager;
 import haveno.core.account.sign.SignedWitnessService;
 import haveno.core.account.witness.AccountAgeWitnessService;
@@ -52,10 +51,8 @@ import haveno.core.trade.txproof.xmr.XmrTxProofService;
 import haveno.core.user.User;
 import haveno.core.xmr.Balances;
 import haveno.network.p2p.P2PService;
+
 import javax.inject.Inject;
-
-import javafx.collections.ListChangeListener;
-
 import java.util.List;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;

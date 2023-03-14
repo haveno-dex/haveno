@@ -17,8 +17,6 @@
 
 package haveno.network.crypto;
 
-import static haveno.common.crypto.Encryption.decryptSecretKey;
-
 import com.google.protobuf.InvalidProtocolBufferException;
 import haveno.common.crypto.CryptoException;
 import haveno.common.crypto.Encryption;
@@ -31,15 +29,15 @@ import haveno.common.proto.ProtobufferException;
 import haveno.common.proto.network.NetworkEnvelope;
 import haveno.common.proto.network.NetworkProtoResolver;
 import haveno.network.p2p.DecryptedMessageWithPubKey;
-import javax.inject.Inject;
+import lombok.extern.slf4j.Slf4j;
 
 import javax.crypto.SecretKey;
-
+import javax.inject.Inject;
 import java.security.KeyPair;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 
-import lombok.extern.slf4j.Slf4j;
+import static haveno.common.crypto.Encryption.decryptSecretKey;
 
 @Slf4j
 public class EncryptionService {

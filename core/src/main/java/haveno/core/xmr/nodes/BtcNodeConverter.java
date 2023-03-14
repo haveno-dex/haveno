@@ -17,23 +17,20 @@
 
 package haveno.core.xmr.nodes;
 
-import org.bitcoinj.core.PeerAddress;
-import org.bitcoinj.net.OnionCatConverter;
-
 import com.runjva.sourceforge.jsocks.protocol.Socks5Proxy;
 import haveno.core.xmr.nodes.BtcNodes.BtcNode;
 import haveno.network.DnsLookupException;
 import haveno.network.DnsLookupTor;
-import java.net.InetAddress;
-import java.net.InetSocketAddress;
-import java.net.UnknownHostException;
-
-import java.util.Objects;
-
+import org.bitcoinj.core.PeerAddress;
+import org.bitcoinj.net.OnionCatConverter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
+import java.net.UnknownHostException;
+import java.util.Objects;
 
 class BtcNodeConverter {
     private static final Logger log = LoggerFactory.getLogger(BtcNodeConverter.class);

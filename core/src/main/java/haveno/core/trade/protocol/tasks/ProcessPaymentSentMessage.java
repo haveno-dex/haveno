@@ -17,14 +17,14 @@
 
 package haveno.core.trade.protocol.tasks;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-
 import haveno.common.taskrunner.TaskRunner;
 import haveno.core.trade.HavenoUtils;
 import haveno.core.trade.Trade;
 import haveno.core.trade.messages.PaymentSentMessage;
 import haveno.core.util.Validator;
 import lombok.extern.slf4j.Slf4j;
+
+import static com.google.common.base.Preconditions.checkNotNull;
 
 @Slf4j
 public class ProcessPaymentSentMessage extends TradeTask {

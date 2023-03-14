@@ -17,11 +17,6 @@
 
 package haveno.desktop.main.account.content.fiataccounts;
 
-import static haveno.desktop.util.FormBuilder.add2ButtonsAfterGroup;
-import static haveno.desktop.util.FormBuilder.add3ButtonsAfterGroup;
-import static haveno.desktop.util.FormBuilder.addTitledGroupBg;
-import static haveno.desktop.util.FormBuilder.addTopLabelListView;
-
 import haveno.common.config.Config;
 import haveno.common.util.Tuple2;
 import haveno.common.util.Tuple3;
@@ -127,26 +122,27 @@ import haveno.desktop.main.overlays.popups.Popup;
 import haveno.desktop.util.FormBuilder;
 import haveno.desktop.util.GUIUtil;
 import haveno.desktop.util.Layout;
-import javax.inject.Inject;
-import javax.inject.Named;
-
-import javafx.stage.Stage;
-
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
 import javafx.scene.control.Button;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListView;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.VBox;
-
-import javafx.collections.FXCollections;
-import javafx.collections.ObservableList;
-
+import javafx.stage.Stage;
 import javafx.util.StringConverter;
 
+import javax.inject.Inject;
+import javax.inject.Named;
 import java.math.BigInteger;
 import java.util.List;
 import java.util.stream.Collectors;
+
+import static haveno.desktop.util.FormBuilder.add2ButtonsAfterGroup;
+import static haveno.desktop.util.FormBuilder.add3ButtonsAfterGroup;
+import static haveno.desktop.util.FormBuilder.addTitledGroupBg;
+import static haveno.desktop.util.FormBuilder.addTopLabelListView;
 
 @FxmlView
 public class FiatAccountsView extends PaymentAccountsView<GridPane, FiatAccountsViewModel> {

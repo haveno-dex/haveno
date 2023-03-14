@@ -17,12 +17,12 @@
 
 package haveno.desktop.components;
 
-import static haveno.desktop.util.Colors.AVATAR_GREY;
-
 import haveno.core.locale.Res;
 import haveno.core.user.Preferences;
 import haveno.network.p2p.NodeAddress;
 import lombok.extern.slf4j.Slf4j;
+
+import static haveno.desktop.util.Colors.AVATAR_GREY;
 
 @Slf4j
 public class PeerInfoIconDispute extends PeerInfoIcon {

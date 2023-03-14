@@ -18,9 +18,9 @@
 package haveno.cli.opts;
 
 
-import static haveno.cli.opts.OptLabel.OPT_TX_FEE_RATE;
-
 import joptsimple.OptionSpec;
+
+import static haveno.cli.opts.OptLabel.OPT_TX_FEE_RATE;
 
 public class SetTxFeeRateOptionParser extends AbstractMethodOptionParser implements MethodOpts {
 

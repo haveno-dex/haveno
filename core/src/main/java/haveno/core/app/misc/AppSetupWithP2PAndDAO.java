@@ -25,9 +25,9 @@ import haveno.core.trade.statistics.TradeStatisticsManager;
 import haveno.network.p2p.P2PService;
 import haveno.network.p2p.peers.PeerManager;
 import haveno.network.p2p.storage.P2PDataStorage;
-import javax.inject.Inject;
-
 import lombok.extern.slf4j.Slf4j;
+
+import javax.inject.Inject;
 
 @Slf4j
 public class AppSetupWithP2PAndDAO extends AppSetupWithP2P {

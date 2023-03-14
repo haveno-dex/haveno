@@ -23,10 +23,10 @@ import haveno.core.locale.TradeCurrency;
 import haveno.core.payment.payload.AliPayAccountPayload;
 import haveno.core.payment.payload.PaymentAccountPayload;
 import haveno.core.payment.payload.PaymentMethod;
-import java.util.List;
-
 import lombok.EqualsAndHashCode;
 import lombok.NonNull;
+
+import java.util.List;
 
 @EqualsAndHashCode(callSuper = true)
 public final class AliPayAccount extends PaymentAccount {

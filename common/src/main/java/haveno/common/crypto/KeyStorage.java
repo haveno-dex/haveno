@@ -17,16 +17,21 @@
 
 package haveno.common.crypto;
 
-import static haveno.common.util.Preconditions.checkDir;
-
 import com.google.inject.Inject;
 import haveno.common.config.Config;
 import haveno.common.file.FileUtil;
-import javax.inject.Named;
-import javax.inject.Singleton;
+import org.jetbrains.annotations.NotNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.crypto.SecretKey;
-
+import javax.inject.Named;
+import javax.inject.Singleton;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.math.BigInteger;
 import java.security.Key;
 import java.security.KeyFactory;
 import java.security.KeyPair;
@@ -44,17 +49,7 @@ import java.security.spec.KeySpec;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.RSAPublicKeySpec;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
-
-import java.math.BigInteger;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import org.jetbrains.annotations.NotNull;
+import static haveno.common.util.Preconditions.checkDir;
 
 /**
  * KeyStorage uses password protection to save a symmetric key in PKCS#12 format.

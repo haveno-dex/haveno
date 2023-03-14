@@ -22,6 +22,7 @@ import haveno.common.app.Capability;
 import haveno.common.config.Config;
 import haveno.common.util.Utilities;
 import haveno.core.trade.HavenoUtils;
+
 import java.math.BigInteger;
 import java.util.Date;
 import java.util.GregorianCalendar;

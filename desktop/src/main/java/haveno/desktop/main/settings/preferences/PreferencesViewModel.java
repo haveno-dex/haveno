@@ -24,6 +24,7 @@ import haveno.core.support.dispute.mediation.mediator.MediatorManager;
 import haveno.core.support.dispute.refund.refundagent.RefundAgentManager;
 import haveno.core.user.Preferences;
 import haveno.desktop.common.model.ActivatableViewModel;
+
 import java.util.stream.Collectors;
 
 public class PreferencesViewModel extends ActivatableViewModel {

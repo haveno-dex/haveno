@@ -22,13 +22,11 @@ import haveno.core.trade.txproof.xmr.XmrTxProofModel;
 import haveno.core.util.validation.RegexValidator;
 import haveno.desktop.components.InputTextField;
 import haveno.desktop.main.overlays.Overlay;
+import javafx.geometry.HPos;
+import javafx.geometry.Insets;
 import javafx.scene.layout.ColumnConstraints;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.Priority;
-
-import javafx.geometry.HPos;
-import javafx.geometry.Insets;
-
 import lombok.Getter;
 
 import javax.annotation.Nullable;

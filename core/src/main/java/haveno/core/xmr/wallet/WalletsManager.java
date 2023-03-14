@@ -17,19 +17,17 @@
 
 package haveno.core.xmr.wallet;
 
-import org.bitcoinj.crypto.KeyCrypter;
-import org.bitcoinj.crypto.KeyCrypterScrypt;
-import org.bitcoinj.wallet.DeterministicSeed;
-import org.bitcoinj.wallet.Wallet;
-
 import com.google.inject.Inject;
 import haveno.common.crypto.ScryptUtil;
 import haveno.common.handlers.ExceptionHandler;
 import haveno.common.handlers.ResultHandler;
 import haveno.core.locale.Res;
 import haveno.core.xmr.setup.WalletsSetup;
+import org.bitcoinj.crypto.KeyCrypter;
+import org.bitcoinj.crypto.KeyCrypterScrypt;
+import org.bitcoinj.wallet.DeterministicSeed;
+import org.bitcoinj.wallet.Wallet;
 import org.bouncycastle.crypto.params.KeyParameter;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

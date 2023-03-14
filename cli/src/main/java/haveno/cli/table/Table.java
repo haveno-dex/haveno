@@ -17,17 +17,16 @@
 
 package haveno.cli.table;
 
+import haveno.cli.table.column.Column;
+
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
-
 import java.util.stream.IntStream;
 
 import static com.google.common.base.Strings.padStart;
 import static haveno.cli.table.column.Column.JUSTIFICATION.RIGHT;
 import static java.lang.String.format;
 import static java.nio.charset.StandardCharsets.UTF_8;
-
-import haveno.cli.table.column.Column;
 
 /**
  * A simple table of formatted data for the CLI's output console.  A table must be

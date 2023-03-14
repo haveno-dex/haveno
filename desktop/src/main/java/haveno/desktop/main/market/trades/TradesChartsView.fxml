@@ -17,9 +17,9 @@
   ~ along with Haveno. If not, see <http://www.gnu.org/licenses/>.
   -->
 
+<?import javafx.geometry.Insets?>
 <?import javafx.scene.layout.AnchorPane?>
 <?import javafx.scene.layout.VBox?>
-<?import javafx.geometry.Insets?>
 <VBox fx:id="root" fx:controller="haveno.desktop.main.market.trades.TradesChartsView"
       spacing="7.0"
       AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0"

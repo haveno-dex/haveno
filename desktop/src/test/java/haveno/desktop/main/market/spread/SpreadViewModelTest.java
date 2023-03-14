@@ -22,13 +22,11 @@ import haveno.common.config.Config;
 import haveno.core.provider.price.PriceFeedService;
 import haveno.core.util.coin.CoinFormatter;
 import haveno.core.util.coin.ImmutableCoinFormatter;
-import haveno.desktop.main.market.spread.SpreadViewModel;
 import haveno.desktop.main.offer.offerbook.OfferBook;
 import haveno.desktop.main.offer.offerbook.OfferBookListItem;
 import haveno.desktop.main.offer.offerbook.OfferBookListItemMaker;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
-
 import org.junit.Test;
 
 import static com.natpryce.makeiteasy.MakeItEasy.make;

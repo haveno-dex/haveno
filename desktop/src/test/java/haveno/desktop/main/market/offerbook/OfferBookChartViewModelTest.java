@@ -19,15 +19,12 @@ package haveno.desktop.main.market.offerbook;
 
 import haveno.core.locale.GlobalSettings;
 import haveno.core.provider.price.PriceFeedService;
-import haveno.desktop.main.market.offerbook.OfferBookChartViewModel;
 import haveno.desktop.main.offer.offerbook.OfferBook;
 import haveno.desktop.main.offer.offerbook.OfferBookListItem;
 import haveno.desktop.main.offer.offerbook.OfferBookListItemMaker;
 import javafx.beans.property.SimpleIntegerProperty;
-
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
-
 import org.junit.Before;
 import org.junit.Test;
 

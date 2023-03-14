@@ -25,9 +25,9 @@ import com.google.gson.JsonParseException;
 import haveno.asset.CryptoNoteUtils;
 import haveno.common.app.DevEnv;
 import haveno.core.trade.txproof.AssetTxProofParser;
-import java.util.concurrent.TimeUnit;
-
 import lombok.extern.slf4j.Slf4j;
+
+import java.util.concurrent.TimeUnit;
 
 @Slf4j
 public class XmrTxProofParser implements AssetTxProofParser<XmrTxProofRequest.Result, XmrTxProofModel> {

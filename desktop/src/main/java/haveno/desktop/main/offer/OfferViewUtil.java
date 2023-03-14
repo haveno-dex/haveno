@@ -36,29 +36,23 @@ import haveno.desktop.main.offer.offerbook.OtherOfferBookView;
 import haveno.desktop.main.offer.offerbook.TopAltcoinOfferBookView;
 import haveno.desktop.main.overlays.popups.Popup;
 import haveno.desktop.util.GUIUtil;
+import javafx.geometry.HPos;
+import javafx.geometry.Insets;
+import javafx.geometry.Pos;
+import javafx.geometry.VPos;
 import javafx.scene.control.Label;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
-
-import javafx.geometry.HPos;
-import javafx.geometry.Insets;
-import javafx.geometry.Pos;
-import javafx.geometry.VPos;
+import lombok.extern.slf4j.Slf4j;
+import monero.daemon.model.MoneroSubmitTxResult;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.HashMap;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
-
-import lombok.extern.slf4j.Slf4j;
-
-import org.jetbrains.annotations.NotNull;
-
-
-
-import monero.daemon.model.MoneroSubmitTxResult;
 
 // Shared utils for Views
 @Slf4j

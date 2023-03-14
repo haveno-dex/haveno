@@ -17,12 +17,11 @@
 
 package haveno.desktop.util;
 
-import haveno.desktop.util.MovingAverageUtils;
-import java.util.Arrays;
-import java.util.stream.Stream;
-
 import org.junit.Assert;
 import org.junit.Test;
+
+import java.util.Arrays;
+import java.util.stream.Stream;
 
 public class MovingAverageUtilsTest {
 

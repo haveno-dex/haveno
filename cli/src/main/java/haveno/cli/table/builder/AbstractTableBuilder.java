@@ -17,8 +17,9 @@
 
 package haveno.cli.table.builder;
 
-import haveno.proto.grpc.OfferInfo;
 import haveno.cli.table.Table;
+import haveno.proto.grpc.OfferInfo;
+
 import java.util.List;
 import java.util.function.Predicate;
 

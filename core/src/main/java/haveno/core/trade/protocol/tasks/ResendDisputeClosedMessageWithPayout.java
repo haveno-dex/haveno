@@ -27,13 +27,13 @@ import haveno.core.trade.protocol.TradePeer;
 import haveno.core.util.Validator;
 import lombok.extern.slf4j.Slf4j;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-
 import java.util.List;
+
+import static com.google.common.base.Preconditions.checkNotNull;
 
 @Slf4j
 public class ResendDisputeClosedMessageWithPayout extends TradeTask {
-    
+
     @SuppressWarnings({"unused"})
     public ResendDisputeClosedMessageWithPayout(TaskRunner taskHandler, Trade trade) {
         super(taskHandler, trade);
@@ -50,7 +50,7 @@ public class ResendDisputeClosedMessageWithPayout extends TradeTask {
             Validator.checkTradeId(processModel.getOfferId(), request);
             TradePeer sender = trade.getTradePeer(request.getPubKeyRing());
             if (sender == null) throw new RuntimeException("Pub key ring is not from arbitrator, buyer, or seller");
-              
+
             // arbitrator resends DisputeClosedMessage with payout tx when updated multisig info received
             boolean ticketClosed = false;
             if (!trade.isPayoutPublished() && trade.isArbitrator()) {

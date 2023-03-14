@@ -17,8 +17,6 @@
 
 package haveno.desktop.main.debug;
 
-import static haveno.desktop.util.FormBuilder.addTopLabelComboBox;
-
 import haveno.common.taskrunner.Task;
 import haveno.common.util.Tuple2;
 import haveno.core.offer.availability.tasks.ProcessOfferAvailabilityResponse;
@@ -42,20 +40,18 @@ import haveno.core.trade.protocol.tasks.VerifyPeersAccountAgeWitness;
 import haveno.desktop.common.view.FxmlView;
 import haveno.desktop.common.view.InitializableView;
 import haveno.desktop.components.TitledGroupBg;
-import javax.inject.Inject;
-
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
-
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
 import javafx.scene.layout.GridPane;
-
-import javafx.collections.FXCollections;
-import javafx.collections.ObservableList;
-
 import javafx.util.StringConverter;
 
+import javax.inject.Inject;
 import java.util.Arrays;
+
+import static haveno.desktop.util.FormBuilder.addTopLabelComboBox;
 
 // Not maintained anymore with new trade protocol, but leave it...If used needs to be adopted to current protocol.
 @FxmlView

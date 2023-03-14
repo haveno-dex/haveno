@@ -17,11 +17,11 @@
 
 package haveno.desktop.common.view.guice;
 
+import com.google.common.base.Preconditions;
 import com.google.inject.Injector;
 import haveno.desktop.common.view.ViewFactory;
-import javax.inject.Singleton;
 
-import com.google.common.base.Preconditions;
+import javax.inject.Singleton;
 
 @Singleton
 public class InjectorViewFactory implements ViewFactory {

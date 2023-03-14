@@ -29,20 +29,17 @@ import haveno.desktop.components.AutoTooltipButton;
 import haveno.desktop.main.MainView;
 import haveno.desktop.main.shared.ChatView;
 import haveno.desktop.util.CssTheme;
-import javafx.stage.Modality;
-import javafx.stage.Stage;
-import javafx.stage.StageStyle;
-import javafx.stage.Window;
-
+import javafx.beans.value.ChangeListener;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.StackPane;
-
-import javafx.beans.value.ChangeListener;
-
+import javafx.stage.Modality;
+import javafx.stage.Stage;
+import javafx.stage.StageStyle;
+import javafx.stage.Window;
 import lombok.Getter;
 
 public class DisputeChatPopup {

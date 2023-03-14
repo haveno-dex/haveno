@@ -17,24 +17,22 @@
 
 package haveno.desktop.main.overlays.windows;
 
-import static haveno.desktop.util.FormBuilder.addMultilineLabel;
-import static haveno.desktop.util.FormBuilder.addTopLabelTextArea;
-import static haveno.desktop.util.FormBuilder.addTopLabelTextField;
-
 import haveno.core.locale.Res;
 import haveno.core.support.dispute.DisputeSummaryVerification;
 import haveno.core.support.dispute.arbitration.arbitrator.ArbitratorManager;
 import haveno.desktop.main.overlays.Overlay;
+import javafx.geometry.HPos;
+import javafx.geometry.Insets;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.ColumnConstraints;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.Priority;
-
-import javafx.geometry.HPos;
-import javafx.geometry.Insets;
-
 import lombok.extern.slf4j.Slf4j;
+
+import static haveno.desktop.util.FormBuilder.addMultilineLabel;
+import static haveno.desktop.util.FormBuilder.addTopLabelTextArea;
+import static haveno.desktop.util.FormBuilder.addTopLabelTextField;
 
 @Slf4j
 public class VerifyDisputeResultSignatureWindow extends Overlay<VerifyDisputeResultSignatureWindow> {

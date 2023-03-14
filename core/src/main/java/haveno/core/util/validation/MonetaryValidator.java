@@ -18,6 +18,7 @@
 package haveno.core.util.validation;
 
 import haveno.core.locale.Res;
+
 import javax.inject.Inject;
 
 public abstract class MonetaryValidator extends NumberValidator {

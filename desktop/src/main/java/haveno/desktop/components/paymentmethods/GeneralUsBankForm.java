@@ -38,7 +38,13 @@ import javafx.scene.layout.GridPane;
 import javax.annotation.Nullable;
 
 import static haveno.common.util.Utilities.cleanString;
-import static haveno.desktop.util.FormBuilder.*;
+import static haveno.desktop.util.FormBuilder.addCompactTopLabelTextArea;
+import static haveno.desktop.util.FormBuilder.addCompactTopLabelTextField;
+import static haveno.desktop.util.FormBuilder.addCompactTopLabelTextFieldWithCopyIcon;
+import static haveno.desktop.util.FormBuilder.addInputTextField;
+import static haveno.desktop.util.FormBuilder.addTopLabelTextArea;
+import static haveno.desktop.util.FormBuilder.addTopLabelTextField;
+import static haveno.desktop.util.FormBuilder.addTopLabelTextFieldWithCopyIcon;
 
 public abstract class GeneralUsBankForm extends GeneralBankForm {
 

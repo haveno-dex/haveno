@@ -19,7 +19,6 @@ package haveno.core.locale;
 
 
 import com.google.protobuf.Message;
-
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 

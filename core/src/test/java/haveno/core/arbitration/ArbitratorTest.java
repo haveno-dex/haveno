@@ -22,10 +22,9 @@ import haveno.common.crypto.PubKeyRing;
 import haveno.core.support.dispute.arbitration.arbitrator.Arbitrator;
 import haveno.network.p2p.NodeAddress;
 import org.apache.commons.lang3.RandomUtils;
+import org.junit.Ignore;
 
 import java.util.Date;
-
-import org.junit.Ignore;
 
 @SuppressWarnings({"SameParameterValue", "UnusedAssignment"})
 public class ArbitratorTest {

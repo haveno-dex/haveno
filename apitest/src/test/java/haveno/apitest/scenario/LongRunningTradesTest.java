@@ -17,8 +17,10 @@
 
 package haveno.apitest.scenario;
 
+import haveno.apitest.method.trade.AbstractTradeTest;
+import haveno.apitest.method.trade.TakeBuyBTCOfferTest;
+import haveno.apitest.method.trade.TakeSellBTCOfferTest;
 import lombok.extern.slf4j.Slf4j;
-
 import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
@@ -27,10 +29,6 @@ import org.junit.jupiter.api.TestMethodOrder;
 import org.junit.jupiter.api.condition.EnabledIf;
 
 import static java.lang.System.getenv;
-
-import haveno.apitest.method.trade.AbstractTradeTest;
-import haveno.apitest.method.trade.TakeBuyBTCOfferTest;
-import haveno.apitest.method.trade.TakeSellBTCOfferTest;
 
 @EnabledIf("envLongRunningTestEnabled")
 @Slf4j

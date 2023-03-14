@@ -1,11 +1,10 @@
 package haveno.desktop.components;
 
-import static haveno.desktop.components.TooltipUtil.showTooltipIfTruncated;
-
 import com.jfoenix.controls.JFXToggleButton;
 import com.jfoenix.skins.JFXToggleButtonSkin;
-
 import javafx.scene.control.Skin;
+
+import static haveno.desktop.components.TooltipUtil.showTooltipIfTruncated;
 
 public class AutoTooltipSlideToggleButton extends JFXToggleButton {
     public AutoTooltipSlideToggleButton() {

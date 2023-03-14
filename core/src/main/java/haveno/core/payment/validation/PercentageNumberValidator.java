@@ -17,9 +17,10 @@
 
 package haveno.core.payment.validation;
 
-import lombok.Setter;
 import haveno.core.locale.Res;
 import haveno.core.util.validation.NumberValidator;
+import lombok.Setter;
+
 import javax.annotation.Nullable;
 
 public class PercentageNumberValidator extends NumberValidator {

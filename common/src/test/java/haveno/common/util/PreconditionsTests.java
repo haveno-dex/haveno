@@ -1,13 +1,12 @@
 package haveno.common.util;
 
-import java.nio.file.Files;
-
-import java.io.File;
-import java.io.IOException;
-
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
+
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
 
 import static haveno.common.util.Preconditions.checkDir;
 import static org.hamcrest.Matchers.equalTo;

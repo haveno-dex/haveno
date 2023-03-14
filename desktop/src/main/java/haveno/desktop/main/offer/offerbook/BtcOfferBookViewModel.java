@@ -41,11 +41,10 @@ import haveno.core.xmr.setup.WalletsSetup;
 import haveno.desktop.Navigation;
 import haveno.desktop.util.GUIUtil;
 import haveno.network.p2p.P2PService;
-import javax.inject.Named;
-
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 
+import javax.inject.Named;
 import java.util.List;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;

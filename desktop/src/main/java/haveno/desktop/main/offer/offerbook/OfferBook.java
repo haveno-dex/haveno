@@ -17,27 +17,25 @@
 
 package haveno.desktop.main.offer.offerbook;
 
-import static haveno.core.offer.OfferDirection.BUY;
-
 import haveno.core.filter.FilterManager;
 import haveno.core.offer.Offer;
 import haveno.core.offer.OfferBookService;
 import haveno.core.offer.OfferRestrictions;
 import haveno.network.p2p.storage.P2PDataStorage;
 import haveno.network.utils.Utils;
-import javax.inject.Inject;
-import javax.inject.Singleton;
-
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+import lombok.extern.slf4j.Slf4j;
 
+import javax.inject.Inject;
+import javax.inject.Singleton;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-import lombok.extern.slf4j.Slf4j;
+import static haveno.core.offer.OfferDirection.BUY;
 
 /**
  * Holds and manages the unsorted and unfiltered offerbook list (except for banned offers) of both buy and sell offers.
@@ -219,7 +217,7 @@ public class OfferBook {
                         .filter(this::isOfferAllowed)
                         .map(OfferBookListItem::new)
                         .collect(Collectors.toList()));
-    
+
                 log.debug("offerBookListItems.size {}", offerBookListItems.size());
                 fillOfferCountMaps();
             } catch (Throwable t) {
@@ -235,7 +233,7 @@ public class OfferBook {
                     log.debug("{} -> OfferBookListItems:  none", msg);
                     return;
                 }
-    
+
                 StringBuilder stringBuilder = new StringBuilder(msg + " -> ").append("OfferBookListItems:").append("\n");
                 offerBookListItems.forEach(i -> stringBuilder.append("\t").append(i.toString()).append("\n"));
                 stringBuilder.deleteCharAt(stringBuilder.length() - 1);

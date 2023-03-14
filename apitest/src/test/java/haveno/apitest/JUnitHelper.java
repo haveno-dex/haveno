@@ -1,7 +1,6 @@
 package haveno.apitest;
 
 import lombok.extern.slf4j.Slf4j;
-
 import org.junit.runner.Description;
 import org.junit.runner.JUnitCore;
 import org.junit.runner.Result;

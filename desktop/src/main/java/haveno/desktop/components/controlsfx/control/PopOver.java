@@ -27,20 +27,8 @@
 
 package haveno.desktop.components.controlsfx.control;
 
+import haveno.desktop.components.controlsfx.skin.PopOverSkin;
 import javafx.animation.FadeTransition;
-
-import javafx.stage.Window;
-import javafx.stage.WindowEvent;
-
-import javafx.scene.Node;
-import javafx.scene.control.Label;
-import javafx.scene.control.PopupControl;
-import javafx.scene.control.Skin;
-import javafx.scene.layout.StackPane;
-
-import javafx.geometry.Bounds;
-import javafx.geometry.Insets;
-
 import javafx.beans.InvalidationListener;
 import javafx.beans.WeakInvalidationListener;
 import javafx.beans.property.BooleanProperty;
@@ -53,19 +41,23 @@ import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.WeakChangeListener;
-
 import javafx.event.EventHandler;
 import javafx.event.WeakEventHandler;
-
+import javafx.geometry.Bounds;
+import javafx.geometry.Insets;
+import javafx.scene.Node;
+import javafx.scene.control.Label;
+import javafx.scene.control.PopupControl;
+import javafx.scene.control.Skin;
+import javafx.scene.layout.StackPane;
+import javafx.stage.Window;
+import javafx.stage.WindowEvent;
 import javafx.util.Duration;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static java.util.Objects.requireNonNull;
 import static javafx.scene.input.MouseEvent.MOUSE_CLICKED;
-
-import haveno.desktop.components.controlsfx.skin.PopOverSkin;
 
 /**
  * The PopOver control provides detailed information about an owning node in a

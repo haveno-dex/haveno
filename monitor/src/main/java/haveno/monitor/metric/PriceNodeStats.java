@@ -17,9 +17,6 @@
 
 package haveno.monitor.metric;
 
-import org.berndpruenster.netlayer.tor.Tor;
-import org.berndpruenster.netlayer.tor.TorCtlException;
-
 import com.runjva.sourceforge.jsocks.protocol.Socks5Proxy;
 import com.runjva.sourceforge.jsocks.protocol.SocksSocket;
 import haveno.asset.Asset;
@@ -28,13 +25,16 @@ import haveno.monitor.Metric;
 import haveno.monitor.OnionParser;
 import haveno.monitor.Reporter;
 import haveno.network.p2p.NodeAddress;
+import lombok.extern.slf4j.Slf4j;
+import org.berndpruenster.netlayer.tor.Tor;
+import org.berndpruenster.netlayer.tor.TorCtlException;
+
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
-
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -42,8 +42,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
-import lombok.extern.slf4j.Slf4j;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 

@@ -17,18 +17,14 @@
 
 package haveno.common.crypto;
 
-import org.bitcoinj.core.Utils;
-
 import com.google.common.base.Charsets;
-
+import lombok.extern.slf4j.Slf4j;
+import org.bitcoinj.core.Utils;
 import org.bouncycastle.crypto.digests.RIPEMD160Digest;
 
+import java.nio.ByteBuffer;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-
-import java.nio.ByteBuffer;
-
-import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class Hash {

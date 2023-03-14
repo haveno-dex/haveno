@@ -18,9 +18,9 @@
 package haveno.apitest;
 
 import haveno.apitest.linux.BashCommand;
-import java.io.IOException;
-
 import lombok.extern.slf4j.Slf4j;
+
+import java.io.IOException;
 
 @Slf4j
 class SmokeTestBashCommand {

@@ -22,21 +22,16 @@ package haveno.desktop.main.overlays.windows.downloadupdate;
  */
 
 import com.google.common.collect.Lists;
+import javafx.concurrent.Task;
+import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
 
 import java.io.FileReader;
 import java.io.IOException;
-
 import java.util.List;
 import java.util.Optional;
 import java.util.Scanner;
 import java.util.stream.Collectors;
-
-import lombok.Getter;
-import lombok.extern.slf4j.Slf4j;
-
-
-
-import javafx.concurrent.Task;
 
 @Slf4j
 @Getter

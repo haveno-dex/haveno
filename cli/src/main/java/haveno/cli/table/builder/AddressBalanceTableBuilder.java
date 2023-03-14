@@ -17,13 +17,14 @@
 
 package haveno.cli.table.builder;
 
-import haveno.proto.grpc.AddressBalanceInfo;
 import haveno.cli.table.Table;
 import haveno.cli.table.column.BooleanColumn;
 import haveno.cli.table.column.Column;
 import haveno.cli.table.column.LongColumn;
 import haveno.cli.table.column.SatoshiColumn;
 import haveno.cli.table.column.StringColumn;
+import haveno.proto.grpc.AddressBalanceInfo;
+
 import java.util.List;
 import java.util.stream.Collectors;
 

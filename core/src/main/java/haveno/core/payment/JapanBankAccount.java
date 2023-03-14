@@ -23,9 +23,9 @@ import haveno.core.locale.TradeCurrency;
 import haveno.core.payment.payload.JapanBankAccountPayload;
 import haveno.core.payment.payload.PaymentAccountPayload;
 import haveno.core.payment.payload.PaymentMethod;
-import java.util.List;
-
 import lombok.NonNull;
+
+import java.util.List;
 
 public final class JapanBankAccount extends PaymentAccount {
 

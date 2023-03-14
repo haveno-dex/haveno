@@ -20,9 +20,9 @@ package haveno.core.api.model;
 import haveno.common.Payload;
 import haveno.core.payment.payload.PaymentAccountPayload;
 import haveno.core.proto.CoreProtoResolver;
-import java.util.function.Supplier;
-
 import lombok.Getter;
+
+import java.util.function.Supplier;
 
 /**
  * A lightweight Trade Contract constructed from a trade's json contract.

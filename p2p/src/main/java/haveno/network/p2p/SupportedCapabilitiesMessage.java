@@ -18,6 +18,7 @@
 package haveno.network.p2p;
 
 import haveno.common.app.Capabilities;
+
 import javax.annotation.Nullable;
 
 public interface SupportedCapabilitiesMessage {

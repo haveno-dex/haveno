@@ -25,11 +25,10 @@ import haveno.network.p2p.NodeAddress;
 import lombok.EqualsAndHashCode;
 import lombok.Value;
 
-import static com.google.common.base.Preconditions.checkArgument;
-
+import javax.annotation.Nullable;
 import java.util.Optional;
 
-import javax.annotation.Nullable;
+import static com.google.common.base.Preconditions.checkArgument;
 
 @Value
 @EqualsAndHashCode(callSuper = true)

@@ -30,18 +30,16 @@ import haveno.core.trade.txproof.AssetTxProofResult;
 import haveno.core.user.AutoConfirmSettings;
 import haveno.network.Socks5ProxyProvider;
 import javafx.beans.value.ChangeListener;
-
 import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
+import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
 
 import java.math.BigInteger;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Consumer;
-
-import lombok.Getter;
-import lombok.extern.slf4j.Slf4j;
 
 /**
  * Handles the XMR tx proof requests for multiple services per trade.

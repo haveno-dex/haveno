@@ -18,17 +18,16 @@
 package haveno.common.util;
 
 
+import lombok.extern.slf4j.Slf4j;
+
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
-
-import java.lang.reflect.Field;
-import java.lang.reflect.Method;
-import java.lang.reflect.Modifier;
-
-import lombok.extern.slf4j.Slf4j;
 
 import static java.lang.String.format;
 import static java.util.Arrays.stream;

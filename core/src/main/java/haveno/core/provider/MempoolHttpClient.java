@@ -20,12 +20,11 @@ package haveno.core.provider;
 import haveno.common.app.Version;
 import haveno.network.Socks5ProxyProvider;
 import haveno.network.http.HttpClientImpl;
-import javax.inject.Inject;
-import javax.inject.Singleton;
-
-import java.io.IOException;
 
 import javax.annotation.Nullable;
+import javax.inject.Inject;
+import javax.inject.Singleton;
+import java.io.IOException;
 
 @Singleton
 public class MempoolHttpClient extends HttpClientImpl {

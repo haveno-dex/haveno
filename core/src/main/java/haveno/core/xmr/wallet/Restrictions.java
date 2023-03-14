@@ -19,9 +19,9 @@ package haveno.core.xmr.wallet;
 
 import haveno.common.config.Config;
 import haveno.core.trade.HavenoUtils;
-import java.math.BigInteger;
-
 import org.bitcoinj.core.Coin;
+
+import java.math.BigInteger;
 
 public class Restrictions {
     public static BigInteger MIN_TRADE_AMOUNT = HavenoUtils.xmrToAtomicUnits(0.1);

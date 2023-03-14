@@ -39,8 +39,8 @@ import haveno.core.xmr.wallet.XmrWalletService;
 import haveno.desktop.Navigation;
 import haveno.desktop.main.offer.MutableOfferDataModel;
 import haveno.network.p2p.P2PService;
-import javax.inject.Named;
 
+import javax.inject.Named;
 import java.math.BigInteger;
 import java.util.Objects;
 import java.util.Optional;

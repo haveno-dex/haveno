@@ -18,10 +18,10 @@
 package haveno.cli.opts;
 
 
+import joptsimple.OptionSpec;
+
 import static haveno.cli.opts.OptLabel.OPT_DISPUTE_AGENT_TYPE;
 import static haveno.cli.opts.OptLabel.OPT_REGISTRATION_KEY;
-
-import joptsimple.OptionSpec;
 
 public class RegisterDisputeAgentOptionParser extends AbstractMethodOptionParser implements MethodOpts {
 

@@ -19,7 +19,6 @@ package haveno.network.p2p;
 
 import haveno.common.ClockWatcher;
 import haveno.common.crypto.KeyRing;
-import haveno.common.crypto.KeyStorage;
 import haveno.common.file.CorruptedStorageFileHandler;
 import haveno.common.persistence.PersistenceManager;
 import haveno.common.proto.persistable.PersistenceProtoResolver;
@@ -34,15 +33,13 @@ import haveno.network.p2p.network.Statistic;
 import haveno.network.p2p.peers.PeerManager;
 import haveno.network.p2p.peers.peerexchange.PeerList;
 import haveno.network.p2p.seed.SeedNodeRepository;
-import java.nio.file.Files;
+import lombok.Getter;
 
 import java.io.File;
 import java.io.IOException;
-
+import java.nio.file.Files;
 import java.util.HashSet;
 import java.util.Set;
-
-import lombok.Getter;
 
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.mock;

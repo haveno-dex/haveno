@@ -17,14 +17,12 @@
 
 package haveno.apitest.linux;
 
-import java.io.IOException;
-
-import java.util.ArrayList;
-import java.util.List;
-
 import lombok.extern.slf4j.Slf4j;
 
 import javax.annotation.Nullable;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
 import static haveno.apitest.config.ApiTestConfig.BASH_PATH_VALUE;
 import static java.lang.management.ManagementFactory.getRuntimeMXBean;

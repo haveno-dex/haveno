@@ -17,6 +17,7 @@
 
 package haveno.desktop.main.market.offerbook;
 
+import com.google.common.math.LongMath;
 import com.google.inject.Inject;
 import haveno.core.account.witness.AccountAgeWitnessService;
 import haveno.core.locale.CurrencyUtil;
@@ -45,19 +46,15 @@ import haveno.desktop.util.CurrencyList;
 import haveno.desktop.util.CurrencyListItem;
 import haveno.desktop.util.DisplayUtils;
 import haveno.desktop.util.GUIUtil;
-import com.google.common.math.LongMath;
-
-import javafx.scene.chart.XYChart;
-
 import javafx.beans.property.IntegerProperty;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleIntegerProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.value.ChangeListener;
-
 import javafx.collections.FXCollections;
 import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
+import javafx.scene.chart.XYChart;
 
 import java.util.ArrayList;
 import java.util.Comparator;

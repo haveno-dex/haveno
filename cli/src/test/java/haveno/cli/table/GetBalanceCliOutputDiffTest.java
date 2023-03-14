@@ -1,9 +1,9 @@
 package haveno.cli.table;
 
-import static haveno.cli.table.builder.TableType.BTC_BALANCE_TBL;
-
 import haveno.cli.AbstractCliTest;
 import haveno.cli.table.builder.TableBuilder;
+
+import static haveno.cli.table.builder.TableType.BTC_BALANCE_TBL;
 
 @SuppressWarnings("unused")
 public class GetBalanceCliOutputDiffTest extends AbstractCliTest {

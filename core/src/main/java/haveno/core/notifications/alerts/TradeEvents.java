@@ -24,16 +24,14 @@ import haveno.core.notifications.MobileMessageType;
 import haveno.core.notifications.MobileNotificationService;
 import haveno.core.trade.Trade;
 import haveno.core.trade.TradeManager;
+import javafx.collections.ListChangeListener;
+import lombok.extern.slf4j.Slf4j;
+
 import javax.inject.Inject;
 import javax.inject.Singleton;
-
-import javafx.collections.ListChangeListener;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
-
-import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Singleton

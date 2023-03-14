@@ -20,9 +20,6 @@ package haveno.core.offer;
 import com.natpryce.makeiteasy.Instantiator;
 import com.natpryce.makeiteasy.Maker;
 import com.natpryce.makeiteasy.Property;
-import haveno.core.offer.Offer;
-import haveno.core.offer.OfferDirection;
-import haveno.core.offer.OfferPayload;
 
 import static com.natpryce.makeiteasy.MakeItEasy.a;
 

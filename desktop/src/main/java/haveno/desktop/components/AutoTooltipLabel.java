@@ -17,11 +17,11 @@
 
 package haveno.desktop.components;
 
-import static haveno.desktop.components.TooltipUtil.showTooltipIfTruncated;
-
 import javafx.scene.control.Label;
 import javafx.scene.control.Skin;
 import javafx.scene.control.skin.LabelSkin;
+
+import static haveno.desktop.components.TooltipUtil.showTooltipIfTruncated;
 
 public class AutoTooltipLabel extends Label {
 

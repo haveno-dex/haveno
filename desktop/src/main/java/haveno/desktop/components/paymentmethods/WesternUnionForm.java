@@ -17,9 +17,6 @@
 
 package haveno.desktop.components.paymentmethods;
 
-import static haveno.desktop.util.FormBuilder.addCompactTopLabelTextField;
-import static haveno.desktop.util.FormBuilder.addCompactTopLabelTextFieldWithCopyIcon;
-
 import haveno.common.util.Tuple2;
 import haveno.core.account.witness.AccountAgeWitnessService;
 import haveno.core.locale.BankUtil;
@@ -40,8 +37,10 @@ import haveno.desktop.util.FormBuilder;
 import haveno.desktop.util.GUIUtil;
 import javafx.scene.control.ComboBox;
 import javafx.scene.layout.GridPane;
-
 import lombok.extern.slf4j.Slf4j;
+
+import static haveno.desktop.util.FormBuilder.addCompactTopLabelTextField;
+import static haveno.desktop.util.FormBuilder.addCompactTopLabelTextFieldWithCopyIcon;
 
 @Slf4j
 public class WesternUnionForm extends PaymentMethodForm {

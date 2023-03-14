@@ -17,12 +17,11 @@
 
 package haveno.core.util;
 
+import haveno.core.trade.messages.TradeMessage;
 import org.bitcoinj.core.Coin;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
-
-import haveno.core.trade.messages.TradeMessage;
 
 /**
  * Utility class for validating domain data.

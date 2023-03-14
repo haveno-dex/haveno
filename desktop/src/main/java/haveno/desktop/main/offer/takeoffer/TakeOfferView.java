@@ -17,12 +17,7 @@
 
 package haveno.desktop.main.offer.takeoffer;
 
-import net.glxn.qrgen.QRCode;
-import net.glxn.qrgen.image.ImageType;
-
-import javax.inject.Inject;
-import javax.inject.Named;
-
+import com.jfoenix.controls.JFXTextField;
 import de.jensd.fx.glyphs.materialdesignicons.MaterialDesignIcon;
 import haveno.common.UserThread;
 import haveno.common.app.DevEnv;
@@ -70,8 +65,13 @@ import haveno.desktop.main.portfolio.pendingtrades.PendingTradesView;
 import haveno.desktop.util.GUIUtil;
 import haveno.desktop.util.Layout;
 import haveno.desktop.util.Transitions;
-import com.jfoenix.controls.JFXTextField;
-
+import javafx.beans.property.SimpleBooleanProperty;
+import javafx.beans.value.ChangeListener;
+import javafx.geometry.HPos;
+import javafx.geometry.Insets;
+import javafx.geometry.Orientation;
+import javafx.geometry.Pos;
+import javafx.geometry.VPos;
 import javafx.scene.control.Button;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
@@ -87,30 +87,33 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
 import javafx.scene.text.Text;
-
-import javafx.geometry.HPos;
-import javafx.geometry.Insets;
-import javafx.geometry.Orientation;
-import javafx.geometry.Pos;
-import javafx.geometry.VPos;
-
+import net.glxn.qrgen.QRCode;
+import net.glxn.qrgen.image.ImageType;
 import org.fxmisc.easybind.EasyBind;
 import org.fxmisc.easybind.Subscription;
+import org.jetbrains.annotations.NotNull;
 
-import javafx.beans.property.SimpleBooleanProperty;
-import javafx.beans.value.ChangeListener;
-
-import java.net.URI;
-
+import javax.inject.Inject;
+import javax.inject.Named;
 import java.io.ByteArrayInputStream;
 import java.math.BigInteger;
+import java.net.URI;
 import java.util.HashMap;
 import java.util.concurrent.TimeUnit;
 
-import org.jetbrains.annotations.NotNull;
-
 import static haveno.desktop.main.offer.OfferViewUtil.addPayInfoEntry;
-import static haveno.desktop.util.FormBuilder.*;
+import static haveno.desktop.util.FormBuilder.add2ButtonsWithBox;
+import static haveno.desktop.util.FormBuilder.addAddressTextField;
+import static haveno.desktop.util.FormBuilder.addBalanceTextField;
+import static haveno.desktop.util.FormBuilder.addComboBoxTopLabelTextField;
+import static haveno.desktop.util.FormBuilder.addFundsTextfield;
+import static haveno.desktop.util.FormBuilder.addTitledGroupBg;
+import static haveno.desktop.util.FormBuilder.getEditableValueBox;
+import static haveno.desktop.util.FormBuilder.getIconForLabel;
+import static haveno.desktop.util.FormBuilder.getNonEditableValueBox;
+import static haveno.desktop.util.FormBuilder.getNonEditableValueBoxWithInfo;
+import static haveno.desktop.util.FormBuilder.getSmallIconForLabel;
+import static haveno.desktop.util.FormBuilder.getTopLabelWithVBox;
 import static javafx.beans.binding.Bindings.createStringBinding;
 
 @FxmlView
@@ -1066,7 +1069,7 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
         vBox.setMaxWidth(300);
         vBox.setAlignment(Pos.CENTER_LEFT);
         vBox.getChildren().addAll(tradeFeeInXmrLabel);
-        
+
         HBox hBox = new HBox();
         hBox.getChildren().addAll(vBox);
         hBox.setMinHeight(47);

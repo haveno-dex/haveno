@@ -18,20 +18,15 @@
 package haveno.apitest.scenario.bot;
 
 import haveno.proto.grpc.OfferInfo;
-
-import protobuf.PaymentAccount;
-
-import java.security.SecureRandom;
-
-import java.text.DecimalFormat;
-
-import java.math.BigDecimal;
-
-import java.util.Objects;
-import java.util.function.Supplier;
-
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
+import protobuf.PaymentAccount;
+
+import java.math.BigDecimal;
+import java.security.SecureRandom;
+import java.text.DecimalFormat;
+import java.util.Objects;
+import java.util.function.Supplier;
 
 import static haveno.apitest.method.offer.AbstractOfferTest.defaultBuyerSecurityDepositPct;
 import static haveno.cli.CurrencyFormat.formatInternalFiatPrice;

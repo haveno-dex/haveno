@@ -19,6 +19,7 @@ package haveno.core.support.dispute.messages;
 
 import haveno.core.support.SupportType;
 import haveno.core.support.messages.SupportMessage;
+
 import java.util.concurrent.TimeUnit;
 
 public abstract class DisputeMessage extends SupportMessage {

@@ -17,21 +17,30 @@
 
 package haveno.cli.table.builder;
 
-import haveno.proto.grpc.OfferInfo;
 import haveno.cli.table.Table;
 import haveno.cli.table.column.Column;
 import haveno.cli.table.column.Iso8601DateTimeColumn;
 import haveno.cli.table.column.SatoshiColumn;
 import haveno.cli.table.column.StringColumn;
 import haveno.cli.table.column.ZippedStringColumns;
+import haveno.proto.grpc.OfferInfo;
+
+import javax.annotation.Nullable;
 import java.util.List;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
-import javax.annotation.Nullable;
-
-import static haveno.cli.table.builder.TableBuilderConstants.*;
+import static haveno.cli.table.builder.TableBuilderConstants.COL_HEADER_AMOUNT_RANGE;
+import static haveno.cli.table.builder.TableBuilderConstants.COL_HEADER_CREATION_DATE;
+import static haveno.cli.table.builder.TableBuilderConstants.COL_HEADER_DETAILED_PRICE;
+import static haveno.cli.table.builder.TableBuilderConstants.COL_HEADER_DETAILED_PRICE_OF_ALTCOIN;
+import static haveno.cli.table.builder.TableBuilderConstants.COL_HEADER_DIRECTION;
+import static haveno.cli.table.builder.TableBuilderConstants.COL_HEADER_ENABLED;
+import static haveno.cli.table.builder.TableBuilderConstants.COL_HEADER_PAYMENT_METHOD;
+import static haveno.cli.table.builder.TableBuilderConstants.COL_HEADER_TRIGGER_PRICE;
+import static haveno.cli.table.builder.TableBuilderConstants.COL_HEADER_UUID;
+import static haveno.cli.table.builder.TableBuilderConstants.COL_HEADER_VOLUME_RANGE;
 import static haveno.cli.table.builder.TableType.OFFER_TBL;
 import static haveno.cli.table.column.Column.JUSTIFICATION.LEFT;
 import static haveno.cli.table.column.Column.JUSTIFICATION.NONE;

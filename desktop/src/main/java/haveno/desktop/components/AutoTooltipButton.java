@@ -17,13 +17,12 @@
 
 package haveno.desktop.components;
 
-import static haveno.desktop.components.TooltipUtil.showTooltipIfTruncated;
-
 import com.jfoenix.controls.JFXButton;
 import com.jfoenix.skins.JFXButtonSkin;
-
 import javafx.scene.Node;
 import javafx.scene.control.Skin;
+
+import static haveno.desktop.components.TooltipUtil.showTooltipIfTruncated;
 
 public class AutoTooltipButton extends JFXButton {
 

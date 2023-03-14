@@ -1,21 +1,16 @@
 package haveno.core.trade.txproof.xmr;
 
-import java.time.Instant;
-
-import java.util.Collections;
-import java.util.Date;
-
+import haveno.core.user.AutoConfirmSettings;
 import org.junit.Before;
 import org.junit.Test;
+
+import java.time.Instant;
+import java.util.Collections;
+import java.util.Date;
 
 import static haveno.core.trade.txproof.xmr.XmrTxProofParser.MAX_DATE_TOLERANCE;
 import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertSame;
-
-import haveno.core.trade.txproof.xmr.XmrTxProofModel;
-import haveno.core.trade.txproof.xmr.XmrTxProofParser;
-import haveno.core.trade.txproof.xmr.XmrTxProofRequest;
-import haveno.core.user.AutoConfirmSettings;
 
 public class XmrTxProofParserTest {
     private XmrTxProofModel xmrTxProofModel;

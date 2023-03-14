@@ -23,9 +23,9 @@ import haveno.common.proto.ProtobufferException;
 import haveno.common.proto.network.NetworkEnvelope;
 import haveno.common.proto.network.NetworkProtoResolver;
 import haveno.common.proto.persistable.PersistablePayload;
-import java.security.PublicKey;
-
 import lombok.Value;
+
+import java.security.PublicKey;
 
 @Value
 public final class DecryptedMessageWithPubKey implements PersistablePayload {

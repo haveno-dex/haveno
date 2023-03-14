@@ -17,11 +17,9 @@
 
 package haveno.network.p2p.network;
 
-import org.berndpruenster.netlayer.tor.HiddenServiceSocket;
-import org.berndpruenster.netlayer.tor.Tor;
-import org.berndpruenster.netlayer.tor.TorCtlException;
-import org.berndpruenster.netlayer.tor.TorSocket;
-
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.MoreExecutors;
 import com.runjva.sourceforge.jsocks.protocol.Socks5Proxy;
 import haveno.common.Timer;
 import haveno.common.UserThread;
@@ -29,30 +27,24 @@ import haveno.common.proto.network.NetworkProtoResolver;
 import haveno.common.util.Utilities;
 import haveno.network.p2p.NodeAddress;
 import haveno.network.utils.Utils;
-import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.ListenableFuture;
-import com.google.common.util.concurrent.MoreExecutors;
-
-import org.fxmisc.easybind.EasyBind;
-import org.fxmisc.easybind.monadic.MonadicBinding;
-
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.SimpleBooleanProperty;
-
-import java.security.SecureRandom;
-
-import java.net.Socket;
-
-import java.io.IOException;
-
-import java.util.Base64;
-import java.util.Date;
-import java.util.concurrent.TimeUnit;
-
+import org.berndpruenster.netlayer.tor.HiddenServiceSocket;
+import org.berndpruenster.netlayer.tor.Tor;
+import org.berndpruenster.netlayer.tor.TorCtlException;
+import org.berndpruenster.netlayer.tor.TorSocket;
+import org.fxmisc.easybind.EasyBind;
+import org.fxmisc.easybind.monadic.MonadicBinding;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.jetbrains.annotations.Nullable;
+import java.io.IOException;
+import java.net.Socket;
+import java.security.SecureRandom;
+import java.util.Base64;
+import java.util.Date;
+import java.util.concurrent.TimeUnit;
 
 import static com.google.common.base.Preconditions.checkArgument;
 

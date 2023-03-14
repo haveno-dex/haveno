@@ -17,18 +17,16 @@
 
 package haveno.monitor.reporter;
 
-import org.berndpruenster.netlayer.tor.TorSocket;
-
 import com.google.common.base.Charsets;
 import haveno.common.app.Version;
 import haveno.common.config.BaseCurrencyNetwork;
 import haveno.monitor.OnionParser;
 import haveno.monitor.Reporter;
 import haveno.network.p2p.NodeAddress;
-import java.net.Socket;
+import org.berndpruenster.netlayer.tor.TorSocket;
 
 import java.io.IOException;
-
+import java.net.Socket;
 import java.util.HashMap;
 import java.util.Map;
 

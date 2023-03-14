@@ -29,23 +29,19 @@ import haveno.desktop.components.AutoTooltipLabel;
 import haveno.desktop.components.AutoTooltipTableColumn;
 import haveno.desktop.components.ColoredDecimalPlacesWithZerosText;
 import haveno.desktop.util.GUIUtil;
-import javax.inject.Inject;
-import javax.inject.Named;
-
+import javafx.beans.property.ReadOnlyObjectWrapper;
+import javafx.collections.ListChangeListener;
+import javafx.collections.transformation.SortedList;
 import javafx.scene.control.Label;
 import javafx.scene.control.TableCell;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.Priority;
-
-import javafx.beans.property.ReadOnlyObjectWrapper;
-
-import javafx.collections.ListChangeListener;
-import javafx.collections.transformation.SortedList;
-
 import javafx.util.Callback;
 
+import javax.inject.Inject;
+import javax.inject.Named;
 import java.math.BigInteger;
 import java.util.Comparator;
 

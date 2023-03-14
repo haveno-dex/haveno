@@ -17,6 +17,8 @@
 
 package haveno.core.trade.statistics;
 
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Charsets;
 import com.google.protobuf.ByteString;
 import haveno.common.app.Capabilities;
 import haveno.common.app.Capability;
@@ -40,26 +42,20 @@ import haveno.network.p2p.storage.payload.CapabilityRequiringPayload;
 import haveno.network.p2p.storage.payload.DateSortedTruncatablePayload;
 import haveno.network.p2p.storage.payload.PersistableNetworkPayload;
 import haveno.network.p2p.storage.payload.ProcessOncePersistableNetworkPayload;
+import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
 import org.bitcoinj.core.Coin;
 import org.bitcoinj.utils.ExchangeRate;
 import org.bitcoinj.utils.Fiat;
 
-import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Charsets;
-
+import javax.annotation.Nullable;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
-
 import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
-
-import lombok.Getter;
-import lombok.extern.slf4j.Slf4j;
-
-import javax.annotation.Nullable;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
@@ -81,16 +77,16 @@ public final class TradeStatistics3 implements ProcessOncePersistableNetworkPayl
         if (referralId != null) {
             extraDataMap.put(OfferPayload.REFERRAL_ID, referralId);
         }
-        
+
         NodeAddress arbitratorNodeAddress = checkNotNull(trade.getArbitrator().getNodeAddress());
-        
+
         // The first 4 chars are sufficient to identify an arbitrator.
         // For testing with regtest/localhost we use the full address as its localhost and would result in
         // same values for multiple arbitrators.
         String truncatedArbitratorNodeAddress = isTorNetworkNode ?
                 arbitratorNodeAddress.getFullAddress().substring(0, 4) :
                     arbitratorNodeAddress.getFullAddress();
-        
+
         Offer offer = checkNotNull(trade.getOffer());
         return new TradeStatistics3(offer.getCurrencyCode(),
                 trade.getPrice().getValue(),

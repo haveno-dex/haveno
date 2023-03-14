@@ -23,11 +23,10 @@ import haveno.core.locale.TradeCurrency;
 import haveno.core.payment.payload.CelPayAccountPayload;
 import haveno.core.payment.payload.PaymentAccountPayload;
 import haveno.core.payment.payload.PaymentMethod;
-import java.util.List;
-
 import lombok.EqualsAndHashCode;
-
 import org.jetbrains.annotations.NotNull;
+
+import java.util.List;
 
 @EqualsAndHashCode(callSuper = true)
 public final class CelPayAccount extends PaymentAccount {

@@ -20,6 +20,7 @@
 <?import haveno.desktop.components.AutoTooltipButton?>
 <?import haveno.desktop.components.AutoTooltipLabel?>
 <?import haveno.desktop.components.InputTextField?>
+<?import javafx.geometry.Insets?>
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.control.TableColumn?>
 <?import javafx.scene.control.TableView?>
@@ -27,7 +28,6 @@
 <?import javafx.scene.layout.Pane?>
 <?import javafx.scene.layout.Region?>
 <?import javafx.scene.layout.VBox?>
-<?import javafx.geometry.Insets?>
 <VBox fx:id="root" fx:controller="haveno.desktop.main.portfolio.failedtrades.FailedTradesView"
       spacing="10" xmlns:fx="http://javafx.com/fxml">
     <padding>

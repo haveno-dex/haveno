@@ -32,6 +32,7 @@ import haveno.core.user.User;
 import haveno.core.xmr.wallet.XmrWalletService;
 import haveno.network.p2p.NodeAddress;
 import haveno.network.p2p.P2PService;
+import lombok.extern.slf4j.Slf4j;
 import org.bitcoinj.core.ECKey;
 
 import javax.inject.Inject;
@@ -41,8 +42,6 @@ import java.util.Date;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-
-import lombok.extern.slf4j.Slf4j;
 
 import static haveno.core.support.SupportType.ARBITRATION;
 import static haveno.core.support.SupportType.MEDIATION;

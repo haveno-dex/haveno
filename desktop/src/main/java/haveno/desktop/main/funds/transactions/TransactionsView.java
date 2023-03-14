@@ -18,9 +18,6 @@
 package haveno.desktop.main.funds.transactions;
 
 import com.googlecode.jcsv.writer.CSVEntryConverter;
-
-import javax.inject.Inject;
-import monero.wallet.model.MoneroWalletListener;
 import de.jensd.fx.fontawesome.AwesomeIcon;
 import haveno.common.util.Utilities;
 import haveno.core.api.CoreMoneroConnectionsService;
@@ -40,10 +37,12 @@ import haveno.desktop.main.overlays.windows.OfferDetailsWindow;
 import haveno.desktop.main.overlays.windows.TradeDetailsWindow;
 import haveno.desktop.util.GUIUtil;
 import haveno.network.p2p.P2PService;
+import javafx.beans.property.ReadOnlyObjectWrapper;
+import javafx.collections.ObservableList;
+import javafx.collections.transformation.SortedList;
+import javafx.event.EventHandler;
 import javafx.fxml.FXML;
-
-import javafx.stage.Stage;
-
+import javafx.geometry.Insets;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
@@ -57,17 +56,11 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
-
-import javafx.geometry.Insets;
-
-import javafx.beans.property.ReadOnlyObjectWrapper;
-
-import javafx.event.EventHandler;
-
-import javafx.collections.ObservableList;
-import javafx.collections.transformation.SortedList;
-
+import javafx.stage.Stage;
 import javafx.util.Callback;
+import monero.wallet.model.MoneroWalletListener;
+
+import javax.inject.Inject;
 import java.math.BigInteger;
 import java.util.Comparator;
 
@@ -109,7 +102,7 @@ public class TransactionsView extends ActivatableView<VBox, Void> {
             displayedTransactions.update();
         }
     }
-    
+
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Constructor, lifecycle
     ///////////////////////////////////////////////////////////////////////////////////////////

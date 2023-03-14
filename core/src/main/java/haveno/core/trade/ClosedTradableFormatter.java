@@ -17,13 +17,28 @@
 
 package haveno.core.trade;
 
+import haveno.core.locale.CurrencyUtil;
+import haveno.core.locale.Res;
+import haveno.core.monetary.Altcoin;
+import haveno.core.monetary.Volume;
+import haveno.core.offer.OpenOffer;
+import haveno.core.util.FormattingUtils;
+import lombok.extern.slf4j.Slf4j;
 import org.bitcoinj.core.Monetary;
 import org.bitcoinj.utils.Fiat;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
+import java.math.BigInteger;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
-import static haveno.core.trade.ClosedTradableUtil.*;
+import static haveno.core.trade.ClosedTradableUtil.castToTrade;
+import static haveno.core.trade.ClosedTradableUtil.getTotalTxFee;
+import static haveno.core.trade.ClosedTradableUtil.getTotalVolumeByCurrency;
+import static haveno.core.trade.ClosedTradableUtil.isHavenoV1Trade;
+import static haveno.core.trade.ClosedTradableUtil.isOpenOffer;
 import static haveno.core.trade.Trade.DisputeState.DISPUTE_CLOSED;
 import static haveno.core.trade.Trade.DisputeState.MEDIATION_CLOSED;
 import static haveno.core.trade.Trade.DisputeState.REFUND_REQUEST_CLOSED;
@@ -31,21 +46,6 @@ import static haveno.core.util.FormattingUtils.formatPercentagePrice;
 import static haveno.core.util.FormattingUtils.formatToPercentWithSymbol;
 import static haveno.core.util.VolumeUtil.formatVolume;
 import static haveno.core.util.VolumeUtil.formatVolumeWithCode;
-
-import haveno.core.locale.CurrencyUtil;
-import haveno.core.locale.Res;
-import haveno.core.monetary.Altcoin;
-import haveno.core.monetary.Volume;
-import haveno.core.offer.OpenOffer;
-import haveno.core.util.FormattingUtils;
-
-import java.math.BigDecimal;
-import java.math.BigInteger;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
-
-import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Singleton

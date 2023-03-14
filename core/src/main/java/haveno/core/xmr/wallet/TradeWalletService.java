@@ -17,6 +17,18 @@
 
 package haveno.core.xmr.wallet;
 
+import com.google.common.collect.ImmutableList;
+import haveno.common.config.Config;
+import haveno.common.util.Tuple2;
+import haveno.core.user.Preferences;
+import haveno.core.xmr.exceptions.SigningException;
+import haveno.core.xmr.exceptions.TransactionVerificationException;
+import haveno.core.xmr.exceptions.WalletException;
+import haveno.core.xmr.model.InputsAndChangeOutput;
+import haveno.core.xmr.model.PreparedDepositTxAndMakerInputs;
+import haveno.core.xmr.model.RawTransactionInput;
+import haveno.core.xmr.setup.WalletConfig;
+import haveno.core.xmr.setup.WalletsSetup;
 import org.bitcoinj.core.Address;
 import org.bitcoinj.core.AddressFormatException;
 import org.bitcoinj.core.Coin;
@@ -38,33 +50,16 @@ import org.bitcoinj.script.ScriptBuilder;
 import org.bitcoinj.script.ScriptPattern;
 import org.bitcoinj.wallet.SendRequest;
 import org.bitcoinj.wallet.Wallet;
-
-import javax.inject.Inject;
-
-import com.google.common.collect.ImmutableList;
-import haveno.common.config.Config;
-import haveno.common.util.Tuple2;
-import haveno.core.user.Preferences;
-import haveno.core.xmr.exceptions.SigningException;
-import haveno.core.xmr.exceptions.TransactionVerificationException;
-import haveno.core.xmr.exceptions.WalletException;
-import haveno.core.xmr.model.InputsAndChangeOutput;
-import haveno.core.xmr.model.PreparedDepositTxAndMakerInputs;
-import haveno.core.xmr.model.RawTransactionInput;
-import haveno.core.xmr.setup.WalletConfig;
-import haveno.core.xmr.setup.WalletsSetup;
 import org.bouncycastle.crypto.params.KeyParameter;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.stream.Collectors;
-
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.jetbrains.annotations.NotNull;
-
 import javax.annotation.Nullable;
+import javax.inject.Inject;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;

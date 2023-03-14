@@ -22,16 +22,13 @@ import haveno.common.UserThread;
 import haveno.core.locale.Res;
 import haveno.desktop.main.overlays.Overlay;
 import haveno.desktop.util.FormBuilder;
+import javafx.beans.value.ChangeListener;
+import javafx.geometry.HPos;
+import javafx.geometry.Pos;
 import javafx.scene.control.Label;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.GridPane;
-
-import javafx.geometry.HPos;
-import javafx.geometry.Pos;
-
-import javafx.beans.value.ChangeListener;
-
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 

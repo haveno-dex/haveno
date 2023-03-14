@@ -1,8 +1,9 @@
 package haveno.core.payment.validation;
 
-import lombok.Getter;
 import haveno.core.locale.Res;
 import haveno.core.util.validation.InputValidator;
+import lombok.Getter;
+
 import javax.annotation.Nullable;
 
 /**
@@ -47,7 +48,7 @@ public class PhoneNumberValidator extends InputValidator {
     // but isoCountryCode must be set before validation.
     public PhoneNumberValidator() {
     }
-    
+
     public PhoneNumberValidator(String isoCountryCode) {
         this.isoCountryCode = isoCountryCode;
         this.callingCode = CountryCallingCodes.getCallingCode(isoCountryCode);

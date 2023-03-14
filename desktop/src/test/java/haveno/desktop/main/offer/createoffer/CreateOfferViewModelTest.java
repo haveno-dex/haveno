@@ -42,19 +42,14 @@ import haveno.core.util.validation.FiatPriceValidator;
 import haveno.core.util.validation.InputValidator;
 import haveno.core.xmr.model.XmrAddressEntry;
 import haveno.core.xmr.wallet.XmrWalletService;
-import haveno.desktop.main.offer.createoffer.CreateOfferDataModel;
-import haveno.desktop.main.offer.createoffer.CreateOfferViewModel;
 import javafx.beans.property.SimpleIntegerProperty;
-
 import javafx.collections.FXCollections;
+import org.junit.Before;
+import org.junit.Test;
 
 import java.math.BigInteger;
 import java.time.Instant;
-
 import java.util.UUID;
-
-import org.junit.Before;
-import org.junit.Test;
 
 import static haveno.desktop.maker.PreferenceMakers.empty;
 import static org.junit.Assert.assertEquals;

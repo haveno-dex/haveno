@@ -23,10 +23,9 @@ import haveno.core.arbitration.ArbitratorTest;
 import haveno.core.arbitration.MediatorTest;
 import haveno.core.filter.Filter;
 import haveno.core.proto.CoreProtoResolver;
-import haveno.core.user.UserPayload;
-import java.util.HashSet;
-
 import org.junit.Ignore;
+
+import java.util.HashSet;
 
 public class UserPayloadModelVOTest {
     @Ignore("TODO InvalidKeySpecException at haveno.common.crypto.Sig.getPublicKeyFromBytes(Sig.java:135)")

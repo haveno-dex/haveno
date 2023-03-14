@@ -18,11 +18,10 @@
 package haveno.desktop.main.funds.transactions;
 
 import com.google.common.collect.Lists;
-import haveno.desktop.main.funds.transactions.ObservableListDecorator;
+import org.junit.Test;
+
 import java.util.Collection;
 import java.util.function.Supplier;
-
-import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.mock;

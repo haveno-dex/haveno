@@ -17,14 +17,14 @@
 
 package haveno.cli.request;
 
-import haveno.proto.grpc.CancelOfferRequest;
-import haveno.proto.grpc.PostOfferRequest;
 import haveno.cli.GrpcStubs;
+import haveno.proto.grpc.CancelOfferRequest;
 import haveno.proto.grpc.GetMyOfferRequest;
 import haveno.proto.grpc.GetMyOffersRequest;
 import haveno.proto.grpc.GetOfferRequest;
 import haveno.proto.grpc.GetOffersRequest;
 import haveno.proto.grpc.OfferInfo;
+import haveno.proto.grpc.PostOfferRequest;
 
 import java.util.ArrayList;
 import java.util.List;

@@ -10,6 +10,12 @@ import haveno.common.proto.persistable.PersistableEnvelope;
 import haveno.common.proto.persistable.PersistedDataHost;
 import haveno.core.api.CoreAccountService;
 import haveno.core.api.model.EncryptedConnection;
+import lombok.NonNull;
+import monero.common.MoneroRpcConnection;
+import org.bitcoinj.crypto.KeyCrypterScrypt;
+
+import javax.crypto.SecretKey;
+import javax.inject.Inject;
 import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
 import java.util.HashMap;
@@ -22,11 +28,6 @@ import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import javax.crypto.SecretKey;
-import javax.inject.Inject;
-import lombok.NonNull;
-import monero.common.MoneroRpcConnection;
-import org.bitcoinj.crypto.KeyCrypterScrypt;
 
 
 /**
@@ -231,7 +232,7 @@ public class EncryptedConnectionList implements PersistableEnvelope, PersistedDa
     public void requestPersistence() {
         persistenceManager.requestPersistence();
     }
-    
+
     @Override
     public Message toProtoMessage() {
         List<protobuf.EncryptedConnection> connections;
@@ -266,9 +267,9 @@ public class EncryptedConnectionList implements PersistableEnvelope, PersistedDa
                 .collect(Collectors.toList());
         return new EncryptedConnectionList(proto.getSalt().toByteArray(), items, proto.getCurrentConnectionUrl(), proto.getRefreshPeriod(), proto.getAutoSwitch());
     }
-    
+
     // ----------------------------- HELPERS ----------------------------------
-    
+
     public void changePassword(String oldPassword, String newPassword) {
         writeLock.lock();
         try {

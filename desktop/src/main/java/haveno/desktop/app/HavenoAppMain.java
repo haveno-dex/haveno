@@ -29,9 +29,6 @@ import haveno.desktop.setup.DesktopPersistedDataHost;
 import haveno.desktop.util.ImageUtil;
 import javafx.application.Application;
 import javafx.application.Platform;
-
-import javafx.stage.Stage;
-
 import javafx.scene.control.ButtonBar;
 import javafx.scene.control.ButtonType;
 import javafx.scene.control.Dialog;
@@ -40,12 +37,12 @@ import javafx.scene.control.PasswordField;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
+import javafx.stage.Stage;
+import lombok.extern.slf4j.Slf4j;
 
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
-
-import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class HavenoAppMain extends HavenoExecutable {

@@ -35,23 +35,20 @@ import haveno.network.p2p.P2PServiceListener;
 import haveno.network.p2p.network.NetworkFilter;
 import haveno.network.p2p.storage.HashMapChangedListener;
 import haveno.network.p2p.storage.payload.ProtectedStorageEntry;
-import org.bitcoinj.core.ECKey;
-import org.bitcoinj.core.Sha256Hash;
-
-import javax.inject.Inject;
-import javax.inject.Named;
-
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleObjectProperty;
-
+import lombok.extern.slf4j.Slf4j;
+import org.bitcoinj.core.ECKey;
+import org.bitcoinj.core.Sha256Hash;
 import org.bouncycastle.util.encoders.Base64;
 
-import java.security.PublicKey;
-
-import java.nio.charset.StandardCharsets;
-
+import javax.annotation.Nullable;
+import javax.inject.Inject;
+import javax.inject.Named;
+import java.lang.reflect.Method;
 import java.math.BigInteger;
-
+import java.nio.charset.StandardCharsets;
+import java.security.PublicKey;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
@@ -60,12 +57,6 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Consumer;
-
-import java.lang.reflect.Method;
-
-import lombok.extern.slf4j.Slf4j;
-
-import javax.annotation.Nullable;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.bitcoinj.core.Utils.HEX;

@@ -1,19 +1,17 @@
 package haveno.apitest.scenario.bot;
 
-import protobuf.PaymentAccount;
-
-import static haveno.core.payment.payload.PaymentMethod.CLEAR_X_CHANGE_ID;
-import static haveno.core.payment.payload.PaymentMethod.F2F_ID;
-
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import haveno.core.api.model.PaymentAccountForm;
 import haveno.core.locale.Country;
-import java.io.File;
+import lombok.extern.slf4j.Slf4j;
+import protobuf.PaymentAccount;
 
+import java.io.File;
 import java.util.Map;
 
-import lombok.extern.slf4j.Slf4j;
+import static haveno.core.payment.payload.PaymentMethod.CLEAR_X_CHANGE_ID;
+import static haveno.core.payment.payload.PaymentMethod.F2F_ID;
 
 @Slf4j
 public class BotPaymentAccountGenerator {

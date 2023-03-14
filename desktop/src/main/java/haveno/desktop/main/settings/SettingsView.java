@@ -26,20 +26,17 @@ import haveno.desktop.common.view.FxmlView;
 import haveno.desktop.common.view.View;
 import haveno.desktop.common.view.ViewLoader;
 import haveno.desktop.main.MainView;
-import haveno.desktop.main.overlays.popups.Popup;
 import haveno.desktop.main.presentation.SettingsPresentation;
 import haveno.desktop.main.settings.about.AboutView;
 import haveno.desktop.main.settings.network.NetworkSettingsView;
 import haveno.desktop.main.settings.preferences.PreferencesView;
-import javax.inject.Inject;
-
+import javafx.beans.value.ChangeListener;
 import javafx.fxml.FXML;
-
 import javafx.scene.control.ScrollPane;
 import javafx.scene.control.Tab;
 import javafx.scene.control.TabPane;
 
-import javafx.beans.value.ChangeListener;
+import javax.inject.Inject;
 
 @FxmlView
 public class SettingsView extends ActivatableView<TabPane, Void> {

@@ -23,17 +23,15 @@ import haveno.common.util.Utilities;
 import haveno.network.p2p.NodeAddress;
 import haveno.network.p2p.storage.payload.ExpirablePayload;
 import haveno.network.p2p.storage.payload.ProtectedStoragePayload;
-import java.security.PublicKey;
-
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.TimeUnit;
-
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
 import javax.annotation.Nullable;
+import java.security.PublicKey;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 @EqualsAndHashCode
 @Slf4j

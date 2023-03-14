@@ -17,19 +17,17 @@
 
 package haveno.core.xmr.model;
 
+import com.google.common.collect.ImmutableList;
+import com.google.inject.Inject;
 import com.google.protobuf.Message;
 import haveno.common.persistence.PersistenceManager;
 import haveno.common.proto.persistable.PersistableEnvelope;
 import haveno.common.proto.persistable.PersistedDataHost;
-import com.google.inject.Inject;
-
-import com.google.common.collect.ImmutableList;
+import lombok.extern.slf4j.Slf4j;
 
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.stream.Collectors;
-
-import lombok.extern.slf4j.Slf4j;
 
 
 

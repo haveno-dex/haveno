@@ -20,22 +20,19 @@ package haveno.desktop.main.overlays.windows;
 import haveno.core.locale.Res;
 import haveno.desktop.components.AutoTooltipLabel;
 import haveno.desktop.main.overlays.Overlay;
-import net.glxn.qrgen.QRCode;
-import net.glxn.qrgen.image.ImageType;
-
+import javafx.geometry.HPos;
+import javafx.geometry.Insets;
 import javafx.scene.control.Label;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.Priority;
-
-import javafx.geometry.HPos;
-import javafx.geometry.Insets;
-
-import java.io.ByteArrayInputStream;
-
+import net.glxn.qrgen.QRCode;
+import net.glxn.qrgen.image.ImageType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.io.ByteArrayInputStream;
 
 public class QRCodeWindow extends Overlay<QRCodeWindow> {
     private static final Logger log = LoggerFactory.getLogger(QRCodeWindow.class);

@@ -26,19 +26,19 @@ import haveno.core.offer.Offer;
 import haveno.core.offer.OfferBookService;
 import haveno.core.offer.OfferDirection;
 import haveno.core.offer.OfferFilterService;
+import haveno.core.offer.OfferFilterService.Result;
 import haveno.core.offer.OfferUtil;
 import haveno.core.offer.OpenOffer;
 import haveno.core.offer.OpenOfferManager;
-import haveno.core.offer.OfferFilterService.Result;
 import haveno.core.payment.PaymentAccount;
 import haveno.core.user.User;
 import haveno.core.util.PriceUtil;
+import lombok.extern.slf4j.Slf4j;
 import org.bitcoinj.core.Transaction;
 import org.bitcoinj.utils.Fiat;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
-
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.ArrayList;
@@ -49,8 +49,6 @@ import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
-
-import lombok.extern.slf4j.Slf4j;
 
 import static haveno.common.util.MathUtils.exactMultiply;
 import static haveno.common.util.MathUtils.roundDoubleToLong;
@@ -79,7 +77,7 @@ public class CoreOffersService {
     private final OfferFilterService offerFilter;
     private final OpenOfferManager openOfferManager;
     private final User user;
-    
+
     @Inject
     public CoreOffersService(CoreContext coreContext,
                              KeyRing keyRing,
