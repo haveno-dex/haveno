@@ -38,7 +38,7 @@ import haveno.desktop.common.view.View;
 import haveno.desktop.common.view.ViewLoader;
 import haveno.desktop.main.MainView;
 import haveno.desktop.main.overlays.popups.Popup;
-import haveno.desktop.main.support.dispute.agent.SignedOfferView;
+import haveno.desktop.main.offer.signedoffer.SignedOfferView;
 import haveno.desktop.main.support.dispute.agent.arbitration.ArbitratorView;
 import haveno.desktop.main.support.dispute.agent.mediation.MediatorView;
 import haveno.desktop.main.support.dispute.agent.refund.RefundAgentView;
