@@ -6,7 +6,7 @@ import haveno.core.app.misc.AppSetupWithP2PAndDAO;
 import haveno.core.app.misc.ModuleForAppWithP2p;
 import haveno.core.locale.CurrencyUtil;
 import haveno.core.locale.Res;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class GuiceSetupTest {
     @Test

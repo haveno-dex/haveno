@@ -24,8 +24,8 @@ import com.google.common.util.concurrent.SettableFuture;
 import haveno.network.p2p.TestUtils;
 import haveno.network.p2p.mocks.MockPayload;
 import org.jetbrains.annotations.NotNull;
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -40,7 +40,7 @@ import java.util.concurrent.CountDownLatch;
 // Connection establishment takes about 4 sec.
 //TODO P2P network tests are outdated
 @SuppressWarnings("ConstantConditions")
-@Ignore
+@Disabled
 public class TorNetworkNodeTest {
     private static final Logger log = LoggerFactory.getLogger(TorNetworkNodeTest.class);
     private CountDownLatch latch;

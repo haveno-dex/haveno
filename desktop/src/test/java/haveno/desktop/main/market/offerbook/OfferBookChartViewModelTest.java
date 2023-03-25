@@ -25,8 +25,8 @@ import haveno.desktop.main.offer.offerbook.OfferBookListItemMaker;
 import javafx.beans.property.SimpleIntegerProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import static com.natpryce.makeiteasy.MakeItEasy.make;
 import static com.natpryce.makeiteasy.MakeItEasy.with;
@@ -34,14 +34,14 @@ import static haveno.desktop.main.offer.offerbook.OfferBookListItemMaker.xmrBuyI
 import static haveno.desktop.main.offer.offerbook.OfferBookListItemMaker.xmrSellItem;
 import static haveno.desktop.maker.PreferenceMakers.empty;
 import static haveno.desktop.maker.TradeCurrencyMakers.usd;
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class OfferBookChartViewModelTest {
 
-    @Before
+    @BeforeEach
     public void setUp() {
         GlobalSettings.setDefaultTradeCurrency(usd);
     }

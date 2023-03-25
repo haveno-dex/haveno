@@ -43,10 +43,9 @@ import haveno.core.trade.HavenoUtils;
 import haveno.network.p2p.P2PService;
 import haveno.network.p2p.storage.persistence.AppendOnlyDataStoreService;
 import org.bitcoinj.core.ECKey;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 
 import java.io.File;
 import java.io.IOException;
@@ -60,9 +59,9 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import static haveno.core.payment.payload.PaymentMethod.getPaymentMethod;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -82,7 +81,7 @@ public class AccountAgeWitnessServiceTest {
     private File dir2;
     private File dir3;
 
-    @Before
+    @BeforeEach
     public void setup() throws IOException {
         KeyRing keyRing = mock(KeyRing.class);
         setupService(keyRing);
@@ -113,12 +112,7 @@ public class AccountAgeWitnessServiceTest {
         return dir;
     }
 
-    @After
-    public void tearDown() {
-        // Do teardown stuff
-    }
-
-    @Ignore
+    @Disabled
     @Test
     public void testIsTradeDateAfterReleaseDate() {
         Date ageWitnessReleaseDate = new GregorianCalendar(2017, Calendar.OCTOBER, 23).getTime();
@@ -139,7 +133,7 @@ public class AccountAgeWitnessServiceTest {
         }));
     }
 
-    @Ignore
+    @Disabled
     @Test
     public void testVerifySignatureOfNonce() throws CryptoException {
         byte[] nonce = new byte[]{0x01};

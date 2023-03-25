@@ -44,16 +44,16 @@ import haveno.core.xmr.model.XmrAddressEntry;
 import haveno.core.xmr.wallet.XmrWalletService;
 import javafx.beans.property.SimpleIntegerProperty;
 import javafx.collections.FXCollections;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.math.BigInteger;
 import java.time.Instant;
 import java.util.UUID;
 
 import static haveno.desktop.maker.PreferenceMakers.empty;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
@@ -65,7 +65,7 @@ public class CreateOfferViewModelTest {
     private final CoinFormatter coinFormatter = new ImmutableCoinFormatter(
             Config.baseCurrencyNetworkParameters().getMonetaryFormat());
 
-    @Before
+    @BeforeEach
     public void setUp() {
         final CryptoCurrency btc = new CryptoCurrency("XMR", "monero");
         GlobalSettings.setDefaultTradeCurrency(btc);

@@ -20,10 +20,10 @@ package haveno.daemon.grpc.interceptor;
 import haveno.daemon.grpc.GrpcVersionService;
 import io.grpc.ServerInterceptor;
 import lombok.extern.slf4j.Slf4j;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.io.File;
 import java.nio.file.Paths;
@@ -49,7 +49,7 @@ public class GrpcServiceRateMeteringConfigTest {
     @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
     private static Optional<ServerInterceptor> versionServiceInterceptor;
 
-    @BeforeClass
+    @BeforeAll
     public static void setup() {
         // This is the tested rate meter, it allows 3 calls every 2 seconds.
         builder.addCallRateMeter(GrpcVersionService.class.getSimpleName(),
@@ -77,7 +77,7 @@ public class GrpcServiceRateMeteringConfigTest {
                 HOURS);
     }
 
-    @Before
+    @BeforeEach
     public void buildConfigFile() {
         if (configFile == null)
             configFile = builder.build();
@@ -157,7 +157,7 @@ public class GrpcServiceRateMeteringConfigTest {
         assertEquals(expectedCallsCount, rateMeter.getCallsCount());
     }
 
-    @AfterClass
+    @AfterAll
     public static void teardown() {
         if (configFile != null)
             configFile.deleteOnExit();

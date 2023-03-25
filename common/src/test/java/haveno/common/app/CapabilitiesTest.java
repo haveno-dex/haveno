@@ -17,7 +17,7 @@
 
 package haveno.common.app;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -26,9 +26,9 @@ import java.util.HashSet;
 import static haveno.common.app.Capability.SEED_NODE;
 import static haveno.common.app.Capability.TRADE_STATISTICS;
 import static haveno.common.app.Capability.TRADE_STATISTICS_2;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class CapabilitiesTest {
 

@@ -22,9 +22,9 @@ import haveno.core.support.dispute.arbitration.ArbitrationManager;
 import haveno.core.trade.Tradable;
 import haveno.core.trade.Trade;
 import monero.wallet.model.MoneroTxWallet;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
-import static org.junit.Assert.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.mockito.Mockito.mock;
 
 public class TransactionAwareTradableFactoryTest {

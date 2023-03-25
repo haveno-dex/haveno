@@ -5,15 +5,15 @@ import haveno.common.crypto.Sig;
 import haveno.common.util.Utilities;
 import org.bitcoinj.core.ECKey;
 import org.bitcoinj.core.Utils;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
 
 import static haveno.core.account.sign.SignedWitness.VerificationMethod.ARBITRATOR;
 import static haveno.core.account.sign.SignedWitness.VerificationMethod.TRADE;
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class SignedWitnessTest {
 
@@ -22,7 +22,7 @@ public class SignedWitnessTest {
     private byte[] witnessHash;
     private byte[] witnessHashSignature;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         arbitrator1Key = new ECKey();
         witnessOwner1PubKey = Sig.getPublicKeyBytes(Sig.generateKeyPair().getPublic());

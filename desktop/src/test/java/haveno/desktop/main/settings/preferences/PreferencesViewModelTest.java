@@ -26,12 +26,12 @@ import haveno.desktop.maker.PreferenceMakers;
 import haveno.network.p2p.NodeAddress;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableMap;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 

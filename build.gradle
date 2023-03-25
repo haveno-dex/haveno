@@ -51,7 +51,7 @@ configure(subprojects) {
         guiceVersion = '5.1.0'
         moneroJavaVersion = '0.7.15'
         httpclient5Version = '5.0'
-        hamcrestVersion = '1.3'
+        hamcrestVersion = '2.2'
         httpclientVersion = '4.5.12'
         httpcoreVersion = '4.4.13'
         ioVersion = '2.6'
@@ -64,8 +64,7 @@ configure(subprojects) {
         joptVersion = '5.0.4'
         jsonsimpleVersion = '1.1.1'
         jsonrpc4jVersion = '1.6.0.bisq.1'
-        junitVersion = '4.12'
-        jupiterVersion = '5.7.0'
+        jupiterVersion = '5.9.2'
         kotlinVersion = '1.3.41'
         langVersion = '3.11'
         logbackVersion = '1.1.11'
@@ -88,10 +87,6 @@ configure(subprojects) {
         //mavenLocal()
         maven { url 'https://jitpack.io' }
         maven { url 'https://mvnrepository.com' }
-    }
-
-    dependencies {
-        testImplementation "junit:junit:$junitVersion"
     }
 
     tasks.withType(JavaCompile) {
@@ -257,6 +252,9 @@ configure(project(':assets')) {
         implementation "com.google.guava:guava:$guavaVersion"
         implementation "org.apache.commons:commons-lang3:$langVersion"
         implementation "org.slf4j:slf4j-api:$slf4jVersion"
+        testImplementation "org.hamcrest:hamcrest:$hamcrestVersion"
+        testImplementation "org.junit.jupiter:junit-jupiter-api:$jupiterVersion"
+        testRuntimeOnly "org.junit.jupiter:junit-jupiter-engine:$jupiterVersion"
     }
 }
 
@@ -292,7 +290,9 @@ configure(project(':common')) {
         implementation "org.bouncycastle:bcpg-jdk15on:$bcVersion"
         implementation "org.jetbrains:annotations:$jetbrainsAnnotationsVersion"
         implementation "org.slf4j:slf4j-api:$slf4jVersion"
-        testImplementation "org.hamcrest:hamcrest-all:$hamcrestVersion"
+        testImplementation "org.hamcrest:hamcrest:$hamcrestVersion"
+        testImplementation "org.junit.jupiter:junit-jupiter-api:$jupiterVersion"
+        testRuntimeOnly "org.junit.jupiter:junit-jupiter-engine:$jupiterVersion"
         runtimeOnly("io.grpc:grpc-netty-shaded:$grpcVersion") {
             exclude(module: 'guava')
             exclude(module: 'animal-sniffer-annotations')
@@ -339,6 +339,9 @@ configure(project(':p2p')) {
         }
         testAnnotationProcessor "org.projectlombok:lombok:$lombokVersion"
         testCompileOnly "org.projectlombok:lombok:$lombokVersion"
+        testImplementation "org.junit.jupiter:junit-jupiter-api:$jupiterVersion"
+        testImplementation "org.junit.jupiter:junit-jupiter-params:$jupiterVersion"
+        testRuntimeOnly "org.junit.jupiter:junit-jupiter-engine:$jupiterVersion"
         testImplementation "ch.qos.logback:logback-classic:$logbackVersion"
         testImplementation "ch.qos.logback:logback-core:$logbackVersion"
         testImplementation "org.apache.commons:commons-lang3:$langVersion"
@@ -405,7 +408,9 @@ configure(project(':core')) {
         testAnnotationProcessor "org.projectlombok:lombok:$lombokVersion"
         testCompileOnly "org.projectlombok:lombok:$lombokVersion"
         testImplementation "com.natpryce:make-it-easy:$easyVersion"
-        testImplementation "org.hamcrest:hamcrest-all:$hamcrestVersion"
+        testImplementation "org.hamcrest:hamcrest:$hamcrestVersion"
+        testImplementation "org.junit.jupiter:junit-jupiter-api:$jupiterVersion"
+        testRuntimeOnly "org.junit.jupiter:junit-jupiter-engine:$jupiterVersion"
         testImplementation "org.mockito:mockito-core:$mockitoVersion"
 
         implementation "org.openjfx:javafx-base:$javafxVersion:$os"
@@ -563,7 +568,7 @@ configure(project(':cli')) {
         testImplementation "org.junit.jupiter:junit-jupiter-api:$jupiterVersion"
         testImplementation "org.junit.jupiter:junit-jupiter-params:$jupiterVersion"
         testRuntimeOnly "javax.annotation:javax.annotation-api:$javaxAnnotationVersion"
-        testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:$jupiterVersion")
+        testRuntimeOnly "org.junit.jupiter:junit-jupiter-engine:$jupiterVersion"
     }
 
     test {
@@ -631,6 +636,9 @@ configure(project(':desktop')) {
         testCompileOnly "org.projectlombok:lombok:$lombokVersion"
         testImplementation "com.natpryce:make-it-easy:$easyVersion"
         testImplementation "org.mockito:mockito-core:$mockitoVersion"
+        testImplementation "org.hamcrest:hamcrest:$hamcrestVersion"
+        testImplementation "org.junit.jupiter:junit-jupiter-api:$jupiterVersion"
+        testRuntimeOnly "org.junit.jupiter:junit-jupiter-engine:$jupiterVersion"
 
         implementation("io.github.monero-ecosystem:monero-java:$moneroJavaVersion") {
             exclude(module: 'jackson-core')
@@ -686,7 +694,7 @@ configure(project(':monitor')) {
         testCompileOnly "org.projectlombok:lombok:$lombokVersion"
         testImplementation "org.junit.jupiter:junit-jupiter-api:$jupiterVersion"
         testImplementation "org.junit.jupiter:junit-jupiter-params:$jupiterVersion"
-        testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:$jupiterVersion")
+        testRuntimeOnly "org.junit.jupiter:junit-jupiter-engine:$jupiterVersion"
 
         implementation "org.openjfx:javafx-base:$javafxVersion:$os"
         implementation "org.openjfx:javafx-graphics:$javafxVersion:$os"
@@ -732,6 +740,8 @@ configure(project(':seednode')) {
             exclude(module: 'guava')
         }
         testImplementation "org.mockito:mockito-core:$mockitoVersion"
+        testImplementation "org.junit.jupiter:junit-jupiter-api:$jupiterVersion"
+        testRuntimeOnly "org.junit.jupiter:junit-jupiter-engine:$jupiterVersion"
     }
 }
 
@@ -915,7 +925,7 @@ configure(project(':apitest')) {
         testImplementation "org.junit.jupiter:junit-jupiter-api:$jupiterVersion"
         testImplementation "org.junit.jupiter:junit-jupiter-params:$jupiterVersion"
         testRuntimeOnly "javax.annotation:javax.annotation-api:$javaxAnnotationVersion"
-        testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:$jupiterVersion")
+        testRuntimeOnly "org.junit.jupiter:junit-jupiter-engine:$jupiterVersion"
     }
 }
 

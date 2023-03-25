@@ -51,9 +51,9 @@ import haveno.core.util.coin.ImmutableCoinFormatter;
 import javafx.beans.property.SimpleIntegerProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
-import org.junit.Before;
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -73,10 +73,10 @@ import static haveno.desktop.main.offer.offerbook.OfferBookListItemMaker.xmrBuyI
 import static haveno.desktop.main.offer.offerbook.OfferBookListItemMaker.xmrItemWithRange;
 import static haveno.desktop.maker.PreferenceMakers.empty;
 import static haveno.desktop.maker.TradeCurrencyMakers.usd;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
@@ -87,7 +87,7 @@ public class OfferBookViewModelTest {
     private static final Logger log = LoggerFactory.getLogger(OfferBookViewModelTest.class);
     private User user;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         GlobalSettings.setDefaultTradeCurrency(usd);
         Res.setBaseCurrencyCode(usd.getCode());
@@ -103,7 +103,7 @@ public class OfferBookViewModelTest {
         return new PriceUtil(priceFeedService, tradeStatisticsManager, empty);
     }
 
-    @Ignore("PaymentAccountPayload needs to be set (has been changed with PB changes)")
+    @Disabled("PaymentAccountPayload needs to be set (has been changed with PB changes)")
     public void testIsAnyPaymentAccountValidForOffer() {
         Collection<PaymentAccount> paymentAccounts;
         paymentAccounts = new ArrayList<>(FXCollections.singletonObservableList(getSepaAccount("EUR", "DE", "1212324",

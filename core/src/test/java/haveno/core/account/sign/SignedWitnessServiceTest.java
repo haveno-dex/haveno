@@ -30,8 +30,8 @@ import haveno.network.p2p.P2PService;
 import haveno.network.p2p.storage.payload.PersistableNetworkPayload;
 import haveno.network.p2p.storage.persistence.AppendOnlyDataStoreService;
 import org.bitcoinj.core.ECKey;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.math.BigInteger;
 import java.security.KeyPair;
@@ -41,8 +41,8 @@ import java.util.Date;
 
 import static haveno.core.account.sign.SignedWitness.VerificationMethod.ARBITRATOR;
 import static haveno.core.account.sign.SignedWitness.VerificationMethod.TRADE;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.anyBoolean;
 import static org.mockito.Mockito.mock;
@@ -85,7 +85,7 @@ public class SignedWitnessServiceTest {
     KeyPair peer2KeyPair;
     KeyPair peer3KeyPair;
 
-    @Before
+    @BeforeEach
     public void setup() throws Exception {
         AppendOnlyDataStoreService appendOnlyDataStoreService = mock(AppendOnlyDataStoreService.class);
         ArbitratorManager arbitratorManager = mock(ArbitratorManager.class);

@@ -25,9 +25,8 @@ import haveno.network.p2p.network.Connection;
 import haveno.network.p2p.storage.mocks.ExpirableProtectedStoragePayloadStub;
 import haveno.network.p2p.storage.payload.ProtectedStorageEntry;
 import haveno.network.p2p.storage.payload.ProtectedStoragePayload;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.security.KeyPair;
 import java.security.NoSuchAlgorithmException;
@@ -36,6 +35,8 @@ import java.util.concurrent.TimeUnit;
 
 import static haveno.network.p2p.storage.TestState.SavedTestState;
 import static haveno.network.p2p.storage.TestState.getTestNodeAddress;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -65,13 +66,14 @@ public class P2PDataStoreDisconnectTest {
         currentState.verifyProtectedStorageRemove(beforeState, protectedStorageEntry,
                 false, false, false, false);
 
-        if (wasTTLReduced)
-            Assert.assertTrue(protectedStorageEntry.getCreationTimeStamp() < beforeState.creationTimestampBeforeUpdate);
-        else
-            Assert.assertEquals(protectedStorageEntry.getCreationTimeStamp(), beforeState.creationTimestampBeforeUpdate);
+        if (wasTTLReduced) {
+            assertTrue(protectedStorageEntry.getCreationTimeStamp() < beforeState.creationTimestampBeforeUpdate);
+        } else {
+            assertEquals(protectedStorageEntry.getCreationTimeStamp(), beforeState.creationTimestampBeforeUpdate);
+        }
     }
 
-    @Before
+    @BeforeEach
     public void setUp() {
         this.mockedConnection = mock(Connection.class);
         this.testState = new TestState();

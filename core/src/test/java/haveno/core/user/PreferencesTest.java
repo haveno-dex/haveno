@@ -27,16 +27,16 @@ import haveno.core.locale.GlobalSettings;
 import haveno.core.locale.Res;
 import haveno.core.xmr.nodes.LocalBitcoinNode;
 import javafx.collections.ObservableList;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
 import java.util.Currency;
 import java.util.List;
 import java.util.Locale;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -46,7 +46,7 @@ public class PreferencesTest {
     private Preferences preferences;
     private PersistenceManager persistenceManager;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         final Locale en_US = new Locale("en", "US");
         Locale.setDefault(en_US);

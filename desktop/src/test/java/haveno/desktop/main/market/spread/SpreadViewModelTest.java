@@ -27,14 +27,14 @@ import haveno.desktop.main.offer.offerbook.OfferBookListItem;
 import haveno.desktop.main.offer.offerbook.OfferBookListItemMaker;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import static com.natpryce.makeiteasy.MakeItEasy.make;
 import static com.natpryce.makeiteasy.MakeItEasy.with;
 import static haveno.desktop.main.offer.offerbook.OfferBookListItemMaker.id;
 import static haveno.desktop.main.offer.offerbook.OfferBookListItemMaker.xmrBuyItem;
 import static haveno.desktop.main.offer.offerbook.OfferBookListItemMaker.xmrSellItem;
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 

@@ -21,11 +21,11 @@ import haveno.core.account.witness.AccountAgeWitness;
 import haveno.core.account.witness.AccountAgeWitnessService;
 import haveno.core.offer.Offer;
 import haveno.core.payment.payload.PaymentAccountPayload;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.util.Collections;
 
-import static org.junit.Assert.assertNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;

@@ -23,19 +23,19 @@ import haveno.core.arbitration.ArbitratorTest;
 import haveno.core.arbitration.MediatorTest;
 import haveno.core.filter.Filter;
 import haveno.core.proto.CoreProtoResolver;
-import org.junit.Ignore;
+import org.junit.jupiter.api.Disabled;
 
 import java.util.HashSet;
 
 public class UserPayloadModelVOTest {
-    @Ignore("TODO InvalidKeySpecException at haveno.common.crypto.Sig.getPublicKeyFromBytes(Sig.java:135)")
+    @Disabled("TODO InvalidKeySpecException at haveno.common.crypto.Sig.getPublicKeyFromBytes(Sig.java:135)")
     public void testRoundtrip() {
         UserPayload vo = new UserPayload();
         vo.setAccountId("accountId");
         UserPayload newVo = UserPayload.fromProto(vo.toProtoMessage().getUserPayload(), new CoreProtoResolver());
     }
 
-    @Ignore("TODO InvalidKeySpecException at haveno.common.crypto.Sig.getPublicKeyFromBytes(Sig.java:135)")
+    @Disabled("TODO InvalidKeySpecException at haveno.common.crypto.Sig.getPublicKeyFromBytes(Sig.java:135)")
     public void testRoundtripFull() {
         UserPayload vo = new UserPayload();
         vo.setAccountId("accountId");

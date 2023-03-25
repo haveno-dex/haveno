@@ -20,13 +20,13 @@ package haveno.desktop.main.overlays.windows.downloadupdate;
 import com.google.common.collect.Lists;
 import haveno.desktop.main.overlays.windows.downloadupdate.HavenoInstaller.FileDescriptor;
 import lombok.extern.slf4j.Slf4j;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.io.File;
 import java.net.URL;
 import java.util.List;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @Slf4j
 public class HavenoInstallerTest {

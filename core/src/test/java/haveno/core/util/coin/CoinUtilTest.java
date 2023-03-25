@@ -21,12 +21,12 @@ import haveno.core.monetary.Price;
 import haveno.core.trade.HavenoUtils;
 import haveno.core.xmr.wallet.Restrictions;
 import org.bitcoinj.core.Coin;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.math.BigInteger;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.fail;
 
 public class CoinUtilTest {
 
@@ -64,9 +64,9 @@ public class CoinUtilTest {
                 HavenoUtils.xmrToAtomicUnits(0.2).longValueExact(),
                 1);
         assertEquals(
-                "Minimum trade amount allowed should be adjusted to the smallest trade allowed.",
                 HavenoUtils.formatXmr(Restrictions.MIN_TRADE_AMOUNT, true),
-                HavenoUtils.formatXmr(result, true)
+                HavenoUtils.formatXmr(result, true),
+                "Minimum trade amount allowed should be adjusted to the smallest trade allowed."
         );
 
         try {
@@ -78,9 +78,9 @@ public class CoinUtilTest {
             fail("Expected IllegalArgumentException to be thrown when amount is too low.");
         } catch (IllegalArgumentException iae) {
             assertEquals(
-                    "Unexpected exception message.",
                     "amount needs to be above minimum of 0.0001 xmr",
-                    iae.getMessage()
+                    iae.getMessage(),
+                    "Unexpected exception message."
             );
         }
 
@@ -90,9 +90,9 @@ public class CoinUtilTest {
                 HavenoUtils.xmrToAtomicUnits(0.2).longValueExact(),
                 1);
         assertEquals(
-                "Minimum allowed trade amount should not be adjusted.",
                 "0.10 XMR",
-                HavenoUtils.formatXmr(result, true)
+                HavenoUtils.formatXmr(result, true),
+                "Minimum allowed trade amount should not be adjusted."
         );
 
         result = CoinUtil.getAdjustedAmount(
@@ -101,9 +101,9 @@ public class CoinUtilTest {
                 HavenoUtils.xmrToAtomicUnits(0.25).longValueExact(),
                 1);
         assertEquals(
-                "Minimum trade amount allowed should respect maxTradeLimit and factor, if possible.",
                 "0.10 XMR",
-                HavenoUtils.formatXmr(result, true)
+                HavenoUtils.formatXmr(result, true),
+                "Minimum trade amount allowed should respect maxTradeLimit and factor, if possible."
         );
 
         // TODO(chirhonul): The following seems like it should raise an exception or otherwise fail.
@@ -117,9 +117,9 @@ public class CoinUtilTest {
                 HavenoUtils.xmrToAtomicUnits(0.00005).longValueExact(),
                 1);
         assertEquals(
-                "Minimum trade amount allowed with low maxTradeLimit should still respect that limit, even if result does not respect the factor specified.",
                 "0.00005 XMR",
-                HavenoUtils.formatXmr(result, true)
+                HavenoUtils.formatXmr(result, true),
+                "Minimum trade amount allowed with low maxTradeLimit should still respect that limit, even if result does not respect the factor specified."
         );
     }
 }

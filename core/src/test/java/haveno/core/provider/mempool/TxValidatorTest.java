@@ -20,8 +20,7 @@ package haveno.core.provider.mempool;
 import com.google.gson.Gson;
 import org.apache.commons.io.IOUtils;
 import org.bitcoinj.core.Coin;
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -31,6 +30,9 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TxValidatorTest {
     private static final Logger log = LoggerFactory.getLogger(TxValidatorTest.class);
@@ -70,12 +72,12 @@ public class TxValidatorTest {
             String jsonTxt = mempoolData.get(txValidator.getTxId());
             if (jsonTxt == null || jsonTxt.isEmpty()) {
                 log.warn("{} was not found in the mempool", txValidator.getTxId());
-                Assert.assertFalse(expectedResult);  // tx was not found in explorer
+                assertFalse(expectedResult);  // tx was not found in explorer
             } else {
                 //txValidator.parseJsonValidateMakerFeeTx(jsonTxt, btcFeeReceivers);
 		log.warn("expectedResult {}", expectedResult );
 		log.warn("getResult {}", txValidator.getResult() );
-                Assert.assertTrue(expectedResult == txValidator.getResult());
+                assertTrue(expectedResult == txValidator.getResult());
             }
         });
     }

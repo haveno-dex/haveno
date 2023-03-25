@@ -22,11 +22,11 @@ import haveno.core.xmr.nodes.BtcNodeConverter.Facade;
 import haveno.core.xmr.nodes.BtcNodes.BtcNode;
 import haveno.network.DnsLookupException;
 import org.bitcoinj.core.PeerAddress;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.net.InetAddress;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;

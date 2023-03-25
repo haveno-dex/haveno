@@ -1,8 +1,6 @@
 package haveno.common.config;
 
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.ExpectedException;
+import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -21,20 +19,21 @@ import static haveno.common.config.Config.DEFAULT_CONFIG_FILE_NAME;
 import static haveno.common.config.Config.HELP;
 import static haveno.common.config.Config.TORRC_FILE;
 import static haveno.common.config.Config.USER_DATA_DIR;
+import static java.io.File.createTempFile;
 import static java.lang.String.format;
-import static org.hamcrest.CoreMatchers.containsString;
+import static java.lang.System.getProperty;
+import static java.nio.file.Files.createTempDirectory;
 import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.not;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.isEmptyString;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
+import static org.hamcrest.Matchers.emptyString;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class ConfigTests {
-
-    @Rule
-    public ExpectedException exceptionRule = ExpectedException.none();
 
     // Note: "DataDirProperties" in the test method names below represent the group of
     // configuration options that influence the location of a Haveno node's data directory.
@@ -45,8 +44,8 @@ public class ConfigTests {
         Config config = new Config();
         String defaultAppName = config.defaultAppName;
         String regex = "Haveno\\d{2,}Temp";
-        assertTrue(format("Temp app name '%s' failed to match '%s'", defaultAppName, regex),
-                defaultAppName.matches(regex));
+        assertTrue(defaultAppName.matches(regex),
+                format("Temp app name '%s' failed to match '%s'", defaultAppName, regex));
     }
 
     @Test
@@ -76,7 +75,7 @@ public class ConfigTests {
 
     @Test
     public void whenAppDataDirOptionIsSet_thenDataDirPropertiesReflectItsValue() throws IOException {
-        File appDataDir = Files.createTempDirectory("myapp").toFile();
+        File appDataDir = createTempDirectory("myapp").toFile();
         Config config = configWithOpts(opt(APP_DATA_DIR, appDataDir));
         assertThat(config.appName, equalTo(config.defaultAppName));
         assertThat(config.userDataDir, equalTo(config.defaultUserDataDir));
@@ -86,7 +85,7 @@ public class ConfigTests {
 
     @Test
     public void whenUserDataDirOptionIsSet_thenDataDirPropertiesReflectItsValue() throws IOException {
-        File userDataDir = Files.createTempDirectory("myuserdata").toFile();
+        File userDataDir = createTempDirectory("myuserdata").toFile();
         Config config = configWithOpts(opt(USER_DATA_DIR, userDataDir));
         assertThat(config.appName, equalTo(config.defaultAppName));
         assertThat(config.userDataDir, equalTo(userDataDir));
@@ -96,7 +95,7 @@ public class ConfigTests {
 
     @Test
     public void whenAppNameAndAppDataDirOptionsAreSet_thenDataDirPropertiesReflectTheirValues() throws IOException {
-        File appDataDir = Files.createTempDirectory("myapp").toFile();
+        File appDataDir = createTempDirectory("myapp").toFile();
         Config config = configWithOpts(opt(APP_NAME, "My-Haveno"), opt(APP_DATA_DIR, appDataDir));
         assertThat(config.appName, equalTo("My-Haveno"));
         assertThat(config.userDataDir, equalTo(config.defaultUserDataDir));
@@ -106,7 +105,7 @@ public class ConfigTests {
 
     @Test
     public void whenOptionIsSetAtCommandLineAndInConfigFile_thenCommandLineValueTakesPrecedence() throws IOException {
-        File configFile = File.createTempFile("haveno", "properties");
+        File configFile = createTempFile("haveno", "properties");
         try (PrintWriter writer = new PrintWriter(configFile)) {
             writer.println(new ConfigFileOption(APP_NAME, "Haveno-configFileValue"));
         }
@@ -116,14 +115,17 @@ public class ConfigTests {
 
     @Test
     public void whenUnrecognizedOptionIsSet_thenConfigExceptionIsThrown() {
-        exceptionRule.expect(ConfigException.class);
-        exceptionRule.expectMessage("problem parsing option 'bogus': bogus is not a recognized option");
-        configWithOpts(opt("bogus"));
+        Exception exception = assertThrows(ConfigException.class, () -> configWithOpts(opt("bogus")));
+
+        String expectedMessage = "problem parsing option 'bogus': bogus is not a recognized option";
+        String actualMessage = exception.getMessage();
+
+        assertTrue(actualMessage.contains(expectedMessage));
     }
 
     @Test
     public void whenUnrecognizedOptionIsSetInConfigFile_thenNoExceptionIsThrown() throws IOException {
-        File configFile = File.createTempFile("haveno", "properties");
+        File configFile = createTempFile("haveno", "properties");
         try (PrintWriter writer = new PrintWriter(configFile)) {
             writer.println(new ConfigFileOption("bogusOption", "bogusValue"));
             writer.println(new ConfigFileOption(APP_NAME, "HavenoTest"));
@@ -134,40 +136,43 @@ public class ConfigTests {
 
     @Test
     public void whenOptionFileArgumentDoesNotExist_thenConfigExceptionIsThrown() {
-        String filepath = "/does/not/exist";
-        if (System.getProperty("os.name").startsWith("Windows")) {
-            filepath = "C:\\does\\not\\exist";
-        }
-        exceptionRule.expect(ConfigException.class);
-        exceptionRule.expectMessage(format("problem parsing option 'torrcFile': File [%s] does not exist", filepath));
-        configWithOpts(opt(TORRC_FILE, filepath));
+        String filepath = getProperty("os.name").startsWith("Windows") ? "C:\\does\\not\\exist" : "/does/not/exist";
+        Exception exception = assertThrows(ConfigException.class, () -> configWithOpts(opt(TORRC_FILE, filepath)));
+
+        String expectedMessage = format("problem parsing option 'torrcFile': File [%s] does not exist", filepath);
+        String actualMessage = exception.getMessage();
+
+        assertTrue(actualMessage.contains(expectedMessage));
     }
 
     @Test
     public void whenConfigFileOptionIsSetToNonExistentFile_thenConfigExceptionIsThrown() {
-        String filepath = "/no/such/haveno.properties";
-        if (System.getProperty("os.name").startsWith("Windows")) {
-            filepath = "C:\\no\\such\\haveno.properties";
-        }
-        exceptionRule.expect(ConfigException.class);
-        exceptionRule.expectMessage(format("The specified config file '%s' does not exist", filepath));
-        configWithOpts(opt(CONFIG_FILE, filepath));
+        String filepath = getProperty("os.name").startsWith("Windows") ? "C:\\no\\such\\haveno.properties" : "/no/such/haveno.properties";
+        Exception exception = assertThrows(ConfigException.class, () -> configWithOpts(opt(CONFIG_FILE, filepath)));
+
+        String expectedMessage = format("The specified config file '%s' does not exist", filepath);
+        String actualMessage = exception.getMessage();
+
+        assertTrue(actualMessage.contains(expectedMessage));
     }
 
     @Test
     public void whenConfigFileOptionIsSetInConfigFile_thenConfigExceptionIsThrown() throws IOException {
-        File configFile = File.createTempFile("haveno", "properties");
+        File configFile = createTempFile("haveno", "properties");
         try (PrintWriter writer = new PrintWriter(configFile)) {
             writer.println(new ConfigFileOption(CONFIG_FILE, "/tmp/other.haveno.properties"));
         }
-        exceptionRule.expect(ConfigException.class);
-        exceptionRule.expectMessage(format("The '%s' option is disallowed in config files", CONFIG_FILE));
-        configWithOpts(opt(CONFIG_FILE, configFile.getAbsolutePath()));
+        Exception exception = assertThrows(ConfigException.class, () -> configWithOpts(opt(CONFIG_FILE, configFile.getAbsolutePath())));
+
+        String expectedMessage = format("The '%s' option is disallowed in config files", CONFIG_FILE);
+        String actualMessage = exception.getMessage();
+
+        assertTrue(actualMessage.contains(expectedMessage));
     }
 
     @Test
     public void whenConfigFileOptionIsSetToExistingFile_thenConfigFilePropertyReflectsItsValue() throws IOException {
-        File configFile = File.createTempFile("haveno", "properties");
+        File configFile = createTempFile("haveno", "properties");
         Config config = configWithOpts(opt(CONFIG_FILE, configFile.getAbsolutePath()));
         assertThat(config.configFile, equalTo(configFile));
     }
@@ -183,7 +188,7 @@ public class ConfigTests {
 
     @Test
     public void whenAppNameIsSetInConfigFile_thenDataDirPropertiesReflectItsValue() throws IOException {
-        File configFile = File.createTempFile("haveno", "properties");
+        File configFile = createTempFile("haveno", "properties");
         try (PrintWriter writer = new PrintWriter(configFile)) {
             writer.println(new ConfigFileOption(APP_NAME, "My-Haveno"));
         }
@@ -217,8 +222,8 @@ public class ConfigTests {
             System.setOut(outTest);
             System.setErr(errTest);
             new Config();
-            assertThat(outBytes.toString(), isEmptyString());
-            assertThat(errBytes.toString(), isEmptyString());
+            assertThat(outBytes.toString(), is(emptyString()));
+            assertThat(errBytes.toString(), is(emptyString()));
         } finally {
             System.setOut(outOrig);
             System.setErr(errOrig);
@@ -236,18 +241,22 @@ public class ConfigTests {
     }
 
     @Test
-    public void whenAppDataDirCannotBeCreated_thenUncheckedIoExceptionIsThrown() throws IOException {
+    public void whenAppDataDirCannotBeCreatedThenUncheckedIoExceptionIsThrown() {
         // set a userDataDir that is actually a file so appDataDir cannot be created
-        File aFile = Files.createTempFile("A", "File").toFile();
-        exceptionRule.expect(UncheckedIOException.class);
-        exceptionRule.expectMessage(containsString("Application data directory"));
-        exceptionRule.expectMessage(containsString("could not be created"));
-        configWithOpts(opt(USER_DATA_DIR, aFile));
+        Exception exception = assertThrows(UncheckedIOException.class, () -> {
+            File aFile = Files.createTempFile("A", "File").toFile();
+            configWithOpts(opt(USER_DATA_DIR, aFile));
+        });
+
+        String expectedMessage = "could not be created";
+        String actualMessage = exception.getMessage();
+
+        assertTrue(actualMessage.contains(expectedMessage));
     }
 
     @Test
     public void whenAppDataDirIsSymbolicLink_thenAppDataDirCreationIsNoOp() throws IOException {
-        Path parentDir = Files.createTempDirectory("parent");
+        Path parentDir = createTempDirectory("parent");
         Path targetDir = parentDir.resolve("target");
         Path symlink = parentDir.resolve("symlink");
         Files.createDirectory(targetDir);

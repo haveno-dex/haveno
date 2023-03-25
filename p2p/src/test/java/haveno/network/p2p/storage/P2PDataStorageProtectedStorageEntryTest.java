@@ -31,26 +31,22 @@ import haveno.network.p2p.storage.mocks.ProtectedStoragePayloadStub;
 import haveno.network.p2p.storage.payload.ProtectedMailboxStorageEntry;
 import haveno.network.p2p.storage.payload.ProtectedStorageEntry;
 import haveno.network.p2p.storage.payload.ProtectedStoragePayload;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Ignore;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import java.security.KeyPair;
 import java.security.NoSuchAlgorithmException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 import static haveno.network.p2p.storage.TestState.SavedTestState;
+import static haveno.network.p2p.storage.TestState.getTestNodeAddress;
+import static java.util.Optional.of;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
-
 
 /**
  * Tests of the P2PDataStore entry points that use the ProtectedStorageEntry type
@@ -68,7 +64,6 @@ import static org.mockito.Mockito.when;
  */
 @SuppressWarnings("unused")
 public class P2PDataStorageProtectedStorageEntryTest {
-    @RunWith(Parameterized.class)
     abstract public static class ProtectedStorageEntryTestBase {
         TestState testState;
         Class<? extends ProtectedStorageEntry> entryClass;
@@ -80,73 +75,61 @@ public class P2PDataStorageProtectedStorageEntryTest {
         private ProtectedStoragePayload protectedStoragePayload;
         KeyPair payloadOwnerKeys;
 
-        @Parameterized.Parameter(0)
         public boolean useMessageHandler;
 
-        @Parameterized.Parameters(name = "{index}: Test with useMessageHandler={0}")
-        public static Collection<Object[]> data() {
-            List<Object[]> data = new ArrayList<>();
 
-            boolean[] vals = new boolean[]{true, false};
-
-            for (boolean useMessageHandler : vals)
-                data.add(new Object[]{useMessageHandler});
-
-            return data;
-        }
-
-        @Before
+        @BeforeEach
         public void setUp() throws CryptoException, NoSuchAlgorithmException {
-            this.testState = new TestState();
+            testState = new TestState();
 
-            this.payloadOwnerKeys = TestUtils.generateKeyPair();
-            this.protectedStoragePayload = createInstance(this.payloadOwnerKeys);
-            this.entryClass = this.getEntryClass();
+            payloadOwnerKeys = TestUtils.generateKeyPair();
+            protectedStoragePayload = createInstance(payloadOwnerKeys);
+            entryClass = getEntryClass();
         }
 
         boolean doRemove(ProtectedStorageEntry entry) {
-            if (this.useMessageHandler) {
+            if (useMessageHandler) {
                 Connection mockedConnection = mock(Connection.class);
-                when(mockedConnection.getPeersNodeAddressOptional()).thenReturn(Optional.of(TestState.getTestNodeAddress()));
+                when(mockedConnection.getPeersNodeAddressOptional()).thenReturn(of(getTestNodeAddress()));
 
                 testState.mockedStorage.onMessage(new RemoveDataMessage(entry), mockedConnection);
 
                 return true;
             } else {
-                return testState.mockedStorage.remove(entry, TestState.getTestNodeAddress());
+                return testState.mockedStorage.remove(entry, getTestNodeAddress());
             }
         }
 
         boolean doAdd(ProtectedStorageEntry protectedStorageEntry) {
-            if (this.useMessageHandler) {
+            if (useMessageHandler) {
                 Connection mockedConnection = mock(Connection.class);
-                when(mockedConnection.getPeersNodeAddressOptional()).thenReturn(Optional.of(TestState.getTestNodeAddress()));
+                when(mockedConnection.getPeersNodeAddressOptional()).thenReturn(of(getTestNodeAddress()));
 
                 testState.mockedStorage.onMessage(new AddDataMessage(protectedStorageEntry), mockedConnection);
 
                 return true;
             } else {
-                return this.testState.mockedStorage.addProtectedStorageEntry(protectedStorageEntry,
-                        TestState.getTestNodeAddress(), null);
+                return testState.mockedStorage.addProtectedStorageEntry(protectedStorageEntry,
+                        getTestNodeAddress(), null);
             }
         }
 
         boolean doRefreshTTL(RefreshOfferMessage refreshOfferMessage) {
-            if (this.useMessageHandler) {
+            if (useMessageHandler) {
                 Connection mockedConnection = mock(Connection.class);
-                when(mockedConnection.getPeersNodeAddressOptional()).thenReturn(Optional.of(TestState.getTestNodeAddress()));
+                when(mockedConnection.getPeersNodeAddressOptional()).thenReturn(of(getTestNodeAddress()));
 
                 testState.mockedStorage.onMessage(refreshOfferMessage, mockedConnection);
 
                 return true;
             } else {
-                return this.testState.mockedStorage.refreshTTL(refreshOfferMessage, TestState.getTestNodeAddress());
+                return testState.mockedStorage.refreshTTL(refreshOfferMessage, getTestNodeAddress());
             }
         }
 
         ProtectedStorageEntry getProtectedStorageEntryForAdd(int sequenceNumber, boolean validForAdd, boolean matchesRelevantPubKey) {
             ProtectedStorageEntry stub = mock(entryClass);
-            when(stub.getOwnerPubKey()).thenReturn(this.payloadOwnerKeys.getPublic());
+            when(stub.getOwnerPubKey()).thenReturn(payloadOwnerKeys.getPublic());
             when(stub.isValidForAddOperation()).thenReturn(validForAdd);
             when(stub.matchesRelevantPubKey(any(ProtectedStorageEntry.class))).thenReturn(matchesRelevantPubKey);
             when(stub.getSequenceNumber()).thenReturn(sequenceNumber);
@@ -162,12 +145,12 @@ public class P2PDataStorageProtectedStorageEntryTest {
 
         // Return a ProtectedStorageEntry that will pass all validity checks for remove.
         ProtectedStorageEntry getProtectedStorageEntryForRemove(int sequenceNumber, boolean validForRemove, boolean matchesRelevantPubKey) {
-            ProtectedStorageEntry stub = mock(this.entryClass);
-            when(stub.getOwnerPubKey()).thenReturn(this.payloadOwnerKeys.getPublic());
+            ProtectedStorageEntry stub = mock(entryClass);
+            when(stub.getOwnerPubKey()).thenReturn(payloadOwnerKeys.getPublic());
             when(stub.isValidForRemoveOperation()).thenReturn(validForRemove);
             when(stub.matchesRelevantPubKey(any(ProtectedStorageEntry.class))).thenReturn(matchesRelevantPubKey);
             when(stub.getSequenceNumber()).thenReturn(sequenceNumber);
-            when(stub.getProtectedStoragePayload()).thenReturn(this.protectedStoragePayload);
+            when(stub.getProtectedStoragePayload()).thenReturn(protectedStoragePayload);
 
             return stub;
         }
@@ -176,274 +159,314 @@ public class P2PDataStorageProtectedStorageEntryTest {
             return getProtectedStorageEntryForRemove(sequenceNumber, true, true);
         }
 
-        void doProtectedStorageAddAndVerify(ProtectedStorageEntry protectedStorageEntry,
+        void assertAndDoProtectedStorageAdd(ProtectedStorageEntry protectedStorageEntry,
                                             boolean expectedReturnValue,
                                             boolean expectedStateChange) {
 
-            SavedTestState beforeState = this.testState.saveTestState(protectedStorageEntry);
+            SavedTestState beforeState = testState.saveTestState(protectedStorageEntry);
 
-            boolean addResult = this.doAdd(protectedStorageEntry);
+            boolean addResult = doAdd(protectedStorageEntry);
 
-            if (!this.useMessageHandler)
-                Assert.assertEquals(expectedReturnValue, addResult);
+            if (!useMessageHandler)
+                assertEquals(expectedReturnValue, addResult);
 
             if (expectedStateChange) {
-                this.testState.verifyProtectedStorageAdd(
+                testState.assertProtectedStorageAdd(
                         beforeState, protectedStorageEntry, true, true, true, true);
             } else{
-                this.testState.verifyProtectedStorageAdd(
+                testState.assertProtectedStorageAdd(
                         beforeState, protectedStorageEntry, false, false, false, false);
             }
         }
 
-        void doProtectedStorageRemoveAndVerify(ProtectedStorageEntry entry,
+        void assertAndDoProtectedStorageRemove(ProtectedStorageEntry entry,
                                                boolean expectedReturnValue,
                                                boolean expectedHashMapAndDataStoreUpdated,
                                                boolean expectedListenersSignaled,
                                                boolean expectedBroadcast,
                                                boolean expectedSeqNrWrite) {
 
-            SavedTestState beforeState = this.testState.saveTestState(entry);
+            SavedTestState beforeState = testState.saveTestState(entry);
+            boolean addResult = doRemove(entry);
+            if (!useMessageHandler)
+                assertEquals(expectedReturnValue, addResult);
 
-            boolean addResult = this.doRemove(entry);
-
-            if (!this.useMessageHandler)
-                Assert.assertEquals(expectedReturnValue, addResult);
-
-            this.testState.verifyProtectedStorageRemove(beforeState, entry, expectedHashMapAndDataStoreUpdated, expectedListenersSignaled, expectedBroadcast, expectedSeqNrWrite);
+            testState.verifyProtectedStorageRemove(beforeState, entry, expectedHashMapAndDataStoreUpdated, expectedListenersSignaled, expectedBroadcast, expectedSeqNrWrite);
         }
 
-        /// Valid Add Tests (isValidForAdd() and matchesRelevantPubKey() return true)
-        @Test
-        public void addProtectedStorageEntry() {
-
-            ProtectedStorageEntry entryForAdd = this.getProtectedStorageEntryForAdd(1);
-            doProtectedStorageAddAndVerify(entryForAdd, true, true);
+        @ValueSource(booleans = {true, false})
+        @ParameterizedTest(name = "{index}: Test with useMessageHandler={0}")
+        public void addProtectedStorageEntry(boolean useMessageHandler) {
+            this.useMessageHandler = useMessageHandler;
+            ProtectedStorageEntry entryForAdd = getProtectedStorageEntryForAdd(1);
+            assertAndDoProtectedStorageAdd(entryForAdd, true, true);
         }
 
         // TESTCASE: Adding duplicate payload w/ same sequence number
-        @Test
-        public void addProtectedStorageEntry_duplicateSeqNrGt0() {
-            ProtectedStorageEntry entryForAdd = this.getProtectedStorageEntryForAdd(1);
-            doProtectedStorageAddAndVerify(entryForAdd, true, true);
-            doProtectedStorageAddAndVerify(entryForAdd, false, false);
+        @ValueSource(booleans = {true, false})
+        @ParameterizedTest(name = "{index}: Test with useMessageHandler={0}")
+        public void addProtectedStorageEntryDuplicateSeqNrGt0(boolean useMessageHandler) {
+            this.useMessageHandler = useMessageHandler;
+            ProtectedStorageEntry entryForAdd = getProtectedStorageEntryForAdd(1);
+            assertAndDoProtectedStorageAdd(entryForAdd, true, true);
+            assertAndDoProtectedStorageAdd(entryForAdd, false, false);
         }
 
         // TESTCASE: Adding duplicate payload w/ 0 sequence number (special branch in code for logging)
-        @Test
-        public void addProtectedStorageEntry_duplicateSeqNrEq0() {
-            ProtectedStorageEntry entryForAdd = this.getProtectedStorageEntryForAdd(0);
-            doProtectedStorageAddAndVerify(entryForAdd, true, true);
-            doProtectedStorageAddAndVerify(entryForAdd, false, false);
+        @ValueSource(booleans = {true, false})
+        @ParameterizedTest(name = "{index}: Test with useMessageHandler={0}")
+        public void addProtectedStorageEntryDuplicateSeqNrEq0(boolean useMessageHandler) {
+            this.useMessageHandler = useMessageHandler;
+            ProtectedStorageEntry entryForAdd = getProtectedStorageEntryForAdd(0);
+            assertAndDoProtectedStorageAdd(entryForAdd, true, true);
+            assertAndDoProtectedStorageAdd(entryForAdd, false, false);
         }
 
         // TESTCASE: Adding duplicate payload for w/ lower sequence number
-        @Test
-        public void addProtectedStorageEntry_lowerSeqNr() {
-            ProtectedStorageEntry entryForAdd2 = this.getProtectedStorageEntryForAdd(2);
-            ProtectedStorageEntry entryForAdd1 = this.getProtectedStorageEntryForAdd(1);
-            doProtectedStorageAddAndVerify(entryForAdd2, true, true);
-            doProtectedStorageAddAndVerify(entryForAdd1, false, false);
+        @ValueSource(booleans = {true, false})
+        @ParameterizedTest(name = "{index}: Test with useMessageHandler={0}")
+        public void addProtectedStorageEntryLowerSeqNr(boolean useMessageHandler) {
+            this.useMessageHandler = useMessageHandler;
+            ProtectedStorageEntry entryForAdd2 = getProtectedStorageEntryForAdd(2);
+            ProtectedStorageEntry entryForAdd1 = getProtectedStorageEntryForAdd(1);
+            assertAndDoProtectedStorageAdd(entryForAdd2, true, true);
+            assertAndDoProtectedStorageAdd(entryForAdd1, false, false);
         }
 
         // TESTCASE: Adding duplicate payload for w/ greater sequence number
-        @Test
-        public void addProtectedStorageEntry_greaterSeqNr() {
-            ProtectedStorageEntry entryForAdd2 = this.getProtectedStorageEntryForAdd(1);
-            ProtectedStorageEntry entryForAdd1 = this.getProtectedStorageEntryForAdd(2);
-            doProtectedStorageAddAndVerify(entryForAdd2, true, true);
-            doProtectedStorageAddAndVerify(entryForAdd1, true, true);
+        @ValueSource(booleans = {true, false})
+        @ParameterizedTest(name = "{index}: Test with useMessageHandler={0}")
+        public void addProtectedStorageEntryGreaterSeqNr(boolean useMessageHandler) {
+            this.useMessageHandler = useMessageHandler;
+            ProtectedStorageEntry entryForAdd2 = getProtectedStorageEntryForAdd(1);
+            ProtectedStorageEntry entryForAdd1 = getProtectedStorageEntryForAdd(2);
+            assertAndDoProtectedStorageAdd(entryForAdd2, true, true);
+            assertAndDoProtectedStorageAdd(entryForAdd1, true, true);
         }
 
         // TESTCASE: Add w/ same sequence number after remove of sequence number
         // Regression test for old remove() behavior that succeeded if add.seq# == remove.seq#
-        @Test
-        public void addProtectectedStorageEntry_afterRemoveSameSeqNr() {
-            ProtectedStorageEntry entryForAdd = this.getProtectedStorageEntryForAdd(1);
-            ProtectedStorageEntry entryForRemove = this.getProtectedStorageEntryForRemove(1);
+        @ValueSource(booleans = {true, false})
+        @ParameterizedTest(name = "{index}: Test with useMessageHandler={0}")
+        public void addProtectedStorageEntryAfterRemoveSameSeqNr(boolean useMessageHandler) {
+            this.useMessageHandler = useMessageHandler;
+            ProtectedStorageEntry entryForAdd = getProtectedStorageEntryForAdd(1);
+            ProtectedStorageEntry entryForRemove = getProtectedStorageEntryForRemove(1);
 
-            doProtectedStorageAddAndVerify(entryForAdd, true, true);
-            doProtectedStorageRemoveAndVerify(entryForRemove, false, false, false, false, false);
+            assertAndDoProtectedStorageAdd(entryForAdd, true, true);
+            assertAndDoProtectedStorageRemove(entryForRemove, false, false, false, false, false);
 
-            doProtectedStorageAddAndVerify(entryForAdd, false, false);
+            assertAndDoProtectedStorageAdd(entryForAdd, false, false);
         }
 
         // Invalid add tests (isValidForAddOperation() || matchesRelevantPubKey()) returns false
 
         // TESTCASE: Add fails if Entry is not valid for add
-        @Test
-        public void addProtectedStorageEntry_EntryNotisValidForAddOperation() {
-            ProtectedStorageEntry entryForAdd = this.getProtectedStorageEntryForAdd(1, false, true);
-            doProtectedStorageAddAndVerify(entryForAdd, false, false);
+        @ValueSource(booleans = {true, false})
+        @ParameterizedTest(name = "{index}: Test with useMessageHandler={0}")
+        public void addProtectedStorageEntryNotisValidForAddOperation(boolean useMessageHandler) {
+            this.useMessageHandler = useMessageHandler;
+            ProtectedStorageEntry entryForAdd = getProtectedStorageEntryForAdd(1, false, true);
+            assertAndDoProtectedStorageAdd(entryForAdd, false, false);
         }
 
         // TESTCASE: Add fails if Entry metadata does not match existing Entry
-        @Test
-        public void addProtectedStorageEntry_EntryNotmatchesRelevantPubKey() {
+        @ValueSource(booleans = {true, false})
+        @ParameterizedTest(name = "{index}: Test with useMessageHandler={0}")
+        public void addProtectedStorageEntryNotMatchesRelevantPubKey(boolean useMessageHandler) {
+            this.useMessageHandler = useMessageHandler;
             // Add a valid entry
-            ProtectedStorageEntry entryForAdd = this.getProtectedStorageEntryForAdd(1);
-            doProtectedStorageAddAndVerify(entryForAdd, true, true);
+            ProtectedStorageEntry entryForAdd = getProtectedStorageEntryForAdd(1);
+            assertAndDoProtectedStorageAdd(entryForAdd, true, true);
 
             // Add an entry where metadata is different from first add, but otherwise is valid
-            entryForAdd = this.getProtectedStorageEntryForAdd(2, true, false);
-            doProtectedStorageAddAndVerify(entryForAdd, false, false);
+            entryForAdd = getProtectedStorageEntryForAdd(2, true, false);
+            assertAndDoProtectedStorageAdd(entryForAdd, false, false);
         }
 
         // TESTCASE: Add fails if Entry metadata does not match existing Entry and is not valid for add
-        @Test
-        public void addProtectedStorageEntry_EntryNotmatchesRelevantPubKeyNotisValidForAddOperation() {
+        @ValueSource(booleans = {true, false})
+        @ParameterizedTest(name = "{index}: Test with useMessageHandler={0}")
+        public void addProtectedStorageEntryNotMatchesRelevantPubKeyNotisValidForAddOperation(boolean useMessageHandler) {
+            this.useMessageHandler = useMessageHandler;
             // Add a valid entry
-            ProtectedStorageEntry entryForAdd = this.getProtectedStorageEntryForAdd(1);
-            doProtectedStorageAddAndVerify(entryForAdd, true, true);
+            ProtectedStorageEntry entryForAdd = getProtectedStorageEntryForAdd(1);
+            assertAndDoProtectedStorageAdd(entryForAdd, true, true);
 
             // Add an entry where entry is not valid and metadata is different from first add
-            entryForAdd = this.getProtectedStorageEntryForAdd(2, false, false);
-            doProtectedStorageAddAndVerify(entryForAdd, false, false);
+            entryForAdd = getProtectedStorageEntryForAdd(2, false, false);
+            assertAndDoProtectedStorageAdd(entryForAdd, false, false);
         }
 
         /// Valid remove tests (isValidForRemove() and isMetadataEquals() return true)
 
         // TESTCASE: Removing an item after successfully added (remove seq # == add seq #)
-        @Test
-        public void remove_seqNrEqAddSeqNr() {
-            ProtectedStorageEntry entryForAdd = this.getProtectedStorageEntryForAdd(1);
-            ProtectedStorageEntry entryForRemove = this.getProtectedStorageEntryForRemove(1);
+        @ValueSource(booleans = {true, false})
+        @ParameterizedTest(name = "{index}: Test with useMessageHandler={0}")
+        public void removeSeqNrEqAddSeqNr(boolean useMessageHandler) {
+            this.useMessageHandler = useMessageHandler;
+            ProtectedStorageEntry entryForAdd = getProtectedStorageEntryForAdd(1);
+            ProtectedStorageEntry entryForRemove = getProtectedStorageEntryForRemove(1);
 
-            doProtectedStorageAddAndVerify(entryForAdd, true, true);
+            assertAndDoProtectedStorageAdd(entryForAdd, true, true);
 
-            doProtectedStorageRemoveAndVerify(entryForRemove, false, false, false, false, false);
+            assertAndDoProtectedStorageRemove(entryForRemove, false, false, false, false, false);
         }
 
         // TESTCASE: Removing an item after successfully added (remove seq # > add seq #)
-        @Test
-        public void remove_seqNrGtAddSeqNr() {
-            ProtectedStorageEntry entryForAdd = this.getProtectedStorageEntryForAdd(1);
-            ProtectedStorageEntry entryForRemove = this.getProtectedStorageEntryForRemove(2);
+        @ValueSource(booleans = {true, false})
+        @ParameterizedTest(name = "{index}: Test with useMessageHandler={0}")
+        public void removeSeqNrGtAddSeqNr(boolean useMessageHandler) {
+            this.useMessageHandler = useMessageHandler;
+            ProtectedStorageEntry entryForAdd = getProtectedStorageEntryForAdd(1);
+            ProtectedStorageEntry entryForRemove = getProtectedStorageEntryForRemove(2);
 
-            doProtectedStorageAddAndVerify(entryForAdd, true, true);
-            doProtectedStorageRemoveAndVerify(entryForRemove, true, true, true, true, true);
+            assertAndDoProtectedStorageAdd(entryForAdd, true, true);
+            assertAndDoProtectedStorageRemove(entryForRemove, true, true, true, true, true);
         }
 
         // TESTCASE: Removing an item before it was added. This triggers a SequenceNumberMap write and broadcast
-        @Test
-        public void remove_notExists() {
-            ProtectedStorageEntry entryForRemove = this.getProtectedStorageEntryForRemove(1);
+        @ValueSource(booleans = {true, false})
+        @ParameterizedTest(name = "{index}: Test with useMessageHandler={0}")
+        public void removeNotExists(boolean useMessageHandler) {
+            this.useMessageHandler = useMessageHandler;
+            ProtectedStorageEntry entryForRemove = getProtectedStorageEntryForRemove(1);
 
-            doProtectedStorageRemoveAndVerify(entryForRemove, true, false, false, true, true);
+            assertAndDoProtectedStorageRemove(entryForRemove, true, false, false, true, true);
         }
 
         // TESTCASE: Removing an item after successfully adding (remove seq # < add seq #)
-        @Test
-        public void remove_seqNrLessAddSeqNr() {
-            ProtectedStorageEntry entryForAdd = this.getProtectedStorageEntryForAdd(2);
-            ProtectedStorageEntry entryForRemove = this.getProtectedStorageEntryForRemove(1);
+        @ValueSource(booleans = {true, false})
+        @ParameterizedTest(name = "{index}: Test with useMessageHandler={0}")
+        public void removeSeqNrLessAddSeqNr(boolean useMessageHandler) {
+            this.useMessageHandler = useMessageHandler;
+            ProtectedStorageEntry entryForAdd = getProtectedStorageEntryForAdd(2);
+            ProtectedStorageEntry entryForRemove = getProtectedStorageEntryForRemove(1);
 
-            doProtectedStorageAddAndVerify(entryForAdd, true, true);
-            doProtectedStorageRemoveAndVerify(entryForRemove, false, false, false, false, false);
+            assertAndDoProtectedStorageAdd(entryForAdd, true, true);
+            assertAndDoProtectedStorageRemove(entryForRemove, false, false, false, false, false);
         }
 
         // TESTCASE: Add after removed (same seq #)
-        @Test
-        public void add_afterRemoveSameSeqNr() {
-            ProtectedStorageEntry entryForAdd = this.getProtectedStorageEntryForAdd(1);
-            doProtectedStorageAddAndVerify(entryForAdd, true, true);
+        @ValueSource(booleans = {true, false})
+        @ParameterizedTest(name = "{index}: Test with useMessageHandler={0}")
+        public void addAfterRemoveSameSeqNr(boolean useMessageHandler) {
+            this.useMessageHandler = useMessageHandler;
+            ProtectedStorageEntry entryForAdd = getProtectedStorageEntryForAdd(1);
+            assertAndDoProtectedStorageAdd(entryForAdd, true, true);
 
-            ProtectedStorageEntry entryForRemove = this.getProtectedStorageEntryForRemove(2);
-            doProtectedStorageRemoveAndVerify(entryForRemove, true, true, true, true, true);
+            ProtectedStorageEntry entryForRemove = getProtectedStorageEntryForRemove(2);
+            assertAndDoProtectedStorageRemove(entryForRemove, true, true, true, true, true);
 
-            doProtectedStorageAddAndVerify(entryForAdd, false, false);
+            assertAndDoProtectedStorageAdd(entryForAdd, false, false);
         }
 
         // TESTCASE: Add after removed (greater seq #)
-        @Test
-        public void add_afterRemoveGreaterSeqNr() {
-            ProtectedStorageEntry entryForAdd = this.getProtectedStorageEntryForAdd(1);
-            doProtectedStorageAddAndVerify(entryForAdd, true, true);
+        @ValueSource(booleans = {true, false})
+        @ParameterizedTest(name = "{index}: Test with useMessageHandler={0}")
+        public void addAfterRemoveGreaterSeqNr(boolean useMessageHandler) {
+            this.useMessageHandler = useMessageHandler;
+            ProtectedStorageEntry entryForAdd = getProtectedStorageEntryForAdd(1);
+            assertAndDoProtectedStorageAdd(entryForAdd, true, true);
 
-            ProtectedStorageEntry entryForRemove = this.getProtectedStorageEntryForRemove(2);
-            doProtectedStorageRemoveAndVerify(entryForRemove, true, true, true, true, true);
+            ProtectedStorageEntry entryForRemove = getProtectedStorageEntryForRemove(2);
+            assertAndDoProtectedStorageRemove(entryForRemove, true, true, true, true, true);
 
-            entryForAdd = this.getProtectedStorageEntryForAdd(3);
-            doProtectedStorageAddAndVerify(entryForAdd, true, true);
+            entryForAdd = getProtectedStorageEntryForAdd(3);
+            assertAndDoProtectedStorageAdd(entryForAdd, true, true);
         }
 
         /// Invalid remove tests (isValidForRemoveOperation() || matchesRelevantPubKey()) returns false
 
         // TESTCASE: Remove fails if Entry isn't valid for remove
-        @Test
-        public void remove_EntryNotisValidForRemoveOperation() {
-            ProtectedStorageEntry entryForAdd = this.getProtectedStorageEntryForAdd(1);
-            doProtectedStorageAddAndVerify(entryForAdd, true, true);
+        @ValueSource(booleans = {true, false})
+        @ParameterizedTest(name = "{index}: Test with useMessageHandler={0}")
+        public void removeEntryNotisValidForRemoveOperation(boolean useMessageHandler) {
+            this.useMessageHandler = useMessageHandler;
+            ProtectedStorageEntry entryForAdd = getProtectedStorageEntryForAdd(1);
+            assertAndDoProtectedStorageAdd(entryForAdd, true, true);
 
-            ProtectedStorageEntry entryForRemove = this.getProtectedStorageEntryForRemove(2, false, true);
-            doProtectedStorageRemoveAndVerify(entryForRemove, false, false, false, false, false);
+            ProtectedStorageEntry entryForRemove = getProtectedStorageEntryForRemove(2, false, true);
+            assertAndDoProtectedStorageRemove(entryForRemove, false, false, false, false, false);
         }
 
         // TESTCASE: Remove fails if Entry is valid for remove, but metadata doesn't match remove target
-        @Test
-        public void remove_EntryNotmatchesRelevantPubKey() {
-            ProtectedStorageEntry entryForAdd = this.getProtectedStorageEntryForAdd(1);
-            doProtectedStorageAddAndVerify(entryForAdd, true, true);
+        @ValueSource(booleans = {true, false})
+        @ParameterizedTest(name = "{index}: Test with useMessageHandler={0}")
+        public void removeEntryNotMatchesRelevantPubKey(boolean useMessageHandler) {
+            this.useMessageHandler = useMessageHandler;
+            ProtectedStorageEntry entryForAdd = getProtectedStorageEntryForAdd(1);
+            assertAndDoProtectedStorageAdd(entryForAdd, true, true);
 
-            ProtectedStorageEntry entryForRemove = this.getProtectedStorageEntryForRemove(2, true, false);
-            doProtectedStorageRemoveAndVerify(entryForRemove, false, false, false, false, false);
+            ProtectedStorageEntry entryForRemove = getProtectedStorageEntryForRemove(2, true, false);
+            assertAndDoProtectedStorageRemove(entryForRemove, false, false, false, false, false);
         }
 
         // TESTCASE: Remove fails if Entry is not valid for remove and metadata doesn't match remove target
-        @Test
-        public void remove_EntryNotisValidForRemoveOperationNotmatchesRelevantPubKey() {
-            ProtectedStorageEntry entryForAdd = this.getProtectedStorageEntryForAdd(1);
-            doProtectedStorageAddAndVerify(entryForAdd, true, true);
+        @ValueSource(booleans = {true, false})
+        @ParameterizedTest(name = "{index}: Test with useMessageHandler={0}")
+        public void removeEntryNotisValidForRemoveOperationNotMatchesRelevantPubKey(boolean useMessageHandler) {
+            this.useMessageHandler = useMessageHandler;
+            ProtectedStorageEntry entryForAdd = getProtectedStorageEntryForAdd(1);
+            assertAndDoProtectedStorageAdd(entryForAdd, true, true);
 
-            ProtectedStorageEntry entryForRemove = this.getProtectedStorageEntryForRemove(2, false, false);
-            doProtectedStorageRemoveAndVerify(entryForRemove, false, false, false, false, false);
+            ProtectedStorageEntry entryForRemove = getProtectedStorageEntryForRemove(2, false, false);
+            assertAndDoProtectedStorageRemove(entryForRemove, false, false, false, false, false);
         }
 
 
         // TESTCASE: Add after removed (lower seq #)
-        @Test
-        public void add_afterRemoveLessSeqNr() {
-            ProtectedStorageEntry entryForAdd = this.getProtectedStorageEntryForAdd(2);
-            doProtectedStorageAddAndVerify(entryForAdd, true, true);
+        @ValueSource(booleans = {true, false})
+        @ParameterizedTest(name = "{index}: Test with useMessageHandler={0}")
+        public void addAfterRemoveLessSeqNr(boolean useMessageHandler) {
+            this.useMessageHandler = useMessageHandler;
+            ProtectedStorageEntry entryForAdd = getProtectedStorageEntryForAdd(2);
+            assertAndDoProtectedStorageAdd(entryForAdd, true, true);
 
-            ProtectedStorageEntry entryForRemove = this.getProtectedStorageEntryForRemove(3);
-            doProtectedStorageRemoveAndVerify(entryForRemove, true, true, true, true, true);
+            ProtectedStorageEntry entryForRemove = getProtectedStorageEntryForRemove(3);
+            assertAndDoProtectedStorageRemove(entryForRemove, true, true, true, true, true);
 
-            entryForAdd = this.getProtectedStorageEntryForAdd(1);
-            doProtectedStorageAddAndVerify(entryForAdd, false, false);
+            entryForAdd = getProtectedStorageEntryForAdd(1);
+            assertAndDoProtectedStorageAdd(entryForAdd, false, false);
         }
 
         // TESTCASE: Received remove for nonexistent item that was later received
-        @Test
-        public void remove_lateAdd() {
-            ProtectedStorageEntry entryForAdd = this.getProtectedStorageEntryForAdd(1);
-            ProtectedStorageEntry entryForRemove = this.getProtectedStorageEntryForRemove(2);
+        @ValueSource(booleans = {true, false})
+        @ParameterizedTest(name = "{index}: Test with useMessageHandler={0}")
+        public void removeLateAdd(boolean useMessageHandler) {
+            this.useMessageHandler = useMessageHandler;
+            ProtectedStorageEntry entryForAdd = getProtectedStorageEntryForAdd(1);
+            ProtectedStorageEntry entryForRemove = getProtectedStorageEntryForRemove(2);
 
-            this.doRemove(entryForRemove);
+            doRemove(entryForRemove);
 
-            doProtectedStorageAddAndVerify(entryForAdd, false, false);
+            assertAndDoProtectedStorageAdd(entryForAdd, false, false);
         }
 
         // TESTCASE: Invalid remove doesn't block a valid add (isValidForRemove == false | matchesRelevantPubKey == false)
-        @Test
-        public void remove_entryNotIsValidForRemoveDoesntBlockAdd1() {
-            ProtectedStorageEntry entryForAdd = this.getProtectedStorageEntryForAdd(1);
-            ProtectedStorageEntry entryForRemove = this.getProtectedStorageEntryForRemove(1, false, false);
+        @ValueSource(booleans = {true, false})
+        @ParameterizedTest(name = "{index}: Test with useMessageHandler={0}")
+        public void removeEntryNotIsValidForRemoveDoesNotBlockAdd1(boolean useMessageHandler) {
+            this.useMessageHandler = useMessageHandler;
+            ProtectedStorageEntry entryForAdd = getProtectedStorageEntryForAdd(1);
+            ProtectedStorageEntry entryForRemove = getProtectedStorageEntryForRemove(1, false, false);
 
-            this.doRemove(entryForRemove);
+            doRemove(entryForRemove);
 
-            doProtectedStorageAddAndVerify(entryForAdd, true, true);
+            assertAndDoProtectedStorageAdd(entryForAdd, true, true);
         }
 
         // TESTCASE: Invalid remove doesn't block a valid add (isValidForRemove == false | matchesRelevantPubKey == true)
-        @Test
-        public void remove_entryNotIsValidForRemoveDoesntBlockAdd2() {
-            ProtectedStorageEntry entryForAdd = this.getProtectedStorageEntryForAdd(1);
-            ProtectedStorageEntry entryForRemove = this.getProtectedStorageEntryForRemove(1, false, true);
+        @ValueSource(booleans = {true, false})
+        @ParameterizedTest(name = "{index}: Test with useMessageHandler={0}")
+        public void removeEntryNotIsValidForRemoveDoesNotBlockAdd2(boolean useMessageHandler) {
+            this.useMessageHandler = useMessageHandler;
+            ProtectedStorageEntry entryForAdd = getProtectedStorageEntryForAdd(1);
+            ProtectedStorageEntry entryForRemove = getProtectedStorageEntryForRemove(1, false, true);
 
-            this.doRemove(entryForRemove);
+            doRemove(entryForRemove);
 
-            doProtectedStorageAddAndVerify(entryForAdd, true, true);
+            assertAndDoProtectedStorageAdd(entryForAdd, true, true);
         }
     }
 
@@ -478,127 +501,145 @@ public class P2PDataStorageProtectedStorageEntryTest {
             return buildRefreshOfferMessage(protectedStorageEntry.getProtectedStoragePayload(), ownerKeys, sequenceNumber);
         }
 
-        void doRefreshTTLAndVerify(RefreshOfferMessage refreshOfferMessage, boolean expectedReturnValue, boolean expectStateChange) {
-            SavedTestState beforeState = this.testState.saveTestState(refreshOfferMessage);
+        void assertAndDoRefreshTTL(RefreshOfferMessage refreshOfferMessage, boolean expectedReturnValue, boolean expectStateChange) {
+            SavedTestState beforeState = testState.saveTestState(refreshOfferMessage);
 
-            boolean returnValue = this.doRefreshTTL(refreshOfferMessage);
+            boolean returnValue = doRefreshTTL(refreshOfferMessage);
 
-            if (!this.useMessageHandler)
-                Assert.assertEquals(expectedReturnValue, returnValue);
+            if (!useMessageHandler)
+                assertEquals(expectedReturnValue, returnValue);
 
-            this.testState.verifyRefreshTTL(beforeState, refreshOfferMessage, expectStateChange);
+            testState.verifyRefreshTTL(beforeState, refreshOfferMessage, expectStateChange);
         }
 
         // TESTCASE: Refresh an entry that doesn't exist
-        @Test
-        public void refreshTTL_noExist() throws CryptoException {
-            ProtectedStorageEntry entry = this.getProtectedStorageEntryForAdd(1);
+        @ValueSource(booleans = {true, false})
+        @ParameterizedTest(name = "{index}: Test with useMessageHandler={0}")
+        public void refreshTTLNoExist(boolean useMessageHandler) throws CryptoException {
+            this.useMessageHandler = useMessageHandler;
+            ProtectedStorageEntry entry = getProtectedStorageEntryForAdd(1);
 
-            doRefreshTTLAndVerify(buildRefreshOfferMessage(entry, this.payloadOwnerKeys,1), false, false);
+            assertAndDoRefreshTTL(buildRefreshOfferMessage(entry, payloadOwnerKeys,1), false, false);
         }
 
         // TESTCASE: Refresh an entry where seq # is equal to last seq # seen
-        @Test
-        public void refreshTTL_existingEntry() throws CryptoException {
-            ProtectedStorageEntry entry = this.getProtectedStorageEntryForAdd(1);
-            doProtectedStorageAddAndVerify(entry, true, true);
+        @ValueSource(booleans = {true, false})
+        @ParameterizedTest(name = "{index}: Test with useMessageHandler={0}")
+        public void refreshTTLExistingEntry(boolean useMessageHandler) throws CryptoException {
+            this.useMessageHandler = useMessageHandler;
+            ProtectedStorageEntry entry = getProtectedStorageEntryForAdd(1);
+            assertAndDoProtectedStorageAdd(entry, true, true);
 
-            doRefreshTTLAndVerify(buildRefreshOfferMessage(entry, this.payloadOwnerKeys,1), false, false);
+            assertAndDoRefreshTTL(buildRefreshOfferMessage(entry, payloadOwnerKeys,1), false, false);
         }
 
         // TESTCASE: Duplicate refresh message (same seq #)
-        @Test
-        public void refreshTTL_duplicateRefreshSeqNrEqual() throws CryptoException {
-            ProtectedStorageEntry entry = this.getProtectedStorageEntryForAdd(1);
-            doProtectedStorageAddAndVerify(entry, true, true);
+        @ValueSource(booleans = {true, false})
+        @ParameterizedTest(name = "{index}: Test with useMessageHandler={0}")
+        public void refreshTTLDuplicateRefreshSeqNrEqual(boolean useMessageHandler) throws CryptoException {
+            this.useMessageHandler = useMessageHandler;
+            ProtectedStorageEntry entry = getProtectedStorageEntryForAdd(1);
+            assertAndDoProtectedStorageAdd(entry, true, true);
 
-            this.testState.incrementClock();
+            testState.incrementClock();
 
-            doRefreshTTLAndVerify(buildRefreshOfferMessage(entry, this.payloadOwnerKeys, 2), true, true);
+            assertAndDoRefreshTTL(buildRefreshOfferMessage(entry, payloadOwnerKeys, 2), true, true);
 
-            this.testState.incrementClock();
+            testState.incrementClock();
 
-            doRefreshTTLAndVerify(buildRefreshOfferMessage(entry, this.payloadOwnerKeys, 2), false, false);
+            assertAndDoRefreshTTL(buildRefreshOfferMessage(entry, payloadOwnerKeys, 2), false, false);
         }
 
         // TESTCASE: Duplicate refresh message (greater seq #)
-        @Test
-        public void refreshTTL_duplicateRefreshSeqNrGreater() throws CryptoException {
-            ProtectedStorageEntry entry = this.getProtectedStorageEntryForAdd(1);
-            doProtectedStorageAddAndVerify(entry, true, true);
+        @ValueSource(booleans = {true, false})
+        @ParameterizedTest(name = "{index}: Test with useMessageHandler={0}")
+        public void refreshTTLDuplicateRefreshSeqNrGreater(boolean useMessageHandler) throws CryptoException {
+            this.useMessageHandler = useMessageHandler;
+            ProtectedStorageEntry entry = getProtectedStorageEntryForAdd(1);
+            assertAndDoProtectedStorageAdd(entry, true, true);
 
-            this.testState.incrementClock();
+            testState.incrementClock();
 
-            doRefreshTTLAndVerify(buildRefreshOfferMessage(entry, this.payloadOwnerKeys,2), true, true);
+            assertAndDoRefreshTTL(buildRefreshOfferMessage(entry, payloadOwnerKeys,2), true, true);
 
-            this.testState.incrementClock();
+            testState.incrementClock();
 
-            doRefreshTTLAndVerify(buildRefreshOfferMessage(entry, this.payloadOwnerKeys,3), true, true);
+            assertAndDoRefreshTTL(buildRefreshOfferMessage(entry, payloadOwnerKeys,3), true, true);
         }
 
         // TESTCASE: Duplicate refresh message (lower seq #)
-        @Test
-        public void refreshTTL_duplicateRefreshSeqNrLower() throws CryptoException {
-            ProtectedStorageEntry entry = this.getProtectedStorageEntryForAdd(1);
-            doProtectedStorageAddAndVerify(entry, true, true);
+        @ValueSource(booleans = {true, false})
+        @ParameterizedTest(name = "{index}: Test with useMessageHandler={0}")
+        public void refreshTTLDuplicateRefreshSeqNrLower(boolean useMessageHandler) throws CryptoException {
+            this.useMessageHandler = useMessageHandler;
+            ProtectedStorageEntry entry = getProtectedStorageEntryForAdd(1);
+            assertAndDoProtectedStorageAdd(entry, true, true);
 
-            this.testState.incrementClock();
+            testState.incrementClock();
 
-            doRefreshTTLAndVerify(buildRefreshOfferMessage(entry, this.payloadOwnerKeys,3), true, true);
+            assertAndDoRefreshTTL(buildRefreshOfferMessage(entry, payloadOwnerKeys,3), true, true);
 
-            this.testState.incrementClock();
+            testState.incrementClock();
 
-            doRefreshTTLAndVerify(buildRefreshOfferMessage(entry, this.payloadOwnerKeys,2), false, false);
+            assertAndDoRefreshTTL(buildRefreshOfferMessage(entry, payloadOwnerKeys,2), false, false);
         }
 
         // TESTCASE: Refresh previously removed entry
-        @Test
-        public void refreshTTL_refreshAfterRemove() throws CryptoException {
-            ProtectedStorageEntry entryForAdd = this.getProtectedStorageEntryForAdd(1);
-            ProtectedStorageEntry entryForRemove = this.getProtectedStorageEntryForRemove(2);
+        @ValueSource(booleans = {true, false})
+        @ParameterizedTest(name = "{index}: Test with useMessageHandler={0}")
+        public void refreshTTLRefreshAfterRemove(boolean useMessageHandler) throws CryptoException {
+            this.useMessageHandler = useMessageHandler;
+            ProtectedStorageEntry entryForAdd = getProtectedStorageEntryForAdd(1);
+            ProtectedStorageEntry entryForRemove = getProtectedStorageEntryForRemove(2);
 
-            doProtectedStorageAddAndVerify(entryForAdd, true, true);
-            doProtectedStorageRemoveAndVerify(entryForRemove, true, true, true, true, true);
+            assertAndDoProtectedStorageAdd(entryForAdd, true, true);
+            assertAndDoProtectedStorageRemove(entryForRemove, true, true, true, true, true);
 
-            doRefreshTTLAndVerify(buildRefreshOfferMessage(entryForAdd, this.payloadOwnerKeys,3), false, false);
+            assertAndDoRefreshTTL(buildRefreshOfferMessage(entryForAdd, payloadOwnerKeys,3), false, false);
         }
 
         // TESTCASE: Refresh an entry, but owner doesn't match PubKey of original add owner
-        @Test
-        public void refreshTTL_refreshEntryOwnerOriginalOwnerMismatch() throws CryptoException, NoSuchAlgorithmException {
-            ProtectedStorageEntry entry = this.getProtectedStorageEntryForAdd(1);
-            doProtectedStorageAddAndVerify(entry, true, true);
+        @ValueSource(booleans = {true, false})
+        @ParameterizedTest(name = "{index}: Test with useMessageHandler={0}")
+        public void refreshTTLRefreshEntryOwnerOriginalOwnerMismatch(boolean useMessageHandler) throws CryptoException, NoSuchAlgorithmException {
+            this.useMessageHandler = useMessageHandler;
+            ProtectedStorageEntry entry = getProtectedStorageEntryForAdd(1);
+            assertAndDoProtectedStorageAdd(entry, true, true);
 
             KeyPair notOwner = TestUtils.generateKeyPair();
-            doRefreshTTLAndVerify(buildRefreshOfferMessage(entry, notOwner, 2), false, false);
+            assertAndDoRefreshTTL(buildRefreshOfferMessage(entry, notOwner, 2), false, false);
         }
 
         // TESTCASE: After restart, identical sequence numbers are accepted ONCE. We need a way to reconstruct
         // in-memory ProtectedStorageEntrys from seed and peer nodes around startup time.
-        @Test
-        public void addProtectedStorageEntry_afterRestartCanAddDuplicateSeqNr() {
-            ProtectedStorageEntry toAdd1 = this.getProtectedStorageEntryForAdd(1);
-            doProtectedStorageAddAndVerify(toAdd1, true, true);
+        @ValueSource(booleans = {true, false})
+        @ParameterizedTest(name = "{index}: Test with useMessageHandler={0}")
+        public void addProtectedStorageEntryAfterRestartCanAddDuplicateSeqNr(boolean useMessageHandler) {
+            this.useMessageHandler = useMessageHandler;
+            ProtectedStorageEntry toAdd1 = getProtectedStorageEntryForAdd(1);
+            assertAndDoProtectedStorageAdd(toAdd1, true, true);
 
-            this.testState.simulateRestart();
+            testState.simulateRestart();
 
             // Can add equal seqNr only once
-            doProtectedStorageAddAndVerify(toAdd1, true, true);
+            assertAndDoProtectedStorageAdd(toAdd1, true, true);
 
             // Can't add equal seqNr twice
-            doProtectedStorageAddAndVerify(toAdd1, false, false);
+            assertAndDoProtectedStorageAdd(toAdd1, false, false);
         }
 
         // TESTCASE: After restart, old sequence numbers are not accepted
-        @Test
-        public void addProtectedStorageEntry_afterRestartCanNotAddLowerSeqNr() {
-            ProtectedStorageEntry toAdd1 = this.getProtectedStorageEntryForAdd(1);
-            ProtectedStorageEntry toAdd2 = this.getProtectedStorageEntryForAdd(2);
-            doProtectedStorageAddAndVerify(toAdd2, true, true);
+        @ValueSource(booleans = {true, false})
+        @ParameterizedTest(name = "{index}: Test with useMessageHandler={0}")
+        public void addProtectedStorageEntryAfterRestartCanNotAddLowerSeqNr(boolean useMessageHandler) {
+            this.useMessageHandler = useMessageHandler;
+            ProtectedStorageEntry toAdd1 = getProtectedStorageEntryForAdd(1);
+            ProtectedStorageEntry toAdd2 = getProtectedStorageEntryForAdd(2);
+            assertAndDoProtectedStorageAdd(toAdd2, true, true);
 
-            this.testState.simulateRestart();
+            testState.simulateRestart();
 
-            doProtectedStorageAddAndVerify(toAdd1, false, false);
+            assertAndDoProtectedStorageAdd(toAdd1, false, false);
         }
     }
 
@@ -621,28 +662,30 @@ public class P2PDataStorageProtectedStorageEntryTest {
         // Tests that just apply to PersistablePayload objects
 
         // TESTCASE: Ensure the HashMap is the same before and after a restart
-        @Test
-        public void addProtectedStorageEntry_afterReadFromResourcesWithDuplicate_3629RegressionTest() {
-            ProtectedStorageEntry protectedStorageEntry = this.getProtectedStorageEntryForAdd(1);
-            doProtectedStorageAddAndVerify(protectedStorageEntry, true, true);
+        @ValueSource(booleans = {true, false})
+        @ParameterizedTest(name = "{index}: Test with useMessageHandler={0}")
+        public void addProtectedStorageEntryAfterReadFromResourcesWithDuplicate3629RegressionTest(boolean useMessageHandler) {
+            this.useMessageHandler = useMessageHandler;
+            ProtectedStorageEntry protectedStorageEntry = getProtectedStorageEntryForAdd(1);
+            assertAndDoProtectedStorageAdd(protectedStorageEntry, true, true);
 
-            Map<P2PDataStorage.ByteArray, ProtectedStorageEntry> beforeRestart = this.testState.mockedStorage.getMap();
+            Map<P2PDataStorage.ByteArray, ProtectedStorageEntry> beforeRestart = testState.mockedStorage.getMap();
 
-            this.testState.simulateRestart();
+            testState.simulateRestart();
 
-            Assert.assertEquals(beforeRestart, this.testState.mockedStorage.getMap());
+            assertEquals(beforeRestart, testState.mockedStorage.getMap());
         }
 
         // TESTCASE: After restart, identical sequence numbers are not accepted for persistent payloads
-        @Test
-        public void addProtectedStorageEntry_afterRestartCanNotAddDuplicateSeqNr() {
-            ProtectedStorageEntry toAdd1 = this.getProtectedStorageEntryForAdd(1);
-            doProtectedStorageAddAndVerify(toAdd1, true, true);
-
-            this.testState.simulateRestart();
-
+        @ValueSource(booleans = {true, false})
+        @ParameterizedTest(name = "{index}: Test with useMessageHandler={0}")
+        public void addProtectedStorageEntryAfterRestartCanNotAddDuplicateSeqNr(boolean useMessageHandler) {
+            this.useMessageHandler = useMessageHandler;
+            ProtectedStorageEntry toAdd1 = getProtectedStorageEntryForAdd(1);
+            assertAndDoProtectedStorageAdd(toAdd1, true, true);
+            testState.simulateRestart();
             // Can add equal seqNr only once
-            doProtectedStorageAddAndVerify(toAdd1, false, false);
+            assertAndDoProtectedStorageAdd(toAdd1, false, false);
         }
     }
 
@@ -663,7 +706,7 @@ public class P2PDataStorageProtectedStorageEntryTest {
         }
 
         @Override
-        @Before
+        @BeforeEach
         public void setUp() throws CryptoException, NoSuchAlgorithmException {
             super.setUp();
 
@@ -674,31 +717,33 @@ public class P2PDataStorageProtectedStorageEntryTest {
 
         @Override
         boolean doRemove(ProtectedStorageEntry entry) {
-            if (this.useMessageHandler) {
+            if (useMessageHandler) {
                 Connection mockedConnection = mock(Connection.class);
-                when(mockedConnection.getPeersNodeAddressOptional()).thenReturn(Optional.of(TestState.getTestNodeAddress()));
+                when(mockedConnection.getPeersNodeAddressOptional()).thenReturn(of(getTestNodeAddress()));
 
                 testState.mockedStorage.onMessage(new RemoveMailboxDataMessage((ProtectedMailboxStorageEntry) entry), mockedConnection);
 
                 return true;
             } else {
-                return testState.mockedStorage.remove(entry, TestState.getTestNodeAddress());
+                return testState.mockedStorage.remove(entry, getTestNodeAddress());
             }
         }
 
         // TESTCASE: Add after removed when add-once required (greater seq #)
         @Override
-        @Test
-        @Ignore //TODO fix test
-        public void add_afterRemoveGreaterSeqNr() {
-            ProtectedStorageEntry entryForAdd = this.getProtectedStorageEntryForAdd(1);
-            doProtectedStorageAddAndVerify(entryForAdd, true, true);
+        @ValueSource(booleans = {true, false})
+        @ParameterizedTest(name = "{index}: Test with useMessageHandler={0}")
+        @Disabled //TODO fix test
+        public void addAfterRemoveGreaterSeqNr(boolean useMessageHandler) {
+            this.useMessageHandler = useMessageHandler;
+            ProtectedStorageEntry entryForAdd = getProtectedStorageEntryForAdd(1);
+            assertAndDoProtectedStorageAdd(entryForAdd, true, true);
 
-            ProtectedStorageEntry entryForRemove = this.getProtectedStorageEntryForRemove(2);
-            doProtectedStorageRemoveAndVerify(entryForRemove, true, true, true, true, true);
+            ProtectedStorageEntry entryForRemove = getProtectedStorageEntryForRemove(2);
+            assertAndDoProtectedStorageRemove(entryForRemove, true, true, true, true, true);
 
-            entryForAdd = this.getProtectedStorageEntryForAdd(3);
-            doProtectedStorageAddAndVerify(entryForAdd, false, false);
+            entryForAdd = getProtectedStorageEntryForAdd(3);
+            assertAndDoProtectedStorageAdd(entryForAdd, false, false);
         }
     }
 }

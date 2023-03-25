@@ -6,8 +6,8 @@ import haveno.core.locale.GlobalSettings;
 import haveno.core.locale.Res;
 import haveno.core.monetary.Price;
 import org.bitcoinj.utils.Fiat;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.util.Locale;
 import java.util.concurrent.TimeUnit;
@@ -15,8 +15,8 @@ import java.util.concurrent.TimeUnit;
 import static com.natpryce.makeiteasy.MakeItEasy.a;
 import static com.natpryce.makeiteasy.MakeItEasy.make;
 import static com.natpryce.makeiteasy.MakeItEasy.with;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class FormattingUtilsTest {
     private static final Property<Price, String> currencyCode = new Property<>();
@@ -24,7 +24,7 @@ public class FormattingUtilsTest {
     private static final Maker<Price> usdPrice = a(lookup ->
             new Price(Fiat.parseFiat(lookup.valueOf(currencyCode, "USD"), lookup.valueOf(priceString, "100"))));
 
-    @Before
+    @BeforeEach
     public void setUp() {
         Locale.setDefault(new Locale("en", "US"));
         GlobalSettings.setLocale(new Locale("en", "US"));

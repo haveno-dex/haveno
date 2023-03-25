@@ -22,10 +22,8 @@ import haveno.common.crypto.KeyRing;
 import haveno.common.crypto.KeyStorage;
 import haveno.common.file.FileUtil;
 import haveno.common.proto.network.NetworkEnvelope;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.rules.ExpectedException;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -38,13 +36,10 @@ import java.security.cert.CertificateException;
 public class EncryptionServiceTests {
     private static final Logger log = LoggerFactory.getLogger(EncryptionServiceTests.class);
 
-    @Rule
-    public ExpectedException thrown = ExpectedException.none();
-
     private KeyRing keyRing;
     private File dir;
 
-    @Before
+    @BeforeEach
     public void setup() throws CertificateException, NoSuchAlgorithmException, KeyStoreException, IOException, CryptoException {
 
         dir = File.createTempFile("temp_tests", "");
@@ -56,7 +51,7 @@ public class EncryptionServiceTests {
         keyRing = new KeyRing(keyStorage, null, true);
     }
 
-    @After
+    @AfterEach
     public void tearDown() throws IOException {
         FileUtil.deleteDirectory(dir);
     }

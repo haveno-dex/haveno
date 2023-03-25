@@ -11,16 +11,16 @@ import haveno.core.api.CoreMoneroConnectionsService;
 import haveno.core.trade.TradableList;
 import haveno.network.p2p.P2PService;
 import haveno.network.p2p.peers.PeerManager;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.nio.file.Files;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static com.natpryce.makeiteasy.MakeItEasy.make;
 import static haveno.core.offer.OfferMaker.btcUsdOffer;
-import static junit.framework.TestCase.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
@@ -33,7 +33,7 @@ public class OpenOfferManagerTest {
     private PersistenceManager<SignedOfferList> signedOfferPersistenceManager;
     private CoreContext coreContext;
 
-    @Before
+    @BeforeEach
     public void setUp() throws Exception {
         var corruptedStorageFileHandler = mock(CorruptedStorageFileHandler.class);
         var storageDir = Files.createTempDirectory("storage").toFile();
@@ -43,7 +43,7 @@ public class OpenOfferManagerTest {
         coreContext = new CoreContext();
     }
 
-    @After
+    @AfterEach
     public void tearDown() {
         persistenceManager.shutdown();
         signedOfferPersistenceManager.shutdown();

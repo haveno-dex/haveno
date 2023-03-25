@@ -18,7 +18,7 @@
 package haveno.asset.coins;
 
 import haveno.asset.AbstractAssetTest;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class BitcoinTest extends AbstractAssetTest {
 

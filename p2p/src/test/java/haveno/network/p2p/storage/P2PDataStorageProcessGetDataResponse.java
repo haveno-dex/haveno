@@ -26,8 +26,8 @@ import haveno.network.p2p.storage.payload.PersistableNetworkPayload;
 import haveno.network.p2p.storage.payload.ProcessOncePersistableNetworkPayload;
 import haveno.network.p2p.storage.payload.ProtectedStorageEntry;
 import haveno.network.p2p.storage.payload.ProtectedStoragePayload;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.MockitoAnnotations;
 
 import java.security.KeyPair;
@@ -45,7 +45,7 @@ public class P2PDataStorageProcessGetDataResponse {
 
     private NodeAddress peerNodeAddress;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         MockitoAnnotations.initMocks(this);
         this.testState = new TestState();
@@ -221,7 +221,7 @@ public class P2PDataStorageProcessGetDataResponse {
 
         TestState.SavedTestState beforeState = this.testState.saveTestState(protectedStorageEntry);
         this.testState.mockedStorage.processGetDataResponse(getDataResponse, this.peerNodeAddress);
-        this.testState.verifyProtectedStorageAdd(
+        this.testState.assertProtectedStorageAdd(
                 beforeState, protectedStorageEntry, true, true, false, true);
     }
 
@@ -235,7 +235,7 @@ public class P2PDataStorageProcessGetDataResponse {
 
         this.testState.mockedStorage.processGetDataResponse(getDataResponse, this.peerNodeAddress);
         TestState.SavedTestState beforeState = this.testState.saveTestState(protectedStorageEntry);
-        this.testState.verifyProtectedStorageAdd(
+        this.testState.assertProtectedStorageAdd(
                 beforeState, protectedStorageEntry, false, false, false, false);
     }
 
@@ -248,14 +248,14 @@ public class P2PDataStorageProcessGetDataResponse {
 
         TestState.SavedTestState beforeState = this.testState.saveTestState(protectedStorageEntry);
         this.testState.mockedStorage.processGetDataResponse(getDataResponse, this.peerNodeAddress);
-        this.testState.verifyProtectedStorageAdd(
+        this.testState.assertProtectedStorageAdd(
                 beforeState, protectedStorageEntry, true, true, false, true);
 
         protectedStorageEntry = getProtectedStorageEntryForAdd();
         getDataResponse = buildGetDataResponse(protectedStorageEntry);
         beforeState = this.testState.saveTestState(protectedStorageEntry);
         this.testState.mockedStorage.processGetDataResponse(getDataResponse, this.peerNodeAddress);
-        this.testState.verifyProtectedStorageAdd(
+        this.testState.assertProtectedStorageAdd(
                 beforeState, protectedStorageEntry, true, true, false, true);
     }
 }
