@@ -1,21 +1,19 @@
 package haveno.common.util;
 
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.ExpectedException;
+import org.junit.jupiter.api.Test;
 
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 
 import static haveno.common.util.Preconditions.checkDir;
-import static org.hamcrest.Matchers.equalTo;
-import static org.junit.Assert.assertSame;
+import static java.lang.String.format;
+import static java.lang.System.getProperty;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class PreconditionsTests {
-
-    @Rule
-    public ExpectedException exceptionRule = ExpectedException.none();
 
     @Test
     public void whenDirIsValid_thenDirIsReturned() throws IOException {
@@ -26,12 +24,12 @@ public class PreconditionsTests {
 
     @Test
     public void whenDirDoesNotExist_thenThrow() {
-        String filepath = "/does/not/exist";
-        if (System.getProperty("os.name").startsWith("Windows")) {
-            filepath = "C:\\does\\not\\exist";
-        }
-        exceptionRule.expect(IllegalArgumentException.class);
-        exceptionRule.expectMessage(equalTo(String.format("Directory '%s' does not exist", filepath)));
-        checkDir(new File(filepath));
+        String filepath = getProperty("os.name").startsWith("Windows") ? "C:\\does\\not\\exist" : "/does/not/exist";
+        Exception exception = assertThrows(IllegalArgumentException.class, () -> checkDir(new File(filepath)));
+
+        String expectedMessage = format("Directory '%s' does not exist", filepath);
+        String actualMessage = exception.getMessage();
+
+        assertTrue(actualMessage.contains(expectedMessage));
     }
 }

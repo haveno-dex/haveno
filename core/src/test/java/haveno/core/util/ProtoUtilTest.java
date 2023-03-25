@@ -17,13 +17,14 @@
 
 package haveno.core.util;
 
-import haveno.common.proto.ProtoUtil;
 import haveno.core.offer.OfferDirection;
 import haveno.core.offer.OpenOffer;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import protobuf.OpenOffer.State;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
+import static haveno.common.proto.ProtoUtil.enumFromProto;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.fail;
 
 @SuppressWarnings("UnusedAssignment")
 public class ProtoUtilTest {
@@ -41,9 +42,9 @@ public class ProtoUtilTest {
 
     @Test
     public void testUnknownEnum() {
-        protobuf.OpenOffer.State result = protobuf.OpenOffer.State.PB_ERROR;
+        State result = State.PB_ERROR;
         try {
-            OpenOffer.State finalResult = OpenOffer.State.valueOf(result.name());
+            OpenOffer.State.valueOf(result.name());
             fail();
         } catch (IllegalArgumentException ignore) {
         }
@@ -51,10 +52,10 @@ public class ProtoUtilTest {
 
     @Test
     public void testUnknownEnumFix() {
-        protobuf.OpenOffer.State result = protobuf.OpenOffer.State.PB_ERROR;
+        State result = State.PB_ERROR;
         try {
-            OpenOffer.State finalResult = ProtoUtil.enumFromProto(OpenOffer.State.class, result.name());
-            assertEquals(OpenOffer.State.AVAILABLE, ProtoUtil.enumFromProto(OpenOffer.State.class, "AVAILABLE"));
+            enumFromProto(OpenOffer.State.class, result.name());
+            assertEquals(OpenOffer.State.AVAILABLE, enumFromProto(OpenOffer.State.class, "AVAILABLE"));
         } catch (IllegalArgumentException e) {
             fail();
         }

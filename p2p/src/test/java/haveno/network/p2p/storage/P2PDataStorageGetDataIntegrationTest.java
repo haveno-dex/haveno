@@ -25,14 +25,14 @@ import haveno.network.p2p.storage.mocks.PersistableExpirableProtectedStoragePayl
 import haveno.network.p2p.storage.mocks.ProtectedStoragePayloadStub;
 import haveno.network.p2p.storage.payload.ProtectedStorageEntry;
 import haveno.network.p2p.storage.payload.ProtectedStoragePayload;
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.security.KeyPair;
 import java.security.NoSuchAlgorithmException;
 import java.security.PublicKey;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -84,7 +84,7 @@ public class P2PDataStorageGetDataIntegrationTest {
         TestState.SavedTestState beforeState = clientNodeTestState.saveTestState(onSeedNode);
         clientNode.processGetDataResponse(getDataResponse, null);
 
-        clientNodeTestState.verifyProtectedStorageAdd(
+        clientNodeTestState.assertProtectedStorageAdd(
                 beforeState, onSeedNode, true, true, false, true);
     }
 
@@ -114,7 +114,7 @@ public class P2PDataStorageGetDataIntegrationTest {
         TestState.SavedTestState beforeState = clientNodeTestState.saveTestState(transientEntry);
         clientNode.processGetDataResponse(getDataResponse, null);
 
-        clientNodeTestState.verifyProtectedStorageAdd(
+        clientNodeTestState.assertProtectedStorageAdd(
                 beforeState, transientEntry, true, true, false, true);
     }
 
@@ -147,9 +147,9 @@ public class P2PDataStorageGetDataIntegrationTest {
         TestState.SavedTestState beforeState = clientNodeTestState.saveTestState(persistentEntry);
         clientNode.processGetDataResponse(getDataResponse, null);
 
-        clientNodeTestState.verifyProtectedStorageAdd(
+        clientNodeTestState.assertProtectedStorageAdd(
                 beforeState, persistentEntry, false, false, false, false);
-        Assert.assertTrue(clientNodeTestState.mockedStorage.getMap().containsValue(persistentEntry));
+        assertTrue(clientNodeTestState.mockedStorage.getMap().containsValue(persistentEntry));
     }
 
     // TESTCASE: Removes seen only by the seednode should be replayed on the client node

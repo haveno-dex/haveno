@@ -19,12 +19,12 @@ package haveno.core.notifications;
 
 import haveno.common.util.Tuple2;
 import lombok.extern.slf4j.Slf4j;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
 import java.util.List;
 
-import static org.junit.Assert.assertEquals;
+import static common.utils.GenUtils.assertEquals;
 
 @Slf4j
 public class MobileModelTest {

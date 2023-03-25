@@ -18,8 +18,8 @@
 package haveno.network.p2p.network;
 
 import haveno.network.p2p.TestUtils;
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -31,7 +31,7 @@ import java.util.concurrent.CountDownLatch;
 // Connection establishment takes about 4 sec.
 
 //TODO P2P network tests are outdated
-@Ignore
+@Disabled
 public class LocalhostNetworkNodeTest {
     private static final Logger log = LoggerFactory.getLogger(LocalhostNetworkNodeTest.class);
 

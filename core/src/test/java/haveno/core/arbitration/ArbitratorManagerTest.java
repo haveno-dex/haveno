@@ -22,20 +22,18 @@ import haveno.core.support.dispute.arbitration.arbitrator.ArbitratorManager;
 import haveno.core.support.dispute.arbitration.arbitrator.ArbitratorService;
 import haveno.core.user.User;
 import haveno.network.p2p.NodeAddress;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
 
 import static org.hamcrest.CoreMatchers.not;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.collection.IsIterableContainingInAnyOrder.containsInAnyOrder;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 
 public class ArbitratorManagerTest {
-
-
 
     @Test
     public void testIsArbitratorAvailableForLanguage() {

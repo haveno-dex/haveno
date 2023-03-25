@@ -22,8 +22,8 @@ import haveno.core.xmr.setup.WalletConfig;
 import haveno.network.Socks5MultiDiscovery;
 import org.bitcoinj.core.NetworkParameters;
 import org.bitcoinj.core.PeerAddress;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.util.Collections;
 
@@ -37,7 +37,7 @@ public class BtcNetworkConfigTest {
 
     private WalletConfig delegate;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         delegate = mock(WalletConfig.class);
     }

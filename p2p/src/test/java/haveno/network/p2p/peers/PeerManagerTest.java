@@ -22,19 +22,19 @@ import haveno.network.p2p.network.CloseConnectionReason;
 import haveno.network.p2p.network.Connection;
 import haveno.network.p2p.network.InboundConnection;
 import haveno.network.p2p.network.PeerType;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.isA;
 import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.never;
@@ -46,14 +46,14 @@ public class PeerManagerTest {
     private int maxConnectionsPeer;
     private int maxConnectionsNonDirect;
 
-    @Before
+    @BeforeEach
     public void setUp() throws IOException {
         node = new MockNode(2);
         maxConnectionsPeer = Math.max(4, (int) Math.round(node.getMaxConnections() * 1.3));
         maxConnectionsNonDirect = Math.max(8, (int) Math.round(node.getMaxConnections() * 1.7));
     }
 
-    @After
+    @AfterEach
     public void tearDown() {
         node.getPersistenceManager().shutdown();
     }
@@ -151,7 +151,7 @@ public class PeerManagerTest {
     }
 
     @Test
-    @Ignore
+    @Disabled
     public void testCheckMaxConnectionsNonDirectLimitExceeded() throws InterruptedException {
         for (int i = 0; i < maxConnectionsNonDirect + 1; i++) {
             node.addOutboundConnection(PeerType.INITIAL_DATA_EXCHANGE);

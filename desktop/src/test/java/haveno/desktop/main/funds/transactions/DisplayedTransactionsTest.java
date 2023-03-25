@@ -21,12 +21,12 @@ import com.google.common.collect.Lists;
 import haveno.core.xmr.wallet.XmrWalletService;
 import javafx.collections.FXCollections;
 import monero.wallet.model.MoneroTxWallet;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.util.Collections;
 import java.util.List;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.nullable;
 import static org.mockito.Mockito.RETURNS_DEEP_STUBS;

@@ -55,18 +55,18 @@ import haveno.desktop.main.presentation.MarketPricePresentation;
 import haveno.desktop.util.Transitions;
 import haveno.network.p2p.network.BridgeAddressProvider;
 import haveno.network.p2p.seed.SeedNodeRepository;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
-import static junit.framework.TestCase.assertNotSame;
-import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class GuiceSetupTest {
 
     private Injector injector;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         Res.setup();
         CurrencyUtil.setup();

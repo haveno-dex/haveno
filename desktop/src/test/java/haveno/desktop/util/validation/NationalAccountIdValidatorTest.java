@@ -2,17 +2,17 @@ package haveno.desktop.util.validation;
 
 import haveno.core.locale.Res;
 import haveno.core.payment.validation.NationalAccountIdValidator;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.util.Locale;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class NationalAccountIdValidatorTest {
-    @Before
+    @BeforeEach
     public void setup() {
         Locale.setDefault(new Locale("en", "US"));
         Res.setBaseCurrencyCode("XMR");

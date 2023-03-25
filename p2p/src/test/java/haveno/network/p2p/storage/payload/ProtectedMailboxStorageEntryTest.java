@@ -23,15 +23,16 @@ import haveno.common.crypto.Sig;
 import haveno.network.p2p.PrefixedSealedAndSignedMessage;
 import haveno.network.p2p.TestUtils;
 import haveno.network.p2p.storage.P2PDataStorage;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.security.KeyPair;
 import java.security.NoSuchAlgorithmException;
 import java.security.PublicKey;
 import java.time.Clock;
 
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -63,7 +64,7 @@ public class ProtectedMailboxStorageEntryTest {
         return new ProtectedMailboxStorageEntry(mailboxStoragePayload, ownerKey.getPublic(), sequenceNumber, signature, receiverKey, Clock.systemDefaultZone());
     }
 
-    @Before
+    @BeforeEach
     public void SetUp() {
         // Deep in the bowels of protobuf we grab the messageID from the version module. This is required to hash the
         // full MailboxStoragePayload so make sure it is initialized.
@@ -79,7 +80,7 @@ public class ProtectedMailboxStorageEntryTest {
         MailboxStoragePayload mailboxStoragePayload = buildMailboxStoragePayload(senderKeys.getPublic(), receiverKeys.getPublic());
         ProtectedStorageEntry protectedStorageEntry = buildProtectedMailboxStorageEntry(mailboxStoragePayload, senderKeys, receiverKeys.getPublic(), 1);
 
-        Assert.assertTrue(protectedStorageEntry.isValidForAddOperation());
+        assertTrue(protectedStorageEntry.isValidForAddOperation());
     }
 
     // TESTCASE: validForAddOperation() should return false if the Entry owner and sender key specified in payload don't match
@@ -91,7 +92,7 @@ public class ProtectedMailboxStorageEntryTest {
         MailboxStoragePayload mailboxStoragePayload = buildMailboxStoragePayload(senderKeys.getPublic(), receiverKeys.getPublic());
         ProtectedStorageEntry protectedStorageEntry = buildProtectedMailboxStorageEntry(mailboxStoragePayload, receiverKeys, receiverKeys.getPublic(), 1);
 
-        Assert.assertFalse(protectedStorageEntry.isValidForAddOperation());
+        assertFalse(protectedStorageEntry.isValidForAddOperation());
     }
 
     // TESTCASE: validForAddOperation() should fail if Entry.receiversPubKey and Payload.ownerPubKey don't match
@@ -103,7 +104,7 @@ public class ProtectedMailboxStorageEntryTest {
         MailboxStoragePayload mailboxStoragePayload = buildMailboxStoragePayload(senderKeys.getPublic(), receiverKeys.getPublic());
         ProtectedStorageEntry protectedStorageEntry = buildProtectedMailboxStorageEntry(mailboxStoragePayload, senderKeys, senderKeys.getPublic(), 1);
 
-        Assert.assertFalse(protectedStorageEntry.isValidForAddOperation());
+        assertFalse(protectedStorageEntry.isValidForAddOperation());
     }
 
     // TESTCASE: validForAddOperation() should fail if the signature isn't valid
@@ -116,7 +117,7 @@ public class ProtectedMailboxStorageEntryTest {
         ProtectedStorageEntry protectedStorageEntry = new ProtectedMailboxStorageEntry(
                 mailboxStoragePayload, senderKeys.getPublic(), 1, new byte[] { 0 }, receiverKeys.getPublic(), Clock.systemDefaultZone());
 
-        Assert.assertFalse(protectedStorageEntry.isValidForAddOperation());
+        assertFalse(protectedStorageEntry.isValidForAddOperation());
     }
 
     // TESTCASE: validForRemoveOperation() should return true if the Entry owner and payload owner match
@@ -128,7 +129,7 @@ public class ProtectedMailboxStorageEntryTest {
         MailboxStoragePayload mailboxStoragePayload = buildMailboxStoragePayload(senderKeys.getPublic(), receiverKeys.getPublic());
         ProtectedStorageEntry protectedStorageEntry = buildProtectedMailboxStorageEntry(mailboxStoragePayload, receiverKeys, receiverKeys.getPublic(), 1);
 
-        Assert.assertTrue(protectedStorageEntry.isValidForRemoveOperation());
+        assertTrue(protectedStorageEntry.isValidForRemoveOperation());
     }
 
     // TESTCASE: validForRemoveOperation() should return false if the Entry owner and payload owner don't match
@@ -140,7 +141,7 @@ public class ProtectedMailboxStorageEntryTest {
         MailboxStoragePayload mailboxStoragePayload = buildMailboxStoragePayload(senderKeys.getPublic(), receiverKeys.getPublic());
         ProtectedStorageEntry protectedStorageEntry = buildProtectedMailboxStorageEntry(mailboxStoragePayload, senderKeys, receiverKeys.getPublic(), 1);
 
-        Assert.assertFalse(protectedStorageEntry.isValidForRemoveOperation());
+        assertFalse(protectedStorageEntry.isValidForRemoveOperation());
     }
 
     // TESTCASE: isValidForRemoveOperation() should fail if the signature is bad
@@ -154,7 +155,7 @@ public class ProtectedMailboxStorageEntryTest {
                 new ProtectedMailboxStorageEntry(mailboxStoragePayload, receiverKeys.getPublic(),
                             1, new byte[] { 0 }, receiverKeys.getPublic(), Clock.systemDefaultZone());
 
-        Assert.assertFalse(protectedStorageEntry.isValidForRemoveOperation());
+        assertFalse(protectedStorageEntry.isValidForRemoveOperation());
     }
 
     // TESTCASE: isValidForRemoveOperation() should fail if the receiversPubKey does not match the Entry owner
@@ -166,7 +167,7 @@ public class ProtectedMailboxStorageEntryTest {
         MailboxStoragePayload mailboxStoragePayload = buildMailboxStoragePayload(senderKeys.getPublic(), receiverKeys.getPublic());
         ProtectedStorageEntry protectedStorageEntry = buildProtectedMailboxStorageEntry(mailboxStoragePayload, receiverKeys, senderKeys.getPublic(), 1);
 
-        Assert.assertFalse(protectedStorageEntry.isValidForRemoveOperation());
+        assertFalse(protectedStorageEntry.isValidForRemoveOperation());
     }
 
     // TESTCASE: isMetadataEquals() should succeed if the sequence number changes
@@ -180,7 +181,7 @@ public class ProtectedMailboxStorageEntryTest {
 
         ProtectedStorageEntry seqNrTwo = buildProtectedMailboxStorageEntry(mailboxStoragePayload, senderKeys, receiverKeys.getPublic(), 2);
 
-        Assert.assertTrue(seqNrOne.matchesRelevantPubKey(seqNrTwo));
+        assertTrue(seqNrOne.matchesRelevantPubKey(seqNrTwo));
     }
 
     // TESTCASE: isMetadataEquals() should fail if the receiversPubKey changes
@@ -194,6 +195,6 @@ public class ProtectedMailboxStorageEntryTest {
 
         ProtectedStorageEntry seqNrTwo = buildProtectedMailboxStorageEntry(mailboxStoragePayload, senderKeys, senderKeys.getPublic(), 1);
 
-        Assert.assertFalse(seqNrOne.matchesRelevantPubKey(seqNrTwo));
+        assertFalse(seqNrOne.matchesRelevantPubKey(seqNrTwo));
     }
 }

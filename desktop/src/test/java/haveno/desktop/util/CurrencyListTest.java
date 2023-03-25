@@ -22,15 +22,15 @@ import haveno.core.locale.CryptoCurrency;
 import haveno.core.locale.FiatCurrency;
 import haveno.core.locale.TradeCurrency;
 import haveno.core.user.Preferences;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
 import java.util.Currency;
 import java.util.List;
 import java.util.Locale;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -46,7 +46,7 @@ public class CurrencyListTest {
     private List<CurrencyListItem> delegate;
     private CurrencyList testedEntity;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         Locale.setDefault(locale);
 

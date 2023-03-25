@@ -7,14 +7,14 @@ import haveno.core.locale.Res;
 import haveno.core.payment.validation.AdvancedCashValidator;
 import haveno.core.payment.validation.EmailValidator;
 import haveno.core.util.validation.RegexValidator;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class AdvancedCashValidatorTest {
-    @Before
+    @BeforeEach
     public void setup() {
         final BaseCurrencyNetwork baseCurrencyNetwork = Config.baseCurrencyNetwork();
         final String currencyCode = baseCurrencyNetwork.getCurrencyCode();

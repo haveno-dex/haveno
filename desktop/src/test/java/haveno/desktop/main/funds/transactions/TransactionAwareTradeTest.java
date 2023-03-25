@@ -25,12 +25,12 @@ import haveno.core.xmr.wallet.XmrWalletService;
 import javafx.collections.FXCollections;
 import monero.wallet.model.MoneroTxWallet;
 import org.bitcoinj.core.Sha256Hash;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.util.Set;
 
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -45,7 +45,7 @@ public class TransactionAwareTradeTest {
     private RefundManager refundManager;
     private XmrWalletService xmrWalletService;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         this.transaction = mock(MoneroTxWallet.class);
         when(transaction.getHash()).thenReturn(XID.toString());

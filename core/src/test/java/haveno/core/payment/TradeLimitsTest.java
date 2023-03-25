@@ -17,7 +17,7 @@
 
 package haveno.core.payment;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class TradeLimitsTest {
     @Test

@@ -24,8 +24,8 @@ import haveno.core.trade.HavenoUtils;
 import haveno.core.user.DontShowAgainLookup;
 import haveno.core.user.Preferences;
 import javafx.util.StringConverter;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.math.BigInteger;
 import java.util.HashMap;
@@ -34,14 +34,14 @@ import java.util.Map;
 
 import static haveno.desktop.maker.TradeCurrencyMakers.euro;
 import static haveno.desktop.maker.TradeCurrencyMakers.monero;
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 
 public class GUIUtilTest {
 
-    @Before
+    @BeforeEach
     public void setup() {
         Locale.setDefault(new Locale("en", "US"));
         GlobalSettings.setLocale(new Locale("en", "US"));
