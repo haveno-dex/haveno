@@ -8,12 +8,11 @@ On Ubuntu: `sudo apt install make wget git openjdk-11-jdk`
 
 On Windows:
 
-  1. Download [Java JDK 11](https://download.java.net/java/GA/jdk11/9/GPL/openjdk-11.0.2_windows-x64_bin.zip) and extract to C:\Program Files\Java\jdk-11.0.2.
-  2. Add a new user environment variable called `JAVA_HOME` with value `C:\Program Files\Java\jdk-11.0.2` (Windows search > "Edit the system environment variables" > Environment variables...)
-  3. Install [MSYS2](https://www.msys2.org/).
-  4. Start MSYS2 MINGW64 or MSYS MINGW32 depending on your system. Use MSYS2 for all commands throughout this document.
-  5. Update pacman: `pacman -Syy`
-  6. Install dependencies. During installation, use default=all by leaving the input blank and pressing enter.
+  1. Download [Java JDK 11](https://adoptium.net/temurin/archive/?version=11). During installation, enable the option to set the $JAVA_HOME environment variable.
+  2. Install [MSYS2](https://www.msys2.org/).
+  3. Start MSYS2 MINGW64 or MSYS MINGW32 depending on your system. Use MSYS2 for all commands throughout this document.
+  4. Update pacman: `pacman -Syy`
+  5. Install dependencies. During installation, use default=all by leaving the input blank and pressing enter.
 
       64-bit: `pacman -S mingw-w64-x86_64-toolchain make mingw-w64-x86_64-cmake git`
 

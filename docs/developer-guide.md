@@ -2,25 +2,25 @@
 
 This document is a guide for Haveno development.
 
-## Installing and testing Haveno
+## Install and test Haveno
 
 [Build Haveno and join the test network or test locally](installing.md).
 
-## Running the UI proof of concept
+## Run the UI proof of concept
 
 Follow [instructions](https://github.com/haveno-dex/haveno-ts#run-in-a-browser) to run Haveno's UI proof of concept in a browser.
 
 This proof of concept demonstrates using Haveno's gRPC server with a web frontend (react and typescript) instead of Haveno's JFX application.
 
-## Importing Haveno into development environment
+## Import Haveno into development environment
 
 Follow [instructions](import-haveno.md) to import Haveno into a development environment.
 
-## Running end-to-end API tests
+## Run end-to-end API tests
 
 Follow [instructions](https://github.com/haveno-dex/haveno-ts#run-tests) to run end-to-end API tests in the UI project.
 
-## Adding new API functions and tests
+## Add new API functions and tests
 
 1. Follow [instructions](https://github.com/haveno-dex/haveno-ts#run-tests) to run Haveno's existing API tests successfully.
 2. Define the new service or message in Haveno's [protobuf definition](../proto/src/main/proto/grpc.proto).
@@ -34,7 +34,7 @@ Follow [instructions](https://github.com/haveno-dex/haveno-ts#run-tests) to run 
 9. Run the tests with `npm run test -- -t 'my test'` to run tests by name and `npm test` to run all tests together. Ensure all tests pass and there are no exception stacktraces in the terminals of Alice, Bob, or the arbitrator.
 10. Open pull requests to the haveno and haveno-ts projects for the backend and frontend implementations.
 
-## How to manually sign accounts as the arbitrator
+## Manually sign accounts as the arbitrator
 
 1. Open legacy UI as the arbitrator.
 2. Go to the 'Account' tab.
@@ -43,7 +43,11 @@ Follow [instructions](https://github.com/haveno-dex/haveno-ts#run-tests) to run 
     b. Sign account age witness: `ctrl+p` then enter <witness hash>,<pub key hash> (from past trade details) and click the "Import unsigned account age witness" button.
     c. Sign unsigned witness pub keys: `ctrl+o`
 
-## How to rebase and squash your commits
+## Package executable binaries
+
+See [instructions](/desktop/package/README.md).
+
+## Rebase and squash your commits
 
 When submitting a pull request for review, please first rebase and squash your commits.
 
