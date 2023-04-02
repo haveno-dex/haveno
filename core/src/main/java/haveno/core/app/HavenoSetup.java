@@ -17,11 +17,9 @@
 
 package haveno.core.app;
 
-import ch.qos.logback.classic.Level;
 import haveno.common.Timer;
 import haveno.common.UserThread;
 import haveno.common.app.DevEnv;
-import haveno.common.app.Log;
 import haveno.common.app.Version;
 import haveno.common.config.BaseCurrencyNetwork;
 import haveno.common.config.Config;
@@ -102,7 +100,7 @@ public class HavenoSetup {
     private static final String VERSION_FILE_NAME = "version";
     private static final String RESYNC_SPV_FILE_NAME = "resyncSpv";
 
-    private static final long STARTUP_TIMEOUT_MINUTES = 4;
+    private static final long STARTUP_TIMEOUT_MINUTES = 5;
 
     private final DomainInitialisation domainInitialisation;
     private final P2PNetworkSetup p2PNetworkSetup;
@@ -403,9 +401,9 @@ public class HavenoSetup {
             if (displayTorNetworkSettingsHandler != null)
                 displayTorNetworkSettingsHandler.accept(true);
 
-            log.info("Set log level for org.berndpruenster.netlayer classes to DEBUG to show more details for " +
-                    "Tor network connection issues");
-            Log.setCustomLogLevel("org.berndpruenster.netlayer", Level.DEBUG);
+            // log.info("Set log level for org.berndpruenster.netlayer classes to DEBUG to show more details for " +
+            //         "Tor network connection issues");
+            // Log.setCustomLogLevel("org.berndpruenster.netlayer", Level.DEBUG);
 
         }, STARTUP_TIMEOUT_MINUTES, TimeUnit.MINUTES);
 
@@ -444,7 +442,7 @@ public class HavenoSetup {
                         checkForInvalidMakerFeeTxs();
                     }
                 },
-                () -> walletInitialized.set(true));
+                () -> {});
     }
 
     private void initDomainServices() {

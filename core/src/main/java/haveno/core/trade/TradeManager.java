@@ -349,7 +349,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
                 .collect(Collectors.toSet());
         unreservedFrozenKeyImages.removeAll(reservedKeyImages);
         if (!unreservedFrozenKeyImages.isEmpty()) {
-            log.info("Thawing outputs which are not reserved for offer or trade: " + unreservedFrozenKeyImages);
+            log.warn("Thawing outputs which are not reserved for offer or trade: " + unreservedFrozenKeyImages);
             xmrWalletService.thawOutputs(unreservedFrozenKeyImages);
             xmrWalletService.saveMainWallet();
         }

@@ -92,7 +92,7 @@ public class WalletsSetup {
     @Getter
     public final BooleanProperty walletsSetupFailed = new SimpleBooleanProperty();
 
-    private static final long STARTUP_TIMEOUT = 180;
+    private static final long STARTUP_TIMEOUT_SECONDS = 3600; // 1 hour
     private static final String SPV_CHAIN_FILE_NAME = "haveno.spvchain";
 
     private final RegTestHost regTestHost;
@@ -167,7 +167,7 @@ public class WalletsSetup {
 
         Timer timeoutTimer = UserThread.runAfter(() ->
                 exceptionHandler.handleException(new TimeoutException("Wallet did not initialize in " +
-                        STARTUP_TIMEOUT + " seconds.")), STARTUP_TIMEOUT);
+                        STARTUP_TIMEOUT_SECONDS + " seconds.")), STARTUP_TIMEOUT_SECONDS);
 
         backupWallets();
 
