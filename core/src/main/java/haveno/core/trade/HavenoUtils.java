@@ -424,7 +424,7 @@ public class HavenoUtils {
     public static boolean isLocalHost(String uri) {
         try {
             String host = new URI(uri).getHost();
-            return host.equals(LOOPBACK_HOST) || host.equals(LOCALHOST);
+            return LOOPBACK_HOST.equals(host) || LOCALHOST.equals(host);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }

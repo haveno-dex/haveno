@@ -16,11 +16,14 @@ haveno:
 
 # build haveno without tests
 skip-tests: localnet
-	./gradlew build -x test
+	./gradlew build -x test -x checkstyleMain -x checkstyleTest
 
 # quick build desktop and daemon apps without tests
 haveno-apps:
-	./gradlew :core:compileJava :desktop:build -x test
+	./gradlew :core:compileJava :desktop:build -x test -x checkstyleMain -x checkstyleTest
+
+refresh-deps:
+	./gradlew --write-verification-metadata sha256 && ./gradlew build --refresh-keys --refresh-dependencies -x test -x checkstyleMain -x checkstyleTest
 
 deploy:
 	# create a new screen session named 'localnet'
@@ -83,6 +86,17 @@ monerod-local2:
 		--add-exclusive-node 127.0.0.1:48080 \
 		--rpc-access-control-origins http://localhost:8080 \
 		--fixed-difficulty 300
+
+funding-wallet-stagenet:
+	./.localnet/monero-wallet-rpc \
+		--rpc-bind-port 18084 \
+		--rpc-login rpc_user:abc123 \
+		--rpc-access-control-origins http://localhost:8080 \
+		--wallet-dir ./.localnet \
+		--daemon-ssl-allow-any-cert \
+		--daemon-address http://127.0.0.1:38081
+
+#--proxy 127.0.0.1:49775 \
 
 funding-wallet-local:
 	./.localnet/monero-wallet-rpc \
@@ -214,10 +228,11 @@ arbitrator-daemon-stagenet:
 		--appName=haveno-XMR_STAGENET_arbitrator \
 		--apiPassword=apitest \
 		--apiPort=9998 \
-		--passwordRequired=false
+		--passwordRequired=false \
+		--xmrNode=http://127.0.0.1:38081
 
+# Arbitrator needs to be registered before making trades
 arbitrator-desktop-stagenet:
-	# Arbitrator needs to be registered before making trades
 	./haveno-desktop$(APP_EXT) \
 		--baseCurrencyNetwork=XMR_STAGENET \
 		--useLocalhostForP2P=false \
@@ -225,7 +240,8 @@ arbitrator-desktop-stagenet:
 		--nodePort=4444 \
 		--appName=haveno-XMR_STAGENET_arbitrator \
 		--apiPassword=apitest \
-		--apiPort=9998
+		--apiPort=9998 \
+		--xmrNode=http://127.0.0.1:38081
 
 user1-daemon-stagenet:
 	./haveno-daemon$(APP_EXT) \

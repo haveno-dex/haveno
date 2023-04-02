@@ -117,7 +117,7 @@ public class HavenoApp extends Application implements UncaughtExceptionHandler {
     }
 
     public void startApplication(Runnable onApplicationStartedHandler) {
-        log.info("Running startApplication...");
+        log.info("Starting application");
         try {
             mainView = loadMainView(injector);
             mainView.setOnApplicationStartedHandler(onApplicationStartedHandler);

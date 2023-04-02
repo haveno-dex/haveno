@@ -1662,12 +1662,16 @@ public abstract class Trade implements Tradable, Model {
     private void setWalletRefreshPeriod(long walletRefreshPeriod) {
         if (this.isShutDown) return;
         if (this.walletRefreshPeriod != null && this.walletRefreshPeriod == walletRefreshPeriod) return;
-        log.info("Setting wallet refresh rate for {} {} to {}", getClass().getSimpleName(), getId(), walletRefreshPeriod);
         this.walletRefreshPeriod = walletRefreshPeriod;
-        getWallet().startSyncing(getWalletRefreshPeriod()); // TODO (monero-project): wallet rpc waits until last sync period finishes before starting new sync period
-        if (txPollLooper != null) {
-            txPollLooper.stop();
-            txPollLooper = null;
+        synchronized (walletLock) {
+            if (getWallet() != null) {
+                log.info("Setting wallet refresh rate for {} {} to {}", getClass().getSimpleName(), getId(), walletRefreshPeriod);
+                getWallet().startSyncing(getWalletRefreshPeriod()); // TODO (monero-project): wallet rpc waits until last sync period finishes before starting new sync period
+            }
+            if (txPollLooper != null) {
+                txPollLooper.stop();
+                txPollLooper = null;
+            }
         }
         startPolling();
     }

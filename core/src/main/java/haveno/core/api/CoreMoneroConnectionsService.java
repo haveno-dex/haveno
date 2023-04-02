@@ -1,5 +1,6 @@
 package haveno.core.api;
 
+import haveno.common.UserThread;
 import haveno.common.app.DevEnv;
 import haveno.common.config.BaseCurrencyNetwork;
 import haveno.common.config.Config;
@@ -7,6 +8,7 @@ import haveno.core.trade.HavenoUtils;
 import haveno.core.xmr.model.EncryptedConnectionList;
 import haveno.core.xmr.setup.DownloadListener;
 import haveno.core.xmr.setup.WalletsSetup;
+import haveno.network.Socks5ProxyProvider;
 import javafx.beans.property.IntegerProperty;
 import javafx.beans.property.LongProperty;
 import javafx.beans.property.ObjectProperty;
@@ -20,7 +22,6 @@ import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import monero.common.MoneroConnectionManager;
 import monero.common.MoneroConnectionManagerListener;
-import monero.common.MoneroError;
 import monero.common.MoneroRpcConnection;
 import monero.common.TaskLooper;
 import monero.daemon.MoneroDaemonRpc;
@@ -34,6 +35,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -60,7 +62,7 @@ public final class CoreMoneroConnectionsService {
                 new MoneroRpcConnection("http://stagenet.melo.tools:38081").setPriority(2),
                 new MoneroRpcConnection("http://node.sethforprivacy.com:38089").setPriority(2),
                 new MoneroRpcConnection("http://node2.sethforprivacy.com:38089").setPriority(2),
-                new MoneroRpcConnection("http://ct36dsbe3oubpbebpxmiqz4uqk6zb6nhmkhoekileo4fts23rvuse2qd.onion:38081").setPriority(2)
+                new MoneroRpcConnection("http://plowsof3t5hogddwabaeiyrno25efmzfxyro2vligremt7sxpsclfaid.onion:38089").setPriority(2)
         ));
         DEFAULT_CONNECTIONS.put(BaseCurrencyNetwork.XMR_MAINNET, Arrays.asList(
                 new MoneroRpcConnection("http://127.0.0.1:18081").setPriority(1),
@@ -84,6 +86,7 @@ public final class CoreMoneroConnectionsService {
     private final IntegerProperty numPeers = new SimpleIntegerProperty(0);
     private final LongProperty chainHeight = new SimpleLongProperty(0);
     private final DownloadListener downloadListener = new DownloadListener();
+    private Socks5ProxyProvider socks5ProxyProvider;
 
     private MoneroDaemonRpc daemon;
     @Getter
@@ -98,16 +101,15 @@ public final class CoreMoneroConnectionsService {
                                         CoreAccountService accountService,
                                         CoreMoneroNodeService nodeService,
                                         MoneroConnectionManager connectionManager,
-                                        EncryptedConnectionList connectionList) {
+                                        EncryptedConnectionList connectionList,
+                                        Socks5ProxyProvider socks5ProxyProvider) {
         this.config = config;
         this.coreContext = coreContext;
         this.accountService = accountService;
         this.nodeService = nodeService;
         this.connectionManager = connectionManager;
         this.connectionList = connectionList;
-
-        // initialize immediately if monerod configured
-        if (!"".equals(config.xmrNode)) initialize();
+        this.socks5ProxyProvider = socks5ProxyProvider;
 
         // initialize after account open and basic setup
         walletsSetup.addSetupTaskHandler(() -> { // TODO: use something better than legacy WalletSetup for notification to initialize
@@ -143,6 +145,10 @@ public final class CoreMoneroConnectionsService {
     public MoneroDaemonRpc getDaemon() {
         accountService.checkAccountOpen();
         return this.daemon;
+    }
+
+    public String getProxyUri() {
+        return socks5ProxyProvider.getSocks5Proxy() == null ? null : socks5ProxyProvider.getSocks5Proxy().getInetAddress().getHostAddress() + ":" + socks5ProxyProvider.getSocks5Proxy().getPort();
     }
 
     public void addListener(MoneroConnectionManagerListener listener) {
@@ -319,30 +325,41 @@ public final class CoreMoneroConnectionsService {
     private void initialize() {
         synchronized (lock) {
 
-            // reset connection manager's connections and listeners
+            // reset connection manager
             connectionManager.reset();
+            connectionManager.setTimeout(REFRESH_PERIOD_REMOTE_MS);
 
             // load connections
-            connectionList.getConnections().forEach(connectionManager::addConnection);
+            log.info("TOR proxy URI: " + getProxyUri());
+            for (MoneroRpcConnection connection : connectionList.getConnections()) {
+                if (connection.isOnion()) connection.setProxyUri(getProxyUri());
+                connectionManager.addConnection(connection);
+            }
             log.info("Read " + connectionList.getConnections().size() + " connections from disk");
 
             // add default connections
             for (MoneroRpcConnection connection : DEFAULT_CONNECTIONS.get(Config.baseCurrencyNetwork())) {
                 if (connectionList.hasConnection(connection.getUri())) continue;
+                if (connection.isOnion()) connection.setProxyUri(getProxyUri());
                 addConnection(connection);
             }
 
-            // restore last used connection if present
-            var currentConnectionUri = connectionList.getCurrentConnectionUri();
-            if (currentConnectionUri.isPresent()) connectionManager.setConnection(currentConnectionUri.get());
+            // restore last used connection if unconfigured and present
+            Optional<String> currentConnectionUri = null;
+            if ("".equals(config.xmrNode)) {
+                currentConnectionUri = connectionList.getCurrentConnectionUri();
+                if (currentConnectionUri.isPresent()) connectionManager.setConnection(currentConnectionUri.get());
+            } else if (!isInitialized) {
 
-            // set monero connection from startup arguments
-            if (!isInitialized && !"".equals(config.xmrNode)) {
-                connectionManager.setConnection(new MoneroRpcConnection(config.xmrNode, config.xmrNodeUsername, config.xmrNodePassword).setPriority(1));
+                // set monero connection from startup arguments
+                MoneroRpcConnection connection = new MoneroRpcConnection(config.xmrNode, config.xmrNodeUsername, config.xmrNodePassword).setPriority(1);
+                if (connection.isOnion()) connection.setProxyUri(getProxyUri());
+                connectionManager.setConnection(connection);
+                currentConnectionUri = Optional.of(connection.getUri());
             }
 
-            // restore configuration
-            connectionManager.setAutoSwitch(connectionList.getAutoSwitch());
+            // restore configuration and check connection
+            if ("".equals(config.xmrNode)) connectionManager.setAutoSwitch(connectionList.getAutoSwitch());
             long refreshPeriod = connectionList.getRefreshPeriod();
             if (refreshPeriod > 0) connectionManager.startCheckingConnection(refreshPeriod);
             else if (refreshPeriod == 0) connectionManager.startCheckingConnection();
@@ -350,9 +367,6 @@ public final class CoreMoneroConnectionsService {
 
             // run once
             if (!isInitialized) {
-
-                // register connection change listener
-                connectionManager.addListener(this::onConnectionChanged);
 
                 // register local node listener
                 nodeService.addListener(new MoneroNodeServiceListener() {
@@ -369,8 +383,6 @@ public final class CoreMoneroConnectionsService {
                         checkConnection();
                     }
                 });
-
-                isInitialized = true;
             }
 
             // if offline and last connection is local, start local node if offline
@@ -385,7 +397,7 @@ public final class CoreMoneroConnectionsService {
             });
 
             // prefer to connect to local node unless prevented by configuration
-            if (("".equals(config.xmrNode) || HavenoUtils.isLocalHost(config.xmrNode)) &&
+            if ("".equals(config.xmrNode) &&
                 (!connectionManager.isConnected() || connectionManager.getAutoSwitch()) &&
                 nodeService.isConnected()) {
                 MoneroRpcConnection connection = connectionManager.getConnectionByUri(nodeService.getDaemon().getRpcConnection().getUri());
@@ -401,12 +413,19 @@ public final class CoreMoneroConnectionsService {
                 connectionManager.setConnection(connectionManager.getBestAvailableConnection());
             }
 
-            // update connection
+            // register connection change listener
+            if (!isInitialized) {
+                connectionManager.addListener(this::onConnectionChanged);
+                isInitialized = true;
+            }
+
+            // announce connection
             onConnectionChanged(connectionManager.getConnection());
         }
     }
 
     private void onConnectionChanged(MoneroRpcConnection currentConnection) {
+        // TODO: ignore if shutdown
         synchronized (lock) {
             if (currentConnection == null) {
                 daemon = null;
@@ -422,12 +441,17 @@ public final class CoreMoneroConnectionsService {
     }
 
     private void startPollingDaemon() {
-        if (updateDaemonLooper != null) updateDaemonLooper.stop();
-        updateDaemonInfo();
-        updateDaemonLooper = new TaskLooper(() -> {
+        synchronized (lock) {
             updateDaemonInfo();
-        });
-        updateDaemonLooper.start(getDefaultRefreshPeriodMs());
+            if (updateDaemonLooper != null) updateDaemonLooper.stop();
+            UserThread.runAfter(() -> {
+                synchronized (lock) {
+                    if (updateDaemonLooper != null) updateDaemonLooper.stop();
+                    updateDaemonLooper = new TaskLooper(() -> updateDaemonInfo());
+                    updateDaemonLooper.start(getDefaultRefreshPeriodMs());
+                }
+            }, getDefaultRefreshPeriodMs() / 1000);
+        }
     }
 
     private void updateDaemonInfo() {
@@ -438,12 +462,18 @@ public final class CoreMoneroConnectionsService {
             //System.out.println(JsonUtils.serialize(lastInfo));
             //System.out.println(JsonUtils.serialize(daemon.getSyncInfo()));
             chainHeight.set(lastInfo.getTargetHeight() == 0 ? lastInfo.getHeight() : lastInfo.getTargetHeight());
-            try {
-                peers.set(getOnlinePeers());
-            } catch (MoneroError err) {
-                peers.set(new ArrayList<MoneroPeer>()); // TODO: peers unknown due to restricted RPC call
-            }
-            numPeers.set(peers.get().size());
+
+            // set peer connections
+            // TODO: peers often uknown due to restricted RPC call, skipping call to get peer connections
+            // try {
+            //     peers.set(getOnlinePeers());
+            // } catch (Exception err) {
+            //     // TODO: peers unknown due to restricted RPC call
+            // }
+            // numPeers.set(peers.get().size());
+            numPeers.set(lastInfo.getNumOutgoingConnections() + lastInfo.getNumIncomingConnections()); 
+            peers.set(new ArrayList<MoneroPeer>());
+            
             if (lastErrorTimestamp != null) {
                 log.info("Successfully fetched daemon info after previous error");
                 lastErrorTimestamp = null;
