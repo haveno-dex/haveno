@@ -784,7 +784,6 @@ public abstract class Trade implements Tradable, Model {
     private void closeWallet() {
         synchronized (walletLock) {
             if (wallet == null) throw new RuntimeException("Trade wallet to close was not previously opened for trade " + getId());
-            if (wallet.getPath() == null) log.warn("HOW DID PATH BECOME NULL?");
             xmrWalletService.closeWallet(wallet, true);
             wallet = null;
         }
