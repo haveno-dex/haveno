@@ -70,7 +70,7 @@ public class CoreNotificationService {
                 .setType(NotificationType.ERROR)
                 .setTimestamp(System.currentTimeMillis())
                 .setTitle(title)
-                .setMessage(errorMessage)
+                .setMessage(errorMessage == null ? "null" : errorMessage)
                 .build());
     }
 }
