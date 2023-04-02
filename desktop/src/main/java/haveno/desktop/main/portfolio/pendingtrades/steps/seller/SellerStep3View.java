@@ -114,48 +114,43 @@ public class SellerStep3View extends TradeStepView {
             if (trade.isPaymentSent() && !trade.isPaymentReceived()) {
                 showPopup();
             } else if (trade.isPaymentReceived()) {
-                if (!trade.hasFailed()) {
-                    switch (state) {
-                        case SELLER_CONFIRMED_IN_UI_PAYMENT_RECEIPT:
-                            busyAnimation.play();
-                            statusLabel.setText(Res.get("shared.preparingConfirmation"));
-                            break;
-                        case SELLER_SENT_PAYMENT_RECEIVED_MSG:
-                            busyAnimation.play();
-                            statusLabel.setText(Res.get("shared.sendingConfirmation"));
+                switch (state) {
+                    case SELLER_CONFIRMED_IN_UI_PAYMENT_RECEIPT:
+                        busyAnimation.play();
+                        statusLabel.setText(Res.get("shared.preparingConfirmation"));
+                        break;
+                    case SELLER_SENT_PAYMENT_RECEIVED_MSG:
+                        busyAnimation.play();
+                        statusLabel.setText(Res.get("shared.sendingConfirmation"));
 
-                            timeoutTimer = UserThread.runAfter(() -> {
-                                busyAnimation.stop();
-                                statusLabel.setText(Res.get("shared.sendingConfirmationAgain"));
-                            }, 10);
-                            break;
-                        case SELLER_SAW_ARRIVED_PAYMENT_RECEIVED_MSG:
-                            busyAnimation.stop();
-                            statusLabel.setText(Res.get("shared.messageArrived"));
-                            break;
-                        case SELLER_STORED_IN_MAILBOX_PAYMENT_RECEIVED_MSG:
-                            busyAnimation.stop();
-                            statusLabel.setText(Res.get("shared.messageStoredInMailbox"));
-                            break;
-                        case SELLER_SEND_FAILED_PAYMENT_RECEIVED_MSG:
-                            // We get a popup and the trade closed, so we dont need to show anything here
-                            busyAnimation.stop();
-                            statusLabel.setText("");
-                            break;
-                        case TRADE_COMPLETED:
-                            if (!trade.isPayoutPublished()) log.warn("Payout is expected to be published for {} {} state {}", trade.getClass().getSimpleName(), trade.getId(), trade.getState());
-                            busyAnimation.stop();
-                            statusLabel.setText("");
-                            break;
-                        default:
-                            log.warn("Unexpected case: State={}, tradeId={} " + state.name(), trade.getId());
+                        timeoutTimer = UserThread.runAfter(() -> {
                             busyAnimation.stop();
                             statusLabel.setText(Res.get("shared.sendingConfirmationAgain"));
-                            break;
-                    }
-                } else {
-                    log.warn("Trade contains error message {}", trade.getErrorMessage());
-                    statusLabel.setText("");
+                        }, 10);
+                        break;
+                    case SELLER_SAW_ARRIVED_PAYMENT_RECEIVED_MSG:
+                        busyAnimation.stop();
+                        statusLabel.setText(Res.get("shared.messageArrived"));
+                        break;
+                    case SELLER_STORED_IN_MAILBOX_PAYMENT_RECEIVED_MSG:
+                        busyAnimation.stop();
+                        statusLabel.setText(Res.get("shared.messageStoredInMailbox"));
+                        break;
+                    case SELLER_SEND_FAILED_PAYMENT_RECEIVED_MSG:
+                        // We get a popup and the trade closed, so we dont need to show anything here
+                        busyAnimation.stop();
+                        statusLabel.setText("");
+                        break;
+                    case TRADE_COMPLETED:
+                        if (!trade.isPayoutPublished()) log.warn("Payout is expected to be published for {} {} state {}", trade.getClass().getSimpleName(), trade.getId(), trade.getState());
+                        busyAnimation.stop();
+                        statusLabel.setText("");
+                        break;
+                    default:
+                        log.warn("Unexpected case: State={}, tradeId={} " + state.name(), trade.getId());
+                        busyAnimation.stop();
+                        statusLabel.setText(Res.get("shared.sendingConfirmationAgain"));
+                        break;
                 }
             }
         });

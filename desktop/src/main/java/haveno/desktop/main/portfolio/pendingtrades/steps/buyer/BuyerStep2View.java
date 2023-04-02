@@ -150,46 +150,41 @@ public class BuyerStep2View extends TradeStepView {
                 if (trade.isDepositsUnlocked() && !trade.isPaymentSent()) {
                     showPopup();
                 } else if (state.ordinal() <= Trade.State.BUYER_SEND_FAILED_PAYMENT_SENT_MSG.ordinal()) {
-                    if (!trade.hasFailed()) {
-                        switch (state) {
-                        case BUYER_CONFIRMED_IN_UI_PAYMENT_SENT:
-                            busyAnimation.play();
-                            statusLabel.setText(Res.get("shared.preparingConfirmation"));
-                            break;
-                        case BUYER_SENT_PAYMENT_SENT_MSG:
-                            busyAnimation.play();
-                            statusLabel.setText(Res.get("shared.sendingConfirmation"));
-                            model.setMessageStateProperty(MessageState.SENT);
-                            timeoutTimer = UserThread.runAfter(() -> {
-                                busyAnimation.stop();
-                                statusLabel.setText(Res.get("shared.sendingConfirmationAgain"));
-                            }, 10);
-                            break;
-                        case BUYER_SAW_ARRIVED_PAYMENT_SENT_MSG:
-                            busyAnimation.stop();
-                            statusLabel.setText(Res.get("shared.messageArrived"));
-                            model.setMessageStateProperty(MessageState.ARRIVED);
-                            break;
-                        case BUYER_STORED_IN_MAILBOX_PAYMENT_SENT_MSG:
-                            busyAnimation.stop();
-                            statusLabel.setText(Res.get("shared.messageStoredInMailbox"));
-                            model.setMessageStateProperty(MessageState.STORED_IN_MAILBOX);
-                            break;
-                        case BUYER_SEND_FAILED_PAYMENT_SENT_MSG:
-                            // We get a popup and the trade closed, so we dont need to show anything here
-                            busyAnimation.stop();
-                            statusLabel.setText("");
-                            model.setMessageStateProperty(MessageState.FAILED);
-                            break;
-                        default:
-                            log.warn("Unexpected case: State={}, tradeId={} ", state.name(), trade.getId());
+                    switch (state) {
+                    case BUYER_CONFIRMED_IN_UI_PAYMENT_SENT:
+                        busyAnimation.play();
+                        statusLabel.setText(Res.get("shared.preparingConfirmation"));
+                        break;
+                    case BUYER_SENT_PAYMENT_SENT_MSG:
+                        busyAnimation.play();
+                        statusLabel.setText(Res.get("shared.sendingConfirmation"));
+                        model.setMessageStateProperty(MessageState.SENT);
+                        timeoutTimer = UserThread.runAfter(() -> {
                             busyAnimation.stop();
                             statusLabel.setText(Res.get("shared.sendingConfirmationAgain"));
-                            break;
-                        }
-                    } else {
-                        log.warn("Trade contains error message {}", trade.getErrorMessage());
+                        }, 10);
+                        break;
+                    case BUYER_SAW_ARRIVED_PAYMENT_SENT_MSG:
+                        busyAnimation.stop();
+                        statusLabel.setText(Res.get("shared.messageArrived"));
+                        model.setMessageStateProperty(MessageState.ARRIVED);
+                        break;
+                    case BUYER_STORED_IN_MAILBOX_PAYMENT_SENT_MSG:
+                        busyAnimation.stop();
+                        statusLabel.setText(Res.get("shared.messageStoredInMailbox"));
+                        model.setMessageStateProperty(MessageState.STORED_IN_MAILBOX);
+                        break;
+                    case BUYER_SEND_FAILED_PAYMENT_SENT_MSG:
+                        // We get a popup and the trade closed, so we dont need to show anything here
+                        busyAnimation.stop();
                         statusLabel.setText("");
+                        model.setMessageStateProperty(MessageState.FAILED);
+                        break;
+                    default:
+                        log.warn("Unexpected case: State={}, tradeId={} ", state.name(), trade.getId());
+                        busyAnimation.stop();
+                        statusLabel.setText(Res.get("shared.sendingConfirmationAgain"));
+                        break;
                     }
                 }
             });
