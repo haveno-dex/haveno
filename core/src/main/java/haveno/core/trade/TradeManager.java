@@ -67,7 +67,6 @@ import haveno.core.user.User;
 import haveno.core.util.Validator;
 import haveno.core.xmr.model.XmrAddressEntry;
 import haveno.core.xmr.wallet.XmrWalletService;
-import haveno.network.p2p.BootstrapListener;
 import haveno.network.p2p.DecryptedDirectMessageListener;
 import haveno.network.p2p.DecryptedMessageWithPubKey;
 import haveno.network.p2p.NodeAddress;
@@ -282,16 +281,9 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
     }
 
     private void initialize() {
-        if (p2PService.isBootstrapped()) {
-            new Thread(() -> initPersistedTrades()).start(); // initialize trades off main thread
-        } else {
-            p2PService.addP2PServiceListener(new BootstrapListener() {
-                @Override
-                public void onUpdatedDataReceived() {
-                    initPersistedTrades();
-                }
-            });
-        }
+
+        // initialize trades off main thread
+        new Thread(() -> initPersistedTrades()).start(); 
 
         getObservableList().addListener((ListChangeListener<Trade>) change -> onTradesChanged());
         onTradesChanged();
@@ -324,7 +316,12 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
                 log.warn("Error closing trade subprocess. Was Haveno stopped manually with ctrl+c?");
             }
         });
-        HavenoUtils.executeTasks(tasks);
+        try {
+            HavenoUtils.executeTasks(tasks);
+        } catch (Exception e) {
+            log.warn("Error shutting down trades: {}", e.getMessage());
+            e.printStackTrace();
+        }
     }
 
     private void thawUnreservedOutputs() {
@@ -390,6 +387,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
                 }
             });
         };
+        log.info("Initializing persisted trades");
         HavenoUtils.executeTasks(tasks, threadPoolSize);
 
         // reset any available address entries
