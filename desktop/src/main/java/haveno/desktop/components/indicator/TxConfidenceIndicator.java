@@ -42,6 +42,7 @@
 
 package haveno.desktop.components.indicator;
 
+import haveno.common.UserThread;
 import haveno.desktop.components.indicator.skin.StaticProgressIndicatorSkin;
 import javafx.beans.property.DoubleProperty;
 import javafx.beans.property.DoublePropertyBase;
@@ -220,7 +221,7 @@ public class TxConfidenceIndicator extends Control {
      */
 
     public final void setProgress(double value) {
-        progressProperty().set(value);
+        UserThread.execute(() -> progressProperty().set(value));
     }
 
     public final DoubleProperty progressProperty() {

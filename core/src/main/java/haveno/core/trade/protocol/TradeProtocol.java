@@ -162,7 +162,6 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
 
     // TODO (woodser): this method only necessary because isPubKeyValid not called with sender argument, so it's validated before
     private void handleMailboxCollectionSkipValidation(Collection<DecryptedMessageWithPubKey> collection) {
-        log.warn("TradeProtocol.handleMailboxCollectionSkipValidation");
         collection.stream()
                 .map(DecryptedMessageWithPubKey::getNetworkEnvelope)
                 .filter(this::isMyMessage)
@@ -817,6 +816,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
 
     protected void latchTrade() {
         if (tradeLatch != null) throw new RuntimeException("Trade latch is not null. That should never happen.");
+        if (trade.isShutDown()) throw new RuntimeException("Cannot latch trade " + trade.getId() + " for protocol because it's shut down");
         tradeLatch = new CountDownLatch(1);
     }
 

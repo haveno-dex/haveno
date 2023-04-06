@@ -60,6 +60,7 @@ public class ArbitratorProcessReserveTx extends TradeTask {
             Tuple2<MoneroTx, BigInteger> txResult;
             try {
                 txResult = trade.getXmrWalletService().verifyTradeTx(
+                    offer.getId(),
                     tradeFee,
                     sendAmount,
                     securityDeposit,

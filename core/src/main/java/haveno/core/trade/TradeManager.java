@@ -353,16 +353,16 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
     }
 
     public TradeProtocol getTradeProtocol(Trade trade) {
-        String uid = trade.getUid();
-        if (tradeProtocolByTradeId.containsKey(uid)) {
-            return tradeProtocolByTradeId.get(uid);
-        } else {
-            TradeProtocol tradeProtocol = TradeProtocolFactory.getNewTradeProtocol(trade);
-            TradeProtocol prev = tradeProtocolByTradeId.put(uid, tradeProtocol);
-            if (prev != null) {
-                log.error("We had already an entry with uid {}", trade.getUid());
-            }
+        synchronized (tradeProtocolByTradeId) {
+            return tradeProtocolByTradeId.get(trade.getUid());
+        }
+    }
 
+    public TradeProtocol createTradeProtocol(Trade trade) {
+        synchronized (tradeProtocolByTradeId) {
+            TradeProtocol tradeProtocol = TradeProtocolFactory.getNewTradeProtocol(trade);
+            TradeProtocol prev = tradeProtocolByTradeId.put(trade.getUid(), tradeProtocol);
+            if (prev != null) log.error("We had already an entry with uid {}", trade.getUid());
             return tradeProtocol;
         }
     }
@@ -377,6 +377,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
         List<Trade> trades = getAllTrades();
 
         // open trades in parallel since each may open a multisig wallet
+        log.info("Initializing trades");
         int threadPoolSize = 10;
         Set<Runnable> tasks = new HashSet<Runnable>();
         for (Trade trade : trades) {
@@ -387,8 +388,8 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
                 }
             });
         };
-        log.info("Initializing persisted trades");
         HavenoUtils.executeTasks(tasks, threadPoolSize);
+        log.info("Done initializing trades");
 
         // reset any available address entries
         if (isShutDown) return;
@@ -419,7 +420,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
 
     private void initPersistedTrade(Trade trade) {
         if (isShutDown) return;
-        initTradeAndProtocol(trade, getTradeProtocol(trade));
+        initTradeAndProtocol(trade, createTradeProtocol(trade));
         requestPersistence();
         scheduleDeletionIfUnfunded(trade);
     }
@@ -463,7 +464,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
               }
           }
           if (offer == null) {
-              log.warn("Ignoring InitTradeRequest from {} with tradeId {} because no offer is on the books", sender, request.getTradeId());
+              log.warn("Ignoring InitTradeRequest from {} with tradeId {} because offer is not on the books", sender, request.getTradeId());
               return;
           }
 
@@ -489,38 +490,39 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
               }
           } else {
 
-              // verify request is from taker
-              if (!sender.equals(request.getTakerNodeAddress())) {
-                  log.warn("Ignoring InitTradeRequest from {} with tradeId {} because request must be from taker when trade is not initialized", sender, request.getTradeId());
-                  return;
-              }
+            // verify request is from taker
+            if (!sender.equals(request.getTakerNodeAddress())) {
+                log.warn("Ignoring InitTradeRequest from {} with tradeId {} because request must be from taker when trade is not initialized", sender, request.getTradeId());
+                return;
+            }
 
-              // get expected taker fee
-              BigInteger takerFee = HavenoUtils.getTakerFee(BigInteger.valueOf(offer.getOfferPayload().getAmount()));
+            // get expected taker fee
+            BigInteger takerFee = HavenoUtils.getTakerFee(BigInteger.valueOf(offer.getOfferPayload().getAmount()));
 
-              // create arbitrator trade
-              trade = new ArbitratorTrade(offer,
-                      BigInteger.valueOf(offer.getOfferPayload().getAmount()),
-                      takerFee,
-                      offer.getOfferPayload().getPrice(),
-                      xmrWalletService,
-                      getNewProcessModel(offer),
-                      UUID.randomUUID().toString(),
-                      request.getMakerNodeAddress(),
-                      request.getTakerNodeAddress(),
-                      request.getArbitratorNodeAddress());
+            // create arbitrator trade
+            trade = new ArbitratorTrade(offer,
+                    BigInteger.valueOf(offer.getOfferPayload().getAmount()),
+                    takerFee,
+                    offer.getOfferPayload().getPrice(),
+                    xmrWalletService,
+                    getNewProcessModel(offer),
+                    UUID.randomUUID().toString(),
+                    request.getMakerNodeAddress(),
+                    request.getTakerNodeAddress(),
+                    request.getArbitratorNodeAddress());
 
-              // set reserve tx hash if available
-              Optional<SignedOffer> signedOfferOptional = openOfferManager.getSignedOfferById(request.getTradeId());
-              if (signedOfferOptional.isPresent()) {
-                  SignedOffer signedOffer = signedOfferOptional.get();
-                  trade.getMaker().setReserveTxHash(signedOffer.getReserveTxHash());
-              }
+            // set reserve tx hash if available
+            Optional<SignedOffer> signedOfferOptional = openOfferManager.getSignedOfferById(request.getTradeId());
+            if (signedOfferOptional.isPresent()) {
+                SignedOffer signedOffer = signedOfferOptional.get();
+                trade.getMaker().setReserveTxHash(signedOffer.getReserveTxHash());
+            }
 
-              initTradeAndProtocol(trade, getTradeProtocol(trade));
-              synchronized (tradableList) {
-                  tradableList.add(trade);
-              }
+            // initialize trade protocol
+            initTradeAndProtocol(trade, createTradeProtocol(trade));
+            synchronized (tradableList) {
+                tradableList.add(trade);
+            }
           }
 
           ((ArbitratorProtocol) getTradeProtocol(trade)).handleInitTradeRequest(request, sender, errorMessage -> {
@@ -596,7 +598,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
 
           trade.getArbitrator().setPubKeyRing(arbitrator.getPubKeyRing());
           trade.getMaker().setPubKeyRing(trade.getOffer().getPubKeyRing());
-          initTradeAndProtocol(trade, getTradeProtocol(trade));
+          initTradeAndProtocol(trade, createTradeProtocol(trade));
           trade.getSelf().setPaymentAccountId(offer.getOfferPayload().getMakerPaymentAccountId());
           trade.getSelf().setReserveTxHash(openOffer.getReserveTxHash()); // TODO (woodser): initialize in initTradeAndProtocol?
           trade.getSelf().setReserveTxHex(openOffer.getReserveTxHex());
@@ -782,11 +784,12 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
                         trade.getSelf().setPubKeyRing(model.getPubKeyRing());
                         trade.getSelf().setPaymentAccountId(paymentAccountId);
 
-                        TradeProtocol tradeProtocol = TradeProtocolFactory.getNewTradeProtocol(trade);
-                        TradeProtocol prev = tradeProtocolByTradeId.put(trade.getUid(), tradeProtocol);
-                        if (prev != null) {
-                            log.error("We had already an entry with uid {}", trade.getUid());
-                        }
+                        // ensure trade is not already open
+                        Optional<Trade> tradeOptional = getOpenTrade(offer.getId());
+                        if (tradeOptional.isPresent()) throw new RuntimeException("Cannot create trade protocol because trade with ID " + trade.getId() + " is already open");
+
+                        // initialize trade protocol
+                        TradeProtocol tradeProtocol = createTradeProtocol(trade);
                         synchronized (tradableList) {
                             tradableList.add(trade);
                         }
@@ -804,11 +807,14 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
                             if (takeOfferRequestErrorMessageHandler != null) takeOfferRequestErrorMessageHandler.handleErrorMessage(errorMessage);
                         });
                         requestPersistence();
+                    } else {
+                        log.warn("Cannot take offer {} because it's not available, state={}", offer.getId(), offer.getState());
                     }
                 },
                 errorMessage -> {
                     log.warn("Taker error during check offer availability: " + errorMessage);
                     errorMessageHandler.handleErrorMessage(errorMessage);
+                    if (takeOfferRequestErrorMessageHandler != null) takeOfferRequestErrorMessageHandler.handleErrorMessage(errorMessage);
                 });
 
         requestPersistence();
@@ -958,32 +964,32 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
                     .collect(Collectors.toSet()));
             tradesIdSet.addAll(closedTradableManager.getTradesStreamWithFundsLockedIn()
                     .map(trade -> {
-                    MoneroTx makerDepositTx = trade.getMakerDepositTx();
-                    if (makerDepositTx != null) {
-                        if (!makerDepositTx.isConfirmed()) {
-                            tradeTxException.set(new TradeTxException(Res.get("error.closedTradeWithUnconfirmedDepositTx", trade.getShortId()))); // TODO (woodser): rename to closedTradeWithLockedDepositTx
+                        MoneroTx makerDepositTx = trade.getMakerDepositTx();
+                        if (makerDepositTx != null) {
+                            if (!makerDepositTx.isConfirmed()) {
+                                tradeTxException.set(new TradeTxException(Res.get("error.closedTradeWithUnconfirmedDepositTx", trade.getShortId()))); // TODO (woodser): rename to closedTradeWithLockedDepositTx
+                            } else {
+                                log.warn("We found a closed trade with locked up funds. " +
+                                        "That should never happen. {} ID={}, state={}, payoutState={}, disputeState={}", trade.getClass().getSimpleName(), trade.getId(), trade.getState(), trade.getPayoutState(), trade.getDisputeState());
+                            }
                         } else {
-                            log.warn("We found a closed trade with locked up funds. " +
-                                    "That should never happen. {} ID={}, state={}, payoutState={}, disputeState={}", trade.getId(), trade.getClass().getSimpleName(), trade.getId(), trade.getState(), trade.getPayoutState(), trade.getDisputeState());
+                            log.warn("Closed trade with locked up funds missing maker deposit tx. {} ID={}, state={}, payoutState={}, disputeState={}", trade.getClass().getSimpleName(), trade.getId(), trade.getState(), trade.getPayoutState(), trade.getDisputeState());
+                            tradeTxException.set(new TradeTxException(Res.get("error.closedTradeWithNoDepositTx", trade.getShortId())));
                         }
-                    } else {
-                        log.warn("Closed trade with locked up funds missing maker deposit tx. {} ID={}, state={}, payoutState={}, disputeState={}", trade.getId(), trade.getClass().getSimpleName(), trade.getId(), trade.getState(), trade.getPayoutState(), trade.getDisputeState());
-                        tradeTxException.set(new TradeTxException(Res.get("error.closedTradeWithNoDepositTx", trade.getShortId())));
-                    }
 
-                    MoneroTx takerDepositTx = trade.getTakerDepositTx();
-                    if (takerDepositTx != null) {
-                        if (!takerDepositTx.isConfirmed()) {
-                            tradeTxException.set(new TradeTxException(Res.get("error.closedTradeWithUnconfirmedDepositTx", trade.getShortId())));
+                        MoneroTx takerDepositTx = trade.getTakerDepositTx();
+                        if (takerDepositTx != null) {
+                            if (!takerDepositTx.isConfirmed()) {
+                                tradeTxException.set(new TradeTxException(Res.get("error.closedTradeWithUnconfirmedDepositTx", trade.getShortId())));
+                            } else {
+                                log.warn("We found a closed trade with locked up funds. " +
+                                        "That should never happen. trade ID={} ID={}, state={}, payoutState={}, disputeState={}", trade.getClass().getSimpleName(), trade.getId(), trade.getState(), trade.getPayoutState(), trade.getDisputeState());
+                            }
                         } else {
-                            log.warn("We found a closed trade with locked up funds. " +
-                                    "That should never happen. trade ID={} ID={}, state={}, payoutState={}, disputeState={}", trade.getId(), trade.getClass().getSimpleName(), trade.getId(), trade.getState(), trade.getPayoutState(), trade.getDisputeState());
+                            log.warn("Closed trade with locked up funds missing taker deposit tx. {} ID={}, state={}, payoutState={}, disputeState={}", trade.getClass().getSimpleName(), trade.getId(), trade.getState(), trade.getPayoutState(), trade.getDisputeState());
+                            tradeTxException.set(new TradeTxException(Res.get("error.closedTradeWithNoDepositTx", trade.getShortId())));
                         }
-                    } else {
-                        log.warn("Closed trade with locked up funds missing taker deposit tx. {} ID={}, state={}, payoutState={}, disputeState={}", trade.getId(), trade.getClass().getSimpleName(), trade.getId(), trade.getState(), trade.getPayoutState(), trade.getDisputeState());
-                        tradeTxException.set(new TradeTxException(Res.get("error.closedTradeWithNoDepositTx", trade.getShortId())));
-                    }
-                    return trade.getId();
+                        return trade.getId();
                     })
                     .collect(Collectors.toSet()));
 

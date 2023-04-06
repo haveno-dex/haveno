@@ -471,16 +471,24 @@ public class HavenoUtils {
     }
 
     public static void executeTasks(Collection<Runnable> tasks, int maxConcurrency) {
+        executeTasks(tasks, maxConcurrency, null);
+    }
+
+    public static void executeTasks(Collection<Runnable> tasks, int maxConcurrency, Long timeoutSeconds) {
         if (tasks.isEmpty()) return;
         ExecutorService pool = Executors.newFixedThreadPool(maxConcurrency);
         List<Future<?>> futures = new ArrayList<Future<?>>();
         for (Runnable task : tasks) futures.add(pool.submit(task));
         pool.shutdown();
-        try {
-            if (!pool.awaitTermination(60, TimeUnit.SECONDS)) pool.shutdownNow();
-        } catch (InterruptedException e) {
-            pool.shutdownNow();
-            throw new RuntimeException(e);
+
+        // interrupt after timeout
+        if (timeoutSeconds != null) {
+            try {
+                if (!pool.awaitTermination(timeoutSeconds, TimeUnit.SECONDS)) pool.shutdownNow();
+            } catch (InterruptedException e) {
+                pool.shutdownNow();
+                throw new RuntimeException(e);
+            }
         }
 
         // throw exception from any tasks

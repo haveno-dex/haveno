@@ -389,24 +389,26 @@ class OfferBookChartViewModel extends ActivatableViewModel {
                                            OfferDirection direction,
                                            List<XYChart.Data<Number, Number>> data,
                                            ObservableList<OfferListItem> offerTableList) {
-        data.clear();
-        double accumulatedAmount = 0;
-        List<OfferListItem> offerTableListTemp = new ArrayList<>();
-        for (Offer offer : sortedList) {
-            Price price = offer.getPrice();
-            if (price != null) {
-                double amount = (double) offer.getAmount().longValueExact() / LongMath.pow(10, HavenoUtils.XMR_SMALLEST_UNIT_EXPONENT);
-                accumulatedAmount += amount;
-                offerTableListTemp.add(new OfferListItem(offer, accumulatedAmount));
-
-                double priceAsDouble = (double) price.getValue() / LongMath.pow(10, price.smallestUnitExponent());
-                if (direction.equals(OfferDirection.BUY))
-                    data.add(0, new XYChart.Data<>(priceAsDouble, accumulatedAmount));
-                else
-                    data.add(new XYChart.Data<>(priceAsDouble, accumulatedAmount));
+        synchronized (data) {
+            data.clear();
+            double accumulatedAmount = 0;
+            List<OfferListItem> offerTableListTemp = new ArrayList<>();
+            for (Offer offer : sortedList) {
+                Price price = offer.getPrice();
+                if (price != null) {
+                    double amount = (double) offer.getAmount().longValueExact() / LongMath.pow(10, HavenoUtils.XMR_SMALLEST_UNIT_EXPONENT);
+                    accumulatedAmount += amount;
+                    offerTableListTemp.add(new OfferListItem(offer, accumulatedAmount));
+    
+                    double priceAsDouble = (double) price.getValue() / LongMath.pow(10, price.smallestUnitExponent());
+                    if (direction.equals(OfferDirection.BUY))
+                        data.add(0, new XYChart.Data<>(priceAsDouble, accumulatedAmount));
+                    else
+                        data.add(new XYChart.Data<>(priceAsDouble, accumulatedAmount));
+                }
             }
+            offerTableList.setAll(offerTableListTemp);
         }
-        offerTableList.setAll(offerTableListTemp);
     }
 
     private boolean isEditEntry(String id) {

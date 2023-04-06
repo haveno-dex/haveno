@@ -126,6 +126,7 @@ public class ProcessPaymentReceivedMessage extends TradeTask {
                     trade.verifyPayoutTx(message.getSignedPayoutTxHex(), false, true);
                 } else {
                     try {
+                        if (trade.getProcessModel().getPaymentSentMessage() == null) throw new RuntimeException("Process model does not have payment sent message for " + trade.getClass().getSimpleName() + " " + trade.getId());
                         if (StringUtils.equals(trade.getPayoutTxHex(), trade.getProcessModel().getPaymentSentMessage().getPayoutTxHex())) { // unsigned
                             log.info("{} {} verifying, signing, and publishing seller's payout tx", trade.getClass().getSimpleName(), trade.getId());
                             trade.verifyPayoutTx(message.getUnsignedPayoutTxHex(), true, true);

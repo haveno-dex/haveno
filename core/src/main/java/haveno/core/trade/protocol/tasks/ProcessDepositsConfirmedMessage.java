@@ -55,7 +55,6 @@ public class ProcessDepositsConfirmedMessage extends TradeTask {
 
             // update multisig hex
             sender.setUpdatedMultisigHex(request.getUpdatedMultisigHex());
-            trade.importMultisigHex();
 
             // decrypt seller payment account payload if key given
             if (request.getSellerPaymentAccountKey() != null && trade.getTradePeer().getPaymentAccountPayload() == null) {

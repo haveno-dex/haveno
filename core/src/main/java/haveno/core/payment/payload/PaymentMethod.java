@@ -99,7 +99,7 @@ public final class PaymentMethod implements PersistablePayload, Comparable<Payme
     // Static
     ///////////////////////////////////////////////////////////////////////////////////////////
 
-    // time in ms for 1 day (mainnet), 30m (stagenet) or 1 minute (local)
+    // time in ms for 1 "day" (mainnet), 30m (stagenet) or 1 minute (local)
     private static final long DAY = Config.baseCurrencyNetwork() == BaseCurrencyNetwork.XMR_LOCAL ? TimeUnit.MINUTES.toMillis(1) :
                                     Config.baseCurrencyNetwork() == BaseCurrencyNetwork.XMR_STAGENET ? TimeUnit.MINUTES.toMillis(30) :
                                     TimeUnit.DAYS.toMillis(1);

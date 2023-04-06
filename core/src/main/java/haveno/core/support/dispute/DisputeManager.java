@@ -827,7 +827,7 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
         if (!trade.isPayoutPublished()) {
 
             // create unsigned dispute payout tx
-            log.info("Arbitrator creating unsigned dispute payout tx for trade {}", trade.getId());
+            log.info("Creating unsigned dispute payout tx for trade {}", trade.getId());
             try {
 
                 // trade wallet must be synced

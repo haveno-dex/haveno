@@ -20,6 +20,7 @@ package haveno.desktop.components;
 import com.jfoenix.controls.JFXTextField;
 import de.jensd.fx.fontawesome.AwesomeDude;
 import de.jensd.fx.fontawesome.AwesomeIcon;
+import haveno.common.UserThread;
 import haveno.common.util.Utilities;
 import haveno.core.locale.Res;
 import haveno.core.user.BlockChainExplorer;
@@ -135,12 +136,14 @@ public class TxIdTextField extends AnchorPane {
         };
         xmrWalletService.addWalletListener(txUpdater);
 
-        updateConfidence(txId, true, null);
-
         textField.setText(txId);
         textField.setOnMouseClicked(mouseEvent -> openBlockExplorer(txId));
         blockExplorerIcon.setOnMouseClicked(mouseEvent -> openBlockExplorer(txId));
         copyIcon.setOnMouseClicked(e -> Utilities.copyToClipboard(txId));
+        txConfidenceIndicator.setVisible(true);
+
+        // update off main thread
+        new Thread(() -> updateConfidence(txId, true, null)).start();
     }
 
     public void cleanup() {
@@ -165,7 +168,7 @@ public class TxIdTextField extends AnchorPane {
         }
     }
 
-    private void updateConfidence(String txId, boolean useCache, Long height) {
+    private synchronized void updateConfidence(String txId, boolean useCache, Long height) {
         MoneroTx tx = null;
         try {
             tx = useCache ? xmrWalletService.getTxWithCache(txId) : xmrWalletService.getTx(txId);
@@ -173,14 +176,19 @@ public class TxIdTextField extends AnchorPane {
         } catch (Exception e) {
             // do nothing
         }
-        GUIUtil.updateConfidence(tx, progressIndicatorTooltip, txConfidenceIndicator);
-        if (txConfidenceIndicator.getProgress() != 0) {
-            txConfidenceIndicator.setVisible(true);
-            AnchorPane.setRightAnchor(txConfidenceIndicator, 0.0);
-        }
-        if (txConfidenceIndicator.getProgress() >= 1.0 && txUpdater != null) {
-            xmrWalletService.removeWalletListener(txUpdater); // unregister listener
-            txUpdater = null;
-        }
+        updateConfidence(tx);
+    }
+
+    private void updateConfidence(MoneroTx tx) {
+        UserThread.execute(() -> {
+            GUIUtil.updateConfidence(tx, progressIndicatorTooltip, txConfidenceIndicator);
+            if (txConfidenceIndicator.getProgress() != 0) {
+                AnchorPane.setRightAnchor(txConfidenceIndicator, 0.0);
+            }
+            if (txConfidenceIndicator.getProgress() >= 1.0 && txUpdater != null) {
+                xmrWalletService.removeWalletListener(txUpdater); // unregister listener
+                txUpdater = null;
+            }
+        });
     }
 }

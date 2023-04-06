@@ -373,44 +373,52 @@ public class OfferBookChartView extends ActivatableViewAndModel<VBox, OfferBookC
     }
 
     private List<Double> minMaxFilterLeft(List<XYChart.Data<Number, Number>> data) {
-        double maxValue = data.stream()
-                .mapToDouble(o -> o.getXValue().doubleValue())
-                .max()
-                .orElse(Double.MIN_VALUE);
-        // Hide offers less than a div-factor of dataLimitFactor lower than the highest offer.
-        double minValue = data.stream()
-                .mapToDouble(o -> o.getXValue().doubleValue())
-                .filter(o -> o > maxValue / dataLimitFactor)
-                .min()
-                .orElse(Double.MAX_VALUE);
-        return List.of(minValue, maxValue);
+        synchronized (data) {
+            double maxValue = data.stream()
+                    .mapToDouble(o -> o.getXValue().doubleValue())
+                    .max()
+                    .orElse(Double.MIN_VALUE);
+            // Hide offers less than a div-factor of dataLimitFactor lower than the highest offer.
+            double minValue = data.stream()
+                    .mapToDouble(o -> o.getXValue().doubleValue())
+                    .filter(o -> o > maxValue / dataLimitFactor)
+                    .min()
+                    .orElse(Double.MAX_VALUE);
+            return List.of(minValue, maxValue);
+        }
     }
 
     private List<Double> minMaxFilterRight(List<XYChart.Data<Number, Number>> data) {
-        double minValue = data.stream()
-                .mapToDouble(o -> o.getXValue().doubleValue())
-                .min()
-                .orElse(Double.MAX_VALUE);
+        synchronized (data) {
+            double minValue = data.stream()
+                    .mapToDouble(o -> o.getXValue().doubleValue())
+                    .min()
+                    .orElse(Double.MAX_VALUE);
 
-        // Hide offers a dataLimitFactor factor higher than the lowest offer
-        double maxValue = data.stream()
-                .mapToDouble(o -> o.getXValue().doubleValue())
-                .filter(o -> o < minValue * dataLimitFactor)
-                .max()
-                .orElse(Double.MIN_VALUE);
-        return List.of(minValue, maxValue);
+            // Hide offers a dataLimitFactor factor higher than the lowest offer
+            double maxValue = data.stream()
+                    .mapToDouble(o -> o.getXValue().doubleValue())
+                    .filter(o -> o < minValue * dataLimitFactor)
+                    .max()
+                    .orElse(Double.MIN_VALUE);
+            return List.of(minValue, maxValue);
+        }
     }
 
     private List<XYChart.Data<Number, Number>> filterLeft(List<XYChart.Data<Number, Number>> data, double maxValue) {
-        return data.stream()
-                .filter(o -> o.getXValue().doubleValue() > maxValue / dataLimitFactor)
-                .collect(Collectors.toList());
+        synchronized (data) {
+            return data.stream()
+                    .filter(o -> o.getXValue().doubleValue() > maxValue / dataLimitFactor)
+                    .collect(Collectors.toList());
+        }
     }
 
     private List<XYChart.Data<Number, Number>> filterRight(List<XYChart.Data<Number, Number>> data, double minValue) {
-        return data.stream()
-                .filter(o -> o.getXValue().doubleValue() < minValue * dataLimitFactor)
-                .collect(Collectors.toList());
+        synchronized (data) {
+            return data.stream()
+                    .filter(o -> o.getXValue().doubleValue() < minValue * dataLimitFactor)
+                    .collect(Collectors.toList());
+        }
     }
 
     private Tuple4<TableView<OfferListItem>, VBox, Button, Label> getOfferTable(OfferDirection direction) {

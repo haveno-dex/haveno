@@ -70,7 +70,7 @@ public class MakerSendInitTradeRequest extends TradeTask {
                     trade.getSelf().getReserveTxHash(),
                     trade.getSelf().getReserveTxHex(),
                     trade.getSelf().getReserveTxKey(),
-                    model.getXmrWalletService().getOrCreateAddressEntry(offer.getId(), XmrAddressEntry.Context.TRADE_PAYOUT).getAddressString(),
+                    model.getXmrWalletService().getAddressEntry(offer.getId(), XmrAddressEntry.Context.TRADE_PAYOUT).get().getAddressString(),
                     null);
 
             // send request to arbitrator

@@ -107,32 +107,40 @@ public class OfferBookService {
         p2PService.addHashSetChangedListener(new HashMapChangedListener() {
             @Override
             public void onAdded(Collection<ProtectedStorageEntry> protectedStorageEntries) {
-                protectedStorageEntries.forEach(protectedStorageEntry -> offerBookChangedListeners.forEach(listener -> {
-                    if (protectedStorageEntry.getProtectedStoragePayload() instanceof OfferPayload) {
-                        maybeInitializeKeyImagePoller();
-                        OfferPayload offerPayload = (OfferPayload) protectedStorageEntry.getProtectedStoragePayload();
-                        keyImagePoller.addKeyImages(offerPayload.getReserveTxKeyImages());
-                        Offer offer = new Offer(offerPayload);
-                        offer.setPriceFeedService(priceFeedService);
-                        setReservedFundsSpent(offer);
-                        listener.onAdded(offer);
-                    }
-                }));
+                    protectedStorageEntries.forEach(protectedStorageEntry -> {
+                        synchronized (offerBookChangedListeners) {
+                            offerBookChangedListeners.forEach(listener -> {
+                                if (protectedStorageEntry.getProtectedStoragePayload() instanceof OfferPayload) {
+                                    maybeInitializeKeyImagePoller();
+                                    OfferPayload offerPayload = (OfferPayload) protectedStorageEntry.getProtectedStoragePayload();
+                                    keyImagePoller.addKeyImages(offerPayload.getReserveTxKeyImages());
+                                    Offer offer = new Offer(offerPayload);
+                                    offer.setPriceFeedService(priceFeedService);
+                                    setReservedFundsSpent(offer);
+                                    listener.onAdded(offer);
+                                }
+                            });
+                        }
+                    });
             }
 
             @Override
             public void onRemoved(Collection<ProtectedStorageEntry> protectedStorageEntries) {
-                protectedStorageEntries.forEach(protectedStorageEntry -> offerBookChangedListeners.forEach(listener -> {
-                    if (protectedStorageEntry.getProtectedStoragePayload() instanceof OfferPayload) {
-                        maybeInitializeKeyImagePoller();
-                        OfferPayload offerPayload = (OfferPayload) protectedStorageEntry.getProtectedStoragePayload();
-                        keyImagePoller.removeKeyImages(offerPayload.getReserveTxKeyImages());
-                        Offer offer = new Offer(offerPayload);
-                        offer.setPriceFeedService(priceFeedService);
-                        setReservedFundsSpent(offer);
-                        listener.onRemoved(offer);
-                    }
-                }));
+                    protectedStorageEntries.forEach(protectedStorageEntry -> {
+                        synchronized (offerBookChangedListeners) {
+                            offerBookChangedListeners.forEach(listener -> {
+                                if (protectedStorageEntry.getProtectedStoragePayload() instanceof OfferPayload) {
+                                    maybeInitializeKeyImagePoller();
+                                    OfferPayload offerPayload = (OfferPayload) protectedStorageEntry.getProtectedStoragePayload();
+                                    keyImagePoller.removeKeyImages(offerPayload.getReserveTxKeyImages());
+                                    Offer offer = new Offer(offerPayload);
+                                    offer.setPriceFeedService(priceFeedService);
+                                    setReservedFundsSpent(offer);
+                                    listener.onRemoved(offer);
+                                }
+                            });
+                        }
+                    });
             }
         });
 
@@ -244,7 +252,9 @@ public class OfferBookService {
     }
 
     public void addOfferBookChangedListener(OfferBookChangedListener offerBookChangedListener) {
-        offerBookChangedListeners.add(offerBookChangedListener);
+        synchronized (offerBookChangedListeners) {
+            offerBookChangedListeners.add(offerBookChangedListener);
+        }
     }
 
 
@@ -280,10 +290,12 @@ public class OfferBookService {
     private void updateAffectedOffers(String keyImage) {
         for (Offer offer : getOffers()) {
             if (offer.getOfferPayload().getReserveTxKeyImages().contains(keyImage)) {
-                offerBookChangedListeners.forEach(listener -> {
-                    listener.onRemoved(offer);
-                    listener.onAdded(offer);
-                });
+                synchronized (offerBookChangedListeners) {
+                    offerBookChangedListeners.forEach(listener -> {
+                        listener.onRemoved(offer);
+                        listener.onAdded(offer);
+                    });
+                }
             }
         }
     }
