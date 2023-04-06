@@ -44,7 +44,8 @@ public final class CoreMoneroConnectionsService {
 
     private static final int MIN_BROADCAST_CONNECTIONS = 0; // TODO: 0 for stagenet, 5+ for mainnet
     private static final long REFRESH_PERIOD_LOCAL_MS = 5000; // refresh period when connected to local node
-    private static final long REFRESH_PERIOD_REMOTE_MS = 20000; // refresh period when connected to remote node
+    private static final long REFRESH_PERIOD_HTTP_MS = 20000; // refresh period when connected to remote node over http
+    private static final long REFRESH_PERIOD_ONION_MS = 30000; // refresh period when connected to remote node over tor
     private static final long MIN_ERROR_LOG_PERIOD_MS = 300000; // minimum period between logging errors fetching daemon info
     private static Long lastErrorTimestamp;
 
@@ -157,6 +158,10 @@ public final class CoreMoneroConnectionsService {
         }
     }
 
+    public boolean isConnected() {
+        return connectionManager.isConnected();
+    }
+
     public void addConnection(MoneroRpcConnection connection) {
         synchronized (lock) {
             accountService.checkAccountOpen();
@@ -256,10 +261,12 @@ public final class CoreMoneroConnectionsService {
         if (daemon == null) return REFRESH_PERIOD_LOCAL_MS;
         else {
             if (isConnectionLocal()) {
-                if (lastInfo != null && (lastInfo.isBusySyncing() || (lastInfo.getHeightWithoutBootstrap() != null && lastInfo.getHeightWithoutBootstrap() > 0 && lastInfo.getHeightWithoutBootstrap() < lastInfo.getHeight()))) return REFRESH_PERIOD_REMOTE_MS; // refresh slower if syncing or bootstrapped
+                if (lastInfo != null && (lastInfo.isBusySyncing() || (lastInfo.getHeightWithoutBootstrap() != null && lastInfo.getHeightWithoutBootstrap() > 0 && lastInfo.getHeightWithoutBootstrap() < lastInfo.getHeight()))) return REFRESH_PERIOD_HTTP_MS; // refresh slower if syncing or bootstrapped
                 else return REFRESH_PERIOD_LOCAL_MS; // TODO: announce faster refresh after done syncing
+            } else if (getConnection().isOnion()) {
+                return REFRESH_PERIOD_ONION_MS;
             } else {
-                return REFRESH_PERIOD_REMOTE_MS;
+                return REFRESH_PERIOD_HTTP_MS;
             }
         }
     }
@@ -327,7 +334,7 @@ public final class CoreMoneroConnectionsService {
 
             // reset connection manager
             connectionManager.reset();
-            connectionManager.setTimeout(REFRESH_PERIOD_REMOTE_MS);
+            connectionManager.setTimeout(REFRESH_PERIOD_HTTP_MS);
 
             // load connections
             log.info("TOR proxy URI: " + getProxyUri());

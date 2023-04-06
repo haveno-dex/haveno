@@ -96,7 +96,7 @@ public class TakeOfferModel implements Model {
         this.clearModel();
         this.offer = offer;
         this.paymentAccount = paymentAccount;
-        this.addressEntry = xmrWalletService.getOrCreateAddressEntry(offer.getId(), OFFER_FUNDING); // TODO (woodser): replace with xmr or remove
+        this.addressEntry = xmrWalletService.getOrCreateAddressEntry(offer.getId(), OFFER_FUNDING);
         validateModelInputs();
 
         this.useSavingsWallet = useSavingsWallet;

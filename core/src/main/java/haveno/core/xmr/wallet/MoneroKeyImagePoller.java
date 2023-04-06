@@ -190,7 +190,9 @@ public class MoneroKeyImagePoller {
             Set<String> containedKeyImages = new HashSet<String>(keyImages);
             containedKeyImages.retainAll(this.keyImages);
             this.keyImages.removeAll(containedKeyImages);
-            for (String lastKeyImage : new HashSet<>(lastStatuses.keySet())) lastStatuses.remove(lastKeyImage);
+            synchronized (lastStatuses) {
+                for (String lastKeyImage : new HashSet<>(lastStatuses.keySet())) lastStatuses.remove(lastKeyImage);
+            }
             refreshPolling();
         }
     }
@@ -202,39 +204,43 @@ public class MoneroKeyImagePoller {
      * @return true if the key is spent, false if unspent, null if unknown
      */
     public Boolean isSpent(String keyImage) {
-        if (!lastStatuses.containsKey(keyImage)) return null;
-        return lastStatuses.get(keyImage) != MoneroKeyImageSpentStatus.NOT_SPENT;
+        synchronized (lastStatuses) {
+            if (!lastStatuses.containsKey(keyImage)) return null;
+            return lastStatuses.get(keyImage) != MoneroKeyImageSpentStatus.NOT_SPENT;
+        }
     }
 
     public void poll() {
-        synchronized (keyImages) {
-            if (daemon == null) {
-                log.warn("Cannot poll key images because daemon is null");
-                return;
-            }
-            try {
+        if (daemon == null) {
+            log.warn("Cannot poll key images because daemon is null");
+            return;
+        }
+        try {
 
-                // fetch spent statuses
-                List<MoneroKeyImageSpentStatus> spentStatuses = keyImages.isEmpty() ? new ArrayList<MoneroKeyImageSpentStatus>() : daemon.getKeyImageSpentStatuses(keyImages);
+            // fetch spent statuses
+            List<MoneroKeyImageSpentStatus> spentStatuses = keyImages.isEmpty() ? new ArrayList<MoneroKeyImageSpentStatus>() : daemon.getKeyImageSpentStatuses(keyImages);
 
-                // collect changed statuses
-                Map<String, MoneroKeyImageSpentStatus> changedStatuses = new HashMap<String, MoneroKeyImageSpentStatus>();
-                for (int i = 0; i < keyImages.size(); i++) {
-                    if (lastStatuses.get(keyImages.get(i)) != spentStatuses.get(i)) {
-                        lastStatuses.put(keyImages.get(i), spentStatuses.get(i));
-                        changedStatuses.put(keyImages.get(i), spentStatuses.get(i));
+            // collect changed statuses
+            Map<String, MoneroKeyImageSpentStatus> changedStatuses = new HashMap<String, MoneroKeyImageSpentStatus>();
+            synchronized (lastStatuses) {
+                synchronized (keyImages) {
+                    for (int i = 0; i < keyImages.size(); i++) {
+                        if (lastStatuses.get(keyImages.get(i)) != spentStatuses.get(i)) {
+                            lastStatuses.put(keyImages.get(i), spentStatuses.get(i));
+                            changedStatuses.put(keyImages.get(i), spentStatuses.get(i));
+                        }
                     }
                 }
-
-                // announce changes
-                if (!changedStatuses.isEmpty()) {
-                    for (MoneroKeyImageListener listener : new ArrayList<MoneroKeyImageListener>(listeners)) {
-                        listener.onSpentStatusChanged(changedStatuses);
-                    }
-                }
-            } catch (Exception e) {
-                log.warn("Error polling key images: " + e.getMessage());
             }
+
+            // announce changes
+            if (!changedStatuses.isEmpty()) {
+                for (MoneroKeyImageListener listener : new ArrayList<MoneroKeyImageListener>(listeners)) {
+                    listener.onSpentStatusChanged(changedStatuses);
+                }
+            }
+        } catch (Exception e) {
+            log.warn("Error polling key images: " + e.getMessage());
         }
     }
 
@@ -245,7 +251,7 @@ public class MoneroKeyImagePoller {
     private synchronized void setIsPolling(boolean enabled) {
         if (enabled) {
             if (!isPolling) {
-                isPolling = true; // TODO monero-java: looper.isPolling()
+                isPolling = true; // TODO: use looper.isStarted(), synchronize
                 looper.start(refreshPeriodMs);
             }
         } else {

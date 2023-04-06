@@ -66,6 +66,8 @@ import org.slf4j.LoggerFactory;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -110,6 +112,8 @@ public abstract class TradeStepView extends AnchorPane {
         preferences = model.dataModel.preferences;
         trade = model.dataModel.getTrade();
         checkNotNull(trade, "Trade must not be null at TradeStepView");
+
+        startCachingTxs();
 
         ScrollPane scrollPane = new ScrollPane();
         scrollPane.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
@@ -166,16 +170,25 @@ public abstract class TradeStepView extends AnchorPane {
 //        };
     }
 
+    private void startCachingTxs() {
+        List<String> txIds = new ArrayList<String>();
+        if (!model.dataModel.makerTxId.isEmpty().get()) txIds.add(model.dataModel.makerTxId.get());
+        if (!model.dataModel.takerTxId.isEmpty().get()) txIds.add(model.dataModel.takerTxId.get());
+        new Thread(() -> trade.getXmrWalletService().getTxsWithCache(txIds)).start();
+    }
+
     public void activate() {
         if (selfTxIdTextField != null) {
             if (selfTxIdSubscription != null)
                 selfTxIdSubscription.unsubscribe();
 
             selfTxIdSubscription = EasyBind.subscribe(model.dataModel.isMaker() ? model.dataModel.makerTxId : model.dataModel.takerTxId, id -> {
-                if (!id.isEmpty())
+                if (!id.isEmpty()) {
+                    startCachingTxs();
                     selfTxIdTextField.setup(id);
-                else
+                } else {
                     selfTxIdTextField.cleanup();
+                }
             });
         }
         if (peerTxIdTextField != null) {
@@ -183,10 +196,12 @@ public abstract class TradeStepView extends AnchorPane {
                 peerTxIdSubscription.unsubscribe();
 
             peerTxIdSubscription = EasyBind.subscribe(model.dataModel.isMaker() ? model.dataModel.takerTxId : model.dataModel.makerTxId, id -> {
-                if (!id.isEmpty())
+                if (!id.isEmpty()) {
+                    startCachingTxs();
                     peerTxIdTextField.setup(id);
-                else
+                } else {
                     peerTxIdTextField.cleanup();
+                }
             });
         }
         trade.errorMessageProperty().addListener(errorMessageListener);

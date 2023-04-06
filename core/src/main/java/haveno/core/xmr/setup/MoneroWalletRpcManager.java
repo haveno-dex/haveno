@@ -130,7 +130,7 @@ public class MoneroWalletRpcManager {
 
       // stop process
       String pid = walletRpc.getProcess() == null ? null : String.valueOf(walletRpc.getProcess().pid());
-      log.info("Stopping MoneroWalletRpc port: {} pid: {}", port, pid);
+      log.info("Stopping MoneroWalletRpc path={}, port={}, pid={}", walletRpc.getPath(), port, pid);
       walletRpc.stopProcess();
   }
 
