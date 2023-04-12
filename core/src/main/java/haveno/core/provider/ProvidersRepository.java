@@ -24,13 +24,15 @@ import lombok.extern.slf4j.Slf4j;
 
 import javax.annotation.Nullable;
 import javax.inject.Named;
+
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
 @Slf4j
 public class ProvidersRepository {
-    private static final List<String> DEFAULT_NODES = List.of(
+    private static final List<String> DEFAULT_NODES = Arrays.asList(
             "http://a66ulzwhhudtqy6k2efnhodj2n6wnc5mnzjs3ocqtf47lwtcuo4wxyqd.onion/" // Haveno
     );
 
