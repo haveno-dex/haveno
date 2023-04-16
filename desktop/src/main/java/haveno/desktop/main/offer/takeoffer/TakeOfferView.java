@@ -159,7 +159,7 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
 
     private int gridRow = 0;
     private final HashMap<String, Boolean> paymentAccountWarningDisplayed = new HashMap<>();
-    private boolean offerDetailsWindowDisplayed, clearXchangeWarningDisplayed, fasterPaymentsWarningDisplayed,
+    private boolean offerDetailsWindowDisplayed, zelleWarningDisplayed, fasterPaymentsWarningDisplayed,
             takeOfferFromUnsignedAccountWarningDisplayed, cashByMailWarningDisplayed;
     private SimpleBooleanProperty errorPopupDisplayed;
     private ChangeListener<Boolean> amountFocusedListener, getShowWalletFundedNotificationListener;
@@ -264,7 +264,7 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
         balanceTextField.setTargetAmount(model.dataModel.getTotalToPay().get());
 
         maybeShowTakeOfferFromUnsignedAccountWarning(model.dataModel.getOffer());
-        maybeShowClearXchangeWarning(lastPaymentAccount);
+        maybeShowZelleWarning(lastPaymentAccount);
         maybeShowFasterPaymentsWarning(lastPaymentAccount);
         maybeShowAccountWarning(lastPaymentAccount, model.dataModel.isBuyOffer());
         maybeShowCashByMailWarning(lastPaymentAccount, model.dataModel.getOffer());
@@ -733,7 +733,7 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
         paymentAccountsComboBox.setOnAction(e -> {
             PaymentAccount paymentAccount = paymentAccountsComboBox.getSelectionModel().getSelectedItem();
             if (paymentAccount != null) {
-                maybeShowClearXchangeWarning(paymentAccount);
+                maybeShowZelleWarning(paymentAccount);
                 maybeShowFasterPaymentsWarning(paymentAccount);
                 maybeShowAccountWarning(paymentAccount, model.dataModel.isBuyOffer());
             }
@@ -1096,11 +1096,11 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
         }
     }
 
-    private void maybeShowClearXchangeWarning(PaymentAccount paymentAccount) {
-        if (paymentAccount.getPaymentMethod().getId().equals(PaymentMethod.CLEAR_X_CHANGE_ID) &&
-                !clearXchangeWarningDisplayed) {
-            clearXchangeWarningDisplayed = true;
-            UserThread.runAfter(GUIUtil::showClearXchangeWarning, 500, TimeUnit.MILLISECONDS);
+    private void maybeShowZelleWarning(PaymentAccount paymentAccount) {
+        if (paymentAccount.getPaymentMethod().getId().equals(PaymentMethod.ZELLE_ID) &&
+                !zelleWarningDisplayed) {
+            zelleWarningDisplayed = true;
+            UserThread.runAfter(GUIUtil::showZelleWarning, 500, TimeUnit.MILLISECONDS);
         }
     }
 

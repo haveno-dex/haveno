@@ -34,7 +34,7 @@ import haveno.core.payment.payload.CashByMailAccountPayload;
 import haveno.core.payment.payload.CashDepositAccountPayload;
 import haveno.core.payment.payload.CelPayAccountPayload;
 import haveno.core.payment.payload.ChaseQuickPayAccountPayload;
-import haveno.core.payment.payload.ClearXchangeAccountPayload;
+import haveno.core.payment.payload.ZelleAccountPayload;
 import haveno.core.payment.payload.CryptoCurrencyAccountPayload;
 import haveno.core.payment.payload.DomesticWireTransferAccountPayload;
 import haveno.core.payment.payload.F2FAccountPayload;
@@ -101,8 +101,8 @@ public class CoreProtoResolver implements ProtoResolver {
                     return WeChatPayAccountPayload.fromProto(proto);
                 case CHASE_QUICK_PAY_ACCOUNT_PAYLOAD:
                     return ChaseQuickPayAccountPayload.fromProto(proto);
-                case CLEAR_XCHANGE_ACCOUNT_PAYLOAD:
-                    return ClearXchangeAccountPayload.fromProto(proto);
+                case ZELLE_ACCOUNT_PAYLOAD:
+                    return ZelleAccountPayload.fromProto(proto);
                 case COUNTRY_BASED_PAYMENT_ACCOUNT_PAYLOAD:
                     final protobuf.CountryBasedPaymentAccountPayload.MessageCase messageCaseCountry = proto.getCountryBasedPaymentAccountPayload().getMessageCase();
                     switch (messageCaseCountry) {

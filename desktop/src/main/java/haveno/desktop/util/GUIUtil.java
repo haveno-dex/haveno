@@ -657,10 +657,10 @@ public class GUIUtil {
         return t.cast(parent);
     }
 
-    public static void showClearXchangeWarning() {
-        String key = "confirmClearXchangeRequirements";
+    public static void showZelleWarning() {
+        String key = "confirmZelleRequirements";
         final String currencyName = Config.baseCurrencyNetwork().getCurrencyName();
-        new Popup().information(Res.get("payment.clearXchange.info", currencyName, currencyName))
+        new Popup().information(Res.get("payment.zelle.info", currencyName, currencyName))
                 .width(900)
                 .closeButtonText(Res.get("shared.iConfirm"))
                 .dontShowAgainId(key)

@@ -7,7 +7,7 @@ import haveno.core.locale.Res;
 import haveno.core.offer.CreateOfferService;
 import haveno.core.offer.OfferDirection;
 import haveno.core.offer.OfferUtil;
-import haveno.core.payment.ClearXchangeAccount;
+import haveno.core.payment.ZelleAccount;
 import haveno.core.payment.PaymentAccount;
 import haveno.core.payment.RevolutAccount;
 import haveno.core.provider.price.PriceFeedService;
@@ -74,7 +74,7 @@ public class CreateOfferDataModelTest {
     @Test
     public void testUseTradeCurrencySetInOfferViewWhenInPaymentAccountAvailable() {
         final HashSet<PaymentAccount> paymentAccounts = new HashSet<>();
-        final ClearXchangeAccount zelleAccount = new ClearXchangeAccount();
+        final ZelleAccount zelleAccount = new ZelleAccount();
         zelleAccount.setId("234");
         zelleAccount.setAccountName("zelleAccount");
         paymentAccounts.add(zelleAccount);
@@ -95,7 +95,7 @@ public class CreateOfferDataModelTest {
     @Test
     public void testUseTradeAccountThatMatchesTradeCurrencySetInOffer() {
         final HashSet<PaymentAccount> paymentAccounts = new HashSet<>();
-        final ClearXchangeAccount zelleAccount = new ClearXchangeAccount();
+        final ZelleAccount zelleAccount = new ZelleAccount();
         zelleAccount.setId("234");
         zelleAccount.setAccountName("zelleAccount");
         paymentAccounts.add(zelleAccount);

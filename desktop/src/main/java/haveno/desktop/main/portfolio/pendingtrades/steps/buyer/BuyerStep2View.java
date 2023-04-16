@@ -55,7 +55,7 @@ import haveno.desktop.components.paymentmethods.CashByMailForm;
 import haveno.desktop.components.paymentmethods.CashDepositForm;
 import haveno.desktop.components.paymentmethods.CelPayForm;
 import haveno.desktop.components.paymentmethods.ChaseQuickPayForm;
-import haveno.desktop.components.paymentmethods.ClearXchangeForm;
+import haveno.desktop.components.paymentmethods.ZelleForm;
 import haveno.desktop.components.paymentmethods.DomesticWireTransferForm;
 import haveno.desktop.components.paymentmethods.F2FForm;
 import haveno.desktop.components.paymentmethods.FasterPaymentsForm;
@@ -276,8 +276,8 @@ public class BuyerStep2View extends TradeStepView {
             case PaymentMethod.WECHAT_PAY_ID:
                 gridRow = WeChatPayForm.addFormForBuyer(gridPane, gridRow, paymentAccountPayload);
                 break;
-            case PaymentMethod.CLEAR_X_CHANGE_ID:
-                gridRow = ClearXchangeForm.addFormForBuyer(gridPane, gridRow, paymentAccountPayload);
+            case PaymentMethod.ZELLE_ID:
+                gridRow = ZelleForm.addFormForBuyer(gridPane, gridRow, paymentAccountPayload);
                 break;
             case PaymentMethod.CHASE_QUICK_PAY_ID:
                 gridRow = ChaseQuickPayForm.addFormForBuyer(gridPane, gridRow, paymentAccountPayload);

@@ -25,7 +25,7 @@ import haveno.core.payment.AliPayAccount;
 import haveno.core.payment.AustraliaPayidAccount;
 import haveno.core.payment.CapitualAccount;
 import haveno.core.payment.CashDepositAccount;
-import haveno.core.payment.ClearXchangeAccount;
+import haveno.core.payment.ZelleAccount;
 import haveno.core.payment.F2FAccount;
 import haveno.core.payment.FasterPaymentsAccount;
 import haveno.core.payment.HalCashAccount;
@@ -85,7 +85,7 @@ import static haveno.core.payment.payload.PaymentMethod.ALI_PAY_ID;
 import static haveno.core.payment.payload.PaymentMethod.AUSTRALIA_PAYID_ID;
 import static haveno.core.payment.payload.PaymentMethod.CAPITUAL_ID;
 import static haveno.core.payment.payload.PaymentMethod.CASH_DEPOSIT_ID;
-import static haveno.core.payment.payload.PaymentMethod.CLEAR_X_CHANGE_ID;
+import static haveno.core.payment.payload.PaymentMethod.ZELLE_ID;
 import static haveno.core.payment.payload.PaymentMethod.F2F_ID;
 import static haveno.core.payment.payload.PaymentMethod.FASTER_PAYMENTS_ID;
 import static haveno.core.payment.payload.PaymentMethod.HAL_CASH_ID;
@@ -325,19 +325,19 @@ public class CreatePaymentAccountTest extends AbstractPaymentAccountTest {
     }
 
     @Test
-    public void testCreateClearXChangeAccount(TestInfo testInfo) {
-        File emptyForm = getEmptyForm(testInfo, CLEAR_X_CHANGE_ID);
+    public void testCreateZelleAccount(TestInfo testInfo) {
+        File emptyForm = getEmptyForm(testInfo, ZELLE_ID);
         verifyEmptyForm(emptyForm,
-                CLEAR_X_CHANGE_ID,
+                ZELLE_ID,
                 PROPERTY_NAME_EMAIL_OR_MOBILE_NR,
                 PROPERTY_NAME_HOLDER_NAME);
-        COMPLETED_FORM_MAP.put(PROPERTY_NAME_PAYMENT_METHOD_ID, CLEAR_X_CHANGE_ID);
+        COMPLETED_FORM_MAP.put(PROPERTY_NAME_PAYMENT_METHOD_ID, ZELLE_ID);
         COMPLETED_FORM_MAP.put(PROPERTY_NAME_ACCOUNT_NAME, "USD Zelle Acct");
         COMPLETED_FORM_MAP.put(PROPERTY_NAME_EMAIL_OR_MOBILE_NR, "jane@doe.com");
         COMPLETED_FORM_MAP.put(PROPERTY_NAME_HOLDER_NAME, "Jane Doe");
         COMPLETED_FORM_MAP.put(PROPERTY_NAME_SALT, encodeToHex("Restored Zelle Acct Salt"));
         String jsonString = getCompletedFormAsJsonString();
-        ClearXchangeAccount paymentAccount = (ClearXchangeAccount) createPaymentAccount(aliceClient, jsonString);
+        ZelleAccount paymentAccount = (ZelleAccount) createPaymentAccount(aliceClient, jsonString);
         verifyUserPayloadHasPaymentAccountWithId(aliceClient, paymentAccount.getId());
         verifyAccountSingleTradeCurrency(USD, paymentAccount);
         verifyCommonFormEntries(paymentAccount);

@@ -8,7 +8,7 @@ import lombok.extern.slf4j.Slf4j;
 import protobuf.PaymentAccount;
 
 import static haveno.core.locale.CountryUtil.findCountryByCode;
-import static haveno.core.payment.payload.PaymentMethod.CLEAR_X_CHANGE_ID;
+import static haveno.core.payment.payload.PaymentMethod.ZELLE_ID;
 import static haveno.core.payment.payload.PaymentMethod.getPaymentMethod;
 import static java.lang.String.format;
 import static java.util.concurrent.TimeUnit.MINUTES;
@@ -51,7 +51,7 @@ class Bot {
 
         String paymentMethodId = botScript.getBotPaymentMethodId();
         if (paymentMethodId != null) {
-            if (paymentMethodId.equals(CLEAR_X_CHANGE_ID)) {
+            if (paymentMethodId.equals(ZELLE_ID)) {
                 return accountGenerator.createZellePaymentAccount("Bob's Zelle Account",
                         "Bob");
             } else {

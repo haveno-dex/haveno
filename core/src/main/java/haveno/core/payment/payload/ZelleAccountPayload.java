@@ -34,11 +34,11 @@ import java.util.Map;
 @Setter
 @Getter
 @Slf4j
-public final class ClearXchangeAccountPayload extends PaymentAccountPayload implements PayloadWithHolderName {
+public final class ZelleAccountPayload extends PaymentAccountPayload implements PayloadWithHolderName {
     private String emailOrMobileNr = "";
     private String holderName = "";
 
-    public ClearXchangeAccountPayload(String paymentMethod, String id) {
+    public ZelleAccountPayload(String paymentMethod, String id) {
         super(paymentMethod, id);
     }
 
@@ -47,7 +47,7 @@ public final class ClearXchangeAccountPayload extends PaymentAccountPayload impl
     // PROTO BUFFER
     ///////////////////////////////////////////////////////////////////////////////////////////
 
-    private ClearXchangeAccountPayload(String paymentMethod,
+    private ZelleAccountPayload(String paymentMethod,
                                        String id,
                                        String emailOrMobileNr,
                                        String holderName,
@@ -65,17 +65,17 @@ public final class ClearXchangeAccountPayload extends PaymentAccountPayload impl
     @Override
     public Message toProtoMessage() {
         return getPaymentAccountPayloadBuilder()
-                .setClearXchangeAccountPayload(protobuf.ClearXchangeAccountPayload.newBuilder()
+                .setZelleAccountPayload(protobuf.ZelleAccountPayload.newBuilder()
                         .setEmailOrMobileNr(emailOrMobileNr)
                         .setHolderName(holderName))
                 .build();
     }
 
-    public static ClearXchangeAccountPayload fromProto(protobuf.PaymentAccountPayload proto) {
-        return new ClearXchangeAccountPayload(proto.getPaymentMethodId(),
+    public static ZelleAccountPayload fromProto(protobuf.PaymentAccountPayload proto) {
+        return new ZelleAccountPayload(proto.getPaymentMethodId(),
                 proto.getId(),
-                proto.getClearXchangeAccountPayload().getEmailOrMobileNr(),
-                proto.getClearXchangeAccountPayload().getHolderName(),
+                proto.getZelleAccountPayload().getEmailOrMobileNr(),
+                proto.getZelleAccountPayload().getHolderName(),
                 proto.getMaxTradePeriod(),
                 new HashMap<>(proto.getExcludeFromJsonDataMap()));
     }

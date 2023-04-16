@@ -121,7 +121,7 @@ public final class TradeStatistics3 implements ProcessOncePersistableNetworkPayl
         SWISH,
         ALI_PAY,
         WECHAT_PAY,
-        CLEAR_X_CHANGE,
+        ZELLE,
         CHASE_QUICK_PAY,
         INTERAC_E_TRANSFER,
         US_POSTAL_MONEY_ORDER,

@@ -822,7 +822,7 @@ message PaymentAccountPayload {
     oneof message {
         AliPayAccountPayload ali_pay_account_payload = 5;
         ChaseQuickPayAccountPayload chase_quick_pay_account_payload = 6;
-        ClearXchangeAccountPayload clear_xchange_account_payload = 7;
+        ZelleAccountPayload zelle_account_payload = 7;
         CountryBasedPaymentAccountPayload country_based_payment_account_payload = 8;
         CryptoCurrencyAccountPayload crypto_currency_account_payload = 9;
         FasterPaymentsAccountPayload faster_payments_account_payload = 10;
@@ -871,7 +871,7 @@ message ChaseQuickPayAccountPayload {
     string holder_name = 2;
 }
 
-message ClearXchangeAccountPayload {
+message ZelleAccountPayload {
     string holder_name = 1;
     string email_or_mobile_nr = 2;
 }
@@ -1830,7 +1830,7 @@ message PaymentAccountForm {
         SEPA = 2;
         SEPA_INSTANT = 3;
         TRANSFERWISE = 4;
-        CLEAR_X_CHANGE = 5;
+        ZELLE = 5;
         SWIFT = 6;
         F2F = 7;
         STRIKE = 8;

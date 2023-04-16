@@ -34,7 +34,7 @@ import haveno.core.payment.CapitualAccount;
 import haveno.core.payment.CashByMailAccount;
 import haveno.core.payment.CashDepositAccount;
 import haveno.core.payment.CelPayAccount;
-import haveno.core.payment.ClearXchangeAccount;
+import haveno.core.payment.ZelleAccount;
 import haveno.core.payment.DomesticWireTransferAccount;
 import haveno.core.payment.F2FAccount;
 import haveno.core.payment.FasterPaymentsAccount;
@@ -132,7 +132,7 @@ public final class PaymentMethod implements PersistablePayload, Comparable<Payme
     public static final String SWISH_ID = "SWISH";
     public static final String ALI_PAY_ID = "ALI_PAY";
     public static final String WECHAT_PAY_ID = "WECHAT_PAY";
-    public static final String CLEAR_X_CHANGE_ID = "CLEAR_X_CHANGE";
+    public static final String ZELLE_ID = "ZELLE";
 
     @Deprecated
     public static final String CHASE_QUICK_PAY_ID = "CHASE_QUICK_PAY"; // Removed due to QuickPay becoming Zelle
@@ -197,7 +197,7 @@ public final class PaymentMethod implements PersistablePayload, Comparable<Payme
     public static PaymentMethod SWISH;
     public static PaymentMethod ALI_PAY;
     public static PaymentMethod WECHAT_PAY;
-    public static PaymentMethod CLEAR_X_CHANGE;
+    public static PaymentMethod ZELLE;
     public static PaymentMethod CHASE_QUICK_PAY;
     public static PaymentMethod INTERAC_E_TRANSFER;
     public static PaymentMethod US_POSTAL_MONEY_ORDER;
@@ -260,7 +260,7 @@ public final class PaymentMethod implements PersistablePayload, Comparable<Payme
             SWISH = new PaymentMethod(SWISH_ID, DAY, DEFAULT_TRADE_LIMIT_LOW_RISK, getAssetCodes(SwishAccount.SUPPORTED_CURRENCIES)),
 
             // US
-            CLEAR_X_CHANGE = new PaymentMethod(CLEAR_X_CHANGE_ID, 4 * DAY, DEFAULT_TRADE_LIMIT_HIGH_RISK, getAssetCodes(ClearXchangeAccount.SUPPORTED_CURRENCIES)),
+            ZELLE = new PaymentMethod(ZELLE_ID, 4 * DAY, DEFAULT_TRADE_LIMIT_HIGH_RISK, getAssetCodes(ZelleAccount.SUPPORTED_CURRENCIES)),
 
             POPMONEY = new PaymentMethod(POPMONEY_ID, DAY, DEFAULT_TRADE_LIMIT_HIGH_RISK, getAssetCodes(PopmoneyAccount.SUPPORTED_CURRENCIES)),
             US_POSTAL_MONEY_ORDER = new PaymentMethod(US_POSTAL_MONEY_ORDER_ID, 8 * DAY, DEFAULT_TRADE_LIMIT_HIGH_RISK, getAssetCodes(USPostalMoneyOrderAccount.SUPPORTED_CURRENCIES)),
@@ -334,7 +334,7 @@ public final class PaymentMethod implements PersistablePayload, Comparable<Payme
                 SEPA_ID,
                 SEPA_INSTANT_ID,
                 TRANSFERWISE_ID,
-                CLEAR_X_CHANGE_ID,
+                ZELLE_ID,
                 SWIFT_ID,
                 F2F_ID,
                 STRIKE_ID,
@@ -352,10 +352,10 @@ public final class PaymentMethod implements PersistablePayload, Comparable<Payme
     static {
         paymentMethods.sort((o1, o2) -> {
             String id1 = o1.getId();
-            if (id1.equals(CLEAR_X_CHANGE_ID))
+            if (id1.equals(ZELLE_ID))
                 id1 = "ZELLE";
             String id2 = o2.getId();
-            if (id2.equals(CLEAR_X_CHANGE_ID))
+            if (id2.equals(ZELLE_ID))
                 id2 = "ZELLE";
             return id1.compareTo(id2);
         });
@@ -549,7 +549,7 @@ public final class PaymentMethod implements PersistablePayload, Comparable<Payme
         return id.equals(PaymentMethod.SEPA_ID) ||
                 id.equals(PaymentMethod.SEPA_INSTANT_ID) ||
                 id.equals(PaymentMethod.INTERAC_E_TRANSFER_ID) ||
-                id.equals(PaymentMethod.CLEAR_X_CHANGE_ID) ||
+                id.equals(PaymentMethod.ZELLE_ID) ||
                 id.equals(PaymentMethod.REVOLUT_ID) ||
                 id.equals(PaymentMethod.NATIONAL_BANK_ID) ||
                 id.equals(PaymentMethod.SAME_BANK_ID) ||

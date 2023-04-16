@@ -28,7 +28,7 @@ import haveno.core.payment.AmazonGiftCardAccount;
 import haveno.core.payment.AustraliaPayidAccount;
 import haveno.core.payment.CashByMailAccount;
 import haveno.core.payment.CashDepositAccount;
-import haveno.core.payment.ClearXchangeAccount;
+import haveno.core.payment.ZelleAccount;
 import haveno.core.payment.F2FAccount;
 import haveno.core.payment.HalCashAccount;
 import haveno.core.payment.MoneyGramAccount;
@@ -76,7 +76,7 @@ import haveno.desktop.components.paymentmethods.CashByMailForm;
 import haveno.desktop.components.paymentmethods.CashDepositForm;
 import haveno.desktop.components.paymentmethods.CelPayForm;
 import haveno.desktop.components.paymentmethods.ChaseQuickPayForm;
-import haveno.desktop.components.paymentmethods.ClearXchangeForm;
+import haveno.desktop.components.paymentmethods.ZelleForm;
 import haveno.desktop.components.paymentmethods.DomesticWireTransferForm;
 import haveno.desktop.components.paymentmethods.F2FForm;
 import haveno.desktop.components.paymentmethods.FasterPaymentsForm;
@@ -157,7 +157,7 @@ public class FiatAccountsView extends PaymentAccountsView<GridPane, FiatAccounts
     private final AliPayValidator aliPayValidator;
     private final PerfectMoneyValidator perfectMoneyValidator;
     private final SwishValidator swishValidator;
-    private final EmailOrMobileNrValidator clearXchangeValidator;
+    private final EmailOrMobileNrValidator zelleValidator;
     private final ChaseQuickPayValidator chaseQuickPayValidator;
     private final InteracETransferValidator interacETransferValidator;
     private final JapanBankTransferValidator japanBankTransferValidator;
@@ -188,7 +188,7 @@ public class FiatAccountsView extends PaymentAccountsView<GridPane, FiatAccounts
                             AliPayValidator aliPayValidator,
                             PerfectMoneyValidator perfectMoneyValidator,
                             SwishValidator swishValidator,
-                            EmailOrMobileNrValidator clearXchangeValidator,
+                            EmailOrMobileNrValidator zelleValidator,
                             ChaseQuickPayValidator chaseQuickPayValidator,
                             InteracETransferValidator interacETransferValidator,
                             JapanBankTransferValidator japanBankTransferValidator,
@@ -216,7 +216,7 @@ public class FiatAccountsView extends PaymentAccountsView<GridPane, FiatAccounts
         this.aliPayValidator = aliPayValidator;
         this.perfectMoneyValidator = perfectMoneyValidator;
         this.swishValidator = swishValidator;
-        this.clearXchangeValidator = clearXchangeValidator;
+        this.zelleValidator = zelleValidator;
         this.chaseQuickPayValidator = chaseQuickPayValidator;
         this.interacETransferValidator = interacETransferValidator;
         this.japanBankTransferValidator = japanBankTransferValidator;
@@ -297,8 +297,8 @@ public class FiatAccountsView extends PaymentAccountsView<GridPane, FiatAccounts
                     .actionButtonText(Res.get("shared.iUnderstand"))
                     .onAction(() -> {
                         final String currencyName = Config.baseCurrencyNetwork().getCurrencyName();
-                        if (paymentAccount instanceof ClearXchangeAccount) {
-                            new Popup().information(Res.get("payment.clearXchange.info", currencyName, currencyName))
+                        if (paymentAccount instanceof ZelleAccount) {
+                            new Popup().information(Res.get("payment.zelle.info", currencyName, currencyName))
                                     .width(900)
                                     .closeButtonText(Res.get("shared.cancel"))
                                     .actionButtonText(Res.get("shared.iConfirm"))
@@ -543,8 +543,8 @@ public class FiatAccountsView extends PaymentAccountsView<GridPane, FiatAccounts
                 return new WeChatPayForm(paymentAccount, accountAgeWitnessService, weChatPayValidator, inputValidator, root, gridRow, formatter);
             case PaymentMethod.SWISH_ID:
                 return new SwishForm(paymentAccount, accountAgeWitnessService, swishValidator, inputValidator, root, gridRow, formatter);
-            case PaymentMethod.CLEAR_X_CHANGE_ID:
-                return new ClearXchangeForm(paymentAccount, accountAgeWitnessService, clearXchangeValidator, inputValidator, root, gridRow, formatter);
+            case PaymentMethod.ZELLE_ID:
+                return new ZelleForm(paymentAccount, accountAgeWitnessService, zelleValidator, inputValidator, root, gridRow, formatter);
             case PaymentMethod.CHASE_QUICK_PAY_ID:
                 return new ChaseQuickPayForm(paymentAccount, accountAgeWitnessService, chaseQuickPayValidator, inputValidator, root, gridRow, formatter);
             case PaymentMethod.INTERAC_E_TRANSFER_ID:
