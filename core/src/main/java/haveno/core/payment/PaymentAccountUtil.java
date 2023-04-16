@@ -51,7 +51,7 @@ import static haveno.core.payment.payload.PaymentMethod.CASH_BY_MAIL_ID;
 import static haveno.core.payment.payload.PaymentMethod.CASH_DEPOSIT_ID;
 import static haveno.core.payment.payload.PaymentMethod.CELPAY_ID;
 import static haveno.core.payment.payload.PaymentMethod.CHASE_QUICK_PAY_ID;
-import static haveno.core.payment.payload.PaymentMethod.CLEAR_X_CHANGE_ID;
+import static haveno.core.payment.payload.PaymentMethod.ZELLE_ID;
 import static haveno.core.payment.payload.PaymentMethod.DOMESTIC_WIRE_TRANSFER_ID;
 import static haveno.core.payment.payload.PaymentMethod.F2F_ID;
 import static haveno.core.payment.payload.PaymentMethod.FASTER_PAYMENTS_ID;
@@ -218,8 +218,8 @@ public class PaymentAccountUtil {
                 return JapanBankAccount.SUPPORTED_CURRENCIES;
             case WECHAT_PAY_ID:
                 return WeChatPayAccount.SUPPORTED_CURRENCIES;
-            case CLEAR_X_CHANGE_ID:
-                return ClearXchangeAccount.SUPPORTED_CURRENCIES;
+            case ZELLE_ID:
+                return ZelleAccount.SUPPORTED_CURRENCIES;
             case AUSTRALIA_PAYID_ID:
                 return AustraliaPayidAccount.SUPPORTED_CURRENCIES;
             case PERFECT_MONEY_ID:

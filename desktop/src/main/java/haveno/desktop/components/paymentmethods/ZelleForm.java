@@ -20,9 +20,9 @@ package haveno.desktop.components.paymentmethods;
 import haveno.core.account.witness.AccountAgeWitnessService;
 import haveno.core.locale.Res;
 import haveno.core.locale.TradeCurrency;
-import haveno.core.payment.ClearXchangeAccount;
+import haveno.core.payment.ZelleAccount;
 import haveno.core.payment.PaymentAccount;
-import haveno.core.payment.payload.ClearXchangeAccountPayload;
+import haveno.core.payment.payload.ZelleAccountPayload;
 import haveno.core.payment.payload.PaymentAccountPayload;
 import haveno.core.payment.validation.EmailOrMobileNrValidator;
 import haveno.core.util.coin.CoinFormatter;
@@ -36,22 +36,22 @@ import static haveno.desktop.util.FormBuilder.addCompactTopLabelTextField;
 import static haveno.desktop.util.FormBuilder.addCompactTopLabelTextFieldWithCopyIcon;
 import static haveno.desktop.util.FormBuilder.addTopLabelTextField;
 
-public class ClearXchangeForm extends PaymentMethodForm {
-    private final ClearXchangeAccount clearXchangeAccount;
-    private final EmailOrMobileNrValidator clearXchangeValidator;
+public class ZelleForm extends PaymentMethodForm {
+    private final ZelleAccount zelleAccount;
+    private final EmailOrMobileNrValidator zelleValidator;
 
     public static int addFormForBuyer(GridPane gridPane, int gridRow, PaymentAccountPayload paymentAccountPayload) {
         addCompactTopLabelTextFieldWithCopyIcon(gridPane, ++gridRow, Res.get("payment.account.owner"),
-                ((ClearXchangeAccountPayload) paymentAccountPayload).getHolderName());
+                ((ZelleAccountPayload) paymentAccountPayload).getHolderName());
         addCompactTopLabelTextFieldWithCopyIcon(gridPane, gridRow, 1, Res.get("payment.email.mobile"),
-                ((ClearXchangeAccountPayload) paymentAccountPayload).getEmailOrMobileNr());
+                ((ZelleAccountPayload) paymentAccountPayload).getEmailOrMobileNr());
         return gridRow;
     }
 
-    public ClearXchangeForm(PaymentAccount paymentAccount, AccountAgeWitnessService accountAgeWitnessService, EmailOrMobileNrValidator clearXchangeValidator, InputValidator inputValidator, GridPane gridPane, int gridRow, CoinFormatter formatter) {
+    public ZelleForm(PaymentAccount paymentAccount, AccountAgeWitnessService accountAgeWitnessService, EmailOrMobileNrValidator zelleValidator, InputValidator inputValidator, GridPane gridPane, int gridRow, CoinFormatter formatter) {
         super(paymentAccount, accountAgeWitnessService, inputValidator, gridPane, gridRow, formatter);
-        this.clearXchangeAccount = (ClearXchangeAccount) paymentAccount;
-        this.clearXchangeValidator = clearXchangeValidator;
+        this.zelleAccount = (ZelleAccount) paymentAccount;
+        this.zelleValidator = zelleValidator;
     }
 
     @Override
@@ -62,18 +62,18 @@ public class ClearXchangeForm extends PaymentMethodForm {
                 Res.get("payment.account.owner"));
         holderNameInputTextField.setValidator(inputValidator);
         holderNameInputTextField.textProperty().addListener((ov, oldValue, newValue) -> {
-            clearXchangeAccount.setHolderName(newValue.trim());
+            zelleAccount.setHolderName(newValue.trim());
             updateFromInputs();
         });
 
         InputTextField mobileNrInputTextField = FormBuilder.addInputTextField(gridPane, ++gridRow,
                 Res.get("payment.email.mobile"));
-        mobileNrInputTextField.setValidator(clearXchangeValidator);
+        mobileNrInputTextField.setValidator(zelleValidator);
         mobileNrInputTextField.textProperty().addListener((ov, oldValue, newValue) -> {
-            clearXchangeAccount.setEmailOrMobileNr(newValue.trim());
+            zelleAccount.setEmailOrMobileNr(newValue.trim());
             updateFromInputs();
         });
-        final TradeCurrency singleTradeCurrency = clearXchangeAccount.getSingleTradeCurrency();
+        final TradeCurrency singleTradeCurrency = zelleAccount.getSingleTradeCurrency();
         final String nameAndCode = singleTradeCurrency != null ? singleTradeCurrency.getNameAndCode() : "";
         addTopLabelTextField(gridPane, ++gridRow, Res.get("shared.currency"),
                 nameAndCode);
@@ -83,7 +83,7 @@ public class ClearXchangeForm extends PaymentMethodForm {
 
     @Override
     protected void autoFillNameTextField() {
-        setAccountNameWithString(clearXchangeAccount.getEmailOrMobileNr());
+        setAccountNameWithString(zelleAccount.getEmailOrMobileNr());
     }
 
     @Override
@@ -91,13 +91,13 @@ public class ClearXchangeForm extends PaymentMethodForm {
         gridRowFrom = gridRow;
         addAccountNameTextFieldWithAutoFillToggleButton();
         addCompactTopLabelTextField(gridPane, ++gridRow, Res.get("shared.paymentMethod"),
-                Res.get(clearXchangeAccount.getPaymentMethod().getId()));
+                Res.get(zelleAccount.getPaymentMethod().getId()));
         addCompactTopLabelTextField(gridPane, ++gridRow, Res.get("payment.account.owner"),
-                clearXchangeAccount.getHolderName());
+                zelleAccount.getHolderName());
         TextField field = addCompactTopLabelTextField(gridPane, ++gridRow, Res.get("payment.email.mobile"),
-                clearXchangeAccount.getEmailOrMobileNr()).second;
+                zelleAccount.getEmailOrMobileNr()).second;
         field.setMouseTransparent(false);
-        final TradeCurrency singleTradeCurrency = clearXchangeAccount.getSingleTradeCurrency();
+        final TradeCurrency singleTradeCurrency = zelleAccount.getSingleTradeCurrency();
         final String nameAndCode = singleTradeCurrency != null ? singleTradeCurrency.getNameAndCode() : "";
         addCompactTopLabelTextField(gridPane, ++gridRow, Res.get("shared.currency"),
                 nameAndCode);
@@ -107,8 +107,8 @@ public class ClearXchangeForm extends PaymentMethodForm {
     @Override
     public void updateAllInputsValid() {
         allInputsValid.set(isAccountNameValid()
-                && clearXchangeValidator.validate(clearXchangeAccount.getEmailOrMobileNr()).isValid
-                && inputValidator.validate(clearXchangeAccount.getHolderName()).isValid
-                && clearXchangeAccount.getTradeCurrencies().size() > 0);
+                && zelleValidator.validate(zelleAccount.getEmailOrMobileNr()).isValid
+                && inputValidator.validate(zelleAccount.getHolderName()).isValid
+                && zelleAccount.getTradeCurrencies().size() > 0);
     }
 }

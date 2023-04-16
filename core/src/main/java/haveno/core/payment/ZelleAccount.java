@@ -20,7 +20,7 @@ package haveno.core.payment;
 import haveno.core.api.model.PaymentAccountFormField;
 import haveno.core.locale.FiatCurrency;
 import haveno.core.locale.TradeCurrency;
-import haveno.core.payment.payload.ClearXchangeAccountPayload;
+import haveno.core.payment.payload.ZelleAccountPayload;
 import haveno.core.payment.payload.PaymentAccountPayload;
 import haveno.core.payment.payload.PaymentMethod;
 import lombok.EqualsAndHashCode;
@@ -29,12 +29,12 @@ import lombok.NonNull;
 import java.util.List;
 
 @EqualsAndHashCode(callSuper = true)
-public final class ClearXchangeAccount extends PaymentAccount {
+public final class ZelleAccount extends PaymentAccount {
 
     public static final List<TradeCurrency> SUPPORTED_CURRENCIES = List.of(new FiatCurrency("USD"));
 
-    public ClearXchangeAccount() {
-        super(PaymentMethod.CLEAR_X_CHANGE);
+    public ZelleAccount() {
+        super(PaymentMethod.ZELLE);
         setSingleTradeCurrency(SUPPORTED_CURRENCIES.get(0));
     }
 
@@ -47,7 +47,7 @@ public final class ClearXchangeAccount extends PaymentAccount {
 
     @Override
     protected PaymentAccountPayload createPayload() {
-        return new ClearXchangeAccountPayload(paymentMethod.getId(), id);
+        return new ZelleAccountPayload(paymentMethod.getId(), id);
     }
 
     @Override
@@ -61,18 +61,18 @@ public final class ClearXchangeAccount extends PaymentAccount {
     }
 
     public void setEmailOrMobileNr(String mobileNr) {
-        ((ClearXchangeAccountPayload) paymentAccountPayload).setEmailOrMobileNr(mobileNr);
+        ((ZelleAccountPayload) paymentAccountPayload).setEmailOrMobileNr(mobileNr);
     }
 
     public String getEmailOrMobileNr() {
-        return ((ClearXchangeAccountPayload) paymentAccountPayload).getEmailOrMobileNr();
+        return ((ZelleAccountPayload) paymentAccountPayload).getEmailOrMobileNr();
     }
 
     public void setHolderName(String holderName) {
-        ((ClearXchangeAccountPayload) paymentAccountPayload).setHolderName(holderName);
+        ((ZelleAccountPayload) paymentAccountPayload).setHolderName(holderName);
     }
 
     public String getHolderName() {
-        return ((ClearXchangeAccountPayload) paymentAccountPayload).getHolderName();
+        return ((ZelleAccountPayload) paymentAccountPayload).getHolderName();
     }
 }

@@ -64,7 +64,7 @@ public final class PaymentAccountForm implements PersistablePayload {
         SEPA,
         SEPA_INSTANT,
         TRANSFERWISE,
-        CLEAR_X_CHANGE,
+        ZELLE,
         SWIFT,
         F2F,
         STRIKE,

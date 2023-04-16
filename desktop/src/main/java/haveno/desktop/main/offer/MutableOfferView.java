@@ -164,7 +164,7 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
     protected int gridRow = 0;
     private final List<Node> editOfferElements = new ArrayList<>();
     private final HashMap<String, Boolean> paymentAccountWarningDisplayed = new HashMap<>();
-    private boolean clearXchangeWarningDisplayed, fasterPaymentsWarningDisplayed, isActivated;
+    private boolean zelleWarningDisplayed, fasterPaymentsWarningDisplayed, isActivated;
     private InfoInputTextField marketBasedPriceInfoInputTextField, volumeInfoInputTextField,
             buyerSecurityDepositInfoInputTextField, triggerPriceInfoInputTextField;
     private Text xIcon, fakeXIcon;
@@ -450,11 +450,11 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
         fakeXLabel.getStyleClass().add("small");
     }
 
-    private void maybeShowClearXchangeWarning(PaymentAccount paymentAccount) {
-        if (paymentAccount.getPaymentMethod().getId().equals(PaymentMethod.CLEAR_X_CHANGE_ID) &&
-                !clearXchangeWarningDisplayed) {
-            clearXchangeWarningDisplayed = true;
-            UserThread.runAfter(GUIUtil::showClearXchangeWarning, 500, TimeUnit.MILLISECONDS);
+    private void maybeShowZelleWarning(PaymentAccount paymentAccount) {
+        if (paymentAccount.getPaymentMethod().getId().equals(PaymentMethod.ZELLE_ID) &&
+                !zelleWarningDisplayed) {
+            zelleWarningDisplayed = true;
+            UserThread.runAfter(GUIUtil::showZelleWarning, 500, TimeUnit.MILLISECONDS);
         }
     }
 
@@ -479,7 +479,7 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
 
         PaymentAccount paymentAccount = paymentAccountsComboBox.getSelectionModel().getSelectedItem();
         if (paymentAccount != null) {
-            maybeShowClearXchangeWarning(paymentAccount);
+            maybeShowZelleWarning(paymentAccount);
             maybeShowFasterPaymentsWarning(paymentAccount);
             maybeShowAccountWarning(paymentAccount, model.getDataModel().isBuyOffer());
 

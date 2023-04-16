@@ -10,7 +10,7 @@ import protobuf.PaymentAccount;
 import java.io.File;
 import java.util.Map;
 
-import static haveno.core.payment.payload.PaymentMethod.CLEAR_X_CHANGE_ID;
+import static haveno.core.payment.payload.PaymentMethod.ZELLE_ID;
 import static haveno.core.payment.payload.PaymentMethod.F2F_ID;
 
 @Slf4j
@@ -46,7 +46,7 @@ public class BotPaymentAccountGenerator {
         } catch (PaymentAccountNotFoundException ignored) {
             // Ignore not found exception, create a new account.
         }
-        Map<String, Object> p = getPaymentAccountFormMap(CLEAR_X_CHANGE_ID);
+        Map<String, Object> p = getPaymentAccountFormMap(ZELLE_ID);
         p.put("accountName", accountName);
         p.put("emailOrMobileNr", holderName + "@zelle.com");
         p.put("holderName", holderName);

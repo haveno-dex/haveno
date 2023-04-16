@@ -48,7 +48,7 @@ public class PaymentAccountTest extends AbstractPaymentAccountTest {
         test.testCreateCapitualAccount(testInfo);
         test.testCreateCashDepositAccount(testInfo);
         test.testCreateBrazilNationalBankAccount(testInfo);
-        test.testCreateClearXChangeAccount(testInfo);
+        test.testCreateZelleAccount(testInfo);
         test.testCreateF2FAccount(testInfo);
         test.testCreateFasterPaymentsAccount(testInfo);
         test.testCreateHalCashAccount(testInfo);
