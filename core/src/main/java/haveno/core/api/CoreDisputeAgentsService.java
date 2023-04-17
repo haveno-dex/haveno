@@ -171,7 +171,6 @@ class CoreDisputeAgentsService {
                                     ErrorMessageHandler errorMessageHandler) {
         Arbitrator arbitrator = new Arbitrator(
                 p2PService.getAddress(),
-                xmrWalletService.getWallet().getPrimaryAddress(), // TODO: how is this used?
                 keyRing.getPubKeyRing(),
                 new ArrayList<>(languageCodes),
                 new Date().getTime(),

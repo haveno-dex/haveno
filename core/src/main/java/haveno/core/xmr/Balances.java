@@ -37,6 +37,7 @@ import lombok.extern.slf4j.Slf4j;
 import monero.common.MoneroError;
 import monero.wallet.model.MoneroOutputQuery;
 import monero.wallet.model.MoneroOutputWallet;
+import monero.wallet.model.MoneroTxQuery;
 import monero.wallet.model.MoneroTxWallet;
 
 import javax.inject.Inject;
@@ -127,8 +128,10 @@ public class Balances {
         List<Trade> openTrades = tradeManager.getTradesStreamWithFundsLockedIn().collect(Collectors.toList());
         for (Trade trade : openTrades) {
             try {
-                MoneroTxWallet depositTx = xmrWalletService.getWallet().getTx(trade.getSelf().getDepositTxHash());
-                if (!depositTx.isConfirmed()) continue; // outputs are frozen until confirmed by arbitrator's broadcast
+                List<MoneroTxWallet> depositTxs = xmrWalletService.getWallet().getTxs(new MoneroTxQuery()
+                        .setHash(trade.getSelf().getDepositTxHash())
+                        .setInTxPool(false)); // don't check pool
+                if (depositTxs.size() != 1 || !depositTxs.get(0).isConfirmed()) continue; // outputs are frozen until confirmed by arbitrator's broadcast
             } catch (MoneroError e) {
                 continue;
             }

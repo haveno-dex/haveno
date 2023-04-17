@@ -47,10 +47,7 @@ public class ProcessPaymentSentMessage extends TradeTask {
             // update latest peer address
             trade.getBuyer().setNodeAddress(processModel.getTempTradePeerNodeAddress());
 
-            // if seller, decrypt buyer's payment account payload
-            if (trade.isSeller()) trade.decryptPeerPaymentAccountPayload(message.getPaymentAccountKey());
-
-            // update state
+            // update state from message
             processModel.setPaymentSentMessage(message);
             trade.setPayoutTxHex(message.getPayoutTxHex());
             trade.getBuyer().setUpdatedMultisigHex(message.getUpdatedMultisigHex());
@@ -59,6 +56,20 @@ public class ProcessPaymentSentMessage extends TradeTask {
             if (counterCurrencyTxId != null && counterCurrencyTxId.length() < 100) trade.setCounterCurrencyTxId(counterCurrencyTxId);
             String counterCurrencyExtraData = message.getCounterCurrencyExtraData();
             if (counterCurrencyExtraData != null && counterCurrencyExtraData.length() < 100) trade.setCounterCurrencyExtraData(counterCurrencyExtraData);
+
+            // if seller, decrypt buyer's payment account payload
+            if (trade.isSeller()) trade.decryptPeerPaymentAccountPayload(message.getPaymentAccountKey());
+            trade.requestPersistence();
+            
+            // import multisig hex
+            try {
+                trade.importMultisigHex();
+            } catch (Exception e) {
+                log.warn("Error importing multisig hex for {} {}: {}", trade.getClass().getSimpleName(), trade.getId(), e.getMessage());
+                e.printStackTrace();
+            }
+
+            // update state
             trade.advanceState(trade.isSeller() ? Trade.State.SELLER_RECEIVED_PAYMENT_SENT_MSG : Trade.State.BUYER_SENT_PAYMENT_SENT_MSG);
             trade.requestPersistence();
             complete();

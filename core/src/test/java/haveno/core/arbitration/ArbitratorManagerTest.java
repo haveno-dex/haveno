@@ -54,11 +54,11 @@ public class ArbitratorManagerTest {
             add("es");
         }};
 
-        Arbitrator one = new Arbitrator(new NodeAddress("arbitrator:1"), null, null,
+        Arbitrator one = new Arbitrator(new NodeAddress("arbitrator:1"), null,
                 languagesOne, 0L, null, "", null,
                 null, null);
 
-        Arbitrator two = new Arbitrator(new NodeAddress("arbitrator:2"), null, null,
+        Arbitrator two = new Arbitrator(new NodeAddress("arbitrator:2"), null,
                 languagesTwo, 0L, null, "", null,
                 null, null);
 
@@ -90,11 +90,11 @@ public class ArbitratorManagerTest {
             add("es");
         }};
 
-        Arbitrator one = new Arbitrator(new NodeAddress("arbitrator:1"), null, null,
+        Arbitrator one = new Arbitrator(new NodeAddress("arbitrator:1"), null,
                 languagesOne, 0L, null, "", null,
                 null, null);
 
-        Arbitrator two = new Arbitrator(new NodeAddress("arbitrator:2"), null, null,
+        Arbitrator two = new Arbitrator(new NodeAddress("arbitrator:2"), null,
                 languagesTwo, 0L, null, "", null,
                 null, null);
 

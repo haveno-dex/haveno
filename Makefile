@@ -210,6 +210,15 @@ monerod-stagenet:
 		--bootstrap-daemon-address auto \
 		--rpc-access-control-origins http://localhost:8080 \
 
+monerod-stagenet-custom:
+	./.localnet/monerod \
+		--stagenet \
+		--no-zmq \
+		--p2p-bind-port 39080 \
+		--rpc-bind-port 39081 \
+		--bootstrap-daemon-address auto \
+		--rpc-access-control-origins http://localhost:8080 \
+
 seednode-stagenet:
 	./haveno-seednode$(APP_EXT) \
 		--baseCurrencyNetwork=XMR_STAGENET \

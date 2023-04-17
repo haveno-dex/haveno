@@ -147,9 +147,12 @@ public class DepositView extends ActivatableView<VBox, Void> {
         setUsageColumnCellFactory();
         setConfidenceColumnCellFactory();
 
+        // prefetch all incoming txs to avoid query per subaddress
+        List<MoneroTxWallet> incomingTxs = xmrWalletService.getIncomingTxs();
+
         addressColumn.setComparator(Comparator.comparing(DepositListItem::getAddressString));
         balanceColumn.setComparator(Comparator.comparing(DepositListItem::getBalanceAsBI));
-        confirmationsColumn.setComparator(Comparator.comparingLong(o -> o.getNumConfirmationsSinceFirstUsed()));
+        confirmationsColumn.setComparator(Comparator.comparingLong(o -> o.getNumConfirmationsSinceFirstUsed(incomingTxs)));
         usageColumn.setComparator(Comparator.comparingInt(DepositListItem::getNumTxOutputs));
         tableView.getSortOrder().add(usageColumn);
         tableView.setItems(sortedList);

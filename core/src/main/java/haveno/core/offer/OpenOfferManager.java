@@ -202,8 +202,6 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
             @Override
             public void onConnectionChanged(MoneroRpcConnection connection) {
                 maybeInitializeKeyImagePoller();
-                signedOfferKeyImagePoller.setDaemon(connectionsService.getDaemon());
-                signedOfferKeyImagePoller.setRefreshPeriodMs(getKeyImageRefreshPeriodMs());
             }
         });
 
@@ -258,10 +256,11 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
         });
 
         // first poll in 5s
+        // TODO: remove?
         new Thread(() -> {
             GenUtils.waitFor(5000);
             signedOfferKeyImagePoller.poll();
-        });
+        }).start();
     }
 
     private long getKeyImageRefreshPeriodMs() {
@@ -334,6 +333,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
         stopped = true;
         p2PService.getPeerManager().removeListener(this);
         p2PService.removeDecryptedDirectMessageListener(this);
+        signedOfferKeyImagePoller.clearKeyImages();
 
         stopPeriodicRefreshOffersTimer();
         stopPeriodicRepublishOffersTimer();

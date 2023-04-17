@@ -34,6 +34,7 @@ import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import monero.wallet.model.MoneroIncomingTransfer;
 import monero.wallet.model.MoneroOutgoingTransfer;
+import monero.wallet.model.MoneroTxQuery;
 import monero.wallet.model.MoneroTxWallet;
 import monero.wallet.model.MoneroWalletListener;
 
@@ -60,6 +61,8 @@ class TransactionsListItem {
     @Getter
     private boolean initialTxConfidenceVisibility = true;
     private final Supplier<LazyFields> lazyFieldsSupplier;
+    private XmrWalletService xmrWalletService;
+    MoneroWalletListener walletListener;
 
     private static class LazyFields {
         TxConfidenceIndicator txConfidenceIndicator;
@@ -82,6 +85,8 @@ class TransactionsListItem {
                          TransactionAwareTradable transactionAwareTradable) {
         this.memo = tx.getNote();
         this.txId = tx.getHash();
+        this.xmrWalletService = xmrWalletService;
+        this.confirmations = tx.getNumConfirmations() == null ? 0 : tx.getNumConfirmations();
 
         Optional<Tradable> optionalTradable = Optional.ofNullable(transactionAwareTradable)
                 .map(TransactionAwareTradable::asTradable);
@@ -182,18 +187,24 @@ class TransactionsListItem {
         }});
 
         // listen for tx updates
-        // TODO: this only listens for new blocks, listen for double spend
-        xmrWalletService.addWalletListener(new MoneroWalletListener() {
+        walletListener = new MoneroWalletListener() {
             @Override
             public void onNewBlock(long height) {
-                MoneroTxWallet tx = xmrWalletService.getWallet().getTx(txId);
+                MoneroTxWallet tx = xmrWalletService.getWallet().getTxs(new MoneroTxQuery()
+                        .setHash(txId)
+                        .setInTxPool(confirmations > 0 ? false : null)).get(0);
                 GUIUtil.updateConfidence(tx, lazy().tooltip, lazy().txConfidenceIndicator);
                 confirmations = tx.getNumConfirmations();
             }
-        });
+        };
+        xmrWalletService.addWalletListener(walletListener);
     }
 
     public void cleanup() {
+        if (walletListener != null) {
+            xmrWalletService.removeWalletListener(walletListener);
+            walletListener = null;
+        }
     }
 
     public TxConfidenceIndicator getTxConfidenceIndicator() {

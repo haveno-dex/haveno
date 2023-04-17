@@ -64,7 +64,6 @@ import javax.inject.Singleton;
 import java.security.PublicKey;
 import java.time.Clock;
 import java.util.ArrayDeque;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.Date;
@@ -345,11 +344,7 @@ public class MailboxMessageService implements HashMapChangedListener, PersistedD
                 .map(e -> (ProtectedMailboxStorageEntry) e)
                 .filter(e -> networkNode.getNodeAddress() != null)
                 .collect(Collectors.toSet());
-        if (entries.size() > 1) {
-            threadedBatchProcessMailboxEntries(entries);
-        } else if (entries.size() == 1) {
-            processSingleMailboxEntry(entries);
-        }
+        threadedBatchProcessMailboxEntries(entries);
     }
 
     @Override
@@ -375,14 +370,6 @@ public class MailboxMessageService implements HashMapChangedListener, PersistedD
         p2PDataStorage.addHashMapChangedListener(this);
     }
 
-    private void processSingleMailboxEntry(Collection<ProtectedMailboxStorageEntry> protectedMailboxStorageEntries) {
-        checkArgument(protectedMailboxStorageEntries.size() == 1);
-        var mailboxItems = new ArrayList<>(getMailboxItems(protectedMailboxStorageEntries));
-        if (mailboxItems.size() == 1) {
-            handleMailboxItem(mailboxItems.get(0));
-        }
-    }
-
     // We run the batch processing of all mailbox messages we have received at startup in a thread to not block the UI.
     // For about 1000 messages decryption takes about 1 sec.
     private void threadedBatchProcessMailboxEntries(Collection<ProtectedMailboxStorageEntry> protectedMailboxStorageEntries) {
@@ -390,7 +377,7 @@ public class MailboxMessageService implements HashMapChangedListener, PersistedD
         long ts = System.currentTimeMillis();
         ListenableFuture<Set<MailboxItem>> future = executor.submit(() -> {
             var mailboxItems = getMailboxItems(protectedMailboxStorageEntries);
-            log.info("Batch processing of {} mailbox entries took {} ms",
+            log.trace("Batch processing of {} mailbox entries took {} ms",
                     protectedMailboxStorageEntries.size(),
                     System.currentTimeMillis() - ts);
             return mailboxItems;

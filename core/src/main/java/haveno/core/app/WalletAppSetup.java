@@ -40,6 +40,8 @@ import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
+import monero.daemon.model.MoneroDaemonInfo;
+
 import org.bitcoinj.core.RejectMessage;
 import org.bitcoinj.core.VersionMessage;
 import org.bitcoinj.store.BlockStoreException;
@@ -115,7 +117,8 @@ public class WalletAppSetup {
                     if (exception == null) {
                         double percentage = (double) downloadPercentage;
                         btcSyncProgress.set(percentage);
-                        Long bestChainHeight = connectionService.getDaemon() == null ? null : connectionService.getDaemon().getInfo().getHeight();
+                        MoneroDaemonInfo lastInfo = connectionService.getLastInfo();
+                        Long bestChainHeight = lastInfo == null ? null : lastInfo.getHeight();
                         String chainHeightAsString = bestChainHeight != null && bestChainHeight > 0 ?
                                 String.valueOf(bestChainHeight) :
                                 "";

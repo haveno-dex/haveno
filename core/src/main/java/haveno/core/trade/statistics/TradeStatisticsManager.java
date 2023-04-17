@@ -170,7 +170,13 @@ public class TradeStatisticsManager {
                 return;
             }
 
-            TradeStatistics3 tradeStatistics3 = TradeStatistics3.from(trade, referralId, isTorNetworkNode);
+            TradeStatistics3 tradeStatistics3 = null;
+            try {
+                tradeStatistics3 = TradeStatistics3.from(trade, referralId, isTorNetworkNode);
+            } catch (Exception e) {
+                log.warn("Error getting trade statistic for {} {}: {}", trade.getClass().getName(), trade.getId(), e.getMessage());
+                return;
+            }
             boolean hasTradeStatistics3 = hashes.contains(new P2PDataStorage.ByteArray(tradeStatistics3.getHash()));
             if (hasTradeStatistics3) {
                 log.debug("Trade: {}. We have already a tradeStatistics matching the hash of tradeStatistics3.",

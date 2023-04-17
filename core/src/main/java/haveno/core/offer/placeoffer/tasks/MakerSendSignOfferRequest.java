@@ -60,7 +60,7 @@ public class MakerSendSignOfferRequest extends Task<PlaceOfferModel> {
             runInterceptHook();
 
             // create request for arbitrator to sign offer
-            String returnAddress = model.getXmrWalletService().getAddressEntry(offer.getId(), XmrAddressEntry.Context.TRADE_PAYOUT).get().getAddressString();
+            String returnAddress = model.getXmrWalletService().getAddressEntry(offer.getId(), XmrAddressEntry.Context.RESERVED_FOR_TRADE).get().getAddressString();
             SignOfferRequest request = new SignOfferRequest(
                     model.getOffer().getId(),
                     P2PService.getMyNodeAddress(),

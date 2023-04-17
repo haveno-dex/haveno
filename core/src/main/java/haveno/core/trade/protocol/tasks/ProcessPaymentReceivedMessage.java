@@ -113,7 +113,8 @@ public class ProcessPaymentReceivedMessage extends TradeTask {
 
             // wait to sign and publish payout tx if defer flag set (seller recently saw payout tx arrive at buyer)
             boolean isSigned = message.getSignedPayoutTxHex() != null;
-            if (trade instanceof ArbitratorTrade && !isSigned && message.isDeferPublishPayout()) {
+            boolean deferSignAndPublish = trade instanceof ArbitratorTrade && !isSigned && message.isDeferPublishPayout();
+            if (deferSignAndPublish) {
                 log.info("Deferring signing and publishing payout tx for {} {}", trade.getClass().getSimpleName(), trade.getId());
                 GenUtils.waitFor(Trade.DEFER_PUBLISH_MS);
                 if (!trade.isPayoutUnlocked()) trade.syncWallet();
@@ -135,6 +136,7 @@ public class ProcessPaymentReceivedMessage extends TradeTask {
                             trade.verifyPayoutTx(trade.getPayoutTxHex(), false, true);
                         }
                     } catch (Exception e) {
+                        trade.syncWallet();
                         if (trade.isPayoutPublished()) log.info("Payout tx already published for {} {}", trade.getClass().getName(), trade.getId());
                         else throw e;
                     }

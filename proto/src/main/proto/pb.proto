@@ -520,10 +520,9 @@ message Arbitrator {
     string registration_signature = 4;
     bytes registration_pub_key = 5;
     PubKeyRing pub_key_ring = 6;
-    string xmr_address = 7;
-    string email_address = 8;
-    string info = 9;
-    map<string, string> extra_data = 10;
+    string email_address = 7;
+    string info = 8;
+    map<string, string> extra_data = 9;
 }
 
 message Mediator {

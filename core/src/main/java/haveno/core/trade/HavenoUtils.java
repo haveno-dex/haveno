@@ -25,6 +25,7 @@ import haveno.common.crypto.KeyRing;
 import haveno.common.crypto.PubKeyRing;
 import haveno.common.crypto.Sig;
 import haveno.common.util.Utilities;
+import haveno.core.app.HavenoSetup;
 import haveno.core.offer.Offer;
 import haveno.core.offer.OfferPayload;
 import haveno.core.support.dispute.arbitration.ArbitrationManager;
@@ -35,6 +36,8 @@ import haveno.core.trade.messages.PaymentSentMessage;
 import haveno.core.util.JsonUtil;
 import haveno.network.p2p.NodeAddress;
 import lombok.extern.slf4j.Slf4j;
+import monero.common.MoneroRpcConnection;
+
 import org.bitcoinj.core.Coin;
 
 import javax.annotation.Nullable;
@@ -69,8 +72,9 @@ public class HavenoUtils {
     private static final int POOL_SIZE = 10;
     private static final ExecutorService POOL = Executors.newFixedThreadPool(POOL_SIZE);
 
-    public static ArbitrationManager arbitrationManager; // TODO: better way to share reference?
-
+    // TODO: better way to share refernces?
+    public static ArbitrationManager arbitrationManager;
+    public static HavenoSetup havenoSetup;
 
     // ----------------------- CONVERSION UTILS -------------------------------
 
@@ -501,5 +505,11 @@ public class HavenoUtils {
 
     public static String toCamelCase(String underscore) {
         return CaseFormat.UPPER_UNDERSCORE.to(CaseFormat.LOWER_CAMEL, underscore);
+    }
+
+    public static boolean connectionConfigsEqual(MoneroRpcConnection c1, MoneroRpcConnection c2) {
+        if (c1 == c2) return true;
+        if (c1 == null) return false;
+        return c1.equals(c2); // equality considers uri, username, and password
     }
 }
