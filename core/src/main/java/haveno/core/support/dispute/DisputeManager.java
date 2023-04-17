@@ -465,11 +465,19 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
                     DisputeValidation.validateDisputeData(dispute);
                     DisputeValidation.validateNodeAddresses(dispute, config);
                     DisputeValidation.validateSenderNodeAddress(dispute, message.getSenderNodeAddress());
-                    DisputeValidation.validatePaymentAccountPayload(dispute);
                     //DisputeValidation.testIfDisputeTriesReplay(dispute, disputeList.getList());
                 } catch (DisputeValidation.ValidationException e) {
                     validationExceptions.add(e);
                     throw e;
+                }
+
+                // try to validate payment account
+                // TODO: add field to dispute details: valid, invalid, missing
+                try {
+                    DisputeValidation.validatePaymentAccountPayload(dispute);
+                } catch (Exception e) {
+                    log.warn(e.getMessage());
+                    trade.prependErrorMessage(e.getMessage());
                 }
 
                 // get sender

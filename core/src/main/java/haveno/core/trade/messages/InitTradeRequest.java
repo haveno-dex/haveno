@@ -182,7 +182,7 @@ public final class InitTradeRequest extends TradeMessage implements DirectMessag
                 ",\n     reserveTxHex=" + reserveTxHex +
                 ",\n     reserveTxKey=" + reserveTxKey +
                 ",\n     payoutAddress=" + payoutAddress +
-                ",\n     makerSignature=" + Utilities.byteArrayToInteger(makerSignature) +
+                ",\n     makerSignature=" + (makerSignature == null ? null : Utilities.byteArrayToInteger(makerSignature)) +
                 "\n} " + super.toString();
     }
 }

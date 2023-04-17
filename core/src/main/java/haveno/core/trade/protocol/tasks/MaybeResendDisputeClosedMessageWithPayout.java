@@ -32,10 +32,10 @@ import java.util.List;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 @Slf4j
-public class ResendDisputeClosedMessageWithPayout extends TradeTask {
+public class MaybeResendDisputeClosedMessageWithPayout extends TradeTask {
 
     @SuppressWarnings({"unused"})
-    public ResendDisputeClosedMessageWithPayout(TaskRunner taskHandler, Trade trade) {
+    public MaybeResendDisputeClosedMessageWithPayout(TaskRunner taskHandler, Trade trade) {
         super(taskHandler, trade);
     }
 

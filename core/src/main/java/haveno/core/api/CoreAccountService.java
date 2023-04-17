@@ -98,7 +98,9 @@ public class CoreAccountService {
         if (accountExists()) throw new IllegalStateException("Cannot create account if account already exists");
         keyRing.generateKeys(password);
         this.password = password;
-        for (AccountServiceListener listener : new ArrayList<AccountServiceListener>(listeners)) listener.onAccountCreated();
+        synchronized (listeners) {
+            for (AccountServiceListener listener : new ArrayList<>(listeners)) listener.onAccountCreated();
+        }
     }
 
     public void openAccount(String password) throws IncorrectPasswordException {
@@ -106,7 +108,7 @@ public class CoreAccountService {
         if (keyRing.unlockKeys(password, false)) {
             this.password = password;
             synchronized (listeners) {
-                for (AccountServiceListener listener : listeners) listener.onAccountOpened();
+                for (AccountServiceListener listener : new ArrayList<>(listeners)) listener.onAccountOpened();
             }
         } else {
             throw new IllegalStateException("keyRing.unlockKeys() returned false, that should never happen");
@@ -121,7 +123,7 @@ public class CoreAccountService {
         keyStorage.saveKeyRing(keyRing, oldPassword, newPassword);
         this.password = newPassword;
         synchronized (listeners) {
-            for (AccountServiceListener listener : listeners) listener.onPasswordChanged(oldPassword, newPassword);
+            for (AccountServiceListener listener : new ArrayList<>(listeners)) listener.onPasswordChanged(oldPassword, newPassword);
         }
     }
 
@@ -135,7 +137,7 @@ public class CoreAccountService {
         if (!isAccountOpen()) throw new IllegalStateException("Cannot close unopened account");
         keyRing.lockKeys(); // closed account means the keys are locked
         synchronized (listeners) {
-            for (AccountServiceListener listener : listeners) listener.onAccountClosed();
+            for (AccountServiceListener listener : new ArrayList<>(listeners)) listener.onAccountClosed();
         }
     }
 
@@ -168,7 +170,7 @@ public class CoreAccountService {
         File dataDir = new File(config.appDataDir.getPath());
         ZipUtils.unzipToDir(dataDir, inputStream, bufferSize);
         synchronized (listeners) {
-            for (AccountServiceListener listener : listeners) listener.onAccountRestored(onShutdown);
+            for (AccountServiceListener listener : new ArrayList<>(listeners)) listener.onAccountRestored(onShutdown);
         }
     }
 
@@ -176,7 +178,7 @@ public class CoreAccountService {
         try {
             if (isAccountOpen()) closeAccount();
             synchronized (listeners) {
-                for (AccountServiceListener listener : listeners) listener.onAccountDeleted(onShutdown);
+                for (AccountServiceListener listener : new ArrayList<>(listeners)) listener.onAccountDeleted(onShutdown);
             }
             File dataDir = new File(config.appDataDir.getPath()); // TODO (woodser): deleting directory after gracefulShutdown() so services don't throw when they try to persist (e.g. XmrTxProofService), but gracefulShutdown() should honor read-only shutdown
             FileUtil.deleteDirectory(dataDir, null, false);

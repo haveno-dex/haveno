@@ -26,9 +26,12 @@ import haveno.common.handlers.ResultHandler;
 import haveno.common.persistence.PersistenceManager;
 import haveno.common.setup.GracefulShutDownHandler;
 import haveno.common.util.Profiler;
+import haveno.core.api.CoreMoneroConnectionsService;
 import haveno.core.app.HavenoExecutable;
+import haveno.core.offer.OfferBookService;
 import haveno.core.offer.OpenOfferManager;
 import haveno.core.support.dispute.arbitration.arbitrator.ArbitratorManager;
+import haveno.core.trade.HavenoUtils;
 import haveno.core.xmr.setup.WalletsSetup;
 import haveno.core.xmr.wallet.BtcWalletService;
 import haveno.core.xmr.wallet.XmrWalletService;
@@ -42,7 +45,9 @@ import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
@@ -76,25 +81,54 @@ public abstract class ExecutableForAppWithP2p extends HavenoExecutable {
     // We don't use the gracefulShutDown implementation of the super class as we have a limited set of modules
     @Override
     public void gracefulShutDown(ResultHandler resultHandler) {
-        log.info("gracefulShutDown");
+        log.info("Starting graceful shut down of {}", getClass().getSimpleName());
+
+        // ignore if shut down in progress
+        if (isShutdownInProgress) {
+            log.info("Ignoring call to gracefulShutDown, already in progress");
+            return;
+        }
+        isShutdownInProgress = true;
+
         try {
             if (injector != null) {
+
+                // notify trade protocols and wallets to prepare for shut down before shutting down
+                Set<Runnable> tasks = new HashSet<Runnable>();
+                tasks.add(() -> injector.getInstance(XmrWalletService.class).onShutDownStarted());
+                tasks.add(() -> injector.getInstance(CoreMoneroConnectionsService.class).onShutDownStarted());
+                HavenoUtils.executeTasks(tasks); // notify in parallel
+
                 JsonFileManager.shutDownAllInstances();
                 injector.getInstance(ArbitratorManager.class).shutDown();
-                injector.getInstance(XmrWalletService.class).shutDown(true);
-                injector.getInstance(OpenOfferManager.class).shutDown(() -> injector.getInstance(P2PService.class).shutDown(() -> {
-                    injector.getInstance(WalletsSetup.class).shutDownComplete.addListener((ov, o, n) -> {
-                        module.close(injector);
 
-                        PersistenceManager.flushAllDataToDiskAtShutdown(() -> {
-                            resultHandler.handleResult();
-                            log.info("Graceful shutdown completed. Exiting now.");
-                            UserThread.runAfter(() -> System.exit(HavenoExecutable.EXIT_SUCCESS), 1);
+                // shut down open offer manager
+                log.info("Shutting down OpenOfferManager, OfferBookService, and P2PService");
+                injector.getInstance(OpenOfferManager.class).shutDown(() -> {
+
+                    // shut down offer book service
+                    injector.getInstance(OfferBookService.class).shutDown();
+
+                    // shut down p2p service
+                    injector.getInstance(P2PService.class).shutDown(() -> {
+                        log.info("Done shutting down OpenOfferManager, OfferBookService, and P2PService");
+
+                        // shut down monero wallets and connections
+                        injector.getInstance(WalletsSetup.class).shutDownComplete.addListener((ov, o, n) -> {
+                            module.close(injector);
+                            PersistenceManager.flushAllDataToDiskAtShutdown(() -> {
+                                resultHandler.handleResult();
+                                log.info("Graceful shutdown completed. Exiting now.");
+                                UserThread.runAfter(() -> System.exit(HavenoExecutable.EXIT_SUCCESS), 1);
+                            });
                         });
+                        injector.getInstance(BtcWalletService.class).shutDown();
+                        injector.getInstance(XmrWalletService.class).shutDown();
+                        injector.getInstance(CoreMoneroConnectionsService.class).shutDown();
+                        injector.getInstance(WalletsSetup.class).shutDown();
                     });
-                    injector.getInstance(WalletsSetup.class).shutDown();
-                    injector.getInstance(BtcWalletService.class).shutDown();
-                }));
+                });
+
                 // we wait max 5 sec.
                 UserThread.runAfter(() -> {
                     PersistenceManager.flushAllDataToDiskAtShutdown(() -> {

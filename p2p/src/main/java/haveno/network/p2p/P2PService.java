@@ -190,6 +190,7 @@ public class P2PService implements SetupListener, MessageListener, ConnectionLis
     }
 
     private void doShutDown() {
+
         if (p2PDataStorage != null) {
             p2PDataStorage.shutDown();
         }

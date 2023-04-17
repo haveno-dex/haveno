@@ -45,7 +45,6 @@ public class ArbitratorRegistrationViewModel extends AgentRegistrationViewModel<
                                          String emailAddress) {
         return new Arbitrator(
                 p2PService.getAddress(),
-                xmrWalletService.getWallet().getPrimaryAddress(), // TODO: how is arbitrator address used?
                 keyRing.getPubKeyRing(),
                 new ArrayList<>(languageCodes),
                 new Date().getTime(),

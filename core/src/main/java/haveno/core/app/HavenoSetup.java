@@ -44,6 +44,7 @@ import haveno.core.support.dispute.Dispute;
 import haveno.core.support.dispute.arbitration.ArbitrationManager;
 import haveno.core.support.dispute.mediation.MediationManager;
 import haveno.core.support.dispute.refund.RefundManager;
+import haveno.core.trade.HavenoUtils;
 import haveno.core.trade.TradeManager;
 import haveno.core.trade.TradeTxException;
 import haveno.core.user.Preferences;
@@ -246,7 +247,7 @@ public class HavenoSetup {
         this.refundManager = refundManager;
         this.arbitrationManager = arbitrationManager;
 
-        xmrWalletService.setHavenoSetup(this);
+        HavenoUtils.havenoSetup = this;
 
         MemPoolSpaceTxBroadcaster.init(socks5ProxyProvider, preferences, localBitcoinNode);
     }

@@ -23,6 +23,7 @@ import haveno.core.trade.HavenoUtils;
 import haveno.core.user.Preferences;
 import haveno.core.xmr.MoneroNodeSettings;
 import lombok.extern.slf4j.Slf4j;
+import monero.common.MoneroUtils;
 import monero.daemon.MoneroDaemonRpc;
 
 import javax.inject.Inject;
@@ -44,7 +45,7 @@ public class CoreMoneroNodeService {
     public static final String MONEROD_DIR = Config.baseCurrencyNetwork() == BaseCurrencyNetwork.XMR_LOCAL ? System.getProperty("user.dir") + File.separator + ".localnet" : Config.appDataDir().getAbsolutePath();
     public static final String MONEROD_NAME = Utilities.isWindows() ? "monerod.exe" : "monerod";
     public static final String MONEROD_PATH = MONEROD_DIR + File.separator + MONEROD_NAME;
-    private static final String MONEROD_DATADIR =  MONEROD_DIR + File.separator + Config.baseCurrencyNetwork().toString().toLowerCase() + File.separator + "node1";
+    private static final String MONEROD_DATADIR =  Config.baseCurrencyNetwork() == BaseCurrencyNetwork.XMR_LOCAL ? MONEROD_DIR + File.separator + Config.baseCurrencyNetwork().toString().toLowerCase() + File.separator + "node1" : null; // use default directory unless local
 
     private final Preferences preferences;
     private final List<MoneroNodeServiceListener> listeners = new ArrayList<>();
@@ -59,15 +60,17 @@ public class CoreMoneroNodeService {
 
     // client to the local Monero node
     private MoneroDaemonRpc daemon;
-
-    @Inject
-    public CoreMoneroNodeService(Preferences preferences) {
-        this.preferences = preferences;
-        Integer rpcPort = null;
+    private static Integer rpcPort;
+    static {
         if (Config.baseCurrencyNetwork().isMainnet()) rpcPort = 18081;
         else if (Config.baseCurrencyNetwork().isTestnet()) rpcPort = 28081;
         else if (Config.baseCurrencyNetwork().isStagenet()) rpcPort = 38081;
         else throw new RuntimeException("Base network is not local testnet, stagenet, or mainnet");
+    }
+
+    @Inject
+    public CoreMoneroNodeService(Preferences preferences) {
+        this.preferences = preferences;
         this.daemon = new MoneroDaemonRpc("http://" + HavenoUtils.LOOPBACK_HOST + ":" + rpcPort);
     }
 
@@ -88,6 +91,10 @@ public class CoreMoneroNodeService {
 
     private boolean checkConnection() {
         return daemon.getRpcConnection().checkConnection(5000);
+    }
+
+    public boolean equalsUri(String uri) {
+        return HavenoUtils.isLocalHost(uri) && MoneroUtils.parseUri(uri).getPort() == rpcPort;
     }
 
     /**

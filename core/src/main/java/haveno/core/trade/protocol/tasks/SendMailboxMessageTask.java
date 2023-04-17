@@ -58,8 +58,8 @@ public abstract class SendMailboxMessageTask extends TradeTask {
             TradeMailboxMessage message = getTradeMailboxMessage(id);
             setStateSent();
             NodeAddress peersNodeAddress = getReceiverNodeAddress();
-            log.info("Send {} to peer {} for {} {}", trade.getClass().getSimpleName(), trade.getId(),
-                    message.getClass().getSimpleName(), peersNodeAddress, message.getTradeId(), message.getUid());
+            log.info("Send {} to peer {} for {} {}, uid={}",
+                    message.getClass().getSimpleName(), peersNodeAddress, trade.getClass().getSimpleName(), trade.getId(), message.getUid());
 
             TradeTask task = this;
             processModel.getP2PService().getMailboxMessageService().sendEncryptedMailboxMessage(

@@ -97,7 +97,7 @@ public class OfferBookService {
         connectionsService.addListener(new MoneroConnectionManagerListener() {
             @Override
             public void onConnectionChanged(MoneroRpcConnection connection) {
-                if (keyImagePoller == null) return;
+                maybeInitializeKeyImagePoller();
                 keyImagePoller.setDaemon(connectionsService.getDaemon());
                 keyImagePoller.setRefreshPeriodMs(getKeyImageRefreshPeriodMs());
             }
@@ -111,8 +111,8 @@ public class OfferBookService {
                         synchronized (offerBookChangedListeners) {
                             offerBookChangedListeners.forEach(listener -> {
                                 if (protectedStorageEntry.getProtectedStoragePayload() instanceof OfferPayload) {
-                                    maybeInitializeKeyImagePoller();
                                     OfferPayload offerPayload = (OfferPayload) protectedStorageEntry.getProtectedStoragePayload();
+                                    maybeInitializeKeyImagePoller();
                                     keyImagePoller.addKeyImages(offerPayload.getReserveTxKeyImages());
                                     Offer offer = new Offer(offerPayload);
                                     offer.setPriceFeedService(priceFeedService);
@@ -130,8 +130,8 @@ public class OfferBookService {
                         synchronized (offerBookChangedListeners) {
                             offerBookChangedListeners.forEach(listener -> {
                                 if (protectedStorageEntry.getProtectedStoragePayload() instanceof OfferPayload) {
-                                    maybeInitializeKeyImagePoller();
                                     OfferPayload offerPayload = (OfferPayload) protectedStorageEntry.getProtectedStoragePayload();
+                                    maybeInitializeKeyImagePoller();
                                     keyImagePoller.removeKeyImages(offerPayload.getReserveTxKeyImages());
                                     Offer offer = new Offer(offerPayload);
                                     offer.setPriceFeedService(priceFeedService);
@@ -257,6 +257,10 @@ public class OfferBookService {
         }
     }
 
+    public void shutDown() {
+        if (keyImagePoller != null) keyImagePoller.clearKeyImages();
+    }
+
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Private
@@ -276,11 +280,12 @@ public class OfferBookService {
             }
         });
 
-        // first poll after 5s
+        // first poll after 20s
+        // TODO: remove?
         new Thread(() -> {
-            GenUtils.waitFor(5000);
+            GenUtils.waitFor(20000);
             keyImagePoller.poll();
-        });
+        }).start();
     }
 
     private long getKeyImageRefreshPeriodMs() {

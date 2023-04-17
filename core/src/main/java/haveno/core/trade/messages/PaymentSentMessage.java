@@ -141,10 +141,11 @@ public final class PaymentSentMessage extends TradeMailboxMessage {
     @Override
     public String toString() {
         return "PaymentSentMessage{" +
+                ",\n     tradeId=" + tradeId +
+                ",\n     uid='" + uid + '\'' +
                 ",\n     senderNodeAddress=" + senderNodeAddress +
                 ",\n     counterCurrencyTxId=" + counterCurrencyTxId +
                 ",\n     counterCurrencyExtraData=" + counterCurrencyExtraData +
-                ",\n     uid='" + uid + '\'' +
                 ",\n     payoutTxHex=" + payoutTxHex +
                 ",\n     updatedMultisigHex=" + updatedMultisigHex +
                 ",\n     paymentAccountKey=" + paymentAccountKey +

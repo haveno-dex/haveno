@@ -117,7 +117,9 @@ public class MoneroKeyImagePoller {
      * @return the key images to listen to
      */
     public Collection<String> getKeyImages() {
-        return new ArrayList<String>(keyImages);
+        synchronized (keyImages) {
+            return new ArrayList<String>(keyImages);
+        }
     }
 
     /**
@@ -198,6 +200,13 @@ public class MoneroKeyImagePoller {
     }
 
     /**
+     * Clear the key images which stops polling.
+     */
+    public void clearKeyImages() {
+        setKeyImages();
+    }
+
+    /**
      * Indicates if the given key image is spent.
      *
      * @param keyImage - the key image to check
@@ -215,37 +224,45 @@ public class MoneroKeyImagePoller {
             log.warn("Cannot poll key images because daemon is null");
             return;
         }
+
+        // get copy of key images to fetch
+        List<String> keyImages = new ArrayList<String>(getKeyImages());
+
+        // fetch spent statuses
+        List<MoneroKeyImageSpentStatus> spentStatuses = null;
         try {
-
-            // fetch spent statuses
-            List<MoneroKeyImageSpentStatus> spentStatuses = keyImages.isEmpty() ? new ArrayList<MoneroKeyImageSpentStatus>() : daemon.getKeyImageSpentStatuses(keyImages);
-
-            // collect changed statuses
-            Map<String, MoneroKeyImageSpentStatus> changedStatuses = new HashMap<String, MoneroKeyImageSpentStatus>();
-            synchronized (lastStatuses) {
-                synchronized (keyImages) {
-                    for (int i = 0; i < keyImages.size(); i++) {
-                        if (lastStatuses.get(keyImages.get(i)) != spentStatuses.get(i)) {
-                            lastStatuses.put(keyImages.get(i), spentStatuses.get(i));
-                            changedStatuses.put(keyImages.get(i), spentStatuses.get(i));
-                        }
-                    }
-                }
-            }
-
-            // announce changes
-            if (!changedStatuses.isEmpty()) {
-                for (MoneroKeyImageListener listener : new ArrayList<MoneroKeyImageListener>(listeners)) {
-                    listener.onSpentStatusChanged(changedStatuses);
-                }
+            if (keyImages.isEmpty()) spentStatuses = new ArrayList<MoneroKeyImageSpentStatus>();
+            else {
+                spentStatuses = daemon.getKeyImageSpentStatuses(keyImages); // TODO monero-java: if order of getKeyImageSpentStatuses is guaranteed, then it should take list parameter
             }
         } catch (Exception e) {
-            log.warn("Error polling key images: " + e.getMessage());
+            log.warn("Error polling spent status of key images: " + e.getMessage());
+            return;
+        }
+
+        // collect changed statuses
+        Map<String, MoneroKeyImageSpentStatus> changedStatuses = new HashMap<String, MoneroKeyImageSpentStatus>();
+        synchronized (lastStatuses) {
+            for (int i = 0; i < spentStatuses.size(); i++) {
+                if (spentStatuses.get(i) != lastStatuses.get(keyImages.get(i))) {
+                    lastStatuses.put(keyImages.get(i), spentStatuses.get(i));
+                    changedStatuses.put(keyImages.get(i), spentStatuses.get(i));
+                }
+            }
+        }
+
+        // announce changes
+        if (!changedStatuses.isEmpty()) {
+            for (MoneroKeyImageListener listener : new ArrayList<MoneroKeyImageListener>(listeners)) {
+                listener.onSpentStatusChanged(changedStatuses);
+            }
         }
     }
 
     private void refreshPolling() {
-        setIsPolling(keyImages.size() > 0 && listeners.size() > 0);
+        synchronized (keyImages) {
+            setIsPolling(keyImages.size() > 0 && listeners.size() > 0);
+        }
     }
 
     private synchronized void setIsPolling(boolean enabled) {

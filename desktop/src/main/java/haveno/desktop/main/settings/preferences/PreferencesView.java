@@ -788,6 +788,14 @@ public class PreferencesView extends ActivatableViewAndModel<GridPane, Preferenc
                     .show();
         });
 
+        // We use opposite property (useStandbyMode) in preferences to have the default value (false) set as we want it,
+        // so users who update gets set avoidStandbyMode=true (useStandbyMode=false)
+        if (displayStandbyModeFeature) {
+            avoidStandbyMode.setSelected(!preferences.isUseStandbyMode());
+            avoidStandbyMode.setOnAction(e -> preferences.setUseStandbyMode(!avoidStandbyMode.isSelected()));
+        } else {
+            preferences.setUseStandbyMode(false);
+        }
     }
 
     private void activateAutoConfirmPreferences() {

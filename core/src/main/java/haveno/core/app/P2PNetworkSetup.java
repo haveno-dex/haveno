@@ -81,7 +81,7 @@ public class P2PNetworkSetup {
         this.preferences = preferences;
     }
 
-    BooleanProperty init(Runnable initWalletServiceHandler, @Nullable Consumer<Boolean> displayTorNetworkSettingsHandler) {
+    BooleanProperty init(Runnable onReadyHandler, @Nullable Consumer<Boolean> displayTorNetworkSettingsHandler) {
         StringProperty bootstrapState = new SimpleStringProperty();
         StringProperty bootstrapWarning = new SimpleStringProperty();
         BooleanProperty hiddenServicePublished = new SimpleBooleanProperty();
@@ -146,8 +146,8 @@ public class P2PNetworkSetup {
                 priceFeedService.setCurrencyCodeOnInit();
                 priceFeedService.requestPrices();
 
-                // invoke handler to initialize wallet
-                initWalletServiceHandler.run();
+                // invoke handler when network ready
+                onReadyHandler.run();
             }
 
             @Override
