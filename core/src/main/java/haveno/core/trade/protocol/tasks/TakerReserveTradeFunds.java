@@ -54,6 +54,7 @@ public class TakerReserveTradeFunds extends TradeTask {
             processModel.setReserveTx(reserveTx);
             processModel.getTaker().setReserveTxKeyImages(reservedKeyImages);
             processModel.getTradeManager().requestPersistence();
+            trade.addInitProgressStep();
             complete();
         } catch (Throwable t) {
             trade.setErrorMessage("An error occurred.\n" +

@@ -162,6 +162,7 @@ public class ProcessSignContractRequest extends TradeTask {
     }
 
     private void completeAux() {
+        trade.addInitProgressStep();
         trade.setState(State.CONTRACT_SIGNED);
         processModel.getTradeManager().requestPersistence();
         complete();

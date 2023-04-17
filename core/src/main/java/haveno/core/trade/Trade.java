@@ -54,10 +54,13 @@ import haveno.core.xmr.wallet.XmrWalletService;
 import haveno.network.p2p.AckMessage;
 import haveno.network.p2p.NodeAddress;
 import haveno.network.p2p.P2PService;
+import javafx.beans.property.DoubleProperty;
 import javafx.beans.property.IntegerProperty;
 import javafx.beans.property.ObjectProperty;
+import javafx.beans.property.ReadOnlyDoubleProperty;
 import javafx.beans.property.ReadOnlyObjectProperty;
 import javafx.beans.property.ReadOnlyStringProperty;
+import javafx.beans.property.SimpleDoubleProperty;
 import javafx.beans.property.SimpleIntegerProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.property.SimpleStringProperty;
@@ -333,6 +336,10 @@ public abstract class Trade implements Tradable, Model {
     private long amount;
     @Setter
     private long price;
+    private int initStep = 0;
+    private static final int TOTAL_INIT_STEPS = 15; // total estimated steps
+    @Getter
+    private double initProgress = 0;
     @Nullable
     @Getter
     private State state = State.PREPARATION;
@@ -368,6 +375,7 @@ public abstract class Trade implements Tradable, Model {
     @Getter
     transient final private XmrWalletService xmrWalletService;
 
+    transient final private DoubleProperty initProgressProperty = new SimpleDoubleProperty(0.0);
     transient final private ObjectProperty<State> stateProperty = new SimpleObjectProperty<>(state);
     transient final private ObjectProperty<Phase> phaseProperty = new SimpleObjectProperty<>(state.phase);
     transient final private ObjectProperty<PayoutState> payoutStateProperty = new SimpleObjectProperty<>(payoutState);
@@ -1167,7 +1175,10 @@ public abstract class Trade implements Tradable, Model {
             isInitialized = false;
             isShutDown = true;
             synchronized (walletLock) {
-                if (wallet != null) closeWallet();
+                if (wallet != null) {
+                    saveWallet();
+                    stopWallet();
+                }
             }
             if (tradePhaseSubscription != null) tradePhaseSubscription.unsubscribe();
             if (payoutStateSubscription != null) payoutStateSubscription.unsubscribe();
@@ -1204,6 +1215,11 @@ public abstract class Trade implements Tradable, Model {
             log.warn("State change is not getting applied because it would cause an invalid transition. " +
                     "Trade state={}, intended state={}", state, newState);
         }
+    }
+
+    public void addInitProgressStep() {
+        initProgress = Math.min(1.0, (double) ++initStep / TOTAL_INIT_STEPS);
+        UserThread.execute(() -> initProgressProperty.set(initProgress));
     }
 
     public void setState(State state) {
@@ -1549,6 +1565,10 @@ public abstract class Trade implements Tradable, Model {
 
     public boolean isPayoutUnlocked() {
         return getPayoutState().ordinal() >= PayoutState.PAYOUT_UNLOCKED.ordinal();
+    }
+
+    public ReadOnlyDoubleProperty initProgressProperty() {
+        return initProgressProperty;
     }
 
     public ReadOnlyObjectProperty<State> stateProperty() {

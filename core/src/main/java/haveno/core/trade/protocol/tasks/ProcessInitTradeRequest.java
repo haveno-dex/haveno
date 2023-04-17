@@ -133,6 +133,7 @@ public class ProcessInitTradeRequest extends TradeTask {
             checkArgument(request.getTradeAmount() == trade.getAmount().longValueExact(), "Trade amount does not match request's trade amount");
 
             // persist trade
+            trade.addInitProgressStep();
             processModel.getTradeManager().requestPersistence();
             complete();
         } catch (Throwable t) {
