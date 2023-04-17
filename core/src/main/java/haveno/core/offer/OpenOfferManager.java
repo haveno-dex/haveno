@@ -333,7 +333,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
         stopped = true;
         p2PService.getPeerManager().removeListener(this);
         p2PService.removeDecryptedDirectMessageListener(this);
-        signedOfferKeyImagePoller.clearKeyImages();
+        if (signedOfferKeyImagePoller != null) signedOfferKeyImagePoller.clearKeyImages();
 
         stopPeriodicRefreshOffersTimer();
         stopPeriodicRepublishOffersTimer();

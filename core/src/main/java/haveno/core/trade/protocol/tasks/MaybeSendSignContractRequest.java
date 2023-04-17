@@ -72,6 +72,7 @@ public class MaybeSendSignContractRequest extends TradeTask {
           }
 
           // create deposit tx and freeze inputs
+          trade.addInitProgressStep();
           MoneroTxWallet depositTx = trade.getXmrWalletService().createDepositTx(trade);
 
           // collect reserved key images
@@ -142,6 +143,7 @@ public class MaybeSendSignContractRequest extends TradeTask {
 
     private void completeAux() {
         trade.setState(State.CONTRACT_SIGNATURE_REQUESTED);
+        trade.addInitProgressStep();
         processModel.getTradeManager().requestPersistence();
         complete();
     }

@@ -18,7 +18,6 @@
 package haveno.desktop.main.overlays.windows;
 
 import com.google.common.base.Joiner;
-import haveno.common.UserThread;
 import haveno.common.crypto.KeyRing;
 import haveno.common.util.Tuple2;
 import haveno.common.util.Tuple4;
@@ -31,7 +30,6 @@ import haveno.core.payment.PaymentAccount;
 import haveno.core.payment.payload.PaymentMethod;
 import haveno.core.trade.HavenoUtils;
 import haveno.core.trade.Trade;
-import haveno.core.trade.Trade.State;
 import haveno.core.trade.TradeManager;
 import haveno.core.user.User;
 import haveno.core.util.FormattingUtils;
@@ -85,7 +83,8 @@ public class OfferDetailsWindow extends Overlay<OfferDetailsWindow> {
     private Optional<Runnable> takeOfferHandlerOptional = Optional.empty();
     private BusyAnimation busyAnimation;
     private TradeManager tradeManager;
-    private Subscription tradeStateSubscription;
+    private Subscription numTradesSubscription;
+    private Subscription initProgressSubscription;
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Public API
@@ -145,6 +144,16 @@ public class OfferDetailsWindow extends Overlay<OfferDetailsWindow> {
     protected void onHidden() {
         if (busyAnimation != null)
             busyAnimation.stop();
+
+        if (numTradesSubscription != null) {
+            numTradesSubscription.unsubscribe();
+            numTradesSubscription = null;
+        }
+
+        if (initProgressSubscription != null) {
+            initProgressSubscription.unsubscribe();
+            initProgressSubscription = null;
+        }
     }
 
     @Override
@@ -407,31 +416,25 @@ public class OfferDetailsWindow extends Overlay<OfferDetailsWindow> {
                     spinnerInfoLabel.setText(Res.get("createOffer.fundsBox.placeOfferSpinnerInfo"));
                     placeOfferHandlerOptional.ifPresent(Runnable::run);
                 } else {
-                    State lastState = Trade.State.ARBITRATOR_PUBLISHED_DEPOSIT_TXS;
-                    spinnerInfoLabel.setText(Res.get("takeOffer.fundsBox.takeOfferSpinnerInfo") + " " + getPercentString(0, lastState.ordinal()));
+
+                    // subscribe to trade progress
+                    spinnerInfoLabel.setText(Res.get("takeOffer.fundsBox.takeOfferSpinnerInfo") + " 0%");
+                    numTradesSubscription = EasyBind.subscribe(tradeManager.getNumPendingTrades(), newNum -> {
+                        subscribeToProgress(spinnerInfoLabel);
+                    });
+
                     takeOfferHandlerOptional.ifPresent(Runnable::run);
-
-                    // update trade state progress
-                    UserThread.runAfter(() -> {
-                        Trade trade = tradeManager.getTrade(offer.getId());
-                        if (trade == null) return;
-                        tradeStateSubscription = EasyBind.subscribe(trade.stateProperty(), newState -> {
-                            String progress = getPercentString(newState.ordinal(), lastState.ordinal());
-                            spinnerInfoLabel.setText(Res.get("takeOffer.fundsBox.takeOfferSpinnerInfo") + " " + progress);
-
-                            // unsubscribe when done
-                            if (newState == lastState) {
-                                tradeStateSubscription.unsubscribe();
-                                tradeStateSubscription = null;
-                            }
-                        });
-                    }, 1);
                 }
             }
         });
     }
 
-    private static String getPercentString(int newOrdinal, int lastOrdinal) {
-        return (int) ((double) newOrdinal / (double) lastOrdinal * 100) + "%";
+    private void subscribeToProgress(Label spinnerInfoLabel) {
+        Trade trade = tradeManager.getTrade(offer.getId());
+        if (trade == null || initProgressSubscription != null) return;
+        initProgressSubscription = EasyBind.subscribe(trade.initProgressProperty(), newProgress -> {
+            String progress = (int) (newProgress.doubleValue() * 100.0) + "%";
+            spinnerInfoLabel.setText(Res.get("takeOffer.fundsBox.takeOfferSpinnerInfo") + " " + progress);
+        });
     }
 }

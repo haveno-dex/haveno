@@ -47,6 +47,7 @@ public class TakerSendInitTradeRequestToArbitrator extends TradeTask {
 
             // send request to signing arbitrator then least used arbitrators until success
             sendInitTradeRequests(trade.getOffer().getOfferPayload().getArbitratorSigner(), new HashSet<NodeAddress>(), () -> {
+                trade.addInitProgressStep();
                 complete();
             }, (errorMessage) -> {
                 log.warn("Cannot initialize trade with arbitrators: " + errorMessage);

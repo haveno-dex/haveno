@@ -44,6 +44,7 @@ public class ProcessDepositResponse extends TradeTask {
 
           // set success state
           trade.setStateIfValidTransitionTo(Trade.State.ARBITRATOR_PUBLISHED_DEPOSIT_TXS);
+          trade.addInitProgressStep();
           processModel.getTradeManager().requestPersistence();
           complete();
         } catch (Throwable t) {
