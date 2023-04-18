@@ -1,14 +1,23 @@
-Follow these instructions to package the Java desktop application as executable binaries.
+Follow these instructions to create installers for the Haveno Java desktop application on each platform.
 
-## Linux
+## Build Haveno binaries
+
+`make clean && make` (or `make clean && make skip-tests`)
+
+## Create installer and install on each platform
+
+> **Note**
+> These steps will delete the previously built Haveno binaries, so they'll need rebuilt after.
+
+#### Linux
 
 1. `./gradlew packageInstallers`
 2. Confirm prompts.
 3. Path to installer printed at end. Execute to install: `sudo dpkg -i <path>.deb`
 
-Haveno data folder: `/home/<username>/.local/share/Haveno/`
+Haveno data folder on Linux: `/home/<username>/.local/share/Haveno/`
 
-## Mac
+#### Mac
 
 1. `./gradlew packageInstallers`
 2. Confirm prompts.
@@ -16,11 +25,11 @@ Haveno data folder: `/home/<username>/.local/share/Haveno/`
 4. `open <path>`
 5. Open installer and drag Haveno.app to Applications.
 6. `sudo xattr -rd com.apple.quarantine /Applications/Haveno.app`
-7. Right click /Applications/Haveno.app > open.
+7. Right click /Applications/Haveno.app > open. Open despite being "damaged".
 
-Haveno data folder: `/Users/<username>/Library/Application Support/Haveno/`
+Haveno data folder on Mac: `/Users/<username>/Library/Application Support/Haveno/`
 
-## Windows
+#### Windows
 
 1. Enable .NET Framework 3.5:
     1. Open the Control Panel on your Windows system.
@@ -38,7 +47,13 @@ Haveno data folder: `/Users/<username>/Library/Application Support/Haveno/`
 6. Confirm prompts.
 7. Path to installer printed at end. Execute to install.
 
-Haveno data folder: `~\AppData\Roaming\Haveno\`
+Haveno data folder on Windows: `~\AppData\Roaming\Haveno\`
+
+## Copy installer and rebuild Haveno binaries
+
+1. Copy the installer to a safe location because it will be deleted in the next step.
+2. `make clean && make` (or `make clean && make skip-tests`) to rebuild Haveno apps.
+
 
 ## Additional Notes
 
