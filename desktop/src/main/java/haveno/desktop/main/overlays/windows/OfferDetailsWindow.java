@@ -18,6 +18,8 @@
 package haveno.desktop.main.overlays.windows;
 
 import com.google.common.base.Joiner;
+
+import haveno.common.UserThread;
 import haveno.common.crypto.KeyRing;
 import haveno.common.util.Tuple2;
 import haveno.common.util.Tuple4;
@@ -434,7 +436,7 @@ public class OfferDetailsWindow extends Overlay<OfferDetailsWindow> {
         if (trade == null || initProgressSubscription != null) return;
         initProgressSubscription = EasyBind.subscribe(trade.initProgressProperty(), newProgress -> {
             String progress = (int) (newProgress.doubleValue() * 100.0) + "%";
-            spinnerInfoLabel.setText(Res.get("takeOffer.fundsBox.takeOfferSpinnerInfo") + " " + progress);
+            UserThread.execute(() -> spinnerInfoLabel.setText(Res.get("takeOffer.fundsBox.takeOfferSpinnerInfo") + " " + progress));
         });
     }
 }
