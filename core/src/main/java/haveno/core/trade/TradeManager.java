@@ -436,6 +436,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
             xmrWalletService.setTradeManager(this);
 
             // process after all wallets initialized
+            if (HavenoUtils.havenoSetup == null) throw new IllegalStateException("HavenoSetup is null; is this an improperly registered seed node?");
             MonadicBinding<Boolean> walletsInitialized = EasyBind.combine(HavenoUtils.havenoSetup.getWalletInitialized(), persistedTradesInitialized, (a, b) -> a && b);
             walletsInitialized.subscribe((observable, oldValue, newValue) -> {
                 if (!newValue) return;
