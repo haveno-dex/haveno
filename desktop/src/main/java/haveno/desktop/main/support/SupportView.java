@@ -163,10 +163,17 @@ public class SupportView extends ActivatableView<TabPane, Void> {
             // In case a arbitrator has become inactive he still might get disputes from pending trades
             boolean hasDisputesAsArbitrator = arbitrationManager.getDisputesAsObservableList().stream()
                     .anyMatch(d -> d.getAgentPubKeyRing().equals(myPubKeyRing));
-            if (arbitratorTab == null && (isActiveArbitrator || hasDisputesAsArbitrator)) {
-                arbitratorTab = new Tab();
-                arbitratorTab.setClosable(false);
-                root.getTabs().add(arbitratorTab);
+            if (isActiveArbitrator || hasDisputesAsArbitrator) {
+                if (arbitratorTab == null) {
+                    arbitratorTab = new Tab();
+                    arbitratorTab.setClosable(false);
+                    root.getTabs().add(arbitratorTab);
+                }
+                if (signedOfferTab == null) {
+                    signedOfferTab = new Tab();
+                    signedOfferTab.setClosable(false);
+                    root.getTabs().add(signedOfferTab);
+                }
             }
         }
 
@@ -181,12 +188,6 @@ public class SupportView extends ActivatableView<TabPane, Void> {
                 mediatorTab.setClosable(false);
                 root.getTabs().add(mediatorTab);
             }
-        }
-
-        if (signedOfferTab == null) {
-            signedOfferTab = new Tab();
-            signedOfferTab.setClosable(false);
-            root.getTabs().add(signedOfferTab);
         }
 
         boolean isActiveRefundAgent = refundAgentManager.getObservableMap().values().stream()
