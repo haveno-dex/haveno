@@ -410,12 +410,18 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
             Set<Runnable> tasks = new HashSet<Runnable>();
             for (Trade trade : trades) {
                 tasks.add(() -> {
-                    initPersistedTrade(trade);
+                    try {
+                        initPersistedTrade(trade);
 
-                    // remove trade if protocol didn't initialize
-                    if (getOpenTrade(trade.getId()).isPresent() && !trade.isDepositRequested()) {
-                        log.warn("Removing persisted {} {} with uid={} because it did not finish initializing (state={})", trade.getClass().getSimpleName(), trade.getId(), trade.getUid(), trade.getState());
-                        removeTradeOnError(trade);
+                        // remove trade if protocol didn't initialize
+                        if (getOpenTrade(trade.getId()).isPresent() && !trade.isDepositRequested()) {
+                            log.warn("Removing persisted {} {} with uid={} because it did not finish initializing (state={})", trade.getClass().getSimpleName(), trade.getId(), trade.getUid(), trade.getState());
+                            maybeRemoveTradeOnError(trade);
+                        }
+                    } catch (Exception e) {
+                        log.warn("Error initializing {} {}: {}", trade.getClass().getSimpleName(), trade.getId(), e.getMessage());
+                        e.printStackTrace();
+                        trade.prependErrorMessage(e.getMessage());
                     }
                 });
             };
@@ -582,7 +588,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
               if (trade.getMaker().getReserveTxHash() != null || trade.getTaker().getReserveTxHash() != null) {
                 onMoveInvalidTradeToFailedTrades(trade); // arbitrator retains failed trades for analysis and penalty
               } else {
-                removeTradeOnError(trade);
+                maybeRemoveTradeOnError(trade);
               }
               if (takeOfferRequestErrorMessageHandler != null) takeOfferRequestErrorMessageHandler.handleErrorMessage(errorMessage);
           });
@@ -670,7 +676,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
 
           ((MakerProtocol) getTradeProtocol(trade)).handleInitTradeRequest(request, sender, errorMessage -> {
               log.warn("Maker error during trade initialization: " + errorMessage);
-              removeTradeOnError(trade);
+              maybeRemoveTradeOnError(trade);
               openOfferManager.unreserveOpenOffer(openOffer); // offer remains available // TODO: only unreserve if funds not deposited to multisig
               if (takeOfferRequestErrorMessageHandler != null) takeOfferRequestErrorMessageHandler.handleErrorMessage(errorMessage);
           });
@@ -855,7 +861,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
                             requestPersistence();
                         }, errorMessage -> {
                             log.warn("Taker error during trade initialization: " + errorMessage);
-                            removeTradeOnError(trade);
+                            maybeRemoveTradeOnError(trade);
                             errorMessageHandler.handleErrorMessage(errorMessage);
                             if (takeOfferRequestErrorMessageHandler != null) takeOfferRequestErrorMessageHandler.handleErrorMessage(errorMessage);
                         });
@@ -983,7 +989,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
     // If trade is in already in critical state (if taker role: taker fee; both roles: after deposit published)
     // we move the trade to failedTradesManager
     public void onMoveInvalidTradeToFailedTrades(Trade trade) {
-        removeTradeOnError(trade);
+        maybeRemoveTradeOnError(trade);
         failedTradesManager.add(trade);
     }
 
@@ -1174,8 +1180,8 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
         }
     }
 
-    private void removeTradeOnError(Trade trade) {
-        log.info("TradeManager.removeTradeOnError() " + trade.getId());
+    private void maybeRemoveTradeOnError(Trade trade) {
+        log.info("TradeManager.maybeRemoveTradeOnError() " + trade.getId());
         synchronized (tradableList) {
             if (!tradableList.contains(trade)) return;
 
