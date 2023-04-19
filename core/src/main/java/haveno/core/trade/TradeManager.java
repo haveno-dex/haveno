@@ -414,7 +414,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
                         initPersistedTrade(trade);
 
                         // remove trade if protocol didn't initialize
-                        if (getOpenTrade(trade.getId()).isPresent() && !trade.isDepositRequested()) {
+                        if (getOpenTradeByUid(trade.getId()).isPresent() && !trade.isDepositRequested()) {
                             log.warn("Removing persisted {} {} with uid={} because it did not finish initializing (state={})", trade.getClass().getSimpleName(), trade.getId(), trade.getUid(), trade.getState());
                             maybeRemoveTradeOnError(trade);
                         }
@@ -1134,6 +1134,12 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
     public Optional<Trade> getOpenTrade(String tradeId) {
         synchronized (tradableList) {
             return tradableList.stream().filter(e -> e.getId().equals(tradeId)).findFirst();
+        }
+    }
+
+    public Optional<Trade> getOpenTradeByUid(String tradeUid) {
+        synchronized (tradableList) {
+            return tradableList.stream().filter(e -> e.getUid().equals(tradeUid)).findFirst();
         }
     }
 
