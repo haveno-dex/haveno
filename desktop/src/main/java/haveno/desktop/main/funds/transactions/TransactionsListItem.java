@@ -34,9 +34,7 @@ import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import monero.wallet.model.MoneroIncomingTransfer;
 import monero.wallet.model.MoneroOutgoingTransfer;
-import monero.wallet.model.MoneroTxQuery;
 import monero.wallet.model.MoneroTxWallet;
-import monero.wallet.model.MoneroWalletListener;
 
 import javax.annotation.Nullable;
 import java.math.BigInteger;
@@ -62,7 +60,6 @@ class TransactionsListItem {
     private boolean initialTxConfidenceVisibility = true;
     private final Supplier<LazyFields> lazyFieldsSupplier;
     private XmrWalletService xmrWalletService;
-    MoneroWalletListener walletListener;
 
     private static class LazyFields {
         TxConfidenceIndicator txConfidenceIndicator;
@@ -185,26 +182,9 @@ class TransactionsListItem {
             GUIUtil.updateConfidence(tx, tooltip, txConfidenceIndicator);
             confirmations = tx.getNumConfirmations();
         }});
-
-        // listen for tx updates
-        walletListener = new MoneroWalletListener() {
-            @Override
-            public void onNewBlock(long height) {
-                MoneroTxWallet tx = xmrWalletService.getWallet().getTxs(new MoneroTxQuery()
-                        .setHash(txId)
-                        .setInTxPool(confirmations > 0 ? false : null)).get(0);
-                GUIUtil.updateConfidence(tx, lazy().tooltip, lazy().txConfidenceIndicator);
-                confirmations = tx.getNumConfirmations();
-            }
-        };
-        xmrWalletService.addWalletListener(walletListener);
     }
 
     public void cleanup() {
-        if (walletListener != null) {
-            xmrWalletService.removeWalletListener(walletListener);
-            walletListener = null;
-        }
     }
 
     public TxConfidenceIndicator getTxConfidenceIndicator() {
