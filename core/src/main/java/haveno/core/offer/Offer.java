@@ -139,12 +139,12 @@ public class Offer implements NetworkPayload, PersistablePayload {
     // Availability
     ///////////////////////////////////////////////////////////////////////////////////////////
 
-    public void checkOfferAvailability(OfferAvailabilityModel model, ResultHandler resultHandler,
+    public synchronized void checkOfferAvailability(OfferAvailabilityModel model, ResultHandler resultHandler,
                                        ErrorMessageHandler errorMessageHandler) {
         availabilityProtocol = new OfferAvailabilityProtocol(model,
                 () -> {
                     cancelAvailabilityRequest();
-                    resultHandler.handleResult();
+                    new Thread(() -> resultHandler.handleResult()).start();
                 },
                 (errorMessage) -> {
                     if (availabilityProtocol != null)
