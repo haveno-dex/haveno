@@ -307,7 +307,7 @@ public class SellerStep3View extends TradeStepView {
 
     private boolean confirmPaymentReceivedPermitted() {
         if (!trade.confirmPermitted()) return false;
-        return trade.getState().ordinal() >= Trade.State.BUYER_SENT_PAYMENT_SENT_MSG.ordinal() && trade.getState().ordinal() < Trade.State.SELLER_SENT_PAYMENT_RECEIVED_MSG.ordinal(); // TODO: test that can resen with same payout tx hex if delivery failed
+        return trade.getState().ordinal() >= Trade.State.BUYER_SENT_PAYMENT_SENT_MSG.ordinal() && trade.getState().ordinal() < Trade.State.SELLER_SENT_PAYMENT_RECEIVED_MSG.ordinal();
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -354,7 +354,6 @@ public class SellerStep3View extends TradeStepView {
     @Override
     protected void updateDisputeState(Trade.DisputeState disputeState) {
         super.updateDisputeState(disputeState);
-
         confirmButton.setDisable(!confirmPaymentReceivedPermitted());
     }
 
