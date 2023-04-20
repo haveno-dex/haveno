@@ -422,9 +422,15 @@ public class BuyerStep2View extends TradeStepView {
         HBox hBox = tuple3.fourth;
         GridPane.setColumnSpan(hBox, 2);
         confirmButton = tuple3.first;
+        confirmButton.setDisable(!confirmPaymentSentPermitted());
         confirmButton.setOnAction(e -> onPaymentSent());
         busyAnimation = tuple3.second;
         statusLabel = tuple3.third;
+    }
+
+    private boolean confirmPaymentSentPermitted() {
+        if (!trade.confirmPermitted()) return false;
+        return trade.isDepositsUnlocked() && trade.getState().ordinal() < Trade.State.BUYER_SENT_PAYMENT_SENT_MSG.ordinal();
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -454,8 +460,7 @@ public class BuyerStep2View extends TradeStepView {
     @Override
     protected void updateDisputeState(Trade.DisputeState disputeState) {
         super.updateDisputeState(disputeState);
-
-        confirmButton.setDisable(!trade.confirmPermitted());
+        confirmButton.setDisable(!confirmPaymentSentPermitted());
     }
 
 
@@ -596,11 +601,14 @@ public class BuyerStep2View extends TradeStepView {
     private void confirmPaymentSent() {
         busyAnimation.play();
         statusLabel.setText(Res.get("shared.sendingConfirmation"));
+        confirmButton.setDisable(true);
 
         model.dataModel.onPaymentSent(() -> {
         }, errorMessage -> {
             busyAnimation.stop();
             new Popup().warning(Res.get("popup.warning.sendMsgFailed")).show();
+            confirmButton.setDisable(!confirmPaymentSentPermitted());
+            UserThread.execute(() -> statusLabel.setText("Error confirming payment sent."));
         });
     }
 
