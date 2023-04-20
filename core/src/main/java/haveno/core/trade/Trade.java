@@ -688,6 +688,7 @@ public abstract class Trade implements Tradable, Model {
 
         // sync wallet if applicable
         if (!isDepositRequested() || isPayoutUnlocked()) return;
+        if (!walletExists()) log.warn("Missing trade wallet for {} {}", getClass().getSimpleName(), getId());
         if (xmrWalletService.getConnectionsService().getConnection() == null || Boolean.FALSE.equals(xmrWalletService.getConnectionsService().isConnected())) return;
         updateSyncing();
     }
