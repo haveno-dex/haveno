@@ -17,7 +17,10 @@
 
 package haveno.core.trade.protocol.tasks;
 
+import java.util.concurrent.TimeUnit;
+
 import haveno.common.Timer;
+import haveno.common.UserThread;
 import haveno.common.crypto.PubKeyRing;
 import haveno.common.taskrunner.TaskRunner;
 import haveno.core.network.MessageState;
@@ -45,6 +48,9 @@ import lombok.extern.slf4j.Slf4j;
 public abstract class BuyerSendPaymentSentMessage extends SendMailboxMessageTask {
     private ChangeListener<MessageState> listener;
     private Timer timer;
+    private static final int MAX_RESEND_ATTEMPTS = 10;
+    private int delayInMin = 10;
+    private int resendCounter = 0;
 
     public BuyerSendPaymentSentMessage(TaskRunner<Trade> taskHandler, Trade trade) {
         super(taskHandler, trade);
@@ -61,8 +67,6 @@ public abstract class BuyerSendPaymentSentMessage extends SendMailboxMessageTask
             super.run();
         } catch (Throwable t) {
             failed(t);
-        } finally {
-            cleanup();
         }
     }
 
@@ -105,22 +109,21 @@ public abstract class BuyerSendPaymentSentMessage extends SendMailboxMessageTask
 
     @Override
     protected void setStateSent() {
-        if (trade.getState().ordinal() < Trade.State.BUYER_SENT_PAYMENT_SENT_MSG.ordinal()) {
-            trade.setStateIfValidTransitionTo(Trade.State.BUYER_SENT_PAYMENT_SENT_MSG);
-        }
+        if (trade.getState().ordinal() < Trade.State.BUYER_SENT_PAYMENT_SENT_MSG.ordinal()) trade.setStateIfValidTransitionTo(Trade.State.BUYER_SENT_PAYMENT_SENT_MSG);
+        tryToSendAgainLater();
         processModel.getTradeManager().requestPersistence();
     }
 
     @Override
     protected void setStateArrived() {
         trade.setStateIfValidTransitionTo(Trade.State.BUYER_SAW_ARRIVED_PAYMENT_SENT_MSG);
+        processModel.getTradeManager().requestPersistence();
     }
 
     @Override
     protected void setStateStoredInMailbox() {
         trade.setStateIfValidTransitionTo(Trade.State.BUYER_STORED_IN_MAILBOX_PAYMENT_SENT_MSG);
         processModel.getTradeManager().requestPersistence();
-        // TODO: schedule repeat sending like haveno?
     }
 
     @Override
@@ -135,6 +138,42 @@ public abstract class BuyerSendPaymentSentMessage extends SendMailboxMessageTask
         }
         if (listener != null) {
             processModel.getPaymentSentMessageStateProperty().removeListener(listener);
+        }
+    }
+
+    private void tryToSendAgainLater() {
+
+        // skip if already acked
+        if (trade.getState().ordinal() >= Trade.State.SELLER_RECEIVED_PAYMENT_SENT_MSG.ordinal()) return;
+
+        if (resendCounter >= MAX_RESEND_ATTEMPTS) {
+            cleanup();
+            log.warn("We never received an ACK message when sending the PaymentSentMessage to the peer. We stop trying to send the message.");
+            return;
+        }
+
+        log.info("We will send the message again to the peer after a delay of {} min.", delayInMin);
+        if (timer != null) {
+            timer.stop();
+        }
+
+        timer = UserThread.runAfter(this::run, delayInMin, TimeUnit.MINUTES);
+
+        if (resendCounter == 0) {
+            listener = (observable, oldValue, newValue) -> onMessageStateChange(newValue);
+            processModel.getPaymentSentMessageStateProperty().addListener(listener);
+            onMessageStateChange(processModel.getPaymentSentMessageStateProperty().get());
+        }
+
+        delayInMin = delayInMin * 2;
+        resendCounter++;
+    }
+
+    private void onMessageStateChange(MessageState newValue) {
+        if (newValue == MessageState.ACKNOWLEDGED) {
+            trade.setStateIfValidTransitionTo(Trade.State.SELLER_RECEIVED_PAYMENT_SENT_MSG);
+            processModel.getTradeManager().requestPersistence();
+            cleanup();
         }
     }
 }
