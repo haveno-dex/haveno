@@ -69,6 +69,9 @@ public class ProcessDepositsConfirmedMessage extends TradeTask {
                 e.printStackTrace();
             }
 
+            // save wallet off thread
+            new Thread(() -> trade.saveWallet()).start();
+
             // persist and complete
             processModel.getTradeManager().requestPersistence();
             complete();

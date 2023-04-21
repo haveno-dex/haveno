@@ -1162,7 +1162,7 @@ public abstract class Trade implements Tradable, Model {
             isShutDown = true;
             synchronized (walletLock) {
                 if (wallet != null) {
-                    saveWallet();
+                    xmrWalletService.saveWallet(wallet, false); // skip backup
                     stopWallet();
                 }
             }

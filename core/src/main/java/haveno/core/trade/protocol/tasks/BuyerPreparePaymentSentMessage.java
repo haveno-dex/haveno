@@ -70,6 +70,9 @@ public class BuyerPreparePaymentSentMessage extends TradeTask {
                 MoneroTxWallet payoutTx = trade.createPayoutTx();
                 trade.setPayoutTx(payoutTx);
                 trade.setPayoutTxHex(payoutTx.getTxSet().getMultisigTxHex());
+
+                // save wallet off thread
+                new Thread(() -> trade.saveWallet()).start();
             }
 
             complete();

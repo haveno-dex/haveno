@@ -69,6 +69,9 @@ public class ProcessPaymentSentMessage extends TradeTask {
                 e.printStackTrace();
             }
 
+            // save wallet off thread
+            new Thread(() -> trade.saveWallet()).start();
+
             // update state
             trade.advanceState(Trade.State.BUYER_SENT_PAYMENT_SENT_MSG);
             trade.requestPersistence();
