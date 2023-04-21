@@ -609,8 +609,8 @@ public abstract class Trade implements Tradable, Model {
 
         // reset seller's payment received state if no ack receive
         if (this instanceof SellerTrade && getState().ordinal() >= Trade.State.SELLER_CONFIRMED_IN_UI_PAYMENT_RECEIPT.ordinal() && getState().ordinal() < Trade.State.SELLER_STORED_IN_MAILBOX_PAYMENT_RECEIVED_MSG.ordinal()) {
-            log.warn("Resetting state of {} {} from {} to {} because no ack was received", getClass().getSimpleName(), getId(), getState(), Trade.State.SELLER_RECEIVED_PAYMENT_SENT_MSG);
-            setState(Trade.State.SELLER_RECEIVED_PAYMENT_SENT_MSG);
+            log.warn("Resetting state of {} {} from {} to {} because no ack was received", getClass().getSimpleName(), getId(), getState(), Trade.State.BUYER_SENT_PAYMENT_SENT_MSG);
+            setState(Trade.State.BUYER_SENT_PAYMENT_SENT_MSG);
         }
 
         // handle trade phase events

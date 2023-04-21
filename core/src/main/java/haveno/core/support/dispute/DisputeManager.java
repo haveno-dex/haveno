@@ -494,7 +494,7 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
                 if (trade.isArbitrator() && message.getPaymentSentMessage() != null) {
                     HavenoUtils.verifyPaymentSentMessage(trade, message.getPaymentSentMessage());
                     trade.getBuyer().setUpdatedMultisigHex(message.getPaymentSentMessage().getUpdatedMultisigHex());
-                    trade.advanceState(sender == trade.getBuyer() ? Trade.State.BUYER_SENT_PAYMENT_SENT_MSG : Trade.State.SELLER_RECEIVED_PAYMENT_SENT_MSG);
+                    trade.advanceState(Trade.State.BUYER_SENT_PAYMENT_SENT_MSG);
                 }
 
                 // update multisig hex

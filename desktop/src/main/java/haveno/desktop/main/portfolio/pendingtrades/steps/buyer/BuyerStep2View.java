@@ -156,6 +156,7 @@ public class BuyerStep2View extends TradeStepView {
                             statusLabel.setText(Res.get("shared.preparingConfirmation"));
                             break;
                         case BUYER_SENT_PAYMENT_SENT_MSG:
+                        case BUYER_SAW_ARRIVED_PAYMENT_SENT_MSG:
                             busyAnimation.play();
                             statusLabel.setText(Res.get("shared.sendingConfirmation"));
                             model.setMessageStateProperty(MessageState.SENT);

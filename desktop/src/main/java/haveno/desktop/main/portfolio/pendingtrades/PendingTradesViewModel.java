@@ -377,8 +377,8 @@ public class PendingTradesViewModel extends ActivatableWithDataModel<PendingTrad
             case SENT_PUBLISH_DEPOSIT_TX_REQUEST:
             case SEND_FAILED_PUBLISH_DEPOSIT_TX_REQUEST:
             case SAW_ARRIVED_PUBLISH_DEPOSIT_TX_REQUEST:
-                sellerState.set(UNDEFINED); // TODO: show view while trade initializes?
                 buyerState.set(BuyerState.UNDEFINED);
+                sellerState.set(UNDEFINED); // TODO: show view while trade initializes?
                 break;
 
             case ARBITRATOR_PUBLISHED_DEPOSIT_TXS:
@@ -391,18 +391,20 @@ public class PendingTradesViewModel extends ActivatableWithDataModel<PendingTrad
             // buyer and seller step 2
             // deposits unlocked
             case DEPOSIT_TXS_UNLOCKED_IN_BLOCKCHAIN:
-                sellerState.set(SellerState.STEP2);
                 buyerState.set(BuyerState.STEP2);
+                sellerState.set(SellerState.STEP2);
                 break;
 
             // buyer step 3
             case BUYER_CONFIRMED_IN_UI_PAYMENT_SENT: // UI action
             case BUYER_SENT_PAYMENT_SENT_MSG:  // PAYMENT_SENT_MSG sent
+            case BUYER_SAW_ARRIVED_PAYMENT_SENT_MSG:  // PAYMENT_SENT_MSG arrived
                 // We don't switch the UI before we got the feedback of the msg delivery
                 buyerState.set(BuyerState.STEP2);
+                sellerState.set(trade.isPayoutPublished() ? SellerState.STEP4 : SellerState.STEP3);
                 break;
-            case BUYER_SAW_ARRIVED_PAYMENT_SENT_MSG:  // PAYMENT_SENT_MSG arrived
-            case BUYER_STORED_IN_MAILBOX_PAYMENT_SENT_MSG:  // PAYMENT_SENT_MSG in mailbox
+            case BUYER_STORED_IN_MAILBOX_PAYMENT_SENT_MSG: // PAYMENT_SENT_MSG in mailbox
+            case SELLER_RECEIVED_PAYMENT_SENT_MSG: // PAYMENT_SENT_MSG acked
                 buyerState.set(BuyerState.STEP3);
                 break;
             case BUYER_SEND_FAILED_PAYMENT_SENT_MSG:  // PAYMENT_SENT_MSG failed
@@ -417,7 +419,6 @@ public class PendingTradesViewModel extends ActivatableWithDataModel<PendingTrad
                 break;
 
             // seller step 3
-            case SELLER_RECEIVED_PAYMENT_SENT_MSG: // PAYMENT_SENT_MSG received
             case SELLER_CONFIRMED_IN_UI_PAYMENT_RECEIPT:
             case SELLER_SEND_FAILED_PAYMENT_RECEIVED_MSG:
             case SELLER_STORED_IN_MAILBOX_PAYMENT_RECEIVED_MSG:
