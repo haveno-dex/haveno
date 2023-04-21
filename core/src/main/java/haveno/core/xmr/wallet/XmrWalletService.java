@@ -449,7 +449,7 @@ public class XmrWalletService {
 
                 // verify miner fee
                 BigInteger feeEstimate = getFeeEstimate(tx.getWeight());
-                double feeDiff = tx.getFee().subtract(feeEstimate).abs().doubleValue() / feeEstimate.doubleValue(); // TODO: use BigDecimal?
+                double feeDiff = tx.getFee().subtract(feeEstimate).abs().doubleValue() / feeEstimate.doubleValue();
                 if (feeDiff > MINER_FEE_TOLERANCE) throw new Error("Miner fee is not within " + (MINER_FEE_TOLERANCE * 100) + "% of estimated fee, expected " + feeEstimate + " but was " + tx.getFee());
                 log.info("Trade tx fee {} is within tolerance, diff%={}", tx.getFee(), feeDiff);
 

@@ -47,7 +47,6 @@ import haveno.core.trade.ClosedTradableManager;
 import haveno.core.trade.TradeManager;
 import haveno.core.trade.failed.FailedTradesManager;
 import haveno.core.trade.statistics.TradeStatisticsManager;
-import haveno.core.trade.txproof.xmr.XmrTxProofService;
 import haveno.core.user.User;
 import haveno.core.xmr.Balances;
 import haveno.network.p2p.P2PService;
@@ -72,7 +71,6 @@ public class DomainInitialisation {
     private final TradeManager tradeManager;
     private final ClosedTradableManager closedTradableManager;
     private final FailedTradesManager failedTradesManager;
-    private final XmrTxProofService xmrTxProofService;
     private final OpenOfferManager openOfferManager;
     private final Balances balances;
     private final WalletAppSetup walletAppSetup;
@@ -105,7 +103,6 @@ public class DomainInitialisation {
                                 TradeManager tradeManager,
                                 ClosedTradableManager closedTradableManager,
                                 FailedTradesManager failedTradesManager,
-                                XmrTxProofService xmrTxProofService,
                                 OpenOfferManager openOfferManager,
                                 Balances balances,
                                 WalletAppSetup walletAppSetup,
@@ -136,7 +133,6 @@ public class DomainInitialisation {
         this.tradeManager = tradeManager;
         this.closedTradableManager = closedTradableManager;
         this.failedTradesManager = failedTradesManager;
-        this.xmrTxProofService = xmrTxProofService;
         this.openOfferManager = openOfferManager;
         this.balances = balances;
         this.walletAppSetup = walletAppSetup;
@@ -182,7 +178,6 @@ public class DomainInitialisation {
 
         closedTradableManager.onAllServicesInitialized();
         failedTradesManager.onAllServicesInitialized();
-        xmrTxProofService.onAllServicesInitialized();
 
         openOfferManager.onAllServicesInitialized();
 

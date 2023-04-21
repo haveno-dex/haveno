@@ -96,11 +96,9 @@ import haveno.desktop.components.paymentmethods.VerseForm;
 import haveno.desktop.components.paymentmethods.WeChatPayForm;
 import haveno.desktop.components.paymentmethods.WesternUnionForm;
 import haveno.desktop.main.overlays.popups.Popup;
-import haveno.desktop.main.overlays.windows.SetXmrTxKeyWindow;
 import haveno.desktop.main.portfolio.pendingtrades.PendingTradesViewModel;
 import haveno.desktop.main.portfolio.pendingtrades.steps.TradeStepView;
 import haveno.desktop.util.Layout;
-import haveno.desktop.util.Transitions;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.layout.GridPane;
@@ -110,7 +108,6 @@ import org.fxmisc.easybind.EasyBind;
 import org.fxmisc.easybind.Subscription;
 
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static haveno.desktop.util.FormBuilder.addButtonBusyAnimationLabel;
@@ -543,42 +540,9 @@ public class BuyerStep2View extends TradeStepView {
             } else {
                 showConfirmPaymentSentPopup();
             }
-        } else if (sellersPaymentAccountPayload instanceof AssetAccountPayload && isXmrTrade()) {
-            SetXmrTxKeyWindow setXmrTxKeyWindow = new SetXmrTxKeyWindow();
-            setXmrTxKeyWindow
-                    .actionButtonText(Res.get("portfolio.pending.step2_buyer.confirmStart.headline"))
-                    .onAction(() -> {
-                        String txKey = setXmrTxKeyWindow.getTxKey();
-                        String txHash = setXmrTxKeyWindow.getTxHash();
-                        if (txKey == null || txHash == null || txKey.isEmpty() || txHash.isEmpty()) {
-                            UserThread.runAfter(this::showProofWarningPopup, Transitions.DEFAULT_DURATION, TimeUnit.MILLISECONDS);
-                            return;
-                        }
-
-                        trade.setCounterCurrencyExtraData(txKey);
-                        trade.setCounterCurrencyTxId(txHash);
-
-                        model.dataModel.getTradeManager().requestPersistence();
-                        showConfirmPaymentSentPopup();
-                    })
-                    .closeButtonText(Res.get("shared.cancel"))
-                    .onClose(setXmrTxKeyWindow::hide)
-                    .show();
         } else {
             showConfirmPaymentSentPopup();
         }
-    }
-
-    private void showProofWarningPopup() {
-        Popup popup = new Popup();
-        popup.headLine(Res.get("portfolio.pending.step2_buyer.confirmStart.proof.warningTitle"))
-                .confirmation(Res.get("portfolio.pending.step2_buyer.confirmStart.proof.noneProvided"))
-                .width(700)
-                .actionButtonText(Res.get("portfolio.pending.step2_buyer.confirmStart.warningButton"))
-                .onAction(this::showConfirmPaymentSentPopup)
-                .closeButtonText(Res.get("shared.cancel"))
-                .onClose(popup::hide)
-                .show();
     }
 
     private void showConfirmPaymentSentPopup() {
