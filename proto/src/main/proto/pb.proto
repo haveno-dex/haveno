@@ -1497,8 +1497,7 @@ message Trade {
     NodeAddress refund_agent_node_address = 27;
     RefundResultState refund_result_state = 28;
     string counter_currency_extra_data = 29;
-    string asset_tx_proof_result = 30; // name of AssetTxProofResult enum
-    string uid = 31;
+    string uid = 30;
 }
 
 message BuyerAsMakerTrade {

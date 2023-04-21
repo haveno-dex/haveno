@@ -47,7 +47,6 @@ import haveno.core.trade.protocol.ProcessModelServiceProvider;
 import haveno.core.trade.protocol.TradeListener;
 import haveno.core.trade.protocol.TradePeer;
 import haveno.core.trade.protocol.TradeProtocol;
-import haveno.core.trade.txproof.AssetTxProofResult;
 import haveno.core.util.VolumeUtil;
 import haveno.core.xmr.model.XmrAddressEntry;
 import haveno.core.xmr.wallet.XmrWalletService;
@@ -55,13 +54,11 @@ import haveno.network.p2p.AckMessage;
 import haveno.network.p2p.NodeAddress;
 import haveno.network.p2p.P2PService;
 import javafx.beans.property.DoubleProperty;
-import javafx.beans.property.IntegerProperty;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.ReadOnlyDoubleProperty;
 import javafx.beans.property.ReadOnlyObjectProperty;
 import javafx.beans.property.ReadOnlyStringProperty;
 import javafx.beans.property.SimpleDoubleProperty;
-import javafx.beans.property.SimpleIntegerProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
@@ -426,18 +423,6 @@ public abstract class Trade implements Tradable, Model {
     @Getter
     @Setter
     private String counterCurrencyExtraData;
-
-    // Added at v1.3.8
-    // Generic tx proof result. We persist name if AssetTxProofResult enum. Other fields in the enum are not persisted
-    // as they are not very relevant as historical data (e.g. number of confirmations)
-    @Nullable
-    @Getter
-    private AssetTxProofResult assetTxProofResult;
-    // ObjectProperty with AssetTxProofResult does not notify changeListeners. Probably because AssetTxProofResult is
-    // an enum and enum does not support EqualsAndHashCode. Alternatively we could add a addListener and removeListener
-    // method and a listener interface, but the IntegerProperty seems to be less boilerplate.
-    @Getter
-    transient final private IntegerProperty assetTxProofResultUpdateProperty = new SimpleIntegerProperty();
 
     // Added in XMR integration
     private transient List<TradeListener> tradeListeners; // notified on fully validated trade messages
@@ -1342,11 +1327,6 @@ public abstract class Trade implements Tradable, Model {
         errorMessageProperty.set(appendedErrorMessage);
     }
 
-    public void setAssetTxProofResult(@Nullable AssetTxProofResult assetTxProofResult) {
-        this.assetTxProofResult = assetTxProofResult;
-        assetTxProofResultUpdateProperty.set(assetTxProofResultUpdateProperty.get() + 1);
-    }
-
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Getter
@@ -1996,7 +1976,6 @@ public abstract class Trade implements Tradable, Model {
         Optional.ofNullable(payoutTxHex).ifPresent(e -> builder.setPayoutTxHex(payoutTxHex));
         Optional.ofNullable(payoutTxKey).ifPresent(e -> builder.setPayoutTxKey(payoutTxKey));
         Optional.ofNullable(counterCurrencyExtraData).ifPresent(e -> builder.setCounterCurrencyExtraData(counterCurrencyExtraData));
-        Optional.ofNullable(assetTxProofResult).ifPresent(e -> builder.setAssetTxProofResult(assetTxProofResult.name()));
         return builder.build();
     }
 
@@ -2019,13 +1998,6 @@ public abstract class Trade implements Tradable, Model {
         trade.setLockTime(proto.getLockTime());
         trade.setStartTime(proto.getStartTime());
         trade.setCounterCurrencyExtraData(ProtoUtil.stringOrNullFromProto(proto.getCounterCurrencyExtraData()));
-
-        AssetTxProofResult persistedAssetTxProofResult = ProtoUtil.enumFromProto(AssetTxProofResult.class, proto.getAssetTxProofResult());
-        // We do not want to show the user the last pending state when he starts up the app again, so we clear it.
-        if (persistedAssetTxProofResult == AssetTxProofResult.PENDING) {
-            persistedAssetTxProofResult = null;
-        }
-        trade.setAssetTxProofResult(persistedAssetTxProofResult);
 
         trade.chatMessages.addAll(proto.getChatMessageList().stream()
                 .map(ChatMessage::fromPayloadProto)
@@ -2055,7 +2027,6 @@ public abstract class Trade implements Tradable, Model {
                 ",\n     errorMessage='" + errorMessage + '\'' +
                 ",\n     counterCurrencyTxId='" + counterCurrencyTxId + '\'' +
                 ",\n     counterCurrencyExtraData='" + counterCurrencyExtraData + '\'' +
-                ",\n     assetTxProofResult='" + assetTxProofResult + '\'' +
                 ",\n     chatMessages=" + chatMessages +
                 ",\n     totalTxFee=" + totalTxFee +
                 ",\n     takerFee=" + takerFee +

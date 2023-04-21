@@ -994,30 +994,6 @@ public class TradeWalletService {
         return new Tuple2<>(txId, signedTxHex);
     }
 
-    public void emergencyPublishPayoutTxFrom2of2MultiSig(String signedTxHex, TxBroadcaster.Callback callback)
-            throws AddressFormatException, TransactionVerificationException, WalletException {
-        Transaction payoutTx = new Transaction(params, Utils.HEX.decode(signedTxHex));
-        WalletService.printTx("payoutTx", payoutTx);
-        WalletService.verifyTransaction(payoutTx);
-        WalletService.checkWalletConsistency(wallet);
-        broadcastTx(payoutTx, callback, 20);
-    }
-
-
-    ///////////////////////////////////////////////////////////////////////////////////////////
-    // Broadcast tx
-    ///////////////////////////////////////////////////////////////////////////////////////////
-
-    public void broadcastTx(Transaction tx, TxBroadcaster.Callback callback) {
-        checkNotNull(walletConfig);
-        TxBroadcaster.broadcastTx(wallet, walletConfig.peerGroup(), tx, callback);
-    }
-
-    public void broadcastTx(Transaction tx, TxBroadcaster.Callback callback, int timeoutInSec) {
-        checkNotNull(walletConfig);
-        TxBroadcaster.broadcastTx(wallet, walletConfig.peerGroup(), tx, callback, timeoutInSec);
-    }
-
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Misc

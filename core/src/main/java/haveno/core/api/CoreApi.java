@@ -17,7 +17,6 @@
 
 package haveno.core.api;
 
-import com.google.common.util.concurrent.FutureCallback;
 import haveno.common.app.Version;
 import haveno.common.config.Config;
 import haveno.common.crypto.IncorrectPasswordException;
@@ -294,14 +293,6 @@ public class CoreApi {
 
     public List<AddressBalanceInfo> getFundingAddresses() {
         return walletsService.getFundingAddresses();
-    }
-
-    public void sendBtc(String address,
-                        String amount,
-                        String txFeeRate,
-                        String memo,
-                        FutureCallback<Transaction> callback) {
-        walletsService.sendBtc(address, amount, txFeeRate, memo, callback);
     }
 
     public Transaction getTransaction(String txId) {

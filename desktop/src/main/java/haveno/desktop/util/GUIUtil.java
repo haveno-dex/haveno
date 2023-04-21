@@ -49,7 +49,6 @@ import haveno.core.payment.PaymentAccount;
 import haveno.core.payment.PaymentAccountList;
 import haveno.core.payment.payload.PaymentMethod;
 import haveno.core.trade.HavenoUtils;
-import haveno.core.trade.txproof.AssetTxProofResult;
 import haveno.core.user.DontShowAgainLookup;
 import haveno.core.user.Preferences;
 import haveno.core.user.User;
@@ -104,7 +103,6 @@ import org.bitcoinj.core.Coin;
 import org.bitcoinj.uri.BitcoinURI;
 import org.jetbrains.annotations.NotNull;
 
-import javax.annotation.Nullable;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -1016,35 +1014,6 @@ public class GUIUtil {
         return (state.equals(AccountAgeWitnessService.SignState.ARBITRATOR) ||
                 state.equals(AccountAgeWitnessService.SignState.PEER_SIGNER)) ?
                 MaterialDesignIcon.APPROVAL : MaterialDesignIcon.ALERT_CIRCLE_OUTLINE;
-    }
-
-    public static String getProofResultAsString(@Nullable AssetTxProofResult result) {
-        if (result == null) {
-            return "";
-        }
-        String key = "portfolio.pending.autoConf.state." + result.name();
-        switch (result) {
-            case UNDEFINED:
-                return "";
-            case FEATURE_DISABLED:
-                return Res.get(key, result.getDetails());
-            case TRADE_LIMIT_EXCEEDED:
-                return Res.get(key);
-            case INVALID_DATA:
-                return Res.get(key, result.getDetails());
-            case PAYOUT_TX_ALREADY_PUBLISHED:
-            case DISPUTE_OPENED:
-            case REQUESTS_STARTED:
-                return Res.get(key);
-            case PENDING:
-                return Res.get(key, result.getNumSuccessResults(), result.getNumRequiredSuccessResults(), result.getDetails());
-            case COMPLETED:
-            case ERROR:
-            case FAILED:
-                return Res.get(key);
-            default:
-                return result.name();
-        }
     }
 
     public static ScrollPane createScrollPane() {

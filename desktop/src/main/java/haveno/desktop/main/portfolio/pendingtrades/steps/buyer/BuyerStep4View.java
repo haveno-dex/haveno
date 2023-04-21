@@ -21,7 +21,6 @@ import com.jfoenix.controls.JFXBadge;
 import haveno.common.UserThread;
 import haveno.common.app.DevEnv;
 import haveno.core.locale.Res;
-import haveno.core.trade.txproof.AssetTxProofResult;
 import haveno.core.user.DontShowAgainLookup;
 import haveno.core.xmr.model.XmrAddressEntry;
 import haveno.desktop.components.AutoTooltipButton;
@@ -88,15 +87,11 @@ public class BuyerStep4View extends TradeStepView {
         } else {
             completedTradeLabel.setText(Res.get("portfolio.pending.step5_buyer.groupTitle"));
         }
-        JFXBadge autoConfBadge = new JFXBadge(new Label(""), Pos.BASELINE_RIGHT);
-        autoConfBadge.setText(Res.get("portfolio.pending.autoConf"));
-        autoConfBadge.getStyleClass().add("auto-conf");
 
-        HBox hBox2 = new HBox(1, completedTradeLabel, autoConfBadge);
+        HBox hBox2 = new HBox(1, completedTradeLabel);
         GridPane.setMargin(hBox2, new Insets(18, -10, -12, -10));
         gridPane.getChildren().add(hBox2);
         GridPane.setRowSpan(hBox2, 5);
-        autoConfBadge.setVisible(AssetTxProofResult.COMPLETED == trade.getAssetTxProofResult());
 
         if (trade.getDisputeState().isNotDisputed()) {
             addCompactTopLabelTextField(gridPane, gridRow, getBtcTradeAmountLabel(), model.getTradeVolume(), Layout.TWICE_FIRST_ROW_DISTANCE);

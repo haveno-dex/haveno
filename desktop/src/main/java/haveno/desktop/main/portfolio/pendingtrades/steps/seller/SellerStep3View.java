@@ -40,7 +40,6 @@ import haveno.core.payment.payload.USPostalMoneyOrderAccountPayload;
 import haveno.core.payment.payload.WesternUnionAccountPayload;
 import haveno.core.trade.Contract;
 import haveno.core.trade.Trade;
-import haveno.core.trade.txproof.AssetTxProofResult;
 import haveno.core.user.DontShowAgainLookup;
 import haveno.core.util.VolumeUtil;
 import haveno.desktop.components.BusyAnimation;
@@ -50,7 +49,6 @@ import haveno.desktop.components.indicator.TxConfidenceIndicator;
 import haveno.desktop.main.overlays.popups.Popup;
 import haveno.desktop.main.portfolio.pendingtrades.PendingTradesViewModel;
 import haveno.desktop.main.portfolio.pendingtrades.steps.TradeStepView;
-import haveno.desktop.util.GUIUtil;
 import haveno.desktop.util.Layout;
 import javafx.beans.value.ChangeListener;
 import javafx.geometry.Insets;
@@ -67,7 +65,6 @@ import org.fxmisc.easybind.Subscription;
 import javax.annotation.Nullable;
 import java.util.Optional;
 
-import static com.google.common.base.Preconditions.checkNotNull;
 import static haveno.desktop.util.FormBuilder.addButtonBusyAnimationLabelAfterGroup;
 import static haveno.desktop.util.FormBuilder.addCompactTopLabelTextFieldWithCopyIcon;
 import static haveno.desktop.util.FormBuilder.addTitledGroupBg;
@@ -154,15 +151,6 @@ public class SellerStep3View extends TradeStepView {
                 }
             }
         });
-
-        if (isXmrTrade()) {
-            proofResultListener = (observable, oldValue, newValue) -> {
-                applyAssetTxProofResult(trade.getAssetTxProofResult());
-            };
-            trade.getAssetTxProofResultUpdateProperty().addListener(proofResultListener);
-
-            applyAssetTxProofResult(trade.getAssetTxProofResult());
-        }
     }
 
     @Override
@@ -178,10 +166,6 @@ public class SellerStep3View extends TradeStepView {
 
         if (timeoutTimer != null) {
             timeoutTimer.stop();
-        }
-
-        if (isXmrTrade()) {
-            trade.getAssetTxProofResultUpdateProperty().removeListener(proofResultListener);
         }
     }
 
@@ -485,42 +469,6 @@ public class SellerStep3View extends TradeStepView {
                 return Optional.empty();
         } else {
             return Optional.empty();
-        }
-    }
-
-    private void applyAssetTxProofResult(@Nullable AssetTxProofResult result) {
-        checkNotNull(assetTxProofResultField);
-        checkNotNull(assetTxConfidenceIndicator);
-
-        String txt = GUIUtil.getProofResultAsString(result);
-        assetTxProofResultField.setText(txt);
-
-        if (result == null) {
-            assetTxConfidenceIndicator.setProgress(0);
-            return;
-        }
-
-        switch (result) {
-            case PENDING:
-            case COMPLETED:
-                if (result.getNumRequiredConfirmations() > 0) {
-                    int numRequiredConfirmations = result.getNumRequiredConfirmations();
-                    int numConfirmations = result.getNumConfirmations();
-                    if (numConfirmations == 0) {
-                        assetTxConfidenceIndicator.setProgress(-1);
-                    } else {
-                        double progress = Math.min(1, (double) numConfirmations / (double) numRequiredConfirmations);
-                        assetTxConfidenceIndicator.setProgress(progress);
-                        assetTxConfidenceIndicator.getTooltip().setText(
-                                Res.get("portfolio.pending.autoConf.blocks",
-                                        numConfirmations, numRequiredConfirmations));
-                    }
-                }
-                break;
-            default:
-                // Set invisible by default
-                assetTxConfidenceIndicator.setProgress(0);
-                break;
         }
     }
 
