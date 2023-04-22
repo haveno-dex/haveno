@@ -198,20 +198,20 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
         this.signedOfferPersistenceManager.initialize(signedOffers, "SignedOffers", PersistenceManager.Source.PRIVATE); // arbitrator stores reserve tx for signed offers
 
         // listen for connection changes to monerod
-        connectionsService.addListener(new MoneroConnectionManagerListener() {
+        connectionsService.addConnectionListener(new MoneroConnectionManagerListener() {
             @Override
             public void onConnectionChanged(MoneroRpcConnection connection) {
                 maybeInitializeKeyImagePoller();
             }
         });
 
-        // remove open offer if reserved funds spent
+        // close open offer if reserved funds spent
         offerBookService.addOfferBookChangedListener(new OfferBookChangedListener() {
             @Override
             public void onAdded(Offer offer) {
                 Optional<OpenOffer> openOfferOptional = getOpenOfferById(offer.getId());
                 if (openOfferOptional.isPresent() && openOfferOptional.get().getState() != OpenOffer.State.RESERVED && offer.isReservedFundsSpent()) {
-                    removeOpenOffer(openOfferOptional.get(), null);
+                    closeOpenOffer(offer);
                 }
             }
             @Override
@@ -637,6 +637,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
         }
     }
 
+    // remove open offer which thaws its key images
     private void onRemoved(@NotNull OpenOffer openOffer) {
         Offer offer = openOffer.getOffer();
         if (offer.getOfferPayload().getReserveTxKeyImages() != null) {
@@ -652,7 +653,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
         requestPersistence();
     }
 
-    // Close openOffer after deposit published
+    // close open offer after key images spent
     public void closeOpenOffer(Offer offer) {
         getOpenOfferById(offer.getId()).ifPresent(openOffer -> {
             removeOpenOffer(openOffer);

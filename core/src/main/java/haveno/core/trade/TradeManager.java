@@ -21,7 +21,6 @@ import com.google.common.collect.ImmutableList;
 
 import common.utils.GenUtils;
 import haveno.common.ClockWatcher;
-import haveno.common.UserThread;
 import haveno.common.crypto.KeyRing;
 import haveno.common.handlers.ErrorMessageHandler;
 import haveno.common.handlers.FaultHandler;
@@ -88,6 +87,7 @@ import monero.wallet.model.MoneroOutputQuery;
 import org.bitcoinj.core.Coin;
 import org.bouncycastle.crypto.params.KeyParameter;
 import org.fxmisc.easybind.EasyBind;
+import org.fxmisc.easybind.Subscription;
 import org.fxmisc.easybind.monadic.MonadicBinding;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -292,10 +292,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
         log.info("{}.onShutDownStarted()", getClass().getSimpleName());
 
         // collect trades to prepare
-        Set<Trade> trades = new HashSet<Trade>();
-        trades.addAll(tradableList.getList());
-        trades.addAll(closedTradableManager.getClosedTrades());
-        trades.addAll(failedTradesManager.getObservableList());
+        List<Trade> trades = getAllTrades();
 
         // prepare to shut down trades in parallel
         Set<Runnable> tasks = new HashSet<Runnable>();
@@ -408,14 +405,25 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
             // initialize trades in parallel
             int threadPoolSize = 10;
             Set<Runnable> tasks = new HashSet<Runnable>();
+            Set<String> uids = new HashSet<String>();
+            Set<Trade> tradesToSkip = new HashSet<Trade>();
             for (Trade trade : trades) {
                 tasks.add(() -> {
                     try {
+                        
+                        // check for duplicate uid
+                        if (!uids.add(trade.getUid())) {
+                            log.warn("Found trade with duplicate uid, skipping. That should never happen. {} {}, uid={}", trade.getClass().getSimpleName(), trade.getId(), trade.getUid());
+                            tradesToSkip.add(trade);
+                            return;
+                        }
+
+                        // initialize trade
                         initPersistedTrade(trade);
 
                         // remove trade if protocol didn't initialize
-                        if (getOpenTradeByUid(trade.getId()).isPresent() && !trade.isDepositRequested()) {
-                            log.warn("Removing persisted {} {} with uid={} because it did not finish initializing (state={})", trade.getClass().getSimpleName(), trade.getId(), trade.getUid(), trade.getState());
+                        if (getOpenTradeByUid(trade.getUid()).isPresent() && !trade.isDepositsPublished()) {
+                            log.warn("Maybe removing persisted {} {} with uid={} because it did not finish initializing (state={})", trade.getClass().getSimpleName(), trade.getId(), trade.getUid(), trade.getState());
                             maybeRemoveTradeOnError(trade);
                         }
                     } catch (Exception e) {
@@ -429,11 +437,12 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
             log.info("Done initializing persisted trades");
             if (isShutDown) return;
 
+            // remove skipped trades
+            trades.removeAll(tradesToSkip);
+
             // sync idle trades once in background after active trades
             for (Trade trade : trades) {
-                if (trade.isIdling())  {
-                    HavenoUtils.submitTask(() -> trade.syncWallet());
-                }
+                if (trade.isIdling()) HavenoUtils.submitTask(() -> trade.syncWallet());
             }
     
             getObservableList().addListener((ListChangeListener<Trade>) change -> onTradesChanged());
@@ -480,7 +489,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
         if (getTradeProtocol(trade) != null) return;
         initTradeAndProtocol(trade, createTradeProtocol(trade));
         requestPersistence();
-        scheduleDeletionIfUnfunded(trade);
+        listenForCleanup(trade);
     }
 
     private void initTradeAndProtocol(Trade trade, TradeProtocol tradeProtocol) {
@@ -585,11 +594,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
 
           ((ArbitratorProtocol) getTradeProtocol(trade)).handleInitTradeRequest(request, sender, errorMessage -> {
               log.warn("Arbitrator error during trade initialization for trade {}: {}", trade.getId(), errorMessage);
-              if (trade.getMaker().getReserveTxHash() != null || trade.getTaker().getReserveTxHash() != null) {
-                onMoveInvalidTradeToFailedTrades(trade); // arbitrator retains failed trades for analysis and penalty
-              } else {
-                maybeRemoveTradeOnError(trade);
-              }
+              maybeRemoveTradeOnError(trade);
               if (takeOfferRequestErrorMessageHandler != null) takeOfferRequestErrorMessageHandler.handleErrorMessage(errorMessage);
           });
 
@@ -625,7 +630,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
           }
 
           // reserve open offer
-          openOfferManager.reserveOpenOffer(openOffer); // TODO (woodser): reserve offer if arbitrator? probably. or, arbitrator does not have open offer?
+          openOfferManager.reserveOpenOffer(openOffer);
 
           // get expected taker fee
           BigInteger takerFee = HavenoUtils.getTakerFee(BigInteger.valueOf(offer.getOfferPayload().getAmount()));
@@ -677,7 +682,6 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
           ((MakerProtocol) getTradeProtocol(trade)).handleInitTradeRequest(request, sender, errorMessage -> {
               log.warn("Maker error during trade initialization: " + errorMessage);
               maybeRemoveTradeOnError(trade);
-              openOfferManager.unreserveOpenOffer(openOffer); // offer remains available // TODO: only unreserve if funds not deposited to multisig
               if (takeOfferRequestErrorMessageHandler != null) takeOfferRequestErrorMessageHandler.handleErrorMessage(errorMessage);
           });
 
@@ -989,7 +993,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
     // If trade is in already in critical state (if taker role: taker fee; both roles: after deposit published)
     // we move the trade to failedTradesManager
     public void onMoveInvalidTradeToFailedTrades(Trade trade) {
-        maybeRemoveTradeOnError(trade);
+        removeTrade(trade);
         failedTradesManager.add(trade);
     }
 
@@ -1160,6 +1164,10 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
         }
     }
 
+    public List<Trade> getClosedTrades() {
+        return closedTradableManager.getClosedTrades();
+    }
+
     public Optional<Trade> getClosedTrade(String tradeId) {
         return closedTradableManager.getClosedTrades().stream().filter(e -> e.getId().equals(tradeId)).findFirst();
     }
@@ -1187,9 +1195,18 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
     }
 
     private void maybeRemoveTradeOnError(Trade trade) {
-        log.info("TradeManager.maybeRemoveTradeOnError() " + trade.getId());
         synchronized (tradableList) {
-            if (!tradableList.contains(trade)) return;
+            if (trade.isDepositRequested() && !trade.isDepositFailed()) {
+                listenForCleanup(trade);
+            } else {
+                removeTradeOnError(trade);
+            }
+        }
+    }
+
+    private void removeTradeOnError(Trade trade) {
+        log.info("TradeManager.removeTradeOnError() " + trade.getId());
+        synchronized (tradableList) {
 
             // unreserve taker key images
             if (trade instanceof TakerTrade && trade.getSelf().getReserveTxKeyImages() != null) {
@@ -1198,42 +1215,100 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
                 trade.getSelf().setReserveTxKeyImages(null);
             }
 
-            // remove trade if wallet deleted
-            if (!trade.walletExists()) {
-                removeTrade(trade);
-                return;
+            // unreserve open offer
+            Optional<OpenOffer> openOffer = openOfferManager.getOpenOfferById(trade.getId());
+            if (trade instanceof MakerTrade && openOffer.isPresent()) {
+                openOfferManager.unreserveOpenOffer(openOffer.get());
             }
 
-            // remove trade and wallet unless deposit requested without nack
-            if (!trade.isDepositRequested() || trade.isDepositFailed()) {
-                removeTrade(trade);
-                if (trade.walletExists()) trade.deleteWallet();
+            // remove trade from list
+            removeTrade(trade);
+
+            // delete trade wallet
+            if (trade.walletExists()) trade.deleteWallet();
+        }
+    }
+
+    private void listenForCleanup(Trade trade) {
+        if (getOpenTrade(trade.getId()).isPresent() && trade.isDepositRequested()) {
+            if (trade.isDepositsPublished()) {
+                cleanupPublishedTrade(trade);
             } else {
-                scheduleDeletionIfUnfunded(trade);
+                log.warn("Scheduling to delete open trade if unfunded for {} {}", trade.getClass().getSimpleName(), trade.getId());
+                new TradeCleanupListener(trade); // TODO: better way than creating listener?
             }
         }
     }
 
-    private void scheduleDeletionIfUnfunded(Trade trade) {
-        if (getOpenTrade(trade.getId()).isPresent() && trade.isDepositRequested() && !trade.isDepositsPublished()) {
-            log.warn("Scheduling to delete open trade if unfunded for {} {}", trade.getClass().getSimpleName(), trade.getId());
-            UserThread.runAfter(() -> {
-                if (isShutDown) return;
+    private void cleanupPublishedTrade(Trade trade) {
+        if (trade instanceof MakerTrade && openOfferManager.getOpenOfferById(trade.getId()).isPresent()) {
+            log.warn("Closing open offer as cleanup step");
+            openOfferManager.closeOpenOffer(checkNotNull(trade.getOffer()));
+        }
+    }
 
-                // get trade's deposit txs from daemon
-                MoneroTx makerDepositTx = trade.getMaker().getDepositTxHash() == null ? null : xmrWalletService.getDaemon().getTx(trade.getMaker().getDepositTxHash());
-                MoneroTx takerDepositTx = trade.getTaker().getDepositTxHash() == null ? null : xmrWalletService.getDaemon().getTx(trade.getTaker().getDepositTxHash());
+    private class TradeCleanupListener {
 
-                // delete multisig trade wallet if neither deposit tx published
-                if (makerDepositTx == null && takerDepositTx == null) {
-                    log.warn("Deleting {} {} after protocol error", trade.getClass().getSimpleName(), trade.getId());
-                    removeTrade(trade);
-                    failedTradesManager.removeTrade(trade);
-                    if (trade.walletExists()) trade.deleteWallet();
-                } else {
-                    log.warn("Refusing to delete {} {} after protocol timeout because its wallet might be funded", trade.getClass().getSimpleName(), trade.getId());
+        private static final long REMOVE_AFTER_MS = 60000;
+        private static final int REMOVE_AFTER_NUM_CONFIRMATIONS = 1;
+        private Long startHeight;
+        private Subscription stateSubscription;
+        private Subscription heightSubscription;
+
+        public TradeCleanupListener(Trade trade) {
+
+            // listen for deposits published to close open offer
+            stateSubscription = EasyBind.subscribe(trade.stateProperty(), state -> {
+                if (trade.isDepositsPublished()) {
+                    cleanupPublishedTrade(trade);
+                    if (stateSubscription != null) {
+                        stateSubscription.unsubscribe();
+                        stateSubscription = null;
+                    }
                 }
-            }, 60);
+            });
+
+            // listen for block confirmation to remove trade
+            long startTime = System.currentTimeMillis();
+            heightSubscription = EasyBind.subscribe(xmrWalletService.getConnectionsService().chainHeightProperty(), lastBlockHeight -> {
+                if (isShutDown) return;
+                if (startHeight == null) startHeight = lastBlockHeight.longValue();
+                if (lastBlockHeight.longValue() >= startHeight + REMOVE_AFTER_NUM_CONFIRMATIONS) {
+                    new Thread(() -> {
+
+                        // wait minimum time
+                        GenUtils.waitFor(Math.max(0, REMOVE_AFTER_MS - (System.currentTimeMillis() - startTime)));
+
+                        // get trade's deposit txs from daemon
+                        MoneroTx makerDepositTx = trade.getMaker().getDepositTxHash() == null ? null : xmrWalletService.getDaemon().getTx(trade.getMaker().getDepositTxHash());
+                        MoneroTx takerDepositTx = trade.getTaker().getDepositTxHash() == null ? null : xmrWalletService.getDaemon().getTx(trade.getTaker().getDepositTxHash());
+
+                        // remove trade and wallet if neither deposit tx published
+                        if (makerDepositTx == null && takerDepositTx == null) {
+                            log.warn("Deleting {} {} after protocol error", trade.getClass().getSimpleName(), trade.getId());
+                            if (trade instanceof ArbitratorTrade && (trade.getMaker().getReserveTxHash() != null || trade.getTaker().getReserveTxHash() != null)) {
+                                onMoveInvalidTradeToFailedTrades(trade); // arbitrator retains trades with reserved funds for analysis and penalty
+                            } else {
+                                removeTradeOnError(trade);
+                                failedTradesManager.removeTrade(trade);
+                            }
+                        } else if (!trade.isPayoutPublished()) {
+
+                            // set error that wallet may be partially funded
+                            String errorMessage = "Refusing to delete " + trade.getClass().getSimpleName() + " " + trade.getId() + " after protocol timeout because its wallet might be funded";
+                            trade.prependErrorMessage(errorMessage);
+                            log.warn(errorMessage);
+                        }
+
+                        // unsubscribe
+                        if (heightSubscription != null) {
+                            heightSubscription.unsubscribe();
+                            heightSubscription = null;
+                        }
+
+                    }).start();
+                }
+            });
         }
     }
 

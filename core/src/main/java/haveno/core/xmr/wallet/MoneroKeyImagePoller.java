@@ -219,6 +219,18 @@ public class MoneroKeyImagePoller {
         }
     }
 
+    /**
+     * Get the last known spent status for the given key image.
+     * 
+     * @param keyImage the key image to get the spent status for
+     * @return the last known spent status of the key image
+     */
+    public MoneroKeyImageSpentStatus getLastSpentStatus(String keyImage) {
+        synchronized (lastStatuses) {
+            return lastStatuses.get(keyImage);
+        }
+    }
+
     public void poll() {
         if (daemon == null) {
             log.warn("Cannot poll key images because daemon is null");
