@@ -73,14 +73,14 @@ public class AppStartupState {
 
         p2pNetworkAndWalletInitialized = EasyBind.combine(updatedDataReceived,
                 isBlockDownloadComplete,
-                hasSufficientPeersForBroadcast,
+                hasSufficientPeersForBroadcast, // TODO: consider sufficient number of peers?
                 allDomainServicesInitialized,
                 (a, b, c, d) -> {
-                    log.info("p2pNetworkAndWalletInitialized = {} = updatedDataReceived={} && isBlockDownloadComplete={} && hasSufficientPeersForBroadcast={} && allDomainServicesInitialized={}", (a && b && c && d), updatedDataReceived.get(), isBlockDownloadComplete.get(), hasSufficientPeersForBroadcast.get(), allDomainServicesInitialized.get());
-                    if (a && b && c) {
+                    log.info("Combined initialized state = {} = updatedDataReceived={} && isBlockDownloadComplete={} && hasSufficientPeersForBroadcast={} && allDomainServicesInitialized={}", (a && b && c && d), updatedDataReceived.get(), isBlockDownloadComplete.get(), hasSufficientPeersForBroadcast.get(), allDomainServicesInitialized.get());
+                    if (a && b) {
                         walletAndNetworkReady.set(true);
                     }
-                    return a && d; // app fully initialized before daemon connection and wallet by default
+                    return a && d; // app fully initialized before daemon connection and wallet by default // TODO: rename variable
                 });
         p2pNetworkAndWalletInitialized.subscribe((observable, oldValue, newValue) -> {
             if (newValue) {
