@@ -578,7 +578,7 @@ public abstract class Trade implements Tradable, Model {
         });
 
         // listen to daemon connection
-        xmrWalletService.getConnectionsService().addListener(newConnection -> onConnectionChanged(newConnection));
+        xmrWalletService.getConnectionsService().addConnectionListener(newConnection -> onConnectionChanged(newConnection));
 
         // check if done
         if (isPayoutUnlocked()) {
@@ -841,7 +841,7 @@ public abstract class Trade implements Tradable, Model {
                     xmrWalletService.deleteWallet(getWalletName());
 
                     // delete trade wallet backups unless deposits requested and payouts not unlocked
-                    if (isDepositRequested() && !isPayoutUnlocked()) {
+                    if (isDepositRequested() && !isDepositFailed() && !isPayoutUnlocked()) {
                         log.warn("Refusing to delete backup wallet for " + getClass().getSimpleName() + " " + getId() + " in the small chance it becomes funded");
                     }
                     xmrWalletService.deleteWalletBackups(getWalletName());

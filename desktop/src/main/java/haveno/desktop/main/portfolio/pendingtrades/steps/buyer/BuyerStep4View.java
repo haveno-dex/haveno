@@ -17,7 +17,6 @@
 
 package haveno.desktop.main.portfolio.pendingtrades.steps.buyer;
 
-import com.jfoenix.controls.JFXBadge;
 import haveno.common.UserThread;
 import haveno.common.app.DevEnv;
 import haveno.core.locale.Res;
@@ -35,9 +34,7 @@ import haveno.desktop.main.portfolio.pendingtrades.PendingTradesViewModel;
 import haveno.desktop.main.portfolio.pendingtrades.steps.TradeStepView;
 import haveno.desktop.util.Layout;
 import javafx.geometry.Insets;
-import javafx.geometry.Pos;
 import javafx.scene.control.Button;
-import javafx.scene.control.Label;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;

@@ -544,37 +544,38 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
     }
 
     private void doShutDown(CloseConnectionReason closeConnectionReason, @Nullable Runnable shutDownCompleteHandler) {
-        // Use UserThread.execute as its not clear if that is called from a non-UserThread
-        UserThread.execute(() -> connectionListener.onDisconnect(closeConnectionReason, this));
-        try {
-            socket.close();
-        } catch (SocketException e) {
-            log.trace("SocketException at shutdown might be expected {}", e.getMessage());
-        } catch (IOException e) {
-            log.error("Exception at shutdown. " + e.getMessage());
-            e.printStackTrace();
-        } finally {
-            protoOutputStream.onConnectionShutdown();
-
-            capabilitiesListeners.clear();
-
+        UserThread.execute(() -> {
+            connectionListener.onDisconnect(closeConnectionReason, this);
             try {
-                protoInputStream.close();
+                socket.close();
+            } catch (SocketException e) {
+                log.trace("SocketException at shutdown might be expected {}", e.getMessage());
             } catch (IOException e) {
-                log.error(e.getMessage());
+                log.error("Exception at shutdown. " + e.getMessage());
                 e.printStackTrace();
+            } finally {
+                protoOutputStream.onConnectionShutdown();
+    
+                capabilitiesListeners.clear();
+    
+                try {
+                    protoInputStream.close();
+                } catch (IOException e) {
+                    log.error(e.getMessage());
+                    e.printStackTrace();
+                }
+    
+                //noinspection UnstableApiUsage
+                MoreExecutors.shutdownAndAwaitTermination(singleThreadExecutor, 500, TimeUnit.MILLISECONDS);
+                //noinspection UnstableApiUsage
+                MoreExecutors.shutdownAndAwaitTermination(bundleSender, 500, TimeUnit.MILLISECONDS);
+    
+                log.debug("Connection shutdown complete {}", this.toString());
+                // Use UserThread.execute as its not clear if that is called from a non-UserThread
+                if (shutDownCompleteHandler != null)
+                    UserThread.execute(shutDownCompleteHandler);
             }
-
-            //noinspection UnstableApiUsage
-            MoreExecutors.shutdownAndAwaitTermination(singleThreadExecutor, 500, TimeUnit.MILLISECONDS);
-            //noinspection UnstableApiUsage
-            MoreExecutors.shutdownAndAwaitTermination(bundleSender, 500, TimeUnit.MILLISECONDS);
-
-            log.debug("Connection shutdown complete {}", this.toString());
-            // Use UserThread.execute as its not clear if that is called from a non-UserThread
-            if (shutDownCompleteHandler != null)
-                UserThread.execute(shutDownCompleteHandler);
-        }
+        });
     }
 
     @Override

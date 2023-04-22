@@ -165,7 +165,7 @@ public final class CoreMoneroConnectionsService {
         return socks5ProxyProvider.getSocks5Proxy() == null ? null : socks5ProxyProvider.getSocks5Proxy().getInetAddress().getHostAddress() + ":" + socks5ProxyProvider.getSocks5Proxy().getPort();
     }
 
-    public void addListener(MoneroConnectionManagerListener listener) {
+    public void addConnectionListener(MoneroConnectionManagerListener listener) {
         synchronized (lock) {
             listeners.add(listener);
         }

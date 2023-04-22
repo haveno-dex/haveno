@@ -605,7 +605,7 @@ public class XmrWalletService {
         maybeInitMainWallet();
 
         // set and listen to daemon connection
-        connectionsService.addListener(newConnection -> onConnectionChanged(newConnection));
+        connectionsService.addConnectionListener(newConnection -> onConnectionChanged(newConnection));
     }
 
     private synchronized void maybeInitMainWallet() {
