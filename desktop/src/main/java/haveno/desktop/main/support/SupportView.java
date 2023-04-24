@@ -155,25 +155,23 @@ public class SupportView extends ActivatableView<TabPane, Void> {
     private void updateAgentTabs() {
         PubKeyRing myPubKeyRing = keyRing.getPubKeyRing();
 
-        boolean hasArbitrationCases = !arbitrationManager.getDisputesAsObservableList().isEmpty();
-        if (hasArbitrationCases) {
-            boolean isActiveArbitrator = arbitratorManager.getObservableMap().values().stream()
-                    .anyMatch(e -> e.getPubKeyRing() != null && e.getPubKeyRing().equals(myPubKeyRing));
+        boolean isActiveArbitrator = arbitratorManager.getObservableMap().values().stream()
+                .anyMatch(e -> e.getPubKeyRing() != null && e.getPubKeyRing().equals(myPubKeyRing));
 
-            // In case a arbitrator has become inactive he still might get disputes from pending trades
-            boolean hasDisputesAsArbitrator = arbitrationManager.getDisputesAsObservableList().stream()
-                    .anyMatch(d -> d.getAgentPubKeyRing().equals(myPubKeyRing));
-            if (isActiveArbitrator || hasDisputesAsArbitrator) {
-                if (arbitratorTab == null) {
-                    arbitratorTab = new Tab();
-                    arbitratorTab.setClosable(false);
-                    root.getTabs().add(arbitratorTab);
-                }
-                if (signedOfferTab == null) {
-                    signedOfferTab = new Tab();
-                    signedOfferTab.setClosable(false);
-                    root.getTabs().add(signedOfferTab);
-                }
+        // In case a arbitrator has become inactive he still might get disputes from pending trades
+        boolean hasDisputesAsArbitrator = arbitrationManager.getDisputesAsObservableList().stream()
+                .anyMatch(d -> d.getAgentPubKeyRing().equals(myPubKeyRing));
+
+        if (isActiveArbitrator || hasDisputesAsArbitrator) {
+            if (arbitratorTab == null) {
+                arbitratorTab = new Tab();
+                arbitratorTab.setClosable(false);
+                root.getTabs().add(arbitratorTab);
+            }
+            if (signedOfferTab == null) {
+                signedOfferTab = new Tab();
+                signedOfferTab.setClosable(false);
+                root.getTabs().add(signedOfferTab);
             }
         }
 
