@@ -122,10 +122,6 @@ public class AppSetupWithP2P extends AppSetup {
                             closeConnectionReason, connection);
                 }
             }
-
-            @Override
-            public void onError(Throwable throwable) {
-            }
         });
 
         final BooleanProperty p2pNetworkInitialized = new SimpleBooleanProperty();

@@ -17,13 +17,6 @@
 
 package haveno.network.p2p.network;
 
-import lombok.extern.slf4j.Slf4j;
-import org.berndpruenster.netlayer.tor.NativeTor;
-import org.berndpruenster.netlayer.tor.Tor;
-import org.berndpruenster.netlayer.tor.TorCtlException;
-import org.berndpruenster.netlayer.tor.Torrc;
-
-import javax.annotation.Nullable;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -32,6 +25,15 @@ import java.util.Collection;
 import java.util.Date;
 import java.util.LinkedHashMap;
 import java.util.stream.Collectors;
+
+import org.berndpruenster.netlayer.tor.NativeTor;
+import org.berndpruenster.netlayer.tor.Tor;
+import org.berndpruenster.netlayer.tor.TorCtlException;
+import org.berndpruenster.netlayer.tor.Torrc;
+
+import lombok.extern.slf4j.Slf4j;
+
+import javax.annotation.Nullable;
 
 /**
  * This class creates a brand new instance of the Tor onion router.
@@ -49,19 +51,20 @@ public class NewTor extends TorMode {
 
     private final File torrcFile;
     private final String torrcOptions;
-    private final Collection<String> bridgeEntries;
+    private final BridgeAddressProvider bridgeAddressProvider;
 
-    public NewTor(File torWorkingDirectory, @Nullable File torrcFile, String torrcOptions, Collection<String> bridgeEntries) {
+    public NewTor(File torWorkingDirectory, @Nullable File torrcFile, String torrcOptions, BridgeAddressProvider bridgeAddressProvider) {
         super(torWorkingDirectory);
         this.torrcFile = torrcFile;
         this.torrcOptions = torrcOptions;
-        this.bridgeEntries = bridgeEntries;
+        this.bridgeAddressProvider = bridgeAddressProvider;
     }
 
     @Override
     public Tor getTor() throws IOException, TorCtlException {
         long ts1 = new Date().getTime();
 
+        Collection<String> bridgeEntries = bridgeAddressProvider.getBridgeAddresses();
         if (bridgeEntries != null)
             log.info("Using bridges: {}", bridgeEntries.stream().collect(Collectors.joining(",")));
 
@@ -115,5 +118,4 @@ public class NewTor extends TorMode {
     public String getHiddenServiceDirectory() {
         return "";
     }
-
 }

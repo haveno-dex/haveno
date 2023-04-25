@@ -17,17 +17,22 @@
 
 package haveno.network.p2p.network;
 
+import haveno.network.p2p.NodeAddress;
+
 import haveno.common.UserThread;
 import haveno.common.proto.network.NetworkProtoResolver;
-import haveno.network.p2p.NodeAddress;
-import org.jetbrains.annotations.Nullable;
+
+import java.net.ServerSocket;
+import java.net.Socket;
+
+import java.io.IOException;
+
+import java.util.concurrent.TimeUnit;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
-import java.net.ServerSocket;
-import java.net.Socket;
-import java.util.concurrent.TimeUnit;
+import org.jetbrains.annotations.Nullable;
 
 // Run in UserThread
 public class LocalhostNetworkNode extends NetworkNode {
@@ -44,23 +49,21 @@ public class LocalhostNetworkNode extends NetworkNode {
         LocalhostNetworkNode.simulateTorDelayHiddenService = simulateTorDelayHiddenService;
     }
 
-
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Constructor
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     public LocalhostNetworkNode(int port,
-                                NetworkProtoResolver networkProtoResolver,
-                                @Nullable NetworkFilter networkFilter) {
-        super(port, networkProtoResolver, networkFilter);
+            NetworkProtoResolver networkProtoResolver,
+            @Nullable BanFilter banFilter,
+            int maxConnections) {
+        super(port, networkProtoResolver, banFilter, maxConnections);
     }
 
     @Override
     public void start(@Nullable SetupListener setupListener) {
         if (setupListener != null)
             addSetupListener(setupListener);
-
-        createExecutorService();
 
         // simulate tor connection delay
         UserThread.runAfter(() -> {

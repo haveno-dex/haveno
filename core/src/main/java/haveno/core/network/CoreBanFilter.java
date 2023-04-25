@@ -19,7 +19,7 @@ package haveno.core.network;
 
 import haveno.common.config.Config;
 import haveno.network.p2p.NodeAddress;
-import haveno.network.p2p.network.NetworkFilter;
+import haveno.network.p2p.network.BanFilter;
 import lombok.extern.slf4j.Slf4j;
 
 import javax.inject.Inject;
@@ -27,29 +27,29 @@ import javax.inject.Named;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.function.Function;
+import java.util.function.Predicate;
 
 @Slf4j
-public class CoreNetworkFilter implements NetworkFilter {
+public class CoreBanFilter implements BanFilter {
     private final Set<NodeAddress> bannedPeersFromOptions = new HashSet<>();
-    private Function<NodeAddress, Boolean> bannedNodeFunction;
+    private Predicate<NodeAddress> bannedNodePredicate;
 
     /**
      * @param banList  List of banned peers from program argument
      */
     @Inject
-    public CoreNetworkFilter(@Named(Config.BAN_LIST) List<String> banList) {
+    public CoreBanFilter(@Named(Config.BAN_LIST) List<String> banList) {
         banList.stream().map(NodeAddress::new).forEach(bannedPeersFromOptions::add);
     }
 
     @Override
-    public void setBannedNodeFunction(Function<NodeAddress, Boolean> bannedNodeFunction) {
-        this.bannedNodeFunction = bannedNodeFunction;
+    public void setBannedNodePredicate(Predicate<NodeAddress> bannedNodePredicate) {
+        this.bannedNodePredicate = bannedNodePredicate;
     }
 
     @Override
     public boolean isPeerBanned(NodeAddress nodeAddress) {
         return bannedPeersFromOptions.contains(nodeAddress) ||
-                bannedNodeFunction != null && bannedNodeFunction.apply(nodeAddress);
+                bannedNodePredicate != null && bannedNodePredicate.test(nodeAddress);
     }
 }

@@ -50,6 +50,7 @@ import haveno.core.trade.statistics.TradeStatisticsManager;
 import haveno.core.user.User;
 import haveno.core.xmr.Balances;
 import haveno.network.p2p.P2PService;
+import haveno.network.p2p.mailbox.MailboxMessageService;
 
 import javax.inject.Inject;
 import java.util.List;
@@ -93,6 +94,7 @@ public class DomainInitialisation {
     private final User user;
     private final TriggerPriceService triggerPriceService;
     private final MempoolService mempoolService;
+    private final MailboxMessageService mailboxMessageService;
 
     @Inject
     public DomainInitialisation(ClockWatcher clockWatcher,
@@ -124,7 +126,8 @@ public class DomainInitialisation {
                                 MarketAlerts marketAlerts,
                                 User user,
                                 TriggerPriceService triggerPriceService,
-                                MempoolService mempoolService) {
+                                MempoolService mempoolService,
+                                MailboxMessageService mailboxMessageService) {
         this.clockWatcher = clockWatcher;
         this.arbitrationManager = arbitrationManager;
         this.mediationManager = mediationManager;
@@ -155,6 +158,7 @@ public class DomainInitialisation {
         this.user = user;
         this.triggerPriceService = triggerPriceService;
         this.mempoolService = mempoolService;
+        this.mailboxMessageService = mailboxMessageService;
     }
 
     public void initDomainServices(Consumer<String> rejectedTxErrorMessageHandler,
@@ -212,6 +216,8 @@ public class DomainInitialisation {
         marketAlerts.onAllServicesInitialized();
         triggerPriceService.onAllServicesInitialized();
         mempoolService.onAllServicesInitialized();
+
+        mailboxMessageService.onAllServicesInitialized();
 
         if (revolutAccountsUpdateHandler != null && user.getPaymentAccountsAsObservable() != null) {
             revolutAccountsUpdateHandler.accept(user.getPaymentAccountsAsObservable().stream()

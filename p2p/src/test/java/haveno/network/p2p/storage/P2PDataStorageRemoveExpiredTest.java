@@ -78,7 +78,7 @@ public class P2PDataStorageRemoveExpiredTest {
 
         this.testState.mockedStorage.removeExpiredEntries();
 
-        Assert.assertTrue(this.testState.mockedStorage.getAppendOnlyDataStoreMap().containsKey(new P2PDataStorage.ByteArray(persistableNetworkPayload.getHash())));
+        Assert.assertTrue(this.testState.mockedStorage.appendOnlyDataStoreService.getMap(persistableNetworkPayload).containsKey(new P2PDataStorage.ByteArray(persistableNetworkPayload.getHash())));
     }
 
     // TESTCASE: Correctly skips non-persistable entries that are not expired
