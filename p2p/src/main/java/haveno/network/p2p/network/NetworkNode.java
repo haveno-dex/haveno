@@ -114,8 +114,7 @@ public abstract class NetworkNode implements MessageListener {
     // API
     ///////////////////////////////////////////////////////////////////////////////////////////
 
-    // Calls this (and other registered) setup listener's ``onTorNodeReady()`` and
-    // ``onHiddenServicePublished``
+    // Calls this (and other registered) setup listener's ``onTorNodeReady()`` and ``onHiddenServicePublished``
     // when the events happen.
     public abstract void start(@Nullable SetupListener setupListener);
 
@@ -159,10 +158,8 @@ public abstract class NetworkNode implements MessageListener {
                 if (duration > CREATE_SOCKET_TIMEOUT)
                     throw new TimeoutException("A timeout occurred when creating a socket.");
 
-                // Tor needs sometimes quite long to create a connection. To avoid that we get
-                // too many
-                // connections with the same peer we check again if we still don't have any
-                // connection for that node address.
+                // Tor needs sometimes quite long to create a connection. To avoid that we get too many
+                // connections with the same peer we check again if we still don't have any connection for that node address.
                 Connection existingConnection = getInboundConnection(peersNodeAddress);
                 if (existingConnection == null)
                     existingConnection = getOutboundConnection(peersNodeAddress);
@@ -296,9 +293,7 @@ public abstract class NetworkNode implements MessageListener {
         SettableFuture<Connection> resultFuture = SettableFuture.create();
         try {
             ListenableFuture<Connection> future = executor.submit(() -> {
-                String id = connection.getPeersNodeAddressOptional().isPresent() ? 
-                        connection.getPeersNodeAddressOptional().get().getFullAddress() :
-                        connection.getUid();
+                String id = connection.getPeersNodeAddressOptional().isPresent() ? connection.getPeersNodeAddressOptional().get().getFullAddress() : connection.getUid();
                 Thread.currentThread().setName("NetworkNode:SendMessage-to-" + Utilities.toTruncatedString(id, 15));
 
                 connection.sendMessage(networkEnvelope);

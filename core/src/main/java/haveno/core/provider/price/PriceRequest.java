@@ -33,7 +33,7 @@ import java.util.concurrent.TimeUnit;
 
 @Slf4j
 public class PriceRequest {
-    private static final ListeningExecutorService executorService = Utilities.getListeningExecutorService("PriceRequest", 3, 5, 10 * 60);
+    private final ListeningExecutorService executorService = Utilities.getListeningExecutorService("PriceRequest", 3, 5, 10 * 60);
     @Nullable
     private PriceProvider provider;
     private boolean shutDownRequested;
