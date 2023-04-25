@@ -29,7 +29,7 @@ public class OutboundConnection extends Connection {
                               ConnectionListener connectionListener,
                               NodeAddress peersNodeAddress,
                               NetworkProtoResolver networkProtoResolver,
-                              @Nullable NetworkFilter networkFilter) {
-        super(socket, messageListener, connectionListener, peersNodeAddress, networkProtoResolver, networkFilter);
+                              @Nullable BanFilter banFilter) {
+        super(socket, messageListener, connectionListener, peersNodeAddress, networkProtoResolver, banFilter);
     }
 }

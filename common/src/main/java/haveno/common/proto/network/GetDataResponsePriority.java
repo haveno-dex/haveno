@@ -17,13 +17,11 @@
 
 package haveno.common.proto.network;
 
-import haveno.common.Payload;
-
 /**
- * Interface for objects used inside WireEnvelope or other WirePayloads.
+ * Represents priority used at truncating data set at getDataResponse if total data exceeds limits.
  */
-public interface NetworkPayload extends Payload {
-    default GetDataResponsePriority getGetDataResponsePriority() {
-        return GetDataResponsePriority.LOW;
-    }
+public enum GetDataResponsePriority {
+    LOW,
+    MID,
+    HIGH
 }

@@ -17,22 +17,32 @@
 
 package haveno.network.p2p.peers;
 
-import haveno.common.Timer;
-import haveno.common.UserThread;
 import haveno.network.p2p.NodeAddress;
 import haveno.network.p2p.network.NetworkNode;
 import haveno.network.p2p.storage.messages.BroadcastMessage;
-import lombok.Value;
-import lombok.extern.slf4j.Slf4j;
-import org.jetbrains.annotations.Nullable;
+
+import haveno.common.Timer;
+import haveno.common.UserThread;
+import haveno.common.config.Config;
+import haveno.common.util.Utilities;
 
 import javax.inject.Inject;
+import javax.inject.Named;
+
+import com.google.common.util.concurrent.ListeningExecutorService;
+import com.google.common.util.concurrent.MoreExecutors;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArraySet;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
+
+import lombok.Value;
+import lombok.extern.slf4j.Slf4j;
+
+import org.jetbrains.annotations.Nullable;
 
 @Slf4j
 public class Broadcaster implements BroadcastHandler.ResultHandler {
@@ -45,28 +55,40 @@ public class Broadcaster implements BroadcastHandler.ResultHandler {
     private Timer timer;
     private boolean shutDownRequested;
     private Runnable shutDownResultHandler;
-
+    private final ListeningExecutorService executor;
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Constructor
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     @Inject
-    public Broadcaster(NetworkNode networkNode, PeerManager peerManager) {
+    public Broadcaster(NetworkNode networkNode,
+            PeerManager peerManager,
+            @Named(Config.MAX_CONNECTIONS) int maxConnections) {
         this.networkNode = networkNode;
         this.peerManager = peerManager;
+
+        ThreadPoolExecutor threadPoolExecutor = Utilities.getThreadPoolExecutor("Broadcaster",
+                maxConnections * 3,
+                maxConnections * 4,
+                30,
+                30);
+        executor = MoreExecutors.listeningDecorator(threadPoolExecutor);
     }
 
     public void shutDown(Runnable resultHandler) {
+        log.info("Broadcaster shutdown started");
         shutDownRequested = true;
         shutDownResultHandler = resultHandler;
         if (broadcastRequests.isEmpty()) {
             doShutDown();
         } else {
             // We set delay of broadcasts and timeout to very low values,
-            // so we can expect that we get onCompleted called very fast and trigger the doShutDown from there.
+            // so we can expect that we get onCompleted called very fast and trigger the
+            // doShutDown from there.
             maybeBroadcastBundle();
         }
+        executor.shutdown();
     }
 
     public void flush() {
@@ -81,26 +103,19 @@ public class Broadcaster implements BroadcastHandler.ResultHandler {
         shutDownResultHandler.run();
     }
 
-
     ///////////////////////////////////////////////////////////////////////////////////////////
     // API
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     public void broadcast(BroadcastMessage message,
-                          @Nullable NodeAddress sender) {
+            @Nullable NodeAddress sender) {
         broadcast(message, sender, null);
     }
 
-
     public void broadcast(BroadcastMessage message,
-                          @Nullable NodeAddress sender,
-                          @Nullable BroadcastHandler.Listener listener) {
+            @Nullable NodeAddress sender,
+            @Nullable BroadcastHandler.Listener listener) {
         broadcastRequests.add(new BroadcastRequest(message, sender, listener));
-        // Keep that log on INFO for better debugging if the feature works as expected. Later it can
-        // be remove or set to DEBUG
-        log.debug("Broadcast requested for {}. We queue it up for next bundled broadcast.",
-                message.getClass().getSimpleName());
-
         if (timer == null) {
             timer = UserThread.runAfter(this::maybeBroadcastBundle, BROADCAST_INTERVAL_MS, TimeUnit.MILLISECONDS);
         }
@@ -108,18 +123,17 @@ public class Broadcaster implements BroadcastHandler.ResultHandler {
 
     private void maybeBroadcastBundle() {
         if (!broadcastRequests.isEmpty()) {
-            log.debug("Broadcast bundled requests of {} messages. Message types: {}",
-                    broadcastRequests.size(),
-                    broadcastRequests.stream().map(e -> e.getMessage().getClass().getSimpleName()).collect(Collectors.toList()));
             BroadcastHandler broadcastHandler = new BroadcastHandler(networkNode, peerManager, this);
             broadcastHandlers.add(broadcastHandler);
-            broadcastHandler.broadcast(new ArrayList<>(broadcastRequests), shutDownRequested);
+            broadcastHandler.broadcast(new ArrayList<>(broadcastRequests), shutDownRequested, executor);
             broadcastRequests.clear();
 
+            if (timer != null) {
+                timer.stop();
+            }
             timer = null;
         }
     }
-
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // BroadcastHandler.ResultHandler implementation
@@ -132,7 +146,6 @@ public class Broadcaster implements BroadcastHandler.ResultHandler {
             doShutDown();
         }
     }
-
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // BroadcastRequest class

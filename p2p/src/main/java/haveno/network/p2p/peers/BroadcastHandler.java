@@ -17,31 +17,42 @@
 
 package haveno.network.p2p.peers;
 
-import com.google.common.util.concurrent.FutureCallback;
-import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.MoreExecutors;
-import com.google.common.util.concurrent.SettableFuture;
-import haveno.common.Timer;
-import haveno.common.UserThread;
 import haveno.network.p2p.BundleOfEnvelopes;
 import haveno.network.p2p.NodeAddress;
 import haveno.network.p2p.network.Connection;
 import haveno.network.p2p.network.NetworkNode;
 import haveno.network.p2p.storage.messages.BroadcastMessage;
-import lombok.extern.slf4j.Slf4j;
-import org.jetbrains.annotations.NotNull;
+
+import haveno.common.Timer;
+import haveno.common.UserThread;
+
+import com.google.common.util.concurrent.FutureCallback;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListeningExecutorService;
+import com.google.common.util.concurrent.MoreExecutors;
+import com.google.common.util.concurrent.SettableFuture;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
+import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.CopyOnWriteArraySet;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
+
+import lombok.extern.slf4j.Slf4j;
+
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 @Slf4j
 public class BroadcastHandler implements PeerManager.Listener {
     private static final long BASE_TIMEOUT_MS = TimeUnit.SECONDS.toMillis(120);
-
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Listener
@@ -57,7 +68,6 @@ public class BroadcastHandler implements PeerManager.Listener {
         void onNotSufficientlyBroadcast(int numOfCompletedBroadcasts, int numOfFailedBroadcast);
     }
 
-
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Instance fields
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -67,10 +77,14 @@ public class BroadcastHandler implements PeerManager.Listener {
     private final ResultHandler resultHandler;
     private final String uid;
 
-    private boolean stopped, timeoutTriggered;
-    private int numOfCompletedBroadcasts, numOfFailedBroadcasts, numPeersForBroadcast;
+    private final AtomicBoolean stopped = new AtomicBoolean();
+    private final AtomicBoolean timeoutTriggered = new AtomicBoolean();
+    private final AtomicInteger numOfCompletedBroadcasts = new AtomicInteger();
+    private final AtomicInteger numOfFailedBroadcasts = new AtomicInteger();
+    private final AtomicInteger numPeersForBroadcast = new AtomicInteger();
+    @Nullable
     private Timer timeoutTimer;
-
+    private final Set<SettableFuture<Connection>> sendMessageFutures = new CopyOnWriteArraySet<>();
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Constructor
@@ -85,12 +99,17 @@ public class BroadcastHandler implements PeerManager.Listener {
         peerManager.addListener(this);
     }
 
-
     ///////////////////////////////////////////////////////////////////////////////////////////
     // API
     ///////////////////////////////////////////////////////////////////////////////////////////
 
-    public void broadcast(List<Broadcaster.BroadcastRequest> broadcastRequests, boolean shutDownRequested) {
+    public void broadcast(List<Broadcaster.BroadcastRequest> broadcastRequests,
+            boolean shutDownRequested,
+            ListeningExecutorService executor) {
+        if (broadcastRequests.isEmpty()) {
+            return;
+        }
+
         List<Connection> confirmedConnections = new ArrayList<>(networkNode.getConfirmedConnections());
         Collections.shuffle(confirmedConnections);
 
@@ -98,42 +117,42 @@ public class BroadcastHandler implements PeerManager.Listener {
         if (shutDownRequested) {
             delay = 1;
             // We sent to all peers as in case we had offers we want that it gets removed with higher reliability
-            numPeersForBroadcast = confirmedConnections.size();
+            numPeersForBroadcast.set(confirmedConnections.size());
         } else {
             if (requestsContainOwnMessage(broadcastRequests)) {
-                // The broadcastRequests contains at least 1 message we have originated, so we send to all peers and
-                // with shorter delay
-                numPeersForBroadcast = confirmedConnections.size();
+                // The broadcastRequests contains at least 1 message we have originated, so we send to all peers and with shorter delay
+                numPeersForBroadcast.set(confirmedConnections.size());
                 delay = 50;
             } else {
                 // Relay nodes only send to max 7 peers and with longer delay
-                numPeersForBroadcast = Math.min(7, confirmedConnections.size());
+                numPeersForBroadcast.set(Math.min(7, confirmedConnections.size()));
                 delay = 100;
             }
         }
 
         setupTimeoutHandler(broadcastRequests, delay, shutDownRequested);
 
-        int iterations = numPeersForBroadcast;
+        int iterations = numPeersForBroadcast.get();
         for (int i = 0; i < iterations; i++) {
             long minDelay = (i + 1) * delay;
             long maxDelay = (i + 2) * delay;
             Connection connection = confirmedConnections.get(i);
             UserThread.runAfterRandomDelay(() -> {
-                if (stopped) {
+                if (stopped.get()) {
                     return;
                 }
 
                 // We use broadcastRequests which have excluded the requests for messages the connection has
                 // originated to avoid sending back the message we received. We also remove messages not satisfying
                 // capability checks.
-                List<Broadcaster.BroadcastRequest> broadcastRequestsForConnection = getBroadcastRequestsForConnection(connection, broadcastRequests);
+                List<Broadcaster.BroadcastRequest> broadcastRequestsForConnection = getBroadcastRequestsForConnection(
+                        connection, broadcastRequests);
 
                 // Could be empty list...
                 if (broadcastRequestsForConnection.isEmpty()) {
                     // We decrease numPeers in that case for making completion checks correct.
-                    if (numPeersForBroadcast > 0) {
-                        numPeersForBroadcast--;
+                    if (numPeersForBroadcast.get() > 0) {
+                        numPeersForBroadcast.decrementAndGet();
                     }
                     checkForCompletion();
                     return;
@@ -142,23 +161,26 @@ public class BroadcastHandler implements PeerManager.Listener {
                 if (connection.isStopped()) {
                     // Connection has died in the meantime. We skip it.
                     // We decrease numPeers in that case for making completion checks correct.
-                    if (numPeersForBroadcast > 0) {
-                        numPeersForBroadcast--;
+                    if (numPeersForBroadcast.get() > 0) {
+                        numPeersForBroadcast.decrementAndGet();
                     }
                     checkForCompletion();
                     return;
                 }
 
-                sendToPeer(connection, broadcastRequestsForConnection);
+                try {
+                    sendToPeer(connection, broadcastRequestsForConnection, executor);
+                } catch (RejectedExecutionException e) {
+                    log.error("RejectedExecutionException at broadcast ", e);
+                    cleanup();
+                }
             }, minDelay, maxDelay, TimeUnit.MILLISECONDS);
         }
     }
 
     public void cancel() {
-        stopped = true;
         cleanup();
     }
-
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // PeerManager.Listener implementation
@@ -177,7 +199,6 @@ public class BroadcastHandler implements PeerManager.Listener {
     public void onAwakeFromStandby() {
     }
 
-
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Private
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -192,22 +213,23 @@ public class BroadcastHandler implements PeerManager.Listener {
     }
 
     private void setupTimeoutHandler(List<Broadcaster.BroadcastRequest> broadcastRequests,
-                                     int delay,
-                                     boolean shutDownRequested) {
+            int delay,
+            boolean shutDownRequested) {
         // In case of shutdown we try to complete fast and set a short 1 second timeout
         long baseTimeoutMs = shutDownRequested ? TimeUnit.SECONDS.toMillis(1) : BASE_TIMEOUT_MS;
-        long timeoutDelay = baseTimeoutMs + delay * (numPeersForBroadcast + 1); // We added 1 in the loop
+        long timeoutDelay = baseTimeoutMs + delay * (numPeersForBroadcast.get() + 1); // We added 1 in the loop
         timeoutTimer = UserThread.runAfter(() -> {
-            if (stopped) {
+            if (stopped.get()) {
                 return;
             }
 
-            timeoutTriggered = true;
+            timeoutTriggered.set(true);
+            numOfFailedBroadcasts.incrementAndGet();
 
             log.warn("Broadcast did not complete after {} sec.\n" +
-                            "numPeersForBroadcast={}\n" +
-                            "numOfCompletedBroadcasts={}\n" +
-                            "numOfFailedBroadcasts={}",
+                    "numPeersForBroadcast={}\n" +
+                    "numOfCompletedBroadcasts={}\n" +
+                    "numOfFailedBroadcasts={}",
                     timeoutDelay / 1000d,
                     numPeersForBroadcast,
                     numOfCompletedBroadcasts,
@@ -221,27 +243,30 @@ public class BroadcastHandler implements PeerManager.Listener {
     }
 
     // We exclude the requests containing a message we received from that connection
-    // Also we filter out messages which requires a capability but peer does not support it.
+    // Also we filter out messages which requires a capability but peer does not
+    // support it.
     private List<Broadcaster.BroadcastRequest> getBroadcastRequestsForConnection(Connection connection,
-                                                                                 List<Broadcaster.BroadcastRequest> broadcastRequests) {
+            List<Broadcaster.BroadcastRequest> broadcastRequests) {
         return broadcastRequests.stream()
                 .filter(broadcastRequest -> !connection.getPeersNodeAddressOptional().isPresent() ||
                         !connection.getPeersNodeAddressOptional().get().equals(broadcastRequest.getSender()))
-                .filter(broadcastRequest -> connection.noCapabilityRequiredOrCapabilityIsSupported(broadcastRequest.getMessage()))
+                .filter(broadcastRequest -> connection.testCapability(broadcastRequest.getMessage()))
                 .collect(Collectors.toList());
     }
 
-    private void sendToPeer(Connection connection, List<Broadcaster.BroadcastRequest> broadcastRequestsForConnection) {
+    private void sendToPeer(Connection connection,
+            List<Broadcaster.BroadcastRequest> broadcastRequestsForConnection,
+            ListeningExecutorService executor) {
         // Can be BundleOfEnvelopes or a single BroadcastMessage
         BroadcastMessage broadcastMessage = getMessage(broadcastRequestsForConnection);
-        SettableFuture<Connection> future = networkNode.sendMessage(connection, broadcastMessage);
-
+        SettableFuture<Connection> future = networkNode.sendMessage(connection, broadcastMessage, executor);
+        sendMessageFutures.add(future);
         Futures.addCallback(future, new FutureCallback<>() {
             @Override
             public void onSuccess(Connection connection) {
-                numOfCompletedBroadcasts++;
+                numOfCompletedBroadcasts.incrementAndGet();
 
-                if (stopped) {
+                if (stopped.get()) {
                     return;
                 }
 
@@ -251,11 +276,10 @@ public class BroadcastHandler implements PeerManager.Listener {
 
             @Override
             public void onFailure(@NotNull Throwable throwable) {
-                log.warn("Broadcast to {} failed. ErrorMessage={}", connection.getPeersNodeAddressOptional(),
-                        throwable.getMessage());
-                numOfFailedBroadcasts++;
+                log.warn("Broadcast to " + connection.getPeersNodeAddressOptional() + " failed. ", throwable);
+                numOfFailedBroadcasts.incrementAndGet();
 
-                if (stopped) {
+                if (stopped.get()) {
                     return;
                 }
 
@@ -277,43 +301,56 @@ public class BroadcastHandler implements PeerManager.Listener {
     }
 
     private void maybeNotifyListeners(List<Broadcaster.BroadcastRequest> broadcastRequests) {
-        int numOfCompletedBroadcastsTarget = Math.max(1, Math.min(numPeersForBroadcast, 3));
-        // We use equal checks to avoid duplicated listener calls as it would be the case with >= checks.
-        if (numOfCompletedBroadcasts == numOfCompletedBroadcastsTarget) {
-            // We have heard back from 3 peers (or all peers if numPeers is lower) so we consider the message was sufficiently broadcast.
+        int numOfCompletedBroadcastsTarget = Math.max(1, Math.min(numPeersForBroadcast.get(), 3));
+        // We use equal checks to avoid duplicated listener calls as it would be the
+        // case with >= checks.
+        if (numOfCompletedBroadcasts.get() == numOfCompletedBroadcastsTarget) {
+            // We have heard back from 3 peers (or all peers if numPeers is lower) so we
+            // consider the message was sufficiently broadcast.
             broadcastRequests.stream()
-                    .filter(broadcastRequest -> broadcastRequest.getListener() != null)
                     .map(Broadcaster.BroadcastRequest::getListener)
+                    .filter(Objects::nonNull)
                     .forEach(listener -> listener.onSufficientlyBroadcast(broadcastRequests));
         } else {
             // We check if number of open requests to peers is less than we need to reach numOfCompletedBroadcastsTarget.
             // Thus we never can reach required resilience as too many numOfFailedBroadcasts occurred.
-            int maxPossibleSuccessCases = numPeersForBroadcast - numOfFailedBroadcasts;
+            int maxPossibleSuccessCases = numPeersForBroadcast.get() - numOfFailedBroadcasts.get();
             // We subtract 1 as we want to have it called only once, with a < comparision we would trigger repeatedly.
             boolean notEnoughSucceededOrOpen = maxPossibleSuccessCases == numOfCompletedBroadcastsTarget - 1;
             // We did not reach resilience level and timeout prevents to reach it later
-            boolean timeoutAndNotEnoughSucceeded = timeoutTriggered && numOfCompletedBroadcasts < numOfCompletedBroadcastsTarget;
+            boolean timeoutAndNotEnoughSucceeded = timeoutTriggered.get() && numOfCompletedBroadcasts.get() < numOfCompletedBroadcastsTarget;
             if (notEnoughSucceededOrOpen || timeoutAndNotEnoughSucceeded) {
                 broadcastRequests.stream()
-                        .filter(broadcastRequest -> broadcastRequest.getListener() != null)
                         .map(Broadcaster.BroadcastRequest::getListener)
-                        .forEach(listener -> listener.onNotSufficientlyBroadcast(numOfCompletedBroadcasts, numOfFailedBroadcasts));
+                        .filter(Objects::nonNull)
+                        .forEach(listener -> listener.onNotSufficientlyBroadcast(numOfCompletedBroadcasts.get(), numOfFailedBroadcasts.get()));
             }
         }
     }
 
     private void checkForCompletion() {
-        if (numOfCompletedBroadcasts + numOfFailedBroadcasts == numPeersForBroadcast) {
+        if (numOfCompletedBroadcasts.get() + numOfFailedBroadcasts.get() == numPeersForBroadcast.get()) {
             cleanup();
         }
     }
 
     private void cleanup() {
-        stopped = true;
+        if (stopped.get()) {
+            return;
+        }
+
+        stopped.set(true);
+
         if (timeoutTimer != null) {
             timeoutTimer.stop();
             timeoutTimer = null;
         }
+
+        sendMessageFutures.stream()
+                .filter(future -> !future.isCancelled() && !future.isDone())
+                .forEach(future -> future.cancel(true));
+        sendMessageFutures.clear();
+
         peerManager.removeListener(this);
         resultHandler.onCompleted(this);
     }

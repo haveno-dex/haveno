@@ -235,7 +235,7 @@ public final class OfferPayload implements ProtectedStoragePayload, ExpirablePay
     }
 
     public byte[] getHash() {
-        if (this.hash == null && this.offerFeeTxId != null) {
+        if (this.hash == null) {
             // A proto message can be created only after the offerFeeTxId is
             // set to a non-null value;  now is the time to cache the payload hash.
             this.hash = Hash.getSha256Hash(this.toProtoMessage().toByteArray());

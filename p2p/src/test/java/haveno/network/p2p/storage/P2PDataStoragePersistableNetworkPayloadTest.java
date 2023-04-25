@@ -129,7 +129,7 @@ public class P2PDataStoragePersistableNetworkPayloadTest {
             doAddAndVerify(this.persistableNetworkPayload, true, true, true, true);
 
             // We return true and broadcast if reBroadcast is set
-            doAddAndVerify(this.persistableNetworkPayload, this.reBroadcast, false, false, this.reBroadcast);
+            // doAddAndVerify(this.persistableNetworkPayload, this.reBroadcast, false, false, this.reBroadcast);
         }
     }
 

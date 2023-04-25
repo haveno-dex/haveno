@@ -135,10 +135,6 @@ public class KeepAliveManager implements MessageListener, ConnectionListener, Pe
         closeHandler(connection);
     }
 
-    @Override
-    public void onError(Throwable throwable) {
-    }
-
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // PeerManager.Listener implementation
