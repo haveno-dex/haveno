@@ -1148,9 +1148,15 @@ public abstract class Trade implements Tradable, Model {
     public void onShutDownStarted() {
         isShutDownStarted = true;
         if (wallet != null) log.info("{} {} preparing for shut down", getClass().getSimpleName(), getId());
-        synchronized (this) {
-            synchronized (walletLock) {
-                stopPolling(); // allow locks to release before stopping
+
+        // allow other threads to finish processing by acquiring trade locks until there's no delay
+        int maxAttempts = 10;
+        for (int i = 0; i < maxAttempts; i++) {
+            long startTimeMs = System.currentTimeMillis();
+            synchronized (this) {
+                synchronized (walletLock) {
+                    if (System.currentTimeMillis() - startTimeMs <= 10 || isShutDown) break;
+                }
             }
         }
     }
