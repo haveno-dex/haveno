@@ -673,7 +673,7 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
             }
         });
 
-        balanceSubscription = EasyBind.subscribe(model.dataModel.getAvailableBalance(), balanceTextField::setBalance);
+        balanceSubscription = EasyBind.subscribe(model.dataModel.getBalance(), balanceTextField::setBalance);
     }
 
     private void removeSubscriptions() {

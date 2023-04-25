@@ -423,7 +423,6 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
 
                         // remove trade if protocol didn't initialize
                         if (getOpenTradeByUid(trade.getUid()).isPresent() && !trade.isDepositsPublished()) {
-                            log.warn("Maybe removing persisted {} {} with uid={} because it did not finish initializing (state={})", trade.getClass().getSimpleName(), trade.getId(), trade.getUid(), trade.getState());
                             maybeRemoveTradeOnError(trade);
                         }
                     } catch (Exception e) {
@@ -1205,7 +1204,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
     }
 
     private void removeTradeOnError(Trade trade) {
-        log.info("TradeManager.removeTradeOnError() " + trade.getId());
+        log.warn("TradeManager.removeTradeOnError() " + trade.getId());
         synchronized (tradableList) {
 
             // unreserve taker key images
