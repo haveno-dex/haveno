@@ -414,9 +414,11 @@ public class MailboxMessageService implements HashMapChangedListener, PersistedD
         new Thread(() -> {
             try {
                 var mailboxItems = getMailboxItems(protectedMailboxStorageEntries);
-                log.info("Batch processing of {} mailbox entries took {} ms",
-                        protectedMailboxStorageEntries.size(),
-                        System.currentTimeMillis() - ts);
+
+                if (!protectedMailboxStorageEntries.isEmpty())
+                    log.info("Batch processing of {} mailbox entries took {} ms",
+                            protectedMailboxStorageEntries.size(),
+                            System.currentTimeMillis() - ts);
                 future.set(mailboxItems);
 
             } catch (Throwable throwable) {
