@@ -1145,13 +1145,11 @@ public abstract class Trade implements Tradable, Model {
         isShutDownStarted = true;
         if (wallet != null) log.info("{} {} preparing for shut down", getClass().getSimpleName(), getId());
 
-        // allow other threads to finish processing by acquiring trade locks until there's no delay
-        int maxAttempts = 10;
-        for (int i = 0; i < maxAttempts; i++) {
-            long startTimeMs = System.currentTimeMillis();
+        // repeatedly acquire trade lock to allow other threads to finish
+        for (int i = 0; i < 20; i++) {
             synchronized (this) {
                 synchronized (walletLock) {
-                    if (System.currentTimeMillis() - startTimeMs <= 10 || isShutDown) break;
+                    if (isShutDown) break;
                 }
             }
         }
@@ -1626,6 +1624,7 @@ public abstract class Trade implements Tradable, Model {
         return BigInteger.valueOf(takerFee);
     }
 
+    @Override
     public BigInteger getTotalTxFee() {
         return BigInteger.valueOf(totalTxFee);
     }
