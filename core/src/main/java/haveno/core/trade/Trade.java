@@ -329,14 +329,19 @@ public abstract class Trade implements Tradable, Model {
     @Setter
     private long takeOfferDate;
 
+    // Initialization
+    private static final int TOTAL_INIT_STEPS = 15; // total estimated steps
+    private int initStep = 0;
+    @Getter
+    private double initProgress = 0;
+    @Getter
+    @Setter
+    private Exception initError;
+
     //  Mutable
     private long amount;
     @Setter
     private long price;
-    private int initStep = 0;
-    private static final int TOTAL_INIT_STEPS = 15; // total estimated steps
-    @Getter
-    private double initProgress = 0;
     @Nullable
     @Getter
     private State state = State.PREPARATION;
@@ -673,7 +678,7 @@ public abstract class Trade implements Tradable, Model {
 
         // sync wallet if applicable
         if (!isDepositRequested() || isPayoutUnlocked()) return;
-        if (!walletExists()) log.warn("Missing trade wallet for {} {}", getClass().getSimpleName(), getId());
+        if (!walletExists()) throw new IllegalStateException("Missing trade wallet for " + getClass().getSimpleName() + " " + getId());
         if (xmrWalletService.getConnectionsService().getConnection() == null || Boolean.FALSE.equals(xmrWalletService.getConnectionsService().isConnected())) return;
         updateSyncing();
     }
@@ -1006,18 +1011,9 @@ public abstract class Trade implements Tradable, Model {
         if (sign) {
 
             // sign tx
-            try {
-                MoneroMultisigSignResult result = wallet.signMultisigTxHex(payoutTxHex);
-                if (result.getSignedMultisigTxHex() == null) throw new RuntimeException("Error signing payout tx");
-                payoutTxHex = result.getSignedMultisigTxHex();
-            } catch (Exception e) {
-                if (getPayoutTxHex() != null) {
-                    log.info("Reusing previous payout tx for {} {} because signing failed with error \"{}\"", getClass().getSimpleName(), getId(), e.getMessage()); // in case previous message with signed tx failed to send
-                    payoutTxHex = getPayoutTxHex();
-                } else {
-                    throw e;
-                }
-            }
+            MoneroMultisigSignResult result = wallet.signMultisigTxHex(payoutTxHex);
+            if (result.getSignedMultisigTxHex() == null) throw new RuntimeException("Error signing payout tx");
+            payoutTxHex = result.getSignedMultisigTxHex();
 
             // describe result
             describedTxSet = wallet.describeMultisigTxSet(payoutTxHex);

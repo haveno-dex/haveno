@@ -232,10 +232,14 @@ public class XmrWalletService {
     public MoneroWalletRpc openWallet(String walletName) {
         log.info("{}.openWallet({})", getClass().getSimpleName(), walletName);
         if (isShutDownStarted) throw new IllegalStateException("Cannot open wallet because shutting down");
-        return openWalletRpc(new MoneroWalletConfig()
-                .setPath(walletName)
-                .setPassword(getWalletPassword()),
-                null);
+        try {
+            return openWalletRpc(new MoneroWalletConfig()
+            .setPath(walletName)
+            .setPassword(getWalletPassword()),
+            null);
+        } catch (MoneroError e) {
+            throw new IllegalStateException("Could not open wallet '" + walletName + "'. Please close Haveno, stop all monero-wallet-rpc processes, and restart Haveno.");
+        }
     }
 
     /**
