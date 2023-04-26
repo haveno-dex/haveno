@@ -53,6 +53,9 @@ public class ProcessDepositsConfirmedMessage extends TradeTask {
             if (sender.getNodeAddress().equals(trade.getSeller().getNodeAddress()) && sender != trade.getSeller()) trade.getSeller().setNodeAddress(null);
             if (sender.getNodeAddress().equals(trade.getArbitrator().getNodeAddress()) && sender != trade.getArbitrator()) trade.getArbitrator().setNodeAddress(null);
 
+            // update multisig hex
+            sender.setUpdatedMultisigHex(request.getUpdatedMultisigHex());
+
             // decrypt seller payment account payload if key given
             if (request.getSellerPaymentAccountKey() != null && trade.getTradePeer().getPaymentAccountPayload() == null) {
                 log.info(trade.getClass().getSimpleName() + " decrypting using seller payment account key");
@@ -60,14 +63,8 @@ public class ProcessDepositsConfirmedMessage extends TradeTask {
             }
             processModel.getTradeManager().requestPersistence(); // in case importing multisig hex fails
 
-            // update multisig hex
-            sender.setUpdatedMultisigHex(request.getUpdatedMultisigHex());
-            try {
-                trade.importMultisigHex();
-            } catch (Exception e) {
-                log.warn("Error importing multisig hex for {} {}: {}", trade.getClass().getSimpleName(), trade.getId(), e.getMessage());
-                e.printStackTrace();
-            }
+            // import multisig hex
+            trade.importMultisigHex();
 
             // save wallet off thread
             new Thread(() -> trade.saveWallet()).start();

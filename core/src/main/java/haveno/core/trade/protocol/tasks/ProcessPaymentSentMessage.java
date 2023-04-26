@@ -62,12 +62,7 @@ public class ProcessPaymentSentMessage extends TradeTask {
             trade.requestPersistence();
             
             // import multisig hex
-            try {
-                trade.importMultisigHex();
-            } catch (Exception e) {
-                log.warn("Error importing multisig hex for {} {}: {}", trade.getClass().getSimpleName(), trade.getId(), e.getMessage());
-                e.printStackTrace();
-            }
+            trade.importMultisigHex();
 
             // save wallet off thread
             new Thread(() -> trade.saveWallet()).start();
