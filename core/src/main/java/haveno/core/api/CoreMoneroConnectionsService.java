@@ -481,7 +481,7 @@ public final class CoreMoneroConnectionsService {
     }
 
     private void onConnectionChanged(MoneroRpcConnection currentConnection) {
-        log.info("CoreMoneroConnetionsService.onConnectionChanged() uri={}, connected=", currentConnection == null ? null : currentConnection.getUri(), currentConnection == null ? "false" : currentConnection.isConnected());
+        log.info("CoreMoneroConnectionsService.onConnectionChanged() uri={}, connected={}", currentConnection == null ? null : currentConnection.getUri(), currentConnection == null ? "false" : currentConnection.isConnected());
         if (isShutDownStarted) return;
         synchronized (lock) {
             if (currentConnection == null) {
