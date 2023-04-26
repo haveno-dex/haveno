@@ -427,8 +427,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
                         }
                     } catch (Exception e) {
                         log.warn("Error initializing {} {}: {}", trade.getClass().getSimpleName(), trade.getId(), e.getMessage());
-                        e.printStackTrace();
-                        trade.prependErrorMessage(e.getMessage());
+                        trade.setInitError(e);
                     }
                 });
             };

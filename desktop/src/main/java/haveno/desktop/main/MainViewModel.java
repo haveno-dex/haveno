@@ -220,6 +220,15 @@ public class MainViewModel implements ViewModel, HavenoSetup.HavenoSetupListener
                 tradeManager.applyTradePeriodState();
 
                 tradeManager.getObservableList().forEach(trade -> {
+
+                    // check initialization error
+                    if (trade.getInitError() != null) {
+                        new Popup().warning("Error initializing trade" + " " + trade.getShortId() + "\n\n" +
+                                trade.getInitError().getMessage())
+                                .show();
+                    }
+
+                    // check trade period
                     Date maxTradePeriodDate = trade.getMaxTradePeriodDate();
                     String key;
                     switch (trade.getPeriodState()) {
