@@ -29,7 +29,6 @@ import haveno.core.trade.Contract;
 import haveno.core.trade.HavenoUtils;
 import haveno.core.trade.Trade;
 import haveno.core.trade.TradeManager;
-import haveno.core.trade.txproof.AssetTxProofResult;
 import haveno.core.util.FormattingUtils;
 import haveno.core.util.VolumeUtil;
 import haveno.core.util.coin.CoinFormatter;
@@ -38,7 +37,6 @@ import haveno.desktop.components.HavenoTextArea;
 import haveno.desktop.main.MainView;
 import haveno.desktop.main.overlays.Overlay;
 import haveno.desktop.util.DisplayUtils;
-import haveno.desktop.util.GUIUtil;
 import haveno.desktop.util.Layout;
 import haveno.network.p2p.NodeAddress;
 import javafx.beans.property.IntegerProperty;
@@ -64,7 +62,6 @@ import org.slf4j.LoggerFactory;
 import javax.inject.Inject;
 import javax.inject.Named;
 
-import static com.google.common.base.Preconditions.checkNotNull;
 import static haveno.desktop.util.DisplayUtils.getAccountWitnessDescription;
 import static haveno.desktop.util.FormBuilder.add2ButtonsWithBox;
 import static haveno.desktop.util.FormBuilder.addConfirmationLabelTextArea;
@@ -188,10 +185,6 @@ public class TradeDetailsWindow extends Overlay<TradeDetailsWindow> {
                 rows++;
         }
 
-        boolean showXmrProofResult = checkNotNull(trade.getOffer()).getCurrencyCode().equals("XMR") &&
-                trade.getAssetTxProofResult() != null &&
-                trade.getAssetTxProofResult() != AssetTxProofResult.UNDEFINED;
-
         if (trade.getPayoutTxId() != null)
             rows++;
         boolean showDisputedTx = arbitrationManager.findOwnDispute(trade.getId()).isPresent() &&
@@ -201,8 +194,6 @@ public class TradeDetailsWindow extends Overlay<TradeDetailsWindow> {
         if (trade.hasFailed())
             rows += 2;
         if (trade.getTradePeerNodeAddress() != null)
-            rows++;
-        if (showXmrProofResult)
             rows++;
 
         addTitledGroupBg(gridPane, ++rowIndex, rows, Res.get("shared.details"), Layout.GROUP_DISTANCE);
@@ -229,14 +220,6 @@ public class TradeDetailsWindow extends Overlay<TradeDetailsWindow> {
         if (trade.getTradePeerNodeAddress() != null)
             addConfirmationLabelTextField(gridPane, ++rowIndex, Res.get("tradeDetailsWindow.tradePeersOnion"),
                     trade.getTradePeerNodeAddress().getFullAddress());
-
-        if (showXmrProofResult) {
-            // As the window is already overloaded we replace the tradePeersPubKeyHash field with the auto-conf state
-            // if XMR is the currency
-            addConfirmationLabelTextField(gridPane, ++rowIndex,
-                    Res.get("portfolio.pending.step3_seller.autoConf.status.label"),
-                    GUIUtil.getProofResultAsString(trade.getAssetTxProofResult()));
-        }
 
         if (contract != null) {
             buyersAccountAge = getAccountWitnessDescription(accountAgeWitnessService, offer.getPaymentMethod(), buyerPaymentAccountPayload, contract.getBuyerPubKeyRing());

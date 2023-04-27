@@ -165,7 +165,7 @@ public final class CoreMoneroConnectionsService {
         return socks5ProxyProvider.getSocks5Proxy() == null ? null : socks5ProxyProvider.getSocks5Proxy().getInetAddress().getHostAddress() + ":" + socks5ProxyProvider.getSocks5Proxy().getPort();
     }
 
-    public void addListener(MoneroConnectionManagerListener listener) {
+    public void addConnectionListener(MoneroConnectionManagerListener listener) {
         synchronized (lock) {
             listeners.add(listener);
         }
@@ -481,7 +481,7 @@ public final class CoreMoneroConnectionsService {
     }
 
     private void onConnectionChanged(MoneroRpcConnection currentConnection) {
-        log.info("CoreMoneroConnetionsService.onConnectionChanged() uri={}, connected=", currentConnection == null ? null : currentConnection.getUri(), currentConnection == null ? "false" : currentConnection.isConnected());
+        log.info("CoreMoneroConnectionsService.onConnectionChanged() uri={}, connected={}", currentConnection == null ? null : currentConnection.getUri(), currentConnection == null ? "false" : currentConnection.isConnected());
         if (isShutDownStarted) return;
         synchronized (lock) {
             if (currentConnection == null) {

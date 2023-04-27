@@ -198,20 +198,20 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
         this.signedOfferPersistenceManager.initialize(signedOffers, "SignedOffers", PersistenceManager.Source.PRIVATE); // arbitrator stores reserve tx for signed offers
 
         // listen for connection changes to monerod
-        connectionsService.addListener(new MoneroConnectionManagerListener() {
+        connectionsService.addConnectionListener(new MoneroConnectionManagerListener() {
             @Override
             public void onConnectionChanged(MoneroRpcConnection connection) {
                 maybeInitializeKeyImagePoller();
             }
         });
 
-        // remove open offer if reserved funds spent
+        // close open offer if reserved funds spent
         offerBookService.addOfferBookChangedListener(new OfferBookChangedListener() {
             @Override
             public void onAdded(Offer offer) {
                 Optional<OpenOffer> openOfferOptional = getOpenOfferById(offer.getId());
                 if (openOfferOptional.isPresent() && openOfferOptional.get().getState() != OpenOffer.State.RESERVED && offer.isReservedFundsSpent()) {
-                    removeOpenOffer(openOfferOptional.get(), null);
+                    closeOpenOffer(offer);
                 }
             }
             @Override
@@ -344,21 +344,22 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
         int size = openOffers.size();
         log.info("Remove open offers at shutDown. Number of open offers: {}", size);
         if (offerBookService.isBootstrapped() && size > 0) {
-            UserThread.execute(() -> openOffers.forEach(
-                    openOffer -> offerBookService.removeOfferAtShutDown(openOffer.getOffer().getOfferPayload())
-            ));
+            UserThread.execute(() -> {
+                openOffers.forEach(openOffer -> offerBookService.removeOfferAtShutDown(openOffer.getOffer().getOfferPayload()));
 
-            // Force broadcaster to send out immediately, otherwise we could have a 2 sec delay until the
-            // bundled messages sent out.
-            broadcaster.flush();
+                // Force broadcaster to send out immediately, otherwise we could have a 2 sec delay until the
+                // bundled messages sent out.
+                broadcaster.flush();
 
-            if (completeHandler != null) {
-                // For typical number of offers we are tolerant with delay to give enough time to broadcast.
-                // If number of offers is very high we limit to 3 sec. to not delay other shutdown routines.
-                int delay = Math.min(3000, size * 200 + 500);
-                UserThread.runAfter(completeHandler, delay, TimeUnit.MILLISECONDS);
-            }
+                if (completeHandler != null) {
+                    // For typical number of offers we are tolerant with delay to give enough time to broadcast.
+                    // If number of offers is very high we limit to 3 sec. to not delay other shutdown routines.
+                    int delay = Math.min(3000, size * 200 + 500);
+                    UserThread.runAfter(completeHandler, delay, TimeUnit.MILLISECONDS);
+                }
+            });
         } else {
+            broadcaster.flush();
             if (completeHandler != null)
                 completeHandler.run();
         }
@@ -637,6 +638,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
         }
     }
 
+    // remove open offer which thaws its key images
     private void onRemoved(@NotNull OpenOffer openOffer) {
         Offer offer = openOffer.getOffer();
         if (offer.getOfferPayload().getReserveTxKeyImages() != null) {
@@ -652,7 +654,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
         requestPersistence();
     }
 
-    // Close openOffer after deposit published
+    // close open offer after key images spent
     public void closeOpenOffer(Offer offer) {
         getOpenOfferById(offer.getId()).ifPresent(openOffer -> {
             removeOpenOffer(openOffer);

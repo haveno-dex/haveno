@@ -47,10 +47,10 @@ import haveno.core.trade.ClosedTradableManager;
 import haveno.core.trade.TradeManager;
 import haveno.core.trade.failed.FailedTradesManager;
 import haveno.core.trade.statistics.TradeStatisticsManager;
-import haveno.core.trade.txproof.xmr.XmrTxProofService;
 import haveno.core.user.User;
 import haveno.core.xmr.Balances;
 import haveno.network.p2p.P2PService;
+import haveno.network.p2p.mailbox.MailboxMessageService;
 
 import javax.inject.Inject;
 import java.util.List;
@@ -72,7 +72,6 @@ public class DomainInitialisation {
     private final TradeManager tradeManager;
     private final ClosedTradableManager closedTradableManager;
     private final FailedTradesManager failedTradesManager;
-    private final XmrTxProofService xmrTxProofService;
     private final OpenOfferManager openOfferManager;
     private final Balances balances;
     private final WalletAppSetup walletAppSetup;
@@ -95,6 +94,7 @@ public class DomainInitialisation {
     private final User user;
     private final TriggerPriceService triggerPriceService;
     private final MempoolService mempoolService;
+    private final MailboxMessageService mailboxMessageService;
 
     @Inject
     public DomainInitialisation(ClockWatcher clockWatcher,
@@ -105,7 +105,6 @@ public class DomainInitialisation {
                                 TradeManager tradeManager,
                                 ClosedTradableManager closedTradableManager,
                                 FailedTradesManager failedTradesManager,
-                                XmrTxProofService xmrTxProofService,
                                 OpenOfferManager openOfferManager,
                                 Balances balances,
                                 WalletAppSetup walletAppSetup,
@@ -127,7 +126,8 @@ public class DomainInitialisation {
                                 MarketAlerts marketAlerts,
                                 User user,
                                 TriggerPriceService triggerPriceService,
-                                MempoolService mempoolService) {
+                                MempoolService mempoolService,
+                                MailboxMessageService mailboxMessageService) {
         this.clockWatcher = clockWatcher;
         this.arbitrationManager = arbitrationManager;
         this.mediationManager = mediationManager;
@@ -136,7 +136,6 @@ public class DomainInitialisation {
         this.tradeManager = tradeManager;
         this.closedTradableManager = closedTradableManager;
         this.failedTradesManager = failedTradesManager;
-        this.xmrTxProofService = xmrTxProofService;
         this.openOfferManager = openOfferManager;
         this.balances = balances;
         this.walletAppSetup = walletAppSetup;
@@ -159,6 +158,7 @@ public class DomainInitialisation {
         this.user = user;
         this.triggerPriceService = triggerPriceService;
         this.mempoolService = mempoolService;
+        this.mailboxMessageService = mailboxMessageService;
     }
 
     public void initDomainServices(Consumer<String> rejectedTxErrorMessageHandler,
@@ -182,7 +182,6 @@ public class DomainInitialisation {
 
         closedTradableManager.onAllServicesInitialized();
         failedTradesManager.onAllServicesInitialized();
-        xmrTxProofService.onAllServicesInitialized();
 
         openOfferManager.onAllServicesInitialized();
 
@@ -217,6 +216,8 @@ public class DomainInitialisation {
         marketAlerts.onAllServicesInitialized();
         triggerPriceService.onAllServicesInitialized();
         mempoolService.onAllServicesInitialized();
+
+        mailboxMessageService.onAllServicesInitialized();
 
         if (revolutAccountsUpdateHandler != null && user.getPaymentAccountsAsObservable() != null) {
             revolutAccountsUpdateHandler.accept(user.getPaymentAccountsAsObservable().stream()

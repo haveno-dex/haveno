@@ -232,10 +232,14 @@ public class XmrWalletService {
     public MoneroWalletRpc openWallet(String walletName) {
         log.info("{}.openWallet({})", getClass().getSimpleName(), walletName);
         if (isShutDownStarted) throw new IllegalStateException("Cannot open wallet because shutting down");
-        return openWalletRpc(new MoneroWalletConfig()
-                .setPath(walletName)
-                .setPassword(getWalletPassword()),
-                null);
+        try {
+            return openWalletRpc(new MoneroWalletConfig()
+            .setPath(walletName)
+            .setPassword(getWalletPassword()),
+            null);
+        } catch (MoneroError e) {
+            throw new IllegalStateException("Could not open wallet '" + walletName + "'. Please close Haveno, stop all monero-wallet-rpc processes, and restart Haveno.");
+        }
     }
 
     /**
@@ -449,7 +453,7 @@ public class XmrWalletService {
 
                 // verify miner fee
                 BigInteger feeEstimate = getFeeEstimate(tx.getWeight());
-                double feeDiff = tx.getFee().subtract(feeEstimate).abs().doubleValue() / feeEstimate.doubleValue(); // TODO: use BigDecimal?
+                double feeDiff = tx.getFee().subtract(feeEstimate).abs().doubleValue() / feeEstimate.doubleValue();
                 if (feeDiff > MINER_FEE_TOLERANCE) throw new Error("Miner fee is not within " + (MINER_FEE_TOLERANCE * 100) + "% of estimated fee, expected " + feeEstimate + " but was " + tx.getFee());
                 log.info("Trade tx fee {} is within tolerance, diff%={}", tx.getFee(), feeDiff);
 
@@ -605,7 +609,7 @@ public class XmrWalletService {
         maybeInitMainWallet();
 
         // set and listen to daemon connection
-        connectionsService.addListener(newConnection -> onConnectionChanged(newConnection));
+        connectionsService.addConnectionListener(newConnection -> onConnectionChanged(newConnection));
     }
 
     private synchronized void maybeInitMainWallet() {

@@ -57,7 +57,6 @@ import haveno.core.xmr.setup.WalletsSetup;
 import haveno.core.xmr.wallet.BtcWalletService;
 import haveno.core.xmr.wallet.WalletsManager;
 import haveno.core.xmr.wallet.XmrWalletService;
-import haveno.core.xmr.wallet.http.MemPoolSpaceTxBroadcaster;
 import haveno.network.Socks5ProxyProvider;
 import haveno.network.p2p.NodeAddress;
 import haveno.network.p2p.P2PService;
@@ -248,8 +247,6 @@ public class HavenoSetup {
         this.arbitrationManager = arbitrationManager;
 
         HavenoUtils.havenoSetup = this;
-
-        MemPoolSpaceTxBroadcaster.init(socks5ProxyProvider, preferences, localBitcoinNode);
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////

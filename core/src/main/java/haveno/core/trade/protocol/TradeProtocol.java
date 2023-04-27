@@ -838,6 +838,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
     }
 
     public void maybeSendDepositsConfirmedMessages() {
+        if (trade.isShutDownStarted()) return;
         synchronized (trade) {
             if (!trade.isInitialized()) return; // skip if shutting down
             if (trade.getProcessModel().isDepositsConfirmedMessagesDelivered()) return; // skip if already delivered

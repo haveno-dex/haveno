@@ -431,7 +431,7 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
             }
             if (feeEstimateTx != null) {
                 BigInteger feeEstimate = feeEstimateTx.getFee();
-                double feeDiff = arbitratorSignedPayoutTx.getFee().subtract(feeEstimate).abs().doubleValue() / feeEstimate.doubleValue(); // TODO: use BigDecimal?
+                double feeDiff = arbitratorSignedPayoutTx.getFee().subtract(feeEstimate).abs().doubleValue() / feeEstimate.doubleValue();
                 if (feeDiff > XmrWalletService.MINER_FEE_TOLERANCE) throw new IllegalArgumentException("Miner fee is not within " + (XmrWalletService.MINER_FEE_TOLERANCE * 100) + "% of estimated fee, expected " + feeEstimate + " but was " + arbitratorSignedPayoutTx.getFee());
                 log.info("Payout tx fee {} is within tolerance, diff %={}", arbitratorSignedPayoutTx.getFee(), feeDiff);
             }

@@ -18,8 +18,8 @@ import static haveno.cli.table.builder.TableType.TRADE_DETAIL_TBL;
 import static haveno.core.trade.Trade.Phase.DEPOSITS_UNLOCKED;
 import static haveno.core.trade.Trade.Phase.PAYMENT_SENT;
 import static haveno.core.trade.Trade.State.BUYER_SAW_ARRIVED_PAYMENT_SENT_MSG;
+import static haveno.core.trade.Trade.State.BUYER_SENT_PAYMENT_SENT_MSG;
 import static haveno.core.trade.Trade.State.DEPOSIT_TXS_UNLOCKED_IN_BLOCKCHAIN;
-import static haveno.core.trade.Trade.State.SELLER_RECEIVED_PAYMENT_SENT_MSG;
 import static java.lang.String.format;
 import static java.lang.System.out;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -144,7 +144,7 @@ public class AbstractTradeTest extends AbstractOfferTest {
                                                                   GrpcClient grpcClient,
                                                                   String tradeId) {
         Predicate<TradeInfo> isTradeInPaymentReceiptConfirmedStateAndPhase = (t) ->
-                t.getState().equals(SELLER_RECEIVED_PAYMENT_SENT_MSG.name()) &&
+                t.getState().equals(BUYER_SENT_PAYMENT_SENT_MSG.name()) &&
                         t.getPhase().equals(PAYMENT_SENT.name());
         String userName = toUserName.apply(grpcClient);
         for (int i = 1; i <= maxTradeStateAndPhaseChecks.get(); i++) {

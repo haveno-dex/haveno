@@ -17,11 +17,9 @@
 
 package haveno.desktop.main.portfolio.pendingtrades.steps.buyer;
 
-import com.jfoenix.controls.JFXBadge;
 import haveno.common.UserThread;
 import haveno.common.app.DevEnv;
 import haveno.core.locale.Res;
-import haveno.core.trade.txproof.AssetTxProofResult;
 import haveno.core.user.DontShowAgainLookup;
 import haveno.core.xmr.model.XmrAddressEntry;
 import haveno.desktop.components.AutoTooltipButton;
@@ -36,9 +34,7 @@ import haveno.desktop.main.portfolio.pendingtrades.PendingTradesViewModel;
 import haveno.desktop.main.portfolio.pendingtrades.steps.TradeStepView;
 import haveno.desktop.util.Layout;
 import javafx.geometry.Insets;
-import javafx.geometry.Pos;
 import javafx.scene.control.Button;
-import javafx.scene.control.Label;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
@@ -88,15 +84,11 @@ public class BuyerStep4View extends TradeStepView {
         } else {
             completedTradeLabel.setText(Res.get("portfolio.pending.step5_buyer.groupTitle"));
         }
-        JFXBadge autoConfBadge = new JFXBadge(new Label(""), Pos.BASELINE_RIGHT);
-        autoConfBadge.setText(Res.get("portfolio.pending.autoConf"));
-        autoConfBadge.getStyleClass().add("auto-conf");
 
-        HBox hBox2 = new HBox(1, completedTradeLabel, autoConfBadge);
+        HBox hBox2 = new HBox(1, completedTradeLabel);
         GridPane.setMargin(hBox2, new Insets(18, -10, -12, -10));
         gridPane.getChildren().add(hBox2);
         GridPane.setRowSpan(hBox2, 5);
-        autoConfBadge.setVisible(AssetTxProofResult.COMPLETED == trade.getAssetTxProofResult());
 
         if (trade.getDisputeState().isNotDisputed()) {
             addCompactTopLabelTextField(gridPane, gridRow, getBtcTradeAmountLabel(), model.getTradeVolume(), Layout.TWICE_FIRST_ROW_DISTANCE);

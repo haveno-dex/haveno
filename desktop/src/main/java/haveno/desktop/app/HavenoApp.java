@@ -36,7 +36,6 @@ import haveno.core.user.Cookie;
 import haveno.core.user.CookieKey;
 import haveno.core.user.Preferences;
 import haveno.core.user.User;
-import haveno.core.xmr.wallet.BtcWalletService;
 import haveno.core.xmr.wallet.WalletsManager;
 import haveno.desktop.common.view.CachingViewLoader;
 import haveno.desktop.common.view.View;
@@ -44,9 +43,7 @@ import haveno.desktop.common.view.ViewLoader;
 import haveno.desktop.main.MainView;
 import haveno.desktop.main.debug.DebugView;
 import haveno.desktop.main.overlays.popups.Popup;
-import haveno.desktop.main.overlays.windows.BtcEmptyWalletWindow;
 import haveno.desktop.main.overlays.windows.FilterWindow;
-import haveno.desktop.main.overlays.windows.ManualPayoutTxWindow;
 import haveno.desktop.main.overlays.windows.SendAlertMessageWindow;
 import haveno.desktop.main.overlays.windows.ShowWalletDataWindow;
 import haveno.desktop.util.CssTheme;
@@ -299,9 +296,7 @@ public class HavenoApp extends Application implements UncaughtExceptionHandler {
                     Utilities.isCtrlPressed(KeyCode.Q, keyEvent)) {
                 shutDownByUser();
             } else {
-                if (Utilities.isAltOrCtrlPressed(KeyCode.E, keyEvent)) {
-                    injector.getInstance(BtcEmptyWalletWindow.class).show();
-                } else if (Utilities.isAltOrCtrlPressed(KeyCode.M, keyEvent)) {
+                if (Utilities.isAltOrCtrlPressed(KeyCode.M, keyEvent)) {
                     injector.getInstance(SendAlertMessageWindow.class).show();
                 } else if (Utilities.isAltOrCtrlPressed(KeyCode.F, keyEvent)) {
                     injector.getInstance(FilterWindow.class).show();
@@ -321,11 +316,6 @@ public class HavenoApp extends Application implements UncaughtExceptionHandler {
                     WalletsManager walletsManager = injector.getInstance(WalletsManager.class);
                     if (walletsManager.areWalletsAvailable())
                         new ShowWalletDataWindow(walletsManager).show();
-                    else
-                        new Popup().warning(Res.get("popup.warning.walletNotInitialized")).show();
-                } else if (Utilities.isAltOrCtrlPressed(KeyCode.G, keyEvent)) {
-                    if (injector.getInstance(BtcWalletService.class).isWalletReady())
-                        injector.getInstance(ManualPayoutTxWindow.class).show();
                     else
                         new Popup().warning(Res.get("popup.warning.walletNotInitialized")).show();
                 } else if (DevEnv.isDevMode()) {

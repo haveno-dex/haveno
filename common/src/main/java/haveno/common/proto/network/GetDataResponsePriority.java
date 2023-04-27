@@ -15,16 +15,13 @@
  * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package haveno.core.xmr.wallet.http;
+package haveno.common.proto.network;
 
-import haveno.core.trade.txproof.AssetTxProofHttpClient;
-import haveno.network.Socks5ProxyProvider;
-import haveno.network.http.HttpClientImpl;
-import lombok.extern.slf4j.Slf4j;
-
-@Slf4j
-class TxBroadcastHttpClient extends HttpClientImpl implements AssetTxProofHttpClient {
-    TxBroadcastHttpClient(Socks5ProxyProvider socks5ProxyProvider) {
-        super(socks5ProxyProvider);
-    }
+/**
+ * Represents priority used at truncating data set at getDataResponse if total data exceeds limits.
+ */
+public enum GetDataResponsePriority {
+    LOW,
+    MID,
+    HIGH
 }

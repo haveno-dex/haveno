@@ -47,7 +47,6 @@ import haveno.core.trade.protocol.ProcessModelServiceProvider;
 import haveno.core.trade.protocol.TradeListener;
 import haveno.core.trade.protocol.TradePeer;
 import haveno.core.trade.protocol.TradeProtocol;
-import haveno.core.trade.txproof.AssetTxProofResult;
 import haveno.core.util.VolumeUtil;
 import haveno.core.xmr.model.XmrAddressEntry;
 import haveno.core.xmr.wallet.XmrWalletService;
@@ -55,13 +54,11 @@ import haveno.network.p2p.AckMessage;
 import haveno.network.p2p.NodeAddress;
 import haveno.network.p2p.P2PService;
 import javafx.beans.property.DoubleProperty;
-import javafx.beans.property.IntegerProperty;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.ReadOnlyDoubleProperty;
 import javafx.beans.property.ReadOnlyObjectProperty;
 import javafx.beans.property.ReadOnlyStringProperty;
 import javafx.beans.property.SimpleDoubleProperty;
-import javafx.beans.property.SimpleIntegerProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
@@ -332,14 +329,19 @@ public abstract class Trade implements Tradable, Model {
     @Setter
     private long takeOfferDate;
 
+    // Initialization
+    private static final int TOTAL_INIT_STEPS = 15; // total estimated steps
+    private int initStep = 0;
+    @Getter
+    private double initProgress = 0;
+    @Getter
+    @Setter
+    private Exception initError;
+
     //  Mutable
     private long amount;
     @Setter
     private long price;
-    private int initStep = 0;
-    private static final int TOTAL_INIT_STEPS = 15; // total estimated steps
-    @Getter
-    private double initProgress = 0;
     @Nullable
     @Getter
     private State state = State.PREPARATION;
@@ -426,18 +428,6 @@ public abstract class Trade implements Tradable, Model {
     @Getter
     @Setter
     private String counterCurrencyExtraData;
-
-    // Added at v1.3.8
-    // Generic tx proof result. We persist name if AssetTxProofResult enum. Other fields in the enum are not persisted
-    // as they are not very relevant as historical data (e.g. number of confirmations)
-    @Nullable
-    @Getter
-    private AssetTxProofResult assetTxProofResult;
-    // ObjectProperty with AssetTxProofResult does not notify changeListeners. Probably because AssetTxProofResult is
-    // an enum and enum does not support EqualsAndHashCode. Alternatively we could add a addListener and removeListener
-    // method and a listener interface, but the IntegerProperty seems to be less boilerplate.
-    @Getter
-    transient final private IntegerProperty assetTxProofResultUpdateProperty = new SimpleIntegerProperty();
 
     // Added in XMR integration
     private transient List<TradeListener> tradeListeners; // notified on fully validated trade messages
@@ -593,7 +583,7 @@ public abstract class Trade implements Tradable, Model {
         });
 
         // listen to daemon connection
-        xmrWalletService.getConnectionsService().addListener(newConnection -> onConnectionChanged(newConnection));
+        xmrWalletService.getConnectionsService().addConnectionListener(newConnection -> onConnectionChanged(newConnection));
 
         // check if done
         if (isPayoutUnlocked()) {
@@ -609,8 +599,8 @@ public abstract class Trade implements Tradable, Model {
 
         // reset seller's payment received state if no ack receive
         if (this instanceof SellerTrade && getState().ordinal() >= Trade.State.SELLER_CONFIRMED_IN_UI_PAYMENT_RECEIPT.ordinal() && getState().ordinal() < Trade.State.SELLER_STORED_IN_MAILBOX_PAYMENT_RECEIVED_MSG.ordinal()) {
-            log.warn("Resetting state of {} {} from {} to {} because no ack was received", getClass().getSimpleName(), getId(), getState(), Trade.State.SELLER_RECEIVED_PAYMENT_SENT_MSG);
-            setState(Trade.State.SELLER_RECEIVED_PAYMENT_SENT_MSG);
+            log.warn("Resetting state of {} {} from {} to {} because no ack was received", getClass().getSimpleName(), getId(), getState(), Trade.State.BUYER_SENT_PAYMENT_SENT_MSG);
+            setState(Trade.State.BUYER_SENT_PAYMENT_SENT_MSG);
         }
 
         // handle trade phase events
@@ -688,7 +678,7 @@ public abstract class Trade implements Tradable, Model {
 
         // sync wallet if applicable
         if (!isDepositRequested() || isPayoutUnlocked()) return;
-        if (!walletExists()) log.warn("Missing trade wallet for {} {}", getClass().getSimpleName(), getId());
+        if (!walletExists()) throw new IllegalStateException("Missing trade wallet for " + getClass().getSimpleName() + " " + getId());
         if (xmrWalletService.getConnectionsService().getConnection() == null || Boolean.FALSE.equals(xmrWalletService.getConnectionsService().isConnected())) return;
         updateSyncing();
     }
@@ -856,7 +846,7 @@ public abstract class Trade implements Tradable, Model {
                     xmrWalletService.deleteWallet(getWalletName());
 
                     // delete trade wallet backups unless deposits requested and payouts not unlocked
-                    if (isDepositRequested() && !isPayoutUnlocked()) {
+                    if (isDepositRequested() && !isDepositFailed() && !isPayoutUnlocked()) {
                         log.warn("Refusing to delete backup wallet for " + getClass().getSimpleName() + " " + getId() + " in the small chance it becomes funded");
                     }
                     xmrWalletService.deleteWalletBackups(getWalletName());
@@ -1021,18 +1011,9 @@ public abstract class Trade implements Tradable, Model {
         if (sign) {
 
             // sign tx
-            try {
-                MoneroMultisigSignResult result = wallet.signMultisigTxHex(payoutTxHex);
-                if (result.getSignedMultisigTxHex() == null) throw new RuntimeException("Error signing payout tx");
-                payoutTxHex = result.getSignedMultisigTxHex();
-            } catch (Exception e) {
-                if (getPayoutTxHex() != null) {
-                    log.info("Reusing previous payout tx for {} {} because signing failed with error \"{}\"", getClass().getSimpleName(), getId(), e.getMessage()); // in case previous message with signed tx failed to send
-                    payoutTxHex = getPayoutTxHex();
-                } else {
-                    throw e;
-                }
-            }
+            MoneroMultisigSignResult result = wallet.signMultisigTxHex(payoutTxHex);
+            if (result.getSignedMultisigTxHex() == null) throw new RuntimeException("Error signing payout tx");
+            payoutTxHex = result.getSignedMultisigTxHex();
 
             // describe result
             describedTxSet = wallet.describeMultisigTxSet(payoutTxHex);
@@ -1163,9 +1144,13 @@ public abstract class Trade implements Tradable, Model {
     public void onShutDownStarted() {
         isShutDownStarted = true;
         if (wallet != null) log.info("{} {} preparing for shut down", getClass().getSimpleName(), getId());
-        synchronized (this) {
-            synchronized (walletLock) {
-                stopPolling(); // allow locks to release before stopping
+
+        // repeatedly acquire trade lock to allow other threads to finish
+        for (int i = 0; i < 20; i++) {
+            synchronized (this) {
+                synchronized (walletLock) {
+                    if (isShutDown) break;
+                }
             }
         }
     }
@@ -1177,7 +1162,7 @@ public abstract class Trade implements Tradable, Model {
             isShutDown = true;
             synchronized (walletLock) {
                 if (wallet != null) {
-                    saveWallet();
+                    xmrWalletService.saveWallet(wallet, false); // skip backup
                     stopWallet();
                 }
             }
@@ -1340,11 +1325,6 @@ public abstract class Trade implements Tradable, Model {
         String appendedErrorMessage = sb.toString();
         this.errorMessage = appendedErrorMessage;
         errorMessageProperty.set(appendedErrorMessage);
-    }
-
-    public void setAssetTxProofResult(@Nullable AssetTxProofResult assetTxProofResult) {
-        this.assetTxProofResult = assetTxProofResult;
-        assetTxProofResultUpdateProperty.set(assetTxProofResultUpdateProperty.get() + 1);
     }
 
 
@@ -1644,6 +1624,7 @@ public abstract class Trade implements Tradable, Model {
         return BigInteger.valueOf(takerFee);
     }
 
+    @Override
     public BigInteger getTotalTxFee() {
         return BigInteger.valueOf(totalTxFee);
     }
@@ -1996,7 +1977,6 @@ public abstract class Trade implements Tradable, Model {
         Optional.ofNullable(payoutTxHex).ifPresent(e -> builder.setPayoutTxHex(payoutTxHex));
         Optional.ofNullable(payoutTxKey).ifPresent(e -> builder.setPayoutTxKey(payoutTxKey));
         Optional.ofNullable(counterCurrencyExtraData).ifPresent(e -> builder.setCounterCurrencyExtraData(counterCurrencyExtraData));
-        Optional.ofNullable(assetTxProofResult).ifPresent(e -> builder.setAssetTxProofResult(assetTxProofResult.name()));
         return builder.build();
     }
 
@@ -2019,13 +1999,6 @@ public abstract class Trade implements Tradable, Model {
         trade.setLockTime(proto.getLockTime());
         trade.setStartTime(proto.getStartTime());
         trade.setCounterCurrencyExtraData(ProtoUtil.stringOrNullFromProto(proto.getCounterCurrencyExtraData()));
-
-        AssetTxProofResult persistedAssetTxProofResult = ProtoUtil.enumFromProto(AssetTxProofResult.class, proto.getAssetTxProofResult());
-        // We do not want to show the user the last pending state when he starts up the app again, so we clear it.
-        if (persistedAssetTxProofResult == AssetTxProofResult.PENDING) {
-            persistedAssetTxProofResult = null;
-        }
-        trade.setAssetTxProofResult(persistedAssetTxProofResult);
 
         trade.chatMessages.addAll(proto.getChatMessageList().stream()
                 .map(ChatMessage::fromPayloadProto)
@@ -2055,7 +2028,6 @@ public abstract class Trade implements Tradable, Model {
                 ",\n     errorMessage='" + errorMessage + '\'' +
                 ",\n     counterCurrencyTxId='" + counterCurrencyTxId + '\'' +
                 ",\n     counterCurrencyExtraData='" + counterCurrencyExtraData + '\'' +
-                ",\n     assetTxProofResult='" + assetTxProofResult + '\'' +
                 ",\n     chatMessages=" + chatMessages +
                 ",\n     totalTxFee=" + totalTxFee +
                 ",\n     takerFee=" + takerFee +

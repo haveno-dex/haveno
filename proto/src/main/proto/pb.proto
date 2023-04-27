@@ -90,6 +90,7 @@ message GetDataResponse {
     repeated StorageEntryWrapper data_set = 3;
     repeated int32 supported_capabilities = 4;
     repeated PersistableNetworkPayload persistable_network_payload_items = 5;
+    bool was_truncated = 6;
 }
 
 message GetUpdatedDataRequest {
@@ -1497,8 +1498,7 @@ message Trade {
     NodeAddress refund_agent_node_address = 27;
     RefundResultState refund_result_state = 28;
     string counter_currency_extra_data = 29;
-    string asset_tx_proof_result = 30; // name of AssetTxProofResult enum
-    string uid = 31;
+    string uid = 30;
 }
 
 message BuyerAsMakerTrade {

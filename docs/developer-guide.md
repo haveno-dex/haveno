@@ -43,7 +43,53 @@ Follow [instructions](https://github.com/haveno-dex/haveno-ts#run-tests) to run 
     b. Sign account age witness: `ctrl+p` then enter <witness hash>,<pub key hash> (from past trade details) and click the "Import unsigned account age witness" button.
     c. Sign unsigned witness pub keys: `ctrl+o`
 
-## Package executable binaries
+## Build portable Monero binaries for each platform
+
+Based on these instructions: https://github.com/monero-project/monero#cross-compiling
+
+1. Install Ubuntu 20.04.
+2. `sudo apt-get update && sudo apt-get upgrade`
+3. `sudo apt install cmake imagemagick libcap-dev librsvg2-bin libz-dev libbz2-dev libtiff-tools python-dev libtinfo5 autoconf libtool libtool-bin gperf`
+4. `git clone https://github.com/haveno-dex/monero.git`
+5. `cd ./monero (or rename this folder)`
+6. `git submodule update --init --force`
+
+
+> Note:
+> If you get the prompt "Reversed (or previously applied) patch detected!  Assume -R? [n]" then confirm 'y'.
+
+**Build for Linux**
+
+1. `make depends target=x86_64-linux-gnu -j<num cores>`
+2. `cd build/x86_64-linux-gnu/release/bin/`
+3. `tar -zcvf monero-bins-haveno-linux.tar.gz monerod monero-wallet-rpc`
+4. Save monero-bins-haveno-linux.tar.gz for release.
+
+**Build for Mac**
+
+1. `make depends target=x86_64-apple-darwin11 -j<num cores>`
+2. `cd build/x86_64-apple-darwin11/release/bin/`
+3. `tar -zcvf monero-bins-haveno-mac.tar.gz monerod monero-wallet-rpc`
+4. Save monero-bins-haveno-mac.tar.gz for release.
+
+**Build for Windows**
+
+1. `sudo apt install python3 g++-mingw-w64-x86-64 bc`
+2. `sudo update-alternatives --set x86_64-w64-mingw32-g++ /usr/bin/x86_64-w64-mingw32-g++-posix && sudo update-alternatives --set x86_64-w64-mingw32-gcc /usr/bin/x86_64-w64-mingw32-gcc-posix`
+3. `make depends target=x86_64-w64-mingw32 -j<num cores>`
+4. `cd build/x86_64-w64-mingw32/release/bin/`
+5. `zip monero-bins-haveno-windows.zip monerod.exe monero-wallet-rpc.exe`
+6. Save monero-bins-haveno-windows.zip for release.
+
+## Release portable Monero binaries for each platform
+
+1. Update Haveno's [monero repo](https://github.com/haveno-dex/monero) to the latest release from upstream + a commit (241b6) to rapidly update to the latest output type on testnet.
+2. git tag testing11 && git push haveno testing11
+3. Follow instructions to [build portable binaries for each platform](#build-portable-monero-binaries-for-each-platform).
+4. Publish a new release at https://github.com/haveno-dex/monero/releases with the updated binaries and hashes.
+5. Update the paths and hashes in build.gradle and PR.
+
+## Build executable installers for each platform
 
 See [instructions](/desktop/package/README.md).
 

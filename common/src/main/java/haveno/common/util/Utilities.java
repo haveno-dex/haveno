@@ -17,33 +17,37 @@
 
 package haveno.common.util;
 
+import org.bitcoinj.core.Utils;
+
 import com.google.common.base.Splitter;
 import com.google.common.primitives.Ints;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
+
+import org.apache.commons.lang3.ArrayUtils;
+import org.apache.commons.lang3.RandomStringUtils;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.time.DurationFormatUtils;
+
 import javafx.scene.input.Clipboard;
 import javafx.scene.input.ClipboardContent;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyCodeCombination;
 import javafx.scene.input.KeyCombination;
 import javafx.scene.input.KeyEvent;
-import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.ArrayUtils;
-import org.apache.commons.lang3.RandomStringUtils;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.lang3.time.DurationFormatUtils;
-import org.bitcoinj.core.Utils;
-import org.jetbrains.annotations.NotNull;
 
-import javax.annotation.Nullable;
-import java.io.File;
-import java.io.IOException;
+import java.text.DecimalFormat;
+
 import java.net.URI;
 import java.net.URISyntaxException;
+
 import java.nio.file.Paths;
-import java.text.DecimalFormat;
+
+import java.io.File;
+import java.io.IOException;
+
 import java.util.Arrays;
 import java.util.Date;
 import java.util.GregorianCalendar;
@@ -59,7 +63,6 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -68,92 +71,79 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
+import lombok.extern.slf4j.Slf4j;
+
+import org.jetbrains.annotations.NotNull;
+
+import javax.annotation.Nullable;
+
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 @Slf4j
 public class Utilities {
 
-    public static ExecutorService getSingleThreadExecutor(String name) {
-        final ThreadFactory threadFactory = new ThreadFactoryBuilder()
-                .setNameFormat(name)
-                .setDaemon(true)
-                .build();
-        return Executors.newSingleThreadExecutor(threadFactory);
-    }
-
-    public static ListeningExecutorService getSingleThreadListeningExecutor(String name) {
-        return MoreExecutors.listeningDecorator(getSingleThreadExecutor(name));
+    public static ExecutorService getFixedThreadPoolExecutor(int nThreads, ThreadFactory threadFactory) {
+        return Executors.newFixedThreadPool(nThreads, threadFactory);
     }
 
     public static ListeningExecutorService getListeningExecutorService(String name,
-                                                                       int corePoolSize,
-                                                                       int maximumPoolSize,
-                                                                       long keepAliveTimeInSec) {
-        return MoreExecutors.listeningDecorator(getThreadPoolExecutor(name, corePoolSize, maximumPoolSize, keepAliveTimeInSec));
+            int corePoolSize,
+            int maximumPoolSize,
+            long keepAliveTimeInSec) {
+        return getListeningExecutorService(name, corePoolSize, maximumPoolSize, maximumPoolSize, keepAliveTimeInSec);
     }
 
     public static ListeningExecutorService getListeningExecutorService(String name,
-                                                                       int corePoolSize,
-                                                                       int maximumPoolSize,
-                                                                       long keepAliveTimeInSec,
-                                                                       BlockingQueue<Runnable> workQueue) {
+            int corePoolSize,
+            int maximumPoolSize,
+            int queueCapacity,
+            long keepAliveTimeInSec) {
+        return MoreExecutors.listeningDecorator(getThreadPoolExecutor(name, corePoolSize, maximumPoolSize, queueCapacity, keepAliveTimeInSec));
+    }
+
+    public static ListeningExecutorService getListeningExecutorService(String name,
+            int corePoolSize,
+            int maximumPoolSize,
+            long keepAliveTimeInSec,
+            BlockingQueue<Runnable> workQueue) {
         return MoreExecutors.listeningDecorator(getThreadPoolExecutor(name, corePoolSize, maximumPoolSize, keepAliveTimeInSec, workQueue));
     }
 
     public static ThreadPoolExecutor getThreadPoolExecutor(String name,
-                                                           int corePoolSize,
-                                                           int maximumPoolSize,
-                                                           long keepAliveTimeInSec) {
+            int corePoolSize,
+            int maximumPoolSize,
+            long keepAliveTimeInSec) {
+        return getThreadPoolExecutor(name, corePoolSize, maximumPoolSize, maximumPoolSize, keepAliveTimeInSec);
+    }
+
+    public static ThreadPoolExecutor getThreadPoolExecutor(String name,
+            int corePoolSize,
+            int maximumPoolSize,
+            int queueCapacity,
+            long keepAliveTimeInSec) {
         return getThreadPoolExecutor(name, corePoolSize, maximumPoolSize, keepAliveTimeInSec,
-                new ArrayBlockingQueue<>(maximumPoolSize));
+                new ArrayBlockingQueue<>(queueCapacity));
     }
 
     private static ThreadPoolExecutor getThreadPoolExecutor(String name,
-                                                            int corePoolSize,
-                                                            int maximumPoolSize,
-                                                            long keepAliveTimeInSec,
-                                                            BlockingQueue<Runnable> workQueue) {
-        final ThreadFactory threadFactory = new ThreadFactoryBuilder()
-                .setNameFormat(name)
+            int corePoolSize,
+            int maximumPoolSize,
+            long keepAliveTimeInSec,
+            BlockingQueue<Runnable> workQueue) {
+        ThreadFactory threadFactory = new ThreadFactoryBuilder()
+                .setNameFormat(name + "-%d")
                 .setDaemon(true)
                 .build();
         ThreadPoolExecutor executor = new ThreadPoolExecutor(corePoolSize, maximumPoolSize, keepAliveTimeInSec,
                 TimeUnit.SECONDS, workQueue, threadFactory);
         executor.allowCoreThreadTimeOut(true);
-        executor.setRejectedExecutionHandler((r, e) -> log.debug("RejectedExecutionHandler called"));
         return executor;
     }
 
-    @SuppressWarnings("SameParameterValue")
-    public static ScheduledThreadPoolExecutor getScheduledThreadPoolExecutor(String name,
-                                                                             int corePoolSize,
-                                                                             int maximumPoolSize,
-                                                                             long keepAliveTimeInSec) {
-        final ThreadFactory threadFactory = new ThreadFactoryBuilder()
-                .setNameFormat(name)
-                .setDaemon(true)
-                .setPriority(Thread.MIN_PRIORITY)
-                .build();
-        ScheduledThreadPoolExecutor executor = new ScheduledThreadPoolExecutor(corePoolSize, threadFactory);
-        executor.setKeepAliveTime(keepAliveTimeInSec, TimeUnit.SECONDS);
-        executor.allowCoreThreadTimeOut(true);
-        executor.setMaximumPoolSize(maximumPoolSize);
-        executor.setExecuteExistingDelayedTasksAfterShutdownPolicy(false);
-        executor.setRejectedExecutionHandler((r, e) -> log.debug("RejectedExecutionHandler called"));
-        return executor;
-    }
-
-    // TODO: Can some/all of the uses of this be replaced by guava MoreExecutors.shutdownAndAwaitTermination(..)?
     public static void shutdownAndAwaitTermination(ExecutorService executor, long timeout, TimeUnit unit) {
-        executor.shutdown();
-        try {
-            if (!executor.awaitTermination(timeout, unit)) {
-                executor.shutdownNow();
-            }
-        } catch (InterruptedException e) {
-            executor.shutdownNow();
-        }
+        // noinspection UnstableApiUsage
+        MoreExecutors.shutdownAndAwaitTermination(executor, timeout, unit);
     }
 
     public static <V> FutureCallback<V> failureCallback(Consumer<Throwable> errorHandler) {
@@ -175,7 +165,7 @@ public class Utilities {
     public static boolean isMacMenuBarDarkMode() {
         try {
             // check for exit status only. Once there are more modes than "dark" and "default", we might need to analyze string contents..
-            Process process = Runtime.getRuntime().exec(new String[]{"defaults", "read", "-g", "AppleInterfaceStyle"});
+            Process process = Runtime.getRuntime().exec(new String[] { "defaults", "read", "-g", "AppleInterfaceStyle" });
             process.waitFor(100, TimeUnit.MILLISECONDS);
             return process.exitValue() == 0;
         } catch (IOException | InterruptedException | IllegalThreadStateException ex) {
@@ -294,8 +284,7 @@ public class Utilities {
                 System.getProperty("os.arch"),
                 getJVMArchitecture(),
                 (System.getProperty("java.runtime.version", "-") + " (" + System.getProperty("java.vendor", "-") + ")"),
-                (System.getProperty("java.vm.version", "-") + " (" + System.getProperty("java.vm.name", "-") + ")")
-        );
+                (System.getProperty("java.vm.version", "-") + " (" + System.getProperty("java.vm.name", "-") + ")"));
     }
 
     public static String getJVMArchitecture() {
@@ -437,7 +426,6 @@ public class Utilities {
     public static String toTruncatedString(Object message, int maxLength, boolean removeLineBreaks) {
         if (message == null)
             return "null";
-
 
         String result = StringUtils.abbreviate(message.toString(), maxLength);
         if (removeLineBreaks)

@@ -420,12 +420,12 @@ configure(project(':core')) {
         doLast {
             // get monero binaries download url
             Map moneroBinaries = [
-                'linux'         : 'https://github.com/haveno-dex/monero/releases/download/testing9/monero-bins-haveno-linux.tar.gz',
-                'linux-sha256'  : '8d26f0402e06d75cd4196b643581d4bd745e660d24d42165a444afbc7b8f4363',
-                'mac'           : 'https://github.com/haveno-dex/monero/releases/download/testing9/monero-bins-haveno-mac.tar.gz',
-                'mac-sha256'    : 'ab2f6f52b5b185c9af9cca4c24799fd763c9cfa19714ded2e5209fd7e7969050',
-                'windows'       : 'https://github.com/haveno-dex/monero/releases/download/testing9/monero-bins-haveno-windows.zip',
-                'windows-sha256': 'ee7a99418f8c5f954fe55cc65a03cafeea7d0ec6171d3c39c48c6be6e5ebc6d8'
+                'linux'         : 'https://github.com/haveno-dex/monero/releases/download/testing11/monero-bins-haveno-linux.tar.gz',
+                'linux-sha256'  : '34122372346745322437411e2a2302e699bd3a8a6f8f196ad13a041c9b7d6879',
+                'mac'           : 'https://github.com/haveno-dex/monero/releases/download/testing11/monero-bins-haveno-mac.tar.gz',
+                'mac-sha256'    : '2fdd763c95bd573a4675c39e1965adbc1c5b032290a26f6a6102414d8fa37b33',
+                'windows'       : 'https://github.com/haveno-dex/monero/releases/download/testing11/monero-bins-haveno-windows.zip',
+                'windows-sha256': '7c5d94f3e13f70b1c9f36558031cb79691e0920253083b64a35e956c7eb1f158'
             ]
 
             String osKey

@@ -15,17 +15,14 @@
  * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package haveno.core.trade.txproof;
+package haveno.network.p2p.network;
 
-import haveno.common.handlers.FaultHandler;
+import haveno.network.p2p.NodeAddress;
 
-import java.util.function.Consumer;
+import java.util.function.Predicate;
 
-public interface AssetTxProofRequest<R extends AssetTxProofRequest.Result> {
-    interface Result {
-    }
+public interface BanFilter {
+    boolean isPeerBanned(NodeAddress nodeAddress);
 
-    void requestFromService(Consumer<R> resultHandler, FaultHandler faultHandler);
-
-    void terminate();
+    void setBannedNodePredicate(Predicate<NodeAddress> isNodeAddressBanned);
 }

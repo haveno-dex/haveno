@@ -94,7 +94,7 @@ public class OfferBookService {
         jsonFileManager = new JsonFileManager(storageDir);
 
         // listen for connection changes to monerod
-        connectionsService.addListener(new MoneroConnectionManagerListener() {
+        connectionsService.addConnectionListener(new MoneroConnectionManagerListener() {
             @Override
             public void onConnectionChanged(MoneroRpcConnection connection) {
                 maybeInitializeKeyImagePoller();
@@ -297,8 +297,12 @@ public class OfferBookService {
             if (offer.getOfferPayload().getReserveTxKeyImages().contains(keyImage)) {
                 synchronized (offerBookChangedListeners) {
                     offerBookChangedListeners.forEach(listener -> {
-                        listener.onRemoved(offer);
-                        listener.onAdded(offer);
+
+                        // notify off thread to avoid deadlocking
+                        new Thread(() -> {
+                            listener.onRemoved(offer);
+                            listener.onAdded(offer);
+                        }).start();
                     });
                 }
             }
