@@ -36,7 +36,7 @@ public class SellerPreparePaymentReceivedMessage extends TradeTask {
             runInterceptHook();
 
             // check connection
-            trade.checkWalletConnection();
+            trade.checkDaemonConnection();
 
             // handle first time preparation
             if (processModel.getPaymentReceivedMessage() == null) {

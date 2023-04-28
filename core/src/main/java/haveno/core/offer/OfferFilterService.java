@@ -26,6 +26,7 @@ import haveno.core.support.dispute.arbitration.arbitrator.Arbitrator;
 import haveno.core.trade.HavenoUtils;
 import haveno.core.user.Preferences;
 import haveno.core.user.User;
+import haveno.network.p2p.NodeAddress;
 import javafx.collections.SetChangeListener;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
@@ -34,8 +35,10 @@ import org.bitcoinj.core.Coin;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Singleton
@@ -217,6 +220,10 @@ public class OfferFilterService {
 
     public boolean hasValidArbitrator(Offer offer) {
         Arbitrator arbitrator = user.getAcceptedArbitratorByAddress(offer.getOfferPayload().getArbitratorSigner());
+        if (arbitrator == null) {
+            List<NodeAddress> arbitratorAddresses = user.getAcceptedArbitrators().stream().map(Arbitrator::getNodeAddress).collect(Collectors.toList());
+            log.warn("No arbitrator registered with offer's signer. offerId={}. Accepted arbitrators={}", offer.getOfferPayload().getArbitratorSigner(), arbitratorAddresses);
+        }
         return arbitrator != null;
     }
 
