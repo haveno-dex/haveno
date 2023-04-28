@@ -737,10 +737,6 @@ public abstract class Trade implements Tradable, Model {
         return MONERO_TRADE_WALLET_PREFIX + getId();
     }
 
-    public MoneroRpcConnection getDaemonConnection() {
-        return wallet == null ? null : wallet.getDaemonConnection();
-    }
-
     public void checkDaemonConnection() {
         CoreMoneroConnectionsService connectionService = xmrWalletService.getConnectionsService();
         connectionService.checkConnection();
@@ -1859,7 +1855,7 @@ public abstract class Trade implements Tradable, Model {
             }
         } catch (Exception e) {
             if (!isShutDown && getWallet() != null && isWalletConnected()) {
-                log.warn("Error polling trade wallet for {} {}: {}. Monerod={}", getClass().getSimpleName(), getId(), e.getMessage(), getDaemonConnection());
+                log.warn("Error polling trade wallet for {} {}: {}. Monerod={}", getClass().getSimpleName(), getId(), e.getMessage(), getXmrWalletService().getConnectionsService().getConnection());
             }
         }
     }
