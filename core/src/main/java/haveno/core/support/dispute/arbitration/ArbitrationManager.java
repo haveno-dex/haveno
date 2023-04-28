@@ -400,7 +400,7 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
         if (!expectedLoserAmount.equals(actualLoserAmount)) throw new RuntimeException("Unexpected loser payout: " + expectedLoserAmount + " vs " + actualLoserAmount);
 
         // check wallet's daemon connection
-        trade.checkWalletConnection();
+        trade.checkDaemonConnection();
 
         // determine if we already signed dispute payout tx
         // TODO: better way, such as by saving signed dispute payout tx hex in designated field instead of shared payoutTxHex field?

@@ -737,7 +737,11 @@ public abstract class Trade implements Tradable, Model {
         return MONERO_TRADE_WALLET_PREFIX + getId();
     }
 
-    public void checkWalletConnection() {
+    public MoneroRpcConnection getDaemonConnection() {
+        return wallet == null ? null : wallet.getDaemonConnection();
+    }
+
+    public void checkDaemonConnection() {
         CoreMoneroConnectionsService connectionService = xmrWalletService.getConnectionsService();
         connectionService.checkConnection();
         connectionService.verifyConnection();
@@ -746,7 +750,7 @@ public abstract class Trade implements Tradable, Model {
 
     public boolean isWalletConnected() {
         try {
-            checkWalletConnection();
+            checkDaemonConnection();
             return true;
         } catch (Exception e) {
             return false;
@@ -906,7 +910,7 @@ public abstract class Trade implements Tradable, Model {
     public MoneroTxWallet createPayoutTx() {
 
         // check connection to monero daemon
-        checkWalletConnection();
+        checkDaemonConnection();
 
         // check multisig import
         if (getWallet().isMultisigImportNeeded()) throw new RuntimeException("Cannot create payout tx because multisig import is needed");
@@ -1005,7 +1009,7 @@ public abstract class Trade implements Tradable, Model {
         if (!sellerPayoutDestination.getAmount().equals(expectedSellerPayout)) throw new IllegalArgumentException("Seller destination amount is not deposit amount - trade amount - 1/2 tx costs, " + sellerPayoutDestination.getAmount() + " vs " + expectedSellerPayout);
 
         // check wallet connection
-        if (sign || publish) checkWalletConnection();
+        if (sign || publish) checkDaemonConnection();
 
         // handle tx signing
         if (sign) {
@@ -1855,7 +1859,7 @@ public abstract class Trade implements Tradable, Model {
             }
         } catch (Exception e) {
             if (!isShutDown && getWallet() != null && isWalletConnected()) {
-                log.warn("Error polling trade wallet {}: {}", getId(), e.getMessage());
+                log.warn("Error polling trade wallet for {} {}: {}. Monerod={}", getClass().getSimpleName(), getId(), e.getMessage(), getDaemonConnection());
             }
         }
     }
