@@ -25,7 +25,7 @@ Haveno data folder on Linux: `/home/<username>/.local/share/Haveno/`
 4. `open <path>`
 5. Open installer and drag Haveno.app to Applications.
 6. `sudo xattr -rd com.apple.quarantine /Applications/Haveno.app`
-7. Right click /Applications/Haveno.app > open. Open despite being "damaged".
+7. Right click /Applications/Haveno.app > Open. Repeat again if necessary, despite being "damaged".
 
 Haveno data folder on Mac: `/Users/<username>/Library/Application Support/Haveno/`
 
