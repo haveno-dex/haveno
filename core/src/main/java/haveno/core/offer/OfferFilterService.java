@@ -220,9 +220,9 @@ public class OfferFilterService {
 
     public boolean hasValidArbitrator(Offer offer) {
         Arbitrator arbitrator = user.getAcceptedArbitratorByAddress(offer.getOfferPayload().getArbitratorSigner());
-        if (arbitrator == null) {
+        if (arbitrator == null && offer.getOfferPayload().getArbitratorSigner() != null) {
             List<NodeAddress> arbitratorAddresses = user.getAcceptedArbitrators().stream().map(Arbitrator::getNodeAddress).collect(Collectors.toList());
-            log.warn("No arbitrator registered with offer's signer. offerId={}. Accepted arbitrators={}", offer.getOfferPayload().getArbitratorSigner(), arbitratorAddresses);
+            log.warn("No arbitrator is registered with offer's signer. offerId={}, arbitrator signer={}, accepted arbitrators={}", offer.getId(), offer.getOfferPayload().getArbitratorSigner(), arbitratorAddresses);
         }
         return arbitrator != null;
     }

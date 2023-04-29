@@ -1530,7 +1530,6 @@ message ProcessModel {
     bool use_savings_wallet = 6;
     int64 funds_needed_for_trade = 7;
     string payment_sent_message_state = 8;
-    bool deposits_confirmed_messages_delivered = 9;
     bytes maker_signature = 10;
     TradePeer maker = 11;
     TradePeer taker = 12;
@@ -1576,6 +1575,7 @@ message TradePeer {
     string deposit_tx_key = 1010;
     int64 security_deposit = 1011;
     string updated_multisig_hex = 1012;
+    bool deposits_confirmed_message_acked = 1013;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////

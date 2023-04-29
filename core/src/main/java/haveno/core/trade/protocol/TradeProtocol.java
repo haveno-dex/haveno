@@ -75,7 +75,6 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
 
 @Slf4j
 public abstract class TradeProtocol implements DecryptedDirectMessageListener, DecryptedMailboxListener {
@@ -255,6 +254,21 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
         MailboxMessageService mailboxMessageService = processModel.getP2PService().getMailboxMessageService();
         if (!trade.isCompleted()) mailboxMessageService.addDecryptedMailboxListener(this);
         handleMailboxCollection(mailboxMessageService.getMyDecryptedMailboxMessages());
+
+        // send deposits confirmed message if applicable
+        maybeSendDepositsConfirmedMessage();
+    }
+
+    private void maybeSendDepositsConfirmedMessage() {
+        if (trade.isDepositsConfirmed()) {
+            new Thread(() -> maybeSendDepositsConfirmedMessages()).start();
+        } else {
+            EasyBind.subscribe(trade.stateProperty(), state -> {
+                if (trade.isDepositsConfirmed()) {
+                    new Thread(() -> maybeSendDepositsConfirmedMessages()).start();
+                }
+            });
+        }
     }
 
     public void maybeReprocessPaymentReceivedMessage(boolean reprocessOnError) {
@@ -617,6 +631,13 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
         if (ackMessage.isSuccess()) {
             log.info("Received AckMessage for {} from {} with tradeId {} and uid {}",
                     ackMessage.getSourceMsgClassName(), peer, trade.getId(), ackMessage.getSourceUid());
+
+            // handle ack for DepositsConfirmedMessage, which automatically re-sends if not ACKed in a certain time
+            if (ackMessage.getSourceMsgClassName().equals(DepositsConfirmedMessage.class.getSimpleName())) {
+                if (trade.getTradePeer(peer) != null) {
+                    trade.getTradePeer(peer).setDepositsConfirmedMessageAcked(true);
+                }
+            }
         } else {
             String err = "Received AckMessage with error state for " + ackMessage.getSourceMsgClassName() + " from "+ peer + " with tradeId " + trade.getId() + " and errorMessage=" + ackMessage.getErrorMessage();
             log.warn(err);
@@ -834,8 +855,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
             return tradeMessage.getTradeId().equals(trade.getId());
         } else if (message instanceof AckMessage) {
             AckMessage ackMessage = (AckMessage) message;
-            return ackMessage.getSourceType() == AckMessageSourceType.TRADE_MESSAGE &&
-                    ackMessage.getSourceId().equals(trade.getId());
+            return ackMessage.getSourceType() == AckMessageSourceType.TRADE_MESSAGE && ackMessage.getSourceId().equals(trade.getId());
         } else {
             return false;
         }
@@ -845,22 +865,15 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
         if (trade.isShutDownStarted()) return;
         synchronized (trade) {
             if (!trade.isInitialized()) return; // skip if shutting down
-            if (trade.getProcessModel().isDepositsConfirmedMessagesDelivered()) return; // skip if already delivered
             latchTrade();
             expect(new Condition(trade))
                     .setup(tasks(getDepositsConfirmedTasks())
                     .using(new TradeTaskRunner(trade,
                             () -> {
-                                trade.getProcessModel().setDepositsConfirmedMessagesDelivered(true);
-                                handleTaskRunnerSuccess(null, null, "SendDepositsConfirmedMessages");
+                                handleTaskRunnerSuccess(null, null, "maybeSendDepositsConfirmedMessages");
                             },
                             (errorMessage) -> {
-
-                                // retry in 15 minutes
-                                UserThread.runAfter(() -> {
-                                    maybeSendDepositsConfirmedMessages();
-                                }, 15, TimeUnit.MINUTES);
-                                handleTaskRunnerFault(null, null, "SendDepositsConfirmedMessages", errorMessage);
+                                handleTaskRunnerFault(null, null, "maybeSendDepositsConfirmedMessages", errorMessage);
                             })))
                     .executeTasks(true);
             awaitTradeLatch();

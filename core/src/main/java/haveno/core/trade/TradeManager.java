@@ -487,7 +487,6 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
         if (getTradeProtocol(trade) != null) return;
         initTradeAndProtocol(trade, createTradeProtocol(trade));
         requestPersistence();
-        listenForCleanup(trade);
     }
 
     private void initTradeAndProtocol(Trade trade, TradeProtocol tradeProtocol) {
