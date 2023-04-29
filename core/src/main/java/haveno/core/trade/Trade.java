@@ -658,17 +658,6 @@ public abstract class Trade implements Tradable, Model {
             xmrWalletService.addWalletListener(idlePayoutSyncer);
         }
 
-        // send deposit confirmed message on startup or event
-        if (isDepositsConfirmed()) {
-            new Thread(() -> getProtocol().maybeSendDepositsConfirmedMessages()).start();
-        } else {
-            EasyBind.subscribe(stateProperty(), state -> {
-                if (isDepositsConfirmed()) {
-                    new Thread(() -> getProtocol().maybeSendDepositsConfirmedMessages()).start();
-                }
-            });
-        }
-
         // reprocess pending payout messages
         this.getProtocol().maybeReprocessPaymentReceivedMessage(false);
         HavenoUtils.arbitrationManager.maybeReprocessDisputeClosedMessage(this, false);
