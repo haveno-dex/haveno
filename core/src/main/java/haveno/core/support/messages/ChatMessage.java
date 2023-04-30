@@ -36,7 +36,6 @@ import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 
 import javax.annotation.Nullable;
-import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -85,7 +84,7 @@ public final class ChatMessage extends SupportMessage {
     private final StringProperty sendMessageErrorProperty;
     private final StringProperty ackErrorProperty;
 
-    transient private WeakReference<Listener> listener;
+    transient private Listener listener;
 
     public ChatMessage(SupportType supportType,
                        String tradeId,
@@ -328,8 +327,12 @@ public final class ChatMessage extends SupportMessage {
         return Utilities.getShortId(tradeId);
     }
 
-    public void addWeakMessageStateListener(Listener listener) {
-        this.listener = new WeakReference<>(listener);
+    public void addChangeListener(Listener listener) {
+        this.listener = listener;
+    }
+
+    public void removeChangeListener() {
+        this.listener = null;
     }
 
     public boolean isResultMessage(Dispute dispute) {
@@ -349,10 +352,7 @@ public final class ChatMessage extends SupportMessage {
 
     private void notifyChangeListener() {
         if (listener != null) {
-            Listener listener = this.listener.get();
-            if (listener != null) {
-                listener.onMessageStateChanged();
-            }
+            listener.onMessageStateChanged();
         }
     }
 
