@@ -329,7 +329,7 @@ public class ChatView extends AnchorPane {
                                 bg.setId("message-bubble-green");
                                 messageLabel.getStyleClass().add("my-message");
                                 copyIcon.getStyleClass().add("my-message");
-                                message.addWeakMessageStateListener(() -> updateMsgState(message));
+                                message.addChangeListener(() -> updateMsgState(message));
                                 updateMsgState(message);
                             } else if (isMyMsg) {
                                 headerLabel.getStyleClass().add("my-message-header");
@@ -350,7 +350,7 @@ public class ChatView extends AnchorPane {
                                 };
 
                                 sendMsgBusyAnimation.isRunningProperty().addListener(sendMsgBusyAnimationListener);
-                                message.addWeakMessageStateListener(() -> updateMsgState(message));
+                                message.addChangeListener(() -> updateMsgState(message));
                                 updateMsgState(message);
                             } else {
                                 headerLabel.getStyleClass().add("message-header");
@@ -693,10 +693,13 @@ public class ChatView extends AnchorPane {
     }
 
     private void removeListenersOnSessionChange() {
-        if (chatMessages != null && disputeDirectMessageListListener != null)
-            chatMessages.removeListener(disputeDirectMessageListListener);
+        if (chatMessages != null) {
+            if (disputeDirectMessageListListener != null) chatMessages.removeListener(disputeDirectMessageListListener);
+            chatMessages.forEach(msg -> msg.removeChangeListener());
+        }
 
         if (chatMessage != null) {
+            chatMessage.removeChangeListener();
             if (arrivedPropertyListener != null)
                 chatMessage.arrivedProperty().removeListener(arrivedPropertyListener);
             if (storedInMailboxPropertyListener != null)
