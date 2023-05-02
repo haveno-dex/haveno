@@ -391,7 +391,7 @@ public abstract class Trade implements Tradable, Model {
     transient private Long syncNormalStartTime;
 
     public static final long DEFER_PUBLISH_MS = 25000; // 25 seconds
-    private static final long IDLE_SYNC_PERIOD_MS = 3600000; // 1 hour
+    private static final long IDLE_SYNC_PERIOD_MS = 1680000; // 28 minutes (monero's default connection timeout is 30 minutes on a local connection, so beyond this the wallets will disconnect)
     private static final long MAX_REPROCESS_DELAY_SECONDS = 7200; // max delay to reprocess messages (once per 2 hours)
 
     //  Mutable
