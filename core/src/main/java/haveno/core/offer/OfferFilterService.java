@@ -27,6 +27,7 @@ import haveno.core.trade.HavenoUtils;
 import haveno.core.user.Preferences;
 import haveno.core.user.User;
 import haveno.network.p2p.NodeAddress;
+import haveno.network.p2p.P2PService;
 import javafx.collections.SetChangeListener;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
@@ -44,6 +45,7 @@ import java.util.stream.Collectors;
 @Singleton
 public class OfferFilterService {
     private final User user;
+    private final P2PService p2PService;
     private final Preferences preferences;
     private final FilterManager filterManager;
     private final AccountAgeWitnessService accountAgeWitnessService;
@@ -52,10 +54,12 @@ public class OfferFilterService {
 
     @Inject
     public OfferFilterService(User user,
+                       P2PService p2PService,
                        Preferences preferences,
                        FilterManager filterManager,
                        AccountAgeWitnessService accountAgeWitnessService) {
         this.user = user;
+        this.p2PService = p2PService;
         this.preferences = preferences;
         this.filterManager = filterManager;
         this.accountAgeWitnessService = accountAgeWitnessService;
@@ -220,11 +224,20 @@ public class OfferFilterService {
 
     public boolean hasValidArbitrator(Offer offer) {
         Arbitrator arbitrator = user.getAcceptedArbitratorByAddress(offer.getOfferPayload().getArbitratorSigner());
-        if (arbitrator == null && offer.getOfferPayload().getArbitratorSigner() != null) {
+        if (arbitrator != null) return true;
+
+        // accepted arbitrator is null if we are the signing arbitrator
+        if (offer.getOfferPayload().getArbitratorSigner() != null) {
+            Arbitrator thisArbitrator = user.getRegisteredArbitrator();
+            if (thisArbitrator != null && thisArbitrator.getNodeAddress().equals(offer.getOfferPayload().getArbitratorSigner())) {
+                if (thisArbitrator.getNodeAddress().equals(p2PService.getNetworkNode().getNodeAddress())) return true; // TODO: unnecessary to compare arbitrator and p2pservice address?
+            }
+
+            // otherwise log warning
             List<NodeAddress> arbitratorAddresses = user.getAcceptedArbitrators().stream().map(Arbitrator::getNodeAddress).collect(Collectors.toList());
             log.warn("No arbitrator is registered with offer's signer. offerId={}, arbitrator signer={}, accepted arbitrators={}", offer.getId(), offer.getOfferPayload().getArbitratorSigner(), arbitratorAddresses);
         }
-        return arbitrator != null;
+        return false;
     }
 
     public boolean hasValidSignature(Offer offer) {
