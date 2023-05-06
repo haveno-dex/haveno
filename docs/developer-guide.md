@@ -43,6 +43,14 @@ Follow [instructions](https://github.com/haveno-dex/haveno-ts#run-tests) to run 
     b. Sign account age witness: `ctrl+p` then enter <witness hash>,<pub key hash> (from past trade details) and click the "Import unsigned account age witness" button.
     c. Sign unsigned witness pub keys: `ctrl+o`
 
+## Release portable Monero binaries for each platform
+
+1. Update the release-v0.18 branch on Haveno's [monero repo](https://github.com/haveno-dex/monero) to the latest release from upstream + any customizations (e.g. a commit to speed up testnet hardforks for local development (b509b1)).
+2. git tag testing12 && git push haveno testing12
+3. Follow instructions to [build portable binaries for each platform](#build-portable-monero-binaries-for-each-platform).
+4. Publish a new release at https://github.com/haveno-dex/monero/releases with the updated binaries and hashes.
+5. Update the paths and hashes in build.gradle and PR.
+
 ## Build portable Monero binaries for each platform
 
 Based on these instructions: https://github.com/monero-project/monero#cross-compiling
@@ -80,14 +88,6 @@ Based on these instructions: https://github.com/monero-project/monero#cross-comp
 4. `cd build/x86_64-w64-mingw32/release/bin/`
 5. `zip monero-bins-haveno-windows.zip monerod.exe monero-wallet-rpc.exe`
 6. Save monero-bins-haveno-windows.zip for release.
-
-## Release portable Monero binaries for each platform
-
-1. Update Haveno's [monero repo](https://github.com/haveno-dex/monero) to the latest release from upstream + a commit (241b6) to rapidly update to the latest output type on testnet.
-2. git tag testing11 && git push haveno testing11
-3. Follow instructions to [build portable binaries for each platform](#build-portable-monero-binaries-for-each-platform).
-4. Publish a new release at https://github.com/haveno-dex/monero/releases with the updated binaries and hashes.
-5. Update the paths and hashes in build.gradle and PR.
 
 ## Build executable installers for each platform
 

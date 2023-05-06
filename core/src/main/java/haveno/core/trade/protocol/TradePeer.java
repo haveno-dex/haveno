@@ -119,6 +119,9 @@ public final class TradePeer implements PersistablePayload {
     private long securityDeposit;
     @Nullable
     private String updatedMultisigHex;
+    @Getter
+    @Setter
+    boolean depositsConfirmedMessageAcked;
 
     public TradePeer() {
     }
@@ -163,6 +166,7 @@ public final class TradePeer implements PersistablePayload {
         Optional.ofNullable(depositTxKey).ifPresent(e -> builder.setDepositTxKey(depositTxKey));
         Optional.ofNullable(securityDeposit).ifPresent(e -> builder.setSecurityDeposit(securityDeposit));
         Optional.ofNullable(updatedMultisigHex).ifPresent(e -> builder.setUpdatedMultisigHex(updatedMultisigHex));
+        builder.setDepositsConfirmedMessageAcked(depositsConfirmedMessageAcked);
 
         builder.setCurrentDate(currentDate);
         return builder.build();
@@ -204,6 +208,7 @@ public final class TradePeer implements PersistablePayload {
             tradePeer.setDepositTxKey(ProtoUtil.stringOrNullFromProto(proto.getDepositTxKey()));
             tradePeer.setSecurityDeposit(BigInteger.valueOf(proto.getSecurityDeposit()));
             tradePeer.setUpdatedMultisigHex(ProtoUtil.stringOrNullFromProto(proto.getUpdatedMultisigHex()));
+            tradePeer.setDepositsConfirmedMessageAcked(proto.getDepositsConfirmedMessageAcked());
             return tradePeer;
         }
     }

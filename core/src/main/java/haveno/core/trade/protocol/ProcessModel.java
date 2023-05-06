@@ -148,10 +148,6 @@ public class ProcessModel implements Model, PersistablePayload {
     @Setter
     private String multisigAddress;
     @Nullable
-    @Getter
-    @Setter
-    private boolean isDepositsConfirmedMessagesDelivered;
-    @Nullable
     @Setter
     @Getter
     private PaymentSentMessage paymentSentMessage;
@@ -207,8 +203,7 @@ public class ProcessModel implements Model, PersistablePayload {
                 .setFundsNeededForTrade(fundsNeededForTrade)
                 .setPaymentSentMessageState(paymentSentMessageStateProperty.get().name())
                 .setBuyerPayoutAmountFromMediation(buyerPayoutAmountFromMediation)
-                .setSellerPayoutAmountFromMediation(sellerPayoutAmountFromMediation)
-                .setDepositsConfirmedMessagesDelivered(isDepositsConfirmedMessagesDelivered);
+                .setSellerPayoutAmountFromMediation(sellerPayoutAmountFromMediation);
         Optional.ofNullable(maker).ifPresent(e -> builder.setMaker((protobuf.TradePeer) maker.toProtoMessage()));
         Optional.ofNullable(taker).ifPresent(e -> builder.setTaker((protobuf.TradePeer) taker.toProtoMessage()));
         Optional.ofNullable(arbitrator).ifPresent(e -> builder.setArbitrator((protobuf.TradePeer) arbitrator.toProtoMessage()));
@@ -234,7 +229,6 @@ public class ProcessModel implements Model, PersistablePayload {
         processModel.setFundsNeededForTrade(proto.getFundsNeededForTrade());
         processModel.setBuyerPayoutAmountFromMediation(proto.getBuyerPayoutAmountFromMediation());
         processModel.setSellerPayoutAmountFromMediation(proto.getSellerPayoutAmountFromMediation());
-        processModel.setDepositsConfirmedMessagesDelivered(proto.getDepositsConfirmedMessagesDelivered());
 
         // nullable
         processModel.setTakeOfferFeeTxId(ProtoUtil.stringOrNullFromProto(proto.getTakeOfferFeeTxId()));

@@ -391,7 +391,7 @@ public abstract class Trade implements Tradable, Model {
     transient private Long syncNormalStartTime;
 
     public static final long DEFER_PUBLISH_MS = 25000; // 25 seconds
-    private static final long IDLE_SYNC_PERIOD_MS = 3600000; // 1 hour
+    private static final long IDLE_SYNC_PERIOD_MS = 1680000; // 28 minutes (monero's default connection timeout is 30 minutes on a local connection, so beyond this the wallets will disconnect)
     private static final long MAX_REPROCESS_DELAY_SECONDS = 7200; // max delay to reprocess messages (once per 2 hours)
 
     //  Mutable
@@ -658,17 +658,6 @@ public abstract class Trade implements Tradable, Model {
             xmrWalletService.addWalletListener(idlePayoutSyncer);
         }
 
-        // send deposit confirmed message on startup or event
-        if (isDepositsConfirmed()) {
-            new Thread(() -> getProtocol().maybeSendDepositsConfirmedMessages()).start();
-        } else {
-            EasyBind.subscribe(stateProperty(), state -> {
-                if (isDepositsConfirmed()) {
-                    new Thread(() -> getProtocol().maybeSendDepositsConfirmedMessages()).start();
-                }
-            });
-        }
-
         // reprocess pending payout messages
         this.getProtocol().maybeReprocessPaymentReceivedMessage(false);
         HavenoUtils.arbitrationManager.maybeReprocessDisputeClosedMessage(this, false);
@@ -737,7 +726,7 @@ public abstract class Trade implements Tradable, Model {
         return MONERO_TRADE_WALLET_PREFIX + getId();
     }
 
-    public void checkWalletConnection() {
+    public void checkDaemonConnection() {
         CoreMoneroConnectionsService connectionService = xmrWalletService.getConnectionsService();
         connectionService.checkConnection();
         connectionService.verifyConnection();
@@ -746,7 +735,7 @@ public abstract class Trade implements Tradable, Model {
 
     public boolean isWalletConnected() {
         try {
-            checkWalletConnection();
+            checkDaemonConnection();
             return true;
         } catch (Exception e) {
             return false;
@@ -848,6 +837,7 @@ public abstract class Trade implements Tradable, Model {
                     // delete trade wallet backups unless deposits requested and payouts not unlocked
                     if (isDepositRequested() && !isDepositFailed() && !isPayoutUnlocked()) {
                         log.warn("Refusing to delete backup wallet for " + getClass().getSimpleName() + " " + getId() + " in the small chance it becomes funded");
+                        return;
                     }
                     xmrWalletService.deleteWalletBackups(getWalletName());
                 } catch (Exception e) {
@@ -906,7 +896,7 @@ public abstract class Trade implements Tradable, Model {
     public MoneroTxWallet createPayoutTx() {
 
         // check connection to monero daemon
-        checkWalletConnection();
+        checkDaemonConnection();
 
         // check multisig import
         if (getWallet().isMultisigImportNeeded()) throw new RuntimeException("Cannot create payout tx because multisig import is needed");
@@ -1005,7 +995,7 @@ public abstract class Trade implements Tradable, Model {
         if (!sellerPayoutDestination.getAmount().equals(expectedSellerPayout)) throw new IllegalArgumentException("Seller destination amount is not deposit amount - trade amount - 1/2 tx costs, " + sellerPayoutDestination.getAmount() + " vs " + expectedSellerPayout);
 
         // check wallet connection
-        if (sign || publish) checkWalletConnection();
+        if (sign || publish) checkDaemonConnection();
 
         // handle tx signing
         if (sign) {
@@ -1855,7 +1845,7 @@ public abstract class Trade implements Tradable, Model {
             }
         } catch (Exception e) {
             if (!isShutDown && getWallet() != null && isWalletConnected()) {
-                log.warn("Error polling trade wallet {}: {}", getId(), e.getMessage());
+                log.warn("Error polling trade wallet for {} {}: {}. Monerod={}", getClass().getSimpleName(), getId(), e.getMessage(), getXmrWalletService().getConnectionsService().getConnection());
             }
         }
     }

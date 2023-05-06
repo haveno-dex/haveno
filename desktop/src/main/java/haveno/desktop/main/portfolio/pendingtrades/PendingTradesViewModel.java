@@ -19,7 +19,6 @@ package haveno.desktop.main.portfolio.pendingtrades;
 
 import com.google.inject.Inject;
 import haveno.common.ClockWatcher;
-import haveno.common.UserThread;
 import haveno.common.app.DevEnv;
 import haveno.core.account.witness.AccountAgeWitnessService;
 import haveno.core.network.MessageState;
@@ -148,55 +147,59 @@ public class PendingTradesViewModel extends ActivatableWithDataModel<PendingTrad
 
     @Override
     protected void deactivate() {
-        if (tradeStateSubscription != null) {
-            tradeStateSubscription.unsubscribe();
-            tradeStateSubscription = null;
-        }
-
-        if (payoutStateSubscription != null) {
-            payoutStateSubscription.unsubscribe();
-            payoutStateSubscription = null;
-        }
-
-        if (messageStateSubscription != null) {
-            messageStateSubscription.unsubscribe();
-            messageStateSubscription = null;
+        synchronized (this) {
+            if (tradeStateSubscription != null) {
+                tradeStateSubscription.unsubscribe();
+                tradeStateSubscription = null;
+            }
+    
+            if (payoutStateSubscription != null) {
+                payoutStateSubscription.unsubscribe();
+                payoutStateSubscription = null;
+            }
+    
+            if (messageStateSubscription != null) {
+                messageStateSubscription.unsubscribe();
+                messageStateSubscription = null;
+            }
         }
     }
 
     // Don't set own listener as we need to control the order of the calls
     public void onSelectedItemChanged(PendingTradesListItem selectedItem) {
-        if (tradeStateSubscription != null) {
-            tradeStateSubscription.unsubscribe();
-            sellerState.set(SellerState.UNDEFINED);
-            buyerState.set(BuyerState.UNDEFINED);
-        }
+        synchronized (this) {
+            if (tradeStateSubscription != null) {
+                tradeStateSubscription.unsubscribe();
+                sellerState.set(SellerState.UNDEFINED);
+                buyerState.set(BuyerState.UNDEFINED);
+            }
+    
+            if (payoutStateSubscription != null) {
+                payoutStateSubscription.unsubscribe();
+                sellerState.set(SellerState.UNDEFINED);
+                buyerState.set(BuyerState.UNDEFINED);
+            }
+    
+            if (messageStateSubscription != null) {
+                messageStateSubscription.unsubscribe();
+                messageStateProperty.set(MessageState.UNDEFINED);
+            }
+    
+            if (selectedItem != null) {
+                this.trade = selectedItem.getTrade();
+                tradeStateSubscription = EasyBind.subscribe(trade.stateProperty(), state -> {
+                    onTradeStateChanged(state);
+                });
+                payoutStateSubscription = EasyBind.subscribe(trade.payoutStateProperty(), state -> {
+                    onPayoutStateChanged(state);
+                });
+                messageStateSubscription = EasyBind.subscribe(trade.getProcessModel().getPaymentSentMessageStateProperty(), this::onMessageStateChanged);
+            }
 
-        if (payoutStateSubscription != null) {
-            payoutStateSubscription.unsubscribe();
-            sellerState.set(SellerState.UNDEFINED);
-            buyerState.set(BuyerState.UNDEFINED);
-        }
-
-        if (messageStateSubscription != null) {
-            messageStateSubscription.unsubscribe();
-            messageStateProperty.set(MessageState.UNDEFINED);
-        }
-
-        if (selectedItem != null) {
-            this.trade = selectedItem.getTrade();
-            tradeStateSubscription = EasyBind.subscribe(trade.stateProperty(), state -> {
-                UserThread.execute(() -> onTradeStateChanged(state));
-            });
-            payoutStateSubscription = EasyBind.subscribe(trade.payoutStateProperty(), state -> {
-                UserThread.execute(() -> onPayoutStateChanged(state));
-            });
-            messageStateSubscription = EasyBind.subscribe(trade.getProcessModel().getPaymentSentMessageStateProperty(), this::onMessageStateChanged);
         }
     }
 
     public void setMessageStateProperty(MessageState messageState) {
-
         // ARRIVED is set internally after ACKNOWLEDGED, otherwise warn if subsequent states received
         if ((messageStateProperty.get() == MessageState.ACKNOWLEDGED && messageState != MessageState.ARRIVED) || messageStateProperty.get() == MessageState.ARRIVED) {
             log.warn("We have already an ACKNOWLEDGED/ARRIVED message received. " +

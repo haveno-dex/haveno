@@ -17,12 +17,17 @@
 
 package haveno.core.trade.protocol.tasks;
 
+import java.util.concurrent.TimeUnit;
+
+import haveno.common.Timer;
+import haveno.common.UserThread;
 import haveno.common.crypto.PubKeyRing;
 import haveno.common.taskrunner.TaskRunner;
 import haveno.core.trade.HavenoUtils;
 import haveno.core.trade.Trade;
 import haveno.core.trade.messages.DepositsConfirmedMessage;
 import haveno.core.trade.messages.TradeMailboxMessage;
+import haveno.core.trade.protocol.TradePeer;
 import haveno.network.p2p.NodeAddress;
 import lombok.extern.slf4j.Slf4j;
 
@@ -31,6 +36,11 @@ import lombok.extern.slf4j.Slf4j;
  */
 @Slf4j
 public abstract class SendDepositsConfirmedMessage extends SendMailboxMessageTask {
+    private Timer timer;
+    private static final int MAX_RESEND_ATTEMPTS = 10;
+    private int delayInMin = 10;
+    private int resendCounter = 0;
+
     private DepositsConfirmedMessage message;
 
     public SendDepositsConfirmedMessage(TaskRunner<Trade> taskHandler, Trade trade) {
@@ -41,6 +51,13 @@ public abstract class SendDepositsConfirmedMessage extends SendMailboxMessageTas
     protected void run() {
         try {
             runInterceptHook();
+
+            // skip if already acked by receiver
+            if (ackedByReceiver()) {
+                complete();
+                return;
+            }
+
             super.run();
         } catch (Throwable t) {
             failed(t);
@@ -81,7 +98,8 @@ public abstract class SendDepositsConfirmedMessage extends SendMailboxMessageTas
 
     @Override
     protected void setStateSent() {
-        // no additional handling
+        tryToSendAgainLater();
+        processModel.getTradeManager().requestPersistence();
     }
 
     @Override
@@ -97,5 +115,44 @@ public abstract class SendDepositsConfirmedMessage extends SendMailboxMessageTas
     @Override
     protected void setStateFault() {
         // no additional handling
+    }
+
+    private void cleanup() {
+        if (timer != null) {
+            timer.stop();
+        }
+    }
+
+    private void tryToSendAgainLater() {
+
+        // skip if already acked
+        if (ackedByReceiver()) return;
+
+        if (resendCounter >= MAX_RESEND_ATTEMPTS) {
+            cleanup();
+            log.warn("We never received an ACK message when sending the DepositsConfirmedMessage to the peer. We stop trying to send the message.");
+            return;
+        }
+
+        if (timer != null) {
+            timer.stop();
+        }
+        
+        // first re-send is after 2 minutes, then double the delay each iteration
+        if (resendCounter == 0) {
+            int shortDelay = 2;
+            log.info("We will send the message again to the peer after a delay of {} min.", shortDelay);
+            timer = UserThread.runAfter(this::run, shortDelay, TimeUnit.MINUTES);
+        } else {
+            log.info("We will send the message again to the peer after a delay of {} min.", delayInMin);
+            timer = UserThread.runAfter(this::run, delayInMin, TimeUnit.MINUTES);
+            delayInMin = delayInMin * 2;
+        }
+        resendCounter++;
+    }
+
+    private boolean ackedByReceiver() {
+        TradePeer peer = trade.getTradePeer(getReceiverNodeAddress());
+        return peer.isDepositsConfirmedMessageAcked();
     }
 }

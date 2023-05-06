@@ -156,7 +156,7 @@ public class WalletAppSetup {
                             rejectedTxException.set((RejectedTxException) exception);
                             getWalletServiceErrorMsg().set(Res.get("mainView.walletServiceErrorMsg.rejectedTxException", exception.getMessage()));
                         } else {
-                            getWalletServiceErrorMsg().set(Res.get("mainView.walletServiceErrorMsg.connectionError", exception.toString()));
+                            getWalletServiceErrorMsg().set(Res.get("mainView.walletServiceErrorMsg.connectionError", exception.getMessage()));
                         }
                     }
                     return result;

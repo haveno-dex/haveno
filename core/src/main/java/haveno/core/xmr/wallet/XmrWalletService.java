@@ -232,14 +232,10 @@ public class XmrWalletService {
     public MoneroWalletRpc openWallet(String walletName) {
         log.info("{}.openWallet({})", getClass().getSimpleName(), walletName);
         if (isShutDownStarted) throw new IllegalStateException("Cannot open wallet because shutting down");
-        try {
-            return openWalletRpc(new MoneroWalletConfig()
-            .setPath(walletName)
-            .setPassword(getWalletPassword()),
+        return openWalletRpc(new MoneroWalletConfig()
+                .setPath(walletName)
+                .setPassword(getWalletPassword()),
             null);
-        } catch (MoneroError e) {
-            throw new IllegalStateException("Could not open wallet '" + walletName + "'. Please close Haveno, stop all monero-wallet-rpc processes, and restart Haveno.");
-        }
     }
 
     /**
@@ -667,12 +663,13 @@ public class XmrWalletService {
         MoneroRpcConnection connection = connectionsService.getConnection();
         if (connection == null || !Boolean.TRUE.equals(connection.isConnected())) throw new RuntimeException("Must be connected to daemon before creating wallet");
 
-        // start monero-wallet-rpc instance
-        MoneroWalletRpc walletRpc = startWalletRpcInstance(port);
-        walletRpc.getRpcConnection().setPrintStackTrace(PRINT_STACK_TRACE);
-
         // create wallet
+        MoneroWalletRpc walletRpc = null;
         try {
+
+            // start monero-wallet-rpc instance
+            walletRpc = startWalletRpcInstance(port);
+            walletRpc.getRpcConnection().setPrintStackTrace(PRINT_STACK_TRACE);
             
             // prevent wallet rpc from syncing
             walletRpc.stopSyncing();
@@ -686,19 +683,18 @@ public class XmrWalletService {
             return walletRpc;
         } catch (Exception e) {
             e.printStackTrace();
-            stopWallet(walletRpc, config.getPath());
-            throw e;
+            if (walletRpc != null) stopWallet(walletRpc, config.getPath());
+            throw new IllegalStateException("Could not create wallet '" + config.getPath() + "'. Please close Haveno, stop all monero-wallet-rpc processes, and restart Haveno.");
         }
     }
 
     private MoneroWalletRpc openWalletRpc(MoneroWalletConfig config, Integer port) {
-
-        // start monero-wallet-rpc instance
-        MoneroWalletRpc walletRpc = startWalletRpcInstance(port);
-        walletRpc.getRpcConnection().setPrintStackTrace(PRINT_STACK_TRACE);
-
-        // open wallet
+        MoneroWalletRpc walletRpc = null;
         try {
+
+            // start monero-wallet-rpc instance
+            walletRpc = startWalletRpcInstance(port);
+            walletRpc.getRpcConnection().setPrintStackTrace(PRINT_STACK_TRACE);
             
             // prevent wallet rpc from syncing
             walletRpc.stopSyncing();
@@ -711,8 +707,8 @@ public class XmrWalletService {
             return walletRpc;
         } catch (Exception e) {
             e.printStackTrace();
-            stopWallet(walletRpc, config.getPath());
-            throw e;
+            if (walletRpc != null) stopWallet(walletRpc, config.getPath());
+            throw new IllegalStateException("Could not open wallet '" + config.getPath() + "'. Please close Haveno, stop all monero-wallet-rpc processes, and restart Haveno.");
         }
     }
 
@@ -772,9 +768,9 @@ public class XmrWalletService {
             wallet.setDaemonConnection(connection);
             if (connection != null) wallet.getDaemonConnection().setPrintStackTrace(PRINT_STACK_TRACE);
             if (connection != null && !Boolean.FALSE.equals(connection.isConnected())) {
-                wallet.startSyncing(connectionsService.getRefreshPeriodMs());
                 new Thread(() -> {
                     try {
+                        wallet.startSyncing(connectionsService.getRefreshPeriodMs());
                         wallet.sync();
                     } catch (Exception e) {
                         log.warn("Failed to sync main wallet after setting daemon connection: " + e.getMessage());

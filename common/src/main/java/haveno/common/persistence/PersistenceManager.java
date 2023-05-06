@@ -150,12 +150,18 @@ public class PersistenceManager<T extends PersistableEnvelope> {
                 // (fixes https://github.com/bisq-network/bisq/issues/4844).
                 if (persistenceManager.readCalled.get() &&
                         (persistenceManager.source.flushAtShutDown || persistenceManager.persistenceRequested)) {
+
                     // We always get our completeHandler called even if exceptions happen. In case a file write fails
                     // we still call our shutdown and count down routine as the completeHandler is triggered in any case.
-
                     // We get our result handler called from the write thread so we map back to user thread.
-                    persistenceManager.persistNow(() ->
+                    try {
+                        persistenceManager.persistNow(() ->
                             UserThread.execute(() -> onWriteCompleted(completeHandler, openInstances, persistenceManager, doShutdown)));
+                    } catch (Exception e) {
+                        if (!doShutdown) throw e; // only complete if shutting down
+                        log.warn("Error flushing data to disk on shut down. Calling completeHandler.");
+                        UserThread.execute(() -> onWriteCompleted(completeHandler, openInstances, persistenceManager, doShutdown));
+                    }
                 } else {
                     onWriteCompleted(completeHandler, openInstances, persistenceManager, doShutdown);
                 }
