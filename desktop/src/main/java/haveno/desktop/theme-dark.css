@@ -11,10 +11,10 @@
     /* javafx elements */
     -fx-accent: #0b65da;
     -fx-box-border: transparent;
-    -fx-focus-color: -fx-accent;
-    -fx-faint-focus-color: #0f87c3;
-    -fx-selection-bar: #4181d4;
-    -fx-selection-bar-non-focused: -fx-selection-bar;
+    -fx-focus-color: #0c59bd;
+    -fx-faint-focus-color: #0c59bd;
+    -fx-selection-bar: #0f87c3;
+    -fx-selection-bar-non-focused: #4181d4;
     -fx-default-button: derive(-fx-accent, 95%);
 
     /* haveno main colors */
