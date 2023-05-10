@@ -30,9 +30,3 @@ jobs:
         with:
           name: cached-localnet
           path: .localnet
-      - uses: actions/upload-artifact@v3
-        if: failure()
-        with:
-          name: gradlew-report
-          path: 'desktop/build/reports/tests/test/index.html'
-          retention-days: 30

@@ -28,6 +28,7 @@ configure(subprojects) {
     apply plugin: 'com.google.osdetector'
     // Apply the jacoco plugin to add support for test coverage
     apply plugin: 'jacoco'
+    apply plugin: 'jacoco-report-aggregation'
     apply plugin: 'checkstyle'
 
     sourceCompatibility = JavaVersion.VERSION_11
@@ -47,7 +48,7 @@ configure(subprojects) {
         grpcVersion = '1.42.1'
         gsonVersion = '2.8.5'
         guavaVersion = '30.1.1-jre'
-        guiceVersion = '4.2.2'
+        guiceVersion = '5.1.0'
         moneroJavaVersion = '0.8.0'
         httpclient5Version = '5.0'
         hamcrestVersion = '2.2'
@@ -95,7 +96,7 @@ configure(subprojects) {
     checkstyle {
         toolVersion = '10.8.1'
         // https://raw.githubusercontent.com/checkstyle/checkstyle/checkstyle-10.8.1/src/main/resources/google_checks.xml
-        configFile = rootProject.file("${rootDir}/config/checkstyle/checkstyle.xml")
+        configFile = rootProject.file("$rootDir/config/checkstyle/checkstyle.xml")
     }
 
     tasks.withType(Checkstyle) {
@@ -103,14 +104,20 @@ configure(subprojects) {
         maxHeapSize.set('1g')
     }
 
-    jacocoTestReport {
-        reports {
-            xml.required.set(true)
-            html.required.set(false)
+    jacoco {
+        toolVersion = "0.8.10"
+        reportsDirectory = file("$rootDir/build/reports/jacoco")
+    }
+
+    test.finalizedBy {
+        testCodeCoverageReport {
+            // tests are required to run before generating the report
+            reports {
+                xml.required.set(true)
+                html.required.set(false)
+            }
         }
     }
-    // Codacy report generated with every build at assets/build/reports/jacoco/test/jacocoTestReport.xml
-    test.finalizedBy jacocoTestReport
 }
 
 configure([project(':cli'),
