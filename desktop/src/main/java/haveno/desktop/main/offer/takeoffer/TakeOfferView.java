@@ -160,7 +160,7 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
     private int gridRow = 0;
     private final HashMap<String, Boolean> paymentAccountWarningDisplayed = new HashMap<>();
     private boolean offerDetailsWindowDisplayed, zelleWarningDisplayed, fasterPaymentsWarningDisplayed,
-            takeOfferFromUnsignedAccountWarningDisplayed, cashByMailWarningDisplayed;
+            takeOfferFromUnsignedAccountWarningDisplayed, payByMailWarningDisplayed;
     private SimpleBooleanProperty errorPopupDisplayed;
     private ChangeListener<Boolean> amountFocusedListener, getShowWalletFundedNotificationListener;
 
@@ -267,7 +267,7 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
         maybeShowZelleWarning(lastPaymentAccount);
         maybeShowFasterPaymentsWarning(lastPaymentAccount);
         maybeShowAccountWarning(lastPaymentAccount, model.dataModel.isBuyOffer());
-        maybeShowCashByMailWarning(lastPaymentAccount, model.dataModel.getOffer());
+        maybeShowPayByMailWarning(lastPaymentAccount, model.dataModel.getOffer());
 
         if (!model.isRange()) {
             nextButton.setVisible(false);
@@ -1118,13 +1118,13 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
         OfferViewUtil.showPaymentAccountWarning(msgKey, paymentAccountWarningDisplayed);
     }
 
-    private void maybeShowCashByMailWarning(PaymentAccount paymentAccount, Offer offer) {
-        if (paymentAccount.getPaymentMethod().getId().equals(PaymentMethod.CASH_BY_MAIL_ID) &&
-                !cashByMailWarningDisplayed && !offer.getExtraInfo().isEmpty()) {
-            cashByMailWarningDisplayed = true;
+    private void maybeShowPayByMailWarning(PaymentAccount paymentAccount, Offer offer) {
+        if (paymentAccount.getPaymentMethod().getId().equals(PaymentMethod.PAY_BY_MAIL_ID) &&
+                !payByMailWarningDisplayed && !offer.getExtraInfo().isEmpty()) {
+            payByMailWarningDisplayed = true;
             UserThread.runAfter(() -> {
                 new GenericMessageWindow()
-                        .preamble(Res.get("payment.cashByMail.tradingRestrictions"))
+                        .preamble(Res.get("payment.payByMail.tradingRestrictions"))
                         .instruction(offer.getExtraInfo())
                         .actionButtonText(Res.get("shared.iConfirm"))
                         .closeButtonText(Res.get("shared.close"))

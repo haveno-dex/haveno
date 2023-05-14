@@ -28,7 +28,7 @@ import haveno.core.locale.Res;
 import haveno.core.monetary.Price;
 import haveno.core.monetary.TraditionalMoney;
 import haveno.core.monetary.Volume;
-import haveno.core.payment.CashByMailAccount;
+import haveno.core.payment.PayByMailAccount;
 import haveno.core.payment.F2FAccount;
 import haveno.core.payment.PaymentAccount;
 import haveno.core.provider.price.MarketPrice;
@@ -58,7 +58,7 @@ import static haveno.common.util.MathUtils.roundDoubleToLong;
 import static haveno.common.util.MathUtils.scaleUpByPowerOf10;
 import static haveno.core.offer.OfferPayload.ACCOUNT_AGE_WITNESS_HASH;
 import static haveno.core.offer.OfferPayload.CAPABILITIES;
-import static haveno.core.offer.OfferPayload.CASH_BY_MAIL_EXTRA_INFO;
+import static haveno.core.offer.OfferPayload.PAY_BY_MAIL_EXTRA_INFO;
 import static haveno.core.offer.OfferPayload.F2F_CITY;
 import static haveno.core.offer.OfferPayload.F2F_EXTRA_INFO;
 import static haveno.core.offer.OfferPayload.REFERRAL_ID;
@@ -199,8 +199,8 @@ public class OfferUtil {
             extraDataMap.put(F2F_EXTRA_INFO, ((F2FAccount) paymentAccount).getExtraInfo());
         }
 
-        if (paymentAccount instanceof CashByMailAccount) {
-            extraDataMap.put(CASH_BY_MAIL_EXTRA_INFO, ((CashByMailAccount) paymentAccount).getExtraInfo());
+        if (paymentAccount instanceof PayByMailAccount) {
+            extraDataMap.put(PAY_BY_MAIL_EXTRA_INFO, ((PayByMailAccount) paymentAccount).getExtraInfo());
         }
 
         extraDataMap.put(CAPABILITIES, Capabilities.app.toStringList());

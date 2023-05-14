@@ -22,9 +22,9 @@ import haveno.core.account.witness.AccountAgeWitnessService;
 import haveno.core.locale.CurrencyUtil;
 import haveno.core.locale.Res;
 import haveno.core.locale.TradeCurrency;
-import haveno.core.payment.CashByMailAccount;
+import haveno.core.payment.PayByMailAccount;
 import haveno.core.payment.PaymentAccount;
-import haveno.core.payment.payload.CashByMailAccountPayload;
+import haveno.core.payment.payload.PayByMailAccountPayload;
 import haveno.core.payment.payload.PaymentAccountPayload;
 import haveno.core.util.coin.CoinFormatter;
 import haveno.core.util.validation.InputValidator;
@@ -40,13 +40,13 @@ import static haveno.desktop.util.FormBuilder.addInputTextField;
 import static haveno.desktop.util.FormBuilder.addTopLabelTextArea;
 import static haveno.desktop.util.FormBuilder.addTopLabelTextFieldWithCopyIcon;
 
-public class CashByMailForm extends PaymentMethodForm {
-    private final CashByMailAccount cashByMailAccount;
+public class PayByMailForm extends PaymentMethodForm {
+    private final PayByMailAccount payByMailAccount;
     private TextArea postalAddressTextArea;
 
     public static int addFormForBuyer(GridPane gridPane, int gridRow,
                                       PaymentAccountPayload paymentAccountPayload) {
-        CashByMailAccountPayload cbm = (CashByMailAccountPayload) paymentAccountPayload;
+        PayByMailAccountPayload cbm = (PayByMailAccountPayload) paymentAccountPayload;
         addTopLabelTextFieldWithCopyIcon(gridPane, gridRow, 1,
                 Res.get("payment.account.owner"),
                 cbm.getHolderName(),
@@ -64,11 +64,11 @@ public class CashByMailForm extends PaymentMethodForm {
         return gridRow;
     }
 
-    public CashByMailForm(PaymentAccount paymentAccount,
+    public PayByMailForm(PaymentAccount paymentAccount,
                                   AccountAgeWitnessService accountAgeWitnessService,
                                   InputValidator inputValidator, GridPane gridPane, int gridRow, CoinFormatter formatter) {
         super(paymentAccount, accountAgeWitnessService, inputValidator, gridPane, gridRow, formatter);
-        this.cashByMailAccount = (CashByMailAccount) paymentAccount;
+        this.payByMailAccount = (PayByMailAccount) paymentAccount;
     }
 
     @Override
@@ -79,11 +79,11 @@ public class CashByMailForm extends PaymentMethodForm {
         currencyComboBox.setItems(FXCollections.observableArrayList(CurrencyUtil.getAllSortedTraditionalCurrencies()));
 
         InputTextField contactField = addInputTextField(gridPane, ++gridRow,
-                Res.get("payment.cashByMail.contact"));
-        contactField.setPromptText(Res.get("payment.cashByMail.contact.prompt"));
+                Res.get("payment.payByMail.contact"));
+        contactField.setPromptText(Res.get("payment.payByMail.contact.prompt"));
         contactField.setValidator(inputValidator);
         contactField.textProperty().addListener((ov, oldValue, newValue) -> {
-            cashByMailAccount.setContact(newValue);
+            payByMailAccount.setContact(newValue);
             updateFromInputs();
         });
 
@@ -91,16 +91,16 @@ public class CashByMailForm extends PaymentMethodForm {
                 Res.get("payment.postal.address"), "").second;
         postalAddressTextArea.setMinHeight(70);
         postalAddressTextArea.textProperty().addListener((ov, oldValue, newValue) -> {
-            cashByMailAccount.setPostalAddress(newValue);
+            payByMailAccount.setPostalAddress(newValue);
             updateFromInputs();
         });
 
         TextArea extraTextArea = addTopLabelTextArea(gridPane, ++gridRow,
-                Res.get("payment.shared.optionalExtra"), Res.get("payment.cashByMail.extraInfo.prompt")).second;
+                Res.get("payment.shared.optionalExtra"), Res.get("payment.payByMail.extraInfo.prompt")).second;
         extraTextArea.setMinHeight(70);
         ((JFXTextArea) extraTextArea).setLabelFloat(false);
         extraTextArea.textProperty().addListener((ov, oldValue, newValue) -> {
-            cashByMailAccount.setExtraInfo(newValue);
+            payByMailAccount.setExtraInfo(newValue);
             updateFromInputs();
         });
 
@@ -110,7 +110,7 @@ public class CashByMailForm extends PaymentMethodForm {
 
     @Override
     protected void autoFillNameTextField() {
-        setAccountNameWithString(cashByMailAccount.getContact());
+        setAccountNameWithString(payByMailAccount.getContact());
     }
 
     @Override
@@ -118,21 +118,21 @@ public class CashByMailForm extends PaymentMethodForm {
         gridRowFrom = gridRow;
         addAccountNameTextFieldWithAutoFillToggleButton();
         addCompactTopLabelTextField(gridPane, ++gridRow, Res.get("shared.paymentMethod"),
-                Res.get(cashByMailAccount.getPaymentMethod().getId()));
+                Res.get(payByMailAccount.getPaymentMethod().getId()));
 
         TradeCurrency tradeCurrency = paymentAccount.getSingleTradeCurrency();
         String nameAndCode = tradeCurrency != null ? tradeCurrency.getNameAndCode() : "";
         addCompactTopLabelTextField(gridPane, ++gridRow, Res.get("shared.currency"), nameAndCode);
 
         addCompactTopLabelTextField(gridPane, ++gridRow, Res.get("payment.f2f.contact"),
-                cashByMailAccount.getContact());
+                payByMailAccount.getContact());
         TextArea textArea = addCompactTopLabelTextArea(gridPane, ++gridRow, Res.get("payment.postal.address"), "").second;
-        textArea.setText(cashByMailAccount.getPostalAddress());
+        textArea.setText(payByMailAccount.getPostalAddress());
         textArea.setMinHeight(70);
         textArea.setEditable(false);
 
         TextArea textAreaExtra = addCompactTopLabelTextArea(gridPane, ++gridRow, Res.get("payment.shared.extraInfo"), "").second;
-        textAreaExtra.setText(cashByMailAccount.getExtraInfo());
+        textAreaExtra.setText(payByMailAccount.getExtraInfo());
         textAreaExtra.setMinHeight(70);
         textAreaExtra.setEditable(false);
 
@@ -142,8 +142,8 @@ public class CashByMailForm extends PaymentMethodForm {
     @Override
     public void updateAllInputsValid() {
         allInputsValid.set(isAccountNameValid()
-                && !cashByMailAccount.getPostalAddress().isEmpty()
-                && inputValidator.validate(cashByMailAccount.getContact()).isValid
+                && !payByMailAccount.getPostalAddress().isEmpty()
+                && inputValidator.validate(payByMailAccount.getContact()).isValid
                 && paymentAccount.getSingleTradeCurrency() != null);
     }
 }

@@ -35,12 +35,12 @@ import java.util.Map;
 @Setter
 @Getter
 @Slf4j
-public final class CashByMailAccountPayload extends PaymentAccountPayload implements PayloadWithHolderName {
+public final class PayByMailAccountPayload extends PaymentAccountPayload implements PayloadWithHolderName {
     private String postalAddress = "";
     private String contact = "";
     private String extraInfo = "";
 
-    public CashByMailAccountPayload(String paymentMethod, String id) {
+    public PayByMailAccountPayload(String paymentMethod, String id) {
         super(paymentMethod, id);
     }
 
@@ -49,7 +49,7 @@ public final class CashByMailAccountPayload extends PaymentAccountPayload implem
     // PROTO BUFFER
     ///////////////////////////////////////////////////////////////////////////////////////////
 
-    private CashByMailAccountPayload(String paymentMethod, String id,
+    private PayByMailAccountPayload(String paymentMethod, String id,
                                              String postalAddress,
                                              String contact,
                                              String extraInfo,
@@ -67,19 +67,19 @@ public final class CashByMailAccountPayload extends PaymentAccountPayload implem
     @Override
     public Message toProtoMessage() {
         return getPaymentAccountPayloadBuilder()
-                .setCashByMailAccountPayload(protobuf.CashByMailAccountPayload.newBuilder()
+                .setPayByMailAccountPayload(protobuf.PayByMailAccountPayload.newBuilder()
                         .setPostalAddress(postalAddress)
                         .setContact(contact)
                         .setExtraInfo(extraInfo))
                 .build();
     }
 
-    public static CashByMailAccountPayload fromProto(protobuf.PaymentAccountPayload proto) {
-        return new CashByMailAccountPayload(proto.getPaymentMethodId(),
+    public static PayByMailAccountPayload fromProto(protobuf.PaymentAccountPayload proto) {
+        return new PayByMailAccountPayload(proto.getPaymentMethodId(),
                 proto.getId(),
-                proto.getCashByMailAccountPayload().getPostalAddress(),
-                proto.getCashByMailAccountPayload().getContact(),
-                proto.getCashByMailAccountPayload().getExtraInfo(),
+                proto.getPayByMailAccountPayload().getPostalAddress(),
+                proto.getPayByMailAccountPayload().getContact(),
+                proto.getPayByMailAccountPayload().getExtraInfo(),
                 proto.getMaxTradePeriod(),
                 new HashMap<>(proto.getExcludeFromJsonDataMap()));
     }

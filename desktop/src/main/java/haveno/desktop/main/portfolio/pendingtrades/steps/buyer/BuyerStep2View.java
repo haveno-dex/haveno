@@ -27,12 +27,12 @@ import haveno.core.offer.Offer;
 import haveno.core.payment.PaymentAccount;
 import haveno.core.payment.PaymentAccountUtil;
 import haveno.core.payment.payload.AssetAccountPayload;
-import haveno.core.payment.payload.CashByMailAccountPayload;
 import haveno.core.payment.payload.CashDepositAccountPayload;
 import haveno.core.payment.payload.F2FAccountPayload;
 import haveno.core.payment.payload.FasterPaymentsAccountPayload;
 import haveno.core.payment.payload.HalCashAccountPayload;
 import haveno.core.payment.payload.MoneyGramAccountPayload;
+import haveno.core.payment.payload.PayByMailAccountPayload;
 import haveno.core.payment.payload.PaymentAccountPayload;
 import haveno.core.payment.payload.PaymentMethod;
 import haveno.core.payment.payload.SwiftAccountPayload;
@@ -51,7 +51,7 @@ import haveno.desktop.components.paymentmethods.AmazonGiftCardForm;
 import haveno.desktop.components.paymentmethods.AssetsForm;
 import haveno.desktop.components.paymentmethods.BizumForm;
 import haveno.desktop.components.paymentmethods.CapitualForm;
-import haveno.desktop.components.paymentmethods.CashByMailForm;
+import haveno.desktop.components.paymentmethods.PayByMailForm;
 import haveno.desktop.components.paymentmethods.CashDepositForm;
 import haveno.desktop.components.paymentmethods.CelPayForm;
 import haveno.desktop.components.paymentmethods.ChaseQuickPayForm;
@@ -292,8 +292,8 @@ public class BuyerStep2View extends TradeStepView {
             case PaymentMethod.CASH_DEPOSIT_ID:
                 gridRow = CashDepositForm.addFormForBuyer(gridPane, gridRow, paymentAccountPayload);
                 break;
-            case PaymentMethod.CASH_BY_MAIL_ID:
-                gridRow = CashByMailForm.addFormForBuyer(gridPane, gridRow, paymentAccountPayload);
+            case PaymentMethod.PAY_BY_MAIL_ID:
+                gridRow = PayByMailForm.addFormForBuyer(gridPane, gridRow, paymentAccountPayload);
                 break;
             case PaymentMethod.MONEY_GRAM_ID:
                 gridRow = MoneyGramForm.addFormForBuyer(gridPane, gridRow, paymentAccountPayload);
@@ -617,7 +617,7 @@ public class BuyerStep2View extends TradeStepView {
                         Res.get("portfolio.pending.step2_buyer.fasterPaymentsHolderNameInfo") + "\n\n" +
                         refTextWarn + "\n\n" +
                         fees;
-            } else if (paymentAccountPayload instanceof CashByMailAccountPayload ||
+            } else if (paymentAccountPayload instanceof PayByMailAccountPayload ||
                     paymentAccountPayload instanceof HalCashAccountPayload) {
                 message += Res.get("portfolio.pending.step2_buyer.pay", amount);
             } else if (paymentAccountPayload instanceof SwiftAccountPayload) {
