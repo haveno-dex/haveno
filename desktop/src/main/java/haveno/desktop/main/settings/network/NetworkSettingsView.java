@@ -481,9 +481,7 @@ public class NetworkSettingsView extends ActivatableView<GridPane, Void> {
     }
 
     private void updateChainHeightTextField(Number chainHeight) {
-        chainHeightTextField.textProperty().setValue(Res.get("settings.net.chainHeight",
-                null,
-                chainHeight));
+        chainHeightTextField.textProperty().setValue(Res.get("settings.net.chainHeight", chainHeight));
     }
 }
 
