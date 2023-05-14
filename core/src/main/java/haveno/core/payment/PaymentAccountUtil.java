@@ -47,7 +47,7 @@ import static haveno.core.payment.payload.PaymentMethod.BLOCK_CHAINS;
 import static haveno.core.payment.payload.PaymentMethod.BLOCK_CHAINS_INSTANT;
 import static haveno.core.payment.payload.PaymentMethod.CAPITUAL_ID;
 import static haveno.core.payment.payload.PaymentMethod.CASH_APP_ID;
-import static haveno.core.payment.payload.PaymentMethod.CASH_BY_MAIL_ID;
+import static haveno.core.payment.payload.PaymentMethod.PAY_BY_MAIL_ID;
 import static haveno.core.payment.payload.PaymentMethod.CASH_DEPOSIT_ID;
 import static haveno.core.payment.payload.PaymentMethod.CELPAY_ID;
 import static haveno.core.payment.payload.PaymentMethod.CHASE_QUICK_PAY_ID;
@@ -238,8 +238,8 @@ public class PaymentAccountUtil {
                 return SepaAccount.SUPPORTED_CURRENCIES;
             case SEPA_INSTANT_ID:
                 return SepaInstantAccount.SUPPORTED_CURRENCIES;
-            case CASH_BY_MAIL_ID:
-                return CashByMailAccount.SUPPORTED_CURRENCIES;
+            case PAY_BY_MAIL_ID:
+                return PayByMailAccount.SUPPORTED_CURRENCIES;
             case F2F_ID:
                 return F2FAccount.SUPPORTED_CURRENCIES;
             case NATIONAL_BANK_ID:

@@ -26,7 +26,7 @@ import haveno.core.locale.Res;
 import haveno.core.offer.OfferRestrictions;
 import haveno.core.payment.AmazonGiftCardAccount;
 import haveno.core.payment.AustraliaPayidAccount;
-import haveno.core.payment.CashByMailAccount;
+import haveno.core.payment.PayByMailAccount;
 import haveno.core.payment.CashDepositAccount;
 import haveno.core.payment.ZelleAccount;
 import haveno.core.payment.F2FAccount;
@@ -72,7 +72,7 @@ import haveno.desktop.components.paymentmethods.AmazonGiftCardForm;
 import haveno.desktop.components.paymentmethods.AustraliaPayidForm;
 import haveno.desktop.components.paymentmethods.BizumForm;
 import haveno.desktop.components.paymentmethods.CapitualForm;
-import haveno.desktop.components.paymentmethods.CashByMailForm;
+import haveno.desktop.components.paymentmethods.PayByMailForm;
 import haveno.desktop.components.paymentmethods.CashDepositForm;
 import haveno.desktop.components.paymentmethods.CelPayForm;
 import haveno.desktop.components.paymentmethods.ChaseQuickPayForm;
@@ -262,9 +262,9 @@ public class TraditionalAccountsView extends PaymentAccountsView<GridPane, Tradi
                     .actionButtonText(Res.get("shared.iUnderstand"))
                     .onAction(() -> doSaveNewAccount(paymentAccount))
                     .show();
-        } else if (paymentAccount instanceof CashByMailAccount) {
-            // CashByMail has no chargeback risk so we don't show the text from payment.limits.info.
-            new Popup().information(Res.get("payment.cashByMail.info"))
+        } else if (paymentAccount instanceof PayByMailAccount) {
+            // PayByMail has no chargeback risk so we don't show the text from payment.limits.info.
+            new Popup().information(Res.get("payment.payByMail.info"))
                     .width(850)
                     .closeButtonText(Res.get("shared.cancel"))
                     .actionButtonText(Res.get("shared.iUnderstand"))
@@ -557,8 +557,8 @@ public class TraditionalAccountsView extends PaymentAccountsView<GridPane, Tradi
                 return new WesternUnionForm(paymentAccount, accountAgeWitnessService, inputValidator, root, gridRow, formatter);
             case PaymentMethod.CASH_DEPOSIT_ID:
                 return new CashDepositForm(paymentAccount, accountAgeWitnessService, inputValidator, root, gridRow, formatter);
-            case PaymentMethod.CASH_BY_MAIL_ID:
-                return new CashByMailForm(paymentAccount, accountAgeWitnessService, inputValidator, root, gridRow, formatter);
+            case PaymentMethod.PAY_BY_MAIL_ID:
+                return new PayByMailForm(paymentAccount, accountAgeWitnessService, inputValidator, root, gridRow, formatter);
             case PaymentMethod.HAL_CASH_ID:
                 return new HalCashForm(paymentAccount, accountAgeWitnessService, halCashValidator, inputValidator, root, gridRow, formatter);
             case PaymentMethod.F2F_ID:

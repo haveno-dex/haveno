@@ -20,24 +20,24 @@ package haveno.core.payment;
 import haveno.core.api.model.PaymentAccountFormField;
 import haveno.core.locale.CurrencyUtil;
 import haveno.core.locale.TradeCurrency;
-import haveno.core.payment.payload.CashByMailAccountPayload;
+import haveno.core.payment.payload.PayByMailAccountPayload;
 import haveno.core.payment.payload.PaymentAccountPayload;
 import haveno.core.payment.payload.PaymentMethod;
 import lombok.NonNull;
 
 import java.util.List;
 
-public final class CashByMailAccount extends PaymentAccount {
+public final class PayByMailAccount extends PaymentAccount {
 
     public static final List<TradeCurrency> SUPPORTED_CURRENCIES = CurrencyUtil.getAllTraditionalCurrencies();
 
-    public CashByMailAccount() {
-        super(PaymentMethod.CASH_BY_MAIL);
+    public PayByMailAccount() {
+        super(PaymentMethod.PAY_BY_MAIL);
     }
 
     @Override
     protected PaymentAccountPayload createPayload() {
-        return new CashByMailAccountPayload(paymentMethod.getId(), id);
+        return new PayByMailAccountPayload(paymentMethod.getId(), id);
     }
 
     @Override
@@ -51,26 +51,26 @@ public final class CashByMailAccount extends PaymentAccount {
     }
 
     public void setPostalAddress(String postalAddress) {
-        ((CashByMailAccountPayload) paymentAccountPayload).setPostalAddress(postalAddress);
+        ((PayByMailAccountPayload) paymentAccountPayload).setPostalAddress(postalAddress);
     }
 
     public String getPostalAddress() {
-        return ((CashByMailAccountPayload) paymentAccountPayload).getPostalAddress();
+        return ((PayByMailAccountPayload) paymentAccountPayload).getPostalAddress();
     }
 
     public void setContact(String contact) {
-        ((CashByMailAccountPayload) paymentAccountPayload).setContact(contact);
+        ((PayByMailAccountPayload) paymentAccountPayload).setContact(contact);
     }
 
     public String getContact() {
-        return ((CashByMailAccountPayload) paymentAccountPayload).getContact();
+        return ((PayByMailAccountPayload) paymentAccountPayload).getContact();
     }
 
     public void setExtraInfo(String extraInfo) {
-        ((CashByMailAccountPayload) paymentAccountPayload).setExtraInfo(extraInfo);
+        ((PayByMailAccountPayload) paymentAccountPayload).setExtraInfo(extraInfo);
     }
 
     public String getExtraInfo() {
-        return ((CashByMailAccountPayload) paymentAccountPayload).getExtraInfo();
+        return ((PayByMailAccountPayload) paymentAccountPayload).getExtraInfo();
     }
 }
