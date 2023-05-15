@@ -1071,7 +1071,8 @@ public abstract class Trade implements Tradable, Model {
         if (depositId == null) return null;
         try {
             if (trader.getDepositTx() == null || !trader.getDepositTx().isConfirmed()) {
-                trader.setDepositTx(getDepositTxFromWalletOrDaemon(depositId));
+                MoneroTx depositTx = getDepositTxFromWalletOrDaemon(depositId);
+                if (depositTx != null) trader.setDepositTx(depositTx);
             }
             return trader.getDepositTx();
         } catch (MoneroError e) {
@@ -1801,8 +1802,8 @@ public abstract class Trade implements Tradable, Model {
                     if (tx.getHash().equals(processModel.getMaker().getDepositTxHash())) makerDepositTx = tx;
                     if (tx.getHash().equals(processModel.getTaker().getDepositTxHash())) takerDepositTx = tx;
                 }
-                getMaker().setDepositTx(makerDepositTx);
-                getTaker().setDepositTx(takerDepositTx);
+                if (makerDepositTx != null) getMaker().setDepositTx(makerDepositTx);
+                if (takerDepositTx != null) getTaker().setDepositTx(takerDepositTx);
 
                 // skip if deposit txs not seen
                 if (makerDepositTx == null || takerDepositTx == null) return;

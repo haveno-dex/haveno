@@ -52,6 +52,7 @@ import haveno.core.trade.protocol.tasks.ProcessPaymentSentMessage;
 import haveno.core.trade.protocol.tasks.ProcessSignContractRequest;
 import haveno.core.trade.protocol.tasks.ProcessSignContractResponse;
 import haveno.core.trade.protocol.tasks.RemoveOffer;
+import haveno.core.trade.protocol.tasks.SellerPublishTradeStatistics;
 import haveno.core.trade.protocol.tasks.MaybeResendDisputeClosedMessageWithPayout;
 import haveno.core.trade.protocol.tasks.TradeTask;
 import haveno.core.trade.protocol.tasks.VerifyPeersAccountAgeWitness;
@@ -418,11 +419,11 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
             processModel.setTradeMessage(response);
             expect(anyState(Trade.State.SENT_PUBLISH_DEPOSIT_TX_REQUEST, Trade.State.SAW_ARRIVED_PUBLISH_DEPOSIT_TX_REQUEST, Trade.State.ARBITRATOR_PUBLISHED_DEPOSIT_TXS, Trade.State.DEPOSIT_TXS_SEEN_IN_NETWORK)
                     .with(response)
-                    .from(sender)) // TODO (woodser): ensure this asserts sender == response.getSenderNodeAddress()
+                    .from(sender))
                     .setup(tasks(
-                            // TODO (woodser): validate request
                             ProcessDepositResponse.class,
-                            RemoveOffer.class)
+                            RemoveOffer.class,
+                            SellerPublishTradeStatistics.class)
                     .using(new TradeTaskRunner(trade,
                         () -> {
                             stopTimeout();
